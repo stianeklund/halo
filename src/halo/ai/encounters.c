@@ -361,10 +361,11 @@ char *FUN_00054020(char *encounter, short platoon_index)
  * If either debug trace flag (0x5aca57 = ai_trace_detail or 0x5aca59 =
  * ai_trace) is set, logs the migration via:
  *   "[thread]: ai_migrate [encounter1_name] [encounter2_name]"
- * using ai_index_to_string to format each encounter handle into a name buffer via
- * global_scenario_get(), then hs_runtime_get_executing_thread_name() for the
- * thread prefix. The two buffers (local_404, local_204) are pre-pushed before
- * hs_runtime_get_executing_thread_name to match MSVC's argument batching.
+ * using ai_index_to_string to format each encounter handle into a name buffer
+ * via global_scenario_get(), then hs_runtime_get_executing_thread_name() for
+ * the thread prefix. The two buffers (local_404, local_204) are pre-pushed
+ * before hs_runtime_get_executing_thread_name to match MSVC's argument
+ * batching.
  *
  * Finally calls FUN_00055dd0(encounter_handle_1@<eax>, encounter_handle_2, 0,
  * 0) to perform the actual migration.
@@ -524,9 +525,10 @@ short FUN_00056880(int param_1)
  *
  * If AI trace (0x5aca59) is set, logs via pre-push pattern:
  *   "[thread]: ai_exit_vehicle [encounter_name]"
- * Then iterates actors in the encounter via ai_index_actor_iterator_new/ai_index_actor_iterator_next.
- * For each actor whose field_0x158 != -1 and unit handle (field_0x18) != -1,
- * calls unit_try_and_exit_seat on the unit handle.
+ * Then iterates actors in the encounter via
+ * ai_index_actor_iterator_new/ai_index_actor_iterator_next. For each actor
+ * whose field_0x158 != -1 and unit handle (field_0x18) != -1, calls
+ * unit_try_and_exit_seat on the unit handle.
  *
  * 0x568e0 / encounters.obj
  */
@@ -561,10 +563,11 @@ void FUN_000568e0(int param_1)
  *
  * If AI trace (0x5aca59) is set, logs via pre-push pattern:
  *   "[thread]: ai_braindead [encounter_name] [true|false]"
- * If param_1 != -1, iterates actors via ai_index_actor_iterator_new/ai_index_actor_iterator_next and
- * calls actor_braindead(actor_handle, param_2) for each actor. The actor
- * handle is at local_1c+0x10 (offset 0x10 into the iterator state).
- * param_2 = 0 means un-braindead; non-zero means braindead.
+ * If param_1 != -1, iterates actors via
+ * ai_index_actor_iterator_new/ai_index_actor_iterator_next and calls
+ * actor_braindead(actor_handle, param_2) for each actor. The actor handle is at
+ * local_1c+0x10 (offset 0x10 into the iterator state). param_2 = 0 means
+ * un-braindead; non-zero means braindead.
  *
  * 0x56980 / encounters.obj
  */
@@ -916,8 +919,8 @@ void FUN_00057030(int param_1, char param_2)
 /*
  * FUN_000570d0 — assign command list to all actors in an encounter
  * (ai_command_list). Logs "[thread]: ai_command_list [enc] [index]", then
- * iterates actors via ai_index_actor_iterator_new/ai_index_actor_iterator_next, calling
- * FUN_00016e70(actor_handle, param_2, buf) and if it returns true,
+ * iterates actors via ai_index_actor_iterator_new/ai_index_actor_iterator_next,
+ * calling FUN_00016e70(actor_handle, param_2, buf) and if it returns true,
  * actor_action_change(actor_handle, 0xb, buf). Actor handle is at
  * local_1c+0x10. 0x570d0 / encounters.obj
  */
@@ -974,9 +977,9 @@ void FUN_00057190(int param_1, int16_t param_2)
 /*
  * FUN_00057230 — advance command list for all actors in an encounter.
  * Logs "[thread]: ai_command_list_advance [encounter]", then iterates
- * encounter actors via ai_index_actor_iterator_new/ai_index_actor_iterator_next and calls
- * FUN_00017090(actor_handle) for each. Actor handle is at local_1c+0x10.
- * 0x57230 / encounters.obj
+ * encounter actors via ai_index_actor_iterator_new/ai_index_actor_iterator_next
+ * and calls FUN_00017090(actor_handle) for each. Actor handle is at
+ * local_1c+0x10. 0x57230 / encounters.obj
  */
 void FUN_00057230(int param_1)
 {
@@ -1230,11 +1233,11 @@ void FUN_00057900(int param_1, char param_2)
  *
  * Sets the return state for all actors in an encounter. If the AI trace flag
  * (0x5aca59) is set, logs the thread name, encounter name, and state value.
- * Then iterates actors in the encounter via ai_index_actor_iterator_new/ai_index_actor_iterator_next.
- * For each actor, writes the return_state into actor+0x62. If actor+0x6e == 0
- * and the result of actor_action_try_to_panic is 0, 1, or 2, calls
- * actor_action_set_default_state with -1.
- * 0x579d0 / encounters.obj
+ * Then iterates actors in the encounter via
+ * ai_index_actor_iterator_new/ai_index_actor_iterator_next. For each actor,
+ * writes the return_state into actor+0x62. If actor+0x6e == 0 and the result of
+ * actor_action_try_to_panic is 0, 1, or 2, calls actor_action_set_default_state
+ * with -1. 0x579d0 / encounters.obj
  */
 void FUN_000579d0(int encounter_handle, short return_state)
 {
@@ -1270,9 +1273,10 @@ void FUN_000579d0(int encounter_handle, short return_state)
  *
  * Sets the current (default) state for all actors in an encounter. If the AI
  * trace flag (0x5aca59) is set, logs the thread name, encounter name, and state
- * value. Then iterates actors in the encounter via ai_index_actor_iterator_new/ai_index_actor_iterator_next.
- * For each actor, calls actor_action_set_default_state with the given state.
- * 0x57aa0 / encounters.obj
+ * value. Then iterates actors in the encounter via
+ * ai_index_actor_iterator_new/ai_index_actor_iterator_next. For each actor,
+ * calls actor_action_set_default_state with the given state. 0x57aa0 /
+ * encounters.obj
  */
 void FUN_00057aa0(int encounter_handle, short state)
 {
@@ -1298,7 +1302,8 @@ void FUN_00057aa0(int encounter_handle, short state)
  *
  * Returns the maximum status level across all platoons in an encounter.
  * If the AI trace flag (0x5aca59) is set, logs the thread name and encounter
- * name. Then iterates platoons via ai_index_actor_iterator_new/ai_index_actor_iterator_next and calls
+ * name. Then iterates platoons via
+ * ai_index_actor_iterator_new/ai_index_actor_iterator_next and calls
  * FUN_00057b40 for each actor to get individual status, tracking the maximum.
  * 0x57bc0 / encounters.obj
  */
@@ -1340,8 +1345,8 @@ void FUN_00057c70(int encounter_handle, char param_2)
   char local_204[512];
 
   if (*(char *)0x5aca59 != '\0') {
-    ai_index_to_string(encounter_handle, (void *)global_scenario_get(), local_204,
-                 0x200);
+    ai_index_to_string(encounter_handle, (void *)global_scenario_get(),
+                       local_204, 0x200);
     error(2, "%s: ai_playfight %s %s", hs_runtime_get_executing_thread_name(),
           local_204,
           param_2 != '\0' ? (const char *)0x25c530 : (const char *)0x25c52c);
@@ -1592,9 +1597,10 @@ void FUN_00058220(int param_1)
 
 /*
  * FUN_00058270 — set automatic migration target flag for an encounter's
- * platoons. Iterates platoons via ai_index_squad_iterator_new/ai_index_squad_iterator_next and sets field
- * +0x10 = param_2. Logs "[thread]: ai_automatic_migration_target [enc]
- * [true|false]" if trace on. 0x58270 / encounters.obj
+ * platoons. Iterates platoons via
+ * ai_index_squad_iterator_new/ai_index_squad_iterator_next and sets field +0x10
+ * = param_2. Logs "[thread]: ai_automatic_migration_target [enc] [true|false]"
+ * if trace on. 0x58270 / encounters.obj
  */
 void FUN_00058270(int param_1, char param_2)
 {
@@ -1948,7 +1954,8 @@ void FUN_00058720(unsigned int param_1, int param_2)
  *
  * Makes all actors in an encounter go berserk. If the AI trace flag
  * (0x5aca59) is set, logs the encounter name via error(). Then iterates
- * actors in the encounter via ai_index_actor_iterator_new/ai_index_actor_iterator_next, calling
+ * actors in the encounter via
+ * ai_index_actor_iterator_new/ai_index_actor_iterator_next, calling
  * actor_berserk(actor_handle, param_2) for each actor.
  *
  * Confirmed:
@@ -2017,9 +2024,10 @@ void FUN_00058860(int encounter_handle, int team)
 /* 0x000588d0 — FUN_000588d0 (ai_allow_dormant).
  *
  * Sets whether dormant mode is allowed for all platoons in the encounter.
- * Iterates platoons via ai_index_squad_iterator_new/ai_index_squad_iterator_next and writes the inverse of
- * param_2 into platoon datum offset +0x14.  Logs the command to the AI trace
- * if DAT_005aca59 is set.
+ * Iterates platoons via
+ * ai_index_squad_iterator_new/ai_index_squad_iterator_next and writes the
+ * inverse of param_2 into platoon datum offset +0x14.  Logs the command to the
+ * AI trace if DAT_005aca59 is set.
  *
  * Confirmed:
  *   - param_1 = encounter handle (int).
@@ -2028,7 +2036,8 @@ void FUN_00058860(int encounter_handle, int team)
  *   - ai_index_to_string formats encounter name into buffer.
  *   - hs_runtime_get_executing_thread_name returns current script thread name.
  *   - error(2, fmt, ...) logs the trace message.
- *   - ai_index_squad_iterator_new/ai_index_squad_iterator_next = platoon iterator init/step.
+ *   - ai_index_squad_iterator_new/ai_index_squad_iterator_next = platoon
+ * iterator init/step.
  *   - datum+0x14 receives !param_2 (dormant disabled when allowed, and vice
  * versa).
  */
@@ -2066,7 +2075,8 @@ void FUN_000588d0(int param_1, char param_2)
  *   - param_1, param_2 = encounter handles (int).
  *   - DAT_005aca59 gates debug trace output.
  *   - ai_index_to_string(handle, scenario, buf, 0x100) formats encounter name.
- *   - ai_index_actor_iterator_new/ai_index_actor_iterator_next = encounter actor iterator init/next.
+ *   - ai_index_actor_iterator_new/ai_index_actor_iterator_next = encounter
+ * actor iterator init/next.
  *   - Iterator return value is pointer to actor datum.
  *   - actor+0x18 = unit_handle, actor+0x24 = vehicle unit list head handle.
  *   - FUN_00055110(encounter_handle, unit_handle) registers the sighting.
@@ -2121,7 +2131,8 @@ void FUN_00058970(int param_1, int param_2)
  *   - ESI = param_1 throughout (callee-saved, loaded at 0x58a51).
  *   - global_scenario_get() at 0x58a62 takes 0 args; return in EAX.
  *   - Pre-push pattern: 0x100 and local_114 pushed before global_scenario_get
- *     for subsequent ai_index_to_string call; ADD ESP,0x10 at 0x58a74 cleans 4 args.
+ *     for subsequent ai_index_to_string call; ADD ESP,0x10 at 0x58a74 cleans 4
+ * args.
  *   - Pre-push pattern: local_114 pushed before
  * hs_runtime_get_executing_thread_name (0-arg) as 4th arg to console_printf;
  * ADD ESP,0x10 at 0x58a8a cleans 4 dwords.
@@ -2138,8 +2149,8 @@ void FUN_00058a40(int combined_handle)
   char *player;
 
   if (*(char *)0x5aca59 != '\0') {
-    ai_index_to_string((unsigned int)combined_handle, (void *)global_scenario_get(),
-                 name_buf, 0x100);
+    ai_index_to_string((unsigned int)combined_handle,
+                       (void *)global_scenario_get(), name_buf, 0x100);
     console_printf(2, "%s: ai_magically_see_players %s",
                    (const char *)hs_runtime_get_executing_thread_name(),
                    name_buf);
@@ -3746,8 +3757,8 @@ void FUN_0005ae70(int encounter_handle)
   /* The index is the handle's low word, ZERO-extended: the original is a
      plain 32-bit `AND ESI,0xffff; PUSH ESI` at 0x5ae70+0x1e -- no MOVSX.
      An `(int16_t)` cast here would sign-extend indices >= 0x8000. */
-  squad = (char *)tag_block_get_element(
-    (char *)(scenario + 0x42c), (int)(encounter_handle & 0xffff), 0xb0);
+  squad = (char *)tag_block_get_element((char *)(scenario + 0x42c),
+                                        (int)(encounter_handle & 0xffff), 0xb0);
   squad_index = 0;
   squad_count = *(int16_t *)(encounter + 0x6);
   if (squad_count <= 0) {

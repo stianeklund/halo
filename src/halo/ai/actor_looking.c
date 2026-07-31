@@ -6,8 +6,8 @@
  */
 
 #include "../../common.h"
-#include "encounters.h"
 #include "../../x87_math.h"
+#include "encounters.h"
 
 /* Cross-object callee declarations */
 extern float distance_squared3d(const float *a, const float *b);

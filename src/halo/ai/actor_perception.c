@@ -586,44 +586,44 @@ done_vision:
  * 0x1a0, 0x1e9, 0x1ea, 0x204, 0x2b6, 0x2d1, 0x2da, 0x2ea, 0x2ef. */
 void FUN_000355f0(int actor_handle)
 {
-  char debug_desc_a[256];          /* EBP-0x4f4 */
-  char debug_desc_b[256];          /* EBP-0x3f4 */
-  char debug_desc_c[256];          /* EBP-0x2f4 */
-  char debug_desc_d[256];          /* EBP-0x1f4 */
-  char position_data_b[0x38];      /* EBP-0xf4  (second refresh site)  */
-  char position_data_a[0x38];      /* EBP-0xbc  (shared with status refresh) */
-  const char *awareness_names[5];  /* EBP-0x84 */
+  char debug_desc_a[256]; /* EBP-0x4f4 */
+  char debug_desc_b[256]; /* EBP-0x3f4 */
+  char debug_desc_c[256]; /* EBP-0x2f4 */
+  char debug_desc_d[256]; /* EBP-0x1f4 */
+  char position_data_b[0x38]; /* EBP-0xf4  (second refresh site)  */
+  char position_data_a[0x38]; /* EBP-0xbc  (shared with status refresh) */
+  const char *awareness_names[5]; /* EBP-0x84 */
   const char *perception_names[4]; /* EBP-0x70 */
-  const char *knowledge_names[4];  /* EBP-0x60 */
+  const char *knowledge_names[4]; /* EBP-0x60 */
   struct {
     int16_t actor_team; /* +0x0 */
-    int16_t prop_team;  /* +0x2 */
-    char is_friendly;   /* +0x4 */
-  } team_info;                     /* EBP-0x50, passed to FUN_00046f10 arg7 */
-  int best_prop;                   /* EBP-0x48 */
-  char acknowledge_flag;           /* EBP-0x44, pushed as a dword by MSVC */
-  float best_weight;               /* EBP-0x40 */
-  char *actor_defn;                /* EBP-0x3c */
-  int16_t awareness_slot;          /* EBP-0x38 */
-  int16_t new_awareness;           /* EBP-0x34 (state 1 path) */
-  float distance_squared;          /* EBP-0x34 (state 2/3 paths) */
-  float alert_probability;         /* EBP-0x30 (phase 1) */
-  char refresh_status;             /* EBP-0x30 (phase 2) */
-  float awareness_delta;           /* EBP-0x2c */
-  char *actor;                     /* EBP-0x28 / ESI in phase 1 */
-  int new_state;                   /* EBP-0x24 */
-  char orphan_expired;             /* EBP-0x1f */
-  char acknowledge_out;            /* EBP-0x1e, out param of 0x33330 */
-  char claimed_awareness;          /* EBP-0x1d */
-  int iter[2];                     /* EBP-0x1c, prop iterator */
-  int acknowledged_object;         /* EBP-0x18, stored but never read */
-  int16_t awareness_ticks;         /* EBP-0x14 (loop head) */
-  char *debug_awareness_cache;     /* EBP-0x14 (state 0/1 path) */
+    int16_t prop_team; /* +0x2 */
+    char is_friendly; /* +0x4 */
+  } team_info; /* EBP-0x50, passed to FUN_00046f10 arg7 */
+  int best_prop; /* EBP-0x48 */
+  char acknowledge_flag; /* EBP-0x44, pushed as a dword by MSVC */
+  float best_weight; /* EBP-0x40 */
+  char *actor_defn; /* EBP-0x3c */
+  int16_t awareness_slot; /* EBP-0x38 */
+  int16_t new_awareness; /* EBP-0x34 (state 1 path) */
+  float distance_squared; /* EBP-0x34 (state 2/3 paths) */
+  float alert_probability; /* EBP-0x30 (phase 1) */
+  char refresh_status; /* EBP-0x30 (phase 2) */
+  float awareness_delta; /* EBP-0x2c */
+  char *actor; /* EBP-0x28 / ESI in phase 1 */
+  int new_state; /* EBP-0x24 */
+  char orphan_expired; /* EBP-0x1f */
+  char acknowledge_out; /* EBP-0x1e, out param of 0x33330 */
+  char claimed_awareness; /* EBP-0x1d */
+  int iter[2]; /* EBP-0x1c, prop iterator */
+  int acknowledged_object; /* EBP-0x18, stored but never read */
+  int16_t awareness_ticks; /* EBP-0x14 (loop head) */
+  char *debug_awareness_cache; /* EBP-0x14 (state 0/1 path) */
   char become_acknowledged_result; /* EBP-0xd */
-  char scratch_10;                 /* EBP-0xc  */
-  char scratch_c;                  /* EBP-0x8  */
-  char refresh_position;           /* EBP-0x4  */
-  char *prop;                      /* ESI in phase 2 */
+  char scratch_10; /* EBP-0xc  */
+  char scratch_c; /* EBP-0x8  */
+  char refresh_position; /* EBP-0x4  */
+  char *prop; /* ESI in phase 2 */
   char *other_actor;
   char *parent_prop;
   char *encounter;
@@ -687,7 +687,7 @@ void FUN_000355f0(int actor_handle)
       ramp_roll:
         if (*(float *)0x2533c0 < alert_probability) {
           if (random_math_real(
-                  (unsigned int *)get_global_random_seed_address()) <
+                (unsigned int *)get_global_random_seed_address()) <
               alert_probability)
             goto ramp_promote;
         }
@@ -702,7 +702,7 @@ void FUN_000355f0(int actor_handle)
               *(int16_t *)(actor + 0x280) != 3 &&
               *(int16_t *)(actor + 0x280) != 1) {
             if (random_math_real(
-                    (unsigned int *)get_global_random_seed_address()) <
+                  (unsigned int *)get_global_random_seed_address()) <
                 *(float *)(actor_defn + 0x88))
               *(char *)(actor + 0x288) = 1;
             else
@@ -800,13 +800,14 @@ iterate_props:
     }
 
     *(int16_t *)(prop + 0x26) = (int16_t)(*(int16_t *)(prop + 0x26) + 1);
-    awareness_ticks = (int16_t)*(uint16_t *)(prop + 0x26);
+    awareness_ticks = (int16_t) * (uint16_t *)(prop + 0x26);
     if (*(char *)(prop + 0x60) == 0)
       awareness_ticks = (int16_t)(awareness_ticks >> 3);
     if (*(char *)(prop + 0x121) > 2)
       awareness_ticks = (int16_t)(awareness_ticks >> 1);
 
-    if (claimed_awareness == 0 && awareness_ticks >= *(int16_t *)(actor + 0x4e)) {
+    if (claimed_awareness == 0 &&
+        awareness_ticks >= *(int16_t *)(actor + 0x4e)) {
       refresh_status = 1;
       refresh_position = 1;
       awareness_ticks = 0;
@@ -826,9 +827,11 @@ iterate_props:
             (*(int16_t *)(actor + 0x544) != 0 &&
              *(int16_t *)(actor + 0x54c) == 1 &&
              *(int *)(actor + 0x550) == iter[0]) ||
-            (*(char *)(actor + 0x55c) != 0 && *(int16_t *)(actor + 0x56c) == 1 &&
+            (*(char *)(actor + 0x55c) != 0 &&
+             *(int16_t *)(actor + 0x56c) == 1 &&
              *(int *)(actor + 0x570) == iter[0]) ||
-            (*(char *)(actor + 0x55f) != 0 && *(int16_t *)(actor + 0x57c) == 1 &&
+            (*(char *)(actor + 0x55f) != 0 &&
+             *(int16_t *)(actor + 0x57c) == 1 &&
              *(int *)(actor + 0x580) == iter[0]))
           *(char *)(prop + 0x63) = 1;
         else
@@ -836,7 +839,7 @@ iterate_props:
 
         if (prop_state > 3 && prop_state < 6) {
           parent_prop =
-              (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(prop + 0xc));
+            (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(prop + 0xc));
           if (*(int *)(parent_prop + 0xc) != iter[0]) {
             display_assert("parent_prop->orphan_prop_index == iterator.index",
                            "c:\\halo\\SOURCE\\ai\\actor_perception.c", 0x192,
@@ -876,8 +879,7 @@ iterate_props:
         *(int *)(prop + 0x2c) = 0;
         if (*(char *)(prop + 0x12e) != 0 && *(char *)0x5aca61 != 0) {
           ai_debug_describe_actor(actor_handle, *(int *)(actor + 0x18),
-                                  (char)0xff,
-                                  debug_desc_b, 0x100);
+                                  (char)0xff, debug_desc_b, 0x100);
           error(2, "%s: start to become aware", debug_desc_b);
         }
         goto becoming_aware;
@@ -887,7 +889,7 @@ iterate_props:
     case 1:
     becoming_aware:
       debug_awareness_cache =
-          (char *)(*(int *)0x331f58 + (actor_handle & 0xffff) * 0x657c);
+        (char *)(*(int *)0x331f58 + (actor_handle & 0xffff) * 0x657c);
       if (*(int16_t *)(prop + 0x30) == 0) {
         *(int *)(prop + 0x2c) = 0;
         new_state = 0;
@@ -895,8 +897,7 @@ iterate_props:
             (*(uint16_t *)(debug_awareness_cache + 0x6578) = 0xffff,
              *(char *)0x5aca61 != 0)) {
           ai_debug_describe_actor(actor_handle, *(int *)(actor + 0x18),
-                                  (char)0xff,
-                                  debug_desc_d, 0x100);
+                                  (char)0xff, debug_desc_d, 0x100);
           error(2, "%s: stop becoming aware", debug_desc_d);
         }
       } else {
@@ -915,10 +916,11 @@ iterate_props:
                          true);
           system_exit(-1);
         }
-        new_awareness = (int16_t)*(
-            uint16_t *)(0x255f30 + ((int)*(int16_t *)(prop + 0x30) +
-                                    (int)(int16_t)knowledge_type * 4) *
-                                       2);
+        new_awareness =
+          (int16_t) *
+          (uint16_t *)(0x255f30 + ((int)*(int16_t *)(prop + 0x30) +
+                                   (int)(int16_t)knowledge_type * 4) *
+                                    2);
         switch ((int)new_awareness) {
         case 0:
           awareness_delta = 0.0f;
@@ -944,9 +946,9 @@ iterate_props:
 
         if (*(char *)(prop + 0x12e) != 0 &&
             *(uint16_t *)(debug_awareness_cache + 0x6578) !=
-                (uint16_t)new_awareness &&
+              (uint16_t)new_awareness &&
             (*(uint16_t *)(debug_awareness_cache + 0x6578) =
-                 (uint16_t)new_awareness,
+               (uint16_t)new_awareness,
              *(char *)0x5aca61 != 0)) {
           awareness_names[0] = "never";
           awareness_names[1] = "noncombat";
@@ -962,8 +964,7 @@ iterate_props:
           knowledge_names[2] = "searching";
           knowledge_names[3] = "definite";
           ai_debug_describe_actor(actor_handle, *(int *)(actor + 0x18),
-                                  (char)0xff,
-                                  debug_desc_c, 0x100);
+                                  (char)0xff, debug_desc_c, 0x100);
           error(2, "%s: knowledge %s percep %s -> awareness %s", debug_desc_c,
                 knowledge_names[(int16_t)knowledge_type],
                 perception_names[*(int16_t *)(prop + 0x30)],
@@ -987,8 +988,7 @@ iterate_props:
             (*(uint16_t *)(debug_awareness_cache + 0x6578) = 0xffff,
              *(char *)0x5aca61 != 0)) {
           ai_debug_describe_actor(actor_handle, *(int *)(actor + 0x18),
-                                  (char)0xff,
-                                  debug_desc_a, 0x100);
+                                  (char)0xff, debug_desc_a, 0x100);
           error(2, "%s: become aware!", debug_desc_a);
         }
       }
@@ -1020,7 +1020,8 @@ iterate_props:
                                        *(char *)(other_actor + 0x13) == 0)) &&
               distance_squared <= *(float *)0x255fe0))) {
           prop_position_refresh(actor_handle, iter[0], position_data_b, 0, 0);
-          actor_perception_find_prop_pathfinding_location(actor_handle, iter[0]);
+          actor_perception_find_prop_pathfinding_location(actor_handle,
+                                                          iter[0]);
           new_prop_handle = prop_orphan_transition(actor_handle, iter[0]);
         }
         FUN_0003b410(actor_handle, iter[0], new_prop_handle);
@@ -1045,11 +1046,11 @@ iterate_props:
         break;
       case 2:
         *(uint16_t *)(prop + 0x4c) =
-            (uint16_t)(((*(int16_t *)(prop + 0x32) < 2) - 1 & 0x32) + 10);
+          (uint16_t)(((*(int16_t *)(prop + 0x32) < 2) - 1 & 0x32) + 10);
         break;
       case 3:
         become_acknowledged_result = actor_perception_become_acknowledged(
-            actor_handle, iter[0], (int)&acknowledge_out);
+          actor_handle, iter[0], (int)&acknowledge_out);
         /* Dead store in the original too ([EBP-0x18] is never read back). */
         acknowledged_object = *(int *)(prop + 8);
         (void)acknowledged_object;
@@ -1065,9 +1066,9 @@ iterate_props:
       }
       *(int16_t *)(prop + 0x24) = (int16_t)new_state;
       *(char *)(prop + 0xa4) =
-          (char)actor_get_perception_knowledge(actor_handle, iter[0]);
+        (char)actor_get_perception_knowledge(actor_handle, iter[0]);
       *(float *)(prop + 0x50) =
-          actor_compute_prop_target_weight(actor_handle, iter[0]);
+        actor_compute_prop_target_weight(actor_handle, iter[0]);
 
     check_orphan_retire:
       if (orphan_expired == 0)
@@ -1078,7 +1079,7 @@ iterate_props:
         system_exit(-1);
       }
       parent_prop =
-          (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(prop + 0xc));
+        (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(prop + 0xc));
       if (*(int *)(parent_prop + 0xc) != iter[0]) {
         display_assert("parent_prop->orphan_prop_index == iterator.index",
                        "c:\\halo\\SOURCE\\ai\\actor_perception.c", 0x2ef, true);
@@ -1120,8 +1121,7 @@ iterate_props:
     case 5:
       if (*(int16_t *)(prop + 0x24) == 4) {
         retire_threshold =
-            (int16_t)((-(uint16_t)(*(char *)(actor + 0x162) != 0) & 0xff) +
-                      0x2d);
+          (int16_t)((-(uint16_t)(*(char *)(actor + 0x162) != 0) & 0xff) + 0x2d);
         if (*(int16_t *)(prop + 0x32) > 1 ||
             (*(int16_t *)(actor + 0x60c) == 1 &&
              *(int *)(actor + 0x610) == iter[0] && game_time_get() % 3 == 0)) {
@@ -1138,12 +1138,12 @@ iterate_props:
         awareness_penalty = (int16_t)(*(char *)(prop + 0xbb) != 0);
       } else if (iter[0] == *(int *)(actor + 0x54)) {
         awareness_penalty =
-            (int16_t)((((*(int16_t *)(actor + 0x6e) < 4) - 1) & 5) + 1);
+          (int16_t)((((*(int16_t *)(actor + 0x6e) < 4) - 1) & 5) + 1);
       } else {
         awareness_penalty = 10;
       }
       *(int16_t *)(prop + 0x3a) =
-          (int16_t)(*(int16_t *)(prop + 0x3a) - awareness_penalty);
+        (int16_t)(*(int16_t *)(prop + 0x3a) - awareness_penalty);
       if (*(int16_t *)(prop + 0x3a) < 0)
         orphan_expired = 1;
 
@@ -1213,7 +1213,7 @@ iterate_props:
       if (*(int *)(actor + 0x18) != -1 && *(char *)(prop + 0x127) == 0 &&
           *(char *)(prop + 0x61) != 0 && *(char *)(prop + 0x62) != 0) {
         is_friendly = (char)game_allegiance_get_team_is_friendly(
-            *(int16_t *)(actor + 0x3e), *(int16_t *)(prop + 0x12));
+          *(int16_t *)(actor + 0x3e), *(int16_t *)(prop + 0x12));
         if (is_friendly != 0)
           event_threshold = *(float *)0x254cc0;
         else if (*(char *)(prop + 0x122) < 3)
@@ -1256,8 +1256,8 @@ iterate_props:
               (*(int *)(actor + 0x278) != -1 &&
                *(int *)(actor + 0x278) < 0xb4)) {
             if (*(int *)(actor + 0x34) != -1) {
-              encounter = (char *)datum_get(*(data_t **)0x5ab270,
-                                            *(int *)(actor + 0x34));
+              encounter =
+                (char *)datum_get(*(data_t **)0x5ab270, *(int *)(actor + 0x34));
               if (*(int *)(encounter + 0x50) == -1 ||
                   (*(int *)(encounter + 0x50) > 0xb3 &&
                    *(char *)(encounter + 0x44) != 0))
@@ -1300,7 +1300,7 @@ iterate_props:
 
   if (*(int *)(actor + 0x270) != -1) {
     parent_prop =
-        (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
+      (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
     if (*(int16_t *)(parent_prop + 0x24) > 3 &&
         *(int16_t *)(parent_prop + 0x24) < 6)
       best_prop = -1;

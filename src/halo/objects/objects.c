@@ -11251,13 +11251,12 @@ void object_compute_node_matrices(int object_handle)
                          "c:\\halo\\SOURCE\\objects\\objects.c", 0xa90, 1);
           system_exit(-1);
         }
-        FUN_00121d60(model_tag, anim_entry,
-                                        (int)(int16_t)frame_index, anim_data);
+        FUN_00121d60(model_tag, anim_entry, (int)(int16_t)frame_index,
+                     anim_data);
       } else {
         /* Use the stored frame index at obj+0x82 */
         int16_t frame_idx = *(int16_t *)((char *)obj + 0x82);
-        FUN_00121d60(model_tag, anim_entry, (int)frame_idx,
-                                        anim_data);
+        FUN_00121d60(model_tag, anim_entry, (int)frame_idx, anim_data);
       }
       override_decompressor =
         (*(uint8_t *)((char *)anim_entry + 0x3a) >> 1) & 1;
@@ -11299,8 +11298,7 @@ void object_compute_node_matrices(int object_handle)
                     (float)(int)*(int16_t *)((char *)overlay_anim_entry + 0x22);
                 }
                 frame_value = total_frames * func_value;
-                FUN_00122690(
-                  overlay_anim_entry, frame_value, anim_data);
+                FUN_00122690(overlay_anim_entry, frame_value, anim_data);
               } else if (mode == 1) {
                 /* Interpolated overlay */
                 int time = game_time_get();
@@ -11368,7 +11366,7 @@ void object_compute_node_matrices(int object_handle)
         system_exit(-1);
       }
       if (!valid_real_normal3d_perpendicular((float *)((char *)obj + 0x24),
-                                          (float *)((char *)obj + 0x30))) {
+                                             (float *)((char *)obj + 0x30))) {
         char *name = (char *)tag_get_name(*(int *)obj);
         char *msg = csprintf((char *)0x5ab100,
                              "%s had a bad forward and up before "
@@ -11416,7 +11414,7 @@ void object_compute_node_matrices(int object_handle)
           if (!override_decompressor) {
             /* Build orientation matrix from object's forward and up */
             matrix4x3_identity_with_position(translation_matrix,
-                                                 (float *)((char *)obj + 0x0c));
+                                             (float *)((char *)obj + 0x0c));
             ((void (*)(float *, float *, float *))0x109e10)(
               orientation_matrix, (float *)((char *)obj + 0x24),
               (float *)((char *)obj + 0x30));
@@ -11437,22 +11435,21 @@ void object_compute_node_matrices(int object_handle)
               neg_com[1] = -*(float *)((char *)phys_tag + 0x10);
               neg_com[2] = -*(float *)((char *)phys_tag + 0x14);
               matrix4x3_identity_with_position(phys_offset_matrix, neg_com);
-              matrix4x3_multiply(
-                orientation_matrix, phys_offset_matrix, orientation_matrix);
+              matrix4x3_multiply(orientation_matrix, phys_offset_matrix,
+                                 orientation_matrix);
             }
 
             /* Apply model origin offset */
             matrix4x3_identity_with_position(
               origin_matrix, (float *)((char *)object_tag + 0x14));
-            matrix4x3_multiply(
-              orientation_matrix, origin_matrix, orientation_matrix);
+            matrix4x3_multiply(orientation_matrix, origin_matrix,
+                               orientation_matrix);
 
             if (parent_node_mat == NULL) {
               /* No parent — compose directly */
-              matrix4x3_multiply(
-                translation_matrix, orientation_matrix, node_matrices);
-              matrix4x3_multiply(node_matrices, root_anim,
-                                                 node_matrices);
+              matrix4x3_multiply(translation_matrix, orientation_matrix,
+                                 node_matrices);
+              matrix4x3_multiply(node_matrices, root_anim, node_matrices);
             } else {
               /* Has parent — may need to scale and adjust */
               if (*(uint32_t *)parent_node_mat != 0x3f800000) {
@@ -11509,8 +11506,8 @@ void object_compute_node_matrices(int object_handle)
                 uint32_t scale_bits = *(uint32_t *)parent_node_mat & 0x7f800000;
                 if (scale_bits == 0x7f800000 ||
                     !valid_real_vector3d_axes3(parent_node_mat + 1,
-                                                      parent_node_mat + 4,
-                                                      parent_node_mat + 7) ||
+                                               parent_node_mat + 4,
+                                               parent_node_mat + 7) ||
                     !valid_real_point3d(parent_node_mat + 10)) {
                   /* Parent node matrix is invalid — detailed error
                    * reporting */
@@ -11560,8 +11557,7 @@ void object_compute_node_matrices(int object_handle)
                                    0xb37, 1);
                     system_exit(-1);
                   }
-                  if (!valid_real_point3d(parent_node_mat +
-                                                          10)) {
+                  if (!valid_real_point3d(parent_node_mat + 10)) {
                     char *msg = csprintf(
                       (char *)0x5ab100, "%s had a bad position (%f,%f,%f)",
                       context, (double)parent_node_mat[10],
@@ -11640,12 +11636,11 @@ void object_compute_node_matrices(int object_handle)
 
               /* Compose parent * translation, then node * orientation,
                * then multiply with root anim */
-              matrix4x3_multiply(
-                parent_node_mat, translation_matrix, node_matrices);
-              matrix4x3_multiply(
-                node_matrices, orientation_matrix, node_matrices);
-              matrix4x3_multiply(node_matrices, root_anim,
-                                                 node_matrices);
+              matrix4x3_multiply(parent_node_mat, translation_matrix,
+                                 node_matrices);
+              matrix4x3_multiply(node_matrices, orientation_matrix,
+                                 node_matrices);
+              matrix4x3_multiply(node_matrices, root_anim, node_matrices);
             }
           } else {
             /* override_decompressor — just copy root_anim to node_matrices */
@@ -11665,8 +11660,7 @@ void object_compute_node_matrices(int object_handle)
             float *left = node_matrices + 4;
             uint32_t scale_bits = *(uint32_t *)node_matrices & 0x7f800000;
             if (scale_bits == 0x7f800000 ||
-                !valid_real_vector3d_axes3(fwd, left,
-                                                  node_matrices + 7) ||
+                !valid_real_vector3d_axes3(fwd, left, node_matrices + 7) ||
                 (*(uint32_t *)&node_matrices[10] & 0x7f800000) == 0x7f800000 ||
                 (*(uint32_t *)&node_matrices[11] & 0x7f800000) == 0x7f800000 ||
                 (*(uint32_t *)&node_matrices[12] & 0x7f800000) == 0x7f800000) {
@@ -11745,8 +11739,7 @@ void object_compute_node_matrices(int object_handle)
                 /* assert_valid_real_matrix4x3 on root node (line 0xb69)
                  */
                 if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000 ||
-                    !valid_real_vector3d_axes3(fwd, left,
-                                                      node_matrices + 7) ||
+                    !valid_real_vector3d_axes3(fwd, left, node_matrices + 7) ||
                     !valid_real_point3d(node_matrices + 10)) {
                   if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000) {
                     char *msg =
@@ -11874,7 +11867,7 @@ void object_compute_node_matrices(int object_handle)
                   }
                   if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000 ||
                       !valid_real_vector3d_axes3(fwd, left,
-                                                        node_matrices + 7) ||
+                                                 node_matrices + 7) ||
                       !valid_real_point3d(node_matrices + 10)) {
                     char *msg = csprintf(
                       (char *)0x5ab100, "%s: assert_valid_real_matrix4x3",
@@ -11893,8 +11886,7 @@ void object_compute_node_matrices(int object_handle)
             float *fwd2 = node_matrices + 1;
             float *left2 = node_matrices + 4;
             if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000 ||
-                !valid_real_vector3d_axes3(fwd2, left2,
-                                                  node_matrices + 7) ||
+                !valid_real_vector3d_axes3(fwd2, left2, node_matrices + 7) ||
                 (*(uint32_t *)&node_matrices[10] & 0x7f800000) == 0x7f800000 ||
                 (*(uint32_t *)&node_matrices[11] & 0x7f800000) == 0x7f800000 ||
                 (*(uint32_t *)&node_matrices[12] & 0x7f800000) == 0x7f800000) {
@@ -12016,8 +12008,7 @@ void object_compute_node_matrices(int object_handle)
                 }
               }
               if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000 ||
-                  !valid_real_vector3d_axes3(fwd2, left2,
-                                                    node_matrices + 7) ||
+                  !valid_real_vector3d_axes3(fwd2, left2, node_matrices + 7) ||
                   !valid_real_point3d(node_matrices + 10)) {
                 char *msg = csprintf((char *)0x5ab100,
                                      "%s: assert_valid_real_matrix4x3", name2);
@@ -12032,8 +12023,8 @@ void object_compute_node_matrices(int object_handle)
           float *node_mat = node_matrices + node_idx * 13;
           int16_t parent_idx;
           float *parent_mat;
-          FUN_00109500(node_mat, (float *)((char *)anim_data +
-                                           node_idx * 0x20));
+          FUN_00109500(node_mat,
+                       (float *)((char *)anim_data + node_idx * 0x20));
 
           if (*(int16_t *)((char *)node_data + 0x24) == -1) {
             display_assert("node->parent_node_index!=NONE",

@@ -107,8 +107,8 @@ void ai_script_dispose_from_old_map(void)
  * 0xe8) and +0x8c (stride 0xac). Those are byte-for-byte the offsets already
  * recovered as encounter_definition.{squads,platoons} in encounters.h — so the
  * thing this file's locals call a "profile" is an encounter_definition, and the
- * "sub" is a squad or a platoon. Naming here follows the binary (the PDB symbols
- * are ai_index_{platoon,squad,actor}_iterator_*), not the misleading
+ * "sub" is a squad or a platoon. Naming here follows the binary (the PDB
+ * symbols are ai_index_{platoon,squad,actor}_iterator_*), not the misleading
  * ai_profile.c filename; see the file header.
  *
  * CAUTION (same trap encounters.h warns about): the index selects a RUNTIME
@@ -119,8 +119,8 @@ void ai_script_dispose_from_old_map(void)
  * geometry only.
  * ------------------------------------------------------------------------- */
 
-/* ai_index_from_string — parse a name string ("profile" or "profile/sub") into a
- * packed ai_index_reference. Returns true and writes the packed value (or the
+/* ai_index_from_string — parse a name string ("profile" or "profile/sub") into
+ * a packed ai_index_reference. Returns true and writes the packed value (or the
  * -1 sentinel for "none"/not-found) to *out_value; returns false only when the
  * parse fails (name too long, profile/sub not found). 0x40 obj / 0x540f0 XBE.
  * Asserts (ai_script.c:0x57) that name and out_value are non-NULL. */
@@ -186,11 +186,12 @@ bool ai_index_from_string(void *scenario, const char *name, int *out_value)
   return result != -1;
 }
 
-/* ai_index_to_string — format a packed ai_index_reference back into its name string
+/* ai_index_to_string — format a packed ai_index_reference back into its name
+ * string
  * ("profile", "profile/sub", "none", or "<error>"). Writes at most
  * buffer_size bytes. 0x170 obj / 0x54220 XBE. */
-void ai_index_to_string(unsigned int combined_index, void *scenario, char *buffer,
-                  int buffer_size)
+void ai_index_to_string(unsigned int combined_index, void *scenario,
+                        char *buffer, int buffer_size)
 {
   void *element;
   unsigned int selector;
@@ -234,10 +235,10 @@ void ai_index_to_string(unsigned int combined_index, void *scenario, char *buffe
   }
 }
 
-/* ai_index_platoon_iterator_new — decode a packed ai_index_reference into the 3-int iterator
- * record out[0..2]: out[0]=profile index, out[1]=sub-key, out[2]=sub-bound.
- * On any invalid input out[0] is set to -1. 0x260 obj / 0x54310 XBE.
- * Asserts (ai_script.c:0xbf) that out is non-NULL. */
+/* ai_index_platoon_iterator_new — decode a packed ai_index_reference into the
+ * 3-int iterator record out[0..2]: out[0]=profile index, out[1]=sub-key,
+ * out[2]=sub-bound. On any invalid input out[0] is set to -1. 0x260 obj /
+ * 0x54310 XBE. Asserts (ai_script.c:0xbf) that out is non-NULL. */
 void ai_index_platoon_iterator_new(unsigned int combined_index, int *out)
 {
   void *ai_globals;
@@ -303,17 +304,17 @@ void ai_index_platoon_iterator_new(unsigned int combined_index, int *out)
 }
 
 /* ai_index_platoon_iterator_next — step the 3-int record produced by
- * ai_index_platoon_iterator_new. Returns the current PLATOON record and advances
- * iter[1]; returns NULL when the record is exhausted (iter[0]==-1 or
+ * ai_index_platoon_iterator_new. Returns the current PLATOON record and
+ * advances iter[1]; returns NULL when the record is exhausted (iter[0]==-1 or
  * iter[1]>iter[2]). 0x380 obj / 0x54430 XBE.
  * Asserts (ai_script.c:0x109) that iter is non-NULL.
  *
  * This is the platoon pair, not the squad pair: the step below resolves the
  * cursor through FUN_00054020(encounter, platoon_index), whose kb.json decl
- * names its second parameter platoon_index. (An earlier revision of this comment
- * called the result "the current encounter's squad pointer" — that was wrong;
- * the squad walker is ai_index_squad_iterator_next @0x545a0, which returns
- * encounter_get_squad().) */
+ * names its second parameter platoon_index. (An earlier revision of this
+ * comment called the result "the current encounter's squad pointer" — that was
+ * wrong; the squad walker is ai_index_squad_iterator_next @0x545a0, which
+ * returns encounter_get_squad().) */
 void *ai_index_platoon_iterator_next(int *iter)
 {
   void *result;
@@ -340,17 +341,19 @@ void *ai_index_platoon_iterator_next(int *iter)
 
 /* ---------------------------------------------------------------------------
  * ai_index_reference iterators. Two record layouts:
- *   Layout A (encounter/squad iterator, ai_index_squad_iterator_new begin / ai_index_squad_iterator_next
- * next), 5 ints: [0]=profile index, [1]=encounter-key filter (-1=wildcard),
- *     [2]=cursor scratch, [3]=loop cursor, [4]=loop bound (inclusive).
- *   Layout B (actor iterator, ai_index_actor_iterator_new begin / ai_index_actor_iterator_next next), 6 ints:
- *     [0]=clump handle, [1]=squad filter (-1=wildcard), [2]=platoon filter
+ *   Layout A (encounter/squad iterator, ai_index_squad_iterator_new begin /
+ * ai_index_squad_iterator_next next), 5 ints: [0]=profile index,
+ * [1]=encounter-key filter (-1=wildcard), [2]=cursor scratch, [3]=loop cursor,
+ * [4]=loop bound (inclusive). Layout B (actor iterator,
+ * ai_index_actor_iterator_new begin / ai_index_actor_iterator_next next), 6
+ * ints: [0]=clump handle, [1]=squad filter (-1=wildcard), [2]=platoon filter
  *     (-1=wildcard), [3..5]=embedded encounter_actor_iterator state.
  * ------------------------------------------------------------------------- */
 
-/* ai_index_squad_iterator_new — begin an encounter/squad iterator over the squads named by a
- * packed ai_index_reference (Layout A). On invalid input iter[0] = -1.
- * 0x3f0 obj / 0x544a0 XBE. Asserts (ai_script.c:0x11a) iter non-NULL. */
+/* ai_index_squad_iterator_new — begin an encounter/squad iterator over the
+ * squads named by a packed ai_index_reference (Layout A). On invalid input
+ * iter[0] = -1. 0x3f0 obj / 0x544a0 XBE. Asserts (ai_script.c:0x11a) iter
+ * non-NULL. */
 void ai_index_squad_iterator_new(unsigned int combined_index, void *iter_arg)
 {
   int *iter;
@@ -410,11 +413,12 @@ void ai_index_squad_iterator_new(unsigned int combined_index, void *iter_arg)
   }
 }
 
-/* ai_index_squad_iterator_next — step an encounter/squad iterator (Layout A record from
- * ai_index_squad_iterator_new). Scans element+0x80 sub-blocks (stride 0xe8) from iter[3] to
- * iter[4], skipping any whose field+0x22 != the iter[1] filter (-1 matches
- * all). Returns the squad pointer for a hit, NULL when exhausted.
- * 0x4f0 obj / 0x545a0 XBE. Asserts (ai_script.c:0x15f) iter non-NULL. */
+/* ai_index_squad_iterator_next — step an encounter/squad iterator (Layout A
+ * record from ai_index_squad_iterator_new). Scans element+0x80 sub-blocks
+ * (stride 0xe8) from iter[3] to iter[4], skipping any whose field+0x22 != the
+ * iter[1] filter (-1 matches all). Returns the squad pointer for a hit, NULL
+ * when exhausted. 0x4f0 obj / 0x545a0 XBE. Asserts (ai_script.c:0x15f) iter
+ * non-NULL. */
 int ai_index_squad_iterator_next(void *iter_arg)
 {
   int *iter;
@@ -461,8 +465,8 @@ found:
                                   (short)(unsigned short)iter[2]);
 }
 
-/* ai_index_actor_iterator_new — begin an actor iterator over the actors named by a packed
- * ai_index_reference (Layout B). On invalid input iter[0] = -1.
+/* ai_index_actor_iterator_new — begin an actor iterator over the actors named
+ * by a packed ai_index_reference (Layout B). On invalid input iter[0] = -1.
  * 0x5d0 obj / 0x54680 XBE. Asserts (ai_script.c:0x180) iter non-NULL. */
 void ai_index_actor_iterator_new(unsigned int combined_index, void *iter_arg)
 {
@@ -517,12 +521,12 @@ void ai_index_actor_iterator_new(unsigned int combined_index, void *iter_arg)
   }
 }
 
-/* ai_index_actor_iterator_next — step an actor iterator (Layout B record from ai_index_actor_iterator_new).
- * Pulls the next actor from the embedded encounter_actor_iterator (iter+3),
- * skipping any whose squad (field+0x3a) or platoon (field+0x3c) does not match
- * the iter[1]/iter[2] filters (-1 matches all). Returns the actor, NULL when
- * exhausted. 0x6a0 obj / 0x54750 XBE. Asserts (ai_script.c:0x1ba) iter
- * non-NULL. */
+/* ai_index_actor_iterator_next — step an actor iterator (Layout B record from
+ * ai_index_actor_iterator_new). Pulls the next actor from the embedded
+ * encounter_actor_iterator (iter+3), skipping any whose squad (field+0x3a) or
+ * platoon (field+0x3c) does not match the iter[1]/iter[2] filters (-1 matches
+ * all). Returns the actor, NULL when exhausted. 0x6a0 obj / 0x54750 XBE.
+ * Asserts (ai_script.c:0x1ba) iter non-NULL. */
 int ai_index_actor_iterator_next(void *iter_arg)
 {
   int *iter;
@@ -602,9 +606,10 @@ int FUN_000547c0(int encounter_handle)
  * real ai_profile.c near 0x536xx — not to this TU (see the file header). Its
  * behaviour is "ai_attach applied over an object's children", so the correct
  * name is one of ai_scripting_attach_unit / _attach_units / _attach_free, but
- * nothing in the binary distinguishes those three yet. Per the Explicit-Unknowns
- * rule it stays visibly unknown rather than plausibly wrong; resolving it needs
- * the HS function table entry whose evaluator points at this address.
+ * nothing in the binary distinguishes those three yet. Per the
+ * Explicit-Unknowns rule it stays visibly unknown rather than plausibly wrong;
+ * resolving it needs the HS function table entry whose evaluator points at this
+ * address.
  * ------------------------------------------------------------------------- */
 
 /* FUN_00054860 — ai_attach: create one actor (from the encounter squad named
@@ -1156,9 +1161,9 @@ void FUN_000552b0(unsigned int combined_index)
  *     count_type 1 -> the record's "end"/max index
  *     count_type 2 -> the span (end - start), clamped to >= 0
  * The record is located by the reference's selector (top 2 bits):
- *     selector 0 -> the runtime encounter record itself (offsets +0x2a/+0x2c/+0x34)
- *     selector 1 -> a platoon record (encounter_get_platoon, offs
- * +0x4/+6/+8/+c) selector 2 -> a squad record  (encounter_get_squad,    offs
+ *     selector 0 -> the runtime encounter record itself (offsets
+ * +0x2a/+0x2c/+0x34) selector 1 -> a platoon record (encounter_get_platoon,
+ * offs +0x4/+6/+8/+c) selector 2 -> a squad record  (encounter_get_squad, offs
  * +0x16..+0x1c) In addition to the EAX result the dispatcher returns two record
  * fields through the optional out parameters: *out_min receives a fixed record
  * field (squad/ platoon "name" word at +0x16/+0x4, or the profile's +0x18) and
@@ -1367,8 +1372,8 @@ float FUN_000556c0(unsigned int ai_ref)
 
 /* FUN_000556f0 — predicate: returns true if the ai_index_reference names any
  * encounter whose first byte is zero. Walks the encounter iterator built by
- * ai_index_platoon_iterator_new/ai_index_platoon_iterator_next; returns false if exhausted without a match.
- * 0x1640 obj. */
+ * ai_index_platoon_iterator_new/ai_index_platoon_iterator_next; returns false
+ * if exhausted without a match. 0x1640 obj. */
 bool FUN_000556f0(unsigned int ai_ref)
 {
   int iter[3];
@@ -1394,8 +1399,9 @@ bool FUN_000556f0(unsigned int ai_ref)
 /* ---------------------------------------------------------------------------
  * ai_attack / ai_defend / ai_maneuver / ai_maneuver_enable: per-encounter mode
  * setters. Each resolves the packed ai_index_reference, then walks the
- * ai_index_platoon_iterator_new/ai_index_platoon_iterator_next encounter iterator poking a single mode byte on
- * every named encounter. Verbose trace gated by 0x5aca59.
+ * ai_index_platoon_iterator_new/ai_index_platoon_iterator_next encounter
+ * iterator poking a single mode byte on every named encounter. Verbose trace
+ * gated by 0x5aca59.
  * ------------------------------------------------------------------------- */
 
 /* FUN_00055750 — ai_attack: clear encounter[0] (attack mode) on every named
@@ -1523,11 +1529,11 @@ void FUN_00055900(unsigned int combined_index, char flag)
  * tag actr_tag and 'actv' tag actv_tag, plus the source profile index
  * field_0x34), finds the best matching squad in the DESTINATION encounter
  * (encounter_handle, @<eax>) and returns its squad index. Iterates the dest
- * encounter's squads (ai_index_squad_iterator_new/ai_index_squad_iterator_next) and records, in priority
- * order, the first dest squad that matches on five levels:
- *   slot1 ([ebp-0x8])  self: match_flag set and dest squad index == squad_index
- *   slot2 ([ebp-0xc])  same-variant: dest squad's 'actv' tag == actv_tag
- *   slot3 ([ebp-0x10]) same-actor:   dest squad's 'actr' tag == actr_tag
+ * encounter's squads (ai_index_squad_iterator_new/ai_index_squad_iterator_next)
+ * and records, in priority order, the first dest squad that matches on five
+ * levels: slot1 ([ebp-0x8])  self: match_flag set and dest squad index ==
+ * squad_index slot2 ([ebp-0xc])  same-variant: dest squad's 'actv' tag ==
+ * actv_tag slot3 ([ebp-0x10]) same-actor:   dest squad's 'actr' tag == actr_tag
  *   slot4 ([ebp-0x14]) same-type:    actr_tag[+0x14] (actor type) matches
  *   slot5 ([ebp-0x18]) fallback:     first dest squad
  * Resolution walks slots 1..5; the first set slot wins, emits a verbose trace
@@ -1538,7 +1544,9 @@ int16_t FUN_000559a0(unsigned int encounter_handle /* @<eax> */, int field_0x34,
                      int16_t squad_index, void *actr_tag, void *actv_tag,
                      char match_flag, const void *debug_str)
 {
-  int iter[5]; /* [ebp-0x34] ai_index_squad_iterator_new/ai_index_squad_iterator_next record */
+  int iter[5]; /* [ebp-0x34]
+                  ai_index_squad_iterator_new/ai_index_squad_iterator_next
+                  record */
   void *scenario; /* [ebp-0x1c] */
   void *dest_element; /* [ebp-0x20] dest profile element             */
   void *dest_squads; /* [ebp-0x4]  dest squads tag_block            */
@@ -1728,7 +1736,9 @@ validate:
 void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
                   int param_3, int param_4)
 {
-  short target_squad_indices[MAXIMUM_SQUADS_PER_ENCOUNTER]; /* [ebp-0xc8], 0x80 bytes, init 0xffff */
+  short
+    target_squad_indices[MAXIMUM_SQUADS_PER_ENCOUNTER]; /* [ebp-0xc8], 0x80
+                                                           bytes, init 0xffff */
   int squad_iter[5]; /* [ebp-0x34], Layout A (ai_index_squad_iterator_new) */
   int actor_iter[3]; /* [ebp-0x2c], encounter_actor_iterator_new
                         (iter[1]=handle) */

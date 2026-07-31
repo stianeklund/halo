@@ -5560,8 +5560,8 @@ void FUN_000ae920(wchar_t *title_buf, int player_handle)
        * Discarding the return value dropped the copy entirely.  The REP
        * MOVSD also clobbers EDI (title_buf), which is why the original
        * reloads title_buf from [EBP+8] in both tail branches. */
-      local_stats = *(postgame_stat_block_t *)FUN_000abf50(
-        (int *)&local_stats, player_handle);
+      local_stats = *(postgame_stat_block_t *)FUN_000abf50((int *)&local_stats,
+                                                           player_handle);
       /* Original 0xaeb58: PUSH EBX (= player_handle), NOT a constant 0.
        * Slot 0x4c formats ONE player's score (KOTH: FUN_000b1de0 reads the
        * hill ticks at player+0xc0), so passing 0 made the FFA title line
@@ -5576,12 +5576,12 @@ void FUN_000ae920(wchar_t *title_buf, int player_handle)
        * peephole the sign-bit mask into TEST EAX,EAX / JNS. */
       if ((place & 0x80000000) > 0)
         usprintf(title_buf, L"Tied for %s place with %s %s",
-                 *(wchar_t **)(0x2efe28 + (place & 0x7f) * 4),
-                 score_buf, lives_buf);
+                 *(wchar_t **)(0x2efe28 + (place & 0x7f) * 4), score_buf,
+                 lives_buf);
       else
         usprintf(title_buf, L"In %s place with %s %s",
-                 *(wchar_t **)(0x2efe28 + (place & 0x7f) * 4),
-                 score_buf, lives_buf);
+                 *(wchar_t **)(0x2efe28 + (place & 0x7f) * 4), score_buf,
+                 lives_buf);
     }
   }
 }

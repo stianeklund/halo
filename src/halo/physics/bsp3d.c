@@ -1,3 +1,67 @@
+/* 0x146be0 — Area-of-effect breakable-surface damage. Walks the scenario's
+ * breakable-surface block (scenario+0x16c, 0x30-byte elements: center xyz at
+ * +0x00..+0x08, bounding radius at +0x0c, id dword at +0x10) and, for every
+ * extant surface whose bounding sphere intersects the damage sphere, zeroes
+ * the surface health, clears the surface bit in the BSP surface bitfield and
+ * fires the destruction callback.
+ *
+ * Confirmed: the AoE radius comes from the 'jpt!' damage effect tag at +0x04;
+ * the early-out tests tag+0x1d4/+0x1d8 against 0.0f. The %d in the warning
+ * format string is original (a double is passed) — reproduced verbatim. */
+void FUN_00146be0(void *damage_params)
+{
+  void *scenario;
+  char *jpt_tag;
+  void *surface_block;
+  float *element;
+  float *health_ptr;
+  char *bsp_data;
+  uint32_t *word_ptr;
+  float aoe_radius;
+  float dx, dy, dz;
+  short surface_index;
+  int index;
+
+  scenario = scenario_get();
+  jpt_tag = (char *)tag_get(0x6a707421, *(int *)damage_params);
+
+  if (*breakable_surface_globals != 0 &&
+      (*(float *)(jpt_tag + 0x1d4) != 0.0f ||
+       *(float *)(jpt_tag + 0x1d8) != 0.0f)) {
+    aoe_radius = *(float *)(jpt_tag + 4);
+    if (4.0f < aoe_radius)
+      error(2,
+            "WARNING: area of effect breakable surface damage with radius %d",
+            aoe_radius);
+
+    surface_block = (void *)((char *)scenario + 0x16c);
+    surface_index = 0;
+    if (0 < *(int *)surface_block) {
+      index = 0;
+      do {
+        if (breakable_surface_extant(surface_index) != 0) {
+          element = (float *)tag_block_get_element(surface_block, index, 0x30);
+          dx = *(float *)((char *)damage_params + 0x28) - element[0];
+          dy = *(float *)((char *)damage_params + 0x2c) - element[1];
+          dz = *(float *)((char *)damage_params + 0x30) - element[2];
+          if (dz * dz + dy * dy + dx * dx <=
+              (element[3] + aoe_radius) * (element[3] + aoe_radius)) {
+            health_ptr = breakable_surface_get(surface_index);
+            *health_ptr = 0.0f;
+            bsp_data = breakable_surfaces_get_bsp_surface_data();
+            word_ptr = (uint32_t *)(bsp_data + (index >> 5) * 4);
+            *word_ptr = *word_ptr & ~(1 << (index & 0x1f));
+            FUN_00145ad0((unsigned short)surface_index, damage_params,
+                         *(int *)((char *)element + 0x10));
+          }
+        }
+        surface_index = (short)(surface_index + 1);
+        index = surface_index;
+      } while (index < *(int *)surface_block);
+    }
+  }
+}
+
 /* FUN_00146d40 (0x146d40): descend a 2D BSP node tree from `node_index` to the
  * leaf containing the 2D `point2d` (x, y).
  *
@@ -339,68 +403,4 @@ int FUN_001470b0(int param_1, uint32_t param_2, uint32_t param_3,
   }
 
   return leaf_count;
-}
-
-/* 0x146be0 — Area-of-effect breakable-surface damage. Walks the scenario's
- * breakable-surface block (scenario+0x16c, 0x30-byte elements: center xyz at
- * +0x00..+0x08, bounding radius at +0x0c, id dword at +0x10) and, for every
- * extant surface whose bounding sphere intersects the damage sphere, zeroes
- * the surface health, clears the surface bit in the BSP surface bitfield and
- * fires the destruction callback.
- *
- * Confirmed: the AoE radius comes from the 'jpt!' damage effect tag at +0x04;
- * the early-out tests tag+0x1d4/+0x1d8 against 0.0f. The %d in the warning
- * format string is original (a double is passed) — reproduced verbatim. */
-void FUN_00146be0(void *damage_params)
-{
-  void *scenario;
-  char *jpt_tag;
-  void *surface_block;
-  float *element;
-  float *health_ptr;
-  char *bsp_data;
-  uint32_t *word_ptr;
-  float aoe_radius;
-  float dx, dy, dz;
-  short surface_index;
-  int index;
-
-  scenario = scenario_get();
-  jpt_tag = (char *)tag_get(0x6a707421, *(int *)damage_params);
-
-  if (*breakable_surface_globals != 0 &&
-      (*(float *)(jpt_tag + 0x1d4) != 0.0f ||
-       *(float *)(jpt_tag + 0x1d8) != 0.0f)) {
-    aoe_radius = *(float *)(jpt_tag + 4);
-    if (4.0f < aoe_radius)
-      error(2,
-            "WARNING: area of effect breakable surface damage with radius %d",
-            aoe_radius);
-
-    surface_block = (void *)((char *)scenario + 0x16c);
-    surface_index = 0;
-    if (0 < *(int *)surface_block) {
-      index = 0;
-      do {
-        if (breakable_surface_extant(surface_index) != 0) {
-          element = (float *)tag_block_get_element(surface_block, index, 0x30);
-          dx = *(float *)((char *)damage_params + 0x28) - element[0];
-          dy = *(float *)((char *)damage_params + 0x2c) - element[1];
-          dz = *(float *)((char *)damage_params + 0x30) - element[2];
-          if (dz * dz + dy * dy + dx * dx <=
-              (element[3] + aoe_radius) * (element[3] + aoe_radius)) {
-            health_ptr = breakable_surface_get(surface_index);
-            *health_ptr = 0.0f;
-            bsp_data = breakable_surfaces_get_bsp_surface_data();
-            word_ptr = (uint32_t *)(bsp_data + (index >> 5) * 4);
-            *word_ptr = *word_ptr & ~(1 << (index & 0x1f));
-            FUN_00145ad0((unsigned short)surface_index, damage_params,
-                         *(int *)((char *)element + 0x10));
-          }
-        }
-        surface_index = (short)(surface_index + 1);
-        index = surface_index;
-      } while (index < *(int *)surface_block);
-    }
-  }
 }

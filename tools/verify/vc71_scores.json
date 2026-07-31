@@ -149,7 +149,7 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00014620": {
-      "score": 66.7,
+      "score": 100.0,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00014680": {
@@ -505,7 +505,7 @@
       "source": "src/halo/ai/actions.c"
     },
     "FUN_0001bcd0": {
-      "score": 84.8,
+      "score": 87.6,
       "source": "src/halo/ai/actions.c"
     },
     "FUN_0001beb0": {
@@ -605,7 +605,7 @@
       "source": "src/halo/ai/actions.c"
     },
     "FUN_0001cfa0": {
-      "score": 82.5,
+      "score": 100.0,
       "source": "src/halo/ai/actions.c"
     },
     "FUN_0001d030": {
@@ -3476,6 +3476,10 @@
       "score": 89.4,
       "source": "src/halo/effects/decals.c"
     },
+    "FUN_000996b0": {
+      "score": 92.4,
+      "source": "src/halo/effects/decals.c"
+    },
     "FUN_00099840": {
       "score": 92.5,
       "source": "src/halo/effects/decals.c"
@@ -3490,6 +3494,10 @@
     },
     "FUN_00099d60": {
       "score": 95.9,
+      "source": "src/halo/effects/decals.c"
+    },
+    "FUN_00099f80": {
+      "score": 95.1,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_00099fd0": {
@@ -5773,6 +5781,10 @@
       "source": "src/halo/game/players.c"
     },
     "FUN_000bf420": {
+      "score": 83.6,
+      "source": "src/halo/game/players.c"
+    },
+    "FUN_000bf470": {
       "score": 83.6,
       "source": "src/halo/game/players.c"
     },
@@ -11220,6 +11232,10 @@
       "score": 94.0,
       "source": "src/halo/physics/bsp3d.c"
     },
+    "FUN_00146db0": {
+      "score": 98.0,
+      "source": "src/halo/physics/bsp3d.c"
+    },
     "FUN_00146e30": {
       "score": 82.7,
       "source": "src/halo/physics/bsp3d.c"
@@ -11724,6 +11740,10 @@
       "score": 95.5,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_profile.c"
     },
+    "FUN_0016fb80": {
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_0016fbd0": {
       "score": 91.3,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_profile.c"
@@ -11736,6 +11756,10 @@
       "score": 94.6,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_profile.c"
     },
+    "FUN_001703f0": {
+      "score": 50.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_00171bc0": {
       "score": 92.9,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_screen_effect.c"
@@ -11743,6 +11767,18 @@
     "FUN_00172590": {
       "score": 93.0,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_shadows.c"
+    },
+    "FUN_00172640": {
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "FUN_00172650": {
+      "score": 50.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "FUN_00172720": {
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_00172a30": {
       "score": 93.1,
@@ -15797,7 +15833,7 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_find_in_radius": {
-      "score": 60.7,
+      "score": 90.4,
       "source": "src/halo/objects/objects.c"
     },
     "object_find_region_permutations_available_with_variant": {

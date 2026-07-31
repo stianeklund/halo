@@ -63,7 +63,8 @@ real_vector2d FUN_001700d0(real_vector2d *v)
 
   if (v == NULL) {
     display_assert(
-      "v", "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_screen_effect.c",
+      "v",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_screen_effect.c",
       0x1e, 1);
     system_exit(-1);
   }
@@ -114,9 +115,9 @@ void FUN_00171bc0(void)
    * colour set B and, after the switch, for the viewport width; keeping one
    * variable preserves the 0x74-byte frame. */
   unsigned long color_b_pixel_then_width;
-  unsigned long color_a_pixel;  /* ESI */
-  unsigned long ps_state_00;    /* -> 0x5a5ac0, XOR-zeroed before the switch */
-  unsigned long ps_state_88;    /* -> 0x5a5b48, XOR-zeroed before the switch */
+  unsigned long color_a_pixel; /* ESI */
+  unsigned long ps_state_00; /* -> 0x5a5ac0, XOR-zeroed before the switch */
+  unsigned long ps_state_88; /* -> 0x5a5b48, XOR-zeroed before the switch */
   int quad_x;
   int quad_y;
   int height;
