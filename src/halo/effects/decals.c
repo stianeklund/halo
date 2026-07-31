@@ -482,6 +482,118 @@ void bsp3d_get_plane_from_designator(int structure_bsp,
 }
 
 /*
+ * decal_update — age one decal, fading or retiring it.
+ *
+ * Computes the decal's age in seconds from the game clock, then either
+ * retires it (age has reached its lifetime) or sets its alpha from the
+ * fade-out ramp. Decals flagged permanent (bit 1) stay at full alpha.
+ *
+ * Retirement releases the decal's claim on the locked-decal budget if it held
+ * one (flag bit 0), then calls the rasterizer-side free FUN_0017cb10. The
+ * "tell Bernie" underflow warning is the same one-shot pattern as in
+ * decals_update_for_new_map above, with its own latch byte (0x4557dc here,
+ * 0x4557dd there) so the two sites report independently.
+ *
+ * Decal fields used:
+ *   +0x02 int16_t  flags: bit 0 = counted against the locked budget,
+ *                         bit 1 = permanent (never fades or expires)
+ *   +0x14 int      birth game time, in ticks
+ *   +0x1c float    lifetime, in seconds
+ *   +0x20 float    fade-out duration, in seconds
+ *   +0x28 uint8_t  alpha
+ *   +0x2c int      definition_index ('deca' tag index)
+ *
+ * ABI: one register param, no stack params (plain RET, and the single call
+ * site @00099fb3 in decals_update does no cleanup). `decal_index` arrives in
+ * EDI (@<edi>): PUSH EDI @000996bc forwards it as datum_get's second argument
+ * with no prior write to EDI in this function, and EDI is never popped --
+ * ADD ESP,8 @000996c3 after three pushes proves PUSH ESI @000996bb is the
+ * callee-save (ESI is popped at all three exits) while EDI and EAX are the two
+ * arguments. It is forwarded again to FUN_0017cb10 @0009978b. Ghidra typed the
+ * function void(void).
+ *
+ * Confirmed: FCOMP branch polarities, decoded from the FNSTSW mask bits
+ *            (AH bit0 = C0/less, bit2 = C2/unordered, bit6 = C3/equal) rather
+ *            than from an idiom table:
+ *              TEST AH,0x44 + JNP @00099732 -> taken iff equal
+ *              TEST AH,0x05 + JNP @0009973f -> taken iff age < lifetime
+ *              TEST AH,0x41 + JNE @000997a3 -> taken iff lifetime <= 0
+ *              TEST AH,0x05 + JP  @000997ca -> taken iff remaining >= fade
+ *              TEST AH,0x01 + JNE @000997da -> taken iff f < 0
+ *              TEST AH,0x41 + JNP @000997ea -> taken iff f <= 1
+ * Confirmed: constants read out of the XBE -- 0x2533c0 = 0.0f,
+ *            0x2533c8 = 1.0f, 0x269dc0 = 0.033333335f (one tick in seconds),
+ *            0x2602c8 = 255.0f. Assert strings at 0x26a030 and 0x26a01c,
+ *            file string 0x269e0c; both tails call system_exit(-1), not
+ *            halt_and_catch_fire.
+ * Confirmed: the alpha=0xff store @0009971d sits between the TEST and the Jcc
+ *            of the permanent-flag branch, so it runs unconditionally.
+ * Uncertain: the tag_get result is loaded into EAX and never read. The call is
+ *            kept because it is a load-bearing side effect (it faults on an
+ *            invalid tag index), but the original source presumably bound it to
+ *            a variable this path does not use.
+ * Uncertain: the final conversion is a bare FLD/FISTP @0009981b with no
+ *            control-word change, so it uses the FPU's round-to-nearest mode --
+ *            NOT a C (int) cast, which must truncate. x87_round_to_int
+ *            reproduces the instruction; a plain cast would differ by one for
+ *            fractional products.
+ *
+ * 0x996b0 / decals.obj
+ */
+void decal_update(int decal_index)
+{
+  char *decal;
+  int16_t flags;
+  float age;
+  float f;
+
+  decal = (char *)datum_get(global_decal_data, decal_index);
+  age = (float)(game_time_get() - *(int *)(decal + 0x14)) * 0.033333335f;
+
+  if (*(int *)(decal + 0x2c) == NONE) {
+    display_assert("decal->definition_index!=NONE",
+                   "c:\\halo\\SOURCE\\effects\\decals.c", 0x133, true);
+    system_exit(-1);
+  }
+  tag_get(0x64656361 /* 'deca' */, *(int *)(decal + 0x2c));
+
+  flags = *(int16_t *)(decal + 2);
+  *(uint8_t *)(decal + 0x28) = 0xff;
+  if ((flags & 2) != 0)
+    return;
+
+  if (*(float *)(decal + 0x1c) != 0.0f && age >= *(float *)(decal + 0x1c)) {
+    if ((flags & 1) != 0) {
+      *(int16_t *)(decal + 2) = (int16_t)(flags & 0xfffe);
+      *(int *)(decal_globals + 0x2804) -= 1;
+      if (*(int *)(decal_globals + 0x2804) < 0 && *(uint8_t *)0x4557dc == 0) {
+        error(
+          2, "### ERROR decals: locked count is invalid (#%d) -- tell Bernie!!",
+          *(int *)(decal_globals + 0x2804));
+        *(uint8_t *)0x4557dc = 1;
+      }
+    }
+    FUN_0017cb10(decal_index);
+    return;
+  }
+
+  if (*(float *)(decal + 0x1c) <= 0.0f)
+    return;
+  if (*(float *)(decal + 0x20) <= 0.0f)
+    return;
+  if (*(float *)(decal + 0x1c) - age >= *(float *)(decal + 0x20))
+    return;
+
+  f = (*(float *)(decal + 0x1c) - age) / *(float *)(decal + 0x20);
+  if (!(f >= 0.0f && f <= 1.0f)) {
+    display_assert("f>=0.0f && f<=1.0f", "c:\\halo\\SOURCE\\effects\\decals.c",
+                   0x142, true);
+    system_exit(-1);
+  }
+  *(uint8_t *)(decal + 0x28) = (uint8_t)x87_round_to_int(f * 255.0f);
+}
+
+/*
  * FUN_00099840 — prepend a decal to the cluster/layer linked list.
  *
  * Reads the current list head via FUN_00098fe0, then initialises the decal's

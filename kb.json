@@ -6105,7 +6105,8 @@
     },
     {
      "addr": "0x996b0",
-     "decl": "void decal_update(void);"
+     "decl": "void decal_update(int decal_index@<edi>);",
+     "ported": true
     },
     {
      "addr": "0x99840",
