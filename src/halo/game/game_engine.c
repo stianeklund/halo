@@ -4946,24 +4946,35 @@ float FUN_000adb20(int spawn_pos, int player_handle)
   } /* hazard-ok: value-arithmetic (multiplied scale + offset) */
 }
 
-/* Compute the combined spawn location rating. EAX = player_handle. */
+/* Compute the combined spawn location rating.
+ * EAX = location_ptr, EBX = player_handle. */
 float FUN_000adc40(int location_ptr, int player_handle)
 {
   int player;
   float rating;
 
   player = (int)datum_get(player_data, player_handle);
+  /* The teams-differ case does NOT return: the original FLDs 0.0 at 0xadc7f
+   * and JMPs to the shared join at 0xadc91, so control still reaches the
+   * vtable-0x68 multiply and that callback is invoked at 0xadcdb with the
+   * rating zeroed.  The previous lift returned 0.0f here and skipped the
+   * call outright. */
   if (current_game_engine != 0 &&
-      ((char (**)(void))current_game_engine)[0x7c / 4] != NULL) {
-    if (((char (*)(int))((void **)current_game_engine)[0x7c / 4])(0)) {
-      if (*(int *)(player + 0x20) != *(int16_t *)(location_ptr + 0x10))
-        return 0.0f;
-    }
+      ((char (**)(void))current_game_engine)[0x7c / 4] != NULL &&
+      ((char (*)(int))((void **)current_game_engine)[0x7c / 4])(0) != 0 &&
+      *(int *)(player + 0x20) != *(int16_t *)(location_ptr + 0x10)) {
+    rating = *(const float *)0x2533c0;
+  } else {
+    rating = game_engine_get_distance_rating_for_spawn(player_handle,
+                                                       (float *)location_ptr);
   }
-  rating = game_engine_get_distance_rating_for_spawn(player_handle,
-                                                     (float *)location_ptr);
   if (current_game_engine != 0) {
-    if (0.0f < rating && *(char *)0x456b14 != 0) {
+    /* Explicit const-pool operand so VC71 emits the original's non-popping
+     * FCOM [0x2533c0] at 0xadc9e (rating stays in ST0 for the later FMUL);
+     * a bare `0.0f < rating` literal makes it FLD the constant first.
+     * NaN: the original does TEST AH,0x41 / JNE -> skip, i.e. unordered
+     * skips the block, which is what `rating > 0.0f` gives under clang too. */
+    if (rating > *(const float *)0x2533c0 && *(char *)0x456b14 != 0) {
       /* Original 0xadcb4: MOV EAX,EBX before CALL 0xadb20 — the callee's
        * @<eax> arg is this function's player_handle@<ebx>. */
       rating = FUN_000adb20(location_ptr, player_handle) * rating;
@@ -5416,7 +5427,6 @@ void FUN_000ae920(wchar_t *title_buf, int player_handle)
   int lives_remaining;
   wchar_t lives_buf[40];
   wchar_t score_buf[256];
-  wchar_t *lives_text;
 
   datum_get(player_data, player_handle);
   if (title_buf == NULL) {
@@ -5435,25 +5445,46 @@ void FUN_000ae920(wchar_t *title_buf, int player_handle)
      * death count for every local player. */
     player = (int)datum_get(player_data, player_handle);
     lives_remaining = *(int *)0x456b30 - *(int16_t *)(player + 0xaa);
-    if (lives_remaining == 0)
-      lives_text = L"(no lives)";
-    else if (lives_remaining == 1)
-      lives_text = L"(1 life)";
-    else {
+    /* switch, not if/else-if: the original dispatches with the MSVC
+     * switch idiom SUB ECX,0 / JE / DEC ECX / JE at 0xae99d, which an
+     * if-chain compiles to CMP/JE instead. */
+    switch (lives_remaining) {
+    case 0:
+      /* The original pushes each string as an immediate into a SHARED call
+       * (PUSH 0x26cdac / PUSH 0x26cdc4 at 0xae9c4 / 0xae9b9, both reaching
+       * the CALL at 0xae9cd).  Routing them through a `lives_text` variable
+       * made VC71 materialize the pointer into EAX first. */
+      usprintf(lives_buf, L"(no lives)");
+      break;
+    case 1:
+      usprintf(lives_buf, L"(1 life)");
+      break;
+    default:
       usprintf(lives_buf, L"(%d lives)", lives_remaining);
-      goto check_phase;
+      break;
     }
-    usprintf(lives_buf, lives_text);
   }
-check_phase:
   if (*(int *)0x5aa730 == 1) {
     int won;
     char has_teams;
+    int (*win_cb)(int);
 
-    /* Original 0xae9f6: PUSH EBX (= player_handle) before the inlined
-     * vtable-0x84 / FUN_000ae250 dispatch.  Passing 0 evaluated the win/loss
-     * banner for player slot 0. */
-    won = game_engine_did_player_win(player_handle);
+    /* game_engine_did_player_win (0xae310) expanded inline, because the
+     * original expands it inline here (0xae9e2-0xaea02): MOV ECX,[0x456b60];
+     * XOR EAX,EAX; TEST ECX,ECX; JE skip; MOV EAX,[ECX+0x84]; TEST EAX,EAX;
+     * PUSH EBX; JE default; CALL EAX; JMP after; default: CALL 0xae250.
+     * Calling the out-of-line helper emitted one CALL where the original has
+     * eight instructions.  Semantics are identical to the helper's body.
+     * PUSH EBX = player_handle (the @<eax> arg); passing 0 here evaluated the
+     * win/loss banner for player slot 0. */
+    won = 0;
+    if (current_game_engine) {
+      win_cb = ((int (**)(int))current_game_engine)[0x84 / 4];
+      if (win_cb)
+        won = win_cb(player_handle);
+      else
+        won = FUN_000ae250(player_handle);
+    }
     has_teams = 0;
     if (current_game_engine)
       has_teams = *(char *)0x456b14;
@@ -5501,7 +5532,14 @@ check_phase:
       }
     }
     {
-      int local_stats[28];
+      /* Exactly one postgame_stat_entry_t (7 dwords): FUN_000abf50's
+       * copy-out is a 7-dword struct assignment, and the original reserves
+       * [ebp-0x2c]..[ebp-0x10] = 0x1c bytes for it.  The previous [28]
+       * over-reserved 112 bytes and inflated the frame to 0x2e0 against the
+       * original's SUB ESP,0x27c, shifting every other local's offset. */
+      int local_stats[7];
+      uint32_t place;
+
       FUN_000abf50(local_stats, player_handle);
       /* Original 0xaeb58: PUSH EBX (= player_handle), NOT a constant 0.
        * Slot 0x4c formats ONE player's score (KOTH: FUN_000b1de0 reads the
@@ -5509,16 +5547,17 @@ check_phase:
        * "In %s place with %s" always report player slot 0's score. */
       ((void (*)(int, wchar_t *))((int *)current_game_engine)[0x4c / 4])(
         player_handle, score_buf);
-      if ((*(uint32_t *)(local_stats + 6) & 0x80000000) != 0)
-        usprintf(
-          title_buf, L"Tied for %s place with %s %s",
-          *(wchar_t **)(0x2efe28 + (*(uint32_t *)(local_stats + 6) & 0x7f) * 4),
-          score_buf, lives_buf);
+      /* Single load, as the original: MOV EAX,[EBP-0x14] at 0xaeb5e feeds
+       * both the tied-bit test and the &0x7f place index in each branch. */
+      place = *(uint32_t *)(local_stats + 6);
+      if ((place & 0x80000000) != 0)
+        usprintf(title_buf, L"Tied for %s place with %s %s",
+                 *(wchar_t **)(0x2efe28 + (place & 0x7f) * 4),
+                 score_buf, lives_buf);
       else
-        usprintf(
-          title_buf, L"In %s place with %s %s",
-          *(wchar_t **)(0x2efe28 + (*(uint32_t *)(local_stats + 6) & 0x7f) * 4),
-          score_buf, lives_buf);
+        usprintf(title_buf, L"In %s place with %s %s",
+                 *(wchar_t **)(0x2efe28 + (place & 0x7f) * 4),
+                 score_buf, lives_buf);
     }
   }
 }
