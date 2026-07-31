@@ -479,6 +479,12 @@ void FUN_000f5f30(void)
  *   0x46cf07  byte   buffer_dirty     (0 = pristine, 1 = user has typed)
  *   0x46cf08  char*  buffer_base      (edit buffer start)
  *   0x46cf0c  char*  cursor           (edit caret within the buffer)
+ * The edit buffer holds UTF-16, so the caret advances/retreats by 2-byte
+ * cells and its end-of-string test is a 16-bit compare: the original
+ * materialises the stride once (MOV EDX,2 at 0xf642b) and reuses it for both
+ * SUB EAX,EDX (left, 0xf65f6) and ADD EAX,EDX (right, 0xf6625), and tests the
+ * terminator with CMP WORD PTR [ECX],0 at 0xf661d. Matches the 2-byte stepping
+ * in FUN_000f5f30 (backspace) and virtual_keyboard_set_text.
  *   0x46cf10  int    last_move_time   (ms timestamp of last accepted move)
  *   0x46cf58  int    repeat_timer     (ms timestamp gating auto-repeat)
  * Keymap dispatch table at 0x28a790 is a signed byte array indexed
@@ -563,7 +569,7 @@ void virtual_keyboard_process_input(void)
       case 6: /* cursor left */
         if (pressed == 1) {
           if (*(char **)0x46cf08 < *(char **)0x46cf0c)
-            *(char **)0x46cf0c -= 1;
+            *(char **)0x46cf0c -= 2;
         cursor_moved:
           *(unsigned char *)0x46cf07 = 0;
           ui_play_audio_feedback_sound(1);
@@ -572,8 +578,8 @@ void virtual_keyboard_process_input(void)
         break;
       case 7: /* cursor right */
         if (pressed == 1) {
-          if (**(char **)0x46cf0c != 0)
-            *(char **)0x46cf0c += 1;
+          if (**(short **)0x46cf0c != 0)
+            *(char **)0x46cf0c += 2;
           goto cursor_moved;
         }
         break;
@@ -1209,8 +1215,10 @@ void item_set_position(int item_handle, float *position, int flag)
         cross[2] = *(float *)(marker_buf + 0x5c);
       }
 
-      /* Random angle in [-pi/4, pi/4] */
-      scale = FUN_000121e0(-1.5707963f, 1.5707963f);
+      /* Random angle in [-pi/2, pi/2]. The literal must round to the
+       * reference's 0x3fc90fdb / 0xbfc90fdb: 1.5707963f is one ULP low
+       * (0x3fc90fda), which VC71 emits verbatim. */
+      scale = FUN_000121e0(-1.5707964f, 1.5707964f);
       scaled_dir[0] = cross[0] * scale;
       scaled_dir[1] = cross[1] * scale;
       scaled_dir[2] = cross[2] * scale;
