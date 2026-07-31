@@ -1,16 +1,11 @@
 /* Object widgets — antenna, flag, light, etc. attached to game objects. */
 
-/* widget_type_definition table at 0x323528, stride 0x28 (40) bytes. Fields:
- *   +0x04  uint8_t  needs_lighting
- *   +0x20  void (*update_proc)(float)            // update function
- *   +0x24  void (*render_proc)(int object_handle,
- *                              int  widget_definition_handle,
- *                              void *lighting,
- *                              void *parent_model_effect)
- * NUMBER_OF_WIDGET_TYPES = 5. */
+#include "widget_types.h"
+
+/* The static widget_type_definition table; layout and NUMBER_OF_WIDGET_TYPES
+ * come from widget_types.h, which the binary proves is where they lived. */
 #define WIDGET_TYPE_TABLE_BASE 0x00323528
 #define WIDGET_TYPE_STRIDE 0x28
-#define NUMBER_OF_WIDGET_TYPES 5
 
 /* Pointer to the widget data array (data_t**). */
 #define WIDGET_DATA_PTR 0x005a90c4
