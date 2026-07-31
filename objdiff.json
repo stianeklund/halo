@@ -8438,6 +8438,14 @@
       "metadata": {
         "source_path": "src/halo/ai/actions.c"
       }
+    },
+    {
+      "name": "halo/actions_FUN_0001f6e0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actions.c.obj",
+      "base_path": "delinked/actions_FUN_0001f6e0.obj",
+      "metadata": {
+        "source_path": "src/halo/ai/actions.c"
+      }
     }
   ]
 }
