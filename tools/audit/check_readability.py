@@ -66,9 +66,14 @@ SOFT_CATEGORIES = ('fun_call', 'raw_offset_deref')
 
 
 def _iter_c_files():
+    # .h as well as .c: header recovery (the header-recovery skill) moves real
+    # code out of .c files into recovered headers -- hs_library_internal_runtime.h
+    # alone took 75 raw offset derefs with it. Scanning only .c would let that
+    # debt vanish from the ratchet and silently lower the baseline, making a
+    # pure file move look like a recovery win.
     for dirpath, _, filenames in os.walk(SRC_DIR):
         for fname in filenames:
-            if fname.endswith('.c'):
+            if fname.endswith('.c') or fname.endswith('.h'):
                 yield os.path.join(dirpath, fname)
 
 
