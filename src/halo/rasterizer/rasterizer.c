@@ -1644,6 +1644,19 @@ char FUN_00174bd0(void)
   return ok;
 }
 
+/* dispose of rasterizer_xbox_transparent_geometry_texcoord_stream: release the
+ * stream-1 texcoord vertex buffer allocated by FUN_00174bd0 and clear the
+ * global. The D3DResource_Release return value is discarded (the original
+ * never tests EAX after the CALL), and the null-out lives inside the guard
+ * because the JZ at 0x174cc7 skips both the CALL and the store (0x174cc0). */
+void FUN_00174cc0(void)
+{
+  if (*(void **)0x47e4bc != (void *)0x0) {
+    D3DResource_Release(*(void **)0x47e4bc);
+    *(void **)0x47e4bc = (void *)0x0;
+  }
+}
+
 /* rasterizer_transparent_geometry_group_draw: draw one sorted transparent
  * geometry group, dispatching per shader type (generic/chicago/glass/meter/
  * plasma/water), handling extra layers via self-recursion, predicted shader
