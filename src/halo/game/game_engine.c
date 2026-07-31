@@ -4900,7 +4900,7 @@ float game_engine_get_distance_rating_for_spawn(int param_1, float *param_2)
 }
 
 /* Compute team proximity rating for spawn points. ESI = position pointer. */
-float FUN_000adb20(int spawn_pos)
+float FUN_000adb20(int spawn_pos, int player_handle)
 {
   int local_player;
   int player;
@@ -4911,7 +4911,13 @@ float FUN_000adb20(int spawn_pos)
 
   {
     float *position = (float *)spawn_pos;
-    local_player = (int)datum_get(player_data, 0);
+    /* Original 0xadb2d: PUSH EAX.  EAX is read without ever being written
+     * in this function, i.e. an implicit @<eax> input (Ghidra surfaces it
+     * as `int in_EAX`); the sole caller FUN_000adc40 loads it at 0xadcb4
+     * with MOV EAX,EBX from its own player_handle@<ebx> arg.  The lift
+     * declared only spawn_pos@<esi> and passed 0 here, so the team
+     * comparison below always used player datum handle 0's team. */
+    local_player = (int)datum_get(player_data, player_handle);
     rating = 0.0f;
     data_iterator_new(&iter, player_data);
     player = (int)data_iterator_next(&iter);
@@ -4958,7 +4964,9 @@ float FUN_000adc40(int location_ptr, int player_handle)
                                                      (float *)location_ptr);
   if (current_game_engine != 0) {
     if (0.0f < rating && *(char *)0x456b14 != 0) {
-      rating = FUN_000adb20(location_ptr) * rating;
+      /* Original 0xadcb4: MOV EAX,EBX before CALL 0xadb20 — the callee's
+       * @<eax> arg is this function's player_handle@<ebx>. */
+      rating = FUN_000adb20(location_ptr, player_handle) * rating;
     }
     if (current_game_engine != 0 &&
         ((float (**)(void))current_game_engine)[0x68 / 4] != NULL) {

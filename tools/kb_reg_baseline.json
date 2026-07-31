@@ -184,7 +184,7 @@
   "0xacd00": "void FUN_000acd00(int param_1@<eax>);",
   "0xaceb0": "char FUN_000aceb0(int player_handle@<ecx>, int message_type@<eax>, int extra@<ebx>, int param4, int param5);",
   "0xacef0": "void game_engine_hud_update_player(int player_handle@<ecx>, int hud_player@<eax>, int param3@<ebx>);",
-  "0xadb20": "float FUN_000adb20(int spawn_pos@<esi>);",
+  "0xadb20": "float FUN_000adb20(int spawn_pos@<esi>, int player_handle@<eax>);",
   "0xadc40": "float FUN_000adc40(int location_ptr@<eax>, int player_handle@<ebx>);",
   "0xae340": "int FUN_000ae340(int team@<esi>);",
   "0xae3c0": "void FUN_000ae3c0(int param_1, int param_2, int16_t si_param@<si>);",
