@@ -136,6 +136,7 @@
     "0x98970": "void FUN_00098970(int handle@<eax>, bool layer_check);",
     "0x98aa0": "void FUN_00098aa0(int16_t cluster_index@<si>, int16_t layer@<di>, int param_1);",
     "0x98b20": "void FUN_00098b20(float *sprite_bounds@<eax>, void *definition, int16_t sequence_index, int16_t sprite_index, float extent, float *out_extent);",
+    "0x996b0": "void decal_update(int decal_index@<edi>);",
     "0x99840": "void FUN_00099840(int16_t cluster_index@<ecx>, int16_t layer@<eax>, int decal_handle);",
     "0x998b0": "int FUN_000998b0(int new_index_hint@<eax>, int16_t cluster_index, int16_t layer, int old_index, bool randomize);",
     "0x9a300": "void FUN_0009a300(float *bounds, float *projection, float *basis@<ebx>);",

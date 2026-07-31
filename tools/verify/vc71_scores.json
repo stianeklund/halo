@@ -15000,6 +15000,10 @@
       "score": 96.2,
       "source": "src/halo/effects/decals.c"
     },
+    "decal_update": {
+      "score": 92.4,
+      "source": "src/halo/effects/decals.c"
+    },
     "decals_disconnect_from_structure_bsp": {
       "score": 95.9,
       "source": "src/halo/effects/decals.c"
