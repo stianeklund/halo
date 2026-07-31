@@ -14668,6 +14668,10 @@
       "score": 86.1,
       "source": "src/halo/ai/actions.c"
     },
+    "actor_action_can_stop_conversing": {
+      "score": 87.8,
+      "source": "src/halo/ai/actions.c"
+    },
     "actor_action_handle_combat_selection": {
       "score": 90.6,
       "source": "src/halo/ai/actions.c"

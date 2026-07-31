@@ -1155,34 +1155,58 @@ char actor_action_can_stop_guarding(int actor_handle, short min_state,
 
 /* actor_action_can_stop_conversing (0x1cfa0) — Check whether an actor may stop
  * its current conversation. Returns 1 if not in a conversation, or if the
- * conversation's flags permit stopping based on the actor's state. */
-int actor_action_can_stop_conversing(int actor_handle, int flag)
+ * conversation's flags permit stopping based on the actor's state.
+ *
+ * Returns char, not int: every return path in the original writes only AL
+ * (MOV AL,0x1 @0001cfc2 and @0001d002, XOR AL,AL @0001d023), leaving the
+ * upper 24 bits of EAX as whatever the preceding datum_get left there. The
+ * adjacent sibling actor_action_can_stop_guarding (0x1cf10) has the same
+ * shape and is likewise declared char; both feed an `int` local at the call
+ * sites in actors.c, which widens the value implicitly. */
+char actor_action_can_stop_conversing(int actor_handle, int flag)
 {
   char *actor;
   char *conv;
   char *elem;
   int16_t flags;
+  char can_stop;
 
   (void)flag;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  if (*(int *)(actor + 0x1dc) == -1) {
-    return 1;
+  /* can_stop is seeded to 1 BEFORE the -1 test and the "not conversing" path
+   * falls through to the shared epilogue: the original does MOV AL,0x1
+   * @0001cfc2 and then JZ 0x0001d025 @0001cfc4, i.e. it sets the result first
+   * and branches straight to POP ESI/POP EBP/RET. Writing this as an early
+   * `return 1` instead costs the shared exit and flips the branch polarity. */
+  can_stop = 1;
+  if (*(int *)(actor + 0x1dc) != -1) {
+    conv = (char *)datum_get(*(data_t **)0x6324ec, *(int *)(actor + 0x1dc));
+    elem = (char *)tag_block_get_element((char *)global_scenario_get() + 0x468,
+                                         (int)*(int16_t *)(conv + 2), 0x74);
+    flags = *(int16_t *)(elem + 0x20);
+    /* Three separate `return 1` statements, not one combined ||-chain: MSVC
+     * tail-merges them into the single MOV AL,0x1 epilogue at 0x0001d002, so
+     * the second and third tests reach it as BACKWARD jumps
+     * (JGE 0x0001d002 @0001d013 and @0001d021). A combined
+     * `if (A || B || C) return 1;` places the success block after all three
+     * tests instead, which inverts every branch to a forward jne/jl.
+     *
+     * The comparisons are written >= 9 and >= 6 to match CMP 0x9/JGE and
+     * CMP 0x6/JGE rather than the equivalent > 8 / > 5, which MSVC encodes
+     * as CMP 0x8/JG. */
+    if ((flags & 2) != 0 && *(char *)(actor + 0x1f6) != '\0') {
+      return 1;
+    }
+    if ((flags & 4) != 0 && *(int16_t *)(actor + 0x268) >= 9) {
+      return 1;
+    }
+    if ((flags & 8) != 0 && *(int16_t *)(actor + 0x268) >= 6) {
+      return 1;
+    }
+    can_stop = 0;
   }
-  conv = (char *)datum_get(*(data_t **)0x6324ec, *(int *)(actor + 0x1dc));
-  elem = (char *)tag_block_get_element((char *)global_scenario_get() + 0x468,
-                                       (int)*(int16_t *)(conv + 2), 0x74);
-  flags = *(int16_t *)(elem + 0x20);
-  if ((flags & 2) != 0 && *(char *)(actor + 0x1f6) != '\0') {
-    return 1;
-  }
-  if ((flags & 4) != 0 && *(int16_t *)(actor + 0x268) > 8) {
-    return 1;
-  }
-  if ((flags & 8) != 0 && *(int16_t *)(actor + 0x268) > 5) {
-    return 1;
-  }
-  return 0;
+  return can_stop;
 }
 
 /* actor_action_change (0x1d030) — actor_set_action
