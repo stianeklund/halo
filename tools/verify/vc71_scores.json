@@ -17105,7 +17105,7 @@
       "source": "src/halo/items/items.c"
     },
     "virtual_keyboard_process_input": {
-      "score": 63.9,
+      "score": 65.5,
       "source": "src/halo/items/items.c"
     },
     "virtual_keyboard_set_validation": {
