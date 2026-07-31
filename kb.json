@@ -13452,7 +13452,8 @@
     },
     {
      "addr": "0x103600",
-     "decl": "void FUN_00103600(void);"
+     "decl": "int FUN_00103600(float *point@<ebx>, int *block@<esi>);",
+     "ported": true
     },
     {
      "addr": "0x1036c0",

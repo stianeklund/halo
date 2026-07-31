@@ -3103,6 +3103,70 @@ void FUN_00103530(int base, char (*visit)(uint32_t, int, uint32_t *, uint32_t),
 }
 
 /*
+ * FUN_00103600 — find-or-append a point in a 3-float point block, returning
+ * its index.
+ *
+ * Linearly scans `block` (element size 0xc = three floats) for an element
+ * whose x, y and z each differ from `point` by less than 0.001. On a hit the
+ * loop breaks with the index in EDI. If the scan runs to completion the point
+ * is new: FUN_00117da0 appends a slot and the three floats are copied in.
+ * A full block (FUN_00117da0 returns -1) yields -1.
+ *
+ * ABI (Ghidra's `void FUN_00103600(void)` is wrong on all three counts):
+ *   - `point` arrives in EBX: FLD [EBX] @0010361b with no prior write to EBX,
+ *     and both call sites in FUN_00103860 reload EBX from their own [EBP+0xc]
+ *     / [EBP+0x10] immediately before the CALL.
+ *   - `block` arrives in ESI: MOV EAX,[ESI+4] @00103604 reads the element
+ *     count before ESI is ever written.
+ *   - The function RETURNS the index in EAX: MOV EAX,EDI @001036b6, and the
+ *     caller consumes it (MOV EDI,EAX @0010389e). Ghidra dropped the return
+ *     because EDI is a callee-saved register it tracked as unaffected.
+ *
+ * The epsilon is the same (double)0.001f constant at 0x2549d8 used by
+ * valid_real_normal3d; each component is compared with FABS / FCOMP double.
+ * Note the element pointer is re-fetched through FUN_00117ee0 before every
+ * component test rather than being held in a local, matching the original's
+ * three separate CALLs @00103614 / @00103639 / @00103660.
+ *
+ * Callees: FUN_00117ee0(array, index, elem_size) -> &array[index];
+ *          FUN_00117da0(array) -> new index or -1.
+ */
+int FUN_00103600(float *point, int *block)
+{
+  float *element;
+  int index;
+
+  index = 0;
+  if (block[1] > 0) {
+    index = 0;
+    do {
+      element = (float *)FUN_00117ee0(block, index, 0xc);
+      if (fabsf(point[0] - element[0]) < 0.001f) {
+        element = (float *)FUN_00117ee0(block, index, 0xc);
+        if (fabsf(point[1] - element[1]) < 0.001f) {
+          element = (float *)FUN_00117ee0(block, index, 0xc);
+          if (fabsf(point[2] - element[2]) < 0.001f) {
+            break;
+          }
+        }
+      }
+      index = index + 1;
+    } while (index < block[1]);
+  }
+
+  if (index == block[1]) {
+    index = FUN_00117da0(block);
+    if (index != -1) {
+      element = (float *)FUN_00117ee0(block, index, 0xc);
+      element[0] = point[0];
+      element[1] = point[1];
+      element[2] = point[2];
+    }
+  }
+  return index;
+}
+
+/*
  * FUN_001036c0 — find-or-create the edge entry for an unordered vertex pair
  * and append a value to its list.
  *
