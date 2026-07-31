@@ -1,6 +1,18 @@
 #include "../../common.h"
 #include "common.h"
 
+/* x87 FABS as an instruction rather than a call. `fabsf` is a real function in
+ * xdk_rt.c, so VC71 emits CALL _fabsf for it; the double `fabs` is a compiler
+ * intrinsic and lowers to the single FABS opcode the original uses. Same
+ * guarded form as real_math.c. */
+#if defined(__clang__)
+#define main_fabs_double_from_float(x) __builtin_fabs((double)(x))
+#else
+extern double __cdecl fabs(double);
+#pragma intrinsic(fabs)
+#define main_fabs_double_from_float(x) fabs((double)(x))
+#endif
+
 /* Close all UI widgets and display the "damaged media" fatal error screen.
  *
  * Loads the "error_abort_to_dashboard_you_have_no_choice" widget by name,
@@ -3134,18 +3146,28 @@ void FUN_00103530(int base, char (*visit)(uint32_t, int, uint32_t *, uint32_t),
 int FUN_00103600(float *point, int *block)
 {
   float *element;
+  float pending;
   int index;
 
   index = 0;
   if (block[1] > 0) {
     index = 0;
     do {
+      /* Component 0 loads point[0] AFTER the call (FLD [EBX] @00103619 sits
+       * directly after CALL @00103614), so the natural expression order is
+       * correct here. Components 1 and 2 load point[N] BEFORE the call and
+       * spill it to a stack temp across it (FLD [EBX+4] @0010362f, FSTP
+       * [EBP-4] @00103635, then FSUBR [EBP-4] @00103641) -- hence the
+       * explicit `pending` local. Folding those into one expression makes
+       * MSVC evaluate the call first and emit FSUBS instead of FSUBR. */
       element = (float *)FUN_00117ee0(block, index, 0xc);
-      if (fabsf(point[0] - element[0]) < 0.001f) {
+      if (main_fabs_double_from_float(point[0] - element[0]) < 0.001f) {
+        pending = point[1];
         element = (float *)FUN_00117ee0(block, index, 0xc);
-        if (fabsf(point[1] - element[1]) < 0.001f) {
+        if (main_fabs_double_from_float(pending - element[1]) < 0.001f) {
+          pending = point[2];
           element = (float *)FUN_00117ee0(block, index, 0xc);
-          if (fabsf(point[2] - element[2]) < 0.001f) {
+          if (main_fabs_double_from_float(pending - element[2]) < 0.001f) {
             break;
           }
         }
