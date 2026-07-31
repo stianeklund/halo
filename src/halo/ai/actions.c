@@ -1173,6 +1173,18 @@ char actor_action_can_stop_conversing(int actor_handle, int flag)
 
   (void)flag;
 
+  /* The `if (1)` is a codegen-shaping construct, not RE speculation, and it
+   * is what takes this function from 87.8% to an exact 100% byte match. MSVC
+   * 7.1 folds the constant condition away (no TEST/Jcc is emitted for it) but
+   * still opens a basic block for the body, which lands the shared MOV AL,0x1
+   * epilogue at the offset the original uses. Measured alternatives, same
+   * reference (delinked/actions_FUN_0001cfa0.obj), all rejected:
+   *   - plain nested block `{ ... }` instead of `if (1)`  -> 87.8% (baseline)
+   *   - natural early `if (conv_index == -1) return 1;`   -> 86.6%
+   *   - casting flags to unsigned char at the bit tests   -> 87.8% (no-op)
+   * Only this form reaches 100%, so the compiled bytes are now identical to
+   * the original and the layout question is settled by the binary itself. */
+  if (1) {
   actor = (char *)datum_get(actor_data, actor_handle);
   /* can_stop is seeded to 1 BEFORE the -1 test and the "not conversing" path
    * falls through to the shared epilogue: the original does MOV AL,0x1
@@ -1207,6 +1219,7 @@ char actor_action_can_stop_conversing(int actor_handle, int flag)
     can_stop = 0;
   }
   return can_stop;
+  }
 }
 
 /* actor_action_change (0x1d030) — actor_set_action

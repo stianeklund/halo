@@ -14677,7 +14677,7 @@
       "source": "src/halo/ai/actions.c"
     },
     "actor_action_can_stop_conversing": {
-      "score": 87.8,
+      "score": 100.0,
       "source": "src/halo/ai/actions.c"
     },
     "actor_action_handle_combat_selection": {
