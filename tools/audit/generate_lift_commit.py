@@ -24,9 +24,17 @@ adopt the new name (and warns on any dangling caller with no pending fix).
 Gates on ABI audit: refuses to generate a commit message if any newly ported
 function with register args fails audit_reg_abi.py.
 
-Outputs a commit message to stdout. Pipe it:
-    python3 tools/generate_lift_commit.py > /tmp/commit_msg.txt
-    git commit -F /tmp/commit_msg.txt
+Outputs a commit message to stdout. Pipe it to a UNIQUE temp file:
+    MSG=$(mktemp /tmp/halo-commit-msg.XXXXXX)
+    python3 tools/audit/generate_lift_commit.py > "$MSG"
+    git commit -F "$MSG" && rm -f "$MSG"
+
+Do NOT use a fixed path like /tmp/commit_msg.txt: concurrent agents, cron
+jobs and worktrees on the same box all follow this recipe, so a second actor
+can overwrite the file between the write and the commit, landing your staged
+changes under their message. No hook detects it (prepare-commit-msg correctly
+skips -F, and commit-msg only rejects autolinks). Seen 2026-07-31 as commit
+d6caee6b: a game_engine.c fix titled "Port draw_string_get_string".
 """
 
 import argparse

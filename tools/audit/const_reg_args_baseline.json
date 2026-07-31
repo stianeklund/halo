@@ -1,0 +1,19 @@
+{
+  "_comment": "Pre-existing constant-for-register-argument findings accepted as latent or verified false-positive. --check gates only findings absent from this file or whose c_zeros/asm_zeros CHANGED -- a changed finding re-fires rather than staying forgiven. Do NOT baseline a function you are lifting: confirm against the disassembly and pass the parameter instead. Regenerate: check_const_reg_args.py --update-baseline",
+  "entries": {
+    "0xa9770": {
+      "name": "game_engine_remap_weapon",
+      "src": "src/halo/game/game_engine.c",
+      "c_zeros": 4,
+      "asm_zeros": 1,
+      "reason": "FALSE POSITIVE (verified 2026-07-31): 4 source sites share ONE xor eax,eax tail block at 0xa9888. Jump tables 0xa98d4[2] and 0xa98e8 (byte-indexed via 0xa98f0), plus the sub ecx,3 / sub ecx,2 / dec ecx chain at 0xa9875, all route to it. Original is faithful; corrected separately in 091c229d."
+    },
+    "0xac3e0": {
+      "name": "FUN_000ac3e0",
+      "src": "src/halo/game/game_engine.c",
+      "c_zeros": 1,
+      "asm_zeros": 0,
+      "reason": "FALSE POSITIVE (verified 2026-07-31): the lone literal 0 is the fill value of csmemset(target_name, 0, 24), which the original inlines at 0xac46f as xor edx,edx followed by five mov stores to [ebp-0x1a..-0xa] -- no push is emitted, so the asm count is legitimately 0."
+    }
+  }
+}

@@ -143,6 +143,23 @@ jobs:
           fi
           exit $RC
 
+      # Whole-repo by design (~2s): the pre-commit hook only scans staged .c
+      # files, so a bug introduced in a commit that staged nothing else stays
+      # invisible until this sweep sees it.
+      - name: Constant-for-register-arg audit
+        if: always()
+        run: |
+          set +e
+          OUTPUT=$(python3 tools/audit/check_const_reg_args.py --check --no-report 2>&1)
+          RC=$?
+          echo "$OUTPUT"
+          if [ $RC -ne 0 ]; then
+            printf '## ❌ New Constant-For-Register-Arg Finding\n\n```\n%s\n```\n' "$(echo "$OUTPUT" | sed -n '/ERROR:/,$p')" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '## ✅ Constant-For-Register-Arg Audit\n\n%s\n' "$(echo "$OUTPUT" | grep -- '--check OK')" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit $RC
+
       # The one slow gate: 6m33s of the job's 6m47s. Skipped on push so the
       # per-push run costs ~13s; the nightly schedule and PRs still run it in
       # full. Do NOT add a fast/partial mode here instead -- the sweep is slow
