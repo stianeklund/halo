@@ -19443,7 +19443,8 @@
     },
     {
      "addr": "0x174ce0",
-     "decl": "void FUN_00174ce0(void);"
+     "decl": "void FUN_00174ce0(void);",
+     "ported": true
     },
     {
      "addr": "0x174d10",

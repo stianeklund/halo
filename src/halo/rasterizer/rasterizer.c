@@ -1657,6 +1657,50 @@ void FUN_00174cc0(void)
   }
 }
 
+/* begin the per-frame GPU visibility (occlusion) test -- the Begin counterpart
+ * of FUN_001749b0, which ends the test and reports the pixel ratio.
+ *
+ * The two counters are cleared UNCONDITIONALLY, before any branch: the
+ * scheduler interleaved the stores with the CMPs (0x174ce9 / 0x174cef sit
+ * between CMP AL,CL and its JZ), so they run even when the test is skipped.
+ * Their widths differ and must be preserved -- MOV dword [0x47e4b8],ECX vs
+ * MOV byte [0x47e4c0],CL.
+ *
+ * Globals (from the disassembly at 0x174ce0-0x174d0a):
+ *   0x325740  two enable bytes, both must be non-zero (CMP AL,CL; CMP AH,CL)
+ *             -- read as one dword, same as FUN_001749b0
+ *   0x5a5bc2  short  current window index; -1 is the "no window" sentinel and
+ *             suppresses the test (CMP word [0x5a5bc2],-1; JZ to the RET)
+ *   0x47e4b8  int    per-frame counter, cleared here
+ *   0x47e4c0  char   per-frame flag, cleared here (set to 1 at 0x1... see the
+ *                    reader at rasterizer.c:2319)
+ *
+ * D3DDevice_BeginVisibilityTest is reached by a tail JMP to the import thunk
+ * at 0x1e8a40 with nothing pushed, so it genuinely takes no argument here.
+ * The tail call also means EAX holds the D3D HRESULT on the taken path and the
+ * enable pair on the fall-through path -- two different values, so no caller
+ * can be consuming an implicit return; the decl stays void (lift-learnings
+ * S16). */
+void FUN_00174ce0(void)
+{
+  unsigned int enable_flags;
+
+  enable_flags = *(unsigned int *)0x325740;
+  *(int *)0x47e4b8 = 0;
+  *(char *)0x47e4c0 = 0;
+
+  /* the high enable byte is tested in place (CMP AH,CL at 0x174cf7); a
+   * `>> 8` here costs an extra SHR that the original does not have. */
+  if ((char)enable_flags == 0 || (enable_flags & 0xff00) == 0) {
+    return;
+  }
+  if (*(short *)0x5a5bc2 == -1) {
+    return;
+  }
+
+  D3DDevice_BeginVisibilityTest();
+}
+
 /* rasterizer_transparent_geometry_group_draw: draw one sorted transparent
  * geometry group, dispatching per shader type (generic/chicago/glass/meter/
  * plasma/water), handling extra layers via self-recursion, predicted shader
