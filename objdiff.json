@@ -8446,6 +8446,22 @@
       "metadata": {
         "source_path": "src/halo/ai/actions.c"
       }
+    },
+    {
+      "name": "halo/rasterizer_FUN_001703f0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/rasterizer.c.obj",
+      "base_path": "delinked/rasterizer_FUN_001703f0.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/rasterizer.c"
+      }
+    },
+    {
+      "name": "halo/rasterizer_FUN_00172650",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/rasterizer.c.obj",
+      "base_path": "delinked/rasterizer_FUN_00172650.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/rasterizer.c"
+      }
     }
   ]
 }

@@ -857,6 +857,11 @@ def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
     code += encode_call_rel32(call_site, impl_addr)
 
     # 4. Clean up injected args, preserving EAX return value.
+    #    Always a cdecl clean, even when the decl says __stdcall: knowledge.py
+    #    strips __stdcall from @<reg> declarations when emitting decl.h ("the
+    #    thunk presents a cdecl interface to the C caller"), so the impl we
+    #    just called is compiled cdecl and cleans nothing.  Only the RET below
+    #    has to honour the original's callee-cleans contract.
     code += encode_add_esp(4 * param_count)
 
     # 5. Restore callee-saved registers (reverse of push order).
@@ -864,7 +869,19 @@ def generate_reverse_thunk(sym, impl_addr, rvthunk_addr):
         code += encode_pop_r32(reg32)
 
     # 6. Return to original caller.
-    code += b'\xc3'  # ret
+    #    A __stdcall original is callee-cleans: its caller pushed the STACK
+    #    args (register args arrived in registers, so they are not part of the
+    #    block) and expects the callee to drop them.  A plain RET here would
+    #    leave stack_arg_count dwords behind on every call and drift ESP —
+    #    the same failure mode as the 0x158df0 boot crash.  Note the imm is
+    #    4 * stack_arg_count, NOT 4 * param_count as in the forward thunk:
+    #    the forward thunk is entered from our C, which pushes every arg
+    #    including the register ones, whereas here the original caller only
+    #    pushed the non-register ones.
+    if '__stdcall' in sym.decl and stack_arg_count:
+        code += encode_ret_imm16(4 * stack_arg_count)
+    else:
+        code += b'\xc3'  # ret
 
     # 7. Verify: simulate the staging code to prove register postconditions.
     _verify_staging_correctness(sym, reg_args, code, num_callee_saves=K)
@@ -933,6 +950,28 @@ def _test_reverse_thunks():
                 b'\xc3'
             ),
             "single non-scratch register arg plus stack arg",
+        ),
+        (
+            # Same shape as the case above, but __stdcall.  The ADD ESP stays
+            # (knowledge.py strips __stdcall from @<reg> decls in decl.h, so
+            # the impl is compiled cdecl and cleans nothing), but the thunk
+            # must RET 4 rather than a plain RET: the ORIGINAL is callee-cleans
+            # and its caller pushed one STACK arg.  The register arg is NOT
+            # counted -- it arrived in EDI, not on the stack.  A plain RET here
+            # drifts ESP by 4 on every call, the 0x158df0 failure mode.
+            "void __stdcall players_update_pvs_stdcall(void *combined_pvs@<edi>, "
+            "bool local_player_only);",
+            0x4086c0,
+            0x65f120,
+            (
+                b'\x89\xf8'
+                b'\xff\x74\x24\x04'
+                b'\x50'
+                b'\xe8' + _rel32(0x65f120 + 7, 0x4086c0) +
+                b'\x83\xc4\x08'
+                b'\xc2\x04\x00'
+            ),
+            "__stdcall reverse thunk drops only the caller's stack args",
         ),
         (
             "void director_apply_replay_mode_for_player(char reset_flag@<al>, "

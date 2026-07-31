@@ -380,6 +380,52 @@ void rasterizer_window_get_fog(void)
   FUN_0016fa40(4);
 }
 
+/* 0x1703f0 and 0x172650 — two byte-identical dead instantiations of the
+ * D3D8 __forceinline wrapper around D3DDevice_SetVertexData2f.
+ *
+ * Same family as the ported `n` wrapper at 0x15a4f0 (the 4f variant): a
+ * __stdcall shim that ignores its device pointer, forwards to the real
+ * D3D entry point, and returns S_OK. Neither has any xref -- Ghidra finds
+ * no references and dump_caller_regsetup finds no CALL sites -- so these are
+ * dead instantiations the compiler emitted and never linked away.
+ *
+ * ABI (kb.json previously said `void FUN_001703f0(void)`, wrong on every
+ * count), all read off 001703f0 / 00172650 which are instruction-identical:
+ *   - RET 0xc => __stdcall with THREE stack args at +8/+0xc/+0x10. The
+ *     first (+8, the device pointer) is never read, exactly as in the 4f
+ *     variant where the device arg is likewise ignored.
+ *   - The D3D register index arrives in EDX, not on the stack: PUSH EDX
+ *     @001703fb / @0017265b with no prior write to EDX in the function.
+ *     This is where the 4f variant differs -- there `reg` is the first
+ *     stack arg at [EBP+0xc] -- so the register index cannot simply be
+ *     copied from that sibling's signature.
+ *   - Returns S_OK in EAX: XOR EAX,EAX @00170401 / @00172661.
+ *
+ * The C impls below are cdecl, not __stdcall, even though kb.json records
+ * the original as __stdcall: knowledge.py strips the convention from any
+ * @<reg> declaration when generating decl.h, because the generated thunk
+ * presents a cdecl interface to C. patch.py's reverse thunk is what honours
+ * the original's callee-cleans contract, returning RET 0xc to the original
+ * caller (fixed in this commit -- it previously emitted a plain RET).
+ *
+ * Argument order into the callee is from the push sequence: PUSH EAX
+ * ([EBP+0x10]) then PUSH ECX ([EBP+0xc]) then PUSH EDX, and the last push is
+ * the first argument -- so SetVertexData2f(reg, a, b) with a=[EBP+0xc].
+ */
+int FUN_001703f0(void *device, uint32_t reg, float a, float b)
+{
+  (void)device;
+  D3DDevice_SetVertexData2f(reg, a, b);
+  return 0;
+}
+
+int FUN_00172650(void *device, uint32_t reg, float a, float b)
+{
+  (void)device;
+  D3DDevice_SetVertexData2f(reg, a, b);
+  return 0;
+}
+
 /* 0x172640
  *
  * FUN_00172640
