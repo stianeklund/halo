@@ -4,8 +4,7 @@
 
 /* The static widget_type_definition table; layout and NUMBER_OF_WIDGET_TYPES
  * come from widget_types.h, which the binary proves is where they lived. */
-#define WIDGET_TYPE_TABLE_BASE 0x00323528
-#define WIDGET_TYPE_STRIDE 0x28
+#define WIDGET_TYPE_TABLE ((const widget_type_definition *)0x00323528)
 
 /* Pointer to the widget data array (data_t**). */
 #define WIDGET_DATA_PTR 0x005a90c4
@@ -21,7 +20,7 @@ void widgets_render_object_widgets(int object_handle, int lighting,
   int widget_handle;
   void *widget;
   int16_t type;
-  uint8_t *type_def;
+  const widget_type_definition *type_def;
   void (*render_proc)(int, int, int, void *);
 
   object = object_get_and_verify_type(object_handle, 0xffffffff);
@@ -35,11 +34,10 @@ void widgets_render_object_widgets(int object_handle, int lighting,
                      1);
       system_exit(-1);
     }
-    type_def =
-      (uint8_t *)(WIDGET_TYPE_TABLE_BASE + (int)type * WIDGET_TYPE_STRIDE);
-    render_proc = *(void (**)(int, int, int, void *))(type_def + 0x24);
+    type_def = &WIDGET_TYPE_TABLE[type];
+    render_proc = type_def->render_proc;
     if (render_proc != 0) {
-      if (type_def[4] != 0 && lighting == 0) {
+      if (type_def->needs_lighting != 0 && lighting == 0) {
         display_assert("!type_definition->needs_lighting || lighting",
                        "c:\\halo\\SOURCE\\objects\\widgets\\widgets.c", 0xf1,
                        1);
@@ -52,22 +50,22 @@ void widgets_render_object_widgets(int object_handle, int lighting,
   }
 }
 
-/* Update all widget types. Iterates over 5 widget type handlers from
- * the function pointer table at 0x323548 (stride 40 bytes). */
+/* Update all widget types. Walks the update_proc slot of each
+ * widget_type_definition; the original starts the walk at 0x323548, which is
+ * table base + offsetof(update_proc). */
 void widgets_update(float delta_time)
 {
   int16_t type;
 
-  for (type = 0; type < 5; type++) {
-    if (type < 0 || type > 4) {
+  for (type = 0; type < NUMBER_OF_WIDGET_TYPES; type++) {
+    if (type < 0 || type >= NUMBER_OF_WIDGET_TYPES) {
       display_assert("type>=0 && type<NUMBER_OF_WIDGET_TYPES",
                      "c:\\halo\\source\\objects\\widgets\\widget_types.h", 0x96,
                      1);
       system_exit(-1);
     }
     {
-      void (*handler)(float) =
-        (void (*)(float)) * (void **)(0x323548 + (int)type * 40);
+      void (*handler)(float) = WIDGET_TYPE_TABLE[type].update_proc;
       if (handler != 0)
         handler(delta_time);
     }
