@@ -15012,6 +15012,10 @@
       "score": 95.6,
       "source": "src/halo/effects/decals.c"
     },
+    "decals_update": {
+      "score": 95.1,
+      "source": "src/halo/effects/decals.c"
+    },
     "destroy_endpoint": {
       "score": 100.0,
       "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"

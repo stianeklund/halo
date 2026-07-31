@@ -2829,6 +2829,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x99f80": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x99fd0": {
       "kind": "function",
       "status": "ported",

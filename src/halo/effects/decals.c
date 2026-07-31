@@ -594,6 +594,42 @@ void decal_update(int decal_index)
 }
 
 /*
+ * decals_update — age every live decal once per tick.
+ *
+ * Walks the decal pool with the standard data_iterator pair and calls
+ * decal_update for each element. The whole pass is skipped when the pool's
+ * "valid" byte at +0x24 is clear (pool not initialised for the current map),
+ * matching decals_update_for_new_map above -- but note there is no
+ * assert_halt on the pool pointer here: the original loads [0x005aa8b8]
+ * straight into EAX @00099f86 and dereferences +0x24 with no null check.
+ *
+ * The pool pointer is read ONCE and reused as data_iterator_new's argument
+ * (PUSH EAX @00099f92 re-uses the same EAX the +0x24 test loaded), so the
+ * local `data` here is deliberate, not a caching optimisation.
+ *
+ * decal_update takes its decal handle in EDI (@<edi>); the original sources
+ * it from the iterator's datum_handle field at iter+0x8
+ * (MOV EDI,[EBP-0x8] @00099fb0 with iter based at EBP-0x10), not from
+ * data_iterator_next's returned element pointer.
+ */
+void decals_update(void)
+{
+  data_t *data;
+  data_iter_t iter;
+  void *elem;
+
+  data = global_decal_data;
+  if (*(uint8_t *)((char *)data + 0x24) != 0) {
+    data_iterator_new(&iter, data);
+    elem = data_iterator_next(&iter);
+    while (elem != NULL) {
+      decal_update((int)iter.datum_handle);
+      elem = data_iterator_next(&iter);
+    }
+  }
+}
+
+/*
  * FUN_00099840 — prepend a decal to the cluster/layer linked list.
  *
  * Reads the current list head via FUN_00098fe0, then initialises the decal's
