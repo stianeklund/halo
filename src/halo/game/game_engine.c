@@ -4063,7 +4063,9 @@ void FUN_000acd00(int param_1)
   int player;
 
   if (current_game_engine && param_1 != -1 && (*(uint8_t *)0x456b18 & 8) == 0) {
-    player = (int)datum_get(player_data, 0);
+    /* Original 0xacd2c: PUSH EAX (= param_1, the @<eax> arg), NOT a
+     * constant 0.  Passing 0 cleared player slot 0's unit every time. */
+    player = (int)datum_get(player_data, param_1);
     if (*(int *)(player + 0x34) != -1) {
       player = (int)object_get_and_verify_type(*(int *)(player + 0x34), 3);
       *(int *)(player + 0x94) = 0;
@@ -9088,7 +9090,10 @@ void FUN_000b39a0(int player_handle)
     *(int16_t *)(player + 0xc4) = (int16_t)lap_time;
     variant = (int)game_engine_get_variant();
     if (*(int *)(variant + 0x4c) != 2)
-      game_engine_player_event(player_handle, 0, 0);
+      /* Original 0xb3a3d: PUSH EBX; PUSH 0x24; PUSH EBX (cdecl, last arg
+       * pushed first) => (player_handle, 0x24, player_handle).  The lift
+       * had (player_handle, 0, 0): wrong event type and a null target. */
+      game_engine_player_event(player_handle, 0x24, player_handle);
   }
   *(int16_t *)(player + 0xc2) = *(int16_t *)(player + 0xc2) + 1;
   *(int *)(player + 0x88) = game_time_get();
