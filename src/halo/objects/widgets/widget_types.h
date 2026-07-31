@@ -81,7 +81,19 @@ typedef struct widget_type_definition {
     /* +0x24: 0x136507 CALL dword ptr [ESI + 0x24] with ADD ESP,0x10 -- four
      *        cdecl args, pushed right-to-left as
      *        (object_handle, definition_handle, lighting, parent_model_effect).
-     *        Null-tested via 0x32354c == 0x323528 + 0x24 before use. */
+     *        Null-tested via 0x32354c == 0x323528 + 0x24 before use.
+     *
+     *        `lighting` is typed int here to match the kb.json decl of the
+     *        caller (widgets_render_object_widgets) and every existing call
+     *        site, but that width is all the binary proves: the caller only
+     *        null-tests it and passes it through, never dereferencing it, so
+     *        int vs pointer is indistinguishable at this call. An earlier note
+     *        in widgets.c recorded it as `void *lighting`, which the name and
+     *        the guarding assert ("!type_definition->needs_lighting ||
+     *        lighting" -- i.e. a type needing lighting must be given some)
+     *        support. Treat the pointer reading as the likely one and re-type
+     *        both this field and the caller together if a callee is lifted
+     *        that actually dereferences it. */
     void   (*render_proc)(int object_handle, int definition_handle, int lighting,
                           void *parent_model_effect);
 } widget_type_definition;
