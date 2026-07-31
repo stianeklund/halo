@@ -13454,7 +13454,8 @@
     },
     {
      "addr": "0x1036c0",
-     "decl": "void FUN_001036c0(void);"
+     "decl": "int FUN_001036c0(int *table@<eax>, int value, int key_a, int key_b);",
+     "ported": true
     },
     {
      "addr": "0x1037b0",
