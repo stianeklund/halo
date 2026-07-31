@@ -910,6 +910,129 @@ co(ai_firing_pos_entry_t, radius,    0x24);
 #define NUMBER_OF_ACTOR_TARGET_TYPES 12
 
 /* ---------------------------------------------------------------------------
+ * actor_t — an element of the "actor" data_t pool.
+ *
+ * Size and count are exact, from the pool constructor at 0x3a995:
+ *     push 0x724            ; element size = 1828
+ *     push 0x100            ; maximum_count = 256
+ *     push 0x256d04         ; name = "actor"
+ *     call 0x1bfe10         ; game_state_data_new
+ *     mov  [0x6325a4], eax  ; == ACTOR_TABLE_PTR (tools/equivalence/qmp_capture.py)
+ *
+ * Every named field below is anchored to an assert string in the XBE that spells
+ * the field's full path verbatim (e.g. "realcmp(actor->input.facing_vector.k,
+ * 0.0f)"), with the cited instruction giving offset, width, and signedness.
+ * Widths come from the listing only, never the decompiler (lift-learnings §24).
+ *
+ * The original is NESTED — the assert strings show substructures meta, state,
+ * control, input, output, target, stimuli, emotions, danger_zone and
+ * firing_positions. Their exact start/end boundaries are NOT proven, so this
+ * skeleton is deliberately FLAT with the dotted path flattened into the field
+ * name. Re-nest only when a boundary is evidenced; do not guess one.
+ *
+ * Everything not cited stays `pad_XXX`. Unobserved is not the same as absent:
+ * a pad byte means "never seen accessed", not "padding in the original".
+ * Cross-reference: the prose block above FUN_0003dc20 in halo/ai/actors.c
+ * records further INFERRED offsets (0x158 vehicle_handle, 0x1b0
+ * active_grenade_handle, ...) which are deliberately NOT promoted to fields
+ * here — they lack assert-string evidence. It also notes actor+0x120 is
+ * actor_input_t of size 0xa8 (so 0x120..0x1c7), which contains the three input
+ * vectors below and independently corroborates their offsets.
+ * ------------------------------------------------------------------------- */
+#pragma pack(1)
+typedef struct {
+  int16_t salt;                                       /* +0x000  data_t pool convention: 16-bit datum salt at element +0 */
+  char pad_002[0x26];
+  int32_t meta_swarm_cache_index;                     /* +0x028  CMP dword [ESI+0x28],-1 @0x16d66 (NONE sentinel) */
+  char pad_02c[0x40];
+  int16_t state_action;                               /* +0x06c  CMP word [ESI+0x6c],3/6/0xa @0x1ef57/0x1cf29/0x1eec3 */
+  char pad_06e[0x106];
+  float input_facing_vector[3];                       /* +0x174  FLD [ESI+0x17c] @0x3e4fd = .k, so base 0x174 */
+  float input_aiming_vector[3];                       /* +0x180  FLD [ESI+0x180/184/188] @0x3e411/3e407/3e3ee */
+  float input_looking_vector[3];                      /* +0x18c  FLD [ESI+0x190/194] @0x3e467/0x3e44e */
+  char pad_198[0xd0];
+  int16_t target_target_type;                         /* +0x268  MOVSX EAX,word [ESI+0x268] @0x3033c */
+  char pad_26a[0x6];
+  int32_t target_target_prop_index;                   /* +0x270  CMP dword [ESI+0x270],-1 @0x38535 */
+  char pad_274[0xc];
+  int16_t danger_zone_danger_type;                    /* +0x280  CMP word [ESI+0x280],0 @0x3239c; [EBX+0x280] @0x484e8 */
+  char pad_282[0xa];
+  int32_t danger_zone_object_index;                   /* +0x28c  CMP dword [EBX+0x28c],-1 @0x484f2 */
+  char pad_290[0x78];
+  int16_t stimuli_panic_type;                         /* +0x308  CMP word [ESI+0x308],0 @0x1c61a */
+  char pad_30a[0x2];
+  int32_t stimuli_panic_prop_index;                   /* +0x30c  MOV EAX,[ESI+0x30c] @0x1c624 */
+  char pad_310[0xa8];
+  int16_t firing_positions_current_position_index;    /* +0x3b8  MOVSX EDX,word [ESI+0x3b8] @0x5b463 */
+  char pad_3ba[0x18a];
+  int16_t control_secondary_look_type;                /* +0x544  CMP word [ESI+0x544],0 @0x6443d */
+  char pad_546[0x6];
+  int16_t control_secondary_look_direction_type;      /* +0x54c  CMP word [ESI+0x54c],1 @0x64447 */
+  char pad_54e[0x2];
+  int32_t control_secondary_look_direction_prop_index;/* +0x550  CMP dword [ESI+0x550],EDI @0x64451 */
+  char pad_554[0x8];
+  char control_idle_major_active;                     /* +0x55c  MOV AL,byte [ESI+0x55c] @0x64479, @0x299d7 */
+  char pad_55d[0x2];
+  char control_idle_minor_active;                     /* +0x55f  MOV AL,byte [ESI+0x55f] @0x644b5 */
+  char pad_560[0x4];
+  int32_t control_idle_major_timer;                   /* +0x564  MOV EAX,[ESI+0x564] @0x299e4 */
+  char pad_568[0x4];
+  int16_t control_idle_major_direction_type;          /* +0x56c  CMP word [ESI+0x56c],1 @0x64483 */
+  char pad_56e[0x2];
+  int32_t control_idle_major_direction_prop_index;    /* +0x570  CMP dword [ESI+0x570],EDI @0x6448d */
+  char pad_574[0x8];
+  int16_t control_idle_minor_direction_type;          /* +0x57c  CMP word [ESI+0x57c],1 @0x644bf */
+  char pad_57e[0x2];
+  int32_t control_idle_minor_direction_prop_index;    /* +0x580  CMP dword [ESI+0x580],EDI @0x644c9 */
+  char pad_584[0x20];
+  float control_desired_facing_vector[3];             /* +0x5a4  LEA EDI,[ESI+0x5a4] @0x2906b */
+  float control_desired_aiming_vector[3];             /* +0x5b0  LEA EBX,[ESI+0x5b0] @0x290d8 */
+  float control_desired_looking_vector[3];            /* +0x5bc  LEA EBX,[ESI+0x5bc] @0x2913d */
+  char pad_5c8[0x2a];
+  int16_t control_fire_state;                         /* +0x5f2  MOVSX from word [EBX+0x5f2] @0x237d7, 5-case jump table */
+  char pad_5f4[0x98];
+  float control_burst_aim_vector[3];                  /* +0x68c  LEA EDI,[EBX+0x68c] @0x23d1a */
+  char pad_698[0x64];
+  float output_facing_vector[3];                      /* +0x6fc  LEA EDI,[ESI+0x6fc] @0x2a0c8 */
+  float output_aiming_vector[3];                      /* +0x708  LEA EDI,[ESI+0x708] @0x2a17d */
+  float output_looking_vector[3];                     /* +0x714  LEA EDI,[ESI+0x714] (k/j at 0x71c/0x718 @0x2a1ec) */
+  char pad_720[0x4];
+} actor_t;
+cs(actor_t, 0x724);
+co(actor_t, salt,                                          0x000);
+co(actor_t, meta_swarm_cache_index,                        0x028);
+co(actor_t, state_action,                                  0x06c);
+co(actor_t, input_facing_vector,                           0x174);
+co(actor_t, input_aiming_vector,                           0x180);
+co(actor_t, input_looking_vector,                          0x18c);
+co(actor_t, target_target_type,                            0x268);
+co(actor_t, target_target_prop_index,                      0x270);
+co(actor_t, danger_zone_danger_type,                       0x280);
+co(actor_t, danger_zone_object_index,                      0x28c);
+co(actor_t, stimuli_panic_type,                            0x308);
+co(actor_t, stimuli_panic_prop_index,                      0x30c);
+co(actor_t, firing_positions_current_position_index,       0x3b8);
+co(actor_t, control_secondary_look_type,                   0x544);
+co(actor_t, control_secondary_look_direction_type,         0x54c);
+co(actor_t, control_secondary_look_direction_prop_index,   0x550);
+co(actor_t, control_idle_major_active,                     0x55c);
+co(actor_t, control_idle_minor_active,                     0x55f);
+co(actor_t, control_idle_major_timer,                      0x564);
+co(actor_t, control_idle_major_direction_type,             0x56c);
+co(actor_t, control_idle_major_direction_prop_index,       0x570);
+co(actor_t, control_idle_minor_direction_type,             0x57c);
+co(actor_t, control_idle_minor_direction_prop_index,       0x580);
+co(actor_t, control_desired_facing_vector,                 0x5a4);
+co(actor_t, control_desired_aiming_vector,                 0x5b0);
+co(actor_t, control_desired_looking_vector,                0x5bc);
+co(actor_t, control_fire_state,                            0x5f2);
+co(actor_t, control_burst_aim_vector,                      0x68c);
+co(actor_t, output_facing_vector,                          0x6fc);
+co(actor_t, output_aiming_vector,                          0x708);
+co(actor_t, output_looking_vector,                         0x714);
+#pragma pack()
+
+/* ---------------------------------------------------------------------------
  * tag_block — the engine's ubiquitous tag-data block header: an element count
  * plus a pointer to the element array. Consumed everywhere via
  * tag_block_get_element(block, index, element_size). The 12-byte size is not
