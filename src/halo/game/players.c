@@ -5905,6 +5905,63 @@ void FUN_000bf420(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* FUN_000bf470 @ 0x000bf470
+ *
+ * HaloScript builtin dispatcher, the third member of the FUN_000bf3d0 /
+ * FUN_000bf420 pair above: same 3-parameter cdecl shape, same evaluate /
+ * NULL-check / worker / hs_return skeleton, same THREE-field record
+ * (int, float, float), same "worker return discarded, script gets a CONSTANT
+ * 0" tail.  Differs only in the worker: 0xbf3d0 calls 0x1a7ad0, 0xbf420 calls
+ * 0x1a7b50 (one object), this one calls 0x1a7c70 (every CHILD object).
+ *
+ * cdecl frame, 0xbf470-0xbf4b1:
+ *   function_index  int16_t  [EBP+0x08]  -> ECX
+ *   thread_datum    int      [EBP+0x0c]  -> ESI (callee-saved; held live
+ *                                          across evaluate and reused as
+ *                                          hs_return arg1 -- do NOT source
+ *                                          it from the record)
+ *   init            char     [EBP+0x10]  -> EAX
+ *
+ * Binary evidence:
+ *   CALL 0xcc560 @0xbf480 pushes EAX([EBP+0x10]), ESI([EBP+0xc]),
+ *   ECX([EBP+0x8]) in cdecl reverse order -> C order; ADD ESP,0xc = 3 args.
+ *   TEST EAX,EAX / JZ 0xbf4af skips BOTH remaining calls on a NULL record.
+ *
+ *   Record deref, THREE fields, MIXED widths:
+ *     +0x00 int    parent object handle  (MOV EDX,[EAX]        @0xbf48f)
+ *     +0x04 float  body damage           (FLD  float [EAX+0x4] @0xbf498)
+ *     +0x08 float  shield damage         (FLD  float [EAX+0x8] @0xbf48c)
+ *   The floats are passed via SUB ESP,0x8 + FSTP [ESP+4] / FSTP [ESP] with
+ *   PUSH EDX landing at [ESP] afterwards, so the argument order is
+ *   (handle, +0x04, +0x08) -- the push-then-fstp idiom, not three PUSHes.
+ *
+ *   ONE combined ADD ESP,0x14 @0xbf4ac folds 0x1a7c70's 3 dwords with
+ *   hs_return's 2 -- any ARG_COUNT warning on 0xcbf80 is that merged
+ *   cleanup; hs_return really takes 2 args, do NOT "fix" its decl.
+ *
+ *   kb.json's decl was corrected from `void(void)` to the 3-arg cdecl form.
+ *   Lifting this also exposed that 0x1a7c70's own decl had params 2 and 3 as
+ *   int when they are floats; that is fixed in the same change (see the
+ *   comment on FUN_001a7c70 in units.c).
+ *
+ * Callees (all cdecl, in kb.json, no @<reg> args anywhere):
+ *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0x1a7c70 = FUN_001a7c70(int parent_handle, float body_damage,
+ *              float shield_damage) -- void, damages every child object
+ *   0xcbf80  = hs_return(int thread_handle, int value) */
+void FUN_000bf470(int16_t function_index, int thread_datum, char init)
+{
+  void *record;
+
+  record =
+    (void *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    FUN_001a7c70(*(int *)record, *(float *)((char *)record + 4),
+                 *(float *)((char *)record + 8));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* FUN_000bf4c0 @ 0x000bf4c0
  *
  * HaloScript builtin dispatcher, same family as FUN_000bf260/0xbf2b0/0xbf300/

@@ -2326,15 +2326,25 @@ void FUN_001a7b50(int datum_handle, float body_damage, float shield_damage)
 }
 
 /* FUN_001a7c70 (0x1a7c70)
- * Iterates child objects and calls FUN_001a7b50 on each. */
-void FUN_001a7c70(int parent_handle, int param_2, int param_3)
+ * Iterates child objects and calls FUN_001a7b50 on each.
+ *
+ * Params 2 and 3 are FLOATS, not ints. The function itself never touches the
+ * FPU -- it forwards them bit-exact through EBX/EDI (MOV EBX,[EBP+0xc]
+ * @0x1a7c8b, MOV EDI,[EBP+0x10] @0x1a7c8f, pushed at 0x1a7c92/93) -- but its
+ * callee FUN_001a7b50 takes (int, float, float), and its sole caller
+ * FUN_000bf470 loads them with FLD and passes them via FSTP. Declaring them int
+ * made C convert the float BIT PATTERN numerically at the FUN_001a7b50 call:
+ * body damage 1.0f (0x3f800000) became 1065353216.0f. Corrected here and in
+ * kb.json. See lift-learnings 'XCALL type audit' / feedback on float-vs-int
+ * params reading the wrong register. */
+void FUN_001a7c70(int parent_handle, float body_damage, float shield_damage)
 {
   int iter_state;
   int child;
 
   child = FUN_000ce450(parent_handle, &iter_state);
   while (child != -1) {
-    FUN_001a7b50(child, param_2, param_3);
+    FUN_001a7b50(child, body_damage, shield_damage);
     child = FUN_000ce320(parent_handle, &iter_state);
   }
 }
@@ -12933,10 +12943,10 @@ void unit_died(int unit_handle, char param_2)
      * weapon->weapon.primary_trigger at weapon+0x1e4. The original pushes 0
      * for both before evaluating the handle (0x1b3166), so keep this nested. */
     weapon_owner_update(
-      unit_get_weapon(unit_handle,
-                      *(int16_t *)((char *)object_get_and_verify_type(
-                                     unit_handle, 3) +
-                                   0x2a2)),
+      unit_get_weapon(
+        unit_handle,
+        *(int16_t *)((char *)object_get_and_verify_type(unit_handle, 3) +
+                     0x2a2)),
       0, 0.0f);
   }
 
@@ -13729,9 +13739,9 @@ char FUN_001b3690(int unit_handle)
       unit_control_trace(unit_handle, (const char *)0x2b7bf0);
     } else if (*(char *)((char *)unit + 0x266) == 0) {
       /* Smooth */
-      angular_accelerate_to_position(
-        aim_vec, (float *)((char *)unit + 0x1e0),
-        (float *)((char *)unit + 0x1f8), aim_vel_limit, aim_accel_limit);
+      angular_accelerate_to_position(aim_vec, (float *)((char *)unit + 0x1e0),
+                                     (float *)((char *)unit + 0x1f8),
+                                     aim_vel_limit, aim_accel_limit);
       unit_control_trace(unit_handle, (const char *)0x2b7bc4);
     } else {
       /* Euler */
@@ -13789,9 +13799,9 @@ char FUN_001b3690(int unit_handle)
       unit_control_trace(unit_handle, (const char *)0x2b7bac);
     } else if (*(char *)((char *)unit + 0x267) == 0) {
       float *lk = (float *)((char *)unit + 0x210);
-      angular_accelerate_to_position(
-        lk, (float *)((char *)unit + 0x204), (float *)((char *)unit + 0x21c),
-        aim_vel_limit, aim_accel_limit);
+      angular_accelerate_to_position(lk, (float *)((char *)unit + 0x204),
+                                     (float *)((char *)unit + 0x21c),
+                                     aim_vel_limit, aim_accel_limit);
       unit_control_trace(unit_handle, (const char *)0x2b7b80);
     } else {
       float *lk = (float *)((char *)unit + 0x210);
