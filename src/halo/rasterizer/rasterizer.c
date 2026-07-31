@@ -1542,6 +1542,108 @@ void FUN_00174b90(float *a, float *b, float t, float *out)
   out[3] = t * b[3] + a[3];
 }
 
+/* 0x174bd0 — allocate and prime the transparent-geometry texcoord stream.
+ *
+ * Creates the 0x4000-byte static vertex buffer at
+ * rasterizer_xbox_transparent_geometry_texcoord_stream (0x47e4bc — the same
+ * global the already-ported D3DDevice_SetStreamSource(1, *(void**)0x47e4bc, 2)
+ * above binds), locks it, and fills it with a repeating 8-byte texcoord
+ * pattern.
+ *
+ * Return is a BOOL in AL (MOV AL,0x1 at 0x174c93 on success, MOV AL,BL at
+ * 0x174cac on the failure tail), not the `int` Ghidra reports — the caller
+ * (rasterizer_text.c, `success = FUN_00174bd0()`) tests it as a flag.
+ *
+ * Ghidra reuses a single `bVar3` for both HRESULT checks; the disassembly
+ * instead re-materializes BL independently after each call (MOV BL,1 /
+ * XOR BL,BL at 0x174bf5/0x174bff for the create, 0x174c2d/0x174c37 for the
+ * lock), so `ok` is written in both arms of both branches here.  The lock's
+ * error branch is gated on `TEST BL,BL; JZ` — i.e. on the PREVIOUS step's
+ * flag, and reports a literal 0 as the HRESULT (D3DVertexBuffer_Lock is void
+ * on Xbox), which is why the report argument is not a real hr.
+ *
+ * Both D3D entry points are __stdcall with kb.json `void(void)` stub decls.
+ * CreateVertexBuffer has a real signature in kb.json; Lock does not, so it is
+ * reached through the raw __stdcall cast idiom used by FUN_0015c650 — do not
+ * "fix" that by calling it by name, which would drop all five arguments.
+ *
+ * 0x325652 is a WORD (MOV word ptr [0x325652],0x2 before the lock, then
+ * MOV word ptr [...],SI with SI==0 after) — a byte store here is a
+ * load-width bug.
+ *
+ * The fill loop runs 0x400 iterations of 8 bytes = 0x2000 bytes into a
+ * 0x4000-byte buffer.  That half-fill is what the binary does; it is NOT a
+ * transcription error and must not be "corrected".  csmemcpy's returned
+ * pointer is discarded (Ghidra smuggles it into the return value via
+ * CONCAT31; the real return is the AL flag). */
+char FUN_00174bd0(void)
+{
+  unsigned char pattern[8]; /* [EBP-0xc] */
+  void *vertices; /* [EBP-0x4] — Lock's out pointer, walked by the fill loop */
+  char ok; /* BL */
+  int hr;
+  int i; /* ESI */
+
+  vertices = (void *)0;
+
+  hr = D3DDevice_CreateVertexBuffer(0x4000, 8, 0, 1, (void **)0x47e4bc);
+  /* success is the FALL-THROUGH arm: the reference branches with JL to an
+   * out-of-line report block (LAB_00174bf9), so the `hr >= 0` arm must be
+   * written first. */
+  if (hr >= 0) {
+    ok = 1;
+  } else {
+    ok = 0;
+    FUN_00167ff0(
+      hr,
+      "IDirect3DDevice8_CreateVertexBuffer(global_d3d_device, "
+      "RASTERIZER_TRANSPARENT_GEOMETRY_TEXCOORD_STREAM_SIZE*(2*sizeof(byte)), "
+      "RASTERIZER_STATIC_BUFFER_USAGE, 0, RASTERIZER_STATIC_BUFFER_POOL, "
+      "&rasterizer_xbox_transparent_geometry_texcoord_stream)");
+  }
+
+  *(short *)0x325652 = 2;
+  /* hazard-ok: fnptr-conv — __stdcall verified: no ADD ESP follows the CALL at
+   * 0x1ef100 and the five pushes (ECX=stream, 0, 0x4000, &vertices, 0) are
+   * cleaned by the callee.  Same idiom as FUN_0015c650. */
+  ((void(__stdcall *)(void *, uint32_t, uint32_t, void **, uint32_t))0x1ef100)(
+    *(void **)0x47e4bc, 0, 0x4000, &vertices, 0);
+  if (ok != 0) {
+    ok = 1;
+  } else {
+    FUN_00167ff0(
+      0,
+      "IDirect3DVertexBuffer8_Lock("
+      "rasterizer_xbox_transparent_geometry_texcoord_stream, 0, "
+      "RASTERIZER_TRANSPARENT_GEOMETRY_TEXCOORD_STREAM_SIZE*(2*sizeof(byte)), "
+      "(unsigned char**)&vertices, 0)");
+    ok = 0;
+  }
+  *(short *)0x325652 = 0;
+
+  if (ok != 0 && vertices != (void *)0) {
+    pattern[0] = 0;
+    pattern[1] = 0;
+    pattern[2] = 0;
+    pattern[3] = 0xff;
+    pattern[4] = 0xff;
+    pattern[5] = 0xff;
+    pattern[6] = 0xff;
+    pattern[7] = 0;
+    i = 0x400;
+    do {
+      csmemcpy(vertices, pattern, 8);
+      vertices = (void *)((char *)vertices + 8);
+      i = i - 1;
+    } while (i != 0);
+    return 1;
+  }
+
+  error(2, "### ERROR failed to allocate texcoord stream");
+  ok = 0;
+  return ok;
+}
+
 /* rasterizer_transparent_geometry_group_draw: draw one sorted transparent
  * geometry group, dispatching per shader type (generic/chicago/glass/meter/
  * plasma/water), handling extra layers via self-recursion, predicted shader
