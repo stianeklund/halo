@@ -5420,7 +5420,10 @@ void FUN_000ae920(wchar_t *title_buf, int player_handle)
    * (the MP-quit / post-game-report crash). */
   usprintf(lives_buf, (wchar_t *)0x26cdf0);
   if (0 < *(int *)0x456b30) {
-    player = (int)datum_get(player_data, 0);
+    /* Original 0xae985: PUSH EBX (= player_handle, the @<eax> arg saved into
+     * EBX at 0xae92a), NOT a constant 0.  Passing 0 read player slot 0's
+     * death count for every local player. */
+    player = (int)datum_get(player_data, player_handle);
     lives_remaining = *(int *)0x456b30 - *(int16_t *)(player + 0xaa);
     if (lives_remaining == 0)
       lives_text = L"(no lives)";
@@ -5437,7 +5440,10 @@ check_phase:
     int won;
     char has_teams;
 
-    won = game_engine_did_player_win(0);
+    /* Original 0xae9f6: PUSH EBX (= player_handle) before the inlined
+     * vtable-0x84 / FUN_000ae250 dispatch.  Passing 0 evaluated the win/loss
+     * banner for player slot 0. */
+    won = game_engine_did_player_win(player_handle);
     has_teams = 0;
     if (current_game_engine)
       has_teams = *(char *)0x456b14;
@@ -5487,8 +5493,12 @@ check_phase:
     {
       int local_stats[28];
       FUN_000abf50(local_stats, player_handle);
+      /* Original 0xaeb58: PUSH EBX (= player_handle), NOT a constant 0.
+       * Slot 0x4c formats ONE player's score (KOTH: FUN_000b1de0 reads the
+       * hill ticks at player+0xc0), so passing 0 made the FFA title line
+       * "In %s place with %s" always report player slot 0's score. */
       ((void (*)(int, wchar_t *))((int *)current_game_engine)[0x4c / 4])(
-        0, score_buf);
+        player_handle, score_buf);
       if ((*(uint32_t *)(local_stats + 6) & 0x80000000) != 0)
         usprintf(
           title_buf, L"Tied for %s place with %s %s",
