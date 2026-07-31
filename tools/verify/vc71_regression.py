@@ -482,6 +482,13 @@ def run_vc71_verify(source: Path, no_cache: bool = True,
                     "reason": d.group(2).strip(),
                     "span_bytes": int(d.group(3)),
                 })
+    if meta_out is not None:
+        if result.returncode != 0:
+            meta_out["status"] = "subprocess_failed"
+        elif not out and not (drops_out or []):
+            meta_out["status"] = "parse_failed" if (result.stdout + result.stderr).strip() else "compile_failed"
+        else:
+            meta_out["status"] = "ok"
     return out
 
 
@@ -653,13 +660,14 @@ def cmd_update(args, honest_out: dict | None = None,
 # ---------------------------------------------------------------------------
 
 def cmd_check(args) -> int:
-    threshold = args.threshold
+    strict = getattr(args, "strict", False)
+    threshold = 0 if strict else args.threshold
     sources_filter = set(args.source) if args.source else None
 
     baseline = load_baseline()
     if not baseline:
         print("Baseline is empty. Run 'update' first.")
-        return 0
+        return 1 if strict else 0
 
     # Group baseline entries by source file
     by_source: dict[str, list[str]] = {}
@@ -673,27 +681,52 @@ def cmd_check(args) -> int:
 
     if not by_source:
         print("No baseline entries match the given --source filter.")
-        return 0
+        return 1 if strict else 0
 
     regressions = []
     improvements = []
     skipped = 0
     ref_flagged = 0
+    strict_failures = []
+    checked = 0
 
     for src_rel, fn_names in sorted(by_source.items()):
         src_path = REPO_ROOT / src_rel
-        if not src_path.exists():
+        if not src_path.exists() or (strict and not src_path.is_file()):
             skipped += len(fn_names)
             if not args.quiet:
                 print(f"  SKIP {src_rel} (file not found)")
+            if strict:
+                strict_failures.append(f"{src_rel or '<missing source>'}: file not found")
             continue
 
-        results = run_vc71_verify(src_path)
+        meta = {}
+        drops = []
+        try:
+            results = run_vc71_verify(src_path, drops_out=drops, meta_out=meta)
+        except Exception as exc:
+            if not strict:
+                raise
+            strict_failures.append(f"{src_rel}: vc71_verify failed: {exc}")
+            continue
+
+        if strict and meta.get("status") not in (None, "ok"):
+            strict_failures.append(f"{src_rel}: vc71_verify {meta['status']}")
+            continue
+
+        if strict and drops:
+            for drop in drops:
+                strict_failures.append(
+                    f"{drop['function']}: invalid or missing delinked reference: "
+                    f"{drop['reason']}"
+                )
 
         for fn_name in fn_names:
             current = results.get(fn_name)
             if current is None:
                 # Function not found in compiled output — may be unported or renamed
+                if strict:
+                    strict_failures.append(f"{fn_name}: no parsed vc71_verify result")
                 continue
             # Reference-validity gate: a truncated/absent reference produces a
             # spuriously low current score.  Skip it (don't raise a false
@@ -704,9 +737,17 @@ def cmd_check(args) -> int:
                 if not args.quiet:
                     print(f"  ⚠ {fn_name}: reference invalid — skipped "
                           f"(flagged for re-delink, not a regression)")
+                if strict:
+                    strict_failures.append(f"{fn_name}: invalid delinked reference")
                 continue
-            baseline_score = baseline[fn_name]["score"]
-            current_score = current["score"]
+            try:
+                baseline_score = float(baseline[fn_name]["score"])
+                current_score = float(current["score"])
+            except (KeyError, TypeError, ValueError):
+                if strict:
+                    strict_failures.append(f"{fn_name}: invalid baseline or parsed score")
+                continue
+            checked += 1
             delta = current_score - baseline_score
             if delta < -threshold:
                 regressions.append((fn_name, baseline_score, current_score, src_rel))
@@ -728,9 +769,19 @@ def cmd_check(args) -> int:
             "\nHint: investigate the change, fix the regression, then re-run:\n"
             "  python3 tools/verify/vc71_regression.py update --source <file>"
         )
+    if strict and (strict_failures or checked == 0):
+        if checked == 0:
+            strict_failures.append("zero functions checked")
+        print("STRICT CHECK FAILED:")
+        for failure in strict_failures:
+            print(f"  ✗ {failure}")
         return 1
 
-    checked = sum(len(v) for v in by_source.values()) - skipped - ref_flagged
+    if regressions:
+        return 1
+
+    if not strict:
+        checked = sum(len(v) for v in by_source.values()) - skipped - ref_flagged
     flagged_note = (f", {ref_flagged} skipped for invalid reference"
                     if ref_flagged else "")
     print(f"OK — no regressions ({checked} functions in "
@@ -1028,7 +1079,7 @@ def cmd_loadw(args) -> int:
 # main
 # ---------------------------------------------------------------------------
 
-def main():
+def build_parser():
     ap = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -1048,6 +1099,8 @@ def main():
                          help="Acceptable drop in pp before flagging (default: 2.0)")
     p_check.add_argument("--quiet", "-q", action="store_true",
                          help="Suppress improvement messages")
+    p_check.add_argument("--strict", action="store_true",
+                         help="Fail closed on any missing or invalid verification evidence")
 
     sub.add_parser("show", help="Display current baseline")
 
@@ -1067,7 +1120,11 @@ def main():
     p_loadw.add_argument("--source", "-s", nargs="+",
                          help="Limit sweep to these source files (default: all with a ref)")
 
-    args = ap.parse_args()
+    return ap
+
+
+def main():
+    args = build_parser().parse_args()
 
     if args.command == "update":
         sys.exit(cmd_update(args))

@@ -2,6 +2,10 @@
 description: Run the evidence-preserving cleanup ladder on already-lifted code
 ---
 
+`cleanup` is the neutral subset/alias of `/recover-source` for already-lifted
+code. Use `/recover-source` for the complete manifest-driven workflow,
+including evidence-backed corrective fidelity work.
+
 Use `cleanup` plus its support skills: `cleanup-baseline`, `cleanup-gap-audit`, `re-comment-capture`, `local-var-cleanup`, `naming-confidence`, `const-enum-recovery`, `struct-recovery`, `struct-assert`, `offset-to-struct`, `cleanup-regression-triage`, and `cleanup-report`.
 
 Target: $ARGUMENTS
