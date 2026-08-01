@@ -7748,7 +7748,7 @@ void FUN_000b1b30(float *param_1, int param_2, void *param_3, void *param_4,
   FUN_0016b240();
   rasterizer_psuedo_dynamic_screen_quad_draw(1);
   rasterizer_widget_set_tint_factor(iVar2);
-  rasterizer_widget_submit_occlusion_test(local_8);
+  FUN_0017c9f0(local_8);
   *(int16_t *)0x325652 = 0;
 }
 

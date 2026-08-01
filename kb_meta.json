@@ -6045,6 +6045,22 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xd8af0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd8b30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd8b70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xd8b80": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xdb0f0": {
       "kind": "function",
       "status": "ported"
@@ -7764,6 +7780,82 @@
       "status": "ported"
     },
     "0x1130d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x114630": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x114690": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1146e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x114740": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x114f60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1153c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1155c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x115a00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x115a90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x115b70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x116010": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1160c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x116250": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x116d10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x117250": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1176f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1177c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1179e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x117ab0": {
       "kind": "function",
       "status": "ported"
     },
@@ -10002,6 +10094,23 @@
     "0x17adc0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x17ba10": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Param 2 is a float (radius), not the int the pre-lift kb decl claimed: it is never touched in this function, only re-pushed as arg2 of FUN_0017a8a0 whose kb decl types that slot float, so declaring it int would push an integer where a float bit pattern is required."
+      ],
+      "uncertain": [
+        "Equivalence covers only 4-9 percent of the function: with zero-fill the enable flag at 0x3256fc is 0 so it returns 1 immediately, and even with the flag forced to 1 the projection callee FUN_0017a8a0 rejects every synthetic position, so the clamp, area and D3D quad-emission paths have no runtime evidence."
+      ]
+    },
+    "0x17c790": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Declared void, but the original tail-JMPs to FUN_00157010 and caller shell_initialize (0x191115) does TEST AL,AL on the result, so a bool return propagates through in EAX; VC71 is 100% (17/17) with the void decl because clang reproduces the tail jump, so do not change the decl to char without re-measuring."
+      ]
     },
     "0x17c7e0": {
       "kind": "function",

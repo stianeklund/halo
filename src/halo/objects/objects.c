@@ -2438,7 +2438,7 @@ void FUN_00135510(int *param_1, int param_2, int param_3, int *param_4)
               FUN_0017cf60((unsigned int)source_elem, (unsigned int)bitmap_elem,
                            (int)param_4, vertcount * -2, handle,
                            vertcount * 2 + -2, center, 0);
-              rasterizer_widget_submit_occlusion_test((int)handle);
+              FUN_0017c9f0((int)handle);
             }
             need_first = 1;
           }

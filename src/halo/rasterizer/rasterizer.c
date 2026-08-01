@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /* MSVC CRT pow(): compiles to the _CIpow intrinsic (0x1d9e70 dispatcher,
  * body at 0x1d9e94 uses fyl2x). Not in decl.h; declared locally as in
  * objects.c so the compiler emits the intrinsic. */
@@ -4118,6 +4120,154 @@ int __stdcall FUN_0017ad40(void *device, uint32_t reg, float a, float b,
   (void)device;
   D3DDevice_SetVertexData4f(reg, a, b, c, d);
   return 0;
+}
+
+/* rasterizer_widget_submit_occlusion_test (0x17ba10): submit one screen-space
+ * quad to the Xbox D3D occlusion-query ("visibility test") unit for a HUD
+ * widget / lens-flare style point.
+ *
+ * The function name is binary-proven: the failure tail passes the literal
+ * "### ERROR rasterizer_widget_submit_occlusion_test failed" (0x2ae898) to
+ * error().
+ *
+ * Ghidra lost the whole signature -- it reports `void __cdecl FUN_0017ba10(void)`
+ * with extraout_AL / extraout_EAX. The disassembly proves three cdecl stack
+ * params at [EBP+8] / [EBP+0xC] / [EBP+0x10] and an int return in EAX:
+ *   [EBP+8]    forwarded as arg1 of FUN_0017a8a0  -> float *position
+ *   [EBP+0xC]  forwarded as arg2 of FUN_0017a8a0  -> float radius (kb decl of
+ *              the callee types this slot `float`; it is never touched here,
+ *              only re-pushed, which is why Ghidra could not see the type)
+ *   [EBP+0x10] pushed to D3DDevice_EndVisibilityTest -> visibility-test index
+ *
+ * Return value is EDI, the signed area product, not a bool and not void:
+ *   global 0x3256fc == 0        -> 1  (feature disabled: "test passed")
+ *   FUN_0017a8a0 returned false -> 0  (point not on screen)
+ *   area < 0                    -> 0
+ *   otherwise                   -> area (0 when degenerate, since the D3D
+ *                                        block is skipped and EAX still = EDI)
+ *
+ * FUN_0017a8a0 projects `position` and returns, via a register-passed out
+ * pointer, the screen position and, via a stack out pointer, the half-extent:
+ *   LEA EBX,[EBP-0x28] ; out_screen  (3 floats: x, y, z)  -- @<ebx>
+ *   LEA EAX,[EBP-0x1c] ; out_extent  (2 floats: half_w, half_h)
+ * The z component (screen[2]) is loaded into ESI once and used as the Z of all
+ * four vertices.
+ *
+ * Constants read from the XBE .rdata (verified by reading the raw image):
+ *   0x2533c8 = 1.0f      minimum half-extent
+ *   0x2ae8d4 = -32767.0f clamp low
+ *   0x26a600 =  32767.0f clamp high
+ * They are written as literals here rather than absolute loads so VC71 emits
+ * the same relocated constant-pool `fld` form as the reference.
+ *
+ * §24 narrow-field trap: the four rounded bounds are stored with FISTP *dword*
+ * but read back with MOVSX *word* -- the original deliberately truncates each
+ * bound to 16 bits before the area product and before the FILD that feeds the
+ * vertices. The `(short)` self-assignments below reproduce exactly that
+ * movsx-and-store-back sequence; the later (float) casts then FILD the widened
+ * dword, as the original does.
+ *
+ * `bounds_tmp` is deliberately reused as both the clamp accumulator and the
+ * floor() result slot: the original keeps the subtraction in ST(0) and spills
+ * only the floor result to [EBP-8], and sharing one named float keeps our
+ * frame at the original's exact SUB ESP,0x28.
+ */
+/* 0x17ba10 */
+int rasterizer_widget_submit_occlusion_test(float *position, float radius,
+                                            unsigned int index)
+{
+  float screen[3]; /* [EBP-0x28] FUN_0017a8a0 out_screen (@<ebx>) */
+  float extent[2]; /* [EBP-0x1c] FUN_0017a8a0 out_extent: half_w, half_h */
+  float bounds_tmp; /* [EBP-8] clamp accumulator / floor() result */
+  int x0; /* [EBP-0x14] */
+  int x1; /* [EBP-0x10] */
+  int y0; /* [EBP-0xc] */
+  int y1; /* [EBP-4] */
+  int area;
+  int hr;
+
+  /* Nested-if shape, not early returns: the reference branches FORWARD on the
+   * false side of both tests (je LAB_0017bc79 / je LAB_0017bbbd) and places
+   * the `return 1` epilogue in the LAST block of the function, which is what
+   * MSVC emits for this nesting rather than for inline early returns. */
+  if (*(char *)0x3256fc != 0) {
+    if (FUN_0017a8a0(position, radius, extent, screen)) {
+      /* FLD 1.0f ; FCOMP extent -- the constant is the left operand, so the test
+       * is written 1.0f > extent, not extent < 1.0f, to keep the load order. */
+      if (1.0f > extent[0]) {
+        extent[0] = 1.0f;
+      }
+      if (1.0f > extent[1]) {
+        extent[1] = 1.0f;
+      }
+
+      /* x0 = floor(clamp(screen.x - half_w)) -- FLD screen ; FSUB extent, i.e.
+       * screen MINUS extent (not reversed). */
+      bounds_tmp = screen[0] - extent[0];
+      if (bounds_tmp < -32767.0f) {
+        bounds_tmp = -32767.0f;
+      } else if (bounds_tmp > 32767.0f) {
+        bounds_tmp = 32767.0f;
+      }
+      bounds_tmp = (float)floor(bounds_tmp);
+      x0 = x87_round_to_int(bounds_tmp);
+
+      bounds_tmp = screen[1] - extent[1];
+      if (bounds_tmp < -32767.0f) {
+        bounds_tmp = -32767.0f;
+      } else if (bounds_tmp > 32767.0f) {
+        bounds_tmp = 32767.0f;
+      }
+      bounds_tmp = (float)floor(bounds_tmp);
+      y0 = x87_round_to_int(bounds_tmp);
+
+      bounds_tmp = screen[0] + extent[0];
+      if (bounds_tmp < -32767.0f) {
+        bounds_tmp = -32767.0f;
+      } else if (bounds_tmp > 32767.0f) {
+        bounds_tmp = 32767.0f;
+      }
+      bounds_tmp = (float)floor(bounds_tmp);
+      x1 = x87_round_to_int(bounds_tmp);
+
+      bounds_tmp = screen[1] + extent[1];
+      if (bounds_tmp < -32767.0f) {
+        bounds_tmp = -32767.0f;
+      } else if (bounds_tmp > 32767.0f) {
+        bounds_tmp = 32767.0f;
+      }
+      bounds_tmp = (float)floor(bounds_tmp);
+      y1 = x87_round_to_int(bounds_tmp);
+
+      /* MOVSX word: the bounds are truncated to 16 bits before use. */
+      x0 = (short)x0;
+      y0 = (short)y0;
+      x1 = (short)x1;
+      y1 = (short)y1;
+
+      area = (x1 - x0) * (y1 - y0);
+      if (area >= 0) {
+        if (area > 0) {
+          D3DDevice_BeginVisibilityTest();
+          D3DDevice_Begin(7); /* D3DPT_QUADLIST */
+          D3DDevice_SetVertexData4f(0, (float)x0, (float)y0, screen[2], 1.0f);
+          D3DDevice_SetVertexData4f(0, (float)x1, (float)y0, screen[2], 1.0f);
+          D3DDevice_SetVertexData4f(0, (float)x1, (float)y1, screen[2], 1.0f);
+          D3DDevice_SetVertexData4f(0, (float)x0, (float)y1, screen[2], 1.0f);
+          D3DDevice_End();
+          hr = D3DDevice_EndVisibilityTest(index);
+          if (hr < 0) {
+            FUN_00167ff0(
+                hr, "IDirect3DDevice8_EndVisibilityTest(global_d3d_device, index)");
+            error(2, "### ERROR rasterizer_widget_submit_occlusion_test failed");
+          }
+        }
+        return area;
+      }
+    }
+    return 0;
+  }
+  return 1;
 }
 
 /* shader_transparent_chicago pixel-shader preprocessor (FUN_0017bca0):

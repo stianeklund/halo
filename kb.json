@@ -19505,7 +19505,9 @@
     },
     {
      "addr": "0x17ba10",
-     "decl": "int FUN_0017ba10(float *position, int vis_index, int index);"
+     "decl": "int rasterizer_widget_submit_occlusion_test(float *position, float radius, unsigned int index);",
+     "ported": true,
+     "source_path": "src/halo/rasterizer/rasterizer.c"
     },
     {
      "addr": "0x17bca0",
@@ -19634,7 +19636,7 @@
     },
     {
      "addr": "0x17c9f0",
-     "decl": "void rasterizer_widget_submit_occlusion_test(int handle);"
+     "decl": "void FUN_0017c9f0(int handle);"
     },
     {
      "addr": "0x17ca00",

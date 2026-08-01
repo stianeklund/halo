@@ -1807,7 +1807,7 @@ void FUN_0018d360(void *sprite_build_data)
                      (int)*(int16_t *)((char *)rec + 0x8) << 1, origin,
                      ((*(uint32_t *)(data + 0x10) & 2) << 6) | 0x20);
       }
-      rasterizer_widget_submit_occlusion_test((int)rec[0]);
+      FUN_0017c9f0((int)rec[0]);
     }
   }
 
