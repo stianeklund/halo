@@ -1189,6 +1189,294 @@ char FUN_00172a30(int param_1, const float *shadow_matrix,
   return 1;
 }
 
+/* 0x173b40 — install the fixed-function / vertex-shader / pixel-shader state
+ * for one screen-space (text / meter) draw pass.
+ *
+ * Original TU: c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_text.c
+ *
+ * `parameters` is a mixed struct; kb.json types it `float *` so every Ghidra
+ * index is a DWORD index (byte offset = 4*N). Byte-offset field map recovered
+ * from the ESI-relative accesses in the disassembly:
+ *
+ *   +0x00 void*    meter_parameters        (assert: mutually exclusive w/ map[1])
+ *   +0x04 float*   screen offset pair {x, y} (NULL => both offsets 0)
+ *   +0x08 char     texture-stage 0 colour-op select
+ *   +0x09 char     texture-stage 1 colour-op select
+ *   +0x0a char     texture-stage 2 colour-op select
+ *   +0x0c void*    map[0]                  (required)
+ *   +0x10 void*    map[1]
+ *   +0x14 void*    map[2]
+ *   +0x18..0x1a char   per-map address-mode flag (0 => 3/clamp, else 1/wrap)
+ *   +0x1c float*   2-float pair -> vs_b[10..11] (NULL => 0)
+ *   +0x20 float*   2-float pair -> vs_b[12..13] (NULL => 0)
+ *   +0x24 float*   2-float pair -> vs_b[14..15] (NULL => 0)
+ *   +0x28..0x3c    6 floats     -> vs_b[16..21]
+ *   +0x40,+0x44    2 floats     -> vs_a[16..17] (overwritten in the map[0] block)
+ *   +0x48..0x54    6 floats     -> vs_b[0..3] (+0x48,0x4c,0x50,0x54)
+ *   +0x58,+0x5c,+0x60 float*    rgb triples (NULL => *(float**)0x2ee708)
+ *   +0x64          float[4]     packed 4x by FUN_000d1c90
+ *   +0x78,+0x7c,+0x80 float*    alpha scalars (NULL => 1.0f)
+ *   +0x88 uint16   framebuffer blend function (zero-extended)
+ *   +0x8a char     texture filter select (0 => 2, else 1)
+ *
+ * vs_a / vs_b are the two vertex-shader constant blocks uploaded at
+ * registers -0x44 (5 vec4 = 20 floats) and -0x3f (6 vec4 = 24 floats).
+ * In the original frame they are one contiguous 44-float run at EBP-0xb4;
+ * every Ghidra `local_XX` in that range is a field of one of them, NOT an
+ * independent local. vs_a is reused as scratch for the three colour packs
+ * after the upload, which is why the map[0] block rewrites vs_a[8..19].
+ *
+ * Constants read from the XBE .rdata: 0x2533c0 = 0.0f, 0x2533c8 = 1.0f,
+ * 0x25eeac = -2.0f. Written as literals so VC71 emits a relocated pool load
+ * matching the delinked reference instead of an absolute operand.
+ *
+ * Screen extents come from the viewport rect at 0x5a5bf4/0x5a5bf8: the HIGH
+ * shorts differ by the width, the LOW shorts by the height. Both deltas are
+ * 16-bit truncated and sign-extended, then consumed by FIDIV/FILD.
+ */
+void FUN_00173b40(float *parameters)
+{
+  char *p;
+  float *offset;
+  float *color;
+  float *default_color;
+  void *map;
+  short dx;
+  short dy;
+  short i;
+  float x_recip;
+  float y_recip;
+  float vs_a[20];
+  float vs_b[24];
+  float y_offset;
+  float x_offset;
+
+  if (*(int *)0x476ab0 == 0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_text.c",
+                   0xd, 1);
+    system_exit(-1);
+  }
+  /* MOV AL,[0x3256da]; TEST AL,AL — then CMP word ptr [0x5a5bc0],0. Both
+   * jump straight to the epilogue, before the callee-saved pushes. */
+  if (*(char *)0x3256da == 0) {
+    return;
+  }
+  if (*(short *)0x5a5bc0 != 0) {
+    return;
+  }
+
+  p = (char *)parameters;
+
+  if (parameters == 0) {
+    display_assert("parameters",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_text.c",
+                   0x12, 1);
+    system_exit(-1);
+  }
+  if (*(void **)(p + 0xc) == 0) {
+    display_assert("parameters->map[0]",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_text.c",
+                   0x14, 1);
+    system_exit(-1);
+  }
+  if (*(void **)(p + 0x14) != 0 && *(void **)(p + 0x10) == 0) {
+    display_assert("!parameters->map[2] || parameters->map[1]",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_text.c",
+                   0x16, 1);
+    system_exit(-1);
+  }
+  if (*(void **)(p + 0x10) != 0 && *(void **)p != 0) {
+    display_assert("!parameters->map[1] || !parameters->meter_parameters",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_text.c",
+                   0x18, 1);
+    system_exit(-1);
+  }
+
+  D3DDevice_SetRenderState_CullMode(0);
+  D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD,
+                                  NV097_COLOR_MASK_RGB);
+  *(uint32_t *)0x1fb7a4 = 0x10101;
+  D3DDevice_SetRenderState_Simple(0x40304, 1);
+  *(uint32_t *)0x1fb784 = 1;
+  D3DDevice_SetRenderState_ZEnable(0);
+  D3DDevice_SetRenderState_ZBias(0);
+
+  /* XOR EAX,EAX; MOV AX,[ESI+0x88] — zero-extended 16-bit read. */
+  FUN_001580b0((int)*(unsigned short *)(p + 0x88));
+
+  /* MOV AX,[0x5a5bfa]; SUB AX,word[0x5a5bf6]; MOVSX EDI,AX  (16-bit sub)
+   * MOV ECX,[0x5a5bf8]; SUB ECX,[0x5a5bf4]; MOVSX ...,CX    (32-bit sub,
+   *                                                          low word taken) */
+  dx = (short)(*(short *)0x5a5bfa - *(short *)0x5a5bf6);
+  dy = (short)(*(int *)0x5a5bf8 - *(int *)0x5a5bf4);
+
+  offset = *(float **)(p + 4);
+  /* Two separate TEST EDX,EDX in the original — two ternaries, not one
+   * if/else.  FLD [EDX]; FADD ST0,ST0 => the doubling is an add, not *2.0f.
+   * FIDIV takes the integer denominator directly. */
+  x_offset = (offset != 0) ? (offset[0] + offset[0]) / (float)dx : 0.0f;
+  y_offset = (offset != 0) ? (offset[1] * -2.0f) / (float)dy : 0.0f;
+
+  x_recip = 1.0f / (float)dx;
+
+  vs_b[0] = *(float *)(p + 0x48);
+  vs_b[1] = *(float *)(p + 0x4c);
+  vs_b[2] = *(float *)(p + 0x50);
+  vs_b[3] = *(float *)(p + 0x54);
+
+  vs_a[16] = *(float *)(p + 0x40);
+  vs_a[17] = *(float *)(p + 0x44);
+
+  vs_a[1] = 0.0f;
+  vs_a[2] = 0.0f;
+  vs_a[4] = 0.0f;
+  vs_a[6] = 0.0f;
+  vs_a[8] = 0.0f;
+  vs_a[9] = 0.0f;
+  vs_a[10] = 0.0f;
+  vs_a[11] = 0.5f;
+  vs_a[12] = 0.0f;
+  vs_a[13] = 0.0f;
+  vs_a[14] = 0.0f;
+  vs_a[15] = 1.0f;
+  vs_a[18] = 0.0f;
+  vs_a[19] = 1.0f;
+
+  /* FSUBR at 0x173da4: x_offset - (x_recip + 1.0f), NOT the other way round.
+   * Inverting this sign shifts all screen-space geometry. */
+  vs_a[0] = x_recip + x_recip;
+  vs_a[3] = x_offset - (x_recip + 1.0f);
+
+  y_recip = 1.0f / (float)dy;
+  vs_a[5] = -2.0f * y_recip;
+  vs_a[7] = y_recip + y_offset + 1.0f;
+
+  /* The original stores 1.0f to the first slot unconditionally and only
+   * overrides on the false path — the partial-redundancy shape MSVC emits
+   * for two adjacent ternaries on one condition, not an if/else. */
+  vs_b[4] = (p[8] != 0) ? 1.0f : 0.0f;
+  vs_b[5] = (p[8] != 0) ? 0.0f : 1.0f;
+  vs_b[6] = (p[9] != 0) ? 1.0f : 0.0f;
+  vs_b[7] = (p[9] != 0) ? 0.0f : 1.0f;
+  vs_b[8] = (p[0xa] != 0) ? 1.0f : 0.0f;
+  vs_b[9] = (p[0xa] != 0) ? 0.0f : 1.0f;
+
+  color = *(float **)(p + 0x1c);
+  vs_b[10] = (color != 0) ? color[0] : 0.0f;
+  vs_b[11] = (color != 0) ? color[1] : 0.0f;
+  color = *(float **)(p + 0x20);
+  vs_b[12] = (color != 0) ? color[0] : 0.0f;
+  vs_b[13] = (color != 0) ? color[1] : 0.0f;
+  color = *(float **)(p + 0x24);
+  vs_b[14] = (color != 0) ? color[0] : 0.0f;
+  vs_b[15] = (color != 0) ? color[1] : 0.0f;
+
+  vs_b[16] = *(float *)(p + 0x28);
+  vs_b[17] = *(float *)(p + 0x2c);
+  vs_b[18] = *(float *)(p + 0x30);
+  vs_b[19] = *(float *)(p + 0x34);
+  vs_b[20] = *(float *)(p + 0x38);
+  vs_b[21] = *(float *)(p + 0x3c);
+  vs_b[22] = 0.0f;
+  vs_b[23] = 0.0f;
+
+  D3DDevice_SetVertexShaderConstant(-0x44, vs_a, 5);
+  D3DDevice_SetVertexShaderConstant(-0x3f, vs_b, 6);
+
+  /* Loop counter is a short: the original compares CMP BX,3 (16-bit signed)
+   * and sign-extends it with MOVSX for every array index. */
+  for (i = 0; i < 3; i++) {
+    map = *(void **)(p + 0xc + i * 4);
+    if (map == 0) {
+      break;
+    }
+    rasterizer_set_texture_bitmap_data(i, map);
+    /* SETZ + LEA [edx+edx*1+1] => 3 when the flag is clear, 1 when set.
+     * Keep each call on ONE line: the VC71 verify lane's @<ecx>/@<edx>
+     * fastcall rewriter is line-based and compiles a wrapped call as cdecl. */
+    D3DDevice_SetTextureStageState(i, 0xa, (p[0x18 + i] == 0) * 2 + 1);
+    D3DDevice_SetTextureStageState(i, 0xb, (p[0x18 + i] == 0) * 2 + 1);
+    /* SETZ + INC => 2 when clear, 1 when set. */
+    D3DDevice_SetTextureStageState(i, 0xd, (p[0x8a] == 0) + 1);
+    D3DDevice_SetTextureStageState(i, 0xe, (p[0x8a] == 0) + 1);
+    D3DDevice_SetTextureStageState(i, 0xf, (p[0x8a] == 0) + 1);
+  }
+
+  FUN_00178b40(4, 8, 1);
+
+  if (*(void **)(p + 0xc) != 0) {
+    csmemset((void *)0x5a5ac0, 0, 0xf0);
+    /* SETNZ/SHL 5 pair: map[2] and map[1] presence packed above map[0]. */
+    *(uint32_t *)0x5a5b98 =
+        (uint32_t)((((*(void **)(p + 0x14) != 0) << 5) |
+                    (*(void **)(p + 0x10) != 0))
+                       << 5 |
+                   (*(void **)(p + 0xc) != 0));
+
+    /* MOV EDX,[0x2ee708] is hoisted once and reused for all three NULL
+     * fallbacks. */
+    default_color = *(float **)0x2ee708;
+
+    color = *(float **)(p + 0x58);
+    if (color == 0) {
+      color = default_color;
+    }
+    vs_a[9] = color[0];
+    vs_a[10] = color[1];
+    vs_a[11] = color[2];
+
+    color = *(float **)(p + 0x5c);
+    if (color == 0) {
+      color = default_color;
+    }
+    vs_a[13] = color[0];
+    vs_a[14] = color[1];
+    vs_a[15] = color[2];
+
+    color = *(float **)(p + 0x60);
+    if (color == 0) {
+      color = default_color;
+    }
+    vs_a[17] = color[0];
+    vs_a[18] = color[1];
+    vs_a[19] = color[2];
+
+    vs_a[8] = (*(float **)(p + 0x78) != 0) ? **(float **)(p + 0x78) : 1.0f;
+    vs_a[12] = (*(float **)(p + 0x7c) != 0) ? **(float **)(p + 0x7c) : 1.0f;
+    vs_a[16] = (*(float **)(p + 0x80) != 0) ? **(float **)(p + 0x80) : 1.0f;
+
+    *(uint32_t *)0x5a5ae8 = FUN_000d1c90(&vs_a[8]);
+    *(uint32_t *)0x5a5b08 = FUN_000d1c90(&vs_a[12]);
+    *(uint32_t *)0x5a5aec = FUN_000d1c90(&vs_a[16]);
+    /* ADD ESI,0x64 then PUSH ESI four times — the same colour is packed into
+     * four consecutive slots; the repetition is in the original. */
+    *(uint32_t *)0x5a5af8 = FUN_000d1c90((float *)(p + 0x64));
+    *(uint32_t *)0x5a5afc = FUN_000d1c90((float *)(p + 0x64));
+    *(uint32_t *)0x5a5b00 = FUN_000d1c90((float *)(p + 0x64));
+    *(uint32_t *)0x5a5b04 = FUN_000d1c90((float *)(p + 0x64));
+
+    *(uint32_t *)0x5a5b74 = 0x89;
+    *(uint32_t *)0x5a5b28 = 0x89;
+    *(uint32_t *)0x5a5b48 = 0x8010902;
+    *(uint32_t *)0x5a5ac0 = 0x18111912;
+    *(uint32_t *)0x5a5b4c = 0xa010804;
+    *(uint32_t *)0x5a5b78 = 0xac;
+    *(uint32_t *)0x5a5ac4 = 0x1a111814;
+    *(uint32_t *)0x5a5b2c = 0xac;
+    /* MOV dword ptr [0x5a5b94],0x11102 — an immediate, not an address-of
+     * (lift-learnings section 17). */
+    *(uint32_t *)0x5a5b94 = 0x11102;
+    *(uint32_t *)0x5a5ae0 = 0xc;
+    *(uint32_t *)0x5a5ae4 = 0x1c00;
+  }
+
+  rasterizer_set_pixel_shader((void *)0x5a5ac0);
+  D3DDevice_SetRenderState_CullMode(0x901);
+  FUN_00178b40(4, 8, 0);
+  D3DDevice_SetTextureStageState(0, 0x15, 0);
+}
+
 /* 0x1741d0
  *
  * FUN_001741d0 — submit one text quad (4 vertices) to D3D.
