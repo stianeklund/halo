@@ -121,6 +121,7 @@
 	halo/rasterizer/xbox/d3d_resource.c
 	halo/rasterizer/xbox/rasterizer_xbox_decals.c
 	halo/rasterizer/xbox/rasterizer_xbox_shadows.c
+	halo/rasterizer/xbox/rasterizer_xbox_water.c
 	halo/rasterizer/xbox/rasterizer_xbox_profile.c
 	halo/rasterizer/xbox/rasterizer_xbox_screen_effect.c
 	halo/rasterizer/xbox/rasterizer_xbox_vertex_shaders_initialize.c
