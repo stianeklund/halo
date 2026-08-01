@@ -1828,71 +1828,71 @@ void FUN_001165b0(int *desc, int state)
  * ABI: @eax=tree(ct_data*), cdecl param_1=max_code, param_2=deflate_state */
 void FUN_001167f0(int param_1, int param_2, int tree)
 {
-  short *psVar1;
-  unsigned short uVar2;
-  int iVar3;
-  int iVar4;
-  int iVar5;
-  unsigned int uVar6;
-  unsigned int uVar7;
-  int local_10;
-  unsigned int local_c;
-  unsigned short *local_8;
+  short *freq_ptr;
+  unsigned short first_len;
+  int max_run;
+  int min_run;
+  int run_count;
+  unsigned int curlen;
+  unsigned int nextlen;
+  int n_left;
+  unsigned int prevlen;
+  unsigned short *len_ptr;
 
-  uVar2 = *(unsigned short *)(tree + 2);
-  iVar5 = 0;
-  local_c = 0xffffffff;
-  iVar3 = 7;
-  iVar4 = 4;
-  /* original keeps max_count(iVar3)=7 here; the lift's `iVar3 = 0` clobbered
-   * it, making the run-flush condition (count <= max_count) always true and
-   * breaking run-length detection -> corrupted deflate output. Test first code
-   * length directly (orig: MOV ECX,7 kept; sets 0x8a only when first length ==
-   * 0). */
-  if (uVar2 == 0) {
-    iVar3 = 0x8a;
-    iVar4 = 3;
+  first_len = *(unsigned short *)(tree + 2);
+  run_count = 0;
+  prevlen = 0xffffffff;
+  max_run = 7;
+  min_run = 4;
+  /* original keeps max_run (zlib max_count) = 7 here; the lift's `max_run = 0`
+   * clobbered it, making the run-flush condition (run_count <= max_run) always
+   * true and breaking run-length detection -> corrupted deflate output. Test
+   * first code length directly (orig: MOV ECX,7 kept; sets 0x8a only when the
+   * first length == 0). */
+  if (first_len == 0) {
+    max_run = 0x8a;
+    min_run = 3;
   }
   *(unsigned short *)(tree + 6 + param_1 * 4) = 0xffff;
   if (param_1 >= 0) {
-    local_8 = (unsigned short *)(tree + 6);
-    local_10 = param_1 + 1;
-    uVar6 = (unsigned int)uVar2;
+    len_ptr = (unsigned short *)(tree + 6);
+    n_left = param_1 + 1;
+    curlen = (unsigned int)first_len;
     do {
-      uVar7 = (unsigned int)*local_8;
-      iVar5++;
-      if (iVar3 <= iVar5 || uVar6 != uVar7) {
-        if (iVar5 < iVar4) {
-          psVar1 = (short *)(param_2 + 0xa74 + uVar6 * 4);
-          *psVar1 += (short)iVar5;
-        } else if (uVar6 != 0) {
-          if (uVar6 != local_c) {
-            *(short *)(param_2 + 0xa74 + uVar6 * 4) += 1;
+      nextlen = (unsigned int)*len_ptr;
+      run_count++;
+      if (max_run <= run_count || curlen != nextlen) {
+        if (run_count < min_run) {
+          freq_ptr = (short *)(param_2 + 0xa74 + curlen * 4);
+          *freq_ptr += (short)run_count;
+        } else if (curlen != 0) {
+          if (curlen != prevlen) {
+            *(short *)(param_2 + 0xa74 + curlen * 4) += 1;
           }
           *(short *)(param_2 + 0xab4) += 1;
         } else {
-          if (iVar5 < 0xb)
+          if (run_count < 0xb)
             *(short *)(param_2 + 0xab8) += 1;
           else
             *(short *)(param_2 + 0xabc) += 1;
         }
-        iVar5 = 0;
-        local_c = uVar6;
-        if (uVar7 == 0) {
-          iVar3 = 0x8a;
-          iVar4 = 3;
-        } else if (uVar6 == uVar7) {
-          iVar3 = 6;
-          iVar4 = 3;
+        run_count = 0;
+        prevlen = curlen;
+        if (nextlen == 0) {
+          max_run = 0x8a;
+          min_run = 3;
+        } else if (curlen == nextlen) {
+          max_run = 6;
+          min_run = 3;
         } else {
-          iVar3 = 7;
-          iVar4 = 4;
+          max_run = 7;
+          min_run = 4;
         }
       }
-      local_8 += 2;
-      local_10--;
-      uVar6 = uVar7;
-    } while (local_10 != 0);
+      len_ptr += 2;
+      n_left--;
+      curlen = nextlen;
+    } while (n_left != 0);
   }
 }
 
@@ -1997,9 +1997,9 @@ void FUN_001168e0(int state, int param_1, int param_2)
  * param_3=blcodes */
 void FUN_00116b00(int state, int param_1, int param_2, int param_3)
 {
-  unsigned short uVar1;
+  unsigned short bl_len;
   int i;
-  int iVar2;
+  int bi_valid; /* slot also reused as the pending_buf index at state+0x14 */
 
   if (param_1 < 0x101 || param_2 < 1 || param_3 < 4) {
     FUN_00117a80("not enough codes");
@@ -2020,33 +2020,33 @@ void FUN_00116b00(int state, int param_1, int param_2, int param_3)
         crt_fprintf(&z_stderr, "\nbl code %2d ",
                     (unsigned int)zlib_bl_order[i]);
       }
-      uVar1 =
+      bl_len =
         *(unsigned short *)(state + 0xa76 + (unsigned int)zlib_bl_order[i] * 4);
       if (z_verbose > 1) {
-        crt_fprintf(&z_stderr, " l %2d v %4x ", 3, (unsigned int)uVar1);
+        crt_fprintf(&z_stderr, " l %2d v %4x ", 3, (unsigned int)bl_len);
       }
       *(int *)(state + 0x16b4) = *(int *)(state + 0x16b4) + 3;
-      iVar2 = *(int *)(state + 0x16bc);
-      if (iVar2 > 0xd) {
+      bi_valid = *(int *)(state + 0x16bc);
+      if (bi_valid > 0xd) {
         *(unsigned short *)(state + 0x16b8) =
           *(unsigned short *)(state + 0x16b8) |
-          (unsigned short)(uVar1 << iVar2);
+          (unsigned short)(bl_len << bi_valid);
         *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
           *(unsigned char *)(state + 0x16b8);
-        iVar2 = *(int *)(state + 0x14) + 1;
-        *(int *)(state + 0x14) = iVar2;
-        *(unsigned char *)(iVar2 + *(int *)(state + 8)) =
+        bi_valid = *(int *)(state + 0x14) + 1;
+        *(int *)(state + 0x14) = bi_valid;
+        *(unsigned char *)(bi_valid + *(int *)(state + 8)) =
           *(unsigned char *)(state + 0x16b9);
         *(int *)(state + 0x14) = *(int *)(state + 0x14) + 1;
-        iVar2 = *(int *)(state + 0x16bc);
-        *(int *)(state + 0x16bc) = iVar2 - 0xd;
+        bi_valid = *(int *)(state + 0x16bc);
+        *(int *)(state + 0x16bc) = bi_valid - 0xd;
         *(unsigned short *)(state + 0x16b8) =
-          (unsigned short)(uVar1 >> (0x10 - iVar2));
+          (unsigned short)(bl_len >> (0x10 - bi_valid));
       } else {
         *(unsigned short *)(state + 0x16b8) =
           *(unsigned short *)(state + 0x16b8) |
-          (unsigned short)(uVar1 << iVar2);
-        *(int *)(state + 0x16bc) = iVar2 + 3;
+          (unsigned short)(bl_len << bi_valid);
+        *(int *)(state + 0x16bc) = bi_valid + 3;
       }
       i = i + 1;
     } while (i < param_3);
@@ -2068,8 +2068,8 @@ void FUN_00116b00(int state, int param_1, int param_2, int param_3)
  * 0x116d10 / circular_queue.obj (deflate.c) */
 int FUN_00116d10(int param_1, int param_2, int param_3)
 {
-  short *psVar1;
-  unsigned int bVar2;
+  short *freq_ptr;
+  unsigned int code;
 
   *(short *)(*(int *)(param_1 + 0x169c) + *(int *)(param_1 + 0x1698) * 2) =
     (short)param_2;
@@ -2077,8 +2077,8 @@ int FUN_00116d10(int param_1, int param_2, int param_3)
     (char)param_3;
   *(int *)(param_1 + 0x1698) = *(int *)(param_1 + 0x1698) + 1;
   if (param_2 == 0) {
-    psVar1 = (short *)(param_1 + 0x8c + param_3 * 4);
-    *psVar1 += 1;
+    freq_ptr = (short *)(param_1 + 0x8c + param_3 * 4);
+    *freq_ptr += 1;
   } else {
     *(int *)(param_1 + 0x16a8) += 1;
     param_2--;
@@ -2088,26 +2088,26 @@ int FUN_00116d10(int param_1, int param_2, int param_3)
     if ((unsigned short)param_3 > 0xff)
       goto bad_match;
     if ((unsigned int)param_2 < 0x100) {
-      bVar2 = *(unsigned char *)(0x28e288 + (unsigned int)param_2);
+      code = *(unsigned char *)(0x28e288 + (unsigned int)param_2);
     } else {
-      bVar2 = *(unsigned char *)(0x28e388 + ((unsigned int)param_2 >> 7));
+      code = *(unsigned char *)(0x28e388 + ((unsigned int)param_2 >> 7));
     }
-    if ((unsigned short)bVar2 < 0x1e)
+    if ((unsigned short)code < 0x1e)
       goto after_assert;
   bad_match:
     FUN_00117a80("_tr_tally: bad match");
   after_assert:
-    psVar1 = (short *)(param_1 + 0x490 +
+    freq_ptr = (short *)(param_1 + 0x490 +
                        (unsigned int)(unsigned char)(*(
                          unsigned char *)(0x28e488 + (unsigned int)param_3)) *
                          4);
-    *psVar1 += 1;
+    *freq_ptr += 1;
     if ((unsigned int)param_2 < 0x100) {
-      bVar2 = *(unsigned char *)(0x28e288 + (unsigned int)param_2);
+      code = *(unsigned char *)(0x28e288 + (unsigned int)param_2);
     } else {
-      bVar2 = *(unsigned char *)(0x28e388 + ((unsigned int)param_2 >> 7));
+      code = *(unsigned char *)(0x28e388 + ((unsigned int)param_2 >> 7));
     }
-    *(short *)(param_1 + 0x980 + bVar2 * 4) += 1;
+    *(short *)(param_1 + 0x980 + code * 4) += 1;
   }
   return *(int *)(param_1 + 0x1698) == *(int *)(param_1 + 0x1694) - 1;
 }
