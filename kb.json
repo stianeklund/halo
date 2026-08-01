@@ -19453,10 +19453,6 @@
      "decl": "void FUN_00178820(void);"
     },
     {
-     "addr": "0x178b40",
-     "decl": "void FUN_00178b40(int a1, int a2, int a3);"
-    },
-    {
      "addr": "0x1792a0",
      "decl": "void FUN_001792a0(void);"
     },
@@ -19698,6 +19694,17 @@
    ],
    "name": "rasterizer_xbox_vertex_shaders_initialize.obj",
    "source": "rasterizer/xbox/rasterizer_xbox_vertex_shaders_initialize.c"
+  },
+  {
+   "functions": [
+    {
+     "addr": "0x178b40",
+     "decl": "void FUN_00178b40(int vertex_shader_index, int vertex_type, int permutation_index);",
+     "ported": true
+    }
+   ],
+   "name": "rasterizer_xbox_vertex_shaders_runtime.obj",
+   "source": "rasterizer/xbox/rasterizer_xbox_vertex_shaders_runtime.c"
   },
   {
    "functions": [
@@ -38069,7 +38076,7 @@
     },
     {
      "addr": "0x001eb400",
-     "decl": "void D3DDevice_LoadVertexShader(void);"
+     "decl": "void __stdcall D3DDevice_LoadVertexShader(uint32_t handle, uint32_t offset);"
     },
     {
      "addr": "0x001eb460",
@@ -38077,11 +38084,11 @@
     },
     {
      "addr": "0x001eb4d0",
-     "decl": "void D3DDevice_SelectVertexShader(void);"
+     "decl": "void __stdcall D3DDevice_SelectVertexShader(uint32_t handle, uint32_t offset);"
     },
     {
      "addr": "0x001eb540",
-     "decl": "void D3DDevice_GetVertexShaderSize(void);"
+     "decl": "void __stdcall D3DDevice_GetVertexShaderSize(uint32_t handle, uint32_t *size);"
     },
     {
      "addr": "0x001eb560",
