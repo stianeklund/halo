@@ -19505,7 +19505,8 @@
     },
     {
      "addr": "0x17bca0",
-     "decl": "char FUN_0017bca0(void *shader, void *state);"
+     "decl": "char FUN_0017bca0(void *shader, void *pixel_shader);",
+     "ported": true
     },
     {
      "addr": "0x17be50",

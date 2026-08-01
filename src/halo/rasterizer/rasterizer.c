@@ -3795,6 +3795,108 @@ char FUN_001792d0(void)
   return *(char *)0x47e4c9;
 }
 
+/* shader_transparent_chicago pixel-shader preprocessor (FUN_0017bca0):
+ * build the 0xf0-byte pixel-shader description block for a chicago
+ * transparent shader.  Resolves the shader's type-6 parameter block via
+ * FUN_001906b0, zero-fills the description, then walks the map tag_block
+ * (element stride 0xdc) emitting one combiner colour stage (+0x04+i*4) and
+ * one alpha stage (+0x8c+i*4) per map, with the fixed 0xc00 inputs at
+ * +0x68+i*4 / +0xb4+i*4.  The final map takes the fixed terminator pair
+ * written to +0x00 / +0x88 instead of a table-derived stage.
+ *
+ * Returns 1 on success, 0 when the shader declares no maps.
+ *
+ * Original TU: c:\halo\SOURCE\rasterizer\xbox\shader_transparent_chicago_preprocessor.c
+ * (__FILE__ string 0x2ae9d0, confirmed by the two assert xrefs below).
+ *
+ * The three int32 lookup tables are addressed absolutely, matching the
+ * original's `mov reg,[idx*4 + 0x2aeXXX]` form:
+ *   0x2ae940  colour-stage base, indexed by map field_2e
+ *   0x2ae974  per-stage stride,  indexed by map field_2e / field_2c
+ *   0x2ae8d8  alpha-stage base, 2x13 table indexed by
+ *             ((map[0] >> 1) & 1) * 13 + field_2c
+ */
+char FUN_0017bca0(void *shader, void *pixel_shader)
+{
+  char result; /* [EBP-1]; the loop keeps the 1 in AL */
+  char *shader_data; /* FUN_001906b0 result, spilled to the dead [EBP+8] */
+  int *maps; /* shader_data + 0x54: map tag_block header */
+  char *desc; /* EDI: the 0xf0-byte output description */
+  int map_count;
+  int counter; /* full-width counter; only its low 16 bits feed the index */
+  int idx; /* ESI: (short)counter */
+  unsigned char *map; /* current map element (stride 0xdc) */
+  int stage; /* map field_2e (int16, sign-extended) */
+  int alpha_stage; /* map field_2c (int16, sign-extended) */
+  int flags; /* map[0] (uint8) */
+
+  result = 1;
+  if (shader == (void *)0) {
+    display_assert("shader",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                   "chicago_preprocessor.c",
+                   100, 1);
+    system_exit(-1);
+  }
+  if (pixel_shader == (void *)0) {
+    display_assert("pixel_shader",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                   "chicago_preprocessor.c",
+                   101, 1);
+    system_exit(-1);
+  }
+
+  desc = (char *)pixel_shader;
+  shader_data = (char *)FUN_001906b0(shader, 6);
+  csmemset(pixel_shader, 0, 0xf0);
+
+  maps = (int *)(shader_data + 0x54);
+  *(unsigned int *)(desc + 0xd4) = (unsigned int)(*maps + 1) | 0x11000;
+
+  map_count = *maps;
+  if (map_count > 0) {
+    *(unsigned int *)(desc + 0xd8) =
+        ((((unsigned int)(map_count > 3) << 5 | (unsigned int)(map_count > 2))
+              << 5 |
+          (unsigned int)(map_count > 1))
+         << 5) |
+        (unsigned int)((*(short *)(shader_data + 0x2a) != 0) * 2 + 1);
+    counter = 0;
+    if (*maps > 0) {
+      idx = 0;
+      do {
+        map = (unsigned char *)tag_block_get_element(maps, idx, 0xdc);
+        if (idx != *maps - 1) {
+          stage = *(short *)(map + 0x2e) * 4; /* byte offset, shared by both tables */
+          *(int *)(desc + idx * 4 + 4) =
+              *(int *)((char *)0x2ae974 + stage) * (idx + 1) +
+              *(int *)((char *)0x2ae940 + stage);
+          alpha_stage = *(short *)(map + 0x2c);
+          flags = map[0];
+          *(int *)(desc + idx * 4 + 0x8c) =
+              ((int *)0x2ae974)[alpha_stage] * (idx + 1) +
+              ((int *)0x2ae8d8)[((flags >> 1) & 1) * 0xd + alpha_stage];
+        } else {
+          *(unsigned int *)desc = 0x18200000;
+          *(unsigned int *)(desc + 0x88) = 0x8200000;
+        }
+        counter = counter + 1;
+        *(int *)(desc + idx * 4 + 0x68) = 0xc00;
+        *(int *)(desc + idx * 4 + 0xb4) = 0xc00;
+        idx = (short)counter;
+        result = 1;
+      } while (idx < *maps);
+    }
+  } else {
+    error(2, "### ERROR chicago shader has no maps");
+    result = 0;
+  }
+
+  *(int *)(desc + 0x20) = 0xc;
+  *(int *)(desc + 0x24) = 0x1c00;
+  return result;
+}
+
 void rasterizer_frame_begin(float *elapsed)
 {
   char val;
