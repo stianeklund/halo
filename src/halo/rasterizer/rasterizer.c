@@ -1191,6 +1191,38 @@ char FUN_00172a30(int param_1, const float *shadow_matrix,
   return 1;
 }
 
+/* 0x173af0
+ *
+ * FUN_00173af0
+ *
+ * Third instruction-identical instantiation of the SetVertexData2f
+ * forwarder already lifted at 0x1703f0 and 0x172650 -- see the long ABI
+ * note above 0x1703f0 for the derivation. Same 11 instructions, same
+ * ignored device pointer, same EDX-borne register index, same S_OK.
+ *
+ * ABI, read off the disassembly at 00173af0:
+ *   - RET 0xc => __stdcall with three stack args at +8/+0xc/+0x10. The
+ *     first (+8, the device pointer) is never read; it must stay in the
+ *     signature or the callee-cleans immediate would drop to 0x8.
+ *   - PUSH EDX @00173afb with no prior write to EDX => the D3D register
+ *     index is a register argument, annotated @<edx> in kb.json.
+ *   - Stack args 2 and 3 are forwarded as verbatim 32-bit pushes with no
+ *     FLD/FSTP, but they land in the callee's `float a`/`float b`
+ *     parameters, so they are typed float here (an int-typed passthrough
+ *     would make the compiler emit FILD and convert the bit pattern).
+ *   - XOR EAX,EAX @00173b01 => returns S_OK.
+ *
+ * Push sequence at the CALL: PUSH EAX ([EBP+0x10]) then PUSH ECX
+ * ([EBP+0xc]) then PUSH EDX; last push is the first argument, hence
+ * SetVertexData2f(reg, a, b) with a=[EBP+0xc], b=[EBP+0x10].
+ */
+int FUN_00173af0(void *device, uint32_t reg, float a, float b)
+{
+  (void)device;
+  D3DDevice_SetVertexData2f(reg, a, b);
+  return 0;
+}
+
 /* 0x173b40 — install the fixed-function / vertex-shader / pixel-shader state
  * for one screen-space (text / meter) draw pass.
  *

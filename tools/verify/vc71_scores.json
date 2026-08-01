@@ -11848,8 +11848,12 @@
       "score": 94.6,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_profile.c"
     },
+    "FUN_0016feb0": {
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_001703f0": {
-      "score": 50.0,
+      "score": 90.9,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_00171bc0": {
@@ -11865,7 +11869,7 @@
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_00172650": {
-      "score": 50.0,
+      "score": 90.9,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_001726a0": {
@@ -11887,6 +11891,10 @@
     "FUN_00172de0": {
       "score": 84.4,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_shadows.c"
+    },
+    "FUN_00173af0": {
+      "score": 90.9,
+      "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_00173b40": {
       "score": 92.7,
@@ -11925,7 +11933,7 @@
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_00174d10": {
-      "score": 85.0,
+      "score": 85.7,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_001792C0": {
@@ -11936,12 +11944,20 @@
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
+    "FUN_001792c0": {
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_001792d0": {
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_0017ad40": {
       "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "FUN_0017ba10": {
+      "score": 94.5,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_0017bca0": {
@@ -16615,6 +16631,10 @@
     "rasterizer_sprites_render": {
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer_sprites.c"
+    },
+    "rasterizer_widget_submit_occlusion_test": {
+      "score": 91.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
     },
     "rasterizer_window_get_fog": {
       "score": 100.0,
