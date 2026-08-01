@@ -8813,7 +8813,7 @@
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00114740": {
-      "score": 76.4,
+      "score": 76.9,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00114f60": {
@@ -8881,15 +8881,15 @@
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00116460": {
-      "score": 90.0,
+      "score": 91.5,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001164d0": {
-      "score": 77.4,
+      "score": 77.9,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001165b0": {
-      "score": 88.6,
+      "score": 88.8,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001167f0": {
@@ -8913,19 +8913,19 @@
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00117000": {
-      "score": 93.0,
+      "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001170b0": {
-      "score": 93.7,
+      "score": 94.9,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00117130": {
-      "score": 93.8,
+      "score": 95.2,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001171a0": {
-      "score": 88.4,
+      "score": 89.1,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00117250": {
@@ -8941,7 +8941,7 @@
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00117600": {
-      "score": 81.3,
+      "score": 82.2,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001176a0": {
@@ -9045,7 +9045,7 @@
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00118d70": {
-      "score": 94.4,
+      "score": 95.8,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00118de0": {
@@ -15049,7 +15049,7 @@
       "source": "src/halo/game/game_engine.c"
     },
     "circular_queue_try_read": {
-      "score": 66.0,
+      "score": 66.7,
       "source": "src/halo/memory/circular_queue.c"
     },
     "clean_up_for_image_launch": {

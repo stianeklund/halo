@@ -459,9 +459,9 @@ void inflate_codes_free(int c, int z)
  * param_1=bl (literal bits), param_2=bd (distance bits),
  * param_3=tl (literal table), param_4=td (distance table),
  * param_5=s (block state), param_6=z (z_stream) */
-__attribute__((noinline)) int FUN_00114fa0(int param_1, int param_2,
-                                           int param_3, int param_4,
-                                           int param_5, int *param_6)
+__declspec(noinline) int FUN_00114fa0(int param_1, int param_2,
+                                      int param_3, int param_4,
+                                      int param_5, int *param_6)
 {
   unsigned char *t;
   int bits;
