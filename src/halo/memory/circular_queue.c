@@ -3020,8 +3020,8 @@ void FUN_00118190(unsigned char *count, int elements, short element_size,
 int FUN_00118260(unsigned char *count, int elements, short element_size,
                  short maximum_count, short new_count)
 {
-  unsigned int uVar1;
-  unsigned int uVar2;
+  unsigned int old_end;
+  unsigned int new_end;
 
   if (count == (unsigned char *)0x0) {
     display_assert("count && *count>=0", "c:\\halo\\SOURCE\\memory\\array.c",
@@ -3044,14 +3044,14 @@ int FUN_00118260(unsigned char *count, int elements, short element_size,
   }
   if ((-1 < (int)new_count) && ((int)new_count < (int)maximum_count)) {
     if ((unsigned int)*count != (unsigned int)(int)new_count) {
-      uVar1 = (int)element_size * (unsigned int)*count + elements;
-      uVar2 = (int)element_size * (int)new_count + elements;
-      if (uVar1 < uVar2) {
-        csmemset((void *)uVar1, 0, uVar2 - uVar1);
+      old_end = (int)element_size * (unsigned int)*count + elements;
+      new_end = (int)element_size * (int)new_count + elements;
+      if (old_end < new_end) {
+        csmemset((void *)old_end, 0, new_end - old_end);
         *count = (unsigned char)new_count;
         return 1;
       }
-      csmemset((void *)uVar2, 0xffffffff, uVar1 - uVar2);
+      csmemset((void *)new_end, 0xffffffff, old_end - new_end);
       *count = (unsigned char)new_count;
     }
     return 1;
@@ -3066,7 +3066,7 @@ unsigned short FUN_00118370(unsigned char *count, int elements,
                             short element_size, short maximum_count)
 {
   volatile short new_var;
-  unsigned char bVar1;
+  unsigned char index;
 
   if (count == (unsigned char *)0x0) {
     display_assert("count && *count>=0", "c:\\halo\\SOURCE\\memory\\array.c",
@@ -3087,13 +3087,13 @@ unsigned short FUN_00118370(unsigned char *count, int elements,
                    "c:\\halo\\SOURCE\\memory\\array.c", 0xe9, 1);
     system_exit(-1);
   }
-  bVar1 = *count;
-  if ((short)(unsigned short)bVar1 < maximum_count) {
-    new_var = (int)((short)(unsigned short)bVar1);
-    *count = bVar1 + 1;
+  index = *count;
+  if ((short)(unsigned short)index < maximum_count) {
+    new_var = (int)((short)(unsigned short)index);
+    *count = index + 1;
     csmemset((void *)(new_var * (int)element_size + elements), 0,
              (int)element_size);
-    return (unsigned short)bVar1;
+    return (unsigned short)index;
   }
   return (unsigned short)(-1);
 }
@@ -3131,10 +3131,10 @@ int FUN_00118460(unsigned char count, int elements, short element_size,
 void FUN_00118520(unsigned char *count, int elements, short element_size,
                   short index)
 {
-  int iVar1;
-  int iVar3;
-  int iVar4;
-  unsigned char bVar2;
+  int elem_addr;
+  int elem_size;
+  int idx;
+  unsigned char new_count;
 
   if ((count == (unsigned char *)0x0) || (*count == 0)) {
     display_assert("count && *count>0", "c:\\halo\\SOURCE\\memory\\array.c",
@@ -3155,14 +3155,14 @@ void FUN_00118520(unsigned char *count, int elements, short element_size,
                    "c:\\halo\\SOURCE\\memory\\array.c", 0x10c, 1);
     system_exit(-1);
   }
-  bVar2 = *count - 1;
-  *count = bVar2;
-  iVar4 = (int)index;
-  if (iVar4 < (int)(unsigned int)bVar2) {
-    iVar3 = (int)element_size;
-    iVar1 = iVar3 * iVar4 + elements;
-    csmemmove((void *)iVar1, (const void *)(iVar3 + iVar1),
-              ((unsigned int)bVar2 - iVar4) * iVar3);
+  new_count = *count - 1;
+  *count = new_count;
+  idx = (int)index;
+  if (idx < (int)(unsigned int)new_count) {
+    elem_size = (int)element_size;
+    elem_addr = elem_size * idx + elements;
+    csmemmove((void *)elem_addr, (const void *)(elem_size + elem_addr),
+              ((unsigned int)new_count - idx) * elem_size);
   }
   csmemset((void *)((unsigned int)*count * (int)element_size + elements),
            0xffffffff, (int)element_size);
@@ -3519,19 +3519,19 @@ void FUN_00118d70(int queue)
  */
 int *circular_queue_new(int param_1, int param_2)
 {
-  int *puVar1;
+  int *queue;
 
-  puVar1 = (int *)debug_malloc(
+  queue = (int *)debug_malloc(
     param_2 + 0x19, 0, "c:\\halo\\SOURCE\\memory\\circular_queue.c", 0x34);
-  if (puVar1 != (int *)0) {
-    csmemset(puVar1, 0, 0x18);
-    *puVar1 = param_1;
-    puVar1[1] = 0x63697263;
-    puVar1[4] = param_2 + 1;
-    puVar1[5] = (int)(puVar1 + 6);
-    FUN_00118d70((int)puVar1);
+  if (queue != (int *)0) {
+    csmemset(queue, 0, 0x18);
+    *queue = param_1;
+    queue[1] = 0x63697263;
+    queue[4] = param_2 + 1;
+    queue[5] = (int)(queue + 6);
+    FUN_00118d70((int)queue);
   }
-  return puVar1;
+  return queue;
 }
 
 /* Free a circular queue and its memory. 0x118e40 / circular_queue.obj */
