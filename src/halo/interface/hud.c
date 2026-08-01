@@ -28,7 +28,7 @@ void hud_new(void)
   }
   hud_messaging_initialize();
   FUN_000d72f0();
-  FUN_000d8af0();
+  hud_weapon_initialize();
   hud_nav_points_initialize();
   motion_sensor_initialize();
 }
@@ -39,7 +39,7 @@ void hud_dispose(void)
 {
   FUN_000db140();
   hud_messaging_dispose();
-  FUN_000d8b80();
+  hud_weapon_dispose();
   FUN_000d7430();
   FUN_000d46e0();
 }
@@ -56,7 +56,7 @@ void hud_initialize_for_new_map(void)
   hud_globals = tag_get(0x68756467, interface_get_tag_index(6));
   FUN_000d46a0();
   FUN_000d7330();
-  FUN_000d8b30();
+  hud_weapon_initialize_for_new_map();
   hud_messaging_initialize_for_new_map();
   FUN_000db150();
 }
@@ -65,7 +65,7 @@ void hud_dispose_from_old_map(void)
 {
   FUN_000db1b0();
   hud_messaging_dispose_from_old_map();
-  FUN_000d8b70();
+  hud_weapon_dispose_from_old_map();
   FUN_000d7420();
   FUN_000d46d0();
 }

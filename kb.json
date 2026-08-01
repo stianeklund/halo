@@ -12454,22 +12454,22 @@
    "functions": [
     {
      "addr": "0xd8af0",
-     "decl": "void FUN_000d8af0(void);",
+     "decl": "void hud_weapon_initialize(void);",
      "ported": true
     },
     {
      "addr": "0xd8b30",
-     "decl": "void FUN_000d8b30(void);",
+     "decl": "void hud_weapon_initialize_for_new_map(void);",
      "ported": true
     },
     {
      "addr": "0xd8b70",
-     "decl": "void FUN_000d8b70(void);",
+     "decl": "void hud_weapon_dispose_from_old_map(void);",
      "ported": true
     },
     {
      "addr": "0xd8b80",
-     "decl": "void FUN_000d8b80(void);",
+     "decl": "void hud_weapon_dispose(void);",
      "ported": true
     },
     {

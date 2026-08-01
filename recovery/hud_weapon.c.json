@@ -1,0 +1,3483 @@
+{
+  "allow_risky": false,
+  "baseline": {
+    "assertion_snapshot": {
+      "assertions": [],
+      "kind": "assert-metadata",
+      "schema": 1
+    },
+    "captured": true,
+    "coff_snapshot": {
+      "assertion_metadata": [],
+      "kind": "coff-candidate-neutrality",
+      "schema": 1,
+      "sections": [
+        {
+          "characteristics": 1615855648,
+          "executable": true,
+          "id": ".text#0",
+          "name": ".text",
+          "raw_bytes_hex": "5589e568e40100006a006800000000e80000000083c40ca324bd460085c074025dc36a016a6b68000000006800000000e80000000083c4106affe800000000905589e5a124bd460085c0741268e40100006aff50e80000000083c40c5dc36a016a7368000000006800000000e80000000083c4106affe8000000000f1f4400005589e55dc3662e0f1f840000000000905589e55dc3662e0f1f840000000000905589e58b0d24bd46008b91e001000031c0807d08000f95c083e2fe09d08981e00100005dc3662e0f1f840000000000905589e50fb74d086683f9037716a124bd460085c0742dc1e1038d0c890fb7c901c85dc36a0168ae01000068000000006800000000e80000000083c4106affe8000000006a0168af01000068000000006800000000e80000000083c4106affe800000000662e0f1f8400000000000f1f005589e50fb745086683f803771c8b0d24bd460085c97432c1e0048d04800fb7c08d8401a00000005dc36a0168b701000068000000006800000000e80000000083c4106affe8000000006a0168b801000068000000006800000000e80000000083c4106affe8000000000f1f80000000005589e556837d08ff743f0fbf750c56e80000000083c40483f8ff741d56e80000000083c40450ff35d4a65a00e80000000083c4088b4034eb05b8ffffffff6a0350e80000000083c4085e5dc30f1f40005589e553575681ec140200008b750ce8000000008945e08d85e0fdffff68000200006a6250e80000000083c40c6a0356e80000000083c4080fbf80a20200005056e80000000083c40889c36a0356e80000000083c40889c7ff306874696e75e80000000083c40853e80000000083c40485c0744066b880000f1f8400000000008d48ff0fb7f181bcb5e0fdffff626262620f851f02000066487fe5e8000000003945e00f854602000081c4140200005e5f5b5dc380bfcc020000ff74b76a03ffb7cc000000e80000000083c40885c0741039b0d4020000749b39b0d8020000749356e80000000083c4046683f8ff74840fbfd8e80000000005280100006a44538b5d0850e80000000083c40c6683fb030f87f90100008b0d24bd4600894df085c90f84080200008b402083f8ff0f8441ffffff8d0cdd000000008d0c890fb7c9894de8506869687267e80000000083c4080fbe8fcc0200000fbe940fce02000031c98945e4663990480100000f9dc18d59026685d20f45d9e8000000008d4b046683f8020f4ccb8b5de8b8ffffffff894decf6c10174118b45f08b44182483f8ff750ce8000000008b4df0894419248b4de4837954ff8b550889cb74128d4b2450ff75ec515352e80000000083c41483bbbc000000ff74208d838c0000008b4df08b55e8ff741124ff75ec5053ff7508e80000000083c41480bb3801000000744156e80000000083c404985056e80000000083c408988d8bf40000008b55080fbfd26a008b75f08b5de8ff741e248b5de4ff75ec6aff50515352e80000000083c42083bb58010000ff0f8425feffff0fbe87cc0200000fbe8407ce02000031c9663983480100000f9dc18d51026685c00f45d18d420885d2be0c0000000f45f0e80000000031c96683f8020f9dc189d8054c01000051ff75ec8b4df08b55e8ff741124565053ff7508e80000000083c41ce9befdffffe8000000003945e0752f5668000000006800b15a00e80000000083c40c6a0168a2030000680000000050e80000000083c4106affe8000000006a0168a203000068000000006800000000e80000000083c4106affe8000000006a0168ae01000068000000006800000000e80000000083c4106affe8000000006a0168af01000068000000006800000000e80000000083c4106affe800000000905589e5568b75086a5c56e80000000083c4088d480185c00f44ce89c85e5dc3905589e553575681ec300300008b7d08e8000000008945a08d85c4fcffff68000200006a6250e80000000083c40c83ffff0f84d00b00008b0d24bd46000fb681e001000024010f84bb0b0000894dd48b450c0fb7700283fe040f839f0c00008b40348945e8576869687077e80000000083c4088945ece80000000031db6683783c020f95c3e8000000008d7b026683f8010f45fb8b5d08e8000000008d4f046683f8020f4ccf894d808b4de883f9ff8b45d40f844f0b00008b7d108d34b6c1e60401f08945c46a0351e80000000083c4088945d083ffff741a6a0457e80000000083c408ff306870616577e80000000083c4088b4dec898de8feffffc785ecfeffff00000000c785f0feffff00000000c785f4feffff00000000c785f8feffff00000000c785fcfeffff00000000c78500ffffff00000000c78504ffffff00000000c78508ffffff00000000c7850cffffff00000000c78510ffffff00000000c78514ffffff00000000c78518ffffff00000000c7851cffffff00000000c78520ffffff00000000c78524ffffff00000000899d28ffffffc7852cffffff00000000c78530ffffff00000000c78534ffffff00000000c78538ffffff00000000c7853cffffff00000000c78540ffffff00000000c78544ffffff00000000c78548ffffff00000000c7854cffffff00000000c78550ffffff00000000c78554ffffff00000000c78558ffffff00000000c7855cffffff00000000c78560ffffff00000000c78564ffffff000000008b45c48b80ec00000089857cffffff8b410c83f8ff0f844902000089852cffffff506869687077e80000000083c4088985ecfeffff8b400c83f8ff0f842c020000898530ffffff506869687077e80000000083c4088985f0feffff8b400c83f8ff0f840f020000898534ffffff506869687077e80000000083c4088985f4feffff8b400c83f8ff0f84f2010000898538ffffff506869687077e80000000083c4088985f8feffff8b400c83f8ff0f84d501000089853cffffff506869687077e80000000083c4088985fcfeffff8b400c83f8ff0f84b8010000898540ffffff506869687077e80000000083c408898500ffffff8b400c83f8ff0f849b010000898544ffffff506869687077e80000000083c408898504ffffff8b400c83f8ff0f847e010000898548ffffff506869687077e80000000083c408898508ffffff8b400c83f8ff0f846101000089854cffffff506869687077e80000000083c40889850cffffff8b400c83f8ff0f8444010000898550ffffff506869687077e80000000083c408898510ffffff8b400c83f8ff0f8427010000898554ffffff506869687077e80000000083c408898514ffffff8b400c83f8ff0f840a010000898558ffffff506869687077e80000000083c408898518ffffff8b400c83f8ff0f84ed00000089855cffffff506869687077e80000000083c40889851cffffff8b400c83f8ff0f84d0000000898560ffffff506869687077e80000000083c408898520ffffff8b400c83f8ff0f84b3000000898564ffffff506869687077e80000000083c408898524ffffff68000000006a02e80000000083c408c745f010000000e985000000c745f001000000eb7cc745f002000000eb73c745f003000000eb6ac745f004000000eb61c745f005000000eb58c745f006000000eb4fc745f007000000eb46c745f008000000eb3dc745f009000000eb34c745f00a000000eb2bc745f00b000000eb22c745f00c000000eb19c745f00d000000eb10c745f00e000000eb07c745f00f0000008b45d48d8430a00000008945e431c0894dc8eb13660f1f4400008b4588403b45f00f84c90600008945889889458c8bbc85e8feffff66c785c4feffff0400c785c6feffff00000000c785cafeffff00000000c785cefeffff00000000c785d2feffff00000000c785d6feffff00000000c785dafeffff00000000c785defeffff00000000c785e2feffff0000000066c785e6feffff0000e80000000031c96683f8020f9dc083bf84000000000f8e68ffffff88c1894d9c81c78400000031dbc745980000000089bd78ffffffeb24662e0f1f84000000000066908b4598408945980fbfd88bbd78ffffff3b1f0f8d28ffffff6a685357e80000000083c40c89c20fbf088b857cffffff0fa3c873cc894ddc0fb642048b4d800fa3c173bd837a34007eb7895d848d42348945d483c22489559031dbbf00000100e9520100000fb70331db6683f8040f94c28b75e085f68b4dec8855db0f84200300000fbfc183c6346a205056e80000000083c40cd94008d955b0d9400cd955ecd95db4d94010d955b8d94014d955e0d95dbcd9e8d9c08b75ccd9cbd9cad9c90fb74e040fb7460666894dac0fbf0d826550000fbf157e65500029d1898d74ffffffd945c0d9c0d83dc8332500d9c0da8d74ffffffde6dacdeced90564592500668945ae0fbf05806550000fbf0d7c65500029c8898570ffffffd9c9da8d70ffffffde6daedecbdccddecad9cbd8e4d95db0d945ecdec4d9cbd95db4d8e2d95db8d945e0dec2d9c9d95dbc0fb645db88c383ec28895c24208b4594894424188b45e8894424088934248b459c8944241cd95c24108d45b08944240c8d85c4feffff89442404c744242401000000c744241400000000e80000000083c4280f1f44000089fbc1fb1081c7000001008b45d43b180f8d4afeffff6a6c53ff75d4e80000000083c40c89c28b404884c078d3a804740c8b4dc483b9a4000000007ec3a840740c8b45c483b8a40000000075b38955e8e8000000008b75e86683f802d9e8d95dc07d1931c0f6464802742c8945e08b4ddc6683f912765fe9b4040000f6460c02d90500000000d9e8dac9ddd9d95dc031c0f646480275d40fbf7646ff7590e80000000083c40450686d746962e80000000083c40883c0546a405650e8000000008b75e883c40c8945e08b4ddc6683f9120f875a0400000fb7c1ff24850000000066837e44007e41e8000000008b4de48b55dc2b04918b4de80fbf494499f7f989c1ba89888888f7ea01d189c8c1e81fc1f90401c189c8998b4de0f779348b75e8f6464801750aeb2e31d2f646480174268b45e48955ec8b4ddc8b04888b55ec83f8ff74128d4e245051e8000000008b55ec83c408eb038b46248955ec6683faff0f844a030000894594ff7590e80000000083c40450686d746962e80000000083c40889c38b4de085c974150fbf45ec83c1346a205051e80000000083c40ceb068b45e883c0460fbf008d4b606a305051e80000000083c40c89c66a016a0050e80000000083c40c85c00f8431feffff8975cc8b55e8f64248100f85e5fcffff8b75e085f68b45ec74729883c6346a205056e8000000008b55e883c40c83c008eb5c6683f804c745b0000000000f85990100008b75cc0fb74604668945aadf45aad955ecd95db4c745b8000000000fb74606668945a8df45a8d955e0d95dbcdd05d8732500d99d6cffffffd9856cffffffd9eed9c0d9c2e9c3fcffff31c031c966833b040f94c183ec288b7594897424188944240c895424088b45cc890424894c24208b459c8944241cd945c0d95c2410e944fdffff8b45146683780e000f85bf00000066837812000f85b4000000eb648b45e48b14888d4624f64648010f854d0100008b00e98ffeffff8b4648a8208b4de48b55dc8b0c910f854d01000089ce89c1c1e11dc1f91f01cea8018b4de80f8547010000e95a010000807dc8007532eb608b4514d94004d9eed9c9dfe9ddd875507a4eb80b0000008b4dd08b89b8010000b2018955c80fa3c18b4ddc8b75e873308b45e48b0c88eb568b45d080b8ce02000000751c8b45d080b8cf0200000075108b45d080b83d020000000f840a0100008d462450e80000000083c4048945ece8000000008b75e88b4de48b55dc8b0c9129c8c745c8000000003b45ec7d0983f9ff0f8547fdffff8b45e48b4ddcc70488ffffffffe955fcffffc745b40000803fc745b800000000c745bc0000803fd905c83325008b75cc0fb746040fb74e06668945a6d9c0de75a6dd05301f2800d99d68ffffffd98568ffffffdcc966894da4d9cade75a4decad9e8d955e0d9eed9c0d9cad95decd9cad9cbe90efbffff85d27e4ac745ec000000006a0050e80000000083c408e93bfdffff85c90f84cdfbffff31f6a8018b4de874188b45e48338007e108d41246a0050e80000000083c408eb038b412489f2e9fbfcffff8b00c745ec00000000e9fafcffffb80d000000e9a3feffff66b88000660f1f4400008d48ff0fb7f181bcb5c4fcffff62626262757766487fe9e8000000003945a00f85a800000081c4300300005e5f5b5dc38b458cffb48528ffffffe80000000083c40489c66a5c50e80000000083c4088d480185c00f44ce5153ff758468000000006800b15a00e80000000083c4146a0168a5040000680000000050e80000000083c4106affe800000000e8000000003945a075395668000000006800b15a00e80000000083c40c6a0168e2040000ebc56a0168a204000068000000006a00e80000000083c4106affe8000000006a0168e204000068000000006800000000e80000000083c4106affe8000000006a0168b701000068000000006800000000e80000000083c4106affe800000000",
+          "raw_size": 4749,
+          "relocations": [
+            {
+              "offset": 11,
+              "target": {
+                "data": {
+                  "bytes_hex": "68756420776561706f6e20696e7465726661636500",
+                  "section": ".rdata#2",
+                  "value": 0
+                },
+                "name": "??_C@_0BF@HCPMNCNB@hud?5weapon?5interface?$AA@",
+                "section": ".rdata#2",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 16,
+              "target": {
+                "name": "_game_state_malloc",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 39,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c696e746572666163655c6875645f776561706f6e2e6300",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@DOLNIFA@c?3?2halo?2SOURCE?2interface?2hud_wea@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 44,
+              "target": {
+                "data": {
+                  "bytes_hex": "776561706f6e5f6875645f676c6f62616c7300",
+                  "section": ".rdata#4",
+                  "value": 0
+                },
+                "name": "??_C@_0BD@NOPIHEPB@weapon_hud_globals?$AA@",
+                "section": ".rdata#4",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 49,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 59,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 85,
+              "target": {
+                "name": "_csmemset",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 99,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c696e746572666163655c6875645f776561706f6e2e6300",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@DOLNIFA@c?3?2halo?2SOURCE?2interface?2hud_wea@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 104,
+              "target": {
+                "data": {
+                  "bytes_hex": "776561706f6e5f6875645f676c6f62616c7300",
+                  "section": ".rdata#4",
+                  "value": 0
+                },
+                "name": "??_C@_0BD@NOPIHEPB@weapon_hud_globals?$AA@",
+                "section": ".rdata#4",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 109,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 119,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 251,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c696e746572666163655c6875645f776561706f6e2e6300",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@DOLNIFA@c?3?2halo?2SOURCE?2interface?2hud_wea@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 256,
+              "target": {
+                "data": {
+                  "bytes_hex": "6c6f63616c5f706c617965725f696e6465783e3d30202626206c6f63616c5f706c617965725f696e6465783c4d4158494d554d5f4e554d4245525f4f465f4c4f43414c5f504c415945525300",
+                  "section": ".rdata#5",
+                  "value": 0
+                },
+                "name": "??_C@_0EM@JCKEKCNI@local_player_index?$DO?$DN0?5?$CG?$CG?5local_p@",
+                "section": ".rdata#5",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 261,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 271,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 283,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c696e746572666163655c6875645f776561706f6e2e6300",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@DOLNIFA@c?3?2halo?2SOURCE?2interface?2hud_wea@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 288,
+              "target": {
+                "data": {
+                  "bytes_hex": "776561706f6e5f6875645f676c6f62616c7300",
+                  "section": ".rdata#4",
+                  "value": 0
+                },
+                "name": "??_C@_0BD@NOPIHEPB@weapon_hud_globals?$AA@",
+                "section": ".rdata#4",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 293,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 303,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 369,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c696e746572666163655c6875645f776561706f6e2e6300",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@DOLNIFA@c?3?2halo?2SOURCE?2interface?2hud_wea@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 374,
+              "target": {
+                "data": {
+                  "bytes_hex": "6c6f63616c5f706c617965725f696e6465783e3d30202626206c6f63616c5f706c617965725f696e6465783c4d4158494d554d5f4e554d4245525f4f465f4c4f43414c5f504c415945525300",
+                  "section": ".rdata#5",
+                  "value": 0
+                },
+                "name": "??_C@_0EM@JCKEKCNI@local_player_index?$DO?$DN0?5?$CG?$CG?5local_p@",
+                "section": ".rdata#5",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 379,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 389,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 401,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c696e746572666163655c6875645f776561706f6e2e6300",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@DOLNIFA@c?3?2halo?2SOURCE?2interface?2hud_wea@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 406,
+              "target": {
+                "data": {
+                  "bytes_hex": "776561706f6e5f6875645f676c6f62616c7300",
+                  "section": ".rdata#4",
+                  "value": 0
+                },
+                "name": "??_C@_0BD@NOPIHEPB@weapon_hud_globals?$AA@",
+                "section": ".rdata#4",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 411,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 421,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 448,
+              "target": {
+                "name": "_local_player_get_player_index",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 462,
+              "target": {
+                "name": "_local_player_get_player_index",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 477,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 498,
+              "target": {
+                "name": "_object_try_and_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 528,
+              "target": {
+                "name": "_FUN_000d1540",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 550,
+              "target": {
+                "name": "_csmemset",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 561,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 578,
+              "target": {
+                "name": "_unit_get_weapon",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 591,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 608,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 617,
+              "target": {
+                "name": "_weapon_prevents_grenade_throwing",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 668,
+              "target": {
+                "name": "_FUN_000d1540",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 710,
+              "target": {
+                "name": "_object_try_and_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 739,
+              "target": {
+                "name": "_unit_get_current_grenade_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 756,
+              "target": {
+                "name": "_game_globals_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 773,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 842,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 889,
+              "target": {
+                "name": "_local_player_count",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 932,
+              "target": {
+                "name": "_game_time_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 968,
+              "target": {
+                "name": "_FUN_000d3fe0",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1009,
+              "target": {
+                "name": "_FUN_000d3fe0",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1027,
+              "target": {
+                "name": "_unit_get_current_grenade_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1038,
+              "target": {
+                "name": "_unit_get_grenade_count",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1083,
+              "target": {
+                "name": "_FUN_000d3860",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1153,
+              "target": {
+                "name": "_local_player_count",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1194,
+              "target": {
+                "name": "_FUN_000d4260",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1207,
+              "target": {
+                "name": "_FUN_000d1540",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1218,
+              "target": {
+                "data": {
+                  "bytes_hex": "636f727275707420737461636b2061742025642100",
+                  "section": ".rdata#7",
+                  "value": 0
+                },
+                "name": "??_C@_0BF@LPAPHBIL@corrupt?5stack?5at?5?$CFd?$CB?$AA@",
+                "section": ".rdata#7",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1228,
+              "target": {
+                "name": "_csprintf",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1243,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c696e746572666163655c6875645f776561706f6e2e6300",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@DOLNIFA@c?3?2halo?2SOURCE?2interface?2hud_wea@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1249,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1259,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1271,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c696e746572666163655c6875645f776561706f6e2e6300",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@DOLNIFA@c?3?2halo?2SOURCE?2interface?2hud_wea@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1276,
+              "target": {
+                "data": {
+                  "bytes_hex": "636f72727570742072657475726e20616464726573732100",
+                  "section": ".rdata#6",
+                  "value": 0
+                },
+                "name": "??_C@_0BI@PIKMLAKB@corrupt?5return?5address?$CB?$AA@",
+                "section": ".rdata#6",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1281,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1291,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1303,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c696e746572666163655c6875645f776561706f6e2e6300",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@DOLNIFA@c?3?2halo?2SOURCE?2interface?2hud_wea@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1308,
+              "target": {
+                "data": {
+                  "bytes_hex": "6c6f63616c5f706c617965725f696e6465783e3d30202626206c6f63616c5f706c617965725f696e6465783c4d4158494d554d5f4e554d4245525f4f465f4c4f43414c5f504c415945525300",
+                  "section": ".rdata#5",
+                  "value": 0
+                },
+                "name": "??_C@_0EM@JCKEKCNI@local_player_index?$DO?$DN0?5?$CG?$CG?5local_p@",
+                "section": ".rdata#5",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1313,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1323,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1335,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c696e746572666163655c6875645f776561706f6e2e6300",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@DOLNIFA@c?3?2halo?2SOURCE?2interface?2hud_wea@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1340,
+              "target": {
+                "data": {
+                  "bytes_hex": "776561706f6e5f6875645f676c6f62616c7300",
+                  "section": ".rdata#4",
+                  "value": 0
+                },
+                "name": "??_C@_0BD@NOPIHEPB@weapon_hud_globals?$AA@",
+                "section": ".rdata#4",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1345,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1355,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1371,
+              "target": {
+                "name": "_strrchr",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1408,
+              "target": {
+                "name": "_FUN_000d1540",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1430,
+              "target": {
+                "name": "_csmemset",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1499,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1510,
+              "target": {
+                "name": "_global_scenario_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1525,
+              "target": {
+                "name": "_local_player_count",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1543,
+              "target": {
+                "name": "_local_player_count",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1593,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1612,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1627,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1989,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2027,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2065,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2103,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2141,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2179,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2217,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2255,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2293,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2331,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2369,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2407,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2445,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2483,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2521,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2535,
+              "target": {
+                "data": {
+                  "bytes_hex": "746f6f206d616e79206c6576656c7320696e2063757272656e7420776561706f6e206875642068696572617263687900",
+                  "section": ".rdata#8",
+                  "value": 0
+                },
+                "name": "??_C@_0DA@GANDHJMM@too?5many?5levels?5in?5current?5weapo@",
+                "section": ".rdata#8",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2542,
+              "target": {
+                "name": "_error",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2846,
+              "target": {
+                "name": "_local_player_count",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2941,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3052,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3316,
+              "target": {
+                "name": "_FUN_000d3fa0",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3357,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3409,
+              "target": {
+                "name": "_local_player_count",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3458,
+              "target": {
+                "data": {
+                  "bytes_hex": "0000003f",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "__real@3f000000",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3487,
+              "target": {
+                "name": "_verify_tag_reference",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3501,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3516,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3548,
+              "target": {
+                "data": {
+                  "bytes_hex": "b00f0000ca0f0000e00d0000e00d0000e00d0000e00d0000e00d0000e00d0000950f00003a100000e00d0000e00d0000e00d0000e00d0000fa0f0000e00d0000e00d0000e00d000002100000",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": ".rdata",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3560,
+              "target": {
+                "name": "_game_time_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3658,
+              "target": {
+                "name": "_FUN_000d2320",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3693,
+              "target": {
+                "name": "_verify_tag_reference",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3707,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3735,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3761,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3776,
+              "target": {
+                "name": "_xbox_texture_cache_get_hardware_format",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3826,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4199,
+              "target": {
+                "name": "_FUN_000d2300",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4210,
+              "target": {
+                "name": "_game_time_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4383,
+              "target": {
+                "name": "_FUN_000d2320",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4427,
+              "target": {
+                "name": "_FUN_000d2320",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4504,
+              "target": {
+                "name": "_FUN_000d1540",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4539,
+              "target": {
+                "name": "_tag_get_name",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4552,
+              "target": {
+                "name": "_strrchr",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4573,
+              "target": {
+                "data": {
+                  "bytes_hex": "6672616d6520696e646578204e4f4e45207768656e2064726177696e672063726f7373686169722025642c20656c656d656e742025642c20666f7220776561706f6e20696e74657266616365202725732700",
+                  "section": ".rdata#9",
+                  "value": 0
+                },
+                "name": "??_C@_0FC@PHPDNACJ@frame?5index?5NONE?5when?5drawing?5cr@",
+                "section": ".rdata#9",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4583,
+              "target": {
+                "name": "_csprintf",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4598,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c696e746572666163655c6875645f776561706f6e2e6300",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@DOLNIFA@c?3?2halo?2SOURCE?2interface?2hud_wea@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4604,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4614,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4619,
+              "target": {
+                "name": "_FUN_000d1540",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4630,
+              "target": {
+                "data": {
+                  "bytes_hex": "636f727275707420737461636b2061742025642100",
+                  "section": ".rdata#7",
+                  "value": 0
+                },
+                "name": "??_C@_0BF@LPAPHBIL@corrupt?5stack?5at?5?$CFd?$CB?$AA@",
+                "section": ".rdata#7",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4640,
+              "target": {
+                "name": "_csprintf",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4664,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c696e746572666163655c6875645f776561706f6e2e6300",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@DOLNIFA@c?3?2halo?2SOURCE?2interface?2hud_wea@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4671,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4681,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4693,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c696e746572666163655c6875645f776561706f6e2e6300",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@DOLNIFA@c?3?2halo?2SOURCE?2interface?2hud_wea@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4698,
+              "target": {
+                "data": {
+                  "bytes_hex": "636f72727570742072657475726e20616464726573732100",
+                  "section": ".rdata#6",
+                  "value": 0
+                },
+                "name": "??_C@_0BI@PIKMLAKB@corrupt?5return?5address?$CB?$AA@",
+                "section": ".rdata#6",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4703,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4713,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4725,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c696e746572666163655c6875645f776561706f6e2e6300",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@DOLNIFA@c?3?2halo?2SOURCE?2interface?2hud_wea@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4730,
+              "target": {
+                "data": {
+                  "bytes_hex": "6c6f63616c5f706c617965725f696e6465783e3d30202626206c6f63616c5f706c617965725f696e6465783c4d4158494d554d5f4e554d4245525f4f465f4c4f43414c5f504c415945525300",
+                  "section": ".rdata#5",
+                  "value": 0
+                },
+                "name": "??_C@_0EM@JCKEKCNI@local_player_index?$DO?$DN0?5?$CG?$CG?5local_p@",
+                "section": ".rdata#5",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4735,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4745,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            }
+          ]
+        },
+        {
+          "characteristics": 3224371264,
+          "executable": false,
+          "id": ".data#0",
+          "name": ".data",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        },
+        {
+          "characteristics": 3224371328,
+          "executable": false,
+          "id": ".bss#0",
+          "name": ".bss",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        },
+        {
+          "characteristics": 1076891712,
+          "executable": false,
+          "id": ".rdata#0",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 4,
+          "relocations": []
+        },
+        {
+          "characteristics": 1076887616,
+          "executable": false,
+          "id": ".rdata#1",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 76,
+          "relocations": [
+            {
+              "offset": 0,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 8,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 12,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 16,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 20,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 24,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 28,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 32,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 36,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 40,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 44,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 48,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 52,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 56,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 60,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 64,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 68,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 72,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            }
+          ]
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#2",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 21,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#3",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 38,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#4",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 19,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#5",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 76,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#6",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 24,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#7",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 21,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#8",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 48,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#9",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 82,
+          "relocations": []
+        },
+        {
+          "characteristics": 1051136,
+          "executable": false,
+          "id": ".drectve#0",
+          "name": ".drectve",
+          "raw_bytes_hex": null,
+          "raw_size": 242,
+          "relocations": []
+        },
+        {
+          "characteristics": 1050624,
+          "executable": false,
+          "id": ".llvm_addrsig#0",
+          "name": ".llvm_addrsig",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        }
+      ]
+    },
+    "object_relative_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud_weapon.c.obj",
+    "object_sha256": "2a237d0a9cf1930d5300a4d9d040206ccb7071b700ea09c7aa763ab03b1a634b"
+  },
+  "checks": [
+    {
+      "baseline_object_sha256": "2a237d0a9cf1930d5300a4d9d040206ccb7071b700ea09c7aa763ab03b1a634b",
+      "current_git_head": "6b99cc7a866f97326e00cdf5c272122b689a3517",
+      "current_object_sha256": "2a237d0a9cf1930d5300a4d9d040206ccb7071b700ea09c7aa763ab03b1a634b",
+      "current_source_sha256": "7258b4e7de88a8249df5ddaf25896e612195f2798952a891555b4a2f9f2a5a7d",
+      "failures": [
+        "strict VC71 regression check failed"
+      ],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": false,
+      "skipped": [],
+      "source": "src/halo/interface/hud_weapon.c",
+      "vc71_passed": false,
+      "warnings": []
+    },
+    {
+      "baseline_object_sha256": "2a237d0a9cf1930d5300a4d9d040206ccb7071b700ea09c7aa763ab03b1a634b",
+      "current_git_head": "6b99cc7a866f97326e00cdf5c272122b689a3517",
+      "current_object_sha256": "2a237d0a9cf1930d5300a4d9d040206ccb7071b700ea09c7aa763ab03b1a634b",
+      "current_source_sha256": "7258b4e7de88a8249df5ddaf25896e612195f2798952a891555b4a2f9f2a5a7d",
+      "failures": [
+        "strict VC71 regression check failed"
+      ],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": false,
+      "skipped": [],
+      "source": "src/halo/interface/hud_weapon.c",
+      "vc71_passed": false,
+      "warnings": []
+    },
+    {
+      "baseline_object_sha256": "2a237d0a9cf1930d5300a4d9d040206ccb7071b700ea09c7aa763ab03b1a634b",
+      "current_git_head": "6b99cc7a866f97326e00cdf5c272122b689a3517",
+      "current_object_sha256": "2a237d0a9cf1930d5300a4d9d040206ccb7071b700ea09c7aa763ab03b1a634b",
+      "current_source_sha256": "7258b4e7de88a8249df5ddaf25896e612195f2798952a891555b4a2f9f2a5a7d",
+      "failures": [
+        "strict VC71 regression check failed"
+      ],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": false,
+      "skipped": [],
+      "source": "src/halo/interface/hud_weapon.c",
+      "vc71_passed": false,
+      "warnings": []
+    },
+    {
+      "baseline_object_sha256": "2a237d0a9cf1930d5300a4d9d040206ccb7071b700ea09c7aa763ab03b1a634b",
+      "current_git_head": "6b99cc7a866f97326e00cdf5c272122b689a3517",
+      "current_object_sha256": "ca8a753a9828a160e6880e0a06dc67a675e7c7eb6b7c492e94d2e4626eeac872",
+      "current_source_sha256": "79f135ec085887006fb0bd415690e8bc92679f7398582d55e24dfe050ffbeac7",
+      "failures": [
+        "strict VC71 regression check failed"
+      ],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": false,
+      "skipped": [],
+      "source": "src/halo/interface/hud_weapon.c",
+      "vc71_passed": false,
+      "warnings": []
+    },
+    {
+      "baseline_object_sha256": "2a237d0a9cf1930d5300a4d9d040206ccb7071b700ea09c7aa763ab03b1a634b",
+      "current_git_head": "6b99cc7a866f97326e00cdf5c272122b689a3517",
+      "current_object_sha256": "ca8a753a9828a160e6880e0a06dc67a675e7c7eb6b7c492e94d2e4626eeac872",
+      "current_source_sha256": "79f135ec085887006fb0bd415690e8bc92679f7398582d55e24dfe050ffbeac7",
+      "failures": [
+        "strict VC71 regression check failed"
+      ],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": false,
+      "skipped": [],
+      "source": "src/halo/interface/hud_weapon.c",
+      "vc71_passed": false,
+      "warnings": []
+    }
+  ],
+  "created_tool_version": "source-recovery/1",
+  "git_head": "6b99cc7a866f97326e00cdf5c272122b689a3517",
+  "inventory": {
+    "absolute_address_dereferences": [
+      {
+        "category": "symbol-names",
+        "column": 29,
+        "id": "absolute_address_dereferences:13:1",
+        "line": 13,
+        "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+        "status": "parked",
+        "text": "#define weapon_hud_globals (*(void **)0x46bd24)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 30,
+        "id": "absolute_address_dereferences:120:1",
+        "line": 120,
+        "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+        "status": "parked",
+        "text": "player_datum = datum_get(*(data_t **)0x5aa6d4, player_index);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 43,
+        "id": "absolute_address_dereferences:636:1",
+        "line": 636,
+        "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+        "status": "parked",
+        "text": "sx = (float)*(double *)0x2573d8;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 43,
+        "id": "absolute_address_dereferences:637:1",
+        "line": 637,
+        "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+        "status": "parked",
+        "text": "sy = (float)*(double *)0x2573d8;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 37,
+        "id": "absolute_address_dereferences:639:1",
+        "line": 639,
+        "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+        "status": "parked",
+        "text": "sx = (*(float *)0x2533c8 /"
+      },
+      {
+        "category": "symbol-names",
+        "column": 43,
+        "id": "absolute_address_dereferences:641:1",
+        "line": 641,
+        "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+        "status": "parked",
+        "text": "(float)*(double *)0x281f30;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 37,
+        "id": "absolute_address_dereferences:642:1",
+        "line": 642,
+        "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+        "status": "parked",
+        "text": "sy = (*(float *)0x2533c8 /"
+      },
+      {
+        "category": "symbol-names",
+        "column": 43,
+        "id": "absolute_address_dereferences:644:1",
+        "line": 644,
+        "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+        "status": "parked",
+        "text": "(float)*(double *)0x281f30;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 46,
+        "id": "absolute_address_dereferences:656:1",
+        "line": 656,
+        "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+        "status": "parked",
+        "text": "(float)((int)*(short *)0x506582 -"
+      },
+      {
+        "category": "symbol-names",
+        "column": 46,
+        "id": "absolute_address_dereferences:657:1",
+        "line": 657,
+        "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+        "status": "parked",
+        "text": "(int)*(short *)0x50657e) *"
+      },
+      {
+        "category": "symbol-names",
+        "column": 36,
+        "id": "absolute_address_dereferences:658:1",
+        "line": 658,
+        "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+        "status": "parked",
+        "text": "(*(float *)0x2533c8 / scale)) *"
+      },
+      {
+        "category": "symbol-names",
+        "column": 37,
+        "id": "absolute_address_dereferences:659:1",
+        "line": 659,
+        "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+        "status": "parked",
+        "text": "sx * *(float *)0x255964;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 46,
+        "id": "absolute_address_dereferences:661:1",
+        "line": 661,
+        "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+        "status": "parked",
+        "text": "(float)((int)*(short *)0x506580 -"
+      },
+      {
+        "category": "symbol-names",
+        "column": 46,
+        "id": "absolute_address_dereferences:662:1",
+        "line": 662,
+        "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+        "status": "parked",
+        "text": "(int)*(short *)0x50657c) *"
+      },
+      {
+        "category": "symbol-names",
+        "column": 36,
+        "id": "absolute_address_dereferences:663:1",
+        "line": 663,
+        "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+        "status": "parked",
+        "text": "(*(float *)0x2533c8 / scale)) *"
+      },
+      {
+        "category": "symbol-names",
+        "column": 37,
+        "id": "absolute_address_dereferences:664:1",
+        "line": 664,
+        "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+        "status": "parked",
+        "text": "sy * *(float *)0x255964;"
+      }
+    ],
+    "decompiler_style_locals": [],
+    "fun_calls": [
+      {
+        "category": "symbol-names",
+        "column": 4,
+        "id": "fun_calls:15:1",
+        "line": 15,
+        "status": "applied",
+        "text": "/* FUN_000d8af0 (0xd8af0) \u2014 allocate the weapon-HUD globals buffer from the"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:17:1",
+        "line": 17,
+        "status": "applied",
+        "text": "void FUN_000d8af0(void)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 4,
+        "id": "fun_calls:27:1",
+        "line": 27,
+        "status": "applied",
+        "text": "/* FUN_000d8b30 (0xd8b30) \u2014 reset the weapon-HUD globals buffer to all-0xff"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:29:1",
+        "line": 29,
+        "status": "applied",
+        "text": "void FUN_000d8b30(void)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 4,
+        "id": "fun_calls:39:1",
+        "line": 39,
+        "status": "applied",
+        "text": "/* FUN_000d8b70 (0xd8b70) \u2014 old-map teardown hook for the weapon HUD.  The"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:41:1",
+        "line": 41,
+        "status": "applied",
+        "text": "void FUN_000d8b70(void)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 4,
+        "id": "fun_calls:45:1",
+        "line": 45,
+        "status": "applied",
+        "text": "/* FUN_000d8b80 (0xd8b80) \u2014 dispose hook for the weapon HUD.  The original is"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:47:1",
+        "line": 47,
+        "status": "applied",
+        "text": "void FUN_000d8b80(void)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 4,
+        "id": "fun_calls:51:1",
+        "line": 51,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "/* FUN_000d8b90 (0xd8b90) \u2014 set (nonzero) or clear (zero) bit 0 of the weapon"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:53:1",
+        "line": 53,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "void FUN_000d8b90(char show)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 4,
+        "id": "fun_calls:67:1",
+        "line": 67,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "/* FUN_000d8bc0 (0xd8bc0) \u2014 per-local-player weapon-HUD state accessor."
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "fun_calls:69:1",
+        "line": 69,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "void *FUN_000d8bc0(int16_t local_player_index /* @<esi> */)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 4,
+        "id": "fun_calls:85:1",
+        "line": 85,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "/* FUN_000d8c30 (0xd8c30) \u2014 per-local-player accessor into a second globals"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "fun_calls:87:1",
+        "line": 87,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "void *FUN_000d8c30(int16_t local_player_index /* @<esi> */)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 4,
+        "id": "fun_calls:103:1",
+        "line": 103,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "/* FUN_000d8ca0 (0xd8ca0) \u2014 refresh the tracked weapon object for a local"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:107:1",
+        "line": 107,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "void FUN_000d8ca0(int object_handle /* @<eax> */,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 4,
+        "id": "fun_calls:126:1",
+        "line": 126,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "/* FUN_000d8cf0 (0xd8cf0) \u2014 draw a weapon's crosshair / grenade / heat HUD for"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:131:1",
+        "line": 131,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "void FUN_000d8cf0(int param_1, int param_2)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 12,
+        "id": "fun_calls:151:1",
+        "line": 151,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "canary = FUN_000d1540();"
+      },
+      {
+        "category": "symbol-names",
+        "column": 13,
+        "id": "fun_calls:170:1",
+        "line": 170,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "state = FUN_000d8bc0((short)param_1);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 9,
+        "id": "fun_calls:197:1",
+        "line": 197,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "FUN_000d3fe0(param_1, (short *)grhi, grhi + 0x24, flags7,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 9,
+        "id": "fun_calls:201:1",
+        "line": 201,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "FUN_000d3fe0(param_1, (short *)grhi, grhi + 0x8c, flags7,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 9,
+        "id": "fun_calls:207:1",
+        "line": 207,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "FUN_000d3860((short)param_1, (void *)grhi, (void *)(grhi + 0xf4), count,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 9,
+        "id": "fun_calls:225:1",
+        "line": 225,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "FUN_000d4260(param_1, grhi, grhi + 0x14c, (short)flags8 | 8,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 17,
+        "id": "fun_calls:240:1",
+        "line": 240,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "if (canary != FUN_000d1540()) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 4,
+        "id": "fun_calls:253:1",
+        "line": 253,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "/* FUN_000d8fd0 (0xd8fd0) \u2014 return the filename portion of a path (text after"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "fun_calls:255:1",
+        "line": 255,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "char *FUN_000d8fd0(char *path)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 4,
+        "id": "fun_calls:266:1",
+        "line": 266,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "/* FUN_000d8ff0 (0xd8ff0) \u2014 draw the full weapon-HUD crosshair hierarchy for one"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:273:1",
+        "line": 273,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 12,
+        "id": "fun_calls:323:1",
+        "line": 323,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "canary = FUN_000d1540();"
+      },
+      {
+        "category": "symbol-names",
+        "column": 20,
+        "id": "fun_calls:328:1",
+        "line": 328,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "state = (int *)FUN_000d8c30(*(short *)((char *)player + 2));"
+      },
+      {
+        "category": "symbol-names",
+        "column": 29,
+        "id": "fun_calls:445:1",
+        "line": 445,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "FUN_000d2320((int *)(overlay_elem + 0x24), 0);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 27,
+        "id": "fun_calls:463:1",
+        "line": 463,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "FUN_000d2320((int *)(overlay_elem + 0x24), 0);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 32,
+        "id": "fun_calls:514:1",
+        "line": 514,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "hold = FUN_000d2300(overlay_elem + 0x24);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 39,
+        "id": "fun_calls:559:1",
+        "line": 559,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "frame_index = FUN_000d2320((int *)(overlay_elem + 0x24),"
+      },
+      {
+        "category": "symbol-names",
+        "column": 27,
+        "id": "fun_calls:614:1",
+        "line": 614,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "FUN_000d3fa0(bitmap_elem, rect, overlay_elem,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 27,
+        "id": "fun_calls:669:1",
+        "line": 669,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "FUN_000d3fa0(bitmap_elem, rect, overlay_elem,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 17,
+        "id": "fun_calls:699:1",
+        "line": 699,
+        "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+        "status": "parked",
+        "text": "if (canary != FUN_000d1540()) {"
+      }
+    ],
+    "inline_asm": [],
+    "raw_base_offset_dereferences": [
+      {
+        "category": "offset-to-field",
+        "column": 11,
+        "id": "raw_base_offset_dereferences:59:1",
+        "line": 59,
+        "status": "pending",
+        "text": "value = *(unsigned int *)(g + 0x1e0);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:61:1",
+        "line": 61,
+        "status": "pending",
+        "text": "*(unsigned int *)(g + 0x1e0) = value | 1;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:64:1",
+        "line": 64,
+        "status": "pending",
+        "text": "*(unsigned int *)(g + 0x1e0) = value & ~1u;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 37,
+        "id": "raw_base_offset_dereferences:155:1",
+        "line": 155,
+        "status": "pending",
+        "text": "weapon = unit_get_weapon(param_2, *(short *)(obj + 0x2a2));"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 31,
+        "id": "raw_base_offset_dereferences:162:1",
+        "line": 162,
+        "status": "pending",
+        "text": "seat_parent == 0 || ((*(int *)(seat_parent + 0x2d4) != param_2) &&"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 31,
+        "id": "raw_base_offset_dereferences:163:1",
+        "line": 163,
+        "status": "pending",
+        "text": "(*(int *)(seat_parent + 0x2d8) != param_2)))) &&"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 18,
+        "id": "raw_base_offset_dereferences:169:1",
+        "line": 169,
+        "status": "pending",
+        "text": "whud_index = *(int *)(element + 0x20);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 32,
+        "id": "raw_base_offset_dereferences:177:1",
+        "line": 177,
+        "status": "pending",
+        "text": "flags7 = ((short)cVar <= *(short *)(grhi + 0x148));"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 11,
+        "id": "raw_base_offset_dereferences:196:1",
+        "line": 196,
+        "status": "pending",
+        "text": "if (*(int *)(grhi + 0x54) != -1) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 11,
+        "id": "raw_base_offset_dereferences:200:1",
+        "line": 200,
+        "status": "pending",
+        "text": "if (*(int *)(grhi + 0xbc) != -1) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 11,
+        "id": "raw_base_offset_dereferences:204:1",
+        "line": 204,
+        "status": "pending",
+        "text": "if (*(char *)(grhi + 0x138) != 0) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 11,
+        "id": "raw_base_offset_dereferences:210:1",
+        "line": 210,
+        "status": "pending",
+        "text": "if (*(int *)(grhi + 0x158) != -1) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 34,
+        "id": "raw_base_offset_dereferences:213:1",
+        "line": 213,
+        "status": "pending",
+        "text": "flags8 = ((short)cVar <= *(short *)(grhi + 0x148));"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 25,
+        "id": "raw_base_offset_dereferences:401:1",
+        "line": 401,
+        "status": "pending",
+        "text": "if (0 < *(int *)(xhair_elem + 0x1a)) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 29,
+        "id": "raw_base_offset_dereferences:406:1",
+        "line": 406,
+        "status": "pending",
+        "text": "flags = *(unsigned int *)(overlay_elem + 0x48);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 29,
+        "id": "raw_base_offset_dereferences:411:1",
+        "line": 411,
+        "status": "pending",
+        "text": "((*(unsigned char *)(overlay_elem + 0xc) & 2) != 0)) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 28,
+        "id": "raw_base_offset_dereferences:419:1",
+        "line": 419,
+        "status": "pending",
+        "text": "if ((*(unsigned char *)(overlay_elem + 0x48) & 2) == 0) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 32,
+        "id": "raw_base_offset_dereferences:426:1",
+        "line": 426,
+        "status": "pending",
+        "text": "(int)*(short *)(overlay_elem + 0x46), 0x40);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 30,
+        "id": "raw_base_offset_dereferences:434:1",
+        "line": 434,
+        "status": "pending",
+        "text": "if ((*(unsigned char *)(overlay_elem + 0x48) & 1) =="
+      },
+      {
+        "category": "offset-to-field",
+        "column": 41,
+        "id": "raw_base_offset_dereferences:437:1",
+        "line": 437,
+        "status": "pending",
+        "text": "frame_index = *(int *)(overlay_elem + 0x24);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 41,
+        "id": "raw_base_offset_dereferences:442:1",
+        "line": 442,
+        "status": "pending",
+        "text": "frame_index = *(int *)(overlay_elem + 0x24);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 33,
+        "id": "raw_base_offset_dereferences:449:1",
+        "line": 449,
+        "status": "pending",
+        "text": "flags = *(unsigned int *)(overlay_elem + 0x48);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 41,
+        "id": "raw_base_offset_dereferences:459:1",
+        "line": 459,
+        "status": "pending",
+        "text": "frame_index = *(int *)(overlay_elem + 0x24);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 34,
+        "id": "raw_base_offset_dereferences:474:1",
+        "line": 474,
+        "status": "pending",
+        "text": "bv = ((*(unsigned int *)(unit_obj + 0x1b8) & 0x800) =="
+      },
+      {
+        "category": "offset-to-field",
+        "column": 32,
+        "id": "raw_base_offset_dereferences:479:1",
+        "line": 479,
+        "status": "pending",
+        "text": "if ((*(short *)(buf + 0xe) == 0) &&"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 32,
+        "id": "raw_base_offset_dereferences:480:1",
+        "line": 480,
+        "status": "pending",
+        "text": "(*(short *)(buf + 0x12) == 0)) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 36,
+        "id": "raw_base_offset_dereferences:481:1",
+        "line": 481,
+        "status": "pending",
+        "text": "bv = ((*(unsigned int *)(unit_obj + 0x1b8) &"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 40,
+        "id": "raw_base_offset_dereferences:501:1",
+        "line": 501,
+        "status": "pending",
+        "text": "if ((bv) && (*(char *)(unit_obj + 0x23d) == 0)) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 36,
+        "id": "raw_base_offset_dereferences:502:1",
+        "line": 502,
+        "status": "pending",
+        "text": "bv = ((*(unsigned int *)(unit_obj + 0x1b8) &"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 29,
+        "id": "raw_base_offset_dereferences:544:1",
+        "line": 544,
+        "status": "pending",
+        "text": "if (*(short *)(overlay_elem + 0x44) < 1) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 44,
+        "id": "raw_base_offset_dereferences:549:1",
+        "line": 549,
+        "status": "pending",
+        "text": "(int)*(short *)(overlay_elem + 0x44)) /"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 37,
+        "id": "raw_base_offset_dereferences:551:1",
+        "line": 551,
+        "status": "pending",
+        "text": "*(int *)(anim_block + 0x34));"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 31,
+        "id": "raw_base_offset_dereferences:553:1",
+        "line": 553,
+        "status": "pending",
+        "text": "if (((*(unsigned char *)(overlay_elem + 0x48) & 1) =="
+      },
+      {
+        "category": "offset-to-field",
+        "column": 41,
+        "id": "raw_base_offset_dereferences:556:1",
+        "line": 556,
+        "status": "pending",
+        "text": "frame_index = *(int *)(overlay_elem + 0x24);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 37,
+        "id": "raw_base_offset_dereferences:594:1",
+        "line": 594,
+        "status": "pending",
+        "text": "frame_sel = *(short *)(overlay_elem + 0x46);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 30,
+        "id": "raw_base_offset_dereferences:603:1",
+        "line": 603,
+        "status": "pending",
+        "text": "if ((*(unsigned char *)(overlay_elem + 0x48) & 0x10) =="
+      },
+      {
+        "category": "offset-to-field",
+        "column": 41,
+        "id": "raw_base_offset_dereferences:650:1",
+        "line": 650,
+        "status": "pending",
+        "text": "rect2d[1] = *(float *)(seq_elem + 0xc);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 41,
+        "id": "raw_base_offset_dereferences:651:1",
+        "line": 651,
+        "status": "pending",
+        "text": "rect2d[2] = *(float *)(seq_elem + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 41,
+        "id": "raw_base_offset_dereferences:652:1",
+        "line": 652,
+        "status": "pending",
+        "text": "rect2d[3] = *(float *)(seq_elem + 0x14);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 40,
+        "id": "raw_base_offset_dereferences:678:1",
+        "line": 678,
+        "status": "pending",
+        "text": "} while (overlay_i < *(int *)(xhair_elem + 0x1a));"
+      }
+    ],
+    "raw_function_pointer_address_casts": [],
+    "xcall_uses": []
+  },
+  "items": [
+    {
+      "category": "symbol-names",
+      "column": 29,
+      "id": "absolute_address_dereferences:13:1",
+      "line": 13,
+      "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+      "status": "parked",
+      "text": "#define weapon_hud_globals (*(void **)0x46bd24)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 30,
+      "id": "absolute_address_dereferences:120:1",
+      "line": 120,
+      "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+      "status": "parked",
+      "text": "player_datum = datum_get(*(data_t **)0x5aa6d4, player_index);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 43,
+      "id": "absolute_address_dereferences:636:1",
+      "line": 636,
+      "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+      "status": "parked",
+      "text": "sx = (float)*(double *)0x2573d8;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 43,
+      "id": "absolute_address_dereferences:637:1",
+      "line": 637,
+      "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+      "status": "parked",
+      "text": "sy = (float)*(double *)0x2573d8;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 37,
+      "id": "absolute_address_dereferences:639:1",
+      "line": 639,
+      "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+      "status": "parked",
+      "text": "sx = (*(float *)0x2533c8 /"
+    },
+    {
+      "category": "symbol-names",
+      "column": 43,
+      "id": "absolute_address_dereferences:641:1",
+      "line": 641,
+      "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+      "status": "parked",
+      "text": "(float)*(double *)0x281f30;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 37,
+      "id": "absolute_address_dereferences:642:1",
+      "line": 642,
+      "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+      "status": "parked",
+      "text": "sy = (*(float *)0x2533c8 /"
+    },
+    {
+      "category": "symbol-names",
+      "column": 43,
+      "id": "absolute_address_dereferences:644:1",
+      "line": 644,
+      "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+      "status": "parked",
+      "text": "(float)*(double *)0x281f30;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 46,
+      "id": "absolute_address_dereferences:656:1",
+      "line": 656,
+      "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+      "status": "parked",
+      "text": "(float)((int)*(short *)0x506582 -"
+    },
+    {
+      "category": "symbol-names",
+      "column": 46,
+      "id": "absolute_address_dereferences:657:1",
+      "line": 657,
+      "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+      "status": "parked",
+      "text": "(int)*(short *)0x50657e) *"
+    },
+    {
+      "category": "symbol-names",
+      "column": 36,
+      "id": "absolute_address_dereferences:658:1",
+      "line": 658,
+      "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+      "status": "parked",
+      "text": "(*(float *)0x2533c8 / scale)) *"
+    },
+    {
+      "category": "symbol-names",
+      "column": 37,
+      "id": "absolute_address_dereferences:659:1",
+      "line": 659,
+      "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+      "status": "parked",
+      "text": "sx * *(float *)0x255964;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 46,
+      "id": "absolute_address_dereferences:661:1",
+      "line": 661,
+      "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+      "status": "parked",
+      "text": "(float)((int)*(short *)0x506580 -"
+    },
+    {
+      "category": "symbol-names",
+      "column": 46,
+      "id": "absolute_address_dereferences:662:1",
+      "line": 662,
+      "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+      "status": "parked",
+      "text": "(int)*(short *)0x50657c) *"
+    },
+    {
+      "category": "symbol-names",
+      "column": 36,
+      "id": "absolute_address_dereferences:663:1",
+      "line": 663,
+      "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+      "status": "parked",
+      "text": "(*(float *)0x2533c8 / scale)) *"
+    },
+    {
+      "category": "symbol-names",
+      "column": 37,
+      "id": "absolute_address_dereferences:664:1",
+      "line": 664,
+      "reason": "not a symbol-names edit: replacing *(T*)0xADDR with a named symbol changes the token stream (num->id, token count), which check_category_purity rejects for this category; belongs to const-enum / offset-to-field",
+      "status": "parked",
+      "text": "sy * *(float *)0x255964;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 4,
+      "id": "fun_calls:15:1",
+      "line": 15,
+      "status": "applied",
+      "text": "/* FUN_000d8af0 (0xd8af0) \u2014 allocate the weapon-HUD globals buffer from the"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:17:1",
+      "line": 17,
+      "status": "applied",
+      "text": "void FUN_000d8af0(void)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 4,
+      "id": "fun_calls:27:1",
+      "line": 27,
+      "status": "applied",
+      "text": "/* FUN_000d8b30 (0xd8b30) \u2014 reset the weapon-HUD globals buffer to all-0xff"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:29:1",
+      "line": 29,
+      "status": "applied",
+      "text": "void FUN_000d8b30(void)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 4,
+      "id": "fun_calls:39:1",
+      "line": 39,
+      "status": "applied",
+      "text": "/* FUN_000d8b70 (0xd8b70) \u2014 old-map teardown hook for the weapon HUD.  The"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:41:1",
+      "line": 41,
+      "status": "applied",
+      "text": "void FUN_000d8b70(void)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 4,
+      "id": "fun_calls:45:1",
+      "line": 45,
+      "status": "applied",
+      "text": "/* FUN_000d8b80 (0xd8b80) \u2014 dispose hook for the weapon HUD.  The original is"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:47:1",
+      "line": 47,
+      "status": "applied",
+      "text": "void FUN_000d8b80(void)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 4,
+      "id": "fun_calls:51:1",
+      "line": 51,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "/* FUN_000d8b90 (0xd8b90) \u2014 set (nonzero) or clear (zero) bit 0 of the weapon"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:53:1",
+      "line": 53,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "void FUN_000d8b90(char show)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 4,
+      "id": "fun_calls:67:1",
+      "line": 67,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "/* FUN_000d8bc0 (0xd8bc0) \u2014 per-local-player weapon-HUD state accessor."
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "fun_calls:69:1",
+      "line": 69,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "void *FUN_000d8bc0(int16_t local_player_index /* @<esi> */)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 4,
+      "id": "fun_calls:85:1",
+      "line": 85,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "/* FUN_000d8c30 (0xd8c30) \u2014 per-local-player accessor into a second globals"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "fun_calls:87:1",
+      "line": 87,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "void *FUN_000d8c30(int16_t local_player_index /* @<esi> */)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 4,
+      "id": "fun_calls:103:1",
+      "line": 103,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "/* FUN_000d8ca0 (0xd8ca0) \u2014 refresh the tracked weapon object for a local"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:107:1",
+      "line": 107,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "void FUN_000d8ca0(int object_handle /* @<eax> */,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 4,
+      "id": "fun_calls:126:1",
+      "line": 126,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "/* FUN_000d8cf0 (0xd8cf0) \u2014 draw a weapon's crosshair / grenade / heat HUD for"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:131:1",
+      "line": 131,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "void FUN_000d8cf0(int param_1, int param_2)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 12,
+      "id": "fun_calls:151:1",
+      "line": 151,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "canary = FUN_000d1540();"
+    },
+    {
+      "category": "symbol-names",
+      "column": 13,
+      "id": "fun_calls:170:1",
+      "line": 170,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "state = FUN_000d8bc0((short)param_1);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 9,
+      "id": "fun_calls:197:1",
+      "line": 197,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "FUN_000d3fe0(param_1, (short *)grhi, grhi + 0x24, flags7,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 9,
+      "id": "fun_calls:201:1",
+      "line": 201,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "FUN_000d3fe0(param_1, (short *)grhi, grhi + 0x8c, flags7,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 9,
+      "id": "fun_calls:207:1",
+      "line": 207,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "FUN_000d3860((short)param_1, (void *)grhi, (void *)(grhi + 0xf4), count,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 9,
+      "id": "fun_calls:225:1",
+      "line": 225,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "FUN_000d4260(param_1, grhi, grhi + 0x14c, (short)flags8 | 8,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 17,
+      "id": "fun_calls:240:1",
+      "line": 240,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "if (canary != FUN_000d1540()) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 4,
+      "id": "fun_calls:253:1",
+      "line": 253,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "/* FUN_000d8fd0 (0xd8fd0) \u2014 return the filename portion of a path (text after"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "fun_calls:255:1",
+      "line": 255,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "char *FUN_000d8fd0(char *path)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 4,
+      "id": "fun_calls:266:1",
+      "line": 266,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "/* FUN_000d8ff0 (0xd8ff0) \u2014 draw the full weapon-HUD crosshair hierarchy for one"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:273:1",
+      "line": 273,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 12,
+      "id": "fun_calls:323:1",
+      "line": 323,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "canary = FUN_000d1540();"
+    },
+    {
+      "category": "symbol-names",
+      "column": 20,
+      "id": "fun_calls:328:1",
+      "line": 328,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "state = (int *)FUN_000d8c30(*(short *)((char *)player + 2));"
+    },
+    {
+      "category": "symbol-names",
+      "column": 29,
+      "id": "fun_calls:445:1",
+      "line": 445,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "FUN_000d2320((int *)(overlay_elem + 0x24), 0);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 27,
+      "id": "fun_calls:463:1",
+      "line": 463,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "FUN_000d2320((int *)(overlay_elem + 0x24), 0);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 32,
+      "id": "fun_calls:514:1",
+      "line": 514,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "hold = FUN_000d2300(overlay_elem + 0x24);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 39,
+      "id": "fun_calls:559:1",
+      "line": 559,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "frame_index = FUN_000d2320((int *)(overlay_elem + 0x24),"
+    },
+    {
+      "category": "symbol-names",
+      "column": 27,
+      "id": "fun_calls:614:1",
+      "line": 614,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "FUN_000d3fa0(bitmap_elem, rect, overlay_elem,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 27,
+      "id": "fun_calls:669:1",
+      "line": 669,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "FUN_000d3fa0(bitmap_elem, rect, overlay_elem,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 17,
+      "id": "fun_calls:699:1",
+      "line": 699,
+      "reason": "no T1/T2 name evidence: no PDB proposal in artifacts/punpckhdq_import, no assert/format string naming the function, and no named caller establishing the role (unlike the four hud.c lifecycle hooks). A semantic name here would be a T3 guess in T1 shape \u2014 kept as FUN_<addr> per naming-confidence.",
+      "status": "parked",
+      "text": "if (canary != FUN_000d1540()) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 11,
+      "id": "raw_base_offset_dereferences:59:1",
+      "line": 59,
+      "status": "pending",
+      "text": "value = *(unsigned int *)(g + 0x1e0);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:61:1",
+      "line": 61,
+      "status": "pending",
+      "text": "*(unsigned int *)(g + 0x1e0) = value | 1;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:64:1",
+      "line": 64,
+      "status": "pending",
+      "text": "*(unsigned int *)(g + 0x1e0) = value & ~1u;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 37,
+      "id": "raw_base_offset_dereferences:155:1",
+      "line": 155,
+      "status": "pending",
+      "text": "weapon = unit_get_weapon(param_2, *(short *)(obj + 0x2a2));"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 31,
+      "id": "raw_base_offset_dereferences:162:1",
+      "line": 162,
+      "status": "pending",
+      "text": "seat_parent == 0 || ((*(int *)(seat_parent + 0x2d4) != param_2) &&"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 31,
+      "id": "raw_base_offset_dereferences:163:1",
+      "line": 163,
+      "status": "pending",
+      "text": "(*(int *)(seat_parent + 0x2d8) != param_2)))) &&"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 18,
+      "id": "raw_base_offset_dereferences:169:1",
+      "line": 169,
+      "status": "pending",
+      "text": "whud_index = *(int *)(element + 0x20);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 32,
+      "id": "raw_base_offset_dereferences:177:1",
+      "line": 177,
+      "status": "pending",
+      "text": "flags7 = ((short)cVar <= *(short *)(grhi + 0x148));"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 11,
+      "id": "raw_base_offset_dereferences:196:1",
+      "line": 196,
+      "status": "pending",
+      "text": "if (*(int *)(grhi + 0x54) != -1) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 11,
+      "id": "raw_base_offset_dereferences:200:1",
+      "line": 200,
+      "status": "pending",
+      "text": "if (*(int *)(grhi + 0xbc) != -1) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 11,
+      "id": "raw_base_offset_dereferences:204:1",
+      "line": 204,
+      "status": "pending",
+      "text": "if (*(char *)(grhi + 0x138) != 0) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 11,
+      "id": "raw_base_offset_dereferences:210:1",
+      "line": 210,
+      "status": "pending",
+      "text": "if (*(int *)(grhi + 0x158) != -1) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 34,
+      "id": "raw_base_offset_dereferences:213:1",
+      "line": 213,
+      "status": "pending",
+      "text": "flags8 = ((short)cVar <= *(short *)(grhi + 0x148));"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 25,
+      "id": "raw_base_offset_dereferences:401:1",
+      "line": 401,
+      "status": "pending",
+      "text": "if (0 < *(int *)(xhair_elem + 0x1a)) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 29,
+      "id": "raw_base_offset_dereferences:406:1",
+      "line": 406,
+      "status": "pending",
+      "text": "flags = *(unsigned int *)(overlay_elem + 0x48);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 29,
+      "id": "raw_base_offset_dereferences:411:1",
+      "line": 411,
+      "status": "pending",
+      "text": "((*(unsigned char *)(overlay_elem + 0xc) & 2) != 0)) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 28,
+      "id": "raw_base_offset_dereferences:419:1",
+      "line": 419,
+      "status": "pending",
+      "text": "if ((*(unsigned char *)(overlay_elem + 0x48) & 2) == 0) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 32,
+      "id": "raw_base_offset_dereferences:426:1",
+      "line": 426,
+      "status": "pending",
+      "text": "(int)*(short *)(overlay_elem + 0x46), 0x40);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 30,
+      "id": "raw_base_offset_dereferences:434:1",
+      "line": 434,
+      "status": "pending",
+      "text": "if ((*(unsigned char *)(overlay_elem + 0x48) & 1) =="
+    },
+    {
+      "category": "offset-to-field",
+      "column": 41,
+      "id": "raw_base_offset_dereferences:437:1",
+      "line": 437,
+      "status": "pending",
+      "text": "frame_index = *(int *)(overlay_elem + 0x24);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 41,
+      "id": "raw_base_offset_dereferences:442:1",
+      "line": 442,
+      "status": "pending",
+      "text": "frame_index = *(int *)(overlay_elem + 0x24);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 33,
+      "id": "raw_base_offset_dereferences:449:1",
+      "line": 449,
+      "status": "pending",
+      "text": "flags = *(unsigned int *)(overlay_elem + 0x48);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 41,
+      "id": "raw_base_offset_dereferences:459:1",
+      "line": 459,
+      "status": "pending",
+      "text": "frame_index = *(int *)(overlay_elem + 0x24);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 34,
+      "id": "raw_base_offset_dereferences:474:1",
+      "line": 474,
+      "status": "pending",
+      "text": "bv = ((*(unsigned int *)(unit_obj + 0x1b8) & 0x800) =="
+    },
+    {
+      "category": "offset-to-field",
+      "column": 32,
+      "id": "raw_base_offset_dereferences:479:1",
+      "line": 479,
+      "status": "pending",
+      "text": "if ((*(short *)(buf + 0xe) == 0) &&"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 32,
+      "id": "raw_base_offset_dereferences:480:1",
+      "line": 480,
+      "status": "pending",
+      "text": "(*(short *)(buf + 0x12) == 0)) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 36,
+      "id": "raw_base_offset_dereferences:481:1",
+      "line": 481,
+      "status": "pending",
+      "text": "bv = ((*(unsigned int *)(unit_obj + 0x1b8) &"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 40,
+      "id": "raw_base_offset_dereferences:501:1",
+      "line": 501,
+      "status": "pending",
+      "text": "if ((bv) && (*(char *)(unit_obj + 0x23d) == 0)) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 36,
+      "id": "raw_base_offset_dereferences:502:1",
+      "line": 502,
+      "status": "pending",
+      "text": "bv = ((*(unsigned int *)(unit_obj + 0x1b8) &"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 29,
+      "id": "raw_base_offset_dereferences:544:1",
+      "line": 544,
+      "status": "pending",
+      "text": "if (*(short *)(overlay_elem + 0x44) < 1) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 44,
+      "id": "raw_base_offset_dereferences:549:1",
+      "line": 549,
+      "status": "pending",
+      "text": "(int)*(short *)(overlay_elem + 0x44)) /"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 37,
+      "id": "raw_base_offset_dereferences:551:1",
+      "line": 551,
+      "status": "pending",
+      "text": "*(int *)(anim_block + 0x34));"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 31,
+      "id": "raw_base_offset_dereferences:553:1",
+      "line": 553,
+      "status": "pending",
+      "text": "if (((*(unsigned char *)(overlay_elem + 0x48) & 1) =="
+    },
+    {
+      "category": "offset-to-field",
+      "column": 41,
+      "id": "raw_base_offset_dereferences:556:1",
+      "line": 556,
+      "status": "pending",
+      "text": "frame_index = *(int *)(overlay_elem + 0x24);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 37,
+      "id": "raw_base_offset_dereferences:594:1",
+      "line": 594,
+      "status": "pending",
+      "text": "frame_sel = *(short *)(overlay_elem + 0x46);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 30,
+      "id": "raw_base_offset_dereferences:603:1",
+      "line": 603,
+      "status": "pending",
+      "text": "if ((*(unsigned char *)(overlay_elem + 0x48) & 0x10) =="
+    },
+    {
+      "category": "offset-to-field",
+      "column": 41,
+      "id": "raw_base_offset_dereferences:650:1",
+      "line": 650,
+      "status": "pending",
+      "text": "rect2d[1] = *(float *)(seq_elem + 0xc);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 41,
+      "id": "raw_base_offset_dereferences:651:1",
+      "line": 651,
+      "status": "pending",
+      "text": "rect2d[2] = *(float *)(seq_elem + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 41,
+      "id": "raw_base_offset_dereferences:652:1",
+      "line": 652,
+      "status": "pending",
+      "text": "rect2d[3] = *(float *)(seq_elem + 0x14);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 40,
+      "id": "raw_base_offset_dereferences:678:1",
+      "line": 678,
+      "status": "pending",
+      "text": "} while (overlay_i < *(int *)(xhair_elem + 0x1a));"
+    }
+  ],
+  "kind": "source-recovery-manifest",
+  "repo_relative_source": "src/halo/interface/hud_weapon.c",
+  "schema": 1,
+  "source_sha256": "7258b4e7de88a8249df5ddaf25896e612195f2798952a891555b4a2f9f2a5a7d"
+}

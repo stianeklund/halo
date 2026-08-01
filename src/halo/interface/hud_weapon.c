@@ -9,12 +9,17 @@
 
 
 /* Pointer to the weapon-HUD globals buffer (0x1e4 bytes), allocated by
- * FUN_000d8af0 and stored at the fixed global 0x46bd24. */
+ * hud_weapon_initialize and stored at the fixed global 0x46bd24. */
 #define weapon_hud_globals (*(void **)0x46bd24)
 
-/* FUN_000d8af0 (0xd8af0) — allocate the weapon-HUD globals buffer from the
- * game-state heap and stash it at 0x46bd24.  Asserts on allocation failure. */
-void FUN_000d8af0(void)
+/* hud_weapon_initialize (0xd8af0) — allocate the weapon-HUD globals buffer from
+ * the game-state heap and stash it at 0x46bd24.  Asserts on allocation failure.
+ *
+ * Name evidence (T2): called from hud_new (hud.c:31) in the same position as
+ * hud_messaging_initialize, and mirrors that function body-for-body
+ * (game_state_malloc of the subsystem globals).  The allocation tag string
+ * "hud weapon interface" and the assert __FILE__ pin the subsystem. */
+void hud_weapon_initialize(void)
 {
   weapon_hud_globals = game_state_malloc("hud weapon interface", 0, 0x1e4);
   if (weapon_hud_globals == 0) {
@@ -24,9 +29,13 @@ void FUN_000d8af0(void)
   }
 }
 
-/* FUN_000d8b30 (0xd8b30) — reset the weapon-HUD globals buffer to all-0xff
- * (NONE handles) on new-map initialisation. */
-void FUN_000d8b30(void)
+/* hud_weapon_initialize_for_new_map (0xd8b30) — reset the weapon-HUD globals
+ * buffer to all-0xff (NONE handles) on new-map initialisation.
+ *
+ * Name evidence (T2): called from hud_initialize_for_new_map (hud.c:59)
+ * alongside hud_messaging_initialize_for_new_map, whose body is the same
+ * csmemset-to-0xff of its own subsystem globals. */
+void hud_weapon_initialize_for_new_map(void)
 {
   if (weapon_hud_globals == 0) {
     display_assert("weapon_hud_globals",
@@ -36,15 +45,21 @@ void FUN_000d8b30(void)
   csmemset(weapon_hud_globals, -1, 0x1e4);
 }
 
-/* FUN_000d8b70 (0xd8b70) — old-map teardown hook for the weapon HUD.  The
- * original is an empty body (single RET). */
-void FUN_000d8b70(void)
+/* hud_weapon_dispose_from_old_map (0xd8b70) — old-map teardown hook for the
+ * weapon HUD.  The original is an empty body (single RET).
+ *
+ * Name evidence (T2): called from hud_dispose_from_old_map (hud.c:68) next to
+ * hud_messaging_dispose_from_old_map, which is likewise an empty stub. */
+void hud_weapon_dispose_from_old_map(void)
 {
 }
 
-/* FUN_000d8b80 (0xd8b80) — dispose hook for the weapon HUD.  The original is
- * an empty body (single RET). */
-void FUN_000d8b80(void)
+/* hud_weapon_dispose (0xd8b80) — dispose hook for the weapon HUD.  The original
+ * is an empty body (single RET).
+ *
+ * Name evidence (T2): called from hud_dispose (hud.c:42) next to
+ * hud_messaging_dispose, which is likewise an empty stub. */
+void hud_weapon_dispose(void)
 {
 }
 
