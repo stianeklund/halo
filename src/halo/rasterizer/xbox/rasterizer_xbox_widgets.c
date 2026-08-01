@@ -1,3 +1,4 @@
+#include "x87_math.h"
 /*
  * rasterizer_xbox_widgets.c
  *
@@ -583,4 +584,148 @@ void FUN_0017b580(bool enable)
   }
 
   D3DDevice_SetRenderState_ZEnable((uint32_t)enable);
+}
+
+/* 0x17b5c0 — FUN_0017b5c0
+ *
+ * Emits one axis-aligned-or-rotated screen-space quad (D3DPT_QUADLIST) around
+ * a 2D point, with an optional per-axis scale, an optional integer texcoord
+ * repeat count, an optional rotation angle, and a flat vertex colour.
+ *
+ * Signature (from disassembly — kb.json declared `void FUN_0017b5c0(void)`
+ * and Ghidra therefore rendered every argument as `in_stack_000000NN`):
+ *   [EBP+0x08] float *point            (float[2]; ESI holds it for the body)
+ *   [EBP+0x0c] float  radius           (only a >0 gate; never otherwise read)
+ *   [EBP+0x10] float *scale            (float[2] or NULL)
+ *   [EBP+0x14] float *texcoord_repeat  (float[2] or NULL)
+ *   [EBP+0x18] float  theta
+ *   [EBP+0x1c] uint   color
+ * Plain `RET` with no immediate => __cdecl.
+ *
+ * Shape notes (all derived from the delinked reference disassembly, NOT the
+ * decompiler):
+ *   - PARAM-SLOT REUSE: MSVC coalesces six float locals into four frame dwords
+ *     (`SUB ESP,0x10`) plus the two dead parameter slots [EBP+0x8]/[EBP+0xc].
+ *     Slot +0xc successively holds cos_theta, then x_scale, then
+ *     x_scale*sin_plus_cos; slot +0x8 holds sin_theta, then y_scale, then
+ *     y_scale*cos_minus_sin.  `point` survives this because it was copied into
+ *     ESI at 0x17b5c7, before the slot is clobbered.  Nothing in the C source
+ *     needs to express the reuse — it falls out of the live ranges.
+ *   - The radius gate is `FCOMP 0.0f / TEST AH,0x41 / JNE end`, i.e. the body
+ *     runs only when `radius > 0.0f`.  radius is never used for anything else.
+ *   - The theta test is `FCOMP 0.0f / TEST AH,0x44 / JNP <constant block>`.
+ *     JNP (not JP) means the *trig* block is the fall-through and the
+ *     constant block is the branch target, so the source form is
+ *     `if (theta != 0.0f) { trig } else { 1.0f, 1.0f }`, not the inverse.
+ *   - The trig identity check compares against a QWORD (`FCOMP QWORD PTR
+ *     ds:0x2533d0`), whose bytes are (double)0.0001f.  That is C's double
+ *     `fabs()` against a float `_real_epsilon` — using `fabsf` and a float
+ *     compare would emit a DWORD FCOMP instead.
+ *   - `TEST AH,0x5 / JNP <continue>` asserts `... < _real_epsilon`, so the C
+ *     is written as the negated guard around the assert block.
+ *   - Both `(int)` texcoord conversions are `_ftol2` calls in the original;
+ *     they are written as plain casts here per the intrinsic rule.
+ *   - The four position arguments are pushed with the MSVC
+ *     `SUB ESP,8 / FSTP [ESP+4] / FSTP [ESP] / PUSH 0` idiom, so the Y
+ *     expression is evaluated first and lands in the third argument.  Each
+ *     addend order below (point-first vs product-first) is copied verbatim
+ *     from the FLD/FSUB/FADD order at 0x17b751, 0x17b789, 0x17b7c0 and
+ *     0x17b7a6 — the four vertices do not use a uniform order.
+ *   - The assert tails are `PUSH -1 / CALL 0x8e2f0` => system_exit(-1), with
+ *     the merged `ADD ESP,0x14` covering display_assert's 4 arguments plus
+ *     system_exit's 1, exactly as in the neighbouring entry points.
+ *
+ * Uncertain: the semantic meaning of vertex registers 0/4/9 (position,
+ * texcoord, diffuse by convention) and of primitive type 7 (D3DPT_QUADLIST).
+ * No D3DVSDE_ or D3DPT_ enum exists in the project headers yet, so the raw
+ * numbers are reproduced verbatim.  `radius` is named from its role as the
+ * sole >0 gate; the binary gives no other evidence for it.
+ */
+void FUN_0017b5c0(float *point, float radius, float *scale,
+                  float *texcoord_repeat, float theta, unsigned int color)
+{
+  float cos_theta;
+  float sin_theta;
+  float cos_minus_sin;
+  float sin_plus_cos;
+  float x_scale;
+  float y_scale;
+  int u_repeat;
+  int v_repeat;
+
+  if (point == (float *)0) {
+    display_assert("point",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                   "widgets.c",
+                   0x164, 1);
+    system_exit(-1);
+  }
+
+  if (*(void **)0x476ab0 == (void *)0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                   "widgets.c",
+                   0x165, 1);
+    system_exit(-1);
+  }
+
+  if (radius > 0.0f) {
+    if (theta != 0.0f) {
+      cos_theta = x87_fcos(theta);
+      sin_theta = x87_fsin(theta);
+
+      if (!(fabs((double)(cos_theta * cos_theta + sin_theta * sin_theta -
+                          1.0f)) < 0.0001f)) {
+        display_assert("fabs(cos_theta*cos_theta + sin_theta*sin_theta - "
+                       "1.0f)<_real_epsilon",
+                       "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                       "widgets.c",
+                       0x171, 1);
+        system_exit(-1);
+      }
+
+      cos_minus_sin = cos_theta - sin_theta;
+      sin_plus_cos = sin_theta + cos_theta;
+    } else {
+      sin_plus_cos = 1.0f;
+      cos_minus_sin = 1.0f;
+    }
+
+    if (scale != (float *)0) {
+      x_scale = scale[0];
+      y_scale = scale[1];
+    } else {
+      y_scale = 1.0f;
+      x_scale = 1.0f;
+    }
+
+    if (texcoord_repeat != (float *)0) {
+      u_repeat = (int)texcoord_repeat[0];
+      v_repeat = (int)texcoord_repeat[1];
+    } else {
+      u_repeat = 1;
+      v_repeat = 1;
+    }
+
+    D3DDevice_Begin(7);
+    D3DDevice_SetVertexDataColor(9, color);
+
+    D3DDevice_SetVertexData2s(4, 0, 0);
+    D3DDevice_SetVertexData2f(0, point[0] - x_scale * cos_minus_sin,
+                              point[1] - y_scale * sin_plus_cos);
+
+    D3DDevice_SetVertexData2s(4, u_repeat, 0);
+    D3DDevice_SetVertexData2f(0, x_scale * sin_plus_cos + point[0],
+                              point[1] - y_scale * cos_minus_sin);
+
+    D3DDevice_SetVertexData2s(4, u_repeat, v_repeat);
+    D3DDevice_SetVertexData2f(0, x_scale * cos_minus_sin + point[0],
+                              y_scale * sin_plus_cos + point[1]);
+
+    D3DDevice_SetVertexData2s(4, 0, v_repeat);
+    D3DDevice_SetVertexData2f(0, point[0] - x_scale * sin_plus_cos,
+                              y_scale * cos_minus_sin + point[1]);
+
+    D3DDevice_End();
+  }
 }

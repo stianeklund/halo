@@ -19496,10 +19496,6 @@
      "decl": "void FUN_0017ad90(void);"
     },
     {
-     "addr": "0x17b5c0",
-     "decl": "void FUN_0017b5c0(void);"
-    },
-    {
      "addr": "0x17b7d0",
      "decl": "void FUN_0017b7d0(void);"
     },
@@ -39388,6 +39384,11 @@
     {
      "addr": "0x17b580",
      "decl": "void FUN_0017b580(bool enable);",
+     "ported": true
+    },
+    {
+     "addr": "0x17b5c0",
+     "decl": "void FUN_0017b5c0(float *point, float radius, float *scale, float *texcoord_repeat, float theta, unsigned int color);",
      "ported": true
     }
    ]
