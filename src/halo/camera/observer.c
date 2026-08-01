@@ -848,7 +848,7 @@ void FUN_0008c150(float *up, float *focus_distance, float near_plane_dist,
   float test_point[3];
   float up_scaled[3];
   float right_scaled[3];
-  float fVar1;
+  float near_plane_scale;
   float dist;
   int16_t i;
   int counter;
@@ -870,17 +870,17 @@ void FUN_0008c150(float *up, float *focus_distance, float near_plane_dist,
   FUN_0008ab90(&initial_fraction, indoor_fog, position, adjusted_pos);
 
   /* Scale factor for the near-plane probe vectors */
-  fVar1 = *(float *)0x2673a4 * *focus_distance;
+  near_plane_scale = *(float *)0x2673a4 * *focus_distance;
 
   /* Compute scaled up vector */
-  up_scaled[0] = up[0] * fVar1;
-  up_scaled[1] = up[1] * fVar1;
-  up_scaled[2] = up[2] * fVar1;
+  up_scaled[0] = up[0] * near_plane_scale;
+  up_scaled[1] = up[1] * near_plane_scale;
+  up_scaled[2] = up[2] * near_plane_scale;
 
-  /* Compute scaled right vector = cross(up, forward) * fVar1 */
-  right_scaled[0] = (up[1] * forward[2] - up[2] * forward[1]) * fVar1;
-  right_scaled[1] = (up[2] * forward[0] - up[0] * forward[2]) * fVar1;
-  right_scaled[2] = (up[0] * forward[1] - up[1] * forward[0]) * fVar1;
+  /* Compute scaled right vector = cross(up, forward) * near_plane_scale */
+  right_scaled[0] = (up[1] * forward[2] - up[2] * forward[1]) * near_plane_scale;
+  right_scaled[1] = (up[2] * forward[0] - up[0] * forward[2]) * near_plane_scale;
+  right_scaled[2] = (up[0] * forward[1] - up[1] * forward[0]) * near_plane_scale;
 
   best_t = initial_fraction;
   best_plane = (float *)0;
