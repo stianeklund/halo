@@ -150,6 +150,46 @@ def _prior_fail_attempts(fail_path) -> int:
         return 0
 
 
+# The parked ledger written by tools/lift/park.py -- a DIFFERENT store from
+# FAILURES_DIR above, and the one that actually accumulates.
+#
+# Every sub-bar lift goal-lift produces is preserved here with its full attempt
+# history, but nothing ever read it back during target selection, so the
+# selector happily re-served the same dead targets every session. Measured over
+# the four 2026-08-01 auto-session runs: 12 targets were researched in all four
+# and committed in none, and FUN_00173b40 was lifted SIX times (81.8 -> 84.3 ->
+# 84.5 -> 88.0 -> 77.7 -> 84.7, i.e. getting worse after attempt 4) for ~$94.
+# At the time this was wired up the two stores held 91 records vs 9, overlapping
+# on 3 -- prior_fail was reading a near-empty legacy directory.
+PARKED_DIR = ROOT / "artifacts" / "parked"
+
+
+def _park_slug(name: str) -> str:
+    """Mirror of park.py's slugify() -- keep the two in sync."""
+    return re.sub(r"[^A-Za-z0-9_.-]", "_", (name or "").strip()) or "unnamed"
+
+
+def _parked_state(name: str) -> dict:
+    """Attempt history for `name` from the parked ledger.
+
+    Returns {} when there is no record. Best-effort: a malformed record must
+    never break selection, so any parse problem reports {}.
+    """
+    try:
+        path = PARKED_DIR / f"{_park_slug(name)}.json"
+        if not path.exists():
+            return {}
+        with open(path, "r", encoding="utf-8") as fh:
+            rec = json.load(fh)
+        return {
+            "parked_attempts": len(rec.get("attempts") or []),
+            "parked_best_score": rec.get("best_score"),
+            "parked_status": rec.get("status"),
+        }
+    except Exception:
+        return {}
+
+
 # Known callee buffer requirements (synced with tools/audit/check_lift_hazards.py)
 KNOWN_BUFFER_SIZES = {
     'FUN_0013fc20': (0x88, 'object placement init — memsets 0x88 bytes'),
@@ -1728,6 +1768,11 @@ def cmd_select(args: argparse.Namespace):
             fail_path = FAILURES_DIR / f"{item.target.name}.json"
             row["prior_fail"] = fail_path.exists()
             row["prior_fail_attempts"] = _prior_fail_attempts(fail_path)
+            # Attempt history from the parked ledger (park.py), which is where
+            # goal-lift's sub-bar lifts actually accumulate. Consumers use
+            # parked_attempts/parked_best_score to stop re-lifting a target that
+            # has already resisted several attempts.
+            row.update(_parked_state(item.target.name))
             out.append(row)
         kw = {"separators": (",", ":")} if args.quiet else {"indent": 2}
         print(json.dumps(out, **kw))

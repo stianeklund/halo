@@ -41,8 +41,18 @@ const CACHE_CONTEXT = !!(args && args.cacheContext)
 const IMPROVE_MODEL = (args && args.improveModel) || 'fable'
 const M = {
   mechanical: { model: 'haiku', effort: 'low'  },  // tool-run + parse
+  // select + research. Deliberately NOT downgraded to haiku, though research is
+  // schema-shaped and was the biggest single agent count: just-in-time research
+  // (see RESEARCH_LOOKAHEAD) already cut its volume ~80%, from ~30 briefs per
+  // batch to GOAL+2, so the model saving left on the table is small -- while the
+  // brief is the highest-leverage input the lifter gets, and its pre_screen
+  // verdict decides whether a target is lifted at all. Small saving, expensive
+  // failure mode. Revisit only with a measured A/B on pre_screen accuracy.
   extract:    { model: 'opus',  effort: 'low'  },  // select, research (schema-shaped)
-  commit:     { model: 'opus',  effort: 'low'  },  // runs the clean-build gate
+  // Commit runs a fixed 6-command script whose only judgement is "does the
+  // build log contain an error: line" -- the same shape as the 19 sites already
+  // on `mechanical`. Measured 31 agents / ~4% of session spend on opus for it.
+  commit:     { model: 'haiku', effort: 'low'  },  // runs the clean-build gate
   reason:     { model: 'opus',  effort: 'high' },  // lift, review
   improve:    { model: IMPROVE_MODEL, effort: IMPROVE_MODEL === 'opus' ? 'xhigh' : 'high' },
 }
@@ -639,8 +649,19 @@ can miss cross-TU breakage:
     rtk git checkout -- src/ kb.json tools/kb_reg_baseline.json
     Return exactly "BUILD_FAILED: <first error line>" and do NOT commit.
 
-Then commit:
-  rtk git add -- ${sourceFile} kb.json tools/kb_reg_baseline.json
+If ${sourceFile} is a NEW translation unit, it must also be registered in
+src/CMakeLists.txt or it is never linked: the function stays ported=true in
+kb.json with no body in the XBE, so the ORIGINAL Xbox code keeps running. The
+build above still exits 0 either way, so this is silent. Check and fix before
+committing:
+  grep -c "$(basename ${sourceFile})" src/CMakeLists.txt
+  If 0: add the path (repo-relative from src/, e.g. halo/rasterizer/xbox/foo.c)
+  to the source list in src/CMakeLists.txt, in alphabetical position.
+
+Then commit — note src/CMakeLists.txt is in the add list precisely because a
+new TU's registration was repeatedly written but left unstaged, which landed
+three unlinked translation units on 2026-08-01:
+  rtk git add -- ${sourceFile} kb.json tools/kb_reg_baseline.json src/CMakeLists.txt
   rtk python3 tools/audit/generate_lift_commit.py --batch-name "${name}" > /tmp/commit_msg.txt
   rtk git commit -F /tmp/commit_msg.txt
 Then, if this function had a parked record from an earlier attempt, mark it
@@ -1071,12 +1092,32 @@ const codeSkips = []
 // drift -- but only while enough fresh candidates remain, because a park is
 // often recoverable and we must not starve the queue.
 const PRIOR_FAIL_KEEP_FLOOR = 10
+// Attempts (from the park.py ledger) after which a still-sub-90 target stops
+// being served to a cold lift. 2 = "tried twice, same wall both times".
+const PARKED_ATTEMPT_CAP = 2
 const freshCount = targets.filter(t => t.prior_fail !== true).length
 const dropPriorFails = freshCount >= PRIOR_FAIL_KEEP_FLOOR
 targets = targets.filter(t => {
   const a = parseInt((t.addr || '0').replace(/^0x/i, ''), 16)
   const pinnedAddr = ADDRS && ADDRS.has(a)
   if (t.prior_fail === true && dropPriorFails && !pinnedAddr) { codeSkips.push({ ...t, status: 'skipped', reason: `skip_prior_fail (parked before, ${freshCount} fresh candidates available)` }); return false }
+  // Repeat-resistant target: several attempts already made and the best of
+  // them is still well below the 90% bar. Re-lifting from scratch reliably
+  // reproduces the same score -- FUN_00173b40 was lifted SIX times across
+  // three sessions (81.8 -> 84.3 -> 84.5 -> 88.0 -> 77.7 -> 84.7, worse after
+  // attempt 4) for ~$94 and never landed; parse_string has 7 attempts at best
+  // 50.7%. The right lane for these is the IMPROVE pass, which warm-starts
+  // from the parked best patch and varies the model, not another cold lift.
+  //
+  // Deliberately does NOT skip best_score >= 90: those are near-bar and cheap
+  // to finish. Pinned addrs always bypass -- an explicit --addrs is an
+  // operator override.
+  if (!pinnedAddr && !IMPROVE && t.parked_status === 'parked' &&
+      (t.parked_attempts || 0) >= PARKED_ATTEMPT_CAP &&
+      Number.isFinite(t.parked_best_score) && t.parked_best_score < 90) {
+    codeSkips.push({ ...t, status: 'skipped', reason: `skip_parked_repeat (${t.parked_attempts} attempts, best ${t.parked_best_score}% < 90 — use the improve pass)` })
+    return false
+  }
   if (t.has_reg_args === true && !LIFT_REG_ARGS) { codeSkips.push({ ...t, status: 'skipped', reason: 'skip_reg_args (selector: @reg-defined prologue → sub-bar)' }); return false }
   if (Number.isFinite(a) && a >= CRT_LO && a < CRT_HI) { codeSkips.push({ ...t, status: 'skipped', reason: 'skip_nt_import (CRT/SEH region 0x1d0000-0x1de000)' }); return false }
   // Pinned targets bypass the lane gate: an explicit --addrs entry is a
@@ -1085,7 +1126,7 @@ targets = targets.filter(t => {
   if (!pinned && t.lane && t.lane !== 'auto-lift' && t.lane !== 'cache-context') { codeSkips.push({ ...t, status: 'skipped', reason: `lane=${t.lane} (not auto-liftable)` }); return false }
   return true
 })
-if (codeSkips.length) log(`Code pre-screen dropped ${codeSkips.length} before research (${codeSkips.filter(s => s.reason.startsWith('skip_prior_fail')).length} prior-fail, ${codeSkips.filter(s => s.reason.startsWith('skip_reg_args')).length} reg-args, ${codeSkips.filter(s => s.reason.startsWith('skip_nt_import')).length} CRT/SEH, ${codeSkips.filter(s => s.reason.startsWith('lane=')).length} lane)`)
+if (codeSkips.length) log(`Code pre-screen dropped ${codeSkips.length} before research (${codeSkips.filter(s => s.reason.startsWith('skip_prior_fail')).length} prior-fail, ${codeSkips.filter(s => s.reason.startsWith('skip_parked_repeat')).length} parked-repeat, ${codeSkips.filter(s => s.reason.startsWith('skip_reg_args')).length} reg-args, ${codeSkips.filter(s => s.reason.startsWith('skip_nt_import')).length} CRT/SEH, ${codeSkips.filter(s => s.reason.startsWith('lane=')).length} lane)`)
 if (targets.length === 0) {
   log('No viable targets after code pre-screen')
   return { committed: 0, goal: GOAL, reached_goal: false, skipped: codeSkips.length, reverted: 0, reason: 'empty_queue_after_prescreen' }
@@ -1151,27 +1192,34 @@ if (targets.length) {
 await agent(warmRetrievalPrompt(), { label: 'retrieval-warm', phase: 'Research', ...M.mechanical })
 
 const RESEARCH_BATCH = 6
-const briefs = []
-for (let i = 0; i < targets.length; i += RESEARCH_BATCH) {
-  const batch = targets.slice(i, i + RESEARCH_BATCH)
-  log(`Research batch ${Math.floor(i / RESEARCH_BATCH) + 1}/${Math.ceil(targets.length / RESEARCH_BATCH)}`)
-  const bb = await parallel(batch.map(t => () => agent(researchPrompt(t), {
-    label: `research:${t.name}`, phase: 'Research', ...M.extract, schema: BRIEF_SCHEMA,
-  })))
-  briefs.push(...bb.filter(Boolean))
-}
 
-const okBriefs      = briefs.filter(b => b.pre_screen === 'ok')
-const skipBriefs     = briefs.filter(b => b.pre_screen !== 'ok' && b.pre_screen !== 'infra_blocked')
-const infraBriefs    = briefs.filter(b => b.pre_screen === 'infra_blocked')
-log(`Research done: ${okBriefs.length} viable, ${skipBriefs.length} pre-screened out, ${infraBriefs.length} infra-blocked`)
+// ── Just-in-time research ────────────────────────────────────────────────────
+// This used to research EVERY selected target up front (the selector returns
+// ~30) before the lift loop ran. But the loop stops the instant GOAL commits
+// land, so most of that work was thrown away: measured across the four
+// 2026-08-01 auto-session runs, 143 of 207 research agents (69%) briefed a
+// target that was never lifted — roughly 20% of total session spend, and the
+// single largest waste item.
+//
+// Now: research a small window (GOAL + lookahead), and top it up only when the
+// lift loop actually runs dry. A run that hits GOAL on its first GOAL targets
+// pays for GOAL + LOOKAHEAD briefs instead of 30. Worst case (every target
+// pre-screens out) is unchanged — we still walk the whole queue.
+const RESEARCH_LOOKAHEAD = 2
 
-// ── Phase 2b: Delink prefetch — export all missing per-function references
-// upfront in one agent, so each lift starts with a trustworthy VC71 baseline
-// and the per-candidate redelink stage rarely fires.
-const needDelink = okBriefs.filter(b => !b.delinked_exists)
-if (needDelink.length) {
-  log(`Delink prefetch: exporting ${needDelink.length} missing references`)
+const briefs    = []
+const okBriefs  = []
+const results   = []
+let   nextTarget = 0
+let   pendingInfra = 0
+
+// Export missing per-function delinked references so each lift starts with a
+// trustworthy VC71 baseline and the per-candidate redelink stage rarely fires.
+// Called per research window rather than once for the whole queue.
+async function delinkPrefetch(newOk) {
+  const needDelink = newOk.filter(b => !b.delinked_exists)
+  if (!needDelink.length) return
+  log(`Delink prefetch: exporting ${needDelink.length} missing reference(s)`)
   await agent(
     `${AGENT_RULES}
 
@@ -1189,26 +1237,52 @@ Return one line per function: <name> exported|failed <path-or-reason>.`,
   )
 }
 
+// Research forward until `want` NEW viable briefs exist or the queue is spent.
+// Non-viable briefs are recorded into `results` as they are discovered, so the
+// final report is identical to the eager version's.
+async function researchMore(want) {
+  const fresh = []
+  while (fresh.length < want && nextTarget < targets.length) {
+    const take  = Math.min(RESEARCH_BATCH, Math.max(1, want - fresh.length))
+    const batch = targets.slice(nextTarget, nextTarget + take)
+    nextTarget += batch.length
+    log(`Research: ${batch.length} target(s) [queue ${nextTarget}/${targets.length}]`)
+    const bb = await parallel(batch.map(t => () => agent(researchPrompt(t), {
+      label: `research:${t.name}`, phase: 'Research', ...M.extract, schema: BRIEF_SCHEMA,
+    })))
+    for (const b of bb.filter(Boolean)) {
+      briefs.push(b)
+      if (b.pre_screen === 'ok') {
+        okBriefs.push(b); fresh.push(b)
+      } else if (b.pre_screen === 'infra_blocked') {
+        pendingInfra++
+        results.push({ addr: b.addr, name: b.name, obj: b.obj, status: 'infra_blocked', reason: b.skip_reason || 'ghidra_unavailable' })
+      } else {
+        results.push({ addr: b.addr, name: b.name, obj: b.obj, status: 'skipped', reason: b.skip_reason || b.pre_screen })
+      }
+    }
+  }
+  if (fresh.length) await delinkPrefetch(fresh)
+  return fresh
+}
+
+for (const s of codeSkips) {
+  results.push({ addr: s.addr, name: s.name, obj: s.obj, status: 'skipped', reason: s.reason })
+}
+
+await researchMore(GOAL + RESEARCH_LOOKAHEAD)
+log(`Research window: ${okBriefs.length} viable of ${briefs.length} briefed (${targets.length - nextTarget} target(s) held back)`)
+
 // ── Phase 3: Serial lift loop, gated to reach GOAL or exhaust the queue ──────
 
 phase('Lift')
 
-const results = []
-for (const s of codeSkips) {
-  results.push({ addr: s.addr, name: s.name, obj: s.obj, status: 'skipped', reason: s.reason })
-}
-for (const brief of skipBriefs) {
-  results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'skipped', reason: brief.skip_reason || brief.pre_screen })
-}
-for (const brief of infraBriefs) {
-  results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'infra_blocked', reason: brief.skip_reason || 'ghidra_unavailable' })
-}
-
 let consecutiveFails = 0
-let consecutiveInfra = infraBriefs.length
+let consecutiveInfra = pendingInfra
 let stopReason = 'queue_exhausted'
 
-for (const brief of okBriefs) {
+let liftIdx = 0
+while (true) {
   const committed = results.filter(r => r.status === 'committed')
   if (committed.length >= GOAL) { stopReason = 'goal_reached'; break }
 
@@ -1216,6 +1290,18 @@ for (const brief of okBriefs) {
   if (consecutiveFails >= STOP_ON_FAIL) { stopReason = 'stop_on_fail_reached'; break }
 
   if (budget.total && budget.remaining() < 80000) { stopReason = 'budget_low'; break }
+
+  // Ran out of briefed targets — top up rather than stopping, unless the
+  // selector's queue is genuinely spent.
+  if (liftIdx >= okBriefs.length) {
+    pendingInfra = 0
+    const added = await researchMore(GOAL - committed.length + RESEARCH_LOOKAHEAD)
+    consecutiveInfra += pendingInfra
+    if (!added.length) { stopReason = 'queue_exhausted'; break }
+    continue
+  }
+
+  const brief = okBriefs[liftIdx++]
 
   log(`[${committed.length}/${GOAL} committed] next: ${brief.name} (${brief.addr})`)
 
