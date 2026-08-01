@@ -19497,7 +19497,7 @@
     },
     {
      "addr": "0x17b000",
-     "decl": "void FUN_0017b000(void);"
+     "decl": "void FUN_0017b000(int16_t widget_type, uint16_t flags);"
     },
     {
      "addr": "0x17b480",
@@ -39384,6 +39384,11 @@
     {
      "addr": "0x17ae90",
      "decl": "void FUN_0017ae90(unsigned int arg_4c, unsigned int arg_50, float *centroid, unsigned int arg_48);",
+     "ported": true
+    },
+    {
+     "addr": "0x17b000",
+     "decl": "void FUN_0017b000(int16_t widget_type, uint16_t flags);",
      "ported": true
     }
    ]

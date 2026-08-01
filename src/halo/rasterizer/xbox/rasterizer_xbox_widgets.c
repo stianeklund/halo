@@ -213,3 +213,202 @@ void FUN_0017ae90(unsigned int arg_4c, unsigned int arg_50, float *centroid,
     }
   }
 }
+
+/* 0x17b000 — FUN_0017b000
+ *
+ * Programs the fixed render state + screen-space projection used by the
+ * two supported widget draw types.  Two shapes only: type 5 (blended,
+ * alpha-tested, caller-controlled Z) and type 6 (opaque, occlusion-flag
+ * driven Z).  Anything else trips the assert at line 0x10a.
+ *
+ * Both branches end by uploading a 5-vector (0x50 byte) constant block to
+ * vertex shader constant -0x44 and re-programming the 0xf0-byte pixel
+ * shader state block at 0x5a5ac0.  The constant block is a screen-space
+ * orthographic projection built from the viewport rectangle at 0x5a5bf4
+ * (rectangle2d: {top, left, bottom, right} as int16):
+ *
+ *   row0 = { 2/w, 0,    0, -1 - 1/w }
+ *   row1 = { 0,  -2/h,  0,  1 + 1/h }
+ *   row2 = { 0,   0,    1,  0       }
+ *   row3 = { 0,   0,    0,  1       }
+ *   row4 = { 0,   0,    0,  1       }
+ *
+ * Confirmed from disassembly:
+ *   - two int16 stack params: [EBP+8] MOVSX (signed widget type),
+ *     [EBP+0xC] MOVZX (unsigned flag word; bit0 -> ZEnable,
+ *     bit1 -> render state 0x4035c).
+ *   - 0x2533c8 = 1.0f, 0x255e94 = -1.0f, 0x25eeac = -2.0f (read from XBE).
+ *   - FDIVR (not FDIV): the constant is the dividend.
+ *   - both asserts tail into system_exit(-1) (PUSH -1; CALL 0x8e2f0),
+ *     not halt_and_catch_fire.
+ *
+ * Uncertain: the meaning of widget types 5/6 and of the render-state
+ * shadow globals at 0x1fb7xx; they are written verbatim.
+ */
+void FUN_0017b000(int16_t widget_type, uint16_t flags)
+{
+  float vs_constants[20];
+  int type;
+  short screen_width;
+  short screen_height;
+  float x_scale;
+  float y_scale;
+  unsigned int state_value;
+
+  if (*(void **)0x476ab0 == (void *)0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                   "widgets.c",
+                   0x9a, 1);
+    system_exit(-1);
+  }
+
+  type = widget_type;
+  if (type != 5) {
+    if (type != 6) {
+      display_assert("### ERROR unsupported widget type",
+                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                     "widgets.c",
+                     0x10a, 1);
+      system_exit(-1);
+      return;
+    }
+
+    /* ---- widget type 6: opaque, occlusion-flag driven ---- */
+    D3DDevice_SetRenderState_CullMode(0x901);
+
+    state_value = (*(const unsigned char *)0x3256fd != 0) ? 0x10101u : 0u;
+    D3DDevice_SetRenderState_Simple(0x40358, state_value);
+    *(unsigned int *)0x1fb7a4 = state_value;
+
+    D3DDevice_SetRenderState_Simple(0x40304, 0);
+    *(unsigned int *)0x1fb784 = 0;
+
+    D3DDevice_SetRenderState_Simple(0x40300, 0);
+    *(unsigned int *)0x1fb788 = 0;
+
+    D3DDevice_SetRenderState_ZEnable(1);
+
+    D3DDevice_SetRenderState_Simple(0x40354, 0x203);
+    *(unsigned int *)0x1fb77c = 0x203;
+
+    state_value = *(const unsigned char *)0x3256fd;
+    D3DDevice_SetRenderState_Simple(0x4035c, state_value);
+    *(unsigned int *)0x1fb798 = state_value;
+
+    D3DDevice_SetRenderState_ZBias(*(const unsigned int *)0x32570c);
+
+    FUN_00178b40(0x38, 6, 0);
+
+    screen_width = *(const short *)0x5a5bfa - *(const short *)0x5a5bf6;
+    screen_height = (short)(*(const int *)0x5a5bf8 - *(const int *)0x5a5bf4);
+    x_scale = 1.0f / (float)screen_width;
+    vs_constants[0] = x_scale + x_scale;
+    vs_constants[1] = 0.0f;
+    vs_constants[2] = 0.0f;
+    vs_constants[3] = -1.0f - x_scale;
+    vs_constants[4] = 0.0f;
+    y_scale = 1.0f / (float)screen_height;
+    vs_constants[5] = -2.0f * y_scale;
+    vs_constants[6] = 0.0f;
+    vs_constants[7] = y_scale + 1.0f;
+    vs_constants[8] = 0.0f;
+    vs_constants[9] = 0.0f;
+    vs_constants[10] = 1.0f;
+    vs_constants[11] = 0.0f;
+    vs_constants[12] = 0.0f;
+    vs_constants[13] = 0.0f;
+    vs_constants[14] = 0.0f;
+    vs_constants[15] = 1.0f;
+    vs_constants[16] = 0.0f;
+    vs_constants[17] = 0.0f;
+    vs_constants[18] = 0.0f;
+    vs_constants[19] = 1.0f;
+
+    D3DDevice_SetVertexShaderConstant(-0x44, vs_constants, 5);
+
+    csmemset((void *)0x5a5ac0, 0, 0xf0);
+    *(unsigned int *)0x5a5b94 = 1;
+    *(unsigned int *)0x5a5ae0 = 0x20;
+    rasterizer_set_pixel_shader((void *)0x5a5ac0);
+    return;
+  }
+
+  /* ---- widget type 5: alpha-blended, caller-controlled Z ---- */
+  D3DDevice_SetRenderState_CullMode(0x901);
+
+  D3DDevice_SetRenderState_Simple(0x40358, 0x10101);
+  *(unsigned int *)0x1fb7a4 = 0x10101;
+
+  D3DDevice_SetRenderState_Simple(0x40304, 1);
+  *(unsigned int *)0x1fb784 = 1;
+
+  D3DDevice_SetRenderState_Simple(0x40344, 0x302);
+  *(unsigned int *)0x1fb790 = 0x302;
+
+  D3DDevice_SetRenderState_Simple(0x40348, 1);
+  *(unsigned int *)0x1fb794 = 1;
+
+  D3DDevice_SetRenderState_Simple(0x40350, 0x8006);
+  *(unsigned int *)0x1fb7c0 = 0x8006;
+
+  D3DDevice_SetRenderState_Simple(0x40300, 0);
+  *(unsigned int *)0x1fb788 = 0;
+
+  D3DDevice_SetRenderState_ZEnable(flags & 1);
+
+  D3DDevice_SetRenderState_Simple(0x40354, 0x203);
+  *(unsigned int *)0x1fb77c = 0x203;
+
+  state_value = (flags >> 1) & 1;
+  D3DDevice_SetRenderState_Simple(0x4035c, state_value);
+  *(unsigned int *)0x1fb798 = state_value;
+
+  D3DDevice_SetRenderState_ZBias(0);
+
+  /* PUSH 0x3f800000 — the raw IEEE bit pattern for 1.0f is forwarded as a
+   * dword through the int-typed parameter, exactly as the original does. */
+  FUN_0017cfe0(0x3f800000);
+
+  FUN_00178b40(0x38, 6, 0);
+
+  screen_width = *(const short *)0x5a5bfa - *(const short *)0x5a5bf6;
+  screen_height = (short)(*(const int *)0x5a5bf8 - *(const int *)0x5a5bf4);
+  x_scale = 1.0f / (float)screen_width;
+  vs_constants[0] = x_scale + x_scale;
+  vs_constants[1] = 0.0f;
+  vs_constants[2] = 0.0f;
+  vs_constants[3] = -1.0f - x_scale;
+  vs_constants[4] = 0.0f;
+  y_scale = 1.0f / (float)screen_height;
+  vs_constants[5] = -2.0f * y_scale;
+  vs_constants[6] = 0.0f;
+  vs_constants[7] = y_scale + 1.0f;
+  vs_constants[8] = 0.0f;
+  vs_constants[9] = 0.0f;
+  vs_constants[10] = 1.0f;
+  vs_constants[11] = 0.0f;
+  vs_constants[12] = 0.0f;
+  vs_constants[13] = 0.0f;
+  vs_constants[14] = 0.0f;
+  vs_constants[15] = 1.0f;
+  vs_constants[16] = 0.0f;
+  vs_constants[17] = 0.0f;
+  vs_constants[18] = 0.0f;
+  vs_constants[19] = 1.0f;
+
+  D3DDevice_SetVertexShaderConstant(-0x44, vs_constants, 5);
+
+  csmemset((void *)0x5a5ac0, 0, 0xf0);
+  *(unsigned int *)0x5a5b98 = 1;
+  *(unsigned int *)0x5a5b94 = 3;
+  *(unsigned int *)0x5a5b48 = 0x8080000;
+  *(unsigned int *)0x5a5b74 = 0xc0;
+  *(unsigned int *)0x5a5b4c = 0xc0c0000;
+  *(unsigned int *)0x5a5b78 = 0xd0;
+  *(unsigned int *)0x5a5b50 = 0x4082415;
+  *(unsigned int *)0x5a5b7c = 0x45;
+  *(unsigned int *)0x5a5ae0 = 0x50f0004;
+  *(unsigned int *)0x5a5ae4 = 0xc0d1400;
+  rasterizer_set_pixel_shader((void *)0x5a5ac0);
+}
