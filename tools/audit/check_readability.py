@@ -34,11 +34,19 @@ Modes:
                     untracked). Developer/agent feedback loop. Exits 1 if any
                     findings so they are noticed before committing.
   --update          Rewrite the soft baseline to the current counts.
+  --report-by-object
+                    Aggregate the per-file findings per kb.json OBJECT (the
+                    translation unit a recovery campaign is scoped to) and print
+                    a debt table sorted by total findings. Read-only; touches no
+                    baseline. `--json [path]` writes/prints the machine-readable
+                    form (consumed by tools/recovery/recovery_frontier.py).
   --json            Machine-readable output.
 
 Usage:
     python3 tools/audit/check_readability.py --check
     python3 tools/audit/check_readability.py --changed-only
+    python3 tools/audit/check_readability.py --report-by-object
+    python3 tools/audit/check_readability.py --report-by-object --json debt.json
     python3 tools/audit/check_readability.py --update
 """
 import json
@@ -50,6 +58,8 @@ import sys
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 SRC_DIR = os.path.join(ROOT_DIR, 'src')
 BASELINE_FILE = os.path.join(ROOT_DIR, 'tools', 'readability_baseline.json')
+KB_FILE = os.path.join(ROOT_DIR, 'kb.json')
+VC71_SCORES_FILE = os.path.join(ROOT_DIR, 'tools', 'verify', 'vc71_scores.json')
 
 # raw_fnptr_cast pattern is kept byte-identical to check_raw_casts.py so the two
 # tools never disagree on what a raw cast is.
@@ -220,10 +230,223 @@ def mode_changed_only(as_json):
     return 1
 
 
+# ---------------------------------------------------------------------------
+# --report-by-object: attribute per-file debt to the kb.json object (TU) that
+# owns the code, so a recovery campaign can be scoped to one translation unit.
+# ---------------------------------------------------------------------------
+
+def _norm_source(path):
+    """Normalize a kb.json source reference to a repo-relative path.
+
+    kb.json stores three flavours: 'ai/actors.c' (relative to src/halo),
+    'src/halo/ai/actors.c' (repo-relative) and 'halo/items/weapons.c'
+    (relative to src). Prefer whichever candidate exists on disk.
+    """
+    if not path:
+        return None
+    path = path.replace('\\', '/').lstrip('./')
+    if path.startswith('src/'):
+        return path
+    candidates = ('src/halo/' + path, 'src/' + path)
+    for cand in candidates:
+        if os.path.exists(os.path.join(ROOT_DIR, cand)):
+            return cand
+    return candidates[0]
+
+
+def _function_name(func):
+    """Best-effort function name for a kb.json function entry."""
+    if func.get('name'):
+        return func['name']
+    decl = (func.get('decl') or '').split('(')[0]
+    idents = re.findall(r'[A-Za-z_][A-Za-z0-9_:]*', decl)
+    return idents[-1] if idents else None
+
+
+def _load_vc71_sources():
+    """function name -> source file, from tools/verify/vc71_scores.json."""
+    try:
+        with open(VC71_SCORES_FILE) as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for name, rec in (data.get('scores') or {}).items():
+        if isinstance(rec, dict) and rec.get('source'):
+            out[name] = rec['source']
+    return out
+
+
+def object_function_files(kb=None):
+    """Return {source_path: {object_name: n_functions}} derived from kb.json.
+
+    Resolution order per function: its own source_path/src/file/source, then the
+    file vc71_scores.json compiled it from, then the owning object's source.
+    """
+    if kb is None:
+        with open(KB_FILE) as f:
+            kb = json.load(f)
+    vc71 = _load_vc71_sources()
+    files = {}
+    for obj in kb.get('objects', []):
+        name = obj.get('name') or '(unnamed)'
+        obj_src = _norm_source(obj.get('source_path') or obj.get('src')
+                               or obj.get('source'))
+        for func in obj.get('functions', []):
+            path = _norm_source(func.get('source_path') or func.get('src')
+                                or func.get('file') or func.get('source'))
+            if not path:
+                fname = _function_name(func)
+                if fname and fname in vc71:
+                    path = _norm_source(vc71[fname])
+            if not path:
+                path = obj_src
+            if not path:
+                continue
+            files.setdefault(path, {})
+            files[path][name] = files[path].get(name, 0) + 1
+    return files
+
+
+def file_object_map(kb=None):
+    """Return (owner, detail) where owner maps source_path -> object name.
+
+    A .c file can host functions from several objects (kb.json models the
+    original TU split, we model the file layout). The majority owner takes the
+    file's findings; `detail` keeps the full breakdown so multi-object files can
+    be reported -- they complicate per-object campaigns.
+    """
+    detail = object_function_files(kb)
+    owner = {}
+    for path, objs in detail.items():
+        owner[path] = max(sorted(objs), key=lambda o: objs[o])
+    return owner, detail
+
+
+def report_by_object(kb=None):
+    """Aggregate readability findings per kb.json object."""
+    owner, detail = file_object_map(kb)
+    objects = {}
+    unmapped = {'files': [], 'counts': {k: 0 for k in PATTERNS}}
+
+    for fpath in sorted(_iter_c_files()):
+        rel = os.path.relpath(fpath, ROOT_DIR).replace('\\', '/')
+        counts = count_file(fpath)
+        obj = owner.get(rel)
+        if obj is None:
+            if any(counts.values()):
+                unmapped['files'].append(rel)
+                for cat, n in counts.items():
+                    unmapped['counts'][cat] += n
+            continue
+        rec = objects.setdefault(obj, {
+            'object': obj,
+            'files': [],
+            'multi_object_files': [],
+            'funcs': 0,
+            'counts': {k: 0 for k in PATTERNS},
+        })
+        rec['files'].append(rel)
+        rec['funcs'] += detail[rel].get(obj, 0)
+        for cat, n in counts.items():
+            rec['counts'][cat] += n
+        if len(detail[rel]) > 1:
+            rec['multi_object_files'].append(
+                {'file': rel, 'objects': dict(sorted(detail[rel].items()))})
+
+    for rec in objects.values():
+        rec['total'] = sum(rec['counts'].values())
+        rec['debt_per_func'] = (rec['total'] / rec['funcs']) if rec['funcs'] else 0.0
+
+    multi_files = sorted(p for p, objs in detail.items() if len(objs) > 1
+                         and os.path.exists(os.path.join(ROOT_DIR, p)))
+    return {
+        'objects': objects,
+        'unmapped': unmapped,
+        'multi_object_files': [
+            {'file': p, 'objects': dict(sorted(detail[p].items()))}
+            for p in multi_files
+        ],
+    }
+
+
+def mode_report_by_object(json_path, as_json):
+    report = report_by_object()
+    rows = sorted(report['objects'].values(),
+                  key=lambda r: (-r['total'], -r['debt_per_func'], r['object']))
+    payload = {
+        'objects': {r['object']: r for r in rows},
+        'ranked': [r['object'] for r in rows],
+        'unmapped': report['unmapped'],
+        'multi_object_files': report['multi_object_files'],
+    }
+
+    if json_path:
+        with open(json_path, 'w') as f:
+            json.dump(payload, f, indent=2, sort_keys=True)
+            f.write('\n')
+        print(f'readability debt by object written to {json_path} '
+              f'({len(rows)} objects)')
+        return 0
+    if as_json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
+    hdr = (f"{'object':<34} {'files':>5} {'funcs':>5} {'cast':>5} {'FUN_':>6} "
+           f"{'deref':>6} {'total':>6} {'/func':>6}")
+    print('Readability debt by object')
+    print('-' * len(hdr))
+    print(hdr)
+    print('-' * len(hdr))
+    tot = {k: 0 for k in PATTERNS}
+    for r in rows:
+        c = r['counts']
+        for k in tot:
+            tot[k] += c[k]
+        flag = ' *' if r['multi_object_files'] else ''
+        print(f"{r['object']:<34} {len(r['files']):>5} {r['funcs']:>5} "
+              f"{c['raw_fnptr_cast']:>5} {c['fun_call']:>6} "
+              f"{c['raw_offset_deref']:>6} {r['total']:>6} "
+              f"{r['debt_per_func']:>6.1f}{flag}")
+    print('-' * len(hdr))
+    print(f"{'TOTAL (' + str(len(rows)) + ' objects)':<34} {'':>5} {'':>5} "
+          f"{tot['raw_fnptr_cast']:>5} {tot['fun_call']:>6} "
+          f"{tot['raw_offset_deref']:>6} {sum(tot.values()):>6}")
+
+    if report['multi_object_files']:
+        print(f"\n* multi-object files ({len(report['multi_object_files'])}) "
+              '-- findings attributed to the majority owner:')
+        for m in report['multi_object_files']:
+            share = ', '.join(f'{o}={n}' for o, n in m['objects'].items())
+            print(f"    {m['file']}: {share}")
+
+    um = report['unmapped']
+    if um['files']:
+        print(f"\nunmapped files with findings ({len(um['files'])}): "
+              + ', '.join(f'{k}={v}' for k, v in sorted(um['counts'].items())))
+        for rel in um['files'][:10]:
+            print(f'    {rel}')
+        if len(um['files']) > 10:
+            print(f"    ... and {len(um['files']) - 10} more")
+    return 0
+
+
+def _arg_value(argv, flag):
+    """Return the token after `flag` if it is not another flag, else None."""
+    if flag not in argv:
+        return None
+    i = argv.index(flag)
+    if i + 1 < len(argv) and not argv[i + 1].startswith('-'):
+        return argv[i + 1]
+    return None
+
+
 def main():
     argv = sys.argv[1:]
     as_json = '--json' in argv
 
+    if '--report-by-object' in argv:
+        return mode_report_by_object(_arg_value(argv, '--json'), as_json)
     if '--update' in argv:
         write_baseline(count_all())
         print(f'readability baseline updated: {read_baseline()}')
