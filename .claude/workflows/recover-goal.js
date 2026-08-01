@@ -100,10 +100,23 @@ const AGENT_RULES =
   `OPERATING RULES (read first):
 [WORKTREE] Do ALL work in your CWD with RELATIVE paths. NEVER \`cd\` to another
 checkout; never run git mutations against any repo but this one.
-[STALL] Any command that can exceed 2 min (full build, vc71 verify) must be wrapped
-so it cannot run silently past 180s and trip the harness stall detector that kills
-the whole run: \`timeout 150 <cmd> 2>&1 || echo "[timed-out]"\`, or Bash
-run_in_background + poll.
+[STALL] Any single shell command that can run >2 min (full build, vc71 verify)
+MUST be wrapped so it cannot run silently past 180s and trip the harness stall
+detector that kills the whole run:
+  timeout 150 <cmd> 2>&1 || echo "[timed-out]"
+A timeout is NOT a verdict — re-run the wrapped command; never record it as a
+failure while the work may still have completed.
+[SERIAL] Work in the FOREGROUND, one command at a time. Never drive commits from
+background scripts, chained Monitors, or parallel "group drivers", and never run
+two git-index-mutating commands at once. Concurrent git add/commit race for
+.git/index.lock; the loser aborts while the winner's commit still lands, so you
+see a failed command AND a moved HEAD, and mis-read that as a hook bug. This has
+already wedged this workflow: the drivers were killed by the background time
+limit, re-ran concurrently, aborted on the lock, and the agent then spent 20
+minutes polling for events from Monitors it had killed itself. Per unit:
+stage -> gate -> commit -> confirm HEAD moved -> next. If you are ever waiting on
+a Monitor or a background task, stop waiting and check real state directly
+(git log --oneline -1, git status --short, pgrep).
 [TOKENS] Never re-read a file after a successful edit (Edit confirms it); never
 paste large tool output back into your reasoning — extract the one number you need.
 `
