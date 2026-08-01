@@ -399,7 +399,19 @@ def _expected_ported_functions(src_rel: str) -> list[dict]:
 
 
 def _func_span(fn_name: str):
-    """Byte span of a function (next function start - its start), or None."""
+    """Byte span of a function, or None when it is not tracked in kb.json.
+
+    Delegates to vc71_verify._func_span so this gate and the verifier agree on
+    what a function's size is.  That matters because kb.json's gap (distance to
+    the next *listed* function) overshoots wherever the listing has a hole, and
+    a correct-but-short reference then reads as truncated; see the docstring
+    there.  Falls back to the kb gap if the import is unavailable.
+    """
+    try:
+        from vc71_verify import _func_span as _verify_func_span
+        return _verify_func_span(fn_name)
+    except ImportError:
+        pass
     addrs, name2addr = _kb_maps()
     addr = name2addr.get(fn_name)
     if addr is None:
@@ -428,7 +440,9 @@ def _reference_valid(n_r, span):
     if not n_r:
         return False, "reference symbol empty or absent"
     if span and n_r * 15 < span:
-        return False, f"truncated reference: {n_r} insns cannot span {span} bytes"
+        return False, (f"reference/span inconsistent: {n_r} insns cannot fill "
+                       f"{span} bytes (reference truncated, or the span is "
+                       f"wrong -- check delinked bounds)")
     if span and n_r > span:
         return False, f"bloated reference: {n_r} insns exceed {span} bytes"
     return True, ""

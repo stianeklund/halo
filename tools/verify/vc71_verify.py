@@ -189,14 +189,80 @@ def _func_addr(function: str) -> int | None:
     return None
 
 
+def _true_end_offset(addr: int, limit: int) -> int | None:
+    """Byte size of the function at `addr`, read from the pristine XBE.
+
+    A body closes at the first terminator (`ret`, or an unconditional `jmp`
+    that is not an indirect/table dispatch) with NO outstanding branch target
+    at or beyond it.  That second clause is what keeps this from cutting a
+    function short at an interior `ret` when MSVC has placed a tail block out
+    of line: FUN_00174510 looks finished at 0x174622 until you notice the
+    `jl 0x174622` at 0x174608 proving the body continues.
+
+    Returns None when capstone or the XBE is unavailable, or when no
+    terminator is found within `limit` bytes -- callers must treat None as
+    "no opinion" and fall back to the kb.json gap.
+    """
+    try:
+        import capstone
+    except ImportError:
+        return None
+    code = _xbe_read(addr, limit)
+    if not code:
+        return None
+    md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
+    targets: set[int] = set()
+    for ins in md.disasm(code, addr):
+        if ins.mnemonic.startswith("j"):
+            try:
+                targets.add(int(ins.op_str, 16))
+            except ValueError:
+                pass  # indirect branch; the guard below just won't fire early
+        end = ins.address + ins.size
+        terminator = ins.mnemonic == "ret" or (
+            ins.mnemonic == "jmp" and not ins.op_str.startswith("dword"))
+        if terminator and not any(t >= end for t in targets):
+            return end - addr
+    return None
+
+
+_func_span_cache: dict[str, int | None] = {}
+
+
 def _func_span(function: str) -> int | None:
-    """Byte span of a function (next function start - its start), or None."""
+    """Byte span of a function, or None when it is not tracked in kb.json.
+
+    kb.json's gap (distance to the next *listed* function) overshoots wherever
+    the listing has a hole -- and kb.json is not a full listing of the binary,
+    so holes are common.  A function followed by an unlisted neighbour gets a
+    span many times its real size, and `_ref_insns_valid` then rejects its
+    CORRECT reference as "truncated" (measured: FUN_0015c2d0, 33 real insns,
+    kb gap 800 bytes for a 102-byte function).
+
+    So: take the binary's answer, capped by the kb gap.  The cap matters
+    because the kb gap is a genuine upper bound (the next listed function is
+    real code that cannot be part of this one), and it also bounds the
+    disassembly window.
+
+    None is preserved for functions absent from kb.json -- callers use that to
+    mean "not a kb.json-tracked function" (helper/thunk/static), which is a
+    different condition from "tracked, size unknown".
+    """
+    if function in _func_span_cache:
+        return _func_span_cache[function]
     addr = _func_addr(function)
     starts = _kb_func_starts()
-    if addr is None or not starts:
-        return None
-    i = bisect.bisect_right(starts, addr)
-    return (starts[i] - addr) if i < len(starts) else None
+    span: int | None = None
+    if addr is not None and starts:
+        i = bisect.bisect_right(starts, addr)
+        kb_gap = (starts[i] - addr) if i < len(starts) else None
+        if kb_gap:
+            true_size = _true_end_offset(addr, kb_gap)
+            span = min(kb_gap, true_size) if true_size else kb_gap
+        else:
+            span = kb_gap
+    _func_span_cache[function] = span
+    return span
 
 
 def _trim_trailing_padding(insns: list[str]) -> list[str]:

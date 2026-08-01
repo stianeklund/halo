@@ -112,6 +112,27 @@ def _load_kb() -> dict[str, str]:
     return _KB_DECL_MAP
 
 
+def _fn_span_token(fn_name: str) -> str:
+    """The function's byte span, as a cache-key component.
+
+    The span decides which references are accepted (`_ref_insns_valid`) and
+    therefore which one a function is scored against -- so a span change is a
+    result change, even when source, reference and compiler are all identical.
+    Without this the cache silently serves pre-change scores and a sweep
+    measures nothing.
+
+    Keyed on the span VALUE rather than on vc71_verify.py's hash so that only
+    the functions whose span actually moved recompute; hashing that file would
+    invalidate all ~4,300 entries on every unrelated edit to it.  Imported
+    lazily because vc71_verify imports this module.
+    """
+    try:
+        from vc71_verify import _func_span
+        return str(_func_span(fn_name))
+    except Exception:
+        return "?"  # no opinion; degrades to the previous key behaviour
+
+
 def make_cache_key(fn_name: str, source_path: Path, ref_path: Path,
                    opt: str = "/O2") -> str:
     """Build the composite cache key for a single function."""
@@ -120,7 +141,9 @@ def make_cache_key(fn_name: str, source_path: Path, ref_path: Path,
     cc_ver = compiler_version_token()
     decl_sha = fn_decl_sha256(fn_name)
     comparator_sha = _sha256_file(REPO_ROOT / "tools" / "verify" / "compare_obj.py")
-    raw = f"{fn_name}|{src_sha}|{ref_sha}|{cc_ver}|{decl_sha}|{comparator_sha}|{opt}"
+    span_tok = _fn_span_token(fn_name)
+    raw = (f"{fn_name}|{src_sha}|{ref_sha}|{cc_ver}|{decl_sha}|"
+           f"{comparator_sha}|{span_tok}|{opt}")
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
