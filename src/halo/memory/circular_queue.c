@@ -1386,27 +1386,27 @@ int FUN_00115ba0(unsigned int *bb, int *param_1, unsigned int param_2,
  * 0x116010 / circular_queue.obj (inflate.c) */
 int FUN_00116010(int *c, int *bb, int tl, int td, int z)
 {
-  int iVar1;
-  int iVar2;
-  unsigned int local_8;
+  int work;
+  int result;
+  unsigned int hn;
 
-  local_8 = 0;
-  iVar1 = (*(int (**)(int, int, int))(z + 0x20))(*(int *)(z + 0x28), 0x13, 4);
-  if (iVar1 == 0)
+  hn = 0;
+  work = (*(int (**)(int, int, int))(z + 0x20))(*(int *)(z + 0x28), 0x13, 4);
+  if (work == 0)
     return -4;
-  iVar2 = FUN_00115ba0((unsigned int *)bb, c, 0x13, 0x13, 0, 0, (int *)tl, td,
-                       &local_8, (unsigned int *)iVar1);
-  if (iVar2 == -3) {
+  result = FUN_00115ba0((unsigned int *)bb, c, 0x13, 0x13, 0, 0, (int *)tl, td,
+                       &hn, (unsigned int *)work);
+  if (result == -3) {
     *(const char **)(z + 0x18) = "oversubscribed dynamic bit lengths tree";
-    (*(void (**)(int, int))(z + 0x24))(*(int *)(z + 0x28), iVar1);
+    (*(void (**)(int, int))(z + 0x24))(*(int *)(z + 0x28), work);
     return -3;
   }
-  if (iVar2 == -5 || *bb == 0) {
+  if (result == -5 || *bb == 0) {
     *(const char **)(z + 0x18) = "incomplete dynamic bit lengths tree";
-    iVar2 = -3;
+    result = -3;
   }
-  (*(void (**)(int, int))(z + 0x24))(*(int *)(z + 0x28), iVar1);
-  return iVar2;
+  (*(void (**)(int, int))(z + 0x24))(*(int *)(z + 0x28), work);
+  return result;
 }
 
 /* inflate_trees_dynamic: build decode tables for dynamic Huffman block.
@@ -1415,62 +1415,62 @@ int FUN_001160c0(unsigned int param_1, int param_2, int param_3, int *param_4,
                  int *param_5, int param_6, int param_7, int param_8,
                  int param_9)
 {
-  int iVar1;
-  int iVar2;
-  unsigned int local_8;
+  int work;
+  int result;
+  unsigned int hn;
 
-  local_8 = 0;
-  iVar1 = (*(int (**)(int, int, int))(param_9 + 0x20))(*(int *)(param_9 + 0x28),
+  hn = 0;
+  work = (*(int (**)(int, int, int))(param_9 + 0x20))(*(int *)(param_9 + 0x28),
                                                        0x120, 4);
-  if (iVar1 == 0)
+  if (work == 0)
     return -4;
-  iVar2 = FUN_00115ba0((unsigned int *)param_4, (int *)param_3, param_1, 0x101,
+  result = FUN_00115ba0((unsigned int *)param_4, (int *)param_3, param_1, 0x101,
                        (int)0x28d960, (int)0x28d9e0, (int *)param_6, param_8,
-                       &local_8, (unsigned int *)iVar1);
-  if (iVar2 == 0) {
+                       &hn, (unsigned int *)work);
+  if (result == 0) {
     if (*param_4 != 0) {
-      iVar2 = FUN_00115ba0(
+      result = FUN_00115ba0(
         (unsigned int *)param_5, (int *)(param_3 + (int)param_1 * 4),
         (unsigned int)param_2, 0, (int)0x28da60, (int)0x28dad8, (int *)param_7,
-        param_8, &local_8, (unsigned int *)iVar1);
-      if (iVar2 == 0) {
+        param_8, &hn, (unsigned int *)work);
+      if (result == 0) {
         if (*param_5 != 0 || param_1 < 0x102) {
           (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28),
-                                                   iVar1);
+                                                   work);
           return 0;
         }
-      } else if (iVar2 == -3) {
+      } else if (result == -3) {
         *(const char **)(param_9 + 0x18) = "oversubscribed distance tree";
         (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28),
-                                                 iVar1);
-        return iVar2;
-      } else if (iVar2 == -5) {
+                                                 work);
+        return result;
+      } else if (result == -5) {
         *(const char **)(param_9 + 0x18) = "incomplete distance tree";
-        iVar2 = -3;
+        result = -3;
         (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28),
-                                                 iVar1);
-        return iVar2;
-      } else if (iVar2 == -4) {
+                                                 work);
+        return result;
+      } else if (result == -4) {
         goto free_and_return_inner;
       }
       *(const char **)(param_9 + 0x18) = "empty distance tree with lengths";
-      iVar2 = -3;
+      result = -3;
     free_and_return_inner:
-      (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), iVar1);
-      return iVar2;
+      (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), work);
+      return result;
     }
-  } else if (iVar2 == -3) {
+  } else if (result == -3) {
     *(const char **)(param_9 + 0x18) = "oversubscribed literal/length tree";
-    (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), iVar1);
-    return iVar2;
-  } else if (iVar2 == -4) {
+    (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), work);
+    return result;
+  } else if (result == -4) {
     goto free_and_return_outer;
   }
   *(const char **)(param_9 + 0x18) = "incomplete literal/length tree";
-  iVar2 = -3;
+  result = -3;
 free_and_return_outer:
-  (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), iVar1);
-  return iVar2;
+  (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28), work);
+  return result;
 }
 
 /* inflate_trees_fixed: set pointers to fixed Huffman decode tables.
