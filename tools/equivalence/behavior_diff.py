@@ -132,7 +132,7 @@ def slot_series(frames, ptr, fields):
             vals = {f["label"]: _field_value(rec, f) for f in fields}
             series.setdefault(slot, []).append((tk, vals))
     for s in series.values():
-        s.sort()
+        s.sort(key=lambda e: e[0])
     return series
 
 
