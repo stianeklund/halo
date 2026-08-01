@@ -29,6 +29,12 @@ const BATCH_GOAL = (args && args.batchGoal) || 4   // functions per goal-lift ru
 const DRY_RUN    = !!(args && args.dryRun)
 const OBJECTS    = (args && args.objects) || undefined
 const CRITERIA   = (args && args.criteria) || undefined
+// Opt-in: let goal-lift lift register-argument targets instead of dropping them
+// at its two pre-screens. The remaining frontier is almost entirely @<reg>
+// fragments, so without this a run selects, decompiles, and then skips nearly
+// everything. goal-lift's own gates (build / VC71 / audit_reg_abi / reviewer /
+// revert-on-fail) still apply, so a wrong @<reg> decl reverts rather than ships.
+const LIFT_REG_ARGS = !!(args && args.liftRegArgs)
 
 // Resolving the child by NAME uses a workflow registry snapshotted at session
 // start, so mid-session edits to goal-lift.js are silently ignored -- the agents
@@ -116,6 +122,7 @@ for (let i = 1; i <= BATCHES; i++) {
   const glArgs = { goal: BATCH_GOAL, dryRun: DRY_RUN }
   if (OBJECTS) glArgs.objects = OBJECTS
   if (CRITERIA) glArgs.criteria = CRITERIA
+  if (LIFT_REG_ARGS) glArgs.liftRegArgs = true
   const r = await workflow(GOAL_LIFT, glArgs)
 
   const committed = (r && r.committed) || 0

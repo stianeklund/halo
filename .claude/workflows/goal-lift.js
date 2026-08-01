@@ -417,12 +417,31 @@ gap matches one of these, rather than treating it as a fixable bug):
 - @<reg>-defining function's own prologue: permanent sub-bar (VC71 can't emit it)
 - fucompp vs fcomps / int16 movswl / fcos/fsin spill: permanent ~15pp gap, not a bug`
 
-const liftPrompt = (brief, isEscalation, priorScore) =>
+const liftPrompt = (brief, isEscalation, priorScore, warmStarted) =>
   `${AGENT_RULES}
 
 Lift ${brief.name} at ${brief.addr} from Halo CE Xbox (cachebeta.xbe).
 Object: ${brief.obj} | Source: ${brief.source_path}
-${isEscalation ? `\nESCALATION (prior score ${priorScore}%): focus on FPU operand order, buffer-alias confusion, PUSH trace per CALL, struct field rotation.\n` : ''}
+${isEscalation ? `\nESCALATION (prior score ${priorScore}%): focus on FPU operand order, buffer-alias confusion, PUSH trace per CALL, struct field rotation.\n` : ''}${warmStarted ? `
+WARM START — READ THIS BEFORE WRITING ANY CODE.
+${brief.source_path} ALREADY CONTAINS the best prior attempt for ${brief.name},
+scoring ${priorScore}%. It was restored into the tree for you. It embodies fixes
+that were individually measured and are easy to lose by accident.
+
+  - Read the EXISTING implementation in ${brief.source_path} first. That body,
+    not the Ghidra decompile below, is your starting point.
+  - Make TARGETED EDITS to it. Do NOT rewrite it from the decompile. A rewrite
+    that happens to score lower is a regression, and re-deriving has repeatedly
+    scored WORSE than the patch it replaced (one function went
+    91.8% -> 86.8% over six such re-rolls, losing a verified load-width fix and a
+    named-call conversion each time).
+  - The decompile/disasm in CONTEXT is REFERENCE for the specific defect you are
+    fixing — not a template to retype.
+  - Change ONE thing per measurement. Re-run VC71 after each change. ${priorScore}% is
+    the floor: if an edit drops the score, revert THAT edit and try the next
+    hypothesis. Never submit below ${priorScore}%.
+  - If prior review notes name an exact next step, do that step and nothing else.
+` : ''}
 CONTEXT — do NOT re-call Ghidra:
   KB:       ${brief.kb_entry}
   Decomp:   ${brief.decompiled}
@@ -900,7 +919,7 @@ rtk python3 tools/lift/park.py promote --name ${JSON.stringify(rec.name)} --comm
 
     // 3. Re-lift with the improve model (escalation framing, prior score to beat).
     const liftBrief = { ...brief, obj: brief.obj || rec.obj, source_path: brief.source_path || rec.source_path }
-    const a = await agent(liftPrompt(liftBrief, true, rec.best_score), {
+    const a = await agent(liftPrompt(liftBrief, true, rec.best_score, warm), {
       label: `improve-lift:${rec.name}`, phase: 'Improve', agentType: 'xbox-halo-re-analyst', ...M.improve, schema: LIFT_RESULT_SCHEMA,
     })
     if (!a || a.status === 'infra_blocked') { istop = 'infra_blocked'; improved.push({ ...rec, status: 'infra_blocked', reason: 'agent_null' }); break }
