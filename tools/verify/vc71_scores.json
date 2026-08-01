@@ -5281,7 +5281,7 @@
       "source": "src/halo/game/player_control.c"
     },
     "FUN_000b6e60": {
-      "score": 96.6,
+      "score": 100.0,
       "source": "src/halo/game/player_control.c"
     },
     "FUN_000b6ea0": {
@@ -15593,7 +15593,7 @@
       "source": "src/halo/input/input_xbox.c"
     },
     "interpolate_scalar": {
-      "score": 96.6,
+      "score": 100.0,
       "source": "src/halo/game/player_control.c"
     },
     "item_get_position_even_if_in_inventory": {

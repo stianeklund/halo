@@ -30115,7 +30115,9 @@
     "coverage_pct": 100.0
   },
   "0xb6ea0": {
-    "class": "non_leaf"
+    "class": "non_leaf",
+    "confidence": "moderate",
+    "coverage_pct": 54.4
   },
   "0xb6fc0": {
     "class": "non_leaf",
@@ -30136,6 +30138,11 @@
     "class": "non_leaf",
     "confidence": "none",
     "coverage_pct": 2.9
+  },
+  "0xb8cf0": {
+    "class": "non_leaf",
+    "confidence": "moderate",
+    "coverage_pct": 40.6
   },
   "0xb9b50": {
     "class": "leaf",

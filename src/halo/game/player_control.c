@@ -1164,18 +1164,29 @@ bool limit2d(float *v, float max_length)
  *
  * TEST AH,0x5 + JNP at 0xb6e79 is "not less", i.e. the fall-through condition
  * is `delta >= -max_delta` (an unordered/NaN compare sets C0|C2, giving even
- * parity and therefore falling through as well). */
+ * parity and therefore falling through as well).  Written as `!(delta <
+ * neg_max_delta)` -- NOT `delta >= neg_max_delta`, which compiles to
+ * TEST AH,0x1 + JNE and takes the opposite branch on NaN.
+ *
+ * The delta spill through the parameter slot is done via a volatile view:
+ * the original's FSTP/FLD round-trip truncates the x87 80-bit subtraction
+ * result to a 32-bit float before it is compared and added.  Without the
+ * volatile, clang keeps the delta in ST at extended precision; when
+ * `target` and `*value` nearly cancel (e.g. *value=753172.19,
+ * target~-0.375), the extra bits shift the result by thousands of ULPs
+ * (unicorn seed 23: oracle -0.375 vs unforced lift -0.37970486). */
 void interpolate_scalar(float *value, float target, float max_delta)
 {
+  volatile float *delta = &target;
   float neg_max_delta;
 
-  target = target - *value;
+  *delta = target - *value;
   neg_max_delta = -max_delta;
-  if (target >= neg_max_delta) {
-    if (target > max_delta)
+  if (!(*delta < neg_max_delta)) {
+    if (*delta > max_delta)
       *value = max_delta + *value;
     else
-      *value = target + *value;
+      *value = *delta + *value;
   } else {
     *value = neg_max_delta + *value;
   }
