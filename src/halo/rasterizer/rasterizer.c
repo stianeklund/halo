@@ -3749,6 +3749,28 @@ void FUN_001792a0(char mode)
   *(char *)0x47e4c9 = mode;
 }
 
+/* 0x1792c0 — byte setter for the global at 0x47e4c9, the second of the pair
+ * written by FUN_001792a0 above. Whole body is 5 instructions, no calls, no
+ * FPU, no locals:
+ *   push ebp / mov ebp,esp
+ *   mov al, byte ptr [ebp+0x8]     ; the single stack arg, read as a BYTE
+ *   mov byte ptr [0x0047e4c9], al  ; byte-wide store
+ *   pop ebp / ret                  ; RET has no immediate -> cdecl
+ * Unlike FUN_001792a0 this variant leaves the companion flag at 0x47e4c8
+ * alone, so it overrides only the raw mode byte. The param is byte-wide by
+ * evidence (the load is MOV AL, byte ptr — no MOVSX/MOVZX and no dword read),
+ * matching the sibling's signature; kb.json previously declared it int, which
+ * describes the caller's dword push slot rather than what the callee consumes.
+ * Narrowing is free on a cdecl stack slot. The store must stay byte-wide or
+ * VC71 emits a 32-bit MOV (LOADW). Global 0x47e4c9 is unnamed — no string or
+ * PDB evidence — and the only observed caller is the frame-setup path in
+ * rasterizer_xbox_decals.c, which passes 0.
+ */
+void FUN_001792C0(char mode)
+{
+  *(char *)0x47e4c9 = mode;
+}
+
 void rasterizer_frame_begin(float *elapsed)
 {
   char val;
