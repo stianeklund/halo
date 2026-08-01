@@ -213,3 +213,76 @@ bool rasterizer_vertex_shaders_initialize(void)
 
   return success;
 }
+
+/* 0x178ab0
+ *
+ * rasterizer_vertex_shaders_dispose
+ *
+ * Destroys all 67 vertex shaders created by
+ * rasterizer_vertex_shaders_initialize, walking vertex_shader_table and
+ * handing each entry's `handle` to IDirect3DDevice8::DeleteVertexShader.
+ *
+ * The name is binary-proven by the error string at 0x2add24,
+ * "### ERROR rasterizer_vertex_shaders_dispose failed"; the reported call
+ * text at 0x2add58 names vertex_shader_table[vertex_shader_index].handle.
+ * Both literals sit immediately after the __FILE__ literal at 0x2adcd8 used
+ * by the asserts in rasterizer_vertex_shaders_initialize, and the code is
+ * contiguous with it, so the two functions share this translation unit.
+ *
+ * Notes on the shape of this function (verified against the pristine XBE at
+ * VA 0x178ab0..0x178afd, capstone; the Ghidra decompile is lossy here and
+ * renders the flag update as `bVar1 = bVar1`):
+ *
+ *   - `mov $0x325208,%esi` then `mov (%esi),%eax` with `add $0x10,%esi` per
+ *     iteration: 0x325208 is &vertex_shader_table[0].handle, i.e. the base
+ *     0x325200 with the +0x8 field offset already folded in by MSVC's
+ *     induction-variable strength reduction.  Only `handle` is read; the
+ *     other three fields of the entry are untouched.
+ *
+ *   - `push %eax ; call 0x1eb6d0` with NO caller cleanup, and the callee
+ *     ends in `ret $0x4`, so D3DDevice_DeleteVertexShader is __stdcall with
+ *     one DWORD parameter.  Its return value is discarded.
+ *
+ *   - The in-loop test is `test %bl,%bl` -- the accumulated success flag,
+ *     NOT the D3D result (DeleteVertexShader returns void on Xbox, so the
+ *     wrapper macro's status stays 0 and folds away; that is also why the
+ *     report call pushes a literal 0 for the status argument).  Because
+ *     `success` starts true and is only cleared inside the branch that
+ *     requires it to already be false, the reporting branch is unreachable
+ *     in practice.  It is preserved literally rather than "fixed" into an
+ *     HRESULT check, because the binary tests BL.
+ *
+ *   - The epilogue is `pop %edi ; pop %esi ; test %bl,%bl ; pop %ebx ;
+ *     jne .. ; error(..) ; ret` -- a plain `ret` with no `mov %bl,%al`, so
+ *     unlike rasterizer_vertex_shaders_initialize this function returns
+ *     void.  No frame pointer, no locals, no _chkstk.
+ */
+void rasterizer_vertex_shaders_dispose(void)
+{
+  vertex_shader_entry *entry;
+  int vertex_shader_index;
+  bool success;
+
+  success = true;
+
+  entry = vertex_shader_table;
+  vertex_shader_index = NUMBER_OF_VERTEX_SHADERS;
+  do {
+    D3DDevice_DeleteVertexShader(entry->handle);
+    if (success) {
+      success = true;
+    } else {
+      success = false;
+      FUN_00167ff0(0,
+                   "IDirect3DDevice8_DeleteVertexShader(global_d3d_device, "
+                   "(DWORD)vertex_shader_table[vertex_shader_index].handle)");
+    }
+
+    entry++;
+    vertex_shader_index--;
+  } while (vertex_shader_index != 0);
+
+  if (!success) {
+    error(2, "### ERROR rasterizer_vertex_shaders_dispose failed");
+  }
+}

@@ -19453,10 +19453,6 @@
      "decl": "void FUN_00178820(void);"
     },
     {
-     "addr": "0x178ab0",
-     "decl": "void FUN_00178ab0(void);"
-    },
-    {
      "addr": "0x178b40",
      "decl": "void FUN_00178b40(int a1, int a2, int a3);"
     },
@@ -19692,6 +19688,11 @@
     {
      "addr": "0x178850",
      "decl": "bool rasterizer_vertex_shaders_initialize(void);",
+     "ported": true
+    },
+    {
+     "addr": "0x178ab0",
+     "decl": "void rasterizer_vertex_shaders_dispose(void);",
      "ported": true
     }
    ],
@@ -38092,7 +38093,7 @@
     },
     {
      "addr": "0x001eb6d0",
-     "decl": "void D3DDevice_DeleteVertexShader(void);"
+     "decl": "void __stdcall D3DDevice_DeleteVertexShader(unsigned long handle);"
     },
     {
      "addr": "0x001eb8d0",
