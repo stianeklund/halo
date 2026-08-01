@@ -8456,6 +8456,60 @@
       "source": "src/halo/memory/circular_queue.c",
       "vc71_passed": false,
       "warnings": []
+    },
+    {
+      "baseline_object_sha256": "03631bdd65e2bcebff55d2d04343525545e603c2131b26cabdc141c670399944",
+      "current_git_head": "0a9e6a12241c2f2a5a07190d35f44b663973a4e6",
+      "current_object_sha256": "52030953321c561e137740416b31f39989b5fdb1942c1827cd27ca2109fc7bf1",
+      "current_source_sha256": "8586ff0ee5e27ec90b73982c344f800c9f0f51ea1a3150ff6c6a4cc1f6c80139",
+      "failures": [],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": false,
+      "skipped": [
+        "vc71_regression.py check --strict"
+      ],
+      "source": "src/halo/memory/circular_queue.c",
+      "vc71_passed": false,
+      "warnings": []
+    },
+    {
+      "baseline_object_sha256": "03631bdd65e2bcebff55d2d04343525545e603c2131b26cabdc141c670399944",
+      "current_git_head": "0a9e6a12241c2f2a5a07190d35f44b663973a4e6",
+      "current_object_sha256": "0876a0a88a1eff0b7c76856bab3a200ce227341b4037c53f20a026a98e13e601",
+      "current_source_sha256": "8586ff0ee5e27ec90b73982c344f800c9f0f51ea1a3150ff6c6a4cc1f6c80139",
+      "failures": [],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": false,
+      "skipped": [
+        "vc71_regression.py check --strict"
+      ],
+      "source": "src/halo/memory/circular_queue.c",
+      "vc71_passed": false,
+      "warnings": []
+    },
+    {
+      "baseline_object_sha256": "03631bdd65e2bcebff55d2d04343525545e603c2131b26cabdc141c670399944",
+      "current_git_head": "0a9e6a12241c2f2a5a07190d35f44b663973a4e6",
+      "current_object_sha256": "fd0f8cd075baba5a4a53ee564d307b4cc20bf2757e2d2178f62b1ba9e94dc112",
+      "current_source_sha256": "8586ff0ee5e27ec90b73982c344f800c9f0f51ea1a3150ff6c6a4cc1f6c80139",
+      "failures": [],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": false,
+      "skipped": [
+        "vc71_regression.py check --strict"
+      ],
+      "source": "src/halo/memory/circular_queue.c",
+      "vc71_passed": false,
+      "warnings": []
     }
   ],
   "created_tool_version": "source-recovery/1",
@@ -12845,7 +12899,7 @@
         "column": 7,
         "id": "decompiler_style_locals:1070:1",
         "line": 1070,
-        "status": "pending",
+        "status": "applied",
         "text": "int iVar1;"
       },
       {
@@ -12853,7 +12907,7 @@
         "column": 7,
         "id": "decompiler_style_locals:1071:1",
         "line": 1071,
-        "status": "pending",
+        "status": "applied",
         "text": "int uVar2;"
       },
       {
@@ -12861,7 +12915,7 @@
         "column": 5,
         "id": "decompiler_style_locals:1074:1",
         "line": 1074,
-        "status": "pending",
+        "status": "applied",
         "text": "iVar1 = *(int *)(*(int *)(z + 0x1c) + 0x14);"
       },
       {
@@ -12869,7 +12923,7 @@
         "column": 9,
         "id": "decompiler_style_locals:1075:1",
         "line": 1075,
-        "status": "pending",
+        "status": "applied",
         "text": "if (iVar1 != 0) {"
       },
       {
@@ -12877,7 +12931,7 @@
         "column": 7,
         "id": "decompiler_style_locals:1076:1",
         "line": 1076,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar2 = FUN_001146c0((int *)iVar1);"
       },
       {
@@ -12885,7 +12939,7 @@
         "column": 35,
         "id": "decompiler_style_locals:1076:2",
         "line": 1076,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar2 = FUN_001146c0((int *)iVar1);"
       },
       {
@@ -12893,7 +12947,7 @@
         "column": 14,
         "id": "decompiler_style_locals:1077:1",
         "line": 1077,
-        "status": "pending",
+        "status": "applied",
         "text": "return uVar2;"
       },
       {
@@ -28167,7 +28221,7 @@
       "column": 7,
       "id": "decompiler_style_locals:1070:1",
       "line": 1070,
-      "status": "pending",
+      "status": "applied",
       "text": "int iVar1;"
     },
     {
@@ -28175,7 +28229,7 @@
       "column": 7,
       "id": "decompiler_style_locals:1071:1",
       "line": 1071,
-      "status": "pending",
+      "status": "applied",
       "text": "int uVar2;"
     },
     {
@@ -28183,7 +28237,7 @@
       "column": 5,
       "id": "decompiler_style_locals:1074:1",
       "line": 1074,
-      "status": "pending",
+      "status": "applied",
       "text": "iVar1 = *(int *)(*(int *)(z + 0x1c) + 0x14);"
     },
     {
@@ -28191,7 +28245,7 @@
       "column": 9,
       "id": "decompiler_style_locals:1075:1",
       "line": 1075,
-      "status": "pending",
+      "status": "applied",
       "text": "if (iVar1 != 0) {"
     },
     {
@@ -28199,7 +28253,7 @@
       "column": 7,
       "id": "decompiler_style_locals:1076:1",
       "line": 1076,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar2 = FUN_001146c0((int *)iVar1);"
     },
     {
@@ -28207,7 +28261,7 @@
       "column": 35,
       "id": "decompiler_style_locals:1076:2",
       "line": 1076,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar2 = FUN_001146c0((int *)iVar1);"
     },
     {
@@ -28215,7 +28269,7 @@
       "column": 14,
       "id": "decompiler_style_locals:1077:1",
       "line": 1077,
-      "status": "pending",
+      "status": "applied",
       "text": "return uVar2;"
     },
     {

@@ -1067,14 +1067,14 @@ int FUN_00115a90(int *z)
  * 0x115b70 / circular_queue.obj (inflate.c) */
 int FUN_00115b70(int z)
 {
-  int iVar1;
-  int uVar2;
+  int blocks;
+  int result;
 
   if (z != 0 && *(int *)(z + 0x1c) != 0) {
-    iVar1 = *(int *)(*(int *)(z + 0x1c) + 0x14);
-    if (iVar1 != 0) {
-      uVar2 = FUN_001146c0((int *)iVar1);
-      return uVar2;
+    blocks = *(int *)(*(int *)(z + 0x1c) + 0x14);
+    if (blocks != 0) {
+      result = FUN_001146c0((int *)blocks);
+      return result;
     }
   }
   return (int)0xfffffffe;
