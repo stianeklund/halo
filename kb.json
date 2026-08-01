@@ -19453,10 +19453,6 @@
      "decl": "void FUN_00178820(void);"
     },
     {
-     "addr": "0x178850",
-     "decl": "void FUN_00178850(void);"
-    },
-    {
      "addr": "0x178ab0",
      "decl": "void FUN_00178ab0(void);"
     },
@@ -19690,6 +19686,17 @@
    ],
    "name": "rasterizer.obj",
    "source": "rasterizer/rasterizer.c"
+  },
+  {
+   "functions": [
+    {
+     "addr": "0x178850",
+     "decl": "bool rasterizer_vertex_shaders_initialize(void);",
+     "ported": true
+    }
+   ],
+   "name": "rasterizer_xbox_vertex_shaders_initialize.obj",
+   "source": "rasterizer/xbox/rasterizer_xbox_vertex_shaders_initialize.c"
   },
   {
    "functions": [
@@ -38037,7 +38044,7 @@
     },
     {
      "addr": "0x001eaf70",
-     "decl": "void D3DDevice_CreateVertexShader(void);"
+     "decl": "int __stdcall D3DDevice_CreateVertexShader(unsigned long *declaration, unsigned long *code, unsigned long *handle, unsigned long flags);"
     },
     {
      "addr": "0x001eb0b0",
