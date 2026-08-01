@@ -28323,7 +28323,7 @@
     {
      "addr": "0x181670",
      "decl": "void FUN_00181670(int *params);",
-     "ported": true
+     "ported": false
     },
     {
      "addr": "0x181900",
@@ -39401,8 +39401,7 @@
     },
     {
      "addr": "0x17b7d0",
-     "decl": "void FUN_0017b7d0(float *point, float radius, float *scale, float theta, unsigned int color);",
-     "ported": true
+     "decl": "void FUN_0017b7d0(float *point, float radius, float *scale, float theta, unsigned int color);"
     }
    ]
   }
