@@ -1488,72 +1488,72 @@ int FUN_00116250(int *param_1, int *param_2, int **param_3, int **param_4)
  * 0x116280 / circular_queue.obj (inflate.c) */
 int FUN_00116280(int param_1, int param_2, int param_3)
 {
-  unsigned int uVar1;
-  unsigned int uVar6;
-  unsigned int uVar2;
-  unsigned int uVar5;
-  unsigned int uVar3;
-  int local_8;
-  int iVar4;
+  unsigned int read_ptr;
+  unsigned int limit;
+  unsigned int avail_out;
+  unsigned int copy_n;
+  unsigned int check;
+  int out_ptr;
+  int read_cur;
   unsigned int (*callback)(unsigned int, unsigned int, unsigned int);
 
-  uVar1 = *(unsigned int *)(param_1 + 0x30);
-  uVar6 = *(unsigned int *)(param_1 + 0x34);
-  local_8 = *(int *)(param_2 + 0xc);
-  if (uVar6 < uVar1) {
-    uVar6 = *(unsigned int *)(param_1 + 0x2c);
+  read_ptr = *(unsigned int *)(param_1 + 0x30);
+  limit = *(unsigned int *)(param_1 + 0x34);
+  out_ptr = *(int *)(param_2 + 0xc);
+  if (limit < read_ptr) {
+    limit = *(unsigned int *)(param_1 + 0x2c);
   }
-  uVar2 = *(unsigned int *)(param_2 + 0x10);
-  uVar5 = uVar6 - uVar1;
-  if (uVar5 > uVar2) {
-    uVar5 = uVar2;
+  avail_out = *(unsigned int *)(param_2 + 0x10);
+  copy_n = limit - read_ptr;
+  if (copy_n > avail_out) {
+    copy_n = avail_out;
   }
-  if ((uVar5 != 0) && (param_3 == -5)) {
+  if ((copy_n != 0) && (param_3 == -5)) {
     param_3 = 0;
   }
-  *(unsigned int *)(param_2 + 0x10) = uVar2 - uVar5;
-  *(int *)(param_2 + 0x14) = *(int *)(param_2 + 0x14) + (int)uVar5;
+  *(unsigned int *)(param_2 + 0x10) = avail_out - copy_n;
+  *(int *)(param_2 + 0x14) = *(int *)(param_2 + 0x14) + (int)copy_n;
   callback = *(unsigned int (**)(unsigned int, unsigned int, unsigned int))(
     param_1 + 0x38);
   if (callback !=
       (unsigned int (*)(unsigned int, unsigned int, unsigned int))0) {
-    uVar3 = callback(*(unsigned int *)(param_1 + 0x3c), uVar1, uVar5);
-    *(unsigned int *)(param_1 + 0x3c) = uVar3;
-    *(unsigned int *)(param_2 + 0x30) = uVar3;
+    check = callback(*(unsigned int *)(param_1 + 0x3c), read_ptr, copy_n);
+    *(unsigned int *)(param_1 + 0x3c) = check;
+    *(unsigned int *)(param_2 + 0x30) = check;
   }
-  csmemcpy((void *)local_8, (void *)uVar1, uVar5);
-  local_8 = local_8 + (int)uVar5;
-  iVar4 = (int)(uVar1 + uVar5);
-  if (iVar4 == *(int *)(param_1 + 0x2c)) {
-    iVar4 = *(int *)(param_1 + 0x28);
+  csmemcpy((void *)out_ptr, (void *)read_ptr, copy_n);
+  out_ptr = out_ptr + (int)copy_n;
+  read_cur = (int)(read_ptr + copy_n);
+  if (read_cur == *(int *)(param_1 + 0x2c)) {
+    read_cur = *(int *)(param_1 + 0x28);
     if (*(int *)(param_1 + 0x34) == *(int *)(param_1 + 0x2c)) {
-      *(int *)(param_1 + 0x34) = iVar4;
+      *(int *)(param_1 + 0x34) = read_cur;
     }
-    uVar2 = *(unsigned int *)(param_2 + 0x10);
-    uVar5 = (unsigned int)(*(int *)(param_1 + 0x34) - iVar4);
-    if (uVar5 > uVar2) {
-      uVar5 = uVar2;
+    avail_out = *(unsigned int *)(param_2 + 0x10);
+    copy_n = (unsigned int)(*(int *)(param_1 + 0x34) - read_cur);
+    if (copy_n > avail_out) {
+      copy_n = avail_out;
     }
-    if ((uVar5 != 0) && (param_3 == -5)) {
+    if ((copy_n != 0) && (param_3 == -5)) {
       param_3 = 0;
     }
-    *(unsigned int *)(param_2 + 0x10) = uVar2 - uVar5;
-    *(int *)(param_2 + 0x14) = *(int *)(param_2 + 0x14) + (int)uVar5;
+    *(unsigned int *)(param_2 + 0x10) = avail_out - copy_n;
+    *(int *)(param_2 + 0x14) = *(int *)(param_2 + 0x14) + (int)copy_n;
     callback = *(unsigned int (**)(unsigned int, unsigned int, unsigned int))(
       param_1 + 0x38);
     if (callback !=
         (unsigned int (*)(unsigned int, unsigned int, unsigned int))0) {
-      uVar3 =
-        callback(*(unsigned int *)(param_1 + 0x3c), (unsigned int)iVar4, uVar5);
-      *(unsigned int *)(param_1 + 0x3c) = uVar3;
-      *(unsigned int *)(param_2 + 0x30) = uVar3;
+      check =
+        callback(*(unsigned int *)(param_1 + 0x3c), (unsigned int)read_cur, copy_n);
+      *(unsigned int *)(param_1 + 0x3c) = check;
+      *(unsigned int *)(param_2 + 0x30) = check;
     }
-    csmemcpy((void *)local_8, (void *)iVar4, uVar5);
-    local_8 = local_8 + (int)uVar5;
-    iVar4 = iVar4 + (int)uVar5;
+    csmemcpy((void *)out_ptr, (void *)read_cur, copy_n);
+    out_ptr = out_ptr + (int)copy_n;
+    read_cur = read_cur + (int)copy_n;
   }
-  *(int *)(param_2 + 0xc) = local_8;
-  *(int *)(param_1 + 0x30) = iVar4;
+  *(int *)(param_2 + 0xc) = out_ptr;
+  *(int *)(param_1 + 0x30) = read_cur;
   return param_3;
 }
 
@@ -1562,7 +1562,7 @@ int FUN_00116280(int param_1, int param_2, int param_3)
  * ABI: @eax=value, @ebx=length, @esi=deflate_state */
 void FUN_00116390(int value, int length, int state)
 {
-  int iVar1;
+  int bi_valid; /* slot also reused as the pending_buf index at state+0x14 */
 
   if (*(int *)0x320e30 > 1) {
     crt_fprintf(*(void **)0x331070, " l %2d v %4x ", length, value);
@@ -1570,26 +1570,26 @@ void FUN_00116390(int value, int length, int state)
   if (length < 1 || length > 0xf) {
     FUN_00117a80("invalid length");
   }
-  iVar1 = *(int *)(state + 0x16bc);
+  bi_valid = *(int *)(state + 0x16bc);
   *(int *)(state + 0x16b4) = *(int *)(state + 0x16b4) + length;
-  if (0x10 - length < iVar1) {
+  if (0x10 - length < bi_valid) {
     *(unsigned short *)(state + 0x16b8) =
-      *(unsigned short *)(state + 0x16b8) | (unsigned short)(value << iVar1);
+      *(unsigned short *)(state + 0x16b8) | (unsigned short)(value << bi_valid);
     *(unsigned char *)(*(int *)(state + 8) + *(int *)(state + 0x14)) =
       *(unsigned char *)(state + 0x16b8);
-    iVar1 = (*(int *)(state + 0x14) = *(int *)(state + 0x14) + 1);
-    *(unsigned char *)(iVar1 + *(int *)(state + 8)) =
+    bi_valid = (*(int *)(state + 0x14) = *(int *)(state + 0x14) + 1);
+    *(unsigned char *)(bi_valid + *(int *)(state + 8)) =
       *(unsigned char *)(state + 0x16b9);
     *(int *)(state + 0x14) = *(int *)(state + 0x14) + 1;
-    iVar1 = *(int *)(state + 0x16bc);
-    *(int *)(state + 0x16bc) = (iVar1 + -0x10) + length;
+    bi_valid = *(int *)(state + 0x16bc);
+    *(int *)(state + 0x16bc) = (bi_valid + -0x10) + length;
     *(unsigned short *)(state + 0x16b8) =
-      (unsigned short)value >> ((unsigned int)(0x10 - (char)iVar1) & 0x1f);
+      (unsigned short)value >> ((unsigned int)(0x10 - (char)bi_valid) & 0x1f);
     return;
   }
-  *(int *)(state + 0x16bc) = iVar1 + length;
+  *(int *)(state + 0x16bc) = bi_valid + length;
   *(unsigned short *)(state + 0x16b8) =
-    *(unsigned short *)(state + 0x16b8) | (unsigned short)(value << iVar1);
+    *(unsigned short *)(state + 0x16b8) | (unsigned short)(value << bi_valid);
 }
 
 /* init_block: zero per-block frequency counts and set EOB count to 1.
@@ -1597,30 +1597,30 @@ void FUN_00116390(int value, int length, int state)
  * ABI: @edx=state */
 void FUN_00116460(int state)
 {
-  unsigned short *puVar1;
-  int iVar2;
+  unsigned short *freq_ptr;
+  int count;
 
-  puVar1 = (unsigned short *)(state + 0x8c);
-  iVar2 = 0x11e;
+  freq_ptr = (unsigned short *)(state + 0x8c);
+  count = 0x11e;
   do {
-    *puVar1 = 0;
-    puVar1 += 2;
-    iVar2--;
-  } while (iVar2 != 0);
-  puVar1 = (unsigned short *)(state + 0x980);
-  iVar2 = 0x1e;
+    *freq_ptr = 0;
+    freq_ptr += 2;
+    count--;
+  } while (count != 0);
+  freq_ptr = (unsigned short *)(state + 0x980);
+  count = 0x1e;
   do {
-    *puVar1 = 0;
-    puVar1 += 2;
-    iVar2--;
-  } while (iVar2 != 0);
-  puVar1 = (unsigned short *)(state + 0xa74);
-  iVar2 = 0x13;
+    *freq_ptr = 0;
+    freq_ptr += 2;
+    count--;
+  } while (count != 0);
+  freq_ptr = (unsigned short *)(state + 0xa74);
+  count = 0x13;
   do {
-    *puVar1 = 0;
-    puVar1 += 2;
-    iVar2--;
-  } while (iVar2 != 0);
+    *freq_ptr = 0;
+    freq_ptr += 2;
+    count--;
+  } while (count != 0);
   *(unsigned int *)(state + 0x16a4) = 0;
   *(unsigned int *)(state + 0x16a0) = 0;
   *(unsigned int *)(state + 0x16a8) = 0;
