@@ -9989,6 +9989,16 @@
         "The 'sizes already measured' guard reads the dword at 0x325640, which is packed_shaders[1].offset (0x325634 + 1*8 + 4) rather than a separate flag global; the lift reproduces the address but the original source spelling of that test is unknown."
       ]
     },
+    "0x1792c0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Param is byte-wide: the body's only read of the stack slot is MOV AL, byte ptr [EBP+0x8] with no MOVSX/MOVZX and no dword load, so the kb.json decl was narrowed from int param_1 to char mode (narrowing is free on a cdecl stack slot, and it matches the sibling FUN_001792a0 at 0x1792a0)."
+      ],
+      "uncertain": [
+        "The global byte at 0x47e4c9 has no string or PDB evidence for a semantic name; all that is known is that FUN_001792a0 writes it together with a zero-test flag at 0x47e4c8, that FUN_001792C0 writes it alone, and that the sole observed caller (rasterizer frame setup in rasterizer_xbox_decals.c) passes 0."
+      ]
+    },
     "0x17c7e0": {
       "kind": "function",
       "status": "ported"
@@ -10053,6 +10063,20 @@
       }
     },
     "0x17cfa0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x181180": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Element at 0x4c6480 + index*0x28 has an int sample/occlusion-sample count at +0x24 used as the divisor of the alpha ratio; the assert string names the index variable lens_flare_index."
+      ],
+      "uncertain": [
+        "FUN_0017d040 decl was corrected from void(void) to int(int index) purely from the call site (PUSH ESI; CALL; IMUL EAX,EAX,0xff; ADD ESP,4); the callee body was not decompiled, so the parameter's exact width and the return value's units are unverified."
+      ]
+    },
+    "0x1812c0": {
       "kind": "function",
       "status": "ported"
     },

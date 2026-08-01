@@ -125,6 +125,7 @@
 	halo/rasterizer/xbox/rasterizer_xbox_screen_effect.c
 	halo/rasterizer/xbox/rasterizer_xbox_vertex_shaders_initialize.c
 	halo/rasterizer/xbox/rasterizer_xbox_vertex_shaders_runtime.c
+	halo/rasterizer/xbox/rasterizer_xbox_widgets.c
 	halo/render/render.c
 	halo/render/render_cameras.c
 	halo/render/render_debug.c
