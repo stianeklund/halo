@@ -666,12 +666,19 @@ def _get_fastcall_mappable() -> set[str]:
 
     Returns the names of functions whose parameter list is exactly
     [@<ecx>] or [@<ecx>, @<edx>] (byte/word aliases included) with no stack
-    parameters.  For these, compiling as __fastcall makes VC71 read the
-    argument registers directly (no cdecl stack-load prologue) and emit the
-    original's call-site sequence (mov ecx[, edx]; call — no push/add esp).
-    Functions with any stack parameter are excluded: __fastcall would steal
-    the first stack parameter into a register.  @<eax>/@<esi>/etc. cannot be
-    expressed in VC71 at all (known permanent ceiling).
+    parameters, or [@<ecx>, @<edx>, int-stack-params...] — for the latter,
+    __fastcall consumes ecx and edx and pushes the remaining args with
+    callee cleanup, which is exactly the original ABI (e.g.
+    D3DDevice_SetTextureStageState(stage@<ecx>, state@<edx>, value)).
+    For all of these, compiling as __fastcall makes VC71 read the argument
+    registers directly (no cdecl stack-load prologue) and emit the
+    original's call-site sequence (mov ecx[, edx][; push ...]; call).
+    Functions with a single @<ecx> AND stack parameters are excluded:
+    __fastcall would steal the first stack parameter into edx.  Float or
+    double stack parameters are excluded (fastcall push conventions match,
+    but keep parity with _get_regarg_callees' proven-safe subset).
+    @<eax>/@<esi>/etc. cannot be expressed in VC71 at all (known permanent
+    ceiling).
     """
     kb = _load_kb()
     result: set[str] = set()
@@ -690,15 +697,24 @@ def _get_fastcall_mappable() -> set[str]:
             params = [p.strip() for p in params_str.split(",")
                       if p.strip() and p.strip() != "void"]
             regs = []
+            stack_params = 0
+            ok = True
             for p in params:
                 rm = re.search(r"@<(\w+)>", p)
-                if not rm:
-                    regs = None  # stack param present -> not fastcall-mappable
-                    break
-                regs.append(rm.group(1).lower())
-            if regs is None or not regs:
+                if rm:
+                    if stack_params:
+                        ok = False  # reg param after a stack param
+                        break
+                    regs.append(rm.group(1).lower())
+                else:
+                    stack_params += 1
+                    if "float" in p or "double" in p:
+                        ok = False
+                        break
+            if not ok or not regs:
                 continue
-            if (len(regs) == 1 and regs[0] in _FASTCALL_ECX) or (
+            if (len(regs) == 1 and regs[0] in _FASTCALL_ECX
+                    and stack_params == 0) or (
                 len(regs) == 2
                 and regs[0] in _FASTCALL_ECX
                 and regs[1] in _FASTCALL_EDX
@@ -714,6 +730,14 @@ def _fastcall_sig_re(name: str) -> "re.Pattern[str]":
                       re.MULTILINE)
 
 
+def _fastcall_sub(m: "re.Match[str]") -> str:
+    """Rewrite a matched signature to __fastcall, dropping any explicit
+    __stdcall/__cdecl so the keywords don't conflict (both are callee-clean
+    vs __fastcall's callee-clean — the register ABI is what changes)."""
+    prefix = re.sub(r"__(stdcall|cdecl)\b[ \t]*", "", m.group(1))
+    return f"{prefix}__fastcall {m.group(2)}{m.group(3)}"
+
+
 def _preprocess_fastcall_defs(source: Path, names: set[str],
                               orig_source: Path) -> Path:
     """Insert __fastcall into top-level definitions/prototypes of
@@ -723,8 +747,7 @@ def _preprocess_fastcall_defs(source: Path, names: set[str],
     for name in names:
         if name not in text:
             continue
-        new_text, n = _fastcall_sig_re(name).subn(
-            lambda m: f"{m.group(1)}__fastcall {m.group(2)}{m.group(3)}", text)
+        new_text, n = _fastcall_sig_re(name).subn(_fastcall_sub, text)
         if n:
             text = new_text
             changed = True
@@ -747,8 +770,7 @@ def _make_fastcall_decl_shadow(names: set[str]) -> Path | None:
     for name in names:
         if name not in text:
             continue
-        new_text, n = _fastcall_sig_re(name).subn(
-            lambda m: f"{m.group(1)}__fastcall {m.group(2)}{m.group(3)}", text)
+        new_text, n = _fastcall_sig_re(name).subn(_fastcall_sub, text)
         if n:
             text = new_text
             changed = True

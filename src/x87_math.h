@@ -5,32 +5,39 @@
 #ifndef X87_MATH_H
 #define X87_MATH_H
 
-static __inline float x87_fcos(float val) {
-  float r;
 #if defined(_MSC_VER) && !defined(__clang__)
-  __asm {
-    fld DWORD PTR [val]
-    fcos
-    fstp DWORD PTR [r]
-  }
-#else
-  __asm__ __volatile__("fcos" : "=t"(r) : "0"(val));
+/* VC71 verify lane only (the shipping clang build takes the asm-volatile
+ * branches below; clang defines _MSC_VER under -target i386-pc-win32, hence
+ * the !__clang__ test).  MSVC 7.1 refuses to inline any function containing
+ * an __asm block, so __asm helper bodies compile to real CALL sites where
+ * the original binary has a bare inline FCOS/FSIN/FSQRT.  Use the compiler
+ * intrinsics instead — #pragma intrinsic forces inline x87 emission
+ * regardless of /Oi — so the lane emits the same single instruction the
+ * original does. */
+double __cdecl cos(double);
+double __cdecl sin(double);
+double __cdecl sqrt(double);
+#pragma intrinsic(cos, sin, sqrt)
 #endif
+
+static __inline float x87_fcos(float val) {
+#if defined(_MSC_VER) && !defined(__clang__)
+  return (float)cos((double)val); /* VC71 intrinsic: FLD dword; FCOS */
+#else
+  float r;
+  __asm__ __volatile__("fcos" : "=t"(r) : "0"(val));
   return r;
+#endif
 }
 
 static __inline float x87_fsin(float val) {
-  float r;
 #if defined(_MSC_VER) && !defined(__clang__)
-  __asm {
-    fld DWORD PTR [val]
-    fsin
-    fstp DWORD PTR [r]
-  }
+  return (float)sin((double)val); /* VC71 intrinsic: FLD dword; FSIN */
 #else
+  float r;
   __asm__ __volatile__("fsin" : "=t"(r) : "0"(val));
-#endif
   return r;
+#endif
 }
 
 /* Double-input FSIN/FCOS: FLD QWORD; FSIN/FCOS. Matches the original binary's
@@ -215,17 +222,13 @@ static __inline float x87_fatan2f(float a, float b) {
 }
 
 static __inline float x87_sqrt(float val) {
-  float r;
 #if defined(_MSC_VER) && !defined(__clang__)
-  __asm {
-    fld DWORD PTR [val]
-    fsqrt
-    fstp DWORD PTR [r]
-  }
+  return (float)sqrt((double)val); /* VC71 intrinsic: FLD dword; FSQRT */
 #else
+  float r;
   __asm__ __volatile__("fsqrt" : "=t"(r) : "0"(val));
-#endif
   return r;
+#endif
 }
 
 #endif /* X87_MATH_H */
