@@ -11964,6 +11964,14 @@
       "score": 98.1,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
+    "FUN_0017be50": {
+      "score": 87.8,
+      "source": "src/halo/rasterizer/xbox/shader_transparent_generic_preprocessor.c"
+    },
+    "FUN_0017bf20": {
+      "score": 96.1,
+      "source": "src/halo/rasterizer/xbox/shader_transparent_generic_preprocessor.c"
+    },
     "FUN_0017c7e0": {
       "score": 83.5,
       "source": "src/halo/rasterizer/rasterizer.c"
