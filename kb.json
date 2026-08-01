@@ -28378,7 +28378,9 @@
     },
     {
      "addr": "0x182610",
-     "decl": "void FUN_00182610(void);"
+     "decl": "void FUN_00182610(short param_1 @<esi>, short param_2, short param_3);",
+     "name": "FUN_00182610",
+     "ported": true
     },
     {
      "addr": "0x182690",

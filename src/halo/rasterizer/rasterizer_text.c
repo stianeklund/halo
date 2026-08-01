@@ -1598,6 +1598,56 @@ void rasterizer_memory_pool_delete(void)
 
 /* rasterizer_swizzle.c */
 
+/* FUN_00182610: build three disjoint bit-interleave masks into the globals at
+ * 0x4d0498 / 0x4d0494 / 0x4d0490 (0x182610).
+ *
+ * A single shifting bit (EAX) is shared across all three accumulators and only
+ * advances when a dimension still has resolution left at the current probe
+ * level, so the three masks partition disjoint bit ranges of the interleaved
+ * address.  param_1 arrives in SI (sign-extended once, before the loop);
+ * param_2/param_3 are re-sign-extended each iteration.  Comparisons are
+ * unsigned against the shifting probe.
+ *
+ * The third accumulator lives in EDI for the whole loop and is stored to
+ * 0x4d0490 once, after the loop. */
+void FUN_00182610(short param_1, short param_2, short param_3)
+{
+  unsigned int acc_2; /* EDI: stored to 0x4d0490 after the loop */
+  unsigned int probe; /* EDX */
+  unsigned int bit; /* EAX: shared shifting bit */
+  unsigned int taken; /* ECX: per-iteration "a bit was consumed" flag */
+  int param_1_ext; /* ESI: sign-extended once, hoisted out of the loop */
+
+  acc_2 = 0;
+  probe = 1;
+  bit = 1;
+  *(unsigned int *)0x4d0494 = 0;
+  *(unsigned int *)0x4d0498 = 0;
+  param_1_ext = param_1;
+
+  do {
+    taken = 0;
+    if (probe < (unsigned int)param_1_ext) {
+      *(unsigned int *)0x4d0498 |= bit;
+      bit <<= 1;
+      taken = bit;
+    }
+    if (probe < (unsigned int)(int)param_2) {
+      *(unsigned int *)0x4d0494 |= bit;
+      bit <<= 1;
+      taken = bit;
+    }
+    if (probe < (unsigned int)(int)param_3) {
+      acc_2 |= bit;
+      bit <<= 1;
+      taken = bit;
+    }
+    probe <<= 1;
+  } while (taken != 0);
+
+  *(unsigned int *)0x4d0490 = acc_2;
+}
+
 /* rasterizer_swizzle_compute_masks: compute swizzle bit-interleave masks for a
  * texture surface (0x182690).
  * param_1/param_2: log2 of width/height; param_3/param_4: u/v tile indices;
