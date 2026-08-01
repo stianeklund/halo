@@ -8780,6 +8780,24 @@
       "source": "src/halo/memory/circular_queue.c",
       "vc71_passed": false,
       "warnings": []
+    },
+    {
+      "baseline_object_sha256": "03631bdd65e2bcebff55d2d04343525545e603c2131b26cabdc141c670399944",
+      "current_git_head": "607512e7052881b4d1bc25bdb779f3d38693ffa5",
+      "current_object_sha256": "c8494676b749e8dd10b725d074036b7aba4105c07e04071ab329b381881e3697",
+      "current_source_sha256": "4fcca8470c733572d3272ef4ea63f638f5f260d10b1d9f38a2d7de92a512c48e",
+      "failures": [],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": false,
+      "skipped": [
+        "vc71_regression.py check --strict"
+      ],
+      "source": "src/halo/memory/circular_queue.c",
+      "vc71_passed": false,
+      "warnings": []
     }
   ],
   "created_tool_version": "source-recovery/1",
