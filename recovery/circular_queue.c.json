@@ -8402,6 +8402,24 @@
       "source": "src/halo/memory/circular_queue.c",
       "vc71_passed": false,
       "warnings": []
+    },
+    {
+      "baseline_object_sha256": "03631bdd65e2bcebff55d2d04343525545e603c2131b26cabdc141c670399944",
+      "current_git_head": "e8338c088fbec297f3103bccb1099f0c0d593bf3",
+      "current_object_sha256": "e9d1c256262ae4b03e20bffe0d7bb5e79e2020adc7be451db9e024427f716d51",
+      "current_source_sha256": "dabc06bc595631b58b61f4e06379e9264dd656165273d3ec7d8759018f45192a",
+      "failures": [],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": false,
+      "skipped": [
+        "vc71_regression.py check --strict"
+      ],
+      "source": "src/halo/memory/circular_queue.c",
+      "vc71_passed": false,
+      "warnings": []
     }
   ],
   "created_tool_version": "source-recovery/1",
@@ -9775,7 +9793,7 @@
         "column": 18,
         "id": "decompiler_style_locals:466:1",
         "line": 466,
-        "status": "pending",
+        "status": "applied",
         "text": "unsigned char *pbVar7;"
       },
       {
@@ -9783,7 +9801,7 @@
         "column": 7,
         "id": "decompiler_style_locals:467:1",
         "line": 467,
-        "status": "pending",
+        "status": "applied",
         "text": "int bVar2;"
       },
       {
@@ -9791,7 +9809,7 @@
         "column": 17,
         "id": "decompiler_style_locals:468:1",
         "line": 468,
-        "status": "pending",
+        "status": "applied",
         "text": "unsigned char bVar3;"
       },
       {
@@ -9799,7 +9817,7 @@
         "column": 16,
         "id": "decompiler_style_locals:469:1",
         "line": 469,
-        "status": "pending",
+        "status": "applied",
         "text": "unsigned int uVar4;"
       },
       {
@@ -9807,7 +9825,7 @@
         "column": 16,
         "id": "decompiler_style_locals:470:1",
         "line": 470,
-        "status": "pending",
+        "status": "applied",
         "text": "unsigned int uVar5;"
       },
       {
@@ -9815,7 +9833,7 @@
         "column": 7,
         "id": "decompiler_style_locals:471:1",
         "line": 471,
-        "status": "pending",
+        "status": "applied",
         "text": "int iVar6;"
       },
       {
@@ -9823,7 +9841,7 @@
         "column": 16,
         "id": "decompiler_style_locals:472:1",
         "line": 472,
-        "status": "pending",
+        "status": "applied",
         "text": "unsigned int uVar8;"
       },
       {
@@ -9831,7 +9849,7 @@
         "column": 16,
         "id": "decompiler_style_locals:474:1",
         "line": 474,
-        "status": "pending",
+        "status": "applied",
         "text": "unsigned int uVar9;"
       },
       {
@@ -9839,7 +9857,7 @@
         "column": 16,
         "id": "decompiler_style_locals:475:1",
         "line": 475,
-        "status": "pending",
+        "status": "applied",
         "text": "unsigned int uVar10;"
       },
       {
@@ -9847,7 +9865,7 @@
         "column": 16,
         "id": "decompiler_style_locals:476:1",
         "line": 476,
-        "status": "pending",
+        "status": "applied",
         "text": "unsigned int uVar11;"
       },
       {
@@ -9855,7 +9873,7 @@
         "column": 16,
         "id": "decompiler_style_locals:477:1",
         "line": 477,
-        "status": "pending",
+        "status": "applied",
         "text": "unsigned int uVar12;"
       },
       {
@@ -9863,7 +9881,7 @@
         "column": 18,
         "id": "decompiler_style_locals:478:1",
         "line": 478,
-        "status": "pending",
+        "status": "applied",
         "text": "unsigned char *local_14;"
       },
       {
@@ -9871,7 +9889,7 @@
         "column": 18,
         "id": "decompiler_style_locals:479:1",
         "line": 479,
-        "status": "pending",
+        "status": "applied",
         "text": "unsigned char *local_10;"
       },
       {
@@ -9879,7 +9897,7 @@
         "column": 18,
         "id": "decompiler_style_locals:480:1",
         "line": 480,
-        "status": "pending",
+        "status": "applied",
         "text": "unsigned char *local_c;"
       },
       {
@@ -9887,7 +9905,7 @@
         "column": 16,
         "id": "decompiler_style_locals:481:1",
         "line": 481,
-        "status": "pending",
+        "status": "applied",
         "text": "unsigned int local_8;"
       },
       {
@@ -9895,7 +9913,7 @@
         "column": 3,
         "id": "decompiler_style_locals:483:1",
         "line": 483,
-        "status": "pending",
+        "status": "applied",
         "text": "local_c = (unsigned char *)*param_6;"
       },
       {
@@ -9903,7 +9921,7 @@
         "column": 3,
         "id": "decompiler_style_locals:484:1",
         "line": 484,
-        "status": "pending",
+        "status": "applied",
         "text": "local_8 = (unsigned int)param_6[1];"
       },
       {
@@ -9911,7 +9929,7 @@
         "column": 3,
         "id": "decompiler_style_locals:485:1",
         "line": 485,
-        "status": "pending",
+        "status": "applied",
         "text": "local_10 = *(unsigned char **)(param_5 + 0x34);"
       },
       {
@@ -9919,7 +9937,7 @@
         "column": 3,
         "id": "decompiler_style_locals:486:1",
         "line": 486,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = *(unsigned int *)(param_5 + 0x1c);"
       },
       {
@@ -9927,7 +9945,7 @@
         "column": 3,
         "id": "decompiler_style_locals:487:1",
         "line": 487,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = *(unsigned int *)(param_5 + 0x20);"
       },
       {
@@ -9935,7 +9953,7 @@
         "column": 7,
         "id": "decompiler_style_locals:488:1",
         "line": 488,
-        "status": "pending",
+        "status": "applied",
         "text": "if (local_10 < *(unsigned char **)(param_5 + 0x30)) {"
       },
       {
@@ -9943,7 +9961,7 @@
         "column": 5,
         "id": "decompiler_style_locals:489:1",
         "line": 489,
-        "status": "pending",
+        "status": "applied",
         "text": "local_14 ="
       },
       {
@@ -9951,7 +9969,7 @@
         "column": 63,
         "id": "decompiler_style_locals:490:1",
         "line": 490,
-        "status": "pending",
+        "status": "applied",
         "text": "(unsigned char *)(*(int *)(param_5 + 0x30) + (-1 - (int)local_10));"
       },
       {
@@ -9959,7 +9977,7 @@
         "column": 5,
         "id": "decompiler_style_locals:492:1",
         "line": 492,
-        "status": "pending",
+        "status": "applied",
         "text": "local_14 = (unsigned char *)(*(int *)(param_5 + 0x2c) - (int)local_10);"
       },
       {
@@ -9967,7 +9985,7 @@
         "column": 66,
         "id": "decompiler_style_locals:492:2",
         "line": 492,
-        "status": "pending",
+        "status": "applied",
         "text": "local_14 = (unsigned char *)(*(int *)(param_5 + 0x2c) - (int)local_10);"
       },
       {
@@ -9975,7 +9993,7 @@
         "column": 3,
         "id": "decompiler_style_locals:494:1",
         "line": 494,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar8 = *(unsigned int *)(0x320d88 + param_1 * 4);"
       },
       {
@@ -9983,7 +10001,7 @@
         "column": 3,
         "id": "decompiler_style_locals:495:1",
         "line": 495,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar4 = *(unsigned int *)(0x320d88 + param_2 * 4);"
       },
       {
@@ -9991,7 +10009,7 @@
         "column": 12,
         "id": "decompiler_style_locals:497:1",
         "line": 497,
-        "status": "pending",
+        "status": "applied",
         "text": "for (; uVar11 < 0x14; uVar11 = uVar11 + 8) {"
       },
       {
@@ -9999,7 +10017,7 @@
         "column": 27,
         "id": "decompiler_style_locals:497:2",
         "line": 497,
-        "status": "pending",
+        "status": "applied",
         "text": "for (; uVar11 < 0x14; uVar11 = uVar11 + 8) {"
       },
       {
@@ -10007,7 +10025,7 @@
         "column": 36,
         "id": "decompiler_style_locals:497:3",
         "line": 497,
-        "status": "pending",
+        "status": "applied",
         "text": "for (; uVar11 < 0x14; uVar11 = uVar11 + 8) {"
       },
       {
@@ -10015,7 +10033,7 @@
         "column": 7,
         "id": "decompiler_style_locals:498:1",
         "line": 498,
-        "status": "pending",
+        "status": "applied",
         "text": "local_8 = local_8 - 1;"
       },
       {
@@ -10023,7 +10041,7 @@
         "column": 17,
         "id": "decompiler_style_locals:498:2",
         "line": 498,
-        "status": "pending",
+        "status": "applied",
         "text": "local_8 = local_8 - 1;"
       },
       {
@@ -10031,7 +10049,7 @@
         "column": 7,
         "id": "decompiler_style_locals:499:1",
         "line": 499,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
       },
       {
@@ -10039,7 +10057,7 @@
         "column": 16,
         "id": "decompiler_style_locals:499:2",
         "line": 499,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
       },
       {
@@ -10047,7 +10065,7 @@
         "column": 40,
         "id": "decompiler_style_locals:499:3",
         "line": 499,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
       },
       {
@@ -10055,7 +10073,7 @@
         "column": 66,
         "id": "decompiler_style_locals:499:4",
         "line": 499,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
       },
       {
@@ -10063,7 +10081,7 @@
         "column": 7,
         "id": "decompiler_style_locals:500:1",
         "line": 500,
-        "status": "pending",
+        "status": "applied",
         "text": "local_c = local_c + 1;"
       },
       {
@@ -10071,7 +10089,7 @@
         "column": 17,
         "id": "decompiler_style_locals:500:2",
         "line": 500,
-        "status": "pending",
+        "status": "applied",
         "text": "local_c = local_c + 1;"
       },
       {
@@ -10079,7 +10097,7 @@
         "column": 5,
         "id": "decompiler_style_locals:502:1",
         "line": 502,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = (unsigned char *)(param_3 + (uVar8 & uVar12) * 8);"
       },
       {
@@ -10087,7 +10105,7 @@
         "column": 43,
         "id": "decompiler_style_locals:502:2",
         "line": 502,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = (unsigned char *)(param_3 + (uVar8 & uVar12) * 8);"
       },
       {
@@ -10095,7 +10113,7 @@
         "column": 51,
         "id": "decompiler_style_locals:502:3",
         "line": 502,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = (unsigned char *)(param_3 + (uVar8 & uVar12) * 8);"
       },
       {
@@ -10103,7 +10121,7 @@
         "column": 5,
         "id": "decompiler_style_locals:503:1",
         "line": 503,
-        "status": "pending",
+        "status": "applied",
         "text": "bVar2 = pbVar7[1];"
       },
       {
@@ -10111,7 +10129,7 @@
         "column": 13,
         "id": "decompiler_style_locals:503:2",
         "line": 503,
-        "status": "pending",
+        "status": "applied",
         "text": "bVar2 = pbVar7[1];"
       },
       {
@@ -10119,7 +10137,7 @@
         "column": 5,
         "id": "decompiler_style_locals:504:1",
         "line": 504,
-        "status": "pending",
+        "status": "applied",
         "text": "bVar3 = *pbVar7;"
       },
       {
@@ -10127,7 +10145,7 @@
         "column": 14,
         "id": "decompiler_style_locals:504:2",
         "line": 504,
-        "status": "pending",
+        "status": "applied",
         "text": "bVar3 = *pbVar7;"
       },
       {
@@ -10135,7 +10153,7 @@
         "column": 5,
         "id": "decompiler_style_locals:505:1",
         "line": 505,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar5 = (unsigned int)bVar3;"
       },
       {
@@ -10143,7 +10161,7 @@
         "column": 27,
         "id": "decompiler_style_locals:505:2",
         "line": 505,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar5 = (unsigned int)bVar3;"
       },
       {
@@ -10151,7 +10169,7 @@
         "column": 5,
         "id": "decompiler_style_locals:506:1",
         "line": 506,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> bVar2;"
       },
       {
@@ -10159,7 +10177,7 @@
         "column": 14,
         "id": "decompiler_style_locals:506:2",
         "line": 506,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> bVar2;"
       },
       {
@@ -10167,7 +10185,7 @@
         "column": 24,
         "id": "decompiler_style_locals:506:3",
         "line": 506,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> bVar2;"
       },
       {
@@ -10175,7 +10193,7 @@
         "column": 9,
         "id": "decompiler_style_locals:507:1",
         "line": 507,
-        "status": "pending",
+        "status": "applied",
         "text": "if (uVar5 == 0) {"
       },
       {
@@ -10183,7 +10201,7 @@
         "column": 5,
         "id": "decompiler_style_locals:510:1",
         "line": 510,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - pbVar7[1];"
       },
       {
@@ -10191,7 +10209,7 @@
         "column": 14,
         "id": "decompiler_style_locals:510:2",
         "line": 510,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - pbVar7[1];"
       },
       {
@@ -10199,7 +10217,7 @@
         "column": 23,
         "id": "decompiler_style_locals:510:3",
         "line": 510,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - pbVar7[1];"
       },
       {
@@ -10207,7 +10225,7 @@
         "column": 13,
         "id": "decompiler_style_locals:511:1",
         "line": 511,
-        "status": "pending",
+        "status": "applied",
         "text": "while ((bVar3 & 0x10) == 0) {"
       },
       {
@@ -10215,7 +10233,7 @@
         "column": 12,
         "id": "decompiler_style_locals:512:1",
         "line": 512,
-        "status": "pending",
+        "status": "applied",
         "text": "if ((uVar5 & 0x40) != 0) {"
       },
       {
@@ -10223,7 +10241,7 @@
         "column": 14,
         "id": "decompiler_style_locals:513:1",
         "line": 513,
-        "status": "pending",
+        "status": "applied",
         "text": "if ((uVar5 & 0x20) != 0) {"
       },
       {
@@ -10231,7 +10249,7 @@
         "column": 11,
         "id": "decompiler_style_locals:518:1",
         "line": 518,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar8 = (unsigned int)param_6[1] - local_8;"
       },
       {
@@ -10239,7 +10257,7 @@
         "column": 46,
         "id": "decompiler_style_locals:518:2",
         "line": 518,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar8 = (unsigned int)param_6[1] - local_8;"
       },
       {
@@ -10247,7 +10265,7 @@
         "column": 15,
         "id": "decompiler_style_locals:519:1",
         "line": 519,
-        "status": "pending",
+        "status": "applied",
         "text": "if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {"
       },
       {
@@ -10255,7 +10273,7 @@
         "column": 56,
         "id": "decompiler_style_locals:519:2",
         "line": 519,
-        "status": "pending",
+        "status": "applied",
         "text": "if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {"
       },
       {
@@ -10263,7 +10281,7 @@
         "column": 13,
         "id": "decompiler_style_locals:520:1",
         "line": 520,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar8 = uVar11 >> 3;"
       },
       {
@@ -10271,7 +10289,7 @@
         "column": 21,
         "id": "decompiler_style_locals:520:2",
         "line": 520,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar8 = uVar11 >> 3;"
       },
       {
@@ -10279,7 +10297,7 @@
         "column": 47,
         "id": "decompiler_style_locals:522:1",
         "line": 522,
-        "status": "pending",
+        "status": "applied",
         "text": "*(unsigned int *)(param_5 + 0x20) = uVar12;"
       },
       {
@@ -10287,7 +10305,7 @@
         "column": 47,
         "id": "decompiler_style_locals:523:1",
         "line": 523,
-        "status": "pending",
+        "status": "applied",
         "text": "*(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;"
       },
       {
@@ -10295,7 +10313,7 @@
         "column": 56,
         "id": "decompiler_style_locals:523:2",
         "line": 523,
-        "status": "pending",
+        "status": "applied",
         "text": "*(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;"
       },
       {
@@ -10303,7 +10321,7 @@
         "column": 11,
         "id": "decompiler_style_locals:524:1",
         "line": 524,
-        "status": "pending",
+        "status": "applied",
         "text": "iVar6 = *param_6;"
       },
       {
@@ -10311,7 +10329,7 @@
         "column": 30,
         "id": "decompiler_style_locals:525:1",
         "line": 525,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[1] = (int)(uVar8 + local_8);"
       },
       {
@@ -10319,7 +10337,7 @@
         "column": 38,
         "id": "decompiler_style_locals:525:2",
         "line": 525,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[1] = (int)(uVar8 + local_8);"
       },
       {
@@ -10327,7 +10345,7 @@
         "column": 27,
         "id": "decompiler_style_locals:526:1",
         "line": 526,
-        "status": "pending",
+        "status": "applied",
         "text": "*param_6 = (int)local_c - (int)uVar8;"
       },
       {
@@ -10335,7 +10353,7 @@
         "column": 42,
         "id": "decompiler_style_locals:526:2",
         "line": 526,
-        "status": "pending",
+        "status": "applied",
         "text": "*param_6 = (int)local_c - (int)uVar8;"
       },
       {
@@ -10343,7 +10361,7 @@
         "column": 44,
         "id": "decompiler_style_locals:527:1",
         "line": 527,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
       },
       {
@@ -10351,7 +10369,7 @@
         "column": 59,
         "id": "decompiler_style_locals:527:2",
         "line": 527,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
       },
       {
@@ -10359,7 +10377,7 @@
         "column": 68,
         "id": "decompiler_style_locals:527:3",
         "line": 527,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
       },
       {
@@ -10367,7 +10385,7 @@
         "column": 49,
         "id": "decompiler_style_locals:528:1",
         "line": 528,
-        "status": "pending",
+        "status": "applied",
         "text": "*(unsigned char **)(param_5 + 0x34) = local_10;"
       },
       {
@@ -10375,7 +10393,7 @@
         "column": 9,
         "id": "decompiler_style_locals:532:1",
         "line": 532,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar8 = (unsigned int)param_6[1] - local_8;"
       },
       {
@@ -10383,7 +10401,7 @@
         "column": 44,
         "id": "decompiler_style_locals:532:2",
         "line": 532,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar8 = (unsigned int)param_6[1] - local_8;"
       },
       {
@@ -10391,7 +10409,7 @@
         "column": 13,
         "id": "decompiler_style_locals:533:1",
         "line": 533,
-        "status": "pending",
+        "status": "applied",
         "text": "if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {"
       },
       {
@@ -10399,7 +10417,7 @@
         "column": 54,
         "id": "decompiler_style_locals:533:2",
         "line": 533,
-        "status": "pending",
+        "status": "applied",
         "text": "if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {"
       },
       {
@@ -10407,7 +10425,7 @@
         "column": 11,
         "id": "decompiler_style_locals:534:1",
         "line": 534,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar8 = uVar11 >> 3;"
       },
       {
@@ -10415,7 +10433,7 @@
         "column": 19,
         "id": "decompiler_style_locals:534:2",
         "line": 534,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar8 = uVar11 >> 3;"
       },
       {
@@ -10423,7 +10441,7 @@
         "column": 45,
         "id": "decompiler_style_locals:536:1",
         "line": 536,
-        "status": "pending",
+        "status": "applied",
         "text": "*(unsigned int *)(param_5 + 0x20) = uVar12;"
       },
       {
@@ -10431,7 +10449,7 @@
         "column": 45,
         "id": "decompiler_style_locals:537:1",
         "line": 537,
-        "status": "pending",
+        "status": "applied",
         "text": "*(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;"
       },
       {
@@ -10439,7 +10457,7 @@
         "column": 54,
         "id": "decompiler_style_locals:537:2",
         "line": 537,
-        "status": "pending",
+        "status": "applied",
         "text": "*(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;"
       },
       {
@@ -10447,7 +10465,7 @@
         "column": 9,
         "id": "decompiler_style_locals:538:1",
         "line": 538,
-        "status": "pending",
+        "status": "applied",
         "text": "iVar6 = *param_6;"
       },
       {
@@ -10455,7 +10473,7 @@
         "column": 28,
         "id": "decompiler_style_locals:539:1",
         "line": 539,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[1] = (int)(uVar8 + local_8);"
       },
       {
@@ -10463,7 +10481,7 @@
         "column": 36,
         "id": "decompiler_style_locals:539:2",
         "line": 539,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[1] = (int)(uVar8 + local_8);"
       },
       {
@@ -10471,7 +10489,7 @@
         "column": 25,
         "id": "decompiler_style_locals:540:1",
         "line": 540,
-        "status": "pending",
+        "status": "applied",
         "text": "*param_6 = (int)local_c - (int)uVar8;"
       },
       {
@@ -10479,7 +10497,7 @@
         "column": 40,
         "id": "decompiler_style_locals:540:2",
         "line": 540,
-        "status": "pending",
+        "status": "applied",
         "text": "*param_6 = (int)local_c - (int)uVar8;"
       },
       {
@@ -10487,7 +10505,7 @@
         "column": 42,
         "id": "decompiler_style_locals:541:1",
         "line": 541,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
       },
       {
@@ -10495,7 +10513,7 @@
         "column": 57,
         "id": "decompiler_style_locals:541:2",
         "line": 541,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
       },
       {
@@ -10503,7 +10521,7 @@
         "column": 66,
         "id": "decompiler_style_locals:541:3",
         "line": 541,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
       },
       {
@@ -10511,7 +10529,7 @@
         "column": 47,
         "id": "decompiler_style_locals:542:1",
         "line": 542,
-        "status": "pending",
+        "status": "applied",
         "text": "*(unsigned char **)(param_5 + 0x34) = local_10;"
       },
       {
@@ -10519,7 +10537,7 @@
         "column": 7,
         "id": "decompiler_style_locals:545:1",
         "line": 545,
-        "status": "pending",
+        "status": "applied",
         "text": "iVar6 = (*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) +"
       },
       {
@@ -10527,7 +10545,7 @@
         "column": 45,
         "id": "decompiler_style_locals:545:2",
         "line": 545,
-        "status": "pending",
+        "status": "applied",
         "text": "iVar6 = (*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) +"
       },
       {
@@ -10535,7 +10553,7 @@
         "column": 58,
         "id": "decompiler_style_locals:545:3",
         "line": 545,
-        "status": "pending",
+        "status": "applied",
         "text": "iVar6 = (*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) +"
       },
       {
@@ -10543,7 +10561,7 @@
         "column": 24,
         "id": "decompiler_style_locals:546:1",
         "line": 546,
-        "status": "pending",
+        "status": "applied",
         "text": "*(int *)(pbVar7 + 4);"
       },
       {
@@ -10551,7 +10569,7 @@
         "column": 7,
         "id": "decompiler_style_locals:547:1",
         "line": 547,
-        "status": "pending",
+        "status": "applied",
         "text": "bVar2 = pbVar7[iVar6 * 8 + 1];"
       },
       {
@@ -10559,7 +10577,7 @@
         "column": 15,
         "id": "decompiler_style_locals:547:2",
         "line": 547,
-        "status": "pending",
+        "status": "applied",
         "text": "bVar2 = pbVar7[iVar6 * 8 + 1];"
       },
       {
@@ -10567,7 +10585,7 @@
         "column": 22,
         "id": "decompiler_style_locals:547:3",
         "line": 547,
-        "status": "pending",
+        "status": "applied",
         "text": "bVar2 = pbVar7[iVar6 * 8 + 1];"
       },
       {
@@ -10575,7 +10593,7 @@
         "column": 7,
         "id": "decompiler_style_locals:548:1",
         "line": 548,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = pbVar7 + iVar6 * 8;"
       },
       {
@@ -10583,7 +10601,7 @@
         "column": 16,
         "id": "decompiler_style_locals:548:2",
         "line": 548,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = pbVar7 + iVar6 * 8;"
       },
       {
@@ -10591,7 +10609,7 @@
         "column": 25,
         "id": "decompiler_style_locals:548:3",
         "line": 548,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = pbVar7 + iVar6 * 8;"
       },
       {
@@ -10599,7 +10617,7 @@
         "column": 7,
         "id": "decompiler_style_locals:549:1",
         "line": 549,
-        "status": "pending",
+        "status": "applied",
         "text": "bVar3 = *pbVar7;"
       },
       {
@@ -10607,7 +10625,7 @@
         "column": 16,
         "id": "decompiler_style_locals:549:2",
         "line": 549,
-        "status": "pending",
+        "status": "applied",
         "text": "bVar3 = *pbVar7;"
       },
       {
@@ -10615,7 +10633,7 @@
         "column": 7,
         "id": "decompiler_style_locals:550:1",
         "line": 550,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar5 = (unsigned int)bVar3;"
       },
       {
@@ -10623,7 +10641,7 @@
         "column": 29,
         "id": "decompiler_style_locals:550:2",
         "line": 550,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar5 = (unsigned int)bVar3;"
       },
       {
@@ -10631,7 +10649,7 @@
         "column": 7,
         "id": "decompiler_style_locals:551:1",
         "line": 551,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> bVar2;"
       },
       {
@@ -10639,7 +10657,7 @@
         "column": 16,
         "id": "decompiler_style_locals:551:2",
         "line": 551,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> bVar2;"
       },
       {
@@ -10647,7 +10665,7 @@
         "column": 26,
         "id": "decompiler_style_locals:551:3",
         "line": 551,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> bVar2;"
       },
       {
@@ -10655,7 +10673,7 @@
         "column": 11,
         "id": "decompiler_style_locals:552:1",
         "line": 552,
-        "status": "pending",
+        "status": "applied",
         "text": "if (uVar5 == 0)"
       },
       {
@@ -10663,7 +10681,7 @@
         "column": 7,
         "id": "decompiler_style_locals:554:1",
         "line": 554,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - pbVar7[1];"
       },
       {
@@ -10671,7 +10689,7 @@
         "column": 16,
         "id": "decompiler_style_locals:554:2",
         "line": 554,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - pbVar7[1];"
       },
       {
@@ -10679,7 +10697,7 @@
         "column": 25,
         "id": "decompiler_style_locals:554:3",
         "line": 554,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - pbVar7[1];"
       },
       {
@@ -10687,7 +10705,7 @@
         "column": 5,
         "id": "decompiler_style_locals:556:1",
         "line": 556,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar5 = uVar5 & 0xf;"
       },
       {
@@ -10695,7 +10713,7 @@
         "column": 13,
         "id": "decompiler_style_locals:556:2",
         "line": 556,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar5 = uVar5 & 0xf;"
       },
       {
@@ -10703,7 +10721,7 @@
         "column": 5,
         "id": "decompiler_style_locals:557:1",
         "line": 557,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar9 ="
       },
       {
@@ -10711,7 +10729,7 @@
         "column": 37,
         "id": "decompiler_style_locals:558:1",
         "line": 558,
-        "status": "pending",
+        "status": "applied",
         "text": "(*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) + *(int *)(pbVar7 + 4);"
       },
       {
@@ -10719,7 +10737,7 @@
         "column": 50,
         "id": "decompiler_style_locals:558:2",
         "line": 558,
-        "status": "pending",
+        "status": "applied",
         "text": "(*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) + *(int *)(pbVar7 + 4);"
       },
       {
@@ -10727,7 +10745,7 @@
         "column": 69,
         "id": "decompiler_style_locals:558:3",
         "line": 558,
-        "status": "pending",
+        "status": "applied",
         "text": "(*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) + *(int *)(pbVar7 + 4);"
       },
       {
@@ -10735,7 +10753,7 @@
         "column": 5,
         "id": "decompiler_style_locals:559:1",
         "line": 559,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - uVar5;"
       },
       {
@@ -10743,7 +10761,7 @@
         "column": 14,
         "id": "decompiler_style_locals:559:2",
         "line": 559,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - uVar5;"
       },
       {
@@ -10751,7 +10769,7 @@
         "column": 23,
         "id": "decompiler_style_locals:559:3",
         "line": 559,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - uVar5;"
       },
       {
@@ -10759,7 +10777,7 @@
         "column": 5,
         "id": "decompiler_style_locals:560:1",
         "line": 560,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> (unsigned char)uVar5;"
       },
       {
@@ -10767,7 +10785,7 @@
         "column": 14,
         "id": "decompiler_style_locals:560:2",
         "line": 560,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> (unsigned char)uVar5;"
       },
       {
@@ -10775,7 +10793,7 @@
         "column": 39,
         "id": "decompiler_style_locals:560:3",
         "line": 560,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> (unsigned char)uVar5;"
       },
       {
@@ -10783,7 +10801,7 @@
         "column": 73,
         "id": "decompiler_style_locals:562:1",
         "line": 562,
-        "status": "pending",
+        "status": "applied",
         "text": "crt_fprintf(*(void **)0x331070, \"inflate:         * length %u\\n\", uVar9);"
       },
       {
@@ -10791,7 +10809,7 @@
         "column": 12,
         "id": "decompiler_style_locals:564:1",
         "line": 564,
-        "status": "pending",
+        "status": "applied",
         "text": "for (; uVar11 < 0xf; uVar11 = uVar11 + 8) {"
       },
       {
@@ -10799,7 +10817,7 @@
         "column": 26,
         "id": "decompiler_style_locals:564:2",
         "line": 564,
-        "status": "pending",
+        "status": "applied",
         "text": "for (; uVar11 < 0xf; uVar11 = uVar11 + 8) {"
       },
       {
@@ -10807,7 +10825,7 @@
         "column": 35,
         "id": "decompiler_style_locals:564:3",
         "line": 564,
-        "status": "pending",
+        "status": "applied",
         "text": "for (; uVar11 < 0xf; uVar11 = uVar11 + 8) {"
       },
       {
@@ -10815,7 +10833,7 @@
         "column": 7,
         "id": "decompiler_style_locals:565:1",
         "line": 565,
-        "status": "pending",
+        "status": "applied",
         "text": "local_8 = local_8 - 1;"
       },
       {
@@ -10823,7 +10841,7 @@
         "column": 17,
         "id": "decompiler_style_locals:565:2",
         "line": 565,
-        "status": "pending",
+        "status": "applied",
         "text": "local_8 = local_8 - 1;"
       },
       {
@@ -10831,7 +10849,7 @@
         "column": 7,
         "id": "decompiler_style_locals:566:1",
         "line": 566,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
       },
       {
@@ -10839,7 +10857,7 @@
         "column": 16,
         "id": "decompiler_style_locals:566:2",
         "line": 566,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
       },
       {
@@ -10847,7 +10865,7 @@
         "column": 40,
         "id": "decompiler_style_locals:566:3",
         "line": 566,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
       },
       {
@@ -10855,7 +10873,7 @@
         "column": 66,
         "id": "decompiler_style_locals:566:4",
         "line": 566,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
       },
       {
@@ -10863,7 +10881,7 @@
         "column": 7,
         "id": "decompiler_style_locals:567:1",
         "line": 567,
-        "status": "pending",
+        "status": "applied",
         "text": "local_c = local_c + 1;"
       },
       {
@@ -10871,7 +10889,7 @@
         "column": 17,
         "id": "decompiler_style_locals:567:2",
         "line": 567,
-        "status": "pending",
+        "status": "applied",
         "text": "local_c = local_c + 1;"
       },
       {
@@ -10879,7 +10897,7 @@
         "column": 5,
         "id": "decompiler_style_locals:569:1",
         "line": 569,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = (unsigned char *)(param_4 + (uVar4 & uVar12) * 8);"
       },
       {
@@ -10887,7 +10905,7 @@
         "column": 43,
         "id": "decompiler_style_locals:569:2",
         "line": 569,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = (unsigned char *)(param_4 + (uVar4 & uVar12) * 8);"
       },
       {
@@ -10895,7 +10913,7 @@
         "column": 51,
         "id": "decompiler_style_locals:569:3",
         "line": 569,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = (unsigned char *)(param_4 + (uVar4 & uVar12) * 8);"
       },
       {
@@ -10903,7 +10921,7 @@
         "column": 5,
         "id": "decompiler_style_locals:570:1",
         "line": 570,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> pbVar7[1];"
       },
       {
@@ -10911,7 +10929,7 @@
         "column": 14,
         "id": "decompiler_style_locals:570:2",
         "line": 570,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> pbVar7[1];"
       },
       {
@@ -10919,7 +10937,7 @@
         "column": 24,
         "id": "decompiler_style_locals:570:3",
         "line": 570,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> pbVar7[1];"
       },
       {
@@ -10927,7 +10945,7 @@
         "column": 5,
         "id": "decompiler_style_locals:571:1",
         "line": 571,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - pbVar7[1];"
       },
       {
@@ -10935,7 +10953,7 @@
         "column": 14,
         "id": "decompiler_style_locals:571:2",
         "line": 571,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - pbVar7[1];"
       },
       {
@@ -10943,7 +10961,7 @@
         "column": 23,
         "id": "decompiler_style_locals:571:3",
         "line": 571,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - pbVar7[1];"
       },
       {
@@ -10951,7 +10969,7 @@
         "column": 5,
         "id": "decompiler_style_locals:572:1",
         "line": 572,
-        "status": "pending",
+        "status": "applied",
         "text": "bVar3 = *pbVar7;"
       },
       {
@@ -10959,7 +10977,7 @@
         "column": 14,
         "id": "decompiler_style_locals:572:2",
         "line": 572,
-        "status": "pending",
+        "status": "applied",
         "text": "bVar3 = *pbVar7;"
       },
       {
@@ -10967,7 +10985,7 @@
         "column": 13,
         "id": "decompiler_style_locals:573:1",
         "line": 573,
-        "status": "pending",
+        "status": "applied",
         "text": "while ((bVar3 & 0x10) == 0) {"
       },
       {
@@ -10975,7 +10993,7 @@
         "column": 12,
         "id": "decompiler_style_locals:574:1",
         "line": 574,
-        "status": "pending",
+        "status": "applied",
         "text": "if ((bVar3 & 0x40) != 0) {"
       },
       {
@@ -10983,7 +11001,7 @@
         "column": 9,
         "id": "decompiler_style_locals:576:1",
         "line": 576,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar8 = (unsigned int)param_6[1] - local_8;"
       },
       {
@@ -10991,7 +11009,7 @@
         "column": 44,
         "id": "decompiler_style_locals:576:2",
         "line": 576,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar8 = (unsigned int)param_6[1] - local_8;"
       },
       {
@@ -10999,7 +11017,7 @@
         "column": 13,
         "id": "decompiler_style_locals:577:1",
         "line": 577,
-        "status": "pending",
+        "status": "applied",
         "text": "if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {"
       },
       {
@@ -11007,7 +11025,7 @@
         "column": 54,
         "id": "decompiler_style_locals:577:2",
         "line": 577,
-        "status": "pending",
+        "status": "applied",
         "text": "if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {"
       },
       {
@@ -11015,7 +11033,7 @@
         "column": 11,
         "id": "decompiler_style_locals:578:1",
         "line": 578,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar8 = uVar11 >> 3;"
       },
       {
@@ -11023,7 +11041,7 @@
         "column": 19,
         "id": "decompiler_style_locals:578:2",
         "line": 578,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar8 = uVar11 >> 3;"
       },
       {
@@ -11031,7 +11049,7 @@
         "column": 45,
         "id": "decompiler_style_locals:580:1",
         "line": 580,
-        "status": "pending",
+        "status": "applied",
         "text": "*(unsigned int *)(param_5 + 0x20) = uVar12;"
       },
       {
@@ -11039,7 +11057,7 @@
         "column": 45,
         "id": "decompiler_style_locals:581:1",
         "line": 581,
-        "status": "pending",
+        "status": "applied",
         "text": "*(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;"
       },
       {
@@ -11047,7 +11065,7 @@
         "column": 54,
         "id": "decompiler_style_locals:581:2",
         "line": 581,
-        "status": "pending",
+        "status": "applied",
         "text": "*(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;"
       },
       {
@@ -11055,7 +11073,7 @@
         "column": 28,
         "id": "decompiler_style_locals:582:1",
         "line": 582,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[1] = (int)(uVar8 + local_8);"
       },
       {
@@ -11063,7 +11081,7 @@
         "column": 36,
         "id": "decompiler_style_locals:582:2",
         "line": 582,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[1] = (int)(uVar8 + local_8);"
       },
       {
@@ -11071,7 +11089,7 @@
         "column": 42,
         "id": "decompiler_style_locals:583:1",
         "line": 583,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - *param_6);"
       },
       {
@@ -11079,7 +11097,7 @@
         "column": 57,
         "id": "decompiler_style_locals:583:2",
         "line": 583,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - *param_6);"
       },
       {
@@ -11087,7 +11105,7 @@
         "column": 25,
         "id": "decompiler_style_locals:584:1",
         "line": 584,
-        "status": "pending",
+        "status": "applied",
         "text": "*param_6 = (int)local_c - (int)uVar8;"
       },
       {
@@ -11095,7 +11113,7 @@
         "column": 40,
         "id": "decompiler_style_locals:584:2",
         "line": 584,
-        "status": "pending",
+        "status": "applied",
         "text": "*param_6 = (int)local_c - (int)uVar8;"
       },
       {
@@ -11103,7 +11121,7 @@
         "column": 47,
         "id": "decompiler_style_locals:585:1",
         "line": 585,
-        "status": "pending",
+        "status": "applied",
         "text": "*(unsigned char **)(param_5 + 0x34) = local_10;"
       },
       {
@@ -11111,7 +11129,7 @@
         "column": 7,
         "id": "decompiler_style_locals:588:1",
         "line": 588,
-        "status": "pending",
+        "status": "applied",
         "text": "iVar6 = (*(unsigned int *)(0x320d88 + (unsigned int)bVar3 * 4) & uVar12) +"
       },
       {
@@ -11119,7 +11137,7 @@
         "column": 59,
         "id": "decompiler_style_locals:588:2",
         "line": 588,
-        "status": "pending",
+        "status": "applied",
         "text": "iVar6 = (*(unsigned int *)(0x320d88 + (unsigned int)bVar3 * 4) & uVar12) +"
       },
       {
@@ -11127,7 +11145,7 @@
         "column": 72,
         "id": "decompiler_style_locals:588:3",
         "line": 588,
-        "status": "pending",
+        "status": "applied",
         "text": "iVar6 = (*(unsigned int *)(0x320d88 + (unsigned int)bVar3 * 4) & uVar12) +"
       },
       {
@@ -11135,7 +11153,7 @@
         "column": 24,
         "id": "decompiler_style_locals:589:1",
         "line": 589,
-        "status": "pending",
+        "status": "applied",
         "text": "*(int *)(pbVar7 + 4);"
       },
       {
@@ -11143,7 +11161,7 @@
         "column": 24,
         "id": "decompiler_style_locals:591:1",
         "line": 591,
-        "status": "pending",
+        "status": "applied",
         "text": "unsigned char *pbVar1;"
       },
       {
@@ -11151,7 +11169,7 @@
         "column": 9,
         "id": "decompiler_style_locals:592:1",
         "line": 592,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar1 = pbVar7 + iVar6 * 8 + 1;"
       },
       {
@@ -11159,7 +11177,7 @@
         "column": 18,
         "id": "decompiler_style_locals:592:2",
         "line": 592,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar1 = pbVar7 + iVar6 * 8 + 1;"
       },
       {
@@ -11167,7 +11185,7 @@
         "column": 27,
         "id": "decompiler_style_locals:592:3",
         "line": 592,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar1 = pbVar7 + iVar6 * 8 + 1;"
       },
       {
@@ -11175,7 +11193,7 @@
         "column": 9,
         "id": "decompiler_style_locals:593:1",
         "line": 593,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = pbVar7 + iVar6 * 8;"
       },
       {
@@ -11183,7 +11201,7 @@
         "column": 18,
         "id": "decompiler_style_locals:593:2",
         "line": 593,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = pbVar7 + iVar6 * 8;"
       },
       {
@@ -11191,7 +11209,7 @@
         "column": 27,
         "id": "decompiler_style_locals:593:3",
         "line": 593,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = pbVar7 + iVar6 * 8;"
       },
       {
@@ -11199,7 +11217,7 @@
         "column": 9,
         "id": "decompiler_style_locals:594:1",
         "line": 594,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> *pbVar1;"
       },
       {
@@ -11207,7 +11225,7 @@
         "column": 18,
         "id": "decompiler_style_locals:594:2",
         "line": 594,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> *pbVar1;"
       },
       {
@@ -11215,7 +11233,7 @@
         "column": 29,
         "id": "decompiler_style_locals:594:3",
         "line": 594,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> *pbVar1;"
       },
       {
@@ -11223,7 +11241,7 @@
         "column": 9,
         "id": "decompiler_style_locals:595:1",
         "line": 595,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - *pbVar1;"
       },
       {
@@ -11231,7 +11249,7 @@
         "column": 18,
         "id": "decompiler_style_locals:595:2",
         "line": 595,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - *pbVar1;"
       },
       {
@@ -11239,7 +11257,7 @@
         "column": 28,
         "id": "decompiler_style_locals:595:3",
         "line": 595,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - *pbVar1;"
       },
       {
@@ -11247,7 +11265,7 @@
         "column": 9,
         "id": "decompiler_style_locals:596:1",
         "line": 596,
-        "status": "pending",
+        "status": "applied",
         "text": "bVar3 = *pbVar7;"
       },
       {
@@ -11255,7 +11273,7 @@
         "column": 18,
         "id": "decompiler_style_locals:596:2",
         "line": 596,
-        "status": "pending",
+        "status": "applied",
         "text": "bVar3 = *pbVar7;"
       },
       {
@@ -11263,7 +11281,7 @@
         "column": 5,
         "id": "decompiler_style_locals:599:1",
         "line": 599,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar5 = bVar3 & 0xf;"
       },
       {
@@ -11271,7 +11289,7 @@
         "column": 13,
         "id": "decompiler_style_locals:599:2",
         "line": 599,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar5 = bVar3 & 0xf;"
       },
       {
@@ -11279,7 +11297,7 @@
         "column": 12,
         "id": "decompiler_style_locals:600:1",
         "line": 600,
-        "status": "pending",
+        "status": "applied",
         "text": "for (; uVar11 < uVar5; uVar11 = uVar11 + 8) {"
       },
       {
@@ -11287,7 +11305,7 @@
         "column": 21,
         "id": "decompiler_style_locals:600:2",
         "line": 600,
-        "status": "pending",
+        "status": "applied",
         "text": "for (; uVar11 < uVar5; uVar11 = uVar11 + 8) {"
       },
       {
@@ -11295,7 +11313,7 @@
         "column": 28,
         "id": "decompiler_style_locals:600:3",
         "line": 600,
-        "status": "pending",
+        "status": "applied",
         "text": "for (; uVar11 < uVar5; uVar11 = uVar11 + 8) {"
       },
       {
@@ -11303,7 +11321,7 @@
         "column": 37,
         "id": "decompiler_style_locals:600:4",
         "line": 600,
-        "status": "pending",
+        "status": "applied",
         "text": "for (; uVar11 < uVar5; uVar11 = uVar11 + 8) {"
       },
       {
@@ -11311,7 +11329,7 @@
         "column": 7,
         "id": "decompiler_style_locals:601:1",
         "line": 601,
-        "status": "pending",
+        "status": "applied",
         "text": "local_8 = local_8 - 1;"
       },
       {
@@ -11319,7 +11337,7 @@
         "column": 17,
         "id": "decompiler_style_locals:601:2",
         "line": 601,
-        "status": "pending",
+        "status": "applied",
         "text": "local_8 = local_8 - 1;"
       },
       {
@@ -11327,7 +11345,7 @@
         "column": 7,
         "id": "decompiler_style_locals:602:1",
         "line": 602,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
       },
       {
@@ -11335,7 +11353,7 @@
         "column": 16,
         "id": "decompiler_style_locals:602:2",
         "line": 602,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
       },
       {
@@ -11343,7 +11361,7 @@
         "column": 40,
         "id": "decompiler_style_locals:602:3",
         "line": 602,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
       },
       {
@@ -11351,7 +11369,7 @@
         "column": 66,
         "id": "decompiler_style_locals:602:4",
         "line": 602,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
       },
       {
@@ -11359,7 +11377,7 @@
         "column": 7,
         "id": "decompiler_style_locals:603:1",
         "line": 603,
-        "status": "pending",
+        "status": "applied",
         "text": "local_c = local_c + 1;"
       },
       {
@@ -11367,7 +11385,7 @@
         "column": 17,
         "id": "decompiler_style_locals:603:2",
         "line": 603,
-        "status": "pending",
+        "status": "applied",
         "text": "local_c = local_c + 1;"
       },
       {
@@ -11375,7 +11393,7 @@
         "column": 5,
         "id": "decompiler_style_locals:605:1",
         "line": 605,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar10 ="
       },
       {
@@ -11383,7 +11401,7 @@
         "column": 37,
         "id": "decompiler_style_locals:606:1",
         "line": 606,
-        "status": "pending",
+        "status": "applied",
         "text": "(*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) + *(int *)(pbVar7 + 4);"
       },
       {
@@ -11391,7 +11409,7 @@
         "column": 50,
         "id": "decompiler_style_locals:606:2",
         "line": 606,
-        "status": "pending",
+        "status": "applied",
         "text": "(*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) + *(int *)(pbVar7 + 4);"
       },
       {
@@ -11399,7 +11417,7 @@
         "column": 69,
         "id": "decompiler_style_locals:606:3",
         "line": 606,
-        "status": "pending",
+        "status": "applied",
         "text": "(*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) + *(int *)(pbVar7 + 4);"
       },
       {
@@ -11407,7 +11425,7 @@
         "column": 5,
         "id": "decompiler_style_locals:607:1",
         "line": 607,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - uVar5;"
       },
       {
@@ -11415,7 +11433,7 @@
         "column": 14,
         "id": "decompiler_style_locals:607:2",
         "line": 607,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - uVar5;"
       },
       {
@@ -11423,7 +11441,7 @@
         "column": 23,
         "id": "decompiler_style_locals:607:3",
         "line": 607,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - uVar5;"
       },
       {
@@ -11431,7 +11449,7 @@
         "column": 5,
         "id": "decompiler_style_locals:608:1",
         "line": 608,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> (unsigned char)uVar5;"
       },
       {
@@ -11439,7 +11457,7 @@
         "column": 14,
         "id": "decompiler_style_locals:608:2",
         "line": 608,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> (unsigned char)uVar5;"
       },
       {
@@ -11447,7 +11465,7 @@
         "column": 39,
         "id": "decompiler_style_locals:608:3",
         "line": 608,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar12 = uVar12 >> (unsigned char)uVar5;"
       },
       {
@@ -11455,7 +11473,7 @@
         "column": 19,
         "id": "decompiler_style_locals:611:1",
         "line": 611,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar10);"
       },
       {
@@ -11463,7 +11481,7 @@
         "column": 5,
         "id": "decompiler_style_locals:613:1",
         "line": 613,
-        "status": "pending",
+        "status": "applied",
         "text": "local_14 = local_14 - uVar9;"
       },
       {
@@ -11471,7 +11489,7 @@
         "column": 16,
         "id": "decompiler_style_locals:613:2",
         "line": 613,
-        "status": "pending",
+        "status": "applied",
         "text": "local_14 = local_14 - uVar9;"
       },
       {
@@ -11479,7 +11497,7 @@
         "column": 27,
         "id": "decompiler_style_locals:613:3",
         "line": 613,
-        "status": "pending",
+        "status": "applied",
         "text": "local_14 = local_14 - uVar9;"
       },
       {
@@ -11487,7 +11505,7 @@
         "column": 29,
         "id": "decompiler_style_locals:614:1",
         "line": 614,
-        "status": "pending",
+        "status": "applied",
         "text": "if ((unsigned int)((int)local_10 - *(int *)(param_5 + 0x28)) < uVar10) {"
       },
       {
@@ -11495,7 +11513,7 @@
         "column": 68,
         "id": "decompiler_style_locals:614:2",
         "line": 614,
-        "status": "pending",
+        "status": "applied",
         "text": "if ((unsigned int)((int)local_10 - *(int *)(param_5 + 0x28)) < uVar10) {"
       },
       {
@@ -11503,7 +11521,7 @@
         "column": 7,
         "id": "decompiler_style_locals:615:1",
         "line": 615,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar10 ="
       },
       {
@@ -11511,7 +11529,7 @@
         "column": 56,
         "id": "decompiler_style_locals:616:1",
         "line": 616,
-        "status": "pending",
+        "status": "applied",
         "text": "(unsigned int)(*(int *)(param_5 + 0x28) - (int)local_10) + uVar10;"
       },
       {
@@ -11519,7 +11537,7 @@
         "column": 68,
         "id": "decompiler_style_locals:616:2",
         "line": 616,
-        "status": "pending",
+        "status": "applied",
         "text": "(unsigned int)(*(int *)(param_5 + 0x28) - (int)local_10) + uVar10;"
       },
       {
@@ -11527,7 +11545,7 @@
         "column": 7,
         "id": "decompiler_style_locals:617:1",
         "line": 617,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = (unsigned char *)(*(int *)(param_5 + 0x2c) - uVar10);"
       },
       {
@@ -11535,7 +11553,7 @@
         "column": 61,
         "id": "decompiler_style_locals:617:2",
         "line": 617,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = (unsigned char *)(*(int *)(param_5 + 0x2c) - uVar10);"
       },
       {
@@ -11543,7 +11561,7 @@
         "column": 11,
         "id": "decompiler_style_locals:618:1",
         "line": 618,
-        "status": "pending",
+        "status": "applied",
         "text": "if (uVar10 < uVar9) {"
       },
       {
@@ -11551,7 +11569,7 @@
         "column": 20,
         "id": "decompiler_style_locals:618:2",
         "line": 618,
-        "status": "pending",
+        "status": "applied",
         "text": "if (uVar10 < uVar9) {"
       },
       {
@@ -11559,7 +11577,7 @@
         "column": 9,
         "id": "decompiler_style_locals:619:1",
         "line": 619,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar9 = uVar9 - uVar10;"
       },
       {
@@ -11567,7 +11585,7 @@
         "column": 17,
         "id": "decompiler_style_locals:619:2",
         "line": 619,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar9 = uVar9 - uVar10;"
       },
       {
@@ -11575,7 +11593,7 @@
         "column": 25,
         "id": "decompiler_style_locals:619:3",
         "line": 619,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar9 = uVar9 - uVar10;"
       },
       {
@@ -11583,7 +11601,7 @@
         "column": 12,
         "id": "decompiler_style_locals:621:1",
         "line": 621,
-        "status": "pending",
+        "status": "applied",
         "text": "*local_10 = *pbVar7;"
       },
       {
@@ -11591,7 +11609,7 @@
         "column": 24,
         "id": "decompiler_style_locals:621:2",
         "line": 621,
-        "status": "pending",
+        "status": "applied",
         "text": "*local_10 = *pbVar7;"
       },
       {
@@ -11599,7 +11617,7 @@
         "column": 11,
         "id": "decompiler_style_locals:622:1",
         "line": 622,
-        "status": "pending",
+        "status": "applied",
         "text": "local_10 = local_10 + 1;"
       },
       {
@@ -11607,7 +11625,7 @@
         "column": 22,
         "id": "decompiler_style_locals:622:2",
         "line": 622,
-        "status": "pending",
+        "status": "applied",
         "text": "local_10 = local_10 + 1;"
       },
       {
@@ -11615,7 +11633,7 @@
         "column": 11,
         "id": "decompiler_style_locals:623:1",
         "line": 623,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = pbVar7 + 1;"
       },
       {
@@ -11623,7 +11641,7 @@
         "column": 20,
         "id": "decompiler_style_locals:623:2",
         "line": 623,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = pbVar7 + 1;"
       },
       {
@@ -11631,7 +11649,7 @@
         "column": 11,
         "id": "decompiler_style_locals:624:1",
         "line": 624,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar10 = uVar10 - 1;"
       },
       {
@@ -11639,7 +11657,7 @@
         "column": 20,
         "id": "decompiler_style_locals:624:2",
         "line": 624,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar10 = uVar10 - 1;"
       },
       {
@@ -11647,7 +11665,7 @@
         "column": 18,
         "id": "decompiler_style_locals:625:1",
         "line": 625,
-        "status": "pending",
+        "status": "applied",
         "text": "} while (uVar10 != 0);"
       },
       {
@@ -11655,7 +11673,7 @@
         "column": 9,
         "id": "decompiler_style_locals:626:1",
         "line": 626,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = *(unsigned char **)(param_5 + 0x28);"
       },
       {
@@ -11663,7 +11681,7 @@
         "column": 7,
         "id": "decompiler_style_locals:629:1",
         "line": 629,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = local_10 + -(int)uVar10;"
       },
       {
@@ -11671,7 +11689,7 @@
         "column": 16,
         "id": "decompiler_style_locals:629:2",
         "line": 629,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = local_10 + -(int)uVar10;"
       },
       {
@@ -11679,7 +11697,7 @@
         "column": 33,
         "id": "decompiler_style_locals:629:3",
         "line": 629,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = local_10 + -(int)uVar10;"
       },
       {
@@ -11687,7 +11705,7 @@
         "column": 8,
         "id": "decompiler_style_locals:630:1",
         "line": 630,
-        "status": "pending",
+        "status": "applied",
         "text": "*local_10 = *pbVar7;"
       },
       {
@@ -11695,7 +11713,7 @@
         "column": 20,
         "id": "decompiler_style_locals:630:2",
         "line": 630,
-        "status": "pending",
+        "status": "applied",
         "text": "*local_10 = *pbVar7;"
       },
       {
@@ -11703,7 +11721,7 @@
         "column": 7,
         "id": "decompiler_style_locals:631:1",
         "line": 631,
-        "status": "pending",
+        "status": "applied",
         "text": "local_10[1] = pbVar7[1];"
       },
       {
@@ -11711,7 +11729,7 @@
         "column": 21,
         "id": "decompiler_style_locals:631:2",
         "line": 631,
-        "status": "pending",
+        "status": "applied",
         "text": "local_10[1] = pbVar7[1];"
       },
       {
@@ -11719,7 +11737,7 @@
         "column": 7,
         "id": "decompiler_style_locals:632:1",
         "line": 632,
-        "status": "pending",
+        "status": "applied",
         "text": "local_10 = local_10 + 2;"
       },
       {
@@ -11727,7 +11745,7 @@
         "column": 18,
         "id": "decompiler_style_locals:632:2",
         "line": 632,
-        "status": "pending",
+        "status": "applied",
         "text": "local_10 = local_10 + 2;"
       },
       {
@@ -11735,7 +11753,7 @@
         "column": 7,
         "id": "decompiler_style_locals:633:1",
         "line": 633,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = pbVar7 + 2;"
       },
       {
@@ -11743,7 +11761,7 @@
         "column": 16,
         "id": "decompiler_style_locals:633:2",
         "line": 633,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = pbVar7 + 2;"
       },
       {
@@ -11751,7 +11769,7 @@
         "column": 7,
         "id": "decompiler_style_locals:634:1",
         "line": 634,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar9 = uVar9 - 2;"
       },
       {
@@ -11759,7 +11777,7 @@
         "column": 15,
         "id": "decompiler_style_locals:634:2",
         "line": 634,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar9 = uVar9 - 2;"
       },
       {
@@ -11767,7 +11785,7 @@
         "column": 8,
         "id": "decompiler_style_locals:637:1",
         "line": 637,
-        "status": "pending",
+        "status": "applied",
         "text": "*local_10 = *pbVar7;"
       },
       {
@@ -11775,7 +11793,7 @@
         "column": 20,
         "id": "decompiler_style_locals:637:2",
         "line": 637,
-        "status": "pending",
+        "status": "applied",
         "text": "*local_10 = *pbVar7;"
       },
       {
@@ -11783,7 +11801,7 @@
         "column": 7,
         "id": "decompiler_style_locals:638:1",
         "line": 638,
-        "status": "pending",
+        "status": "applied",
         "text": "local_10 = local_10 + 1;"
       },
       {
@@ -11791,7 +11809,7 @@
         "column": 18,
         "id": "decompiler_style_locals:638:2",
         "line": 638,
-        "status": "pending",
+        "status": "applied",
         "text": "local_10 = local_10 + 1;"
       },
       {
@@ -11799,7 +11817,7 @@
         "column": 7,
         "id": "decompiler_style_locals:639:1",
         "line": 639,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = pbVar7 + 1;"
       },
       {
@@ -11807,7 +11825,7 @@
         "column": 16,
         "id": "decompiler_style_locals:639:2",
         "line": 639,
-        "status": "pending",
+        "status": "applied",
         "text": "pbVar7 = pbVar7 + 1;"
       },
       {
@@ -11815,7 +11833,7 @@
         "column": 7,
         "id": "decompiler_style_locals:640:1",
         "line": 640,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar9 = uVar9 - 1;"
       },
       {
@@ -11823,7 +11841,7 @@
         "column": 15,
         "id": "decompiler_style_locals:640:2",
         "line": 640,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar9 = uVar9 - 1;"
       },
       {
@@ -11831,7 +11849,7 @@
         "column": 14,
         "id": "decompiler_style_locals:641:1",
         "line": 641,
-        "status": "pending",
+        "status": "applied",
         "text": "} while (uVar9 != 0);"
       },
       {
@@ -11839,7 +11857,7 @@
         "column": 5,
         "id": "decompiler_style_locals:644:1",
         "line": 644,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - bVar2;"
       },
       {
@@ -11847,7 +11865,7 @@
         "column": 14,
         "id": "decompiler_style_locals:644:2",
         "line": 644,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - bVar2;"
       },
       {
@@ -11855,7 +11873,7 @@
         "column": 23,
         "id": "decompiler_style_locals:644:3",
         "line": 644,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar11 = uVar11 - bVar2;"
       },
       {
@@ -11863,7 +11881,7 @@
         "column": 7,
         "id": "decompiler_style_locals:646:1",
         "line": 646,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar5 = *(unsigned int *)(pbVar7 + 4);"
       },
       {
@@ -11871,7 +11889,7 @@
         "column": 33,
         "id": "decompiler_style_locals:646:2",
         "line": 646,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar5 = *(unsigned int *)(pbVar7 + 4);"
       },
       {
@@ -11879,7 +11897,7 @@
         "column": 11,
         "id": "decompiler_style_locals:647:1",
         "line": 647,
-        "status": "pending",
+        "status": "applied",
         "text": "if (uVar5 < 0x20 ||"
       },
       {
@@ -11887,7 +11905,7 @@
         "column": 64,
         "id": "decompiler_style_locals:648:1",
         "line": 648,
-        "status": "pending",
+        "status": "applied",
         "text": "(fmt = \"inflate:         * literal \\'%c\\'\\n\", 0x7e < uVar5)) {"
       },
       {
@@ -11895,7 +11913,7 @@
         "column": 44,
         "id": "decompiler_style_locals:651:1",
         "line": 651,
-        "status": "pending",
+        "status": "applied",
         "text": "crt_fprintf(*(void **)0x331070, fmt, uVar5);"
       },
       {
@@ -11903,7 +11921,7 @@
         "column": 6,
         "id": "decompiler_style_locals:653:1",
         "line": 653,
-        "status": "pending",
+        "status": "applied",
         "text": "*local_10 = pbVar7[4];"
       },
       {
@@ -11911,7 +11929,7 @@
         "column": 17,
         "id": "decompiler_style_locals:653:2",
         "line": 653,
-        "status": "pending",
+        "status": "applied",
         "text": "*local_10 = pbVar7[4];"
       },
       {
@@ -11919,7 +11937,7 @@
         "column": 5,
         "id": "decompiler_style_locals:654:1",
         "line": 654,
-        "status": "pending",
+        "status": "applied",
         "text": "local_10 = local_10 + 1;"
       },
       {
@@ -11927,7 +11945,7 @@
         "column": 16,
         "id": "decompiler_style_locals:654:2",
         "line": 654,
-        "status": "pending",
+        "status": "applied",
         "text": "local_10 = local_10 + 1;"
       },
       {
@@ -11935,7 +11953,7 @@
         "column": 5,
         "id": "decompiler_style_locals:655:1",
         "line": 655,
-        "status": "pending",
+        "status": "applied",
         "text": "local_14 = local_14 + -1;"
       },
       {
@@ -11943,7 +11961,7 @@
         "column": 16,
         "id": "decompiler_style_locals:655:2",
         "line": 655,
-        "status": "pending",
+        "status": "applied",
         "text": "local_14 = local_14 + -1;"
       },
       {
@@ -11951,7 +11969,7 @@
         "column": 9,
         "id": "decompiler_style_locals:657:1",
         "line": 657,
-        "status": "pending",
+        "status": "applied",
         "text": "if (local_14 < (unsigned char *)0x102 || local_8 < 10) {"
       },
       {
@@ -11959,7 +11977,7 @@
         "column": 46,
         "id": "decompiler_style_locals:657:2",
         "line": 657,
-        "status": "pending",
+        "status": "applied",
         "text": "if (local_14 < (unsigned char *)0x102 || local_8 < 10) {"
       },
       {
@@ -11967,7 +11985,7 @@
         "column": 7,
         "id": "decompiler_style_locals:658:1",
         "line": 658,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar8 = (unsigned int)param_6[1] - local_8;"
       },
       {
@@ -11975,7 +11993,7 @@
         "column": 42,
         "id": "decompiler_style_locals:658:2",
         "line": 658,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar8 = (unsigned int)param_6[1] - local_8;"
       },
       {
@@ -11983,7 +12001,7 @@
         "column": 11,
         "id": "decompiler_style_locals:659:1",
         "line": 659,
-        "status": "pending",
+        "status": "applied",
         "text": "if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {"
       },
       {
@@ -11991,7 +12009,7 @@
         "column": 52,
         "id": "decompiler_style_locals:659:2",
         "line": 659,
-        "status": "pending",
+        "status": "applied",
         "text": "if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {"
       },
       {
@@ -11999,7 +12017,7 @@
         "column": 9,
         "id": "decompiler_style_locals:660:1",
         "line": 660,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar8 = uVar11 >> 3;"
       },
       {
@@ -12007,7 +12025,7 @@
         "column": 17,
         "id": "decompiler_style_locals:660:2",
         "line": 660,
-        "status": "pending",
+        "status": "applied",
         "text": "uVar8 = uVar11 >> 3;"
       },
       {
@@ -12015,7 +12033,7 @@
         "column": 43,
         "id": "decompiler_style_locals:662:1",
         "line": 662,
-        "status": "pending",
+        "status": "applied",
         "text": "*(unsigned int *)(param_5 + 0x20) = uVar12;"
       },
       {
@@ -12023,7 +12041,7 @@
         "column": 43,
         "id": "decompiler_style_locals:663:1",
         "line": 663,
-        "status": "pending",
+        "status": "applied",
         "text": "*(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;"
       },
       {
@@ -12031,7 +12049,7 @@
         "column": 52,
         "id": "decompiler_style_locals:663:2",
         "line": 663,
-        "status": "pending",
+        "status": "applied",
         "text": "*(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;"
       },
       {
@@ -12039,7 +12057,7 @@
         "column": 7,
         "id": "decompiler_style_locals:664:1",
         "line": 664,
-        "status": "pending",
+        "status": "applied",
         "text": "iVar6 = *param_6;"
       },
       {
@@ -12047,7 +12065,7 @@
         "column": 26,
         "id": "decompiler_style_locals:665:1",
         "line": 665,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[1] = (int)(uVar8 + local_8);"
       },
       {
@@ -12055,7 +12073,7 @@
         "column": 34,
         "id": "decompiler_style_locals:665:2",
         "line": 665,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[1] = (int)(uVar8 + local_8);"
       },
       {
@@ -12063,7 +12081,7 @@
         "column": 23,
         "id": "decompiler_style_locals:666:1",
         "line": 666,
-        "status": "pending",
+        "status": "applied",
         "text": "*param_6 = (int)local_c - (int)uVar8;"
       },
       {
@@ -12071,7 +12089,7 @@
         "column": 38,
         "id": "decompiler_style_locals:666:2",
         "line": 666,
-        "status": "pending",
+        "status": "applied",
         "text": "*param_6 = (int)local_c - (int)uVar8;"
       },
       {
@@ -12079,7 +12097,7 @@
         "column": 40,
         "id": "decompiler_style_locals:667:1",
         "line": 667,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
       },
       {
@@ -12087,7 +12105,7 @@
         "column": 55,
         "id": "decompiler_style_locals:667:2",
         "line": 667,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
       },
       {
@@ -12095,7 +12113,7 @@
         "column": 64,
         "id": "decompiler_style_locals:667:3",
         "line": 667,
-        "status": "pending",
+        "status": "applied",
         "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
       },
       {
@@ -12103,7 +12121,7 @@
         "column": 45,
         "id": "decompiler_style_locals:668:1",
         "line": 668,
-        "status": "pending",
+        "status": "applied",
         "text": "*(unsigned char **)(param_5 + 0x34) = local_10;"
       },
       {
@@ -12111,7 +12129,7 @@
         "column": 7,
         "id": "decompiler_style_locals:715:1",
         "line": 715,
-        "status": "pending",
+        "status": "applied",
         "text": "int iVar1;"
       },
       {
@@ -12119,7 +12137,7 @@
         "column": 3,
         "id": "decompiler_style_locals:731:1",
         "line": 731,
-        "status": "pending",
+        "status": "applied",
         "text": "iVar1 = (int)(*(void *(*)(void *, unsigned int, unsigned int))("
       },
       {
@@ -12127,7 +12145,7 @@
         "column": 24,
         "id": "decompiler_style_locals:733:1",
         "line": 733,
-        "status": "pending",
+        "status": "applied",
         "text": "*(int *)(z + 0x1c) = iVar1;"
       },
       {
@@ -12135,7 +12153,7 @@
         "column": 7,
         "id": "decompiler_style_locals:734:1",
         "line": 734,
-        "status": "pending",
+        "status": "applied",
         "text": "if (iVar1 != 0) {"
       },
       {
@@ -12143,7 +12161,7 @@
         "column": 14,
         "id": "decompiler_style_locals:736:1",
         "line": 736,
-        "status": "pending",
+        "status": "applied",
         "text": "*(int *)(iVar1 + 0x14) = 0;"
       },
       {
@@ -25097,7 +25115,7 @@
       "column": 18,
       "id": "decompiler_style_locals:466:1",
       "line": 466,
-      "status": "pending",
+      "status": "applied",
       "text": "unsigned char *pbVar7;"
     },
     {
@@ -25105,7 +25123,7 @@
       "column": 7,
       "id": "decompiler_style_locals:467:1",
       "line": 467,
-      "status": "pending",
+      "status": "applied",
       "text": "int bVar2;"
     },
     {
@@ -25113,7 +25131,7 @@
       "column": 17,
       "id": "decompiler_style_locals:468:1",
       "line": 468,
-      "status": "pending",
+      "status": "applied",
       "text": "unsigned char bVar3;"
     },
     {
@@ -25121,7 +25139,7 @@
       "column": 16,
       "id": "decompiler_style_locals:469:1",
       "line": 469,
-      "status": "pending",
+      "status": "applied",
       "text": "unsigned int uVar4;"
     },
     {
@@ -25129,7 +25147,7 @@
       "column": 16,
       "id": "decompiler_style_locals:470:1",
       "line": 470,
-      "status": "pending",
+      "status": "applied",
       "text": "unsigned int uVar5;"
     },
     {
@@ -25137,7 +25155,7 @@
       "column": 7,
       "id": "decompiler_style_locals:471:1",
       "line": 471,
-      "status": "pending",
+      "status": "applied",
       "text": "int iVar6;"
     },
     {
@@ -25145,7 +25163,7 @@
       "column": 16,
       "id": "decompiler_style_locals:472:1",
       "line": 472,
-      "status": "pending",
+      "status": "applied",
       "text": "unsigned int uVar8;"
     },
     {
@@ -25153,7 +25171,7 @@
       "column": 16,
       "id": "decompiler_style_locals:474:1",
       "line": 474,
-      "status": "pending",
+      "status": "applied",
       "text": "unsigned int uVar9;"
     },
     {
@@ -25161,7 +25179,7 @@
       "column": 16,
       "id": "decompiler_style_locals:475:1",
       "line": 475,
-      "status": "pending",
+      "status": "applied",
       "text": "unsigned int uVar10;"
     },
     {
@@ -25169,7 +25187,7 @@
       "column": 16,
       "id": "decompiler_style_locals:476:1",
       "line": 476,
-      "status": "pending",
+      "status": "applied",
       "text": "unsigned int uVar11;"
     },
     {
@@ -25177,7 +25195,7 @@
       "column": 16,
       "id": "decompiler_style_locals:477:1",
       "line": 477,
-      "status": "pending",
+      "status": "applied",
       "text": "unsigned int uVar12;"
     },
     {
@@ -25185,7 +25203,7 @@
       "column": 18,
       "id": "decompiler_style_locals:478:1",
       "line": 478,
-      "status": "pending",
+      "status": "applied",
       "text": "unsigned char *local_14;"
     },
     {
@@ -25193,7 +25211,7 @@
       "column": 18,
       "id": "decompiler_style_locals:479:1",
       "line": 479,
-      "status": "pending",
+      "status": "applied",
       "text": "unsigned char *local_10;"
     },
     {
@@ -25201,7 +25219,7 @@
       "column": 18,
       "id": "decompiler_style_locals:480:1",
       "line": 480,
-      "status": "pending",
+      "status": "applied",
       "text": "unsigned char *local_c;"
     },
     {
@@ -25209,7 +25227,7 @@
       "column": 16,
       "id": "decompiler_style_locals:481:1",
       "line": 481,
-      "status": "pending",
+      "status": "applied",
       "text": "unsigned int local_8;"
     },
     {
@@ -25217,7 +25235,7 @@
       "column": 3,
       "id": "decompiler_style_locals:483:1",
       "line": 483,
-      "status": "pending",
+      "status": "applied",
       "text": "local_c = (unsigned char *)*param_6;"
     },
     {
@@ -25225,7 +25243,7 @@
       "column": 3,
       "id": "decompiler_style_locals:484:1",
       "line": 484,
-      "status": "pending",
+      "status": "applied",
       "text": "local_8 = (unsigned int)param_6[1];"
     },
     {
@@ -25233,7 +25251,7 @@
       "column": 3,
       "id": "decompiler_style_locals:485:1",
       "line": 485,
-      "status": "pending",
+      "status": "applied",
       "text": "local_10 = *(unsigned char **)(param_5 + 0x34);"
     },
     {
@@ -25241,7 +25259,7 @@
       "column": 3,
       "id": "decompiler_style_locals:486:1",
       "line": 486,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = *(unsigned int *)(param_5 + 0x1c);"
     },
     {
@@ -25249,7 +25267,7 @@
       "column": 3,
       "id": "decompiler_style_locals:487:1",
       "line": 487,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = *(unsigned int *)(param_5 + 0x20);"
     },
     {
@@ -25257,7 +25275,7 @@
       "column": 7,
       "id": "decompiler_style_locals:488:1",
       "line": 488,
-      "status": "pending",
+      "status": "applied",
       "text": "if (local_10 < *(unsigned char **)(param_5 + 0x30)) {"
     },
     {
@@ -25265,7 +25283,7 @@
       "column": 5,
       "id": "decompiler_style_locals:489:1",
       "line": 489,
-      "status": "pending",
+      "status": "applied",
       "text": "local_14 ="
     },
     {
@@ -25273,7 +25291,7 @@
       "column": 63,
       "id": "decompiler_style_locals:490:1",
       "line": 490,
-      "status": "pending",
+      "status": "applied",
       "text": "(unsigned char *)(*(int *)(param_5 + 0x30) + (-1 - (int)local_10));"
     },
     {
@@ -25281,7 +25299,7 @@
       "column": 5,
       "id": "decompiler_style_locals:492:1",
       "line": 492,
-      "status": "pending",
+      "status": "applied",
       "text": "local_14 = (unsigned char *)(*(int *)(param_5 + 0x2c) - (int)local_10);"
     },
     {
@@ -25289,7 +25307,7 @@
       "column": 66,
       "id": "decompiler_style_locals:492:2",
       "line": 492,
-      "status": "pending",
+      "status": "applied",
       "text": "local_14 = (unsigned char *)(*(int *)(param_5 + 0x2c) - (int)local_10);"
     },
     {
@@ -25297,7 +25315,7 @@
       "column": 3,
       "id": "decompiler_style_locals:494:1",
       "line": 494,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar8 = *(unsigned int *)(0x320d88 + param_1 * 4);"
     },
     {
@@ -25305,7 +25323,7 @@
       "column": 3,
       "id": "decompiler_style_locals:495:1",
       "line": 495,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar4 = *(unsigned int *)(0x320d88 + param_2 * 4);"
     },
     {
@@ -25313,7 +25331,7 @@
       "column": 12,
       "id": "decompiler_style_locals:497:1",
       "line": 497,
-      "status": "pending",
+      "status": "applied",
       "text": "for (; uVar11 < 0x14; uVar11 = uVar11 + 8) {"
     },
     {
@@ -25321,7 +25339,7 @@
       "column": 27,
       "id": "decompiler_style_locals:497:2",
       "line": 497,
-      "status": "pending",
+      "status": "applied",
       "text": "for (; uVar11 < 0x14; uVar11 = uVar11 + 8) {"
     },
     {
@@ -25329,7 +25347,7 @@
       "column": 36,
       "id": "decompiler_style_locals:497:3",
       "line": 497,
-      "status": "pending",
+      "status": "applied",
       "text": "for (; uVar11 < 0x14; uVar11 = uVar11 + 8) {"
     },
     {
@@ -25337,7 +25355,7 @@
       "column": 7,
       "id": "decompiler_style_locals:498:1",
       "line": 498,
-      "status": "pending",
+      "status": "applied",
       "text": "local_8 = local_8 - 1;"
     },
     {
@@ -25345,7 +25363,7 @@
       "column": 17,
       "id": "decompiler_style_locals:498:2",
       "line": 498,
-      "status": "pending",
+      "status": "applied",
       "text": "local_8 = local_8 - 1;"
     },
     {
@@ -25353,7 +25371,7 @@
       "column": 7,
       "id": "decompiler_style_locals:499:1",
       "line": 499,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
     },
     {
@@ -25361,7 +25379,7 @@
       "column": 16,
       "id": "decompiler_style_locals:499:2",
       "line": 499,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
     },
     {
@@ -25369,7 +25387,7 @@
       "column": 40,
       "id": "decompiler_style_locals:499:3",
       "line": 499,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
     },
     {
@@ -25377,7 +25395,7 @@
       "column": 66,
       "id": "decompiler_style_locals:499:4",
       "line": 499,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
     },
     {
@@ -25385,7 +25403,7 @@
       "column": 7,
       "id": "decompiler_style_locals:500:1",
       "line": 500,
-      "status": "pending",
+      "status": "applied",
       "text": "local_c = local_c + 1;"
     },
     {
@@ -25393,7 +25411,7 @@
       "column": 17,
       "id": "decompiler_style_locals:500:2",
       "line": 500,
-      "status": "pending",
+      "status": "applied",
       "text": "local_c = local_c + 1;"
     },
     {
@@ -25401,7 +25419,7 @@
       "column": 5,
       "id": "decompiler_style_locals:502:1",
       "line": 502,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = (unsigned char *)(param_3 + (uVar8 & uVar12) * 8);"
     },
     {
@@ -25409,7 +25427,7 @@
       "column": 43,
       "id": "decompiler_style_locals:502:2",
       "line": 502,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = (unsigned char *)(param_3 + (uVar8 & uVar12) * 8);"
     },
     {
@@ -25417,7 +25435,7 @@
       "column": 51,
       "id": "decompiler_style_locals:502:3",
       "line": 502,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = (unsigned char *)(param_3 + (uVar8 & uVar12) * 8);"
     },
     {
@@ -25425,7 +25443,7 @@
       "column": 5,
       "id": "decompiler_style_locals:503:1",
       "line": 503,
-      "status": "pending",
+      "status": "applied",
       "text": "bVar2 = pbVar7[1];"
     },
     {
@@ -25433,7 +25451,7 @@
       "column": 13,
       "id": "decompiler_style_locals:503:2",
       "line": 503,
-      "status": "pending",
+      "status": "applied",
       "text": "bVar2 = pbVar7[1];"
     },
     {
@@ -25441,7 +25459,7 @@
       "column": 5,
       "id": "decompiler_style_locals:504:1",
       "line": 504,
-      "status": "pending",
+      "status": "applied",
       "text": "bVar3 = *pbVar7;"
     },
     {
@@ -25449,7 +25467,7 @@
       "column": 14,
       "id": "decompiler_style_locals:504:2",
       "line": 504,
-      "status": "pending",
+      "status": "applied",
       "text": "bVar3 = *pbVar7;"
     },
     {
@@ -25457,7 +25475,7 @@
       "column": 5,
       "id": "decompiler_style_locals:505:1",
       "line": 505,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar5 = (unsigned int)bVar3;"
     },
     {
@@ -25465,7 +25483,7 @@
       "column": 27,
       "id": "decompiler_style_locals:505:2",
       "line": 505,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar5 = (unsigned int)bVar3;"
     },
     {
@@ -25473,7 +25491,7 @@
       "column": 5,
       "id": "decompiler_style_locals:506:1",
       "line": 506,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> bVar2;"
     },
     {
@@ -25481,7 +25499,7 @@
       "column": 14,
       "id": "decompiler_style_locals:506:2",
       "line": 506,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> bVar2;"
     },
     {
@@ -25489,7 +25507,7 @@
       "column": 24,
       "id": "decompiler_style_locals:506:3",
       "line": 506,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> bVar2;"
     },
     {
@@ -25497,7 +25515,7 @@
       "column": 9,
       "id": "decompiler_style_locals:507:1",
       "line": 507,
-      "status": "pending",
+      "status": "applied",
       "text": "if (uVar5 == 0) {"
     },
     {
@@ -25505,7 +25523,7 @@
       "column": 5,
       "id": "decompiler_style_locals:510:1",
       "line": 510,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - pbVar7[1];"
     },
     {
@@ -25513,7 +25531,7 @@
       "column": 14,
       "id": "decompiler_style_locals:510:2",
       "line": 510,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - pbVar7[1];"
     },
     {
@@ -25521,7 +25539,7 @@
       "column": 23,
       "id": "decompiler_style_locals:510:3",
       "line": 510,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - pbVar7[1];"
     },
     {
@@ -25529,7 +25547,7 @@
       "column": 13,
       "id": "decompiler_style_locals:511:1",
       "line": 511,
-      "status": "pending",
+      "status": "applied",
       "text": "while ((bVar3 & 0x10) == 0) {"
     },
     {
@@ -25537,7 +25555,7 @@
       "column": 12,
       "id": "decompiler_style_locals:512:1",
       "line": 512,
-      "status": "pending",
+      "status": "applied",
       "text": "if ((uVar5 & 0x40) != 0) {"
     },
     {
@@ -25545,7 +25563,7 @@
       "column": 14,
       "id": "decompiler_style_locals:513:1",
       "line": 513,
-      "status": "pending",
+      "status": "applied",
       "text": "if ((uVar5 & 0x20) != 0) {"
     },
     {
@@ -25553,7 +25571,7 @@
       "column": 11,
       "id": "decompiler_style_locals:518:1",
       "line": 518,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar8 = (unsigned int)param_6[1] - local_8;"
     },
     {
@@ -25561,7 +25579,7 @@
       "column": 46,
       "id": "decompiler_style_locals:518:2",
       "line": 518,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar8 = (unsigned int)param_6[1] - local_8;"
     },
     {
@@ -25569,7 +25587,7 @@
       "column": 15,
       "id": "decompiler_style_locals:519:1",
       "line": 519,
-      "status": "pending",
+      "status": "applied",
       "text": "if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {"
     },
     {
@@ -25577,7 +25595,7 @@
       "column": 56,
       "id": "decompiler_style_locals:519:2",
       "line": 519,
-      "status": "pending",
+      "status": "applied",
       "text": "if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {"
     },
     {
@@ -25585,7 +25603,7 @@
       "column": 13,
       "id": "decompiler_style_locals:520:1",
       "line": 520,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar8 = uVar11 >> 3;"
     },
     {
@@ -25593,7 +25611,7 @@
       "column": 21,
       "id": "decompiler_style_locals:520:2",
       "line": 520,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar8 = uVar11 >> 3;"
     },
     {
@@ -25601,7 +25619,7 @@
       "column": 47,
       "id": "decompiler_style_locals:522:1",
       "line": 522,
-      "status": "pending",
+      "status": "applied",
       "text": "*(unsigned int *)(param_5 + 0x20) = uVar12;"
     },
     {
@@ -25609,7 +25627,7 @@
       "column": 47,
       "id": "decompiler_style_locals:523:1",
       "line": 523,
-      "status": "pending",
+      "status": "applied",
       "text": "*(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;"
     },
     {
@@ -25617,7 +25635,7 @@
       "column": 56,
       "id": "decompiler_style_locals:523:2",
       "line": 523,
-      "status": "pending",
+      "status": "applied",
       "text": "*(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;"
     },
     {
@@ -25625,7 +25643,7 @@
       "column": 11,
       "id": "decompiler_style_locals:524:1",
       "line": 524,
-      "status": "pending",
+      "status": "applied",
       "text": "iVar6 = *param_6;"
     },
     {
@@ -25633,7 +25651,7 @@
       "column": 30,
       "id": "decompiler_style_locals:525:1",
       "line": 525,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[1] = (int)(uVar8 + local_8);"
     },
     {
@@ -25641,7 +25659,7 @@
       "column": 38,
       "id": "decompiler_style_locals:525:2",
       "line": 525,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[1] = (int)(uVar8 + local_8);"
     },
     {
@@ -25649,7 +25667,7 @@
       "column": 27,
       "id": "decompiler_style_locals:526:1",
       "line": 526,
-      "status": "pending",
+      "status": "applied",
       "text": "*param_6 = (int)local_c - (int)uVar8;"
     },
     {
@@ -25657,7 +25675,7 @@
       "column": 42,
       "id": "decompiler_style_locals:526:2",
       "line": 526,
-      "status": "pending",
+      "status": "applied",
       "text": "*param_6 = (int)local_c - (int)uVar8;"
     },
     {
@@ -25665,7 +25683,7 @@
       "column": 44,
       "id": "decompiler_style_locals:527:1",
       "line": 527,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
     },
     {
@@ -25673,7 +25691,7 @@
       "column": 59,
       "id": "decompiler_style_locals:527:2",
       "line": 527,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
     },
     {
@@ -25681,7 +25699,7 @@
       "column": 68,
       "id": "decompiler_style_locals:527:3",
       "line": 527,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
     },
     {
@@ -25689,7 +25707,7 @@
       "column": 49,
       "id": "decompiler_style_locals:528:1",
       "line": 528,
-      "status": "pending",
+      "status": "applied",
       "text": "*(unsigned char **)(param_5 + 0x34) = local_10;"
     },
     {
@@ -25697,7 +25715,7 @@
       "column": 9,
       "id": "decompiler_style_locals:532:1",
       "line": 532,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar8 = (unsigned int)param_6[1] - local_8;"
     },
     {
@@ -25705,7 +25723,7 @@
       "column": 44,
       "id": "decompiler_style_locals:532:2",
       "line": 532,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar8 = (unsigned int)param_6[1] - local_8;"
     },
     {
@@ -25713,7 +25731,7 @@
       "column": 13,
       "id": "decompiler_style_locals:533:1",
       "line": 533,
-      "status": "pending",
+      "status": "applied",
       "text": "if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {"
     },
     {
@@ -25721,7 +25739,7 @@
       "column": 54,
       "id": "decompiler_style_locals:533:2",
       "line": 533,
-      "status": "pending",
+      "status": "applied",
       "text": "if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {"
     },
     {
@@ -25729,7 +25747,7 @@
       "column": 11,
       "id": "decompiler_style_locals:534:1",
       "line": 534,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar8 = uVar11 >> 3;"
     },
     {
@@ -25737,7 +25755,7 @@
       "column": 19,
       "id": "decompiler_style_locals:534:2",
       "line": 534,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar8 = uVar11 >> 3;"
     },
     {
@@ -25745,7 +25763,7 @@
       "column": 45,
       "id": "decompiler_style_locals:536:1",
       "line": 536,
-      "status": "pending",
+      "status": "applied",
       "text": "*(unsigned int *)(param_5 + 0x20) = uVar12;"
     },
     {
@@ -25753,7 +25771,7 @@
       "column": 45,
       "id": "decompiler_style_locals:537:1",
       "line": 537,
-      "status": "pending",
+      "status": "applied",
       "text": "*(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;"
     },
     {
@@ -25761,7 +25779,7 @@
       "column": 54,
       "id": "decompiler_style_locals:537:2",
       "line": 537,
-      "status": "pending",
+      "status": "applied",
       "text": "*(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;"
     },
     {
@@ -25769,7 +25787,7 @@
       "column": 9,
       "id": "decompiler_style_locals:538:1",
       "line": 538,
-      "status": "pending",
+      "status": "applied",
       "text": "iVar6 = *param_6;"
     },
     {
@@ -25777,7 +25795,7 @@
       "column": 28,
       "id": "decompiler_style_locals:539:1",
       "line": 539,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[1] = (int)(uVar8 + local_8);"
     },
     {
@@ -25785,7 +25803,7 @@
       "column": 36,
       "id": "decompiler_style_locals:539:2",
       "line": 539,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[1] = (int)(uVar8 + local_8);"
     },
     {
@@ -25793,7 +25811,7 @@
       "column": 25,
       "id": "decompiler_style_locals:540:1",
       "line": 540,
-      "status": "pending",
+      "status": "applied",
       "text": "*param_6 = (int)local_c - (int)uVar8;"
     },
     {
@@ -25801,7 +25819,7 @@
       "column": 40,
       "id": "decompiler_style_locals:540:2",
       "line": 540,
-      "status": "pending",
+      "status": "applied",
       "text": "*param_6 = (int)local_c - (int)uVar8;"
     },
     {
@@ -25809,7 +25827,7 @@
       "column": 42,
       "id": "decompiler_style_locals:541:1",
       "line": 541,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
     },
     {
@@ -25817,7 +25835,7 @@
       "column": 57,
       "id": "decompiler_style_locals:541:2",
       "line": 541,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
     },
     {
@@ -25825,7 +25843,7 @@
       "column": 66,
       "id": "decompiler_style_locals:541:3",
       "line": 541,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
     },
     {
@@ -25833,7 +25851,7 @@
       "column": 47,
       "id": "decompiler_style_locals:542:1",
       "line": 542,
-      "status": "pending",
+      "status": "applied",
       "text": "*(unsigned char **)(param_5 + 0x34) = local_10;"
     },
     {
@@ -25841,7 +25859,7 @@
       "column": 7,
       "id": "decompiler_style_locals:545:1",
       "line": 545,
-      "status": "pending",
+      "status": "applied",
       "text": "iVar6 = (*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) +"
     },
     {
@@ -25849,7 +25867,7 @@
       "column": 45,
       "id": "decompiler_style_locals:545:2",
       "line": 545,
-      "status": "pending",
+      "status": "applied",
       "text": "iVar6 = (*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) +"
     },
     {
@@ -25857,7 +25875,7 @@
       "column": 58,
       "id": "decompiler_style_locals:545:3",
       "line": 545,
-      "status": "pending",
+      "status": "applied",
       "text": "iVar6 = (*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) +"
     },
     {
@@ -25865,7 +25883,7 @@
       "column": 24,
       "id": "decompiler_style_locals:546:1",
       "line": 546,
-      "status": "pending",
+      "status": "applied",
       "text": "*(int *)(pbVar7 + 4);"
     },
     {
@@ -25873,7 +25891,7 @@
       "column": 7,
       "id": "decompiler_style_locals:547:1",
       "line": 547,
-      "status": "pending",
+      "status": "applied",
       "text": "bVar2 = pbVar7[iVar6 * 8 + 1];"
     },
     {
@@ -25881,7 +25899,7 @@
       "column": 15,
       "id": "decompiler_style_locals:547:2",
       "line": 547,
-      "status": "pending",
+      "status": "applied",
       "text": "bVar2 = pbVar7[iVar6 * 8 + 1];"
     },
     {
@@ -25889,7 +25907,7 @@
       "column": 22,
       "id": "decompiler_style_locals:547:3",
       "line": 547,
-      "status": "pending",
+      "status": "applied",
       "text": "bVar2 = pbVar7[iVar6 * 8 + 1];"
     },
     {
@@ -25897,7 +25915,7 @@
       "column": 7,
       "id": "decompiler_style_locals:548:1",
       "line": 548,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = pbVar7 + iVar6 * 8;"
     },
     {
@@ -25905,7 +25923,7 @@
       "column": 16,
       "id": "decompiler_style_locals:548:2",
       "line": 548,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = pbVar7 + iVar6 * 8;"
     },
     {
@@ -25913,7 +25931,7 @@
       "column": 25,
       "id": "decompiler_style_locals:548:3",
       "line": 548,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = pbVar7 + iVar6 * 8;"
     },
     {
@@ -25921,7 +25939,7 @@
       "column": 7,
       "id": "decompiler_style_locals:549:1",
       "line": 549,
-      "status": "pending",
+      "status": "applied",
       "text": "bVar3 = *pbVar7;"
     },
     {
@@ -25929,7 +25947,7 @@
       "column": 16,
       "id": "decompiler_style_locals:549:2",
       "line": 549,
-      "status": "pending",
+      "status": "applied",
       "text": "bVar3 = *pbVar7;"
     },
     {
@@ -25937,7 +25955,7 @@
       "column": 7,
       "id": "decompiler_style_locals:550:1",
       "line": 550,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar5 = (unsigned int)bVar3;"
     },
     {
@@ -25945,7 +25963,7 @@
       "column": 29,
       "id": "decompiler_style_locals:550:2",
       "line": 550,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar5 = (unsigned int)bVar3;"
     },
     {
@@ -25953,7 +25971,7 @@
       "column": 7,
       "id": "decompiler_style_locals:551:1",
       "line": 551,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> bVar2;"
     },
     {
@@ -25961,7 +25979,7 @@
       "column": 16,
       "id": "decompiler_style_locals:551:2",
       "line": 551,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> bVar2;"
     },
     {
@@ -25969,7 +25987,7 @@
       "column": 26,
       "id": "decompiler_style_locals:551:3",
       "line": 551,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> bVar2;"
     },
     {
@@ -25977,7 +25995,7 @@
       "column": 11,
       "id": "decompiler_style_locals:552:1",
       "line": 552,
-      "status": "pending",
+      "status": "applied",
       "text": "if (uVar5 == 0)"
     },
     {
@@ -25985,7 +26003,7 @@
       "column": 7,
       "id": "decompiler_style_locals:554:1",
       "line": 554,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - pbVar7[1];"
     },
     {
@@ -25993,7 +26011,7 @@
       "column": 16,
       "id": "decompiler_style_locals:554:2",
       "line": 554,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - pbVar7[1];"
     },
     {
@@ -26001,7 +26019,7 @@
       "column": 25,
       "id": "decompiler_style_locals:554:3",
       "line": 554,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - pbVar7[1];"
     },
     {
@@ -26009,7 +26027,7 @@
       "column": 5,
       "id": "decompiler_style_locals:556:1",
       "line": 556,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar5 = uVar5 & 0xf;"
     },
     {
@@ -26017,7 +26035,7 @@
       "column": 13,
       "id": "decompiler_style_locals:556:2",
       "line": 556,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar5 = uVar5 & 0xf;"
     },
     {
@@ -26025,7 +26043,7 @@
       "column": 5,
       "id": "decompiler_style_locals:557:1",
       "line": 557,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar9 ="
     },
     {
@@ -26033,7 +26051,7 @@
       "column": 37,
       "id": "decompiler_style_locals:558:1",
       "line": 558,
-      "status": "pending",
+      "status": "applied",
       "text": "(*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) + *(int *)(pbVar7 + 4);"
     },
     {
@@ -26041,7 +26059,7 @@
       "column": 50,
       "id": "decompiler_style_locals:558:2",
       "line": 558,
-      "status": "pending",
+      "status": "applied",
       "text": "(*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) + *(int *)(pbVar7 + 4);"
     },
     {
@@ -26049,7 +26067,7 @@
       "column": 69,
       "id": "decompiler_style_locals:558:3",
       "line": 558,
-      "status": "pending",
+      "status": "applied",
       "text": "(*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) + *(int *)(pbVar7 + 4);"
     },
     {
@@ -26057,7 +26075,7 @@
       "column": 5,
       "id": "decompiler_style_locals:559:1",
       "line": 559,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - uVar5;"
     },
     {
@@ -26065,7 +26083,7 @@
       "column": 14,
       "id": "decompiler_style_locals:559:2",
       "line": 559,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - uVar5;"
     },
     {
@@ -26073,7 +26091,7 @@
       "column": 23,
       "id": "decompiler_style_locals:559:3",
       "line": 559,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - uVar5;"
     },
     {
@@ -26081,7 +26099,7 @@
       "column": 5,
       "id": "decompiler_style_locals:560:1",
       "line": 560,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> (unsigned char)uVar5;"
     },
     {
@@ -26089,7 +26107,7 @@
       "column": 14,
       "id": "decompiler_style_locals:560:2",
       "line": 560,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> (unsigned char)uVar5;"
     },
     {
@@ -26097,7 +26115,7 @@
       "column": 39,
       "id": "decompiler_style_locals:560:3",
       "line": 560,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> (unsigned char)uVar5;"
     },
     {
@@ -26105,7 +26123,7 @@
       "column": 73,
       "id": "decompiler_style_locals:562:1",
       "line": 562,
-      "status": "pending",
+      "status": "applied",
       "text": "crt_fprintf(*(void **)0x331070, \"inflate:         * length %u\\n\", uVar9);"
     },
     {
@@ -26113,7 +26131,7 @@
       "column": 12,
       "id": "decompiler_style_locals:564:1",
       "line": 564,
-      "status": "pending",
+      "status": "applied",
       "text": "for (; uVar11 < 0xf; uVar11 = uVar11 + 8) {"
     },
     {
@@ -26121,7 +26139,7 @@
       "column": 26,
       "id": "decompiler_style_locals:564:2",
       "line": 564,
-      "status": "pending",
+      "status": "applied",
       "text": "for (; uVar11 < 0xf; uVar11 = uVar11 + 8) {"
     },
     {
@@ -26129,7 +26147,7 @@
       "column": 35,
       "id": "decompiler_style_locals:564:3",
       "line": 564,
-      "status": "pending",
+      "status": "applied",
       "text": "for (; uVar11 < 0xf; uVar11 = uVar11 + 8) {"
     },
     {
@@ -26137,7 +26155,7 @@
       "column": 7,
       "id": "decompiler_style_locals:565:1",
       "line": 565,
-      "status": "pending",
+      "status": "applied",
       "text": "local_8 = local_8 - 1;"
     },
     {
@@ -26145,7 +26163,7 @@
       "column": 17,
       "id": "decompiler_style_locals:565:2",
       "line": 565,
-      "status": "pending",
+      "status": "applied",
       "text": "local_8 = local_8 - 1;"
     },
     {
@@ -26153,7 +26171,7 @@
       "column": 7,
       "id": "decompiler_style_locals:566:1",
       "line": 566,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
     },
     {
@@ -26161,7 +26179,7 @@
       "column": 16,
       "id": "decompiler_style_locals:566:2",
       "line": 566,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
     },
     {
@@ -26169,7 +26187,7 @@
       "column": 40,
       "id": "decompiler_style_locals:566:3",
       "line": 566,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
     },
     {
@@ -26177,7 +26195,7 @@
       "column": 66,
       "id": "decompiler_style_locals:566:4",
       "line": 566,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
     },
     {
@@ -26185,7 +26203,7 @@
       "column": 7,
       "id": "decompiler_style_locals:567:1",
       "line": 567,
-      "status": "pending",
+      "status": "applied",
       "text": "local_c = local_c + 1;"
     },
     {
@@ -26193,7 +26211,7 @@
       "column": 17,
       "id": "decompiler_style_locals:567:2",
       "line": 567,
-      "status": "pending",
+      "status": "applied",
       "text": "local_c = local_c + 1;"
     },
     {
@@ -26201,7 +26219,7 @@
       "column": 5,
       "id": "decompiler_style_locals:569:1",
       "line": 569,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = (unsigned char *)(param_4 + (uVar4 & uVar12) * 8);"
     },
     {
@@ -26209,7 +26227,7 @@
       "column": 43,
       "id": "decompiler_style_locals:569:2",
       "line": 569,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = (unsigned char *)(param_4 + (uVar4 & uVar12) * 8);"
     },
     {
@@ -26217,7 +26235,7 @@
       "column": 51,
       "id": "decompiler_style_locals:569:3",
       "line": 569,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = (unsigned char *)(param_4 + (uVar4 & uVar12) * 8);"
     },
     {
@@ -26225,7 +26243,7 @@
       "column": 5,
       "id": "decompiler_style_locals:570:1",
       "line": 570,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> pbVar7[1];"
     },
     {
@@ -26233,7 +26251,7 @@
       "column": 14,
       "id": "decompiler_style_locals:570:2",
       "line": 570,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> pbVar7[1];"
     },
     {
@@ -26241,7 +26259,7 @@
       "column": 24,
       "id": "decompiler_style_locals:570:3",
       "line": 570,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> pbVar7[1];"
     },
     {
@@ -26249,7 +26267,7 @@
       "column": 5,
       "id": "decompiler_style_locals:571:1",
       "line": 571,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - pbVar7[1];"
     },
     {
@@ -26257,7 +26275,7 @@
       "column": 14,
       "id": "decompiler_style_locals:571:2",
       "line": 571,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - pbVar7[1];"
     },
     {
@@ -26265,7 +26283,7 @@
       "column": 23,
       "id": "decompiler_style_locals:571:3",
       "line": 571,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - pbVar7[1];"
     },
     {
@@ -26273,7 +26291,7 @@
       "column": 5,
       "id": "decompiler_style_locals:572:1",
       "line": 572,
-      "status": "pending",
+      "status": "applied",
       "text": "bVar3 = *pbVar7;"
     },
     {
@@ -26281,7 +26299,7 @@
       "column": 14,
       "id": "decompiler_style_locals:572:2",
       "line": 572,
-      "status": "pending",
+      "status": "applied",
       "text": "bVar3 = *pbVar7;"
     },
     {
@@ -26289,7 +26307,7 @@
       "column": 13,
       "id": "decompiler_style_locals:573:1",
       "line": 573,
-      "status": "pending",
+      "status": "applied",
       "text": "while ((bVar3 & 0x10) == 0) {"
     },
     {
@@ -26297,7 +26315,7 @@
       "column": 12,
       "id": "decompiler_style_locals:574:1",
       "line": 574,
-      "status": "pending",
+      "status": "applied",
       "text": "if ((bVar3 & 0x40) != 0) {"
     },
     {
@@ -26305,7 +26323,7 @@
       "column": 9,
       "id": "decompiler_style_locals:576:1",
       "line": 576,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar8 = (unsigned int)param_6[1] - local_8;"
     },
     {
@@ -26313,7 +26331,7 @@
       "column": 44,
       "id": "decompiler_style_locals:576:2",
       "line": 576,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar8 = (unsigned int)param_6[1] - local_8;"
     },
     {
@@ -26321,7 +26339,7 @@
       "column": 13,
       "id": "decompiler_style_locals:577:1",
       "line": 577,
-      "status": "pending",
+      "status": "applied",
       "text": "if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {"
     },
     {
@@ -26329,7 +26347,7 @@
       "column": 54,
       "id": "decompiler_style_locals:577:2",
       "line": 577,
-      "status": "pending",
+      "status": "applied",
       "text": "if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {"
     },
     {
@@ -26337,7 +26355,7 @@
       "column": 11,
       "id": "decompiler_style_locals:578:1",
       "line": 578,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar8 = uVar11 >> 3;"
     },
     {
@@ -26345,7 +26363,7 @@
       "column": 19,
       "id": "decompiler_style_locals:578:2",
       "line": 578,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar8 = uVar11 >> 3;"
     },
     {
@@ -26353,7 +26371,7 @@
       "column": 45,
       "id": "decompiler_style_locals:580:1",
       "line": 580,
-      "status": "pending",
+      "status": "applied",
       "text": "*(unsigned int *)(param_5 + 0x20) = uVar12;"
     },
     {
@@ -26361,7 +26379,7 @@
       "column": 45,
       "id": "decompiler_style_locals:581:1",
       "line": 581,
-      "status": "pending",
+      "status": "applied",
       "text": "*(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;"
     },
     {
@@ -26369,7 +26387,7 @@
       "column": 54,
       "id": "decompiler_style_locals:581:2",
       "line": 581,
-      "status": "pending",
+      "status": "applied",
       "text": "*(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;"
     },
     {
@@ -26377,7 +26395,7 @@
       "column": 28,
       "id": "decompiler_style_locals:582:1",
       "line": 582,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[1] = (int)(uVar8 + local_8);"
     },
     {
@@ -26385,7 +26403,7 @@
       "column": 36,
       "id": "decompiler_style_locals:582:2",
       "line": 582,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[1] = (int)(uVar8 + local_8);"
     },
     {
@@ -26393,7 +26411,7 @@
       "column": 42,
       "id": "decompiler_style_locals:583:1",
       "line": 583,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - *param_6);"
     },
     {
@@ -26401,7 +26419,7 @@
       "column": 57,
       "id": "decompiler_style_locals:583:2",
       "line": 583,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - *param_6);"
     },
     {
@@ -26409,7 +26427,7 @@
       "column": 25,
       "id": "decompiler_style_locals:584:1",
       "line": 584,
-      "status": "pending",
+      "status": "applied",
       "text": "*param_6 = (int)local_c - (int)uVar8;"
     },
     {
@@ -26417,7 +26435,7 @@
       "column": 40,
       "id": "decompiler_style_locals:584:2",
       "line": 584,
-      "status": "pending",
+      "status": "applied",
       "text": "*param_6 = (int)local_c - (int)uVar8;"
     },
     {
@@ -26425,7 +26443,7 @@
       "column": 47,
       "id": "decompiler_style_locals:585:1",
       "line": 585,
-      "status": "pending",
+      "status": "applied",
       "text": "*(unsigned char **)(param_5 + 0x34) = local_10;"
     },
     {
@@ -26433,7 +26451,7 @@
       "column": 7,
       "id": "decompiler_style_locals:588:1",
       "line": 588,
-      "status": "pending",
+      "status": "applied",
       "text": "iVar6 = (*(unsigned int *)(0x320d88 + (unsigned int)bVar3 * 4) & uVar12) +"
     },
     {
@@ -26441,7 +26459,7 @@
       "column": 59,
       "id": "decompiler_style_locals:588:2",
       "line": 588,
-      "status": "pending",
+      "status": "applied",
       "text": "iVar6 = (*(unsigned int *)(0x320d88 + (unsigned int)bVar3 * 4) & uVar12) +"
     },
     {
@@ -26449,7 +26467,7 @@
       "column": 72,
       "id": "decompiler_style_locals:588:3",
       "line": 588,
-      "status": "pending",
+      "status": "applied",
       "text": "iVar6 = (*(unsigned int *)(0x320d88 + (unsigned int)bVar3 * 4) & uVar12) +"
     },
     {
@@ -26457,7 +26475,7 @@
       "column": 24,
       "id": "decompiler_style_locals:589:1",
       "line": 589,
-      "status": "pending",
+      "status": "applied",
       "text": "*(int *)(pbVar7 + 4);"
     },
     {
@@ -26465,7 +26483,7 @@
       "column": 24,
       "id": "decompiler_style_locals:591:1",
       "line": 591,
-      "status": "pending",
+      "status": "applied",
       "text": "unsigned char *pbVar1;"
     },
     {
@@ -26473,7 +26491,7 @@
       "column": 9,
       "id": "decompiler_style_locals:592:1",
       "line": 592,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar1 = pbVar7 + iVar6 * 8 + 1;"
     },
     {
@@ -26481,7 +26499,7 @@
       "column": 18,
       "id": "decompiler_style_locals:592:2",
       "line": 592,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar1 = pbVar7 + iVar6 * 8 + 1;"
     },
     {
@@ -26489,7 +26507,7 @@
       "column": 27,
       "id": "decompiler_style_locals:592:3",
       "line": 592,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar1 = pbVar7 + iVar6 * 8 + 1;"
     },
     {
@@ -26497,7 +26515,7 @@
       "column": 9,
       "id": "decompiler_style_locals:593:1",
       "line": 593,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = pbVar7 + iVar6 * 8;"
     },
     {
@@ -26505,7 +26523,7 @@
       "column": 18,
       "id": "decompiler_style_locals:593:2",
       "line": 593,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = pbVar7 + iVar6 * 8;"
     },
     {
@@ -26513,7 +26531,7 @@
       "column": 27,
       "id": "decompiler_style_locals:593:3",
       "line": 593,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = pbVar7 + iVar6 * 8;"
     },
     {
@@ -26521,7 +26539,7 @@
       "column": 9,
       "id": "decompiler_style_locals:594:1",
       "line": 594,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> *pbVar1;"
     },
     {
@@ -26529,7 +26547,7 @@
       "column": 18,
       "id": "decompiler_style_locals:594:2",
       "line": 594,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> *pbVar1;"
     },
     {
@@ -26537,7 +26555,7 @@
       "column": 29,
       "id": "decompiler_style_locals:594:3",
       "line": 594,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> *pbVar1;"
     },
     {
@@ -26545,7 +26563,7 @@
       "column": 9,
       "id": "decompiler_style_locals:595:1",
       "line": 595,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - *pbVar1;"
     },
     {
@@ -26553,7 +26571,7 @@
       "column": 18,
       "id": "decompiler_style_locals:595:2",
       "line": 595,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - *pbVar1;"
     },
     {
@@ -26561,7 +26579,7 @@
       "column": 28,
       "id": "decompiler_style_locals:595:3",
       "line": 595,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - *pbVar1;"
     },
     {
@@ -26569,7 +26587,7 @@
       "column": 9,
       "id": "decompiler_style_locals:596:1",
       "line": 596,
-      "status": "pending",
+      "status": "applied",
       "text": "bVar3 = *pbVar7;"
     },
     {
@@ -26577,7 +26595,7 @@
       "column": 18,
       "id": "decompiler_style_locals:596:2",
       "line": 596,
-      "status": "pending",
+      "status": "applied",
       "text": "bVar3 = *pbVar7;"
     },
     {
@@ -26585,7 +26603,7 @@
       "column": 5,
       "id": "decompiler_style_locals:599:1",
       "line": 599,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar5 = bVar3 & 0xf;"
     },
     {
@@ -26593,7 +26611,7 @@
       "column": 13,
       "id": "decompiler_style_locals:599:2",
       "line": 599,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar5 = bVar3 & 0xf;"
     },
     {
@@ -26601,7 +26619,7 @@
       "column": 12,
       "id": "decompiler_style_locals:600:1",
       "line": 600,
-      "status": "pending",
+      "status": "applied",
       "text": "for (; uVar11 < uVar5; uVar11 = uVar11 + 8) {"
     },
     {
@@ -26609,7 +26627,7 @@
       "column": 21,
       "id": "decompiler_style_locals:600:2",
       "line": 600,
-      "status": "pending",
+      "status": "applied",
       "text": "for (; uVar11 < uVar5; uVar11 = uVar11 + 8) {"
     },
     {
@@ -26617,7 +26635,7 @@
       "column": 28,
       "id": "decompiler_style_locals:600:3",
       "line": 600,
-      "status": "pending",
+      "status": "applied",
       "text": "for (; uVar11 < uVar5; uVar11 = uVar11 + 8) {"
     },
     {
@@ -26625,7 +26643,7 @@
       "column": 37,
       "id": "decompiler_style_locals:600:4",
       "line": 600,
-      "status": "pending",
+      "status": "applied",
       "text": "for (; uVar11 < uVar5; uVar11 = uVar11 + 8) {"
     },
     {
@@ -26633,7 +26651,7 @@
       "column": 7,
       "id": "decompiler_style_locals:601:1",
       "line": 601,
-      "status": "pending",
+      "status": "applied",
       "text": "local_8 = local_8 - 1;"
     },
     {
@@ -26641,7 +26659,7 @@
       "column": 17,
       "id": "decompiler_style_locals:601:2",
       "line": 601,
-      "status": "pending",
+      "status": "applied",
       "text": "local_8 = local_8 - 1;"
     },
     {
@@ -26649,7 +26667,7 @@
       "column": 7,
       "id": "decompiler_style_locals:602:1",
       "line": 602,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
     },
     {
@@ -26657,7 +26675,7 @@
       "column": 16,
       "id": "decompiler_style_locals:602:2",
       "line": 602,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
     },
     {
@@ -26665,7 +26683,7 @@
       "column": 40,
       "id": "decompiler_style_locals:602:3",
       "line": 602,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
     },
     {
@@ -26673,7 +26691,7 @@
       "column": 66,
       "id": "decompiler_style_locals:602:4",
       "line": 602,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 | (unsigned int)*local_c << (unsigned char)uVar11;"
     },
     {
@@ -26681,7 +26699,7 @@
       "column": 7,
       "id": "decompiler_style_locals:603:1",
       "line": 603,
-      "status": "pending",
+      "status": "applied",
       "text": "local_c = local_c + 1;"
     },
     {
@@ -26689,7 +26707,7 @@
       "column": 17,
       "id": "decompiler_style_locals:603:2",
       "line": 603,
-      "status": "pending",
+      "status": "applied",
       "text": "local_c = local_c + 1;"
     },
     {
@@ -26697,7 +26715,7 @@
       "column": 5,
       "id": "decompiler_style_locals:605:1",
       "line": 605,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar10 ="
     },
     {
@@ -26705,7 +26723,7 @@
       "column": 37,
       "id": "decompiler_style_locals:606:1",
       "line": 606,
-      "status": "pending",
+      "status": "applied",
       "text": "(*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) + *(int *)(pbVar7 + 4);"
     },
     {
@@ -26713,7 +26731,7 @@
       "column": 50,
       "id": "decompiler_style_locals:606:2",
       "line": 606,
-      "status": "pending",
+      "status": "applied",
       "text": "(*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) + *(int *)(pbVar7 + 4);"
     },
     {
@@ -26721,7 +26739,7 @@
       "column": 69,
       "id": "decompiler_style_locals:606:3",
       "line": 606,
-      "status": "pending",
+      "status": "applied",
       "text": "(*(unsigned int *)(0x320d88 + uVar5 * 4) & uVar12) + *(int *)(pbVar7 + 4);"
     },
     {
@@ -26729,7 +26747,7 @@
       "column": 5,
       "id": "decompiler_style_locals:607:1",
       "line": 607,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - uVar5;"
     },
     {
@@ -26737,7 +26755,7 @@
       "column": 14,
       "id": "decompiler_style_locals:607:2",
       "line": 607,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - uVar5;"
     },
     {
@@ -26745,7 +26763,7 @@
       "column": 23,
       "id": "decompiler_style_locals:607:3",
       "line": 607,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - uVar5;"
     },
     {
@@ -26753,7 +26771,7 @@
       "column": 5,
       "id": "decompiler_style_locals:608:1",
       "line": 608,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> (unsigned char)uVar5;"
     },
     {
@@ -26761,7 +26779,7 @@
       "column": 14,
       "id": "decompiler_style_locals:608:2",
       "line": 608,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> (unsigned char)uVar5;"
     },
     {
@@ -26769,7 +26787,7 @@
       "column": 39,
       "id": "decompiler_style_locals:608:3",
       "line": 608,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar12 = uVar12 >> (unsigned char)uVar5;"
     },
     {
@@ -26777,7 +26795,7 @@
       "column": 19,
       "id": "decompiler_style_locals:611:1",
       "line": 611,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar10);"
     },
     {
@@ -26785,7 +26803,7 @@
       "column": 5,
       "id": "decompiler_style_locals:613:1",
       "line": 613,
-      "status": "pending",
+      "status": "applied",
       "text": "local_14 = local_14 - uVar9;"
     },
     {
@@ -26793,7 +26811,7 @@
       "column": 16,
       "id": "decompiler_style_locals:613:2",
       "line": 613,
-      "status": "pending",
+      "status": "applied",
       "text": "local_14 = local_14 - uVar9;"
     },
     {
@@ -26801,7 +26819,7 @@
       "column": 27,
       "id": "decompiler_style_locals:613:3",
       "line": 613,
-      "status": "pending",
+      "status": "applied",
       "text": "local_14 = local_14 - uVar9;"
     },
     {
@@ -26809,7 +26827,7 @@
       "column": 29,
       "id": "decompiler_style_locals:614:1",
       "line": 614,
-      "status": "pending",
+      "status": "applied",
       "text": "if ((unsigned int)((int)local_10 - *(int *)(param_5 + 0x28)) < uVar10) {"
     },
     {
@@ -26817,7 +26835,7 @@
       "column": 68,
       "id": "decompiler_style_locals:614:2",
       "line": 614,
-      "status": "pending",
+      "status": "applied",
       "text": "if ((unsigned int)((int)local_10 - *(int *)(param_5 + 0x28)) < uVar10) {"
     },
     {
@@ -26825,7 +26843,7 @@
       "column": 7,
       "id": "decompiler_style_locals:615:1",
       "line": 615,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar10 ="
     },
     {
@@ -26833,7 +26851,7 @@
       "column": 56,
       "id": "decompiler_style_locals:616:1",
       "line": 616,
-      "status": "pending",
+      "status": "applied",
       "text": "(unsigned int)(*(int *)(param_5 + 0x28) - (int)local_10) + uVar10;"
     },
     {
@@ -26841,7 +26859,7 @@
       "column": 68,
       "id": "decompiler_style_locals:616:2",
       "line": 616,
-      "status": "pending",
+      "status": "applied",
       "text": "(unsigned int)(*(int *)(param_5 + 0x28) - (int)local_10) + uVar10;"
     },
     {
@@ -26849,7 +26867,7 @@
       "column": 7,
       "id": "decompiler_style_locals:617:1",
       "line": 617,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = (unsigned char *)(*(int *)(param_5 + 0x2c) - uVar10);"
     },
     {
@@ -26857,7 +26875,7 @@
       "column": 61,
       "id": "decompiler_style_locals:617:2",
       "line": 617,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = (unsigned char *)(*(int *)(param_5 + 0x2c) - uVar10);"
     },
     {
@@ -26865,7 +26883,7 @@
       "column": 11,
       "id": "decompiler_style_locals:618:1",
       "line": 618,
-      "status": "pending",
+      "status": "applied",
       "text": "if (uVar10 < uVar9) {"
     },
     {
@@ -26873,7 +26891,7 @@
       "column": 20,
       "id": "decompiler_style_locals:618:2",
       "line": 618,
-      "status": "pending",
+      "status": "applied",
       "text": "if (uVar10 < uVar9) {"
     },
     {
@@ -26881,7 +26899,7 @@
       "column": 9,
       "id": "decompiler_style_locals:619:1",
       "line": 619,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar9 = uVar9 - uVar10;"
     },
     {
@@ -26889,7 +26907,7 @@
       "column": 17,
       "id": "decompiler_style_locals:619:2",
       "line": 619,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar9 = uVar9 - uVar10;"
     },
     {
@@ -26897,7 +26915,7 @@
       "column": 25,
       "id": "decompiler_style_locals:619:3",
       "line": 619,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar9 = uVar9 - uVar10;"
     },
     {
@@ -26905,7 +26923,7 @@
       "column": 12,
       "id": "decompiler_style_locals:621:1",
       "line": 621,
-      "status": "pending",
+      "status": "applied",
       "text": "*local_10 = *pbVar7;"
     },
     {
@@ -26913,7 +26931,7 @@
       "column": 24,
       "id": "decompiler_style_locals:621:2",
       "line": 621,
-      "status": "pending",
+      "status": "applied",
       "text": "*local_10 = *pbVar7;"
     },
     {
@@ -26921,7 +26939,7 @@
       "column": 11,
       "id": "decompiler_style_locals:622:1",
       "line": 622,
-      "status": "pending",
+      "status": "applied",
       "text": "local_10 = local_10 + 1;"
     },
     {
@@ -26929,7 +26947,7 @@
       "column": 22,
       "id": "decompiler_style_locals:622:2",
       "line": 622,
-      "status": "pending",
+      "status": "applied",
       "text": "local_10 = local_10 + 1;"
     },
     {
@@ -26937,7 +26955,7 @@
       "column": 11,
       "id": "decompiler_style_locals:623:1",
       "line": 623,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = pbVar7 + 1;"
     },
     {
@@ -26945,7 +26963,7 @@
       "column": 20,
       "id": "decompiler_style_locals:623:2",
       "line": 623,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = pbVar7 + 1;"
     },
     {
@@ -26953,7 +26971,7 @@
       "column": 11,
       "id": "decompiler_style_locals:624:1",
       "line": 624,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar10 = uVar10 - 1;"
     },
     {
@@ -26961,7 +26979,7 @@
       "column": 20,
       "id": "decompiler_style_locals:624:2",
       "line": 624,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar10 = uVar10 - 1;"
     },
     {
@@ -26969,7 +26987,7 @@
       "column": 18,
       "id": "decompiler_style_locals:625:1",
       "line": 625,
-      "status": "pending",
+      "status": "applied",
       "text": "} while (uVar10 != 0);"
     },
     {
@@ -26977,7 +26995,7 @@
       "column": 9,
       "id": "decompiler_style_locals:626:1",
       "line": 626,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = *(unsigned char **)(param_5 + 0x28);"
     },
     {
@@ -26985,7 +27003,7 @@
       "column": 7,
       "id": "decompiler_style_locals:629:1",
       "line": 629,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = local_10 + -(int)uVar10;"
     },
     {
@@ -26993,7 +27011,7 @@
       "column": 16,
       "id": "decompiler_style_locals:629:2",
       "line": 629,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = local_10 + -(int)uVar10;"
     },
     {
@@ -27001,7 +27019,7 @@
       "column": 33,
       "id": "decompiler_style_locals:629:3",
       "line": 629,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = local_10 + -(int)uVar10;"
     },
     {
@@ -27009,7 +27027,7 @@
       "column": 8,
       "id": "decompiler_style_locals:630:1",
       "line": 630,
-      "status": "pending",
+      "status": "applied",
       "text": "*local_10 = *pbVar7;"
     },
     {
@@ -27017,7 +27035,7 @@
       "column": 20,
       "id": "decompiler_style_locals:630:2",
       "line": 630,
-      "status": "pending",
+      "status": "applied",
       "text": "*local_10 = *pbVar7;"
     },
     {
@@ -27025,7 +27043,7 @@
       "column": 7,
       "id": "decompiler_style_locals:631:1",
       "line": 631,
-      "status": "pending",
+      "status": "applied",
       "text": "local_10[1] = pbVar7[1];"
     },
     {
@@ -27033,7 +27051,7 @@
       "column": 21,
       "id": "decompiler_style_locals:631:2",
       "line": 631,
-      "status": "pending",
+      "status": "applied",
       "text": "local_10[1] = pbVar7[1];"
     },
     {
@@ -27041,7 +27059,7 @@
       "column": 7,
       "id": "decompiler_style_locals:632:1",
       "line": 632,
-      "status": "pending",
+      "status": "applied",
       "text": "local_10 = local_10 + 2;"
     },
     {
@@ -27049,7 +27067,7 @@
       "column": 18,
       "id": "decompiler_style_locals:632:2",
       "line": 632,
-      "status": "pending",
+      "status": "applied",
       "text": "local_10 = local_10 + 2;"
     },
     {
@@ -27057,7 +27075,7 @@
       "column": 7,
       "id": "decompiler_style_locals:633:1",
       "line": 633,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = pbVar7 + 2;"
     },
     {
@@ -27065,7 +27083,7 @@
       "column": 16,
       "id": "decompiler_style_locals:633:2",
       "line": 633,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = pbVar7 + 2;"
     },
     {
@@ -27073,7 +27091,7 @@
       "column": 7,
       "id": "decompiler_style_locals:634:1",
       "line": 634,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar9 = uVar9 - 2;"
     },
     {
@@ -27081,7 +27099,7 @@
       "column": 15,
       "id": "decompiler_style_locals:634:2",
       "line": 634,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar9 = uVar9 - 2;"
     },
     {
@@ -27089,7 +27107,7 @@
       "column": 8,
       "id": "decompiler_style_locals:637:1",
       "line": 637,
-      "status": "pending",
+      "status": "applied",
       "text": "*local_10 = *pbVar7;"
     },
     {
@@ -27097,7 +27115,7 @@
       "column": 20,
       "id": "decompiler_style_locals:637:2",
       "line": 637,
-      "status": "pending",
+      "status": "applied",
       "text": "*local_10 = *pbVar7;"
     },
     {
@@ -27105,7 +27123,7 @@
       "column": 7,
       "id": "decompiler_style_locals:638:1",
       "line": 638,
-      "status": "pending",
+      "status": "applied",
       "text": "local_10 = local_10 + 1;"
     },
     {
@@ -27113,7 +27131,7 @@
       "column": 18,
       "id": "decompiler_style_locals:638:2",
       "line": 638,
-      "status": "pending",
+      "status": "applied",
       "text": "local_10 = local_10 + 1;"
     },
     {
@@ -27121,7 +27139,7 @@
       "column": 7,
       "id": "decompiler_style_locals:639:1",
       "line": 639,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = pbVar7 + 1;"
     },
     {
@@ -27129,7 +27147,7 @@
       "column": 16,
       "id": "decompiler_style_locals:639:2",
       "line": 639,
-      "status": "pending",
+      "status": "applied",
       "text": "pbVar7 = pbVar7 + 1;"
     },
     {
@@ -27137,7 +27155,7 @@
       "column": 7,
       "id": "decompiler_style_locals:640:1",
       "line": 640,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar9 = uVar9 - 1;"
     },
     {
@@ -27145,7 +27163,7 @@
       "column": 15,
       "id": "decompiler_style_locals:640:2",
       "line": 640,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar9 = uVar9 - 1;"
     },
     {
@@ -27153,7 +27171,7 @@
       "column": 14,
       "id": "decompiler_style_locals:641:1",
       "line": 641,
-      "status": "pending",
+      "status": "applied",
       "text": "} while (uVar9 != 0);"
     },
     {
@@ -27161,7 +27179,7 @@
       "column": 5,
       "id": "decompiler_style_locals:644:1",
       "line": 644,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - bVar2;"
     },
     {
@@ -27169,7 +27187,7 @@
       "column": 14,
       "id": "decompiler_style_locals:644:2",
       "line": 644,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - bVar2;"
     },
     {
@@ -27177,7 +27195,7 @@
       "column": 23,
       "id": "decompiler_style_locals:644:3",
       "line": 644,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar11 = uVar11 - bVar2;"
     },
     {
@@ -27185,7 +27203,7 @@
       "column": 7,
       "id": "decompiler_style_locals:646:1",
       "line": 646,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar5 = *(unsigned int *)(pbVar7 + 4);"
     },
     {
@@ -27193,7 +27211,7 @@
       "column": 33,
       "id": "decompiler_style_locals:646:2",
       "line": 646,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar5 = *(unsigned int *)(pbVar7 + 4);"
     },
     {
@@ -27201,7 +27219,7 @@
       "column": 11,
       "id": "decompiler_style_locals:647:1",
       "line": 647,
-      "status": "pending",
+      "status": "applied",
       "text": "if (uVar5 < 0x20 ||"
     },
     {
@@ -27209,7 +27227,7 @@
       "column": 64,
       "id": "decompiler_style_locals:648:1",
       "line": 648,
-      "status": "pending",
+      "status": "applied",
       "text": "(fmt = \"inflate:         * literal \\'%c\\'\\n\", 0x7e < uVar5)) {"
     },
     {
@@ -27217,7 +27235,7 @@
       "column": 44,
       "id": "decompiler_style_locals:651:1",
       "line": 651,
-      "status": "pending",
+      "status": "applied",
       "text": "crt_fprintf(*(void **)0x331070, fmt, uVar5);"
     },
     {
@@ -27225,7 +27243,7 @@
       "column": 6,
       "id": "decompiler_style_locals:653:1",
       "line": 653,
-      "status": "pending",
+      "status": "applied",
       "text": "*local_10 = pbVar7[4];"
     },
     {
@@ -27233,7 +27251,7 @@
       "column": 17,
       "id": "decompiler_style_locals:653:2",
       "line": 653,
-      "status": "pending",
+      "status": "applied",
       "text": "*local_10 = pbVar7[4];"
     },
     {
@@ -27241,7 +27259,7 @@
       "column": 5,
       "id": "decompiler_style_locals:654:1",
       "line": 654,
-      "status": "pending",
+      "status": "applied",
       "text": "local_10 = local_10 + 1;"
     },
     {
@@ -27249,7 +27267,7 @@
       "column": 16,
       "id": "decompiler_style_locals:654:2",
       "line": 654,
-      "status": "pending",
+      "status": "applied",
       "text": "local_10 = local_10 + 1;"
     },
     {
@@ -27257,7 +27275,7 @@
       "column": 5,
       "id": "decompiler_style_locals:655:1",
       "line": 655,
-      "status": "pending",
+      "status": "applied",
       "text": "local_14 = local_14 + -1;"
     },
     {
@@ -27265,7 +27283,7 @@
       "column": 16,
       "id": "decompiler_style_locals:655:2",
       "line": 655,
-      "status": "pending",
+      "status": "applied",
       "text": "local_14 = local_14 + -1;"
     },
     {
@@ -27273,7 +27291,7 @@
       "column": 9,
       "id": "decompiler_style_locals:657:1",
       "line": 657,
-      "status": "pending",
+      "status": "applied",
       "text": "if (local_14 < (unsigned char *)0x102 || local_8 < 10) {"
     },
     {
@@ -27281,7 +27299,7 @@
       "column": 46,
       "id": "decompiler_style_locals:657:2",
       "line": 657,
-      "status": "pending",
+      "status": "applied",
       "text": "if (local_14 < (unsigned char *)0x102 || local_8 < 10) {"
     },
     {
@@ -27289,7 +27307,7 @@
       "column": 7,
       "id": "decompiler_style_locals:658:1",
       "line": 658,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar8 = (unsigned int)param_6[1] - local_8;"
     },
     {
@@ -27297,7 +27315,7 @@
       "column": 42,
       "id": "decompiler_style_locals:658:2",
       "line": 658,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar8 = (unsigned int)param_6[1] - local_8;"
     },
     {
@@ -27305,7 +27323,7 @@
       "column": 11,
       "id": "decompiler_style_locals:659:1",
       "line": 659,
-      "status": "pending",
+      "status": "applied",
       "text": "if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {"
     },
     {
@@ -27313,7 +27331,7 @@
       "column": 52,
       "id": "decompiler_style_locals:659:2",
       "line": 659,
-      "status": "pending",
+      "status": "applied",
       "text": "if (uVar11 >> 3 < (unsigned int)param_6[1] - local_8) {"
     },
     {
@@ -27321,7 +27339,7 @@
       "column": 9,
       "id": "decompiler_style_locals:660:1",
       "line": 660,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar8 = uVar11 >> 3;"
     },
     {
@@ -27329,7 +27347,7 @@
       "column": 17,
       "id": "decompiler_style_locals:660:2",
       "line": 660,
-      "status": "pending",
+      "status": "applied",
       "text": "uVar8 = uVar11 >> 3;"
     },
     {
@@ -27337,7 +27355,7 @@
       "column": 43,
       "id": "decompiler_style_locals:662:1",
       "line": 662,
-      "status": "pending",
+      "status": "applied",
       "text": "*(unsigned int *)(param_5 + 0x20) = uVar12;"
     },
     {
@@ -27345,7 +27363,7 @@
       "column": 43,
       "id": "decompiler_style_locals:663:1",
       "line": 663,
-      "status": "pending",
+      "status": "applied",
       "text": "*(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;"
     },
     {
@@ -27353,7 +27371,7 @@
       "column": 52,
       "id": "decompiler_style_locals:663:2",
       "line": 663,
-      "status": "pending",
+      "status": "applied",
       "text": "*(unsigned int *)(param_5 + 0x1c) = uVar11 + uVar8 * (unsigned int)-8;"
     },
     {
@@ -27361,7 +27379,7 @@
       "column": 7,
       "id": "decompiler_style_locals:664:1",
       "line": 664,
-      "status": "pending",
+      "status": "applied",
       "text": "iVar6 = *param_6;"
     },
     {
@@ -27369,7 +27387,7 @@
       "column": 26,
       "id": "decompiler_style_locals:665:1",
       "line": 665,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[1] = (int)(uVar8 + local_8);"
     },
     {
@@ -27377,7 +27395,7 @@
       "column": 34,
       "id": "decompiler_style_locals:665:2",
       "line": 665,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[1] = (int)(uVar8 + local_8);"
     },
     {
@@ -27385,7 +27403,7 @@
       "column": 23,
       "id": "decompiler_style_locals:666:1",
       "line": 666,
-      "status": "pending",
+      "status": "applied",
       "text": "*param_6 = (int)local_c - (int)uVar8;"
     },
     {
@@ -27393,7 +27411,7 @@
       "column": 38,
       "id": "decompiler_style_locals:666:2",
       "line": 666,
-      "status": "pending",
+      "status": "applied",
       "text": "*param_6 = (int)local_c - (int)uVar8;"
     },
     {
@@ -27401,7 +27419,7 @@
       "column": 40,
       "id": "decompiler_style_locals:667:1",
       "line": 667,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
     },
     {
@@ -27409,7 +27427,7 @@
       "column": 55,
       "id": "decompiler_style_locals:667:2",
       "line": 667,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
     },
     {
@@ -27417,7 +27435,7 @@
       "column": 64,
       "id": "decompiler_style_locals:667:3",
       "line": 667,
-      "status": "pending",
+      "status": "applied",
       "text": "param_6[2] = param_6[2] + (((int)local_c - (int)uVar8) - iVar6);"
     },
     {
@@ -27425,7 +27443,7 @@
       "column": 45,
       "id": "decompiler_style_locals:668:1",
       "line": 668,
-      "status": "pending",
+      "status": "applied",
       "text": "*(unsigned char **)(param_5 + 0x34) = local_10;"
     },
     {
@@ -27433,7 +27451,7 @@
       "column": 7,
       "id": "decompiler_style_locals:715:1",
       "line": 715,
-      "status": "pending",
+      "status": "applied",
       "text": "int iVar1;"
     },
     {
@@ -27441,7 +27459,7 @@
       "column": 3,
       "id": "decompiler_style_locals:731:1",
       "line": 731,
-      "status": "pending",
+      "status": "applied",
       "text": "iVar1 = (int)(*(void *(*)(void *, unsigned int, unsigned int))("
     },
     {
@@ -27449,7 +27467,7 @@
       "column": 24,
       "id": "decompiler_style_locals:733:1",
       "line": 733,
-      "status": "pending",
+      "status": "applied",
       "text": "*(int *)(z + 0x1c) = iVar1;"
     },
     {
@@ -27457,7 +27475,7 @@
       "column": 7,
       "id": "decompiler_style_locals:734:1",
       "line": 734,
-      "status": "pending",
+      "status": "applied",
       "text": "if (iVar1 != 0) {"
     },
     {
@@ -27465,7 +27483,7 @@
       "column": 14,
       "id": "decompiler_style_locals:736:1",
       "line": 736,
-      "status": "pending",
+      "status": "applied",
       "text": "*(int *)(iVar1 + 0x14) = 0;"
     },
     {
