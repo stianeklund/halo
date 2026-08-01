@@ -1634,56 +1634,56 @@ void FUN_00116460(int state)
  */
 void FUN_001164d0(int param_1, int state, int tree)
 {
-  unsigned short uVar1;
-  unsigned short uVar2;
-  int iVar3;
-  int iVar4;
-  int iVar5;
-  int iVar6;
-  int iVar7;
+  unsigned short freq_a;
+  unsigned short freq_b;
+  int node;
+  int heap_len_cur;
+  int tmp_i;
+  int child;
+  int j;
   int heap_len;
 
   heap_len = *(int *)(state + 0x1448);
-  iVar3 = *(int *)(state + 0xb54 + param_1 * 4);
-  iVar7 = param_1 * 2;
-  iVar5 = iVar7 - heap_len;
-  if (iVar7 > heap_len) {
-    *(int *)(state + 0xb54 + param_1 * 4) = iVar3;
+  node = *(int *)(state + 0xb54 + param_1 * 4);
+  j = param_1 * 2;
+  tmp_i = j - heap_len;
+  if (j > heap_len) {
+    *(int *)(state + 0xb54 + param_1 * 4) = node;
     return;
   }
   while (1) {
-    iVar6 = iVar7;
-    if (iVar7 < heap_len) {
-      iVar5 = *(int *)(state + 0xb58 + iVar7 * 4);
-      uVar1 = *(unsigned short *)(tree + iVar5 * 4);
-      uVar2 =
-        *(unsigned short *)(tree + *(int *)(state + 0xb54 + iVar7 * 4) * 4);
-      if (uVar1 < uVar2 ||
-          (uVar1 == uVar2 &&
-           *(unsigned char *)(iVar5 + 0x1450 + state) <=
-             *(unsigned char *)(*(int *)(state + 0xb54 + iVar7 * 4) + 0x1450 +
+    child = j;
+    if (j < heap_len) {
+      tmp_i = *(int *)(state + 0xb58 + j * 4);
+      freq_a = *(unsigned short *)(tree + tmp_i * 4);
+      freq_b =
+        *(unsigned short *)(tree + *(int *)(state + 0xb54 + j * 4) * 4);
+      if (freq_a < freq_b ||
+          (freq_a == freq_b &&
+           *(unsigned char *)(tmp_i + 0x1450 + state) <=
+             *(unsigned char *)(*(int *)(state + 0xb54 + j * 4) + 0x1450 +
                                 state))) {
-        iVar6 = iVar7 + 1;
+        child = j + 1;
       }
     }
-    iVar5 = *(int *)(state + 0xb54 + iVar6 * 4);
-    uVar1 = *(unsigned short *)(tree + iVar3 * 4);
-    uVar2 = *(unsigned short *)(tree + iVar5 * 4);
-    if (uVar1 < uVar2 ||
-        (uVar1 == uVar2 && *(unsigned char *)(iVar3 + 0x1450 + state) <=
-                             *(unsigned char *)(iVar5 + 0x1450 + state)))
+    tmp_i = *(int *)(state + 0xb54 + child * 4);
+    freq_a = *(unsigned short *)(tree + node * 4);
+    freq_b = *(unsigned short *)(tree + tmp_i * 4);
+    if (freq_a < freq_b ||
+        (freq_a == freq_b && *(unsigned char *)(node + 0x1450 + state) <=
+                             *(unsigned char *)(tmp_i + 0x1450 + state)))
       break;
-    *(int *)(state + 0xb54 + param_1 * 4) = iVar5;
-    iVar4 = *(int *)(state + 0x1448);
-    iVar7 = iVar6 * 2;
-    iVar5 = iVar7 - iVar4;
-    param_1 = iVar6;
-    if (iVar5 != 0 && iVar4 <= iVar7) {
-      *(int *)(state + 0xb54 + iVar6 * 4) = iVar3;
+    *(int *)(state + 0xb54 + param_1 * 4) = tmp_i;
+    heap_len_cur = *(int *)(state + 0x1448);
+    j = child * 2;
+    tmp_i = j - heap_len_cur;
+    param_1 = child;
+    if (tmp_i != 0 && heap_len_cur <= j) {
+      *(int *)(state + 0xb54 + child * 4) = node;
       return;
     }
   }
-  *(int *)(state + 0xb54 + param_1 * 4) = iVar3;
+  *(int *)(state + 0xb54 + param_1 * 4) = node;
 }
 
 /* gen_bitlen: compute optimal bit lengths for a tree (0x1165b0).
