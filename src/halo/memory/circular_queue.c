@@ -2188,34 +2188,34 @@ void FUN_00116e00(int state, int param_1, int param_2)
  * ABI: @ecx=deflate_state */
 void FUN_00117000(int state)
 {
-  unsigned int uVar1;
-  unsigned int uVar3;
-  unsigned short *puVar2;
-  int iVar4;
+  unsigned int bin_freq;
+  unsigned int ascii_freq;
+  unsigned short *freq_ptr;
+  int count;
 
-  uVar3 = 0;
-  uVar1 = (unsigned int)*(unsigned short *)(state + 0xa4) +
+  ascii_freq = 0;
+  bin_freq = (unsigned int)*(unsigned short *)(state + 0xa4) +
           (unsigned int)*(unsigned short *)(state + 0xa0) +
           (unsigned int)*(unsigned short *)(state + 0x9c) +
           (unsigned int)*(unsigned short *)(state + 0x98) +
           (unsigned int)*(unsigned short *)(state + 0x94) +
           (unsigned int)*(unsigned short *)(state + 0x90) +
           (unsigned int)*(unsigned short *)(state + 0x8c);
-  puVar2 = (unsigned short *)(state + 0xa8);
-  iVar4 = 0x79;
+  freq_ptr = (unsigned short *)(state + 0xa8);
+  count = 0x79;
   do {
-    uVar3 += *puVar2;
-    puVar2 += 2;
-    iVar4--;
-  } while (iVar4 != 0);
-  puVar2 = (unsigned short *)(state + 0x28c);
-  iVar4 = 0x80;
+    ascii_freq += *freq_ptr;
+    freq_ptr += 2;
+    count--;
+  } while (count != 0);
+  freq_ptr = (unsigned short *)(state + 0x28c);
+  count = 0x80;
   do {
-    uVar1 += *puVar2;
-    puVar2 += 2;
-    iVar4--;
-  } while (iVar4 != 0);
-  *(char *)(state + 0x1c) = (char)(uVar3 >> 2 >= uVar1);
+    bin_freq += *freq_ptr;
+    freq_ptr += 2;
+    count--;
+  } while (count != 0);
+  *(char *)(state + 0x1c) = (char)(ascii_freq >> 2 >= bin_freq);
 }
 
 /* bi_flush: flush the bit buffer if at least 8 bits are pending.
@@ -2278,32 +2278,32 @@ int FUN_00117130(int state)
  * param_3=header */
 void FUN_001171a0(unsigned int len, unsigned char *buf, int state, int header)
 {
-  int iVar1;
-  int iVar2;
-  unsigned char bVar3;
+  int s_ptr;
+  int pending;
+  unsigned char len_hi;
 
-  iVar1 = FUN_00117130(state);
-  *(unsigned int *)(iVar1 + 0x16ac) = 8;
+  s_ptr = FUN_00117130(state);
+  *(unsigned int *)(s_ptr + 0x16ac) = 8;
   if (header != 0) {
-    *(unsigned char *)(*(int *)(iVar1 + 0x14) + *(int *)(iVar1 + 8)) =
+    *(unsigned char *)(*(int *)(s_ptr + 0x14) + *(int *)(s_ptr + 8)) =
       (unsigned char)len;
-    iVar2 = *(int *)(iVar1 + 0x14) + 1;
-    *(int *)(iVar1 + 0x14) = iVar2;
-    bVar3 = (unsigned char)((unsigned int)len >> 8);
-    *(unsigned char *)(iVar2 + *(int *)(iVar1 + 8)) = bVar3;
-    iVar2 = *(int *)(iVar1 + 0x14) + 1;
-    *(int *)(iVar1 + 0x14) = iVar2;
-    *(unsigned char *)(iVar2 + *(int *)(iVar1 + 8)) = ~(unsigned char)len;
-    iVar2 = *(int *)(iVar1 + 0x14) + 1;
-    *(int *)(iVar1 + 0x14) = iVar2;
-    *(unsigned char *)(iVar2 + *(int *)(iVar1 + 8)) = ~bVar3;
-    *(int *)(iVar1 + 0x14) = *(int *)(iVar1 + 0x14) + 1;
-    *(int *)(iVar1 + 0x16b4) += 0x20;
+    pending = *(int *)(s_ptr + 0x14) + 1;
+    *(int *)(s_ptr + 0x14) = pending;
+    len_hi = (unsigned char)((unsigned int)len >> 8);
+    *(unsigned char *)(pending + *(int *)(s_ptr + 8)) = len_hi;
+    pending = *(int *)(s_ptr + 0x14) + 1;
+    *(int *)(s_ptr + 0x14) = pending;
+    *(unsigned char *)(pending + *(int *)(s_ptr + 8)) = ~(unsigned char)len;
+    pending = *(int *)(s_ptr + 0x14) + 1;
+    *(int *)(s_ptr + 0x14) = pending;
+    *(unsigned char *)(pending + *(int *)(s_ptr + 8)) = ~len_hi;
+    *(int *)(s_ptr + 0x14) = *(int *)(s_ptr + 0x14) + 1;
+    *(int *)(s_ptr + 0x16b4) += 0x20;
   }
-  *(int *)(iVar1 + 0x16b4) += len * 8;
+  *(int *)(s_ptr + 0x16b4) += len * 8;
   while (len > 0) {
-    *(unsigned char *)(*(int *)(iVar1 + 0x14) + *(int *)(iVar1 + 8)) = *buf++;
-    *(int *)(iVar1 + 0x14) += 1;
+    *(unsigned char *)(*(int *)(s_ptr + 0x14) + *(int *)(s_ptr + 8)) = *buf++;
+    *(int *)(s_ptr + 0x14) += 1;
     len--;
   }
 }
