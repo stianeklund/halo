@@ -771,89 +771,89 @@ int FUN_001155c0(int z, char *version, int stream_size)
  * 0x1155e0 / circular_queue.obj (inflate.c) */
 int FUN_001155e0(int z, int flush)
 {
-  unsigned char bVar1;
-  int uVar2;
-  int *puVar3;
-  unsigned int uVar4;
-  unsigned int uVar5;
+  unsigned char flags_byte;
+  int mode;
+  int *state;
+  unsigned int default_ret;
+  unsigned int result;
   int *param_1 = (int *)z;
   int param_2 = flush;
 
   if (param_1 == (int *)0 || (int *)param_1[7] == (int *)0 || *param_1 == 0) {
     return 0xfffffffe;
   }
-  uVar2 = *(int *)param_1[7];
-  uVar5 = 0xfffffffb;
-  uVar4 = (unsigned int)(param_2 != 4) - 1 & 0xfffffffb;
+  mode = *(int *)param_1[7];
+  result = 0xfffffffb;
+  default_ret = (unsigned int)(param_2 != 4) - 1 & 0xfffffffb;
   do {
-    switch (uVar2) {
+    switch (mode) {
     case 0:
       if (param_1[1] == 0)
-        return uVar5;
+        return result;
       param_1[1] = param_1[1] - 1;
       param_1[2] = param_1[2] + 1;
       *(unsigned int *)(param_1[7] + 4) =
         (unsigned int)*(unsigned char *)*param_1;
-      puVar3 = (int *)param_1[7];
-      uVar2 = puVar3[1];
+      state = (int *)param_1[7];
+      mode = state[1];
       *param_1 = *param_1 + 1;
-      if (((unsigned char)uVar2 & 0xf) == 8) {
-        if (((unsigned int)puVar3[1] >> 4) + 8 <= (unsigned int)puVar3[4]) {
-          *puVar3 = 1;
-          uVar5 =
-            uVar4; /* orig MOV EDI,EBX @0x11565a: fall-through carries uVar4 */
+      if (((unsigned char)mode & 0xf) == 8) {
+        if (((unsigned int)state[1] >> 4) + 8 <= (unsigned int)state[4]) {
+          *state = 1;
+          result =
+            default_ret; /* orig MOV EDI,EBX @0x11565a: carries default_ret */
           goto case_1;
         }
-        *puVar3 = 0xd;
+        *state = 0xd;
         param_1[6] = (int)"invalid window size";
       } else {
-        *puVar3 = 0xd;
+        *state = 0xd;
         param_1[6] = (int)"unknown compression method";
       }
       goto set_mark;
     case 1:
     case_1:
-      /* direct re-entry returns uVar5 (0xfffffffb=Z_BUF_ERROR); fall-through
-       * from case 0 sets uVar5=uVar4 above so it returns uVar4 (matches orig
-       * EDI). */
+      /* direct re-entry returns result (0xfffffffb=Z_BUF_ERROR); fall-through
+       * from case 0 sets result=default_ret above, so it returns
+       * default_ret (matches orig EDI). */
       if (param_1[1] == 0)
-        return uVar5;
+        return result;
       param_1[1] = param_1[1] - 1;
       param_1[2] = param_1[2] + 1;
-      bVar1 = *(unsigned char *)*param_1;
+      flags_byte = *(unsigned char *)*param_1;
       *param_1 = *param_1 + 1;
-      if ((((int *)param_1[7])[1] * 0x100 + (unsigned int)bVar1) % 0x1f == 0) {
+      if ((((int *)param_1[7])[1] * 0x100 + (unsigned int)flags_byte) % 0x1f == 0) {
         if (0 < *(int *)0x320e30) {
           crt_fprintf(*(void **)0x331070, "inflate: zlib header ok\n");
         }
-        if ((bVar1 & 0x20) != 0) {
+        if ((flags_byte & 0x20) != 0) {
           *(int *)param_1[7] = 2;
-          uVar5 = uVar4;
+          result = default_ret;
           goto case_2;
         }
         *(int *)param_1[7] = 7;
-        uVar5 = uVar4;
+        result = default_ret;
       } else {
         *(int *)param_1[7] = 0xd;
         param_1[6] = (int)"incorrect header check";
         *(int *)(param_1[7] + 4) = 5;
-        uVar5 = uVar4;
+        result = default_ret;
       }
       break;
     case 2:
     case_2:
       if (param_1[1] == 0)
-        return uVar5;
+        return result;
       param_1[2] = param_1[2] + 1;
       param_1[1] = param_1[1] - 1;
       *(unsigned int *)(param_1[7] + 8) =
         (unsigned int)*(unsigned char *)*param_1 << 0x18;
       *param_1 = *param_1 + 1;
       *(int *)param_1[7] = 3;
-      uVar5 = uVar4;
+      result = default_ret;
     case 3:
       if (param_1[1] == 0)
-        return uVar5;
+        return result;
       param_1[1] = param_1[1] - 1;
       param_1[2] = param_1[2] + 1;
       *(unsigned int *)(param_1[7] + 8) =
@@ -861,10 +861,10 @@ int FUN_001155e0(int z, int flush)
         (unsigned int)*(unsigned char *)*param_1 * 0x10000;
       *param_1 = *param_1 + 1;
       *(int *)param_1[7] = 4;
-      uVar5 = uVar4;
+      result = default_ret;
     case 4:
       if (param_1[1] == 0)
-        return uVar5;
+        return result;
       param_1[1] = param_1[1] - 1;
       param_1[2] = param_1[2] + 1;
       *(unsigned int *)(param_1[7] + 8) =
@@ -872,10 +872,10 @@ int FUN_001155e0(int z, int flush)
         (unsigned int)*(unsigned char *)*param_1 * 0x100;
       *param_1 = *param_1 + 1;
       *(int *)param_1[7] = 5;
-      uVar5 = uVar4;
+      result = default_ret;
     case 5:
       if (param_1[1] == 0)
-        return uVar5;
+        return result;
       param_1[1] = param_1[1] - 1;
       param_1[2] = param_1[2] + 1;
       *(int *)(param_1[7] + 8) =
@@ -890,42 +890,42 @@ int FUN_001155e0(int z, int flush)
       *(int *)(param_1[7] + 4) = 0;
       return 0xfffffffe;
     case 7:
-      uVar5 = FUN_00113a90(*(int *)(param_1[7] + 0x14), param_1, uVar5);
-      if (uVar5 == 0xfffffffd) {
+      result = FUN_00113a90(*(int *)(param_1[7] + 0x14), param_1, result);
+      if (result == 0xfffffffd) {
         *(int *)param_1[7] = 0xd;
         *(int *)(param_1[7] + 4) = 0;
-        uVar5 = 0xfffffffd;
+        result = 0xfffffffd;
       } else {
-        if (uVar5 == 0) {
-          uVar5 = uVar4;
+        if (result == 0) {
+          result = default_ret;
         }
-        if (uVar5 != 1)
-          return uVar5;
+        if (result != 1)
+          return result;
         FUN_00113930(*(int *)(param_1[7] + 0x14), (int)param_1, param_1[7] + 4);
-        puVar3 = (int *)param_1[7];
-        if (puVar3[3] == 0) {
-          *puVar3 = 8;
-          uVar5 = uVar4;
+        state = (int *)param_1[7];
+        if (state[3] == 0) {
+          *state = 8;
+          result = default_ret;
           goto case_8;
         }
-        *puVar3 = 0xc;
-        uVar5 = uVar4;
+        *state = 0xc;
+        result = default_ret;
       }
       break;
     case 8:
     case_8:
       if (param_1[1] == 0)
-        return uVar5;
+        return result;
       param_1[1] = param_1[1] - 1;
       param_1[2] = param_1[2] + 1;
       *(unsigned int *)(param_1[7] + 8) =
         (unsigned int)*(unsigned char *)*param_1 << 0x18;
       *param_1 = *param_1 + 1;
       *(int *)param_1[7] = 9;
-      uVar5 = uVar4;
+      result = default_ret;
     case 9:
       if (param_1[1] == 0)
-        return uVar5;
+        return result;
       param_1[1] = param_1[1] - 1;
       param_1[2] = param_1[2] + 1;
       *(unsigned int *)(param_1[7] + 8) =
@@ -933,10 +933,10 @@ int FUN_001155e0(int z, int flush)
         (unsigned int)*(unsigned char *)*param_1 * 0x10000;
       *param_1 = *param_1 + 1;
       *(int *)param_1[7] = 10;
-      uVar5 = uVar4;
+      result = default_ret;
     case 10:
       if (param_1[1] == 0)
-        return uVar5;
+        return result;
       param_1[1] = param_1[1] - 1;
       param_1[2] = param_1[2] + 1;
       *(unsigned int *)(param_1[7] + 8) =
@@ -944,28 +944,28 @@ int FUN_001155e0(int z, int flush)
         (unsigned int)*(unsigned char *)*param_1 * 0x100;
       *param_1 = *param_1 + 1;
       *(int *)param_1[7] = 0xb;
-      uVar5 = uVar4;
+      result = default_ret;
     case 0xb:
       if (param_1[1] == 0)
-        return uVar5;
+        return result;
       param_1[1] = param_1[1] - 1;
       param_1[2] = param_1[2] + 1;
       *(int *)(param_1[7] + 8) =
         *(int *)(param_1[7] + 8) + (unsigned int)*(unsigned char *)*param_1;
       *param_1 = *param_1 + 1;
-      puVar3 = (int *)param_1[7];
-      if (puVar3[1] == puVar3[2]) {
+      state = (int *)param_1[7];
+      if (state[1] == state[2]) {
         if (0 < *(int *)0x320e30) {
           crt_fprintf(*(void **)0x331070, "inflate: zlib check ok\n");
         }
         *(int *)param_1[7] = 0xc;
         return 1;
       }
-      *puVar3 = 0xd;
+      *state = 0xd;
       param_1[6] = (int)"incorrect data check";
     set_mark:
       *(int *)(param_1[7] + 4) = 5;
-      uVar5 = uVar4;
+      result = default_ret;
       break;
     case 0xc:
       return 1;
@@ -974,7 +974,7 @@ int FUN_001155e0(int z, int flush)
     default:
       return 0xfffffffe;
     }
-    uVar2 = *(int *)param_1[7];
+    mode = *(int *)param_1[7];
   } while (1);
 }
 
