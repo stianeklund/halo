@@ -2,7 +2,7 @@
 name: struct-recovery
 tier: agent
 triggers: ["struct recovery", "recover struct", "identify struct", "tag block", "pool stride", "object stride", "packed layout", "array of structs", "union layout"]
-description: Identify structs, arrays of structs, unions, packed layouts, tag blocks, and object-pool strides from binary/disassembly evidence — producing an evidence table (offset, width, signedness, access sites, name evidence) that struct-assert turns into a C definition. Evidence-gathering only; never invents fields.
+description: Identify structs, arrays of structs, unions, packed layouts, tag blocks, and object-pool strides from binary/disassembly evidence — producing a committed evidence-table artifact (recovery/evidence/<struct>.json — offset, width, signedness, access sites, name evidence) that struct-assert renders into a C definition. Evidence-gathering only; never invents fields.
 ---
 
 # Data Structure Recovery
@@ -51,6 +51,26 @@ token discipline (targeted `read_memory` / `get_function_callees`, not bulk deco
 
 ## Output contract
 
+The evidence table is a **committed artifact**, not chat text — a table that only
+ever existed in a transcript is not replayable or reviewable. Write it to
+`recovery/evidence/<struct>.json` (schema in `recovery/evidence/README.md`,
+worked example `recovery/evidence/packet_definition.json`) and validate it:
+
+```bash
+rtk python3 tools/recovery/evidence_table.py validate recovery/evidence/<struct>.json
+```
+
+Per field: `offset` (hex string), `width` (1/2/4/8), `signed` (from MOVSX/MOVZX —
+never guessed), optional `kind` (`int` default / `float` / `float64` / `pointer`),
+`array_len`, `name`, `confidence`, and a one-line `evidence` citation. Confidence is
+`named` (string/PDB name evidence — requires both a name and evidence), `typed`
+(width+sign proven; a mechanical name is allowed), or `gap` (padding/unobserved —
+must stay unnamed). Top-level `size`/`stride` each carry their own `evidence`; omit
+them when unproven rather than guessing. Unobserved ranges stay `field_XX`/pad — no
+interpolation. `sources` records every function/address consulted.
+
+Then summarize in chat for the human, same shape as before:
+
 ```
 STRUCT CANDIDATE: <name or unknown_<addr>>   size=<0xNN, evidence> stride=<0xNN, evidence>
 | offset | width | sign | access (fn:addr, insn) | name evidence | confidence |
@@ -58,8 +78,5 @@ UNKNOWN RANGES: <offset..offset — never seen accessed>
 UNIONS/OVERLAYS: <offset: armA type / armB type, discriminator>
 ```
 
-Confidence per row: `named` (string/PDB evidence), `typed` (width+sign proven, no name),
-`gap` (padding/unobserved). Unobserved ranges stay `field_XX`/pad — no interpolation.
-
-Hand the table to `struct-assert`. Naming decisions beyond string/PDB evidence go
-through `naming-confidence`.
+Hand the **artifact path** to `struct-assert`, which renders the C from it. Naming
+decisions beyond string/PDB evidence go through `naming-confidence`.

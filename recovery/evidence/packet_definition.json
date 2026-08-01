@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "struct": "packet_definition",
+  "size": {
+    "value": "0x14",
+    "evidence": "validated by cs(packet_definition, 0x14) at src/types.h:788; trailing 0x11..0x13 never observed accessed"
+  },
+  "sources": [
+    "verify_packet_definition @0x11b540 (src/halo/networking/network_messages.c:603) - asserts name every field it touches",
+    "compute_packet_field_sizes @0x11add0 - receives (packet_definition*, short*, short*, short*)",
+    "assert __FILE__ c:\\halo\\SOURCE\\memory\\data_packets.c lines 0x20-0x2b",
+    "existing definition src/types.h:777-794"
+  ],
+  "notes": [
+    "Back-derived worked example: the struct was already recovered and asserted in src/types.h, so this artifact documents the evidence behind an accepted layout rather than a fresh sweep.",
+    "Consumed as an array element via packet_entry.definition (src/types.h:801); no independent stride evidence, so stride is omitted."
+  ],
+  "fields": [
+    {
+      "offset": "0x00",
+      "width": 4,
+      "kind": "pointer",
+      "points_to": "const char",
+      "name": "name",
+      "confidence": "named",
+      "evidence": "assert string \"packet_definition->name && packet_definition->fields\" @data_packets.c:0x23; NULL-checked before use as a %s in the size-mismatch assert"
+    },
+    {
+      "offset": "0x04",
+      "width": 4,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "4-byte hole between name@0x00 and size@0x08; never read by verify_packet_definition @0x11b540 - purpose unknown"
+    },
+    {
+      "offset": "0x08",
+      "width": 2,
+      "signed": true,
+      "name": "size",
+      "confidence": "named",
+      "evidence": "assert string \"packet_definition->size>=0\" @data_packets.c:0x21; signed by the < 0 test, 16-bit by comparison against the short computed_size out-param"
+    },
+    {
+      "offset": "0x0a",
+      "width": 2,
+      "signed": true,
+      "name": "version",
+      "confidence": "named",
+      "evidence": "assert string \"packet_definition->version>=0\" @data_packets.c:0x22; signed by the < 0 test"
+    },
+    {
+      "offset": "0x0c",
+      "width": 4,
+      "kind": "pointer",
+      "points_to": "int16_t",
+      "name": "fields",
+      "confidence": "named",
+      "evidence": "assert string \"packet_definition->name && packet_definition->fields\" @data_packets.c:0x23; passed as the short* field list to compute_packet_field_sizes @0x11add0"
+    },
+    {
+      "offset": "0x10",
+      "width": 1,
+      "signed": false,
+      "name": "validated",
+      "confidence": "typed",
+      "evidence": "mechanical name: gates the one-shot field-size check (if (!def->validated) ... def->validated = 1) in verify_packet_definition @0x11b540"
+    }
+  ]
+}

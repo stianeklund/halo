@@ -2,13 +2,34 @@
 name: struct-assert
 tier: agent
 triggers: ["offsetof", "static_assert", "sizeof check", "define struct", "struct definition", "new struct", "struct assert"]
-description: Turn a struct-recovery evidence table into a conservative C89 struct — explicit padding, exact field widths/signedness, field_XX for unknowns, and cs()/co() sizeof/offsetof static asserts — following the src/types.h house style. Layout is dictated by the binary; the compiler proves it via the asserts.
+description: Render a committed struct-recovery evidence artifact (recovery/evidence/<struct>.json) into a conservative C89 struct — explicit padding, exact field widths/signedness, field_XX for unknowns, and cs()/co() sizeof/offsetof static asserts — following the src/types.h house style. Layout is dictated by the binary; the compiler proves it via the asserts.
 ---
 
 # Struct Definition & Offset Assertion
 
-Input: an evidence table from `struct-recovery` (offset, width, signedness, evidence).
+Input: the committed evidence artifact from `struct-recovery`,
+`recovery/evidence/<struct>.json` (offset, width, signedness, evidence per field).
 Output: a C89 struct whose layout the compiler *proves* at build time.
+
+## Workflow
+
+```bash
+rtk python3 tools/recovery/evidence_table.py validate recovery/evidence/<struct>.json
+rtk python3 tools/recovery/evidence_table.py render   recovery/evidence/<struct>.json
+```
+
+1. **Render** the skeleton — it already applies the rules below mechanically
+   (explicit padding, exact widths, `field_XX`/`pad_XX`, `co()` per field, `cs()` only
+   when the size is proven).
+2. **Review** it against the rules below; the renderer is a starting point, not an
+   authority. It is never auto-injected into a source file.
+3. **Place** it — `src/types.h` or a binary-proven header (see below) — and adjust
+   comments/neighbour context by hand.
+4. **Build** so the asserts fire: `rtk python3 tools/build/build.py -q --target halo`.
+
+**The artifact is the source of truth.** If review or a failing assert shows the table
+is wrong, fix `recovery/evidence/<struct>.json` and re-render — never patch only the
+placed struct. Divergence between the artifact and the struct in the tree is a defect.
 
 ## Where the struct goes
 
@@ -47,6 +68,8 @@ co(object_header, position, 0x0C);
 
 ## Rules
 
+These are both the renderer's rules and your review criteria for its output.
+
 1. **Every field width and signedness comes from the evidence table** (disasm operand
    sizes — MOVSX/MOVZX/word/byte ptr). Never widen "for convenience": an `int16_t` read
    as `int` is exactly the `[LOADW-WARN]` bug class (§24).
@@ -76,7 +99,8 @@ rtk python3 tools/build/build.py -q --target halo   # static asserts fire at com
 ```
 
 A failing `co()`/`cs()` is a *finding*, not an annoyance — the evidence table was wrong;
-go back to `struct-recovery`, don't bend the struct to compile.
+go back to `struct-recovery`, fix `recovery/evidence/<struct>.json`, re-render, and
+re-place. Don't bend the struct to compile.
 
 Defining the struct changes no codegen by itself. Rewriting accesses to use it is a
 separate step with its own gate: `offset-to-struct`.
