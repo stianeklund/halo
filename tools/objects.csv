@@ -1,5 +1,5 @@
 Object,Delink?,addr_range,func_count
-actions.obj,true,0x0001B8A0-0x000212F0,73
+actions.obj,true,0x0001BBA0-0x000212F0,72
 actors.obj,true,0x0002A360-0x0003F230,124
 actor_looking.obj,true,0x00013DD0-0x0002A630,120
 ai.obj,true,0x0003F350-0x000427C0,48
@@ -48,7 +48,7 @@ hud_weapon.obj,true,0x000D8AF0-0x000D91F0,11
 input_abstraction.obj,true,0x000CE690-0x000CEC90,9
 input_xbox.obj,true,0x000CE4B0-0x000D03C0,26
 interface.obj,true,0x000DEC50-0x000E0310,17
-items.obj,true,0x000F4210-0x000F7540,41
+items.obj,true,0x000F4210-0x000F7540,40
 main.obj,true,0x000E8D20-0x00104630,104
 marketing_and_strategic_business_development.obj,true,0x000E02D0-0x000E0770,5
 network_game_globals.obj,true,0x00129130-0x0012AB20,30
@@ -74,7 +74,9 @@ profile.obj,true,0x0008F870-0x000924A0,50
 projectiles.obj,true,0x000F7CB0-0x000FAF00,28
 progress_bar.obj,true,0x000E19C0-0x000E35E0,31
 random_math.obj,true,0x0010A930-0x0010CB20,38
-rasterizer.obj,true,0x0016EEF0-0x0017CC40,100
+rasterizer.obj,true,0x0016EEF0-0x0017CC40,92
+rasterizer_xbox_vertex_shaders_initialize.obj,true,0x00178850-0x00178CB0,2
+rasterizer_xbox_vertex_shaders_runtime.obj,true,0x00178B40-0x00178D40,1
 rasterizer_common.obj,true,0x00154FC0-0x00155310,5
 rasterizer_decals.obj,true,0x00157E40-0x0015D7B0,62
 rasterizer_xbox.obj,true,0x00155350-0x00157210,37
@@ -109,7 +111,7 @@ thread_win32.obj,true,0x00081170-0x00081C20,15
 transport_endpoint_set_winsock.obj,true,0x00081EC0-0x00084B70,52
 ui_widget.obj,true,0x000E3B80-0x000ED0B0,121
 ui_widget_event_handler_functions.obj,true,0x000E9810-0x000E9A10,1
-ui_widget_game_data_input_functions.obj,true,0x000EDCD0-0x000F3BC0,72
+ui_widget_game_data_input_functions.obj,true,0x000EDCD0-0x000F48E0,73
 ui_widget_text_search_and_replace_functions.obj,true,0x000F5290-0x000F5490,1
 unicode.obj,true,0x0019D810-0x0019FC20,69
 bipeds.obj,true,0x001A01D0-0x001A3140,39
@@ -181,9 +183,11 @@ path_obstacle_avoidance.obj,true,0x00060C40-0x00061950,8
 XAPILIB:xbox_crt.obj,true,0x001D63D5-0x001D83F4,18
 XAPILIB:xcontent.obj,true,0x001D8368-0x001D8568,1
 static_camera.obj,true,0x0008D410-0x0008D610,1
-rasterizer_xbox_shadows.obj,true,0x00172590-0x00172790,1
+rasterizer_xbox_screen_effect.obj,true,0x001700D0-0x00171DC0,2
+rasterizer_xbox_shadows.obj,true,0x00172590-0x00172FE0,3
 rasterizer_xbox_profile.obj,true,0x0016F910-0x0016FC40,2
 <xdk_stubs>,true,0x001CFB73-0x0024D209,530
 wind.obj,true,0x0018FF00-0x001901E0,2
-action_vehicle.obj,true,0x0001AEB0-0x0001B950,3
+action_vehicle.obj,true,0x0001AEB0-0x0001BAA0,4
 glow.obj,true,0x001345B0-0x001347B0,1
+rasterizer_xbox_widgets.obj,true,0x0017ADC0-0x0017AFC0,1
