@@ -1,6 +1,6 @@
 /* inflate_blocks_free: reset blocks state, free window, workaround, and state.
  * 0x114630 / circular_queue.obj (inflate.c) */
-int FUN_00114630(int s, int z)
+int inflate_blocks_free(int s, int z)
 {
   FUN_00113930(s, z, 0);
   ((void (*)(void *, void *))(*(void **)(z + 0x24)))(*(void **)(z + 0x28),
@@ -16,7 +16,7 @@ int FUN_00114630(int s, int z)
 
 /* inflate_blocks_set_dictionary: copy dictionary into sliding window.
  * 0x114690 / circular_queue.obj (inflate.c) */
-void FUN_00114690(int s, int d, int n)
+void inflate_set_dictionary(int s, int d, int n)
 {
   int sum;
   csmemcpy((void *)*(int *)(s + 0x28), (void *)d, n);
@@ -34,7 +34,7 @@ __declspec(noinline) int FUN_001146c0(int *param_1)
 
 /* inflate_codes_new: allocate and initialize a codes state struct.
  * 0x1146e0 / circular_queue.obj (inflate.c) */
-void *FUN_001146e0(int bl, int bd, int tl, int td, int z)
+void *inflate_codes_new(int bl, int bd, int tl, int td, int z)
 {
   int *c;
   c = (int *)(*(void *(*)(void *, unsigned int, unsigned int))(
@@ -57,7 +57,7 @@ void *FUN_001146e0(int bl, int bd, int tl, int td, int z)
  * 0x114740 / circular_queue.obj (infcodes.c)
  * Note: declared void but tail-calls FUN_00116280 whose return (in EAX)
  * is implicitly passed to the eventual caller (FUN_00113a90). */
-void FUN_00114740(unsigned int param_1, int *param_2, int param_3)
+void inflate_codes(unsigned int param_1, int *param_2, int param_3)
 {
   unsigned char *t;
   int e;
@@ -445,7 +445,7 @@ LAB_00114e67:
 
 /* inflate_codes_free: free a codes state struct.
  * 0x114f60 / circular_queue.obj (inflate.c) */
-void FUN_00114f60(int c, int z)
+void inflate_codes_free(int c, int z)
 {
   ((void (*)(void *, void *))(*(void **)(z + 0x24)))(*(void **)(z + 0x28),
                                                      (void *)c);
@@ -673,7 +673,7 @@ __attribute__((noinline)) int FUN_00114fa0(int param_1, int param_2,
 
 /* inflateReset: reset inflate stream state to initial values.
  * 0x1153c0 / circular_queue.obj (inflate.c) */
-int FUN_001153c0(int z)
+int inflateReset(int z)
 {
   unsigned int *s;
   if (z != 0 && (s = *(unsigned int **)(z + 0x1c)) != (unsigned int *)0) {
@@ -697,7 +697,7 @@ int FUN_00115430(int z)
   if (z != 0 && *(int *)(z + 0x1c) != 0 && *(int *)(z + 0x24) != 0) {
     blocks = *(int *)(*(int *)(z + 0x1c) + 0x14);
     if (blocks != 0)
-      FUN_00114630(blocks, z);
+      inflate_blocks_free(blocks, z);
     ((void (*)(void *, void *))(*(void **)(z + 0x24)))(*(void **)(z + 0x28),
                                                        *(void **)(z + 0x1c));
     *(int *)(z + 0x1c) = 0;
@@ -753,7 +753,7 @@ int FUN_001154a0(int z, int w, char *version, int stream_size)
     } else {
       if (*(int *)0x320e30 > 0)
         crt_fprintf(*(void **)0x331070, "inflate: allocated\n");
-      FUN_001153c0(z);
+      inflateReset(z);
       return 0;
     }
   }
@@ -762,7 +762,7 @@ int FUN_001154a0(int z, int w, char *version, int stream_size)
 
 /* inflateInit: initialize inflate stream with default window bits
  * (MAX_WBITS=15). 0x1155c0 / circular_queue.obj (inflate.c) */
-int FUN_001155c0(int z, char *version, int stream_size)
+int inflateInit_(int z, char *version, int stream_size)
 {
   return FUN_001154a0(z, 0xf, version, stream_size);
 }
@@ -980,7 +980,7 @@ int FUN_001155e0(int z, int flush)
 
 /* inflateSetDictionary: set the decompression dictionary after DICT check.
  * 0x115a00 / circular_queue.obj (inflate.c) */
-int FUN_00115a00(int z, int dictionary, unsigned int dictLength)
+int inflateSetDictionary(int z, int dictionary, unsigned int dictLength)
 {
   int adler_check;
   unsigned int wsize;
@@ -998,7 +998,7 @@ int FUN_00115a00(int z, int dictionary, unsigned int dictLength)
       n = wsize - 1;
       dictionary = dictionary + (int)(dictLength - n);
     }
-    FUN_00114690(*(int *)(*(int *)(z + 0x1c) + 0x14), dictionary, (int)n);
+    inflate_set_dictionary(*(int *)(*(int *)(z + 0x1c) + 0x14), dictionary, (int)n);
     **(int **)(z + 0x1c) = 7;
     return 0;
   }
@@ -1007,7 +1007,7 @@ int FUN_00115a00(int z, int dictionary, unsigned int dictLength)
 
 /* inflateSync: scan for a zlib sync point (0x00 0x00 0xff 0xff) in next_in.
  * 0x115a90 / circular_queue.obj (inflate.c) */
-int FUN_00115a90(int *z)
+int inflateSync(int *z)
 {
   int *state;
   char *p;
@@ -1056,7 +1056,7 @@ int FUN_00115a90(int *z)
   }
   saved_total_in = z[2];
   saved_total_out = z[5];
-  FUN_001153c0((int)z);
+  inflateReset((int)z);
   z[2] = saved_total_in;
   z[5] = saved_total_out;
   *(int *)z[7] = 7;
@@ -1065,7 +1065,7 @@ int FUN_00115a90(int *z)
 
 /* inflateSyncPoint: return 1 if inflate blocks are at a sync point.
  * 0x115b70 / circular_queue.obj (inflate.c) */
-int FUN_00115b70(int z)
+int inflateSyncPoint(int z)
 {
   int blocks;
   int result;
@@ -1384,7 +1384,7 @@ int FUN_00115ba0(unsigned int *bb, int *param_1, unsigned int param_2,
 
 /* inflate_trees_bits: build decode table for bit-length codes.
  * 0x116010 / circular_queue.obj (inflate.c) */
-int FUN_00116010(int *c, int *bb, int tl, int td, int z)
+int inflate_trees_bits(int *c, int *bb, int tl, int td, int z)
 {
   int work;
   int result;
@@ -1411,7 +1411,7 @@ int FUN_00116010(int *c, int *bb, int tl, int td, int z)
 
 /* inflate_trees_dynamic: build decode tables for dynamic Huffman block.
  * 0x1160c0 / circular_queue.obj (inflate.c) */
-int FUN_001160c0(unsigned int param_1, int param_2, int param_3, int *param_4,
+int inflate_trees_dynamic(unsigned int param_1, int param_2, int param_3, int *param_4,
                  int *param_5, int param_6, int param_7, int param_8,
                  int param_9)
 {
@@ -1475,7 +1475,7 @@ free_and_return_outer:
 
 /* inflate_trees_fixed: set pointers to fixed Huffman decode tables.
  * 0x116250 / circular_queue.obj (inflate.c) */
-int FUN_00116250(int *param_1, int *param_2, int **param_3, int **param_4)
+int inflate_trees_fixed(int *param_1, int *param_2, int **param_3, int **param_4)
 {
   *param_1 = *(int *)0x31fc80;
   *param_2 = *(int *)0x31fc84;
@@ -2066,7 +2066,7 @@ void FUN_00116b00(int state, int param_1, int param_2, int param_3)
 
 /* _tr_tally: record a literal or a match (distance/length) in deflate buffers.
  * 0x116d10 / circular_queue.obj (deflate.c) */
-int FUN_00116d10(int param_1, int param_2, int param_3)
+int _tr_tally(int param_1, int param_2, int param_3)
 {
   short *freq_ptr;
   unsigned int code;
@@ -2310,7 +2310,7 @@ void FUN_001171a0(unsigned int len, unsigned char *buf, int state, int header)
 
 /* deflate state init: initialize tree, block, and bit-buffer fields.
  * 0x117250 / circular_queue.obj (deflate.c) */
-void FUN_00117250(int param_1)
+void _tr_init(int param_1)
 {
   *(int *)(param_1 + 0xb10) = param_1 + 0x8c;
   *(int *)(param_1 + 0xb28) = param_1 + 0xa74;
@@ -2556,7 +2556,7 @@ void FUN_001176a0(int param_1, unsigned char *param_2, int param_3, int param_4)
 
 /* Align the output stream and emit STATIC_TREES end-of-block (0x1176f0).
  * If the last match distance is too small, repeat alignment. */
-void FUN_001176f0(int param_1)
+void _tr_align(int param_1)
 {
   FUN_00116390(2, 3, param_1);
   if (z_verbose > 2) {
@@ -2582,7 +2582,7 @@ void FUN_001176f0(int param_1)
 /* _tr_flush_block: decide how to flush the current block and emit it
  * (0x1177c0). Chooses between stored, static Huffman, or dynamic Huffman based
  * on sizes. */
-void FUN_001177c0(int param_1, int param_2, int param_3, int param_4)
+void _tr_flush_block(int param_1, int param_2, int param_3, int param_4)
 {
   unsigned int opt_len;
   unsigned int static_len;
@@ -2659,7 +2659,7 @@ use_opt:
  * -5 (Z_BUF_ERROR) if inflate returned Z_OK without Z_STREAM_END,
  * or the raw zlib error code on any other failure.
  * 0x1179e0 / circular_queue.obj (uncompress.c) */
-int FUN_001179e0(int p1, unsigned int *p2, unsigned int *p3, unsigned int p4)
+int uncompress(int p1, unsigned int *p2, unsigned int *p3, unsigned int p4)
 {
   int err;
   int z[14]; /* z_stream, 0x38 bytes */
@@ -2670,7 +2670,7 @@ int FUN_001179e0(int p1, unsigned int *p2, unsigned int *p3, unsigned int p4)
   z[3] = p1;
   z[8] = 0;
   z[9] = 0;
-  err = FUN_001155c0((int)z, "1.1.3", 0x38);
+  err = inflateInit_((int)z, "1.1.3", 0x38);
   if (err == 0) {
     int inflate_ret;
     inflate_ret = FUN_001155e0((int)z, 4);
@@ -2697,7 +2697,7 @@ __declspec(noinline) void FUN_00117a80(const char *msg)
 
 /* zError: return the error message string for a zlib error code.
  * 0x117ab0 / circular_queue.obj (zutil.c) */
-const char *FUN_00117ab0(int errcode)
+const char *zError(int errcode)
 {
   return ((const char **)0x320e10)[-errcode];
 }

@@ -34281,12 +34281,12 @@
    "functions": [
     {
      "addr": "0x114630",
-     "decl": "int FUN_00114630(int s, int z);",
+     "decl": "int inflate_blocks_free(int s, int z);",
      "ported": true
     },
     {
      "addr": "0x114690",
-     "decl": "void FUN_00114690(int s, int d, int n);",
+     "decl": "void inflate_set_dictionary(int s, int d, int n);",
      "ported": true
     },
     {
@@ -34296,17 +34296,17 @@
     },
     {
      "addr": "0x1146e0",
-     "decl": "void *FUN_001146e0(int bl, int bd, int tl, int td, int z);",
+     "decl": "void *inflate_codes_new(int bl, int bd, int tl, int td, int z);",
      "ported": true
     },
     {
      "addr": "0x114740",
-     "decl": "void FUN_00114740(unsigned int param_1, int *param_2, int param_3);",
+     "decl": "void inflate_codes(unsigned int param_1, int *param_2, int param_3);",
      "ported": true
     },
     {
      "addr": "0x114f60",
-     "decl": "void FUN_00114f60(int c, int z);",
+     "decl": "void inflate_codes_free(int c, int z);",
      "ported": true
     },
     {
@@ -34316,7 +34316,7 @@
     },
     {
      "addr": "0x1153c0",
-     "decl": "int FUN_001153c0(int z);",
+     "decl": "int inflateReset(int z);",
      "ported": true
     },
     {
@@ -34331,7 +34331,7 @@
     },
     {
      "addr": "0x1155c0",
-     "decl": "int FUN_001155c0(int z, char *version, int stream_size);",
+     "decl": "int inflateInit_(int z, char *version, int stream_size);",
      "ported": true
     },
     {
@@ -34341,17 +34341,17 @@
     },
     {
      "addr": "0x115a00",
-     "decl": "int FUN_00115a00(int z, int dictionary, unsigned int dictLength);",
+     "decl": "int inflateSetDictionary(int z, int dictionary, unsigned int dictLength);",
      "ported": true
     },
     {
      "addr": "0x115a90",
-     "decl": "int FUN_00115a90(int *z);",
+     "decl": "int inflateSync(int *z);",
      "ported": true
     },
     {
      "addr": "0x115b70",
-     "decl": "int FUN_00115b70(int z);",
+     "decl": "int inflateSyncPoint(int z);",
      "ported": true
     },
     {
@@ -34361,17 +34361,17 @@
     },
     {
      "addr": "0x116010",
-     "decl": "int FUN_00116010(int *c, int *bb, int tl, int td, int z);",
+     "decl": "int inflate_trees_bits(int *c, int *bb, int tl, int td, int z);",
      "ported": true
     },
     {
      "addr": "0x1160c0",
-     "decl": "int FUN_001160c0(unsigned int param_1, int param_2, int param_3, int *param_4, int *param_5, int param_6, int param_7, int param_8, int param_9);",
+     "decl": "int inflate_trees_dynamic(unsigned int param_1, int param_2, int param_3, int *param_4, int *param_5, int param_6, int param_7, int param_8, int param_9);",
      "ported": true
     },
     {
      "addr": "0x116250",
-     "decl": "int FUN_00116250(int *param_1, int *param_2, int **param_3, int **param_4);",
+     "decl": "int inflate_trees_fixed(int *param_1, int *param_2, int **param_3, int **param_4);",
      "ported": true
     },
     {
@@ -34417,7 +34417,7 @@
     },
     {
      "addr": "0x116d10",
-     "decl": "int FUN_00116d10(int param_1, int param_2, int param_3);",
+     "decl": "int _tr_tally(int param_1, int param_2, int param_3);",
      "ported": true
     },
     {
@@ -34447,7 +34447,7 @@
     },
     {
      "addr": "0x117250",
-     "decl": "void FUN_00117250(int param_1);",
+     "decl": "void _tr_init(int param_1);",
      "ported": true
     },
     {
@@ -34472,17 +34472,17 @@
     },
     {
      "addr": "0x1176f0",
-     "decl": "void FUN_001176f0(int param_1);",
+     "decl": "void _tr_align(int param_1);",
      "ported": true
     },
     {
      "addr": "0x1177c0",
-     "decl": "void FUN_001177c0(int param_1, int param_2, int param_3, int param_4);",
+     "decl": "void _tr_flush_block(int param_1, int param_2, int param_3, int param_4);",
      "ported": true
     },
     {
      "addr": "0x1179e0",
-     "decl": "int FUN_001179e0(int p1, unsigned int *p2, unsigned int *p3, unsigned int p4);",
+     "decl": "int uncompress(int p1, unsigned int *p2, unsigned int *p3, unsigned int p4);",
      "ported": true
     },
     {
@@ -34492,7 +34492,7 @@
     },
     {
      "addr": "0x117ab0",
-     "decl": "const char *FUN_00117ab0(int errcode);",
+     "decl": "const char *zError(int errcode);",
      "ported": true
     },
     {

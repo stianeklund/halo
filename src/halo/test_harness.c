@@ -777,7 +777,7 @@ void run_tests(void)
     }
   }
 
-  /* inflate round-trip: exercises FUN_00116010 / FUN_001160c0 which call
+  /* inflate round-trip: exercises inflate_trees_bits / inflate_trees_dynamic which call
    * FUN_00115ba0 with @<eax>=bb.  A missing @<eax> annotation causes the
    * Huffman tables to be built with a garbage bit-count pointer, corrupting
    * s->trees.bb and s->trees.tb and freezing the game on map selection. */
@@ -792,7 +792,7 @@ void run_tests(void)
     int init_ret, inflate_ret;
 
     csmemset(zs, 0, sizeof(zs));
-    init_ret = FUN_001155c0((int)zs, "1.1.3", 0x38);
+    init_ret = inflateInit_((int)zs, "1.1.3", 0x38);
 
     inflate_ret = (int)0xfffffffe; /* Z_STREAM_ERROR fallback */
     if (init_ret == 0) {
@@ -828,7 +828,7 @@ void run_tests(void)
 
     csmemset(zs, 0, sizeof(zs));
     csmemset(out_buf, 0xCC, sizeof(out_buf));
-    init_ret = FUN_001155c0((int)zs, "1.1.3", 0x38);
+    init_ret = inflateInit_((int)zs, "1.1.3", 0x38);
     inflate_ret = (int)0xfffffffe;
     if (init_ret == 0) {
       zs[0] = (int)compressed;
@@ -859,7 +859,7 @@ void run_tests(void)
 
     csmemset(zs, 0, sizeof(zs));
     csmemset(out_buf, 0xCC, sizeof(out_buf));
-    init_ret = FUN_001155c0((int)zs, "1.1.3", 0x38);
+    init_ret = inflateInit_((int)zs, "1.1.3", 0x38);
     inflate_ret = (int)0xfffffffe;
     if (init_ret == 0) {
       zs[0] = (int)compressed;

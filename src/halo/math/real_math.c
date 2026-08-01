@@ -4644,7 +4644,7 @@ int FUN_00110ed0(void *strm, int flush)
     }
     if (bstate == 1) { /* block_done */
       if (flush == 1) { /* Z_PARTIAL_FLUSH */
-        FUN_001176f0((int)s); /* _tr_align(s) */
+        _tr_align((int)s); /* _tr_align(s) */
       } else { /* FULL_FLUSH or SYNC_FLUSH */
         FUN_001176a0((int)s, (unsigned char *)0, 0,
                      0); /* _tr_stored_block(s,0,0,0) */
@@ -5035,7 +5035,7 @@ void FUN_001116b0(int length /*@<eax>*/, int match /*@<ecx>*/,
  * (when lookahead hits 0) emits the remaining block, last = (flush ==
  * Z_FINISH).
  *
- * FLUSH_BLOCK expands to _tr_flush_block (FUN_001177c0) + flush_pending. To
+ * FLUSH_BLOCK expands to _tr_flush_block (_tr_flush_block) + flush_pending. To
  * match the original codegen exactly, the two in-loop FLUSH_BLOCK sites INLINE
  * flush_pending (the csmemcpy drain, identical to FUN_00110e70's body), while
  * the terminal flush CALLS FUN_00110e70. The stored-block source pointer is
@@ -5103,7 +5103,7 @@ unsigned char FUN_00111910(int *strm, int flush)
       *(unsigned int *)(s + 0x64) = max_start; /* strstart = max_start */
 
       /* FLUSH_BLOCK(s, 0): _tr_flush_block + inline flush_pending. */
-      FUN_001177c0(s,
+      _tr_flush_block(s,
                    *(long *)(s + 0x54) < 0 ?
                      0 :
                      *(int *)(s + 0x30) +
@@ -5141,7 +5141,7 @@ unsigned char FUN_00111910(int *strm, int flush)
     if (*(unsigned int *)(s + 0x64) - (unsigned int)*(long *)(s + 0x54) >=
         *(unsigned int *)(s + 0x24) - 0x106) { /* >= w_size - MAX_DIST */
       /* FLUSH_BLOCK(s, 0): _tr_flush_block + inline flush_pending. */
-      FUN_001177c0(
+      _tr_flush_block(
         s,
         *(long *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(long *)(s + 0x54),
         *(unsigned int *)(s + 0x64) - (unsigned int)*(long *)(s + 0x54), 0);
@@ -5179,7 +5179,7 @@ unsigned char FUN_00111910(int *strm, int flush)
 
   /* FLUSH_BLOCK_ONLY(s, flush == Z_FINISH): _tr_flush_block, then a real
    * flush_pending call (NOT inlined here). */
-  FUN_001177c0(
+  _tr_flush_block(
     s, *(long *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(long *)(s + 0x54),
     *(unsigned int *)(s + 0x64) - (unsigned int)*(long *)(s + 0x54),
     flush == 4); /* last = (flush == Z_FINISH) */
@@ -5267,7 +5267,7 @@ unsigned char FUN_00111ba0(int *strm, int flush)
     if (match_length >= 3) { /* MIN_MATCH */
       FUN_001116b0((int)match_length, *(int *)(s + 0x68), *(int *)(s + 0x64),
                    s); /* check_match(len, match_start, strstart, s) */
-      bflush = FUN_00116d10(s, *(int *)(s + 0x64) - *(int *)(s + 0x68),
+      bflush = _tr_tally(s, *(int *)(s + 0x64) - *(int *)(s + 0x68),
                             (int)match_length -
                               3); /* _tr_tally(s, dist, len-MIN_MATCH) */
       *(unsigned int *)(s + 0x6c) -=
@@ -5315,7 +5315,7 @@ unsigned char FUN_00111ba0(int *strm, int flush)
           (unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window));
       }
       window = *(int *)(s + 0x30);
-      bflush = FUN_00116d10(
+      bflush = _tr_tally(
         s, 0,
         (int)(unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window));
       *(unsigned int *)(s + 0x6c) -= 1; /* lookahead-- */
@@ -5323,7 +5323,7 @@ unsigned char FUN_00111ba0(int *strm, int flush)
     }
     if (bflush != 0) {
       /* FLUSH_BLOCK(s, 0). */
-      FUN_001177c0(
+      _tr_flush_block(
         s, *(int *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(int *)(s + 0x54),
         *(int *)(s + 0x64) - *(int *)(s + 0x54), 0);
       *(int *)(s + 0x54) = *(int *)(s + 0x64); /* block_start = strstart */
@@ -5350,7 +5350,7 @@ unsigned char FUN_00111ba0(int *strm, int flush)
     }
   }
   /* lookahead == 0: final flush. */
-  FUN_001177c0(
+  _tr_flush_block(
     s, *(int *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(int *)(s + 0x54),
     *(int *)(s + 0x64) - *(int *)(s + 0x54),
     flush == 4); /* last = (flush == Z_FINISH) */
@@ -5448,7 +5448,7 @@ unsigned char FUN_00111ea0(int *strm, int flush)
                    3; /* strstart + lookahead - MIN_MATCH */
       FUN_001116b0((int)prev_length, *(int *)(s + 0x5c), *(int *)(s + 0x64) - 1,
                    s); /* check_match(prev_length, prev_match, strstart-1, s) */
-      bflush = FUN_00116d10(
+      bflush = _tr_tally(
         s, *(int *)(s + 0x64) - *(int *)(s + 0x5c) - 1,
         (int)prev_length -
           3); /* _tr_tally(s, strstart-prev_match-1, prev_length-3) */
@@ -5479,7 +5479,7 @@ unsigned char FUN_00111ea0(int *strm, int flush)
       *(int *)(s + 0x58) = 2; /* match_length = MIN_MATCH-1 */
       *(int *)(s + 0x64) += 1; /* strstart++ */
       if (bflush != 0) {
-        FUN_001177c0(
+        _tr_flush_block(
           s,
           *(int *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(int *)(s + 0x54),
           *(int *)(s + 0x64) - *(int *)(s + 0x54), 0);
@@ -5499,11 +5499,11 @@ unsigned char FUN_00111ea0(int *strm, int flush)
           (unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window - 1));
       }
       window = *(int *)(s + 0x30);
-      bflush = FUN_00116d10(
+      bflush = _tr_tally(
         s, 0,
         (int)(unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window - 1));
       if (bflush != 0) {
-        FUN_001177c0(
+        _tr_flush_block(
           s,
           *(int *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(int *)(s + 0x54),
           *(int *)(s + 0x64) - *(int *)(s + 0x54), 0);
@@ -5533,12 +5533,12 @@ unsigned char FUN_00111ea0(int *strm, int flush)
         (unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window - 1));
     }
     window = *(int *)(s + 0x30);
-    FUN_00116d10(
+    _tr_tally(
       s, 0,
       (int)(unsigned int)*(unsigned char *)(*(int *)(s + 0x64) + window - 1));
     *(int *)(s + 0x60) = 0;
   }
-  FUN_001177c0(
+  _tr_flush_block(
     s, *(int *)(s + 0x54) < 0 ? 0 : *(int *)(s + 0x30) + *(int *)(s + 0x54),
     *(int *)(s + 0x64) - *(int *)(s + 0x54), flush == 4);
   *(int *)(s + 0x54) = *(int *)(s + 0x64);
@@ -5557,7 +5557,7 @@ unsigned char FUN_00111ea0(int *strm, int flush)
  * (strm+0x2c)=Z_UNKNOWN(2) and adler (strm+0x30)=1. Resets the deflate_state:
  * pending_out (s+0x10)=pending_buf (s+0x8), pending (s+0x14)=0, normalizes wrap
  * (s+0x18 = |wrap|), status (s+0x4) = wrap ? 0x71 : INIT_STATE(0x2a),
- * last_flush (s+0x20)=0; then _tr_init (FUN_00117250) and lm_init (FUN_00111420
+ * last_flush (s+0x20)=0; then _tr_init (_tr_init) and lm_init (FUN_00111420
  * @<esi>= state). Returns Z_OK(0). */
 int FUN_00112260(int strm)
 {
@@ -5577,7 +5577,7 @@ int FUN_00112260(int strm)
   *(int *)(s + 4) = (-(int)(*(int *)(s + 0x18) != 0) & 0x47) + 0x2a;
   *(int *)(strm + 0x30) = 1;
   *(int *)(s + 0x20) = 0;
-  FUN_00117250(s);
+  _tr_init(s);
   FUN_00111420(s);
   return 0;
 }
@@ -5598,7 +5598,7 @@ int FUN_00112260(int strm)
  *   [0x22]nice_length. config table @0x28d280: { ush good_length, max_lazy,
  *   nice_length, max_chain; func } (12 B/entry). Callees: FUN_00110e40 =
  *   putShortMSB(@<ecx>=val, @<eax>=s); FUN_00110e70 =
- * flush_pending(@<eax>=strm); FUN_001176f0 = _tr_align; FUN_00117a80 =
+ * flush_pending(@<eax>=strm); _tr_align = _tr_align; FUN_00117a80 =
  * trace/assert(msg). */
 int FUN_001122e0(int *strm, int level, int strategy)
 {
@@ -5698,7 +5698,7 @@ int FUN_001122e0(int *strm, int level, int strategy)
   }
   if (bstate != 1)
     goto need_more;
-  FUN_001176f0((int)s);
+  _tr_align((int)s);
   FUN_00110e70((int)strm);
   if (strm[4] == 0) {
     s[8] = -1;
@@ -6076,7 +6076,7 @@ unsigned int FUN_00112fc0(int gz, int flush)
 /* zlib gzrewind: reset a gzip read-stream (param_1[0x17]/+0x5c byte == 'r') to
    the start. Clears decode state, reinitializes crc, then either rewinds the
    underlying FILE* (+0x40) when there is no gzip header start offset (+0x60),
-   or re-inits inflate (FUN_001153c0) and seeks to the header start. */
+   or re-inits inflate (inflateReset) and seeks to the header start. */
 int FUN_00113000(int *param_1)
 {
   int ret;
@@ -6092,7 +6092,7 @@ int FUN_00113000(int *param_1)
       _rewind((void *)param_1[0x10]); /* rewind(FILE*) */
       return 0;
     }
-    FUN_001153c0((int)param_1); /* inflateReset */
+    inflateReset((int)param_1); /* inflateReset */
     ret = _fseek((void *)param_1[0x10], param_1[0x18],
                  0); /* fseek(FILE*, off, SEEK_SET) */
     return ret;
@@ -6239,7 +6239,7 @@ void *FUN_001134a0(int fd, char *mode)
  * (FUN_001155e0), and on Z_STREAM_END folds the output run into crc (gz[0x13]),
  * checks the stored CRC32 (get_long D3DX_getLong) + skips ISIZE, then
  * check_header (FUN_001128c0)
- * + inflateReset (FUN_001153c0) to support concatenated members. CRC (crc32
+ * + inflateReset (inflateReset) to support concatenated members. CRC (crc32
  * FUN_00110c10) is taken over each output run from `start`. cdecl; gz embeds
  * the z_stream at offset 0 so every field is gz-relative (single base). */
 int FUN_001134e0(int *gz, void *buf, int len)
@@ -6315,7 +6315,7 @@ int FUN_001134e0(int *gz, void *buf, int len)
       if (gz[0xe] == 0) { /* another member follows */
         saved_in = gz[2];
         saved_out = gz[5];
-        FUN_001153c0((int)gz); /* inflateReset */
+        inflateReset((int)gz); /* inflateReset */
         gz[2] = saved_in;
         gz[5] = saved_out;
         gz[0x13] = (int)FUN_00110c10(0, 0, 0); /* crc = crc32(0, NULL, 0) */
@@ -6500,7 +6500,7 @@ void FUN_00113930(int s, int param_2, int last)
                                              param_1[3]);
   }
   if (param_1[0] == 6) {
-    FUN_00114f60(param_1[1], param_2);
+    inflate_codes_free(param_1[1], param_2);
   }
   param_1[0xd] = param_1[10];
   param_1[0xc] = param_1[10];
