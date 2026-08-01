@@ -2332,65 +2332,65 @@ void FUN_00117250(int param_1)
  */
 void FUN_001172d0(int *param_1, int param_2, short *bl_count)
 {
-  unsigned int uVar1;
-  int iVar2;
-  int iVar4;
-  int iVar5;
-  unsigned int uVar3;
-  unsigned int uVar7;
-  unsigned int uVar8;
-  unsigned int uVar9;
-  unsigned int uVar10;
+  unsigned int res_next;
+  int i;
+  int is_graph;
+  int ch;
+  unsigned int res;
+  unsigned int code_val;
+  unsigned int bits_left;
+  unsigned int bit;
+  unsigned int len;
   unsigned short auStack_28[16];
-  unsigned short uVar6;
+  unsigned short code;
 
-  uVar6 = 0;
-  iVar2 = 1;
+  code = 0;
+  i = 1;
   do {
-    uVar6 =
-      (unsigned short)((*(short *)((int)bl_count + iVar2 * 2 - 2) + uVar6) * 2);
-    auStack_28[iVar2] = uVar6;
-    iVar2++;
-  } while (iVar2 < 0x10);
+    code =
+      (unsigned short)((*(short *)((int)bl_count + i * 2 - 2) + code) * 2);
+    auStack_28[i] = code;
+    i++;
+  } while (i < 0x10);
   if (((unsigned int)(*(unsigned short *)((int)bl_count + 0x1e) - 1) +
-       (unsigned int)uVar6) != 0x7fff) {
+       (unsigned int)code) != 0x7fff) {
     FUN_00117a80("inconsistent bit counts");
   }
   if (*(int *)0x320e30 > 0) {
     crt_fprintf(*(void **)0x331070, "\ngen_codes: max_code %d ", param_2);
   }
-  iVar2 = 0;
+  i = 0;
   if (param_2 >= 0) {
     do {
-      uVar10 = (unsigned int)*(unsigned short *)((int)param_1 + iVar2 * 4 + 2);
-      if (uVar10 != 0) {
-        uVar7 = (unsigned int)auStack_28[uVar10];
-        auStack_28[uVar10] =
-          (unsigned short)((unsigned int)auStack_28[uVar10] + 1);
-        uVar1 = 0;
-        uVar8 = uVar10;
+      len = (unsigned int)*(unsigned short *)((int)param_1 + i * 4 + 2);
+      if (len != 0) {
+        code_val = (unsigned int)auStack_28[len];
+        auStack_28[len] =
+          (unsigned short)((unsigned int)auStack_28[len] + 1);
+        res_next = 0;
+        bits_left = len;
         do {
-          uVar3 = uVar1;
-          uVar9 = uVar7 & 1;
-          uVar7 >>= 1;
-          uVar8--;
-          uVar1 = (uVar3 | uVar9) << 1;
-        } while ((int)uVar8 > 0);
-        *(unsigned short *)((int)param_1 + iVar2 * 4) =
-          (unsigned short)uVar3 | (unsigned short)uVar9;
+          res = res_next;
+          bit = code_val & 1;
+          code_val >>= 1;
+          bits_left--;
+          res_next = (res | bit) << 1;
+        } while ((int)bits_left > 0);
+        *(unsigned short *)((int)param_1 + i * 4) =
+          (unsigned short)res | (unsigned short)bit;
         if (*(int *)0x320e30 > 1 && param_1 != (int *)0x28dd90) {
-          iVar4 = uisgraph(iVar2);
-          iVar5 = iVar2;
-          if (iVar4 == 0)
-            iVar5 = 0x20;
+          is_graph = uisgraph(i);
+          ch = i;
+          if (is_graph == 0)
+            ch = 0x20;
           crt_fprintf(
-            *(void **)0x331070, "\nn %3d %c l %2d c %4x (%x) ", iVar2, iVar5,
-            uVar10, (unsigned int)*(unsigned short *)((int)param_1 + iVar2 * 4),
-            ((unsigned int)auStack_28[uVar10] & 0xffff) - 1);
+            *(void **)0x331070, "\nn %3d %c l %2d c %4x (%x) ", i, ch,
+            len, (unsigned int)*(unsigned short *)((int)param_1 + i * 4),
+            ((unsigned int)auStack_28[len] & 0xffff) - 1);
         }
       }
-      iVar2++;
-    } while (iVar2 <= param_2);
+      i++;
+    } while (i <= param_2);
   }
 }
 
