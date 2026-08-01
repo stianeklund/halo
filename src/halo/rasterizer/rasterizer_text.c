@@ -594,6 +594,78 @@ void FUN_001812b0(void)
   *(int *)0x5a37e0 = 0;
 }
 
+/* rasterizer_lights_submit: append one light to the per-window light array and
+ * return its index, or -1 when the array is full (0x1812c0).
+ *
+ * TU is rasterizer_lights.c (proven by the __FILE__ assert string); it lives in
+ * rasterizer_text.c only because that is the kb.json object grouping.
+ *
+ * Globals (from disassembly):
+ *   0x5a37e0  int    light count (capacity 0x80)
+ *   0x5a37e4  base of the light array, stride 0x38 (56 bytes)
+ *   0x3256ba  int16  render mode flag; secondary counter ticks when == 2
+ *   0x5a5548  int    secondary counter
+ *   0x2533c0  0.0f   0x2533c8  1.0f
+ *
+ * The 56-byte element copy is a whole-struct assignment (REP MOVSD of 0xE
+ * dwords in the original). Only color.red/green/blue at +0x28/+0x2c/+0x30 are
+ * identified; the rest of the element is opaque here. */
+int rasterizer_lights_submit(void *parameters)
+{
+  struct rasterizer_light_element {
+    int data[14]; /* 0x38 bytes */
+  };
+  int light_index;
+  int count;
+
+  light_index = -1;
+  if (parameters == 0) {
+    display_assert("parameters",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c", 0xf0,
+                   1);
+    system_exit(-1);
+  }
+  if (!(*(float *)((char *)parameters + 0x28) >= *(float *)0x2533c0 &&
+        *(float *)((char *)parameters + 0x28) <= *(float *)0x2533c8)) {
+    display_assert("parameters->color.red >=0.0f && parameters->color.red "
+                   "<=1.0f",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c", 0xf1,
+                   1);
+    system_exit(-1);
+  }
+  if (!(*(float *)((char *)parameters + 0x2c) >= *(float *)0x2533c0 &&
+        *(float *)((char *)parameters + 0x2c) <= *(float *)0x2533c8)) {
+    display_assert("parameters->color.green>=0.0f && "
+                   "parameters->color.green<=1.0f",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c", 0xf2,
+                   1);
+    system_exit(-1);
+  }
+  if (!(*(float *)((char *)parameters + 0x30) >= *(float *)0x2533c0 &&
+        *(float *)((char *)parameters + 0x30) <= *(float *)0x2533c8)) {
+    display_assert("parameters->color.blue >=0.0f && "
+                   "parameters->color.blue <=1.0f",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c", 0xf3,
+                   1);
+    system_exit(-1);
+  }
+
+  count = *(int *)0x5a37e0;
+  if (count < 0x80) {
+    light_index = count;
+    count = count + 1;
+    *(int *)0x5a37e0 = count;
+    *(struct rasterizer_light_element *)(0x5a37e4 + light_index * 0x38) =
+        *(struct rasterizer_light_element *)parameters;
+    if (*(short *)0x3256ba == 2) {
+      *(int *)0x5a5548 = *(int *)0x5a5548 + 1;
+    }
+  } else {
+    error(2, "### ERROR too many lights submitted to window");
+  }
+  return light_index;
+}
+
 /* FUN_00181410: stub (0x181410) */
 void FUN_00181410(void)
 {

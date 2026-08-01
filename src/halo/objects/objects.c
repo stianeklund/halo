@@ -92,7 +92,6 @@ double pow(double x, double y);
 #define CALL_FUN_0013aed0(a) XCALL(0x13aed0, void (*)(int))(a)
 #define CALL_FUN_00184e50(a) XCALL(0x184e50, short *(*)(int))(a)
 #define CALL_FUN_00181900(a) XCALL(0x181900, void (*)(int))(a)
-#define CALL_FUN_001812c0(a) XCALL(0x1812c0, int (*)(void *))(a)
 #define CALL_FUN_00181670(a) XCALL(0x181670, void (*)(void *))(a)
 #define CALL_FUN_00089240(a, b) XCALL(0x89240, void (*)(int, void *))(a, b)
 #define CALL_FUN_00085b60(a, b, c) \
@@ -4716,7 +4715,7 @@ void FUN_0013b380(void)
                   *(unsigned char *)(iVar5 + 2) | 8;
               }
             }
-            uVar11 = CALL_FUN_001812c0(light_params);
+            uVar11 = rasterizer_lights_submit(light_params);
             *(int *)(iVar5 + 8) = uVar11;
             *(short *)0x5a8d5a = (short)uVar11 + 1;
           }

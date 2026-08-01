@@ -28321,7 +28321,9 @@
     },
     {
      "addr": "0x1812c0",
-     "decl": "void FUN_001812c0(void);"
+ "name": "rasterizer_lights_submit",
+     "ported": true,
+     "decl": "int rasterizer_lights_submit(void *parameters);"
     },
     {
      "addr": "0x181410",
