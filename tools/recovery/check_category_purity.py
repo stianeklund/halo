@@ -980,8 +980,41 @@ def _check_offset_to_field(old: Sequence[Token], new: Sequence[Token]) -> PairRe
                   f"{counters['additions']} added declaration(s)/include(s)"])
 
 
+def _retains_raw_offset(tokens: Sequence[Token]) -> bool:
+    """True when a run still casts a pointer AND adds a literal byte offset."""
+    return _has_pointer_cast(tokens) and _has_literal_offset_add(tokens)
+
+
+# Explains the "field at +0x00 reached through a cast base" rejection.  Retyping
+# a deref -- `*(int16 *)(p + 0x1a)` -> `((tag_block *)(p + 0x1a))->count` -- keeps
+# both the cast and the raw `+ 0x1a`, so no raw offset was actually eliminated and
+# the token hunks fragment around the shared base.  The per-hunk violations then
+# read as tool bugs ("no '+ <literal>' byte offset", "added code is not a
+# declaration statement") and send the reader looking for a spelling that works.
+# There is none: the offset is only removable once a struct covers the BASE.
+_CAST_BASE_HINT = (
+    "hint: the replacement still casts and adds a raw byte offset, so this is a "
+    "retype, not an offset->field conversion (the field sits at +0x00 of a type "
+    "reached through a cast base, e.g. '((tag_block *)(p + 0x1a))->count'). No "
+    "spelling of this passes: the '+ literal' only disappears once a struct with "
+    "cs()/co() asserts covers the BASE, making the offset a named member. That is "
+    "struct-recovery/struct-assert (ladder 5) work, not this category."
+)
+
+
 def _check_offset_unit(old_unit: Unit, new_unit: Unit,
                        violations: list[Violation], counters: dict) -> None:
+    before = len(violations)
+    _check_offset_hunks(old_unit, new_unit, violations, counters)
+    # Additive diagnosis only -- the unit has already failed; this appends the
+    # reason rather than changing any verdict.
+    if len(violations) > before and _retains_raw_offset(new_unit.tokens) \
+            and _retains_raw_offset(old_unit.tokens):
+        violations.append(Violation(new_unit.line, _CAST_BASE_HINT))
+
+
+def _check_offset_hunks(old_unit: Unit, new_unit: Unit,
+                        violations: list[Violation], counters: dict) -> None:
     for i1, i2, j1, j2 in _hunks(old_unit.tokens, new_unit.tokens):
         old_run = old_unit.tokens[i1:i2]
         new_run = new_unit.tokens[j1:j2]
@@ -1344,6 +1377,12 @@ def _cases() -> list[tuple[str, str, str, str, str]]:
         "offset-to-field", BASE_C,
         BASE_C.replace("*(int *)((int)actor + 0x10)", "actor->mode")
               .replace("fVar1", "scale"),
+        "violation"))
+    cases.append((
+        "offset-to-field: retype through a cast base is still a violation",
+        "offset-to-field", BASE_C,
+        BASE_C.replace("*(int *)((int)actor + 0x10)",
+                       "((tag_block *)((int)actor + 0x10))->count"),
         "violation"))
 
     # ---- uncheckable ----------------------------------------------------

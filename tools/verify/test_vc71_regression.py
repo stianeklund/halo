@@ -3,6 +3,8 @@
 
 import importlib.util
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -140,6 +142,46 @@ class TestLegacyCheckSkipsEvidenceGaps(unittest.TestCase):
                 with patch.object(vc71, "run_vc71_verify", runner):
                     with patch.object(vc71, "_func_span", return_value=10):
                         self.assertEqual(vc71.cmd_check(args), 0)
+
+
+class TestFuncSpanDelegatesWhenImported(unittest.TestCase):
+    """_func_span must reach vc71_verify however this module was imported.
+
+    Regression test for the import-path bug: `from vc71_verify import _func_span`
+    resolves only when sys.path[0] is tools/verify (the __main__/CLI path).  When
+    tools/recovery/source_recovery.py imports this as `tools.verify.vc71_regression`
+    with only the repo root on sys.path, that raised ImportError and _func_span
+    silently fell back to the kb.json listing gap -- which overshoots wherever the
+    listing has a hole, so a correct short reference reads as truncated and the
+    function is reported "invalid delinked reference".  Observed on the hud_weapon
+    recovery run: FUN_000d8b70/FUN_000d8b80 scored a 16-byte kb gap against a true
+    span of 1, failing a check the CLI passed.
+
+    Asserted via sys.modules rather than a span value so the test does not depend
+    on kb.json contents: if the delegating import had failed, vc71_verify would
+    never be loaded at all.
+    """
+
+    def test_import_as_package_module_still_delegates(self):
+        repo_root = Path(__file__).resolve().parent.parent.parent
+        probe = (
+            "import sys\n"
+            "sys.path.insert(0, %r)\n"
+            "from tools.verify import vc71_regression as vr\n"
+            "assert 'vc71_verify' not in sys.modules, 'precondition: not yet loaded'\n"
+            "vr._func_span('FUN_00000000')\n"
+            "assert 'vc71_verify' in sys.modules, "
+            "'_func_span fell back to the kb gap instead of delegating'\n"
+            "import vc71_verify\n"
+            "for fn in ('FUN_000d8b70', 'FUN_000d8b80'):\n"
+            "    assert vr._func_span(fn) == vc71_verify._func_span(fn), fn\n"
+            "print('ok')\n"
+        ) % str(repo_root)
+        proc = subprocess.run(
+            [sys.executable, "-c", probe],
+            cwd=str(repo_root), capture_output=True, text=True,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
 
 
 if __name__ == "__main__":

@@ -8,6 +8,15 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+# Run as a script (`python3 tools/recovery/test_source_recovery.py`) sys.path[0] is
+# tools/recovery and the repo root is NOT on the path, so `from tools.recovery ...`
+# raised ModuleNotFoundError and the whole suite errored out without running a
+# single test.  Same root cause the suite's own first test guards against inside
+# source_recovery.py; it just never applied to the test module itself.
+_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 from tools.recovery import source_recovery as recovery
 
 

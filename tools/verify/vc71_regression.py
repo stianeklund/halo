@@ -44,9 +44,26 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+# This module runs two ways: as a script (`python3 tools/verify/vc71_regression.py`,
+# where sys.path[0] IS tools/verify) and imported as `tools.verify.vc71_regression`
+# by tools/recovery/source_recovery.py, where it is not.  _func_span delegates to
+# vc71_verify._func_span; on the imported path that bare import silently raised
+# ImportError and the gate fell back to the kb.json listing gap -- overshooting the
+# span, so a correct short reference read as truncated and the function was reported
+# "invalid delinked reference".  Measured on FUN_000d8b70/FUN_000d8b80: kb gap 16
+# bytes vs a true span of 1, failing a check that passes identically via the CLI.
+_VERIFY_DIR = str(Path(__file__).resolve().parent)
+if _VERIFY_DIR not in sys.path:
+    sys.path.insert(0, _VERIFY_DIR)
 # Floored regression tripwire (committed; consumed by frontier.py, llm_auto_lift.py,
 # batch_equivalence.py and CI's `check`).  Only raised on improvement / lowered
 # deliberately with --force.
+#
+# KEYED BY DELINKED-REFERENCE SYMBOL NAME, not by our C identifier (hence entries
+# like "D3D8::D3DResource_IsBusy").  A symbol-names recovery pass that renames C
+# functions must leave these keys ALONE: they only change when the delinked
+# reference is re-exported.  Hand-renaming them to match the new C names decouples
+# the floor from what is actually measured and breaks `check`.
 BASELINE_PATH = Path(__file__).parent / "vc71_scores.json"
 # Honest current scores (bidirectional, gated on reference validity).  Written by
 # `populate`; preferred by the dashboard so it reflects present truth, not a
