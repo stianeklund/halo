@@ -194,9 +194,84 @@ def capture_object(path):
     }
 
 
-def compare_snapshots(before, after):
+def _reloc_sort_key(item):
+    return (item["offset"], item["type"], json.dumps(item["target"], sort_keys=True))
+
+
+def _validate_rename_map(rename_map):
+    """A rename map must come from OUTSIDE this module and must be injective.
+
+    Never infer a map by diffing the snapshots. Relocations are patched at link
+    time, so retargeting a call from one external symbol to another leaves the
+    .text bytes byte-identical, and external symbols all share section 0 /
+    value 0 -- an inferred map could not tell that retarget apart from a rename
+    and would wave through a genuine change of callee. The caller must supply a
+    map it has already verified against the source diff (check_category_purity
+    computes exactly such a bijective map for the rename categories).
+    """
+    if rename_map is None:
+        return {}
+    if not isinstance(rename_map, dict) or not all(
+            isinstance(key, str) and isinstance(value, str)
+            for key, value in rename_map.items()):
+        raise GuardError("rename map must be a {old_name: new_name} string mapping")
+    values = list(rename_map.values())
+    if len(set(values)) != len(values):
+        raise GuardError("rename map is not injective: two symbols map to one name")
+    return rename_map
+
+
+def _rename_target(target, rename_map):
+    new_name = rename_map.get(target.get("name"))
+    if new_name is None:
+        return target
+    return dict(target, name=new_name)
+
+
+def _canonicalize(snapshot, rename_map):
+    """Apply rename_map to the snapshot's symbol names and restore sort order.
+
+    capture_object sorts relocations and assertion metadata by a key that
+    includes the target name, so substituting names must be followed by a
+    re-sort or an unchanged object would compare as reordered.
+    """
+    if not rename_map:
+        return snapshot
+    sections = []
+    for section in snapshot["sections"]:
+        relocations = [dict(relocation,
+                            target=_rename_target(relocation["target"], rename_map))
+                       for relocation in section["relocations"]]
+        relocations.sort(key=_reloc_sort_key)
+        sections.append(dict(section, relocations=relocations))
+    metadata = []
+    for item in snapshot["assertion_metadata"]:
+        if isinstance(item, dict) and isinstance(item.get("target"), dict):
+            item = dict(item, target=_rename_target(item["target"], rename_map))
+        metadata.append(item)
+    metadata.sort(key=lambda entry: json.dumps(entry, sort_keys=True))
+    return dict(snapshot, sections=sections, assertion_metadata=metadata)
+
+
+def compare_snapshots(before, after, rename_map=None):
+    """Compare two captures for codegen neutrality.
+
+    rename_map (optional) maps OLD symbol name -> NEW symbol name for renames
+    the caller has already verified against the source diff. It excuses a
+    difference in symbol NAME only: relocation offset, type, target section and
+    target value, the .text bytes, and the assertion metadata must still match
+    exactly, so a relocation pointed at a genuinely different symbol still
+    fails, as does any name change the map does not account for.
+
+    The map must describe exactly the renames present in the candidate object,
+    no more: it is applied to `before`, so naming a rename that did NOT happen
+    makes the comparison fail just as a missing entry does. Pass the map that
+    check_category_purity derived from the SAME staged diff you are checking --
+    not a whole-file map when you are committing one group of it.
+    """
     _validate_snapshot(before)
     _validate_snapshot(after)
+    before = _canonicalize(before, _validate_rename_map(rename_map))
     errors = []
     before_sections = {section["id"]: section for section in before["sections"]}
     after_sections = {section["id"]: section for section in after["sections"]}
@@ -274,6 +349,41 @@ def _self_test():
         ("one code byte fails", not compare_snapshots(base, dict(base, sections=[dict(base_section, raw_bytes_hex="9190")]))["ok"]),
         ("relocation target change fails", not compare_snapshots(base, dict(base, sections=[dict(base_section, relocations=[dict(base_section["relocations"][0], target={"name": "_g", "section": 0, "value": 0})])]))["ok"]),
     ]
+
+    def variant(target=None, **section_overrides):
+        section = dict(base_section, **section_overrides)
+        if target is not None:
+            section["relocations"] = [dict(base_section["relocations"][0], target=target)]
+        return dict(base, sections=[section])
+
+    renamed = variant(target={"name": "_g", "section": 0, "value": 0})
+    # A verified rename is excused ...
+    checks.append(("rename excused by map passes",
+                   compare_snapshots(base, renamed, {"_f": "_g"})["ok"]))
+    # ... but only that exact rename: everything else still fails.
+    checks.append(("rename to an unmapped name fails",
+                   not compare_snapshots(base, variant(target={"name": "_h", "section": 0, "value": 0}),
+                                         {"_f": "_g"})["ok"]))
+    checks.append(("map does not excuse changed code bytes",
+                   not compare_snapshots(base, variant(target={"name": "_g", "section": 0, "value": 0},
+                                                       raw_bytes_hex="9190"), {"_f": "_g"})["ok"]))
+    checks.append(("map does not excuse a retarget to another address",
+                   not compare_snapshots(base, variant(target={"name": "_g", "section": 0, "value": 4}),
+                                         {"_f": "_g"})["ok"]))
+    checks.append(("an unrelated map leaves the rename failing",
+                   not compare_snapshots(base, renamed, {"_x": "_y"})["ok"]))
+    try:
+        compare_snapshots(base, renamed, {"_f": "_g", "_q": "_g"})
+    except GuardError:
+        checks.append(("non-injective map rejected", True))
+    else:
+        checks.append(("non-injective map rejected", False))
+    try:
+        compare_snapshots(base, renamed, {"_f": 3})
+    except GuardError:
+        checks.append(("non-string map rejected", True))
+    else:
+        checks.append(("non-string map rejected", False))
     try:
         compare_snapshots({}, base)
     except GuardError:
@@ -296,6 +406,11 @@ def main(argv=None):
     check = sub.add_parser("check")
     check.add_argument("baseline")
     check.add_argument("object")
+    check.add_argument("--rename-map", default=None,
+                       help="path to a JSON {old_name: new_name} map, or inline JSON. "
+                            "Excuses symbol-NAME differences only, and only for the "
+                            "listed symbols. Supply a map you have verified against "
+                            "the source diff -- never one derived from the objects.")
     args = parser.parse_args(argv)
     if args.self_test:
         return _self_test()
@@ -306,7 +421,14 @@ def main(argv=None):
         if args.command == "check":
             with open(args.baseline, "r", encoding="ascii") as stream:
                 baseline = json.load(stream)
-            result = compare_snapshots(baseline, capture_object(args.object))
+            rename_map = None
+            if args.rename_map:
+                if Path(args.rename_map).is_file():
+                    with open(args.rename_map, "r", encoding="ascii") as stream:
+                        rename_map = json.load(stream)
+                else:
+                    rename_map = json.loads(args.rename_map)
+            result = compare_snapshots(baseline, capture_object(args.object), rename_map)
             _write_json(result)
             return 0 if result["ok"] else 1
         parser.error("a subcommand is required")

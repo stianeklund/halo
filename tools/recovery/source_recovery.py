@@ -354,7 +354,16 @@ def _run_vc71(source: Path) -> int:
 
 
 def _check(path: Path, manifest: dict[str, Any], object_arg: str, skip_vc71: bool,
-           mode: str = "neutral") -> dict[str, Any]:
+           mode: str = "neutral",
+           rename_map: dict[str, str] | None = None) -> dict[str, Any]:
+    """Verify the candidate object against the captured baseline.
+
+    rename_map excuses symbol-NAME differences in the COFF comparison for the
+    listed symbols only -- see coff_candidate_guard.compare_snapshots. Supply it
+    only for rename categories, and only from a map already verified against the
+    source diff. Any map used is echoed in the result so a relaxed pass is never
+    indistinguishable from a strict one.
+    """
     if mode not in ("neutral", "corrective"):
         raise RecoveryError("invalid check mode: %s" % mode)
     result: dict[str, Any] = {
@@ -385,9 +394,11 @@ def _check(path: Path, manifest: dict[str, Any], object_arg: str, skip_vc71: boo
         result["baseline_object_sha256"] = baseline.get("object_sha256")
         result["current_object_sha256"] = _sha256(obj)
         from tools.recovery import assert_metadata_guard, coff_candidate_guard
+        result["rename_map_applied"] = sorted(rename_map or {})
         try:
             coff = coff_candidate_guard.compare_snapshots(
-                baseline["coff_snapshot"], coff_candidate_guard.capture_object(str(obj)))
+                baseline["coff_snapshot"], coff_candidate_guard.capture_object(str(obj)),
+                rename_map)
         except Exception as exc:
             result["failures"].append("COFF baseline comparison failed: %s" % exc)
         else:
@@ -571,6 +582,12 @@ def main(argv: list[str] | None = None) -> int:
     check.add_argument("--object", required=True)
     check.add_argument("--mode", choices=("neutral", "corrective"), default="neutral")
     check.add_argument("--skip-vc71", action="store_true")
+    check.add_argument("--rename-map", default=None,
+                       help="JSON file or inline JSON {old_name: new_name}. Excuses "
+                            "symbol-NAME differences in the COFF comparison for those "
+                            "symbols only; code bytes, relocation offsets/types and "
+                            "target addresses must still match exactly. Use for rename "
+                            "categories, with a map verified against the source diff.")
     report = sub.add_parser("report")
     report.add_argument("manifest")
     ladder = sub.add_parser("ladder", help="read-only ladder ordering view")
@@ -596,7 +613,14 @@ def main(argv: list[str] | None = None) -> int:
             _write_atomic(path, manifest)
             return 0
         if args.command == "check":
-            result = _check(path, manifest, args.object, args.skip_vc71, args.mode)
+            rename_map = None
+            if args.rename_map:
+                if Path(args.rename_map).is_file():
+                    rename_map = json.loads(Path(args.rename_map).read_text(encoding="ascii"))
+                else:
+                    rename_map = json.loads(args.rename_map)
+            result = _check(path, manifest, args.object, args.skip_vc71, args.mode,
+                            rename_map)
             print(json.dumps(result, indent=2, sort_keys=True))
             return 0 if result["ok"] else 1
         if args.command == "report":
