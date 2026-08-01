@@ -27571,6 +27571,11 @@
     "class": "leaf",
     "z3_proven": true
   },
+  "0x17ba10": {
+    "class": "non_leaf",
+    "confidence": "none",
+    "coverage_pct": 9.3
+  },
   "0x17ff50": {
     "class": "leaf",
     "confidence": "high",
