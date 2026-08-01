@@ -19537,7 +19537,8 @@
     },
     {
      "addr": "0x17c1b0",
-     "decl": "void FUN_0017c1b0(void);"
+     "decl": "bool FUN_0017c1b0(void *stage@<esi>, int16_t stage_index@<di>);",
+     "ported": true
     },
     {
      "addr": "0x17c2f0",

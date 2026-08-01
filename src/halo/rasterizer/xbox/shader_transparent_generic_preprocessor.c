@@ -148,3 +148,106 @@ int FUN_0017bf20(void *stage)
   }
   return output_flags;
 }
+
+/* The six output-register selector fields tested by FUN_0017c1b0. They form
+ * two structurally identical triples (one per combiner side): the colour side
+ * at +0x4c/+0x50/+0x54 interleaves with the already-named AB/CD function
+ * fields at +0x4e/+0x52, and the alpha side sits at +0x68/+0x6a/+0x6c.
+ * No string proves a semantic name for any of them, so the names are
+ * mechanical (offset-derived); only the widths are proven, by the accessing
+ * instruction listed against each. */
+#define STAGE_FIELD_4C(stage)                                                  \
+  (*(short *)((char *)(stage) + 0x4c)) /* MOV ?X,word [ESI+0x4c] @0x17c1d7 */
+#define STAGE_FIELD_50(stage)                                                  \
+  (*(short *)((char *)(stage) + 0x50)) /* CMP word [ESI+0x50]    @0x17c1e0 */
+#define STAGE_FIELD_54(stage)                                                  \
+  (*(short *)((char *)(stage) + 0x54)) /* CMP word [ESI+0x54]    @0x17c1f3 */
+#define STAGE_FIELD_68(stage)                                                  \
+  (*(short *)((char *)(stage) + 0x68)) /* MOV ?X,word [ESI+0x68] @0x17c218 */
+#define STAGE_FIELD_6A(stage)                                                  \
+  (*(short *)((char *)(stage) + 0x6a)) /* CMP word [ESI+0x6a]    @0x17c221 */
+#define STAGE_FIELD_6C(stage)                                                  \
+  (*(short *)((char *)(stage) + 0x6c)) /* CMP word [ESI+0x6c]    @0x17c234 */
+
+/* The fog-density register index, compared against +0x68 and +0x6c by
+ * MOV EAX,3 / CMP word ptr [ESI+0x68],AX @0x17c298. Name taken verbatim from
+ * the error message string at 0x2af0a0. */
+#define SHADER_TRANSPARENT_GENERIC_FOG_DENSITY_REGISTER 3
+
+/* 0x17c1b0 — validate one shader_transparent_generic stage's output
+ * configuration, reporting every conflict it finds and returning whether the
+ * stage came through clean.
+ *
+ * No prologue at all in the original: TEST ESI,ESI at 0x17c1b0 is the first
+ * instruction, so the stage pointer arrives in ESI and the stage index in DI
+ * (MOVSX EAX/ECX/EDX,DI before each error() push). PUSH EBX / MOV BL,1 at
+ * 0x17c1b2/0x17c1b3 set up a running "valid" flag that is cleared (XOR BL,BL)
+ * after each of the four reports and returned in AL by the two tails at
+ * 0x17c2e4 (XOR AL,AL) and 0x17c2e8 (MOV AL,BL) — Ghidra's `void` return is
+ * wrong. All four checks run unconditionally: the first error block falls
+ * through into the rest, so one stage can produce all four messages.
+ * The assert is at source line 0x154 and tails into system_exit(-1). */
+bool FUN_0017c1b0(void *stage, short stage_index)
+{
+  bool valid;
+
+  valid = 1;
+  if (stage == 0) {
+    display_assert("stage",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                   "generic_preprocessor.c",
+                   0x154, 1);
+    system_exit(-1);
+  }
+
+  /* Six pairwise "both non-zero and equal" tests — every pair within the
+   * colour triple and every pair within the alpha triple — all branching to
+   * the single shared report block at 0x17c259. */
+  if ((STAGE_FIELD_4C(stage) != 0 && STAGE_FIELD_50(stage) != 0 &&
+       STAGE_FIELD_4C(stage) == STAGE_FIELD_50(stage)) ||
+      (STAGE_FIELD_4C(stage) != 0 && STAGE_FIELD_54(stage) != 0 &&
+       STAGE_FIELD_4C(stage) == STAGE_FIELD_54(stage)) ||
+      (STAGE_FIELD_50(stage) != 0 && STAGE_FIELD_54(stage) != 0 &&
+       STAGE_FIELD_50(stage) == STAGE_FIELD_54(stage)) ||
+      (STAGE_FIELD_68(stage) != 0 && STAGE_FIELD_6A(stage) != 0 &&
+       STAGE_FIELD_68(stage) == STAGE_FIELD_6A(stage)) ||
+      (STAGE_FIELD_68(stage) != 0 && STAGE_FIELD_6C(stage) != 0 &&
+       STAGE_FIELD_68(stage) == STAGE_FIELD_6C(stage)) ||
+      (STAGE_FIELD_6A(stage) != 0 && STAGE_FIELD_6C(stage) != 0 &&
+       STAGE_FIELD_6A(stage) == STAGE_FIELD_6C(stage))) {
+    error(2, "### ERROR transparent shader output conflict in stage #%d",
+          stage_index);
+    valid = 0;
+  }
+
+  if ((STAGE_COLOR_OUTPUT_AB_FUNCTION(stage) != 0 ||
+       STAGE_COLOR_OUTPUT_CD_FUNCTION(stage) != 0) &&
+      STAGE_FIELD_54(stage) != 0) {
+    error(2,
+          "### ERROR transparent shader evaluates dot product and AB+CD sum "
+          "in stage #%d",
+          stage_index);
+    valid = 0;
+  }
+
+  if (STAGE_FIELD_68(stage) == SHADER_TRANSPARENT_GENERIC_FOG_DENSITY_REGISTER ||
+      STAGE_FIELD_6C(stage) == SHADER_TRANSPARENT_GENERIC_FOG_DENSITY_REGISTER) {
+    error(2,
+          "### ERROR transparent shader writes to fog density register in "
+          "stage #%d",
+          stage_index);
+    valid = 0;
+  }
+
+  if ((STAGE_FLAGS(stage) & 0x1) != 0 &&
+      (STAGE_COLOR_OUTPUT_AB_FUNCTION(stage) != 0 ||
+       STAGE_COLOR_OUTPUT_CD_FUNCTION(stage) != 0)) {
+    error(2,
+          "### ERROR transparent shader evaluates dot product and mux[AB,CD] "
+          "in stage #%d",
+          stage_index);
+    valid = 0;
+  }
+
+  return valid;
+}
