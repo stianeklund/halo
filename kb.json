@@ -19496,10 +19496,6 @@
      "decl": "void FUN_0017ad90(void);"
     },
     {
-     "addr": "0x17adc0",
-     "decl": "void FUN_0017adc0(void);"
-    },
-    {
      "addr": "0x17ae90",
      "decl": "void FUN_0017ae90(void);"
     },
@@ -19660,7 +19656,7 @@
     },
     {
      "addr": "0x17ca00",
-     "decl": "void rasterizer_widget_get_occlusion_test_result(void);"
+     "decl": "void FUN_0017ca00(void);"
     },
     {
      "addr": "0x17ca10",
@@ -20148,7 +20144,7 @@
     },
     {
      "addr": "0x1559b0",
-     "decl": "void rasterizer_spin_begin(void);"
+     "decl": "void rasterizer_spin_begin(int spin_reason);"
     },
     {
      "addr": "0x1559c0",
@@ -28327,7 +28323,7 @@
     },
     {
      "addr": "0x1812c0",
- "name": "rasterizer_lights_submit",
+     "name": "rasterizer_lights_submit",
      "ported": true,
      "decl": "int rasterizer_lights_submit(void *parameters);"
     },
@@ -37173,11 +37169,11 @@
      "decl": "void FUN_00172590(int param_1);",
      "ported": true
     },
-     {
-      "addr": "0x172730",
-      "decl": "void FUN_00172730(void);",
-      "ported": true
-     },
+    {
+     "addr": "0x172730",
+     "decl": "void FUN_00172730(void);",
+     "ported": true
+    },
     {
      "addr": "0x172de0",
      "decl": "void FUN_00172de0(void *shader, int frame_index, void *triangle_buffer, void *vertex_buffer);",
@@ -39377,6 +39373,17 @@
      "decl": "void FUN_001345b0(int glow_widget@<eax>, int object_handle);",
      "ported": true,
      "source_path": "objects/widgets/glow.c"
+    }
+   ]
+  },
+  {
+   "name": "rasterizer_xbox_widgets.obj",
+   "source": "rasterizer/xbox/rasterizer_xbox_widgets.c",
+   "functions": [
+    {
+     "addr": "0x17adc0",
+     "decl": "unsigned int rasterizer_widget_get_occlusion_test_result(unsigned int index);",
+     "ported": true
     }
    ]
   }
