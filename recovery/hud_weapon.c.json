@@ -1862,6 +1862,78 @@
       "source": "src/halo/interface/hud_weapon.c",
       "vc71_passed": false,
       "warnings": []
+    },
+    {
+      "baseline_object_sha256": "2a237d0a9cf1930d5300a4d9d040206ccb7071b700ea09c7aa763ab03b1a634b",
+      "current_git_head": "34391e8abe2fb4fad15ebac1629a72d070c85641",
+      "current_object_sha256": "ca8a753a9828a160e6880e0a06dc67a675e7c7eb6b7c492e94d2e4626eeac872",
+      "current_source_sha256": "79f135ec085887006fb0bd415690e8bc92679f7398582d55e24dfe050ffbeac7",
+      "failures": [
+        "strict VC71 regression check failed"
+      ],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": false,
+      "skipped": [],
+      "source": "src/halo/interface/hud_weapon.c",
+      "vc71_passed": false,
+      "warnings": []
+    },
+    {
+      "baseline_object_sha256": "2a237d0a9cf1930d5300a4d9d040206ccb7071b700ea09c7aa763ab03b1a634b",
+      "current_git_head": "34391e8abe2fb4fad15ebac1629a72d070c85641",
+      "current_object_sha256": "ca8a753a9828a160e6880e0a06dc67a675e7c7eb6b7c492e94d2e4626eeac872",
+      "current_source_sha256": "79f135ec085887006fb0bd415690e8bc92679f7398582d55e24dfe050ffbeac7",
+      "failures": [
+        "strict VC71 regression check failed"
+      ],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": false,
+      "skipped": [],
+      "source": "src/halo/interface/hud_weapon.c",
+      "vc71_passed": false,
+      "warnings": []
+    },
+    {
+      "baseline_object_sha256": "2a237d0a9cf1930d5300a4d9d040206ccb7071b700ea09c7aa763ab03b1a634b",
+      "current_git_head": "34391e8abe2fb4fad15ebac1629a72d070c85641",
+      "current_object_sha256": "f08f137427fbe2c8bc7db47c207cd19529c2f0332deb6ae738a919eabff4c7b3",
+      "current_source_sha256": "2c49c711021436d835ca262eba8b7a8c733a64da11e962ba60d8d18c25b8e0bf",
+      "failures": [
+        "strict VC71 regression check failed"
+      ],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": false,
+      "skipped": [],
+      "source": "src/halo/interface/hud_weapon.c",
+      "vc71_passed": false,
+      "warnings": []
+    },
+    {
+      "baseline_object_sha256": "2a237d0a9cf1930d5300a4d9d040206ccb7071b700ea09c7aa763ab03b1a634b",
+      "current_git_head": "34391e8abe2fb4fad15ebac1629a72d070c85641",
+      "current_object_sha256": "74b7911ed115ca380526c680b659dd75970bec64d16de131f9306826c286f14f",
+      "current_source_sha256": "fcf6f6b842b7cff1297516e37295b2919e1e4aa75b64cde7acfe1e530cc20ad5",
+      "failures": [
+        "strict VC71 regression check failed"
+      ],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": false,
+      "skipped": [],
+      "source": "src/halo/interface/hud_weapon.c",
+      "vc71_passed": false,
+      "warnings": []
     }
   ],
   "created_tool_version": "source-recovery/1",
@@ -2357,7 +2429,8 @@
         "column": 11,
         "id": "raw_base_offset_dereferences:59:1",
         "line": 59,
-        "status": "pending",
+        "reason": "weapon-HUD globals buffer (0x1e4 bytes at 0x46bd24) has no struct type anywhere in the tree \u2014 no cs()/co() asserts exist for +0x1e0, so offset-to-struct precondition 2 is unmet; defining that struct is struct-define (ladder 5), which has no items for this TU",
+        "status": "parked",
         "text": "value = *(unsigned int *)(g + 0x1e0);"
       },
       {
@@ -2365,7 +2438,8 @@
         "column": 5,
         "id": "raw_base_offset_dereferences:61:1",
         "line": 61,
-        "status": "pending",
+        "reason": "weapon-HUD globals buffer (0x1e4 bytes at 0x46bd24) has no struct type anywhere in the tree \u2014 no cs()/co() asserts exist for +0x1e0, so offset-to-struct precondition 2 is unmet; defining that struct is struct-define (ladder 5), which has no items for this TU",
+        "status": "parked",
         "text": "*(unsigned int *)(g + 0x1e0) = value | 1;"
       },
       {
@@ -2373,7 +2447,8 @@
         "column": 3,
         "id": "raw_base_offset_dereferences:64:1",
         "line": 64,
-        "status": "pending",
+        "reason": "weapon-HUD globals buffer (0x1e4 bytes at 0x46bd24) has no struct type anywhere in the tree \u2014 no cs()/co() asserts exist for +0x1e0, so offset-to-struct precondition 2 is unmet; defining that struct is struct-define (ladder 5), which has no items for this TU",
+        "status": "parked",
         "text": "*(unsigned int *)(g + 0x1e0) = value & ~1u;"
       },
       {
@@ -2381,7 +2456,8 @@
         "column": 37,
         "id": "raw_base_offset_dereferences:155:1",
         "line": 155,
-        "status": "pending",
+        "reason": "unit_data_t exists in src/types.h but carries zero cs()/co() asserts, so offset-to-struct precondition 2 (an assert covering the offset) is unmet; adding those asserts is struct-define/struct-assert (ladder 5) work and is outside this category's edit shape",
+        "status": "parked",
         "text": "weapon = unit_get_weapon(param_2, *(short *)(obj + 0x2a2));"
       },
       {
@@ -2389,7 +2465,8 @@
         "column": 31,
         "id": "raw_base_offset_dereferences:162:1",
         "line": 162,
-        "status": "pending",
+        "reason": "unit_data_t exists in src/types.h but carries zero cs()/co() asserts, so offset-to-struct precondition 2 (an assert covering the offset) is unmet; adding those asserts is struct-define/struct-assert (ladder 5) work and is outside this category's edit shape",
+        "status": "parked",
         "text": "seat_parent == 0 || ((*(int *)(seat_parent + 0x2d4) != param_2) &&"
       },
       {
@@ -2397,7 +2474,8 @@
         "column": 31,
         "id": "raw_base_offset_dereferences:163:1",
         "line": 163,
-        "status": "pending",
+        "reason": "unit_data_t exists in src/types.h but carries zero cs()/co() asserts, so offset-to-struct precondition 2 (an assert covering the offset) is unmet; adding those asserts is struct-define/struct-assert (ladder 5) work and is outside this category's edit shape",
+        "status": "parked",
         "text": "(*(int *)(seat_parent + 0x2d8) != param_2)))) &&"
       },
       {
@@ -2405,7 +2483,8 @@
         "column": 18,
         "id": "raw_base_offset_dereferences:169:1",
         "line": 169,
-        "status": "pending",
+        "reason": "grenade-HUD block element (0x44 bytes from tag_block_get_element on game_globals+0x128) has no struct definition and no cs()/co() assert at +0x20; modelling it is struct-define (ladder 5) work",
+        "status": "parked",
         "text": "whud_index = *(int *)(element + 0x20);"
       },
       {
@@ -2413,7 +2492,8 @@
         "column": 32,
         "id": "raw_base_offset_dereferences:177:1",
         "line": 177,
-        "status": "pending",
+        "reason": "grhi ('grhi' global reticle HUD interface tag) has no struct definition and no cs()/co() asserts covering this offset; modelling the tag layout is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "flags7 = ((short)cVar <= *(short *)(grhi + 0x148));"
       },
       {
@@ -2421,7 +2501,8 @@
         "column": 11,
         "id": "raw_base_offset_dereferences:196:1",
         "line": 196,
-        "status": "pending",
+        "reason": "grhi ('grhi' global reticle HUD interface tag) has no struct definition and no cs()/co() asserts covering this offset; modelling the tag layout is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "if (*(int *)(grhi + 0x54) != -1) {"
       },
       {
@@ -2429,7 +2510,8 @@
         "column": 11,
         "id": "raw_base_offset_dereferences:200:1",
         "line": 200,
-        "status": "pending",
+        "reason": "grhi ('grhi' global reticle HUD interface tag) has no struct definition and no cs()/co() asserts covering this offset; modelling the tag layout is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "if (*(int *)(grhi + 0xbc) != -1) {"
       },
       {
@@ -2437,7 +2519,8 @@
         "column": 11,
         "id": "raw_base_offset_dereferences:204:1",
         "line": 204,
-        "status": "pending",
+        "reason": "grhi ('grhi' global reticle HUD interface tag) has no struct definition and no cs()/co() asserts covering this offset; modelling the tag layout is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "if (*(char *)(grhi + 0x138) != 0) {"
       },
       {
@@ -2445,7 +2528,8 @@
         "column": 11,
         "id": "raw_base_offset_dereferences:210:1",
         "line": 210,
-        "status": "pending",
+        "reason": "grhi ('grhi' global reticle HUD interface tag) has no struct definition and no cs()/co() asserts covering this offset; modelling the tag layout is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "if (*(int *)(grhi + 0x158) != -1) {"
       },
       {
@@ -2453,7 +2537,8 @@
         "column": 34,
         "id": "raw_base_offset_dereferences:213:1",
         "line": 213,
-        "status": "pending",
+        "reason": "grhi ('grhi' global reticle HUD interface tag) has no struct definition and no cs()/co() asserts covering this offset; modelling the tag layout is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "flags8 = ((short)cVar <= *(short *)(grhi + 0x148));"
       },
       {
@@ -2461,7 +2546,8 @@
         "column": 25,
         "id": "raw_base_offset_dereferences:401:1",
         "line": 401,
-        "status": "pending",
+        "reason": "rewrite is codegen-neutral (COFF .text byte-identical, vc71_regression --threshold 0 clean, hazard scan clean) but check_category_purity.py offset-to-field rejects every available spelling: the field sits at +0x00 of a tag_block reached through a cast base ((tag_block *)(xhair_elem + 0x1a))->count / ((tag_block *)(anim_block + 0x34))->count, so the cast and the '+ literal' survive in the new text and the token hunk fragments into '* ( int' -> '( ( tag_block' plus an inserted '-> count'. Verified all three accepted shapes fail: in-place '->', in-place '(*p).', and typed-local decl+assign. A purity-clean rewrite needs the whci crosshair element / bitmap sequence element structs so the base pointer is already typed (xhair_elem->overlays.count) \u2014 that is struct-define (ladder 5) work, which has no items for this TU. Gate not bypassed; unit reverted",
+        "status": "parked",
         "text": "if (0 < *(int *)(xhair_elem + 0x1a)) {"
       },
       {
@@ -2469,7 +2555,8 @@
         "column": 29,
         "id": "raw_base_offset_dereferences:406:1",
         "line": 406,
-        "status": "pending",
+        "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "flags = *(unsigned int *)(overlay_elem + 0x48);"
       },
       {
@@ -2477,7 +2564,8 @@
         "column": 29,
         "id": "raw_base_offset_dereferences:411:1",
         "line": 411,
-        "status": "pending",
+        "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "((*(unsigned char *)(overlay_elem + 0xc) & 2) != 0)) {"
       },
       {
@@ -2485,7 +2573,8 @@
         "column": 28,
         "id": "raw_base_offset_dereferences:419:1",
         "line": 419,
-        "status": "pending",
+        "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "if ((*(unsigned char *)(overlay_elem + 0x48) & 2) == 0) {"
       },
       {
@@ -2493,7 +2582,8 @@
         "column": 32,
         "id": "raw_base_offset_dereferences:426:1",
         "line": 426,
-        "status": "pending",
+        "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "(int)*(short *)(overlay_elem + 0x46), 0x40);"
       },
       {
@@ -2501,7 +2591,8 @@
         "column": 30,
         "id": "raw_base_offset_dereferences:434:1",
         "line": 434,
-        "status": "pending",
+        "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "if ((*(unsigned char *)(overlay_elem + 0x48) & 1) =="
       },
       {
@@ -2509,7 +2600,8 @@
         "column": 41,
         "id": "raw_base_offset_dereferences:437:1",
         "line": 437,
-        "status": "pending",
+        "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "frame_index = *(int *)(overlay_elem + 0x24);"
       },
       {
@@ -2517,7 +2609,8 @@
         "column": 41,
         "id": "raw_base_offset_dereferences:442:1",
         "line": 442,
-        "status": "pending",
+        "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "frame_index = *(int *)(overlay_elem + 0x24);"
       },
       {
@@ -2525,7 +2618,8 @@
         "column": 33,
         "id": "raw_base_offset_dereferences:449:1",
         "line": 449,
-        "status": "pending",
+        "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "flags = *(unsigned int *)(overlay_elem + 0x48);"
       },
       {
@@ -2533,7 +2627,8 @@
         "column": 41,
         "id": "raw_base_offset_dereferences:459:1",
         "line": 459,
-        "status": "pending",
+        "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "frame_index = *(int *)(overlay_elem + 0x24);"
       },
       {
@@ -2541,7 +2636,8 @@
         "column": 34,
         "id": "raw_base_offset_dereferences:474:1",
         "line": 474,
-        "status": "pending",
+        "reason": "unit_data_t exists in src/types.h but carries zero cs()/co() asserts, so offset-to-struct precondition 2 (an assert covering the offset) is unmet; adding those asserts is struct-define/struct-assert (ladder 5) work and is outside this category's edit shape",
+        "status": "parked",
         "text": "bv = ((*(unsigned int *)(unit_obj + 0x1b8) & 0x800) =="
       },
       {
@@ -2549,7 +2645,8 @@
         "column": 32,
         "id": "raw_base_offset_dereferences:479:1",
         "line": 479,
-        "status": "pending",
+        "reason": "caller-supplied weapon-state buffer passed in as a plain int parameter; no struct with cs()/co() asserts describes its layout, and its shape is set by the (unported) caller, so offset-to-struct precondition 2 is unmet",
+        "status": "parked",
         "text": "if ((*(short *)(buf + 0xe) == 0) &&"
       },
       {
@@ -2557,7 +2654,8 @@
         "column": 32,
         "id": "raw_base_offset_dereferences:480:1",
         "line": 480,
-        "status": "pending",
+        "reason": "caller-supplied weapon-state buffer passed in as a plain int parameter; no struct with cs()/co() asserts describes its layout, and its shape is set by the (unported) caller, so offset-to-struct precondition 2 is unmet",
+        "status": "parked",
         "text": "(*(short *)(buf + 0x12) == 0)) {"
       },
       {
@@ -2565,7 +2663,8 @@
         "column": 36,
         "id": "raw_base_offset_dereferences:481:1",
         "line": 481,
-        "status": "pending",
+        "reason": "unit_data_t exists in src/types.h but carries zero cs()/co() asserts, so offset-to-struct precondition 2 (an assert covering the offset) is unmet; adding those asserts is struct-define/struct-assert (ladder 5) work and is outside this category's edit shape",
+        "status": "parked",
         "text": "bv = ((*(unsigned int *)(unit_obj + 0x1b8) &"
       },
       {
@@ -2573,7 +2672,8 @@
         "column": 40,
         "id": "raw_base_offset_dereferences:501:1",
         "line": 501,
-        "status": "pending",
+        "reason": "unit_data_t exists in src/types.h but carries zero cs()/co() asserts, so offset-to-struct precondition 2 (an assert covering the offset) is unmet; adding those asserts is struct-define/struct-assert (ladder 5) work and is outside this category's edit shape",
+        "status": "parked",
         "text": "if ((bv) && (*(char *)(unit_obj + 0x23d) == 0)) {"
       },
       {
@@ -2581,7 +2681,8 @@
         "column": 36,
         "id": "raw_base_offset_dereferences:502:1",
         "line": 502,
-        "status": "pending",
+        "reason": "unit_data_t exists in src/types.h but carries zero cs()/co() asserts, so offset-to-struct precondition 2 (an assert covering the offset) is unmet; adding those asserts is struct-define/struct-assert (ladder 5) work and is outside this category's edit shape",
+        "status": "parked",
         "text": "bv = ((*(unsigned int *)(unit_obj + 0x1b8) &"
       },
       {
@@ -2589,7 +2690,8 @@
         "column": 29,
         "id": "raw_base_offset_dereferences:544:1",
         "line": 544,
-        "status": "pending",
+        "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "if (*(short *)(overlay_elem + 0x44) < 1) {"
       },
       {
@@ -2597,7 +2699,8 @@
         "column": 44,
         "id": "raw_base_offset_dereferences:549:1",
         "line": 549,
-        "status": "pending",
+        "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "(int)*(short *)(overlay_elem + 0x44)) /"
       },
       {
@@ -2605,7 +2708,8 @@
         "column": 37,
         "id": "raw_base_offset_dereferences:551:1",
         "line": 551,
-        "status": "pending",
+        "reason": "rewrite is codegen-neutral (COFF .text byte-identical, vc71_regression --threshold 0 clean, hazard scan clean) but check_category_purity.py offset-to-field rejects every available spelling: the field sits at +0x00 of a tag_block reached through a cast base ((tag_block *)(xhair_elem + 0x1a))->count / ((tag_block *)(anim_block + 0x34))->count, so the cast and the '+ literal' survive in the new text and the token hunk fragments into '* ( int' -> '( ( tag_block' plus an inserted '-> count'. Verified all three accepted shapes fail: in-place '->', in-place '(*p).', and typed-local decl+assign. A purity-clean rewrite needs the whci crosshair element / bitmap sequence element structs so the base pointer is already typed (xhair_elem->overlays.count) \u2014 that is struct-define (ladder 5) work, which has no items for this TU. Gate not bypassed; unit reverted",
+        "status": "parked",
         "text": "*(int *)(anim_block + 0x34));"
       },
       {
@@ -2613,7 +2717,8 @@
         "column": 31,
         "id": "raw_base_offset_dereferences:553:1",
         "line": 553,
-        "status": "pending",
+        "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "if (((*(unsigned char *)(overlay_elem + 0x48) & 1) =="
       },
       {
@@ -2621,7 +2726,8 @@
         "column": 41,
         "id": "raw_base_offset_dereferences:556:1",
         "line": 556,
-        "status": "pending",
+        "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "frame_index = *(int *)(overlay_elem + 0x24);"
       },
       {
@@ -2629,7 +2735,8 @@
         "column": 37,
         "id": "raw_base_offset_dereferences:594:1",
         "line": 594,
-        "status": "pending",
+        "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "frame_sel = *(short *)(overlay_elem + 0x46);"
       },
       {
@@ -2637,7 +2744,8 @@
         "column": 30,
         "id": "raw_base_offset_dereferences:603:1",
         "line": 603,
-        "status": "pending",
+        "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+        "status": "parked",
         "text": "if ((*(unsigned char *)(overlay_elem + 0x48) & 0x10) =="
       },
       {
@@ -2645,7 +2753,8 @@
         "column": 41,
         "id": "raw_base_offset_dereferences:650:1",
         "line": 650,
-        "status": "pending",
+        "reason": "bitmap sprite element (0x20 bytes from tag_block_get_element on the sequence sprites block) has no struct definition and no cs()/co() asserts for the four float fields; modelling it is struct-define (ladder 5) work",
+        "status": "parked",
         "text": "rect2d[1] = *(float *)(seq_elem + 0xc);"
       },
       {
@@ -2653,7 +2762,8 @@
         "column": 41,
         "id": "raw_base_offset_dereferences:651:1",
         "line": 651,
-        "status": "pending",
+        "reason": "bitmap sprite element (0x20 bytes from tag_block_get_element on the sequence sprites block) has no struct definition and no cs()/co() asserts for the four float fields; modelling it is struct-define (ladder 5) work",
+        "status": "parked",
         "text": "rect2d[2] = *(float *)(seq_elem + 0x10);"
       },
       {
@@ -2661,7 +2771,8 @@
         "column": 41,
         "id": "raw_base_offset_dereferences:652:1",
         "line": 652,
-        "status": "pending",
+        "reason": "bitmap sprite element (0x20 bytes from tag_block_get_element on the sequence sprites block) has no struct definition and no cs()/co() asserts for the four float fields; modelling it is struct-define (ladder 5) work",
+        "status": "parked",
         "text": "rect2d[3] = *(float *)(seq_elem + 0x14);"
       },
       {
@@ -2669,7 +2780,8 @@
         "column": 40,
         "id": "raw_base_offset_dereferences:678:1",
         "line": 678,
-        "status": "pending",
+        "reason": "rewrite is codegen-neutral (COFF .text byte-identical, vc71_regression --threshold 0 clean, hazard scan clean) but check_category_purity.py offset-to-field rejects every available spelling: the field sits at +0x00 of a tag_block reached through a cast base ((tag_block *)(xhair_elem + 0x1a))->count / ((tag_block *)(anim_block + 0x34))->count, so the cast and the '+ literal' survive in the new text and the token hunk fragments into '* ( int' -> '( ( tag_block' plus an inserted '-> count'. Verified all three accepted shapes fail: in-place '->', in-place '(*p).', and typed-local decl+assign. A purity-clean rewrite needs the whci crosshair element / bitmap sequence element structs so the base pointer is already typed (xhair_elem->overlays.count) \u2014 that is struct-define (ladder 5) work, which has no items for this TU. Gate not bypassed; unit reverted",
+        "status": "parked",
         "text": "} while (overlay_i < *(int *)(xhair_elem + 0x1a));"
       }
     ],
@@ -3160,7 +3272,8 @@
       "column": 11,
       "id": "raw_base_offset_dereferences:59:1",
       "line": 59,
-      "status": "pending",
+      "reason": "weapon-HUD globals buffer (0x1e4 bytes at 0x46bd24) has no struct type anywhere in the tree \u2014 no cs()/co() asserts exist for +0x1e0, so offset-to-struct precondition 2 is unmet; defining that struct is struct-define (ladder 5), which has no items for this TU",
+      "status": "parked",
       "text": "value = *(unsigned int *)(g + 0x1e0);"
     },
     {
@@ -3168,7 +3281,8 @@
       "column": 5,
       "id": "raw_base_offset_dereferences:61:1",
       "line": 61,
-      "status": "pending",
+      "reason": "weapon-HUD globals buffer (0x1e4 bytes at 0x46bd24) has no struct type anywhere in the tree \u2014 no cs()/co() asserts exist for +0x1e0, so offset-to-struct precondition 2 is unmet; defining that struct is struct-define (ladder 5), which has no items for this TU",
+      "status": "parked",
       "text": "*(unsigned int *)(g + 0x1e0) = value | 1;"
     },
     {
@@ -3176,7 +3290,8 @@
       "column": 3,
       "id": "raw_base_offset_dereferences:64:1",
       "line": 64,
-      "status": "pending",
+      "reason": "weapon-HUD globals buffer (0x1e4 bytes at 0x46bd24) has no struct type anywhere in the tree \u2014 no cs()/co() asserts exist for +0x1e0, so offset-to-struct precondition 2 is unmet; defining that struct is struct-define (ladder 5), which has no items for this TU",
+      "status": "parked",
       "text": "*(unsigned int *)(g + 0x1e0) = value & ~1u;"
     },
     {
@@ -3184,7 +3299,8 @@
       "column": 37,
       "id": "raw_base_offset_dereferences:155:1",
       "line": 155,
-      "status": "pending",
+      "reason": "unit_data_t exists in src/types.h but carries zero cs()/co() asserts, so offset-to-struct precondition 2 (an assert covering the offset) is unmet; adding those asserts is struct-define/struct-assert (ladder 5) work and is outside this category's edit shape",
+      "status": "parked",
       "text": "weapon = unit_get_weapon(param_2, *(short *)(obj + 0x2a2));"
     },
     {
@@ -3192,7 +3308,8 @@
       "column": 31,
       "id": "raw_base_offset_dereferences:162:1",
       "line": 162,
-      "status": "pending",
+      "reason": "unit_data_t exists in src/types.h but carries zero cs()/co() asserts, so offset-to-struct precondition 2 (an assert covering the offset) is unmet; adding those asserts is struct-define/struct-assert (ladder 5) work and is outside this category's edit shape",
+      "status": "parked",
       "text": "seat_parent == 0 || ((*(int *)(seat_parent + 0x2d4) != param_2) &&"
     },
     {
@@ -3200,7 +3317,8 @@
       "column": 31,
       "id": "raw_base_offset_dereferences:163:1",
       "line": 163,
-      "status": "pending",
+      "reason": "unit_data_t exists in src/types.h but carries zero cs()/co() asserts, so offset-to-struct precondition 2 (an assert covering the offset) is unmet; adding those asserts is struct-define/struct-assert (ladder 5) work and is outside this category's edit shape",
+      "status": "parked",
       "text": "(*(int *)(seat_parent + 0x2d8) != param_2)))) &&"
     },
     {
@@ -3208,7 +3326,8 @@
       "column": 18,
       "id": "raw_base_offset_dereferences:169:1",
       "line": 169,
-      "status": "pending",
+      "reason": "grenade-HUD block element (0x44 bytes from tag_block_get_element on game_globals+0x128) has no struct definition and no cs()/co() assert at +0x20; modelling it is struct-define (ladder 5) work",
+      "status": "parked",
       "text": "whud_index = *(int *)(element + 0x20);"
     },
     {
@@ -3216,7 +3335,8 @@
       "column": 32,
       "id": "raw_base_offset_dereferences:177:1",
       "line": 177,
-      "status": "pending",
+      "reason": "grhi ('grhi' global reticle HUD interface tag) has no struct definition and no cs()/co() asserts covering this offset; modelling the tag layout is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "flags7 = ((short)cVar <= *(short *)(grhi + 0x148));"
     },
     {
@@ -3224,7 +3344,8 @@
       "column": 11,
       "id": "raw_base_offset_dereferences:196:1",
       "line": 196,
-      "status": "pending",
+      "reason": "grhi ('grhi' global reticle HUD interface tag) has no struct definition and no cs()/co() asserts covering this offset; modelling the tag layout is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "if (*(int *)(grhi + 0x54) != -1) {"
     },
     {
@@ -3232,7 +3353,8 @@
       "column": 11,
       "id": "raw_base_offset_dereferences:200:1",
       "line": 200,
-      "status": "pending",
+      "reason": "grhi ('grhi' global reticle HUD interface tag) has no struct definition and no cs()/co() asserts covering this offset; modelling the tag layout is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "if (*(int *)(grhi + 0xbc) != -1) {"
     },
     {
@@ -3240,7 +3362,8 @@
       "column": 11,
       "id": "raw_base_offset_dereferences:204:1",
       "line": 204,
-      "status": "pending",
+      "reason": "grhi ('grhi' global reticle HUD interface tag) has no struct definition and no cs()/co() asserts covering this offset; modelling the tag layout is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "if (*(char *)(grhi + 0x138) != 0) {"
     },
     {
@@ -3248,7 +3371,8 @@
       "column": 11,
       "id": "raw_base_offset_dereferences:210:1",
       "line": 210,
-      "status": "pending",
+      "reason": "grhi ('grhi' global reticle HUD interface tag) has no struct definition and no cs()/co() asserts covering this offset; modelling the tag layout is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "if (*(int *)(grhi + 0x158) != -1) {"
     },
     {
@@ -3256,7 +3380,8 @@
       "column": 34,
       "id": "raw_base_offset_dereferences:213:1",
       "line": 213,
-      "status": "pending",
+      "reason": "grhi ('grhi' global reticle HUD interface tag) has no struct definition and no cs()/co() asserts covering this offset; modelling the tag layout is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "flags8 = ((short)cVar <= *(short *)(grhi + 0x148));"
     },
     {
@@ -3264,7 +3389,8 @@
       "column": 25,
       "id": "raw_base_offset_dereferences:401:1",
       "line": 401,
-      "status": "pending",
+      "reason": "rewrite is codegen-neutral (COFF .text byte-identical, vc71_regression --threshold 0 clean, hazard scan clean) but check_category_purity.py offset-to-field rejects every available spelling: the field sits at +0x00 of a tag_block reached through a cast base ((tag_block *)(xhair_elem + 0x1a))->count / ((tag_block *)(anim_block + 0x34))->count, so the cast and the '+ literal' survive in the new text and the token hunk fragments into '* ( int' -> '( ( tag_block' plus an inserted '-> count'. Verified all three accepted shapes fail: in-place '->', in-place '(*p).', and typed-local decl+assign. A purity-clean rewrite needs the whci crosshair element / bitmap sequence element structs so the base pointer is already typed (xhair_elem->overlays.count) \u2014 that is struct-define (ladder 5) work, which has no items for this TU. Gate not bypassed; unit reverted",
+      "status": "parked",
       "text": "if (0 < *(int *)(xhair_elem + 0x1a)) {"
     },
     {
@@ -3272,7 +3398,8 @@
       "column": 29,
       "id": "raw_base_offset_dereferences:406:1",
       "line": 406,
-      "status": "pending",
+      "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "flags = *(unsigned int *)(overlay_elem + 0x48);"
     },
     {
@@ -3280,7 +3407,8 @@
       "column": 29,
       "id": "raw_base_offset_dereferences:411:1",
       "line": 411,
-      "status": "pending",
+      "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "((*(unsigned char *)(overlay_elem + 0xc) & 2) != 0)) {"
     },
     {
@@ -3288,7 +3416,8 @@
       "column": 28,
       "id": "raw_base_offset_dereferences:419:1",
       "line": 419,
-      "status": "pending",
+      "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "if ((*(unsigned char *)(overlay_elem + 0x48) & 2) == 0) {"
     },
     {
@@ -3296,7 +3425,8 @@
       "column": 32,
       "id": "raw_base_offset_dereferences:426:1",
       "line": 426,
-      "status": "pending",
+      "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "(int)*(short *)(overlay_elem + 0x46), 0x40);"
     },
     {
@@ -3304,7 +3434,8 @@
       "column": 30,
       "id": "raw_base_offset_dereferences:434:1",
       "line": 434,
-      "status": "pending",
+      "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "if ((*(unsigned char *)(overlay_elem + 0x48) & 1) =="
     },
     {
@@ -3312,7 +3443,8 @@
       "column": 41,
       "id": "raw_base_offset_dereferences:437:1",
       "line": 437,
-      "status": "pending",
+      "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "frame_index = *(int *)(overlay_elem + 0x24);"
     },
     {
@@ -3320,7 +3452,8 @@
       "column": 41,
       "id": "raw_base_offset_dereferences:442:1",
       "line": 442,
-      "status": "pending",
+      "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "frame_index = *(int *)(overlay_elem + 0x24);"
     },
     {
@@ -3328,7 +3461,8 @@
       "column": 33,
       "id": "raw_base_offset_dereferences:449:1",
       "line": 449,
-      "status": "pending",
+      "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "flags = *(unsigned int *)(overlay_elem + 0x48);"
     },
     {
@@ -3336,7 +3470,8 @@
       "column": 41,
       "id": "raw_base_offset_dereferences:459:1",
       "line": 459,
-      "status": "pending",
+      "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "frame_index = *(int *)(overlay_elem + 0x24);"
     },
     {
@@ -3344,7 +3479,8 @@
       "column": 34,
       "id": "raw_base_offset_dereferences:474:1",
       "line": 474,
-      "status": "pending",
+      "reason": "unit_data_t exists in src/types.h but carries zero cs()/co() asserts, so offset-to-struct precondition 2 (an assert covering the offset) is unmet; adding those asserts is struct-define/struct-assert (ladder 5) work and is outside this category's edit shape",
+      "status": "parked",
       "text": "bv = ((*(unsigned int *)(unit_obj + 0x1b8) & 0x800) =="
     },
     {
@@ -3352,7 +3488,8 @@
       "column": 32,
       "id": "raw_base_offset_dereferences:479:1",
       "line": 479,
-      "status": "pending",
+      "reason": "caller-supplied weapon-state buffer passed in as a plain int parameter; no struct with cs()/co() asserts describes its layout, and its shape is set by the (unported) caller, so offset-to-struct precondition 2 is unmet",
+      "status": "parked",
       "text": "if ((*(short *)(buf + 0xe) == 0) &&"
     },
     {
@@ -3360,7 +3497,8 @@
       "column": 32,
       "id": "raw_base_offset_dereferences:480:1",
       "line": 480,
-      "status": "pending",
+      "reason": "caller-supplied weapon-state buffer passed in as a plain int parameter; no struct with cs()/co() asserts describes its layout, and its shape is set by the (unported) caller, so offset-to-struct precondition 2 is unmet",
+      "status": "parked",
       "text": "(*(short *)(buf + 0x12) == 0)) {"
     },
     {
@@ -3368,7 +3506,8 @@
       "column": 36,
       "id": "raw_base_offset_dereferences:481:1",
       "line": 481,
-      "status": "pending",
+      "reason": "unit_data_t exists in src/types.h but carries zero cs()/co() asserts, so offset-to-struct precondition 2 (an assert covering the offset) is unmet; adding those asserts is struct-define/struct-assert (ladder 5) work and is outside this category's edit shape",
+      "status": "parked",
       "text": "bv = ((*(unsigned int *)(unit_obj + 0x1b8) &"
     },
     {
@@ -3376,7 +3515,8 @@
       "column": 40,
       "id": "raw_base_offset_dereferences:501:1",
       "line": 501,
-      "status": "pending",
+      "reason": "unit_data_t exists in src/types.h but carries zero cs()/co() asserts, so offset-to-struct precondition 2 (an assert covering the offset) is unmet; adding those asserts is struct-define/struct-assert (ladder 5) work and is outside this category's edit shape",
+      "status": "parked",
       "text": "if ((bv) && (*(char *)(unit_obj + 0x23d) == 0)) {"
     },
     {
@@ -3384,7 +3524,8 @@
       "column": 36,
       "id": "raw_base_offset_dereferences:502:1",
       "line": 502,
-      "status": "pending",
+      "reason": "unit_data_t exists in src/types.h but carries zero cs()/co() asserts, so offset-to-struct precondition 2 (an assert covering the offset) is unmet; adding those asserts is struct-define/struct-assert (ladder 5) work and is outside this category's edit shape",
+      "status": "parked",
       "text": "bv = ((*(unsigned int *)(unit_obj + 0x1b8) &"
     },
     {
@@ -3392,7 +3533,8 @@
       "column": 29,
       "id": "raw_base_offset_dereferences:544:1",
       "line": 544,
-      "status": "pending",
+      "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "if (*(short *)(overlay_elem + 0x44) < 1) {"
     },
     {
@@ -3400,7 +3542,8 @@
       "column": 44,
       "id": "raw_base_offset_dereferences:549:1",
       "line": 549,
-      "status": "pending",
+      "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "(int)*(short *)(overlay_elem + 0x44)) /"
     },
     {
@@ -3408,7 +3551,8 @@
       "column": 37,
       "id": "raw_base_offset_dereferences:551:1",
       "line": 551,
-      "status": "pending",
+      "reason": "rewrite is codegen-neutral (COFF .text byte-identical, vc71_regression --threshold 0 clean, hazard scan clean) but check_category_purity.py offset-to-field rejects every available spelling: the field sits at +0x00 of a tag_block reached through a cast base ((tag_block *)(xhair_elem + 0x1a))->count / ((tag_block *)(anim_block + 0x34))->count, so the cast and the '+ literal' survive in the new text and the token hunk fragments into '* ( int' -> '( ( tag_block' plus an inserted '-> count'. Verified all three accepted shapes fail: in-place '->', in-place '(*p).', and typed-local decl+assign. A purity-clean rewrite needs the whci crosshair element / bitmap sequence element structs so the base pointer is already typed (xhair_elem->overlays.count) \u2014 that is struct-define (ladder 5) work, which has no items for this TU. Gate not bypassed; unit reverted",
+      "status": "parked",
       "text": "*(int *)(anim_block + 0x34));"
     },
     {
@@ -3416,7 +3560,8 @@
       "column": 31,
       "id": "raw_base_offset_dereferences:553:1",
       "line": 553,
-      "status": "pending",
+      "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "if (((*(unsigned char *)(overlay_elem + 0x48) & 1) =="
     },
     {
@@ -3424,7 +3569,8 @@
       "column": 41,
       "id": "raw_base_offset_dereferences:556:1",
       "line": 556,
-      "status": "pending",
+      "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "frame_index = *(int *)(overlay_elem + 0x24);"
     },
     {
@@ -3432,7 +3578,8 @@
       "column": 37,
       "id": "raw_base_offset_dereferences:594:1",
       "line": 594,
-      "status": "pending",
+      "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "frame_sel = *(short *)(overlay_elem + 0x46);"
     },
     {
@@ -3440,7 +3587,8 @@
       "column": 30,
       "id": "raw_base_offset_dereferences:603:1",
       "line": 603,
-      "status": "pending",
+      "reason": "whci crosshair-overlay element (0x6c bytes from tag_block_get_element) has no struct definition and no cs()/co() asserts covering this offset; modelling the element is struct-recovery/struct-assert (ladder 5) work, outside this category's edit shape",
+      "status": "parked",
       "text": "if ((*(unsigned char *)(overlay_elem + 0x48) & 0x10) =="
     },
     {
@@ -3448,7 +3596,8 @@
       "column": 41,
       "id": "raw_base_offset_dereferences:650:1",
       "line": 650,
-      "status": "pending",
+      "reason": "bitmap sprite element (0x20 bytes from tag_block_get_element on the sequence sprites block) has no struct definition and no cs()/co() asserts for the four float fields; modelling it is struct-define (ladder 5) work",
+      "status": "parked",
       "text": "rect2d[1] = *(float *)(seq_elem + 0xc);"
     },
     {
@@ -3456,7 +3605,8 @@
       "column": 41,
       "id": "raw_base_offset_dereferences:651:1",
       "line": 651,
-      "status": "pending",
+      "reason": "bitmap sprite element (0x20 bytes from tag_block_get_element on the sequence sprites block) has no struct definition and no cs()/co() asserts for the four float fields; modelling it is struct-define (ladder 5) work",
+      "status": "parked",
       "text": "rect2d[2] = *(float *)(seq_elem + 0x10);"
     },
     {
@@ -3464,7 +3614,8 @@
       "column": 41,
       "id": "raw_base_offset_dereferences:652:1",
       "line": 652,
-      "status": "pending",
+      "reason": "bitmap sprite element (0x20 bytes from tag_block_get_element on the sequence sprites block) has no struct definition and no cs()/co() asserts for the four float fields; modelling it is struct-define (ladder 5) work",
+      "status": "parked",
       "text": "rect2d[3] = *(float *)(seq_elem + 0x14);"
     },
     {
@@ -3472,7 +3623,8 @@
       "column": 40,
       "id": "raw_base_offset_dereferences:678:1",
       "line": 678,
-      "status": "pending",
+      "reason": "rewrite is codegen-neutral (COFF .text byte-identical, vc71_regression --threshold 0 clean, hazard scan clean) but check_category_purity.py offset-to-field rejects every available spelling: the field sits at +0x00 of a tag_block reached through a cast base ((tag_block *)(xhair_elem + 0x1a))->count / ((tag_block *)(anim_block + 0x34))->count, so the cast and the '+ literal' survive in the new text and the token hunk fragments into '* ( int' -> '( ( tag_block' plus an inserted '-> count'. Verified all three accepted shapes fail: in-place '->', in-place '(*p).', and typed-local decl+assign. A purity-clean rewrite needs the whci crosshair element / bitmap sequence element structs so the base pointer is already typed (xhair_elem->overlays.count) \u2014 that is struct-define (ladder 5) work, which has no items for this TU. Gate not bypassed; unit reverted",
+      "status": "parked",
       "text": "} while (overlay_i < *(int *)(xhair_elem + 0x1a));"
     }
   ],
