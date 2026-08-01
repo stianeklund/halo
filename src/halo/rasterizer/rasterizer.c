@@ -4083,6 +4083,44 @@ char FUN_001792d0(void)
   return *(char *)0x47e4c9;
 }
 
+/* 0x17ad40 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8::SetVertexData4f, byte-identical in shape to the already
+ * ported FUN_0015a4f0 in rasterizer_xbox_decals.c.
+ *
+ * Full body (16 instructions):
+ *   push ebp / mov ebp,esp
+ *   mov eax,[ebp+0x1c] ; mov ecx,[ebp+0x18] ; mov edx,[ebp+0x14]
+ *   push eax ; mov eax,[ebp+0x10] ; push ecx ; mov ecx,[ebp+0xc]
+ *   push edx ; push eax ; push ecx
+ *   call 0x1ed2c0                  ; D3DDevice_SetVertexData4f, __stdcall
+ *   xor eax,eax / pop ebp / ret 0x18
+ *
+ * ABI evidence:
+ *  - RET 0x18 = 24 bytes = six caller-pushed dwords ([ebp+0x8]..[ebp+0x1c]),
+ *    so this is __stdcall, not the cdecl void(void) kb.json previously
+ *    declared. Porting against the old decl would have left 24 bytes of args
+ *    uncleaned -> ESP drift (lift-learnings §30, the 0x158df0 class).
+ *  - [ebp+0x8] is never read: it is the discarded `this`/device argument of
+ *    the inline member instantiation. The parameter is kept because the stack
+ *    size depends on it. Ghidra mislabels the first *used* slot as +0x8.
+ *  - Push order (last PUSH is the first C argument): ecx=[ebp+0xc] -> reg,
+ *    eax=[ebp+0x10] -> a, edx=[ebp+0x14] -> b, ecx=[ebp+0x18] -> c,
+ *    eax=[ebp+0x1c] -> d.
+ *  - The four float arguments are forwarded as raw dwords via plain GPR
+ *    pushes (no FLD/FSTP anywhere), i.e. a pure bit passthrough, so typing
+ *    them `float` is safe and matches the callee's kb.json declaration.
+ *  - XOR EAX,EAX is a real `return 0` (S_OK), not a dead write: lifting this
+ *    as void would be the §16 void-EAX hazard (dropped implicit return).
+ */
+/* 0x17ad40 */
+int __stdcall FUN_0017ad40(void *device, uint32_t reg, float a, float b,
+                           float c, float d)
+{
+  (void)device;
+  D3DDevice_SetVertexData4f(reg, a, b, c, d);
+  return 0;
+}
+
 /* shader_transparent_chicago pixel-shader preprocessor (FUN_0017bca0):
  * build the 0xf0-byte pixel-shader description block for a chicago
  * transparent shader.  Resolves the shader's type-6 parameter block via
