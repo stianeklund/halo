@@ -104,6 +104,12 @@ manifest, `set-status ... applied` on a risky item is refused and `check` fails.
   recovery on an in-flight lift — finish `/lift` verification first.
 - **One commit per category** (Separation rule): a reviewer must be able to say
   "commit 3 is renames-only". Never combine ladder categories in one commit.
+  Before each category commit, `rtk python3
+  tools/recovery/check_category_purity.py <category> --staged` must pass — it
+  compares the staged diff's token streams against that category's allowed edit
+  shape and fails closed. Exit 0 (pure) or 2 (`expr-simplify`/`control-flow`,
+  not mechanically checkable — the codegen and behavioural gates own those) is a
+  pass; exit 1 means split the commit.
 - **Never touched here**: `@<reg>` annotations, `ported` flags, kb.json signatures,
   build config. A needed signature fix is *lift* work — stop and surface it.
 - **Regression protocol**: gate failure → revert that unit and `set-status ...
