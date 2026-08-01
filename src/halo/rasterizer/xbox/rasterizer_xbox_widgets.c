@@ -412,3 +412,89 @@ void FUN_0017b000(int16_t widget_type, uint16_t flags)
   *(unsigned int *)0x5a5ae4 = 0xc0d1400;
   rasterizer_set_pixel_shader((void *)0x5a5ac0);
 }
+
+/* 0x17b480 — FUN_0017b480
+ *
+ * Binds a bitmap to a texture stage for widget drawing.  If the bind fails,
+ * the stage's addressing and filtering states are forced to a fixed
+ * configuration before returning, so the caller cannot sample the failed
+ * texture with whatever sampler state was left over.
+ *
+ * A bitmap_index of -1 selects the "direct" bind path and takes the tag index
+ * from the object at global 0x476204 (a pointer; the index lives at +0x6c).
+ * Any other value goes through the tag-driven path with bitmap_type 1.
+ *
+ * Signature (from disassembly — the kb decl was `char FUN_0017b480(int, int,
+ * short)` and Ghidra dropped all three cdecl slots, rendering them as
+ * in_stack_XXXX):
+ *   [EBP+0x08] stage         -> first arg of both bind calls
+ *   [EBP+0x0c] bitmap_index  -> the -1 discriminator
+ *   [EBP+0x10] frame_index   -> last arg of both bind calls
+ * All three are read as full DWORDs (MOV EAX/ECX/EDX, dword ptr) at
+ * 0x17b4ac / 0x17b4b5 / 0x17b4b8 / 0x17b4cc, so the kb decl's `short` third
+ * parameter was not supported by the binary and has been widened to int.
+ * Plain RET, no immediate => __cdecl; only EBX is saved (0x17b4b2/0x17b534).
+ *
+ * Parameter names are taken from the blocking siblings' kb declarations
+ * (rasterizer_set_texture_direct @0x155cf0, rasterizer_set_texture @0x155e80),
+ * whose argument lists these two calls match slot for slot.  Both callees were
+ * declared `void(void)` in kb.json; the call sites push 3 (ADD ESP,0xc) and 5
+ * (ADD ESP,0x14) dwords respectively and consume AL, so both decls were
+ * corrected as part of this lift.
+ *
+ * Shape notes (all from disassembly, not the decompiler):
+ *   - The BL flag at 0x17b4e6 is BOTH the branch predicate (TEST BL,BL /
+ *     JNZ 0x17b532) and the return value (MOV AL,BL at 0x17b532).  There is a
+ *     single exit; do not split it.  Ghidra lost this because it modelled both
+ *     bind calls as returning void (extraout_AL is the real return).
+ *   - `MOV EAX,[EBP+0xc]` at 0x17b4ac (loaded for the CMP) is reused directly
+ *     as the bitmap_index argument at 0x17b4bc — it is not reloaded.  On the
+ *     direct path EAX holds two different values in four instructions
+ *     (frame_index at 0x17b4cc, then stage at 0x17b4d9); each PUSH was traced
+ *     back separately rather than assumed to be one variable.
+ *   - The assert tail at 0x17b4a4 is system_exit(-1) (CALL 0x8e2f0), not
+ *     halt_and_catch_fire; the merged ADD ESP,0x14 at 0x17b4a9 covers both the
+ *     4 display_assert args and the 1 system_exit arg.
+ *   - The five stage-state calls all use stage 0 (XOR ECX,ECX), not the
+ *     `stage` parameter.  States 0xa/0xb are D3DTSS_ADDRESSU/ADDRESSV and
+ *     0xd/0xe/0xf are D3DTSS_MAG/MIN/MIPFILTER; the values (4,4,2,2,2) are
+ *     reproduced verbatim.  No D3DTSS_* enum exists in the project headers
+ *     yet, and the sibling call sites (interface/progress_bar.c) also use the
+ *     raw numbers.
+ *
+ * Uncertain: the identity of the object at global 0x476204 and the meaning of
+ * its +0x6c field (used here as a bitmap tag index, unnamed in the binary).
+ */
+char FUN_0017b480(int stage, int bitmap_index, int frame_index)
+{
+  char ok; /* BL — bind result: branch predicate and return value */
+
+  if (*(void **)0x476ab0 == (void *)0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                   "widgets.c",
+                   0x11d, 1);
+    system_exit(-1);
+  }
+
+  /* Tested as `!= -1` (not `== -1`) so that the tag-driven bind is the
+   * fall-through block and the direct bind is the branch target, matching the
+   * original's `cmp eax,-1 / je LAB_0017b4cc` layout at 0x17b4af. */
+  if (bitmap_index != -1) {
+    ok = rasterizer_set_texture_non_blocking(stage, 0, 1, bitmap_index,
+                                             frame_index);
+  } else {
+    ok = rasterizer_set_texture_direct_non_blocking(
+      stage, *(const int *)(*(const char **)0x476204 + 0x6c), frame_index);
+  }
+
+  if (ok == 0) {
+    D3DDevice_SetTextureStageState(0, 0xa, 4); /* D3DTSS_ADDRESSU */
+    D3DDevice_SetTextureStageState(0, 0xb, 4); /* D3DTSS_ADDRESSV */
+    D3DDevice_SetTextureStageState(0, 0xd, 2); /* D3DTSS_MAGFILTER */
+    D3DDevice_SetTextureStageState(0, 0xe, 2); /* D3DTSS_MINFILTER */
+    D3DDevice_SetTextureStageState(0, 0xf, 2); /* D3DTSS_MIPFILTER */
+  }
+
+  return ok;
+}
