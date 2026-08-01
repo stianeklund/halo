@@ -10223,6 +10223,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x182610": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Semantics inferred as swizzle/mip bit-allocation: builds three disjoint bitmasks in globals 0x4d0498/0x4d0494/0x4d0490 from three sign-extended short dimensions compared unsigned against a shifting probe; no string or PDB evidence for a real name, so FUN_ naming retained."
+      ]
+    },
     "0x182690": {
       "kind": "function",
       "status": "ported"

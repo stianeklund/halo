@@ -6624,6 +6624,14 @@
       }
     },
     {
+      "name": "halo/rasterizer_xbox_shader_transparent_generic_preprocessor",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/shader_transparent_generic_preprocessor.c.obj",
+      "base_path": "delinked/rasterizer.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/shader_transparent_generic_preprocessor.c"
+      }
+    },
+    {
       "name": "halo/rasterizer_common",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/common/rasterizer_common.c.obj",
       "base_path": "delinked/rasterizer_common.obj",

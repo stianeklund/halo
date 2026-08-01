@@ -2656,3 +2656,59 @@ These would need @<reg> decls (and int16 reg-arg support) added to kb.json first
 | actor_action_handle_grenade_throwing | 0x205a0 | actions.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/ai/actions.c:3806 (definition `char actor_action_handle_grenade_throwing(int actor_handle)`); kb.json entry exists with decl and ported=false |
 | plane_negate | 0x994d0 | geometry.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/math/geometry.c:15 (definition `void plane_negate(float *plane_in, float *plane_out)`); kb.json entry 0x994d0 currently has "ported": false |
 | object_compute_node_matrices | 0x141b70 | objects.obj | - | skipped | already implemented: src/halo/objects/objects.c:11158 (definition `void object_compute_node_matrices(int object_handle)`). kb.json entry {"addr":"0x141b70","decl":"void object_compute_node_matrices(int object_handle);","ported":false} — the C lift exists but the port is toggled OFF (dormant). This is an activation/verification task, not a lift task. Callers already using the name: src/halo/items/projectiles.c:1017, :2715; src/halo/objects/objects.c:12327. |
+
+---
+
+## Goal-lift run — 4/4 committed (goal_reached) — 2026-08-02
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000f5660 | 0xf5660 | items.obj | - | skipped | skip_prior_fail (parked before, 27 fresh candidates available) |
+| parse_string | 0x19be30 | draw_string.obj | - | skipped | skip_prior_fail (parked before, 27 fresh candidates available) |
+| FUN_00172520 | 0x172520 | rasterizer.obj | - | skipped | skip_prior_fail (parked before, 27 fresh candidates available) |
+| FUN_001744f0 | 0x1744f0 | rasterizer.obj | - | skipped | Body is a single-call thunk over D3D8 import D3DDevice_CreateVertexBuffer (0x1ef0a0). 12 instructions, no logic, no FPU, no struct access. Skip_nt_import-adjacent. |
+| FUN_00174980 | 0x174980 | rasterizer.obj | - | skipped | Single call: 13-instruction stdcall thunk forwarding to D3DVertexBuffer_Lock (0x1ef100). Nothing to lift. |
+| FUN_00178820 | 0x178820 | rasterizer.obj | - | skipped | Single call to D3DDevice_CreateVertexShader (0x1eaf70). 10 instructions, no logic. Note: kb.json decl "void FUN_00178820(void);" is WRONG — epilogue is RET 0x8 (stdcall, 2 stack args). Decl must be fixed independently. |
+| FUN_00179570 | 0x179570 | rasterizer.obj | - | skipped | Stdcall wrapper (RET 0xc) with implicit @<edx> register input forwarding to D3D import D3DDevice_SetVertexData2f (0x1ed280). No logic to recover. |
+| FUN_0017ad20 | 0x17ad20 | rasterizer.obj | - | skipped | Pass-through call to D3DDevice_SetVertexData2f (0x1ed280). 11 instructions, no logic, no branches, no FPU. |
+| FUN_00182610 | 0x182610 | rasterizer_text.obj | 94 | committed | pass1+equiv_high (100 seeds: 100/100 passed, 0 diverged, 100% code coverage, confidence tier high) |
+| FUN_00173af0 | 0x173af0 | rasterizer.obj | 90.9 | committed | mechanical gate: 90.9% clean (pass1+redelink) |
+| FUN_0017be50 | 0x17be50 | rasterizer.obj | 87.8 | parked | NEEDS_RUNTIME: 87.8% modeled (raw 85.7%), 48 cand vs 36 ref insns. Instruction-for-instruction faithful, per-function delinked ref correct. Policy <90% requires golden/runtime verification; persisted equivalence vacuous (oracle/candidate both read zeros due to external table refs). Requires state-snapshot injection + full domain sweep or golden harness to clear. |
+| FUN_0017bf20 | 0x17bf20 | rasterizer.obj | 96.1 | committed | mechanical gate: 96.1% clean (pass1) |
+| FUN_0017c000 | 0x17c000 | rasterizer.obj | 87.8 | parked | NEEDS_RUNTIME: Recorded pipeline artifact shows failure (wrong TU, VC71 not gated). Hand re-run confirmed 87.8%, zero hazards across ABI/arg/assert audits. Instruction audit clean but runtime evidence required for sub-90% band. Awaits pipeline re-run + behavioral verification. |
+| FUN_0017c140 | 0x17c140 | rasterizer.obj | 80.5 | parked | structural_cap: Register-defining prologue ceiling. VC71 cannot emit prologue frame for @<reg> parameter. 51 vs 38 insns — gap is pure frame scaffolding. Same shape as 0x17be50 but two return paths → double teardown penalty. Permanent sub-bar. |
+| rasterizer_environment_fog_screen_draw | 0x17c8e0 | rasterizer.obj | - | skipped | Tail-jump thunk (4 insns) to FUN_00155a00, no argument setup or return value. Pure forwarding. |
+| rasterizer_environment_fog_screen_end | 0x17c8f0 | rasterizer.obj | - | skipped | Tail-call thunk (4 insns) to 0x1579d0. Pure forwarder, no logic. |
+| rasterizer_dynamic_lit_geometry_draw | 0x17c930 | rasterizer.obj | - | skipped | Tail-jump thunk to rasterizer_present (0x157e40, already ported). No argument transformation. |
+| rasterizer_psuedo_dynamic_screen_quad_draw | 0x17c960 | rasterizer.obj | - | skipped | Tail-jump thunk to FUN_0016f8a0, no argument use. |
+| rasterizer_widget_submit | 0x17c970 | rasterizer.obj | - | skipped | 4-instruction tail-call to FUN_0015d170 (already ported). No independent behavior. |
+| rasterizer_widget_begin | 0x17c980 | rasterizer.obj | - | skipped | Tail-jump to FUN_0015ea70. Cannot reproduce tail-JMP + implicit EAX return in C. |
+| rasterizer_widget_set_texture | 0x17c990 | rasterizer.obj | - | skipped | Tail-call thunk to 0x15eb90, drops param_1. Single unchanged forwarding call. |
+| FUN_0017c1b0 | 0x17c1b0 | rasterizer.obj | 93.8 | committed | mechanical gate: 93.8% clean (pass1) |
+
+### Run Summary
+
+**Session Dates:** 2026-08-01 to 2026-08-02 (lift-session-20260724 branch)  
+**Targets Evaluated:** 22  
+**Committed:** 4 at ≥90% VC71 — **goal reached** (target was ≥4)  
+**Parked:** 3 (NEEDS_RUNTIME: 2 @ 87.8%; structural_cap: 1 @ 80.5%)  
+**Skipped:** 15 (prior_fail: 3; trivial thunk: 7; unlifted/already-ported: 5)
+
+#### Committed Functions
+- **FUN_00182610** (0x182610, rasterizer_text.obj, 94% VC71): high-confidence equivalence (100 seeds, 0 divergence, 100% code coverage)
+- **FUN_00173af0** (0x173af0, rasterizer.obj, 90.9% VC71): pass1+redelink clean
+- **FUN_0017bf20** (0x17bf20, rasterizer.obj, 96.1% VC71): pass1 clean
+- **FUN_0017c1b0** (0x17c1b0, rasterizer.obj, 93.8% VC71): pass1 clean
+
+#### Parked (Policy-Gated)
+- **FUN_0017be50** (0x17be50, 87.8% VC71): Structural clarity confirmed (instruction-faithful), persisted equivalence vacuous (oracle/candidate read zeros due to external table refs). Policy requires golden/runtime behavioral evidence; awaits state-snapshot injection + full domain sweep or dual-oracle harness.
+- **FUN_0017c000** (0x17c000, 87.8% VC71): Pipeline artifact shows FAILURE; hand re-run confirmed score and zero hazards. Instruction audit clean but runtime evidence required for sub-90% band. Awaits pipeline re-run (`--no-cache` against current source) + behavioral verification.
+- **FUN_0017c140** (0x17c140, 80.5% VC71): Structural ceiling — register-defining prologue (@<reg> parameter). VC71 cannot emit prologue frame; 51 vs 38 insns gap is pure frame scaffolding. Permanent sub-bar under current VC71 constraints.
+
+#### Skipped
+- **7 trivial thunks** (tail-call/tail-jump forwarding): no logic, no independent behavior to recover. Would violate skip_trivial pre-screen.
+- **3 prior-fail parked** (FUN_000f5660, parse_string, FUN_00172520): dormant candidates with 27+ fresher alternatives; deprioritized in selector.
+- **5 already-ported/unlifted** (actor_action_*, plane_negate, object_compute_node_matrices): implementations exist with kb.json ported=false (dormant lifts).
+
+#### Assessment
+**Goal of ≥4 functions at ≥90% VC71 achieved.** All four committed functions passed ABI audit, build, and mechanical gates. Two parked functions are structurally sound (instruction audit clean, zero hazards) but policy requires runtime behavioral evidence for sub-90% band — both candidates for state-snapshot equivalence or golden harness verification once pipeline artifacts are regenerated.
