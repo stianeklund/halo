@@ -3771,6 +3771,30 @@ void FUN_001792C0(char mode)
   *(char *)0x47e4c9 = mode;
 }
 
+/* 0x1792d0 — byte getter for the global at 0x47e4c9, completing the accessor
+ * trio with the two setters above. The entire function is 6 bytes / two
+ * instructions, with no frame at all (no PUSH EBP, no _chkstk):
+ *   001792d0: mov al, byte ptr [0047e4c9h]   ; absolute BYTE load, DIR32 reloc
+ *   001792d5: ret                            ; no immediate -> cdecl, 0 args
+ * kb.json previously declared this void(void), which contradicts the binary:
+ * AL is written and returned, so a void lift would silently drop the value at
+ * every call site (lift-learnings §16, void-EAX / implicit return).
+ *
+ * Return type is byte-wide by evidence: only AL is written -- there is no
+ * MOVZX/MOVSX and no dword read, so the upper 24 bits of EAX are whatever the
+ * caller left there and the caller must be inspecting AL alone. Widening the
+ * return to int would make the compiler emit a full-EAX write and diverge.
+ * `char` is chosen over bool/unsigned char to match the two setters above,
+ * which type this exact global as `char`; no caller-side TEST AL,AL evidence
+ * was available to prefer a boolean reading. Global 0x47e4c9 stays unnamed --
+ * it is an unaligned byte inside a larger globals block with no string or PDB
+ * evidence for a name.
+ */
+char FUN_001792d0(void)
+{
+  return *(char *)0x47e4c9;
+}
+
 void rasterizer_frame_begin(float *elapsed)
 {
   char val;
