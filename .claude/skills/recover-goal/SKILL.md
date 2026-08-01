@@ -6,121 +6,92 @@ description: Goal-mode readability recovery — loop the recovery frontier, run 
 
 # /recover-goal — Goal-Mode Source Recovery
 
-`/recover-source` recovers **one** TU/object. This skill is the driver that runs
-it **object after object** unattended: pick the next target off the recovery
-frontier, run the full ladder on it, land one commit per category, ratchet the
-floors, record the outcome, repeat. It adds no new gates and weakens none — all
-verification lives in `source-recovery`.
+Thin dispatcher for the `recover-goal` **Workflow**
+(`.claude/workflows/recover-goal.js`). All select/baseline/ladder/commit/park/
+finish logic lives in that script, not in this file.
 
-Usage: `/recover-goal [N] [--min-funcs 10] [--min-score X] [--allow-risky]`
+`/recover-source` recovers **one** TU. This runs it object after object
+unattended: take the next target off the recovery frontier, work the ladder one
+category per **sequential** Opus agent (one purity-gated commit each), ratchet the
+VC71 floors, record the outcome in `recovery/goal_ledger.json`, repeat. It adds no
+gates and weakens none.
 
-- `N` — objects to **finish** before stopping (default 3).
-- `--min-funcs 10` — skip trivially small objects (default 10).
-- `--min-score X` — refuse objects below this frontier score (default 0).
-- `--allow-risky` — passed through to `plan` so ladder categories 7–8 are
-  workable. Without it the manifest refuses those items; that is the safe mode.
+It is a workflow rather than prose because a prose command can only *suggest* tool
+calls, and two things kept getting skipped: **one agent per category** (each
+category's commit is the next one's base, and a combined diff fails
+`check_category_purity.py`) and **the ledger** (skipping `start`/`finish`/`park`
+makes the loop re-take an object it already parked, forever). In the workflow both
+are real code.
 
-State lives in **`recovery/goal_ledger.json`**, owned by
-`tools/recovery/recovery_goal.py` (`next` / `start` / `finish` / `park` /
-`status`). The ledger is the only thing that keeps the loop from re-taking an
-object it already parked — never hand-edit it, and never skip `start`.
+Doctrine stays in **`source-recovery`** (`.claude/skills/source-recovery/SKILL.md`)
+— the ladder order, the gate table, the measurement traps, the session rules. The
+workflow points every category agent at it; do not restate or reinterpret it here.
 
-## Per-iteration preconditions (hard stop, not a warning)
+Argument: $ARGUMENTS
 
-1. `rtk git status --short` — the tree must be clean except known-noisy paths
-   (`README.md`, `recovery/*.json`, `tools/equivalence/leaf_cache.json`).
-   **Anything under `src/` or in `kb.json` → stop and surface it**; a recovery
-   commit must not pick up someone else's in-flight lift.
-2. On the branch you intend to land from, up to date with `main`.
-3. `rtk python3 tools/recovery/recovery_goal.py status` — no stale
-   `in_progress` entry. One means a previous run died mid-object: resolve it
-   (`finish` with its commits, or `park --reason`) before taking anything new.
+Parse from $ARGUMENTS (all optional):
+- `N` (bare positional) or `--goal N` — objects to **finish** before stopping
+  (default: 1). Keep it small: each object is several Opus agents.
+- `--min-funcs N` — skip trivially small objects (default: 10).
+- `--min-score X` — refuse objects scored below X on the recovery frontier.
+- `--object <name>.obj` — explicit first target, bypassing selection for that one
+  iteration only; later iterations fall back to the frontier queue.
+- `--allow-risky` — pass `--allow-risky` to `plan`, opening ladder categories 7–8
+  (`expr-simplify`, `control-flow`). Without it the manifest refuses those items;
+  that is the safe default.
+- `--dry-run` — baseline each object and report the per-category debt and what
+  *would* run. Writes no ledger entry and no commit; the only tree effect is the
+  `recovery/<stem>.c.json` manifest(s) that `plan`/`capture` produce.
 
-## The loop
+## Steps
 
-For each iteration until a stop condition fires:
+1. Print a one-line banner: `Recover-goal: finish {N} object(s) via the source-recovery ladder`.
+2. Call the Workflow tool — do not reimplement any of its steps inline:
+   ```
+   Workflow({ name: "recover-goal", args: { goal: N, minFuncs: M, minScore: X, object: "<name>.obj", allowRisky: <bool>, dryRun: <bool> } })
+   ```
+   Omit every key that was not passed on the command line (don't send `null`,
+   `0`, or an empty string).
+3. The workflow runs in the background. Report the returned task info and mention
+   `/workflows` for live progress.
+4. When it completes, relay its final summary **verbatim** — objects finished vs
+   parked, per-object category outcomes, commit shas, floors raised, stop reason,
+   and the ledger table. Do not re-derive or second-guess it. If `park_reason` is
+   set, surface it prominently: a park is a finding, not noise.
 
-```bash
-G=tools/recovery/recovery_goal.py
-rtk python3 $G next --min-funcs 10          # exit 3 = queue exhausted → stop
-rtk python3 $G start <object.obj>
-```
-
-Then run the **full `source-recovery` workflow** on that object exactly as its
-`SKILL.md` prescribes — do not restate or reinterpret it here:
-
-- `plan` (add `--allow-risky` only when the user passed it) → `capture` against
-  the object's built COFF → `ladder` for the ordering view.
-- Work the ladder **in order**, **one category per sequential subagent** (never
-  parallel on one TU — each category's commit is the next one's base). Brief each
-  agent with: manifest path, category id, its ladder skill, and an explicit
-  same-worktree instruction.
-- Per category: gate with `check` at that category's gate level, `set-status`
-  each item `applied`/`parked`, then before committing:
-  `rtk python3 tools/recovery/check_category_purity.py <category> --staged`
-  (a category commit must contain only that category's kind of change).
-- One commit per category, message prefix
-  `recover(<object-stem>): <category> <short what>`.
-
-After the object's last category:
+## Usage
 
 ```bash
-rtk python3 tools/verify/vc71_regression.py update --source <changed .c files>
-rtk python3 $G finish <object.obj> --commit <sha> [--commit <sha> ...] \
-    --category <ladder-id> [--category <ladder-id> ...]
+/recover-goal                                   # finish 1 object
+/recover-goal 3                                 # finish 3 objects
+/recover-goal --goal 3 --dry-run                # show the debt and plan, change nothing
+/recover-goal --object hud_weapon.obj           # start on a specific object
+/recover-goal 2 --min-funcs 15 --min-score 80   # only substantial, high-scoring objects
+/recover-goal 1 --allow-risky                   # opt in to expr-simplify / control-flow
 ```
 
-`update` locks in any improvement so the next session cannot silently give it
-back. `finish` refuses an object that was never `start`ed, and refuses a "done"
-with no commits unless you pass `--no-commits` deliberately.
+## Stop conditions (why it may end early)
 
-## Park on failure — fail closed
-
-Never weaken a gate, never `--no-verify`, never touch `@<reg>` annotations,
-`ported` flags, kb.json signatures, or build config to make an object pass. If
-recovery needs one of those, that is *lift* work: park and surface it.
-
-- **Category-level failure** (gate red, purity check red, `check` reports a
-  codegen delta): revert that category's unit, `set-status ... parked --reason
-  <why>` per `source-recovery`, and continue with the remaining independent
-  categories. The object can still `finish` with the categories that landed.
-- **Object-level blocker** — `capture` fails, no COFF baseline for the object,
-  the build is broken before you touched anything, the manifest errors, or
-  **more than 2 consecutive category failures**: `rtk git checkout -- <paths>`
-  / reset the uncommitted work (already-committed categories stay — they passed
-  their gates), then
-  `rtk python3 $G park <object.obj> --reason "<specific blocker>"` and move to
-  the next object.
-- A regression noticed *after* a commit is not a park: stop the loop and run
-  `cleanup-regression-triage` (per-category commits make it a one-commit
-  bisect).
-
-Reasons are read by humans and by the stop conditions below — write
-`"capture: no COFF for hud_weapon.obj"`, not `"failed"`.
-
-## Stop conditions and report
-
-- **N objects finished.**
-- **Queue exhausted** — `next` exits 3. Report the counts it printed (eligible /
-  already taken / below `--min-score`); an exhausted queue with everything
-  parked is a finding, not success.
-- **Two consecutive objects parked for the same infra reason** — that is
-  systemic (missing delinked refs, broken build, purity tool absent). Stop and
-  report instead of burning the queue; the ledger would otherwise fill with
-  parks that hide the one real cause.
-- **Precondition failure** — dirty `src/`/`kb.json`, or a stale `in_progress`.
-
-Report, in this order: the `recovery_goal.py status` table verbatim; per finished
-object its category commits (sha + subject) and `source_recovery.py report`
-highlights (applied / parked, gate mode); which files `vc71_regression.py update`
-moved and by how much; every park with its reason; the stop condition that ended
-the run; and anything surfaced as *lift* work (signature/ABI/`ported`) that was
-deliberately **not** done here.
+- **Goal reached** — N objects finished.
+- **Queue exhausted** — `recovery_goal.py next` exits 3. An exhausted queue with
+  everything parked is a finding, not success.
+- **`systemic_<class>`** — two consecutive objects parked for the same *class* of
+  reason (both build failures, both capture failures). Stopping beats filling the
+  ledger with parks that hide the one real cause.
+- **Object aborted** — 2 consecutive category failures on one object: uncommitted
+  edits are discarded, already-gated category commits are kept, the object is
+  parked, and the loop moves on.
+- **`guard_failed`** — the tree is dirty under `src/`, `kb.json`, `tools/`,
+  `.claude/`, or `recovery/`. A recovery commit must not pick up someone else's
+  in-flight lift. (`README.md` and `artifacts/` are tolerated as known noise.)
+- **`infra_blocked`** — an agent returned null (API outage) after bounded retries.
+  The result carries `resumable: true`: resume the run rather than restarting it,
+  once the outage has cleared.
 
 ## See also
 
-`source-recovery` is the single source of truth per object (ladder, gate table,
-measurement traps, session rules). `cleanup-regression-triage` and
-`cleanup-report` cover post-hoc triage and the human-facing write-up.
-`goal-lift` / `auto-session` are the same goal-mode shape for *lifting* — mirror
-their fail-closed posture, not their target selection.
+`source-recovery` is the single source of truth per object.
+`cleanup-regression-triage` handles a regression noticed *after* a commit landed
+(the per-category commits make it a one-commit bisect); `cleanup-report` is the
+human-facing write-up. `goal-lift` / `auto-session` are the same goal-mode shape
+for *lifting* — mirror their fail-closed posture, not their target selection.
