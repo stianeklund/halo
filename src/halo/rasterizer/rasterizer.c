@@ -3733,6 +3733,22 @@ tail:
   }
 }
 
+/* 0x1792a0 — byte-mode setter for the adjacent global pair at
+ * 0x47e4c8/0x47e4c9. 9 instructions, no calls, no FPU. The disassembly loads
+ * the single stack arg once as a BYTE (MOV AL, byte ptr [EBP+8]), derives a
+ * zero-test flag with SETZ CL stored to 0x47e4c8, then stores the raw byte to
+ * 0x47e4c9. RET has no immediate, so this is cdecl with one stack byte arg --
+ * the kb.json decl of void(void) was wrong (Ghidra reported the arg as
+ * in_stack_00000004). Both globals are unnamed (no string/PDB evidence); the
+ * two stores are kept as separate byte writes, not merged into one 16-bit
+ * store, to match the original.
+ */
+void FUN_001792a0(char mode)
+{
+  *(char *)0x47e4c8 = (char)(mode == 0);
+  *(char *)0x47e4c9 = mode;
+}
+
 void rasterizer_frame_begin(float *elapsed)
 {
   char val;

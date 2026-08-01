@@ -11848,6 +11848,10 @@
       "score": 85.0,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
+    "FUN_001792a0": {
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_0017c7e0": {
       "score": 83.5,
       "source": "src/halo/rasterizer/rasterizer.c"
