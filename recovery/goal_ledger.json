@@ -1,4 +1,17 @@
 {
-  "objects": {},
+  "objects": {
+    "hud_weapon.obj": {
+      "categories_done": [
+        "symbol-names"
+      ],
+      "commits": [
+        "34391e8a"
+      ],
+      "finished": "2026-08-01",
+      "reason": null,
+      "started": "2026-08-01",
+      "status": "done"
+    }
+  },
   "schema": 1
 }
