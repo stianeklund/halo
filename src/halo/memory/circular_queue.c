@@ -1039,10 +1039,10 @@ int inflateSync(int *z)
     qval = *(unsigned char *)q;
     if (qval == ((unsigned char *)0x28d850)[n]) {
       n = n + 1;
-    } else if (qval == '\0') {
-      n = 4 - n;
-    } else {
+    } else if (qval != 0) {
       n = 0;
+    } else {
+      n = 4 - n;
     }
     q = q + 1;
     avail_in--;
@@ -1829,7 +1829,7 @@ void FUN_001165b0(int *desc, int state)
 void FUN_001167f0(int param_1, int param_2, int tree)
 {
   short *freq_ptr;
-  unsigned short first_len;
+  int first_len;
   int max_run;
   int min_run;
   int run_count;
@@ -1997,7 +1997,7 @@ void FUN_001168e0(int state, int param_1, int param_2)
  * param_3=blcodes */
 void FUN_00116b00(int state, int param_1, int param_2, int param_3)
 {
-  unsigned short bl_len;
+  unsigned int bl_len;
   int i;
   int bi_valid; /* slot also reused as the pending_buf index at state+0x14 */
 
@@ -2533,9 +2533,9 @@ int FUN_00117600(int state)
                    (unsigned int)zlib_bl_order[max_blindex] * 4) != 0)
       break;
     max_blindex = max_blindex - 1;
-  } while (max_blindex > 2);
+  } while (max_blindex >= 3);
 
-  opt_len = *(int *)(state + 0x16a0) + max_blindex * 3 + 0x11;
+  opt_len = *(int *)(state + 0x16a0) + (max_blindex + 1) * 3 + 14;
   *(int *)(state + 0x16a0) = opt_len;
   if (z_verbose > 0) {
     crt_fprintf(&z_stderr, "\ndyn trees: dyn %ld, stat %ld", opt_len,
@@ -3254,8 +3254,8 @@ void FUN_001187f0(void *bs_definition, int data_ptr, int *codes, int *out_size,
   int local_size;
   int local_step;
   unsigned int v4;
-  unsigned int v8_lo;
-  unsigned int v8_hi;
+  unsigned long long *p8;
+  unsigned long long v8;
   char *new_var;
 
   if (def[3] != 0x62797377) {
@@ -3322,18 +3322,13 @@ void FUN_001187f0(void *bs_definition, int data_ptr, int *codes, int *out_size,
 
       case -8:
         if (data_ptr != 0) {
-          v8_lo = *(unsigned int *)(offset + data_ptr);
-          v8_hi = *(unsigned int *)(offset + data_ptr + 4);
-          *(unsigned int *)(offset + data_ptr) =
-            (((v8_hi >> 16) | (((v8_hi & 0xff0000) >> 16) | (v8_hi & 0xff00))
-                                << 16) >>
-             8) |
-            (v8_hi << 24);
-          *(unsigned int *)(offset + data_ptr + 4) =
-            (((v8_lo << 16) |
-              (((v8_lo & 0xff00) << 16) | (v8_lo & 0xff0000)) >> 16)
-             << 8) |
-            (v8_lo >> 24);
+          p8 = (unsigned long long *)(offset + data_ptr);
+          v8 = *p8;
+          *p8 =
+            ((*p8 >> 56) | ((*p8 >> 40) & 0xff00ULL) |
+             ((*p8 >> 24) & 0xff0000ULL) | ((*p8 >> 8) & 0xff000000ULL) |
+             ((v8 << 8) & 0xff00000000ULL) | ((*p8 << 24) & 0xff0000000000ULL) |
+             ((*p8 << 40) & 0xff000000000000ULL) | (*p8 << 56));
         }
         step = step + 1;
         offset = offset + 8;

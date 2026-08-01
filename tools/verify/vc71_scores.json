@@ -8849,7 +8849,7 @@
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00115a90": {
-      "score": 90.7,
+      "score": 94.2,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00115b70": {
@@ -8893,7 +8893,7 @@
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001167f0": {
-      "score": 90.4,
+      "score": 92.4,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001168e0": {
@@ -8901,7 +8901,7 @@
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00116b00": {
-      "score": 89.3,
+      "score": 89.5,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00116d10": {
@@ -8941,7 +8941,7 @@
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00117600": {
-      "score": 82.2,
+      "score": 84.4,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001176a0": {
@@ -9025,7 +9025,7 @@
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001187f0": {
-      "score": 82.7,
+      "score": 90.7,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00118ba0": {
