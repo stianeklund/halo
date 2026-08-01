@@ -113,6 +113,16 @@ const TARGETS_SCHEMA = {
           delinked:      { type: 'boolean' },  // target.score_details.delinked_ref > 0
           source_exists: { type: 'boolean' },  // target.score_details.source_exists present
           lane:          { type: 'string' },   // item.lane
+          // Prior-attempt state. These MUST be declared here even though the
+          // select prompt already asks for them: a field absent from the schema
+          // is dropped from the structured output, so the code-side pre-screen
+          // reads undefined and its skip silently never fires. `prior_fail` sat
+          // in exactly that state -- prompted for, used at the pre-screen, and
+          // dead for as long as the schema omitted it.
+          prior_fail:         { type: 'boolean' },  // item.prior_fail
+          parked_attempts:    { type: 'number'  },  // park.py ledger: attempts so far
+          parked_best_score:  { type: 'number'  },  // park.py ledger: best VC71 seen
+          parked_status:      { type: 'string'  },  // park.py ledger: parked|promoted
         },
         required: ['addr', 'name', 'obj'],
       },
@@ -1000,11 +1010,15 @@ source_path, score_details{...}}. For each element parse:
   addr=target.addr, name=target.name, obj=target.object_name, score=total_score,
   has_reg_args=target.has_reg_args (boolean, verbatim),
   prior_fail=prior_fail (boolean, verbatim — top-level, NOT under target),
+  parked_attempts=parked_attempts (number, verbatim — OMIT the field entirely if
+    absent from the JSON; do NOT substitute 0, which reads as "never attempted"),
+  parked_best_score=parked_best_score (number, verbatim — omit if absent),
+  parked_status=parked_status (string, verbatim — omit if absent),
   delinked=(target.score_details.delinked_ref is present and > 0),
   source_exists=(target.score_details.source_exists is present),
   lane=lane.
 Do NOT invent these booleans — copy them from the JSON. (The code-side pre-screen
-depends on has_reg_args/lane/prior_fail being exact.)
+depends on has_reg_args/lane/prior_fail/parked_* being exact.)
 
 Filter: keep lane=="auto-lift" (also allow "cache-context");
 skip hs_runtime.obj (C99/VC71 violations unfixed) and xbox_crt.obj (NT-import/CRT wrappers).
@@ -1092,9 +1106,13 @@ const codeSkips = []
 // drift -- but only while enough fresh candidates remain, because a park is
 // often recoverable and we must not starve the queue.
 const PRIOR_FAIL_KEEP_FLOOR = 10
-// Attempts (from the park.py ledger) after which a still-sub-90 target stops
-// being served to a cold lift. 2 = "tried twice, same wall both times".
+// Attempts (from the park.py ledger) after which a walled target stops being
+// served to a cold lift. 2 = "tried twice, same wall both times".
 const PARKED_ATTEMPT_CAP = 2
+// ...and only when its best score is below this. Calibrated on outcomes, not
+// intuition: FUN_00173b40 landed at 90.3% on attempt 7 with a parked best of
+// 88.0, so a 90 floor would have suppressed a real success. See the pre-screen.
+const PARKED_WALL_PCT = 85
 const freshCount = targets.filter(t => t.prior_fail !== true).length
 const dropPriorFails = freshCount >= PRIOR_FAIL_KEEP_FLOOR
 targets = targets.filter(t => {
@@ -1102,19 +1120,21 @@ targets = targets.filter(t => {
   const pinnedAddr = ADDRS && ADDRS.has(a)
   if (t.prior_fail === true && dropPriorFails && !pinnedAddr) { codeSkips.push({ ...t, status: 'skipped', reason: `skip_prior_fail (parked before, ${freshCount} fresh candidates available)` }); return false }
   // Repeat-resistant target: several attempts already made and the best of
-  // them is still well below the 90% bar. Re-lifting from scratch reliably
-  // reproduces the same score -- FUN_00173b40 was lifted SIX times across
-  // three sessions (81.8 -> 84.3 -> 84.5 -> 88.0 -> 77.7 -> 84.7, worse after
-  // attempt 4) for ~$94 and never landed; parse_string has 7 attempts at best
-  // 50.7%. The right lane for these is the IMPROVE pass, which warm-starts
-  // from the parked best patch and varies the model, not another cold lift.
+  // them is still FAR from the 90% bar -- a real wall, not a near miss.
+  // parse_string has 7 attempts at best 50.7%; FUN_000f5660 has 4 at 74.4%.
+  // The right lane for those is the IMPROVE pass, which warm-starts from the
+  // parked best patch and varies the model, not another cold lift.
   //
-  // Deliberately does NOT skip best_score >= 90: those are near-bar and cheap
-  // to finish. Pinned addrs always bypass -- an explicit --addrs is an
+  // The floor is 85, NOT 90, on direct evidence: FUN_00173b40 sat at best 88.0%
+  // after SIX attempts (81.8 -> 84.3 -> 84.5 -> 88.0 -> 77.7 -> 84.7) and looked
+  // exactly like a hopeless target -- then attempt 7 landed it at 90.3%. A
+  // <90 floor would have blocked that. Above ~85 the next attempt can still
+  // cross the bar, so only a target that has repeatedly failed to get CLOSE is
+  // worth dropping. Pinned addrs always bypass -- an explicit --addrs is an
   // operator override.
   if (!pinnedAddr && !IMPROVE && t.parked_status === 'parked' &&
       (t.parked_attempts || 0) >= PARKED_ATTEMPT_CAP &&
-      Number.isFinite(t.parked_best_score) && t.parked_best_score < 90) {
+      Number.isFinite(t.parked_best_score) && t.parked_best_score < PARKED_WALL_PCT) {
     codeSkips.push({ ...t, status: 'skipped', reason: `skip_parked_repeat (${t.parked_attempts} attempts, best ${t.parked_best_score}% < 90 — use the improve pass)` })
     return false
   }
