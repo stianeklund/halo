@@ -656,7 +656,7 @@ int rasterizer_lights_submit(void *parameters)
     count = count + 1;
     *(int *)0x5a37e0 = count;
     *(struct rasterizer_light_element *)(0x5a37e4 + light_index * 0x38) =
-        *(struct rasterizer_light_element *)parameters;
+      *(struct rasterizer_light_element *)parameters;
     if (*(short *)0x3256ba == 2) {
       *(int *)0x5a5548 = *(int *)0x5a5548 + 1;
     }
@@ -1604,6 +1604,95 @@ void rasterizer_swizzle_interleave_bits(short param_1, short param_2,
   param_7[2] = uVar7;
   *param_7 = local_8;
   param_7[1] = local_c;
+}
+
+/* rasterizer_swizzle_bitmap_mipmap_count (0x183120): number of mipmap levels
+ * that will actually be swizzled for this bitmap.
+ *
+ * Returns 0 unless the bitmap is flagged swizzled (0x1) and not flagged 0x10.
+ * Otherwise the level count is MIN(bitmap->mipmap_count,
+ * FUN_00108db0(MAX(width, MAX(height, depth)))), where FUN_00108db0 maps a
+ * dimension to a level index. For the compressed case (flag 0x2) width and
+ * height are divided by 4 (the DXT block size) but depth is NOT -- that
+ * asymmetry is real in both copies of the block in the original.
+ *
+ * Field widths are all int16 (+0x4 width, +0x6 height, +0x8 depth,
+ * +0x14 mipmap_count, +0xe flags/ushort).
+ *
+ * NOTE: the MAX chain is evaluated twice per branch (once for the compare,
+ * once for the returned value) -- that is the original macro expansion; do
+ * not hoist it into a temporary. */
+short FUN_00183120(void *param_1)
+{
+  unsigned short flags;
+  short result;
+
+  result = 0;
+
+  if (!bitmap_verify(param_1, 0)) {
+    display_assert("bitmap_verify(bitmap, FALSE)",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x1cb,
+                   1);
+    system_exit(-1);
+  }
+
+  flags = *(unsigned short *)((char *)param_1 + 0xe);
+  if ((flags & 1) != 0 && (flags & 0x10) == 0) {
+    if ((flags & 2) != 0) {
+      /* compressed: width and height in 4x4 blocks, depth unscaled */
+      result = *(short *)((char *)param_1 + 0x14);
+      if (FUN_00108db0(
+            (unsigned int)(*(short *)((char *)param_1 + 4) / 4 >
+                               (*(short *)((char *)param_1 + 6) / 4 >
+                                    *(short *)((char *)param_1 + 8) ?
+                                  *(short *)((char *)param_1 + 6) / 4 :
+                                  *(short *)((char *)param_1 + 8)) ?
+                             *(short *)((char *)param_1 + 4) / 4 :
+                             (*(short *)((char *)param_1 + 6) / 4 >
+                                  *(short *)((char *)param_1 + 8) ?
+                                *(short *)((char *)param_1 + 6) / 4 :
+                                *(short *)((char *)param_1 + 8)))) < result) {
+        return FUN_00108db0(
+          (unsigned int)(*(short *)((char *)param_1 + 4) / 4 >
+                             (*(short *)((char *)param_1 + 6) / 4 >
+                                  *(short *)((char *)param_1 + 8) ?
+                                *(short *)((char *)param_1 + 6) / 4 :
+                                *(short *)((char *)param_1 + 8)) ?
+                           *(short *)((char *)param_1 + 4) / 4 :
+                           (*(short *)((char *)param_1 + 6) / 4 >
+                                *(short *)((char *)param_1 + 8) ?
+                              *(short *)((char *)param_1 + 6) / 4 :
+                              *(short *)((char *)param_1 + 8))));
+      }
+    } else {
+      result = *(short *)((char *)param_1 + 0x14);
+      if (FUN_00108db0((unsigned int)(*(short *)((char *)param_1 + 4) >
+                                          (*(short *)((char *)param_1 + 6) >
+                                               *(short *)((char *)param_1 + 8) ?
+                                             *(short *)((char *)param_1 + 6) :
+                                             *(short *)((char *)param_1 + 8)) ?
+                                        *(short *)((char *)param_1 + 4) :
+                                        (*(short *)((char *)param_1 + 6) >
+                                             *(short *)((char *)param_1 + 8) ?
+                                           *(short *)((char *)param_1 + 6) :
+                                           *(short *)((char *)param_1 + 8)))) <
+          result) {
+        return FUN_00108db0(
+          (unsigned int)(*(short *)((char *)param_1 + 4) >
+                             (*(short *)((char *)param_1 + 6) >
+                                  *(short *)((char *)param_1 + 8) ?
+                                *(short *)((char *)param_1 + 6) :
+                                *(short *)((char *)param_1 + 8)) ?
+                           *(short *)((char *)param_1 + 4) :
+                           (*(short *)((char *)param_1 + 6) >
+                                *(short *)((char *)param_1 + 8) ?
+                              *(short *)((char *)param_1 + 6) :
+                              *(short *)((char *)param_1 + 8))));
+      }
+    }
+  }
+
+  return result;
 }
 
 /* rasterizer_swizzle_bitmap_mipmaps: compute total swizzle buffer size

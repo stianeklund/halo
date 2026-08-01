@@ -28436,7 +28436,8 @@
     },
     {
      "addr": "0x183120",
-     "decl": "int16_t FUN_00183120(void *bitmap);"
+     "decl": "int16_t FUN_00183120(void *bitmap);",
+     "ported": true
     },
     {
      "addr": "0x183290",
