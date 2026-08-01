@@ -544,3 +544,43 @@ void FUN_0017b540(float value)
 
   D3DDevice_SetVertexData2f(0xa, value, 0.0f);
 }
+
+/* 0x17b580 — FUN_0017b580
+ *
+ * Sets the D3D Z-enable render state from a single caller-supplied byte,
+ * guarded by the same `global_d3d_device` assert every other entry point in
+ * this TU carries.
+ *
+ * Signature (from disassembly — kb.json declared `void FUN_0017b580(void)`
+ * and Ghidra rendered the argument as `in_stack_00000004`):
+ *   [EBP+0x08] enable -> only argument of D3DDevice_SetRenderState_ZEnable.
+ * `MOVZX EAX,byte ptr [EBP+0x8]` at 0x17b5a2 loads exactly one byte and
+ * zero-extends it, so the parameter is a 1-byte type (`bool`), not an `int`:
+ * an `int` parameter would compile to a plain dword `MOV` with no widening.
+ * Plain `RET` with no immediate and no callee-saved registers => __cdecl with
+ * one stack argument; the callee is __stdcall so there is no `ADD ESP` on our
+ * side after the `PUSH EAX`.
+ *
+ * Shape notes (all from disassembly, not the decompiler):
+ *   - The device test is written `== 0` so the assert block is the
+ *     fall-through and the D3D call is the branch target, matching the
+ *     original's `TEST EAX,EAX / JNZ` at 0x17b588.
+ *   - The assert tail is `PUSH -1; CALL 0x8e2f0` = system_exit(-1), NOT
+ *     halt_and_catch_fire, even though the delinked reference names the reloc
+ *     target FUN_001029a0 (same reloc-naming artifact as 0x17b540).
+ *   - display_assert argument order is recovered from the reverse push order
+ *     (first PUSH is the last C argument): PUSH 1 (halt), PUSH 0x14e (line),
+ *     PUSH __FILE__, PUSH "global_d3d_device".
+ */
+void FUN_0017b580(bool enable)
+{
+  if (*(void **)0x476ab0 == (void *)0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                   "widgets.c",
+                   0x14e, 1);
+    system_exit(-1);
+  }
+
+  D3DDevice_SetRenderState_ZEnable((uint32_t)enable);
+}
