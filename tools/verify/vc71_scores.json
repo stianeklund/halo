@@ -7712,6 +7712,10 @@
       "score": 96.0,
       "source": "src/halo/items/items.c"
     },
+    "FUN_000f5fb0": {
+      "score": 83.6,
+      "source": "src/halo/items/items.c"
+    },
     "FUN_000f63f0": {
       "score": 63.9,
       "source": "src/halo/items/items.c"
@@ -7765,7 +7769,7 @@
       "source": "src/halo/items/items.c"
     },
     "FUN_000f6b80": {
-      "score": 55.9,
+      "score": 66.1,
       "source": "src/halo/items/items.c"
     },
     "FUN_000f6c40": {
@@ -11885,7 +11889,7 @@
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_shadows.c"
     },
     "FUN_00173b40": {
-      "score": 90.3,
+      "score": 92.7,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_001741d0": {
@@ -16609,6 +16613,10 @@
       "source": "src/halo/rasterizer/rasterizer_sprites.c"
     },
     "rasterizer_window_get_fog": {
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_window_set_fog": {
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer.c"
     },

@@ -12878,7 +12878,7 @@
     },
     {
      "addr": "0xf5800",
-     "decl": "void FUN_000f5800(void);"
+     "decl": "unsigned short FUN_000f5800(short key@<si>);"
     },
     {
      "addr": "0xf5900",
@@ -12886,7 +12886,7 @@
     },
     {
      "addr": "0xf5f10",
-     "decl": "void object_get_type(void);"
+     "decl": "int FUN_000f5f10(void);"
     },
     {
      "addr": "0xf5f30",
@@ -12903,7 +12903,8 @@
     },
     {
      "addr": "0xf5fb0",
-     "decl": "char FUN_000f5fb0(void);"
+     "decl": "char FUN_000f5fb0(void);",
+     "ported": true
     },
     {
      "addr": "0xf63f0",
@@ -19486,7 +19487,7 @@
     },
     {
      "addr": "0x17a8a0",
-     "decl": "void FUN_0017a8a0(void);"
+     "decl": "bool FUN_0017a8a0(float *point, float radius, float *out_extent, float *out_screen @<ebx>);"
     },
     {
      "addr": "0x17ad20",
@@ -19501,10 +19502,6 @@
     {
      "addr": "0x17ad90",
      "decl": "void FUN_0017ad90(void);"
-    },
-    {
-     "addr": "0x17b7d0",
-     "decl": "void FUN_0017b7d0(void);"
     },
     {
      "addr": "0x17ba10",
@@ -19541,7 +19538,8 @@
     },
     {
      "addr": "0x17c790",
-     "decl": "void rasterizer_window_set_fog(void);"
+     "decl": "void rasterizer_window_set_fog(void);",
+     "ported": true
     },
     {
      "addr": "0x17c7d0",
@@ -22027,7 +22025,7 @@
     },
     {
      "addr": "0x1c2bf0",
-     "decl": "void saved_game_file_name_unique(void);"
+     "decl": "char saved_game_file_name_unique(const wchar_t *name);"
     },
     {
      "addr": "0x1c2c50",
@@ -28323,7 +28321,7 @@
     {
      "addr": "0x181670",
      "decl": "void FUN_00181670(int *params);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x181900",
@@ -30966,7 +30964,7 @@
     },
     {
      "addr": "0x19d6e0",
-     "decl": "void align_to_character(void);"
+     "decl": "void align_to_character(wchar_t *dest, const wchar_t *src);"
     },
     {
      "addr": "0x19d760",
@@ -39397,6 +39395,11 @@
     {
      "addr": "0x17b5c0",
      "decl": "void FUN_0017b5c0(float *point, float radius, float *scale, float *texcoord_repeat, float theta, unsigned int color);",
+     "ported": true
+    },
+    {
+     "addr": "0x17b7d0",
+     "decl": "void FUN_0017b7d0(float *point, float radius, float *scale, float theta, unsigned int color);",
      "ported": true
     }
    ]

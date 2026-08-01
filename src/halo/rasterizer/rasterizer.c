@@ -1198,8 +1198,8 @@ char FUN_00172a30(int param_1, const float *shadow_matrix,
  * index is a DWORD index (byte offset = 4*N). Byte-offset field map recovered
  * from the ESI-relative accesses in the disassembly:
  *
- *   +0x00 void*    meter_parameters        (assert: mutually exclusive w/ map[1])
- *   +0x04 float*   screen offset pair {x, y} (NULL => both offsets 0)
+ *   +0x00 void*    meter_parameters        (assert: mutually exclusive w/
+ * map[1]) +0x04 float*   screen offset pair {x, y} (NULL => both offsets 0)
  *   +0x08 char     texture-stage 0 colour-op select
  *   +0x09 char     texture-stage 1 colour-op select
  *   +0x0a char     texture-stage 2 colour-op select
@@ -1211,8 +1211,8 @@ char FUN_00172a30(int param_1, const float *shadow_matrix,
  *   +0x20 float*   2-float pair -> vs_b[12..13] (NULL => 0)
  *   +0x24 float*   2-float pair -> vs_b[14..15] (NULL => 0)
  *   +0x28..0x3c    6 floats     -> vs_b[16..21]
- *   +0x40,+0x44    2 floats     -> vs_a[16..17] (overwritten in the map[0] block)
- *   +0x48..0x54    6 floats     -> vs_b[0..3] (+0x48,0x4c,0x50,0x54)
+ *   +0x40,+0x44    2 floats     -> vs_a[16..17] (overwritten in the map[0]
+ * block) +0x48..0x54    6 floats     -> vs_b[0..3] (+0x48,0x4c,0x50,0x54)
  *   +0x58,+0x5c,+0x60 float*    rgb triples (NULL => *(float**)0x2ee708)
  *   +0x64          float[4]     packed 4x by FUN_000d1c90
  *   +0x78,+0x7c,+0x80 float*    alpha scalars (NULL => 1.0f)
@@ -1408,11 +1408,10 @@ void FUN_00173b40(float *parameters)
   if (*(void **)(p + 0xc) != 0) {
     csmemset((void *)0x5a5ac0, 0, 0xf0);
     /* SETNZ/SHL 5 pair: map[2] and map[1] presence packed above map[0]. */
-    *(uint32_t *)0x5a5b98 =
-        (uint32_t)((((*(void **)(p + 0x14) != 0) << 5) |
-                    (*(void **)(p + 0x10) != 0))
-                       << 5 |
-                   (*(void **)(p + 0xc) != 0));
+    *(uint32_t *)0x5a5b98 = (uint32_t)((((*(void **)(p + 0x14) != 0) << 5) |
+                                        (*(void **)(p + 0x10) != 0))
+                                         << 5 |
+                                       (*(void **)(p + 0xc) != 0));
 
     /* MOV EDX,[0x2ee708] is hoisted once and reused for all three NULL
      * fallbacks. */
@@ -4132,7 +4131,8 @@ int __stdcall FUN_0017ad40(void *device, uint32_t reg, float a, float b,
  *
  * Returns 1 on success, 0 when the shader declares no maps.
  *
- * Original TU: c:\halo\SOURCE\rasterizer\xbox\shader_transparent_chicago_preprocessor.c
+ * Original TU:
+ * c:\halo\SOURCE\rasterizer\xbox\shader_transparent_chicago_preprocessor.c
  * (__FILE__ string 0x2ae9d0, confirmed by the two assert xrefs below).
  *
  * The three int32 lookup tables are addressed absolutely, matching the
@@ -4182,26 +4182,27 @@ char FUN_0017bca0(void *shader, void *pixel_shader)
   map_count = *maps;
   if (map_count > 0) {
     *(unsigned int *)(desc + 0xd8) =
-        ((((unsigned int)(map_count > 3) << 5 | (unsigned int)(map_count > 2))
-              << 5 |
-          (unsigned int)(map_count > 1))
-         << 5) |
-        (unsigned int)((*(short *)(shader_data + 0x2a) != 0) * 2 + 1);
+      ((((unsigned int)(map_count > 3) << 5 | (unsigned int)(map_count > 2))
+          << 5 |
+        (unsigned int)(map_count > 1))
+       << 5) |
+      (unsigned int)((*(short *)(shader_data + 0x2a) != 0) * 2 + 1);
     counter = 0;
     if (*maps > 0) {
       idx = 0;
       do {
         map = (unsigned char *)tag_block_get_element(maps, idx, 0xdc);
         if (idx != *maps - 1) {
-          stage = *(short *)(map + 0x2e) * 4; /* byte offset, shared by both tables */
+          stage =
+            *(short *)(map + 0x2e) * 4; /* byte offset, shared by both tables */
           *(int *)(desc + idx * 4 + 4) =
-              *(int *)((char *)0x2ae974 + stage) * (idx + 1) +
-              *(int *)((char *)0x2ae940 + stage);
+            *(int *)((char *)0x2ae974 + stage) * (idx + 1) +
+            *(int *)((char *)0x2ae940 + stage);
           alpha_stage = *(short *)(map + 0x2c);
           flags = map[0];
           *(int *)(desc + idx * 4 + 0x8c) =
-              ((int *)0x2ae974)[alpha_stage] * (idx + 1) +
-              ((int *)0x2ae8d8)[((flags >> 1) & 1) * 0xd + alpha_stage];
+            ((int *)0x2ae974)[alpha_stage] * (idx + 1) +
+            ((int *)0x2ae8d8)[((flags >> 1) & 1) * 0xd + alpha_stage];
         } else {
           *(unsigned int *)desc = 0x18200000;
           *(unsigned int *)(desc + 0x88) = 0x8200000;
@@ -4221,6 +4222,25 @@ char FUN_0017bca0(void *shader, void *pixel_shader)
   *(int *)(desc + 0x20) = 0xc;
   *(int *)(desc + 0x24) = 0x1c00;
   return result;
+}
+
+/* global_rasterizer_model_ambient_reflection_tint (DAT_0047e4d0): 0x10-byte
+ * game-state allocation holding the model ambient reflection tint. Name is
+ * taken verbatim from the assert message at 0x17c7aa (#cond string). */
+#define global_rasterizer_model_ambient_reflection_tint (*(void **)0x47e4d0)
+
+/* rasterizer_window_set_fog (0x17c790): allocate the rasterizer model ambient
+ * reflection tint block from the game-state heap, assert it succeeded, then
+ * tail-call FUN_00157010.
+ * Original TU: c:\halo\SOURCE\rasterizer\rasterizer.c (assert line 0x121)
+ */
+void rasterizer_window_set_fog(void)
+{
+  global_rasterizer_model_ambient_reflection_tint =
+    game_state_malloc("rasterizer model ambient reflection tint", 0, 0x10);
+  assert_halt_at("c:\\halo\\SOURCE\\rasterizer\\rasterizer.c", 0x121,
+                 global_rasterizer_model_ambient_reflection_tint);
+  FUN_00157010();
 }
 
 void rasterizer_frame_begin(float *elapsed)

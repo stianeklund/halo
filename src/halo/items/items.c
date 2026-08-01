@@ -508,6 +508,200 @@ void FUN_000f5f30(void)
   ui_play_audio_feedback_sound(1);
 }
 
+
+/* Virtual keyboard action-key handler (0xf5fb0).
+ * TU: c:\halo\SOURCE\interface\virtual_keyboard.c (__FILE__ assert @0x28a854,
+ * assert text @0x28aa58, L".fortune" @0x28aa44). kb.json files 0xf5fb0 under
+ * items.obj, but the three inline asserts name virtual_keyboard.c, so this is
+ * virtual-keyboard code living in the items.c TU alongside its already-lifted
+ * siblings FUN_000f5660/56b0/5700/5750/57a0/5f30.
+ *
+ * Sixth move handler of the on-screen keyboard (dispatched as action 4 from
+ * virtual_keyboard_process_input, 0xf63f0): resolves the character currently
+ * under the cursor from the keymap at 0x28a790 ([row*0xb + col], signed byte)
+ * and performs that key's edit action.
+ *
+ *   0x24  ACCEPT   - if the working buffer (0x46cf18) already equals the
+ *                    target text, or the typed name is unique, latch "done"
+ *                    (0x46cf06 = 1); an empty buffer raises UI error 0x1d and
+ *                    a duplicate name raises 0x1b, both of which also commit
+ *                    via FUN_000f57a0. Always plays selector 3, clears the
+ *                    active flag (0x46cef0) and flushes the event queue.
+ *   0x25/26/27      - toggle shift / caps / symbol modifier bytes
+ *                    (0x46cef1/2/3); selector 1.
+ *   0x28  CLEAR/BS  - if the buffer is still pristine (0x46cf07 == 1) wipe it
+ *                    whole and rewind the caret, otherwise delete one wide
+ *                    char via FUN_000f5f30.
+ *   0x29/0x2a       - caret left / right by one UTF-16 cell; clears the
+ *                    pristine flag and plays selector 1.
+ *   0x2b  SPACE     - like the default key path but inserts L' '; the room
+ *                    check is delegated to FUN_000f5f10 (returns the free
+ *                    cell count in EAX; < 2 rejects with selector 4).
+ *   default         - insert the keymap character: shift the tail right one
+ *                    cell, resolve the character through FUN_000f5800
+ *                    (key code passed in SI, wide char returned in AX), then
+ *                    advance the caret. Typing ".fortune" is an easter egg:
+ *                    it picks a fortune index 0xb + (system_milliseconds()
+ *                    % 10) into 0x46cf04 and either clears the buffer or
+ *                    replaces it with the working string at 0x46cf18.
+ *
+ * Globals: 0x46cef0 active, 0x46cef1/2/3 modifier toggles, 0x46cef8 row,
+ * 0x46cefa col, 0x46cefc buffer_size (bytes, unsigned 16-bit via MOVZX),
+ * 0x46cf04 fortune index, 0x46cf06 done, 0x46cf07 pristine, 0x46cf08 buffer
+ * base, 0x46cf0c caret, 0x46cf18 working/compare string.
+ *
+ * The buffer holds UTF-16, so the caret steps by 2 bytes and the free-room
+ * test is byte arithmetic: buffer_size - (ustrlen(base) * 2 + 2) >= 2.
+ * Disasm: MOV AL,1 at 0xf63b6 executes on every exit path -> always returns 1
+ * (the following JZ only skips the 0x46cef1 clear). The tail re-reads the
+ * keymap and leaves the shift toggle set only for key 0x25. */
+char FUN_000f5fb0(void)
+{
+  int key;
+  int size;
+  int len;
+  char *cursor;
+  char *base;
+  unsigned int fortune;
+
+  key = ((char *)0x28a790)[(int)*(short *)0x46cefa + *(short *)0x46cef8 * 0xb];
+  switch (key) {
+  case 0x24: /* accept / commit */
+    if (ustrcmp((const wchar_t *)0x46cf18, *(const wchar_t **)0x46cf08) == 0) {
+      *(char *)0x46cf06 = 1;
+    } else if (**(short **)0x46cf08 == 0) {
+      ui_widget_display_error(0x1d, -1, 1, 0);
+      FUN_000f57a0();
+    } else if (saved_game_file_name_unique(*(const wchar_t **)0x46cf08) != 0) {
+      *(char *)0x46cf06 = 1;
+    } else {
+      ui_widget_display_error(0x1b, -1, 1, 0);
+      FUN_000f57a0();
+    }
+    ui_play_audio_feedback_sound(3);
+    *(char *)0x46cef0 = 0;
+    event_manager_flush();
+    break;
+
+  case 0x25: /* shift toggle */
+    ui_play_audio_feedback_sound(1);
+    *(char *)0x46cef1 = (char)(*(char *)0x46cef1 == 0);
+    break;
+
+  case 0x26: /* caps toggle */
+    ui_play_audio_feedback_sound(1);
+    *(char *)0x46cef2 = (char)(*(char *)0x46cef2 == 0);
+    break;
+
+  case 0x27: /* symbols toggle */
+    ui_play_audio_feedback_sound(1);
+    *(char *)0x46cef3 = (char)(*(char *)0x46cef3 == 0);
+    break;
+
+  case 0x28: /* clear-all (pristine) or backspace */
+    if (*(unsigned char *)0x46cf07 == 1) {
+      if (*(unsigned short *)0x46cefc == 0) {
+        display_assert("virtual_keyboard_globals.buffer_size>0",
+                       "c:\\halo\\SOURCE\\interface\\virtual_keyboard.c", 0x355,
+                       true);
+        system_exit(-1);
+      }
+      csmemset(*(char **)0x46cf08, 0, (unsigned int)*(unsigned short *)0x46cefc);
+      *(char **)0x46cf0c = *(char **)0x46cf08;
+      *(unsigned char *)0x46cf07 = 0;
+    } else {
+      FUN_000f5f30();
+    }
+    break;
+
+  case 0x29: /* caret left */
+    if (*(char **)0x46cf08 < *(char **)0x46cf0c)
+      *(char **)0x46cf0c -= 2;
+    goto caret_moved;
+
+  case 0x2a: /* caret right */
+    if (**(short **)0x46cf0c != 0)
+      *(char **)0x46cf0c += 2;
+  caret_moved:
+    *(unsigned char *)0x46cf07 = 0;
+    ui_play_audio_feedback_sound(1);
+    break;
+
+  case 0x2b: /* space */
+    if (*(unsigned char *)0x46cf07 == 1) {
+      if (*(unsigned short *)0x46cefc == 0) {
+        display_assert("virtual_keyboard_globals.buffer_size>0",
+                       "c:\\halo\\SOURCE\\interface\\virtual_keyboard.c", 0x378,
+                       true);
+        system_exit(-1);
+      }
+      csmemset(*(char **)0x46cf08, 0, (unsigned int)*(unsigned short *)0x46cefc);
+      *(char **)0x46cf0c = *(char **)0x46cf08;
+      *(unsigned char *)0x46cf07 = 0;
+    }
+    if (FUN_000f5f10() < 2) {
+      ui_play_audio_feedback_sound(4);
+    } else {
+      cursor = *(char **)0x46cf0c;
+      base = *(char **)0x46cf08;
+      csmemmove(cursor + 2, cursor,
+                (unsigned int)(((int)*(unsigned short *)0x46cefc - (int)cursor) +
+                               (int)base - 2));
+      **(short **)0x46cf0c = 0x20;
+      *(char **)0x46cf0c += 2;
+      ui_play_audio_feedback_sound(2);
+    }
+    break;
+
+  default: /* ordinary character insert */
+    if (*(unsigned char *)0x46cf07 == 1) {
+      if (*(unsigned short *)0x46cefc == 0) {
+        display_assert("virtual_keyboard_globals.buffer_size>0",
+                       "c:\\halo\\SOURCE\\interface\\virtual_keyboard.c", 0x391,
+                       true);
+        system_exit(-1);
+      }
+      csmemset(*(char **)0x46cf08, 0, (unsigned int)*(unsigned short *)0x46cefc);
+      *(char **)0x46cf0c = *(char **)0x46cf08;
+      *(unsigned char *)0x46cf07 = 0;
+    }
+    size = (int)*(unsigned short *)0x46cefc;
+    len = ustrlen(*(const unsigned short **)0x46cf08);
+    if (size - (len * 2 + 2) >= 2) {
+      cursor = *(char **)0x46cf0c;
+      base = *(char **)0x46cf08;
+      csmemmove(cursor + 2, cursor, (unsigned int)((size - (int)cursor) +
+                                                   (int)base - 2));
+      **(unsigned short **)0x46cf0c = FUN_000f5800((short)((
+        char *)0x28a790)[(int)*(short *)0x46cefa + *(short *)0x46cef8 * 0xb]);
+      *(char **)0x46cf0c += 2;
+      if (ustrcmp(*(const wchar_t **)0x46cf08, L".fortune") == 0) {
+        fortune = system_milliseconds() % 10;
+        if (fortune > 9)
+          fortune = 9;
+        *(short *)0x46cf04 = (short)(fortune + 0xb);
+        if (*(short *)0x46cf18 == 0) {
+          csmemset(*(char **)0x46cf08, 0,
+                   (unsigned int)*(unsigned short *)0x46cefc);
+          *(char **)0x46cf0c = *(char **)0x46cf08;
+        } else {
+          align_to_character(*(wchar_t **)0x46cf08, (const wchar_t *)0x46cf18);
+          *(char **)0x46cf0c = *(char **)0x46cf08 +
+                               ustrlen(*(const unsigned short **)0x46cf08) * 2;
+        }
+      }
+      ui_play_audio_feedback_sound(2);
+    } else {
+      ui_play_audio_feedback_sound(4);
+    }
+    break;
+  }
+
+  if (((char *)0x28a790)[(int)*(short *)0x46cefa + *(short *)0x46cef8 * 0xb] !=
+      0x25)
+    *(char *)0x46cef1 = 0;
+  return 1;
+}
 /* Virtual on-screen keyboard input pump (virtual_keyboard.obj).
  * TU: c:\halo\SOURCE\interface\virtual_keyboard.c (__FILE__ assert
  * @0x28a790..).
