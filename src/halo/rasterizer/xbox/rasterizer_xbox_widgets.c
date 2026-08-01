@@ -498,3 +498,49 @@ char FUN_0017b480(int stage, int bitmap_index, int frame_index)
 
   return ok;
 }
+
+/* 0x17b540 — FUN_0017b540
+ *
+ * Pushes a single scalar into Xbox vertex data register 10 as a 2-component
+ * float, with the second component forced to zero.  Guarded by the same
+ * `global_d3d_device` assert every other entry point in this TU carries.
+ *
+ * Signature (from disassembly — kb.json declared `void FUN_0017b540(void)`
+ * and Ghidra rendered the argument as `in_stack_00000004`):
+ *   [EBP+0x08] value -> second argument of D3DDevice_SetVertexData2f
+ * `MOV EAX,dword ptr [EBP+0x8]` at 0x17b56c is forwarded unconverted by the
+ * `PUSH EAX` at 0x17b571 — no FILD/FLD, no conversion.  A raw dword hand-off
+ * into a float parameter slot is exactly what a `float` parameter compiles
+ * to, so the parameter is typed `float` (typing it `int` would make the
+ * compiler emit an integer->float conversion and corrupt the bit pattern).
+ * Plain RET, no immediate, no callee-saved registers => __cdecl.
+ *
+ * Shape notes (all from disassembly, not the decompiler):
+ *   - The assert tail at 0x17b562 is `PUSH -1; CALL 0x8e2f0` = system_exit(-1),
+ *     NOT halt_and_catch_fire.  (The delinked reference names the reloc target
+ *     FUN_001029a0; the pristine XBE at 0x17b564 disassembles to CALL 0x8e2f0,
+ *     and the XBE wins.)  The merged `ADD ESP,0x14` at 0x17b569 covers the 4
+ *     display_assert arguments plus the 1 system_exit argument.
+ *   - The device test is written `== 0` so the assert block is the
+ *     fall-through and the D3D call is the branch target, matching the
+ *     original's `TEST EAX,EAX / JNZ 0x17b56c` at 0x17b548.
+ *   - The two float arguments are pushed as raw dwords (`PUSH EAX`, `PUSH 0`);
+ *     there is no PUSH/FSTP pair, so a literal `0.0f` reproduces the second
+ *     argument exactly.
+ *
+ * Uncertain: the semantic meaning of vertex register 10.  It is passed as the
+ * literal 0xa here and no D3DVSDE_* enum exists in the project headers yet, so
+ * the raw number is reproduced verbatim rather than named.
+ */
+void FUN_0017b540(float value)
+{
+  if (*(void **)0x476ab0 == (void *)0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
+                   "widgets.c",
+                   0x13e, 1);
+    system_exit(-1);
+  }
+
+  D3DDevice_SetVertexData2f(0xa, value, 0.0f);
+}

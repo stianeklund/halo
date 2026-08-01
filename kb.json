@@ -19501,7 +19501,7 @@
     },
     {
      "addr": "0x17b540",
-     "decl": "void FUN_0017b540(void);"
+     "decl": "void FUN_0017b540(float value);"
     },
     {
      "addr": "0x17b580",
@@ -39390,6 +39390,11 @@
     {
      "addr": "0x17b480",
      "decl": "char FUN_0017b480(int stage, int bitmap_index, int frame_index);",
+     "ported": true
+    },
+    {
+     "addr": "0x17b540",
+     "decl": "void FUN_0017b540(float value);",
      "ported": true
     }
    ]
