@@ -19496,14 +19496,6 @@
      "decl": "void FUN_0017ad90(void);"
     },
     {
-     "addr": "0x17b000",
-     "decl": "void FUN_0017b000(int16_t widget_type, uint16_t flags);"
-    },
-    {
-     "addr": "0x17b540",
-     "decl": "void FUN_0017b540(float value);"
-    },
-    {
      "addr": "0x17b580",
      "decl": "void FUN_0017b580(void);"
     },
@@ -20184,7 +20176,7 @@
     },
     {
      "addr": "0x155da0",
-      "decl": "char rasterizer_set_texture_direct_non_blocking(int stage, int bitmap_tag_index, int frame_index);"
+     "decl": "char rasterizer_set_texture_direct_non_blocking(int stage, int bitmap_tag_index, int frame_index);"
     },
     {
      "addr": "0x155e80",
@@ -20196,7 +20188,7 @@
     },
     {
      "addr": "0x1560a0",
-      "decl": "char rasterizer_set_texture_non_blocking(int stage, int a2, int bitmap_type, int bitmap_index, int frame_index);"
+     "decl": "char rasterizer_set_texture_non_blocking(int stage, int a2, int bitmap_type, int bitmap_index, int frame_index);"
     },
     {
      "addr": "0x156250",

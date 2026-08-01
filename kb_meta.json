@@ -9999,6 +9999,10 @@
         "The global byte at 0x47e4c9 has no string or PDB evidence for a semantic name; all that is known is that FUN_001792a0 writes it together with a zero-test flag at 0x47e4c8, that FUN_001792C0 writes it alone, and that the sole observed caller (rasterizer frame setup in rasterizer_xbox_decals.c) passes 0."
       ]
     },
+    "0x17adc0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x17c7e0": {
       "kind": "function",
       "status": "ported"
@@ -10079,6 +10083,16 @@
     "0x1812c0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x181670": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Field +0x1e serves double duty: it is the light index (asserted 0..0x37f) on the light path and the hi word of the packed structure lens flare marker index on the scenery path."
+      ],
+      "uncertain": [
+        "The residual VC71 gap is MSVC hoisting the three position-minus-camera x87 subtractions above the short-circuit equality test and popping them with FSTP on both exits; no source shape reproduced that scheduling, so our lift pairs each FSUB with its FMUL instead."
+      ]
     },
     "0x1824e0": {
       "kind": "function",

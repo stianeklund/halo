@@ -74,7 +74,7 @@ profile.obj,true,0x0008F870-0x000924A0,50
 projectiles.obj,true,0x000F7CB0-0x000FAF00,28
 progress_bar.obj,true,0x000E19C0-0x000E35E0,31
 random_math.obj,true,0x0010A930-0x0010CB20,38
-rasterizer.obj,true,0x0016EEF0-0x0017CC40,92
+rasterizer.obj,true,0x0016EEF0-0x0017CC40,91
 rasterizer_xbox_vertex_shaders_initialize.obj,true,0x00178850-0x00178CB0,2
 rasterizer_xbox_vertex_shaders_runtime.obj,true,0x00178B40-0x00178D40,1
 rasterizer_common.obj,true,0x00154FC0-0x00155310,5
@@ -190,4 +190,4 @@ rasterizer_xbox_profile.obj,true,0x0016F910-0x0016FC40,2
 wind.obj,true,0x0018FF00-0x001901E0,2
 action_vehicle.obj,true,0x0001AEB0-0x0001BAA0,4
 glow.obj,true,0x001345B0-0x001347B0,1
-rasterizer_xbox_widgets.obj,true,0x0017ADC0-0x0017AFC0,1
+rasterizer_xbox_widgets.obj,true,0x0017ADC0-0x0017B200,3
