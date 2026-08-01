@@ -191,22 +191,31 @@ _README_STAT_MARKERS = (
 _README_BAR_RE = re.compile(r"^[+-][^█░]*[█░]+[^█░]*$")
 
 
-def _readme_stats_only_dirt(main_wt: str) -> bool:
-    """True when the ONLY tracked dirt in main is a stats-only README regen.
+def _readme_stats_only_dirt(main_wt: str, sole: bool = True) -> bool:
+    """True when README's dirt in main is a stats-only regen.
 
-    Fails CLOSED: any other dirty path, any non-stats line in the README diff,
-    or any git error returns False so the caller parks.
+    With sole=True (default) README must additionally be the ONLY dirty tracked
+    path -- the contract _settle_readme_regen relies on, since it DISCARDS the
+    file and must not discard anything sitting beside it.
+
+    With sole=False the caller has already established that every other dirty
+    path is absorbable generated output (see _absorbable_paths), so only the
+    README content check applies.
+
+    Fails CLOSED: any unexpected dirty path, any non-stats line in the README
+    diff, or any git error returns False so the caller parks.
     """
     st = git("status", "--porcelain", "--untracked-files=no", cwd=main_wt)
     if st.returncode != 0:
         return False
     lines = [ln for ln in st.stdout.splitlines() if ln.strip()]
-    if len(lines) != 1:
+    if sole and len(lines) != 1:
         return False
     # NB: parse by token, not fixed columns -- the porcelain status code is
     # " M" with a LEADING space, which a .strip() on the line silently eats.
-    code, _, path = lines[0].strip().partition(" ")
-    if path.strip() != "README.md" or "M" not in code:
+    entries = [ln.strip().partition(" ") for ln in lines]
+    readme = [(c, p.strip()) for c, _, p in entries if p.strip() == "README.md"]
+    if not readme or "M" not in readme[0][0]:
         return False
     d = git("diff", "--unified=0", "--", "README.md", cwd=main_wt)
     if d.returncode != 0 or not d.stdout.strip():
@@ -223,25 +232,82 @@ def _readme_stats_only_dirt(main_wt: str) -> bool:
     return True
 
 
-def _absorb_readme_stats_refresh(main_wt: str) -> bool:
-    """Commit a README-only, stats-only regen in the main worktree.
+# Generated artifacts that background lanes rewrite into the main worktree and
+# that may therefore be absorbed (committed) rather than parked on.
+#
+# README.md is handled separately because it gets a CONTENT check
+# (_readme_stats_only_dirt): it is prose plus a stats block, so only the stats
+# lines may drift. The paths below are wholly machine-generated -- a verify or
+# batch-equivalence lane owns every byte -- so path identity is the check.
+#
+# Keep this list minimal and generated-only. Adding a hand-edited path here
+# would let this function silently commit someone's in-progress work.
+_ABSORB_EXACT = frozenset({
+    "README.md",
+    "tools/verify/vc71_scores.json",
+    "tools/objects.csv",
+    "tools/equivalence/leaf_cache.json",
+})
+_ABSORB_PREFIXES = ("artifacts/batch_verify/",)
 
-    Returns True only if it actually committed. Fails CLOSED: any other dirty
-    path, any non-stats line in the README diff, or any git error leaves the
-    tree untouched so the caller still parks.
+
+def _absorbable_paths(main_wt: str) -> list[str] | None:
+    """Dirty tracked paths in main, iff ALL of them are absorbable generated output.
+
+    Returns the path list, or None when anything else is dirty (caller parks).
+    Fails CLOSED on any git error or unrecognised path.
+    """
+    st = git("status", "--porcelain", "--untracked-files=no", cwd=main_wt)
+    if st.returncode != 0:
+        return None
+    paths = []
+    for ln in st.stdout.splitlines():
+        if not ln.strip():
+            continue
+        # NB: parse by token, not fixed columns -- the porcelain status code is
+        # " M" with a LEADING space, which a .strip() on the line silently eats.
+        code, _, path = ln.strip().partition(" ")
+        path = path.strip()
+        if "M" not in code:          # added/deleted/renamed = real work, park
+            return None
+        if path in _ABSORB_EXACT or path.startswith(_ABSORB_PREFIXES):
+            paths.append(path)
+        else:
+            return None
+    if not paths:
+        return None
+    # README earns its absorb only if the diff is stats-only, exactly as before.
+    if "README.md" in paths and not _readme_stats_only_dirt(main_wt, sole=False):
+        return None
+    return paths
+
+
+def _absorb_readme_stats_refresh(main_wt: str) -> bool:
+    """Commit a generated-artifact-only refresh in the main worktree.
+
+    Returns True only if it actually committed. Fails CLOSED: any dirty path
+    that is not known generated output, any non-stats line in the README diff,
+    or any git error leaves the tree untouched so the caller still parks.
+
+    Originally README-only. Widened 2026-08-01: the same self-inflicted loop
+    was measured on tools/verify/vc71_scores.json and artifacts/batch_verify/*,
+    which the verify lanes regenerate into main. Those accounted for 4 of 8
+    parked land attempts in the auto-session run -- all of them
+    `main_worktree_dirty` over files no human had touched.
 
     NB: committing here fires the repo's post-commit dashboard hook, which
     regenerates README in the background and re-dirties it moments later. The
     caller must therefore re-check with _settle_readme_regen(), not assume the
     tree stays clean.
     """
-    if not _readme_stats_only_dirt(main_wt):
+    paths = _absorbable_paths(main_wt)
+    if not paths:
         return False
-    if not git_ok("add", "--", "README.md", cwd=main_wt):
+    if not git_ok("add", "--", *paths, cwd=main_wt):
         return False
     return git_ok("commit", "--no-verify", "-m",
-                  "chore: README progress stats refresh (auto, post-land)",
-                  "--", "README.md", cwd=main_wt)
+                  "chore: regenerated artifacts refresh (auto, post-land)",
+                  "--", *paths, cwd=main_wt)
 
 
 def _settle_readme_regen(main_wt: str) -> bool:
@@ -308,12 +374,31 @@ def run_gates(main_wt: str, *, rebased: bool, backup: str | None,
         detail["reg_drift"] = (cp.stdout + cp.stderr).strip().splitlines()[-5:]
         return False, "reg_baseline_drift", detail
 
-    # Gate 3 -- clean build (source<->kb.json interlock).
+    # Gate 3 -- clean build (source<->kb.json interlock) AND linkage proof.
+    #
+    # Build `patched_xbe`, NOT `halo`. `halo` only links the ELF; the check that
+    # a `ported=true` function actually reaches the XBE lives in patch.py
+    # (`missing_exports`, "symbol absent from EXE exports"), and patch.py runs
+    # only under the patched_xbe target. Building `halo` here exits 0 whether or
+    # not a translation unit is registered in CMakeLists.txt, so a batch that
+    # adds a new TU and forgets to stage the CMakeLists entry lands a function
+    # marked ported whose body is never linked -- the original Xbox code keeps
+    # running, VC71 still scores the source, and nothing fails until someone
+    # notices a behaviour regression months later. Observed twice in the
+    # 2026-08-01 auto-session run (rasterizer_xbox_vertex_shaders_*.c and
+    # rasterizer_xbox_widgets.c); both were caught only incidentally, by the
+    # unrelated file-drift check in Gate 4.
     cp = subprocess.run(
-        [sys.executable, "tools/build/build.py", "-q", "--target", "halo"],
+        [sys.executable, "tools/build/build.py", "-q", "--target", "patched_xbe"],
         capture_output=True, text=True)
     if cp.returncode != 0:
-        detail["build_tail"] = (cp.stdout + cp.stderr).strip().splitlines()[-8:]
+        out = (cp.stdout + cp.stderr).strip()
+        detail["build_tail"] = out.splitlines()[-8:]
+        if "absent from EXE exports" in out:
+            missing = [ln.strip() for ln in out.splitlines()
+                       if "absent from EXE exports" in ln]
+            detail["missing_exports"] = missing[:10]
+            return False, f"unlinked_ported_symbols={len(missing)}", detail
         return False, "build_failed", detail
 
     # Gate 4 -- no-drop proof (only meaningful after a rebase replayed commits).
@@ -393,7 +478,14 @@ def main() -> int:
         # self-inflicted loop over a generated file, so absorb it: commit a
         # README-only, stats-only refresh and carry on. Anything else still
         # parks.
-        absorbed = _absorb_readme_stats_refresh(main_wt)
+        # --dry-run must not write to main. Absorbing COMMITS to the main
+        # worktree, so under dry-run just report what it would have absorbed.
+        if a.dry_run:
+            if _absorbable_paths(main_wt):
+                st.stdout = ""          # would be clean after the absorb
+            absorbed = False
+        else:
+            absorbed = _absorb_readme_stats_refresh(main_wt)
         if absorbed:
             st = git("status", "--porcelain", "--untracked-files=no",
                      cwd=main_wt)
