@@ -588,6 +588,96 @@ void FUN_00181150(void)
   *(int *)0x4d0480 = 0;
 }
 
+/* rasterizer_lights_update_lens_flare_alphas: end-of-frame pass over the queued
+ * lens flares. For each flare the occlusion query result (FUN_0017d040) is
+ * converted to an 8-bit alpha ratio against the flare's sample count
+ * (element+0x24), then blended into the persistent alpha byte returned by
+ * FUN_00181060. The queue is emptied afterwards. (0x181180)
+ *
+ * TU is rasterizer_lights.c (proven by the __FILE__ assert string at 0x1811e9);
+ * it lives in rasterizer_text.c only because of the kb.json object grouping.
+ *
+ * Globals (from disassembly):
+ *   0x3256d7  char   lens flare subsystem enabled flag
+ *   0x46e008  int16  render pass mode (CMP word ptr)
+ *   0x31fa98  int16  secondary mode counter (CMP word ptr)
+ *   0x4d0480  int    local_lens_flare_count
+ *   0x4c6480  base of the lens flare queue, stride 0x28 (40 bytes)
+ *
+ * Assert tail is display_assert + system_exit(-1) (PUSH -1; CALL 0x8e2f0 at
+ * 0x1811ee), NOT halt_and_catch_fire as Ghidra renders it.
+ *
+ * Blend direction derived from the disassembly (CL = new alpha, AL = old):
+ *   new > old : *p = (old * 3 + new) / 4   (CDQ; AND EDX,3; ADD; SAR 2)
+ *   new < old : *p = (old + new) / 2       (CDQ; SUB EAX,EDX; SAR 1)
+ *   new == old: no store at all
+ */
+void FUN_00181180(void)
+{
+  short i; /* 16-bit loop counter (ESI after MOVSX) */
+  int idx; /* [EBP-4] 32-bit widened counter */
+  char *elem; /* &DAT_004c6480 + idx * 0x28 (EDI) */
+  unsigned char *alpha_ptr; /* return of FUN_00181060 */
+  /* elem[+0x24] sample count is re-read inline, never cached */
+  int quotient; /* (occlusion * 255 + denom/2) / denom, signed IDIV */
+  unsigned char old_alpha; /* *alpha_ptr before the blend (AL) */
+  unsigned char new_alpha; /* clamped alpha ratio (CL) */
+
+  FUN_0016f910(0x18);
+
+  if (*(char *)0x3256d7 != 0 && *(short *)0x46e008 <= 1 &&
+      (*(short *)0x46e008 != 1 || *(short *)0x31fa98 <= 1)) {
+    idx = 0;
+    i = 0;
+    if (*(int *)0x4d0480 > 0) {
+      do {
+        if (i < 0 || idx >= *(int *)0x4d0480) {
+          display_assert(
+            "lens_flare_index>=0 && lens_flare_index<local_lens_flare_count",
+            "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c", 0x43, 1);
+          system_exit(-1);
+        }
+
+        elem = (char *)0x4c6480 + idx * 0x28;
+        alpha_ptr = FUN_00181060((void *)elem);
+
+        if (*(int *)(elem + 0x24) <= 0) {
+          *alpha_ptr = 0;
+        } else {
+          /* signed rounding division: (occluded * 255 + count/2) / count.
+           * The count field is re-read rather than cached, matching the two
+           * separate `mov 0x24(%edi)` loads in the original. */
+          quotient = (FUN_0017d040(idx) * 0xff + (*(int *)(elem + 0x24) >> 1)) /
+                     *(int *)(elem + 0x24);
+          if (quotient < 0xff) {
+            new_alpha = (unsigned char)quotient;
+          } else {
+            new_alpha = 0xff;
+          }
+
+          if (new_alpha == 0) {
+            *alpha_ptr = 0;
+          } else {
+            old_alpha = *alpha_ptr;
+            /* CMP CL,AL with CL = new_alpha, AL = old_alpha */
+            if (new_alpha > old_alpha) {
+              *alpha_ptr = (unsigned char)((old_alpha * 3 + new_alpha) / 4);
+            } else if (new_alpha < old_alpha) {
+              *alpha_ptr = (unsigned char)((old_alpha + new_alpha) / 2);
+            }
+          }
+        }
+
+        i = (short)(i + 1);
+        idx = (int)i;
+      } while (idx < *(int *)0x4d0480);
+    }
+    *(int *)0x4d0480 = 0;
+  }
+
+  FUN_0016fa40(0x18);
+}
+
 /* rasterizer_lights_reset_stat: zero stat counter at 0x5a37e0 (0x1812b0) */
 void FUN_001812b0(void)
 {

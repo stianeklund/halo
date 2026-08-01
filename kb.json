@@ -28311,7 +28311,9 @@
     },
     {
      "addr": "0x181180",
-     "decl": "void FUN_00181180(void);"
+     "decl": "void FUN_00181180(void);",
+     "name": "FUN_00181180",
+     "ported": true
     },
     {
      "addr": "0x1812b0",
@@ -28848,7 +28850,7 @@
     },
     {
      "addr": "0x17d040",
-     "decl": "void FUN_0017d040(void);"
+     "decl": "int FUN_0017d040(int index);"
     },
     {
      "addr": "0x17d050",
