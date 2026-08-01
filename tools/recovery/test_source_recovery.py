@@ -60,6 +60,132 @@ class SourceRecoveryTests(unittest.TestCase):
         self.assertGreater(len(first["inventory"]["raw_base_offset_dereferences"]), 0)
         self.assertTrue(all(item["status"] == "pending" for item in first["items"]))
 
+    def test_plan_assigns_ladder_categories_and_risky_opt_out_by_default(self):
+        manifest = self._plan()
+        self.assertIs(manifest["allow_risky"], False)
+        self.assertTrue(all(item["category"] in recovery.CATEGORIES for item in manifest["items"]))
+        self.assertEqual(
+            {item["category"] for item in manifest["inventory"]["raw_base_offset_dereferences"]},
+            {"offset-to-field"})
+        self.assertEqual(
+            {item["category"] for item in manifest["inventory"]["decompiler_style_locals"]},
+            {"local-renames"})
+        self.assertEqual({item["category"] for item in manifest["inventory"]["fun_calls"]},
+                         {"symbol-names"})
+        recovery._validate_manifest(self._manifest())
+
+    def test_plan_allow_risky_flag_is_recorded(self):
+        with mock.patch.object(recovery, "_git_head", return_value="deadbeef"):
+            manifest = recovery._plan(str(self.source), True)
+        self.assertIs(manifest["allow_risky"], True)
+
+    def test_pre_ladder_manifest_loads_checks_and_reports(self):
+        """Backward compatibility: manifests planned before the ladder existed."""
+        manifest = self._plan()
+        manifest.pop("allow_risky")
+        for item in manifest["items"]:
+            item.pop("category", None)
+        for category_items in manifest["inventory"].values():
+            for item in category_items:
+                item.pop("category", None)
+        recovery._write_atomic(self.manifest_path, manifest)
+        loaded = recovery._load(str(self.manifest_path))[1]
+        self.assertNotIn("allow_risky", loaded)
+        self.assertTrue(all("category" not in item for item in loaded["items"]))
+        self.assertEqual(recovery._ladder_warnings(loaded), [])
+        self.assertEqual(recovery._risky_failures(loaded), [])
+        counts = recovery._ladder_counts(loaded)
+        self.assertEqual(counts["uncategorized"]["pending"], len(loaded["items"]))
+        report = recovery._report(loaded)
+        self.assertIn("## Ladder (mandatory order)", report)
+        self.assertIn("- Risky categories: not opted in", report)
+        text, code = recovery._ladder(loaded)
+        self.assertEqual(code, 0)
+        self.assertIn("uncategorized", text)
+
+    def test_invalid_category_and_category_divergence_rejected(self):
+        self._plan()
+        malformed = self._manifest()
+        malformed["items"][0]["category"] = "not-a-ladder-step"
+        with self.assertRaises(recovery.RecoveryError):
+            recovery._validate_manifest(malformed)
+        malformed = self._manifest()
+        item_id = malformed["items"][0]["id"]
+        malformed["items"][0]["category"] = "comments"
+        for category_items in malformed["inventory"].values():
+            for item in category_items:
+                if item["id"] == item_id:
+                    item["category"] = "const-enum"
+        with self.assertRaises(recovery.RecoveryError):
+            recovery._validate_manifest(malformed)
+        malformed = self._manifest()
+        malformed["allow_risky"] = "yes"
+        with self.assertRaises(recovery.RecoveryError):
+            recovery._validate_manifest(malformed)
+
+    def test_ladder_order_violation_warns_but_never_fails(self):
+        self._plan()
+        manifest = self._manifest()
+        offset_item = next(item for item in manifest["items"]
+                           if item["category"] == "offset-to-field")
+        recovery._set_status(self.manifest_path, manifest, offset_item["id"], "applied", None)
+        updated = self._manifest()
+        warnings = recovery._ladder_warnings(updated)
+        self.assertEqual(len(warnings), 1, warnings)
+        self.assertIn("offset-to-field", warnings[0])
+        self.assertIn("local-renames", warnings[0])
+        text, code = recovery._ladder(updated)
+        self.assertEqual(code, 0)
+        self.assertIn("WARN", text)
+        self.assertIn("- Warning: ", recovery._report(updated))
+
+    def test_risky_category_requires_manifest_opt_in(self):
+        self._plan()
+        manifest = self._manifest()
+        item_id = manifest["items"][0]["id"]
+        with self.assertRaises(recovery.RecoveryError):
+            recovery._set_status(self.manifest_path, manifest, item_id, "applied",
+                                 None, "control-flow")
+        recovery._set_status(self.manifest_path, self._manifest(), item_id, "pending",
+                             None, "control-flow")
+        forced = self._manifest()
+        for item in forced["items"]:
+            if item["id"] == item_id:
+                item["status"] = "applied"
+        for category_items in forced["inventory"].values():
+            for item in category_items:
+                if item["id"] == item_id:
+                    item["status"] = "applied"
+        self.assertEqual(len(recovery._risky_failures(forced)), 1)
+        self.assertEqual(recovery._ladder(forced)[1], 1)
+        forced["allow_risky"] = True
+        self.assertEqual(recovery._risky_failures(forced), [])
+        recovery._set_status(self.manifest_path, forced, item_id, "applied", None)
+        self.assertEqual(self._manifest()["items"][0]["status"], "applied")
+
+    def test_check_records_ladder_warnings_and_risky_failures(self):
+        self._plan()
+        manifest = self._manifest()
+        offset_item = next(item for item in manifest["items"]
+                           if item["category"] == "offset-to-field")
+        recovery._set_status(self.manifest_path, manifest, offset_item["id"], "applied", None)
+        manifest = self._manifest()
+        for item in manifest["items"]:
+            if item["id"] == offset_item["id"]:
+                item["category"] = "expr-simplify"
+        for category_items in manifest["inventory"].values():
+            for item in category_items:
+                if item["id"] == offset_item["id"]:
+                    item["category"] = "expr-simplify"
+        recovery._write_atomic(self.manifest_path, manifest)
+        with mock.patch.object(recovery, "_git_head", return_value="deadbeef"):
+            result = recovery._check(self.manifest_path, self._manifest(), str(self.obj), True)
+        self.assertFalse(result["ok"])
+        self.assertTrue(any("risky category `expr-simplify`" in failure
+                            for failure in result["failures"]), result["failures"])
+        self.assertTrue(any("ladder order" in warning for warning in result["warnings"]),
+                        result["warnings"])
+
     def test_stale_source_rejected(self):
         self._plan()
         self.source.write_text("changed\n", encoding="utf-8")

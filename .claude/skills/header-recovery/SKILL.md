@@ -147,7 +147,7 @@ silently as part of a header move.)
 
 **One header per commit** (`Separation` rule). A reviewer must be able to read
 "commit 4 = encounters.h" and skim it. Never mix a header move with a lift, a
-rename, or an offset→field rewrite — those are `/lift` and the `cleanup` ladder.
+rename, or an offset→field rewrite — those are `/lift` and the `source-recovery` ladder.
 
 Related: [`struct-assert`](../struct-assert/SKILL.md) (defines the struct and its
 asserts), [`struct-recovery`](../struct-recovery/SKILL.md) (produces the evidence

@@ -23,6 +23,48 @@ TOOL_VERSION = "source-recovery/1"
 SCHEMA = 1
 NOISY_PARTS = {"build", "build_debug", "node_modules", ".git", "halo-patched", "__pycache__", "dist"}
 
+# The cleanup ladder, in mandatory risk order. Item categories use this
+# vocabulary; the order below is the order work must be done in.
+LADDER = (
+    "comments",
+    "local-renames",
+    "symbol-names",
+    "const-enum",
+    "struct-define",
+    "offset-to-field",
+    "expr-simplify",
+    "control-flow",
+)
+# Categories whose rewrites legitimately move codegen. Working one requires
+# `allow_risky` on the manifest (set at plan time via --allow-risky).
+RISKY_CATEGORIES = frozenset({"expr-simplify", "control-flow"})
+UNCATEGORIZED = "uncategorized"
+CATEGORIES = LADDER + (UNCATEGORIZED,)
+
+LADDER_SKILLS = {
+    "comments": "re-comment-capture",
+    "local-renames": "local-var-cleanup",
+    "symbol-names": "naming-confidence",
+    "const-enum": "const-enum-recovery",
+    "struct-define": "struct-recovery+struct-assert",
+    "offset-to-field": "offset-to-struct",
+    "expr-simplify": "expr-simplify",
+    "control-flow": "control-flow-cleanup",
+    UNCATEGORIZED: "-",
+}
+
+# Default ladder category for each debt detector. A detector only proposes the
+# category; `set-status --category` overrides it when the evidence says so.
+DETECTOR_CATEGORY = {
+    "raw_function_pointer_address_casts": "symbol-names",
+    "xcall_uses": "symbol-names",
+    "fun_calls": "symbol-names",
+    "absolute_address_dereferences": "symbol-names",
+    "raw_base_offset_dereferences": "offset-to-field",
+    "decompiler_style_locals": "local-renames",
+    "inline_asm": UNCATEGORIZED,
+}
+
 PATTERNS = {
     "raw_function_pointer_address_casts": re.compile(r"\(\(.*\(\*\).*\)0x[0-9a-fA-F]+"),
     "xcall_uses": re.compile(r"\bXCALL\s*\("),
@@ -42,6 +84,65 @@ PATTERNS = {
 
 class RecoveryError(Exception):
     """Expected, fail-closed workflow error."""
+
+
+def _category_of(item: dict[str, Any]) -> str:
+    """Ladder category of an item; pre-ladder manifests default to uncategorized."""
+    value = item.get("category")
+    return value if isinstance(value, str) and value else UNCATEGORIZED
+
+
+def _ladder_index(category: str) -> int:
+    """Ladder position; uncategorized sorts last and never gates ordering."""
+    return LADDER.index(category) if category in LADDER else len(LADDER)
+
+
+def _ladder_warnings(manifest: dict[str, Any]) -> list[str]:
+    """Warn when a later ladder category was worked before an earlier one finished.
+
+    Advisory only: a category may be legitimately inapplicable, so this never
+    fails a check.
+    """
+    pending: set[str] = set()
+    applied: set[str] = set()
+    for item in manifest.get("items", []):
+        category = _category_of(item)
+        if category not in LADDER:
+            continue
+        if item.get("status") == "pending":
+            pending.add(category)
+        elif item.get("status") == "applied":
+            applied.add(category)
+    warnings = []
+    for later in sorted(applied, key=_ladder_index):
+        earlier = sorted((c for c in pending if _ladder_index(c) < _ladder_index(later)),
+                         key=_ladder_index)
+        if earlier:
+            warnings.append(
+                "ladder order: `%s` items are applied while earlier categories still have "
+                "pending items (%s) — finish or park them first" % (later, ", ".join(earlier)))
+    return warnings
+
+
+def _risky_failures(manifest: dict[str, Any]) -> list[str]:
+    """Fail applied work in a risky category unless the manifest opted in."""
+    if manifest.get("allow_risky") is True:
+        return []
+    worked = sorted({_category_of(item) for item in manifest.get("items", [])
+                     if _category_of(item) in RISKY_CATEGORIES
+                     and item.get("status") == "applied"}, key=_ladder_index)
+    return ["risky category `%s` has applied items but the manifest is not opted in "
+            "(re-plan with --allow-risky and provide a behavioral oracle)" % category
+            for category in worked]
+
+
+def _ladder_counts(manifest: dict[str, Any]) -> dict[str, dict[str, int]]:
+    counts = {category: {"pending": 0, "applied": 0, "parked": 0} for category in CATEGORIES}
+    for item in manifest.get("items", []):
+        category = _category_of(item)
+        counts.setdefault(category, {"pending": 0, "applied": 0, "parked": 0})
+        counts[category][item["status"]] += 1
+    return counts
 
 
 def _sha256(path: Path) -> str:
@@ -115,6 +216,7 @@ def _inventory(source: Path) -> dict[str, list[dict[str, Any]]]:
                     "column": match.start() + 1,
                     "text": line.strip(),
                     "status": "pending",
+                    "category": DETECTOR_CATEGORY.get(category, UNCATEGORIZED),
                 })
     return inventory
 
@@ -123,7 +225,7 @@ def _items(inventory: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
     return [item for category in sorted(inventory) for item in inventory[category]]
 
 
-def _plan(source_arg: str) -> dict[str, Any]:
+def _plan(source_arg: str, allow_risky: bool = False) -> dict[str, Any]:
     source = _repo_path(source_arg, ".c")
     inventory = _inventory(source)
     return {
@@ -133,6 +235,7 @@ def _plan(source_arg: str) -> dict[str, Any]:
         "repo_relative_source": _relative(source),
         "git_head": _git_head(),
         "source_sha256": _sha256(source),
+        "allow_risky": bool(allow_risky),
         "inventory": inventory,
         "items": _items(inventory),
         "baseline": {"captured": False},
@@ -171,6 +274,8 @@ def _validate_manifest(manifest: Any) -> dict[str, Any]:
             raise RecoveryError("malformed manifest: invalid item status")
         if not isinstance(item.get("line"), int) or item["line"] < 1:
             raise RecoveryError("malformed manifest: invalid item line")
+        if "category" in item and item["category"] not in CATEGORIES:
+            raise RecoveryError("malformed manifest: invalid item category")
     inventory_by_id = {item.get("id"): item for item in inventory_items}
     if set(inventory_by_id) != seen:
         raise RecoveryError("malformed manifest: inventory/items ids differ")
@@ -178,6 +283,11 @@ def _validate_manifest(manifest: Any) -> dict[str, Any]:
     if any(inventory_by_id[item_id].get("status") != items_by_id[item_id].get("status")
            for item_id in seen):
         raise RecoveryError("malformed manifest: inventory/items statuses differ")
+    if any(_category_of(inventory_by_id[item_id]) != _category_of(items_by_id[item_id])
+           for item_id in seen):
+        raise RecoveryError("malformed manifest: inventory/items categories differ")
+    if "allow_risky" in manifest and not isinstance(manifest["allow_risky"], bool):
+        raise RecoveryError("malformed manifest: allow_risky must be a boolean")
     if not isinstance(manifest["baseline"], dict) or not isinstance(manifest["checks"], list):
         raise RecoveryError("malformed manifest: baseline/checks")
     return manifest
@@ -257,8 +367,13 @@ def _check(path: Path, manifest: dict[str, Any], object_arg: str, skip_vc71: boo
         "current_object_sha256": None,
         "failures": [],
         "skipped": [],
+        "warnings": [],
         "observations": {"changes": []},
     }
+    # Ladder state is derived from the manifest alone, so record it even if a
+    # guard below raises: order violations are advisory, risky work is a failure.
+    result["warnings"].extend(_ladder_warnings(manifest))
+    result["failures"].extend(_risky_failures(manifest))
     try:
         source = _repo_path(manifest["repo_relative_source"], ".c")
         result["current_source_sha256"] = _sha256(source)
@@ -312,12 +427,14 @@ def _report(manifest: dict[str, Any]) -> str:
     baseline = manifest["baseline"]
     failures = [failure for check in manifest["checks"] for failure in check.get("failures", [])]
     skipped = [gate for check in manifest["checks"] for gate in check.get("skipped", [])]
+    warnings = _ladder_warnings(manifest)
     last_check = "passed" if manifest["checks"] and manifest["checks"][-1].get("ok") else "not passed"
     if manifest["checks"] and not manifest["checks"][-1].get("ok") and skipped and not failures:
         last_check += " (skipped gates)"
     lines = ["# Source Recovery Report", "", "- Source: `%s`" % manifest["repo_relative_source"], "- Plan: `%s` at `%s`" % (manifest["created_tool_version"], manifest["git_head"]),
              "- Debt: %d items (%d pending, %d applied, %d parked)" % (len(items), counts["pending"], counts["applied"], counts["parked"]),
              "- Baseline: %s" % ("captured" if baseline.get("captured") else "not captured"),
+             "- Risky categories: %s" % ("opted in (--allow-risky)" if manifest.get("allow_risky") is True else "not opted in"),
              "- Last check: %s" % last_check]
     if failures:
         lines.append("- Failures: %s" % "; ".join(failures))
@@ -327,24 +444,68 @@ def _report(manifest: dict[str, Any]) -> str:
         lines.append("- Skipped gates: %s" % "; ".join(skipped))
     else:
         lines.append("- Skipped gates: none recorded")
+    if warnings:
+        lines.extend("- Warning: %s" % warning for warning in warnings)
     lines.append("")
-    lines.append("## Debt By Category")
+    lines.append("## Ladder (mandatory order)")
+    counts = _ladder_counts(manifest)
+    for position, category in enumerate(CATEGORIES):
+        bucket = counts.get(category, {"pending": 0, "applied": 0, "parked": 0})
+        total = sum(bucket.values())
+        step = "--" if category == UNCATEGORIZED else "%2d" % (position + 1)
+        risky = " [risky]" if category in RISKY_CATEGORIES else ""
+        lines.append("- %s `%s` (%s)%s: %d items (%d pending, %d applied, %d parked)" % (
+            step, category, LADDER_SKILLS.get(category, "-"), risky, total,
+            bucket["pending"], bucket["applied"], bucket["parked"]))
+    lines.append("")
+    lines.append("## Debt By Detector")
     for category in sorted(manifest["inventory"]):
         lines.append("- `%s`: %d" % (category, len(manifest["inventory"][category])))
     return "\n".join(lines) + "\n"
 
 
-def _set_status(path: Path, manifest: dict[str, Any], item_id: str, status: str, reason: str | None) -> None:
+def _ladder(manifest: dict[str, Any]) -> tuple[str, int]:
+    """Read-only ladder view: counts, order warnings, and the risky opt-in verdict."""
+    counts = _ladder_counts(manifest)
+    warnings = _ladder_warnings(manifest)
+    failures = _risky_failures(manifest)
+    lines = ["ladder for %s (risky %s)" % (
+        manifest["repo_relative_source"],
+        "opted in" if manifest.get("allow_risky") is True else "not opted in")]
+    for position, category in enumerate(CATEGORIES):
+        bucket = counts.get(category, {"pending": 0, "applied": 0, "parked": 0})
+        step = "--" if category == UNCATEGORIZED else "%2d" % (position + 1)
+        lines.append("  %s %-16s %-28s pending=%d applied=%d parked=%d%s" % (
+            step, category, LADDER_SKILLS.get(category, "-"),
+            bucket["pending"], bucket["applied"], bucket["parked"],
+            "  [risky]" if category in RISKY_CATEGORIES else ""))
+    lines.extend("  WARN  %s" % warning for warning in warnings)
+    lines.extend("  FAIL  %s" % failure for failure in failures)
+    return "\n".join(lines) + "\n", 1 if failures else 0
+
+
+def _set_status(path: Path, manifest: dict[str, Any], item_id: str, status: str,
+                reason: str | None, category: str | None = None) -> None:
     if status == "parked" and not (reason and reason.strip()):
         raise RecoveryError("parked items require --reason")
+    if category is not None and category not in CATEGORIES:
+        raise RecoveryError("invalid ladder category: %s" % category)
     item_matches = [item for item in manifest["items"] if item["id"] == item_id]
     inventory_matches = [item for category in manifest["inventory"].values()
                          for item in category if item["id"] == item_id]
     if len(item_matches) != 1 or len(inventory_matches) != 1:
         raise RecoveryError("item not found: %s" % item_id)
     updates = item_matches + inventory_matches
+    if status == "applied":
+        target = category if category is not None else _category_of(item_matches[0])
+        if target in RISKY_CATEGORIES and manifest.get("allow_risky") is not True:
+            raise RecoveryError(
+                "item %s is in risky category `%s`; re-plan the manifest with --allow-risky "
+                "and secure a behavioral oracle before applying it" % (item_id, target))
     for item in updates:
         item["status"] = status
+        if category is not None:
+            item["category"] = category
         if reason:
             item["reason"] = reason
         elif status != "parked":
@@ -355,12 +516,37 @@ def _set_status(path: Path, manifest: dict[str, Any], item_id: str, status: str,
 def _self_test() -> int:
     from tools.recovery import assert_metadata_guard, coff_candidate_guard
 
+    legacy = {
+        "repo_relative_source": "legacy.c",
+        "items": [{"id": "a", "line": 1, "status": "pending"},
+                  {"id": "b", "line": 2, "status": "applied"}],
+    }
+    ordered = {
+        "repo_relative_source": "ordered.c",
+        "items": [{"id": "a", "line": 1, "status": "pending", "category": "comments"},
+                  {"id": "b", "line": 2, "status": "applied", "category": "offset-to-field"}],
+    }
+    risky = {
+        "repo_relative_source": "risky.c",
+        "items": [{"id": "a", "line": 1, "status": "applied", "category": "control-flow"}],
+    }
     checks = [
         (bool(PATTERNS["fun_calls"].search("FUN_00123456();")), "FUN call detection"),
         (not bool(PATTERNS["absolute_address_dereferences"].search("return 42;")), "numeric literal is not address debt"),
         (TOOL_VERSION.startswith("source-recovery/"), "versioned tool"),
         (assert_metadata_guard is not None and coff_candidate_guard is not None,
          "recovery guard imports"),
+        (set(DETECTOR_CATEGORY) == set(PATTERNS) and set(DETECTOR_CATEGORY.values()) <= set(CATEGORIES),
+         "every detector maps to a ladder category"),
+        (RISKY_CATEGORIES <= set(LADDER) and set(LADDER_SKILLS) == set(CATEGORIES),
+         "ladder vocabulary is consistent"),
+        (not _ladder_warnings(legacy) and not _risky_failures(legacy),
+         "pre-ladder manifest is uncategorized and never gated"),
+        (len(_ladder_warnings(ordered)) == 1, "out-of-order applied work warns"),
+        (not _ladder_warnings(risky) and len(_risky_failures(risky)) == 1,
+         "risky category fails without allow_risky"),
+        (not _risky_failures(dict(risky, allow_risky=True)),
+         "risky category passes with allow_risky"),
     ]
     for passed, name in checks:
         print("  %s %s" % ("ok  " if passed else "FAIL", name))
@@ -374,6 +560,9 @@ def main(argv: list[str] | None = None) -> int:
     plan = sub.add_parser("plan")
     plan.add_argument("--source", required=True)
     plan.add_argument("-o", "--output", required=True)
+    plan.add_argument("--allow-risky", action="store_true",
+                      help="opt this manifest in to the risky ladder categories "
+                           "(expr-simplify, control-flow); requires a behavioral oracle")
     capture = sub.add_parser("capture")
     capture.add_argument("manifest")
     capture.add_argument("--object", required=True)
@@ -384,17 +573,22 @@ def main(argv: list[str] | None = None) -> int:
     check.add_argument("--skip-vc71", action="store_true")
     report = sub.add_parser("report")
     report.add_argument("manifest")
+    ladder = sub.add_parser("ladder", help="read-only ladder ordering view")
+    ladder.add_argument("manifest")
     status = sub.add_parser("set-status")
     status.add_argument("manifest")
     status.add_argument("item_id")
     status.add_argument("status", choices=("pending", "applied", "parked"))
     status.add_argument("--reason")
+    status.add_argument("--category", choices=CATEGORIES,
+                        help="assign the ladder category for this item")
     args = parser.parse_args(argv)
     try:
         if args.self_test:
             return _self_test()
         if args.command == "plan":
-            _write_atomic(_output_path(args.output, ".json"), _plan(args.source))
+            _write_atomic(_output_path(args.output, ".json"),
+                          _plan(args.source, args.allow_risky))
             return 0
         path, manifest = _load(args.manifest)
         if args.command == "capture":
@@ -408,8 +602,12 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "report":
             print(_report(manifest), end="")
             return 0
+        if args.command == "ladder":
+            text, code = _ladder(manifest)
+            print(text, end="")
+            return code
         if args.command == "set-status":
-            _set_status(path, manifest, args.item_id, args.status, args.reason)
+            _set_status(path, manifest, args.item_id, args.status, args.reason, args.category)
             return 0
         parser.error("a subcommand is required")
     except (OSError, ValueError, RecoveryError) as exc:

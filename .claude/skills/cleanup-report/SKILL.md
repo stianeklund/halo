@@ -7,6 +7,13 @@ description: Produce the standard before/after report closing a cleanup session 
 
 # Cleanup PR Report
 
+> **Now performed by the manifest.** `tools/recovery/source_recovery.py report
+> <manifest>` emits the machine-generated summary (debt counts, ladder state,
+> recorded failures, skipped gates) — run it and paste it in. This skill remains
+> the reference for **what a report must contain**: the baseline block, the
+> per-category commit table, the honest before → after match table, and the
+> reverted/kept-raw and follow-up sections. Entry point is `source-recovery`.
+
 The report is the deliverable that makes cleanup reviewable: a reviewer should be able
 to verify the "codegen unchanged" claim from the report alone, without re-deriving it.
 Everything in it comes from artifacts the session already produced — no new analysis.

@@ -7,6 +7,14 @@ description: Record the verification baseline BEFORE any cleanup/refactor of alr
 
 # Cleanup Baseline
 
+> **Now performed by the manifest.** `tools/recovery/source_recovery.py capture
+> <manifest> --object <obj>` records the machine-checkable baseline (COFF and
+> assertion-metadata snapshots) that the gates compare against — run it instead of
+> hand-rolling one. This skill remains the reference for **what a baseline must
+> contain**: match floors, delinked-reference presence, hazard state, available
+> behavioral oracles, and the human-readable baseline block. Entry point is
+> `source-recovery`.
+
 Cleanup of already-lifted code is only safe if you can prove the codegen did not
 change. This skill records the "before" state so every later step has a mechanical
 comparison point. **No cleanup edit is allowed before the baseline block exists.**
@@ -68,5 +76,5 @@ comparison point. **No cleanup edit is allowed before the baseline block exists.
 - Never flip `ported` flags or touch `@<reg>` annotations while baselining.
 - Baseline is read-only: if any step required an edit, that edit was not baseline.
 
-Next: hand the block to the `cleanup` orchestrator (or directly to the category skill
-you were asked for). On any later score drop → `cleanup-regression-triage`.
+Next: hand the block to the `source-recovery` orchestrator (or directly to the category
+skill you were asked for). On any later score drop → `cleanup-regression-triage`.
