@@ -109,18 +109,46 @@ def next_func_start(addr: int) -> int | None:
     return starts[i] if i < len(starts) else None
 
 
+def _true_size(addr: int, limit: int) -> int | None:
+    """Function's real byte size from the pristine XBE, or None if unavailable."""
+    try:
+        from check_delinked_bounds import load_xbe, true_end, XBE
+    except ImportError:
+        return None
+    try:
+        data, secs = load_xbe(str(REPO_ROOT / XBE))
+        end, warn = true_end(data, secs, addr)
+        return (end - addr) if (end and not warn) else None
+    except Exception:
+        return None
+
+
 def per_func_range(addr: int) -> tuple[int, int]:
     """Function-aligned per-function export range (lo, hi), END inclusive.
 
     Ghidra's DelinkProgram builds the export AddressSet with
-    getAddressSet(start, end) which is inclusive of both endpoints, so hi is set
-    to one byte before the next function start — the chunk then contains exactly
-    this function's bytes.  For the last known function there is no successor, so
-    fall back to a padded window (its own trailing data is the only spill risk,
-    and there is no following function to swallow)."""
+    getAddressSet(start, end) which is inclusive of both endpoints.
+
+    Bounding at the next kb.json function start is NOT sufficient: kb.json is
+    not a full listing of the binary, so wherever the listing has a hole the
+    chunk still swallows the padding and the unlisted neighbour(s) that follow
+    this function.  Measured: FUN_000aff70 is 0x18 bytes but the next listed
+    function is 0x90 away, so the "function-aligned" chunk was 6x too large --
+    exactly the bloat this range was introduced to prevent, just at a smaller
+    scale than the old fixed window.
+
+    So take the tighter of the two bounds: the next listed start, and the
+    function's real end read from the pristine XBE.  Falls back to the kb bound
+    when capstone/the XBE is unavailable, and to a padded window for the last
+    known function (no successor to bound against)."""
     nxt = next_func_start(addr)
-    if nxt is not None and nxt > addr:
-        return addr, nxt - 1
+    kb_hi = (nxt - 1) if (nxt is not None and nxt > addr) else None
+    limit = (nxt - addr) if kb_hi is not None else RANGE_PAD_PER_FUNC
+    true_sz = _true_size(addr, limit)
+    true_hi = (addr + true_sz - 1) if true_sz else None
+    candidates = [h for h in (kb_hi, true_hi) if h is not None]
+    if candidates:
+        return addr, min(candidates)
     return addr, addr + RANGE_PAD_PER_FUNC
 
 

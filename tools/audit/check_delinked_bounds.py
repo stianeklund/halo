@@ -78,7 +78,14 @@ def true_end(data, secs, entry):
     for ins in md.disasm(data[off:off + MAX_SCAN], entry):
         if ins.mnemonic.startswith("j"):
             try:
-                targets.add(int(ins.op_str, 16))
+                t = int(ins.op_str, 16)
+                # Only an in-window target can be a later block of THIS function.
+                # A branch to a distant address is a tail call / external jump and
+                # must not hold the body open -- `errors_dispose` is the 5-byte
+                # thunk `jmp 0x92440`, and counting its own target as outstanding
+                # made it look like it never terminated.
+                if entry <= t < entry + MAX_SCAN:
+                    targets.add(t)
             except ValueError:
                 pass  # indirect branch; the guard below simply won't fire early
         end = ins.address + ins.size

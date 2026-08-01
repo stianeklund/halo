@@ -215,7 +215,14 @@ def _true_end_offset(addr: int, limit: int) -> int | None:
     for ins in md.disasm(code, addr):
         if ins.mnemonic.startswith("j"):
             try:
-                targets.add(int(ins.op_str, 16))
+                t = int(ins.op_str, 16)
+                # Only an in-window target can be a later block of THIS function.
+                # A branch to a distant address is a tail call / external jump and
+                # must not hold the body open (`errors_dispose` is the 5-byte
+                # thunk `jmp 0x92440`; counting its own target as outstanding
+                # made it look like it never terminated).
+                if addr <= t < addr + limit:
+                    targets.add(t)
             except ValueError:
                 pass  # indirect branch; the guard below just won't fire early
         end = ins.address + ins.size
