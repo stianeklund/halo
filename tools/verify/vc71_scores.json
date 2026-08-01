@@ -11988,6 +11988,10 @@
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
+    "FUN_00180770": {
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer_text.c"
+    },
     "FUN_001807d0": {
       "score": 76.0,
       "source": "src/halo/rasterizer/rasterizer_text.c"

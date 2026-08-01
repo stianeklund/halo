@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /* FUN_0017ff50: stub (0x17ff50) */
 void FUN_0017ff50(void)
 {
@@ -401,6 +403,32 @@ void FUN_001806e0(int param_1, float *param_2)
   param_2[1] = ((float)(int)*(short *)(param_1 + 6) +
                 (float)(int)*(short *)(param_1 + 6) + *(float *)0x2533c8) *
                *(float *)0x2647f4;
+}
+
+/* rasterizer_geometry_z_to_uint8: assert z in [0.0, 1.0] then quantize to an
+ * 8-bit channel via scale 255.0. Two separate x87 compares in the original
+ * (FCOMP against 0.0 then 1.0, both reloading [EBP+8]) implementing the
+ * literal source predicate "z>=0.0f && z<=1.0f". The multiply result is
+ * stored back through the parameter slot (FSTP [EBP+8]) and reloaded before
+ * FISTP, so the scaling is written onto the parameter itself. The original
+ * was built with /QIfist, so the conversion is an inline FISTP using the
+ * current rounding mode (round-to-nearest) — NOT C truncation, which is off
+ * by one for every fractional part >= 0.5 (measured: 7/100 equivalence seeds
+ * diverged with a plain (int) cast, e.g. alpha=0.5 -> 128 vs 127).
+ * x87_round_to_int keeps the original rounding. Return is the low byte of the
+ * 32-bit conversion result (MOV AL). (0x180770) */
+unsigned char FUN_00180770(float alpha)
+{
+  int quantized;
+  if (!(alpha >= 0.0f && alpha <= 1.0f)) {
+    display_assert("z>=0.0f && z<=1.0f",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x2a,
+                   1);
+    system_exit(-1);
+  }
+  alpha = alpha * 255.0f;
+  quantized = x87_round_to_int(alpha);
+  return (unsigned char)quantized;
 }
 
 extern double floor(double);

@@ -28265,7 +28265,8 @@
     },
     {
      "addr": "0x180770",
-     "decl": "unsigned char FUN_00180770(float alpha);"
+     "decl": "unsigned char FUN_00180770(float alpha);",
+     "ported": true
     },
     {
      "addr": "0x1807d0",
