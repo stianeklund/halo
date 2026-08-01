@@ -12,8 +12,13 @@ const SKILL_RULES = [
 
   {
     re: /\b(cleanup|readability rewrite|cleanup baseline|cleanup report|match floor|rename locals|local variable cleanup|magic number|enum recovery|named constant|raw offset|pointer arithmetic|struct field access|simplify expression|control flow cleanup|comment capture|knowledge capture)\b/i,
-    skills: ["cleanup", "cleanup-baseline", "cleanup-gap-audit", "local-var-cleanup", "naming-confidence", "const-enum-recovery", "struct-recovery", "struct-assert", "offset-to-struct", "expr-simplify", "control-flow-cleanup", "re-comment-capture", "cleanup-report"],
+    skills: ["cleanup", "source-recovery", "recover-goal", "cleanup-baseline", "cleanup-gap-audit", "local-var-cleanup", "naming-confidence", "const-enum-recovery", "struct-recovery", "struct-assert", "offset-to-struct", "expr-simplify", "control-flow-cleanup", "re-comment-capture", "cleanup-report"],
     why: "cleanup ladder, evidence-preserving renames, constants, structs, offset rewrites, expression/control-flow gates",
+  },
+  {
+    re: /\b(recover[- ]goal|goal[- ]mode source recovery|recovery frontier|goal ledger)\b/i,
+    skills: ["recover-goal", "source-recovery"],
+    why: "unattended frontier-driven source recovery with ledger and sequential category commits",
   },
   {
     re: /\b(capture input|record gameplay|record fixture|controller fixture|replay input|replay fixture|capture_scenario|input-recordings)\b/i,
