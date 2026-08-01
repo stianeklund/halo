@@ -1088,295 +1088,295 @@ int FUN_00115ba0(unsigned int *bb, int *param_1, unsigned int param_2,
                  unsigned int param_3, int param_4, int param_5, int *param_6,
                  int param_7, unsigned int *param_8, unsigned int *param_9)
 {
-  int iVar1;
-  unsigned int *puVar2;
-  unsigned int uVar5;
-  unsigned int uVar7;
-  int iVar6;
-  int iVar8;
-  unsigned int uVar9;
-  unsigned int *puVar10;
-  unsigned int uVar11;
-  int iVar12;
-  int bVar13;
-  int iVar14;
-  unsigned int uVar15;
-  int local_104[14]; /* u: table stack */
+  int parent_table;
+  unsigned int *tmp_p; /* was puVar2: walks bit_count[] / x[] */
+  unsigned int tmp_u; /* was uVar5: multi-role scalar temp */
+  unsigned int tmp_u2; /* was uVar7 */
+  int tmp_i3; /* was iVar6 */
+  int tmp_i2; /* was iVar8 */
+  unsigned int j;
+  unsigned int *fill_ptr;
+  unsigned int i;
+  int tmp_i;
+  int w_byte;
+  int w_bits;
+  unsigned int tmp_u3; /* was uVar15: x offset / symbol / base */
+  int table_stack[14]; /* u: table stack */
   unsigned int auStack_cc[17]; /* x: bit offsets */
-  unsigned int local_88[17]; /* c: bit counts */
-  int local_44;
-  int *local_40;
-  int local_3c;
-  unsigned int local_38;
-  int local_34;
-  unsigned int local_30; /* r: table entry (4 bytes: byte0=Exop, byte1=Bits,
+  unsigned int bit_count[17]; /* c: bit counts */
+  int w_next;
+  int *u_slot;
+  int y_dummy;
+  unsigned int table_entries;
+  int k_minus_1;
+  unsigned int table_entry; /* r: table entry (4 bytes: byte0=Exop, byte1=Bits,
                             dword+4=Base) */
-  unsigned int local_2c = 0;
-  unsigned int *local_28;
-  int local_24;
-  unsigned int local_20;
-  unsigned int local_1c;
-  unsigned int *local_18;
-  unsigned int local_14;
-  int local_10;
-  unsigned int local_c;
-  unsigned int local_8;
-  int *piVar4;
+  unsigned int zero_init = 0;
+  unsigned int *count_ptr;
+  int tmp_i4; /* was local_24: x byte offset, then w delta */
+  unsigned int max_len;
+  unsigned int code_i;
+  unsigned int *walk_ptr;
+  unsigned int codes_left;
+  int cur_table;
+  unsigned int k_bits;
+  unsigned int bits_per_table;
+  int *len_ptr;
 
   /* Zero the bit count array c[0..15] */
-  local_88[0] = 0;
-  local_88[1] = 0;
-  local_88[2] = 0;
-  local_88[3] = 0;
-  local_88[4] = 0;
-  local_88[5] = 0;
-  local_88[6] = 0;
-  local_88[7] = 0;
-  local_88[8] = 0;
-  local_88[9] = 0;
-  local_88[10] = 0;
-  local_88[11] = 0;
-  local_88[12] = 0;
-  local_88[13] = 0;
-  local_88[14] = 0;
-  local_88[15] = 0;
+  bit_count[0] = 0;
+  bit_count[1] = 0;
+  bit_count[2] = 0;
+  bit_count[3] = 0;
+  bit_count[4] = 0;
+  bit_count[5] = 0;
+  bit_count[6] = 0;
+  bit_count[7] = 0;
+  bit_count[8] = 0;
+  bit_count[9] = 0;
+  bit_count[10] = 0;
+  bit_count[11] = 0;
+  bit_count[12] = 0;
+  bit_count[13] = 0;
+  bit_count[14] = 0;
+  bit_count[15] = 0;
 
   /* Count bit lengths */
-  piVar4 = param_1;
-  uVar11 = param_2;
+  len_ptr = param_1;
+  i = param_2;
   do {
-    local_88[*piVar4] = local_88[*piVar4] + 1;
-    piVar4 = piVar4 + 1;
-    uVar11 = uVar11 - 1;
-  } while (uVar11 != 0);
+    bit_count[*len_ptr] = bit_count[*len_ptr] + 1;
+    len_ptr = len_ptr + 1;
+    i = i - 1;
+  } while (i != 0);
 
   /* If all codes are zero length, nothing to do */
-  if (local_88[0] == param_2) {
+  if (bit_count[0] == param_2) {
     *param_6 = 0;
     *bb = 0;
     return 0;
   }
 
   /* Find minimum and maximum code lengths */
-  local_8 = *bb;
-  uVar11 = 1;
+  bits_per_table = *bb;
+  i = 1;
   do {
-    if (local_88[uVar11] != 0)
+    if (bit_count[i] != 0)
       break;
-    if (local_88[uVar11 + 1] != 0) {
-      uVar11 = uVar11 + 1;
-      break;
-    }
-    if (local_88[uVar11 + 2] != 0) {
-      uVar11 = uVar11 + 2;
+    if (bit_count[i + 1] != 0) {
+      i = i + 1;
       break;
     }
-    if (local_88[uVar11 + 3] != 0) {
-      uVar11 = uVar11 + 3;
+    if (bit_count[i + 2] != 0) {
+      i = i + 2;
       break;
     }
-    if (local_88[uVar11 + 4] != 0) {
-      uVar11 = uVar11 + 4;
+    if (bit_count[i + 3] != 0) {
+      i = i + 3;
       break;
     }
-    uVar11 = uVar11 + 5;
-  } while (uVar11 < 0x10);
-  local_c = uVar11;
-  if (local_8 < uVar11) {
-    local_8 = uVar11;
+    if (bit_count[i + 4] != 0) {
+      i = i + 4;
+      break;
+    }
+    i = i + 5;
+  } while (i < 0x10);
+  k_bits = i;
+  if (bits_per_table < i) {
+    bits_per_table = i;
   }
-  local_20 = 0xf;
+  max_len = 0xf;
   do {
-    if (local_88[local_20] != 0)
+    if (bit_count[max_len] != 0)
       break;
-    local_20 = local_20 - 1;
-  } while (local_20 != 0);
-  if (local_20 < local_8) {
-    local_8 = local_20;
+    max_len = max_len - 1;
+  } while (max_len != 0);
+  if (max_len < bits_per_table) {
+    bits_per_table = max_len;
   }
-  uVar9 = local_8;
-  iVar12 = 1 << (unsigned char)uVar11;
-  *bb = local_8;
+  j = bits_per_table;
+  tmp_i = 1 << (unsigned char)i;
+  *bb = bits_per_table;
 
   /* Check for over-subscribed or incomplete set */
-  for (; uVar11 < local_20; uVar11 = uVar11 + 1) {
-    if ((int)(iVar12 - (int)local_88[uVar11]) < 0) {
+  for (; i < max_len; i = i + 1) {
+    if ((int)(tmp_i - (int)bit_count[i]) < 0) {
       return (int)0xfffffffd;
     }
-    iVar12 = (iVar12 - (int)local_88[uVar11]) * 2;
+    tmp_i = (tmp_i - (int)bit_count[i]) * 2;
   }
-  local_24 = local_20 * 4;
-  iVar12 = iVar12 - (int)local_88[local_20];
-  local_3c = iVar12;
-  if (iVar12 < 0) {
+  tmp_i4 = max_len * 4;
+  tmp_i = tmp_i - (int)bit_count[max_len];
+  y_dummy = tmp_i;
+  if (tmp_i < 0) {
     return (int)0xfffffffd;
   }
-  local_88[local_20] = local_88[local_20] + (unsigned int)iVar12;
+  bit_count[max_len] = bit_count[max_len] + (unsigned int)tmp_i;
 
   /* Generate offsets into symbol table for each code length */
-  iVar8 = 0;
-  iVar14 = (int)local_20 - 1;
+  tmp_i2 = 0;
+  w_bits = (int)max_len - 1;
   auStack_cc[2] = 0;
-  if (iVar14 != 0) {
-    iVar6 = 0;
+  if (w_bits != 0) {
+    tmp_i3 = 0;
     do {
-      iVar8 = iVar8 + *(int *)((int)local_88 + iVar6 + 4);
-      iVar14 = iVar14 + -1;
-      *(int *)((int)auStack_cc + iVar6 + 0xc) = iVar8;
-      iVar6 = iVar6 + 4;
-    } while (iVar14 != 0);
+      tmp_i2 = tmp_i2 + *(int *)((int)bit_count + tmp_i3 + 4);
+      w_bits = w_bits + -1;
+      *(int *)((int)auStack_cc + tmp_i3 + 0xc) = tmp_i2;
+      tmp_i3 = tmp_i3 + 4;
+    } while (w_bits != 0);
   }
 
   /* Fill the symbol table with sorted values */
-  uVar11 = 0;
+  i = 0;
   do {
-    iVar8 = *param_1;
-    local_18 = (unsigned int *)(param_1 + 1);
-    if (iVar8 != 0) {
-      uVar15 = auStack_cc[iVar8 + 1];
-      param_9[uVar15] = uVar11;
-      auStack_cc[iVar8 + 1] = uVar15 + 1;
+    tmp_i2 = *param_1;
+    walk_ptr = (unsigned int *)(param_1 + 1);
+    if (tmp_i2 != 0) {
+      tmp_u3 = auStack_cc[tmp_i2 + 1];
+      param_9[tmp_u3] = i;
+      auStack_cc[tmp_i2 + 1] = tmp_u3 + 1;
     }
-    uVar11 = uVar11 + 1;
-    param_1 = (int *)local_18;
-  } while (uVar11 < param_2);
+    i = i + 1;
+    param_1 = (int *)walk_ptr;
+  } while (i < param_2);
 
   /* Generate the Huffman tables */
-  iVar8 = *(int *)((int)auStack_cc + local_24 + 4);
-  local_18 = param_9;
+  tmp_i2 = *(int *)((int)auStack_cc + tmp_i4 + 4);
+  walk_ptr = param_9;
   auStack_cc[1] = 0;
-  local_104[0] = 0;
-  local_10 = 0;
-  local_38 = 0;
-  uVar11 = 0;
-  iVar14 = -(int)uVar9;
-  local_1c = 0;
+  table_stack[0] = 0;
+  cur_table = 0;
+  table_entries = 0;
+  i = 0;
+  w_bits = -(int)j;
+  code_i = 0;
   param_1 = (int *)0xffffffff;
-  if ((int)local_c <= (int)local_20) {
-    local_34 = (int)local_c - 1;
-    local_28 = local_88 + local_c;
-    uVar15 = local_2c;
+  if ((int)k_bits <= (int)max_len) {
+    k_minus_1 = (int)k_bits - 1;
+    count_ptr = bit_count + k_bits;
+    tmp_u3 = zero_init;
     do {
-      local_88[0x10] = *local_28;
-      iVar12 = local_3c;
-      while (local_3c = iVar12, local_88[0x10] != 0) {
-        local_14 = local_88[0x10] - 1;
-        local_44 = iVar14 + (int)uVar9;
-        if (local_44 < (int)local_c) {
-          local_24 = iVar14 - (int)uVar9;
+      bit_count[0x10] = *count_ptr;
+      tmp_i = y_dummy;
+      while (y_dummy = tmp_i, bit_count[0x10] != 0) {
+        codes_left = bit_count[0x10] - 1;
+        w_next = w_bits + (int)j;
+        if (w_next < (int)k_bits) {
+          tmp_i4 = w_bits - (int)j;
           do {
-            iVar14 = iVar14 + (int)uVar9;
-            local_24 = local_24 + (int)uVar9;
-            iVar12 = (int)param_1 + 1;
-            local_44 = local_44 + (int)uVar9;
-            uVar11 = local_20 - (unsigned int)iVar14;
-            if (uVar9 < local_20 - (unsigned int)iVar14) {
-              uVar11 = uVar9;
+            w_bits = w_bits + (int)j;
+            tmp_i4 = tmp_i4 + (int)j;
+            tmp_i = (int)param_1 + 1;
+            w_next = w_next + (int)j;
+            i = max_len - (unsigned int)w_bits;
+            if (j < max_len - (unsigned int)w_bits) {
+              i = j;
             }
-            uVar9 = local_c - (unsigned int)iVar14;
-            uVar5 = 1 << (unsigned char)uVar9;
-            if (local_88[0x10] < uVar5 &&
-                (iVar6 = (int)uVar5 + (-1 - (int)local_14), puVar2 = local_28,
-                 uVar9 < uVar11)) {
-              while (uVar9 = uVar9 + 1, uVar9 < uVar11) {
-                uVar5 = puVar2[1];
-                uVar7 = (unsigned int)iVar6 * 2;
-                if (uVar7 < uVar5 || uVar7 - uVar5 == 0)
+            j = k_bits - (unsigned int)w_bits;
+            tmp_u = 1 << (unsigned char)j;
+            if (bit_count[0x10] < tmp_u &&
+                (tmp_i3 = (int)tmp_u + (-1 - (int)codes_left), tmp_p = count_ptr,
+                 j < i)) {
+              while (j = j + 1, j < i) {
+                tmp_u = tmp_p[1];
+                tmp_u2 = (unsigned int)tmp_i3 * 2;
+                if (tmp_u2 < tmp_u || tmp_u2 - tmp_u == 0)
                   break;
-                iVar6 = (int)(uVar7 - uVar5);
-                puVar2 = puVar2 + 1;
+                tmp_i3 = (int)(tmp_u2 - tmp_u);
+                tmp_p = tmp_p + 1;
               }
             }
-            local_38 = 1 << (unsigned char)uVar9;
-            uVar5 = local_38 + *param_8;
-            if (0x5a0 < uVar5) {
+            table_entries = 1 << (unsigned char)j;
+            tmp_u = table_entries + *param_8;
+            if (0x5a0 < tmp_u) {
               return (int)0xfffffffc;
             }
-            iVar6 = param_7 + (int)*param_8 * 8;
-            local_40 = local_104 + iVar12;
-            local_104[iVar12] = iVar6;
-            uVar11 = local_1c;
-            *param_8 = uVar5;
-            local_10 = iVar6;
-            if (iVar12 == 0) {
-              *param_6 = iVar6;
+            tmp_i3 = param_7 + (int)*param_8 * 8;
+            u_slot = table_stack + tmp_i;
+            table_stack[tmp_i] = tmp_i3;
+            i = code_i;
+            *param_8 = tmp_u;
+            cur_table = tmp_i3;
+            if (tmp_i == 0) {
+              *param_6 = tmp_i3;
             } else {
-              local_30 = (local_30 & 0xffffff00) | (unsigned char)uVar9;
-              uVar9 = local_1c >> (unsigned char)local_24;
-              iVar1 = local_40[-1];
-              auStack_cc[(int)param_1 + 2] = local_1c;
-              local_30 = (local_30 & 0xffff00ff) |
-                         ((unsigned int)(unsigned char)local_8 << 8);
-              uVar15 = (unsigned int)(((iVar6 - iVar1) >> 3) - (int)uVar9);
-              *(unsigned int *)(iVar1 + uVar9 * 8) = local_30;
-              *(unsigned int *)(iVar1 + 4 + uVar9 * 8) = uVar15;
+              table_entry = (table_entry & 0xffffff00) | (unsigned char)j;
+              j = code_i >> (unsigned char)tmp_i4;
+              parent_table = u_slot[-1];
+              auStack_cc[(int)param_1 + 2] = code_i;
+              table_entry = (table_entry & 0xffff00ff) |
+                         ((unsigned int)(unsigned char)bits_per_table << 8);
+              tmp_u3 = (unsigned int)(((tmp_i3 - parent_table) >> 3) - (int)j);
+              *(unsigned int *)(parent_table + j * 8) = table_entry;
+              *(unsigned int *)(parent_table + 4 + j * 8) = tmp_u3;
             }
-            uVar9 = local_8;
-            param_1 = (int *)iVar12;
-          } while (local_44 < (int)local_c);
+            j = bits_per_table;
+            param_1 = (int *)tmp_i;
+          } while (w_next < (int)k_bits);
         }
-        bVar13 = (unsigned char)iVar14;
-        if (local_18 < param_9 + iVar8) {
-          uVar15 = *local_18;
-          if (uVar15 < param_3) {
-            local_30 = (local_30 & 0xffffff00) |
-                       (unsigned int)((uVar15 < 0x100) - 1u & 0x60);
+        w_byte = (unsigned char)w_bits;
+        if (walk_ptr < param_9 + tmp_i2) {
+          tmp_u3 = *walk_ptr;
+          if (tmp_u3 < param_3) {
+            table_entry = (table_entry & 0xffffff00) |
+                       (unsigned int)((tmp_u3 < 0x100) - 1u & 0x60);
           } else {
-            iVar12 = (int)(uVar15 - param_3) * 4;
-            local_30 = (local_30 & 0xffffff00) |
+            tmp_i = (int)(tmp_u3 - param_3) * 4;
+            table_entry = (table_entry & 0xffffff00) |
                        (unsigned int)((
-                         unsigned char)(*(char *)(iVar12 + param_5) + 0x50));
-            uVar15 = *(unsigned int *)(iVar12 + param_4);
+                         unsigned char)(*(char *)(tmp_i + param_5) + 0x50));
+            tmp_u3 = *(unsigned int *)(tmp_i + param_4);
           }
-          local_18 = local_18 + 1;
+          walk_ptr = walk_ptr + 1;
         } else {
-          local_30 = (local_30 & 0xffffff00) | 0xc0;
+          table_entry = (table_entry & 0xffffff00) | 0xc0;
         }
-        local_30 =
-          (local_30 & 0xffff0000) |
-          ((unsigned int)(unsigned char)((char)local_c - bVar13) << 8) |
-          (local_30 & 0xff);
-        iVar12 = 1 << ((char)local_c - bVar13 & 0x1f);
-        uVar9 = uVar11 >> bVar13;
-        if (uVar9 < local_38) {
-          puVar10 = (unsigned int *)(local_10 + uVar9 * 8);
+        table_entry =
+          (table_entry & 0xffff0000) |
+          ((unsigned int)(unsigned char)((char)k_bits - w_byte) << 8) |
+          (table_entry & 0xff);
+        tmp_i = 1 << ((char)k_bits - w_byte & 0x1f);
+        j = i >> w_byte;
+        if (j < table_entries) {
+          fill_ptr = (unsigned int *)(cur_table + j * 8);
           do {
-            *puVar10 = local_30;
-            puVar10[1] = uVar15;
-            puVar10 = puVar10 + iVar12 * 2;
-            uVar9 = uVar9 + (unsigned int)iVar12;
-            uVar11 = local_1c;
-          } while (uVar9 < local_38);
+            *fill_ptr = table_entry;
+            fill_ptr[1] = tmp_u3;
+            fill_ptr = fill_ptr + tmp_i * 2;
+            j = j + (unsigned int)tmp_i;
+            i = code_i;
+          } while (j < table_entries);
         }
         /* Increment bit-reversal counter */
-        uVar5 = 1 << (unsigned char)local_34;
-        uVar9 = uVar11 & uVar5;
-        while (uVar9 != 0) {
-          uVar11 = uVar11 ^ uVar5;
-          uVar5 = uVar5 >> 1;
-          uVar9 = uVar11 & uVar5;
+        tmp_u = 1 << (unsigned char)k_minus_1;
+        j = i & tmp_u;
+        while (j != 0) {
+          i = i ^ tmp_u;
+          tmp_u = tmp_u >> 1;
+          j = i & tmp_u;
         }
-        uVar11 = uVar11 ^ uVar5;
-        local_1c = uVar11;
-        local_88[0x10] = local_14;
-        uVar9 = local_8;
-        iVar12 = local_3c;
+        i = i ^ tmp_u;
+        code_i = i;
+        bit_count[0x10] = codes_left;
+        j = bits_per_table;
+        tmp_i = y_dummy;
         /* Back up through table levels if needed */
-        if (((1 << bVar13) - 1u & uVar11) != auStack_cc[(int)param_1 + 1]) {
+        if (((1 << w_byte) - 1u & i) != auStack_cc[(int)param_1 + 1]) {
           do {
-            iVar14 = iVar14 - (int)local_8;
-            puVar2 = auStack_cc + (int)param_1;
+            w_bits = w_bits - (int)bits_per_table;
+            tmp_p = auStack_cc + (int)param_1;
             param_1 = (int *)((int)param_1 + -1);
-          } while (((1 << (unsigned char)iVar14) - 1u & uVar11) != *puVar2);
+          } while (((1 << (unsigned char)w_bits) - 1u & i) != *tmp_p);
         }
       }
-      local_28 = local_28 + 1;
-      local_c = local_c + 1;
-      local_34 = local_34 + 1;
-    } while ((int)local_c <= (int)local_20);
+      count_ptr = count_ptr + 1;
+      k_bits = k_bits + 1;
+      k_minus_1 = k_minus_1 + 1;
+    } while ((int)k_bits <= (int)max_len);
   }
   /* Check for incomplete code set */
-  if (iVar12 != 0 && local_20 != 1) {
+  if (tmp_i != 0 && max_len != 1) {
     return (int)0xfffffffb;
   }
   return 0;
