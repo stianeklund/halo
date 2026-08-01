@@ -1549,6 +1549,99 @@ def check_raw_fnptr_conv_cast(filepath, content, lines):
     return errors
 
 
+# ---------------------------------------------------------------------------
+# Vendored open-source TU detection (lift-learnings §36)
+# ---------------------------------------------------------------------------
+
+# library -> (distinctive symbol set, upstream hint).  A library belongs here
+# only if (a) its C source is publicly available, so "lift from upstream" is
+# actionable, and (b) its names are distinctive enough that several of them in
+# one TU cannot be coincidence.  Closed-source middleware (Bink) is
+# deliberately absent: there is no source to transcribe.
+_VENDORED_FINGERPRINTS = {
+    'zlib': (
+        frozenset((
+            'inflate', 'inflateInit_', 'inflateInit2_', 'inflateReset',
+            'inflateEnd', 'inflateSync', 'inflateSyncPoint',
+            'inflateSetDictionary', 'inflate_blocks', 'inflate_blocks_free',
+            'inflate_blocks_new', 'inflate_blocks_reset', 'inflate_codes',
+            'inflate_codes_new', 'inflate_codes_free', 'inflate_fast',
+            'inflate_flush', 'inflate_trees_bits', 'inflate_trees_dynamic',
+            'inflate_trees_fixed', 'inflate_set_dictionary', 'huft_build',
+            'deflate', 'deflateInit_', 'deflateEnd', 'deflate_stored',
+            'deflate_fast', 'deflate_slow', 'longest_match', 'fill_window',
+            '_tr_init', '_tr_align', '_tr_tally', '_tr_flush_block',
+            '_tr_stored_block', 'adler32', 'crc32', 'compress', 'compress2',
+            'uncompress', 'zError', 'zlibVersion', 'zcalloc', 'zcfree',
+        )),
+        'zlib 1.1.x (infcodes.c / inftrees.c / infblock.c / trees.c). '
+        'Halo shipped it with ZLIB_DEBUG on, so z_verbose / Tracevv calls '
+        'and the "inflate:         literal" strings are in the binary and '
+        'pin the version.',
+    ),
+}
+_VENDORED_MIN_HITS = 4
+
+
+def _toplevel_defined_names(lines):
+    """Names defined at column 0 in this TU (definitions, not prototypes)."""
+    names = {}
+    for i, line in enumerate(lines):
+        if not line[:1].isalpha() and line[:1] != '_':
+            continue
+        if line.rstrip().endswith(';'):
+            continue
+        paren = line.find('(')
+        if paren <= 0:
+            continue
+        head = line[:paren].rstrip()
+        m = re.search(r'([A-Za-z_][A-Za-z0-9_]*)$', head)
+        if m:
+            names.setdefault(m.group(1), i + 1)
+    return names
+
+
+def check_vendored_source(filepath, content, lines):
+    """Flag a TU that is vendored open-source C but still holds FUN_ stubs.
+
+    When the object is a known library, the delinked reference IS that
+    library's source compiled by VC71 — so the fastest route to a match is to
+    transcribe upstream, not to keep reshaping Ghidra output.  Two things
+    Ghidra gets wrong that upstream fixes for free (lift-learnings §36):
+
+      * Parameter ORDER.  Ghidra lists @<reg> params first regardless of their
+        real source position, which shifts every later [ebp+N] operand.
+      * Expression FORM.  Upstream's `*xp++ = (j += *p++);` and its macro set
+        produce different (matching) codegen from the same logic written out
+        long-hand.
+
+    Advisory only, and silent once the TU has no FUN_ names left.
+    """
+    errors = []
+    relpath = os.path.relpath(filepath, ROOT_DIR)
+    defined = _toplevel_defined_names(lines)
+    if not defined:
+        return errors
+
+    for lib, (fingerprint, hint) in _VENDORED_FINGERPRINTS.items():
+        hits = sorted(set(defined) & fingerprint)
+        if len(hits) < _VENDORED_MIN_HITS:
+            continue
+        stubs = sorted(n for n in defined if n.startswith('FUN_'))
+        if not stubs:
+            continue
+        lineno = min(defined[n] for n in stubs)
+        errors.append(
+            f'  {relpath}:{lineno}: TU is vendored {lib} '
+            f'({len(hits)} upstream symbols: {", ".join(hits[:6])}'
+            f'{"..." if len(hits) > 6 else ""}) with {len(stubs)} FUN_ '
+            f'placeholder(s) left — lift these from the upstream source, not '
+            f'from Ghidra (lift-learnings §36). Upstream: {hint}'
+        )
+    return errors
+
+
+
 def main():
     frame_audit = '--frame-size-audit' in sys.argv
     quiet = '-q' in sys.argv or '--quiet' in sys.argv or os.environ.get('LOG_LEVEL') == 'WARNING'
@@ -1579,6 +1672,7 @@ def main():
     all_nan_guard_errors = []
     all_range_gate_errors = []
     all_fnptr_conv_errors = []
+    all_vendored_errors = []
 
     for fpath in c_files:
         with open(fpath, 'r', errors='replace') as f:
@@ -1603,6 +1697,7 @@ def main():
         all_nan_guard_errors.extend(check_nan_blind_guard(fpath, content, lines))
         all_range_gate_errors.extend(check_range_gate_relational(fpath, content, lines))
         all_fnptr_conv_errors.extend(check_raw_fnptr_conv_cast(fpath, content, lines))
+        all_vendored_errors.extend(check_vendored_source(fpath, content, lines))
         if frame_audit:
             all_frame_errors.extend(check_frame_sizes(fpath, content, lines))
 
@@ -1626,7 +1721,8 @@ def main():
             f'vec_contiguity: {len(all_contiguity_errors)}, '
             f'nan_guard: {len(all_nan_guard_errors)}, '
             f'range_gate: {len(all_range_gate_errors)}, '
-            f'fnptr_conv: {len(all_fnptr_conv_errors)}'
+            f'fnptr_conv: {len(all_fnptr_conv_errors)}, '
+            f'vendored_src: {len(all_vendored_errors)}'
         )
         if frame_audit:
             counts += f', frame_sizes: {len(all_frame_errors)}'
@@ -1639,7 +1735,8 @@ def main():
                  len(all_addr_value_add_errors) + len(all_param_loop_errors) +
                  len(all_discard_result_errors) + len(all_inplace_mut_errors) +
                  len(all_contiguity_errors) + len(all_nan_guard_errors) +
-                 len(all_range_gate_errors) + len(all_fnptr_conv_errors))
+                 len(all_range_gate_errors) + len(all_fnptr_conv_errors) +
+                 len(all_vendored_errors))
         if total:
             print(counts, file=sys.stderr)
     else:
@@ -1879,6 +1976,20 @@ def main():
                 file=sys.stderr,
             )
             for e in all_fnptr_conv_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_vendored_errors:
+            print(
+                'NOTE: vendored open-source translation unit. The delinked\n'
+                'reference is that library compiled by VC71, so transcribing\n'
+                'the upstream source beats reshaping Ghidra output: parameter\n'
+                'ORDER (Ghidra lists @<reg> params first) and expression FORM\n'
+                'alone moved two zlib functions 73%->97% and 82%->98%\n'
+                '(lift-learnings §36):\n',
+                file=sys.stderr,
+            )
+            for e in all_vendored_errors:
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 

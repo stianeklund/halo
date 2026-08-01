@@ -34305,7 +34305,7 @@
     },
     {
      "addr": "0x114740",
-     "decl": "void inflate_codes(unsigned int param_1, int *param_2, int param_3);",
+     "decl": "int inflate_codes(unsigned int s, int *z, int r);",
      "ported": true
     },
     {
@@ -34360,7 +34360,7 @@
     },
     {
      "addr": "0x115ba0",
-     "decl": "int FUN_00115ba0(unsigned int *bb@<eax>, int *param_1, unsigned int param_2, unsigned int param_3, int param_4, int param_5, int *param_6, int param_7, unsigned int *param_8, unsigned int *param_9);",
+     "decl": "int FUN_00115ba0(int *b, unsigned int n, unsigned int s, int *d, int *e, int *t, unsigned int *m@<eax>, int hp, unsigned int *hn, unsigned int *v);",
      "ported": true
     },
     {

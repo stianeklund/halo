@@ -8817,7 +8817,7 @@
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00114740": {
-      "score": 76.9,
+      "score": 97.8,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00114f60": {
@@ -8861,7 +8861,7 @@
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00115ba0": {
-      "score": 70.9,
+      "score": 97.1,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00116010": {

@@ -51,397 +51,304 @@ void *inflate_codes_new(int bl, int bd, int tl, int td, int z)
   return (void *)c;
 }
 
-/* inflate_codes: process Huffman-coded data in a compressed block.
- * 10-case state machine that decodes literal/length/distance codes.
- * Falls through to inflate_fast when enough input/output is available.
- * 0x114740 / circular_queue.obj (infcodes.c)
- * Note: declared void but tail-calls FUN_00116280 whose return (in EAX)
- * is implicitly passed to the eventual caller (FUN_00113a90). */
-void inflate_codes(unsigned int param_1, int *param_2, int param_3)
-{
-  unsigned char *t;
-  int e;
-  unsigned int *c; /* codes state struct */
-  unsigned char *read_ptr;
-  int s; /* block state pointer (saved param_1) */
-  int *z; /* z_stream pointer (saved param_2) */
-  unsigned int tmp;
-  char *fmt;
-  int tmp_i; /* was iVar12: 1<<k, table level, repeat count */
-  unsigned char *f; /* source pointer for copy */
-  int flush_result;
-  unsigned char *q; /* output pointer (working) */
-  unsigned char *p; /* write pointer (current) */
-  unsigned int m_ptr; /* available output space */
-  unsigned int n; /* available input bytes */
-  unsigned char *in_ptr; /* input pointer */
-  unsigned int b; /* bit buffer (reuses param_1 slot [EBP+0x8]) */
-  unsigned int k; /* bits in bit buffer (reuses param_2 slot [EBP+0xc]) */
-  int r; /* result code (param_3 slot [EBP+0x10]) */
-
-  z = param_2;
-  s = (int)param_1;
-  p = *(unsigned char **)(param_1 + 0x34);
-  c = *(unsigned int **)(param_1 + 4);
-  in_ptr = (unsigned char *)*param_2;
-  n = (unsigned int)param_2[1];
-  k = (unsigned int)*(int **)(param_1 + 0x1c);
-  if (p < *(unsigned char **)(param_1 + 0x30)) {
-    m_ptr = (unsigned int)(*(int *)(param_1 + 0x30) + (-1 - (int)p));
-  } else {
-    m_ptr = (unsigned int)(*(int *)(param_1 + 0x2c) - (int)p);
+/* zlib infutil.h macro set, as the original was compiled with.  Each use site
+ * expands the same text, which is what produces the reference's repeated
+ * update/reload blocks and lets the compiler tail-merge them itself. */
+#define z_verbose (*(int *)0x320e30)
+#define z_stderr (*(void **)0x331070)
+#define inflate_mask ((const unsigned int *)0x320d88)
+#define Tracevv(x)                                                             \
+  {                                                                            \
+    if (z_verbose > 1)                                                         \
+      crt_fprintf x;                                                           \
   }
-  b = *(unsigned int *)(param_1 + 0x20);
-  r = param_3;
+#define Assert(cond, msg)                                                      \
+  {                                                                            \
+    if (!(cond))                                                               \
+      FUN_00117a80(msg);                                                       \
+  }
 
-  tmp = *c;
-  while (tmp < 10) {
-    switch (tmp) {
-    case 0:
-      if (m_ptr > 0x101 && 9 < n) {
-        *(unsigned int *)(s + 0x20) = b;
-        *(unsigned int *)(s + 0x1c) = k;
-        z[1] = (int)n;
-        tmp_i = *z;
-        *z = (int)in_ptr;
-        z[2] = (int)(in_ptr + (z[2] - tmp_i));
-        *(unsigned char **)(s + 0x34) = p;
-        r = FUN_00114fa0((int)(unsigned char)*((unsigned char *)c + 0x10),
-                         (int)(unsigned char)*((unsigned char *)c + 0x11),
-                         (int)c[5], (int)c[6], s, z);
-        in_ptr = (unsigned char *)*z;
-        p = *(unsigned char **)(s + 0x34);
-        n = (unsigned int)z[1];
-        b = *(unsigned int *)(s + 0x20);
-        k = *(unsigned int *)(s + 0x1c);
-        if (p < *(unsigned char **)(s + 0x30)) {
-          m_ptr = (unsigned int)(*(int *)(s + 0x30) + (-1 - (int)p));
-        } else {
-          m_ptr = (unsigned int)(*(int *)(s + 0x2c) - (int)p);
-        }
+/* update pointers and return */
+#define UPDBITS                                                                \
+  {                                                                            \
+    *(unsigned int *)(s + 0x20) = b;                                           \
+    *(unsigned int *)(s + 0x1c) = k;                                           \
+  }
+#define UPDIN                                                                  \
+  {                                                                            \
+    z[1] = (int)n;                                                             \
+    z[2] = (int)(p + (z[2] - *z));                                             \
+    *z = (int)p;                                                               \
+  }
+#define UPDOUT { *(unsigned char **)(s + 0x34) = q; }
+#define UPDATE { UPDBITS UPDIN UPDOUT }
+#define LEAVE { UPDATE return FUN_00116280((int)s, (int)z, r); }
+
+/* get bytes and bits */
+#define LOADIN                                                                 \
+  {                                                                            \
+    p = (unsigned char *)*z;                                                   \
+    n = (unsigned int)z[1];                                                    \
+    b = *(unsigned int *)(s + 0x20);                                           \
+    k = *(unsigned int *)(s + 0x1c);                                           \
+  }
+#define NEEDBYTE                                                               \
+  {                                                                            \
+    if (n != 0)                                                                \
+      r = 0;                                                                   \
+    else                                                                       \
+      LEAVE                                                                    \
+  }
+#define NEXTBYTE (n--, *p++)
+#define NEEDBITS(j)                                                            \
+  {                                                                            \
+    while (k < (j)) {                                                          \
+      NEEDBYTE                                                                 \
+      b |= (unsigned int)NEXTBYTE << k;                                        \
+      k += 8;                                                                  \
+    }                                                                          \
+  }
+#define DUMPBITS(j)                                                            \
+  {                                                                            \
+    b >>= (j);                                                                 \
+    k -= (j);                                                                  \
+  }
+
+/* output bytes */
+#define WAVAIL                                                                 \
+  ((unsigned int)(q < *(unsigned char **)(s + 0x30)                            \
+                      ? *(int *)(s + 0x30) + (-1 - (int)q)                     \
+                      : *(int *)(s + 0x2c) - (int)q))
+#define LOADOUT                                                                \
+  {                                                                            \
+    q = *(unsigned char **)(s + 0x34);                                         \
+    m = WAVAIL;                                                                \
+  }
+#define WRAP                                                                   \
+  {                                                                            \
+    if (q == *(unsigned char **)(s + 0x2c) &&                                  \
+        *(unsigned char **)(s + 0x30) != *(unsigned char **)(s + 0x28)) {      \
+      q = *(unsigned char **)(s + 0x28);                                       \
+      m = WAVAIL;                                                              \
+    }                                                                          \
+  }
+#define FLUSH                                                                  \
+  {                                                                            \
+    UPDOUT                                                                     \
+    r = FUN_00116280((int)s, (int)z, r);                                       \
+    LOADOUT                                                                    \
+  }
+#define NEEDOUT                                                                \
+  {                                                                            \
+    if (m == 0) {                                                              \
+      WRAP                                                                     \
+      if (m == 0) {                                                            \
+        FLUSH                                                                  \
+        WRAP                                                                   \
+        if (m == 0)                                                            \
+          LEAVE                                                                \
+      }                                                                        \
+    }                                                                          \
+    r = 0;                                                                     \
+  }
+#define OUTBYTE(a)                                                             \
+  {                                                                            \
+    *q++ = (unsigned char)(a);                                                 \
+    m--;                                                                       \
+  }
+
+/* load local pointers */
+#define LOAD { LOADIN LOADOUT }
+
+/* inflate_codes: decode literal/length and distance codes until an
+ * end-of-block code or until enough input/output is available to hand off to
+ * inflate_fast.  0x114740 / circular_queue.obj (infcodes.c)
+ *
+ * s = inflate_blocks_state, z = z_stream, r = incoming return code.  Returns
+ * the value produced by inflate_flush at whichever LEAVE is taken.
+ *
+ * codes state (c) layout: [0] mode, [1] len, [2] sub.code.tree /
+ * sub.copy.get / sub.lit, [3] sub.code.need / sub.copy.dist, +0x10 lbits,
+ * +0x11 dbits, [5] ltree, [6] dtree. */
+int inflate_codes(unsigned int s, int *z, int r)
+{
+  unsigned int j;   /* temporary storage */
+  unsigned char *t; /* temporary pointer */
+  unsigned int e;   /* extra bits or operation */
+  unsigned int b;   /* bit buffer */
+  unsigned int k;   /* bits in bit buffer */
+  unsigned char *p; /* input data pointer */
+  unsigned int n;   /* bytes available there */
+  unsigned char *q; /* output window write pointer */
+  unsigned int m;   /* bytes to end of window or read pointer */
+  unsigned char *f; /* pointer to copy strings from */
+  unsigned int *c;  /* codes state */
+
+  c = *(unsigned int **)(s + 4);
+
+  /* copy input/output information to locals (UPDATE macro restores) */
+  LOAD
+
+  /* process input and output based on current state */
+  while (1)
+    switch (*c) {
+    /* waiting for "i:"=input, "o:"=output, "x:"=nothing */
+    case 0: /* START: x: set up for LEN */
+      if (m >= 258 && n >= 10) {
+        UPDATE
+        r = FUN_00114fa0((int)*((unsigned char *)c + 0x10),
+                         (int)*((unsigned char *)c + 0x11), (int)c[5],
+                         (int)c[6], (int)s, (int)z);
+        LOAD
         if (r != 0) {
-          *c = (unsigned int)(r != 1) * 2 + 7;
+          *c = r == 1 ? 7 : 9;
           break;
         }
       }
-      c[3] = (unsigned int)(unsigned char)*((unsigned char *)c + 0x10);
+      c[3] = (unsigned int)*((unsigned char *)c + 0x10);
       c[2] = c[5];
       *c = 1;
       /* fall through */
-    case 1:
-      for (; k < c[3]; k = k + 8) {
-        if (n == 0) {
-          goto LAB_00114dca;
-        }
-        n = n - 1;
-        r = 0;
-        b = b | (unsigned int)*in_ptr << (unsigned char)k;
-        in_ptr = in_ptr + 1;
-      }
-      t =
-        (unsigned char *)(c[2] +
-                          (*(unsigned int *)(0x320d88 + c[3] * 4) & b) * 8);
-      b = b >> t[1];
-      k = k - (unsigned int)t[1];
-      e = *t;
-      tmp = (unsigned int)e;
-      if (tmp == 0) {
+    case 1: /* LEN: i: get length/literal/eob next */
+      j = c[3];
+      NEEDBITS(j)
+      t = (unsigned char *)(c[2] + (inflate_mask[j] & b) * 8);
+      DUMPBITS(t[1])
+      e = (unsigned int)*t;
+      if (e == 0) { /* literal */
         c[2] = *(unsigned int *)(t + 4);
-        if (*(int *)0x320e30 > 1) {
-          tmp = *(unsigned int *)(t + 4);
-          if (tmp < 0x20 ||
-              (fmt = "inflate:         literal \'%c\'\n", 0x7e < tmp)) {
-            fmt = "inflate:         literal 0x%02x\n";
-          }
-          crt_fprintf(*(void **)0x331070, fmt, tmp);
-        }
+        Tracevv((z_stderr,
+                 c[2] >= 0x20 && c[2] < 0x7f
+                     ? "inflate:         literal '%c'\n"
+                     : "inflate:         literal 0x%02x\n",
+                 c[2]));
         *c = 6;
-      } else if ((e & 0x10) == 0) {
-        if ((e & 0x40) == 0) {
-          c[3] = tmp;
-          c[2] = (unsigned int)(t + *(int *)(t + 4) * 8);
-        } else {
-          if ((e & 0x20) == 0) {
-            *c = 9;
-            z[6] = (int)"invalid literal/length code";
-            goto switchD_caseD_9;
-          }
-          if (*(int *)0x320e30 > 1) {
-            crt_fprintf(*(void **)0x331070, "inflate:         end of block\n");
-          }
-          *c = 7;
-        }
-      } else {
-        c[2] = tmp & 0xf;
+        break;
+      }
+      if ((e & 0x10) != 0) { /* length */
+        c[2] = e & 0xf;
         c[1] = *(unsigned int *)(t + 4);
         *c = 2;
+        break;
       }
-      break;
-    case 2:
-      tmp = c[2];
-      for (; k < tmp; k = k + 8) {
-        if (n == 0)
-          goto LAB_00114dca;
-        n = n - 1;
-        r = 0;
-        b = b | (unsigned int)*in_ptr << (unsigned char)k;
-        in_ptr = in_ptr + 1;
+      if ((e & 0x40) == 0) { /* next table */
+        c[3] = e;
+        c[2] = (unsigned int)(t + *(int *)(t + 4) * 8);
+        break;
       }
-      c[1] = c[1] + (*(unsigned int *)(0x320d88 + tmp * 4) & b);
-      b = b >> (unsigned char)tmp;
-      k = k - (int)tmp;
+      if ((e & 0x20) != 0) { /* end of block */
+        Tracevv((z_stderr, "inflate:         end of block\n"));
+        *c = 7;
+        break;
+      }
+      *c = 9; /* invalid code */
+      z[6] = (int)"invalid literal/length code";
+      r = -3;
+      LEAVE
+    case 2: /* LENEXT: i: getting length extra (have base) */
+      j = c[2];
+      NEEDBITS(j)
+      c[1] += inflate_mask[j] & b;
+      DUMPBITS(j)
       c[3] = (unsigned int)*((unsigned char *)c + 0x11);
       c[2] = c[6];
-      if (*(int *)0x320e30 > 1) {
-        crt_fprintf(*(void **)0x331070, "inflate:         length %u\n", c[1]);
-      }
+      Tracevv((z_stderr, "inflate:         length %u\n", c[1]));
       *c = 3;
-      goto LAB_00114a43;
-    case 3:
-    LAB_00114a43:
-      for (; k < c[3]; k = k + 8) {
-        if (n == 0) {
-          *(unsigned int *)(s + 0x20) = b;
-          *(unsigned int *)(s + 0x1c) = k;
-          goto LAB_00114e4b;
-        }
-        n = n - 1;
-        r = 0;
-        b = b | (unsigned int)*in_ptr << (unsigned char)k;
-        in_ptr = in_ptr + 1;
-      }
-      t =
-        (unsigned char *)(c[2] +
-                          (*(unsigned int *)(0x320d88 + c[3] * 4) & b) * 8);
-      b = b >> t[1];
-      k = k - (unsigned int)t[1];
-      e = *t;
-      if ((e & 0x10) != 0) {
+      /* fall through */
+    case 3: /* DIST: i: get distance next */
+      j = c[3];
+      NEEDBITS(j)
+      t = (unsigned char *)(c[2] + (inflate_mask[j] & b) * 8);
+      DUMPBITS(t[1])
+      e = (unsigned int)*t;
+      if ((e & 0x10) != 0) { /* distance */
         c[2] = e & 0xf;
         c[3] = *(unsigned int *)(t + 4);
         *c = 4;
         break;
       }
-      if ((e & 0x40) != 0) {
-        *c = 9;
-        z[6] = (int)"invalid distance code";
-        *(unsigned int *)(s + 0x20) = b;
-        *(unsigned int *)(s + 0x1c) = k;
-        z[1] = (int)n;
-        r = -3;
-        goto LAB_00114d76;
+      if ((e & 0x40) == 0) { /* next table */
+        c[3] = e;
+        c[2] = (unsigned int)(t + *(int *)(t + 4) * 8);
+        break;
       }
-      c[3] = (unsigned int)e;
-      c[2] = (unsigned int)(t + *(int *)(t + 4) * 8);
-      break;
-    case 4:
-      tmp = c[2];
-      for (; k < tmp; k = k + 8) {
-        if (n == 0) {
-          *(unsigned int *)(s + 0x20) = b;
-          *(unsigned int *)(s + 0x1c) = k;
-          goto LAB_00114e4b;
-        }
-        n = n - 1;
-        r = 0;
-        b = b | (unsigned int)*in_ptr << (unsigned char)k;
-        in_ptr = in_ptr + 1;
-      }
-      c[3] = c[3] + (*(unsigned int *)(0x320d88 + tmp * 4) & b);
-      k = k - (int)tmp;
-      b = b >> (unsigned char)tmp;
-      if (*(int *)0x320e30 > 1) {
-        crt_fprintf(*(void **)0x331070, "inflate:         distance %u\n", c[3]);
-      }
+      *c = 9; /* invalid code */
+      z[6] = (int)"invalid distance code";
+      r = -3;
+      LEAVE
+    case 4: /* DISTEXT: i: getting distance extra */
+      j = c[2];
+      NEEDBITS(j)
+      c[3] += inflate_mask[j] & b;
+      DUMPBITS(j)
+      Tracevv((z_stderr, "inflate:         distance %u\n", c[3]));
       *c = 5;
       /* fall through */
-    case 5:
-      tmp = c[3];
-      if ((unsigned int)((int)p - *(int *)(s + 0x28)) < tmp) {
-        tmp_i = (*(int *)(s + 0x2c) - *(int *)(s + 0x28)) - (int)tmp;
-      } else {
-        tmp_i = -(int)tmp;
-      }
-      f = p + tmp_i;
-      tmp = c[1];
-      while (tmp != 0) {
-        q = p;
-        if (m_ptr == 0) {
-          if (p == *(unsigned char **)(s + 0x2c)) {
-            m_ptr = (unsigned int)*(unsigned char **)(s + 0x30);
-            q = *(unsigned char **)(s + 0x28);
-            if ((unsigned char *)m_ptr != q) {
-              if (q < (unsigned char *)m_ptr) {
-                m_ptr = (unsigned int)((int)m_ptr + (-1 - (int)q));
-              } else {
-                m_ptr = (unsigned int)(*(int *)(s + 0x2c) - (int)q);
-              }
-              p = q;
-              if (m_ptr != 0)
-                goto LAB_00114c69;
-            }
-          }
-          *(unsigned char **)(s + 0x34) = p;
-          r = FUN_00116280(s, (int)z, r);
-          q = *(unsigned char **)(s + 0x34);
-          p = *(unsigned char **)(s + 0x30);
-          if (q < p) {
-            m_ptr = (unsigned int)((int)p + (-1 - (int)q));
-          } else {
-            m_ptr = (unsigned int)(*(int *)(s + 0x2c) - (int)q);
-          }
-          if (q == *(unsigned char **)(s + 0x2c) &&
-              (read_ptr = *(unsigned char **)(s + 0x28), p != read_ptr)) {
-            q = read_ptr;
-            if (read_ptr < p) {
-              m_ptr = (unsigned int)((int)p + (-1 - (int)read_ptr));
-            } else {
-              m_ptr = (unsigned int)(*(int *)(s + 0x2c) - (int)read_ptr);
-            }
-          }
-          if (m_ptr == 0)
-            goto LAB_00114e67;
-        }
-      LAB_00114c69:
-        *q = *f;
-        p = q + 1;
-        f = f + 1;
-        m_ptr = m_ptr + -1;
-        r = 0;
-        if (f == *(unsigned char **)(s + 0x2c)) {
+    case 5: /* COPY: o: copying bytes in window, waiting for space */
+      f = q - c[3];
+      /* modulo window size -- handles invalid distances */
+      if ((unsigned int)((int)q - *(int *)(s + 0x28)) < c[3])
+        f += *(int *)(s + 0x2c) - *(int *)(s + 0x28);
+      while (c[1] != 0) {
+        NEEDOUT
+        OUTBYTE(*f++)
+        if (f == *(unsigned char **)(s + 0x2c))
           f = *(unsigned char **)(s + 0x28);
-        }
-        c[1] = c[1] - 1;
-        tmp = c[1];
+        c[1]--;
       }
       *c = 0;
       break;
-    case 6:
-      q = p;
-      if (m_ptr == 0) {
-        if (p == *(unsigned char **)(s + 0x2c)) {
-          m_ptr = (unsigned int)*(unsigned char **)(s + 0x30);
-          q = *(unsigned char **)(s + 0x28);
-          if ((unsigned char *)m_ptr != q) {
-            if (q < (unsigned char *)m_ptr) {
-              m_ptr = (unsigned int)((int)m_ptr + (-1 - (int)q));
-            } else {
-              m_ptr = (unsigned int)(*(int *)(s + 0x2c) - (int)q);
-            }
-            p = q;
-            if (m_ptr != 0)
-              goto LAB_00114d37;
-          }
-        }
-        *(unsigned char **)(s + 0x34) = p;
-        r = FUN_00116280(s, (int)z, r);
-        q = *(unsigned char **)(s + 0x34);
-        p = *(unsigned char **)(s + 0x30);
-        if (q < p) {
-          m_ptr = (unsigned int)((int)p + (-1 - (int)q));
-        } else {
-          m_ptr = (unsigned int)(*(int *)(s + 0x2c) - (int)q);
-        }
-        if (q == *(unsigned char **)(s + 0x2c) &&
-            (f = *(unsigned char **)(s + 0x28), p != f)) {
-          q = f;
-          if (f < p) {
-            m_ptr = (unsigned int)((int)p + (-1 - (int)f));
-          } else {
-            m_ptr = (unsigned int)(*(int *)(s + 0x2c) - (int)f);
-          }
-        }
-        if (m_ptr == 0) {
-          goto LAB_00114e67;
-        }
-      }
-    LAB_00114d37:
-      *q = (char)c[2];
-      p = q + 1;
-      m_ptr = m_ptr + -1;
-      r = 0;
+    case 6: /* LIT: o: got literal, waiting for output space */
+      NEEDOUT
+      OUTBYTE(c[2])
       *c = 0;
       break;
-    case 7:
-      if ((unsigned int)k > 7) {
-        if ((unsigned int)k > 0xf) {
-          FUN_00117a80("inflate_codes grabbed too many bytes");
-        }
-        k = k - 8;
-        n = n + 1;
-        in_ptr = in_ptr + -1;
+    case 7: /* WASH: o: got eob, possibly more output */
+      if (k > 7) { /* return unused byte, if any */
+        Assert(k < 16, "inflate_codes grabbed too many bytes")
+        k -= 8;
+        n++;
+        p--; /* can always return one */
       }
-      *(unsigned char **)(s + 0x34) = p;
-      flush_result = FUN_00116280(s, (int)z, r);
-      p = *(unsigned char **)(s + 0x34);
-      if (*(unsigned char **)(s + 0x30) != p) {
-        *(unsigned int *)(s + 0x20) = b;
-        *(unsigned int *)(s + 0x1c) = k;
-        z[1] = (int)n;
-        z[2] = (int)(in_ptr + (z[2] - *z));
-        *z = (int)in_ptr;
-        *(unsigned char **)(s + 0x34) = p;
-        FUN_00116280(s, (int)z, flush_result);
-        return;
-      }
+      FLUSH
+      if (*(unsigned char **)(s + 0x30) != *(unsigned char **)(s + 0x34))
+        LEAVE
       *c = 8;
       /* fall through */
-    case 8:
-      *(unsigned int *)(s + 0x20) = b;
-      *(unsigned int *)(s + 0x1c) = k;
-      z[1] = (int)n;
+    case 8: /* END */
       r = 1;
-      goto LAB_00114d76;
-    case 9:
-      goto switchD_caseD_9;
+      LEAVE
+    case 9: /* BADCODE: x: got error */
+      r = -3;
+      LEAVE
+    default:
+      r = -2;
+      LEAVE
     }
-    tmp = *c;
-  }
-  /* default exit: bad state */
-  *(unsigned int *)(s + 0x20) = b;
-  *(unsigned int *)(s + 0x1c) = k;
-  z[1] = (int)n;
-  r = -2;
-LAB_00114d76:
-  z[2] = (int)(in_ptr + (z[2] - *z));
-LAB_00114d82:
-  *z = (int)in_ptr;
-  *(unsigned char **)(s + 0x34) = p;
-  FUN_00116280(s, (int)z, r);
-  return;
-
-switchD_caseD_9:
-  *(unsigned int *)(s + 0x20) = b;
-  *(unsigned int *)(s + 0x1c) = k;
-  z[1] = (int)n;
-  z[2] = (int)(in_ptr + (z[2] - *z));
-  r = -3;
-  goto LAB_00114d82;
-
-LAB_00114dca:
-  *(unsigned int *)(s + 0x20) = b;
-  *(unsigned int *)(s + 0x1c) = k;
-  tmp_i = *z;
-  *z = (int)in_ptr;
-  z[1] = 0;
-  z[2] = (int)(in_ptr + (z[2] - tmp_i));
-  *(unsigned char **)(s + 0x34) = p;
-  FUN_00116280(s, (int)z, r);
-  return;
-
-LAB_00114e4b:
-  z[2] = (int)(in_ptr + (z[2] - *z));
-  z[1] = 0;
-  goto LAB_00114d82;
-
-LAB_00114e67:
-  *(unsigned int *)(s + 0x20) = b;
-  *(unsigned int *)(s + 0x1c) = k;
-  z[1] = (int)n;
-  z[2] = (int)(in_ptr + (z[2] - *z));
-  p = q;
-  goto LAB_00114d82;
 }
+
+#undef z_verbose
+#undef z_stderr
+#undef inflate_mask
+#undef Tracevv
+#undef Assert
+#undef UPDBITS
+#undef UPDIN
+#undef UPDOUT
+#undef UPDATE
+#undef LEAVE
+#undef LOADIN
+#undef NEEDBYTE
+#undef NEXTBYTE
+#undef NEEDBITS
+#undef DUMPBITS
+#undef WAVAIL
+#undef LOADOUT
+#undef WRAP
+#undef FLUSH
+#undef NEEDOUT
+#undef OUTBYTE
+#undef LOAD
 
 /* inflate_codes_free: free a codes state struct.
  * 0x114f60 / circular_queue.obj (inflate.c) */
@@ -1080,307 +987,232 @@ int inflateSyncPoint(int z)
   return (int)0xfffffffe;
 }
 
-/* huft_build: build Huffman decode tables from code length array.
- * Generates multi-level lookup tables for fast Huffman decoding.
+/* zlib inflate_huft: one 8-byte Huffman decode table entry.  The original
+ * writes the two byte members with `movb` into [EBP-0x2c] / [EBP-0x2b] and
+ * copies whole entries with a two-dword structure assignment. */
+typedef struct inflate_huft_s {
+  unsigned char exop; /* number of extra bits or operation */
+  unsigned char bits; /* number of bits in this code or subcode */
+  unsigned short pad;
+  unsigned int base; /* literal, length base, distance base, or table offset */
+} inflate_huft;
+
+#define BMAX 15    /* maximum bit length of any code */
+#define MANY 0x5a0 /* number of huft entries in the caller's table space */
+
+/* huft_build: build a Huffman decoding table.
  * 0x115ba0 / circular_queue.obj (inftrees.c)
- * bb is passed @eax (register arg); returns 0 on success, -3/-4/-5 on error. */
-int FUN_00115ba0(unsigned int *bb, int *param_1, unsigned int param_2,
-                 unsigned int param_3, int param_4, int param_5, int *param_6,
-                 int param_7, unsigned int *param_8, unsigned int *param_9)
+ *
+ *   b  = code lengths in bits (all assumed <= BMAX)
+ *   n  = number of codes (assumed <= 288)
+ *   s  = number of simple-valued codes (0..s-1)
+ *   d  = list of base values for codes >= s
+ *   e  = list of extra bits for codes >= s
+ *   t  = result: starting table
+ *   m  = maximum lookup bits, returns actual
+ *   hp = space for the tables
+ *   hn = hufts used in space
+ *   v  = working area for huft_build
+ *
+ * `m` is the one argument MSVC passes in EAX (private register convention for
+ * a file-static helper), hence the @<eax> annotation on the 7th parameter in
+ * kb.json even though the stack arguments keep their original order.
+ *
+ * Returns 0 (Z_OK), -3 (Z_DATA_ERROR: over-subscribed set), -4 (Z_MEM_ERROR:
+ * out of huft space) or -5 (Z_BUF_ERROR: incomplete set). */
+int FUN_00115ba0(int *b, unsigned int n, unsigned int s, int *d, int *e,
+                 int *t, unsigned int *m, int hp, unsigned int *hn,
+                 unsigned int *v)
 {
-  int parent_table;
-  unsigned int *tmp_p; /* was puVar2: walks bit_count[] / x[] */
-  unsigned int tmp_u; /* was uVar5: multi-role scalar temp */
-  unsigned int tmp_u2; /* was uVar7 */
-  int tmp_i3; /* was iVar6 */
-  int tmp_i2; /* was iVar8 */
-  unsigned int j;
-  unsigned int *fill_ptr;
-  unsigned int i;
-  int tmp_i;
-  int w_byte;
-  int w_bits;
-  unsigned int tmp_u3; /* was uVar15: x offset / symbol / base */
-  int table_stack[14]; /* u: table stack */
-  unsigned int auStack_cc[17]; /* x: bit offsets */
-  unsigned int bit_count[17]; /* c: bit counts */
-  int w_next;
-  int *u_slot;
-  int y_dummy;
-  unsigned int table_entries;
-  int k_minus_1;
-  unsigned int table_entry; /* r: table entry (4 bytes: byte0=Exop, byte1=Bits,
-                            dword+4=Base) */
-  unsigned int zero_init = 0;
-  unsigned int *count_ptr;
-  int tmp_i4; /* was local_24: x byte offset, then w delta */
-  unsigned int max_len;
-  unsigned int code_i;
-  unsigned int *walk_ptr;
-  unsigned int codes_left;
-  int cur_table;
-  unsigned int k_bits;
-  unsigned int bits_per_table;
-  int *len_ptr;
+  unsigned int a;           /* counter for codes of length k */
+  unsigned int c[BMAX + 1]; /* bit length count table */
+  unsigned int f;           /* i repeats in table every f entries */
+  int g;                    /* maximum code length */
+  int h;                    /* table level */
+  unsigned int i;           /* counter, current code */
+  unsigned int j;           /* counter */
+  int k;                    /* number of bits in current code */
+  int l;                    /* bits per table (returned in m) */
+  unsigned int mask;        /* (1 << w) - 1 */
+  unsigned int *p;          /* pointer into c[], b[], or v[] */
+  inflate_huft *q;          /* points to current table */
+  inflate_huft r;           /* table entry for structure assignment */
+  inflate_huft *u[BMAX];    /* table stack */
+  int w;                    /* bits before this table == (l * h) */
+  unsigned int x[BMAX + 1]; /* bit offsets, then code stack */
+  unsigned int *xp;         /* pointer into x */
+  int y;                    /* number of dummy codes added */
+  unsigned int z;           /* number of entries in current table */
 
-  /* Zero the bit count array c[0..15] */
-  bit_count[0] = 0;
-  bit_count[1] = 0;
-  bit_count[2] = 0;
-  bit_count[3] = 0;
-  bit_count[4] = 0;
-  bit_count[5] = 0;
-  bit_count[6] = 0;
-  bit_count[7] = 0;
-  bit_count[8] = 0;
-  bit_count[9] = 0;
-  bit_count[10] = 0;
-  bit_count[11] = 0;
-  bit_count[12] = 0;
-  bit_count[13] = 0;
-  bit_count[14] = 0;
-  bit_count[15] = 0;
-
-  /* Count bit lengths */
-  len_ptr = param_1;
-  i = param_2;
+  /* Generate counts for each bit length */
+  c[0] = 0;
+  c[1] = 0;
+  c[2] = 0;
+  c[3] = 0;
+  c[4] = 0;
+  c[5] = 0;
+  c[6] = 0;
+  c[7] = 0;
+  c[8] = 0;
+  c[9] = 0;
+  c[10] = 0;
+  c[11] = 0;
+  c[12] = 0;
+  c[13] = 0;
+  c[14] = 0;
+  c[15] = 0;
+  p = (unsigned int *)b;
+  i = n;
   do {
-    bit_count[*len_ptr] = bit_count[*len_ptr] + 1;
-    len_ptr = len_ptr + 1;
-    i = i - 1;
-  } while (i != 0);
-
-  /* If all codes are zero length, nothing to do */
-  if (bit_count[0] == param_2) {
-    *param_6 = 0;
-    *bb = 0;
+    c[*p++]++; /* assume all entries <= BMAX */
+  } while (--i != 0);
+  if (c[0] == n) { /* null input--all zero length codes */
+    *t = 0;
+    *m = 0;
     return 0;
   }
 
-  /* Find minimum and maximum code lengths */
-  bits_per_table = *bb;
-  i = 1;
-  do {
-    if (bit_count[i] != 0)
+  /* Find minimum and maximum length, bound *m by those */
+  l = (int)*m;
+  for (j = 1; j <= BMAX; j++)
+    if (c[j] != 0)
       break;
-    if (bit_count[i + 1] != 0) {
-      i = i + 1;
+  k = (int)j; /* minimum code length */
+  if ((unsigned int)l < j)
+    l = (int)j;
+  for (i = BMAX; i != 0; i--)
+    if (c[i] != 0)
       break;
-    }
-    if (bit_count[i + 2] != 0) {
-      i = i + 2;
-      break;
-    }
-    if (bit_count[i + 3] != 0) {
-      i = i + 3;
-      break;
-    }
-    if (bit_count[i + 4] != 0) {
-      i = i + 4;
-      break;
-    }
-    i = i + 5;
-  } while (i < 0x10);
-  k_bits = i;
-  if (bits_per_table < i) {
-    bits_per_table = i;
-  }
-  max_len = 0xf;
-  do {
-    if (bit_count[max_len] != 0)
-      break;
-    max_len = max_len - 1;
-  } while (max_len != 0);
-  if (max_len < bits_per_table) {
-    bits_per_table = max_len;
-  }
-  j = bits_per_table;
-  tmp_i = 1 << (unsigned char)i;
-  *bb = bits_per_table;
+  g = (int)i; /* maximum code length */
+  if ((unsigned int)l > i)
+    l = (int)i;
+  *m = (unsigned int)l;
 
-  /* Check for over-subscribed or incomplete set */
-  for (; i < max_len; i = i + 1) {
-    if ((int)(tmp_i - (int)bit_count[i]) < 0) {
-      return (int)0xfffffffd;
-    }
-    tmp_i = (tmp_i - (int)bit_count[i]) * 2;
-  }
-  tmp_i4 = max_len * 4;
-  tmp_i = tmp_i - (int)bit_count[max_len];
-  y_dummy = tmp_i;
-  if (tmp_i < 0) {
-    return (int)0xfffffffd;
-  }
-  bit_count[max_len] = bit_count[max_len] + (unsigned int)tmp_i;
+  /* Adjust last length count to fill out codes, if needed */
+  for (y = 1 << j; j < i; j++, y <<= 1)
+    if ((y -= (int)c[j]) < 0)
+      return -3;
+  if ((y -= (int)c[i]) < 0)
+    return -3;
+  c[i] += (unsigned int)y;
 
-  /* Generate offsets into symbol table for each code length */
-  tmp_i2 = 0;
-  w_bits = (int)max_len - 1;
-  auStack_cc[2] = 0;
-  if (w_bits != 0) {
-    tmp_i3 = 0;
-    do {
-      tmp_i2 = tmp_i2 + *(int *)((int)bit_count + tmp_i3 + 4);
-      w_bits = w_bits + -1;
-      *(int *)((int)auStack_cc + tmp_i3 + 0xc) = tmp_i2;
-      tmp_i3 = tmp_i3 + 4;
-    } while (w_bits != 0);
+  /* Generate starting offsets into the value table for each length */
+  x[1] = j = 0;
+  p = c + 1;
+  xp = x + 2;
+  while (--i != 0) { /* note that i == g from above */
+    *xp++ = (j += *p++);
   }
 
-  /* Fill the symbol table with sorted values */
+  /* Make a table of values in order of bit lengths */
+  p = (unsigned int *)b;
   i = 0;
   do {
-    tmp_i2 = *param_1;
-    walk_ptr = (unsigned int *)(param_1 + 1);
-    if (tmp_i2 != 0) {
-      tmp_u3 = auStack_cc[tmp_i2 + 1];
-      param_9[tmp_u3] = i;
-      auStack_cc[tmp_i2 + 1] = tmp_u3 + 1;
-    }
-    i = i + 1;
-    param_1 = (int *)walk_ptr;
-  } while (i < param_2);
+    j = *p++;
+    if (j != 0)
+      v[x[j]++] = i;
+  } while (++i < n);
+  n = x[g]; /* set n to length of v */
 
-  /* Generate the Huffman tables */
-  tmp_i2 = *(int *)((int)auStack_cc + tmp_i4 + 4);
-  walk_ptr = param_9;
-  auStack_cc[1] = 0;
-  table_stack[0] = 0;
-  cur_table = 0;
-  table_entries = 0;
+  /* Generate the Huffman codes and for each, make the table entries */
+  x[0] = 0; /* first Huffman code is zero */
   i = 0;
-  w_bits = -(int)j;
-  code_i = 0;
-  param_1 = (int *)0xffffffff;
-  if ((int)k_bits <= (int)max_len) {
-    k_minus_1 = (int)k_bits - 1;
-    count_ptr = bit_count + k_bits;
-    tmp_u3 = zero_init;
-    do {
-      bit_count[0x10] = *count_ptr;
-      tmp_i = y_dummy;
-      while (y_dummy = tmp_i, bit_count[0x10] != 0) {
-        codes_left = bit_count[0x10] - 1;
-        w_next = w_bits + (int)j;
-        if (w_next < (int)k_bits) {
-          tmp_i4 = w_bits - (int)j;
-          do {
-            w_bits = w_bits + (int)j;
-            tmp_i4 = tmp_i4 + (int)j;
-            tmp_i = (int)param_1 + 1;
-            w_next = w_next + (int)j;
-            i = max_len - (unsigned int)w_bits;
-            if (j < max_len - (unsigned int)w_bits) {
-              i = j;
+  p = v;                  /* grab values in bit order */
+  h = -1;                 /* no tables yet--level -1 */
+  w = -l;                 /* bits decoded == (l * h) */
+  u[0] = (inflate_huft *)0; /* just to keep compilers happy */
+  q = (inflate_huft *)0;    /* ditto */
+  z = 0;                    /* ditto */
+
+  /* go through the bit lengths (k already is bits in shortest code) */
+  for (; k <= g; k++) {
+    a = c[k];
+    while (a-- != 0) {
+      /* here i is the Huffman code of length k bits for value *p */
+      /* make tables up to required level */
+      while (k > w + l) {
+        h++;
+        w += l; /* previous table always l bits */
+
+        /* compute minimum size table less than or equal to l bits */
+        z = (unsigned int)(g - w);
+        z = z > (unsigned int)l ? (unsigned int)l : z; /* table size upper limit */
+        j = (unsigned int)(k - w);
+        f = 1u << j;
+        if (f > a + 1) { /* try a k-w bit table */
+          /* too few codes for k-w bit table */
+          f -= a + 1; /* deduct codes from patterns left */
+          xp = c + k;
+          if (j < z)
+            while (++j < z) { /* try smaller tables up to z bits */
+              f <<= 1;
+              if (f <= *++xp)
+                break;  /* enough codes to use up j bits */
+              f -= *xp; /* else deduct codes from patterns */
             }
-            j = k_bits - (unsigned int)w_bits;
-            tmp_u = 1 << (unsigned char)j;
-            if (bit_count[0x10] < tmp_u &&
-                (tmp_i3 = (int)tmp_u + (-1 - (int)codes_left), tmp_p = count_ptr,
-                 j < i)) {
-              while (j = j + 1, j < i) {
-                tmp_u = tmp_p[1];
-                tmp_u2 = (unsigned int)tmp_i3 * 2;
-                if (tmp_u2 < tmp_u || tmp_u2 - tmp_u == 0)
-                  break;
-                tmp_i3 = (int)(tmp_u2 - tmp_u);
-                tmp_p = tmp_p + 1;
-              }
-            }
-            table_entries = 1 << (unsigned char)j;
-            tmp_u = table_entries + *param_8;
-            if (0x5a0 < tmp_u) {
-              return (int)0xfffffffc;
-            }
-            tmp_i3 = param_7 + (int)*param_8 * 8;
-            u_slot = table_stack + tmp_i;
-            table_stack[tmp_i] = tmp_i3;
-            i = code_i;
-            *param_8 = tmp_u;
-            cur_table = tmp_i3;
-            if (tmp_i == 0) {
-              *param_6 = tmp_i3;
-            } else {
-              table_entry = (table_entry & 0xffffff00) | (unsigned char)j;
-              j = code_i >> (unsigned char)tmp_i4;
-              parent_table = u_slot[-1];
-              auStack_cc[(int)param_1 + 2] = code_i;
-              table_entry = (table_entry & 0xffff00ff) |
-                         ((unsigned int)(unsigned char)bits_per_table << 8);
-              tmp_u3 = (unsigned int)(((tmp_i3 - parent_table) >> 3) - (int)j);
-              *(unsigned int *)(parent_table + j * 8) = table_entry;
-              *(unsigned int *)(parent_table + 4 + j * 8) = tmp_u3;
-            }
-            j = bits_per_table;
-            param_1 = (int *)tmp_i;
-          } while (w_next < (int)k_bits);
         }
-        w_byte = (unsigned char)w_bits;
-        if (walk_ptr < param_9 + tmp_i2) {
-          tmp_u3 = *walk_ptr;
-          if (tmp_u3 < param_3) {
-            table_entry = (table_entry & 0xffffff00) |
-                       (unsigned int)((tmp_u3 < 0x100) - 1u & 0x60);
-          } else {
-            tmp_i = (int)(tmp_u3 - param_3) * 4;
-            table_entry = (table_entry & 0xffffff00) |
-                       (unsigned int)((
-                         unsigned char)(*(char *)(tmp_i + param_5) + 0x50));
-            tmp_u3 = *(unsigned int *)(tmp_i + param_4);
-          }
-          walk_ptr = walk_ptr + 1;
+        z = 1u << j; /* table entries for j-bit table */
+
+        /* allocate new table */
+        if (*hn + z > MANY)
+          return -4; /* overflow of MANY */
+        q = (inflate_huft *)(hp + (int)*hn * 8);
+        u[h] = q;
+        *hn += z;
+
+        /* connect to last table, if there is one */
+        if (h != 0) {
+          x[h] = i;                  /* save pattern for backing up */
+          r.bits = (unsigned char)l; /* bits to dump before this table */
+          r.exop = (unsigned char)j; /* bits in this table */
+          j = i >> (w - l);
+          r.base = (unsigned int)(q - u[h - 1] - j); /* offset to this table */
+          u[h - 1][j] = r;                           /* connect to last table */
         } else {
-          table_entry = (table_entry & 0xffffff00) | 0xc0;
-        }
-        table_entry =
-          (table_entry & 0xffff0000) |
-          ((unsigned int)(unsigned char)((char)k_bits - w_byte) << 8) |
-          (table_entry & 0xff);
-        tmp_i = 1 << ((char)k_bits - w_byte & 0x1f);
-        j = i >> w_byte;
-        if (j < table_entries) {
-          fill_ptr = (unsigned int *)(cur_table + j * 8);
-          do {
-            *fill_ptr = table_entry;
-            fill_ptr[1] = tmp_u3;
-            fill_ptr = fill_ptr + tmp_i * 2;
-            j = j + (unsigned int)tmp_i;
-            i = code_i;
-          } while (j < table_entries);
-        }
-        /* Increment bit-reversal counter */
-        tmp_u = 1 << (unsigned char)k_minus_1;
-        j = i & tmp_u;
-        while (j != 0) {
-          i = i ^ tmp_u;
-          tmp_u = tmp_u >> 1;
-          j = i & tmp_u;
-        }
-        i = i ^ tmp_u;
-        code_i = i;
-        bit_count[0x10] = codes_left;
-        j = bits_per_table;
-        tmp_i = y_dummy;
-        /* Back up through table levels if needed */
-        if (((1 << w_byte) - 1u & i) != auStack_cc[(int)param_1 + 1]) {
-          do {
-            w_bits = w_bits - (int)bits_per_table;
-            tmp_p = auStack_cc + (int)param_1;
-            param_1 = (int *)((int)param_1 + -1);
-          } while (((1 << (unsigned char)w_bits) - 1u & i) != *tmp_p);
+          *t = (int)q; /* first table is returned result */
         }
       }
-      count_ptr = count_ptr + 1;
-      k_bits = k_bits + 1;
-      k_minus_1 = k_minus_1 + 1;
-    } while ((int)k_bits <= (int)max_len);
+
+      /* set up table entry in r */
+      r.bits = (unsigned char)(k - w);
+      if (p >= v + n) {
+        r.exop = 128 + 64; /* out of values--invalid code */
+      } else if (*p < s) {
+        /* 256 is end-of-block */
+        r.exop = (unsigned char)(*p < 256 ? 0 : 32 + 64);
+        r.base = *p++; /* simple code is just the value */
+      } else {
+        /* non-simple--look up in lists */
+        r.exop = (unsigned char)(e[*p - s] + 16 + 64);
+        r.base = (unsigned int)d[*p++ - s];
+      }
+
+      /* fill code-like entries with r */
+      f = 1u << (k - w);
+      for (j = i >> w; j < z; j += f)
+        q[j] = r;
+
+      /* backwards increment the k-bit code i */
+      for (j = 1u << (k - 1); (i & j) != 0; j >>= 1)
+        i ^= j;
+      i ^= j;
+
+      /* backup over finished tables */
+      mask = (1u << w) - 1; /* needed on HP, cc -O bug */
+      while ((i & mask) != x[h]) {
+        h--; /* don't need to update q */
+        w -= l;
+        mask = (1u << w) - 1;
+      }
+    }
   }
-  /* Check for incomplete code set */
-  if (tmp_i != 0 && max_len != 1) {
-    return (int)0xfffffffb;
-  }
-  return 0;
+
+  /* Return Z_BUF_ERROR if we were given an incomplete table */
+  return (y != 0 && g != 1) ? -5 : 0;
 }
+
+#undef BMAX
+#undef MANY
 
 /* inflate_trees_bits: build decode table for bit-length codes.
  * 0x116010 / circular_queue.obj (inflate.c) */
@@ -1394,8 +1226,8 @@ int inflate_trees_bits(int *c, int *bb, int tl, int td, int z)
   work = (*(int (**)(int, int, int))(z + 0x20))(*(int *)(z + 0x28), 0x13, 4);
   if (work == 0)
     return -4;
-  result = FUN_00115ba0((unsigned int *)bb, c, 0x13, 0x13, 0, 0, (int *)tl, td,
-                       &hn, (unsigned int *)work);
+  result = FUN_00115ba0(c, 0x13, 0x13, 0, 0, (int *)tl, (unsigned int *)bb, td,
+                        &hn, (unsigned int *)work);
   if (result == -3) {
     *(const char **)(z + 0x18) = "oversubscribed dynamic bit lengths tree";
     (*(void (**)(int, int))(z + 0x24))(*(int *)(z + 0x28), work);
@@ -1424,15 +1256,16 @@ int inflate_trees_dynamic(unsigned int param_1, int param_2, int param_3, int *p
                                                        0x120, 4);
   if (work == 0)
     return -4;
-  result = FUN_00115ba0((unsigned int *)param_4, (int *)param_3, param_1, 0x101,
-                       (int)0x28d960, (int)0x28d9e0, (int *)param_6, param_8,
-                       &hn, (unsigned int *)work);
+  result = FUN_00115ba0((int *)param_3, param_1, 0x101, (int *)0x28d960,
+                        (int *)0x28d9e0, (int *)param_6,
+                        (unsigned int *)param_4, param_8, &hn,
+                        (unsigned int *)work);
   if (result == 0) {
     if (*param_4 != 0) {
       result = FUN_00115ba0(
-        (unsigned int *)param_5, (int *)(param_3 + (int)param_1 * 4),
-        (unsigned int)param_2, 0, (int)0x28da60, (int)0x28dad8, (int *)param_7,
-        param_8, &hn, (unsigned int *)work);
+        (int *)(param_3 + (int)param_1 * 4), (unsigned int)param_2, 0,
+        (int *)0x28da60, (int *)0x28dad8, (int *)param_7,
+        (unsigned int *)param_5, param_8, &hn, (unsigned int *)work);
       if (result == 0) {
         if (*param_5 != 0 || param_1 < 0x102) {
           (*(void (**)(int, int))(param_9 + 0x24))(*(int *)(param_9 + 0x28),
