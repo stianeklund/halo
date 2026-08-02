@@ -198,7 +198,7 @@ int inflate_codes(unsigned int s, int *z, int r)
         UPDATE
         r = FUN_00114fa0((int)*((unsigned char *)c + 0x10),
                          (int)*((unsigned char *)c + 0x11), (int)c[5],
-                         (int)c[6], (int)s, (int)z);
+                         (int)c[6], (int)s, z);
         LOAD
         if (r != 0) {
           *c = r == 1 ? 7 : 9;
