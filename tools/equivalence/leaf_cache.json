@@ -30139,6 +30139,11 @@
     "confidence": "high",
     "coverage_pct": 94.3
   },
+  "0xb7e30": {
+    "class": "non_leaf",
+    "confidence": "moderate",
+    "coverage_pct": 69.8
+  },
   "0xb7f90": {
     "class": "non_leaf",
     "confidence": "none",
