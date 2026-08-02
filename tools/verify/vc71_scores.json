@@ -12252,6 +12252,10 @@
       "score": 95.3,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
+    "FUN_00182cf0": {
+      "score": 95.3,
+      "source": "src/halo/rasterizer/rasterizer_text.c"
+    },
     "FUN_00183120": {
       "score": 91.8,
       "source": "src/halo/rasterizer/rasterizer_text.c"
@@ -16711,6 +16715,10 @@
     "rasterizer_window_set_fog": {
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_xbox_bitmap_swizzle3d_long": {
+      "score": 95.3,
+      "source": "src/halo/rasterizer/rasterizer_text.c"
     },
     "real_math_initialize": {
       "score": 100.0,
