@@ -16645,7 +16645,7 @@
       "source": "src/halo/rasterizer/rasterizer_sprites.c"
     },
     "rasterizer_widget_submit_occlusion_test": {
-      "score": 91.0,
+      "score": 94.5,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "rasterizer_window_get_fog": {

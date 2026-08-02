@@ -1742,7 +1742,14 @@ void FUN_001749b0(void)
   short rect[4]; /* [EBP-0xc] x0, y0, x1, y1 */
   int area; /* [EBP-0x10] viewport area — the FIDIV divisor */
   unsigned int pixels; /* [EBP-0x14] visibility-test result, seeded to -1 */
-  unsigned int timestamp; /* [EBP-0x1c] second out param */
+  /* [EBP-0x1c] second out param — EIGHT bytes, not four.  The third
+   * parameter of D3DDevice_GetVisibilityTestResult is a ULONGLONG* (64-bit
+   * GPU timestamp); the original reserves [EBP-0x1c]..[EBP-0x15] for it,
+   * with `pixels` starting at [EBP-0x14].  A 4-byte local here lets the
+   * callee's high dword overwrite the neighbouring local (lift-learnings
+   * §37).  Spelled as two dwords rather than a 64-bit scalar so the slot
+   * keeps 4-byte alignment and clang does not realign the frame. */
+  unsigned int timestamp[2];
   char text[0x100]; /* [EBP-0x11c] */
   char ok; /* EBX — running success flag */
   int hr;
@@ -1771,7 +1778,7 @@ void FUN_001749b0(void)
   /* the two LEAs and the index push are re-done every iteration in the
    * original (the loop head is the first LEA, not the CALL). */
   do {
-    hr = D3DDevice_GetVisibilityTestResult(0xfff, &pixels, &timestamp);
+    hr = D3DDevice_GetVisibilityTestResult(0xfff, &pixels, timestamp);
   } while (hr == (int)0x88760828);
   if (ok != 0 && hr >= 0) {
     ok = 1;

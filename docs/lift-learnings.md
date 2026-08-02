@@ -1334,3 +1334,63 @@ The delinked reference *is* that library compiled by VC71. Matching the source t
 * Stubs constrain what the differential proves. A no-op `inflate_fast` stub leaves the `case START` handoff covered by byte-match only, and COPY distances must stay within the window because the lift resolves the wrap with a single adjustment (as the binary does) rather than zlib 1.2's `while` loop. Say so rather than implying full coverage.
 
 **Rule:** before lifting anything in an unfamiliar object, look at the names already recovered in that TU. If they belong to a public library, stop and fetch the upstream source — then transcribe it, including parameter order, declaration order, array bounds, macros and expression form, and let the compiler reproduce the codegen. Treat a low score in such a TU as evidence that the source is wrong, not that a ceiling has been reached.
+
+## 37. 4-Byte Local Passed as a 64-Bit Out-Parameter — Callee's High Dword Clobbers the Neighbouring Local
+
+**Symptom (2026-08-02):** ceiling lamps and other BSP light sources rendered
+their lens flares straight through walls. In the patched build every flare in a
+level drew at full brightness regardless of occlusion; the unpatched build drew
+none of them (correctly occluded). No crash, no assert, no VC71 movement.
+
+**Cause:** `rasterizer_widget_get_occlusion_test_result` (0x17adc0) calls
+`D3DDevice_GetVisibilityTestResult(index, &result, &timestamp)`. The XDK's third
+parameter is a **`ULONGLONG*`** — the 64-bit GPU timestamp — so the callee writes
+**8 bytes** through it. The lift declared the local `unsigned int timestamp;`
+(4 bytes). clang then packed the frame as `sub esp,8` with
+
+```
+[ebp-0x14] timestamp   (4 bytes, declared)
+[ebp-0x10] occlusion_test_result
+```
+
+so the timestamp's high dword landed **on `occlusion_test_result`**. The function
+returned a timestamp fragment instead of the visible-pixel count. Downstream,
+`rasterizer_lights_update_lens_flare_alphas` (0x181180) computes
+
+```c
+quotient = (FUN_0017d040(idx) * 0xff + count/2) / count;   /* count = quad area */
+new_alpha = quotient < 0xff ? quotient : 0xff;
+```
+
+A large garbage numerator saturates the quotient, so every flare's alpha pinned
+to 255 — "fully visible" — and the flare drew over the wall in front of it.
+(Flares are drawn with Z-test off by design; the occlusion **query** is the only
+thing that hides them, which is why corrupting it looks like "light through
+walls" rather than a depth bug.)
+
+**The binary states the size.** The original reserves `SUB ESP,0xc` for exactly
+two locals — the 4-byte result at `[EBP-4]` and the timestamp at `[EBP-0xc]`,
+i.e. an 8-byte slot. The same function shape appears at 0x1749b0 (overdraw
+stats): `pixels` at `[EBP-0x14]`, `timestamp` at `[EBP-0x1c]` — again 8 bytes.
+Both sites had the bug.
+
+**Why nothing caught it:**
+* It never crashes or asserts — a local is corrupted, not a pointer.
+* VC71 byte-match barely moves: the frame is only 4 bytes short.
+* Unicorn equivalence stubs the D3D import, so the oracle never performs the
+  64-bit store that causes the divergence.
+* `check_frame_sizes` needs the original's `SUB ESP,N` written in a source
+  comment and only fires at a gap `>= 8`; this gap is 4.
+
+**Rule:** when a callee writes through a pointer out-parameter, size the local
+from the *callee's* store width, not from the decompiler's local type. Derive
+the width from the original's frame: the gap between consecutive out-param
+slots is the slot size. For a wide slot, declare `unsigned int name[2];` (8
+bytes, 4-aligned — matching MSVC's layout) rather than a 64-bit scalar, which
+can force 8-byte alignment and inflate the frame.
+
+**Automation:** `check_wide_out_params` in `tools/audit/check_lift_hazards.py`
+(`wide_out_params` counter). It carries a table of known wide out-parameters
+(`KNOWN_WIDE_OUT_PARAMS`) and flags any call passing `&local` where `local` is a
+4-byte scalar declared in the same file. Add an entry to that table whenever a
+new callee with a 64-bit out-parameter is lifted.

@@ -656,6 +656,102 @@ def check_callee_output_size(filepath, content, lines):
     return errors
 
 
+"""Known callees with a 64-bit (or wider) out-parameter.
+
+Maps callee -> {zero-based arg index: (required_bytes, what it is)}.  The XDK
+D3D visibility-test API takes a ULONGLONG* GPU timestamp; a 4-byte local there
+under-reserves the slot and the callee's high dword lands on whatever the
+compiler placed next to it (lift-learnings SS37).
+"""
+KNOWN_WIDE_OUT_PARAMS = {
+    'D3DDevice_GetVisibilityTestResult': {
+        2: (8, 'ULONGLONG* 64-bit GPU timestamp'),
+    },
+}
+
+# A 4-byte scalar local: `unsigned int x;` / `int x;` / `uint32_t x;` ...
+NARROW_SCALAR_DECL_RE = re.compile(
+    r'^\s*(?:const\s+)?(?:unsigned\s+|signed\s+)?'
+    r'(?:int|long|uint32_t|int32_t|unsigned|DWORD|float)\s+(\w+)\s*(?:=[^;]*)?;'
+)
+
+
+def _split_top_level_args(text):
+    """Split a call's argument text on top-level commas."""
+    args, depth, cur = [], 0, []
+    for ch in text:
+        if ch in '([{':
+            depth += 1
+        elif ch in ')]}':
+            depth -= 1
+        if ch == ',' and depth == 0:
+            args.append(''.join(cur))
+            cur = []
+        else:
+            cur.append(ch)
+    if cur:
+        args.append(''.join(cur))
+    return args
+
+
+def check_wide_out_params(filepath, content, lines):
+    """Flag a 4-byte local passed where the callee writes 8 bytes.
+
+    lift-learnings SS37 (the lens-flare see-through bug).  The original
+    rasterizer_widget_get_occlusion_test_result reserves SUB ESP,0xc for two
+    locals: the 4-byte visible-pixel result at [EBP-4] and an EIGHT-byte
+    timestamp at [EBP-0xc].  Our lift declared the timestamp `unsigned int`,
+    so clang laid the 4-byte result directly above it and
+    D3DDevice_GetVisibilityTestResult's 64-bit store clobbered the result with
+    the timestamp's high dword.  Every lens flare then read back as fully
+    visible and light sources rendered straight through walls.
+
+    Nothing else catches this: it never crashes, never trips an assert, and
+    VC71 byte-match barely moves (the frame is only 4 bytes short).
+
+    Conservative: only flags when the argument resolves to a scalar local
+    declared in the same file.  Arrays (`unsigned int ts[2];`), 64-bit types
+    and struct/param pointers are accepted.
+    """
+    errors = []
+    if not any(fn in content for fn in KNOWN_WIDE_OUT_PARAMS):
+        return errors
+
+    # scalar locals only: an `x[2]` declaration never matches this pattern
+    narrow_decls = {}
+    for lineno, line in enumerate(lines, 1):
+        m = NARROW_SCALAR_DECL_RE.match(line)
+        if m:
+            narrow_decls.setdefault(m.group(1), lineno)
+
+    for fname, wide_args in KNOWN_WIDE_OUT_PARAMS.items():
+        # tolerate calls split across lines
+        for m in re.finditer(re.escape(fname) + r'\s*\(([^;]*?)\)\s*;', content,
+                             re.DOTALL):
+            args = [a.strip() for a in _split_top_level_args(m.group(1))]
+            lineno = content[:m.start()].count('\n') + 1
+            for idx, (need, what) in wide_args.items():
+                if idx >= len(args):
+                    continue
+                arg = args[idx]
+                if not arg.startswith('&'):
+                    continue          # already a pointer/array: assume sized
+                name = arg[1:].strip()
+                if name in narrow_decls:
+                    relpath = os.path.relpath(filepath, ROOT_DIR)
+                    errors.append(
+                        f'  {relpath}:{lineno}: {fname} arg{idx} is a '
+                        f'{what} — needs {need} bytes, but `{name}` is a '
+                        f'4-byte scalar declared at line {narrow_decls[name]}. '
+                        f'The callee\'s high dword will overwrite the '
+                        f'neighbouring local — declare '
+                        f'`unsigned int {name}[{need // 4}];` and pass '
+                        f'`{name}` (a uint64_t also works but makes clang '
+                        f'realign the frame, deviating from the original)'
+                    )
+    return errors
+
+
 KNOWN_FLOAT_INPUT_ARITY = {
     'FUN_000d1c90': (4, 'real_argb_color_to_pixel32 reads float[4] {a,r,g,b}'),
     'FUN_000d1dd0': (3, 'real_rgb_color_to_pixel32 reads float[3] {r,g,b}'),
@@ -1660,6 +1756,7 @@ def main():
     all_alias_errors = []
     all_frame_errors = []
     all_output_size_errors = []
+    all_wide_out_errors = []
     all_packer_arity_errors = []
     all_x87_math_errors = []
     all_concat_errors = []
@@ -1685,6 +1782,7 @@ def main():
         all_ptr_float_errors.extend(check_pointer_as_float(fpath, content, lines, params_map))
         all_alias_errors.extend(check_buffer_alias(fpath, content, lines))
         all_output_size_errors.extend(check_callee_output_size(fpath, content, lines))
+        all_wide_out_errors.extend(check_wide_out_params(fpath, content, lines))
         all_packer_arity_errors.extend(check_packer_input_arity(fpath, content, lines))
         all_x87_math_errors.extend(check_x87_math(fpath, content, lines))
         all_concat_errors.extend(check_concat_survival(fpath, content, lines))
@@ -1710,6 +1808,7 @@ def main():
             f'pointer_as_float: {len(all_ptr_float_errors)}, '
             f'buffer_alias: {len(all_alias_errors)}, '
             f'callee_output_size: {len(all_output_size_errors)}, '
+            f'wide_out_params: {len(all_wide_out_errors)}, '
             f'packer_arity: {len(all_packer_arity_errors)}, '
             f'x87_math: {len(all_x87_math_errors)}, '
             f'concat_survival: {len(all_concat_errors)}, '
@@ -1729,7 +1828,8 @@ def main():
         total = (len(all_void_eax_errors) + len(all_intrinsic_errors) + len(all_buffer_errors) +
                  len(all_duplicate_errors) + len(all_ptr_float_errors) +
                  len(all_alias_errors) + len(all_frame_errors) +
-                 len(all_output_size_errors) + len(all_packer_arity_errors) +
+                 len(all_output_size_errors) + len(all_wide_out_errors) +
+                 len(all_packer_arity_errors) +
                  len(all_x87_math_errors) +
                  len(all_concat_errors) + len(all_float_smuggle_errors) +
                  len(all_addr_value_add_errors) + len(all_param_loop_errors) +
@@ -1769,6 +1869,19 @@ def main():
                 file=sys.stderr,
             )
             for e in all_buffer_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_wide_out_errors:
+            print(
+                'ERROR: 4-byte local passed as a 64-bit out-parameter.\n'
+                'The callee writes 8 bytes; the high dword lands on whatever\n'
+                'the compiler placed next to it (lift-learnings SS37 — lens\n'
+                'flares rendered through walls for weeks because the D3D\n'
+                'visibility timestamp clobbered the pixel count):\n',
+                file=sys.stderr,
+            )
+            for e in all_wide_out_errors:
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 

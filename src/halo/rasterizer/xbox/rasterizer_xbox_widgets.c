@@ -39,7 +39,21 @@
 unsigned int rasterizer_widget_get_occlusion_test_result(unsigned int index)
 {
   unsigned int occlusion_test_result; /* [EBP-0x4] — also the return value */
-  unsigned int timestamp; /* [EBP-0xc] — out param, unused after */
+  /* [EBP-0xc] — out param, unused after.  This slot is EIGHT bytes, not four:
+   * D3DDevice_GetVisibilityTestResult's third parameter is a ULONGLONG* (the
+   * 64-bit GPU timestamp), so the callee writes 8 bytes through it.  The
+   * original proves the size: SUB ESP,0xc reserves 12 bytes for exactly two
+   * locals — the 4-byte result at [EBP-4] and this one at [EBP-0xc].
+   * Declaring it as a single `unsigned int` under-reserves by 4 bytes; the
+   * high dword of the timestamp then lands on whatever the compiler placed
+   * above it (clang put occlusion_test_result there), so the function
+   * returned a timestamp fragment instead of the visible-pixel count and
+   * every lens flare read back as fully visible (lift-learnings §37).
+   * Spelled as two dwords rather than a 64-bit scalar so the slot keeps
+   * 4-byte alignment: a uint64_t here makes clang realign the frame
+   * (AND ESP,0xfffffff8; SUB ESP,0x18), while this form reproduces the
+   * original's SUB ESP,0xc exactly. */
+  unsigned int timestamp[2];
   int hr; /* ESI */
   char ok; /* BL — running success flag */
 
@@ -49,7 +63,7 @@ unsigned int rasterizer_widget_get_occlusion_test_result(unsigned int index)
    * `je LAB_0017ae7b` + separate `mov eax,1 / leave / ret` tail. */
   if (*(char *)0x3256fc != 0) {
     hr = D3DDevice_GetVisibilityTestResult(index, &occlusion_test_result,
-                                           &timestamp);
+                                           timestamp);
     if (hr == (int)0x88760828) {
       rasterizer_spin_begin(0x1a);
       /* the two LEAs and the index push are re-done every iteration in the
@@ -57,7 +71,7 @@ unsigned int rasterizer_widget_get_occlusion_test_result(unsigned int index)
        * CALL). */
       do {
         hr = D3DDevice_GetVisibilityTestResult(index, &occlusion_test_result,
-                                               &timestamp);
+                                               timestamp);
       } while (hr == (int)0x88760828);
       rasterizer_spin_end();
     }
