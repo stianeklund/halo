@@ -1992,6 +1992,73 @@ void rasterizer_xbox_bitmap_swizzle2d_word(void *dst, const void *src,
   }
 }
 
+/* rasterizer_xbox_bitmap_swizzle2d_long (0x1829f0): 32-bit-per-pixel variant of
+ * the 2D Morton (Z-order) swizzle.  Identical in shape to the _byte (0x182840)
+ * and _word (0x182910) siblings; only the element width and the assert line
+ * numbers differ.
+ *
+ * The destination index is `v | u` -- an OR of two DISJOINT accumulators (the
+ * u-mask and v-mask partition the address bits), NOT an add.  Confirmed at
+ * 0x182a8a (OR ECX,EDI) and by the x4 scale on the store (MOV [ESI+ECX*4],EDX).
+ *
+ * `linear` is a single running source index across all rows and is never reset
+ * per row; `u` is initialized ONCE before the outer loop.
+ *
+ * The u-mask is loaded once; the v-mask is re-read at the bottom of every outer
+ * iteration in the original (ECX is clobbered by the inner body -- verified at
+ * 0x182aa0), so that read stays inside the loop.
+ *
+ * Both loop guards are signed 16-bit `> 0` tests (TEST AX,AX / TEST SI,SI)
+ * while the counters themselves are zero-extended (MOVZX).  The [EBP+0x14]
+ * height slot is reused as the inner column counter at 0x182a7e. */
+void rasterizer_xbox_bitmap_swizzle2d_long(void *dst, const void *src,
+                                           short width, short height)
+{
+  unsigned int u; /* EDI: column accumulator */
+  unsigned int v; /* [EBP-4]: row accumulator */
+  unsigned int umask; /* EAX: *0x4d0498, loaded once */
+  unsigned int vmask; /* ECX: *0x4d0494, re-read every outer iteration */
+  unsigned int rows; /* [EBP-8] */
+  unsigned int cols; /* [EBP+0x14]: the dead height slot, reused */
+  int linear; /* EBX: running source index */
+
+  u = 0;
+  linear = 0;
+  v = 0;
+
+  if (dst == (void *)0) {
+    display_assert("dst", "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c",
+                   0xcd, 1);
+    system_exit(-1);
+  }
+  if (src == (const void *)0) {
+    display_assert("src", "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c",
+                   0xce, 1);
+    system_exit(-1);
+  }
+
+  FUN_00182610(width, height, 1);
+  umask = *(unsigned int *)0x4d0498;
+
+  if (height > 0) {
+    rows = (unsigned short)height;
+    do {
+      if (width > 0) {
+        cols = (unsigned short)width;
+        do {
+          ((unsigned int *)dst)[v | u] = ((const unsigned int *)src)[linear];
+          linear++;
+          u = (u - umask) & umask;
+          cols--;
+        } while (cols != 0);
+      }
+      vmask = *(unsigned int *)0x4d0494;
+      v = (v - vmask) & vmask;
+      rows--;
+    } while (rows != 0);
+  }
+}
+
 /* rasterizer_swizzle_bitmap_mipmap_count (0x183120): number of mipmap levels
  * that will actually be swizzled for this bitmap.
  *

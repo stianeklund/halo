@@ -12240,6 +12240,10 @@
       "score": 90.1,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
+    "FUN_001829f0": {
+      "score": 90.1,
+      "source": "src/halo/rasterizer/rasterizer_text.c"
+    },
     "FUN_00183120": {
       "score": 91.8,
       "source": "src/halo/rasterizer/rasterizer_text.c"
