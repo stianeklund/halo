@@ -204,12 +204,22 @@ def diff_behavior(framesA, framesB, config=None):
     min_run = cfg.get("min_run", 2)
     onsets = []
 
+    # Coverage accounting. A frame whose game-time region was not captured has
+    # no resolvable tick, so slot_series drops it; if that happens to EVERY
+    # frame the comparison silently degenerates to zero samples and the report
+    # would read CLEAN having compared nothing. Count what we actually looked
+    # at so the caller can tell "equivalent" apart from "never ran".
+    ticksA = sum(td.frame_tick(h2s._reader(f.regions)) is not None for f in framesA)
+    ticksB = sum(td.frame_tick(h2s._reader(f.regions)) is not None for f in framesB)
+    compared = 0
+
     for pool_name, pcfg in cfg.get("pools", {}).items():
         ptr = td.POOLS[pool_name]
         fields = pcfg["fields"]
         sA = slot_series(framesA, ptr, fields)
         sB = slot_series(framesB, ptr, fields)
         for slot in sorted(set(sA) & set(sB)):
+            compared += 1
             for f in fields:
                 aseq = [(t, v[f["label"]]) for t, v in sA[slot]]
                 bseq = [(t, v[f["label"]]) for t, v in sB[slot]]
@@ -238,6 +248,7 @@ def diff_behavior(framesA, framesB, config=None):
     onsets.sort(key=lambda o: (o["tick"], o["scope"], o["slot"] or 0, o["field"]))
     return {"window": window, "min_run": min_run,
             "framesA": len(framesA), "framesB": len(framesB),
+            "ticksA": ticksA, "ticksB": ticksB, "compared_slots": compared,
             "onset_count": len(onsets), "onsets": onsets}
 
 
@@ -280,7 +291,23 @@ def main(argv=None):
     print(f"PATCHED:  {Path(a.patched).name} ({res['framesB']} frames)")
     print(f"window=+/-{res['window']} ticks  min_run={res['min_run']}  "
           f"sustained divergences: {res['onset_count']}")
+    print(f"ticks resolved: {res['ticksA']}/{res['framesA']} faithful, "
+          f"{res['ticksB']}/{res['framesB']} patched   "
+          f"slots compared: {res['compared_slots']}")
     print("-" * 78)
+    if not res["ticksA"] or not res["ticksB"] or not res["compared_slots"]:
+        print("INCONCLUSIVE: nothing was compared -- this is NOT a pass.")
+        if not res["ticksA"] or not res["ticksB"]:
+            print(f"  No game tick in one/both recordings (needs the region at "
+                  f"0x{td.GAME_TIME_GLOBALS_PTR:08x}); every frame was dropped.")
+            print("  Viewer-made .halorec captures often omit it -- capture with "
+                  "tools/xbox/capture_trajectory.py instead.")
+        else:
+            print("  No actor slot is present in both recordings.")
+        if a.json:
+            a.json.write_text(json.dumps(res, indent=2) + "\n")
+            print(f"  [json] -> {a.json}")
+        return 2
     if not res["onsets"]:
         print("CLEAN: behaviorally equivalent on the watch-list (no sustained divergence).")
     else:

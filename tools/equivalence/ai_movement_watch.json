@@ -1,0 +1,37 @@
+{
+  "_comment": "behavior_diff watch-list for AI movement/turning fidelity (a10 door grunts). Extends DEFAULT_CONFIG with the fields the viewer surfaces as 'move type', 'Path computed this tick', and the actor control substructure's desired facing/aiming/looking vectors (actor_looking.c:8487-8489). --config REPLACES the default, so this file is complete, not a patch.",
+  "window": 4,
+  "min_run": 2,
+  "pools": {
+    "actors": {
+      "fields": [
+        {"label": "combat_state", "off": 106, "fmt": "<B", "kind": "discrete"},
+        {"label": "action", "off": 108, "fmt": "<H", "kind": "discrete"},
+        {"label": "aggression", "off": 110, "fmt": "<B", "kind": "discrete"},
+        {"label": "behavior", "off": 192, "fmt": "<B", "kind": "discrete"},
+        {"label": "awareness", "off": 616, "fmt": "<h", "kind": "discrete"},
+        {"label": "move_mode", "off": 1132, "fmt": "<h", "kind": "discrete"},
+        {"label": "firing_pos", "off": 1136, "fmt": "<h", "kind": "discrete"},
+        {"label": "at_dest", "off": 1156, "fmt": "<B", "kind": "discrete"},
+        {"label": "path_active", "off": 1192, "fmt": "<B", "kind": "discrete"},
+        {"label": "unit", "off": 24, "fmt": "<I", "kind": "handle_live"},
+        {"label": "combat_tgt", "off": 1552, "fmt": "<I", "kind": "handle_live"},
+        {"label": "pos", "off": 300, "fmt": "<fff", "kind": "vec", "eps": 0.5},
+
+        {"label": "movement_type", "off": 76, "fmt": "<B", "kind": "discrete"},
+        {"label": "path_computed", "off": 1188, "fmt": "<B", "kind": "discrete"},
+        {"label": "path_step_count", "off": 1217, "fmt": "<B", "kind": "discrete"},
+        {"label": "path_step_index", "off": 1218, "fmt": "<B", "kind": "discrete"},
+
+        {"label": "desired_facing", "off": 1444, "fmt": "<fff", "kind": "vec", "eps": 0.1},
+        {"label": "desired_aiming", "off": 1456, "fmt": "<fff", "kind": "vec", "eps": 0.1},
+        {"label": "desired_looking", "off": 1468, "fmt": "<fff", "kind": "vec", "eps": 0.1}
+      ]
+    }
+  },
+  "aggregates": [
+    {"label": "actors_alive", "pool": "actors", "reduce": "count"},
+    {"label": "actors_in_combat", "pool": "actors", "off": 106, "fmt": "<B", "reduce": "count_ge", "value": 3},
+    {"label": "objects_alive", "pool": "objects", "reduce": "count"}
+  ]
+}

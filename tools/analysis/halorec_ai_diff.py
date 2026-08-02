@@ -422,9 +422,82 @@ def cmd_selftest(args):
     print("[selftest] PASS")
 
 
+# Gold behavior signature for the a10 door squad on a genuine New Game boot
+# (docs/boot-init-and-checkpoints.md §4; confirmed unpatched 2026-06-27).
+# A capture that misses this is a DEGENERATE REPRO and must not be A/B'd:
+# a restored core or a bare `map_name a10` spawns the encounters but never runs
+# the scenario script thread, so the grunts sit passive in *every* build.
+GOLD = {
+    "moved_min": 1.0,   # gold advances 1.6-2.3u; broken-patched managed 0.04-0.06u
+    "aw_max_min": 8,    # gold awareness climbs to 10; broken plateaus at 3
+    "needs_pact_1": True,   # gold pathfinds: path_active toggles [0,1]
+    "needs_mode_3": True,   # gold commits move_src 3; broken reverts to 1
+}
+
+
+def cmd_gold(args):
+    """Validate a recording against the a10 door-squad gold signature.
+
+    exit 0 = faithful (safe to A/B), 3 = degenerate, 2 = squad absent.
+    """
+    _, _, frames = parse_halorec(args.file)
+    series = per_slot_series(frames, args.stride, args.enc)
+    print(f"recording : {args.file}")
+    print(f"frames    : {len(frames)}")
+    print(f"door squad: enc {args.enc:#010x}")
+    if not series:
+        seen = set()
+        for _t, regions in frames[:1]:
+            for a in read_actors(FrameReader(regions), args.stride)[1]:
+                seen.add(a["enc"])
+        print("-" * 72)
+        print("SQUAD ABSENT: the scripted door squad is not in this recording.")
+        print("  encounters present: " + ", ".join(f"{e:#010x}" for e in sorted(seen)))
+        print("  => captured before the doorway, or from a core/`map_name` boot.")
+        print("  Re-capture with a genuine New Game and play to the first doorway")
+        print("  (docs/boot-init-and-checkpoints.md §4).")
+        sys.exit(2)
+
+    print("-" * 72)
+    verdicts = []
+    for slot in sorted(series):
+        seq = series[slot]
+        p0, pN = seq[0][1]["pos"], seq[-1][1]["pos"]
+        moved = (sum((b - a) ** 2 for a, b in zip(p0, pN)) ** 0.5) if p0 and pN else 0.0
+        aw = [r["aw"] for _t, r in seq if r["aw"] is not None]
+        pact = sorted({r["pact"] for _t, r in seq if r["pact"] is not None})
+        mode = sorted({r["mode"] for _t, r in seq if r["mode"] is not None})
+        ctgt = any(r["ctgt"] not in (None, NONE) for _t, r in seq)
+        ok = (moved >= GOLD["moved_min"]
+              and (max(aw) if aw else 0) >= GOLD["aw_max_min"]
+              and (1 in pact or not GOLD["needs_pact_1"])
+              and (3 in mode or not GOLD["needs_mode_3"]))
+        verdicts.append(ok)
+        print(f"  slot {slot:<3d} moved={moved:5.2f}u  aw_max={max(aw) if aw else 0:<3d}"
+              f" pact={pact}  mode={mode}  ctgt={'yes' if ctgt else 'no':<3s}"
+              f"  {'OK' if ok else 'PASSIVE'}")
+
+    print("-" * 72)
+    print(f"gold: moved>={GOLD['moved_min']}u, aw_max>={GOLD['aw_max_min']}, "
+          f"pact contains 1, mode contains 3")
+    if all(verdicts):
+        print("FAITHFUL: door squad advances + pathfinds. Safe to use for A/B.")
+        sys.exit(0)
+    print("DEGENERATE: door squad is passive -- the scenario script thread did not")
+    print("  issue advance/engage orders. A/B on this capture is meaningless; every")
+    print("  build looks broken. Re-capture from a genuine New Game (§4).")
+    sys.exit(3)
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
+    g = sub.add_parser("gold", help="validate a recording against the a10 "
+                                    "door-squad gold signature before A/B'ing it")
+    g.add_argument("file")
+    g.add_argument("--stride", type=lambda x: int(x, 0), default=ACTOR_STRIDE)
+    g.add_argument("--enc", type=lambda x: int(x, 0), default=DOOR_ENC)
+    g.set_defaults(func=cmd_gold)
     d = sub.add_parser("dump")
     d.add_argument("file")
     d.add_argument("--all-enc", action="store_true")

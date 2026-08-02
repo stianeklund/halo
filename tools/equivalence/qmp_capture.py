@@ -37,6 +37,23 @@ DATA_T_HDR_LEN = 0x38            # max@0x20 es@0x22 magic@0x28 cur@0x2E data@0x3
 GAME_TIME_GLOBALS_PTR = 0x45708C  # *ptr + 0x0C = game tick
 HANDLE_NONE = 0xFFFFFFFF
 
+# The object pool's element is only a 12-byte datum ENTRY (es=0xc): salt@0x00,
+# then a pointer at +0x08 to the object BODY, which lives elsewhere in the heap.
+# Capturing the pool alone therefore captures no object state at all (animation
+# index/frame, position, ... all live in the body). Follow the pointers.
+OBJECT_BODY_PTR_OFF = 0x08
+DEFAULT_OBJECT_BODY_SIZE = 0x100   # covers +0x7c 'antr' / +0x80 anim / +0x82 frame
+# Bodies are densely packed in one heap arena (observed a10: 460 bodies, median
+# gap 0x28c, total span ~0x83000), and a memsave costs ~13ms of round-trip
+# REGARDLESS of size (4B: 13.6ms, 576KB: 17.3ms) -- so the only thing that makes
+# a frame cheap is issuing FEW reads. Merging holes up to 0x2000 collapses those
+# 460 bodies into 1-2 reads (1.15s/frame -> 0.25s/frame); the wasted bytes are
+# bounded per boundary and gzip away in the container.
+DEFAULT_BODY_MERGE_GAP = 0x2000
+DEFAULT_BODY_MAX_REGION = 0x100000
+HEAP_LO = 0x80000000
+HEAP_HI = 0x84000000
+
 POOL_PTRS = {
     "objects": OBJECT_TABLE_PTR,
     "players": PLAYER_TABLE_PTR,
@@ -217,6 +234,66 @@ def pool_region_specs(cap, ptr):
     return specs
 
 
+def object_body_ptrs(pool_data, es, count=None, ptr_off=OBJECT_BODY_PTR_OFF):
+    """Body pointers held by the live entries of a datum-entry pool's data span.
+
+    An entry is live when its salt (u16 @ +0x00) is non-zero; the body pointer at
+    `ptr_off` must land in the game heap. Pure function -- takes the already-read
+    element array so the caller can reuse the bytes it captured while paused.
+    """
+    if es <= 0 or ptr_off + 4 > es:
+        return []
+    n = len(pool_data) // es if count is None else min(count, len(pool_data) // es)
+    out = []
+    for i in range(n):
+        base = i * es
+        if struct.unpack_from("<H", pool_data, base)[0] == 0:
+            continue                       # free slot
+        p = struct.unpack_from("<I", pool_data, base + ptr_off)[0]
+        if HEAP_LO <= p < HEAP_HI:
+            out.append(p)
+    return out
+
+
+def merge_body_specs(ptrs, size=DEFAULT_OBJECT_BODY_SIZE,
+                     merge_gap=DEFAULT_BODY_MERGE_GAP,
+                     max_region=DEFAULT_BODY_MAX_REGION):
+    """Coalesce [ptr, ptr+size) windows into as few (va, size) reads as possible.
+
+    Two windows merge when the hole between them is <= `merge_gap` (the wasted
+    bytes are bounded by that, and they compress away in the gzip container);
+    a merged run is split once it would exceed `max_region`. Pure function.
+    """
+    if not ptrs or size <= 0:
+        return []
+    spans = sorted((p, p + size) for p in set(ptrs))
+    out = []
+    lo, hi = spans[0]
+    for s, e in spans[1:]:
+        if s - hi <= merge_gap and (max(hi, e) - lo) <= max_region:
+            hi = max(hi, e)
+        else:
+            out.append((lo, hi - lo))
+            lo, hi = s, e
+    out.append((lo, hi - lo))
+    return out
+
+
+def object_body_specs(cap, ptr=OBJECT_TABLE_PTR, size=DEFAULT_OBJECT_BODY_SIZE,
+                      merge_gap=DEFAULT_BODY_MERGE_GAP,
+                      max_region=DEFAULT_BODY_MAX_REGION):
+    """(va, size) specs covering every live object BODY. Caller should be paused."""
+    hd = resolve_pool(cap, ptr)
+    if hd is None or hd["magic"] != DATA_T_MAGIC or hd["es"] <= 0:
+        return []
+    n = hd["cur"] if 0 < hd["cur"] <= hd["max"] else hd["max"]
+    if not (0 < n <= 5000 and HEAP_LO <= hd["data"] < HEAP_HI):
+        return []
+    data = cap.read_mem(hd["data"], n * hd["es"])
+    return merge_body_specs(object_body_ptrs(data, hd["es"], n),
+                            size, merge_gap, max_region)
+
+
 def gametime_region_specs(cap):
     """Specs for the game-time globals so a frame's tick is recoverable offline."""
     gt = cap.read_u32(GAME_TIME_GLOBALS_PTR)
@@ -234,13 +311,22 @@ def read_tick(cap):
     return struct.unpack_from("<I", cap.read_mem(gt + 0x0C, 4), 0)[0]
 
 
-def capture_full_frame(cap, pools=("objects", "players", "actors", "props")):
+def capture_full_frame(cap, pools=("objects", "players", "actors", "props"),
+                       object_bodies=False,
+                       body_size=DEFAULT_OBJECT_BODY_SIZE,
+                       body_merge_gap=DEFAULT_BODY_MERGE_GAP,
+                       body_max_region=DEFAULT_BODY_MAX_REGION):
     """Coherently capture game-time + the used span of each pool in ONE pause.
 
     Pool pointers/headers are resolved *while paused*, so the captured data
     span can't be torn by a realloc between resolve and read. Returns
     (regions {va: bytes}, tick). Regions are exactly what the HMRC readers and
     the viewer expect, so the frame is offline-resolvable and viewer-loadable.
+
+    `object_bodies=True` additionally follows every live object entry's +0x08
+    body pointer and captures the bodies (merged into few reads) in the SAME
+    pause -- without it a frame carries no object state at all, only the 12-byte
+    datum entries. Off by default so existing callers are unaffected.
     """
     regions = {}
     tick = None
@@ -269,7 +355,14 @@ def capture_full_frame(cap, pools=("objects", "players", "actors", "props")):
                 continue
             n = cur if 0 < cur <= max_c else max_c
             if 0 < n <= 5000 and 0x80000000 <= data < 0x84000000:
-                regions[data] = cap.read_mem(data, n * es)
+                blob = cap.read_mem(data, n * es)
+                regions[data] = blob
+                if object_bodies and name == "objects":
+                    specs = merge_body_specs(
+                        object_body_ptrs(blob, es, n),
+                        body_size, body_merge_gap, body_max_region)
+                    for bva, bsz in specs:
+                        regions[bva] = cap.read_mem(bva, bsz)
     finally:
         cap.cont()
     return regions, tick

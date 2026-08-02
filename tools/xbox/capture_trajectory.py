@@ -45,7 +45,10 @@ def wait_for_gameplay(cap, require_spawn=True, timeout=90.0, poll=0.25):
 
 
 def capture_trajectory(cap, name, ticks, quantum, require_spawn=True,
-                       stall_timeout=4.0, max_frames=4000, log=print):
+                       stall_timeout=4.0, max_frames=4000, log=print,
+                       object_bodies=False,
+                       body_size=qc.DEFAULT_OBJECT_BODY_SIZE,
+                       pools=("objects", "players", "actors", "props")):
     """Capture one frame per relative-tick bucket (rel // quantum) up to `ticks`.
 
     Buckets are a FIXED grid {0, K, 2K, ...} relative to the gameplay-ready
@@ -83,7 +86,9 @@ def capture_trajectory(cap, name, ticks, quantum, require_spawn=True,
             bucket = rel // quantum
             if rel >= 0 and bucket not in seen_buckets:
                 seen_buckets.add(bucket)
-                regions, ftick = qc.capture_full_frame(cap)
+                regions, ftick = qc.capture_full_frame(
+                    cap, pools=pools, object_bodies=object_bodies,
+                    body_size=body_size)
                 frel = (ftick - anchor) if ftick is not None else rel
                 frames.append((now - t0, list(regions.items())))
                 last_rel = frel
@@ -115,6 +120,16 @@ def main(argv=None):
                     help="capture every K relative ticks (default 4)")
     ap.add_argument("--no-wait-spawn", action="store_true",
                     help="anchor on objtable magic only, do not require a spawned player")
+    ap.add_argument("--include-object-bodies", action="store_true",
+                    help="also follow each live object entry's +0x08 pointer and "
+                         "capture the object BODY (animation state, position, ...); "
+                         "without this a frame carries only 12-byte datum entries")
+    ap.add_argument("--object-body-size", type=lambda x: int(x, 0),
+                    default=qc.DEFAULT_OBJECT_BODY_SIZE,
+                    help="bytes to capture per object body (default 0x100)")
+    ap.add_argument("--pools", default="objects,players,actors,props",
+                    help="comma-separated pools to capture; dropping unused pools "
+                         "buys tick density (each memsave costs ~13ms round-trip)")
     ap.add_argument("--stall-timeout", type=float, default=4.0,
                     help="stop if the tick does not advance for this long (s)")
     ap.add_argument("--host", default=qc.QMP_HOST)
@@ -126,7 +141,9 @@ def main(argv=None):
     try:
         frames, anchor, last_rel = capture_trajectory(
             cap, name, a.ticks, a.quantum,
-            require_spawn=not a.no_wait_spawn, stall_timeout=a.stall_timeout)
+            require_spawn=not a.no_wait_spawn, stall_timeout=a.stall_timeout,
+            object_bodies=a.include_object_bodies, body_size=a.object_body_size,
+            pools=tuple(p.strip() for p in a.pools.split(",") if p.strip()))
     finally:
         cap.close()
 
