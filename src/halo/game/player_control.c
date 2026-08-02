@@ -1287,7 +1287,7 @@ void player_control_new_unit(uint16_t local_player_index, int player_index)
  *      BEFORE yaw.  Each test is a NaN/Inf reject on the raw bits followed by
  *      an upper (strict <) and lower (>=) bound:
  *        pitch in [-1.49225652217865, 1.49225652217865)   (0x26e378 / 0x26e37c)
- *        yaw   in [0.0, 6.2831855)                        (0x2533c0 / 0x255a54)
+ *        yaw   in [0.0, 6.2831855]                        (0x2533c0 / 0x255a54)
  *      The bound values were read out of the XBE (.rdata bit patterns
  *      0xbfbf0243 / 0x3fbf0243 / 0x00000000 / 0x40c90fdb); no name evidence
  *      exists for the pitch bounds, so they stay as literals.
@@ -1309,7 +1309,7 @@ real *player_control_get_facing_angles(int16_t local_player_index)
         player->desired_angles_pitch < 1.49225652217865f &&
         player->desired_angles_pitch >= -1.49225652217865f &&
         (*(uint32_t *)&player->desired_angles_yaw & 0x7f800000) != 0x7f800000 &&
-        player->desired_angles_yaw < 6.2831855f &&
+        player->desired_angles_yaw <= 6.2831855f &&
         player->desired_angles_yaw >= 0.0f)) {
     display_assert("valid_euler_angles2d(&player->desired_angles)",
                    "c:\\halo\\SOURCE\\game\\player_control.c", 0x3c0, 1);

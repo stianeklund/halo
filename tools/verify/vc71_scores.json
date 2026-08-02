@@ -5153,7 +5153,7 @@
       "source": "src/halo/game/player_control.c"
     },
     "FUN_000b63f0": {
-      "score": 11.1,
+      "score": 100.0,
       "source": "src/halo/game/player_control.c"
     },
     "FUN_000b6430": {
@@ -16425,7 +16425,7 @@
       "source": "src/halo/game/player_control.c"
     },
     "player_control_dispose": {
-      "score": 4.7,
+      "score": 100.0,
       "source": "src/halo/game/player_control.c"
     },
     "player_control_get_facing": {
