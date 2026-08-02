@@ -2373,7 +2373,8 @@ void rasterizer_xbox_bitmap_swizzle3d_long(void *dst, const void *src,
             wv = w | v;
             cols = (unsigned short)width;
             do {
-              ((unsigned int *)dst)[wv | u] = ((const unsigned int *)src)[linear];
+              ((unsigned int *)dst)[wv | u] =
+                ((const unsigned int *)src)[linear];
               umask = *(unsigned int *)0x4d0498;
               u = (u - umask) & umask;
               linear++;
@@ -2389,6 +2390,187 @@ void rasterizer_xbox_bitmap_swizzle3d_long(void *dst, const void *src,
       w = (w - wmask) & wmask;
       slices--;
     } while (slices != 0);
+  }
+}
+
+/* rasterizer_xbox_bitmap_swizzle (0x182e00): swizzle every mipmap level of a
+ * bitmap in place.
+ *
+ * For each mipmap level a temporary buffer the size of that level's pixel data
+ * is allocated, the level is swizzled from the bitmap into the temporary, and
+ * the temporary is copied back over the level (csmemcpy(mip_addr, temp, size)).
+ * Once all levels are done the _bitmap_is_swizzled bit (0x8) is set in
+ * bitmap->flags (a BYTE-width OR on [+0xe] in the original, even though the
+ * field is read as a ushort).
+ *
+ * Dispatch is on bitmap->type at [+0xa]: 0 = 2D, 1 = 3D (volume), 2 = cubemap;
+ * anything else asserts.  Within each type the swizzler is picked by bytes per
+ * pixel (1/2/4); anything else asserts.  A cubemap is six square 2D faces
+ * packed back to back, so the level size is divided by 6 and the 2D swizzler is
+ * run once per face -- the original computes `temp - mip_addr` once and walks a
+ * single source pointer (EDI), deriving each destination as `src + delta`,
+ * which is reproduced here rather than indexing both buffers.
+ *
+ * Skipped entirely when either flag bit 0x2 (compressed) or 0x10 is set.
+ *
+ * Register/frame notes (from disassembly, Ghidra dropped ALL of the swizzler
+ * arguments and the width/height/depth results): width lives in ESI, height in
+ * EBX, depth in [EBP-0xc].  bitmap_mipmap_width's result is moved with a plain
+ * MOV ESI,EAX (no MOVSX), so width/height/depth are int locals here, while
+ * bytes_per_pixel at [EBP-0x14] is stored word-wide (a later MOVSX reads it
+ * back) and so stays short.  MSVC reuses [EBP-0x14] for the six-face counter
+ * and [EBP-0xc] for the destination delta; those are separate locals here.
+ * Assert __LINE__ values (0x14e..0x1b8) belong to rasterizer_swizzle.c. */
+void FUN_00182e00(int param_1)
+{
+  int mip_index; /* [EBP-0x10] */
+  int mip_size; /* [EBP-0x18] */
+  void *mip_addr; /* [EBP-0x08] */
+  void *temp; /* [EBP-0x04] */
+  int width; /* ESI */
+  int height; /* EBX */
+  int depth; /* [EBP-0x0c] */
+  short bytes_per_pixel; /* [EBP-0x14] */
+  int face; /* [EBP-0x14], reused as the six-face counter */
+  int face_stride; /* [EBP-0x20] = mip_size / 6 */
+  int dst_delta; /* [EBP-0x0c], reused as temp - mip_addr */
+  char *src_face; /* EDI */
+
+  if (param_1 == 0) {
+    display_assert(
+      "bitmap", "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x14e, 1);
+    system_exit(-1);
+  }
+  if (*(int *)(param_1 + 0x2c) == 0) {
+    display_assert("bitmap->base_address",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x14f,
+                   1);
+    system_exit(-1);
+  }
+
+  if ((*(unsigned short *)(param_1 + 0xe) & 0x12) == 0) {
+    if ((*(unsigned short *)(param_1 + 0xe) & 1) == 0) {
+      display_assert("TEST_FLAG(bitmap->flags, "
+                     "_bitmap_has_power_of_two_dimensions_bit)",
+                     "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c",
+                     0x159, 1);
+      system_exit(-1);
+    }
+
+    mip_index = 0;
+    if (*(short *)(param_1 + 0x14) >= 0) {
+      do {
+        mip_size =
+          bitmap_mipmap_get_pixel_data_size((void *)param_1, mip_index);
+        mip_addr = bitmap_mipmap_address((void *)param_1, (short)mip_index);
+        temp = debug_malloc(
+          (unsigned int)mip_size, 0,
+          "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x15f);
+        width = bitmap_mipmap_width((void *)param_1, mip_index);
+        height = bitmap_mipmap_get_height((void *)param_1, (short)mip_index);
+        depth = bitmap_mipmap_get_depth((void *)param_1, (short)mip_index);
+        if (temp != (void *)0) {
+          bytes_per_pixel = (short)(bitmap_format_bits_per_pixel(
+                                      *(short *)(param_1 + 0xc)) /
+                                    8);
+          FUN_00182610(width, height, depth);
+          switch (*(short *)(param_1 + 10)) {
+            case 0: /* 2D */
+              switch (bytes_per_pixel) {
+                case 1:
+                  rasterizer_xbox_bitmap_swizzle2d_byte(temp, mip_addr, width,
+                                                        height);
+                  break;
+                case 2:
+                  rasterizer_xbox_bitmap_swizzle2d_word(temp, mip_addr, width,
+                                                        height);
+                  break;
+                case 4:
+                  rasterizer_xbox_bitmap_swizzle2d_long(temp, mip_addr, width,
+                                                        height);
+                  break;
+                default:
+                  display_assert(
+                    "### ERROR unsupported bitmap format (bytes per pixel)",
+                    "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x17b,
+                    1);
+                  system_exit(-1);
+                  break;
+              }
+              break;
+            case 1: /* 3D (volume) */
+              switch (bytes_per_pixel) {
+                case 1:
+                  rasterizer_xbox_bitmap_swizzle3d_byte(temp, mip_addr, width,
+                                                        height, depth);
+                  break;
+                case 2:
+                  rasterizer_xbox_bitmap_swizzle3d_word(temp, mip_addr, width,
+                                                        height, depth);
+                  break;
+                case 4:
+                  rasterizer_xbox_bitmap_swizzle3d_long(temp, mip_addr, width,
+                                                        height, depth);
+                  break;
+                default:
+                  display_assert(
+                    "### ERROR unsupported bitmap format (bytes per pixel)",
+                    "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x18f,
+                    1);
+                  system_exit(-1);
+                  break;
+              }
+              break;
+            case 2: /* cubemap: six faces packed back to back in the level */
+              face_stride = mip_size / 6;
+              dst_delta = (int)((char *)temp - (char *)mip_addr);
+              src_face = (char *)mip_addr;
+              face = 6;
+              do {
+                switch (bytes_per_pixel) {
+                  case 1:
+                    rasterizer_xbox_bitmap_swizzle2d_byte(
+                      (void *)(src_face + dst_delta), src_face, width, height);
+                    break;
+                  case 2:
+                    rasterizer_xbox_bitmap_swizzle2d_word(
+                      (void *)(src_face + dst_delta), src_face, width, height);
+                    break;
+                  case 4:
+                    rasterizer_xbox_bitmap_swizzle2d_long(
+                      (void *)(src_face + dst_delta), src_face, width, height);
+                    break;
+                  default:
+                    display_assert(
+                      "### ERROR unsupported bitmap format (bytes per pixel)",
+                      "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c",
+                      0x1a9, 1);
+                    system_exit(-1);
+                    break;
+                }
+                src_face += face_stride;
+                face--;
+              } while (face != 0);
+              break;
+            default:
+              display_assert(
+                "### ERROR unsupported bitmap type",
+                "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x1b4, 1);
+              system_exit(-1);
+              break;
+          }
+          csmemcpy(mip_addr, temp, (unsigned int)mip_size);
+          debug_free(temp, "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c",
+                     0x1b8);
+          *(unsigned char *)(param_1 + 0xe) =
+            *(unsigned char *)(param_1 + 0xe) | 8;
+        } else {
+          error(2, "### ERROR failed to allocate temporary buffer for "
+                   "swizzling");
+        }
+        mip_index++;
+      } while ((short)mip_index <= *(short *)(param_1 + 0x14));
+    }
   }
 }
 

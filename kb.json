@@ -28438,7 +28438,8 @@
     },
     {
      "addr": "0x182e00",
-     "decl": "void FUN_00182e00(int param_1);"
+     "decl": "void FUN_00182e00(int param_1);",
+     "ported": true
     },
     {
      "addr": "0x183120",
