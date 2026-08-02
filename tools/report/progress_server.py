@@ -339,7 +339,12 @@ class SSEHandler(SimpleHTTPRequestHandler):
                 else:
                     logging.info('  %s: %.1f%% -> %.1f%% (baseline raised)',
                                  fn_name, old.get('score', 0.0), new_score)
-                baseline[fn_name] = {'score': new_score, 'source': source_path_rel}
+                entry = {'score': new_score, 'source': source_path_rel}
+                # Advisory operand-normalized score rides along on entries we
+                # are already rewriting; omitted when vc71_verify printed none.
+                if info.get('opnd_percent') is not None:
+                    entry['opnd_percent'] = info['opnd_percent']
+                baseline[fn_name] = entry
                 baseline_changed = True
         if baseline_changed:
             _save_baseline(baseline)
@@ -348,7 +353,12 @@ class SSEHandler(SimpleHTTPRequestHandler):
         #    first, then by the address-keyed FUN_<addr> alias (vc71_verify records
         #    some functions under their delinked reference name) — identical to the
         #    generator's join so a later regeneration produces the same numbers.
-        def _score_for(func):
+        def _result_for(func):
+            """Return the vc71_results entry for a function, or None.
+
+            Same join order as the report generator (name, FUN_<addr> aliases,
+            then namespace-suffix match) so a later regeneration reproduces it.
+            """
             addr = func.get('address')
             addr_int = None
             if isinstance(addr, str):
@@ -362,21 +372,27 @@ class SSEHandler(SimpleHTTPRequestHandler):
                                f'thunk_FUN_{addr_int:08x}']
             for key in candidates:
                 if key and key in vc71_results:
-                    return vc71_results[key]['score']
+                    return vc71_results[key]
             name = func.get('name')
             for key, info in vc71_results.items():
                 if key.rsplit('::', 1)[-1] == name:
-                    return info['score']
+                    return info
             return None
 
         updated_funcs = {}
+        updated_opnd = {}
         for unit in report.get('units', []):
             if unit['name'] == unit_name:
                 for func in unit.get('functions', []):
-                    score = _score_for(func)
-                    if score is not None:
-                        func['match_percent'] = round(score, 2)
+                    info = _result_for(func)
+                    if info is not None:
+                        func['match_percent'] = round(info['score'], 2)
                         updated_funcs[func.get('name')] = func['match_percent']
+                        # Advisory; tolerated absent on older cached lines.
+                        opnd = info.get('opnd_percent')
+                        if opnd is not None:
+                            func['opnd_percent'] = round(opnd, 2)
+                            updated_opnd[func.get('name')] = func['opnd_percent']
                 break
 
         # Recompute unit summary and global summary.
@@ -400,7 +416,8 @@ class SSEHandler(SimpleHTTPRequestHandler):
         )
         logging.info('VC71-scored unit %s: %d function(s) updated in %.1fs — %s',
                      unit_name, len(updated_funcs), total_elapsed, score_summary or 'none')
-        return {'ok': True, 'unit': unit_name, 'scores': updated_funcs}
+        return {'ok': True, 'unit': unit_name, 'scores': updated_funcs,
+                'opnd_scores': updated_opnd}
 
     def log_message(self, format, *args):
         logging.info("%s - %s", self.client_address[0], format % args)

@@ -353,10 +353,15 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
             # rather than the renamed kb.json symbol. Joining on name alone drops
             # ~1100 valid scores; the address is the stable key.
             match_pct = None
+            # Advisory operand-normalized score (mnemonic + operand shape with
+            # canonicalized registers).  Absent for entries scored before the
+            # feature existed; display-only, gates nothing.
+            opnd_pct = None
             if is_ported:
                 score_entry = _lookup_score(scores_data, name, addr, source_path_for_scores)
                 if score_entry is not None:
                     match_pct = score_entry.get('score')
+                    opnd_pct = score_entry.get('opnd_percent')
 
             # If unscored, see whether the attention queue explains why (a whole-TU
             # VC71 compile failure, or a broken/absent delinked reference).  Only
@@ -422,6 +427,7 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
                 'status': status,
                 'ported': is_ported,
                 'match_percent': match_pct,
+                'opnd_percent': opnd_pct,
                 'vc71_flagged': vc71_flagged,
                 'equiv_class': equiv_class,
                 'equiv_coverage': equiv_coverage,
@@ -1012,6 +1018,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         .pct-complete { color: #3fb950; font-weight: 700; }
         .pct-partial { color: var(--accent-blue); font-weight: 600; }
         .pct-none { color: var(--text-secondary); }
+        /* Advisory operand-normalized score shown beside the VC71 match %. */
+        .opnd-pct { color: var(--text-secondary); font-size: 0.85em; opacity: 0.8; }
         .match-indicator {
             display: inline-flex; align-items: center; gap: 6px;
         }
@@ -1513,12 +1521,16 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 if (d.ok) {
                     // Update REPORT in memory so re-renders show the score immediately
                     var scores = d.scores || {};
+                    var opnds = d.opnd_scores || {};
                     for (var i = 0; i < REPORT.units.length; i++) {
                         if (REPORT.units[i].name === unit) {
                             var funcs = REPORT.units[i].functions || [];
                             for (var j = 0; j < funcs.length; j++) {
                                 if (funcs[j].name in scores) {
                                     funcs[j].match_percent = scores[funcs[j].name];
+                                }
+                                if (funcs[j].name in opnds) {
+                                    funcs[j].opnd_percent = opnds[funcs[j].name];
                                 }
                             }
                             break;
@@ -2501,7 +2513,14 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 // "n/a" (no delinked reference \u2014 VC71 impossible, needs equivalence).
                 var matchDisplay;
                 if (f.match_percent !== null && f.match_percent !== undefined) {
-                    matchDisplay = '<span class="num"><span class="match-dot ' + mClass + '"></span>' + f.match_percent.toFixed(1) + '%</span>';
+                    // Advisory operand-normalized score, shown as a muted
+                    // secondary value. The primary number and the >=90
+                    // "verified" logic stay on match_percent alone.
+                    var opndSuffix = '';
+                    if (f.opnd_percent !== null && f.opnd_percent !== undefined) {
+                        opndSuffix = ' <span class="opnd-pct" title="Operand-normalized match: same LCS but comparing mnemonic + operand shape, with immediates normalized to IMM and displacements to OFF. Scored under two register mappings — canonical (positional aliases by first appearance) and identity (real register names) — reporting the higher, so it is a LOWER BOUND rather than a register-order artifact. Because immediates and displacements are erased, it is blind to wrong struct offsets and wrong constants; those are caught by LOADW-WARN and IMM-WARN instead. A large gap against the primary % means the instruction skeleton lines up but the operand shapes / register dataflow do not. Advisory — gates nothing.">· op ' + f.opnd_percent.toFixed(1) + '%</span>';
+                    }
+                    matchDisplay = '<span class="num"><span class="match-dot ' + mClass + '"></span>' + f.match_percent.toFixed(1) + '%' + opndSuffix + '</span>';
                 } else if (f.vc71_flagged === 'compile_failed') {
                     matchDisplay = '<span class="func-status" style="background:#da363322;color:#f85149;border-color:#f85149" title="VC71 compile FAILED for this translation unit (often a clang-ism the C89 CL.Exe rejects: __attribute__, inline in a header, C99 mixed decls). No byte-match evidence until the TU compiles under VC71.">compile fail</span>';
                 } else if (f.vc71_flagged === 'no_reference') {

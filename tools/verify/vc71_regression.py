@@ -93,6 +93,13 @@ _LINE_RE = re.compile(
 _DROP_RE = re.compile(
     r"DROP\s+(\S+):\s+no valid reference\s+—\s+(.+?)\s+\(span\s+(\d+)\s+bytes\)"
 )
+# Advisory operand-normalized score, appended by vc71_verify to the same status
+# line AFTER the optional reg/fpu/loadw/imm tags:
+#   "PASS FUN_x: 97.8% match (699/698 insns) | opnd 90.3% (operand-normalized)"
+# Kept as its own pattern rather than an optional tail on _LINE_RE so the
+# primary score parse is unchanged and cached lines without the token still
+# parse.  Absent => opnd_percent is None everywhere downstream.
+_OPND_RE = re.compile(r"\|\s*opnd\s+([\d.]+)%")
 
 
 # ---------------------------------------------------------------------------
@@ -499,10 +506,12 @@ def run_vc71_verify(source: Path, no_cache: bool = True,
     for line in (result.stdout + result.stderr).splitlines():
         m = _LINE_RE.search(line)
         if m:
+            o = _OPND_RE.search(line)
             out[m.group(1)] = {
                 "score": float(m.group(2)),
                 "n_c": int(m.group(3)),
                 "n_r": int(m.group(4)),
+                "opnd_percent": float(o.group(1)) if o else None,
             }
             continue
         if drops_out is not None:
@@ -603,33 +612,52 @@ def _measure_source(src: Path):
 
         honest_slice[fn_name] = {"score": new_score, "source": src_rel,
                                  "n_c": info.get("n_c"), "n_r": n_r}
+        # Advisory operand-normalized score; omitted entirely when vc71_verify
+        # did not print one (older cached lines), never written as null noise.
+        if info.get("opnd_percent") is not None:
+            honest_slice[fn_name]["opnd_percent"] = info["opnd_percent"]
         scored.append((fn_name, new_score))
 
     return src_rel, honest_slice, flagged_slice, scored, log
 
 
-def _apply_floor(baseline: dict, src_rel: str, scored: list, force: bool):
+def _apply_floor(baseline: dict, src_rel: str, scored: list, force: bool,
+                 opnd_map: dict = None):
     """Apply the raise-only floor merge for one TU's scored functions into
     ``baseline`` (in place).  Serial and order-independent for distinct
-    functions.  Returns ``(n_changed, log)``."""
+    functions.  Returns ``(n_changed, log)``.
+
+    ``opnd_map`` optionally supplies the advisory operand-normalized score per
+    function (``{fn_name: pct}``).  It rides along on entries this call already
+    rewrites — it never causes a rewrite of its own, so untouched entries in the
+    committed floor stay byte-identical.
+    """
     n_changed = 0
     log: list = []
+
+    def _entry(fn_name, score):
+        e = {"score": score, "source": src_rel}
+        opnd = (opnd_map or {}).get(fn_name)
+        if opnd is not None:
+            e["opnd_percent"] = opnd
+        return e
+
     for fn_name, new_score in scored:
         old_entry = baseline.get(fn_name)
         old_score = old_entry["score"] if old_entry else None
 
         if old_score is None:
-            baseline[fn_name] = {"score": new_score, "source": src_rel}
+            baseline[fn_name] = _entry(fn_name, new_score)
             log.append(f"  + {fn_name}: {new_score:.1f}% (new)")
             n_changed += 1
         elif new_score > old_score + 0.1:
             # Improvement: always raise the floor
-            baseline[fn_name] = {"score": new_score, "source": src_rel}
+            baseline[fn_name] = _entry(fn_name, new_score)
             log.append(f"  ↑ {fn_name}: {old_score:.1f}% → {new_score:.1f}%")
             n_changed += 1
         elif new_score < old_score - 0.1:
             if force:
-                baseline[fn_name] = {"score": new_score, "source": src_rel}
+                baseline[fn_name] = _entry(fn_name, new_score)
                 log.append(f"  ↓ {fn_name}: {old_score:.1f}% → {new_score:.1f}% (forced lower)")
                 n_changed += 1
             else:
@@ -648,7 +676,9 @@ def _verify_source(src: Path, baseline: dict, force: bool):
     src_rel, honest_slice, flagged_slice, scored, log = _measure_source(src)
     for l in log:
         print(l)
-    n_changed, floor_log = _apply_floor(baseline, src_rel, scored, force)
+    n_changed, floor_log = _apply_floor(
+        baseline, src_rel, scored, force,
+        opnd_map={k: v.get("opnd_percent") for k, v in honest_slice.items()})
     for l in floor_log:
         print(l)
     return n_changed, honest_slice, flagged_slice
@@ -970,7 +1000,9 @@ def cmd_populate(args) -> int:
         print(f"Verifying {Path(src_rel)} ...", flush=True)
         for l in log:
             print(l)
-        n, floor_log = _apply_floor(baseline, src_rel, scored, force)
+        n, floor_log = _apply_floor(
+            baseline, src_rel, scored, force,
+            opnd_map={k: v.get("opnd_percent") for k, v in honest_slice.items()})
         for l in floor_log:
             print(l)
         total_changed += n

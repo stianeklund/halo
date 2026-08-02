@@ -171,6 +171,27 @@ def parse_match_percent(text: str) -> Optional[float]:
   return float(m.group(1)) if m else None
 
 
+def parse_opnd_percent_for_function(text: str, names: list) -> Optional[float]:
+  """Return the advisory operand-normalized % on a specific function's line.
+
+  vc71_verify appends `| opnd NN.N% (operand-normalized)` to the same
+  PASS/FAIL status line (after the optional reg/fpu/loadw/imm tags).  It is
+  ADVISORY: it never gates anything here, it only rides along in the stage
+  details so the number is visible where the match % is.  Cached lines from
+  before the feature carry no token — returns None then.
+  """
+  for name in names:
+    if not name:
+      continue
+    for line in text.splitlines():
+      if not re.search(r'(?:PASS|FAIL)\s+' + re.escape(name) + r':', line):
+        continue
+      m = re.search(r'\|\s*opnd\s+(\d+\.\d+)%', line)
+      if m:
+        return float(m.group(1))
+  return None
+
+
 def parse_match_percent_for_function(
     text: str, names: list) -> tuple:
   """Return (pct, exact) for a specific function's score.
@@ -851,6 +872,9 @@ def run_pipeline(args: argparse.Namespace) -> int:
           pass
       vc71_match_pct, vc71_pct_exact = parse_match_percent_for_function(
           output, vc71_names)
+      # Advisory only — never gates. Surfaced next to the match % so the
+      # operand-level divergence is visible where the decision is made.
+      vc71_opnd_pct = parse_opnd_percent_for_function(output, vc71_names)
       vc71_verify_ok = proc.returncode == 0
       if proc.returncode == 0:
         details = f"{vc71_match_pct:.1f}% match" if vc71_match_pct is not None else "PASS"
@@ -858,6 +882,8 @@ def run_pipeline(args: argparse.Namespace) -> int:
         details = f"{vc71_match_pct:.1f}% match, FPU operand-order warnings" if vc71_match_pct else "FPU warnings"
       else:
         details = "VC71 compilation or comparison failed"
+      if vc71_opnd_pct is not None:
+        details += f" | opnd {vc71_opnd_pct:.1f}%"
       # IMM-WARN (wrong float/magic literal) is a very low-false-positive signal
       # since both objects are VC71 codegen — flag it for review alongside FPU.
       review_tags = ""

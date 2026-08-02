@@ -1290,11 +1290,28 @@ def run_compare_cached(
             reg_tag = f" [struct:{mnem_pct:.1f}%]"
 
         only_mode = fpu_only or loadw_only or imm_only
+
+        # Advisory operand-normalized score.  The primary `pct` above is a
+        # mnemonic-only LCS, which is blind to operand-level bugs (swapped
+        # arguments, wrong memory source, wrong register shape).  Recompute with
+        # reg_normalize=True -- mnemonic + operand shape with canonical
+        # registers -- and surface it alongside.  Pure Python over the already
+        # disassembled listings; nothing is recompiled or re-disassembled.
+        # ADVISORY ONLY: never gates, never cached, never affects the exit code,
+        # and appended AFTER the "NN.N% match" token so existing parsers
+        # (lift_pipeline.parse_match_percent*) still see the primary score first.
+        opnd_tag = ""
+        if not only_mode and not reg_normalize:
+            opnd_pct = co.compare_functions(
+                compiled_funcs[fn], reference_funcs[fn], reg_normalize=True,
+                regdef_params=regdef)[0]
+            opnd_tag = f" | opnd {opnd_pct:.1f}% (operand-normalized)"
+
         if not only_mode:
             if quiet:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{opnd_tag}")
             else:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{cache_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{opnd_tag}{cache_tag}")
 
         if fpu_warnings:
             any_fpu_warn = True
