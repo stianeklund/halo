@@ -27,6 +27,12 @@ export const meta = {
 const BATCHES    = (args && args.batches) || 6     // max land cycles
 const BATCH_GOAL = (args && args.batchGoal) || 4   // functions per goal-lift run
 const DRY_RUN    = !!(args && args.dryRun)
+// Lift and commit normally, but never attempt to land. For when `main` is
+// known to be in use by another workstream: the land gate would fail on its
+// dirty worktree and stop the run, wasting the remaining batches (observed
+// 2026-08-02: a batch-1 park cost the other 5). Commits accumulate on the
+// branch and go in as one FF later. Unlike dryRun, this still commits.
+const NO_LAND    = !!(args && args.noLand)
 const OBJECTS    = (args && args.objects) || undefined
 const CRITERIA   = (args && args.criteria) || undefined
 // Opt-in: let goal-lift lift register-argument targets instead of dropping them
@@ -175,6 +181,13 @@ for (let i = 1; i <= BATCHES; i++) {
     continue
   }
 
+  // 3b. Landing suppressed: keep lifting, leave the commits on the branch.
+  if (NO_LAND) {
+    unlandedBatches++
+    log(`Batch ${i}: noLand — ${committed} function(s) held on ${BRANCH}`)
+    continue
+  }
+
   // 4. Land the batch via the mechanical gate.
   const land = await agent(
     `Run this command from the current working directory and return its stdout JSON verbatim as your structured result:
@@ -266,4 +279,5 @@ return {
   // for the outage to clear first -- an immediate resume re-fails.
   resumable,
   dry_run: DRY_RUN,
+  no_land: NO_LAND,
 }
