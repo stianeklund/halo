@@ -1245,6 +1245,11 @@ def run_compare_cached(
         print(f"[synth] {len(synth_used)} function(s) scored against a reference "
               f"synthesized from the pristine XBE (no delinked reference bounds "
               f"them): {shown}{more}", flush=True)
+        # Machine-parseable, one per function and never truncated, so callers can
+        # record provenance per entry.  The human line above elides after 6.
+        # Same convention as the DROP lines below.
+        for fn in sorted(synth_used):
+            print(f"  SYNTHREF {fn}", flush=True)
 
     # Report compiled, kb.json-tracked functions we could NOT score against any
     # valid reference (whole-object truncated/absent AND no valid per-function
