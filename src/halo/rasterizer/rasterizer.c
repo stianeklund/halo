@@ -4172,6 +4172,48 @@ char FUN_001792d0(void)
   return *(char *)0x47e4c9;
 }
 
+/* 0x179570 — a third byte-identical instantiation of the D3D8 __forceinline
+ * wrapper around D3DDevice_SetVertexData2f, matching FUN_001703f0 and
+ * FUN_00172650 above instruction for instruction. Disassembled from the
+ * pristine cachebeta.xbe (11 instructions, 0x179570..0x179584):
+ *   push ebp / mov ebp,esp
+ *   mov eax,[ebp+0x10] ; mov ecx,[ebp+0xc]
+ *   push eax ; push ecx ; push edx
+ *   call 0x1ed280                  ; D3DDevice_SetVertexData2f, __stdcall
+ *   xor eax,eax / pop ebp / ret 0xc
+ *
+ * ABI evidence (kb.json previously said `void FUN_00179570(void)`, wrong on
+ * every count):
+ *  - RET 0xc => __stdcall with THREE stack args at +8/+0xc/+0x10. The first
+ *    (+8, the device pointer of the inline member instantiation) is never
+ *    read; it is kept in the signature because the callee-cleanup immediate
+ *    depends on it. Dropping it would shift every caller's ESP.
+ *  - The D3D register index arrives in EDX: PUSH EDX @0017957b with no prior
+ *    write to EDX anywhere in the function, so it is an implicit register
+ *    input (@<edx> in kb.json), not a stack slot.
+ *  - Returns S_OK in EAX: XOR EAX,EAX @00179581. Lifting this as void would
+ *    be the §16 void-EAX hazard (dropped implicit return).
+ *  - Both floats are forwarded as raw dwords through GPRs (no FLD/FSTP), a
+ *    pure bit passthrough, so typing them `float` is safe and matches the
+ *    callee's kb.json declaration; typing them `int` would make VC71 emit a
+ *    spurious FILD conversion.
+ *
+ * Argument order into the callee is from the push sequence -- last push is
+ * the first argument -- so SetVertexData2f(edx, [EBP+0xc], [EBP+0x10]).
+ *
+ * The C impl is cdecl, not __stdcall, even though kb.json records the
+ * original as __stdcall: knowledge.py strips the convention from any @<reg>
+ * declaration when generating decl.h, because the generated thunk presents a
+ * cdecl interface to C, and patch.py's reverse thunk restores the original
+ * RET 0xc contract for the original callers.
+ */
+int FUN_00179570(void *device, uint32_t reg, float a, float b)
+{
+  (void)device;
+  D3DDevice_SetVertexData2f(reg, a, b);
+  return 0;
+}
+
 /* 0x17ad40 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::SetVertexData4f, byte-identical in shape to the already
  * ported FUN_0015a4f0 in rasterizer_xbox_decals.c.

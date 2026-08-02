@@ -19473,7 +19473,8 @@
     },
     {
      "addr": "0x179570",
-     "decl": "void FUN_00179570(void);"
+     "decl": "int __stdcall FUN_00179570(void *device, uint32_t reg@<edx>, float a, float b);",
+     "ported": true
     },
     {
      "addr": "0x1795c0",
