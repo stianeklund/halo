@@ -28268,7 +28268,8 @@
     },
     {
      "addr": "0x180820",
-     "decl": "void compress_real_to_int16(void);"
+     "decl": "short compress_real_to_int16(float z);",
+     "ported": true
     },
     {
      "addr": "0x180890",

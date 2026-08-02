@@ -12140,6 +12140,10 @@
       "score": 76.0,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
+    "FUN_00180820": {
+      "score": 94.1,
+      "source": "src/halo/rasterizer/rasterizer_text.c"
+    },
     "FUN_001808f0": {
       "score": 65.7,
       "source": "src/halo/rasterizer/rasterizer_text.c"
@@ -15171,6 +15175,10 @@
     "component_vectors_from_normal3d": {
       "score": 73.7,
       "source": "src/halo/math/real_math.c"
+    },
+    "compress_real_to_int16": {
+      "score": 94.1,
+      "source": "src/halo/rasterizer/rasterizer_text.c"
     },
     "compute_window_bounds": {
       "score": 77.8,

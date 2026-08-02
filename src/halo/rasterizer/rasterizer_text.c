@@ -449,6 +449,39 @@ unsigned char FUN_001807d0(float param_1)
   return (unsigned char)(int)(clamped * *(float *)0x2602c8);
 }
 
+/*
+ * compress_real_to_int16: compress a normalized real in [-1.0, 1.0] to a
+ * signed 16-bit fixed-point value (0x180820).
+ *
+ * Asserts the input range, then returns (short)floor(z * 32767.5f).
+ *
+ * Binary shape preserved:
+ *   - Range guard is two FCOMP/FNSTSW tests: TEST AH,0x01/JNZ (z < -1.0f) and
+ *     TEST AH,0x41/JNP (z <= 1.0f). Assert tail is display_assert + system_exit
+ *     (-1), NOT halt_and_catch_fire.
+ *   - The floor() double result is narrowed back to float through the incoming
+ *     parameter slot [EBP+8] before the integer conversion (FSTP dword [EBP+8];
+ *     FLD [EBP+8]; FISTP dword [EBP-4]). Assigning back to `z` reproduces that
+ *     round-trip; folding it into one expression would skip the narrowing.
+ *   - The int conversion is an inline FISTP, not a _ftol call, so
+ *     x87_round_to_int is used rather than a C (int) cast. Only the low word of
+ *     the 4-byte result is read (MOV AX, word [EBP-4]).
+ *
+ * Assert __FILE__ is rasterizer_geometry.c:55 — inlined from there, but the
+ * delinked object is rasterizer_text.obj.
+ */
+short compress_real_to_int16(float z)
+{
+  if (z < -1.0f || z > 1.0f) {
+    display_assert("z>=-1.0f && z<=1.0f",
+                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x37,
+                   1);
+    system_exit(-1);
+  }
+  z = (float)floor((double)(z * 32767.5f));
+  return (short)x87_round_to_int(z);
+}
+
 /* rasterizer_geometry_pack_normal_11_11_10_validated: pack float[3] normal
  * into 11-11-10 uint, asserting components in [-1.0, 1.0]. Encodes via
  * floor(component * scale) + FISTP. Verifies round-trip via FUN_0017ffc0.
