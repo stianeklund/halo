@@ -4110,6 +4110,42 @@ tail:
   }
 }
 
+/* 0x178820 — __stdcall shim around IDirect3DDevice8::CreateVertexShader.
+ *
+ * Same family as the D3D8 __forceinline wrappers at 0x1703f0 / 0x172650
+ * above: a tiny argument-shuffling thunk that forwards to the real D3D
+ * entry point. Eleven instructions, one CALL, no FPU, no locals.
+ *
+ * ABI (kb.json previously said `void FUN_00178820(void)`, wrong on every
+ * count), read straight off the disassembly:
+ *   - RET 0x8 => __stdcall with TWO stack args at +8 and +0xc. The first
+ *     (+8) is never read anywhere in the body, exactly as the device
+ *     pointer is ignored in the 0x1703f0 variant.
+ *   - THREE arguments arrive in registers with no prior write in the
+ *     function, so they are implicit inputs: EAX @00178823, ECX @00178827,
+ *     EDX @00178828.
+ *   - Push sequence @00178823..00178829 is PUSH EAX (as it arrived),
+ *     PUSH ECX, PUSH EDX, PUSH EAX (reloaded from [EBP+0xc]). Last push is
+ *     the first argument of the stdcall callee, so against the callee decl
+ *     CreateVertexShader(declaration, code, handle, flags) this gives
+ *     declaration=[EBP+0xc], code=EDX, handle=ECX, flags=EAX-on-entry.
+ *   - No MOV EAX after the CALL and no XOR EAX,EAX before the POP/RET, so
+ *     the callee's HRESULT falls through as this function's return value.
+ *     Declaring it void would drop the result (lift-learnings §16).
+ *
+ * As with 0x1703f0 the C impl below is plain cdecl even though kb.json
+ * records the original as __stdcall: knowledge.py strips the convention
+ * from any @<reg> declaration when generating decl.h, and patch.py's
+ * reverse thunk is what honours the callee-cleans RET 0x8 contract.
+ */
+int FUN_00178820(unsigned long flags, unsigned long *handle,
+                 unsigned long *code, void *unused_arg0,
+                 unsigned long *declaration)
+{
+  (void)unused_arg0;
+  return D3DDevice_CreateVertexShader(declaration, code, handle, flags);
+}
+
 /* 0x1792a0 — byte-mode setter for the adjacent global pair at
  * 0x47e4c8/0x47e4c9. 9 instructions, no calls, no FPU. The disassembly loads
  * the single stack arg once as a BYTE (MOV AL, byte ptr [EBP+8]), derives a

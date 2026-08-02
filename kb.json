@@ -19454,7 +19454,8 @@
     },
     {
      "addr": "0x178820",
-     "decl": "void FUN_00178820(void);"
+     "decl": "int __stdcall FUN_00178820(unsigned long flags@<eax>, unsigned long *handle@<ecx>, unsigned long *code@<edx>, void *unused_arg0, unsigned long *declaration);",
+     "ported": true
     },
     {
      "addr": "0x1792a0",
