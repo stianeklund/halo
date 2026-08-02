@@ -522,6 +522,7 @@
     "0x17a8a0": "bool FUN_0017a8a0(float *point, float radius, float *out_extent, float *out_screen @<ebx>);",
     "0x17ad20": "int __stdcall FUN_0017ad20(void *device, uint32_t reg@<edx>, float a, float b);",
     "0x17be50": "int FUN_0017be50(int16_t register_index@<si>, int16_t mapping_index@<di>);",
+    "0x17c000": "int FUN_0017c000(int16_t register_index@<si>, int16_t mapping_index@<di>);",
     "0x17bf20": "int FUN_0017bf20(void *stage@<esi>);",
     "0x17c1b0": "bool FUN_0017c1b0(void *stage@<esi>, int16_t stage_index@<di>);",
     "0x181020": "int *FUN_00181020(short index @<si>);",

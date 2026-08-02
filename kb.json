@@ -19534,7 +19534,9 @@
     },
     {
      "addr": "0x17c000",
-     "decl": "void FUN_0017c000(void);"
+     "source": "src/halo/rasterizer/xbox/shader_transparent_generic_preprocessor.c",
+     "decl": "int FUN_0017c000(int16_t register_index@<si>, int16_t mapping_index@<di>);",
+     "ported": true
     },
     {
      "addr": "0x17c140",
