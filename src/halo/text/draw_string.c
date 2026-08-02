@@ -23,6 +23,7 @@
  *
  * Re-implemented functions (by XBE address, ascending):
  *   0x130ab0  terminal_string_process_tabs
+ *   0x130b70  FUN_00130b70 (telnet console input handler)
  *   0x19b510  draw_string_get_string
  *   0x19b560  draw_string_set_tab_stops
  *   0x19b5d0  draw_string_set_indents
@@ -110,6 +111,134 @@ lost:
   error(2, "connection lost to telnet client");
   destroy_endpoint(tc_client0_ep);
   tc_client0_ep = NULL;
+}
+
+/*
+ * Telnet console client record.  FUN_00130b70 receives a pointer to one of
+ * these in ESI; the only client the console globals describe lives at
+ * 0x46eee4, which lines up exactly with tc_client0_ep (+0x00) and
+ * tc_client0_buf (+0x04) above.  Only those two fields are touched here, so
+ * the true total size of the record is unknown (no sizeof assert).
+ */
+#define TELNET_CLIENT_BUFFER_SIZE 128
+
+typedef struct telnet_client {
+  int *endpoint;                          /* [+0x00] TCP endpoint, NULL when closed */
+  char buffer[TELNET_CLIENT_BUFFER_SIZE]; /* [+0x04] pending input line, NUL terminated */
+} telnet_client;
+
+/*
+ * FUN_00130b70 — telnet console per-byte input handler.
+ *
+ * Consumes `count` bytes of freshly received data for one console client.
+ * Printable bytes (isalnum / ispunct / space) are appended to the client's
+ * line buffer and echoed back one byte at a time; control bytes are
+ * dispatched through a jump table:
+ *   0x04 (Ctrl-D)   say goodbye, close the endpoint, stop consuming input
+ *   0x08 (backspace) drop the last buffered byte, then echo the byte
+ *   0x0a / 0x0d      submit the buffered line to hs_console_evaluate
+ * Returns 1 on success, 0 once a write to the client has failed.
+ *
+ * Confirmed: client struct reached through ESI (never loaded, never saved in
+ *            the prologue) — declared `void *client@<esi>` in kb.json.
+ * Confirmed: bytes above 0x7f are skipped before the ctype calls
+ *            (CMP AL,0x7f / JG at 0x130b97 — signed byte compare).
+ * Confirmed: jump table at 0x130d40 with the byte index table at 0x130d50
+ *            covers 0x04..0x0d; live cases are 0x04, 0x08, 0x0a, 0x0d.
+ * Confirmed: the line buffer holds 128 bytes (INC EAX / CMP EAX,0x80 / JGE
+ *            at 0x130ca0) and the command scratch is 128 bytes with an
+ *            explicit NUL at [127] (MOV byte ptr [EBP-9],0 at 0x130c12).
+ * Confirmed: the overflow path RETURNS (JG 0x130d37) instead of continuing.
+ * Confirmed: the CR/LF write failure sets the result without calling error()
+ *            (JMP 0x130cda skips the error call at 0x130cd2).
+ * Confirmed: strings 0x29a8f8 "\r\ngoodbye!\r\n", 0x261f2c "\r\n",
+ *            0x29a8a0 overflow notice, 0x29a8d0 write-failure format.
+ */
+char FUN_00130b70(void *client_record, const char *data, int count)
+{
+  char command[TELNET_CLIENT_BUFFER_SIZE];
+  telnet_client *client;
+  const char *input;
+  int length;
+  int sent;
+  int i;
+  char result;
+
+  client = (telnet_client *)client_record;
+  result = 1;
+
+  for (i = 0; result != 0 && i < count; i++) {
+    input = data + i;
+
+    /* Signed byte compare: 0x80..0xff never reach the ctype helpers. */
+    if (*input > 0x7f)
+      continue;
+
+    if (_isalnum(*input) == 0 && _ispunct(*input) == 0 && *input != ' ') {
+      switch (*input) {
+      /* Case order matches the original block layout at 0x130bee / 0x130c48
+       * / 0x130c66 — VC71 emits switch bodies in source order. */
+      case 0x0a: /* LF */
+      case 0x0d: /* CR: submit the buffered line. */
+        if (client->buffer[0] != '\0') {
+          csstrncpy(command, client->buffer, TELNET_CLIENT_BUFFER_SIZE - 1);
+          command[TELNET_CLIENT_BUFFER_SIZE - 1] = '\0';
+          client->buffer[0] = '\0';
+          if (hs_console_evaluate(command)) {
+            sent = send_endpoint(client->endpoint, "\r\n", 2);
+            if (sent <= 0)
+              goto write_failed;
+          }
+        }
+        continue;
+
+      case 0x08: /* Backspace: drop the last byte, then echo below. */
+        if (client->buffer[0] != '\0') {
+          length = csstrlen(client->buffer);
+          if (length > 0)
+            client->buffer[length - 1] = '\0';
+        }
+        break;
+
+      case 0x04: /* Ctrl-D: disconnect and stop consuming this packet. */
+        send_endpoint(client->endpoint, "\r\ngoodbye!\r\n",
+                      csstrlen("\r\ngoodbye!\r\n"));
+        destroy_endpoint(client->endpoint);
+        client->endpoint = NULL;
+        i = count;
+        continue;
+
+      default:
+        continue;
+      }
+    } else {
+      /* Printable byte: append to the line buffer, keeping it terminated. */
+      length = csstrlen(client->buffer) + 1;
+      if (length >= TELNET_CLIENT_BUFFER_SIZE) {
+        client->buffer[0] = '\0';
+        sent = send_endpoint(
+            client->endpoint, "\r\noverflowed client buffer; resetting buffer\r\n",
+            csstrlen("\r\noverflowed client buffer; resetting buffer\r\n"));
+        if (sent <= 0) {
+          error(2, "failed to write to telnet client ('%s')", FUN_00081c80(sent));
+          return 0;
+        }
+        return result;
+      }
+      client->buffer[length - 1] = *input;
+      client->buffer[length] = '\0';
+    }
+
+    /* Echo the single byte we just consumed back to the client. */
+    sent = send_endpoint(client->endpoint, input, 1);
+    if (sent > 0)
+      continue;
+    error(2, "failed to write to telnet client ('%s')", FUN_00081c80(sent));
+  write_failed:
+    result = 0;
+  }
+
+  return result;
 }
 
 /*

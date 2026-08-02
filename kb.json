@@ -28567,7 +28567,8 @@
     },
     {
      "addr": "0x130b70",
-     "decl": "char FUN_00130b70(void *client@<esi>, const char *data, int count);"
+     "decl": "char FUN_00130b70(void *client@<esi>, const char *data, int count);",
+     "ported": true
     },
     {
      "addr": "0x19b3c0",
