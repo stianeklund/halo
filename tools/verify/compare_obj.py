@@ -722,6 +722,18 @@ def extract_normalized_sequence(insns: list[str]) -> list[str]:
     return [normalize_instruction(i) for i in canonical]
 
 
+def extract_identity_sequence(insns: list[str]) -> list[str]:
+    """Normalize each instruction WITHOUT register canonicalization.
+
+    The identity register mapping: registers keep their real names.  This is
+    the complement of extract_normalized_sequence -- canonicalization helps
+    when the two builds use *different* registers for the same roles in the
+    same order, and hurts badly when the introduction ORDER itself differs,
+    because aliases are assigned by global first appearance.
+    """
+    return [normalize_instruction(i) for i in insns]
+
+
 def extract_mnemonic_sequence(insns: list[str]) -> list[str]:
     """Get ordered mnemonic sequence for LCS matching."""
     return [mnemonic(i) for i in insns]
@@ -1076,13 +1088,38 @@ def compare_functions(compiled: list[str], reference: list[str],
             modeled = compare_functions(stripped, reference, reg_normalize)
             return modeled if modeled[0] >= raw[0] else raw
     if reg_normalize:
-        c_seq = extract_normalized_sequence(compiled)
-        r_seq = extract_normalized_sequence(reference)
+        # Score BOTH register mappings and report the higher.
+        #
+        # canonicalize_registers() aliases registers by GLOBAL first-appearance
+        # order, so a candidate and a reference that introduce register
+        # families in a different order score near-zero on operands even when
+        # the lift is correct.  Measured on FUN_00017ab0 (the largest @<reg>
+        # function in the repo): 17.1% canonicalized against 58.8% identity-
+        # mapped, with an exhaustive search over all 720 register permutations
+        # confirming no global renaming recovers it -- the divergence is
+        # positional, so canonicalization actively hurts.  @<reg> functions
+        # trigger this systematically: the reference pins the params in
+        # callee-saved registers from the prologue while our cl.exe build takes
+        # them as stack args, permuting the whole appearance order.
+        #
+        # Taking the max makes this a true LOWER BOUND on operand fidelity
+        # instead of a register-order lottery.  Neither mapping is universally
+        # better: canonicalization rescues benign whole-function register
+        # substitution, identity rescues order divergence.
+        c_canon = extract_normalized_sequence(compiled)
+        r_canon = extract_normalized_sequence(reference)
+        c_ident = extract_identity_sequence(compiled)
+        r_ident = extract_identity_sequence(reference)
+        canon_ratio = lcs_ratio(c_canon, r_canon)
+        ident_ratio = lcs_ratio(c_ident, r_ident)
+        if ident_ratio > canon_ratio:
+            c_seq, r_seq, ratio = c_ident, r_ident, ident_ratio
+        else:
+            c_seq, r_seq, ratio = c_canon, r_canon, canon_ratio
     else:
         c_seq = extract_mnemonic_sequence(compiled)
         r_seq = extract_mnemonic_sequence(reference)
-
-    ratio = lcs_ratio(c_seq, r_seq)
+        ratio = lcs_ratio(c_seq, r_seq)
 
     # Generate unified diff summary (always show raw instructions for readability)
     diffs = []
@@ -1398,6 +1435,51 @@ def _self_test():
     modeled = compare_functions(cand, ref, regdef_params=[(0, 'eax')])[0]
     check("RP2 cascade spill survives, raw < modeled < 100",
           raw < modeled < 100.0)
+
+    # --- operand scoring: max(canonical, identity) register mapping ---------
+    # OP1. Same roles, DIFFERENT registers, same introduction order:
+    #      canonicalization wins and identity would under-report.
+    cand = ["movl %eax, 0x4(%esp)", "addl %ecx, %eax", "retl"]
+    ref = ["movl %ebx, 0x4(%esp)", "addl %edx, %ebx", "retl"]
+    # NOTE: lcs_ratio returns a 0..1 fraction; compare_functions returns 0..100.
+    check("OP1 canonical rescues pure register substitution",
+          lcs_ratio(extract_normalized_sequence(cand),
+                    extract_normalized_sequence(ref)) == 1.0)
+    check("OP1 identity alone would score it lower",
+          lcs_ratio(extract_identity_sequence(cand),
+                    extract_identity_sequence(ref)) < 1.0)
+    check("OP1 compare_functions takes the max",
+          compare_functions(cand, ref, reg_normalize=True)[0] == 100.0)
+
+    # OP2. SAME registers, different introduction ORDER: canonicalization
+    #      shifts every alias and collapses; identity is exact.  This is the
+    #      FUN_00017ab0 signature (17.1% canonical vs 58.8% identity).
+    cand = ["movl %eax, (%esp)", "movl %ebx, 0x4(%esp)", "retl"]
+    ref = ["movl %ebx, 0x4(%esp)", "movl %eax, (%esp)", "retl"]
+    canon = lcs_ratio(extract_normalized_sequence(cand),
+                      extract_normalized_sequence(ref))
+    ident = lcs_ratio(extract_identity_sequence(cand),
+                      extract_identity_sequence(ref))
+    check("OP2 identity beats canonical on order divergence", ident > canon)
+    check("OP2 compare_functions takes the max",
+          abs(compare_functions(cand, ref, reg_normalize=True)[0]
+              - ident * 100.0) < 1e-9)
+
+    # OP3. The max is never below either mapping alone (lower-bound property).
+    for a, b in ((["movl %eax, %ecx", "retl"], ["movl %esi, %edi", "retl"]),
+                 (["addl %eax, %ebx", "subl %ecx, %edx", "retl"],
+                  ["subl %ecx, %edx", "addl %eax, %ebx", "retl"])):
+        got = compare_functions(a, b, reg_normalize=True)[0]
+        check("OP3 max >= both mappings",
+              got >= lcs_ratio(extract_normalized_sequence(a),
+                               extract_normalized_sequence(b)) * 100.0 - 1e-9
+              and got >= lcs_ratio(extract_identity_sequence(a),
+                                   extract_identity_sequence(b)) * 100.0 - 1e-9)
+
+    # OP4. Mnemonic path is untouched by the operand change.
+    cand = ["movl %eax, %ecx", "retl"]
+    check("OP4 mnemonic-only path unaffected",
+          compare_functions(cand, ["movl %esi, %edi", "retl"])[0] == 100.0)
 
     # RP3. @<ax> word param: movswl widening load into %eax is family(eax)
     #      -> stripped.
