@@ -10030,6 +10030,13 @@
         "Two other call sites of FUN_0015dc10 (0x162f1d) and FUN_0015de60 (0x161684, 0x161e88) show one extra dword of ADD ESP cleanup than the declared arg count; those cleanups are low-confidence (likely merged with a neighbouring pop) and were NOT used to widen the decls, since every high-confidence site including all three reached from 0x174510 agrees with 4/5/4."
       ]
     },
+    "0x174980": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The three implicit register inputs are mapped to D3DVertexBuffer_Lock's SizeToLock (EDX), ppbData (ECX) and Flags (EAX) by matching the 5-argument push order against the published IDirect3DVertexBuffer8::Lock signature; the binary only proves that EAX/ECX/EDX are read before being written and forwarded as call arguments 5, 4 and 3 respectively."
+      ]
+    },
     "0x174b90": {
       "kind": "function",
       "status": "unknown",
@@ -10140,13 +10147,16 @@
       "inferred": [
         "FUN_0017c140 was declared void FUN_0017c140(void) in kb.json but the disassembly at 0x17c140 reads ESI before writing it (TEST ESI,ESI at the entry) and reads DI at 0x17c16d/0x17c192 (MOVSX EAX,DI / MOVSX ECX,DI feeding error()), so its real signature is char FUN_0017c140(void *map@<esi>, int16_t map_index@<di>) returning AL from the tails at 0x17c1a5/0x17c1a9.",
         "FUN_0017c000 was declared void FUN_0017c000(void) in kb.json but is the alpha twin of FUN_0017be50: TEST SI,SI at 0x17c000 and TEST DI,DI at 0x17c02b read both registers before writing, so its real signature is int FUN_0017c000(int16_t register_index@<si>, int16_t mapping_index@<di>).",
-        "The 0xf0-byte output block matches the XDK D3DPIXELSHADERDEF layout field-for-field (+0x20/+0x24 final-combiner inputs, +0x48 PSConstant1[8], +0x68 PSAlphaOutputs[8], +0x88 PSRGBInputs[8], +0xb4 PSRGBOutputs[8], +0xd4 PSCombinerCount, +0xd8 PSTextureModes), so the offset macros are named after the XDK fields even though no string in the binary proves it."
+        "The 0xf0-byte output block matches the XDK D3DPIXELSHADERDEF layout field-for-field (+0x20/+0x24 final-combiner inputs, +0x48 PSConstant1[8], +0x68 PSAlphaOutputs[8], +0x88 PSRGBInputs[8], +0xb4 PSRGBOutputs[8], +0xd4 PSCombinerCount, +0xd8 PSTextureModes), so the offset macros are named after the XDK fields even though no string in the binary proves it.",
+        "The 0xf0-byte output buffer is an XDK D3DPIXELSHADERDEF: the written offsets 0x00/0x20/0x24/0x48/0x68/0x88/0xb4/0xd4/0xd8 line up exactly with PSAlphaInputs, PSFinalCombinerInputsABCD/EFG, PSConstant1, PSAlphaOutputs, PSRGBInputs, PSRGBOutputs, PSCombinerCount and PSTextureModes, and the csmemset size at 0x17c353 is the struct's 0xf0 size."
       ],
       "uncertain": [
         "The names given to the pixel_shader output fields (PIXEL_SHADER_MUX_CONTROL at +0x20, PIXEL_SHADER_FINAL_COMBINER at +0x24, PIXEL_SHADER_STAGE_CONSTANT at +0x48) are inferred from the register-combiner constants stored into them (0xc, 0x1c00, and a real_rgb_color packed by FUN_000d1c90) and are not proven by any string; the remaining offsets of the 0xf0-byte buffer are untouched by this function and stay unnamed.",
         "The stage input selector macros STAGE_COLOR_INPUT_REGISTER/MAPPING (+0x3c..+0x4b) and STAGE_ALPHA_INPUT_REGISTER/MAPPING (+0x58..+0x67) are named from the parameter names in the FUN_0017be50 assert strings, not from a struct definition; the pairing of the lower offset with register_index and the higher with mapping_index is proven only by the MOV SI,[EBX+lo] / MOV DI,[EBX+hi] order at 0x17c47b and 0x17c5c3.",
         "VC71 match is 86.7% (389 of our instructions against a complete 358-instruction reference). The residual gap is register-allocation and spill-slot scheduling, not control flow: the original reuses six spill slots at EBP-0x10..EBP-0x24 across the colour and alpha phases and repurposes the two incoming parameter slots as the definition pointer and then the stage index. A permuter run over 100s regressed to 85.6% and was not applied.",
-        "The short at generic+0x2a only ever feeds a != 0 test that selects shader-stage program 1 vs 3 for texture unit 0; that is consistent with the tag's first_map_type enum (0 = 2D, non-zero = a cube map), but nothing in the binary proves the name, so the macro stays GENERIC_FIELD_2A."
+        "The short at generic+0x2a only ever feeds a != 0 test that selects shader-stage program 1 vs 3 for texture unit 0; that is consistent with the tag's first_map_type enum (0 = 2D, non-zero = a cube map), but nothing in the binary proves the name, so the macro stays GENERIC_FIELD_2A.",
+        "The stage fields at +0x3c..+0x4a, +0x58..+0x66, +0x4c/+0x50/+0x54 and +0x68/+0x6a/+0x6c carry only mechanical offset-derived names because the shared assert string at 0x2aed50 names the inlined helper's parameter (register_index) rather than the field; only +0x6e is proven as stage->alpha_output_mapping by the string at 0x2aef40.",
+        "VC71 measures 69.2 percent (69.5 with --regcall-elide) because the verify lane cannot express the @<si>/@<di> ABI of the ten register-arg call sites in the stage loop and emits push/push/call plus cleanup instead of two movw; the 388 vs 358 instruction delta accounts for the entire gap and classify_cap.py rates this a high-confidence structural cap."
       ]
     },
     "0x17c790": {
@@ -10311,6 +10321,24 @@
     "0x182ac0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x182bd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x182cf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x182e00": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Both dispatches (bitmap type at +0xa, bytes-per-pixel) are switch statements in the original, not if/else chains: the reference emits the MSVC sequential-subtraction lowering (sub $0/dec/dec for type 0/1/2, dec/dec/sub $2 for bpp 1/2/4); rewriting the if/else chains as switch plus an inverted malloc-failure test took VC71 from 59.6% to 93.6%."
+      ],
+      "uncertain": [
+        "Ghidra dropped every swizzler argument and the width/height/depth results; the argument lists here are reconstructed from the original push order (2D: dst=temp, src=mip_addr, width in ESI, height in EBX; 3D adds depth from [EBP-0xc]; cubemap walks one source pointer by mip_size/6 and derives dst as src plus a once-computed temp-minus-mip_addr delta). Verified against the disassembly but not against runtime behavior."
+      ]
     },
     "0x183650": {
       "kind": "function",

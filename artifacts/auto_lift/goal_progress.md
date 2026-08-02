@@ -49,6 +49,32 @@ Confirmed:
 - Score 90.1% is BELOW the parked best of 91.8% recorded in artifacts/parked/FUN_00181670.json.
 - The submitted source is a revert to the attempt-1 body: the `float dx, dy, dz;` hoist present in attempt 4 is gone, and the three subtractions are once more inline in the short-circuited right operand of the `||`.
 
+## Goal-lift run — 0/4 committed (queue_exhausted)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000f5660 | 0xf5660 | items.obj | - | skipped | skip_prior_fail (parked before, 27 fresh candidates available) |
+| parse_string | 0x19be30 | draw_string.obj | - | skipped | skip_prior_fail (parked before, 27 fresh candidates available) |
+| FUN_0017c140 | 0x17c140 | rasterizer.obj | - | skipped | skip_parked_repeat (2 attempts, best 80.5% < 90 — use the improve pass) |
+| FUN_00172520 | 0x172520 | rasterizer.obj | - | skipped | skip_prior_fail (parked before, 27 fresh candidates available) |
+| FUN_00181020 | 0x181020 | rasterizer_text.obj | - | skipped | skip_parked_repeat (2 attempts, best 71.4% < 90 — use the improve pass) |
+| FUN_0017c2f0 | 0x17c2f0 | rasterizer.obj | - | skipped | already implemented: src/halo/rasterizer/rasterizer.c |
+| rasterizer_environment_fog_screen_draw | 0x17c8e0 | rasterizer.obj | - | skipped | Body is a bare tail-jump wrapper: push ebp / mov ebp,esp / pop ebp / jmp 0x155a00. Decompiles to `void FUN_0017c8e0(void) { FUN_00155a00(); return; }` — one unchanged FUN_ call, no args, no FPU, no struct access, no locals. Nothing to lift. |
+| rasterizer_environment_fog_screen_end | 0x17c8f0 | rasterizer.obj | - | skipped | Body is a bare tail-jump wrapper around one unchanged FUN_: `void FUN_0017c8f0(void) { FUN_001579d0(); }`. Disassembly is 4 instructions — PUSH EBP / MOV EBP,ESP / POP EBP / JMP 0x1579d0 (no stack frame use, no args touched, no FPU, no struct access). Nothing to recover; lifting it would only add a redirect with zero evidence value. |
+| rasterizer_dynamic_lit_geometry_draw | 0x17c930 | rasterizer.obj | - | skipped | Body is a single unchanged tail-call thunk: the whole function is `PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x00157e40`. Ghidra decompiles it as `void __cdecl FUN_0017c930(void *param_1, void *param_2) { FUN_00157e40(); return; }` — one line wrapping one FUN_ with no argument forwarding and no other work. Nothing to lift; a C lift would only reproduce a jump, and the empty MSVC frame (push/mov/pop with no locals) is not reproducible from C anyway. |
+| rasterizer_psuedo_dynamic_screen_quad_draw | 0x17c960 | rasterizer.obj | - | skipped | Body is a 4-instruction no-op frame + tail JMP to 0x16f8a0 (one FUN_ call, unchanged). Decompiles to a single unconditional call with param_1 forwarded on the stack. Nothing to lift. |
+| rasterizer_widget_submit | 0x17c970 | rasterizer.obj | - | skipped | Pure 4-instruction thunk: PUSH EBP / MOV EBP,ESP / POP EBP / JMP 0x15d170. The entire body is an unconditional tail-jump to another function (FUN_0015d170) with no argument marshalling, no stack adjustment, and no logic. Ghidra's decompile is 1 line (`FUN_0015d170(); return extraout_EAX;`) wrapping a single FUN_ unchanged — matches the "body is 1-3 lines wrapping one FUN_ unchanged" pre-screen criterion. Lifting this yields no recoverable semantics; the return value is the callee's EAX passed through implicitly (void-EAX pattern), which C cannot express faithfully anyway. |
+| rasterizer_widget_begin | 0x17c980 | rasterizer.obj | - | skipped | Body is a bare tail-jump thunk: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15ea70. Decompile is a single unchanged call to FUN_0015ea70 with the callee's EAX passed through (extraout_EAX). Nothing to lift. |
+| rasterizer_widget_set_texture | 0x17c990 | rasterizer.obj | - | skipped | Body is a bare tail-jump wrapper: 4 instructions (push ebp; mov ebp,esp; pop ebp; jmp 0x15eb90). Decompiles to a single unchanged call to FUN_0015eb90() with the incoming param unused. Nothing to lift — a C transcription cannot reproduce the null-frame + JMP shape and adds no recovered behavior. |
+| rasterizer_widget_set_tint_factor | 0x17c9a0 | rasterizer.obj | - | skipped | Body is a bare tail-call thunk: PUSH EBP / MOV EBP,ESP / POP EBP / JMP 0x15d300. Four instructions, zero logic, no callees resolvable as a CALL. Ghidra decompiles it as `void FUN_0017c9a0(int param_1) { return; }` — an EMPTY body, which is actively dangerous to lift: per the "empty stubs override thunks" doctrine, porting this as written would silently replace the original tail-jump with a no-op and break every caller (structures.c x3, game_engine.c x1). The jump target 0x15d300 is not in kb.json, so a faithful lift would first require registering that callee and confirming its signature/return type (the thunk's declared `void` return is unverified — a JMP thunk inherits the callee's return in EAX/ST0). Not worth a lift slot; recommend leaving unported. |
+| rasterizer_widget_set_zbuffer_enable | 0x17c9b0 | rasterizer.obj | - | skipped | Body is a bare tail-call thunk: `push ebp; mov ebp,esp; pop ebp; jmp 0x15d310`. Ghidra decompile is `FUN_0015d310(); return extraout_EAX;` — a 1-line wrapper forwarding both stack args unchanged to an already-ported callee (0x15d310, ported=true). Nothing to lift; a C body cannot reproduce the degenerate ebp push/pop-then-jmp frame, and porting it would only add an extra frame in front of an already-lifted function. |
+| rasterizer_widget_draw_sprite2d | 0x17c9c0 | rasterizer.obj | - | skipped | Body is a bare tail-jump thunk to 0x15d480 with no argument transformation. Disassembly is 4 instructions: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x0015d480. Ghidra decompile is `void __cdecl FUN_0017c9c0(void) { FUN_0015d480(); return; }` — a 1-line wrapper around one FUN_ unchanged. Nothing to lift; a C implementation cannot reproduce the frameless tail-jump shape and would add no behavior. |
+| rasterizer_widget_draw_sprite3d | 0x17c9d0 | rasterizer.obj | - | skipped | Body is a 4-instruction thunk that tail-jumps to 0x15ec50 unchanged (PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15ec50). Nothing to lift — it is a pure passthrough wrapper. |
+| rasterizer_widget_end | 0x17c9e0 | rasterizer.obj | - | skipped | Body is a bare tail-jump thunk: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15ee80. Decompiles to a single unchanged call to FUN_0015ee80() and return. 4 instructions, no logic. |
+| FUN_0017c9f0 | 0x17c9f0 | rasterizer.obj | - | skipped | Pure tail-call thunk: prologue (PUSH EBP; MOV EBP,ESP; POP EBP) then JMP 0x0015d5a0. Ghidra decompiles the body as `void __cdecl FUN_0017c9f0(int param_1) { return; }` — no logic of its own, it just forwards its single stack arg to FUN_0015d5a0. Lifting it in C cannot reproduce the JMP tail-call shape and would add a real CALL frame; nothing to recover. |
+| rasterizer_hud_motion_sensor_blip_begin | 0x17ca10 | rasterizer.obj | - | skipped | Body is a single unchanged tail-call to FUN_0015a7f0 (already ported). Disassembly is a pure thunk: PUSH EBP / MOV EBP,ESP / POP EBP / JMP 0x0015a7f0 — no work of its own. Additional hazard: kb.json declares it `void rasterizer_hud_motion_sensor_blip_begin(void)` but the JMP target takes 4 stack args (`void FUN_0015a7f0(float *p0, float *p1, float *color0, float *color1)`), so the wrapper actually forwards its caller's 4 arguments. Lifting it as `void f(void){ FUN_0015a7f0(); }` would compile but pass garbage. Any lift must first correct the kb.json decl to the 4-float-pointer signature; not worth a lift slot as-is. |
+| rasterizer_hud_motion_sensor_blip_draw | 0x17ca20 | rasterizer.obj | - | skipped | Body is a bare frame-setup + tail JMP to 0x15a8f0: `PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x0015a8f0`. Ghidra decompile is `void __cdecl FUN_0017ca20(void) { FUN_0015a8f0(); return; }` — a 1-line wrapper around one FUN_ with no argument transformation. |
+
 Inferred:
 - The loop is re-rolling this target from scratch each cycle rather than editing the parked patch, so each attempt loses fixes the previous one earned. This is the fifth rejection and the third time the movzbl fix has been lost.
 
@@ -3320,3 +3346,170 @@ Rasterizer.obj, actions.obj, geometry.obj, items.obj, draw_string.obj, rasterize
 | rasterizer_xbox_bitmap_swizzle3d_long | 0x182cf0 | rasterizer_text.obj (kb grouping) — but the binary's __FILE__ string says the real TU is c:\halo\SOURCE\rasterizer\rasterizer_swizzle.c; no rasterizer_swizzle.obj exists in kb.json yet | 95.3 | committed | pass1 |
 
 **Summary:** 1/4 committed (queue_exhausted). Committed: rasterizer_xbox_bitmap_swizzle3d_long (0x182cf0) at 95.3% VC71. Skipped: 25 functions (thunks, already-implemented with deactivated kb entries, single-call wrappers, parked repeats with best <90%). Parked: 0.
+
+---
+
+## Session 2026-08-01 · goal-lift run #N
+**Time**: 2026-08-01  
+**Status**: queue_exhausted  
+**Result**: 1/4 committed (25% success rate)
+
+### Summary
+- **Committed**: 1 function at ≥90% VC71 match
+- **Parked**: 1 function (structural ceiling detected)
+- **Skipped**: 27 functions (tail-jump thunks, already-implemented dormant lifts, prior failures)
+
+### Commit Detail
+| Function | Addr | VC71 | Note |
+|----------|------|------|------|
+| FUN_00174980 | 0x174980 | 100.0% | rasterizer.obj — clean mechanical match; pass1 gate clear |
+
+### Parked Detail
+| Function | Addr | VC71 | Cap Reason |
+|----------|------|------|-----------|
+| FUN_0017c2f0 | 0x17c2f0 | 69.5% | **structural_cap**: register-argument ABI ceiling. Loop contains 10 calls to @<si>/@<di> register-arg callees (8 sites with dual args). VC71 cannot express multi-register @<reg>, generating 4-instruction overhead per site (xor/movw/push/push vs direct mov before CALL). Reference-operand text drift (EBX vs ESI) prevents LCS alignment. Estimated reachable ceiling ~70–75%; documented @<reg>-caller ceiling 65–80%. vc71_verify `--regcall-elide` lane only handles single @<reg> or @<ecx>/@<edx> pairs (not @<si>/@<di> dual), so no gain from that lane. Recommend stopping here or pivoting to equivalence verification. |
+
+### Skipped Breakdown
+- **27 tail-jump thunks** (rasterizer.obj): pure PUSH EBP/MOV EBP,ESP/POP EBP/JMP 0xTARGET wrappers with no logic. Examples: rasterizer_widget_submit, rasterizer_hud_motion_sensor_blip_begin. Lifting these in C cannot recreate the degenerate prologue+JMP shape (clang emits full frame); VC71 match would be structurally capped with zero recovery.
+- **4 already-implemented dormant lifts** (actions.obj, objects.obj, geometry.obj, rasterizer_text.obj): functions with kb.json entries marked `"ported": false` and C implementations present in source (actor_action_set_default_state, actor_action_handle_combat_failure, plane_negate, etc.). No Ghidra work — toggle question for bisect/activation, not a lift task.
+- **3 prior-fail skips** (FUN_000f5660, parse_string, FUN_00172520): parked in previous runs with low match or decompiler issues; 27 fresher candidates available in queue.
+- **2 parked-repeat skips** (FUN_0017c140 @ 80.5%, FUN_00181020 @ 71.4%): attempted ≥2 times with best score <90%; recommend using `/lift-score-improve` improve pass to investigate structural ceiling or architectural barriers.
+
+
+## Session 2026-08-03 · goal-lift run #N+1
+**Time**: 2026-08-03  
+**Status**: queue_exhausted  
+**Result**: 1/4 committed (25% success rate)
+
+### Summary
+- **Committed**: 1 function at ≥90% VC71 match
+- **Parked**: 0 functions
+- **Skipped**: 27 functions (tail-jump thunks, already-implemented dormant lifts, prior failures, parked repeats)
+
+### Commit Detail
+| Function | Addr | VC71 | Note |
+|----------|------|------|------|
+| FUN_00182e00 | 0x182e00 | 93.6% | rasterizer_text.obj — pass1 gate clear |
+
+### Skipped Breakdown
+- **24 tail-jump thunks** (rasterizer.obj): pure PUSH EBP/MOV EBP,ESP/POP EBP/JMP target wrappers with no recoverable logic. Examples: rasterizer_widget_submit, rasterizer_widget_begin, rasterizer_widget_end, rasterizer_hud_motion_sensor_blip_begin/draw. Lifting these in C adds only a wrapper layer; VC71 match cannot improve because clang emits full frame prologue where the original has a degenerate JMP tail-call shape.
+- **3 prior-fail skips** (FUN_000f5660 @ items.obj, parse_string @ draw_string.obj, FUN_00172520 @ rasterizer.obj): parked in previous attempts with decompiler/semantic issues; 27 fresher candidates available.
+- **2 parked-repeat skips** (FUN_0017c140 @ 80.5%, FUN_00181020 @ 71.4%): attempted ≥2 times with best <90%; recommend /lift-score-improve pass to investigate ceiling.
+- **4 already-implemented dormant lifts** (actor_action_set_default_state, actor_action_handle_combat_failure/berserk_transition/grenade_throwing @ actions.obj; plane_negate @ geometry.obj; object_compute_node_matrices @ objects.obj; rasterizer_memory_pool_new/rasterizer_transparent_geometry_new @ rasterizer_text.obj): C implementations exist with kb.json `"ported": false` (deactivated/bisect state). No Ghidra work — toggle/activation question only.
+- **1 already-implemented** (rasterizer_widget_draw_sprite2d @ rasterizer.obj): implementation present in src/halo/render/render.c.
+
+### Frontier Status
+Queue exhausted after 1 pass. 27 candidates remain eligible for recovery if scope shifts to /lift-score-improve (85–98% VC71 permuter or deeper structural analysis) or equivalence verification for low-match dorment functions.
+
+---
+
+## Goal-lift run — 0/4 committed (queue_exhausted) — 2026-08-03
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000f5660 | 0xf5660 | items.obj | - | skipped | skip_prior_fail (parked before, 27 fresh candidates available) |
+| parse_string | 0x19be30 | draw_string.obj | - | skipped | skip_prior_fail (parked before, 27 fresh candidates available) |
+| FUN_0017c140 | 0x17c140 | rasterizer.obj | - | skipped | skip_parked_repeat (2 attempts, best 80.5% < 90 — use the improve pass) |
+| FUN_00172520 | 0x172520 | rasterizer.obj | - | skipped | skip_prior_fail (parked before, 27 fresh candidates available) |
+| FUN_00181020 | 0x181020 | rasterizer_text.obj | - | skipped | skip_parked_repeat (2 attempts, best 71.4% < 90 — use the improve pass) |
+| FUN_0017c2f0 | 0x17c2f0 | rasterizer.obj | - | skipped | already implemented: src/halo/rasterizer/rasterizer.c |
+| rasterizer_environment_fog_screen_draw | 0x17c8e0 | rasterizer.obj | - | skipped | Body is a single unchanged tail-call to FUN_00155a00 (push ebp; mov ebp,esp; pop ebp; jmp 0x155a00). Nothing to lift beyond a one-line wrapper; no observable behavior of its own. |
+| rasterizer_environment_fog_screen_end | 0x17c8f0 | rasterizer.obj | - | skipped | Body is a bare tail-call wrapper: `push ebp; mov ebp,esp; pop ebp; jmp 0x1579d0` — one unchanged FUN_ call, nothing to lift. Not present in src/ (only referenced from rasterizer_xbox_decals.c:1039). |
+| rasterizer_dynamic_lit_geometry_draw | 0x17c930 | rasterizer.obj | - | skipped | Body is a bare frame-setup + tail JMP thunk to 0x157e40 — no logic to lift. Full disassembly is 4 instructions: PUSH EBP / MOV EBP,ESP / POP EBP / JMP 0x00157e40. Ghidra decompile is a single unchanged FUN_00157e40() call with both params ignored. Lifting this yields no recoverable behavior and cannot be byte-matched meaningfully (clang will not emit the dead push/pop-EBP prologue). |
+| rasterizer_psuedo_dynamic_screen_quad_draw | 0x17c960 | rasterizer.obj | - | skipped | Body is a 1-line unchanged tail-call wrapper: `void __cdecl FUN_0017c960(int param_1) { FUN_0016f8a0(); return; }`. Disassembly confirms: PUSH EBP / MOV EBP,ESP / POP EBP / JMP 0x0016f8a0 — a pure trampoline that ignores param_1 entirely. Nothing to lift. |
+| rasterizer_widget_submit | 0x17c970 | rasterizer.obj | - | skipped | Pure tail-jump thunk: the entire function is `push ebp; mov ebp,esp; pop ebp; jmp 0x15d170`. Ghidra's decompile is a 2-line body calling FUN_0015d170() and returning extraout_EAX (void-EAX implicit return, lift-learnings §16). Nothing to lift — no logic, no FPU, no struct access; the frame is set up and immediately torn down before an unconditional jump. Lifting it as C would produce a real call+ret instead of a jmp and would drop the implicit EAX passthrough. Recommend leaving unported (kb decl only) or, if desired, handling as a thunk in kb.json rather than as a lifted C function. |
+| rasterizer_widget_begin | 0x17c980 | rasterizer.obj | - | skipped | Body is a 4-instruction tail-jump thunk (PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15ea70) that forwards unchanged to FUN_0015ea70. Nothing to lift; a C transcription would be `return FUN_0015ea70();` and the frame prologue/epilogue-then-JMP shape cannot be reproduced from C. |
+| rasterizer_widget_set_texture | 0x17c990 | rasterizer.obj | - | skipped | Body is a 4-instruction empty-frame tail-jump wrapping one unchanged callee (JMP 0x15eb90); nothing to lift. param_1 is never touched — the wrapper discards its stack arg and the callee reads whatever it needs itself. |
+| rasterizer_widget_set_tint_factor | 0x17c9a0 | rasterizer.obj | - | skipped | Function is a 4-instruction tail-call thunk with no body of its own: PUSH EBP / MOV EBP,ESP / POP EBP / JMP 0x0015d300. Ghidra decompiles it to `void __cdecl FUN_0017c9a0(int param_1) { return; }` — the entire semantics is "forward to 0x15d300 preserving the incoming stack frame". There is nothing to lift; a C implementation would either be an empty function (wrong — drops the forwarded call) or a single unchanged call to an unnamed callee (skip_trivial per pre-screen rule). Additionally 0x15d300 has no kb.json entry, so it cannot be called by name without first registering the callee. Recommend leaving unported, or handling as a kb.json thunk/alias rather than a lift target. |
+| rasterizer_widget_set_zbuffer_enable | 0x17c9b0 | rasterizer.obj | - | skipped | Body is a 4-instruction MSVC empty-frame tail-jump thunk that forwards unchanged to FUN_0015d310 (already ported): PUSH EBP / MOV EBP,ESP / POP EBP / JMP 0x0015d310. No own logic, no callees of its own, no FPU, no struct access. Nothing to lift — lifting it as C would emit a real CALL+RET frame instead of the JMP and could not match, while adding no recovered behavior. |
+| rasterizer_widget_draw_sprite2d | 0x17c9c0 | rasterizer.obj | - | skipped | Body is a 4-instruction tail-call thunk (PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15d480) that forwards unchanged to a single callee. Decompile is one line: FUN_0015d480(); No liftable logic — a C lift cannot reproduce the bare JMP tail call and would only add a frame. |
+| rasterizer_widget_draw_sprite3d | 0x17c9d0 | rasterizer.obj | - | skipped | Body is a bare 4-instruction tail-call thunk to 0x15ec50 with no work of its own: PUSH EBP / MOV EBP,ESP / POP EBP / JMP 0x0015ec50. Ghidra decompile is `FUN_0015ec50(); return extraout_EAX;` — a 1-line wrapper around one FUN_ unchanged, i.e. skip_trivial. Note the frame is set up and immediately torn down, so it is a pure passthrough; the real implementation lives at 0x15ec50, which is the correct lift target instead. |
+| rasterizer_widget_end | 0x17c9e0 | rasterizer.obj | - | skipped | Body is a single unconditional tail-call to FUN_0015ee80 with the parameter unused: `PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15ee80` (4 instructions, 5 bytes of real work). Decompile is `void __cdecl FUN_0017c9e0(int param_1) { FUN_0015ee80(); return; }` — 1-line wrapper around one FUN_ unchanged. |
+| FUN_0017c9f0 | 0x17c9f0 | rasterizer.obj | - | skipped | Body is a 4-instruction tail-call thunk: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15d5a0. Ghidra decompiles it as an empty `void __cdecl FUN_0017c9f0(int param_1) { return; }` because the JMP target is not modeled as a call. There is nothing to lift — it forwards its single stack arg unchanged to FUN_0015d5a0, which is not registered in kb.json. Lifting it as C would require adding 0x15d5a0 to kb.json and would produce a wrapper that cannot reproduce the original's frame shape (the pointless PUSH/POP EBP pair plus a JMP tail call, not a CALL+RET), so VC71 match would be structurally capped for zero behavioral gain. |
+| rasterizer_hud_motion_sensor_blip_begin | 0x17ca10 | rasterizer.obj | - | skipped | Body is a single unchanged tail-call: `PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15a7f0` — decompiles to `void FUN_0017ca10(void) { FUN_0015a7f0(); }`. No args, no FPU, no struct access, 1 callee, nothing to recover. |
+| rasterizer_hud_motion_sensor_blip_draw | 0x17ca20 | rasterizer.obj | - | skipped | Body is a single unconditional tail-call to one FUN_ with no argument transformation. Full disassembly is 4 instructions: PUSH EBP / MOV EBP,ESP / POP EBP / JMP 0x0015a8f0. Decompile is `void __cdecl FUN_0017ca20(void) { FUN_0015a8f0(); return; }`. Nothing to lift beyond the forwarding call; a C lift cannot reproduce the degenerate push/pop-EBP-then-JMP frame, so there is no match or behavior evidence to gain. |
+| actor_action_set_default_state | 0x1d7c0 | actions.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/ai/actions.c:1747 |
+| actor_action_handle_combat_failure | 0x1f920 | actions.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/ai/actions.c:3134 (definition `char actor_action_handle_combat_failure(int actor_handle)`, plate comment at :3128). kb.json still has "ported": false, so this is a dormant/deactivated lift rather than a missing one — no Ghidra work needed. |
+| actor_action_handle_berserk_transition | 0x20470 | actions.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/ai/actions.c:3749 (kb.json has ported:false — dormant lift; needs activation verify, not a new lift) |
+| actor_action_handle_grenade_throwing | 0x205a0 | actions.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/ai/actions.c:3806 (definition at line 3806, comment block at 3798). No Ghidra calls made. |
+| plane_negate | 0x994d0 | geometry.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/math/geometry.c:15 (void plane_negate(float *plane_in, float *plane_out)). kb.json entry has ported:false but the implementation exists and is called from src/halo/physics/collision_usage.c and src/halo/units/units.c. |
+| object_compute_node_matrices | 0x141b70 | objects.obj | - | skipped | already implemented: src/halo/objects/objects.c:11158 (definition `void object_compute_node_matrices(int object_handle)`); kb.json entry 0x141b70 has "ported": false, so it is a dormant/deactivated lift, not a missing one |
+| rasterizer_memory_pool_new | 0x1824e0 | rasterizer_text.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/rasterizer/rasterizer_text.c:1597 (kb.json has ported=false, so it is present but deactivated/dormant) |
+| rasterizer_transparent_geometry_new | 0x184260 | rasterizer_text.obj | - | skipped | already implemented: /mnt/g/dev/halo-clean-main/src/halo/rasterizer/rasterizer_text.c:3473 (definition `int rasterizer_transparent_geometry_new(void)`); kb.json entry has ported=false, so the lift exists in source but the patch is deactivated — no Ghidra context gathered |
+| rasterizer_transparent_geometry_begin | 0x184300 | rasterizer_text.obj | - | skipped | already implemented: src/halo/rasterizer/rasterizer_text.c:3501 (void rasterizer_transparent_geometry_begin(void)); kb.json still has "ported": false |
+
+### Summary
+- **0 committed** — queue exhausted; all targets either parked (2 with VC71 <90%), already-implemented but dormant (8 with ported=false), tail-call thunks with no logic (12), or prior-fail (3).
+- **2 parked at structural ceiling:** FUN_0017c140 (80.5%), FUN_00181020 (71.4%). Both benefit from the `lift-score-improve` pass or equivalence verification if delinked references are available.
+- **8 dormant lifts** exist in src/ with kb.json `"ported": false` (deactivated/bisect state). No Ghidra work — toggle/activation question only.
+- **12 tail-call thunks** with no recoverable logic (pure PUSH EBP / MOV EBP,ESP / POP EBP / JMP forwarding patterns).
+- **3 prior-fail** (FUN_000f5660, parse_string, FUN_00172520) with 27 fresh candidates available in the frontier.
+
+### Frontier Status
+Queue exhausted after 1 pass. All 31 targets rejected or skipped. The 27 fresh candidates remain eligible for recovery in a subsequent goal-lift pass with lower VC71 thresholds, equivalence validation, or structural-ceiling analysis via `lift-score-improve`.
+
+---
+
+## Session 2026-08-03 · goal-lift run (queue exhausted)
+**Time**: 2026-08-03  
+**Status**: queue_exhausted  
+**Result**: 0/4 committed (0% success rate)
+
+### Summary
+- **Committed**: 0 functions
+- **Parked**: 0 functions  
+- **Skipped**: 30 functions (tail-jump thunks, already-implemented dormant lifts, prior failures)
+
+### Skipped Breakdown
+
+#### Prior Failures (skip_prior_fail) — 3 functions
+| Function | Addr | Object | Note |
+|----------|------|--------|------|
+| FUN_000f5660 | 0xf5660 | items.obj | Parked before; 27 fresh candidates available |
+| parse_string | 0x19be30 | draw_string.obj | Parked before; 27 fresh candidates available |
+| FUN_00172520 | 0x172520 | rasterizer.obj | Parked before; 27 fresh candidates available |
+
+#### Parked (Structural Cap) — 2 functions
+| Function | Addr | Object | VC71 Best | Cap Reason |
+|----------|------|--------|-----------|------------|
+| FUN_0017c140 | 0x17c140 | rasterizer.obj | 80.5% | Structural ceiling ≤90%; use improve pass |
+| FUN_00181020 | 0x181020 | rasterizer_text.obj | 71.4% | Structural ceiling ≤90%; use improve pass |
+
+#### Already Implemented (ported=false dormant) — 7 functions
+| Function | Addr | Object | Implementation Path | Note |
+|----------|------|--------|-------------------|------|
+| FUN_0017c2f0 | 0x17c2f0 | rasterizer.obj | src/halo/rasterizer/rasterizer.c | Dormant lift present |
+| actor_action_set_default_state | 0x1d7c0 | actions.obj | src/halo/ai/actions.c:1747 | Called locally at lines 1884, 2963 |
+| actor_action_handle_combat_failure | 0x1f920 | actions.obj | src/halo/ai/actions.c:3134 | kb.json ported=false; verify bisect/dormant intent |
+| actor_action_handle_berserk_transition | 0x20470 | actions.obj | src/halo/ai/actions.c:3749 | Callers in src/halo/ai/actors.c; ported=false |
+| actor_action_handle_grenade_throwing | 0x205a0 | actions.obj | src/halo/ai/actions.c:3806 | Called 4x from src/halo/ai/actors.c; ported=false |
+| plane_negate | 0x994d0 | geometry.obj | src/halo/math/geometry.c:15 | Already implemented |
+| object_compute_node_matrices | 0x141b70 | objects.obj | src/halo/objects/objects.c:11158 | Dormant lift; ported=false in kb.json |
+
+#### Tail-Jump Thunks (Trivial Wrappers) — 18 functions
+**All are bare PUSH EBP / MOV EBP,ESP / POP EBP / JMP 0xTARGET patterns with zero logic.**
+
+| Function | Addr | Object | Callee | Note |
+|----------|------|--------|--------|------|
+| rasterizer_environment_fog_screen_end | 0x17c8f0 | rasterizer.obj | 0x1579d0 | Param unused; tail-jump only |
+| rasterizer_dynamic_lit_geometry_draw | 0x17c930 | rasterizer.obj | 0x157e40 | Both params ignored; 4-instruction thunk |
+| rasterizer_psuedo_dynamic_screen_quad_draw | 0x17c960 | rasterizer.obj | 0x16f8a0 | param_1 unused; tail-call only |
+| rasterizer_widget_submit | 0x17c970 | rasterizer.obj | 0x15d170 | Stack arg passed through; pure forward |
+| rasterizer_widget_begin | 0x17c980 | rasterizer.obj | 0x15ea70 | Extraout_EAX returned; tail-jump |
+| rasterizer_widget_set_texture | 0x17c990 | rasterizer.obj | 0x15eb90 | Argument discarded; no logic |
+| rasterizer_widget_set_tint_factor | 0x17c9a0 | rasterizer.obj | 0x15d300 | Forwards arg unchanged; callee not in kb.json |
+| rasterizer_widget_set_zbuffer_enable | 0x17c9b0 | rasterizer.obj | 0x15d310 | Extraout_EAX returned; no own logic |
+| rasterizer_widget_draw_sprite2d | 0x17c9c0 | rasterizer.obj | 0x15d480 | Callee already ported=true; wrapper adds no value |
+| rasterizer_widget_draw_sprite3d | 0x17c9d0 | rasterizer.obj | 0x15ec50 | 4-instruction thunk; no own body |
+| rasterizer_widget_end | 0x17c9e0 | rasterizer.obj | 0x15ee80 | Param unused; bare tail-jump |
+| FUN_0017c9f0 | 0x17c9f0 | rasterizer.obj | 0x15d5a0 | Callee not in kb.json; lifting adds zero recovery |
+| rasterizer_hud_motion_sensor_blip_begin | 0x17ca10 | rasterizer.obj | 0x15a7f0 | No params; one FUN_ call only |
+| rasterizer_hud_motion_sensor_blip_draw | 0x17ca20 | rasterizer.obj | 0x15a8f0 | One unchanged call; no logic to lift |
+| rasterizer_memory_pool_new | 0x1824e0 | rasterizer_text.obj | (allocated) | Already implemented (ported=false) |
+| rasterizer_transparent_geometry_new | 0x184260 | rasterizer_text.obj | (allocated) | Already implemented (ported=false) |
+| rasterizer_transparent_geometry_begin | 0x184300 | rasterizer_text.obj | (allocated) | Already implemented (ported=false); called from xbox/rasterizer_xbox_decals.c:1027 |
+
+### Decisions
+- **No commits**: All dequeued targets either prior-failed, parked at structural ceiling, already-implemented (dormant), or trivial thunks (zero recovery value).
+- **Queue exhaustion**: No remaining candidates meet ≥90% VC71 threshold. Use `/lift-score-improve` on the 80.5% and 71.4% targets, or `/permuter-campaign` if delinked references exist.
+- **Dormant lift audit**: 7 functions have ported=false but C implementations present. Recommend reviewing their dormant intent (bisect toggles vs incomplete ports) before reactivating.
