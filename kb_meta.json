@@ -10115,6 +10115,40 @@
         "Equivalence covers only 4-9 percent of the function: with zero-fill the enable flag at 0x3256fc is 0 so it returns 1 immediately, and even with the flag forced to 1 the projection callee FUN_0017a8a0 rejects every synthetic position, so the clamp, area and D3D quad-emission paths have no runtime evidence."
       ]
     },
+    "0x17c000": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The second table pair at 0x2aea88 (int[25]) and 0x2aeb0c (int[8]) sits immediately after the pair FUN_0017be50 uses (0x2aea20 + 25*4 == 0x2aea84; 0x2aeaec + 8*4 == 0x2aeb0c) and is indexed by the same two bounds, so it is inferred to be the sibling channel variant of the same lookup, but no string names it and the macros are therefore address-suffixed and mechanical rather than semantic."
+      ],
+      "uncertain": [
+        "The 2D table at 0x2aeb30 is read by both FUN_0017be50 and FUN_0017c000 with the same stride-8 row-major indexing, so the two functions appear to share one register-by-mapping table while using separate base and mask tables; whether that sharing is intentional in the original source or an artifact of identical table contents is unproven.",
+        "VC71 scores this function 87.8 percent, byte-identical in score to the already-committed near-identical twin FUN_0017be50, and classify_cap.py returns a high-confidence reg_defining_prologue cap because VC71 cannot emit a function whose parameters arrive in SI and DI with no prologue; the residual instruction gap is therefore attributed to the register-argument entry shape rather than to a logic difference.",
+        "FUN_0017c000 and FUN_0017be50 are instruction-identical resolvers differing only in their table pair (0x2aea88/0x2aeb0c vs 0x2aea20/0x2aeaec) and their assert line numbers; which one serves the colour combiner inputs and which serves alpha is not proven by the binary, so both new table macros keep mechanical address-suffixed names."
+      ]
+    },
+    "0x17c140": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Decl corrected from void FUN_0017c140(void) to bool FUN_0017c140(void *map@<esi>, int16_t map_index@<di>): TEST ESI,ESI is the first instruction at 0x17c140, MOVSX EAX,DI at 0x17c16d and MOVSX ECX,DI at 0x17c192 prove DI is a real input, and the two tails MOV AL,BL / XOR AL,AL return a bool in AL."
+      ]
+    },
+    "0x17c2f0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "FUN_0017c140 was declared void FUN_0017c140(void) in kb.json but the disassembly at 0x17c140 reads ESI before writing it (TEST ESI,ESI at the entry) and reads DI at 0x17c16d/0x17c192 (MOVSX EAX,DI / MOVSX ECX,DI feeding error()), so its real signature is char FUN_0017c140(void *map@<esi>, int16_t map_index@<di>) returning AL from the tails at 0x17c1a5/0x17c1a9.",
+        "FUN_0017c000 was declared void FUN_0017c000(void) in kb.json but is the alpha twin of FUN_0017be50: TEST SI,SI at 0x17c000 and TEST DI,DI at 0x17c02b read both registers before writing, so its real signature is int FUN_0017c000(int16_t register_index@<si>, int16_t mapping_index@<di>).",
+        "The 0xf0-byte output block matches the XDK D3DPIXELSHADERDEF layout field-for-field (+0x20/+0x24 final-combiner inputs, +0x48 PSConstant1[8], +0x68 PSAlphaOutputs[8], +0x88 PSRGBInputs[8], +0xb4 PSRGBOutputs[8], +0xd4 PSCombinerCount, +0xd8 PSTextureModes), so the offset macros are named after the XDK fields even though no string in the binary proves it."
+      ],
+      "uncertain": [
+        "The names given to the pixel_shader output fields (PIXEL_SHADER_MUX_CONTROL at +0x20, PIXEL_SHADER_FINAL_COMBINER at +0x24, PIXEL_SHADER_STAGE_CONSTANT at +0x48) are inferred from the register-combiner constants stored into them (0xc, 0x1c00, and a real_rgb_color packed by FUN_000d1c90) and are not proven by any string; the remaining offsets of the 0xf0-byte buffer are untouched by this function and stay unnamed.",
+        "The stage input selector macros STAGE_COLOR_INPUT_REGISTER/MAPPING (+0x3c..+0x4b) and STAGE_ALPHA_INPUT_REGISTER/MAPPING (+0x58..+0x67) are named from the parameter names in the FUN_0017be50 assert strings, not from a struct definition; the pairing of the lower offset with register_index and the higher with mapping_index is proven only by the MOV SI,[EBX+lo] / MOV DI,[EBX+hi] order at 0x17c47b and 0x17c5c3.",
+        "VC71 match is 86.7% (389 of our instructions against a complete 358-instruction reference). The residual gap is register-allocation and spill-slot scheduling, not control flow: the original reuses six spill slots at EBP-0x10..EBP-0x24 across the colour and alpha phases and repurposes the two incoming parameter slots as the definition pointer and then the stage index. A permuter run over 100s regressed to 85.6% and was not applied.",
+        "The short at generic+0x2a only ever feeds a != 0 test that selects shader-stage program 1 vs 3 for texture unit 0; that is consistent with the tag's first_map_type enum (0 = 2D, non-zero = a cube map), but nothing in the binary proves the name, so the macro stays GENERIC_FIELD_2A."
+      ]
+    },
     "0x17c790": {
       "kind": "function",
       "status": "ported",
@@ -10189,6 +10223,20 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x180820": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x181020": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Return type is int* only because that is what the kb decl pins; the real element type is lens_flare_parameters (0x28 bytes, defined in rasterizer_lights.c) since the address math is LEA EAX,[EAX+EAX*4] then LEA EAX,[EAX*8+0x4c6480], a 40-byte stride over the queue base."
+      ],
+      "uncertain": [
+        "VC71 measures 43.8 percent but the per-function delinked reference carries a mid-instruction Ghidra symbol LAB_00181025+3 at .text+0x8 that makes the disassembler skip the reference's first six instructions and emit two bogus IMM-WARNs, so the true match against a clean reference is unmeasured; the structural cap from the @<si> register-defining prologue is separate and independently confirmed."
+      ]
+    },
     "0x181180": {
       "kind": "function",
       "status": "unknown",
@@ -10245,6 +10293,22 @@
       "status": "ported"
     },
     "0x1827c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x182840": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x182910": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1829f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x182ac0": {
       "kind": "function",
       "status": "ported"
     },

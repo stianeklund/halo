@@ -6656,6 +6656,14 @@
       }
     },
     {
+      "name": "halo/rasterizer_lights",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/rasterizer_lights.c.obj",
+      "base_path": "delinked/rasterizer_lights.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/rasterizer_lights.c"
+      }
+    },
+    {
       "name": "halo/rasterizer_text",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/rasterizer_text.c.obj",
       "base_path": "delinked/rasterizer_text.obj",
