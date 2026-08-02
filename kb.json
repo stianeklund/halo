@@ -19495,7 +19495,9 @@
     },
     {
      "addr": "0x17ad20",
-     "decl": "void FUN_0017ad20(void);"
+     "decl": "int __stdcall FUN_0017ad20(void *device, uint32_t reg@<edx>, float a, float b);",
+     "ported": true,
+     "source_path": "src/halo/rasterizer/rasterizer.c"
     },
     {
      "addr": "0x17ad40",

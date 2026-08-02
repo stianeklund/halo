@@ -4250,6 +4250,51 @@ int FUN_00179570(void *device, uint32_t reg, float a, float b)
   return 0;
 }
 
+/* 0x17ad20 — a second, byte-identical instantiation of the same
+ * IDirect3DDevice8::SetVertexData2f inline member wrapper already ported at
+ * FUN_00179570 above. MSVC emitted the inline body once per translation unit
+ * that used it; the linker kept both copies. The two functions are the same
+ * eleven instructions with the same encodings:
+ *
+ *   push ebp / mov ebp,esp
+ *   mov eax,[ebp+0x10]      ; third stack slot -> b
+ *   mov ecx,[ebp+0xc]       ; second stack slot -> a
+ *   push eax / push ecx / push edx
+ *   call 0x1ed280           ; D3DDevice_SetVertexData2f, __stdcall, cleans 12
+ *   xor eax,eax / pop ebp / ret 0xc
+ *
+ * ABI evidence (verified against the pristine cachebeta.xbe, not Ghidra,
+ * which reports this as `void __cdecl FUN_0017ad20(void)`):
+ *  - EDX is PUSHed at 0017ad2b with no prior write anywhere in the function,
+ *    so it is an implicit register input, not a scratch value. It becomes the
+ *    callee's `reg` (vertex-data register index) argument -> @<edx>.
+ *  - RET 0xc = 12 bytes = three caller-pushed dwords at [ebp+0x8], [ebp+0xc]
+ *    and [ebp+0x10], i.e. __stdcall. Dropping a parameter to match the two
+ *    slots actually read would leave 4 bytes uncleaned in every caller
+ *    (lift-learnings §30, the 0x158df0 ESP-drift class).
+ *  - [ebp+0x8] is never read: it is the discarded `this`/device argument of
+ *    the inline member instantiation. It is declared and left unused so the
+ *    stack size stays correct.
+ *  - The two float arguments are forwarded as raw dwords through EAX/ECX with
+ *    no FLD/FSTP anywhere, i.e. a pure bit passthrough. Typing them `float`
+ *    matches the callee's kb.json declaration and avoids the FILD/int
+ *    conversion that an int-typed passthrough would emit (FUN_001a7c70 class).
+ *  - XOR EAX,EAX before the RET is a real `return 0` (S_OK), not a dead
+ *    write; lifting this as void would be the §16 void-EAX hazard.
+ *
+ * As with FUN_00179570, the C impl is written cdecl even though kb.json
+ * records the original as __stdcall: knowledge.py strips the convention from
+ * any @<reg> declaration when generating decl.h, because the generated thunk
+ * presents a cdecl interface to C, and patch.py's reverse thunk restores the
+ * original RET 0xc contract for the original callers.
+ */
+int FUN_0017ad20(void *device, uint32_t reg, float a, float b)
+{
+  (void)device;
+  D3DDevice_SetVertexData2f(reg, a, b);
+  return 0;
+}
+
 /* 0x17ad40 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::SetVertexData4f, byte-identical in shape to the already
  * ported FUN_0015a4f0 in rasterizer_xbox_decals.c.
@@ -4296,14 +4341,14 @@ int __stdcall FUN_0017ad40(void *device, uint32_t reg, float a, float b,
  * "### ERROR rasterizer_widget_submit_occlusion_test failed" (0x2ae898) to
  * error().
  *
- * Ghidra lost the whole signature -- it reports `void __cdecl FUN_0017ba10(void)`
- * with extraout_AL / extraout_EAX. The disassembly proves three cdecl stack
- * params at [EBP+8] / [EBP+0xC] / [EBP+0x10] and an int return in EAX:
- *   [EBP+8]    forwarded as arg1 of FUN_0017a8a0  -> float *position
- *   [EBP+0xC]  forwarded as arg2 of FUN_0017a8a0  -> float radius (kb decl of
- *              the callee types this slot `float`; it is never touched here,
- *              only re-pushed, which is why Ghidra could not see the type)
- *   [EBP+0x10] pushed to D3DDevice_EndVisibilityTest -> visibility-test index
+ * Ghidra lost the whole signature -- it reports `void __cdecl
+ * FUN_0017ba10(void)` with extraout_AL / extraout_EAX. The disassembly proves
+ * three cdecl stack params at [EBP+8] / [EBP+0xC] / [EBP+0x10] and an int
+ * return in EAX: [EBP+8]    forwarded as arg1 of FUN_0017a8a0  -> float
+ * *position [EBP+0xC]  forwarded as arg2 of FUN_0017a8a0  -> float radius (kb
+ * decl of the callee types this slot `float`; it is never touched here, only
+ * re-pushed, which is why Ghidra could not see the type) [EBP+0x10] pushed to
+ * D3DDevice_EndVisibilityTest -> visibility-test index
  *
  * Return value is EDI, the signed area product, not a bool and not void:
  *   global 0x3256fc == 0        -> 1  (feature disabled: "test passed")
@@ -4358,8 +4403,9 @@ int rasterizer_widget_submit_occlusion_test(float *position, float radius,
    * MSVC emits for this nesting rather than for inline early returns. */
   if (*(char *)0x3256fc != 0) {
     if (FUN_0017a8a0(position, radius, extent, screen)) {
-      /* FLD 1.0f ; FCOMP extent -- the constant is the left operand, so the test
-       * is written 1.0f > extent, not extent < 1.0f, to keep the load order. */
+      /* FLD 1.0f ; FCOMP extent -- the constant is the left operand, so the
+       * test is written 1.0f > extent, not extent < 1.0f, to keep the load
+       * order. */
       if (1.0f > extent[0]) {
         extent[0] = 1.0f;
       }
@@ -4424,8 +4470,10 @@ int rasterizer_widget_submit_occlusion_test(float *position, float radius,
           hr = D3DDevice_EndVisibilityTest(index);
           if (hr < 0) {
             FUN_00167ff0(
-                hr, "IDirect3DDevice8_EndVisibilityTest(global_d3d_device, index)");
-            error(2, "### ERROR rasterizer_widget_submit_occlusion_test failed");
+              hr,
+              "IDirect3DDevice8_EndVisibilityTest(global_d3d_device, index)");
+            error(2,
+                  "### ERROR rasterizer_widget_submit_occlusion_test failed");
           }
         }
         return area;
