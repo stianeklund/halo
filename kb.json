@@ -6679,7 +6679,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -6740,7 +6740,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
@@ -28332,11 +28332,6 @@
      "decl": "float FUN_00181420(void *lens_flare_params @<esi>, short rotation_fn @<di>);"
     },
     {
-     "addr": "0x181670",
-     "decl": "void FUN_00181670(int *params);",
-     "ported": false
-    },
-    {
      "addr": "0x181900",
      "decl": "void FUN_00181900(short param_1);",
      "ported": false
@@ -39416,6 +39411,17 @@
     {
      "addr": "0x17b7d0",
      "decl": "void FUN_0017b7d0(float *point, float radius, float *scale, float theta, unsigned int color);"
+    }
+   ]
+  },
+  {
+   "name": "rasterizer_lights.obj",
+   "source": "rasterizer/rasterizer_lights.c",
+   "functions": [
+    {
+     "addr": "0x181670",
+     "decl": "void FUN_00181670(int *params);",
+     "ported": true
     }
    ]
   }

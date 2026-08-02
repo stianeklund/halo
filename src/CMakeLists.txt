@@ -115,7 +115,8 @@
 	halo/models/model_animations.c
 	halo/rasterizer/rasterizer.c
 	halo/rasterizer/rasterizer_sprites.c
-	halo/rasterizer/rasterizer_text.c
+	halo/rasterizer/rasterizer_lights.c
+halo/rasterizer/rasterizer_text.c
 	halo/rasterizer/common/rasterizer_common.c
 	halo/rasterizer/xbox/rasterizer_xbox.c
 	halo/rasterizer/xbox/d3d_resource.c
