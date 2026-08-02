@@ -353,7 +353,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00017ab0": {
-      "score": 89.7,
+      "opnd_percent": 62.1,
+      "score": 92.0,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00018b90": {
@@ -873,7 +874,8 @@
       "source": "src/halo/ai/actor_combat.c"
     },
     "FUN_00022ba0": {
-      "score": 74.9,
+      "opnd_percent": 50.4,
+      "score": 78.8,
       "source": "src/halo/ai/actor_combat.c"
     },
     "FUN_00024ca0": {
@@ -945,11 +947,13 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00027f40": {
-      "score": 80.6,
+      "opnd_percent": 80.7,
+      "score": 89.5,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00027ff0": {
-      "score": 86.1,
+      "opnd_percent": 85.6,
+      "score": 88.8,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00028610": {
@@ -965,7 +969,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00029040": {
-      "score": 55.5,
+      "opnd_percent": 57.7,
+      "score": 86.4,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_0002a2b0": {
@@ -1053,11 +1058,13 @@
       "source": "src/halo/ai/actor_moving.c"
     },
     "FUN_0002b490": {
-      "score": 51.0,
+      "opnd_percent": 51.0,
+      "score": 54.2,
       "source": "src/halo/ai/actor_moving.c"
     },
     "FUN_0002b5d0": {
-      "score": 35.0,
+      "opnd_percent": 24.7,
+      "score": 73.1,
       "source": "src/halo/ai/actor_moving.c"
     },
     "FUN_0002b720": {
@@ -1101,11 +1108,13 @@
       "source": "src/halo/ai/actor_moving.c"
     },
     "FUN_0002daa0": {
-      "score": 72.5,
+      "opnd_percent": 40.8,
+      "score": 73.5,
       "source": "src/halo/ai/actor_moving.c"
     },
     "FUN_0002e560": {
-      "score": 68.0,
+      "opnd_percent": 51.7,
+      "score": 68.7,
       "source": "src/halo/ai/actor_moving.c"
     },
     "FUN_0002f1a0": {
@@ -2969,7 +2978,8 @@
       "source": "src/halo/camera/observer.c"
     },
     "FUN_0008ba10": {
-      "score": 77.9,
+      "opnd_percent": 42.8,
+      "score": 78.8,
       "source": "src/halo/camera/observer.c"
     },
     "FUN_0008c030": {
@@ -3501,7 +3511,8 @@
       "source": "src/halo/structures/structures.c"
     },
     "FUN_00099270": {
-      "score": 6.7,
+      "opnd_percent": 78.0,
+      "score": 84.7,
       "source": "src/halo/structures/structures.c"
     },
     "FUN_000992d0": {
@@ -3577,11 +3588,13 @@
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0009ac90": {
-      "score": 60.2,
+      "opnd_percent": 38.8,
+      "score": 60.9,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0009c4b0": {
-      "score": 1.5,
+      "opnd_percent": 88.1,
+      "score": 94.8,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0009c650": {
@@ -3749,7 +3762,8 @@
       "source": "src/halo/effects/contrails.c"
     },
     "FUN_0009f7c0": {
-      "score": 11.1,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/effects/particle_systems.c"
     },
     "FUN_0009f920": {
@@ -4305,7 +4319,8 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000a96b0": {
-      "score": 51.6,
+      "opnd_percent": 77.5,
+      "score": 90.1,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000a9770": {
@@ -4641,7 +4656,8 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000ad600": {
-      "score": 83.6,
+      "opnd_percent": 47.9,
+      "score": 84.9,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000ad9b0": {
@@ -4749,7 +4765,8 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000aff70": {
-      "score": 16.7,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b0000": {
@@ -4829,7 +4846,8 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b14e0": {
-      "score": 18.0,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b1570": {
@@ -4913,7 +4931,8 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b26b0": {
-      "score": 16.0,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b2740": {
@@ -4969,7 +4988,8 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b2e70": {
-      "score": 47.5,
+      "opnd_percent": 78.1,
+      "score": 89.5,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b3020": {
@@ -5009,7 +5029,8 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b3900": {
-      "score": 16.5,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b39a0": {
@@ -5449,7 +5470,8 @@
       "source": "src/halo/game/player_rumble.c"
     },
     "FUN_000b9fd0": {
-      "score": 2.2,
+      "opnd_percent": 34.9,
+      "score": 83.7,
       "source": "src/halo/game/player_rumble.c"
     },
     "FUN_000ba100": {
@@ -6709,7 +6731,8 @@
       "source": "src/halo/input/input_xbox.c"
     },
     "FUN_000cf690": {
-      "score": 21.1,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/input/input_xbox.c"
     },
     "FUN_000cf6c0": {
@@ -7937,7 +7960,8 @@
       "source": "src/halo/items/weapons.c"
     },
     "FUN_000fb3c0": {
-      "score": 24.5,
+      "opnd_percent": 71.1,
+      "score": 71.1,
       "source": "src/halo/items/weapons.c"
     },
     "FUN_000fb6e0": {
@@ -8105,7 +8129,8 @@
       "source": "src/halo/main/main.c"
     },
     "FUN_00101e00": {
-      "score": 3.3,
+      "opnd_percent": 42.9,
+      "score": 89.3,
       "source": "src/halo/main/main.c"
     },
     "FUN_00101f00": {
@@ -8245,7 +8270,8 @@
       "source": "src/halo/structures/structures.c"
     },
     "FUN_00105980": {
-      "score": 73.2,
+      "opnd_percent": 37.2,
+      "score": 74.7,
       "source": "src/halo/structures/structures.c"
     },
     "FUN_00106030": {
@@ -8337,11 +8363,13 @@
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00109e90": {
-      "score": 49.3,
+      "opnd_percent": 66.7,
+      "score": 81.9,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00109f40": {
-      "score": 57.1,
+      "opnd_percent": 50.9,
+      "score": 58.2,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00109fc0": {
@@ -8465,11 +8493,13 @@
       "source": "src/halo/math/random_math.c"
     },
     "FUN_0010b3c0": {
-      "score": 57.0,
+      "opnd_percent": 95.1,
+      "score": 93.8,
       "source": "src/halo/math/random_math.c"
     },
     "FUN_0010b4c0": {
-      "score": 76.3,
+      "opnd_percent": 53.0,
+      "score": 80.7,
       "source": "src/halo/math/random_math.c"
     },
     "FUN_0010b8a0": {
@@ -8533,7 +8563,8 @@
       "source": "src/halo/math/random_math.c"
     },
     "FUN_0010c7d0": {
-      "score": 93.0,
+      "opnd_percent": 85.3,
+      "score": 96.4,
       "source": "src/halo/math/random_math.c"
     },
     "FUN_0010c8e0": {
@@ -11545,11 +11576,13 @@
       "source": "src/halo/rasterizer/common/rasterizer_common.c"
     },
     "FUN_001550c0": {
-      "score": 54.9,
+      "opnd_percent": 82.8,
+      "score": 96.6,
       "source": "src/halo/rasterizer/common/rasterizer_common.c"
     },
     "FUN_00155110": {
-      "score": 6.7,
+      "opnd_percent": 60.0,
+      "score": 88.9,
       "source": "src/halo/rasterizer/common/rasterizer_common.c"
     },
     "FUN_001553f0": {
@@ -11557,7 +11590,8 @@
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
     },
     "FUN_00155580": {
-      "score": 26.0,
+      "opnd_percent": 84.2,
+      "score": 84.2,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
     },
     "FUN_00157e40": {
@@ -11577,7 +11611,8 @@
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_00158800": {
-      "score": 83.3,
+      "opnd_percent": 79.6,
+      "score": 89.2,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_00158ae0": {
@@ -11593,19 +11628,23 @@
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_00159070": {
-      "score": 24.7,
+      "opnd_percent": 69.8,
+      "score": 88.9,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_001592e0": {
-      "score": 8.1,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_001595c0": {
-      "score": 86.3,
+      "opnd_percent": 88.8,
+      "score": 91.8,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_00159900": {
-      "score": 83.0,
+      "opnd_percent": 82.3,
+      "score": 90.3,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_0015a290": {
@@ -11621,7 +11660,8 @@
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_0015a4f0": {
-      "score": 47.1,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_0015a560": {
@@ -11649,7 +11689,8 @@
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_0015acc0": {
-      "score": 43.4,
+      "opnd_percent": 75.9,
+      "score": 84.8,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_0015afa0": {
@@ -11705,7 +11746,8 @@
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_0015b970": {
-      "score": 80.1,
+      "opnd_percent": 62.7,
+      "score": 87.2,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_0015bc40": {
@@ -11721,7 +11763,8 @@
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_0015c2d0": {
-      "score": 18.3,
+      "opnd_percent": 88.9,
+      "score": 92.1,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_0015c5f0": {
@@ -11749,7 +11792,8 @@
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_0015cbb0": {
-      "score": 91.8,
+      "opnd_percent": 87.7,
+      "score": 95.3,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_0015d020": {
@@ -11885,7 +11929,8 @@
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_00172730": {
-      "score": 91.7,
+      "opnd_percent": 91.7,
+      "score": 98.0,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_shadows.c"
     },
     "FUN_00172a30": {
@@ -11893,7 +11938,8 @@
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_00172de0": {
-      "score": 84.4,
+      "opnd_percent": 74.4,
+      "score": 90.8,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_shadows.c"
     },
     "FUN_00173af0": {
@@ -12605,7 +12651,8 @@
       "source": "src/halo/scenario/scenario.c"
     },
     "FUN_0018d6e0": {
-      "score": 86.8,
+      "opnd_percent": 42.6,
+      "score": 87.1,
       "source": "src/halo/scenario/scenario.c"
     },
     "FUN_0018dcf0": {
@@ -12806,6 +12853,11 @@
     },
     "FUN_001911b0": {
       "score": 95.1,
+      "source": "src/halo/shell.c"
+    },
+    "FUN_00191220": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/shell.c"
     },
     "FUN_00191230": {
@@ -13261,7 +13313,8 @@
       "source": "src/halo/units/bipeds.c"
     },
     "FUN_001a03c0": {
-      "score": 91.5,
+      "opnd_percent": 73.3,
+      "score": 93.1,
       "source": "src/halo/units/bipeds.c"
     },
     "FUN_001a0680": {
@@ -13753,7 +13806,8 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001aa430": {
-      "score": 80.0,
+      "opnd_percent": 52.1,
+      "score": 90.8,
       "source": "src/halo/units/units.c"
     },
     "FUN_001aa4d0": {
@@ -14077,7 +14131,8 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001b0630": {
-      "score": 76.1,
+      "opnd_percent": 52.8,
+      "score": 77.2,
       "source": "src/halo/units/units.c"
     },
     "FUN_001b0d00": {
@@ -14085,7 +14140,8 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001b0d90": {
-      "score": 79.1,
+      "opnd_percent": 64.6,
+      "score": 79.2,
       "source": "src/halo/units/units.c"
     },
     "FUN_001b1290": {
@@ -15057,7 +15113,8 @@
       "source": "src/halo/math/real_math.c"
     },
     "angular_accelerate_to_position": {
-      "score": 79.3,
+      "opnd_percent": 48.5,
+      "score": 82.5,
       "source": "src/halo/math/real_math.c"
     },
     "any_player_is_in_the_air": {
@@ -15341,7 +15398,8 @@
       "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
     },
     "errors_dispose": {
-      "score": 10.5,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/cseries/errors.c"
     },
     "evaluate_piecewise_linear_function": {
@@ -15436,6 +15494,11 @@
       "score": 100.0,
       "source": "src/halo/game/game_engine.c"
     },
+    "game_engine_remap_vehicle": {
+      "opnd_percent": 77.5,
+      "score": 90.1,
+      "source": "src/halo/game/game_engine.c"
+    },
     "game_engine_should_spawn_player": {
       "score": 81.8,
       "source": "src/halo/game/game_engine.c"
@@ -15485,7 +15548,8 @@
       "source": "src/halo/game/game_time.c"
     },
     "game_time_update": {
-      "score": 15.3,
+      "opnd_percent": 57.2,
+      "score": 71.6,
       "source": "src/halo/game/game_time.c"
     },
     "garbage_collect_now": {
@@ -15593,7 +15657,8 @@
       "source": "src/halo/hs/hs.c"
     },
     "hs_source_offset_valid": {
-      "score": 13.3,
+      "opnd_percent": 61.5,
+      "score": 76.9,
       "source": "src/halo/hs/hs.c"
     },
     "hs_syntax_reset": {
@@ -15776,6 +15841,21 @@
       "score": 95.5,
       "source": "src/halo/main/main.c"
     },
+    "main_halt_entry": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
+    "main_initialize_time": {
+      "opnd_percent": 93.3,
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
+    "main_load_last_solo_map": {
+      "opnd_percent": 42.9,
+      "score": 89.3,
+      "source": "src/halo/main/main.c"
+    },
     "main_load_ui_scenario": {
       "score": 97.4,
       "source": "src/halo/main/main.c"
@@ -15794,6 +15874,11 @@
     },
     "main_new_map": {
       "score": 92.2,
+      "source": "src/halo/main/main.c"
+    },
+    "main_pregame_render": {
+      "opnd_percent": 72.5,
+      "score": 81.2,
       "source": "src/halo/main/main.c"
     },
     "main_present_frame": {
@@ -15815,6 +15900,11 @@
     "main_screen_shell_load": {
       "score": 56.3,
       "source": "src/halo/interface/ui_widget.c"
+    },
+    "main_setup_connection": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
     },
     "main_skip_private": {
       "score": 94.6,
@@ -16376,6 +16466,11 @@
       "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
+    "particle_systems_dispose": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/effects/particle_systems.c"
+    },
     "particle_systems_initialize_for_new_map": {
       "score": 100.0,
       "source": "src/halo/effects/particle_systems.c"
@@ -16648,6 +16743,11 @@
       "score": 95.3,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
+    "rasterizer_get_default_hardware_format": {
+      "opnd_percent": 84.2,
+      "score": 84.2,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
     "rasterizer_initialize": {
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer.c"
@@ -16739,6 +16839,11 @@
     "rotate_vector3d_by_sincos": {
       "score": 43.5,
       "source": "src/halo/math/real_math.c"
+    },
+    "rumble_update": {
+      "opnd_percent": 34.9,
+      "score": 83.7,
+      "source": "src/halo/game/player_rumble.c"
     },
     "scalars_interpolate": {
       "score": 100.0,
@@ -16856,6 +16961,16 @@
       "score": 87.1,
       "source": "src/halo/structures/structures.c"
     },
+    "structure_detail_objects_dispose": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/structures/structure_detail_objects.c"
+    },
+    "structure_detail_objects_dispose_from_old_map": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/structures/structure_detail_objects.c"
+    },
     "structure_detail_objects_initialize": {
       "score": 90.9,
       "source": "src/halo/structures/structures.c"
@@ -16870,6 +16985,16 @@
     },
     "structure_render_surface_from_point_and_leaf": {
       "score": 86.9,
+      "source": "src/halo/structures/structures.c"
+    },
+    "structure_runtime_decals_dispose": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "structure_runtime_decals_dispose_from_old_map": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/structures/structures.c"
     },
     "structure_runtime_decals_initialize": {
@@ -17413,7 +17538,8 @@
       "source": "src/halo/items/items.c"
     },
     "vector3d_from_angle": {
-      "score": 66.7,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "vector_intersects_pill2d": {
@@ -17459,6 +17585,11 @@
     "virtual_keyboard_set_validation": {
       "score": 92.9,
       "source": "src/halo/items/items.c"
+    },
+    "weapon_has_activity": {
+      "opnd_percent": 71.1,
+      "score": 71.1,
+      "source": "src/halo/items/weapons.c"
     },
     "weapon_preprocess_node_orientations": {
       "score": 100.0,

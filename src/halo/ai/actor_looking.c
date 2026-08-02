@@ -3311,7 +3311,7 @@ bool FUN_00017ab0(int actor_handle, short scenario_idx, char *state_data,
     (char *)global_scenario_get() + 0x438, (int)scenario_idx, 0x60);
   result = 0;
   if ((int)(unsigned char)*state_data >= *(int *)(cmd_list + 0x30)) {
-    return 0;
+    goto ret_done;
   }
   atom = (short *)tag_block_get_element(cmd_list + 0x30,
                                         (int)(unsigned char)*state_data, 0x20);
@@ -3422,7 +3422,7 @@ bool FUN_00017ab0(int actor_handle, short scenario_idx, char *state_data,
         }
         ent = (char *)data_iterator_next(&iter);
       }
-    } else { /* 0x19 */
+    } else if (cmd_type == 0x19) {
       mode = atom[0xc];
       if (mode >= 0 &&
           (int)mode < *(int *)((char *)global_scenario_get() + 0x204)) {
@@ -3449,21 +3449,19 @@ bool FUN_00017ab0(int actor_handle, short scenario_idx, char *state_data,
       } else if (mode == 3) {
         style = 8;
       }
-      if (prop_handle == -1) {
-        if (object_index == -1) {
-          elem = (int *)tag_block_get_element(cmd_list + 0x3c,
-                                              (int)(short)fp_index, 0x14);
-          *(short *)look_target = 3;
-          *(int *)(look_target + 4) = elem[0];
-          *(int *)(look_target + 8) = elem[1];
-          *(int *)(look_target + 0xc) = elem[2];
-        } else {
-          *(short *)look_target = 3;
-          unit_get_head_position(object_index, (float *)(look_target + 4));
-        }
-      } else {
+      if (prop_handle != -1) {
         *(short *)look_target = 1;
         *(int *)(look_target + 4) = prop_handle;
+      } else if (object_index != -1) {
+        *(short *)look_target = 3;
+        unit_get_head_position(object_index, (float *)(look_target + 4));
+      } else {
+        elem = (int *)tag_block_get_element(cmd_list + 0x3c,
+                                            (int)(short)fp_index, 0x14);
+        *(short *)look_target = 3;
+        *(int *)(look_target + 4) = elem[0];
+        *(int *)(look_target + 8) = elem[1];
+        *(int *)(look_target + 0xc) = elem[2];
       }
       FUN_00027a60(actor_handle, 0xd, (short)style, (short *)look_target);
       *(short *)(state_data + 2) = (short)(int)(radius * *(float *)0x253394);
@@ -3915,11 +3913,10 @@ bool FUN_00017ab0(int actor_handle, short scenario_idx, char *state_data,
       if (bipd_null || (*(unsigned char *)(bipd + 0x2f4) & 0x44) == 0) {
         actr_def = 0;
         if (magnitude3d(pos) == *(float *)0x2533c0) {
-          goto LAB_teleport_face;
+          units_debug_get_closest_unit(unit_handle, pos);
         }
       } else {
         if (normalize3d(pos) == *(float *)0x2533c0) {
-        LAB_teleport_face:
           units_debug_get_closest_unit(unit_handle, pos);
         }
       }
@@ -3940,7 +3937,7 @@ bool FUN_00017ab0(int actor_handle, short scenario_idx, char *state_data,
 
 LAB_done:
   if (*(char *)0x5aca5b == 0) {
-    return result;
+    goto ret_done;
   }
   if (*(unsigned int *)(actor + 0x34) == 0xffffffff) {
     csstrcpy(name_buf, "<no encounter>");
@@ -3959,6 +3956,7 @@ LAB_done:
   }
   error(2, "%s: %s #%d%s: %s", name_buf, cmd_list, (int)(short)atom_seq, status,
         (char *)0x5ab100);
+ret_done:
   return result;
 }
 
@@ -8436,7 +8434,9 @@ static char look_spec_28660_safe(int actor_handle, char *actor,
  * manages idle-major and idle-minor timers, applies snapping constraints,
  * and writes the final facing/aiming/looking vectors to actor output fields.
  *
- * Confirmed: all 13 FUN_00027dd0 call sites traced from disasm
+ * Confirmed: all 13 look-vector call sites traced from disasm -- 8 to
+ *   FUN_00027dd0 and 5 to FUN_00027e50, per the relocations in
+ *   delinked/actor_looking_FUN_00029040.obj (objdump -dr)
  *   (EAX=dir, EDX=vec2 at each CALL); FUN_00027e50 takes 2 extra cdecl args
  *   (constrain_range, cos_limits); FUN_00028250/28cc0/28ed0 all take
  *   actor_handle via register (@<esi>, @<eax>, @<eax> respectively).
@@ -8454,10 +8454,10 @@ void actor_look_update(int actor_handle)
   float cos_angles[2];
   short look_spec_type;
   float constrain_range;
-  int aim_threshold;
+  float aim_threshold;
   int look_data_mode;
-  int look_mode;
-  int secondary_mode;
+  short look_mode;
+  short secondary_mode;
   char *actor_save;
   char is_attacking;
   char snap_flag;
@@ -8470,36 +8470,49 @@ void actor_look_update(int actor_handle)
   char strict_look;
   char idle_major_active;
   short look_type;
-  int look_data = 0;
+  char look_forced;
+  char use_facing;
   char *pfVar14;
   char cVar5;
   short sVar8;
   int iVar10;
   int iVar13;
   char cVar7;
-  char bVar15;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   actor_save = actor;
   tag_data = (int)tag_get(0x61637472, *(int *)(actor + 0x58));
 
   desired_facing = (float *)(actor + 0x5a4);
-  desired_aiming = (float *)(actor + 0x5b0);
-  desired_looking = (float *)(actor + 0x5bc);
   strict_look = 0;
 
   if (!valid_real_normal3d(desired_facing)) {
-    display_assert("&actor->control.desired_facing_vector",
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                            "&actor->control.desired_facing_vector",
+                            (double)desired_facing[0], (double)desired_facing[1],
+                            (double)desired_facing[2]),
                    "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x44f, 1);
     system_exit(-1);
   }
+  desired_aiming = (float *)(actor + 0x5b0);
   if (!valid_real_normal3d(desired_aiming)) {
-    display_assert("&actor->control.desired_aiming_vector",
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                            "&actor->control.desired_aiming_vector",
+                            (double)desired_aiming[0], (double)desired_aiming[1],
+                            (double)desired_aiming[2]),
                    "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x450, 1);
     system_exit(-1);
   }
+  desired_looking = (float *)(actor + 0x5bc);
   if (!valid_real_normal3d(desired_looking)) {
-    display_assert("&actor->control.desired_looking_vector",
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                            "&actor->control.desired_looking_vector",
+                            (double)desired_looking[0],
+                            (double)desired_looking[1],
+                            (double)desired_looking[2]),
                    "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x451, 1);
     system_exit(-1);
   }
@@ -8530,7 +8543,7 @@ void actor_look_update(int actor_handle)
   snap_flag = *(char *)(actor + 0x58d);
   transient_aim = *(char *)(actor + 0x58e);
   use_aim = is_attacking;
-  aim_threshold = *(int *)(tag_data + 0x12c);
+  aim_threshold = *(float *)(tag_data + 0x12c);
   constrain_range = *(float *)(tag_data + 0x134);
   has_primary = 1;
   no_timing_window = 0;
@@ -8544,7 +8557,6 @@ void actor_look_update(int actor_handle)
     cos_angles[0] = x87_fcos(*(float *)(tag_data + 0xb4));
     cos_angles[1] = x87_fcos(*(float *)(tag_data + 0xb8));
   }
-
   /* Determine primary look mode */
   if (FUN_000210b0(actor_handle) && !*(char *)(actor + 0x456)) {
     look_spec_type = 2;
@@ -8557,7 +8569,7 @@ void actor_look_update(int actor_handle)
     }
   } else {
   LAB_look_mode_from_actor:
-    look_mode = (int)(unsigned short)(*(unsigned short *)(actor + 0x3e8));
+    look_mode = *(short *)(actor + 0x3e8);
     if (look_mode != 0 && look_mode != 1) {
       if (look_spec_28660_safe(actor_handle, actor, (short *)(actor + 0x3ec),
                                primary_vec)) {
@@ -8573,7 +8585,7 @@ void actor_look_update(int actor_handle)
   if (*(short *)(actor + 0x544) >= 0 && *(short *)(actor + 0x548) > 0) {
     if (look_spec_28660_safe(actor_handle, actor, (short *)(actor + 0x54c),
                              secondary_vec)) {
-      secondary_mode = (int)(*(short *)(actor + 0x546));
+      secondary_mode = *(short *)(actor + 0x546);
     }
   }
 
@@ -8581,22 +8593,28 @@ void actor_look_update(int actor_handle)
   if (*(char *)(actor + 0x504)) {
     sVar8 = actor_action_try_to_panic(actor_handle);
     if (sVar8 == 2) {
-      iVar10 = secondary_mode;
+      sVar8 = secondary_mode;
       secondary_mode = 5;
-      if ((short)iVar10 < 6)
-        secondary_mode = iVar10;
+      if (sVar8 <= 5)
+        secondary_mode = sVar8;
     }
   }
 
   /* Validate primary_vec and secondary_vec */
-  if ((short)look_mode > 1 && !valid_real_normal3d(primary_vec)) {
-    display_assert("&primary_vector", "c:\\halo\\SOURCE\\ai\\actor_looking.c",
-                   0x4ca, 1);
+  if (look_mode != 0 && look_mode != 1 && !valid_real_normal3d(primary_vec)) {
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                            "&primary_vector", (double)primary_vec[0],
+                            (double)primary_vec[1], (double)primary_vec[2]),
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x4ca, 1);
     system_exit(-1);
   }
-  if ((short)secondary_mode != 0 && !valid_real_normal3d(secondary_vec)) {
-    display_assert("&secondary_vector", "c:\\halo\\SOURCE\\ai\\actor_looking.c",
-                   0x4ce, 1);
+  if (secondary_mode != 0 && !valid_real_normal3d(secondary_vec)) {
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                            "&secondary_vector", (double)secondary_vec[0],
+                            (double)secondary_vec[1], (double)secondary_vec[2]),
+                   "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x4ce, 1);
     system_exit(-1);
   }
 
@@ -8618,11 +8636,11 @@ void actor_look_update(int actor_handle)
   *(char *)(actor + 0x58c) = 0;
 
   /* Apply primary_vec if look_mode >= 2 */
-  if ((short)look_mode >= 2) {
-    if ((short)look_mode < 5 ||
+  if (look_mode >= 2) {
+    if (look_mode < 5 ||
         (snap_flag == 0 &&
          !FUN_00027dd0(primary_vec, desired_facing, aim_threshold))) {
-      if ((short)look_mode > 2 && transient_aim) {
+      if (look_mode >= 3 && transient_aim) {
         transient_aim = 0;
         snap_flag = 1;
         goto LAB_000294dc;
@@ -8634,25 +8652,25 @@ void actor_look_update(int actor_handle)
       desired_aiming[2] = primary_vec[2];
       has_primary = 0;
       use_aim = is_attacking;
-      if ((short)look_mode > 6 && !want_secondary && is_attacking) {
+      if (look_mode >= 7 && !want_secondary && is_attacking) {
         want_secondary = 1;
         desired_looking[0] = primary_vec[0];
         desired_looking[1] = primary_vec[1];
         desired_looking[2] = primary_vec[2];
       }
     }
-    if ((short)look_mode == 2)
-      look_mode = (int)(-(char)(snap_flag != 0) & 5);
+    if (look_mode == 2)
+      look_mode = snap_flag ? 5 : 0;
     if (snap_flag) {
       desired_facing[0] = primary_vec[0];
       desired_facing[1] = primary_vec[1];
       desired_facing[2] = primary_vec[2];
       snap_flag = 0;
       transient_aim = 0;
-      *(char *)(actor + 0x591) |= (char)((short)look_mode == 4);
+      *(char *)(actor + 0x591) |= (char)(look_mode == 4);
     }
     if ((*(char *)(actor + 0x58d) == 0 && *(char *)(actor + 0x58e) == 0) ||
-        (no_timing_window = 0, (short)look_mode > 5)) {
+        (no_timing_window = 0, look_mode >= 6)) {
       no_timing_window = 1;
     }
   }
@@ -8660,7 +8678,7 @@ void actor_look_update(int actor_handle)
   pfVar14 = (char *)desired_facing;
 
   /* Secondary mode switch */
-  switch ((short)secondary_mode) {
+  switch (secondary_mode) {
   case 2:
   case 3:
   case 4:
@@ -8670,12 +8688,16 @@ void actor_look_update(int actor_handle)
     if (!no_timing_window) {
       if (want_secondary)
         goto LAB_000296af;
-      if ((short)secondary_mode >= 6 && !actor_move_force_stop(actor_handle))
+      /* Not negated: the original branches on a NONZERO return --
+       * `call actor_move_force_stop; test %al,%al; jne 0x5da
+       * <LAB_0002961a>` at 0x2959x. (The other call site, in the
+       * idle case 7/8 arm, IS negated: `je <switch default>`.) */
+      if (secondary_mode >= 6 && actor_move_force_stop(actor_handle))
         goto LAB_0002961a;
-      if ((short)secondary_mode >= 5 &&
+      if (secondary_mode >= 5 &&
           (transient_aim != 0 || *(char *)(actor + 0x58d) != 0))
         goto LAB_0002961a;
-      if ((short)secondary_mode < 4)
+      if (secondary_mode < 4)
         goto LAB_0002966b;
       if (in_range != 0)
         goto LAB_00029672;
@@ -8694,6 +8716,10 @@ void actor_look_update(int actor_handle)
       desired_looking[0] = secondary_vec[0];
       desired_looking[1] = secondary_vec[1];
       desired_looking[2] = secondary_vec[2];
+      /* Original sets use_aim in THIS block (0x29616/0x2961c) before
+       * `jmp 0x774 <LAB_000297b4>`; LAB_000297b4 itself only clears
+       * snap_flag. Both predecessors carry their own copy. */
+      use_aim = is_attacking;
       goto LAB_000297b4;
     }
     if (!want_secondary) {
@@ -8701,8 +8727,8 @@ void actor_look_update(int actor_handle)
       if (!in_range)
         goto LAB_000296af;
     LAB_00029672:
-      if ((short)secondary_mode < 5 &&
-          ((short)secondary_mode < 3 || !has_primary))
+      if (secondary_mode < 5 &&
+          (secondary_mode < 3 || !has_primary))
         goto LAB_000296af;
       desired_aiming[0] = secondary_vec[0];
       desired_aiming[1] = secondary_vec[1];
@@ -8735,7 +8761,7 @@ void actor_look_update(int actor_handle)
     break;
   case 7:
   case 8:
-    idle_major_active = (char)((short)secondary_mode == 8);
+    idle_major_active = (char)(secondary_mode == 8);
     no_timing_window = idle_major_active;
     if (!*(char *)(actor + 0x58d)) {
       if (!FUN_00027dd0(secondary_vec, desired_facing, aim_threshold)) {
@@ -8744,27 +8770,31 @@ void actor_look_update(int actor_handle)
         no_timing_window = 1;
         goto LAB_0002977e;
       }
+      /* Original jumps INTO the copy block at LAB_00029795 (0x29795), past
+       * the desired_facing copy and the actor+0x591 store: at 0x2977c
+       * `movb -0xa(%ebp),%al; testb %al,%al; je 0x755 <LAB_00029795>`.
+       * Only the idle_major_active path rewrites facing / +0x591. */
       if (!idle_major_active)
-        goto LAB_0002977e;
+        goto LAB_00029795;
     }
   LAB_0002977e:
     desired_facing[0] = secondary_vec[0];
     desired_facing[1] = secondary_vec[1];
     desired_facing[2] = secondary_vec[2];
     *(char *)(actor + 0x591) = no_timing_window;
+  LAB_00029795:
     desired_aiming[0] = secondary_vec[0];
     desired_aiming[1] = secondary_vec[1];
     desired_aiming[2] = secondary_vec[2];
     desired_looking[0] = secondary_vec[0];
     desired_looking[1] = secondary_vec[1];
     desired_looking[2] = secondary_vec[2];
+    use_aim = is_attacking;
   LAB_000297b4:
     snap_flag = 0;
-    use_aim = is_attacking;
   LAB_000297b8:
     *(char *)(actor + 0x58c) = 1;
     want_secondary = 0;
-    is_attacking = use_aim;
   LAB_000297c3:
     has_primary = 0;
     break;
@@ -8774,7 +8804,7 @@ void actor_look_update(int actor_handle)
 LAB_000297c7:
 
   /* look_mode==2 snap check */
-  if ((short)look_mode == 2 && has_primary &&
+  if (look_mode == 2 && has_primary &&
       FUN_00027dd0(primary_vec, desired_facing, aim_threshold)) {
     desired_aiming[0] = primary_vec[0];
     desired_aiming[1] = primary_vec[1];
@@ -8790,15 +8820,22 @@ LAB_000297c7:
 
   /* Get look timing data */
   iVar13 = FUN_00027a10(actor_handle);
-  bVar15 = (char)(*(float *)(iVar13 + 4) <= *(float *)0x2533c0);
-  no_timing_window = !bVar15;
-  in_range = (char)(*(float *)0x2533c0 < *(float *)(iVar13 + 0xc));
-  transient_aim = (char)(*(float *)0x2533c0 < *(float *)(iVar13 + 0x14));
+  /* Each flag is `field > 0` with the FIELD in ST(0): the original loads
+   * the field and compares against the zero constant
+   * (flds 0x4(%ebx); fcomps <zero>; testb $0x41,%ah; jne/je), so an
+   * unordered result clears the flag. Spelling these as `0 < field`
+   * reverses the operands and yields the NaN-inverted testb $0x5/jnp
+   * form instead. There is no separate `field <= 0` temporary -- the
+   * original reuses !no_timing_window (-0x8(%ebp), kept live in %cl). */
+  no_timing_window = (char)(*(float *)(iVar13 + 4) > *(float *)0x2533c0);
+  in_range = (char)(*(float *)(iVar13 + 0xc) > *(float *)0x2533c0);
+  transient_aim = (char)(*(float *)(iVar13 + 0x14) > *(float *)0x2533c0);
   look_data_mode = iVar13;
 
   /* Gate on look_timer */
-  if (*(short *)(actor + 0x3fc) < 1 || want_secondary ||
-      (!has_primary && !use_aim) || (bVar15 && !in_range && !transient_aim)) {
+  if (!(*(short *)(actor + 0x3fc) > 0) || want_secondary ||
+      (!has_primary && !use_aim) ||
+      (!no_timing_window && !in_range && !transient_aim)) {
     *(char *)(actor + 0x55c) = 0;
     *(char *)(actor + 0x55e) = 0;
     goto LAB_00029da2;
@@ -8807,11 +8844,16 @@ LAB_000297c7:
   idle_major_active = 0;
   want_secondary = 0;
 
-  /* Force-snap flag for look_mode==1 */
-  if (!bVar15 && snap_flag && (short)look_mode == 1 && *(int *)(actor + 0x560))
-    look_mode = (look_mode & 0xffffff00) | 1;
+  /* Force-snap flag for look_mode==1.
+   * The idle-look timer at actor+0x560 must be EXPIRED (== 0) for the flag to
+   * stay set. Original at ~0x2989x: movl 0x560(%esi),%eax; testl %eax,%eax;
+   * movb $0x1,-0x24(%ebp); je <skip>; movb $0x0,-0x24(%ebp) -- the store of 0
+   * is skipped only on the zero path, so look_forced == (timer == 0). */
+  if (snap_flag && no_timing_window && look_mode == 1 &&
+      *(int *)(actor + 0x560) == 0)
+    look_forced = 1;
   else
-    look_mode = look_mode & 0xffffff00;
+    look_forced = 0;
 
   if (*(int *)(actor + 0x560) > 0)
     *(int *)(actor + 0x560) -= 1;
@@ -8821,21 +8863,19 @@ LAB_000297c7:
   LAB_00029971: {
     float *pfv;
     char uVar11;
-    bVar15 = 1;
-    look_data = (look_data & 0xffffff00) | 1;
+    use_facing = 1;
     if (!has_primary || !in_range) {
-      bVar15 = 0;
-      look_data = look_data & 0xffffff00;
+      use_facing = 0;
       if (!use_aim || !transient_aim)
         goto LAB_00029a12;
     } else if (!use_aim || !transient_aim) {
     LAB_00029998:
-      pfv = bVar15 ? desired_facing : (float *)desired_aiming;
+      pfv = use_facing ? desired_facing : (float *)desired_aiming;
       uVar11 = (char)(use_aim && transient_aim ? 1 : 0);
       *(char *)(actor + 0x55e) =
-        FUN_00028cc0((float *)iVar13, pfv, (char)look_mode,
-                     (char)(int)look_data, uVar11, actor_handle);
-      if (*(char *)(actor + 0x55c) && *(int *)(actor + 0x564) < 1) {
+        FUN_00028cc0((float *)iVar13, pfv, look_forced,
+                     use_facing, uVar11, actor_handle);
+      if (*(char *)(actor + 0x55c) && !(*(int *)(actor + 0x564) > 0)) {
         display_assert("!actor->control.idle_major_active || "
                        "(actor->control.idle_major_timer > 0)",
                        "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x5dd, 1);
@@ -8876,25 +8916,25 @@ LAB_000297c7:
     goto LAB_00029ccc;
 
   if (!valid_real_normal3d(primary_vec)) {
-    display_assert("&idle_major_vector",
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                            "&idle_major_vector", (double)primary_vec[0],
+                            (double)primary_vec[1], (double)primary_vec[2]),
                    "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x5e8, 1);
     system_exit(-1);
   }
 
-  if (!has_primary) {
-    if (!FUN_00027e50(primary_vec, desired_aiming, desired_facing,
-                      constrain_range, cos_angles))
-      goto LAB_00029ccc;
-    desired_looking[0] = primary_vec[0];
-    desired_looking[1] = primary_vec[1];
-    desired_looking[2] = primary_vec[2];
-  } else {
+  /* has_primary is the FALLTHROUGH arm in the original: at ~0x29ac6
+   * movb -0x1(%ebp),%al; testb; je LAB_00029b3e jumps AWAY to the
+   * FUN_00027e50 arm. The second test is on look_forced alone -- the
+   * triple above has already set it, so re-testing the triple is
+   * redundant (original tests only -0x24(%ebp) at LAB_00029adb). */
+  if (has_primary) {
     if (snap_flag && no_timing_window && *(char *)(actor + 0x99)) {
-      look_mode = (look_mode & 0xffffff00) | 1;
+      look_forced = 1;
       want_secondary = 1;
     }
-    if ((char)look_mode ||
-        (snap_flag && no_timing_window && *(char *)(actor + 0x99))) {
+    if (look_forced) {
       desired_facing[0] = primary_vec[0];
       desired_facing[1] = primary_vec[1];
       desired_facing[2] = primary_vec[2];
@@ -8910,31 +8950,47 @@ LAB_000297c7:
       desired_aiming[2] = primary_vec[2];
       *(char *)(actor + 0x58c) = 1;
     }
+  } else {
+    if (!FUN_00027e50(primary_vec, desired_aiming, desired_facing,
+                      constrain_range, cos_angles))
+      goto LAB_00029ccc;
+    desired_looking[0] = primary_vec[0];
+    desired_looking[1] = primary_vec[1];
+    desired_looking[2] = primary_vec[2];
   }
   goto LAB_00029b75;
 
 LAB_00029ccc:
+  /* The idle-major failure paths REJOIN after the idle-minor timer setup,
+   * not before it: the original's tail here is `jmp 0xbc0 <LAB_00029c00>`
+   * (at 0x29ca6), while the two success paths use `jmp 0xb35 <LAB_00029b75>`
+   * (0x29ac3 / 0x29afc). Falling through into the timer setup would re-arm
+   * the idle-minor timer on a path where idle_major_active can still be 1. */
   primary_vec[0] = desired_aiming[0];
   primary_vec[1] = desired_aiming[1];
   primary_vec[2] = desired_aiming[2];
   *(char *)(actor + 0x55c) = 0;
+  goto LAB_00029c00;
 
 LAB_00029b75:
   /* Idle minor timer */
   if (idle_major_active && transient_aim) {
+    int *idle_minor_spec = (int *)(actor + 0x57c);
+    int *idle_major_spec = (int *)(actor + 0x56c);
     *(char *)(actor + 0x55f) = 1;
     *(int *)(actor + 0x568) = FUN_00028250(
       (float *)look_data_mode, *(char *)(actor + 0x55e), actor_handle, 2);
-    *(int *)(actor + 0x57c) = *(int *)(actor + 0x56c);
-    *(int *)(actor + 0x580) = *(int *)(actor + 0x570);
-    *(int *)(actor + 0x584) = *(int *)(actor + 0x574);
-    *(int *)(actor + 0x588) = *(int *)(actor + 0x578);
-    if ((char)look_mode) {
+    idle_minor_spec[0] = idle_major_spec[0];
+    idle_minor_spec[1] = idle_major_spec[1];
+    idle_minor_spec[2] = idle_major_spec[2];
+    idle_minor_spec[3] = idle_major_spec[3];
+    if (look_forced) {
       *(int *)(actor + 0x560) = FUN_00028250(
         (float *)look_data_mode, *(char *)(actor + 0x55e), actor_handle, 0);
     }
   }
 
+LAB_00029c00:
   /* Idle minor active */
   if (!has_primary ||
       ((!use_aim || !transient_aim) && (!want_secondary || !in_range))) {
@@ -8942,7 +8998,7 @@ LAB_00029b75:
   } else {
     if (!*(int *)(actor + 0x568)) {
       FUN_00028ed0((float *)look_data_mode, primary_vec, actor_handle);
-      if (*(int *)(actor + 0x568) < 1) {
+      if (!(*(int *)(actor + 0x568) > 0)) {
         display_assert("actor->control.idle_minor_timer > 0",
                        "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x62d, 1);
         system_exit(-1);
@@ -8954,14 +9010,22 @@ LAB_00029b75:
                                    (short *)(actor + 0x57c), primary_vec);
       cVar5 = want_secondary;
       if (cVar7) {
-        if (!want_secondary)
+        /* want_secondary is the FALLTHROUGH arm: 0x29ceb-ish does
+         * `movb -0x5(%ebp),%bl; testb %bl,%bl; je LAB_00029ceb`, jumping
+         * AWAY to the FUN_00027e50 arm. */
+        if (want_secondary)
+          cVar7 = FUN_00027dd0(primary_vec, desired_facing, aim_threshold);
+        else
           cVar7 = FUN_00027e50(primary_vec, desired_aiming, desired_facing,
                                constrain_range, cos_angles);
-        else
-          cVar7 = FUN_00027dd0(primary_vec, desired_facing, aim_threshold);
         if (cVar7) {
           if (!valid_real_normal3d(primary_vec)) {
-            display_assert("&idle_minor_vector",
+            display_assert(csprintf(error_string_buffer,
+                                    "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                                    "&idle_minor_vector",
+                                    (double)primary_vec[0],
+                                    (double)primary_vec[1],
+                                    (double)primary_vec[2]),
                            "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x645, 1);
             system_exit(-1);
           }
@@ -8990,24 +9054,21 @@ LAB_00029dac:
   /* Snap-to-original */
   if (!*(char *)(actor + 0x504) && !*(char *)(actor + 0x505) &&
       !unit_is_busy(*(int *)(actor + 0x18)) && *(int *)(actor + 0x158) == -1) {
-    if (!FUN_00027dd0(desired_aiming, (float *)(actor + 0x174),
-                      aim_threshold) ||
-        !FUN_00027dd0(desired_aiming, desired_facing, aim_threshold)) {
-      if (is_attacking) {
-        if (FUN_00027e50(desired_looking, desired_aiming, desired_facing,
-                         constrain_range, cos_angles) &&
-            !FUN_00027e50(desired_looking, desired_aiming,
-                          (float *)(actor + 0x174), constrain_range,
-                          cos_angles))
-          goto LAB_00029e51;
-      }
-      goto LAB_00029e58;
+    if (FUN_00027dd0(desired_aiming, desired_facing, aim_threshold) &&
+        !FUN_00027dd0(desired_aiming, (float *)(actor + 0x174),
+                      aim_threshold)) {
+      goto LAB_00029e4a;
     }
-  LAB_00029e51:
-    *(char *)(actor + 0x591) = 1;
+    if (is_attacking &&
+        FUN_00027e50(desired_looking, desired_aiming, desired_facing,
+                     constrain_range, cos_angles) &&
+        !FUN_00027e50(desired_looking, desired_aiming, (float *)(actor + 0x174),
+                      constrain_range, cos_angles)) {
+    LAB_00029e4a:
+      *(char *)(actor + 0x591) = 1;
+    }
   }
   if (!is_attacking) {
-  LAB_00029e58:
     desired_looking[0] = ((float *)pfVar14)[0];
     desired_looking[1] = ((float *)pfVar14)[1];
     desired_looking[2] = ((float *)pfVar14)[2];
@@ -9016,10 +9077,11 @@ LAB_00029dac:
 LAB_00029e6d:
   /* Zero pitch if needed */
   if (!*(char *)(actor + 0x99)) {
-    float pitch_abs = *(float *)(actor + 0x5ac);
-    if (pitch_abs < 0.0f)
-      pitch_abs = -pitch_abs;
-    if (*(double *)0x2533d0 <= (double)pitch_abs) {
+    double pitch_abs = fabs((double)*(float *)(actor + 0x5ac));
+    /* `!(pitch_abs < limit)`, not `limit <= pitch_abs`: the original uses
+     * the NaN-aware `testb $0x5,%ah; jnp` (0x29e79), which falls through
+     * into the body on an unordered compare. */
+    if (!(pitch_abs < *(double *)0x2533d0)) {
       *(float *)(actor + 0x5ac) = 0.0f;
       if (magnitude3d(desired_facing) == *(float *)0x2533c0) {
         desired_facing[0] = *(float *)(actor + 0x174);
@@ -9028,7 +9090,11 @@ LAB_00029e6d:
       }
     }
     if (!valid_real_normal2d((float *)(actor + 0x6fc))) {
-      display_assert("(real_vector2d *) &actor->output.facing_vector",
+      display_assert(csprintf(error_string_buffer,
+                              "%s: assert_valid_real_normal2d(%f, %f)",
+                              "(real_vector2d *) &actor->output.facing_vector",
+                              (double)*(float *)(actor + 0x6fc),
+                              (double)*(float *)(actor + 0x700)),
                      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x689, 1);
       system_exit(-1);
     }
@@ -9041,9 +9107,19 @@ LAB_00029e6d:
   }
   if (!*(char *)(actor + 0x590)) {
     if (!*(char *)(actor + 0x504)) {
-      float dot = *(float *)(actor + 0x180) * ((float *)pfVar14)[0] +
-                  *(float *)(actor + 0x184) * ((float *)pfVar14)[1] +
-                  *(float *)(actor + 0x188) * ((float *)pfVar14)[2];
+      /* Pointer-base form (lift-score-improve Step 2) is required to get the
+       * reference's z,y,x FPU evaluation order: with three raw
+       * `*(float *)(actor + 0xNNN)` operands VC71 /O2 reassociates the sum to
+       * z,x,y regardless of the source term order (verified: swapping the
+       * source terms changes nothing).  Residual diff at the third product is
+       * pure register allocation -- the reference has the actor vector in ESI
+       * (disp 0x180) and the candidate in EBX (disp 0), so it FLDs the actor
+       * side; ours has them in EDI/ECX and FLDs the zero-displacement side.
+       * Commuting the operands in C does not move it (VC71 commutes freely). */
+      const float *look_base = (const float *)(actor + 0x180);
+      float dot = look_base[2] * ((float *)pfVar14)[2] +
+                  look_base[1] * ((float *)pfVar14)[1] +
+                  look_base[0] * ((float *)pfVar14)[0];
       if (dot > *(float *)0x2555d0) {
         *(float *)(actor + 0x598) = ((float *)pfVar14)[0];
         *(float *)(actor + 0x59c) = ((float *)pfVar14)[1];
@@ -9059,10 +9135,29 @@ LAB_00029e6d:
     float *pfv;
     snap_stored = (float *)(actor + 0x598);
     pfv = (float *)pfVar14;
-    if (*(float *)(tag_data + 0x330) <= *(float *)0x2533c0)
+    /* `!(x > 0)` not `x <= 0`: the original exits on C0|C3 via
+     * `test $0x41,%ah; jne 0x1083` (0x2a000), so an unordered compare
+     * exits too -- plain `<=` is false on NaN and would fall through. */
+    if (!(*(float *)(tag_data + 0x330) > *(float *)0x2533c0))
       goto LAB_0002a0c3;
     snap_cos = x87_fcos(*(float *)(tag_data + 0x330));
-    if (!*(char *)(actor + 0x99)) {
+    /* The 3D (airborne/vehicle) arm is the FALLTHROUGH in the original:
+     * testb %al,%al; je LAB_0002a004 at ~0x2a00x jumps AWAY to the 2D arm. */
+    if (*(char *)(actor + 0x99)) {
+      float dot3 = pfv[2] * snap_stored[2] + pfv[1] * snap_stored[1] +
+                   pfv[0] * snap_stored[0];
+      if (dot3 > snap_cos) {
+        float dot4 = FUN_00013070(desired_facing, snap_stored);
+        /* Both arms converge on LAB_0002a09d (0x2a09d):
+         *   fcomps -0x2c(%ebp); fnstsw; test $0x41,%ah; je LAB_0002a0c3
+         * `je` fires when C0=C3=0, i.e. dot > snap_cos -- the snap is KEPT
+         * while the vector is still inside the cone. This lift had the
+         * test inverted (dot <= snap_cos), clearing actor+0x590 and
+         * calling FUN_00036e50 exactly when it should have been left. */
+        if (dot4 > snap_cos)
+          goto LAB_0002a0c3;
+      }
+    } else {
       float sv[2];
       float dv[2];
       float ss[2];
@@ -9079,15 +9174,9 @@ LAB_00029e6d:
       if (magnitude3d(ss) == *(float *)0x2533c0)
         goto LAB_0002a0a7;
       if (ss[1] * sv[1] + ss[0] * sv[0] > snap_cos) {
-        if (dv[1] * ss[1] + dv[0] * ss[0] <= snap_cos)
-          goto LAB_0002a0c3;
-      }
-    } else {
-      float dot3 = pfv[0] * snap_stored[0] + pfv[1] * snap_stored[1] +
-                   pfv[2] * snap_stored[2];
-      if (dot3 > snap_cos) {
-        float dot4 = FUN_00013070(desired_facing, snap_stored);
-        if (dot4 <= snap_cos)
+        /* Same LAB_0002a09d comparison as the 3D arm (0x2a04d `jne
+         * LAB_0002a0a7` on the outer dot, then `je LAB_0002a0c3`). */
+        if (dv[1] * ss[1] + dv[0] * ss[0] > snap_cos)
           goto LAB_0002a0c3;
       }
     }
@@ -9117,17 +9206,32 @@ LAB_0002a0c3:
   actor_unit_control_exact_facing(actor_handle, *(char *)(actor + 0x591));
 
   if (!valid_real_normal3d((float *)(actor + 0x6fc))) {
-    display_assert("&actor->output.facing_vector",
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                            "&actor->output.facing_vector",
+                            (double)*(float *)(actor + 0x6fc),
+                            (double)*(float *)(actor + 0x700),
+                            (double)*(float *)(actor + 0x704)),
                    "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6c8, 1);
     system_exit(-1);
   }
   if (!valid_real_normal3d((float *)(actor + 0x708))) {
-    display_assert("&actor->output.aiming_vector",
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                            "&actor->output.aiming_vector",
+                            (double)*(float *)(actor + 0x708),
+                            (double)*(float *)(actor + 0x70c),
+                            (double)*(float *)(actor + 0x710)),
                    "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6c9, 1);
     system_exit(-1);
   }
   if (!valid_real_normal3d((float *)(actor + 0x714))) {
-    display_assert("&actor->output.looking_vector",
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                            "&actor->output.looking_vector",
+                            (double)*(float *)(actor + 0x714),
+                            (double)*(float *)(actor + 0x718),
+                            (double)*(float *)(actor + 0x71c)),
                    "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6ca, 1);
     system_exit(-1);
   }
