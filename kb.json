@@ -28426,7 +28426,8 @@
     },
     {
      "addr": "0x182bd0",
-     "decl": "void rasterizer_xbox_bitmap_swizzle3d_word(void);"
+     "decl": "void rasterizer_xbox_bitmap_swizzle3d_word(void *dst, const void *src, short width, short height, short depth);",
+     "ported": true
     },
     {
      "addr": "0x182cf0",
