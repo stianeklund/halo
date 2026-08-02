@@ -28406,7 +28406,8 @@
     },
     {
      "addr": "0x182840",
-     "decl": "void rasterizer_xbox_bitmap_swizzle2d_byte(void);"
+     "decl": "void rasterizer_xbox_bitmap_swizzle2d_byte(void *dst, const void *src, short width, short height);",
+     "ported": true
     },
     {
      "addr": "0x182910",

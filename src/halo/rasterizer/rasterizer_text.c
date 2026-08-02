@@ -1846,6 +1846,75 @@ void rasterizer_swizzle_interleave_bits(short param_1, short param_2,
   param_7[1] = local_c;
 }
 
+/* rasterizer_xbox_bitmap_swizzle2d_byte (0x182840): swizzle a 2D 8-bit
+ * (one byte per pixel) bitmap from linear order into Xbox swizzled order.
+ *
+ * TU is c:\halo\SOURCE\rasterizer\rasterizer_swizzle.c (proven by the
+ * __FILE__ assert string at 0x2b087c; the two asserts are lines 0x93/0x94).
+ *
+ * FUN_00182610 builds the disjoint bit-interleave masks into the globals
+ * 0x4d0498 (u / column) and 0x4d0494 (v / row); the third mask (0x4d0490)
+ * is unused here because the third dimension passed in is 1.
+ *
+ * The destination offset is `v | u` -- an OR of two disjoint accumulators,
+ * NOT an add.  Each accumulator advances with the masked-subfield increment
+ * `acc = (acc - mask) & mask`.  The source index is a single linear counter
+ * that runs across all rows and is never reset per row.
+ *
+ * The v-mask global is re-read at the bottom of every outer iteration in the
+ * original (ECX is clobbered by the inner body), so the read stays inside the
+ * loop here.  The u-mask is loaded once, before the outer loop.
+ *
+ * Both loop guards are signed 16-bit `> 0` tests (TEST AX,AX / TEST SI,SI)
+ * while the counters themselves are zero-extended (MOVZX). */
+void rasterizer_xbox_bitmap_swizzle2d_byte(void *dst, const void *src,
+                                           short width, short height)
+{
+  unsigned int u; /* EDI: column accumulator */
+  unsigned int v; /* [EBP-4]: row accumulator */
+  unsigned int umask; /* EAX: *0x4d0498, loaded once */
+  unsigned int vmask; /* ECX: *0x4d0494, re-read every outer iteration */
+  unsigned int rows; /* [EBP-8] */
+  unsigned int cols; /* [EBP+0x14]: the dead height slot, reused */
+  int linear; /* EBX: running source index */
+
+  u = 0;
+  linear = 0;
+  v = 0;
+
+  if (dst == (void *)0) {
+    display_assert("dst", "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c",
+                   0x93, 1);
+    system_exit(-1);
+  }
+  if (src == (const void *)0) {
+    display_assert("src", "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c",
+                   0x94, 1);
+    system_exit(-1);
+  }
+
+  FUN_00182610(width, height, 1);
+
+  if (height > 0) {
+    rows = (unsigned short)height;
+    umask = *(unsigned int *)0x4d0498;
+    do {
+      if (width > 0) {
+        cols = (unsigned short)width;
+        do {
+          ((unsigned char *)dst)[v | u] = ((const unsigned char *)src)[linear];
+          linear++;
+          u = (u - umask) & umask;
+          cols--;
+        } while (cols != 0);
+      }
+      vmask = *(unsigned int *)0x4d0494;
+      v = (v - vmask) & vmask;
+      rows--;
+    } while (rows != 0);
+  }
+}
+
 /* rasterizer_swizzle_bitmap_mipmap_count (0x183120): number of mipmap levels
  * that will actually be swizzled for this bitmap.
  *
