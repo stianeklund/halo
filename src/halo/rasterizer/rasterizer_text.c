@@ -482,6 +482,45 @@ short compress_real_to_int16(float z)
   return (short)x87_round_to_int(z);
 }
 
+/*
+ * FUN_00180890: clamping variant of compress_real_to_int16 (0x180890).
+ *
+ * Same compression as 0x180820 (scale by 32767.5f, floor, narrow to int16),
+ * but the out-of-range guard is a silent clamp instead of an assert. The
+ * relationship mirrors 0x180770 (assert) / 0x1807d0 (clamp) for the byte
+ * quantizers.
+ *
+ * Binary shape preserved:
+ *   - Clamp is two FCOMP/FNSTSW tests against the constant pool:
+ *     FCOMP [0x255e94] (-1.0f); TEST AH,0x5; JP  -> below-min path loads -1.0f
+ *     FCOMP [0x2533c8] (+1.0f); TEST AH,0x41; JNZ -> in-range path loads param,
+ *     fall-through loads +1.0f. i.e. f < -1 -> -1, f > 1 -> +1, else f.
+ *   - The floor() double result is narrowed back through a float store before
+ *     the integer conversion (FSTP dword [EBP+8]; FLD [EBP+8]; FISTP dword
+ *     [EBP-4]); the assignment back to a float reproduces that round-trip.
+ *   - The int conversion is an inline FISTP (current rounding mode), not a
+ *     _ftol call, so x87_round_to_int is used rather than a C (int) cast. The
+ *     value is already integral after floor, so the two agree, but the emitted
+ *     shape only matches with the FISTP helper.
+ *   - Only the low word of the 4-byte conversion result is read (MOV AX).
+ *
+ * Constant pool values verified from the XBE: 0x255e94 = -1.0f,
+ * 0x2533c8 = +1.0f, 0x2b00b4 = 32767.5f.
+ */
+short FUN_00180890(float f)
+{
+  float clamped;
+  if (f < -1.0f) {
+    clamped = -1.0f;
+  } else if (f > 1.0f) {
+    clamped = 1.0f;
+  } else {
+    clamped = f;
+  }
+  clamped = (float)floor((double)(clamped * 32767.5f));
+  return (short)x87_round_to_int(clamped);
+}
+
 /* rasterizer_geometry_pack_normal_11_11_10_validated: pack float[3] normal
  * into 11-11-10 uint, asserting components in [-1.0, 1.0]. Encodes via
  * floor(component * scale) + FISTP. Verifies round-trip via FUN_0017ffc0.
