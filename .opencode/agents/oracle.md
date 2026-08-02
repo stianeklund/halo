@@ -2,6 +2,7 @@
 description: Clean-context Fable oracle for independent expert second opinions on hard debugging, architecture, security, performance, and validation questions.
 mode: subagent
 model: openai/gpt-5.6-terra
+variant: xhigh
 permission:
   edit: deny
   bash: ask

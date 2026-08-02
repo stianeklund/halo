@@ -1,7 +1,8 @@
 ---
 description: Sequential source-recovery category worker for one manifest category
 mode: subagent
-model: openai/gpt-5.6-luna
+model: openai/gpt-5.6-terra
+variant: xhigh
 permission:
   edit: allow
   bash: allow

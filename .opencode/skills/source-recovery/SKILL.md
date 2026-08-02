@@ -66,12 +66,14 @@ Categories may be skipped when inapplicable, never reordered. Without
 
 ## Delegation
 
-OpenCode category workers must be sequential. Use `luna_executor` for category
-implementation handoffs that are already well-defined and gated. Explicitly set
-`fork_turns: none` for self-contained handoffs; use `fork_turns: 5-20` only
-when the subagent needs recent parent context. Do not omit `fork_turns`, or V2
-may spawn the subagent with the current model and reasoning settings instead of
-pinned Luna Max. Each worker receives one category, the manifest path, the
-target leaf skill, the verification command, and an explicit same-worktree rule.
+OpenCode category workers must be sequential. Use `recovery-category` for full
+source-recovery category workers; it is pinned to Terra xhigh for the
+high-reasoning recovery role. Use `luna_executor` only for smaller implementation
+handoffs that are already well-defined and gated. Explicitly set `fork_turns: none` for
+self-contained handoffs; use `fork_turns: 5-20` only when the subagent needs
+recent parent context. Do not omit `fork_turns`, or V2 may spawn the subagent
+with the current model and reasoning settings instead of the pinned agent model.
+Each worker receives one category, the manifest path, the target leaf skill, the
+verification command, and an explicit same-worktree rule.
 Never run two category workers for the same TU in parallel because each category
 commit is the next category's base.
