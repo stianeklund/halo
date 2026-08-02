@@ -1,0 +1,491 @@
+#!/usr/bin/env python3
+"""Synthesize a VC71 reference object directly from the pristine XBE.
+
+WHY THIS EXISTS
+---------------
+`vc71_verify` scores a lifted function by disassembling two COFF objects with
+`llvm-objdump -d` and LCS-matching the instruction text.  Today the reference
+side comes from Ghidra's delinker.  The delinker reconstructs symbols and
+relocations -- and `compare_obj.normalize_instruction` then throws all of that
+away, rewriting `$0x...` -> `$IMM`, `0x...` -> `IMM` and `-0x8(%ebp)` ->
+`OFF(%ebp)` before scoring.  A symbolized `call tag_get` and a raw
+`call 0x9f2c0` normalize to the same text, so for SCORING purposes the
+relocations are dead weight.
+
+Everything the scorer actually needs is already available without Ghidra:
+
+  * start address  -- kb.json
+  * end address    -- capstone `true_end()` over the pristine XBE (this is
+                      already what bounds the per-function chunks; see
+                      `batch_delink.per_func_range`)
+  * the bytes      -- the pristine XBE itself
+
+So this module reads the bytes and wraps them in a minimal i386 COFF object.
+
+WHY A COFF CONTAINER AND NOT RAW BYTES
+--------------------------------------
+To keep the SAME disassembler on both sides.  `llvm-objdump` has no raw-binary
+mode (`-b` is an unknown argument).  GNU `objdump -b binary -m i386` does work
+and emits AT&T text in the same style, but it is a *second* disassembler, and
+anywhere the two spell a mnemonic differently we would score a false mismatch.
+Emitting a container costs ~80 lines and removes that risk entirely.
+
+WHAT THIS FIXES
+---------------
+  * Scattered TUs.  A whole-object delink exports one CONTIGUOUS range, but a
+    TU's functions are not contiguous (real_math.obj: 168 functions spanning
+    0x1ACB0-0x113C90).  The export captures the first cluster and every later
+    function silently has no reference.  Synthesis is per-function by
+    construction, so this cannot happen.
+  * Reference-selection ambiguity.  One canonical reference per address
+    replaces `vc71_verify.pick_unit`'s symbol-counting / same-TU heuristics.
+  * Neighbour bleed.  A synthesized object holds exactly one symbol, so
+    `compare_obj`'s boundary logic has nothing to get wrong.
+  * The pre-rename alias problem (`vc71_verify` line ~1193): we emit the
+    current kb.json name.
+  * Reproducibility.  `delinked/` is gitignored, so references exist only on
+    the machine that ran Ghidra.  These derive from two committed inputs.
+
+WHAT THIS DOES NOT FIX
+----------------------
+  * A wrong END address still yields a wrong reference.  That is already how
+    the chunks are bounded, so it is not a regression -- but it does mean a
+    disagreement between the synthesized and delinked reference is a signal
+    about the BOUND, not proof that either side's bytes are wrong.
+  * The equivalence lane.  `unicorn_diff` actually EXECUTES the oracle, so it
+    needs real relocations.  Ghidra stays necessary there.
+
+Usage:
+    xbe_reference.py emit --addr 0x10a480 --name FUN_0010a480 -o out.obj
+    xbe_reference.py compare [--limit N]     # agreement vs delinked chunks
+    xbe_reference.py --self-test
+"""
+import argparse
+import os
+import re
+import struct
+import subprocess
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+XBE = REPO_ROOT / "halo-patched" / "cachebeta.xbe"
+CHUNK_DIR = REPO_ROOT / "delinked" / "functions"
+
+sys.path.insert(0, str(REPO_ROOT / "tools" / "audit"))
+sys.path.insert(0, str(REPO_ROOT / "tools" / "verify"))
+
+# COFF constants
+IMAGE_FILE_MACHINE_I386 = 0x14C
+IMAGE_FILE_LINE_NUMS_STRIPPED = 0x0004
+IMAGE_FILE_32BIT_MACHINE = 0x0100
+# CNT_CODE | ALIGN_16BYTES | MEM_EXECUTE | MEM_READ
+SCN_TEXT_CHARACTERISTICS = 0x00000020 | 0x00500000 | 0x20000000 | 0x40000000
+IMAGE_SYM_CLASS_EXTERNAL = 2
+IMAGE_SYM_DTYPE_FUNCTION = 0x20
+
+
+def build_coff(code: bytes, symbol: str) -> bytes:
+    """Minimal single-section i386 COFF object exporting `symbol` at .text+0.
+
+    Layout: file header (20) | section header (40) | .text | symtab | strtab.
+    Names longer than 8 bytes go in the string table, which is how the
+    `FUN_<8 hex digits>` names we use are stored (12 chars).
+    """
+    text_off = 20 + 40
+    symtab_off = text_off + len(code)
+
+    strtab = b""
+    name_field = symbol.encode()
+    if len(name_field) <= 8:
+        name_field = name_field.ljust(8, b"\0")
+    else:
+        # offset is relative to the start of the string table, whose first 4
+        # bytes are the size field itself -- so the first string sits at 4.
+        name_field = struct.pack("<II", 0, 4 + len(strtab))
+        strtab += symbol.encode() + b"\0"
+
+    hdr = struct.pack(
+        "<HHIIIHH",
+        IMAGE_FILE_MACHINE_I386,
+        1,                      # NumberOfSections
+        0,                      # TimeDateStamp (0 = reproducible output)
+        symtab_off,
+        1,                      # NumberOfSymbols
+        0,                      # SizeOfOptionalHeader
+        IMAGE_FILE_LINE_NUMS_STRIPPED | IMAGE_FILE_32BIT_MACHINE,
+    )
+    sec = struct.pack(
+        "<8sIIIIIIHHI",
+        b".text\0\0\0",
+        0,                      # VirtualSize
+        0,                      # VirtualAddress
+        len(code),
+        text_off,
+        0, 0, 0, 0,             # relocs / linenums (none)
+        SCN_TEXT_CHARACTERISTICS,
+    )
+    sym = name_field + struct.pack(
+        "<IhHBB",
+        0,                      # Value: offset 0 within .text
+        1,                      # SectionNumber (1-based)
+        IMAGE_SYM_DTYPE_FUNCTION,
+        IMAGE_SYM_CLASS_EXTERNAL,
+        0,                      # NumberOfAuxSymbols
+    )
+    strtab_full = struct.pack("<I", 4 + len(strtab)) + strtab
+    return hdr + sec + code + sym + strtab_full
+
+
+_XBE_CACHE = None
+
+
+def _xbe():
+    global _XBE_CACHE
+    if _XBE_CACHE is None:
+        from check_delinked_bounds import load_xbe
+        _XBE_CACHE = load_xbe(str(XBE))
+    return _XBE_CACHE
+
+
+_KB_STARTS: list[int] | None = None
+
+
+def _kb_starts() -> list[int]:
+    global _KB_STARTS
+    if _KB_STARTS is None:
+        out = subprocess.run(
+            ["jq", "-r", ".objects[].functions[].addr", str(REPO_ROOT / "kb.json")],
+            capture_output=True, text=True,
+        )
+        _KB_STARTS = sorted({int(t, 16) for t in out.stdout.split()
+                             if t.startswith("0x")})
+    return _KB_STARTS
+
+
+def _next_kb_start(addr: int) -> int | None:
+    import bisect
+    starts = _kb_starts()
+    i = bisect.bisect_right(starts, addr)
+    return starts[i] if i < len(starts) else None
+
+
+def function_bytes(addr: int) -> tuple[bytes | None, str | None]:
+    """Bytes of the function at `addr`, or (None, reason).
+
+    Bounded by min(next kb.json function start, capstone true_end) -- the same
+    rule as `batch_delink.per_func_range`, and both halves are load-bearing:
+
+      * true_end alone OVER-RUNS on a JMP thunk.  0x18e300 is `e9 db1c0000`,
+        a 5-byte tail-jump, but true_end counts the jump target as an
+        outstanding branch and keeps scanning to it, yielding 0x1f31 bytes
+        (2882 instructions) for a one-instruction function.
+      * the kb bound alone OVER-RUNS wherever the listing has a hole, since
+        kb.json is not a complete listing of the binary.
+    """
+    from check_delinked_bounds import va_to_off, true_end
+    data, secs = _xbe()
+    off = va_to_off(secs, addr)
+    if off is None:
+        return None, "address not in any XBE section"
+    end, warn = true_end(data, secs, addr)
+    if warn:
+        end = None
+    nxt = _next_kb_start(addr)
+    ends = [e for e in (end, nxt) if e is not None and e > addr]
+    if not ends:
+        return None, warn or "no terminator found and no successor in kb.json"
+    return data[off:off + (min(ends) - addr)], None
+
+
+def synth_reference(addr: int, name: str, out_path: Path) -> tuple[bool, str]:
+    code, err = function_bytes(addr)
+    if code is None:
+        return False, err
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_bytes(build_coff(code, name))
+    return True, f"{len(code)} bytes"
+
+
+def objdump_insns(obj_path: Path) -> list[str] | None:
+    """Instruction text of the FIRST symbol block in an object, or None.
+
+    Deliberately name-agnostic: we compare a synthesized object (one symbol,
+    our name) against a delinked chunk (the delinker's name for the same
+    address), so matching on the name would reject every pair.
+    """
+    from compare_obj import _parse_objdump_insn
+    r = subprocess.run(
+        ["llvm-objdump", "-d", "--no-show-raw-insn", "--no-leading-addr",
+         str(obj_path)],
+        capture_output=True, text=True,
+    )
+    if r.returncode != 0:
+        return None
+    insns: list[str] = []
+    started = False
+    for raw in r.stdout.splitlines():
+        m = re.match(r'^(?:[0-9a-f]+ )?<([^>]+)>:', raw.rstrip())
+        if m:
+            sym = re.sub(r'@\d+$', '', m.group(1).lstrip("_@"))
+            if started and not sym.startswith(("LAB_", "switchD_", "$")):
+                break          # next real function -- hard boundary
+            started = True
+            continue
+        if not started:
+            continue
+        insn = _parse_objdump_insn(raw)
+        if insn is not None:
+            insns.append(_elide_absolute_displacements(_strip_annotation(insn)))
+    return insns
+
+
+def normalize_synth_insn(insn: str) -> str:
+    """Make one raw-bytes instruction comparable to a delinked/VC71 object.
+
+    A delinked reference and a VC71-compiled candidate both store cross-
+    references as ZEROED fields plus a relocation.  Reading raw XBE bytes keeps
+    the real addresses, so a synthesized reference must be brought back to that
+    form before it can be compared.  Public because `vc71_verify` applies it to
+    the output of `compare_obj.first_function_insns`, so that the synthesized
+    path shares the exact boundary/padding logic used for delinked chunks."""
+    return _elide_absolute_displacements(_strip_annotation(insn))
+
+
+def reference_object(addr: int, name: str | None = None,
+                     cache_dir: Path | None = None) -> Path | None:
+    """Path to a synthesized reference object for `addr`, or None.
+
+    Cached on disk (default: artifacts/, which is gitignored) so repeated
+    verify runs do not re-read and re-pack the same bytes."""
+    cache_dir = cache_dir or (REPO_ROOT / "artifacts" / "vc71_synth_refs")
+    name = name or f"FUN_{addr:08x}"
+    out = cache_dir / f"{addr:08x}.obj"
+    if out.exists():
+        return out
+    ok, _ = synth_reference(addr, name, out)
+    return out if ok else None
+
+
+def _mapped_vas() -> list[tuple[int, int]]:
+    """(start, end) VA ranges of every XBE section."""
+    global _VA_RANGES
+    try:
+        return _VA_RANGES
+    except NameError:
+        pass
+    _, secs = _xbe()
+    _VA_RANGES = [(va, va + vs) for va, vs, _ in secs]
+    return _VA_RANGES
+
+
+def _is_absolute_va(value: int) -> bool:
+    return any(lo <= value < hi for lo, hi in _mapped_vas())
+
+
+_DISP_RE = re.compile(r'(?<![\w$])(0x[0-9a-f]+)\(')
+
+
+def _elide_absolute_displacements(insn: str) -> str:
+    """Rewrite `0xNNNN(...)` -> `(...)` when 0xNNNN is a mapped XBE address.
+
+    A delinked object stores absolute addresses as ZEROED fields plus a
+    relocation, and llvm-objdump prints a zero displacement as nothing at all:
+    `movswl 0x28cb12(%eax)` in the raw bytes appears as `movswl (%eax)` in the
+    delinked reference.  Reading raw bytes keeps the real address, so without
+    this the two disagree on every global access.
+
+    Only displacements that land inside a mapped section are elided.  A struct
+    offset (`0x28(%eax)`) is far below the image base and is left alone -- not
+    that the scorer can see it either way, since `normalize_instruction`
+    already collapses every displacement to `OFF(`.
+
+    Doing this in TEXT on the synthesized side keeps `compare_obj` untouched:
+    the scoring metric is not loosened for anyone else."""
+    def sub(m):
+        return "(" if _is_absolute_va(int(m.group(1), 16)) else m.group(0)
+    return _DISP_RE.sub(sub, insn)
+
+
+def _strip_annotation(insn: str) -> str:
+    """Drop llvm-objdump's trailing `# ...` annotation.
+
+    objdump annotates an immediate it could not symbolize (`pushl $0x254910
+    # imm = 0x254910`).  A delinked object never carries these because the
+    delinker zeroed the field and left a relocation, so the annotation is a
+    pure artifact of reading raw bytes and must not count as a difference."""
+    i = insn.find("#")
+    return insn[:i].rstrip() if i > 0 else insn
+
+
+def _trim_trailing_pad(insns: list[str]) -> list[str]:
+    """Drop trailing alignment padding (int3 / nop) so a chunk padded to 16
+    bytes compares equal to a synthesized object cut at the true end."""
+    out = list(insns)
+    while out and out[-1].split()[0] in ("int3", "nop", "nopw", "nopl"):
+        out.pop()
+    return out
+
+
+def compare_against_chunks(limit: int | None = None) -> dict:
+    """Agreement check: synthesized reference vs existing delinked chunk.
+
+    This is the experiment that validates (or kills) the approach.  It compares
+    INSTRUCTION SEQUENCES rather than VC71 scores, which is both cheaper and
+    more direct: if the two references disassemble identically, every score
+    computed against them is identical by construction.
+    """
+    from compare_obj import normalize_instruction
+    chunks = sorted(CHUNK_DIR.glob("*.obj"))
+    if limit:
+        chunks = chunks[:limit]
+    res = {"total": 0, "identical": 0, "norm_equal": 0, "differ": [],
+           "synth_failed": [], "chunk_unreadable": []}
+    tmp = Path(os.environ.get("CLAUDE_JOB_DIR", "/tmp")) / "tmp" / "_synth.obj"
+    for chunk in chunks:
+        stem = chunk.stem
+        if not re.fullmatch(r"[0-9a-f]{8}", stem):
+            continue
+        addr = int(stem, 16)
+        res["total"] += 1
+        ok, info = synth_reference(addr, f"FUN_{stem}", tmp)
+        if not ok:
+            res["synth_failed"].append((stem, info))
+            continue
+        ref = objdump_insns(chunk)
+        syn = objdump_insns(tmp)
+        if ref is None or syn is None:
+            res["chunk_unreadable"].append(stem)
+            continue
+        ref_t, syn_t = _trim_trailing_pad(ref), _trim_trailing_pad(syn)
+        if ref_t == syn_t:
+            res["identical"] += 1
+            continue
+        if ([normalize_instruction(i) for i in ref_t]
+                == [normalize_instruction(i) for i in syn_t]):
+            res["norm_equal"] += 1
+            continue
+        res["differ"].append((stem, len(ref_t), len(syn_t)))
+    return res
+
+
+def coverage() -> dict:
+    """How many kb.json functions can get a synthesized reference at all?
+
+    This is the headline number: today a function is scorable only if Ghidra
+    produced a reference that bounds it, which is why 209 functions were
+    unscorable until they were re-delinked one at a time.  Synthesis needs
+    only that the address is in a mapped section and `true_end` finds a
+    reliable terminator."""
+    out = subprocess.run(
+        ["jq", "-r", ".objects[].functions[].addr", str(REPO_ROOT / "kb.json")],
+        capture_output=True, text=True,
+    )
+    addrs = sorted({int(t, 16) for t in out.stdout.split()
+                    if t.startswith("0x")})
+    res = {"total": len(addrs), "ok": 0, "fail": {}}
+    for a in addrs:
+        code, err = function_bytes(a)
+        if code is None:
+            key = err.split(":")[0] if err else "unknown"
+            res["fail"][key] = res["fail"].get(key, 0) + 1
+        else:
+            res["ok"] += 1
+    return res
+
+
+def self_test() -> int:
+    """Validate the COFF writer by round-tripping known bytes through
+    llvm-objdump -- if the container were malformed, objdump would fail or
+    decode at the wrong offset."""
+    code = bytes([0x55, 0x8B, 0xEC, 0x83, 0xEC, 0x08, 0xD9, 0x45, 0x08,
+                  0xD8, 0x4D, 0x0C, 0xD9, 0x5D, 0xFC, 0xC9, 0xC3])
+    tmp = Path(os.environ.get("CLAUDE_JOB_DIR", "/tmp")) / "tmp" / "_selftest.obj"
+    tmp.parent.mkdir(parents=True, exist_ok=True)
+    tmp.write_bytes(build_coff(code, "FUN_00000001"))
+    insns = objdump_insns(tmp)
+    fails = []
+    if insns is None:
+        fails.append("llvm-objdump rejected the synthesized object")
+    else:
+        # llvm-objdump on an i386 COFF emits SUFFIXED AT&T mnemonics
+        # (pushl/movl/retl).  GNU objdump on the same bytes as a raw binary
+        # prints them unsuffixed (push/mov/ret).  That divergence is precisely
+        # why the reference goes through a COFF container and the same
+        # llvm-objdump as the candidate, instead of a second disassembler.
+        want = ["pushl", "movl", "subl", "flds", "fmuls", "fstps",
+                "leave", "retl"]
+        got = [i.split()[0] for i in insns]
+        if got != want:
+            fails.append(f"mnemonics {got} != {want}")
+    # short name must go inline, long name via string table -- both must parse
+    tmp.write_bytes(build_coff(code, "short"))
+    if objdump_insns(tmp) is None:
+        fails.append("short (inline) symbol name broke the object")
+    for f in fails:
+        print(f"FAIL {f}")
+    print("self-test:", "PASS" if not fails else f"{len(fails)} FAILURE(S)")
+    return 1 if fails else 0
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--self-test", action="store_true")
+    sub = ap.add_subparsers(dest="cmd")
+
+    e = sub.add_parser("emit", help="synthesize one reference object")
+    e.add_argument("--addr", required=True)
+    e.add_argument("--name")
+    e.add_argument("-o", "--out", required=True)
+
+    c = sub.add_parser("compare", help="agreement check vs delinked chunks")
+    c.add_argument("--limit", type=int)
+    c.add_argument("--show", type=int, default=15)
+
+    sub.add_parser("coverage", help="how many kb.json functions are synthesizable")
+
+    args = ap.parse_args()
+    if args.self_test:
+        return self_test()
+
+    if args.cmd == "emit":
+        addr = int(args.addr, 16)
+        name = args.name or f"FUN_{addr:08x}"
+        ok, info = synth_reference(addr, name, Path(args.out))
+        print(("ok  " if ok else "FAIL ") + f"{args.out}  {info}")
+        return 0 if ok else 1
+
+    if args.cmd == "coverage":
+        r = coverage()
+        pct = 100.0 * r["ok"] / r["total"] if r["total"] else 0.0
+        print(f"kb.json functions   {r['total']}")
+        print(f"  synthesizable     {r['ok']}  ({pct:.1f}%)")
+        for k, v in sorted(r["fail"].items(), key=lambda kv: -kv[1]):
+            print(f"  fail: {k:<34} {v}")
+        return 0
+
+    if args.cmd == "compare":
+        r = compare_against_chunks(args.limit)
+        agree = r["identical"] + r["norm_equal"]
+        print(f"compared         {r['total']}")
+        print(f"  identical      {r['identical']}")
+        print(f"  norm-equal     {r['norm_equal']}   (differ only where the "
+              f"scorer normalizes anyway)")
+        print(f"  AGREE          {agree}"
+              + (f"  ({100.0*agree/r['total']:.1f}%)" if r["total"] else ""))
+        print(f"  differ         {len(r['differ'])}")
+        print(f"  synth failed   {len(r['synth_failed'])}")
+        print(f"  chunk unread   {len(r['chunk_unreadable'])}")
+        for stem, nr, ns in r["differ"][:args.show]:
+            print(f"    DIFF {stem}  chunk={nr} synth={ns}")
+        for stem, why in r["synth_failed"][:args.show]:
+            print(f"    NOSYNTH {stem}  {why}")
+        return 0
+
+    ap.print_help()
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

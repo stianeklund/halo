@@ -141,9 +141,16 @@ def make_cache_key(fn_name: str, source_path: Path, ref_path: Path,
     cc_ver = compiler_version_token()
     decl_sha = fn_decl_sha256(fn_name)
     comparator_sha = _sha256_file(REPO_ROOT / "tools" / "verify" / "compare_obj.py")
+    # A function with no delinked reference is scored against one synthesized
+    # from the XBE, so that synthesizer is an input to the result exactly as
+    # the comparator is.  `ref_sha` cannot stand in for it: it hashes the TU's
+    # delinked object, which does not change when the synthesizer does.
+    # Included unconditionally because whether a given function takes the
+    # synthesized path is not knowable at key-construction time.
+    synth_sha = _sha256_file(REPO_ROOT / "tools" / "verify" / "xbe_reference.py")
     span_tok = _fn_span_token(fn_name)
     raw = (f"{fn_name}|{src_sha}|{ref_sha}|{cc_ver}|{decl_sha}|"
-           f"{comparator_sha}|{span_tok}|{opt}")
+           f"{comparator_sha}|{synth_sha}|{span_tok}|{opt}")
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
