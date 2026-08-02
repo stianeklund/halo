@@ -3341,7 +3341,13 @@ LAB_001a36a4:
         if (sel_edge != -1) {
           void *e2 =
             tag_block_get_element((void *)(surf_block + 0x3c), sel_edge, 0xc);
-          if ((*(unsigned char *)((char *)physics + 0x14) & 2) != 0 ||
+          /* 0x1a39ab: TEST byte ptr [ESI+5], 2  (bytes f6 46 05 02 -- the only
+           * occurrence in the XBE; ESI is the @<esi> physics pointer).  The
+           * flag is bit 9 of the flags word at physics+4, sourced from
+           * bipd_tag+0x2f4 & 0x40.  This previously read physics+0x14, which is
+           * forward.x -- i.e. it tested the low byte of a float, admitting or
+           * rejecting mach edges essentially at random. */
+          if ((*(unsigned char *)((char *)physics + 5) & 2) != 0 ||
               (*(unsigned char *)((char *)e2 + 8) & 4) != 0) {
             float side;
             bsp3d_get_plane_from_designator(surf_block, *(int *)e2, plane0);
