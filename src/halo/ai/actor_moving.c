@@ -3433,8 +3433,14 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
     steer_speed = desired_speed;
     if (*(float *)0x2533c0 < arg4) {
       /* steer_speed = arg4 * arg7; cap = arg4, but if arg7 > 1 use a clamped
-       * (capped at 0x2533ec) variant. arg6 here is the arg4 slot reused to
-       * hold desired_speed*0x254644 (the "fast" angular cap). */
+       * (capped at 0x2533ec) variant.  The "fast" angular cap
+       * desired_speed*0x254644 is then parked in the ARG4 slot, which MSVC
+       * reuses as scratch once arg4's last read (cap = delta_angle * arg4)
+       * has happened.
+       * 0x2e271: FLD [EBP+0x2c]; FMUL [0x254644]; FST [EBP+0x18].
+       * [EBP+0x18] is stack param 5 == arg4 -- NOT [EBP+0x20] == arg6.
+       * Writing arg6 here destroyed the caller's value, which is read live
+       * further down to seed the oversteer limit at actor+0x594. */
       steer_speed = arg4 * arg7;
       cap = arg4;
       if (*(float *)0x2533c8 < arg7) {
@@ -3444,15 +3450,21 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
         }
         cap = delta_angle * arg4;
       }
-      arg6 = desired_speed * *(float *)0x254644;
-      if (arg6 <= steer_speed) {
-        steer_speed = arg6;
+      arg4 = desired_speed * *(float *)0x254644;
+      if (arg4 <= steer_speed) {
+        steer_speed = arg4;
       }
+      /* 0x2e29c-0x2e2b0: FSTP; FLD [EBP+0x2c]; FCOMP [EBP+0x40]; JNZ;
+       * MOV EAX,[EBP+0x40]; MOV [EBP+0x14],EAX.  Exactly ONE store, to
+       * [EBP+0x14] (steer_speed).  [EBP+0x2c] (desired_speed) is only
+       * LOADED for the compare, never written -- it has to survive for
+       * delta_angle = steer_speed - desired_speed below, which drives the
+       * facing rate-limit rotate.  Writing desired_speed here forced that
+       * delta to 0 and skipped the rotate entirely. */
       if (steer_speed <= desired_speed) {
         steer_speed = desired_speed;
         if (cap < desired_speed) {
-          desired_speed = cap;
-          steer_speed = desired_speed;
+          steer_speed = cap;
         }
       }
     }
