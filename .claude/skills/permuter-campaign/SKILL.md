@@ -60,6 +60,36 @@ Find all ported functions whose VC71 match is in [85, 98]% and that have a
 delinked reference. Functions below 85% have structural bugs the permuter
 cannot fix. Functions above 98% are not worth the cycles.
 
+**Consider the operand-normalized score as a screen — but do not trust it
+blind.** The band above is mnemonic-LCS, which measures the instruction
+skeleton; `opnd_percent` additionally compares operands. A lift can reproduce
+the skeleton while getting the dataflow wrong, and the permuter cannot fix that
+any more than it can fix a sub-85% body.
+
+**Known confound (2026-08-02): `opnd_percent` is not a clean operand-fidelity
+measure.** `compare_obj.canonicalize_registers` aliases registers by *global
+first-appearance order*, so if the candidate and the reference introduce
+register families in a different order, every alias shifts and the operand LCS
+collapses regardless of whether the lift is correct. Verified on FUN_00017ab0:
+17.1% canonicalized against 58.8% identity-mapped, with an exhaustive search
+over all 720 register permutations confirming no global renaming recovers it.
+`@<reg>` functions are systematically affected (the reference pins the params in
+callee-saved registers from the prologue; our cl.exe build takes stack args),
+but they are only a floor on the artifact rate — 45 of the 154 in-band
+sub-50%-operand functions carry `@<reg>`, and ordinary register-allocation
+divergence does the same thing.
+
+So: treat a low operand score as a **prompt to look**, not a disqualification.
+Confirm with the identity-mapped comparison before skipping a target.
+
+A high mnemonic score against a low operand score is *also* the signature of a
+**bad delinked reference** (truncated at the first RET, stale cached `.obj`,
+or a whole-object section-0 comparison). Discriminate with the instruction
+counts before blaming the lift: a wild `n_c`/`n_r` ratio in
+`tools/verify/vc71_current.json` means the reference is wrong, not the source —
+re-export it per the delinked-reference precondition in CLAUDE.md rather than
+permuting against it.
+
 ### 1a. Build the candidate list
 
 List all TUs that have delinked references:
