@@ -33,13 +33,40 @@ constant is tunable at the top of this module:
     value  = (raw_fnptr_cast + fun_call + raw_offset_deref) / funcs
              Debt density: findings per function. How much there is to win.
 
-    safety = |{f : vc71_score(f) >= HIGH_MATCH}| / funcs
+    safety = |{f : min(vc71_score(f), vc71_opnd(f)) >= HIGH_MATCH}| / funcs
              Fraction of the TU's functions that currently sit at (near-)
              byte-identical match. Those are the functions whose match % is a
              sharp instrument: any codegen drift a recovery edit introduces shows
              up immediately, so the "only improve" rule is mechanically
              enforceable. Functions with NO vc71 score count against safety --
              an unmeasured function is an unguarded one.
+
+             BOTH the mnemonic and the operand-normalized match must clear
+             HIGH_MATCH. A function can carry the reference's instruction
+             skeleton while its operands diverge, and such a function is not a
+             sharp instrument -- it cannot detect an operand regression it
+             already has. This excludes 74 of the 1312 functions that clear
+             HIGH_MATCH on mnemonics alone (~5.6%).
+
+             A high mnemonic score against a low operand score also flags a BAD
+             DELINKED REFERENCE (truncated, stale, or whole-object section-0),
+             which is likewise not something to gate a cleanup campaign on.
+
+             CAVEAT (2026-08-02): opnd_percent is a LOWER BOUND, not a clean
+             operand-fidelity measure. compare_obj.canonicalize_registers()
+             aliases registers by global first-appearance order, so a candidate
+             and reference that introduce register families in a different order
+             score near-zero on operands even when the lift is correct (measured
+             on FUN_00017ab0: 17.1% canonicalized vs 58.8% identity-mapped).
+             Excluding such a function costs us a real gate. That is the
+             conservative direction -- it under-counts safety rather than
+             over-counting it -- so this test is still the right one to ship,
+             but the exclusions are suspects to investigate, not proven defects.
+             Only 7 of the 74 excluded here carry an @<reg> decl, the known
+             systematic trigger.
+
+             When no operand data exists at all the test degrades to
+             mnemonic-only rather than zeroing every score.
 
     size   = log2(funcs + SIZE_LOG_OFFSET)
              Mild preference for smaller TUs; a campaign is a per-object session
@@ -82,6 +109,9 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__
 KB_FILE = os.path.join(ROOT_DIR, 'kb.json')
 OBJECTS_CSV = os.path.join(ROOT_DIR, 'tools', 'objects.csv')
 VC71_SCORES = os.path.join(ROOT_DIR, 'tools', 'verify', 'vc71_scores.json')
+# Honest current slice.  Untracked / locally regenerated, so it may be absent;
+# it is the only source with full operand-normalized coverage.
+VC71_CURRENT = os.path.join(ROOT_DIR, 'tools', 'verify', 'vc71_current.json')
 ALLOWLIST = os.path.join(ROOT_DIR, 'tools', 'audit', 'deactivation_allowlist.json')
 
 # --- tunables --------------------------------------------------------------
@@ -136,18 +166,76 @@ def load_objects_csv(path=OBJECTS_CSV):
     return out
 
 
-def load_vc71_scores(path=VC71_SCORES):
-    """Return {function_name: score_float}."""
+def _read_scores(path):
+    """Return the raw {name: record} score map from a vc71 scores file."""
     try:
         with open(path) as f:
             data = json.load(f)
     except (OSError, ValueError):
         return {}
+    scores = data.get('scores')
+    return scores if isinstance(scores, dict) else {}
+
+
+def load_vc71_scores(path=VC71_SCORES, current_path=VC71_CURRENT):
+    """Return {function_name: {'score': float, 'opnd': float|None}}.
+
+    ``score`` is the mnemonic-LCS match from the committed floor.  ``opnd`` is
+    the operand-normalized match, which is what actually decides whether a
+    function is a *sharp* gate: a lift can carry the reference's instruction
+    skeleton while getting nearly every operand wrong (worst observed in-repo:
+    89.7% mnemonic against 17.1% operand).  Such a function cannot detect an
+    operand regression it already has.
+
+    Operand coverage lives almost entirely in the honest current slice, so it
+    is overlaid from there when present and back-filled from the floor.  A
+    ``None`` opnd means unmeasured, which ``build_rows`` treats as unguarded
+    whenever operand data exists at all -- see ``opnd_available``.
+    """
     out = {}
-    for name, rec in (data.get('scores') or {}).items():
+    for name, rec in _read_scores(path).items():
         if isinstance(rec, dict) and isinstance(rec.get('score'), (int, float)):
-            out[name] = float(rec['score'])
+            opnd = rec.get('opnd_percent')
+            out[name] = {
+                'score': float(rec['score']),
+                'opnd': float(opnd) if isinstance(opnd, (int, float)) else None,
+            }
+    for name, rec in _read_scores(current_path).items():
+        if not isinstance(rec, dict):
+            continue
+        opnd = rec.get('opnd_percent')
+        if not isinstance(opnd, (int, float)):
+            continue
+        if name in out:
+            out[name]['opnd'] = float(opnd)
+        elif isinstance(rec.get('score'), (int, float)):
+            out[name] = {'score': float(rec['score']), 'opnd': float(opnd)}
     return out
+
+
+def opnd_available(vc71):
+    """True when any function carries an operand score.
+
+    Gates the strictness of the sharp-gate test.  Without this the tool would
+    silently zero every safety term on a checkout where the untracked current
+    slice has never been generated.
+    """
+    return any(rec.get('opnd') is not None for rec in vc71.values())
+
+
+def is_sharp_gate(rec, require_opnd):
+    """True when a function's match % is a sharp instrument for cleanup work.
+
+    Requires BOTH the mnemonic and operand match to sit at/above HIGH_MATCH.
+    When no operand data exists anywhere (``require_opnd`` false) this degrades
+    to the historical mnemonic-only test rather than failing closed on every
+    function.
+    """
+    if rec['score'] < HIGH_MATCH:
+        return False
+    if not require_opnd:
+        return True
+    return rec['opnd'] is not None and rec['opnd'] >= HIGH_MATCH
 
 
 def load_allowlist_objects(path=ALLOWLIST):
@@ -245,6 +333,7 @@ def classify(name, debt, csv_row, kb_row, allow_objects):
 def build_rows(debt_report, csv_objects, kb_objects, vc71, allow_objects,
                header_dirs):
     eligible, ineligible = [], []
+    require_opnd = opnd_available(vc71)
     debt_objects = debt_report.get('objects', {})
     names = set(debt_objects) | set(csv_objects) | set(kb_objects)
 
@@ -261,7 +350,10 @@ def build_rows(debt_report, csv_objects, kb_objects, vc71, allow_objects,
         debt_total = sum(counts.get(c, 0) for c in DEBT_CATEGORIES)
         funcs = kb_row['total']
         scored = [vc71[f] for f in kb_row['funcs'] if f in vc71]
-        high = sum(1 for s in scored if s >= HIGH_MATCH)
+        high = sum(1 for rec in scored if is_sharp_gate(rec, require_opnd))
+        # Mnemonic-only count, kept for reporting: the delta against `high` is
+        # the set of functions that LOOK like gates but are operand-defective.
+        high_mnemonic = sum(1 for rec in scored if rec['score'] >= HIGH_MATCH)
         score, value, safety, size_penalty = score_object(debt_total, funcs, high)
 
         eligible.append({
@@ -274,6 +366,8 @@ def build_rows(debt_report, csv_objects, kb_objects, vc71, allow_objects,
             'measured_funcs': len(scored),
             'high_match_funcs': high,
             'high_match_pct': 100.0 * safety,
+            'high_match_mnemonic_funcs': high_mnemonic,
+            'opnd_defective_gates': high_mnemonic - high,
             'debt': {c: counts.get(c, 0) for c in DEBT_CATEGORIES},
             'debt_total': debt_total,
             'debt_per_func': value,
@@ -368,8 +462,19 @@ def run(args):
         return 0
 
     print_section('Recovery Frontier')
-    print(f'score = {SCORE_SCALE:g} * (debt/func) * (frac vc71 >= {HIGH_MATCH:g}%) '
+    print(f'score = {SCORE_SCALE:g} * (debt/func) '
+          f'* (frac min(vc71, opnd) >= {HIGH_MATCH:g}%) '
           f'/ log2(funcs + {SIZE_LOG_OFFSET:g})')
+    if not opnd_available(vc71):
+        print('WARNING: no operand-normalized scores found; safety falls back '
+              'to mnemonic-only and OVERSTATES how sharp the gates are. '
+              'Regenerate tools/verify/vc71_current.json.')
+    else:
+        defective = sum(r['opnd_defective_gates'] for r in eligible)
+        if defective:
+            print(f'({defective} function(s) across eligible objects clear '
+                  f'{HIGH_MATCH:g}% mnemonic but fail on operands -- not '
+                  f'counted as gates; suspect lift defect or bad delinked ref)')
     print()
     print_table(eligible, args.limit)
     if len(eligible) > args.limit:
@@ -429,6 +534,43 @@ def _self_test():
           score_object(200, 10, 10)[0] > lo)
     check('score: partial safety scales linearly',
           abs(score_object(100, 10, 5)[0] - lo / 2.0) < 1e-9)
+
+    # sharp-gate test: operand match must clear HIGH_MATCH too
+    sharp = {'score': 100.0, 'opnd': 100.0}
+    skeleton = {'score': 99.5, 'opnd': 17.1}   # the FUN_00017ab0 signature
+    unmeasured = {'score': 100.0, 'opnd': None}
+    check('gate: both high -> sharp', is_sharp_gate(sharp, True))
+    check('gate: low mnemonic -> not sharp',
+          not is_sharp_gate({'score': 80.0, 'opnd': 100.0}, True))
+    check('gate: high mnemonic + low operand -> NOT sharp',
+          not is_sharp_gate(skeleton, True))
+    check('gate: unmeasured operand -> not sharp when data exists',
+          not is_sharp_gate(unmeasured, True))
+    check('gate: degrades to mnemonic-only with no operand data anywhere',
+          is_sharp_gate(unmeasured, False) and is_sharp_gate(skeleton, False))
+    check('gate: availability probe',
+          opnd_available({'a': sharp}) and not opnd_available({'a': unmeasured})
+          and not opnd_available({}))
+
+    # score loading: current-slice operand overlays the committed floor
+    with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+        json.dump({'scores': {'A': {'score': 90.0},
+                              'B': {'score': 80.0, 'opnd_percent': 70.0}}}, f)
+        floor_path = f.name
+    with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+        json.dump({'scores': {'A': {'score': 91.0, 'opnd_percent': 40.0},
+                              'C': {'score': 60.0, 'opnd_percent': 55.0}}}, f)
+        cur_path = f.name
+    loaded = load_vc71_scores(floor_path, cur_path)
+    check('load: floor score wins, current operand overlays',
+          loaded['A']['score'] == 90.0 and loaded['A']['opnd'] == 40.0)
+    check('load: floor-only operand preserved', loaded['B']['opnd'] == 70.0)
+    check('load: current-only function admitted',
+          loaded['C']['score'] == 60.0 and loaded['C']['opnd'] == 55.0)
+    check('load: missing files are not fatal',
+          load_vc71_scores('/nonexistent', '/nonexistent') == {})
+    os.unlink(floor_path)
+    os.unlink(cur_path)
 
     # eligibility
     debt_ok = {'files': ['src/halo/x/x.c'], 'counts': {c: 1 for c in DEBT_CATEGORIES}}
@@ -495,13 +637,22 @@ def _self_test():
          'nodelink.obj': {'delink': False, 'addr_range': '', 'func_count': 1}},
         {'good.obj': {'funcs': ['a', 'b', 'c', 'd'], 'ported': 4, 'total': 4},
          'nodelink.obj': {'funcs': ['z'], 'ported': 1, 'total': 1}},
-        {'a': 100.0, 'b': 99.0, 'c': 80.0, 'd': 100.0},
+        # 'd' is the skeleton case: perfect mnemonic, broken operands.
+        {'a': {'score': 100.0, 'opnd': 100.0},
+         'b': {'score': 99.0, 'opnd': 99.0},
+         'c': {'score': 80.0, 'opnd': 80.0},
+         'd': {'score': 100.0, 'opnd': 20.0}},
         {},
         {'src/halo/ai'})
     check('build: one eligible', len(eligible) == 1 and eligible[0]['object'] == 'good.obj')
     check('build: rank assigned', eligible[0]['rank'] == 1)
     check('build: debt total', eligible[0]['debt_total'] == 40)
-    check('build: high match 3/4', eligible[0]['high_match_funcs'] == 3)
+    check('build: high match 2/4 (operand-defective d excluded)',
+          eligible[0]['high_match_funcs'] == 2)
+    check('build: mnemonic-only count still 3',
+          eligible[0]['high_match_mnemonic_funcs'] == 3)
+    check('build: operand-defective gate counted',
+          eligible[0]['opnd_defective_gates'] == 1)
     check('build: header flag', eligible[0]['recovered_header'] is True)
     check('build: ineligible gate',
           len(ineligible) == 1 and ineligible[0]['gate'] == 'no_delink')
