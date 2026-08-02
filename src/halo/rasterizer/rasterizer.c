@@ -1602,6 +1602,55 @@ void FUN_001741d0(float *quad)
   }
 }
 
+/*
+ * FUN_001744f0 @ 0x1744f0 — register-convention adapter for
+ * D3DDevice_CreateVertexBuffer, byte-identical in shape to FUN_0015c2b0
+ * (0x15c2b0) and FUN_0015d020 (0x15d020) in rasterizer_xbox_decals.c.
+ *
+ * The whole body is:
+ *     PUSH EBP / MOV EBP,ESP
+ *     PUSH EAX            ; incoming EAX -> callee arg5 (ppVertexBuffer)
+ *     MOV  EAX,[EBP+0x10] ; stack param s3
+ *     PUSH ECX            ; incoming ECX -> callee arg4 (pool)
+ *     MOV  ECX,[EBP+0x0c] ; stack param s2
+ *     PUSH EDX            ; incoming EDX -> callee arg3 (fvf)
+ *     PUSH EAX            ; s3          -> callee arg2 (usage)
+ *     PUSH ECX            ; s2          -> callee arg1 (length)
+ *     CALL D3DDevice_CreateVertexBuffer
+ *     POP  EBP / RET 0xC
+ *
+ * Confirmed:
+ *  - RET 0xC => three stack params.  The first one ([EBP+8], s1) is never
+ *    read; it is the ignored device pointer, mirroring the two decals.c
+ *    siblings.  It must stay declared or the caller's stack cleanup breaks.
+ *  - EAX/ECX/EDX are live *inputs*: they are pushed at 0x1744f3/f7/fb while
+ *    still holding the caller's values, before any MOV overwrites them.
+ *    They are consumed as callee arguments (the stdcall callee pops all
+ *    five), so ESP is back at the saved EBP by the POP — they are not saved
+ *    registers.
+ *  - Push order is right-to-left, so the two stack params feed callee args 1
+ *    and 2 in swapped slot order: length = [EBP+0x0c] (s2),
+ *    usage = [EBP+0x10] (s3).
+ *  - There is no MOV to EAX after the CALL: the callee's HRESULT falls
+ *    through as this function's return value (lift-learnings §16), so this
+ *    is int-returning, not void as Ghidra reports.
+ *
+ * Uncertain: no direct call sites were found, so the ignored s1 slot's
+ * intended meaning is inferred from the sibling adapters only.
+ *
+ * Note: the decl is left without __stdcall (matching both siblings) because
+ * the @<reg> thunk generator owns the callee-side stack cleanup; adding
+ * __stdcall to a register-argument definition is rejected by the generated
+ * decl.h.  Our C body therefore ends in a plain RET where the original has
+ * RET 0xC.
+ */
+/* 0x1744f0 */
+int FUN_001744f0(int r1, int r2, int r3, int s1, int s2, int s3)
+{
+  (void)s1;
+  return D3DDevice_CreateVertexBuffer(s2, s3, r3, r2, (void **)r1);
+}
+
 /* 0x174510
  *
  * FUN_00174510
