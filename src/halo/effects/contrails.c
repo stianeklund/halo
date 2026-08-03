@@ -52,7 +52,7 @@ void contrails_reconnect_to_structure_bsp(void)
   int contrail_index;
   char *contrail_datum;
   int *chain_ptr;
-  int local_c;
+  int chains_left;
   int point_index;
   char *point_datum;
 
@@ -62,7 +62,7 @@ void contrails_reconnect_to_structure_bsp(void)
     contrail_datum = (char *)datum_get(contrail_data, contrail_index);
     tag_get(0x636f6e74, *(int *)(contrail_datum + 4));
     chain_ptr = (int *)(contrail_datum + 0x34);
-    local_c = 4;
+    chains_left = 4;
     do {
       for (point_index = *chain_ptr; point_index != -1;
            point_index = *(int *)(point_datum + 0x34)) {
@@ -72,8 +72,8 @@ void contrails_reconnect_to_structure_bsp(void)
         }
       }
       chain_ptr++;
-      local_c--;
-    } while (local_c != 0);
+      chains_left--;
+    } while (chains_left != 0);
   }
 }
 
@@ -325,11 +325,11 @@ void FUN_00097e40(int contrail_handle /* @<eax> */, int count, int flag)
   void *marker_elem;
   int16_t marker_count;
   int16_t emit_count;
-  float local_30;
-  float local_24;
-  float local_10;
+  float vel_scale;
+  float dir_angle;
+  float root_scale;
   int new_idx;
-  char local_218[4 * 0x6c];
+  char marker_buf[4 * 0x6c]; /* local_218, EBP-0x214: 4 x 0x6c-byte markers */
 
   datum = (char *)datum_get(contrail_data, contrail_handle);
   ctag = (char *)tag_get(0x636f6e74, *(int *)(datum + 4));
@@ -342,29 +342,29 @@ void FUN_00097e40(int contrail_handle /* @<eax> */, int count, int flag)
   marker_elem =
     tag_block_get_element(obj_tag + 0x140, *(int16_t *)(datum + 0xc), 0x48);
   marker_count = object_get_markers_by_string_id(
-    *(int *)(datum + 8), (char *)marker_elem + 0x10, local_218, 4);
+    *(int *)(datum + 8), (char *)marker_elem + 0x10, marker_buf, 4);
 
   if (marker_count <= 0)
     return;
 
-  local_30 = contrail_scale_random_value(
+  vel_scale = contrail_scale_random_value(
     *(float *)(datum + 0x10), *(float *)(ctag + 8), *(float *)(ctag + 0xc),
     *(uint16_t *)(ctag + 2), 1);
 
-  local_24 = *(float *)(ctag + 0x10);
+  dir_angle = *(float *)(ctag + 0x10);
   if (*(uint8_t *)(ctag + 2) & 0x8)
-    local_24 *= *(float *)(datum + 0x10);
+    dir_angle *= *(float *)(datum + 0x10);
 
-  local_10 = *(float *)(ctag + 0x14);
+  root_scale = *(float *)(ctag + 0x14);
   if (*(uint8_t *)(ctag + 2) & 0x10)
-    local_10 *= *(float *)(datum + 0x10);
+    root_scale *= *(float *)(datum + 0x10);
 
   if (marker_count <= 0)
     return;
 
   {
     unsigned int remaining = (unsigned int)(uint16_t)marker_count;
-    char *marker = local_218;
+    char *marker = marker_buf;
     int *chain_head = (int *)(datum + 0x34);
     int marker_idx = 0;
 
@@ -400,7 +400,7 @@ void FUN_00097e40(int contrail_handle /* @<eax> */, int count, int flag)
             float root_loc[3];
             unsigned int *seed = random_math_get_local_seed_address();
             random_direction3d((int *)seed, (float *)(marker + 0x3c), 0.0f,
-                               local_24, vel);
+                               dir_angle, vel);
 
             *(float *)(pd + 0x1c) = *(float *)(marker + 0x60);
             *(float *)(pd + 0x20) = *(float *)(marker + 0x64);
@@ -410,9 +410,9 @@ void FUN_00097e40(int contrail_handle /* @<eax> */, int count, int flag)
 
             object_get_root_location(*(int *)(datum + 8), root_loc, NULL);
 
-            *(float *)(pd + 0x28) = vel[0] * local_30 + local_10 * root_loc[0];
-            *(float *)(pd + 0x2c) = vel[1] * local_30 + local_10 * root_loc[1];
-            *(float *)(pd + 0x30) = vel[2] * local_30 + local_10 * root_loc[2];
+            *(float *)(pd + 0x28) = vel[0] * vel_scale + root_scale * root_loc[0];
+            *(float *)(pd + 0x2c) = vel[1] * vel_scale + root_scale * root_loc[1];
+            *(float *)(pd + 0x30) = vel[2] * vel_scale + root_scale * root_loc[2];
           }
 
           if ((int16_t)cur_iter < emit_count) {
@@ -756,10 +756,10 @@ int contrail_new(int definition_index, int object_index, short attachment_index)
   char *datum;
   void *obj_struct;
   char *obj_tag_elem;
-  int iVar2;
-  unsigned short *puVar6;
-  int *puVar4;
-  int iVar5;
+  int new_handle;
+  unsigned short *count_ptr;
+  int *chain_ptr;
+  int chains_remaining;
 
   if (object_index == -1) {
     display_assert("object_index!=NONE",
@@ -775,11 +775,11 @@ int contrail_new(int definition_index, int object_index, short attachment_index)
   }
 
   tag_get(0x636f6e74, definition_index);
-  iVar2 = data_new_at_index(contrail_data);
-  if (iVar2 == -1)
-    return iVar2;
+  new_handle = data_new_at_index(contrail_data);
+  if (new_handle == -1)
+    return new_handle;
 
-  datum = (char *)datum_get(contrail_data, iVar2);
+  datum = (char *)datum_get(contrail_data, new_handle);
   obj_struct = object_get_and_verify_type(object_index, -1);
 
   *(short *)(datum + 0xc) = attachment_index;
@@ -798,25 +798,25 @@ int contrail_new(int definition_index, int object_index, short attachment_index)
   *(int *)(datum + 0x18) = 0;
   *(int *)(datum + 0x1c) = 0;
 
-  puVar6 = (unsigned short *)(datum + 0x2c);
-  puVar4 = (int *)(datum + 0x34);
-  iVar5 = 4;
+  count_ptr = (unsigned short *)(datum + 0x2c);
+  chain_ptr = (int *)(datum + 0x34);
+  chains_remaining = 4;
   do {
-    *puVar6 = 0;
-    *puVar4 = -1;
-    puVar6++;
-    puVar4++;
-    iVar5--;
-  } while (iVar5 != 0);
+    *count_ptr = 0;
+    *chain_ptr = -1;
+    count_ptr++;
+    chain_ptr++;
+    chains_remaining--;
+  } while (chains_remaining != 0);
 
   if (object_get_function_value(*(int *)(datum + 0x8),
                                 (unsigned short)*(short *)(datum + 0xe),
                                 datum + 0x10)) {
     *(unsigned char *)(datum + 0x2) |= 1;
-    FUN_00097e40(iVar2, 1, 1);
+    FUN_00097e40(new_handle, 1, 1);
   }
 
-  return iVar2;
+  return new_handle;
 }
 
 /*

@@ -1,0 +1,4891 @@
+{
+  "allow_risky": false,
+  "baseline": {
+    "assertion_snapshot": {
+      "assertions": [],
+      "kind": "assert-metadata",
+      "schema": 1
+    },
+    "captured": true,
+    "coff_snapshot": {
+      "assertion_metadata": [
+        {
+          "offset": 3027,
+          "section": ".text#0",
+          "target": {
+            "data": {
+              "bytes_hex": "25733a206173736572745f76616c69645f7265616c283078253038582025662900",
+              "section": ".rdata#9",
+              "value": 0
+            },
+            "name": "??_C@_0CB@CJEIPHLL@?$CFs?3?5assert_valid_real?$CI0x?$CF08X?5?$CFf?$CJ@",
+            "section": ".rdata#9",
+            "value": 0
+          },
+          "text": "%s: assert_valid_real(0x%08X %f)",
+          "type": 6
+        }
+      ],
+      "kind": "coff-candidate-neutrality",
+      "schema": 1,
+      "sections": [
+        {
+          "characteristics": 1615855648,
+          "executable": true,
+          "id": ".text#0",
+          "name": ".text",
+          "raw_bytes_hex": "5589e5a100000000ff30e80000000083c404a100000000ff30e80000000083c4045dc3662e0f1f8400000000000f1f005589e5a100000000ff30e80000000083c404a100000000ff30e80000000083c4045dc3662e0f1f8400000000000f1f005589e5a1000000008338007406c70000000000a1000000008338007406c700000000005dc3662e0f1f840000000000905589e553575650a100000000ff7508ff30e80000000083c4088945f08b583483fbff742c8b3d00000000660f1f44000053ff37e80000000083c4088b703453ff37e80000000083c40883feff89f375e08b45f08b583883fbff74358b3d00000000662e0f1f8400000000000f1f44000053ff37e80000000083c4088b703453ff37e80000000083c40883feff89f375e08b45f08b583c83fbff74358b3d00000000662e0f1f8400000000000f1f44000053ff37e80000000083c4088b703453ff37e80000000083c40883feff89f375e08b45f08b784083ffff74358b3500000000662e0f1f8400000000000f1f44000057ff36e80000000083c4088b583457ff36e80000000083c40883fbff89df75e0ff7508a100000000ff30e80000000083c40c5e5f5b5dc3660f1f8400000000005589e5535756508b3d000000006affff37e80000000083c40883f8ff0f84500100008b3500000000eb22660f1f440000ff75f08b3d00000000ff37e80000000083c40883f8ff0f84260100008945f050ff37e80000000083c40889c7ff700468746e6f63e80000000083c4088b4734eb12662e0f1f8400000000000f1f4400008b433483f8ff742850ff36e80000000083c40889c366837818ff74e48d431c8d4b145051e80000000083c408ebd266908b4738eb0e662e0f1f840000000000908b433483f8ff742850ff36e80000000083c40889c366837818ff74e48d431c8d4b145051e80000000083c408ebd266908b473ceb0e662e0f1f840000000000908b433483f8ff742850ff36e80000000083c40889c366837818ff74e48d431c8d4b145051e80000000083c408ebd266908b4740eb0e662e0f1f840000000000908b473483f8ff0f84e4feffff50ff36e80000000083c40889c766837818ff74e08d471c8d4f145051e80000000083c408ebce83c4045e5f5b5dc3660f1f4400005589e55650d9450cd95df8a100000000ff7508ff30e80000000083c40889c6ff700468746e6f63e80000000083c408d94004f64002017403d84e10d9e8def1d9eed945f8d9c9dbe97311d94620d9cadbea7312dddbddd831c0eb41dddaddd9ddd831c0eb3cdee2d9cad9562066b80100d9cadbe9d9c9732f66b801000f1f4000dbea7214d8e2d9cad9562040d9c9dbead9c9d9ca72eaeb0fddd9d9c9dee1d95e20d9eed9eed9eedddaddd8ddd883c4045e5dc3662e0f1f8400000000000f1f005589e5535756a100000000ff7508ff30e80000000083c40889c6ff700468746e6f63e80000000083c4088b460883f8ff74466aff50e80000000083c4080fbf5e0c85db0f883801000089c7ff3068656a626fe80000000083c4083998400100000f8e1b0100008bbc9ffc0000008b5d0839df0f85310100008b463431ff83f8ff74228b1d000000000f1f84000000000050ff33e80000000083c4088b40344783f8ff75ec0fb7462c6639c70f85a10000008b463831ff83f8ff74298b1d00000000662e0f1f8400000000000f1f44000050ff33e80000000083c4088b40344783f8ff75ec0fb7462e6639c775658b463c31ff83f8ff741d8b1d000000000f1f0050ff33e80000000083c4088b40344783f8ff75ec0fb746306639c775358b464031ff83f8ff741d8b1d000000000f1f0050ff33e80000000083c4088b40344783f8ff75ec0fb746326639c775055e5f5b5dc30fbfd80fbfffff7604e80000000083c40457535068000000006800b15a00e80000000083c4146a0168a5020000eb4fff7604e80000000083c404535068000000006800b15a00e80000000083c4106a01688e020000eb27ff7604e80000000083c40457535068000000006800b15a00e80000000083c4146a01688f020000680000000050e80000000083c4106affe800000000662e0f1f840000000000905589e557560fbf75080fbf7d0ce800000000575650e80000000083c40c5e5f5dc3662e0f1f8400000000000f1f4400005589e5575683ec1c8b7508d9450cd95df0d94510d95df48b7d14e800000000897c2410d945f4d95c240cd945f0d95c240889742404890424e80000000083c41c5e5f5dc3662e0f1f84000000000066905589e583ec148b4518d9450cd945088b4d140fa3c1d9e8d9c1dbc1d8cbd95df8d9cad86d10fec00fb6c00fa3c1d9c9dbc2dddadec9d95dfce800000000890424d945fcd95c2408c744240400000000e800000000d945f8dec183c4145dc366905589e5566a4468000100006800000000e80000000083c40c8b350000000089066a3868000400006800000000e80000000083c40c8b0d000000008901833e00740785c074095e5dc385c089ce7406c7060000000068000000006a00e80000000083c4085e5dc3662e0f1f8400000000005589e55357568b7d08ff770468746e6f63e80000000083c40889c6ff703c686d746962e80000000083c4080fbf4f140fb757164285c966895716c747240000000078233948547e1e6685d2781983c0546a405150e80000000083c40c0fb74f16663b48227c280fbf5e400fb776426601dee8000000000fbfce515350e80000000083c40c6689471466c7471600005e5f5b5dc3662e0f1f8400000000000f1f005589e553575681ec200200008b7d0ca100000000ff7508ff30e80000000083c4088945f0ff700468746e6f63e80000000083c4086685ff0f849403000089c66aff8b7df0ff7708e80000000083c408ff3068656a626fe80000000083c4080fbf4f0c05400100006a485150e80000000083c40c83c0108d8dd4fdffff6a04894de85150ff7708e80000000083c4106685c00f8e3a03000089c70fb74602d946088b5df0d94310a802d9e8d9c1dac9d8cbd95decd9cad86e0ca804d9c9dacadddadec9d95de4e80000000083ec0cd945e4d95c2408890424c744240400000000e80000000083c40cd945ecdec1d95dacd946100fb64602a8087403d84b10d94614a810d9c9d95db07508d95dc88b45f0eb098b45f0d84810d95dc80fb7cf89c283c2348b450c0fb7c08945d0c745c4000000008b3500000000eb1d660f1f440000ff45c48b55c083c2048345e86c8b4dbc490f847a020000894dbc8955c08b02bf0100000083f8ff744750ff36e80000000083c40885c08945cc741a83c01c8b4de883c1606a0c5051e80000000083c40c0b451074ab8b450c6685c08b4dd0894dec7f1feb9b662e0f1f8400000000009066b80100c745ec01000000c745cc000000008b4de883c13c894da8668945e2bb00000200df45e2d95db8c745e401000000eb42662e0f1f8400000000000f1f008b4dc08b018946348b45f08b55c466ff44502c8b45a089018b3500000000ff45e489dfc1ff1081c3000001003b7dec0f8f1bffffffff36e80000000083c40483f8ff74da8945a050ff36e80000000083c40889c6c7400400000000c740080000000066c7400203ff8b45f0d94010d95e0ce80000000083ec148d4dd4894c2410d945b0d95c240c8b4da8894c2404890424c744240800000000e80000000083c4148b4de8d941608d461cd95e1cd94164d95e20d94168d95e248d4e1450894da451e80000000083c4086a008d458c508b45f0ff7008e80000000083c40cd945c8d9c0d84d8cd945acd9c0d84dd4dec2d9c9d95e28d9c1d84d90d9c1d84dd8dec1d95e2cd9c9d84d94d9c9d84ddcdec1d95e303b7dec0f8de5feffff8b45e489459cd945b8da7d9cd955988b459889c1f7d1f7c10000807f0f84af000000d9e8d8e1d955b48b7dccd9c0d84f0cd9c2d9cbdd5584d84e0cdec1d95e0cd9c0d84f1cd9c2d84e1cdec1d95dd4d9c0d84f20d9c2d84e20dec1d95dd8d84f24d9c9d84e24dec1d95ddc8d45d450ff75a4e80000000083c408d945d4d95e1cd945d8d95e20d945dcd95e24d945b4d9c0d84f28dd4584d9c0d84e28dec2d9c9d95e28d9c1d84f2cd9c1d84e2cdec1d95e2cd9c9d84f30d9c9d84e30dec1d95e30e91ffeffff81c4200200005e5f5b5dc383ec18dd5c24108944240cc744240800000000c744240400000000c7042400b15a00e80000000083c4186a0168d7010000680000000050e80000000083c4106affe800000000662e0f1f8400000000000f1f40005589e553575681ec2c100000d9450cd95dd4a100000000ff7508ff30e80000000083c40889c6ff700468746e6f63e80000000083c4088d5e3483c62c05380100008945dcc745d800000000b8040000008975c889f1eb1b660f1f840000000000ff45d883c30483c1024e89f00f8493030000894de48945d0895dcc8b0383f8ff0f842a03000031c9ba01000000eb229024fe8843028994b5c8efffff8d4e018b433489d78b55e84283f8ff0f846f02000089ce8955e889c750a100000000ff30e80000000083c40889c30fb64002a8048975e00f8577010000d94308d945d4d8c9d84304d95b0489faeb130f1f44000089fad953080fb6430224fd884302d9eed9c9dfe9ddd875027b11d94304d9e8d9c9dfe9ddd80f8637010000a8020f859d0000000fbe4b038d51018b75dc3b160f8d2b0100006a685156e80000000083c40cc74304000000008b4864d94008d9c0d8680cf6c1048b75e07407d9c9d84b0cd9c9f6c108d9c9d95dec7403d84b0cd95df0e80000000083ec0cd945f0d95c2408890424c744240400000000e80000000083c40cd945ecdec1d9eed9c9dbe9ddd975027b04d9e8def189fad953080fb643020c02884302e942ffffff0f1f40000fbe4303406a6850ff75dce80000000083c40cfe4303c74304000000008b4864d900d9c0d86804f6c1017407d9c9d84b0cd9c9f6c102d9c9d95dec7403d84b0cd95df0e80000000083ec0cd945f0d95c2408890424c744240400000000e80000000083c40cd945ecdec1d9eed9c9dbe9ddd975060f8bb6feffffd9e8def1e9adfeffff662e0f1f8400000000000f1f0089fa0fb6c0a8010f8533feffffeb16900c0488430289fa8b75e00fb6c0a8010f851bfeffffa8040f8518feffff0fbe43036a6850ff75dce80000000089fa83c40c8b481c83f9ff0f84f8fdffffd94040d80d00000000d95dec516879687070e80000000083c4088d4b288d531c89de83c61483ec2cd945d4d95c2428d945ecd95c2424894c241489542410897424088b75e089442404c744242000000000c744241c00000000c744241800000000c744240cffffffffc7042400000000e80000000089fa83c42ce979fdffff0f1f400085f60f848800000089f9660f1f4400008b45e88bb485c0efffff51a100000000ff3089cfe80000000083c40889c356a100000000ff30e80000000083c408f6430204744cf64002047446837b34ff7540c74034ffffffff8b45c88b4dd866ff0c4857a100000000ff30e80000000083c4088b4de84989c8894de883f90189f17f8f662e0f1f8400000000000f1f4400008b4de4668339018b5dcc8b75d00f859dfcffff8b3b57a100000000ff30e8000000008b4de483c408f64002040f847efcffff57a100000000ff30e8000000008b4de483c408c703ffffffff66c7010000e95bfcffff81c42c1000005e5f5b5dc35589e5535756837d0cff0f840b0100008b5d0883fbff0f841c0100005368746e6f63e80000000083c4088b3d00000000ff37e80000000083c40489c683f8ff0f84cf00000056ff37e80000000083c40889c76aff8b450c50e80000000083c4080fb74d1066894f0c66c747020000895f048b4d0c894f08ff3068656a626fe80000000083c4080fbf4d1005400100006a485150e80000000083c40c0fb74030486689470e66c74714ffff57e80000000083c404c7471800000000c7471c00000000c7472c00000000c74734ffffffffc74738ffffffffc7473000000000c7473cffffffffc74740ffffffff8d47100fbf4f0e5051ff7708e80000000083c40c84c07411804f02016a016a0156e80000000083c40c89f05e5f5b5dc36a016a6168000000006800000000e80000000083c4106affe8000000006a016a6268000000006800000000e80000000083c4106affe800000000662e0f1f840000000000905589e553575650d94510d95df08b5d088b3d0000000053ff37e80000000083c40889c6ff700468746e6f63e80000000083c408f64602010f84bd00000053ff37e80000000083c40889c7ff700468746e6f63e80000000083c408d94004f64002017403d84f10d9e8def1d9eed945f0d9c9dbe97311d94720d9cadbea7312dddbddd831c0eb48ddd9ddd9ddd831c0eb43dee2d9cad9572066b80100d9cadbe9d9c9d9cad9c9733266b801000f1f440000d9cadbe97216d8e1d9c9d9572040d9cadbe9d9c9d9cad9c972e6eb0ddddadee1d95f20d9eed9eed9eedddaddd8ddd86683f802b9010000000f4dc80fb7c16a005053e80000000083c40c807d0c007407c74608ffffffffd945f0d84628d95e2883c4045e5f5b5dc30f1f8400000000005589e553575683ec1cd94508d95de08b35000000006affff36e80000000083c40883f8ff0f84de03000089c70f1f400057ff36e80000000083c40889c3ff700468746e6f63e80000000083c4088945dcd945e0d86328d95de4897df089f8bae07a0900ffd2c74328000000008b430883f8ff0f84bd00000089de83c6100fb74b0e565150b8a0031400ffd083c40c89c10fb64302240138c1742e8b068945ecc706000000008b45f08975d8884de86a016a01ba407e0900ffd283c4080fb64de88b45ec8b55d8890284c90fb6430274600c01884302ff75f0a100000000ff30e80000000083c40889c6ff700468746e6f63e80000000083c408d94004f64002017403d84e10d9eed9e8def2d945e0d9c9dbe90f8335020000d94620d9cadbea0f8332020000dddbddd831c0e96e02000024fe8843028b45dcd9402cf64002207403d84b10d83dc8332500d95dd8d905c0332500d945e4dfe9ddd8d9ee0f86e7000000ddd8d945e4eb490f1f80000000000fbf7e400fb776426601fee8000000000fbfce515750e80000000083c40c6689431466c743160000d945e8d945ecdee9d905c0332500d9c9dbe9ddd90f8697000000d94324d945d8d8e1dbea0f877e000000ddd9d95decd95de8ff730468746e6f63e80000000083c40889c6ff703c686d746962e80000000083c4080fbf4b140fb753164285c966895316c74324000000000f8868ffffff3948540f8e5fffffff6685d20f8856ffffff83c0546a405150e80000000083c40c0fb74b16663b48220f8d39ffffffe95cffffff0f1f4000ddd8dec1d95b24d9eeddd88b45dcd94024f64003017403d84b10d945e4dec9d86b18d95b188b45dcd94028f64003027403d84b10d945e4dec9d8431cd95b1c83ec08d945e0d95c24048b45f0890424b800820900ffd083c40866837b2c000f9fc18b433483f8ff0f94c230ca0f845e01000083f8ff756966837b2e000f9fc18b433883f8ff0f94c238d10f844001000083f8ff754b66837b30000f9fc18b433c83f8ff0f94c238d10f842201000083f8ff752d66837b32000f9fc18b434083f8ff0f94c238d10f840401000083f8ff0f84cc000000662e0f1f840000000000908b5df089d8bae07a0900ffd2538b3500000000ff36e80000000083c40889c783f8ff0f85e8fcffffe9bb000000ddd9ddd9ddd831c0eb4cdee2d9cad9562066b80100d9cadbe9d9c9d9cad9c9733b66b80100662e0f1f8400000000000f1f4000d9cadbe97216d8e1d9c9d9562040d9cadbe9d9c9d9cad9c972e6eb0ddddadee1d95e20d9eed9eed9eedddaddd8ddd8988945e88b45f0895dec8b5de86a0153ba407e0900ffd283c4088b5dec8b45dcd9402cf64002200f8565fdffffe963fdffff8b45f0bae07a0900ffd2837b08ff8b5df00f8534ffffff53b8f0780900ffd083c404e924ffffff83c41c5e5f5b5dc36a01680a01000068000000006800000000e80000000083c4106affe8000000005589e5a100000000ff7508ff30e80000000083c408806004fec7400cffffffff5dc3",
+          "raw_size": 5874,
+          "relocations": [
+            {
+              "offset": 4,
+              "target": {
+                "name": "__imp__contrail_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 11,
+              "target": {
+                "name": "_data_delete_all",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 19,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 26,
+              "target": {
+                "name": "_data_delete_all",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 52,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 59,
+              "target": {
+                "name": "_data_make_invalid",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 67,
+              "target": {
+                "name": "__imp__contrail_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 74,
+              "target": {
+                "name": "_data_make_invalid",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 100,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 116,
+              "target": {
+                "name": "__imp__contrail_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 152,
+              "target": {
+                "name": "__imp__contrail_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 162,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 182,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 196,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 210,
+              "target": {
+                "name": "_datum_delete",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 237,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 260,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 274,
+              "target": {
+                "name": "_datum_delete",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 301,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 324,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 338,
+              "target": {
+                "name": "_datum_delete",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 365,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 388,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 402,
+              "target": {
+                "name": "_datum_delete",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 420,
+              "target": {
+                "name": "__imp__contrail_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 427,
+              "target": {
+                "name": "_datum_delete",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 457,
+              "target": {
+                "name": "__imp__contrail_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 466,
+              "target": {
+                "name": "_data_next_index",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 484,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 501,
+              "target": {
+                "name": "__imp__contrail_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 508,
+              "target": {
+                "name": "_data_next_index",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 531,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 549,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 588,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 613,
+              "target": {
+                "name": "_scenario_location_from_point",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 652,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 677,
+              "target": {
+                "name": "_scenario_location_from_point",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 716,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 741,
+              "target": {
+                "name": "_scenario_location_from_point",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 784,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 809,
+              "target": {
+                "name": "_scenario_location_from_point",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 844,
+              "target": {
+                "name": "__imp__contrail_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 854,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 872,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1031,
+              "target": {
+                "name": "__imp__contrail_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1041,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1059,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1078,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1107,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1156,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1172,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1213,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1236,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1273,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1284,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1321,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1332,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1372,
+              "target": {
+                "name": "_tag_get_name",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1383,
+              "target": {
+                "data": {
+                  "bytes_hex": "636f6e747261696c202573207468696e6b732069742068617320256420706f696e747320627574207265616c6c792069742068617320256400",
+                  "section": ".rdata#4",
+                  "value": 0
+                },
+                "name": "??_C@_0DJ@LAEOKLOH@contrail?5?$CFs?5thinks?5it?5has?5?$CFd?5poi@",
+                "section": ".rdata#4",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1393,
+              "target": {
+                "name": "_csprintf",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1413,
+              "target": {
+                "name": "_tag_get_name",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1423,
+              "target": {
+                "data": {
+                  "bytes_hex": "636f6e747261696c202573206174746163686d656e7420696e646578202564206973206f757473696465207468652076616c69642072616e67652e00",
+                  "section": ".rdata#2",
+                  "value": 0
+                },
+                "name": "??_C@_0DM@BEOPFMNL@contrail?5?$CFs?5attachment?5index?5?$CFd?5@",
+                "section": ".rdata#2",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1433,
+              "target": {
+                "name": "_csprintf",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1453,
+              "target": {
+                "name": "_tag_get_name",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1464,
+              "target": {
+                "data": {
+                  "bytes_hex": "636f6e747261696c2025732028256c64292068617320616e206f626a6563742074686174207468696e6b73206974277320617474616368656420746f20256c6400",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0EB@OBNMHKML@contrail?5?$CFs?5?$CI?$CFld?$CJ?5has?5an?5object?5@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1474,
+              "target": {
+                "name": "_csprintf",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1489,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c656666656374735c636f6e747261696c732e6300",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0CD@HFOFGNFP@c?3?2halo?2SOURCE?2effects?2contrails@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1495,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1505,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1534,
+              "target": {
+                "name": "_random_math_get_local_seed_address",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1542,
+              "target": {
+                "name": "_random_range",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1595,
+              "target": {
+                "name": "_random_math_get_local_seed_address",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1625,
+              "target": {
+                "name": "_random_direction3d",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1705,
+              "target": {
+                "name": "_random_math_get_local_seed_address",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1728,
+              "target": {
+                "name": "_random_real_range",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1756,
+              "target": {
+                "data": {
+                  "bytes_hex": "636f6e747261696c00",
+                  "section": ".rdata#5",
+                  "value": 0
+                },
+                "name": "??_C@_08LACPGLIF@contrail?$AA@",
+                "section": ".rdata#5",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1761,
+              "target": {
+                "name": "_game_state_data_new",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1770,
+              "target": {
+                "name": "__imp__contrail_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1784,
+              "target": {
+                "data": {
+                  "bytes_hex": "636f6e747261696c20706f696e7400",
+                  "section": ".rdata#6",
+                  "value": 0
+                },
+                "name": "??_C@_0P@NFJLENP@contrail?5point?$AA@",
+                "section": ".rdata#6",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1789,
+              "target": {
+                "name": "_game_state_data_new",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1798,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1829,
+              "target": {
+                "data": {
+                  "bytes_hex": "636f756c646e277420616c6c6f6361746520636f6e747261696c20676c6f62616c7300",
+                  "section": ".rdata#7",
+                  "value": 0
+                },
+                "name": "??_C@_0CD@MIFFODIN@couldn?8t?5allocate?5contrail?5globa@",
+                "section": ".rdata#7",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1836,
+              "target": {
+                "name": "_error",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1874,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1892,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1941,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1970,
+              "target": {
+                "name": "_random_math_get_local_seed_address",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1981,
+              "target": {
+                "name": "_random_range",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2032,
+              "target": {
+                "name": "__imp__contrail_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2042,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2061,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2088,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2103,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2124,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2151,
+              "target": {
+                "name": "_object_get_markers_by_string_id",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2214,
+              "target": {
+                "name": "_random_math_get_local_seed_address",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2240,
+              "target": {
+                "name": "_random_real_range",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2324,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2381,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2409,
+              "target": {
+                "name": "_csmemcmp",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2538,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2568,
+              "target": {
+                "name": "_data_new_at_index",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2587,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2626,
+              "target": {
+                "name": "_random_math_get_local_seed_address",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2666,
+              "target": {
+                "name": "_random_direction3d",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2706,
+              "target": {
+                "name": "_scenario_location_from_point",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2726,
+              "target": {
+                "name": "_object_get_root_location",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2910,
+              "target": {
+                "name": "_scenario_location_from_point",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3019,
+              "target": {
+                "data": {
+                  "bytes_hex": "7400",
+                  "section": ".rdata#8",
+                  "value": 0
+                },
+                "name": "??_C@_01PFHFFBPC@t?$AA@",
+                "section": ".rdata#8",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3027,
+              "target": {
+                "data": {
+                  "bytes_hex": "25733a206173736572745f76616c69645f7265616c283078253038582025662900",
+                  "section": ".rdata#9",
+                  "value": 0
+                },
+                "name": "??_C@_0CB@CJEIPHLL@?$CFs?3?5assert_valid_real?$CI0x?$CF08X?5?$CFf?$CJ@",
+                "section": ".rdata#9",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3039,
+              "target": {
+                "name": "_csprintf",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3054,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c656666656374735c636f6e747261696c732e6300",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0CD@HFOFGNFP@c?3?2halo?2SOURCE?2effects?2contrails@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3060,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3070,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3107,
+              "target": {
+                "name": "__imp__contrail_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3117,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3135,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3274,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3281,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3402,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3459,
+              "target": {
+                "name": "_random_math_get_local_seed_address",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3485,
+              "target": {
+                "name": "_random_real_range",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3548,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3604,
+              "target": {
+                "name": "_random_math_get_local_seed_address",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3630,
+              "target": {
+                "name": "_random_real_range",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3736,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3762,
+              "target": {
+                "data": {
+                  "bytes_hex": "0000003f",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "__real@3f000000",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3776,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3870,
+              "target": {
+                "name": "_FUN_00154a50",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3916,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3925,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3936,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3943,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3987,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3994,
+              "target": {
+                "name": "_datum_delete",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4055,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4062,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4084,
+              "target": {
+                "name": "__imp__contrail_point_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4091,
+              "target": {
+                "name": "_datum_delete",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4163,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4172,
+              "target": {
+                "name": "__imp__contrail_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4179,
+              "target": {
+                "name": "_data_new_at_index",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4201,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4217,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4255,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4276,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4300,
+              "target": {
+                "name": "_FUN_00097db0",
+                "section": ".text#0",
+                "value": 1856
+              },
+              "type": 20
+            },
+            {
+              "offset": 4376,
+              "target": {
+                "name": "_object_get_function_value",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4397,
+              "target": {
+                "name": "_FUN_00097e40",
+                "section": ".text#0",
+                "value": 2016
+              },
+              "type": 20
+            },
+            {
+              "offset": 4416,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c656666656374735c636f6e747261696c732e6300",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0CD@HFOFGNFP@c?3?2halo?2SOURCE?2effects?2contrails@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4421,
+              "target": {
+                "data": {
+                  "bytes_hex": "6f626a6563745f696e646578213d4e4f4e4500",
+                  "section": ".rdata#10",
+                  "value": 0
+                },
+                "name": "??_C@_0BD@GHNECCAG@object_index?$CB?$DNNONE?$AA@",
+                "section": ".rdata#10",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4426,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4436,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4445,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c656666656374735c636f6e747261696c732e6300",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0CD@HFOFGNFP@c?3?2halo?2SOURCE?2effects?2contrails@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4450,
+              "target": {
+                "data": {
+                  "bytes_hex": "646566696e6974696f6e5f696e646578213d4e4f4e4500",
+                  "section": ".rdata#11",
+                  "value": 0
+                },
+                "name": "??_C@_0BH@KJOJEDNC@definition_index?$CB?$DNNONE?$AA@",
+                "section": ".rdata#11",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4455,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4465,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4498,
+              "target": {
+                "name": "__imp__contrail_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4506,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4524,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4545,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4563,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4723,
+              "target": {
+                "name": "_FUN_00097e40",
+                "section": ".text#0",
+                "value": 2016
+              },
+              "type": 20
+            },
+            {
+              "offset": 4785,
+              "target": {
+                "name": "__imp__contrail_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4794,
+              "target": {
+                "name": "_data_next_index",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4820,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4838,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4985,
+              "target": {
+                "name": "__imp__contrail_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4992,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 5010,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 5148,
+              "target": {
+                "name": "_random_math_get_local_seed_address",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 5159,
+              "target": {
+                "name": "_random_range",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 5235,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 5253,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 5314,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 5583,
+              "target": {
+                "name": "__imp__contrail_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 5590,
+              "target": {
+                "name": "_data_next_index",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 5816,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c656666656374735c636f6e747261696c732e6300",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0CD@HFOFGNFP@c?3?2halo?2SOURCE?2effects?2contrails@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 5821,
+              "target": {
+                "data": {
+                  "bytes_hex": "636f6e747261696c2d3e636f6e747261696c5f706f696e745f636f756e74735b696e7374616e63655f696e6465785d3e303d3d636f6e747261696c2d3e66697273745f636f6e747261696c5f706f696e745f696e64696365735b696e7374616e63655f696e6465785d213d4e4f4e4500",
+                  "section": ".rdata#12",
+                  "value": 0
+                },
+                "name": "??_C@_0HA@NOKFPIOB@contrail?9?$DOcontrail_point_counts?$FL@",
+                "section": ".rdata#12",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 5826,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 5836,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 5844,
+              "target": {
+                "name": "__imp__particle_system_header_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 5854,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            }
+          ]
+        },
+        {
+          "characteristics": 3224371264,
+          "executable": false,
+          "id": ".data#0",
+          "name": ".data",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        },
+        {
+          "characteristics": 3224371328,
+          "executable": false,
+          "id": ".bss#0",
+          "name": ".bss",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        },
+        {
+          "characteristics": 1076891712,
+          "executable": false,
+          "id": ".rdata#0",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 4,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#1",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 35,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#2",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 60,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#3",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 65,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#4",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 57,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#5",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 9,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#6",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 15,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#7",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 35,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#8",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 2,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#9",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 33,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#10",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 19,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#11",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 23,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#12",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 112,
+          "relocations": []
+        },
+        {
+          "characteristics": 1051136,
+          "executable": false,
+          "id": ".drectve#0",
+          "name": ".drectve",
+          "raw_bytes_hex": null,
+          "raw_size": 533,
+          "relocations": []
+        },
+        {
+          "characteristics": 1050624,
+          "executable": false,
+          "id": ".llvm_addrsig#0",
+          "name": ".llvm_addrsig",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        }
+      ]
+    },
+    "object_relative_path": "build/CMakeFiles/halo.dir/src/halo/effects/contrails.c.obj",
+    "object_sha256": "58ba2673c9c89924ee1e4a798ce31b69b7588061c0b8fbd24776a006f3d60058"
+  },
+  "checks": [
+    {
+      "baseline_object_sha256": "58ba2673c9c89924ee1e4a798ce31b69b7588061c0b8fbd24776a006f3d60058",
+      "current_git_head": "313838f5ae18977df30b35bee2b98d0f8d49ad57",
+      "current_object_sha256": "f0f41b27627aa65c2282efdeed0111a12ea550a1f8b39bf4491490daaf2a924e",
+      "current_source_sha256": "7071fa6124b38963ac71e02beef2ba0e077a2dc6290a2447f7cb05e0449a89f8",
+      "failures": [],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": true,
+      "rename_map_applied": [],
+      "skipped": [],
+      "source": "src/halo/effects/contrails.c",
+      "vc71_passed": true,
+      "warnings": []
+    },
+    {
+      "baseline_object_sha256": "58ba2673c9c89924ee1e4a798ce31b69b7588061c0b8fbd24776a006f3d60058",
+      "current_git_head": "313838f5ae18977df30b35bee2b98d0f8d49ad57",
+      "current_object_sha256": "8932a0ab26a58053be5b15e2c267cbc55d6631b08d44d6e938a3b3672ef65572",
+      "current_source_sha256": "04da0e7eabc853240e2b16f0b2e9bb9ede71c437e6acc665eb1bca7922e62f8d",
+      "failures": [],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": true,
+      "rename_map_applied": [],
+      "skipped": [],
+      "source": "src/halo/effects/contrails.c",
+      "vc71_passed": true,
+      "warnings": []
+    },
+    {
+      "baseline_object_sha256": "58ba2673c9c89924ee1e4a798ce31b69b7588061c0b8fbd24776a006f3d60058",
+      "current_git_head": "313838f5ae18977df30b35bee2b98d0f8d49ad57",
+      "current_object_sha256": "8932a0ab26a58053be5b15e2c267cbc55d6631b08d44d6e938a3b3672ef65572",
+      "current_source_sha256": "04da0e7eabc853240e2b16f0b2e9bb9ede71c437e6acc665eb1bca7922e62f8d",
+      "failures": [],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": true,
+      "rename_map_applied": [],
+      "skipped": [],
+      "source": "src/halo/effects/contrails.c",
+      "vc71_passed": true,
+      "warnings": []
+    },
+    {
+      "baseline_object_sha256": "58ba2673c9c89924ee1e4a798ce31b69b7588061c0b8fbd24776a006f3d60058",
+      "current_git_head": "313838f5ae18977df30b35bee2b98d0f8d49ad57",
+      "current_object_sha256": "afe9311da3f9cd40f70ec3fb40af26d3d0d7f077a8e4a5d764e5da7ef28a7ad9",
+      "current_source_sha256": "c09f1ae13d17d0a9c849de780399a0468d0b3988f41ba3358458b4b89e70f3be",
+      "failures": [],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": true,
+      "rename_map_applied": [],
+      "skipped": [],
+      "source": "src/halo/effects/contrails.c",
+      "vc71_passed": true,
+      "warnings": []
+    },
+    {
+      "baseline_object_sha256": "58ba2673c9c89924ee1e4a798ce31b69b7588061c0b8fbd24776a006f3d60058",
+      "current_git_head": "313838f5ae18977df30b35bee2b98d0f8d49ad57",
+      "current_object_sha256": "9e0982869b34db8d6a08aa1d6f41af52372383b88859e2e31f57710fa2f52d55",
+      "current_source_sha256": "8e335328b15f87014c1ad70e6df0b0ab8b4646b3461303579ea12ad7c2edd9e0",
+      "failures": [],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": true,
+      "rename_map_applied": [],
+      "skipped": [],
+      "source": "src/halo/effects/contrails.c",
+      "vc71_passed": true,
+      "warnings": []
+    },
+    {
+      "baseline_object_sha256": "58ba2673c9c89924ee1e4a798ce31b69b7588061c0b8fbd24776a006f3d60058",
+      "current_git_head": "313838f5ae18977df30b35bee2b98d0f8d49ad57",
+      "current_object_sha256": "abc7f909432927c7bf2c7141e86ba603593689089fc628ef189ed37c4b4d02cd",
+      "current_source_sha256": "8e335328b15f87014c1ad70e6df0b0ab8b4646b3461303579ea12ad7c2edd9e0",
+      "failures": [],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": true,
+      "rename_map_applied": [],
+      "skipped": [],
+      "source": "src/halo/effects/contrails.c",
+      "vc71_passed": true,
+      "warnings": []
+    }
+  ],
+  "created_tool_version": "source-recovery/1",
+  "git_head": "313838f5ae18977df30b35bee2b98d0f8d49ad57",
+  "inventory": {
+    "absolute_address_dereferences": [
+      {
+        "category": "symbol-names",
+        "column": 19,
+        "id": "absolute_address_dereferences:955:1",
+        "line": 955,
+        "status": "pending",
+        "text": "render_freq = *(float *)0x2533c8 / render_freq;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 21,
+        "id": "absolute_address_dereferences:957:1",
+        "line": 957,
+        "status": "pending",
+        "text": "if (remaining > *(float *)0x2533c0) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 28,
+        "id": "absolute_address_dereferences:966:1",
+        "line": 966,
+        "status": "pending",
+        "text": "} while (remaining > *(float *)0x2533c0);"
+      }
+    ],
+    "decompiler_style_locals": [
+      {
+        "category": "local-renames",
+        "column": 7,
+        "id": "decompiler_style_locals:55:1",
+        "line": 55,
+        "status": "applied",
+        "text": "int local_c;"
+      },
+      {
+        "category": "local-renames",
+        "column": 5,
+        "id": "decompiler_style_locals:65:1",
+        "line": 65,
+        "status": "applied",
+        "text": "local_c = 4;"
+      },
+      {
+        "category": "local-renames",
+        "column": 7,
+        "id": "decompiler_style_locals:75:1",
+        "line": 75,
+        "status": "applied",
+        "text": "local_c--;"
+      },
+      {
+        "category": "local-renames",
+        "column": 14,
+        "id": "decompiler_style_locals:76:1",
+        "line": 76,
+        "status": "applied",
+        "text": "} while (local_c != 0);"
+      },
+      {
+        "category": "local-renames",
+        "column": 9,
+        "id": "decompiler_style_locals:328:1",
+        "line": 328,
+        "status": "applied",
+        "text": "float local_30;"
+      },
+      {
+        "category": "local-renames",
+        "column": 9,
+        "id": "decompiler_style_locals:329:1",
+        "line": 329,
+        "status": "applied",
+        "text": "float local_24;"
+      },
+      {
+        "category": "local-renames",
+        "column": 9,
+        "id": "decompiler_style_locals:330:1",
+        "line": 330,
+        "status": "applied",
+        "text": "float local_10;"
+      },
+      {
+        "category": "local-renames",
+        "column": 8,
+        "id": "decompiler_style_locals:332:1",
+        "line": 332,
+        "status": "applied",
+        "text": "char local_218[4 * 0x6c];"
+      },
+      {
+        "category": "local-renames",
+        "column": 54,
+        "id": "decompiler_style_locals:345:1",
+        "line": 345,
+        "status": "applied",
+        "text": "*(int *)(datum + 8), (char *)marker_elem + 0x10, local_218, 4);"
+      },
+      {
+        "category": "local-renames",
+        "column": 3,
+        "id": "decompiler_style_locals:350:1",
+        "line": 350,
+        "status": "applied",
+        "text": "local_30 = contrail_scale_random_value("
+      },
+      {
+        "category": "local-renames",
+        "column": 3,
+        "id": "decompiler_style_locals:354:1",
+        "line": 354,
+        "status": "applied",
+        "text": "local_24 = *(float *)(ctag + 0x10);"
+      },
+      {
+        "category": "local-renames",
+        "column": 5,
+        "id": "decompiler_style_locals:356:1",
+        "line": 356,
+        "status": "applied",
+        "text": "local_24 *= *(float *)(datum + 0x10);"
+      },
+      {
+        "category": "local-renames",
+        "column": 3,
+        "id": "decompiler_style_locals:358:1",
+        "line": 358,
+        "status": "applied",
+        "text": "local_10 = *(float *)(ctag + 0x14);"
+      },
+      {
+        "category": "local-renames",
+        "column": 5,
+        "id": "decompiler_style_locals:360:1",
+        "line": 360,
+        "status": "applied",
+        "text": "local_10 *= *(float *)(datum + 0x10);"
+      },
+      {
+        "category": "local-renames",
+        "column": 20,
+        "id": "decompiler_style_locals:367:1",
+        "line": 367,
+        "status": "applied",
+        "text": "char *marker = local_218;"
+      },
+      {
+        "category": "local-renames",
+        "column": 32,
+        "id": "decompiler_style_locals:403:1",
+        "line": 403,
+        "status": "applied",
+        "text": "local_24, vel);"
+      },
+      {
+        "category": "local-renames",
+        "column": 46,
+        "id": "decompiler_style_locals:413:1",
+        "line": 413,
+        "status": "applied",
+        "text": "*(float *)(pd + 0x28) = vel[0] * local_30 + local_10 * root_loc[0];"
+      },
+      {
+        "category": "local-renames",
+        "column": 57,
+        "id": "decompiler_style_locals:413:2",
+        "line": 413,
+        "status": "applied",
+        "text": "*(float *)(pd + 0x28) = vel[0] * local_30 + local_10 * root_loc[0];"
+      },
+      {
+        "category": "local-renames",
+        "column": 46,
+        "id": "decompiler_style_locals:414:1",
+        "line": 414,
+        "status": "applied",
+        "text": "*(float *)(pd + 0x2c) = vel[1] * local_30 + local_10 * root_loc[1];"
+      },
+      {
+        "category": "local-renames",
+        "column": 57,
+        "id": "decompiler_style_locals:414:2",
+        "line": 414,
+        "status": "applied",
+        "text": "*(float *)(pd + 0x2c) = vel[1] * local_30 + local_10 * root_loc[1];"
+      },
+      {
+        "category": "local-renames",
+        "column": 46,
+        "id": "decompiler_style_locals:415:1",
+        "line": 415,
+        "status": "applied",
+        "text": "*(float *)(pd + 0x30) = vel[2] * local_30 + local_10 * root_loc[2];"
+      },
+      {
+        "category": "local-renames",
+        "column": 57,
+        "id": "decompiler_style_locals:415:2",
+        "line": 415,
+        "status": "applied",
+        "text": "*(float *)(pd + 0x30) = vel[2] * local_30 + local_10 * root_loc[2];"
+      },
+      {
+        "category": "local-renames",
+        "column": 7,
+        "id": "decompiler_style_locals:759:1",
+        "line": 759,
+        "status": "applied",
+        "text": "int iVar2;"
+      },
+      {
+        "category": "local-renames",
+        "column": 19,
+        "id": "decompiler_style_locals:760:1",
+        "line": 760,
+        "status": "applied",
+        "text": "unsigned short *puVar6;"
+      },
+      {
+        "category": "local-renames",
+        "column": 8,
+        "id": "decompiler_style_locals:761:1",
+        "line": 761,
+        "status": "applied",
+        "text": "int *puVar4;"
+      },
+      {
+        "category": "local-renames",
+        "column": 7,
+        "id": "decompiler_style_locals:762:1",
+        "line": 762,
+        "status": "applied",
+        "text": "int iVar5;"
+      },
+      {
+        "category": "local-renames",
+        "column": 3,
+        "id": "decompiler_style_locals:778:1",
+        "line": 778,
+        "status": "applied",
+        "text": "iVar2 = data_new_at_index(contrail_data);"
+      },
+      {
+        "category": "local-renames",
+        "column": 7,
+        "id": "decompiler_style_locals:779:1",
+        "line": 779,
+        "status": "applied",
+        "text": "if (iVar2 == -1)"
+      },
+      {
+        "category": "local-renames",
+        "column": 12,
+        "id": "decompiler_style_locals:780:1",
+        "line": 780,
+        "status": "applied",
+        "text": "return iVar2;"
+      },
+      {
+        "category": "local-renames",
+        "column": 44,
+        "id": "decompiler_style_locals:782:1",
+        "line": 782,
+        "status": "applied",
+        "text": "datum = (char *)datum_get(contrail_data, iVar2);"
+      },
+      {
+        "category": "local-renames",
+        "column": 3,
+        "id": "decompiler_style_locals:801:1",
+        "line": 801,
+        "status": "applied",
+        "text": "puVar6 = (unsigned short *)(datum + 0x2c);"
+      },
+      {
+        "category": "local-renames",
+        "column": 3,
+        "id": "decompiler_style_locals:802:1",
+        "line": 802,
+        "status": "applied",
+        "text": "puVar4 = (int *)(datum + 0x34);"
+      },
+      {
+        "category": "local-renames",
+        "column": 3,
+        "id": "decompiler_style_locals:803:1",
+        "line": 803,
+        "status": "applied",
+        "text": "iVar5 = 4;"
+      },
+      {
+        "category": "local-renames",
+        "column": 6,
+        "id": "decompiler_style_locals:805:1",
+        "line": 805,
+        "status": "applied",
+        "text": "*puVar6 = 0;"
+      },
+      {
+        "category": "local-renames",
+        "column": 6,
+        "id": "decompiler_style_locals:806:1",
+        "line": 806,
+        "status": "applied",
+        "text": "*puVar4 = -1;"
+      },
+      {
+        "category": "local-renames",
+        "column": 5,
+        "id": "decompiler_style_locals:807:1",
+        "line": 807,
+        "status": "applied",
+        "text": "puVar6++;"
+      },
+      {
+        "category": "local-renames",
+        "column": 5,
+        "id": "decompiler_style_locals:808:1",
+        "line": 808,
+        "status": "applied",
+        "text": "puVar4++;"
+      },
+      {
+        "category": "local-renames",
+        "column": 5,
+        "id": "decompiler_style_locals:809:1",
+        "line": 809,
+        "status": "applied",
+        "text": "iVar5--;"
+      },
+      {
+        "category": "local-renames",
+        "column": 12,
+        "id": "decompiler_style_locals:810:1",
+        "line": 810,
+        "status": "applied",
+        "text": "} while (iVar5 != 0);"
+      },
+      {
+        "category": "local-renames",
+        "column": 18,
+        "id": "decompiler_style_locals:816:1",
+        "line": 816,
+        "status": "applied",
+        "text": "FUN_00097e40(iVar2, 1, 1);"
+      },
+      {
+        "category": "local-renames",
+        "column": 10,
+        "id": "decompiler_style_locals:819:1",
+        "line": 819,
+        "status": "applied",
+        "text": "return iVar2;"
+      }
+    ],
+    "fun_calls": [
+      {
+        "category": "symbol-names",
+        "column": 4,
+        "id": "fun_calls:81:1",
+        "line": 81,
+        "status": "pending",
+        "text": "* FUN_00097a50 (0x97a50): contrail tick counter \u2014 given a contrail handle and"
+      },
+      {
+        "category": "symbol-names",
+        "column": 9,
+        "id": "fun_calls:97:1",
+        "line": 97,
+        "status": "pending",
+        "text": "int16_t FUN_00097a50(int contrail_handle, float delta_time)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:135:1",
+        "line": 135,
+        "status": "pending",
+        "text": "void FUN_00097ae0(int contrail_handle /* @<eax> */)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:267:1",
+        "line": 267,
+        "status": "pending",
+        "text": "void FUN_00097db0(char *datum /* @<esi> */)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:317:1",
+        "line": 317,
+        "status": "pending",
+        "text": "void FUN_00097e40(int contrail_handle /* @<eax> */, int count, int flag)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 4,
+        "id": "fun_calls:480:1",
+        "line": 480,
+        "status": "pending",
+        "text": "* FUN_00098200 (0x98200): contrail point keyframe tick \u2014 for each active chain"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:511:1",
+        "line": 511,
+        "status": "pending",
+        "text": "void FUN_00098200(int contrail_handle, float delta_time)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 13,
+        "id": "fun_calls:670:1",
+        "line": 670,
+        "status": "pending",
+        "text": "FUN_00154a50(0, (int)phys_tag, (int *)(pt + 0x14), -1,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "fun_calls:796:1",
+        "line": 796,
+        "status": "pending",
+        "text": "FUN_00097db0(datum);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:816:1",
+        "line": 816,
+        "status": "pending",
+        "text": "FUN_00097e40(iVar2, 1, 1);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 18,
+        "id": "fun_calls:840:1",
+        "line": 840,
+        "status": "pending",
+        "text": "new_points = FUN_00097a50(contrail_handle, delta_time);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:842:1",
+        "line": 842,
+        "status": "pending",
+        "text": "FUN_00097e40(contrail_handle, count, 0);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 18,
+        "id": "fun_calls:926:1",
+        "line": 926,
+        "status": "pending",
+        "text": "result = FUN_00097a50(datum_handle, delta_time);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 9,
+        "id": "fun_calls:964:1",
+        "line": 964,
+        "status": "pending",
+        "text": "FUN_00097db0(datum);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:1019:1",
+        "line": 1019,
+        "status": "pending",
+        "text": "void FUN_0009f6e0(int contrail_handle)"
+      }
+    ],
+    "inline_asm": [
+      {
+        "category": "uncategorized",
+        "column": 7,
+        "id": "inline_asm:876:1",
+        "line": 876,
+        "status": "pending",
+        "text": "__asm {"
+      },
+      {
+        "category": "uncategorized",
+        "column": 7,
+        "id": "inline_asm:882:1",
+        "line": 882,
+        "status": "pending",
+        "text": "asm volatile(\"movl $0x97ae0, %%edx\\n\\t\""
+      },
+      {
+        "category": "uncategorized",
+        "column": 11,
+        "id": "inline_asm:901:1",
+        "line": 901,
+        "status": "pending",
+        "text": "__asm {"
+      },
+      {
+        "category": "uncategorized",
+        "column": 11,
+        "id": "inline_asm:910:1",
+        "line": 910,
+        "status": "pending",
+        "text": "asm volatile(\"pushl $1\\n\\t\""
+      },
+      {
+        "category": "uncategorized",
+        "column": 11,
+        "id": "inline_asm:931:1",
+        "line": 931,
+        "status": "pending",
+        "text": "__asm {"
+      },
+      {
+        "category": "uncategorized",
+        "column": 11,
+        "id": "inline_asm:940:1",
+        "line": 940,
+        "status": "pending",
+        "text": "asm volatile(\"pushl $1\\n\\t\""
+      },
+      {
+        "category": "uncategorized",
+        "column": 7,
+        "id": "inline_asm:997:1",
+        "line": 997,
+        "status": "pending",
+        "text": "__asm {"
+      },
+      {
+        "category": "uncategorized",
+        "column": 7,
+        "id": "inline_asm:1003:1",
+        "line": 1003,
+        "status": "pending",
+        "text": "asm volatile(\"movl $0x97ae0, %%edx\\n\\t\""
+      }
+    ],
+    "raw_base_offset_dereferences": [
+      {
+        "category": "offset-to-field",
+        "column": 21,
+        "id": "raw_base_offset_dereferences:40:1",
+        "line": 40,
+        "status": "pending",
+        "text": "next_handle = *(int *)(point_datum + 0x34);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 26,
+        "id": "raw_base_offset_dereferences:68:1",
+        "line": 68,
+        "status": "pending",
+        "text": "point_index = *(int *)(point_datum + 0x34)) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:70:1",
+        "line": 70,
+        "status": "pending",
+        "text": "if (*(short *)(point_datum + 0x18) != -1) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 20,
+        "id": "raw_base_offset_dereferences:110:1",
+        "line": 110,
+        "status": "pending",
+        "text": "render_freq *= *(float *)(datum + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 24,
+        "id": "raw_base_offset_dereferences:120:1",
+        "line": 120,
+        "status": "pending",
+        "text": "while (delta_time >= *(float *)(datum + 0x20)) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 19,
+        "id": "raw_base_offset_dereferences:121:1",
+        "line": 121,
+        "status": "pending",
+        "text": "delta_time -= *(float *)(datum + 0x20);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:122:1",
+        "line": 122,
+        "status": "pending",
+        "text": "*(float *)(datum + 0x20) = period;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:128:1",
+        "line": 128,
+        "status": "pending",
+        "text": "*(float *)(datum + 0x20) -= delta_time;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 24,
+        "id": "raw_base_offset_dereferences:153:1",
+        "line": 153,
+        "status": "pending",
+        "text": "attachment_index = *(short *)(datum + 0xc);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 24,
+        "id": "raw_base_offset_dereferences:186:1",
+        "line": 186,
+        "status": "pending",
+        "text": "point_handle = *(int *)(point_datum + 0x34);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 40,
+        "id": "raw_base_offset_dereferences:279:1",
+        "line": 279,
+        "status": "pending",
+        "text": "bitmap = (char *)tag_get(0x6269746d, *(int *)(tag + 0x3c));"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 20,
+        "id": "raw_base_offset_dereferences:281:1",
+        "line": 281,
+        "status": "pending",
+        "text": "sequence_index = *(int16_t *)(datum + 0x14);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:282:1",
+        "line": 282,
+        "status": "pending",
+        "text": "*(int16_t *)(datum + 0x16) = *(int16_t *)(datum + 0x16) + 1;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 32,
+        "id": "raw_base_offset_dereferences:282:2",
+        "line": 282,
+        "status": "pending",
+        "text": "*(int16_t *)(datum + 0x16) = *(int16_t *)(datum + 0x16) + 1;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 19,
+        "id": "raw_base_offset_dereferences:283:1",
+        "line": 283,
+        "status": "pending",
+        "text": "frame_counter = *(int16_t *)(datum + 0x16);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:284:1",
+        "line": 284,
+        "status": "pending",
+        "text": "*(float *)(datum + 0x24) = 0.0f;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 19,
+        "id": "raw_base_offset_dereferences:296:1",
+        "line": 296,
+        "status": "pending",
+        "text": "frame_counter = *(int16_t *)(datum + 0x16);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 23,
+        "id": "raw_base_offset_dereferences:297:1",
+        "line": 297,
+        "status": "pending",
+        "text": "if (frame_counter < *(int16_t *)(seq_element + 0x22))"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:301:1",
+        "line": 301,
+        "status": "pending",
+        "text": "seq_min = *(int16_t *)(tag + 0x40);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 23,
+        "id": "raw_base_offset_dereferences:302:1",
+        "line": 302,
+        "status": "pending",
+        "text": "seq_max = seq_min + *(int16_t *)(tag + 0x42);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:303:1",
+        "line": 303,
+        "status": "pending",
+        "text": "*(int16_t *)(datum + 0x14) ="
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:305:1",
+        "line": 305,
+        "status": "pending",
+        "text": "*(int16_t *)(datum + 0x16) = 0;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 44,
+        "id": "raw_base_offset_dereferences:343:1",
+        "line": 343,
+        "status": "pending",
+        "text": "tag_block_get_element(obj_tag + 0x140, *(int16_t *)(datum + 0xc), 0x48);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:351:1",
+        "line": 351,
+        "status": "pending",
+        "text": "*(float *)(datum + 0x10), *(float *)(ctag + 8), *(float *)(ctag + 0xc),"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 53,
+        "id": "raw_base_offset_dereferences:351:2",
+        "line": 351,
+        "status": "pending",
+        "text": "*(float *)(datum + 0x10), *(float *)(ctag + 8), *(float *)(ctag + 0xc),"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 14,
+        "id": "raw_base_offset_dereferences:354:1",
+        "line": 354,
+        "status": "pending",
+        "text": "local_24 = *(float *)(ctag + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 17,
+        "id": "raw_base_offset_dereferences:356:1",
+        "line": 356,
+        "status": "pending",
+        "text": "local_24 *= *(float *)(datum + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 14,
+        "id": "raw_base_offset_dereferences:358:1",
+        "line": 358,
+        "status": "pending",
+        "text": "local_10 = *(float *)(ctag + 0x14);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 17,
+        "id": "raw_base_offset_dereferences:360:1",
+        "line": 360,
+        "status": "pending",
+        "text": "local_10 *= *(float *)(datum + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 11,
+        "id": "raw_base_offset_dereferences:396:1",
+        "line": 396,
+        "status": "pending",
+        "text": "*(float *)(pd + 0xc) = *(float *)(datum + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 34,
+        "id": "raw_base_offset_dereferences:396:2",
+        "line": 396,
+        "status": "pending",
+        "text": "*(float *)(pd + 0xc) = *(float *)(datum + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:405:1",
+        "line": 405,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x1c) = *(float *)(marker + 0x60);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 37,
+        "id": "raw_base_offset_dereferences:405:2",
+        "line": 405,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x1c) = *(float *)(marker + 0x60);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:406:1",
+        "line": 406,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x20) = *(float *)(marker + 0x64);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 37,
+        "id": "raw_base_offset_dereferences:406:2",
+        "line": 406,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x20) = *(float *)(marker + 0x64);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:407:1",
+        "line": 407,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x24) = *(float *)(marker + 0x68);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 37,
+        "id": "raw_base_offset_dereferences:407:2",
+        "line": 407,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x24) = *(float *)(marker + 0x68);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:413:1",
+        "line": 413,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x28) = vel[0] * local_30 + local_10 * root_loc[0];"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:414:1",
+        "line": 414,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x2c) = vel[1] * local_30 + local_10 * root_loc[1];"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:415:1",
+        "line": 415,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x30) = vel[2] * local_30 + local_10 * root_loc[2];"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:438:1",
+        "line": 438,
+        "status": "pending",
+        "text": "*(float *)(pd + 0xc) = frac_new * *(float *)(pd + 0xc) +"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 47,
+        "id": "raw_base_offset_dereferences:438:2",
+        "line": 438,
+        "status": "pending",
+        "text": "*(float *)(pd + 0xc) = frac_new * *(float *)(pd + 0xc) +"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 47,
+        "id": "raw_base_offset_dereferences:439:1",
+        "line": 439,
+        "status": "pending",
+        "text": "frac_old * *(float *)(prev_head + 0xc);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 41,
+        "id": "raw_base_offset_dereferences:441:1",
+        "line": 441,
+        "status": "pending",
+        "text": "blended_pos[0] = frac_new * *(float *)(pd + 0x1c) +"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 41,
+        "id": "raw_base_offset_dereferences:442:1",
+        "line": 442,
+        "status": "pending",
+        "text": "frac_old * *(float *)(prev_head + 0x1c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 41,
+        "id": "raw_base_offset_dereferences:443:1",
+        "line": 443,
+        "status": "pending",
+        "text": "blended_pos[1] = frac_new * *(float *)(pd + 0x20) +"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 41,
+        "id": "raw_base_offset_dereferences:444:1",
+        "line": 444,
+        "status": "pending",
+        "text": "frac_old * *(float *)(prev_head + 0x20);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 41,
+        "id": "raw_base_offset_dereferences:445:1",
+        "line": 445,
+        "status": "pending",
+        "text": "blended_pos[2] = frac_new * *(float *)(pd + 0x24) +"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 41,
+        "id": "raw_base_offset_dereferences:446:1",
+        "line": 446,
+        "status": "pending",
+        "text": "frac_old * *(float *)(prev_head + 0x24);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:449:1",
+        "line": 449,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x1c) = blended_pos[0];"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:450:1",
+        "line": 450,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x20) = blended_pos[1];"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:451:1",
+        "line": 451,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x24) = blended_pos[2];"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:453:1",
+        "line": 453,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x28) = frac_new * *(float *)(pd + 0x28) +"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 48,
+        "id": "raw_base_offset_dereferences:453:2",
+        "line": 453,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x28) = frac_new * *(float *)(pd + 0x28) +"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 48,
+        "id": "raw_base_offset_dereferences:454:1",
+        "line": 454,
+        "status": "pending",
+        "text": "frac_old * *(float *)(prev_head + 0x28);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:455:1",
+        "line": 455,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x2c) = frac_new * *(float *)(pd + 0x2c) +"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 48,
+        "id": "raw_base_offset_dereferences:455:2",
+        "line": 455,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x2c) = frac_new * *(float *)(pd + 0x2c) +"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 48,
+        "id": "raw_base_offset_dereferences:456:1",
+        "line": 456,
+        "status": "pending",
+        "text": "frac_old * *(float *)(prev_head + 0x2c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:457:1",
+        "line": 457,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x30) = frac_new * *(float *)(pd + 0x30) +"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 48,
+        "id": "raw_base_offset_dereferences:457:2",
+        "line": 457,
+        "status": "pending",
+        "text": "*(float *)(pd + 0x30) = frac_new * *(float *)(pd + 0x30) +"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 48,
+        "id": "raw_base_offset_dereferences:458:1",
+        "line": 458,
+        "status": "pending",
+        "text": "frac_old * *(float *)(prev_head + 0x30);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 11,
+        "id": "raw_base_offset_dereferences:461:1",
+        "line": 461,
+        "status": "pending",
+        "text": "*(int *)(pd + 0x34) = *chain_head;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 26,
+        "id": "raw_base_offset_dereferences:585:1",
+        "line": 585,
+        "status": "pending",
+        "text": "kf_flags = *(unsigned int *)(kf + 0x64);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 26,
+        "id": "raw_base_offset_dereferences:586:1",
+        "line": 586,
+        "status": "pending",
+        "text": "base_dur = *(float *)(kf + 0x0);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 27,
+        "id": "raw_base_offset_dereferences:587:1",
+        "line": 587,
+        "status": "pending",
+        "text": "range_dur = *(float *)(kf + 0x4) - base_dur;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 28,
+        "id": "raw_base_offset_dereferences:590:1",
+        "line": 590,
+        "status": "pending",
+        "text": "base_dur = *(float *)(pt + 0xc) * base_dur;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 41,
+        "id": "raw_base_offset_dereferences:593:1",
+        "line": 593,
+        "status": "pending",
+        "text": "range_dur = range_dur * *(float *)(pt + 0xc);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 26,
+        "id": "raw_base_offset_dereferences:614:1",
+        "line": 614,
+        "status": "pending",
+        "text": "kf_count = *(int *)(tag + 0x138);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 26,
+        "id": "raw_base_offset_dereferences:626:1",
+        "line": 626,
+        "status": "pending",
+        "text": "kf_flags = *(unsigned int *)(kf + 0x64);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 26,
+        "id": "raw_base_offset_dereferences:627:1",
+        "line": 627,
+        "status": "pending",
+        "text": "base_dur = *(float *)(kf + 0x8);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 27,
+        "id": "raw_base_offset_dereferences:628:1",
+        "line": 628,
+        "status": "pending",
+        "text": "range_dur = *(float *)(kf + 0xc) - base_dur;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 28,
+        "id": "raw_base_offset_dereferences:631:1",
+        "line": 631,
+        "status": "pending",
+        "text": "base_dur = *(float *)(pt + 0xc) * base_dur;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 41,
+        "id": "raw_base_offset_dereferences:634:1",
+        "line": 634,
+        "status": "pending",
+        "text": "range_dur = range_dur * *(float *)(pt + 0xc);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 22,
+        "id": "raw_base_offset_dereferences:666:1",
+        "line": 666,
+        "status": "pending",
+        "text": "phys_ref = *(int *)(kf + 0x1c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 22,
+        "id": "raw_base_offset_dereferences:668:1",
+        "line": 668,
+        "status": "pending",
+        "text": "radius = *(float *)(kf + 0x40) * 0.5f;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 23,
+        "id": "raw_base_offset_dereferences:680:1",
+        "line": 680,
+        "status": "pending",
+        "text": "next_handle = *(int *)(pt + 0x34);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:699:1",
+        "line": 699,
+        "status": "pending",
+        "text": "*(int *)(pt_tail + 0x34) != -1) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 9,
+        "id": "raw_base_offset_dereferences:703:1",
+        "line": 703,
+        "status": "pending",
+        "text": "*(int *)(pt_pred + 0x34) = -1;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:785:1",
+        "line": 785,
+        "status": "pending",
+        "text": "*(short *)(datum + 0xc) = attachment_index;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:786:1",
+        "line": 786,
+        "status": "pending",
+        "text": "*(short *)(datum + 0x2) = 0;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:787:1",
+        "line": 787,
+        "status": "pending",
+        "text": "*(int *)(datum + 0x4) = definition_index;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:788:1",
+        "line": 788,
+        "status": "pending",
+        "text": "*(int *)(datum + 0x8) = object_index;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:793:1",
+        "line": 793,
+        "status": "pending",
+        "text": "*(short *)(datum + 0xe) = *(short *)(obj_tag_elem + 0x30) - 1;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 29,
+        "id": "raw_base_offset_dereferences:793:2",
+        "line": 793,
+        "status": "pending",
+        "text": "*(short *)(datum + 0xe) = *(short *)(obj_tag_elem + 0x30) - 1;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:794:1",
+        "line": 794,
+        "status": "pending",
+        "text": "*(short *)(datum + 0x14) = (short)0xffff;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:798:1",
+        "line": 798,
+        "status": "pending",
+        "text": "*(int *)(datum + 0x18) = 0;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:799:1",
+        "line": 799,
+        "status": "pending",
+        "text": "*(int *)(datum + 0x1c) = 0;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 33,
+        "id": "raw_base_offset_dereferences:812:1",
+        "line": 812,
+        "status": "pending",
+        "text": "if (object_get_function_value(*(int *)(datum + 0x8),"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 49,
+        "id": "raw_base_offset_dereferences:813:1",
+        "line": 813,
+        "status": "pending",
+        "text": "(unsigned short)*(short *)(datum + 0xe),"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:815:1",
+        "line": 815,
+        "status": "pending",
+        "text": "*(unsigned char *)(datum + 0x2) |= 1;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 28,
+        "id": "raw_base_offset_dereferences:871:1",
+        "line": 871,
+        "status": "pending",
+        "text": "elapsed = delta_time - *(float *)(datum + 0x28);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:889:1",
+        "line": 889,
+        "status": "pending",
+        "text": "*(int *)(datum + 0x28) = 0;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 30,
+        "id": "raw_base_offset_dereferences:892:1",
+        "line": 892,
+        "status": "pending",
+        "text": "*(int *)(datum + 8), *(uint16_t *)(datum + 0xe),"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 23,
+        "id": "raw_base_offset_dereferences:895:1",
+        "line": 895,
+        "status": "pending",
+        "text": "saved_point = *(int *)(datum + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 9,
+        "id": "raw_base_offset_dereferences:896:1",
+        "line": 896,
+        "status": "pending",
+        "text": "*(int *)(datum + 0x10) = 0;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 9,
+        "id": "raw_base_offset_dereferences:920:1",
+        "line": 920,
+        "status": "pending",
+        "text": "*(int *)(datum + 0x10) = saved_point;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 19,
+        "id": "raw_base_offset_dereferences:952:1",
+        "line": 952,
+        "status": "pending",
+        "text": "render_freq = *(float *)(tag + 0x2c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 22,
+        "id": "raw_base_offset_dereferences:954:1",
+        "line": 954,
+        "status": "pending",
+        "text": "render_freq *= *(float *)(datum + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 30,
+        "id": "raw_base_offset_dereferences:959:1",
+        "line": 959,
+        "status": "pending",
+        "text": "step = render_freq - *(float *)(datum + 0x24);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 11,
+        "id": "raw_base_offset_dereferences:961:1",
+        "line": 961,
+        "status": "pending",
+        "text": "*(float *)(datum + 0x24) += remaining;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 25,
+        "id": "raw_base_offset_dereferences:969:1",
+        "line": 969,
+        "status": "pending",
+        "text": "float fade_rate = *(float *)(tag + 0x24);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 22,
+        "id": "raw_base_offset_dereferences:971:1",
+        "line": 971,
+        "status": "pending",
+        "text": "fade_rate *= *(float *)(datum + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:972:1",
+        "line": 972,
+        "status": "pending",
+        "text": "*(float *)(datum + 0x18) -= fade_rate * elapsed;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 25,
+        "id": "raw_base_offset_dereferences:975:1",
+        "line": 975,
+        "status": "pending",
+        "text": "float grow_rate = *(float *)(tag + 0x28);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 22,
+        "id": "raw_base_offset_dereferences:977:1",
+        "line": 977,
+        "status": "pending",
+        "text": "grow_rate *= *(float *)(datum + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:978:1",
+        "line": 978,
+        "status": "pending",
+        "text": "*(float *)(datum + 0x1c) += grow_rate * elapsed;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:1025:1",
+        "line": 1025,
+        "status": "pending",
+        "text": "*(int *)(datum + 0xc) = -1;"
+      }
+    ],
+    "raw_function_pointer_address_casts": [
+      {
+        "category": "symbol-names",
+        "column": 18,
+        "id": "raw_function_pointer_address_casts:891:1",
+        "line": 891,
+        "status": "pending",
+        "text": "attached = ((uint8_t(*)(int, int, void *))0x1403a0)("
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "raw_function_pointer_address_casts:981:1",
+        "line": 981,
+        "status": "pending",
+        "text": "((void (*)(int, float))0x98200)(datum_handle, delta_time);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "raw_function_pointer_address_casts:1011:1",
+        "line": 1011,
+        "status": "pending",
+        "text": "((void (*)(int))0x978f0)(datum_handle);"
+      }
+    ],
+    "xcall_uses": []
+  },
+  "items": [
+    {
+      "category": "symbol-names",
+      "column": 19,
+      "id": "absolute_address_dereferences:955:1",
+      "line": 955,
+      "status": "pending",
+      "text": "render_freq = *(float *)0x2533c8 / render_freq;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 21,
+      "id": "absolute_address_dereferences:957:1",
+      "line": 957,
+      "status": "pending",
+      "text": "if (remaining > *(float *)0x2533c0) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 28,
+      "id": "absolute_address_dereferences:966:1",
+      "line": 966,
+      "status": "pending",
+      "text": "} while (remaining > *(float *)0x2533c0);"
+    },
+    {
+      "category": "local-renames",
+      "column": 7,
+      "id": "decompiler_style_locals:55:1",
+      "line": 55,
+      "status": "applied",
+      "text": "int local_c;"
+    },
+    {
+      "category": "local-renames",
+      "column": 5,
+      "id": "decompiler_style_locals:65:1",
+      "line": 65,
+      "status": "applied",
+      "text": "local_c = 4;"
+    },
+    {
+      "category": "local-renames",
+      "column": 7,
+      "id": "decompiler_style_locals:75:1",
+      "line": 75,
+      "status": "applied",
+      "text": "local_c--;"
+    },
+    {
+      "category": "local-renames",
+      "column": 14,
+      "id": "decompiler_style_locals:76:1",
+      "line": 76,
+      "status": "applied",
+      "text": "} while (local_c != 0);"
+    },
+    {
+      "category": "local-renames",
+      "column": 9,
+      "id": "decompiler_style_locals:328:1",
+      "line": 328,
+      "status": "applied",
+      "text": "float local_30;"
+    },
+    {
+      "category": "local-renames",
+      "column": 9,
+      "id": "decompiler_style_locals:329:1",
+      "line": 329,
+      "status": "applied",
+      "text": "float local_24;"
+    },
+    {
+      "category": "local-renames",
+      "column": 9,
+      "id": "decompiler_style_locals:330:1",
+      "line": 330,
+      "status": "applied",
+      "text": "float local_10;"
+    },
+    {
+      "category": "local-renames",
+      "column": 8,
+      "id": "decompiler_style_locals:332:1",
+      "line": 332,
+      "status": "applied",
+      "text": "char local_218[4 * 0x6c];"
+    },
+    {
+      "category": "local-renames",
+      "column": 54,
+      "id": "decompiler_style_locals:345:1",
+      "line": 345,
+      "status": "applied",
+      "text": "*(int *)(datum + 8), (char *)marker_elem + 0x10, local_218, 4);"
+    },
+    {
+      "category": "local-renames",
+      "column": 3,
+      "id": "decompiler_style_locals:350:1",
+      "line": 350,
+      "status": "applied",
+      "text": "local_30 = contrail_scale_random_value("
+    },
+    {
+      "category": "local-renames",
+      "column": 3,
+      "id": "decompiler_style_locals:354:1",
+      "line": 354,
+      "status": "applied",
+      "text": "local_24 = *(float *)(ctag + 0x10);"
+    },
+    {
+      "category": "local-renames",
+      "column": 5,
+      "id": "decompiler_style_locals:356:1",
+      "line": 356,
+      "status": "applied",
+      "text": "local_24 *= *(float *)(datum + 0x10);"
+    },
+    {
+      "category": "local-renames",
+      "column": 3,
+      "id": "decompiler_style_locals:358:1",
+      "line": 358,
+      "status": "applied",
+      "text": "local_10 = *(float *)(ctag + 0x14);"
+    },
+    {
+      "category": "local-renames",
+      "column": 5,
+      "id": "decompiler_style_locals:360:1",
+      "line": 360,
+      "status": "applied",
+      "text": "local_10 *= *(float *)(datum + 0x10);"
+    },
+    {
+      "category": "local-renames",
+      "column": 20,
+      "id": "decompiler_style_locals:367:1",
+      "line": 367,
+      "status": "applied",
+      "text": "char *marker = local_218;"
+    },
+    {
+      "category": "local-renames",
+      "column": 32,
+      "id": "decompiler_style_locals:403:1",
+      "line": 403,
+      "status": "applied",
+      "text": "local_24, vel);"
+    },
+    {
+      "category": "local-renames",
+      "column": 46,
+      "id": "decompiler_style_locals:413:1",
+      "line": 413,
+      "status": "applied",
+      "text": "*(float *)(pd + 0x28) = vel[0] * local_30 + local_10 * root_loc[0];"
+    },
+    {
+      "category": "local-renames",
+      "column": 57,
+      "id": "decompiler_style_locals:413:2",
+      "line": 413,
+      "status": "applied",
+      "text": "*(float *)(pd + 0x28) = vel[0] * local_30 + local_10 * root_loc[0];"
+    },
+    {
+      "category": "local-renames",
+      "column": 46,
+      "id": "decompiler_style_locals:414:1",
+      "line": 414,
+      "status": "applied",
+      "text": "*(float *)(pd + 0x2c) = vel[1] * local_30 + local_10 * root_loc[1];"
+    },
+    {
+      "category": "local-renames",
+      "column": 57,
+      "id": "decompiler_style_locals:414:2",
+      "line": 414,
+      "status": "applied",
+      "text": "*(float *)(pd + 0x2c) = vel[1] * local_30 + local_10 * root_loc[1];"
+    },
+    {
+      "category": "local-renames",
+      "column": 46,
+      "id": "decompiler_style_locals:415:1",
+      "line": 415,
+      "status": "applied",
+      "text": "*(float *)(pd + 0x30) = vel[2] * local_30 + local_10 * root_loc[2];"
+    },
+    {
+      "category": "local-renames",
+      "column": 57,
+      "id": "decompiler_style_locals:415:2",
+      "line": 415,
+      "status": "applied",
+      "text": "*(float *)(pd + 0x30) = vel[2] * local_30 + local_10 * root_loc[2];"
+    },
+    {
+      "category": "local-renames",
+      "column": 7,
+      "id": "decompiler_style_locals:759:1",
+      "line": 759,
+      "status": "applied",
+      "text": "int iVar2;"
+    },
+    {
+      "category": "local-renames",
+      "column": 19,
+      "id": "decompiler_style_locals:760:1",
+      "line": 760,
+      "status": "applied",
+      "text": "unsigned short *puVar6;"
+    },
+    {
+      "category": "local-renames",
+      "column": 8,
+      "id": "decompiler_style_locals:761:1",
+      "line": 761,
+      "status": "applied",
+      "text": "int *puVar4;"
+    },
+    {
+      "category": "local-renames",
+      "column": 7,
+      "id": "decompiler_style_locals:762:1",
+      "line": 762,
+      "status": "applied",
+      "text": "int iVar5;"
+    },
+    {
+      "category": "local-renames",
+      "column": 3,
+      "id": "decompiler_style_locals:778:1",
+      "line": 778,
+      "status": "applied",
+      "text": "iVar2 = data_new_at_index(contrail_data);"
+    },
+    {
+      "category": "local-renames",
+      "column": 7,
+      "id": "decompiler_style_locals:779:1",
+      "line": 779,
+      "status": "applied",
+      "text": "if (iVar2 == -1)"
+    },
+    {
+      "category": "local-renames",
+      "column": 12,
+      "id": "decompiler_style_locals:780:1",
+      "line": 780,
+      "status": "applied",
+      "text": "return iVar2;"
+    },
+    {
+      "category": "local-renames",
+      "column": 44,
+      "id": "decompiler_style_locals:782:1",
+      "line": 782,
+      "status": "applied",
+      "text": "datum = (char *)datum_get(contrail_data, iVar2);"
+    },
+    {
+      "category": "local-renames",
+      "column": 3,
+      "id": "decompiler_style_locals:801:1",
+      "line": 801,
+      "status": "applied",
+      "text": "puVar6 = (unsigned short *)(datum + 0x2c);"
+    },
+    {
+      "category": "local-renames",
+      "column": 3,
+      "id": "decompiler_style_locals:802:1",
+      "line": 802,
+      "status": "applied",
+      "text": "puVar4 = (int *)(datum + 0x34);"
+    },
+    {
+      "category": "local-renames",
+      "column": 3,
+      "id": "decompiler_style_locals:803:1",
+      "line": 803,
+      "status": "applied",
+      "text": "iVar5 = 4;"
+    },
+    {
+      "category": "local-renames",
+      "column": 6,
+      "id": "decompiler_style_locals:805:1",
+      "line": 805,
+      "status": "applied",
+      "text": "*puVar6 = 0;"
+    },
+    {
+      "category": "local-renames",
+      "column": 6,
+      "id": "decompiler_style_locals:806:1",
+      "line": 806,
+      "status": "applied",
+      "text": "*puVar4 = -1;"
+    },
+    {
+      "category": "local-renames",
+      "column": 5,
+      "id": "decompiler_style_locals:807:1",
+      "line": 807,
+      "status": "applied",
+      "text": "puVar6++;"
+    },
+    {
+      "category": "local-renames",
+      "column": 5,
+      "id": "decompiler_style_locals:808:1",
+      "line": 808,
+      "status": "applied",
+      "text": "puVar4++;"
+    },
+    {
+      "category": "local-renames",
+      "column": 5,
+      "id": "decompiler_style_locals:809:1",
+      "line": 809,
+      "status": "applied",
+      "text": "iVar5--;"
+    },
+    {
+      "category": "local-renames",
+      "column": 12,
+      "id": "decompiler_style_locals:810:1",
+      "line": 810,
+      "status": "applied",
+      "text": "} while (iVar5 != 0);"
+    },
+    {
+      "category": "local-renames",
+      "column": 18,
+      "id": "decompiler_style_locals:816:1",
+      "line": 816,
+      "status": "applied",
+      "text": "FUN_00097e40(iVar2, 1, 1);"
+    },
+    {
+      "category": "local-renames",
+      "column": 10,
+      "id": "decompiler_style_locals:819:1",
+      "line": 819,
+      "status": "applied",
+      "text": "return iVar2;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 4,
+      "id": "fun_calls:81:1",
+      "line": 81,
+      "status": "pending",
+      "text": "* FUN_00097a50 (0x97a50): contrail tick counter \u2014 given a contrail handle and"
+    },
+    {
+      "category": "symbol-names",
+      "column": 9,
+      "id": "fun_calls:97:1",
+      "line": 97,
+      "status": "pending",
+      "text": "int16_t FUN_00097a50(int contrail_handle, float delta_time)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:135:1",
+      "line": 135,
+      "status": "pending",
+      "text": "void FUN_00097ae0(int contrail_handle /* @<eax> */)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:267:1",
+      "line": 267,
+      "status": "pending",
+      "text": "void FUN_00097db0(char *datum /* @<esi> */)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:317:1",
+      "line": 317,
+      "status": "pending",
+      "text": "void FUN_00097e40(int contrail_handle /* @<eax> */, int count, int flag)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 4,
+      "id": "fun_calls:480:1",
+      "line": 480,
+      "status": "pending",
+      "text": "* FUN_00098200 (0x98200): contrail point keyframe tick \u2014 for each active chain"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:511:1",
+      "line": 511,
+      "status": "pending",
+      "text": "void FUN_00098200(int contrail_handle, float delta_time)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 13,
+      "id": "fun_calls:670:1",
+      "line": 670,
+      "status": "pending",
+      "text": "FUN_00154a50(0, (int)phys_tag, (int *)(pt + 0x14), -1,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "fun_calls:796:1",
+      "line": 796,
+      "status": "pending",
+      "text": "FUN_00097db0(datum);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:816:1",
+      "line": 816,
+      "status": "pending",
+      "text": "FUN_00097e40(iVar2, 1, 1);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 18,
+      "id": "fun_calls:840:1",
+      "line": 840,
+      "status": "pending",
+      "text": "new_points = FUN_00097a50(contrail_handle, delta_time);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:842:1",
+      "line": 842,
+      "status": "pending",
+      "text": "FUN_00097e40(contrail_handle, count, 0);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 18,
+      "id": "fun_calls:926:1",
+      "line": 926,
+      "status": "pending",
+      "text": "result = FUN_00097a50(datum_handle, delta_time);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 9,
+      "id": "fun_calls:964:1",
+      "line": 964,
+      "status": "pending",
+      "text": "FUN_00097db0(datum);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:1019:1",
+      "line": 1019,
+      "status": "pending",
+      "text": "void FUN_0009f6e0(int contrail_handle)"
+    },
+    {
+      "category": "uncategorized",
+      "column": 7,
+      "id": "inline_asm:876:1",
+      "line": 876,
+      "status": "pending",
+      "text": "__asm {"
+    },
+    {
+      "category": "uncategorized",
+      "column": 7,
+      "id": "inline_asm:882:1",
+      "line": 882,
+      "status": "pending",
+      "text": "asm volatile(\"movl $0x97ae0, %%edx\\n\\t\""
+    },
+    {
+      "category": "uncategorized",
+      "column": 11,
+      "id": "inline_asm:901:1",
+      "line": 901,
+      "status": "pending",
+      "text": "__asm {"
+    },
+    {
+      "category": "uncategorized",
+      "column": 11,
+      "id": "inline_asm:910:1",
+      "line": 910,
+      "status": "pending",
+      "text": "asm volatile(\"pushl $1\\n\\t\""
+    },
+    {
+      "category": "uncategorized",
+      "column": 11,
+      "id": "inline_asm:931:1",
+      "line": 931,
+      "status": "pending",
+      "text": "__asm {"
+    },
+    {
+      "category": "uncategorized",
+      "column": 11,
+      "id": "inline_asm:940:1",
+      "line": 940,
+      "status": "pending",
+      "text": "asm volatile(\"pushl $1\\n\\t\""
+    },
+    {
+      "category": "uncategorized",
+      "column": 7,
+      "id": "inline_asm:997:1",
+      "line": 997,
+      "status": "pending",
+      "text": "__asm {"
+    },
+    {
+      "category": "uncategorized",
+      "column": 7,
+      "id": "inline_asm:1003:1",
+      "line": 1003,
+      "status": "pending",
+      "text": "asm volatile(\"movl $0x97ae0, %%edx\\n\\t\""
+    },
+    {
+      "category": "offset-to-field",
+      "column": 21,
+      "id": "raw_base_offset_dereferences:40:1",
+      "line": 40,
+      "status": "pending",
+      "text": "next_handle = *(int *)(point_datum + 0x34);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 26,
+      "id": "raw_base_offset_dereferences:68:1",
+      "line": 68,
+      "status": "pending",
+      "text": "point_index = *(int *)(point_datum + 0x34)) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:70:1",
+      "line": 70,
+      "status": "pending",
+      "text": "if (*(short *)(point_datum + 0x18) != -1) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 20,
+      "id": "raw_base_offset_dereferences:110:1",
+      "line": 110,
+      "status": "pending",
+      "text": "render_freq *= *(float *)(datum + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 24,
+      "id": "raw_base_offset_dereferences:120:1",
+      "line": 120,
+      "status": "pending",
+      "text": "while (delta_time >= *(float *)(datum + 0x20)) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 19,
+      "id": "raw_base_offset_dereferences:121:1",
+      "line": 121,
+      "status": "pending",
+      "text": "delta_time -= *(float *)(datum + 0x20);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:122:1",
+      "line": 122,
+      "status": "pending",
+      "text": "*(float *)(datum + 0x20) = period;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:128:1",
+      "line": 128,
+      "status": "pending",
+      "text": "*(float *)(datum + 0x20) -= delta_time;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 24,
+      "id": "raw_base_offset_dereferences:153:1",
+      "line": 153,
+      "status": "pending",
+      "text": "attachment_index = *(short *)(datum + 0xc);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 24,
+      "id": "raw_base_offset_dereferences:186:1",
+      "line": 186,
+      "status": "pending",
+      "text": "point_handle = *(int *)(point_datum + 0x34);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 40,
+      "id": "raw_base_offset_dereferences:279:1",
+      "line": 279,
+      "status": "pending",
+      "text": "bitmap = (char *)tag_get(0x6269746d, *(int *)(tag + 0x3c));"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 20,
+      "id": "raw_base_offset_dereferences:281:1",
+      "line": 281,
+      "status": "pending",
+      "text": "sequence_index = *(int16_t *)(datum + 0x14);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:282:1",
+      "line": 282,
+      "status": "pending",
+      "text": "*(int16_t *)(datum + 0x16) = *(int16_t *)(datum + 0x16) + 1;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 32,
+      "id": "raw_base_offset_dereferences:282:2",
+      "line": 282,
+      "status": "pending",
+      "text": "*(int16_t *)(datum + 0x16) = *(int16_t *)(datum + 0x16) + 1;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 19,
+      "id": "raw_base_offset_dereferences:283:1",
+      "line": 283,
+      "status": "pending",
+      "text": "frame_counter = *(int16_t *)(datum + 0x16);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:284:1",
+      "line": 284,
+      "status": "pending",
+      "text": "*(float *)(datum + 0x24) = 0.0f;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 19,
+      "id": "raw_base_offset_dereferences:296:1",
+      "line": 296,
+      "status": "pending",
+      "text": "frame_counter = *(int16_t *)(datum + 0x16);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 23,
+      "id": "raw_base_offset_dereferences:297:1",
+      "line": 297,
+      "status": "pending",
+      "text": "if (frame_counter < *(int16_t *)(seq_element + 0x22))"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:301:1",
+      "line": 301,
+      "status": "pending",
+      "text": "seq_min = *(int16_t *)(tag + 0x40);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 23,
+      "id": "raw_base_offset_dereferences:302:1",
+      "line": 302,
+      "status": "pending",
+      "text": "seq_max = seq_min + *(int16_t *)(tag + 0x42);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:303:1",
+      "line": 303,
+      "status": "pending",
+      "text": "*(int16_t *)(datum + 0x14) ="
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:305:1",
+      "line": 305,
+      "status": "pending",
+      "text": "*(int16_t *)(datum + 0x16) = 0;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 44,
+      "id": "raw_base_offset_dereferences:343:1",
+      "line": 343,
+      "status": "pending",
+      "text": "tag_block_get_element(obj_tag + 0x140, *(int16_t *)(datum + 0xc), 0x48);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:351:1",
+      "line": 351,
+      "status": "pending",
+      "text": "*(float *)(datum + 0x10), *(float *)(ctag + 8), *(float *)(ctag + 0xc),"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 53,
+      "id": "raw_base_offset_dereferences:351:2",
+      "line": 351,
+      "status": "pending",
+      "text": "*(float *)(datum + 0x10), *(float *)(ctag + 8), *(float *)(ctag + 0xc),"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 14,
+      "id": "raw_base_offset_dereferences:354:1",
+      "line": 354,
+      "status": "pending",
+      "text": "local_24 = *(float *)(ctag + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 17,
+      "id": "raw_base_offset_dereferences:356:1",
+      "line": 356,
+      "status": "pending",
+      "text": "local_24 *= *(float *)(datum + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 14,
+      "id": "raw_base_offset_dereferences:358:1",
+      "line": 358,
+      "status": "pending",
+      "text": "local_10 = *(float *)(ctag + 0x14);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 17,
+      "id": "raw_base_offset_dereferences:360:1",
+      "line": 360,
+      "status": "pending",
+      "text": "local_10 *= *(float *)(datum + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 11,
+      "id": "raw_base_offset_dereferences:396:1",
+      "line": 396,
+      "status": "pending",
+      "text": "*(float *)(pd + 0xc) = *(float *)(datum + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 34,
+      "id": "raw_base_offset_dereferences:396:2",
+      "line": 396,
+      "status": "pending",
+      "text": "*(float *)(pd + 0xc) = *(float *)(datum + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:405:1",
+      "line": 405,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x1c) = *(float *)(marker + 0x60);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 37,
+      "id": "raw_base_offset_dereferences:405:2",
+      "line": 405,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x1c) = *(float *)(marker + 0x60);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:406:1",
+      "line": 406,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x20) = *(float *)(marker + 0x64);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 37,
+      "id": "raw_base_offset_dereferences:406:2",
+      "line": 406,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x20) = *(float *)(marker + 0x64);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:407:1",
+      "line": 407,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x24) = *(float *)(marker + 0x68);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 37,
+      "id": "raw_base_offset_dereferences:407:2",
+      "line": 407,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x24) = *(float *)(marker + 0x68);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:413:1",
+      "line": 413,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x28) = vel[0] * local_30 + local_10 * root_loc[0];"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:414:1",
+      "line": 414,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x2c) = vel[1] * local_30 + local_10 * root_loc[1];"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:415:1",
+      "line": 415,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x30) = vel[2] * local_30 + local_10 * root_loc[2];"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:438:1",
+      "line": 438,
+      "status": "pending",
+      "text": "*(float *)(pd + 0xc) = frac_new * *(float *)(pd + 0xc) +"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 47,
+      "id": "raw_base_offset_dereferences:438:2",
+      "line": 438,
+      "status": "pending",
+      "text": "*(float *)(pd + 0xc) = frac_new * *(float *)(pd + 0xc) +"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 47,
+      "id": "raw_base_offset_dereferences:439:1",
+      "line": 439,
+      "status": "pending",
+      "text": "frac_old * *(float *)(prev_head + 0xc);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 41,
+      "id": "raw_base_offset_dereferences:441:1",
+      "line": 441,
+      "status": "pending",
+      "text": "blended_pos[0] = frac_new * *(float *)(pd + 0x1c) +"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 41,
+      "id": "raw_base_offset_dereferences:442:1",
+      "line": 442,
+      "status": "pending",
+      "text": "frac_old * *(float *)(prev_head + 0x1c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 41,
+      "id": "raw_base_offset_dereferences:443:1",
+      "line": 443,
+      "status": "pending",
+      "text": "blended_pos[1] = frac_new * *(float *)(pd + 0x20) +"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 41,
+      "id": "raw_base_offset_dereferences:444:1",
+      "line": 444,
+      "status": "pending",
+      "text": "frac_old * *(float *)(prev_head + 0x20);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 41,
+      "id": "raw_base_offset_dereferences:445:1",
+      "line": 445,
+      "status": "pending",
+      "text": "blended_pos[2] = frac_new * *(float *)(pd + 0x24) +"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 41,
+      "id": "raw_base_offset_dereferences:446:1",
+      "line": 446,
+      "status": "pending",
+      "text": "frac_old * *(float *)(prev_head + 0x24);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:449:1",
+      "line": 449,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x1c) = blended_pos[0];"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:450:1",
+      "line": 450,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x20) = blended_pos[1];"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:451:1",
+      "line": 451,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x24) = blended_pos[2];"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:453:1",
+      "line": 453,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x28) = frac_new * *(float *)(pd + 0x28) +"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 48,
+      "id": "raw_base_offset_dereferences:453:2",
+      "line": 453,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x28) = frac_new * *(float *)(pd + 0x28) +"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 48,
+      "id": "raw_base_offset_dereferences:454:1",
+      "line": 454,
+      "status": "pending",
+      "text": "frac_old * *(float *)(prev_head + 0x28);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:455:1",
+      "line": 455,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x2c) = frac_new * *(float *)(pd + 0x2c) +"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 48,
+      "id": "raw_base_offset_dereferences:455:2",
+      "line": 455,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x2c) = frac_new * *(float *)(pd + 0x2c) +"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 48,
+      "id": "raw_base_offset_dereferences:456:1",
+      "line": 456,
+      "status": "pending",
+      "text": "frac_old * *(float *)(prev_head + 0x2c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:457:1",
+      "line": 457,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x30) = frac_new * *(float *)(pd + 0x30) +"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 48,
+      "id": "raw_base_offset_dereferences:457:2",
+      "line": 457,
+      "status": "pending",
+      "text": "*(float *)(pd + 0x30) = frac_new * *(float *)(pd + 0x30) +"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 48,
+      "id": "raw_base_offset_dereferences:458:1",
+      "line": 458,
+      "status": "pending",
+      "text": "frac_old * *(float *)(prev_head + 0x30);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 11,
+      "id": "raw_base_offset_dereferences:461:1",
+      "line": 461,
+      "status": "pending",
+      "text": "*(int *)(pd + 0x34) = *chain_head;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 26,
+      "id": "raw_base_offset_dereferences:585:1",
+      "line": 585,
+      "status": "pending",
+      "text": "kf_flags = *(unsigned int *)(kf + 0x64);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 26,
+      "id": "raw_base_offset_dereferences:586:1",
+      "line": 586,
+      "status": "pending",
+      "text": "base_dur = *(float *)(kf + 0x0);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 27,
+      "id": "raw_base_offset_dereferences:587:1",
+      "line": 587,
+      "status": "pending",
+      "text": "range_dur = *(float *)(kf + 0x4) - base_dur;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 28,
+      "id": "raw_base_offset_dereferences:590:1",
+      "line": 590,
+      "status": "pending",
+      "text": "base_dur = *(float *)(pt + 0xc) * base_dur;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 41,
+      "id": "raw_base_offset_dereferences:593:1",
+      "line": 593,
+      "status": "pending",
+      "text": "range_dur = range_dur * *(float *)(pt + 0xc);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 26,
+      "id": "raw_base_offset_dereferences:614:1",
+      "line": 614,
+      "status": "pending",
+      "text": "kf_count = *(int *)(tag + 0x138);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 26,
+      "id": "raw_base_offset_dereferences:626:1",
+      "line": 626,
+      "status": "pending",
+      "text": "kf_flags = *(unsigned int *)(kf + 0x64);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 26,
+      "id": "raw_base_offset_dereferences:627:1",
+      "line": 627,
+      "status": "pending",
+      "text": "base_dur = *(float *)(kf + 0x8);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 27,
+      "id": "raw_base_offset_dereferences:628:1",
+      "line": 628,
+      "status": "pending",
+      "text": "range_dur = *(float *)(kf + 0xc) - base_dur;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 28,
+      "id": "raw_base_offset_dereferences:631:1",
+      "line": 631,
+      "status": "pending",
+      "text": "base_dur = *(float *)(pt + 0xc) * base_dur;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 41,
+      "id": "raw_base_offset_dereferences:634:1",
+      "line": 634,
+      "status": "pending",
+      "text": "range_dur = range_dur * *(float *)(pt + 0xc);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 22,
+      "id": "raw_base_offset_dereferences:666:1",
+      "line": 666,
+      "status": "pending",
+      "text": "phys_ref = *(int *)(kf + 0x1c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 22,
+      "id": "raw_base_offset_dereferences:668:1",
+      "line": 668,
+      "status": "pending",
+      "text": "radius = *(float *)(kf + 0x40) * 0.5f;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 23,
+      "id": "raw_base_offset_dereferences:680:1",
+      "line": 680,
+      "status": "pending",
+      "text": "next_handle = *(int *)(pt + 0x34);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:699:1",
+      "line": 699,
+      "status": "pending",
+      "text": "*(int *)(pt_tail + 0x34) != -1) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 9,
+      "id": "raw_base_offset_dereferences:703:1",
+      "line": 703,
+      "status": "pending",
+      "text": "*(int *)(pt_pred + 0x34) = -1;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:785:1",
+      "line": 785,
+      "status": "pending",
+      "text": "*(short *)(datum + 0xc) = attachment_index;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:786:1",
+      "line": 786,
+      "status": "pending",
+      "text": "*(short *)(datum + 0x2) = 0;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:787:1",
+      "line": 787,
+      "status": "pending",
+      "text": "*(int *)(datum + 0x4) = definition_index;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:788:1",
+      "line": 788,
+      "status": "pending",
+      "text": "*(int *)(datum + 0x8) = object_index;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:793:1",
+      "line": 793,
+      "status": "pending",
+      "text": "*(short *)(datum + 0xe) = *(short *)(obj_tag_elem + 0x30) - 1;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 29,
+      "id": "raw_base_offset_dereferences:793:2",
+      "line": 793,
+      "status": "pending",
+      "text": "*(short *)(datum + 0xe) = *(short *)(obj_tag_elem + 0x30) - 1;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:794:1",
+      "line": 794,
+      "status": "pending",
+      "text": "*(short *)(datum + 0x14) = (short)0xffff;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:798:1",
+      "line": 798,
+      "status": "pending",
+      "text": "*(int *)(datum + 0x18) = 0;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:799:1",
+      "line": 799,
+      "status": "pending",
+      "text": "*(int *)(datum + 0x1c) = 0;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 33,
+      "id": "raw_base_offset_dereferences:812:1",
+      "line": 812,
+      "status": "pending",
+      "text": "if (object_get_function_value(*(int *)(datum + 0x8),"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 49,
+      "id": "raw_base_offset_dereferences:813:1",
+      "line": 813,
+      "status": "pending",
+      "text": "(unsigned short)*(short *)(datum + 0xe),"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:815:1",
+      "line": 815,
+      "status": "pending",
+      "text": "*(unsigned char *)(datum + 0x2) |= 1;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 28,
+      "id": "raw_base_offset_dereferences:871:1",
+      "line": 871,
+      "status": "pending",
+      "text": "elapsed = delta_time - *(float *)(datum + 0x28);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:889:1",
+      "line": 889,
+      "status": "pending",
+      "text": "*(int *)(datum + 0x28) = 0;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 30,
+      "id": "raw_base_offset_dereferences:892:1",
+      "line": 892,
+      "status": "pending",
+      "text": "*(int *)(datum + 8), *(uint16_t *)(datum + 0xe),"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 23,
+      "id": "raw_base_offset_dereferences:895:1",
+      "line": 895,
+      "status": "pending",
+      "text": "saved_point = *(int *)(datum + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 9,
+      "id": "raw_base_offset_dereferences:896:1",
+      "line": 896,
+      "status": "pending",
+      "text": "*(int *)(datum + 0x10) = 0;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 9,
+      "id": "raw_base_offset_dereferences:920:1",
+      "line": 920,
+      "status": "pending",
+      "text": "*(int *)(datum + 0x10) = saved_point;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 19,
+      "id": "raw_base_offset_dereferences:952:1",
+      "line": 952,
+      "status": "pending",
+      "text": "render_freq = *(float *)(tag + 0x2c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 22,
+      "id": "raw_base_offset_dereferences:954:1",
+      "line": 954,
+      "status": "pending",
+      "text": "render_freq *= *(float *)(datum + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 30,
+      "id": "raw_base_offset_dereferences:959:1",
+      "line": 959,
+      "status": "pending",
+      "text": "step = render_freq - *(float *)(datum + 0x24);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 11,
+      "id": "raw_base_offset_dereferences:961:1",
+      "line": 961,
+      "status": "pending",
+      "text": "*(float *)(datum + 0x24) += remaining;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 25,
+      "id": "raw_base_offset_dereferences:969:1",
+      "line": 969,
+      "status": "pending",
+      "text": "float fade_rate = *(float *)(tag + 0x24);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 22,
+      "id": "raw_base_offset_dereferences:971:1",
+      "line": 971,
+      "status": "pending",
+      "text": "fade_rate *= *(float *)(datum + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:972:1",
+      "line": 972,
+      "status": "pending",
+      "text": "*(float *)(datum + 0x18) -= fade_rate * elapsed;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 25,
+      "id": "raw_base_offset_dereferences:975:1",
+      "line": 975,
+      "status": "pending",
+      "text": "float grow_rate = *(float *)(tag + 0x28);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 22,
+      "id": "raw_base_offset_dereferences:977:1",
+      "line": 977,
+      "status": "pending",
+      "text": "grow_rate *= *(float *)(datum + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:978:1",
+      "line": 978,
+      "status": "pending",
+      "text": "*(float *)(datum + 0x1c) += grow_rate * elapsed;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:1025:1",
+      "line": 1025,
+      "status": "pending",
+      "text": "*(int *)(datum + 0xc) = -1;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 18,
+      "id": "raw_function_pointer_address_casts:891:1",
+      "line": 891,
+      "status": "pending",
+      "text": "attached = ((uint8_t(*)(int, int, void *))0x1403a0)("
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "raw_function_pointer_address_casts:981:1",
+      "line": 981,
+      "status": "pending",
+      "text": "((void (*)(int, float))0x98200)(datum_handle, delta_time);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "raw_function_pointer_address_casts:1011:1",
+      "line": 1011,
+      "status": "pending",
+      "text": "((void (*)(int))0x978f0)(datum_handle);"
+    }
+  ],
+  "kind": "source-recovery-manifest",
+  "repo_relative_source": "src/halo/effects/contrails.c",
+  "schema": 1,
+  "source_sha256": "7071fa6124b38963ac71e02beef2ba0e077a2dc6290a2447f7cb05e0449a89f8"
+}
