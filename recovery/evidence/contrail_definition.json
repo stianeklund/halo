@@ -15,7 +15,7 @@
       "signed": false,
       "name": "flags",
       "confidence": "typed",
-      "evidence": "read as a whole 16-bit value and passed to contrail_scale_random_value(*(uint16_t *)(ctag + 2)) at contrails.c:353; individual bits tested bytewise - *(uint8_t *)(tag + 2) & 1 at contrails.c:107 (scales +0x04), *(uint8_t *)(tag + 3) & 1 at contrails.c:965 (scales +0x24), *(uint8_t *)(tag + 3) & 2 at contrails.c:972 (scales +0x28). The 16-bit read spanning both bytes is what proves one 2-byte field rather than two 1-byte fields."
+      "evidence": "read as a whole 16-bit value and passed to contrail_scale_random_value(*(uint16_t *)(ctag + 2)) at contrails.c:353; individual bits tested bytewise - *(uint8_t *)(tag + 2) & 1 at contrails.c:107 (scales +0x04), TEST byte ptr [EDI+0x2],0x20 at 0x98839 (scales +0x2c), TEST byte ptr [EDI+0x3],0x1 at 0x9889f (scales +0x24), TEST byte ptr [EDI+0x3],0x2 at 0x988b4 (scales +0x28). The 16-bit read spanning both bytes is what proves one 2-byte field rather than two 1-byte fields."
     },
     {
       "offset": "0x04",
@@ -67,6 +67,13 @@
       "evidence": "per-second rate ADDED to contrail +0x1c (contrails.c:971-975), optionally scaled by contrail->scale when the +0x03 flag byte bit 1 (0x2) is set; semantics NOT proven - intentionally left unnamed"
     },
     {
+      "offset": "0x2c",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "OMITTED FROM THE FIRST REVISION of this artifact. Float: FLD float ptr [EDI+0x2c] at 0x98833, optionally scaled by FMUL float ptr [ESI+0x10] when TEST byte ptr [EDI+0x2],0x20 is set (0x98839-0x9883f), then used as the numerator of the per-step divide that drives the point-stepping loop at 0x98842-0x9888c. Matches *(float *)(tag + 0x2c) at contrails.c:1037. Semantics unproven - intentionally unnamed."
+    },
+    {
       "offset": "0x3c",
       "width": 4,
       "signed": true,
@@ -90,9 +97,11 @@
   ],
   "notes": [
     "SIZE IS NOT PROVEN and is deliberately omitted. This is a tag definition, not a data_t pool element, so there is no element-size constructor argument to read; the highest offset merely observed is +0x42. Do not render a cs() size assert from this artifact. Recovering the size requires the 'cont' tag definition's total size from the tag-loading path or the tag group registration table.",
-    "UNKNOWN RANGES (never observed accessed): +0x00..+0x01, +0x18..+0x23, +0x2c..+0x3b, and everything beyond +0x43. No interpolation was performed across them.",
+    "UNKNOWN RANGES (never observed accessed): +0x00..+0x01, +0x18..+0x23, +0x30..+0x3b, and everything beyond +0x43. No interpolation was performed across them.",
+    "CORRECTION LOG: the first revision of this artifact omitted +0x2c entirely and listed +0x2c..+0x3b as an unknown range. +0x2c is a float (FLD float ptr [EDI+0x2c] at 0x98833) gated by flags bit 5 (0x20). It was missed because the initial inventory was derived from the recovery manifest's regex hits rather than from a full disassembly of the 0x98750 update loop.",
     "FINDING to fix in src/halo/effects/contrails.c independently of any struct work: +0x40 and +0x42 are unsigned in the original (zero-extend idiom) but declared int16_t in our lift at contrails.c:301-302. Latent rather than active - it only diverges for sequence bounds >= 0x8000 - but it is a real width/sign fidelity defect of the class lift-learnings section 24 describes.",
     "The +0x02 flags field is accessed both as one 16-bit value and as two individual bytes (+0x02 and +0x03). Bits proven so far: bit 0 scales +0x04; bit 3 (0x8) scales +0x10; bit 4 (0x10) scales +0x14; byte +0x03 bit 0 scales +0x24; byte +0x03 bit 1 scales +0x28. In 16-bit terms the +0x03 bits are bits 8 and 9.",
+    "CORROBORATED by vc71_verify --loadw-only on src/halo/effects/contrails.c: FUN_00097e40 reports [LOADW-WARN] at disp:0x2 - 'our lift reads a narrow field [n8 disp:0x2] the reference does not (ours: movb 0x2(%esi), %al)'. The original loads this field wider than our uint8_t read at contrails.c:355, independently confirming the 2-byte width recorded above. Behaviour is unaffected at that site (the tested bit 0x8 lies in the low byte), so this is a width-fidelity divergence of the lift-learnings section 24 class, not a live bug. Fixing it is a CORRECTIVE change (it moves codegen) and must not be folded into a neutral recovery step; it resolves naturally when these offsets become def->flags field access under offset-to-struct.",
     "Out of scope but recorded from the same disassembly (0x97db0): the referenced 'bitm' tag has its sequence tag-block count at +0x54 and the block's element size is 0x40 (tag_block_get_element(bitm_tag + 0x54, sequence_index, 0x40) at 0x97dfd), and a bitmap sequence element holds a signed 16-bit count at +0x22 (CMP DX,word ptr [EAX+0x22] at 0x97e09)."
   ]
 }

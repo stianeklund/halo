@@ -33,9 +33,10 @@
     {
       "offset": "0x02",
       "width": 2,
-      "signed": true,
+      "signed": false,
+      "name": "flags",
       "confidence": "typed",
-      "evidence": "*(short *)(datum + 0x2) = 0 at contrails.c:786 (create path) proves a real 2-byte field, not padding; sign NOT observed (store-only, no read site found) - declared signed to match the store form"
+      "evidence": "2-byte field: MOV word ptr [ESI+0x2],0x0 at 0x98626 (contrail_new) is a 16-bit zero store. Bit 0 is the object-attached state, maintained bytewise: OR byte ptr [ESI+0x2],0x1 at 0x986af/0x98811 when the attachment query at 0x1403a0 returns true, AND byte ptr [ESI+0x2],0xfe at 0x98890 when false, and MOV DL,byte ptr [ESI+0x2]; AND DL,0x1; CMP AL,DL at 0x987d5-0x987de compares it against that return value. Unsigned: only bit tests and masks, never sign-extended."
     },
     {
       "offset": "0x04",
@@ -64,9 +65,9 @@
     {
       "offset": "0x0e",
       "width": 2,
-      "signed": true,
+      "signed": false,
       "confidence": "typed",
-      "evidence": "*(short *)(datum + 0xe) = *(short *)(obj_tag_elem + 0x30) - 1 at contrails.c:793, where obj_tag_elem = tag_block_get_element(obje_tag+0x140, attachment_index, 0x48); a real field, not padding; semantics unproven"
+      "evidence": "UNSIGNED, proven twice by the zero-extend idiom: XOR EDX,EDX; MOV DX,word ptr [ESI+0xe] at 0x98695-0x98697 (contrail_new) and XOR ECX,ECX; MOV CX,word ptr [ESI+0xe] at 0x987c4-0x987c6 (0x98750), each feeding the 0x1403a0 attachment query. Written as MOV AX,word ptr [EAX+0x30]; DEC AX; MOV word ptr [ESI+0xe],AX at 0x9864e-0x98657, i.e. obje attachment element +0x30 minus 1. Semantics unproven, so it stays unnamed."
     },
     {
       "offset": "0x10",
@@ -74,7 +75,7 @@
       "kind": "float",
       "name": "scale",
       "confidence": "typed",
-      "evidence": "multiplied into tag-supplied rates whenever the corresponding 'cont' flag bit is set: render_freq (0x97a50), fade rate (contrails.c:966), grow rate (contrails.c:973); also copied into contrail_point +0x0c"
+      "evidence": "FMUL float ptr [ESI+0x10] at 0x9883f/0x988a8/0x988bd multiplies it into the 'cont' rates at +0x2c/+0x24/+0x28 when the matching flag bit is set; also copied into contrail_point +0x0c. NOTE it is additionally ADDRESS-TAKEN: LEA ECX,[ESI+0x10]; PUSH ECX at 0x9869b-0x9869e and LEA EDI,[ESI+0x10]; PUSH EDI at 0x987ca-0x987cd pass &field as the third argument to 0x1403a0, whose 32-bit result the caller saves, zeroes and restores through that pointer (0x987e5-0x98804). So this slot is both a float scale and an in/out parameter cell."
     },
     {
       "offset": "0x14",
@@ -122,8 +123,9 @@
     {
       "offset": "0x28",
       "width": 4,
-      "confidence": "gap",
-      "evidence": "no access observed at +0x28..+0x2b in any contrails.c function or in the disassembly of 0x97ae0 / 0x97db0 / 0x97a50"
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "CORRECTED from an earlier 'gap' claim. Float: FLD float ptr [EBP+0x8]; FSUB float ptr [ESI+0x28] at 0x9879d-0x987a0 computes elapsed = delta_time - this field, then MOV dword ptr [ESI+0x28],0x0 at 0x987bb zeroes it (float 0.0f as a 32-bit store). Deliberately NOT initialized by contrail_new - it is only ever reset in the 0x98750 update loop."
     },
     {
       "offset": "0x2c",
@@ -147,7 +149,9 @@
   "notes": [
     "Four parallel point chains ('instances'/lobes): contrail_point_counts[i] and first_contrail_point_indices[i] are index-locked, and the invariant asserted at contrails.c:986 is (count > 0) == (head != NONE). The loop bound 4 is a literal in both 0x97ae0 (MOV dword ptr [EBP-0x8],0x4) and contrails.c:984-989.",
     "SIGN CONFLICT IN OUR SOURCE, resolved in favor of signed: contrails.c:176 declares the count cursor `short *count_ptr` while contrails.c:761 declares `unsigned short *count_ptr` for the same +0x2c array. The original sign-extends it (MOVSX EDX,AX at 0x97c24), so signed is correct and contrails.c:761 is the outlier to fix.",
-    "+0x02 and +0x0e were treated as padding by the existing lift but are proven real 2-byte fields by explicit create-path stores; their semantics are NOT proven and they must stay unnamed.",
+    "+0x02 and +0x0e were treated as padding by the existing lift but are proven real 2-byte fields by explicit create-path stores. +0x02 is now named flags (bit 0 = object-attached, proven); +0x0e's semantics remain unproven and it stays unnamed.",
+    "CORRECTION LOG (first revision of this artifact was wrong on three counts; all three were caught by re-deriving the access inventory over the whole TU instead of over the recovery manifest's regex hits, which silently omitted several forms): (1) +0x28 was recorded as a gap 'never observed accessed' - it is a float, read at 0x987a0 and zeroed at 0x987bb. (2) +0x0e was recorded signed - it is unsigned (zero-extend at 0x98695 and 0x987c4). (3) +0x02 was recorded as unknown/store-only - it is a flags field whose bit 0 tracks object attachment. The cs()/co() asserts did NOT catch (1) because pad_28[4] and a float occupy the same four bytes, so offsets and total size were unaffected; only the field TYPE was wrong. Lesson: assert coverage proves layout, not field typing.",
+    "A fourth would-be error was avoided: an inventory keyed on the local name 'datum' also picks up FUN_0009f6e0, which operates on particle_system_header_data (DAT_0x5aa8a8), NOT contrail_data (0x5aa8c0). Its *(int *)(datum + 0xc) = -1 is a 32-bit store into a DIFFERENT struct and must not be read as evidence that contrail +0x0c is 4 bytes wide - contrail +0x0c is 16-bit and sign-extended (MOVSX ECX,CX at 0x98621).",
     "Out of scope but recorded from the same disassembly: obje tag +0x140 is a tag block whose element size is 0x48 (tag_block_get_element(obj_tag_elem + 0x140, attachment_index, 0x48) at contrails.c:791-792), and the object struct holds attached contrail handles at +0xfc + attachment_index*4 (MOV EAX,dword ptr [EDX+ECX*0x4+0xfc] at 0x97b90).",
     "Pool globals are unregistered in kb.json: contrail_data at 0x005aa8c0 and contrail_point_data at 0x005aa8bc (MOV EAX,[0x005aa8c0] at 0x97aea, MOV EDX,dword ptr [0x005aa8bc] at 0x97bf1)."
   ]
