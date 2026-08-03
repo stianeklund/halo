@@ -13439,7 +13439,9 @@
     },
     {
      "addr": "0x1034b0",
-     "decl": "void FUN_001034b0(int *context);"
+     "decl": "void FUN_001034b0(int *context);",
+     "ported": true,
+     "source_path": "src/halo/main/main.c"
     },
     {
      "addr": "0x1034e0",

@@ -3051,6 +3051,29 @@ void main_loop(void)
 }
 
 /*
+ * FUN_001034b0 - 0x1034b0
+ * Initializes the three arrays embedded in a geometry-build context: an array
+ * of 0x0c-byte elements at +0x00, an array of 0x1c-byte elements at +0x0c, and
+ * an array of 0x18-byte elements at +0x18. Counterpart of the dispose helper
+ * FUN_001034e0 below, which frees the same three tables at those same offsets
+ * and walks the +0x0c table with a matching stride of 0x1c.
+ *
+ * Ghidra mis-detected the prototype as void(void); the sole parameter is a
+ * normal cdecl stack argument ([EBP+8]), held in ESI across all three calls
+ * (the third call reuses ESI after ADD ESI,0x18). No register arguments.
+ *
+ * MSVC batches the stack cleanup for all three 2-argument calls into a single
+ * ADD ESP,0x18 after the last CALL (3 * 8 = 0x18); that is not evidence of a
+ * 6-argument call, so array_new's 2-parameter declaration is correct.
+ */
+void FUN_001034b0(int *context)
+{
+  array_new(context, 0xc);
+  array_new((int *)((char *)context + 0xc), 0x1c);
+  array_new((int *)((char *)context + 0x18), 0x18);
+}
+
+/*
  * FUN_001034e0 - 0x1034e0
  * Dispose helper for an object carrying three sub-allocations plus an
  * element table. Walks the element table (base at word offset +3 / byte
