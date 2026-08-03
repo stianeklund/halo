@@ -14,6 +14,18 @@
       "started": "2026-08-01",
       "status": "done"
     },
+    "contrails.obj": {
+      "categories_done": [
+        "local-renames"
+      ],
+      "commits": [
+        "44d22b6c"
+      ],
+      "finished": "2026-08-03",
+      "reason": null,
+      "started": "2026-08-03",
+      "status": "done"
+    },
     "hud_weapon.obj": {
       "categories_done": [
         "symbol-names"
