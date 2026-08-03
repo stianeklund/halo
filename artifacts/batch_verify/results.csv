@@ -1443,7 +1443,6 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0xb6dd0,FUN_000b6dd0,data_only,player_control.obj,not_applicable,lifted_extract_failed,0,0,0
 0xb6e10,limit2d,leaf,player_control.obj,not_applicable,lifted_extract_failed,0,0,0
 0xb6e60,interpolate_scalar,leaf,player_control.obj,not_applicable,lifted_extract_failed,0,0,0
-0xb7e30,player_control_get_facing_angles,leaf,player_control.obj,not_applicable,lifted_extract_failed,0,0,0
 0xb7f10,player_control_get_facing_direction,stubbable,player_control.obj,not_applicable,lifted_extract_failed,0,0,0
 0xa2700,player_effect_initialize,stubbable,player_effects.obj,pass,,50,50,0
 0xa2740,player_effect_dispose,leaf,player_effects.obj,pass,,50,50,0
@@ -1600,7 +1599,9 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x172650,FUN_00172650,stubbable,rasterizer.obj,error,emulation_error,0,50,0
 0x1726a0,FUN_001726a0,stubbable,rasterizer.obj,pass,,50,50,0
 0x172720,rasterizer_window_get_fog,stubbable,rasterizer.obj,pass,,50,50,0
+0x173af0,FUN_00173af0,stubbable,rasterizer.obj,not_applicable,oracle_truncated,0,0,0
 0x1741d0,FUN_001741d0,stubbable,rasterizer.obj,pass,,50,50,0
+0x1744f0,FUN_001744f0,stubbable,rasterizer.obj,error,emulation_error,0,50,0
 0x174510,FUN_00174510,stubbable,rasterizer.obj,pass,,50,50,0
 0x1749b0,FUN_001749b0,data_only,rasterizer.obj,pass,,50,50,0
 0x174b60,FUN_00174b60,leaf,rasterizer.obj,pass,,50,50,1
@@ -1608,13 +1609,18 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x174bd0,FUN_00174bd0,stubbable,rasterizer.obj,not_applicable,lifted_extract_failed,0,0,0
 0x174cc0,FUN_00174cc0,stubbable,rasterizer.obj,not_applicable,lifted_extract_failed,0,0,0
 0x174ce0,FUN_00174ce0,stubbable,rasterizer.obj,not_applicable,lifted_extract_failed,0,0,0
+0x178820,FUN_00178820,stubbable,rasterizer.obj,fail,divergence,7,50,0
 0x1792a0,FUN_001792a0,data_only,rasterizer.obj,pass,,50,50,0
 0x1792c0,FUN_001792C0,data_only,rasterizer.obj,pass,,50,50,0
 0x1792d0,FUN_001792d0,data_only,rasterizer.obj,pass,,50,50,0
+0x179570,FUN_00179570,stubbable,rasterizer.obj,error,emulation_error,0,50,0
 0x1795c0,FUN_001795c0,stubbable,rasterizer.obj,not_applicable,lifted_extract_failed,0,0,0
 0x179de0,FUN_00179de0,stubbable,rasterizer.obj,not_applicable,lifted_extract_failed,0,0,0
+0x17ad20,FUN_0017ad20,stubbable,rasterizer.obj,error,emulation_error,0,50,0
 0x17ad40,FUN_0017ad40,stubbable,rasterizer.obj,not_applicable,lifted_extract_failed,0,0,0
 0x17bca0,FUN_0017bca0,stubbable,rasterizer.obj,pass,,50,50,0
+0x17bf20,FUN_0017bf20,stubbable,rasterizer.obj,not_applicable,lifted_extract_failed,0,0,0
+0x17c1b0,FUN_0017c1b0,stubbable,rasterizer.obj,not_applicable,lifted_extract_failed,0,0,0
 0x17c790,rasterizer_window_set_fog,stubbable,rasterizer.obj,pass,,50,50,0
 0x17c7e0,rasterizer_frame_begin,data_only,rasterizer.obj,pass,,50,50,0
 0x17c8d0,rasterizer_window_begin,stubbable,rasterizer.obj,pass,,50,50,0
@@ -2314,6 +2320,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x1843b0,rasterizer_transparent_geometry_next_group,data_only,rasterizer_text.obj,pass,,50,50,0
 0x184460,rasterizer_transparent_geometry_group_get,data_only,rasterizer_text.obj,pass,,50,50,0
 0x130ab0,terminal_string_process_tabs,stubbable,draw_string.obj,pass,,50,50,0
+0x130b70,FUN_00130b70,leaf,draw_string.obj,pass,,28,50,0
 0x19b3c0,FUN_0019b3c0,data_only,draw_string.obj,pass,,50,50,0
 0x19b430,FUN_0019b430,data_only,draw_string.obj,pass,,90,90,0
 0x19b510,draw_string_get_string,leaf,draw_string.obj,not_applicable,oracle_extract_failed,0,0,0
