@@ -1394,3 +1394,62 @@ can force 8-byte alignment and inflate the frame.
 (`KNOWN_WIDE_OUT_PARAMS`) and flags any call passing `&local` where `local` is a
 4-byte scalar declared in the same file. Add an entry to that table whenever a
 new callee with a 64-bit out-parameter is lifted.
+
+## 38. FPU Bound Guard Lifted With the Wrong Comparison Sense — `<` for `<=`, Positive for Negated Form
+
+**Symptom (2026-08-02/03, twice in three days):** MP "look all the way up"
+asserted `valid_euler_angles2d(&player->desired_angles)` every frame at
+player_control.c line 960. MP initializes desired pitch to the bound's exact
+bit pattern (`0x3fbf0243` = ±85.5°) and has no seat camera limit, so the value
+sits *at* the bound forever; a strict `<` in the lifted validator asserts on
+equality that the original accepts. `55ccf1dc` had fixed the identical yaw
+bound one line away and left the pitch bound strict; the same class recurred
+in `quantize_real_to_byte_{lower,upper}_bound`.
+
+**Cause:** after `fcom*/fucom* <src>; fnstsw ax`, the comparison's SENSE lives
+entirely in the `TEST AH,imm / Jcc` pair that consumes the status word
+(C0=0x01, C2=0x04, C3=0x40; unordered sets all three):
+
+| Guard                | Branch taken when          | Source form that emits it |
+|----------------------|----------------------------|---------------------------|
+| `TEST AH,0x41 / JP`  | ST0 > src, or unordered    | `!(x <= b)` fail-branch   |
+| `TEST AH,0x05 / JP`  | ST0 >= src, or unordered   | `!(x < b)` fail-branch    |
+| `TEST AH,0x41 / JNE` | ST0 <= src, or unordered   | `!(x > b)` fail-branch    |
+| `TEST AH,0x01 / JNE` | ST0 < src, or unordered    | `!(x >= b)` fail-branch   |
+| `TEST AH,0x01 / JE`  | ST0 >= src (ordered)       | `x >= b` true-branch      |
+| `TEST AH,0x41 / JE`  | ST0 > src (ordered)        | `x > b` true-branch       |
+| `TEST AH,0x44 / JNP` | ST0 == src (ordered)       | `x == b` true-branch      |
+
+Equality after `FCOM` sets C3 alone — odd parity — so `TEST AH,0x41 / JP` is
+NOT taken on equality: that guard is an INCLUSIVE bound (equality passes, NaN
+asserts). Ghidra renders it as a plain `<` or flips negated forms into
+positive ones (the while-loop inversion of §"Ghidra while-loop"), and both
+mistakes survive review because the C reads naturally.
+
+**Why VC71 byte-match is structurally blind to it:** the wrong sense compiles
+to the same instruction COUNT — `test` aligns against `test` and the changed
+mask/jcc costs at most one LCS token in a whole function.
+`player_control_get_facing_angles` scored an unchanged **96.8%** with the bug
+in and out; `check_const_reg_args`-style score inversion also occurs. The
+positive-vs-negated form split additionally flips NaN behavior: `!(x < b)`
+takes the fail branch on NaN, `x >= b` does not.
+
+**Fix rules:**
+* Derive every float bound's sense from the pristine `TEST AH,imm / Jcc`
+  pair, never from the decompiler's rendering.
+* Fix every bound of a validator, not just the one that fired — the sibling
+  bounds share the encoding (the yaw fix left the pitch bound broken).
+* Keep the original's form: negated `!(x <= b)` where the original branches
+  on the fail side (NaN reaches the assert), single `&&` chain where the
+  original falls through into the success block.
+
+**Automation:** `compare_fcom_guards` in `tools/verify/compare_obj.py`
+(`[FCOM-WARN]`, details via `--fcom-only` on `vc71_verify.py` /
+`compare_obj.py`). Both objects are VC71 codegen, so a `(mask, jcc)` guard
+shape present on exactly one side is a genuine source comparison-form
+mismatch — presence-censused like LOADW/IMM. Proven on the real bug
+(reintroducing the strict pitch bound flags `testb $0x5,%ah ; jp` as
+lift-only at an unchanged LCS score), and its first sweep surfaced and fixed
+three latent form divergences (`player_control_update_desired_angles`
+89.8→91.2%, `player_control_get_facing` 81.7→85.7%,
+`pill_intersects_rectangle2d` 96.9→98.4%).

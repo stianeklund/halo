@@ -966,6 +966,7 @@ def run_compare_cached(
     fpu_only = False
     loadw_only = False
     imm_only = False
+    fcom_only = False
     reg_normalize = False
     regdef_override_str = None
     i = 0
@@ -983,6 +984,8 @@ def run_compare_cached(
             loadw_only = True; i += 1
         elif a == "--imm-only":
             imm_only = True; i += 1
+        elif a == "--fcom-only":
+            fcom_only = True; i += 1
         elif a in ("--reg-normalize", "-r"):
             reg_normalize = True; i += 1
         elif a == "--regdef-params" and i + 1 < len(extra_args):
@@ -1291,6 +1294,7 @@ def run_compare_cached(
     any_fpu_warn = False
     any_loadw_warn = False
     any_imm_warn = False
+    any_fcom_warn = False
     hits = 0
     misses = 0
 
@@ -1318,12 +1322,13 @@ def run_compare_cached(
             fpu_warnings = cached_result["fpu_warnings"]
             loadw_warnings = cached_result.get("loadw_warnings") or []
             imm_warnings = cached_result.get("imm_warnings") or []
+            fcom_warnings = cached_result.get("fcom_warnings") or []
             # diff_lines may be None if we didn't store diffs (e.g. not show_diffs)
             diffs = cached_result["diff_lines"] or []
             cache_tag = " [cache hit]"
         else:
             misses += 1
-            pct, diffs, fpu_warnings, loadw_warnings, imm_warnings = co.compare_functions(
+            pct, diffs, fpu_warnings, loadw_warnings, imm_warnings, fcom_warnings = co.compare_functions(
                 compiled_funcs[fn], reference_funcs[fn],
                 reg_normalize=reg_normalize,
                 regdef_params=regdef,
@@ -1344,7 +1349,7 @@ def run_compare_cached(
             if cache is not None and not no_cache and fn not in ref_overrides:
                 cache.put(fn, source, reference, pct, fpu_warnings, diffs,
                           loadw_warnings=loadw_warnings, imm_warnings=imm_warnings,
-                          opt=opt)
+                          fcom_warnings=fcom_warnings, opt=opt)
 
         n_c = len(compiled_funcs[fn])
         n_r = len(reference_funcs[fn])
@@ -1352,6 +1357,7 @@ def run_compare_cached(
         fpu_tag = " [FPU-WARN]" if fpu_warnings else ""
         loadw_tag = " [LOADW-WARN]" if loadw_warnings else ""
         imm_tag = " [IMM-WARN]" if imm_warnings else ""
+        fcom_tag = " [FCOM-WARN]" if fcom_warnings else ""
 
         reg_tag = ""
         if reg_normalize:
@@ -1360,7 +1366,7 @@ def run_compare_cached(
                 regdef_params=regdef)[0]
             reg_tag = f" [struct:{mnem_pct:.1f}%]"
 
-        only_mode = fpu_only or loadw_only or imm_only
+        only_mode = fpu_only or loadw_only or imm_only or fcom_only
 
         # Advisory operand-normalized score.  The primary `pct` above is a
         # mnemonic-only LCS, which is blind to operand-level bugs (swapped
@@ -1380,13 +1386,13 @@ def run_compare_cached(
 
         if not only_mode:
             if quiet:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{opnd_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{opnd_tag}")
             else:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{opnd_tag}{cache_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{opnd_tag}{cache_tag}")
 
         if fpu_warnings:
             any_fpu_warn = True
-            if not loadw_only and not imm_only:
+            if not loadw_only and not imm_only and not fcom_only:
                 if fpu_only:
                     print(f"  {fn}:{fpu_tag}" + ("" if quiet else cache_tag))
                 for w in fpu_warnings:
@@ -1408,10 +1414,21 @@ def run_compare_cached(
             # codegen, so a large inline-constant diff is a real source-literal
             # mismatch), so -- unlike LOADW -- expand its detail lines in a normal
             # run: the specific reference-vs-lift constants are the actionable hint.
-            if not fpu_only and not loadw_only:
+            if not fpu_only and not loadw_only and not fcom_only:
                 if imm_only:
                     print(f"  {fn}:{imm_tag}" + ("" if quiet else cache_tag))
                 for w in imm_warnings:
+                    print(w)
+
+        if fcom_warnings:
+            any_fcom_warn = True
+            # Detail lines are dense in FPU-heavy TUs (45 of real_math's 171
+            # functions carry structural comparison divergence), so -- like
+            # LOADW -- only expand them in the dedicated --fcom-only mode; the
+            # compact [FCOM-WARN] tag on the status line is the hint.
+            if fcom_only:
+                print(f"  {fn}:{fcom_tag}" + ("" if quiet else cache_tag))
+                for w in fcom_warnings:
                     print(w)
 
         if status == "FAIL":
@@ -1425,11 +1442,11 @@ def run_compare_cached(
         total = hits + misses
         print(f"\n  Cache: {hits}/{total} hits ({100*hits//total if total else 0}%)")
 
-    if any_fpu_warn and not loadw_only and not imm_only:
+    if any_fpu_warn and not loadw_only and not imm_only and not fcom_only:
         print("\nWARNING: FPU operand-order differences detected.")
         print("Check cross-product argument order and FSUB/FSUBR operand direction.")
 
-    if any_loadw_warn and not fpu_only and not imm_only:
+    if any_loadw_warn and not fpu_only and not imm_only and not fcom_only:
         if loadw_only:
             print("\nWARNING: load-width (int vs int16_t/int8_t) differences detected.")
             print("A field the original narrows (movsx/movzx word/byte) is read wider in our lift,")
@@ -1438,11 +1455,23 @@ def run_compare_cached(
             print("\n[LOADW-WARN] load-width differences found; re-run with --loadw-only for details "
                   "(int vs int16_t/int8_t; see lift-learnings §24).")
 
-    if any_imm_warn and not fpu_only and not loadw_only:
+    if any_imm_warn and not fpu_only and not loadw_only and not fcom_only:
         print("\nWARNING: immediate-constant differences detected.")
         print("A large inline constant (float bit-pattern or magic) differs between our lift and the")
         print("original. Both sides are VC71 codegen, so this is a source-literal mismatch -- verify the")
         print("numeric literal against the disassembly immediate. See lift-learnings 'immediate-constant'.")
+
+    if any_fcom_warn and not fpu_only and not loadw_only and not imm_only:
+        if fcom_only:
+            print("\nWARNING: FPU-guard bound-sense differences detected.")
+            print("A float comparison's TEST/Jcc guard shape differs between our lift and the original.")
+            print("Both sides are VC71 codegen, so this is a source comparison-form mismatch (<= lifted")
+            print("as <, >= as >, swapped operands, or positive vs negated form). Verify each bound")
+            print("against the pristine disassembly's TEST AH,imm / Jcc pair. See lift-learnings")
+            print("section 38 (the MP look-up assert class).")
+        elif not quiet:
+            print("\n[FCOM-WARN] FPU-guard bound-sense differences found; re-run with --fcom-only for "
+                  "details (<= vs <; see lift-learnings section 38).")
 
     return 1 if any_fail else 0
 
@@ -1458,6 +1487,8 @@ def main():
                     help="Only show load-width (int vs int16/int8) warnings")
     ap.add_argument("--imm-only", action="store_true",
                     help="Only show immediate-constant (wrong float/magic literal) warnings")
+    ap.add_argument("--fcom-only", action="store_true",
+                    help="Only show FPU-guard bound-sense (<= vs <) warnings")
     ap.add_argument("--threshold", "-t", type=float, default=50.0)
     ap.add_argument("--list", action="store_true", help="List available units")
     ap.add_argument("--skip-compile", action="store_true", help="Reuse existing VC71 .obj")
@@ -1645,6 +1676,8 @@ def main():
         extra += ["--loadw-only"]
     if args.imm_only:
         extra += ["--imm-only"]
+    if args.fcom_only:
+        extra += ["--fcom-only"]
     if args.reg_normalize:
         extra += ["--reg-normalize"]
     if args.regdef_params:

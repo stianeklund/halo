@@ -1061,12 +1061,129 @@ def compare_immediates(compiled: list[str], reference: list[str]) -> list[str]:
     return warnings
 
 
+# --- FCOM guard bound-sense detection (inclusive vs strict float compare) ---
+#
+# After `fcom*/fucom* <src>; fnstsw %ax`, VC71 encodes the comparison SENSE in
+# the (TEST $mask,%ah ; Jcc) pair that consumes the status word (C0=0x01,
+# C2=0x04, C3=0x40; unordered sets all three):
+#     testb $0x41,%ah ; jp   -> taken when ST0 >  src (or unordered)
+#     testb $0x05,%ah ; jp   -> taken when ST0 >= src (or unordered)
+#     testb $0x41,%ah ; jne  -> taken when ST0 <= src (or unordered)
+#     testb $0x01,%ah ; jne  -> taken when ST0 <  src (or unordered)
+#     testb $0x44,%ah ; jnp  -> taken when ST0 == src (ordered)
+# A strict `<` lifted where the original's guard is inclusive `<=` (or vice
+# versa) therefore changes the guard SHAPE -- the mask and/or the jcc -- but
+# the aggregate LCS is structurally blind to it: `test` aligns against `test`
+# and `jp` against `jne` costs one instruction in a whole function, so the
+# score barely moves. The player_control pitch-bound assert (ca725641) sat at
+# an unchanged 96.8% through the bug, and the same class recurred in
+# quantize_real_to_byte_*_bound three days apart. Both objects here are VC71
+# codegen, so -- exactly like IMM -- a guard shape present on one side only is
+# a genuine source difference: almost always a comparison operator with the
+# wrong bound sense. See docs/lift-learnings.md section 38.
+#
+# Presence-census (SET, not count), like LOADW/IMM: the same shape
+# legitimately recurs (a validator checks four bounds with the same sense),
+# and a mis-sensed bound produces a NEW shape on our side and/or removes the
+# only instance of one on the reference side.
+
+_FCOM_C0, _FCOM_C2, _FCOM_C3 = 0x01, 0x04, 0x40
+# AH status-byte value for each of the four fcom outcomes.
+_FCOM_OUTCOMES = (
+    ("ST0 > src", 0x00),
+    ("ST0 < src", _FCOM_C0),
+    ("ST0 == src", _FCOM_C3),
+    ("unordered", _FCOM_C0 | _FCOM_C2 | _FCOM_C3),
+)
+
+_FCOM_TEST_RE = re.compile(r"^test[bwl]?\s+\$(0x[0-9a-fA-F]+|\d+),\s*%(ah|ax)\b")
+# Only ZF/PF consumers decode cleanly from TEST; other jccs never follow a
+# VC71 fnstsw/test guard.
+_FCOM_JCC = {"jp", "jnp", "je", "jz", "jne", "jnz"}
+
+
+def fcom_guard_sense(mask: int, jcc: str) -> str:
+    """Decode which fcom outcomes take the (TEST $mask,%ah ; Jcc) branch."""
+    taken = []
+    for name, ah in _FCOM_OUTCOMES:
+        v = ah & mask
+        if jcc in ("jne", "jnz"):
+            hit = v != 0
+        elif jcc in ("je", "jz"):
+            hit = v == 0
+        elif jcc == "jp":
+            hit = bin(v).count("1") % 2 == 0  # PF set = even parity (incl. zero)
+        else:  # jnp
+            hit = bin(v).count("1") % 2 == 1
+        if hit:
+            taken.append(name)
+    return "taken when " + " / ".join(taken) if taken else "never taken"
+
+
+def extract_fcom_guards(insns: list[str]) -> dict[tuple[int, str], str]:
+    """Map each (mask, jcc) FPU-guard shape to an example instruction context.
+
+    A guard is `fnstsw %ax` immediately followed (as VC71 emits it) by
+    `test $imm,%ah` (or `%ax`; mask taken from the high byte) and then the
+    conditional jump consuming it. The example string carries the preceding
+    fcom*/fucom* instruction when present so the warning names the compare.
+    """
+    out: dict[tuple[int, str], str] = {}
+    for i, insn in enumerate(insns):
+        if not insn.strip().startswith("fnstsw") or i + 2 >= len(insns):
+            continue
+        m = _FCOM_TEST_RE.match(insns[i + 1].strip())
+        if not m:
+            continue
+        v = int(m.group(1), 0)
+        mask = (v >> 8) & 0xff if m.group(2) == "ax" else v & 0xff
+        jcc = mnemonic(insns[i + 2].strip()).lower()
+        if jcc not in _FCOM_JCC:
+            continue
+        prev = insns[i - 1].strip() if i > 0 else ""
+        ctx = f"{prev} ; " if prev.startswith(("fcom", "fucom", "ficom")) else ""
+        example = f"{ctx}{' '.join(insns[i + 1].split())} ; {jcc}"
+        out.setdefault((mask, jcc), example)
+    return out
+
+
+def compare_fcom_guards(compiled: list[str], reference: list[str]) -> list[str]:
+    """Flag FPU-guard shapes (mask, jcc) present on exactly one side.
+
+    Presence-based (SET), not count -- see the module comment above. Returns
+    a list of warning lines; both directions are reported, and when shapes
+    exist on both sides the mismatch is called out as a probable
+    comparison-sense (<= vs <, >= vs >) source bug.
+    """
+    c_g = extract_fcom_guards(compiled)
+    r_g = extract_fcom_guards(reference)
+    ref_only = sorted(set(r_g) - set(c_g))
+    cand_only = sorted(set(c_g) - set(r_g))
+    warnings = []
+    for mask, jcc in ref_only:
+        warnings.append(
+            f"    FCOM: reference guard `{r_g[(mask, jcc)]}` "
+            f"({fcom_guard_sense(mask, jcc)}) has no counterpart in our lift")
+    for mask, jcc in cand_only:
+        warnings.append(
+            f"    FCOM: our lift guards with `{c_g[(mask, jcc)]}` "
+            f"({fcom_guard_sense(mask, jcc)}) -- shape absent from the reference")
+    if ref_only and cand_only:
+        warnings.append(
+            "    FCOM: guard shapes differ on BOTH sides -- likely a comparison "
+            "bound-sense bug (<= lifted as <, or >= as >). Verify each operator "
+            "against the pristine disassembly's TEST/Jcc pair "
+            "(lift-learnings section 38; the MP look-up assert class).")
+    return warnings
+
+
 def compare_functions(compiled: list[str], reference: list[str],
                       reg_normalize: bool = False,
                       regdef_params: list[tuple[int, str]] | None = None
-                      ) -> tuple[float, list[str], list[str], list[str], list[str]]:
+                      ) -> tuple[float, list[str], list[str], list[str], list[str], list[str]]:
     """Compare two functions.
-    Returns (match_pct, diff_summary, fpu_warnings, loadw_warnings, imm_warnings).
+    Returns (match_pct, diff_summary, fpu_warnings, loadw_warnings,
+    imm_warnings, fcom_warnings).
 
     When reg_normalize=True, uses full normalized instructions with register
     canonicalization for LCS instead of mnemonic-only. This catches operand-level
@@ -1149,7 +1266,10 @@ def compare_functions(compiled: list[str], reference: list[str],
     # Immediate-constant comparison (wrong float/magic literal)
     imm_warnings = compare_immediates(compiled, reference)
 
-    return ratio * 100, diffs, fpu_warnings, loadw_warnings, imm_warnings
+    # FPU-guard bound-sense comparison (inclusive vs strict float compare)
+    fcom_warnings = compare_fcom_guards(compiled, reference)
+
+    return ratio * 100, diffs, fpu_warnings, loadw_warnings, imm_warnings, fcom_warnings
 
 
 def _self_test():
@@ -1280,6 +1400,61 @@ def _self_test():
     w = compare_immediates(["pushl $0xc0490fd0"], ["pushl $0xc0490fdb"])
     check("negative float (-pi) near-miss flagged",
           any("near-miss float" in x and "c0490fdb" in x for x in w))
+
+    # --- FCOM guard bound-sense detection (compare_fcom_guards) ---
+    # These pin the player_control pitch-bound class (ca725641): the original
+    # asserts only on STRICTLY greater (testb $0x41 ; jp -- equality passes,
+    # NaN asserts) while a strict `<` lift asserts on greater-OR-EQUAL
+    # (testb $0x5 ; jp). LCS scores both within noise of each other.
+    def _guard(mask_jcc):
+        mask, jcc = mask_jcc
+        return [f"fcomps 0x0", "fnstsw %ax", f"testb ${mask:#x}, %ah",
+                f"{jcc} 0x10 <LAB_00000010>", "retl"]
+
+    # F1. Sense decode: the exact guards from 0xb7e8b and the strict mis-lift.
+    check("0x41/jp decodes inclusive (equality passes, NaN taken)",
+          fcom_guard_sense(0x41, "jp") == "taken when ST0 > src / unordered")
+    check("0x5/jp decodes strict (equality taken)",
+          fcom_guard_sense(0x05, "jp") == "taken when ST0 > src / ST0 == src / unordered"
+          or fcom_guard_sense(0x05, "jp") == "taken when ST0 > src / unordered / ST0 == src")
+    check("0x41/jne decodes <= or unordered",
+          fcom_guard_sense(0x41, "jne") == "taken when ST0 < src / ST0 == src / unordered")
+    check("0x44/jnp decodes ordered equality",
+          fcom_guard_sense(0x44, "jnp") == "taken when ST0 == src")
+
+    # F2. The real bug shape: reference inclusive (0x41/jp), lift strict
+    #     (0x5/jp) -> flagged in both directions plus the sense-swap hint.
+    w = compare_fcom_guards(_guard((0x05, "jp")), _guard((0x41, "jp")))
+    check("strict-for-inclusive bound flagged",
+          any("reference guard" in x and "0x41" in x for x in w)
+          and any("our lift guards" in x and "0x5" in x for x in w)
+          and any("bound-sense bug" in x for x in w))
+
+    # F3. Identical guards (any count) are clean: a validator checking four
+    #     bounds with the same sense censuses as ONE shape on each side.
+    w = compare_fcom_guards(_guard((0x41, "jp")) + _guard((0x41, "jp")),
+                            _guard((0x41, "jp")))
+    check("identical guard shapes (differing count) not flagged", w == [])
+
+    # F4. Inverted-jcc layout of the SAME predicate is still a shape change and
+    #     must flag: VC71 recompiling identical source keeps the block layout,
+    #     so jp-vs-jnp on one side is a source-structure difference.
+    w = compare_fcom_guards(_guard((0x41, "jnp")), _guard((0x41, "jp")))
+    check("jcc inversion flagged", len(w) >= 2)
+
+    # F5. testw on %ax censuses via the high byte: $0x4100,%ax == $0x41,%ah.
+    cand = ["fcomps 0x0", "fnstsw %ax", "testw $0x4100, %ax",
+            "jp 0x10 <LAB_00000010>", "retl"]
+    w = compare_fcom_guards(cand, _guard((0x41, "jp")))
+    check("testw $0x4100,%ax equivalent to testb $0x41,%ah", w == [])
+
+    # F6. Non-guard TEST (integer flags, no fnstsw) is not censused.
+    w = compare_fcom_guards(["testb $0x41, %ah", "jp 0x10 <LAB_00000010>"], [])
+    check("test without fnstsw not censused", w == [])
+
+    # F7. An sahf-based or non-ZF/PF consumer is skipped, not misdecoded.
+    w = compare_fcom_guards(["fnstsw %ax", "sahf", "ja 0x10 <LAB_00000010>"], [])
+    check("sahf guard skipped", w == [])
 
     # --- Per-function chunk boundary detection (first_function_insns) ---
     # These guard the 2026-07-06 fix: vc71 was truncating multi-return and
@@ -1561,6 +1736,8 @@ def main():
                     help="Only report load-width (int vs int16/int8) warnings")
     ap.add_argument("--imm-only", action="store_true",
                     help="Only report immediate-constant (wrong float/magic literal) warnings")
+    ap.add_argument("--fcom-only", action="store_true",
+                    help="Only report FPU-guard bound-sense (<= vs <) warnings")
     ap.add_argument("--reg-normalize", "-r", action="store_true",
                     help="Use register-alias normalization for LCS (canonical operands)")
     ap.add_argument("--regdef-params", default=None,
@@ -1667,9 +1844,10 @@ def main():
     any_fpu_warn = False
     any_loadw_warn = False
     any_imm_warn = False
+    any_fcom_warn = False
 
     for fn in sorted(matched):
-        pct, diffs, fpu_warnings, loadw_warnings, imm_warnings = compare_functions(
+        pct, diffs, fpu_warnings, loadw_warnings, imm_warnings, fcom_warnings = compare_functions(
             compiled_funcs[fn], reference_funcs[fn], reg_normalize=args.reg_normalize,
             regdef_params=regdef_params)
         n_c = len(compiled_funcs[fn])
@@ -1678,6 +1856,7 @@ def main():
         fpu_tag = " [FPU-WARN]" if fpu_warnings else ""
         loadw_tag = " [LOADW-WARN]" if loadw_warnings else ""
         imm_tag = " [IMM-WARN]" if imm_warnings else ""
+        fcom_tag = " [FCOM-WARN]" if fcom_warnings else ""
         trunc_tag = " [REF-TRUNCATED?]" if n_r > 0 and n_c > n_r * 1.4 else ""
 
         # When reg-normalize is on, also compute mnemonic % to show the gap
@@ -1687,13 +1866,13 @@ def main():
                                          reg_normalize=False)[0]
             reg_tag = f" [struct:{mnem_pct:.1f}%]"
 
-        only_mode = args.fpu_only or args.loadw_only or args.imm_only
+        only_mode = args.fpu_only or args.loadw_only or args.imm_only or args.fcom_only
         if not only_mode:
-            print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{trunc_tag}")
+            print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{trunc_tag}")
 
         if fpu_warnings:
             any_fpu_warn = True
-            if not args.loadw_only and not args.imm_only:
+            if not args.loadw_only and not args.imm_only and not args.fcom_only:
                 if args.fpu_only:
                     print(f"  {fn}:{fpu_tag}")
                 for w in fpu_warnings:
@@ -1701,7 +1880,7 @@ def main():
 
         if loadw_warnings:
             any_loadw_warn = True
-            if not args.fpu_only and not args.imm_only:
+            if not args.fpu_only and not args.imm_only and not args.fcom_only:
                 if args.loadw_only:
                     print(f"  {fn}:{loadw_tag}")
                 for w in loadw_warnings:
@@ -1709,10 +1888,21 @@ def main():
 
         if imm_warnings:
             any_imm_warn = True
-            if not args.fpu_only and not args.loadw_only:
+            if not args.fpu_only and not args.loadw_only and not args.fcom_only:
                 if args.imm_only:
                     print(f"  {fn}:{imm_tag}")
                 for w in imm_warnings:
+                    print(w)
+
+        if fcom_warnings:
+            any_fcom_warn = True
+            # Detail lines are dense in FPU-heavy TUs (45 of real_math's 171
+            # functions carry structural comparison divergence), so -- like
+            # LOADW -- only expand them in the dedicated --fcom-only mode; the
+            # compact [FCOM-WARN] tag on the status line is the hint.
+            if args.fcom_only:
+                print(f"  {fn}:{fcom_tag}")
+                for w in fcom_warnings:
                     print(w)
 
         if status == "FAIL":
@@ -1722,20 +1912,30 @@ def main():
             for d in diffs:
                 print(d)
 
-    if any_fpu_warn and not args.loadw_only and not args.imm_only:
+    if any_fpu_warn and not args.loadw_only and not args.imm_only and not args.fcom_only:
         print("\nWARNING: FPU operand-order differences detected.")
         print("Check cross-product argument order and FSUB/FSUBR operand direction.")
 
-    if any_loadw_warn and not args.fpu_only and not args.imm_only:
+    if any_loadw_warn and not args.fpu_only and not args.imm_only and not args.fcom_only:
         print("\nWARNING: load-width (int vs int16_t/int8_t) differences detected.")
         print("A field the original narrows (movsx/movzx word/byte) is read wider in our lift,")
         print("or vice versa. Verify the C type against disassembly. See lift-learnings 'int vs int16_t'.")
 
-    if any_imm_warn and not args.fpu_only and not args.loadw_only:
+    if any_imm_warn and not args.fpu_only and not args.loadw_only and not args.fcom_only:
         print("\nWARNING: immediate-constant differences detected.")
         print("A large inline constant (float bit-pattern or magic) differs between our lift and the")
         print("original. Since both are VC71 codegen, this is a source-literal mismatch -- verify the")
         print("numeric literal against the disassembly immediate. See lift-learnings 'immediate-constant'.")
+
+    if any_fcom_warn and not args.fpu_only and not args.loadw_only and not args.imm_only:
+        if args.fcom_only:
+            print("\nWARNING: FPU-guard bound-sense differences detected.")
+            print("A float comparison's TEST/Jcc guard shape differs between our lift and the original.")
+            print("Both are VC71 codegen, so this is a source comparison-form mismatch (<= lifted as <,")
+            print(">= as >, swapped operands, or positive vs negated form). See lift-learnings section 38.")
+        else:
+            print("\n[FCOM-WARN] FPU-guard bound-sense differences found; re-run with --fcom-only for "
+                  "details (<= vs <; see lift-learnings section 38).")
 
     sys.exit(1 if any_fail else 0)
 
