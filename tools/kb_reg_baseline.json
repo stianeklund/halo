@@ -664,6 +664,7 @@
     "0x1c89d0": "void *sound_class_get(int class_index@<si>);",
     "0x1c9290": "void *sound_dsound_channel_get(short index@<si>);",
     "0x1c92f0": "void *sound_dsound_vchannel_get(short index@<si>);",
+    "0x1c9350": "void sound_dsound_set_last_error(int *hresult@<eax>, const char *reason@<esi>);",
     "0x1c94d0": "void sound_dsound_channel_update_3d(int channel_index@<eax>);",
     "0x1c9600": "bool sound_dsound_channel_stop_check(short channel_index@<eax>);",
     "0x1c98f0": "void sound_dsound_log_error(int hresult@<esi>, const char *message, ...);",

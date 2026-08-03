@@ -149,6 +149,42 @@ void *sound_dsound_vchannel_get(short index)
   return (void *)(0x4fdbc4 + (int)index * 4);
 }
 
+/* Global DirectSound failure state.  The reason accumulator is a
+ * 256-byte character buffer (bound proven by the CMP EDI,0x100 guard
+ * in sound_dsound_set_last_error). */
+#define SOUND_DSOUND_ERROR_REASON ((char *)0x4eae38)
+#define SOUND_DSOUND_LAST_HRESULT (*(int *)0x4fdba8)
+
+/* sound_dsound_set_last_error (0x1c9350)
+ *
+ * Record a DirectSound failure.  If hresult is non-NULL, the value it
+ * points at is copied into the global last-error slot.  The reason
+ * text is then appended to the global 256-byte reason accumulator,
+ * but only when the combined length still fits (unsigned compare
+ * against 0x100), so an overlong chain of reasons is silently dropped
+ * rather than overflowing the buffer.
+ *
+ * Both arguments arrive in registers: hresult in EAX (callers pass
+ * LEA EAX,[EBP-N] of a local HRESULT) and reason in ESI (callers pass
+ * a string constant such as "couldn't queue sound packet.").
+ *
+ * The append is performed by the 2-argument call at 0x1d90f0 with the
+ * reason as the format string; that is exactly what the binary does,
+ * so it is preserved verbatim rather than "fixed" into a 3-argument
+ * sprintf (which would change the push count). */
+void sound_dsound_set_last_error(int *hresult, const char *reason)
+{
+  if (hresult != NULL) {
+    SOUND_DSOUND_LAST_HRESULT = *hresult;
+  }
+
+  if ((unsigned int)(csstrlen(SOUND_DSOUND_ERROR_REASON) + csstrlen(reason)) <
+      0x100) {
+    crt_sprintf(SOUND_DSOUND_ERROR_REASON + csstrlen(SOUND_DSOUND_ERROR_REASON),
+                reason);
+  }
+}
+
 /* sound_dsound_channel_update_3d (0x1c94d0)
  *
  * Build and apply full 3D buffer parameters for the given channel.

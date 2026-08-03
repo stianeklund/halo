@@ -22929,7 +22929,9 @@
     },
     {
      "addr": "0x1c9350",
-     "decl": "void FUN_001c9350(void);"
+     "comment": "Record a DirectSound failure: store *hresult in the global last-error slot (0x4fdba8) when non-NULL, then append the reason text to the global 256-byte reason accumulator at 0x4eae38 if the combined length still fits.",
+     "decl": "void sound_dsound_set_last_error(int *hresult@<eax>, const char *reason@<esi>);",
+     "ported": true
     },
     {
      "addr": "0x1c9670",
