@@ -2031,6 +2031,23 @@
       "source": "src/halo/effects/contrails.c",
       "vc71_passed": true,
       "warnings": []
+    },
+    {
+      "baseline_object_sha256": "58ba2673c9c89924ee1e4a798ce31b69b7588061c0b8fbd24776a006f3d60058",
+      "current_git_head": "3d6d343efc691d331c21048e2cfe541eb7aca00e",
+      "current_object_sha256": "abc7f909432927c7bf2c7141e86ba603593689089fc628ef189ed37c4b4d02cd",
+      "current_source_sha256": "8e335328b15f87014c1ad70e6df0b0ab8b4646b3461303579ea12ad7c2edd9e0",
+      "failures": [],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": true,
+      "rename_map_applied": [],
+      "skipped": [],
+      "source": "src/halo/effects/contrails.c",
+      "vc71_passed": true,
+      "warnings": []
     }
   ],
   "created_tool_version": "source-recovery/1",
@@ -2604,7 +2621,8 @@
         "column": 21,
         "id": "raw_base_offset_dereferences:40:1",
         "line": 40,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers this base (contrail point datum) \u2014 struct-define/struct-recovery (ladder 5) not done for this TU",
+        "status": "parked",
         "text": "next_handle = *(int *)(point_datum + 0x34);"
       },
       {
@@ -2612,7 +2630,8 @@
         "column": 26,
         "id": "raw_base_offset_dereferences:68:1",
         "line": 68,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'point_datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "point_index = *(int *)(point_datum + 0x34)) {"
       },
       {
@@ -2620,7 +2639,8 @@
         "column": 13,
         "id": "raw_base_offset_dereferences:70:1",
         "line": 70,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'point_datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "if (*(short *)(point_datum + 0x18) != -1) {"
       },
       {
@@ -2628,7 +2648,8 @@
         "column": 20,
         "id": "raw_base_offset_dereferences:110:1",
         "line": 110,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "render_freq *= *(float *)(datum + 0x10);"
       },
       {
@@ -2636,7 +2657,8 @@
         "column": 24,
         "id": "raw_base_offset_dereferences:120:1",
         "line": 120,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "while (delta_time >= *(float *)(datum + 0x20)) {"
       },
       {
@@ -2644,7 +2666,8 @@
         "column": 19,
         "id": "raw_base_offset_dereferences:121:1",
         "line": 121,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "delta_time -= *(float *)(datum + 0x20);"
       },
       {
@@ -2652,7 +2675,8 @@
         "column": 5,
         "id": "raw_base_offset_dereferences:122:1",
         "line": 122,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(datum + 0x20) = period;"
       },
       {
@@ -2660,7 +2684,8 @@
         "column": 3,
         "id": "raw_base_offset_dereferences:128:1",
         "line": 128,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(datum + 0x20) -= delta_time;"
       },
       {
@@ -2668,7 +2693,8 @@
         "column": 24,
         "id": "raw_base_offset_dereferences:153:1",
         "line": 153,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "attachment_index = *(short *)(datum + 0xc);"
       },
       {
@@ -2676,7 +2702,8 @@
         "column": 24,
         "id": "raw_base_offset_dereferences:186:1",
         "line": 186,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'point_datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "point_handle = *(int *)(point_datum + 0x34);"
       },
       {
@@ -2684,7 +2711,8 @@
         "column": 40,
         "id": "raw_base_offset_dereferences:279:1",
         "line": 279,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'tag'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "bitmap = (char *)tag_get(0x6269746d, *(int *)(tag + 0x3c));"
       },
       {
@@ -2692,7 +2720,8 @@
         "column": 20,
         "id": "raw_base_offset_dereferences:281:1",
         "line": 281,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "sequence_index = *(int16_t *)(datum + 0x14);"
       },
       {
@@ -2700,7 +2729,8 @@
         "column": 3,
         "id": "raw_base_offset_dereferences:282:1",
         "line": 282,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(int16_t *)(datum + 0x16) = *(int16_t *)(datum + 0x16) + 1;"
       },
       {
@@ -2708,7 +2738,8 @@
         "column": 32,
         "id": "raw_base_offset_dereferences:282:2",
         "line": 282,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(int16_t *)(datum + 0x16) = *(int16_t *)(datum + 0x16) + 1;"
       },
       {
@@ -2716,7 +2747,8 @@
         "column": 19,
         "id": "raw_base_offset_dereferences:283:1",
         "line": 283,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "frame_counter = *(int16_t *)(datum + 0x16);"
       },
       {
@@ -2724,7 +2756,8 @@
         "column": 3,
         "id": "raw_base_offset_dereferences:284:1",
         "line": 284,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(datum + 0x24) = 0.0f;"
       },
       {
@@ -2732,7 +2765,8 @@
         "column": 19,
         "id": "raw_base_offset_dereferences:296:1",
         "line": 296,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "frame_counter = *(int16_t *)(datum + 0x16);"
       },
       {
@@ -2740,7 +2774,8 @@
         "column": 23,
         "id": "raw_base_offset_dereferences:297:1",
         "line": 297,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'seq_element'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "if (frame_counter < *(int16_t *)(seq_element + 0x22))"
       },
       {
@@ -2748,7 +2783,8 @@
         "column": 13,
         "id": "raw_base_offset_dereferences:301:1",
         "line": 301,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'tag'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "seq_min = *(int16_t *)(tag + 0x40);"
       },
       {
@@ -2756,7 +2792,8 @@
         "column": 23,
         "id": "raw_base_offset_dereferences:302:1",
         "line": 302,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'tag'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "seq_max = seq_min + *(int16_t *)(tag + 0x42);"
       },
       {
@@ -2764,7 +2801,8 @@
         "column": 3,
         "id": "raw_base_offset_dereferences:303:1",
         "line": 303,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(int16_t *)(datum + 0x14) ="
       },
       {
@@ -2772,7 +2810,8 @@
         "column": 3,
         "id": "raw_base_offset_dereferences:305:1",
         "line": 305,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(int16_t *)(datum + 0x16) = 0;"
       },
       {
@@ -2780,7 +2819,8 @@
         "column": 44,
         "id": "raw_base_offset_dereferences:343:1",
         "line": 343,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "tag_block_get_element(obj_tag + 0x140, *(int16_t *)(datum + 0xc), 0x48);"
       },
       {
@@ -2788,7 +2828,8 @@
         "column": 5,
         "id": "raw_base_offset_dereferences:351:1",
         "line": 351,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(datum + 0x10), *(float *)(ctag + 8), *(float *)(ctag + 0xc),"
       },
       {
@@ -2796,7 +2837,8 @@
         "column": 53,
         "id": "raw_base_offset_dereferences:351:2",
         "line": 351,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(datum + 0x10), *(float *)(ctag + 8), *(float *)(ctag + 0xc),"
       },
       {
@@ -2804,7 +2846,8 @@
         "column": 14,
         "id": "raw_base_offset_dereferences:354:1",
         "line": 354,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'ctag'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "local_24 = *(float *)(ctag + 0x10);"
       },
       {
@@ -2812,7 +2855,8 @@
         "column": 17,
         "id": "raw_base_offset_dereferences:356:1",
         "line": 356,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "local_24 *= *(float *)(datum + 0x10);"
       },
       {
@@ -2820,7 +2864,8 @@
         "column": 14,
         "id": "raw_base_offset_dereferences:358:1",
         "line": 358,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'ctag'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "local_10 = *(float *)(ctag + 0x14);"
       },
       {
@@ -2828,7 +2873,8 @@
         "column": 17,
         "id": "raw_base_offset_dereferences:360:1",
         "line": 360,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "local_10 *= *(float *)(datum + 0x10);"
       },
       {
@@ -2836,7 +2882,8 @@
         "column": 11,
         "id": "raw_base_offset_dereferences:396:1",
         "line": 396,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(pd + 0xc) = *(float *)(datum + 0x10);"
       },
       {
@@ -2844,7 +2891,8 @@
         "column": 34,
         "id": "raw_base_offset_dereferences:396:2",
         "line": 396,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(pd + 0xc) = *(float *)(datum + 0x10);"
       },
       {
@@ -2852,7 +2900,8 @@
         "column": 13,
         "id": "raw_base_offset_dereferences:405:1",
         "line": 405,
-        "status": "pending",
+        "reason": "offset-to-struct: base 'marker' at +0x60 is the documented MSVC stack-overlap/aliasing class (lift-learnings \u00a72, marker_buf+0x60) \u2014 explicitly off-limits, and no struct with co() asserts exists either",
+        "status": "parked",
         "text": "*(float *)(pd + 0x1c) = *(float *)(marker + 0x60);"
       },
       {
@@ -2860,7 +2909,8 @@
         "column": 37,
         "id": "raw_base_offset_dereferences:405:2",
         "line": 405,
-        "status": "pending",
+        "reason": "offset-to-struct: base 'marker' at +0x60 is the documented MSVC stack-overlap/aliasing class (lift-learnings \u00a72, marker_buf+0x60) \u2014 explicitly off-limits, and no struct with co() asserts exists either",
+        "status": "parked",
         "text": "*(float *)(pd + 0x1c) = *(float *)(marker + 0x60);"
       },
       {
@@ -2868,7 +2918,8 @@
         "column": 13,
         "id": "raw_base_offset_dereferences:406:1",
         "line": 406,
-        "status": "pending",
+        "reason": "offset-to-struct: base 'marker' at +0x60 is the documented MSVC stack-overlap/aliasing class (lift-learnings \u00a72, marker_buf+0x60) \u2014 explicitly off-limits, and no struct with co() asserts exists either",
+        "status": "parked",
         "text": "*(float *)(pd + 0x20) = *(float *)(marker + 0x64);"
       },
       {
@@ -2876,7 +2927,8 @@
         "column": 37,
         "id": "raw_base_offset_dereferences:406:2",
         "line": 406,
-        "status": "pending",
+        "reason": "offset-to-struct: base 'marker' at +0x60 is the documented MSVC stack-overlap/aliasing class (lift-learnings \u00a72, marker_buf+0x60) \u2014 explicitly off-limits, and no struct with co() asserts exists either",
+        "status": "parked",
         "text": "*(float *)(pd + 0x20) = *(float *)(marker + 0x64);"
       },
       {
@@ -2884,7 +2936,8 @@
         "column": 13,
         "id": "raw_base_offset_dereferences:407:1",
         "line": 407,
-        "status": "pending",
+        "reason": "offset-to-struct: base 'marker' at +0x60 is the documented MSVC stack-overlap/aliasing class (lift-learnings \u00a72, marker_buf+0x60) \u2014 explicitly off-limits, and no struct with co() asserts exists either",
+        "status": "parked",
         "text": "*(float *)(pd + 0x24) = *(float *)(marker + 0x68);"
       },
       {
@@ -2892,7 +2945,8 @@
         "column": 37,
         "id": "raw_base_offset_dereferences:407:2",
         "line": 407,
-        "status": "pending",
+        "reason": "offset-to-struct: base 'marker' at +0x60 is the documented MSVC stack-overlap/aliasing class (lift-learnings \u00a72, marker_buf+0x60) \u2014 explicitly off-limits, and no struct with co() asserts exists either",
+        "status": "parked",
         "text": "*(float *)(pd + 0x24) = *(float *)(marker + 0x68);"
       },
       {
@@ -2900,7 +2954,8 @@
         "column": 13,
         "id": "raw_base_offset_dereferences:413:1",
         "line": 413,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(pd + 0x28) = vel[0] * local_30 + local_10 * root_loc[0];"
       },
       {
@@ -2908,7 +2963,8 @@
         "column": 13,
         "id": "raw_base_offset_dereferences:414:1",
         "line": 414,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(pd + 0x2c) = vel[1] * local_30 + local_10 * root_loc[1];"
       },
       {
@@ -2916,7 +2972,8 @@
         "column": 13,
         "id": "raw_base_offset_dereferences:415:1",
         "line": 415,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(pd + 0x30) = vel[2] * local_30 + local_10 * root_loc[2];"
       },
       {
@@ -2924,7 +2981,8 @@
         "column": 13,
         "id": "raw_base_offset_dereferences:438:1",
         "line": 438,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(pd + 0xc) = frac_new * *(float *)(pd + 0xc) +"
       },
       {
@@ -2932,7 +2990,8 @@
         "column": 47,
         "id": "raw_base_offset_dereferences:438:2",
         "line": 438,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(pd + 0xc) = frac_new * *(float *)(pd + 0xc) +"
       },
       {
@@ -2940,7 +2999,8 @@
         "column": 47,
         "id": "raw_base_offset_dereferences:439:1",
         "line": 439,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'prev_head'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "frac_old * *(float *)(prev_head + 0xc);"
       },
       {
@@ -2948,7 +3008,8 @@
         "column": 41,
         "id": "raw_base_offset_dereferences:441:1",
         "line": 441,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "blended_pos[0] = frac_new * *(float *)(pd + 0x1c) +"
       },
       {
@@ -2956,7 +3017,8 @@
         "column": 41,
         "id": "raw_base_offset_dereferences:442:1",
         "line": 442,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'prev_head'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "frac_old * *(float *)(prev_head + 0x1c);"
       },
       {
@@ -2964,7 +3026,8 @@
         "column": 41,
         "id": "raw_base_offset_dereferences:443:1",
         "line": 443,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "blended_pos[1] = frac_new * *(float *)(pd + 0x20) +"
       },
       {
@@ -2972,7 +3035,8 @@
         "column": 41,
         "id": "raw_base_offset_dereferences:444:1",
         "line": 444,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'prev_head'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "frac_old * *(float *)(prev_head + 0x20);"
       },
       {
@@ -2980,7 +3044,8 @@
         "column": 41,
         "id": "raw_base_offset_dereferences:445:1",
         "line": 445,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "blended_pos[2] = frac_new * *(float *)(pd + 0x24) +"
       },
       {
@@ -2988,7 +3053,8 @@
         "column": 41,
         "id": "raw_base_offset_dereferences:446:1",
         "line": 446,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'prev_head'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "frac_old * *(float *)(prev_head + 0x24);"
       },
       {
@@ -2996,7 +3062,8 @@
         "column": 13,
         "id": "raw_base_offset_dereferences:449:1",
         "line": 449,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(pd + 0x1c) = blended_pos[0];"
       },
       {
@@ -3004,7 +3071,8 @@
         "column": 13,
         "id": "raw_base_offset_dereferences:450:1",
         "line": 450,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(pd + 0x20) = blended_pos[1];"
       },
       {
@@ -3012,7 +3080,8 @@
         "column": 13,
         "id": "raw_base_offset_dereferences:451:1",
         "line": 451,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(pd + 0x24) = blended_pos[2];"
       },
       {
@@ -3020,7 +3089,8 @@
         "column": 13,
         "id": "raw_base_offset_dereferences:453:1",
         "line": 453,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(pd + 0x28) = frac_new * *(float *)(pd + 0x28) +"
       },
       {
@@ -3028,7 +3098,8 @@
         "column": 48,
         "id": "raw_base_offset_dereferences:453:2",
         "line": 453,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers this base; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(pd + 0x28) = frac_new * *(float *)(pd + 0x28) +"
       },
       {
@@ -3036,7 +3107,8 @@
         "column": 48,
         "id": "raw_base_offset_dereferences:454:1",
         "line": 454,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'prev_head'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "frac_old * *(float *)(prev_head + 0x28);"
       },
       {
@@ -3044,7 +3116,8 @@
         "column": 13,
         "id": "raw_base_offset_dereferences:455:1",
         "line": 455,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(pd + 0x2c) = frac_new * *(float *)(pd + 0x2c) +"
       },
       {
@@ -3052,7 +3125,8 @@
         "column": 48,
         "id": "raw_base_offset_dereferences:455:2",
         "line": 455,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(pd + 0x2c) = frac_new * *(float *)(pd + 0x2c) +"
       },
       {
@@ -3060,7 +3134,8 @@
         "column": 48,
         "id": "raw_base_offset_dereferences:456:1",
         "line": 456,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'prev_head'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "frac_old * *(float *)(prev_head + 0x2c);"
       },
       {
@@ -3068,7 +3143,8 @@
         "column": 13,
         "id": "raw_base_offset_dereferences:457:1",
         "line": 457,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(pd + 0x30) = frac_new * *(float *)(pd + 0x30) +"
       },
       {
@@ -3076,7 +3152,8 @@
         "column": 48,
         "id": "raw_base_offset_dereferences:457:2",
         "line": 457,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(pd + 0x30) = frac_new * *(float *)(pd + 0x30) +"
       },
       {
@@ -3084,7 +3161,8 @@
         "column": 48,
         "id": "raw_base_offset_dereferences:458:1",
         "line": 458,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'prev_head'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "frac_old * *(float *)(prev_head + 0x30);"
       },
       {
@@ -3092,7 +3170,8 @@
         "column": 11,
         "id": "raw_base_offset_dereferences:461:1",
         "line": 461,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(int *)(pd + 0x34) = *chain_head;"
       },
       {
@@ -3100,7 +3179,8 @@
         "column": 26,
         "id": "raw_base_offset_dereferences:585:1",
         "line": 585,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'kf'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "kf_flags = *(unsigned int *)(kf + 0x64);"
       },
       {
@@ -3108,7 +3188,8 @@
         "column": 26,
         "id": "raw_base_offset_dereferences:586:1",
         "line": 586,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'kf'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "base_dur = *(float *)(kf + 0x0);"
       },
       {
@@ -3116,7 +3197,8 @@
         "column": 27,
         "id": "raw_base_offset_dereferences:587:1",
         "line": 587,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'kf'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "range_dur = *(float *)(kf + 0x4) - base_dur;"
       },
       {
@@ -3124,7 +3206,8 @@
         "column": 28,
         "id": "raw_base_offset_dereferences:590:1",
         "line": 590,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pt'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "base_dur = *(float *)(pt + 0xc) * base_dur;"
       },
       {
@@ -3132,7 +3215,8 @@
         "column": 41,
         "id": "raw_base_offset_dereferences:593:1",
         "line": 593,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pt'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "range_dur = range_dur * *(float *)(pt + 0xc);"
       },
       {
@@ -3140,7 +3224,8 @@
         "column": 26,
         "id": "raw_base_offset_dereferences:614:1",
         "line": 614,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'tag'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "kf_count = *(int *)(tag + 0x138);"
       },
       {
@@ -3148,7 +3233,8 @@
         "column": 26,
         "id": "raw_base_offset_dereferences:626:1",
         "line": 626,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'kf'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "kf_flags = *(unsigned int *)(kf + 0x64);"
       },
       {
@@ -3156,7 +3242,8 @@
         "column": 26,
         "id": "raw_base_offset_dereferences:627:1",
         "line": 627,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'kf'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "base_dur = *(float *)(kf + 0x8);"
       },
       {
@@ -3164,7 +3251,8 @@
         "column": 27,
         "id": "raw_base_offset_dereferences:628:1",
         "line": 628,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'kf'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "range_dur = *(float *)(kf + 0xc) - base_dur;"
       },
       {
@@ -3172,7 +3260,8 @@
         "column": 28,
         "id": "raw_base_offset_dereferences:631:1",
         "line": 631,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pt'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "base_dur = *(float *)(pt + 0xc) * base_dur;"
       },
       {
@@ -3180,7 +3269,8 @@
         "column": 41,
         "id": "raw_base_offset_dereferences:634:1",
         "line": 634,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pt'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "range_dur = range_dur * *(float *)(pt + 0xc);"
       },
       {
@@ -3188,7 +3278,8 @@
         "column": 22,
         "id": "raw_base_offset_dereferences:666:1",
         "line": 666,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'kf'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "phys_ref = *(int *)(kf + 0x1c);"
       },
       {
@@ -3196,7 +3287,8 @@
         "column": 22,
         "id": "raw_base_offset_dereferences:668:1",
         "line": 668,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'kf'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "radius = *(float *)(kf + 0x40) * 0.5f;"
       },
       {
@@ -3204,7 +3296,8 @@
         "column": 23,
         "id": "raw_base_offset_dereferences:680:1",
         "line": 680,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pt'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "next_handle = *(int *)(pt + 0x34);"
       },
       {
@@ -3212,7 +3305,8 @@
         "column": 13,
         "id": "raw_base_offset_dereferences:699:1",
         "line": 699,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pt_tail'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(int *)(pt_tail + 0x34) != -1) {"
       },
       {
@@ -3220,7 +3314,8 @@
         "column": 9,
         "id": "raw_base_offset_dereferences:703:1",
         "line": 703,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pt_pred'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(int *)(pt_pred + 0x34) = -1;"
       },
       {
@@ -3228,7 +3323,8 @@
         "column": 3,
         "id": "raw_base_offset_dereferences:785:1",
         "line": 785,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(short *)(datum + 0xc) = attachment_index;"
       },
       {
@@ -3236,7 +3332,8 @@
         "column": 3,
         "id": "raw_base_offset_dereferences:786:1",
         "line": 786,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(short *)(datum + 0x2) = 0;"
       },
       {
@@ -3244,7 +3341,8 @@
         "column": 3,
         "id": "raw_base_offset_dereferences:787:1",
         "line": 787,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(int *)(datum + 0x4) = definition_index;"
       },
       {
@@ -3252,7 +3350,8 @@
         "column": 3,
         "id": "raw_base_offset_dereferences:788:1",
         "line": 788,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(int *)(datum + 0x8) = object_index;"
       },
       {
@@ -3260,7 +3359,8 @@
         "column": 3,
         "id": "raw_base_offset_dereferences:793:1",
         "line": 793,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(short *)(datum + 0xe) = *(short *)(obj_tag_elem + 0x30) - 1;"
       },
       {
@@ -3268,7 +3368,8 @@
         "column": 29,
         "id": "raw_base_offset_dereferences:793:2",
         "line": 793,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(short *)(datum + 0xe) = *(short *)(obj_tag_elem + 0x30) - 1;"
       },
       {
@@ -3276,7 +3377,8 @@
         "column": 3,
         "id": "raw_base_offset_dereferences:794:1",
         "line": 794,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(short *)(datum + 0x14) = (short)0xffff;"
       },
       {
@@ -3284,7 +3386,8 @@
         "column": 3,
         "id": "raw_base_offset_dereferences:798:1",
         "line": 798,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(int *)(datum + 0x18) = 0;"
       },
       {
@@ -3292,7 +3395,8 @@
         "column": 3,
         "id": "raw_base_offset_dereferences:799:1",
         "line": 799,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(int *)(datum + 0x1c) = 0;"
       },
       {
@@ -3300,7 +3404,8 @@
         "column": 33,
         "id": "raw_base_offset_dereferences:812:1",
         "line": 812,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "if (object_get_function_value(*(int *)(datum + 0x8),"
       },
       {
@@ -3308,7 +3413,8 @@
         "column": 49,
         "id": "raw_base_offset_dereferences:813:1",
         "line": 813,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "(unsigned short)*(short *)(datum + 0xe),"
       },
       {
@@ -3316,7 +3422,8 @@
         "column": 5,
         "id": "raw_base_offset_dereferences:815:1",
         "line": 815,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(unsigned char *)(datum + 0x2) |= 1;"
       },
       {
@@ -3324,7 +3431,8 @@
         "column": 28,
         "id": "raw_base_offset_dereferences:871:1",
         "line": 871,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "elapsed = delta_time - *(float *)(datum + 0x28);"
       },
       {
@@ -3332,7 +3440,8 @@
         "column": 5,
         "id": "raw_base_offset_dereferences:889:1",
         "line": 889,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(int *)(datum + 0x28) = 0;"
       },
       {
@@ -3340,7 +3449,8 @@
         "column": 30,
         "id": "raw_base_offset_dereferences:892:1",
         "line": 892,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(int *)(datum + 8), *(uint16_t *)(datum + 0xe),"
       },
       {
@@ -3348,7 +3458,8 @@
         "column": 23,
         "id": "raw_base_offset_dereferences:895:1",
         "line": 895,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "saved_point = *(int *)(datum + 0x10);"
       },
       {
@@ -3356,7 +3467,8 @@
         "column": 9,
         "id": "raw_base_offset_dereferences:896:1",
         "line": 896,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(int *)(datum + 0x10) = 0;"
       },
       {
@@ -3364,7 +3476,8 @@
         "column": 9,
         "id": "raw_base_offset_dereferences:920:1",
         "line": 920,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(int *)(datum + 0x10) = saved_point;"
       },
       {
@@ -3372,7 +3485,8 @@
         "column": 19,
         "id": "raw_base_offset_dereferences:952:1",
         "line": 952,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'tag'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "render_freq = *(float *)(tag + 0x2c);"
       },
       {
@@ -3380,7 +3494,8 @@
         "column": 22,
         "id": "raw_base_offset_dereferences:954:1",
         "line": 954,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "render_freq *= *(float *)(datum + 0x10);"
       },
       {
@@ -3388,7 +3503,8 @@
         "column": 30,
         "id": "raw_base_offset_dereferences:959:1",
         "line": 959,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "step = render_freq - *(float *)(datum + 0x24);"
       },
       {
@@ -3396,7 +3512,8 @@
         "column": 11,
         "id": "raw_base_offset_dereferences:961:1",
         "line": 961,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(datum + 0x24) += remaining;"
       },
       {
@@ -3404,7 +3521,8 @@
         "column": 25,
         "id": "raw_base_offset_dereferences:969:1",
         "line": 969,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'tag'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "float fade_rate = *(float *)(tag + 0x24);"
       },
       {
@@ -3412,7 +3530,8 @@
         "column": 22,
         "id": "raw_base_offset_dereferences:971:1",
         "line": 971,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "fade_rate *= *(float *)(datum + 0x10);"
       },
       {
@@ -3420,7 +3539,8 @@
         "column": 7,
         "id": "raw_base_offset_dereferences:972:1",
         "line": 972,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(datum + 0x18) -= fade_rate * elapsed;"
       },
       {
@@ -3428,7 +3548,8 @@
         "column": 25,
         "id": "raw_base_offset_dereferences:975:1",
         "line": 975,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'tag'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "float grow_rate = *(float *)(tag + 0x28);"
       },
       {
@@ -3436,7 +3557,8 @@
         "column": 22,
         "id": "raw_base_offset_dereferences:977:1",
         "line": 977,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "grow_rate *= *(float *)(datum + 0x10);"
       },
       {
@@ -3444,7 +3566,8 @@
         "column": 7,
         "id": "raw_base_offset_dereferences:978:1",
         "line": 978,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(float *)(datum + 0x1c) += grow_rate * elapsed;"
       },
       {
@@ -3452,7 +3575,8 @@
         "column": 3,
         "id": "raw_base_offset_dereferences:1025:1",
         "line": 1025,
-        "status": "pending",
+        "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+        "status": "parked",
         "text": "*(int *)(datum + 0xc) = -1;"
       }
     ],
@@ -4047,7 +4171,8 @@
       "column": 21,
       "id": "raw_base_offset_dereferences:40:1",
       "line": 40,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers this base (contrail point datum) \u2014 struct-define/struct-recovery (ladder 5) not done for this TU",
+      "status": "parked",
       "text": "next_handle = *(int *)(point_datum + 0x34);"
     },
     {
@@ -4055,7 +4180,8 @@
       "column": 26,
       "id": "raw_base_offset_dereferences:68:1",
       "line": 68,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'point_datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "point_index = *(int *)(point_datum + 0x34)) {"
     },
     {
@@ -4063,7 +4189,8 @@
       "column": 13,
       "id": "raw_base_offset_dereferences:70:1",
       "line": 70,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'point_datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "if (*(short *)(point_datum + 0x18) != -1) {"
     },
     {
@@ -4071,7 +4198,8 @@
       "column": 20,
       "id": "raw_base_offset_dereferences:110:1",
       "line": 110,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "render_freq *= *(float *)(datum + 0x10);"
     },
     {
@@ -4079,7 +4207,8 @@
       "column": 24,
       "id": "raw_base_offset_dereferences:120:1",
       "line": 120,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "while (delta_time >= *(float *)(datum + 0x20)) {"
     },
     {
@@ -4087,7 +4216,8 @@
       "column": 19,
       "id": "raw_base_offset_dereferences:121:1",
       "line": 121,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "delta_time -= *(float *)(datum + 0x20);"
     },
     {
@@ -4095,7 +4225,8 @@
       "column": 5,
       "id": "raw_base_offset_dereferences:122:1",
       "line": 122,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(datum + 0x20) = period;"
     },
     {
@@ -4103,7 +4234,8 @@
       "column": 3,
       "id": "raw_base_offset_dereferences:128:1",
       "line": 128,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(datum + 0x20) -= delta_time;"
     },
     {
@@ -4111,7 +4243,8 @@
       "column": 24,
       "id": "raw_base_offset_dereferences:153:1",
       "line": 153,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "attachment_index = *(short *)(datum + 0xc);"
     },
     {
@@ -4119,7 +4252,8 @@
       "column": 24,
       "id": "raw_base_offset_dereferences:186:1",
       "line": 186,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'point_datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "point_handle = *(int *)(point_datum + 0x34);"
     },
     {
@@ -4127,7 +4261,8 @@
       "column": 40,
       "id": "raw_base_offset_dereferences:279:1",
       "line": 279,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'tag'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "bitmap = (char *)tag_get(0x6269746d, *(int *)(tag + 0x3c));"
     },
     {
@@ -4135,7 +4270,8 @@
       "column": 20,
       "id": "raw_base_offset_dereferences:281:1",
       "line": 281,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "sequence_index = *(int16_t *)(datum + 0x14);"
     },
     {
@@ -4143,7 +4279,8 @@
       "column": 3,
       "id": "raw_base_offset_dereferences:282:1",
       "line": 282,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(int16_t *)(datum + 0x16) = *(int16_t *)(datum + 0x16) + 1;"
     },
     {
@@ -4151,7 +4288,8 @@
       "column": 32,
       "id": "raw_base_offset_dereferences:282:2",
       "line": 282,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(int16_t *)(datum + 0x16) = *(int16_t *)(datum + 0x16) + 1;"
     },
     {
@@ -4159,7 +4297,8 @@
       "column": 19,
       "id": "raw_base_offset_dereferences:283:1",
       "line": 283,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "frame_counter = *(int16_t *)(datum + 0x16);"
     },
     {
@@ -4167,7 +4306,8 @@
       "column": 3,
       "id": "raw_base_offset_dereferences:284:1",
       "line": 284,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(datum + 0x24) = 0.0f;"
     },
     {
@@ -4175,7 +4315,8 @@
       "column": 19,
       "id": "raw_base_offset_dereferences:296:1",
       "line": 296,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "frame_counter = *(int16_t *)(datum + 0x16);"
     },
     {
@@ -4183,7 +4324,8 @@
       "column": 23,
       "id": "raw_base_offset_dereferences:297:1",
       "line": 297,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'seq_element'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "if (frame_counter < *(int16_t *)(seq_element + 0x22))"
     },
     {
@@ -4191,7 +4333,8 @@
       "column": 13,
       "id": "raw_base_offset_dereferences:301:1",
       "line": 301,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'tag'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "seq_min = *(int16_t *)(tag + 0x40);"
     },
     {
@@ -4199,7 +4342,8 @@
       "column": 23,
       "id": "raw_base_offset_dereferences:302:1",
       "line": 302,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'tag'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "seq_max = seq_min + *(int16_t *)(tag + 0x42);"
     },
     {
@@ -4207,7 +4351,8 @@
       "column": 3,
       "id": "raw_base_offset_dereferences:303:1",
       "line": 303,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(int16_t *)(datum + 0x14) ="
     },
     {
@@ -4215,7 +4360,8 @@
       "column": 3,
       "id": "raw_base_offset_dereferences:305:1",
       "line": 305,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(int16_t *)(datum + 0x16) = 0;"
     },
     {
@@ -4223,7 +4369,8 @@
       "column": 44,
       "id": "raw_base_offset_dereferences:343:1",
       "line": 343,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "tag_block_get_element(obj_tag + 0x140, *(int16_t *)(datum + 0xc), 0x48);"
     },
     {
@@ -4231,7 +4378,8 @@
       "column": 5,
       "id": "raw_base_offset_dereferences:351:1",
       "line": 351,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(datum + 0x10), *(float *)(ctag + 8), *(float *)(ctag + 0xc),"
     },
     {
@@ -4239,7 +4387,8 @@
       "column": 53,
       "id": "raw_base_offset_dereferences:351:2",
       "line": 351,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(datum + 0x10), *(float *)(ctag + 8), *(float *)(ctag + 0xc),"
     },
     {
@@ -4247,7 +4396,8 @@
       "column": 14,
       "id": "raw_base_offset_dereferences:354:1",
       "line": 354,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'ctag'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "local_24 = *(float *)(ctag + 0x10);"
     },
     {
@@ -4255,7 +4405,8 @@
       "column": 17,
       "id": "raw_base_offset_dereferences:356:1",
       "line": 356,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "local_24 *= *(float *)(datum + 0x10);"
     },
     {
@@ -4263,7 +4414,8 @@
       "column": 14,
       "id": "raw_base_offset_dereferences:358:1",
       "line": 358,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'ctag'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "local_10 = *(float *)(ctag + 0x14);"
     },
     {
@@ -4271,7 +4423,8 @@
       "column": 17,
       "id": "raw_base_offset_dereferences:360:1",
       "line": 360,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "local_10 *= *(float *)(datum + 0x10);"
     },
     {
@@ -4279,7 +4432,8 @@
       "column": 11,
       "id": "raw_base_offset_dereferences:396:1",
       "line": 396,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(pd + 0xc) = *(float *)(datum + 0x10);"
     },
     {
@@ -4287,7 +4441,8 @@
       "column": 34,
       "id": "raw_base_offset_dereferences:396:2",
       "line": 396,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(pd + 0xc) = *(float *)(datum + 0x10);"
     },
     {
@@ -4295,7 +4450,8 @@
       "column": 13,
       "id": "raw_base_offset_dereferences:405:1",
       "line": 405,
-      "status": "pending",
+      "reason": "offset-to-struct: base 'marker' at +0x60 is the documented MSVC stack-overlap/aliasing class (lift-learnings \u00a72, marker_buf+0x60) \u2014 explicitly off-limits, and no struct with co() asserts exists either",
+      "status": "parked",
       "text": "*(float *)(pd + 0x1c) = *(float *)(marker + 0x60);"
     },
     {
@@ -4303,7 +4459,8 @@
       "column": 37,
       "id": "raw_base_offset_dereferences:405:2",
       "line": 405,
-      "status": "pending",
+      "reason": "offset-to-struct: base 'marker' at +0x60 is the documented MSVC stack-overlap/aliasing class (lift-learnings \u00a72, marker_buf+0x60) \u2014 explicitly off-limits, and no struct with co() asserts exists either",
+      "status": "parked",
       "text": "*(float *)(pd + 0x1c) = *(float *)(marker + 0x60);"
     },
     {
@@ -4311,7 +4468,8 @@
       "column": 13,
       "id": "raw_base_offset_dereferences:406:1",
       "line": 406,
-      "status": "pending",
+      "reason": "offset-to-struct: base 'marker' at +0x60 is the documented MSVC stack-overlap/aliasing class (lift-learnings \u00a72, marker_buf+0x60) \u2014 explicitly off-limits, and no struct with co() asserts exists either",
+      "status": "parked",
       "text": "*(float *)(pd + 0x20) = *(float *)(marker + 0x64);"
     },
     {
@@ -4319,7 +4477,8 @@
       "column": 37,
       "id": "raw_base_offset_dereferences:406:2",
       "line": 406,
-      "status": "pending",
+      "reason": "offset-to-struct: base 'marker' at +0x60 is the documented MSVC stack-overlap/aliasing class (lift-learnings \u00a72, marker_buf+0x60) \u2014 explicitly off-limits, and no struct with co() asserts exists either",
+      "status": "parked",
       "text": "*(float *)(pd + 0x20) = *(float *)(marker + 0x64);"
     },
     {
@@ -4327,7 +4486,8 @@
       "column": 13,
       "id": "raw_base_offset_dereferences:407:1",
       "line": 407,
-      "status": "pending",
+      "reason": "offset-to-struct: base 'marker' at +0x60 is the documented MSVC stack-overlap/aliasing class (lift-learnings \u00a72, marker_buf+0x60) \u2014 explicitly off-limits, and no struct with co() asserts exists either",
+      "status": "parked",
       "text": "*(float *)(pd + 0x24) = *(float *)(marker + 0x68);"
     },
     {
@@ -4335,7 +4495,8 @@
       "column": 37,
       "id": "raw_base_offset_dereferences:407:2",
       "line": 407,
-      "status": "pending",
+      "reason": "offset-to-struct: base 'marker' at +0x60 is the documented MSVC stack-overlap/aliasing class (lift-learnings \u00a72, marker_buf+0x60) \u2014 explicitly off-limits, and no struct with co() asserts exists either",
+      "status": "parked",
       "text": "*(float *)(pd + 0x24) = *(float *)(marker + 0x68);"
     },
     {
@@ -4343,7 +4504,8 @@
       "column": 13,
       "id": "raw_base_offset_dereferences:413:1",
       "line": 413,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(pd + 0x28) = vel[0] * local_30 + local_10 * root_loc[0];"
     },
     {
@@ -4351,7 +4513,8 @@
       "column": 13,
       "id": "raw_base_offset_dereferences:414:1",
       "line": 414,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(pd + 0x2c) = vel[1] * local_30 + local_10 * root_loc[1];"
     },
     {
@@ -4359,7 +4522,8 @@
       "column": 13,
       "id": "raw_base_offset_dereferences:415:1",
       "line": 415,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(pd + 0x30) = vel[2] * local_30 + local_10 * root_loc[2];"
     },
     {
@@ -4367,7 +4531,8 @@
       "column": 13,
       "id": "raw_base_offset_dereferences:438:1",
       "line": 438,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(pd + 0xc) = frac_new * *(float *)(pd + 0xc) +"
     },
     {
@@ -4375,7 +4540,8 @@
       "column": 47,
       "id": "raw_base_offset_dereferences:438:2",
       "line": 438,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(pd + 0xc) = frac_new * *(float *)(pd + 0xc) +"
     },
     {
@@ -4383,7 +4549,8 @@
       "column": 47,
       "id": "raw_base_offset_dereferences:439:1",
       "line": 439,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'prev_head'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "frac_old * *(float *)(prev_head + 0xc);"
     },
     {
@@ -4391,7 +4558,8 @@
       "column": 41,
       "id": "raw_base_offset_dereferences:441:1",
       "line": 441,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "blended_pos[0] = frac_new * *(float *)(pd + 0x1c) +"
     },
     {
@@ -4399,7 +4567,8 @@
       "column": 41,
       "id": "raw_base_offset_dereferences:442:1",
       "line": 442,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'prev_head'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "frac_old * *(float *)(prev_head + 0x1c);"
     },
     {
@@ -4407,7 +4576,8 @@
       "column": 41,
       "id": "raw_base_offset_dereferences:443:1",
       "line": 443,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "blended_pos[1] = frac_new * *(float *)(pd + 0x20) +"
     },
     {
@@ -4415,7 +4585,8 @@
       "column": 41,
       "id": "raw_base_offset_dereferences:444:1",
       "line": 444,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'prev_head'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "frac_old * *(float *)(prev_head + 0x20);"
     },
     {
@@ -4423,7 +4594,8 @@
       "column": 41,
       "id": "raw_base_offset_dereferences:445:1",
       "line": 445,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "blended_pos[2] = frac_new * *(float *)(pd + 0x24) +"
     },
     {
@@ -4431,7 +4603,8 @@
       "column": 41,
       "id": "raw_base_offset_dereferences:446:1",
       "line": 446,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'prev_head'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "frac_old * *(float *)(prev_head + 0x24);"
     },
     {
@@ -4439,7 +4612,8 @@
       "column": 13,
       "id": "raw_base_offset_dereferences:449:1",
       "line": 449,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(pd + 0x1c) = blended_pos[0];"
     },
     {
@@ -4447,7 +4621,8 @@
       "column": 13,
       "id": "raw_base_offset_dereferences:450:1",
       "line": 450,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(pd + 0x20) = blended_pos[1];"
     },
     {
@@ -4455,7 +4630,8 @@
       "column": 13,
       "id": "raw_base_offset_dereferences:451:1",
       "line": 451,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(pd + 0x24) = blended_pos[2];"
     },
     {
@@ -4463,7 +4639,8 @@
       "column": 13,
       "id": "raw_base_offset_dereferences:453:1",
       "line": 453,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(pd + 0x28) = frac_new * *(float *)(pd + 0x28) +"
     },
     {
@@ -4471,7 +4648,8 @@
       "column": 48,
       "id": "raw_base_offset_dereferences:453:2",
       "line": 453,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers this base; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(pd + 0x28) = frac_new * *(float *)(pd + 0x28) +"
     },
     {
@@ -4479,7 +4657,8 @@
       "column": 48,
       "id": "raw_base_offset_dereferences:454:1",
       "line": 454,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'prev_head'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "frac_old * *(float *)(prev_head + 0x28);"
     },
     {
@@ -4487,7 +4666,8 @@
       "column": 13,
       "id": "raw_base_offset_dereferences:455:1",
       "line": 455,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(pd + 0x2c) = frac_new * *(float *)(pd + 0x2c) +"
     },
     {
@@ -4495,7 +4675,8 @@
       "column": 48,
       "id": "raw_base_offset_dereferences:455:2",
       "line": 455,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(pd + 0x2c) = frac_new * *(float *)(pd + 0x2c) +"
     },
     {
@@ -4503,7 +4684,8 @@
       "column": 48,
       "id": "raw_base_offset_dereferences:456:1",
       "line": 456,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'prev_head'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "frac_old * *(float *)(prev_head + 0x2c);"
     },
     {
@@ -4511,7 +4693,8 @@
       "column": 13,
       "id": "raw_base_offset_dereferences:457:1",
       "line": 457,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(pd + 0x30) = frac_new * *(float *)(pd + 0x30) +"
     },
     {
@@ -4519,7 +4702,8 @@
       "column": 48,
       "id": "raw_base_offset_dereferences:457:2",
       "line": 457,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(pd + 0x30) = frac_new * *(float *)(pd + 0x30) +"
     },
     {
@@ -4527,7 +4711,8 @@
       "column": 48,
       "id": "raw_base_offset_dereferences:458:1",
       "line": 458,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'prev_head'; only encounter_definition, network_connection, network_server_connection, widget_type_definition carry asserts repo-wide. struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "frac_old * *(float *)(prev_head + 0x30);"
     },
     {
@@ -4535,7 +4720,8 @@
       "column": 11,
       "id": "raw_base_offset_dereferences:461:1",
       "line": 461,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pd'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(int *)(pd + 0x34) = *chain_head;"
     },
     {
@@ -4543,7 +4729,8 @@
       "column": 26,
       "id": "raw_base_offset_dereferences:585:1",
       "line": 585,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'kf'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "kf_flags = *(unsigned int *)(kf + 0x64);"
     },
     {
@@ -4551,7 +4738,8 @@
       "column": 26,
       "id": "raw_base_offset_dereferences:586:1",
       "line": 586,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'kf'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "base_dur = *(float *)(kf + 0x0);"
     },
     {
@@ -4559,7 +4747,8 @@
       "column": 27,
       "id": "raw_base_offset_dereferences:587:1",
       "line": 587,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'kf'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "range_dur = *(float *)(kf + 0x4) - base_dur;"
     },
     {
@@ -4567,7 +4756,8 @@
       "column": 28,
       "id": "raw_base_offset_dereferences:590:1",
       "line": 590,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pt'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "base_dur = *(float *)(pt + 0xc) * base_dur;"
     },
     {
@@ -4575,7 +4765,8 @@
       "column": 41,
       "id": "raw_base_offset_dereferences:593:1",
       "line": 593,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pt'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "range_dur = range_dur * *(float *)(pt + 0xc);"
     },
     {
@@ -4583,7 +4774,8 @@
       "column": 26,
       "id": "raw_base_offset_dereferences:614:1",
       "line": 614,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'tag'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "kf_count = *(int *)(tag + 0x138);"
     },
     {
@@ -4591,7 +4783,8 @@
       "column": 26,
       "id": "raw_base_offset_dereferences:626:1",
       "line": 626,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'kf'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "kf_flags = *(unsigned int *)(kf + 0x64);"
     },
     {
@@ -4599,7 +4792,8 @@
       "column": 26,
       "id": "raw_base_offset_dereferences:627:1",
       "line": 627,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'kf'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "base_dur = *(float *)(kf + 0x8);"
     },
     {
@@ -4607,7 +4801,8 @@
       "column": 27,
       "id": "raw_base_offset_dereferences:628:1",
       "line": 628,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'kf'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "range_dur = *(float *)(kf + 0xc) - base_dur;"
     },
     {
@@ -4615,7 +4810,8 @@
       "column": 28,
       "id": "raw_base_offset_dereferences:631:1",
       "line": 631,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pt'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "base_dur = *(float *)(pt + 0xc) * base_dur;"
     },
     {
@@ -4623,7 +4819,8 @@
       "column": 41,
       "id": "raw_base_offset_dereferences:634:1",
       "line": 634,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pt'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "range_dur = range_dur * *(float *)(pt + 0xc);"
     },
     {
@@ -4631,7 +4828,8 @@
       "column": 22,
       "id": "raw_base_offset_dereferences:666:1",
       "line": 666,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'kf'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "phys_ref = *(int *)(kf + 0x1c);"
     },
     {
@@ -4639,7 +4837,8 @@
       "column": 22,
       "id": "raw_base_offset_dereferences:668:1",
       "line": 668,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'kf'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "radius = *(float *)(kf + 0x40) * 0.5f;"
     },
     {
@@ -4647,7 +4846,8 @@
       "column": 23,
       "id": "raw_base_offset_dereferences:680:1",
       "line": 680,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pt'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "next_handle = *(int *)(pt + 0x34);"
     },
     {
@@ -4655,7 +4855,8 @@
       "column": 13,
       "id": "raw_base_offset_dereferences:699:1",
       "line": 699,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pt_tail'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(int *)(pt_tail + 0x34) != -1) {"
     },
     {
@@ -4663,7 +4864,8 @@
       "column": 9,
       "id": "raw_base_offset_dereferences:703:1",
       "line": 703,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'pt_pred'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(int *)(pt_pred + 0x34) = -1;"
     },
     {
@@ -4671,7 +4873,8 @@
       "column": 3,
       "id": "raw_base_offset_dereferences:785:1",
       "line": 785,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(short *)(datum + 0xc) = attachment_index;"
     },
     {
@@ -4679,7 +4882,8 @@
       "column": 3,
       "id": "raw_base_offset_dereferences:786:1",
       "line": 786,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(short *)(datum + 0x2) = 0;"
     },
     {
@@ -4687,7 +4891,8 @@
       "column": 3,
       "id": "raw_base_offset_dereferences:787:1",
       "line": 787,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(int *)(datum + 0x4) = definition_index;"
     },
     {
@@ -4695,7 +4900,8 @@
       "column": 3,
       "id": "raw_base_offset_dereferences:788:1",
       "line": 788,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(int *)(datum + 0x8) = object_index;"
     },
     {
@@ -4703,7 +4909,8 @@
       "column": 3,
       "id": "raw_base_offset_dereferences:793:1",
       "line": 793,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(short *)(datum + 0xe) = *(short *)(obj_tag_elem + 0x30) - 1;"
     },
     {
@@ -4711,7 +4918,8 @@
       "column": 29,
       "id": "raw_base_offset_dereferences:793:2",
       "line": 793,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(short *)(datum + 0xe) = *(short *)(obj_tag_elem + 0x30) - 1;"
     },
     {
@@ -4719,7 +4927,8 @@
       "column": 3,
       "id": "raw_base_offset_dereferences:794:1",
       "line": 794,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(short *)(datum + 0x14) = (short)0xffff;"
     },
     {
@@ -4727,7 +4936,8 @@
       "column": 3,
       "id": "raw_base_offset_dereferences:798:1",
       "line": 798,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(int *)(datum + 0x18) = 0;"
     },
     {
@@ -4735,7 +4945,8 @@
       "column": 3,
       "id": "raw_base_offset_dereferences:799:1",
       "line": 799,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(int *)(datum + 0x1c) = 0;"
     },
     {
@@ -4743,7 +4954,8 @@
       "column": 33,
       "id": "raw_base_offset_dereferences:812:1",
       "line": 812,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "if (object_get_function_value(*(int *)(datum + 0x8),"
     },
     {
@@ -4751,7 +4963,8 @@
       "column": 49,
       "id": "raw_base_offset_dereferences:813:1",
       "line": 813,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "(unsigned short)*(short *)(datum + 0xe),"
     },
     {
@@ -4759,7 +4972,8 @@
       "column": 5,
       "id": "raw_base_offset_dereferences:815:1",
       "line": 815,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(unsigned char *)(datum + 0x2) |= 1;"
     },
     {
@@ -4767,7 +4981,8 @@
       "column": 28,
       "id": "raw_base_offset_dereferences:871:1",
       "line": 871,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "elapsed = delta_time - *(float *)(datum + 0x28);"
     },
     {
@@ -4775,7 +4990,8 @@
       "column": 5,
       "id": "raw_base_offset_dereferences:889:1",
       "line": 889,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(int *)(datum + 0x28) = 0;"
     },
     {
@@ -4783,7 +4999,8 @@
       "column": 30,
       "id": "raw_base_offset_dereferences:892:1",
       "line": 892,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(int *)(datum + 8), *(uint16_t *)(datum + 0xe),"
     },
     {
@@ -4791,7 +5008,8 @@
       "column": 23,
       "id": "raw_base_offset_dereferences:895:1",
       "line": 895,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "saved_point = *(int *)(datum + 0x10);"
     },
     {
@@ -4799,7 +5017,8 @@
       "column": 9,
       "id": "raw_base_offset_dereferences:896:1",
       "line": 896,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(int *)(datum + 0x10) = 0;"
     },
     {
@@ -4807,7 +5026,8 @@
       "column": 9,
       "id": "raw_base_offset_dereferences:920:1",
       "line": 920,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(int *)(datum + 0x10) = saved_point;"
     },
     {
@@ -4815,7 +5035,8 @@
       "column": 19,
       "id": "raw_base_offset_dereferences:952:1",
       "line": 952,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'tag'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "render_freq = *(float *)(tag + 0x2c);"
     },
     {
@@ -4823,7 +5044,8 @@
       "column": 22,
       "id": "raw_base_offset_dereferences:954:1",
       "line": 954,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "render_freq *= *(float *)(datum + 0x10);"
     },
     {
@@ -4831,7 +5053,8 @@
       "column": 30,
       "id": "raw_base_offset_dereferences:959:1",
       "line": 959,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "step = render_freq - *(float *)(datum + 0x24);"
     },
     {
@@ -4839,7 +5062,8 @@
       "column": 11,
       "id": "raw_base_offset_dereferences:961:1",
       "line": 961,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(datum + 0x24) += remaining;"
     },
     {
@@ -4847,7 +5071,8 @@
       "column": 25,
       "id": "raw_base_offset_dereferences:969:1",
       "line": 969,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'tag'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "float fade_rate = *(float *)(tag + 0x24);"
     },
     {
@@ -4855,7 +5080,8 @@
       "column": 22,
       "id": "raw_base_offset_dereferences:971:1",
       "line": 971,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "fade_rate *= *(float *)(datum + 0x10);"
     },
     {
@@ -4863,7 +5089,8 @@
       "column": 7,
       "id": "raw_base_offset_dereferences:972:1",
       "line": 972,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(datum + 0x18) -= fade_rate * elapsed;"
     },
     {
@@ -4871,7 +5098,8 @@
       "column": 25,
       "id": "raw_base_offset_dereferences:975:1",
       "line": 975,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'tag'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "float grow_rate = *(float *)(tag + 0x28);"
     },
     {
@@ -4879,7 +5107,8 @@
       "column": 22,
       "id": "raw_base_offset_dereferences:977:1",
       "line": 977,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "grow_rate *= *(float *)(datum + 0x10);"
     },
     {
@@ -4887,7 +5116,8 @@
       "column": 7,
       "id": "raw_base_offset_dereferences:978:1",
       "line": 978,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(float *)(datum + 0x1c) += grow_rate * elapsed;"
     },
     {
@@ -4895,7 +5125,8 @@
       "column": 3,
       "id": "raw_base_offset_dereferences:1025:1",
       "line": 1025,
-      "status": "pending",
+      "reason": "offset-to-struct precondition 2 unmet: no struct with co()/cs() asserts covers base 'datum'; struct-define (ladder 5) has 0 items for this TU \u2014 needs struct-recovery+struct-assert first",
+      "status": "parked",
       "text": "*(int *)(datum + 0xc) = -1;"
     },
     {
