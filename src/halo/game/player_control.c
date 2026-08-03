@@ -1491,12 +1491,19 @@ void player_control_update_desired_angles(int16_t local_player_index,
   pitch_maximum_target = MAXIMUM_DESIRED_PITCH; /* +85.5 degrees */
 
   /* valid_euler_angles2d(&player->desired_angles): pitch within +-85.5
-   * degrees, yaw within [0, 2*pi], neither infinite nor NaN. */
-  if ((*(uint32_t *)&pc->desired_angles_pitch & 0x7f800000) == 0x7f800000 ||
-      pc->desired_angles_pitch > MAXIMUM_DESIRED_PITCH ||
-      pc->desired_angles_pitch < MINIMUM_DESIRED_PITCH ||
-      (*(uint32_t *)&pc->desired_angles_yaw & 0x7f800000) == 0x7f800000 ||
-      pc->desired_angles_yaw > REAL_TWO_PI || pc->desired_angles_yaw < 0.0f) {
+   * degrees, yaw within [0, 2*pi], neither infinite nor NaN. Negated
+   * conjunction, matching the original's guard encodings (TEST AH,0x41/JP,
+   * TEST AH,1/JNE, TEST AH,1/JE at 0xb8000..0xb802d) and the sibling
+   * validator in player_control_get_facing_angles -- the positive De Morgan
+   * form compiles to NaN-transparent guards (0x41/JE, 0x5/JNP) and was the
+   * [FCOM-WARN] on this function. Behavior is identical either way here
+   * because the exponent-bits prescreen rejects NaN/Inf first. */
+  if (!((*(uint32_t *)&pc->desired_angles_pitch & 0x7f800000) != 0x7f800000 &&
+        pc->desired_angles_pitch <= MAXIMUM_DESIRED_PITCH &&
+        pc->desired_angles_pitch >= MINIMUM_DESIRED_PITCH &&
+        (*(uint32_t *)&pc->desired_angles_yaw & 0x7f800000) != 0x7f800000 &&
+        pc->desired_angles_yaw <= REAL_TWO_PI &&
+        pc->desired_angles_yaw >= 0.0f)) {
     display_assert("valid_euler_angles2d(&player->desired_angles)",
                    "c:\\halo\\SOURCE\\game\\player_control.c", 0x494, 1);
     system_exit(NONE);
@@ -1848,22 +1855,18 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
      * and NOT firing, increment the idle counter. When the counter
      * exceeds a tag-defined threshold, enable autoaim assist. */
     if (*(int *)(unit_obj + 0xcc) == NONE) {
-      float abs_facing;
-      if (!player_ui_autolevel_enabled(local_player_index))
-        goto reset_autoaim;
-      /* FABS + FCOMP double: check if facing yaw exceeds threshold */
-      abs_facing = pc->field_0x14;
-      if (abs_facing < 0.0f)
-        abs_facing = -abs_facing;
-      if (!(abs_facing > *(double *)0x25fea8))
-        goto reset_autoaim;
-      /* check trigger and throttle below firing threshold */
-      if (input.look_pitch_delta >= *(float *)0x253f44)
-        goto reset_autoaim;
-      if (pc->field_0x30 >= *(float *)0x253f44)
-        goto reset_autoaim;
-      /* all conditions met — increment idle counter */
-      {
+      /* Single && chain matching the original's guard encodings (TEST
+       * AH,0x41/JNE then two TEST AH,5/JP at 0xb8c1c..0xb8c4c, each jumping
+       * to the reset path, increment block on the fallthrough). fabs() is
+       * the FABS instruction there, not a compare-and-negate; NaN in either
+       * float condition takes the reset path. A goto-chain of negated
+       * guards is NaN-equivalent but VC71 lays the increment block out of
+       * line ([FCOM-WARN]: lift-only TEST AH,5/JNP shape). */
+      if (player_ui_autolevel_enabled(local_player_index) &&
+          fabs(pc->field_0x14) > *(double *)0x25fea8 &&
+          input.look_pitch_delta < *(float *)0x253f44 &&
+          pc->field_0x30 < *(float *)0x253f44) {
+        /* all conditions met — increment idle counter */
         int count = (int)pc->field_0x27 + 1;
         if (count < 0)
           count = 0;
@@ -1872,9 +1875,8 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
         pc->field_0x27 = (int8_t)count;
         pc->field_0x26 =
           (int16_t)(int8_t)count > *(int16_t *)((char *)game_tag_elem + 0x6e);
+        goto final_copy;
       }
-      goto final_copy;
-    reset_autoaim:
       *(uint8_t *)&pc->field_0x27 = 0;
     }
     pc->field_0x26 = 0;

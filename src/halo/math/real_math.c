@@ -3123,7 +3123,10 @@ char pill_intersects_rectangle2d(float *pill_center, float *pill_dir,
       return 1;
     result = 0;
   }
-  if (rect[1] < pill_center[0]) {
+  /* `center > edge`, not `edge < center`: the original loads the pill
+   * center and compares the rect field (TEST AH,0x41/JNE guard); the
+   * swapped operand order flips the guard shape ([FCOM-WARN]). */
+  if (pill_center[0] > rect[1]) {
     edge_start[0] = rect[1];
     edge_start[1] = rect[2];
     edge_dir[0] = 0.0f;
@@ -3133,7 +3136,7 @@ char pill_intersects_rectangle2d(float *pill_center, float *pill_dir,
       return 1;
     result = 0;
   }
-  if (rect[3] < pill_center[1]) {
+  if (pill_center[1] > rect[3]) {
     edge_start[0] = rect[0];
     edge_start[1] = rect[3];
     edge_dir[0] = rect[1] - rect[0];
