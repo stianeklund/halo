@@ -8324,6 +8324,10 @@
       "score": 82.9,
       "source": "src/halo/math/real_math.c"
     },
+    "FUN_00109a60": {
+      "score": 86.8,
+      "source": "src/halo/math/real_math.c"
+    },
     "FUN_00109ba0": {
       "score": 75.5,
       "source": "src/halo/math/real_math.c"
@@ -8337,11 +8341,11 @@
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00109e90": {
-      "score": 49.3,
+      "score": 81.9,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00109f40": {
-      "score": 57.1,
+      "score": 58.2,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00109fc0": {
@@ -15097,7 +15101,7 @@
       "source": "src/halo/math/real_math.c"
     },
     "angular_accelerate_to_position": {
-      "score": 79.3,
+      "score": 82.5,
       "source": "src/halo/math/real_math.c"
     },
     "any_player_is_in_the_air": {
@@ -17461,7 +17465,7 @@
       "source": "src/halo/items/items.c"
     },
     "vector3d_from_angle": {
-      "score": 66.7,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "vector_intersects_pill2d": {

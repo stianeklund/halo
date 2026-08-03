@@ -20617,7 +20617,8 @@
     },
     {
      "addr": "0x109a60",
-     "decl": "void FUN_00109a60(void);"
+     "decl": "float *FUN_00109a60(float *m, float determinant, float *out);",
+     "ported": true
     },
     {
      "addr": "0x109ba0",
