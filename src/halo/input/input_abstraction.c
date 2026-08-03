@@ -133,11 +133,14 @@ void input_abstraction_update(void)
     } else {
       iVar13 = local_18 * 0x18;
 
-      /* copy per-player look sensitivity and vehicle look speed to output */
+      /* copy per-player look sensitivity and vehicle look speed to output.
+       * Which of the two destinations is which is not proven -- no string or
+       * PDB evidence names them -- so they keep the address in their name.
+       * Both are integer moves of the float bits, not float copies. */
       uVar15 = *(int32_t *)((char *)0x46b824 + iVar13);
-      *(int32_t *)((char *)0x457098 + local_18 * 4) =
+      *(int32_t *)&flt_457098[local_18] =
         *(int32_t *)((char *)0x46b820 + iVar13);
-      *(int32_t *)((char *)0x4570a8 + local_18 * 4) = uVar15;
+      *(int32_t *)&flt_4570A8[local_18] = uVar15;
 
       /* normalize left stick via dominant-axis scaling */
       lang = (float)atan2((double)(int)*(int16_t *)(iVar10 + 0x22),

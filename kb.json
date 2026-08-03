@@ -27804,6 +27804,14 @@
      "decl": "player_control_globals_t * player_control_globals;"
     },
     {
+     "addr": "0x457098",
+     "decl": "float flt_457098[4];"
+    },
+    {
+     "addr": "0x4570a8",
+     "decl": "float flt_4570A8[4];"
+    },
+    {
      "addr": "0x46ba4c",
      "decl": "char byte_46BA4C[40];"
     },

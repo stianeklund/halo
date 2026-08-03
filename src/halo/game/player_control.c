@@ -1,3 +1,50 @@
+/* ---------------------------------------------------------------------------
+ * Angle constants used throughout this TU.
+ *
+ * Two forms appear below and the difference is deliberate, not cosmetic.
+ * Where the original compares against a slot in its own .rdata constant pool
+ * the lift reads that slot by address, so VC71 emits the same FCOMP/FLD
+ * operand (see the note on FUN_000b6dd0); where the original materializes an
+ * inline immediate instead -- e.g. MOV [EBP-0xC],0x3fbf0243 at 0xb800f -- the
+ * lift uses a source literal.  Swapping one form for the other changes the
+ * emitted code, so do not "unify" them.
+ *
+ * Every value below is the exact float32 the binary holds.  The derivations in
+ * the comments are there so the magnitudes are checkable; never substitute the
+ * computed expression for the literal, because the fold can differ in the last
+ * bit and lands as an [IMM-WARN] against the delinked reference.
+ * ------------------------------------------------------------------------- */
+
+/* Pool-resident copies, read by address to preserve the original operand. */
+#define REAL_ZERO_POOL        (*(float *)0x2533c0) /* 0.0f         */
+#define REAL_PI_POOL          (*(float *)0x256980) /* 3.1415927f   */
+#define REAL_NEGATIVE_PI_POOL (*(float *)0x26e280) /* -3.1415927f  */
+#define REAL_TWO_PI_POOL      (*(float *)0x255a54) /* 6.2831855f   */
+
+/* Inline immediates. */
+#define REAL_PI      3.1415927f /* 0x40490fdb */
+#define REAL_TWO_PI  6.2831855f /* 0x40c90fdb */
+#define REAL_HALF_PI 1.5707964f /* 0x3fc90fdb */
+
+/* Limits on player->desired_angles.pitch: +-85.5 degrees, equivalently
+ * (PI/2) * 0.95.  float32 0x3fbf0243 / 0xbfbf0243.  The binary uses both
+ * forms of this pair -- as FCOMP operands out of .rdata 0x26e37c / 0x26e378
+ * (the inlined valid_euler_angles2d bounds) and as inline immediates (the
+ * easing targets stored at 0xb8008 / 0xb800f). */
+#define MAXIMUM_DESIRED_PITCH 1.49225652217865f
+#define MINIMUM_DESIRED_PITCH (-1.49225652217865f)
+
+/* Per-call ceiling on how fast pitch_minimum/pitch_maximum may move toward
+ * their targets: PI/256, exactly float32 0x3c490fdb. */
+#define MAXIMUM_PITCH_LIMIT_CHANGE 0.0122718466f
+
+/* float32(2/PI) widened to double -- the original holds the narrowed value,
+ * so this is 0.6366197466850281, not the double 2/PI (0.6366197723675814). */
+#define REAL_TWO_OVER_PI 0.6366197466850281
+
+/* Field-of-view fallback when the tag supplies none: 70 degrees. */
+#define DEFAULT_FIELD_OF_VIEW 1.2217305f
+
 /* Return a pointer to the player control data slot for a local player.
  * Each slot is 0x40 bytes, starting at offset 0x10 in the globals struct.
  *
@@ -210,7 +257,7 @@ real player_control_get_field_of_view(int16_t local_player_index)
   assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0xb1,
                  local_player_index >= 0 &&
                    local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
-  field_of_view = 1.2217305f;
+  field_of_view = DEFAULT_FIELD_OF_VIEW;
   pc = (player_control_t *)((char *)player_control_globals +
                             local_player_index * 0x40 + 0x10);
   if (pc->unit_index != NONE) {
@@ -963,7 +1010,7 @@ void FUN_000b6bd0(char *input_state)
   if (input_state[0x15] != 0) {
     fields[0] |= 8;
   }
-  if (*(float *)(input_state + 8) > *(float *)0x2533c0) {
+  if (*(float *)(input_state + 8) > REAL_ZERO_POOL) {
     fields[0] |= 0x10;
   }
   if ((*(uint32_t *)(input_state + 0x18) & 0x2000) != 0) {
@@ -972,24 +1019,24 @@ void FUN_000b6bd0(char *input_state)
   if ((*(uint32_t *)(input_state + 0x1c) & 4) != 0) {
     fields[0] |= 0x40;
   }
-  if (*(float *)(input_state + 0x10) > *(float *)0x2533c0) {
+  if (*(float *)(input_state + 0x10) > REAL_ZERO_POOL) {
     fields[0] |= 0x80;
-  } else if (*(float *)(input_state + 0x10) < *(float *)0x2533c0) {
+  } else if (*(float *)(input_state + 0x10) < REAL_ZERO_POOL) {
     fields[0] |= 0x100;
   }
-  if (*(float *)(input_state + 0xc) > *(float *)0x2533c0) {
+  if (*(float *)(input_state + 0xc) > REAL_ZERO_POOL) {
     fields[0] |= 0x200;
-  } else if (*(float *)(input_state + 0xc) < *(float *)0x2533c0) {
+  } else if (*(float *)(input_state + 0xc) < REAL_ZERO_POOL) {
     fields[0] |= 0x400;
   }
-  if (*(float *)input_state > *(float *)0x2533c0) {
+  if (*(float *)input_state > REAL_ZERO_POOL) {
     fields[0] |= 0x800;
-  } else if (*(float *)input_state < *(float *)0x2533c0) {
+  } else if (*(float *)input_state < REAL_ZERO_POOL) {
     fields[0] |= 0x1000;
   }
-  if (*(float *)(input_state + 4) > *(float *)0x2533c0) {
+  if (*(float *)(input_state + 4) > REAL_ZERO_POOL) {
     fields[0] |= 0x2000;
-  } else if (*(float *)(input_state + 4) < *(float *)0x2533c0) {
+  } else if (*(float *)(input_state + 4) < REAL_ZERO_POOL) {
     fields[0] |= 0x4000;
   }
 
@@ -1093,10 +1140,10 @@ float FUN_000b6dd0(float param_1, float param_2)
   float delta;
 
   delta = param_2 - param_1;
-  if (delta >= *(float *)0x256980)
-    delta -= *(float *)0x255a54;
-  if (delta <= *(float *)0x26e280)
-    delta += *(float *)0x255a54;
+  if (delta >= REAL_PI_POOL)
+    delta -= REAL_TWO_PI_POOL;
+  if (delta <= REAL_NEGATIVE_PI_POOL)
+    delta += REAL_TWO_PI_POOL;
   return delta;
 }
 
@@ -1213,7 +1260,8 @@ void player_control_set_facing(uint16_t local_player_index, float *direction)
 
   /* assert_valid_real on desired_angles.pitch (slot+0x10) */
   if ((*(uint32_t *)&pc->desired_angles_pitch & 0x7f800000u) == 0x7f800000u) {
-    char *msg = csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
+    char *msg = csprintf(error_string_buffer,
+                         "%s: assert_valid_real(0x%08X %f)",
                          "player_control->desired_angles.pitch",
                          *(uint32_t *)&pc->desired_angles_pitch,
                          (double)pc->desired_angles_pitch);
@@ -1223,7 +1271,8 @@ void player_control_set_facing(uint16_t local_player_index, float *direction)
 
   /* assert_valid_real on desired_angles.yaw (slot+0xc) */
   if ((*(uint32_t *)desired_yaw & 0x7f800000u) == 0x7f800000u) {
-    char *msg = csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
+    char *msg = csprintf(error_string_buffer,
+                         "%s: assert_valid_real(0x%08X %f)",
                          "player_control->desired_angles.yaw",
                          *(uint32_t *)desired_yaw, (double)*desired_yaw);
     display_assert(msg, "c:\\halo\\SOURCE\\game\\player_control.c", 0xbc, 1);
@@ -1231,8 +1280,8 @@ void player_control_set_facing(uint16_t local_player_index, float *direction)
   }
 
   /* Normalize yaw to [0, 2*pi) */
-  if (*desired_yaw < *(float *)0x2533c0)
-    *desired_yaw += *(float *)0x255a54;
+  if (*desired_yaw < REAL_ZERO_POOL)
+    *desired_yaw += REAL_TWO_PI_POOL;
 }
 
 void player_control_new_unit(uint16_t local_player_index, int player_index)
@@ -1252,16 +1301,16 @@ void player_control_new_unit(uint16_t local_player_index, int player_index)
   pc->desired_zoom_level = -1;
   pc->field_0x26 = 0;
   pc->target_object_index = -1;
-  pc->pitch_maximum = 1.4922565f; /* +85.5 degrees in radians */
-  pc->pitch_minimum = -1.4922565f; /* -85.5 degrees in radians */
+  pc->pitch_maximum = MAXIMUM_DESIRED_PITCH; /* +85.5 degrees in radians */
+  pc->pitch_minimum = MINIMUM_DESIRED_PITCH; /* -85.5 degrees in radians */
   pc->action_flags = 0;
   pc->persistent_action_flags = 0;
   if (player_index != -1) {
     unit = (int)object_get_and_verify_type(player_index, 3);
     facing = &pc->desired_angles_yaw;
     vector_to_angles(facing, (float *)(unit + 0x1d4));
-    if (*facing < *(float *)0x2533c0)
-      *facing += *(float *)0x255a54;
+    if (*facing < REAL_ZERO_POOL)
+      *facing += REAL_TWO_PI_POOL;
     pc->desired_weapon_index = *(int16_t *)(unit + 0x2a4);
     pc->desired_grenade_index = (int16_t) * (char *)(unit + 0x2cd);
     pc->desired_zoom_level = (int16_t) * (char *)(unit + 0x2d1);
@@ -1285,9 +1334,17 @@ void player_control_new_unit(uint16_t local_player_index, int player_index)
  *      need -- so it is expanded by hand here instead.
  *   2. valid_euler_angles2d(): six inline tests, no CALL.  Pitch is validated
  *      BEFORE yaw.  Each test is a NaN/Inf reject on the raw bits followed by
- *      an upper (strict <) and lower (>=) bound:
- *        pitch in [-1.49225652217865, 1.49225652217865)   (0x26e378 / 0x26e37c)
+ *      an upper and a lower bound, BOTH inclusive:
+ *        pitch in [-1.49225652217865, 1.49225652217865]   (0x26e378 / 0x26e37c)
  *        yaw   in [0.0, 6.2831855]                        (0x2533c0 / 0x255a54)
+ *      Both upper bounds are `<=`, not `<`: at 0xb7e8b/0xb8052 the sequence is
+ *      FCOMP <bound> / FNSTSW AX / TEST AH,0x41 / JP <assert>, and JP is taken
+ *      only when C0=C3=0 (ST0 > bound) or unordered -- equality (C3=1) falls
+ *      through to the pass path.  A strict `<` here asserted the moment the
+ *      player looked fully up in MP: player_control_update_desired_angles
+ *      clamps desired_angles.pitch to pc->pitch_maximum, which eases to
+ *      exactly 1.4922565f (0x3fbf0243, the same bit pattern this bound holds),
+ *      so pitch lands ON the bound rather than below it.
  *      The bound values were read out of the XBE (.rdata bit patterns
  *      0xbfbf0243 / 0x3fbf0243 / 0x00000000 / 0x40c90fdb); no name evidence
  *      exists for the pitch bounds, so they stay as literals.
@@ -1306,10 +1363,10 @@ real *player_control_get_facing_angles(int16_t local_player_index)
 
   if (!((*(uint32_t *)&player->desired_angles_pitch & 0x7f800000) !=
           0x7f800000 &&
-        player->desired_angles_pitch < 1.49225652217865f &&
-        player->desired_angles_pitch >= -1.49225652217865f &&
+        player->desired_angles_pitch <= MAXIMUM_DESIRED_PITCH &&
+        player->desired_angles_pitch >= MINIMUM_DESIRED_PITCH &&
         (*(uint32_t *)&player->desired_angles_yaw & 0x7f800000) != 0x7f800000 &&
-        player->desired_angles_yaw <= 6.2831855f &&
+        player->desired_angles_yaw <= REAL_TWO_PI &&
         player->desired_angles_yaw >= 0.0f)) {
     display_assert("valid_euler_angles2d(&player->desired_angles)",
                    "c:\\halo\\SOURCE\\game\\player_control.c", 0x3c0, 1);
@@ -1430,16 +1487,16 @@ void player_control_update_desired_angles(int16_t local_player_index,
     tag_block_get_element((char *)game_globals_get() + 0x110, 0, 0x80);
 
   desired_pitch = &pc->desired_angles_pitch;
-  pitch_minimum_target = -1.4922565f; /* -85.5 degrees */
-  pitch_maximum_target = 1.4922565f; /* +85.5 degrees */
+  pitch_minimum_target = MINIMUM_DESIRED_PITCH; /* -85.5 degrees */
+  pitch_maximum_target = MAXIMUM_DESIRED_PITCH; /* +85.5 degrees */
 
   /* valid_euler_angles2d(&player->desired_angles): pitch within +-85.5
    * degrees, yaw within [0, 2*pi], neither infinite nor NaN. */
   if ((*(uint32_t *)&pc->desired_angles_pitch & 0x7f800000) == 0x7f800000 ||
-      pc->desired_angles_pitch > 1.4922565f ||
-      pc->desired_angles_pitch < -1.4922565f ||
+      pc->desired_angles_pitch > MAXIMUM_DESIRED_PITCH ||
+      pc->desired_angles_pitch < MINIMUM_DESIRED_PITCH ||
       (*(uint32_t *)&pc->desired_angles_yaw & 0x7f800000) == 0x7f800000 ||
-      pc->desired_angles_yaw > 6.2831855f || pc->desired_angles_yaw < 0.0f) {
+      pc->desired_angles_yaw > REAL_TWO_PI || pc->desired_angles_yaw < 0.0f) {
     display_assert("valid_euler_angles2d(&player->desired_angles)",
                    "c:\\halo\\SOURCE\\game\\player_control.c", 0x494, 1);
     system_exit(NONE);
@@ -1476,25 +1533,25 @@ void player_control_update_desired_angles(int16_t local_player_index,
       yaw_high = marker_angles[0] + *(float *)(seat + 0xf4);
 
       arc = yaw_high - yaw_low;
-      if (arc >= 3.1415927f)
-        arc -= 6.2831855f;
-      if (arc <= -3.1415927f)
-        arc += 6.2831855f;
+      if (arc >= REAL_PI)
+        arc -= REAL_TWO_PI;
+      if (arc <= (-REAL_PI))
+        arc += REAL_TWO_PI;
 
       delta_high = yaw_high - pc->desired_angles_yaw;
-      if (delta_high >= 3.1415927f)
-        delta_high -= 6.2831855f;
-      if (delta_high <= -3.1415927f)
-        delta_high += 6.2831855f;
+      if (delta_high >= REAL_PI)
+        delta_high -= REAL_TWO_PI;
+      if (delta_high <= (-REAL_PI))
+        delta_high += REAL_TWO_PI;
 
       delta = pc->desired_angles_yaw - yaw_low;
-      if (delta >= 3.1415927f)
-        delta -= 6.2831855f;
-      if (delta <= -3.1415927f)
-        delta += 6.2831855f;
+      if (delta >= REAL_PI)
+        delta -= REAL_TWO_PI;
+      if (delta <= (-REAL_PI))
+        delta += REAL_TWO_PI;
 
       if (arc < 0.0f)
-        arc += 6.2831855f;
+        arc += REAL_TWO_PI;
 
       /* outside the arc: snap to the nearer end */
       if (!((delta_high >= 0.0f && delta_high < arc) ||
@@ -1508,9 +1565,9 @@ void player_control_update_desired_angles(int16_t local_player_index,
   }
 
   while (pc->desired_angles_yaw < 0.0f)
-    pc->desired_angles_yaw += 6.2831855f;
-  while (pc->desired_angles_yaw > 6.2831855f)
-    pc->desired_angles_yaw -= 6.2831855f;
+    pc->desired_angles_yaw += REAL_TWO_PI;
+  while (pc->desired_angles_yaw > REAL_TWO_PI)
+    pc->desired_angles_yaw -= REAL_TWO_PI;
 
   /* ease the pitch limits toward the camera's targets */
   limits = *(char **)(camera_info + 8);
@@ -1540,21 +1597,21 @@ void player_control_update_desired_angles(int16_t local_player_index,
         marker_angles[1] = 0.0f;
         angles_to_vector(forward, marker_angles);
         offset =
-          1.5707964f - FUN_0010c510(forward, (float *)(unit_obj + 0x30));
+          REAL_HALF_PI - FUN_0010c510(forward, (float *)(unit_obj + 0x30));
         pitch_minimum_target -= offset;
         pitch_maximum_target -= offset;
         pitch_target -= offset;
       }
 
-      if (pitch_minimum_target < -1.4922565f)
-        pitch_minimum_target = -1.4922565f;
-      else if (pitch_minimum_target > 1.4922565f)
-        pitch_minimum_target = 1.4922565f;
+      if (pitch_minimum_target < MINIMUM_DESIRED_PITCH)
+        pitch_minimum_target = MINIMUM_DESIRED_PITCH;
+      else if (pitch_minimum_target > MAXIMUM_DESIRED_PITCH)
+        pitch_minimum_target = MAXIMUM_DESIRED_PITCH;
 
-      if (pitch_maximum_target < -1.4922565f)
-        pitch_maximum_target = -1.4922565f;
-      else if (pitch_maximum_target > 1.4922565f)
-        pitch_maximum_target = 1.4922565f;
+      if (pitch_maximum_target < MINIMUM_DESIRED_PITCH)
+        pitch_maximum_target = MINIMUM_DESIRED_PITCH;
+      else if (pitch_maximum_target > MAXIMUM_DESIRED_PITCH)
+        pitch_maximum_target = MAXIMUM_DESIRED_PITCH;
     }
 
     if (pitch_target != 0.0f || pc->field_0x26 != 0) {
@@ -1562,10 +1619,10 @@ void player_control_update_desired_angles(int16_t local_player_index,
       float magnitude;
 
       scaled =
-        (float)(fabs(*desired_pitch - pitch_target) * 0.6366197466850281);
+        (float)(fabs(*desired_pitch - pitch_target) * REAL_TWO_OVER_PI);
       if ((*(uint32_t *)desired_pitch & 0x7f800000) == 0x7f800000) {
         display_assert(
-          csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
+          csprintf(error_string_buffer, "%s: assert_valid_real(0x%08X %f)",
                    "player->desired_angles.pitch", *(uint32_t *)desired_pitch,
                    (double)*desired_pitch),
           "c:\\halo\\SOURCE\\game\\player_control.c", 0x4f2, 1);
@@ -1587,7 +1644,7 @@ void player_control_update_desired_angles(int16_t local_player_index,
 
       if ((*(uint32_t *)desired_pitch & 0x7f800000) == 0x7f800000) {
         display_assert(
-          csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
+          csprintf(error_string_buffer, "%s: assert_valid_real(0x%08X %f)",
                    "player->desired_angles.pitch", *(uint32_t *)desired_pitch,
                    (double)*desired_pitch),
           "c:\\halo\\SOURCE\\game\\player_control.c", 0x4fd, 1);
@@ -1598,17 +1655,17 @@ void player_control_update_desired_angles(int16_t local_player_index,
 
   /* the limits themselves move no faster than pi/256 per call */
   delta = pitch_minimum_target - pc->pitch_minimum;
-  if (delta < -0.0122718466f)
-    delta = -0.0122718466f;
-  else if (delta > 0.0122718466f)
-    delta = 0.0122718466f;
+  if (delta < (-MAXIMUM_PITCH_LIMIT_CHANGE))
+    delta = (-MAXIMUM_PITCH_LIMIT_CHANGE);
+  else if (delta > MAXIMUM_PITCH_LIMIT_CHANGE)
+    delta = MAXIMUM_PITCH_LIMIT_CHANGE;
   pc->pitch_minimum += delta;
 
   delta = pitch_maximum_target - pc->pitch_maximum;
-  if (delta < -0.0122718466f)
-    delta = -0.0122718466f;
-  else if (delta > 0.0122718466f)
-    delta = 0.0122718466f;
+  if (delta < (-MAXIMUM_PITCH_LIMIT_CHANGE))
+    delta = (-MAXIMUM_PITCH_LIMIT_CHANGE);
+  else if (delta > MAXIMUM_PITCH_LIMIT_CHANGE)
+    delta = MAXIMUM_PITCH_LIMIT_CHANGE;
   pc->pitch_maximum += delta;
 
   pc->desired_angles_pitch = pitch_delta + pc->desired_angles_pitch;
@@ -1632,10 +1689,13 @@ void player_control_initialize_for_new_map(void)
     scenario = (int)game_globals_get();
     iVar = (int)tag_block_get_element((void *)(scenario + 0x110), 0, 0x80);
     player_control_new_unit(i, -1);
-    if (*(float *)((char *)0x4570a8 + i * 4) == *(float *)0x2533c0)
-      *(int *)((char *)0x4570a8 + i * 4) = *(int *)(iVar + 0x4c);
-    if (*(float *)((char *)0x457098 + i * 4) == *(float *)0x2533c0)
-      *(int *)((char *)0x457098 + i * 4) = *(int *)(iVar + 0x50);
+    /* Both stores are integer moves of the float bits (MOV EAX,[EBX+0x4C] /
+     * MOV [ESI+0x4570A8],EAX at 0xb8617), not float copies -- keep the
+     * `*(int *)&` form or VC71 emits FLD/FSTP instead. */
+    if (flt_4570A8[i] == REAL_ZERO_POOL)
+      *(int *)&flt_4570A8[i] = *(int *)(iVar + 0x4c);
+    if (flt_457098[i] == REAL_ZERO_POOL)
+      *(int *)&flt_457098[i] = *(int *)(iVar + 0x50);
   }
 }
 
