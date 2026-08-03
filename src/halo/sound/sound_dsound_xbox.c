@@ -90,6 +90,25 @@ int dsound_occlusion_from_occlusion(float occlusion)
   return sound_dsound_gain_to_volume(1.0f - occlusion, 0);
 }
 
+/* dsound_obstruction_from_obstruction (0x1c9270)
+ *
+ * Convert a linear obstruction factor [0.0, 1.0] into a DirectSound
+ * volume attenuation in hundredths of dB.  Byte-for-byte the same
+ * shape as dsound_occlusion_from_occlusion above: FLD [0x2533c8];
+ * PUSH 0; FSUB [EBP+8]; PUSH ECX; FSTP [ESP];
+ * CALL sound_dsound_gain_to_volume; ADD ESP,8.  The constant at
+ * 0x2533c8 is .rdata 0x3F800000 == 1.0f, and FSUB m32 computes
+ * ST0 - m32, i.e. 1.0f - obstruction: full obstruction (1.0) maps to
+ * gain 0 (silence).  The PUSH ECX is only a placeholder slot that
+ * FSTP overwrites with the float, not a third argument (ADD ESP,8
+ * confirms exactly two stack args).  The call is in tail position and
+ * its EAX falls through to RET, so the result is returned implicitly
+ * with no MOV after the CALL. */
+int dsound_obstruction_from_obstruction(float obstruction)
+{
+  return sound_dsound_gain_to_volume(1.0f - obstruction, 0);
+}
+
 /* sound_dsound_channel_get (0x1c9290)
  *
  * Return a pointer to the actual dsound channel struct at the given

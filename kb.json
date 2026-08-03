@@ -22924,7 +22924,8 @@
     },
     {
      "addr": "0x1c9270",
-     "decl": "void dsound_obstruction_from_obstruction(void);"
+     "decl": "int dsound_obstruction_from_obstruction(float obstruction);",
+     "ported": true
     },
     {
      "addr": "0x1c9350",
