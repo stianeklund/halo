@@ -24341,7 +24341,8 @@
     },
     {
      "addr": "0x1975e0",
-     "decl": "void FUN_001975e0(void);"
+     "decl": "char FUN_001975e0(void *ref, void *frustum, void *out);",
+     "ported": true
     },
     {
      "addr": "0x1978a0",

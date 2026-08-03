@@ -3501,7 +3501,7 @@
       "source": "src/halo/structures/structures.c"
     },
     "FUN_00099270": {
-      "score": 6.7,
+      "score": 84.7,
       "source": "src/halo/structures/structures.c"
     },
     "FUN_000992d0": {
@@ -8245,7 +8245,7 @@
       "source": "src/halo/structures/structures.c"
     },
     "FUN_00105980": {
-      "score": 73.2,
+      "score": 74.7,
       "source": "src/halo/structures/structures.c"
     },
     "FUN_00106030": {
@@ -13068,6 +13068,10 @@
       "score": 75.7,
       "source": "src/halo/structures/structures.c"
     },
+    "FUN_001975e0": {
+      "score": 91.4,
+      "source": "src/halo/structures/structures.c"
+    },
     "FUN_001978a0": {
       "score": 92.0,
       "source": "src/halo/structures/structure_visibility.c"
@@ -15720,6 +15724,14 @@
       "score": 84.0,
       "source": "src/halo/structures/structures.c"
     },
+    "leaf_map_node_stack_peek": {
+      "score": 87.2,
+      "source": "src/halo/structures/structures.c"
+    },
+    "leaf_map_node_stack_pop": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
     "leaf_map_node_stack_push": {
       "score": 43.9,
       "source": "src/halo/structures/structures.c"
@@ -16916,12 +16928,28 @@
       "score": 100.0,
       "source": "src/halo/structures/structures.c"
     },
+    "structure_find_in_cluster": {
+      "score": 97.1,
+      "source": "src/halo/structures/structures.c"
+    },
+    "structure_get_planar_fog": {
+      "score": 80.9,
+      "source": "src/halo/structures/structures.c"
+    },
     "structure_get_planar_fog_definition_index": {
       "score": 79.7,
       "source": "src/halo/structures/structures.c"
     },
     "structure_render_surface_from_point_and_leaf": {
       "score": 86.9,
+      "source": "src/halo/structures/structures.c"
+    },
+    "structure_runtime_decals_dispose": {
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
+    "structure_runtime_decals_dispose_from_old_map": {
+      "score": 100.0,
       "source": "src/halo/structures/structures.c"
     },
     "structure_runtime_decals_initialize": {
@@ -16950,6 +16978,10 @@
     },
     "structures_dispose_from_old_map": {
       "score": 66.7,
+      "source": "src/halo/structures/structures.c"
+    },
+    "structures_initialize": {
+      "score": 7.1,
       "source": "src/halo/structures/structures.c"
     },
     "structures_initialize_for_new_map": {

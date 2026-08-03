@@ -4414,6 +4414,198 @@ char FUN_00197570(float *records, int16_t count, float threshold)
   return 0;
 }
 
+/* 16-byte plane record (normal + distance).  The original copies the mirror
+ * element's plane into the caller's result with four aliased integer moves
+ * through a copied pointer (MOV ECX,EDI at 0x19781b) -- an MSVC struct
+ * assignment, not four independent float stores. */
+typedef struct mirror_plane {
+  float n[4];
+} mirror_plane;
+
+/* Screen-space polygon scratch: a count followed by up to 0x100 (x,y) pairs.
+ * Size 0x804.  Proven by the 0x1834-byte frame at 0x1975e0, which is exactly
+ * three of these back to back (0x180c) plus 0x28 bytes of scalars:
+ *   EBP-0x1834 clip result   EBP-0x1030 edge-solve output   EBP-0x82c frustum
+ *   quad.  The two helpers are handed &poly (count) and &poly.points
+ *   separately, so the count and the point array MUST stay contiguous. */
+typedef struct mirror_polygon2d {
+  short count;
+  short pad_02;
+  float points[256][2];
+} mirror_polygon2d;
+
+/* Same layout, but the edge-solve helper's output count is consumed as a full
+ * dword (MOV ECX,dword ptr [EBP-0x1030] at 0x197725), not sign-extended from a
+ * word -- so the count field is int-wide here. */
+typedef struct mirror_edge_poly2d {
+  int count;
+  float points[256][2];
+} mirror_edge_poly2d;
+
+/* 0x1975e0 - find the mirror surface visible through the current frustum.
+ *
+ * Scans the sound/mirror bitmask of the cluster named by the global int16 at
+ * 0x506784 (skipped entirely when that global is -1).  Each set bit selects a
+ * surface in the structure bsp's tag_block at bsp+0x134 (stride 0x68); each
+ * surface carries a sub-block at +0x50 (stride 0x40) of mirror elements.
+ *
+ * For every mirror element the frustum's projected bounds rectangle is clipped
+ * against the element: FUN_00197310 solves the element's edge loop
+ * (verts=*(void**)(elem+0x38) in EAX, plane=elem in ECX, ref=param1 in EDX)
+ * into the local edge polygon.  A return of 0 means "solved" and the resulting
+ * polygon is intersected with the frustum quad by FUN_00108060; a non-empty
+ * intersection accepts the mirror.  A return of 2 accepts it directly.
+ *
+ * On acceptance the shader tag ('shdr', index at elem+0x30) is fetched; when
+ * its type word (+0x24) is 3 the two floats at +0x30c/+0x310 of
+ * FUN_001906b0(shader, 3) are stored to out+0x10/+0x14, else both are zeroed.
+ * The element's plane is copied to out+0x00..0x0c and the running surface
+ * counter to out+0x18.  If a mirror was already accepted this frame and the
+ * new plane differs by more than 1e-4 in any component, error(2, ...) fires.
+ *
+ * ABI (prologue at 0x1975e0): PUSH EBP / MOV EBP,ESP / MOV EAX,0x1834 /
+ * CALL _chkstk -> plain cdecl with a 0x1834-byte frame (never transcribe
+ * _chkstk).  ref=[EBP+8], frustum=[EBP+0xc], out=[EBP+0x10].  The result is a
+ * byte flag at EBP-1 returned in AL (MOV AL,[EBP-1] at 0x19788a and MOV AL,BL
+ * with BL==0 at 0x197895), i.e. a bool, not void as Ghidra claims.
+ *
+ * The out record is >= 0x1a bytes: plane float[4] at +0x00, two floats at
+ * +0x10/+0x14, an int16 surface index at +0x18.
+ *
+ * Index narrowing is load-bearing: the surface counter and the element index
+ * are both truncated through MOVSX AX/DX before every compare and every
+ * tag_block_get_element call. */
+char FUN_001975e0(void *ref, void *frustum, void *out)
+{
+  char found;
+  int surface_index;
+  uint32_t *mask_ptr;
+  int bit;
+  int elem_index;
+  float bounds[4];
+  int *block;
+  mirror_polygon2d quad;
+  mirror_edge_poly2d clip;
+  mirror_polygon2d result;
+  void *bsp;
+  void *elem;
+  void *shader;
+  void *shader_data;
+  int *sub;
+  short r;
+
+  bsp = scenario_get();
+  found = 0;
+  if (*(int *)0x506784 == -1) {
+    return found;
+  }
+
+  /* Frustum bounds -> the four corners of the projected rectangle.  Store
+   * offsets from the disassembly at 0x19761f-0x197667 (NOT the decompiler's
+   * local names, which are one slot off):
+   *   -0x828=b[0] -0x824=b[2] | -0x820=b[1] -0x81c=b[2]
+   *   -0x818=b[1] -0x814=b[3] | -0x810=b[0] -0x80c=b[3]
+   * i.e. (x0,y0) (x1,y0) (x1,y1) (x0,y1); the count word lands at -0x82c. */
+  render_frustum_get_projection_bounds(frustum, bounds);
+  quad.points[0][0] = bounds[0];
+  quad.points[0][1] = bounds[2];
+  quad.points[1][0] = bounds[1];
+  quad.points[1][1] = bounds[2];
+  quad.points[2][0] = bounds[1];
+  quad.points[2][1] = bounds[3];
+  quad.count = 4;
+  quad.points[3][0] = bounds[0];
+  quad.points[3][1] = bounds[3];
+
+  /* 0x506784 is read twice: as a full int for the -1 test above and as a word
+   * (XOR ECX,ECX / MOV CX,...) for the cluster index here. */
+  mask_ptr =
+    structure_bsp_get_cluster_sound_data(bsp, *(unsigned short *)0x506784);
+  block = (int *)((char *)bsp + 0x134);
+  surface_index = 0;
+  if (*block <= 0) {
+    return found;
+  }
+
+  do {
+    /* Positive test first: the original falls through into the bit scan and
+     * places the "no mirror in this 32-surface window" arm out of line at
+     * LAB_0019786e (JE at 0x1976a3). */
+    if (*mask_ptr != 0) {
+      bit = 0;
+      do {
+        if (*block <= (short)surface_index) {
+          break;
+        }
+        if ((*mask_ptr & (1U << bit)) != 0) {
+          sub = (int *)((char *)tag_block_get_element(
+                          block, (short)surface_index, 0x68) +
+                        0x50);
+          elem_index = 0;
+          if (0 < *sub) {
+            do {
+              elem = tag_block_get_element(sub, (short)elem_index, 0x40);
+              r = FUN_00197310(
+                *(void **)((char *)elem + 0x38), elem, ref, frustum,
+                *(unsigned short *)((char *)elem + 0x34), 1, (short *)&clip);
+              if (r == 0) {
+                result.count = FUN_00108060(
+                  quad.count, quad.points, clip.count, (uint16_t *)clip.points,
+                  0x100, (uint16_t *)result.points, 0x38d1b717);
+                if (result.count == 0) {
+                  goto next_element;
+                }
+              } else if (r != 2) {
+                goto next_element;
+              }
+
+              /* elem+0x30 is an INT tag index read through the element, not a
+               * float (Ghidra renders it as pfVar4[0xc]). */
+              shader = tag_get(0x73686472, *(int *)((char *)elem + 0x30));
+              if (*(short *)((char *)shader + 0x24) == 3) {
+                shader_data = FUN_001906b0(shader, 3);
+                *(float *)((char *)out + 0x10) =
+                  *(float *)((char *)shader_data + 0x30c);
+                *(float *)((char *)out + 0x14) =
+                  *(float *)((char *)shader_data + 0x310);
+              } else {
+                *(float *)((char *)out + 0x10) = 0.0f;
+                *(float *)((char *)out + 0x14) = 0.0f;
+              }
+
+              /* 0x1977b8-0x197808: FLD elem[k] / FSUB out[k] / FABS /
+               * FCOMP qword [0x2533d0] (== (double)1e-4f) / TEST AH,5 / JP.
+               * JP after TEST AH,5 is the false-exit of a `<` test, and the
+               * chain's tail inverts to JNP -> the source is the negation of
+               * an AND of four `<` comparisons.  Subtraction is elem - out. */
+              if (found &&
+                  !(fabs(((float *)elem)[0] - ((float *)out)[0]) < 0.0001f &&
+                    fabs(((float *)elem)[1] - ((float *)out)[1]) < 0.0001f &&
+                    fabs(((float *)elem)[2] - ((float *)out)[2]) < 0.0001f &&
+                    fabs(((float *)elem)[3] - ((float *)out)[3]) < 0.0001f)) {
+                error(2, "two mirrors visible with different planes");
+              }
+              *(mirror_plane *)out = *(mirror_plane *)elem;
+              *(short *)((char *)out + 0x18) = (short)surface_index;
+              found = 1;
+
+            next_element:
+              elem_index = elem_index + 1;
+            } while ((short)elem_index < *sub);
+          }
+        }
+        bit = bit + 1;
+        surface_index = surface_index + 1;
+      } while ((short)bit < 0x20);
+    } else {
+      surface_index = surface_index + 0x20;
+    }
+    mask_ptr = mask_ptr + 1;
+  } while ((short)surface_index < *block);
+
+  return found;
+}
+
 /* FUN_001978a0: recursive bsp3d structure-visibility traversal.
  *   Original: c:\halo\SOURCE\structures\structure_visibility.c line ~0x2ab.
  *
