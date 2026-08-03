@@ -3146,6 +3146,654 @@ int FUN_00194380(int param_1, void *param_2)
   return -1;
 }
 
+/* Local geometry types for build_structure_lens_flares. The 3/2-float point
+ * structs reproduce the original's dword-MOV struct copies; the temp marker
+ * record is the 0x14-byte sort element whose +0x10 int16 cluster index is what
+ * comparator FUN_00194360 orders on. */
+typedef struct lens_real_point3d {
+  float x, y, z;
+} lens_real_point3d;
+typedef struct lens_real_point2d {
+  float u, v;
+} lens_real_point2d;
+typedef struct lens_flare_temp_marker {
+  char marker[0x10]; /* raw copy of the 0x10-byte lens flare marker */
+  short cluster_index; /* +0x10, sort key (NONE == not in any cluster) */
+  short pad;
+} lens_flare_temp_marker;
+
+#define LENS_FLARES_FILE "c:\\halo\\SOURCE\\structures\\structure_lens_flares.c"
+/* Clamp to the short-safe grid range before rounding (globals -1000.0f at
+ * 0x25ddb8 / +1000.0f at 0x254cb8; FPU-resident ternary select shape). */
+#define LENS_FLARES_PIN(x) \
+  (((x) < -1000.0f) ? -1000.0f : (((x) > 1000.0f) ? 1000.0f : (x)))
+
+/* build_structure_lens_flares (0x1943e0)
+ * (TU: c:\halo\SOURCE\structures\structure_lens_flares.c, __FILE__ confirmed)
+ *
+ * Tool/build-time structure_bsp pass: clears and rebuilds the lens_flares
+ * (bsp+0x11c) and lens_flare_markers (bsp+0x128) tag blocks. For each
+ * lightmap material (bsp+0x104 -> +0x14, elem 0x100) whose shader (type 3/5/6)
+ * carries a lens flare reference, it builds the coplanar connected geometry of
+ * the material's surfaces (main.obj helpers 0x1034b0/0x103860/0x103c00 over a
+ * 0x24-byte triple dynamic-array context), projects each group onto its
+ * dominant axis, convex-hulls the projected points, and lays a radius-spaced
+ * grid of markers over the hull interior. Markers are then located in the
+ * collision BSP (stepping along the packed normal with a doubling epsilon
+ * until a leaf/cluster is found), qsort'ed by cluster (FUN_00194360), copied
+ * back in cluster order, and the per-cluster first_marker/count fields
+ * (cluster+0x40/+0x42) are filled and validated.
+ *
+ * Returns the success flag in AL (bool). Disassembly-confirmed details:
+ *  - warnings pass the max as a third printf arg (0x100 flares, 0x10000
+ *    markers); the over-max path prints the flare warning twice (constant
+ *    folding of lens_flare_index = NONE into the common not-found warning).
+ *  - grid bounds: ceil (0x1dbc26) of the min, floor (0x1d9c2b) of the max,
+ *    each clamped to [-1000,1000] and rounded via bare FLD/FISTP
+ *    (x87_round_to_int), NOT a truncating (int) cast.
+ *  - normal bytes packed with (char)round(floor(n*127.5f)), unpacked with
+ *    1/127 (0x2820c0).
+ *  - binormal = cross(plane_normal, tangent) with the exact FLD/FMUL/FSUBP
+ *    factor order below; dot products keep the original y,z,x / z,y,x term
+ *    order. Do not reassociate.
+ *  - centroid starts from the global origin point *(float **)0x31fc1c, not
+ *    from zero. */
+bool build_structure_lens_flares(void *structure_bsp)
+{
+  char success;
+  char *lens_flare_markers;
+  float *projected_vertices; /* 480000 bytes: 60000 x 2 floats (projected) */
+  float *group_vertices; /* 720000 bytes: 60000 x 3 floats (world) */
+  short *hull_indices; /* 120000 bytes: 60000 int16 hull index list */
+  char *clusters;
+  char *lens_flares;
+  char *lightmap;
+  char *materials;
+  char *material;
+  char *triangles;
+  char *shader;
+  char *flare_ref;
+  void *cluster;
+  void *elem;
+  void *new_elem;
+  void *leaf_elem;
+  unsigned short *tri;
+  unsigned int *edge;
+  lens_flare_temp_marker *temp_markers;
+  lens_flare_temp_marker *tm;
+  lens_real_point3d position;
+  lens_real_point3d *p;
+  float *origin;
+  float *v0;
+  float *v1;
+  float *v2;
+  lens_real_point2d *out;
+  int geometry[9]; /* three dynamic array headers: pts 0xc / refs 0x1c / edges
+                      0x18 */
+  float plane[4];
+  float projected[2];
+  int vertices;
+  int vref;
+  float radius;
+  float centroid_x, centroid_y, centroid_z;
+  float tangent_x, tangent_y, tangent_z;
+  float binormal_x, binormal_y, binormal_z;
+  float tangent_d, binormal_d;
+  float u_min, u_max, v_min, v_max;
+  float length, scale, inv, fu, fv;
+  float step_x, step_y, step_z;
+  float normal_x, normal_y, normal_z;
+  float grid_u, grid_v;
+  float delta;
+  long axis;
+  char projection_sign;
+  long group_count, group;
+  long point_count, hull_count;
+  long surface;
+  long lens_flare_index;
+  long marker_index;
+  long out_count;
+  long i, n, pc, pc2;
+  long u_grid, v_grid, u_count, v_count;
+  unsigned int leaf;
+  short cluster_idx;
+  short cluster_index16;
+  short u_start, v_start, u_end, v_end;
+  short lightmap_index, material_index, edge_index, cluster_counter;
+  short validate_counter;
+  short *hp;
+  float u, v;
+
+  success = 1;
+  if (!structure_bsp) {
+    display_assert("structure_bsp", LENS_FLARES_FILE, 0x42, 1);
+    system_exit(-1);
+  }
+  crt_fprintf((void *)0x331050, "building structure lens flares...");
+  crt_fflush((void *)0x331050);
+  lens_flare_markers = (char *)structure_bsp + 0x128;
+  if (!tag_block_resize((char *)structure_bsp + 0x11c, 0) ||
+      !tag_block_resize(lens_flare_markers, 0)) {
+    error(2, "### ERROR failed to clear lens flares and/or markers from "
+             "structure_bsp");
+    return 0;
+  }
+  projected_vertices = (float *)debug_malloc(480000, 0, LENS_FLARES_FILE, 0x4a);
+  group_vertices = (float *)debug_malloc(720000, 0, LENS_FLARES_FILE, 0x4b);
+  hull_indices = (short *)debug_malloc(120000, 0, LENS_FLARES_FILE, 0x4c);
+  if (structure_bsp && projected_vertices && group_vertices && hull_indices) {
+    /* Zero every cluster's first_lens_flare_marker_index / marker_count. */
+    clusters = (char *)structure_bsp + 0x134;
+    cluster_counter = 0;
+    if (0 < *(int *)clusters) {
+      i = 0;
+      do {
+        cluster = tag_block_get_element(clusters, i, 0x68);
+        *(short *)((char *)cluster + 0x40) = 0;
+        cluster = tag_block_get_element(clusters, i, 0x68);
+        cluster_counter = (short)(cluster_counter + 1);
+        i = cluster_counter;
+        *(short *)((char *)cluster + 0x42) = 0;
+      } while (i < *(int *)clusters);
+    }
+    lightmap_index = 0;
+    if (0 < *(int *)((char *)structure_bsp + 0x104)) {
+      do {
+        lightmap = (char *)tag_block_get_element((char *)structure_bsp + 0x104,
+                                                 lightmap_index, 0x20);
+        materials = lightmap + 0x14;
+        material_index = 0;
+        if (0 < *(int *)materials) {
+          do {
+            material =
+              (char *)tag_block_get_element(materials, material_index, 0x100);
+            if (*(int *)(material + 0xc) != -1) {
+              shader = (char *)tag_get(0x73686472, *(int *)(material + 0xc));
+              switch (*(short *)(shader + 0x24)) {
+              case 3:
+                flare_ref = (char *)FUN_001906b0(shader, 3) + 0x30;
+                radius = *(float *)((char *)FUN_001906b0(shader, 3) + 0x2c);
+                break;
+              case 5:
+                flare_ref = (char *)FUN_001906b0(shader, 5) + 0x38;
+                radius = *(float *)((char *)FUN_001906b0(shader, 5) + 0x34);
+                break;
+              case 6:
+                flare_ref = (char *)FUN_001906b0(shader, 6) + 0x38;
+                radius = *(float *)((char *)FUN_001906b0(shader, 6) + 0x34);
+                break;
+              default:
+                goto lens_flares_next_material;
+              }
+              if (flare_ref != 0 && *(int *)(flare_ref + 0xc) != -1) {
+                /* Find (or append) this lens flare in bsp->lens_flares. */
+                lens_flares = (char *)structure_bsp + 0x11c;
+                lens_flare_index = 0;
+                i = 0;
+                if (0 < *(int *)lens_flares) {
+                  do {
+                    elem = tag_block_get_element(lens_flares, i, 0x10);
+                    if (*(int *)((char *)elem + 0xc) ==
+                        *(int *)(flare_ref + 0xc)) {
+                      break;
+                    }
+                    lens_flare_index = lens_flare_index + 1;
+                    i = (short)lens_flare_index;
+                  } while (i < *(int *)lens_flares);
+                }
+                if (*(int *)lens_flares == (short)lens_flare_index) {
+                  if (*(int *)lens_flares < 0x100) {
+                    new_elem = tag_block_get_element(
+                      lens_flares, tag_block_add_element(lens_flares), 0x10);
+                    FUN_001b9b50(new_elem, *(int *)flare_ref,
+                                 *(int *)(flare_ref + 4));
+                    *(int *)((char *)new_elem + 0xc) =
+                      *(int *)(flare_ref + 0xc);
+                  } else {
+                    error(2,
+                          "### WARNING failed to add lens flare to "
+                          "structure_bsp (max=#%d)",
+                          0x100);
+                    lens_flare_index = -1;
+                  }
+                }
+                if ((short)lens_flare_index != -1) {
+                  /* Build the material's connected coplanar geometry. */
+                  vertices = *(int *)(material + 0xe4);
+                  FUN_001034b0(geometry);
+                  surface = 0;
+                  if (0 < *(int *)(material + 0x18)) {
+                    triangles = (char *)structure_bsp + 0xf8;
+                    do {
+                      tri = (unsigned short *)tag_block_get_element(
+                        triangles, *(int *)(material + 0x14) + surface, 6);
+                      if ((int)tri[0] >= *(int *)(material + 0xb4)) {
+                        display_assert(
+                          "surface->vertex_indices[0]>=0 && "
+                          "surface->vertex_indices[0]<material->vertices.count",
+                          LENS_FLARES_FILE, 0xb3, 1);
+                        system_exit(-1);
+                      }
+                      if ((int)tri[1] >= *(int *)(material + 0xb4)) {
+                        display_assert(
+                          "surface->vertex_indices[1]>=0 && "
+                          "surface->vertex_indices[1]<material->vertices.count",
+                          LENS_FLARES_FILE, 0xb4, 1);
+                        system_exit(-1);
+                      }
+                      if ((int)tri[2] >= *(int *)(material + 0xb4)) {
+                        display_assert(
+                          "surface->vertex_indices[2]>=0 && "
+                          "surface->vertex_indices[2]<material->vertices.count",
+                          LENS_FLARES_FILE, 0xb5, 1);
+                        system_exit(-1);
+                      }
+                      FUN_00103860((int)geometry,
+                                   (float *)(vertices + tri[0] * 0x38),
+                                   (float *)(vertices + tri[1] * 0x38),
+                                   (float *)(vertices + tri[2] * 0x38), 0);
+                      surface = surface + 1;
+                    } while (surface < *(int *)(material + 0x18));
+                  }
+                  group_count = FUN_00103c00(geometry);
+                  group = 0;
+                  if (0 < group_count) {
+                    do {
+                      point_count = 0;
+                      edge_index = 0;
+                      if (0 < geometry[7]) {
+                        i = 0;
+                        do {
+                          edge =
+                            (unsigned int *)FUN_00117ee0(geometry + 6, i, 0x18);
+                          if ((int)edge[3] == group) {
+                            vref = FUN_00117ee0(
+                              geometry + 3, (int)(edge[0] & 0x7fffffff), 0x1c);
+                            v0 = (float *)FUN_00117ee0(
+                              geometry,
+                              ((int *)(vref + 0xc))[(edge[0] & 0x80000000) != 0],
+                              0xc);
+                            vref = FUN_00117ee0(
+                              geometry + 3, (int)(edge[1] & 0x7fffffff), 0x1c);
+                            v1 = (float *)FUN_00117ee0(
+                              geometry,
+                              ((int *)(vref + 0xc))[(edge[1] & 0x80000000) != 0],
+                              0xc);
+                            vref = FUN_00117ee0(
+                              geometry + 3, (int)(edge[2] & 0x7fffffff), 0x1c);
+                            v2 = (float *)FUN_00117ee0(
+                              geometry,
+                              ((int *)(vref + 0xc))[(edge[2] & 0x80000000) != 0],
+                              0xc);
+                            if ((short)point_count == 0) {
+                              /* First triangle of the group: plane normal,
+                               * dominant projection axis, and sign. */
+                              FUN_001037b0(plane, v2, v1, v0);
+                              if (fabs(plane[2]) < fabs(plane[1]) ||
+                                  fabs(plane[2]) < fabs(plane[0])) {
+                                if (fabs(plane[1]) < fabs(plane[0])) {
+                                  axis = 0;
+                                } else {
+                                  axis = 1;
+                                }
+                              } else {
+                                axis = 2;
+                              }
+                              projection_sign = 1;
+                              if (plane[(short)axis] <= 0.0f) {
+                                projection_sign = 0;
+                              }
+                            }
+                            pc = (short)point_count;
+                            pc2 = pc + 2;
+                            if (59999 < pc2) {
+                              display_assert(
+                                "point_count+2<MAXIMUM_TRIANGLES_PER_CONNECTED_"
+                                "GEOMETRY_COPLANAR_GROUP*NUMBER_OF_VERTICES_"
+                                "PER_TRIANGLE",
+                                LENS_FLARES_FILE, 0xda, 1);
+                              system_exit(-1);
+                            }
+                            ((lens_real_point3d *)group_vertices)[pc] =
+                              *(lens_real_point3d *)v0;
+                            ((lens_real_point3d *)group_vertices)[pc + 1] =
+                              *(lens_real_point3d *)v1;
+                            ((lens_real_point3d *)group_vertices)[pc2] =
+                              *(lens_real_point3d *)v2;
+                            out = (lens_real_point2d *)projected_vertices + pc;
+                            FUN_00061df0(v0, (short)axis, projection_sign, out);
+                            FUN_00061df0(v1, (short)axis, projection_sign,
+                                         out + 1);
+                            FUN_00061df0(
+                              v2, (short)axis, projection_sign,
+                              (lens_real_point2d *)projected_vertices + pc2);
+                            point_count = point_count + 3;
+                          }
+                          edge_index = (short)(edge_index + 1);
+                          i = edge_index;
+                        } while (i < geometry[7]);
+                      }
+                      hull_count = convex_hull2d_reduce(
+                        (short)point_count, projected_vertices, hull_indices);
+                      if (2 < (short)hull_count) {
+                        /* Centroid of the hull, seeded from the global origin
+                         * point (*(float **)0x31fc1c), scaled by 1/count. */
+                        origin = *(float **)0x31fc1c;
+                        centroid_x = origin[0];
+                        centroid_y = origin[1];
+                        centroid_z = origin[2];
+                        if (0 < (short)hull_count) {
+                          n = (unsigned short)hull_count;
+                          hp = hull_indices;
+                          do {
+                            p = (lens_real_point3d *)group_vertices + *hp;
+                            hp = hp + 1;
+                            n = n - 1;
+                            centroid_x = centroid_x + p->x;
+                            centroid_y = centroid_y + p->y;
+                            centroid_z = centroid_z + p->z;
+                          } while (n != 0);
+                        }
+                        scale = 1.0f / (float)(short)hull_count;
+                        centroid_x = centroid_x * scale;
+                        centroid_y = centroid_y * scale;
+                        centroid_z = scale * centroid_z;
+                        /* Tangent basis: normalize(points[1] - points[0]). */
+                        tangent_x = ((lens_real_point3d *)group_vertices)[1].x -
+                                    ((lens_real_point3d *)group_vertices)[0].x;
+                        tangent_y = ((lens_real_point3d *)group_vertices)[1].y -
+                                    ((lens_real_point3d *)group_vertices)[0].y;
+                        tangent_z = ((lens_real_point3d *)group_vertices)[1].z -
+                                    ((lens_real_point3d *)group_vertices)[0].z;
+                        length = x87_sqrt(tangent_y * tangent_y +
+                                          tangent_z * tangent_z +
+                                          tangent_x * tangent_x);
+                        if (fabs(length) >= (double)0.0001f) {
+                          length = 1.0f / length;
+                          tangent_x = tangent_x * length;
+                          tangent_y = tangent_y * length;
+                          tangent_z = tangent_z * length;
+                        }
+                        p =
+                          (lens_real_point3d *)group_vertices + hull_indices[0];
+                        /* Binormal = cross(plane_normal, tangent); factor
+                         * order matches the FLD/FMUL/FSUBP sequence. */
+                        binormal_x =
+                          tangent_z * plane[1] - tangent_y * plane[2];
+                        binormal_y =
+                          tangent_x * plane[2] - tangent_z * plane[0];
+                        binormal_z =
+                          tangent_y * plane[0] - tangent_x * plane[1];
+                        tangent_d = tangent_y * centroid_y +
+                                    tangent_z * centroid_z +
+                                    tangent_x * centroid_x;
+                        binormal_d = binormal_z * centroid_z +
+                                     binormal_y * centroid_y +
+                                     binormal_x * centroid_x;
+                        u_max = (tangent_y * p->y + tangent_z * p->z +
+                                 tangent_x * p->x) -
+                                tangent_d;
+                        u_min = u_max;
+                        v_max = (binormal_z * p->z + binormal_y * p->y +
+                                 binormal_x * p->x) -
+                                binormal_d;
+                        v_min = v_max;
+                        if (0 < (short)hull_count) {
+                          n = (unsigned short)hull_count;
+                          hp = hull_indices;
+                          do {
+                            p = (lens_real_point3d *)group_vertices + *hp;
+                            u = (tangent_x * p->x + tangent_y * p->y +
+                                 tangent_z * p->z) -
+                                tangent_d;
+                            v = (binormal_x * p->x + binormal_z * p->z +
+                                 binormal_y * p->y) -
+                                binormal_d;
+                            if (u <= u_min) {
+                              u_min = u;
+                            }
+                            if (v <= v_min) {
+                              v_min = v;
+                            }
+                            if (u_max < u) {
+                              u_max = u;
+                            }
+                            if (v_max < v) {
+                              v_max = v;
+                            }
+                            hp = hp + 1;
+                            n = n - 1;
+                          } while (n != 0);
+                        }
+                        if (radius != 0.0f) {
+                          /* Interior grid: ceil the min, floor the max. */
+                          inv = 1.0f / radius;
+                          grid_u = inv * u_min;
+                          u_start = (short)x87_round_to_int(
+                            (float)ceil((double)LENS_FLARES_PIN(grid_u)));
+                          grid_v = inv * v_min;
+                          v_start = (short)x87_round_to_int(
+                            (float)ceil((double)LENS_FLARES_PIN(grid_v)));
+                          grid_u = inv * u_max;
+                          u_end = (short)x87_round_to_int(
+                            (float)floor((double)LENS_FLARES_PIN(grid_u)));
+                          grid_v = inv * v_max;
+                          v_end = (short)x87_round_to_int(
+                            (float)floor((double)LENS_FLARES_PIN(grid_v)));
+                          if (v_end < v_start) {
+                            goto lens_flares_next_group;
+                          }
+                        } else {
+                          v_end = 0;
+                          u_end = 0;
+                          v_start = 0;
+                          u_start = 0;
+                        }
+                        v_count = (unsigned short)((v_end - v_start) + 1);
+                        v_grid = v_start;
+                        do {
+                          if (u_start <= u_end) {
+                            fv = (float)v_grid * radius;
+                            step_x = binormal_x * fv;
+                            step_y = binormal_y * fv;
+                            step_z = binormal_z * fv;
+                            u_count = (unsigned short)((u_end - u_start) + 1);
+                            u_grid = u_start;
+                            do {
+                              fu = (float)u_grid * radius;
+                              position.x = centroid_x;
+                              position.y = centroid_y;
+                              position.z = centroid_z;
+                              position.x = tangent_x * fu + position.x;
+                              position.y = tangent_y * fu + position.y;
+                              position.z = tangent_z * fu + position.z;
+                              position.x = step_x + position.x;
+                              position.y = step_y + position.y;
+                              position.z = step_z + position.z;
+                              FUN_00061df0(&position, (short)axis,
+                                           projection_sign, projected);
+                              if ((char)FUN_00106290(
+                                    (short)hull_count, hull_indices,
+                                    projected_vertices, projected, 0.0f) != 0) {
+                                marker_index =
+                                  tag_block_add_element(lens_flare_markers);
+                                if (marker_index != -1) {
+                                  elem = tag_block_get_element(
+                                    lens_flare_markers, marker_index, 0x10);
+                                  *(lens_real_point3d *)elem = position;
+                                  *((char *)elem + 0xc) =
+                                    (char)x87_round_to_int((float)floor(
+                                      (double)(plane[0] * 127.5f)));
+                                  *((char *)elem + 0xd) =
+                                    (char)x87_round_to_int((float)floor(
+                                      (double)(plane[1] * 127.5f)));
+                                  *((char *)elem + 0xe) =
+                                    (char)x87_round_to_int((float)floor(
+                                      (double)(plane[2] * 127.5f)));
+                                  *((char *)elem + 0xf) =
+                                    (char)lens_flare_index;
+                                } else {
+                                  error(2,
+                                        "### WARNING failed to add lens flare "
+                                        "marker to structure_bsp (max=#%d)",
+                                        0x10000);
+                                }
+                              }
+                              u_grid = u_grid + 1;
+                              u_count = u_count - 1;
+                            } while (u_count != 0);
+                          }
+                          v_grid = v_grid + 1;
+                          v_count = v_count - 1;
+                        } while (v_count != 0);
+                      }
+                    lens_flares_next_group:
+                      group = group + 1;
+                    } while (group < group_count);
+                  }
+                  FUN_001034e0(geometry);
+                } else {
+                  error(2,
+                        "### WARNING failed to add lens flare to structure_bsp "
+                        "(max=#%d)",
+                        0x100);
+                }
+              }
+            }
+          lens_flares_next_material:
+            material_index = (short)(material_index + 1);
+          } while ((int)material_index < *(int *)materials);
+        }
+        lightmap_index = (short)(lightmap_index + 1);
+      } while ((int)lightmap_index < *(int *)((char *)structure_bsp + 0x104));
+    }
+    /* Sort the markers by containing cluster and rebuild the block. */
+    temp_markers = (lens_flare_temp_marker *)debug_malloc(
+      *(int *)lens_flare_markers * 0x14, 0, LENS_FLARES_FILE, 0x16b);
+    if (temp_markers != 0) {
+      out_count = 0;
+      cluster_index16 = -1;
+      if (0 < *(int *)lens_flare_markers) {
+        tm = temp_markers;
+        i = 0;
+        do {
+          elem = tag_block_get_element(lens_flare_markers, i, 0x10);
+          position = *(lens_real_point3d *)elem;
+          normal_x = (float)*((char *)elem + 0xc) * (1.0f / 127.0f);
+          delta = 1.0f / 65536.0f;
+          normal_y = (float)*((char *)elem + 0xd) * (1.0f / 127.0f);
+          normal_z = (float)*((char *)elem + 0xe) * (1.0f / 127.0f);
+          csmemcpy(tm, elem, 0x10);
+          do {
+            leaf = bsp3d_find_leaf(
+              tag_block_get_element((char *)structure_bsp + 0xb0, 0, 0x60), 0,
+              &position);
+            cluster_idx = -1;
+            if (leaf != 0xffffffff) {
+              leaf_elem = tag_block_get_element((char *)structure_bsp + 0xe0,
+                                                (int)(leaf & 0x7fffffff), 0x10);
+              cluster_idx = *(short *)((char *)leaf_elem + 8);
+            }
+            tm->cluster_index = cluster_idx;
+            position.x = delta * normal_x + position.x;
+            position.y = delta * normal_y + position.y;
+            position.z = delta * normal_z + position.z;
+            delta = delta + delta;
+          } while (cluster_idx == -1 && delta < 1.0f);
+          i = i + 1;
+          tm = tm + 1;
+        } while (i < *(int *)lens_flare_markers);
+      }
+      qsort(temp_markers, *(int *)lens_flare_markers, 0x14,
+            (int (*)(const void *, const void *))FUN_00194360);
+      i = 0;
+      if (0 < *(int *)lens_flare_markers) {
+        tm = temp_markers;
+        do {
+          if (tm->cluster_index != -1) {
+            cluster =
+              tag_block_get_element(clusters, (int)tm->cluster_index, 0x68);
+            if (cluster_index16 != tm->cluster_index) {
+              if (tm->cluster_index <= cluster_index16) {
+                display_assert(
+                  "cluster_index<temp_markers[marker_index].cluster_index",
+                  LENS_FLARES_FILE, 0x19f, 1);
+                system_exit(-1);
+              }
+              cluster_index16 = tm->cluster_index;
+              *(short *)((char *)cluster + 0x40) = (short)out_count;
+            }
+            csmemcpy(tag_block_get_element(lens_flare_markers, out_count, 0x10),
+                     tm, 0x10);
+            out_count = out_count + 1;
+            *(short *)((char *)cluster + 0x42) =
+              (short)(*(short *)((char *)cluster + 0x42) + 1);
+          }
+          i = i + 1;
+          tm = tm + 1;
+        } while (i < *(int *)lens_flare_markers);
+      }
+      if (tag_block_resize(lens_flare_markers, out_count)) {
+        /* Validate the per-cluster ranges against the shrunk block. */
+        validate_counter = 0;
+        if (0 < *(int *)clusters) {
+          i = 0;
+          do {
+            cluster = tag_block_get_element(clusters, i, 0x68);
+            if (*(unsigned short *)((char *)cluster + 0x42) != 0) {
+              if ((int)*(unsigned short *)((char *)cluster + 0x40) >=
+                  *(int *)lens_flare_markers) {
+                display_assert("cluster->first_lens_flare_marker_index<"
+                               "structure_bsp->lens_flare_markers.count",
+                               LENS_FLARES_FILE, 0x1bc, 1);
+                system_exit(-1);
+              }
+              if (*(int *)lens_flare_markers <
+                  (int)((unsigned int)*(unsigned short *)((char *)cluster +
+                                                          0x42) +
+                        (unsigned int)*(unsigned short *)((char *)cluster +
+                                                          0x40))) {
+                display_assert(
+                  "cluster->first_lens_flare_marker_index+cluster->lens_flare_"
+                  "marker_count<=structure_bsp->lens_flare_markers.count",
+                  LENS_FLARES_FILE, 0x1bd, 1);
+                system_exit(-1);
+              }
+            }
+            validate_counter = (short)(validate_counter + 1);
+            i = validate_counter;
+          } while (i < *(int *)clusters);
+        }
+      } else {
+        error(2, "### ERROR failed to resize lens flare marker block");
+        success = 0;
+      }
+      debug_free(temp_markers, LENS_FLARES_FILE, 0x1c7);
+    } else {
+      error(2, "### ERROR failed to sort lens flare markers by cluster (out of "
+               "memory)");
+      success = 0;
+    }
+  } else {
+    error(2, "### ERROR failed to allocate temporary buffers for lens flare "
+             "placement");
+    success = 0;
+  }
+  if (projected_vertices != 0) {
+    debug_free(projected_vertices, LENS_FLARES_FILE, 0x1d6);
+  }
+  if (group_vertices != 0) {
+    debug_free(group_vertices, LENS_FLARES_FILE, 0x1d7);
+  }
+  if (hull_indices != 0) {
+    debug_free(hull_indices, LENS_FLARES_FILE, 0x1d8);
+  }
+  if (success != 0) {
+    crt_fprintf((void *)0x331050, "done\r\n");
+  }
+  return success;
+}
+
 /* 0x1954d0 - build lens flares for the current structure BSP.
  * (TU: c:\halo\SOURCE\structures\structure_render.c)
  *

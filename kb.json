@@ -717,7 +717,7 @@
     },
     {
      "addr": "0x1dbc26",
-     "decl": "void FUN_001dbc26(void);"
+     "decl": "double ceil(double x);"
     },
     {
      "addr": "0x1dbcf4",
@@ -13438,7 +13438,7 @@
     },
     {
      "addr": "0x1034b0",
-     "decl": "void FUN_001034b0(void);"
+     "decl": "void FUN_001034b0(int *context);"
     },
     {
      "addr": "0x1034e0",
@@ -23560,7 +23560,7 @@
     },
     {
      "addr": "0x1b9b50",
-     "decl": "void FUN_001b9b50(void);",
+     "decl": "void FUN_001b9b50(void *reference, int group_tag, int name);",
      "ported": true
     },
     {
@@ -24185,7 +24185,8 @@
     },
     {
      "addr": "0x1943e0",
-     "decl": "void build_structure_lens_flares(void *scenario);"
+     "decl": "bool build_structure_lens_flares(void *structure_bsp);",
+     "ported": true
     },
     {
      "addr": "0x1954d0",

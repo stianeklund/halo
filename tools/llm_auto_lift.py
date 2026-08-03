@@ -434,45 +434,143 @@ _PDB_PROPOSALS_CACHE: Optional[set[str]] = None
 # ---------------------------------------------------------------------------
 
 _SOURCE_IMPL_CACHE: Optional[dict[str, str]] = None
+_SOURCE_IMPL_BY_NAME: Optional[dict[str, str]] = None
+
+# A C function DEFINITION at column 0: a return type, then the name, then '('.
+# The `^` anchor drops indented call sites, and callers additionally reject
+# lines ending in ';' so prototypes and column-0 calls cannot match.
+_FN_DEF_RE = re.compile(
+    r'^[A-Za-z_][A-Za-z0-9_*\s]+?[\s*]([A-Za-z_][A-Za-z0-9_]*)\s*\('
+)
+
+# Names that are never a real function and must not enter the index.  Both
+# sides of this lookup can degenerate to a bare type keyword -- a source
+# `typedef void (*fn)(...)` captures "void", and a kb.json decl for a function
+# POINTER TABLE (a data symbol, e.g. 0x31e500) also parses to "void".  Two such
+# garbage names collide and would silently exclude a liftable target.
+_NOT_A_FUNCTION_NAME = frozenset({
+    "void", "int", "char", "short", "long", "float", "double", "bool",
+    "unsigned", "signed", "const", "volatile", "static", "extern", "inline",
+    "register", "struct", "union", "enum", "typedef", "return", "sizeof",
+    "if", "else", "while", "for", "do", "switch", "case", "default",
+    "break", "continue", "goto",
+})
 
 
 def _build_source_impl_cache() -> dict[str, str]:
-    """Scan src/ for FUN_<addr> function definitions.
+    """Scan src/ for function definitions, indexed by address AND by name.
 
     Returns a dict mapping normalized address (e.g. '0x5a640') to the first
-    matching 'file:line' location.  Cached for the process lifetime.
+    matching 'file:line' location.  Cached for the process lifetime.  A second
+    index keyed by function name is built in the same pass and exposed through
+    ``_SOURCE_IMPL_BY_NAME``.
+
+    The name index is not a nicety.  Matching `FUN_<addr>` alone made every
+    function that had been given a real name invisible to the guard: the
+    selector looks up by address, the source defines by name, and the two never
+    meet.  `plane_negate` (implemented at geometry.c:15, kb.json ported=false)
+    was dequeued, researched, and skipped 48 separate times; the four
+    `actor_action_*` handlers 50 times each.  Roughly half of every batch's
+    research budget went to rediscovering known-implemented functions.
     """
-    global _SOURCE_IMPL_CACHE
-    if _SOURCE_IMPL_CACHE is not None:
+    global _SOURCE_IMPL_CACHE, _SOURCE_IMPL_BY_NAME
+    if _SOURCE_IMPL_CACHE is not None and _SOURCE_IMPL_BY_NAME is not None:
         return _SOURCE_IMPL_CACHE
 
     cache: dict[str, str] = {}
-    fn_def_re = re.compile(
-        r'^[A-Za-z_][A-Za-z0-9_*\s]+\bFUN_([0-9a-fA-F]{8})\s*\('
-    )
+    by_name: dict[str, str] = {}
     src_dir = ROOT / "src"
     for c_file in src_dir.rglob("*.c"):
         try:
+            rel = str(c_file.relative_to(ROOT))
             for lineno, line in enumerate(
                 c_file.read_text(encoding="utf-8", errors="ignore").splitlines(), 1
             ):
-                m = fn_def_re.match(line)
-                if m:
-                    addr_norm = "0x" + hex(int(m.group(1), 16))[2:]
+                # A trailing ';' means prototype or call, never a definition;
+                # a typedef is a type alias, not an implementation.
+                if line.rstrip().endswith(";") or line.startswith("typedef"):
+                    continue
+                m = _FN_DEF_RE.match(line)
+                if not m:
+                    continue
+                name = m.group(1)
+                if name in _NOT_A_FUNCTION_NAME:
+                    continue
+                loc = f"{rel}:{lineno}"
+                if name not in by_name:
+                    by_name[name] = loc
+                if name.startswith("FUN_"):
+                    try:
+                        addr_norm = "0x" + hex(int(name[4:], 16))[2:]
+                    except ValueError:
+                        continue
                     if addr_norm not in cache:
-                        rel = str(c_file.relative_to(ROOT))
-                        cache[addr_norm] = f"{rel}:{lineno}"
+                        cache[addr_norm] = loc
         except OSError:
             pass
     _SOURCE_IMPL_CACHE = cache
+    _SOURCE_IMPL_BY_NAME = by_name
     return cache
 
 
-def _is_already_in_source(addr: str) -> Optional[str]:
-    """Return 'file:line' if addr has a definition in src/, else None."""
+def _is_already_in_source(addr: str, name: str = "") -> Optional[str]:
+    """Return 'file:line' if addr or name has a definition in src/, else None.
+
+    `name` is optional so existing address-only callers keep working, but pass
+    it whenever kb.json supplies one -- it is the only way a renamed function
+    is seen.
+    """
     cache = _build_source_impl_cache()
     normalized = "0x" + hex(int(addr.lower().removeprefix("0x"), 16))[2:]
-    return cache.get(normalized)
+    hit = cache.get(normalized)
+    if hit:
+        return hit
+    if name and name not in _NOT_A_FUNCTION_NAME and _SOURCE_IMPL_BY_NAME:
+        return _SOURCE_IMPL_BY_NAME.get(name)
+    return None
+
+
+_VC71_SCORES_CACHE: Optional[dict[str, dict]] = None
+
+
+def _load_vc71_scores() -> dict[str, dict]:
+    """Return the committed VC71 byte-match cache, keyed by function name.
+
+    Shape is {"scores": {name: {"score": float, "source": path}}, "version": N}.
+    Empty dict if the file is missing or unreadable -- absence of a prior score
+    must never block selection.
+    """
+    global _VC71_SCORES_CACHE
+    if _VC71_SCORES_CACHE is not None:
+        return _VC71_SCORES_CACHE
+    result: dict[str, dict] = {}
+    path = ROOT / "tools" / "verify" / "vc71_scores.json"
+    if path.exists():
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            raw = data.get("scores", data) if isinstance(data, dict) else {}
+            if isinstance(raw, dict):
+                for k, v in raw.items():
+                    if isinstance(v, dict) and isinstance(v.get("score"), (int, float)):
+                        result[k] = v
+        except (json.JSONDecodeError, OSError):
+            pass
+    _VC71_SCORES_CACHE = result
+    return result
+
+
+def _prior_vc71_score(name: str) -> Optional[float]:
+    """Return this target's last recorded VC71 match %, or None if never scored.
+
+    A target that has already been measured has a known ceiling.  Surfacing it
+    in the selector row lets a consumer route the work correctly up front --
+    permuter band, score-improve, or leave alone -- instead of spending a full
+    research cycle rediscovering a number we already committed to disk.
+    """
+    if not name:
+        return None
+    entry = _load_vc71_scores().get(name)
+    return float(entry["score"]) if entry else None
 
 
 def _load_pdb_proposal_addrs() -> set[str]:
@@ -689,7 +787,7 @@ class LiftabilityScorer:
                 # Skip functions already implemented in source (kb.json drift).
                 # These have a FUN_<addr> definition in src/ but ported is not
                 # yet set to true — re-selecting them wastes a full lift attempt.
-                src_loc = _is_already_in_source(addr)
+                src_loc = _is_already_in_source(addr, name)
                 if src_loc:
                     log.debug("skip %s (%s): implementation in %s", name, addr, src_loc)
                     continue
@@ -1773,6 +1871,12 @@ def cmd_select(args: argparse.Namespace):
             # parked_attempts/parked_best_score to stop re-lifting a target that
             # has already resisted several attempts.
             row.update(_parked_state(item.target.name))
+            # Last recorded byte-match, if this target has ever been scored.
+            # Same reasoning as prior_fail above: without it in --json, every
+            # consumer re-derives a number already on disk. A target sitting at
+            # 87% has a known ceiling and wants the permuter or score-improve,
+            # not a fresh from-scratch lift that will land on 87% again.
+            row["prior_vc71_score"] = _prior_vc71_score(item.target.name)
             out.append(row)
         kw = {"separators": (",", ":")} if args.quiet else {"indent": 2}
         print(json.dumps(out, **kw))
@@ -1787,6 +1891,9 @@ def cmd_select(args: argparse.Namespace):
         miz = "Y" if _find_mizuchi_result(target.name) else "-"
         has_failure = (FAILURES_DIR / f"{target.name}.json").exists()
         skip_marker = " [skip:prior_fail]" if has_failure else ""
+        _pv = _prior_vc71_score(target.name)
+        if _pv is not None:
+            skip_marker += f" [vc71:{_pv:.1f}]"
         print(
             f"{item.total_score:>5}  {item.liftability_score:>4}  {item.frontier_score:>3}  "
             f"{item.lane:<13}  {item.oracle_strength:<7}  {miz:>3}  {target.addr:>10}  {target.object_name:<35}  {target.name:<35}  {reasons}{skip_marker}"

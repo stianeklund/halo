@@ -268,9 +268,15 @@ void FUN_001b9b30(int tag_class, int param_2, char *out_path)
 }
 
 /* Stub: tag_reference_set is not supported when running from a cache file.
- * Logs an error and returns immediately. */
-void FUN_001b9b50(void)
+ * Logs an error and returns immediately. Callers (e.g.
+ * build_structure_lens_flares at 0x194687) pass three cdecl args
+ * (reference, group_tag, name); the stub ignores them, but the decl must
+ * carry them so lifted callers push the same frame. */
+void FUN_001b9b50(void *reference, int group_tag, int name)
 {
+  (void)reference;
+  (void)group_tag;
+  (void)name;
   error(2, "tag_reference_set() is not supported with a cache file active");
   return;
 }
