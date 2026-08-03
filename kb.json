@@ -22912,6 +22912,12 @@
      "ported": false
     },
     {
+     "addr": "0x20f081",
+     "comment": "XDK DirectSound stream inline: loads the media object at stream+0x24 and makes a thiscall through its vtable slot 4 (vtbl+0x10) with two NULL arguments. Semantics of that COM method are unconfirmed; kept as FUN_ rather than guessed. stdcall, RET 4.",
+     "decl": "void __stdcall FUN_0020f081(void *stream);",
+     "ported": false
+    },
+    {
      "addr": "0x1c9230",
      "comment": "Convert an angle in radians to integer degrees (multiply by 180/PI == 57.29578f, truncate). Binary is FLD [EBP+8]; FMUL [0x2b073c]; JMP _ftol2.",
      "decl": "int dsound_angle_from_angle(float angle);",
@@ -22939,7 +22945,10 @@
     },
     {
      "addr": "0x1c9bf0",
-     "decl": "void FUN_001c9bf0(void);"
+     "comment": "Release the actual (hardware) sound channel bound to a virtual channel: stop the attached stream via the XDK media-object helper at 0x20f081, mark the channel released (byte +0x6 = 1), clear its playing flag and the two dwords at +0x68/+0x6c, then reset both back-references (channel->virtual_channel_index and vchannel->channel_index) to NONE. No-op when no channel is bound.",
+     "decl": "void sound_dsound_channel_release(int virtual_channel_index);",
+     "name": "sound_dsound_channel_release",
+     "ported": true
     },
     {
      "addr": "0x1c9c80",

@@ -466,6 +466,53 @@ done:
   return vchannel[0];
 }
 
+/* sound_dsound_channel_release (0x1c9bf0)
+ *
+ * Release the actual (hardware) channel currently bound to the virtual
+ * channel identified by virtual_channel_index.  Does nothing when the
+ * virtual channel has no channel bound (channel_index == NONE).
+ *
+ * When a channel is bound:
+ *   1. Assert the channel back-references this virtual channel.
+ *   2. If the channel is still playing (short at +0x0 != 0), stop the
+ *      attached stream (channel+0x70) through the XDK media-object
+ *      helper at 0x20f081, set the released byte at +0x6 and clear the
+ *      playing flag.
+ *   3. Clear the two dwords at +0x68 / +0x6c unconditionally -- the
+ *      original emits `MOV [ESI+0x68],EBX` / `MOV [ESI+0x6c],EBX` with
+ *      EBX == 0 *after* the conditional block, not inside it.
+ *   4. Reset both back-references to NONE. */
+void sound_dsound_channel_release(int virtual_channel_index)
+{
+  short *vchannel;
+  void *channel;
+
+  vchannel = (short *)sound_dsound_vchannel_get(virtual_channel_index);
+  if (vchannel[0] != -1) {
+    /* assert: channel's back-reference matches our virtual_channel_index */
+    channel = sound_dsound_channel_get(vchannel[0]);
+    if (*(short *)((char *)channel + 0x2) != (short)virtual_channel_index) {
+      display_assert("channel_get(vchannel->channel_index)->"
+                     "virtual_channel_index==virtual_channel_index",
+                     "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x5dd, 1);
+      system_exit(-1);
+    }
+
+    channel = sound_dsound_channel_get(vchannel[0]);
+    if (*(short *)channel != 0) {
+      FUN_0020f081(*(void **)((char *)channel + 0x70));
+      *((char *)channel + 0x6) = 1;
+      *(short *)channel = 0;
+    }
+    *(int *)((char *)channel + 0x68) = 0;
+    *(int *)((char *)channel + 0x6c) = 0;
+
+    channel = sound_dsound_channel_get(vchannel[0]);
+    *(short *)((char *)channel + 0x2) = -1;
+    vchannel[0] = -1;
+  }
+}
+
 /* FUN_001c9e20 (0x1c9e20)
  *
  * Per-frame DirectSound service routine.
