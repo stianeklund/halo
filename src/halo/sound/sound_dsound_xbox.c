@@ -714,6 +714,139 @@ void FUN_001ca130(void)
   }
 }
 
+/* FUN_001ca2b0 (0x1ca2b0)
+ *
+ * Push the 3D listener state -- position, orientation, velocity and the
+ * I3DL2 reverb environment -- down to DirectSound, skipping any of the
+ * four updates whose inputs have not moved since the last send.
+ *
+ * `params` is the listener parameter block:
+ *   +0x00 position x,y,z    +0x0c front    x,y,z
+ *   +0x18 top      x,y,z    +0x24 velocity x,y,z
+ *   +0x30 pointer to the 0x48-byte engine-side I3DL2 environment block
+ *
+ * Halo is Z-up and DirectSound is Y-up, so every vector goes out with
+ * its Y and Z components swapped: (x, z, y).  This is verified from the
+ * push/FSTP order at each call site, not from the decompiler's argument
+ * list -- MSVC passes these floats as `PUSH <dummy>; FSTP [ESP]`.
+ *
+ * The values last actually sent are cached at 0x5053d0 (position),
+ * 0x5053dc (front then top), 0x5053f4 (velocity) and 0x505404 (the whole
+ * 0x48-byte environment block).  A delta smaller than the epsilon --
+ * 0.05 for position and orientation, 0.01 for velocity -- is dropped,
+ * but a clear settings-valid flag at 0x4fdbc0 forces every update to be
+ * re-sent regardless.
+ *
+ * The DSI3DL2LISTENER handed to SetI3DL2Listener is built on the stack
+ * from the environment block: the four gain fields go through
+ * sound_dsound_gain_to_volume with per-field ceilings (0 for room and
+ * roomHF, 1000 for reflections, 2000 for reverb), diffusion and density
+ * are scaled by 100, and the remaining fields are copied verbatim.
+ * Environment offsets +0x00 and +0x04 are cached but never sent. */
+void FUN_001ca2b0(const float *params)
+{
+  /* DSI3DL2LISTENER (XDK, 0x30 bytes) -- the whole stack frame. */
+  struct i3dl2_listener {
+    int lRoom;
+    int lRoomHF;
+    float flRoomRolloffFactor;
+    float flDecayTime;
+    float flDecayHFRatio;
+    int lReflections;
+    float flReflectionsDelay;
+    int lReverb;
+    float flReverbDelay;
+    float flDiffusion;
+    float flDensity;
+    float flHFReference;
+  };
+  /* Engine-side environment block; copied verbatim into the last-sent
+   * cache by a single 0x12-dword move. */
+  struct i3dl2_environment {
+    int dwords[18];
+  };
+
+  struct i3dl2_listener listener;
+  const char *environment;
+  int result;
+
+  if (!(fabs(params[0] - *(float *)0x5053d0) < 0.05f &&
+        fabs(params[1] - *(float *)0x5053d4) < 0.05f &&
+        fabs(params[2] - *(float *)0x5053d8) < 0.05f &&
+        *(char *)0x4fdbc0 != 0)) {
+    result = IDirectSound_SetPosition(*(void **)0x50545c, params[0], params[2],
+                                      params[1], 1);
+    if (result < 0) {
+      sound_dsound_log_error(result, "couldn't set listener position.");
+    }
+    *(float *)0x5053d0 = params[0];
+    *(float *)0x5053d4 = params[1];
+    *(float *)0x5053d8 = params[2];
+  }
+
+  if (!(fabs(params[3] - *(float *)0x5053dc) < 0.05f &&
+        fabs(params[4] - *(float *)0x5053e0) < 0.05f &&
+        fabs(params[5] - *(float *)0x5053e4) < 0.05f &&
+        fabs(params[6] - *(float *)0x5053e8) < 0.05f &&
+        fabs(params[7] - *(float *)0x5053ec) < 0.05f &&
+        fabs(params[8] - *(float *)0x5053f0) < 0.05f &&
+        *(char *)0x4fdbc0 != 0)) {
+    result = IDirectSound_SetOrientation(*(void **)0x50545c, params[3],
+                                         params[5], params[4], params[6],
+                                         params[8], params[7], 1);
+    if (result < 0) {
+      sound_dsound_log_error(result, "couldn't set listener orientation.");
+    }
+    *(float *)0x5053dc = params[3];
+    *(float *)0x5053e0 = params[4];
+    *(float *)0x5053e4 = params[5];
+    *(float *)0x5053e8 = params[6];
+    *(float *)0x5053ec = params[7];
+    *(float *)0x5053f0 = params[8];
+  }
+
+  if (!(fabs(params[9] - *(float *)0x5053f4) < 0.01f &&
+        fabs(params[10] - *(float *)0x5053f8) < 0.01f &&
+        fabs(params[11] - *(float *)0x5053fc) < 0.01f &&
+        *(char *)0x4fdbc0 != 0)) {
+    result = IDirectSound_SetVelocity(*(void **)0x50545c, params[9], params[11],
+                                      params[10], 1);
+    if (result < 0) {
+      sound_dsound_log_error(result, "couldn't set listener velocity.");
+    }
+    *(float *)0x5053f4 = params[9];
+    *(float *)0x5053f8 = params[10];
+    *(float *)0x5053fc = params[11];
+  }
+
+  if (csmemcmp(*(const void **)((const char *)params + 0x30),
+               (const void *)0x505404, 0x48) != 0 ||
+      *(char *)0x4fdbc0 == 0) {
+    environment = *(const char **)((const char *)params + 0x30);
+    *(struct i3dl2_environment *)0x505404 =
+      *(const struct i3dl2_environment *)environment;
+
+    listener.lRoom =
+      sound_dsound_gain_to_volume(*(const float *)(environment + 0x8), 0);
+    listener.lRoomHF =
+      sound_dsound_gain_to_volume(*(const float *)(environment + 0xc), 0);
+    listener.flRoomRolloffFactor = *(const float *)(environment + 0x10);
+    listener.flDecayTime = *(const float *)(environment + 0x14);
+    listener.flDecayHFRatio = *(const float *)(environment + 0x18);
+    listener.lReflections =
+      sound_dsound_gain_to_volume(*(const float *)(environment + 0x1c), 1000);
+    listener.flReflectionsDelay = *(const float *)(environment + 0x20);
+    listener.lReverb =
+      sound_dsound_gain_to_volume(*(const float *)(environment + 0x24), 2000);
+    listener.flReverbDelay = *(const float *)(environment + 0x28);
+    listener.flDiffusion = *(const float *)(environment + 0x2c) * 100.0f;
+    listener.flDensity = 100.0f;
+    listener.flDensity = *(const float *)(environment + 0x30) * listener.flDensity;
+    listener.flHFReference = *(const float *)(environment + 0x34);
+    IDirectSound_SetI3DL2Listener(*(void **)0x50545c, &listener, 1);
+  }
+}
+
 /* sound_dsound_update_channel_properties (0x1ca5e0)
  *
  * Apply volume, pitch, and 3D spatial properties to a hardware dsound

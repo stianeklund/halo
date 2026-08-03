@@ -22963,7 +22963,9 @@
     },
     {
      "addr": "0x1ca2b0",
-     "decl": "void FUN_001ca2b0(void);"
+     "comment": "Push the 3D listener state to DirectSound, skipping any update whose inputs have not moved since the last send. params: +0x00 position, +0x0c front, +0x18 top, +0x24 velocity, +0x30 pointer to the 0x48-byte I3DL2 environment block. Vectors go out Y/Z-swapped (x,z,y) because Halo is Z-up and DirectSound is Y-up. Last-sent cache at 0x5053d0/0x5053dc/0x5053f4/0x505404; epsilon 0.05 for position and orientation, 0.01 for velocity; a clear settings-valid flag at 0x4fdbc0 forces a resend. Builds a DSI3DL2LISTENER on the stack, routing the four gain fields through sound_dsound_gain_to_volume with ceilings 0/0/1000/2000 and scaling diffusion and density by 100.",
+     "decl": "void FUN_001ca2b0(const float *params);",
+     "ported": true
     },
     {
      "addr": "0x1ca900",
@@ -38827,11 +38829,11 @@
     },
     {
      "addr": "0x00204dc9",
-     "decl": "void IDirectSound_SetOrientation(void);"
+     "decl": "int __stdcall IDirectSound_SetOrientation(void *dsound, float front_x, float front_y, float front_z, float top_x, float top_y, float top_z, unsigned int apply);"
     },
     {
      "addr": "0x00204e13",
-     "decl": "void IDirectSound_SetPosition(void);"
+     "decl": "int __stdcall IDirectSound_SetPosition(void *dsound, float x, float y, float z, unsigned int apply);"
     },
     {
      "addr": "0x00204e48",
@@ -38839,7 +38841,7 @@
     },
     {
      "addr": "0x00204e6c",
-     "decl": "void IDirectSound_SetVelocity(void);"
+     "decl": "int __stdcall IDirectSound_SetVelocity(void *dsound, float x, float y, float z, unsigned int apply);"
     },
     {
      "addr": "0x00204ea1",
@@ -38851,7 +38853,7 @@
     },
     {
      "addr": "0x00204ed5",
-     "decl": "void IDirectSound_SetI3DL2Listener(void);"
+     "decl": "int __stdcall IDirectSound_SetI3DL2Listener(void *dsound, const void *listener, unsigned int apply);"
     },
     {
      "addr": "0x00204f5b",
