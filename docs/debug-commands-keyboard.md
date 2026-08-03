@@ -1297,6 +1297,50 @@ returns `(~action_flags & 0x780) == 0` (all four look direction bits set).
 **Input sampling:** The bitmask is populated each frame by `FUN_000b6bd0`
 (`0x000B6BD0`), which reads raw controller thumbstick axes and button flags
 from the player's input state structure (a float array passed in ESI).
-Stick axes are compared against the deadzone threshold at `FLOAT_002533C0`.<｜end▁of▁thinking｜>
+Stick axes are compared against the deadzone threshold at `FLOAT_002533C0`.
+
+---
+
+## 12. Console Command Reference
+
+Common debug / cheat commands you can type into the console (`~`). A `#`
+argument is an optional boolean (`true`/`1` or `false`/`0`). Bare commands
+without an argument act as a toggle.
+
+### Debug / Diagnostics
+
+| Command                | Description                                                                                                  |
+|------------------------|--------------------------------------------------------------------------------------------------------------|
+| `rasterizer_stats #`   | **Rendering statistics overlay.** `2` displays a frame rate counter along with categorized vertex and triangle counts for the scene being viewed. `4` displays information on memory usage for the game. `5` displays a simple frame rate counter plus maximum, minimum and average frame rates for the scene. Useful for checking the current framerate while testing the lift. |
+| `debug_camera_save`    | Saves the current camera's location.                                                                          |
+| `debug_camera_load`    | Loads the most recently saved camera location.                                                                |
+| `cheat_teleport_to_camera` | Teleports the player to the current camera position. Useful with `debug_camera_save` and `debug_camera_load`. |
+| `debug_objects #`      | Shows visual representations of the game objects' or models' bounding radii and collision models.             |
+| `debug_portals #`      | Draws or outlines the portal definitions in the game.                                                         |
+| `debug_sound #`        | Shows visual representations of the sounds being played and their audible radii, along with labels indicating the specific sound being played. |
+| `error_suppress_all #` | Suppresses all error messages. Enabled by default; disabling it will show errors that occur during gameplay.  |
+| `game_speed #`         | Changes the speed of the game.                                                                                |
+| `map_name [map name]`  | Manually loads a specific map (e.g. `map_name a10`).                                                          |
+| `camera_control #`     | `0` loads the default camera in the player's biped. `1` loads the cinematic camera.                           |
+
+### Cheats
+
+| Command                    | Description                                                                                                                                  |
+|----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| `cheat_omnipotent #`       | The player's shots kill anything instantly. If the player shoots an indestructible vehicle (like a Warthog), it will render it useless.       |
+| `cheat_all_powerups`       | Spawns all power-ups near the player. Does **not** work in single player.                                                                     |
+| `cheat_all_vehicles`       | Spawns all standard vehicles near the player. Does **not** work in single player.                                                            |
+| `cheat_all_weapons`        | Spawns all weapons near the player.                                                                                                          |
+| `cheat_bottomless_clip #`  | Firing weapons doesn't deplete the clip or cause a weapon to overheat.                                                                       |
+| `cheat_bump_possession #`  | Allows the player to control any character (including NPCs) by bumping into them.                                                            |
+| `cheat_deathless_player #` | The player will take damage, but never die.                                                                                                  |
+| `cheat_infinite_ammo #`    | The player's reserve ammunition and grenades never deplete.                                                                                  |
+| `cheat_jetpack #`          | The player does not take damage from falling.                                                                                                |
+| `cheat_medusa #`           | Enemy units are instantly killed upon becoming aware of the player. Does not work on enemies already aware of the player before activation, or allied NPCs. |
+| `cheat_spawn_warthog`      | Spawns a Warthog near the player. Does not work in single player levels that do not have Warthogs.                                            |
+| `cheat_super_jump #`       | Allows the player to jump very high.                                                                                                         |
+
+Also see §5 "Pre-defined Cheat Commands" for the `cheat_*` commands bound in
+`d:\cheats.txt`.<｜end▁of▁thinking｜>
 
 <｜｜DSML｜｜parameter name="replaceAll" string="false">false

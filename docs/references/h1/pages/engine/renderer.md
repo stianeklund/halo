@@ -10,6 +10,8 @@
 
 Using `rasterizer_wireframe 1` demonstrates Halo's portal-based occlusion culling.
 
+Using `rasterizer_stats 2` displays a frame rate counter along with categorized vertex and triangle counts for the scene being viewed — the quickest way to check the current framerate while testing. `rasterizer_stats 4` displays information on memory usage, and `rasterizer_stats 5` displays a simple frame rate counter plus maximum, minimum and average frame rates for the scene.
+
 The **renderer** or **rasterizer** is the system of Halo's engine responsible for drawing the scene to the screen. Each ported edition of Halo has a slightly different renderer in terms of how well it reproduces the classic Xbox appearance.
 
 Gearbox-era Halo uses the DirectX 9 API and shader version 2.0, being an early adopter of programmable shaders. Since support in user hardware was not as widespread as today, the renderer can be configured with arguments to use older shader versions or even fixed function compatibility.
