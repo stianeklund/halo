@@ -16432,6 +16432,10 @@
       "score": 92.1,
       "source": "src/halo/camera/observer.c"
     },
+    "obstacles_get_discs_in_sphere": {
+      "score": 95.6,
+      "source": "src/halo/structures/structures.c"
+    },
     "orientations_interpolate": {
       "score": 100.0,
       "source": "src/halo/math/real_math.c"

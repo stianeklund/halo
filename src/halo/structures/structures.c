@@ -336,6 +336,172 @@ bool FUN_00062020(int16_t *obstacle_set, uint32_t datum, uint16_t flags,
   return true;
 }
 
+/* 0x620f0 — obstacles_get_discs_in_sphere (c:\halo\SOURCE\ai\path_obstacles.c)
+ *
+ * Collect every "pathfinding disc" (collision-tag block at coll+0x280, element
+ * stride 0x20) belonging to any object inside a sphere, and append it to an
+ * obstacle set via FUN_00062020 (add_obstacle).
+ *
+ * Flow (all offsets/orders taken from the delinked reference for 0x620f0, not
+ * from the decompiler):
+ *   1. assert object_handle != NONE (path_obstacles.c line 0x98).
+ *   2. object_find_in_radius(1, 0xc3, self+0x48, center, radius, handles, 256)
+ *      — the self object's cluster info at +0x48 is argument 3; the inner
+ *      object_get_and_verify_type has its own ADD ESP,8 cleanup.
+ *   3. For each returned object, skip: self, the ignore handle, objects with
+ *      bit 0 of +0x04, and type-0 objects with bit 2 of +0xb6 set.
+ *   4. Machine objects (type 7) are skipped unless mach+0x292 bit 0 is set,
+ *      and are skipped when bit 1 is also set while object+0x1b8 holds the raw
+ *      dword 0x3f800000 (the 1.0f bit pattern — the original emits a CMP on
+ *      the dword, so the integer compare is preserved verbatim).
+ *   5. Bounding test FUN_00061ec0(center, object+0x50, object[0x5c] + radius);
+ *      object+0x5c is loaded with FLDS, i.e. it is a float, not an int.
+ *   6. obje/coll tags are BOTH fetched before obje+0x02 bit 3 is tested (the
+ *      reference merges their ADD ESP,0x10), then the block at coll+0x280.
+ *   7. Per disc element: node index is a zero-extended uint16 at +0x00; 0xffff
+ *      means "use the object's world matrix", otherwise the node matrix.  The
+ *      radius product operand order differs per branch and is preserved.
+ *   8. Two z-slab rejections against the 0.5f pad and the up-vector z against
+ *      -+0.2f, then the weighted squared-distance test with the 4.0f z weight
+ *      (accumulated dz, dy, dx in that order per the FLD sequence).
+ *   9. The obstacle "flags" word is 1 only for type-0 objects whose delta has
+ *      a positive dot with up_vector and whose FUN_00013070 result exceeds
+ *      0.06666667f.
+ *  10. The disc radius reaches FUN_00062020 as a raw dword (the reference uses
+ *      MOV/PUSH, not FLD/FSTP), so the bits are forwarded through a pointer
+ *      reinterpretation rather than a value-truncating cast.
+ *
+ * cdecl, six stack args ([EBP+8..+0x1c]); no register arguments.  Frame is
+ * SUB ESP,0x464 with no _chkstk: handles[256] (0x400) + matrix[13] (0x34) +
+ * the twelve scalar/vector slots.  Float thresholds are written as literals so
+ * VC71 pools them with a relocation exactly as the reference does.
+ */
+void obstacles_get_discs_in_sphere(int16_t *obstacle_set, float *center,
+                                   float radius, float *up_vector,
+                                   uint32_t object_handle,
+                                   uint32_t ignore_handle)
+{
+  uint32_t handles[256]; /* EBP-0x464: object_find_in_radius scratch */
+  float matrix[13];      /* EBP-0x64 : object world matrix (scale + 3x4) */
+  float position[3];     /* EBP-0x2c : transformed disc centre */
+  int i;                 /* EBP-0x20 */
+  int *block;            /* EBP-0x1c : coll+0x280 tag block */
+  unsigned int remaining;/* EBP-0x18 */
+  float dx;              /* EBP-0x14 */
+  float dy;              /* EBP-0x10 */
+  float dz;              /* EBP-0x0c */
+  uint32_t *cursor;      /* EBP-0x08 */
+  float disc_radius;     /* EBP-0x04 */
+  int16_t count;
+  int index;
+  int flags;
+  uint32_t handle;
+  char *object;
+  char *mach_tag;
+  char *obje_tag;
+  char *coll_tag;
+  char *element;
+  uint16_t node_index;
+  uint16_t mach_flags;
+  float *node_matrix;
+
+  if (object_handle == 0xffffffff) {
+    display_assert("matt is bad.", "c:\\halo\\SOURCE\\ai\\path_obstacles.c",
+                   0x98, 1);
+    system_exit(-1);
+  }
+
+  count = object_find_in_radius(
+    1, 0xc3,
+    (char *)object_get_and_verify_type((int)object_handle, -1) + 0x48, center,
+    radius, (int *)handles, 0x100);
+  if (count > 0) {
+    remaining = (uint16_t)count;
+    cursor = handles;
+    do {
+      handle = *cursor;
+      object = (char *)object_get_and_verify_type((int)handle, -1);
+      if (handle == object_handle || handle == ignore_handle)
+        goto next_object;
+      if ((*(uint8_t *)(object + 0x04) & 1) != 0)
+        goto next_object;
+      if (*(int16_t *)(object + 0x64) == 0 &&
+          (*(uint8_t *)(object + 0xb6) & 4) != 0)
+        goto next_object;
+
+      if (*(int16_t *)(object + 0x64) == 7) {
+        mach_tag = (char *)tag_get(0x6d616368 /*'mach'*/, *(int *)object);
+        mach_flags = *(uint16_t *)(mach_tag + 0x292);
+        if ((mach_flags & 1) == 0)
+          goto next_object;
+        if ((mach_flags & 2) != 0 &&
+            *(uint32_t *)(object + 0x1b8) == 0x3f800000)
+          goto next_object;
+      }
+
+      if ((char)FUN_00061ec0(center, (float *)(object + 0x50),
+                             *(float *)(object + 0x5c) + radius) == 0)
+        goto next_object;
+
+      obje_tag = (char *)tag_get(0x6f626a65 /*'obje'*/, *(int *)object);
+      coll_tag =
+        (char *)tag_get(0x636f6c6c /*'coll'*/, *(int *)(obje_tag + 0x7c));
+      if ((*(uint8_t *)(obje_tag + 0x02) & 8) != 0)
+        goto next_object;
+
+      block = (int *)(coll_tag + 0x280);
+      if (*block <= 0)
+        goto next_object;
+
+      object_get_world_matrix((int)handle, matrix);
+      i = 0;
+      index = 0;
+      while (index < *block) {
+        element = (char *)tag_block_get_element(block, index, 0x20);
+        node_index = *(uint16_t *)element;
+        if (node_index != 0xffff) {
+          node_matrix =
+            (float *)object_get_node_matrix((int)handle, node_index);
+          matrix_transform_point(node_matrix, (float *)(element + 0x10),
+                                 position);
+          disc_radius = *(float *)(element + 0x1c) * *node_matrix;
+        } else {
+          matrix_transform_point(matrix, (float *)(element + 0x10), position);
+          disc_radius = matrix[0] * *(float *)(element + 0x1c);
+        }
+
+        if (((position[2] + disc_radius) + 0.5f >= center[2] ||
+             up_vector[2] <= -0.2f) &&
+            ((position[2] - disc_radius) - 0.5f <= center[2] ||
+             up_vector[2] >= 0.2f)) {
+          dx = position[0] - center[0];
+          dy = position[1] - center[1];
+          dz = position[2] - center[2];
+          if (dz * dz * 4.0f + dy * dy + dx * dx <=
+              (disc_radius + radius) * (disc_radius + radius)) {
+            flags = 0;
+            if (*(int16_t *)(object + 0x64) == 0 &&
+                dz * up_vector[2] + dy * up_vector[1] + dx * up_vector[0] >
+                  0.0f &&
+                FUN_00013070((float *)(object + 0x18), up_vector) >
+                  0.06666667f)
+              flags = 1;
+            FUN_00062020(obstacle_set, handle, (uint16_t)flags, position,
+                         *(uint32_t *)&disc_radius);
+          }
+        }
+
+        i = i + 1;
+        index = (int16_t)i;
+      }
+
+    next_object:
+      cursor = cursor + 1;
+      remaining = remaining - 1;
+    } while (remaining != 0);
+  }
+}
+
 /* path_obstacles.c — AI path obstacle-disc connectivity.
  *
  * Corresponds to a routine in structures.obj (its sole ported caller,
