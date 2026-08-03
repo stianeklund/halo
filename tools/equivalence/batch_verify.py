@@ -15,7 +15,9 @@ Usage:
 
 import argparse
 import csv
+import hashlib
 import json
+import math
 import os
 import re
 import signal
@@ -56,34 +58,71 @@ KB_JSON = ROOT / "kb.json"
 LEAF_CACHE = ROOT / "tools" / "equivalence" / "leaf_cache.json"
 RESULTS_DIR = ROOT / "artifacts" / "batch_verify"
 FAIL_STATUSES = {"fail", "error"}
+DEFAULT_MAX_AGE_HOURS = 168.0
+CACHE_SCHEMA = 2
+CACHE_SCHEMA_FIELD = "_batch_cache_schema"
+FINGERPRINT_FIELD = "_batch_input_fingerprint"
+VERIFIED_AT_FIELD = "_batch_verified_at"
 
-# Sources whose change invalidates a cached per-target result. Anything that can
-# alter a verdict belongs here; erring toward re-running is cheap next to
-# reporting a stale one as current.
-HARNESS_SOURCES = (
-    "unicorn_diff.py",      # the driver and comparators
-    "stubs.py",             # stub/real-callee behaviour, stub-arg trace
-    "abi.py",               # decl parsing -> arg placement and return reads
-    "coff_loader.py",       # how oracle/candidate objects are loaded+relocated
-    "seeds.py", "z3_seeds.py",          # which inputs get tried
-    "concolic.py", "concolic_z3.py",    # phase-2 injection
-    "x86_to_z3.py", "z3_equiv.py",      # the proof lane
-    "state.py", "state_snapshot.py",    # injected memory state
+FINGERPRINT_DIRS = (
+    ROOT / "src",
+    ROOT / "tools" / "equivalence",
+    ROOT / "tools" / "build",
+    ROOT / "toolchains",
 )
+FINGERPRINT_FILES = (ROOT / "kb.json", ROOT / "CMakeLists.txt")
+FINGERPRINT_IGNORED_PARTS = {".git", "__pycache__"}
+FINGERPRINT_IGNORED_SUFFIXES = {".pyc", ".pyo"}
 
 
-def harness_mtime(harness_dir: Path = None) -> float:
-    """Newest mtime across the sources that can change a verdict."""
-    d = harness_dir or Path(__file__).resolve().parent
-    newest = 0.0
-    for name in HARNESS_SOURCES:
-        f = d / name
-        if f.exists():
-            newest = max(newest, f.stat().st_mtime)
-    return newest
+def _fingerprint_paths() -> list[Path]:
+    """Return deterministic source/build-input paths for cache identity."""
+    paths = [p for p in FINGERPRINT_FILES if p.is_file()]
+    for directory in FINGERPRINT_DIRS:
+        if directory.is_dir():
+            paths.extend(
+                p for p in directory.rglob("*")
+                if p.is_file()
+                and not FINGERPRINT_IGNORED_PARTS.intersection(p.parts)
+                and p.suffix not in FINGERPRINT_IGNORED_SUFFIXES
+            )
+    return sorted(set(paths), key=lambda p: p.as_posix())
 
 
-def reusable_results(output_dir: Path, harness_dir: Path = None):
+def input_fingerprint() -> str:
+    """Hash all inputs that can change a Unicorn/Z3 result."""
+    digest = hashlib.sha256()
+    for path in _fingerprint_paths():
+        try:
+            relative = path.relative_to(ROOT).as_posix()
+            digest.update(relative.encode("utf-8"))
+            digest.update(b"\0")
+            digest.update(path.read_bytes())
+            digest.update(b"\0")
+        except OSError:
+            # A concurrent checkout/build can remove a file between discovery
+            # and read. Its absence must invalidate, not preserve, a result.
+            digest.update(path.as_posix().encode("utf-8"))
+            digest.update(b"\0<unreadable>\0")
+    return digest.hexdigest()
+
+
+def candidate_fingerprint(base_fingerprint: str, candidate: dict) -> str:
+    """Add the target identity to the shared source/build fingerprint."""
+    identity = {
+        "addr": candidate.get("addr", ""),
+        "name": candidate.get("name", ""),
+        "class": candidate.get("class", ""),
+        "obj": candidate.get("obj", ""),
+        "decl": candidate.get("decl", ""),
+    }
+    payload = json.dumps(identity, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256((base_fingerprint + "\0" + payload).encode("utf-8")).hexdigest()
+
+
+def reusable_results(output_dir: Path, fingerprints: dict[str, str],
+                     max_age_seconds: float = DEFAULT_MAX_AGE_HOURS * 3600,
+                     now: float = None):
     """Split cached per-target results into (reusable stems, n_invalidated).
 
     A cached result is only evidence about the CURRENT harness. Without this,
@@ -95,17 +134,41 @@ def reusable_results(output_dir: Path, harness_dir: Path = None):
     live (see docs/equivalence-testing.md, "Most of the all-errors table was a
     fossil").
 
-    Keyed on source mtime rather than a date so it needs no maintenance: any
-    harness edit invalidates every result produced before it.
+    Results must carry an exact input fingerprint and execution timestamp. Old
+    pre-metadata results, failed results, and results older than the freshness
+    window are intentionally rerun. Filesystem mtimes are not used because
+    actions/cache and some checkout tools can rewrite them during restoration.
     """
-    cutoff = harness_mtime(harness_dir)
+    if now is None:
+        now = time.time()
     reusable, invalidated = set(), 0
     if not output_dir.is_dir():
         return reusable, invalidated
     for p in sorted(output_dir.glob("*.json")):
         if p.name == "summary.json":
             continue
-        if p.stat().st_mtime < cutoff:
+        if p.stem not in fingerprints:
+            continue
+        try:
+            result = json.loads(p.read_text(encoding="utf-8"))
+            verified_at = float(result.get(VERIFIED_AT_FIELD, 0.0))
+        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+            invalidated += 1
+            continue
+
+        expected = fingerprints.get(p.stem)
+        age = now - verified_at
+        stale = (
+            result.get(CACHE_SCHEMA_FIELD) != CACHE_SCHEMA
+            or not expected
+            or result.get(FINGERPRINT_FIELD) != expected
+            or result.get("status") in FAIL_STATUSES
+            or not math.isfinite(verified_at)
+            or verified_at <= 0.0
+            or verified_at > now + 300.0
+            or (max_age_seconds > 0.0 and age > max_age_seconds)
+        )
+        if stale:
             invalidated += 1
         else:
             reusable.add(p.stem)
@@ -210,6 +273,7 @@ def load_candidates(leaf_only: bool = False, classes: set = None,
                 "class": cls,
                 "obj": obj_name,
                 "decl": decl,
+                "discovered": not bool(entry),
             })
 
     return candidates
@@ -317,7 +381,8 @@ def summarize_by_object(rows: list[dict]) -> dict:
 
 def run_verify(name: str, output_dir: Path, seeds: int = 50, timeout: int = 60,
                float_tolerance: int = 0, skip_esp: bool = False,
-               update_leaf_cache: bool = False) -> dict:
+               update_leaf_cache: bool = False,
+               input_fingerprint: str = "") -> dict:
     """Run unicorn_diff on a single function. Returns structured result.
 
     update_leaf_cache: when True, let unicorn_diff persist its class/confidence/
@@ -325,6 +390,10 @@ def run_verify(name: str, output_dir: Path, seeds: int = 50, timeout: int = 60,
     default keeps the regression-batch behavior of NOT touching the cache.
     """
     result_json = output_dir / f"{name}.json"
+    try:
+        result_json.unlink()
+    except FileNotFoundError:
+        pass
     cmd = [
         sys.executable, str(ROOT / "tools" / "equivalence" / "unicorn_diff.py"),
         name,
@@ -377,7 +446,13 @@ def run_verify(name: str, output_dir: Path, seeds: int = 50, timeout: int = 60,
         if reason:
             return {"status": "error", "reason": reason, "target": name}
         if result_json.exists():
-            return json.loads(result_json.read_text(encoding="utf-8"))
+            result = json.loads(result_json.read_text(encoding="utf-8"))
+            result[CACHE_SCHEMA_FIELD] = CACHE_SCHEMA
+            result[FINGERPRINT_FIELD] = input_fingerprint
+            result[VERIFIED_AT_FIELD] = time.time()
+            result_json.write_text(json.dumps(result, indent=2) + "\n",
+                                   encoding="utf-8")
+            return result
         return {"status": "error", "reason": f"exit={proc.returncode}",
                 "target": name}
     except Exception as e:
@@ -428,7 +503,11 @@ def main():
     parser.add_argument("--fail-on-new", action="store_true",
                         help="Exit non-zero when baseline comparison finds new failures")
     parser.add_argument("--skip-existing", action="store_true",
-                        help="Skip functions that already have a result JSON in --output-dir")
+                        help="Reuse valid, fresh result JSONs in --output-dir")
+    parser.add_argument("--max-age-hours", type=float,
+                        default=DEFAULT_MAX_AGE_HOURS,
+                        help=("Maximum age for reusable results in hours "
+                              f"(default: {DEFAULT_MAX_AGE_HOURS:g}; 0 disables age limit)"))
     parser.add_argument("--discover", action="store_true",
                         help="Test all ported functions with delinked refs, not just leaf_cache entries")
     parser.add_argument("--targets", type=Path, default=None,
@@ -485,13 +564,27 @@ def main():
     output_dir = args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    base_fingerprint = input_fingerprint()
+    fingerprints = {
+        c["name"]: candidate_fingerprint(base_fingerprint, c)
+        for c in candidates
+    }
+    discovered_candidates = sum(1 for c in candidates if c.get("discovered"))
+
     existing, n_invalidated = (set(), 0)
     if args.skip_existing:
-        existing, n_invalidated = reusable_results(output_dir)
+        existing, n_invalidated = reusable_results(
+            output_dir,
+            fingerprints,
+            max_age_seconds=max(0.0, args.max_age_hours) * 3600.0,
+        )
         if n_invalidated:
-            print(f"--skip-existing: {n_invalidated} cached result(s) predate "
-                  f"the current harness and will be re-run; "
+            print(f"--skip-existing: {n_invalidated} cached result(s) are stale, "
+                  f"failed, or have a mismatched input fingerprint and will be re-run; "
                   f"{len(existing)} reused")
+    if discovered_candidates:
+        print(f"Discovered {discovered_candidates} newly ported candidate(s) "
+              "with delinked references")
 
     csv_rows = []
     results = {"pass": 0, "fail": 0, "error": 0, "not_applicable": 0,
@@ -506,6 +599,7 @@ def main():
 
     def _write_summary():
         elapsed = time.time() - t0
+        fresh_executions = len(rows) - skipped
         allowlist = load_allowlist(args.allowlist)
         allowlisted = [row for row in rows if is_allowlisted(row, allowlist)]
         current_failure_rows = [row for row in rows
@@ -533,10 +627,11 @@ def main():
             "elapsed_seconds": elapsed,
             "interrupted": interrupted,
             "skipped": skipped,
-            # Reuse accounting, so a reader can tell a measurement from a
-            # carry-forward without stat()ing every per-target file.
+            "fresh_executions": fresh_executions,
             "reused_results": len(existing),
-            "invalidated_results": n_invalidated,
+            "stale_or_invalidated_results": n_invalidated,
+            "discovered_candidates": discovered_candidates,
+            "input_fingerprint": base_fingerprint,
         }, indent=2) + "\n", encoding="utf-8")
         return summary_path, elapsed, comparison
 
@@ -599,7 +694,8 @@ def main():
                               timeout=args.timeout,
                               float_tolerance=args.float_tolerance,
                               skip_esp=args.skip_esp,
-                              update_leaf_cache=args.update_leaf_cache): (i, c)
+                              update_leaf_cache=args.update_leaf_cache,
+                              input_fingerprint=fingerprints[c["name"]]): (i, c)
                     for i, c in compute
                 }
                 try:
@@ -667,6 +763,9 @@ def main():
     print(f"{'='*60}")
     tested = results["pass"] + results["fail"] + results["error"] + results["not_applicable"]
     print(f"  Total:          {results['total']} ({tested} tested, {skipped} reused)")
+    print(f"  Fresh executions: {len(rows) - skipped}")
+    print(f"  Stale invalidated: {n_invalidated}")
+    print(f"  Newly discovered:  {discovered_candidates}")
     print(f"  Pass:           {results['pass']} ({results['z3_proven']} Z3 proven)")
     print(f"  Fail:           {results['fail']}")
     print(f"  Error:          {results['error']}")
@@ -721,6 +820,9 @@ def main():
         print(f"\n--fail-on-new: no new failures vs baseline "
               f"({len(comparison.get('known_failures') or [])} known).")
         return 0
+    if candidates and not interrupted and skipped == len(rows):
+        print("\nWARNING: no candidate executed; all results were reused. "
+              "Use --max-age-hours 0 for a forced fresh run.")
     return 1 if results["fail"] > 0 else 0
 
 

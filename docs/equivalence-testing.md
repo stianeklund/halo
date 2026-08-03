@@ -467,22 +467,25 @@ into the persistent `artifacts/batch_verify/` and feeds the previous
 `summary.json` back as `--baseline` — so each nightly filled only the gaps,
 carried the rest forward untouched, and compared the mixture against itself.
 
-`--skip-existing` is now **age-aware**: `reusable_results()` discards any
-cached result older than the newest mtime across `HARNESS_SOURCES` (the
-driver, stubs, ABI/COFF loading, seed generation, concolic, the z3 lane, state
-injection). A cached result is evidence about the harness that produced it, so
-any harness edit invalidates everything measured before it. Keying on source
-mtime rather than a date means there is no cutoff to maintain. The run prints
-what it did, and `summary.json` carries `reused_results` /
-`invalidated_results` so a reader can tell a measurement from a carry-forward
-without stat-ing every file.
+`--skip-existing` now validates each cached result before reuse. Results carry
+an exact `_batch_input_fingerprint` over source/build inputs plus target
+identity, a cache schema, and `_batch_verified_at`. `reusable_results()` reruns
+pre-metadata results, fingerprint mismatches, failed/error results, future
+timestamps, and results older than the seven-day default TTL. The TTL is
+configurable with `--max-age-hours 0` for a forced fresh run. Content
+fingerprints are used instead of filesystem mtimes because Actions cache
+restore and checkout tools can rewrite mtimes without changing inputs.
 
-`test_batch_reuse.py` pins the split, that `summary.json` is never counted as
-a per-target result, and — the two that matter — that `harness_mtime()`
-actually resolves real files and that every name in `HARNESS_SOURCES` exists.
-A zero cutoff, or a renamed module, would silently restore
-reuse-everything-forever; the list already had one bogus entry
-(`value_corpus.py`) that this test caught on first run.
+The run prints what it did, and `summary.json` carries
+`fresh_executions`, `reused_results`, `stale_or_invalidated_results`, and
+`discovered_candidates`. A scheduled run also enables `--discover`, which
+includes newly ported functions that have a delinked oracle even when they are
+not yet in `leaf_cache.json`. These counters make a reused-only batch visible
+instead of presenting carry-forward data as a fresh measurement.
+
+`test_batch_reuse.py` pins the TTL, target-aware fingerprints, failed-result
+invalidation, legacy metadata invalidation, and the rule that `summary.json`
+is never counted as a per-target result.
 
 ### The convention gate blocked 64 targets on 15 decls (2026-07-29)
 

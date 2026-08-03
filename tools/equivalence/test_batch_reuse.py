@@ -1,115 +1,116 @@
 #!/usr/bin/env python3
-"""Self-tests for age-aware --skip-existing reuse (batch_verify).
+"""Self-tests for fingerprinted and age-aware batch result reuse."""
 
-A cached per-target result is evidence about the harness that produced it, not
-about the current one. Before this, --skip-existing reused any result that
-existed, so a persistent output dir accumulated results indefinitely: on
-2026-07-29 `summary.json` reported 435 `error` rows of which 270 came from
-per-target JSONs dated 07-08/07-09 -- older than both the data-page guard
-(b37696b4) and real-callees-by-default. The aggregate looked like a current
-measurement while being mostly memory, and the fossil cluster (124 rows of an
-already-fixed bug) buried the only cluster that was still live.
-
-Keying invalidation on harness source mtime means no date to maintain: editing
-the harness invalidates everything measured before the edit.
-"""
-
-import os
+import json
 import sys
 import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from batch_verify import harness_mtime, reusable_results, HARNESS_SOURCES
+from batch_verify import (CACHE_SCHEMA, CACHE_SCHEMA_FIELD, FINGERPRINT_FIELD,
+                          VERIFIED_AT_FIELD, candidate_fingerprint,
+                          reusable_results)
 
 
-def _fixture(tmp, result_ages, harness_age):
-    """Build a fake harness dir + output dir with controlled mtimes.
+NOW = 1_800_000_000.0
 
-    Ages are seconds-ago, so a larger age is older.
-    """
-    now = 1_800_000_000.0
-    hd = Path(tmp) / "harness"
+
+def _fixture(tmp, result_ages, statuses=None, fingerprints=None):
+    """Build an output directory with controlled result metadata."""
     od = Path(tmp) / "out"
-    hd.mkdir()
     od.mkdir()
-    for name in HARNESS_SOURCES:
-        f = hd / name
-        f.write_text("x")
-        os.utime(f, (now - harness_age, now - harness_age))
+    statuses = statuses or {}
+    fingerprints = fingerprints or {}
     for stem, age in result_ages.items():
-        f = od / f"{stem}.json"
-        f.write_text("{}")
-        os.utime(f, (now - age, now - age))
-    return hd, od
+        result = {
+            "status": statuses.get(stem, "pass"),
+            CACHE_SCHEMA_FIELD: CACHE_SCHEMA,
+            FINGERPRINT_FIELD: fingerprints.get(stem, "fp"),
+            VERIFIED_AT_FIELD: NOW - age,
+        }
+        (od / f"{stem}.json").write_text(json.dumps(result))
+    return od
 
 
-def test_result_older_than_harness_is_invalidated():
+def _reuse(output_dir, expected=None, max_age=500.0):
+    return reusable_results(output_dir, expected or {},
+                            max_age_seconds=max_age, now=NOW)
+
+
+def test_result_older_than_ttl_is_invalidated():
     with tempfile.TemporaryDirectory() as tmp:
-        hd, od = _fixture(tmp, {"fossil": 1000}, harness_age=100)
-        reusable, n_inv = reusable_results(od, hd)
-        assert reusable == set(), f"stale result must not be reused: {reusable}"
-        assert n_inv == 1, n_inv
-    print("  PASS  test_result_older_than_harness_is_invalidated")
+        od = _fixture(tmp, {"old": 1000}, fingerprints={"old": "fp"})
+        reusable, invalidated = _reuse(od, {"old": "fp"})
+        assert reusable == set(), reusable
+        assert invalidated == 1, invalidated
+    print("  PASS  test_result_older_than_ttl_is_invalidated")
 
 
-def test_result_newer_than_harness_is_reused():
+def test_result_newer_than_ttl_is_reused():
     with tempfile.TemporaryDirectory() as tmp:
-        hd, od = _fixture(tmp, {"fresh": 10}, harness_age=100)
-        reusable, n_inv = reusable_results(od, hd)
+        od = _fixture(tmp, {"fresh": 10}, fingerprints={"fresh": "fp"})
+        reusable, invalidated = _reuse(od, {"fresh": "fp"})
         assert reusable == {"fresh"}, reusable
-        assert n_inv == 0, n_inv
-    print("  PASS  test_result_newer_than_harness_is_reused")
+        assert invalidated == 0, invalidated
+    print("  PASS  test_result_newer_than_ttl_is_reused")
 
 
-def test_mixed_dir_splits_correctly():
-    """The real shape: mostly fossils, a few fresh -- the 270/141 case."""
+def test_mismatched_fingerprint_is_invalidated():
     with tempfile.TemporaryDirectory() as tmp:
-        ages = {f"old{i}": 1000 for i in range(5)}
-        ages.update({f"new{i}": 10 for i in range(2)})
-        hd, od = _fixture(tmp, ages, harness_age=100)
-        reusable, n_inv = reusable_results(od, hd)
-        assert reusable == {"new0", "new1"}, reusable
-        assert n_inv == 5, n_inv
-    print("  PASS  test_mixed_dir_splits_correctly")
+        od = _fixture(tmp, {"changed": 10}, fingerprints={"changed": "old"})
+        reusable, invalidated = _reuse(od, {"changed": "new"})
+        assert reusable == set(), reusable
+        assert invalidated == 1, invalidated
+    print("  PASS  test_mismatched_fingerprint_is_invalidated")
+
+
+def test_failed_results_are_never_reused():
+    with tempfile.TemporaryDirectory() as tmp:
+        od = _fixture(tmp, {"fail": 10, "error": 10},
+                      statuses={"fail": "fail", "error": "error"},
+                      fingerprints={"fail": "fp", "error": "fp"})
+        reusable, invalidated = _reuse(od, {"fail": "fp", "error": "fp"})
+        assert reusable == set(), reusable
+        assert invalidated == 2, invalidated
+    print("  PASS  test_failed_results_are_never_reused")
+
+
+def test_pre_metadata_result_is_invalidated():
+    with tempfile.TemporaryDirectory() as tmp:
+        od = Path(tmp) / "out"
+        od.mkdir()
+        (od / "legacy.json").write_text(json.dumps({"status": "pass"}))
+        reusable, invalidated = _reuse(od, {"legacy": "fp"})
+        assert reusable == set(), reusable
+        assert invalidated == 1, invalidated
+    print("  PASS  test_pre_metadata_result_is_invalidated")
 
 
 def test_summary_json_is_never_counted():
-    """summary.json is an aggregate, not a per-target result."""
     with tempfile.TemporaryDirectory() as tmp:
-        hd, od = _fixture(tmp, {"summary": 1000, "t": 10}, harness_age=100)
-        reusable, n_inv = reusable_results(od, hd)
-        assert reusable == {"t"}, reusable
-        assert n_inv == 0, f"summary.json must not count as invalidated: {n_inv}"
+        od = _fixture(tmp, {"summary": 10, "target": 10},
+                      fingerprints={"summary": "fp", "target": "fp"})
+        reusable, invalidated = _reuse(od, {"summary": "fp", "target": "fp"})
+        assert reusable == {"target"}, reusable
+        assert invalidated == 0, invalidated
     print("  PASS  test_summary_json_is_never_counted")
 
 
 def test_missing_output_dir_is_empty_not_an_error():
     with tempfile.TemporaryDirectory() as tmp:
-        hd, _ = _fixture(tmp, {}, harness_age=100)
-        reusable, n_inv = reusable_results(Path(tmp) / "nope", hd)
-        assert reusable == set() and n_inv == 0
+        reusable, invalidated = _reuse(Path(tmp) / "nope")
+        assert reusable == set() and invalidated == 0
     print("  PASS  test_missing_output_dir_is_empty_not_an_error")
 
 
-def test_real_harness_dir_resolves():
-    """The default path must find actual sources, not silently return 0.
-
-    A zero cutoff would reuse everything forever -- the exact bug, restored.
-    """
-    mt = harness_mtime()
-    assert mt > 0, ("harness_mtime() found no sources; HARNESS_SOURCES is stale "
-                    "and every cached result would be reused unconditionally")
-    print("  PASS  test_real_harness_dir_resolves")
-
-
-def test_every_named_source_exists():
-    """A renamed harness file must break this, not quietly stop invalidating."""
-    here = Path(__file__).resolve().parent
-    missing = [n for n in HARNESS_SOURCES if not (here / n).exists()]
-    assert not missing, f"HARNESS_SOURCES names non-existent file(s): {missing}"
-    print("  PASS  test_every_named_source_exists")
+def test_candidate_fingerprint_includes_target_identity():
+    base = "base"
+    candidate = {"addr": "0x10", "name": "fn", "class": "leaf",
+                 "obj": "math.obj", "decl": "int fn(void)"}
+    changed = dict(candidate, decl="int fn(int value)")
+    assert candidate_fingerprint(base, candidate) != candidate_fingerprint(base, changed)
+    print("  PASS  test_candidate_fingerprint_includes_target_identity")
 
 
 def main():
@@ -117,11 +118,11 @@ def main():
     tests = [v for k, v in sorted(globals().items())
              if k.startswith("test_") and callable(v)]
     failed = 0
-    for t in tests:
+    for test in tests:
         try:
-            t()
+            test()
         except AssertionError as exc:
-            print(f"  FAIL  {t.__name__}: {exc}")
+            print(f"  FAIL  {test.__name__}: {exc}")
             failed += 1
     if failed:
         print(f"\n{failed}/{len(tests)} FAILED")

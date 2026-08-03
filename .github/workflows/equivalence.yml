@@ -101,7 +101,10 @@ jobs:
           MODE="${{ github.event.inputs.mode || 'batch' }}"
           echo "mode=$MODE" >> "$GITHUB_OUTPUT"
           EXTRA_FLAGS=""
-          if [ "$MODE" = "discover" ]; then
+          # Nightly runs include newly ported functions with delinked
+          # references. Manual batch mode remains cache-focused; use discover
+          # explicitly when you want the same queue outside the schedule.
+          if [ "$MODE" = "discover" ] || [ "${{ github.event_name }}" = "schedule" ]; then
             EXTRA_FLAGS="--discover"
           fi
           echo "extra_flags=$EXTRA_FLAGS" >> "$GITHUB_OUTPUT"
@@ -159,6 +162,7 @@ jobs:
             --skip-existing \
             --allowlist tools/equivalence/batch_verify_allowlist.json \
             --skip-allowlisted \
+            --max-age-hours 168 \
             --fail-on-new \
             ${{ steps.mode.outputs.extra_flags }} \
             ${{ steps.baseline.outputs.flags }} \
@@ -201,12 +205,19 @@ jobs:
           print()
           print(f'| Metric | Count |')
           print(f'|--------|-------|')
+          print(f'| Fresh executions | {s.get(\"fresh_executions\", 0)} |')
+          print(f'| Reused results | {s.get(\"reused_results\", 0)} |')
+          print(f'| Stale invalidated | {s.get(\"stale_or_invalidated_results\", 0)} |')
+          print(f'| Newly discovered | {s.get(\"discovered_candidates\", 0)} |')
           print(f'| Total candidates | {r[\"total\"]} |')
           print(f'| Pass | {r[\"pass\"]} |')
           print(f'| Fail | {r[\"fail\"]} |')
           print(f'| Error | {r[\"error\"]} |')
           print(f'| Z3 proven | {r[\"z3_proven\"]} |')
           print(f'| Elapsed | {elapsed:.0f}s |')
+          if r[\"total\"] and s.get(\"fresh_executions\", 0) == 0:
+              print()
+              print('> WARNING: this batch executed no candidates; all results were reused.')
           if s.get('comparison', {}).get('new_failures'):
               print()
               print('### New Failures (regressions)')
