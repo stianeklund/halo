@@ -22913,7 +22913,9 @@
     },
     {
      "addr": "0x1c9230",
-     "decl": "void dsound_angle_from_angle(void);"
+     "comment": "Convert an angle in radians to integer degrees (multiply by 180/PI == 57.29578f, truncate). Binary is FLD [EBP+8]; FMUL [0x2b073c]; JMP _ftol2.",
+     "decl": "int dsound_angle_from_angle(float angle);",
+     "ported": true
     },
     {
      "addr": "0x1c9250",

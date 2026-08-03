@@ -64,6 +64,17 @@ int sound_dsound_pitch_to_frequency(int sample_rate, float pitch)
   return (int)frequency;
 }
 
+/* dsound_angle_from_angle (0x1c9230)
+ *
+ * Convert an angle in radians to integer degrees.  The binary is a
+ * six-instruction leaf: FLD [EBP+8]; FMUL [0x2b073c]; JMP _ftol2.
+ * The constant at 0x2b073c is 0x42652EE1 == 57.29578f == 180/PI.
+ * DirectSound cone/orientation angles are specified in whole degrees. */
+int dsound_angle_from_angle(float angle)
+{
+  return (int)(angle * 57.29578f);
+}
+
 /* sound_dsound_channel_get (0x1c9290)
  *
  * Return a pointer to the actual dsound channel struct at the given
