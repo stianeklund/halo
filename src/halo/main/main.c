@@ -316,6 +316,39 @@ void create_local_players(void)
   }
 }
 
+/*
+ * FUN_00100380 - 0x100380
+ *
+ * Confirmed:
+ *  - Whole body is 3 instructions, no frame, no CALLs, no FPU:
+ *      MOV byte ptr [0x0046da28],0x0
+ *      MOV byte ptr [0x0046da3b],0x1
+ *      RET
+ *  - Both stores are BYTE-width immediates (MOV byte ptr, imm8), so both
+ *    globals are single-byte flags, not int/word.
+ *  - The two globals are 0x13 bytes apart, so they are distinct main_globals
+ *    flags, not adjacent fields of one word.
+ *  - Plain cdecl void(void): RET carries no immediate, no register is read
+ *    before being written, so there are no implicit @<reg> inputs.
+ *
+ * Inferred:
+ *  - Same shape as main_goto_main_menu (clear byte_46DA28, arm a pending
+ *    flag), so this is one of the "request a main-loop transition" setters.
+ *    byte_46DA28 is the save-attempt-resolved flag also cleared by
+ *    main_save_map_private and main_new_map; byte_46DA3B is one of the
+ *    main_globals pending flags that main_new_map clears in the same block.
+ *
+ * Uncertain:
+ *  - No string, assert, or caller evidence in the binary for what transition
+ *    byte_46DA3B requests, so the function keeps its mechanical FUN_ name and
+ *    the globals keep their kb-registered byte_46DAxx names.
+ */
+void FUN_00100380(void)
+{
+  byte_46DA28 = 0;
+  byte_46DA3B = 1;
+}
+
 void main_queue_map_name(char *map_name)
 {
   if (map_name != 0) {

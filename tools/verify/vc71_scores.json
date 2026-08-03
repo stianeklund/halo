@@ -8072,6 +8072,10 @@
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
+    "FUN_00100380": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "FUN_001005d0": {
       "score": 100.0,
       "source": "src/halo/main/main.c"
@@ -15836,6 +15840,18 @@
       "score": 95.5,
       "source": "src/halo/main/main.c"
     },
+    "main_halt_entry": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
+    "main_initialize_time": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
+    "main_load_last_solo_map": {
+      "score": 89.3,
+      "source": "src/halo/main/main.c"
+    },
     "main_load_ui_scenario": {
       "score": 97.4,
       "source": "src/halo/main/main.c"
@@ -15854,6 +15870,10 @@
     },
     "main_new_map": {
       "score": 92.2,
+      "source": "src/halo/main/main.c"
+    },
+    "main_pregame_render": {
+      "score": 81.2,
       "source": "src/halo/main/main.c"
     },
     "main_present_frame": {
@@ -15875,6 +15895,10 @@
     "main_screen_shell_load": {
       "score": 56.3,
       "source": "src/halo/interface/ui_widget.c"
+    },
+    "main_setup_connection": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
     },
     "main_skip_private": {
       "score": 94.6,
