@@ -910,3 +910,67 @@ void sound_dsound_set_channel_properties(int channel_index, float *properties,
     sound_dsound_update_channel_properties(properties, channel, update_only);
   }
 }
+
+/* FUN_001cb0c0 (0x1cb0c0)
+ *
+ * Attaches a sound to a DirectSound channel and advances the channel's
+ * state machine.  The channel index arrives on the stack; the sound
+ * pointer arrives in EDI (LTCG register argument -- see kb.json).
+ *
+ * The channel state word at +0x00 has three legal values:
+ *   0 -> the channel is idle.  Claim it (state := 1), record the sound at
+ *        +0x68, clear +0x64 and the int16 at +0x08, flush the deferred
+ *        DirectSound settings and run the follow-up pass at 0x1ca900
+ *        (a tail call: the original hands channel_index over in EAX).
+ *   1 -> already claimed; promote to state 2 and fall through.
+ *   2 -> record the sound at +0x6c.
+ * Anything else asserts.
+ *
+ * Store offsets are taken from the disassembly (MOV [ESI+N]); the
+ * decompiler's short-index arithmetic split the single dword store at
+ * +0x64 into two int16 stores. */
+void FUN_001cb0c0(int channel_index, void *sound)
+{
+  void *channel;
+  int result;
+
+  channel = sound_dsound_channel_get(channel_index);
+
+  if (*(char *)0x505484 != 0) {
+    display_assert("!dsound_globals.paused",
+                   "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x457, 1);
+    system_exit(-1);
+  }
+  if (sound == NULL) {
+    display_assert("sound", "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c",
+                   0x458, 1);
+    system_exit(-1);
+  }
+
+  switch (*(short *)channel) {
+  case 0:
+    *(short *)channel = 1;
+    *(void **)((char *)channel + 0x68) = sound;
+    *(int *)((char *)channel + 0x64) = 0;
+    *(short *)((char *)channel + 8) = 0;
+    result = IDirectSound_CommitDeferredSettings(*(void **)0x50545c);
+    if (result < 0) {
+      sound_dsound_log_error(result, "couldn't commit deferred settings.");
+    }
+    FUN_001ca900(channel_index);
+    break;
+
+  case 1:
+    *(short *)channel = 2;
+    /* fall through */
+  case 2:
+    *(void **)((char *)channel + 0x6c) = sound;
+    break;
+
+  default:
+    display_assert("bad DirectSound channel state.",
+                   "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x478, 1);
+    system_exit(-1);
+    break;
+  }
+}
