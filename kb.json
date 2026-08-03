@@ -11312,7 +11312,7 @@
     },
     {
      "addr": "0xca140",
-     "decl": "void FUN_000ca140(void);"
+     "decl": "void FUN_000ca140(const char *substring);"
     },
     {
      "addr": "0xca160",

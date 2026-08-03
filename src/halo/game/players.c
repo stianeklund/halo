@@ -3383,12 +3383,9 @@ void FUN_000be080(int16_t function_index, int thread_datum, char init)
 
 /* 0xbe1d0 — HaloScript macro-function evaluate-then-finalize wrapper.
  * Evaluates a macro-function expression on a thread; when the evaluation
- * yields a result node (non-NULL record ptr in EAX), it runs a fixed
- * side-effecting step FUN_000ca140() (no args) and then commits a literal
- * 0 back to the calling thread via hs_return(thread_datum, 0). Unlike the
- * value-returning neighbors this does not read any field of the record and
- * always returns 0 — the record is used only as an "evaluation complete"
- * predicate.
+ * yields a result node (non-NULL record ptr in EAX), it forwards the first
+ * record dword to FUN_000ca140 and then commits a literal 0 back to the
+ * calling thread via hs_return(thread_datum, 0).
  *
  * players.obj groups this, but like its siblings it calls hs_runtime.obj's
  * static hs_macro_function_evaluate / hs_return, so it is co-located here.
@@ -3401,17 +3398,18 @@ void FUN_000be080(int16_t function_index, int thread_datum, char init)
  * Callees (all in kb.json):
  *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
  *             -> result node ptr in EAX (NULL while evaluation pending)
- *   0xca140 = FUN_000ca140() (void, no args)
+ *   0xca140 = FUN_000ca140(record[0])
  *   0xcbf80 = hs_return(thread_datum, 0)
  */
 void FUN_000be1d0(int16_t function_index, int thread_datum, char init)
 {
-  void *record;
+  const char **record;
 
   record =
-    (void *)hs_macro_function_evaluate(function_index, thread_datum, init);
+    (const char **)hs_macro_function_evaluate(function_index, thread_datum,
+                                               init);
   if (record != 0) {
-    FUN_000ca140();
+    FUN_000ca140(*record);
     hs_return(thread_datum, 0);
   }
 }

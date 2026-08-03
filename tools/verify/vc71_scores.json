@@ -5680,7 +5680,8 @@
       "source": "src/halo/game/players.c"
     },
     "FUN_000be1d0": {
-      "score": 95.5,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/game/players.c"
     },
     "FUN_000be210": {
