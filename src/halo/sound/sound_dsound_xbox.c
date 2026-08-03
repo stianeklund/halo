@@ -466,6 +466,154 @@ done:
   return vchannel[0];
 }
 
+/* FUN_001c9e20 (0x1c9e20)
+ *
+ * Per-frame DirectSound service routine.
+ *
+ * Three phases:
+ *   1. Commit the deferred 3D settings batched during the frame; log any
+ *      failing HRESULT.
+ *   2. Ramp dsound_globals.pause_gain (0x505488) toward its target --
+ *      0.0 when dsound_globals.paused (0x505484) is set, 1.0 otherwise --
+ *      in steps of 0.15.  The ramp arithmetic is performed in double
+ *      precision and stored back as float, matching the original
+ *      FLD dword / FADD qword / FSTP dword sequence.  While fading OUT
+ *      (paused), every active hardware channel's stream volume is
+ *      re-scaled by the new pause gain; while fading IN, the regular
+ *      per-channel property update path picks the gain up instead.
+ *   3. When the debug channel display flag (0x4fc380) is set, build a
+ *      tab-separated report of every channel outside the reserved
+ *      [0x10, 0x30] index band and hand it to the debug string renderer.
+ *
+ * The two index asserts inside the display loop carry lines 0x69/0x6a of
+ * sound_dsound_xbox.c -- they come from the inlined channel accessor,
+ * not from this function's own body. */
+void FUN_001c9e20(void)
+{
+  char buffer[8192];
+  short tab_stops[3];
+  const char *name1;
+  const char *name2;
+  void *channel;
+  int result;
+  int volume;
+  double ramp;
+  short channel_index;
+  short display_index;
+
+  result = IDirectSound_CommitDeferredSettings(*(void **)0x50545c);
+  if (result < 0) {
+    sound_dsound_log_error(result, "couldn't commit deferred settings.");
+  }
+
+  /* Target pause gain: silent while paused, full otherwise.  The
+   * comparison is written with the target inline so the compiler keeps
+   * pause_gain in ST0 across the flag test and folds the constant into
+   * each arm's FCOMPS, matching the original codegen. */
+  if (*(float *)0x505488 != (*(char *)0x505484 != 0 ? 0.0f : 1.0f)) {
+    if (!(*(float *)0x505488 >= 0.0f && *(float *)0x505488 <= 1.0f)) {
+      display_assert(
+        "dsound_globals.pause_gain>=0 && dsound_globals.pause_gain<=1.f",
+        "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x27a, 1);
+      system_exit(-1);
+    }
+
+    /* The ramp is computed in double precision and stored back exactly
+     * once; the original keeps the running value on the FPU stack across
+     * the clamp (FLD limit / FCOMP ST(1) / FSTP ST(0)). */
+    ramp = *(float *)0x505488;
+    if (*(char *)0x505484 != 0) {
+      /* fading out */
+      ramp -= 0.15;
+      if (ramp < 0.0) {
+        ramp = 0.0;
+      }
+    } else {
+      /* fading in */
+      ramp += 0.15;
+      if (1.0 <= ramp) {
+        ramp = 1.0;
+      }
+    }
+    *(float *)0x505488 = (float)ramp;
+
+    if (!(*(float *)0x505488 >= 0.0f && *(float *)0x505488 <= 1.0f)) {
+      display_assert(
+        "dsound_globals.pause_gain>=0 && dsound_globals.pause_gain<=1.f",
+        "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x285, 1);
+      system_exit(-1);
+    }
+
+    /* while fading out, re-scale every live stream's volume immediately */
+    if (*(char *)0x505484 != 0) {
+      channel_index = 0;
+      if (0 < *(short *)0x4fdfc4) {
+        do {
+          channel = sound_dsound_channel_get(channel_index);
+          if (*(short *)channel != 0) {
+            volume = sound_dsound_gain_to_volume(
+              *(float *)0x505488 * *(float *)((char *)channel + 0x3c), 0);
+            IDirectSoundStream_SetVolume(*(void **)((char *)channel + 0x70),
+                                         volume);
+          }
+          channel_index = (short)(channel_index + 1);
+        } while (channel_index < *(short *)0x4fdfc4);
+      }
+    }
+  }
+
+  /* debug channel display */
+  if (*(char *)0x4fc380 != 0) {
+    tab_stops[0] = 0x118;
+    tab_stops[1] = 0;
+    tab_stops[2] = 0;
+    draw_string_set_tab_stops(tab_stops, 1);
+
+    display_index = 0;
+    buffer[0] = '\0';
+    if (0 < *(short *)0x4fdfc4) {
+      do {
+        if (display_index < 0 || display_index >= *(short *)0x4fdfc4) {
+          display_assert("index>=0 && index<dsound_globals.actual_channel_count",
+                         "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x69, 1);
+          system_exit(-1);
+        }
+        if (display_index >= 0x100) {
+          display_assert("index<MAXIMUM_SOUND_CHANNELS",
+                         "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x6a, 1);
+          system_exit(-1);
+        }
+        channel = (void *)(0x4fdfc8 + (int)display_index * 0x74);
+
+        /* channels 0x10..0x30 are reserved and never listed */
+        if (display_index < 0x10 || display_index > 0x30) {
+          if (*(short *)channel != 0) {
+            name2 = *(const char **)((char *)channel + 0x6c);
+            if (name2 == 0) {
+              name2 = "";
+            }
+            name1 = *(const char **)((char *)channel + 0x68);
+            if (name1 == 0) {
+              name1 = "";
+            }
+            crt_sprintf(buffer + csstrlen(buffer), "%d %1.2f %1.2f %s(%s)",
+                        (int)*(short *)((char *)channel + 0x8),
+                        *(float *)((char *)channel + 0x3c),
+                        *(float *)((char *)channel + 0x40), name1, name2);
+          }
+          crt_sprintf(buffer + csstrlen(buffer), "|t");
+          if ((display_index & 1) != 0) {
+            crt_sprintf(buffer + csstrlen(buffer), "|n");
+          }
+        }
+        display_index = (short)(display_index + 1);
+      } while (display_index < *(short *)0x4fdfc4);
+    }
+
+    FUN_00189c40(0, buffer);
+  }
+}
+
 /* sound_dsound_update_channel_properties (0x1ca5e0)
  *
  * Apply volume, pitch, and 3D spatial properties to a hardware dsound

@@ -22951,7 +22951,9 @@
     },
     {
      "addr": "0x1c9e20",
-     "decl": "void FUN_001c9e20(void);"
+     "comment": "Per-frame DirectSound service: commit deferred settings, ramp dsound_globals.pause_gain by 0.15 toward 0.0 (paused) or 1.0, re-scale live stream volumes while fading out, and render the debug channel list when 0x4fc380 is set.",
+     "decl": "void FUN_001c9e20(void);",
+     "ported": true
     },
     {
      "addr": "0x1ca130",
@@ -38838,7 +38840,7 @@
     },
     {
      "addr": "0x00204ea1",
-     "decl": "void IDirectSound_CommitDeferredSettings(void);"
+     "decl": "int __stdcall IDirectSound_CommitDeferredSettings(void *dsound);"
     },
     {
      "addr": "0x00204eb9",
