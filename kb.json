@@ -22957,7 +22957,9 @@
     },
     {
      "addr": "0x1ca130",
-     "decl": "void FUN_001ca130(void);"
+     "comment": "Finish pending channel stops: for each hardware channel with stopping set, spin on dsound_stream_is_active until inactive, Flush via stream vtable[6], and clear the flag; then emit the level-2 save-and-quit warning for any channel with +0x8 set. Spin body is sound_dsound_channel_stop_check (0x1c9670) inlined.",
+     "decl": "void FUN_001ca130(void);",
+     "ported": true
     },
     {
      "addr": "0x1ca2b0",

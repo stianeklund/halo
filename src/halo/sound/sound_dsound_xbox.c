@@ -574,13 +574,15 @@ void FUN_001c9e20(void)
     if (0 < *(short *)0x4fdfc4) {
       do {
         if (display_index < 0 || display_index >= *(short *)0x4fdfc4) {
-          display_assert("index>=0 && index<dsound_globals.actual_channel_count",
-                         "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x69, 1);
+          display_assert(
+            "index>=0 && index<dsound_globals.actual_channel_count",
+            "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x69, 1);
           system_exit(-1);
         }
         if (display_index >= 0x100) {
           display_assert("index<MAXIMUM_SOUND_CHANNELS",
-                         "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x6a, 1);
+                         "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x6a,
+                         1);
           system_exit(-1);
         }
         channel = (void *)(0x4fdfc8 + (int)display_index * 0x74);
@@ -611,6 +613,104 @@ void FUN_001c9e20(void)
     }
 
     FUN_00189c40(0, buffer);
+  }
+}
+
+/* FUN_001ca130 (0x1ca130)
+ *
+ * Walk every hardware sound channel and finish any pending stop:
+ * for a channel whose `stopping` flag is set, busy-wait until its
+ * IDirectSoundStream reports inactive, then Flush it (vtable slot 6,
+ * byte offset 0x18) and clear the flag.  Afterwards, a channel that
+ * has the save-and-quit warning flag set emits the level-2 "the devil"
+ * error and the flag is cleared.
+ *
+ * The body of the spin loop is sound_dsound_channel_stop_check
+ * (0x1c9670) inlined by the original compiler -- which is why the two
+ * bounds asserts of the channel accessor (lines 0x69/0x6a) and the
+ * `channel->stopping` assert (line 0x4b8) are re-executed on every
+ * spin iteration, and why the stream pointer is re-loaded from
+ * channel+0x70 after the loop rather than cached across it.
+ *
+ * dsound_globals base 0x4fdfc4; channel array at 0x4fdfc8, stride 0x74.
+ * Channel fields used here (widths verified against the disassembly):
+ *   +0x00 int16 state     (_sound_channel_idle == 0)
+ *   +0x06 uint8 stopping
+ *   +0x08 int16 save_and_quit_warning
+ *   +0x70 void* stream
+ * Ghidra prints the same 0x74 stride as *0x74 / *0x3a / *0x1d
+ * depending on the base pointer type it picked; they are all one
+ * channel. */
+void FUN_001ca130(void)
+{
+  short i;
+  char *channel;
+  void *stream;
+  void **vtable;
+  int active;
+  bool released;
+
+  i = 0;
+  while (i < *(short *)0x4fdfc4) {
+    /* inlined sound_dsound_channel_get(i) */
+    if (i < 0 || i >= *(short *)0x4fdfc4) {
+      display_assert("index>=0 && index<dsound_globals.actual_channel_count",
+                     "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x69, 1);
+      system_exit(-1);
+    }
+    if (i >= 0x100) {
+      display_assert("index<MAXIMUM_SOUND_CHANNELS",
+                     "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x6a, 1);
+      system_exit(-1);
+    }
+    channel = (char *)(0x4fdfc8 + (int)i * 0x74);
+
+    /* assert(channel->stopping || channel->state==_sound_channel_idle) */
+    if (*(char *)(channel + 0x6) == 0 && *(short *)channel != 0) {
+      display_assert("channel->stopping || channel->state==_sound_channel_idle",
+                     "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x2c2, 1);
+      system_exit(-1);
+    }
+
+    if (*(char *)(channel + 0x6) != 0) {
+      /* while (!sound_dsound_channel_stop_check(i)) ; -- inlined */
+      do {
+        if (i < 0 || i >= *(short *)0x4fdfc4) {
+          display_assert(
+            "index>=0 && index<dsound_globals.actual_channel_count",
+            "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x69, 1);
+          system_exit(-1);
+        }
+        if (i >= 0x100) {
+          display_assert("index<MAXIMUM_SOUND_CHANNELS",
+                         "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x6a,
+                         1);
+          system_exit(-1);
+        }
+        if (*(char *)(channel + 0x6) == 0) {
+          display_assert("channel->stopping",
+                         "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x4b8,
+                         1);
+          system_exit(-1);
+        }
+        active = dsound_stream_is_active(*(void **)(channel + 0x70));
+        released = (active == 0);
+      } while (!released);
+
+      /* IDirectSoundStream::Flush -- vtable[6], this passed on the
+       * stack (PUSH EAX, no ADD ESP), so __stdcall not __thiscall. */
+      stream = *(void **)(channel + 0x70);
+      vtable = *(void ***)stream;
+      ((int(__stdcall *)(void *))vtable[6])(stream);
+      *(char *)(channel + 0x6) = 0;
+    }
+
+    if (*(short *)(channel + 0x8) != 0) {
+      error(2, "DirectSound: you're screwed if you try to save and quit -- the "
+               "devil.");
+      *(short *)(channel + 0x8) = 0;
+    }
+    i = (short)(i + 1);
   }
 }
 
