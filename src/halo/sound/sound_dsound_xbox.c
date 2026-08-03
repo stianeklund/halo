@@ -75,6 +75,21 @@ int dsound_angle_from_angle(float angle)
   return (int)(angle * 57.29578f);
 }
 
+/* dsound_occlusion_from_occlusion (0x1c9250)
+ *
+ * Convert a linear occlusion factor [0.0, 1.0] into a DirectSound
+ * volume attenuation in hundredths of dB.  Twelve instructions:
+ * FLD [0x2533c8]; PUSH 0; FSUB [EBP+8]; PUSH ECX; FSTP [ESP];
+ * CALL sound_dsound_gain_to_volume; ADD ESP,8.  The constant at
+ * 0x2533c8 is .rdata 0x3F800000 == 1.0f, so the FSUB (ST0 - m32)
+ * computes 1.0f - occlusion: full occlusion (1.0) yields gain 0,
+ * i.e. silence.  The result of the tail-position call is returned
+ * untouched in EAX (implicit return, no MOV after the CALL). */
+int dsound_occlusion_from_occlusion(float occlusion)
+{
+  return sound_dsound_gain_to_volume(1.0f - occlusion, 0);
+}
+
 /* sound_dsound_channel_get (0x1c9290)
  *
  * Return a pointer to the actual dsound channel struct at the given
