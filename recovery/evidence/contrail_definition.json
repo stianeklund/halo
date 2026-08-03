@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "struct": "contrail_definition",
+  "sources": [
+    "tag group 'cont' (0x636f6e74) - tag_get(0x636f6e74, contrail->definition_index) at contrails.c:149, 0x97afd, 0x97db5",
+    "0x97db0 - disassembled (cachebeta.xbe): +0x3c width, +0x40/+0x42 zero-extend (unsigned) evidence",
+    "0x97a50 - +0x02 flag bit 0 test and +0x04 rate use",
+    "contrails.c:350-360 - contrail_scale_random_value(scale, +0x08, +0x0c, *(uint16_t *)(+0x02), 1) and the +0x10/+0x14 scaled bases",
+    "contrails.c:964-975 - +0x24 and +0x28 rates gated by flag bits in the +0x03 byte"
+  ],
+  "fields": [
+    {
+      "offset": "0x02",
+      "width": 2,
+      "signed": false,
+      "name": "flags",
+      "confidence": "typed",
+      "evidence": "read as a whole 16-bit value and passed to contrail_scale_random_value(*(uint16_t *)(ctag + 2)) at contrails.c:353; individual bits tested bytewise - *(uint8_t *)(tag + 2) & 1 at contrails.c:107 (scales +0x04), *(uint8_t *)(tag + 3) & 1 at contrails.c:965 (scales +0x24), *(uint8_t *)(tag + 3) & 2 at contrails.c:972 (scales +0x28). The 16-bit read spanning both bytes is what proves one 2-byte field rather than two 1-byte fields."
+    },
+    {
+      "offset": "0x04",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "point generation rate in 0x97a50: render_freq = *(float *)(tag + 4), optionally scaled by contrail->scale when flags bit 0 is set, then period = 1.0f / render_freq drives the contrail +0x20 emission countdown"
+    },
+    {
+      "offset": "0x08",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "low bound of a random range: contrail_scale_random_value(contrail->scale, *(float *)(ctag + 8), *(float *)(ctag + 0xc), flags, 1) at contrails.c:350-352; the result multiplies the point velocity at contrails.c:413-415"
+    },
+    {
+      "offset": "0x0c",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "high bound of the same random range as +0x08 (third argument of contrail_scale_random_value at contrails.c:352)"
+    },
+    {
+      "offset": "0x10",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "base value optionally multiplied by contrail->scale when flags bit 3 (0x8) is set at contrails.c:354-356, then passed to the point-creation callee at contrails.c:403; semantics NOT proven - intentionally left unnamed"
+    },
+    {
+      "offset": "0x14",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "base value optionally multiplied by contrail->scale when flags bit 4 (0x10) is set at contrails.c:358-360, then used as the root_loc coefficient in the velocity composition at contrails.c:413-415; semantics NOT proven - intentionally left unnamed"
+    },
+    {
+      "offset": "0x24",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "per-second rate SUBTRACTED from contrail +0x18 (contrails.c:964-968), optionally scaled by contrail->scale when the +0x03 flag byte bit 0 is set; semantics NOT proven - intentionally left unnamed"
+    },
+    {
+      "offset": "0x28",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "per-second rate ADDED to contrail +0x1c (contrails.c:971-975), optionally scaled by contrail->scale when the +0x03 flag byte bit 1 (0x2) is set; semantics NOT proven - intentionally left unnamed"
+    },
+    {
+      "offset": "0x3c",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "tag index for group 'bitm' (0x6269746d): MOV ECX,dword ptr [EDI+0x3c] then tag_get(0x6269746d, it) at 0x97dc1-0x97dca - the contrail's bitmap reference"
+    },
+    {
+      "offset": "0x40",
+      "width": 2,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "UNSIGNED: zero-extended via the XOR ECX,ECX; MOV CX,word ptr [EDI+0x40] idiom at 0x97e15-0x97e17, then used as the low bound of a random sequence pick. Our lift at contrails.c:301 declares this int16_t (signed) - a lift-learnings section 24 class discrepancy to correct."
+    },
+    {
+      "offset": "0x42",
+      "width": 2,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "UNSIGNED: zero-extended via the XOR EAX,EAX; MOV AX,word ptr [EDI+0x42] idiom at 0x97e0f-0x97e11, then ADD AX,CX to form the exclusive/high bound from the +0x40 base. Our lift at contrails.c:302 declares this int16_t (signed) - same section 24 discrepancy."
+    }
+  ],
+  "notes": [
+    "SIZE IS NOT PROVEN and is deliberately omitted. This is a tag definition, not a data_t pool element, so there is no element-size constructor argument to read; the highest offset merely observed is +0x42. Do not render a cs() size assert from this artifact. Recovering the size requires the 'cont' tag definition's total size from the tag-loading path or the tag group registration table.",
+    "UNKNOWN RANGES (never observed accessed): +0x00..+0x01, +0x18..+0x23, +0x2c..+0x3b, and everything beyond +0x43. No interpolation was performed across them.",
+    "FINDING to fix in src/halo/effects/contrails.c independently of any struct work: +0x40 and +0x42 are unsigned in the original (zero-extend idiom) but declared int16_t in our lift at contrails.c:301-302. Latent rather than active - it only diverges for sequence bounds >= 0x8000 - but it is a real width/sign fidelity defect of the class lift-learnings section 24 describes.",
+    "The +0x02 flags field is accessed both as one 16-bit value and as two individual bytes (+0x02 and +0x03). Bits proven so far: bit 0 scales +0x04; bit 3 (0x8) scales +0x10; bit 4 (0x10) scales +0x14; byte +0x03 bit 0 scales +0x24; byte +0x03 bit 1 scales +0x28. In 16-bit terms the +0x03 bits are bits 8 and 9.",
+    "Out of scope but recorded from the same disassembly (0x97db0): the referenced 'bitm' tag has its sequence tag-block count at +0x54 and the block's element size is 0x40 (tag_block_get_element(bitm_tag + 0x54, sequence_index, 0x40) at 0x97dfd), and a bitmap sequence element holds a signed 16-bit count at +0x22 (CMP DX,word ptr [EAX+0x22] at 0x97e09)."
+  ]
+}

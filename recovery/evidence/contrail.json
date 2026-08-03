@@ -1,0 +1,154 @@
+{
+  "schema": 1,
+  "struct": "contrail",
+  "sources": [
+    "contrails.c:246 game_state_data_new(\"contrail\", 0x100, 0x44) - pool name, max count, element stride",
+    "0x97ae0 contrail_verify - disassembled (cachebeta.xbe): field widths/signedness for +0x0c, +0x2c, +0x34",
+    "0x97db0 - disassembled (cachebeta.xbe): +0x14/+0x16 width+sign, +0x24 zero-init",
+    "0x97a50 - +0x10 scale use, +0x20 emission countdown",
+    "contrails.c:753-800 contrail_new - create-path stores that prove +0x02 and +0x0e are real fields",
+    "assert \"contrail->contrail_point_counts[instance_index]>0==contrail->first_contrail_point_indices[instance_index]!=NONE\" (contrails.c:986, line 0x10a) - verbatim field names",
+    "assert \"contrail %s attachment index %d is outside the valid range.\" (contrails.c:159, line 0x28e)",
+    "assert \"object_index!=NONE\" (contrails.c:765, line 0x61) + store to +0x08",
+    "assert \"definition_index!=NONE\" (contrails.c:771, line 0x62) + store to +0x04",
+    "src/types.h:962,1026 actor_t - data_t pool convention precedent, 16-bit salt at element +0x00"
+  ],
+  "size": {
+    "value": "0x44",
+    "evidence": "game_state_data_new(\"contrail\", 0x100, 0x44) at contrails.c:246; corroborated by first_contrail_point_indices[4] at +0x34 ending exactly at 0x44"
+  },
+  "stride": {
+    "value": "0x44",
+    "evidence": "same pool constructor element-size argument; data_t elements are tightly packed"
+  },
+  "fields": [
+    {
+      "offset": "0x00",
+      "width": 2,
+      "signed": true,
+      "name": "salt",
+      "confidence": "typed",
+      "evidence": "data_t pool element convention (precedent src/types.h:962 actor_t salt at +0x000); pool-managed, never accessed by contrails.c"
+    },
+    {
+      "offset": "0x02",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "*(short *)(datum + 0x2) = 0 at contrails.c:786 (create path) proves a real 2-byte field, not padding; sign NOT observed (store-only, no read site found) - declared signed to match the store form"
+    },
+    {
+      "offset": "0x04",
+      "width": 4,
+      "signed": true,
+      "name": "definition_index",
+      "confidence": "named",
+      "evidence": "assert \"definition_index!=NONE\" (contrails.c:771) guards the parameter stored to +0x04 at contrails.c:788; read as tag index for group 'cont' (0x636f6e74) and passed to tag_get_name; MOV ECX,dword ptr [ESI+0x4] at 0x97af9"
+    },
+    {
+      "offset": "0x08",
+      "width": 4,
+      "signed": true,
+      "name": "object_index",
+      "confidence": "named",
+      "evidence": "assert \"object_index!=NONE\" (contrails.c:765) guards the parameter stored to +0x08 at contrails.c:789; MOV EAX,dword ptr [ESI+0x8]; CMP EAX,-0x1 at 0x97b07 then object_get_and_verify_type"
+    },
+    {
+      "offset": "0x0c",
+      "width": 2,
+      "signed": true,
+      "name": "attachment_index",
+      "confidence": "named",
+      "evidence": "assert \"contrail %s attachment index %d is outside the valid range.\" (contrails.c:159); MOV DI,word ptr [ESI+0xc]; TEST DI,DI; JL (signed) at 0x97b1e-0x97b2b and MOVSX ECX,word ptr [ESI+0xc] at 0x97b89"
+    },
+    {
+      "offset": "0x0e",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "*(short *)(datum + 0xe) = *(short *)(obj_tag_elem + 0x30) - 1 at contrails.c:793, where obj_tag_elem = tag_block_get_element(obje_tag+0x140, attachment_index, 0x48); a real field, not padding; semantics unproven"
+    },
+    {
+      "offset": "0x10",
+      "width": 4,
+      "kind": "float",
+      "name": "scale",
+      "confidence": "typed",
+      "evidence": "multiplied into tag-supplied rates whenever the corresponding 'cont' flag bit is set: render_freq (0x97a50), fade rate (contrails.c:966), grow rate (contrails.c:973); also copied into contrail_point +0x0c"
+    },
+    {
+      "offset": "0x14",
+      "width": 2,
+      "signed": true,
+      "name": "sequence_index",
+      "confidence": "typed",
+      "evidence": "MOV CX,word ptr [ESI+0x14]; TEST CX,CX; JL then MOVSX ECX,CX at 0x97dcf-0x97dea (signed 16-bit); bounds-checked against the bitmap tag sequence-block count and initialized to -1 at contrails.c:794"
+    },
+    {
+      "offset": "0x16",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "INC word ptr [ESI+0x16] at 0x97dd6; MOV DX,word ptr [ESI+0x16]; TEST DX,DX; JL (signed) at 0x97ddd-0x97df7; compared against bitmap sequence element +0x22 and reset to 0 at 0x97e32 - a per-sequence frame counter, name not proven"
+    },
+    {
+      "offset": "0x18",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "decremented by ('cont' tag +0x24 rate, optionally scaled by +0x10) * elapsed at contrails.c:968; zero-initialized via *(int *)(datum + 0x18) = 0 at contrails.c:797 (float 0.0f as a 32-bit integer store)"
+    },
+    {
+      "offset": "0x1c",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "incremented by ('cont' tag +0x28 rate, optionally scaled by +0x10) * elapsed at contrails.c:975; zero-initialized via *(int *)(datum + 0x1c) = 0 at contrails.c:798"
+    },
+    {
+      "offset": "0x20",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "emission countdown in 0x97a50: while (delta_time >= *(float *)(datum+0x20)) { delta_time -= it; it = 1.0f/render_freq; count++ } then decremented by the remainder - a next-point timer"
+    },
+    {
+      "offset": "0x24",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "accumulates leftover step time (*(float *)(datum+0x24) += remaining at contrails.c:961); zero-initialized by MOV dword ptr [ESI+0x24],0x0 at 0x97de1"
+    },
+    {
+      "offset": "0x28",
+      "width": 4,
+      "confidence": "gap",
+      "evidence": "no access observed at +0x28..+0x2b in any contrails.c function or in the disassembly of 0x97ae0 / 0x97db0 / 0x97a50"
+    },
+    {
+      "offset": "0x2c",
+      "width": 2,
+      "signed": true,
+      "array_len": 4,
+      "name": "contrail_point_counts",
+      "confidence": "named",
+      "evidence": "verbatim from assert \"contrail->contrail_point_counts[instance_index]>0==...\" (contrails.c:987); LEA ECX,[ESI+0x2c]; MOV AX,word ptr [EAX]; MOVSX EDX,AX with ADD ECX,0x2 per iteration over a 4-count loop at 0x97bd8-0x97c6b (signed 16-bit, stride 2, length 4)"
+    },
+    {
+      "offset": "0x34",
+      "width": 4,
+      "signed": true,
+      "array_len": 4,
+      "name": "first_contrail_point_indices",
+      "confidence": "named",
+      "evidence": "verbatim from assert \"...==contrail->first_contrail_point_indices[instance_index]!=NONE\" (contrails.c:988); LEA EBX,[ESI+0x34]; MOV EAX,dword ptr [EBX]; ADD EBX,0x4 over a 4-count loop at 0x97bde-0x97c6b; each element is a contrail_point handle or -1"
+    }
+  ],
+  "notes": [
+    "Four parallel point chains ('instances'/lobes): contrail_point_counts[i] and first_contrail_point_indices[i] are index-locked, and the invariant asserted at contrails.c:986 is (count > 0) == (head != NONE). The loop bound 4 is a literal in both 0x97ae0 (MOV dword ptr [EBP-0x8],0x4) and contrails.c:984-989.",
+    "SIGN CONFLICT IN OUR SOURCE, resolved in favor of signed: contrails.c:176 declares the count cursor `short *count_ptr` while contrails.c:761 declares `unsigned short *count_ptr` for the same +0x2c array. The original sign-extends it (MOVSX EDX,AX at 0x97c24), so signed is correct and contrails.c:761 is the outlier to fix.",
+    "+0x02 and +0x0e were treated as padding by the existing lift but are proven real 2-byte fields by explicit create-path stores; their semantics are NOT proven and they must stay unnamed.",
+    "Out of scope but recorded from the same disassembly: obje tag +0x140 is a tag block whose element size is 0x48 (tag_block_get_element(obj_tag_elem + 0x140, attachment_index, 0x48) at contrails.c:791-792), and the object struct holds attached contrail handles at +0xfc + attachment_index*4 (MOV EAX,dword ptr [EDX+ECX*0x4+0xfc] at 0x97b90).",
+    "Pool globals are unregistered in kb.json: contrail_data at 0x005aa8c0 and contrail_point_data at 0x005aa8bc (MOV EAX,[0x005aa8c0] at 0x97aea, MOV EDX,dword ptr [0x005aa8bc] at 0x97bf1)."
+  ]
+}

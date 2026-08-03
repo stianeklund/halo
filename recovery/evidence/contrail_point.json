@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "struct": "contrail_point",
+  "sources": [
+    "contrails.c:247 game_state_data_new(\"contrail point\", 0x400, 0x38) - pool name, max count, element stride",
+    "0x97ae0 contrail_verify - disassembled (cachebeta.xbe): MOV EAX,dword ptr [EAX+0x34] linked-list walk at 0x97bfe",
+    "contrails.c:70-71 - scenario_location_from_point(point_datum + 0x14, point_datum + 0x1c) binds the location and position regions",
+    "contrails.c:405-415 - position copied from the creation marker buffer, velocity composed from vel/root_loc",
+    "contrails.c:396,438 - +0x0c written from contrail +0x10 and later interpolated",
+    "src/types.h:962,1026 actor_t - data_t pool convention precedent, 16-bit salt at element +0x00"
+  ],
+  "size": {
+    "value": "0x38",
+    "evidence": "game_state_data_new(\"contrail point\", 0x400, 0x38) at contrails.c:247; corroborated by next_index (4 bytes) at +0x34 ending exactly at 0x38"
+  },
+  "stride": {
+    "value": "0x38",
+    "evidence": "same pool constructor element-size argument; data_t elements are tightly packed"
+  },
+  "fields": [
+    {
+      "offset": "0x00",
+      "width": 2,
+      "signed": true,
+      "name": "salt",
+      "confidence": "typed",
+      "evidence": "data_t pool element convention (precedent src/types.h:962 actor_t salt at +0x000); pool-managed, never accessed by contrails.c"
+    },
+    {
+      "offset": "0x02",
+      "width": 1,
+      "array_len": 10,
+      "confidence": "gap",
+      "evidence": "no access observed at +0x02..+0x0b in any contrails.c function or in the disassembly of 0x97ae0"
+    },
+    {
+      "offset": "0x0c",
+      "width": 4,
+      "kind": "float",
+      "name": "scale",
+      "confidence": "typed",
+      "evidence": "initialized from the owning contrail's +0x10 scale at contrails.c:396, then interpolated (frac_new * old + ...) at contrails.c:438"
+    },
+    {
+      "offset": "0x10",
+      "width": 4,
+      "confidence": "gap",
+      "evidence": "no access observed at +0x10..+0x13; note it is NOT covered by the scenario_location out-parameter, which starts at +0x14"
+    },
+    {
+      "offset": "0x14",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "base of the scenario_location out-parameter passed as scenario_location_from_point(point_datum + 0x14, ...) at contrails.c:71; first 4 bytes of that location (leaf/structure index), semantics not independently proven"
+    },
+    {
+      "offset": "0x18",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "*(short *)(point_datum + 0x18) != -1 validity test at contrails.c:70; lies inside the scenario_location written at +0x14, so it is that location's 16-bit cluster/index member"
+    },
+    {
+      "offset": "0x1a",
+      "width": 2,
+      "confidence": "gap",
+      "evidence": "no access observed at +0x1a..+0x1b; trailing alignment of the scenario_location region beginning at +0x14"
+    },
+    {
+      "offset": "0x1c",
+      "width": 4,
+      "kind": "float",
+      "array_len": 3,
+      "name": "position",
+      "confidence": "typed",
+      "evidence": "passed as the point argument to scenario_location_from_point(point_datum + 0x14, point_datum + 0x1c) at contrails.c:71; written componentwise from the creation marker buffer +0x60/+0x64/+0x68 at contrails.c:405-407 - three contiguous floats"
+    },
+    {
+      "offset": "0x28",
+      "width": 4,
+      "kind": "float",
+      "array_len": 3,
+      "name": "velocity",
+      "confidence": "typed",
+      "evidence": "written componentwise as vel[i] * vel_scale + root_scale * root_loc[i] at contrails.c:413-415 - three contiguous floats immediately following position"
+    },
+    {
+      "offset": "0x34",
+      "width": 4,
+      "signed": true,
+      "name": "next_index",
+      "confidence": "typed",
+      "evidence": "singly-linked chain cursor: MOV EAX,dword ptr [EAX+0x34]; CMP EAX,-0x1; JNZ loop at 0x97bfe-0x97c08 walking from contrail->first_contrail_point_indices[i]; -1 terminates"
+    }
+  ],
+  "notes": [
+    "Points form four singly-linked chains rooted at contrail->first_contrail_point_indices[0..3], linked through +0x34 and terminated by -1. Chain length is what contrail_verify counts and compares against contrail->contrail_point_counts[i].",
+    "+0x14 and +0x18 are the two observed members of one scenario_location value: the callee scenario_location_from_point writes through a pointer to +0x14, and +0x18 is read back as a 16-bit validity field. They are recorded as separate typed entries because the scenario_location layout is not recovered in this artifact; when that struct is recovered these two entries should be replaced by a single nested member.",
+    "position (+0x1c) and velocity (+0x28) are contiguous and together fill +0x1c..+0x33, leaving no hole before next_index at +0x34.",
+    "MSVC STACK-OVERLAP HAZARD at the write site (lift-learnings section 2): the position copy at contrails.c:405-407 reads the creation marker buffer at marker+0x60, which in the original MSVC frame overlapped a separate local. Do not 'simplify' that copy when converting these offsets to field access."
+  ]
+}
