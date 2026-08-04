@@ -1258,7 +1258,8 @@ void main_switch_structure_bsp(short bsp_index)
     /* 0x5a4 = scenario structure_bsps block element count (32-bit). */
     if ((int)bsp_index < *(int *)((char *)scenario + 0x5a4)) {
       if (bsp_index == global_structure_bsp_index) {
-        console_warning("tried to switch to current structure-bsp %d", (int)bsp_index);
+        console_warning("tried to switch to current structure-bsp %d",
+                        (int)bsp_index);
         return;
       }
       word_46DA40 = bsp_index;
@@ -1266,7 +1267,8 @@ void main_switch_structure_bsp(short bsp_index)
       return;
     }
   }
-  console_warning("tried to switch to invalid structure-bsp %d", (int)bsp_index);
+  console_warning("tried to switch to invalid structure-bsp %d",
+                  (int)bsp_index);
 }
 
 void main_queue_map_name(char *map_name)
@@ -1368,6 +1370,41 @@ void main_reset_player_actions(void)
 bool main_change_map_name_in_progress(void)
 {
   return *(uint32_t *)0x46da34 != 0;
+}
+
+/*
+ * main_menu_switch_to_single_player - 0x1006d0
+ *
+ * Confirmed:
+ *  - Whole body is 2 instructions, no frame, no _chkstk, no locals, no
+ *    CALLs, no FPU, no struct access:
+ *      MOV byte ptr [0x0046da25],0x1
+ *      RET
+ *  - The store is BYTE width with immediate 1, so 0x46da25 is a single-byte
+ *    flag; it carries the kb-registered name main_change_map_name_pending.
+ *  - Plain cdecl void(void): RET carries no immediate, and no register is
+ *    read before being written, so there are no implicit @<reg> inputs and
+ *    no @<reg> callee contracts to honor.
+ *
+ * Inferred:
+ *  - Same family as main_reset_map / main_revert_map / main_skip_cinematic:
+ *    a "request a main-loop transition" setter that arms exactly one pending
+ *    flag. Unlike those, it does NOT reset word_46DA40 or clear
+ *    byte_46DA28 — only the one flag is armed.
+ *  - The armed flag is consumed by the main game loop, which calls
+ *    main_change_map_name() while it is set (see the pending-flag block in
+ *    main_loop_body) and clears it inside main_change_map_name.
+ *
+ * Uncertain:
+ *  - The kb global name (main_change_map_name_pending) does not obviously
+ *    match the function name (switch_to_single_player). Both names come from
+ *    separate evidence and neither is renamed here; the connection is
+ *    presumably that returning to single player is performed as a map-name
+ *    change, but there is no string or assert evidence pinning that.
+ */
+void main_menu_switch_to_single_player(void)
+{
+  main_change_map_name_pending = true;
 }
 
 /*

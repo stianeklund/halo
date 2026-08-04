@@ -13273,7 +13273,8 @@
     },
     {
      "addr": "0x1006d0",
-     "decl": "void main_menu_switch_to_single_player(void);"
+     "decl": "void main_menu_switch_to_single_player(void);",
+     "ported": true
     },
     {
      "addr": "0x1006e0",

@@ -15928,6 +15928,10 @@
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
+    "main_menu_switch_to_single_player": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "main_menu_unload": {
       "score": 100.0,
       "source": "src/halo/main/main.c"
