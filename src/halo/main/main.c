@@ -564,6 +564,43 @@ void main_save_map_nonsafe(void)
 }
 
 /*
+ * main_saving_map - 0x100310
+ *
+ * Confirmed:
+ *  - Whole body is 2 instructions / 6 bytes, no frame, no CALLs, no FPU:
+ *      00100310  a0 28 da 46 00   MOV AL,byte ptr [0x0046da28]
+ *      00100315  c3               RET
+ *    (verified byte-for-byte against the pristine cachebeta.xbe, not just
+ *    the Ghidra listing).
+ *  - The load is an 8-bit MOV AL, NOT a MOVZX/MOVSX, so the upper 24 bits of
+ *    EAX are left untouched. The return value is therefore a single byte in
+ *    AL, which is why the C prototype must return bool/char and not int --
+ *    an int return would make the compiler widen the load and diverge.
+ *  - Ghidra decompiles this as an empty `void` body ONLY because the kb.json
+ *    decl declared `void`; the return value is real and lives in AL.
+ *  - Plain cdecl: RET carries no immediate, and no register is read before
+ *    being written, so there are no implicit @<reg> inputs.
+ *
+ * Inferred:
+ *  - byte_46DA28 is the save-request flag written by the surrounding group:
+ *    main_save_map_nonsafe (0x100300) SETS it, while main_reset_map,
+ *    main_revert_map, main_skip_cinematic, FUN_00100380 and main_new_map all
+ *    CLEAR it. This function is the read side of that same flag, which
+ *    matches the kb-registered name main_saving_map -- i.e. "is a map save
+ *    currently requested/in progress".
+ *
+ * Uncertain:
+ *  - Ghidra reports zero callers. With a 6-byte body and a previously-`void`
+ *    decl this is more likely an under-resolved indirect/table reference than
+ *    genuinely dead code, so the function is lifted as-is rather than
+ *    simplified away on a dead-code assumption.
+ */
+bool main_saving_map(void)
+{
+  return byte_46DA28;
+}
+
+/*
  * FUN_00100380 - 0x100380
  *
  * Confirmed:

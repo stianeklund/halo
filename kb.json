@@ -13168,7 +13168,8 @@
     },
     {
      "addr": "0x100310",
-     "decl": "void main_saving_map(void);"
+     "decl": "bool main_saving_map(void);",
+     "ported": true
     },
     {
      "addr": "0x100320",

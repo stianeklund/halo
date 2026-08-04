@@ -15952,6 +15952,10 @@
       "score": 59.5,
       "source": "src/halo/main/main.c"
     },
+    "main_saving_map": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "main_screen_shell_load": {
       "score": 56.3,
       "source": "src/halo/interface/ui_widget.c"
