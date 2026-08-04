@@ -27530,7 +27530,7 @@
     {
      "addr": "0x1a8770",
      "decl": "char FUN_001a8770(void *anim_state@<ecx>);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x1a8890",

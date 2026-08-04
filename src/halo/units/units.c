@@ -2948,6 +2948,21 @@ char FUN_001a8730(void *anim_state)
   return result;
 }
 
+/* FUN_001a8770 (0x1a8770)
+ * Returns 1 when the animation state is in the inclusive range [3,4].
+ * @ecx = anim state ptr. Signed byte field at +0xb (CMP/JL, CMP/JG). */
+char FUN_001a8770(void *anim_state)
+{
+  char result;
+
+  result = 0;
+  if ((*(int8_t *)((char *)anim_state + 0xb) >= 3) &&
+      (*(int8_t *)((char *)anim_state + 0xb) <= 4)) {
+    result = 1;
+  }
+  return result;
+}
+
 /* FUN_001a8790 (0x1a8790)
  * Returns 0 for vehicle/combat animation states. @ecx = anim state ptr. */
 char FUN_001a8790(void *anim_state)

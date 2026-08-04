@@ -9672,12 +9672,24 @@
       "score": 72.9,
       "source": "src/halo/models/model_animations.c"
     },
+    "FUN_00122a50": {
+      "score": 82.4,
+      "source": "src/halo/units/units.c"
+    },
     "FUN_00122e50": {
       "score": 87.9,
       "source": "src/halo/units/units.c"
     },
     "FUN_00123470": {
       "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001234b0": {
+      "score": 98.1,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_00123560": {
+      "score": 75.9,
       "source": "src/halo/units/units.c"
     },
     "FUN_00123aa0": {
@@ -13517,7 +13529,7 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001a6e20": {
-      "score": 97.9,
+      "score": 98.6,
       "source": "src/halo/units/units.c"
     },
     "FUN_001a6ef0": {
@@ -13533,7 +13545,7 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001a74d0": {
-      "score": 90.9,
+      "score": 94.7,
       "source": "src/halo/units/units.c"
     },
     "FUN_001a7650": {
@@ -13605,7 +13617,7 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001a8010": {
-      "score": 85.7,
+      "score": 86.2,
       "source": "src/halo/units/units.c"
     },
     "FUN_001a8190": {
@@ -13637,6 +13649,10 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001a8730": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "FUN_001a8770": {
       "score": 100.0,
       "source": "src/halo/units/units.c"
     },
@@ -13709,7 +13725,7 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001a96f0": {
-      "score": 78.1,
+      "score": 78.7,
       "source": "src/halo/units/units.c"
     },
     "FUN_001a97c0": {
@@ -13809,7 +13825,7 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001aa430": {
-      "score": 80.0,
+      "score": 90.8,
       "source": "src/halo/units/units.c"
     },
     "FUN_001aa4d0": {
@@ -13849,7 +13865,7 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001aa890": {
-      "score": 95.0,
+      "score": 95.7,
       "source": "src/halo/units/units.c"
     },
     "FUN_001aa970": {
@@ -13877,7 +13893,7 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001aad60": {
-      "score": 80.0,
+      "score": 81.8,
       "source": "src/halo/units/units.c"
     },
     "FUN_001aad90": {
@@ -13905,23 +13921,23 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001ab410": {
-      "score": 72.0,
+      "score": 72.2,
       "source": "src/halo/units/units.c"
     },
     "FUN_001ab6e0": {
-      "score": 81.8,
+      "score": 83.7,
       "source": "src/halo/units/units.c"
     },
     "FUN_001ab730": {
-      "score": 83.0,
+      "score": 84.6,
       "source": "src/halo/units/units.c"
     },
     "FUN_001ab770": {
-      "score": 92.9,
+      "score": 94.5,
       "source": "src/halo/units/units.c"
     },
     "FUN_001ab7c0": {
-      "score": 93.1,
+      "score": 93.9,
       "source": "src/halo/units/units.c"
     },
     "FUN_001ab870": {
@@ -13933,7 +13949,7 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001ab940": {
-      "score": 80.0,
+      "score": 81.6,
       "source": "src/halo/units/units.c"
     },
     "FUN_001ab990": {
@@ -13941,11 +13957,11 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001abb20": {
-      "score": 79.1,
+      "score": 79.7,
       "source": "src/halo/units/units.c"
     },
     "FUN_001abbd0": {
-      "score": 87.1,
+      "score": 87.7,
       "source": "src/halo/units/units.c"
     },
     "FUN_001abcd0": {
@@ -14045,7 +14061,7 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001ae1e0": {
-      "score": 66.7,
+      "score": 75.0,
       "source": "src/halo/units/units.c"
     },
     "FUN_001ae210": {
@@ -14053,7 +14069,7 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001ae290": {
-      "score": 93.8,
+      "score": 94.7,
       "source": "src/halo/units/units.c"
     },
     "FUN_001ae330": {
@@ -14105,7 +14121,7 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001af180": {
-      "score": 61.6,
+      "score": 63.4,
       "source": "src/halo/units/units.c"
     },
     "FUN_001af2a0": {
@@ -14113,11 +14129,11 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001af340": {
-      "score": 73.1,
+      "score": 77.0,
       "source": "src/halo/units/units.c"
     },
     "FUN_001af620": {
-      "score": 64.7,
+      "score": 96.1,
       "source": "src/halo/units/units.c"
     },
     "FUN_001af6b0": {
@@ -14133,7 +14149,7 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001b0630": {
-      "score": 76.1,
+      "score": 77.2,
       "source": "src/halo/units/units.c"
     },
     "FUN_001b0d00": {
@@ -14141,7 +14157,7 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001b0d90": {
-      "score": 79.1,
+      "score": 79.2,
       "source": "src/halo/units/units.c"
     },
     "FUN_001b1290": {
@@ -14153,7 +14169,7 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001b13a0": {
-      "score": 74.0,
+      "score": 77.8,
       "source": "src/halo/units/units.c"
     },
     "FUN_001b1400": {
@@ -14185,7 +14201,7 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001b1ee0": {
-      "score": 91.0,
+      "score": 91.3,
       "source": "src/halo/units/units.c"
     },
     "FUN_001b2090": {
@@ -17156,6 +17172,10 @@
       "score": 92.1,
       "source": "src/halo/units/units.c"
     },
+    "unit_close": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
     "unit_control_trace": {
       "score": 97.6,
       "source": "src/halo/units/units.c"
@@ -17200,6 +17220,10 @@
       "score": 73.2,
       "source": "src/halo/units/units.c"
     },
+    "unit_drop_grenades_on_death": {
+      "score": 79.7,
+      "source": "src/halo/units/units.c"
+    },
     "unit_drop_weapons_on_death": {
       "score": 87.7,
       "source": "src/halo/units/units.c"
@@ -17210,6 +17234,14 @@
     },
     "unit_estimate_position": {
       "score": 94.2,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_exit_seat_end": {
+      "score": 97.0,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_export_function_values": {
+      "score": 86.2,
       "source": "src/halo/units/units.c"
     },
     "unit_find_best_enter_seat": {
@@ -17232,6 +17264,10 @@
       "score": 92.7,
       "source": "src/halo/units/units.c"
     },
+    "unit_get_aiming_unit_index": {
+      "score": 89.6,
+      "source": "src/halo/units/units.c"
+    },
     "unit_get_animation_frames_remaining": {
       "score": 90.9,
       "source": "src/halo/units/units.c"
@@ -17250,6 +17286,10 @@
     },
     "unit_get_grenade_count": {
       "score": 80.6,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_get_head_position": {
+      "score": 85.7,
       "source": "src/halo/units/units.c"
     },
     "unit_get_local_player_index": {
@@ -17284,8 +17324,16 @@
       "score": 85.2,
       "source": "src/halo/units/units.c"
     },
+    "unit_handle_deleted_object": {
+      "score": 95.7,
+      "source": "src/halo/units/units.c"
+    },
     "unit_handle_region_destroyed": {
       "score": 91.3,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_handle_weapon_state_change": {
+      "score": 58.1,
       "source": "src/halo/units/units.c"
     },
     "unit_has_animation_to_enter_seat": {
@@ -17298,6 +17346,10 @@
     },
     "unit_has_weapon_definition_index": {
       "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_has_weapon_with_flag": {
+      "score": 93.0,
       "source": "src/halo/units/units.c"
     },
     "unit_impact_melee_damage": {
@@ -17348,6 +17400,10 @@
       "score": 100.0,
       "source": "src/halo/units/units.c"
     },
+    "unit_pickup_equipment": {
+      "score": 89.1,
+      "source": "src/halo/units/units.c"
+    },
     "unit_place": {
       "score": 94.8,
       "source": "src/halo/units/units.c"
@@ -17362,6 +17418,14 @@
     },
     "unit_reset_weapon_state": {
       "score": 97.6,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_scripting_can_blink": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_scripting_doesnt_drop_items": {
+      "score": 100.0,
       "source": "src/halo/units/units.c"
     },
     "unit_scripting_enter_vehicle": {
@@ -17392,12 +17456,24 @@
       "score": 84.8,
       "source": "src/halo/units/units.c"
     },
+    "unit_scripting_vehicle_test_seat": {
+      "score": 91.5,
+      "source": "src/halo/units/units.c"
+    },
     "unit_seat_allow_noncombatants": {
       "score": 83.1,
       "source": "src/halo/units/units.c"
     },
     "unit_seat_filled": {
       "score": 81.4,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_seat_is_driver": {
+      "score": 83.1,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_seat_is_gunner": {
+      "score": 83.1,
       "source": "src/halo/units/units.c"
     },
     "unit_select_weapon_after_vehicle_exit": {
@@ -17410,6 +17486,10 @@
     },
     "unit_set_actively_controlled_flag": {
       "score": 90.9,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_set_animation": {
+      "score": 93.9,
       "source": "src/halo/units/units.c"
     },
     "unit_set_control": {
@@ -17444,12 +17524,20 @@
       "score": 93.4,
       "source": "src/halo/units/units.c"
     },
+    "unit_should_swap_weapon": {
+      "score": 69.2,
+      "source": "src/halo/units/units.c"
+    },
     "unit_solo_player_integrated_night_vision_is_active": {
       "score": 73.5,
       "source": "src/halo/units/units.c"
     },
     "unit_start_flaming_to_death": {
       "score": 95.7,
+      "source": "src/halo/units/units.c"
+    },
+    "unit_start_running_blindly": {
+      "score": 90.8,
       "source": "src/halo/units/units.c"
     },
     "unit_stop_custom_animation": {
@@ -17502,6 +17590,14 @@
     },
     "unit_weapon_is_new": {
       "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "units_debug_get_closest_unit": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
+    "units_debug_get_next_unit": {
+      "score": 85.9,
       "source": "src/halo/units/units.c"
     },
     "units_set_desired_flashlight_state": {
