@@ -323,6 +323,20 @@ char *main_get_multiplayer_map_name(void)
   return (char *)0x46db55;
 }
 
+/* Store the difficulty level at 0x31fa90, rejecting out-of-range values
+ * (0x100060).
+ *
+ * The body loads the parameter as a WORD (MOV AX,[EBP+8]) and both bounds
+ * checks are signed (JL / JGE), so the parameter is a signed 16-bit value.
+ * Out-of-range inputs fall through to the epilogue and leave the global
+ * untouched. Bare RET -> __cdecl. */
+void main_set_difficulty(int16_t difficulty)
+{
+  if (difficulty >= 0 && difficulty < 4) {
+    *(int16_t *)0x31fa90 = difficulty;
+  }
+}
+
 /* Return the game variant index from the static table at 0x31fa90. */
 int16_t main_get_difficulty(void)
 {

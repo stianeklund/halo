@@ -13129,7 +13129,8 @@
     },
     {
      "addr": "0x100060",
-     "decl": "void main_set_difficulty(void);"
+     "decl": "void main_set_difficulty(int16_t difficulty);",
+     "ported": true
     },
     {
      "addr": "0x100080",
