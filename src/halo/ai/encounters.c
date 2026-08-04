@@ -4411,6 +4411,49 @@ void encounter_force_deactivate(int encounter_handle)
   FUN_0005a640(encounter_handle);
 }
 
+/* encounter_set_respawn (0x5c630) — Set an encounter's respawn flag
+ * (encounter+0x3c) and arm its 0x96-tick respawn timer (encounter+0xe), then
+ * refresh the encounter's activation state. Guarded on ai_active
+ * (ai_globals+1).
+ *
+ * Confirmed (0x46 bytes, plain EBP frame, no locals, no FPU, no _chkstk):
+ *   - cdecl stack args: [EBP+8]=encounter_handle (int), [EBP+0xC]=flag (char,
+ *     read as MOV DL). No implicit @<reg> input to this function.
+ *   - ESI caches encounter_handle across both datum_get calls; the original
+ *     re-resolves the datum a second time before the 16-bit store — that
+ *     duplicate resolve is preserved here.
+ *   - Both CALLs target 0x119320 = datum_get(data, handle). The single
+ *     ADD ESP,0x10 at 0x5c662 cleans up BOTH calls (2 calls x 2 args x 4), so
+ *     an arg-count audit reading it as one 4-arg call is a false positive.
+ *   - Tail call: MOV EAX,ESI; POP ESI; POP EBP; JMP 0x5a4e0 — EAX carries the
+ *     @<eax> register argument of FUN_0005a4e0. Because it is a JMP, that
+ *     callee's char return becomes this function's EAX residue; kb declares
+ *     this function void, so it stays void.
+ *   - encounter+0xe is a 16-bit store (MOV word ptr [EAX+0xe],0x96), not int.
+ *
+ * Call-site verification:
+ *   datum_get #1 | PUSH ESI (handle) ; PUSH ECX (*(data_t **)0x5ab270)
+ *     -> datum_get(*(data_t **)0x5ab270, encounter_handle) | match
+ *   datum_get #2 | PUSH ESI ; PUSH ECX -> same expression | match
+ *   FUN_0005a4e0 | EAX = ESI = encounter_handle (@<eax>) | match
+ *
+ * Store-offset table (encounter record, offsets from the disassembly):
+ *   +0x3c | byte  | DL = flag parameter
+ *   +0x0e | int16 | immediate 0x96 (respawn timer, ticks)
+ */
+void encounter_set_respawn(int encounter_handle, char flag)
+{
+  char *encounter;
+
+  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+    *(char *)(encounter + 0x3c) = flag;
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+    *(int16_t *)(encounter + 0xe) = 0x96;
+    FUN_0005a4e0(encounter_handle /* @<eax> */);
+  }
+}
+
 /* 0x5c940 — encounter_update_platoon_rules.
  * For each platoon in the encounter, evaluates two rule conditions:
  *   1. Maneuvering rule (platoon_def+0x3c): if platoon[1]==0 (not yet set),

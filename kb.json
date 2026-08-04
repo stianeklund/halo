@@ -33280,7 +33280,8 @@
     },
     {
      "addr": "0x5c630",
-     "decl": "void encounter_set_respawn(int encounter_handle, char flag);"
+     "decl": "void encounter_set_respawn(int encounter_handle, char flag);",
+     "ported": true
     },
     {
      "addr": "0x5c680",
