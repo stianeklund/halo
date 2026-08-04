@@ -716,6 +716,46 @@ void main_save_map_safe(void)
 }
 
 /*
+ * main_won_map - 0x100370
+ *
+ * Confirmed:
+ *  - Whole body is 3 instructions, no frame, no locals, no CALLs, no FPU:
+ *      00100370  MOV byte ptr [0x0046da28],0x0
+ *      00100377  MOV byte ptr [0x0046da3a],0x1
+ *      0010037e  RET
+ *  - Both stores are BYTE-width immediates (MOV byte ptr, imm8), so both
+ *    globals are single-byte flags; neither is widened to int/word. This
+ *    matches their kb decls (char byte_46DA28, bool
+ *    main_won_map_private_pending).
+ *  - Store order is 0x46da28 first, then 0x46da3a; preserved literally.
+ *  - The two globals are 0x12 bytes apart, so they are distinct main_globals
+ *    flags, not two fields of one word.
+ *  - Plain cdecl void(void): the RET carries no immediate, and no register is
+ *    read before being written anywhere in the body, so there are no implicit
+ *    @<reg> inputs and no @<reg> callee contracts.
+ *
+ * Inferred:
+ *  - Setting main_won_map_private_pending arms main_won_map_private
+ *    (0x101040) to run on the next main-loop pass: the main loop tests
+ *    `if (main_won_map_private_pending) main_won_map_private();`, and
+ *    main_won_map_private clears the flag on entry. So this is the public
+ *    "request the won-map transition" entry point, deferring the actual work
+ *    by one loop iteration.
+ *  - Clearing byte_46DA28 cancels any pending save request first, the same
+ *    prologue used by main_save_cancel, FUN_00100380 and main_new_map.
+ *
+ * Uncertain:
+ *  - Ghidra resolves no direct callers. A 15-byte body with no xrefs is more
+ *    likely an under-resolved indirect/table reference (script/HS command
+ *    table) than dead code, so it is lifted literally.
+ */
+void main_won_map(void)
+{
+  byte_46DA28 = 0;
+  main_won_map_private_pending = 1;
+}
+
+/*
  * FUN_00100380 - 0x100380
  *
  * Confirmed:

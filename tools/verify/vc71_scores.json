@@ -16000,6 +16000,10 @@
       "score": 76.3,
       "source": "src/halo/main/main.c"
     },
+    "main_won_map": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "main_won_map_private": {
       "score": 58.4,
       "source": "src/halo/main/main.c"

@@ -13184,7 +13184,8 @@
     },
     {
      "addr": "0x100370",
-     "decl": "void main_won_map(void);"
+     "decl": "void main_won_map(void);",
+     "ported": true
     },
     {
      "addr": "0x100380",
