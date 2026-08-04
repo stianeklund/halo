@@ -896,6 +896,67 @@ void main_save_core(void)
   csstrcpy(core_name, "core.bin");
 }
 
+/*
+ * main_save_core_name - 0x1003d0
+ *
+ * Arms a deferred core dump using a caller-supplied file name, warning (but
+ * not halting) when the name will not fit in the core_name buffer.
+ *
+ * Confirmed:
+ *  - 23 instructions, no locals, no _chkstk, no FPU, no SEH:
+ *      001003d0  PUSH EBP / MOV EBP,ESP / PUSH ESI
+ *      001003d4  MOV ESI,dword ptr [EBP+0x8]      ; the single stack argument
+ *      001003d7  PUSH ESI / CALL 0x8df60 / ADD ESP,0x4          ; csstrlen
+ *      001003e0  CMP EAX,0x40 / JC 0x1003fe
+ *      001003e5  PUSH 0x0 / PUSH 0x3a5 / PUSH 0x28b0b4 / PUSH 0x28b1a4
+ *      001003f6  CALL 0x8d9f0 / ADD ESP,0x10                    ;
+ * display_assert 001003fe  PUSH 0x3f / PUSH ESI / PUSH 0x46dd55 00100406  CALL
+ * 0x8de70 / ADD ESP,0xc                     ; csstrncpy 0010040e  MOV byte ptr
+ * [0x0046da3d],0x1 00100415  POP ESI / POP EBP / RET
+ *  - One stack parameter, cdecl: ESI is written from [EBP+8] before any read
+ *    of it, and the terminator is a plain RET with no immediate. This is NOT
+ *    the `void(void)` that kb.json previously declared. The sole original
+ *    call site confirms the single argument: 0x000c27ac loads EDX from a
+ *    returned pointer, 0x000c27ae pushes it, 0x000c27af calls 0x1003d0, and
+ *    that argument's cleanup is folded into the ADD ESP,0xc at 0x000c27bc
+ *    which also covers the two arguments of the following call.
+ *  - ESI is callee-saved (PUSH/POP) and carries the argument across all three
+ *    calls, so there is no implicit register input and no @<reg> callee
+ *    contract; every callee is pure stack cdecl (ADD ESP,0x4 / 0x10 / 0xc).
+ *  - `CMP EAX,0x40; JC` is an unsigned-below test, so the length is compared
+ *    as unsigned and the warning fires for length >= 0x40. A signed compare
+ *    would have emitted JL.
+ *  - Warning flavor of assert: halt is 0 (PUSH 0x0) and no system_exit tail
+ *    follows the call, so execution falls through into the truncating copy.
+ *    Reason "warning, core file name will be truncated to 63 characters",
+ *    file "c:\halo\SOURCE\main\main.c", line 0x3a5.
+ *  - The copy bound is 0x3f, i.e. 63 characters plus the NUL csstrncpy adds.
+ *  - The flag store is an 8-bit MOV byte ptr [0x46da3d],1, matching the
+ *    `bool` declaration of game_state_save_core_pending; widening it would
+ *    emit a dword store.
+ *
+ * Inferred:
+ *  - MSVC scheduled the flag store after the csstrncpy call here, whereas in
+ *    the sibling main_save_core (0x1003b0) it scheduled the same store before
+ *    the copy call. The store is unconditional and independent of the copy in
+ *    both, so this is instruction scheduling rather than a semantic
+ *    difference; source order here follows the emitted order.
+ *  - csstrncpy's return value (EAX) is not consumed, matching the void return.
+ *
+ * Uncertain:
+ *  - core_name stays an incomplete `char[]` as declared in kb.json; the 0x3f
+ *    bound proves at least 64 bytes are addressable, not the true size.
+ */
+void main_save_core_name(const char *name)
+{
+  if ((unsigned int)csstrlen(name) >= 0x40) {
+    display_assert("warning, core file name will be truncated to 63 characters",
+                   "c:\\halo\\SOURCE\\main\\main.c", 0x3a5, 0);
+  }
+  csstrncpy(core_name, name, 0x3f);
+  game_state_save_core_pending = 1;
+}
+
 void main_queue_map_name(char *map_name)
 {
   if (map_name != 0) {
