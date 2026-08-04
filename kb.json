@@ -13194,7 +13194,8 @@
     },
     {
      "addr": "0x100390",
-     "decl": "void main_respawn(void);"
+     "decl": "void main_respawn(char reset_flag);",
+     "ported": true
     },
     {
      "addr": "0x1003b0",

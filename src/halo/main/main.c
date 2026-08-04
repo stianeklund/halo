@@ -788,6 +788,66 @@ void FUN_00100380(void)
   byte_46DA3B = 1;
 }
 
+/*
+ * main_respawn - 0x100390
+ *
+ * Confirmed:
+ *  - Whole body is 9 instructions, EBP frame, no locals, no CALLs, no FPU:
+ *      00100390  PUSH EBP
+ *      00100391  MOV EBP,ESP
+ *      00100393  MOV AL,byte ptr [EBP+0x8]
+ *      00100396  TEST AL,AL
+ *      00100398  MOV byte ptr [0x0046da3c],0x1
+ *      0010039f  JZ 0x001003aa
+ *      001003a1  MOV word ptr [0x0046da4e],0x5b
+ *      001003aa  POP EBP
+ *      001003ab  RET
+ *  - Takes ONE stack argument at [EBP+0x8], loaded with a plain 1-byte
+ *    `MOV AL,byte ptr` — no MOVSX/MOVZX widening — so the parameter is a
+ *    single byte (char), not an int. The prior kb decl
+ *    `void main_respawn(void);` was wrong and is corrected by this lift;
+ *    Ghidra rendered the argument as the synthetic `in_stack_00000004`
+ *    only because the empty decl told it there were no parameters.
+ *  - Plain RET with no immediate => cdecl, caller cleans the stack.
+ *  - No register is read before being written, so there are no implicit
+ *    @<reg> inputs and no @<reg> callee contracts.
+ *  - Store WIDTHS differ and are preserved literally:
+ *      0x46da3c is `MOV byte ptr`, imm8 1        -> char byte_46DA3C
+ *      0x46da4e is `MOV word ptr`, imm16 0x5b    -> short word_46DA4E
+ *    Declaring either as int would emit a 32-bit store and mismatch.
+ *  - The byte store to 0x46da3c is UNCONDITIONAL: MSVC scheduled it into the
+ *    gap between the TEST and the JZ, but it is on both paths, so in source
+ *    order it precedes the `if`. Only the word store is guarded.
+ *  - Branch sense: JZ skips the word store, so the guard is `arg != 0`.
+ *
+ * Inferred:
+ *  - Same "arm a pending main-loop transition flag" shape as main_won_map
+ *    (0x100370) and FUN_00100380 (0x100380): byte_46DA3C is one more of the
+ *    contiguous main_globals pending-request bytes (0x46da3a, 0x46da3b,
+ *    0x46da3c are consecutive), set here and presumably cleared by the
+ *    corresponding main-loop handler on entry.
+ *  - The parameter selects a variant of the respawn request rather than
+ *    supplying data: it only gates whether word_46DA4E is overwritten.
+ *
+ * Uncertain:
+ *  - 0x5b (91) is written as a bare 16-bit immediate with no accompanying
+ *    string, assert, or table reference in the binary, so there is no
+ *    evidence for what it enumerates. It is kept as a magic literal rather
+ *    than given a speculative name.
+ *  - word_46DA4E is 0x12 bytes away from byte_46DA3C, so the two are
+ *    distinct main_globals slots, not fields of one record; but nothing in
+ *    this function reveals what word_46DA4E means.
+ *  - The parameter keeps a mechanical name: the binary shows only that it is
+ *    a byte tested against zero, not what it selects.
+ */
+void main_respawn(char reset_flag)
+{
+  byte_46DA3C = 1;
+  if (reset_flag != 0) {
+    word_46DA4E = 0x5b;
+  }
+}
+
 void main_queue_map_name(char *map_name)
 {
   if (map_name != 0) {
