@@ -219,6 +219,25 @@ short game_connection(void)
   return word_46DA0C;
 }
 
+/* Clear the persistent-storage/cache-precache permission flag (0x46da54).
+ *
+ * Confirmed (0xfff90, whole body is two instructions):
+ *     MOV byte ptr [0x0046da54],0x0
+ *     RET
+ *  - BYTE store, not a dword: Ghidra's `DAT_0046da54 = 0` hides the width, so
+ *    the global is a 1-byte flag (writing it as int would clobber 0x46da55,
+ *    which is the start of the runtime map_name[255] buffer).
+ *  - Plain RET with no immediate and no prologue: cdecl, zero stack args, no
+ *    register inputs.
+ *
+ * Inferred: main_new_map (0xfff10) reads this same byte and only calls the
+ * cache-file precache path (0x1bfee0) when it is set, so a 0-write disables
+ * that path -- consistent with the "disallow" in the kb.json name. */
+void main_disallow_persistent_storage(void)
+{
+  main_persistent_storage_allowed = 0;
+}
+
 void main_defer_map_map_change(void)
 {
   main_change_map_name_pending = 0;

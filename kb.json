@@ -13099,7 +13099,8 @@
     },
     {
      "addr": "0xfff90",
-     "decl": "void main_disallow_persistent_storage(void);"
+     "decl": "void main_disallow_persistent_storage(void);",
+     "ported": true
     },
     {
      "addr": "0xfffa0",
@@ -28002,6 +28003,10 @@
     {
      "addr": "0x46da50",
      "decl": "char byte_46DA50;"
+    },
+    {
+     "addr": "0x46da54",
+     "decl": "bool main_persistent_storage_allowed;"
     },
     {
      "addr": "0x46da55",

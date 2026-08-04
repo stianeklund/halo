@@ -15864,6 +15864,10 @@
       "score": 65.7,
       "source": "src/halo/main/main.c"
     },
+    "main_disallow_persistent_storage": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "main_frame_rate_debug": {
       "score": 67.9,
       "source": "src/halo/main/main.c"
