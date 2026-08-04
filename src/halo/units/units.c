@@ -3036,6 +3036,24 @@ char FUN_001a8850(void *anim_state)
   return result;
 }
 
+/* FUN_001a8890 (0x1a8890)
+ * Returns whether the animation state currently allows something: the result is
+ * (field 0xc == 0), except that it is forced to 0 for the signed animation-state
+ * band [0x17,0x23] and for state 0x29. Both fields are read as signed bytes --
+ * the original uses signed branches (JL/JLE). @ecx = anim state ptr. */
+char FUN_001a8890(void *anim_state)
+{
+  char result;
+  int8_t state;
+
+  result = (char)(*(int8_t *)((char *)anim_state + 0xc) == 0);
+  state = *(int8_t *)((char *)anim_state + 0xb);
+  if (state >= 0x17 && (state <= 0x23 || state == 0x29)) {
+    result = 0;
+  }
+  return result;
+}
+
 /* FUN_001a88b0 (0x1a88b0)
  * Maps animation state to animation index. @ecx = anim state value. */
 int FUN_001a88b0(int16_t anim_state)

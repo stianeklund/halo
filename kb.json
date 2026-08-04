@@ -27535,7 +27535,7 @@
     {
      "addr": "0x1a8890",
      "decl": "char FUN_001a8890(void *anim_state@<ecx>);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x1a8910",
