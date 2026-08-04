@@ -15908,6 +15908,10 @@
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
+    "main_menu_unload": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "main_new_map": {
       "score": 92.2,
       "source": "src/halo/main/main.c"

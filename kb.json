@@ -13241,7 +13241,8 @@
     },
     {
      "addr": "0x100690",
-     "decl": "void main_menu_unload(void);"
+     "decl": "void main_menu_unload(void);",
+     "ported": true
     },
     {
      "addr": "0x1006b0",
@@ -25193,7 +25194,7 @@
     },
     {
      "addr": "0xe43d0",
-     "decl": "void main_menu_active(void);"
+     "decl": "void main_menu_active(bool active);"
     },
     {
      "addr": "0xe43e0",

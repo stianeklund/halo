@@ -505,6 +505,32 @@ void main_menu_precache_resources(void)
 }
 
 /*
+ * main_menu_unload - 0x100690
+ *
+ * Tears down the main-menu scenario: stops the attract-mode/menu music,
+ * clears the UI's "main menu active" byte (0x46cc88, written by
+ * main_menu_active), and clears main_globals.main_menu_scenario_loaded
+ * (byte at 0x46da42).
+ *
+ * Confirmed (disassembly, 6 instructions, no frame, no locals):
+ *   CALL 0xe4640              -> ui_widget_stop_attract_mode()
+ *   PUSH 0 / CALL 0xe43d0 / ADD ESP,4 -> main_menu_active(false)
+ *   MOV byte ptr [0x46da42],0 -> main_globals.main_menu_scenario_loaded = 0
+ *
+ * Note: the byte store is 8-bit at +2 of the main_globals block; 0x46da40
+ * itself is a separate word field, so this must not be widened.
+ *
+ * This is the unload counterpart to main_menu_load (0x101fe0); the same
+ * three-step teardown appears inline in main_change_map_name (0x100c60).
+ */
+void main_menu_unload(void)
+{
+  ui_widget_stop_attract_mode();
+  main_menu_active(false);
+  main_globals.main_menu_scenario_loaded = 0;
+}
+
+/*
  * main_reset_player_actions - 0x1006b0
  *
  * Resets the player action queue state by deleting all pending updates,
