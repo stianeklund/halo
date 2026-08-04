@@ -13214,7 +13214,8 @@
     },
     {
      "addr": "0x100440",
-     "decl": "void main_load_core_at_startup(void);"
+     "decl": "void main_load_core_at_startup(void);",
+     "ported": true
     },
     {
      "addr": "0x100460",
@@ -27967,6 +27968,10 @@
     {
      "addr": "0x46da3e",
      "decl": "bool game_state_load_core_pending;"
+    },
+    {
+     "addr": "0x46da3f",
+     "decl": "bool game_state_load_core_at_startup_pending;"
     },
     {
      "addr": "0x46da40",
