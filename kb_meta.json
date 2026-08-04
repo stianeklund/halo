@@ -7105,6 +7105,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xffef0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The gamepad state record holds a 16-entry byte-per-button down-flag array at offset 0x10; inferred from MOV DL,[ECX+EAX+0x10] indexed by the sign-extended button_index and the NUMBER_OF_GAMEPAD_BUTTONS bound of 0x10."
+      ],
+      "uncertain": [
+        "The in-branch guard 'if (gamepad_index >= 4) return is_down;' is unreachable given the loop bound of 4 but is present in the original codegen (CMP SI,4 / JGE to the shared MOV AL,BL exit), so it is preserved verbatim rather than removed.",
+        "VC71 residual is 83.7% at equal instruction counts (49/49): the reference hoists the false-return sentinel into callee-saved BL (XOR BL,BL in the prologue) while our lane materializes it in AL, and MSVC elides the int16 sign-extension of the 0..3 loop counter at the call site. This is register allocation, not a control-flow or logic difference."
+      ]
+    },
     "0xfff70": {
       "kind": "function",
       "status": "ported"
@@ -7112,6 +7123,20 @@
     "0xfff80": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xfff90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xfffa0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The kb.json decl was corrected from void main_set_map_name(void) to void main_set_map_name(const char *name); MOV EAX,[EBP+0x8] in the prologue and three high-confidence call sites (0xe9ba9, 0xf0592, 0x101e9b) with push=1/cleanup=1 confirm exactly one cdecl stack argument."
+      ],
+      "uncertain": [
+        "check_arg_counts reports one low-confidence MISMATCH site at 0xe443e (cleanup=2), which is most likely a merged ADD ESP covering two adjacent calls rather than a second argument, since the callee prologue reads only [EBP+0x8]."
+      ]
     },
     "0x100000": {
       "kind": "function",
@@ -7132,6 +7157,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x100060": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "kb.json decl was 'void main_set_difficulty(void)' but the body reads a 16-bit stack parameter at [EBP+8] with signed bounds checks (JL/JGE), so the decl was corrected to 'void main_set_difficulty(int16_t difficulty)'; lifting against the stale void(void) decl would have dropped the argument and silently made the setter a no-op."
+      ]
+    },
     "0x100080": {
       "kind": "function",
       "status": "ported"
@@ -7145,6 +7177,61 @@
       "status": "ported"
     },
     "0x1002a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1002c0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "0x46da26 carries the kb-registered name game_state_revert_pending, so the flag armed here is the game-state revert request; the body is otherwise byte-for-byte the same shape as main_reset_map (0x1002a0), which arms 0x46da24 instead."
+      ],
+      "uncertain": [
+        "No string or assert evidence pins what byte_46DA3B tracks or what the word_46DA40 = -1 sentinel means beyond being written by every transition setter in this group, so both keep their mechanical kb-registered names."
+      ]
+    },
+    "0x1002e0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Same shape as main_reset_map and main_goto_main_menu (reset word_46DA40 to -1, clear byte_46DA28, arm one pending flag), so main_skip_cinematic is another main-loop transition request setter, here arming the cinematic skip via should_skip_cinematic at 0x46da27."
+      ],
+      "uncertain": [
+        "No string or assert evidence pins the meaning of word_46DA40 = -1 beyond being the sentinel written by every transition setter in this group, so it keeps its mechanical kb-registered name."
+      ]
+    },
+    "0x100300": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "byte_46DA28 is the save-request flag shared with main_reset_map, main_skip_cinematic, main_new_map and main_save_map_private; every other setter clears it and 0x100300 is the only observed site that sets it, so this is the arm side of that request.",
+        "Clearing 0x46da29 arms the request without the pending/safe bit that main_save_map_private (0x100eb0) tests, which matches the kb-registered name main_save_map_nonsafe."
+      ],
+      "uncertain": [
+        "The sibling main_save_map_safe at 0x100330 is expected to be the same two byte stores with 0x46da29 set to 1, but that was not verified during this lift."
+      ]
+    },
+    "0x100310": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "byte_46DA28 is the save-request flag written by the surrounding main.obj group: main_save_map_nonsafe (0x100300) sets it while main_reset_map, main_revert_map, main_skip_cinematic, FUN_00100380 and main_new_map clear it, so main_saving_map at 0x100310 is the read side of that same flag."
+      ],
+      "uncertain": [
+        "Ghidra reports zero callers for main_saving_map; with a 6-byte body and a previously-void kb decl this is more likely an under-resolved indirect or table reference than genuinely dead code, so the function was lifted as-is rather than simplified away."
+      ]
+    },
+    "0x100320": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "byte_46DA28 is the save-request flag that main_save_map_nonsafe (0x100300) sets and that main_reset_map, main_skip_cinematic, main_goto_main_menu, FUN_00100380, main_save_map_private and main_new_map all clear; main_save_cancel clears it alone, arming no other transition, which matches the kb-registered name."
+      ],
+      "uncertain": [
+        "Ghidra resolves no direct callers for this 8-byte body, so as with main_saving_map (0x100310) it is more likely an under-resolved indirect or table reference than genuinely dead code, and it was lifted literally rather than simplified away."
+      ]
+    },
+    "0x100330": {
       "kind": "function",
       "status": "ported"
     },
@@ -7171,6 +7258,10 @@
       "status": "ported"
     },
     "0x100640": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x100690": {
       "kind": "function",
       "status": "ported"
     },

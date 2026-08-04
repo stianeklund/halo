@@ -651,6 +651,71 @@ void main_save_cancel(void)
 }
 
 /*
+ * main_save_map_safe - 0x100330
+ *
+ * Confirmed:
+ *  - Whole body is 13 instructions, no frame, no locals, no CALLs, no FPU,
+ *    plain cdecl void(void); RET carries no immediate and no register is read
+ *    before being written, so there are no implicit @<reg> inputs:
+ *      00100330  MOV AL,[0x0046da28]
+ *      00100335  XOR ECX,ECX
+ *      00100337  CMP AL,CL
+ *      00100339  JZ  0x00100343        ; byte_46DA28 == 0 -> arm
+ *      0010033b  CMP byte ptr [0x0046da2a],CL
+ *      00100341  JZ  0x00100367        ; 0x46da2a == 0 -> skip (RET)
+ *      00100343  MOV AL,0x1
+ *      00100345  MOV [0x0046da28],AL
+ *      0010034a  MOV [0x0046da29],AL
+ *      0010034f  MOV [0x0046da2a],AL
+ *      00100354  MOV dword ptr [0x0046da2c],ECX
+ *      0010035a  MOV dword ptr [0x0046da30],ECX
+ *      00100360  MOV word  ptr [0x0046da38],CX
+ *      00100367  RET
+ *  - STORE WIDTHS ARE MIXED and are taken from the disassembly, not from the
+ *    decompiler (which prints every zero store as a bare `0`):
+ *    0x46da28/29/2a are BYTE (MOV reg8), 0x46da2c and 0x46da30 are DWORD
+ *    (MOV dword ptr), and 0x46da38 is WORD (MOV word ptr, CX). Writing
+ *    0x46da38 as a dword would additionally clobber 0x46da3a.
+ *  - One `MOV AL,1` feeds all three byte-1 stores and one `XOR ECX,ECX` feeds
+ *    all three zero stores, so the store order 28, 29, 2a, 2c, 30, 38 is
+ *    preserved literally below.
+ *  - Branch sense: the first JZ jumps to the arm block when byte_46DA28 == 0;
+ *    the second JZ jumps to the RET when 0x46da2a == 0. The guard is
+ *    therefore an OR, taken as written with no inversion.
+ *
+ * Inferred:
+ *  - This is the SAFE counterpart of main_save_map_nonsafe (0x100300). That
+ *    one unconditionally sets byte_46DA28 = 1 and clears the pending byte
+ *    0x46da29; this one is guarded, SETS the pending byte, and additionally
+ *    resets the retry/cooldown/success counters that main_save_map_private
+ *    (0x100eb0, already ported) consumes: 0x46da2c cooldown, 0x46da30
+ *    total-ticks, 0x46da38 consecutive-success counter. Arming the request
+ *    with a clean counter set is what makes the save "safe".
+ *  - The guard re-arms when no save is currently requested (byte_46DA28 == 0)
+ *    or when the secondary flag 0x46da2a is already set; a request that is
+ *    pending without that flag is left untouched.
+ *
+ * Uncertain:
+ *  - 0x46da29, 0x46da2a, 0x46da2c, 0x46da30 and 0x46da38 have no
+ *    kb-registered names, so they keep the raw-address idiom already used by
+ *    main_save_map_nonsafe and main_save_map_private in this TU.
+ *  - The precise meaning of the secondary flag 0x46da2a is not established
+ *    here; main_save_map_private only tests it once the retry counter has
+ *    exceeded 0xef ticks.
+ */
+void main_save_map_safe(void)
+{
+  if (byte_46DA28 == 0 || *(uint8_t *)0x46da2a != 0) {
+    byte_46DA28 = 1;
+    *(uint8_t *)0x46da29 = 1;
+    *(uint8_t *)0x46da2a = 1;
+    *(int32_t *)0x46da2c = 0;
+    *(int32_t *)0x46da30 = 0;
+    *(int16_t *)0x46da38 = 0;
+  }
+}
+
+/*
  * FUN_00100380 - 0x100380
  *
  * Confirmed:

@@ -15956,6 +15956,10 @@
       "score": 59.5,
       "source": "src/halo/main/main.c"
     },
+    "main_save_map_safe": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "main_saving_map": {
       "score": 100.0,
       "source": "src/halo/main/main.c"
