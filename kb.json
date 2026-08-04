@@ -13372,7 +13372,8 @@
     },
     {
      "addr": "0x101cb0",
-     "decl": "void main_crash(void);"
+     "decl": "void main_crash(void);",
+     "ported": true
     },
     {
      "addr": "0x101cc0",

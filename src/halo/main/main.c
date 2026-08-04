@@ -2177,7 +2177,7 @@ void main_save_map_private(void)
   if (*(uint8_t *)0x46da29 == 0) {
     /* Not in a pending-save state: only fire if debug_game_save forces it. */
     if (debug_game_save) {
-      ((void (*)(int, const char *, ...))0xff4d0)(0, "unsafe save");
+      ((void (*)(int, const char *, ...))0xff4d0)(0, "unsafe save"); /* hazard-ok: fnptr-conv */
     }
     /* Fall through to shared trigger tail. */
   } else {
@@ -2188,7 +2188,7 @@ void main_save_map_private(void)
     if (orig_ticks >= 0xf0 && *(uint8_t *)0x46da2a != 0) {
       /* Hung for too long — abort the save. */
       if (debug_game_save) {
-        ((void (*)(int, const char *, ...))0xff4d0)(0,
+        ((void (*)(int, const char *, ...))0xff4d0)(0, /* hazard-ok: fnptr-conv */
                                                     "gave up trying to save");
       }
       byte_46DA28 = 0;
@@ -2992,6 +2992,21 @@ void main_lost_map(void)
 void main_start_time(void)
 {
   *(char *)0x46da47 = 1;
+}
+
+/*
+ * main_crash - 0x101cb0
+ *
+ * Deliberate crash-test hook: stores the address of a string literal through a
+ * NULL pointer to provoke a page fault. Confirmed from the two-instruction
+ * body -- MOV dword ptr [0], offset s_chucky (0x28b5a8); RET. The stored value
+ * is the string's ADDRESS, not its bytes, and the DIR32 relocation against the
+ * literal is the function's only relocation. The store must stay volatile so
+ * the compiler cannot discard it as undefined behaviour.
+ */
+void main_crash(void)
+{
+  *(const char *volatile *)0 = "chucky was here!  NULL belongs to me!!!!!";
 }
 
 /*

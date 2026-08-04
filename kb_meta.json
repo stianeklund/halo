@@ -7270,6 +7270,73 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1003d0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "MSVC scheduled the game_state_save_core_pending byte store AFTER the csstrncpy call here, whereas the sibling main_save_core (0x1003b0) schedules the same store BEFORE its copy call; the store is unconditional and independent of the copy in both, so this is instruction scheduling rather than a semantic difference."
+      ],
+      "uncertain": [
+        "The true size of core_name (0x46dd55) remains unknown: the 0x3f copy bound only proves at least 64 bytes are addressable, so the kb.json declaration stays an incomplete char[] rather than being given an invented bound."
+      ]
+    },
+    "0x100420": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The byte flag at 0x46da3e is the load sibling of game_state_save_core_pending (0x46da3d) in the same contiguous run of main_globals pending-request bytes; the actual core load is performed later by the main-loop handler that consumes the flag, not by this function."
+      ],
+      "uncertain": [
+        "The size of the core_name buffer at 0x46dd55 is not observable from this function because csstrcpy is unbounded, so it remains an incomplete char[] rather than being given an invented bound."
+      ]
+    },
+    "0x100440": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x100460": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "MSVC scheduled the game_state_load_core_pending byte store after the csstrncpy call, matching the sibling main_save_core_name (0x1003d0) and unlike main_load_core (0x100420) where the same store precedes the copy; the store is unconditional and independent of the copy, so source order follows the emitted order.",
+        "0x46da3e is the deferred core-load request byte cleared by main_reset_map's cleanup block; the actual load is performed later by the main-loop handler that consumes the flag, not by this function."
+      ],
+      "uncertain": [
+        "core_name (0x46dd55) stays an incomplete char[] as declared in kb.json; the 0x3f copy bound and the 63-character warning prove at least 64 bytes are addressable but not the true buffer size."
+      ]
+    },
+    "0x1004b0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "MSVC emitted the csstrncpy call at 0x1004e6 before the flag store at 0x1004ee, the reverse of main_load_core_at_startup (0x100440) where the same flag store precedes the copy; both stores are unconditional and independent of the copy, so source order was written to follow the emitted order.",
+        "The byte at 0x46da3f is the startup-deferred core-load request flag that the main-loop consumer copies to 0x46da3e and then clears; the load itself is performed there, not in this function."
+      ],
+      "uncertain": [
+        "core_name (0x46dd55) remains an incomplete char[] as declared in kb.json; the 0x3f copy bound and the 63-character warning text prove at least 64 bytes are addressable but are not evidence of the buffer's true size."
+      ]
+    },
+    "0x100500": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Scenario offset 0x5a4 is inferred to be the structure_bsps tag-block element count: it is a 32-bit value used solely as the exclusive upper bound of a structure-BSP index, and scenario_t in types.h is still capped at 0xF0 with a FIXME so it stays a raw offset deref.",
+        "word_46DA40 (0x46da40) is the pending structure-BSP index consumed elsewhere; main_goto_main_menu at 0x100620 writes -1 to the same 16-bit global."
+      ],
+      "uncertain": [
+        "Whether hud_load's boolean argument means reload or something else is unknown; only the literal 1 is observed at this call site, while the main.c site at 0x1003747 passes 0."
+      ]
+    },
+    "0x100560": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The 15-frame ceiling equals half a second at the engine's 30 Hz tick, which is what the error string's parenthetical refers to; the counter itself is consumed by main_skip_private at 0x100de0."
+      ],
+      "uncertain": [
+        "The bound is a signed CMP/JG against 15, so a negative frame count passes the guard and is stored verbatim into the 16-bit counter; whether any caller can supply a negative value is unverified (the single original call site at 0x000c27f2 pushes one argument whose provenance was not traced)."
+      ]
+    },
     "0x100590": {
       "kind": "function",
       "status": "ported"
@@ -7298,6 +7365,44 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1006d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1006e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1006f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x100860": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The map-name argument is emitted as a direct PUSH 0x46da55 rather than a CALL to the main_get_map_name accessor at 0x100040, so the original source either referenced the map_name buffer directly or the accessor was inlined; the lift uses the raw cast (const char *)0x46da55 because a kb.json global would lower to an indirect __imp_ dllimport load.",
+        "The kb.json declaration was corrected from void to long: execution falls out of the CALL to main_get_solo_level_from_name with its EAX still live and no XOR EAX,EAX afterwards, which is the void-EAX implicit-return hazard from lift-learnings section 16; no lifted C caller existed at the time of the change, so the decl edit was ABI-safe."
+      ]
+    },
+    "0x100870": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The 0x31fa9c table's element type is a string pointer rather than some other 4-byte datum: main_get_solo_level_from_name (0x1006f0) maps exactly ten level-name strings back to indices 0..9, and main_load_last_solo_map consumes 0x31fa9c[0] as a map path.",
+        "The upper bound constant is unsigned in the original source: CMP CX,0xA / JNC is an unsigned above-or-equal, and a signed 10 lowers to JGE (91.7 percent) while an unsigned 10u reproduces JNC exactly (100 percent), consistent with the Bungie NUMBEROF/sizeof idiom yielding size_t."
+      ]
+    },
+    "0x100890": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "main_run_demos shares the one-byte mode-arming setter shape of main_set_game_connection_to_film_playback (0x1006e0) and main_menu_switch_to_single_player (0x1006d0)."
+      ],
+      "uncertain": [
+        "The neighbouring bytes 0x46da45 (byte_46DA45) and 0x46da46 (byte_46DA46) may form one small state block with 0x46da44, but nothing in this function proves the grouping, so they remain separate one-byte globals and the store must stay byte width."
+      ]
+    },
     "0x1008a0": {
       "kind": "function",
       "status": "ported",
@@ -7320,6 +7425,18 @@
       ],
       "uncertain": [
         "Field naming for viewport_bounds_t y0/x0/y1/x1 ordering assumed correct from types.h; disassembly accesses match."
+      ]
+    },
+    "0x100b00": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "VC71 72.2% (17/19 insns): the 27.8% gap is a return-type width mismatch, not a structural cap. Reference emits movl $0x1/$0x4,%eax plus movswl %ax,%eax on the fall-through and keeps three separate RETs; our short return type makes VC71 emit movw $0x1/$0x4,%ax, no sign-extension, and one shared epilogue reached by jmp. Same compiler and flags on both sides, so movw-vs-movl proves the original source declared an int (or long) return, not short.",
+        "Return type widened from Ghidra's short to int: reference emits MOV EAX,imm32 for the constant returns and CALL+MOVSX EAX,AX+RET on the fall-through, while a true short return under the same VC71 lane emits MOVW/tail-jmp (measured)."
+      ],
+      "uncertain": [
+        "Widening the kb decl return type from short to int is expected to close most of the VC71 gap, but it was left unchanged here because the decl was supplied as immutable and six ported call sites in two already-verified TUs consume it (src/halo/rasterizer/rasterizer.c:1888 casts the result with an explicit (int), and src/halo/rasterizer/xbox/rasterizer_xbox_decals.c uses it at lines 1109, 3330, 3466, 3627 and 3900). Any return-type change must be gated on a whole-repo VC71 no-drop check across those two files.",
+        "Remaining 15.8pp VC71 gap is pure block placement: the original keeps the shared return-1 block inline after the force/cinematic tests with a backward cross-jump from the count<1 branch; our VC71 lane sinks the merged block to the function end under all three source shapes tried (nested ifs, flat early returns, explicit goto)."
       ]
     },
     "0x100b40": {
@@ -7370,11 +7487,27 @@
       "name": "main_rasterizer_throttle",
       "name_confidence": "high"
     },
+    "0x101bc0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The float parameter is a movie-capture frame rate: the body computes 1.0f/fps and stores it to 0x46da20, which main_update_time (src/halo/main/main.c:2700) reads back as the per-frame time step, so the name frames_per_second is behavior-derived rather than string-derived.",
+        "The kb.json decl was corrected from void main_movie_start(void) to take one cdecl float stack argument, proven by FLD dword ptr [EBP+0x8] at 0x101c15 and FDIV dword ptr [EBP+0x8] at 0x101c3d over a bare RET epilogue."
+      ],
+      "uncertain": [
+        "The global at 0x46da1c is cleared to 0 here but has no identified reader in ported code, so its role as a movie frame counter is inferred from context only and it is left as a raw int store rather than being given a name.",
+        "main_movie_start has zero call sites in the binary (check_arg_counts reports NO-SITES), so the argument is presumed to arrive from a console command or script dispatch table and its expected value range is unverified."
+      ]
+    },
     "0x101c90": {
       "kind": "function",
       "status": "ported"
     },
     "0x101ca0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x101cb0": {
       "kind": "function",
       "status": "ported"
     },
@@ -10336,7 +10469,11 @@
       "status": "unknown",
       "inferred": [
         "Decl corrected from void FUN_0017c140(void) to bool FUN_0017c140(void *map@<esi>, int16_t map_index@<di>): TEST ESI,ESI is the first instruction at 0x17c140, MOVSX EAX,DI at 0x17c16d and MOVSX ECX,DI at 0x17c192 prove DI is a real input, and the two tails MOV AL,BL / XOR AL,AL return a bool in AL.",
-        "kb decl corrected from void FUN_0017c140(void) to bool FUN_0017c140(void *map@<esi>): the call site at 0x17c3f3 sets only MOV ESI,EAX (the 0x64-byte map element returned by tag_block_get_element) and stores AL back into the running ok flag at 0x17c3fa."
+        "kb decl corrected from void FUN_0017c140(void) to bool FUN_0017c140(void *map@<esi>): the call site at 0x17c3f3 sets only MOV ESI,EAX (the 0x64-byte map element returned by tag_block_get_element) and stores AL back into the running ok flag at 0x17c3fa.",
+        "Map element fields +0x18 (float mipmap bias) and +0x28 (int32 bitmap index, -1/NONE sentinel) are named from the two error strings that report them; the 0x64 element stride comes from the PUSH 0x64 at the caller's tag_block_get_element site 0x17c3e0."
+      ],
+      "uncertain": [
+        "The map parameter is typed void* because no struct has been recovered for a shader_transparent_generic map element; only offsets +0x18 and +0x28 are proven by this function."
       ]
     },
     "0x17c2f0": {
