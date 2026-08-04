@@ -15232,6 +15232,10 @@
       "score": 94.1,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
+    "compute_split_screen_grid": {
+      "score": 92.5,
+      "source": "src/halo/main/main.c"
+    },
     "compute_window_bounds": {
       "score": 77.8,
       "source": "src/halo/main/main.c"

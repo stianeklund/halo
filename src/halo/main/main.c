@@ -425,6 +425,63 @@ bool main_change_map_name_in_progress(void)
 }
 
 /*
+ * compute_split_screen_grid - 0x1008a0
+ *
+ * Finds the smallest grid (horizontal x vertical) whose cell count is at
+ * least num_players: the horizontal count grows while it trails the vertical
+ * count, otherwise it resets to 1 and the vertical count grows. The result is
+ * therefore always horizontal <= vertical.
+ *
+ * num_players arrives in EBX; the two counts are returned through the stack
+ * pointer arguments at [EBP+8] and [EBP+0xC].
+ *
+ * Confirmed:
+ *  - EBX is read before it is written anywhere in the body (TEST EBX,EBX at
+ *    0x1008a3 is its first use) and is never modified, so it is a register
+ *    argument, not a local.
+ *  - Assert reason "num_players>0", file "c:\\halo\\SOURCE\\main\\main.c",
+ *    line 0x51c; the tail is PUSH -0x1 / CALL 0x8e2f0 = system_exit(-1),
+ *    i.e. the assert_halt flavor (Ghidra renders the tail as
+ *    thunk_FUN_001029a0, which is misleading).
+ *  - The loop product is computed as vertical * horizontal
+ *    (MOV EAX,EDI then IMUL EAX,ESI), and the loop is bottom-tested.
+ *  - Frame is PUSH EBP / MOV EBP,ESP / PUSH ESI / PUSH EDI with no local
+ *    space: the horizontal count lives in ESI, the vertical count in EDI.
+ *  - RET carries no immediate, so the stack arguments are cdecl.
+ *
+ * Inferred:
+ *  - The name is behavioral only. No PDB entry or string names the function
+ *    itself; the assert string only proves the register argument is a player
+ *    count.
+ *
+ * Note: the original binary also contains this logic inlined into
+ * compute_window_bounds (0x100910), so that copy is deliberately left in
+ * place rather than replaced by a call here.
+ */
+void compute_split_screen_grid(int num_players, int *out_horizontal_count,
+                               int *out_vertical_count)
+{
+  int h = 1;
+  int v = 1;
+
+  assert_halt(num_players > 0);
+
+  if (num_players > 1) {
+    do {
+      if (h < v) {
+        h++;
+      } else {
+        h = 1;
+        v++;
+      }
+    } while (v * h < num_players);
+  }
+
+  *out_horizontal_count = h;
+  *out_vertical_count = v;
+}
+
+/*
  * compute_window_bounds - 0x100910
  *
  * Computes viewport split bounds for a given player in a multi-player split

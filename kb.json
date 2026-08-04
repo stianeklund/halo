@@ -13275,7 +13275,8 @@
     },
     {
      "addr": "0x1008a0",
-     "decl": "void FUN_001008a0(void);"
+     "decl": "void compute_split_screen_grid(int num_players @<ebx>, int *out_horizontal_count, int *out_vertical_count);",
+     "ported": true
     },
     {
      "addr": "0x100910",
