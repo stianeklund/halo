@@ -15423,9 +15423,10 @@
     },
     {
      "addr": "0x13db60",
-     "decl": "void FUN_0013db60(short *param_1);",
+     "decl": "void objects_information_get(void *info);",
      "ported": true,
-     "source_path": "objects/objects.c"
+     "source_path": "objects/objects.c",
+     "name": "objects_information_get"
     },
     {
      "addr": "0x13dbe0",
@@ -15497,7 +15498,9 @@
     {
      "addr": "0x13e1f0",
      "decl": "void object_choose_random_change_colors(int object_handle@<eax>, void *color_data);",
-     "ported": false
+     "ported": true,
+     "name": "object_choose_random_change_colors",
+     "source": "src/halo/objects/objects.c"
     },
     {
      "addr": "0x13e3f0",
@@ -15523,12 +15526,16 @@
     {
      "addr": "0x13e5d0",
      "decl": "void object_compute_change_colors(int object_handle@<eax>);",
-     "ported": false
+     "ported": true,
+     "name": "object_compute_change_colors",
+     "source": "src/halo/objects/objects.c"
     },
     {
      "addr": "0x13e7b0",
      "decl": "void object_compute_function_values(int object_handle@<eax>);",
-     "ported": false
+     "ported": true,
+     "name": "object_compute_function_values",
+     "source": "src/halo/objects/objects.c"
     },
     {
      "addr": "0x13eb30",
@@ -15575,7 +15582,8 @@
      "reg_args": {
       "object_handle": "edi",
       "name_index": "si"
-     }
+     },
+     "name": "object_name_list_new"
     },
     {
      "addr": "0x13eff0",
@@ -15866,7 +15874,9 @@
     {
      "addr": "0x141b70",
      "decl": "void object_compute_node_matrices(int object_handle);",
-     "ported": false
+     "ported": true,
+     "name": "object_compute_node_matrices",
+     "source": "src/halo/objects/objects.c"
     },
     {
      "addr": "0x143510",

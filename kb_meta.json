@@ -9189,6 +9189,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x13db60": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x13dda0": {
       "kind": "function",
       "status": "ported"

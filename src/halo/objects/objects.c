@@ -368,27 +368,23 @@ void FUN_00085000(int animation_tag, const char *camera_name)
 
   block = (int *)((char *)tag + 0x74);
   index = 0;
-  if (*block <= 0)
-    return;
-
-  while (1) {
-    element = (char *)tag_block_get_element(block, (int)index, 0xb4);
-    compare = crt_stricmp(camera_name, element);
-    if (compare == 0)
-      break;
-    index = index + 1;
-    if (*block <= (int)index)
-      return;
+  if (*block > 0) {
+    do {
+      element = (char *)tag_block_get_element(block, (int)index, 0xb4);
+      if (crt_stricmp(camera_name, element) == 0) {
+        *(short *)0x2ee5a4 = -1;
+        *(int *)0x2ee5d4 = -1;
+        *(short *)0x2ee5a2 = 1;
+        *(char *)0x2ee5a1 = 1;
+        *(short *)0x2ee5dc = index;
+        *(int *)0x2ee5d8 = animation_tag;
+        *(int *)0x2ee5d0 = 0x3f9c61aa;
+        *(float *)0x2ee5a8 = (float)((int)*(int16_t *)(element + 0x22) / 30);
+        return;
+      }
+      index++;
+    } while ((int)index < *block);
   }
-
-  *(short *)0x2ee5a4 = -1;
-  *(int *)0x2ee5d4 = -1;
-  *(short *)0x2ee5a2 = 1;
-  *(char *)0x2ee5a1 = 1;
-  *(int *)0x2ee5d8 = animation_tag;
-  *(int *)0x2ee5d0 = 0x3f9c61aa;
-  *(float *)0x2ee5a8 = (float)((int)*(short *)(element + 0x22) / 0x1e);
-  *(short *)0x2ee5dc = index;
 }
 
 /* FUN_000850d0 (0x850d0) — Switch to first-person camera mode 2 for the
@@ -401,7 +397,7 @@ void FUN_00085000(int animation_tag, const char *camera_name)
 void FUN_000850d0(int param_1)
 {
   if (param_1 != -1) {
-    *(char *)0x2ee5a2 = 2;
+    *(short *)0x2ee5a2 = 2;
     *(char *)0x2ee5a1 = 1;
     *(int *)0x2ee5d4 = param_1;
     return;
@@ -418,7 +414,7 @@ void FUN_000850d0(int param_1)
 void FUN_00085110(int param_1)
 {
   if (param_1 != -1) {
-    *(char *)0x2ee5a2 = 3;
+    *(short *)0x2ee5a2 = 3;
     *(char *)0x2ee5a1 = 1;
     *(int *)0x2ee5d4 = param_1;
     return;
@@ -581,10 +577,10 @@ void FUN_000853c0(int param_1, unsigned short *param_2, unsigned int *param_3)
   local_8 = fVar13;
   *param_3 = 8;
   cVar5 = CALL_FUN_000b5c30();
-  if (cVar5 == '\0') {
-    uVar7 = *param_3 & 0xffffffdf;
-  } else {
+  if (cVar5) {
     uVar7 = *param_3 | 0x20;
+  } else {
+    uVar7 = *param_3 & 0xffffffdf;
   }
   *param_3 = uVar7;
   switch (*(short *)0x2ee5a2) {
@@ -939,31 +935,33 @@ int FUN_000adf70(int tag_index)
     return -1;
   }
 
-  {
-    int game_type = *(int *)0x456b3c;
-    if (game_type == 3)
-      list_index = 0xd;
-    else if (game_type == 9)
-      list_index = 0xc;
-    else if (game_type == 10)
-      list_index = -1;
+  switch (*(int *)0x456b3c) {
+  case 3:
+    list_index = 0xd;
+    break;
+  case 9:
+    list_index = 0xc;
+    break;
+  case 10:
+    list_index = -1;
+    break;
   }
 
-  if ((*(unsigned int *)0x5aa720 & 4) == 0) {
-    unsigned char flag = (unsigned char)((*(unsigned int *)0x456b18 >> 2) & 1);
-    if (flag)
-      list_index = -1;
+  if ((*(unsigned int *)0x5aa720 & 4) == 0 && ((*(unsigned char *)0x456b18 >> 2) & 1) != 0) {
+    list_index = -1;
   }
 
-  if (*(unsigned int *)0x5aa720 & 8) {
+  if ((*(unsigned int *)0x5aa720 & 8) == 0) {
+    if ((*(unsigned int *)0x5aa720 & 4) != 0) {
+      fRandom =
+        random_math_real((unsigned int *)get_global_random_seed_address());
+      if (fRandom >= *(float *)0x26c744)
+        list_index = -1;
+    }
+  } else {
     fRandom =
       random_math_real((unsigned int *)get_global_random_seed_address());
-    if (fRandom > *(float *)0x2533e4)
-      list_index = -1;
-  } else if (*(unsigned int *)0x5aa720 & 4) {
-    fRandom =
-      random_math_real((unsigned int *)get_global_random_seed_address());
-    if (fRandom > *(float *)0x26c744)
+    if (fRandom >= *(float *)0x2533e4)
       list_index = -1;
   }
 
@@ -1171,7 +1169,13 @@ done_minus1:
  * Ends by recomputing the particle's world position.
  *
  * ABI: particle_ptr in ESI, glow_widget_ptr in EDI (register args); the
- * remaining three are cdecl stack args. */
+ * remaining three are cdecl stack args.
+ *
+ * DO NOT "simplify" the two switch statements below into if/else-if chains.
+ * The original dispatches boundary_effect with MOVSX/SUB EAX,0/JZ/DEC EAX/JZ
+ * (0x1340f7 and 0x1341dd) -- a switch lowering.  An if-chain emits CMP/JE and
+ * lays the case bodies out in the opposite order, which cost ~54 percentage
+ * points of VC71 match (84.1% -> 30.1%) when it was tried. */
 void FUN_00134070(int particle_ptr, int glow_widget_ptr, int object_handle,
                   float delta, float ratio)
 {
@@ -1187,26 +1191,35 @@ void FUN_00134070(int particle_ptr, int glow_widget_ptr, int object_handle,
     if (!object_get_function_value(object_handle, function_index,
                                    &function_value))
       function_value = 0.0f;
-    *(float *)(particle_ptr + 0x1c) = (*(float *)((char *)glowdef + 0x88) -
-                                       *(float *)((char *)glowdef + 0x84)) *
-                                        ((*(float *)((char *)glowdef + 0x90) -
-                                          *(float *)((char *)glowdef + 0x8c)) *
-                                           function_value +
-                                         *(float *)((char *)glowdef + 0x8c)) +
-                                      *(float *)((char *)glowdef + 0x84);
+    /* Evaluation order is binary-confirmed: the inner (0x90-0x8c) term is
+     * loaded FIRST (FLD [EBX+0x90] at 0x1340b6), then the outer (0x88-0x84)
+     * scale, then FMULP.  Writing the outer factor first inverts the FPU
+     * load order. */
+    *(float *)(particle_ptr + 0x1c) =
+      ((*(float *)((char *)glowdef + 0x90) -
+        *(float *)((char *)glowdef + 0x8c)) * function_value +
+       *(float *)((char *)glowdef + 0x8c)) *
+        (*(float *)((char *)glowdef + 0x88) -
+         *(float *)((char *)glowdef + 0x84)) +
+      *(float *)((char *)glowdef + 0x84);
   }
 
   flags = *(unsigned int *)(particle_ptr + 0x54);
 
-  if (flags & 1) {
-    /* reverse phase: step down, wrap against 0.0 */
-    *(float *)(particle_ptr + 0x28) -= delta;
+  if ((flags & 1) != 0) {
+    /* reverse phase: step down.  FLD [ESI+0x28]; FSUB [EBP+0xc] at 0x1340ee
+     * -> phase is the left operand here. */
+    *(float *)(particle_ptr + 0x28) = *(float *)(particle_ptr + 0x28) - delta;
+    /* MOVSX EAX,word [EBX+0x22]; SUB EAX,0; JZ; DEC EAX; JZ (0x1340f7) --
+     * a switch dispatch chain, not a compare chain. */
     switch (*(short *)((char *)glowdef + 0x22)) {
     case 0:
+      /* 0x134180: a single FCOMP guard, then the loop is entered by JMP into
+       * its body -> if + do/while (one pre-test). */
       if (*(float *)(particle_ptr + 0x28) < 0.0f) {
         do {
-          *(float *)(particle_ptr + 0x28) +=
-            *(float *)(glow_widget_ptr + 0x234);
+          *(float *)(particle_ptr + 0x28) =
+            *(float *)(glow_widget_ptr + 0x234) + *(float *)(particle_ptr + 0x28);
         } while (*(float *)(particle_ptr + 0x28) < 0.0f);
         flags &= ~1u;
         *(unsigned int *)(particle_ptr + 0x54) = flags;
@@ -1215,26 +1228,35 @@ void FUN_00134070(int particle_ptr, int glow_widget_ptr, int object_handle,
       }
       break;
     case 1:
-      while (*(float *)(particle_ptr + 0x28) < 0.0f)
-        *(float *)(particle_ptr + 0x28) += *(float *)(glow_widget_ptr + 0x234);
+      /* 0x13413d: one pre-test then a rotated do/while -> plain while. */
+      while (*(float *)(particle_ptr + 0x28) < 0.0f) {
+        *(float *)(particle_ptr + 0x28) =
+          *(float *)(glow_widget_ptr + 0x234) + *(float *)(particle_ptr + 0x28);
+      }
       break;
     default:
       display_assert("glow effect received illegal boundary effect",
-                     "c:\\halo\\SOURCE\\objects\\widgets\\glow.c", 800, 1);
+                     "c:\\halo\\SOURCE\\objects\\widgets\\glow.c", 0x320, 1);
       system_exit(-1);
     }
   } else {
-    /* forward phase: step up, wrap against period */
-    *(float *)(particle_ptr + 0x28) += delta;
+    /* forward phase: step up.  FLD [EBP+0xc]; FADD [ESI+0x28] at 0x1341d4 ->
+     * delta is the left operand here (opposite of the reverse branch). */
+    *(float *)(particle_ptr + 0x28) = delta + *(float *)(particle_ptr + 0x28);
     switch (*(short *)((char *)glowdef + 0x22)) {
     case 0:
-      if (*(float *)(particle_ptr + 0x28) >
-          *(float *)(glow_widget_ptr + 0x234)) {
-        do {
-          *(float *)(particle_ptr + 0x28) -=
-            *(float *)(glow_widget_ptr + 0x234);
-        } while (*(float *)(particle_ptr + 0x28) >
-                 *(float *)(glow_widget_ptr + 0x234));
+      /* 0x134232 FCOM (non-popping) guard followed by a SECOND FCOMP test at
+       * 0x134243 whose false edge lands on the reflect block (0x13426c) --
+       * i.e. an if guard wrapping a plain while, two distinct pre-tests.
+       * Bound sense is TEST AH,0x41 / JNZ, which is `>` on the phase (see
+       * lift-learnings section 38); writing `period < phase` yields the
+       * TEST AH,0x5 / JP form instead. */
+      if (*(float *)(particle_ptr + 0x28) > *(float *)(glow_widget_ptr + 0x234)) {
+        while (*(float *)(particle_ptr + 0x28) >
+               *(float *)(glow_widget_ptr + 0x234)) {
+          *(float *)(particle_ptr + 0x28) =
+            *(float *)(particle_ptr + 0x28) - *(float *)(glow_widget_ptr + 0x234);
+        }
         *(float *)(particle_ptr + 0x28) =
           *(float *)(glow_widget_ptr + 0x234) - *(float *)(particle_ptr + 0x28);
         flags |= 1u;
@@ -1242,18 +1264,15 @@ void FUN_00134070(int particle_ptr, int glow_widget_ptr, int object_handle,
       }
       break;
     case 1:
-      if (*(float *)(particle_ptr + 0x28) >
-          *(float *)(glow_widget_ptr + 0x234)) {
-        do {
-          *(float *)(particle_ptr + 0x28) -=
-            *(float *)(glow_widget_ptr + 0x234);
-        } while (*(float *)(particle_ptr + 0x28) >
-                 *(float *)(glow_widget_ptr + 0x234));
+      while (*(float *)(particle_ptr + 0x28) >
+             *(float *)(glow_widget_ptr + 0x234)) {
+        *(float *)(particle_ptr + 0x28) =
+          *(float *)(particle_ptr + 0x28) - *(float *)(glow_widget_ptr + 0x234);
       }
       break;
     default:
       display_assert("glow effect received illegal boundary effect",
-                     "c:\\halo\\SOURCE\\objects\\widgets\\glow.c", 829, 1);
+                     "c:\\halo\\SOURCE\\objects\\widgets\\glow.c", 0x33d, 1);
       system_exit(-1);
     }
   }
@@ -1317,12 +1336,12 @@ void FUN_001342a0(int glow_widget_ptr)
   int node;
   int prev_node;
   unsigned int flags;
-  bool parity;
+  char parity;
   short index;
 
   glow_tag = tag_get(0x676c7721, *(int *)(glow_widget_ptr + 0x224));
   index = 0;
-  parity = true;
+  parity = 1;
   prev_node = 0;
   if (0 < *(short *)(glow_widget_ptr + 0x24c)) {
     do {
@@ -1340,8 +1359,8 @@ void FUN_001342a0(int glow_widget_ptr)
         } else {
           flags = *(unsigned int *)(node + 0x54) | 1;
         }
-        parity = !parity;
         *(unsigned int *)(node + 0x54) = flags;
+        parity = !parity;
       }
       if (*(int *)(glow_widget_ptr + 0x250) == 0) {
         *(int *)(glow_widget_ptr + 0x250) = node;
@@ -1410,8 +1429,8 @@ int glow_trailing_particle_new(int glow_widget /* @<ebx> */)
       *(uint32_t *)(particle + 0x30) = *(uint32_t *)(glow_widget + 0x6c);
       *(uint32_t *)(particle + 0x34) = *(uint32_t *)(glow_widget + 0x70);
     } else {
-      fmax = *(float *)(glow_tag + 0x10c) * *(float *)(glow_widget + 0x234);
-      fmin = *(float *)(glow_tag + 0x108) * *(float *)(glow_widget + 0x234);
+      fmax = *(float *)(glow_widget + 0x234) * *(float *)(glow_tag + 0x10c);
+      fmin = *(float *)(glow_widget + 0x234) * *(float *)(glow_tag + 0x108);
       *(float *)(particle + 0x28) = random_real_range(
         (int *)random_math_get_local_seed_address(), fmin, fmax);
       get_particle_world_position(glow_widget, particle, 0.0f);
@@ -1466,15 +1485,12 @@ int glow_trailing_particle_new(int glow_widget /* @<ebx> */)
                           1.0f);
     *(float *)(particle + 0xc) = 1.0f;
     *(float *)(particle + 0x10) =
-      (*(float *)(glow_tag + 0xc8) - *(float *)(glow_tag + 0xb8)) * t +
-      *(float *)(glow_tag + 0xb8);
+      *(float *)(glow_tag + 0xb8) + t * (*(float *)(glow_tag + 0xc8) - *(float *)(glow_tag + 0xb8));
     *(float *)(particle + 0x14) =
-      (*(float *)(glow_tag + 0xcc) - *(float *)(glow_tag + 0xbc)) * t +
-      *(float *)(glow_tag + 0xbc);
+      *(float *)(glow_tag + 0xbc) + t * (*(float *)(glow_tag + 0xcc) - *(float *)(glow_tag + 0xbc));
     *(uint32_t *)(particle + 0x54) |= 2;
     *(float *)(particle + 0x18) =
-      (*(float *)(glow_tag + 0xd0) - *(float *)(glow_tag + 0xc0)) * t +
-      *(float *)(glow_tag + 0xc0);
+      *(float *)(glow_tag + 0xc0) + t * (*(float *)(glow_tag + 0xd0) - *(float *)(glow_tag + 0xc0));
   }
 
   return particle;
@@ -1736,12 +1752,9 @@ void FUN_00134e80(int object_handle, int light_volume_datum)
        * per-term operand order mirror the reference (fwd_z*g564 + fwd_y*g560 +
        * g55c*fwd_x): x87 (-mno-sse) preserves source association, so this order
        * is load-bearing for both the VC71 match and runtime float fidelity. */
-      dot_to_marker = *(float *)(marker_buf + 0x44) * *(float *)0x506564 +
-                      *(float *)(marker_buf + 0x40) * *(float *)0x506560 +
-                      *(float *)0x50655c * *(float *)(marker_buf + 0x3c);
-      if (dot_to_marker < *(float *)0x2533c0) {
-        dot_to_marker = -dot_to_marker;
-      }
+      dot_to_marker = fabsf(*(float *)(marker_buf + 0x44) * *(float *)0x506564 +
+                            *(float *)(marker_buf + 0x40) * *(float *)0x506560 +
+                            *(float *)0x50655c * *(float *)(marker_buf + 0x3c));
 
       blend = *(float *)0x2533c8; /* 1.0 */
       depth_factor = *(float *)0x2533c8;
@@ -3022,12 +3035,18 @@ void FUN_00139810(float *color /* @<ecx> */, float scale)
   float factor;
 
   /* Find the maximum of the three color components */
-  if (color[1] > color[2]) {
-    max_comp = color[1];
-  } else {
+  if (color[1] <= color[2]) {
     max_comp = color[2];
+  } else {
+    max_comp = color[1];
   }
-  if (color[0] > max_comp) {
+  if (color[0] <= max_comp) {
+    if (color[1] <= color[2]) {
+      max_comp = color[2];
+    } else {
+      max_comp = color[1];
+    }
+  } else {
     max_comp = color[0];
   }
 
@@ -3036,15 +3055,15 @@ void FUN_00139810(float *color /* @<ecx> */, float scale)
 
   /* Clamp: if factor*max_comp > epsilon, use epsilon/max_comp;
    *        if factor*max_comp < scale, use scale/max_comp */
-  if (factor * max_comp > *(float *)0x2533c8) {
+  if (*(float *)0x2533c8 < factor * max_comp) {
     factor = *(float *)0x2533c8 / max_comp;
   } else if (factor * max_comp < scale) {
     factor = scale / max_comp;
   }
 
-  color[0] = factor * color[0];
-  color[1] = factor * color[1];
-  color[2] = factor * color[2];
+  color[0] = color[0] * factor;
+  color[1] = color[1] * factor;
+  color[2] = color[2] * factor;
 }
 
 /* Call cluster_partition_iter_first on the object cluster partition at
@@ -3360,9 +3379,9 @@ void FUN_00139e50(unsigned int param_1, float *param_2, float *param_3,
   gel_intensity = real_rgb_color_brightness(intensity_ptr);
 
   /* gel * intensity + base */
-  output_ptr[0] = *(float *)0x323bfc * intensity_ptr[0] + *(float *)0x323bf8;
-  output_ptr[1] = *(float *)0x323bfc * intensity_ptr[1] + *(float *)0x323bf8;
-  fVar1 = *(float *)0x323bfc * intensity_ptr[2] + *(float *)0x323bf8;
+  output_ptr[0] = intensity_ptr[0] * *(float *)0x323bfc + *(float *)0x323bf8;
+  output_ptr[1] = intensity_ptr[1] * *(float *)0x323bfc + *(float *)0x323bf8;
+  fVar1 = intensity_ptr[2] * *(float *)0x323bfc + *(float *)0x323bf8;
   *(short *)(output_ptr + 3) = 2;
   output_ptr[2] = fVar1;
   output_ptr[4] = intensity_ptr[0];
@@ -3371,80 +3390,43 @@ void FUN_00139e50(unsigned int param_1, float *param_2, float *param_3,
   output_ptr[7] = -param_3[0];
   output_ptr[8] = -param_3[1];
   output_ptr[9] = -param_3[2];
-  output_ptr[10] = (float)((double)*(float *)0x323c00 * (double)color_ptr[0] *
-                           (double)gel_intensity);
-  output_ptr[11] = (float)((double)*(float *)0x323c00 * (double)gel_intensity *
-                           (double)color_ptr[1]);
-  output_ptr[12] = (float)((double)*(float *)0x323c00 * (double)color_ptr[2] *
-                           (double)gel_intensity);
+  output_ptr[10] = color_ptr[0] * *(float *)0x323c00 * gel_intensity;
+  output_ptr[11] = color_ptr[1] * *(float *)0x323c00 * gel_intensity;
+  output_ptr[12] = color_ptr[2] * *(float *)0x323c00 * gel_intensity;
   output_ptr[13] = param_2[0];
   output_ptr[14] = param_2[1];
   output_ptr[15] = param_2[2];
 
   /* clamp gel_intensity * 0x2533ec + 0x25337c to [0,1] */
   fVar6 = gel_intensity * *(float *)0x2533ec + *(float *)0x25337c;
-  if (fVar6 < *(float *)0x2533c0) {
-    fVar6 = *(float *)0x2533c0;
-  } else if (fVar6 > *(float *)0x2533c8) {
-    fVar6 = *(float *)0x2533c8;
-  }
+  if (fVar6 < 0.0f) fVar6 = 0.0f; else if (fVar6 > 1.0f) fVar6 = 1.0f;
   output_ptr[0x13] = fVar6;
 
   /* specular color channels: color[i] * scale + bias, clamped */
-  fVar1 = color_ptr[0] * *(float *)0x254644 + *(float *)0x253398;
-  fVar2 = *(float *)0x2533c0;
-  if (*(float *)0x2533c0 <= fVar1) {
-    fVar2 = fVar1;
-    if (*(float *)0x2533c8 < fVar1)
-      fVar2 = *(float *)0x2533c8;
-  }
+  fVar2 = color_ptr[0] * *(float *)0x254644 + *(float *)0x253398;
+  if (fVar2 < 0.0f) fVar2 = 0.0f; else if (fVar2 > 1.0f) fVar2 = 1.0f;
   output_ptr[0x14] = fVar2;
 
-  fVar1 = color_ptr[1] * *(float *)0x254644 + *(float *)0x253398;
-  fVar3 = *(float *)0x2533c0;
-  if (*(float *)0x2533c0 <= fVar1) {
-    fVar3 = fVar1;
-    if (*(float *)0x2533c8 < fVar1)
-      fVar3 = *(float *)0x2533c8;
-  }
+  fVar3 = color_ptr[1] * *(float *)0x254644 + *(float *)0x253398;
+  if (fVar3 < 0.0f) fVar3 = 0.0f; else if (fVar3 > 1.0f) fVar3 = 1.0f;
   output_ptr[0x15] = fVar3;
 
-  fVar1 = color_ptr[2] * *(float *)0x254644 + *(float *)0x253398;
-  fVar4 = *(float *)0x2533c0;
-  if (*(float *)0x2533c0 <= fVar1) {
-    fVar4 = fVar1;
-    if (*(float *)0x2533c8 < fVar1)
-      fVar4 = *(float *)0x2533c8;
-  }
+  fVar4 = color_ptr[2] * *(float *)0x254644 + *(float *)0x253398;
+  if (fVar4 < 0.0f) fVar4 = 0.0f; else if (fVar4 > 1.0f) fVar4 = 1.0f;
   output_ptr[0x16] = fVar4;
 
   /* intensity double + bias, clamped, multiply specular */
-  fVar1 = intensity_ptr[0] + intensity_ptr[0] + *(float *)0x25337c;
-  fVar5 = *(float *)0x2533c0;
-  if (*(float *)0x2533c0 <= fVar1) {
-    fVar5 = fVar1;
-    if (*(float *)0x2533c8 < fVar1)
-      fVar5 = *(float *)0x2533c8;
-  }
+  fVar5 = intensity_ptr[0] + intensity_ptr[0] + *(float *)0x25337c;
+  if (fVar5 < 0.0f) fVar5 = 0.0f; else if (fVar5 > 1.0f) fVar5 = 1.0f;
   output_ptr[0x14] = fVar5 * fVar2;
 
-  fVar1 = intensity_ptr[1] + intensity_ptr[1] + *(float *)0x25337c;
-  fVar2 = *(float *)0x2533c0;
-  if (*(float *)0x2533c0 <= fVar1) {
-    fVar2 = fVar1;
-    if (*(float *)0x2533c8 < fVar1)
-      fVar2 = *(float *)0x2533c8;
-  }
-  output_ptr[0x15] = fVar2 * fVar3;
+  fVar5 = intensity_ptr[1] + intensity_ptr[1] + *(float *)0x25337c;
+  if (fVar5 < 0.0f) fVar5 = 0.0f; else if (fVar5 > 1.0f) fVar5 = 1.0f;
+  output_ptr[0x15] = fVar5 * fVar3;
 
-  fVar2 = intensity_ptr[2] + intensity_ptr[2] + *(float *)0x25337c;
-  fVar1 = *(float *)0x2533c0;
-  if (*(float *)0x2533c0 <= fVar2) {
-    fVar1 = fVar2;
-    if (*(float *)0x2533c8 < fVar2)
-      fVar1 = *(float *)0x2533c8;
-  }
-  output_ptr[0x16] = fVar1 * fVar4;
+  fVar5 = intensity_ptr[2] + intensity_ptr[2] + *(float *)0x25337c;
+  if (fVar5 < 0.0f) fVar5 = 0.0f; else if (fVar5 > 1.0f) fVar5 = 1.0f;
+  output_ptr[0x16] = fVar5 * fVar4;
 
   /* pow(param_4, exponent) for ground shadow direction */
   half_scale = (float)pow((double)param_4, *(double *)0x28c8d8);
@@ -3465,35 +3447,20 @@ void FUN_00139e50(unsigned int param_1, float *param_2, float *param_3,
   /* distance attenuation per channel */
   fVar1 = (*(float *)0x2533c8 - param_4) * *(float *)0x253398;
   fVar2 = (*(float *)0x2533c8 - output_ptr[4] * *(float *)0x255b9c) + fVar1;
-  fVar3 = *(float *)0x323bf8;
-  if (*(float *)0x323bf8 <= fVar2) {
-    fVar3 = fVar2;
-    if (*(float *)0x2533c8 < fVar2)
-      fVar3 = *(float *)0x2533c8;
-  }
-  output_ptr[0x1a] = fVar3;
+  if (fVar2 < *(float *)0x323bf8) fVar2 = *(float *)0x323bf8; else if (fVar2 > 1.0f) fVar2 = 1.0f;
+  output_ptr[0x1a] = fVar2;
 
   fVar2 = (*(float *)0x2533c8 - output_ptr[5] * *(float *)0x255b9c) + fVar1;
-  fVar3 = *(float *)0x323bf8;
-  if (*(float *)0x323bf8 <= fVar2) {
-    fVar3 = fVar2;
-    if (*(float *)0x2533c8 < fVar2)
-      fVar3 = *(float *)0x2533c8;
-  }
-  output_ptr[0x1b] = fVar3;
+  if (fVar2 < *(float *)0x323bf8) fVar2 = *(float *)0x323bf8; else if (fVar2 > 1.0f) fVar2 = 1.0f;
+  output_ptr[0x1b] = fVar2;
 
-  fVar1 = (*(float *)0x2533c8 - output_ptr[6] * *(float *)0x255b9c) + fVar1;
-  fVar2 = *(float *)0x323bf8;
-  if (*(float *)0x323bf8 <= fVar1) {
-    fVar2 = fVar1;
-    if (*(float *)0x2533c8 < fVar1)
-      fVar2 = *(float *)0x2533c8;
-  }
+  fVar2 = (*(float *)0x2533c8 - output_ptr[6] * *(float *)0x255b9c) + fVar1;
+  if (fVar2 < *(float *)0x323bf8) fVar2 = *(float *)0x323bf8; else if (fVar2 > 1.0f) fVar2 = 1.0f;
   output_ptr[0x1c] = fVar2;
 
   if ((param_1 & 4) != 0) {
     FUN_00139810(output_ptr, 0.2f);
-    FUN_00139810(output_ptr + 10, 0.3f);
+    FUN_00139810(output_ptr + 7, 0.3f);
     FUN_00139810(output_ptr + 10, 0.2f);
     FUN_00139810(output_ptr + 0x14, 0.5f);
     output_ptr[0x13] = 1.0f;
@@ -4073,14 +4040,16 @@ char FUN_0013ab20(unsigned int param_1, int param_2, int *param_3)
   }
   sVar8 = 0;
   if (sVar7 != 0) {
-    while (cVar1 = CALL_FUN_00198cb0(param_2, puVar11 + sVar8 * 0xc, local_94,
-                                     local_1c, local_20, &local_34, &local_c,
-                                     &local_10),
-           cVar1 == '\0') {
+    do {
+      cVar1 = CALL_FUN_00198cb0(param_2, puVar11 + (int)sVar8 * 0xc, local_94,
+                                local_1c, local_20, &local_34, &local_c,
+                                &local_10);
+      if (cVar1 != '\0')
+        break;
       sVar8 = sVar8 + 1;
-      if (sVar7 <= sVar8) {
-        return local_5;
-      }
+    } while (sVar8 < sVar7);
+    if (sVar8 >= sVar7) {
+      return local_5;
     }
     iVar2 = (int)scenario_get();
     psVar3 = (short *)tag_block_get_element((void *)(iVar2 + 0x104),
@@ -6103,10 +6072,10 @@ int FUN_0013cf50(int param_1, short *param_2, int param_3, short param_4,
     if (*(int *)(iVar6 + 0xc) == -1)
       goto LAB_0013d51f;
     CALL_FUN_0013fc20(local_cc, *(int *)(iVar6 + 0xc), -1);
-    local_b4 = *(int *)(param_2 + 4);
-    local_b0 = *(int *)(param_2 + 6);
-    local_ac = *(int *)(param_2 + 8);
-    CALL_FUN_0010bbc0(local_8c, param_2 + 10, local_98);
+    local_b4 = *(int *)((char *)param_2 + 0x8);
+    local_b0 = *(int *)((char *)param_2 + 0xc);
+    local_ac = *(int *)((char *)param_2 + 0x10);
+    CALL_FUN_0010bbc0(local_8c, (char *)param_2 + 0x14, local_98);
     local_b6 = param_2[3];
     goto LAB_0013d09e;
   }
@@ -6118,10 +6087,10 @@ int FUN_0013cf50(int param_1, short *param_2, int param_3, short param_4,
     if (*(int *)(iVar6 + 0xc) == -1)
       goto LAB_0013d51f;
     CALL_FUN_0013fc20(local_cc, *(int *)(iVar6 + 0xc), -1);
-    local_b4 = *(int *)(param_2 + 4);
-    local_b0 = *(int *)(param_2 + 6);
-    local_ac = *(int *)(param_2 + 8);
-    CALL_FUN_0010bbc0(local_8c, param_2 + 10, local_98);
+    local_b4 = *(int *)((char *)param_2 + 0x8);
+    local_b0 = *(int *)((char *)param_2 + 0xc);
+    local_ac = *(int *)((char *)param_2 + 0x10);
+    CALL_FUN_0010bbc0(local_8c, (char *)param_2 + 0x14, local_98);
     local_b6 = param_2[3];
     goto LAB_0013d09e;
   }
@@ -6138,8 +6107,8 @@ LAB_0013d09e:
 after_create:
   puVar4 = (int *)object_get_and_verify_type(param_1, -1);
   CALL_FUN_0013fb30(param_1);
-  FUN_00109e90((float *)&local_38, *(float *)(param_2 + 10),
-               *(float *)(param_2 + 0xc), *(float *)(param_2 + 0xe));
+  FUN_00109e90((float *)&local_38, *(float *)((char *)param_2 + 0x14),
+               *(float *)((char *)param_2 + 0x18), *(float *)((char *)param_2 + 0x1c));
   cVar2 = CALL_FUN_000f6d00_0();
   if (cVar2 == '\0') {
     if ((local_38 & 0x7f800000) == 0x7f800000) {
@@ -6334,12 +6303,16 @@ int16_t FUN_0013d5f0(void *param_1, int param_2)
  */
 void *object_try_and_get_and_verify_type(int datum_handle, int type_mask)
 {
-  object_header_data_t *header =
-    (object_header_data_t *)(int)datum_absolute_index_to_index(
-      *(data_t **)0x5a8d50, datum_handle);
-  if (header != NULL && (type_mask & (1 << (header->type & 0x1f))) != 0)
-    return header->object;
-  return NULL;
+  object_header_data_t *header;
+  void *result;
+
+  header = (object_header_data_t *)(int)datum_absolute_index_to_index(
+    *(data_t **)0x5a8d50, datum_handle);
+  result = NULL;
+  if (header != NULL && (type_mask & (1 << (header->type & 0x1f))) != 0) {
+    result = header->object;
+  }
+  return result;
 }
 
 /*
@@ -6440,13 +6413,8 @@ void *object_iterator_next(void *iter)
   object_iter_t *it = (object_iter_t *)iter;
   data_t *data;
   object_header_data_t *entry;
-  int16_t count;
   int16_t idx;
   int handle;
-
-  /* Result/handle accumulator (EDI), pre-zeroed at entry (xor edi,edi) so
-   * the empty-table exit returns NULL via `mov eax,edi`. */
-  handle = 0;
 
   if (it->cookie != 0x86868686) {
     display_assert("uninitialized iterator passed to object_iterator_next()",
@@ -6458,27 +6426,22 @@ void *object_iterator_next(void *iter)
   data = *(data_t **)0x5a8d50;
 
   idx = it->current_index;
-  count = data->current_count;
   entry = (object_header_data_t *)((char *)data->data + (int)idx * 0xc);
 
-  if (idx >= count) {
-    it->current_index = idx;
-    return (void *)handle;
+  if (idx < data->current_count) {
+    do {
+      handle = ((int)(int16_t)entry->unk_0 << 16) | (int)idx;
+      idx++;
+      if (entry->unk_0 != 0 &&
+          ((entry->unk_2 & (uint8_t)it->flags) == (uint8_t)it->flags) &&
+          (it->type_mask & (1 << (entry->type & 0x1f))) != 0) {
+        it->last_handle = handle;
+        it->current_index = idx;
+        return entry->object;
+      }
+      entry = (object_header_data_t *)((char *)entry + 0xc);
+    } while (idx < data->current_count);
   }
-
-  do {
-    /* salt (unk_0) and index sign-extended (movswl) then composited into
-     * the handle: (salt << 16) | index. */
-    handle = ((int)(int16_t)entry->unk_0 << 16) | (int)idx;
-    idx++;
-    if (entry->unk_0 != 0 && (entry->unk_2 & it->flags) == it->flags &&
-        (it->type_mask & (1 << entry->type)) != 0) {
-      it->last_handle = handle;
-      it->current_index = idx;
-      return entry->object;
-    }
-    entry = (object_header_data_t *)((char *)entry + 0xc);
-  } while (idx < count);
 
   it->current_index = idx;
   return NULL;
@@ -6576,15 +6539,18 @@ void FUN_0013d870(int unit_handle, void *data)
  * Confirmed: MOV [ECX + ESI*4],EAX — stores param_2 at name_table[param_1].
  * Confirmed: cdecl, caller at 0x45ffb does ADD ESP,0x8 after call.
  */
-void object_name_list_set_handle(short param_1, int param_2)
+void object_name_list_set_handle(short name_index, int object_handle)
 {
-  int iVar1;
+  int idx;
+  void *scenario;
 
-  if (param_1 < 0)
+  if (name_index < 0)
     return;
-  iVar1 = (int)global_scenario_get();
-  if (param_1 < *(int *)(iVar1 + 0x204)) {
-    (*(int **)0x46f07c)[param_1] = param_2;
+
+  idx = (int)name_index;
+  scenario = global_scenario_get();
+  if (idx < *(int *)((char *)scenario + 0x204)) {
+    (*(int **)0x46f07c)[idx] = object_handle;
   }
 }
 
@@ -6739,27 +6705,34 @@ void garbage_collect_now(void)
   *(unsigned char *)(*(int *)0x46f084 + 2) = 1;
 }
 
-/* Writes object counts and memory-usage fraction into param_1.
- * param_1[0] = total non-empty object slots
- * param_1[1] = object slots with active flag (elem+2 bit 0)
- * *(float*)(param_1+2) = 1.0 - fraction of pool in use */
-void FUN_0013db60(short *param_1)
+struct objects_information {
+  int16_t object_count;
+  int16_t active_object_count;
+  float used_memory;
+};
+
+/* 0x13db60 / objects.obj — Writes object counts and memory-usage fraction into info.
+ * info->object_count = total non-empty object slots
+ * info->active_object_count = object slots with active flag (elem+2 bit 0)
+ * info->used_memory = 1.0 - fraction of pool in use */
+void objects_information_get(void *info_ptr)
 {
+  struct objects_information *info = (struct objects_information *)info_ptr;
   short *psVar1;
   int iVar2;
   short sVar3;
   data_t *objs_data;
 
-  csmemset(param_1, 0, 8);
+  csmemset(info, 0, sizeof(struct objects_information));
   objs_data = *(data_t **)0x5a8d50;
   psVar1 = (short *)*(uint8_t **)((uint8_t *)objs_data + 0x34);
   sVar3 = 0;
   if (0 < *(int16_t *)((uint8_t *)objs_data + 0x2e)) {
     do {
       if (*psVar1 != 0) {
-        param_1[0] = param_1[0] + 1;
+        info->object_count++;
         if (*(unsigned char *)((char *)psVar1 + 2) & 1) {
-          param_1[1] = param_1[1] + 1;
+          info->active_object_count++;
         }
       }
       objs_data = *(data_t **)0x5a8d50;
@@ -6768,7 +6741,7 @@ void FUN_0013db60(short *param_1)
     } while (sVar3 < *(int16_t *)((uint8_t *)objs_data + 0x2e));
   }
   iVar2 = memory_pool_get_contiguous_free_size(*(void **)0x46f080);
-  *(float *)(param_1 + 2) =
+  info->used_memory =
     *(float *)0x2533c8 - (float)iVar2 * *(float *)0x29ba04;
 }
 
@@ -7757,7 +7730,7 @@ void object_reset_markers(void)
                    "c:\\halo\\SOURCE\\objects\\objects.c", 0xdaf, 1);
     system_exit(-1);
   }
-  *(uint32_t *)0x5a8d28 += 1;
+  (*(int *)0x5a8d28)++;
   object_globals->object_marker_initialized = 1;
 }
 
@@ -8016,6 +7989,7 @@ void object_name_list_new(int object_handle /* @<edi> */,
       "c:\\halo\\SOURCE\\objects\\objects.c", 0x1003, 1);
     system_exit(-1);
   }
+
   idx = (int)name_index;
   name_table = *(int **)0x46f07c;
   if (name_table[idx] == -1) {
@@ -8023,6 +7997,7 @@ void object_name_list_new(int object_handle /* @<edi> */,
     *(int16_t *)(obj + 0x6a) = name_index;
     return;
   }
+
   {
     void *scenario_data = (void *)((char *)global_scenario_get() + 0x204);
     char *name = (char *)tag_block_get_element(scenario_data, idx, 0x24);
@@ -8040,22 +8015,22 @@ void object_remove_from_name_list(int object_handle /* @<edi> */)
   void *scenario;
   int *name_table;
   int16_t i;
+  int count;
 
   obj = (char *)object_get_and_verify_type(object_handle, -1);
-  if (*(int16_t *)(obj + 0x6a) == -1)
-    return;
-
-  scenario = global_scenario_get();
-  *(int16_t *)(obj + 0x6a) = -1;
-  /* original re-reads the count from scenario+0x204 every iteration. */
-  i = 0;
-  if (*(int *)((char *)scenario + 0x204) > 0) {
-    name_table = *(int **)0x46f07c;
-    do {
-      if (name_table[(int)i] == object_handle)
-        name_table[(int)i] = -1;
-      i++;
-    } while ((int)i < *(int *)((char *)scenario + 0x204));
+  if (*(int16_t *)(obj + 0x6a) != -1) {
+    scenario = global_scenario_get();
+    *(int16_t *)(obj + 0x6a) = -1;
+    count = *(int *)((char *)scenario + 0x204);
+    i = 0;
+    if (count > 0) {
+      name_table = *(int **)0x46f07c;
+      do {
+        if (name_table[(int)i] == object_handle)
+          name_table[(int)i] = -1;
+        i++;
+      } while ((int)i < count);
+    }
   }
 }
 
@@ -8252,6 +8227,19 @@ int sort_dumps(int param_1, int param_2)
   return (*(int *)(param_1 + 8) <= *(int *)(param_2 + 8)) - 1;
 }
 
+struct dump_datum {
+  int32_t definition_index;  /* +0x00 */
+  int16_t object_type;       /* +0x04 */
+  int16_t maximum_size;      /* +0x06 */
+  int32_t total_size;        /* +0x08 */
+  int16_t count;             /* +0x0c */
+  int16_t active_count;      /* +0x0e */
+  int16_t garbage_count;     /* +0x10 */
+  int16_t dead_count;        /* +0x12 */
+  int16_t outside_map_count; /* +0x14 */
+  int16_t at_rest_count;     /* +0x16 */
+};
+
 /* 0x13f3b0 / objects.obj — Accumulate statistics about one object into a
  * dump record. Reads the object header (via datum_get on 0x5a8d50) and
  * object data (via object_get_and_verify_type), and updates various
@@ -8270,40 +8258,36 @@ void object_add_to_dump(int object_handle /* @<ebx> */,
   int parent_handle;
   char *parent_obj;
   int16_t hdr_size;
-  char *st = (char *)stats;
+  struct dump_datum *st = (struct dump_datum *)stats;
 
   hdr = (char *)datum_get(*(data_t **)0x5a8d50, object_handle);
   obj = (char *)object_get_and_verify_type(object_handle, -1);
 
   hdr_size = *(int16_t *)(hdr + 0x6);
-  if (hdr_size > *(int16_t *)(st + 0x6)) {
-    *(int16_t *)(st + 0x6) = hdr_size;
+  if (hdr_size > st->maximum_size) {
+    st->maximum_size = hdr_size;
   }
-  /* permuter 20260721 (+2.0pp raw): byte-total updated before count, and an
-   * empty !st branch below — both reshape scheduling, value-identical. */
-  *(int *)(st + 0x8) = *(int *)(st + 0x8) + (int)hdr_size;
-  *(int16_t *)(st + 0xc) = *(int16_t *)(st + 0xc) + 1;
+  st->total_size += (int32_t)hdr_size;
+  st->count++;
 
   if ((*(unsigned char *)(hdr + 0x2) & 1) != 0) {
-    *(int16_t *)(st + 0xe) = *(int16_t *)(st + 0xe) + 1;
+    st->active_count++;
   }
   if ((*(unsigned int *)(obj + 0x4) & 0x10000) != 0) {
-    *(int16_t *)(st + 0x10) = *(int16_t *)(st + 0x10) + 1;
+    st->garbage_count++;
   }
   if ((*(unsigned char *)(obj + 0xb6) & 4) != 0) {
-    *(int16_t *)(st + 0x12) = *(int16_t *)(st + 0x12) + 1;
+    st->dead_count++;
   }
   if ((*(unsigned char *)(obj + 0x4) & 0x20) != 0) {
-    *(int16_t *)(st + 0x16) = *(int16_t *)(st + 0x16) + 1;
-    if (!st) {
-    }
+    st->at_rest_count++;
   }
 
   parent_handle = object_get_root_parent(object_handle);
   parent_obj = (char *)object_get_and_verify_type(parent_handle, -1);
   if ((*(unsigned int *)(parent_obj + 0x4) & 0x200000) != 0 ||
       *(int16_t *)(parent_obj + 0x4c) == -1) {
-    *(int16_t *)(st + 0x14) = *(int16_t *)(st + 0x14) + 1;
+    st->outside_map_count++;
   }
 }
 
@@ -8315,22 +8299,21 @@ void object_add_to_dump(int object_handle /* @<ebx> */,
 void object_dump_write(void *stats /* @<esi> */, void *file)
 {
   char *pcVar1;
-  int *st = (int *)stats;
+  struct dump_datum *st = (struct dump_datum *)stats;
 
   pcVar1 = "unknown";
-  if (st[0] != -1) {
-    pcVar1 = (char *)tag_get_name(st[0]);
-  } else if ((int16_t)st[1] != -1) {
-    pcVar1 = (char *)FUN_0013c250((int16_t)st[1]);
+  if (st->definition_index != -1) {
+    pcVar1 = (char *)tag_get_name((int)st->definition_index);
+  } else if (st->object_type != -1) {
+    pcVar1 = (char *)FUN_0013c250(st->object_type);
   }
   crt_fprintf(
     file, "% 6d (% 6d) [% 7d/% 7d/% 7d/% 7d] % 7d % 7d %s\r\n",
-    (int)*(int16_t *)((char *)st + 0xc), (int)*(int16_t *)((char *)st + 0xe),
-    (int)*(int16_t *)((char *)st + 0x10), (int)*(int16_t *)((char *)st + 0x12),
-    (int)*(int16_t *)((char *)st + 0x14), (int)*(int16_t *)((char *)st + 0x16),
-    (int)*(int16_t *)((char *)st + 0x6), st[2], pcVar1);
+    (int)st->count, (int)st->active_count,
+    (int)st->garbage_count, (int)st->dead_count,
+    (int)st->outside_map_count, (int)st->at_rest_count,
+    (int)st->maximum_size, (int)st->total_size, pcVar1);
 }
-
 
 /* 0x13f4b0 — objects_dump_memory: diagnostic memory dump of all objects,
  * grouped by type and definition. Writes to a file.
@@ -8341,134 +8324,96 @@ void object_dump_write(void *stats /* @<esi> */, void *file)
 /* 0x13f4b0 */
 void objects_dump_memory(void)
 {
-  unsigned short uVar1;
-  short sVar2;
-  int *piVar3;
-  int iVar4;
-  void *stream;
-  int *puVar5;
-  unsigned short uVar6;
-  short *psVar7;
-  unsigned int uVar8;
-  int dump_by_def[6144]; /* 1024 * 6 */
-  int local_6140;
-  short local_613c[12288]; /* 1024 * 12 */
-  int local_140;
-  short local_13c[128]; /* 12 entries * (4+8 shorts) + pad */
-  short sVar9;
-  unsigned short uVar10;
+  struct dump_datum dumps[1024];
+  struct dump_datum dumps_by_type[12];
   object_iter_t dump_iter;
+  object_header_data_t *header;
+  object_data_t *object;
+  void *stream;
+  int16_t object_type;
+  int16_t object_num;
+  int16_t dump_count;
+  int16_t overflowed_count;
 
-  uVar10 = 0;
-  sVar9 = 0;
-  csmemset(dump_by_def, 0, sizeof(dump_by_def));
-  csmemset(local_613c, 0, sizeof(local_613c));
-  sVar2 = 0;
-  puVar5 = &local_140;
-  do {
-    *(short *)((char *)puVar5 + 4) = sVar2;
-    *puVar5 = -1;
-    sVar2 = sVar2 + 1;
-    puVar5 = puVar5 + 6;
-  } while (sVar2 < 0xc);
-  object_iterator_new(&dump_iter, -1, 0);
-  piVar3 = (int *)object_iterator_next(&dump_iter);
-  do {
-    if (piVar3 == (int *)0) {
-      /* Done iterating — output report */
-      stream = (void *)CALL_FUN_001d9e59("objects.txt", "wt");
-      if (stream != (void *)0) {
-        FUN_0013db60((short *)stream);
-        CALL_FUN_001d9260(
-          stream,
-          "#%d objects (#%d active) using %3.2f%% of available memory\n\n");
-        CALL_FUN_001d9260(stream, "OBJECTS BY TYPE\n");
-        CALL_FUN_001d9260(stream, "number (active) [garbage/   "
-                                  "dead/outside/at-rest] maxsize totsize\n");
-        psVar7 = local_13c;
-        iVar4 = 0xc;
-        do {
-          if (*(int *)(psVar7 - 2) == -1) {
-            if (*psVar7 != -1) {
-              FUN_0013c250(*psVar7);
-            }
-          } else {
-            CALL_FUN_001ba1f0(*(int *)(psVar7 - 2));
-          }
-          CALL_FUN_001d9260(
-            stream, "% 6d (% 6d) [% 7d/% 7d/% 7d/% 7d] % 7d % 7d %s\r\n");
-          psVar7 = psVar7 + 0xc;
-          iVar4 = iVar4 - 1;
-        } while (iVar4 != 0);
-        CALL_FUN_001d9260(stream, "\n");
-        CALL_FUN_001d9260(stream, "OBJECTS BY DEFINITION\n");
-        CALL_FUN_001d9260(stream, "number (active) [garbage/   "
-                                  "dead/outside/at-rest] maxsize totsize\n");
-        if (0 < (short)uVar10) {
-          psVar7 = local_613c;
-          uVar8 = (unsigned int)uVar10;
-          do {
-            if (*(int *)(psVar7 - 2) == -1) {
-              if (*psVar7 != -1) {
-                FUN_0013c250(*psVar7);
-              }
-            } else {
-              CALL_FUN_001ba1f0(*(int *)(psVar7 - 2));
-            }
-            CALL_FUN_001d9260(
-              stream, "% 6d (% 6d) [% 7d/% 7d/% 7d/% 7d] % 7d % 7d %s\r\n");
-            psVar7 = psVar7 + 0xc;
-            uVar8 = uVar8 - 1;
-          } while (uVar8 != 0);
-        }
-        CALL_FUN_001d9260(stream, "\n");
-        if (0 < sVar9) {
-          CALL_FUN_001d9260(
-            stream, "WARNING: overflowed MAXIMUM_DUMPS (%d), this dump does "
-                    "not include %d objects that would not fit!\n");
-        }
-        CALL_FUN_001d9260(stream, "\n");
-        CALL_FUN_001d9260(stream, 0); /* _fclose */
+  dump_count = 0;
+  overflowed_count = 0;
+
+  csmemset(dumps, 0, sizeof(dumps));
+  csmemset(dumps_by_type, 0, sizeof(dumps_by_type));
+
+  for (object_type = 0; object_type < 12; ++object_type) {
+    dumps_by_type[object_type].object_type = object_type;
+    dumps_by_type[object_type].definition_index = -1;
+  }
+
+  dump_iter.type_mask = -1;
+  dump_iter.flags = 0;
+  dump_iter.current_index = 0;
+  dump_iter.last_handle = NONE;
+  dump_iter.cookie = 0x86868686;
+
+  while ((object = (object_data_t *)object_iterator_next(&dump_iter)) != NULL) {
+    int16_t index = -1;
+
+    for (object_num = 0; object_num < dump_count; ++object_num) {
+      if (dumps[object_num].definition_index == (int32_t)object->tag_index) {
+        index = object_num;
+        break;
       }
-      return;
     }
-    uVar6 = 0;
-    uVar1 = 0xffff;
-    if (0 < (short)uVar10) {
-      do {
-        if (dump_by_def[(short)uVar6 * 6] == *piVar3) {
-          uVar1 = uVar6;
-          if (uVar6 != 0xffff)
-            goto LAB_0013f5ad;
-          break;
-        }
-        uVar6 = uVar6 + 1;
-      } while ((short)uVar6 < (short)uVar10);
+
+    if (index == -1) {
+      if (dump_count < 1024) {
+        index = dump_count;
+        dump_count++;
+        dumps[index].object_type = -1;
+        dumps[index].definition_index = (int32_t)object->tag_index;
+      } else {
+        overflowed_count++;
+      }
     }
-    uVar6 = uVar1;
-    if ((short)uVar10 < 0x400) {
-      local_613c[(short)uVar10 * 0xc] = -1;
-      dump_by_def[(short)uVar10 * 6] = *piVar3;
-      uVar6 = uVar10;
-      uVar10 = uVar10 + 1;
-    } else {
-      sVar9 = sVar9 + 1;
+
+    header = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, dump_iter.last_handle);
+
+    if (index != -1) {
+      object_add_to_dump(dump_iter.last_handle, &dumps[index]);
     }
-  LAB_0013f5ad:
-    iVar4 = (int)datum_get(*(void **)0x5a8d50, 0);
-    if (uVar6 != 0xffff) {
-      CALL_FUN_0013f3b0((int *)((char *)dump_by_def + (short)uVar6 * 24),
-                        iVar4);
+
+    object_add_to_dump(dump_iter.last_handle, &dumps_by_type[header->type]);
+  }
+
+  qsort(dumps, (size_t)dump_count, sizeof(struct dump_datum), (int (*)(const void *, const void *))sort_dumps);
+  qsort(dumps_by_type, 12, sizeof(struct dump_datum), (int (*)(const void *, const void *))sort_dumps);
+
+  stream = (void *)crt_fopen("objects.txt", "wt");
+  if (stream != NULL) {
+    struct objects_information info;
+    objects_information_get(&info);
+
+    crt_fprintf(stream, "#%d objects (#%d active) using %3.2f%% of available memory\n\n",
+                info.object_count, info.active_object_count, (double)(100.0f * info.used_memory));
+
+    crt_fprintf(stream, "OBJECTS BY TYPE\n");
+    crt_fprintf(stream, "number (active) [garbage/   dead/outside/at-rest] maxsize totsize\n");
+    for (object_type = 0; object_type < 12; object_type++) {
+      object_dump_write(&dumps_by_type[object_type], stream);
     }
-    if (0xb < *(unsigned char *)(iVar4 + 3)) {
-      display_assert("object->type < NUMBER_OF_OBJECT_TYPES",
-                     "c:\\halo\\SOURCE\\objects\\objects.c", 0, 1);
-      CALL_thunk_FUN_001029a0(-1);
+
+    crt_fprintf(stream, "\n");
+    crt_fprintf(stream, "OBJECTS BY DEFINITION\n");
+    crt_fprintf(stream, "number (active) [garbage/   dead/outside/at-rest] maxsize totsize\n");
+    for (object_num = 0; object_num < dump_count; object_num++) {
+      object_dump_write(&dumps[object_num], stream);
     }
-    CALL_FUN_0013f3b0(
-      (int *)((char *)&local_140 + *(unsigned char *)(iVar4 + 3) * 24), iVar4);
-    piVar3 = (int *)object_iterator_next(&dump_iter);
-  } while (1);
+
+    crt_fprintf(stream, "\n");
+    if (overflowed_count > 0) {
+      crt_fprintf(stream, "WARNING: overflowed MAXIMUM_DUMPS (%d), this dump does not include %d objects that would not fit!\n",
+                  1024, (int)overflowed_count);
+    }
+    crt_fprintf(stream, "\n");
+    crt_fclose(stream);
+  }
 }
 
 /*
@@ -8806,18 +8751,14 @@ void object_deactivate(int object_handle)
  */
 void object_reset(int object_handle)
 {
-  char *obj;
-  float *def;
+  object_data_t *obj;
+  const vector3_t *up;
 
-  obj = (char *)object_get_and_verify_type(object_handle, -1);
-  def = *(float **)0x31fc38;
-  *(float *)(obj + 0x18) = def[0];
-  *(float *)(obj + 0x1c) = def[1];
-  *(float *)(obj + 0x20) = def[2];
-  *(float *)(obj + 0x3c) = def[0];
-  *(float *)(obj + 0x40) = def[1];
-  *(float *)(obj + 0x44) = def[2];
-  *(unsigned int *)(obj + 4) &= ~0x20u;
+  obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  up = (const vector3_t *)0x31fc38;
+  obj->unk_24 = *up;
+  obj->unk_60 = *up;
+  obj->flags &= ~0x20u;
   FUN_0013c860(object_handle);
 }
 
@@ -9778,38 +9719,29 @@ char object_visible_to_any_player(int object_handle)
     (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
   obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
 
-  if (!(header->unk_2 & 1))
-    return result;
-  if (!(obj->flags & 0x800))
-    return result;
-  if (obj->flags & 0x200000)
-    return result;
-
-  /* Get combined PVS and iterate object clusters */
-  pvs = (int *)players_get_combined_pvs();
-  cluster_index = object_get_first_cluster(iter_state, object_handle);
-  if (cluster_index == (int16_t)0xFFFF)
-    return result;
-
-  /* Check each cluster against PVS */
-  for (;;) {
-    int edx = (int)cluster_index;
-    int bit_index = edx & 0x1f;
-    int dword_index = edx >> 5;
-    int bit_mask = 1 << bit_index;
-
-    if (pvs[dword_index] & bit_mask)
-      break;
-
-    cluster_index = FUN_0013d5f0(iter_state, object_handle);
+  if ((header->unk_2 & 1) && (obj->flags & 0x800) && !(obj->flags & 0x200000)) {
+    /* Get combined PVS and iterate object clusters */
+    pvs = (int *)players_get_combined_pvs();
+    cluster_index = object_get_first_cluster(iter_state, object_handle);
     if (cluster_index == (int16_t)0xFFFF)
       return result;
-  }
+
+    /* Check each cluster against PVS */
+    for (;;) {
+      int edx = (int)cluster_index;
+      int bit_index = edx & 0x1f;
+      int dword_index = edx >> 5;
+      int bit_mask = 1 << bit_index;
+
+      if (pvs[dword_index] & bit_mask)
+        break;
+
+      cluster_index = FUN_0013d5f0(iter_state, object_handle);
+      if (cluster_index == (int16_t)0xFFFF)
+        return result;
+    }
 
   /* Object is in a visible cluster — check per-player visibility */
-  if (cluster_index == (int16_t)0xFFFF)
-    return result;
-
   radius_sq = obj->unk_92 * obj->unk_92;
 
   player_index = data_next_index(*(data_t **)0x5aa6d4, -1);
@@ -9859,8 +9791,9 @@ char object_visible_to_any_player(int object_handle)
       return result;
     }
 
-  next_player:
-    player_index = data_next_index(*(data_t **)0x5aa6d4, player_index);
+    next_player:
+      player_index = data_next_index(*(data_t **)0x5aa6d4, player_index);
+  }
   }
 
   return result;
@@ -10869,20 +10802,18 @@ int16_t object_find_in_radius(int flags, unsigned int type_mask,
 void objects_reconnect_to_structure_bsp(void)
 {
   int iVar1;
-  /* collision_bsp_test_sphere results buffer. Original frame is 0x1028 bytes =
-   * 0x1010 (buffer) + 0x10 (bsp_iter) + 0x8 (bsp_data), so the buffer is
-   * int[1028]. The test outcome is read back from the TAIL of this same buffer:
-   *   local_102c[771] (EBP-0x41c) = hit flag
-   *   local_102c[772] (EBP-0x418) = leaf/cluster index
-   * Hazard #5: these must index the buffer the callee wrote — not separate
-   * locals — or clang would not lay them contiguously with the array. */
   int local_102c[1028];
   int obj;
   object_iter_t bsp_iter;
-  char bsp_data[8]; /* scenario_location_from_point output; bsp_data+4 = bsp
-                       index (short) */
+  char bsp_data[8];
 
-  object_iterator_new(&bsp_iter, -1, 0);
+  data_verify(*(data_t **)0x5a8d50);
+
+  bsp_iter.type_mask = -1;
+  bsp_iter.flags = 0;
+  bsp_iter.current_index = 0;
+  bsp_iter.last_handle = NONE;
+  bsp_iter.cookie = 0x86868686;
   *(short *)(bsp_data + 4) = -1;
   obj = (int)object_iterator_next(&bsp_iter);
   while (obj != 0) {
@@ -11157,9 +11088,6 @@ typedef void (*model_node_set_default_fn)(float *out, void *anim_data);
  */
 void object_compute_node_matrices(int object_handle)
 {
-  /* MSVC original: SUB ESP,0xa44. Pad to match so unported callees that
-     read from overlapping MSVC stack offsets see valid memory. */
-  volatile char _msvc_frame_pad[92];
   object_data_t *obj;
   void *object_tag;
   float *node_matrices;
@@ -11167,8 +11095,6 @@ void object_compute_node_matrices(int object_handle)
   int cannot_interpolate;
   void *anim_data;
   char anim_data_stack[2048];
-
-  (void)_msvc_frame_pad;
 
   obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
   object_tag = tag_get(0x6f626a65, *(int *)obj);
@@ -11200,7 +11126,7 @@ void object_compute_node_matrices(int object_handle)
     node_matrices[4] =
       node_matrices[8] * node_matrices[3] - node_matrices[9] * node_matrices[2];
     node_matrices[5] =
-      node_matrices[9] * node_matrices[1] - node_matrices[3] * node_matrices[7];
+      node_matrices[9] * node_matrices[1] - node_matrices[7] * node_matrices[3];
     node_matrices[6] =
       node_matrices[7] * node_matrices[2] - node_matrices[8] * node_matrices[1];
     /* position */
@@ -12394,8 +12320,8 @@ void object_set_position(int object_handle, float *position, float *forward,
       if (mag == *(float *)0x2533c0) {
         /* Degenerate (forward is along Z) — use X axis */
         temp[0] = 1.0f;
-        temp[2] = 0.0f;
         temp[1] = 0.0f;
+        temp[2] = 0.0f;
       }
 
       /* up = cross(temp, forward) */
