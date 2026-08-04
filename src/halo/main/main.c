@@ -1408,6 +1408,39 @@ void main_menu_switch_to_single_player(void)
 }
 
 /*
+ * main_set_game_connection_to_film_playback - 0x1006e0
+ *
+ * Confirmed:
+ *  - Whole body is 2 instructions, no frame, no _chkstk, no locals, no
+ *    CALLs, no FPU, no struct access:
+ *      001006e0  MOV byte ptr [0x0046da45],0x1
+ *      001006e7  RET
+ *  - The store is BYTE width with immediate 1, so 0x46da45 is a single-byte
+ *    flag; it carries the kb-registered name byte_46DA45.
+ *  - Plain cdecl void(void): RET carries no immediate, and no register is
+ *    read before being written, so there are no implicit @<reg> inputs and
+ *    no @<reg> callee contracts to honor.
+ *  - The same byte is read (not written) by main_setup_connection (0x100e10),
+ *    where a set flag forces the "error opening saved film" path and drops
+ *    back to the main menu. That is binary evidence tying this byte to film
+ *    playback, matching the kb-registered function name.
+ *
+ * Inferred:
+ *  - Same shape as main_menu_switch_to_single_player (0x1006d0): a one-byte
+ *    "arm a mode for the next connection setup" setter. Nothing else in the
+ *    body clears or resets neighbouring bytes.
+ *
+ * Uncertain:
+ *  - The neighbouring bytes 0x46da44 (xbox_demos_launch_pending) and
+ *    0x46da46 (byte_46DA46) may belong to the same small state block, but
+ *    nothing here proves that, so they are left as separate globals.
+ */
+void main_set_game_connection_to_film_playback(void)
+{
+  byte_46DA45 = 1;
+}
+
+/*
  * compute_split_screen_grid - 0x1008a0
  *
  * Finds the smallest grid (horizontal x vertical) whose cell count is at

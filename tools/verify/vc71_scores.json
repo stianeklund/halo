@@ -16004,6 +16004,10 @@
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
+    "main_set_game_connection_to_film_playback": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "main_set_map_name": {
       "score": 95.5,
       "source": "src/halo/main/main.c"

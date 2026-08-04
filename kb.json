@@ -13278,7 +13278,8 @@
     },
     {
      "addr": "0x1006e0",
-     "decl": "void main_set_game_connection_to_film_playback(void);"
+     "decl": "void main_set_game_connection_to_film_playback(void);",
+     "ported": true
     },
     {
      "addr": "0x1006f0",
