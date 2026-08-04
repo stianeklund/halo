@@ -1066,6 +1066,74 @@ void main_load_core_at_startup(void)
   csstrcpy(core_name, "core.bin");
 }
 
+/*
+ * main_load_core_name - 0x100460
+ *
+ * Arms a deferred core-image load from a caller-supplied file name, warning
+ * (but not halting) when the name will not fit in the core_name buffer. The
+ * exact load counterpart of main_save_core_name (0x1003d0): same length test,
+ * same warning text, same destination buffer and bound; only the pending flag
+ * byte and the assert line number differ.
+ *
+ * Confirmed:
+ *  - 24 instructions, no locals, no _chkstk, no FPU, no SEH, no struct access:
+ *      00100460  PUSH EBP / MOV EBP,ESP / PUSH ESI
+ *      00100464  MOV ESI,dword ptr [EBP+0x8]      ; the single stack argument
+ *      00100467  PUSH ESI / CALL 0x8df60 / ADD ESP,0x4          ; csstrlen
+ *      00100470  CMP EAX,0x40 / JC 0x10048e
+ *      00100475  PUSH 0x0 / PUSH 0x3c9 / PUSH 0x28b0b4 / PUSH 0x28b1a4
+ *      00100486  CALL 0x8d9f0 / ADD ESP,0x10                    ;
+ * display_assert 0010048e  PUSH 0x3f / PUSH ESI / PUSH 0x46dd55 00100496  CALL
+ * 0x8de70 / ADD ESP,0xc                     ; csstrncpy 0010049e  MOV byte ptr
+ * [0x0046da3e],0x1 001004a5  POP ESI / POP EBP / RET
+ *  - One stack parameter, cdecl: ESI is loaded from [EBP+8] before any read of
+ *    it, and the terminator is a plain RET with no immediate. This is NOT the
+ *    `void(void)` that kb.json previously declared; the decl is corrected as
+ *    part of this lift.
+ *  - ESI is callee-saved (PUSH/POP) and carries the argument across both
+ *    calls, so there is no implicit register input and no @<reg> callee
+ *    contract; every callee is pure stack cdecl and the cleanups (ADD ESP,0x4
+ *    / 0x10 / 0xc) match the kb decls' stack-arg counts exactly.
+ *  - `CMP EAX,0x40; JC` is an unsigned-below test, so the length is compared
+ *    as unsigned and the warning fires for length >= 0x40. A signed compare
+ *    would have emitted JL.
+ *  - Warning flavor of assert: halt is 0 (PUSH 0x0) and no system_exit tail
+ *    follows the call, so execution falls through into the truncating copy.
+ *    cdecl push order makes the FIRST push (0x0) the LAST argument (halt) and
+ *    the LAST push (0x28b1a4) the FIRST (reason). Reason "warning, core file
+ *    name will be truncated to 63 characters", file
+ *    "c:\halo\SOURCE\main\main.c", line 0x3c9.
+ *  - The copy bound is 0x3f, i.e. 63 characters plus the NUL csstrncpy adds.
+ *  - The flag store is an 8-bit MOV byte ptr [0x46da3e],1, matching the `bool`
+ *    declaration of game_state_load_core_pending; widening it to short/int
+ *    would emit a word/dword store and mismatch.
+ *  - csstrncpy's return value (EAX) is not consumed after the CALL, so it is
+ *    discarded, matching the void return.
+ *
+ * Inferred:
+ *  - MSVC scheduled the flag store after the csstrncpy call, as it did in the
+ *    sibling main_save_core_name (0x1003d0) and unlike main_load_core
+ *    (0x100420) where the same store precedes the copy call. The store is
+ *    unconditional and independent of the copy, so source order follows the
+ *    emitted order here.
+ *  - 0x46da3e is the deferred-load request byte that main_reset_map's cleanup
+ *    clears; the actual load is performed later by the main-loop handler that
+ *    consumes the flag, not here.
+ *
+ * Uncertain:
+ *  - core_name stays an incomplete `char[]` as declared in kb.json; the 0x3f
+ *    bound and the "63 characters" warning prove at least 64 bytes are
+ *    addressable, not the true size.
+ */
+void main_load_core_name(const char *name)
+{
+  if ((unsigned int)csstrlen(name) >= 0x40) {
+    display_assert("warning, core file name will be truncated to 63 characters",
+                   "c:\\halo\\SOURCE\\main\\main.c", 0x3c9, 0);
+  }
+  csstrncpy(core_name, name, 0x3f);
+  game_state_load_core_pending = 1;
+}
 
 void main_queue_map_name(char *map_name)
 {
