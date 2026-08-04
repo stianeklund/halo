@@ -13508,7 +13508,8 @@
     },
     {
      "addr": "0x103a00",
-     "decl": "char FUN_00103a00(uint32_t mark, int base, uint32_t *node, uint32_t visit_arg);"
+     "decl": "char FUN_00103a00(uint32_t plane, int base, uint32_t *tri_refs, uint32_t mark);",
+     "ported": true
     },
     {
      "addr": "0x103b80",

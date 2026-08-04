@@ -2177,7 +2177,8 @@ void main_save_map_private(void)
   if (*(uint8_t *)0x46da29 == 0) {
     /* Not in a pending-save state: only fire if debug_game_save forces it. */
     if (debug_game_save) {
-      ((void (*)(int, const char *, ...))0xff4d0)(0, "unsafe save"); /* hazard-ok: fnptr-conv */
+      ((void (*)(int, const char *, ...))0xff4d0)(
+        0, "unsafe save"); /* hazard-ok: fnptr-conv */
     }
     /* Fall through to shared trigger tail. */
   } else {
@@ -2188,8 +2189,9 @@ void main_save_map_private(void)
     if (orig_ticks >= 0xf0 && *(uint8_t *)0x46da2a != 0) {
       /* Hung for too long — abort the save. */
       if (debug_game_save) {
-        ((void (*)(int, const char *, ...))0xff4d0)(0, /* hazard-ok: fnptr-conv */
-                                                    "gave up trying to save");
+        ((void (*)(int, const char *, ...))0xff4d0)(
+          0, /* hazard-ok: fnptr-conv */
+          "gave up trying to save");
       }
       byte_46DA28 = 0;
       return;
@@ -4600,7 +4602,13 @@ void FUN_00103530(int base, char (*visit)(uint32_t, int, uint32_t *, uint32_t),
 
   node = (uint32_t *)FUN_00117ee0((int *)(base + 0x18), node_index, 0x18);
   if ((node[3] == 0xffffffff) &&
-      ((visit == NULL) || ((*visit)(mark, base, node, visit_arg) != 0))) {
+      /* Visitor argument order is fixed by the push sequence at 0x103566:
+       * PUSH EDX([EBP+0x14] = mark), PUSH ESI(node), PUSH EBX(base), PUSH
+       * ECX([EBP+0x10] = visit_arg) — first push is the last argument, so
+       * visit_arg is argument 0 and mark is argument 3. FUN_00103a00 reads
+       * argument 0 as a float* plane, so getting this order wrong hands it an
+       * integer to dereference. */
+      ((visit == NULL) || ((*visit)(visit_arg, base, node, mark) != 0))) {
     node[3] = mark;
     slot = 3;
     do {
@@ -4790,6 +4798,99 @@ int FUN_001036c0(int *table, int value, int key_a, int key_b)
     index = (int)((unsigned int)index & 0x7fffffffu);
   }
   return index;
+}
+
+/*
+ * FUN_00103a00 — surface visitor for the FUN_00103530 marking walk: accept a
+ * surface only if its three vertices are coplanar with the seed plane and its
+ * winding faces the same way as that plane.
+ *
+ * This is the `visit` callback FUN_00103c00 hands to FUN_00103530, so the
+ * parameter list is the walker's fixed visitor prototype
+ * (visit_arg, base, node, mark) — see the push sequence at 0x10356a: PUSH
+ * EDX([EBP+0x14] = mark), PUSH ESI(node), PUSH EBX(base), PUSH ECX([EBP+0x10]
+ * = visit_arg); the first push is the last argument. Here `visit_arg` is the
+ * seed plane (four floats: normal + distance) and `node` is the surface whose
+ * three dwords are edge references. `mark` is delivered but never read by this
+ * visitor (the walker itself writes it into node[3]).
+ *
+ * Each edge reference carries a direction flag in bit 31: the low 31 bits
+ * index the edge block at base+0xc (stride 0x1c) and the flag selects which of
+ * the two vertex indices at edge+0x0c / edge+0x10 belongs to this surface.
+ * That index resolves against the vertex block at base (stride 0xc) to a
+ * float[3] position. Same two-level decode as FUN_00103c00.
+ *
+ * All three positions must satisfy |dot(pt, plane) - plane[3]| < 0.01
+ * (the double at 0x28b800 is (double)0.01f, compared via FABS / FCOMP qword
+ * exactly like FUN_00103600's epsilon tests). The plane through the three
+ * points is then built with FUN_001037b0 and the surface is accepted only when
+ * dot(built_normal, plane) > 0 (the float at 0x2533c0 is 0.0f; TEST AH,0x41 /
+ * JNE at 0x103b65 makes the test strict and rejects NaN).
+ *
+ * Note the point order handed to FUN_001037b0: PUSH EDX(p1), PUSH ECX(p2),
+ * PUSH EDI(p0), PUSH ECX(&out) at 0x103b35-0x103b3b gives
+ * FUN_001037b0(&out, p0, p2, p1) — points 1 and 2 are SWAPPED relative to the
+ * natural order, which is what selects the winding sense. Do not "fix" this;
+ * it would negate the built normal and invert the facing test. FUN_00103c00
+ * builds its plane with the same swap.
+ *
+ * ABI: cdecl, four stack args, returns the accept flag in AL (MOV AL,1 at
+ * 0x103b6c / XOR AL,AL at 0x103b75). Ghidra printed
+ * `void __cdecl FUN_00103a00(void)` with the arguments surfacing as
+ * in_stack_* and dropped the return entirely.
+ *
+ * The FPU evaluation order in every dot product is component 1, then 2, then
+ * 0 (FLD [pt+4] first), and the epsilon subtraction is FSUB — `dot - plane[3]`
+ * — not FSUBR.
+ */
+char FUN_00103a00(uint32_t plane_arg, int base, uint32_t *tri_refs,
+                  uint32_t mark)
+{
+  float *plane;
+  float *p0;
+  float *p1;
+  float *p2;
+  float out_plane[4];
+
+  (void)mark; /* delivered by the walker's visitor prototype; never read here */
+
+  p0 = (float *)FUN_00117ee0(
+    (int *)base,
+    ((int *)(FUN_00117ee0((int *)(base + 0xc), (int)(tri_refs[0] & 0x7fffffff),
+                          0x1c) +
+             0xc))[(int)(tri_refs[0] & 0x80000000) != 0],
+    0xc);
+  p1 = (float *)FUN_00117ee0(
+    (int *)base,
+    ((int *)(FUN_00117ee0((int *)(base + 0xc), (int)(tri_refs[1] & 0x7fffffff),
+                          0x1c) +
+             0xc))[(int)(tri_refs[1] & 0x80000000) != 0],
+    0xc);
+  p2 = (float *)FUN_00117ee0(
+    (int *)base,
+    ((int *)(FUN_00117ee0((int *)(base + 0xc), (int)(tri_refs[2] & 0x7fffffff),
+                          0x1c) +
+             0xc))[(int)(tri_refs[2] & 0x80000000) != 0],
+    0xc);
+
+  /* The plane pointer is only materialized here: the original reloads
+   * [EBP+8] into ESI at 0x103ab7, after the last use of tri_refs. */
+  plane = (float *)plane_arg;
+  if ((main_fabs_double_from_float(p0[1] * plane[1] + p0[2] * plane[2] +
+                                   p0[0] * plane[0] - plane[3]) < 0.01f) &&
+      (main_fabs_double_from_float(p1[1] * plane[1] + p1[2] * plane[2] +
+                                   p1[0] * plane[0] - plane[3]) < 0.01f) &&
+      (main_fabs_double_from_float(p2[1] * plane[1] + p2[2] * plane[2] +
+                                   p2[0] * plane[0] - plane[3]) < 0.01f)) {
+    if (FUN_001037b0(out_plane, p0, p2, p1) != NULL) {
+      if (out_plane[0] * plane[0] + out_plane[2] * plane[2] +
+            out_plane[1] * plane[1] >
+          0.0f) {
+        return 1;
+      }
+    }
+  }
+  return 0;
 }
 
 /*
@@ -5115,8 +5216,7 @@ void FUN_00104040(float *p0, float *p1, float *p2, float *color)
     crt_fprintf(*(void **)0x46e394, "\tMaterialBinding { value PER_FACE }\n");
     crt_fprintf(*(void **)0x46e394,
                 "\tMaterial { diffuseColor[%f %f %f] transparency[%f] }\n",
-                color[1], color[2], color[3],
-                *(float *)0x2533c8 - color[0]);
+                color[1], color[2], color[3], *(float *)0x2533c8 - color[0]);
     crt_fprintf(*(void **)0x46e394,
                 "\tIndexedFaceSet { coordIndex[0,1,2,-1] }\n");
     crt_fprintf(*(void **)0x46e394, "}\n");
