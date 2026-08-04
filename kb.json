@@ -33267,7 +33267,8 @@
     },
     {
      "addr": "0x5bad0",
-     "decl": "void encounter_post_combat_select_random_behavior(void);"
+     "decl": "short encounter_post_combat_select_random_behavior(void *behaviors /* @<ebx> */, void *selected_behavior_out);",
+     "ported": true
     },
     {
      "addr": "0x5bbe0",

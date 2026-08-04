@@ -4603,6 +4603,127 @@ void encounter_force_deactivate(int encounter_handle)
   FUN_0005a640(encounter_handle);
 }
 
+/* encounter_post_combat_select_random_behavior (0x5bad0) — Weighted-random
+ * pick of one post-combat behavior out of a 4-entry candidate array, copying
+ * the winning entry's first 16 bytes to the caller's output slot and returning
+ * its index (-1 when no candidate qualifies).
+ *
+ * Confirmed (0x103 bytes, 0x5bad0-0x5bbd2, EBP frame with SUB ESP,8):
+ *   - EBX is READ at 0x5bae8 (LEA ECX,[EBX+4]) with no prior write -> implicit
+ *     @<ebx> input = base of the candidate array. Both original call sites
+ *     (0x5bec5, 0x5bfbc) set it with LEA EBX,[EBP-0xe4] (0x80 = 4 x 0x20).
+ *   - Single cdecl stack arg at [EBP+8] (0x5bba9) = output pointer; callers
+ *     PUSH a 16-byte frame slot and clean up with ADD ESP,4.
+ *   - Epilogue MOV AX,SI (0x5bbcb) -> implicit short return of the selected
+ *     index. Both callers consume it (MOV word ptr [EBP-0x24],AX at 0x5beca
+ *     and MOV word ptr [EBP-0x22],AX at 0x5bfc4), so the return is real and
+ *     the previous void(void) declaration was wrong on return type and args.
+ *   - Array shape: stride 0x20 (ADD ECX,0x20 / SHL EAX,5), 4 entries
+ *     (CMP DX,4; JL). Only two fields are touched: +0x00 int behavior id
+ *     (-1 = unused slot) and +0x04 float weight.
+ *   - Copy-out moves exactly 4 dwords (0x5bbb4-0x5bbc9), so the destination
+ *     buffer is 0x10 bytes, NOT a whole 0x20-byte element.
+ *   - Every 16-bit compare (CMP DX,4 / CMP DI,1 / CMP SI,-1 / CMP SI,4) plus
+ *     MOVSX ECX,SI proves index, count and selection are shorts.
+ *   - The frame holds exactly two floats: [EBP-4] is seeded 0.0 by
+ *     FLD/FST at 0x5bad6/0x5bade, receives the weight total at 0x5bb18, and
+ *     is then OVERWRITTEN with random * total at 0x5bb37 — one variable, hence
+ *     the reuse of weight_total below (a third float would grow SUB ESP to
+ *     0xC and shift the whole frame). [EBP-8] is the accumulator, zeroed as an
+ *     integer store at 0x5bb1d and kept in ST0 across the second loop.
+ *   - FCOM sense: both float tests are FCOMP/FCOM + TEST AH,0x41 + JNE/JZ,
+ *     i.e. the "<= or unordered" negation of a strict `>`; the weight guard is
+ *     `weight > 0.0f` and the draw test is `accum > random * total`.
+ *   - Assert tail at 0x5bb89 pushes 1, 0xa02, file, reason -> display_assert(
+ *     reason, file, 2562, true) followed by PUSH -1; CALL 0x8e2f0 =
+ *     system_exit(-1) (correct flavor, not halt_and_catch_fire).
+ *
+ * Call-site verification:
+ *   get_global_random_seed_address | no args (CALL 0x10b0d0) | ()      | match
+ *   random_math_real | PUSH EAX = seed address returned above
+ *     -> random_math_real((unsigned int *)get_global_random_seed_address())
+ *     | match (result in ST0, FMUL [EBP-4] follows, ADD ESP,4)
+ *   display_assert | PUSH 1 ; PUSH 0xa02 ; PUSH 0x25d27c ; PUSH 0x25db08
+ *     -> display_assert(reason, file, 0xa02, 1) | match (cdecl reverse order)
+ *   system_exit | PUSH -1 -> system_exit(-1) | match
+ *
+ * Store-offset table (output buffer at [EBP+8], from the disassembly):
+ *   +0x00 | MOV EDX,[ECX+0x00] ; MOV [EAX+0x00],EDX | element dword 0
+ *   +0x04 | MOV EDX,[ECX+0x04] ; MOV [EAX+0x04],EDX | element dword 1
+ *   +0x08 | MOV EDX,[ECX+0x08] ; MOV [EAX+0x08],EDX | element dword 2
+ *   +0x0c | MOV ECX,[ECX+0x0c] ; MOV [EAX+0x0c],ECX | element dword 3
+ *
+ * Uncertain: the element type beyond +0x00/+0x04 is unknown (the copy moves
+ * the first 0x10 bytes opaquely), so the array stays raw pointer arithmetic.
+ */
+short encounter_post_combat_select_random_behavior(void *behaviors,
+                                                   void *selected_behavior_out)
+{
+  char *weight_ptr;
+  char *element;
+  int *src;
+  int *dst;
+  short selected_behavior_index;
+  short qualifying_count;
+  short i;
+  float weight_total;
+  float accumulated_weight;
+
+  selected_behavior_index = -1;
+  qualifying_count = 0;
+  i = 0;
+  weight_total = 0.0f;
+  weight_ptr = (char *)behaviors + 4;
+
+  do {
+    if ((*(float *)weight_ptr > 0.0f) && (*(int *)(weight_ptr - 4) != -1)) {
+      weight_total = weight_total + *(float *)weight_ptr;
+      selected_behavior_index = i;
+      qualifying_count = qualifying_count + 1;
+    }
+    i = i + 1;
+    weight_ptr = weight_ptr + 0x20;
+  } while (i < 4);
+
+  if (qualifying_count > 1) {
+    accumulated_weight = 0.0f;
+    /* [EBP-4] is reused: it now holds random * total, the draw threshold. */
+    weight_total =
+      random_math_real((unsigned int *)get_global_random_seed_address()) *
+      weight_total;
+    i = 0;
+    do {
+      element = (char *)behaviors + i * 0x20;
+      if ((*(float *)(element + 4) > 0.0f) && (*(int *)element != -1)) {
+        accumulated_weight = accumulated_weight + *(float *)(element + 4);
+        if (accumulated_weight > weight_total) {
+          selected_behavior_index = i;
+          break;
+        }
+      }
+      i = i + 1;
+    } while (i < 4);
+  }
+
+  if (selected_behavior_index != -1) {
+    if ((selected_behavior_index < 0) || (selected_behavior_index >= 4)) {
+      display_assert("(selected_behavior_index >= 0) && "
+                     "(selected_behavior_index < "
+                     "NUMBER_OF_POST_COMBAT_BEHAVIOR_TYPES)",
+                     "c:\\halo\\SOURCE\\ai\\encounters.c", 0xa02, 1);
+      system_exit(-1);
+    }
+    src = (int *)((char *)behaviors + selected_behavior_index * 0x20);
+    dst = (int *)selected_behavior_out;
+    dst[0] = src[0];
+    dst[1] = src[1];
+    dst[2] = src[2];
+    dst[3] = src[3];
+  }
+
+  return selected_behavior_index;
+}
+
 /* encounter_set_respawn (0x5c630) — Set an encounter's respawn flag
  * (encounter+0x3c) and arm its 0x96-tick respawn timer (encounter+0xe), then
  * refresh the encounter's activation state. Guarded on ai_active

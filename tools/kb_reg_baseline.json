@@ -79,6 +79,7 @@
     "0x5a640": "void FUN_0005a640(int encounter_handle /* @<eax> */);",
     "0x5acf0": "void FUN_0005acf0(int encounter_handle /* @<eax> */);",
     "0x5af70": "bool FUN_0005af70(int encounter_handle /* @<eax> */, void *rule /* @<edi> */);",
+    "0x5bad0": "short encounter_post_combat_select_random_behavior(void *behaviors /* @<ebx> */, void *selected_behavior_out);",
     "0x5c3a0": "bool encounter_get_actor_starting_location(int platoon_index, int delay, int flag, int encounter_handle /* @<ebx> */);",
     "0x5ef80": "char FUN_0005ef80(unsigned int *path_buf @<edi>);",
     "0x60ea0": "void FUN_00060ea0(void *avoidance_record @<ecx>, float *end_point @<eax>, void *param_2, void *scenario, unsigned char param_4, float radius, float *start_point, int param_7, float param_8, unsigned char param_9, unsigned char param_10);",
