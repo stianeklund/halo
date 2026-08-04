@@ -7231,7 +7231,7 @@
     },
     {
      "addr": "0x199a60",
-     "decl": "void directory_create_or_delete_contents(void);"
+     "decl": "void directory_create_or_delete_contents(const char *directory_name);"
     },
     {
      "addr": "0x199b20",
@@ -13356,7 +13356,8 @@
     },
     {
      "addr": "0x101bc0",
-     "decl": "void main_movie_start(void);"
+     "decl": "void main_movie_start(float frames_per_second);",
+     "ported": true
     },
     {
      "addr": "0x101c90",

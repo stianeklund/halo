@@ -2904,6 +2904,50 @@ void main_rasterizer_throttle(void)
   ((fn_profile_store_t)0x8f880)(frames_delta, synced, (const char *)0x46ddfc);
 }
 
+/* main_movie_start - 0x101bc0
+ *
+ * Begin movie capture: allocate the 640x480 offscreen bitmap that
+ * render_frame_present blits each frame into, clear the movie output
+ * directory, reset the frame counter at 0x46da1c, and pin the frame step
+ * that main_update_time reads back from 0x46da20 to 1/fps.  Frame rates at
+ * or below 1.0e-4 fall back to a fixed 1/30s step.
+ *
+ * ABI: one cdecl float stack param at [EBP+8] (FLD/FDIV dword ptr [EBP+8]);
+ * bare RET, so the caller does the ADD ESP,4.
+ *
+ * FCOM sense (lift-learnings §38): the original compare is
+ *   FLD [EBP+8]; FCOMP [0x253f44]; FNSTSW AX; TEST AH,0x41; JNZ <fallback>
+ * TEST AH,0x41 masks C0|C3, so the branch is taken for fps <= 1.0e-4 OR NaN
+ * and the fallthrough is the STRICT `>` path.  Do not relax this to `>=`.
+ *
+ * FDIV operand order: FLD dword [0x2533c8] (=1.0f) then FDIV dword [EBP+8],
+ * i.e. 1.0f / fps -- the constant is the numerator.
+ */
+void main_movie_start(float frames_per_second)
+{
+  if (main_globals_movie != NULL) {
+    display_assert("main_globals.movie==NULL", "c:\\halo\\SOURCE\\main\\main.c",
+                   0xa6b, true);
+    system_exit(-1);
+  }
+
+  main_globals_movie = bitmap_2d_new(0x280, 0x1e0, 0, 10);
+  if (main_globals_movie != NULL) {
+    directory_create_or_delete_contents("movie");
+
+    /* movie frame counter; cleared before the compare (the original
+     * schedules this store between the FCOMP and the FNSTSW) */
+    *(int *)0x46da1c = 0;
+
+    if (frames_per_second > 1.0e-4f) {
+      *(float *)0x46da20 = 1.0f / frames_per_second;
+    } else {
+      *(float *)0x46da20 = 0.03333333507180214f;
+    }
+    game_time_set_speed(1.0f);
+  }
+}
+
 /* Clear both rasterizer timing flags. */
 void main_lost_map(void)
 {

@@ -15944,6 +15944,10 @@
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
+    "main_movie_start": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "main_new_map": {
       "score": 92.2,
       "source": "src/halo/main/main.c"
