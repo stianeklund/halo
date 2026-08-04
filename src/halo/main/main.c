@@ -848,6 +848,54 @@ void main_respawn(char reset_flag)
   }
 }
 
+/*
+ * main_save_core - 0x1003b0
+ *
+ * Confirmed:
+ *  - Whole body is 6 instructions, no frame, no locals, no _chkstk, no FPU:
+ *      001003b0  PUSH 0x28b198                  ; -> "core.bin"
+ *      001003b5  PUSH 0x46dd55                  ; -> core_name
+ *      001003ba  MOV byte ptr [0x0046da3d],0x1
+ *      001003c1  CALL 0x0008dff0                ; csstrcpy
+ *      001003c6  ADD ESP,0x8
+ *      001003c9  RET
+ *  - Plain RET with no immediate and no [EBP+N] reads => void(void), cdecl.
+ *  - `ADD ESP,0x8` after the CALL confirms two stack args and matches the
+ *    kb decl `char *csstrcpy(char *destination, const char *source)`.
+ *    cdecl push order: the FIRST push (0x28b198, the string) is the LAST
+ *    argument (source); the SECOND push (0x46dd55) is the destination.
+ *  - The flag store is `MOV byte ptr ... ,1`, an 8-bit store.
+ *    game_state_save_core_pending is declared `bool` (unsigned char), so the
+ *    store stays one byte; widening it to int/short would emit a dword/word
+ *    store and mismatch.
+ *  - MSVC scheduled the flag store between the argument pushes and the CALL,
+ *    but it is unconditional and independent of the call, so source order is
+ *    flag-then-call.
+ *  - No register is read before being written => no implicit @<reg> inputs
+ *    and no @<reg> callee contract.
+ *  - csstrcpy's return value (EAX) is not consumed by anything after the
+ *    CALL, so it is discarded here, matching the void return.
+ *
+ * Inferred:
+ *  - Arms a deferred core-dump request: the flag at 0x46da3d is the sibling
+ *    of game_state_load_core_pending (0x46da3e) in the same contiguous run of
+ *    main_globals pending-request bytes, and main_reset_map's cleanup block
+ *    clears 0x46da3d alongside the other pending flags. The actual dump is
+ *    therefore performed later by the main-loop handler that consumes the
+ *    flag, not here.
+ *  - core_name (0x46dd55) is the filename buffer that handler reads.
+ *
+ * Uncertain:
+ *  - The size of the core_name buffer is not observable from this function
+ *    (csstrcpy is unbounded), so it stays an incomplete `char[]` as declared
+ *    in kb.json rather than being given an invented bound.
+ */
+void main_save_core(void)
+{
+  game_state_save_core_pending = 1;
+  csstrcpy(core_name, "core.bin");
+}
+
 void main_queue_map_name(char *map_name)
 {
   if (map_name != 0) {

@@ -7107,7 +7107,7 @@
     },
     "0xffef0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The gamepad state record holds a 16-entry byte-per-button down-flag array at offset 0x10; inferred from MOV DL,[ECX+EAX+0x10] indexed by the sign-extended button_index and the NUMBER_OF_GAMEPAD_BUTTONS bound of 0x10."
       ],
@@ -7235,6 +7235,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x100370": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Setting main_won_map_private_pending (0x46da3a) arms main_won_map_private (0x101040), which the main loop invokes on its next pass and which clears the flag on entry, so main_won_map is the deferred public request entry point for the won-map transition."
+      ],
+      "uncertain": [
+        "Ghidra resolves no direct callers for this 15-byte function; an indirect or table-driven reference (e.g. an HS/script command table) is more likely than dead code, but that has not been proven from the binary."
+      ]
+    },
     "0x100380": {
       "kind": "function",
       "status": "unknown",
@@ -7244,6 +7254,21 @@
       "uncertain": [
         "No string, assert, or recorded caller evidence exists for what transition byte_46DA3B (0x46da3b) requests, so the function keeps its mechanical FUN_00100380 name and both globals keep their kb-registered byte_46DAxx names."
       ]
+    },
+    "0x100390": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Same arm-a-pending-main-loop-transition shape as main_won_map (0x100370) and FUN_00100380 (0x100380): byte_46DA3C is one of the consecutive main_globals pending-request bytes at 0x46da3a/0x46da3b/0x46da3c, set here and presumably cleared by the corresponding main-loop handler on entry."
+      ],
+      "uncertain": [
+        "The word store value 0x5b (91) is a bare 16-bit immediate with no accompanying string, assert, or table reference in the binary, so there is no evidence for what it enumerates and it is kept as a magic literal rather than given a speculative name.",
+        "The sole original call site (0xbd443, inside players_update_before_game) is mirrored in our source at src/halo/game/players.c:2541 as a raw cast ((void (*)(int))0x100390) declaring an int parameter; it passes a zero-extended byte so the low-byte read is ABI-correct, but it should be converted to a named main_respawn call now that the kb decl is correct."
+      ]
+    },
+    "0x1003b0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x100590": {
       "kind": "function",

@@ -13199,7 +13199,8 @@
     },
     {
      "addr": "0x1003b0",
-     "decl": "void main_save_core(void);"
+     "decl": "void main_save_core(void);",
+     "ported": true
     },
     {
      "addr": "0x1003d0",
