@@ -3010,6 +3010,32 @@ void main_crash(void)
 }
 
 /*
+ * main_print_version - 0x101cc0
+ *
+ * Prints the build banner to console channel 0. Confirmed from the whole
+ * five-instruction body:
+ *   PUSH 0x28b5d4  ; format string
+ *   PUSH 0x0       ; channel
+ *   CALL 0xff4d0   ; console_printf
+ *   ADD ESP,0x8
+ *   RET
+ *
+ * The literal at 0x28b5d4 is exactly
+ * "halobeta xbox 01.10.12.2276 Oct 12 2001 16:07:48" -- note it does NOT
+ * contain "built at:", unlike the longer variant at 0x28b60c used by
+ * main_framerate_render. The two must stay separate string literals so each
+ * call site keeps referencing its own .rdata slot.
+ *
+ * console_printf is variadic; two pushes for a format string with no
+ * conversion specifiers is the complete argument list (the ADD ESP,0x8
+ * cleanup confirms exactly two stack args).
+ */
+void main_print_version(void)
+{
+  console_printf(0, "halobeta xbox 01.10.12.2276 Oct 12 2001 16:07:48");
+}
+
+/*
  * main_vertical_blank_interrupt_handler - 0x101cd0
  *
  * Interrupt-context callback invoked by the D3D vblank interrupt. Increments

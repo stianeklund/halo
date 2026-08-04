@@ -13377,7 +13377,8 @@
     },
     {
      "addr": "0x101cc0",
-     "decl": "void main_print_version(void);"
+     "decl": "void main_print_version(void);",
+     "ported": true
     },
     {
      "addr": "0x101cd0",

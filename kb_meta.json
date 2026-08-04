@@ -7511,6 +7511,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x101cc0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x101cd0": {
       "kind": "function",
       "status": "ported",
