@@ -1550,6 +1550,62 @@ long main_get_solo_level_from_name(const char *name)
   return crt_strstr(buf, "d40") != NULL ? 9 : -1;
 }
 
+/* The ten campaign level name/path strings, indexed by solo level index.
+ * Element [0] is "levels\\a10\\a10", already dereferenced as *(char **)0x31fa9c
+ * by main_load_last_solo_map below.
+ *
+ * Addressed through a raw cast rather than a kb.json global because a kb.json
+ * global is emitted __declspec(dllimport), and an indexed load through it
+ * would lower to an indirect __imp_ load instead of the original's direct
+ * MOV EAX,[EAX*4 + 0x31fa9c] (same reason as main_get_map_name above). */
+#define SOLO_LEVEL_NAMES ((const char **)0x31fa9c)
+/* Unsigned: the original's upper bound is CMP CX,0xA / JNC, an unsigned
+ * above-or-equal, so the count's type makes the comparison unsigned (the
+ * Bungie NUMBEROF/sizeof idiom yields size_t). A signed 10 lowers to JGE. */
+#define NUMBER_OF_SOLO_LEVELS 10u
+
+/*
+ * main_get_solo_level_name - 0x100870
+ *
+ * Returns the campaign map name/path for a solo level index, or NULL when the
+ * index falls outside 0..9. Inverse of main_get_solo_level_from_name above.
+ *
+ * Confirmed:
+ *  - Frame is PUSH EBP; MOV EBP,ESP with no local space and no saved
+ *    registers, and RET carries no immediate: one cdecl stack argument,
+ *    caller-cleaned, no implicit @<reg> inputs.
+ *  - The argument is read as MOV CX,word ptr [EBP+8] -- a 16-bit load with no
+ *    widening at all -- so the parameter is 16 bits wide, not int.
+ *  - XOR EAX,EAX at 0x100877 runs BEFORE both bounds tests, and both failing
+ *    tests jump to the shared POP EBP; RET at 0x10088e. That is a single
+ *    result local pre-set to NULL with the success store inside one if, not a
+ *    pair of early returns.
+ *  - The bounds pair is TEST CX,CX / JL (signed, catches negative) followed by
+ *    CMP CX,0xA / JNC (unsigned, catches >= 10): the MSVC lowering of
+ *    0 <= index && index < 10 once non-negativity has been established.
+ *  - MOVSX EAX,CX sign-extends the index before MOV EAX,[EAX*4 + 0x31fa9c],
+ *    so the table is ten 4-byte pointers based at 0x31fa9c.
+ *
+ * Inferred:
+ *  - The element type is a string pointer rather than some other 4-byte datum:
+ *    main_get_solo_level_from_name maps exactly ten level-name strings back to
+ *    indices 0..9, and 0x31fa9c[0] is consumed as a map path.
+ *
+ * Note: Ghidra decompiles this as `void FUN_00100870(void) { return; }`,
+ * missing both the stack parameter and the implicit EAX return
+ * (lift-learnings section 16). The disassembly is the only usable evidence.
+ */
+const char *main_get_solo_level_name(int16_t level_index)
+{
+  const char *name = NULL;
+
+  if (level_index >= 0 && level_index < NUMBER_OF_SOLO_LEVELS) {
+    name = SOLO_LEVEL_NAMES[level_index];
+  }
+
+  return name;
+}
+
 /*
  * compute_split_screen_grid - 0x1008a0
  *

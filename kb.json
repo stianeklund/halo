@@ -13292,7 +13292,8 @@
     },
     {
      "addr": "0x100870",
-     "decl": "void main_get_solo_level_name(void);"
+     "decl": "const char *main_get_solo_level_name(int16_t level_index);",
+     "ported": true
     },
     {
      "addr": "0x100890",

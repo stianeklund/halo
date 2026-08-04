@@ -15888,6 +15888,10 @@
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
+    "main_get_solo_level_name": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "main_halt_entry": {
       "score": 100.0,
       "source": "src/halo/main/main.c"
