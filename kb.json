@@ -13297,7 +13297,8 @@
     },
     {
      "addr": "0x100890",
-     "decl": "void main_run_demos(void);"
+     "decl": "void main_run_demos(void);",
+     "ported": true
     },
     {
      "addr": "0x1008a0",

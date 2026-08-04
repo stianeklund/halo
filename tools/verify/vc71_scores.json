@@ -15976,6 +15976,10 @@
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
+    "main_run_demos": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "main_save_cancel": {
       "score": 100.0,
       "source": "src/halo/main/main.c"

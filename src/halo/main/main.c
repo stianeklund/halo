@@ -1607,6 +1607,41 @@ const char *main_get_solo_level_name(int16_t level_index)
 }
 
 /*
+ * main_run_demos - 0x100890
+ *
+ * Confirmed:
+ *  - Whole body is 2 instructions, no frame, no _chkstk, no locals, no
+ *    CALLs, no FPU, no struct access:
+ *      00100890  MOV byte ptr [0x0046da44],0x1
+ *      00100897  RET
+ *  - The store is BYTE width with immediate 1 (delinked reference shows
+ *    `movb $0x1, DAT_0046da44`), so 0x46da44 is a single-byte flag; it
+ *    carries the kb-registered name xbox_demos_launch_pending.
+ *  - Plain cdecl void(void): RET carries no immediate, and no register is
+ *    read before being written, so there are no implicit @<reg> inputs and
+ *    no @<reg> callee contracts to honor.
+ *  - The same byte is read and cleared by the main loop's pending-flag
+ *    dispatch (main_loop, 0x1010c0 region): a set flag clears itself and
+ *    then calls xbox_demos_launch. So this function only arms the launch;
+ *    it deliberately does not clear the flag or call anything.
+ *
+ * Inferred:
+ *  - Same shape as main_set_game_connection_to_film_playback (0x1006e0) and
+ *    main_menu_switch_to_single_player (0x1006d0): a one-byte "arm this mode
+ *    for the next main-loop iteration" setter.
+ *
+ * Uncertain:
+ *  - The neighbouring bytes 0x46da45 (byte_46DA45, film playback) and
+ *    0x46da46 (byte_46DA46) may belong to the same small state block, but
+ *    nothing here proves that, so they are left as separate globals. The
+ *    store must stay BYTE width for that reason.
+ */
+void main_run_demos(void)
+{
+  xbox_demos_launch_pending = 1;
+}
+
+/*
  * compute_split_screen_grid - 0x1008a0
  *
  * Finds the smallest grid (horizontal x vertical) whose cell count is at
