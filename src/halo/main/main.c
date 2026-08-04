@@ -4867,6 +4867,134 @@ float *FUN_001037b0(float *out_plane, float *p0, float *p1, float *p2)
 }
 
 /*
+ * FUN_00103860 — append one triangle to the surface block as three interned
+ * edges, optionally rejecting it as a duplicate of an existing surface.
+ *
+ * `base` is the collision-BSP-like builder FUN_00103c00 walks:
+ *   base+0x00  vertex block  (stride 0x0c)
+ *   base+0x0c  edge block    (stride 0x1c)
+ *   base+0x18  surface block (stride 0x18)
+ *   base+0x1c  surface element count
+ *
+ * A new 0x18-byte surface element is allocated from the surface block: three
+ * edge references at [0]/[4]/[8], the mark field at [0xc] reset to 0xffffffff
+ * and the trailing 8 bytes cleared. The three positions a/b/c are interned as
+ * vertices with FUN_00103600 and the three edges (a-b, b-c, c-a) with
+ * FUN_001036c0. A failed intern (-1) invalidates the returned index but does
+ * NOT abort: the element is still built and the remaining interns still run.
+ *
+ * When `flag` is set the finished element is compared against every surface
+ * added before it (0 .. count-2). Both sides are compared with bit 31 masked
+ * off, because that bit is the per-surface edge direction flag (same encoding
+ * FUN_00103c00 and FUN_00103a00 decode). If all three edges of the new element
+ * are found in one existing element the triangle is a duplicate: it is drawn
+ * with FUN_00104040 in the debug colour at *(float **)0x2ee6f0, a one-shot
+ * message is printed (guarded by the byte at 0x0046e393) and -1 is returned.
+ *
+ * ABI: cdecl, 5 stack params, returns the new element index in EAX — or -1.
+ * Ghidra printed `void __cdecl FUN_00103860(void)` with every parameter
+ * surfacing as in_stack_* and dropped the return entirely; kb.json carried the
+ * same wrong `void`. Both returns are explicit in the disassembly: 0x1039ec
+ * `MOV EAX,[EBP-4]` and 0x1039ce `OR EAX,0xffffffff`.
+ *
+ * `flag` is read as a byte (0x103930 `MOV AL,byte ptr [EBP+0x18]`), so it is a
+ * one-byte type — even though both original call sites push a full dword
+ * (0x103b9a `MOV EDX,[EBP+0x14]` / 0x19478f `PUSH 0`).
+ *
+ * Register arguments, read from the disassembly and NOT the decompile (which
+ * dropped them): the three FUN_00103600 calls take ESI, loaded once at
+ * 0x103867 with the RAW `base` — not base+0x18, despite that callee's `block`
+ * parameter name — and EBX, reloaded from [EBP+0xc] / [EBP+0x10] / [EBP+0x14]
+ * at 0x10388d / 0x10389b / 0x1038a8. FUN_001036c0 takes `base` in EAX
+ * (0x1038f6 `MOV EAX,[EBP+8]`); its stack args from the push order at
+ * 0x1038f4-0x1038fa (first push = last arg) are (result, verts[j],
+ * verts[(j+1)%3]). That modulo is a real IDIV at 0x1038e6 on a counter that
+ * starts at 1, so it is written as `% 3` here rather than folded away.
+ *
+ * The duplicate-scan counters are 16-bit (`MOVSX EDX,SI` / `MOVSX EBX,CX`,
+ * `CMP CX,0x3`), hence the `short` locals.
+ */
+int FUN_00103860(int base, float *a, float *b, float *c, char flag)
+{
+  int verts[3];
+  int *element;
+  int i;
+  int countdown;
+  int result;
+  int next;
+  int *edge_out;
+  int *vert_in;
+  int *existing;
+  short new_i;
+  short existing_i;
+
+  result = FUN_00117da0((int *)(base + 0x18));
+  if (result != -1) {
+    element = (int *)FUN_00117ee0((int *)(base + 0x18), result, 0x18);
+
+    verts[0] = FUN_00103600(a, (int *)base);
+    verts[1] = FUN_00103600(b, (int *)base);
+    verts[2] = FUN_00103600(c, (int *)base);
+    if (verts[0] == -1 || verts[1] == -1 || verts[2] == -1) {
+      result = -1;
+    }
+
+    next = 1;
+    countdown = 3;
+    edge_out = element;
+    vert_in = verts;
+    do {
+      *edge_out = FUN_001036c0((int *)base, result, *vert_in, verts[next % 3]);
+      if (*edge_out == -1) {
+        result = -1;
+      }
+      vert_in = vert_in + 1;
+      edge_out = edge_out + 1;
+      next = next + 1;
+      countdown = countdown - 1;
+    } while (countdown != 0);
+
+    element[3] = -1;
+    csmemset(element + 4, 0, 8);
+
+    if (flag != '\0') {
+      i = 0;
+      if (*(int *)(base + 0x1c) - 1 > 0) {
+        do {
+          existing = (int *)FUN_00117ee0((int *)(base + 0x18), i, 0x18);
+          new_i = 0;
+          for (;;) {
+            existing_i = 0;
+            do {
+              if (((unsigned int)existing[existing_i] & 0x7fffffff) ==
+                  ((unsigned int)element[new_i] & 0x7fffffff)) {
+                break;
+              }
+              existing_i = existing_i + 1;
+            } while (existing_i < 3);
+            if (existing_i == 3) {
+              break; /* this edge is not in `existing` — not a duplicate */
+            }
+            new_i = new_i + 1;
+            if (new_i > 2) {
+              /* all three edges matched — the triangle already exists */
+              FUN_00104040(a, b, c, *(float **)0x2ee6f0);
+              if (*(char *)0x0046e393 == '\0') {
+                _wprintf((const char *)0x0028b780);
+                *(char *)0x0046e393 = '\x01';
+              }
+              return -1;
+            }
+          }
+          i = i + 1;
+        } while (i < *(int *)(base + 0x1c) - 1);
+      }
+    }
+  }
+  return result;
+}
+
+/*
  * FUN_00103a00 — surface visitor for the FUN_00103530 marking walk: accept a
  * surface only if its three vertices are coplanar with the seed plane and its
  * winding faces the same way as that plane.
