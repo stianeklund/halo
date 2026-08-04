@@ -3038,9 +3038,10 @@ char FUN_001a8850(void *anim_state)
 
 /* FUN_001a8890 (0x1a8890)
  * Returns whether the animation state currently allows something: the result is
- * (field 0xc == 0), except that it is forced to 0 for the signed animation-state
- * band [0x17,0x23] and for state 0x29. Both fields are read as signed bytes --
- * the original uses signed branches (JL/JLE). @ecx = anim state ptr. */
+ * (field 0xc == 0), except that it is forced to 0 for the signed
+ * animation-state band [0x17,0x23] and for state 0x29. Both fields are read as
+ * signed bytes -- the original uses signed branches (JL/JLE). @ecx = anim state
+ * ptr. */
 char FUN_001a8890(void *anim_state)
 {
   char result;
@@ -3090,6 +3091,36 @@ int FUN_001a88b0(int16_t anim_state)
   case 0xf:
     result = 0x1a;
     break;
+  }
+  return result;
+}
+
+/* FUN_001a8910 (0x1a8910)
+ *
+ * Animation-state predicate. @ecx = anim state value (signed 16-bit; the
+ * prologue's MOVSX ECX,CX proves the sign extension).
+ *
+ * Returns 0 for the six states 0x1e, 0x1f, 0x20, 0x21, 0x27 and 0x29;
+ * returns 1 for every other state (including the in-range 0x22-0x26 and
+ * 0x28, which fall through to the default arm of the jump table).
+ *
+ * The original biases by -0x1e and bounds-checks against 0xb, then indexes a
+ * 12-byte selector table at 0x1a8938 feeding the 2-entry dword jump table at
+ * 0x1a8930. Keep this as a switch: an if-chain or lookup array will not
+ * regenerate the byte/jump table pair. */
+char FUN_001a8910(int16_t anim_state)
+{
+  char result;
+
+  result = 1;
+  switch ((int)anim_state) {
+  case 0x1e:
+  case 0x1f:
+  case 0x20:
+  case 0x21:
+  case 0x27:
+  case 0x29:
+    result = 0;
   }
   return result;
 }

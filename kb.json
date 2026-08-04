@@ -27540,7 +27540,7 @@
     {
      "addr": "0x1a8910",
      "decl": "char FUN_001a8910(int16_t anim_state@<ecx>);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x1a8950",
