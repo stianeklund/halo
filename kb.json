@@ -13397,7 +13397,8 @@
     },
     {
      "addr": "0x101ec0",
-     "decl": "void main_save_map_no_timeout(void);"
+     "decl": "void main_save_map_no_timeout(void);",
+     "ported": true
     },
     {
      "addr": "0x101f00",

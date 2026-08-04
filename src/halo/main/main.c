@@ -3242,6 +3242,71 @@ void main_load_last_solo_map(void)
 }
 
 /*
+ * main_save_map_no_timeout - 0x101ec0
+ *
+ * Arms a pending map-save request and clears the secondary/timeout flag at
+ * 0x46da2a, instead of setting it the way main_save_map_safe (0x100330) does.
+ *
+ * Confirmed (disassembly; 14 instructions, no frame, no locals, no CALLs):
+ *    00101ec0  MOV  CL,byte ptr [0x0046da28]
+ *    00101ec6  XOR  EAX,EAX
+ *    00101ec8  CMP  CL,AL
+ *    00101eca  JZ   0x00101ed4               ; byte_46DA28 == 0 -> arm block
+ *    00101ecc  CMP  byte ptr [0x0046da2a],AL
+ *    00101ed2  JZ   0x00101ef2               ; 0x46da2a == 0 -> skip arm block
+ *    00101ed4  MOV  CL,0x1
+ *    00101ed6  MOV  byte ptr [0x0046da28],CL ; BYTE
+ *    00101edc  MOV  byte ptr [0x0046da29],CL ; BYTE
+ *    00101ee2  MOV  [0x0046da2c],EAX         ; DWORD
+ *    00101ee7  MOV  [0x0046da30],EAX         ; DWORD
+ *    00101eec  MOV  [0x0046da38],AX          ; WORD, not DWORD
+ *    00101ef2  MOV  [0x0046da2a],AL          ; BYTE, branch target: both paths
+ *    00101ef7  RET
+ *  - Plain cdecl void(void). RET carries no immediate, and no register is read
+ *    before being written (CL and EAX are both defined first), so there are no
+ *    implicit @<reg> inputs.
+ *  - Store widths come from the operand sizes above: 0x46da28/29/2a are BYTE,
+ *    0x46da2c and 0x46da30 are DWORD, and 0x46da38 is a 16-bit WORD. Storing
+ *    a dword to 0x46da38 would clobber 0x46da3a, which main_won_map
+ *    (0x100370) sets to 1.
+ *  - The clear of 0x46da2a is the second JZ's branch target, so it runs on
+ *    both paths and belongs after the if, not inside it.
+ *  - Guard is an OR taken as written, with no inversion: the first JZ enters
+ *    the arm block when byte_46DA28 == 0, the second skips it when
+ *    0x46da2a == 0.
+ *
+ * Inferred:
+ *  - Same six globals and the same OR guard as main_save_map_safe (0x100330).
+ *    The only difference is that 0x100330 stores 1 to 0x46da2a inside the
+ *    guard while this variant stores 0 to it unconditionally afterwards,
+ *    matching the kb-registered name main_save_map_no_timeout: it arms the
+ *    save request with the secondary/timeout flag cleared.
+ *  - 0x46da29 is the arm bit, 0x46da2c a cooldown, 0x46da30 a tick total and
+ *    0x46da38 a 16-bit consecutive-success counter, all consumed by
+ *    main_save_map_private (0x100eb0).
+ *
+ * Uncertain:
+ *  - The precise meaning of the secondary flag 0x46da2a is not established
+ *    here; main_save_map_private only tests it once the retry counter has
+ *    exceeded 0xef ticks.
+ *  - 0x46da29, 0x46da2a, 0x46da2c, 0x46da30 and 0x46da38 have no
+ *    kb-registered names, so they keep the raw-address idiom already used by
+ *    main_save_map_nonsafe, main_save_map_safe and main_save_map_private in
+ *    this TU.
+ */
+void main_save_map_no_timeout(void)
+{
+  if (byte_46DA28 == 0 || *(uint8_t *)0x46da2a != 0) {
+    byte_46DA28 = 1;
+    *(uint8_t *)0x46da29 = 1;
+    *(int32_t *)0x46da2c = 0;
+    *(int32_t *)0x46da30 = 0;
+    *(int16_t *)0x46da38 = 0;
+  }
+  *(uint8_t *)0x46da2a = 0;
+}
+
+/*
  * main_load_ui_scenario - 0x101f00
  *
  * Loads the main-menu UI scenario "levels\\ui\\ui" and initializes the

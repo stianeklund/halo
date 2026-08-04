@@ -15864,6 +15864,10 @@
       "score": 65.7,
       "source": "src/halo/main/main.c"
     },
+    "main_crash": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "main_disallow_persistent_storage": {
       "score": 100.0,
       "source": "src/halo/main/main.c"
@@ -15878,6 +15882,10 @@
     },
     "main_game_render": {
       "score": 95.5,
+      "source": "src/halo/main/main.c"
+    },
+    "main_get_current_solo_level": {
+      "score": 100.0,
       "source": "src/halo/main/main.c"
     },
     "main_get_map_name": {
@@ -15945,7 +15953,7 @@
       "source": "src/halo/main/main.c"
     },
     "main_movie_start": {
-      "score": 100.0,
+      "score": 85.7,
       "source": "src/halo/main/main.c"
     },
     "main_new_map": {
@@ -15957,6 +15965,10 @@
       "source": "src/halo/main/main.c"
     },
     "main_present_frame": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
+    "main_print_version": {
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
@@ -15993,6 +16005,10 @@
       "source": "src/halo/main/main.c"
     },
     "main_save_core_name": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
+    "main_save_map_no_timeout": {
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
