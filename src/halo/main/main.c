@@ -601,6 +601,42 @@ bool main_saving_map(void)
 }
 
 /*
+ * main_save_cancel - 0x100320
+ *
+ * Confirmed:
+ *  - Whole body is 2 instructions, no frame, no CALLs, no FPU, no locals:
+ *      00100320  MOV byte ptr [0x0046da28],0x0
+ *      00100327  RET
+ *  - The store is a BYTE-width immediate (MOV byte ptr, imm8), so 0x46da28
+ *    is a single-byte flag here as everywhere else in this group; it is not
+ *    widened to int/word.
+ *  - The immediate 0 is carried inline by the store. Unlike main_reset_map
+ *    (0x1002a0) there is no shared XOR AL,AL feeding a zero register, so the
+ *    single store is the entire function body.
+ *  - Plain cdecl void(void): RET carries no immediate, and no register is
+ *    read before being written, so there are no implicit @<reg> inputs and
+ *    no @<reg> callees.
+ *
+ * Inferred:
+ *  - byte_46DA28 is the save-request / save-attempt-resolved flag that
+ *    main_save_map_nonsafe (0x100300) SETS and that main_reset_map,
+ *    main_skip_cinematic, main_goto_main_menu, FUN_00100380,
+ *    main_save_map_private and main_new_map all CLEAR as part of a larger
+ *    transition. This function clears that flag and nothing else, which
+ *    matches the kb-registered name main_save_cancel: cancel the pending
+ *    save request without arming any other transition.
+ *
+ * Uncertain:
+ *  - Ghidra resolves no direct callers. As with main_saving_map (0x100310),
+ *    an 8-byte body with no xrefs is more likely an under-resolved
+ *    indirect/table reference than dead code, so it is lifted literally.
+ */
+void main_save_cancel(void)
+{
+  byte_46DA28 = 0;
+}
+
+/*
  * FUN_00100380 - 0x100380
  *
  * Confirmed:

@@ -13173,7 +13173,8 @@
     },
     {
      "addr": "0x100320",
-     "decl": "void main_save_cancel(void);"
+     "decl": "void main_save_cancel(void);",
+     "ported": true
     },
     {
      "addr": "0x100330",
