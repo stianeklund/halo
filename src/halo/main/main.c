@@ -385,6 +385,44 @@ void main_reset_map(void)
 }
 
 /*
+ * main_skip_cinematic - 0x1002e0
+ *
+ * Confirmed:
+ *  - Whole body is 4 instructions, no frame, no CALLs, no FPU, no locals:
+ *      MOV word ptr [0x0046da40],0xffff
+ *      MOV byte ptr [0x0046da28],0x0
+ *      MOV byte ptr [0x0046da27],0x1
+ *      RET
+ *  - Store widths differ and are preserved literally: 0x46da40 is a WORD
+ *    store of 0xffff (short = -1); the other two are BYTE-width immediate
+ *    stores, so those globals are single-byte flags.
+ *  - Unlike main_reset_map, there is no XOR AL,AL feeding the zero store:
+ *    each store carries its own immediate, so no shared zero register.
+ *  - Plain cdecl void(void): RET carries no immediate, and no register is
+ *    read before being written, so there are no implicit @<reg> inputs.
+ *
+ * Inferred:
+ *  - Same shape as main_reset_map / main_goto_main_menu (reset word_46DA40
+ *    to -1, clear byte_46DA28, arm one pending flag), so this is another
+ *    "request a main-loop transition" setter. 0x46da27 carries the
+ *    kb-registered name should_skip_cinematic, so the request armed here is
+ *    the cinematic skip.
+ *  - byte_46DA28 is the same save-attempt-resolved flag cleared by
+ *    main_reset_map, main_save_map_private and main_new_map.
+ *
+ * Uncertain:
+ *  - No string or assert evidence pins what word_46DA40 = -1 means beyond
+ *    "the sentinel written by every transition setter in this group", so it
+ *    keeps its mechanical kb-registered name.
+ */
+void main_skip_cinematic(void)
+{
+  word_46DA40 = -1;
+  byte_46DA28 = 0;
+  should_skip_cinematic = true;
+}
+
+/*
  * FUN_00100380 - 0x100380
  *
  * Confirmed:

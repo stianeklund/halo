@@ -15948,6 +15948,10 @@
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
+    "main_skip_cinematic": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "main_skip_private": {
       "score": 94.6,
       "source": "src/halo/main/main.c"

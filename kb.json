@@ -13155,7 +13155,8 @@
     },
     {
      "addr": "0x1002e0",
-     "decl": "void main_skip_cinematic(void);"
+     "decl": "void main_skip_cinematic(void);",
+     "ported": true
     },
     {
      "addr": "0x100300",
