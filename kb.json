@@ -13163,7 +13163,8 @@
     },
     {
      "addr": "0x100300",
-     "decl": "void main_save_map_nonsafe(void);"
+     "decl": "void main_save_map_nonsafe(void);",
+     "ported": true
     },
     {
      "addr": "0x100310",

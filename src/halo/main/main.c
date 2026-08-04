@@ -525,6 +525,45 @@ void main_skip_cinematic(void)
 }
 
 /*
+ * main_save_map_nonsafe - 0x100300
+ *
+ * Confirmed:
+ *  - Whole body is 3 instructions, no frame, no CALLs, no FPU, no locals:
+ *      MOV byte ptr [0x0046da28],0x1
+ *      MOV byte ptr [0x0046da29],0x0
+ *      RET
+ *  - Both stores are BYTE-width immediates (MOV byte ptr, imm8), so both
+ *    globals are single-byte flags; neither is widened here.
+ *  - Each store carries its own immediate; there is no shared zero register
+ *    (no XOR AL,AL), so the two stores are independent.
+ *  - Store order is 0x46da28 then 0x46da29, preserved literally below.
+ *  - Plain cdecl void(void): RET carries no immediate, and no register is
+ *    read before being written, so there are no implicit @<reg> inputs.
+ *
+ * Inferred:
+ *  - byte_46DA28 is the save-request flag also touched by main_reset_map,
+ *    main_skip_cinematic, main_new_map and main_save_map_private; every
+ *    other setter in this group CLEARS it, and this one is the only observed
+ *    site that SETS it, so this is the arm side of that request.
+ *  - 0x46da29 is the save-in-progress / pending flag that
+ *    main_save_map_private (0x100eb0) tests: when it is zero the game is not
+ *    in a pending safe-save state and main_save_map_private takes the arm
+ *    path. Clearing it here therefore arms the request WITHOUT the pending
+ *    bit, matching the kb-registered name main_save_map_nonsafe.
+ *
+ * Uncertain:
+ *  - The sibling at 0x100330 (main_save_map_safe, unported) is expected to
+ *    be the same two stores with 0x46da29 = 1, but that is not verified here.
+ *  - 0x46da29 has no kb-registered name yet, so it keeps its raw address
+ *    form, the same idiom main_save_map_private uses.
+ */
+void main_save_map_nonsafe(void)
+{
+  byte_46DA28 = 1;
+  *(uint8_t *)0x46da29 = 0;
+}
+
+/*
  * FUN_00100380 - 0x100380
  *
  * Confirmed:
