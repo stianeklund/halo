@@ -32740,7 +32740,8 @@
     },
     {
      "addr": "0x566a0",
-     "decl": "void FUN_000566a0(int arg0, int arg1);"
+     "decl": "void FUN_000566a0(int16_t team_a, int16_t team_b);",
+     "ported": true
     },
     {
      "addr": "0x56790",

@@ -616,6 +616,86 @@ void FUN_000564b0(int arg0, int arg1)
 }
 
 /*
+ * FUN_000566a0 — `ai_allegiance` HS script command handler.
+ *
+ * Establishes an allegiance between two teams.  If the AI trace flag
+ * (0x5aca59) is set, logs the command.  Both teams must be valid (!= -1).
+ *
+ * Determines the "effective" (non-player) team: team 1 is presumably the
+ * player team, so if either argument is 1 the effective team is the other
+ * one; otherwise -1.  For effective teams 2 and 5 a difficulty-scaled
+ * duration (300/450/1200/2700 ticks) and the constant 5 are supplied, plus
+ * per-argument flags identifying which argument was the effective team.
+ * Otherwise everything degenerates to -1/0.
+ *
+ * Ghidra's nested-assignment form of the effective-team select is
+ * equivalent but obfuscated; the shape below follows the disassembly at
+ * 0x566ea-0x56709 (ESI initialised to -1, then two CMPs against 1).
+ *
+ * 0x566a0 / encounters.obj
+ */
+void FUN_000566a0(int16_t team_a, int16_t team_b)
+{
+  char is_ally;
+  int16_t durations[4];
+  int16_t effective_team;
+  int16_t threshold;
+  int16_t timer;
+  char matched;
+  int is_player;
+  int is_timer;
+
+  if (*(char *)0x5aca59) {
+    error(2, "%s: ai_allegiance %d %d", hs_runtime_get_executing_thread_name(),
+          (int)team_a, (int)team_b);
+  }
+  /* The -1 sentinel is shared with the two guard comparisons (OR ECX,-1). */
+  timer = -1;
+  if (team_a == (int16_t)-1)
+    return;
+  if (team_b == (int16_t)-1)
+    return;
+
+  matched = 0;
+  effective_team = -1;
+  threshold = -1;
+  is_ally = 0;
+  if (team_a == 1) {
+    effective_team = team_b;
+  } else if (team_b == 1) {
+    effective_team = team_a;
+  }
+
+  switch (effective_team) {
+  case 2:
+  case 5:
+    durations[0] = 300;
+    durations[1] = 450;
+    durations[2] = 1200;
+    durations[3] = 2700;
+    matched = 1;
+    threshold = 5;
+    timer = durations[game_difficulty_level_get()];
+    is_ally = (char)(effective_team == 2);
+    break;
+  }
+
+  /* Both flags are `matched && ...` chains: inside the switch case MSVC knows
+   * matched is 1 and tests only the comparison, then tail-merges the false
+   * arms with the not-matched entry and re-tests matched (0x56749-0x5676e).
+   * is_timer (argument 4) is evaluated before is_player (argument 2), matching
+   * cdecl right-to-left argument evaluation. */
+  is_timer = matched && (team_b == effective_team);
+  is_player = matched && (team_a == effective_team);
+
+  /* cdecl push order at 0x56770-0x5677d (last PUSH is the first argument):
+   * EAX=team_a, ESI=is_player, ECX=team_b, EDX=is_timer, EDI=threshold(5|-1),
+   * ECX=timer(duration table), EBX=is_ally.  Positional order preserved. */
+  game_allegiance_create(team_a, is_player, team_b, is_timer, threshold, timer,
+                         is_ally);
+}
+
+/*
  * FUN_00056790 — debug-logged wrapper for game_allegiance_remove.
  *
  * If AI trace flag (0x5aca59) is set, logs the removal using the MSVC
