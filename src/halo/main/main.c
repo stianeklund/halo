@@ -224,6 +224,24 @@ void main_defer_map_map_change(void)
   main_change_map_name_pending = 0;
 }
 
+/* Store the multiplayer map name into the global name buffer at 0x46db55
+ * (0x100 bytes: 0x46db55..0x46dc54).  csstrncpy copies at most 0xff bytes and
+ * the final byte of the buffer is then force-cleared, so the name is always
+ * NUL-terminated.  Finally the cache is given a chance to precache the map.
+ *
+ * Binary notes (0x100010):
+ *   - [0x46dc54] is written with `MOV byte ptr [0x46dc54],0x0` -- a BYTE store,
+ *     not a dword (Ghidra's `DAT_0046dc54 = 0` hides the width).
+ *   - The single `ADD ESP,0x10` after the second CALL is a merged cleanup for
+ *     BOTH calls (3 dwords + 1 dword); the second callee takes one stack arg.
+ *   - The bool result of cache_files_give_time_to_precache is discarded. */
+void main_set_multiplayer_map_name(const char *name)
+{
+  csstrncpy((char *)0x46db55, name, 0xff);
+  *(char *)0x46dc54 = 0;
+  cache_files_give_time_to_precache((const char *)0x46db55);
+}
+
 /* Return a pointer to the global multiplayer map name buffer (0x100050). */
 char *main_get_multiplayer_map_name(void)
 {

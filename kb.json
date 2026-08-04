@@ -13112,7 +13112,8 @@
     },
     {
      "addr": "0x100010",
-     "decl": "void main_set_multiplayer_map_name(const char *name);"
+     "decl": "void main_set_multiplayer_map_name(const char *name);",
+     "ported": true
     },
     {
      "addr": "0x100040",
@@ -27545,7 +27546,7 @@
     {
      "addr": "0x1a8950",
      "decl": "int FUN_001a8950(int16_t anim_state@<ecx>, int16_t target_state@<edx>);",
-     "ported": false
+     "ported": true
     }
    ],
    "name": "units.obj",

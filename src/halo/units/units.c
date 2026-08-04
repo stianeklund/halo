@@ -3125,6 +3125,37 @@ char FUN_001a8910(int16_t anim_state)
   return result;
 }
 
+/* FUN_001a8950 (0x1a8950)
+ *
+ * Classifies an (animation state, target state) pair into one of three
+ * categories.  Pure register-only comparison ladder: no memory access, no
+ * calls, no FPU.
+ *
+ * Returns 1 when BOTH states are in {0, 2, 3}, 2 when the animation state is
+ * 0x15 or 0x16, and 6 otherwise.  The 0x15/0x16 test is deliberately a
+ * SEPARATE sequential `if` (not an `else if`) — in the original the second
+ * comparison block at 0x1a897c is reached on every path, including the one
+ * that already stored 1, so an anim_state of 0x15/0x16 always yields 2
+ * regardless of target_state.  Confirmed against disassembly.
+ *
+ * Both parameters are compared with 16-bit CMP CX/DX,imm16 — keep them
+ * int16_t (do not widen to int).  Result is returned in full 32-bit EAX.
+ */
+int FUN_001a8950(int16_t anim_state, int16_t target_state)
+{
+  int result;
+
+  result = 6;
+  if (((anim_state == 0) || (anim_state == 2) || (anim_state == 3)) &&
+      ((target_state == 0) || (target_state == 2) || (target_state == 3))) {
+    result = 1;
+  }
+  if ((anim_state == 0x16) || (anim_state == 0x15)) {
+    result = 2;
+  }
+  return result;
+}
+
 /* unit_animation_start_action (0x1a8990)
  *
  * Sets the unit's seated animation state by looking up an animation index from

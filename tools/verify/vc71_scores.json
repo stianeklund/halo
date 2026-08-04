@@ -13680,6 +13680,10 @@
       "score": 100.0,
       "source": "src/halo/units/units.c"
     },
+    "FUN_001a8950": {
+      "score": 100.0,
+      "source": "src/halo/units/units.c"
+    },
     "FUN_001a8990": {
       "score": 79.5,
       "source": "src/halo/units/units.c"
@@ -15927,6 +15931,10 @@
     "main_screen_shell_load": {
       "score": 56.3,
       "source": "src/halo/interface/ui_widget.c"
+    },
+    "main_set_multiplayer_map_name": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
     },
     "main_setup_connection": {
       "score": 100.0,
