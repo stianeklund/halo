@@ -2425,6 +2425,105 @@ void FUN_00058ae0(unsigned int combined_index)
   FUN_00055870(combined_index);
 }
 
+/* One entry of the nearest-first candidate table built on the stack by
+ * FUN_00058af0.  Confirmed from the index math at 0x58b5f
+ * (MOVSX ECX,SI; LEA ECX,[ECX+ECX*2]; SHL ECX,2 => i*12) and the field stores
+ * at +0x0 / +0x4 / +0x8 relative to EBP-0x348. */
+typedef struct {
+  int actor_handle; /* +0x00 */
+  float distance_squared; /* +0x04 */
+  char is_type9; /* +0x08 */
+  char pad_9[3]; /* +0x09 */
+} vehicle_enter_candidate_t;
+
+/* 0x00058af0 — ai_vehicle_enter (script command): order every actor named by
+ * an ai_index into the available seats of a vehicle, nearest actor first.
+ *
+ * Register contract (confirmed from the prologue: PUSH EBP / MOV EBP,ESP /
+ * SUB ESP,0x348 / PUSH EDI / PUSH 3 / PUSH EBX / MOV EDI,EAX).  EAX is read
+ * into EDI before any write, and EBX is pushed as arg0 of
+ * object_try_and_get_and_verify_type with no prior write, so both are implicit
+ * register inputs.  Both call sites (0x58ca4 in FUN_00058c40, 0x58d24 in
+ * FUN_00058cc0) do `PUSH <flag>; PUSH ESI; MOV EAX,EDI; CALL` with the vehicle
+ * handle already live in EBX.
+ *
+ * Frame (SUB ESP,0x348 exactly, 0x300+0x20+0x18+0xc+0x4):
+ *   EBP-0x348 candidates[0x40]  stride 0xc, cap enforced by CMP SI,0x40 / JNC
+ *   EBP-0x048 seat_indices[16]  int16, 0x10 max seats passed to the finder
+ *   EBP-0x028 iter[6]           ai_index actor iterator (iter[4] = actor
+ * handle) EBP-0x010 vehicle_position  vector3 EBP-0x004 seat_count Ghidra's
+ * acStackY_60344[393172] / aiStackY_6034c are fabricated artifacts of
+ * EBP+ESI*1+0xfffffcXX indexing — the real frame is 0x348.
+ *
+ * BUFFER-ALIAS: Ghidra's `local_1c` (EBP-0x18) falls inside the 0x18-byte
+ * iterator at EBP-0x28, i.e. it is iterator field +0x10 (iter[4], the current
+ * actor's datum handle — same slot ai_profile.c reads), not a separate local.
+ *
+ * FPU direction confirmed at 0x58b6e-0x58ba9: FLD [EBP-0x10]; FSUB [EAX+0x12c]
+ * => (vehicle_position - actor_position) for all three components.  The
+ * residual [FPU-WARN] on this function is an x87 stack-depth relabeling only
+ * (insn 7/10 fld %st(2)/%st(3) transposed against the reference, same
+ * mnemonics at the same slots): writing the squared sum as dy*dy+dx*dx+dz*dz
+ * instead of dx*dx+dy*dy+dz*dz was measured to emit a byte-identical
+ * instruction stream (120/116 insns, 97.9% either way), so the source term
+ * order is not the lever and the warning is not a subtraction-order bug.
+ *
+ * The `return` inside the placement loop is a real early exit to the epilogue
+ * (an actor of type 9 blocks the whole order unless the flag allows it); it is
+ * not a `break`. */
+void FUN_00058af0(unsigned int ai_index, int vehicle_handle, int seat_substring,
+                  char allow_type9)
+{
+  vehicle_enter_candidate_t candidates[0x40];
+  int16_t seat_indices[16];
+  int iter[6];
+  vector3_t vehicle_position;
+  int16_t seat_count;
+  void *vehicle;
+  char *actor;
+  unsigned short candidate_count;
+  short i;
+  float dx;
+  float dy;
+  float dz;
+
+  vehicle = object_try_and_get_and_verify_type(vehicle_handle, 3);
+  if (ai_index != 0xffffffff && vehicle != NULL) {
+    candidate_count = 0;
+    object_get_world_position(vehicle_handle, &vehicle_position);
+    seat_count = vehicle_scripting_find_available_seats(
+      vehicle_handle, seat_substring, -1, seat_indices, 0x10);
+    if (seat_count > 0) {
+      ai_index_actor_iterator_new(ai_index, iter);
+      actor = (char *)ai_index_actor_iterator_next(iter);
+      while (actor != NULL) {
+        if (candidate_count < 0x40) {
+          candidates[(short)candidate_count].actor_handle = iter[4];
+          dx = vehicle_position.x - *(float *)(actor + 0x12c);
+          dy = vehicle_position.y - *(float *)(actor + 0x130);
+          dz = vehicle_position.z - *(float *)(actor + 0x134);
+          candidates[(short)candidate_count].distance_squared =
+            dx * dx + dy * dy + dz * dz;
+          candidates[(short)candidate_count].is_type9 =
+            (char)(*(short *)(actor + 0x6c) == 9);
+          candidate_count = candidate_count + 1;
+        }
+        actor = (char *)ai_index_actor_iterator_next(iter);
+      }
+      qsort(candidates, (size_t)(int)(short)candidate_count, 0xc,
+            (int (*)(const void *, const void *))FUN_00056830);
+      for (i = 0; i < (short)candidate_count; i++) {
+        if (candidates[i].is_type9 != '\0' && allow_type9 == '\0') {
+          return;
+        }
+        actor_action_try_to_enter_vehicle(candidates[i].actor_handle,
+                                          vehicle_handle, 0, -1, seat_count,
+                                          seat_indices);
+      }
+    }
+  }
+}
+
 /* 0x00058fa0 — encounter_dispose stub.
  * Called from ai_dispose (0x3f6f0). No teardown needed at this level.
  * Binary: single RET instruction. */

@@ -33043,7 +33043,8 @@
     },
     {
      "addr": "0x58af0",
-     "decl": "void FUN_00058af0(void);"
+     "decl": "void FUN_00058af0(unsigned int ai_index @<eax>, int vehicle_handle @<ebx>, int seat_substring, char allow_type9);",
+     "ported": true
     },
     {
      "addr": "0x58c40",
