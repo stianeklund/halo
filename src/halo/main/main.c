@@ -1205,6 +1205,70 @@ void main_load_core_name_at_startup(const char *name)
   game_state_load_core_at_startup_pending = 1;
 }
 
+/*
+ * main_switch_structure_bsp - 0x100500
+ *
+ * Requests a switch to a different structure BSP of the currently loaded
+ * scenario. Validates the requested index against the scenario's
+ * structure-BSP count, rejects a switch to the BSP that is already current,
+ * then stashes the pending index in the main globals and reloads the HUD.
+ *
+ * Confirmed (disassembly; PUSH EBP / MOV EBP,ESP, no locals, no _chkstk,
+ * no SEH, no FPU):
+ *  - Single stack parameter at [EBP+0x8], read as `MOV CX,word ptr [EBP+8]`
+ *    -> 16-bit signed. Widened with MOVSX for the 32-bit count compare and
+ *    for the console_warning varargs slot. No register arguments.
+ *    check_arg_counts.py: 1 site (0xbdded), push=1, ADD ESP,4, conclusive.
+ *  - CALL 0x18e380 global_scenario_get() -> EAX, dereferenced without a NULL
+ *    check (unlike main_menu_precache_resources at 0x100640).
+ *  - TEST CX,CX / JL -> invalid path (negative index rejected).
+ *  - MOV ESI,[EAX+0x5a4]; MOVSX EDX,CX; CMP EDX,ESI; JGE -> invalid path.
+ *    ESI is push/pop scoped around the compare only (0x100511/0x10051d), so
+ *    it holds nothing that outlives the bounds check.
+ *  - CMP CX,word ptr [0x326a0c] -> 16-bit compare against the current
+ *    structure-BSP index (same global read as *(short *)0x326a0c in
+ *    src/halo/ai/actors.c:3571 and src/halo/ai/encounters.c:3188).
+ *    Equal -> PUSH EDX (already sign-extended) / PUSH 0x28b20c /
+ *    CALL console_warning / ADD ESP,8.
+ *  - Switch path: PUSH 1; MOV word ptr [0x46da40],CX; CALL 0xd0d50 hud_load;
+ *    ADD ESP,4. The constant is pushed before the store but it is hud_load's
+ *    only argument, so the call is hud_load(true).
+ *  - Invalid path (0x10054c): MOVSX EAX,CX; PUSH EAX; PUSH 0x28b1e0;
+ *    CALL console_warning; ADD ESP,8. cdecl push order: the format string is
+ *    pushed last, so it is the first argument.
+ *
+ * Inferred:
+ *  - Scenario offset 0x5a4 is the structure_bsps tag-block element count: it
+ *    is a 32-bit value used solely as the exclusive upper bound of a BSP
+ *    index. scenario_t in types.h is still capped at 0xF0 with a FIXME, so
+ *    this stays a raw offset deref rather than a struct field.
+ *  - word_46DA40 is the *pending* BSP index consumed elsewhere;
+ *    main_goto_main_menu (0x100620) writes -1 to the same 16-bit global.
+ *
+ * Uncertain:
+ *  - Whether hud_load's argument is semantically "reload" or some other
+ *    boolean; only the literal 1 is observed here (0x1003747 passes 0).
+ */
+void main_switch_structure_bsp(short bsp_index)
+{
+  scenario_t *scenario;
+
+  scenario = global_scenario_get();
+  if (bsp_index >= 0) {
+    /* 0x5a4 = scenario structure_bsps block element count (32-bit). */
+    if ((int)bsp_index < *(int *)((char *)scenario + 0x5a4)) {
+      if (bsp_index == global_structure_bsp_index) {
+        console_warning("tried to switch to current structure-bsp %d", (int)bsp_index);
+        return;
+      }
+      word_46DA40 = bsp_index;
+      hud_load(1);
+      return;
+    }
+  }
+  console_warning("tried to switch to invalid structure-bsp %d", (int)bsp_index);
+}
+
 void main_queue_map_name(char *map_name)
 {
   if (map_name != 0) {

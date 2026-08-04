@@ -16020,6 +16020,10 @@
       "score": 94.6,
       "source": "src/halo/main/main.c"
     },
+    "main_switch_structure_bsp": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "main_update_time": {
       "score": 61.6,
       "source": "src/halo/main/main.c"

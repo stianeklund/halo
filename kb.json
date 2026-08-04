@@ -13229,7 +13229,8 @@
     },
     {
      "addr": "0x100500",
-     "decl": "void main_switch_structure_bsp(void);"
+     "decl": "void main_switch_structure_bsp(short bsp_index);",
+     "ported": true
     },
     {
      "addr": "0x100560",
