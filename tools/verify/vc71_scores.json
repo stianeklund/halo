@@ -15904,6 +15904,10 @@
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
+    "main_load_core_name_at_startup": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "main_load_last_solo_map": {
       "score": 89.3,
       "source": "src/halo/main/main.c"

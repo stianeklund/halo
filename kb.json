@@ -13224,7 +13224,8 @@
     },
     {
      "addr": "0x1004b0",
-     "decl": "void main_load_core_name_at_startup(void);"
+     "decl": "void main_load_core_name_at_startup(const char *name);",
+     "ported": true
     },
     {
      "addr": "0x100500",
