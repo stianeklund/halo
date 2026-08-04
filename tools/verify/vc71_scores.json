@@ -15884,6 +15884,10 @@
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
+    "main_get_solo_level_from_name": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "main_halt_entry": {
       "score": 100.0,
       "source": "src/halo/main/main.c"
@@ -15909,7 +15913,7 @@
       "source": "src/halo/main/main.c"
     },
     "main_load_last_solo_map": {
-      "score": 89.3,
+      "score": 90.1,
       "source": "src/halo/main/main.c"
     },
     "main_load_ui_scenario": {

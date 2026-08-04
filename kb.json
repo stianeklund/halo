@@ -13283,7 +13283,8 @@
     },
     {
      "addr": "0x1006f0",
-     "decl": "void main_get_solo_level_from_name(void);"
+     "decl": "long main_get_solo_level_from_name(const char *name);",
+     "ported": true
     },
     {
      "addr": "0x100860",

@@ -13,6 +13,21 @@ extern double __cdecl fabs(double);
 #define main_fabs_double_from_float(x) fabs((double)(x))
 #endif
 
+/* Zero a local byte range. main_get_solo_level_from_name (0x1006f0) zeroes its
+ * 128-byte name buffer with an inline REP STOSD, which is what the MSVC 7.1
+ * memset intrinsic emits, so the VC71 lane uses it. clang lowers a 127-byte
+ * memset/__builtin_memset to a _memset libcall that does not exist in this
+ * freestanding build, so that lane calls the game's own csmemset instead; both
+ * zero exactly the same bytes. Same guarded-macro shape as the fabs intrinsic
+ * above and as structure_detail_objects.c. */
+#if defined(_MSC_VER) && !defined(__clang__)
+extern void *__cdecl memset(void *, int, unsigned int);
+#pragma intrinsic(memset)
+#define main_zero_bytes(p, n) memset((p), 0, (n))
+#else
+#define main_zero_bytes(p, n) csmemset((p), 0, (n))
+#endif
+
 /* Close all UI widgets and display the "damaged media" fatal error screen.
  *
  * Loads the "error_abort_to_dashboard_you_have_no_choice" widget by name,
@@ -1441,6 +1456,101 @@ void main_set_game_connection_to_film_playback(void)
 }
 
 /*
+ * main_get_solo_level_from_name - 0x1006f0
+ *
+ * Maps a campaign map name (e.g. "levels\\b30\\b30") to its 0-based solo
+ * level index, or -1 when the name matches none of the ten campaign levels.
+ *
+ * Confirmed:
+ *  - Prologue is PUSH EBP; MOV EBP,ESP; SUB ESP,0x80; PUSH EDI, so there is
+ *    exactly one 128-byte local at EBP-0x80 and no _chkstk. EDI is saved only
+ *    because of the inlined REP STOS below.
+ *  - The buffer is zeroed as MOV byte [EBP-0x80],0 followed by
+ *    XOR EAX,EAX; MOV ECX,0x1f; LEA EDI,[EBP-0x7f]; REP STOSD; STOSW; STOSB
+ *    (a separate first byte plus 127 zero bytes) - the exact MSVC lowering of
+ *    a `char buf[128] = ""` aggregate initializer, so that is the source form.
+ *  - Prologue reads MOV EAX,dword ptr [EBP+0x8]: one cdecl stack parameter,
+ *    the map name. No register is read before being written, so there are no
+ *    implicit @<reg> inputs.
+ *  - 0x100717 pushes 0x7f, then EAX (the parameter), then LEA ECX,[EBP-0x80]:
+ *    csstrncpy(buf, name, 0x7f). MOV byte [EBP-1],0 then forces buf[127] = 0
+ *    AFTER the copy and BEFORE the fold, so the ordering here is the original
+ *    ordering. Only 0x7f bytes are ever copied - not sizeof(buf).
+ *  - 0x100724 calls csstr_tolower(buf) with a single argument. The first three
+ *    calls share one ADD ESP,0x18 at 0x100737 (3 + 1 + 2 dwords of arguments);
+ *    that merged cleanup is not evidence of a six-argument call.
+ *  - Each test is PUSH <needle>; PUSH buf; CALL 0x1d9690; ADD ESP,8, i.e.
+ *    crt_strstr(haystack, needle) with the buffer first.
+ *  - Every exit sets EAX before MOV ESP,EBP; POP EBP; RET, so the return type
+ *    is a 32-bit integer even though Ghidra reports void (lift-learnings §16).
+ *    Matching blocks fall through to XOR EAX,EAX / MOV EAX,imm.
+ *  - The last test ends NEG EAX; SBB EAX,EAX; AND EAX,0xa; DEC EAX, which is
+ *    the MSVC lowering of `matched ? 9 : -1`; VC71 regenerates the idiom from
+ *    the ternary, so it is written as a plain conditional here.
+ *  - The needle strings live at 0x284870..0x284a8f in DESCENDING test order:
+ *    0x284a8c "a10", 0x284a50 "a30", 0x284a14 "a50", 0x2849d8 "b30",
+ *    0x28499c "b40", 0x284960 "c10", 0x284924 "c20", 0x2848e8 "c40",
+ *    0x2848ac "d20", 0x284870 "d40". The test order below is therefore
+ *    a10..d40 mapping to indices 0..9.
+ *  - No FPU operations, no struct access.
+ *
+ * Inferred:
+ *  - The result is a campaign level ordinal: the three call sites in this file
+ *    use it to index saved-profile level records and to pick the next level,
+ *    and 10 is the campaign level count.
+ *
+ * Uncertain:
+ *  - Each needle is a 4-byte level name immediately followed by a
+ *    "ui\\shell\\solo_game\\player_help\\player_help_screen_<lvl>" path, which
+ *    looks like an adjacent table of {level name, help-screen path} pairs. This
+ *    function only ever reads the name field, so the table's shape (and whether
+ *    the original indexed it rather than testing inline) is left unknown; the
+ *    straight-line CALL sequence in the binary is transcribed literally.
+ */
+long main_get_solo_level_from_name(const char *name)
+{
+  char buf[128];
+
+  /* the `char buf[128] = ""` initializer, written out: buf[0] stored on its
+   * own, then 127 zero bytes via the inline REP STOSD at 0x1006fd */
+  buf[0] = 0;
+  main_zero_bytes(buf + 1, 0x7f);
+
+  csstrncpy(buf, name, 0x7f);
+  buf[127] = 0;
+  csstr_tolower(buf);
+
+  if (crt_strstr(buf, "a10") != NULL) {
+    return 0;
+  }
+  if (crt_strstr(buf, "a30") != NULL) {
+    return 1;
+  }
+  if (crt_strstr(buf, "a50") != NULL) {
+    return 2;
+  }
+  if (crt_strstr(buf, "b30") != NULL) {
+    return 3;
+  }
+  if (crt_strstr(buf, "b40") != NULL) {
+    return 4;
+  }
+  if (crt_strstr(buf, "c10") != NULL) {
+    return 5;
+  }
+  if (crt_strstr(buf, "c20") != NULL) {
+    return 6;
+  }
+  if (crt_strstr(buf, "c40") != NULL) {
+    return 7;
+  }
+  if (crt_strstr(buf, "d20") != NULL) {
+    return 8;
+  }
+  return crt_strstr(buf, "d40") != NULL ? 9 : -1;
+}
+
+/*
  * compute_split_screen_grid - 0x1008a0
  *
  * Finds the smallest grid (horizontal x vertical) whose cell count is at
@@ -2023,7 +2133,6 @@ void main_won_map_private(void)
   int level_index;
   int i;
 
-  typedef uint16_t(__cdecl * fn_map_to_level_t)(char *map_name);
   typedef void(__cdecl * fn_save_player_level_t)(int local_player_index);
   typedef void(__cdecl * fn_level_transition_t)(int level_index);
 
@@ -2031,7 +2140,7 @@ void main_won_map_private(void)
   main_won_map_private_pending = 0;
 
   /* map the current map name to a 0-based level index; unrecognized = -1 */
-  map_level = ((fn_map_to_level_t)0x1006f0)(map_name);
+  map_level = (uint16_t)main_get_solo_level_from_name(map_name);
   level_index = (int)(map_level + 1);
   if ((int16_t)level_index >= 10) {
     level_index = -1;
@@ -2816,13 +2925,12 @@ void main_save_current_solo_map(char *map_name)
   uint16_t level_index;
   void *fp;
 
-  typedef uint16_t(__cdecl * fn_map_to_level_t)(char *map_name);
   typedef void *(__cdecl * fn_fopen_t)(const char *path, const char *mode);
   typedef size_t(__cdecl * fn_fwrite_t)(const void *buf, size_t size,
                                         size_t count, void *fp);
   typedef int(__cdecl * fn_fclose_t)(void *fp);
 
-  level_index = ((fn_map_to_level_t)0x1006f0)(map_name);
+  level_index = (uint16_t)main_get_solo_level_from_name(map_name);
   if (level_index == 0xffff) {
     return;
   }
@@ -2893,7 +3001,6 @@ void main_load_last_solo_map(void)
   typedef size_t(__cdecl * fn_fread_t)(void *buf, size_t size, size_t count,
                                        void *fp);
   typedef int(__cdecl * fn_fclose_t)(void *fp);
-  typedef uint16_t(__cdecl * fn_map_to_level_t)(char *map_name);
   typedef void(__cdecl * fn_queue_map_t)(char *map_path);
 
   if (!main_load_last_solo_map_pending) {
@@ -2914,7 +3021,7 @@ void main_load_last_solo_map(void)
       n = 0xff;
     }
     buf[n] = 0;
-    level_index = ((fn_map_to_level_t)0x1006f0)(buf);
+    level_index = (uint16_t)main_get_solo_level_from_name(buf);
     if (level_index != 0xffff) {
       map_path = buf;
     }
