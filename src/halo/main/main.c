@@ -242,6 +242,20 @@ void main_set_multiplayer_map_name(const char *name)
   cache_files_give_time_to_precache((const char *)0x46db55);
 }
 
+/* Return a pointer to the global map name buffer (0x100040).
+ *
+ * Body is two instructions: MOV EAX,0x46da55 / RET. 0x46da55 is the
+ * runtime-written map_name[255] buffer (zero-filled in the image, NOT an
+ * .rdata string literal), so this must be the buffer's address, not a
+ * string constant. Same raw-address idiom as main_get_multiplayer_map_name
+ * below: the kb.json global `char map_name[255]` is emitted into decl.h as
+ * __declspec(dllimport), whose address-of would lower to an indirect
+ * __imp_ load rather than the original's immediate. */
+const char *main_get_map_name(void)
+{
+  return (const char *)0x46da55;
+}
+
 /* Return a pointer to the global multiplayer map name buffer (0x100050). */
 char *main_get_multiplayer_map_name(void)
 {

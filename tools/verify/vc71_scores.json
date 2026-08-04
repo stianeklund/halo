@@ -15876,6 +15876,10 @@
       "score": 95.5,
       "source": "src/halo/main/main.c"
     },
+    "main_get_map_name": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "main_halt_entry": {
       "score": 100.0,
       "source": "src/halo/main/main.c"

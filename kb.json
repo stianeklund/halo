@@ -13117,7 +13117,8 @@
     },
     {
      "addr": "0x100040",
-     "decl": "const char *main_get_map_name(void);"
+     "decl": "const char *main_get_map_name(void);",
+     "ported": true
     },
     {
      "addr": "0x100050",
