@@ -446,6 +446,47 @@ void main_reset_map(void)
 }
 
 /*
+ * main_revert_map - 0x1002c0
+ *
+ * Confirmed:
+ *  - Whole body is 6 instructions, no frame, no CALLs, no FPU, no locals:
+ *      XOR AL,AL
+ *      MOV word ptr [0x0046da40],0xffff
+ *      MOV [0x0046da28],AL
+ *      MOV byte ptr [0x0046da26],0x1
+ *      MOV [0x0046da3b],AL
+ *      RET
+ *  - 0x46da40 is a WORD store (MOV word ptr, imm16 = 0xffff); the other
+ *    three are byte-width stores, so those globals are single-byte flags.
+ *    Ghidra's DAT_0046da40._0_2_ agrees on the 16-bit width.
+ *  - The single XOR AL,AL feeds both byte-zero stores (0x46da28 and
+ *    0x46da3b), which straddle the 0x46da26 = 1 store; the store order is
+ *    kept literal here so the shared zero register can be re-materialized.
+ *  - Plain cdecl void(void): RET carries no immediate, and no register is
+ *    read before being written, so there are no implicit @<reg> inputs.
+ *
+ * Inferred:
+ *  - Byte-for-byte the same shape as main_reset_map (0x1002a0), differing
+ *    only in which pending flag is armed: 0x46da24 there, 0x46da26 here.
+ *    0x46da26 carries the kb-registered name game_state_revert_pending, so
+ *    the request armed here is the game-state revert.
+ *  - byte_46DA28 is the same save-attempt-resolved flag cleared by
+ *    main_reset_map, main_skip_cinematic, main_save_map_private and
+ *    main_new_map.
+ *
+ * Uncertain:
+ *  - No string or assert evidence for what byte_46DA3B tracks, so it keeps
+ *    its mechanical kb-registered name.
+ */
+void main_revert_map(void)
+{
+  word_46DA40 = -1;
+  byte_46DA28 = 0;
+  game_state_revert_pending = true;
+  byte_46DA3B = 0;
+}
+
+/*
  * main_skip_cinematic - 0x1002e0
  *
  * Confirmed:

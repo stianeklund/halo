@@ -13153,7 +13153,8 @@
     },
     {
      "addr": "0x1002c0",
-     "decl": "void main_revert_map(void);"
+     "decl": "void main_revert_map(void);",
+     "ported": true
     },
     {
      "addr": "0x1002e0",
