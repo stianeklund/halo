@@ -32738,7 +32738,8 @@
     },
     {
      "addr": "0x565c0",
-     "decl": "void FUN_000565c0(void);"
+     "decl": "void FUN_000565c0(unsigned int src_encounter, unsigned int dst_encounter, const char *speech_type);",
+     "ported": true
     },
     {
      "addr": "0x566a0",

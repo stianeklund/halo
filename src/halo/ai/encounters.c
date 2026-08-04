@@ -616,6 +616,62 @@ void FUN_000564b0(int arg0, int arg1)
 }
 
 /*
+ * FUN_000565c0 — `ai_migrate_and_speak` HS script command handler.
+ *
+ * Migrates one encounter into another and plays the matching migration
+ * speech.  The third argument selects the speech type by name: "advance"
+ * (flag 1) or "retreat" (flag 0); anything else logs an error and falls
+ * through with the retreat flag, exactly as the original does.
+ *
+ * If either debug trace flag (0x5aca57 = ai_trace_detail or 0x5aca59 =
+ * ai_trace) is set, both encounter handles are formatted into their own
+ * 512-byte scratch buffers via ai_index_to_string and logged prefixed with
+ * the executing HS thread name.  The 5-dword `error` call (single
+ * ADD ESP,0x14) pushes BOTH buffer pointers before the thread-name call
+ * (MSVC argument batching), which is why Ghidra shows stray PUSH EDX/PUSH
+ * EAX ahead of hs_runtime_get_executing_thread_name.  The format string
+ * carries four %s but only three arguments are supplied — that is what the
+ * original binary does and it is not corrected here.
+ *
+ * The speech flag lives at EBP-0x4 and is written as a BYTE but read back as
+ * a full DWORD and pushed whole (Ghidra's CONCAT31), so the upper three
+ * bytes are whatever the frame happened to hold.  Only the low byte is
+ * meaningful to FUN_00055dd0's fourth parameter; it is modelled as a plain
+ * int here (a char local would add a MOVSX at the push that the original
+ * does not have).
+ *
+ * Finally calls FUN_00055dd0(src_encounter@<eax>, dst_encounter, 1, flag).
+ *
+ * 0x565c0 / encounters.obj
+ */
+void FUN_000565c0(unsigned int src_encounter, unsigned int dst_encounter,
+                  const char *speech_type)
+{
+  char buf_src[512];
+  char buf_dst[512];
+  char use_advance;
+
+  if (*(char *)0x5aca57 || *(char *)0x5aca59) {
+    ai_index_to_string(src_encounter, global_scenario_get(), buf_src, 0x200);
+    ai_index_to_string(dst_encounter, global_scenario_get(), buf_dst, 0x200);
+    error(2, "%s: ai_migrate_and_speak %s %s %s",
+          hs_runtime_get_executing_thread_name(), buf_src, buf_dst);
+  }
+  if (crt_stricmp(speech_type, "advance") == 0) {
+    use_advance = 1;
+  } else {
+    if (crt_stricmp(speech_type, "retreat") != 0) {
+      error(2,
+            "ai_migrate_and_speak: unknown speech type '%s' (must be "
+            "'advance' or 'retreat')",
+            speech_type);
+    }
+    use_advance = 0;
+  }
+  FUN_00055dd0(src_encounter, dst_encounter, 1, use_advance);
+}
+
+/*
  * FUN_000566a0 — `ai_allegiance` HS script command handler.
  *
  * Establishes an allegiance between two teams.  If the AI trace flag
