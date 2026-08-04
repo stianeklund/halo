@@ -13542,7 +13542,9 @@
     },
     {
      "addr": "0x104040",
-     "decl": "void FUN_00104040(float *p0, float *p1, float *p2, float *color);"
+     "decl": "void FUN_00104040(float *p0, float *p1, float *p2, float *color);",
+     "ported": true,
+     "source_path": "src/halo/main/main.c"
     },
     {
      "addr": "0x104240",

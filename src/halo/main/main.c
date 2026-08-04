@@ -5042,6 +5042,88 @@ void FUN_00103e80(float *p0, float *p1, float *color)
   }
 }
 
+/* FUN_00104040 (0x104040)  error_geometry.c:0xb1-0xb4
+ *
+ * Emits a single debug triangle (p0, p1, p2) as a VRML/Open-Inventor
+ * "Separator" block to the open error-geometry stream *(void**)0x46e394.
+ * All three vertices are transformed by the world matrix at 0x31fb08 and
+ * scaled by *(float*)0x253f00 (=100.0f, world units -> cm).  Material is
+ * emitted PER_FACE with a single colour: diffuseColor = color[1..3],
+ * transparency = *(float*)0x2533c8 (=1.0f) - color[0], i.e. color[] is packed
+ * alpha-first, exactly as in the siblings FUN_00103e80 / FUN_00104240.  The
+ * geometry itself is a one-face IndexedFaceSet ("coordIndex[0,1,2,-1]").
+ * Gated on the debug-geometry-enabled predicate FUN_00103d30.
+ *
+ * cdecl, verified from disassembly at 0x104040: all four parameters are STACK
+ * args -- [EBP+0x8]=p0, [EBP+0xc]=p1, [EBP+0x10]=p2, [EBP+0x14]=color (ESI);
+ * EBX/ESI/EDI saved, no register-argument contract.  Frame = SUB ESP,0x24 =
+ * 36 bytes = ONE contiguous float[9] spanning EBP-0x24..EBP-0x4.  The three
+ * matrix_transform_point 'out' arguments are LEA EBP-0x24, LEA EBP-0x18 and
+ * LEA EBP-0xc, i.e. &pt[0], &pt[3] and &pt[6] of that single buffer --
+ * declaring three separate float[3] locals would let clang reorder them, so
+ * the one-buffer form is load-bearing.  (Ghidra names each triple after its
+ * LAST component: local_28 is the array base = pt[0], local_24/local_20 are
+ * pt[1]/pt[2].)
+ *
+ * Push order per matrix_transform_point call is PUSH &out; PUSH src;
+ * PUSH 0x31fb08, so the matrix global is passed by ADDRESS, not dereferenced.
+ *
+ * The transparency operand order is 001041cb FLD [0x2533c8];
+ * 001041d1 FSUB [ESI], i.e. (1.0f - color[0]) and NOT the reverse.  Each
+ * transformed component is FLD'd then FMUL'd by the scale, i.e. pt * scale.
+ * The stream global is re-loaded before every crt_fprintf and before the
+ * crt_fflush in the original, so it is never cached in a local here.  Assert
+ * tails are system_exit(-1) (CALL 0x8e2f0), not halt_and_catch_fire --
+ * Ghidra's thunk_FUN_001029a0 at those sites is the known mis-decode.
+ */
+void FUN_00104040(float *p0, float *p1, float *p2, float *color)
+{
+  float pt[9];
+
+  if (p0 == 0) {
+    display_assert("p0", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0xb1,
+                   true);
+    system_exit(-1);
+  }
+  if (p1 == 0) {
+    display_assert("p1", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0xb2,
+                   true);
+    system_exit(-1);
+  }
+  if (p2 == 0) {
+    display_assert("p2", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0xb3,
+                   true);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0xb4,
+                   true);
+    system_exit(-1);
+  }
+  if (FUN_00103d30()) {
+    matrix_transform_point((float *)0x31fb08, p0, &pt[0]);
+    matrix_transform_point((float *)0x31fb08, p1, &pt[3]);
+    matrix_transform_point((float *)0x31fb08, p2, &pt[6]);
+    crt_fprintf(*(void **)0x46e394, "Separator\n{\n");
+    crt_fprintf(*(void **)0x46e394,
+                "\tCoordinate3 { point[%f %f %f, %f %f %f, %f %f %f] }\n",
+                pt[0] * *(float *)0x253f00, pt[1] * *(float *)0x253f00,
+                pt[2] * *(float *)0x253f00, pt[3] * *(float *)0x253f00,
+                pt[4] * *(float *)0x253f00, pt[5] * *(float *)0x253f00,
+                pt[6] * *(float *)0x253f00, pt[7] * *(float *)0x253f00,
+                pt[8] * *(float *)0x253f00);
+    crt_fprintf(*(void **)0x46e394, "\tMaterialBinding { value PER_FACE }\n");
+    crt_fprintf(*(void **)0x46e394,
+                "\tMaterial { diffuseColor[%f %f %f] transparency[%f] }\n",
+                color[1], color[2], color[3],
+                *(float *)0x2533c8 - color[0]);
+    crt_fprintf(*(void **)0x46e394,
+                "\tIndexedFaceSet { coordIndex[0,1,2,-1] }\n");
+    crt_fprintf(*(void **)0x46e394, "}\n");
+    crt_fflush(*(void **)0x46e394);
+  }
+}
+
 /* FUN_00104240 (0x104240)  error_geometry.c:0xd3-0xd5
  *
  * Emits a debug polygon (point cloud) as a VRML/Open-Inventor "Separator"
