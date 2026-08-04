@@ -22,8 +22,9 @@ Record schema:
     "first_parked": "<iso>",
     "last_updated": "<iso>",
     "promoted_commit": "<hash>"|null,
+    "context": {...}|null,           # latest --context research brief, capped at 16KB
     "attempts": [
-      {"ts", "model", "effort", "score", "cap_hypothesis", "reason", "patch"}
+      {"ts", "model", "effort", "score", "cap_hypothesis", "reason", "notes", "patch"}
     ]
   }
 
@@ -87,6 +88,12 @@ DEFAULT_PATHS = ["src/", "kb.json", "tools/kb_reg_baseline.json"]
 # routes through the shared ledger_root() instead of this literal path — see
 # store_base(). An explicit --parked-dir always resolves against repo_root().
 DEFAULT_PARKED_DIR = "artifacts/parked"
+
+# Cap on the JSON-encoded size of a record's stored --context. A research
+# brief (disasm_notes, hazards, callees, neighbors, review) can be arbitrarily
+# large; an unbounded copy on every attempt would bloat the ledger for no
+# benefit -- only the latest context is ever read back.
+MAX_CONTEXT_BYTES = 16 * 1024
 
 # The commit bar. Anything below this is a candidate for parking; the improve
 # pass targets the band closest to it first.
@@ -217,13 +224,14 @@ class Store:
 
 def record_attempt(rec: Optional[dict], *, name: str, addr: str, obj: str,
                    source_path: str, score: float, model: str, effort: str,
-                   reason: str, cap_hypothesis: str, patch_rel: str) -> dict:
+                   reason: str, cap_hypothesis: str, patch_rel: str,
+                   notes: str = "") -> dict:
     """Merge a new attempt into a record (creating it if absent). Pure function."""
     now = _now()
     attempt = {
         "ts": now, "model": model, "effort": effort, "score": score,
         "cap_hypothesis": cap_hypothesis or "", "reason": reason or "",
-        "patch": patch_rel,
+        "notes": notes or "", "patch": patch_rel,
     }
     if rec is None:
         rec = {
@@ -257,6 +265,44 @@ def tried_models(rec: dict) -> set[str]:
     return {a.get("model", "") for a in rec.get("attempts", [])}
 
 
+def cap_context(ctx: dict, max_bytes: int = MAX_CONTEXT_BYTES) -> dict:
+    """Shrink `ctx` to fit within max_bytes when JSON-encoded. Pure function.
+
+    Drops the largest top-level values first (by their own JSON size) until
+    the remainder fits, rather than truncating a value mid-string -- every
+    key that survives stays complete and valid. Marks `context_truncated`
+    when anything was dropped, so a reader knows the record is incomplete.
+    """
+    if not isinstance(ctx, dict):
+        return ctx
+    if len(json.dumps(ctx).encode("utf-8")) <= max_bytes:
+        return ctx
+    out = dict(ctx)
+    biggest_first = sorted(out.keys(), key=lambda k: -len(json.dumps(out[k])))
+    for k in biggest_first:
+        if len(json.dumps(out).encode("utf-8")) <= max_bytes:
+            break
+        del out[k]
+    out["context_truncated"] = True
+    return out
+
+
+def _last_notes(rec: dict) -> str:
+    """Most recent attempt with non-empty notes, latest first."""
+    for a in reversed(rec.get("attempts", [])):
+        if a.get("notes"):
+            return a["notes"]
+    return ""
+
+
+def _attempt_history(rec: dict) -> list[dict]:
+    """Compact per-attempt summary for the improve pass -- what was already
+    tried and how it scored, without the full patch/context payloads."""
+    return [{"ts": a.get("ts"), "model": a.get("model"), "effort": a.get("effort"),
+             "score": a.get("score"), "reason": a.get("reason")}
+            for a in rec.get("attempts", [])]
+
+
 # ── commands ────────────────────────────────────────────────────────────────────
 
 def cmd_park(args: argparse.Namespace) -> int:
@@ -288,8 +334,19 @@ def cmd_park(args: argparse.Namespace) -> int:
         obj=args.obj or (rec or {}).get("obj", ""),
         source_path=args.source or (rec or {}).get("source_path", ""),
         score=args.score, model=args.model, effort=args.effort,
-        reason=args.reason, cap_hypothesis=args.cap_hypothesis, patch_rel=patch_rel,
+        reason=args.reason, cap_hypothesis=args.cap_hypothesis,
+        notes=args.notes, patch_rel=patch_rel,
     )
+    if args.context:
+        try:
+            ctx = json.loads(Path(args.context).read_text())
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"warning: could not read --context {args.context}: {e}", file=sys.stderr)
+            ctx = None
+        if isinstance(ctx, dict):
+            # Latest write wins -- the newest research brief is the one an
+            # improve pass should see, not a merge of every attempt's context.
+            rec["context"] = cap_context(ctx)
     store.save(rec)
 
     if args.revert_tree:
@@ -322,6 +379,23 @@ def _sort_key(rec: dict, how: str):
     return -rec.get("best_score", 0)
 
 
+def _list_view(rec: dict) -> dict:
+    """Trimmed record for `list --json`. A record's --context can be up to
+    16KB and every attempt can carry its own free-text notes; dumping all of
+    that for every matched record would make `list` as expensive as `next`
+    for no benefit -- list is for scanning, next is for reading one in full.
+    Presence is still reported (has_context / has_notes) so a caller knows
+    there is more to fetch via `next`.
+    """
+    view = {k: v for k, v in rec.items() if k != "context"}
+    view["has_context"] = "context" in rec
+    view["attempts"] = [
+        {**{k: v for k, v in a.items() if k != "notes"}, "has_notes": bool(a.get("notes"))}
+        for a in rec.get("attempts", [])
+    ]
+    return view
+
+
 def cmd_list(args: argparse.Namespace) -> int:
     root = repo_root()
     store = Store(store_base(root, args.parked_dir))
@@ -329,7 +403,7 @@ def cmd_list(args: argparse.Namespace) -> int:
     recs.sort(key=lambda r: _sort_key(r, args.sort))
 
     if args.json:
-        print(json.dumps(recs, indent=2))
+        print(json.dumps([_list_view(r) for r in recs], indent=2))
         return 0
     if not recs:
         print("(no parked records match)")
@@ -363,7 +437,17 @@ def cmd_next(args: argparse.Namespace) -> int:
         print(json.dumps({"found": False}))
         return 0
     chosen = cands[0]
-    print(json.dumps({"found": True, "record": chosen}, indent=2))
+    out = {
+        "found": True,
+        "record": chosen,
+        # Convenience copies so a caller doesn't need to re-derive them from
+        # `record` -- the improve pass reads these directly to avoid
+        # rediscovering what earlier attempts already learned.
+        "last_notes": _last_notes(chosen),
+        "context": chosen.get("context"),
+        "attempt_history": _attempt_history(chosen),
+    }
+    print(json.dumps(out, indent=2))
     return 0
 
 
@@ -866,6 +950,50 @@ def _self_test() -> int:
     merged6 = merge_parked_records(dict(dst2), src_none_score)
     check(merged6["best_score"] == 82.0, "migrate: None-score attempt does not crash best-of-union")
 
+    # ── notes + context (park knowledge capture) ────────────────────────────
+    rec_n = record_attempt(None, name="FUN_2", addr="0x2", obj="o.obj",
+                           source_path="src/o.c", score=80.0, model="opus",
+                           effort="high", reason="try", cap_hypothesis="",
+                           notes="check the callee's buffer size before recursing",
+                           patch_rel="pn.patch")
+    check(rec_n["attempts"][0]["notes"] == "check the callee's buffer size before recursing",
+          "notes: stored on the attempt")
+    check(_last_notes(rec_n) == "check the callee's buffer size before recursing",
+          "last_notes: returns the most recent non-empty notes")
+
+    rec_n2 = record_attempt(rec_n, name="FUN_2", addr="0x2", obj="o.obj",
+                            source_path="src/o.c", score=85.0, model="fable",
+                            effort="high", reason="better", cap_hypothesis="",
+                            notes="", patch_rel="pn2.patch")
+    check(_last_notes(rec_n2) == "check the callee's buffer size before recursing",
+          "last_notes: skips an empty-notes attempt, returns the prior one")
+
+    hist = _attempt_history(rec_n2)
+    check(len(hist) == 2 and hist[0]["model"] == "opus" and hist[1]["score"] == 85.0,
+          "attempt_history: compact ts/model/effort/score/reason per attempt")
+
+    small_ctx = {"hazards": "none"}
+    check(cap_context(small_ctx) == small_ctx,
+          "cap_context: small context passes through unchanged")
+
+    big_ctx = {"disasm_notes": "x" * 20000, "hazards": "ok"}
+    capped = cap_context(big_ctx, max_bytes=1024)
+    check(len(json.dumps(capped).encode("utf-8")) <= 1024 + 64,
+          "cap_context: shrinks a too-large context to roughly fit the cap")
+    check(capped.get("context_truncated") is True, "cap_context: marks truncated context")
+    check("hazards" in capped and "disasm_notes" not in capped,
+          "cap_context: drops the biggest key first, keeps the small one")
+
+    # list --json must not leak full context/notes text, only presence.
+    rec_ctx = dict(rec_n2, context={"hazards": "some notes here"})
+    view = _list_view(rec_ctx)
+    check("context" not in view and view["has_context"] is True,
+          "list view: context replaced with a presence flag")
+    check(all("notes" not in a for a in view["attempts"]),
+          "list view: attempt notes text is not included")
+    check(view["attempts"][0]["has_notes"] is True and view["attempts"][1]["has_notes"] is False,
+          "list view: has_notes reflects which attempts actually had notes")
+
     return 0 if ok else 1
 
 
@@ -889,6 +1017,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--effort", default="")
     p.add_argument("--reason", default="")
     p.add_argument("--cap-hypothesis", dest="cap_hypothesis", default="")
+    p.add_argument("--notes", default="",
+                   help="Freeform rationale / next-step hint for this attempt "
+                        "(surfaced back via `next` as last_notes)")
+    p.add_argument("--context", default="",
+                   help="Path to a JSON file with research-brief fields "
+                        "(disasm_notes, hazards, callees, neighbors, review, ...) "
+                        "stored on the record, capped at 16KB (latest write wins)")
     p.add_argument("--paths", nargs="*", default=None,
                    help=f"Pathspecs to diff (default: {' '.join(DEFAULT_PATHS)})")
     p.add_argument("--revert-tree", action="store_true",
