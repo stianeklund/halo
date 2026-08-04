@@ -238,6 +238,48 @@ void main_disallow_persistent_storage(void)
   main_persistent_storage_allowed = 0;
 }
 
+/* Queue a map change: copy `name` into the runtime map_name[] buffer
+ * (0x46da55, 0x100 bytes: 0x46da55..0x46db54) and, when a game is actually
+ * running, arm the deferred map-change flag.
+ *
+ * Confirmed (0xfffa0):
+ *  - Prologue is `PUSH EBP; MOV EBP,ESP` with no `SUB ESP` (no locals), and
+ *    the body reads `MOV EAX,[EBP+0x8]` -- one cdecl stack argument, the
+ *    name pointer.  Ghidra's `in_stack_00000004` is exactly that slot.  The
+ *    old kb.json decl `void main_set_map_name(void)` omitted it.
+ *  - `PUSH 0xff; PUSH EAX; PUSH 0x46da55; CALL csstrncpy; ADD ESP,0xc` --
+ *    3 cdecl args, so the destination is the map_name buffer and at most
+ *    0xff bytes are copied; [0x46db54] is then force-cleared so the name is
+ *    always NUL-terminated (same shape as main_set_multiplayer_map_name).
+ *  - Four of the five global writes are BYTE stores that Ghidra renders as
+ *    bare assignments: [0x46da43] (main_menu_load_pending) -- shown as the
+ *    dword field `DAT_0046da40._3_1_`, [0x46db54], [0x46da54]
+ *    (main_persistent_storage_allowed) and [0x46da25]
+ *    (main_change_map_name_pending).
+ *  - The guard is `CALL game_in_editor; TEST AL,AL; JNZ` then
+ *    `CALL game_in_progress; TEST AL,AL; JZ ret` -- a short-circuit OR, not
+ *    the inverted early-return Ghidra prints.
+ *  - `CMP word ptr [0x46da0c],0x0` is a 16-bit read of the game-connection
+ *    global, so it must go through `word_46DA0C`, not an int deref.
+ *
+ * Inferred: the raw-address cast for the buffer (rather than `&map_name`)
+ * matches main_get_map_name / main_set_multiplayer_map_name -- the kb.json
+ * global is emitted __declspec(dllimport), whose address-of would lower to
+ * an indirect __imp_ load instead of the original's immediate. */
+void main_set_map_name(const char *name)
+{
+  main_menu_load_pending = 0;
+  csstrncpy((char *)0x46da55, name, 0xff);
+  *(char *)0x46db54 = 0;
+  main_persistent_storage_allowed = 1;
+
+  if (game_in_editor() || game_in_progress()) {
+    if (word_46DA0C == 0) {
+      main_change_map_name_pending = 1;
+    }
+  }
+}
+
 void main_defer_map_map_change(void)
 {
   main_change_map_name_pending = 0;

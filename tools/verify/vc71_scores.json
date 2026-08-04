@@ -15948,6 +15948,10 @@
       "score": 56.3,
       "source": "src/halo/interface/ui_widget.c"
     },
+    "main_set_map_name": {
+      "score": 95.5,
+      "source": "src/halo/main/main.c"
+    },
     "main_set_multiplayer_map_name": {
       "score": 100.0,
       "source": "src/halo/main/main.c"
