@@ -548,6 +548,74 @@ void FUN_000563c0(int actor_datum, unsigned int encounter_handle,
 }
 
 /*
+ * FUN_000564b0 — ai_migrate_by_unit: migrate the actors of a unit (and its
+ * child objects) into an encounter.
+ *
+ * Name evidence: the trace format string at 0x25c8f4 is
+ * "%s: ai_migrate_by_unit <some guys> %s".
+ *
+ * If either debug trace flag (0x5aca57 = ai_trace_detail or 0x5aca59 =
+ * ai_trace) is set, formats the destination encounter handle into a 512-byte
+ * scratch buffer via ai_index_to_string and logs it prefixed with the
+ * executing HS thread name.  The `error` call takes 4 dwords (2, fmt,
+ * thread_name, buffer) with a single ADD ESP,0x10 — the buffer pointer is
+ * pushed before the thread-name call (MSVC argument batching), which is why
+ * Ghidra shows a stray `PUSH ECX` ahead of
+ * hs_runtime_get_executing_thread_name.
+ *
+ * Both handles must be valid (-1 rejects) before any work happens.  Iterates
+ * the units of arg0 via FUN_000ce450/FUN_000ce320 (local_8 is the 4-byte
+ * iterator state).  For each biped/vehicle (type mask 3) it calls
+ * FUN_000563c0(handle@<eax>, encounter_handle, 0, 0), then walks that
+ * object's child list (first child at object+0xc8, next sibling at
+ * object+0xc4) and migrates every child whose object type at +0x64 is a
+ * biped/vehicle ((1 << (type & 0x1f)) & 3).
+ *
+ * The child lookup uses object_get_and_verify_type (asserting form, result
+ * NOT null-checked in the original); the outer lookup uses the try-form and
+ * IS null-checked.  Finally refreshes team status and the encounter dirty
+ * flags.
+ *
+ * 0x564b0 / encounters.obj
+ */
+void FUN_000564b0(int arg0, int arg1)
+{
+  char local_208[512];
+  int local_8;
+  scenario_t *uVar1;
+  void *pvVar1;
+  int iVar4;
+
+  if (*(char *)0x5aca57 || *(char *)0x5aca59) {
+    uVar1 = global_scenario_get();
+    ai_index_to_string(arg1, uVar1, local_208, 0x200);
+    error(2, "%s: ai_migrate_by_unit <some guys> %s",
+          hs_runtime_get_executing_thread_name(), local_208);
+  }
+  if (arg0 != -1 && arg1 != -1) {
+    iVar4 = FUN_000ce450(arg0, &local_8);
+    while (iVar4 != -1) {
+      pvVar1 = object_try_and_get_and_verify_type(iVar4, 3);
+      if (pvVar1 != 0) {
+        FUN_000563c0(iVar4, arg1, '\0', 0);
+        iVar4 = *(int *)((char *)pvVar1 + 0xc8);
+        while (iVar4 != -1) {
+          pvVar1 = object_get_and_verify_type(iVar4, -1);
+          if ((1 << (*(unsigned char *)((char *)pvVar1 + 0x64) & 0x1f) & 3u) !=
+              0) {
+            FUN_000563c0(iVar4, arg1, '\0', 0);
+          }
+          iVar4 = *(int *)((char *)pvVar1 + 0xc4);
+        }
+      }
+      iVar4 = FUN_000ce320(arg0, &local_8);
+    }
+    ai_update_team_status();
+    encounters_update_dirty_status();
+  }
+}
+
+/*
  * FUN_00056790 — debug-logged wrapper for game_allegiance_remove.
  *
  * If AI trace flag (0x5aca59) is set, logs the removal using the MSVC
