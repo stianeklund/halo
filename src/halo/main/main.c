@@ -1550,6 +1550,39 @@ long main_get_solo_level_from_name(const char *name)
   return crt_strstr(buf, "d40") != NULL ? 9 : -1;
 }
 
+/*
+ * main_get_current_solo_level - 0x100860
+ *
+ * Returns the solo (campaign) level index of the currently loaded map, or -1
+ * when the map name is not one of the ten campaign levels.
+ *
+ * Confirmed:
+ *  - The whole body is four instructions with no frame at all (no PUSH EBP,
+ *    no _chkstk, no locals):
+ *      PUSH 0x46da55 / CALL 0x1006f0 / ADD ESP,0x4 / RET
+ *    The ADD ESP,0x4 proves cdecl with exactly one stack argument, and the
+ *    bare RET proves this function itself takes none.
+ *  - Nothing is read before being written, so there is no implicit @<reg>
+ *    input contract; the callee has none either.
+ *  - Execution falls straight out of the CALL with the callee's EAX still
+ *    live and no XOR EAX,EAX after it: this forwards
+ *    main_get_solo_level_from_name's `long` result. The kb.json decl
+ *    previously said `void`, which is the void-EAX implicit-return hazard
+ *    (lift-learnings section 16) -- a `void` body would only appear to work by
+ *    accident of the return register, so the decl is corrected to `long`.
+ *
+ * Inferred:
+ *  - 0x46da55 is passed as a direct PUSH imm32, so the original did not route
+ *    through the main_get_map_name accessor (that would add a CALL). The raw
+ *    cast is used for the same reason documented at main_get_map_name above:
+ *    the kb.json global `char map_name[255]` is emitted __declspec(dllimport),
+ *    and &map_name would lower to an indirect __imp_ load instead of an
+ *    immediate. */
+long main_get_current_solo_level(void)
+{
+  return main_get_solo_level_from_name((const char *)0x46da55);
+}
+
 /* The ten campaign level name/path strings, indexed by solo level index.
  * Element [0] is "levels\\a10\\a10", already dereferenced as *(char **)0x31fa9c
  * by main_load_last_solo_map below.

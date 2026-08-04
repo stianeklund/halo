@@ -13288,7 +13288,8 @@
     },
     {
      "addr": "0x100860",
-     "decl": "void main_get_current_solo_level(void);"
+     "decl": "long main_get_current_solo_level(void);",
+     "ported": true
     },
     {
      "addr": "0x100870",
