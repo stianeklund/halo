@@ -957,6 +957,58 @@ void main_save_core_name(const char *name)
   game_state_save_core_pending = 1;
 }
 
+/*
+ * main_load_core - 0x100420
+ *
+ * Arms a deferred core-image load from the default file name "core.bin". The
+ * exact load counterpart of main_save_core (0x1003b0): same string, same
+ * destination buffer, only the pending flag differs.
+ *
+ * Confirmed:
+ *  - Whole body is 6 instructions, no frame (no PUSH EBP), no locals, no
+ *    _chkstk, no FPU, no SEH:
+ *      00100420  PUSH 0x28b198                  ; -> "core.bin"
+ *      00100425  PUSH 0x46dd55                  ; -> core_name
+ *      0010042a  MOV byte ptr [0x0046da3e],0x1
+ *      00100431  CALL 0x0008dff0                ; csstrcpy
+ *      00100436  ADD ESP,0x8
+ *      00100439  RET
+ *  - Plain RET with no immediate, and no [EBP+N] read anywhere, so this is
+ *    void(void), cdecl. Nothing is read before being written, so there are no
+ *    implicit @<reg> inputs and no @<reg> callee contract.
+ *  - `ADD ESP,0x8` after the CALL confirms two stack args, matching the kb
+ *    decl `char *csstrcpy(char *destination, const char *source)`. cdecl push
+ *    order: the FIRST push (0x28b198, the string) is the LAST argument
+ *    (source); the SECOND push (0x46dd55) is the destination. So this is
+ *    csstrcpy(dst=core_name, src="core.bin"), not the reverse.
+ *  - The flag store is `MOV byte ptr ...,1`, an 8-bit store.
+ *    game_state_load_core_pending is declared `bool` (unsigned char), so the
+ *    store stays one byte; widening it to short/int would emit a word/dword
+ *    store and mismatch.
+ *  - MSVC scheduled the flag store between the two argument pushes and the
+ *    CALL. The store is unconditional and independent of the call in both
+ *    directions, so source order is flag-then-call, exactly as in the sibling
+ *    main_save_core.
+ *  - csstrcpy's return value (EAX) is not consumed after the CALL, so it is
+ *    discarded, matching the void return.
+ *
+ * Inferred:
+ *  - The flag at 0x46da3e is the load sibling of game_state_save_core_pending
+ *    (0x46da3d) in the same contiguous run of main_globals pending-request
+ *    bytes; main_reset_map's cleanup clears both. The actual load is performed
+ *    later by the main-loop handler that consumes the flag, not here.
+ *
+ * Uncertain:
+ *  - The size of the core_name buffer is not observable from this function
+ *    (csstrcpy is unbounded), so it stays an incomplete `char[]` as declared
+ *    in kb.json rather than being given an invented bound.
+ */
+void main_load_core(void)
+{
+  game_state_load_core_pending = 1;
+  csstrcpy(core_name, "core.bin");
+}
+
 void main_queue_map_name(char *map_name)
 {
   if (map_name != 0) {

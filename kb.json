@@ -13209,7 +13209,8 @@
     },
     {
      "addr": "0x100420",
-     "decl": "void main_load_core(void);"
+     "decl": "void main_load_core(void);",
+     "ported": true
     },
     {
      "addr": "0x100440",
