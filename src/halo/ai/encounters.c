@@ -118,6 +118,110 @@ void FUN_00053bf0(void)
 }
 
 
+/* 0x00053c50 — actor debug-line overlay pass (FUN_00053c50).
+ *
+ * Called first thing from the encounters_update dispatcher (0x53da0).  When the
+ * debug mode selector at 0x5abaa2 is positive and a camera exists, draws one
+ * debug line per live actor from a point just in front of the camera to either
+ * the actor's own vec3 (actor+0x120) or, for swarm-style actors, to each
+ * member unit's head position.
+ *
+ * Globals:
+ *   0x5abaa2 (int16, SIGNED) : debug mode selector.  Confirmed narrow:
+ *     `MOV CX,word ptr [0x5abaa2]` + `MOVSX ECX,CX`, and later
+ *     `MOVSX EAX,word ptr [0x5abaa2]` — read as a short at every use site, so
+ *     it is re-read here rather than hoisted into a local.
+ *     1 = actor_action_debug_color, 2 = actor_activation_debug_color,
+ *     anything else = actor skipped.
+ *   actor_data (0x6325a4) : actor pool, indexed by the iterator's handle.
+ *
+ * Camera-offset point: [EAX+0x20/0x24/0x28] * 0.05f + [EAX+0x00/0x04/0x08],
+ * i.e. forward * 0.05 + position.  FMUL then FADD, no subtraction — no
+ * operand-order hazard.  0.05f is the constant at 0x2533e8 (cd cc 4c 3d);
+ * spelled as a literal to avoid an IMM mismatch against a DAT_ reference.
+ *
+ * MSVC frame layout (SUB ESP,0x38):
+ *   [EBP-0x38] iter          0x18 bytes — FUN_00059b50 writes the current
+ *                            actor handle to iter+0x14 (EBP-0x24), so this must
+ *                            be one contiguous buffer, not two locals.
+ *   [EBP-0x1c] head_position 3 floats — out buffer for unit_get_head_position
+ *   [EBP-0x10] point         3 floats — camera-offset point, passed by LEA
+ *   [EBP-0x04] draw_flag     char (only the low byte is stored; the original
+ *                            pushes the whole dword slot)
+ *
+ * Confirmed: `PUSH EAX(flag); PUSH ECX(&iter)` at the 0x59b10 call — cdecl, so
+ * the argument order is (iter, flag).  The `ADD ESP,0xc` there is a merged
+ * cleanup covering that 2-arg call plus the following 1-arg FUN_00059b50; the
+ * second FUN_00059b50 site at 0x53d7e cleans with `ADD ESP,4`, proving the
+ * 1-arg declaration is correct (the argument-count audit's report of 3 args is
+ * a false positive).
+ * Confirmed: the dispatch is a DEC/DEC chain (`MOVSX EAX,[0x5abaa2]; DEC EAX;
+ * JZ; DEC EAX; JNZ`), i.e. a switch lowering, not an if/else-if chain.
+ * Confirmed: in the multi-unit loop the next-link is read from the pointer
+ * returned by object_get_and_verify_type (EDI), NOT from the actor record —
+ * Ghidra reuses one variable for both, which is register-aliasing noise.
+ * Confirmed: `ADD ESP,0x20` after FUN_00189270 in that loop cleans 4 + 2 + 2
+ * stack args (0x189270 + unit_get_head_position + object_get_and_verify_type).
+ */
+void FUN_00053c50(void)
+{
+  char iter[0x18];
+  float head_position[3];
+  float point[3];
+  char draw_flag;
+  short debug_mode;
+  float *camera;
+  char *actor_record;
+  char *object_record;
+  void *color;
+  int object_handle;
+
+  camera = (float *)observer_get_camera(0);
+  debug_mode = *(int16_t *)0x5abaa2;
+  if (debug_mode > 0 && camera != NULL) {
+    draw_flag = 1;
+    if (debug_mode == 2) {
+      draw_flag = 0;
+    }
+
+    point[0] = camera[8] * 0.05f + camera[0];
+    point[1] = camera[9] * 0.05f + camera[1];
+    point[2] = camera[10] * 0.05f + camera[2];
+
+    encounter_iterator_next(iter, draw_flag);
+    while (FUN_00059b50(iter) != 0) {
+      actor_record = (char *)datum_get(actor_data, *(int *)(iter + 0x14));
+
+      switch (*(int16_t *)0x5abaa2) {
+      case 1:
+        color = actor_action_debug_color(*(int *)(iter + 0x14));
+        break;
+      case 2:
+        color = actor_activation_debug_color(*(int *)(iter + 0x14));
+        break;
+      default:
+        continue;
+      }
+
+      if (color != NULL) {
+        if (*(char *)(actor_record + 6) != 0) {
+          object_handle = *(int *)(actor_record + 0x24);
+          while (object_handle != -1) {
+            object_record =
+              (char *)object_get_and_verify_type(object_handle, 3);
+            unit_get_head_position(object_handle, head_position);
+            FUN_00189270(1, point, head_position, color);
+            object_handle = *(int *)(object_record + 0x1ac);
+          }
+        } else {
+          FUN_00189270(1, point, (float *)(actor_record + 0x120), color);
+        }
+      }
+    }
+  }
+}
+
+
 /* 0x00053da0 — encounters_update dispatcher (FUN_00053da0).
  *
  * Master per-frame update tick for the encounter subsystem.  First recomputes
