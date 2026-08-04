@@ -1322,6 +1322,16 @@
         "The three tally globals 0x5ac76e, 0x5ac7f6 and 0x5ac87e are signed 16-bit counters: all three are loaded with MOVSX WORD PTR before the varargs sprintf, so reading them as int would be a load-width bug."
       ]
     },
+    "0x53c50": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The 0x18-byte iterator buffer at EBP-0x38 carries the current actor datum handle at +0x14, written by FUN_00059b50 through the pointer; it must be one contiguous local, not two separate variables."
+      ],
+      "uncertain": [
+        "The multi-unit next-link at object_record+0x1ac is read from the pointer returned by object_get_and_verify_type rather than from the actor record, which is confirmed by the EDI dataflow but the field's meaning (next unit in swarm list) is only inferred from its use as the loop induction handle."
+      ]
+    },
     "0x53e80": {
       "kind": "function",
       "status": "unknown",
@@ -1761,6 +1771,18 @@
     "0x61df0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x620f0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The obstacle flags word passed as FUN_00062020 arg 3 is 1 only for type-0 (biped) objects, inferred from the object-type field at +0x64 being compared against zero immediately before the dot-product and FUN_00013070 gates.",
+        "The disc radius reaches FUN_00062020 as a raw dword via MOV/PUSH rather than FLD/FSTP, so the kb decl uint32_t param_5 is bit-compatible but the underlying value is a float and the argument is forwarded through a pointer reinterpretation."
+      ],
+      "uncertain": [
+        "The pooled float thresholds are read byte-exact from the XBE as 0.5f (0x253398), -0.2f (0x255ba4), 0.2f (0x2549d4), 4.0f (0x2533d8), 0.0f (0x2533c0) and 0.06666667f (0x253d48), but their semantic names (z-slab pad, up-vector gate, z distance weight, dot threshold) remain unproven.",
+        "The loop induction variable is stored full width at EBP-0x20 yet compared and passed to tag_block_get_element after a MOVSWL sign-truncation, which is transcribed literally as a separate int16-truncated index without a proven source-level explanation."
+      ]
     },
     "0x62960": {
       "kind": "function",
@@ -7095,6 +7117,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x100010": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The byte cleared at 0x46dc54 is inferred to be the final terminator slot of the 0x100-byte multiplayer map-name buffer starting at 0x46db55 (csstrncpy copies at most 0xff bytes), rather than a separate one-byte flag global; the disassembly only proves it is a BYTE store of 0 immediately adjacent to the buffer."
+      ]
+    },
+    "0x100040": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x100050": {
       "kind": "function",
       "status": "ported"
@@ -7110,6 +7143,20 @@
     "0x1000d0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1002a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x100380": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Shape matches main_goto_main_menu: clears byte_46DA28 (the save-attempt-resolved flag also cleared by main_save_map_private and main_new_map) and arms one of the main_globals pending flags, so 0x100380 is one of the main-loop transition request setters sitting between main_won_map (0x100370) and main_respawn (0x100390)."
+      ],
+      "uncertain": [
+        "No string, assert, or recorded caller evidence exists for what transition byte_46DA3B (0x46da3b) requests, so the function keeps its mechanical FUN_00100380 name and both globals keep their kb-registered byte_46DAxx names."
+      ]
     },
     "0x100590": {
       "kind": "function",
@@ -7134,6 +7181,19 @@
     "0x1006c0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1008a0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The num_players==1 case is emitted as a separate duplicated tail block (LAB_001008fd) storing the same two variables, so the two exit blocks are kept distinct in C rather than unified.",
+        "Name compute_split_screen_grid is behavioral only: no PDB entry or string names the function itself, and the assert string num_players>0 only proves the EBX register argument is a player count."
+      ],
+      "uncertain": [
+        "No string or PDB evidence exists for the original function name, so the mechanical FUN_001008a0 name is retained rather than guessing a split-screen grid helper name.",
+        "VC71 folds the grow_horizontal bool temp away, so the reference SETL AL / TEST AL,AL / JE sequence is still emitted by us as a single JGE; the source form that reproduces it was not found.",
+        "The original has two duplicated store-and-return blocks (0x1008f5/0x1008f7 via ECX/EDX and 0x100903/0x100905 via EAX/ECX) while the lift uses a single exit, which accounts for the 48-versus-46 instruction delta at 92.5 percent; a source with the stores duplicated in both branches was not tried."
+      ]
     },
     "0x100910": {
       "kind": "function",
@@ -7317,6 +7377,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1034b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "FUN_001034b0 is the init counterpart of the dispose helper FUN_001034e0 (0x1034e0): both operate on the same three tables at context offsets +0x00, +0x0c and +0x18, and the 0x1c element size passed here for the +0x0c table matches the 0x1c stride FUN_001034e0 uses when walking that table's elements."
+      ],
+      "uncertain": [
+        "The parameter is named 'context' mechanically; the only observed caller (structures.c around the structure_bsp material/coplanar-geometry build) passes its 'geometry' variable, so the struct's real identity and the meaning of its three arrays (element sizes 0x0c, 0x1c and 0x18) are not established by binary evidence."
+      ]
+    },
     "0x103a00": {
       "kind": "function",
       "status": "unknown",
@@ -7488,6 +7558,17 @@
       ],
       "uncertain": [
         "The original uses SSE MULPS/ADDPS for the 3x3 and translation parts; the scalar x87 reimplementation may produce slightly different rounding in edge cases."
+      ]
+    },
+    "0x109a60": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Returns out in EAX (MOV EAX,[EBP+0x10] before RET), so the prototype is float * not void; declared float *FUN_00109a60(float *m, float determinant, float *out).",
+        "Assert epsilon at 0x2533d0 is the double promotion of 0.0001f (9.999999747378752e-05), matching source form fabs(determinant) < 0.0001f from realcmp."
+      ],
+      "uncertain": [
+        "The icopy/jm1 duplicate induction variables are written explicitly to reproduce VC71 codegen; the original source most likely used single loop counters with row/column names."
       ]
     },
     "0x109e10": {
@@ -10138,7 +10219,8 @@
       "kind": "function",
       "status": "unknown",
       "inferred": [
-        "Decl corrected from void FUN_0017c140(void) to bool FUN_0017c140(void *map@<esi>, int16_t map_index@<di>): TEST ESI,ESI is the first instruction at 0x17c140, MOVSX EAX,DI at 0x17c16d and MOVSX ECX,DI at 0x17c192 prove DI is a real input, and the two tails MOV AL,BL / XOR AL,AL return a bool in AL."
+        "Decl corrected from void FUN_0017c140(void) to bool FUN_0017c140(void *map@<esi>, int16_t map_index@<di>): TEST ESI,ESI is the first instruction at 0x17c140, MOVSX EAX,DI at 0x17c16d and MOVSX ECX,DI at 0x17c192 prove DI is a real input, and the two tails MOV AL,BL / XOR AL,AL return a bool in AL.",
+        "kb decl corrected from void FUN_0017c140(void) to bool FUN_0017c140(void *map@<esi>): the call site at 0x17c3f3 sets only MOV ESI,EAX (the 0x64-byte map element returned by tag_block_get_element) and stores AL back into the running ok flag at 0x17c3fa."
       ]
     },
     "0x17c2f0": {
@@ -10148,7 +10230,8 @@
         "FUN_0017c140 was declared void FUN_0017c140(void) in kb.json but the disassembly at 0x17c140 reads ESI before writing it (TEST ESI,ESI at the entry) and reads DI at 0x17c16d/0x17c192 (MOVSX EAX,DI / MOVSX ECX,DI feeding error()), so its real signature is char FUN_0017c140(void *map@<esi>, int16_t map_index@<di>) returning AL from the tails at 0x17c1a5/0x17c1a9.",
         "FUN_0017c000 was declared void FUN_0017c000(void) in kb.json but is the alpha twin of FUN_0017be50: TEST SI,SI at 0x17c000 and TEST DI,DI at 0x17c02b read both registers before writing, so its real signature is int FUN_0017c000(int16_t register_index@<si>, int16_t mapping_index@<di>).",
         "The 0xf0-byte output block matches the XDK D3DPIXELSHADERDEF layout field-for-field (+0x20/+0x24 final-combiner inputs, +0x48 PSConstant1[8], +0x68 PSAlphaOutputs[8], +0x88 PSRGBInputs[8], +0xb4 PSRGBOutputs[8], +0xd4 PSCombinerCount, +0xd8 PSTextureModes), so the offset macros are named after the XDK fields even though no string in the binary proves it.",
-        "The 0xf0-byte output buffer is an XDK D3DPIXELSHADERDEF: the written offsets 0x00/0x20/0x24/0x48/0x68/0x88/0xb4/0xd4/0xd8 line up exactly with PSAlphaInputs, PSFinalCombinerInputsABCD/EFG, PSConstant1, PSAlphaOutputs, PSRGBInputs, PSRGBOutputs, PSCombinerCount and PSTextureModes, and the csmemset size at 0x17c353 is the struct's 0xf0 size."
+        "The 0xf0-byte output buffer is an XDK D3DPIXELSHADERDEF: the written offsets 0x00/0x20/0x24/0x48/0x68/0x88/0xb4/0xd4/0xd8 line up exactly with PSAlphaInputs, PSFinalCombinerInputsABCD/EFG, PSConstant1, PSAlphaOutputs, PSRGBInputs, PSRGBOutputs, PSCombinerCount and PSTextureModes, and the csmemset size at 0x17c353 is the struct's 0xf0 size.",
+        "The 0xF0-byte output block is the Xbox D3DPIXELSHADERDEF: all nine written offsets (0x00 PSAlphaInputs, 0x20/0x24 final combiner inputs, 0x48 PSConstant1, 0x68 PSAlphaOutputs, 0x88 PSRGBInputs, 0xb4 PSRGBOutputs, 0xd4 PSCombinerCount, 0xd8 PSTextureModes) line up with that XDK structure and its 0xF0 size matches the csmemset at 0x17c360."
       ],
       "uncertain": [
         "The names given to the pixel_shader output fields (PIXEL_SHADER_MUX_CONTROL at +0x20, PIXEL_SHADER_FINAL_COMBINER at +0x24, PIXEL_SHADER_STAGE_CONSTANT at +0x48) are inferred from the register-combiner constants stored into them (0xc, 0x1c00, and a real_rgb_color packed by FUN_000d1c90) and are not proven by any string; the remaining offsets of the 0xf0-byte buffer are untouched by this function and stay unnamed.",
@@ -10156,7 +10239,8 @@
         "VC71 match is 86.7% (389 of our instructions against a complete 358-instruction reference). The residual gap is register-allocation and spill-slot scheduling, not control flow: the original reuses six spill slots at EBP-0x10..EBP-0x24 across the colour and alpha phases and repurposes the two incoming parameter slots as the definition pointer and then the stage index. A permuter run over 100s regressed to 85.6% and was not applied.",
         "The short at generic+0x2a only ever feeds a != 0 test that selects shader-stage program 1 vs 3 for texture unit 0; that is consistent with the tag's first_map_type enum (0 = 2D, non-zero = a cube map), but nothing in the binary proves the name, so the macro stays GENERIC_FIELD_2A.",
         "The stage fields at +0x3c..+0x4a, +0x58..+0x66, +0x4c/+0x50/+0x54 and +0x68/+0x6a/+0x6c carry only mechanical offset-derived names because the shared assert string at 0x2aed50 names the inlined helper's parameter (register_index) rather than the field; only +0x6e is proven as stage->alpha_output_mapping by the string at 0x2aef40.",
-        "VC71 measures 69.2 percent (69.5 with --regcall-elide) because the verify lane cannot express the @<si>/@<di> ABI of the ten register-arg call sites in the stage loop and emits push/push/call plus cleanup instead of two movw; the 388 vs 358 instruction delta accounts for the entire gap and classify_cap.py rates this a high-confidence structural cap."
+        "VC71 measures 69.2 percent (69.5 with --regcall-elide) because the verify lane cannot express the @<si>/@<di> ABI of the ten register-arg call sites in the stage loop and emits push/push/call plus cleanup instead of two movw; the 388 vs 358 instruction delta accounts for the entire gap and classify_cap.py rates this a high-confidence structural cap.",
+        "The short at definition+0x2a is only ever compared against zero and only selects texture mode 3 instead of 1 for stage 0 (cube map versus 2D projective), so its name stays mechanical (SHADER_TRANSPARENT_GENERIC_FIELD_2A) until string or PDB evidence appears."
       ]
     },
     "0x17c790": {
@@ -10733,6 +10817,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x192050": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "portal record stride 0x18 is {plane_index@+0, leaf_index0@+4, leaf_index1@+8, vertex tag_block@+0xc}; the leaf record stride 0x18 is two tag_blocks (surfaces at +0, portal designators at +0xc, stride 4)."
+      ],
+      "uncertain": [
+        "Both FUN_00191c70 call sites additionally PUSH EDI (ADD ESP,0x20 covers six tag_block_get_element args plus the two pushed pointers), so 0x191c70 takes a third stack parameter its body ignores; its kb decl was left at two register args to avoid perturbing an already-ported ABI, at the cost of two missing pushes.",
+        "The original tag_block_add_element returned a 32-bit value (the full EAX is stored into the 4-byte designator slot with no widening), but our kb decl returns int16_t, so our lift emits one extra sign-extension at the portal_index assignment."
+      ]
+    },
     "0x193550": {
       "kind": "function",
       "status": "ported"
@@ -10789,6 +10884,24 @@
       },
       "inferred": [
         "Per-map reset: csmemset zeroes the full 0xa430-byte detail_object_global_runtime_data block (base at global 0x4d8ea0), then clears a single byte flag at base+0x520e; NULL-block guard tail-calls system_exit(-1) via the display_assert hard-exit (line 109)."
+      ]
+    },
+    "0x1943e0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Return type is bool: both epilogues set AL (MOV AL,BL success flag / XOR AL,AL on the early clear-failure return); kb decl updated from void to bool.",
+        "CRT helper mapping inferred from repo precedent and grid semantics: 0x1dbc26 is ceil (applied to the clamped grid minimum) and 0x1d9c2b is floor (applied to the maximum and to the 127.5f normal packing); kb decl for 0x1dbc26 renamed to ceil.",
+        "The 0x2533d0 epsilon compared against fabs(edge_length) is the double 9.999999747378752e-05, i.e. (double)0.0001f, so the source literal is a float 0.0001f promoted to double by the fabs() comparison.",
+        "The function returns bool in AL (MOV AL,BL before the epilogue at 0x1954ad, XOR AL,AL on the tag_block_resize failure path at 0x1954c4); Ghidra typed it void, and its only caller FUN_001954d0 discards the result.",
+        "The coplanar-group builder is one contiguous 0x24-byte struct based at EBP-0xDC (three 12-byte array descriptors at +0x00 points/+0x0C edges/+0x18 triangles, triangle count at +0x1C); Ghidra split it into four independent locals local_e0/local_d4/local_c8/local_c4."
+      ],
+      "uncertain": [
+        "Residual VC71 FPU-WARN is a commuted FMUL operand pair (ours loads the normal component first, reference loads the delta at [EBP+8] first) in the marker position-step loop; FMUL is commutative so results are bit-identical.",
+        "Residual VC71 IMM-WARN: the reference materializes the edge sign-bit select with AND 0x80000000/NEG/SBB while our VC71 build lowers the same (x & 0x80000000) != 0 predicate without the mask constant; array-index rewrite did not change the lowering and the predicate is semantically identical.",
+        "Equivalence ran zero-fill only (100/100 seeds pass, 2.1 percent coverage, early-exit paths); this is a tool/build-time pass that cache builds cannot exercise because FUN_001b9b50 tag_reference_set is a cache-build error stub.",
+        "The __FILE__ literal at 0x2b3284 proves the original TU is c:\\halo\\SOURCE\\structures\\structure_lens_flares.c, but this lift lives in src/halo/structures/structures.c; a new-TU placement was attempted and measured 68.0% versus 87.6% here, so the TU split is deferred to a later source-recovery pass.",
+        "The float search offset in the final cluster-resolution loop (1.5258789e-05 doubling to 1.0) is allocated by MSVC into the dead parameter home slot [EBP+8]; VC71 does not reproduce that slot reuse from C source, which contributes part of the residual frame divergence."
       ]
     },
     "0x196290": {
@@ -11400,6 +11513,13 @@
     "0x1a8690": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1a8770": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Predicate is a signed-byte range test on anim_state+0xb: returns 1 iff the state value is in the inclusive range [3,4], else 0; signedness is proven by the CMP/JL and CMP/JG pair, and the field width by the byte-sized MOV CL,[ECX+0xb]."
+      ]
     },
     "0x1a8990": {
       "kind": "function",
@@ -12615,6 +12735,24 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c9230": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Semantics recovered from the 6-instruction body only: FMUL by the .rdata constant 0x42652EE1 (57.29578f == 180/PI) followed by a tail-JMP to _ftol2, i.e. radians-to-truncated-integer-degrees; check_arg_counts reports zero original call sites, so the DirectSound cone/orientation-angle usage is inferred from the constant and the enclosing sound_dsound module rather than observed at a caller."
+      ]
+    },
+    "0x1c9250": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c9270": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Parameter name 'obstruction' and the [0.0,1.0] domain are inferred from the kb symbol name and from the identical sibling dsound_occlusion_from_occlusion (0x1c9250); the binary only proves a single cdecl float at EBP+8 fed to FSUB against the 1.0f constant at 0x2533c8."
+      ]
+    },
     "0x1c9290": {
       "kind": "function",
       "status": "ported"
@@ -12622,6 +12760,16 @@
     "0x1c92f0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1c9350": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Callers pass a string constant in ESI (0x2c09e4 \"couldn't queue sound packet.\", 0x2c0f7c \"couldn't get channel status.\") and LEA EAX,[EBP-N] of a local HRESULT, so this is the DirectSound failure recorder: hresult in EAX, reason text in ESI."
+      ],
+      "uncertain": [
+        "The callee at 0x1d90f0 is named crt_sprintf in kb.json but is invoked here with exactly two stack args and ADD ESP,8, so its behavior at this site is strcpy(dest, src); the 2-arg form is preserved verbatim because widening it to a 3-arg sprintf would change the push count."
+      ]
     },
     "0x1c94b0": {
       "kind": "function",
@@ -12634,6 +12782,29 @@
     "0x1c9600": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1c9670": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The EBP-0x10 frame slot serves two disjoint uses in the original (channel flag bit 0x4 during block sizing, then the IDirectSoundStream::Process HRESULT whose address is taken), so the lift models it as a single 'scratch' local.",
+        "Field semantics are inferred from use only: channel+0x64 is a byte cursor into the current sound, channel+0x68 the current sound, channel+0x6c a pending sound, channel+0x70 the DirectSound stream object, channel+0x38 a 16-bit format-flag word, and sound+0x30/+0x40 the sample offset and byte size.",
+        "The 0x18-byte stack aggregate at EBP-0x28 is an XMEDIAPACKET: +0x00 pvBuffer=samples+cursor, +0x04 dwMaxSize=byte count, +0x08/+0x0c/+0x14 NULL, +0x10 pContext=the sound pointer; the vtable slot at offset 0x10 (index 4) is IDirectSoundStream::Process, called stdcall with three arguments and no ADD ESP.",
+        "channel->type_flags at +0x38 is a 16-bit field whose bit 0x2 means stereo (it both doubles the byte-count multiplier and doubles the 36-byte ADPCM step to 72), bit 0x4 doubles the multiplier again (16-bit samples), and bit 0x8 selects a 0x900-sample nominal block instead of 0x2000.",
+        "Inferred: the 0x18-byte stack descriptor passed to vtable slot 4 of the object at channel+0x70 is shaped like an XMEDIAPACKET handed to IDirectSoundStream::Process with a NULL output packet, but the exact XDK field order is not proven, so the struct fields are named mechanically.",
+        "Inferred: channel+0x38 bit 0x8 selects the base packet size (0x900 vs 0x2000) and bits 0x2 and 0x4 each double it via the 1.0f/2.0f constants at 0x2533c8/0x253f40; the physical meaning of each bit (16-bit vs 8-bit, stereo vs mono, compressed vs PCM) is not proven from this function alone."
+      ],
+      "uncertain": [
+        "The XMEDIAPACKET field at +0x10 receives the sound record pointer (completion context); the +0x14 slot is zeroed and its meaning is unconfirmed.",
+        "The out-of-range diagnostic formats the sound record pointer with %s, implying the record begins with a name string, but that layout is not otherwise confirmed.",
+        "The name FUN_001c9670 was kept because no __FILE__ or PDB evidence names it; the error strings only establish that it queues a sound.",
+        "The stack block passed to vtable slot 4 is treated as a 24-byte XMEDIAPACKET based on its field layout and the DirectSound stream receiver, but the vtable slot itself was not identified by name.",
+        "The range-error format string prints the sound pointer with %s without any dereference in the disassembly, so either the sound struct begins with an inline name array or the original source passed the raw pointer; the lift reproduces the raw pointer verbatim rather than guessing a name field.",
+        "VC71 caps this lift at 68.2 percent: classify_cap reports reg_defining_prologue high confidence because the decl takes channel_index in EAX, and the verify lane additionally compiles the @<si> call to sound_dsound_channel_get as a stack call (PUSH EAX plus ADD ESP,4) instead of MOV ESI,EAX.",
+        "Uncertain: the range-failure sprintf passes the sound pointer (EBX) for the %s conversion in \"trying to queue sound %s but it's outside the valid range. (%ld)\"; the binary pushes the raw struct pointer with no name lookup, so either the sound struct begins with a name or the original format is mismatched.",
+        "Uncertain: FUN_001be100 was previously declared void(void) in kb.json; the 0x1c9806 call site (PUSH EBX / ADD ESP,4) proves one cdecl stack argument and check_arg_counts now agrees, but the argument's exact type beyond \"pointer to the sound whose +0x2c it reads\" is not established.",
+        "Uncertain: VC71 match is 87.0% at 213 vs 211 instructions; the residual is MSVC store scheduling inside the cursor-reset arm plus a setne-vs-shr/and lowering of ((flags & 2) != 0) + 1, on top of the permanent floor from this function defining its own @<eax> parameter. The permuter found no improvement in 100 seconds."
+      ]
     },
     "0x1c98f0": {
       "kind": "function",
@@ -12653,6 +12824,30 @@
         "Actual channel struct layout: offset 0x02 = short virtual_channel_index, offset 0x38 = short type_flags (from assertion text and field access patterns). Each element is 0x74 bytes."
       ]
     },
+    "0x1c9bf0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Parameter width inferred as int from MOV EBX,[EBP+8] (dword load, no MOVSX/MOVZX) and matched to the in-TU sibling sound_dsound_channel_resolve; only the low 16 bits are consumed (CMP word ptr [EAX+2],BX), hence the (short) cast at the comparison."
+      ],
+      "uncertain": [
+        "Function name is unknown; kept as FUN_001c9bf0 because no string or PDB evidence names it (the 0x5dd assert text only describes the invariant, not the routine).",
+        "Channel struct fields at +0x6 (byte set to 1), +0x68/+0x6c (two dword zero stores) and +0x70 (stream pointer passed to FUN_0020f081) have proven widths and offsets from disassembly but no semantic names; FUN_0020f081 at 0x20f081 is an unported __stdcall stream-teardown helper adjacent to dsound_stream_is_active (0x20f069)."
+      ]
+    },
+    "0x1c9cf0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The name sound_dsound_inanity_channel_create comes from the two error strings at 0x2c0ca4 and 0x2c0ccc, which both call this a create/start of the inanity channel; the buffer is 32 bytes of silence used to keep the hardware mixer running.",
+        "The DSBUFFERDESC field at +0x10 set to 0x1f00 is inferred to be the dwMixBins mask (bits for the six speaker mixbins); the binary only shows the literal store.",
+        "Function name sound_dsound_inanity_channel_create is derived from the two error strings 'failed to create/start the inanity channel.'; the WAVEFORMATEX/DSBUFFERDESC field mapping follows the standard DirectSound layout."
+      ],
+      "uncertain": [
+        "The DSBUFFERDESC field at +0x10 is stored as 0x1f00; the Xbox XDK places lpMixBins there, but 0x1f00 is not a plausible pointer, so the field's true meaning is unconfirmed and it is written as a raw dword.",
+        "The fourth NULL argument to IDirectSound_CreateSoundBuffer is passed as EBX=0 in the binary; it is presumed to be the standard pvUnknown/outer-unknown parameter but its exact XDK meaning was not verified."
+      ]
+    },
     "0x1ca5e0": {
       "kind": "function",
       "status": "ported",
@@ -12667,9 +12862,61 @@
         "The update_only parameter name is inferred; when nonzero it skips pitch and 3D updates (volume-only mode). The original source name could differ."
       ]
     },
+    "0x1ca900": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Callee 0x1c9670 takes the channel index in EAX (0x1c9679 MOV ESI,EAX before any EAX write) and returns a bool in AL (MOV AL,[EBP-1] precedes both RETs at 0x1c981c and 0x1c9833); its kb decl was corrected from void(void) to bool(short@<eax>) as part of this lift.",
+        "The vtable slot at byte offset 0x0c (index 3) of the channel's IDirectSoundStream is IDirectSoundStream::GetStatus, inferred from the DSBSTATUS_PLAYING bit-0 test on its DWORD out-param and from slot 6 (0x18) already being Flush in FUN_001ca130; it is stdcall (this and &status pushed, no ADD ESP after the call)."
+      ],
+      "uncertain": [
+        "The int16 field at channel+0x08 is compared against 4 as the outer loop guard, which conflicts with the save_and_quit_warning reading given to the same offset in the FUN_001ca130 comment block; one of the two interpretations is wrong and the field is left unnamed here.",
+        "The int32 field at channel+0x68 is only known to be a non-zero loop guard; nothing in this function reveals what it counts, so it is left as field_68."
+      ]
+    },
+    "0x1ca970": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Argument names channel_index/packet_context/status are inferred from the XMediaObject/DirectSoundStream packet-callback shape (stdcall, RET 0xc, three args); only the widths are binary-proven.",
+        "The channel_index parameter is typed short because both bounds checks are 16-bit (TEST SI,SI and CMP SI,word ptr [0x4fdfc4]), even though MSVC loads the full dword slot at 0x1ca975.",
+        "The invalid-channel arm at 0x1caa2d is the body of sound_dsound_set_last_error inlined by the original compiler and is transcribed verbatim, including the two-argument crt_sprintf append.",
+        "Parameter 2 ([EBP+0xc]) is only loaded and pushed to FUN_001be140 (cdecl, 1 stack arg); its role is inferred as the finished sound packet from the enclosing queue semantics, and its pointer-vs-integer type is unproven.",
+        "The invalid-channel path is sound_dsound_set_last_error (0x1c9350) inlined with a NULL hresult, so it is reproduced inline (three csstrlen calls plus the 2-argument crt_sprintf) rather than written as a call."
+      ],
+      "uncertain": [
+        "The function name is unknown; the packet-completion reading rests on the status constants E_ABORT/E_FAIL/E_PENDING and the three reason strings, not on a symbol.",
+        "The purpose of the second stack argument (packet_context, sole cdecl arg to FUN_001be140) is unproven; FUN_001be140 only dereferences it at +0x2c.",
+        "channel_index is typed short because both range checks are 16-bit (TEST SI,SI and CMP SI,word ptr [0x4fdfc4]), but the original passes it to FUN_001ca900 with a bare MOV EAX,ESI and no sign extension, which suggests FUN_001ca900's own parameter is also short rather than the int currently declared in kb.json; our lift emits one extra MOVSWL there."
+      ]
+    },
     "0x1caa80": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1caab0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter is a stack bool at [EBP+8] (plain RET, so cdecl); the name 'paused' comes from the assert string 'paused!=dsound_globals.paused' at line 0x2d8, and dsound_globals.paused is the byte at 0x505484 - the function's only global side effect. A name such as sound_dsound_set_paused is defensible on that evidence but was not applied.",
+        "Branch polarity is confirmed from the delinked reference: at +0x41 'cmp bl,cl' / 'je LAB_001cac23' means the fall-through path is the PAUSE path, so the source form is 'if (paused) { pause } else { unpause }'. Ghidra rendered it inverted; writing the inverted form scored 51.7 percent versus 89.4 percent for the correct one.",
+        "The two flag-selected 1.0f/2.0f scalars in the unpause x87 chain are read from channel+0x38 bits 0x4 and 0x2; the multiply order in the binary is ((K * bit2_scalar) * bit4_scalar) * 4.0f, so the source lists the bit-0x2 ternary before the bit-0x4 ternary."
+      ],
+      "uncertain": [
+        "Channel field meanings are structural only: +0x00 int16 state (0 == idle), +0x06 uint8 stopping, +0x08 int16 save-and-quit warning, +0x38 int16 flags, +0x3c int32 cleared, +0x64 int32 rewound by delta*fb*fa*4, +0x70 stream pointer. The x87 term 'delta = (flags & 8) ? 0x900 : 0x2000' scaled by the two flag-driven doubling factors is unnamed - no string or PDB evidence identifies what +0x64 or the flag bits mean.",
+        "VC71 residual gap at 89.4 percent is the EBX zero-hoist floor: the original hoists 0 into EBX and uses register compares (cmpb bl,(esi) / cmpw bx,di / cmpl ebx,eax) plus an 8-byte frame that materializes 'released' into [EBP-1], while VC71 on our source emits immediate/self compares and a 4-byte frame. Two further instructions are a verify-lane artifact: the FUN_001ca900 @<eax> call compiles as a cdecl push in the VC71 lane. The permuter found no improvement in 100s.",
+        "Field meanings at channel+0x38 (flag word), +0x3c and +0x64 (int32 rewound by the x87 chain and clamped at zero) are not proven; only their widths and access order are binary-evidenced, so they are left as raw offsets rather than named fields."
+      ]
+    },
+    "0x1cadd0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "SetMode's second argument is 2 when use_3d is 0 and 0 otherwise (MSVC branchless setne/dec/and $2 ternary); 2 is read as the DirectSound 'disable 3D processing' mode by analogy with DS3DMODE_DISABLE, which is consistent with channel+0x4 gating whether sound_dsound_channel_update_3d sends 3D parameters at all."
+      ],
+      "uncertain": [
+        "The two float parameters cached at channel+0x44 and channel+0x48 are named scalar_44/scalar_48 because their meaning is unproven; sound_dsound_channel_update_3d consumes both as 1.0-value gain sends, so they are plausibly obstruction and occlusion, but nothing in the binary names them."
+      ]
     },
     "0x1cb790": {
       "kind": "function",

@@ -349,6 +349,42 @@ void create_local_players(void)
 }
 
 /*
+ * main_reset_map - 0x1002a0
+ *
+ * Confirmed:
+ *  - Whole body is 6 instructions, no frame, no CALLs, no FPU:
+ *      XOR AL,AL
+ *      MOV word ptr [0x0046da40],0xffff
+ *      MOV [0x0046da28],AL
+ *      MOV byte ptr [0x0046da24],0x1
+ *      MOV [0x0046da3b],AL
+ *      RET
+ *  - 0x46da40 is a WORD store (MOV word ptr, imm16 = 0xffff); the other
+ *    three are byte-width stores, so those globals are single-byte flags.
+ *  - The single XOR AL,AL feeds both byte-zero stores (0x46da28 and
+ *    0x46da3b), which straddle the 0x46da24 = 1 store; the store order is
+ *    kept literal here.
+ *  - Plain cdecl void(void): RET carries no immediate, and no register is
+ *    read before being written, so there are no implicit @<reg> inputs.
+ *
+ * Inferred:
+ *  - Same shape as main_goto_main_menu (reset word_46DA40 to -1, clear
+ *    byte_46DA28, arm a pending flag), so this is one of the "request a
+ *    main-loop transition" setters — here the map-reset request.
+ *
+ * Uncertain:
+ *  - No string or assert evidence for what byte_46DA3B tracks, so it keeps
+ *    its mechanical kb-registered name.
+ */
+void main_reset_map(void)
+{
+  word_46DA40 = -1;
+  byte_46DA28 = 0;
+  game_reset_pending = true;
+  byte_46DA3B = 0;
+}
+
+/*
  * FUN_00100380 - 0x100380
  *
  * Confirmed:

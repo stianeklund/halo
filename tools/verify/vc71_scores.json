@@ -15924,6 +15924,10 @@
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
+    "main_reset_map": {
+      "score": 100.0,
+      "source": "src/halo/main/main.c"
+    },
     "main_roll_credits": {
       "score": 100.0,
       "source": "src/halo/main/main.c"

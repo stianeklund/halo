@@ -13146,7 +13146,8 @@
     },
     {
      "addr": "0x1002a0",
-     "decl": "void main_reset_map(void);"
+     "decl": "void main_reset_map(void);",
+     "ported": true
     },
     {
      "addr": "0x1002c0",
