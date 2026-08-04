@@ -13500,7 +13500,8 @@
     },
     {
      "addr": "0x1037b0",
-     "decl": "float * FUN_001037b0(float *out_plane, float *p0, float *p1, float *p2);"
+     "decl": "float * FUN_001037b0(float *out_plane, float *p0, float *p1, float *p2);",
+     "ported": true
     },
     {
      "addr": "0x103860",

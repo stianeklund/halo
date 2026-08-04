@@ -4801,6 +4801,72 @@ int FUN_001036c0(int *table, int value, int key_a, int key_b)
 }
 
 /*
+ * FUN_001037b0 — build the plane through three points.
+ *
+ *   n = cross(p1 - p0, p2 - p0)
+ *   len = normalize3d(n)                      (CALL 0x13010 at 0x103819)
+ *   if (len == 0.0f) { out[3] = 0; return NULL; }
+ *   out[3] = dot(n, p0);  return out;
+ *
+ * Every subtraction is `FLD [p1|p2 + k]; FSUB [p0 + k]` — the second/third
+ * point minus the first, never the reverse.
+ *
+ * The multiply order inside each cross-product term is transcribed literally
+ * from the emitted FMULs (d2 term first for components 0 and 2, d1 term first
+ * for component 1). Reversing any of them negates the plane normal, which
+ * would silently invert every facing test built on it (FUN_00103a00,
+ * FUN_00103c00) — see lift-decompiler-traps trap 4.
+ *
+ * The dot product for out[3] accumulates component 1 and component 2 first
+ * (FLD [EDI+4]; FMUL [ESI+4]; FLD [ESI+8]; FMUL [EDI+8]; FADDP) and only then
+ * adds component 0, so the sum is written in that order to keep the x87 block
+ * shape. Ghidra printed the three terms with component 0 leading; the emitted
+ * FLD order says otherwise and the disassembly wins. Note also that the middle
+ * term loads p0 before out while the other two load out first.
+ *
+ * Both difference vectors are materialised up front, in the order d1.x/y/z then
+ * d2.x/y/z: the original holds all three d1 components on the x87 stack for the
+ * whole cross product (FMUL %ST(3),%ST) and spills only d2.x and d2.y to
+ * -0xc(EBP)/-0x8(EBP), which is why the frame is 0xc and why the two leftover
+ * d1 values are dropped with a pair of FSTP %ST(0) before the CALL. Folding the
+ * subtractions back into the cross-product expressions makes VC71 recompute
+ * them instead (65.3% match).
+ *
+ * The zero test is `FCOMP dword [0x2533c0]` against a .rdata 0.0f (verified by
+ * read_memory), with TEST AH,0x44 / JNP taken on EQUAL — so the equal case is
+ * the out-of-line NULL arm and the success arm falls through.
+ *
+ * ABI: cdecl, four stack args, no register arguments; returns the out pointer
+ * in EAX (MOV EAX,EDI) or NULL (XOR EAX,EAX).
+ */
+float *FUN_001037b0(float *out_plane, float *p0, float *p1, float *p2)
+{
+  float d1x, d1y, d1z;
+  float d2x, d2y, d2z;
+  float length;
+
+  d1x = p1[0] - p0[0];
+  d1y = p1[1] - p0[1];
+  d1z = p1[2] - p0[2];
+  d2x = p2[0] - p0[0];
+  d2y = p2[1] - p0[1];
+  d2z = p2[2] - p0[2];
+
+  out_plane[0] = d2z * d1y - d2y * d1z;
+  out_plane[1] = d1z * d2x - d2z * d1x;
+  out_plane[2] = d2y * d1x - d2x * d1y;
+
+  length = normalize3d(out_plane);
+  if (length != 0.0f) {
+    out_plane[3] =
+        out_plane[1] * p0[1] + p0[2] * out_plane[2] + out_plane[0] * p0[0];
+    return out_plane;
+  }
+  out_plane[3] = 0.0f;
+  return (float *)0;
+}
+
+/*
  * FUN_00103a00 — surface visitor for the FUN_00103530 marking walk: accept a
  * surface only if its three vertices are coplanar with the seed plane and its
  * winding faces the same way as that plane.
