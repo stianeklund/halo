@@ -33134,7 +33134,8 @@
     },
     {
      "addr": "0x59c40",
-     "decl": "void FUN_00059c40(void);"
+     "decl": "int FUN_00059c40(int encounter_handle /* @<eax> */, short pursuit_key /* @<bx> */, int threshold, char create_if_missing);",
+     "ported": true
     },
     {
      "addr": "0x59d30",

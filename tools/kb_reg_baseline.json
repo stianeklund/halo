@@ -73,6 +73,7 @@
     "0x57b40": "int FUN_00057b40(int actor_handle@<eax>);",
     "0x58af0": "void FUN_00058af0(unsigned int ai_index @<eax>, int vehicle_handle @<ebx>, int seat_substring, char allow_type9);",
     "0x59bf0": "void FUN_00059bf0(int encounter_handle /* @<eax> */);",
+    "0x59c40": "int FUN_00059c40(int encounter_handle /* @<eax> */, short pursuit_key /* @<bx> */, int threshold, char create_if_missing);",
     "0x5a050": "void FUN_0005a050(int squad_index /* @<eax> */, int encounter_handle /* @<ecx> */);",
     "0x5a120": "void FUN_0005a120(short *squad_counter /* @<eax> */, void *encounter_def, short *platoon_counter);",
     "0x5a4e0": "char FUN_0005a4e0(int encounter_index /* @<eax> */);",

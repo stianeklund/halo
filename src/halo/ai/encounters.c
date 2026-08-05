@@ -3328,6 +3328,92 @@ void FUN_00059bf0(int encounter_handle /* @<eax> */)
   }
 }
 
+/* 0x00059c40 — find (or optionally create) an "examined pursuit position"
+ * record for a key within an encounter's pursuit list, resetting the record
+ * when it is newly created or its cost field has fallen below `threshold`.
+ *
+ * The pursuit records hang off encounter+0x38 as a singly-linked list through
+ * pursuit+0x24 (-1 terminates).  Each record is 0x28 bytes:
+ *   +0x02 int16_t  key            (compared 16-bit against BX)
+ *   +0x04 int      cost/score     (signed; -1 on reset)
+ *   +0x08 int16_t  cleared to 0 on reset
+ *   +0x0a int16_t  cleared to 0 on reset
+ *   +0x0c 0x18 bytes memset to 0xff on reset (6 dwords, likely datum handles)
+ *   +0x24 int      next handle in list
+ *
+ * Confirmed (disassembly 0x59c40-0x59d2b):
+ *   - encounter_handle arrives in EAX (@<eax>); the key arrives in BX
+ *     (@<bx>) and is compared 16-bit: `CMP word ptr [EAX+0x2],BX` @0x59c74.
+ *   - threshold at [EBP+0x8] is a SIGNED compare (JGE @0x59c8a).
+ *   - create_if_missing at [EBP+0xc] is a byte (TEST AL,AL @0x59c98, and
+ *     RELOADED and tested again @0x59d17/0x59d1d after the reset).
+ *   - `CMP ESI,-1 / JNZ 0x59ce5` @0x59c90 is the post-loop "did we find it"
+ *     test; a match therefore skips the create block entirely.
+ *   - data_new_at_index(pursuit_data) @0x59ca3; on failure the pool-overflow
+ *     warning is logged with 0x100 = MAXIMUM_EXAMINED_PURSUIT_POSITIONS_PER_MAP
+ *     (matching the ai-pursuit pool capacity of 0x100).
+ *   - csmemset(pursuit+0xc, -1, 0x18) @0x59d12.  The `ADD ESP,0x14` @0x59d1a
+ *     is the MERGED cleanup for the preceding datum_get (8) plus csmemset (12)
+ *     — csmemset really does take 3 args.
+ *
+ * Return value (three distinct exits — do not collapse):
+ *   MOV EAX,-1 / TEST AL,AL / JZ / MOV EAX,ESI @0x59d1d-0x59d26:
+ *     (a) no reset needed          -> the found handle
+ *     (b) reset done, create != 0  -> the handle
+ *     (c) reset done, create == 0  -> -1
+ *   ESI (and hence the result) is -1 when the search fell off the end and no
+ *   record was created (either create == 0 or the pool was full).
+ */
+int FUN_00059c40(int encounter_handle /* @<eax> */,
+                 short pursuit_key /* @<bx> */, int threshold,
+                 char create_if_missing)
+{
+  char *encounter;
+  char *pursuit;
+  int pursuit_handle;
+  char needs_reset;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  needs_reset = 0;
+  pursuit_handle = *(int *)(encounter + 0x38);
+  while (pursuit_handle != -1) {
+    pursuit = (char *)datum_get(*(data_t **)0x5ab26c, pursuit_handle);
+    if (*(short *)(pursuit + 2) == pursuit_key) {
+      needs_reset = (char)(*(int *)(pursuit + 4) < threshold);
+      break;
+    }
+    pursuit_handle = *(int *)(pursuit + 0x24);
+  }
+
+  if (pursuit_handle == -1 && create_if_missing != 0) {
+    pursuit_handle = data_new_at_index(*(data_t **)0x5ab26c);
+    if (pursuit_handle != -1) {
+      pursuit = (char *)datum_get(*(data_t **)0x5ab26c, pursuit_handle);
+      *(short *)(pursuit + 2) = pursuit_key;
+      *(int *)(pursuit + 0x24) = *(int *)(encounter + 0x38);
+      *(int *)(encounter + 0x38) = pursuit_handle;
+      needs_reset = 1;
+    } else {
+      error(2,
+            "WARNING: too many actors searching, exceeded "
+            "MAXIMUM_EXAMINED_PURSUIT_POSITIONS_PER_MAP (%d)",
+            0x100);
+    }
+  }
+
+  if (needs_reset != 0) {
+    pursuit = (char *)datum_get(*(data_t **)0x5ab26c, pursuit_handle);
+    *(int *)(pursuit + 4) = -1;
+    *(short *)(pursuit + 8) = 0;
+    *(short *)(pursuit + 0xa) = 0;
+    csmemset(pursuit + 0xc, -1, 0x18);
+    if (create_if_missing == 0) {
+      return -1;
+    }
+  }
+  return pursuit_handle;
+}
+
 /* 0x5a050 — squad_initialize_starting_locations (FUN_0005a050).
  * Initializes the starting-location bitfield for a squad. Retrieves the
  * encounter datum and scenario squad definition, then fills the bitfield
