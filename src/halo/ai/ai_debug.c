@@ -997,3 +997,23 @@ void ai_debug_initialize_for_new_map(void)
     *(uint16_t *)0x6323dc = 0;
   }
 }
+/* FUN_00053650: zero the 0xee0-byte ai-debug globals block at 0x5abaac.
+ *
+ * Confirmed (0x53650-0x53664, 6 instructions, 21 bytes):
+ *   PUSH 0xee0 / PUSH 0 / PUSH 0x5abaac / CALL csmemset (0x8db80) / ADD ESP,0xc / RET
+ * cdecl, caller cleanup (ADD ESP,0xc = 3 stack args), no frame pointer, no
+ * locals, no callee-saved registers touched.  csmemset's return value (the
+ * buffer pointer) is left in EAX as an implicit side effect; the declared
+ * return type is void.
+ *
+ * The block runs 0x5abaac..0x5ac98c, immediately below the ai_debug encounter
+ * selection state at 0x5ac9d2/0x5ac9f4/0x5ac9f8.  Its element type and count
+ * are unknown; the 0xee0 length is taken verbatim from the immediate.
+ *
+ * Uncertain: the surrounding kb names (0x53640 ai_debug_lineoffire_success,
+ * 0x53670 ai_debug_lineofsight_reset) suggest a *_reset shape, but there is no
+ * binary evidence for a specific name, so the FUN_ name is retained. */
+void FUN_00053650(void)
+{
+  csmemset((void *)0x5abaac, 0, 0xee0);
+}
