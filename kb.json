@@ -32192,7 +32192,8 @@
         },
         {
           "addr": "0x494e0",
-          "decl": "void FUN_000494e0(void);"
+          "decl": "void FUN_000494e0(void);",
+          "ported": true
         },
         {
           "addr": "0x495b0",

@@ -321,6 +321,87 @@ void FUN_000494d0(char success)
   *(uint8_t *)0x5acab9 = success;
 }
 
+/* FUN_000494e0: render the stored debug line-of-sight ray.
+ *
+ * No __FILE__ string; the name is left as FUN_000494e0.  Behaviour: draws the
+ * stored debug ray as one line, then one sphere per recorded hit.  Does
+ * nothing unless the ray block armed flag (0x5acab8) is set.
+ *
+ * Debug ray block (see ai_debug_set_last_ray and FUN_000494d0 above):
+ *   0x5acab8  uint8    armed flag
+ *   0x5acab9  uint8    ray-test success flag (written by FUN_000494d0)
+ *   0x5acabc  float[3] ray start
+ *   0x5acac8  float[3] ray delta (start + delta = ray end)
+ *   0x5acad4  int32    hit count
+ *   0x5acad8  uint8[]  per-hit flag,    stride 1
+ *   0x5acae8  float[3] per-hit point A, stride 0xc
+ *   0x5acba8  float[3] per-hit point B, stride 0xc  (= point A array + 0xc0)
+ *   0x5acc68  float    per-hit radius,  stride 4
+ * The 0xc0 gap between the two point arrays is 16 entries of stride 0xc, so
+ * the parallel arrays hold 16 hits.  Point B is addressed in the original as
+ * EDI+0xc0 off the same walking pointer (the delinked reference has a single
+ * relocation against 0x5acae8), not as a separate absolute base.
+ *
+ * Call-site verification (both cdecl, caller-cleaned):
+ *   0x49543 FUN_00189270, ADD ESP,0x10 (4 dwords).  Pushes, in reverse order:
+ *     color, LEA EBP-0xc (endpoint), 0x5acabc (start), 1 -> C order
+ *     (1, (float *)0x5acabc, endpoint, color)  [match]
+ *   0x49581 FUN_00189860, ADD ESP,0x14 (5 dwords).  Pushes, in reverse order:
+ *     color, [ESI*4+0x5acc68], EDI+0xc0, EDI, 1 -> C order
+ *     (1, point, point + 0xc0, radius, color)  [match]
+ *   The radius push is a plain dword MOV of a float slot.  Ghidra prints a
+ *   `(float)` cast on an int array there, which would be an FILD conversion;
+ *   the disassembly has no FILD, so it is a raw float load.
+ *
+ * Store-offset table (endpoint is the only buffer: 3 floats at EBP-0xc):
+ *   endpoint+0x0 (EBP-0xc) <- FLD [0x5acabc]; FADD [0x5acac8]
+ *   endpoint+0x4 (EBP-0x8) <- FLD [0x5acac0]; FADD [0x5acacc]
+ *   endpoint+0x8 (EBP-0x4) <- FLD [0x5acac4]; FADD [0x5acad0]
+ *   All three chains are FADD (never FSUB), so there is no operand-order
+ *   hazard.  The FSTPs are interleaved with the colour select purely by MSVC
+ *   scheduling.
+ *
+ * The two colour selects use different pointer-global pairs and opposite
+ * polarity: the line takes [0x2ee6d4] when the success flag is set and
+ * [0x2ee6d0] otherwise, while each sphere takes [0x2ee6d0] when its own hit
+ * flag is set and [0x2ee6d8] otherwise.  All three are pointer globals
+ * (MOV reg,[imm32]), not addresses of colour constants.
+ *
+ * The hit count at 0x5acad4 is re-read from memory on every iteration (two
+ * relocations against it in the delinked reference), so it stays in the loop
+ * condition rather than being cached in a local. */
+void FUN_000494e0(void)
+{
+  float endpoint[3];
+  void *color;
+  float *point;
+  int i;
+
+  if (*(uint8_t *)0x5acab8 != 0) {
+    endpoint[0] = *(float *)0x5acabc + *(float *)0x5acac8;
+    endpoint[1] = *(float *)0x5acac0 + *(float *)0x5acacc;
+    endpoint[2] = *(float *)0x5acac4 + *(float *)0x5acad0;
+    color = *(void **)0x2ee6d4;
+    if (*(uint8_t *)0x5acab9 == 0) {
+      color = *(void **)0x2ee6d0;
+    }
+    FUN_00189270(1, (float *)0x5acabc, endpoint, color);
+    i = 0;
+    if (0 < *(int32_t *)0x5acad4) {
+      point = (float *)0x5acae8;
+      do {
+        color = *(void **)0x2ee6d0;
+        if (((uint8_t *)0x5acad8)[i] == 0) {
+          color = *(void **)0x2ee6d8;
+        }
+        FUN_00189860(1, point, point + 48, ((float *)0x5acc68)[i], color);
+        i++;
+        point += 3;
+      } while (i < *(int32_t *)0x5acad4);
+    }
+  }
+}
+
 /* ai_debug_highlight_cluster (0x496c0): report the debug highlight color for a
  * BSP cluster.
  *
