@@ -26,8 +26,21 @@ The binary is the source of truth. The target executable is **Halo Xbox debug bu
 
 - Unknown is better than wrong.
 - Inspect both decompilation and disassembly before concluding.
-- **Confirm Struct Offsets in `src/types.h`:** ALWAYS confirm field offsets in `src/types.h`. NEVER guess a struct field — a wrong field offset is a wrong decompilation. Name unknown fields `unk_<hexoffset>`.
-- **Struct Refinement Doctrine:** Prefer refining `src/types.h` structs (e.g. `game_globals_t`, `players_globals_t`) to replace raw-offset casts (`[ptr+0x24]`) by splitting `unk_N[]` arrays without altering overall struct size.
+- **Confirm Struct Offsets in `src/types.h`:** ALWAYS confirm field offsets in `src/types.h`. NEVER guess a struct field — a wrong field offset is a wrong decompilation.
+- **Unknown-field naming (canonical):** two names, because the distinction is
+  load-bearing:
+  | Name | Means | Signal when violated |
+  |------|-------|----------------------|
+  | `field_<hex>` | offset **is** accessed, meaning unproven | — |
+  | `pad_<hex>[n]` | never observed accessed | a `pad_` field turning out to be read is a recovery bug |
+
+  Lowercase hex, no `0x` prefix, 2 digits minimum (`field_02`, `pad_08[4]`) — matching
+  what `struct-assert` emits. `unk_<hexoffset>` and `unk_N[]` are the **legacy** form
+  (259 and 35 uses in `types.h`); they collapse both meanings into one name and give no
+  signal. Tolerated in existing structs — convert to `field_`/`pad_` when the struct is
+  already being edited under `struct-recovery` / `offset-to-struct`, not as a standalone
+  rename campaign.
+- **Struct Refinement Doctrine:** Prefer refining `src/types.h` structs (e.g. `game_globals_t`, `players_globals_t`) to replace raw-offset casts (`[ptr+0x24]`) by splitting `unk_N[]` arrays without altering overall struct size. New splits land as `field_<hex>` (accessed) / `pad_<hex>[n]` (not), never as more `unk_N[]`.
 - Reuse existing project and Xbox types before inventing new ones.
 - Do not add empty stubs.
 - Preserve ABI, stack behavior, field offsets, packing, and side-effect order.

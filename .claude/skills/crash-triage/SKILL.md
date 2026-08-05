@@ -52,7 +52,10 @@ Parse the crash output for: EIP, EAX, EBX, ECX, EDX, ESI, EDI, EBP, ESP, CR2.
 
 ```bash
 # First-pass symbolization for pasted exception text or individual addresses.
-rtk python3 tools/xbox/symbolize_exception.py --file /tmp/exception.txt
+# Write pasted text to a mktemp path — never a shared /tmp/exception.txt, or a
+# concurrent debug session's crash gets symbolized as yours.
+EXC=$(mktemp /tmp/halo-exception.XXXXXX)   # then paste the crash text into "$EXC"
+rtk python3 tools/xbox/symbolize_exception.py --file "$EXC"
 rtk python3 tools/xbox/symbolize_exception.py 0x<EIP> 0x<frame0> 0x<frame1>
 
 # Original-code exact lookup when needed.

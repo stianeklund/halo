@@ -42,10 +42,12 @@ for j in json.load(sys.stdin)['jobs']:
 ## Step 3 — Get the actual error
 
 ```bash
-# Download and extract error lines from logs
+# Download and extract error lines from logs (mktemp — a shared /tmp/run_logs.zip
+# lets a concurrent run's logs be analyzed as yours)
+ZIP=$(mktemp /tmp/halo-run-logs.XXXXXX.zip)
 gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/actions/runs/<RUN_ID>/logs" \
-  > /tmp/run_logs.zip \
-  && unzip -p /tmp/run_logs.zip "*.txt" \
+  > "$ZIP" \
+  && unzip -p "$ZIP" "*.txt" \
   | grep -E "##\[error\]|error:|Error:|FAILED|ModuleNotFoundError|make\[\d\].*Error" \
   | head -40
 ```

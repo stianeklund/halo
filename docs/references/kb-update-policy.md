@@ -23,6 +23,43 @@ When proposing kb changes, separate:
 - Tentative notes
 - Things that should remain unknown
 
+## Data global declarations
+
+A data entry is `{ "addr": "0x...", "decl": "<C declaration>" }` in the owning object's
+`data` list (or `<common>` when the owner is not yet attributed). The `decl` is emitted
+verbatim into `build/generated/decl.h`, so it is a real type contract, not a note.
+
+Declare the **narrowest type the disassembly proves**, and give the global its real
+name whenever evidence supports one:
+
+| Kind | Shape | Example |
+|------|-------|---------|
+| Datum-array handle | `data_t *<name>;` | `data_t * object_header_data;` |
+| Typed struct pointer | `<type>_t *<name>;` | `players_globals_t * players_globals;` |
+| Typed struct by value | `<type>_t <name>;` | `game_variant_t game_variant_global;` |
+| Exact-width scalar | `int16_t`/`char`/`int` | `int16_t game_engine_variant_index;` |
+| Opaque pointer (target type unproven) | `void *<name>;` | `void *current_game_engine;` |
+| Opaque block (size proven, layout not) | `char <name>[<size>];` | `char player_ui_globals[0x230];` |
+
+Rules:
+
+- **Width comes from the operand size**, same discipline as struct fields — a global
+  read via `movsx ax` is `int16_t`, not `int`. Declaring it wider is the `[LOADW-WARN]`
+  bug class (`docs/lift-learnings.md` §24) at global scope.
+- **Prefer an opaque block over a speculative struct.** `char foo[0x230]` with a proven
+  size is honest; a half-invented `foo_globals_t` is a wrong type contract that every
+  caller inherits. Promote it to a real struct once `struct-recovery` has evidence.
+- **Name unknowns by role, not by address.** We deliberately do **not** use upstream's
+  `byte_`/`word_`/`dword_<addr>` scheme. An address-derived name asserts a *width* while
+  the `decl` asserts a *type*, and the two then drift: upstream's own gotcha list has to
+  warn that `dword_50548c` is declared `int` but actually holds a pointer, requiring a
+  cast at every use. Typing the decl correctly (`void *current_game_engine`) removes both
+  the cast and the warning. Three legacy holdovers remain in `kb.json`
+  (`char byte_325714`, `char byte_457068`, `char byte_457069`) — do not add more; rename
+  them when their role is proven.
+- Field/struct-level unknown naming is separate — see skill `naming-confidence`
+  (`field_<hex>` vs `pad_<hex>[n]`).
+
 ## KB workflow
 
 Treat the three KB files as separate layers:

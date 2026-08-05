@@ -60,7 +60,10 @@ All file edits, `rtk git` commands, and tool invocations must target **that path
 8. Write implementation in address-ordered position.
 9. **Verify `src/CMakeLists.txt` registration (CRITICAL):** Confirm the `.c` file containing your lift is listed in `src/CMakeLists.txt`. Unregistered files silently fail to compile and patch redirects!
 10. Update kb.json conservatively (see
-    `docs/references/kb-update-policy.md`).
+    `docs/references/kb-update-policy.md`). Declare every global the function touches
+    in the owning object's `data` list (or `<common>` if unattributed) — narrowest
+    proven type, real name where evidence supports one; see that doc's **Data global
+    declarations** section for the accepted shapes.
 11. Run `rtk python3 tools/analysis/maintain.py <source_file>`.
 12. Build and verify instruction stream: `llvm-objdump -dr --disassemble-symbols=_<fn> <obj>` to compare the compiled instruction stream against original binary disassembly.
 13. Run `rtk python3 tools/audit/check_lift_hazards.py` and fix any target-relevant hazards.
@@ -127,8 +130,18 @@ Key reminders (full rules in `docs/references/abi-and-calling-conventions.md`):
 ## Commit discipline
 
 - Do not write freeform lift commit messages.
-- After staging lift changes, run `rtk python3 tools/audit/generate_lift_commit.py --batch-name "<short description>" > /tmp/commit_msg.txt`.
-- Commit with `rtk git commit -F /tmp/commit_msg.txt` only after reviewing the generated message.
+- Generate the message into a **`mktemp` path**, review it, then commit:
+  ```bash
+  MSG=$(mktemp /tmp/halo-commit-msg.XXXXXX)
+  rtk python3 tools/audit/generate_lift_commit.py --batch-name "<short description>" > "$MSG"
+  rtk git commit -F "$MSG" && rm -f "$MSG"
+  ```
+- **Never a fixed path such as `/tmp/commit_msg.txt`.** Every concurrent agent, cron
+  job, and worktree on this box follows the same recipe. A second writer landing
+  between your write and your `git commit -F` silently commits YOUR staged changes
+  under THEIR message — no hook catches it and the commit looks legitimate. Observed
+  2026-07-31: commit `d6caee6b` landed a `game_engine.c` fix titled "Port
+  draw_string_get_string (draw_string.obj)".
 
 ## Output expectations
 

@@ -267,7 +267,10 @@ Source file not registered in CMakeLists.txt. See Section E linker error.
 **Always use the exception symbolizer** (fresh `build/halo` PE exports, not `build/halo.map`):
 
 ```bash
-rtk python3 tools/xbox/symbolize_exception.py --file /tmp/exception.txt
+# mktemp, never a shared /tmp/exception.txt — a concurrent debug session
+# overwriting it gets its crash symbolized as yours.
+EXC=$(mktemp /tmp/halo-exception.XXXXXX)   # then paste the crash text into "$EXC"
+rtk python3 tools/xbox/symbolize_exception.py --file "$EXC"
 rtk python3 tools/xbox/symbolize_exception.py 0x<EIP> 0x<frame0> 0x<frame1>
 ```
 

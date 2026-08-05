@@ -101,7 +101,12 @@ After Phase 1 completes:
 1. Use the function name from `RESOLVED_TARGET:` above.
 2. If Phase 1 retrieved caller disassembly from Ghidra (callers of the target
    function showing register setup before CALL instructions), save it to
-   `/tmp/lift_caller_disasm.txt`.
+   `artifacts/lift/caller_disasm_<target>.txt` (create the dir if needed;
+   `artifacts/` is gitignored). **Key the filename by target — never a shared
+   `/tmp/lift_caller_disasm.txt`.** Phase 1 and Phase 2 are separate agent turns, so
+   the path must be deterministic; but a *shared* one lets a concurrent lift's
+   disassembly feed your ABI audit, which then validates against the wrong call
+   sites and passes.
 3. **Ensure a delinked reference exists** — VC71 verify is skipped without one,
    costing a full extra pipeline pass. Check and export now if missing:
    ```bash
@@ -126,7 +131,7 @@ After Phase 1 completes:
 4. Run:
    ```
    rtk python3 tools/lift_pipeline.py --target <name> --no-metadata-update --verify-policy auto \
-     --abi-caller-disasm-file /tmp/lift_caller_disasm.txt
+     --abi-caller-disasm-file artifacts/lift/caller_disasm_<target>.txt
    ```
    If no caller disassembly was retrieved, omit `--abi-caller-disasm-file`.
 4. Report:

@@ -66,8 +66,9 @@ never guessed), optional `kind` (`int` default / `float` / `float64` / `pointer`
 `named` (string/PDB name evidence — requires both a name and evidence), `typed`
 (width+sign proven; a mechanical name is allowed), or `gap` (padding/unobserved —
 must stay unnamed). Top-level `size`/`stride` each carry their own `evidence`; omit
-them when unproven rather than guessing. Unobserved ranges stay `field_XX`/pad — no
-interpolation. `sources` records every function/address consulted.
+them when unproven rather than guessing. Unknowns keep the canonical split: an offset
+that **is** accessed with unproven meaning stays `field_<hex>`; a range never observed
+accessed stays `pad_<hex>[n]` — no interpolation. `sources` records every function/address consulted.
 
 Then summarize in chat for the human, same shape as before:
 
