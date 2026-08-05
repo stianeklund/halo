@@ -218,6 +218,21 @@ const SCORE_SCHEMA = {
   required: ['vc71_score'],
 }
 
+// SCORE_SCHEMA plus an explicit structural-cap flag, so the match-optimizer
+// escalation (below) can tell "escalation_exhausted" apart from "hit a
+// documented ceiling" without inventing new SCORE_SCHEMA fields.
+const MATCH_OPTIMIZER_SCHEMA = {
+  type: 'object',
+  properties: {
+    vc71_score: { type: 'number' },
+    improved:   { type: 'boolean' },
+    capped:     { type: 'boolean' },
+    cap_reason: { type: 'string' },
+    reason:     { type: 'string' },
+  },
+  required: ['vc71_score'],
+}
+
 const EQUIV_SCHEMA = {
   type: 'object',
   properties: {
@@ -660,10 +675,11 @@ Never submit a score below ${priorScore}%. Respect regarg_structural_ceiling
 and any other documented structural cap — report it, do not chase it.
 Do NOT commit, do NOT run the review gate.
 Return: vc71_score (your final best, from the closing full verify — see your
-protocol), improved (bool, vs ${priorScore}%), reason (short: which lever(s)
-you kept, and your park-or-promote recommendation — capped/structural_cap if
-you hit a documented ceiling, escalation_exhausted if you ran out of
-applicable levers below a promotable score).`
+protocol), improved (bool, vs ${priorScore}%), capped (bool — true ONLY if you
+hit a documented non-recoverable ceiling like regarg_structural_ceiling, false
+if you simply ran out of applicable levers), cap_reason (the ceiling's rule id
+when capped is true, else empty string), reason (short: which lever(s) you
+kept, and why — capped or not).`
 
 const equivalencePrompt = (name) =>
   `${AGENT_RULES}
@@ -883,6 +899,12 @@ async function reviewThenCommit(brief, score, srcFile, path, phaseTitle, preEqui
     // equiv 100/100 seeds and was re-rejected on the same structural grounds).
     // NEEDS_RUNTIME means "structure is a near-miss, behavior unproven"; a
     // passing equivalence run at moderate+ confidence IS that proof.
+    // MIN_COMMIT gates ONLY this mechanical NEEDS_RUNTIME+equiv acceptance
+    // lane — it intentionally does not gate gateThenCommit's >=90%/>=95%
+    // mechanical fast path above, nor the reviewer's own direct AUTO_ACCEPT
+    // verdict a few lines up. Runtime evidence substituting for byte-match
+    // score is a narrower claim than byte-match score alone, so it gets its
+    // own (lower, configurable) floor instead of inheriting the others'.
     if (eq && eq.passes && score >= MIN_COMMIT && (eq.confidence === 'high' || eq.confidence === 'moderate')) {
       review = { verdict: 'AUTO_ACCEPT', rationale: `mechanical: NEEDS_RUNTIME + equiv passed (confidence=${eq.confidence}, coverage=${eq.coverage != null ? eq.coverage : '?'}%)` }
     } else if (eq && eq.passes) {
@@ -998,12 +1020,48 @@ rtk python3 tools/lift/park.py promote --name ${JSON.stringify(rec.name)} --comm
     const ap = await agent(applyPrompt(rec.name), { label: `apply:${rec.name}`, phase: 'Improve', ...M.mechanical, schema: APPLY_SCHEMA })
     const warm = !!(ap && ap.applied)
 
+    // 2b. Refresh the score-context pack the re-lift model is about to read
+    // (liftPrompt's SCORE CONTEXT section, `artifacts/score_context/<name>.json`)
+    // now that the warm-started patch is actually on disk. That file may be
+    // whatever an attempt weeks ago last wrote — stale classification points
+    // the improve model at the wrong fix. Cheap mechanical refresh, same
+    // shape as the redelink/permute steps below (mechanical model, no schema
+    // needed — the file on disk is the product, not a structured return).
+    if (warm) {
+      const refreshSrc = brief.source_path || rec.source_path
+      await agent(
+        `Refresh the VC71 score-context pack for ${rec.name} so it reflects the warm-started patch on disk:
+rtk python3 tools/verify/vc71_verify.py ${refreshSrc} -f ${rec.name} --no-cache 2>&1 | tail -5 || true`,
+        { label: `refresh-context:${rec.name}`, phase: 'Improve', ...M.mechanical })
+    }
+
     // 3. Re-lift with the improve model (escalation framing, prior score to beat).
     const liftBrief = { ...brief, obj: brief.obj || rec.obj, source_path: brief.source_path || rec.source_path }
     const priorNotes = { notes: nx.last_notes || '', tried: nx.tried_summary || '' }
-    const a = await agent(liftPrompt(liftBrief, true, rec.best_score, warm, priorNotes), {
-      label: `improve-lift:${rec.name}`, phase: 'Improve', agentType: 'xbox-halo-re-analyst', ...M.improve, schema: LIFT_RESULT_SCHEMA,
-    })
+
+    // Warm-started AND parked in the pure byte-tuning band (65-84, same band the
+    // Lift-phase escalation gates on) → the on-disk candidate already builds and
+    // was already believed faithful by whoever parked it; try the improve
+    // model's persona on the SAME lever-tuning approach before spending a full
+    // cold re-lift. A cold-start record (no prior patch survived to apply) has
+    // no existing candidate to tune, so it always takes the full path below.
+    let a
+    if (warm && classifyBand(rec.best_score) === 'fail_check_cap') {
+      const mo = await agent(matchOptimizerPrompt(rec.name, rec.addr, liftBrief.obj, liftBrief.source_path, rec.best_score, liftBrief.neighbors), {
+        label: `improve-optimize:${rec.name}`, phase: 'Improve', agentType: 'vc71-match-optimizer', ...M.improve, schema: MATCH_OPTIMIZER_SCHEMA,
+      })
+      if (mo && typeof mo.vc71_score === 'number' && mo.vc71_score > rec.best_score) {
+        a = { status: 'needs_verify', vc71_score: mo.vc71_score, source_file: liftBrief.source_path, reason: mo.reason || '' }
+        log(`  ${rec.name} improve-optimize: ${rec.best_score}% → ${mo.vc71_score}% (skipping full re-lift)`)
+      } else {
+        log(`  ${rec.name} improve-optimize made no improvement over ${rec.best_score}% — falling back to full re-lift (${IMPROVE_MODEL})`)
+      }
+    }
+    if (!a) {
+      a = await agent(liftPrompt(liftBrief, true, rec.best_score, warm, priorNotes), {
+        label: `improve-lift:${rec.name}`, phase: 'Improve', agentType: 'xbox-halo-re-analyst', ...M.improve, schema: LIFT_RESULT_SCHEMA,
+      })
+    }
     if (!a || a.status === 'infra_blocked') { istop = 'infra_blocked'; improved.push({ ...rec, status: 'infra_blocked', reason: 'agent_null' }); break }
     if (a.status !== 'needs_verify') {
       // build_failed / skipped: re-park records the improve-model attempt (so it
@@ -1522,25 +1580,39 @@ while (true) {
   const treatAsCapped = a1.capped === true
   const capProvenance = a1.cap_confidence === 'high' ? 'deterministic(classify_cap.py)' : 'agent-judgment'
   if (band === 'fail_check_cap' && !treatAsCapped) {
-    log(`  ${brief.name} ${score}% — not a structural cap (${a1.cap_confidence || 'n/a'}), escalating (${IMPROVE_MODEL})`)
-    // Preserve the attempt-1 (Opus) work before escalating: park keeps the
-    // best-scoring attempt's patch across both, and --revert-tree cleans the
-    // tree for the escalation re-lift. Never discard a building lift.
+    log(`  ${brief.name} ${score}% — not a structural cap (${a1.cap_confidence || 'n/a'}), escalating to vc71-match-optimizer (${IMPROVE_MODEL})`)
+    // Preserve the attempt-1 work before escalating: park keeps the
+    // best-scoring attempt's patch, so if the optimizer makes things worse
+    // (it shouldn't — it only reverts-on-regression internally, but the
+    // park ledger is the outer safety net) the ledger still has attempt 1.
+    // Unlike the old cold-rewrite escalation, this does NOT hand the
+    // function to a fresh re-lift: attempt 1 already builds and is already
+    // believed faithful, so the optimizer tunes THAT source in place
+    // (one score-recovery lever at a time) instead of re-deriving it.
     await parkBuilt(brief, srcFile, score, M.reason, 'pre_escalation', a1.cap_reason || '', 'Lift', a1.reason || '')
-    const a2 = await agent(liftPrompt(brief, true, score), {
-      label: `lift2:${brief.name}`, phase: 'Lift', agentType: 'xbox-halo-re-analyst', ...M.improve, schema: LIFT_RESULT_SCHEMA,
+    const mo = await agent(matchOptimizerPrompt(brief.name, brief.addr, brief.obj, srcFile, score, brief.neighbors), {
+      label: `match-optimize:${brief.name}`, phase: 'Lift', agentType: 'vc71-match-optimizer', ...M.improve, schema: MATCH_OPTIMIZER_SCHEMA,
     })
-    if (a2 && (a2.status === 'needs_verify')) {
-      lift    = a2
-      score   = a2.vc71_score || score
-      srcFile = a2.source_file || srcFile
-      band    = classifyBand(score)
-      path    = 'escalated' + (a2.redelinked ? '+redelink' : '') + (a2.permuted ? '+permute' : '')
-      lastME  = M.improve
-    } else if (a2 && a2.status === 'build_failed') {
-      consecutiveFails++
-      results.push({ ...a2, obj: brief.obj })
-      continue
+    if (mo && typeof mo.vc71_score === 'number') {
+      // srcFile is unchanged — the optimizer edits the existing file in place,
+      // it does not produce a new one. Never let a lower/garbled number regress
+      // the score the ledger already has for attempt 1.
+      score  = Math.max(score, mo.vc71_score)
+      band   = classifyBand(score)
+      path   = 'escalated+optimize'
+      lastME = M.improve
+      lift    = { ...lift, reason: mo.reason || lift.reason }
+      if (mo.capped === true) {
+        // Match-optimizer hit a documented ceiling itself (its own equivalent
+        // of classify_cap) — treat it exactly like the attempt-1 cap path below.
+        log(`  ${brief.name} ${score}% capped [agent-judgment:optimizer]: ${mo.cap_reason || 'unclassified'} — parked, no further escalation`)
+        await parkBuilt(brief, srcFile, score, lastME, 'structural_cap', mo.cap_reason || 'unclassified', 'Lift', mo.reason || '')
+        consecutiveFails++
+        results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, reason: `structural_cap[agent-judgment:optimizer]: ${mo.cap_reason || 'unclassified'}` })
+        continue
+      }
+    } else {
+      log(`  ${brief.name} ${score}% — match-optimizer returned no usable score, keeping attempt-1 result`)
     }
   } else if (band === 'fail_check_cap' && treatAsCapped) {
     // Structural cap — a future model may still beat it, so PARK (with the cap
