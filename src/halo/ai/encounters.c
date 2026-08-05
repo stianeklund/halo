@@ -4259,6 +4259,81 @@ void encounter_stand_down(int encounter_handle)
   }
 }
 
+/* 0x5ac60 — insert a scored entry into a fixed 2-element list kept in
+ * descending key order. Returns 1 if the entry was inserted, 0 otherwise.
+ *
+ * Element stride is 0x10 (four dwords); the sort key lives at element+0x4.
+ * On insertion at slot i the four dwords are written as:
+ *   elem+0x0 = a, elem+0x4 = score (key), elem+0x8 = c, elem+0xc = d.
+ *
+ * Confirmed (delinked 0005ac60.obj):
+ *   - cdecl, five stack args at [EBP+8..+0x18]; no register args, no callees.
+ *   - Frame is `push ebp; mov ebp,esp; push ecx` — exactly one 4-byte local
+ *     at EBP-4, which holds the shift counter (`decl -0x4(%ebp)` at 0x5acb3).
+ *   - ECX walks &elem[i].key: `mov 0x8(%ebp),%ecx; add $0x4,%ecx` at
+ *     0x5ac64/0x5ac6e, then `add $0x10,%ecx` per iteration at 0x5acd2.
+ *   - Compare at 0x5ac71 is `flds 0x10(%ebp); fcomps (%ecx); fnstsw;
+ *     test $0x41,%ah; jne` — the insert path is taken only when
+ *     score > key strictly (CF=0 and ZF=0), so NaN skips.
+ *   - Loop counter is 16-bit: `cmp $0x1,%si` at 0x5ac7d and `cmp $0x2,%si`
+ *     at 0x5acd5.
+ *   - Shift count is zero-extended from 16 bits: `mov $0x1,%edx;
+ *     sub %esi,%edx; movzwl %dx,%edx` at 0x5ac86..0x5ac90. It is only
+ *     reachable when i == 0, so the trip count is always 1.
+ *   - Shift body copies four dwords with integer moves (no FPU) from
+ *     elem[k-1] to elem[k] walking backwards (`lea -0x10(%eax),%edx`).
+ *   - DL is the result flag: `xor %dl,%dl` at 0x5ac69, `mov $0x1,%dl` at
+ *     0x5accf, `mov %dl,%al` before RET at 0x5acdd.
+ *
+ * Uncertain:
+ *   - The element's field meanings. Only the key at +0x4 is used by this
+ *     function; the other three dwords are copied and stored opaquely.
+ *
+ * Codegen note: `count` is declared volatile so it lands in the single
+ * EBP-4 stack slot the original reserves with `push ecx`; without it the
+ * shift counter is register-allocated as an up-counter and the frame shape
+ * diverges (79.2% -> 92.0% VC71). The 16-byte `struct entry` assignment
+ * reproduces the original's interleaved four-dword integer copy (no FPU).
+ */
+bool FUN_0005ac60(void *list, float a, float score, float c, float d)
+{
+  struct entry {
+    int d0;
+    int d1;
+    int d2;
+    int d3;
+  };
+  struct entry *dst;
+  struct entry *src;
+  float *key;
+  volatile unsigned int count;
+  short i;
+  bool inserted;
+
+  inserted = 0;
+  key = (float *)((char *)list + 4);
+  for (i = 0; i < 2; i++) {
+    if (score > *key) {
+      if (i < 1) {
+        dst = (struct entry *)((char *)list + 0x10);
+        count = (unsigned short)(1 - i);
+        do {
+          src = dst - 1;
+          *dst = *src;
+          dst = src;
+        } while (--count != 0);
+      }
+      key[0] = score;
+      key[-1] = a;
+      key[2] = d;
+      key[1] = c;
+      inserted = 1;
+    }
+    key += 4;
+  }
+  return inserted;
+}
+
 /* 0x5acf0 — encounter_update_timers.
  * Updates encounter timers each tick (called every 15 ticks from
  * encounter_update). Three timer groups: +0x50 (int):  incremented by 15 each

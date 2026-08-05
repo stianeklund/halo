@@ -33213,7 +33213,8 @@
         },
         {
           "addr": "0x5ac60",
-          "decl": "void FUN_0005ac60(void);"
+          "decl": "bool FUN_0005ac60(void *list, float a, float score, float c, float d);",
+          "ported": true
         },
         {
           "addr": "0x5acf0",
