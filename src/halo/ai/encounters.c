@@ -4669,6 +4669,106 @@ void encounters_unit_died(int unit_handle)
   }
 }
 
+/* encounter_pursuit_position_already_examined (0x5b6e0) — Look up the
+ * "examined pursuit position" record for `firing_position_index` inside an
+ * encounter (via FUN_00059c40, non-creating) and report whether `position`
+ * has already been examined by that record.
+ *
+ * The record layout is the one documented on FUN_00059c40 (0x28 bytes):
+ *   +0x02 int16_t  firing_position_index (asserted to match the argument)
+ *   +0x04 int      cost/score            (reported through cost_out)
+ *   +0x08 int16_t  examined count        (reported through count_out)
+ *   +0x0c int[6]   examined positions    (scanned for `position`)
+ *
+ * Confirmed (disassembly 0x5b6e0-0x5b787):
+ *   - Six cdecl stack parameters; the return value is the byte at [EBP-1]
+ *     loaded into AL, i.e. a bool. (The old kb decl `void (void)` was wrong
+ *     on both counts and is what produced Ghidra's `in_stack_*` soup.)
+ *   - FUN_00059c40 receives encounter_handle in EAX (@<eax>) and
+ *     firing_position_index in BX (@<bx>, via EDI->EBX); the two pushes are
+ *     PUSH 0 then PUSH [EBP+0x14], and ADD ESP,0x8 confirms exactly two
+ *     stack args -> (threshold, create_if_missing = 0).  The literal 0 here
+ *     is a genuine declared stack argument, not a stand-in for a register
+ *     parameter.
+ *   - datum_get is called as PUSH EAX (handle) ; PUSH ECX (*0x5ab26c), so
+ *     datum_get(pursuit_data, handle).
+ *   - The count is a 16-bit load into CX (`MOV CX,[ESI+8]`) compared
+ *     `CMP CX,0x7` / JGE: count >= 7 short-circuits straight to "already
+ *     examined" without scanning.  The scan itself is a do-while over a
+ *     16-bit counter sign-extended each iteration (`MOVSWL AX,EDI`;
+ *     `CMP AX,0x6` / JL), hence the `short` loop variable.
+ *   - The loop's match exit and the count >= 7 exit are tail-merged onto the
+ *     single `MOV byte ptr [EBP-1],1` at 0x5b767; the exhausted-loop path
+ *     jumps over it (0x5b765 -> 0x5b76b) and keeps the flag at 0.
+ *   - Both out params are written on EVERY path, including the early-out
+ *     where the record does not exist (count = 0 from XOR ECX,ECX and
+ *     cost = -1 from OR EBX,0xffffffff).  Each is NULL-checked.
+ *   - Assert tail is display_assert(..., halt = 1) followed by
+ *     PUSH -1 / CALL system_exit; the merged ADD ESP,0x14 covers both.
+ *
+ * Call-site verification:
+ *   FUN_00059c40 | EAX = [EBP+0x8]           | encounter_handle       | match
+ *                | BX  = EDI = [EBP+0x10]    | firing_position_index  | match
+ *                | push [EBP+0x14] (2nd push)| threshold              | match
+ *                | push 0          (1st push)| create_if_missing = 0  | match
+ *   datum_get    | push ECX = *0x5ab26c      | pursuit data_t         | match
+ *                | push EAX = FUN_00059c40   | pursuit_handle         | match
+ *   display_assert | pushes msg, file, 0x434, 1                       | match
+ *   system_exit  | push -1                                            | match
+ *
+ * Store-offset table (writes are only through the two out pointers):
+ *   *count_out (int16) | CX  = 0, or pursuit+0x08 | MOV word ptr [EAX],CX
+ *   *cost_out  (int32) | EBX = -1, or pursuit+0x04| MOV dword ptr [EAX],EBX
+ */
+bool encounter_pursuit_position_already_examined(
+  int encounter_handle, int position, short firing_position_index,
+  int threshold, short *count_out, int *cost_out)
+{
+  char *pursuit;
+  int pursuit_handle;
+  int cost;
+  short count;
+  short i;
+  bool already_examined;
+
+  pursuit_handle =
+    FUN_00059c40(encounter_handle /* @<eax> */,
+                 firing_position_index /* @<bx> */, threshold, 0);
+  cost = -1;
+  count = 0;
+  already_examined = 0;
+  if (pursuit_handle != -1) {
+    pursuit = (char *)datum_get(*(data_t **)0x5ab26c, pursuit_handle);
+    if (*(short *)(pursuit + 2) != firing_position_index) {
+      display_assert("pursuit->firing_position_index == firing_position_index",
+                     "c:\\halo\\SOURCE\\ai\\encounters.c", 0x434, 1);
+      system_exit(-1);
+    }
+    count = *(short *)(pursuit + 8);
+    cost = *(int *)(pursuit + 4);
+    if (count < 7) {
+      i = 0;
+      do {
+        if (*(int *)(pursuit + i * 4 + 0xc) == position) {
+          already_examined = 1;
+          break;
+        }
+        i = i + 1;
+      } while (i < 6);
+    } else {
+      already_examined = 1;
+    }
+  }
+
+  if (count_out != (short *)0) {
+    *count_out = count;
+  }
+  if (cost_out != (int *)0) {
+    *cost_out = cost;
+  }
+  return already_examined;
+}
+
 /* encounter_force_activate (0x5ba70) — Force an encounter active by setting
  * the respawn timer to 150 ticks and calling the activation handler. */
 void encounter_force_activate(int encounter_handle)

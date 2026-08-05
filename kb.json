@@ -33268,7 +33268,8 @@
         },
         {
           "addr": "0x5b6e0",
-          "decl": "void encounter_pursuit_position_already_examined(void);"
+          "decl": "bool encounter_pursuit_position_already_examined(int encounter_handle, int position, short firing_position_index, int threshold, short *count_out, int *cost_out);",
+          "ported": true
         },
         {
           "addr": "0x5b790",
