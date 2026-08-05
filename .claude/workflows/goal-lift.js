@@ -261,14 +261,16 @@ const MECH_GATE_SCHEMA = {
 const NEXT_SCHEMA = {
   type: 'object',
   properties: {
-    found:        { type: 'boolean' },
-    name:         { type: 'string' },
-    addr:         { type: 'string' },
-    obj:          { type: 'string' },
-    source_path:  { type: 'string' },
-    best_score:   { type: 'number' },
-    attempts:     { type: 'number' },
-    tried_models: { type: 'string' },
+    found:         { type: 'boolean' },
+    name:          { type: 'string' },
+    addr:          { type: 'string' },
+    obj:           { type: 'string' },
+    source_path:   { type: 'string' },
+    best_score:    { type: 'number' },
+    attempts:      { type: 'number' },
+    tried_models:  { type: 'string' },
+    last_notes:    { type: 'string' },
+    tried_summary: { type: 'string' },
   },
   required: ['found'],
 }
@@ -417,7 +419,7 @@ gap matches one of these, rather than treating it as a fixable bug):
 - @<reg>-defining function's own prologue: permanent sub-bar (VC71 can't emit it)
 - fucompp vs fcomps / int16 movswl / fcos/fsin spill: permanent ~15pp gap, not a bug`
 
-const liftPrompt = (brief, isEscalation, priorScore, warmStarted) =>
+const liftPrompt = (brief, isEscalation, priorScore, warmStarted, priorNotes) =>
   `${AGENT_RULES}
 
 Lift ${brief.name} at ${brief.addr} from Halo CE Xbox (cachebeta.xbe).
@@ -441,6 +443,10 @@ that were individually measured and are easy to lose by accident.
     the floor: if an edit drops the score, revert THAT edit and try the next
     hypothesis. Never submit below ${priorScore}%.
   - If prior review notes name an exact next step, do that step and nothing else.
+` : ''}${priorNotes && priorNotes.notes ? `
+PRIOR ATTEMPT NOTES (from earlier attempts on this function — read before coding):
+${priorNotes.notes}
+Tried so far: ${priorNotes.tried || 'none'}
 ` : ''}
 CONTEXT — do NOT re-call Ghidra:
   KB:       ${brief.kb_entry}
@@ -713,12 +719,12 @@ rtk git status --short
 // ledger (tools/lift/park.py), shared with manual /lift and the improve pass.
 // attemptME = the {model,effort} of the lift ATTEMPT (recorded for later
 // exclude-model selection), not the park agent's own model.
-const parkToolPrompt = (name, addr, obj, srcFile, score, attemptME, reason, capHyp) =>
+const parkToolPrompt = (name, addr, obj, srcFile, score, attemptME, reason, capHyp, notes) =>
   `${AGENT_RULES}
 
 Preserve the sub-bar lift of ${name} (${addr}, ${score}% VC71) for a later improve
 pass, then clean the tree. Run exactly this one command:
-rtk python3 tools/lift/park.py park --name ${JSON.stringify(name)} --addr ${JSON.stringify(addr || '')} --obj ${JSON.stringify(obj || '')} --source ${JSON.stringify(srcFile || '')} --score ${score} --model ${JSON.stringify(attemptME.model)} --effort ${JSON.stringify(attemptME.effort)} --reason ${JSON.stringify(reason || '')}${capHyp ? ' --cap-hypothesis ' + JSON.stringify(capHyp) : ''} --revert-tree
+rtk python3 tools/lift/park.py park --name ${JSON.stringify(name)} --addr ${JSON.stringify(addr || '')} --obj ${JSON.stringify(obj || '')} --source ${JSON.stringify(srcFile || '')} --score ${score} --model ${JSON.stringify(attemptME.model)} --effort ${JSON.stringify(attemptME.effort)} --reason ${JSON.stringify(reason || '')}${capHyp ? ' --cap-hypothesis ' + JSON.stringify(capHyp) : ''}${notes ? ' --notes ' + JSON.stringify(String(notes).slice(0, 2000)) : ''} --revert-tree
 park.py saves the git diff to artifacts/parked/, records the attempt (with
 history), and reverts src/ kb.json tools/kb_reg_baseline.json to HEAD. Return the
 tool's "parked ..." stdout line.`
@@ -729,11 +735,16 @@ tool's "parked ..." stdout line.`
 const nextPrompt = (excludeModel) =>
   `Pick the next parked function for the improve pass. Run exactly:
 rtk python3 tools/lift/park.py next --exclude-model ${JSON.stringify(excludeModel)}
-It prints JSON {"found":bool,"record":{...}}.
+It prints JSON {"found":bool,"record":{...}}. The record carries "last_notes"
+(the most recent attempt's notes string, may be empty) and "attempt_history"
+(array of {model, score, notes}).
 - If found=false → return found=false.
 - Else return found=true with the record's name, addr, obj, source_path, best_score,
-  attempts (the length of the attempts array), and tried_models (comma-joined
-  attempts[].model values).`
+  attempts (the length of the attempts array), tried_models (comma-joined
+  attempts[].model values), last_notes (the record's last_notes field verbatim —
+  this is the prior attempt's diagnosis/rationale and must NOT be summarized or
+  dropped), and tried_summary (build a compact "model:score%" list from
+  attempt_history, e.g. "opus:71.8, fable:74.2" — one entry per attempt, in order).`
 
 // Warm-start: restore the parked best patch so the improve model refines real
 // prior work instead of starting cold. A stale patch (HEAD moved past it) fails
@@ -859,9 +870,11 @@ async function gateThenCommit(brief, score, srcFile, path, phaseTitle, preEquiv)
 }
 
 // Preserve a sub-bar built lift (any score) via park.py and revert the tree.
-// attemptME = {model,effort} of the lift attempt being preserved.
-async function parkBuilt(brief, srcFile, score, attemptME, reason, capHyp, phaseTitle) {
-  await agent(parkToolPrompt(brief.name, brief.addr, brief.obj, srcFile, score, attemptME, reason, capHyp),
+// attemptME = {model,effort} of the lift attempt being preserved. notes = free-form
+// diagnostic/rationale text for this attempt (capped 2000 chars in parkToolPrompt),
+// read back by the improve pass via park.py next's last_notes/attempt_history.
+async function parkBuilt(brief, srcFile, score, attemptME, reason, capHyp, phaseTitle, notes) {
+  await agent(parkToolPrompt(brief.name, brief.addr, brief.obj, srcFile, score, attemptME, reason, capHyp, notes),
     { label: `park:${brief.name}`, phase: phaseTitle || 'Lift', ...M.mechanical })
 }
 
@@ -876,6 +889,13 @@ if (IMPROVE) {
   const XM = M.improve.model
   log(`Improve pass: re-lifting up to ${GOAL} parked functions with ${XM}-${M.improve.effort}${DRY_RUN ? ' (dry run — no commits)' : ''}`)
   if (OBJECTS) log(`(object filter not applied in improve mode — park.py next drains globally by score)`)
+
+  // Sync the shared parked ledger before draining it (see Select phase for why).
+  await agent(
+    `Run these two commands and return the last summary line of EACH (two lines total):
+rtk python3 tools/lift/park.py reconcile --apply 2>&1 || true
+rtk python3 tools/lift/park.py migrate --apply 2>&1 || true`,
+    { label: 'ledger-sync', phase: 'Improve', ...M.mechanical })
 
   // Warm retrieval so the improve re-research decompiles get worked-example neighbors.
   await agent(warmRetrievalPrompt(), { label: 'retrieval-warm', phase: 'Improve', ...M.mechanical })
@@ -919,14 +939,15 @@ rtk python3 tools/lift/park.py promote --name ${JSON.stringify(rec.name)} --comm
 
     // 3. Re-lift with the improve model (escalation framing, prior score to beat).
     const liftBrief = { ...brief, obj: brief.obj || rec.obj, source_path: brief.source_path || rec.source_path }
-    const a = await agent(liftPrompt(liftBrief, true, rec.best_score, warm), {
+    const priorNotes = { notes: nx.last_notes || '', tried: nx.tried_summary || '' }
+    const a = await agent(liftPrompt(liftBrief, true, rec.best_score, warm, priorNotes), {
       label: `improve-lift:${rec.name}`, phase: 'Improve', agentType: 'xbox-halo-re-analyst', ...M.improve, schema: LIFT_RESULT_SCHEMA,
     })
     if (!a || a.status === 'infra_blocked') { istop = 'infra_blocked'; improved.push({ ...rec, status: 'infra_blocked', reason: 'agent_null' }); break }
     if (a.status !== 'needs_verify') {
       // build_failed / skipped: re-park records the improve-model attempt (so it
       // won't be re-picked) and reverts, preserving the prior best patch.
-      await parkBuilt(liftBrief, a.source_file || liftBrief.source_path, a.vc71_score || 0, M.improve, `improve_${a.status}`, a.cap_reason || '', 'Improve')
+      await parkBuilt(liftBrief, a.source_file || liftBrief.source_path, a.vc71_score || 0, M.improve, `improve_${a.status}`, a.cap_reason || '', 'Improve', a.reason || '')
       noProgress++; improved.push({ ...rec, status: 're_parked', reason: `improve ${a.status}` }); continue
     }
 
@@ -959,7 +980,7 @@ rtk python3 tools/lift/park.py promote --name ${JSON.stringify(rec.name)} --comm
       // gate held despite passing band → re-park with the improve attempt recorded.
     }
 
-    await parkBuilt(liftBrief, srcFile, score, M.improve, `improve_pass_${band}`, a.cap_reason || '', 'Improve')
+    await parkBuilt(liftBrief, srcFile, score, M.improve, `improve_pass_${band}`, a.cap_reason || '', 'Improve', a.reason || a.equiv_reason || '')
     noProgress++
     improved.push({ ...rec, status: 're_parked', vc71_score: score, reason: `improve→${score}% (${band})` })
     log(`◐ ${rec.name} re-parked at ${score}% (was ${rec.best_score}%)`)
@@ -1001,6 +1022,16 @@ phase('Select')
 log(`Goal: lift ${GOAL} functions at >=90% VC71${DRY_RUN ? ' (dry run — no commits)' : ''}`)
 if (OBJECTS) log(`Object filter (hard): ${OBJECTS.join(', ')}`)
 if (CRITERIA) log(`Extra criteria (soft): ${CRITERIA}`)
+
+// Sync the shared parked ledger before selecting: reconcile drops records for
+// functions that landed via another path since they were parked, and migrate
+// upgrades any pre-shared-root legacy records. Neither is ever invoked
+// automatically otherwise, so the ledger silently accumulates stale entries.
+await agent(
+  `Run these two commands and return the last summary line of EACH (two lines total):
+rtk python3 tools/lift/park.py reconcile --apply 2>&1 || true
+rtk python3 tools/lift/park.py migrate --apply 2>&1 || true`,
+  { label: 'ledger-sync', phase: 'Select', ...M.mechanical })
 
 const BATCH_LIMIT = Math.min(60, Math.max(30, GOAL * 3))
 
@@ -1391,7 +1422,7 @@ while (true) {
       lift  = { ...lift, redelinked: true }
       log(`  ${brief.name} redelink repaired verify → ${score}%`)
     } else {
-      await parkBuilt(brief, srcFile, 0, lastME, 'verify_skipped_no_ref', 'VC71 unmeasured: no delinked reference could be produced; not a lift failure')
+      await parkBuilt(brief, srcFile, 0, lastME, 'verify_skipped_no_ref', 'VC71 unmeasured: no delinked reference could be produced; not a lift failure', 'Lift', a1.reason || '')
       results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: null, reason: 'verify_skipped_no_ref (infrastructure — VC71 never measured; do not treat as below_65pct)' })
       continue
     }
@@ -1434,7 +1465,7 @@ while (true) {
     // Preserve the attempt-1 (Opus) work before escalating: park keeps the
     // best-scoring attempt's patch across both, and --revert-tree cleans the
     // tree for the escalation re-lift. Never discard a building lift.
-    await parkBuilt(brief, srcFile, score, M.reason, 'pre_escalation', a1.cap_reason || '')
+    await parkBuilt(brief, srcFile, score, M.reason, 'pre_escalation', a1.cap_reason || '', 'Lift', a1.reason || '')
     const a2 = await agent(liftPrompt(brief, true, score), {
       label: `lift2:${brief.name}`, phase: 'Lift', agentType: 'xbox-halo-re-analyst', ...M.improve, schema: LIFT_RESULT_SCHEMA,
     })
@@ -1454,21 +1485,21 @@ while (true) {
     // Structural cap — a future model may still beat it, so PARK (with the cap
     // hypothesis) rather than discard. Not confirm-cap: that would end retries.
     log(`  ${brief.name} ${score}% capped [${capProvenance}]: ${a1.cap_reason || 'unclassified'} — parked, no escalation`)
-    await parkBuilt(brief, srcFile, score, M.reason, 'structural_cap', a1.cap_reason || 'unclassified')
+    await parkBuilt(brief, srcFile, score, M.reason, 'structural_cap', a1.cap_reason || 'unclassified', 'Lift', a1.reason || '')
     consecutiveFails++
     results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, reason: `structural_cap[${capProvenance}]: ${a1.cap_reason || 'unclassified'}` })
     continue
   }
 
   if (band === 'fail_revert') {
-    await parkBuilt(brief, srcFile, score, lastME, 'below_65pct', '')
+    await parkBuilt(brief, srcFile, score, lastME, 'below_65pct', '', 'Lift', lift.reason || '')
     consecutiveFails++
     results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, reason: `below_65pct` })
     continue
   }
   if (band === 'fail_check_cap') {
     // escalation ran and is still in [65,84) — park the best attempt for later.
-    await parkBuilt(brief, srcFile, score, lastME, 'escalation_exhausted', '')
+    await parkBuilt(brief, srcFile, score, lastME, 'escalation_exhausted', '', 'Lift', lift.reason || '')
     consecutiveFails++
     results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, reason: 'escalation_exhausted' })
     continue
@@ -1498,13 +1529,13 @@ while (true) {
     // Near-miss: lift is structurally sound, only runtime evidence blocked it.
     // Park (recoverable ledger) and do NOT count toward the consecutive-fail
     // stop — this is a deferred work item, not a failed lift.
-    await parkBuilt(brief, srcFile, score, lastME, `${outcome.verdict}: ${outcome.rationale}`, '')
+    await parkBuilt(brief, srcFile, score, lastME, `${outcome.verdict}: ${outcome.rationale}`, '', 'Lift', lift.reason || '')
     results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, source_file: srcFile, reason: `${outcome.verdict}: ${outcome.rationale}` })
     log(`◐ ${brief.name} ${score}% parked (review gate: ${outcome.verdict}; patch in artifacts/parked/)`)
   } else {
     // Below 85 and review-blocked: still preserve the work (a different model
     // may push it over later) rather than checkout-discarding it.
-    await parkBuilt(brief, srcFile, score, lastME, `${outcome.verdict}: ${outcome.rationale}`, '')
+    await parkBuilt(brief, srcFile, score, lastME, `${outcome.verdict}: ${outcome.rationale}`, '', 'Lift', lift.reason || '')
     consecutiveFails++
     results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, source_file: srcFile, reason: `review<85: ${outcome.verdict}: ${outcome.rationale}` })
     log(`◐ ${brief.name} ${score}% parked (review gate <85: ${outcome.verdict})`)

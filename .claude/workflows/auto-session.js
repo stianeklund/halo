@@ -24,8 +24,13 @@ export const meta = {
 // testable, fail-closed tool), NOT in agent prose. Agents here only invoke it
 // and parse its JSON. This workflow never hand-resolves kb.json.
 
-const BATCHES    = (args && args.batches) || 6     // max land cycles
-const BATCH_GOAL = (args && args.batchGoal) || 4   // functions per goal-lift run
+// Measured 2026-08-04 (run 8 profile): per-batch fixed overhead is ~7 min of
+// serial agents (select 3.2 + retrieval-warm 1.6 + delink-prefetch 1.1 +
+// liftability 0.6 + progress-log 0.5 + preflight 0.2). With noLand the small-
+// batch "land often" rationale does not apply, so fewer/bigger batches save
+// ~25-30 min per session.
+const BATCHES    = (args && args.batches) || 2      // max land cycles
+const BATCH_GOAL = (args && args.batchGoal) || 12   // functions per goal-lift run
 const DRY_RUN    = !!(args && args.dryRun)
 // Lift and commit normally, but never attempt to land. For when `main` is
 // known to be in use by another workstream: the land gate would fail on its
@@ -41,6 +46,10 @@ const CRITERIA   = (args && args.criteria) || undefined
 // everything. goal-lift's own gates (build / VC71 / audit_reg_abi / reviewer /
 // revert-on-fail) still apply, so a wrong @<reg> decl reverts rather than ships.
 const LIFT_REG_ARGS = !!(args && args.liftRegArgs)
+// Routine improve pass after the batch loop: drain up to this many parked
+// sub-bar functions via goal-lift's improve mode. 0 (default) skips it --
+// opt-in, since it adds a full nested workflow run after the batch loop.
+const IMPROVE_GOAL = (args && args.improveGoal) || 0
 
 // Resolving the child by NAME uses a workflow registry snapshotted at session
 // start, so mid-session edits to goal-lift.js are silently ignored -- the agents
@@ -256,12 +265,27 @@ if (stoppedReason === 'batches_exhausted' && unlandedBatches > 0) {
   stoppedReason = 'completed_with_unlanded'
 }
 
+// Routine improve pass: after the batch loop, drain up to IMPROVE_GOAL parked
+// sub-bar functions with goal-lift's improve mode (different model, warm-start
+// from the best parked patch). Skipped when the run was cut short by an infra
+// failure (resumable) -- that case should resume the batch loop first, not
+// spend budget draining the ledger on a run that didn't finish its own work.
+let improvePromoted = 0
+if (IMPROVE_GOAL > 0 && !resumable) {
+  log(`\n── Improve pass — draining up to ${IMPROVE_GOAL} parked function(s) ─────`)
+  const ir = await workflow(GOAL_LIFT, { improve: true, goal: IMPROVE_GOAL, dryRun: DRY_RUN })
+  improvePromoted = (ir && ir.promoted) || 0
+  functionsCommitted += improvePromoted
+  log(`Improve pass: promoted ${improvePromoted} (stop reason: ${ir ? ir.stop_reason : 'null'})`)
+}
+
 // ── Report ────────────────────────────────────────────────────────────────────
 phase('Report')
 log(`\n── Auto-session complete ─────────────────`)
 log(`Batches landed:      ${batchesLanded}`)
 if (unlandedBatches) log(`Batches unlanded:    ${unlandedBatches} (committed on ${BRANCH}, landing was blocked)`)
 log(`Functions committed: ${functionsCommitted}`)
+if (improvePromoted) log(`Improve promoted:    ${improvePromoted}`)
 log(`Stop reason:         ${stoppedReason}`)
 if (parkReason) log(`Park reason:         ${parkReason}`)
 if (budget.total) log(`Budget remaining:    ~${Math.round(budget.remaining() / 1000)}k tokens`)
@@ -271,6 +295,7 @@ return {
   batches_landed: batchesLanded,
   batches_unlanded: unlandedBatches,
   functions_committed: functionsCommitted,
+  improve_promoted: improvePromoted,
   stopped_reason: stoppedReason,
   park_reason: parkReason,
   conflicts: parkConflicts,
