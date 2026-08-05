@@ -12,7 +12,7 @@ const SKILL_RULES = [
 
   {
     re: /\b(cleanup|readability rewrite|cleanup baseline|cleanup report|match floor|rename locals|local variable cleanup|magic number|enum recovery|named constant|raw offset|pointer arithmetic|struct field access|simplify expression|control flow cleanup|comment capture|knowledge capture)\b/i,
-    skills: ["cleanup", "source-recovery", "recover-goal", "cleanup-baseline", "cleanup-gap-audit", "local-var-cleanup", "naming-confidence", "const-enum-recovery", "struct-recovery", "struct-assert", "offset-to-struct", "expr-simplify", "control-flow-cleanup", "re-comment-capture", "cleanup-report"],
+    skills: ["cleanup", "source-recovery", "recover-goal", "local-var-cleanup", "naming-confidence", "const-enum-recovery", "struct-recovery", "struct-assert", "offset-to-struct", "expr-simplify", "control-flow-cleanup", "re-comment-capture", "cleanup-report"],
     why: "cleanup ladder, evidence-preserving renames, constants, structs, offset rewrites, expression/control-flow gates",
   },
   {
@@ -32,7 +32,7 @@ const SKILL_RULES = [
   },
   {
     re: /\b(core\.bin|core_save|getfile|grab the core|pull the core|xbdm getfile)\b/i,
-    skills: ["xbdm-getfile", "halo-xbdm"],
+    skills: ["halo-xbdm"],
     why: "pulling files from xemu/Xbox HDD over XBDM",
   },
   {
@@ -47,17 +47,17 @@ const SKILL_RULES = [
   },
   {
     re: /\b(call[ -]?site|add esp|push|fstp|x87|cross[- ]?product|_ftol2|_chkstk|__seh|_allmul|intrinsic|decompiler trap|ghidra.*wrong)\b/i,
-    skills: ["lift-decompiler-traps", "lift-arg-hazards"],
+    skills: ["lift-decompiler-traps"],
     why: "call-site verification, cdecl cleanup tells, FSTP float args, intrinsics, register aliasing",
   },
   {
     re: /\b(register arg|reg arg|in_eax|in_ecx|in_edx|in_esi|in_edi|callee regs?|unported callee|xcall|missing @)\b|@</i,
-    skills: ["check-callee-regs", "lift-arg-hazards"],
+    skills: ["check-callee-regs", "lift-decompiler-traps"],
     why: "implicit @<reg> ABI hazards and caller register setup checks",
   },
   {
     re: /\b(_chkstk|stack frame|frame size|buffer size|undersized buffer|local_[0-9a-f]+|memset|memcpy|stack alias|buffer alias)\b|&local_/i,
-    skills: ["lift-frame-hazards", "lift-decompiler-traps"],
+    skills: ["lift-decompiler-traps"],
     why: "stack-frame sizing, contiguous buffer rules, local_XX buffer-alias reads",
   },
   {

@@ -91,7 +91,6 @@ rtk python3 tools/audit/check_arg_counts.py --recent-commits 3 2>&1 | tail -20
 | `WARN` / `MISSING` | Review item — check if in touched files |
 | Clean | Proceed |
 
-When blocked: load the relevant detailed skill (`lift-silent-bugs`, `lift-arg-hazards`,
-`lift-decompiler-traps`, `lift-frame-hazards`) for fix guidance.
+When blocked: load the relevant detailed skill (`lift-silent-bugs` or `lift-decompiler-traps`) for fix guidance.
 
 Never re-run the same check twice in one session. The results are authoritative.
