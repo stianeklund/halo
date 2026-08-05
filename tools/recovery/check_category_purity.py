@@ -55,6 +55,7 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -791,6 +792,7 @@ def _check_struct_define(old: Sequence[Token], new: Sequence[Token]) -> PairResu
     new_units = _split_top_level(strip_comments(new))
     violations: list[Violation] = []
     additions = 0
+    pad_narrowings = 0
     for tag, i1, i2, j1, j2 in _unit_opcodes(old_units, new_units):
         if tag == "equal":
             continue
@@ -840,14 +842,146 @@ def _check_struct_define(old: Sequence[Token], new: Sequence[Token]) -> PairResu
                     f"construct (a function body, brace depth > 0): {inner}; "
                     f"definitions belong in the declarations region or a header"))
                 continue
+            if _is_pad_narrowing(old_unit, new_unit):
+                # Subdividing a pad_ run is the one legitimate modification in
+                # this category: naming an offset that the lifted source
+                # demonstrably reads means shrinking the pad that covered it.
+                # Doctrine requires it (CLAUDE.md: a pad_ field that turns out
+                # to be read is a recovery bug), and it cannot be expressed as
+                # a pure addition. Total span is not re-derived here -- the
+                # cs()/co() asserts and the byte-identical codegen gate already
+                # prove it, and duplicating that check here would be weaker.
+                pad_narrowings += 1
+                continue
             violations.append(Violation(
                 new_unit.line,
                 f"'struct-define' is additions-only, but existing code was "
                 f"modified: {_first_token_change([old_unit], [new_unit])}"))
     if violations:
         return _bad(violations)
-    return _pure([f"{additions} added definition(s); no pre-existing construct "
-                  f"touched"])
+    notes = [f"{additions} added definition(s); no pre-existing construct touched"]
+    if pad_narrowings:
+        notes.append(f"{pad_narrowings} pad_ run(s) subdivided to name accessed offsets")
+    return _pure(notes)
+
+
+_UNKNOWN_FIELD = re.compile(r"^(?:pad|field)_[0-9a-f]+$")
+_SCALAR_TYPE = frozenset({
+    "char", "signed", "unsigned", "short", "int", "long", "float", "double",
+    "int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t",
+    "int64_t", "uint64_t", "bool", "real",
+})
+
+
+def _is_pad_narrowing(old_unit: Unit, new_unit: Unit) -> bool:
+    """True when a struct body changed ONLY by subdividing `pad_` runs.
+
+    Subdividing a pad is the one legitimate modification in this category, and
+    it cannot be expressed as a pure addition: naming an offset the lifted
+    source demonstrably reads means shrinking the pad that used to cover it.
+
+    Comparing raw tokens is too weak (it lets `int32_t x` -> `float x` pass as
+    "two scalar type tokens"), so the check works on parsed DECLARATIONS:
+
+      * every REMOVED declaration must be a `pad_` run -- an existing NAMED
+        field can never be touched, only unknown filler;
+      * every INSERTED declaration must be `pad_`/`field_` with a scalar type
+        -- no semantic name, no nested struct, no code rides along; and
+      * the removed and inserted byte spans must be EQUAL -- a subdivision
+        redistributes bytes, it never invents or drops them.
+    """
+    old_decls = _struct_declarations(strip_comments(old_unit.tokens))
+    new_decls = _struct_declarations(strip_comments(new_unit.tokens))
+    if old_decls is None or new_decls is None:
+        return False
+    for tag, i1, i2, j1, j2 in _opcodes(old_decls, new_decls):
+        if tag == "equal":
+            continue
+        removed, inserted = old_decls[i1:i2], new_decls[j1:j2]
+        if not all(d.name.startswith("pad_") for d in removed):
+            return False
+        if not all(_UNKNOWN_FIELD.fullmatch(d.name) and d.width for d in inserted):
+            return False
+        if sum(d.span for d in removed) != sum(d.span for d in inserted):
+            return False
+    return True
+
+
+class _Decl(NamedTuple):
+    type_name: str
+    name: str
+    count: int
+    width: int
+
+    @property
+    def span(self) -> int:
+        return self.width * max(self.count, 1)
+
+    @property
+    def key(self) -> str:
+        return "%s %s[%d]" % (self.type_name, self.name, self.count)
+
+
+_DECL_WIDTH = {
+    "char": 1, "signed char": 1, "unsigned char": 1, "int8_t": 1, "uint8_t": 1,
+    "bool": 1, "short": 2, "unsigned short": 2, "int16_t": 2, "uint16_t": 2,
+    "int": 4, "unsigned int": 4, "unsigned": 4, "long": 4, "unsigned long": 4,
+    "int32_t": 4, "uint32_t": 4, "float": 4, "real": 4,
+    "double": 8, "int64_t": 8, "uint64_t": 8,
+}
+
+
+def _struct_declarations(tokens: Sequence[Token]) -> list[_Decl] | None:
+    """Parse a struct body's field declarations, or None if it is not one.
+
+    Returns None (rather than guessing) for anything with a pointer, bitfield,
+    nested brace, or multi-declarator field -- callers treat None as "not a
+    plain subdivision", which fails closed.
+    """
+    texts = [t.text for t in tokens]
+    try:
+        start = texts.index("{")
+    except ValueError:
+        return None
+    depth, end = 0, None
+    for index in range(start, len(texts)):
+        if texts[index] == "{":
+            depth += 1
+        elif texts[index] == "}":
+            depth -= 1
+            if depth == 0:
+                end = index
+                break
+    if end is None:
+        return None
+    body = texts[start + 1:end]
+    if "{" in body or "*" in body or ":" in body or "," in body:
+        return None
+    decls: list[_Decl] = []
+    for chunk in " ".join(body).split(";"):
+        parts = chunk.split()
+        if not parts:
+            continue
+        count = 1
+        if parts[-1].endswith("]"):
+            match = re.fullmatch(r"([A-Za-z_]\w*)\[(0[xX][0-9a-fA-F]+|\d+)\]",
+                                 "".join(parts[-1:]) if "[" in parts[-1]
+                                 else "".join(parts[-2:]))
+            if not match:
+                joined = "".join(parts[1:])
+                match = re.fullmatch(r"([A-Za-z_]\w*)\[(0[xX][0-9a-fA-F]+|\d+)\]", joined)
+            if not match:
+                return None
+            name, count = match.group(1), int(match.group(2), 0)
+            type_name = " ".join(parts[:-1]) if "[" in parts[-1] else " ".join(parts[:-2])
+            type_name = type_name.rsplit(name, 1)[0].strip() or type_name
+        else:
+            if len(parts) < 2:
+                return None
+            name = parts[-1]
+            type_name = " ".join(parts[:-1])
+        decls.append(_Decl(type_name, name, count, _DECL_WIDTH.get(type_name, 0)))
+    return decls
 
 
 def _inner_definition(old_run: Sequence[Unit], new_run: Sequence[Unit]) -> str | None:

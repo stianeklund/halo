@@ -63,14 +63,46 @@ renames before rewrites keep diffs reviewable):
 | 2 | `local-renames` | `local-var-cleanup` | (a) byte-identical |
 | 3 | `symbol-names` | `naming-confidence` | (a) byte-identical |
 | 4 | `const-enum` | `const-enum-recovery` | (b) + no new `[IMM-WARN]` |
-| 5 | `struct-define` | `struct-recovery` → `struct-assert` | (a) + build passes |
-| 6 | `offset-to-field` | `offset-to-struct` | (b) + hazard scan |
+| 5 | `struct-define` | **`structize.py split`**, then `struct-recovery` → `struct-assert` for refusals | (a) + build passes |
+| 6 | `offset-to-field` | **`structize.py converge`** | (b) + hazard scan |
 | 7 | `expr-simplify` (opt-in) | `expr-simplify` | (c) |
 | 8 | `control-flow` (opt-in) | `control-flow-cleanup` | (c) |
 
 Header placement (`header-recovery`) rides along with 3/5. One category per
 commit — `tools/recovery/check_category_purity.py <category> --staged` must
 pass before you commit that category's diff.
+
+### Rungs 5 and 6 are MECHANICAL — do not hand-edit offsets
+
+Once the struct exists, these two rungs are transcription, not judgement. Use
+the tool; hand-editing hundreds of offsets is how wrong-offset bugs get in, and
+the tool refuses exactly where a human would guess.
+
+```bash
+rtk python3 tools/recovery/structize.py run \
+    --source <f.c> --base <var> --struct <type>_t --manifest recovery/<f>.json
+```
+
+One command: census → split (rung 5) → re-census → converge (rung 6). Use it
+rather than the individual steps — a census taken before the split misses every
+site the split just unblocked, and the run still reports success. Exit `0` work
+done, `1` failed (file restored), `2` converged but rewrote nothing.
+
+`converge` rewrites every eligible site, compiles, diffs at **function**
+granularity, re-applies excluding any function whose code moved, and proves the
+rest byte-identical. It restores the file untouched if it cannot converge.
+
+Your judgement goes into the **refusals**, not the rewrites. `split` emits a
+conflict list — offsets read at disagreeing widths or signedness — ranked by how
+many call sites each unblocks. Those are real `struct-recovery` questions
+(MOVSX vs MOVZX, union, sub-struct boundary). Answer one from disassembly,
+re-run `split`, and its sites convert automatically.
+
+Park, never force. A park means the function's codegen moved, which has two
+causes that look identical: benign `#pragma pack(1)` alignment shifting `-O3`
+scheduling, or a genuinely wrong field binding. The gate withholds both, so
+nothing wrong ships — but report a park in a just-split function as a suspected
+bad binding, not as alignment noise. Never edit code to force a park through.
 
 ## Hard gates per edit category
 

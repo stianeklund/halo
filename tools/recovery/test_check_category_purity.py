@@ -198,6 +198,65 @@ class StructDefineCategoryTests(unittest.TestCase):
         self.assertEqual(status("struct-define", BASE, ""), "violation")
 
 
+class PadSubdivisionTests(unittest.TestCase):
+    """Splitting a pad_ run is the one allowed modification in struct-define.
+
+    It cannot be an addition: naming an offset the lifted source demonstrably
+    reads means shrinking the pad that covered it (CLAUDE.md -- a pad_ field
+    that turns out to be read is a recovery bug). The exception is kept as
+    narrow as the tokens allow, so the negative cases below matter as much as
+    the positive one.
+    """
+
+    STRUCT = ('#include "types.h"\n'
+              "typedef struct {\n"
+              "  int16_t salt;\n"
+              "  char pad_002[0x26];\n"
+              "  int32_t known_field;\n"
+              "} actor_t;\n")
+
+    def _with_body(self, body):
+        return self.STRUCT.replace("  char pad_002[0x26];\n", body)
+
+    def test_subdividing_a_pad_is_pure(self):
+        new = self._with_body("  char pad_002[0x16];\n"
+                              "  int32_t field_018;\n"
+                              "  char pad_01c[0xc];\n")
+        self.assertEqual(status("struct-define", self.STRUCT, new), "pure")
+
+    def test_widening_a_pad_is_not_a_subdivision(self):
+        new = self._with_body("  char pad_002[0x36];\n")
+        self.assertEqual(status("struct-define", self.STRUCT, new), "violation")
+
+    def test_renaming_a_named_field_is_still_a_violation(self):
+        new = self.STRUCT.replace("known_field", "target_index")
+        self.assertEqual(status("struct-define", self.STRUCT, new), "violation")
+
+    def test_retyping_a_named_field_is_still_a_violation(self):
+        new = self.STRUCT.replace("int32_t known_field;", "float known_field;")
+        self.assertEqual(status("struct-define", self.STRUCT, new), "violation")
+
+    def test_semantic_name_cannot_ride_along_in_a_split(self):
+        # Only field_XX / pad_XX may appear; a real name needs evidence and
+        # belongs to the symbol-names category.
+        new = self._with_body("  char pad_002[0x16];\n"
+                              "  int32_t swarm_index;\n"
+                              "  char pad_01c[0xc];\n")
+        self.assertEqual(status("struct-define", self.STRUCT, new), "violation")
+
+    def test_nested_struct_cannot_ride_along_in_a_split(self):
+        new = self._with_body("  char pad_002[0x16];\n"
+                              "  vector3_t field_018;\n"
+                              "  char pad_01c[0x8];\n")
+        self.assertEqual(status("struct-define", self.STRUCT, new), "violation")
+
+    def test_code_cannot_ride_along_in_a_split(self):
+        new = self._with_body("  char pad_002[0x16];\n"
+                              "  int32_t field_018;\n"
+                              "  char pad_01c[0xc];\n") + "\nint helper(void) { return 1; }\n"
+        self.assertEqual(status("struct-define", self.STRUCT, new), "violation")
+
+
 class OffsetToFieldCategoryTests(unittest.TestCase):
     def test_raw_deref_to_member_access_is_pure(self):
         new = BASE.replace("*(int *)((int)actor + 0x10)", "actor->mode")

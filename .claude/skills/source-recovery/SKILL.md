@@ -69,6 +69,87 @@ has pending items; the warning is advisory (a category may not apply) but an
 unexplained warning means you skipped a step. Without `--allow-risky` on the
 manifest, `set-status ... applied` on a risky item is refused and `check` fails.
 
+## Mechanical path for rungs 5 and 6 (`structize.py`)
+
+`struct-define` and `offset-to-field` are **transcription, not judgement** once
+the struct exists. Do them with the tool, not by hand — hand-editing hundreds of
+offsets is where wrong-offset bugs come from, and the tool refuses where a human
+would guess.
+
+**Use `run` — it is the whole job in one command:**
+
+```bash
+rtk python3 tools/recovery/structize.py run \
+    --source src/halo/ai/actor_looking.c --base actor --struct actor_t \
+    [--manifest recovery/<file>.json]
+```
+
+`run` does census → split → **re-census** → converge. That re-census is the
+reason to prefer it: splitting is what makes `pad_` sites resolvable, so a
+census taken before the split misses every site the split just unblocked — and
+the run still reports success. Exit codes: `0` work done, `1` failed (file
+restored), `2` converged but rewrote nothing.
+
+The individual steps remain available for inspection or partial work:
+
+```bash
+S=tools/recovery/structize.py
+rtk python3 $S layout actor_t                                     # authoritative offsets (from clang)
+rtk python3 $S census --source <f.c> --base actor --struct actor_t -o recovery/census/<f>.json
+rtk python3 $S split    --census recovery/census/<f>.json --apply  # rung 5: pad_ -> field_XX
+rtk python3 $S census   ... -o recovery/census/<f>.json            # re-census (run does this for you)
+rtk python3 $S converge --census recovery/census/<f>.json          # rung 6: rewrite what stays neutral
+```
+
+`converge` is the one command worth remembering: it rewrites every eligible
+site, compiles, diffs at **function** granularity, re-applies while excluding
+any function whose code moved, and proves the result byte-identical. Divergent
+functions come back as `parked_functions` with a reason. It restores the file
+untouched if it cannot converge.
+
+What the tool will **not** do, by construction — each of these is a refusal in
+the census, never a guess:
+
+| Refusal | Why |
+|---|---|
+| cast kind ≠ field kind | `*(float*)` over an `int32_t` field is a pun; rewriting changes codegen |
+| width or signedness mismatch | MOVSX vs MOVZX are different instructions |
+| offset lands in a `pad_` run | rung 5 must split it first (that is what `split` is for) |
+| offset ≥ `sizeof(struct)` | the **binding is wrong** — stop, do not rewrite |
+| `volatile` access | the qualifier must survive |
+| whole-struct cast (`*(vector3_t*)`) | a multi-field copy, not a field access |
+| address taken, not dereferenced | would require `&` of a packed field |
+| conflicting widths at one offset | a genuine RE question; it goes on the worklist |
+
+**Known limit, measured:** the base declaration is deliberately never retyped.
+A partial retype rescales every un-rewritten `base + 0xNN` by `sizeof(struct)`.
+Retyping is only safe once coverage reaches ~100%, and is a separate step.
+
+**Known divergence, measured:** `#pragma pack(1)` gives a member alignment 1
+where the original cast asserted natural alignment, which can change `-O3` load
+scheduling. On `actor_looking.c` this hit 2 of 119 functions; `-fno-strict-aliasing`
+makes no difference, so it is not an aliasing effect. `converge` parks those
+functions rather than losing the other 117.
+
+**A park is a finding, not a result.** Alignment noise and a genuinely wrong
+field binding produce the *identical* signal — "this function's codegen moved" —
+and the tool cannot tell them apart (proved by a test that feeds it a knowingly
+wrong offset and watches it park exactly like the benign case). Nothing wrong
+ever ships either way, because the gate withholds both. But treat a park in a
+function whose offsets were only just split as a suspected bad binding, not as
+alignment noise.
+
+**Verifying the tool itself:** `rtk python3 -m tools.recovery.test_structize_e2e`
+compiles real C with the project's flags and asserts the gate *fails* when fed a
+wrong offset, a nonexistent field, and a build error. Run it after touching
+`structize.py`; `test_structize.py` alone cannot catch a corruption bug because
+it never invokes a compiler.
+
+The conflict list from `split` is the **ranked RE worklist** — offsets ordered
+by how many call sites they unblock. Resolve them with `struct-recovery`
+(disassembly widths), then re-run `split`; each answer converts its sites from
+refused to mechanical.
+
 ## Gates
 
 - **(a) Neutral** — comments, local renames, symbol names, struct definitions,

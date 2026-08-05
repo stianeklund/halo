@@ -54,8 +54,11 @@ const LADDER = [
   { id: 'local-renames',   skill: 'local-var-cleanup' },
   { id: 'symbol-names',    skill: 'naming-confidence' },
   { id: 'const-enum',      skill: 'const-enum-recovery' },
-  { id: 'struct-define',   skill: 'struct-recovery + struct-assert' },
-  { id: 'offset-to-field', skill: 'offset-to-struct' },
+  // Rungs 5/6 have a deterministic path: tools/recovery/structize.py does the
+  // transcription and refuses where a human would guess. The leaf skill stays
+  // listed because the tool's REFUSALS are that skill's actual work.
+  { id: 'struct-define',   skill: 'struct-recovery + struct-assert', mech: 'split' },
+  { id: 'offset-to-field', skill: 'offset-to-struct',                mech: 'converge' },
   // Risky (codegen can legitimately move) — only reachable with --allow-risky,
   // which is also what the manifest itself requires before `set-status applied`
   // will accept an item in these categories.
@@ -383,10 +386,47 @@ Return {ok:true, manifest:"<first manifest>", manifests:["recovery/<stem>.c.json
       continue
     }
 
+    // Rungs 5/6: put the deterministic path in front of the agent, so it spends
+    // its reasoning on the tool's refusals rather than on retyping offsets.
+    const mechBlock = !cat.mech ? '' : `
+
+MECHANICAL PATH — this category is transcription, not judgement. Use the tool.
+Do NOT hand-edit offsets or hand-write field declarations; a wrong offset is a
+wrong decompilation, and the tool refuses exactly where you would be guessing.
+
+  S=tools/recovery/structize.py
+  rtk python3 $S census   --source <f.c> --base <var> --struct <type>_t -o recovery/census/<f>.json
+  rtk python3 $S ${cat.mech === 'split' ? 'split    --census recovery/census/<f>.json --apply' : 'converge --census recovery/census/<f>.json'}
+
+${cat.mech === 'split'
+  ? `\`split\` subdivides pad_ runs into field_XX at every offset the lifted source
+demonstrably reads (CLAUDE.md: a pad_ field that turns out to be read is a
+recovery bug). Total span is preserved, so cs()/co() still hold.
+
+YOUR JUDGEMENT GOES INTO THE CONFLICT LIST, not the edits. \`split\` reports
+offsets read at disagreeing widths/signedness, ranked by how many call sites
+each unblocks. Those are real \`struct-recovery\` questions — MOVSX vs MOVZX,
+a union, a sub-struct boundary. Answer the top ones from disassembly, re-run
+\`split\`, and their sites convert automatically. Resolving conflicts is the
+highest-value work available in this category.`
+  : `\`converge\` rewrites every eligible site, compiles, diffs at FUNCTION
+granularity, re-applies excluding any function whose code moved, and proves the
+rest byte-identical. It restores the file untouched if it cannot converge, so a
+failed run is safe.
+
+\`parked_functions\` are NOT your failure: \`#pragma pack(1)\` gives a member
+alignment 1 where the original cast asserted natural alignment, which can change
+-O3 instruction scheduling and register allocation. Semantically identical, not
+byte-identical, so the neutral gate correctly refuses them. Park them with that
+reason and move on — do not chase them, and never relax the gate.`}
+
+Re-run \`census\` after \`split\` — the split converts most refusals into
+rewritable sites, and a stale census hides them.`
+
     const res = await agent(
       `${AGENT_RULES}
 
-You are the \`${cat.id}\` category agent for source recovery of ${object}.
+You are the \`${cat.id}\` category agent for source recovery of ${object}.${mechBlock}
 
 READ FIRST, before touching anything:
   1. \`.claude/skills/source-recovery/SKILL.md\` — the ladder, gate table, measurement
