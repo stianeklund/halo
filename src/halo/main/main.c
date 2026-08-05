@@ -5227,6 +5227,32 @@ bool FUN_00103d30(void)
  * sibling FUN_00103d30 (debug .wrl lazy-open) at 0x103d30.
  */
 
+/* FUN_00103d80 (0x103d80)  error_geometry.c:0x44
+ *
+ * Re-run the error-geometry file setup against the already-cached path buffer
+ * (module-global @0x31fac8, whose initialiser is the string "debug.wrl").
+ * Unlike its sibling FUN_00103de0 this entry point takes no source string: it
+ * skips the csstrncmp/csstrncpy path update entirely, asserts that no output
+ * stream is currently open (error_geometry_file, FILE* @0x46e394), and hands
+ * the cached path to the CRT-region helper FUN_001db4a9.
+ *
+ * cdecl, no parameters and no stack frame: the disassembly at 0x103d80 is 15
+ * instructions with no PUSH EBP / SUB ESP and a bare RET, so no locals may be
+ * declared here.  The lone argument to FUN_001db4a9 is the literal 0x31fac8
+ * (PUSH 0x31fac8 / CALL 0x001db4a9 / POP ECX); the decompiler drops it.  The
+ * assert tail rendered as thunk_FUN_001029a0 is CALL 0x0008e2f0 =
+ * system_exit(-1), matching every other error_geometry.c assert.
+ */
+void FUN_00103d80(void)
+{
+  if (*(void **)0x46e394 != NULL) {
+    display_assert("error_geometry_file==NULL",
+                   "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x44, true);
+    system_exit(-1);
+  }
+  FUN_001db4a9((char *)0x31fac8);
+}
+
 /* FUN_00103de0 (0x103de0)  error_geometry.c:0x44
  *
  * Retarget the debug error-geometry output file. If 'source' differs from the
@@ -5261,7 +5287,11 @@ void FUN_00103de0(char *source)
                      "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x44, true);
       system_exit(-1);
     }
-    FUN_001db4a9();
+    /* Arity fix forced by the corrected kb.json decl for FUN_001db4a9: the
+     * call site at 0x103e?? pushes the cached path buffer exactly as
+     * 0x103dab does (PUSH 0x31fac8 / CALL / POP ECX).  The previous no-arg
+     * form left the callee reading an uninitialised [ESP+4]. */
+    FUN_001db4a9((char *)0x31fac8);
   }
 }
 

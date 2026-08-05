@@ -1024,7 +1024,7 @@
         },
         {
           "addr": "0x1db4a9",
-          "decl": "void FUN_001db4a9(void);"
+          "decl": "void FUN_001db4a9(char *path);"
         },
         {
           "addr": "0x1db501",
@@ -13530,7 +13530,8 @@
         },
         {
           "addr": "0x103d80",
-          "decl": "void FUN_00103d80(void);"
+          "decl": "void FUN_00103d80(void);",
+          "ported": true
         },
         {
           "addr": "0x103de0",

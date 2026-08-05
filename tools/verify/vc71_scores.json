@@ -8289,8 +8289,14 @@
       "score": 93.3,
       "source": "src/halo/main/main.c"
     },
+    "FUN_00103d80": {
+      "opnd_percent": 89.7,
+      "score": 96.6,
+      "source": "src/halo/main/main.c"
+    },
     "FUN_00103de0": {
-      "score": 93.2,
+      "opnd_percent": 90.9,
+      "score": 100.0,
       "source": "src/halo/main/main.c"
     },
     "FUN_00103e80": {
@@ -20881,7 +20887,9 @@
       "source": "src/halo/shell_xbox.c"
     },
     "main_change_map_name": {
-      "score": 65.7,
+      "opnd_percent": 50.8,
+      "ref": "synth",
+      "score": 72.0,
       "source": "src/halo/main/main.c"
     },
     "main_change_map_name_in_progress": {
@@ -21087,9 +21095,9 @@
       "source": "src/halo/main/main.c"
     },
     "main_save_current_solo_map": {
-      "opnd_percent": 48.8,
+      "opnd_percent": 51.8,
       "ref": "synth",
-      "score": 74.4,
+      "score": 75.3,
       "source": "src/halo/main/main.c"
     },
     "main_save_map_no_timeout": {
@@ -21101,7 +21109,9 @@
       "source": "src/halo/main/main.c"
     },
     "main_save_map_private": {
-      "score": 59.5,
+      "opnd_percent": 65.1,
+      "ref": "synth",
+      "score": 79.4,
       "source": "src/halo/main/main.c"
     },
     "main_save_map_safe": {
@@ -21168,7 +21178,9 @@
       "source": "src/halo/main/main.c"
     },
     "main_won_map_private": {
-      "score": 58.4,
+      "opnd_percent": 84.2,
+      "ref": "synth",
+      "score": 91.2,
       "source": "src/halo/main/main.c"
     },
     "match_game_type": {
