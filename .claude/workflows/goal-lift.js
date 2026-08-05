@@ -455,6 +455,15 @@ CONTEXT — do NOT re-call Ghidra:
   Callees:  ${brief.callees}
   Hazards:  ${brief.hazards}
 
+SCORE CONTEXT (if a prior VC71 run scored this function, read it FIRST — it is
+already-computed diagnostic data, cheaper than re-deriving the same conclusion
+from the objdiff/disasm yourself):
+  rtk jq '{scores, frame, classification}' artifacts/score_context/${brief.name}.json 2>/dev/null || true
+  classification[].action names the specific fix for each detected pattern
+  (loadw_field_width, frame_mismatch, anchor_collapse, etc.) — apply those
+  actions before trying any other hypothesis. Missing file = no prior run
+  recorded yet; proceed normally.
+
 WORKED EXAMPLES (similar functions already ported, with their VC71 %; match their
 idioms — casts, x87 order, struct-store shape — and expect a comparable score.
 A near-identical neighbor capped below 90% is evidence THIS one is capped too):
@@ -525,6 +534,13 @@ STEPS:
    timeout 150 rtk python3 tools/permuter/run.py -q --target ${brief.name} --attempts 100 2>&1 || echo "[permuter stopped]"
    then re-run the step-6 lift_pipeline command. Never accept a permutation
    that lowers the score. Report permuted=true.
+   Exit 3 = VACUOUS RUN (0 candidate iterations — permuter setup problem, not a
+   real result; treat as if permute did not run). Exit 4 = BASELINE MISMATCH
+   (the permuter's own scoring of the unmodified base disagrees with the
+   pipeline's baseline — do not trust any candidate score from that run).
+   The search is now ranked by mnemonic-LCS against the reference, but every
+   surviving candidate is still a semantic mutation — read the diff before
+   accepting it, same as any other code change.
 
 6d. EQUIVALENCE (only if the FINAL score is in [85,89] — the review gate will
    demand runtime evidence for this band, so produce it now while you still
@@ -596,6 +612,16 @@ const permutePrompt = (name) =>
 Run the decomp-permuter for ${name}, then re-verify (both wrapped — see [STALL]):
 timeout 150 rtk python3 tools/permuter/run.py -q --target ${name} --attempts 100 2>&1 || echo "[permuter stopped at timeout]"
 timeout 165 rtk python3 tools/lift_pipeline.py --target ${name} --no-metadata-update --verify-policy goal90 2>&1 || echo "[timed-out]"
+
+Exit 3 from run.py = VACUOUS RUN (0 candidate iterations ran — a setup problem,
+not a real negative result; do not count it against the 2-invocation budget,
+fix the cause or give up on permute for this function). Exit 4 = BASELINE
+MISMATCH (run.py's own score of the unmodified base disagrees with the
+pipeline's baseline score — any candidate score from that run is untrustworthy,
+discard it). Candidates are now selected by mnemonic-LCS rank against the
+reference, which favors instruction-order matches — that is not the same as
+correctness, so read the actual diff of any accepted candidate before trusting
+it, same as reviewing any other code change.
 
 BOUNDED PASS — at most 2 permuter invocations total. If a permutation breaks the
 build (e.g. -Werror dead variable), fix it minimally and re-verify once. If the

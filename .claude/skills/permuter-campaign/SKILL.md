@@ -66,6 +66,24 @@ skeleton; `opnd_percent` additionally compares operands. A lift can reproduce
 the skeleton while getting the dataflow wrong, and the permuter cannot fix that
 any more than it can fix a sub-85% body.
 
+**In-process candidate ranking is now mnemonic-LCS.** `tools/permuter/run.py`
+writes `score_algorithm="lcs"` (plus `ref_mnemonics_file`) into the permuter's
+own `settings.toml` whenever a reference resolves, so the search itself now
+optimizes toward the same LCS metric this campaign measures — resolving the
+old misalignment where the permuter's internal candidate selection ran on an
+unrelated upstream penalty score and could discard exactly the candidates that
+would have improved our LCS%. This does NOT make semantic audit optional: a
+candidate can still be instruction-order-close to the reference while getting
+the dataflow wrong (same caveat as `opnd_percent` above). Read the diff of
+every surviving candidate before applying it (Step 3b).
+
+**If a target has a `artifacts/score_context/<name>.json` pack, prefer its
+`classification` over ad-hoc inspection.** A `"rule": "regarg_structural_ceiling"`
+entry (repeated `pushl`/`movl` replace-ops at `@<reg>` call sites) means the
+gap is a permanent register-arg-passing artifact the permuter cannot close —
+deprioritize that target (rank it below others in the [85, 98] band, or drop
+it outright if cycles are scarce) rather than spending a worker slot on it.
+
 **Known confound (2026-08-02): `opnd_percent` is not a clean operand-fidelity
 measure.** `compare_obj.canonicalize_registers` aliases registers by *global
 first-appearance order*, so if the candidate and the reference introduce
@@ -232,6 +250,15 @@ timeout 150 rtk python3 tools/permuter/run.py \
 ```
 
 Read the output from `$CAMPAIGN_DIR/<funcname>/permuter_work/lcs_results.txt`.
+
+Check the exit code before trusting `lcs_results.txt`: exit 3 means Guard 1
+fired (VACUOUS RUN — 0 candidate iterations, a setup problem, not a real
+"no improvement" result); exit 4 means Guard 2 fired (BASELINE MISMATCH — the
+permuter's own score of the unmodified base disagrees with the pipeline's
+baseline, so any candidate scores from that run are untrustworthy). Both print
+their own diagnostic regardless of `--quiet`. Treat either as
+`skip_reason: "vacuous_run"` / `"baseline_mismatch"` in Step C, not as
+`permuter_improved: false`.
 
 **Step C: Report results**
 

@@ -64,6 +64,11 @@ All file edits, `rtk git` commands, and tool invocations must target **that path
 10. Run `rtk python3 tools/audit/check_lift_hazards.py` and fix any target-relevant hazards.
     - **→ Use `lift-silent-bugs` skill** before deploying to Xbox — catches float-as-pointer, accumulator misread, builder-count ignored, void-EAX, address-offset bugs that `check_lift_hazards.py` does NOT detect
 11. **Post-verify score routing:**
+    - Any score below 100% → first check `artifacts/score_context/<func_name>.json`
+      (`rtk jq '{scores, frame, classification}' ...`). `vc71_verify.py` writes this
+      pack on every scored run with pre-classified `classification[]` entries
+      (`rule`/`evidence`/`action`) plus frame-size and warning fields — read it
+      before manually re-deriving the same diagnosis from `--show-diffs`.
     - Score 65–84% and gap described as "structural" → **invoke `lift-score-improve` skill first** before reverting or escalating
     - Xbox crash / hang / ACCESS_VIOLATION → **invoke `lift-crash-signals` skill**
     - Wrong visual output / silent wrong behavior → **invoke `lift-crash-signals` skill** (toggle-bisect section)

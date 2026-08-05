@@ -20,7 +20,24 @@ Source: `docs/lift-learnings.md` §19 + §20 + §27.
 
 ---
 
-## Step 0 — Check for the static-buffer ceiling first (§20)
+## Step 0 — Read the score-context pack first
+
+Before any manual diffing, check whether `vc71_verify.py` already recorded a
+score-context pack for this function — it is the same diagnostic data you'd
+otherwise re-derive from `--show-diffs` by hand, pre-classified:
+
+```bash
+rtk jq '{scores, frame, classification}' artifacts/score_context/<func_name>.json
+```
+
+If the file exists, `classification[]` entries each carry `rule`, `evidence`,
+and `action` — apply the named actions before working through Steps 0b–3d
+below. `frame.cand_frame_bytes` vs `frame.ref_frame_bytes` is a fast frame-size
+signal; `warnings.loadw`/`.fpu`/`.imm`/`.fcom` flag field-width, operand-order,
+and immediate-literal defects directly. Missing file just means no VC71 run
+has scored this function yet — proceed with the manual steps.
+
+## Step 0b — Check for the static-buffer ceiling first (§20)
 
 This is the highest-leverage check and takes 5 seconds:
 

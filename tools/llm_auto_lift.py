@@ -35,6 +35,7 @@ log = logging.getLogger("auto_lift")
 ROOT = Path(__file__).resolve().parent.parent
 ARTIFACT_ROOT = ROOT / "artifacts" / "auto_lift"
 CONTEXT_CACHE = ARTIFACT_ROOT / "context_cache"
+SCORE_CONTEXT_DIR = ROOT / "artifacts" / "score_context"
 DELINKED_DIR = ROOT / "delinked"
 OBJDIFF_JSON = ROOT / "objdiff.json"
 KB_JSON = ROOT / "kb.json"
@@ -312,6 +313,8 @@ class ContextPack:
     hazards: dict
     delinked_available: bool
     constraints: list[str]
+    score_context: dict = field(default_factory=dict)
+    prior_official_pct: Optional[float] = None
 
 
 # ---------------------------------------------------------------------------
@@ -425,6 +428,32 @@ def _has_delinked_ref(source_path: str, units: dict[str, dict]) -> bool:
         return False
     base = unit.get("base_path", "")
     return (ROOT / base).exists() if base else False
+
+
+def _load_score_context(name: str, addr: str) -> Optional[dict]:
+    """Load artifacts/score_context/<name>.json for a lift target, if present.
+
+    Tries the lifted function name first, then the FUN_<addr:08x> alias
+    (vc71_verify.py writes score-context packs keyed by whichever name was
+    scored, which may still be the decl-literal FUN_ name pre-lift).
+    Tolerates missing or corrupt files by returning None.
+    """
+    candidates = [name]
+    if addr:
+        try:
+            candidates.append(f"FUN_{int(addr, 16):08x}")
+        except ValueError:
+            pass
+
+    for candidate in candidates:
+        path = SCORE_CONTEXT_DIR / f"{candidate}.json"
+        if not path.exists():
+            continue
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+    return None
 
 
 _PDB_PROPOSALS_CACHE: Optional[set[str]] = None
@@ -1070,6 +1099,8 @@ class ContextPackBuilder:
         ghidra_ctx = self._enrich_ghidra_context(target, ghidra_ctx)
         hazards = self._assess_hazards(target, ghidra_ctx)
         delinked = _has_delinked_ref(target.source_path, self.objdiff_units)
+        score_context = self._gather_score_context(target)
+        prior_official_pct = (score_context.get("scores") or {}).get("official_pct")
 
         return ContextPack(
             schema_version=1,
@@ -1087,7 +1118,34 @@ class ContextPackBuilder:
             hazards=hazards,
             delinked_available=delinked,
             constraints=self._build_constraints(target),
+            score_context=score_context,
+            prior_official_pct=prior_official_pct,
         )
+
+    def _gather_score_context(self, target: LiftTarget) -> dict:
+        """Load and compact the VC71-verify score-context pack (if any) for
+        this target. Scores/frame/classification are kept in full; warnings
+        are reduced to counts and diff.ops to the first 40 non-equal ops, so
+        the section stays small inside the context pack."""
+        raw = _load_score_context(target.name, target.addr)
+        if not raw:
+            return {}
+
+        warnings = raw.get("warnings", {}) or {}
+        warning_counts = {k: len(v) for k, v in warnings.items() if isinstance(v, list)}
+
+        diff = raw.get("diff", {}) or {}
+        all_ops = diff.get("ops", []) or []
+        non_equal_ops = [op for op in all_ops if op.get("kind") != "equal"]
+
+        return {
+            "scores": raw.get("scores", {}),
+            "frame": raw.get("frame", {}),
+            "classification": raw.get("classification", []),
+            "warning_counts": warning_counts,
+            "diff_ops": non_equal_ops[:40],
+            "diff_truncated": bool(diff.get("truncated")) or len(non_equal_ops) > 40,
+        }
 
     def _gather_kb_context(self, target: LiftTarget) -> dict:
         for obj in self.kb_raw["objects"]:
