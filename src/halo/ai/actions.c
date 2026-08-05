@@ -2740,10 +2740,10 @@ char actor_action_handle_lost_contact(int actor_handle)
   char found;
   char flag_2c;
   char flag_38;
-  int val_24;
-  int val_28;
-  int val_30;
-  int val_34;
+  short val_24;
+  short val_28;
+  short val_30;
+  short val_34;
   int threat;
   short firing_pos;
   short threshold;

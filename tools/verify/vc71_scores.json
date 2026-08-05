@@ -6206,7 +6206,8 @@
       "source": "src/halo/game/players.c"
     },
     "FUN_000c06b0": {
-      "score": 94.1,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/game/players.c"
     },
     "FUN_000c06f0": {
@@ -15511,7 +15512,8 @@
       "source": "src/halo/ai/actions.c"
     },
     "actor_action_handle_lost_contact": {
-      "score": 83.0,
+      "opnd_percent": 76.1,
+      "score": 83.4,
       "source": "src/halo/ai/actions.c"
     },
     "actor_action_handle_panic_from_attached_melee_attackers": {

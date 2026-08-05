@@ -10901,7 +10901,7 @@ void FUN_000c0730(int16_t function_index, int thread_datum, char init)
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
     /* dwords @ +0x0 / +0x4 / +0x8, in C argument order */
-    FUN_00058c40(record[0], record[1], record[2]);
+    FUN_00058c40(record[0], record[1], (const char *)record[2]);
     hs_return(thread_datum, 0);
   }
 }
