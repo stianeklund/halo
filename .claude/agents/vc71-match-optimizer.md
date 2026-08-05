@@ -7,7 +7,8 @@ description: >
   operand-order, load-width, immediate, FCOM-sense, frame, and anchor-collapse
   fixes — re-measuring after each change, keeping only improvements. Does NOT
   do first-pass RE/lift (use xbox-halo-re-analyst for that) and does NOT do
-  readability/naming/refactor work (score/byte-accuracy content only).
+  readability/naming/refactor work (score/byte-accuracy content only —
+  route readability/source-recovery work to halo-source-recovery instead).
 model: opus
 color: cyan
 memory: project

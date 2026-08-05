@@ -427,7 +427,7 @@ Return exactly one of:
   {status:"skipped", reason:"<why the items turned out inapplicable>"}
   {status:"failed",  reason:"<blocker>"}  — only when the WHOLE category cannot proceed
     (build broken, no COFF baseline, manifest errors, purity tool absent).`,
-      { label: `recover:${stem}:${cat.id}`, phase: 'Recover', ...RECOVER, schema: CATEGORY_SCHEMA })
+      { label: `recover:${stem}:${cat.id}`, phase: 'Recover', agentType: 'halo-source-recovery', ...RECOVER, schema: CATEGORY_SCHEMA })
 
     const status = (res && res.status) || 'failed'
     const reason = (res && res.reason) || (res ? '' : 'agent_null')

@@ -127,6 +127,17 @@ manifest path, the target skill name, the category id, and an explicit
 same-worktree instruction (a subagent worktree mismatch has silently discarded
 work before).
 
+### Specialized agent
+
+For batch/multi-TU campaigns (`recover-goal`), category agents run as
+`agentType: 'halo-source-recovery'` — the dedicated readability/source-recovery
+subagent, counterpart to `vc71-match-optimizer` on the score side. It knows
+this ladder, these gates, and the naming-confidence tiers; it never chases
+VC71 score and never touches `@<reg>` annotations. `.claude/workflows/recover-goal.js`
+already wires this. A single-session `/recover-source` invocation may run
+inline instead — delegate to the agent explicitly when scoping more than one
+TU or when running unattended.
+
 ## Fidelity rules
 
 - Distinguish **neutral changes** (source/readability only, exact output unchanged)
