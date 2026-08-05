@@ -129,8 +129,7 @@ void *ai_debug_get_newest_path_storage(int actor_handle)
   base = *(char **)0x331f5c;
   cursor = base + 4;
   do {
-    if (*(char *)(cursor + 8) != '\0' &&
-        *(int *)(cursor - 4) == actor_handle &&
+    if (*(char *)(cursor + 8) != '\0' && *(int *)(cursor - 4) == actor_handle &&
         *(int *)cursor > best_stamp) {
       best_stamp = *(int *)cursor;
       best_slot = i;
@@ -260,6 +259,57 @@ void ai_debug_point3d_set(float *point, float x, float y, float z)
   point[0] = x;
   point[1] = y;
   point[2] = z;
+}
+
+/* ai_debug_get_last_path (0x493d0): arm the debug line-of-fire ray with a new
+ * pair of endpoints.
+ *
+ * No __FILE__ string, no callees (pure leaf, zero CALLs), no FPU instructions,
+ * and no locals -- the original frame is PUSH EBP / MOV EBP,ESP / ... / POP EBP
+ * / RET with no `sub esp`.  2 cdecl stack args at [EBP+0x8] (loaded into ECX)
+ * and [EBP+0xc] (loaded into EDX); caller cleans.
+ *
+ * Despite the kb name this is a setter: it publishes the two endpoints into the
+ * debug ray block and resets the ray state.  Called from ai.c's line-of-fire
+ * rendering block (guarded by the 0x5aca69 debug flag) with two float[3]s.
+ *
+ * Debug ray block layout (0x5acab8, 0x20 bytes; widths from the disassembly --
+ * only the first two stores are byte-sized, everything from 0x5acabc on is
+ * dword):
+ *   +0x00  0x5acab8  uint8   armed flag        <- 1
+ *   +0x01  0x5acab9  uint8   ray-test success  <- 0   (also written by
+ *                                                     FUN_000494d0)
+ *   +0x02           2 bytes padding
+ *   +0x04  0x5acabc  float[3] endpoint A       <- vec_a[0..2]
+ *   +0x10  0x5acac8  float[3] endpoint B       <- vec_b[0..2]
+ *   +0x1c  0x5acad4  int32    counter/index    <- 0
+ *
+ * Store-offset table (derived from the disassembly, ECX = vec_a, EDX = vec_b):
+ *   0x5acab8 <- MOV byte ptr, 1
+ *   0x5acab9 <- XOR EAX,EAX ; MOV AL           (EAX=0 is kept live)
+ *   0x5acabc <- [ECX+0x0]   dword move, no FLD/FSTP
+ *   0x5acac0 <- [ECX+0x4]   dword move
+ *   0x5acac4 <- [ECX+0x8]   dword move
+ *   0x5acac8 <- [EDX+0x0]   dword move
+ *   0x5acacc <- [EDX+0x4]   dword move
+ *   0x5acad0 <- [EDX+0x8]   dword move
+ *   0x5acad4 <- MOV EAX     dword zero, reusing the XOR-cleared EAX
+ * EDX is reloaded from [EBP+0xc] between the [ECX+8] read and its store --
+ * pure MSVC scheduling, no semantic content.
+ *
+ * Inferred: the two flag bytes are stored inline rather than through
+ * FUN_000494d0 (there is no CALL in this function at all). */
+void ai_debug_get_last_path(float *vec_a, float *vec_b)
+{
+  *(uint8_t *)0x5acab8 = 1;
+  *(uint8_t *)0x5acab9 = 0;
+  *(float *)0x5acabc = vec_a[0];
+  *(float *)0x5acac0 = vec_a[1];
+  *(float *)0x5acac4 = vec_a[2];
+  *(float *)0x5acac8 = vec_b[0];
+  *(float *)0x5acacc = vec_b[1];
+  *(float *)0x5acad0 = vec_b[2];
+  *(int32_t *)0x5acad4 = 0;
 }
 
 /* FUN_000494d0: set debug ray-test success flag.

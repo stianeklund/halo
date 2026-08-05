@@ -32176,7 +32176,10 @@
         },
         {
           "addr": "0x493d0",
-          "decl": "void ai_debug_get_last_path(float *vec_a, float *vec_b);"
+          "decl": "void ai_debug_get_last_path(float *vec_a, float *vec_b);",
+          "name": "ai_debug_get_last_path",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x49430",
