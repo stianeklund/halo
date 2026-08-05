@@ -894,6 +894,72 @@ void ai_debug_select_actor(int encounter_idx, int param_2)
   }
 }
 
+/* FUN_0004b7a0: service the pending "select actor" debug-key request.  Asks
+ * FUN_00049c70 for a candidate actor handle; when one exists, describes it into
+ * the shared error/description buffer at 0x5ab100, echoes "selected %s" to the
+ * console, and points the debug encounter/actor selection at that actor's
+ * encounter (actor + 0x34) and handle.  When no actor is available the
+ * selection is reset with ai_debug_select_actor(-1, -1).  Either way the
+ * request flag at 0x5ac9c1 (raised by debug_key_erase_all_actors, 0xffdc0) is
+ * cleared.
+ *
+ * No __FILE__ string.  38 instructions, two-branch, no FPU, no loops, no stack
+ * locals (no `sub esp`): ESI holds the handle, EDI the datum_get result.
+ *
+ * FUN_00049c70's kb declaration was `void (void)`; the disassembly does
+ * MOV ESI,EAX immediately after the CALL, so it really returns an int handle
+ * (-1 = none).  Ghidra models this as `extraout_EAX`.  The kb decl has been
+ * corrected to `int FUN_00049c70(void);` (implicit-EAX return, not a register
+ * argument).
+ *
+ * Branch: CMP ESI,-1 / JZ 0x4b7f8 — equality against -1, so the positive
+ * (handle != -1) path is the fall-through and the reset is the else arm.
+ *
+ * Call-site verification (cdecl, first PUSH = last arg):
+ *   0x4b7b5 datum_get: PUSH ESI (handle), PUSH EAX (=[0x6325a4] actor_data)
+ *     -> datum_get(actor_data, actor_handle)                       [match]
+ *   0x4b7cb ai_debug_describe_actor: PUSH 0x100, PUSH 0x5ab100, PUSH 0x1,
+ *     PUSH -0x1, PUSH ESI
+ *     -> ai_debug_describe_actor(handle, -1, 1, 0x5ab100, 0x100)   [match]
+ *     (MOV EDI,EAX at 0x4b7c9 captures datum_get's result BEFORE this call,
+ *      interleaved among the pushes — it is not this call's return.)
+ *   0x4b7dc console_printf: PUSH 0x5ab100, PUSH 0x25afd0 ("selected %s"),
+ *     PUSH 0x0 -> console_printf(0, "selected %s", 0x5ab100)       [match]
+ *     Return value discarded.
+ *   0x4b7e6 ai_debug_select_actor: PUSH ESI, PUSH ECX (=[EDI+0x34])
+ *     -> ai_debug_select_actor(*(int32_t *)(actor + 0x34), handle) [match]
+ *   0x4b7fc ai_debug_select_actor: PUSH -0x1, PUSH -0x1
+ *     -> ai_debug_select_actor(-1, -1)                             [match]
+ *
+ * Stack cleanup: one shared ADD ESP,0x30 at 0x4b7eb covers all four calls in
+ * the taken branch = 2 + 5 + 3 + 2 = 12 dwords = 0x30 bytes (the per-call
+ * "cleanup=12 stack args" hazard report is a false positive).  The else arm
+ * has its own ADD ESP,0x8 for its single 2-arg call.
+ *
+ * Store-offset table (absolute addresses):
+ *   [0x5ab100] <- description text (written by ai_debug_describe_actor; a
+ *                 0x100-byte global scratch buffer, not a stack local — the
+ *                 0x100 size argument confirms it)
+ *   [0x5ac9c1] <- 0   byte  (MOV byte ptr [0x005ac9c1],0x0; emitted once per
+ *                 branch because the two epilogues differ — the taken branch
+ *                 POPs EDI as well as ESI) */
+void FUN_0004b7a0(void)
+{
+  int actor_handle;
+  char *actor;
+
+  actor_handle = FUN_00049c70();
+  if (actor_handle != -1) {
+    actor = (char *)datum_get(actor_data, actor_handle);
+    ai_debug_describe_actor(actor_handle, -1, 1, (char *)0x5ab100, 0x100);
+    console_printf(0, "selected %s", (char *)0x5ab100);
+    ai_debug_select_actor(*(int32_t *)(actor + 0x34), actor_handle);
+  } else {
+    ai_debug_select_actor(-1, -1);
+  }
+  *(uint8_t *)0x5ac9c1 = 0;
+}
+
 /* ai_debug_initialize_for_new_map: look up the encounter named DAT_005ac9d2 in
  * the scenario encounter list, reset debug encounter state, then if the
  * selected encounter or secondary index changed, reinitialize via
