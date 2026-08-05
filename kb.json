@@ -32191,7 +32191,10 @@
         },
         {
           "addr": "0x496c0",
-          "decl": "char ai_debug_highlight_cluster(int16_t cluster_index, void *out);"
+          "decl": "char ai_debug_highlight_cluster(int16_t cluster_index, void *out);",
+          "name": "ai_debug_highlight_cluster",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x497c0",

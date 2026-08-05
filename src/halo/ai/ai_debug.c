@@ -197,6 +197,80 @@ void FUN_000494d0(char success)
   *(uint8_t *)0x5acab9 = success;
 }
 
+/* ai_debug_highlight_cluster (0x496c0): report the debug highlight color for a
+ * BSP cluster.
+ *
+ * Confirmed: __FILE__ = "c:\halo\SOURCE\ai\ai_debug.c", line 0x1025 (4133) —
+ * the "highlight_color" NULL check on the out parameter.
+ *
+ * Returns 0 (and writes nothing) unless the highlight-cluster debug flag
+ * (0x5aca6c) is set and an encounter is selected (0x5ac9f4 != -1).  The
+ * 0x200-byte cluster bit vector at 0x331f18 is rebuilt via FUN_00058fd0
+ * whenever the cached game time (0x2c8e90) or cached encounter index
+ * (0x2c8e8c) is stale.  If the queried cluster's bit is set the color depends
+ * on byte +0xd of the selected encounter datum; otherwise the third color
+ * constant is used.
+ *
+ * Call-site verification (all cdecl, caller-cleaned):
+ *   0x4970a FUN_00058fd0, ADD ESP,0x14 (5 dwords).  Pushes, in reverse order,
+ *     0x331f18, 0, 0x200, 0, EDX(=[0x5ac9f4]) -> C order
+ *     (encounter_index, 0, 0x200, 0, (char *)0x331f18)  [match]
+ *   0x49741 display_assert, no ADD ESP (noreturn).  Pushes 1, 0x1025,
+ *     0x25ab74 (file), 0x25abec (reason)  [match]
+ *   0x49748 system_exit, PUSH -1  [match]
+ *   0x4977b datum_get, ADD ESP,8.  PUSH EDX(=[0x5ac9f4]) then PUSH
+ *     EAX(=[0x5ab270]) -> datum_get(*(data_t **)0x5ab270, [0x5ac9f4]) [match]
+ *   EDX is reloaded from [0x5ac9f4] at 0x49717 after the FUN_00058fd0 call
+ *   (the frame has no `sub esp`, so no stack local exists to spill into), so
+ *   the global is re-read rather than cached across the call.
+ *
+ * Store-offset table (out is a single 4-byte slot, held in ESI):
+ *   out+0x00 <- [0x2ee6e0]   bit set, encounter byte +0xd != 0
+ *   out+0x00 <- [0x2ee6d8]   bit set, encounter byte +0xd == 0
+ *   out+0x00 <- [0x2ee6c8]   bit clear
+ *
+ * Inferred: the early-out path falls into POP EBP at 0x497ae *without* popping
+ * ESI (ESI is pushed at 0x49728, after the rebuild block), so the flag/index
+ * test is a plain early `return 0;` ahead of any use of `out`.  The three
+ * success epilogues (0x49794, 0x497a1, 0x497ad) each MOV AL,1 and POP ESI.
+ *
+ * Bit test (0x4975a-0x49771): MOVSX EAX,word[EBP+8]; ECX=EAX&0x1f;
+ * EDI=1<<CL; SAR EAX,5; TEST dword[EAX*4+0x331f18],EDI — the table is
+ * uint32[] indexed by the *sign-extended* cluster index >> 5 (arithmetic). */
+char ai_debug_highlight_cluster(int16_t cluster_index, void *out)
+{
+  int time;
+  char *encounter;
+
+  if (*(uint8_t *)0x5aca6c == 0 || *(int32_t *)0x5ac9f4 == -1) {
+    return 0;
+  }
+  time = game_time_get();
+  if (*(int32_t *)0x2c8e90 != time ||
+      *(int32_t *)0x2c8e8c != *(int32_t *)0x5ac9f4) {
+    FUN_00058fd0(*(int32_t *)0x5ac9f4, 0, 0x200, 0, (char *)0x331f18);
+    *(int32_t *)0x2c8e90 = game_time_get();
+    *(int32_t *)0x2c8e8c = *(int32_t *)0x5ac9f4;
+  }
+  if (out == NULL) {
+    display_assert("highlight_color", "c:\\halo\\SOURCE\\ai\\ai_debug.c",
+                   0x1025, 1);
+    system_exit(-1);
+  }
+  if ((((uint32_t *)0x331f18)[(int)cluster_index >> 5] &
+       (1u << (cluster_index & 0x1f))) != 0) {
+    encounter = (char *)datum_get(*(data_t **)0x5ab270, *(int32_t *)0x5ac9f4);
+    if (encounter[0xd] != 0) {
+      *(void **)out = *(void **)0x2ee6e0;
+      return 1;
+    }
+    *(void **)out = *(void **)0x2ee6d8;
+    return 1;
+  }
+  *(void **)out = *(void **)0x2ee6c8;
+  return 1;
+}
+
 /* ai_debug_update: per-tick AI debug update.  Three independent debug actions:
  *
  *   1. Camera-follow (0x5ac9fc):  acquire actor or LOS-hit target, then
