@@ -315,6 +315,7 @@ class ContextPack:
     constraints: list[str]
     score_context: dict = field(default_factory=dict)
     prior_official_pct: Optional[float] = None
+    shape_donor: dict = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -659,6 +660,39 @@ def _load_pure_leaf_addrs() -> set[str]:
     return {a for a, d in _load_leaf_cache().items() if d.get("class") == "leaf"}
 
 
+_SHAPE_ATLAS_RECIPIENTS: dict[str, dict] | None = None
+
+
+def _load_shape_atlas() -> dict[str, dict]:
+    """Return {addr_lower: {"donor": {...}, "tier": "exact"|"ported"}} for
+    every recipient in tools/shape/shape_atlas.py's transfer groups.
+
+    Scheduling aid only (see tools/shape/shape_atlas.py) -- never grants
+    match credit, just a bonus for targets that already have a proven
+    donor template to instantiate from. Tolerates a missing/corrupt/absent
+    artifacts/shape_atlas.json silently (it is gitignored and built
+    on-demand via `shape_atlas.py build`).
+    """
+    global _SHAPE_ATLAS_RECIPIENTS
+    if _SHAPE_ATLAS_RECIPIENTS is not None:
+        return _SHAPE_ATLAS_RECIPIENTS
+    result: dict[str, dict] = {}
+    atlas_path = ROOT / "artifacts" / "shape_atlas.json"
+    if atlas_path.exists():
+        try:
+            data = json.loads(atlas_path.read_text(encoding="utf-8"))
+            for group in data.get("groups", []):
+                donor = group.get("donor")
+                if not donor:
+                    continue
+                for addr in group.get("recipients", []):
+                    result[addr.lower()] = {"donor": donor, "tier": donor.get("tier")}
+        except (json.JSONDecodeError, OSError):
+            result = {}
+    _SHAPE_ATLAS_RECIPIENTS = result
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Semantic retrieval helpers (Mizuchi-style neighbor injection)
 # ---------------------------------------------------------------------------
@@ -900,6 +934,19 @@ class LiftabilityScorer:
                     score += 3
                     details["eq_high_conf"] = 3
 
+                # Shape-atlas donor available (tools/shape/shape_atlas.py) --
+                # this target's shape group already has a proven source
+                # template to instantiate from. Scheduling bonus only; the
+                # lift still goes through the normal pipeline.
+                shape_entry = _load_shape_atlas().get(addr.lower())
+                if shape_entry:
+                    if shape_entry.get("tier") == "exact":
+                        score += 8
+                        details["shape_donor_exact"] = 8
+                    else:
+                        score += 4
+                        details["shape_donor_ported"] = 4
+
                 # Cached Ghidra context available
                 cache_file = CONTEXT_CACHE / f"{name}.json"
                 if cache_file.exists():
@@ -1101,6 +1148,7 @@ class ContextPackBuilder:
         delinked = _has_delinked_ref(target.source_path, self.objdiff_units)
         score_context = self._gather_score_context(target)
         prior_official_pct = (score_context.get("scores") or {}).get("official_pct")
+        shape_donor = self._gather_shape_donor(target)
 
         return ContextPack(
             schema_version=1,
@@ -1120,7 +1168,24 @@ class ContextPackBuilder:
             constraints=self._build_constraints(target),
             score_context=score_context,
             prior_official_pct=prior_official_pct,
+            shape_donor=shape_donor,
         )
+
+    def _gather_shape_donor(self, target: LiftTarget) -> dict:
+        """If this target is a shape-atlas recipient, surface the donor's
+        name/source_path/tier so the lift agent knows which existing
+        template to open and instantiate from. {} if the target has no
+        shape-atlas entry (including when artifacts/shape_atlas.json is
+        absent -- _load_shape_atlas() tolerates that silently)."""
+        entry = _load_shape_atlas().get(target.addr.lower())
+        if not entry:
+            return {}
+        donor = entry.get("donor") or {}
+        return {
+            "donor_name": donor.get("name"),
+            "donor_source_path": donor.get("source_path"),
+            "tier": donor.get("tier"),
+        }
 
     def _gather_score_context(self, target: LiftTarget) -> dict:
         """Load and compact the VC71-verify score-context pack (if any) for
