@@ -2716,6 +2716,36 @@ void FUN_00058af0(unsigned int ai_index, int vehicle_handle, int seat_substring,
   }
 }
 
+/* 0x00058c40 — ai_go_to_vehicle script command entry point.
+ * Emits a trace line when the AI script-trace flag at 0x5aca59 is set, then
+ * forwards the request to the vehicle-entry order builder FUN_00058af0 with
+ * allow_type9 = 0.
+ *
+ * Parameters come off the stack and are cached in callee-saved registers by
+ * the prologue (confirmed at 0x58c51-0x58c59): EDI = [EBP+8] = ai_index,
+ * EBX = [EBP+0xC] = vehicle_handle, ESI = [EBP+0x10] = seat_substring.
+ * Ghidra typed this function `(void)` and reported bogus in_stack_* slots.
+ *
+ * The error() call pushes SIX stack args (ADD ESP,0x18 at 0x58c9c); Ghidra
+ * dropped the trailing seat_substring vararg.  Only the low 16 bits of the
+ * vehicle handle are logged (MOV ECX,EBX; AND ECX,0xffff at 0x58c79/0x58c7c),
+ * while the full 32-bit handle is forwarded to FUN_00058af0 (EBX still live
+ * at the tail call, 0x58ca4). */
+void FUN_00058c40(unsigned int ai_index, int vehicle_handle,
+                  const char *seat_substring)
+{
+  char local_104[256];
+
+  if (*(char *)0x5aca59 != '\0') {
+    ai_index_to_string(ai_index, (void *)global_scenario_get(), local_104,
+                       0x100);
+    error(2, "%s: ai_go_to_vehicle %s 0x%04X %s",
+          hs_runtime_get_executing_thread_name(), local_104,
+          vehicle_handle & 0xffff, seat_substring);
+  }
+  FUN_00058af0(ai_index, vehicle_handle, (int)seat_substring, 0);
+}
+
 /* 0x00058fa0 — encounter_dispose stub.
  * Called from ai_dispose (0x3f6f0). No teardown needed at this level.
  * Binary: single RET instruction. */
