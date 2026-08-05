@@ -9,11 +9,23 @@ Use this skill for any work involving Halo CE Xbox reverse engineering or
 binary analysis. It defines the methodology; operational workflows live in
 `halo-re-lift`, `halo-verify-debug`, `halo-build-xemu`, and `halo-xbdm`.
 
-## Ground rules
+## Target Binary Contract
 
-- The binary is the source of truth.
+The binary is the source of truth. The target executable is **Halo Xbox debug build 2276** (`halo-patched/cachebeta.xbe`, MD5 `c7869590a1c64ad034e49a5ee0c02465`, version `01.10.12.2276`, dated Oct 12, 2001).
+- It is a **debug build** with richer symbols/asserts; do not swap in a retail `default.xbe`.
+- All `kb.json` VAs are absolute virtual addresses into THIS file.
+
+## Tooling Standard
+
+- **Ghidra + `ghidra-xbe` extension** (`github.com/XboxDev/ghidra-xbe`) is the community standard for reverse engineering `cachebeta.xbe`.
+- Python + `capstone` (x86 32-bit) for quick command-line disassembly reads.
+
+## Ground Rules
+
 - Unknown is better than wrong.
 - Inspect both decompilation and disassembly before concluding.
+- **Confirm Struct Offsets in `src/types.h`:** ALWAYS confirm field offsets in `src/types.h`. NEVER guess a struct field — a wrong field offset is a wrong decompilation. Name unknown fields `unk_<hexoffset>`.
+- **Struct Refinement Doctrine:** Prefer refining `src/types.h` structs (e.g. `game_globals_t`, `players_globals_t`) to replace raw-offset casts (`[ptr+0x24]`) by splitting `unk_N[]` arrays without altering overall struct size.
 - Reuse existing project and Xbox types before inventing new ones.
 - Do not add empty stubs.
 - Preserve ABI, stack behavior, field offsets, packing, and side-effect order.

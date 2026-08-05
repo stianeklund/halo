@@ -32,7 +32,7 @@ rtk python3 $R report  $M
 
 1. **Scope and baseline.** Confirm the exact `.c` path, inspect unrelated worktree
    changes without modifying them, `plan`, then `capture`. `capture` replaces the
-   old `cleanup-baseline` block as machine state; `cleanup-baseline` remains the
+   old `cleanup-report` block as machine state; `cleanup-report` remains the
    reference for *what* a baseline must contain (floors, delinked refs, oracles).
 2. **Debt inventory.** Work small line-numbered items from the manifest. Do not
    treat every numeric literal as an address or infer a semantic name from a
@@ -49,7 +49,7 @@ rtk python3 $R report  $M
 
 | # | Category | Skill | Codegen risk | Gate |
 |---|---|---|---|---|
-| — | (pre) tooling check | `cleanup-gap-audit` | — | gaps → downgrade plan |
+| — | (pre) tooling check | `cleanup-report` | — | gaps → downgrade plan |
 | 1 | `comments` | `re-comment-capture` | none | (a) byte-identical |
 | 2 | `local-renames` | `local-var-cleanup` | none | (a) byte-identical |
 | 3 | `symbol-names` | `naming-confidence` | none | (a) byte-identical |

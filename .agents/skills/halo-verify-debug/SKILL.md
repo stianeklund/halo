@@ -1,17 +1,23 @@
 ---
 name: halo-verify-debug
-description: "/verify, VC71, delink, objdiff, lift_pipeline, equivalence, golden tests, dual-oracle, low-match, behavior/runtime failure: verification ladder and regression debugging workflow."
+description: "vc71, vc71_verify, low match, low-match, match percent, objdiff, delink, delinked: /verify, VC71, delink, objdiff, lift_pipeline, equivalence, golden tests, dual-oracle, low-match, behavior/runtime failure: verification ladder and regression debugging workflow."
 ---
 
 # Halo Verify And Debug
 
-Use this skill for lift verification, XDK/delink comparison, runtime oracle checks,
+Use this skill for lift verification, XDK/delink comparison, Option 3 fallback,
 or regression investigation. Doctrine and evidence rules live in
 `halo-xbox-re`; this skill covers the operational verification and debugging
 procedures.
 
 Passing validation reduces risk, but it is not proof of behavioral equivalence
 unless the target also has strong delink, golden, or runtime coverage.
+
+## Faithfulness Standard & Expected Differences
+
+Judge a match by **identical logic/operations**, not identical byte output. Expected and acceptable differences versus original executable disassembly:
+- **Import Indirection:** Re-implemented globals are reached via `mov eax,[__imp__global]; mov ...,(eax)` instead of direct absolute `mov ...,[0xADDR]`. This is inherent to patch redirects and present in every accepted function.
+- **Equivalent Codegen:** Compiler instruction choices (e.g. coalescing adjacent byte stores into a word store, `cmp $0, mem` vs `mov`/`test`, `add esp, 4` vs `pop`).
 
 ## Verification priority
 
@@ -31,13 +37,13 @@ The user-facing command surface is consolidated under `/verify`:
 - `/verify hazards` for `check_lift_hazards.py`.
 - `/verify delink <target>` for delink export and reference mapping.
 - `/verify equivalence <target>` for Unicorn differential testing; use xemu
-  virtual `memsave` or XBDM `getmem` live memory captures when zero-filled
-  globals under-cover live paths.
+  virtual `memsave` (never physical `pmemsave`) or XBDM `getmem` live memory
+  captures when zero-filled globals under-cover live paths.
 - `/verify golden <target>` for runtime oracle comparison through
   `tools/verify/run_golden_tests.py`.
 - `/verify dual-oracle <target>` for same-process original-vs-candidate
   runtime comparison once a target has a dual-oracle harness case.
-- `/verify report` for current verification inventory and blocked coverage categories.
+- `/verify option3 <target>` for legacy runtime/xemu fallback.
 - `/verify failure <artifact_dir>` for failed artifact triage.
 
 ### Normal post-lift validation
@@ -54,19 +60,6 @@ Report:
 - low-match policy result
 - behavior/runtime check result if requested
 - summary path under `artifacts/lift_runs/.../summary.json`
-
-### VC71 Byte Accuracy Tuning (Low-Match Functions 50%–80% → 90%–100%)
-
-When improving functions with low MSVC 7.1 byte match scores, consult `docs/vc71-byte-accuracy-playbook.md` and follow the diagnostic ladder:
-
-1. **Inspect Diffs**: Run `rtk python3 tools/verify/vc71_verify.py <file> --function <name> --show-diffs`.
-2. **Run Diagnostic Probes**:
-   - `rtk python3 tools/verify/vc71_verify.py <file> --loadw-only` (load width: `int` vs `short`/`char`).
-   - `rtk python3 tools/verify/vc71_verify.py <file> --imm-only` (literal float / magic constant mismatches).
-   - `rtk python3 tools/verify/vc71_verify.py <file> --fcom-only` (FPU guard bound sense: `<` vs `<=`).
-3. **Type Narrowing**: Change `int` to `short`, `bool`, or `char` for local flags, loop counters, and parameters to force MSVC register allocation (`AL`/`BL` for bytes, `CX` for shorts).
-4. **`kb.json` Precision**: Ensure `@<reg>` parameter strings have NO spaces (e.g. `param@<esi>`). Align `kb.json` return types (`bool`/`char` vs `int`). Run `regen_decl_header()`.
-5. **Control-Flow Restructuring**: Convert Ghidra nested `if`-trees back into clean C `switch` blocks.
 
 ### Explicit structural verification
 
@@ -92,15 +85,19 @@ only reaches early exits or weak coverage:
 
 `rtk python3 tools/equivalence/unicorn_diff.py <target> --allow-stubs --mem-trace --state-snapshot artifacts/snapshots/<name>.json`
 
-Capture selected memory regions from a live xemu engine state with QMP virtual `memsave` or XBDM
-`getmem` via `tools/equivalence/state_snapshot.py` or
-`tools/equivalence/capture_snapshot_from_diff.py`. These captures are selected
-memory regions, not QEMU VM snapshots. Prefer QMP virtual `memsave` when
-available; use `--backend xbdm` when the running xemu is reachable through XBDM
-but not QMP. Physical `pmemsave` is intentionally avoided on this setup because
-it reads the wrong bytes. Do not use `savevm`/`loadvm` for oracle testing because
-those restore old loaded-XBE code pages and invalidate original-vs-candidate
-comparisons.
+Capture selected memory regions from a live xemu engine state with the
+VIRTUAL-memsave tools: `tools/equivalence/memsave_snapshot.py` (plan →
+capture) or `tools/equivalence/qmp_capture.py`. These captures are selected
+memory regions, not QEMU VM snapshots. **Never use QMP `pmemsave`
+(physical)** — Cerbios does not identity-map game VA on this dev box, so
+physical reads return wrong bytes (verified 2026-06-07). XBDM `getmem` is the
+fallback on real hardware only. Do not use `savevm`/`loadvm` for oracle
+testing because those restore old loaded-XBE code pages and invalidate
+original-vs-candidate comparisons.
+
+When no live capture reaches the branch you need, hand-craft a snapshot
+instead — see skill `lift-synthetic-equivalence` (regions ≥8B, pointer-param
+content overrides, sibling-asymmetry handling, BIPED_SIBLING_RESOLVE=1).
 
 Report:
 
@@ -129,31 +126,37 @@ Report:
 - first structured mismatch, memory mismatch, crash, or assertion
 - whether real Xbox XBDM confirmation is still required
 
-### Verification inventory report
+### Option 3 fallback ladder
 
-Use report mode when you need an inventory of current verification coverage,
-missing delinked references, and blocked runtime/equivalence categories.
+Use Option 3 for runtime/xemu fallback only. Prefer the lift pipeline and XDK
+verify for structural proof.
 
 Run:
 
-`rtk python3 tools/verify/test_inventory.py <extra_flags>`
+`rtk python3 tools/verify/verify_option3.py --target <target> <extra_flags>`
 
 Report:
 
-- artifact paths under `artifacts/test_inventory/`
-- blocked or missing coverage categories
-- object-level summaries relevant to the next verification pass
+- stage results for `build`, `build_iso`, `objdiff`, `xemu_load_reset`,
+  and `assert_tripwire`
+- PASS or FAIL verdict
+- summary path under `artifacts/verify_option3/.../summary.json`
 
 Notes:
 
-- Use `/verify golden <target>` or `/verify dual-oracle <target>` when the next
-  step needs runtime evidence.
+- Add `--objdiff-reference <path>` and `--objdiff-candidate <path>` when a
+  delinked reference object exists.
+- Add `--load-into-xemu` to hot-load and reset via `tools/xbox/xemu_qmp.py`.
+- Use `--skip-build` or `--skip-iso` for quick reruns when artifacts already
+  exist.
 
 ### Failure classification
 
 - Build failure: fix the compile error only; do not rewrite the lift from scratch.
 - ABI failure: verify `kb.json` declaration, `@<reg>` annotations, caller setup, and callee thunks.
 - XDK `[FPU-WARN]`: verify x87 operand order, push-then-fstp arguments, and cross-product/subtraction order.
+- `[LOADW-WARN]` (`--loadw-only`): a field narrowed to int16/int8 in the original but read wider in the lift (or vice versa) — verify the C type against disassembly (lift-learnings §24).
+- `[IMM-WARN]` (`--imm-only`): a large inline constant (float bit-pattern or magic) differs between the lift and the original. Both sides are VC71 codegen, so it is a wrong numeric literal the LCS % aligns away — verify the source literal against the disassembly immediate (lift-learnings §25). Very low false-positive; treat as a near-certain source bug.
 - Low match: inspect objdiff/XDK output for branch shape, memory access offsets, and missing side effects.
 - Behavior/runtime failure: prefer XBDM state probes before xemu unless no console is reachable.
 
@@ -198,15 +201,15 @@ Useful probes (XBDM preferred):
 - `/xbdm status` — check stop state before context reads
 - `/xbdm context` — read registers after a crash
 - `/xbdm mem <addr> <len>` — inspect memory at a suspect address
-- visual check via `rtk python3 tools/xbox/xdbm_screenshot.py --host <ip> --images 5 --png`
+- visual check via `rtk python3 tools/xbox/xbdm_screenshot.py --host <ip> --images 5 --png`
 - input replay via native `state.data` sentinels; see `docs/xbox-pad.md`
 
 Useful xemu probes (fallback only):
 
-- `rtk python3 tools/xbox/xdbm_screenshot.py --host 127.0.0.1 --images 5 --png` — visible state
-- serial output for assertions
-- `hmp "info registers"`
-- `hmp "x /Nx 0x<addr>"`
+- `rtk python3 tools/xbox/xbdm_screenshot.py --host 127.0.0.1 --images 5 --png` — visible state
+- `xemu_xemu_read_serial()` — serial assertions
+- `xemu_xemu_send_monitor_command("info registers")` — register state
+- `xemu_xemu_send_monitor_command("x /16xw 0x<addr>")` — memory inspection
 
 ## Debugging guardrails
 

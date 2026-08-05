@@ -13,6 +13,12 @@ procedures.
 Passing validation reduces risk, but it is not proof of behavioral equivalence
 unless the target also has strong delink, golden, or runtime coverage.
 
+## Faithfulness Standard & Expected Differences
+
+Judge a match by **identical logic/operations**, not identical byte output. Expected and acceptable differences versus original executable disassembly:
+- **Import Indirection:** Re-implemented globals are reached via `mov eax,[__imp__global]; mov ...,(eax)` instead of direct absolute `mov ...,[0xADDR]`. This is inherent to patch redirects and present in every accepted function.
+- **Equivalent Codegen:** Compiler instruction choices (e.g. coalescing adjacent byte stores into a word store, `cmp $0, mem` vs `mov`/`test`, `add esp, 4` vs `pop`).
+
 ## Verification priority
 
 Prefer real Xbox via XBDM/RDCP over xemu+ISO whenever a console is on the

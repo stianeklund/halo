@@ -630,6 +630,41 @@ keep iterating; the review gate decides acceptance. Never accept a permutation
 that lowers the pre-permute score.
 Return: vc71_score (after permutation), improved (bool), reason.`
 
+// vc71-match-optimizer escalation — replaces the old cold-rewrite lift2 for
+// fail_check_cap (65-84%, classify_cap says NOT capped). The function already
+// builds and is already believed faithful; a full re-lift with a different
+// model throws that away and re-derives it. This instead tunes the EXISTING
+// candidate source one score-recovery lever at a time (recipe atlas in
+// .claude/skills/lift-score-improve/SKILL.md), which is cheaper and can't
+// regress correctness the way a cold rewrite occasionally has.
+const matchOptimizerPrompt = (name, addr, obj, srcFile, priorScore, neighbors) =>
+  `${AGENT_RULES}
+
+Improve the VC71 byte-match score for ${name} at ${addr} (object: ${obj}).
+Source: ${srcFile} | Current score: ${priorScore}%.
+
+This function already builds and is already believed behaviorally faithful —
+your job is ONLY to close the byte-match gap against the delinked MSVC 7.1
+reference. Follow your own protocol: fresh score-context pack first, then one
+lever per iteration from the lift-score-improve recipe atlas, re-measured via
+the fast single-function path, keeping only improvements.
+  rtk python3 tools/verify/vc71_verify.py ${srcFile} -f ${name} --no-cache
+  rtk jq '{scores, frame, classification}' artifacts/score_context/${name}.json
+
+WORKED EXAMPLES (similar already-ported functions with their VC71 %; match
+their idioms — casts, x87 order, struct-store shape — if a lever here mirrors
+one of theirs):
+${neighbors || '  (none — retrieval server was cold)'}
+
+Never submit a score below ${priorScore}%. Respect regarg_structural_ceiling
+and any other documented structural cap — report it, do not chase it.
+Do NOT commit, do NOT run the review gate.
+Return: vc71_score (your final best, from the closing full verify — see your
+protocol), improved (bool, vs ${priorScore}%), reason (short: which lever(s)
+you kept, and your park-or-promote recommendation — capped/structural_cap if
+you hit a documented ceiling, escalation_exhausted if you ran out of
+applicable levers below a promotable score).`
+
 const equivalencePrompt = (name) =>
   `${AGENT_RULES}
 

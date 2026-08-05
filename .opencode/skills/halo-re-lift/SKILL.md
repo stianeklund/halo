@@ -28,10 +28,10 @@ All file edits, `rtk git` commands, and tool invocations must target **that path
 
 ## Lift workflow
 
-1. Resolve target by name or address in kb.json and Ghidra.
-2. Gather context: callers, callees, touched globals, strings, imports,
-   existing declarations in source and kb.json.
-3. Cross-check decompilation against raw disassembly (see `halo-xbox-re`
+1. **Pick a frontier target:** Select an un-implemented function that is *called by* an already-implemented function.
+2. Resolve target by name or address in `kb.json` and Ghidra (or Python capstone x86 32-bit for quick disassembly).
+3. **Gather context & recover literals:** Collect callers, callees, touched globals, strings, imports, existing declarations in source and `kb.json`. Recover string and constant literals pushed by address from `cachebeta.xbe` (e.g., `name` argument to `game_state_malloc`).
+4. Cross-check decompilation against raw disassembly (see `halo-xbox-re`
    review checklist; see `docs/references/abi-and-calling-conventions.md`
    for full ABI rules). **Mandatory call-site verification:** for every CALL in
    the disassembly, trace each PUSH backward and confirm the decompiler mapped
@@ -40,28 +40,30 @@ All file edits, `rtk git` commands, and tool invocations must target **that path
    - Push-then-fstp: `PUSH <dummy>; FSTP [ESP]` replaces arg with float
    - Struct field rotation: MSVC interleaved stores do not imply decompiler offsets
    - **→ Use `lift-decompiler-traps` skill** for full guidance on these + cross-product swap, buffer-alias confusion, and MSVC intrinsics
-4. Infer the narrowest defensible prototype (see
+5. Infer the narrowest defensible prototype (see
    `docs/references/prototype-inference.md`).
-5. **Pre-implementation pattern check** — before writing C, scan for crash classes
+6. **Pre-implementation pattern check** — before writing C, scan for crash classes
    `check_lift_hazards.py` does NOT flag (full detail in `docs/lift-learnings.md`):
    - XCALLs to targets being ported: `grep -oP 'XCALL\(0x\K[0-9a-f]+' src/<file>.c`
    - `&local_XX` args to callees that index `param[N]` (stack aliasing → must be contiguous buffer)
    - Loops that advance a parameter pointer when original uses a copy register post-loop
    - After writing C: `grep -n '(float)(int)' src/<file>.c` (float-as-pointer smuggling)
-   - After writing C: `grep -n '(float \*)0\|(void \*)0\|(int \*)0' src/<file>.c` (NULL @<reg> args)
-   - **→ Use `lift-arg-hazards` skill** for ADD ESP mismatch suspicion, 0-arg getter patterns, or @<reg> order questions
-   - **→ Use `lift-frame-hazards` skill** when the decompile has `_chkstk`, you need to size a buffer from the frame, or you see `&local` passed to an indexing callee
-6. Produce a structurally faithful C lift:
+   - **→ Use `lift-decompiler-traps` skill** for ADD ESP mismatch suspicion, 0-arg getter patterns, @<reg> order questions, `_chkstk` frame sizing, stack aliasing, or `&local_XX` passed to an indexing callee
+7. Produce a structurally faithful C lift:
    - preserve control-flow shape
    - preserve side-effect order
    - preserve pointer arithmetic and odd logic unless disproven
-7. Write implementation in address-ordered position.
-8. Update kb.json conservatively (see
-   `docs/references/kb-update-policy.md`).
-9. Run `rtk python3 tools/analysis/maintain.py <source_file>`.
-10. Run `rtk python3 tools/audit/check_lift_hazards.py` and fix any target-relevant hazards.
+   - Asserts: `assert_halt(cond)`
+   - Compiler gotchas: Flags are `-Wall -Werror -target i386-pc-win32 -march=pentium3 -nostdlib -ffreestanding -fno-builtin -fno-exceptions -include src/common.h`. Note that `-Wall` does NOT include `-Wunused-parameter`. Non-void functions MUST return a value or `-Werror` breaks the build. Explicitly cast pointer <-> int assignments (e.g. `dword_50548c = (int)game_state_malloc(...)`).
+8. Write implementation in address-ordered position.
+9. **Verify `src/CMakeLists.txt` registration (CRITICAL):** Confirm the `.c` file containing your lift is listed in `src/CMakeLists.txt`. Unregistered files silently fail to compile and patch redirects!
+10. Update kb.json conservatively (see
+    `docs/references/kb-update-policy.md`).
+11. Run `rtk python3 tools/analysis/maintain.py <source_file>`.
+12. Build and verify instruction stream: `llvm-objdump -dr --disassemble-symbols=_<fn> <obj>` to compare the compiled instruction stream against original binary disassembly.
+13. Run `rtk python3 tools/audit/check_lift_hazards.py` and fix any target-relevant hazards.
     - **→ Use `lift-silent-bugs` skill** before deploying to Xbox — catches float-as-pointer, accumulator misread, builder-count ignored, void-EAX, address-offset bugs that `check_lift_hazards.py` does NOT detect
-11. **Post-verify score routing:**
+14. **Post-verify score routing:**
     - Score 65–84% and gap described as "structural" → **invoke `lift-score-improve` skill first** before reverting or escalating
     - Xbox crash / hang / ACCESS_VIOLATION → **invoke `lift-crash-signals` skill**
     - Wrong visual output / silent wrong behavior → **invoke `lift-crash-signals` skill** (toggle-bisect section)

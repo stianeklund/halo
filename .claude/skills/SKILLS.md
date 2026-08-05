@@ -29,13 +29,10 @@ words in your message. Listed for transparency, not as a to-do.
 
 | Skill | What it covers | Example triggers |
 |---|---|---|
-| `ab-trajectory-testing` | A/B regression testing for the reimplementation: replay the SAME deterministic | `halorec`, `trajectory`, `a/b`, `ab check`, `ab_check` |
 | `bug-hunt` | Tiered automated bug scanner for Halo CE Xbox lifts. Run after editing source | `bug hunt`, `bug-hunt`, `hazard scan`, `check_lift_hazards`, `before deploy` |
 | `check-callee-regs` | "@<reg>, register arg, in_EAX/in_ECX, unported callee, XCALL, missing ABI annotation: scan ported code for calls to original functions that… | `register arg`, `reg arg`, `in_eax`, `in_ecx`, `in_edx` |
-| `cleanup-baseline` | Record the verification baseline BEFORE any cleanup/refactor of already-lifted code — VC71 match %, object-diff state, harness/equivalence… | `cleanup baseline`, `record baseline`, `before cleanup`, `baseline snapshot`, `match floor` |
-| `cleanup-gap-audit` | Before a cleanup campaign, audit whether the infrastructure needed to do it SAFELY exists — a detector/gate for every invariant the cleanup… | `tooling gap`, `gap audit`, `missing detector`, `missing tooling`, `no detector` |
 | `cleanup-regression-triage` | Isolate and explain a VC71-match or test regression caused by cleanup work — localize to the ladder category and unit via per-category comm… | `cleanup regression`, `match dropped`, `score dropped`, `match regression`, `score regression` |
-| `cleanup-report` | Produce the standard before/after report closing a cleanup session — baseline, per-category commits, verification evidence, match table (be… | `cleanup report`, `before/after report`, `before after report`, `cleanup pr`, `cleanup summary` |
+| `cleanup-report` | Cleanup session lifecycle — record pre-flight baseline, audit tooling gaps, and produce the standard before/after report closing a cleanup… | `cleanup report`, `before/after report`, `before after report`, `cleanup pr`, `cleanup summary` |
 | `const-enum-recovery` | Convert PROVEN magic numbers, flag bits, modes, and sentinel values into named constants/enums — value fidelity guaranteed bit-for-bit, nam… | `magic number`, `named constant`, `enum recovery`, `recover enum`, `flag bits` |
 | `control-flow-cleanup` | Simplify gotos, loop forms, branch nesting, and early exits in lifted code — the HIGHEST-risk cleanup category, allowed only behind behavio… | `control flow cleanup`, `simplify goto`, `goto cleanup`, `restructure loop`, `loop restructure` |
 | `crash-triage` | Automated crash and bug diagnosis for Halo CE Xbox lifting. Invoke whenever | `access_violation`, `access violation`, `page fault`, `page-fault`, `assert` |
@@ -43,18 +40,15 @@ words in your message. Listed for transparency, not as a to-do.
 | `debug-xemu` | xemu-specific debugging cookbook — MCP tools, raw QMP socket recipe, GDB via | `xemu`, `qmp`, `gdb`, `screenshot`, `serial` |
 | `expr-simplify` | Carefully simplify casts, temporaries, and arithmetic in lifted code — with hard bans around float reassociation, signedness/width changes,… | `simplify expression`, `expression simplification`, `redundant cast`, `simplify cast`, `collapse temporaries` |
 | `halo-build-xemu` | Standard project build, deploy, and run workflow | `build load`, `build-load`, `xbe deploy`, `build_deploy_run`, `xemu build` |
-| `halo-deploy-xbdm` | Build and deploy patched files to a real Xbox via XBDM/XBCP | `xbdm`, `deploy`, `real xbox`, `getmem`, `hot patch` |
 | `halo-page-fault` | Investigate page faults during lift/reimplementation — typically caused by | `page fault`, `page-fault`, `access_violation`, `trap frame`, `cr2` |
 | `halo-re-lift` | "Lift, port, re-lift, FUN_, Ghidra decompile, kb.json, @<reg>, ABI, source_path: repo-specific Halo CE Xbox function lifting workflow from… | `lift`, `lifting`, `re-lift`, `relift`, `abi` |
 | `halo-verify-debug` | "/verify, VC71, delink, objdiff, lift_pipeline, equivalence, golden tests, dual-oracle, low-match, behavior/runtime failure: verification l… | `vc71`, `vc71_verify`, `low match`, `low-match`, `match percent` |
-| `halo-xbdm` | Standard RDCP and XBDM command handling for real Xbox debugging | `xbdm`, `rdcp`, `real xbox`, `getmem` |
+| `halo-xbdm` | Standard RDCP, XBDM, build-and-deploy, and file transfer (getfile) commands for real Xbox hardware and xemu. | `xbdm`, `rdcp`, `real xbox`, `getmem`, `deploy` |
 | `halo-xbox-re` | "Halo CE Xbox reverse engineering, binary evidence, disassembly, Ghidra, ABI, structs, globals, unknowns, output contract: core doctrine fo… | `lift`, `lifting`, `ported`, `porting`, `ghidra` |
 | `header-recovery` | Recover the original Bungie header files and place recovered types in them, instead of piling every struct into src/types.h. Header paths a… | `header file`, `create header`, `.h file`, `new header`, `where does this struct go` |
-| `input-replay-testing` | Deterministic controller-input record/replay for testing on real engine | `input replay`, `deterministic input`, `capture scenario`, `capture_scenario`, `replay fixture` |
-| `lift-arg-hazards` | Argument hazard detection for lifted functions — cdecl mis-grouping (ADD ESP tell), NULL register args, and caller-site register order swap… | `call site`, `call-site`, `add esp`, `fstp`, `cdecl` |
+| `input-replay-testing` | Deterministic controller-input record/replay and A/B trajectory behavior-diff testing on real engine (xemu/XBDM). Invoke to capture gamepla… | `input replay`, `deterministic input`, `capture scenario`, `capture_scenario`, `replay fixture` |
 | `lift-crash-signals` | Xbox runtime crash diagnosis — key register signals, call-stack walk procedure, | `crash signal`, `eip`, `cr2`, `trap frame`, `register dump` |
-| `lift-decompiler-traps` | Ghidra decompiler traps at call sites — register aliasing, push-then-fstp floats, struct field rotation, cross-product operand swap, buffer… | `call site`, `call-site`, `add esp`, `fstp`, `x87` |
-| `lift-frame-hazards` | Buffer sizing from _chkstk frames, stack aliasing detection, and contiguous-buffer rules. Invoke when sizing a local buffer, seeing _chkstk… | `_chkstk`, `stack frame`, `frame size`, `buffer size`, `undersized buffer` |
+| `lift-decompiler-traps` | Ghidra decompiler traps, argument hazards, and stack frame hazards — register aliasing, push-then-fstp floats, struct field rotation, cross… | `call site`, `call-site`, `add esp`, `fstp`, `x87` |
 | `lift-score-improve` | Checklist for recovering VC71 match before declaring a structural ceiling. Invoke when score is 65–84% and the gap looks "structural", or a… | `structural ceiling`, `vc71`, `low match`, `score improve`, `improve match` |
 | `lift-silent-bugs` | Checklist for non-crashing silent correctness bugs — wrong colors, yellow/white | `wrong color`, `yellow`, `white tint`, `invisible`, `missing geometry` |
 | `lift-synthetic-equivalence` | Hand-crafted state-snapshot equivalence for lifts whose VC71 score is | `synthetic equivalence`, `state snapshot`, `per-branch`, `equivalence`, `capped lift` |
@@ -65,4 +59,4 @@ words in your message. Listed for transparency, not as a to-do.
 | `re-comment-capture` | Write comments that preserve reverse-engineering knowledge — evidence citations, uncertainty markers, match-sensitive constructs, and hard-… | `comment capture`, `knowledge capture`, `document evidence`, `evidence comment`, `uncertainty comment` |
 | `struct-assert` | Render a committed struct-recovery evidence artifact (recovery/evidence/<struct>.json) into a conservative C89 struct — explicit padding, e… | `offsetof`, `static_assert`, `sizeof check`, `define struct`, `struct definition` |
 | `struct-recovery` | Identify structs, arrays of structs, unions, packed layouts, tag blocks, and object-pool strides from binary/disassembly evidence — produci… | `struct recovery`, `recover struct`, `identify struct`, `tag block`, `pool stride` |
-| `xbdm-getfile` | Pull a file (e.g. a Halo core_save dump) off the running xemu/Xbox HDD over XBDM | `core.bin`, `core_save`, `getfile`, `grab the core`, `pull the core` |
+| `tool-reference` | "Command decision tree + full tools/ script reference: which command or script to run for a given RE/lift/verify/equivalence task. Consult… | `which tool`, `which script`, `what command`, `frontier`, `fun_pipeline` |

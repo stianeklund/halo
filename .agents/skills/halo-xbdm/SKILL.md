@@ -1,69 +1,68 @@
 ---
 name: halo-xbdm
-description: Standard RDCP and XBDM command handling for real Xbox debugging
+description: "xbdm, rdcp, real xbox, getmem, deploy, hot patch, getfile, core.bin: Standard RDCP, XBDM, build-and-deploy, and file transfer commands."
 ---
 
-# Halo XBDM
+# Halo XBDM & Real Xbox Operations
 
-Use this skill whenever work talks to a real Xbox through XBDM or RDCP via
-`tools/xbox/xbdm_rdcp.py`.
+**Use this skill for:**
+- Talking to a real Xbox or xemu over XBDM / RDCP via `tools/xbox/xbdm_rdcp.py`
+- Building and deploying patched files directly to a real Xbox via `tools/xbox/deploy_xbox.py`
+- Pulling files (e.g. core dumps `core.bin`) off the Xbox/xemu HDD via `tools/xbox/xbdm_getfile.py`
 
-## General rules
+---
 
-- Prefer `/xbdm <mode>` for user-facing workflows and `rtk python3 tools/xbox/xbdm_rdcp.py --json ...` for direct tool use.
-- Convert user-supplied host and port hints into `--host` and `--port` flags.
-- Otherwise rely on `XBDM_HOST`, `XBDM_PORT`, or the tool defaults.
-- Return parsed results clearly, including non-2xx failures.
-- Preserve exact XBDM error codes and messages.
+## 1. Build and Deploy to Real Xbox
 
-## RDCP response handling
+Preferred tools:
+- Build: `cmake --build build`
+- Deploy: `rtk python3 tools/xbox/deploy_xbox.py`
+- Convenience wrapper: `./tools/xbox/build_deploy_run_real_hw.sh -q` (sets `XBOX_HOST=10.0.0.29` default)
 
-- `202` means multiline text; the tool collects it automatically.
-- `203` means binary data; provide `--binary-length` and `--output` when needed.
-- When reading memory, the binary length must match the requested length.
-- For `getfile` downloads, first query `getfileattributes`, then request size
-  `N` with `--binary-length N+4`; RDCP prepends a 4-byte little-endian payload
-  size. Use `tools/xbox/input_recordings.py add --strip-rdcp-prefix` when
-  promoting native input recordings.
+### Flow:
+1. Run `cmake --build build`.
+2. Deploy to Xbox: `rtk python3 tools/xbox/deploy_xbox.py`.
+3. `deploy_xbox.py` automatically uploads `init.txt` to `E:\GAMES\halo-patched\init.txt`. Edit `init.txt` to control map loading and game-state checkpoint restoration (see `docs/boot-init-and-checkpoints.md`).
 
-## Input recording files
+---
 
-Halo's title root is the practical location for files opened as `D:\...` by the
-running game. `write.xts` records `state.data`; `read.xts` and `loop.xts` replay
-it. Use these with `tools/xbox/xbdm_rdcp.py --sendfile` / `getfile` and store
-reusable per-level captures under `input-recordings/`. Full workflow:
-`docs/xbox-pad.md`.
+## 2. File Transfers (xbdm_getfile)
 
-## magicboot — title launch
+Pull files (e.g., `core_save` dump `core.bin`) off the running xemu or Xbox HDD safely in ONE command without halting the CPU:
 
-Always use the `debug` form. Without `debug` the console reboots to dashboard instead of loading the XBE:
+```bash
+# Fetch patched-build Halo core dump:
+rtk python3 tools/xbox/xbdm_getfile.py --core -o artifacts/equivalence/core_patched.bin
 
+# Any file:
+rtk python3 tools/xbox/xbdm_getfile.py 'E:\GAMES\halo-patched\core\core.bin' -o out.bin
+
+# Discover directory paths + sizes:
+rtk python3 tools/xbox/xbdm_getfile.py --list 'E:\GAMES\halo-patched\core'
+```
+
+**RDCP Wire Format Gotcha:** RDCP `getfile` binary responses are prefixed with a 4-byte LE length `N` followed by `N` bytes of data. `xbdm_getfile.py` handles this automatically; do not hand-roll raw socket reads.
+
+---
+
+## 3. Title Launch & Console Commands
+
+### Title Launch (`magicboot`):
+Always use `debug` flag without quotes around paths:
 ```
 magicboot title=E:\GAMES\halo-patched\default.xbe debug
 ```
 
-Do NOT quote the path value. `title="E:\..."` (with quotes) causes the file lookup to fail, also falling through to dashboard.
+### Consolidated Command Modes (`xbdm_rdcp.py`):
+- Direct tool use: `rtk python3 tools/xbox/xbdm_rdcp.py --json ...`
+- Modes: `/xbdm raw`, `/xbdm mem`, `/xbdm context`, `/xbdm threads`, `/xbdm modules`, `/xbdm status`, `/xbdm halt`, `/xbdm continue`, `/xbdm dir`, `/xbdm fileattrs`, `/xbdm debug`.
 
-## Common workflows
+---
 
-- Raw command passthrough: send the RDCP command string as provided.
-- Consolidated command modes: `/xbdm raw`, `/xbdm mem`, `/xbdm context`,
-  `/xbdm threads`, `/xbdm modules`, `/xbdm status`, `/xbdm halt`,
-  `/xbdm continue`, `/xbdm dir`, `/xbdm fileattrs`, and `/xbdm debug`.
-- Memory reads: parse address and length, then use `getmem` with
-  `--binary-length`.
-- Thread inspection: use `threads`, `threadinfo`, `getcontext`, or
-  `getextcontext` and report thread or register state clearly.
-- Execution control: use `isstopped`, `halt`, and `continue` for stop-state
-  checks and recovery.
-- File and module inspection: use `dirlist`, `getfileattributes`, `modules`,
-  and `modsections` and present the decoded fields cleanly.
+## 4. Input Recording Files
 
-## Output expectations
-
-Report:
-
-- exact command sent
-- host or port overrides used, if any
-- parsed result or saved output path
-- exact failure code and message when the call fails
+The running title opens control files from the title root as `D:\...`:
+- `init.txt`: startup map & checkpoint loader
+- `write.xts`: records `state.data`
+- `read.xts` / `loop.xts`: replays input fixtures
+Upload to `E:\GAMES\halo-patched\` and store local per-level captures under `input-recordings/` (see `docs/xbox-pad.md`).

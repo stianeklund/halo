@@ -16,7 +16,7 @@ When invoked:
 
 ## Command Prompt
 
-Load the `permuter-campaign` skill and follow it exactly. If the Skill tool does not expose it, read `.claude/skills/permuter-campaign/SKILL.md` first.
+Load the `permuter-campaign` skill and follow it exactly. If the Skill tool does not expose it, read `.opencode/skills/permuter-campaign/SKILL.md` first.
 
 Argument: $ARGUMENTS (optional shortlist, object, source file, or campaign limit)
 

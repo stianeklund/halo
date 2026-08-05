@@ -327,11 +327,8 @@ def skill_recommendations(query: str, target: str) -> list[str]:
     if re.search(r"visual|color|tint|invisible|geometry|lighting|raster|cull|draw|spawn|position", text):
         add("lift-silent-bugs", "non-crashing correctness and visual regressions")
         add("lift-crash-signals", "toggle-bisect and runtime localization")
-    if re.search(r"buffer|stack|frame|chkstk|local_|alias|overflow", text):
-        add("lift-frame-hazards", "buffer sizing and stack alias checks")
-        add("lift-decompiler-traps", "buffer-alias and call-site decompiler traps")
-    if re.search(r"arg|cdecl|stdcall|register|@<|eax|ebx|ecx|edx|esi|edi|prototype|abi", text):
-        add("lift-arg-hazards", "argument count/order and register-arg checks")
+    if re.search(r"buffer|stack|frame|chkstk|local_|alias|overflow|arg|cdecl|stdcall|register|@<|eax|ebx|ecx|edx|esi|edi|prototype|abi", text):
+        add("lift-decompiler-traps", "buffer sizing, call-site traps, and register argument hazards")
         add("check-callee-regs", "unported callees with implicit register args")
     if re.search(r"lift|decomp|ghidra|vc71|objdiff|fpu|x87", text):
         add("halo-re-lift", "binary-backed lift workflow")

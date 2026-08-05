@@ -309,9 +309,7 @@ reproduce. If the bug persists → it's pre-existing, not our regression.
 | `halo-page-fault` | Page fault specifically, need deep ABI/signature investigation |
 | `lift-crash-signals` | Xbox runtime signals, call-stack walk, deactivation stub diagnosis |
 | `lift-silent-bugs` | Non-crashing correctness bugs (5 specific check patterns) |
-| `lift-arg-hazards` | Argument passing errors (cdecl mis-group, NULL regs, swap) |
-| `lift-decompiler-traps` | Ghidra decompiler pitfalls at call sites (6 traps) |
-| `lift-frame-hazards` | Buffer sizing, stack aliasing, _chkstk frames |
+| `lift-decompiler-traps` | Ghidra decompiler pitfalls, arg hazards, and stack frame hazards |
 | `check-callee-regs` | Missing `@<reg>` annotations on unported callees |
 | `bug-hunt` | Automated tiered scanning (edit-time through pre-deploy) |
 | `halo-verify-debug` | Verification ladder, delink comparison, regression debugging |

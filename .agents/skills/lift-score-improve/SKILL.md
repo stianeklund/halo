@@ -1,0 +1,209 @@
+---
+name: lift-score-improve
+description: "structural ceiling, vc71, low match, score improve, improve match, 65%, 84%, looks structural: Checklist for recovering VC71 match before declaring a structural ceiling. Invoke when score is 65–84% and the gap looks \"structural\", or at ANY score when the diff shows systematic frame/layout divergence rather than wrong logic."
+---
+
+# Lift Score Improvement Checklist
+
+**Invoke this skill when:**
+- VC71 score is 65–84% and you are about to write "structural ceiling"
+- ANY score (even <50%) where the diff shows systematic frame/layout divergence
+  (wrong frame size, whole blocks relocated, store/reload vs ST-resident values)
+  rather than wrong logic — FUN_001ac680 went 46.1% → 97.3% purely on shape
+  levers (Step 3d)
+- Permuter returned no improvement (may be vacuous — see §12 of lift-learnings)
+- A function with `static` large buffers has a suspiciously low score
+
+Source: `docs/lift-learnings.md` §19 + §20 + §27.
+
+---
+
+## Step 0 — Check for the static-buffer ceiling first (§20)
+
+This is the highest-leverage check and takes 5 seconds:
+
+```bash
+grep -n 'static.*avoid.*_chkstk\|static.*_chkstk\|chkstk linker' src/halo/ai/actor_looking.c
+grep -rn 'static.*avoid.*_chkstk\|static.*_chkstk' src/
+```
+
+If any hit — convert that `static` declaration to a plain stack declaration.
+`_chkstk` is now a no-op stub in `xbox_crt.c`; the linker error is gone.
+Rerun VC71. **Score impact observed: +10pp** (77.3% → 87.1% on FUN_00025c10).
+
+---
+
+## Step 1 — cos()/sin() intrinsification (§19, technique 1)
+
+Does the function use `x87_fcos`, `x87_fsin`, or `x87_fcos_mul`?
+
+```bash
+grep -n 'x87_fcos\|x87_fsin' src/<file>.c
+```
+
+If yes — wrap the call sites with:
+```c
+#if defined(_MSC_VER) && !defined(__clang__)
+  result = (float)cos((double)x);   /* VC71 /Oi inlines as FCOS; shares ST0 */
+#else
+  result = x87_fcos(x);
+#endif
+```
+
+When the same variable feeds both `cos` and `sin`, MSVC shares it on the FPU
+stack as `FLD ST0` — the `x87_*` helpers each do their own `FLD [mem]`, so the
+patterns diverge. **Recovered ~5 instructions on FUN_001a2160.**
+
+---
+
+## Step 2 — Pointer-base aliasing for consecutive stores (§19, technique 2)
+
+Search for 3+ stores to consecutive offsets through the same base:
+
+```bash
+grep -n '\*(float\*)(.* + 0x[0-9a-f]\+)' src/<file>.c | head -20
+```
+
+Pattern that hurts:
+```c
+*(float *)(obj + 0x30) = a;
+*(float *)(obj + 0x34) = b;
+*(float *)(obj + 0x38) = c;
+```
+
+MSVC generates `FSTP [EDI]; FSTP [EDI+4]; FSTP [EDI+8]` only when it sees a
+single base pointer. Fix:
+```c
+float *up = (float *)(obj + 0x30);
+up[0] = a; up[1] = b; up[2] = c;
+```
+Applies to both read and write sides. **Recovered ~10 instructions on FUN_001a2160.**
+
+---
+
+## Step 3 — Early register-load hint for @<reg> params (§19, technique 3)
+
+Check: does any `@<reg>` parameter have its first **use** far from the function
+entry (many lines down)?
+
+```bash
+grep -n '@<' kb.json | grep "$(basename <file> .c)"  # find the @<reg> params
+```
+
+If a register param is first used deep in the function, MSVC may spill it and
+reload later — producing extra load instructions. Fix:
+```c
+/* Force early register load to match MSVC's register flow */
+float dir0 = direction[0];
+float dir1 = direction[1];
+float dir2 = direction[2];
+```
+
+Add these right after variable declarations, before any other logic.
+**Recovered +11.5pp on FUN_001a1a10 (80% → 91.5%).**
+
+---
+
+## Step 3b — Break VC71 cross-jump tail merging (accumulator variable)
+
+If the reference repeats a short conditional-call idiom at two sites (e.g.
+`x = 0; if (ref != -1) x = tag_get(...);` in both an if- and else-branch) but
+your candidate is SHORTER at that spot in `--show-diffs`, VC71 merged your
+two identical tails into one block. The reference kept them separate because
+the original inlined a helper there (signature: `xor ecx,ecx` accumulator +
+`mov ecx,eax; mov eax,ecx` round-trip).
+
+Do NOT add a real static helper (VC71 refuses to inline it → new CALL →
+score drops). Instead give ONE branch a distinct accumulator variable:
+```c
+void *sky_ptr;             /* mimics the inlined helper's return slot */
+sky_ptr = (void *)0;
+if (tag_ref != -1) sky_ptr = tag_get(...);
+sky_tag = (int)sky_ptr;
+```
+**Recovered +3.5pp on FUN_0018fbc0 (92.3% → 95.8%).**
+
+## Step 3c — Float literal stores vs const-pool loads
+
+Read the reference for each float store: `MOV dword ptr [x],0x3f800000`
+(immediate) comes from a literal `x = 1.0f;` — while `x = *(const float *)
+0x2533c8;` compiles to a load+store pair and never matches an immediate MOV.
+Compares are the opposite: `FCOMP [FLOAT_002533c0]` needs the explicit
+`*(const float *)0xADDR` operand. Pick per-site from the disasm.
+
+**NaN caution:** never flip a compare direction just to match TEST/Jcc bits.
+VC71's x87 masks treat unordered differently per idiom, but clang (the
+shipping compiler) applies strict IEEE C semantics — `x <= 1.0f` and
+`!(1.0f < x)` differ for NaN. Trace the original's unordered path (which
+branch does TEST AH,…/JP|JNE take on NaN?) and keep the C form whose CLANG
+codegen preserves it, even at a 1-insn VC71 cost.
+
+---
+
+## Step 3d — VC71 shape levers: store/reload, `&param` poison, block layout, assert masks (§27)
+
+Apply when the diff shows the candidate has the right instructions in the
+wrong *shape*: different frame size, values held in ST where the reference
+stores/reloads, or whole blocks in a different order. All four proven on
+FUN_001ac680 (46.1% → 97.3%).
+
+**1. `volatile float` local = store-once / reload-each-use.** If the
+reference does `FSTP [slot]` + `FLD [slot]` at every use but your candidate
+keeps the value FPU-enregistered (in ST across branches), declare the local
+`volatile float`. This is also the numerically faithful choice — each reload
+rounds to float where ST would keep double precision. VC71's allocator may
+even place it in a dead param home slot ([EBP+0x18]) exactly like the
+original. Caveat: two reads of the volatile in one expression = two loads;
+factor `x = d*cv; return x + x;` to get the original's single-load
+`FADD ST,ST0` doubling.
+
+**2. NEVER take `&param`** (or alias a param through `uint8_t *p = ...`) to
+smuggle a value into a param slot: VC71 then assumes every store through the
+derived pointer clobbers the base, so it pre-computes and SPILLS every field
+address (`lea; mov [ebp-N]` barrage), blows the frame (4 → 0x18 bytes
+observed, ~25pp loss), and spills char flags out of BL. Keep field access as
+`*(int *)(param + 0xN)` on the int-typed param for `[esi+N]` addressing.
+
+**3. Code placed after the epilogue** (main path after validate+RET, backward
+jmp) comes from `if (c) {small} else {huge}` — VC71 sinks the huge else past
+the join. Writing `if (!c) goto L;` moves blocks the OPPOSITE way (goto
+target inlined, fallthrough sunk). Bonus: a value tested in the condition and
+used in both arms stays ST-resident (non-popping FCOMS) if it is a
+single-assignment non-volatile local.
+
+**4. Assert form `if (!(cond))`** with the condition spelled exactly as the
+assert string: `!(x >= 0)` → TEST AH,1;JE-skip; `!(x < 0)` → TEST 5;JNP-skip
+— and NaN faithfully falls into the assert (plain `x < 0` spellings give
+wrong masks AND wrong unordered behavior). FCOM operand order mirrors source
+operand order (`0.0f > x` loads the const first). This is the assert-macro
+companion to Step 3c's NaN caution — same rule: verify the clang NaN path,
+don't just chase the VC71 mask bits.
+
+**Not source-controllable (document, don't chase):** VC71-elided `x = x;`
+slot self-moves (two originals coalesced into one slot; clang blocks the
+workaround with -Werror,-Wself-assign), operand preload hoisting into both
+branch successors, FDIV vs FDIVR selection, FLD/FXCH scheduling — ~2pp.
+
+---
+
+## Step 4 — Run the permuter on the IMPROVED source
+
+Only run the permuter AFTER applying techniques 0–3. The search space is much
+smaller on improved source.
+
+```bash
+rtk python3 tools/permuter/run.py <function_name> -q --limit 120
+```
+
+**Verify the run is real** (not vacuous — §12): run WITHOUT `-q` first and
+confirm it prints accruing iteration counts (hundreds), not an instant exit.
+
+---
+
+## Decision after all four steps
+
+| After applying all four | Action |
+|------------------------|--------|
+| Score ≥ 90% | Commit |
+| Score 85–89% | Commit; note permuter recommendation |
+| Score < 85% | NOW it's a genuine structural ceiling — document which specific unmatched instructions remain (FPU comparison idiom, `@<reg>` prologue preamble, FLD ST(1) depth ref) so future sessions don't re-investigate |

@@ -43,19 +43,14 @@ CATALOG: dict[str, tuple[str, list[str]]] = {
     "lift-decompiler-traps": ("agent", [
         "call site", "call-site", "add esp", "fstp", "x87", "cross product",
         "cross-product", "_ftol2", "_chkstk", "__seh", "_allmul", "intrinsic",
-        "decompiler trap", "ghidra wrong", "struct field rotation",
-    ]),
-    "lift-arg-hazards": ("agent", [
-        "call site", "call-site", "add esp", "fstp", "cdecl", "arg hazard",
-        "argument order", "arg order", "operand swap",
+        "decompiler trap", "ghidra wrong", "struct field rotation", "cdecl",
+        "arg hazard", "argument order", "arg order", "operand swap", "stack frame",
+        "frame size", "buffer size", "undersized buffer", "local_", "memset",
+        "memcpy", "stack alias", "buffer alias", "&local_",
     ]),
     "check-callee-regs": ("agent", [
         "register arg", "reg arg", "in_eax", "in_ecx", "in_edx", "in_esi", "in_edi",
         "callee regs", "unported callee", "xcall", "missing @", "@<reg>", "@<",
-    ]),
-    "lift-frame-hazards": ("agent", [
-        "_chkstk", "stack frame", "frame size", "buffer size", "undersized buffer",
-        "local_", "memset", "memcpy", "stack alias", "buffer alias", "&local_",
     ]),
     "halo-verify-debug": ("agent", [
         "vc71", "vc71_verify", "low match", "low-match", "match percent", "objdiff",

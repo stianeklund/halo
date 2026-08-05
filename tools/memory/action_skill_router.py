@@ -51,11 +51,10 @@ ACTIONS: list[tuple[str, re.Pattern[str], str]] = [
         "lift-verify",
         re.compile(r"vc71_verify|lift_pipeline\.py|objdiff_lift|/verify\b", re.IGNORECASE),
         "[skill-router:lift-verify] Verifying a lift. If the match is low or a call "
-        "site looks off, apply the hazard family before declaring a ceiling: "
-        "`lift-arg-hazards` (cdecl mis-group / ADD ESP / @<reg> order), "
-        "`lift-decompiler-traps` (register aliasing, push-then-fstp, struct rotation, "
-        "cross-product swap, buffer-alias), and `lift-frame-hazards` (_chkstk buffer "
-        "sizing, stack aliasing).",
+        "site looks off, apply `lift-decompiler-traps` (covering register aliasing, "
+        "push-then-fstp, struct rotation, cross-product swap, cdecl ADD ESP mis-grouping, "
+        "NULL @<reg> args, caller-site register swaps, and _chkstk frame sizing) "
+        "before declaring a ceiling.",
     ),
 ]
 

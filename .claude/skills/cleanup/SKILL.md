@@ -22,6 +22,5 @@ sequential subagent delegation are all in source-recovery. `--allow-risky` is no
 a manifest flag set at `plan` time.
 
 The satellite skills are unchanged and still apply:
-`cleanup-baseline` (what a baseline must contain), `cleanup-gap-audit`,
-`cleanup-regression-triage`, `cleanup-report` (report template), and every leaf
+`cleanup-report` (baseline, gap audit, and report template), `cleanup-regression-triage`, and every leaf category skill.
 category skill.

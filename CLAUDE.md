@@ -6,8 +6,11 @@ These rules apply to any coding agent used in this repo (Claude, OpenCode, subag
 
 Recover Halo CE Xbox behavior faithfully and incrementally.
 
-- **Binary is source of truth:** Evidence-based lifting only.
+- **Binary is source of truth:** Target is **Halo Xbox debug build 2276** (`halo-patched/cachebeta.xbe`, MD5 `c7869590a1c64ad034e49a5ee0c02465`, version `01.10.12.2276`, Oct 12, 2001). Addresses in `kb.json` are absolute VAs into THIS debug binary (richer symbols/asserts; do not swap in a retail `default.xbe`).
+- **Functional Re-implementation:** We build C implementations and patch redirects into the original binary. Judge matches by **identical logic/operations**, not identical bytes. Import indirection (`[__imp__global]`) and equivalent codegen (store coalescing, `cmp $0` vs `mov`/`test`, `add esp,4` vs `pop`) are expected and acceptable.
 - **Explicit Unknowns:** Prefer `unknown` or `field_XX` over plausible guesses.
+- **Confirm Struct Offsets:** Always check field offsets in `src/types.h`. NEVER guess a struct field — a wrong field offset is a wrong decompilation. Refine structs (e.g., `game_globals_t`, `players_globals_t`) to replace raw-offset casts (`[ptr+0x24]`) with named struct fields by splitting `unk_N[]` arrays.
+- **CMakeLists.txt Registration:** Every new `.c` file MUST be listed in `src/CMakeLists.txt`. Unregistered files silently fail to compile and patch.
 - **Small Changes:** Make small, reviewable commits.
 - **Preserve Shape:** Maintain original ABI, layout, side effects, and control-flow.
 
@@ -102,7 +105,15 @@ A hook (`tools/audit/token_discipline_hook.py`, wired in `.claude/settings.json`
   5. **Buffer-alias confusion:** Ghidra names every stack offset as an independent `local_XX` variable, even when the offset falls inside a local buffer. After any call that takes a buffer pointer, check whether subsequent `local_XX` reads are buffer fields — compute `EBP_offset - buffer_base_EBP_offset`. If the result is within `[0, buffer_size)`, the read is from the buffer, not a separate variable. Example: `FUN_000f90d0` had `damage_params` at EBP-0x8C (0xac bytes). After `FUN_00137d20(damage_params, ...)`, Ghidra showed `local_44` (EBP-0x44 = damage_params+0x48) and `local_40` (EBP-0x40 = damage_params+0x4C) as independent locals. The lift incorrectly read these from `col_result` instead of `damage_params`, causing wrong impact effects on all objects.
 
 ### 3. Build & Verification
+- **Toolchain & Configure:** Requirements are `clang + lld (lld-link) + cmake + python3` pinned with `pefile~=2023.2.7`, `pyxbe~=1.0.2`, `libclang~=16.0.0`, `setuptools<81` (newer setuptools removed `pkg_resources`), and `capstone`. Direct CMake interface:
+  ```bash
+  cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=toolchains/llvm.cmake
+  cmake --build build
+  ```
+  - *Windows:* Add LLVM, CMake, Python 3.12, Ninja to PATH. If MSVC CRT is absent, add `-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY` to cmake configure.
+  - *Linux without root:* Bootstrap user-space toolchain via `mkdir -p /tmp/debs && cd /tmp/debs && apt-get download clang-14 lld-14 libllvm14 libclang-cpp14 libclang-common-14-dev libclang1-14 llvm-14-linker-tools llvm-14` then `mkdir -p ~/llvm && for d in *.deb; do dpkg-deb -x "$d" ~/llvm; done` and export PATH/LD_LIBRARY_PATH.
 - **Lift Pipeline:** Use `rtk python3 tools/lift_pipeline.py --target <name_or_addr> --no-metadata-update --verify-policy auto` as the primary post-lift validation orchestrator. It runs build, ABI audit, VC71 verify when a delinked reference is mapped, optional behavior/runtime checks, and low-match policy gates.
+- **xemu Configuration:** System Memory MUST be set to **128 MiB** in xemu (required for debug build 2276!). For standalone ISO testing: copy the 2276 build directory, replace its `default.xbe` with `halo-patched/default.xbe`, pack with `extract-xiso -c "<dir>" out.iso`, load ISO in xemu, and use **Machine → Reset** to boot.
 - **Hazard Scan:** Run `rtk python3 tools/audit/check_lift_hazards.py` after source edits or when reviewing auto-lift output. Treat intrinsic calls, undersized buffers, suspicious duplicate arguments, pointer-as-float warnings, and CONCAT survival as blockers until investigated.  Checks and their lift-learnings sections: XCALL (§1), buffer-alias (§2), intrinsics (table), duplicate-args (§3), pointer-as-float (§4), frame-size (§2 stack), callee-output-size (projection §5), x87-math, void-EAX (§16), CONCAT (§13, ERROR), float-smuggling (§6), addr-value-add (§17), param-loop-corruption (§4), discarded-result (§8/§11), vendored-source (§36, advisory: the TU is a public library — transcribe upstream instead of reshaping Ghidra output). Use `--changed-only` to scan the union of staged, unstaged-tracked, and untracked files you have touched; use `--staged-only` (what the pre-commit hook uses) for staged files only. **WARN-level findings in files you touched are review items, not ignorable noise** — an fmod/FPREM1 warning in `hud_messaging.c` was ignored as pre-existing noise and shipped a visible HUD rendering bug (2026-06-10).
 - **Learnings-must-ship-a-detector rule:** Every new `docs/lift-learnings.md` section **must ship, in the same commit**, either (a) a check wired into `check_lift_hazards.py` / `draft_decompiler.py` / `buffer_alias_detector.py` / the call-site audit, or (b) a one-line `Automation: not mechanically detectable because …` justification in the section.  A documented grep/regex counts as (a) only when it is actually implemented as a check.
 - **XCALL Type Audit:** Run `rtk python3 tools/audit/check_xcall_types.py` after adding or modifying XCALL macros. ERROR-level (float↔int return/param) mismatches are blockers — they silently read the wrong register (ST0 vs EAX) or truncate float args.
