@@ -93,7 +93,7 @@ shell.obj,true,0x001910F0-0x00191440,9
 shell_xbox.obj,true,0x00191250-0x00191530,3
 scenario.obj,true,0x0018AEF0-0x001900F0,63
 sound_classes.obj,true,0x001C8990-0x001C8E60,10
-sound_dsound_xbox.obj,true,0x001C90E0-0x0020F269,29
+sound_dsound_xbox.obj,true,0x001C90E0-0x0020F281,30
 sound_manager.obj,true,0x001AC030-0x001CFA20,93
 stack_walk_windows.obj,true,0x00092370-0x00092F60,6
 tag_groups.obj,true,0x0019B0D0-0x001B9D80,16
@@ -122,7 +122,7 @@ widgets.obj,true,0x00136450-0x001367B0,5
 bink.obj,true,0x0022DF80-0x00231690,11
 xbox_texture_cache.obj,true,0x001BE920-0x001BF770,21
 d3d_resource.obj,true,0x001ED620-0x001EDE70,6
-rasterizer_text.obj,true,0x0017FF50-0x001846B0,69
+rasterizer_text.obj,true,0x0017FF50-0x001846B0,68
 draw_string.obj,true,0x00130AB0-0x0019C5C0,20
 rasterizer_sprites.obj,true,0x0017CD60-0x0017F100,87
 rectangles.obj,true,0x00107C30-0x00109040,27
@@ -191,3 +191,4 @@ wind.obj,true,0x0018FF00-0x001901E0,2
 action_vehicle.obj,true,0x0001AEB0-0x0001BAA0,4
 glow.obj,true,0x001345B0-0x001347B0,1
 rasterizer_xbox_widgets.obj,true,0x0017ADC0-0x0017B9D0,8
+rasterizer_lights.obj,true,0x00181670-0x00181870,1

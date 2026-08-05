@@ -1315,7 +1315,26 @@
     },
     "0x493d0": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "Despite the kb name ai_debug_get_last_path this function is a setter: it publishes two float[3] endpoints into the debug ray block at 0x5acab8 and resets the ray state.",
+        "The two flag bytes (0x5acab8=1, 0x5acab9=0) are stored inline rather than through FUN_000494d0; the function contains no CALL instruction at all."
+      ],
+      "uncertain": [
+        "The dword at 0x5acad4 is only ever zeroed here, so its role (path point count, render index, or frame stamp) is not determined by this function."
+      ]
+    },
+    "0x494e0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "FUN_000494e0 renders the stored debug line-of-sight ray as one line (FUN_00189270) plus one sphere per recorded hit (FUN_00189860); the name is left as FUN_000494e0 because the function contains no __FILE__ string.",
+        "The per-hit debug arrays are parallel and hold 16 entries: uint8 flag at 0x5acad8 stride 1, float[3] point A at 0x5acae8 stride 0xc, float[3] point B at 0x5acba8 stride 0xc, float radius at 0x5acc68 stride 4; the 16-entry capacity is deduced from the 0xc0 byte gap between the two point arrays, which the original addresses as EDI+0xc0 off a single walking pointer."
+      ],
+      "uncertain": [
+        "The residual VC71 gap at 94.9 percent is a single scratch-register allocation difference: the reference loads the 0x5acab9 flag byte into AL and lets the following colour load clobber EAX, while our build uses CL; instruction count and order match exactly at 59 of 59.",
+        "The meaning of the second per-hit vector passed to FUN_00189860 as point plus 0xc0 is not established and is treated as an opaque vector rather than named."
+      ]
     },
     "0x496c0": {
       "kind": "function",
