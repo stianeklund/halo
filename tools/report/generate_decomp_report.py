@@ -1282,6 +1282,17 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
             <div class="summary" id="summary-cards"></div>
 
+            <div class="charts-grid" id="charts-grid" style="margin-top:16px;margin-bottom:24px">
+                <div class="chart-container" id="charts-progress-container" style="height:240px">
+                    <div class="chart-title">Functions Ported Over Time</div>
+                    <canvas id="progressChart"></canvas>
+                </div>
+                <div class="chart-container" id="charts-accuracy-container" style="height:240px">
+                    <div class="chart-title" id="accuracyChartTitle">Byte Accuracy Over Time</div>
+                    <canvas id="accuracyChart"></canvas>
+                </div>
+            </div>
+
             <h2>Verification Coverage</h2>
             <div class="verif-two-col">
                 <div class="card">
@@ -1308,6 +1319,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             </div>
             <div id="treemap-tooltip" class="treemap-tooltip"></div>
 
+
+
             <h2>Per-Unit Breakdown</h2>
             <div class="table-controls">
                 <div class="search-wrapper">
@@ -1331,17 +1344,6 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     </thead>
                     <tbody id="table-body"></tbody>
                 </table>
-            </div>
-
-            <div class="charts-grid" id="charts-grid" style="margin-top:16px">
-                <div class="chart-container" id="charts-progress-container" style="height:240px">
-                    <div class="chart-title">Functions Ported Over Time</div>
-                    <canvas id="progressChart"></canvas>
-                </div>
-                <div class="chart-container" id="charts-accuracy-container" style="height:240px">
-                    <div class="chart-title" id="accuracyChartTitle">Byte Accuracy Over Time</div>
-                    <canvas id="accuracyChart"></canvas>
-                </div>
             </div>
 
             <div class="card" style="margin-bottom:16px">
@@ -2580,7 +2582,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     borderColor: '#3fb950',
                     backgroundColor: 'rgba(63, 185, 80, 0.08)',
                     borderWidth: 2, tension: 0.35, fill: false,
-                    pointRadius: 2, pointHoverRadius: 4
+                    spanGaps: true,
+                    pointRadius: 3, pointHoverRadius: 6
                 });
             }
 
