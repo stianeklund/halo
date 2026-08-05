@@ -3659,6 +3659,62 @@ int FUN_00059c40(int encounter_handle /* @<eax> */,
   return pursuit_handle;
 }
 
+/* 0x59d30 — encounter_modify_pursuit_desires.
+ * Overrides a set of caller-supplied pursuit/search desire flags according to
+ * the encounter definition's search-behavior mode and the squad's flags.
+ *
+ * Looks up the scenario encounter definition (scenario+0x42c tag_block, element
+ * size 0xb0) by `encounter_index & 0xffff` and the squad definition within it
+ * (enc_def+0x80 tag_block, element size 0xe8).  The mode is the int16 at
+ * enc_def+0x28; squad flag bit 0x2 (squad_def+0x28) forces mode 1.
+ *
+ * Confirmed from disassembly:
+ *   - Frame is `PUSH EBP; MOV EBP,ESP; PUSH ESI` — no stack locals; the
+ *     encounter definition lives in ESI, the mode in SI.
+ *   - Both tag_block_get_element cleanups are coalesced into one
+ *     `ADD ESP,0x18` @0x59d71 (2 calls x 3 args).
+ *   - arg1 is zero-extended (`AND EAX,0xffff`), arg2 is sign-extended
+ *     (`MOVSX ECX, word ptr [EBP+0xc]`).
+ *   - Dispatch is a DEC/DEC chain (`MOVSX EAX,SI; DEC EAX; JZ` @0x59d82,
+ *     `DEC EAX; JNZ` @0x59da8), i.e. if/else-if, not a switch.
+ *   - out_4/out_6/out_7/out_8 are written `MOV word ptr` (int16); out_3 and
+ *     out_5 are written `MOV byte ptr`.
+ */
+void encounter_modify_pursuit_desires(int encounter_index, int squad_index,
+                                      char *out_3, short *out_4, char *out_5,
+                                      short *out_6, short *out_7, short *out_8)
+{
+  char *enc_def;
+  char *squad_def;
+  short mode;
+
+  enc_def =
+    (char *)tag_block_get_element((char *)global_scenario_get() + 0x42c,
+                                  (int)(encounter_index & 0xffff), 0xb0);
+  squad_def = (char *)tag_block_get_element(enc_def + 0x80,
+                                            (int)(short)squad_index, 0xe8);
+
+  mode = *(short *)(enc_def + 0x28);
+  if ((*(unsigned char *)(squad_def + 0x28) & 2) != 0) {
+    mode = 1;
+  }
+
+  switch (mode) {
+  case 1:
+    *out_4 = 1;
+    *out_7 = 2;
+    *out_8 = 2;
+    break;
+  case 2:
+    *out_3 = 1;
+    *out_6 = 0;
+    *out_7 = 0;
+    *out_8 = 0;
+    *out_5 = 0;
+    break;
+  }
+}
+
 /* 0x5a050 — squad_initialize_starting_locations (FUN_0005a050).
  * Initializes the starting-location bitfield for a squad. Retrieves the
  * encounter datum and scenario squad definition, then fills the bitfield

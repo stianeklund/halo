@@ -33169,7 +33169,8 @@
         },
         {
           "addr": "0x59d30",
-          "decl": "void encounter_modify_pursuit_desires(int encounter_index, int param_2, char *out_3, int *out_4, char *out_5, int *out_6, int *out_7, int *out_8);"
+          "decl": "void encounter_modify_pursuit_desires(int encounter_index, int squad_index, char *out_3, short *out_4, char *out_5, short *out_6, short *out_7, short *out_8);",
+          "ported": true
         },
         {
           "addr": "0x59dd0",
