@@ -14032,7 +14032,8 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001a9520": {
-      "score": 85.7,
+      "opnd_percent": 68.2,
+      "score": 95.5,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_001a9560": {

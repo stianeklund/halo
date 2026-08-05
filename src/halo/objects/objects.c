@@ -14145,8 +14145,12 @@ void FUN_00145490(void)
 void FUN_001a9520(int object_handle, float *out_position)
 {
   char marker_buf[0x6c];
+  /* Force the original stack-based offset reload for the first position word. */
+  volatile unsigned int marker_position_offset;
+
+  marker_position_offset = 0x60;
   object_get_markers_by_string_id(object_handle, "body", marker_buf, 1);
-  out_position[0] = *(float *)(marker_buf + 0x60);
+  out_position[0] = *(float *)(marker_buf + marker_position_offset);
   out_position[1] = *(float *)(marker_buf + 0x64);
   out_position[2] = *(float *)(marker_buf + 0x68);
 }
