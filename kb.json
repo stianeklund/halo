@@ -32169,7 +32169,10 @@
         },
         {
           "addr": "0x493b0",
-          "decl": "void FUN_000493B0(void);"
+          "decl": "void ai_debug_point3d_set(float *point, float x, float y, float z);",
+          "name": "ai_debug_point3d_set",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x493d0",

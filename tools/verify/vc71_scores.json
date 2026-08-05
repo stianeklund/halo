@@ -1840,6 +1840,11 @@
       "score": 95.8,
       "source": "src/halo/ai/ai_debug.c"
     },
+    "FUN_000493b0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/ai/ai_debug.c"
+    },
     "FUN_000494d0": {
       "score": 100.0,
       "source": "src/halo/ai/ai_debug.c"
@@ -16327,6 +16332,11 @@
       "opnd_percent": 82.8,
       "ref": "synth",
       "score": 100.0,
+      "source": "src/halo/ai/ai_debug.c"
+    },
+    "ai_debug_point3d_set": {
+      "opnd_percent": 95.2,
+      "score": 95.2,
       "source": "src/halo/ai/ai_debug.c"
     },
     "ai_debug_select_actor": {

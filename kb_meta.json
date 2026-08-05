@@ -1290,6 +1290,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x490c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x49120": {
       "kind": "function",
       "status": "ported"
@@ -1298,7 +1302,40 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x493b0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Name ai_debug_point3d_set is descriptive, not recovered: the function has no __FILE__ string and no assert, so the only binary evidence is the 3-float store shape plus its ai_debug.obj address range (0x49220 select_encounter .. 0x494d0).",
+        "Parameters are typed float* / float / float / float because only [EBP+0xc] is loaded with FLD/FSTP; y and z move as raw dwords via ECX/EDX, which is MSVC scheduling of the natural three-assignment source form rather than evidence of integer types."
+      ],
+      "uncertain": [
+        "The destination is treated as a bare float[3] because no real_point3d struct type exists in src/types.h yet; if struct recovery later defines real_point3d the decl should become real_point3d* without any codegen change."
+      ]
+    },
     "0x493d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x496c0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The early-out path falls into POP EBP at 0x497ae without popping ESI (ESI is pushed at 0x49728, after the PVS-rebuild block), so the flag/index guard is lifted as a plain early return 0 ahead of any use of the out pointer rather than as the decompiler's nested-if accumulator.",
+        "The reference performs three loads of the selected-encounter global 0x5ac9f4 (CMP at 0x496da, MOV EDX at 0x496eb reused for the FUN_00058fd0 argument, MOV EDX at 0x49717 reused for the datum_get argument) with no stack spill, since the frame has no sub esp; the lift therefore re-reads the global at each use instead of caching it in a local."
+      ],
+      "uncertain": [
+        "The three color constants at 0x2ee6c8, 0x2ee6d8 and 0x2ee6e0 are dereferenced pointer globals (PTR_DAT_* in the delinked reference) whose meaning is unnamed; only the selector byte at encounter datum +0xd is known to choose between 0x2ee6e0 and 0x2ee6d8."
+      ]
+    },
+    "0x4a6e0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Store widths are load-bearing: 0x6323d4 is a byte flag, 0x6323d8 a dword handle, 0x6323dc a 16-bit word; VC71 scores 100% against the address-symbol reference lane (10/10 insns) and 94.7% against the named-symbol lane whose only diff is a missing terminal retl (reference truncation artifact, not a code difference)."
+      ]
+    },
+    "0x4a710": {
       "kind": "function",
       "status": "ported"
     },
@@ -1617,6 +1654,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x59d30": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x5a120": {
       "kind": "function",
       "status": "ported"
@@ -1636,6 +1677,16 @@
     "0x5aab0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x5ac60": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Return type is bool, not Ghidra's void: DL is zeroed at 0x5ac69, set to 1 on any insertion at 0x5accf, and moved to AL at 0x5acdd immediately before RET."
+      ],
+      "uncertain": [
+        "Element field meanings are unknown: the 0x10-byte entry is only interpreted at +0x4 (the descending sort key compared by FCOMPS); the dwords at +0x0, +0x8 and +0xC are stored from the caller's args and copied opaquely during the shift."
+      ]
     },
     "0x5acf0": {
       "kind": "function",
@@ -1665,11 +1716,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x5b6e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x5ba70": {
       "kind": "function",
       "status": "ported"
     },
     "0x5baa0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5bad0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5c630": {
       "kind": "function",
       "status": "ported"
     },
@@ -7539,6 +7602,10 @@
       "status": "ported",
       "name": "main_load_last_solo_map",
       "name_confidence": "high"
+    },
+    "0x101ec0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x101f00": {
       "kind": "function",

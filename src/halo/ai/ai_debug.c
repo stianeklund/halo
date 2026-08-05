@@ -241,6 +241,27 @@ void ai_debug_select_encounter(int encounter_idx)
   }
 }
 
+/* ai_debug_point3d_set: store three reals into a 3-float point.
+ *
+ * No __FILE__ string, no callees, no locals (the original has no `sub esp`).
+ * 4 cdecl stack args at [EBP+0x8]=dst, +0xc=x, +0x10=y, +0x14=z; caller cleans.
+ *
+ * Store-offset table (derived from disassembly, EAX = [EBP+0x8] = dst):
+ *   +0x00  <- FSTP from FLD [EBP+0xc]   (x)
+ *   +0x04  <- ECX = MOV [EBP+0x10]      (y, moved as a raw dword)
+ *   +0x08  <- EDX = MOV [EBP+0x14]      (z, moved as a raw dword)
+ * Only the first component goes through the x87 stack; y/z are integer moves,
+ * an MSVC scheduling artifact of the natural three-assignment source form.
+ * The interleaved MOV ECX / MOV EDX between the stores is scheduling too.
+ *
+ * Name is descriptive (object-prefixed), not recovered from a string. */
+void ai_debug_point3d_set(float *point, float x, float y, float z)
+{
+  point[0] = x;
+  point[1] = y;
+  point[2] = z;
+}
+
 /* FUN_000494d0: set debug ray-test success flag.
  *
  * No __FILE__ string. Called from ai_debug_get_last_path (ray setup) and
