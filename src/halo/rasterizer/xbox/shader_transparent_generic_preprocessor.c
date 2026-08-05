@@ -149,6 +149,48 @@ int FUN_0017bf20(void *stage)
   return output_flags;
 }
 
+/* Alpha-side twin of the register/mapping resolver above (FUN_0017be50).
+ * Same shape, same argument registers; only the two 1-D tables differ. The
+ * 25x8 register/mapping table at 0x2aeb30 is shared with the colour side. */
+#define SHADER_TRANSPARENT_GENERIC_ALPHA_REGISTER_TABLE ((int *)0x2aea88)
+#define SHADER_TRANSPARENT_GENERIC_ALPHA_MAPPING_TABLE ((int *)0x2aeb0c)
+
+int FUN_0017c000(short register_index, short mapping_index)
+{
+  int base;
+
+  if (register_index < 0 ||
+      register_index >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_INPUTS) {
+    display_assert("register_index>=0 && "
+                   "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_"
+                   "INPUTS",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                   "generic_preprocessor.c",
+                   0x10a, 1);
+    system_exit(-1);
+  }
+  if (mapping_index < 0 ||
+      mapping_index >=
+        NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_INPUT_MAPPINGS) {
+    display_assert("mapping_index>=0 && "
+                   "mapping_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_"
+                   "INPUT_MAPPINGS",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                   "generic_preprocessor.c",
+                   0x10b, 1);
+    system_exit(-1);
+  }
+
+  base = SHADER_TRANSPARENT_GENERIC_ALPHA_REGISTER_TABLE[register_index];
+  if (base == -1) {
+    return SHADER_TRANSPARENT_GENERIC_REGISTER_MAPPING_TABLE
+      [mapping_index +
+       register_index *
+         NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_INPUT_MAPPINGS];
+  }
+  return SHADER_TRANSPARENT_GENERIC_ALPHA_MAPPING_TABLE[mapping_index] | base;
+}
+
 /* The six output-register selector fields tested by FUN_0017c1b0. They form
  * two structurally identical triples (one per combiner side): the colour side
  * at +0x4c/+0x50/+0x54 interleaves with the already-named AB/CD function

@@ -717,7 +717,7 @@
     },
     {
      "addr": "0x1dbc26",
-     "decl": "void FUN_001dbc26(void);"
+     "decl": "double ceil(double x);"
     },
     {
      "addr": "0x1dbcf4",
@@ -1016,7 +1016,7 @@
     },
     {
      "addr": "0x1db443",
-     "decl": "void _wprintf(void);"
+     "decl": "void _wprintf(const char *format, ...);"
     },
     {
      "addr": "0x1db49e",
@@ -6679,7 +6679,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -6740,7 +6740,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
@@ -7231,7 +7231,7 @@
     },
     {
      "addr": "0x199a60",
-     "decl": "void directory_create_or_delete_contents(void);"
+     "decl": "void directory_create_or_delete_contents(const char *directory_name);"
     },
     {
      "addr": "0x199b20",
@@ -13099,11 +13099,13 @@
     },
     {
      "addr": "0xfff90",
-     "decl": "void main_disallow_persistent_storage(void);"
+     "decl": "void main_disallow_persistent_storage(void);",
+     "ported": true
     },
     {
      "addr": "0xfffa0",
-     "decl": "void main_set_map_name(void);"
+     "decl": "void main_set_map_name(const char *name);",
+     "ported": true
     },
     {
      "addr": "0x100000",
@@ -13112,11 +13114,13 @@
     },
     {
      "addr": "0x100010",
-     "decl": "void main_set_multiplayer_map_name(const char *name);"
+     "decl": "void main_set_multiplayer_map_name(const char *name);",
+     "ported": true
     },
     {
      "addr": "0x100040",
-     "decl": "const char *main_get_map_name(void);"
+     "decl": "const char *main_get_map_name(void);",
+     "ported": true
     },
     {
      "addr": "0x100050",
@@ -13125,7 +13129,8 @@
     },
     {
      "addr": "0x100060",
-     "decl": "void main_set_difficulty(void);"
+     "decl": "void main_set_difficulty(int16_t difficulty);",
+     "ported": true
     },
     {
      "addr": "0x100080",
@@ -13144,71 +13149,88 @@
     },
     {
      "addr": "0x1002a0",
-     "decl": "void main_reset_map(void);"
+     "decl": "void main_reset_map(void);",
+     "ported": true
     },
     {
      "addr": "0x1002c0",
-     "decl": "void main_revert_map(void);"
+     "decl": "void main_revert_map(void);",
+     "ported": true
     },
     {
      "addr": "0x1002e0",
-     "decl": "void main_skip_cinematic(void);"
+     "decl": "void main_skip_cinematic(void);",
+     "ported": true
     },
     {
      "addr": "0x100300",
-     "decl": "void main_save_map_nonsafe(void);"
+     "decl": "void main_save_map_nonsafe(void);",
+     "ported": true
     },
     {
      "addr": "0x100310",
-     "decl": "void main_saving_map(void);"
+     "decl": "bool main_saving_map(void);",
+     "ported": true
     },
     {
      "addr": "0x100320",
-     "decl": "void main_save_cancel(void);"
+     "decl": "void main_save_cancel(void);",
+     "ported": true
     },
     {
      "addr": "0x100330",
-     "decl": "void main_save_map_safe(void);"
+     "decl": "void main_save_map_safe(void);",
+     "ported": true
     },
     {
      "addr": "0x100370",
-     "decl": "void main_won_map(void);"
+     "decl": "void main_won_map(void);",
+     "ported": true
     },
     {
      "addr": "0x100380",
-     "decl": "void FUN_00100380(void);"
+     "decl": "void FUN_00100380(void);",
+     "ported": true
     },
     {
      "addr": "0x100390",
-     "decl": "void main_respawn(void);"
+     "decl": "void main_respawn(char reset_flag);",
+     "ported": true
     },
     {
      "addr": "0x1003b0",
-     "decl": "void main_save_core(void);"
+     "decl": "void main_save_core(void);",
+     "ported": true
     },
     {
      "addr": "0x1003d0",
-     "decl": "void main_save_core_name(void);"
+     "decl": "void main_save_core_name(const char *name);",
+     "ported": true
     },
     {
      "addr": "0x100420",
-     "decl": "void main_load_core(void);"
+     "decl": "void main_load_core(void);",
+     "ported": true
     },
     {
      "addr": "0x100440",
-     "decl": "void main_load_core_at_startup(void);"
+     "decl": "void main_load_core_at_startup(void);",
+     "ported": true
     },
     {
      "addr": "0x100460",
-     "decl": "void main_load_core_name(void);"
+     "decl": "void main_load_core_name(const char *name);",
+     "ported": true
     },
     {
      "addr": "0x1004b0",
-     "decl": "void main_load_core_name_at_startup(void);"
+     "decl": "void main_load_core_name_at_startup(const char *name);",
+     "ported": true
     },
     {
      "addr": "0x100500",
-     "decl": "void main_switch_structure_bsp(void);"
+     "decl": "void main_switch_structure_bsp(short bsp_index);",
+     "ported": true
     },
     {
      "addr": "0x100560",
@@ -13236,7 +13258,8 @@
     },
     {
      "addr": "0x100690",
-     "decl": "void main_menu_unload(void);"
+     "decl": "void main_menu_unload(void);",
+     "ported": true
     },
     {
      "addr": "0x1006b0",
@@ -13250,31 +13273,38 @@
     },
     {
      "addr": "0x1006d0",
-     "decl": "void main_menu_switch_to_single_player(void);"
+     "decl": "void main_menu_switch_to_single_player(void);",
+     "ported": true
     },
     {
      "addr": "0x1006e0",
-     "decl": "void main_set_game_connection_to_film_playback(void);"
+     "decl": "void main_set_game_connection_to_film_playback(void);",
+     "ported": true
     },
     {
      "addr": "0x1006f0",
-     "decl": "void main_get_solo_level_from_name(void);"
+     "decl": "long main_get_solo_level_from_name(const char *name);",
+     "ported": true
     },
     {
      "addr": "0x100860",
-     "decl": "void main_get_current_solo_level(void);"
+     "decl": "long main_get_current_solo_level(void);",
+     "ported": true
     },
     {
      "addr": "0x100870",
-     "decl": "void main_get_solo_level_name(void);"
+     "decl": "const char *main_get_solo_level_name(int16_t level_index);",
+     "ported": true
     },
     {
      "addr": "0x100890",
-     "decl": "void main_run_demos(void);"
+     "decl": "void main_run_demos(void);",
+     "ported": true
     },
     {
      "addr": "0x1008a0",
-     "decl": "void FUN_001008a0(void);"
+     "decl": "void compute_split_screen_grid(int num_players @<ebx>, int *out_horizontal_count, int *out_vertical_count);",
+     "ported": true
     },
     {
      "addr": "0x100910",
@@ -13327,7 +13357,8 @@
     },
     {
      "addr": "0x101bc0",
-     "decl": "void main_movie_start(void);"
+     "decl": "void main_movie_start(float frames_per_second);",
+     "ported": true
     },
     {
      "addr": "0x101c90",
@@ -13341,11 +13372,13 @@
     },
     {
      "addr": "0x101cb0",
-     "decl": "void main_crash(void);"
+     "decl": "void main_crash(void);",
+     "ported": true
     },
     {
      "addr": "0x101cc0",
-     "decl": "void main_print_version(void);"
+     "decl": "void main_print_version(void);",
+     "ported": true
     },
     {
      "addr": "0x101cd0",
@@ -13364,7 +13397,8 @@
     },
     {
      "addr": "0x101ec0",
-     "decl": "void main_save_map_no_timeout(void);"
+     "decl": "void main_save_map_no_timeout(void);",
+     "ported": true
     },
     {
      "addr": "0x101f00",
@@ -13438,7 +13472,9 @@
     },
     {
      "addr": "0x1034b0",
-     "decl": "void FUN_001034b0(void);"
+     "decl": "void FUN_001034b0(int *context);",
+     "ported": true,
+     "source_path": "src/halo/main/main.c"
     },
     {
      "addr": "0x1034e0",
@@ -13464,15 +13500,18 @@
     },
     {
      "addr": "0x1037b0",
-     "decl": "float * FUN_001037b0(float *out_plane, float *p0, float *p1, float *p2);"
+     "decl": "float * FUN_001037b0(float *out_plane, float *p0, float *p1, float *p2);",
+     "ported": true
     },
     {
      "addr": "0x103860",
-     "decl": "void FUN_00103860(int base, float *a, float *b, float *c, int flag);"
+     "decl": "int FUN_00103860(int base, float *a, float *b, float *c, char flag);",
+     "ported": true
     },
     {
      "addr": "0x103a00",
-     "decl": "char FUN_00103a00(uint32_t mark, int base, uint32_t *node, uint32_t visit_arg);"
+     "decl": "char FUN_00103a00(uint32_t plane, int base, uint32_t *tri_refs, uint32_t mark);",
+     "ported": true
     },
     {
      "addr": "0x103b80",
@@ -13506,7 +13545,9 @@
     },
     {
      "addr": "0x104040",
-     "decl": "void FUN_00104040(float *p0, float *p1, float *p2, float *color);"
+     "decl": "void FUN_00104040(float *p0, float *p1, float *p2, float *color);",
+     "ported": true,
+     "source_path": "src/halo/main/main.c"
     },
     {
      "addr": "0x104240",
@@ -19424,7 +19465,9 @@
     },
     {
      "addr": "0x174980",
-     "decl": "void FUN_00174980(void);"
+     "decl": "int FUN_00174980(int r1@<eax>, int r2@<ecx>, int r3@<edx>, int s1, int s2);",
+     "ported": true,
+     "source_path": "src/halo/rasterizer/rasterizer.c"
     },
     {
      "addr": "0x1749b0",
@@ -19544,7 +19587,9 @@
     },
     {
      "addr": "0x17c000",
-     "decl": "void FUN_0017c000(void);"
+     "source": "src/halo/rasterizer/xbox/shader_transparent_generic_preprocessor.c",
+     "decl": "int FUN_0017c000(int16_t register_index@<si>, int16_t mapping_index@<di>);",
+     "ported": true
     },
     {
      "addr": "0x17c140",
@@ -20623,7 +20668,8 @@
     },
     {
      "addr": "0x109a60",
-     "decl": "void FUN_00109a60(void);"
+     "decl": "float *FUN_00109a60(float *m, float determinant, float *out);",
+     "ported": true
     },
     {
      "addr": "0x109ba0",
@@ -22917,20 +22963,32 @@
      "ported": false
     },
     {
+     "addr": "0x20f081",
+     "comment": "XDK DirectSound stream inline: loads the media object at stream+0x24 and makes a thiscall through its vtable slot 4 (vtbl+0x10) with two NULL arguments. Semantics of that COM method are unconfirmed; kept as FUN_ rather than guessed. stdcall, RET 4.",
+     "decl": "void __stdcall FUN_0020f081(void *stream);",
+     "ported": false
+    },
+    {
      "addr": "0x1c9230",
-     "decl": "void dsound_angle_from_angle(void);"
+     "comment": "Convert an angle in radians to integer degrees (multiply by 180/PI == 57.29578f, truncate). Binary is FLD [EBP+8]; FMUL [0x2b073c]; JMP _ftol2.",
+     "decl": "int dsound_angle_from_angle(float angle);",
+     "ported": true
     },
     {
      "addr": "0x1c9250",
-     "decl": "void dsound_occlusion_from_occlusion(void);"
+     "decl": "int dsound_occlusion_from_occlusion(float occlusion);",
+     "ported": true
     },
     {
      "addr": "0x1c9270",
-     "decl": "void dsound_obstruction_from_obstruction(void);"
+     "decl": "int dsound_obstruction_from_obstruction(float obstruction);",
+     "ported": true
     },
     {
      "addr": "0x1c9350",
-     "decl": "void FUN_001c9350(void);"
+     "comment": "Record a DirectSound failure: store *hresult in the global last-error slot (0x4fdba8) when non-NULL, then append the reason text to the global 256-byte reason accumulator at 0x4eae38 if the combined length still fits.",
+     "decl": "void sound_dsound_set_last_error(int *hresult@<eax>, const char *reason@<esi>);",
+     "ported": true
     },
     {
      "addr": "0x1c9670",
@@ -22938,7 +22996,10 @@
     },
     {
      "addr": "0x1c9bf0",
-     "decl": "void FUN_001c9bf0(void);"
+     "comment": "Release the actual (hardware) sound channel bound to a virtual channel: stop the attached stream via the XDK media-object helper at 0x20f081, mark the channel released (byte +0x6 = 1), clear its playing flag and the two dwords at +0x68/+0x6c, then reset both back-references (channel->virtual_channel_index and vchannel->channel_index) to NONE. No-op when no channel is bound.",
+     "decl": "void sound_dsound_channel_release(int virtual_channel_index);",
+     "name": "sound_dsound_channel_release",
+     "ported": true
     },
     {
      "addr": "0x1c9c80",
@@ -22950,19 +23011,25 @@
     },
     {
      "addr": "0x1c9e20",
-     "decl": "void FUN_001c9e20(void);"
+     "comment": "Per-frame DirectSound service: commit deferred settings, ramp dsound_globals.pause_gain by 0.15 toward 0.0 (paused) or 1.0, re-scale live stream volumes while fading out, and render the debug channel list when 0x4fc380 is set.",
+     "decl": "void FUN_001c9e20(void);",
+     "ported": true
     },
     {
      "addr": "0x1ca130",
-     "decl": "void FUN_001ca130(void);"
+     "comment": "Finish pending channel stops: for each hardware channel with stopping set, spin on dsound_stream_is_active until inactive, Flush via stream vtable[6], and clear the flag; then emit the level-2 save-and-quit warning for any channel with +0x8 set. Spin body is sound_dsound_channel_stop_check (0x1c9670) inlined.",
+     "decl": "void FUN_001ca130(void);",
+     "ported": true
     },
     {
      "addr": "0x1ca2b0",
-     "decl": "void FUN_001ca2b0(void);"
+     "comment": "Push the 3D listener state to DirectSound, skipping any update whose inputs have not moved since the last send. params: +0x00 position, +0x0c front, +0x18 top, +0x24 velocity, +0x30 pointer to the 0x48-byte I3DL2 environment block. Vectors go out Y/Z-swapped (x,z,y) because Halo is Z-up and DirectSound is Y-up. Last-sent cache at 0x5053d0/0x5053dc/0x5053f4/0x505404; epsilon 0.05 for position and orientation, 0.01 for velocity; a clear settings-valid flag at 0x4fdbc0 forces a resend. Builds a DSI3DL2LISTENER on the stack, routing the four gain fields through sound_dsound_gain_to_volume with ceilings 0/0/1000/2000 and scaling diffusion and density by 100.",
+     "decl": "void FUN_001ca2b0(const float *params);",
+     "ported": true
     },
     {
      "addr": "0x1ca900",
-     "decl": "void FUN_001ca900(void);"
+     "decl": "void FUN_001ca900(int channel_index@<eax>);"
     },
     {
      "addr": "0x1ca970",
@@ -22978,7 +23045,8 @@
     },
     {
      "addr": "0x1cb0c0",
-     "decl": "void FUN_001cb0c0(void);"
+     "decl": "void FUN_001cb0c0(int channel_index, void *sound@<edi>);",
+     "ported": true
     }
    ],
    "name": "sound_dsound_xbox.obj",
@@ -23543,7 +23611,7 @@
     },
     {
      "addr": "0x1b9b50",
-     "decl": "void FUN_001b9b50(void);",
+     "decl": "void FUN_001b9b50(void *reference, int group_tag, int name);",
      "ported": true
     },
     {
@@ -23805,7 +23873,9 @@
     },
     {
      "addr": "0x620f0",
-     "decl": "void obstacles_get_discs_in_sphere(void);"
+     "decl": "void obstacles_get_discs_in_sphere(int16_t *obstacle_set, float *center, float radius, float *up_vector, uint32_t object_handle, uint32_t ignore_handle);",
+     "name": "obstacles_get_discs_in_sphere",
+     "ported": true
     },
     {
      "addr": "0x62410",
@@ -24166,7 +24236,8 @@
     },
     {
      "addr": "0x1943e0",
-     "decl": "void build_structure_lens_flares(void *scenario);"
+     "decl": "bool build_structure_lens_flares(void *structure_bsp);",
+     "ported": true
     },
     {
      "addr": "0x1954d0",
@@ -24333,7 +24404,8 @@
     },
     {
      "addr": "0x1975e0",
-     "decl": "void FUN_001975e0(void);"
+     "decl": "char FUN_001975e0(void *ref, void *frustum, void *out);",
+     "ported": true
     },
     {
      "addr": "0x1978a0",
@@ -25164,7 +25236,7 @@
     },
     {
      "addr": "0xe43d0",
-     "decl": "void main_menu_active(void);"
+     "decl": "void main_menu_active(bool active);"
     },
     {
      "addr": "0xe43e0",
@@ -27505,22 +27577,22 @@
     {
      "addr": "0x1a8770",
      "decl": "char FUN_001a8770(void *anim_state@<ecx>);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x1a8890",
      "decl": "char FUN_001a8890(void *anim_state@<ecx>);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x1a8910",
      "decl": "char FUN_001a8910(int16_t anim_state@<ecx>);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x1a8950",
      "decl": "int FUN_001a8950(int16_t anim_state@<ecx>, int16_t target_state@<edx>);",
-     "ported": false
+     "ported": true
     }
    ],
    "name": "units.obj",
@@ -27934,6 +28006,10 @@
      "decl": "bool game_state_load_core_pending;"
     },
     {
+     "addr": "0x46da3f",
+     "decl": "bool game_state_load_core_at_startup_pending;"
+    },
+    {
      "addr": "0x46da40",
      "decl": "short word_46DA40;"
     },
@@ -27980,6 +28056,10 @@
     {
      "addr": "0x46da50",
      "decl": "char byte_46DA50;"
+    },
+    {
+     "addr": "0x46da54",
+     "decl": "bool main_persistent_storage_allowed;"
     },
     {
      "addr": "0x46da55",
@@ -28286,11 +28366,13 @@
     },
     {
      "addr": "0x180820",
-     "decl": "void compress_real_to_int16(void);"
+     "decl": "short compress_real_to_int16(float z);",
+     "ported": true
     },
     {
      "addr": "0x180890",
-     "decl": "short FUN_00180890(float f);"
+     "decl": "short FUN_00180890(float f);",
+     "ported": true
     },
     {
      "addr": "0x1808f0",
@@ -28348,11 +28430,6 @@
     {
      "addr": "0x181420",
      "decl": "float FUN_00181420(void *lens_flare_params @<esi>, short rotation_fn @<di>);"
-    },
-    {
-     "addr": "0x181670",
-     "decl": "void FUN_00181670(int *params);",
-     "ported": false
     },
     {
      "addr": "0x181900",
@@ -28425,31 +28502,38 @@
     },
     {
      "addr": "0x182840",
-     "decl": "void rasterizer_xbox_bitmap_swizzle2d_byte(void);"
+     "decl": "void rasterizer_xbox_bitmap_swizzle2d_byte(void *dst, const void *src, short width, short height);",
+     "ported": true
     },
     {
      "addr": "0x182910",
-     "decl": "void rasterizer_xbox_bitmap_swizzle2d_word(void);"
+     "decl": "void rasterizer_xbox_bitmap_swizzle2d_word(void *dst, const void *src, short width, short height);",
+     "ported": true
     },
     {
      "addr": "0x1829f0",
-     "decl": "void rasterizer_xbox_bitmap_swizzle2d_long(void);"
+     "decl": "void rasterizer_xbox_bitmap_swizzle2d_long(void *dst, const void *src, short width, short height);",
+     "ported": true
     },
     {
      "addr": "0x182ac0",
-     "decl": "void rasterizer_xbox_bitmap_swizzle3d_byte(void);"
+     "decl": "void rasterizer_xbox_bitmap_swizzle3d_byte(void *dst, const void *src, short width, short height, short depth);",
+     "ported": true
     },
     {
      "addr": "0x182bd0",
-     "decl": "void rasterizer_xbox_bitmap_swizzle3d_word(void);"
+     "decl": "void rasterizer_xbox_bitmap_swizzle3d_word(void *dst, const void *src, short width, short height, short depth);",
+     "ported": true
     },
     {
      "addr": "0x182cf0",
-     "decl": "void rasterizer_xbox_bitmap_swizzle3d_long(void);"
+     "decl": "void rasterizer_xbox_bitmap_swizzle3d_long(void *dst, const void *src, short width, short height, short depth);",
+     "ported": true
     },
     {
      "addr": "0x182e00",
-     "decl": "void FUN_00182e00(int param_1);"
+     "decl": "void FUN_00182e00(int param_1);",
+     "ported": true
     },
     {
      "addr": "0x183120",
@@ -32623,7 +32707,8 @@
     },
     {
      "addr": "0x53c50",
-     "decl": "void FUN_00053c50(void);"
+     "decl": "void FUN_00053c50(void);",
+     "ported": true
     },
     {
      "addr": "0x53da0",
@@ -32666,15 +32751,18 @@
     },
     {
      "addr": "0x564b0",
-     "decl": "void FUN_000564b0(int arg0, int arg1);"
+     "decl": "void FUN_000564b0(int arg0, int arg1);",
+     "ported": true
     },
     {
      "addr": "0x565c0",
-     "decl": "void FUN_000565c0(void);"
+     "decl": "void FUN_000565c0(unsigned int src_encounter, unsigned int dst_encounter, const char *speech_type);",
+     "ported": true
     },
     {
      "addr": "0x566a0",
-     "decl": "void FUN_000566a0(int arg0, int arg1);"
+     "decl": "void FUN_000566a0(int16_t team_a, int16_t team_b);",
+     "ported": true
     },
     {
      "addr": "0x56790",
@@ -32840,7 +32928,8 @@
     },
     {
      "addr": "0x57d00",
-     "decl": "void FUN_00057d00(int a, int b);"
+     "decl": "void FUN_00057d00(int param_1, int param_2);",
+     "ported": true
     },
     {
      "addr": "0x57ef0",
@@ -32975,7 +33064,8 @@
     },
     {
      "addr": "0x58af0",
-     "decl": "void FUN_00058af0(void);"
+     "decl": "void FUN_00058af0(unsigned int ai_index @<eax>, int vehicle_handle @<ebx>, int seat_substring, char allow_type9);",
+     "ported": true
     },
     {
      "addr": "0x58c40",
@@ -33062,7 +33152,8 @@
     },
     {
      "addr": "0x59c40",
-     "decl": "void FUN_00059c40(void);"
+     "decl": "int FUN_00059c40(int encounter_handle /* @<eax> */, short pursuit_key /* @<bx> */, int threshold, char create_if_missing);",
+     "ported": true
     },
     {
      "addr": "0x59d30",
@@ -33195,7 +33286,8 @@
     },
     {
      "addr": "0x5bad0",
-     "decl": "void encounter_post_combat_select_random_behavior(void);"
+     "decl": "short encounter_post_combat_select_random_behavior(void *behaviors /* @<ebx> */, void *selected_behavior_out);",
+     "ported": true
     },
     {
      "addr": "0x5bbe0",
@@ -33211,7 +33303,8 @@
     },
     {
      "addr": "0x5c630",
-     "decl": "void encounter_set_respawn(int encounter_handle, char flag);"
+     "decl": "void encounter_set_respawn(int encounter_handle, char flag);",
+     "ported": true
     },
     {
      "addr": "0x5c680",
@@ -38265,7 +38358,7 @@
     },
     {
      "addr": "0x001ef100",
-     "decl": "void D3DVertexBuffer_Lock(void);"
+     "decl": "void __stdcall D3DVertexBuffer_Lock(void *vertex_buffer, uint32_t offset_to_lock, uint32_t size_to_lock, void **ppb_data, uint32_t flags);"
     },
     {
      "addr": "0x001ef150",
@@ -38825,11 +38918,11 @@
     },
     {
      "addr": "0x00204dc9",
-     "decl": "void IDirectSound_SetOrientation(void);"
+     "decl": "int __stdcall IDirectSound_SetOrientation(void *dsound, float front_x, float front_y, float front_z, float top_x, float top_y, float top_z, unsigned int apply);"
     },
     {
      "addr": "0x00204e13",
-     "decl": "void IDirectSound_SetPosition(void);"
+     "decl": "int __stdcall IDirectSound_SetPosition(void *dsound, float x, float y, float z, unsigned int apply);"
     },
     {
      "addr": "0x00204e48",
@@ -38837,11 +38930,11 @@
     },
     {
      "addr": "0x00204e6c",
-     "decl": "void IDirectSound_SetVelocity(void);"
+     "decl": "int __stdcall IDirectSound_SetVelocity(void *dsound, float x, float y, float z, unsigned int apply);"
     },
     {
      "addr": "0x00204ea1",
-     "decl": "void IDirectSound_CommitDeferredSettings(void);"
+     "decl": "int __stdcall IDirectSound_CommitDeferredSettings(void *dsound);"
     },
     {
      "addr": "0x00204eb9",
@@ -38849,7 +38942,7 @@
     },
     {
      "addr": "0x00204ed5",
-     "decl": "void IDirectSound_SetI3DL2Listener(void);"
+     "decl": "int __stdcall IDirectSound_SetI3DL2Listener(void *dsound, const void *listener, unsigned int apply);"
     },
     {
      "addr": "0x00204f5b",
@@ -39434,6 +39527,17 @@
     {
      "addr": "0x17b7d0",
      "decl": "void FUN_0017b7d0(float *point, float radius, float *scale, float theta, unsigned int color);"
+    }
+   ]
+  },
+  {
+   "name": "rasterizer_lights.obj",
+   "source": "rasterizer/rasterizer_lights.c",
+   "functions": [
+    {
+     "addr": "0x181670",
+     "decl": "void FUN_00181670(int *params);",
+     "ported": true
     }
    ]
   }

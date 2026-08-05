@@ -33,9 +33,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
+import tempfile
 from collections import Counter
 
 # Exit codes (also emitted as `status` in --json).
@@ -76,6 +78,44 @@ def _merge_driver(path: str) -> str | None:
         return None
     value = parts[1].strip()
     return None if value in ("unspecified", "unset") else value
+
+
+def _matches_three_way(path: str, base: str, ours: str,
+                       theirs: str, result: str) -> bool:
+    """True iff `path` at `result` is exactly the 3-way merge of the others.
+
+    Used by the no-drop gate. When `main` advances while a session branch is
+    lifting, a rebase legitimately rewrites every file BOTH sides touched, so
+    "content differs from the pre-rebase branch" cannot by itself mean work was
+    dropped -- it is the expected outcome of a correct replay. What separates a
+    sound replay from a mangled one is whether the bytes equal the merge git
+    itself would compute from (base, ours, theirs). Anything dropped, doubled
+    or reordered changes them, so the caller still fails closed.
+
+    Conservative on every edge: a file missing on any side, a conflicting
+    merge, or content that does not survive a text round-trip all return False
+    and leave the path to be reported as a real drift.
+    """
+    blobs = {}
+    for tag, rev in (("base", base), ("ours", ours),
+                     ("theirs", theirs), ("result", result)):
+        cp = git("show", f"{rev}:{path}")
+        if cp.returncode != 0:
+            return False
+        blobs[tag] = cp.stdout
+
+    with tempfile.TemporaryDirectory() as td:
+        paths = {}
+        for tag in ("base", "ours", "theirs"):
+            paths[tag] = os.path.join(td, tag)
+            with open(paths[tag], "w") as fh:
+                fh.write(blobs[tag])
+        # -p writes the merged result to stdout; non-zero means conflict.
+        cp = git("merge-file", "-q", "-p",
+                 paths["ours"], paths["base"], paths["theirs"])
+        if cp.returncode != 0:
+            return False
+        return cp.stdout == blobs["result"]
 
 
 def resolve_main_worktree() -> tuple[str | None, bool]:
@@ -426,9 +466,22 @@ def run_gates(main_wt: str, *, rebased: bool, backup: str | None,
                    if not git_ok("diff", "--quiet", backup, branch, "--", f)]
         if drifted:
             exempt = [f for f in drifted if _merge_driver(f) == "ours"]
-            real = [f for f in drifted if f not in exempt]
+            # Second, narrower exemption: a file both sides legitimately
+            # changed. `main` is shared, so another lane can land while this
+            # session lifts; the rebase then MUST rewrite every file touched on
+            # both sides, and flagging that as a drop parks a sound branch.
+            # Exempt only when the result is byte-identical to the 3-way merge
+            # git would compute -- proof the replay preserved both sides rather
+            # than an assumption that it did.
+            merged = [f for f in drifted
+                      if f not in exempt
+                      and _matches_three_way(f, base, backup, "main", branch)]
+            real = [f for f in drifted
+                    if f not in exempt and f not in merged]
             if exempt:
                 detail["no_drop_exempt_merge_ours"] = exempt
+            if merged:
+                detail["no_drop_clean_three_way"] = merged
             if real:
                 detail["no_drop_drifted"] = real
                 return False, "rebase_dropped_or_changed_files", detail

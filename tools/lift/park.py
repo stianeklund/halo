@@ -18,7 +18,7 @@ Record schema:
     "name", "addr", "obj", "source_path",
     "best_score": float,             # highest VC71 seen across attempts
     "best_patch": "<path>",          # patch of the best-scoring attempt
-    "status": "parked" | "promoted" | "capped_confirmed",
+    "status": "parked" | "promoted" | "capped_confirmed" | "superseded",
     "first_parked": "<iso>",
     "last_updated": "<iso>",
     "promoted_commit": "<hash>"|null,
@@ -363,6 +363,119 @@ def cmd_confirm_cap(args: argparse.Namespace) -> int:
     return 0
 
 
+def _norm_addr(addr: str) -> str:
+    """Canonical '0x<lowerhex>' with no leading zeros, or '' when unparseable."""
+    try:
+        return "0x" + format(int(str(addr).strip().lower(), 16), "x")
+    except (TypeError, ValueError):
+        return ""
+
+
+def kb_ported_index(kb_path: Path) -> tuple[dict, dict]:
+    """Return (ported_by_name, ported_by_addr) from kb.json.
+
+    Walks the whole document rather than assuming a fixed nesting depth -- the
+    object/function layout differs between sections and a hardcoded path silently
+    yields an empty index, which would make reconcile report "nothing stale" and
+    look like a pass.
+    """
+    by_name: dict[str, bool] = {}
+    by_addr: dict[str, bool] = {}
+
+    def walk(node) -> None:
+        if isinstance(node, dict):
+            if "ported" in node and ("addr" in node or "name" in node):
+                ported = node.get("ported") is True
+                nm = node.get("name")
+                if isinstance(nm, str) and nm:
+                    by_name[nm] = ported
+                ad = _norm_addr(node.get("addr") or "")
+                if ad:
+                    by_addr[ad] = ported
+            for v in node.values():
+                walk(v)
+        elif isinstance(node, list):
+            for v in node:
+                walk(v)
+
+    try:
+        walk(json.loads(kb_path.read_text()))
+    except (OSError, json.JSONDecodeError):
+        return {}, {}
+    return by_name, by_addr
+
+
+def reconcile_targets(recs: list[dict], by_name: dict, by_addr: dict) -> list[dict]:
+    """Records still marked `parked` whose function is already ported in kb.json.
+
+    Pure so the decision is testable. Name is checked before address because a
+    record's `name` field is authoritative when present; several records carry
+    annotated names ("lruv_cache_dispose (FUN_0011cab0)", "... (guess; ...)")
+    that cannot match by name at all, and those are caught by address.
+
+    A missing/unknown function is NEVER reported: absence of evidence must not
+    retire a real parked target.
+    """
+    out = []
+    for rec in recs:
+        if rec.get("status") != "parked":
+            continue
+        ported = by_name.get(rec.get("name") or "")
+        if ported is None:
+            ported = by_addr.get(_norm_addr(rec.get("addr") or ""))
+        if ported is True:
+            out.append(rec)
+    return out
+
+
+def cmd_reconcile(args: argparse.Namespace) -> int:
+    """Retire parked records whose function has since landed.
+
+    The ledger is append-only and never learns that a function was later ported
+    by a different route, so `list`/`next` keep serving finished work as if it
+    were an open target. Measured 2026-08-04: 30 of 45 `parked` records were
+    already ported=true, and four of them were handed to an auto-session run as
+    "score recovery" targets -- the whole batch spent its research budget
+    confirming work that was already committed.
+
+    Retired records keep their full attempt history and best patch; only
+    `status` changes, so nothing is lost and `next` stops offering them (it
+    filters on status == "parked").
+    """
+    root = repo_root()
+    store = Store(root / args.parked_dir)
+    recs = store.all()
+    by_name, by_addr = kb_ported_index(root / "kb.json")
+    if not by_name and not by_addr:
+        print("error: could not read kb.json -- refusing to reconcile blind",
+              file=sys.stderr)
+        return 2
+
+    stale = reconcile_targets(recs, by_name, by_addr)
+    parked_total = sum(1 for r in recs if r.get("status") == "parked")
+    if not stale:
+        print(f"reconcile: {parked_total} parked record(s), none stale")
+        return 0
+
+    print(f"reconcile: {len(stale)} of {parked_total} parked record(s) already "
+          f"ported=true in kb.json")
+    for rec in sorted(stale, key=lambda r: -(r.get("best_score") or 0)):
+        print(f"  {(rec.get('name') or '?')[:52]:52s} "
+              f"{rec.get('addr') or '-':10s} best={rec.get('best_score')}")
+    if not args.apply:
+        print("\n(dry run -- pass --apply to mark these superseded)")
+        return 0
+
+    for rec in stale:
+        rec["status"] = "superseded"
+        rec["superseded_reason"] = ("kb.json ported=true: function landed; this "
+                                   "parked patch is no longer the path forward")
+        rec["last_updated"] = _now()
+        store.save(rec)
+    print(f"\nmarked {len(stale)} record(s) superseded")
+    return 0
+
+
 def cmd_stats(args: argparse.Namespace) -> int:
     root = repo_root()
     store = Store(root / args.parked_dir)
@@ -458,6 +571,50 @@ def _self_test() -> int:
         store.save(r2)
         check(store.load("FUN_0001beb0")["status"] == "promoted", "promote persists")
 
+    # ── reconcile ──────────────────────────────────────────────────────────
+    # Both directions matter. Too lax and the ledger keeps serving finished
+    # work as an open target (the bug this exists to fix); too eager and it
+    # silently retires a real parked lift, losing the only pointer to that
+    # patch. So the unported and unknown cases are pinned as hard as the
+    # stale one.
+    recs = [
+        {"name": "landed_by_name", "addr": "0xaaa", "status": "parked"},
+        {"name": "still_open", "addr": "0xbbb", "status": "parked"},
+        {"name": "annotated (guess; FUN_00000ccc)", "addr": "0x000ccc",
+         "status": "parked"},
+        {"name": "not_in_kb", "addr": "0xddd", "status": "parked"},
+        {"name": "already_promoted", "addr": "0xaaa", "status": "promoted"},
+    ]
+    by_name = {"landed_by_name": True, "still_open": False}
+    by_addr = {"0xaaa": True, "0xbbb": False, "0xccc": True}
+    got = {r["name"] for r in reconcile_targets(recs, by_name, by_addr)}
+
+    check("landed_by_name" in got, "reconcile: ported=true by name is stale")
+    check("annotated (guess; FUN_00000ccc)" in got,
+          "reconcile: annotated name still matches on addr (leading zeros)")
+    check("still_open" not in got, "reconcile: ported=false is NOT retired")
+    check("not_in_kb" not in got,
+          "reconcile: function absent from kb.json is NOT retired")
+    check("already_promoted" not in got,
+          "reconcile: only status=parked records are considered")
+    check(len(got) == 2, "reconcile: exactly the two stale records")
+
+    # A name present in kb.json must win over a stale/reused address, or a
+    # record could be retired on someone else's addr collision.
+    shadow = [{"name": "open_at_reused_addr", "addr": "0xaaa", "status": "parked"}]
+    check(reconcile_targets(shadow, {"open_at_reused_addr": False},
+                            {"0xaaa": True}) == [],
+          "reconcile: name lookup takes precedence over address")
+
+    check(_norm_addr("0x0001B8A0") == "0x1b8a0", "reconcile: addr normalized")
+    check(_norm_addr("") == "" and _norm_addr("zz") == "",
+          "reconcile: unparseable addr yields no match key")
+
+    # An unreadable kb.json must not look like "nothing is stale".
+    with tempfile.TemporaryDirectory() as td:
+        check(kb_ported_index(Path(td) / "missing.json") == ({}, {}),
+              "reconcile: missing kb.json returns empty index (caller refuses)")
+
     return 0 if ok else 1
 
 
@@ -489,7 +646,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_park)
 
     p = sub.add_parser("list", help="List parked records")
-    p.add_argument("--status", choices=["parked", "promoted", "capped_confirmed"])
+    p.add_argument("--status", choices=["parked", "promoted", "capped_confirmed",
+                                        "superseded"])
     p.add_argument("--obj")
     p.add_argument("--min-score", type=float)
     p.add_argument("--sort", choices=["score", "attempts", "age"], default="score")
@@ -515,6 +673,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--name", required=True)
     p.add_argument("--reason", required=True)
     p.set_defaults(func=cmd_confirm_cap)
+
+    p = sub.add_parser("reconcile",
+                       help="Retire parked records whose function is now ported")
+    p.add_argument("--apply", action="store_true",
+                   help="Write the changes (default: dry run)")
+    p.set_defaults(func=cmd_reconcile)
 
     p = sub.add_parser("stats", help="Summary counts")
     p.add_argument("--json", action="store_true")

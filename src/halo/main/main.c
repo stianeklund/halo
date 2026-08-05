@@ -13,6 +13,21 @@ extern double __cdecl fabs(double);
 #define main_fabs_double_from_float(x) fabs((double)(x))
 #endif
 
+/* Zero a local byte range. main_get_solo_level_from_name (0x1006f0) zeroes its
+ * 128-byte name buffer with an inline REP STOSD, which is what the MSVC 7.1
+ * memset intrinsic emits, so the VC71 lane uses it. clang lowers a 127-byte
+ * memset/__builtin_memset to a _memset libcall that does not exist in this
+ * freestanding build, so that lane calls the game's own csmemset instead; both
+ * zero exactly the same bytes. Same guarded-macro shape as the fabs intrinsic
+ * above and as structure_detail_objects.c. */
+#if defined(_MSC_VER) && !defined(__clang__)
+extern void *__cdecl memset(void *, int, unsigned int);
+#pragma intrinsic(memset)
+#define main_zero_bytes(p, n) memset((p), 0, (n))
+#else
+#define main_zero_bytes(p, n) csmemset((p), 0, (n))
+#endif
+
 /* Close all UI widgets and display the "damaged media" fatal error screen.
  *
  * Loads the "error_abort_to_dashboard_you_have_no_choice" widget by name,
@@ -219,15 +234,122 @@ short game_connection(void)
   return word_46DA0C;
 }
 
+/* Clear the persistent-storage/cache-precache permission flag (0x46da54).
+ *
+ * Confirmed (0xfff90, whole body is two instructions):
+ *     MOV byte ptr [0x0046da54],0x0
+ *     RET
+ *  - BYTE store, not a dword: Ghidra's `DAT_0046da54 = 0` hides the width, so
+ *    the global is a 1-byte flag (writing it as int would clobber 0x46da55,
+ *    which is the start of the runtime map_name[255] buffer).
+ *  - Plain RET with no immediate and no prologue: cdecl, zero stack args, no
+ *    register inputs.
+ *
+ * Inferred: main_new_map (0xfff10) reads this same byte and only calls the
+ * cache-file precache path (0x1bfee0) when it is set, so a 0-write disables
+ * that path -- consistent with the "disallow" in the kb.json name. */
+void main_disallow_persistent_storage(void)
+{
+  main_persistent_storage_allowed = 0;
+}
+
+/* Queue a map change: copy `name` into the runtime map_name[] buffer
+ * (0x46da55, 0x100 bytes: 0x46da55..0x46db54) and, when a game is actually
+ * running, arm the deferred map-change flag.
+ *
+ * Confirmed (0xfffa0):
+ *  - Prologue is `PUSH EBP; MOV EBP,ESP` with no `SUB ESP` (no locals), and
+ *    the body reads `MOV EAX,[EBP+0x8]` -- one cdecl stack argument, the
+ *    name pointer.  Ghidra's `in_stack_00000004` is exactly that slot.  The
+ *    old kb.json decl `void main_set_map_name(void)` omitted it.
+ *  - `PUSH 0xff; PUSH EAX; PUSH 0x46da55; CALL csstrncpy; ADD ESP,0xc` --
+ *    3 cdecl args, so the destination is the map_name buffer and at most
+ *    0xff bytes are copied; [0x46db54] is then force-cleared so the name is
+ *    always NUL-terminated (same shape as main_set_multiplayer_map_name).
+ *  - Four of the five global writes are BYTE stores that Ghidra renders as
+ *    bare assignments: [0x46da43] (main_menu_load_pending) -- shown as the
+ *    dword field `DAT_0046da40._3_1_`, [0x46db54], [0x46da54]
+ *    (main_persistent_storage_allowed) and [0x46da25]
+ *    (main_change_map_name_pending).
+ *  - The guard is `CALL game_in_editor; TEST AL,AL; JNZ` then
+ *    `CALL game_in_progress; TEST AL,AL; JZ ret` -- a short-circuit OR, not
+ *    the inverted early-return Ghidra prints.
+ *  - `CMP word ptr [0x46da0c],0x0` is a 16-bit read of the game-connection
+ *    global, so it must go through `word_46DA0C`, not an int deref.
+ *
+ * Inferred: the raw-address cast for the buffer (rather than `&map_name`)
+ * matches main_get_map_name / main_set_multiplayer_map_name -- the kb.json
+ * global is emitted __declspec(dllimport), whose address-of would lower to
+ * an indirect __imp_ load instead of the original's immediate. */
+void main_set_map_name(const char *name)
+{
+  main_menu_load_pending = 0;
+  csstrncpy((char *)0x46da55, name, 0xff);
+  *(char *)0x46db54 = 0;
+  main_persistent_storage_allowed = 1;
+
+  if (game_in_editor() || game_in_progress()) {
+    if (word_46DA0C == 0) {
+      main_change_map_name_pending = 1;
+    }
+  }
+}
+
 void main_defer_map_map_change(void)
 {
   main_change_map_name_pending = 0;
+}
+
+/* Store the multiplayer map name into the global name buffer at 0x46db55
+ * (0x100 bytes: 0x46db55..0x46dc54).  csstrncpy copies at most 0xff bytes and
+ * the final byte of the buffer is then force-cleared, so the name is always
+ * NUL-terminated.  Finally the cache is given a chance to precache the map.
+ *
+ * Binary notes (0x100010):
+ *   - [0x46dc54] is written with `MOV byte ptr [0x46dc54],0x0` -- a BYTE store,
+ *     not a dword (Ghidra's `DAT_0046dc54 = 0` hides the width).
+ *   - The single `ADD ESP,0x10` after the second CALL is a merged cleanup for
+ *     BOTH calls (3 dwords + 1 dword); the second callee takes one stack arg.
+ *   - The bool result of cache_files_give_time_to_precache is discarded. */
+void main_set_multiplayer_map_name(const char *name)
+{
+  csstrncpy((char *)0x46db55, name, 0xff);
+  *(char *)0x46dc54 = 0;
+  cache_files_give_time_to_precache((const char *)0x46db55);
+}
+
+/* Return a pointer to the global map name buffer (0x100040).
+ *
+ * Body is two instructions: MOV EAX,0x46da55 / RET. 0x46da55 is the
+ * runtime-written map_name[255] buffer (zero-filled in the image, NOT an
+ * .rdata string literal), so this must be the buffer's address, not a
+ * string constant. Same raw-address idiom as main_get_multiplayer_map_name
+ * below: the kb.json global `char map_name[255]` is emitted into decl.h as
+ * __declspec(dllimport), whose address-of would lower to an indirect
+ * __imp_ load rather than the original's immediate. */
+const char *main_get_map_name(void)
+{
+  return (const char *)0x46da55;
 }
 
 /* Return a pointer to the global multiplayer map name buffer (0x100050). */
 char *main_get_multiplayer_map_name(void)
 {
   return (char *)0x46db55;
+}
+
+/* Store the difficulty level at 0x31fa90, rejecting out-of-range values
+ * (0x100060).
+ *
+ * The body loads the parameter as a WORD (MOV AX,[EBP+8]) and both bounds
+ * checks are signed (JL / JGE), so the parameter is a signed 16-bit value.
+ * Out-of-range inputs fall through to the epilogue and leave the global
+ * untouched. Bare RET -> __cdecl. */
+void main_set_difficulty(int16_t difficulty)
+{
+  if (difficulty >= 0 && difficulty < 4) {
+    *(int16_t *)0x31fa90 = difficulty;
+  }
 }
 
 /* Return the game variant index from the static table at 0x31fa90. */
@@ -316,6 +438,854 @@ void create_local_players(void)
   }
 }
 
+/*
+ * main_reset_map - 0x1002a0
+ *
+ * Confirmed:
+ *  - Whole body is 6 instructions, no frame, no CALLs, no FPU:
+ *      XOR AL,AL
+ *      MOV word ptr [0x0046da40],0xffff
+ *      MOV [0x0046da28],AL
+ *      MOV byte ptr [0x0046da24],0x1
+ *      MOV [0x0046da3b],AL
+ *      RET
+ *  - 0x46da40 is a WORD store (MOV word ptr, imm16 = 0xffff); the other
+ *    three are byte-width stores, so those globals are single-byte flags.
+ *  - The single XOR AL,AL feeds both byte-zero stores (0x46da28 and
+ *    0x46da3b), which straddle the 0x46da24 = 1 store; the store order is
+ *    kept literal here.
+ *  - Plain cdecl void(void): RET carries no immediate, and no register is
+ *    read before being written, so there are no implicit @<reg> inputs.
+ *
+ * Inferred:
+ *  - Same shape as main_goto_main_menu (reset word_46DA40 to -1, clear
+ *    byte_46DA28, arm a pending flag), so this is one of the "request a
+ *    main-loop transition" setters — here the map-reset request.
+ *
+ * Uncertain:
+ *  - No string or assert evidence for what byte_46DA3B tracks, so it keeps
+ *    its mechanical kb-registered name.
+ */
+void main_reset_map(void)
+{
+  word_46DA40 = -1;
+  byte_46DA28 = 0;
+  game_reset_pending = true;
+  byte_46DA3B = 0;
+}
+
+/*
+ * main_revert_map - 0x1002c0
+ *
+ * Confirmed:
+ *  - Whole body is 6 instructions, no frame, no CALLs, no FPU, no locals:
+ *      XOR AL,AL
+ *      MOV word ptr [0x0046da40],0xffff
+ *      MOV [0x0046da28],AL
+ *      MOV byte ptr [0x0046da26],0x1
+ *      MOV [0x0046da3b],AL
+ *      RET
+ *  - 0x46da40 is a WORD store (MOV word ptr, imm16 = 0xffff); the other
+ *    three are byte-width stores, so those globals are single-byte flags.
+ *    Ghidra's DAT_0046da40._0_2_ agrees on the 16-bit width.
+ *  - The single XOR AL,AL feeds both byte-zero stores (0x46da28 and
+ *    0x46da3b), which straddle the 0x46da26 = 1 store; the store order is
+ *    kept literal here so the shared zero register can be re-materialized.
+ *  - Plain cdecl void(void): RET carries no immediate, and no register is
+ *    read before being written, so there are no implicit @<reg> inputs.
+ *
+ * Inferred:
+ *  - Byte-for-byte the same shape as main_reset_map (0x1002a0), differing
+ *    only in which pending flag is armed: 0x46da24 there, 0x46da26 here.
+ *    0x46da26 carries the kb-registered name game_state_revert_pending, so
+ *    the request armed here is the game-state revert.
+ *  - byte_46DA28 is the same save-attempt-resolved flag cleared by
+ *    main_reset_map, main_skip_cinematic, main_save_map_private and
+ *    main_new_map.
+ *
+ * Uncertain:
+ *  - No string or assert evidence for what byte_46DA3B tracks, so it keeps
+ *    its mechanical kb-registered name.
+ */
+void main_revert_map(void)
+{
+  word_46DA40 = -1;
+  byte_46DA28 = 0;
+  game_state_revert_pending = true;
+  byte_46DA3B = 0;
+}
+
+/*
+ * main_skip_cinematic - 0x1002e0
+ *
+ * Confirmed:
+ *  - Whole body is 4 instructions, no frame, no CALLs, no FPU, no locals:
+ *      MOV word ptr [0x0046da40],0xffff
+ *      MOV byte ptr [0x0046da28],0x0
+ *      MOV byte ptr [0x0046da27],0x1
+ *      RET
+ *  - Store widths differ and are preserved literally: 0x46da40 is a WORD
+ *    store of 0xffff (short = -1); the other two are BYTE-width immediate
+ *    stores, so those globals are single-byte flags.
+ *  - Unlike main_reset_map, there is no XOR AL,AL feeding the zero store:
+ *    each store carries its own immediate, so no shared zero register.
+ *  - Plain cdecl void(void): RET carries no immediate, and no register is
+ *    read before being written, so there are no implicit @<reg> inputs.
+ *
+ * Inferred:
+ *  - Same shape as main_reset_map / main_goto_main_menu (reset word_46DA40
+ *    to -1, clear byte_46DA28, arm one pending flag), so this is another
+ *    "request a main-loop transition" setter. 0x46da27 carries the
+ *    kb-registered name should_skip_cinematic, so the request armed here is
+ *    the cinematic skip.
+ *  - byte_46DA28 is the same save-attempt-resolved flag cleared by
+ *    main_reset_map, main_save_map_private and main_new_map.
+ *
+ * Uncertain:
+ *  - No string or assert evidence pins what word_46DA40 = -1 means beyond
+ *    "the sentinel written by every transition setter in this group", so it
+ *    keeps its mechanical kb-registered name.
+ */
+void main_skip_cinematic(void)
+{
+  word_46DA40 = -1;
+  byte_46DA28 = 0;
+  should_skip_cinematic = true;
+}
+
+/*
+ * main_save_map_nonsafe - 0x100300
+ *
+ * Confirmed:
+ *  - Whole body is 3 instructions, no frame, no CALLs, no FPU, no locals:
+ *      MOV byte ptr [0x0046da28],0x1
+ *      MOV byte ptr [0x0046da29],0x0
+ *      RET
+ *  - Both stores are BYTE-width immediates (MOV byte ptr, imm8), so both
+ *    globals are single-byte flags; neither is widened here.
+ *  - Each store carries its own immediate; there is no shared zero register
+ *    (no XOR AL,AL), so the two stores are independent.
+ *  - Store order is 0x46da28 then 0x46da29, preserved literally below.
+ *  - Plain cdecl void(void): RET carries no immediate, and no register is
+ *    read before being written, so there are no implicit @<reg> inputs.
+ *
+ * Inferred:
+ *  - byte_46DA28 is the save-request flag also touched by main_reset_map,
+ *    main_skip_cinematic, main_new_map and main_save_map_private; every
+ *    other setter in this group CLEARS it, and this one is the only observed
+ *    site that SETS it, so this is the arm side of that request.
+ *  - 0x46da29 is the save-in-progress / pending flag that
+ *    main_save_map_private (0x100eb0) tests: when it is zero the game is not
+ *    in a pending safe-save state and main_save_map_private takes the arm
+ *    path. Clearing it here therefore arms the request WITHOUT the pending
+ *    bit, matching the kb-registered name main_save_map_nonsafe.
+ *
+ * Uncertain:
+ *  - The sibling at 0x100330 (main_save_map_safe, unported) is expected to
+ *    be the same two stores with 0x46da29 = 1, but that is not verified here.
+ *  - 0x46da29 has no kb-registered name yet, so it keeps its raw address
+ *    form, the same idiom main_save_map_private uses.
+ */
+void main_save_map_nonsafe(void)
+{
+  byte_46DA28 = 1;
+  *(uint8_t *)0x46da29 = 0;
+}
+
+/*
+ * main_saving_map - 0x100310
+ *
+ * Confirmed:
+ *  - Whole body is 2 instructions / 6 bytes, no frame, no CALLs, no FPU:
+ *      00100310  a0 28 da 46 00   MOV AL,byte ptr [0x0046da28]
+ *      00100315  c3               RET
+ *    (verified byte-for-byte against the pristine cachebeta.xbe, not just
+ *    the Ghidra listing).
+ *  - The load is an 8-bit MOV AL, NOT a MOVZX/MOVSX, so the upper 24 bits of
+ *    EAX are left untouched. The return value is therefore a single byte in
+ *    AL, which is why the C prototype must return bool/char and not int --
+ *    an int return would make the compiler widen the load and diverge.
+ *  - Ghidra decompiles this as an empty `void` body ONLY because the kb.json
+ *    decl declared `void`; the return value is real and lives in AL.
+ *  - Plain cdecl: RET carries no immediate, and no register is read before
+ *    being written, so there are no implicit @<reg> inputs.
+ *
+ * Inferred:
+ *  - byte_46DA28 is the save-request flag written by the surrounding group:
+ *    main_save_map_nonsafe (0x100300) SETS it, while main_reset_map,
+ *    main_revert_map, main_skip_cinematic, FUN_00100380 and main_new_map all
+ *    CLEAR it. This function is the read side of that same flag, which
+ *    matches the kb-registered name main_saving_map -- i.e. "is a map save
+ *    currently requested/in progress".
+ *
+ * Uncertain:
+ *  - Ghidra reports zero callers. With a 6-byte body and a previously-`void`
+ *    decl this is more likely an under-resolved indirect/table reference than
+ *    genuinely dead code, so the function is lifted as-is rather than
+ *    simplified away on a dead-code assumption.
+ */
+bool main_saving_map(void)
+{
+  return byte_46DA28;
+}
+
+/*
+ * main_save_cancel - 0x100320
+ *
+ * Confirmed:
+ *  - Whole body is 2 instructions, no frame, no CALLs, no FPU, no locals:
+ *      00100320  MOV byte ptr [0x0046da28],0x0
+ *      00100327  RET
+ *  - The store is a BYTE-width immediate (MOV byte ptr, imm8), so 0x46da28
+ *    is a single-byte flag here as everywhere else in this group; it is not
+ *    widened to int/word.
+ *  - The immediate 0 is carried inline by the store. Unlike main_reset_map
+ *    (0x1002a0) there is no shared XOR AL,AL feeding a zero register, so the
+ *    single store is the entire function body.
+ *  - Plain cdecl void(void): RET carries no immediate, and no register is
+ *    read before being written, so there are no implicit @<reg> inputs and
+ *    no @<reg> callees.
+ *
+ * Inferred:
+ *  - byte_46DA28 is the save-request / save-attempt-resolved flag that
+ *    main_save_map_nonsafe (0x100300) SETS and that main_reset_map,
+ *    main_skip_cinematic, main_goto_main_menu, FUN_00100380,
+ *    main_save_map_private and main_new_map all CLEAR as part of a larger
+ *    transition. This function clears that flag and nothing else, which
+ *    matches the kb-registered name main_save_cancel: cancel the pending
+ *    save request without arming any other transition.
+ *
+ * Uncertain:
+ *  - Ghidra resolves no direct callers. As with main_saving_map (0x100310),
+ *    an 8-byte body with no xrefs is more likely an under-resolved
+ *    indirect/table reference than dead code, so it is lifted literally.
+ */
+void main_save_cancel(void)
+{
+  byte_46DA28 = 0;
+}
+
+/*
+ * main_save_map_safe - 0x100330
+ *
+ * Confirmed:
+ *  - Whole body is 13 instructions, no frame, no locals, no CALLs, no FPU,
+ *    plain cdecl void(void); RET carries no immediate and no register is read
+ *    before being written, so there are no implicit @<reg> inputs:
+ *      00100330  MOV AL,[0x0046da28]
+ *      00100335  XOR ECX,ECX
+ *      00100337  CMP AL,CL
+ *      00100339  JZ  0x00100343        ; byte_46DA28 == 0 -> arm
+ *      0010033b  CMP byte ptr [0x0046da2a],CL
+ *      00100341  JZ  0x00100367        ; 0x46da2a == 0 -> skip (RET)
+ *      00100343  MOV AL,0x1
+ *      00100345  MOV [0x0046da28],AL
+ *      0010034a  MOV [0x0046da29],AL
+ *      0010034f  MOV [0x0046da2a],AL
+ *      00100354  MOV dword ptr [0x0046da2c],ECX
+ *      0010035a  MOV dword ptr [0x0046da30],ECX
+ *      00100360  MOV word  ptr [0x0046da38],CX
+ *      00100367  RET
+ *  - STORE WIDTHS ARE MIXED and are taken from the disassembly, not from the
+ *    decompiler (which prints every zero store as a bare `0`):
+ *    0x46da28/29/2a are BYTE (MOV reg8), 0x46da2c and 0x46da30 are DWORD
+ *    (MOV dword ptr), and 0x46da38 is WORD (MOV word ptr, CX). Writing
+ *    0x46da38 as a dword would additionally clobber 0x46da3a.
+ *  - One `MOV AL,1` feeds all three byte-1 stores and one `XOR ECX,ECX` feeds
+ *    all three zero stores, so the store order 28, 29, 2a, 2c, 30, 38 is
+ *    preserved literally below.
+ *  - Branch sense: the first JZ jumps to the arm block when byte_46DA28 == 0;
+ *    the second JZ jumps to the RET when 0x46da2a == 0. The guard is
+ *    therefore an OR, taken as written with no inversion.
+ *
+ * Inferred:
+ *  - This is the SAFE counterpart of main_save_map_nonsafe (0x100300). That
+ *    one unconditionally sets byte_46DA28 = 1 and clears the pending byte
+ *    0x46da29; this one is guarded, SETS the pending byte, and additionally
+ *    resets the retry/cooldown/success counters that main_save_map_private
+ *    (0x100eb0, already ported) consumes: 0x46da2c cooldown, 0x46da30
+ *    total-ticks, 0x46da38 consecutive-success counter. Arming the request
+ *    with a clean counter set is what makes the save "safe".
+ *  - The guard re-arms when no save is currently requested (byte_46DA28 == 0)
+ *    or when the secondary flag 0x46da2a is already set; a request that is
+ *    pending without that flag is left untouched.
+ *
+ * Uncertain:
+ *  - 0x46da29, 0x46da2a, 0x46da2c, 0x46da30 and 0x46da38 have no
+ *    kb-registered names, so they keep the raw-address idiom already used by
+ *    main_save_map_nonsafe and main_save_map_private in this TU.
+ *  - The precise meaning of the secondary flag 0x46da2a is not established
+ *    here; main_save_map_private only tests it once the retry counter has
+ *    exceeded 0xef ticks.
+ */
+void main_save_map_safe(void)
+{
+  if (byte_46DA28 == 0 || *(uint8_t *)0x46da2a != 0) {
+    byte_46DA28 = 1;
+    *(uint8_t *)0x46da29 = 1;
+    *(uint8_t *)0x46da2a = 1;
+    *(int32_t *)0x46da2c = 0;
+    *(int32_t *)0x46da30 = 0;
+    *(int16_t *)0x46da38 = 0;
+  }
+}
+
+/*
+ * main_won_map - 0x100370
+ *
+ * Confirmed:
+ *  - Whole body is 3 instructions, no frame, no locals, no CALLs, no FPU:
+ *      00100370  MOV byte ptr [0x0046da28],0x0
+ *      00100377  MOV byte ptr [0x0046da3a],0x1
+ *      0010037e  RET
+ *  - Both stores are BYTE-width immediates (MOV byte ptr, imm8), so both
+ *    globals are single-byte flags; neither is widened to int/word. This
+ *    matches their kb decls (char byte_46DA28, bool
+ *    main_won_map_private_pending).
+ *  - Store order is 0x46da28 first, then 0x46da3a; preserved literally.
+ *  - The two globals are 0x12 bytes apart, so they are distinct main_globals
+ *    flags, not two fields of one word.
+ *  - Plain cdecl void(void): the RET carries no immediate, and no register is
+ *    read before being written anywhere in the body, so there are no implicit
+ *    @<reg> inputs and no @<reg> callee contracts.
+ *
+ * Inferred:
+ *  - Setting main_won_map_private_pending arms main_won_map_private
+ *    (0x101040) to run on the next main-loop pass: the main loop tests
+ *    `if (main_won_map_private_pending) main_won_map_private();`, and
+ *    main_won_map_private clears the flag on entry. So this is the public
+ *    "request the won-map transition" entry point, deferring the actual work
+ *    by one loop iteration.
+ *  - Clearing byte_46DA28 cancels any pending save request first, the same
+ *    prologue used by main_save_cancel, FUN_00100380 and main_new_map.
+ *
+ * Uncertain:
+ *  - Ghidra resolves no direct callers. A 15-byte body with no xrefs is more
+ *    likely an under-resolved indirect/table reference (script/HS command
+ *    table) than dead code, so it is lifted literally.
+ */
+void main_won_map(void)
+{
+  byte_46DA28 = 0;
+  main_won_map_private_pending = 1;
+}
+
+/*
+ * FUN_00100380 - 0x100380
+ *
+ * Confirmed:
+ *  - Whole body is 3 instructions, no frame, no CALLs, no FPU:
+ *      MOV byte ptr [0x0046da28],0x0
+ *      MOV byte ptr [0x0046da3b],0x1
+ *      RET
+ *  - Both stores are BYTE-width immediates (MOV byte ptr, imm8), so both
+ *    globals are single-byte flags, not int/word.
+ *  - The two globals are 0x13 bytes apart, so they are distinct main_globals
+ *    flags, not adjacent fields of one word.
+ *  - Plain cdecl void(void): RET carries no immediate, no register is read
+ *    before being written, so there are no implicit @<reg> inputs.
+ *
+ * Inferred:
+ *  - Same shape as main_goto_main_menu (clear byte_46DA28, arm a pending
+ *    flag), so this is one of the "request a main-loop transition" setters.
+ *    byte_46DA28 is the save-attempt-resolved flag also cleared by
+ *    main_save_map_private and main_new_map; byte_46DA3B is one of the
+ *    main_globals pending flags that main_new_map clears in the same block.
+ *
+ * Uncertain:
+ *  - No string, assert, or caller evidence in the binary for what transition
+ *    byte_46DA3B requests, so the function keeps its mechanical FUN_ name and
+ *    the globals keep their kb-registered byte_46DAxx names.
+ */
+void FUN_00100380(void)
+{
+  byte_46DA28 = 0;
+  byte_46DA3B = 1;
+}
+
+/*
+ * main_respawn - 0x100390
+ *
+ * Confirmed:
+ *  - Whole body is 9 instructions, EBP frame, no locals, no CALLs, no FPU:
+ *      00100390  PUSH EBP
+ *      00100391  MOV EBP,ESP
+ *      00100393  MOV AL,byte ptr [EBP+0x8]
+ *      00100396  TEST AL,AL
+ *      00100398  MOV byte ptr [0x0046da3c],0x1
+ *      0010039f  JZ 0x001003aa
+ *      001003a1  MOV word ptr [0x0046da4e],0x5b
+ *      001003aa  POP EBP
+ *      001003ab  RET
+ *  - Takes ONE stack argument at [EBP+0x8], loaded with a plain 1-byte
+ *    `MOV AL,byte ptr` — no MOVSX/MOVZX widening — so the parameter is a
+ *    single byte (char), not an int. The prior kb decl
+ *    `void main_respawn(void);` was wrong and is corrected by this lift;
+ *    Ghidra rendered the argument as the synthetic `in_stack_00000004`
+ *    only because the empty decl told it there were no parameters.
+ *  - Plain RET with no immediate => cdecl, caller cleans the stack.
+ *  - No register is read before being written, so there are no implicit
+ *    @<reg> inputs and no @<reg> callee contracts.
+ *  - Store WIDTHS differ and are preserved literally:
+ *      0x46da3c is `MOV byte ptr`, imm8 1        -> char byte_46DA3C
+ *      0x46da4e is `MOV word ptr`, imm16 0x5b    -> short word_46DA4E
+ *    Declaring either as int would emit a 32-bit store and mismatch.
+ *  - The byte store to 0x46da3c is UNCONDITIONAL: MSVC scheduled it into the
+ *    gap between the TEST and the JZ, but it is on both paths, so in source
+ *    order it precedes the `if`. Only the word store is guarded.
+ *  - Branch sense: JZ skips the word store, so the guard is `arg != 0`.
+ *
+ * Inferred:
+ *  - Same "arm a pending main-loop transition flag" shape as main_won_map
+ *    (0x100370) and FUN_00100380 (0x100380): byte_46DA3C is one more of the
+ *    contiguous main_globals pending-request bytes (0x46da3a, 0x46da3b,
+ *    0x46da3c are consecutive), set here and presumably cleared by the
+ *    corresponding main-loop handler on entry.
+ *  - The parameter selects a variant of the respawn request rather than
+ *    supplying data: it only gates whether word_46DA4E is overwritten.
+ *
+ * Uncertain:
+ *  - 0x5b (91) is written as a bare 16-bit immediate with no accompanying
+ *    string, assert, or table reference in the binary, so there is no
+ *    evidence for what it enumerates. It is kept as a magic literal rather
+ *    than given a speculative name.
+ *  - word_46DA4E is 0x12 bytes away from byte_46DA3C, so the two are
+ *    distinct main_globals slots, not fields of one record; but nothing in
+ *    this function reveals what word_46DA4E means.
+ *  - The parameter keeps a mechanical name: the binary shows only that it is
+ *    a byte tested against zero, not what it selects.
+ */
+void main_respawn(char reset_flag)
+{
+  byte_46DA3C = 1;
+  if (reset_flag != 0) {
+    word_46DA4E = 0x5b;
+  }
+}
+
+/*
+ * main_save_core - 0x1003b0
+ *
+ * Confirmed:
+ *  - Whole body is 6 instructions, no frame, no locals, no _chkstk, no FPU:
+ *      001003b0  PUSH 0x28b198                  ; -> "core.bin"
+ *      001003b5  PUSH 0x46dd55                  ; -> core_name
+ *      001003ba  MOV byte ptr [0x0046da3d],0x1
+ *      001003c1  CALL 0x0008dff0                ; csstrcpy
+ *      001003c6  ADD ESP,0x8
+ *      001003c9  RET
+ *  - Plain RET with no immediate and no [EBP+N] reads => void(void), cdecl.
+ *  - `ADD ESP,0x8` after the CALL confirms two stack args and matches the
+ *    kb decl `char *csstrcpy(char *destination, const char *source)`.
+ *    cdecl push order: the FIRST push (0x28b198, the string) is the LAST
+ *    argument (source); the SECOND push (0x46dd55) is the destination.
+ *  - The flag store is `MOV byte ptr ... ,1`, an 8-bit store.
+ *    game_state_save_core_pending is declared `bool` (unsigned char), so the
+ *    store stays one byte; widening it to int/short would emit a dword/word
+ *    store and mismatch.
+ *  - MSVC scheduled the flag store between the argument pushes and the CALL,
+ *    but it is unconditional and independent of the call, so source order is
+ *    flag-then-call.
+ *  - No register is read before being written => no implicit @<reg> inputs
+ *    and no @<reg> callee contract.
+ *  - csstrcpy's return value (EAX) is not consumed by anything after the
+ *    CALL, so it is discarded here, matching the void return.
+ *
+ * Inferred:
+ *  - Arms a deferred core-dump request: the flag at 0x46da3d is the sibling
+ *    of game_state_load_core_pending (0x46da3e) in the same contiguous run of
+ *    main_globals pending-request bytes, and main_reset_map's cleanup block
+ *    clears 0x46da3d alongside the other pending flags. The actual dump is
+ *    therefore performed later by the main-loop handler that consumes the
+ *    flag, not here.
+ *  - core_name (0x46dd55) is the filename buffer that handler reads.
+ *
+ * Uncertain:
+ *  - The size of the core_name buffer is not observable from this function
+ *    (csstrcpy is unbounded), so it stays an incomplete `char[]` as declared
+ *    in kb.json rather than being given an invented bound.
+ */
+void main_save_core(void)
+{
+  game_state_save_core_pending = 1;
+  csstrcpy(core_name, "core.bin");
+}
+
+/*
+ * main_save_core_name - 0x1003d0
+ *
+ * Arms a deferred core dump using a caller-supplied file name, warning (but
+ * not halting) when the name will not fit in the core_name buffer.
+ *
+ * Confirmed:
+ *  - 23 instructions, no locals, no _chkstk, no FPU, no SEH:
+ *      001003d0  PUSH EBP / MOV EBP,ESP / PUSH ESI
+ *      001003d4  MOV ESI,dword ptr [EBP+0x8]      ; the single stack argument
+ *      001003d7  PUSH ESI / CALL 0x8df60 / ADD ESP,0x4          ; csstrlen
+ *      001003e0  CMP EAX,0x40 / JC 0x1003fe
+ *      001003e5  PUSH 0x0 / PUSH 0x3a5 / PUSH 0x28b0b4 / PUSH 0x28b1a4
+ *      001003f6  CALL 0x8d9f0 / ADD ESP,0x10                    ;
+ * display_assert 001003fe  PUSH 0x3f / PUSH ESI / PUSH 0x46dd55 00100406  CALL
+ * 0x8de70 / ADD ESP,0xc                     ; csstrncpy 0010040e  MOV byte ptr
+ * [0x0046da3d],0x1 00100415  POP ESI / POP EBP / RET
+ *  - One stack parameter, cdecl: ESI is written from [EBP+8] before any read
+ *    of it, and the terminator is a plain RET with no immediate. This is NOT
+ *    the `void(void)` that kb.json previously declared. The sole original
+ *    call site confirms the single argument: 0x000c27ac loads EDX from a
+ *    returned pointer, 0x000c27ae pushes it, 0x000c27af calls 0x1003d0, and
+ *    that argument's cleanup is folded into the ADD ESP,0xc at 0x000c27bc
+ *    which also covers the two arguments of the following call.
+ *  - ESI is callee-saved (PUSH/POP) and carries the argument across all three
+ *    calls, so there is no implicit register input and no @<reg> callee
+ *    contract; every callee is pure stack cdecl (ADD ESP,0x4 / 0x10 / 0xc).
+ *  - `CMP EAX,0x40; JC` is an unsigned-below test, so the length is compared
+ *    as unsigned and the warning fires for length >= 0x40. A signed compare
+ *    would have emitted JL.
+ *  - Warning flavor of assert: halt is 0 (PUSH 0x0) and no system_exit tail
+ *    follows the call, so execution falls through into the truncating copy.
+ *    Reason "warning, core file name will be truncated to 63 characters",
+ *    file "c:\halo\SOURCE\main\main.c", line 0x3a5.
+ *  - The copy bound is 0x3f, i.e. 63 characters plus the NUL csstrncpy adds.
+ *  - The flag store is an 8-bit MOV byte ptr [0x46da3d],1, matching the
+ *    `bool` declaration of game_state_save_core_pending; widening it would
+ *    emit a dword store.
+ *
+ * Inferred:
+ *  - MSVC scheduled the flag store after the csstrncpy call here, whereas in
+ *    the sibling main_save_core (0x1003b0) it scheduled the same store before
+ *    the copy call. The store is unconditional and independent of the copy in
+ *    both, so this is instruction scheduling rather than a semantic
+ *    difference; source order here follows the emitted order.
+ *  - csstrncpy's return value (EAX) is not consumed, matching the void return.
+ *
+ * Uncertain:
+ *  - core_name stays an incomplete `char[]` as declared in kb.json; the 0x3f
+ *    bound proves at least 64 bytes are addressable, not the true size.
+ */
+void main_save_core_name(const char *name)
+{
+  if ((unsigned int)csstrlen(name) >= 0x40) {
+    display_assert("warning, core file name will be truncated to 63 characters",
+                   "c:\\halo\\SOURCE\\main\\main.c", 0x3a5, 0);
+  }
+  csstrncpy(core_name, name, 0x3f);
+  game_state_save_core_pending = 1;
+}
+
+/*
+ * main_load_core - 0x100420
+ *
+ * Arms a deferred core-image load from the default file name "core.bin". The
+ * exact load counterpart of main_save_core (0x1003b0): same string, same
+ * destination buffer, only the pending flag differs.
+ *
+ * Confirmed:
+ *  - Whole body is 6 instructions, no frame (no PUSH EBP), no locals, no
+ *    _chkstk, no FPU, no SEH:
+ *      00100420  PUSH 0x28b198                  ; -> "core.bin"
+ *      00100425  PUSH 0x46dd55                  ; -> core_name
+ *      0010042a  MOV byte ptr [0x0046da3e],0x1
+ *      00100431  CALL 0x0008dff0                ; csstrcpy
+ *      00100436  ADD ESP,0x8
+ *      00100439  RET
+ *  - Plain RET with no immediate, and no [EBP+N] read anywhere, so this is
+ *    void(void), cdecl. Nothing is read before being written, so there are no
+ *    implicit @<reg> inputs and no @<reg> callee contract.
+ *  - `ADD ESP,0x8` after the CALL confirms two stack args, matching the kb
+ *    decl `char *csstrcpy(char *destination, const char *source)`. cdecl push
+ *    order: the FIRST push (0x28b198, the string) is the LAST argument
+ *    (source); the SECOND push (0x46dd55) is the destination. So this is
+ *    csstrcpy(dst=core_name, src="core.bin"), not the reverse.
+ *  - The flag store is `MOV byte ptr ...,1`, an 8-bit store.
+ *    game_state_load_core_pending is declared `bool` (unsigned char), so the
+ *    store stays one byte; widening it to short/int would emit a word/dword
+ *    store and mismatch.
+ *  - MSVC scheduled the flag store between the two argument pushes and the
+ *    CALL. The store is unconditional and independent of the call in both
+ *    directions, so source order is flag-then-call, exactly as in the sibling
+ *    main_save_core.
+ *  - csstrcpy's return value (EAX) is not consumed after the CALL, so it is
+ *    discarded, matching the void return.
+ *
+ * Inferred:
+ *  - The flag at 0x46da3e is the load sibling of game_state_save_core_pending
+ *    (0x46da3d) in the same contiguous run of main_globals pending-request
+ *    bytes; main_reset_map's cleanup clears both. The actual load is performed
+ *    later by the main-loop handler that consumes the flag, not here.
+ *
+ * Uncertain:
+ *  - The size of the core_name buffer is not observable from this function
+ *    (csstrcpy is unbounded), so it stays an incomplete `char[]` as declared
+ *    in kb.json rather than being given an invented bound.
+ */
+void main_load_core(void)
+{
+  game_state_load_core_pending = 1;
+  csstrcpy(core_name, "core.bin");
+}
+
+/*
+ * main_load_core_at_startup - 0x100440
+ *
+ * Arms a core-image load from the default file name "core.bin" to be honoured
+ * at the next map reset rather than immediately. The deferred-until-startup
+ * counterpart of main_load_core (0x100420): same string, same destination
+ * buffer, only the pending flag byte differs.
+ *
+ * Confirmed:
+ *  - Whole body is 6 instructions, no frame (no PUSH EBP), no locals, no
+ *    _chkstk, no FPU, no SEH:
+ *      00100440  PUSH 0x28b198                  ; -> "core.bin"
+ *      00100445  PUSH 0x46dd55                  ; -> core_name
+ *      0010044a  MOV byte ptr [0x0046da3f],0x1
+ *      00100451  CALL 0x0008dff0                ; csstrcpy
+ *      00100456  ADD ESP,0x8
+ *      00100459  RET
+ *  - Plain RET with no immediate and no [EBP+N] read anywhere, so this is
+ *    void(void), cdecl, matching the kb decl. No register is read before
+ *    being written, so there are no implicit @<reg> inputs and csstrcpy
+ *    carries no @<reg> contract (has_reg_args=false).
+ *  - `ADD ESP,0x8` after the CALL confirms two stack args, matching the kb
+ *    decl `char *csstrcpy(char *destination, const char *source)`. cdecl push
+ *    order: the FIRST push (0x28b198, the string) is the LAST argument
+ *    (source); the SECOND push (0x46dd55) is the destination. So this is
+ *    csstrcpy(dst=core_name, src="core.bin"), not the reverse.
+ *  - The flag store is `MOV byte ptr ...,1`, an 8-bit store, so the flag is
+ *    declared `bool` (unsigned char) and the store stays one byte; widening
+ *    it to short/int would emit a word/dword store and mismatch.
+ *  - The flag byte is 0x46da3f, distinct from game_state_load_core_pending
+ *    (0x46da3e) and from game_state_save_core_pending (0x46da3d).
+ *  - MSVC scheduled the flag store between the two argument pushes and the
+ *    CALL. The store is unconditional and independent of the call, so source
+ *    order is flag-then-call, exactly as in the siblings main_save_core and
+ *    main_load_core.
+ *  - csstrcpy's return value (EAX) is not consumed after the CALL, so it is
+ *    discarded, matching the void return.
+ *
+ * Inferred:
+ *  - 0x46da3f is the "load core once, at startup" request: main_reset_map
+ *    reads it into a temporary, clears it along with the other pending-request
+ *    bytes, then assigns that temporary to game_state_load_core_pending. So
+ *    setting it here promotes into the ordinary load-core request at the next
+ *    reset and then self-clears, which is why a separate byte exists at all.
+ *  - core_name (0x46dd55) is the filename buffer that handler reads.
+ *
+ * Uncertain:
+ *  - The size of the core_name buffer is not observable from this function
+ *    (csstrcpy is unbounded), so it stays an incomplete `char[]` as declared
+ *    in kb.json rather than being given an invented bound.
+ */
+void main_load_core_at_startup(void)
+{
+  game_state_load_core_at_startup_pending = 1;
+  csstrcpy(core_name, "core.bin");
+}
+
+/*
+ * main_load_core_name - 0x100460
+ *
+ * Arms a deferred core-image load from a caller-supplied file name, warning
+ * (but not halting) when the name will not fit in the core_name buffer. The
+ * exact load counterpart of main_save_core_name (0x1003d0): same length test,
+ * same warning text, same destination buffer and bound; only the pending flag
+ * byte and the assert line number differ.
+ *
+ * Confirmed:
+ *  - 24 instructions, no locals, no _chkstk, no FPU, no SEH, no struct access:
+ *      00100460  PUSH EBP / MOV EBP,ESP / PUSH ESI
+ *      00100464  MOV ESI,dword ptr [EBP+0x8]      ; the single stack argument
+ *      00100467  PUSH ESI / CALL 0x8df60 / ADD ESP,0x4          ; csstrlen
+ *      00100470  CMP EAX,0x40 / JC 0x10048e
+ *      00100475  PUSH 0x0 / PUSH 0x3c9 / PUSH 0x28b0b4 / PUSH 0x28b1a4
+ *      00100486  CALL 0x8d9f0 / ADD ESP,0x10                    ;
+ * display_assert 0010048e  PUSH 0x3f / PUSH ESI / PUSH 0x46dd55 00100496  CALL
+ * 0x8de70 / ADD ESP,0xc                     ; csstrncpy 0010049e  MOV byte ptr
+ * [0x0046da3e],0x1 001004a5  POP ESI / POP EBP / RET
+ *  - One stack parameter, cdecl: ESI is loaded from [EBP+8] before any read of
+ *    it, and the terminator is a plain RET with no immediate. This is NOT the
+ *    `void(void)` that kb.json previously declared; the decl is corrected as
+ *    part of this lift.
+ *  - ESI is callee-saved (PUSH/POP) and carries the argument across both
+ *    calls, so there is no implicit register input and no @<reg> callee
+ *    contract; every callee is pure stack cdecl and the cleanups (ADD ESP,0x4
+ *    / 0x10 / 0xc) match the kb decls' stack-arg counts exactly.
+ *  - `CMP EAX,0x40; JC` is an unsigned-below test, so the length is compared
+ *    as unsigned and the warning fires for length >= 0x40. A signed compare
+ *    would have emitted JL.
+ *  - Warning flavor of assert: halt is 0 (PUSH 0x0) and no system_exit tail
+ *    follows the call, so execution falls through into the truncating copy.
+ *    cdecl push order makes the FIRST push (0x0) the LAST argument (halt) and
+ *    the LAST push (0x28b1a4) the FIRST (reason). Reason "warning, core file
+ *    name will be truncated to 63 characters", file
+ *    "c:\halo\SOURCE\main\main.c", line 0x3c9.
+ *  - The copy bound is 0x3f, i.e. 63 characters plus the NUL csstrncpy adds.
+ *  - The flag store is an 8-bit MOV byte ptr [0x46da3e],1, matching the `bool`
+ *    declaration of game_state_load_core_pending; widening it to short/int
+ *    would emit a word/dword store and mismatch.
+ *  - csstrncpy's return value (EAX) is not consumed after the CALL, so it is
+ *    discarded, matching the void return.
+ *
+ * Inferred:
+ *  - MSVC scheduled the flag store after the csstrncpy call, as it did in the
+ *    sibling main_save_core_name (0x1003d0) and unlike main_load_core
+ *    (0x100420) where the same store precedes the copy call. The store is
+ *    unconditional and independent of the copy, so source order follows the
+ *    emitted order here.
+ *  - 0x46da3e is the deferred-load request byte that main_reset_map's cleanup
+ *    clears; the actual load is performed later by the main-loop handler that
+ *    consumes the flag, not here.
+ *
+ * Uncertain:
+ *  - core_name stays an incomplete `char[]` as declared in kb.json; the 0x3f
+ *    bound and the "63 characters" warning prove at least 64 bytes are
+ *    addressable, not the true size.
+ */
+void main_load_core_name(const char *name)
+{
+  if ((unsigned int)csstrlen(name) >= 0x40) {
+    display_assert("warning, core file name will be truncated to 63 characters",
+                   "c:\\halo\\SOURCE\\main\\main.c", 0x3c9, 0);
+  }
+  csstrncpy(core_name, name, 0x3f);
+  game_state_load_core_pending = 1;
+}
+
+/*
+ * main_load_core_name_at_startup - 0x1004b0
+ *
+ * Arms a deferred core-image load from a caller-supplied file name, to be
+ * performed at engine startup rather than at the next loop iteration. Byte for
+ * byte the same shape as main_load_core_name (0x100460); only the assert line
+ * number (0x3d7 vs 0x3c9) and the pending flag byte (0x46da3f vs 0x46da3e)
+ * differ.
+ *
+ * Confirmed:
+ *  - 72 bytes, 0x1004b0-0x1004f7, no locals, no _chkstk, no FPU, no SEH, no
+ *    struct access:
+ *      001004b0  PUSH EBP / MOV EBP,ESP / PUSH ESI
+ *      001004b4  MOV ESI,dword ptr [EBP+0x8]      ; the single stack argument
+ *      001004b7  PUSH ESI / CALL 0x8df60 / ADD ESP,0x4          ; csstrlen
+ *              CMP EAX,0x40 / JC                                ; unsigned
+ *              PUSH 0x0 / PUSH 0x3d7 / PUSH 0x28b0b4 / PUSH 0x28b1a4
+ *              CALL 0x8d9f0 / ADD ESP,0x10                    ; display_assert
+ *              PUSH 0x3f / PUSH ESI / PUSH 0x46dd55
+ *      001004e6  CALL 0x8de70 / ADD ESP,0xc                     ; csstrncpy
+ *      001004ee  MOV byte ptr [0x0046da3f],0x1
+ *              POP ESI / POP EBP / RET
+ *  - One stack parameter, cdecl: ESI is loaded from [EBP+8] before any read of
+ *    it and the terminator is a plain RET with no immediate. This is NOT the
+ *    `void(void)` that kb.json previously declared; the decl is corrected as
+ *    part of this lift. Ghidra's synthetic `in_stack_00000004` was the tell.
+ *  - ESI is callee-saved (PUSH/POP) and carries the argument across both
+ *    calls, so there is no implicit register input and no @<reg> callee
+ *    contract; every callee is pure stack cdecl and the cleanups (ADD ESP,0x4
+ *    / 0x10 / 0xc) match the kb decls' stack-arg counts exactly.
+ *  - `CMP EAX,0x40; JC` is an unsigned-below test, so the length is compared
+ *    as unsigned and the warning fires for length >= 0x40. A signed compare
+ *    would have emitted JL.
+ *  - Warning flavor of assert: halt is 0 (PUSH 0x0) and no system_exit tail
+ *    follows the call, so execution falls through into the truncating copy.
+ *    cdecl push order makes the FIRST push (0x0) the LAST argument (halt) and
+ *    the LAST push (0x28b1a4) the FIRST (reason). Line literal is 0x3d7 (983),
+ *    distinct from the 0x3c9 of main_load_core_name.
+ *  - csstrncpy argument order: the destination 0x46dd55 (core_name) is the LAST
+ *    push, the source is ESI (the argument), bound 0x3f.
+ *  - The flag store is an 8-bit MOV byte ptr [0x46da3f],1, so
+ *    game_state_load_core_at_startup_pending must stay a 1-byte type; widening
+ *    it would emit a word/dword store and mismatch.
+ *  - csstrncpy's return value (EAX) is not consumed after the CALL, so it is
+ *    discarded, matching the void return.
+ *
+ * Inferred:
+ *  - MSVC emitted the copy before the flag store here (0x1004e6 then
+ *    0x1004ee), the reverse of main_load_core_at_startup (0x100440) where the
+ *    same flag store precedes the copy. Both stores are unconditional and
+ *    independent of the copy, so source order follows the emitted order.
+ *  - 0x46da3f is the startup-deferred-load request byte that the main-loop
+ *    consumer copies to 0x46da3e and then clears; the load itself happens
+ *    there, not here.
+ *
+ * Uncertain:
+ *  - core_name stays an incomplete `char[]` as declared in kb.json; the 0x3f
+ *    bound and the "63 characters" warning prove at least 64 bytes are
+ *    addressable, not the true size.
+ */
+void main_load_core_name_at_startup(const char *name)
+{
+  if ((unsigned int)csstrlen(name) >= 0x40) {
+    display_assert("warning, core file name will be truncated to 63 characters",
+                   "c:\\halo\\SOURCE\\main\\main.c", 0x3d7, 0);
+  }
+  csstrncpy(core_name, name, 0x3f);
+  game_state_load_core_at_startup_pending = 1;
+}
+
+/*
+ * main_switch_structure_bsp - 0x100500
+ *
+ * Requests a switch to a different structure BSP of the currently loaded
+ * scenario. Validates the requested index against the scenario's
+ * structure-BSP count, rejects a switch to the BSP that is already current,
+ * then stashes the pending index in the main globals and reloads the HUD.
+ *
+ * Confirmed (disassembly; PUSH EBP / MOV EBP,ESP, no locals, no _chkstk,
+ * no SEH, no FPU):
+ *  - Single stack parameter at [EBP+0x8], read as `MOV CX,word ptr [EBP+8]`
+ *    -> 16-bit signed. Widened with MOVSX for the 32-bit count compare and
+ *    for the console_warning varargs slot. No register arguments.
+ *    check_arg_counts.py: 1 site (0xbdded), push=1, ADD ESP,4, conclusive.
+ *  - CALL 0x18e380 global_scenario_get() -> EAX, dereferenced without a NULL
+ *    check (unlike main_menu_precache_resources at 0x100640).
+ *  - TEST CX,CX / JL -> invalid path (negative index rejected).
+ *  - MOV ESI,[EAX+0x5a4]; MOVSX EDX,CX; CMP EDX,ESI; JGE -> invalid path.
+ *    ESI is push/pop scoped around the compare only (0x100511/0x10051d), so
+ *    it holds nothing that outlives the bounds check.
+ *  - CMP CX,word ptr [0x326a0c] -> 16-bit compare against the current
+ *    structure-BSP index (same global read as *(short *)0x326a0c in
+ *    src/halo/ai/actors.c:3571 and src/halo/ai/encounters.c:3188).
+ *    Equal -> PUSH EDX (already sign-extended) / PUSH 0x28b20c /
+ *    CALL console_warning / ADD ESP,8.
+ *  - Switch path: PUSH 1; MOV word ptr [0x46da40],CX; CALL 0xd0d50 hud_load;
+ *    ADD ESP,4. The constant is pushed before the store but it is hud_load's
+ *    only argument, so the call is hud_load(true).
+ *  - Invalid path (0x10054c): MOVSX EAX,CX; PUSH EAX; PUSH 0x28b1e0;
+ *    CALL console_warning; ADD ESP,8. cdecl push order: the format string is
+ *    pushed last, so it is the first argument.
+ *
+ * Inferred:
+ *  - Scenario offset 0x5a4 is the structure_bsps tag-block element count: it
+ *    is a 32-bit value used solely as the exclusive upper bound of a BSP
+ *    index. scenario_t in types.h is still capped at 0xF0 with a FIXME, so
+ *    this stays a raw offset deref rather than a struct field.
+ *  - word_46DA40 is the *pending* BSP index consumed elsewhere;
+ *    main_goto_main_menu (0x100620) writes -1 to the same 16-bit global.
+ *
+ * Uncertain:
+ *  - Whether hud_load's argument is semantically "reload" or some other
+ *    boolean; only the literal 1 is observed here (0x1003747 passes 0).
+ */
+void main_switch_structure_bsp(short bsp_index)
+{
+  scenario_t *scenario;
+
+  scenario = global_scenario_get();
+  if (bsp_index >= 0) {
+    /* 0x5a4 = scenario structure_bsps block element count (32-bit). */
+    if ((int)bsp_index < *(int *)((char *)scenario + 0x5a4)) {
+      if (bsp_index == global_structure_bsp_index) {
+        console_warning("tried to switch to current structure-bsp %d",
+                        (int)bsp_index);
+        return;
+      }
+      word_46DA40 = bsp_index;
+      hud_load(1);
+      return;
+    }
+  }
+  console_warning("tried to switch to invalid structure-bsp %d",
+                  (int)bsp_index);
+}
+
 void main_queue_map_name(char *map_name)
 {
   if (map_name != 0) {
@@ -366,6 +1336,32 @@ void main_menu_precache_resources(void)
 }
 
 /*
+ * main_menu_unload - 0x100690
+ *
+ * Tears down the main-menu scenario: stops the attract-mode/menu music,
+ * clears the UI's "main menu active" byte (0x46cc88, written by
+ * main_menu_active), and clears main_globals.main_menu_scenario_loaded
+ * (byte at 0x46da42).
+ *
+ * Confirmed (disassembly, 6 instructions, no frame, no locals):
+ *   CALL 0xe4640              -> ui_widget_stop_attract_mode()
+ *   PUSH 0 / CALL 0xe43d0 / ADD ESP,4 -> main_menu_active(false)
+ *   MOV byte ptr [0x46da42],0 -> main_globals.main_menu_scenario_loaded = 0
+ *
+ * Note: the byte store is 8-bit at +2 of the main_globals block; 0x46da40
+ * itself is a separate word field, so this must not be widened.
+ *
+ * This is the unload counterpart to main_menu_load (0x101fe0); the same
+ * three-step teardown appears inline in main_change_map_name (0x100c60).
+ */
+void main_menu_unload(void)
+{
+  ui_widget_stop_attract_mode();
+  main_menu_active(false);
+  main_globals.main_menu_scenario_loaded = 0;
+}
+
+/*
  * main_reset_player_actions - 0x1006b0
  *
  * Resets the player action queue state by deleting all pending updates,
@@ -389,6 +1385,350 @@ void main_reset_player_actions(void)
 bool main_change_map_name_in_progress(void)
 {
   return *(uint32_t *)0x46da34 != 0;
+}
+
+/*
+ * main_menu_switch_to_single_player - 0x1006d0
+ *
+ * Confirmed:
+ *  - Whole body is 2 instructions, no frame, no _chkstk, no locals, no
+ *    CALLs, no FPU, no struct access:
+ *      MOV byte ptr [0x0046da25],0x1
+ *      RET
+ *  - The store is BYTE width with immediate 1, so 0x46da25 is a single-byte
+ *    flag; it carries the kb-registered name main_change_map_name_pending.
+ *  - Plain cdecl void(void): RET carries no immediate, and no register is
+ *    read before being written, so there are no implicit @<reg> inputs and
+ *    no @<reg> callee contracts to honor.
+ *
+ * Inferred:
+ *  - Same family as main_reset_map / main_revert_map / main_skip_cinematic:
+ *    a "request a main-loop transition" setter that arms exactly one pending
+ *    flag. Unlike those, it does NOT reset word_46DA40 or clear
+ *    byte_46DA28 — only the one flag is armed.
+ *  - The armed flag is consumed by the main game loop, which calls
+ *    main_change_map_name() while it is set (see the pending-flag block in
+ *    main_loop_body) and clears it inside main_change_map_name.
+ *
+ * Uncertain:
+ *  - The kb global name (main_change_map_name_pending) does not obviously
+ *    match the function name (switch_to_single_player). Both names come from
+ *    separate evidence and neither is renamed here; the connection is
+ *    presumably that returning to single player is performed as a map-name
+ *    change, but there is no string or assert evidence pinning that.
+ */
+void main_menu_switch_to_single_player(void)
+{
+  main_change_map_name_pending = true;
+}
+
+/*
+ * main_set_game_connection_to_film_playback - 0x1006e0
+ *
+ * Confirmed:
+ *  - Whole body is 2 instructions, no frame, no _chkstk, no locals, no
+ *    CALLs, no FPU, no struct access:
+ *      001006e0  MOV byte ptr [0x0046da45],0x1
+ *      001006e7  RET
+ *  - The store is BYTE width with immediate 1, so 0x46da45 is a single-byte
+ *    flag; it carries the kb-registered name byte_46DA45.
+ *  - Plain cdecl void(void): RET carries no immediate, and no register is
+ *    read before being written, so there are no implicit @<reg> inputs and
+ *    no @<reg> callee contracts to honor.
+ *  - The same byte is read (not written) by main_setup_connection (0x100e10),
+ *    where a set flag forces the "error opening saved film" path and drops
+ *    back to the main menu. That is binary evidence tying this byte to film
+ *    playback, matching the kb-registered function name.
+ *
+ * Inferred:
+ *  - Same shape as main_menu_switch_to_single_player (0x1006d0): a one-byte
+ *    "arm a mode for the next connection setup" setter. Nothing else in the
+ *    body clears or resets neighbouring bytes.
+ *
+ * Uncertain:
+ *  - The neighbouring bytes 0x46da44 (xbox_demos_launch_pending) and
+ *    0x46da46 (byte_46DA46) may belong to the same small state block, but
+ *    nothing here proves that, so they are left as separate globals.
+ */
+void main_set_game_connection_to_film_playback(void)
+{
+  byte_46DA45 = 1;
+}
+
+/*
+ * main_get_solo_level_from_name - 0x1006f0
+ *
+ * Maps a campaign map name (e.g. "levels\\b30\\b30") to its 0-based solo
+ * level index, or -1 when the name matches none of the ten campaign levels.
+ *
+ * Confirmed:
+ *  - Prologue is PUSH EBP; MOV EBP,ESP; SUB ESP,0x80; PUSH EDI, so there is
+ *    exactly one 128-byte local at EBP-0x80 and no _chkstk. EDI is saved only
+ *    because of the inlined REP STOS below.
+ *  - The buffer is zeroed as MOV byte [EBP-0x80],0 followed by
+ *    XOR EAX,EAX; MOV ECX,0x1f; LEA EDI,[EBP-0x7f]; REP STOSD; STOSW; STOSB
+ *    (a separate first byte plus 127 zero bytes) - the exact MSVC lowering of
+ *    a `char buf[128] = ""` aggregate initializer, so that is the source form.
+ *  - Prologue reads MOV EAX,dword ptr [EBP+0x8]: one cdecl stack parameter,
+ *    the map name. No register is read before being written, so there are no
+ *    implicit @<reg> inputs.
+ *  - 0x100717 pushes 0x7f, then EAX (the parameter), then LEA ECX,[EBP-0x80]:
+ *    csstrncpy(buf, name, 0x7f). MOV byte [EBP-1],0 then forces buf[127] = 0
+ *    AFTER the copy and BEFORE the fold, so the ordering here is the original
+ *    ordering. Only 0x7f bytes are ever copied - not sizeof(buf).
+ *  - 0x100724 calls csstr_tolower(buf) with a single argument. The first three
+ *    calls share one ADD ESP,0x18 at 0x100737 (3 + 1 + 2 dwords of arguments);
+ *    that merged cleanup is not evidence of a six-argument call.
+ *  - Each test is PUSH <needle>; PUSH buf; CALL 0x1d9690; ADD ESP,8, i.e.
+ *    crt_strstr(haystack, needle) with the buffer first.
+ *  - Every exit sets EAX before MOV ESP,EBP; POP EBP; RET, so the return type
+ *    is a 32-bit integer even though Ghidra reports void (lift-learnings §16).
+ *    Matching blocks fall through to XOR EAX,EAX / MOV EAX,imm.
+ *  - The last test ends NEG EAX; SBB EAX,EAX; AND EAX,0xa; DEC EAX, which is
+ *    the MSVC lowering of `matched ? 9 : -1`; VC71 regenerates the idiom from
+ *    the ternary, so it is written as a plain conditional here.
+ *  - The needle strings live at 0x284870..0x284a8f in DESCENDING test order:
+ *    0x284a8c "a10", 0x284a50 "a30", 0x284a14 "a50", 0x2849d8 "b30",
+ *    0x28499c "b40", 0x284960 "c10", 0x284924 "c20", 0x2848e8 "c40",
+ *    0x2848ac "d20", 0x284870 "d40". The test order below is therefore
+ *    a10..d40 mapping to indices 0..9.
+ *  - No FPU operations, no struct access.
+ *
+ * Inferred:
+ *  - The result is a campaign level ordinal: the three call sites in this file
+ *    use it to index saved-profile level records and to pick the next level,
+ *    and 10 is the campaign level count.
+ *
+ * Uncertain:
+ *  - Each needle is a 4-byte level name immediately followed by a
+ *    "ui\\shell\\solo_game\\player_help\\player_help_screen_<lvl>" path, which
+ *    looks like an adjacent table of {level name, help-screen path} pairs. This
+ *    function only ever reads the name field, so the table's shape (and whether
+ *    the original indexed it rather than testing inline) is left unknown; the
+ *    straight-line CALL sequence in the binary is transcribed literally.
+ */
+long main_get_solo_level_from_name(const char *name)
+{
+  char buf[128];
+
+  /* the `char buf[128] = ""` initializer, written out: buf[0] stored on its
+   * own, then 127 zero bytes via the inline REP STOSD at 0x1006fd */
+  buf[0] = 0;
+  main_zero_bytes(buf + 1, 0x7f);
+
+  csstrncpy(buf, name, 0x7f);
+  buf[127] = 0;
+  csstr_tolower(buf);
+
+  if (crt_strstr(buf, "a10") != NULL) {
+    return 0;
+  }
+  if (crt_strstr(buf, "a30") != NULL) {
+    return 1;
+  }
+  if (crt_strstr(buf, "a50") != NULL) {
+    return 2;
+  }
+  if (crt_strstr(buf, "b30") != NULL) {
+    return 3;
+  }
+  if (crt_strstr(buf, "b40") != NULL) {
+    return 4;
+  }
+  if (crt_strstr(buf, "c10") != NULL) {
+    return 5;
+  }
+  if (crt_strstr(buf, "c20") != NULL) {
+    return 6;
+  }
+  if (crt_strstr(buf, "c40") != NULL) {
+    return 7;
+  }
+  if (crt_strstr(buf, "d20") != NULL) {
+    return 8;
+  }
+  return crt_strstr(buf, "d40") != NULL ? 9 : -1;
+}
+
+/*
+ * main_get_current_solo_level - 0x100860
+ *
+ * Returns the solo (campaign) level index of the currently loaded map, or -1
+ * when the map name is not one of the ten campaign levels.
+ *
+ * Confirmed:
+ *  - The whole body is four instructions with no frame at all (no PUSH EBP,
+ *    no _chkstk, no locals):
+ *      PUSH 0x46da55 / CALL 0x1006f0 / ADD ESP,0x4 / RET
+ *    The ADD ESP,0x4 proves cdecl with exactly one stack argument, and the
+ *    bare RET proves this function itself takes none.
+ *  - Nothing is read before being written, so there is no implicit @<reg>
+ *    input contract; the callee has none either.
+ *  - Execution falls straight out of the CALL with the callee's EAX still
+ *    live and no XOR EAX,EAX after it: this forwards
+ *    main_get_solo_level_from_name's `long` result. The kb.json decl
+ *    previously said `void`, which is the void-EAX implicit-return hazard
+ *    (lift-learnings section 16) -- a `void` body would only appear to work by
+ *    accident of the return register, so the decl is corrected to `long`.
+ *
+ * Inferred:
+ *  - 0x46da55 is passed as a direct PUSH imm32, so the original did not route
+ *    through the main_get_map_name accessor (that would add a CALL). The raw
+ *    cast is used for the same reason documented at main_get_map_name above:
+ *    the kb.json global `char map_name[255]` is emitted __declspec(dllimport),
+ *    and &map_name would lower to an indirect __imp_ load instead of an
+ *    immediate. */
+long main_get_current_solo_level(void)
+{
+  return main_get_solo_level_from_name((const char *)0x46da55);
+}
+
+/* The ten campaign level name/path strings, indexed by solo level index.
+ * Element [0] is "levels\\a10\\a10", already dereferenced as *(char **)0x31fa9c
+ * by main_load_last_solo_map below.
+ *
+ * Addressed through a raw cast rather than a kb.json global because a kb.json
+ * global is emitted __declspec(dllimport), and an indexed load through it
+ * would lower to an indirect __imp_ load instead of the original's direct
+ * MOV EAX,[EAX*4 + 0x31fa9c] (same reason as main_get_map_name above). */
+#define SOLO_LEVEL_NAMES ((const char **)0x31fa9c)
+/* Unsigned: the original's upper bound is CMP CX,0xA / JNC, an unsigned
+ * above-or-equal, so the count's type makes the comparison unsigned (the
+ * Bungie NUMBEROF/sizeof idiom yields size_t). A signed 10 lowers to JGE. */
+#define NUMBER_OF_SOLO_LEVELS 10u
+
+/*
+ * main_get_solo_level_name - 0x100870
+ *
+ * Returns the campaign map name/path for a solo level index, or NULL when the
+ * index falls outside 0..9. Inverse of main_get_solo_level_from_name above.
+ *
+ * Confirmed:
+ *  - Frame is PUSH EBP; MOV EBP,ESP with no local space and no saved
+ *    registers, and RET carries no immediate: one cdecl stack argument,
+ *    caller-cleaned, no implicit @<reg> inputs.
+ *  - The argument is read as MOV CX,word ptr [EBP+8] -- a 16-bit load with no
+ *    widening at all -- so the parameter is 16 bits wide, not int.
+ *  - XOR EAX,EAX at 0x100877 runs BEFORE both bounds tests, and both failing
+ *    tests jump to the shared POP EBP; RET at 0x10088e. That is a single
+ *    result local pre-set to NULL with the success store inside one if, not a
+ *    pair of early returns.
+ *  - The bounds pair is TEST CX,CX / JL (signed, catches negative) followed by
+ *    CMP CX,0xA / JNC (unsigned, catches >= 10): the MSVC lowering of
+ *    0 <= index && index < 10 once non-negativity has been established.
+ *  - MOVSX EAX,CX sign-extends the index before MOV EAX,[EAX*4 + 0x31fa9c],
+ *    so the table is ten 4-byte pointers based at 0x31fa9c.
+ *
+ * Inferred:
+ *  - The element type is a string pointer rather than some other 4-byte datum:
+ *    main_get_solo_level_from_name maps exactly ten level-name strings back to
+ *    indices 0..9, and 0x31fa9c[0] is consumed as a map path.
+ *
+ * Note: Ghidra decompiles this as `void FUN_00100870(void) { return; }`,
+ * missing both the stack parameter and the implicit EAX return
+ * (lift-learnings section 16). The disassembly is the only usable evidence.
+ */
+const char *main_get_solo_level_name(int16_t level_index)
+{
+  const char *name = NULL;
+
+  if (level_index >= 0 && level_index < NUMBER_OF_SOLO_LEVELS) {
+    name = SOLO_LEVEL_NAMES[level_index];
+  }
+
+  return name;
+}
+
+/*
+ * main_run_demos - 0x100890
+ *
+ * Confirmed:
+ *  - Whole body is 2 instructions, no frame, no _chkstk, no locals, no
+ *    CALLs, no FPU, no struct access:
+ *      00100890  MOV byte ptr [0x0046da44],0x1
+ *      00100897  RET
+ *  - The store is BYTE width with immediate 1 (delinked reference shows
+ *    `movb $0x1, DAT_0046da44`), so 0x46da44 is a single-byte flag; it
+ *    carries the kb-registered name xbox_demos_launch_pending.
+ *  - Plain cdecl void(void): RET carries no immediate, and no register is
+ *    read before being written, so there are no implicit @<reg> inputs and
+ *    no @<reg> callee contracts to honor.
+ *  - The same byte is read and cleared by the main loop's pending-flag
+ *    dispatch (main_loop, 0x1010c0 region): a set flag clears itself and
+ *    then calls xbox_demos_launch. So this function only arms the launch;
+ *    it deliberately does not clear the flag or call anything.
+ *
+ * Inferred:
+ *  - Same shape as main_set_game_connection_to_film_playback (0x1006e0) and
+ *    main_menu_switch_to_single_player (0x1006d0): a one-byte "arm this mode
+ *    for the next main-loop iteration" setter.
+ *
+ * Uncertain:
+ *  - The neighbouring bytes 0x46da45 (byte_46DA45, film playback) and
+ *    0x46da46 (byte_46DA46) may belong to the same small state block, but
+ *    nothing here proves that, so they are left as separate globals. The
+ *    store must stay BYTE width for that reason.
+ */
+void main_run_demos(void)
+{
+  xbox_demos_launch_pending = 1;
+}
+
+/*
+ * compute_split_screen_grid - 0x1008a0
+ *
+ * Finds the smallest grid (horizontal x vertical) whose cell count is at
+ * least num_players: the horizontal count grows while it trails the vertical
+ * count, otherwise it resets to 1 and the vertical count grows. The result is
+ * therefore always horizontal <= vertical.
+ *
+ * num_players arrives in EBX; the two counts are returned through the stack
+ * pointer arguments at [EBP+8] and [EBP+0xC].
+ *
+ * Confirmed:
+ *  - EBX is read before it is written anywhere in the body (TEST EBX,EBX at
+ *    0x1008a3 is its first use) and is never modified, so it is a register
+ *    argument, not a local.
+ *  - Assert reason "num_players>0", file "c:\\halo\\SOURCE\\main\\main.c",
+ *    line 0x51c; the tail is PUSH -0x1 / CALL 0x8e2f0 = system_exit(-1),
+ *    i.e. the assert_halt flavor (Ghidra renders the tail as
+ *    thunk_FUN_001029a0, which is misleading).
+ *  - The loop product is computed as vertical * horizontal
+ *    (MOV EAX,EDI then IMUL EAX,ESI), and the loop is bottom-tested.
+ *  - Frame is PUSH EBP / MOV EBP,ESP / PUSH ESI / PUSH EDI with no local
+ *    space: the horizontal count lives in ESI, the vertical count in EDI.
+ *  - RET carries no immediate, so the stack arguments are cdecl.
+ *
+ * Inferred:
+ *  - The name is behavioral only. No PDB entry or string names the function
+ *    itself; the assert string only proves the register argument is a player
+ *    count.
+ *
+ * Note: the original binary also contains this logic inlined into
+ * compute_window_bounds (0x100910), so that copy is deliberately left in
+ * place rather than replaced by a call here.
+ */
+void compute_split_screen_grid(int num_players, int *out_horizontal_count,
+                               int *out_vertical_count)
+{
+  int h = 1;
+  int v = 1;
+
+  assert_halt(num_players > 0);
+
+  if (num_players > 1) {
+    do {
+      if (h < v) {
+        h++;
+      } else {
+        h = 1;
+        v++;
+      }
+    } while (v * h < num_players);
+  }
+
+  *out_horizontal_count = h;
+  *out_vertical_count = v;
 }
 
 /*
@@ -837,7 +2177,8 @@ void main_save_map_private(void)
   if (*(uint8_t *)0x46da29 == 0) {
     /* Not in a pending-save state: only fire if debug_game_save forces it. */
     if (debug_game_save) {
-      ((void (*)(int, const char *, ...))0xff4d0)(0, "unsafe save");
+      ((void (*)(int, const char *, ...))0xff4d0)(
+        0, "unsafe save"); /* hazard-ok: fnptr-conv */
     }
     /* Fall through to shared trigger tail. */
   } else {
@@ -848,8 +2189,9 @@ void main_save_map_private(void)
     if (orig_ticks >= 0xf0 && *(uint8_t *)0x46da2a != 0) {
       /* Hung for too long — abort the save. */
       if (debug_game_save) {
-        ((void (*)(int, const char *, ...))0xff4d0)(0,
-                                                    "gave up trying to save");
+        ((void (*)(int, const char *, ...))0xff4d0)(
+          0, /* hazard-ok: fnptr-conv */
+          "gave up trying to save");
       }
       byte_46DA28 = 0;
       return;
@@ -917,7 +2259,6 @@ void main_won_map_private(void)
   int level_index;
   int i;
 
-  typedef uint16_t(__cdecl * fn_map_to_level_t)(char *map_name);
   typedef void(__cdecl * fn_save_player_level_t)(int local_player_index);
   typedef void(__cdecl * fn_level_transition_t)(int level_index);
 
@@ -925,7 +2266,7 @@ void main_won_map_private(void)
   main_won_map_private_pending = 0;
 
   /* map the current map name to a 0-based level index; unrecognized = -1 */
-  map_level = ((fn_map_to_level_t)0x1006f0)(map_name);
+  map_level = (uint16_t)main_get_solo_level_from_name(map_name);
   level_index = (int)(map_level + 1);
   if ((int16_t)level_index >= 10) {
     level_index = -1;
@@ -1598,6 +2939,50 @@ void main_rasterizer_throttle(void)
   ((fn_profile_store_t)0x8f880)(frames_delta, synced, (const char *)0x46ddfc);
 }
 
+/* main_movie_start - 0x101bc0
+ *
+ * Begin movie capture: allocate the 640x480 offscreen bitmap that
+ * render_frame_present blits each frame into, clear the movie output
+ * directory, reset the frame counter at 0x46da1c, and pin the frame step
+ * that main_update_time reads back from 0x46da20 to 1/fps.  Frame rates at
+ * or below 1.0e-4 fall back to a fixed 1/30s step.
+ *
+ * ABI: one cdecl float stack param at [EBP+8] (FLD/FDIV dword ptr [EBP+8]);
+ * bare RET, so the caller does the ADD ESP,4.
+ *
+ * FCOM sense (lift-learnings §38): the original compare is
+ *   FLD [EBP+8]; FCOMP [0x253f44]; FNSTSW AX; TEST AH,0x41; JNZ <fallback>
+ * TEST AH,0x41 masks C0|C3, so the branch is taken for fps <= 1.0e-4 OR NaN
+ * and the fallthrough is the STRICT `>` path.  Do not relax this to `>=`.
+ *
+ * FDIV operand order: FLD dword [0x2533c8] (=1.0f) then FDIV dword [EBP+8],
+ * i.e. 1.0f / fps -- the constant is the numerator.
+ */
+void main_movie_start(float frames_per_second)
+{
+  if (main_globals_movie != NULL) {
+    display_assert("main_globals.movie==NULL", "c:\\halo\\SOURCE\\main\\main.c",
+                   0xa6b, true);
+    system_exit(-1);
+  }
+
+  main_globals_movie = bitmap_2d_new(0x280, 0x1e0, 0, 10);
+  if (main_globals_movie != NULL) {
+    directory_create_or_delete_contents("movie");
+
+    /* movie frame counter; cleared before the compare (the original
+     * schedules this store between the FCOMP and the FNSTSW) */
+    *(int *)0x46da1c = 0;
+
+    if (frames_per_second > 1.0e-4f) {
+      *(float *)0x46da20 = 1.0f / frames_per_second;
+    } else {
+      *(float *)0x46da20 = 0.03333333507180214f;
+    }
+    game_time_set_speed(1.0f);
+  }
+}
+
 /* Clear both rasterizer timing flags. */
 void main_lost_map(void)
 {
@@ -1609,6 +2994,47 @@ void main_lost_map(void)
 void main_start_time(void)
 {
   *(char *)0x46da47 = 1;
+}
+
+/*
+ * main_crash - 0x101cb0
+ *
+ * Deliberate crash-test hook: stores the address of a string literal through a
+ * NULL pointer to provoke a page fault. Confirmed from the two-instruction
+ * body -- MOV dword ptr [0], offset s_chucky (0x28b5a8); RET. The stored value
+ * is the string's ADDRESS, not its bytes, and the DIR32 relocation against the
+ * literal is the function's only relocation. The store must stay volatile so
+ * the compiler cannot discard it as undefined behaviour.
+ */
+void main_crash(void)
+{
+  *(const char *volatile *)0 = "chucky was here!  NULL belongs to me!!!!!";
+}
+
+/*
+ * main_print_version - 0x101cc0
+ *
+ * Prints the build banner to console channel 0. Confirmed from the whole
+ * five-instruction body:
+ *   PUSH 0x28b5d4  ; format string
+ *   PUSH 0x0       ; channel
+ *   CALL 0xff4d0   ; console_printf
+ *   ADD ESP,0x8
+ *   RET
+ *
+ * The literal at 0x28b5d4 is exactly
+ * "halobeta xbox 01.10.12.2276 Oct 12 2001 16:07:48" -- note it does NOT
+ * contain "built at:", unlike the longer variant at 0x28b60c used by
+ * main_framerate_render. The two must stay separate string literals so each
+ * call site keeps referencing its own .rdata slot.
+ *
+ * console_printf is variadic; two pushes for a format string with no
+ * conversion specifiers is the complete argument list (the ADD ESP,0x8
+ * cleanup confirms exactly two stack args).
+ */
+void main_print_version(void)
+{
+  console_printf(0, "halobeta xbox 01.10.12.2276 Oct 12 2001 16:07:48");
 }
 
 /*
@@ -1710,13 +3136,12 @@ void main_save_current_solo_map(char *map_name)
   uint16_t level_index;
   void *fp;
 
-  typedef uint16_t(__cdecl * fn_map_to_level_t)(char *map_name);
   typedef void *(__cdecl * fn_fopen_t)(const char *path, const char *mode);
   typedef size_t(__cdecl * fn_fwrite_t)(const void *buf, size_t size,
                                         size_t count, void *fp);
   typedef int(__cdecl * fn_fclose_t)(void *fp);
 
-  level_index = ((fn_map_to_level_t)0x1006f0)(map_name);
+  level_index = (uint16_t)main_get_solo_level_from_name(map_name);
   if (level_index == 0xffff) {
     return;
   }
@@ -1787,7 +3212,6 @@ void main_load_last_solo_map(void)
   typedef size_t(__cdecl * fn_fread_t)(void *buf, size_t size, size_t count,
                                        void *fp);
   typedef int(__cdecl * fn_fclose_t)(void *fp);
-  typedef uint16_t(__cdecl * fn_map_to_level_t)(char *map_name);
   typedef void(__cdecl * fn_queue_map_t)(char *map_path);
 
   if (!main_load_last_solo_map_pending) {
@@ -1808,7 +3232,7 @@ void main_load_last_solo_map(void)
       n = 0xff;
     }
     buf[n] = 0;
-    level_index = ((fn_map_to_level_t)0x1006f0)(buf);
+    level_index = (uint16_t)main_get_solo_level_from_name(buf);
     if (level_index != 0xffff) {
       map_path = buf;
     }
@@ -1817,6 +3241,71 @@ void main_load_last_solo_map(void)
   ((fn_queue_map_t)0xfffa0)(map_path);
   main_change_map_name_pending = 0;
   main_load_last_solo_map_pending = 0;
+}
+
+/*
+ * main_save_map_no_timeout - 0x101ec0
+ *
+ * Arms a pending map-save request and clears the secondary/timeout flag at
+ * 0x46da2a, instead of setting it the way main_save_map_safe (0x100330) does.
+ *
+ * Confirmed (disassembly; 14 instructions, no frame, no locals, no CALLs):
+ *    00101ec0  MOV  CL,byte ptr [0x0046da28]
+ *    00101ec6  XOR  EAX,EAX
+ *    00101ec8  CMP  CL,AL
+ *    00101eca  JZ   0x00101ed4               ; byte_46DA28 == 0 -> arm block
+ *    00101ecc  CMP  byte ptr [0x0046da2a],AL
+ *    00101ed2  JZ   0x00101ef2               ; 0x46da2a == 0 -> skip arm block
+ *    00101ed4  MOV  CL,0x1
+ *    00101ed6  MOV  byte ptr [0x0046da28],CL ; BYTE
+ *    00101edc  MOV  byte ptr [0x0046da29],CL ; BYTE
+ *    00101ee2  MOV  [0x0046da2c],EAX         ; DWORD
+ *    00101ee7  MOV  [0x0046da30],EAX         ; DWORD
+ *    00101eec  MOV  [0x0046da38],AX          ; WORD, not DWORD
+ *    00101ef2  MOV  [0x0046da2a],AL          ; BYTE, branch target: both paths
+ *    00101ef7  RET
+ *  - Plain cdecl void(void). RET carries no immediate, and no register is read
+ *    before being written (CL and EAX are both defined first), so there are no
+ *    implicit @<reg> inputs.
+ *  - Store widths come from the operand sizes above: 0x46da28/29/2a are BYTE,
+ *    0x46da2c and 0x46da30 are DWORD, and 0x46da38 is a 16-bit WORD. Storing
+ *    a dword to 0x46da38 would clobber 0x46da3a, which main_won_map
+ *    (0x100370) sets to 1.
+ *  - The clear of 0x46da2a is the second JZ's branch target, so it runs on
+ *    both paths and belongs after the if, not inside it.
+ *  - Guard is an OR taken as written, with no inversion: the first JZ enters
+ *    the arm block when byte_46DA28 == 0, the second skips it when
+ *    0x46da2a == 0.
+ *
+ * Inferred:
+ *  - Same six globals and the same OR guard as main_save_map_safe (0x100330).
+ *    The only difference is that 0x100330 stores 1 to 0x46da2a inside the
+ *    guard while this variant stores 0 to it unconditionally afterwards,
+ *    matching the kb-registered name main_save_map_no_timeout: it arms the
+ *    save request with the secondary/timeout flag cleared.
+ *  - 0x46da29 is the arm bit, 0x46da2c a cooldown, 0x46da30 a tick total and
+ *    0x46da38 a 16-bit consecutive-success counter, all consumed by
+ *    main_save_map_private (0x100eb0).
+ *
+ * Uncertain:
+ *  - The precise meaning of the secondary flag 0x46da2a is not established
+ *    here; main_save_map_private only tests it once the retry counter has
+ *    exceeded 0xef ticks.
+ *  - 0x46da29, 0x46da2a, 0x46da2c, 0x46da30 and 0x46da38 have no
+ *    kb-registered names, so they keep the raw-address idiom already used by
+ *    main_save_map_nonsafe, main_save_map_safe and main_save_map_private in
+ *    this TU.
+ */
+void main_save_map_no_timeout(void)
+{
+  if (byte_46DA28 == 0 || *(uint8_t *)0x46da2a != 0) {
+    byte_46DA28 = 1;
+    *(uint8_t *)0x46da29 = 1;
+    *(int32_t *)0x46da2c = 0;
+    *(int32_t *)0x46da30 = 0;
+    *(int16_t *)0x46da38 = 0;
+  }
+  *(uint8_t *)0x46da2a = 0;
 }
 
 /*
@@ -3018,6 +4507,29 @@ void main_loop(void)
 }
 
 /*
+ * FUN_001034b0 - 0x1034b0
+ * Initializes the three arrays embedded in a geometry-build context: an array
+ * of 0x0c-byte elements at +0x00, an array of 0x1c-byte elements at +0x0c, and
+ * an array of 0x18-byte elements at +0x18. Counterpart of the dispose helper
+ * FUN_001034e0 below, which frees the same three tables at those same offsets
+ * and walks the +0x0c table with a matching stride of 0x1c.
+ *
+ * Ghidra mis-detected the prototype as void(void); the sole parameter is a
+ * normal cdecl stack argument ([EBP+8]), held in ESI across all three calls
+ * (the third call reuses ESI after ADD ESI,0x18). No register arguments.
+ *
+ * MSVC batches the stack cleanup for all three 2-argument calls into a single
+ * ADD ESP,0x18 after the last CALL (3 * 8 = 0x18); that is not evidence of a
+ * 6-argument call, so array_new's 2-parameter declaration is correct.
+ */
+void FUN_001034b0(int *context)
+{
+  array_new(context, 0xc);
+  array_new((int *)((char *)context + 0xc), 0x1c);
+  array_new((int *)((char *)context + 0x18), 0x18);
+}
+
+/*
  * FUN_001034e0 - 0x1034e0
  * Dispose helper for an object carrying three sub-allocations plus an
  * element table. Walks the element table (base at word offset +3 / byte
@@ -3090,7 +4602,13 @@ void FUN_00103530(int base, char (*visit)(uint32_t, int, uint32_t *, uint32_t),
 
   node = (uint32_t *)FUN_00117ee0((int *)(base + 0x18), node_index, 0x18);
   if ((node[3] == 0xffffffff) &&
-      ((visit == NULL) || ((*visit)(mark, base, node, visit_arg) != 0))) {
+      /* Visitor argument order is fixed by the push sequence at 0x103566:
+       * PUSH EDX([EBP+0x14] = mark), PUSH ESI(node), PUSH EBX(base), PUSH
+       * ECX([EBP+0x10] = visit_arg) — first push is the last argument, so
+       * visit_arg is argument 0 and mark is argument 3. FUN_00103a00 reads
+       * argument 0 as a float* plane, so getting this order wrong hands it an
+       * integer to dereference. */
+      ((visit == NULL) || ((*visit)(visit_arg, base, node, mark) != 0))) {
     node[3] = mark;
     slot = 3;
     do {
@@ -3280,6 +4798,293 @@ int FUN_001036c0(int *table, int value, int key_a, int key_b)
     index = (int)((unsigned int)index & 0x7fffffffu);
   }
   return index;
+}
+
+/*
+ * FUN_001037b0 — build the plane through three points.
+ *
+ *   n = cross(p1 - p0, p2 - p0)
+ *   len = normalize3d(n)                      (CALL 0x13010 at 0x103819)
+ *   if (len == 0.0f) { out[3] = 0; return NULL; }
+ *   out[3] = dot(n, p0);  return out;
+ *
+ * Every subtraction is `FLD [p1|p2 + k]; FSUB [p0 + k]` — the second/third
+ * point minus the first, never the reverse.
+ *
+ * The multiply order inside each cross-product term is transcribed literally
+ * from the emitted FMULs (d2 term first for components 0 and 2, d1 term first
+ * for component 1). Reversing any of them negates the plane normal, which
+ * would silently invert every facing test built on it (FUN_00103a00,
+ * FUN_00103c00) — see lift-decompiler-traps trap 4.
+ *
+ * The dot product for out[3] accumulates component 1 and component 2 first
+ * (FLD [EDI+4]; FMUL [ESI+4]; FLD [ESI+8]; FMUL [EDI+8]; FADDP) and only then
+ * adds component 0, so the sum is written in that order to keep the x87 block
+ * shape. Ghidra printed the three terms with component 0 leading; the emitted
+ * FLD order says otherwise and the disassembly wins. Note also that the middle
+ * term loads p0 before out while the other two load out first.
+ *
+ * Both difference vectors are materialised up front, in the order d1.x/y/z then
+ * d2.x/y/z: the original holds all three d1 components on the x87 stack for the
+ * whole cross product (FMUL %ST(3),%ST) and spills only d2.x and d2.y to
+ * -0xc(EBP)/-0x8(EBP), which is why the frame is 0xc and why the two leftover
+ * d1 values are dropped with a pair of FSTP %ST(0) before the CALL. Folding the
+ * subtractions back into the cross-product expressions makes VC71 recompute
+ * them instead (65.3% match).
+ *
+ * The zero test is `FCOMP dword [0x2533c0]` against a .rdata 0.0f (verified by
+ * read_memory), with TEST AH,0x44 / JNP taken on EQUAL — so the equal case is
+ * the out-of-line NULL arm and the success arm falls through.
+ *
+ * ABI: cdecl, four stack args, no register arguments; returns the out pointer
+ * in EAX (MOV EAX,EDI) or NULL (XOR EAX,EAX).
+ */
+float *FUN_001037b0(float *out_plane, float *p0, float *p1, float *p2)
+{
+  float d1x, d1y, d1z;
+  float d2x, d2y, d2z;
+  float length;
+
+  d1x = p1[0] - p0[0];
+  d1y = p1[1] - p0[1];
+  d1z = p1[2] - p0[2];
+  d2x = p2[0] - p0[0];
+  d2y = p2[1] - p0[1];
+  d2z = p2[2] - p0[2];
+
+  out_plane[0] = d2z * d1y - d2y * d1z;
+  out_plane[1] = d1z * d2x - d2z * d1x;
+  out_plane[2] = d2y * d1x - d2x * d1y;
+
+  length = normalize3d(out_plane);
+  if (length != 0.0f) {
+    out_plane[3] =
+        out_plane[1] * p0[1] + p0[2] * out_plane[2] + out_plane[0] * p0[0];
+    return out_plane;
+  }
+  out_plane[3] = 0.0f;
+  return (float *)0;
+}
+
+/*
+ * FUN_00103860 — append one triangle to the surface block as three interned
+ * edges, optionally rejecting it as a duplicate of an existing surface.
+ *
+ * `base` is the collision-BSP-like builder FUN_00103c00 walks:
+ *   base+0x00  vertex block  (stride 0x0c)
+ *   base+0x0c  edge block    (stride 0x1c)
+ *   base+0x18  surface block (stride 0x18)
+ *   base+0x1c  surface element count
+ *
+ * A new 0x18-byte surface element is allocated from the surface block: three
+ * edge references at [0]/[4]/[8], the mark field at [0xc] reset to 0xffffffff
+ * and the trailing 8 bytes cleared. The three positions a/b/c are interned as
+ * vertices with FUN_00103600 and the three edges (a-b, b-c, c-a) with
+ * FUN_001036c0. A failed intern (-1) invalidates the returned index but does
+ * NOT abort: the element is still built and the remaining interns still run.
+ *
+ * When `flag` is set the finished element is compared against every surface
+ * added before it (0 .. count-2). Both sides are compared with bit 31 masked
+ * off, because that bit is the per-surface edge direction flag (same encoding
+ * FUN_00103c00 and FUN_00103a00 decode). If all three edges of the new element
+ * are found in one existing element the triangle is a duplicate: it is drawn
+ * with FUN_00104040 in the debug colour at *(float **)0x2ee6f0, a one-shot
+ * message is printed (guarded by the byte at 0x0046e393) and -1 is returned.
+ *
+ * ABI: cdecl, 5 stack params, returns the new element index in EAX — or -1.
+ * Ghidra printed `void __cdecl FUN_00103860(void)` with every parameter
+ * surfacing as in_stack_* and dropped the return entirely; kb.json carried the
+ * same wrong `void`. Both returns are explicit in the disassembly: 0x1039ec
+ * `MOV EAX,[EBP-4]` and 0x1039ce `OR EAX,0xffffffff`.
+ *
+ * `flag` is read as a byte (0x103930 `MOV AL,byte ptr [EBP+0x18]`), so it is a
+ * one-byte type — even though both original call sites push a full dword
+ * (0x103b9a `MOV EDX,[EBP+0x14]` / 0x19478f `PUSH 0`).
+ *
+ * Register arguments, read from the disassembly and NOT the decompile (which
+ * dropped them): the three FUN_00103600 calls take ESI, loaded once at
+ * 0x103867 with the RAW `base` — not base+0x18, despite that callee's `block`
+ * parameter name — and EBX, reloaded from [EBP+0xc] / [EBP+0x10] / [EBP+0x14]
+ * at 0x10388d / 0x10389b / 0x1038a8. FUN_001036c0 takes `base` in EAX
+ * (0x1038f6 `MOV EAX,[EBP+8]`); its stack args from the push order at
+ * 0x1038f4-0x1038fa (first push = last arg) are (result, verts[j],
+ * verts[(j+1)%3]). That modulo is a real IDIV at 0x1038e6 on a counter that
+ * starts at 1, so it is written as `% 3` here rather than folded away.
+ *
+ * The duplicate-scan counters are 16-bit (`MOVSX EDX,SI` / `MOVSX EBX,CX`,
+ * `CMP CX,0x3`), hence the `short` locals.
+ */
+int FUN_00103860(int base, float *a, float *b, float *c, char flag)
+{
+  int verts[3];
+  int *element;
+  int i;
+  int countdown;
+  int result;
+  int next;
+  int *edge_out;
+  int *vert_in;
+  int *existing;
+  short new_i;
+  short existing_i;
+
+  result = FUN_00117da0((int *)(base + 0x18));
+  if (result != -1) {
+    element = (int *)FUN_00117ee0((int *)(base + 0x18), result, 0x18);
+
+    verts[0] = FUN_00103600(a, (int *)base);
+    verts[1] = FUN_00103600(b, (int *)base);
+    verts[2] = FUN_00103600(c, (int *)base);
+    if (verts[0] == -1 || verts[1] == -1 || verts[2] == -1) {
+      result = -1;
+    }
+
+    next = 1;
+    countdown = 3;
+    edge_out = element;
+    vert_in = verts;
+    do {
+      *edge_out = FUN_001036c0((int *)base, result, *vert_in, verts[next % 3]);
+      if (*edge_out == -1) {
+        result = -1;
+      }
+      vert_in = vert_in + 1;
+      edge_out = edge_out + 1;
+      next = next + 1;
+      countdown = countdown - 1;
+    } while (countdown != 0);
+
+    element[3] = -1;
+    csmemset(element + 4, 0, 8);
+
+    if (flag != '\0') {
+      i = 0;
+      if (*(int *)(base + 0x1c) - 1 > 0) {
+        do {
+          existing = (int *)FUN_00117ee0((int *)(base + 0x18), i, 0x18);
+          new_i = 0;
+          for (;;) {
+            existing_i = 0;
+            do {
+              if (((unsigned int)existing[existing_i] & 0x7fffffff) ==
+                  ((unsigned int)element[new_i] & 0x7fffffff)) {
+                break;
+              }
+              existing_i = existing_i + 1;
+            } while (existing_i < 3);
+            if (existing_i == 3) {
+              break; /* this edge is not in `existing` — not a duplicate */
+            }
+            new_i = new_i + 1;
+            if (new_i > 2) {
+              /* all three edges matched — the triangle already exists */
+              FUN_00104040(a, b, c, *(float **)0x2ee6f0);
+              if (*(char *)0x0046e393 == '\0') {
+                _wprintf((const char *)0x0028b780);
+                *(char *)0x0046e393 = '\x01';
+              }
+              return -1;
+            }
+          }
+          i = i + 1;
+        } while (i < *(int *)(base + 0x1c) - 1);
+      }
+    }
+  }
+  return result;
+}
+
+/*
+ * FUN_00103a00 — surface visitor for the FUN_00103530 marking walk: accept a
+ * surface only if its three vertices are coplanar with the seed plane and its
+ * winding faces the same way as that plane.
+ *
+ * This is the `visit` callback FUN_00103c00 hands to FUN_00103530, so the
+ * parameter list is the walker's fixed visitor prototype
+ * (visit_arg, base, node, mark) — see the push sequence at 0x10356a: PUSH
+ * EDX([EBP+0x14] = mark), PUSH ESI(node), PUSH EBX(base), PUSH ECX([EBP+0x10]
+ * = visit_arg); the first push is the last argument. Here `visit_arg` is the
+ * seed plane (four floats: normal + distance) and `node` is the surface whose
+ * three dwords are edge references. `mark` is delivered but never read by this
+ * visitor (the walker itself writes it into node[3]).
+ *
+ * Each edge reference carries a direction flag in bit 31: the low 31 bits
+ * index the edge block at base+0xc (stride 0x1c) and the flag selects which of
+ * the two vertex indices at edge+0x0c / edge+0x10 belongs to this surface.
+ * That index resolves against the vertex block at base (stride 0xc) to a
+ * float[3] position. Same two-level decode as FUN_00103c00.
+ *
+ * All three positions must satisfy |dot(pt, plane) - plane[3]| < 0.01
+ * (the double at 0x28b800 is (double)0.01f, compared via FABS / FCOMP qword
+ * exactly like FUN_00103600's epsilon tests). The plane through the three
+ * points is then built with FUN_001037b0 and the surface is accepted only when
+ * dot(built_normal, plane) > 0 (the float at 0x2533c0 is 0.0f; TEST AH,0x41 /
+ * JNE at 0x103b65 makes the test strict and rejects NaN).
+ *
+ * Note the point order handed to FUN_001037b0: PUSH EDX(p1), PUSH ECX(p2),
+ * PUSH EDI(p0), PUSH ECX(&out) at 0x103b35-0x103b3b gives
+ * FUN_001037b0(&out, p0, p2, p1) — points 1 and 2 are SWAPPED relative to the
+ * natural order, which is what selects the winding sense. Do not "fix" this;
+ * it would negate the built normal and invert the facing test. FUN_00103c00
+ * builds its plane with the same swap.
+ *
+ * ABI: cdecl, four stack args, returns the accept flag in AL (MOV AL,1 at
+ * 0x103b6c / XOR AL,AL at 0x103b75). Ghidra printed
+ * `void __cdecl FUN_00103a00(void)` with the arguments surfacing as
+ * in_stack_* and dropped the return entirely.
+ *
+ * The FPU evaluation order in every dot product is component 1, then 2, then
+ * 0 (FLD [pt+4] first), and the epsilon subtraction is FSUB — `dot - plane[3]`
+ * — not FSUBR.
+ */
+char FUN_00103a00(uint32_t plane_arg, int base, uint32_t *tri_refs,
+                  uint32_t mark)
+{
+  float *plane;
+  float *p0;
+  float *p1;
+  float *p2;
+  float out_plane[4];
+
+  (void)mark; /* delivered by the walker's visitor prototype; never read here */
+
+  p0 = (float *)FUN_00117ee0(
+    (int *)base,
+    ((int *)(FUN_00117ee0((int *)(base + 0xc), (int)(tri_refs[0] & 0x7fffffff),
+                          0x1c) +
+             0xc))[(int)(tri_refs[0] & 0x80000000) != 0],
+    0xc);
+  p1 = (float *)FUN_00117ee0(
+    (int *)base,
+    ((int *)(FUN_00117ee0((int *)(base + 0xc), (int)(tri_refs[1] & 0x7fffffff),
+                          0x1c) +
+             0xc))[(int)(tri_refs[1] & 0x80000000) != 0],
+    0xc);
+  p2 = (float *)FUN_00117ee0(
+    (int *)base,
+    ((int *)(FUN_00117ee0((int *)(base + 0xc), (int)(tri_refs[2] & 0x7fffffff),
+                          0x1c) +
+             0xc))[(int)(tri_refs[2] & 0x80000000) != 0],
+    0xc);
+
+  /* The plane pointer is only materialized here: the original reloads
+   * [EBP+8] into ESI at 0x103ab7, after the last use of tri_refs. */
+  plane = (float *)plane_arg;
+  if ((main_fabs_double_from_float(p0[1] * plane[1] + p0[2] * plane[2] +
+                                   p0[0] * plane[0] - plane[3]) < 0.01f) &&
+      (main_fabs_double_from_float(p1[1] * plane[1] + p1[2] * plane[2] +
+                                   p1[0] * plane[0] - plane[3]) < 0.01f) &&
+      (main_fabs_double_from_float(p2[1] * plane[1] + p2[2] * plane[2] +
+                                   p2[0] * plane[0] - plane[3]) < 0.01f)) {
+    if (FUN_001037b0(out_plane, p0, p2, p1) != NULL) {
+      if (out_plane[0] * plane[0] + out_plane[2] * plane[2] +
+            out_plane[1] * plane[1] >
+          0.0f) {
+        return 1;
+      }
+    }
+  }
+  return 0;
 }
 
 /*
@@ -3527,6 +5332,87 @@ void FUN_00103e80(float *p0, float *p1, float *color)
                 *(float *)0x2533c8 - color[0], *(float *)0x2533c8 - color[0]);
     crt_fprintf(*(void **)0x46e394,
                 "\tIndexedLineSet { coordIndex[0,1,-1] }\n");
+    crt_fprintf(*(void **)0x46e394, "}\n");
+    crt_fflush(*(void **)0x46e394);
+  }
+}
+
+/* FUN_00104040 (0x104040)  error_geometry.c:0xb1-0xb4
+ *
+ * Emits a single debug triangle (p0, p1, p2) as a VRML/Open-Inventor
+ * "Separator" block to the open error-geometry stream *(void**)0x46e394.
+ * All three vertices are transformed by the world matrix at 0x31fb08 and
+ * scaled by *(float*)0x253f00 (=100.0f, world units -> cm).  Material is
+ * emitted PER_FACE with a single colour: diffuseColor = color[1..3],
+ * transparency = *(float*)0x2533c8 (=1.0f) - color[0], i.e. color[] is packed
+ * alpha-first, exactly as in the siblings FUN_00103e80 / FUN_00104240.  The
+ * geometry itself is a one-face IndexedFaceSet ("coordIndex[0,1,2,-1]").
+ * Gated on the debug-geometry-enabled predicate FUN_00103d30.
+ *
+ * cdecl, verified from disassembly at 0x104040: all four parameters are STACK
+ * args -- [EBP+0x8]=p0, [EBP+0xc]=p1, [EBP+0x10]=p2, [EBP+0x14]=color (ESI);
+ * EBX/ESI/EDI saved, no register-argument contract.  Frame = SUB ESP,0x24 =
+ * 36 bytes = ONE contiguous float[9] spanning EBP-0x24..EBP-0x4.  The three
+ * matrix_transform_point 'out' arguments are LEA EBP-0x24, LEA EBP-0x18 and
+ * LEA EBP-0xc, i.e. &pt[0], &pt[3] and &pt[6] of that single buffer --
+ * declaring three separate float[3] locals would let clang reorder them, so
+ * the one-buffer form is load-bearing.  (Ghidra names each triple after its
+ * LAST component: local_28 is the array base = pt[0], local_24/local_20 are
+ * pt[1]/pt[2].)
+ *
+ * Push order per matrix_transform_point call is PUSH &out; PUSH src;
+ * PUSH 0x31fb08, so the matrix global is passed by ADDRESS, not dereferenced.
+ *
+ * The transparency operand order is 001041cb FLD [0x2533c8];
+ * 001041d1 FSUB [ESI], i.e. (1.0f - color[0]) and NOT the reverse.  Each
+ * transformed component is FLD'd then FMUL'd by the scale, i.e. pt * scale.
+ * The stream global is re-loaded before every crt_fprintf and before the
+ * crt_fflush in the original, so it is never cached in a local here.  Assert
+ * tails are system_exit(-1) (CALL 0x8e2f0), not halt_and_catch_fire --
+ * Ghidra's thunk_FUN_001029a0 at those sites is the known mis-decode.
+ */
+void FUN_00104040(float *p0, float *p1, float *p2, float *color)
+{
+  float pt[9];
+
+  if (p0 == 0) {
+    display_assert("p0", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0xb1,
+                   true);
+    system_exit(-1);
+  }
+  if (p1 == 0) {
+    display_assert("p1", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0xb2,
+                   true);
+    system_exit(-1);
+  }
+  if (p2 == 0) {
+    display_assert("p2", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0xb3,
+                   true);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0xb4,
+                   true);
+    system_exit(-1);
+  }
+  if (FUN_00103d30()) {
+    matrix_transform_point((float *)0x31fb08, p0, &pt[0]);
+    matrix_transform_point((float *)0x31fb08, p1, &pt[3]);
+    matrix_transform_point((float *)0x31fb08, p2, &pt[6]);
+    crt_fprintf(*(void **)0x46e394, "Separator\n{\n");
+    crt_fprintf(*(void **)0x46e394,
+                "\tCoordinate3 { point[%f %f %f, %f %f %f, %f %f %f] }\n",
+                pt[0] * *(float *)0x253f00, pt[1] * *(float *)0x253f00,
+                pt[2] * *(float *)0x253f00, pt[3] * *(float *)0x253f00,
+                pt[4] * *(float *)0x253f00, pt[5] * *(float *)0x253f00,
+                pt[6] * *(float *)0x253f00, pt[7] * *(float *)0x253f00,
+                pt[8] * *(float *)0x253f00);
+    crt_fprintf(*(void **)0x46e394, "\tMaterialBinding { value PER_FACE }\n");
+    crt_fprintf(*(void **)0x46e394,
+                "\tMaterial { diffuseColor[%f %f %f] transparency[%f] }\n",
+                color[1], color[2], color[3], *(float *)0x2533c8 - color[0]);
+    crt_fprintf(*(void **)0x46e394,
+                "\tIndexedFaceSet { coordIndex[0,1,2,-1] }\n");
     crt_fprintf(*(void **)0x46e394, "}\n");
     crt_fflush(*(void **)0x46e394);
   }

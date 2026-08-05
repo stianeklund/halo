@@ -16,6 +16,7 @@ modifications, and README only when its diff is stats-only.
 
 Run: python3 tools/integrate/test_auto_reintegrate_absorb.py
 """
+import os
 import subprocess
 import sys
 import tempfile
@@ -142,6 +143,65 @@ def main():
         # It DISCARDS README, so it must refuse while anything else is dirty.
         check("settle refuses with other dirt present",
               ar._settle_readme_regen(wt), False)
+
+    # --- no-drop gate: 3-way-merge exemption -----------------------------
+    # `main` is shared, so another lane can land while a session branch
+    # lifts. The rebase then MUST rewrite every file touched on both sides.
+    # Exempting that is only safe if it is proven, not assumed, so pin both
+    # directions -- a happy-path-only test would let a real drop through.
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        sh("git", "init", "-q", "-b", "main", cwd=tmp)
+        sh("git", "config", "user.email", "t@t", cwd=tmp)
+        sh("git", "config", "user.name", "t", cwd=tmp)
+        (tmp / "f.c").write_text("a\nb\nc\nd\ne\n")
+        sh("git", "add", "-A", cwd=tmp)
+        sh("git", "commit", "-q", "--no-verify", "-m", "base", cwd=tmp)
+        base = sh("git", "rev-parse", "HEAD", cwd=tmp).stdout.strip()
+
+        # main edits the FIRST line; the branch edits the LAST -> disjoint.
+        (tmp / "f.c").write_text("a-main\nb\nc\nd\ne\n")
+        sh("git", "commit", "-qa", "--no-verify", "-m", "main edit", cwd=tmp)
+
+        sh("git", "checkout", "-q", "-b", "topic", base, cwd=tmp)
+        (tmp / "f.c").write_text("a\nb\nc\nd\ne-branch\n")
+        sh("git", "commit", "-qa", "--no-verify", "-m", "branch edit", cwd=tmp)
+        ours = sh("git", "rev-parse", "HEAD", cwd=tmp).stdout.strip()
+
+        cwd0 = os.getcwd()
+        os.chdir(tmp)
+        try:
+            # A faithful replay keeps BOTH edits -> exempt.
+            sh("git", "checkout", "-q", "-b", "good", "main", cwd=tmp)
+            (tmp / "f.c").write_text("a-main\nb\nc\nd\ne-branch\n")
+            sh("git", "commit", "-qa", "--no-verify", "-m", "replay", cwd=tmp)
+            check("both-sides file, faithful replay -> exempt",
+                  ar._matches_three_way("f.c", base, ours, "main", "good"),
+                  True)
+
+            # A replay that silently loses the branch's edit must NOT be
+            # exempt -- this is the drop the gate exists to catch.
+            sh("git", "checkout", "-q", "-b", "dropped", "main", cwd=tmp)
+            (tmp / "f.c").write_text("a-main\nb\nc\nd\ne\n")
+            sh("git", "commit", "-qa", "--no-verify", "-m", "drop", cwd=tmp)
+            check("replay that drops branch edit -> NOT exempt",
+                  ar._matches_three_way("f.c", base, ours, "main", "dropped"),
+                  False)
+
+            # Nor may extra content sneak in under the exemption.
+            sh("git", "checkout", "-q", "-b", "extra", "main", cwd=tmp)
+            (tmp / "f.c").write_text("a-main\nb\nc\nd\ne-branch\nINJECTED\n")
+            sh("git", "commit", "-qa", "--no-verify", "-m", "extra", cwd=tmp)
+            check("replay with injected content -> NOT exempt",
+                  ar._matches_three_way("f.c", base, ours, "main", "extra"),
+                  False)
+
+            # A path absent on a side is not this case; fail closed.
+            check("missing path -> NOT exempt",
+                  ar._matches_three_way("nope.c", base, ours, "main", "good"),
+                  False)
+        finally:
+            os.chdir(cwd0)
 
     print()
     if FAILURES:

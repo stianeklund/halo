@@ -336,6 +336,172 @@ bool FUN_00062020(int16_t *obstacle_set, uint32_t datum, uint16_t flags,
   return true;
 }
 
+/* 0x620f0 — obstacles_get_discs_in_sphere (c:\halo\SOURCE\ai\path_obstacles.c)
+ *
+ * Collect every "pathfinding disc" (collision-tag block at coll+0x280, element
+ * stride 0x20) belonging to any object inside a sphere, and append it to an
+ * obstacle set via FUN_00062020 (add_obstacle).
+ *
+ * Flow (all offsets/orders taken from the delinked reference for 0x620f0, not
+ * from the decompiler):
+ *   1. assert object_handle != NONE (path_obstacles.c line 0x98).
+ *   2. object_find_in_radius(1, 0xc3, self+0x48, center, radius, handles, 256)
+ *      — the self object's cluster info at +0x48 is argument 3; the inner
+ *      object_get_and_verify_type has its own ADD ESP,8 cleanup.
+ *   3. For each returned object, skip: self, the ignore handle, objects with
+ *      bit 0 of +0x04, and type-0 objects with bit 2 of +0xb6 set.
+ *   4. Machine objects (type 7) are skipped unless mach+0x292 bit 0 is set,
+ *      and are skipped when bit 1 is also set while object+0x1b8 holds the raw
+ *      dword 0x3f800000 (the 1.0f bit pattern — the original emits a CMP on
+ *      the dword, so the integer compare is preserved verbatim).
+ *   5. Bounding test FUN_00061ec0(center, object+0x50, object[0x5c] + radius);
+ *      object+0x5c is loaded with FLDS, i.e. it is a float, not an int.
+ *   6. obje/coll tags are BOTH fetched before obje+0x02 bit 3 is tested (the
+ *      reference merges their ADD ESP,0x10), then the block at coll+0x280.
+ *   7. Per disc element: node index is a zero-extended uint16 at +0x00; 0xffff
+ *      means "use the object's world matrix", otherwise the node matrix.  The
+ *      radius product operand order differs per branch and is preserved.
+ *   8. Two z-slab rejections against the 0.5f pad and the up-vector z against
+ *      -+0.2f, then the weighted squared-distance test with the 4.0f z weight
+ *      (accumulated dz, dy, dx in that order per the FLD sequence).
+ *   9. The obstacle "flags" word is 1 only for type-0 objects whose delta has
+ *      a positive dot with up_vector and whose FUN_00013070 result exceeds
+ *      0.06666667f.
+ *  10. The disc radius reaches FUN_00062020 as a raw dword (the reference uses
+ *      MOV/PUSH, not FLD/FSTP), so the bits are forwarded through a pointer
+ *      reinterpretation rather than a value-truncating cast.
+ *
+ * cdecl, six stack args ([EBP+8..+0x1c]); no register arguments.  Frame is
+ * SUB ESP,0x464 with no _chkstk: handles[256] (0x400) + matrix[13] (0x34) +
+ * the twelve scalar/vector slots.  Float thresholds are written as literals so
+ * VC71 pools them with a relocation exactly as the reference does.
+ */
+void obstacles_get_discs_in_sphere(int16_t *obstacle_set, float *center,
+                                   float radius, float *up_vector,
+                                   uint32_t object_handle,
+                                   uint32_t ignore_handle)
+{
+  uint32_t handles[256]; /* EBP-0x464: object_find_in_radius scratch */
+  float matrix[13];      /* EBP-0x64 : object world matrix (scale + 3x4) */
+  float position[3];     /* EBP-0x2c : transformed disc centre */
+  int i;                 /* EBP-0x20 */
+  int *block;            /* EBP-0x1c : coll+0x280 tag block */
+  unsigned int remaining;/* EBP-0x18 */
+  float dx;              /* EBP-0x14 */
+  float dy;              /* EBP-0x10 */
+  float dz;              /* EBP-0x0c */
+  uint32_t *cursor;      /* EBP-0x08 */
+  float disc_radius;     /* EBP-0x04 */
+  int16_t count;
+  int index;
+  int flags;
+  uint32_t handle;
+  char *object;
+  char *mach_tag;
+  char *obje_tag;
+  char *coll_tag;
+  char *element;
+  uint16_t node_index;
+  uint16_t mach_flags;
+  float *node_matrix;
+
+  if (object_handle == 0xffffffff) {
+    display_assert("matt is bad.", "c:\\halo\\SOURCE\\ai\\path_obstacles.c",
+                   0x98, 1);
+    system_exit(-1);
+  }
+
+  count = object_find_in_radius(
+    1, 0xc3,
+    (char *)object_get_and_verify_type((int)object_handle, -1) + 0x48, center,
+    radius, (int *)handles, 0x100);
+  if (count > 0) {
+    remaining = (uint16_t)count;
+    cursor = handles;
+    do {
+      handle = *cursor;
+      object = (char *)object_get_and_verify_type((int)handle, -1);
+      if (handle == object_handle || handle == ignore_handle)
+        goto next_object;
+      if ((*(uint8_t *)(object + 0x04) & 1) != 0)
+        goto next_object;
+      if (*(int16_t *)(object + 0x64) == 0 &&
+          (*(uint8_t *)(object + 0xb6) & 4) != 0)
+        goto next_object;
+
+      if (*(int16_t *)(object + 0x64) == 7) {
+        mach_tag = (char *)tag_get(0x6d616368 /*'mach'*/, *(int *)object);
+        mach_flags = *(uint16_t *)(mach_tag + 0x292);
+        if ((mach_flags & 1) == 0)
+          goto next_object;
+        if ((mach_flags & 2) != 0 &&
+            *(uint32_t *)(object + 0x1b8) == 0x3f800000)
+          goto next_object;
+      }
+
+      if ((char)FUN_00061ec0(center, (float *)(object + 0x50),
+                             *(float *)(object + 0x5c) + radius) == 0)
+        goto next_object;
+
+      obje_tag = (char *)tag_get(0x6f626a65 /*'obje'*/, *(int *)object);
+      coll_tag =
+        (char *)tag_get(0x636f6c6c /*'coll'*/, *(int *)(obje_tag + 0x7c));
+      if ((*(uint8_t *)(obje_tag + 0x02) & 8) != 0)
+        goto next_object;
+
+      block = (int *)(coll_tag + 0x280);
+      if (*block <= 0)
+        goto next_object;
+
+      object_get_world_matrix((int)handle, matrix);
+      i = 0;
+      index = 0;
+      while (index < *block) {
+        element = (char *)tag_block_get_element(block, index, 0x20);
+        node_index = *(uint16_t *)element;
+        if (node_index != 0xffff) {
+          node_matrix =
+            (float *)object_get_node_matrix((int)handle, node_index);
+          matrix_transform_point(node_matrix, (float *)(element + 0x10),
+                                 position);
+          disc_radius = *(float *)(element + 0x1c) * *node_matrix;
+        } else {
+          matrix_transform_point(matrix, (float *)(element + 0x10), position);
+          disc_radius = matrix[0] * *(float *)(element + 0x1c);
+        }
+
+        if (((position[2] + disc_radius) + 0.5f >= center[2] ||
+             up_vector[2] <= -0.2f) &&
+            ((position[2] - disc_radius) - 0.5f <= center[2] ||
+             up_vector[2] >= 0.2f)) {
+          dx = position[0] - center[0];
+          dy = position[1] - center[1];
+          dz = position[2] - center[2];
+          if (dz * dz * 4.0f + dy * dy + dx * dx <=
+              (disc_radius + radius) * (disc_radius + radius)) {
+            flags = 0;
+            if (*(int16_t *)(object + 0x64) == 0 &&
+                dz * up_vector[2] + dy * up_vector[1] + dx * up_vector[0] >
+                  0.0f &&
+                FUN_00013070((float *)(object + 0x18), up_vector) >
+                  0.06666667f)
+              flags = 1;
+            FUN_00062020(obstacle_set, handle, (uint16_t)flags, position,
+                         *(uint32_t *)&disc_radius);
+          }
+        }
+
+        i = i + 1;
+        index = (int16_t)i;
+      }
+
+    next_object:
+      cursor = cursor + 1;
+      remaining = remaining - 1;
+    } while (remaining != 0);
+  }
+}
+
 /* path_obstacles.c — AI path obstacle-disc connectivity.
  *
  * Corresponds to a routine in structures.obj (its sole ported caller,
@@ -2980,6 +3146,654 @@ int FUN_00194380(int param_1, void *param_2)
   return -1;
 }
 
+/* Local geometry types for build_structure_lens_flares. The 3/2-float point
+ * structs reproduce the original's dword-MOV struct copies; the temp marker
+ * record is the 0x14-byte sort element whose +0x10 int16 cluster index is what
+ * comparator FUN_00194360 orders on. */
+typedef struct lens_real_point3d {
+  float x, y, z;
+} lens_real_point3d;
+typedef struct lens_real_point2d {
+  float u, v;
+} lens_real_point2d;
+typedef struct lens_flare_temp_marker {
+  char marker[0x10]; /* raw copy of the 0x10-byte lens flare marker */
+  short cluster_index; /* +0x10, sort key (NONE == not in any cluster) */
+  short pad;
+} lens_flare_temp_marker;
+
+#define LENS_FLARES_FILE "c:\\halo\\SOURCE\\structures\\structure_lens_flares.c"
+/* Clamp to the short-safe grid range before rounding (globals -1000.0f at
+ * 0x25ddb8 / +1000.0f at 0x254cb8; FPU-resident ternary select shape). */
+#define LENS_FLARES_PIN(x) \
+  (((x) < -1000.0f) ? -1000.0f : (((x) > 1000.0f) ? 1000.0f : (x)))
+
+/* build_structure_lens_flares (0x1943e0)
+ * (TU: c:\halo\SOURCE\structures\structure_lens_flares.c, __FILE__ confirmed)
+ *
+ * Tool/build-time structure_bsp pass: clears and rebuilds the lens_flares
+ * (bsp+0x11c) and lens_flare_markers (bsp+0x128) tag blocks. For each
+ * lightmap material (bsp+0x104 -> +0x14, elem 0x100) whose shader (type 3/5/6)
+ * carries a lens flare reference, it builds the coplanar connected geometry of
+ * the material's surfaces (main.obj helpers 0x1034b0/0x103860/0x103c00 over a
+ * 0x24-byte triple dynamic-array context), projects each group onto its
+ * dominant axis, convex-hulls the projected points, and lays a radius-spaced
+ * grid of markers over the hull interior. Markers are then located in the
+ * collision BSP (stepping along the packed normal with a doubling epsilon
+ * until a leaf/cluster is found), qsort'ed by cluster (FUN_00194360), copied
+ * back in cluster order, and the per-cluster first_marker/count fields
+ * (cluster+0x40/+0x42) are filled and validated.
+ *
+ * Returns the success flag in AL (bool). Disassembly-confirmed details:
+ *  - warnings pass the max as a third printf arg (0x100 flares, 0x10000
+ *    markers); the over-max path prints the flare warning twice (constant
+ *    folding of lens_flare_index = NONE into the common not-found warning).
+ *  - grid bounds: ceil (0x1dbc26) of the min, floor (0x1d9c2b) of the max,
+ *    each clamped to [-1000,1000] and rounded via bare FLD/FISTP
+ *    (x87_round_to_int), NOT a truncating (int) cast.
+ *  - normal bytes packed with (char)round(floor(n*127.5f)), unpacked with
+ *    1/127 (0x2820c0).
+ *  - binormal = cross(plane_normal, tangent) with the exact FLD/FMUL/FSUBP
+ *    factor order below; dot products keep the original y,z,x / z,y,x term
+ *    order. Do not reassociate.
+ *  - centroid starts from the global origin point *(float **)0x31fc1c, not
+ *    from zero. */
+bool build_structure_lens_flares(void *structure_bsp)
+{
+  char success;
+  char *lens_flare_markers;
+  float *projected_vertices; /* 480000 bytes: 60000 x 2 floats (projected) */
+  float *group_vertices; /* 720000 bytes: 60000 x 3 floats (world) */
+  short *hull_indices; /* 120000 bytes: 60000 int16 hull index list */
+  char *clusters;
+  char *lens_flares;
+  char *lightmap;
+  char *materials;
+  char *material;
+  char *triangles;
+  char *shader;
+  char *flare_ref;
+  void *cluster;
+  void *elem;
+  void *new_elem;
+  void *leaf_elem;
+  unsigned short *tri;
+  unsigned int *edge;
+  lens_flare_temp_marker *temp_markers;
+  lens_flare_temp_marker *tm;
+  lens_real_point3d position;
+  lens_real_point3d *p;
+  float *origin;
+  float *v0;
+  float *v1;
+  float *v2;
+  lens_real_point2d *out;
+  int geometry[9]; /* three dynamic array headers: pts 0xc / refs 0x1c / edges
+                      0x18 */
+  float plane[4];
+  float projected[2];
+  int vertices;
+  int vref;
+  float radius;
+  float centroid_x, centroid_y, centroid_z;
+  float tangent_x, tangent_y, tangent_z;
+  float binormal_x, binormal_y, binormal_z;
+  float tangent_d, binormal_d;
+  float u_min, u_max, v_min, v_max;
+  float length, scale, inv, fu, fv;
+  float step_x, step_y, step_z;
+  float normal_x, normal_y, normal_z;
+  float grid_u, grid_v;
+  float delta;
+  long axis;
+  char projection_sign;
+  long group_count, group;
+  long point_count, hull_count;
+  long surface;
+  long lens_flare_index;
+  long marker_index;
+  long out_count;
+  long i, n, pc, pc2;
+  long u_grid, v_grid, u_count, v_count;
+  unsigned int leaf;
+  short cluster_idx;
+  short cluster_index16;
+  short u_start, v_start, u_end, v_end;
+  short lightmap_index, material_index, edge_index, cluster_counter;
+  short validate_counter;
+  short *hp;
+  float u, v;
+
+  success = 1;
+  if (!structure_bsp) {
+    display_assert("structure_bsp", LENS_FLARES_FILE, 0x42, 1);
+    system_exit(-1);
+  }
+  crt_fprintf((void *)0x331050, "building structure lens flares...");
+  crt_fflush((void *)0x331050);
+  lens_flare_markers = (char *)structure_bsp + 0x128;
+  if (!tag_block_resize((char *)structure_bsp + 0x11c, 0) ||
+      !tag_block_resize(lens_flare_markers, 0)) {
+    error(2, "### ERROR failed to clear lens flares and/or markers from "
+             "structure_bsp");
+    return 0;
+  }
+  projected_vertices = (float *)debug_malloc(480000, 0, LENS_FLARES_FILE, 0x4a);
+  group_vertices = (float *)debug_malloc(720000, 0, LENS_FLARES_FILE, 0x4b);
+  hull_indices = (short *)debug_malloc(120000, 0, LENS_FLARES_FILE, 0x4c);
+  if (structure_bsp && projected_vertices && group_vertices && hull_indices) {
+    /* Zero every cluster's first_lens_flare_marker_index / marker_count. */
+    clusters = (char *)structure_bsp + 0x134;
+    cluster_counter = 0;
+    if (0 < *(int *)clusters) {
+      i = 0;
+      do {
+        cluster = tag_block_get_element(clusters, i, 0x68);
+        *(short *)((char *)cluster + 0x40) = 0;
+        cluster = tag_block_get_element(clusters, i, 0x68);
+        cluster_counter = (short)(cluster_counter + 1);
+        i = cluster_counter;
+        *(short *)((char *)cluster + 0x42) = 0;
+      } while (i < *(int *)clusters);
+    }
+    lightmap_index = 0;
+    if (0 < *(int *)((char *)structure_bsp + 0x104)) {
+      do {
+        lightmap = (char *)tag_block_get_element((char *)structure_bsp + 0x104,
+                                                 lightmap_index, 0x20);
+        materials = lightmap + 0x14;
+        material_index = 0;
+        if (0 < *(int *)materials) {
+          do {
+            material =
+              (char *)tag_block_get_element(materials, material_index, 0x100);
+            if (*(int *)(material + 0xc) != -1) {
+              shader = (char *)tag_get(0x73686472, *(int *)(material + 0xc));
+              switch (*(short *)(shader + 0x24)) {
+              case 3:
+                flare_ref = (char *)FUN_001906b0(shader, 3) + 0x30;
+                radius = *(float *)((char *)FUN_001906b0(shader, 3) + 0x2c);
+                break;
+              case 5:
+                flare_ref = (char *)FUN_001906b0(shader, 5) + 0x38;
+                radius = *(float *)((char *)FUN_001906b0(shader, 5) + 0x34);
+                break;
+              case 6:
+                flare_ref = (char *)FUN_001906b0(shader, 6) + 0x38;
+                radius = *(float *)((char *)FUN_001906b0(shader, 6) + 0x34);
+                break;
+              default:
+                goto lens_flares_next_material;
+              }
+              if (flare_ref != 0 && *(int *)(flare_ref + 0xc) != -1) {
+                /* Find (or append) this lens flare in bsp->lens_flares. */
+                lens_flares = (char *)structure_bsp + 0x11c;
+                lens_flare_index = 0;
+                i = 0;
+                if (0 < *(int *)lens_flares) {
+                  do {
+                    elem = tag_block_get_element(lens_flares, i, 0x10);
+                    if (*(int *)((char *)elem + 0xc) ==
+                        *(int *)(flare_ref + 0xc)) {
+                      break;
+                    }
+                    lens_flare_index = lens_flare_index + 1;
+                    i = (short)lens_flare_index;
+                  } while (i < *(int *)lens_flares);
+                }
+                if (*(int *)lens_flares == (short)lens_flare_index) {
+                  if (*(int *)lens_flares < 0x100) {
+                    new_elem = tag_block_get_element(
+                      lens_flares, tag_block_add_element(lens_flares), 0x10);
+                    FUN_001b9b50(new_elem, *(int *)flare_ref,
+                                 *(int *)(flare_ref + 4));
+                    *(int *)((char *)new_elem + 0xc) =
+                      *(int *)(flare_ref + 0xc);
+                  } else {
+                    error(2,
+                          "### WARNING failed to add lens flare to "
+                          "structure_bsp (max=#%d)",
+                          0x100);
+                    lens_flare_index = -1;
+                  }
+                }
+                if ((short)lens_flare_index != -1) {
+                  /* Build the material's connected coplanar geometry. */
+                  vertices = *(int *)(material + 0xe4);
+                  FUN_001034b0(geometry);
+                  surface = 0;
+                  if (0 < *(int *)(material + 0x18)) {
+                    triangles = (char *)structure_bsp + 0xf8;
+                    do {
+                      tri = (unsigned short *)tag_block_get_element(
+                        triangles, *(int *)(material + 0x14) + surface, 6);
+                      if ((int)tri[0] >= *(int *)(material + 0xb4)) {
+                        display_assert(
+                          "surface->vertex_indices[0]>=0 && "
+                          "surface->vertex_indices[0]<material->vertices.count",
+                          LENS_FLARES_FILE, 0xb3, 1);
+                        system_exit(-1);
+                      }
+                      if ((int)tri[1] >= *(int *)(material + 0xb4)) {
+                        display_assert(
+                          "surface->vertex_indices[1]>=0 && "
+                          "surface->vertex_indices[1]<material->vertices.count",
+                          LENS_FLARES_FILE, 0xb4, 1);
+                        system_exit(-1);
+                      }
+                      if ((int)tri[2] >= *(int *)(material + 0xb4)) {
+                        display_assert(
+                          "surface->vertex_indices[2]>=0 && "
+                          "surface->vertex_indices[2]<material->vertices.count",
+                          LENS_FLARES_FILE, 0xb5, 1);
+                        system_exit(-1);
+                      }
+                      FUN_00103860((int)geometry,
+                                   (float *)(vertices + tri[0] * 0x38),
+                                   (float *)(vertices + tri[1] * 0x38),
+                                   (float *)(vertices + tri[2] * 0x38), 0);
+                      surface = surface + 1;
+                    } while (surface < *(int *)(material + 0x18));
+                  }
+                  group_count = FUN_00103c00(geometry);
+                  group = 0;
+                  if (0 < group_count) {
+                    do {
+                      point_count = 0;
+                      edge_index = 0;
+                      if (0 < geometry[7]) {
+                        i = 0;
+                        do {
+                          edge =
+                            (unsigned int *)FUN_00117ee0(geometry + 6, i, 0x18);
+                          if ((int)edge[3] == group) {
+                            vref = FUN_00117ee0(
+                              geometry + 3, (int)(edge[0] & 0x7fffffff), 0x1c);
+                            v0 = (float *)FUN_00117ee0(
+                              geometry,
+                              ((int *)(vref + 0xc))[(edge[0] & 0x80000000) != 0],
+                              0xc);
+                            vref = FUN_00117ee0(
+                              geometry + 3, (int)(edge[1] & 0x7fffffff), 0x1c);
+                            v1 = (float *)FUN_00117ee0(
+                              geometry,
+                              ((int *)(vref + 0xc))[(edge[1] & 0x80000000) != 0],
+                              0xc);
+                            vref = FUN_00117ee0(
+                              geometry + 3, (int)(edge[2] & 0x7fffffff), 0x1c);
+                            v2 = (float *)FUN_00117ee0(
+                              geometry,
+                              ((int *)(vref + 0xc))[(edge[2] & 0x80000000) != 0],
+                              0xc);
+                            if ((short)point_count == 0) {
+                              /* First triangle of the group: plane normal,
+                               * dominant projection axis, and sign. */
+                              FUN_001037b0(plane, v2, v1, v0);
+                              if (fabs(plane[2]) < fabs(plane[1]) ||
+                                  fabs(plane[2]) < fabs(plane[0])) {
+                                if (fabs(plane[1]) < fabs(plane[0])) {
+                                  axis = 0;
+                                } else {
+                                  axis = 1;
+                                }
+                              } else {
+                                axis = 2;
+                              }
+                              projection_sign = 1;
+                              if (plane[(short)axis] <= 0.0f) {
+                                projection_sign = 0;
+                              }
+                            }
+                            pc = (short)point_count;
+                            pc2 = pc + 2;
+                            if (59999 < pc2) {
+                              display_assert(
+                                "point_count+2<MAXIMUM_TRIANGLES_PER_CONNECTED_"
+                                "GEOMETRY_COPLANAR_GROUP*NUMBER_OF_VERTICES_"
+                                "PER_TRIANGLE",
+                                LENS_FLARES_FILE, 0xda, 1);
+                              system_exit(-1);
+                            }
+                            ((lens_real_point3d *)group_vertices)[pc] =
+                              *(lens_real_point3d *)v0;
+                            ((lens_real_point3d *)group_vertices)[pc + 1] =
+                              *(lens_real_point3d *)v1;
+                            ((lens_real_point3d *)group_vertices)[pc2] =
+                              *(lens_real_point3d *)v2;
+                            out = (lens_real_point2d *)projected_vertices + pc;
+                            FUN_00061df0(v0, (short)axis, projection_sign, out);
+                            FUN_00061df0(v1, (short)axis, projection_sign,
+                                         out + 1);
+                            FUN_00061df0(
+                              v2, (short)axis, projection_sign,
+                              (lens_real_point2d *)projected_vertices + pc2);
+                            point_count = point_count + 3;
+                          }
+                          edge_index = (short)(edge_index + 1);
+                          i = edge_index;
+                        } while (i < geometry[7]);
+                      }
+                      hull_count = convex_hull2d_reduce(
+                        (short)point_count, projected_vertices, hull_indices);
+                      if (2 < (short)hull_count) {
+                        /* Centroid of the hull, seeded from the global origin
+                         * point (*(float **)0x31fc1c), scaled by 1/count. */
+                        origin = *(float **)0x31fc1c;
+                        centroid_x = origin[0];
+                        centroid_y = origin[1];
+                        centroid_z = origin[2];
+                        if (0 < (short)hull_count) {
+                          n = (unsigned short)hull_count;
+                          hp = hull_indices;
+                          do {
+                            p = (lens_real_point3d *)group_vertices + *hp;
+                            hp = hp + 1;
+                            n = n - 1;
+                            centroid_x = centroid_x + p->x;
+                            centroid_y = centroid_y + p->y;
+                            centroid_z = centroid_z + p->z;
+                          } while (n != 0);
+                        }
+                        scale = 1.0f / (float)(short)hull_count;
+                        centroid_x = centroid_x * scale;
+                        centroid_y = centroid_y * scale;
+                        centroid_z = scale * centroid_z;
+                        /* Tangent basis: normalize(points[1] - points[0]). */
+                        tangent_x = ((lens_real_point3d *)group_vertices)[1].x -
+                                    ((lens_real_point3d *)group_vertices)[0].x;
+                        tangent_y = ((lens_real_point3d *)group_vertices)[1].y -
+                                    ((lens_real_point3d *)group_vertices)[0].y;
+                        tangent_z = ((lens_real_point3d *)group_vertices)[1].z -
+                                    ((lens_real_point3d *)group_vertices)[0].z;
+                        length = x87_sqrt(tangent_y * tangent_y +
+                                          tangent_z * tangent_z +
+                                          tangent_x * tangent_x);
+                        if (fabs(length) >= (double)0.0001f) {
+                          length = 1.0f / length;
+                          tangent_x = tangent_x * length;
+                          tangent_y = tangent_y * length;
+                          tangent_z = tangent_z * length;
+                        }
+                        p =
+                          (lens_real_point3d *)group_vertices + hull_indices[0];
+                        /* Binormal = cross(plane_normal, tangent); factor
+                         * order matches the FLD/FMUL/FSUBP sequence. */
+                        binormal_x =
+                          tangent_z * plane[1] - tangent_y * plane[2];
+                        binormal_y =
+                          tangent_x * plane[2] - tangent_z * plane[0];
+                        binormal_z =
+                          tangent_y * plane[0] - tangent_x * plane[1];
+                        tangent_d = tangent_y * centroid_y +
+                                    tangent_z * centroid_z +
+                                    tangent_x * centroid_x;
+                        binormal_d = binormal_z * centroid_z +
+                                     binormal_y * centroid_y +
+                                     binormal_x * centroid_x;
+                        u_max = (tangent_y * p->y + tangent_z * p->z +
+                                 tangent_x * p->x) -
+                                tangent_d;
+                        u_min = u_max;
+                        v_max = (binormal_z * p->z + binormal_y * p->y +
+                                 binormal_x * p->x) -
+                                binormal_d;
+                        v_min = v_max;
+                        if (0 < (short)hull_count) {
+                          n = (unsigned short)hull_count;
+                          hp = hull_indices;
+                          do {
+                            p = (lens_real_point3d *)group_vertices + *hp;
+                            u = (tangent_x * p->x + tangent_y * p->y +
+                                 tangent_z * p->z) -
+                                tangent_d;
+                            v = (binormal_x * p->x + binormal_z * p->z +
+                                 binormal_y * p->y) -
+                                binormal_d;
+                            if (u <= u_min) {
+                              u_min = u;
+                            }
+                            if (v <= v_min) {
+                              v_min = v;
+                            }
+                            if (u_max < u) {
+                              u_max = u;
+                            }
+                            if (v_max < v) {
+                              v_max = v;
+                            }
+                            hp = hp + 1;
+                            n = n - 1;
+                          } while (n != 0);
+                        }
+                        if (radius != 0.0f) {
+                          /* Interior grid: ceil the min, floor the max. */
+                          inv = 1.0f / radius;
+                          grid_u = inv * u_min;
+                          u_start = (short)x87_round_to_int(
+                            (float)ceil((double)LENS_FLARES_PIN(grid_u)));
+                          grid_v = inv * v_min;
+                          v_start = (short)x87_round_to_int(
+                            (float)ceil((double)LENS_FLARES_PIN(grid_v)));
+                          grid_u = inv * u_max;
+                          u_end = (short)x87_round_to_int(
+                            (float)floor((double)LENS_FLARES_PIN(grid_u)));
+                          grid_v = inv * v_max;
+                          v_end = (short)x87_round_to_int(
+                            (float)floor((double)LENS_FLARES_PIN(grid_v)));
+                          if (v_end < v_start) {
+                            goto lens_flares_next_group;
+                          }
+                        } else {
+                          v_end = 0;
+                          u_end = 0;
+                          v_start = 0;
+                          u_start = 0;
+                        }
+                        v_count = (unsigned short)((v_end - v_start) + 1);
+                        v_grid = v_start;
+                        do {
+                          if (u_start <= u_end) {
+                            fv = (float)v_grid * radius;
+                            step_x = binormal_x * fv;
+                            step_y = binormal_y * fv;
+                            step_z = binormal_z * fv;
+                            u_count = (unsigned short)((u_end - u_start) + 1);
+                            u_grid = u_start;
+                            do {
+                              fu = (float)u_grid * radius;
+                              position.x = centroid_x;
+                              position.y = centroid_y;
+                              position.z = centroid_z;
+                              position.x = tangent_x * fu + position.x;
+                              position.y = tangent_y * fu + position.y;
+                              position.z = tangent_z * fu + position.z;
+                              position.x = step_x + position.x;
+                              position.y = step_y + position.y;
+                              position.z = step_z + position.z;
+                              FUN_00061df0(&position, (short)axis,
+                                           projection_sign, projected);
+                              if ((char)FUN_00106290(
+                                    (short)hull_count, hull_indices,
+                                    projected_vertices, projected, 0.0f) != 0) {
+                                marker_index =
+                                  tag_block_add_element(lens_flare_markers);
+                                if (marker_index != -1) {
+                                  elem = tag_block_get_element(
+                                    lens_flare_markers, marker_index, 0x10);
+                                  *(lens_real_point3d *)elem = position;
+                                  *((char *)elem + 0xc) =
+                                    (char)x87_round_to_int((float)floor(
+                                      (double)(plane[0] * 127.5f)));
+                                  *((char *)elem + 0xd) =
+                                    (char)x87_round_to_int((float)floor(
+                                      (double)(plane[1] * 127.5f)));
+                                  *((char *)elem + 0xe) =
+                                    (char)x87_round_to_int((float)floor(
+                                      (double)(plane[2] * 127.5f)));
+                                  *((char *)elem + 0xf) =
+                                    (char)lens_flare_index;
+                                } else {
+                                  error(2,
+                                        "### WARNING failed to add lens flare "
+                                        "marker to structure_bsp (max=#%d)",
+                                        0x10000);
+                                }
+                              }
+                              u_grid = u_grid + 1;
+                              u_count = u_count - 1;
+                            } while (u_count != 0);
+                          }
+                          v_grid = v_grid + 1;
+                          v_count = v_count - 1;
+                        } while (v_count != 0);
+                      }
+                    lens_flares_next_group:
+                      group = group + 1;
+                    } while (group < group_count);
+                  }
+                  FUN_001034e0(geometry);
+                } else {
+                  error(2,
+                        "### WARNING failed to add lens flare to structure_bsp "
+                        "(max=#%d)",
+                        0x100);
+                }
+              }
+            }
+          lens_flares_next_material:
+            material_index = (short)(material_index + 1);
+          } while ((int)material_index < *(int *)materials);
+        }
+        lightmap_index = (short)(lightmap_index + 1);
+      } while ((int)lightmap_index < *(int *)((char *)structure_bsp + 0x104));
+    }
+    /* Sort the markers by containing cluster and rebuild the block. */
+    temp_markers = (lens_flare_temp_marker *)debug_malloc(
+      *(int *)lens_flare_markers * 0x14, 0, LENS_FLARES_FILE, 0x16b);
+    if (temp_markers != 0) {
+      out_count = 0;
+      cluster_index16 = -1;
+      if (0 < *(int *)lens_flare_markers) {
+        tm = temp_markers;
+        i = 0;
+        do {
+          elem = tag_block_get_element(lens_flare_markers, i, 0x10);
+          position = *(lens_real_point3d *)elem;
+          normal_x = (float)*((char *)elem + 0xc) * (1.0f / 127.0f);
+          delta = 1.0f / 65536.0f;
+          normal_y = (float)*((char *)elem + 0xd) * (1.0f / 127.0f);
+          normal_z = (float)*((char *)elem + 0xe) * (1.0f / 127.0f);
+          csmemcpy(tm, elem, 0x10);
+          do {
+            leaf = bsp3d_find_leaf(
+              tag_block_get_element((char *)structure_bsp + 0xb0, 0, 0x60), 0,
+              &position);
+            cluster_idx = -1;
+            if (leaf != 0xffffffff) {
+              leaf_elem = tag_block_get_element((char *)structure_bsp + 0xe0,
+                                                (int)(leaf & 0x7fffffff), 0x10);
+              cluster_idx = *(short *)((char *)leaf_elem + 8);
+            }
+            tm->cluster_index = cluster_idx;
+            position.x = delta * normal_x + position.x;
+            position.y = delta * normal_y + position.y;
+            position.z = delta * normal_z + position.z;
+            delta = delta + delta;
+          } while (cluster_idx == -1 && delta < 1.0f);
+          i = i + 1;
+          tm = tm + 1;
+        } while (i < *(int *)lens_flare_markers);
+      }
+      qsort(temp_markers, *(int *)lens_flare_markers, 0x14,
+            (int (*)(const void *, const void *))FUN_00194360);
+      i = 0;
+      if (0 < *(int *)lens_flare_markers) {
+        tm = temp_markers;
+        do {
+          if (tm->cluster_index != -1) {
+            cluster =
+              tag_block_get_element(clusters, (int)tm->cluster_index, 0x68);
+            if (cluster_index16 != tm->cluster_index) {
+              if (tm->cluster_index <= cluster_index16) {
+                display_assert(
+                  "cluster_index<temp_markers[marker_index].cluster_index",
+                  LENS_FLARES_FILE, 0x19f, 1);
+                system_exit(-1);
+              }
+              cluster_index16 = tm->cluster_index;
+              *(short *)((char *)cluster + 0x40) = (short)out_count;
+            }
+            csmemcpy(tag_block_get_element(lens_flare_markers, out_count, 0x10),
+                     tm, 0x10);
+            out_count = out_count + 1;
+            *(short *)((char *)cluster + 0x42) =
+              (short)(*(short *)((char *)cluster + 0x42) + 1);
+          }
+          i = i + 1;
+          tm = tm + 1;
+        } while (i < *(int *)lens_flare_markers);
+      }
+      if (tag_block_resize(lens_flare_markers, out_count)) {
+        /* Validate the per-cluster ranges against the shrunk block. */
+        validate_counter = 0;
+        if (0 < *(int *)clusters) {
+          i = 0;
+          do {
+            cluster = tag_block_get_element(clusters, i, 0x68);
+            if (*(unsigned short *)((char *)cluster + 0x42) != 0) {
+              if ((int)*(unsigned short *)((char *)cluster + 0x40) >=
+                  *(int *)lens_flare_markers) {
+                display_assert("cluster->first_lens_flare_marker_index<"
+                               "structure_bsp->lens_flare_markers.count",
+                               LENS_FLARES_FILE, 0x1bc, 1);
+                system_exit(-1);
+              }
+              if (*(int *)lens_flare_markers <
+                  (int)((unsigned int)*(unsigned short *)((char *)cluster +
+                                                          0x42) +
+                        (unsigned int)*(unsigned short *)((char *)cluster +
+                                                          0x40))) {
+                display_assert(
+                  "cluster->first_lens_flare_marker_index+cluster->lens_flare_"
+                  "marker_count<=structure_bsp->lens_flare_markers.count",
+                  LENS_FLARES_FILE, 0x1bd, 1);
+                system_exit(-1);
+              }
+            }
+            validate_counter = (short)(validate_counter + 1);
+            i = validate_counter;
+          } while (i < *(int *)clusters);
+        }
+      } else {
+        error(2, "### ERROR failed to resize lens flare marker block");
+        success = 0;
+      }
+      debug_free(temp_markers, LENS_FLARES_FILE, 0x1c7);
+    } else {
+      error(2, "### ERROR failed to sort lens flare markers by cluster (out of "
+               "memory)");
+      success = 0;
+    }
+  } else {
+    error(2, "### ERROR failed to allocate temporary buffers for lens flare "
+             "placement");
+    success = 0;
+  }
+  if (projected_vertices != 0) {
+    debug_free(projected_vertices, LENS_FLARES_FILE, 0x1d6);
+  }
+  if (group_vertices != 0) {
+    debug_free(group_vertices, LENS_FLARES_FILE, 0x1d7);
+  }
+  if (hull_indices != 0) {
+    debug_free(hull_indices, LENS_FLARES_FILE, 0x1d8);
+  }
+  if (success != 0) {
+    crt_fprintf((void *)0x331050, "done\r\n");
+  }
+  return success;
+}
+
 /* 0x1954d0 - build lens flares for the current structure BSP.
  * (TU: c:\halo\SOURCE\structures\structure_render.c)
  *
@@ -4412,6 +5226,198 @@ char FUN_00197570(float *records, int16_t count, float threshold)
     } while (i < count);
   }
   return 0;
+}
+
+/* 16-byte plane record (normal + distance).  The original copies the mirror
+ * element's plane into the caller's result with four aliased integer moves
+ * through a copied pointer (MOV ECX,EDI at 0x19781b) -- an MSVC struct
+ * assignment, not four independent float stores. */
+typedef struct mirror_plane {
+  float n[4];
+} mirror_plane;
+
+/* Screen-space polygon scratch: a count followed by up to 0x100 (x,y) pairs.
+ * Size 0x804.  Proven by the 0x1834-byte frame at 0x1975e0, which is exactly
+ * three of these back to back (0x180c) plus 0x28 bytes of scalars:
+ *   EBP-0x1834 clip result   EBP-0x1030 edge-solve output   EBP-0x82c frustum
+ *   quad.  The two helpers are handed &poly (count) and &poly.points
+ *   separately, so the count and the point array MUST stay contiguous. */
+typedef struct mirror_polygon2d {
+  short count;
+  short pad_02;
+  float points[256][2];
+} mirror_polygon2d;
+
+/* Same layout, but the edge-solve helper's output count is consumed as a full
+ * dword (MOV ECX,dword ptr [EBP-0x1030] at 0x197725), not sign-extended from a
+ * word -- so the count field is int-wide here. */
+typedef struct mirror_edge_poly2d {
+  int count;
+  float points[256][2];
+} mirror_edge_poly2d;
+
+/* 0x1975e0 - find the mirror surface visible through the current frustum.
+ *
+ * Scans the sound/mirror bitmask of the cluster named by the global int16 at
+ * 0x506784 (skipped entirely when that global is -1).  Each set bit selects a
+ * surface in the structure bsp's tag_block at bsp+0x134 (stride 0x68); each
+ * surface carries a sub-block at +0x50 (stride 0x40) of mirror elements.
+ *
+ * For every mirror element the frustum's projected bounds rectangle is clipped
+ * against the element: FUN_00197310 solves the element's edge loop
+ * (verts=*(void**)(elem+0x38) in EAX, plane=elem in ECX, ref=param1 in EDX)
+ * into the local edge polygon.  A return of 0 means "solved" and the resulting
+ * polygon is intersected with the frustum quad by FUN_00108060; a non-empty
+ * intersection accepts the mirror.  A return of 2 accepts it directly.
+ *
+ * On acceptance the shader tag ('shdr', index at elem+0x30) is fetched; when
+ * its type word (+0x24) is 3 the two floats at +0x30c/+0x310 of
+ * FUN_001906b0(shader, 3) are stored to out+0x10/+0x14, else both are zeroed.
+ * The element's plane is copied to out+0x00..0x0c and the running surface
+ * counter to out+0x18.  If a mirror was already accepted this frame and the
+ * new plane differs by more than 1e-4 in any component, error(2, ...) fires.
+ *
+ * ABI (prologue at 0x1975e0): PUSH EBP / MOV EBP,ESP / MOV EAX,0x1834 /
+ * CALL _chkstk -> plain cdecl with a 0x1834-byte frame (never transcribe
+ * _chkstk).  ref=[EBP+8], frustum=[EBP+0xc], out=[EBP+0x10].  The result is a
+ * byte flag at EBP-1 returned in AL (MOV AL,[EBP-1] at 0x19788a and MOV AL,BL
+ * with BL==0 at 0x197895), i.e. a bool, not void as Ghidra claims.
+ *
+ * The out record is >= 0x1a bytes: plane float[4] at +0x00, two floats at
+ * +0x10/+0x14, an int16 surface index at +0x18.
+ *
+ * Index narrowing is load-bearing: the surface counter and the element index
+ * are both truncated through MOVSX AX/DX before every compare and every
+ * tag_block_get_element call. */
+char FUN_001975e0(void *ref, void *frustum, void *out)
+{
+  char found;
+  int surface_index;
+  uint32_t *mask_ptr;
+  int bit;
+  int elem_index;
+  float bounds[4];
+  int *block;
+  mirror_polygon2d quad;
+  mirror_edge_poly2d clip;
+  mirror_polygon2d result;
+  void *bsp;
+  void *elem;
+  void *shader;
+  void *shader_data;
+  int *sub;
+  short r;
+
+  bsp = scenario_get();
+  found = 0;
+  if (*(int *)0x506784 == -1) {
+    return found;
+  }
+
+  /* Frustum bounds -> the four corners of the projected rectangle.  Store
+   * offsets from the disassembly at 0x19761f-0x197667 (NOT the decompiler's
+   * local names, which are one slot off):
+   *   -0x828=b[0] -0x824=b[2] | -0x820=b[1] -0x81c=b[2]
+   *   -0x818=b[1] -0x814=b[3] | -0x810=b[0] -0x80c=b[3]
+   * i.e. (x0,y0) (x1,y0) (x1,y1) (x0,y1); the count word lands at -0x82c. */
+  render_frustum_get_projection_bounds(frustum, bounds);
+  quad.points[0][0] = bounds[0];
+  quad.points[0][1] = bounds[2];
+  quad.points[1][0] = bounds[1];
+  quad.points[1][1] = bounds[2];
+  quad.points[2][0] = bounds[1];
+  quad.points[2][1] = bounds[3];
+  quad.count = 4;
+  quad.points[3][0] = bounds[0];
+  quad.points[3][1] = bounds[3];
+
+  /* 0x506784 is read twice: as a full int for the -1 test above and as a word
+   * (XOR ECX,ECX / MOV CX,...) for the cluster index here. */
+  mask_ptr =
+    structure_bsp_get_cluster_sound_data(bsp, *(unsigned short *)0x506784);
+  block = (int *)((char *)bsp + 0x134);
+  surface_index = 0;
+  if (*block <= 0) {
+    return found;
+  }
+
+  do {
+    /* Positive test first: the original falls through into the bit scan and
+     * places the "no mirror in this 32-surface window" arm out of line at
+     * LAB_0019786e (JE at 0x1976a3). */
+    if (*mask_ptr != 0) {
+      bit = 0;
+      do {
+        if (*block <= (short)surface_index) {
+          break;
+        }
+        if ((*mask_ptr & (1U << bit)) != 0) {
+          sub = (int *)((char *)tag_block_get_element(
+                          block, (short)surface_index, 0x68) +
+                        0x50);
+          elem_index = 0;
+          if (0 < *sub) {
+            do {
+              elem = tag_block_get_element(sub, (short)elem_index, 0x40);
+              r = FUN_00197310(
+                *(void **)((char *)elem + 0x38), elem, ref, frustum,
+                *(unsigned short *)((char *)elem + 0x34), 1, (short *)&clip);
+              if (r == 0) {
+                result.count = FUN_00108060(
+                  quad.count, quad.points, clip.count, (uint16_t *)clip.points,
+                  0x100, (uint16_t *)result.points, 0x38d1b717);
+                if (result.count == 0) {
+                  goto next_element;
+                }
+              } else if (r != 2) {
+                goto next_element;
+              }
+
+              /* elem+0x30 is an INT tag index read through the element, not a
+               * float (Ghidra renders it as pfVar4[0xc]). */
+              shader = tag_get(0x73686472, *(int *)((char *)elem + 0x30));
+              if (*(short *)((char *)shader + 0x24) == 3) {
+                shader_data = FUN_001906b0(shader, 3);
+                *(float *)((char *)out + 0x10) =
+                  *(float *)((char *)shader_data + 0x30c);
+                *(float *)((char *)out + 0x14) =
+                  *(float *)((char *)shader_data + 0x310);
+              } else {
+                *(float *)((char *)out + 0x10) = 0.0f;
+                *(float *)((char *)out + 0x14) = 0.0f;
+              }
+
+              /* 0x1977b8-0x197808: FLD elem[k] / FSUB out[k] / FABS /
+               * FCOMP qword [0x2533d0] (== (double)1e-4f) / TEST AH,5 / JP.
+               * JP after TEST AH,5 is the false-exit of a `<` test, and the
+               * chain's tail inverts to JNP -> the source is the negation of
+               * an AND of four `<` comparisons.  Subtraction is elem - out. */
+              if (found &&
+                  !(fabs(((float *)elem)[0] - ((float *)out)[0]) < 0.0001f &&
+                    fabs(((float *)elem)[1] - ((float *)out)[1]) < 0.0001f &&
+                    fabs(((float *)elem)[2] - ((float *)out)[2]) < 0.0001f &&
+                    fabs(((float *)elem)[3] - ((float *)out)[3]) < 0.0001f)) {
+                error(2, "two mirrors visible with different planes");
+              }
+              *(mirror_plane *)out = *(mirror_plane *)elem;
+              *(short *)((char *)out + 0x18) = (short)surface_index;
+              found = 1;
+
+            next_element:
+              elem_index = elem_index + 1;
+            } while ((short)elem_index < *sub);
+          }
+        }
+        bit = bit + 1;
+        surface_index = surface_index + 1;
+      } while ((short)bit < 0x20);
+    } else {
+      surface_index = surface_index + 0x20;
+    }
+    mask_ptr = mask_ptr + 1;
+  } while ((short)surface_index < *block);
+
+  return found;
 }
 
 /* FUN_001978a0: recursive bsp3d structure-visibility traversal.

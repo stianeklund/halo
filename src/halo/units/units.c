@@ -2948,6 +2948,21 @@ char FUN_001a8730(void *anim_state)
   return result;
 }
 
+/* FUN_001a8770 (0x1a8770)
+ * Returns 1 when the animation state is in the inclusive range [3,4].
+ * @ecx = anim state ptr. Signed byte field at +0xb (CMP/JL, CMP/JG). */
+char FUN_001a8770(void *anim_state)
+{
+  char result;
+
+  result = 0;
+  if ((*(int8_t *)((char *)anim_state + 0xb) >= 3) &&
+      (*(int8_t *)((char *)anim_state + 0xb) <= 4)) {
+    result = 1;
+  }
+  return result;
+}
+
 /* FUN_001a8790 (0x1a8790)
  * Returns 0 for vehicle/combat animation states. @ecx = anim state ptr. */
 char FUN_001a8790(void *anim_state)
@@ -3021,6 +3036,25 @@ char FUN_001a8850(void *anim_state)
   return result;
 }
 
+/* FUN_001a8890 (0x1a8890)
+ * Returns whether the animation state currently allows something: the result is
+ * (field 0xc == 0), except that it is forced to 0 for the signed
+ * animation-state band [0x17,0x23] and for state 0x29. Both fields are read as
+ * signed bytes -- the original uses signed branches (JL/JLE). @ecx = anim state
+ * ptr. */
+char FUN_001a8890(void *anim_state)
+{
+  char result;
+  int8_t state;
+
+  result = (char)(*(int8_t *)((char *)anim_state + 0xc) == 0);
+  state = *(int8_t *)((char *)anim_state + 0xb);
+  if (state >= 0x17 && (state <= 0x23 || state == 0x29)) {
+    result = 0;
+  }
+  return result;
+}
+
 /* FUN_001a88b0 (0x1a88b0)
  * Maps animation state to animation index. @ecx = anim state value. */
 int FUN_001a88b0(int16_t anim_state)
@@ -3057,6 +3091,67 @@ int FUN_001a88b0(int16_t anim_state)
   case 0xf:
     result = 0x1a;
     break;
+  }
+  return result;
+}
+
+/* FUN_001a8910 (0x1a8910)
+ *
+ * Animation-state predicate. @ecx = anim state value (signed 16-bit; the
+ * prologue's MOVSX ECX,CX proves the sign extension).
+ *
+ * Returns 0 for the six states 0x1e, 0x1f, 0x20, 0x21, 0x27 and 0x29;
+ * returns 1 for every other state (including the in-range 0x22-0x26 and
+ * 0x28, which fall through to the default arm of the jump table).
+ *
+ * The original biases by -0x1e and bounds-checks against 0xb, then indexes a
+ * 12-byte selector table at 0x1a8938 feeding the 2-entry dword jump table at
+ * 0x1a8930. Keep this as a switch: an if-chain or lookup array will not
+ * regenerate the byte/jump table pair. */
+char FUN_001a8910(int16_t anim_state)
+{
+  char result;
+
+  result = 1;
+  switch ((int)anim_state) {
+  case 0x1e:
+  case 0x1f:
+  case 0x20:
+  case 0x21:
+  case 0x27:
+  case 0x29:
+    result = 0;
+  }
+  return result;
+}
+
+/* FUN_001a8950 (0x1a8950)
+ *
+ * Classifies an (animation state, target state) pair into one of three
+ * categories.  Pure register-only comparison ladder: no memory access, no
+ * calls, no FPU.
+ *
+ * Returns 1 when BOTH states are in {0, 2, 3}, 2 when the animation state is
+ * 0x15 or 0x16, and 6 otherwise.  The 0x15/0x16 test is deliberately a
+ * SEPARATE sequential `if` (not an `else if`) — in the original the second
+ * comparison block at 0x1a897c is reached on every path, including the one
+ * that already stored 1, so an anim_state of 0x15/0x16 always yields 2
+ * regardless of target_state.  Confirmed against disassembly.
+ *
+ * Both parameters are compared with 16-bit CMP CX/DX,imm16 — keep them
+ * int16_t (do not widen to int).  Result is returned in full 32-bit EAX.
+ */
+int FUN_001a8950(int16_t anim_state, int16_t target_state)
+{
+  int result;
+
+  result = 6;
+  if (((anim_state == 0) || (anim_state == 2) || (anim_state == 3)) &&
+      ((target_state == 0) || (target_state == 2) || (target_state == 3))) {
+    result = 1;
+  }
+  if ((anim_state == 0x16) || (anim_state == 0x15)) {
+    result = 2;
   }
   return result;
 }

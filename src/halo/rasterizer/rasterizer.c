@@ -1759,6 +1759,53 @@ void FUN_00174510(void *group, int has_lightmap)
                                    vertices_per_primitive);
 }
 
+/* 0x174980 — dead register-convention adapter for
+ * IDirect3DVertexBuffer8::Lock (0x1ef100), byte-identical in shape to the
+ * already-ported FUN_0015b6a0 in rasterizer_xbox_decals.c. MSVC emitted the
+ * D3D8 __forceinline member wrapper once per translation unit that used it;
+ * the linker kept every copy, so several identical instantiations survive.
+ *
+ * Disassembled from the pristine cachebeta.xbe (13 instructions):
+ *   push ebp / mov ebp,esp
+ *   push eax             ; arg5 = flags          (EAX on entry)
+ *   mov  eax,[ebp+0xc]   ; s2 = offset_to_lock
+ *   push ecx             ; arg4 = ppb_data       (ECX on entry)
+ *   mov  ecx,[ebp+0x8]   ; s1 = vertex_buffer
+ *   push edx             ; arg3 = size_to_lock   (EDX on entry)
+ *   push eax             ; arg2 = offset_to_lock
+ *   push ecx             ; arg1 = vertex_buffer
+ *   call 0x1ef100        ; D3DVertexBuffer_Lock, __stdcall, 5 stack args
+ *   xor eax,eax / pop ebp / ret 0x8
+ *
+ * ABI evidence (kb.json previously said `void FUN_00174980(void)`, wrong on
+ * every count):
+ *  - RET 0x8 => __stdcall with TWO stack args, at +8 and +0xc.
+ *  - EAX, ECX and EDX are each PUSHed before anything in this function
+ *    writes to them, so all three are implicit register inputs
+ *    (@<eax>/@<ecx>/@<edx> in kb.json), not scratch. Substituting literal 0
+ *    for any of them would be the const-for-register-argument bug class.
+ *  - Returns S_OK in EAX: XOR EAX,EAX at the tail. Lifting this as void
+ *    would be the §16 void-EAX hazard (dropped implicit return).
+ *
+ * Argument order comes from the push sequence -- the last push is the first
+ * argument -- giving Lock(s1, s2, edx, ecx, eax), which lines up with the
+ * D3D8 signature Lock(pVertexBuffer, OffsetToLock, SizeToLock, ppbData,
+ * Flags).
+ *
+ * The C impl is cdecl even though the original is __stdcall: knowledge.py
+ * strips the convention from any @<reg> declaration when generating decl.h,
+ * because the generated thunk presents a cdecl interface to C, and patch.py's
+ * reverse thunk restores the original RET 0x8 contract for the original
+ * callers.
+ */
+/* 0x174980 */
+int FUN_00174980(int r1, int r2, int r3, int s1, int s2)
+{
+  D3DVertexBuffer_Lock((void *)s1, (uint32_t)s2, (uint32_t)r3, (void **)r2,
+                       (uint32_t)r1);
+  return 0;
+}
+
 /* 0x1749b0 — end the frame's overdraw visibility test, fold the returned
  * pixel count into the global accumulator at 0x47e4c4 and, on the last
  * window (when the interface-globals font tag is valid), draw the overdraw

@@ -740,6 +740,76 @@ void FUN_001099f0(float *src, float *dst)
   d[8] = s[8];
 }
 
+/* 0x109a60 — Invert a 3x3 matrix (row-major float[9]) given its
+ * precomputed determinant: out[j][i] = cofactor(i,j) / det (adjugate
+ * transpose).  Supports m == out: the source is first copied to a local
+ * scratch (REP MOVSD, 9 dwords) and read from there.
+ * TU: c:\halo\SOURCE\math\matrix_math.c (assert line 787).
+ * ip/im (jp/jm) are i+1/i-1 (j+1/j-1) wrapped to [0,3).  The reciprocal
+ * 1/det is computed once before the loops (FLD 1.0f; FDIV) and kept in
+ * ST for every element multiply. */
+float *FUN_00109a60(float *m, float determinant, float *out)
+{
+  float *column;   /* out + i: walks one float (column) per outer pass */
+  short j;
+  int jm1;         /* j - 1, kept as a running induction variable */
+  float *element;  /* column + 3*j: walks one row (3 floats) per inner pass */
+  int jp_i;
+  float *dst;
+  float scratch[9];
+  float one_over_det;
+  short i;
+  short icopy;
+  short ip;
+  short im;
+  short jp;
+  short jm;
+
+  if (m == out) {
+    memcpy(scratch, m, 9 * sizeof(float));
+    m = scratch;
+  }
+  if (real_math_fabs_double_from_float(determinant) < 0.0001f) {
+    display_assert("!realcmp(determinant, 0.0f)",
+                   "c:\\halo\\SOURCE\\math\\matrix_math.c", 0x313, 1);
+    system_exit(-1);
+  }
+  one_over_det = 1.0f / determinant;
+  column = out;
+  for (i = 0, icopy = 0; i < 3; i++, icopy++) {
+    j = 0;
+    jm1 = -1;
+    element = column;
+    do {
+      dst = element;
+      if (i < 2) {
+        ip = (short)(icopy + 1);
+      } else {
+        ip = 0;
+      }
+      if (i > 0) {
+        im = (short)(icopy - 1);
+      } else {
+        im = 2;
+      }
+      if (j < 2) {
+        jp = (short)(jm1 + 2);
+      } else {
+        jp = 0;
+      }
+      jm = (j > 0) ? (short)jm1 : (short)2;
+      jp_i = (int)jp;
+      j = (short)(j + 1);
+      element = element + 3;
+      jm1 = jm1 + 1;
+      *dst = (m[jp_i + ip * 3] * m[jm + im * 3] -
+              m[ip * 3 + jm] * m[jp_i + im * 3]) * one_over_det;
+    } while (j < 3);
+    column = column + 1;
+  }
+  return out;
+}
+
 /* 0x109ba0 — Build a 3x3 rotation matrix from an axis and sin/cos values.
  * Rodrigues' rotation formula. */
 void FUN_00109ba0(float *out, float *axis, float sine, float cosine)

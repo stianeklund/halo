@@ -406,8 +406,11 @@ def _find_kb_entry(kb: dict, func_name: str) -> Optional[dict]:
             m = re.search(r'\b(\w+)\s*\(', decl)
             fn_name = m.group(1) if m else ""
             if fn_name == func_name or fn.get("addr", "") == addr_query:
+                # A function-level "source" overrides the object default: a
+                # few objects (e.g. rasterizer.obj) aggregate several TUs, and
+                # the object's source names only the primary one.
                 return dict(fn, _obj_name=obj.get("name", ""),
-                            _obj_source=obj.get("source", ""))
+                            _obj_source=fn.get("source") or obj.get("source", ""))
     return None
 
 
@@ -418,7 +421,7 @@ def _find_kb_entry_by_addr(kb: dict, addr: str) -> Optional[dict]:
             a = fn.get("addr", "").lower().lstrip("0x")
             if a == addr_norm:
                 return dict(fn, _obj_name=obj.get("name", ""),
-                            _obj_source=obj.get("source", ""))
+                            _obj_source=fn.get("source") or obj.get("source", ""))
     return None
 
 

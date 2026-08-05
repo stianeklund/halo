@@ -64,6 +64,51 @@ int sound_dsound_pitch_to_frequency(int sample_rate, float pitch)
   return (int)frequency;
 }
 
+/* dsound_angle_from_angle (0x1c9230)
+ *
+ * Convert an angle in radians to integer degrees.  The binary is a
+ * six-instruction leaf: FLD [EBP+8]; FMUL [0x2b073c]; JMP _ftol2.
+ * The constant at 0x2b073c is 0x42652EE1 == 57.29578f == 180/PI.
+ * DirectSound cone/orientation angles are specified in whole degrees. */
+int dsound_angle_from_angle(float angle)
+{
+  return (int)(angle * 57.29578f);
+}
+
+/* dsound_occlusion_from_occlusion (0x1c9250)
+ *
+ * Convert a linear occlusion factor [0.0, 1.0] into a DirectSound
+ * volume attenuation in hundredths of dB.  Twelve instructions:
+ * FLD [0x2533c8]; PUSH 0; FSUB [EBP+8]; PUSH ECX; FSTP [ESP];
+ * CALL sound_dsound_gain_to_volume; ADD ESP,8.  The constant at
+ * 0x2533c8 is .rdata 0x3F800000 == 1.0f, so the FSUB (ST0 - m32)
+ * computes 1.0f - occlusion: full occlusion (1.0) yields gain 0,
+ * i.e. silence.  The result of the tail-position call is returned
+ * untouched in EAX (implicit return, no MOV after the CALL). */
+int dsound_occlusion_from_occlusion(float occlusion)
+{
+  return sound_dsound_gain_to_volume(1.0f - occlusion, 0);
+}
+
+/* dsound_obstruction_from_obstruction (0x1c9270)
+ *
+ * Convert a linear obstruction factor [0.0, 1.0] into a DirectSound
+ * volume attenuation in hundredths of dB.  Byte-for-byte the same
+ * shape as dsound_occlusion_from_occlusion above: FLD [0x2533c8];
+ * PUSH 0; FSUB [EBP+8]; PUSH ECX; FSTP [ESP];
+ * CALL sound_dsound_gain_to_volume; ADD ESP,8.  The constant at
+ * 0x2533c8 is .rdata 0x3F800000 == 1.0f, and FSUB m32 computes
+ * ST0 - m32, i.e. 1.0f - obstruction: full obstruction (1.0) maps to
+ * gain 0 (silence).  The PUSH ECX is only a placeholder slot that
+ * FSTP overwrites with the float, not a third argument (ADD ESP,8
+ * confirms exactly two stack args).  The call is in tail position and
+ * its EAX falls through to RET, so the result is returned implicitly
+ * with no MOV after the CALL. */
+int dsound_obstruction_from_obstruction(float obstruction)
+{
+  return sound_dsound_gain_to_volume(1.0f - obstruction, 0);
+}
+
 /* sound_dsound_channel_get (0x1c9290)
  *
  * Return a pointer to the actual dsound channel struct at the given
@@ -102,6 +147,42 @@ void *sound_dsound_vchannel_get(short index)
     system_exit(-1);
   }
   return (void *)(0x4fdbc4 + (int)index * 4);
+}
+
+/* Global DirectSound failure state.  The reason accumulator is a
+ * 256-byte character buffer (bound proven by the CMP EDI,0x100 guard
+ * in sound_dsound_set_last_error). */
+#define SOUND_DSOUND_ERROR_REASON ((char *)0x4eae38)
+#define SOUND_DSOUND_LAST_HRESULT (*(int *)0x4fdba8)
+
+/* sound_dsound_set_last_error (0x1c9350)
+ *
+ * Record a DirectSound failure.  If hresult is non-NULL, the value it
+ * points at is copied into the global last-error slot.  The reason
+ * text is then appended to the global 256-byte reason accumulator,
+ * but only when the combined length still fits (unsigned compare
+ * against 0x100), so an overlong chain of reasons is silently dropped
+ * rather than overflowing the buffer.
+ *
+ * Both arguments arrive in registers: hresult in EAX (callers pass
+ * LEA EAX,[EBP-N] of a local HRESULT) and reason in ESI (callers pass
+ * a string constant such as "couldn't queue sound packet.").
+ *
+ * The append is performed by the 2-argument call at 0x1d90f0 with the
+ * reason as the format string; that is exactly what the binary does,
+ * so it is preserved verbatim rather than "fixed" into a 3-argument
+ * sprintf (which would change the push count). */
+void sound_dsound_set_last_error(int *hresult, const char *reason)
+{
+  if (hresult != NULL) {
+    SOUND_DSOUND_LAST_HRESULT = *hresult;
+  }
+
+  if ((unsigned int)(csstrlen(SOUND_DSOUND_ERROR_REASON) + csstrlen(reason)) <
+      0x100) {
+    crt_sprintf(SOUND_DSOUND_ERROR_REASON + csstrlen(SOUND_DSOUND_ERROR_REASON),
+                reason);
+  }
 }
 
 /* sound_dsound_channel_update_3d (0x1c94d0)
@@ -385,6 +466,434 @@ done:
   return vchannel[0];
 }
 
+/* sound_dsound_channel_release (0x1c9bf0)
+ *
+ * Release the actual (hardware) channel currently bound to the virtual
+ * channel identified by virtual_channel_index.  Does nothing when the
+ * virtual channel has no channel bound (channel_index == NONE).
+ *
+ * When a channel is bound:
+ *   1. Assert the channel back-references this virtual channel.
+ *   2. If the channel is still playing (short at +0x0 != 0), stop the
+ *      attached stream (channel+0x70) through the XDK media-object
+ *      helper at 0x20f081, set the released byte at +0x6 and clear the
+ *      playing flag.
+ *   3. Clear the two dwords at +0x68 / +0x6c unconditionally -- the
+ *      original emits `MOV [ESI+0x68],EBX` / `MOV [ESI+0x6c],EBX` with
+ *      EBX == 0 *after* the conditional block, not inside it.
+ *   4. Reset both back-references to NONE. */
+void sound_dsound_channel_release(int virtual_channel_index)
+{
+  short *vchannel;
+  void *channel;
+
+  vchannel = (short *)sound_dsound_vchannel_get(virtual_channel_index);
+  if (vchannel[0] != -1) {
+    /* assert: channel's back-reference matches our virtual_channel_index */
+    channel = sound_dsound_channel_get(vchannel[0]);
+    if (*(short *)((char *)channel + 0x2) != (short)virtual_channel_index) {
+      display_assert("channel_get(vchannel->channel_index)->"
+                     "virtual_channel_index==virtual_channel_index",
+                     "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x5dd, 1);
+      system_exit(-1);
+    }
+
+    channel = sound_dsound_channel_get(vchannel[0]);
+    if (*(short *)channel != 0) {
+      FUN_0020f081(*(void **)((char *)channel + 0x70));
+      *((char *)channel + 0x6) = 1;
+      *(short *)channel = 0;
+    }
+    *(int *)((char *)channel + 0x68) = 0;
+    *(int *)((char *)channel + 0x6c) = 0;
+
+    channel = sound_dsound_channel_get(vchannel[0]);
+    *(short *)((char *)channel + 0x2) = -1;
+    vchannel[0] = -1;
+  }
+}
+
+/* FUN_001c9e20 (0x1c9e20)
+ *
+ * Per-frame DirectSound service routine.
+ *
+ * Three phases:
+ *   1. Commit the deferred 3D settings batched during the frame; log any
+ *      failing HRESULT.
+ *   2. Ramp dsound_globals.pause_gain (0x505488) toward its target --
+ *      0.0 when dsound_globals.paused (0x505484) is set, 1.0 otherwise --
+ *      in steps of 0.15.  The ramp arithmetic is performed in double
+ *      precision and stored back as float, matching the original
+ *      FLD dword / FADD qword / FSTP dword sequence.  While fading OUT
+ *      (paused), every active hardware channel's stream volume is
+ *      re-scaled by the new pause gain; while fading IN, the regular
+ *      per-channel property update path picks the gain up instead.
+ *   3. When the debug channel display flag (0x4fc380) is set, build a
+ *      tab-separated report of every channel outside the reserved
+ *      [0x10, 0x30] index band and hand it to the debug string renderer.
+ *
+ * The two index asserts inside the display loop carry lines 0x69/0x6a of
+ * sound_dsound_xbox.c -- they come from the inlined channel accessor,
+ * not from this function's own body. */
+void FUN_001c9e20(void)
+{
+  char buffer[8192];
+  short tab_stops[3];
+  const char *name1;
+  const char *name2;
+  void *channel;
+  int result;
+  int volume;
+  double ramp;
+  short channel_index;
+  short display_index;
+
+  result = IDirectSound_CommitDeferredSettings(*(void **)0x50545c);
+  if (result < 0) {
+    sound_dsound_log_error(result, "couldn't commit deferred settings.");
+  }
+
+  /* Target pause gain: silent while paused, full otherwise.  The
+   * comparison is written with the target inline so the compiler keeps
+   * pause_gain in ST0 across the flag test and folds the constant into
+   * each arm's FCOMPS, matching the original codegen. */
+  if (*(float *)0x505488 != (*(char *)0x505484 != 0 ? 0.0f : 1.0f)) {
+    if (!(*(float *)0x505488 >= 0.0f && *(float *)0x505488 <= 1.0f)) {
+      display_assert(
+        "dsound_globals.pause_gain>=0 && dsound_globals.pause_gain<=1.f",
+        "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x27a, 1);
+      system_exit(-1);
+    }
+
+    /* The ramp is computed in double precision and stored back exactly
+     * once; the original keeps the running value on the FPU stack across
+     * the clamp (FLD limit / FCOMP ST(1) / FSTP ST(0)). */
+    ramp = *(float *)0x505488;
+    if (*(char *)0x505484 != 0) {
+      /* fading out */
+      ramp -= 0.15;
+      if (ramp < 0.0) {
+        ramp = 0.0;
+      }
+    } else {
+      /* fading in */
+      ramp += 0.15;
+      if (1.0 <= ramp) {
+        ramp = 1.0;
+      }
+    }
+    *(float *)0x505488 = (float)ramp;
+
+    if (!(*(float *)0x505488 >= 0.0f && *(float *)0x505488 <= 1.0f)) {
+      display_assert(
+        "dsound_globals.pause_gain>=0 && dsound_globals.pause_gain<=1.f",
+        "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x285, 1);
+      system_exit(-1);
+    }
+
+    /* while fading out, re-scale every live stream's volume immediately */
+    if (*(char *)0x505484 != 0) {
+      channel_index = 0;
+      if (0 < *(short *)0x4fdfc4) {
+        do {
+          channel = sound_dsound_channel_get(channel_index);
+          if (*(short *)channel != 0) {
+            volume = sound_dsound_gain_to_volume(
+              *(float *)0x505488 * *(float *)((char *)channel + 0x3c), 0);
+            IDirectSoundStream_SetVolume(*(void **)((char *)channel + 0x70),
+                                         volume);
+          }
+          channel_index = (short)(channel_index + 1);
+        } while (channel_index < *(short *)0x4fdfc4);
+      }
+    }
+  }
+
+  /* debug channel display */
+  if (*(char *)0x4fc380 != 0) {
+    tab_stops[0] = 0x118;
+    tab_stops[1] = 0;
+    tab_stops[2] = 0;
+    draw_string_set_tab_stops(tab_stops, 1);
+
+    display_index = 0;
+    buffer[0] = '\0';
+    if (0 < *(short *)0x4fdfc4) {
+      do {
+        if (display_index < 0 || display_index >= *(short *)0x4fdfc4) {
+          display_assert(
+            "index>=0 && index<dsound_globals.actual_channel_count",
+            "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x69, 1);
+          system_exit(-1);
+        }
+        if (display_index >= 0x100) {
+          display_assert("index<MAXIMUM_SOUND_CHANNELS",
+                         "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x6a,
+                         1);
+          system_exit(-1);
+        }
+        channel = (void *)(0x4fdfc8 + (int)display_index * 0x74);
+
+        /* channels 0x10..0x30 are reserved and never listed */
+        if (display_index < 0x10 || display_index > 0x30) {
+          if (*(short *)channel != 0) {
+            name2 = *(const char **)((char *)channel + 0x6c);
+            if (name2 == 0) {
+              name2 = "";
+            }
+            name1 = *(const char **)((char *)channel + 0x68);
+            if (name1 == 0) {
+              name1 = "";
+            }
+            crt_sprintf(buffer + csstrlen(buffer), "%d %1.2f %1.2f %s(%s)",
+                        (int)*(short *)((char *)channel + 0x8),
+                        *(float *)((char *)channel + 0x3c),
+                        *(float *)((char *)channel + 0x40), name1, name2);
+          }
+          crt_sprintf(buffer + csstrlen(buffer), "|t");
+          if ((display_index & 1) != 0) {
+            crt_sprintf(buffer + csstrlen(buffer), "|n");
+          }
+        }
+        display_index = (short)(display_index + 1);
+      } while (display_index < *(short *)0x4fdfc4);
+    }
+
+    FUN_00189c40(0, buffer);
+  }
+}
+
+/* FUN_001ca130 (0x1ca130)
+ *
+ * Walk every hardware sound channel and finish any pending stop:
+ * for a channel whose `stopping` flag is set, busy-wait until its
+ * IDirectSoundStream reports inactive, then Flush it (vtable slot 6,
+ * byte offset 0x18) and clear the flag.  Afterwards, a channel that
+ * has the save-and-quit warning flag set emits the level-2 "the devil"
+ * error and the flag is cleared.
+ *
+ * The body of the spin loop is sound_dsound_channel_stop_check
+ * (0x1c9670) inlined by the original compiler -- which is why the two
+ * bounds asserts of the channel accessor (lines 0x69/0x6a) and the
+ * `channel->stopping` assert (line 0x4b8) are re-executed on every
+ * spin iteration, and why the stream pointer is re-loaded from
+ * channel+0x70 after the loop rather than cached across it.
+ *
+ * dsound_globals base 0x4fdfc4; channel array at 0x4fdfc8, stride 0x74.
+ * Channel fields used here (widths verified against the disassembly):
+ *   +0x00 int16 state     (_sound_channel_idle == 0)
+ *   +0x06 uint8 stopping
+ *   +0x08 int16 save_and_quit_warning
+ *   +0x70 void* stream
+ * Ghidra prints the same 0x74 stride as *0x74 / *0x3a / *0x1d
+ * depending on the base pointer type it picked; they are all one
+ * channel. */
+void FUN_001ca130(void)
+{
+  short i;
+  char *channel;
+  void *stream;
+  void **vtable;
+  int active;
+  bool released;
+
+  i = 0;
+  while (i < *(short *)0x4fdfc4) {
+    /* inlined sound_dsound_channel_get(i) */
+    if (i < 0 || i >= *(short *)0x4fdfc4) {
+      display_assert("index>=0 && index<dsound_globals.actual_channel_count",
+                     "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x69, 1);
+      system_exit(-1);
+    }
+    if (i >= 0x100) {
+      display_assert("index<MAXIMUM_SOUND_CHANNELS",
+                     "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x6a, 1);
+      system_exit(-1);
+    }
+    channel = (char *)(0x4fdfc8 + (int)i * 0x74);
+
+    /* assert(channel->stopping || channel->state==_sound_channel_idle) */
+    if (*(char *)(channel + 0x6) == 0 && *(short *)channel != 0) {
+      display_assert("channel->stopping || channel->state==_sound_channel_idle",
+                     "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x2c2, 1);
+      system_exit(-1);
+    }
+
+    if (*(char *)(channel + 0x6) != 0) {
+      /* while (!sound_dsound_channel_stop_check(i)) ; -- inlined */
+      do {
+        if (i < 0 || i >= *(short *)0x4fdfc4) {
+          display_assert(
+            "index>=0 && index<dsound_globals.actual_channel_count",
+            "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x69, 1);
+          system_exit(-1);
+        }
+        if (i >= 0x100) {
+          display_assert("index<MAXIMUM_SOUND_CHANNELS",
+                         "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x6a,
+                         1);
+          system_exit(-1);
+        }
+        if (*(char *)(channel + 0x6) == 0) {
+          display_assert("channel->stopping",
+                         "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x4b8,
+                         1);
+          system_exit(-1);
+        }
+        active = dsound_stream_is_active(*(void **)(channel + 0x70));
+        released = (active == 0);
+      } while (!released);
+
+      /* IDirectSoundStream::Flush -- vtable[6], this passed on the
+       * stack (PUSH EAX, no ADD ESP), so __stdcall not __thiscall. */
+      stream = *(void **)(channel + 0x70);
+      vtable = *(void ***)stream;
+      ((int(__stdcall *)(void *))vtable[6])(stream);
+      *(char *)(channel + 0x6) = 0;
+    }
+
+    if (*(short *)(channel + 0x8) != 0) {
+      error(2, "DirectSound: you're screwed if you try to save and quit -- the "
+               "devil.");
+      *(short *)(channel + 0x8) = 0;
+    }
+    i = (short)(i + 1);
+  }
+}
+
+/* FUN_001ca2b0 (0x1ca2b0)
+ *
+ * Push the 3D listener state -- position, orientation, velocity and the
+ * I3DL2 reverb environment -- down to DirectSound, skipping any of the
+ * four updates whose inputs have not moved since the last send.
+ *
+ * `params` is the listener parameter block:
+ *   +0x00 position x,y,z    +0x0c front    x,y,z
+ *   +0x18 top      x,y,z    +0x24 velocity x,y,z
+ *   +0x30 pointer to the 0x48-byte engine-side I3DL2 environment block
+ *
+ * Halo is Z-up and DirectSound is Y-up, so every vector goes out with
+ * its Y and Z components swapped: (x, z, y).  This is verified from the
+ * push/FSTP order at each call site, not from the decompiler's argument
+ * list -- MSVC passes these floats as `PUSH <dummy>; FSTP [ESP]`.
+ *
+ * The values last actually sent are cached at 0x5053d0 (position),
+ * 0x5053dc (front then top), 0x5053f4 (velocity) and 0x505404 (the whole
+ * 0x48-byte environment block).  A delta smaller than the epsilon --
+ * 0.05 for position and orientation, 0.01 for velocity -- is dropped,
+ * but a clear settings-valid flag at 0x4fdbc0 forces every update to be
+ * re-sent regardless.
+ *
+ * The DSI3DL2LISTENER handed to SetI3DL2Listener is built on the stack
+ * from the environment block: the four gain fields go through
+ * sound_dsound_gain_to_volume with per-field ceilings (0 for room and
+ * roomHF, 1000 for reflections, 2000 for reverb), diffusion and density
+ * are scaled by 100, and the remaining fields are copied verbatim.
+ * Environment offsets +0x00 and +0x04 are cached but never sent. */
+void FUN_001ca2b0(const float *params)
+{
+  /* DSI3DL2LISTENER (XDK, 0x30 bytes) -- the whole stack frame. */
+  struct i3dl2_listener {
+    int lRoom;
+    int lRoomHF;
+    float flRoomRolloffFactor;
+    float flDecayTime;
+    float flDecayHFRatio;
+    int lReflections;
+    float flReflectionsDelay;
+    int lReverb;
+    float flReverbDelay;
+    float flDiffusion;
+    float flDensity;
+    float flHFReference;
+  };
+  /* Engine-side environment block; copied verbatim into the last-sent
+   * cache by a single 0x12-dword move. */
+  struct i3dl2_environment {
+    int dwords[18];
+  };
+
+  struct i3dl2_listener listener;
+  const char *environment;
+  int result;
+
+  if (!(fabs(params[0] - *(float *)0x5053d0) < 0.05f &&
+        fabs(params[1] - *(float *)0x5053d4) < 0.05f &&
+        fabs(params[2] - *(float *)0x5053d8) < 0.05f &&
+        *(char *)0x4fdbc0 != 0)) {
+    result = IDirectSound_SetPosition(*(void **)0x50545c, params[0], params[2],
+                                      params[1], 1);
+    if (result < 0) {
+      sound_dsound_log_error(result, "couldn't set listener position.");
+    }
+    *(float *)0x5053d0 = params[0];
+    *(float *)0x5053d4 = params[1];
+    *(float *)0x5053d8 = params[2];
+  }
+
+  if (!(fabs(params[3] - *(float *)0x5053dc) < 0.05f &&
+        fabs(params[4] - *(float *)0x5053e0) < 0.05f &&
+        fabs(params[5] - *(float *)0x5053e4) < 0.05f &&
+        fabs(params[6] - *(float *)0x5053e8) < 0.05f &&
+        fabs(params[7] - *(float *)0x5053ec) < 0.05f &&
+        fabs(params[8] - *(float *)0x5053f0) < 0.05f &&
+        *(char *)0x4fdbc0 != 0)) {
+    result = IDirectSound_SetOrientation(*(void **)0x50545c, params[3],
+                                         params[5], params[4], params[6],
+                                         params[8], params[7], 1);
+    if (result < 0) {
+      sound_dsound_log_error(result, "couldn't set listener orientation.");
+    }
+    *(float *)0x5053dc = params[3];
+    *(float *)0x5053e0 = params[4];
+    *(float *)0x5053e4 = params[5];
+    *(float *)0x5053e8 = params[6];
+    *(float *)0x5053ec = params[7];
+    *(float *)0x5053f0 = params[8];
+  }
+
+  if (!(fabs(params[9] - *(float *)0x5053f4) < 0.01f &&
+        fabs(params[10] - *(float *)0x5053f8) < 0.01f &&
+        fabs(params[11] - *(float *)0x5053fc) < 0.01f &&
+        *(char *)0x4fdbc0 != 0)) {
+    result = IDirectSound_SetVelocity(*(void **)0x50545c, params[9], params[11],
+                                      params[10], 1);
+    if (result < 0) {
+      sound_dsound_log_error(result, "couldn't set listener velocity.");
+    }
+    *(float *)0x5053f4 = params[9];
+    *(float *)0x5053f8 = params[10];
+    *(float *)0x5053fc = params[11];
+  }
+
+  if (csmemcmp(*(const void **)((const char *)params + 0x30),
+               (const void *)0x505404, 0x48) != 0 ||
+      *(char *)0x4fdbc0 == 0) {
+    environment = *(const char **)((const char *)params + 0x30);
+    *(struct i3dl2_environment *)0x505404 =
+      *(const struct i3dl2_environment *)environment;
+
+    listener.lRoom =
+      sound_dsound_gain_to_volume(*(const float *)(environment + 0x8), 0);
+    listener.lRoomHF =
+      sound_dsound_gain_to_volume(*(const float *)(environment + 0xc), 0);
+    listener.flRoomRolloffFactor = *(const float *)(environment + 0x10);
+    listener.flDecayTime = *(const float *)(environment + 0x14);
+    listener.flDecayHFRatio = *(const float *)(environment + 0x18);
+    listener.lReflections =
+      sound_dsound_gain_to_volume(*(const float *)(environment + 0x1c), 1000);
+    listener.flReflectionsDelay = *(const float *)(environment + 0x20);
+    listener.lReverb =
+      sound_dsound_gain_to_volume(*(const float *)(environment + 0x24), 2000);
+    listener.flReverbDelay = *(const float *)(environment + 0x28);
+    listener.flDiffusion = *(const float *)(environment + 0x2c) * 100.0f;
+    listener.flDensity = 100.0f;
+    listener.flDensity = *(const float *)(environment + 0x30) * listener.flDensity;
+    listener.flHFReference = *(const float *)(environment + 0x34);
+    IDirectSound_SetI3DL2Listener(*(void **)0x50545c, &listener, 1);
+  }
+}
+
 /* sound_dsound_update_channel_properties (0x1ca5e0)
  *
  * Apply volume, pitch, and 3D spatial properties to a hardware dsound
@@ -579,5 +1088,69 @@ void sound_dsound_set_channel_properties(int channel_index, float *properties,
   channel = sound_dsound_channel_resolve(channel_index);
   if (channel != -1) {
     sound_dsound_update_channel_properties(properties, channel, update_only);
+  }
+}
+
+/* FUN_001cb0c0 (0x1cb0c0)
+ *
+ * Attaches a sound to a DirectSound channel and advances the channel's
+ * state machine.  The channel index arrives on the stack; the sound
+ * pointer arrives in EDI (LTCG register argument -- see kb.json).
+ *
+ * The channel state word at +0x00 has three legal values:
+ *   0 -> the channel is idle.  Claim it (state := 1), record the sound at
+ *        +0x68, clear +0x64 and the int16 at +0x08, flush the deferred
+ *        DirectSound settings and run the follow-up pass at 0x1ca900
+ *        (a tail call: the original hands channel_index over in EAX).
+ *   1 -> already claimed; promote to state 2 and fall through.
+ *   2 -> record the sound at +0x6c.
+ * Anything else asserts.
+ *
+ * Store offsets are taken from the disassembly (MOV [ESI+N]); the
+ * decompiler's short-index arithmetic split the single dword store at
+ * +0x64 into two int16 stores. */
+void FUN_001cb0c0(int channel_index, void *sound)
+{
+  void *channel;
+  int result;
+
+  channel = sound_dsound_channel_get(channel_index);
+
+  if (*(char *)0x505484 != 0) {
+    display_assert("!dsound_globals.paused",
+                   "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x457, 1);
+    system_exit(-1);
+  }
+  if (sound == NULL) {
+    display_assert("sound", "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c",
+                   0x458, 1);
+    system_exit(-1);
+  }
+
+  switch (*(short *)channel) {
+  case 0:
+    *(short *)channel = 1;
+    *(void **)((char *)channel + 0x68) = sound;
+    *(int *)((char *)channel + 0x64) = 0;
+    *(short *)((char *)channel + 8) = 0;
+    result = IDirectSound_CommitDeferredSettings(*(void **)0x50545c);
+    if (result < 0) {
+      sound_dsound_log_error(result, "couldn't commit deferred settings.");
+    }
+    FUN_001ca900(channel_index);
+    break;
+
+  case 1:
+    *(short *)channel = 2;
+    /* fall through */
+  case 2:
+    *(void **)((char *)channel + 0x6c) = sound;
+    break;
+
+  default:
+    display_assert("bad DirectSound channel state.",
+                   "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x478, 1);
+    system_exit(-1);
+    break;
   }
 }
