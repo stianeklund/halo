@@ -92,6 +92,59 @@ void ai_debug_actor_deleted(int actor_handle)
   }
 }
 
+/* ai_debug_get_newest_path_storage (0x490c0) — scan the 0x20-entry
+ * actor_path_debug_array (base *(char**)0x331f5c, stride 0x1ca7c) for the valid
+ * entry belonging to actor_handle with the largest value at +0x4, and return a
+ * pointer to it.  Returns NULL when no entry matches.
+ *
+ * Record fields used (matching ai_debug_get_path_storage at 0x49120, which
+ * writes them):
+ *   +0x0  int   actor handle key
+ *   +0x4  int   creation stamp from game_time_get() — larger == newer
+ *   +0xc  char  valid flag
+ *
+ * No __FILE__ string, no asserts, no calls (pure leaf, 0x490c0..0x49117).
+ *
+ * Binary shape notes (disassembly is authoritative — Ghidra declared this
+ * void(void) and dropped the EAX return):
+ *   EBX = *(int *)0x331f5c is loaded ONCE before the loop, and the found path
+ *   returns EBX + best_slot * 0x1ca7c, so the base is cached in a local.
+ *   EAX walks the table as a cursor initialised with LEA EAX,[EBX+4], so all
+ *   field accesses are cursor-relative: [EAX-4]=+0x0, [EAX]=+0x4, [EAX+8]=+0xc.
+ *   Score test is CMP EDX,ESI / JLE skip — strict greater-than with the loaded
+ *   value first, so ties keep the FIRST maximum encountered.
+ *   Loop counter (CX) and slot index (DI) are 16-bit: CMP CX,0x20 / CMP DI,-1 /
+ *   MOVSX EAX,DI before IMUL EAX,EAX,0x1ca7c. */
+void *ai_debug_get_newest_path_storage(int actor_handle)
+{
+  char *base;
+  char *cursor;
+  int best_stamp;
+  short best_slot;
+  short i;
+
+  best_slot = -1;
+  best_stamp = -1;
+  i = 0;
+  base = *(char **)0x331f5c;
+  cursor = base + 4;
+  do {
+    if (*(char *)(cursor + 8) != '\0' &&
+        *(int *)(cursor - 4) == actor_handle &&
+        *(int *)cursor > best_stamp) {
+      best_stamp = *(int *)cursor;
+      best_slot = i;
+    }
+    i++;
+    cursor += 0x1ca7c;
+  } while (i < 0x20);
+
+  if (best_slot == (short)-1) {
+    return 0;
+  }
+  return base + (int)best_slot * 0x1ca7c;
+}
+
 /* ai_debug_get_path_storage (0x49120) — find or allocate a path debug storage
  * slot for actor_handle. Searches 0x20 entries (stride 0x1ca7c) in the
  * actor_path_debug_array. Returns an exact match, first inactive slot, or

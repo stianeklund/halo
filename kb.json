@@ -32137,7 +32137,10 @@
         },
         {
           "addr": "0x490c0",
-          "decl": "void FUN_000490C0(void);"
+          "decl": "void *ai_debug_get_newest_path_storage(int actor_handle);",
+          "name": "ai_debug_get_newest_path_storage",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x49120",
