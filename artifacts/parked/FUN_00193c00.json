@@ -4,7 +4,7 @@
   "obj": "structure_detail_objects.obj",
   "source_path": "src/halo/structures/structure_detail_objects.c",
   "best_score": 87.8,
-  "best_patch": "artifacts/parked/patches/FUN_00193c00-20260709-133935-stash-recovery.patch",
+  "best_patch": null,
   "status": "promoted",
   "first_parked": "2026-07-10T00:00:00+00:00",
   "last_updated": "2026-07-10T09:20:00+00:00",

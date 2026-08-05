@@ -4,7 +4,7 @@
   "obj": "collision_bsp.obj",
   "source_path": "src/halo/physics/collision_bsp.c",
   "best_score": 91.0,
-  "best_patch": "artifacts/parked/patches/collision_surface_area-20260710-095937.patch",
+  "best_patch": null,
   "status": "promoted",
   "first_parked": "2026-07-10T09:59:37+00:00",
   "last_updated": "2026-07-10T11:11:11+00:00",

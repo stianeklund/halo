@@ -1453,3 +1453,17 @@ lift-only at an unchanged LCS score), and its first sweep surfaced and fixed
 three latent form divergences (`player_control_update_desired_angles`
 89.8→91.2%, `player_control_get_facing` 81.7→85.7%,
 `pill_intersects_rectangle2d` 96.9→98.4%).
+
+---
+
+## 39. VC71 Byte Accuracy Tuning Playbook
+
+**Automation:** PARTIAL — `vc71_verify.py` provides `--show-diffs`, `--loadw-only`, `--imm-only`, `--fcom-only`; full playbook in `docs/vc71-byte-accuracy-playbook.md`.
+
+**What happens:** Lifted C functions often score 60%–80% match in `vc71_verify.py` despite being semantically correct, due to MSVC 7.1 type-to-register mapping (`int` vs `bool`/`short`), `kb.json` `@<reg>` formatting errors (whitespace in `@<reg>`), or Ghidra decompiler control-flow artifacts.
+
+**Fix rules:**
+- Narrow variable types (`int` -> `short`/`bool`/`char`) for local flags, loop counters, and parameters to match MSVC register allocation (`AL`/`BL` for bytes, `CX` for shorts).
+- Ensure `kb.json` `@<reg>` declarations have no leading spaces (`param@<esi>`).
+- De-artifact Ghidra output: convert nested `if`-trees into `switch` statements, replace pointer loads with literals (`1.0f`).
+- See full playbook at `docs/vc71-byte-accuracy-playbook.md`.

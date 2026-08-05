@@ -33,24 +33,24 @@
  */
 int shell_initialize(void)
 {
-  char result;
-  int success;
+  bool result;
+  bool success;
 
-  success = 0;
+  success = false;
   ((void (*)(void))0x8d830)();
-  result = (char)FUN_001911b0();
-  if (result != '\0') {
+  result = FUN_001911b0();
+  if (result) {
     ((void (*)(void))0x8f370)();
     ((void (*)(void))0x1b98c0)();
     ((void (*)(void))0x10b5c0)();
     ((void (*)(void))0x1c0070)();
-    result = ((char (*)(void))0x17c790)();
-    if (result != '\0') {
+    result = ((bool (*)(void))0x17c790)();
+    if (result) {
       ((void (*)(void))0xd01c0)();
       ((void (*)(void))0x1cc710)();
-      success = 1;
+      success = true;
     }
-    ((void (*)(void))0x191210)();
+    FUN_00191210();
   }
   return success;
 }
@@ -121,11 +121,11 @@ bool shell_application_is_paused(void)
  *   00191199: ADD  ESP,0x4                ; caller cleans 4 bytes (cdecl)
  *   0019119c: POP  EBP / RET
  */
-void FUN_00191180(int param_1)
+void FUN_00191180(char param_1)
 {
   if (*(char *)0x4d8a84 != (char)param_1) {
-    *(char *)0x4d8a84 = (char)param_1;
     FUN_00191230(param_1);
+    *(char *)0x4d8a84 = (char)param_1;
   }
 }
 
@@ -177,7 +177,7 @@ void FUN_00191180(int param_1)
  *   00191207: MOV AL,0x1
  *   00191209: MOV ESP,EBP / POP EBP / RET
  */
-int FUN_001911b0(void)
+bool FUN_001911b0(void)
 {
   int launch_data_type;
   char launch_data[3072];

@@ -54,11 +54,11 @@ float projectile_get_ballistic_acceleration(int projectile_tag)
  * guarding against division by zero or a zero/unset field. */
 float projectile_estimate_time_to_target(void *proj_tag, float value)
 {
-  float field;
-  field = *(float *)((char *)proj_tag + 0x1e4);
-  if (field > *(float *)0x2533c0)
+  float field = *(float *)((char *)proj_tag + 0x1e4);
+  float zero = *(float *)0x2533c0;
+  if (field > zero)
     return value / field;
-  return *(float *)0x2533c0;
+  return zero;
 }
 
 /* Return true if any projectile object (type 0x20) exists in the world.
@@ -194,21 +194,14 @@ void projectile_export_function_values(int projectile_handle)
  * detonation-effect distribution along the projectile's travel path. */
 float FUN_000f7fa0(void *tag, float range_begin, float range_end)
 {
-  float delta;
-  float r1;
-  float r2;
+  float zero = *(float *)0x2533c0;
+  float r1 = *(float *)((char *)tag + 0x1e4);
+  float r2 = *(float *)((char *)tag + 0x1e8);
 
-  delta = range_end - range_begin;
-  r1 = *(float *)((char *)tag + 0x1e4);
-  r2 = *(float *)((char *)tag + 0x1e8);
-
-  if (r1 == r2) {
-    return 0.0f;
-  }
-  if (delta == 0.0f) {
-    return 0.0f;
-  }
-  return (r1 * r1 - r2 * r2) / (delta + delta);
+  range_end -= range_begin;
+  if (r1 == r2 || range_end == zero)
+    return zero;
+  return (r1 * r1 - r2 * r2) / (range_end + range_end);
 }
 
 /* Arm a projectile and detach it from its parent object.
@@ -246,8 +239,8 @@ char projectile_handle_parent_destroyed(int projectile_handle)
 void random_vector_in_cone3d(float *forward, float zero, float angle,
                              float *result)
 {
-  int *seed = get_global_random_seed_address();
-  random_direction3d(seed, forward, zero, angle, result);
+  random_direction3d(get_global_random_seed_address(), forward, zero, angle,
+                     result);
 }
 
 /*
@@ -646,8 +639,8 @@ void FUN_000f8590(int projectile_handle)
 
   flags = *(uint32_t *)(obj + 0x1dc);
 
-  if (speed != *(float *)0x2533c0) {
-    inv_speed = *(float *)0x2533c8 / speed;
+  if (speed != 0.0f) {
+    inv_speed = 1.0f / speed;
     *(uint32_t *)(obj + 0x1dc) = flags | 0x1u;
     *(float *)(obj + 0x214) = inv_speed * vx;
     *(float *)(obj + 0x218) = inv_speed * vy;
@@ -657,7 +650,7 @@ void FUN_000f8590(int projectile_handle)
   } else {
     *(uint32_t *)(obj + 0x1dc) = flags & ~0x1u;
     *(float *)(obj + 0x220) = 0.0f;
-    *(float *)(obj + 0x224) = *(float *)0x2533c8;
+    *(float *)(obj + 0x224) = 1.0f;
   }
 }
 
@@ -704,7 +697,7 @@ void FUN_000f8640(int projectile_handle)
     /* non-detonating branch: use tag offsets 0x1d0/0x1d4 */
     *(float *)(proj + 0x20c) = FUN_000f7fa0(
       tag_def, *(float *)(tag_def + 0x1d0), *(float *)(tag_def + 0x1d4));
-    *(int *)(proj + 0x210) = *(int *)(tag_def + 0x1e0);
+    *(int *)(proj + 0x210) = *(int *)(tag_def + 0x1d4);
     range_begin = *(float *)(tag_def + 0x1d0);
   }
 
@@ -803,9 +796,9 @@ bool FUN_000f8720(int projectile_handle, float *new_pos,
 
   /* Compute cross direction: cross(up_vec, delta). */
   up_vec = *(float **)0x31fc44;
-  dir1[0] = dz * up_vec[1] - dy * up_vec[2];
-  dir1[1] = dx * up_vec[2] - dz * up_vec[0];
-  dir1[2] = dy * up_vec[0] - dx * up_vec[1];
+  dir1[0] = dy * up_vec[2] - dz * up_vec[1];
+  dir1[1] = dz * up_vec[0] - dx * up_vec[2];
+  dir1[2] = dx * up_vec[1] - dy * up_vec[0];
 
   if (normalize3d(dir1) == *(float *)0x2533c0) {
     /* Degenerate (delta parallel to up): fall back to default forward. */
@@ -1288,14 +1281,15 @@ void projectile_accelerate(int projectile_handle, float *acceleration)
   float magnitude; /* magnitude of acceleration vector */
   float rand_real; /* random float in [0,1) from random_math_real */
   float scale; /* scatter scale: rand_real * magnitude * (PI/2) */
+  float *acc;
 
+  acc = acceleration;
   proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
   tag_get(0x70726f6a, *(int *)proj);
-
-  if (!real_vector3d_valid(acceleration)) {
+  if (!real_vector3d_valid(acc)) {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
-             "acceleration", (double)acceleration[0], (double)acceleration[1],
-             (double)acceleration[2]);
+             "acceleration", (double)acc[0], (double)acc[1],
+             (double)acc[2]);
     display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\items\\projectiles.c",
                    0x3ef, 1);
     system_exit(-1);
@@ -1316,18 +1310,16 @@ void projectile_accelerate(int projectile_handle, float *acceleration)
     }
 
     /* Add acceleration to object translational velocity (proj+0x18..0x20). */
-    *(float *)(proj + 0x18) += acceleration[0];
-    *(float *)(proj + 0x1c) += acceleration[1];
-    *(float *)(proj + 0x20) += acceleration[2];
+    *(float *)(proj + 0x18) += acc[0];
+    *(float *)(proj + 0x1c) += acc[1];
+    *(float *)(proj + 0x20) += acc[2];
 
     /* Get a random direction vector into dir[3]. */
     seed = (float *)get_global_random_seed_address();
     random_seed_get_direction3d((unsigned int *)seed, dir);
 
     /* Compute squared magnitude, then scale = sqrt(sq_mag) * rand * PI/2. */
-    sq_mag = acceleration[0] * acceleration[0] +
-             acceleration[1] * acceleration[1] +
-             acceleration[2] * acceleration[2];
+    sq_mag = acc[0] * acc[0] + acc[1] * acc[1] + acc[2] * acc[2];
 
     seed = (float *)get_global_random_seed_address();
     rand_real = random_math_real((unsigned int *)seed);
@@ -2371,8 +2363,14 @@ int FUN_000f9c40(int projectile_handle)
           ((float)normalize3d(cross_buf) > *(float *)0x2533c0)) {
         float steer_cos, steer_sin;
 #ifdef XDK_BUILD
-        __asm fld steer_turn_rate __asm fcos __asm fstp steer_cos __asm fld
-          steer_turn_rate __asm fsin __asm fstp steer_sin
+        __asm {
+          fld steer_turn_rate
+          fcos
+          fstp steer_cos
+          fld steer_turn_rate
+          fsin
+          fstp steer_sin
+        }
 #else
         steer_cos = x87_fcos(steer_turn_rate);
         steer_sin = x87_fsin(steer_turn_rate);

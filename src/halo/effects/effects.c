@@ -2080,7 +2080,7 @@ int effect_new_unattached_from_markers(
   int effect_tag_index, int object_index, float *translational_velocity,
   short marker_count, void *effect_definition, float *marker_points,
   float *marker_forwards, float scale_a, float scale_b, float unknown1,
-  float unknown2, float unknown3)
+  float unknown2, int unknown3)
 {
   int handle;
   char *datum;

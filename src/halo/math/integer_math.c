@@ -12,8 +12,8 @@ char bit_vector_and(short bit_vector_size, int v0, int v1, int result_out)
   unsigned int *v1_words;
   unsigned int *out_words;
   unsigned int word;
-  int num_words;
-  int i;
+  short num_words;
+  short i;
   char any_nonzero;
 
   if (v0 == 0 || v1 == 0) {
@@ -26,7 +26,7 @@ char bit_vector_and(short bit_vector_size, int v0, int v1, int result_out)
   v0_words = (unsigned int *)v0;
   v1_words = (unsigned int *)v1;
   out_words = (unsigned int *)result_out;
-  num_words = (bit_vector_size + 31) >> 5;
+  num_words = (short)((bit_vector_size + 31) >> 5);
 
   for (i = num_words - 1; i >= 0; i--) {
     word = v0_words[i] & v1_words[i];
@@ -84,18 +84,18 @@ void FUN_00108fa0(short bit_vector_size, int vector, int result_out)
 {
   unsigned int *vec_words;
   unsigned int *out_words;
-  int num_words;
-  int i;
+  short num_words;
+  short i;
 
   if (vector == 0 || result_out == 0) {
     display_assert("vector && result", "c:\\halo\\SOURCE\\math\\integer_math.c",
-                   0x183, 1);
+                   0x184, 1);
     system_exit(-1);
   }
 
   vec_words = (unsigned int *)vector;
   out_words = (unsigned int *)result_out;
-  num_words = (bit_vector_size + 31) >> 5;
+  num_words = (short)((bit_vector_size + 31) >> 5);
 
   for (i = num_words - 1; i >= 0; i--) {
     out_words[i] = ~vec_words[i];

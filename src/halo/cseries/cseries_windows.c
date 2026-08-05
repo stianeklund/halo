@@ -132,48 +132,40 @@ void FUN_0008e480(uint32_t *output)
 
 const char *system_exception_name(uint32_t code /* @<ecx> */)
 {
-  if (code < 0xc0000090) {
-    if (code == 0xc000008f)
-      return "EXCEPTION_FLT_INEXACT_RESULT";
-    if (code < 0xc0000026) {
-      if (code == 0xc0000025)
-        return "EXCEPTION_NONCONTINUABLE_EXCEPTION";
-      if (code < 0x80000005) {
-        if (code == 0x80000004)
-          return "EXCEPTION_SINGLE_STEP";
-        if (code == 0x80000002)
-          return "EXCEPTION_DATATYPE_MISALIGNMENT";
-        if (code == 0x80000003)
-          return "EXCEPTION_BREAKPOINT";
-      } else {
-        if (code == 0xc0000005)
-          return "EXCEPTION_ACCESS_VIOLATION";
-      }
-    } else {
-      if (code == 0xc000008c)
-        return "EXCEPTION_ARRAY_BOUNDS_EXCEEDED";
-      if (code == 0xc000008d)
-        return "EXCEPTION_FLT_DENORMAL_OPERAND";
-      if (code == 0xc000008e)
-        return "EXCEPTION_FLT_DIVIDE_BY_ZERO";
-    }
-  } else {
-    switch (code) {
-    case 0xc0000090:
-      return "EXCEPTION_FLT_INVALID_OPERATION";
-    case 0xc0000091:
-      return "EXCEPTION_FLT_OVERFLOW";
-    case 0xc0000092:
-      return "EXCEPTION_FLT_STACK_CHECK";
-    case 0xc0000093:
-      return "EXCEPTION_FLT_UNDERFLOW";
-    case 0xc0000094:
-      return "EXCEPTION_INT_DIVIDE_BY_ZERO";
-    case 0xc0000095:
-      return "EXCEPTION_INT_OVERFLOW";
-    case 0xc0000096:
-      return "EXCEPTION_PRIV_INSTRUCTION";
-    }
+  switch (code) {
+  case 0x80000002:
+    return "EXCEPTION_DATATYPE_MISALIGNMENT";
+  case 0x80000003:
+    return "EXCEPTION_BREAKPOINT";
+  case 0x80000004:
+    return "EXCEPTION_SINGLE_STEP";
+  case 0xc0000005:
+    return "EXCEPTION_ACCESS_VIOLATION";
+  case 0xc0000025:
+    return "EXCEPTION_NONCONTINUABLE_EXCEPTION";
+  case 0xc000008c:
+    return "EXCEPTION_ARRAY_BOUNDS_EXCEEDED";
+  case 0xc000008d:
+    return "EXCEPTION_FLT_DENORMAL_OPERAND";
+  case 0xc000008e:
+    return "EXCEPTION_FLT_DIVIDE_BY_ZERO";
+  case 0xc000008f:
+    return "EXCEPTION_FLT_INEXACT_RESULT";
+  case 0xc0000090:
+    return "EXCEPTION_FLT_INVALID_OPERATION";
+  case 0xc0000091:
+    return "EXCEPTION_FLT_OVERFLOW";
+  case 0xc0000092:
+    return "EXCEPTION_FLT_STACK_CHECK";
+  case 0xc0000093:
+    return "EXCEPTION_FLT_UNDERFLOW";
+  case 0xc0000094:
+    return "EXCEPTION_INT_DIVIDE_BY_ZERO";
+  case 0xc0000095:
+    return "EXCEPTION_INT_OVERFLOW";
+  case 0xc0000096:
+    return "EXCEPTION_PRIV_INSTRUCTION";
+  default:
+    return NULL;
   }
-  return NULL;
 }

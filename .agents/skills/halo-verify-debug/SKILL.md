@@ -55,6 +55,19 @@ Report:
 - behavior/runtime check result if requested
 - summary path under `artifacts/lift_runs/.../summary.json`
 
+### VC71 Byte Accuracy Tuning (Low-Match Functions 50%–80% → 90%–100%)
+
+When improving functions with low MSVC 7.1 byte match scores, consult `docs/vc71-byte-accuracy-playbook.md` and follow the diagnostic ladder:
+
+1. **Inspect Diffs**: Run `rtk python3 tools/verify/vc71_verify.py <file> --function <name> --show-diffs`.
+2. **Run Diagnostic Probes**:
+   - `rtk python3 tools/verify/vc71_verify.py <file> --loadw-only` (load width: `int` vs `short`/`char`).
+   - `rtk python3 tools/verify/vc71_verify.py <file> --imm-only` (literal float / magic constant mismatches).
+   - `rtk python3 tools/verify/vc71_verify.py <file> --fcom-only` (FPU guard bound sense: `<` vs `<=`).
+3. **Type Narrowing**: Change `int` to `short`, `bool`, or `char` for local flags, loop counters, and parameters to force MSVC register allocation (`AL`/`BL` for bytes, `CX` for shorts).
+4. **`kb.json` Precision**: Ensure `@<reg>` parameter strings have NO spaces (e.g. `param@<esi>`). Align `kb.json` return types (`bool`/`char` vs `int`). Run `regen_decl_header()`.
+5. **Control-Flow Restructuring**: Convert Ghidra nested `if`-trees back into clean C `switch` blocks.
+
 ### Explicit structural verification
 
 Use this when the lifted function address in the patched XBE is known:
