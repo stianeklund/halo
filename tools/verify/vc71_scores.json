@@ -1839,6 +1839,21 @@
       "score": 100.0,
       "source": "src/halo/ai/ai_debug.c"
     },
+    "FUN_000496c0": {
+      "opnd_percent": 70.6,
+      "score": 91.5,
+      "source": "src/halo/ai/ai_debug.c"
+    },
+    "FUN_0004a6e0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/ai/ai_debug.c"
+    },
+    "FUN_0004a710": {
+      "opnd_percent": 70.6,
+      "score": 86.3,
+      "source": "src/halo/ai/ai_debug.c"
+    },
     "FUN_0004ab10": {
       "score": 76.9,
       "source": "src/halo/ai/ai_debug.c"
@@ -16281,6 +16296,21 @@
       "opnd_percent": 68.2,
       "ref": "synth",
       "score": 87.2,
+      "source": "src/halo/ai/ai_debug.c"
+    },
+    "ai_debug_highlight_cluster": {
+      "opnd_percent": 71.1,
+      "score": 92.6,
+      "source": "src/halo/ai/ai_debug.c"
+    },
+    "ai_debug_idle_look_addprop": {
+      "opnd_percent": 70.6,
+      "score": 86.3,
+      "source": "src/halo/ai/ai_debug.c"
+    },
+    "ai_debug_idle_look_clear": {
+      "opnd_percent": 94.7,
+      "score": 94.7,
       "source": "src/halo/ai/ai_debug.c"
     },
     "ai_debug_initialize_for_new_map": {

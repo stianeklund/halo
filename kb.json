@@ -32261,7 +32261,10 @@
         },
         {
           "addr": "0x4a710",
-          "decl": "void ai_debug_idle_look_addprop(int index, float value);"
+          "decl": "void ai_debug_idle_look_addprop(int index, float value);",
+          "name": "ai_debug_idle_look_addprop",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x4a770",

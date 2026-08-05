@@ -271,6 +271,72 @@ char ai_debug_highlight_cluster(int16_t cluster_index, void *out)
   return 1;
 }
 
+/* ai_debug_idle_look_clear: reset the idle-look debug block at 0x6323d4 to
+ * track a single actor handle.  Sets the "valid" byte flag from
+ * (actor_handle != -1), stores the handle itself as a dword, and clears the
+ * 16-bit property count.  This is the 1-argument variant of the same three
+ * stores performed by ai_debug_select_actor (0x4b1b0) and
+ * ai_debug_initialize_for_new_map (0x4c0f0).
+ *
+ * No __FILE__ string.  No CALLs, no FPU, no locals.  Called from
+ * actor_looking.c (actor idle-look update) with the actor handle.
+ *
+ * Confirmed: cdecl, 1 stack arg at [EBP+0x8]; caller does the cleanup.
+ *
+ * Store-offset table (absolute addresses, 0x4a6e6..0x4a6fe):
+ *   [0x6323d4] <- (actor_handle != -1)  byte   (CMP EAX,-1 / SETNZ CL /
+ *                                               MOV byte ptr [0x6323d4],CL)
+ *   [0x6323d8] <- EAX (actor_handle)    dword  (MOV [0x6323d8],EAX)
+ *   [0x6323dc] <- 0                     word   (MOV word ptr [0x6323dc],0x0)
+ *
+ * Store widths are load-bearing: 0x6323d4 is a byte and 0x6323dc is a 16-bit
+ * word.  Writing either as a dword would clobber the neighbouring fields. */
+void ai_debug_idle_look_clear(int actor_handle)
+{
+  *(uint8_t *)0x6323d4 = (actor_handle != -1);
+  *(int32_t *)0x6323d8 = actor_handle;
+  *(uint16_t *)0x6323dc = 0;
+}
+
+/* ai_debug_idle_look_addprop: append one (index, score) pair to the idle-look
+ * debug proposal list set up by ai_debug_idle_look_clear (0x4a6e0).  Asserts
+ * the "valid" flag first, then appends only while the count is below the
+ * 0x20-entry capacity (no lower-bound check; the compare is signed JGE).
+ *
+ * __FILE__ assert xref confirms the TU: c:\halo\SOURCE\ai\ai_debug.c, line
+ * 0x13b1 (5041), reason "ai_debug.idle_look_valid".  Assert push order
+ * (last push = first arg): PUSH 1 / PUSH 0x13b1 / PUSH 0x25ab74 (file) /
+ * PUSH 0x25aeac (reason) -> display_assert; then PUSH -1 -> system_exit
+ * (noreturn, no stack cleanup follows).
+ *
+ * Confirmed: cdecl, PUSH EBP / MOV EBP,ESP, no sub esp, no locals.
+ * [EBP+0x8] = int index, [EBP+0xC] = float value (single FLD/FSTP
+ * passthrough, genuinely a float — not a smuggled pointer).
+ *
+ * Store-offset table (absolute addresses):
+ *   [0x6323e0 + count*4] <- index   dword (MOVSX EAX,AX; MOV [..EAX*4],..)
+ *   [0x632460 + count*4] <- value   float (MOVSX EDX,word [0x6323dc] — the
+ *                                   counter is RE-LOADED from memory between
+ *                                   the two stores; FLD [EBP+0xC] / FSTP)
+ *   [0x6323dc]           <- count+1 word  (INC word ptr [0x6323dc])
+ *
+ * Widths are load-bearing: 0x6323d4 is a byte flag and 0x6323dc is a SIGNED
+ * 16-bit count (MOV AX / CMP AX,0x20 / JGE).  0x632460 == 0x6323e0 + 0x80,
+ * i.e. the score array begins exactly one 32-entry dword array later. */
+void ai_debug_idle_look_addprop(int index, float value)
+{
+  if (*(uint8_t *)0x6323d4 == 0) {
+    display_assert("ai_debug.idle_look_valid",
+                   "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0x13b1, 1);
+    system_exit(-1);
+  }
+  if (*(int16_t *)0x6323dc < 0x20) {
+    ((int32_t *)0x6323e0)[*(int16_t *)0x6323dc] = index;
+    ((float *)0x632460)[*(int16_t *)0x6323dc] = value;
+    (*(int16_t *)0x6323dc)++;
+  }
+}
+
 /* ai_debug_update: per-tick AI debug update.  Three independent debug actions:
  *
  *   1. Camera-follow (0x5ac9fc):  acquire actor or LOS-hit target, then
