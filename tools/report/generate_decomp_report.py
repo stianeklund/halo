@@ -1334,9 +1334,13 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             </div>
 
             <div class="charts-grid" id="charts-grid" style="margin-top:16px">
-                <div class="chart-container" id="charts-section-heading" style="height:220px">
+                <div class="chart-container" id="charts-progress-container" style="height:240px">
                     <div class="chart-title">Functions Ported Over Time</div>
                     <canvas id="progressChart"></canvas>
+                </div>
+                <div class="chart-container" id="charts-accuracy-container" style="height:240px">
+                    <div class="chart-title" id="accuracyChartTitle">Byte Accuracy Over Time</div>
+                    <canvas id="accuracyChart"></canvas>
                 </div>
             </div>
 
@@ -1367,9 +1371,15 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 <div class="unit-title" id="detail-unit-name"></div>
                 <div class="unit-meta-row" id="detail-meta"></div>
 
-                <div class="detail-chart-container">
-                    <div class="chart-title">Match Score Distribution</div>
-                    <canvas id="detailChart"></canvas>
+                <div class="charts-grid" id="detail-charts-grid" style="margin:16px 0">
+                    <div class="chart-container" id="unitHistoryContainer" style="height:240px">
+                        <div class="chart-title" id="unitHistoryTitle">Unit Progress &amp; Accuracy History</div>
+                        <canvas id="unitHistoryChart"></canvas>
+                    </div>
+                    <div class="chart-container" id="detailChartContainer" style="height:240px">
+                        <div class="chart-title">Match Score Distribution</div>
+                        <canvas id="detailChart"></canvas>
+                    </div>
                 </div>
 
                     <h2>Functions</h2>
@@ -1773,18 +1783,16 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
         function renderCharts() {
             var grid = document.getElementById('charts-grid');
-            grid.style.display = '';
+            if (grid) grid.style.display = '';
 
             var hasHistory = HISTORY && HISTORY.snapshots && HISTORY.snapshots.length >= 2;
-            var progParent = document.getElementById('progressChart').parentNode;
-            var heading = document.getElementById('charts-section-heading');
-            var grid = document.getElementById('charts-grid');
-            progParent.style.display = hasHistory ? '' : 'none';
-            if (heading) heading.style.display = hasHistory ? '' : 'none';
-            if (grid) grid.style.display = hasHistory ? '' : 'none';
+            var progContainer = document.getElementById('charts-progress-container');
+            var accContainer = document.getElementById('charts-accuracy-container');
 
             if (!hasHistory) {
+                if (grid) grid.style.display = 'none';
                 destroyChart('progressChart');
+                destroyChart('accuracyChart');
                 return;
             }
 
@@ -1792,6 +1800,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             var labels = snaps.map(function(s) { return s.timestamp.slice(0, 10); });
             var funcs = snaps.map(function(s) { return s.summary.functions.ported; });
 
+            // 1. Functions Ported chart
             destroyChart('progressChart');
             var ctx1 = document.getElementById('progressChart').getContext('2d');
             chartInstances.progressChart = new Chart(ctx1, {
@@ -1809,6 +1818,84 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 },
                 options: chartOpts()
             });
+
+            // 2. Byte Accuracy chart
+            destroyChart('accuracyChart');
+            var matchSnaps = [];
+            for (var i = 0; i < snaps.length; i++) {
+                var s = snaps[i];
+                if (s.summary && s.summary.match && s.summary.match.weighted !== undefined && s.summary.match.weighted !== null) {
+                    matchSnaps.push({
+                        date: s.timestamp.slice(0, 10),
+                        weighted: s.summary.match.weighted,
+                        average: s.summary.match.average || s.summary.match.weighted,
+                        scored: s.summary.match.scored_count || 0
+                    });
+                }
+            }
+
+            var accCanvas = document.getElementById('accuracyChart');
+            if (matchSnaps.length >= 2 && accCanvas) {
+                if (accContainer) accContainer.style.display = '';
+                var accLabels = matchSnaps.map(function(m) { return m.date; });
+                var weightedData = matchSnaps.map(function(m) { return m.weighted; });
+                var avgData = matchSnaps.map(function(m) { return m.average; });
+
+                var latest = matchSnaps[matchSnaps.length - 1];
+                var earliest = matchSnaps[0];
+                var delta = latest.weighted - earliest.weighted;
+                var deltaClass = delta >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+                var deltaSign = delta >= 0 ? '+' : '';
+                var titleEl = document.getElementById('accuracyChartTitle');
+                if (titleEl) {
+                    titleEl.innerHTML = 'Byte Accuracy Over Time &mdash; ' +
+                        '<span style="font-weight:400;font-size:0.85em;color:var(--text-secondary)">' +
+                        'Weighted: <strong style="color:' + matchColor(latest.weighted) + '">' + latest.weighted.toFixed(1) + '%</strong> &middot; ' +
+                        'Avg: <strong>' + latest.average.toFixed(1) + '%</strong> ' +
+                        '<span style="color:' + deltaClass + ';font-weight:600">(' + deltaSign + delta.toFixed(1) + '% since ' + earliest.date + ')</span>' +
+                        '</span>';
+                }
+
+                var ctx2 = accCanvas.getContext('2d');
+                chartInstances.accuracyChart = new Chart(ctx2, {
+                    type: 'line',
+                    data: {
+                        labels: accLabels,
+                        datasets: [
+                            {
+                                label: 'Byte-Weighted Accuracy (%)',
+                                data: weightedData,
+                                borderColor: '#3fb950',
+                                backgroundColor: 'rgba(63, 185, 80, 0.08)',
+                                borderWidth: 2, tension: 0.35, fill: true,
+                                pointRadius: 2, pointHoverRadius: 5
+                            },
+                            {
+                                label: 'Average Match Accuracy (%)',
+                                data: avgData,
+                                borderColor: '#58a6ff',
+                                backgroundColor: 'rgba(88, 166, 255, 0.05)',
+                                borderWidth: 1.5, borderDash: [4, 4], tension: 0.35, fill: false,
+                                pointRadius: 1.5, pointHoverRadius: 4
+                            }
+                        ]
+                    },
+                    options: chartOpts({
+                        legend: true,
+                        tooltipCallback: function(tooltipItem) {
+                            var idx = tooltipItem.dataIndex;
+                            var item = matchSnaps[idx];
+                            if (tooltipItem.datasetIndex === 0) {
+                                return 'Byte-Weighted: ' + item.weighted.toFixed(2) + '% (' + item.scored + ' scored funcs)';
+                            } else {
+                                return 'Average Match: ' + item.average.toFixed(2) + '%';
+                            }
+                        }
+                    })
+                });
+            } else if (accContainer) {
+                accContainer.style.display = 'none';
+            }
         }
 
         function destroyChart(id) {
@@ -1818,16 +1905,24 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             }
         }
 
-        function chartOpts() {
+        function chartOpts(opts) {
+            opts = opts || {};
+            var showLegend = !!opts.legend;
+            var tooltipCb = opts.tooltipCallback;
+
             return {
                 responsive: true, maintainAspectRatio: false,
                 interaction: { intersect: false, mode: 'index' },
                 plugins: {
-                    legend: { display: false },
+                    legend: {
+                        display: showLegend,
+                        labels: { color: '#8b949e', boxWidth: 12, padding: 12 }
+                    },
                     tooltip: {
                         backgroundColor: '#161b22', borderColor: '#30363d', borderWidth: 1,
                         titleColor: '#c9d1d9', bodyColor: '#c9d1d9',
-                        padding: 12, cornerRadius: 8
+                        padding: 12, cornerRadius: 8,
+                        callbacks: tooltipCb ? { label: tooltipCb } : {}
                     }
                 },
                 scales: {
@@ -1837,8 +1932,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     },
                     y: {
                         grid: { color: '#21262d' },
-                        ticks: { color: '#8b949e' },
-                        beginAtZero: true
+                        ticks: { color: '#8b949e' }
                     }
                 }
             };
@@ -2404,7 +2498,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     '<span class="unit-meta-item"><button class="score-btn" data-unit="' + jsEsc(unit.name) + '" onclick="scoreFunction(this)" title="Recompile this unit with MSVC 7.1 and diff against the delinked reference">&#x25B6; Score unit (VC71)</button></span>' :
                     '<span class="unit-meta-item pct-none" title="No delinked reference object on disk — VC71 byte-match is unavailable for this unit. Verify behaviorally via equivalence or the runtime oracle.">No delinked reference &middot; VC71 unavailable</span>'));
 
-            // Match distribution chart (embedded Chart.js)
+            // Unit history chart & Match distribution chart
+            renderUnitHistoryChart(unit.name);
             renderDetailChart(funcs);
 
             // Function table
@@ -2412,6 +2507,89 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
             // Data symbol table
             renderDataTable(unit);
+        }
+
+        function renderUnitHistoryChart(unitName) {
+            var container = document.getElementById('unitHistoryContainer');
+            var canvas = document.getElementById('unitHistoryChart');
+            destroyChart('unitHistoryChart');
+
+            if (!container || !canvas || !HISTORY || !HISTORY.snapshots || HISTORY.snapshots.length < 2) {
+                if (container) container.style.display = 'none';
+                return;
+            }
+
+            var points = [];
+            var snapshots = HISTORY.snapshots;
+            for (var i = 0; i < snapshots.length; i++) {
+                var s = snapshots[i];
+                var units = s.units || [];
+                for (var j = 0; j < units.length; j++) {
+                    var u = units[j];
+                    if (u.name === unitName) {
+                        var funcPct = u.percent !== undefined ? u.percent : (u.total > 0 ? (u.ported / u.total * 100) : 0);
+                        var bytesPct = u.bytes_total > 0 ? (u.bytes_ported / u.bytes_total * 100) : funcPct;
+                        points.push({
+                            date: s.timestamp.slice(0, 10),
+                            funcPct: funcPct,
+                            bytesPct: bytesPct,
+                            matchWeighted: u.match_weighted !== undefined ? u.match_weighted : null,
+                            matchAvg: u.match_avg !== undefined ? u.match_avg : null
+                        });
+                        break;
+                    }
+                }
+            }
+
+            if (points.length < 2) {
+                container.style.display = 'none';
+                return;
+            }
+
+            container.style.display = '';
+            var labels = points.map(function(p) { return p.date; });
+            var funcPctData = points.map(function(p) { return p.funcPct; });
+            var bytesPctData = points.map(function(p) { return p.bytesPct; });
+            var matchWeightedData = points.map(function(p) { return p.matchWeighted; });
+
+            var hasMatchData = matchWeightedData.some(function(v) { return v !== null && v !== undefined; });
+
+            var datasets = [
+                {
+                    label: 'Ported Functions (%)',
+                    data: funcPctData,
+                    borderColor: '#58a6ff',
+                    backgroundColor: 'rgba(88, 166, 255, 0.08)',
+                    borderWidth: 2, tension: 0.35, fill: false,
+                    pointRadius: 2, pointHoverRadius: 4
+                },
+                {
+                    label: 'Ported Bytes (%)',
+                    data: bytesPctData,
+                    borderColor: '#a371f7',
+                    backgroundColor: 'rgba(163, 113, 247, 0.05)',
+                    borderWidth: 1.5, borderDash: [3, 3], tension: 0.35, fill: false,
+                    pointRadius: 1.5, pointHoverRadius: 4
+                }
+            ];
+
+            if (hasMatchData) {
+                datasets.push({
+                    label: 'Unit Match Accuracy (%)',
+                    data: matchWeightedData,
+                    borderColor: '#3fb950',
+                    backgroundColor: 'rgba(63, 185, 80, 0.08)',
+                    borderWidth: 2, tension: 0.35, fill: false,
+                    pointRadius: 2, pointHoverRadius: 4
+                });
+            }
+
+            var ctx = canvas.getContext('2d');
+            chartInstances.unitHistoryChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: labels, datasets: datasets },
+                options: chartOpts({ legend: true })
+            });
         }
 
         function renderDetailChart(funcs) {
@@ -2625,60 +2803,16 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             return s.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'").replace(/"/g, '&quot;');
         }
 
-        /* ===== SSE / POLLING ===== */
-        function connectSSE() {
-            var badge = document.getElementById('live-badge');
-            var text = document.getElementById('live-text');
-            var badgeDetail = document.getElementById('live-badge-detail');
-            var textDetail = document.getElementById('live-text-detail');
+        /* ===== SSE / LIVE UPDATES ===== */
+        var pollTimer = null;
 
-            if (window.EventSource) {
-                var es = new EventSource('/events');
-                var timeout = setTimeout(function() {
-                    badge.className = 'live-badge offline';
-                    text.textContent = 'Polling';
-                    badgeDetail.className = 'live-badge offline';
-                    textDetail.textContent = 'Polling';
-                    startPolling();
-                }, 3000);
-
-                es.addEventListener('report', function(e) {
-                    clearTimeout(timeout);
-                    badge.className = 'live-badge online';
-                    text.textContent = 'Live';
-                    badgeDetail.className = 'live-badge online';
-                    textDetail.textContent = 'Live';
-                    try {
-                        REPORT = JSON.parse(e.data);
-                        router();
-                    } catch(err) {}
-                });
-
-                es.addEventListener('history', function(e) {
-                    try {
-                        HISTORY = JSON.parse(e.data);
-                        router();
-                    } catch(err) {}
-                });
-
-                es.onerror = function() {
-                    clearTimeout(timeout);
-                    badge.className = 'live-badge offline';
-                    text.textContent = 'Polling';
-                    badgeDetail.className = 'live-badge offline';
-                    textDetail.textContent = 'Polling';
-                    startPolling();
-                };
-            } else {
-                badge.className = 'live-badge offline';
-                text.textContent = 'Polling';
-                badgeDetail.className = 'live-badge offline';
-                textDetail.textContent = 'Polling';
-                startPolling();
+        function stopPolling() {
+            if (pollTimer) {
+                clearInterval(pollTimer);
+                pollTimer = null;
             }
         }
 
-        var pollTimer = null;
         function startPolling() {
             if (pollTimer) return;
             pollTimer = setInterval(function() {
@@ -2686,7 +2820,56 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                     REPORT = data;
                     router();
                 }).catch(function() {});
-            }, 5000);
+            }, 10000);
+        }
+
+        function setLiveStatus(online, label) {
+            var badge = document.getElementById('live-badge');
+            var text = document.getElementById('live-text');
+            var badgeDetail = document.getElementById('live-badge-detail');
+            var textDetail = document.getElementById('live-text-detail');
+            var cls = online ? 'live-badge online' : 'live-badge offline';
+            if (badge) badge.className = cls;
+            if (text) text.textContent = label;
+            if (badgeDetail) badgeDetail.className = cls;
+            if (textDetail) textDetail.textContent = label;
+        }
+
+        function connectSSE() {
+            if (!window.EventSource || location.protocol.indexOf('http') !== 0) {
+                setLiveStatus(false, 'Static');
+                return;
+            }
+
+            var es = new EventSource('/events');
+
+            es.onopen = function() {
+                stopPolling();
+                setLiveStatus(true, 'Live');
+            };
+
+            es.addEventListener('report', function(e) {
+                stopPolling();
+                setLiveStatus(true, 'Live');
+                try {
+                    REPORT = JSON.parse(e.data);
+                    router();
+                } catch(err) {}
+            });
+
+            es.addEventListener('history', function(e) {
+                try {
+                    HISTORY = JSON.parse(e.data);
+                    router();
+                } catch(err) {}
+            });
+
+            es.onerror = function() {
+                if (es.readyState === EventSource.CLOSED) {
+                    setLiveStatus(false, 'Polling');
+                    startPolling();
+                }
+            };
         }
 
         /* ===== EVENT BINDING ===== */

@@ -76,7 +76,9 @@ class HistoryManager:
                     'total': u['summary']['total'],
                     'percent': u['summary']['percent'],
                     'bytes_ported': u['summary'].get('bytes_ported', 0),
-                    'bytes_total': u['summary'].get('bytes_total', 0)
+                    'bytes_total': u['summary'].get('bytes_total', 0),
+                    'match_avg': u['summary'].get('match_avg'),
+                    'match_weighted': u['summary'].get('match_weighted')
                 }
                 for u in report.get('units', [])
             ]
