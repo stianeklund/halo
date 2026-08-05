@@ -21,6 +21,7 @@ Usage:
 
 import argparse
 import bisect
+import datetime
 import functools
 import json
 import os
@@ -35,6 +36,12 @@ OBJDIFF_JSON = REPO_ROOT / "objdiff.json"
 BUILD_DIR = REPO_ROOT / "build"
 VC71_OUT_DIR = BUILD_DIR / "vc71"
 DELINKED_DIR = REPO_ROOT / "delinked"
+
+# Machine-readable per-function score-context packs (diff ops, warning
+# detail, DP-LCS score, classification) -- see _build_score_context().
+# Default ON; disable with --no-score-context. Already covered by the
+# repo-wide `artifacts` gitignore entry.
+SCORE_CONTEXT_DIR = REPO_ROOT / "artifacts" / "score_context"
 
 # Fall back to a reference synthesized from the pristine XBE when no delinked
 # reference bounds a function.  Purely additive: it is consulted only where the
@@ -930,6 +937,309 @@ def _regdef_params_for(fn: str, co) -> list[tuple[int, str]] | None:
     return _regdef_map_cache.get(fn.lstrip("_"))
 
 
+# --- Score-context pack (--no-score-context to disable) -----------------
+#
+# Machine-readable per-function diagnostics dumped to
+# artifacts/score_context/<name>.json alongside every scored function:
+# the official/operand-normalized/DP-LCS scores, frame-size probe, the
+# same warning detail already computed for the console (FPU/LOADW/IMM/
+# FCOM), an aligned mnemonic diff, and a best-effort classification into
+# the recovery levers documented in docs/lift-learnings.md and
+# .claude/skills/lift-score-improve/SKILL.md. Additive only: none of this
+# touches the existing PASS/FAIL/warning console output other tooling
+# parses (lift_pipeline, dashboards, permuter run.py).
+
+_SUB_ESP_RE = re.compile(r'^subl?\s+\$(-?0x[0-9a-f]+|-?\d+)\s*,\s*%esp\b', re.IGNORECASE)
+_ADD_ESP_RE = re.compile(r'^addl?\s+\$(-?0x[0-9a-f]+|-?\d+)\s*,\s*%esp\b', re.IGNORECASE)
+_PROLOGUE_WINDOW = 40
+_DIFF_OP_CAP = 300
+_DIFF_EQUAL_CTX = 2
+_PUSHL_MOVL_MIN = 3
+_ANCHOR_COLLAPSE_GAP = 12.0
+
+
+def _parse_signed_imm(tok: str) -> int:
+    neg = tok.startswith("-")
+    if neg:
+        tok = tok[1:]
+    val = int(tok, 16) if tok.lower().startswith("0x") else int(tok)
+    return -val if neg else val
+
+
+def _first_frame_bytes(insns: list[str]) -> int | None:
+    """Bytes reserved by the first `sub esp, N` (or `add esp, -N`) seen in the
+    prologue window. Returns None if neither idiom appears there (e.g. a
+    leaf function with no locals, or a frame built a different way).
+    """
+    for insn in insns[:_PROLOGUE_WINDOW]:
+        s = insn.strip()
+        m = _SUB_ESP_RE.match(s)
+        if m:
+            return abs(_parse_signed_imm(m.group(1)))
+        m = _ADD_ESP_RE.match(s)
+        if m:
+            v = _parse_signed_imm(m.group(1))
+            if v < 0:
+                return abs(v)
+    return None
+
+
+def _has_chkstk_call(insns: list[str]) -> bool:
+    """Best-effort: does the function call _chkstk / an alloca-probe?
+
+    Cheap substring check over already-disassembled text -- llvm-objdump
+    usually keeps the symbol name on a call operand even for an unresolved
+    extern reference. Skips (returns False) rather than raising when the
+    symbol isn't textually present; this is advisory evidence, not a gate.
+    """
+    for insn in insns:
+        low = insn.lower()
+        if "call" in low and ("chkstk" in low or "alloca_probe" in low):
+            return True
+    return False
+
+
+def _mk_diff_op(kind: str, i1: int, i2: int, j1: int, j2: int,
+                 cand_insns: list[str], ref_insns: list[str]) -> dict:
+    return {
+        "kind": kind,
+        "cand_range": [i1, i2],
+        "ref_range": [j1, j2],
+        "cand": [cand_insns[i].strip() for i in range(i1, i2)],
+        "ref": [ref_insns[j].strip() for j in range(j1, j2)],
+    }
+
+
+def _build_diff_ops(cand_insns: list[str], ref_insns: list[str], opcodes,
+                     cap: int = _DIFF_OP_CAP, ctx: int = _DIFF_EQUAL_CTX
+                     ) -> tuple[list[dict], bool]:
+    """Aligned diff ops for the score-context pack, from the same
+    SequenceMatcher opcodes (mnemonic-sequence alignment) used for the
+    official score. Long equal runs are collapsed to `ctx` lines of context
+    on each end so a near-100%-match function doesn't dump its whole body;
+    the total instruction payload (cand + ref lines, summed across all ops)
+    is capped at `cap` and `truncated` is reported when that cap is hit.
+    """
+    ops: list[dict] = []
+    total = 0
+    truncated = False
+
+    def _try_append(op: dict) -> bool:
+        nonlocal total
+        n = len(op["cand"]) + len(op["ref"])
+        if total + n > cap:
+            return False
+        ops.append(op)
+        total += n
+        return True
+
+    for tag, i1, i2, j1, j2 in opcodes:
+        if tag == "equal" and (i2 - i1) > ctx * 2:
+            head = _mk_diff_op("equal", i1, i1 + ctx, j1, j1 + ctx, cand_insns, ref_insns)
+            tail = _mk_diff_op("equal", i2 - ctx, i2, j2 - ctx, j2, cand_insns, ref_insns)
+            for op in (head, tail):
+                if not _try_append(op):
+                    truncated = True
+                    break
+            if truncated:
+                break
+        else:
+            if not _try_append(_mk_diff_op(tag, i1, i2, j1, j2, cand_insns, ref_insns)):
+                truncated = True
+                break
+    return ops, truncated
+
+
+def _classify_score_context(scores: dict, warnings: dict, diff_ops: list[dict],
+                             frame: dict) -> list[dict]:
+    """Route diagnostics to the documented recovery levers. Pure function --
+    no I/O, no recompilation. Each rule fires independently; several may fire
+    on the same function.
+    """
+    rules: list[dict] = []
+
+    if warnings.get("fpu"):
+        rules.append({
+            "rule": "fpu_operand_order",
+            "evidence": f"{len(warnings['fpu'])} FPU-WARN detail line(s)",
+            "action": "Check cross-product argument order and FSUB/FSUBR operand "
+                      "direction (CLAUDE.md call-site pitfall #4; "
+                      "lift-score-improve Step 3c).",
+        })
+
+    if warnings.get("loadw"):
+        rules.append({
+            "rule": "loadw_field_width",
+            "evidence": f"{len(warnings['loadw'])} LOADW-WARN detail line(s)",
+            "action": "Narrow field read as a wider type (int vs int16_t/int8_t); "
+                      "verify the C type against disassembly. "
+                      "docs/lift-learnings.md section 24.",
+        })
+
+    if warnings.get("imm"):
+        rules.append({
+            "rule": "imm_wrong_literal",
+            "evidence": f"{len(warnings['imm'])} IMM-WARN detail line(s)",
+            "action": "Wrong float/magic numeric literal; verify against the "
+                      "disassembly immediate and prefer a named constant. "
+                      "docs/lift-learnings.md immediate-constant section.",
+        })
+
+    if warnings.get("fcom"):
+        rules.append({
+            "rule": "fcom_bound_sense",
+            "evidence": f"{len(warnings['fcom'])} FCOM-WARN detail line(s)",
+            "action": "FPU comparison bound sense (<= lifted as <, >= as >, or "
+                      "swapped/negated form); verify TEST AH,imm / Jcc against "
+                      "the pristine disassembly. docs/lift-learnings.md section 38.",
+        })
+
+    cand_frame = frame.get("cand_frame_bytes")
+    ref_frame = frame.get("ref_frame_bytes")
+    if cand_frame is not None and ref_frame is not None and cand_frame != ref_frame:
+        rules.append({
+            "rule": "frame_mismatch",
+            "evidence": f"cand `sub esp, {cand_frame:#x}` vs ref `sub esp, {ref_frame:#x}`",
+            "action": "VC71 shape levers: volatile store/reload locals, never take "
+                      "&param, mind else-block sinking, match assert-form "
+                      "comparisons. docs/lift-learnings.md section 27; "
+                      "lift-score-improve Step 3d.",
+        })
+
+    pushl_movl = 0
+    for op in diff_ops:
+        if op["kind"] != "replace":
+            continue
+        for c, r in zip(op["cand"], op["ref"]):
+            cm = c.split()[0].lower() if c.split() else ""
+            rm = r.split()[0].lower() if r.split() else ""
+            if (cm.startswith("push") and rm.startswith("mov")) or \
+               (cm.startswith("mov") and rm.startswith("push")):
+                pushl_movl += 1
+    if pushl_movl >= _PUSHL_MOVL_MIN:
+        rules.append({
+            "rule": "regarg_structural_ceiling",
+            "evidence": f"{pushl_movl} replace-op pushl<->movl pair(s), likely at "
+                        f"@<reg> call sites",
+            "action": "@<reg>-arg structural ceiling (~1 mnemonic per reg-arg per "
+                      "call site) -- document, don't chase further.",
+        })
+
+    dp = scores.get("dp_lcs_pct")
+    off = scores.get("official_pct")
+    if dp is not None and off is not None and (dp - off) > _ANCHOR_COLLAPSE_GAP:
+        rules.append({
+            "rule": "anchor_collapse",
+            "evidence": f"dp_lcs {dp:.1f}% vs official {off:.1f}% (gap {dp - off:.1f}pp)",
+            "action": "SequenceMatcher greedy-anchor collapse artifact -- keep "
+                      "fixing the regions the diff shows, don't trust the "
+                      "official-score cliff.",
+        })
+
+    if frame.get("ref_has_chkstk_call") and not frame.get("cand_has_chkstk_call"):
+        rules.append({
+            "rule": "chkstk_static_buffer",
+            "evidence": "reference calls _chkstk/alloca_probe; candidate does not",
+            "action": "Static-buffer ceiling: convert the large local from a plain "
+                      "stack declaration to `static` (_chkstk is now a no-op stub, "
+                      "so the linker error that motivated the workaround is gone). "
+                      "docs/lift-learnings.md section 20; lift-score-improve Step 0.",
+        })
+
+    return rules
+
+
+def _build_score_context(
+    fn: str,
+    compiled_insns: list[str],
+    reference_insns: list[str],
+    official_pct: float,
+    fpu_warnings: list[str],
+    loadw_warnings: list[str],
+    imm_warnings: list[str],
+    fcom_warnings: list[str],
+    source: Path,
+    ref_info: dict,
+    co,
+) -> dict:
+    """Assemble the machine-readable score-context pack for one function.
+
+    Post-processing only over already-disassembled instruction lists and
+    already-computed warnings -- no recompilation, no re-disassembly. Extra
+    work versus the console-only run: one operand-normalized rescoring pass
+    (pure Python over the disassembled listings, same as the existing
+    advisory `opnd` tag), one DP-LCS pass (guarded by a size cap), and one
+    more SequenceMatcher pass for the diff opcodes (same cost class as the
+    official score itself).
+    """
+    n_c, n_r = len(compiled_insns), len(reference_insns)
+
+    opnd_pct = co.compare_functions(
+        compiled_insns, reference_insns, reg_normalize=True)[0]
+
+    c_seq = co.extract_mnemonic_sequence(compiled_insns)
+    r_seq = co.extract_mnemonic_sequence(reference_insns)
+    dp_pct = co.dp_lcs_ratio(c_seq, r_seq)
+    if dp_pct is not None:
+        dp_pct *= 100.0
+
+    opcodes = co.mnemonic_diff_opcodes(compiled_insns, reference_insns)
+    diff_ops, truncated = _build_diff_ops(compiled_insns, reference_insns, opcodes)
+
+    frame = {
+        "cand_frame_bytes": _first_frame_bytes(compiled_insns),
+        "ref_frame_bytes": _first_frame_bytes(reference_insns),
+        "ref_has_chkstk_call": _has_chkstk_call(reference_insns),
+        "cand_has_chkstk_call": _has_chkstk_call(compiled_insns),
+    }
+
+    scores = {
+        "official_pct": official_pct,
+        "operand_normalized_pct": opnd_pct,
+        "dp_lcs_pct": dp_pct,
+        "n_cand_insns": n_c,
+        "n_ref_insns": n_r,
+    }
+
+    warnings = {
+        "fpu": list(fpu_warnings or []),
+        "loadw": list(loadw_warnings or []),
+        "imm": list(imm_warnings or []),
+        "fcom": list(fcom_warnings or []),
+    }
+
+    classification = _classify_score_context(scores, warnings, diff_ops, frame)
+
+    addr = _func_addr(fn)
+    try:
+        tu = str(source.relative_to(REPO_ROOT))
+    except ValueError:
+        tu = str(source)
+
+    return {
+        "name": fn,
+        "addr": f"0x{addr:08x}" if addr is not None else None,
+        "tu": tu,
+        "reference": ref_info,
+        "generated_at": datetime.datetime.now(datetime.timezone.utc)
+            .strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "scores": scores,
+        "frame": frame,
+        "warnings": warnings,
+        "diff": {"ops": diff_ops, "truncated": truncated},
+        "classification": classification,
+    }
+
+
+def _write_score_context(pack: dict) -> Path:
+    SCORE_CONTEXT_DIR.mkdir(parents=True, exist_ok=True)
+    out_path = SCORE_CONTEXT_DIR / f"{pack['name']}.json"
+    with open(out_path, "w") as f:
+        json.dump(pack, f, indent=1)
+        f.write("\n")
+    return out_path
+
+
 def run_compare_cached(
     compiled: Path,
     reference: Path,
@@ -939,6 +1249,7 @@ def run_compare_cached(
     no_cache: bool,
     quiet: bool = False,
     opt: str = "/O2",
+    score_context: bool = True,
 ) -> int:
     """Run per-function comparison with cache integration.
 
@@ -1434,6 +1745,36 @@ def run_compare_cached(
         if status == "FAIL":
             any_fail = True
 
+        if score_context:
+            if fn in synth_used:
+                ref_info = {"obj": None, "per_function": False, "synthesized": True}
+            elif fn in ref_overrides:
+                per_ref = _per_function_ref(fn)
+                try:
+                    obj_str = str(per_ref.relative_to(REPO_ROOT)) if per_ref else None
+                except ValueError:
+                    obj_str = str(per_ref) if per_ref else None
+                ref_info = {"obj": obj_str, "per_function": True, "synthesized": False}
+            else:
+                try:
+                    obj_str = str(reference.relative_to(REPO_ROOT))
+                except ValueError:
+                    obj_str = str(reference)
+                ref_info = {"obj": obj_str, "per_function": False, "synthesized": False}
+
+            pack = _build_score_context(
+                fn, compiled_funcs[fn], reference_funcs[fn], pct,
+                fpu_warnings, loadw_warnings, imm_warnings, fcom_warnings,
+                source, ref_info, co,
+            )
+            ctx_path = _write_score_context(pack)
+            if not only_mode and not quiet and pct < 100.0:
+                try:
+                    rel_ctx = ctx_path.relative_to(REPO_ROOT)
+                except ValueError:
+                    rel_ctx = ctx_path
+                print(f"  score-context: {rel_ctx}")
+
         if show_diffs and diffs and not only_mode and not quiet:
             for d in diffs:
                 print(d)
@@ -1514,6 +1855,9 @@ def main():
                     help="Do not fall back to a reference synthesized from the "
                          "pristine XBE when no delinked reference bounds a "
                          "function; report the function as a DROP instead")
+    ap.add_argument("--no-score-context", action="store_true",
+                    help="Disable machine-readable score-context pack output "
+                         "(artifacts/score_context/<name>.json); on by default")
     args = ap.parse_args()
 
     global SYNTH_REFS
@@ -1687,6 +2031,7 @@ def main():
     rc = run_compare_cached(
         vc71_obj, ref_path, source, extra, cache, no_cache=args.no_cache,
         quiet=args.quiet, opt=args.opt,
+        score_context=not args.no_score_context,
     )
     sys.exit(rc)
 

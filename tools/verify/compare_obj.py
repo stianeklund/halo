@@ -748,6 +748,81 @@ def lcs_ratio(a: list[str], b: list[str]) -> float:
     return SequenceMatcher(None, a, b, autojunk=False).ratio()
 
 
+def dp_lcs_len(a: list[str], b: list[str], cap: int = 25_000_000) -> int | None:
+    """True dynamic-programming LCS length over two sequences.
+
+    SequenceMatcher's ratio() is a greedy longest-matching-block heuristic,
+    not a true LCS -- on some TUs the greedy anchor collapses and the
+    official score reads far lower than real similarity (see
+    reference_vc71_scorer_anchor_collapse memory). This is the textbook O(n*m)
+    DP, kept memory-lean with a two-row rolling table (O(min(n,m)) space) so
+    it is safe to run on every scored function.
+
+    Guards against pathological TU sizes: if n*m exceeds `cap`, returns None
+    so callers fall back to the SequenceMatcher-derived score instead of
+    paying an unbounded compute cost.
+    """
+    n, m = len(a), len(b)
+    if n == 0 or m == 0:
+        return 0
+    if n * m > cap:
+        return None
+    # Iterate the longer sequence in the outer loop so the row is sized to
+    # the shorter one.
+    if m > n:
+        a, b = b, a
+        n, m = m, n
+    prev = [0] * (m + 1)
+    for i in range(1, n + 1):
+        curr = [0] * (m + 1)
+        ai = a[i - 1]
+        for j in range(1, m + 1):
+            if ai == b[j - 1]:
+                curr[j] = prev[j - 1] + 1
+            else:
+                pv = prev[j]
+                cv = curr[j - 1]
+                curr[j] = pv if pv >= cv else cv
+        prev = curr
+    return prev[m]
+
+
+def dp_lcs_ratio(a: list[str], b: list[str], cap: int = 25_000_000) -> float | None:
+    """LCS-based similarity ratio, same 2*M/T formula SequenceMatcher.ratio()
+    uses, so it is directly comparable to the official mnemonic-only score.
+
+    Returns None (rather than raising or silently degrading) when the DP is
+    too expensive for this pair (see dp_lcs_len's `cap`).
+    """
+    if not a and not b:
+        return 1.0
+    if not a or not b:
+        return 0.0
+    lcs = dp_lcs_len(a, b, cap=cap)
+    if lcs is None:
+        return None
+    total = len(a) + len(b)
+    return (2.0 * lcs) / total if total else 1.0
+
+
+def mnemonic_diff_opcodes(compiled: list[str], reference: list[str]):
+    """SequenceMatcher opcodes over the same mnemonic-only sequences used to
+    compute the official (headline) score in compare_functions().
+
+    Returns the raw get_opcodes() list: (tag, i1, i2, j1, j2) tuples where
+    tag is one of 'equal'/'replace'/'delete'/'insert' and i/j index into
+    `compiled`/`reference` respectively. Callers that already hold the
+    official-score SequenceMatcher (e.g. inside compare_functions) can reuse
+    its opcodes directly instead of calling this -- it exists for callers
+    (like the score-context pack builder) that only have the raw instruction
+    lists and want the same alignment the official score used, without
+    duplicating extract_mnemonic_sequence() call sites.
+    """
+    c_seq = extract_mnemonic_sequence(compiled)
+    r_seq = extract_mnemonic_sequence(reference)
+    return SequenceMatcher(None, c_seq, r_seq, autojunk=False).get_opcodes()
+
+
 FPU_MNEMONICS = {'fld', 'flds', 'fldl', 'fldt', 'fild', 'fst', 'fstp',
                  'fmul', 'fmuls', 'fmulp', 'fdiv', 'fdivs', 'fdivp', 'fdivr', 'fdivrs', 'fdivrp',
                  'fadd', 'fadds', 'faddp', 'fsub', 'fsubs', 'fsubp', 'fsubr', 'fsubrs', 'fsubrp',
