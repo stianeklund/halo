@@ -363,6 +363,22 @@ def run_inner(options: Options, heartbeat: Callable[[], None]) -> List[int]:
 
         objdump_command = json_prop(settings, "objdump_command", str, "") or None
 
+        # [halo] Optional in-search LCS scoring mode (see scorer.py). Default
+        # is unset/"difflib", which is upstream-unchanged behavior. When
+        # settings.toml sets score_algorithm = "lcs", ref_mnemonics_file must
+        # point at a newline-separated mnemonic file precomputed by run.py
+        # (its own chunk-aware reference resolution), so the in-search score
+        # agrees exactly with run.py's post-hoc get_lcs_score().
+        score_algorithm = json_prop(settings, "score_algorithm", str, "difflib")
+        ref_mnemonics_file = json_prop(settings, "ref_mnemonics_file", str, "") or None
+        ref_mnemonics: Optional[List[str]] = None
+        if score_algorithm == "lcs" and ref_mnemonics_file:
+            ref_mnemonics_path = ref_mnemonics_file
+            if not os.path.isabs(ref_mnemonics_path):
+                ref_mnemonics_path = os.path.join(d, ref_mnemonics_path)
+            with open(ref_mnemonics_path, encoding="utf-8") as f:
+                ref_mnemonics = [line.rstrip("\n") for line in f if line.rstrip("\n")]
+
         scorer = Scorer(
             target_o,
             stack_differences=options.stack_differences,
@@ -370,6 +386,9 @@ def run_inner(options: Options, heartbeat: Callable[[], None]) -> List[int]:
             debug_mode=options.debug_mode,
             ign_branch_targets=options.ign_branch_targets,
             objdump_command=objdump_command,
+            score_algorithm=score_algorithm,
+            ref_mnemonics=ref_mnemonics,
+            cand_func_name=fn_name,
         )
         c_source = preprocess(base_c)
 

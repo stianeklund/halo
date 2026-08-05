@@ -8,6 +8,7 @@ Usage:
     python3 tools/permuter/run.py --function FUN_0014b220 --source src/halo/physics/collision_features.c
     python3 tools/permuter/run.py --function FUN_0014b220 --source src/... --time 60 --threads 4
     python3 tools/permuter/run.py --function FUN_0014b220 --source src/... --work-dir /path/to/dir
+    python3 tools/permuter/run.py --target FUN_0014b220 --attempts 100   # auto-resolves --source via kb.json
 
 Steps performed:
     1. Extract and preprocess the target function into base.c (with pycparser-compat typedefs)
@@ -28,6 +29,7 @@ Key constraints handled:
 import argparse
 import importlib.util
 import json
+import math
 import os
 import re
 import shutil
@@ -40,6 +42,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 PERMUTER_DIR = REPO_ROOT / "third_party" / "decomp-permuter"
 COMPILE_SH = REPO_ROOT / "tools" / "permuter" / "compile.sh"
 COMPARE_OBJ = REPO_ROOT / "tools" / "verify" / "compare_obj.py"
+LIFT_PIPELINE = REPO_ROOT / "tools" / "lift_pipeline.py"
 OBJDIFF_JSON = REPO_ROOT / "objdiff.json"
 DELINKED_DIR = REPO_ROOT / "delinked"
 BUILD_VC71 = REPO_ROOT / "build" / "vc71"
@@ -137,6 +140,54 @@ def _load_compare_obj():
         spec.loader.exec_module(mod)
         _co_module = mod
     return _co_module
+
+
+_lp_module = None
+
+
+def _load_lift_pipeline():
+    """Load tools/lift_pipeline.py once and cache the module (mirrors _load_compare_obj)."""
+    global _lp_module
+    if _lp_module is None:
+        spec = importlib.util.spec_from_file_location("lift_pipeline", str(LIFT_PIPELINE))
+        mod = importlib.util.module_from_spec(spec)
+        # lift_pipeline.py uses @dataclass, whose decorator resolves annotations
+        # via sys.modules[cls.__module__] -- register before exec_module or it
+        # crashes with "'NoneType' object has no attribute '__dict__'".
+        sys.modules[spec.name] = mod
+        spec.loader.exec_module(mod)
+        _lp_module = mod
+    return _lp_module
+
+
+def _resolve_target_to_function_and_source(target: str) -> tuple[str, Path] | None:
+    """Resolve --target (a function name or hex address) to (func_name, source_path).
+
+    Reuses lift_pipeline.load_kb_index() -- the same kb.json object/function walk
+    the lift pipeline itself uses to map a target to its TU -- instead of
+    duplicating that logic here. Accepts a lifted name (e.g. "real_reciprocal"),
+    a decl-literal FUN_ name (e.g. "FUN_0010da90"), or a bare hex address
+    (e.g. "0x10da90", "10da90").
+    """
+    lp = _load_lift_pipeline()
+    by_name, by_addr = lp.load_kb_index()
+
+    hit = by_name.get(target.strip())
+    if hit is None:
+        addr_str = target.strip()
+        if addr_str.upper().startswith("FUN_"):
+            addr_str = addr_str[4:]
+        addr_str = addr_str.lower().removeprefix("0x")
+        try:
+            hit = by_addr.get(f"0x{int(addr_str, 16):x}")
+        except ValueError:
+            hit = None
+    if hit is None or not hit.source_path:
+        return None
+    source = REPO_ROOT / hit.source_path
+    if not source.exists():
+        return None
+    return hit.name, source
 
 
 def _per_function_chunk(func_name: str) -> Path | None:
@@ -604,23 +655,17 @@ def _resolve_ref_name(func_name: str) -> str | None:
     return None
 
 
-def get_lcs_score(func_name: str, compiled_obj: Path, ref_obj: Path,
-                  ref_is_chunk: bool = False) -> float | None:
-    """Get LCS match % for a function between compiled and reference objects.
+def _resolve_ref_insns(co, func_name: str, ref_obj: Path, ref_is_chunk: bool):
+    """Resolve the reference instruction list for func_name from ref_obj.
 
-    ref_is_chunk selects the boundary-capped chunk read (first_function_insns)
-    that vc71_verify uses for delinked/functions/<addr>.obj references, so a
-    stale chunk that swallowed unregistered neighbour functions collapses to
-    its true first function instead of producing a false low.
+    Shared by get_lcs_score() and write_ref_mnemonics_file() so both use the
+    exact same chunk-aware boundary logic. ref_is_chunk selects the
+    boundary-capped chunk read (first_function_insns) that vc71_verify uses
+    for delinked/functions/<addr>.obj references, so a stale chunk that
+    swallowed unregistered neighbour functions collapses to its true first
+    function instead of producing a false low.
     """
-    co = _load_compare_obj()
-
-    cand_funcs = co.disassemble(str(compiled_obj))
-
     fn = func_name.lstrip("_")
-    cand_fn = fn if fn in cand_funcs else None
-    if not cand_fn:
-        return None
     delinked_name = _resolve_ref_name(fn)
 
     ref_insns = None
@@ -639,10 +684,45 @@ def get_lcs_score(func_name: str, compiled_obj: Path, ref_obj: Path,
             ref_insns = co.first_function_insns(str(ref_obj), aliases)
         except Exception:
             ref_insns = None
+    return ref_insns
+
+
+def get_lcs_score(func_name: str, compiled_obj: Path, ref_obj: Path,
+                  ref_is_chunk: bool = False) -> float | None:
+    """Get LCS match % for a function between compiled and reference objects."""
+    co = _load_compare_obj()
+
+    cand_funcs = co.disassemble(str(compiled_obj))
+
+    fn = func_name.lstrip("_")
+    cand_fn = fn if fn in cand_funcs else None
+    if not cand_fn:
+        return None
+
+    ref_insns = _resolve_ref_insns(co, func_name, ref_obj, ref_is_chunk)
     if ref_insns:
         pct, *_ = co.compare_functions(cand_funcs[cand_fn], ref_insns)
         return pct
     return None
+
+
+def write_ref_mnemonics_file(func_name: str, ref_obj: Path, ref_is_chunk: bool,
+                             dest_path: Path) -> bool:
+    """Precompute the reference mnemonic sequence once and write it to
+    dest_path (one mnemonic per line), for the in-search LCS scorer
+    (score_algorithm="lcs" in scorer.py). Reuses the exact same chunk-aware
+    reference resolution as get_lcs_score(), so the in-search score for a
+    given .o agrees with this script's own post-hoc get_lcs_score() for that
+    .o. Returns False (and leaves dest_path untouched) if resolution fails,
+    so callers can fall back to default upstream scoring.
+    """
+    co = _load_compare_obj()
+    ref_insns = _resolve_ref_insns(co, func_name, ref_obj, ref_is_chunk)
+    if not ref_insns:
+        return False
+    mnemonics = co.extract_mnemonic_sequence(ref_insns)
+    dest_path.write_text("\n".join(mnemonics) + "\n")
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -660,12 +740,23 @@ def _log(*a, **kw):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--function", "-f", required=True,
-                    help="Function name to permute (e.g. FUN_0014b220)")
-    ap.add_argument("--source", "-s", required=True,
-                    help="Source .c file containing the function")
-    ap.add_argument("--time", "-t", type=int, default=60,
-                    help="Permuter runtime in seconds (default: 60)")
+    ap.add_argument("--target",
+                    help="Function name or hex address (e.g. FUN_0010da90 or 0x10da90). "
+                         "Auto-resolves --source via kb.json. Mutually exclusive with "
+                         "--function/--source.")
+    ap.add_argument("--function", "-f",
+                    help="Function name to permute (e.g. FUN_0014b220). Requires --source.")
+    ap.add_argument("--source", "-s",
+                    help="Source .c file containing the function. Requires --function.")
+    ap.add_argument("--time", "-t", type=int, default=None,
+                    help="Permuter runtime in seconds (default: 60, or derived from "
+                         "--attempts if given)")
+    ap.add_argument("--attempts", type=int, default=None,
+                    help="Approximate bound on candidate iterations. Only takes effect "
+                         "when --time is not given: time = max(30, ceil(attempts * 0.5)) "
+                         "seconds (warm VC71 compile+score is ~0.15s/candidate). "
+                         "Approximate; bounds wall-clock, not an exact iteration count -- "
+                         "Guard 1 reports the actual iteration count achieved.")
     ap.add_argument("--threads", "-j", type=int, default=1,
                     help="Number of parallel permuter threads (default: 1)")
     ap.add_argument("--work-dir", default=None,
@@ -680,6 +771,28 @@ def main():
 
     global _quiet
     _quiet = args.quiet
+
+    if args.target:
+        if args.function or args.source:
+            ap.error("--target is mutually exclusive with --function/--source")
+        resolved = _resolve_target_to_function_and_source(args.target)
+        if resolved is None:
+            print(f"[run.py] Could not resolve --target {args.target!r} to a "
+                  "kb.json function with a valid source_path.", file=sys.stderr)
+            sys.exit(1)
+        args.function, resolved_source = resolved
+        args.source = str(resolved_source)
+        _log(f"[run.py] Resolved --target : {args.target} -> function={args.function} "
+             f"source={resolved_source.relative_to(REPO_ROOT)}")
+    elif not args.function or not args.source:
+        ap.error("either --target, or both --function and --source, are required")
+
+    if args.time is None:
+        if args.attempts is not None:
+            args.time = max(30, math.ceil(args.attempts * 0.5))
+            _log(f"[run.py] --attempts {args.attempts} mapped to --time {args.time}s (approximate)")
+        else:
+            args.time = 60
 
     source = Path(args.source)
     if not source.is_absolute():
@@ -756,13 +869,31 @@ def main():
             compile_sh_link.unlink()
         compile_sh_link.symlink_to(COMPILE_SH)
 
+        # [halo] Precompute the reference mnemonic sequence ONCE (using the
+        # same chunk-aware extraction find_delinked_reference/get_lcs_score
+        # already use) and hand it to the in-search scorer via a file, so the
+        # permuter's own candidate ranking uses the repo's real acceptance
+        # metric (mnemonic-LCS) instead of upstream's difflib penalty scorer.
+        # If resolution fails for any reason, fall back to default upstream
+        # scoring rather than crash the run.
+        ref_mnemonics_path = work_dir / "ref_mnemonics.txt"
+        has_lcs_ref = write_ref_mnemonics_file(func_name, target_o, ref_is_chunk,
+                                               ref_mnemonics_path)
+        if not has_lcs_ref:
+            _log("[run.py] WARNING: could not precompute reference mnemonics; "
+                 "falling back to upstream difflib scoring for in-search ranking.")
+
         # Write settings.toml
         settings_f = work_dir / "settings.toml"
-        settings_f.write_text(
-            f'func_name = "{func_name}"\n'
-            f'compiler_type = "base"\n'
-            f'objdump_command = "llvm-objdump -d --no-show-raw-insn --no-leading-addr"\n'
-        )
+        settings_lines = [
+            f'func_name = "{func_name}"\n',
+            f'compiler_type = "msvc"\n',
+            f'objdump_command = "llvm-objdump -d --no-show-raw-insn --no-leading-addr"\n',
+        ]
+        if has_lcs_ref:
+            settings_lines.append('score_algorithm = "lcs"\n')
+            settings_lines.append(f'ref_mnemonics_file = "{ref_mnemonics_path.name}"\n')
+        settings_f.write_text("".join(settings_lines))
 
         # Pre-compile sanity check
         if not compile_base(work_dir):
@@ -774,6 +905,7 @@ def main():
         base_o = work_dir / "base.o"
         init_pct = get_lcs_score(func_name, base_o, target_o,
                                  ref_is_chunk=ref_is_chunk)
+        init_score = None
         if init_pct is not None:
             init_score = round((100.0 - init_pct) * 10)
             _log(f"[run.py] Initial LCS     : {init_pct:.1f}% (LCS loss={init_score})")
@@ -793,14 +925,77 @@ def main():
         _log(f"[run.py] Command: {' '.join(cmd)}\n")
         _log("-" * 60)
 
+        # [halo] Always capture child stdout/stderr (never gate this on -q):
+        # deliverable 3 needs to parse iteration counts and the printed base
+        # score regardless of quiet mode, and the VACUOUS RUN diagnostic must
+        # itself be visible even under -q. When not quiet, replay the captured
+        # output to our own stdout/stderr afterwards so interactive runs still
+        # see it (buffered rather than streamed live -- see final report).
+        child_stdout = ""
+        child_stderr = ""
         try:
             result = subprocess.run(cmd, timeout=args.time,
                                     env={**os.environ, "TMPDIR": str(WIN_TMPDIR)},
-                                    capture_output=_quiet)
-        except subprocess.TimeoutExpired:
+                                    capture_output=True, text=True)
+            child_stdout = result.stdout or ""
+            child_stderr = result.stderr or ""
+        except subprocess.TimeoutExpired as exc:
             _log(f"\n[run.py] Permuter stopped after {args.time}s timeout.")
+            child_stdout = exc.stdout or "" if isinstance(exc.stdout, str) else (exc.stdout or b"").decode("utf-8", "replace")
+            child_stderr = exc.stderr or "" if isinstance(exc.stderr, str) else (exc.stderr or b"").decode("utf-8", "replace")
         except KeyboardInterrupt:
             _log("\n[run.py] Interrupted.")
+
+        if not _quiet:
+            if child_stdout:
+                sys.stdout.write(child_stdout)
+            if child_stderr:
+                sys.stderr.write(child_stderr)
+
+        child_combined = child_stdout + child_stderr
+
+        # [halo] Guard 1: vacuous-run detection. Parse permuter.py's own
+        # "iteration N, ... score = S" progress lines (main.py's post_score())
+        # and bail loudly if zero real iterations ran -- otherwise "no
+        # candidates" looks identical to "the search never started" (e.g.
+        # pycparser choking on the extracted function, or the subprocess
+        # crashing before the first iteration).
+        iter_nums = [int(m) for m in re.findall(r"iteration (\d+),", child_combined)]
+        max_iteration = max(iter_nums) if iter_nums else 0
+        if max_iteration == 0:
+            tail = "\n".join(child_combined.splitlines()[-20:])
+            print("\n[run.py] VACUOUS RUN: 0 candidate iterations -- "
+                  "do NOT trust \"no improvement\"", file=sys.stderr)
+            print(f"[run.py] Command was: {' '.join(cmd)}", file=sys.stderr)
+            print("[run.py] Last output from permuter subprocess:", file=sys.stderr)
+            print(tail if tail else "(no output captured)", file=sys.stderr)
+            sys.exit(3)
+        _log(f"[run.py] Iterations ran  : {max_iteration}")
+
+        # [halo] Guard 2: baseline agreement. When the in-search LCS scorer is
+        # active, permuter.py prints "[name] base score = N" at startup
+        # (main.py run_inner(), after Permuter construction). That N must
+        # equal our own independently-computed init_score, or the in-search
+        # scorer and get_lcs_score() are looking at different references --
+        # the doctrine that "printed baseline LCS must equal vc71_verify's
+        # independent score" (see docs/lift-learnings.md / permuter-campaign).
+        if has_lcs_ref and init_score is not None:
+            base_score_matches = re.findall(r"base score = (-?\d+)", child_combined)
+            if base_score_matches:
+                printed_base_score = int(base_score_matches[0])
+                if printed_base_score != init_score:
+                    print("\n[run.py] BASELINE MISMATCH: permuter's printed "
+                          f"base score ({printed_base_score}) != run.py's own "
+                          f"LCS-derived base score ({init_score}). The "
+                          "in-search scorer and get_lcs_score() likely resolved "
+                          "different references -- do not trust in-search "
+                          "ranking for this run.", file=sys.stderr)
+                    sys.exit(4)
+                _log(f"[run.py] Baseline agree  : permuter base score "
+                     f"{printed_base_score} == {init_score} (OK)")
+            else:
+                _log("[run.py] WARNING: could not find permuter's printed "
+                     "base score line to cross-check against init_score.")
 
         # ------------------------------------------------------------------
         # LCS-gated candidate selection

@@ -63,3 +63,23 @@ perm_dummy_comma_expr = 0.5
 perm_add_self_assignment = 0.5
 perm_duplicate_assignment = 0.5
 perm_pad_var_decl = 0.5
+
+# [halo] MSVC 7.1 (VC71) / Xbox target weight overrides. See CLAUDE.md and
+# .claude/skills/permuter-campaign for the byte-match campaign this feeds.
+[msvc]
+# Useless on VC71 codegen: no float-literal games, no line-merging games
+# (VC71 already emits one line per statement in debug-info-free builds), no
+# empty-statement / dummy-comma-expr tricks that only matter for compilers
+# that are sensitive to statement count/ordering the way IDO/GCC are.
+perm_float_literal = 0
+perm_sameline = 0
+perm_empty_stmt = 0
+perm_dummy_comma_expr = 0
+# Semantics-changing: perm_remove_ast has been the source of audited bad
+# winners (candidates that "improve" score by deleting behavior). Disabled.
+perm_remove_ast = 0
+# Rarely effective for VC71; halved rather than zeroed since they are cheap
+# and occasionally still explain a diff.
+perm_xor_zero = 5
+perm_mult_zero = 2.5
+perm_add_self_assignment = 2.5

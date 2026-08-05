@@ -1,11 +1,39 @@
 import difflib
 import hashlib
+import importlib.util
 import re
 import shlex
+from pathlib import Path  # [halo] needed to locate tools/verify/compare_obj.py
 from typing import Dict, List, Optional, Sequence, Tuple, Set
 from collections import Counter
 
 from .objdump import ArchSettings, Line, objdump, get_arch
+
+
+# [halo] Dynamically load tools/verify/compare_obj.py so the in-search LCS
+# scorer (score_algorithm="lcs") computes the exact same metric as run.py's
+# own get_lcs_score() / vc71_verify.py, instead of reimplementing mnemonic
+# extraction and risking numeric drift. Mirrors run.py's _load_compare_obj().
+_co_module = None
+
+
+def _load_compare_obj_module():
+    global _co_module
+    if _co_module is not None:
+        return _co_module
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        candidate = parent / "tools" / "verify" / "compare_obj.py"
+        if candidate.is_file():
+            spec = importlib.util.spec_from_file_location("compare_obj", str(candidate))
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            _co_module = mod
+            return _co_module
+    raise RuntimeError(
+        "[halo] score_algorithm=lcs requires tools/verify/compare_obj.py; "
+        "could not locate it above " + str(here)
+    )
 
 
 class Scorer:
@@ -27,6 +55,15 @@ class Scorer:
         debug_mode: bool,
         ign_branch_targets: bool,
         objdump_command: Optional[str],
+        # [halo] LCS scoring mode: when score_algorithm == "lcs", score()
+        # short-circuits to _score_lcs() instead of the upstream multi-category
+        # difflib penalty scorer. ref_mnemonics must be the mnemonic-only
+        # sequence for the target function (see run.py's write_ref_mnemonics_file),
+        # precomputed once by run.py using its own chunk-aware reference
+        # resolution logic (find_delinked_reference / first_function_insns).
+        score_algorithm: str = "difflib",
+        ref_mnemonics: Optional[Sequence[str]] = None,
+        cand_func_name: Optional[str] = None,
     ):
         self.target_o = target_o
         self.arch = get_arch(target_o)
@@ -35,6 +72,15 @@ class Scorer:
         self.debug_mode = debug_mode
         self.objdump_command = objdump_command or ""
         self.ign_branch_targets = ign_branch_targets
+        # [halo] LCS mode state.
+        self.score_algorithm = score_algorithm
+        self._lcs_ref_mnemonics = list(ref_mnemonics) if ref_mnemonics else []
+        self._lcs_func_name = cand_func_name
+        self._lcs_co_module = None
+        if self.score_algorithm == "lcs" and not self._lcs_ref_mnemonics:
+            raise ValueError(
+                "[halo] score_algorithm=lcs requires a non-empty ref_mnemonics sequence"
+            )
         _, self.target_seq = self._objdump(target_o)
         self.difflib_differ: difflib.SequenceMatcher[str] = difflib.SequenceMatcher(
             autojunk=False
@@ -54,9 +100,49 @@ class Scorer:
         )
         return "\n".join([line.row for line in lines]), lines
 
+    def _score_lcs(self, cand_o: str) -> Tuple[int, str]:
+        """[halo] score_algorithm="lcs": mnemonic-only LCS against the
+        precomputed reference sequence, using tools/verify/compare_obj.py's
+        own disassemble()/extract_mnemonic_sequence()/lcs_ratio() so the
+        result is numerically identical to run.py's get_lcs_score() for the
+        same .o file. score = round((100.0 - lcs_pct) * 10), matching the
+        upstream convention that lower is better and 0 is a perfect match.
+        """
+        if self._lcs_co_module is None:
+            self._lcs_co_module = _load_compare_obj_module()
+        co = self._lcs_co_module
+
+        fn = (self._lcs_func_name or "").lstrip("_")
+        if not fn:
+            return Scorer.PENALTY_INF, ""
+
+        cand_funcs = co.disassemble(cand_o)
+        cand_insns = cand_funcs.get(fn)
+        if cand_insns is None and len(cand_funcs) == 1:
+            # base.c only ever contains the target function, but disassemble()
+            # derives symbol names from the object; fall back to the sole
+            # function present if the name doesn't match exactly.
+            cand_insns = next(iter(cand_funcs.values()))
+        if cand_insns is None:
+            return Scorer.PENALTY_INF, ""
+
+        cand_mnemonics = co.extract_mnemonic_sequence(cand_insns)
+        ratio = co.lcs_ratio(cand_mnemonics, self._lcs_ref_mnemonics)
+        score = round((100.0 - ratio * 100.0) * 10)
+        h = hashlib.sha256("\n".join(cand_insns).encode()).hexdigest()
+        return score, h
+
     def score(self, cand_o: Optional[str]) -> Tuple[int, str]:
         if not cand_o:
             return Scorer.PENALTY_INF, ""
+
+        # [halo] LCS scoring mode: score by mnemonic-only LCS against a
+        # precomputed reference mnemonic sequence (matches
+        # tools/verify/compare_obj.py exactly), instead of upstream's
+        # multi-category difflib penalty scorer. Compile failures already
+        # returned PENALTY_INF above, so this preserves that behavior.
+        if self.score_algorithm == "lcs":
+            return self._score_lcs(cand_o)
 
         objdump_output, cand_seq = self._objdump(cand_o)
 
