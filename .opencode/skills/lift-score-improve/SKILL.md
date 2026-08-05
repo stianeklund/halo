@@ -18,6 +18,32 @@ Source: `docs/lift-learnings.md` §19 + §20 + §27.
 
 ---
 
+## Measured Experiment Gate
+
+Before changing an existing lift specifically to improve its score, record a
+whole-TU baseline. Then make exactly one evidence-backed source change and
+gate it before trying another lever:
+
+```bash
+rtk python3 tools/verify/score_improve.py baseline \
+  --source <file.c> --output artifacts/score_improve/<func>-baseline.json
+
+# Apply one candidate change, then:
+rtk python3 tools/verify/score_improve.py check \
+  --baseline artifacts/score_improve/<func>-baseline.json \
+  --source <file.c> --target <func> \
+  --output artifacts/score_improve/<func>-check.json
+```
+
+`check` passes only when the target improves by at least 0.01pp, every scored
+function remains present, no score falls, and the warning count does not grow.
+On failure, restore only the candidate change; never accumulate neutral or
+regressive experiments. For an isolated candidate worktree, `score_improve.py
+trial --worktree <path> --candidate-cmd <command> ...` runs the command before
+the same gate.
+
+---
+
 ## Step 0 — Check for the static-buffer ceiling first (§20)
 
 This is the highest-leverage check and takes 5 seconds:

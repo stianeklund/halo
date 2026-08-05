@@ -22,6 +22,8 @@ Modes:
 7. `dual-oracle <target>` — same-process original-vs-candidate harness case when implemented for the target.
 8. `report [extra test_inventory flags]` — classify current verification coverage.
 9. `failure <artifact_dir>` — classify a failed lift pipeline or auto-lift artifact and recommend the next narrow action.
+10. `score baseline <source>` — capture a whole-TU VC71 baseline before a score-recovery edit.
+11. `score check <source> <target> <baseline>` — accept a score-recovery candidate only if the target improves and the TU stays regression-free.
 
 If no mode is supplied, treat the first token as `<target>` and run `normal`.
 
@@ -34,7 +36,15 @@ rtk python3 tools/audit/batch_delink.py --object <object>
 rtk python3 tools/equivalence/unicorn_diff.py <target> --allow-stubs --mem-trace <extra_flags>
 rtk python3 tools/verify/run_golden_tests.py --target <target> <extra_flags>
 rtk python3 tools/verify/test_inventory.py <extra_flags>
+rtk python3 tools/verify/score_improve.py baseline --source <source> --output artifacts/score_improve/<target>-baseline.json
+rtk python3 tools/verify/score_improve.py check --baseline <baseline> --source <source> --target <target> --output artifacts/score_improve/<target>-check.json
 ```
+
+Score mode:
+1. Run `score baseline` before the first source edit intended to improve an existing VC71 score.
+2. Make one binary-backed score hypothesis at a time, using the current score-context pack and `lift-score-improve`.
+3. Run `score check` after each candidate. It requires at least a 0.01pp target improvement and rejects any missing score, score regression, or increased warning count in the translation unit.
+4. If the check fails, restore only that candidate edit. Do not retain neutral or regressive score experiments.
 
 Equivalence mode:
 1. Use regular seeded/mem-trace equivalence first for leaf, data-only, or stubbable targets.

@@ -74,6 +74,10 @@ All file edits, `rtk git` commands, and tool invocations must target **that path
       pack on every scored run with pre-classified `classification[]` entries
       (`rule`/`evidence`/`action`) plus frame-size and warning fields — read it
       before manually re-deriving the same diagnosis from `--show-diffs`.
+    - Before any source-level score-recovery experiment, run
+      `score_improve.py baseline` for the source file. Apply one evidence-backed
+      lever, then run `score_improve.py check` for the target; retain the edit only
+      on PASS. `lift-score-improve` supplies the exact commands and categories.
     - Score 65–84% and gap described as "structural" → **invoke `lift-score-improve` skill first** before reverting or escalating
     - Xbox crash / hang / ACCESS_VIOLATION → **invoke `lift-crash-signals` skill**
     - Wrong visual output / silent wrong behavior → **invoke `lift-crash-signals` skill** (toggle-bisect section)

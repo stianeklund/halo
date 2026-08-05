@@ -61,6 +61,26 @@ Report:
 - behavior/runtime check result if requested
 - summary path under `artifacts/lift_runs/.../summary.json`
 
+### Score-improvement gate
+
+Use this after a verified lift when making deliberate source-level changes to
+improve an existing VC71 score. First record the whole-TU baseline, then make
+one binary-backed candidate edit and gate it:
+
+```bash
+rtk python3 tools/verify/score_improve.py baseline \
+  --source <file.c> --output artifacts/score_improve/<func>-baseline.json
+rtk python3 tools/verify/score_improve.py check \
+  --baseline artifacts/score_improve/<func>-baseline.json \
+  --source <file.c> --target <func> \
+  --output artifacts/score_improve/<func>-check.json
+```
+
+`check` rejects a target that gains less than 0.01pp, any missing or regressed
+function score in the source file, or an increased warning count. Restore a
+failed candidate before pursuing another recipe. Use `lift-score-improve` to
+choose the next binary-backed lever from the score-context pack.
+
 ### Explicit structural verification
 
 Use this when the lifted function address in the patched XBE is known:

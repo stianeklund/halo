@@ -129,12 +129,26 @@ After Phase 1 completes:
      ```
    - `rtk git add delinked/<obj>_FUN_<ADDR>.obj objdiff.json`
 4. Run:
-   ```
-   rtk python3 tools/lift_pipeline.py --target <name> --no-metadata-update --verify-policy auto \
-     --abi-caller-disasm-file artifacts/lift/caller_disasm_<target>.txt
-   ```
-   If no caller disassembly was retrieved, omit `--abi-caller-disasm-file`.
-4. Report:
+    ```
+    rtk python3 tools/lift_pipeline.py --target <name> --no-metadata-update --verify-policy auto \
+      --abi-caller-disasm-file artifacts/lift/caller_disasm_<target>.txt
+    ```
+    If no caller disassembly was retrieved, omit `--abi-caller-disasm-file`.
+5. If the VC71 result is below 100% and further source-level score recovery is planned, record a whole-TU baseline before the first candidate edit:
+    ```bash
+    rtk python3 tools/verify/score_improve.py baseline \
+      --source <source_path> \
+      --output artifacts/score_improve/<target>-baseline.json
+    ```
+    Apply one evidence-backed hypothesis from `lift-score-improve`, then gate it:
+    ```bash
+    rtk python3 tools/verify/score_improve.py check \
+      --baseline artifacts/score_improve/<target>-baseline.json \
+      --source <source_path> --target <name> \
+      --output artifacts/score_improve/<target>-check.json
+    ```
+    Retain a candidate only when `check` passes. It requires target improvement of at least 0.01pp and rejects score/warning regressions anywhere in the translation unit. On failure, restore only the candidate edit before testing the next hypothesis.
+6. Report:
     - Target: name / address / object / source path
     - Phase 1 summary (Confirmed / Inferred / Uncertain)
     - Pipeline stage results (build, ABI audit, VC71 verify, low-match policy, behavior/runtime checks)
@@ -146,6 +160,8 @@ Notes:
   `vc71_verify.py` automatically when a delinked reference exists in `delinked/`
   (mapped via `objdiff.json`). Step 3 above ensures this is done before the
   pipeline runs — never skip it and then offer a second pass.
+- Score-improvement checks supplement the pipeline. Use them for every deliberate
+  post-lift score-recovery edit; they do not replace behavioral or ABI validation.
 - **Prefer XBDM verification on real Xbox** whenever a console is available.
   Use `/deploy --xbe-only` then `/xbdm <mode>` commands to probe.
 - Use `/verify golden <target>` or `/verify dual-oracle <target>` for runtime evidence; do not use the retired Option 3 fallback.

@@ -15379,7 +15379,7 @@
         },
         {
           "addr": "0x13cf50",
-          "decl": "int FUN_0013cf50(int param_1, short *param_2, int param_3, short param_4, short param_5);",
+      "decl": "int FUN_0013cf50(int param_1, short *param_2, int param_3, short param_4, short param_5);",
           "ported": true,
           "source": "src/halo/objects/objects.c"
         },
