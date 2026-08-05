@@ -476,6 +476,95 @@ char ai_debug_highlight_cluster(int16_t cluster_index, void *out)
   return 1;
 }
 
+/* ai_debug_render_points_and_lines: flush the queued AI debug point and line
+ * lists to the debug renderer.
+ *
+ * Each queued point (3-float / 12-byte record array at 0x5accb0, count at
+ * 0x5accac) is drawn as its own list index, formatted with "%d" into the
+ * shared scratch string buffer at 0x5ab100, at the point's position.  Each
+ * queued line (6-byte record: int16 point_a, int16 point_b, int16 color;
+ * count at 0x5eccb0, the first record's colour field at 0x5eccb8) is drawn
+ * between two of those points.
+ *
+ * Both loops pick a colour from a 13-entry local table of *addresses* of
+ * global colour pointers.  The double dereference is load-bearing: the disasm
+ * does MOV ECX,[EBP+EAX*4-0x34] then MOV EDX,[ECX], so the argument is the
+ * value stored AT 0x2ee6cc etc., not 0x2ee6cc itself.  MSVC emits the table
+ * as 13 separate `MOV dword ptr [EBP-N],imm32` stores at 0x499a1..0x499f5,
+ * so it must stay a local array and not be hoisted to file-scope data.
+ *
+ * No __FILE__ string.  No FPU instructions anywhere in the function (points
+ * are passed by pointer only).  cdecl void(void); frame is SUB ESP,0x34 with
+ * ESI and EDI saved.
+ *
+ * Colour-table store-offset table (0x499a1..0x499f5), indexed later as
+ * [EBP+EAX*4-0x34] so colors[0] lives at EBP-0x34:
+ *   [EBP-0x34] colors[ 0] <- 0x2ee6cc     [EBP-0x18] colors[ 7] <- 0x2ee6e8
+ *   [EBP-0x30] colors[ 1] <- 0x2ee6d8     [EBP-0x14] colors[ 8] <- 0x2ee6e4
+ *   [EBP-0x2c] colors[ 2] <- 0x2ee6ec     [EBP-0x10] colors[ 9] <- 0x2ee6d0
+ *   [EBP-0x28] colors[ 3] <- 0x2ee6dc     [EBP-0x0c] colors[10] <- 0x2ee6f0
+ *   [EBP-0x24] colors[ 4] <- 0x2ee6d4     [EBP-0x08] colors[11] <- 0x2ee6e0
+ *   [EBP-0x20] colors[ 5] <- 0x2ee6f4     [EBP-0x04] colors[12] <- 0x2ee6c4
+ *   [EBP-0x1c] colors[ 6] <- 0x2ee700
+ *
+ * The clamp is upper-bound only (CMP against 0xc / JLE).  MOVSX makes the
+ * index signed, but the original emits no lower-bound guard so none is added
+ * here.  Both loop counts are re-read from their globals in the loop tail
+ * (MOV EAX,[0x5accac] at 0x49a51, MOV EAX,[0x5eccb0] at 0x49aaa) rather than
+ * cached in a register, so the conditions re-read them too. */
+void ai_debug_render_points_and_lines(void)
+{
+  void **colors[13];
+  float *point;
+  int16_t *line;
+  int color_index;
+  int i;
+
+  colors[0] = (void **)0x2ee6cc;
+  colors[1] = (void **)0x2ee6d8;
+  colors[2] = (void **)0x2ee6ec;
+  colors[3] = (void **)0x2ee6dc;
+  colors[4] = (void **)0x2ee6d4;
+  colors[5] = (void **)0x2ee6f4;
+  colors[6] = (void **)0x2ee700;
+  colors[7] = (void **)0x2ee6e8;
+  colors[8] = (void **)0x2ee6e4;
+  colors[9] = (void **)0x2ee6d0;
+  colors[10] = (void **)0x2ee6f0;
+  colors[11] = (void **)0x2ee6e0;
+  colors[12] = (void **)0x2ee6c4;
+
+  i = 0;
+  if (0 < *(int32_t *)0x5accac) {
+    point = (float *)0x5accb0;
+    do {
+      crt_sprintf((char *)0x5ab100, "%d", (int)((int16_t *)0x5dccb0)[i]);
+      color_index = (int)((int16_t *)0x5dccb0)[i];
+      if (0xc < color_index) {
+        color_index = 0xc;
+      }
+      FUN_00189cb0(1, point, (void *)0x5ab100, (int)*colors[color_index]);
+      i = i + 1;
+      point = point + 3;
+    } while (i < *(int32_t *)0x5accac);
+  }
+
+  i = 0;
+  if (0 < *(int32_t *)0x5eccb0) {
+    line = (int16_t *)0x5eccb8;
+    do {
+      color_index = (int)line[0];
+      if (0xc < color_index) {
+        color_index = 0xc;
+      }
+      FUN_00189270(1, (float *)0x5accb0 + line[-2] * 3,
+                   (float *)0x5accb0 + line[-1] * 3, *colors[color_index]);
+      i = i + 1;
+      line = line + 3;
+    } while (i < *(int32_t *)0x5eccb0);
+  }
+}
+
 /* ai_debug_idle_look_clear: reset the idle-look debug block at 0x6323d4 to
  * track a single actor handle.  Sets the "valid" byte flag from
  * (actor_handle != -1), stores the handle itself as a dword, and clears the

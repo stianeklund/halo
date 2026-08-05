@@ -32216,7 +32216,10 @@
         },
         {
           "addr": "0x49990",
-          "decl": "void FUN_00049990(void);"
+          "decl": "void ai_debug_render_points_and_lines(void);",
+          "name": "ai_debug_render_points_and_lines",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x49ac0",

@@ -1347,6 +1347,15 @@
         "The three color constants at 0x2ee6c8, 0x2ee6d8 and 0x2ee6e0 are dereferenced pointer globals (PTR_DAT_* in the delinked reference) whose meaning is unnamed; only the selector byte at encounter datum +0xd is known to choose between 0x2ee6e0 and 0x2ee6d8."
       ]
     },
+    "0x49990": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Function name ai_debug_render_points_and_lines is inferred from observed behavior only; the function contains no __FILE__ string or assert to anchor a real symbol name.",
+        "The debug-line record layout at 0x5eccb4 (int16 point_a, int16 point_b, int16 color, 6-byte stride) is inferred from the three MOVSX word reads at [ESI-4]/[ESI-2]/[ESI] and the ADD ESI,6 loop tail; no struct definition confirms it.",
+        "The residual [LOADW-WARN] on this function is not a width bug: reference and lift both use movswl n16 loads, but VC71 rebased the line-record induction pointer to the record start (+0x0/+0x2/+0x4) while the original bases it at the color field (-0x4/-0x2/+0x0); effective addresses are identical and the mnemonic match is 82/82."
+      ]
+    },
     "0x4a6e0": {
       "kind": "function",
       "status": "ported",
