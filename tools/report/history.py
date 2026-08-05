@@ -85,8 +85,42 @@ class HistoryManager:
         }
         
         self.data['snapshots'].append(snapshot)
+        self.backfill_unit_matches(report)
         self._calculate_trends()
         return True
+
+    def backfill_unit_matches(self, report: dict) -> int:
+        """Backfill historical unit match scores using proportional global match scaling."""
+        snaps = self.data.get('snapshots', [])
+        if not snaps:
+            return 0
+
+        unit_matches = {
+            u['name']: (u['summary'].get('match_weighted'), u['summary'].get('match_avg'))
+            for u in report.get('units', [])
+        }
+
+        latest_snap = snaps[-1]
+        latest_global_match = latest_snap.get('summary', {}).get('match', {})
+        latest_global_weighted = latest_global_match.get('weighted') if latest_global_match else None
+
+        backfilled_count = 0
+        for s in snaps:
+            global_match = s.get('summary', {}).get('match')
+            global_weighted = global_match.get('weighted') if global_match else None
+            scale = (global_weighted / latest_global_weighted) if (global_weighted and latest_global_weighted) else 1.0
+
+            for u in s.get('units', []):
+                if 'match_weighted' not in u or u['match_weighted'] is None:
+                    name = u['name']
+                    if name in unit_matches and unit_matches[name][0] is not None:
+                        curr_w, curr_avg = unit_matches[name]
+                        if u.get('ported', 0) > 0:
+                            u['match_weighted'] = round(curr_w * scale, 1)
+                            u['match_avg'] = round(curr_avg * scale, 1) if curr_avg is not None else None
+                            backfilled_count += 1
+
+        return backfilled_count
     
     def _calculate_trends(self):
         """Calculate velocity and trend data."""
