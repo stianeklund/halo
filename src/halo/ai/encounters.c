@@ -2768,6 +2768,221 @@ void encounter_compute_activation_cluster_bit_vector(void)
   data_make_invalid(*(data_t **)0x5ab26c); /* pursuit_data */
 }
 
+/* 0x00058fd0 — build the cluster bit vector for an encounter's activation set.
+ *
+ * Walks every actor in the encounter (member list rooted at encounter+0x14,
+ * chained through actor+0x2c) and sets one bit in out_cluster_bv per
+ * structure-BSP cluster that the encounter currently occupies:
+ *   - swarm actors (actor+0x6 != 0) contribute the root-parent cluster of
+ *     every child object in their object list (actor+0x24, chained +0x1ac);
+ *   - normal actors contribute the root-parent cluster of their unit
+ *     (actor+0x18), plus (when encounter+0xd is set) the cluster of their
+ *     ai-property datum (actor+0x270 -> prop+0x100).
+ * Normal actors also accumulate firing-position group masks (state 3) and
+ * move-position group masks (state 2), which drive the two tag-block passes
+ * at the end: firing positions (encounter_tag+0x98, stride 0x18) and move
+ * platforms (encounter_tag+0x80, stride 0xe8) with their inner move-position
+ * blocks (platform+0xc4, stride 0x50).
+ *
+ * When flag != 0 each actor's "visible" byte (actor+0x12) is updated: it is
+ * cleared if any contributing cluster is already present in the caller's pvs
+ * bit vector, or if the actor's squad is marked at squad+0x14.
+ *
+ * Confirmed from disassembly:
+ *  - frame SUB ESP,0x14 (5 dword locals), PUSH EBX/ESI/EDI; EBX caches
+ *    out_cluster_bv for the actor loop only.
+ *  - the `visible` flag lives in the dead param_1 slot (EBP+0xB) and the
+ *    move-platform group counter reuses EBP+0x8; both are plain locals here.
+ *  - object_get_and_verify_type(actor->unit_index, 3) at 0x5913c discards its
+ *    result (validation only) and the unit index is re-read for the
+ *    root-parent call.
+ *  - cluster indices are int16_t fields (+0x4c, +0xe, +0x28, +0x100) compared
+ *    16-bit then MOVSX-widened for the bounds test.
+ *  - both tag-block loops use 16-bit counters widened per compare
+ *    (INC EBX; MOVSX EAX,BX; CMP EAX,[block]).
+ *
+ * pvs is passed as an integer address of a parallel cluster bit vector; a
+ * zero value disables the visibility test. */
+void FUN_00058fd0(int encounter_handle, char flag, int bit_vector_size, int pvs,
+                  char *out_cluster_bv)
+{
+  char *structure_bsp;
+  char *encounter;
+  char *encounter_tag;
+  char *firing_position_block;
+  char *move_position_block;
+  char *move_position_inner;
+  char *actor;
+  char *object;
+  char *root;
+  char *prop;
+  char *squad;
+  char *firing_position;
+  char *move_position;
+  int firing_group_mask;
+  int move_group_mask;
+  int actor_index;
+  int object_index;
+  int mask;
+  int16_t cluster_index;
+  int16_t state;
+  int16_t target;
+  int16_t i;
+  int16_t j;
+  int16_t group;
+  char visible;
+
+  structure_bsp = (char *)scenario_get();
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  encounter_tag = (char *)tag_block_get_element(
+    (char *)global_scenario_get() + 0x42c, encounter_handle & 0xffff, 0xb0);
+  firing_group_mask = 0;
+  move_group_mask = 0;
+
+  if (*(int *)(structure_bsp + 0x134) > bit_vector_size) {
+    display_assert("structure_bsp->clusters.count <= bit_vector_size",
+                   "c:\\halo\\SOURCE\\ai\\encounters.c", 0x163, 1);
+    system_exit(-1);
+  }
+  csmemset(out_cluster_bv, 0,
+           ((*(int *)(structure_bsp + 0x134) + 0x1f) >> 5) << 2);
+
+  actor_index = *(int *)(encounter + 0x14);
+  while (actor_index != -1) {
+    actor = (char *)datum_get(*(data_t **)0x6325a4, actor_index);
+    visible = 1;
+    if (*(char *)(actor + 6) != '\0') {
+      object_index = *(int *)(actor + 0x24);
+      while (object_index != -1) {
+        object = (char *)object_get_and_verify_type(object_index, 3);
+        root = (char *)object_get_and_verify_type(
+          object_get_root_parent(object_index), -1);
+        cluster_index = *(int16_t *)(root + 0x4c);
+        if (cluster_index != -1) {
+          if (cluster_index < 0 || (int)cluster_index >= bit_vector_size) {
+            display_assert(
+              "(cluster_index >= 0) && (cluster_index < bit_vector_size)",
+              "c:\\halo\\SOURCE\\ai\\encounters.c", 0x17e, 1);
+            system_exit(-1);
+          }
+          mask = 1 << (cluster_index & 0x1f);
+          ((uint32_t *)out_cluster_bv)[cluster_index >> 5] |= mask;
+          if (pvs != 0 && (((uint32_t *)pvs)[cluster_index >> 5] & mask) != 0)
+            visible = 0;
+        }
+        object_index = *(int *)(object + 0x1ac);
+      }
+    } else {
+      /* validation-only call; result intentionally discarded */
+      object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+      root = (char *)object_get_and_verify_type(
+        object_get_root_parent(*(int *)(actor + 0x18)), -1);
+      cluster_index = *(int16_t *)(root + 0x4c);
+      if (cluster_index != -1) {
+        if (cluster_index < 0 || (int)cluster_index >= bit_vector_size) {
+          display_assert(
+            "(cluster_index >= 0) && (cluster_index < bit_vector_size)",
+            "c:\\halo\\SOURCE\\ai\\encounters.c", 0x198, 1);
+          system_exit(-1);
+        }
+        mask = 1 << (cluster_index & 0x1f);
+        ((uint32_t *)out_cluster_bv)[cluster_index >> 5] |= mask;
+        if (pvs != 0 && (((uint32_t *)pvs)[cluster_index >> 5] & mask) != 0)
+          visible = 0;
+      }
+
+      if (*(char *)(encounter + 0xd) != '\0') {
+        state = *(int16_t *)(actor + 0x6a);
+        if (state == 3) {
+          if (*(int16_t *)(actor + 0x6e) >= 2)
+            firing_group_mask |=
+              actor_get_firing_position_group(actor_index, 5, 1);
+          target = *(int16_t *)(actor + 0x6c);
+          if (target == 6 || target == 4)
+            firing_group_mask |=
+              actor_get_firing_position_group(actor_index, 4, 0);
+          else if (target == 3 || target == 5)
+            firing_group_mask |=
+              actor_get_firing_position_group(actor_index, 0, 0);
+        } else if (state == 2 && *(int16_t *)(actor + 0x9c) != 0) {
+          move_group_mask |= 1 << *(unsigned char *)(actor + 0x3a);
+        }
+
+        if (*(int *)(actor + 0x270) != -1) {
+          prop =
+            (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
+          cluster_index = *(int16_t *)(prop + 0x100);
+          if (cluster_index != -1) {
+            if (cluster_index < 0 || (int)cluster_index >= bit_vector_size) {
+              display_assert(
+                "(cluster_index >= 0) && (cluster_index < bit_vector_size)",
+                "c:\\halo\\SOURCE\\ai\\encounters.c", 0x1c0, 1);
+              system_exit(-1);
+            }
+            mask = 1 << (cluster_index & 0x1f);
+            ((uint32_t *)out_cluster_bv)[cluster_index >> 5] |= mask;
+          }
+        }
+      }
+    }
+
+    if (flag != '\0') {
+      squad = encounter_get_squad(encounter, *(int16_t *)(actor + 0x3a));
+      *(char *)(actor + 0x12) =
+        (*(char *)(squad + 0x14) != '\0') ? '\0' : visible;
+    }
+    actor_index = *(int *)(actor + 0x2c);
+  }
+
+  if (firing_group_mask != 0) {
+    firing_position_block = encounter_tag + 0x98;
+    for (i = 0; i < *(int *)firing_position_block; ++i) {
+      firing_position =
+        (char *)tag_block_get_element(firing_position_block, i, 0x18);
+      if (*(int16_t *)(firing_position + 0xe) != -1 &&
+          (firing_group_mask &
+           (1 << *(unsigned char *)(firing_position + 0xc))) != 0) {
+        if (*(int16_t *)(firing_position + 0xe) < 0 ||
+            (int)*(int16_t *)(firing_position + 0xe) >= bit_vector_size) {
+          display_assert("(firing_position->cluster_index >= 0) && "
+                         "(firing_position->cluster_index < bit_vector_size)",
+                         "c:\\halo\\SOURCE\\ai\\encounters.c", 0x1e7, 1);
+          system_exit(-1);
+        }
+        mask = 1 << (*(int16_t *)(firing_position + 0xe) & 0x1f);
+        ((uint32_t *)
+           out_cluster_bv)[*(int16_t *)(firing_position + 0xe) >> 5] |= mask;
+      }
+    }
+  }
+
+  if (move_group_mask != 0) {
+    move_position_block = encounter_tag + 0x80;
+    for (group = 0; group < *(int *)move_position_block; ++group) {
+      if ((move_group_mask & (1 << group)) == 0)
+        continue;
+      move_position_inner =
+        (char *)tag_block_get_element(move_position_block, group, 0xe8) + 0xc4;
+      for (j = 0; j < *(int *)move_position_inner; ++j) {
+        move_position =
+          (char *)tag_block_get_element(move_position_inner, j, 0x50);
+        if (*(int16_t *)(move_position + 0x28) != -1) {
+          if (*(int16_t *)(move_position + 0x28) < 0 ||
+              (int)*(int16_t *)(move_position + 0x28) >= bit_vector_size) {
+            display_assert("(move_position->cluster_index >= 0) && "
+                           "(move_position->cluster_index < bit_vector_size)",
+                           "c:\\halo\\SOURCE\\ai\\encounters.c", 0x1ff, 1);
+            system_exit(-1);
+          }
+          mask = 1 << (*(int16_t *)(move_position + 0x28) & 0x1f);
+          ((uint32_t *)
+             out_cluster_bv)[*(int16_t *)(move_position + 0x28) >> 5] |= mask;
+        }
+      }
+    }
+  }
+}
+
 /* 0x59480 — Remove actor from encounter membership.
  * Unlinks the actor from the encounter's member linked list (rooted at
  * encounter+0x14, chained via actor+0x2c). When flag==0, also decrements

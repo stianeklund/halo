@@ -32254,7 +32254,10 @@
         },
         {
           "addr": "0x4a6e0",
-          "decl": "void ai_debug_idle_look_clear(int actor_handle);"
+          "decl": "void ai_debug_idle_look_clear(int actor_handle);",
+          "name": "ai_debug_idle_look_clear",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x4a710",
@@ -33088,7 +33091,8 @@
         },
         {
           "addr": "0x58fd0",
-          "decl": "void FUN_00058fd0(int encounter_handle, char flag, int bit_vector_size, int pvs, char *out_cluster_bv);"
+          "decl": "void FUN_00058fd0(int encounter_handle, char flag, int bit_vector_size, int pvs, char *out_cluster_bv);",
+          "ported": true
         },
         {
           "addr": "0x59480",
