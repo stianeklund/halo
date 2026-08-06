@@ -65,7 +65,10 @@ static char *console_telnet_enabled(void)
  */
 void console_initialize(void)
 {
-  qmemcpy((void *)0x46cfe8, (const void *)0x31f9b8, 16);
+  *(uint32_t *)0x46cfe8 = *(uint32_t *)0x31f9b8;
+  *(uint32_t *)0x46cfec = *(uint32_t *)0x31f9bc;
+  *(uint32_t *)0x46cff0 = *(uint32_t *)0x31f9c0;
+  *(uint32_t *)0x46cff4 = *(uint32_t *)0x31f9c4;
   csstrcpy(console_prompt(), "halo( ");
   *console_input_buffer() = 0;
   *console_history_head() = -1;
