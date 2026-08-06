@@ -1673,6 +1673,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x5bad0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5c630": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x5c940": {
       "kind": "function",
       "status": "ported"
@@ -2002,6 +2010,18 @@
     "0x7f5e0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x7ff40": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Symbol name math64_add is ours; the original Bungie name is stripped from the binary. Only the TU (c:\\halo\\SOURCE\\bungie_net\\common\\64bit_math.c) and the parameter names a/b/result (from the assert message string at 0x265a40) are binary-proven.",
+        "The four-limb sequence is written as a for(i=0;i<4;i++) loop because VC71 fully unrolls it to the reference's constant +0/+2/+4/+6 displacements, and because limb 0 has no carry-in while limb 3 has no carry-out, which is exactly what constant-folding carry=0 and dead-code-eliminating the final carry out of a uniform loop body produces."
+      ],
+      "uncertain": [
+        "VC71 scores 78.2 percent (55 candidate vs 55 reference instructions, dp_lcs 90.9 percent). The whole gap is register allocation: the reference keeps the carry in ECX and accumulates into the b-limb register (add ecx,edx then add eax,ecx), whereas VC71 on our source keeps the carry in EDX, accumulates into it, and adds a movl edx,eax shuffle.",
+        "The root cause of that allocation difference is that VC71 narrows limb 3 to 16-bit memory-operand adds (addw 0x6(esi),dx / addw 0x6(ebx),dx) because the final carry is dead, while the reference keeps limb 3 in 32-bit form (movzwl/movzwl/addl/addl); no source form found blocks the narrowing. Commutative reorderings of the sum expression, loop versus straight-line, and a single-accumulator form all compile to byte-identical VC71 output, and an optimization sweep confirmed /O2 is best (/O1 and /Og /Os drop to 67.3 percent with LOADW warnings)."
+      ]
     },
     "0x803d0": {
       "kind": "function",
@@ -7539,6 +7559,10 @@
       "status": "ported",
       "name": "main_load_last_solo_map",
       "name_confidence": "high"
+    },
+    "0x101ec0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x101f00": {
       "kind": "function",
