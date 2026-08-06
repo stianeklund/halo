@@ -32227,7 +32227,9 @@
         },
         {
           "addr": "0x49c70",
-          "decl": "int FUN_00049c70(void);"
+          "decl": "int FUN_00049c70(void);",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x49d60",

@@ -1869,6 +1869,11 @@
       "score": 100.0,
       "source": "src/halo/ai/ai_debug.c"
     },
+    "FUN_00049c70": {
+      "opnd_percent": 71.0,
+      "score": 91.1,
+      "source": "src/halo/ai/ai_debug.c"
+    },
     "FUN_0004a6e0": {
       "opnd_percent": 100.0,
       "score": 100.0,

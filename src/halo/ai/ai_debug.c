@@ -565,6 +565,130 @@ void ai_debug_render_points_and_lines(void)
   }
 }
 
+/* FUN_00049c70: resolve the object the debug camera is currently looking at,
+ * returning a datum handle (or -1 when nothing usable is under the crosshair).
+ *
+ * Fires a 50.0-world-unit ray from the observer camera along the camera's own
+ * forward vector (camera+0x20..+0x28), ignoring the local player's own unit,
+ * then walks the hit object's two handle fields (+0x1a8 preferred, +0x1a4
+ * fallback) and, if both are empty, repeats the walk one level down through
+ * the object's +0x2d4 handle.
+ *
+ * Confirmed (XBE 0x49c70-0x49d5f, 80 instructions): frame is PUSH EBP /
+ *   MOV EBP,ESP / SUB ESP,0x5c / PUSH EBX / PUSH ESI.  EDI is pushed at
+ *   0x49c8f and popped at 0x49cf8 -- it is live only inside the
+ *   camera != NULL branch.  Locals: the 0x50-byte collision result at
+ *   EBP-0x5c and the float[3] ray delta at EBP-0xc..EBP-0x4.
+ * Confirmed: this function RETURNS a value.  EBX is seeded -1 by
+ *   OR EBX,0xffffffff at 0x49c7a, is the destination of every success path,
+ *   and the epilogue is POP ESI / MOV EAX,EBX / POP EBX / MOV ESP,EBP /
+ *   POP EBP / RET.  The kb declaration previously typed it void, which is
+ *   wrong and would have dropped the whole 0x49d19-0x49d56 tail.
+ * Confirmed: the perspective test is TEST AX,AX (16-bit) on
+ *   director_get_perspective's return, so only perspective 0 (first person)
+ *   resolves a player unit to exclude from the ray.
+ * Confirmed: datum_get is called (player_data, index) -- PUSH EAX (the index
+ *   from local_player_get_player_index) at 0x49cb0 then PUSH [0x5aa6d4].
+ *   The player unit handle is read from player record +0x34.
+ * Confirmed: the shared ADD ESP,0xc at 0x49cb8 covers datum_get's 2 dwords
+ *   plus the PUSH 0 for local_player_get_player_index at 0x49ca2 -- MSVC
+ *   coalesced the two cleanups.  The ARG_COUNT hazard on datum_get is a false
+ *   positive; it really takes 2 arguments.
+ * Confirmed: FUN_0014df70's pushes at 0x49cbb-0x49ceb are ECX(=EBP-0x5c),
+ *   EDI(player unit), EDX(=EBP-0xc), ESI(camera), 0x81, so left-to-right the
+ *   arguments are (0x81, camera, delta, player_unit, collision_result), and
+ *   ADD ESP,0x14 confirms 5 stack args.  Result is tested TEST AL,AL.
+ * Confirmed: the ray delta is three independent FLD [ESI+0x20/0x24/0x28] /
+ *   FMUL [0x25acf0] / FSTP [EBP-0xc/-0x8/-0x4] sequences.  Multiplication
+ *   only -- no FSUB, so there is no operand-order hazard.  The multiplier at
+ *   0x25acf0 reads 0x42480000 = 50.0f in the XBE.
+ * Confirmed: the collision-result reads are buffer fields, not independent
+ *   locals.  CMP word ptr [EBP-0x5c],3 is result+0x00 (the hit-type tag) and
+ *   MOV EAX,[EBP-0x24] is result+0x38 (the hit object handle).  Ghidra sized
+ *   the buffer as short[28] (0x38 bytes), which is exactly why it reported
+ *   the +0x38 read as a separate "local_28".
+ * Confirmed: the tail at 0x49d43-0x49d56 consumes the second
+ *   object_get_and_verify_type result (MOV ECX,[EAX+0x1a8] ... MOV EBX,
+ *   [EAX+0x1a4]).  Ghidra dropped this block and showed the call's result as
+ *   discarded.
+ *
+ * Inferred: the 0x81 flag word selects the collision mask used for debug
+ *   picking; the sibling debug raycast in ai_debug_update uses 0x21.
+ * Inferred: object type mask 3 for both verify calls (biped|vehicle in the
+ *   masks used elsewhere in this TU).
+ *
+ * Uncertain: the meaning of object fields +0x1a4, +0x1a8 and +0x2d4.  All
+ *   three are compared against -1 and returned directly, so all three are
+ *   datum handles, but no name is applied without further evidence.
+ * Uncertain: whether the two later -1 comparisons were written as literals.
+ *   The binary emits CMP EAX,EBX / CMP ECX,EBX there because EBX is provably
+ *   -1 at both points; that is a register-reuse optimisation over the same
+ *   source-level "== -1" test. */
+int FUN_00049c70(void)
+{
+  char collision_result[0x50];
+  float delta[3];
+  float *camera;
+  int player_unit;
+  int handle;
+  int result;
+
+  result = -1;
+  camera = (float *)observer_get_camera(0);
+  if (camera == NULL) {
+    return result;
+  }
+
+  player_unit = -1;
+  if (director_get_perspective(0) == 0) {
+    player_unit =
+      *(int32_t *)((char *)datum_get(player_data,
+                                     local_player_get_player_index(0)) +
+                   0x34);
+  }
+
+  delta[0] = camera[8] * *(float *)0x25acf0;
+  delta[1] = camera[9] * *(float *)0x25acf0;
+  delta[2] = camera[10] * *(float *)0x25acf0;
+
+  if (!FUN_0014df70(0x81, camera, delta, player_unit,
+                    (int16_t *)collision_result)) {
+    return result;
+  }
+  if (*(int16_t *)collision_result != 3) {
+    return result;
+  }
+  handle = *(int32_t *)(collision_result + 0x38);
+  if (handle == -1) {
+    return result;
+  }
+  {
+    char *object = (char *)object_try_and_get_and_verify_type(handle, 3);
+    if (object == NULL) {
+      return result;
+    }
+
+    result = *(int32_t *)(object + 0x1a8);
+    if (result == -1) {
+      result = *(int32_t *)(object + 0x1a4);
+    }
+    if (result != -1) {
+      return result;
+    }
+
+    handle = *(int32_t *)(object + 0x2d4);
+    if (handle == -1) {
+      return result;
+    }
+    object = (char *)object_get_and_verify_type(handle, 3);
+    result = *(int32_t *)(object + 0x1a8);
+    if (result == -1) {
+      result = *(int32_t *)(object + 0x1a4);
+    }
+  }
+  return result;
+}
+
 /* ai_debug_idle_look_clear: reset the idle-look debug block at 0x6323d4 to
  * track a single actor handle.  Sets the "valid" byte flag from
  * (actor_handle != -1), stores the handle itself as a dword, and clears the
