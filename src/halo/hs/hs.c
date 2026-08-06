@@ -1484,6 +1484,35 @@ void FUN_000c1900(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, value);
 }
 
+/* 0xc1930 — HaloScript script command "players_unzoom_all": drop every player's
+ * zoom level back to unzoomed, then commit a void result to the calling script
+ * thread.
+ *
+ * Disassembly (0xc1930-0xc194?, 10 instructions):
+ *   PUSH EBP / MOV EBP,ESP              no locals: no SUB ESP, no PUSH ECX
+ *   CALL 0x000b69d0                     players_unzoom_all(void), no args
+ *   MOV EAX,[EBP+0xc]                   thread_datum (hs-evaluator arg 2)
+ *   PUSH 0x0                            cdecl: first PUSH is the LAST arg
+ *   PUSH EAX                            -> hs_return(thread_datum, 0)
+ *   CALL 0x000cbf80 / ADD ESP,8         cdecl, 2 dword args
+ *   POP EBP / RET                       plain RET (caller cleans) => __cdecl
+ *
+ * The frame is PUSH EBP / MOV EBP,ESP only — the epilogue is POP EBP, not
+ * MOV ESP,EBP / POP EBP — so this body must declare NO local variable, unlike
+ * the int16-result handlers above it.  [EBP+0x8] (function_index) and
+ * [EBP+0x10] (init) are never read; they complete the standard hs-evaluator
+ * signature shared by every other handler in this TU.
+ *
+ * Callees (both cdecl, no register args, both ported):
+ *   0xb69d0 = players_unzoom_all(void)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c1930(int16_t function_index, int thread_datum, char init)
+{
+  players_unzoom_all();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
