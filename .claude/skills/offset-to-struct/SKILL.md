@@ -11,6 +11,31 @@ Mechanically replace `*(int16_t *)(obj + 0x2A)` with `((object_header *)obj)->fi
 — same bytes out of the compiler, radically more readable. This is a *transcription*,
 not an interpretation step.
 
+## Automated path (preferred)
+
+Use `structize.py` with `--binding` for automatic `--base`/`--struct` lookup
+(bindings are in `recovery/bindings.json`):
+
+```bash
+# Single file (preferred in per-object recovery):
+rtk python3 tools/recovery/structize.py run --binding <id> --source <file.c>
+# Multi-file campaign:
+rtk python3 tools/recovery/structize.py campaign --binding <id>
+# Check remaining conflicts without compiling:
+rtk python3 tools/recovery/structize.py worklist --binding <id>
+```
+
+When conflicts arise (same offset accessed at different widths), verify against
+the delinked MSVC 7.1 binary before choosing a type:
+
+```bash
+rtk python3 tools/recovery/verify_conflict.py --binding <id> --offset 0xNN
+```
+
+Verdicts: `uniform` = binary proves the type (high confidence, edit types.h);
+`genuine-conflict` = multiple widths in the binary itself (union/sub-struct,
+park and investigate). Do NOT guess a type the binary does not confirm.
+
 ## Preconditions (hard gates)
 
 1. `cleanup-baseline` block exists; target functions have a delinked reference

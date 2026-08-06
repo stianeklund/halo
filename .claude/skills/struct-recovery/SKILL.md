@@ -28,6 +28,9 @@ token discipline (targeted `read_memory` / `get_function_callees`, not bulk deco
 4. **Field width & signedness — from disassembly operand sizes only.**
    `MOVSX`=signed narrow, `MOVZX`=unsigned narrow, `MOV word/byte ptr`=16/8-bit store.
    Ghidra's decompiler lies about widths (lift-learnings §24); the listing does not.
+   For bulk verification against delinked MSVC 7.1 objects:
+   `rtk python3 tools/recovery/verify_conflict.py --binding <id> --offset 0xNN`
+   Reports ground-truth operand widths and float-vs-int (FLD vs MOV) from the binary.
 5. **Access-site clustering.** `get_field_access_context` / `analyze_struct_field_usage`
    for how each offset is read across functions; `get_xrefs_to` on globals of that type.
 6. **kb.json.** `rtk jq` for already-registered globals/decls touching the region —

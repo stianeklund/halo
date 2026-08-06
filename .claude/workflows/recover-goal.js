@@ -394,25 +394,38 @@ MECHANICAL PATH — this category is transcription, not judgement. Use the tool.
 Do NOT hand-edit offsets or hand-write field declarations; a wrong offset is a
 wrong decompilation, and the tool refuses exactly where you would be guessing.
 
-  S=tools/recovery/structize.py
-  rtk python3 $S census   --source <f.c> --base <var> --struct <type>_t -o recovery/census/<f>.json
-  rtk python3 $S ${cat.mech === 'split' ? 'split    --census recovery/census/<f>.json --apply' : 'converge --census recovery/census/<f>.json'}
+STEP 1 — Find the binding. Bindings are in recovery/bindings.json; each maps
+a struct name to the base variable name(s) used in source. List them:
+  rtk python3 tools/recovery/structize.py discover --binding <id>
+If no binding exists for this source file's struct, create one in bindings.json.
+
+STEP 2 — Run structize on this source file (use --binding for automatic
+--base/--struct lookup):
+  rtk python3 tools/recovery/structize.py run --binding <id> --source <f.c>
+This does census → split → re-census → converge in one call. Exit 0 = work done,
+1 = failed (file restored), 2 = converged but rewrote nothing.
+
+STEP 3 — Resolve conflicts. \`run\` reports conflicts (offsets accessed at
+disagreeing widths/signedness), with \`functions_by_type\` showing which functions
+use which width. Use verify-conflict to check the BINARY operand widths:
+  rtk python3 tools/recovery/verify_conflict.py --binding <id> --offset 0xNN
+This reads the delinked MSVC 7.1 object and reports the ground-truth type.
+Verdicts: \`uniform\` = binary proves the type (edit types.h to match);
+\`genuine-conflict\` = multiple widths in the binary (union/sub-struct, park it).
+Do NOT guess a type the binary does not confirm.
 
 ${cat.mech === 'split'
-  ? `\`split\` subdivides pad_ runs into field_XX at every offset the lifted source
-demonstrably reads (CLAUDE.md: a pad_ field that turns out to be read is a
-recovery bug). Total span is preserved, so cs()/co() still hold.
+  ? `\`split\` (inside \`run\`) subdivides pad_ runs into field_XX at every offset the
+lifted source demonstrably reads. Total span is preserved, so cs()/co() still hold.
 
-YOUR JUDGEMENT GOES INTO THE CONFLICT LIST, not the edits. \`split\` reports
-offsets read at disagreeing widths/signedness, ranked by how many call sites
-each unblocks. Those are real \`struct-recovery\` questions — MOVSX vs MOVZX,
-a union, a sub-struct boundary. Answer the top ones from disassembly, re-run
-\`split\`, and their sites convert automatically. Resolving conflicts is the
-highest-value work available in this category.`
-  : `\`converge\` rewrites every eligible site, compiles, diffs at FUNCTION
-granularity, re-applies excluding any function whose code moved, and proves the
-rest byte-identical. It restores the file untouched if it cannot converge, so a
-failed run is safe.
+YOUR JUDGEMENT GOES INTO THE CONFLICT LIST, not the edits. Conflicts ranked by
+how many call sites each unblocks. For each: run \`verify-conflict\` to get the
+binary truth, update the field in types.h, re-run \`run\`. Resolving conflicts
+is the highest-value work available in this category.`
+  : `\`converge\` (inside \`run\`) rewrites every eligible site, compiles, diffs at
+FUNCTION granularity, re-applies excluding any function whose code moved, and
+proves the rest byte-identical. It restores the file untouched if it cannot
+converge, so a failed run is safe.
 
 \`parked_functions\` are NOT your failure: \`#pragma pack(1)\` gives a member
 alignment 1 where the original cast asserted natural alignment, which can change
@@ -420,8 +433,8 @@ alignment 1 where the original cast asserted natural alignment, which can change
 byte-identical, so the neutral gate correctly refuses them. Park them with that
 reason and move on — do not chase them, and never relax the gate.`}
 
-Re-run \`census\` after \`split\` — the split converts most refusals into
-rewritable sites, and a stale census hides them.`
+After resolving conflicts, re-run \`structize.py run\` — resolved offsets
+convert automatically, and a stale census hides them.`
 
     const res = await agent(
       `${AGENT_RULES}
