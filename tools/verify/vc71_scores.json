@@ -1788,7 +1788,9 @@
       "source": "src/halo/ai/ai.c"
     },
     "FUN_000425c0": {
-      "score": 36.1,
+      "opnd_percent": 20.1,
+      "ref": "synth",
+      "score": 40.5,
       "source": "src/halo/ai/ai.c"
     },
     "FUN_00042a30": {

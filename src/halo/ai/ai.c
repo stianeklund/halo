@@ -1321,7 +1321,7 @@ bool ai_test_line_of_fire(int actor_handle, int excluded_handle, float *origin,
     ai_debug_get_last_path(origin, offset);
     for (i = 0; i < count; i++) {
       ai_firing_pos_entry_t *e = &buf[i];
-      ai_debug_lineoffire_addpill(e->vec_a, e->vec_b, *(int *)&e->radius,
+      ai_debug_lineoffire_addpill(e->vec_a, e->vec_b, e->radius,
                                   e->occupied);
     }
     FUN_000494d0((char)success);
