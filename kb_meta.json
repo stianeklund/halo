@@ -1324,6 +1324,10 @@
         "The dword at 0x5acad4 is only ever zeroed here, so its role (path point count, render index, or frame stamp) is not determined by this function."
       ]
     },
+    "0x49430": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x494e0": {
       "kind": "function",
       "status": "unknown",
@@ -1368,6 +1372,10 @@
         "The residual [LOADW-WARN] on this function is not a width bug: reference and lift both use movswl n16 loads, but VC71 rebased the line-record induction pointer to the record start (+0x0/+0x2/+0x4) while the original bases it at the color field (-0x4/-0x2/+0x0); effective addresses are identical and the mnemonic match is 82/82."
       ]
     },
+    "0x49ac0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x49f60": {
       "kind": "function",
       "status": "ported"
@@ -1383,6 +1391,21 @@
     "0x4a460": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x4a650": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x4a680": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x4a6b0": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "The kb name ai_debug_communication_focus is corroborated by the hs debug_string dispatch table (function_index 0x1a) but conflicts with the baked constants: unlike the sibling suppress/ignore commands, which use the 57-entry communication-type lookup ai_communication_get_type_by_name (0x42ce0), this one uses the 209-entry vocalization-type lookup FUN_001a67e0 (0x1a67e0), so the bit vector at 0x5aca24 is indexed by vocalization type rather than communication type."
+      ]
     },
     "0x4a6e0": {
       "kind": "function",
@@ -1409,6 +1432,16 @@
         "Scenario encounter tag-block element layout (element size 0xb0 at scenario+0x42c) is only partially known: +0x00 is the char name[32] printed as %s, +0x20 is a flags byte with bit 0x20 selecting the 3d-positions description and bit 0x40 selecting manual over auto bsp mode, and +0x7e is an int16 bsp index where -1 prints NONE; the remaining fields are unexamined."
       ]
     },
+    "0x4b0f0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The single stack parameter is a scenario encounter index: it indexes the scenario tag_block at +0x42c with element size 0xb0, and -1 is the no-selection sentinel used throughout ai_debug.obj."
+      ],
+      "uncertain": [
+        "Only two fields of the 0x34-byte starting-location element are identified: the position triple at +0x00..+0x08 passed straight to object_set_position, and the yaw at +0x0c fed to FCOS/FSIN; the remaining 0x28 bytes are unclassified."
+      ]
+    },
     "0x4b1b0": {
       "kind": "function",
       "status": "ported"
@@ -1430,6 +1463,10 @@
       "uncertain": [
         "The byte at 0x5aca67 passed in DL to FUN_00052b60 is an opaque mode selector; it sits immediately after the 0x5aca66 enable flag but its meaning is unconfirmed."
       ]
+    },
+    "0x53620": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x53680": {
       "kind": "function",
@@ -1813,6 +1850,14 @@
       "status": "ported"
     },
     "0x5b2a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5b370": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5b4b0": {
       "kind": "function",
       "status": "ported"
     },
@@ -5431,6 +5476,13 @@
       "inferred": [
         "First result field read as zero-extended uint16 (disasm xor edx,edx; mov dx,WORD PTR[eax]), unlike the full-dword twins 0xc1420/0xc1470/0xc14b0.",
         "FUN_000585d0 return-type corrected void->int (it tail-returns FUN_00046b60's int in EAX); this call site consumes the low byte AL via a zero-init dword local (union partial-store/wide-read)."
+      ]
+    },
+    "0xc1780": {
+      "kind": "function",
+      "status": "unknown",
+      "uncertain": [
+        "HS script function name is unknown; the handler dispatches result[0] to FUN_00085110, which switches to first-person camera mode 3, so this is likely a camera/cinematic script command."
       ]
     },
     "0xc3b60": {

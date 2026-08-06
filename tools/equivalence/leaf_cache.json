@@ -28966,8 +28966,8 @@
   },
   "0x495b0": {
     "class": "non_leaf",
-    "confidence": "none",
-    "coverage_pct": 5.3
+    "confidence": "moderate",
+    "coverage_pct": 92.4
   },
   "0x4a030": {
     "class": "non_leaf",
