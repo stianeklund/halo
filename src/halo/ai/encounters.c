@@ -5139,6 +5139,117 @@ void encounter_verify_firing_position_owner_actor_indices(int encounter_handle)
   }
 }
 
+/* 0x5b4b0 — encounter_build_firing_position_owner_actor_indices.
+ *
+ * Fill a caller-supplied table mapping each firing position of an encounter
+ * to the index of the actor currently occupying it (NONE when unoccupied).
+ * Same walk as encounter_verify_firing_position_owner_actor_indices above,
+ * but the table belongs to the caller and is an output rather than a purely
+ * local consistency check.
+ *
+ * Algorithm (confirmed from disassembly at 0x5b4b0-0x5b5dc):
+ *   1. encounter_definition = tag_block_get_element(scenario+0x42c,
+ *      encounter_handle & 0xffff, 0xb0).
+ *   2. csmemset the output table to NONE for
+ *      encounter_definition->firing_positions.count entries.  The length is
+ *      `count << 2` (SHL ECX,0x2 at 0x5b4e2), not sizeof(buffer) — the
+ *      buffer is caller-owned and its true extent is unknown here.
+ *   3. If ai_globals->ai_active: seed the walk with ai_globals+0x8 (the
+ *      encounterless list head) when the handle is NONE, else with
+ *      encounter+0x14 (first actor of the encounter).
+ *   4. Each iteration re-reads ai_globals and re-tests the active flag
+ *      (0x5b521 MOV ECX,[0x00632574]); the load is NOT hoisted.
+ *   5. actor->firing_positions.current_position_index is an int16_t at
+ *      actor+0x3b8 (MOVSX at 0x5b56d/0x5b594/0x5b5c4; the `==NONE` skip is
+ *      the 16-bit CMP AX,0xffff at 0x5b558).  The list cursor advances via
+ *      actor+0x2c (0x5b553) BEFORE the index is tested, so actors with a
+ *      NONE index still advance.
+ *   6. The value stored is EBX, the CURRENT actor handle captured at
+ *      0x5b535 (MOV EBX,EDI) before the advance — not the already-advanced
+ *      cursor.
+ *
+ * The index is re-loaded from [ESI+0x3b8] for each of the two table
+ * subscripts rather than reused from the compare; that shape is preserved.
+ * `encounter_definition->firing_positions.count` at +0x98 is a full int32
+ * (MOV ECX,[EAX+0x98] / MOV EDX,[ECX+0x98]), not an int16.
+ *
+ * Frame: SUB ESP,0xc; PUSH EBX/ESI/EDI; cdecl, caller cleans.  The original
+ * caches the encounter-definition pointer back into the incoming parameter
+ * slot [EBP+8] (0x5b4e9) and re-reads it for the bound check at 0x5b564; a
+ * local is used here instead.
+ *
+ * Call-site verification (all cdecl; first PUSH = last C argument):
+ *   global_scenario_get   | no args (0x5b4cd)                        | match
+ *   tag_block_get_element | PUSH 0xb0 ; PUSH handle&0xffff ;         | match
+ *                         | PUSH scenario+0x42c (0x5b4c3-0x5b4d7)    |
+ *   csmemset              | PUSH count<<2 ; PUSH -1 ; PUSH table     | match
+ *                         | (0x5b4e5-0x5b4ef); ADD ESP,0x18 at       | ok
+ *                         | 0x5b4f9 retires both call groups         |
+ *   datum_get             | PUSH ESI(handle) ; PUSH *0x5ab270        | match
+ *                         | (0x5b50f) — encounter pool               |
+ *   datum_get             | PUSH EDI(handle) ; PUSH *0x6325a4        | match
+ *                         | (0x5b543) — actor pool                   |
+ *   display_assert        | PUSH 1 ; PUSH line ; PUSH file ; PUSH msg| match
+ *                         | (0x5b574 line 0x14c, 0x5b5a4 line 0x14d) |
+ *   system_exit           | PUSH -1 (0x8e2f0)                        | match
+ *
+ * Uncertain: when ai_active is clear the original leaves the cursor slot
+ * uninitialized (0x5b51e reads [EBP-4] before any store on that path).  The
+ * loop re-tests the same flag and returns immediately, so the read is dead.
+ * The shape is preserved rather than "fixed" with an initializer.
+ */
+void encounter_build_firing_position_owner_actor_indices(
+  int encounter_handle, int *firing_position_owner_actor_indices)
+{
+  char *encounter_definition;
+  char *actor;
+  int actor_index;
+  int current_actor_index;
+  int16_t position_index;
+
+  encounter_definition = (char *)tag_block_get_element(
+    (void *)((char *)global_scenario_get() + 0x42c),
+    (int)((unsigned int)encounter_handle & 0xffff), 0xb0);
+  csmemset(firing_position_owner_actor_indices, -1,
+           *(int *)(encounter_definition + 0x98) << 2);
+
+  if (*(char *)(*(int *)0x632574 + 1) != '\0') {
+    if (encounter_handle == -1) {
+      actor_index = *(int *)(*(int *)0x632574 + 8);
+    } else {
+      actor_index =
+        *(int *)((char *)datum_get(*(data_t **)0x5ab270, encounter_handle) +
+                 0x14);
+    }
+  }
+
+  while (*(char *)(*(int *)0x632574 + 1) != '\0' && actor_index != -1) {
+    current_actor_index = actor_index;
+    actor = (char *)datum_get(*(data_t **)0x6325a4, current_actor_index);
+    position_index = *(int16_t *)(actor + 0x3b8);
+    actor_index = *(int *)(actor + 0x2c);
+    if (position_index != -1) {
+      if (position_index < 0 ||
+          (int)position_index >= *(int *)(encounter_definition + 0x98)) {
+        display_assert("actor->firing_positions.current_position_index>=0 && "
+                       "actor->firing_positions.current_position_index < "
+                       "encounter_definition->firing_positions.count",
+                       "c:\\halo\\SOURCE\\ai\\encounters.c", 0x14c, 1);
+        system_exit(-1);
+      }
+      if (firing_position_owner_actor_indices[*(int16_t *)(actor + 0x3b8)] !=
+          -1) {
+        display_assert("firing_position_owner_actor_indices[actor->firing_"
+                       "positions.current_position_index]==NONE",
+                       "c:\\halo\\SOURCE\\ai\\encounters.c", 0x14d, 1);
+        system_exit(-1);
+      }
+      firing_position_owner_actor_indices[*(int16_t *)(actor + 0x3b8)] =
+        current_actor_index;
+    }
+  }
+}
+
 /* encounter_pursuit_position_already_examined (0x5b6e0) — Look up the
  * "examined pursuit position" record for `firing_position_index` inside an
  * encounter (via FUN_00059c40, non-creating) and report whether `position`
