@@ -1621,6 +1621,26 @@ void FUN_000c1990(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc19e0 — HS script function handler: clears the recorded player control
+ * action-test state, then returns 0 to the calling script thread (a
+ * void-returning script builtin).
+ *
+ * Callees (both cdecl, no register args, both ported):
+ *   0xb6a90 = player_control_action_test_reset(void)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc19e0-0xc19f7): cdecl, plain RET, frame
+ * is PUSH EBP / MOV EBP,ESP with no `sub esp` (zero locals).  The body reads
+ * only [EBP+0xc] = thread_datum (arg 2); function_index and init complete the
+ * standard hs-evaluator signature shared by the sibling handlers but are
+ * unused here.  There is no hs_macro_function_evaluate call, so this is the
+ * no-argument variant (same shape as 0xc0cb0). */
+void FUN_000c19e0(int16_t function_index, int thread_datum, char init)
+{
+  player_control_action_test_reset();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
