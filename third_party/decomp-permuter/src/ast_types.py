@@ -124,7 +124,7 @@ def expr_type(node: ca.Node, typemap: TypeMap) -> Type:
             return basic_type("int")
         return basic_type(node.type.split(" "))
     if isinstance(node, ca.ID):
-        return typemap.var_types[node.name]
+        return typemap.var_types.get(node.name, basic_type("int"))
     if isinstance(node, ca.UnaryOp):
         if node.op in ["p++", "p--", "++", "--"]:
             return rec(node.expr)
