@@ -95,6 +95,37 @@ compiler. The e2e suite deliberately feeds the tool a wrong offset, a
 nonexistent field, and a build error, and asserts the gate *fails*. Writing it
 found two false-greens in the tool, both in the "reports success" direction.
 
+## LLM-driven automation loop
+
+Three subcommands close the loop so an LLM agent can drive struct recovery
+without knowing CLI arguments or file paths:
+
+```bash
+# What files should I process?
+rtk python3 tools/recovery/structize.py discover --binding actor_t
+
+# Run across all files, get a work queue back
+rtk python3 tools/recovery/structize.py campaign --binding actor_t [--dry-run]
+
+# What conflicts remain? (no compiles, cheap to poll)
+rtk python3 tools/recovery/structize.py worklist --binding actor_t
+```
+
+**Bindings** live in `recovery/bindings.json` — each maps a struct name to the
+base variable name(s) used in source and a glob constraining the file search.
+The `--binding` flag also works on the single-file `run` subcommand.
+
+**The agent loop:**
+
+1. `campaign --binding X` → JSON report with `next_actions` list
+2. Resolve the top conflict (Ghidra MCP query → edit `types.h`)
+3. `campaign --binding X` → conflict count decreases
+4. Repeat until `conflicts_total == 0`
+5. For parked functions: `triage --census <census>` → understand cause
+
+Every piece is deterministic.  The LLM's only degree of freedom is the RE
+judgement on each conflict, and the VC71 gate catches wrong answers.
+
 ## Results so far
 
 | TU | Sites converted | Parked | VC71 match |

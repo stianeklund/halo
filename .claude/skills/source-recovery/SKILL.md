@@ -76,13 +76,32 @@ the struct exists. Do them with the tool, not by hand — hand-editing hundreds 
 offsets is where wrong-offset bugs come from, and the tool refuses where a human
 would guess.
 
-**Use `run` — it is the whole job in one command:**
+**Use `campaign` for multi-file runs (preferred) or `run` for a single file:**
 
 ```bash
-rtk python3 tools/recovery/structize.py run \
-    --source src/halo/ai/actor_looking.c --base actor --struct actor_t \
-    [--manifest recovery/<file>.json]
+# Multi-file: discover + run across all files touching a struct, in one call.
+# Returns a JSON report with next_actions — the LLM's work queue.
+rtk python3 tools/recovery/structize.py campaign --binding actor_t [--dry-run]
+
+# Check what conflicts remain without compiling (cheap to poll):
+rtk python3 tools/recovery/structize.py worklist --binding actor_t
+
+# Discover which files have raw offsets for a struct:
+rtk python3 tools/recovery/structize.py discover --binding actor_t
+
+# Single file — --binding looks up --base/--struct from recovery/bindings.json:
+rtk python3 tools/recovery/structize.py run --binding actor_t \
+    --source src/halo/ai/actor_looking.c [--manifest recovery/<file>.json]
 ```
+
+Bindings are registered in `recovery/bindings.json` — each maps a struct name
+to the base variable name(s) used in source and a glob constraining the search.
+
+**The LLM automation loop:**
+1. `campaign --binding X` → get JSON with `next_actions`
+2. Resolve the top conflict (Ghidra MCP query → edit `types.h`)
+3. `campaign --binding X` → conflict count decreases
+4. Repeat until `conflicts_total == 0`
 
 `run` does census → split → **re-census** → converge. That re-census is the
 reason to prefer it: splitting is what makes `pad_` sites resolvable, so a

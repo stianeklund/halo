@@ -255,8 +255,8 @@ void ai_erase(int param_1, int param_2, int param_3, int param_4)
     encounter_actor_iterator_new(actor_iter, param_1);
     actor = encounter_actor_iterator_next(actor_iter);
     while (actor != 0) {
-      if ((param_2 == -1 || *(short *)(actor + 0x3c) == param_2) &&
-          (param_3 == -1 || *(short *)(actor + 0x3a) == param_3)) {
+      if ((param_2 == -1 || ((actor_t *)actor)->field_03c == param_2) &&
+          (param_3 == -1 || ((actor_t *)actor)->field_03a == param_3)) {
         actor_erase(actor_iter[1], (char)param_4);
       }
       actor = encounter_actor_iterator_next(actor_iter);
@@ -362,7 +362,7 @@ bool ai_handle_unit_approach(int ai_handle, int unit_handle, bool flag)
       /* game_allegiance_get_team_is_friendly returns true when friendly;
        * we return true (enemy) only when NOT friendly. */
       if (!game_allegiance_get_team_is_friendly(*(int16_t *)(unit + 0x68),
-                                                *(int16_t *)(actor + 0x3e))) {
+                                                ((actor_t *)actor)->field_03e)) {
         result = 1;
         if (flag) {
           /* set the approach-active flag at actor+0x2ed */
@@ -557,9 +557,9 @@ void game_allegiance_apply_change(int16_t team_a, int16_t team_b,
   while (actor != 0) {
     /* check if this actor belongs to team_a or team_b */
     matched_team = team_b;
-    if (*(int16_t *)(actor + 0x3e) == team_a) {
+    if (((actor_t *)actor)->field_03e == team_a) {
       matched_team = team_b;
-    } else if (*(int16_t *)(actor + 0x3e) == team_b) {
+    } else if (((actor_t *)actor)->field_03e == team_b) {
       matched_team = team_a;
     } else {
       goto next_actor;
@@ -617,9 +617,9 @@ void ai_update_team_status(void)
       team = *(short *)(unit + 0x68);
       *(short *)(clump_item + 0x12) = team;
       *(char *)(clump_item + 0x60) = game_allegiance_get_team_is_friendly(
-        *(short *)(actor + 0x3e), (int)team);
+        ((actor_t *)actor)->field_03e, (int)team);
       *(char *)(clump_item + 0x61) = game_team_is_ally(
-        *(short *)(actor + 0x3e), *(short *)(clump_item + 0x12));
+        ((actor_t *)actor)->field_03e, *(short *)(clump_item + 0x12));
       *(char *)(clump_item + 0xa4) =
         actor_get_perception_knowledge(*(int *)(iter + 0x14), clump_iter[0]);
       *(float *)(clump_item + 0x50) =
@@ -763,7 +763,7 @@ void FUN_00040570(void)
                                     starting_location, 0, 0);
         if (actor_handle != -1) {
           actor = datum_get(actor_data, actor_handle);
-          unit_board_vehicle(*(int *)(actor + 0x18), vehicle_handle, j);
+          unit_board_vehicle(((actor_t *)actor)->field_018, vehicle_handle, j);
         }
       }
     }
@@ -848,10 +848,10 @@ void ai_handle_exit_vehicle(int param_1)
   actor_handle = *(int *)(unit_obj + 0x1a4);
   if (actor_handle != -1) {
     actor = (char *)datum_get(actor_data, actor_handle);
-    if (*(char *)(actor + 0x38c) == '\0') {
+    if (((actor_t *)actor)->field_38c == '\0') {
       FUN_00046f10(0x25, param_1, -1, -1, -1, -1, 0);
     }
-    *(char *)(actor + 0x38c) = 0;
+    ((actor_t *)actor)->field_38c = 0;
   }
 }
 
@@ -906,21 +906,21 @@ void ai_reconnect_to_structure_bsp(void)
   actor_handle = *(int *)(g + 0x8);
   while (actor_handle != -1) {
     actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
-    next_handle = *(int *)(actor + 0x2c);
-    if (*(char *)(actor + 0x9) == '\0') {
+    next_handle = ((actor_t *)actor)->field_02c;
+    if (((actor_t *)actor)->field_009 == '\0') {
       display_assert("actor->meta.encounterless", "c:\\halo\\SOURCE\\ai\\ai.c",
                      0x96f, 1);
       system_exit(-1);
     }
-    encounter_ref = *(int *)(actor + 0x30);
+    encounter_ref = ((actor_t *)actor)->field_030;
     if (encounter_ref != -1) {
       scenario = (char *)global_scenario_get();
       encounter_element = (char *)tag_block_get_element(
         scenario + 0x42c, encounter_ref & 0xffff, 0xb0);
       if (*(short *)(encounter_element + 0x7e) == bsp_index) {
         encounterless_detach_actor(actor_handle);
-        encounter_attach_actor(actor_handle, *(int *)(actor + 0x30),
-                               *(int16_t *)(actor + 0x38), 1);
+        encounter_attach_actor(actor_handle, ((actor_t *)actor)->field_030,
+                               ((actor_t *)actor)->field_038, 1);
       }
     }
     actor_handle = next_handle;
@@ -1377,10 +1377,10 @@ bool ai_clump(char param_1)
         actor = datum_get(actor_data, *(int *)(rec + 0x4));
 
         /* select target handle based on actor->field_6 */
-        if (*(char *)(actor + 0x6)) {
-          unit_rec = (char *)*(int *)(actor + 0x24);
+        if (((actor_t *)actor)->field_006) {
+          unit_rec = (char *)((actor_t *)actor)->field_024;
         } else {
-          unit_rec = (char *)*(int *)(actor + 0x18);
+          unit_rec = (char *)((actor_t *)actor)->field_018;
         }
 
         unit_rec = object_get_and_verify_type((int)unit_rec, 3);
@@ -1395,8 +1395,8 @@ bool ai_clump(char param_1)
 
         /* if param_1 set and actor is not already clumped/in-range,
          * apply proximity override check against constant at 0x254cc0 */
-        if (param_1 && *(int16_t *)(actor + 0x5f2) == 0 &&
-            *(int16_t *)(actor + 0x6c) != 10) {
+        if (param_1 && ((actor_t *)actor)->control_fire_state == 0 &&
+            ((actor_t *)actor)->state_action != 10) {
           if (*(float *)(rec + 0x11c) <= *(float *)0x254cc0) {
             goto next_rec;
           }
@@ -1424,7 +1424,7 @@ bool ai_clump(char param_1)
         /* squad check: actor->field_0x270 must match iter.datum_handle
          * (iter.datum_handle = EBP-0xc in disassembly, overlaps the
          * decompiler's 'local_10' variable) */
-        if (*(int *)(actor + 0x270) == (int)iter.datum_handle) {
+        if (((actor_t *)actor)->target_target_prop_index == (int)iter.datum_handle) {
           if (state > 1 && state <= 3) {
             return 1;
           }

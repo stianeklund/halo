@@ -78,10 +78,25 @@ Once the struct exists, these two rungs are transcription, not judgement. Use
 the tool; hand-editing hundreds of offsets is how wrong-offset bugs get in, and
 the tool refuses exactly where a human would guess.
 
+Bindings are registered in `recovery/bindings.json` — each maps a struct name
+to the base variable name(s) used in source and a file glob. Use `--binding`
+instead of manually specifying `--base`/`--struct`:
+
 ```bash
-rtk python3 tools/recovery/structize.py run \
-    --source <f.c> --base <var> --struct <type>_t --manifest recovery/<f>.json
+# Multi-file campaign (preferred): runs all files touching a struct
+rtk python3 tools/recovery/structize.py campaign --binding actor_t
+# Check remaining conflicts without compiling:
+rtk python3 tools/recovery/structize.py worklist --binding actor_t
+# Discover which files have raw offsets for a struct:
+rtk python3 tools/recovery/structize.py discover --binding actor_t
+# Single file with binding:
+rtk python3 tools/recovery/structize.py run --binding actor_t \
+    --source <f.c> --manifest recovery/<f>.json
 ```
+
+`campaign` returns a JSON report with a `next_actions` list — ranked conflicts
+and parked functions.  Resolve one, re-run `campaign`, repeat until
+`conflicts_total == 0`.
 
 One command: census → split (rung 5) → re-census → converge (rung 6). Use it
 rather than the individual steps — a census taken before the split misses every

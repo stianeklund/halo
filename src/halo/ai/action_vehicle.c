@@ -50,7 +50,7 @@ char FUN_0001b750(int actor_handle, int vehicle_handle, int16_t seat_index,
   ok = 0;
   assert_halt(state_data != 0);
   csmemset(state_data, 0, 0x4c);
-  if (*(int *)(actor + 0x158) == -1 && *(char *)(actor + 6) == 0) {
+  if (((actor_t *)actor)->field_158 == -1 && *(char *)(actor + 6) == 0) {
     (void)datum_get(actor_data, actor_handle);
     object = (char *)object_get_and_verify_type(vehicle_handle, 3);
     if (*(float *)(object + 0x38) >= *(float *)0x253398 &&
@@ -59,7 +59,7 @@ char FUN_0001b750(int actor_handle, int vehicle_handle, int16_t seat_index,
       *(int16_t *)((char *)state_data + 4) = seat_index;
       *((char *)state_data + 6) = 0;
       if (unit_has_animation_to_enter_seat(
-            *(int *)(actor + 0x18), vehicle_handle, seat_index) != '\0' &&
+            ((actor_t *)actor)->field_018, vehicle_handle, seat_index) != '\0' &&
           FUN_0001aeb0(actor_handle, vehicle_handle, seat_index, 1, &attach[0],
                        &attach[3], &attach[6], 0, 0, 0, 0) != '\0' &&
           FUN_0001b280(actor_handle, vehicle_handle, &attach[0], &attach[3],
@@ -137,19 +137,19 @@ int action_vehicle_perform(int actor_handle)
   vehicle = object_try_and_get_and_verify_type(*(int *)(actor + 0x9c), 2);
   assert_halt_at("c:\\halo\\SOURCE\\ai\\action_vehicle.c", 0xa1,
                  *(char *)(actor + 6) == 0);
-  if (*(int *)(actor + 0x158) != -1) {
+  if (((actor_t *)actor)->field_158 != -1) {
     *(actor + 0xa5) = 1;
     goto done;
   }
-  if (*(char *)(actor + 0xa4) != 0) {
+  if (((actor_t *)actor)->field_0a4 != 0) {
     goto done;
   }
   if (vehicle == 0) {
     *(int *)(actor + 0x9c) = -1;
     goto give_up;
   }
-  if (FUN_0001ada0(actor_handle, *(char *)(actor + 0xa2) == 0,
-                   *(int *)(actor + 0xbc), *(int *)(actor + 0xc0), 0, 1) == 0) {
+  if (FUN_0001ada0(actor_handle, ((actor_t *)actor)->field_0a2 == 0,
+                   ((actor_t *)actor)->field_0bc, *(int *)(actor + 0xc0), 0, 1) == 0) {
     goto give_up;
   }
   now = game_time_get();
@@ -173,44 +173,44 @@ int action_vehicle_perform(int actor_handle)
   }
   if (FUN_0001aeb0(actor_handle, *(int *)(actor + 0x9c),
                    *(unsigned short *)(actor + 0xa0),
-                   *(char *)(actor + 0xa2) == 0, &attach[3], &attach[6],
+                   ((actor_t *)actor)->field_0a2 == 0, &attach[3], &attach[6],
                    &attach[0], 0, &flag_6, &flag_5, &flag_7) == 0) {
     goto give_up;
   }
   if (flag_7 != 0) {
-    *(int16_t *)(actor + 0xc6) = (int16_t)(*(int16_t *)(actor + 0xc6) + 1);
-    if (*(int16_t *)(actor + 0xc6) >= 0x1e) {
+    ((actor_t *)actor)->field_0c6 = (int16_t)(((actor_t *)actor)->field_0c6 + 1);
+    if (((actor_t *)actor)->field_0c6 >= 0x1e) {
       flag_5 = 1;
       flag_6 = 1;
       goto board;
     }
   } else {
-    *(int16_t *)(actor + 0xc6) = 0;
+    ((actor_t *)actor)->field_0c6 = 0;
   }
   if (flag_6 != 0) {
     if (flag_5 != 0) {
     board:
-      unit_board_vehicle(*(int *)(actor + 0x18), *(int *)(actor + 0x9c),
+      unit_board_vehicle(((actor_t *)actor)->field_018, *(int *)(actor + 0x9c),
                          *(unsigned short *)(actor + 0xa0));
       *(actor + 0xa4) = 1;
     } else {
       FUN_0002f1a0(actor_handle);
     }
   } else {
-    if (*(char *)(actor + 0x4c) != 0) {
+    if (((actor_t *)actor)->field_04c != 0) {
       if (FUN_0001b280(actor_handle, *(int *)(actor + 0x9c), &attach[3],
                        &attach[6], &attach[0], actor + 0xa3,
                        (float *)(actor + 0xcc), (int *)(actor + 0xe4)) == 0 ||
           actor_move_to_point(actor_handle, (float *)(actor + 0xcc),
-                              *(int *)(actor + 0xe4),
+                              ((actor_t *)actor)->field_0e4,
                               *(int *)(actor + 0x9c)) == 0) {
-        *(int16_t *)(actor + 0xa8) = (int16_t)(*(int16_t *)(actor + 0xa8) + 1);
-        limit = (int16_t)(*(char *)(actor + 0xa2) != 0 ? 5 : 0x32);
-        if (*(int16_t *)(actor + 0xa8) > limit) {
+        ((actor_t *)actor)->field_0a8 = (int16_t)(((actor_t *)actor)->field_0a8 + 1);
+        limit = (int16_t)(((actor_t *)actor)->field_0a2 != 0 ? 5 : 0x32);
+        if (((actor_t *)actor)->field_0a8 > limit) {
           *(actor + 0xa6) = 1;
         }
       } else {
-        *(int16_t *)(actor + 0xa8) = 0;
+        ((actor_t *)actor)->field_0a8 = 0;
       }
     }
   }
@@ -218,7 +218,7 @@ int action_vehicle_perform(int actor_handle)
   in_range = (dist2 < *(float *)0x2533c8);
   *(float *)(actor + 0xd8) = attach[6];
   *(actor + 0xc8) = (char)in_range;
-  *(int *)(actor + 0xdc) = *(int *)&attach[7];
+  ((actor_t *)actor)->field_0dc = *(int *)&attach[7];
   *(int *)(actor + 0xe0) = *(int *)&attach[8];
   *(actor + 0xc5) = flag_5;
   *(actor + 0xc4) = flag_6;
@@ -227,5 +227,5 @@ int action_vehicle_perform(int actor_handle)
 give_up:
   *(actor + 0xa6) = 1;
 done:
-  return (*(char *)(actor + 0xa5) != 0 || *(char *)(actor + 0xa6) != 0);
+  return (((actor_t *)actor)->field_0a5 != 0 || ((actor_t *)actor)->field_0a6 != 0);
 }

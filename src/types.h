@@ -982,7 +982,7 @@ typedef struct {
   char pad_022[0x2];
   int32_t field_024;                                 /* +0x024  accessed 18x, meaning unproven */
   int32_t meta_swarm_cache_index;                     /* +0x028  CMP dword [ESI+0x28],-1 @0x16d66 (NONE sentinel) */
-  char pad_02c[0x4];
+  int32_t field_02c;                                 /* +0x02c  accessed 15x, meaning unproven */
   int32_t field_030;                                 /* +0x030  accessed 1x, meaning unproven */
   uint32_t field_034;                                /* +0x034  accessed 4x, meaning unproven */
   int16_t field_038;                                 /* +0x038  accessed 1x, meaning unproven */
@@ -995,7 +995,8 @@ typedef struct {
   int16_t field_048;                                 /* +0x048  accessed 2x, meaning unproven */
   int16_t field_04a;                                 /* +0x04a  accessed 4x, meaning unproven */
   char field_04c;                                    /* +0x04c  accessed 9x, meaning unproven */
-  char pad_04d[0x3];
+  char pad_04d[0x1];
+  int16_t field_04e;                                 /* +0x04e  accessed 5x, meaning unproven */
   int32_t field_050;                                 /* +0x050  accessed 4x, meaning unproven */
   int32_t field_054;                                 /* +0x054  accessed 1x, meaning unproven */
   int32_t field_058;                                 /* +0x058  accessed 23x, meaning unproven */
@@ -1017,7 +1018,7 @@ typedef struct {
   char pad_07c[0x8];
   int32_t field_084;                                 /* +0x084  accessed 1x, meaning unproven */
   int32_t field_088;                                 /* +0x088  accessed 1x, meaning unproven */
-  char pad_08c[0x1];
+  char field_08c;                                    /* +0x08c  accessed 1x, meaning unproven */
   char field_08d;                                    /* +0x08d  accessed 1x, meaning unproven */
   char field_08e;                                    /* +0x08e  accessed 2x, meaning unproven */
   char pad_08f[0x1];
@@ -1034,7 +1035,7 @@ typedef struct {
   char field_0a1;                                    /* +0x0a1  accessed 13x, meaning unproven */
   char field_0a2;                                    /* +0x0a2  accessed 2x, meaning unproven */
   char field_0a3;                                    /* +0x0a3  accessed 3x, meaning unproven */
-  char pad_0a4[0x1];
+  char field_0a4;                                    /* +0x0a4  accessed 1x, meaning unproven */
   char field_0a5;                                    /* +0x0a5  accessed 2x, meaning unproven */
   char field_0a6;                                    /* +0x0a6  accessed 7x, meaning unproven */
   char pad_0a7[0x1];
@@ -1048,18 +1049,19 @@ typedef struct {
   uint8_t field_0b6;                                 /* +0x0b6  accessed 1x, meaning unproven */
   char pad_0b7[0x1];
   int32_t field_0b8;                                 /* +0x0b8  accessed 9x, meaning unproven */
-  char pad_0bc[0x4];
+  int32_t field_0bc;                                 /* +0x0bc  accessed 1x, meaning unproven */
   int16_t field_0c0;                                 /* +0x0c0  accessed 2x, meaning unproven */
   int16_t field_0c2;                                 /* +0x0c2  accessed 1x, meaning unproven */
   char pad_0c4[0x1];
   char field_0c5;                                    /* +0x0c5  accessed 5x, meaning unproven */
-  char pad_0c6[0x4];
+  int16_t field_0c6;                                 /* +0x0c6  accessed 4x, meaning unproven */
+  char pad_0c8[0x2];
   int16_t field_0ca;                                 /* +0x0ca  accessed 3x, meaning unproven */
   char pad_0cc[0x4];
   int32_t field_0d0;                                 /* +0x0d0  accessed 2x, meaning unproven */
   float field_0d4;                                   /* +0x0d4  accessed 1x, meaning unproven */
   int32_t field_0d8;                                 /* +0x0d8  accessed 5x, meaning unproven */
-  char pad_0dc[0x4];
+  int32_t field_0dc;                                 /* +0x0dc  accessed 1x, meaning unproven */
   char field_0e0;                                    /* +0x0e0  accessed 1x, meaning unproven */
   char pad_0e1[0x3];
   int32_t field_0e4;                                 /* +0x0e4  accessed 2x, meaning unproven */
@@ -1133,28 +1135,37 @@ typedef struct {
   int16_t field_1e4;                                 /* +0x1e4  accessed 6x, meaning unproven */
   char pad_1e6[0x2];
   int32_t field_1e8;                                 /* +0x1e8  accessed 6x, meaning unproven */
-  char pad_1ec[0xa];
+  char pad_1ec[0x1];
+  char field_1ed;                                    /* +0x1ed  accessed 1x, meaning unproven */
+  char pad_1ee[0x8];
   char field_1f6;                                    /* +0x1f6  accessed 1x, meaning unproven */
-  char pad_1f7[0x5];
+  char pad_1f7[0x1];
+  char field_1f8;                                    /* +0x1f8  accessed 1x, meaning unproven */
+  char pad_1f9[0x3];
   char field_1fc;                                    /* +0x1fc  accessed 1x, meaning unproven */
   char pad_1fd[0x3];
   char field_200;                                    /* +0x200  accessed 1x, meaning unproven */
-  char pad_201[0x44];
+  char pad_201[0x1];
+  char field_202;                                    /* +0x202  accessed 1x, meaning unproven */
+  char pad_203[0x42];
   char field_245;                                    /* +0x245  accessed 1x, meaning unproven */
   char pad_246[0x22];
   int16_t target_target_type;                         /* +0x268  MOVSX EAX,word [ESI+0x268] @0x3033c */
   char pad_26a[0x2];
   int32_t field_26c;                                 /* +0x26c  accessed 1x, meaning unproven */
   int32_t target_target_prop_index;                   /* +0x270  CMP dword [ESI+0x270],-1 @0x38535 */
-  char pad_274[0x4];
+  char field_274;                                    /* +0x274  accessed 1x, meaning unproven */
+  char pad_275[0x3];
   int32_t field_278;                                 /* +0x278  accessed 1x, meaning unproven */
-  char pad_27c[0x4];
+  char field_27c;                                    /* +0x27c  accessed 1x, meaning unproven */
+  char pad_27d[0x3];
   int16_t danger_zone_danger_type;                    /* +0x280  CMP word [ESI+0x280],0 @0x3239c; [EBX+0x280] @0x484e8 */
   char pad_282[0x2];
   int16_t field_284;                                 /* +0x284  accessed 1x, meaning unproven */
-  char pad_286[0x1];
+  char field_286;                                    /* +0x286  accessed 1x, meaning unproven */
   char field_287;                                    /* +0x287  accessed 2x, meaning unproven */
-  char pad_288[0x2];
+  char field_288;                                    /* +0x288  accessed 5x, meaning unproven */
+  char pad_289[0x1];
   char field_28a;                                    /* +0x28a  accessed 1x, meaning unproven */
   char pad_28b[0x1];
   int32_t danger_zone_object_index;                   /* +0x28c  CMP dword [EBX+0x28c],-1 @0x484f2 */
@@ -1229,7 +1240,7 @@ typedef struct {
   char field_374;                                    /* +0x374  accessed 1x, meaning unproven */
   char pad_375[0x1];
   uint8_t field_376;                                 /* +0x376  accessed 1x, meaning unproven */
-  char pad_377[0x1];
+  char field_377;                                    /* +0x377  accessed 2x, meaning unproven */
   char field_378;                                    /* +0x378  accessed 2x, meaning unproven */
   char field_379;                                    /* +0x379  accessed 2x, meaning unproven */
   char pad_37a[0x2];
@@ -1406,7 +1417,13 @@ typedef struct {
   int16_t field_5f8;                                 /* +0x5f8  accessed 1x, meaning unproven */
   int16_t field_5fa;                                 /* +0x5fa  accessed 1x, meaning unproven */
   char field_5fc;                                    /* +0x5fc  accessed 2x, meaning unproven */
-  char pad_5fd[0xb];
+  char pad_5fd[0x3];
+  char field_600;                                    /* +0x600  accessed 2x, meaning unproven */
+  char field_601;                                    /* +0x601  accessed 2x, meaning unproven */
+  char field_602;                                    /* +0x602  accessed 1x, meaning unproven */
+  char field_603;                                    /* +0x603  accessed 2x, meaning unproven */
+  char field_604;                                    /* +0x604  accessed 4x, meaning unproven */
+  char pad_605[0x3];
   float field_608;                                   /* +0x608  accessed 3x, meaning unproven */
   int16_t control_current_fire_target_type;           /* +0x60c  CMP word [ESI+0x60c],1 @0x22032; ESI from datum_get on ACTOR_TABLE_PTR @0x22013 */
   char pad_60e[0x2];
@@ -1418,27 +1435,46 @@ typedef struct {
   char field_628;                                    /* +0x628  accessed 1x, meaning unproven */
   char pad_629[0x3];
   int32_t field_62c;                                 /* +0x62c  accessed 1x, meaning unproven */
-  char pad_630[0xc];
+  float field_630;                                   /* +0x630  accessed 1x, meaning unproven */
+  float field_634;                                   /* +0x634  accessed 1x, meaning unproven */
+  float field_638;                                   /* +0x638  accessed 1x, meaning unproven */
   int32_t field_63c;                                 /* +0x63c  accessed 1x, meaning unproven */
   uint16_t field_640;                                /* +0x640  accessed 1x, meaning unproven */
   char pad_642[0x2];
   int32_t field_644;                                 /* +0x644  accessed 1x, meaning unproven */
   float field_648;                                   /* +0x648  accessed 1x, meaning unproven */
-  char pad_64c[0x1c];
+  float field_64c;                                   /* +0x64c  accessed 2x, meaning unproven */
+  float field_650;                                   /* +0x650  accessed 2x, meaning unproven */
+  float field_654;                                   /* +0x654  accessed 2x, meaning unproven */
+  char pad_658[0xc];
+  float field_664;                                   /* +0x664  accessed 2x, meaning unproven */
   int16_t field_668;                                 /* +0x668  accessed 2x, meaning unproven */
   int16_t field_66a;                                 /* +0x66a  accessed 2x, meaning unproven */
   int16_t field_66c;                                 /* +0x66c  accessed 2x, meaning unproven */
-  char pad_66e[0x1e];
+  char pad_66e[0x2];
+  float field_670;                                   /* +0x670  accessed 1x, meaning unproven */
+  float field_674;                                   /* +0x674  accessed 1x, meaning unproven */
+  float field_678;                                   /* +0x678  accessed 1x, meaning unproven */
+  float field_67c;                                   /* +0x67c  accessed 1x, meaning unproven */
+  float field_680;                                   /* +0x680  accessed 1x, meaning unproven */
+  float field_684;                                   /* +0x684  accessed 1x, meaning unproven */
+  char pad_688[0x4];
   float control_burst_aim_vector[3];                  /* +0x68c  LEA EDI,[EBX+0x68c] @0x23d1a */
-  char pad_698[0x8];
+  float field_698;                                   /* +0x698  accessed 2x, meaning unproven */
+  char pad_69c[0x4];
   char field_6a0;                                    /* +0x6a0  accessed 1x, meaning unproven */
-  char pad_6a1[0x3];
+  uint8_t field_6a1;                                 /* +0x6a1  accessed 1x, meaning unproven */
+  char pad_6a2[0x2];
   int32_t field_6a4;                                 /* +0x6a4  accessed 1x, meaning unproven */
   float field_6a8;                                   /* +0x6a8  accessed 1x, meaning unproven */
   float field_6ac;                                   /* +0x6ac  accessed 1x, meaning unproven */
   char pad_6b0[0x4];
   int32_t field_6b4;                                 /* +0x6b4  accessed 3x, meaning unproven */
-  char pad_6b8[0x14];
+  int32_t field_6b8;                                 /* +0x6b8  accessed 1x, meaning unproven */
+  float field_6bc;                                   /* +0x6bc  accessed 2x, meaning unproven */
+  float field_6c0;                                   /* +0x6c0  accessed 2x, meaning unproven */
+  float field_6c4;                                   /* +0x6c4  accessed 2x, meaning unproven */
+  float field_6c8;                                   /* +0x6c8  accessed 2x, meaning unproven */
   char field_6cc;                                    /* +0x6cc  accessed 1x, meaning unproven */
   char pad_6cd[0x1];
   int16_t field_6ce;                                 /* +0x6ce  accessed 1x, meaning unproven */

@@ -1,0 +1,11 @@
+{
+ "schema": 1,
+ "bindings": [
+  {
+   "id": "actor_t",
+   "struct": "actor_t",
+   "bases": ["actor"],
+   "sources_glob": "src/halo/ai/*.c"
+  }
+ ]
+}

@@ -24,16 +24,16 @@ void FUN_0002f1a0(int actor_handle)
 
   actor = (char *)datum_get(actor_data, actor_handle);
 
-  if (*(short *)(actor + 0x15e) == 4 && *(char *)(actor + 0x504) != '\0') {
+  if (((actor_t *)actor)->field_15e == 4 && ((actor_t *)actor)->field_504 != '\0') {
     actor_move_to_point(actor_handle, (float *)(actor + 0x12c),
-                        *(int *)(actor + 0x164), -1);
+                        ((actor_t *)actor)->field_164, -1);
     return;
   }
 
-  *(short *)(actor + 0x3b8) = -1;
+  ((actor_t *)actor)->firing_positions_current_position_index = -1;
 
-  if (*(short *)(actor + 0x46c) != 1) {
-    *(short *)(actor + 0x400) = 1;
+  if (((actor_t *)actor)->field_46c != 1) {
+    ((actor_t *)actor)->field_400 = 1;
     for (i = 0; i < 6; i++) {
       *(int *)(actor + 0x46c + i * 4) = *(int *)(actor + 0x400 + i * 4);
     }
@@ -57,17 +57,17 @@ void FUN_0002f230(int actor_handle)
 
   actor = (char *)datum_get(actor_data, actor_handle);
 
-  if (*(short *)(actor + 0x15e) == 4) {
-    if (*(short *)(actor + 0x3b8) == -1) {
+  if (((actor_t *)actor)->field_15e == 4) {
+    if (((actor_t *)actor)->firing_positions_current_position_index == -1) {
       FUN_0002f1a0(actor_handle);
       return;
     }
-    actor_move_to_firing_position(actor_handle, *(short *)(actor + 0x3b8), 0);
+    actor_move_to_firing_position(actor_handle, ((actor_t *)actor)->firing_positions_current_position_index, 0);
     return;
   }
 
-  if (*(short *)(actor + 0x46c) != 1) {
-    *(short *)(actor + 0x400) = 1;
+  if (((actor_t *)actor)->field_46c != 1) {
+    ((actor_t *)actor)->field_400 = 1;
     memcpy(actor + 0x46c, actor + 0x400, 24);
   }
   actor_path_refresh(actor_handle, 1, NULL);
@@ -137,7 +137,7 @@ uint16_t FUN_0002f380(int actor_handle, int prop_handle)
     if ((*(short *)(prop + 0x24) >= 2 && *(short *)(prop + 0x24) <= 3) ||
         *(short *)(prop + 0x66) == 1 || *(short *)(prop + 0x66) == 2 ||
         (*(char *)(prop + 0x60) == 0 &&
-         (*(char *)(prop + 0x127) == 0 || *(short *)(actor + 0x6a) >= 3))) {
+         (*(char *)(prop + 0x127) == 0 || ((actor_t *)actor)->field_06a >= 3))) {
       return 3;
     }
     if (*(int *)(prop + 0xc) != -1) {
@@ -148,9 +148,9 @@ uint16_t FUN_0002f380(int actor_handle, int prop_handle)
       }
     }
   }
-  if (*(short *)(actor + 0x6e) >= 2)
+  if (((actor_t *)actor)->field_06e >= 2)
     return 2;
-  return (uint16_t)(*(short *)(actor + 0x6a) >= 3);
+  return (uint16_t)(((actor_t *)actor)->field_06a >= 3);
 }
 
 /* FUN_0002f5b0 (0x2f5b0)
@@ -375,11 +375,11 @@ bool actor_get_perception_knowledge(int actor_handle, int prop_handle)
   if (type > 1 && type < 4 && *(char *)(prop + 0x60) != 0 &&
       *(char *)(prop + 0x127) == 0) {
     if (*(short *)(prop + 0x9c) != 0 &&
-        (*(int *)(actor + 0x270) == prop_handle ||
-         *(char *)(actor + 0x1ed) == 0)) {
+        (((actor_t *)actor)->target_target_prop_index == prop_handle ||
+         ((actor_t *)actor)->field_1ed == 0)) {
       result = 1;
     } else if ((*(char *)(prop + 0x135) != 0 || *(char *)(prop + 0x136) != 0) &&
-               *(char *)(actor + 0x161) == 0 && *(char *)(actor + 0x202) == 0) {
+               ((actor_t *)actor)->field_161 == 0 && ((actor_t *)actor)->field_202 == 0) {
       result = 1;
     } else if (*(short *)(prop + 0x10) == 0xf) {
       result = 1;
@@ -392,10 +392,10 @@ bool actor_get_perception_knowledge(int actor_handle, int prop_handle)
     *(uint16_t *)(prop + 0xac) = 0;
   }
 
-  if (type > 1 && type < 4 && result == 0 && *(short *)(actor + 0x3a8) > 0 &&
-      *(int *)(actor + 0x3ac) == prop_handle) {
+  if (type > 1 && type < 4 && result == 0 && ((actor_t *)actor)->field_3a8 > 0 &&
+      ((actor_t *)actor)->field_3ac == prop_handle) {
     *(uint16_t *)(actor + 0x3a8) = 0;
-    *(int *)(actor + 0x3ac) = -1;
+    ((actor_t *)actor)->field_3ac = -1;
   }
 
   *(char *)(prop + 0xa4) = result;
@@ -437,8 +437,8 @@ float actor_compute_prop_target_weight(int actor_handle, int clump_item_handle)
   if (*(short *)(prop + 0x10) == 0xf)
     return 0.0f;
 
-  actr_tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
-  actv_tag = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
+  actr_tag = (char *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
+  actv_tag = (char *)tag_get(0x61637476, ((actor_t *)actor)->field_05c);
 
   bonus_flag = 0;
   extra_flag = 0;
@@ -452,7 +452,7 @@ float actor_compute_prop_target_weight(int actor_handle, int clump_item_handle)
   } else {
     if (actor_has_ranged_weapon(actor_handle) == 0) {
       /* Actor does not have a weapon in hand */
-      if (*(char *)(actor + 0x378) != 0) {
+      if (((actor_t *)actor)->field_378 != 0) {
         actv_threshold = *(float *)(actv_tag + 0x160);
       } else {
         actv_threshold = *(float *)(actv_tag + 0x170);
@@ -469,7 +469,7 @@ float actor_compute_prop_target_weight(int actor_handle, int clump_item_handle)
       } else if (*(char *)(prop + 0x130) != 0 &&
                  *(float *)(actr_tag + 0x38c) == 0.0f) {
         vision_level = 0;
-      } else if (*(char *)(prop + 0x118) != *(char *)(actor + 0x15d)) {
+      } else if (*(char *)(prop + 0x118) != ((actor_t *)actor)->field_15d) {
         vision_level = 1;
       } else if (*(float *)(prop + 0x11c) < actv_threshold) {
         vision_level = 3;
@@ -485,7 +485,7 @@ float actor_compute_prop_target_weight(int actor_handle, int clump_item_handle)
       if (weapon_tag == 0 ||
           *(float *)(prop + 0x11c) >= *(float *)(weapon_tag + 0x40c)) {
         /* prop distance >= weapon range (or no weapon tag) */
-        if (*(char *)(prop + 0x118) != *(char *)(actor + 0x15d)) {
+        if (*(char *)(prop + 0x118) != ((actor_t *)actor)->field_15d) {
           vision_level = 2;
         } else if (*(float *)(prop + 0x11c) < *(float *)0x253f40) {
           /* prop distance < 2.0f */
@@ -540,13 +540,13 @@ done_vision:
   }
 
   /* Bonus computations */
-  if (*(int *)(actor + 0x270) == -1) {
+  if (((actor_t *)actor)->target_target_prop_index == -1) {
     if (*(char *)(prop + 0x12e) != 0 ||
-        clump_item_handle == *(int *)(actor + 0x54)) {
+        clump_item_handle == ((actor_t *)actor)->field_054) {
       local_c = 3.0f;
     }
-  } else if (clump_item_handle == *(int *)(actor + 0x270) &&
-             *(short *)(actor + 0x6e) > 2) {
+  } else if (clump_item_handle == ((actor_t *)actor)->target_target_prop_index &&
+             ((actor_t *)actor)->field_06e > 2) {
     bonus_flag = 1;
   }
 
@@ -644,44 +644,44 @@ void FUN_000355f0(int actor_handle)
   float delta_y;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  actor_defn = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  actor_defn = (char *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
   awareness_slot = 1;
   claimed_awareness = 0;
   best_prop = -1;
   best_weight = 3.4028235e+38f;
 
-  if (*(char *)(actor + 0x13) != 0)
+  if (((actor_t *)actor)->field_013 != 0)
     goto iterate_props;
 
-  if (*(char *)(actor + 0x4c) != 0)
+  if (((actor_t *)actor)->field_04c != 0)
     actor_perception_refresh(actor_handle);
   actor_perception_refresh_danger_zone(actor_handle);
 
-  alertness = *(int16_t *)(actor + 0x280);
+  alertness = ((actor_t *)actor)->danger_zone_danger_type;
   if (alertness < 1)
     goto iterate_props;
 
-  if (*(char *)(actor + 0x28a) == 0 && *(int16_t *)(actor + 0x282) == 0) {
-    if (*(int16_t *)(actor + 0x284) > 0 && *(char *)(actor + 0x286) != 0) {
-      if (*(int *)(actor + 0x88) == -1 || *(int *)(actor + 0x88) > 0x3b) {
-        remaining = (int16_t)(*(int16_t *)(actor + 0x284) - 1);
+  if (((actor_t *)actor)->field_28a == 0 && *(int16_t *)(actor + 0x282) == 0) {
+    if (((actor_t *)actor)->field_284 > 0 && ((actor_t *)actor)->field_286 != 0) {
+      if (((actor_t *)actor)->field_088 == -1 || ((actor_t *)actor)->field_088 > 0x3b) {
+        remaining = (int16_t)(((actor_t *)actor)->field_284 - 1);
         ramp_ready = (char)(remaining == 0);
-        *(int16_t *)(actor + 0x284) = remaining;
+        ((actor_t *)actor)->field_284 = remaining;
         goto ramp_gate;
       }
-      *(int16_t *)(actor + 0x284) = 0;
+      ((actor_t *)actor)->field_284 = 0;
       goto ramp_run;
     }
   } else {
-    *(char *)(actor + 0x287) = 1;
-    ramp_ready = (char)(*(int16_t *)(actor + 0x284) > 0);
-    *(int16_t *)(actor + 0x284) = 0;
+    ((actor_t *)actor)->field_287 = 1;
+    ramp_ready = (char)(((actor_t *)actor)->field_284 > 0);
+    ((actor_t *)actor)->field_284 = 0;
   ramp_gate:
     if (ramp_ready) {
     ramp_run:
       if (alertness == 1) {
       ramp_promote:
-        *(char *)(actor + 0x287) = 1;
+        ((actor_t *)actor)->field_287 = 1;
       } else if (alertness == 2) {
         alert_probability = *(float *)(actor_defn + 0x50);
       ramp_roll:
@@ -696,40 +696,40 @@ void FUN_000355f0(int actor_handle)
         goto ramp_roll;
       }
 
-      if (*(char *)(actor + 0x287) != 0) {
-        if (*(char *)(actor + 0x28a) == 0) {
+      if (((actor_t *)actor)->field_287 != 0) {
+        if (((actor_t *)actor)->field_28a == 0) {
           if (*(int16_t *)(actor + 0x282) == 0 &&
-              *(int16_t *)(actor + 0x280) != 3 &&
-              *(int16_t *)(actor + 0x280) != 1) {
+              ((actor_t *)actor)->danger_zone_danger_type != 3 &&
+              ((actor_t *)actor)->danger_zone_danger_type != 1) {
             if (random_math_real(
                   (unsigned int *)get_global_random_seed_address()) <
                 *(float *)(actor_defn + 0x88))
-              *(char *)(actor + 0x288) = 1;
+              ((actor_t *)actor)->field_288 = 1;
             else
-              *(char *)(actor + 0x288) = 0;
+              ((actor_t *)actor)->field_288 = 0;
           } else {
-            *(char *)(actor + 0x288) = 1;
+            ((actor_t *)actor)->field_288 = 1;
           }
         } else {
-          *(char *)(actor + 0x288) = 0;
+          ((actor_t *)actor)->field_288 = 0;
         }
         FUN_000378e0(actor_handle, *(uint16_t *)(actor + 0x280),
-                     *(uint16_t *)(actor + 0x282), *(int *)(actor + 0x28c),
+                     *(uint16_t *)(actor + 0x282), ((actor_t *)actor)->danger_zone_object_index,
                      (float *)(actor + 0x2b0));
       }
     }
   }
 
-  if (*(int16_t *)(actor + 0x284) == 0) {
-    if (*(int16_t *)(actor + 0x544) == 0xc) {
-      remaining = *(int16_t *)(actor + 0x546);
+  if (((actor_t *)actor)->field_284 == 0) {
+    if (((actor_t *)actor)->control_secondary_look_type == 0xc) {
+      remaining = ((actor_t *)actor)->field_546;
       if (remaining > 5)
         remaining = 5;
-      *(int16_t *)(actor + 0x546) = remaining;
+      ((actor_t *)actor)->field_546 = remaining;
     }
-    if (*(char *)(actor + 0x28a) != 0) {
-      *(char *)(actor + 0x287) = 1;
-      *(char *)(actor + 0x288) = 0;
+    if (((actor_t *)actor)->field_28a != 0) {
+      ((actor_t *)actor)->field_287 = 1;
+      ((actor_t *)actor)->field_288 = 0;
     }
   }
 
@@ -793,7 +793,7 @@ iterate_props:
     else if (*(int16_t *)(prop + 0x78) < 0x7fff)
       *(int16_t *)(prop + 0x78) = (int16_t)(*(int16_t *)(prop + 0x78) + 1);
 
-    if (*(char *)(actor + 0x13) != 0) {
+    if (((actor_t *)actor)->field_013 != 0) {
       *(char *)(prop + 0x63) = 0;
       *(int16_t *)(prop + 0x26) = 0;
       goto run_state_machine;
@@ -807,7 +807,7 @@ iterate_props:
       awareness_ticks = (int16_t)(awareness_ticks >> 1);
 
     if (claimed_awareness == 0 &&
-        awareness_ticks >= *(int16_t *)(actor + 0x4e)) {
+        awareness_ticks >= ((actor_t *)actor)->field_04e) {
       refresh_status = 1;
       refresh_position = 1;
       awareness_ticks = 0;
@@ -820,19 +820,19 @@ iterate_props:
     prop_state = *(int16_t *)(prop + 0x24);
     if (prop_state < 0 || prop_state > 1 || *(int *)(prop + 0xc) != -1) {
       if (*(char *)(actor + 6) == 0) {
-        if (*(int *)(actor + 0x270) == iter[0] ||
-            *(int *)(actor + 0x54) == iter[0] ||
-            *(int *)(actor + 0x3ac) == iter[0] ||
-            *(int *)(actor + 0x1d0) == iter[0] ||
-            (*(int16_t *)(actor + 0x544) != 0 &&
-             *(int16_t *)(actor + 0x54c) == 1 &&
-             *(int *)(actor + 0x550) == iter[0]) ||
-            (*(char *)(actor + 0x55c) != 0 &&
-             *(int16_t *)(actor + 0x56c) == 1 &&
-             *(int *)(actor + 0x570) == iter[0]) ||
-            (*(char *)(actor + 0x55f) != 0 &&
-             *(int16_t *)(actor + 0x57c) == 1 &&
-             *(int *)(actor + 0x580) == iter[0]))
+        if (((actor_t *)actor)->target_target_prop_index == iter[0] ||
+            ((actor_t *)actor)->field_054 == iter[0] ||
+            ((actor_t *)actor)->field_3ac == iter[0] ||
+            ((actor_t *)actor)->field_1d0 == iter[0] ||
+            (((actor_t *)actor)->control_secondary_look_type != 0 &&
+             ((actor_t *)actor)->control_secondary_look_direction_type == 1 &&
+             ((actor_t *)actor)->control_secondary_look_direction_prop_index == iter[0]) ||
+            (((actor_t *)actor)->control_idle_major_active != 0 &&
+             ((actor_t *)actor)->control_idle_major_direction_type == 1 &&
+             ((actor_t *)actor)->control_idle_major_direction_prop_index == iter[0]) ||
+            (((actor_t *)actor)->control_idle_minor_active != 0 &&
+             ((actor_t *)actor)->control_idle_minor_direction_type == 1 &&
+             ((actor_t *)actor)->control_idle_minor_direction_prop_index == iter[0]))
           *(char *)(prop + 0x63) = 1;
         else
           *(char *)(prop + 0x63) = 0;
@@ -878,7 +878,7 @@ iterate_props:
         new_state = 1;
         *(int *)(prop + 0x2c) = 0;
         if (*(char *)(prop + 0x12e) != 0 && *(char *)0x5aca61 != 0) {
-          ai_debug_describe_actor(actor_handle, *(int *)(actor + 0x18),
+          ai_debug_describe_actor(actor_handle, ((actor_t *)actor)->field_018,
                                   (char)0xff, debug_desc_b, 0x100);
           error(2, "%s: start to become aware", debug_desc_b);
         }
@@ -896,7 +896,7 @@ iterate_props:
         if (*(char *)(prop + 0x12e) != 0 &&
             (*(uint16_t *)(debug_awareness_cache + 0x6578) = 0xffff,
              *(char *)0x5aca61 != 0)) {
-          ai_debug_describe_actor(actor_handle, *(int *)(actor + 0x18),
+          ai_debug_describe_actor(actor_handle, ((actor_t *)actor)->field_018,
                                   (char)0xff, debug_desc_d, 0x100);
           error(2, "%s: stop becoming aware", debug_desc_d);
         }
@@ -963,7 +963,7 @@ iterate_props:
           knowledge_names[1] = "guard";
           knowledge_names[2] = "searching";
           knowledge_names[3] = "definite";
-          ai_debug_describe_actor(actor_handle, *(int *)(actor + 0x18),
+          ai_debug_describe_actor(actor_handle, ((actor_t *)actor)->field_018,
                                   (char)0xff, debug_desc_c, 0x100);
           error(2, "%s: knowledge %s percep %s -> awareness %s", debug_desc_c,
                 knowledge_names[(int16_t)knowledge_type],
@@ -987,7 +987,7 @@ iterate_props:
         if (*(char *)(prop + 0x12e) != 0 &&
             (*(uint16_t *)(debug_awareness_cache + 0x6578) = 0xffff,
              *(char *)0x5aca61 != 0)) {
-          ai_debug_describe_actor(actor_handle, *(int *)(actor + 0x18),
+          ai_debug_describe_actor(actor_handle, ((actor_t *)actor)->field_018,
                                   (char)0xff, debug_desc_a, 0x100);
           error(2, "%s: become aware!", debug_desc_a);
         }
@@ -1121,24 +1121,24 @@ iterate_props:
     case 5:
       if (*(int16_t *)(prop + 0x24) == 4) {
         retire_threshold =
-          (int16_t)((-(uint16_t)(*(char *)(actor + 0x162) != 0) & 0xff) + 0x2d);
+          (int16_t)((-(uint16_t)(((actor_t *)actor)->field_162 != 0) & 0xff) + 0x2d);
         if (*(int16_t *)(prop + 0x32) > 1 ||
-            (*(int16_t *)(actor + 0x60c) == _actor_fire_target_prop &&
-             *(int *)(actor + 0x610) == iter[0] && game_time_get() % 3 == 0)) {
+            (((actor_t *)actor)->control_current_fire_target_type == _actor_fire_target_prop &&
+             ((actor_t *)actor)->control_current_fire_target_prop_index == iter[0] && game_time_get() % 3 == 0)) {
           *(int16_t *)(prop + 0x3c) = (int16_t)(*(int16_t *)(prop + 0x3c) + 1);
           if (*(int16_t *)(prop + 0x3c) >= retire_threshold)
             new_state = 5;
         }
       }
-      if (iter[0] == *(int *)(actor + 0x3ac) ||
-          (*(int16_t *)(actor + 0x6c) == 4 &&
-           *(int *)(actor + 0xb8) == iter[0])) {
+      if (iter[0] == ((actor_t *)actor)->field_3ac ||
+          (((actor_t *)actor)->state_action == 4 &&
+           ((actor_t *)actor)->field_0b8 == iter[0])) {
         awareness_penalty = 0;
-      } else if (iter[0] == *(int *)(actor + 0x270)) {
+      } else if (iter[0] == ((actor_t *)actor)->target_target_prop_index) {
         awareness_penalty = (int16_t)(*(char *)(prop + 0xbb) != 0);
-      } else if (iter[0] == *(int *)(actor + 0x54)) {
+      } else if (iter[0] == ((actor_t *)actor)->field_054) {
         awareness_penalty =
-          (int16_t)((((*(int16_t *)(actor + 0x6e) < 4) - 1) & 5) + 1);
+          (int16_t)((((((actor_t *)actor)->field_06e < 4) - 1) & 5) + 1);
       } else {
         awareness_penalty = 10;
       }
@@ -1200,20 +1200,20 @@ iterate_props:
         *(char *)(prop + 0x12a) = 0;
       }
 
-      if (*(char *)(actor + 0x377) == 0 && *(char *)(prop + 0x60) == 0 &&
+      if (((actor_t *)actor)->field_377 == 0 && *(char *)(prop + 0x60) == 0 &&
           *(char *)(prop + 0x12e) != 0 && *(int16_t *)(prop + 0x32) > 1 &&
           *(char *)(prop + 0x122) < 3 &&
           *(float *)(prop + 0x11c) < *(float *)0x2548f4) {
-        *(char *)(actor + 0x377) = 1;
-        FUN_00046f10(0x19, *(int *)(actor + 0x18), *(int *)(prop + 0x18), 2, -1,
+        ((actor_t *)actor)->field_377 = 1;
+        FUN_00046f10(0x19, ((actor_t *)actor)->field_018, *(int *)(prop + 0x18), 2, -1,
                      -1, 0);
         FUN_00036a20(actor_handle, iter[0], 0);
       }
 
-      if (*(int *)(actor + 0x18) != -1 && *(char *)(prop + 0x127) == 0 &&
+      if (((actor_t *)actor)->field_018 != -1 && *(char *)(prop + 0x127) == 0 &&
           *(char *)(prop + 0x61) != 0 && *(char *)(prop + 0x62) != 0) {
         is_friendly = (char)game_allegiance_get_team_is_friendly(
-          *(int16_t *)(actor + 0x3e), *(int16_t *)(prop + 0x12));
+          ((actor_t *)actor)->field_03e, *(int16_t *)(prop + 0x12));
         if (is_friendly != 0)
           event_threshold = *(float *)0x254cc0;
         else if (*(char *)(prop + 0x122) < 3)
@@ -1225,14 +1225,14 @@ iterate_props:
         if ((is_friendly != 0 && *(char *)(prop + 0x74) != 0) ||
             in_event_range != 0) {
           team_info.prop_team = *(int16_t *)(prop + 0x12);
-          team_info.actor_team = *(int16_t *)(actor + 0x3e);
+          team_info.actor_team = ((actor_t *)actor)->field_03e;
           team_info.is_friendly = is_friendly;
-          FUN_00046f10(8, *(int *)(actor + 0x18), *(int *)(prop + 0x18),
+          FUN_00046f10(8, ((actor_t *)actor)->field_018, *(int *)(prop + 0x18),
                        (is_friendly != 0) * 2 + 2, -1, 1, (int)&team_info);
         }
       }
 
-      if (*(int16_t *)(actor + 0x6a) < 3) {
+      if (((actor_t *)actor)->field_06a < 3) {
         if (*(char *)(prop + 0x127) != 0) {
           if (*(char *)(prop + 0x60) != 0)
             goto notify_departed;
@@ -1252,9 +1252,9 @@ iterate_props:
 
       if (*(char *)(prop + 0x127) == 0) {
         if (*(char *)(prop + 0x12e) == 0) {
-          if (*(int *)(actor + 0x270) == -1 ||
-              (*(int *)(actor + 0x278) != -1 &&
-               *(int *)(actor + 0x278) < 0xb4)) {
+          if (((actor_t *)actor)->target_target_prop_index == -1 ||
+              (((actor_t *)actor)->field_278 != -1 &&
+               ((actor_t *)actor)->field_278 < 0xb4)) {
             if (*(int *)(actor + 0x34) != -1) {
               encounter =
                 (char *)datum_get(*(data_t **)0x5ab270, *(int *)(actor + 0x34));
@@ -1265,17 +1265,17 @@ iterate_props:
             }
           } else {
           emit_contact_event:
-            if (*(int *)(actor + 0x18) != -1) {
-              if (*(int16_t *)(actor + 0x6a) < 3) {
+            if (((actor_t *)actor)->field_018 != -1) {
+              if (((actor_t *)actor)->field_06a < 3) {
                 if (*(char *)(prop + 0x12c) != 0) {
                   FUN_00046f10(0xf, *(int *)(prop + 0x18),
-                               *(int *)(actor + 0x18), 2, -1, 2, 0);
+                               ((actor_t *)actor)->field_018, 2, -1, 2, 0);
                 }
               } else if (FUN_0003b120(actor_handle) != 0 &&
                          actor_is_fighting(actor_handle) == 0 &&
                          *(char *)(prop + 0x12b) != 0 &&
                          *(int16_t *)(prop + 0x32) > 1) {
-                FUN_00046f10(0xf, *(int *)(actor + 0x18), *(int *)(prop + 0x18),
+                FUN_00046f10(0xf, ((actor_t *)actor)->field_018, *(int *)(prop + 0x18),
                              2, -1, 2, 0);
               }
             }
@@ -1298,33 +1298,33 @@ iterate_props:
     prop = (char *)FUN_00064570(iter);
   }
 
-  if (*(int *)(actor + 0x270) != -1) {
+  if (((actor_t *)actor)->target_target_prop_index != -1) {
     parent_prop =
-      (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
+      (char *)datum_get(*(data_t **)0x5ab23c, ((actor_t *)actor)->target_target_prop_index);
     if (*(int16_t *)(parent_prop + 0x24) > 3 &&
         *(int16_t *)(parent_prop + 0x24) < 6)
       best_prop = -1;
   }
-  if (*(int16_t *)(actor + 0x268) > 5)
-    *(char *)(actor + 0x274) = 1;
-  if (*(int16_t *)(actor + 0x268) > 9) {
-    *(int *)(actor + 0x278) = 0;
-    *(int16_t *)(actor + 0x4e) = awareness_slot;
-    *(int *)(actor + 0x54) = best_prop;
+  if (((actor_t *)actor)->target_target_type > 5)
+    ((actor_t *)actor)->field_274 = 1;
+  if (((actor_t *)actor)->target_target_type > 9) {
+    ((actor_t *)actor)->field_278 = 0;
+    ((actor_t *)actor)->field_04e = awareness_slot;
+    ((actor_t *)actor)->field_054 = best_prop;
     return;
   }
-  if (*(char *)(actor + 0x1c8) != 0) {
-    *(int *)(actor + 0x278) = -1;
-    *(int16_t *)(actor + 0x4e) = awareness_slot;
-    *(int *)(actor + 0x54) = best_prop;
+  if (((actor_t *)actor)->field_1c8 != 0) {
+    ((actor_t *)actor)->field_278 = -1;
+    ((actor_t *)actor)->field_04e = awareness_slot;
+    ((actor_t *)actor)->field_054 = best_prop;
     return;
   }
-  if (*(int *)(actor + 0x278) != -1) {
-    *(int *)(actor + 0x278) = *(int *)(actor + 0x278) + 1;
-    *(int16_t *)(actor + 0x4e) = awareness_slot;
-    *(int *)(actor + 0x54) = best_prop;
+  if (((actor_t *)actor)->field_278 != -1) {
+    ((actor_t *)actor)->field_278 = ((actor_t *)actor)->field_278 + 1;
+    ((actor_t *)actor)->field_04e = awareness_slot;
+    ((actor_t *)actor)->field_054 = best_prop;
     return;
   }
-  *(int16_t *)(actor + 0x4e) = awareness_slot;
-  *(int *)(actor + 0x54) = best_prop;
+  ((actor_t *)actor)->field_04e = awareness_slot;
+  ((actor_t *)actor)->field_054 = best_prop;
 }

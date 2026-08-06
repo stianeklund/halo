@@ -660,6 +660,7 @@ def plan_splits(census_data, layout=None):
     ordered = [wanted[o] for o in sorted(wanted) if o not in conflicted]
 
     # Overlap check: a 4-byte field at 0x18 forbids any field at 0x19..0x1b.
+    # Boundary check: a field must fit entirely within its pad_ run.
     kept = []
     for entry in ordered:
         if kept and entry["offset"] < kept[-1]["offset"] + kept[-1]["width"]:
@@ -670,6 +671,18 @@ def plan_splits(census_data, layout=None):
                           % (_describe(kept[-1]), kept[-1]["offset"]),
             })
             continue
+        pad = layout["fields"].get(entry["pad_offset"])
+        if pad is not None:
+            pad_end = pad["offset"] + (pad.get("span") or 0)
+            if entry["offset"] + entry["width"] > pad_end:
+                conflicts.append({
+                    "offset_hex": "0x%x" % entry["offset"],
+                    "sites": entry["sites"],
+                    "reason": "%s at 0x%x extends past %s boundary (0x%x)"
+                              % (_describe(entry), entry["offset"],
+                                 pad["name"], pad_end),
+                })
+                continue
         kept.append(entry)
 
     by_pad = {}
@@ -1283,6 +1296,260 @@ def load_binding(name):
     raise StructizeError("no binding named %r in %s" % (name, BINDINGS))
 
 
+def list_bindings():
+    if not BINDINGS.is_file():
+        return []
+    data = json.loads(BINDINGS.read_text(encoding="utf-8"))
+    return [row["id"] for row in data.get("bindings", []) if "id" in row]
+
+
+# --------------------------------------------------------------------------
+# Auto-discovery, campaign runner, and worklist
+#
+# These close the automation loop: an LLM agent calls `campaign --binding X`,
+# gets a JSON report with `next_actions`, resolves one conflict, calls
+# `campaign` again, and repeats until conflicts reach 0.  Every piece is
+# deterministic; the only non-determinism is the LLM's RE judgement on each
+# conflict, which the VC71 gate catches if wrong.
+# --------------------------------------------------------------------------
+def discover(binding_id):
+    """Find every source file with raw offset dereferences for a binding.
+
+    Returns a sorted list (most sites first, ties broken by filename) so that
+    a campaign processes the highest-value files first and the order is stable.
+    """
+    binding = load_binding(binding_id)
+    struct = binding["struct"]
+    bases = binding.get("bases", [])
+    if not bases:
+        raise StructizeError("binding %r has no base variable names" % binding_id)
+    glob_pattern = binding.get("sources_glob", "src/**/*.c")
+    files = {}
+    for source in sorted(ROOT.glob(glob_pattern)):
+        if not source.is_file() or source.suffix != ".c":
+            continue
+        try:
+            text = source.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for base in bases:
+            pattern = _deref_pattern(base)
+            count = len(pattern.findall(text))
+            if count > 0:
+                rel = source.resolve().relative_to(ROOT).as_posix()
+                entry = files.get(rel)
+                if entry is None:
+                    files[rel] = {"source": rel, "base": base, "sites": count}
+                else:
+                    entry["sites"] += count
+
+    ordered = sorted(files.values(),
+                     key=lambda f: (-f["sites"], f["source"]))
+    return {
+        "binding": binding_id,
+        "struct": struct,
+        "bases": bases,
+        "files": ordered,
+        "total_files": len(ordered),
+        "total_sites": sum(f["sites"] for f in ordered),
+    }
+
+
+def _conflict_hint(conflict):
+    """Generate a resolution hint from the conflict's reason string."""
+    reason = conflict.get("reason", "")
+    if "float" in reason and "int" in reason:
+        return ("Check instruction class at accesses to this offset: "
+                "FLD/FSTP (float) vs MOV (integer) -- may be a union")
+    if "widths" in reason:
+        return ("Check operand size in disassembly at accesses to this "
+                "offset: dword (32-bit) vs word (16-bit) vs byte (8-bit)")
+    if "signedness" in reason:
+        return ("Check sign extension: MOVSX (signed) vs MOVZX (unsigned) "
+                "at accesses to this offset")
+    return "Inspect disassembly at accesses to this offset to determine the correct type"
+
+
+def _aggregate_conflicts(per_file, struct_name):
+    """Deduplicate conflicts across files, summing blocked sites."""
+    by_offset = {}
+    for source, conflicts in per_file:
+        for c in conflicts:
+            key = c["offset_hex"]
+            if key not in by_offset:
+                by_offset[key] = {
+                    "offset_hex": key,
+                    "struct": struct_name,
+                    "reason": c.get("reason", ""),
+                    "sites_blocked": 0,
+                    "files": [],
+                }
+            entry = by_offset[key]
+            entry["sites_blocked"] += c.get("sites", 0)
+            if source not in entry["files"]:
+                entry["files"].append(source)
+    for entry in by_offset.values():
+        entry["resolution_hint"] = _conflict_hint(entry)
+    return sorted(by_offset.values(),
+                  key=lambda c: (-c["sites_blocked"], c["offset_hex"]))
+
+
+def _next_actions(conflicts, parked):
+    """Generate a ranked list of actionable items for the LLM."""
+    actions = []
+    for c in conflicts:
+        actions.append("resolve conflict at %s+%s: %s (%d sites blocked)"
+                       % (c["struct"], c["offset_hex"],
+                          c["reason"].split(" -- ")[0] if " -- " in c["reason"]
+                          else c["reason"], c["sites_blocked"]))
+    for source, funcs in sorted(parked.items()):
+        for fn in funcs:
+            actions.append("triage parked function %s in %s" % (fn, source))
+    return actions
+
+
+def campaign(binding_id, oracle="vc71", dry_run=False, census_dir=None):
+    """Run structize across every source file that touches a binding's struct.
+
+    This is the self-feeding loop entry point.  An LLM agent calls it, reads
+    the `next_actions` list, resolves one item, calls it again, and repeats.
+    """
+    info = discover(binding_id)
+    binding = load_binding(binding_id)
+    struct = info["struct"]
+    census_dir = Path(census_dir or (ROOT / "recovery" / "census"))
+    census_dir.mkdir(parents=True, exist_ok=True)
+
+    report = {
+        "ok": True,
+        "binding": binding_id,
+        "struct": struct,
+        "oracle": oracle,
+        "files_discovered": info["total_files"],
+        "total_sites_discovered": info["total_sites"],
+    }
+
+    if dry_run:
+        report["dry_run"] = True
+        report["files"] = info["files"]
+        return report
+
+    results = []
+    all_conflicts = []
+    all_parked = {}
+    total_rewritten = 0
+    total_eligible = 0
+    errors = []
+
+    for entry in info["files"]:
+        source = ROOT / entry["source"]
+        base = entry["base"]
+        alias = binding.get("alias")
+        try:
+            result = run_all(str(source), base, struct,
+                             census_dir=str(census_dir), alias=alias,
+                             oracle=oracle)
+        except StructizeError as exc:
+            errors.append({"source": entry["source"], "error": str(exc)})
+            results.append({"source": entry["source"], "base": base,
+                            "ok": False, "error": str(exc)})
+            continue
+
+        rewritten = 0
+        parked_fns = []
+        for step in result.get("steps", []):
+            if step.get("step") == "converge":
+                rewritten = step.get("sites_rewritten", 0)
+                parked_fns = step.get("parked", [])
+
+        total_rewritten += rewritten
+        total_eligible += result.get("steps", [{}])[-1].get("rewrite", 0)
+
+        results.append({
+            "source": entry["source"],
+            "base": base,
+            "sites_rewritten": rewritten,
+            "parked_functions": parked_fns,
+            "ok": result.get("ok", False),
+        })
+
+        if result.get("conflicts"):
+            all_conflicts.append((entry["source"], result["conflicts"]))
+        if parked_fns:
+            all_parked[entry["source"]] = parked_fns
+
+    conflicts = _aggregate_conflicts(all_conflicts, struct)
+    report["files_processed"] = len(results)
+    report["total_sites_rewritten"] = total_rewritten
+    report["results"] = results
+    report["conflicts"] = conflicts
+    report["conflicts_total"] = len(conflicts)
+    report["sites_blocked_by_conflicts"] = sum(c["sites_blocked"]
+                                               for c in conflicts)
+    report["parked_functions"] = all_parked
+    report["parked_functions_total"] = sum(len(v) for v in all_parked.values())
+    report["next_actions"] = _next_actions(conflicts, all_parked)
+    if errors:
+        report["errors"] = errors
+    return report
+
+
+def worklist(binding_id):
+    """Census-only conflict and refuse aggregation -- no compiles.
+
+    Cheaper than `campaign`: runs `census()` + `plan_splits()` per file to
+    report what is left to resolve, without modifying any files.
+    """
+    info = discover(binding_id)
+    struct = info["struct"]
+    layout = struct_layout(struct)
+
+    all_conflicts = []
+    per_file = []
+    total_rewrite = 0
+    total_split = 0
+    total_refuse = 0
+
+    for entry in info["files"]:
+        source = ROOT / entry["source"]
+        base = entry["base"]
+        try:
+            data = census(str(source), base, struct, layout=layout)
+        except StructizeError:
+            continue
+        plan = plan_splits(data, layout=layout)
+        summary = data.get("summary", {})
+        total_rewrite += summary.get("rewrite", 0)
+        total_split += summary.get("split", 0)
+        total_refuse += summary.get("refuse", 0)
+
+        if plan.get("conflicts"):
+            all_conflicts.append((entry["source"], plan["conflicts"]))
+
+        per_file.append({
+            "source": entry["source"],
+            "base": base,
+            "rewrite": summary.get("rewrite", 0),
+            "split": summary.get("split", 0),
+            "refuse": summary.get("refuse", 0),
+        })
+
+    conflicts = _aggregate_conflicts(all_conflicts, struct)
+    return {
+        "binding": binding_id,
+        "struct": struct,
+        "files": per_file,
+        "total_rewrite": total_rewrite,
+        "total_split": total_split,
+        "total_refuse": total_refuse,
+        "conflicts": conflicts,
+        "conflicts_total": len(conflicts),
+        "sites_blocked_by_conflicts": sum(c["sites_blocked"]
+                                          for c in conflicts),
+        "next_actions": _next_actions(conflicts, {}),
+    }
+
+
 # --------------------------------------------------------------------------
 # CLI
 # --------------------------------------------------------------------------
@@ -1453,8 +1720,10 @@ def main(argv=None):
 
     p = sub.add_parser("run", help="census -> split -> re-census -> converge (use this)")
     p.add_argument("--source", required=True)
-    p.add_argument("--base", required=True)
-    p.add_argument("--struct", required=True)
+    p.add_argument("--base", default=None)
+    p.add_argument("--struct", default=None)
+    p.add_argument("--binding",
+                   help="look up --base/--struct from recovery/bindings.json")
     p.add_argument("--manifest")
     p.add_argument("--alias")
     p.add_argument("--census-dir")
@@ -1474,6 +1743,25 @@ def main(argv=None):
 
     p = sub.add_parser("status", help="one-screen census summary")
     p.add_argument("--census", required=True)
+
+    p = sub.add_parser("discover",
+                       help="find source files with raw offset dereferences for a binding")
+    p.add_argument("--binding", required=True,
+                   help="binding id from recovery/bindings.json")
+
+    p = sub.add_parser("campaign",
+                       help="run structize across every file touching a binding's struct")
+    p.add_argument("--binding", required=True,
+                   help="binding id from recovery/bindings.json")
+    p.add_argument("--dry-run", action="store_true",
+                   help="discover files and report the plan without executing")
+    p.add_argument("--oracle", choices=("vc71", "clang"), default="vc71")
+    p.add_argument("--census-dir")
+
+    p = sub.add_parser("worklist",
+                       help="census-only conflict aggregation without compiling")
+    p.add_argument("--binding", required=True,
+                   help="binding id from recovery/bindings.json")
 
     args = parser.parse_args(argv)
     if args.self_test:
@@ -1544,9 +1832,19 @@ def main(argv=None):
                                 "function parked by converge", apply=args.apply))
             return 0
         if args.command == "run":
-            result = run_all(args.source, args.base, args.struct,
+            base = args.base
+            struct = args.struct
+            alias = args.alias
+            if args.binding:
+                b = load_binding(args.binding)
+                struct = struct or b["struct"]
+                base = base or b["bases"][0]
+                alias = alias or b.get("alias")
+            if not base or not struct:
+                parser.error("--base/--struct or --binding required")
+            result = run_all(args.source, base, struct,
                              census_dir=args.census_dir, manifest=args.manifest,
-                             alias=args.alias, apply_splits_too=not args.no_split,
+                             alias=alias, apply_splits_too=not args.no_split,
                              oracle=args.oracle)
             _emit(result)
             if not result.get("ok"):
@@ -1562,6 +1860,19 @@ def main(argv=None):
         if args.command == "status":
             data = json.loads(Path(args.census).read_text(encoding="utf-8"))
             _emit(data["summary"])
+            return 0
+        if args.command == "discover":
+            _emit(discover(args.binding))
+            return 0
+        if args.command == "campaign":
+            result = campaign(args.binding, oracle=args.oracle,
+                              dry_run=args.dry_run, census_dir=args.census_dir)
+            _emit(result)
+            if not result.get("ok"):
+                return 1
+            return 0
+        if args.command == "worklist":
+            _emit(worklist(args.binding))
             return 0
         parser.error("a subcommand is required")
     except (OSError, ValueError, StructizeError) as exc:
