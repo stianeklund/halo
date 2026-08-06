@@ -8091,8 +8091,8 @@
       "source": "src/halo/main/console.c"
     },
     "FUN_000ff9e0": {
-      "opnd_percent": 54.7,
-      "score": 78.9,
+      "opnd_percent": 63.8,
+      "score": 80.8,
       "source": "src/halo/main/console.c"
     },
     "FUN_000ffc00": {
@@ -17510,9 +17510,9 @@
       "source": "src/halo/main/console.c"
     },
     "console_update": {
-      "opnd_percent": 53.8,
+      "opnd_percent": 62.9,
       "ref": "synth",
-      "score": 78.9,
+      "score": 80.8,
       "source": "src/halo/main/console.c"
     },
     "console_warning": {

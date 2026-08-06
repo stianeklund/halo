@@ -399,22 +399,26 @@ static char *console_hud_chat_flag(void)
  * Confirmed: history ring indexing: (head - browse + 8) % 8 * 255.
  * Confirmed: CALL 0x97330 (edit_text_set_cursor_to_end) with 0x46d118.
  */
+struct console_key_entry {
+  int16_t key_code;
+  int16_t key_code2;
+};
+
 bool console_update(void)
 {
-  int16_t key_index;
+  int16_t key_index = 0;
+  struct console_key_entry *keys = (struct console_key_entry *)0x46cf68;
 
   if (*console_is_open() != 0) {
-    if (*console_key_count() > 0) {
-      key_index = 0;
+    if (key_index < *console_key_count()) {
       do {
-        int16_t key_code = *console_key_code(key_index);
-        if (key_code == -1) {
+        if (keys[key_index].key_code == -1) {
           display_assert("key->key_code!=NONE",
                          "c:\\halo\\SOURCE\\main\\console.c", 0xb8, 1);
           system_exit(-1);
         }
 
-        switch (key_code) {
+        switch (keys[key_index].key_code2) {
         case 0x10:
         case_10:
           if (*console_is_open() != 0) {
