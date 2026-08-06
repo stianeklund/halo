@@ -1859,6 +1859,42 @@ void FUN_000c1b20(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, value);
 }
 
+/* 0xc1b50 — HS script function handler: reports whether the recorded player
+ * control "look relative up" action fired, returning the boolean to the
+ * calling script thread.
+ *
+ * Callees (both cdecl, no register args, both ported):
+ *   0xb6bb0 = player_control_action_test_look_relative_up(void) -> bool in AL
+ *   0xcbf80 = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc1b50-0xc1b76, 15 instructions): cdecl,
+ * plain RET, frame is PUSH EBP / MOV EBP,ESP / PUSH ECX (one 4-byte local at
+ * EBP-0x4; no SUB ESP).  The body reads only [EBP+0xc] = thread_datum
+ * (arg 2); function_index and init complete the standard hs-evaluator
+ * signature shared by the sibling handlers but are unused here.  The Ghidra
+ * `void FUN_000c1b50(void)` prototype is wrong — the frame reads [EBP+0xc],
+ * which Ghidra surfaces as `in_stack_00000008`, and Ghidra's `extraout_AL` is
+ * the AL return of the predicate, not a register argument.  No ADD ESP
+ * follows the 0xb6bb0 CALL, confirming the predicate takes no args.
+ *
+ * The result local is zero-initialised as a full dword (MOV dword [EBP-4],0)
+ * and then only its low byte is overwritten with AL (MOV byte [EBP-4],AL)
+ * before the whole dword is re-read and pushed (MOV EAX,[EBP-4] / PUSH EAX).
+ * The `*(char *)&value` store reproduces that pair; a direct
+ * call-in-argument or a (unsigned char) widen would emit MOVZX instead.
+ * Push order (PUSH EAX ; PUSH ECX, ECX = [EBP+0xc]) confirms thread_datum is
+ * hs_return's first argument, and the trailing ADD ESP,0x8 confirms
+ * hs_return's two cdecl args.  Identical idiom to the adjacent handlers at
+ * 0xc1a00/0xc1a30/0xc1a60/0xc1a90/0xc1ac0/0xc1af0/0xc1b20. */
+void FUN_000c1b50(int16_t function_index, int thread_datum, char init)
+{
+  int value;
+
+  value = 0;
+  *(char *)&value = (char)player_control_action_test_look_relative_up();
+  hs_return(thread_datum, value);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
