@@ -1974,8 +1974,8 @@ void FUN_000c1bb0(int16_t function_index, int thread_datum, char init)
  * Calls the zero-argument predicate and commits its bool result to the
  * calling script thread.
  *
- *   0xb6ba0 = player_control_action_test_look_relative_right(void) -> bool in AL
- *   0xcbf80 = hs_return(thread_datum, value)
+ *   0xb6ba0 = player_control_action_test_look_relative_right(void) -> bool in
+ * AL 0xcbf80 = hs_return(thread_datum, value)
  *
  * ABI (verified against disassembly 0xc1be0-0xc1c06, 15 instructions): cdecl,
  * plain RET, frame is PUSH EBP / MOV EBP,ESP / PUSH ECX (one 4-byte local at
@@ -2004,6 +2004,49 @@ void FUN_000c1be0(int16_t function_index, int thread_datum, char init)
 
   value = 0;
   *(char *)&value = (char)player_control_action_test_look_relative_right();
+  hs_return(thread_datum, value);
+}
+
+/* 0xc1c10 — HS script function handler: reports whether the recorded player
+ * control produced look movement in any relative direction, returning the
+ * boolean to the calling script thread.
+ *
+ * Callees (both cdecl, no register args, both ported):
+ *   0xb6b70 = player_control_action_test_look_relative_all_directions(void)
+ *             -> bool in AL
+ *   0xcbf80 = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc1c10-0xc1c36, 15 instructions): cdecl,
+ * plain RET, frame is PUSH EBP / MOV EBP,ESP / PUSH ECX (one 4-byte local at
+ * EBP-0x4; no SUB ESP).  The body reads only [EBP+0xc] = thread_datum
+ * (arg 2); function_index and init complete the standard hs-evaluator
+ * signature shared by the sibling handlers but are unused here.  The Ghidra
+ * `void FUN_000c1c10(void)` prototype is wrong — the frame reads [EBP+0xc],
+ * which Ghidra surfaces as `in_stack_00000008`, and Ghidra's `extraout_AL` is
+ * the AL return of the predicate, not a register argument.  No ADD ESP
+ * follows the 0xb6b70 CALL, confirming the predicate takes no args.
+ *
+ * The result local is zero-initialised as a full dword (MOV dword [EBP-4],0)
+ * and then only its low byte is overwritten with AL (MOV byte [EBP-4],AL)
+ * before the whole dword is re-read and pushed (MOV EAX,[EBP-4] / PUSH EAX).
+ * The `*(char *)&value` store reproduces that pair; a direct
+ * call-in-argument or a (unsigned char) widen would emit MOVZX instead.  This
+ * is a BYTE store, unlike the WORD-store siblings at 0xc18d0/0xc1900.  The
+ * original loads ECX = [EBP+0xc] between the CALL and the AL store (MSVC
+ * scheduling); C cannot express that ordering and it has no semantic effect.
+ * Push order (PUSH EAX ; PUSH ECX, ECX = [EBP+0xc]) confirms thread_datum is
+ * hs_return's first argument, and the trailing ADD ESP,0x8 confirms
+ * hs_return's two cdecl args.  Like the 0xc1bb0/0xc1be0 pair this handler has
+ * no hs_macro_function_evaluate call and no NULL-result check — the body
+ * contains exactly two CALLs.  Follows the look-relative direction quartet at
+ * 0xc1a00 through 0xc1be0 with the any-direction aggregate. */
+void FUN_000c1c10(int16_t function_index, int thread_datum, char init)
+{
+  int value;
+
+  value = 0;
+  *(char *)&value =
+    (char)player_control_action_test_look_relative_all_directions();
   hs_return(thread_datum, value);
 }
 
