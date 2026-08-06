@@ -635,15 +635,24 @@ def plan_splits(census_data, layout=None):
             wanted[offset] = {"offset": offset, "width": site["cast_width"],
                               "signed": site["cast_signed"], "kind": site["cast_kind"],
                               "pad": site["pad"], "pad_offset": site["pad_offset"],
-                              "sites": 1}
+                              "sites": 1,
+                              "functions": {site.get("function")}}
         elif (existing["width"], existing["signed"], existing["kind"]) != key:
             existing["sites"] += 1
             existing.setdefault("seen", set()).add(_describe(existing))
             existing["seen"].add(_describe({"kind": site["cast_kind"],
                                             "width": site["cast_width"],
                                             "signed": site["cast_signed"]}))
+            existing.setdefault("type_functions", {})
+            desc = _describe({"kind": site["cast_kind"], "width": site["cast_width"],
+                              "signed": site["cast_signed"]})
+            existing["type_functions"].setdefault(desc, set()).add(site.get("function"))
+            own_desc = _describe(existing)
+            existing["type_functions"].setdefault(own_desc, set()).update(
+                existing.get("functions", set()))
         else:
             existing["sites"] += 1
+            existing.setdefault("functions", set()).add(site.get("function"))
 
     # One conflict row per offset, naming every type it was accessed with, so
     # the worklist reads as a question ("which is it?") rather than as noise.
@@ -651,11 +660,15 @@ def plan_splits(census_data, layout=None):
     for offset, entry in sorted(wanted.items()):
         if entry.get("seen"):
             conflicted.add(offset)
+            type_fns = {}
+            for desc, fns in entry.get("type_functions", {}).items():
+                type_fns[desc] = sorted(f for f in fns if f)
             conflicts.append({
                 "offset_hex": "0x%x" % offset,
                 "sites": entry["sites"],
                 "reason": "accessed as %s -- widths/signedness disagree"
                           % " and ".join(sorted(entry["seen"])),
+                "functions_by_type": type_fns,
             })
     ordered = [wanted[o] for o in sorted(wanted) if o not in conflicted]
 
@@ -1383,11 +1396,17 @@ def _aggregate_conflicts(per_file, struct_name):
                     "reason": c.get("reason", ""),
                     "sites_blocked": 0,
                     "files": [],
+                    "functions_by_type": {},
                 }
             entry = by_offset[key]
             entry["sites_blocked"] += c.get("sites", 0)
             if source not in entry["files"]:
                 entry["files"].append(source)
+            for desc, fns in c.get("functions_by_type", {}).items():
+                merged = entry["functions_by_type"].setdefault(desc, [])
+                for fn in fns:
+                    if fn and fn not in merged:
+                        merged.append(fn)
     for entry in by_offset.values():
         entry["resolution_hint"] = _conflict_hint(entry)
     return sorted(by_offset.values(),
