@@ -1945,6 +1945,71 @@ void ai_debug_select_actor(int encounter_idx, int param_2)
   }
 }
 
+/* FUN_0004b2b0: advance the AI debug text cursor by one line.
+ *
+ * Saves the current cursor position (vec3 @0x5ac9b0) into the previous-position
+ * slot (vec3 @0x5ac9a0), then steps the cursor along the world up vector:
+ *   current += line_spacing(0x5ac990) * up[0..2]
+ * and returns a pointer to the SAVED previous position, so the caller renders
+ * its string at the old spot while the cursor already points at the next line.
+ *
+ * Confirmed (cachebeta.xbe 0x4b2b0..0x4b31a, 8 x87/GPR ops, no CALLs):
+ *   - Implicit-EAX return.  `MOV EAX,0x5ac9a0` at 0x4b309 sits between the last
+ *     FMUL and the last FADD, i.e. it is a deliberate return value, not dead
+ *     code.  All 63 call sites in the XBE (0x4bc24 .. 0x53486) follow the call
+ *     with `PUSH EAX; PUSH 1; CALL 0x189cb0`, so the pointer IS consumed.  The
+ *     kb decl was `void (void)`; corrected to `float *(void)` — leaving it void
+ *     would have handed every caller an undefined EAX.
+ *   - The three-dword save is a GPR copy in the original: three loads into
+ *     EAX/ECX/EDX from 0x5ac9b0/b4/b8, then three stores to 0x5ac9a0/a4/a8,
+ *     with the first FLD and the up-pointer load scheduled into the gaps.
+ *     Transcribed with three dword temps so the loads precede the stores;
+ *     writing it as three plain assignments makes the compiler emit
+ *     interleaved load/store pairs instead.
+ *   - The up-vector pointer at 0x31fc44 is loaded ONCE into EAX at 0x4b2cc,
+ *     i.e. after the first store frees EAX; all three FMULs index [EAX],
+ *     [EAX+4], [EAX+8].  Cached in `up`, read after the copy.
+ *   - FPU operand order per component is FLD [0x5ac990]; FMUL [EAX+n];
+ *     FADD <pos>; FSTP — so the C expression must be `scale * up[n] + pos`,
+ *     scale first.  All adds; no FSUB, so no subtraction-direction hazard.
+ *   - Asymmetric addend, preserved deliberately: component 0 FADDs from
+ *     0x5ac9b0 itself (0x4b2df) while components 1 and 2 FADD from the
+ *     just-saved copies at 0x5ac9a4 / 0x5ac9a8 (0x4b2f4 / 0x4b30e).  The values
+ *     are identical only because the save happens first — do not reorder.
+ *
+ *   - The FIRST read of the line spacing is hoisted into a local, because the
+ *     reference schedules its `flds 0x5ac990` into the middle of the copy
+ *     block rather than after it.  Components 1 and 2 must keep reading the
+ *     global directly so their `fmuls 0x5ac990` memory operands survive.
+ *     Nothing in this function writes 0x5ac990, so the hoist is value-safe.
+ *
+ * Uncertain: no __FILE__ string and no assert anchor, so the original symbol
+ * name is unknown; kept as FUN_0004b2b0. */
+float *FUN_0004b2b0(void)
+{
+  float *up;
+  uint32_t x;
+  float line_spacing;
+  uint32_t y;
+  uint32_t z;
+
+  line_spacing = *(float *)0x5ac990;
+  x = *(uint32_t *)0x5ac9b0;
+  y = *(uint32_t *)0x5ac9b4;
+  z = *(uint32_t *)0x5ac9b8;
+  *(uint32_t *)0x5ac9a0 = x;
+  *(uint32_t *)0x5ac9a4 = y;
+  *(uint32_t *)0x5ac9a8 = z;
+
+  up = *(float **)0x31fc44;
+
+  *(float *)0x5ac9b0 = line_spacing * up[0] + *(float *)0x5ac9b0;
+  *(float *)0x5ac9b4 = *(float *)0x5ac990 * up[1] + *(float *)0x5ac9a4;
+  *(float *)0x5ac9b8 = *(float *)0x5ac990 * up[2] + *(float *)0x5ac9a8;
+
+  return (float *)0x5ac9a0;
+}
+
 /* FUN_0004b7a0: service the pending "select actor" debug-key request.  Asks
  * FUN_00049c70 for a candidate actor handle; when one exists, describes it into
  * the shared error/description buffer at 0x5ab100, echoes "selected %s" to the
