@@ -1336,6 +1336,18 @@
         "The meaning of the second per-hit vector passed to FUN_00189860 as point plus 0xc0 is not established and is treated as an opaque vector rather than named."
       ]
     },
+    "0x495b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The point arrays at 0x5f8cd4 and 0x5f8d94 have a 12-byte (vec3) stride, derived from 'lea (%eax,%eax,2),%ecx; shl $0x2,%ecx' in the delinked reference; Ghidra's undefined-byte pointer arithmetic misleadingly rendered this as a stride of 3.",
+        "Both loop counters are int16 held in SI and widened by 'movswl %si,%eax' before each bound compare, so they are transcribed as a 'short counter' with an 'int i' copy rather than a plain int induction variable."
+      ],
+      "uncertain": [
+        "The residual ~2.5pp VC71 gap at 86.1 percent is MSVC npad loop alignment ('leal (%esp),%esp', 'leal (%ecx),%ecx') plus duplicated loop-head jumps, none of which can be expressed in C source.",
+        "The permuter reached 90.1 percent only by narrowing the byte offset to 16 bits via a 'short' temporary; the delinked reference computes and consumes that offset entirely in 32 bits, so the permutation was rejected as a semantic mutation and the faithful 86.1 percent form was kept."
+      ]
+    },
     "0x496c0": {
       "kind": "function",
       "status": "ported",
@@ -1356,6 +1368,18 @@
         "The residual [LOADW-WARN] on this function is not a width bug: reference and lift both use movswl n16 loads, but VC71 rebased the line-record induction pointer to the record start (+0x0/+0x2/+0x4) while the original bases it at the color field (-0x4/-0x2/+0x0); effective addresses are identical and the mnemonic match is 82/82."
       ]
     },
+    "0x49f60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x4a220": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x4a290": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x4a460": {
       "kind": "function",
       "status": "ported"
@@ -1375,6 +1399,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x4afa0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The kb declaration of datum_absolute_index_to_index (0x119270) returns int, but this function NULL-tests the result and dereferences it at +0xd (active flag, char) and +0x2a (actor count, int16), so the return value is really a datum pointer; the declaration is ABI-immutable so the result is cast to char* at the call site."
+      ],
+      "uncertain": [
+        "Scenario encounter tag-block element layout (element size 0xb0 at scenario+0x42c) is only partially known: +0x00 is the char name[32] printed as %s, +0x20 is a flags byte with bit 0x20 selecting the 3d-positions description and bit 0x40 selecting manual over auto bsp mode, and +0x7e is an int16 bsp index where -1 prints NONE; the remaining fields are unexamined."
+      ]
+    },
     "0x4b1b0": {
       "kind": "function",
       "status": "ported"
@@ -1382,6 +1416,20 @@
     "0x4c0f0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x4c170": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x534d0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The kb declarations for FUN_00052bb0 (1 stack arg), FUN_0004c920 (3 stack args) and FUN_00052b60 (byte in DL) were corrected from void(void) based on the call sites at 0x53575, 0x53588 and 0x535c8; the parameter names are inferred from the globals feeding them, not from the callees."
+      ],
+      "uncertain": [
+        "The byte at 0x5aca67 passed in DL to FUN_00052b60 is an opaque mode selector; it sits immediately after the 0x5aca66 enable flag but its meaning is unconfirmed."
+      ]
     },
     "0x53680": {
       "kind": "function",

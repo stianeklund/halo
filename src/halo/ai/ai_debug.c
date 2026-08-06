@@ -945,6 +945,181 @@ void ai_debug_speak(const char *name)
   }
 }
 
+/* ai_debug_speak_list (0x4a290): arm the debug "speak" request block for the
+ * currently selected debug actor, selecting the vocalization by naming one of
+ * the engine's fixed speech-list categories instead of a single vocalization.
+ *
+ * Confirmed ABI: __cdecl, ONE dword stack argument.  `MOV ECX,dword ptr
+ *   [EBP+0x8]` at 0x4a3b0 and `MOV EDX,dword ptr [EBP+0x8]` at 0x4a3d1 read
+ *   the parameter; it is passed to crt_stricmp and printed with a "%s"
+ *   conversion, so it is a name string.  The terminator is a plain RET.  The
+ *   kb.json declaration previously read "void ai_debug_speak_list(void);",
+ *   which is wrong; it is corrected as part of this lift.  Ghidra surfaces
+ *   the parameter as `in_stack_00000004` because of that bad declaration.
+ *
+ * Confirmed frame: PUSH EBP / MOV EBP,ESP / SUB ESP,0x78, then the early-out
+ *   `CMP EAX,-1 / JE 0x4a457` runs BEFORE `PUSH EBX / PUSH ESI / PUSH EDI`
+ *   (0x4a2a4..0x4a2a8), so the not-selected path skips the callee-saved
+ *   pushes entirely and its epilogue at 0x4a457 is just MOV ESP,EBP / POP EBP
+ *   / RET.  The early return therefore has to be the first statement, ahead of
+ *   any local initialization.  0x78 = 15 * 8, exactly the table below.
+ *
+ * Confirmed table layout (derived from the raw MOV instructions at
+ * 0x4a2b0..0x4a396, not from the decompiler's field labels).  Fifteen 8-byte
+ * entries at [EBP-0x78] stepping +8; each entry stores a dword name pointer at
+ * +0, a word index at +4 and a byte flag at +6.  The pad byte at +7 is never
+ * written, which is what a member-wise brace initializer of an automatic
+ * aggregate emits (a .rdata template copy would have written it), so the
+ * original declared this as a local array, not a static one.
+ *   ebp-  | name literal            | index | flag
+ *   0x78  | 0x25ae38 "all"          | 0     | 1
+ *   0x70  | 0x25ae30 "idle"         | 0     | 0
+ *   0x68  | 0x25ae24 "involuntary"  | 6     | 0
+ *   0x60  | 0x25ae14 "hurting people"        | 0x15 | 0
+ *   0x58  | 0x25ae08 "being hurt"            | 0x1d | 0
+ *   0x50  | 0x25adf8 "killing people"        | 0x31 | 0
+ *   0x48  | 0x25ade0 "player kill comments"  | 0x50 | 0
+ *   0x40  | 0x25add0 "friends dying"         | 0x60 | 0
+ *   0x38  | 0x25adc4 "shouting"              | 0x6c | 0
+ *   0x30  | 0x25adb0 "group communication"   | 0x7b | 0
+ *   0x28  | 0x25ada8 "actions"               | 0x94 | 0
+ *   0x20  | 0x25ad98 "exclamations"          | 0xb1 | 0
+ *   0x18  | 0x25ad84 "post-combat actions"   | 0xbc | 0
+ *   0x10  | 0x25ad70 "post-combat chatter"   | 0xc5 | 0
+ *   0x08  | 0 (EBX)                          | 0xffff | 0   <- terminator
+ * Every zero in the block is stored from EBX, which is XOR-zeroed once at
+ * 0x4a2a5 and reused as the literal 0 and as the NULL compare operand for the
+ * rest of the function.
+ *
+ * Loop shape: both loops are rotated `while (entry->name != NULL)` forms.  In
+ * each, the first entry's name is materialized as the literal 0x25ae38 in the
+ * preheader (`MOV EAX,0x25ae38 / JMP body` at 0x4a3a6 and 0x4a3e6) instead of
+ * being reloaded from the frame - MSVC const-propagated table[0].name through
+ * the brace initializer and proved the leading test redundant.  The search
+ * loop's `break` on a stricmp match lands on a re-test of `entry->name`
+ * (`CMP dword ptr [ESI],EBX` at 0x4a3cd), while the bottom-of-loop exit jumps
+ * straight to the error path at 0x4a3d1; that is the classic lowering of a
+ * `while` search followed by a post-loop `if (entry->name != NULL)`, not a
+ * do/while.
+ *
+ * Call-site verification (cdecl: the first PUSH is the last C argument):
+ *   arg# | binary source                       | C expression       | match
+ *   datum_get (0x119320), CALL 0x4a399, ADD ESP,8 at 0x4a3a0
+ *     1  | PUSH EAX (= [0x6325a4]) at 0x4a2af  | *(data_t **)0x6325a4 | yes
+ *     2  | PUSH EAX (= [0x5ac9f8]) at 0x4a2a9  | *(int32_t *)0x5ac9f8 | yes
+ *     Both pushes were hoisted above the table stores by the scheduler; the
+ *     CALL itself follows the whole block.  Result lives in EDI afterwards.
+ *   crt_stricmp (0x1dd801), CALL 0x4a3b5, ADD ESP,8
+ *     1  | PUSH EAX (current entry name)       | entry->name        | yes
+ *     2  | PUSH ECX (= [EBP+0x8]), pushed 1st  | list_name          | yes
+ *   console_printf (0xff4d0), CALL 0x4a3db, ADD ESP,0xc
+ *     1  | PUSH EBX (= 0), pushed last         | 0                  | yes
+ *     2  | PUSH 0x25ad28                       | format literal     | yes
+ *     3  | PUSH EDX (= [EBP+0x8]), pushed 1st  | list_name          | yes
+ *   console_printf (0xff4d0), CALL 0x4a3f7, ADD ESP,0xc
+ *     1  | PUSH EBX (= 0), pushed last         | 0                  | yes
+ *     2  | PUSH 0x25ad1c                       | "    %s"           | yes
+ *     3  | PUSH EAX (current entry name)       | entry->name        | yes
+ * All three callees are cdecl and already in kb.json; none takes register
+ * arguments, so no @<reg> annotations are involved.
+ *
+ * Confirmed store widths and order in the found path (LOADW-sensitive):
+ *   address  | width | source                | instruction
+ *   0x5aca89 | byte  | 1                     | 0x4a423
+ *   0x6324e0 | byte  | 1                     | 0x4a42a
+ *   0x6324e8 | word  | 0 (BX)                | 0x4a431
+ *   0x6324e1 | byte  | 1                     | 0x4a438
+ *   0x6324e2 | byte  | entry->flag (CL)      | 0x4a43f
+ *   0x6324e4 | dword | actor[+0x18]          | 0x4a448
+ *   0x6324ea | word  | entry->index (AX)     | 0x4a44e
+ * This is the same pending-speech record ai_debug_speak (0x4a220) fills, with
+ * two extra bytes set: 0x6324e1 is 1 here (0 there) and 0x6324e2 carries the
+ * table's per-entry flag byte, which is 1 only for the "all" entry.
+ *
+ * Confirmed widths: `MOV AX,word ptr [ESI+4] / CMP AX,0xffff` makes the index
+ *   a 16-bit field; `MOV CL,byte ptr [ESI+6]` makes the flag an 8-bit field.
+ *   Declaring either as int would add movswl/movzbl.  The flag byte is loaded
+ *   into a register before the store block starts, so it is kept in a local.
+ *   `actor[+0x18]` is read twice (CMP at 0x4a410, MOV at 0x4a445) - the
+ *   original does not cache it, so neither do we.
+ *
+ * Inferred: the index column is an index into the engine's vocalization table
+ *   (the same space ai_debug_speak's FUN_001a67e0 lookup returns), and the
+ *   values are the first vocalization of each named category.
+ * Uncertain: the meaning of the individual bytes in 0x6324e0..0x6324e2 is not
+ *   recoverable from these two call sites, so they are left as raw addresses;
+ *   likewise the flag column's semantics beyond "set only for all".
+ *
+ * No FPU instructions, no SEH, no _chkstk (0x78 is under the probe
+ * threshold). */
+void ai_debug_speak_list(const char *list_name)
+{
+  struct ai_speak_list_entry {
+    const char *name;
+    int16_t index;
+    uint8_t flag;
+  };
+
+  if (*(int32_t *)0x5ac9f8 == -1)
+    return;
+
+  {
+    struct ai_speak_list_entry speak_lists[15] = {
+      { "all",                  0,      1 },
+      { "idle",                 0,      0 },
+      { "involuntary",          6,      0 },
+      { "hurting people",       0x15,   0 },
+      { "being hurt",           0x1d,   0 },
+      { "killing people",       0x31,   0 },
+      { "player kill comments", 0x50,   0 },
+      { "friends dying",        0x60,   0 },
+      { "shouting",             0x6c,   0 },
+      { "group communication",  0x7b,   0 },
+      { "actions",              0x94,   0 },
+      { "exclamations",         0xb1,   0 },
+      { "post-combat actions",  0xbc,   0 },
+      { "post-combat chatter",  0xc5,   0 },
+      { NULL,                   -1,     0 }
+    };
+    struct ai_speak_list_entry *entry;
+    void *actor;
+    int16_t index;
+    uint8_t flag;
+
+    actor = datum_get(*(data_t **)0x6325a4, *(int32_t *)0x5ac9f8);
+
+    entry = speak_lists;
+    while (entry->name != NULL) {
+      if (crt_stricmp(entry->name, list_name) == 0)
+        break;
+      entry++;
+    }
+
+    if (entry->name != NULL) {
+      if (*(int32_t *)((char *)actor + 0x18) != -1) {
+        index = entry->index;
+        if (index != -1) {
+          flag = entry->flag;
+          *(uint8_t *)0x5aca89 = 1;
+          *(uint8_t *)0x6324e0 = 1;
+          *(int16_t *)0x6324e8 = 0;
+          *(uint8_t *)0x6324e1 = 1;
+          *(uint8_t *)0x6324e2 = flag;
+          *(int32_t *)0x6324e4 = *(int32_t *)((char *)actor + 0x18);
+          *(int16_t *)0x6324ea = index;
+        }
+      }
+    }
+    else {
+      console_printf(
+        0, "ai_speak_list: couldn't find the list '%s'... here are the known lists:",
+        list_name);
+      for (entry = speak_lists; entry->name != NULL; entry++)
+        console_printf(0, "    %s", entry->name);
+    }
+  }
+}
+
 /* ai_debug_toggle_flags (0x4a460): parse a list of debug-flag names into a
  * temporary bit vector and toggle those bits in a caller-supplied vector.
  *
