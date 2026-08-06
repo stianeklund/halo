@@ -32489,7 +32489,10 @@
         },
         {
           "addr": "0x53af0",
-          "decl": "void FUN_00053af0(void);"
+          "decl": "void FUN_00053af0(void);",
+          "name": "FUN_00053af0",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         }
       ],
       "name": "ai_debug.obj",
