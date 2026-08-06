@@ -2129,6 +2129,47 @@ void FUN_000c1c70(int16_t function_index, int thread_datum, char init)
   return;
 }
 
+/* FUN_000c1cb0 @ 0x000c1cb0 — HaloScript builtin handler: evaluate the script
+ * function's arguments and, on a non-NULL evaluation record, teleport a
+ * player, then commit a 0 result to the calling HS thread.
+ *
+ * ABI (verified against the disassembly at 0xc1cb0): cdecl, plain RET.  The
+ * frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no locals and no SUB ESP; ESI is
+ * the only callee-saved register used and caches thread_datum so it can be
+ * reused as hs_return's first argument.  Ghidra's `void FUN_000c1cb0(void)`
+ * prototype came from the stale kb declaration, which is why it reported the
+ * parameters as in_stack_00000004/8/c; the real slots are [EBP+0x8] =
+ * function_index (int16, arrives in ECX), [EBP+0xc] = thread_datum,
+ * [EBP+0x10] = init (char, arrives in EAX).  These are ordinary stack
+ * parameters, not register arguments.
+ *
+ * hs_macro_function_evaluate is declared `int` in kb.json but returns a
+ * pointer to the evaluated-argument record; TEST EAX,EAX / JZ is a NULL check,
+ * not a boolean test.  Cast at the call site exactly as the siblings do.
+ *
+ * Ghidra dropped debug_player_teleport's arguments entirely (it modelled the
+ * callee as no-arg).  The disassembly loads both off the returned record, with
+ * deliberately different extension widths — do NOT type them the same:
+ *   MOVSX EAX,word ptr [EAX]        -> arg1, SIGN-extended int16 at record +0
+ *   XOR EDX,EDX ; MOV DX,[EAX+0x4]  -> arg2, ZERO-extended uint16 at record +4
+ * Push order is PUSH EDX then PUSH EAX, so the +0 field is the first argument.
+ *
+ * Cleanup for the teleport and hs_return calls is coalesced into a single
+ * ADD ESP,0x10 (0x8 + 0x8) — ordinary MSVC adjacent-call codegen, not a stack
+ * imbalance, and the reason the ARG_COUNT enrichment hazard reported against
+ * hs_return (cleanup=4 vs decl=2) is a false positive. */
+void FUN_000c1cb0(int16_t function_index, int thread_datum, char init)
+{
+  char *args;
+
+  args = (char *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (args != (char *)0) {
+    debug_player_teleport((int)*(int16_t *)args, (int)*(uint16_t *)(args + 4));
+    hs_return(thread_datum, 0);
+  }
+  return;
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
