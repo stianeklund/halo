@@ -2314,6 +2314,62 @@ void FUN_000c1d90(int16_t function_index, int thread_datum, char init)
   return;
 }
 
+/* HaloScript builtin: deliberately crash the game.
+ *
+ * Same wrapper shape as FUN_000c1d10 / FUN_000c1d50 above: evaluate the macro
+ * arguments, and on a non-NULL result block dereference its first dword and
+ * hand it to the callee, then return void to the calling script thread via
+ * hs_return(thread_datum, 0).  The hs_return call is unreachable in practice
+ * because main_crash faults first; it is emitted unconditionally by the
+ * original all the same, so it is transcribed here.
+ *
+ * Callees:
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> int
+ *   0x101cb0 = main_crash(const char *reason) -> void
+ *   0xcbf80 = hs_return(int thread_datum, int value) -> void
+ *
+ * ABI (verified against disassembly 0xc1dd0-0xc1e01): cdecl, plain RET, no
+ * FPU.  Frame is PUSH EBP; MOV EBP,ESP; PUSH ESI with no locals and no
+ * `sub esp`.  ESI is loaded from [EBP+0xc] before the first call and holds
+ * thread_datum across the whole body, which is why the same value feeds both
+ * hs_macro_function_evaluate and hs_return.  Ghidra's `void FUN_000c1dd0(void)`
+ * prototype comes from the stale kb declaration; the three `in_stack_*`
+ * phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], the standard hs-evaluator triple.
+ *
+ * The push order is PUSH EAX([EBP+0x10]); PUSH ESI([EBP+0xc]); PUSH ECX
+ * ([EBP+8]), so under cdecl the evaluate call takes (function_index,
+ * thread_datum, init) — matching the kb declaration.
+ *
+ * Ghidra printed `FUN_00101cb0()` with no argument, but the disassembly at
+ * 0xc1dea is `MOV EDX,[EAX]; PUSH EDX`, so the result record is dereferenced
+ * and the string it points at is passed to main_crash.  main_crash ignores it
+ * (its two-instruction body just stores a literal through NULL), but an
+ * ignored cdecl parameter is invisible in the callee's codegen — the caller's
+ * PUSH is the evidence, and 0xc1def is main_crash's only call site in the XBE.
+ * Its kb declaration was corrected from `(void)` to `(const char *)` with this
+ * lift.
+ *
+ * The single `ADD ESP,0xc` at 0xc1dfb is MSVC's merged cleanup for BOTH the
+ * 1-argument main_crash call and the 2-argument hs_return call (1 + 2 = 3
+ * dwords); it is not evidence of a 3-argument hs_return, and the call-site
+ * audit's ARG_COUNT warning on hs_return here is a false positive from that
+ * coalescing.
+ *
+ * hs_macro_function_evaluate is declared returning `int` in kb.json but is
+ * used here as a pointer, so it is cast (same as FUN_000c1d50). */
+void FUN_000c1dd0(int16_t function_index, int thread_datum, char init)
+{
+  char **result;
+
+  result =
+    (char **)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (char **)0) {
+    main_crash(*result);
+    hs_return(thread_datum, 0);
+  }
+  return;
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script

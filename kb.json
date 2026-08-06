@@ -10189,7 +10189,8 @@
         },
         {
           "addr": "0xc1dd0",
-          "decl": "void FUN_000c1dd0(void);"
+          "decl": "void FUN_000c1dd0(int16_t function_index, int thread_datum, char init);",
+          "ported": true
         },
         {
           "addr": "0xc1e10",
@@ -13408,7 +13409,7 @@
         },
         {
           "addr": "0x101cb0",
-          "decl": "void main_crash(void);",
+          "decl": "void main_crash(const char *reason);",
           "ported": true
         },
         {
