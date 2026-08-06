@@ -1170,3 +1170,34 @@ void FUN_00053790(char *buf)
               *(int16_t *)0x5abd56,
               *(int16_t *)0x5abeee, 768);
 }
+
+/* ai line-spray mode cycler (0x53890): advance the AI debug line-spray mode
+ * 0 -> 1 -> 2 -> 0 and echo the new mode's name to the console.
+ *
+ * Confirmed (XBE bytes at 0x53890):
+ *   0FBF05 A2BA5A00  MOVSX EAX,word ptr [0x5abaa2]   ; signed int16 global
+ *   40                INC EAX
+ *   99                CDQ
+ *   B9 03000000       MOV ECX,3
+ *   F7F9              IDIV ECX                       ; signed % 3
+ *   66:8915 A2BA5A00  MOV word ptr [0x5abaa2],DX     ; store the REMAINDER
+ *   0FBFD2            MOVSX EDX,DX
+ *   8B0495 788F2C00   MOV EAX,[EDX*4 + 0x2c8f78]     ; const char *[] table
+ *   50 / 68 20C12500 / 6A 00 / E8 ...  -> console_printf(0, fmt, name)
+ *   66:A1 A2BA5A00    MOV AX,[0x5abaa2]              ; 16-bit result in AX
+ *   83C4 0C / C3      ADD ESP,0xc ; RET              ; cdecl, 3 dword args
+ *
+ * Confirmed data: 0x2c8f78 = {"none", "actions", "activation status"}
+ * (read out of the XBE); 0x25c120 = "AI line-spray: %s".
+ * 0x5abaa2 is the same signed int16 debug-mode selector that encounters.c
+ * dispatches on, so the three names describe that dispatch's cases.
+ *
+ * Inferred: the trailing MOV AX makes this a short-returning function (the
+ * new mode index); the sole caller (FUN_000ffe70 in main.c) discards it. */
+int16_t FUN_00053890(void)
+{
+  *(int16_t *)0x5abaa2 = (int16_t)((*(int16_t *)0x5abaa2 + 1) % 3);
+  console_printf(0, "AI line-spray: %s",
+                 ((const char **)0x2c8f78)[*(int16_t *)0x5abaa2]);
+  return *(int16_t *)0x5abaa2;
+}
