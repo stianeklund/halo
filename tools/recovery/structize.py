@@ -118,6 +118,55 @@ def build_flags():
     return (flags + " " + includes).split()
 
 
+def _scratch(oracle, prefix):
+    """A temp dir the chosen compiler can actually write to.
+
+    VC71 is Windows cl.exe reached through WSL interop: its output path is
+    translated with wsl_to_win, and /tmp has no Windows equivalent, so a
+    default mkdtemp yields `C1083: cannot open compiler generated file`. Under
+    the vc71 oracle the scratch has to live on the mapped drive.
+    """
+    if oracle == "vc71":
+        base = ROOT / "build" / "structize-scratch"
+        base.mkdir(parents=True, exist_ok=True)
+        return Path(tempfile.mkdtemp(prefix=prefix, dir=str(base)))
+    return Path(tempfile.mkdtemp(prefix=prefix))
+
+
+def compile_tu_vc71(source, out_obj):
+    """Compile one translation unit with Visual C++ 7.1 -- the ONLY oracle that counts.
+
+    The shipping binary was built by MSVC 7.1, so "did my edit change the
+    generated code?" is only a meaningful question when MSVC 7.1 is the one
+    answering it. Clang agreeing with itself across an edit is a different
+    compiler's opinion about a different code generator; it can hold while VC71
+    diverges, and it can diverge while VC71 holds. Measured on actor_moving.c:
+    three functions the clang gate parked are byte-identical under VC71, so the
+    clang oracle cost 196 sites for nothing.
+
+    Reuses vc71_verify.compile_vc71 rather than re-deriving the command line --
+    it already models the kb.json register ABI (the __fastcall rewrite for
+    @<ecx>/@<edx> functions), which a naive cl.exe invocation gets wrong.
+    """
+    from tools.verify.vc71_verify import compile_vc71
+    out_obj = Path(out_obj)
+    if not compile_vc71(Path(source), out_obj):
+        raise StructizeError(
+            "VC71 compile failed for %s. Without it there is no evidence the "
+            "edit is neutral for the real compiler; fix the build or pass "
+            "--oracle clang and accept that the result proves less." % source)
+    return out_obj
+
+
+def compile_for(oracle, source, out_obj, extra=()):
+    """Dispatch to the requested oracle. `extra` is clang-only (diagnostic flags)."""
+    if oracle == "vc71":
+        return compile_tu_vc71(source, out_obj)
+    if oracle == "clang":
+        return compile_tu(source, out_obj, extra=extra)
+    raise StructizeError("unknown oracle %r (expected 'vc71' or 'clang')" % oracle)
+
+
 def compile_tu(source, out_obj, extra=()):
     """Compile one translation unit with the project's real flags."""
     source = Path(source)
@@ -821,7 +870,7 @@ def gate(source_rel, baseline_path, build=True):
         baseline, coff_candidate_guard.capture_object(str(obj)))
 
 
-def converge(census_data, source=None, alias=None, manifest=None):
+def converge(census_data, source=None, alias=None, manifest=None, oracle="vc71"):
     """Rewrite everything that can be rewritten WITHOUT changing any function.
 
     The whole point of the tool in one call:
@@ -842,16 +891,25 @@ def converge(census_data, source=None, alias=None, manifest=None):
     """
     path = Path(source or (ROOT / census_data["source"]))
     original = path.read_text(encoding="utf-8")
-    tmp = Path(tempfile.mkdtemp(prefix="structize-"))
-    report = {"ok": False, "source": census_data["source"], "rounds": []}
+    tmp = _scratch(oracle, "structize-")
+    report = {"ok": False, "source": census_data["source"], "oracle": oracle,
+              "rounds": []}
+    if oracle != "vc71":
+        # Recorded in the payload, not just printed, so a downstream reader
+        # cannot mistake a clang-gated result for evidence about the real
+        # compiler. The binary was built by MSVC 7.1; nothing else arbitrates.
+        report["oracle_warning"] = (
+            "gated with %r, NOT Visual C++ 7.1. This does not show the edit is "
+            "neutral for the compiler that built the binary." % oracle)
     try:
-        reference = compile_tu(path, tmp / "reference.obj")
+        reference = compile_for(oracle, path, tmp / "reference.obj")
         excluded = set()
         for round_index in range(2):
             path.write_text(original, encoding="utf-8")
             applied = apply_rewrites(census_data, alias=alias, source=path,
                                      apply=True, exclude=sorted(excluded))
-            candidate = compile_tu(path, tmp / ("candidate%d.obj" % round_index))
+            candidate = compile_for(oracle, path,
+                                    tmp / ("candidate%d.obj" % round_index))
             delta = diverging_functions(reference, candidate)
             report["rounds"].append({
                 "round": round_index,
@@ -934,7 +992,8 @@ _CAUSE_TEXT = {
 }
 
 
-def _culprit_offsets(census_data, function, path, original, reference, tmp, extra):
+def _culprit_offsets(census_data, function, path, original, reference, tmp,
+                     extra=(), oracle="vc71"):
     """Narrow one function's rewrites to the offsets that actually move codegen.
 
     Peels one culprit at a time rather than stopping at the first: several
@@ -951,7 +1010,8 @@ def _culprit_offsets(census_data, function, path, original, reference, tmp, extr
         path.write_text(original, encoding="utf-8")
         apply_rewrites(census_data, source=path, apply=True,
                        only=[function], offsets=subset)
-        obj = compile_tu(path, tmp / ("triage%d.obj" % counter[0]), extra=extra)
+        obj = compile_for(oracle, path, tmp / ("triage%d.obj" % counter[0]),
+                          extra=extra)
         return function in diverging_functions(reference, obj)["changed"]
 
     # Delta-debug on the REMAINING set with found culprits excluded. Including
@@ -982,7 +1042,7 @@ def _culprit_offsets(census_data, function, path, original, reference, tmp, extr
     return culprits, counter[0], interacting
 
 
-def triage(census_data, functions, source=None):
+def triage(census_data, functions, source=None, oracle="vc71"):
     """Explain each parked function: benign scheduling artefact, or a real finding?
 
     `converge` parks at function granularity, which is safe but silent about
@@ -1001,29 +1061,39 @@ def triage(census_data, functions, source=None):
     """
     path = Path(source or (ROOT / census_data["source"]))
     original = path.read_text(encoding="utf-8")
-    tmp = Path(tempfile.mkdtemp(prefix="structize-triage-"))
+    tmp = _scratch(oracle, "structize-triage-")
     nsa = ("-fno-strict-aliasing",)
     findings = []
     try:
-        reference = compile_tu(path, tmp / "ref.obj")
-        reference_nsa = compile_tu(path, tmp / "ref_nsa.obj", extra=nsa)
+        reference = compile_for(oracle, path, tmp / "ref.obj")
+        # The TBAA probe is `-fno-strict-aliasing`, a clang switch with no VC71
+        # equivalent. Under the VC71 oracle the aliasing question is simply not
+        # askable, so that verdict is withheld rather than faked.
+        reference_nsa = (compile_tu(path, tmp / "ref_nsa.obj", extra=nsa)
+                         if oracle == "clang" else None)
         for function in functions:
             path.write_text(original, encoding="utf-8")
             applied = apply_rewrites(census_data, source=path, apply=True,
                                      only=[function])
             moved = function in diverging_functions(
-                reference, compile_tu(path, tmp / "c.obj"))["changed"]
-            moved_nsa = function in diverging_functions(
-                reference_nsa, compile_tu(path, tmp / "c_nsa.obj", extra=nsa))["changed"]
+                reference, compile_for(oracle, path, tmp / "c.obj"))["changed"]
+            moved_nsa = True
+            if reference_nsa is not None:
+                moved_nsa = function in diverging_functions(
+                    reference_nsa,
+                    compile_tu(path, tmp / "c_nsa.obj", extra=nsa))["changed"]
 
-            entry = {"function": function, "sites": applied["sites_rewritten"]}
+            entry = {"function": function, "sites": applied["sites_rewritten"],
+                     "oracle": oracle}
             if not moved:
                 entry["cause"] = CAUSE_COMBINATION
             elif not moved_nsa:
                 entry["cause"] = CAUSE_TBAA
             else:
                 culprits, probes, interacting = _culprit_offsets(
-                    census_data, function, path, original, reference_nsa, tmp, nsa)
+                    census_data, function, path, original,
+                    reference_nsa if reference_nsa is not None else reference,
+                    tmp, nsa if oracle == "clang" else (), oracle)
                 entry["cause"] = CAUSE_ADDRESS_FORM
                 entry["culprit_offsets"] = culprits
                 entry["clean_offsets"] = len({
@@ -1127,7 +1197,7 @@ def sync_manifest(census_data, manifest_arg, parked_functions=(), park_reason=""
 
 
 def run_all(source, base, struct, census_dir=None, manifest=None, alias=None,
-            apply_splits_too=True):
+            apply_splits_too=True, oracle="vc71"):
     """census -> split -> re-census -> converge, in one call.
 
     The four-command sequence has one ordering trap: the census must be retaken
@@ -1171,7 +1241,11 @@ def run_all(source, base, struct, census_dir=None, manifest=None, alias=None,
                                  key=lambda c: c.get("sites", 0), reverse=True)[:10]
     report["conflicts_total"] = len(plan["conflicts"])
 
-    converged = converge(data, source=source, alias=alias, manifest=manifest)
+    converged = converge(data, source=source, alias=alias, manifest=manifest,
+                         oracle=oracle)
+    report["oracle"] = oracle
+    if converged.get("oracle_warning"):
+        report["oracle_warning"] = converged["oracle_warning"]
     report["steps"].append({"step": "converge", "ok": converged["ok"],
                             "sites_rewritten": converged.get("sites_rewritten", 0),
                             "parked": converged.get("parked_functions", [])})
@@ -1357,6 +1431,9 @@ def main(argv=None):
     p.add_argument("--census", required=True)
     p.add_argument("--alias")
     p.add_argument("--manifest", help="source-recovery manifest to update on success")
+    p.add_argument("--oracle", choices=("vc71", "clang"), default="vc71",
+                   help="compiler that arbitrates neutrality. Default vc71 -- the "
+                        "binary was built by MSVC 7.1 and nothing else is evidence.")
 
     p = sub.add_parser("triage",
                        help="explain WHY converge parked a function (and which offsets)")
@@ -1364,6 +1441,9 @@ def main(argv=None):
     p.add_argument("--functions", nargs="*",
                    help="parked function names; default is every function that "
                         "diverges when the whole census is applied")
+    p.add_argument("--oracle", choices=("vc71", "clang"), default="vc71",
+                   help="compiler that arbitrates neutrality. Default vc71 -- the "
+                        "binary was built by MSVC 7.1 and nothing else is evidence.")
 
     p = sub.add_parser("sync", help="write census outcomes back into a manifest")
     p.add_argument("--census", required=True)
@@ -1380,6 +1460,8 @@ def main(argv=None):
     p.add_argument("--census-dir")
     p.add_argument("--no-split", action="store_true",
                    help="do not touch types.h; convert only what already resolves")
+    p.add_argument("--oracle", choices=("vc71", "clang"), default="vc71",
+                   help="compiler that arbitrates neutrality (default vc71)")
 
     p = sub.add_parser("baseline", help="capture the pre-change COFF snapshot")
     p.add_argument("--source", required=True)
@@ -1425,7 +1507,8 @@ def main(argv=None):
             return 0
         if args.command == "converge":
             data = json.loads(Path(args.census).read_text(encoding="utf-8"))
-            result = converge(data, alias=args.alias, manifest=args.manifest)
+            result = converge(data, alias=args.alias, manifest=args.manifest,
+                              oracle=args.oracle)
             _emit(result)
             if not result.get("ok"):
                 return 1
@@ -1440,11 +1523,11 @@ def main(argv=None):
                 # to re-run converge (which rewrites the file) just to name it.
                 path = ROOT / data["source"]
                 original = path.read_text(encoding="utf-8")
-                scratch = Path(tempfile.mkdtemp(prefix="structize-find-"))
+                scratch = _scratch(args.oracle, "structize-find-")
                 try:
-                    reference = compile_tu(path, scratch / "ref.obj")
+                    reference = compile_for(args.oracle, path, scratch / "ref.obj")
                     apply_rewrites(data, source=path, apply=True)
-                    candidate = compile_tu(path, scratch / "all.obj")
+                    candidate = compile_for(args.oracle, path, scratch / "all.obj")
                     targets = diverging_functions(reference, candidate)["changed"]
                 finally:
                     path.write_text(original, encoding="utf-8")
@@ -1453,7 +1536,7 @@ def main(argv=None):
                 _emit({"ok": True, "findings": [],
                        "note": "nothing parked -- every eligible site converges"})
                 return 0
-            _emit(triage(data, sorted(targets)))
+            _emit(triage(data, sorted(targets), oracle=args.oracle))
             return 0
         if args.command == "sync":
             data = json.loads(Path(args.census).read_text(encoding="utf-8"))
@@ -1463,7 +1546,8 @@ def main(argv=None):
         if args.command == "run":
             result = run_all(args.source, args.base, args.struct,
                              census_dir=args.census_dir, manifest=args.manifest,
-                             alias=args.alias, apply_splits_too=not args.no_split)
+                             alias=args.alias, apply_splits_too=not args.no_split,
+                             oracle=args.oracle)
             _emit(result)
             if not result.get("ok"):
                 return 1

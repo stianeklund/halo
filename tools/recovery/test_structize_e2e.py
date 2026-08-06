@@ -38,6 +38,7 @@ from tools.recovery.structize import (  # noqa: E402
     converge,
     diverging_functions,
     compile_tu,
+    compile_for,
     gate,
     triage,
     CAUSE_TBAA,
@@ -285,10 +286,20 @@ class WrongRewriteIsCaughtTests(_FixtureCase):
     def test_wrong_field_in_every_function_converges_to_a_no_op(self):
         # Corrupt so much that nothing can be kept. The tool must end up
         # rewriting nothing rather than shipping anything wrong.
+        #
+        # The corruption is per-function, not a single offset->field map, and
+        # that detail is load-bearing. Mapping 0x1c->owner and 0x20->flags
+        # globally merely SWAPS the two operands of fx_sum's `a + b`, and
+        # addition is commutative: VC71 canonicalises it to identical code, so
+        # those two sites converge -- correctly, because the program really is
+        # the same one. (Clang did not canonicalise it, which is why this test
+        # passed under the clang oracle while resting on a false premise.)
+        # Sending both of fx_sum's sites to the same field makes it `owner +
+        # owner`, which is genuinely a different program.
         data = self.take_census()
         for site in data["sites"]:
             if site["verdict"] == "rewrite":
-                site["field"] = "owner" if site["offset"] != 0x20 else "flags"
+                site["field"] = "flags" if site["function"] == "fx_owner" else "owner"
         report = converge(data, source=self.source)
         if report["ok"]:
             # Converged by excluding everything -- that is a vacuous run.
@@ -379,16 +390,19 @@ class RestoreOnFailureTests(_FixtureCase):
 
     def test_exception_midway_restores_the_file(self):
         data = self.take_census()
-        real = compile_tu
+        real = compile_for
         calls = {"n": 0}
 
-        def explode(source, out_obj, extra=()):
+        # Patch compile_for, not compile_tu: converge dispatches through the
+        # oracle selector now, so patching the clang entry point would leave
+        # the mock dormant and the test would pass without exercising anything.
+        def explode(oracle, source, out_obj, extra=()):
             calls["n"] += 1
             if calls["n"] == 2:      # after the file has been rewritten
                 raise StructizeError("simulated toolchain failure")
-            return real(source, out_obj, extra)
+            return real(oracle, source, out_obj, extra)
 
-        with mock.patch("tools.recovery.structize.compile_tu", explode):
+        with mock.patch("tools.recovery.structize.compile_for", explode):
             with self.assertRaises(StructizeError):
                 converge(data, source=self.source)
         self.assert_source_untouched()
@@ -471,6 +485,36 @@ class TriageTests(_FixtureCase):
         # combination" rather than inventing a cause for it.
         finding = triage(self.take_census(), ["fx_vec"], source=self.source)["findings"][0]
         self.assertEqual(finding["cause"], CAUSE_COMBINATION, finding)
+
+
+@unittest.skipUnless(TOOLCHAIN, WHY_SKIP)
+class OracleTests(_FixtureCase):
+    """The gate must arbitrate with the compiler that built the binary.
+
+    Clang neutrality is a different compiler's opinion about a different code
+    generator. It can hold while VC71 diverges and diverge while VC71 holds --
+    measured: three functions the clang gate parked on actor_moving.c are
+    byte-identical under VC71, costing 196 sites for nothing. If the default
+    ever slips back to clang, every report downstream silently means less than
+    it claims, so it is pinned here.
+    """
+
+    def test_the_default_oracle_is_vc71(self):
+        report = converge(self.take_census(), source=self.source)
+        self.assertEqual(report["oracle"], "vc71", report)
+        self.assertNotIn("oracle_warning", report)
+
+    def test_a_clang_gated_report_says_so_in_the_payload(self):
+        report = converge(self.take_census(), source=self.source, oracle="clang")
+        self.assertEqual(report["oracle"], "clang")
+        # In the payload, not merely printed: a downstream reader consuming the
+        # JSON must not be able to mistake this for evidence about MSVC 7.1.
+        self.assertIn("Visual C++ 7.1", report["oracle_warning"])
+
+    def test_an_unknown_oracle_is_refused_rather_than_defaulted(self):
+        with self.assertRaises(StructizeError):
+            converge(self.take_census(), source=self.source, oracle="gcc")
+        self.assert_source_untouched()
 
 
 if __name__ == "__main__":
