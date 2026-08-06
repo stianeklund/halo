@@ -1217,6 +1217,39 @@ void FUN_000c17c0(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, value.i);
 }
 
+/* 0xc17f0 — HS script function handler (zero-argument, void-returning
+ * built-in): save the current director camera, then complete the calling script
+ * thread.
+ *
+ * Like its immediate neighbour 0xc17c0 this handler takes no script arguments,
+ * so it never calls hs_macro_function_evaluate and has no NULL check.  The body
+ * is 8 instructions: plain EBP frame with no locals, a zero-argument call, then
+ * hs_return with a constant 0 result.
+ *
+ * Disassembly (0xc17f0-0xc1806):
+ *   PUSH EBP / MOV EBP,ESP      plain frame, no locals, no _chkstk
+ *   CALL 0x00086360             director_save_camera(), zero args
+ *   MOV EAX,[EBP+0xc]           thread_datum (arg 2)
+ *   PUSH 0x0                    hs_return arg2 = 0 (pushed first => last arg)
+ *   PUSH EAX                    hs_return arg1 = thread_datum
+ *   CALL 0x000cbf80             hs_return(thread_datum, 0)
+ *   ADD ESP,0x8                 cdecl cleanup, 2 args
+ *   POP EBP / RET               cdecl, plain RET
+ *
+ * function_index (EBP+0x8) and init (EBP+0x10) are never read; they are kept
+ * so the stack shape matches this TU's other script-function handlers, which
+ * are all dispatched through the same hs function table with three arguments.
+ *
+ * Callees (both cdecl):
+ *   0x86360 = director_save_camera(void)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c17f0(int16_t function_index, int thread_datum, char init)
+{
+  director_save_camera();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
