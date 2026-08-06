@@ -1139,3 +1139,34 @@ void FUN_00053680(void)
     meter++;
   } while (index < NUMBER_OF_AI_METERS);
 }
+
+/* FUN_00053790: append the AI pool-usage summary line to an existing string.
+ *
+ * Formats nine int16 counters from the ai-debug globals block plus the literal
+ * 768 into the text buffer, starting at its current NUL terminator:
+ *   "ai enc <a>/<b>, actor <c>/<d>/<e>, unit <f>/<g>/<h>, props <i>/768"
+ *
+ * Confirmed from disassembly at 0x53790:
+ *   - one stack parameter, MOV ESI,[EBP+8] (the destination buffer)
+ *   - every counter is loaded with MOVSX EAX,word ptr [abs] -> int16, not int
+ *   - PUSH ESI serves as the csstrlen argument; ADD EAX,ESI then supplies the
+ *     sprintf destination, i.e. sprintf(buf + strlen(buf), ...)
+ *   - the counters sit at 0x5abaae + n*0x88 (n = 0..8) inside the 0xee0-byte
+ *     ai-debug globals block based at 0x5abaac
+ *   - ADD ESP,0x30 after the call = 12 dwords (dest + format + 10 varargs)
+ *
+ * Uncertain: the individual counter fields have no assert/name evidence, so
+ * they stay as raw addresses.  "|n" is byte-exact from 0x25c0d0 (Halo's
+ * in-string newline escape); the format also uses the printf space flag. */
+void FUN_00053790(char *buf)
+{
+  crt_sprintf(buf + csstrlen(buf),
+              "ai enc % 2d/% 3d, actor % 3d/% 3d/% 3d, unit % 3d/% 3d/% 3d, "
+              "props % 3d/% 3d|n",
+              *(int16_t *)0x5abb36, *(int16_t *)0x5abaae,
+              *(int16_t *)0x5abcce, *(int16_t *)0x5abc46,
+              *(int16_t *)0x5abbbe,
+              *(int16_t *)0x5abe66, *(int16_t *)0x5abdde,
+              *(int16_t *)0x5abd56,
+              *(int16_t *)0x5abeee, 768);
+}
