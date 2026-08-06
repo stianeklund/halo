@@ -1391,6 +1391,111 @@ void ai_debug_initialize_for_new_map(void)
     *(uint16_t *)0x6323dc = 0;
   }
 }
+/* FUN_000534d0: per-frame ai_debug render dispatch.  Gated on a byte inside
+ * the structure pointed to by the global at 0x632574; when set, refreshes two
+ * scratch globals, re-derives the selected encounter index from the selected
+ * actor, then fans out to the individual ai_debug renderers, each behind its
+ * own byte flag.
+ *
+ * Confirmed (XBE 0x534d0-0x5361d, 0x14e bytes): no frame at all -- no
+ *   PUSH EBP, no SUB ESP, no locals, no callee-saved registers.  Pure global
+ *   dispatch.  No FPU.
+ * Confirmed: the gate is a pointer dereference, not a byte global --
+ *   MOV EAX,[0x632574] / MOV CL,[EAX+1] / TEST CL,CL / JZ end.
+ * Confirmed: 0x5ac98c is a *16-bit* store fed by a 32-bit load --
+ *   MOV ECX,[0x325660] / ADD ECX,-0x14 / MOV word ptr [0x5ac98c],CX.  The
+ *   truncation is in the original; do not widen it.
+ * Confirmed: the counter at 0x5acab4 uses CDQ + IDIV 0x3e8, i.e. a *signed*
+ *   remainder on int32.  An unsigned modulo would emit DIV and differ for a
+ *   negative counter.
+ * Confirmed (0x5350e-0x5351e): MOV EDX,[0x6325a4] / PUSH EAX (handle from
+ *   [0x5ac9f8]) / PUSH EDX / CALL datum_get / MOV EAX,[EAX+0x34] -- cdecl,
+ *   last PUSH is the first argument, so datum_get(actor_data, handle).  The
+ *   +0x34 field is the actor's encounter index, matching the use in
+ *   FUN_0004b7a0 / ai_debug_select_actor above.
+ * Confirmed: three call sites carry arguments that the kb declarations
+ *   previously typed away as (void):
+ *     0x53575  PUSH EAX ([0x5ac9f4]) / CALL 0x52bb0 / ADD ESP,4   -> 1 arg
+ *     0x53588  PUSH 0 / PUSH 1 / PUSH EAX ([0x5ac9f8]) /
+ *              CALL 0x4c920 / ADD ESP,0xc                          -> 3 args
+ *     0x535c8  MOV DL,[0x5aca67] / CALL 0x52b60                    -> DL arg
+ *   The kb declarations for 0x52bb0, 0x4c920 and 0x52b60 are corrected as
+ *   part of this lift; 0x52b60 gains an @<dl> byte parameter.
+ * Confirmed: 0x535d3-0x535ee is a short-circuit JNZ chain into one shared
+ *   call, i.e. a plain three-way ||.
+ * Confirmed: the function ends in JMP 0x4bc70 at 0x53618 -- a tail call, so
+ *   nothing runs after it.
+ *
+ * Uncertain: the meaning of the byte at 0x5aca67 passed in DL; it sits
+ *   immediately after the 0x5aca66 enable flag, so it is typed as an opaque
+ *   mode byte rather than given a speculative name.
+ * Uncertain: the identity of 0x325660 and of the 0x14 bias applied to it.
+ *
+ * Called from render_debug.c (0x53... debug render pass). */
+void FUN_000534d0(void)
+{
+  char *actor;
+
+  if ((*(char **)0x632574)[1] == 0) {
+    return;
+  }
+
+  *(int16_t *)0x5ac98c = (int16_t)(*(int32_t *)0x325660 - 0x14);
+  *(int32_t *)0x5acab4 = (*(int32_t *)0x5acab4 + 1) % 1000;
+
+  if (*(int32_t *)0x5ac9f8 != -1) {
+    actor = (char *)datum_get(actor_data, *(int32_t *)0x5ac9f8);
+    *(int32_t *)0x5ac9f4 = *(int32_t *)(actor + 0x34);
+  }
+  if (*(uint8_t *)0x5ac9c1 != 0) {
+    FUN_0004b7a0();
+  }
+  if (*(uint8_t *)0x5aca65 == 0) {
+    return;
+  }
+
+  if (*(uint8_t *)0x5aca69 != 0) {
+    FUN_000494e0();
+  }
+  if (*(uint8_t *)0x5aca6a != 0) {
+    ai_debug_render_points_and_lines();
+  }
+  if (*(uint8_t *)0x5aca6b != 0) {
+    FUN_000495b0();
+  }
+  if (*(int32_t *)0x5ac9f4 != -1) {
+    FUN_00052bb0(*(int32_t *)0x5ac9f4);
+  }
+  if (*(int32_t *)0x5ac9f8 != -1) {
+    FUN_0004c920(*(int32_t *)0x5ac9f8, 1, 0);
+  }
+  if (*(uint8_t *)0x5ac9fc != 0) {
+    FUN_0004c890();
+  }
+  if (*(uint8_t *)0x5aca9b != 0) {
+    FUN_00052ab0();
+  }
+  if (*(uint8_t *)0x5aca88 != 0) {
+    FUN_00049d60();
+  }
+  if (*(uint8_t *)0x5aca66 != 0) {
+    FUN_00052b60(*(uint8_t *)0x5aca67);
+  }
+  if (*(uint8_t *)0x5aca89 != 0 || *(uint8_t *)0x5aca53 != 0 ||
+      *(uint8_t *)0x5aca93 != 0) {
+    FUN_0004b810();
+  }
+  if (*(uint8_t *)0x5aca76 != 0) {
+    FUN_0004a770();
+  }
+  if (*(uint8_t *)0x5aca8c != 0) {
+    FUN_0004a8c0();
+  }
+  if (*(uint8_t *)0x5aca91 != 0) {
+    FUN_0004bc70();
+  }
+}
+
 /* FUN_00053650: zero the 0xee0-byte ai-debug globals block at 0x5abaac.
  *
  * Confirmed (0x53650-0x53664, 6 instructions, 21 bytes):

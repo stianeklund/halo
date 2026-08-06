@@ -63,6 +63,7 @@
     "0x3e7a0": "void FUN_0003e7a0(int actor_handle /* @<eax> */);",
     "0x3ec80": "void FUN_0003ec80(int actor_handle@<esi>);",
     "0x413c0": "void FUN_000413c0(ai_firing_pos_entry_t *entry@<esi>, int unit_handle@<edi>, int actor_handle);",
+    "0x52b60": "void FUN_00052b60(unsigned char mode @<dl>);",
     "0x53800": "void FUN_00053800(char *text, int column_count, short *column_positions, void *context @<eax>);",
     "0x54c40": "void FUN_00054c40(unsigned int ai_ref /* @<eax> */, char by_player);",
     "0x55350": "int FUN_00055350(unsigned int ai_ref, int *out_min, int *out_handle, int count_type /* @<edi> */);",
