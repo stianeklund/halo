@@ -1288,6 +1288,47 @@ void ai_debug_toggle_flags(int count, char **names, int dest_vector,
   }
 }
 
+/* ai_debug_communication_suppress (0x4a650): console/script command that
+ * toggles bits in the AI communication-suppression bit vector at 0x5aca14.
+ *
+ * A pure forwarder to ai_debug_toggle_flags (0x4a460) with three constants
+ * baked in: the destination bit vector, its size in bits, and the
+ * name->type lookup used to resolve each argument string.
+ *
+ * Confirmed: cdecl.  PUSH EBP / MOV EBP,ESP, no SUB ESP, no locals, no FPU,
+ * no struct access, a single CALL, then POP EBP / RET (no RET n, so cdecl
+ * and not stdcall).  Thirteen instructions total.
+ *
+ * The two incoming arguments are loaded into registers BEFORE the pushes
+ * (`MOV EAX,dword ptr [EBP+0xC]` and `MOV ECX,dword ptr [EBP+0x8]`), which
+ * is what proves this takes two stack parameters; the previous kb.json
+ * declaration of `void (void)` is why the decompiler emitted an
+ * argument-less wrapper around a bare FUN_0004a460() call.
+ *
+ * Call-site table for ai_debug_toggle_flags (last push = first arg, cdecl):
+ *   arg5 lookup      PUSH 0x42ce0  -> ai_communication_get_type_by_name
+ *   arg4 vector_size PUSH 0x39     -> 57 communication types
+ *   arg3 dest_vector PUSH 0x5aca14 -> suppression bit vector, passed as an
+ *                                     integer address (the callee's
+ *                                     dest_vector parameter is `int`)
+ *   arg2 names       PUSH EAX      -> [EBP+0xC]
+ *   arg1 count       PUSH ECX      -> [EBP+0x8]
+ *   CALL 0x4a460 ; ADD ESP,0x14    (5 dwords, caller cleanup -> cdecl)
+ *
+ * vector_size 0x39 is far under the callee's "vector_size <= 2048" assert
+ * (ai_debug.c line 0x1354), so that path can never fire from here.  The
+ * callee allocates its own 64-dword scratch mask, so nothing is allocated
+ * on this frame.  No __FILE__ string of its own.
+ *
+ * Reached from the hs script-command dispatch table at function_index 0x18
+ * (see src/halo/hs/hs_library_internal_runtime.h:928), which supplies the
+ * argument count and the argument string vector. */
+void ai_debug_communication_suppress(int count, char **names)
+{
+  ai_debug_toggle_flags(count, names, 0x5aca14, 0x39,
+                        ai_communication_get_type_by_name);
+}
+
 /* ai_debug_idle_look_clear: reset the idle-look debug block at 0x6323d4 to
  * track a single actor handle.  Sets the "valid" byte flag from
  * (actor_handle != -1), stores the handle itself as a dword, and clears the

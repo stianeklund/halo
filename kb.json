@@ -31924,7 +31924,7 @@
         },
         {
           "addr": "0x42ce0",
-          "decl": "void ai_communication_get_type_by_name(void);"
+          "decl": "int16_t ai_communication_get_type_by_name(const char *name);"
         },
         {
           "addr": "0x42d20",
@@ -32271,7 +32271,10 @@
         },
         {
           "addr": "0x4a650",
-          "decl": "void ai_debug_communication_suppress(void);"
+          "decl": "void ai_debug_communication_suppress(int count, char **names);",
+          "name": "ai_debug_communication_suppress",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x4a680",
