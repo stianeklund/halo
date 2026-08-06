@@ -3445,7 +3445,8 @@
       "source": "src/halo/game/editor_stubs.c"
     },
     "FUN_00097870": {
-      "score": 81.5,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/game/editor_stubs.c"
     },
     "FUN_00097890": {
@@ -8076,7 +8077,8 @@
       "source": "src/halo/main/console.c"
     },
     "FUN_000ff5d0": {
-      "score": 64.2,
+      "opnd_percent": 75.5,
+      "score": 90.6,
       "source": "src/halo/main/console.c"
     },
     "FUN_000ff640": {
@@ -8084,11 +8086,13 @@
       "source": "src/halo/main/console.c"
     },
     "FUN_000ff680": {
-      "score": 79.7,
+      "opnd_percent": 48.4,
+      "score": 85.7,
       "source": "src/halo/main/console.c"
     },
     "FUN_000ff9e0": {
-      "score": 60.9,
+      "opnd_percent": 53.6,
+      "score": 77.7,
       "source": "src/halo/main/console.c"
     },
     "FUN_000ffc00": {
@@ -15156,7 +15160,8 @@
       "source": "src/halo/sound/sound_dsound_xbox.c"
     },
     "FUN_001c93f0": {
-      "score": 94.2,
+      "opnd_percent": 94.2,
+      "score": 97.5,
       "source": "src/halo/bink/bink_sound.c"
     },
     "FUN_001c94d0": {
@@ -16590,7 +16595,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "bink_get_dsound_handle": {
-      "score": 46.2,
+      "opnd_percent": 83.3,
+      "score": 100.0,
       "source": "src/halo/bink/bink_sound.c"
     },
     "bink_memory_pool_alloc": {
@@ -17487,25 +17493,26 @@
       "source": "src/halo/main/console.c"
     },
     "console_process_enter": {
-      "opnd_percent": 52.0,
+      "opnd_percent": 47.3,
       "ref": "synth",
-      "score": 79.7,
+      "score": 85.7,
       "source": "src/halo/main/console.c"
     },
     "console_startup": {
-      "score": 79.7,
+      "opnd_percent": 87.2,
+      "score": 92.3,
       "source": "src/halo/main/console.c"
     },
     "console_submit_command": {
-      "opnd_percent": 45.3,
+      "opnd_percent": 75.5,
       "ref": "synth",
-      "score": 64.2,
+      "score": 90.6,
       "source": "src/halo/main/console.c"
     },
     "console_update": {
-      "opnd_percent": 44.4,
+      "opnd_percent": 52.7,
       "ref": "synth",
-      "score": 60.9,
+      "score": 77.7,
       "source": "src/halo/main/console.c"
     },
     "console_warning": {
