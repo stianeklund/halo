@@ -402,6 +402,113 @@ void FUN_000494e0(void)
   }
 }
 
+/* FUN_000495b0 (0x495b0): render the second AI debug ray/sphere/path block.
+ *
+ * Gated on the armed flag at 0x5f8cb4.  Draws a point marker at 0x5f8cb8, a
+ * vector from 0x5f8cb8 along 0x5f8cc4, then a list of spheres and a polyline.
+ * This is a distinct global block from the 0x5acab8 one used by FUN_000494e0:
+ *   0x5f8cb4  uint8    armed flag
+ *   0x5f8cb5  uint8    secondary flag (selects the polyline colour polarity)
+ *   0x5f8cb8  float[3] point A
+ *   0x5f8cc4  float[3] point B / vector
+ *   0x5f8cd0  int32    sphere count
+ *   0x5f8cd4  float[3] sphere centre,   stride 0xc (16 entries)
+ *   0x5f8d94  float[3] sphere endpoint, stride 0xc (= 0x5f8cd4 + 0xc0)
+ *   0x5f8e54  float    sphere radius,   stride 4
+ *   0x5f8e94  int32    polyline point count
+ *   0x5f8e98  float[3] polyline points, stride 0xc (line i joins pt[i]..pt[i+1])
+ *
+ * Call-site verification (all cdecl, caller-cleaned; first PUSH = last C arg):
+ *   0x495d0 FUN_00189150.  PUSH EAX([0x2ee6e0]); PUSH 0x3dcccccd (0.1f as a
+ *     raw dword, no FLD); PUSH 0x5f8cb8; PUSH 1 -> (1, 0x5f8cb8, 0.1f, colour)
+ *     [match]
+ *   0x495ed FUN_00189320.  PUSH ECX([0x2ee6e0]); PUSH 0x3f800000 (1.0f);
+ *     PUSH 0x5f8cc4; PUSH 0x5f8cb8; PUSH 1 ->
+ *     (1, 0x5f8cb8, 0x5f8cc4, 1.0f, colour)  [match]
+ *     ADD ESP,0x24 at 0x495f7 is the *combined* deferred cleanup for both
+ *     calls (4 + 5 = 9 dwords); it is not a nine-argument call.
+ *   0x49635 FUN_00189860, ADD ESP,0x14.  PUSH EDX([0x2ee6d8]); PUSH
+ *     EAX([EAX*4+0x5f8e54]); PUSH EDX(ECX+0x5f8d94); PUSH EAX(ECX+0x5f8cd4);
+ *     PUSH 1 -> (1, centre+i*12, endpoint+i*12, radius[i], colour)  [match]
+ *   0x4969c FUN_00189270, ADD ESP,0x10.  PUSH ECX(colour); PUSH
+ *     ECX(EAX+0x5f8ea4); PUSH EDX(EAX+0x5f8e98); PUSH 1 ->
+ *     (1, pt+i*12, pt+i*12+0xc, colour)  [match]
+ *   The two point bases in each of the last two calls are separate LEAs
+ *   against separate imm32 bases, so they stay separate expressions here
+ *   rather than being folded into one base plus +0xc0 / +0xc.
+ *
+ * Confirmed: the radius push at 0x49630 is a plain dword MOV of a float slot.
+ * Ghidra prints a `(float)` cast on an int array there, which would require an
+ * FILD; there is no FPU instruction anywhere in this function.
+ *
+ * Confirmed: the element stride is 12 bytes, not the 3 that Ghidra's
+ * undefined-byte pointer maths implies.  The address computation is
+ * LEA ECX,[EAX+EAX*2]; SHL ECX,2 recomputed from the loop index each
+ * iteration, so the lift indexes `(float *)base + i * 3` instead of walking a
+ * pointer.
+ *
+ * Confirmed: both counts are re-read from memory inside the loop (MOV
+ * ECX,[0x5f8cd0] / MOV ECX,[0x5f8e94] in the loop tail), and the polyline's
+ * `count - 2` comparison is recomputed from a fresh load at 0x4964b each
+ * iteration, so neither is cached in a local.
+ *
+ * Confirmed: the loop counter lives in SI as an int16 and is widened with
+ * MOVSX EAX,SI for every use, transcribed here as a short counter plus an int
+ * copy.  The polyline guard is LEA EDX,[ECX-1]; TEST EDX,EDX; JLE — a plain
+ * `count - 1 > 0` test, not Ghidra's `count != 1 && -1 < count - 1`.
+ *
+ * cdecl void(void); no stack frame, ESI is the only saved register. */
+void FUN_000495b0(void)
+{
+  void *color;
+  short counter;
+  int i;
+  int off;
+  int32_t *new_var;
+
+  new_var = (int32_t *)0x5f8e94;
+  if (*(uint8_t *)0x5f8cb4 != 0) {
+    FUN_00189150(1, (float *)0x5f8cb8, 0.1f, *(void **)0x2ee6e0);
+    FUN_00189320(1, (float *)0x5f8cb8, (float *)0x5f8cc4, 1.0f,
+                 *(void **)0x2ee6e0);
+
+    counter = 0;
+    if (0 < *(int32_t *)0x5f8cd0) {
+      i = 0;
+      do {
+        off = i * 12;
+        FUN_00189860(1, (char *)0x5f8cd4 + off, (char *)0x5f8d94 + off,
+                     ((float *)0x5f8e54)[i], *(void **)0x2ee6d8);
+        counter++;
+        i = counter;
+      } while (i < *(int32_t *)0x5f8cd0);
+    }
+
+    counter = 0;
+    if (0 < ((*new_var) - 1)) {
+      i = 0;
+      do {
+        if (*(uint8_t *)0x5f8cb5 != 0) {
+          color = *(void **)0x2ee6d4;
+        } else {
+          color = *(void **)0x2ee6f0;
+          if (i != ((*new_var) - 2)) {
+            color = *(void **)0x2ee6d0;
+          }
+        }
+        off = i * 12;
+        FUN_00189270(1, (float *)((char *)0x5f8e98 + off),
+                     (float *)((char *)0x5f8ea4 + off), color);
+        counter++;
+        i = counter;
+        if (counter)
+        {
+        }
+      } while (i < ((*new_var) - 1));
+    }
+  }
+}
+
 /* ai_debug_highlight_cluster (0x496c0): report the debug highlight color for a
  * BSP cluster.
  *
