@@ -229,15 +229,11 @@ void console_process_enter(void)
   char *token_array[256];
   char accum[1024];
   char *token_start;
-  char *sp;
-  char *lp;
-  char *qp;
   int16_t token_count;
   int16_t match_len;
   int cap;
   int16_t i;
   int16_t idx;
-  int32_t batch_mod;
   int next_a;
   int next_b;
   int clen;
@@ -370,11 +366,6 @@ void console_dispose(void)
 static int16_t *console_key_count(void)
 {
   return (int16_t *)0x46cf64;
-}
-
-static int16_t *console_key_code(int index)
-{
-  return (int16_t *)(0x46cf68 + index * 4);
 }
 
 static void *console_edit_text(void)
