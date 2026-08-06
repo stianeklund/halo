@@ -1491,6 +1491,100 @@ void ai_debug_idle_look_addprop(int index, float value)
   }
 }
 
+/* FUN_0004a8c0 (0x4a8c0) — render the AI "communication" debug ring buffer.
+ * Walks the 32-entry ring stored in the AI globals block (*(char**)0x632574)
+ * from head (+0x130) to tail (+0x132), and for every live entry draws a debug
+ * sphere at the entry's position plus a text label "c<count> t<age>" offset
+ * 0.3 units along the world up/forward vector.
+ *
+ * Ring layout (confirmed from `lea eax,[eax+eax*4]` / `lea
+ * edi,[edx+eax*4+0x134]` — stride 0x14, base +0x134): +0x00  int16   type   (-1
+ * == empty slot; also indexes the colour table when in [0,3)) +0x02  int16
+ * count  (MOVSX -> int, printed as %d) +0x04  float[3] position +0x10  int32
+ * timestamp (game ticks; age = game_time - timestamp) Header int16s: +0x130
+ * head (zero-extended: `xor ecx,ecx; mov cx,[edx+0x130]`), +0x132 tail (16-bit
+ * compare `cmp ax,[edx+0x132]`).
+ *
+ * Colour selection: the fallback pointer is loaded FIRST
+ * (`mov ebx,[0x2ee6c4]`) and only then conditionally overwritten by an
+ * indexed lookup through a 3-entry stack table of colour-pointer ADDRESSES
+ * (0x2ee6d8 / 0x2ee6e0 / 0x2ee6d0), which is dereferenced once more
+ * (`mov edx,[ebp+ecx*4-0x14]; mov ebx,[edx]`).  The 0x2ee6xx globals hold
+ * pointers into the 0x2677xx real_argb_color pool — same idiom already used
+ * by actors.c:3555 and actor_looking.c:835.
+ *
+ * Call-site verification (all cdecl, ADD ESP,0x10 after each):
+ *   0x4a955 FUN_00189540: PUSH EBX(color) / PUSH 0x3e4ccccd(0.2f) /
+ *           PUSH ESI(=EDI+4, position) / PUSH 1  -> (1, pos, 0.2f, color)
+ *   0x4a9a6 csprintf:     PUSH EAX(game_time-timestamp) / PUSH ECX(count) /
+ *           PUSH 0x25aed0("c%d t%d") / PUSH 0x5ab100(static buffer)
+ *   0x4a9b5 FUN_00189cb0: PUSH EBX(color) at 0x4a96e — BEFORE csprintf's own
+ *           pushes — then PUSH EAX(csprintf result) / PUSH EDX(&text_position)
+ *           / PUSH 1.  The hoisted colour push proves the csprintf call is
+ *           NESTED as argument 3 of FUN_00189cb0, not assigned to a temp.
+ *           EBX is reloaded with [EDI+0x10] (timestamp) right after its push.
+ *
+ * Store-offset table (text_position, EBP-0x20 .. EBP-0x18, passed by
+ * `lea edx,[ebp-0x20]` so the three floats must be contiguous):
+ *   +0x00 <- FLD [EAX]   ; FMUL [0x2533e4]=0.3f ; FADD [ESI] (0x4a95f..0x4a974)
+ *   +0x04 <- FLD [EAX+4] ; FMUL [0x2533e4]      ; FADD [ESI+4]
+ * (0x4a977..0x4a983) +0x08 <- FLD [EAX+8] ; FMUL [0x2533e4]      ; FADD [ESI+8]
+ * (0x4a986..0x4a9a3) Every component is load-mul-add in the same operand order;
+ * do not fold into an fma-shaped expression.  EAX = *(float**)0x31fc44 (world
+ * up/forward constant, same global as actors.c:4596).
+ *
+ * The AI-globals pointer is re-read from 0x632574 only at the bottom of the
+ * live-entry branch (`mov edx,[0x632574]` at 0x4a9ba); the empty-slot path
+ * keeps the stale pointer, so the reload must be the last statement of the
+ * `type != -1` block.  Ring advance is `INC CL; AND ECX,0x1f` — a 32-entry
+ * wrap.  Confirmed: cdecl, no args, PUSH EBP / MOV EBP,ESP / SUB ESP,0x20;
+ * EBX/ESI/EDI are saved only on the non-empty path (MSVC sank the saves past
+ * the initial JE). */
+void FUN_0004a8c0(void)
+{
+  short index;
+  int game_time;
+  void **color_table[3];
+  float text_position[3];
+  char *ai_globals;
+  char *entry;
+  float *pos;
+  float *up;
+  void *color;
+  short type;
+
+  game_time = game_time_get();
+  ai_globals = *(char **)0x632574;
+  index = (short)*(uint16_t *)(ai_globals + 0x130);
+
+  while (index != *(int16_t *)(ai_globals + 0x132)) {
+    entry = ai_globals + 0x134 + (int)index * 0x14;
+    type = *(int16_t *)entry;
+    if (type != -1) {
+      pos = (float *)(entry + 4);
+      color_table[0] = (void **)0x2ee6d8;
+      color_table[1] = (void **)0x2ee6e0;
+      color_table[2] = (void **)0x2ee6d0;
+      color = *(void **)0x2ee6c4;
+      if (type >= 0 && type < 3) {
+        color = *color_table[type];
+      }
+      FUN_00189540(1, pos, 0.2f, color);
+      up = *(float **)0x31fc44;
+      text_position[0] = up[0] * 0.3f + pos[0];
+      text_position[1] = up[1] * 0.3f + pos[1];
+      text_position[2] = up[2] * 0.3f + pos[2];
+      FUN_00189cb0(1, text_position,
+                   csprintf((char *)0x5ab100, "c%d t%d",
+                            (int)*(int16_t *)(entry + 2),
+                            game_time - *(int32_t *)(entry + 0x10)),
+                   (int)color);
+      ai_globals = *(char **)0x632574;
+    }
+    index = (short)((index + 1) & 0x1f);
+  }
+}
+
 /* FUN_0004a9f0 (0x4a9f0) — O(n^2) pairwise suppression pass over the
  * actor_path_debug_array (base *(char **)0x331f5c, stride 0x1ca7c, 0x20
  * slots).  For every ordered pair (outer, inner) with inner > outer, when both
