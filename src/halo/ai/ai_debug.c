@@ -416,7 +416,8 @@ void FUN_000494e0(void)
  *   0x5f8d94  float[3] sphere endpoint, stride 0xc (= 0x5f8cd4 + 0xc0)
  *   0x5f8e54  float    sphere radius,   stride 4
  *   0x5f8e94  int32    polyline point count
- *   0x5f8e98  float[3] polyline points, stride 0xc (line i joins pt[i]..pt[i+1])
+ *   0x5f8e98  float[3] polyline points, stride 0xc (line i joins
+ * pt[i]..pt[i+1])
  *
  * Call-site verification (all cdecl, caller-cleaned; first PUSH = last C arg):
  *   0x495d0 FUN_00189150.  PUSH EAX([0x2ee6e0]); PUSH 0x3dcccccd (0.1f as a
@@ -501,8 +502,7 @@ void FUN_000495b0(void)
                      (float *)((char *)0x5f8ea4 + off), color);
         counter++;
         i = counter;
-        if (counter)
-        {
+        if (counter) {
         }
       } while (i < ((*new_var) - 1));
     }
@@ -917,21 +917,21 @@ void ai_debug_toggle_flags(int count, char **names, int dest_vector,
      * NEITHER arm is a fall-through.  A plain if/else always leaves one arm
      * as the fall-through, so the source was a switch. */
     switch (comm_type) {
-      case -1:
-        /* Unrecognised name: only the literal "all" is accepted, and it sets
-         * every bit in the mask. */
-        if (csstrcmp(names[i], "all") == 0) {
-          csmemset(mask, -1, mask_bytes);
-        }
-        break;
-      default:
-        if ((comm_type < 0) || ((uint32_t)(int)comm_type >= vector_size)) {
-          display_assert("(comm_type >= 0) && (comm_type < vector_size)",
-                         "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0x135d, 1);
-          system_exit(-1);
-        }
-        mask[(int)comm_type >> 5] |= 1 << (comm_type & 0x1f);
-        break;
+    case -1:
+      /* Unrecognised name: only the literal "all" is accepted, and it sets
+       * every bit in the mask. */
+      if (csstrcmp(names[i], "all") == 0) {
+        csmemset(mask, -1, mask_bytes);
+      }
+      break;
+    default:
+      if ((comm_type < 0) || ((uint32_t)(int)comm_type >= vector_size)) {
+        display_assert("(comm_type >= 0) && (comm_type < vector_size)",
+                       "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0x135d, 1);
+        system_exit(-1);
+      }
+      mask[(int)comm_type >> 5] |= 1 << (comm_type & 0x1f);
+      break;
     }
   }
 
@@ -1958,7 +1958,65 @@ void FUN_000539c0(void)
   crt_sprintf((char *)0x5ab280, "encounters %d/%d|tprops %d/%d",
               (int)*(int16_t *)0x5abb36, (int)*(int16_t *)0x5abaae,
               (int)*(int16_t *)0x5abeee, 768);
-  column_positions[0] = 0x96;  /* 150 */
+  column_positions[0] = 0x96; /* 150 */
+  column_positions[1] = 0x12c; /* 300 */
+  FUN_00053800((char *)0x5ab280, 2, column_positions, *(void **)0x2ee6c4);
+}
+
+/* 0x00053a20 - debug overlay row: actor and unit pool usage (FUN_00053a20).
+ *
+ * Sibling of FUN_000539c0 in the "%d/%d" debug-overlay row family (0x539c0,
+ * 0x53a20, 0x53a90, 0x53af0, ...): format one line into the shared debug
+ * scratch buffer at 0x5ab280, then hand it to the column-layout row printer
+ * FUN_00053800 with the same two tab stops {150, 300}.
+ *
+ * Globals (raw pointer-cast idiom, matching this TU):
+ *   0x5ab280 (char[])  : shared debug sprintf scratch buffer
+ *   0x5abcce (int16)   : actors field 1
+ *   0x5abc46 (int16)   : actors field 2
+ *   0x5abbbe (int16)   : actors field 3
+ *   0x5abe66 (int16)   : units field 1
+ *   0x5abdde (int16)   : units field 2
+ *   0x5abd56 (int16)   : units field 3
+ *   0x2ee6c4 (void *)  : row-printer context pointer, passed to FUN_00053800
+ *                        in EAX -- the *contents* of the global, not its
+ *                        address.
+ *
+ * Confirmed (XBE 0x53a20-0x53a8x):
+ *   frame is PUSH EBP / MOV EBP,ESP / PUSH ECX -- the single 4-byte local is
+ *   the 2-element int16 column array at EBP-4 (MOV WORD PTR [EBP-4],0x96 at
+ *   0x53a5e and MOV WORD PTR [EBP-2],0x12c at 0x53a64; 16-bit stores, so the
+ *   array is short[2], not int[2]).  All six counters are read with
+ *   MOVSX r32,WORD PTR [abs], i.e. signed 16-bit globals sign-extended to int
+ *   for the varargs call; declaring them int would be a load-width bug.
+ *   The six sprintf data pushes trace back, each to its immediately preceding
+ *   MOVSX, as 0x5abcce / 0x5abc46 / 0x5abbbe / 0x5abe66 / 0x5abdde / 0x5abd56
+ *   in C argument order (EAX/ECX/EDX are reused across the interleaved
+ *   schedule, so the pushes must be traced individually).
+ *   At the second call the LEA EAX,[EBP-4] / PUSH EAX happens first and EAX is
+ *   then reloaded from [0x2ee6c4] for the register argument.
+ *   A single ADD ESP,0x2c cleans both calls (8 dwords for the sprintf + 3 for
+ *   the row printer); the call-site argument-count audit reads that merged
+ *   cleanup as 11 stack args for FUN_00053800, which is a false positive.
+ *   Ghidra additionally prints FUN_00053800 with zero arguments and drops both
+ *   column stores; the four arguments above come from the disassembly.
+ *
+ * The format string is transcribed verbatim from 0x25c154, including the
+ * missing '/' between the last two unit fields ("%d/%d%d").
+ *
+ * As in the siblings, the original schedules the two column stores between the
+ * sprintf argument pushes and its CALL; they target a local, so the observable
+ * order is unchanged.
+ */
+void FUN_00053a20(void)
+{
+  short column_positions[2];
+
+  crt_sprintf((char *)0x5ab280, "actors %d/%d/%d|units %d/%d%d",
+              (int)*(int16_t *)0x5abcce, (int)*(int16_t *)0x5abc46,
+              (int)*(int16_t *)0x5abbbe, (int)*(int16_t *)0x5abe66,
+              (int)*(int16_t *)0x5abdde, (int)*(int16_t *)0x5abd56);
+  column_positions[0] = 0x96; /* 150 */
   column_positions[1] = 0x12c; /* 300 */
   FUN_00053800((char *)0x5ab280, 2, column_positions, *(void **)0x2ee6c4);
 }
