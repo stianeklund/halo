@@ -32253,7 +32253,10 @@
         },
         {
           "addr": "0x4a460",
-          "decl": "void FUN_0004a460(void);"
+          "decl": "void ai_debug_toggle_flags(int count, char **names, int dest_vector, uint32_t vector_size, int16_t (__cdecl *lookup)(const char *));",
+          "name": "ai_debug_toggle_flags",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x4a650",

@@ -689,6 +689,174 @@ int FUN_00049c70(void)
   return result;
 }
 
+/* ai_debug_toggle_flags (0x4a460): parse a list of debug-flag names into a
+ * temporary bit vector and toggle those bits in a caller-supplied vector.
+ *
+ * __FILE__ assert xref confirms the TU: c:\halo\SOURCE\ai\ai_debug.c, lines
+ * 0x1353 ("lookup"), 0x1354 ("vector_size <= 2048") and 0x135d
+ * ("(comm_type >= 0) && (comm_type < vector_size)").  The third assert names
+ * the lookup result "comm_type", so the primary caller is an AI
+ * communication-type console command; the routine itself is generic over the
+ * name->index lookup function passed in [EBP+0x18].
+ *
+ * Semantics: build a mask from the supplied names (the literal name "all"
+ * sets every bit).  Then count, across the whole vector, how many mask bits
+ * are NOT yet set in the destination ("set" count) and how many already are
+ * ("cleared" count).  If anything is missing, OR the mask in and report
+ * "set N flags"; otherwise complement the mask and AND it in, reporting
+ * "cleared N flags".  The command therefore behaves as a toggle: naming flags
+ * turns them on unless they were all on already, in which case it turns them
+ * off.
+ *
+ * Confirmed ABI: __cdecl, 5 dword stack args, no register args.
+ *   [EBP+0x08] int       count        (JLE/JL - signed)
+ *   [EBP+0x0C] char **   names
+ *   [EBP+0x10] int       dest_vector  (bit vector base; re-loaded from the
+ *                                       parameter slot at every use in the
+ *                                       reference, so it is an int, not a
+ *                                       cached typed pointer)
+ *   [EBP+0x14] uint32_t  vector_size  (CMP 0x800/JBE, JC - unsigned)
+ *   [EBP+0x18] int16_t (__cdecl *lookup)(const char *)
+ *              CALL dword ptr [EBP+0x18] with one PUSH and ADD ESP,4 -> the
+ *              callee is cdecl and its result is read 16-bit (CMP SI,-1).
+ * The kb.json declaration previously read "void FUN_0004a460(void);", which
+ * is wrong for a 5-argument cdecl; it is corrected as part of this lift.
+ *
+ * Frame: SUB ESP,0x108 = a 0x100-byte mask buffer at [EBP-0x108] (64 dwords =
+ * 2048 bits, exactly the "vector_size <= 2048" bound) plus two int counters
+ * at [EBP-0x8] ("set") and [EBP-0x4] ("cleared").
+ *
+ * Call-site verification (cdecl: the first PUSH is the last C argument):
+ *   arg# | binary source                | C expression        | match
+ *   display_assert x3 -- PUSH 1 / PUSH line / PUSH 0x25ab74 / PUSH reason
+ *     1  | last PUSH (reason string)    | reason literal      | yes
+ *     2  | PUSH 0x25ab74                | __FILE__ literal    | yes
+ *     3  | PUSH imm line                | 0x1353/0x1354/0x135d| yes
+ *     4  | PUSH 1                       | 1                   | yes
+ *     no ADD ESP follows: PUSH -1 / CALL 0x8e2f0 (system_exit, noreturn).
+ *   csmemset -- PUSH EBX / PUSH EDI or -1 / PUSH buf; ADD ESP,0xc
+ *     1  | last PUSH = LEA [EBP-0x108]  | mask                | yes
+ *     2  | PUSH 0 or PUSH -1            | 0 / -1              | yes
+ *     3  | PUSH EBX (rounded byte len)  | mask_bytes          | yes
+ *   csstrcmp -- PUSH 0x25ae38 / PUSH names[i]; ADD ESP,8
+ *     1  | last PUSH = names[i]         | names[i]            | yes
+ *     2  | PUSH 0x25ae38                | "all"               | yes
+ *   bit_vector_or (0x108f00) -- PUSH EAX / PUSH EAX / PUSH buf / PUSH EDI
+ *     1  | last PUSH = EDI (size16)     | size16              | yes
+ *     2  | PUSH LEA [EBP-0x108]         | (int)mask           | yes
+ *     3  | PUSH EAX (dest_vector)       | dest_vector         | yes
+ *     4  | PUSH EAX (dest_vector)       | dest_vector         | yes
+ *     dest_vector is pushed twice because the OR is in-place (v1 ==
+ *     result_out).  This is legitimate, not a duplicate-argument bug.
+ *   FUN_00108fa0 -- PUSH buf / PUSH buf / PUSH EDI  (in-place complement)
+ *     1  | last PUSH = EDI (size16)     | size16              | yes
+ *     2  | PUSH LEA [EBP-0x108]         | (int)mask           | yes
+ *     3  | PUSH LEA [EBP-0x108]         | (int)mask           | yes
+ *   bit_vector_and (0x108e70) -- same shape as bit_vector_or
+ *     1..4 | EDI, buf, EAX, EAX         | size16, mask, dest, dest | yes
+ *   console_printf -- PUSH MOVSX count / PUSH fmt / PUSH 0
+ *     1  | last PUSH = 0                | 0                   | yes
+ *     2  | PUSH 0x25ae50 / 0x25ae3c     | format literal      | yes
+ *     3  | PUSH MOVSX of the 16-bit cnt | (int)count16        | yes
+ * All eight direct callees are cdecl and already in kb.json; the ninth call
+ * is the indirect lookup through the parameter.  No callee takes register
+ * arguments, so no @<reg> annotations are involved.
+ *
+ * Width notes (load-bearing): the lookup result is compared as 16 bits
+ * (CMP SI,-1) and both counters are truncated to 16 bits (TEST SI,SI on
+ * (short)counter) before their zero tests, then MOVSX-extended for
+ * console_printf.  Dropping either narrowing changes behaviour for counts
+ * that are exact multiples of 0x10000.  The byte length handed to csmemset is
+ * ((vector_size + 0x1f) >> 5) << 2 - round up to whole 32-bit words, then
+ * scale to bytes - not vector_size / 8.  Word indexing uses a signed shift
+ * (SAR) on both the mask and the destination.
+ *
+ * No FPU instructions, no struct field access. */
+void ai_debug_toggle_flags(int count, char **names, int dest_vector,
+                           uint32_t vector_size,
+                           int16_t(__cdecl *lookup)(const char *))
+{
+  int cleared_count;
+  int set_count;
+  uint32_t mask[64];
+  uint32_t mask_bytes;
+  uint32_t bit_index;
+  uint32_t bit;
+  int i;
+  int16_t comm_type;
+  int16_t size16;
+  int16_t count16;
+
+  cleared_count = 0;
+  set_count = 0;
+
+  if (lookup == 0) {
+    display_assert("lookup", "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0x1353, 1);
+    system_exit(-1);
+  }
+  if (vector_size > 0x800) {
+    display_assert("vector_size <= 2048", "c:\\halo\\SOURCE\\ai\\ai_debug.c",
+                   0x1354, 1);
+    system_exit(-1);
+  }
+
+  mask_bytes = ((vector_size + 0x1f) >> 5) << 2;
+  csmemset(mask, 0, mask_bytes);
+
+  for (i = 0; i < count; i++) {
+    comm_type = (*lookup)(names[i]);
+    /* Dispatch shape recovered from the reference lowering: the -1 arm is
+     * entered by a taken JE and the normal arm by an unconditional JMP, so
+     * NEITHER arm is a fall-through.  A plain if/else always leaves one arm
+     * as the fall-through, so the source was a switch. */
+    switch (comm_type) {
+      case -1:
+        /* Unrecognised name: only the literal "all" is accepted, and it sets
+         * every bit in the mask. */
+        if (csstrcmp(names[i], "all") == 0) {
+          csmemset(mask, -1, mask_bytes);
+        }
+        break;
+      default:
+        if ((comm_type < 0) || ((uint32_t)(int)comm_type >= vector_size)) {
+          display_assert("(comm_type >= 0) && (comm_type < vector_size)",
+                         "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0x135d, 1);
+          system_exit(-1);
+        }
+        mask[(int)comm_type >> 5] |= 1 << (comm_type & 0x1f);
+        break;
+    }
+  }
+
+  for (bit_index = 0; bit_index < vector_size; bit_index++) {
+    bit = 1u << (bit_index & 0x1f);
+    if ((mask[(int)bit_index >> 5] & bit) != 0) {
+      if ((*(uint32_t *)((((int)bit_index >> 5) * 4) + dest_vector) & bit) ==
+          0) {
+        set_count++;
+      } else {
+        cleared_count++;
+      }
+    }
+  }
+
+  size16 = (int16_t)vector_size;
+
+  count16 = (int16_t)set_count;
+  if (count16 != 0) {
+    bit_vector_or(size16, (int)mask, dest_vector, dest_vector);
+    console_printf(0, "set %d flags", (int)count16);
+    return;
+  }
+
+  count16 = (int16_t)cleared_count;
+  if (count16 != 0) {
+    FUN_00108fa0(size16, (int)mask, (int)mask);
+    bit_vector_and(size16, (int)mask, dest_vector, dest_vector);
+    console_printf(0, "cleared %d flags", (int)count16);
+  }
+}
+
 /* ai_debug_idle_look_clear: reset the idle-look debug block at 0x6323d4 to
  * track a single actor handle.  Sets the "valid" byte flag from
  * (actor_handle != -1), stores the handle itself as a dword, and clears the
