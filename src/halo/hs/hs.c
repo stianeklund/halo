@@ -2170,6 +2170,27 @@ void FUN_000c1cb0(int16_t function_index, int thread_datum, char init)
   return;
 }
 
+/* 0xc1cf0 — HaloScript function evaluator that resets the currently loaded
+ * map.  Runs main_reset_map (0x1002a0, no arguments) for its side effect, then
+ * commits a 0 result to the calling script thread (a void-returning script
+ * builtin).  Same shape as FUN_000c0cb0.
+ *
+ * ABI (verified against disassembly 0xc1cf0-0xc1d07): cdecl, plain RET, caller
+ * cleans (ADD ESP,0x8 after the hs_return call).  The body reads only
+ * [EBP+0xc] = thread_datum (argument 2); function_index and init complete the
+ * standard hs-evaluator signature but are never read here.  Ghidra's
+ * `in_stack_00000008` is a phantom of its wrong (void) prototype — it is
+ * [EBP+0xc], i.e. argument 2, not argument 1.
+ *
+ * Push order at 0xc1cfb is PUSH 0x0 then PUSH EAX, so under cdecl (first PUSH
+ * is the last C argument) the call is hs_return(thread_datum, 0). */
+void FUN_000c1cf0(int16_t function_index, int thread_datum, char init)
+{
+  main_reset_map();
+  hs_return(thread_datum, 0);
+  return;
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
