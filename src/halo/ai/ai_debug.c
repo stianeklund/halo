@@ -1000,9 +1000,9 @@ void ai_debug_initialize_for_new_map(void)
 /* FUN_00053650: zero the 0xee0-byte ai-debug globals block at 0x5abaac.
  *
  * Confirmed (0x53650-0x53664, 6 instructions, 21 bytes):
- *   PUSH 0xee0 / PUSH 0 / PUSH 0x5abaac / CALL csmemset (0x8db80) / ADD ESP,0xc / RET
- * cdecl, caller cleanup (ADD ESP,0xc = 3 stack args), no frame pointer, no
- * locals, no callee-saved registers touched.  csmemset's return value (the
+ *   PUSH 0xee0 / PUSH 0 / PUSH 0x5abaac / CALL csmemset (0x8db80) / ADD ESP,0xc
+ * / RET cdecl, caller cleanup (ADD ESP,0xc = 3 stack args), no frame pointer,
+ * no locals, no callee-saved registers touched.  csmemset's return value (the
  * buffer pointer) is left in EAX as an implicit side effect; the declared
  * return type is void.
  *
@@ -1065,20 +1065,20 @@ void FUN_00053650(void)
 typedef short(__cdecl *ai_meter_sample_proc)(void);
 
 typedef struct ai_meter_definition {
-  short meter_id;                 /* +0x00 */
-  short pad_02;                   /* +0x02 */
+  short meter_id; /* +0x00 */
+  short pad_02; /* +0x02 */
   ai_meter_sample_proc sample_fn; /* +0x04 */
-} ai_meter_definition;            /* 0x08 */
+} ai_meter_definition; /* 0x08 */
 
 typedef struct ai_meter {
-  short accumulator;        /* +0x00 */
-  short current_value;      /* +0x02 */
-  float average;            /* +0x04 */
-  int history_sum;          /* +0x08 */
+  short accumulator; /* +0x00 */
+  short current_value; /* +0x02 */
+  float average; /* +0x04 */
+  int history_sum; /* +0x08 */
   short history_next_index; /* +0x0c */
-  short history_count;      /* +0x0e */
-  short history[60];        /* +0x10 */
-} ai_meter;                 /* 0x88 */
+  short history_count; /* +0x0e */
+  short history[60]; /* +0x10 */
+} ai_meter; /* 0x88 */
 
 #define AI_METER_HISTORY_TICKS 60
 #define NUMBER_OF_AI_METERS 28
@@ -1163,12 +1163,10 @@ void FUN_00053790(char *buf)
   crt_sprintf(buf + csstrlen(buf),
               "ai enc % 2d/% 3d, actor % 3d/% 3d/% 3d, unit % 3d/% 3d/% 3d, "
               "props % 3d/% 3d|n",
-              *(int16_t *)0x5abb36, *(int16_t *)0x5abaae,
-              *(int16_t *)0x5abcce, *(int16_t *)0x5abc46,
-              *(int16_t *)0x5abbbe,
-              *(int16_t *)0x5abe66, *(int16_t *)0x5abdde,
-              *(int16_t *)0x5abd56,
-              *(int16_t *)0x5abeee, 768);
+              *(int16_t *)0x5abb36, *(int16_t *)0x5abaae, *(int16_t *)0x5abcce,
+              *(int16_t *)0x5abc46, *(int16_t *)0x5abbbe, *(int16_t *)0x5abe66,
+              *(int16_t *)0x5abdde, *(int16_t *)0x5abd56, *(int16_t *)0x5abeee,
+              768);
 }
 
 /* ai line-spray mode cycler (0x53890): advance the AI debug line-spray mode
@@ -1200,4 +1198,26 @@ int16_t FUN_00053890(void)
   console_printf(0, "AI line-spray: %s",
                  ((const char **)0x2c8f78)[*(int16_t *)0x5abaa2]);
   return *(int16_t *)0x5abaa2;
+}
+
+/* AI-pool word getter (0x538d0): read the AI data-array header pointed to by
+ * the global at 0x5ab270 and return its 16-bit field at +0x30.
+ *
+ * Confirmed (XBE bytes at 0x538d0, 9 bytes, leaf, no frame, no calls):
+ *   A1 70B25A00       MOV EAX,[0x005ab270]        ; load the data_t *
+ *   66:8B40 30        MOV AX,word ptr [EAX+0x30]  ; 16-bit field load
+ *   C3                RET                         ; result in AX (cdecl)
+ *
+ * Confirmed: 0x5ab270 is a data_t * — actions.c / actors.c / actor_perception.c
+ * all consume it as datum_get(*(data_t **)0x5ab270, actor+0x34).  Offset 0x30
+ * in data_t is the int16_t member typed as unk_48 in src/types.h.
+ *
+ * Inferred: the trailing 16-bit-only load makes this a short-returning getter;
+ * the upper half of EAX is left holding the pointer and is not part of the
+ * result.  Uncertain: the semantic meaning of data_t+0x30 (types.h leaves it
+ * unnamed), so no speculative name is applied here.  The original performs no
+ * NULL check on the global; none is added. */
+int16_t FUN_000538d0(void)
+{
+  return (*(data_t **)0x5ab270)->unk_48;
 }
