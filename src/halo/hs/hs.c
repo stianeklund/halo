@@ -1641,6 +1641,35 @@ void FUN_000c19e0(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc1a00 — HS script function handler: reports whether the recorded player
+ * control jump action fired, returning the boolean to the calling script
+ * thread.
+ *
+ * Callees (both cdecl, no register args, both ported):
+ *   0xb6b10 = player_control_action_test_jump(void) -> bool in AL
+ *   0xcbf80 = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc1a00-0xc1a26): cdecl, plain RET, frame
+ * is PUSH EBP / MOV EBP,ESP / PUSH ECX (one 4-byte local at EBP-0x4).  The
+ * body reads only [EBP+0xc] = thread_datum (arg 2); function_index and init
+ * complete the standard hs-evaluator signature shared by the sibling handlers
+ * but are unused here.
+ *
+ * The result local is zero-initialised as a full dword (MOV dword [EBP-4],0)
+ * and then only its low byte is overwritten with AL (MOV byte [EBP-4],AL)
+ * before the whole dword is re-read and pushed.  The `*(char *)&value` store
+ * reproduces that pair; a direct call-in-argument or a (unsigned char) widen
+ * would emit MOVZX instead.  This is the same idiom as the sibling at
+ * 0xc1990. */
+void FUN_000c1a00(int16_t function_index, int thread_datum, char init)
+{
+  int value;
+
+  value = 0;
+  *(char *)&value = (char)player_control_action_test_jump();
+  hs_return(thread_datum, value);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
