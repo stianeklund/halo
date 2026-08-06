@@ -1180,6 +1180,43 @@ void FUN_000c1780(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc17c0 — HS script function handler (zero-argument built-in): query a
+ * global engine value and commit it to the calling thread.
+ *
+ * Unlike its siblings in this TU this handler takes no script arguments at
+ * all, so it never calls hs_macro_function_evaluate and has no NULL check.
+ * It simply calls FUN_000853a0() (cdecl, no args, result in EAX) and returns
+ * that value to the thread.
+ *
+ * The value is zero-extended from 16 bits: disasm zero-initializes the whole
+ * 4-byte stack local up front (`mov DWORD PTR [ebp-4],0` at the top of the
+ * frame), then overwrites only its low word from AX (`mov WORD PTR
+ * [ebp-4],ax`), then reads the full dword back (`mov eax,[ebp-4]`) for the
+ * hs_return argument — the high 2 bytes stay 0.  A union reproduces this
+ * partial-store / wide-read exactly; a signed `short` cast would emit MOVSX
+ * and diverge.
+ *
+ * The function_index and init parameters are never read (EBP+8 and EBP+0x10
+ * are untouched); they are kept so the stack shape matches the TU's other
+ * script-function handlers.  thread_datum is read from EBP+0xc into ECX and
+ * pushed as the first hs_return argument (cdecl: last PUSH = first arg).
+ *
+ * Callees:
+ *   0x853a0 = FUN_000853a0(void) -> int (low word consumed in AX)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c17c0(int16_t function_index, int thread_datum, char init)
+{
+  union {
+    int i;
+    unsigned short w;
+  } value;
+
+  value.i = 0;
+  value.w = (unsigned short)FUN_000853a0();
+  hs_return(thread_datum, value.i);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
