@@ -1280,6 +1280,51 @@ void FUN_000c1810(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc1830 — HaloScript script-function handler: set the game time speed.
+ * Evaluates the macro arguments through hs_macro_function_evaluate; on a
+ * non-NULL result block the first dword is the new speed, read as a float and
+ * handed to game_time_set_speed, after which the calling thread is committed
+ * with hs_return(thread_datum, 0).  A NULL result means the arguments are
+ * still pending, so the thread is left uncommitted and nothing is applied —
+ * the same evaluate/NULL-check/act/hs_return skeleton as the other handlers
+ * in this TU (see FUN_000c0c30 / FUN_000c0c70).
+ *
+ * Disassembly (0xc1830-0xc1861), plain EBP frame plus a saved ESI, no locals:
+ *   PUSH EBP / MOV EBP,ESP      plain frame, no locals, no _chkstk
+ *   MOV EAX,[EBP+0x10]          init      (arg 3)
+ *   MOV ECX,[EBP+0x8]           function_index (arg 1)
+ *   PUSH ESI / MOV ESI,[EBP+0xc]  thread_datum held in ESI for the whole body
+ *   PUSH EAX / PUSH ESI / PUSH ECX   first PUSH is the LAST cdecl arg, so the
+ *                               call order is (function_index, thread_datum,
+ * init) CALL 0x000cc560             hs_macro_function_evaluate(...) ADD ESP,0xc
+ * cdecl cleanup, 3 args TEST EAX,EAX / JZ           plain NULL check on the
+ * result block pointer MOV EDX,[EAX] / PUSH EDX    result[0] pushed as raw
+ * 32-bit float bits — no FPU instruction appears here, so the value must stay
+ * float-typed in C; an int local would emit FILD and silently change the
+ * argument CALL 0x000b5d00             game_time_set_speed(result[0]) PUSH 0x0
+ * / PUSH ESI         hs_return arg2 = 0, arg1 = thread_datum CALL 0x000cbf80
+ * hs_return(thread_datum, 0) ADD ESP,0xc                 ONE coalesced cleanup
+ * for BOTH calls (1 + 2 pushes); the call-site audit's "cleanup=3 vs decl=2"
+ * note on hs_return is that coalescing, not an argument-count mismatch POP ESI
+ * / POP EBP / RET     cdecl, plain RET (caller cleans)
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0xb5d00 = game_time_set_speed(float)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c1830(int16_t function_index, int thread_datum, char init)
+{
+  float *result;
+
+  result =
+    (float *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    game_time_set_speed(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
