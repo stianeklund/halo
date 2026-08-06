@@ -7628,7 +7628,7 @@
         },
         {
           "addr": "0xa7470",
-          "decl": "void FUN_000A7470(void);",
+          "decl": "int16_t FUN_000A7470(void);",
           "ported": false
         },
         {
@@ -10064,7 +10064,8 @@
         },
         {
           "addr": "0xc18d0",
-          "decl": "void FUN_000c18d0(void);"
+          "decl": "void FUN_000c18d0(int16_t function_index, int thread_datum, char init);",
+          "ported": true
         },
         {
           "addr": "0xc1900",
