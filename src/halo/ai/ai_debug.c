@@ -1914,3 +1914,51 @@ int16_t FUN_00053960(void)
   }
   return total;
 }
+
+/* 0x000539c0 - debug overlay row: encounter and t-prop pool usage
+ * (FUN_000539c0).
+ *
+ * One of the "%d|t..." debug-overlay row family (0x539c0, 0x53a20, 0x53a90,
+ * 0x53af0, 0x53b80, 0x53bf0, ...) that all format a line into the shared debug
+ * scratch buffer at 0x5ab280 and hand it to the column-layout row printer
+ * FUN_00053800 with an array of tab-stop x positions.  This row uses two stops
+ * {150, 300} for its four fields.
+ *
+ * Globals (raw pointer-cast idiom, matching this TU):
+ *   0x5ab280 (char[])  : shared debug sprintf scratch buffer
+ *   0x5abb36 (int16)   : encounters in use
+ *   0x5abaae (int16)   : encounter pool capacity
+ *   0x5abeee (int16)   : t-props in use  (768 is the literal capacity)
+ *   0x2ee6c4 (void *)  : row-printer context pointer, passed to FUN_00053800
+ *                        in EAX.  Confirmed: MOV EAX,[0x2ee6c4] at 0x53a00,
+ *                        i.e. the *contents* of the global, not its address.
+ *                        FUN_00053800 itself falls back to the same load when
+ *                        its EAX argument is NULL (0x5382a).
+ *
+ * Confirmed (XBE 0x539c0-0x53a17, 24 instructions):
+ *   frame is PUSH EBP / MOV EBP,ESP / PUSH ECX -- the single 4-byte local is
+ *   the 2-element int16 column array at EBP-4 (stores 0x96 at EBP-4 and 0x12c
+ *   at EBP-2).  All three counters are read with MOVSX WORD PTR, i.e. they are
+ *   signed 16-bit globals sign-extended to int for the varargs call; declaring
+ *   them int would be a load-width bug.  The fourth conversion is the literal
+ *   768 (PUSH 0x300), so the pairing is (0x5abb36 / 0x5abaae) and
+ *   (0x5abeee / 768).
+ *   A single ADD ESP,0x24 cleans both calls (6 dwords for the sprintf + 3 for
+ *   the row printer); the call-site argument-count audit reads that merged
+ *   cleanup as 9 stack args for FUN_00053800, which is a false positive.
+ *
+ * As in the siblings, the original schedules the two column stores between the
+ * sprintf argument pushes and its CALL; they target a local, so the observable
+ * order is unchanged.
+ */
+void FUN_000539c0(void)
+{
+  short column_positions[2];
+
+  crt_sprintf((char *)0x5ab280, "encounters %d/%d|tprops %d/%d",
+              (int)*(int16_t *)0x5abb36, (int)*(int16_t *)0x5abaae,
+              (int)*(int16_t *)0x5abeee, 768);
+  column_positions[0] = 0x96;  /* 150 */
+  column_positions[1] = 0x12c; /* 300 */
+  FUN_00053800((char *)0x5ab280, 2, column_positions, *(void **)0x2ee6c4);
+}
