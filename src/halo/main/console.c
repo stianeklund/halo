@@ -63,6 +63,7 @@ static char *console_telnet_enabled(void)
  * Confirmed: CALL 0x8dff0 (csstrcpy) with "halo( ".
  * Confirmed: history head = 0xffff, count = 0, browse = 0xffff.
  */
+/* console_initialize — Address: 0x000ff400 */
 void console_initialize(void)
 {
   *(uint32_t *)0x46cfe8 = *(uint32_t *)0x31f9b8;
@@ -112,6 +113,7 @@ bool console_is_active(void)
  * Confirmed: if telnet flag at 0x46d924, calls csstrcat +
  * debug_string_to_display.
  */
+/* console_printf — Address: 0x000ff4d0 */
 void console_printf(int channel, const char *format, ...)
 {
   char buffer[1024];
@@ -141,6 +143,7 @@ void console_printf(int channel, const char *format, ...)
  * Confirmed: color pointer loaded from [0x2ee6d0] (indirect).
  * Confirmed: va_list starts at [EBP+0xc].
  */
+/* console_warning — Address: 0x000ff530 */
 void console_warning(const char *format, ...)
 {
   char buffer[1024];
@@ -168,6 +171,7 @@ static char *console_history_ring(void)
 /* Submit the current console input buffer as a command. Advances the
  * history ring, copies the input to the new slot, resets the browse
  * index, and evaluates via hs_console_evaluate. */
+/* console_submit_command — Address: 0x000ff5d0 */
 void console_submit_command(void)
 {
   int16_t head = (*console_history_head() + 1) % 8;
@@ -287,8 +291,8 @@ void console_process_enter(void)
     }
 
     csstrncpy(token_start, token_array[0], (size_t)(match_len + 1));
-    token_start[match_len + 1] = 0;
-    *(int16_t *)0x46d11e = (int16_t)(uintptr_t)token_start + 0x2fe9 + match_len;
+    token_start[cap + 1] = 0;
+    *(int16_t *)0x46d11e = (int16_t)(uintptr_t)token_start + 0x2fe9 + cap;
   }
 }
 
@@ -307,6 +311,7 @@ void console_process_enter(void)
  * Confirmed: head = (head + 1) % 8, count = min(count + 1, 8).
  * Confirmed: CALL 0xc50c0 (hs_console_evaluate), logs "init: %s" on success.
  */
+/* console_startup — Address: 0x000ff870 */
 void console_startup(void)
 {
   char buffer[200];
@@ -405,6 +410,7 @@ struct console_key_entry {
   int16_t key_code2;
 };
 
+/* console_update — Address: 0x000ff9e0 */
 bool console_update(void)
 {
   int16_t key_index = 0;

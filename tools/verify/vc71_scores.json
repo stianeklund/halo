@@ -8086,8 +8086,8 @@
       "source": "src/halo/main/console.c"
     },
     "FUN_000ff680": {
-      "opnd_percent": 54.1,
-      "score": 86.9,
+      "opnd_percent": 52.3,
+      "score": 86.1,
       "source": "src/halo/main/console.c"
     },
     "FUN_000ff9e0": {
@@ -17493,9 +17493,9 @@
       "source": "src/halo/main/console.c"
     },
     "console_process_enter": {
-      "opnd_percent": 52.5,
+      "opnd_percent": 50.7,
       "ref": "synth",
-      "score": 86.9,
+      "score": 86.1,
       "source": "src/halo/main/console.c"
     },
     "console_startup": {
