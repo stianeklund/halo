@@ -10619,8 +10619,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00134e80": {
-      "opnd_percent": 60.6,
-      "score": 80.2,
+      "opnd_percent": 68.9,
+      "score": 84.9,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00135210": {
@@ -10673,7 +10673,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_001363d0": {
-      "score": 88.2,
+      "opnd_percent": 87.5,
+      "score": 89.6,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00136450": {
@@ -10869,12 +10870,13 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013a5f0": {
-      "score": 88.2,
+      "opnd_percent": 67.6,
+      "score": 92.2,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013a740": {
-      "opnd_percent": 74.8,
-      "score": 85.2,
+      "opnd_percent": 77.8,
+      "score": 90.1,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013aa10": {
@@ -10882,8 +10884,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013ab20": {
-      "opnd_percent": 54.2,
-      "score": 85.5,
+      "opnd_percent": 54.6,
+      "score": 86.1,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013aed0": {
@@ -10903,8 +10905,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013b380": {
-      "opnd_percent": 67.3,
-      "score": 85.7,
+      "opnd_percent": 68.3,
+      "score": 86.8,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013bce0": {
@@ -11410,7 +11412,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00141970": {
-      "score": 83.8,
+      "opnd_percent": 78.5,
+      "score": 96.6,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00141b70": {
@@ -18627,7 +18630,8 @@
       "source": "src/halo/game/game_engine.c"
     },
     "find_objects_from_point_vector": {
-      "score": 86.8,
+      "opnd_percent": 62.2,
+      "score": 88.1,
       "source": "src/halo/objects/objects.c"
     },
     "find_unused_local_player_index": {
@@ -21964,7 +21968,8 @@
       "source": "src/halo/objects/damage.c"
     },
     "object_child_list_remove": {
-      "score": 88.7,
+      "opnd_percent": 80.6,
+      "score": 91.2,
       "source": "src/halo/objects/objects.c"
     },
     "object_choose_random_change_colors": {
@@ -22045,7 +22050,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_disconnect_from_map": {
-      "score": 88.4,
+      "opnd_percent": 60.5,
+      "score": 94.2,
       "source": "src/halo/objects/objects.c"
     },
     "object_double_charge_shield": {
@@ -22095,7 +22101,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_get_function_value": {
-      "score": 88.4,
+      "opnd_percent": 71.0,
+      "score": 94.6,
       "source": "src/halo/objects/objects.c"
     },
     "object_get_location": {
@@ -22125,7 +22132,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_get_root_location": {
-      "score": 88.2,
+      "opnd_percent": 56.2,
+      "score": 90.6,
       "source": "src/halo/objects/objects.c"
     },
     "object_get_root_parent": {
@@ -22206,7 +22214,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_new_by_name": {
-      "score": 88.4,
+      "opnd_percent": 59.8,
+      "score": 89.7,
       "source": "src/halo/objects/objects.c"
     },
     "object_new_from_scenario": {
@@ -22279,8 +22288,8 @@
       "source": "src/halo/objects/damage.c"
     },
     "object_set_position": {
-      "opnd_percent": 66.7,
-      "score": 88.5,
+      "opnd_percent": 63.8,
+      "score": 89.7,
       "source": "src/halo/objects/objects.c"
     },
     "object_set_ranged_attack_inhibited": {
@@ -22294,7 +22303,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_translate": {
-      "score": 88.9,
+      "opnd_percent": 82.6,
+      "score": 95.4,
       "source": "src/halo/objects/objects.c"
     },
     "object_try_and_get_and_verify_type": {
@@ -22303,7 +22313,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_try_place": {
-      "score": 88.0,
+      "opnd_percent": 81.0,
+      "score": 91.7,
       "source": "src/halo/objects/objects.c"
     },
     "object_update": {
@@ -22315,8 +22326,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_visible_to_any_player": {
-      "opnd_percent": 73.7,
-      "score": 86.7,
+      "opnd_percent": 74.3,
+      "score": 87.9,
       "source": "src/halo/objects/objects.c"
     },
     "object_wake": {
