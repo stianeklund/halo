@@ -148,12 +148,12 @@ double pow(double x, double y);
 /* 0x84a10 */
 int real_vector3d_valid(float *vector)
 {
-  unsigned int *v = (unsigned int *)vector;
-  if ((v[0] & 0x7f800000) != 0x7f800000 && (v[1] & 0x7f800000) != 0x7f800000 &&
-      (v[2] & 0x7f800000) != 0x7f800000) {
-    return 1;
-  }
+  union { float real; uint32_t bits; } component;
+  component.real = vector[0];
+  if ((component.bits & 0x7f800000) != 0x7f800000 && (component.real = vector[1], (component.bits & 0x7f800000) != 0x7f800000) &&
+      (component.real = vector[2], (component.bits & 0x7f800000) != 0x7f800000)) { return 1; }
   return 0;
+  /* Keep downstream assertion __LINE__ values unchanged. */
 }
 
 /* 0x84a70 — valid_real_normal3d_perpendicular: check whether two 3D vectors
@@ -1041,7 +1041,7 @@ char FUN_000ae110(int param_1, int param_2, int param_3)
   int player;
   int respawn_state;
   int time;
-  int local_8;
+  volatile int local_8;
   int field_74;
   char result;
 
@@ -1363,7 +1363,7 @@ void FUN_001342a0(int glow_widget_ptr)
   int prev_node;
   unsigned int flags;
   char parity;
-  int index;
+  int16_t index;
 
   glow_tag = tag_get(0x676c7721, *(int *)(glow_widget_ptr + 0x224));
   index = 0;
@@ -1787,7 +1787,7 @@ void FUN_00134e80(int object_handle, int light_volume_datum)
       dot_to_marker = *(float *)(marker_buf + 0x44) * *(float *)0x506564 +
                       *(float *)(marker_buf + 0x40) * *(float *)0x506560 +
                       *(float *)0x50655c * *(float *)(marker_buf + 0x3c);
-      if (dot_to_marker < *(float *)0x2533c0)
+      if (!(dot_to_marker >= *(float *)0x2533c0))
         dot_to_marker = -dot_to_marker;
 
       blend = *(float *)0x2533c0; /* function-value scratch */
@@ -2763,56 +2763,49 @@ void FUN_00136150(int object_handle)
 
     /* Search the widget_types table for a matching group_tag. */
     for (type = 0; type < 5; type++) {
-      if (*(int *)(0x323528 + (int)type * 0x28) == element[0])
+      if (*(int *)(0x323528 + (int)type * 0x28) == element[0]) {
+        if (type != -1 && element[3] != -1) {
+          /* Assert: type is in valid range [0, NUMBER_OF_WIDGET_TYPES). */
+          if (type < 0 || type >= 5) {
+            display_assert("type>=0 && type<NUMBER_OF_WIDGET_TYPES",
+                           "c:\\halo\\source\\objects\\widgets\\widget_types.h",
+                           0x96, 1);
+            system_exit(-1);
+          }
+
+          widget_definition = (char *)(0x323528 + (int)type * 0x28);
+
+          /* Allocate a new widget datum. */
+          widget_handle = data_new_at_index(*(data_t **)0x5a90c4);
+          if (widget_handle != -1) {
+            widget = (char *)datum_get(*(data_t **)0x5a90c4, widget_handle);
+
+            /* Store the widget type. */
+            *(int16_t *)(widget + 0x2) = type;
+
+            /* Check if this widget type has a "new" function (entry+0x18). */
+            if (*(int (**)(int))(widget_definition + 0x18) != 0) {
+              /* Call the widget type's new function with the definition index. */
+              definition_handle =
+                (*(int (**)(int))(widget_definition + 0x18))(element[3]);
+              *(int *)(widget + 0x4) = definition_handle;
+              if (definition_handle == -1) {
+                /* New function failed — delete the widget datum. */
+                datum_delete(*(data_t **)0x5a90c4, widget_handle);
+              } else {
+                /* Success — link into the object's widget list. */
+                *(int *)(widget + 0x8) = *(int *)((char *)obj + 0x11c);
+                *(int *)((char *)obj + 0x11c) = widget_handle;
+              }
+            } else {
+              /* No new function — link directly with definition = NONE. */
+              *(int *)(widget + 0x8) = *(int *)((char *)obj + 0x11c);
+              *(int *)((char *)obj + 0x11c) = widget_handle;
+              *(int *)(widget + 0x4) = -1;
+            }
+          }
+        }
         break;
-    }
-    if (type >= 5)
-      continue;
-
-    /* Found a match. Skip if type is NONE or definition index is NONE. */
-    if (type == -1)
-      continue;
-    if (element[3] == -1)
-      continue;
-
-    /* Assert: type is in valid range [0, NUMBER_OF_WIDGET_TYPES). */
-    if (type < 0 || type >= 5) {
-      display_assert("type>=0 && type<NUMBER_OF_WIDGET_TYPES",
-                     "c:\\halo\\source\\objects\\widgets\\widget_types.h", 0x96,
-                     1);
-      system_exit(-1);
-    }
-
-    widget_definition = (char *)(0x323528 + (int)type * 0x28);
-
-    /* Allocate a new widget datum. */
-    widget_handle = data_new_at_index(*(data_t **)0x5a90c4);
-    if (widget_handle == -1)
-      continue;
-
-    widget = (char *)datum_get(*(data_t **)0x5a90c4, widget_handle);
-
-    /* Store the widget type. */
-    *(int16_t *)(widget + 0x2) = type;
-
-    /* Check if this widget type has a "new" function (entry+0x18). */
-    if (*(int (**)(int))(widget_definition + 0x18) == 0) {
-      /* No new function — link directly with definition = NONE. */
-      *(int *)(widget + 0x8) = *(int *)((char *)obj + 0x11c);
-      *(int *)((char *)obj + 0x11c) = widget_handle;
-      *(int *)(widget + 0x4) = -1;
-    } else {
-      /* Call the widget type's new function with the definition index. */
-      definition_handle =
-        (*(int (**)(int))(widget_definition + 0x18))(element[3]);
-      *(int *)(widget + 0x4) = definition_handle;
-      if (definition_handle == -1) {
-        /* New function failed — delete the widget datum. */
-        datum_delete(*(data_t **)0x5a90c4, widget_handle);
-      } else {
-        /* Success — link into the object's widget list. */
-        *(int *)(widget + 0x8) = *(int *)((char *)obj + 0x11c);
-        *(int *)((char *)obj + 0x11c) = widget_handle;
       }
     }
   }
@@ -3578,17 +3571,17 @@ void FUN_0013a250(int light_handle /* @<eax> */,
 
   /* Check minimum radius */
   if (param_3 != '\0' && radius < *(float *)(tag + 0x18)) {
-    out_position[0] = *(float *)(light + 0x30);
-    out_position[1] = *(float *)(light + 0x34);
-    out_position[2] = *(float *)(light + 0x38);
+    light += 0x30;
+    out_position[0] = *(float *)(light + 0x0);
+    out_position[1] = *(float *)(light + 0x4);
+    out_position[2] = *(float *)(light + 0x8);
     *out_radius = *(float *)(tag + 0x18);
     return;
   }
 
   if (*(float *)(tag + 0x14) < *(float *)0x2568bc) {
     if (*(float *)(tag + 0x14) < *(float *)0x254a58) {
-      radius = radius / *(float *)(tag + 0x20);
-      *out_radius = radius;
+      *out_radius = (radius = radius / *(float *)(tag + 0x20));
     } else {
       *out_radius = radius * *(float *)(tag + 0x28);
       radius = radius * *(float *)(tag + 0x20);
@@ -3600,9 +3593,10 @@ void FUN_0013a250(int light_handle /* @<eax> */,
     out_position[2] =
       radius * *(float *)(light + 0x44) + *(float *)(light + 0x38);
   } else {
-    out_position[0] = *(float *)(light + 0x30);
-    out_position[1] = *(float *)(light + 0x34);
-    out_position[2] = *(float *)(light + 0x38);
+    light += 0x30;
+    out_position[0] = *(float *)(light + 0x0);
+    out_position[1] = *(float *)(light + 0x4);
+    out_position[2] = *(float *)(light + 0x8);
     *out_radius = radius;
   }
 }
@@ -3664,9 +3658,10 @@ void FUN_0013a420(void)
   int16_t i;
   int loop_idx;
   char *light;
+  char *light_reloaded;
   char *tag_data;
   char is_specular;
-  int16_t gel_count;
+  int gel_count;
   float position[3];
   float radius;
   int16_t gel_buffer[512];
@@ -3713,35 +3708,35 @@ void FUN_0013a420(void)
         FUN_00139350(*(int *)(0x5a8d6c + (int)i * 4), gel_buffer, 0x200);
     }
 
-    light =
+    light_reloaded =
       (char *)datum_get(*(data_t **)0x5a90bc, *(int *)(0x5a8d6c + (int)i * 4));
-    tag_data = (char *)tag_get(0x6c696768, *(int *)(light + 0x4));
-    radius = *(float *)(light + 0x54);
+    tag_data = (char *)tag_get(0x6c696768, *(int *)(light_reloaded + 0x4));
+    radius = *(float *)(light_reloaded + 0x54);
 
     if (*(float *)(tag_data + 0x14) < *(float *)0x2568bc) {
       if (*(float *)(tag_data + 0x14) < *(float *)0x254a58) {
         radius = radius / *(float *)(tag_data + 0x20);
         position[0] =
-          radius * *(float *)(light + 0x3c) + *(float *)(light + 0x30);
+          radius * *(float *)(light_reloaded + 0x3c) + *(float *)(light_reloaded + 0x30);
         position[1] =
-          radius * *(float *)(light + 0x40) + *(float *)(light + 0x34);
+          radius * *(float *)(light_reloaded + 0x40) + *(float *)(light_reloaded + 0x34);
         position[2] =
-          radius * *(float *)(light + 0x44) + *(float *)(light + 0x38);
+          radius * *(float *)(light_reloaded + 0x44) + *(float *)(light_reloaded + 0x38);
       } else {
         float inner_scale;
         radius = radius * *(float *)(tag_data + 0x28);
-        inner_scale = *(float *)(light + 0x54) * *(float *)(tag_data + 0x20);
+        inner_scale = *(float *)(light_reloaded + 0x54) * *(float *)(tag_data + 0x20);
         position[0] =
-          inner_scale * *(float *)(light + 0x3c) + *(float *)(light + 0x30);
+          inner_scale * *(float *)(light_reloaded + 0x3c) + *(float *)(light_reloaded + 0x30);
         position[1] =
-          inner_scale * *(float *)(light + 0x40) + *(float *)(light + 0x34);
+          inner_scale * *(float *)(light_reloaded + 0x40) + *(float *)(light_reloaded + 0x34);
         position[2] =
-          inner_scale * *(float *)(light + 0x44) + *(float *)(light + 0x38);
+          inner_scale * *(float *)(light_reloaded + 0x44) + *(float *)(light_reloaded + 0x38);
       }
     } else {
-      position[0] = *(float *)(light + 0x30);
-      position[1] = *(float *)(light + 0x34);
-      position[2] = *(float *)(light + 0x38);
+      position[0] = *(float *)(light_reloaded + 0x30);
+      position[1] = *(float *)(light_reloaded + 0x34);
+      position[2] = *(float *)(light_reloaded + 0x38);
     }
 
     FUN_00196060(*(int *)(light + 0x8), position, radius, gel_count,
@@ -4624,20 +4619,20 @@ void FUN_0013b380(void)
           (float *)(pbVar9 + 0x3c), (float *)(pbVar9 + 0x4c), local_8);
       }
       local_18 = *(float *)0x2533c8 - local_8;
-      if (*(float *)(iVar5 + 0x14) < *(float *)0x2533c0 ||
-          *(float *)(iVar5 + 0x14) > *(float *)0x2533c8) {
+      if (!(*(float *)(iVar5 + 0x14) >= *(float *)0x2533c0 &&
+            *(float *)(iVar5 + 0x14) <= *(float *)0x2533c8)) {
         display_assert("light->color.red >=0.0f && light->color.red <=1.0f",
                        "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1bb, 1);
         CALL_thunk_FUN_001029a0(-1);
       }
-      if (*(float *)(iVar5 + 0x18) < *(float *)0x2533c0 ||
-          *(float *)(iVar5 + 0x18) > *(float *)0x2533c8) {
+      if (!(*(float *)(iVar5 + 0x18) >= *(float *)0x2533c0 &&
+            *(float *)(iVar5 + 0x18) <= *(float *)0x2533c8)) {
         display_assert("light->color.green>=0.0f && light->color.green<=1.0f",
                        "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1bc, 1);
         CALL_thunk_FUN_001029a0(-1);
       }
-      if (*(float *)(iVar5 + 0x1c) < *(float *)0x2533c0 ||
-          *(float *)(iVar5 + 0x1c) > *(float *)0x2533c8) {
+      if (!(*(float *)(iVar5 + 0x1c) >= *(float *)0x2533c0 &&
+            *(float *)(iVar5 + 0x1c) <= *(float *)0x2533c8)) {
         display_assert("light->color.blue >=0.0f && light->color.blue <=1.0f",
                        "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1bd, 1);
         CALL_thunk_FUN_001029a0(-1);
@@ -4655,21 +4650,22 @@ void FUN_0013b380(void)
               *(float *)(iVar5 + 0x14) = fVar2;
               *(float *)(iVar5 + 0x18) = local_c * *(float *)(iVar5 + 0x18);
               *(float *)(iVar5 + 0x1c) = local_c * *(float *)(iVar5 + 0x1c);
-              if (fVar2 < *(float *)0x2533c0 || fVar2 > *(float *)0x2533c8) {
+              if (!(fVar2 >= *(float *)0x2533c0 &&
+                    fVar2 <= *(float *)0x2533c8)) {
                 display_assert(
                   "light->color.red >=0.0f && light->color.red <=1.0f",
                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1d1, 1);
                 CALL_thunk_FUN_001029a0(-1);
               }
-              if (*(float *)(iVar5 + 0x18) < *(float *)0x2533c0 ||
-                  *(float *)(iVar5 + 0x18) > *(float *)0x2533c8) {
+              if (!(*(float *)(iVar5 + 0x18) >= *(float *)0x2533c0 &&
+                    *(float *)(iVar5 + 0x18) <= *(float *)0x2533c8)) {
                 display_assert(
                   "light->color.green>=0.0f && light->color.green<=1.0f",
                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1d2, 1);
                 CALL_thunk_FUN_001029a0(-1);
               }
-              if (*(float *)(iVar5 + 0x1c) < *(float *)0x2533c0 ||
-                  *(float *)(iVar5 + 0x1c) > *(float *)0x2533c8) {
+              if (!(*(float *)(iVar5 + 0x1c) >= *(float *)0x2533c0 &&
+                    *(float *)(iVar5 + 0x1c) <= *(float *)0x2533c8)) {
                 display_assert(
                   "light->color.blue >=0.0f && light->color.blue <=1.0f",
                   "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1d3, 1);
@@ -4705,21 +4701,22 @@ void FUN_0013b380(void)
             *(float *)&light_params[10] = *pfVar1;
             light_params[11] = *(int *)(iVar5 + 0x18);
             light_params[12] = *(int *)(iVar5 + 0x1c);
-            if (*pfVar1 < *(float *)0x2533c0 || *pfVar1 > *(float *)0x2533c8) {
+            if (!(*pfVar1 >= *(float *)0x2533c0 &&
+                  *pfVar1 <= *(float *)0x2533c8)) {
               display_assert(
                 "light->color.red >=0.0f && light->color.red <=1.0f",
                 "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1ee, 1);
               CALL_thunk_FUN_001029a0(-1);
             }
-            if (*(float *)(iVar5 + 0x18) < *(float *)0x2533c0 ||
-                *(float *)(iVar5 + 0x18) > *(float *)0x2533c8) {
+            if (!(*(float *)(iVar5 + 0x18) >= *(float *)0x2533c0 &&
+                  *(float *)(iVar5 + 0x18) <= *(float *)0x2533c8)) {
               display_assert(
                 "light->color.green>=0.0f && light->color.green<=1.0f",
                 "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1ef, 1);
               CALL_thunk_FUN_001029a0(-1);
             }
-            if (*(float *)(iVar5 + 0x1c) < *(float *)0x2533c0 ||
-                *(float *)(iVar5 + 0x1c) > *(float *)0x2533c8) {
+            if (!(*(float *)(iVar5 + 0x1c) >= *(float *)0x2533c0 &&
+                  *(float *)(iVar5 + 0x1c) <= *(float *)0x2533c8)) {
               display_assert(
                 "light->color.blue >=0.0f && light->color.blue <=1.0f",
                 "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x1f0, 1);
@@ -4835,10 +4832,8 @@ void FUN_0013b380(void)
 
 /* FUN_0013bce0 — Compute object lighting from BSP lightmap/environment.
  * Samples lighting at the object's position and 4 offset positions, averages
- * successful samples. The original left local_88 uninitialized; when all 5
- * lookups fail (BSP transition), stack residue from clang-compiled ported
- * functions contains x87 NaN that permanently poisons the render state shadow
- * color. Fixed by zero-initializing the fallback buffer.
+ * successful samples. FUN_0013ab20 overwrites all 0x74 bytes of local_88 before
+ * returning, so this local intentionally has no pre-clear, matching the XBE.
  * (0x13bce0 / objects.obj, object_lights.c:0x3ca) */
 void FUN_0013bce0(int object_handle, float *lighting)
 {
@@ -4867,8 +4862,6 @@ void FUN_0013bce0(int object_handle, float *lighting)
   tag_data = (int)tag_get(0x6f626a65, *obj);
   if (*(uint8_t *)(tag_data + 2) & 4)
     flags |= 4;
-
-  csmemset(local_88, 0, sizeof(local_88));
 
   ok = FUN_0013ab20(flags, (int)(obj + 0x14), (int *)lighting);
 
@@ -6125,8 +6118,8 @@ int FUN_0013cf50(int param_1, short *param_2, int param_3, short param_4,
     *(int *)(frame.placement + 0x18) = *(int *)((char *)param_2 + 0x8);
     *(int *)(frame.placement + 0x1c) = *(int *)((char *)param_2 + 0xc);
     *(int *)(frame.placement + 0x20) = *(int *)((char *)param_2 + 0x10);
-    CALL_FUN_0010bbc0(frame.placement + 0x40, (char *)param_2 + 0x14,
-                      frame.placement + 0x34);
+    CALL_FUN_0010bbc0(frame.placement + 0x34, frame.placement + 0x40,
+                      (char *)param_2 + 0x14);
     *(short *)(frame.placement + 0x16) = param_2[3];
     goto LAB_0013d09e;
   }
@@ -6141,8 +6134,8 @@ int FUN_0013cf50(int param_1, short *param_2, int param_3, short param_4,
     *(int *)(frame.placement + 0x18) = *(int *)((char *)param_2 + 0x8);
     *(int *)(frame.placement + 0x1c) = *(int *)((char *)param_2 + 0xc);
     *(int *)(frame.placement + 0x20) = *(int *)((char *)param_2 + 0x10);
-    CALL_FUN_0010bbc0(frame.placement + 0x40, (char *)param_2 + 0x14,
-                      frame.placement + 0x34);
+    CALL_FUN_0010bbc0(frame.placement + 0x34, frame.placement + 0x40,
+                      (char *)param_2 + 0x14);
     *(short *)(frame.placement + 0x16) = param_2[3];
     goto LAB_0013d09e;
   }
@@ -6923,7 +6916,7 @@ short FUN_0013dcc0(void)
 
   entry = (int)datum_absolute_index_to_index(*(data_t **)0x5a8d50,
                                              *(int *)(globals + 0x94));
-  if (entry == 0 || (1 << (*(unsigned char *)(entry + 3) & 0x1f)) == 0 ||
+  if (entry == 0 || (1 << *(unsigned char *)(entry + 3)) == 0 ||
       *(int *)(entry + 8) == 0) {
     *(short *)(*(int *)0x46f084 + 0x90) = 0;
     return result;
@@ -9116,6 +9109,7 @@ void *object_get_child_marker_definition(int object_handle,
  */
 bool object_has_node(int object_handle, int16_t node_index)
 {
+  register char result;
   object_data_t *obj =
     (object_data_t *)object_get_and_verify_type(object_handle, -1);
 
@@ -9123,6 +9117,7 @@ bool object_has_node(int object_handle, int16_t node_index)
   void *obje_tag = tag_get(0x6f626a65, (int)obj->tag_index);
   int model_tag_index = *(int *)((char *)obje_tag + 0x34);
 
+  result = 0;
   if (model_tag_index == -1) {
     /* No model — only node 0 (implicit root) is valid */
     if (node_index == 0)
@@ -9131,10 +9126,10 @@ bool object_has_node(int object_handle, int16_t node_index)
     /* Look up the model tag ('mode') and check node count at offset 0xb8 */
     void *mode_tag = tag_get(0x6d6f6465, model_tag_index);
     if (node_index >= 0 && (int)node_index < *(int *)((char *)mode_tag + 0xb8))
-      return true;
+      result = 1;
   }
 
-  return false;
+  return result;
 }
 
 /*

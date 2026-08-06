@@ -2959,7 +2959,8 @@
       "source": "src/halo/camera/bored_camera.c"
     },
     "FUN_00084a10": {
-      "score": 87.5,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00084a70": {
@@ -4739,8 +4740,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_000ae110": {
-      "opnd_percent": 63.4,
-      "score": 83.1,
+      "opnd_percent": 79.8,
+      "score": 88.7,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_000ae250": {
@@ -10585,8 +10586,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_001342a0": {
-      "opnd_percent": 56.5,
-      "score": 80.6,
+      "opnd_percent": 56.9,
+      "score": 81.3,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00134350": {
@@ -10618,8 +10619,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00134e80": {
-      "opnd_percent": 60.2,
-      "score": 79.9,
+      "opnd_percent": 60.6,
+      "score": 80.2,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00135210": {
@@ -10663,8 +10664,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00136150": {
-      "opnd_percent": 76.2,
-      "score": 86.2,
+      "opnd_percent": 79.5,
+      "score": 90.4,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_001362d0": {
@@ -10854,7 +10855,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013a250": {
-      "score": 87.8,
+      "opnd_percent": 69.1,
+      "score": 88.0,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013a340": {
@@ -10862,7 +10864,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013a420": {
-      "score": 88.7,
+      "opnd_percent": 64.4,
+      "score": 90.8,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013a5f0": {
@@ -10900,7 +10903,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013b380": {
-      "score": 83.4,
+      "opnd_percent": 67.3,
+      "score": 85.7,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013bce0": {
@@ -11109,7 +11113,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013dcc0": {
-      "score": 89.9,
+      "opnd_percent": 75.0,
+      "score": 91.2,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013dda0": {
@@ -22136,7 +22141,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_has_node": {
-      "score": 89.9,
+      "opnd_percent": 94.6,
+      "score": 97.3,
       "source": "src/halo/objects/objects.c"
     },
     "object_header_block_allocate": {
@@ -23743,9 +23749,9 @@
       "source": "src/halo/bitmaps/bitmap_utilities.c"
     },
     "real_vector3d_valid": {
-      "opnd_percent": 58.3,
+      "opnd_percent": 77.8,
       "ref": "synth",
-      "score": 87.5,
+      "score": 100.0,
       "source": "src/halo/objects/objects.c"
     },
     "recorded_animations_dispose": {
