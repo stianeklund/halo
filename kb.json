@@ -32482,7 +32482,10 @@
         },
         {
           "addr": "0x53a90",
-          "decl": "void FUN_00053a90(void);"
+          "decl": "void FUN_00053a90(void);",
+          "name": "FUN_00053a90",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x53af0",

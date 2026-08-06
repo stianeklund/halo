@@ -2020,3 +2020,63 @@ void FUN_00053a20(void)
   column_positions[1] = 0x12c; /* 300 */
   FUN_00053800((char *)0x5ab280, 2, column_positions, *(void **)0x2ee6c4);
 }
+
+/* 0x00053a90 - debug overlay row: swarm and t-component pool usage
+ * (FUN_00053a90).
+ *
+ * Next sibling of FUN_00053a20 in the "%d/%d" debug-overlay row family
+ * (0x539c0, 0x53a20, 0x53a90, 0x53af0, ...): format one line into the shared
+ * debug scratch buffer at 0x5ab280, then hand it to the column-layout row
+ * printer FUN_00053800.  Unlike the two-column siblings this row uses a single
+ * tab stop {150}.
+ *
+ * Globals (raw pointer-cast idiom, matching this TU):
+ *   0x5ab280 (char[])  : shared debug sprintf scratch buffer
+ *   0x5ac4c6 (int16)   : swarms field 1
+ *   0x5ac43e (int16)   : swarms field 2
+ *   0x5ac54e (int16)   : t-components field 1
+ *   0x2ee6c4 (void *)  : row-printer context pointer, passed to FUN_00053800
+ *                        in EAX -- the *contents* of the global, not its
+ *                        address.
+ *
+ * The third swarm field (32) and the second t-component field (256) are not
+ * globals at all: they are PUSH 0x20 / PUSH 0x100 immediates, i.e. the
+ * compile-time pool capacities baked into the format's denominators.
+ *
+ * Confirmed (XBE 0x53a90-0x53ae4, 24 instructions):
+ *   frame is PUSH EBP / MOV EBP,ESP / PUSH ECX -- the single 4-byte local is
+ *   the 1-element int16 column array at EBP-4 (MOV WORD PTR [EBP-4],0x96 at
+ *   0x53abd; a 16-bit store, so the array is short[], not int[]).
+ *   All three counters are read with MOVSX r32,WORD PTR [abs], i.e. signed
+ *   16-bit globals sign-extended to int for the varargs call; declaring them
+ *   int would be a load-width bug.  The three MOVSX are hoisted ahead of the
+ *   push block by the MSVC scheduler (EDX <- 0x5ac4c6, ECX <- 0x5ac43e,
+ *   EAX <- 0x5ac54e), so the pushes must be traced individually rather than to
+ *   the nearest preceding load; in C argument order they are 0x5ac4c6 /
+ *   0x5ac43e / 32 / 0x5ac54e / 256.
+ *   At the second call (0x53ad8) the LEA EAX,[EBP-4] / PUSH EAX happens first
+ *   and EAX is then reloaded from [0x2ee6c4] for the register argument, in the
+ *   middle of the remaining pushes.
+ *   A single ADD ESP,0x28 cleans both calls (7 dwords for the sprintf + 3 for
+ *   the row printer); the call-site argument-count audit reads that merged
+ *   cleanup as 10 stack args for FUN_00053800, which is a false positive --
+ *   the declared 3 stack args + 1 @<eax> register arg is correct.
+ *   Ghidra additionally prints FUN_00053800 with zero arguments and drops the
+ *   column store; the four arguments above come from the disassembly.
+ *
+ * The format string is transcribed verbatim from 0x25c174.
+ *
+ * As in the siblings, the original schedules the column store between the
+ * sprintf argument pushes and its CALL; it targets a local, so the observable
+ * order is unchanged.
+ */
+void FUN_00053a90(void)
+{
+  short column_positions[1];
+
+  crt_sprintf((char *)0x5ab280, "swarms %d/%d/%d|tcomponents %d/%d",
+              (int)*(int16_t *)0x5ac4c6, (int)*(int16_t *)0x5ac43e, 32,
+              (int)*(int16_t *)0x5ac54e, 256);
+  column_positions[0] = 0x96; /* 150 */
+  FUN_00053800((char *)0x5ab280, 1, column_positions, *(void **)0x2ee6c4);
+}
