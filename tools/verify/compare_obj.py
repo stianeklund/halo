@@ -1910,18 +1910,30 @@ def main():
                 kb_path = os.path.join(_tools_dir, '..', 'kb.json')
             with open(kb_path) as kf:
                 kb = json.load(kf)
-            for obj in kb.get('objects', []):
-                for fn_entry in obj.get('functions', []):
-                    addr = fn_entry.get('addr', '')
-                    decl = fn_entry.get('decl', '')
-                    # Extract function name from declaration
-                    import re as _re
-                    m = _re.search(r'\b(\w+)\s*\(', decl)
-                    if m and addr:
-                        declared_name = m.group(1)
-                        fun_name = f"FUN_{int(addr, 16):08x}"
-                        if declared_name != fun_name:
-                            rename_map[declared_name] = fun_name
+            if isinstance(kb, dict):
+                if 'objects' in kb:
+                    for obj in kb.get('objects', []):
+                        for fn_entry in obj.get('functions', []):
+                            addr = fn_entry.get('addr', '')
+                            decl = fn_entry.get('decl', '')
+                            import re as _re
+                            m = _re.search(r'\b(\w+)\s*\(', decl)
+                            if m and addr:
+                                declared_name = m.group(1)
+                                fun_name = f"FUN_{int(addr, 16):08x}"
+                                if declared_name != fun_name:
+                                    rename_map[declared_name] = fun_name
+                else:
+                    for addr_str, fn_entry in kb.items():
+                        if isinstance(fn_entry, dict):
+                            declared_name = fn_entry.get('name')
+                            if declared_name and addr_str.startswith('0x'):
+                                try:
+                                    fun_name = f"FUN_{int(addr_str, 16):08x}"
+                                    if declared_name != fun_name:
+                                        rename_map[declared_name] = fun_name
+                                except ValueError:
+                                    pass
         except Exception:
             pass
 

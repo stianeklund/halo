@@ -69,6 +69,7 @@ void console_initialize(void)
   *(uint32_t *)0x46cfec = *(uint32_t *)0x31f9bc;
   *(uint32_t *)0x46cff0 = *(uint32_t *)0x31f9c0;
   *(uint32_t *)0x46cff4 = *(uint32_t *)0x31f9c4;
+
   csstrcpy(console_prompt(), "halo( ");
   *console_input_buffer() = 0;
   *console_history_head() = -1;
@@ -400,23 +401,22 @@ static char *console_hud_chat_flag(void)
  */
 bool console_update(void)
 {
-  int16_t count;
-  int16_t *key;
+  int16_t key_index;
 
-  if (*console_is_open()) {
-    count = *console_key_count();
-    if (count > 0) {
-      key = (int16_t *)0x46cf68;
+  if (*console_is_open() != 0) {
+    if (*console_key_count() > 0) {
+      key_index = 0;
       do {
-        int16_t code = *key;
-        if (code == -1) {
+        int16_t key_code = *console_key_code(key_index);
+        if (key_code == -1) {
           display_assert("key->key_code!=NONE",
                          "c:\\halo\\SOURCE\\main\\console.c", 0xb8, 1);
           system_exit(-1);
         }
 
-        switch (code) {
+        switch (key_code) {
         case 0x10:
+        case_10:
           if (*console_is_open() != 0) {
             terminal_dispose(console_terminal_state());
             *console_is_open() = 0;
@@ -429,15 +429,10 @@ bool console_update(void)
 
         case 0x38:
         case 0x66:
-          if (*console_input_buffer() == 0) {
-            if (*console_is_open() != 0) {
-              terminal_dispose(console_terminal_state());
-              *console_is_open() = 0;
-            }
-          } else {
-            console_submit_command();
-            *console_input_buffer() = 0;
-          }
+          if (*console_input_buffer() == 0)
+            goto case_10;
+          console_submit_command();
+          *console_input_buffer() = 0;
           break;
 
         case 0x4d:
@@ -466,12 +461,11 @@ bool console_update(void)
           break;
         }
 
-        key += 2;
-        count--;
-      } while (count != 0);
+        key_index++;
+      } while (key_index < *console_key_count());
     }
   } else {
-    if (input_key_is_down(0x10) == 1 && !*console_is_open()) {
+    if (input_key_is_down(0x10) == 1 && *console_is_open() == 0) {
       *console_input_buffer() = 0;
       *console_is_open() = terminal_open(console_terminal_state());
       *console_hud_chat_flag() = 0;
