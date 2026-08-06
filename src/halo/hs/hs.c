@@ -1670,6 +1670,36 @@ void FUN_000c1a00(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, value);
 }
 
+/* 0xc1a30 — HS script function handler: reports whether the recorded player
+ * control primary-trigger (fire) action fired, returning the boolean to the
+ * calling script thread.
+ *
+ * Callees (both cdecl, no register args, both ported):
+ *   0xb6b20 = player_control_action_test_primary_trigger(void) -> bool in AL
+ *   0xcbf80 = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc1a30-0xc1a56, 15 instructions): cdecl,
+ * plain RET, frame is PUSH EBP / MOV EBP,ESP / PUSH ECX (one 4-byte local at
+ * EBP-0x4).  The body reads only [EBP+0xc] = thread_datum (arg 2);
+ * function_index and init complete the standard hs-evaluator signature shared
+ * by the sibling handlers but are unused here.
+ *
+ * The result local is zero-initialised as a full dword (MOV dword [EBP-4],0)
+ * and then only its low byte is overwritten with AL (MOV byte [EBP-4],AL)
+ * before the whole dword is re-read and pushed (MOV EAX,[EBP-4] / PUSH EAX).
+ * The `*(char *)&value` store reproduces that pair; a direct
+ * call-in-argument or a (unsigned char) widen would emit MOVZX instead.  This
+ * is a BYTE store, unlike the WORD-store siblings at 0xc18d0/0xc1900.  Same
+ * idiom as the adjacent handler at 0xc1a00. */
+void FUN_000c1a30(int16_t function_index, int thread_datum, char init)
+{
+  int value;
+
+  value = 0;
+  *(char *)&value = (char)player_control_action_test_primary_trigger();
+  hs_return(thread_datum, value);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
