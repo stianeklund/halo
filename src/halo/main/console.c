@@ -219,6 +219,7 @@ char *console_get_text_to_autocomplete(void)
  * longest case-insensitive common prefix to the input buffer and updates
  * the cursor position.
  */
+/* console_process_enter — Address: 0x000ff680 */
 void console_process_enter(void)
 {
   char *token_array[256];
@@ -229,7 +230,7 @@ void console_process_enter(void)
   char *qp;
   int16_t token_count;
   int16_t match_len;
-  int16_t cap;
+  int cap;
   int16_t i;
   int16_t idx;
   int32_t batch_mod;
