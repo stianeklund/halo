@@ -2088,6 +2088,47 @@ void FUN_000c1c40(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, value);
 }
 
+/* 0xc1c70 — HS script-function handler for `player_add_equipment`.  Evaluates
+ * the call's argument expressions via hs_macro_function_evaluate; when a
+ * non-NULL argument record comes back, unpacks the three packed arguments and
+ * invokes player_add_equipment, then commits a 0 return to the calling thread.
+ * Same template as 0xc0ed0/0xc0f10 — the only differences are the unpacked
+ * field widths and the dispatch target.
+ *
+ * ABI (verified against disassembly): cdecl, PUSH EBP / MOV EBP,ESP / PUSH
+ * ESI.  ESI caches thread_datum ([EBP+0xc]) across the first CALL; that is the
+ * only callee-saved register used.  Ghidra reports the parameters as
+ * `in_stack_00000004/8/c` because the stale kb declaration was `void (void)` —
+ * the real slots are [EBP+0x8] = function_index (int16), [EBP+0xc] =
+ * thread_datum, [EBP+0x10] = init (char).
+ *
+ * hs_macro_function_evaluate is declared `int` in kb.json but returns a
+ * pointer to the evaluated-argument record; TEST EAX,EAX / JZ is a NULL check,
+ * not a boolean test.  Cast at the call site exactly as the siblings do.
+ *
+ * Ghidra dropped player_add_equipment's arguments entirely (they are loaded
+ * off the returned record).  The disassembly shows all three, and the load
+ * widths are explicit — do NOT widen them to int:
+ *   MOV EDX,[EAX]                  -> unit_handle     (dword, record +0x0)
+ *   XOR ECX,ECX ; MOV CX,[EAX+0x4] -> equipment_index (WORD,  record +0x4)
+ *   XOR EDX,EDX ; MOV DL,[EAX+0x8] -> reset_flag      (BYTE,  record +0x8)
+ * The zero-extending XOR pairs are how MSVC materialises the sub-dword loads
+ * for the cdecl push slots; they are not separate arguments.
+ *
+ * Cleanup for both calls is coalesced into a single ADD ESP,0x14 (0xc + 0x8)
+ * after the hs_return CALL — ordinary MSVC codegen, not a stack imbalance. */
+void FUN_000c1c70(int16_t function_index, int thread_datum, char init)
+{
+  int *args;
+
+  args = (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (args != (int *)0) {
+    player_add_equipment(args[0], *(int16_t *)(args + 1), *(char *)(args + 2));
+    hs_return(thread_datum, 0);
+  }
+  return;
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
