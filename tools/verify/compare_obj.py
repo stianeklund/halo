@@ -149,6 +149,52 @@ def first_function_insns(obj_path: str, aliases) -> list[str] | None:
     return _first_function_insns_from_text(result.stdout, aliases)
 
 
+def count_bounded_insns(obj_path: str, aliases) -> int | None:
+    """Count instructions from the target FUN_ symbol to the next FUN_ symbol,
+    stripping trailing NOP/INT3 padding.  This is the ground-truth instruction
+    count for the function in the .obj, independent of first_function_insns's
+    boundary heuristics.  Returns None if the symbol is absent."""
+    result = subprocess.run(
+        ["llvm-objdump", "-d", "--no-show-raw-insn", "--no-leading-addr", obj_path],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        return None
+    want = set(aliases)
+    in_target = False
+    found = False
+    insns = []
+    for line in result.stdout.splitlines():
+        m = re.match(r'^(?:[0-9a-f]+ )?<([^>]+)>:', line)
+        if m:
+            sym = re.sub(r'@\d+$', '', m.group(1).lstrip("_@"))
+            if not in_target:
+                if sym in want:
+                    in_target = True
+                    found = True
+                continue
+            if sym.startswith("FUN_") or sym.startswith("thunk_"):
+                break
+            continue
+        if not in_target:
+            continue
+        stripped = line.strip()
+        if (not stripped or stripped.startswith("...")
+                or stripped.startswith("Disassembly of section")):
+            continue
+        parts = stripped.split(None, 1)
+        if parts and re.match(r'^[0-9a-f]+:', parts[0]):
+            insns.append(parts[1] if len(parts) > 1 else "")
+        elif stripped:
+            insns.append(stripped)
+    if not found:
+        return None
+    _pad = {'nop', 'nopl', 'nopw', 'int3'}
+    while insns and mnemonic(insns[-1]).lower() in _pad:
+        insns.pop()
+    return len(insns)
+
+
 def _parse_objdump_insn(line: str) -> str | None:
     """Return the instruction text of an llvm-objdump body line, else None.
 

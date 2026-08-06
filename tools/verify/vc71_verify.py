@@ -1360,6 +1360,7 @@ def run_compare_cached(
     # present and itself valid.  Gated on byte span in BOTH directions so a
     # stale (pre-fix, bloated) chunk is never preferred over a good reference.
     ref_overrides: set[str] = set()
+    _chunk_truncation: dict[str, dict] = {}
 
     def _valid_chunk_ref(fn: str):
         """Instruction list from fn's per-function chunk, or None if unusable.
@@ -1384,7 +1385,20 @@ def run_compare_cached(
             return None
         if not cand:
             return None
-        return cand if _ref_insns_valid(len(cand), _func_span(fn)) else None
+        if not _ref_insns_valid(len(cand), _func_span(fn)):
+            return None
+        try:
+            bounded = co.count_bounded_insns(str(chunk), aliases)
+        except Exception:
+            bounded = None
+        if bounded is not None and bounded > 0:
+            ratio = len(cand) / bounded
+            if ratio < 0.90:
+                _chunk_truncation[fn] = {
+                    "parsed": len(cand), "bounded": bounded,
+                    "ratio": round(ratio, 3), "lost": bounded - len(cand),
+                }
+        return cand
 
     def _synth_ref(fn: str):
         """Instruction list from a reference synthesized out of the pristine XBE.
@@ -1606,6 +1620,7 @@ def run_compare_cached(
     any_loadw_warn = False
     any_imm_warn = False
     any_fcom_warn = False
+    any_trunc_warn = False
     hits = 0
     misses = 0
 
@@ -1669,6 +1684,9 @@ def run_compare_cached(
         loadw_tag = " [LOADW-WARN]" if loadw_warnings else ""
         imm_tag = " [IMM-WARN]" if imm_warnings else ""
         fcom_tag = " [FCOM-WARN]" if fcom_warnings else ""
+        trunc_info = _chunk_truncation.get(fn)
+        trunc_tag = (f" [TRUNC-WARN:{trunc_info['parsed']}/{trunc_info['bounded']}]"
+                     if trunc_info else "")
 
         reg_tag = ""
         if reg_normalize:
@@ -1697,9 +1715,9 @@ def run_compare_cached(
 
         if not only_mode:
             if quiet:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{opnd_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{trunc_tag}{opnd_tag}")
             else:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{opnd_tag}{cache_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{trunc_tag}{opnd_tag}{cache_tag}")
 
         if fpu_warnings:
             any_fpu_warn = True
@@ -1742,6 +1760,9 @@ def run_compare_cached(
                 for w in fcom_warnings:
                     print(w)
 
+        if trunc_info:
+            any_trunc_warn = True
+
         if status == "FAIL":
             any_fail = True
 
@@ -1767,6 +1788,8 @@ def run_compare_cached(
                 fpu_warnings, loadw_warnings, imm_warnings, fcom_warnings,
                 source, ref_info, co,
             )
+            if trunc_info:
+                pack["warnings"]["trunc"] = trunc_info
             ctx_path = _write_score_context(pack)
             if not only_mode and not quiet and pct < 100.0:
                 try:
@@ -1813,6 +1836,17 @@ def run_compare_cached(
         elif not quiet:
             print("\n[FCOM-WARN] FPU-guard bound-sense differences found; re-run with --fcom-only for "
                   "details (<= vs <; see lift-learnings section 38).")
+
+    if any_trunc_warn and not quiet:
+        trunc_fns = sorted(_chunk_truncation.keys())
+        print(f"\n[TRUNC-WARN] {len(trunc_fns)} per-function delinked ref(s) appear "
+              "internally truncated (first_function_insns returned <90% of the "
+              "bounded instruction count). Score may be against a partial function "
+              "-- re-export with a corrected address range.")
+        for tfn in trunc_fns:
+            ti = _chunk_truncation[tfn]
+            print(f"  {tfn}: {ti['parsed']}/{ti['bounded']} insns "
+                  f"({ti['ratio']:.1%}, lost {ti['lost']})")
 
     return 1 if any_fail else 0
 
