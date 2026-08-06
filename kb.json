@@ -32335,7 +32335,9 @@
         },
         {
           "addr": "0x4b0f0",
-          "decl": "void ai_debug_teleport_to(void);"
+          "decl": "void ai_debug_teleport_to(int encounter_index);",
+          "name": "ai_debug_teleport_to",
+          "ported": true
         },
         {
           "addr": "0x4b1b0",

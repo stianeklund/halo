@@ -1993,6 +1993,104 @@ void ai_debug_change_selected_encounter(int next)
   ai_debug_select_encounter((int)index);
 }
 
+/* ai_debug_teleport_to (0x4b0f0) — debug command: teleport every player unit
+ * onto the starting locations of the given scenario encounter.
+ *
+ * Walks the encounter's nested "starting locations" tag_block (encounter
+ * element + 0xa4, element size 0x34) and drops each live player unit onto a
+ * location in turn, wrapping with a modulo when there are more players than
+ * locations.  The unit's facing is derived from the location's yaw field
+ * (element + 0xc) as {cos(yaw), sin(yaw), 0.0f}; the up vector is NULL so
+ * object_set_position keeps the object's current up.
+ *
+ * Confirmed (disassembly 0x4b0f0-0x4b1a5):
+ *   The kb declaration was "void ai_debug_teleport_to(void)", which is wrong:
+ *   MOV EAX,[EBP+0x8] at 0x4b0f6 reads one stack argument.  The early-out
+ *   CMP EAX,-1 / JZ at 0x4b0f9 tests the FULL 32-bit value; the AND
+ *   EAX,0xffff mask is applied only afterwards, on the tag_block index, so
+ *   the parameter is an int, not a short.
+ *   The frame is PUSH EBP / MOV EBP,ESP / SUB ESP,0x1c, and EBX/ESI/EDI are
+ *   pushed at 0x4b102 — after the early-out test.  The param == -1 path
+ *   branches straight to MOV ESP,EBP, so the source shape is a single early
+ *   "return" before any other work.
+ *   0x4b10a/0x4b10f PUSH 0xb0 / PUSH EAX are pre-staged arguments for the
+ *   tag_block_get_element that follows global_scenario_get (which takes no
+ *   arguments); ADD ESP,0xc at 0x4b128 is that call's cdecl cleanup.
+ *   EDI = element + 0xa4 is a nested tag_block header; the loop guard is
+ *   CMP DWORD PTR [EDI],0 / JLE, i.e. "count > 0".
+ *   The counter EBX is a signed 16-bit value: MOVSX EAX,BX / CDQ / IDIV at
+ *   0x4b153-0x4b15a performs the signed modulo against the location count.
+ *   INC EBX is inside the "unit handle != -1" arm — the continue path jumps
+ *   to 0x4b192 (the next data_iterator_next) and bypasses it, so players
+ *   without a unit do not consume a starting location.
+ *   The facing is two reloads of the SAME source: FLD [EAX+0xc] / FCOS /
+ *   FSTP [EBP-0xc] then FLD [EAX+0xc] / FSIN / FSTP [EBP-0x8], followed by
+ *   MOV DWORD PTR [EBP-0x4],0.  No subtraction and no cross product, so
+ *   there is no operand-order hazard.
+ *   [EBP-0xc]..[EBP-0x4] is one float[3]; LEA ECX,[EBP-0xc] is what gets
+ *   pushed.  Ghidra's local_10/local_c/local_8 are that array's three slots
+ *   (its local_10 name is off by one frame slot), not independent variables.
+ *
+ * Call-site verification (all cdecl, first PUSH = last argument):
+ *   0x4b110 global_scenario_get()                                    [match]
+ *   0x4b123 tag_block_get_element: PUSH 0xb0, PUSH EAX(idx & 0xffff),
+ *           PUSH EAX(scenario + 0x42c) -> (block, index, 0xb0)       [match]
+ *   0x4b13b data_iterator_new: PUSH [0x5aa6d4], PUSH ECX(&iter)      [match]
+ *   0x4b144 data_iterator_next: PUSH &iter.  The ADD ESP,0xc here merges
+ *           this call's 1 dword with data_iterator_new's 2; the second call
+ *           site at 0x4b196 shows the true ADD ESP,0x4, so the ARG_COUNT
+ *           hazard on this site is a false positive.
+ *   0x4b162 tag_block_get_element: PUSH 0x34, PUSH EAX(index % count),
+ *           PUSH EDI(locations)                                      [match]
+ *   0x4b189 object_set_position: PUSH 0, PUSH ECX(&forward[0]),
+ *           PUSH EAX(location), PUSH EDX(*(int *)(player + 0x34)).
+ *           ADD ESP,0x1c cleans these 4 dwords plus the 3 from the
+ *           tag_block_get_element above.                             [match]
+ *
+ * Store-offset table (frame, from the raw disassembly):
+ *   [EBP-0x1c] .. [EBP-0x0d]  data_iter_t iter (0x10 bytes, LEA ECX,[EBP-0x1c])
+ *   [EBP-0x0c] <- FSTP after FCOS   forward[0] = cos(yaw)
+ *   [EBP-0x08] <- FSTP after FSIN   forward[1] = sin(yaw)
+ *   [EBP-0x04] <- MOV imm 0         forward[2] = 0.0f
+ *
+ * Uncertain: the exact meaning of the 0x34-byte starting-location element
+ *   beyond position at +0x00..+0x08 and yaw at +0x0c. */
+void ai_debug_teleport_to(int encounter_index)
+{
+  data_iter_t iter;
+  float forward[3];
+  char *player;
+  int *locations;
+  float *location;
+  short index;
+
+  if (encounter_index == -1) {
+    return;
+  }
+  locations = (int *)((char *)tag_block_get_element(
+                        (char *)global_scenario_get() + 0x42c,
+                        (int)((unsigned int)encounter_index & 0xffff), 0xb0) +
+                      0xa4);
+  if (*locations > 0) {
+    index = 0;
+    data_iterator_new(&iter, *(data_t **)0x5aa6d4);
+    player = (char *)data_iterator_next(&iter);
+    while (player != (char *)0) {
+      if (*(int *)(player + 0x34) != -1) {
+        location = (float *)tag_block_get_element(
+          locations, (int)index % *locations, 0x34);
+        forward[0] = (float)cos((double)location[3]);
+        forward[1] = (float)sin((double)location[3]);
+        forward[2] = 0.0f;
+        object_set_position(*(int *)(player + 0x34), location, forward,
+                            (float *)0);
+        index = (short)(index + 1);
+      }
+      player = (char *)data_iterator_next(&iter);
+    }
+  }
+}
+
 /* ai_debug_select_actor: reinitialize secondary encounter debug state when
  * either the encounter index or param_2 changes.  Calls
  * ai_debug_select_encounter(encounter_idx) to reset the primary per-encounter
