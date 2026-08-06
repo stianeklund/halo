@@ -54,8 +54,9 @@ void editor_dispose_from_old_map(void)
 float FUN_00097870(float param_1, float param_2, uint32_t param_3,
                    uint8_t param_4)
 {
+  float result = param_2;
   if (param_3 & (1u << param_4)) {
-    return param_1 * param_2;
+    result = param_1 * param_2;
   }
-  return param_2;
+  return result;
 }
