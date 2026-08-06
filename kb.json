@@ -33371,7 +33371,8 @@
         },
         {
           "addr": "0x5b370",
-          "decl": "void encounter_verify_firing_position_owner_actor_indices(int encounter_handle);"
+          "decl": "void encounter_verify_firing_position_owner_actor_indices(int encounter_handle);",
+          "ported": true
         },
         {
           "addr": "0x5b4b0",
