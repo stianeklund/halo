@@ -32225,7 +32225,10 @@
         },
         {
           "addr": "0x49ac0",
-          "decl": "char *ai_debug_describe_actor(int actor_handle, int object_handle, char with_actor, char *buf, int buf_size);"
+          "decl": "char *ai_debug_describe_actor(int actor_handle, int object_handle, char with_actor, char *buf, int buf_size);",
+          "name": "ai_debug_describe_actor",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x49c70",

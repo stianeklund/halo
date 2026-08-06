@@ -672,6 +672,128 @@ void ai_debug_render_points_and_lines(void)
   }
 }
 
+/* ai_debug_describe_actor: format a human-readable description of an actor
+ * and/or an object into the caller's buffer, and return that buffer.
+ *
+ * The result is the concatenation of three independently built pieces:
+ *   1. an "encounter/squad " (or "encounter/(platoon) squad ") prefix taken
+ *      from the actor's encounter membership, or "encounterless " when the
+ *      actor has no encounter;
+ *   2. the actor's/object's unit definition tag name with its directory path
+ *      stripped;
+ *   3. a " (name)" suffix naming the 0x24-byte scenario block element selected
+ *      by object field +0x6a.
+ *
+ * Confirmed: cdecl, five stack arguments, frame is PUSH EBP / MOV EBP,ESP /
+ *   SUB ESP,0x200 / PUSH ESI / PUSH EDI.  There is no _chkstk call, so the two
+ *   scratch buffers are declared normally.  EBX is pushed at 0x49b2f and
+ *   popped at 0x49bbd, i.e. only inside the encounter branch, where it holds
+ *   the squad element pointer across the platoon lookup.
+ * Confirmed: the two scratch buffers are char[256] each -- local_104 at
+ *   EBP-0x100 and local_204 at EBP-0x200, exactly filling the 0x200 frame.
+ * Confirmed: object_handle is written back to its own stack slot ([EBP+0xC])
+ *   at the top of the with_actor branch, from actor +0x18.  Every later read
+ *   of the parameter therefore sees the actor's unit handle, so the parameter
+ *   is reassigned in place rather than copied to a local.
+ * Confirmed: the encounter index is the low 16 bits of actor +0x34 (AND with
+ *   0xffff after the dword is tested against -1), while the squad and platoon
+ *   indices at actor +0x3a / +0x3c are loaded with MOVSX from word operands,
+ *   so they are signed int16 fields (lift-learnings §24).  Object +0x6a is
+ *   likewise MOVSX from a word.
+ * Confirmed: the tag block element sizes are 0xB0 (scenario +0x42c,
+ *   encounters), 0xE8 (encounter +0x80, squads), 0xAC (encounter +0x8c,
+ *   platoons) and 0x24 (scenario +0x204).
+ * Confirmed: the names printed for those elements are the element pointers
+ *   themselves -- the pushes at 0x49b9c / 0x49bb5 / 0x49c2d push the pointers
+ *   tag_block_get_element returned, with no field offset added, so each
+ *   element begins with its name string.
+ * Confirmed: crt_sprintf argument order at 0x49b9c is PUSH EBX(squad),
+ *   PUSH EDI(encounter), PUSH fmt, PUSH EDX(buffer) -- last push first, so it
+ *   is (buffer, "%s/%s ", encounter, squad): encounter first, squad second.
+ *   At 0x49bb5 the order is (buffer, "%s/(%s) %s ", encounter, platoon,
+ *   squad).
+ * Confirmed: the final formatter at 0x49c51 is the 6-push snprintf
+ *   (buf, buf_size, "%s%s%s", encounter_text, type_name, variant_text), and
+ *   the return value is MOV EAX,ESI at 0x49c5a where ESI was loaded from
+ *   [EBP+0x14] -- the function returns its own buf argument.
+ *
+ * Inferred: object type mask 3 for object_get_and_verify_type, matching the
+ *   two verify calls in FUN_00049c70 in this same TU.
+ * Inferred: the unit definition tag name is read from tag +0x2c, the standard
+ *   tag-header name pointer used by the other tag_name_strip_path callers.
+ *
+ * Uncertain: the meaning of the 0x24-byte scenario block at scenario +0x204
+ *   selected by object +0x6a.  It is printed parenthesised after the unit
+ *   name, so it is a per-object variant/palette name, but no assert string
+ *   names it, so no name is applied.
+ *
+ * Call-site note: the ARG_COUNT advisories on this function are all merged or
+ *   variadic cleanups -- ADD ESP,0x18 at the squad lookup covers two
+ *   tag_block_get_element calls (3 dwords each), ADD ESP,0x14 after
+ *   tag_name_strip_path covers the preceding tag_get pushes as well, and the
+ *   crt_sprintf/snprintf cleanups vary with the variadic argument count.
+ *
+ * Called from FUN_0004b7a0 (0x4b7a0) with the 0x100-byte global scratch
+ * buffer at 0x5ab100. */
+char *ai_debug_describe_actor(int actor_handle, int object_handle,
+                              char with_actor, char *buf, int buf_size)
+{
+  char encounter_text[256];
+  char variant_text[256];
+  const char *type_name;
+  char *actor;
+  void *scenario;
+  void *encounter;
+  void *squad;
+  void *platoon;
+  void *object;
+  void *definition;
+  void *variant;
+  int encounter_index;
+
+  csstrcpy(encounter_text, "");
+  if (with_actor != 0 && actor_handle != -1) {
+    actor = (char *)datum_get(actor_data, actor_handle);
+    object_handle = *(int32_t *)(actor + 0x18);
+    if (*(uint32_t *)(actor + 0x34) == 0xffffffff) {
+      csstrcpy(encounter_text, "encounterless ");
+    } else {
+      encounter_index = (int)(*(uint32_t *)(actor + 0x34) & 0xffff);
+      scenario = global_scenario_get();
+      encounter = tag_block_get_element((void *)((char *)scenario + 0x42c),
+                                        encounter_index, 0xb0);
+      squad = tag_block_get_element((void *)((char *)encounter + 0x80),
+                                    (int)*(int16_t *)(actor + 0x3a), 0xe8);
+      if (*(int16_t *)(actor + 0x3c) == -1 ||
+          (platoon = tag_block_get_element((void *)((char *)encounter + 0x8c),
+                                           (int)*(int16_t *)(actor + 0x3c),
+                                           0xac)) == NULL) {
+        crt_sprintf(encounter_text, "%s/%s ", (char *)encounter, (char *)squad);
+      } else {
+        crt_sprintf(encounter_text, "%s/(%s) %s ", (char *)encounter,
+                    (char *)platoon, (char *)squad);
+      }
+    }
+  }
+  type_name = "";
+  csstrcpy(variant_text, "");
+  if (object_handle != -1) {
+    object = object_get_and_verify_type(object_handle, 3);
+    definition = tag_get(0x756e6974 /* 'unit' */, *(int32_t *)object);
+    type_name =
+      tag_name_strip_path(*(const char **)((char *)definition + 0x2c));
+    if (*(int16_t *)((char *)object + 0x6a) != -1) {
+      scenario = global_scenario_get();
+      variant =
+        tag_block_get_element((void *)((char *)scenario + 0x204),
+                              (int)*(int16_t *)((char *)object + 0x6a), 0x24);
+      crt_sprintf(variant_text, " (%s)", (char *)variant);
+    }
+  }
+  snprintf(buf, buf_size, "%s%s%s", encounter_text, type_name, variant_text);
+  return buf;
+}
+
 /* FUN_00049c70: resolve the object the debug camera is currently looking at,
  * returning a datum handle (or -1 when nothing usable is under the crosshair).
  *
