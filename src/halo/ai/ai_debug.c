@@ -1221,3 +1221,47 @@ int16_t FUN_000538d0(void)
 {
   return (*(data_t **)0x5ab270)->unk_48;
 }
+
+/* AI actor/swarm population count (0x538f0): walk every active actor via the
+ * standard encounter iterator and return the total number of AI entities.
+ * Swarm actors (record+6 != 0) contribute their component count from the
+ * int16_t at record+0x1e; ordinary actors contribute 1.
+ *
+ * Confirmed (XBE 0x538f0-0x5393e): frame is PUSH EBP / MOV EBP,ESP /
+ *   SUB ESP,0x1c / PUSH ESI.  The single local is the 28-byte (0x1c) iterator
+ *   at EBP-0x1c; ESI is the accumulator, zeroed by XOR ESI,ESI at 0x538f7.
+ * Confirmed: iterator init is encounter_iterator_next(&iter, 0) -- PUSH ESI
+ *   (0) then PUSH EAX (&iter) at 0x538fc/0x538fd, cdecl, so flag = 0 (all
+ *   encounters), matching ai_erase's all-actors branch.
+ * Confirmed: ADD ESP,0xc at 0x5390c is *coalesced* cleanup for both preceding
+ *   calls (2 args + 1 arg).  The loop-back call at 0x5392b has its own
+ *   ADD ESP,0x4, so FUN_00059b50 really does take exactly one argument; the
+ *   ARG_COUNT hazard on this site is a false positive.
+ * Confirmed: FUN_00059b50 returns the actor record pointer (kb decl types it
+ *   int); it is dereferenced at +0x6 and +0x1e here, so the result is cast.
+ * Confirmed: MOVSX EAX,word ptr [EAX+0x1e] at 0x5391a -- the count field is a
+ *   *signed* 16-bit member, not an int.
+ * Confirmed: both arms materialise the addend in EAX (MOVSX ... / MOV EAX,1)
+ *   and join at 0x53925 before a single ADD ESI,EAX, i.e. a ternary rather
+ *   than two separate accumulating branches.
+ * Confirmed: MOV AX,SI at 0x53937 -- the result is returned 16-bit in AX, so
+ *   this is int16_t-returning despite the accumulator being a full int.
+ *
+ * Uncertain: the semantics of record+0x1e (a cached swarm component count in
+ * actors_move_randomly terms, but that path reads the count from the swarm
+ * datum rather than the actor), so no name is applied to the field. */
+int16_t FUN_000538f0(void)
+{
+  char iter[0x1c];
+  char *record;
+  int total;
+
+  total = 0;
+  encounter_iterator_next(iter, 0);
+  record = (char *)FUN_00059b50(iter);
+  while (record != NULL) {
+    total += (*(char *)(record + 6) != 0) ? *(int16_t *)(record + 0x1e) : 1;
+    record = (char *)FUN_00059b50(iter);
+  }
+  return (int16_t)total;
+}
