@@ -2847,7 +2847,8 @@
       "source": "src/halo/bitmaps/bitmaps.c"
     },
     "FUN_0007f5e0": {
-      "score": 63.2,
+      "opnd_percent": 47.5,
+      "score": 82.6,
       "source": "src/halo/bitmaps/tiff_file.c"
     },
     "FUN_000803d0": {
@@ -25205,7 +25206,8 @@
       "source": "src/halo/game/game_engine.c"
     },
     "tiff_export": {
-      "score": 63.2,
+      "opnd_percent": 47.5,
+      "score": 82.6,
       "source": "src/halo/bitmaps/tiff_file.c"
     },
     "transition_function_evaluate": {
