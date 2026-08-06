@@ -2370,6 +2370,48 @@ void FUN_000c1dd0(int16_t function_index, int thread_datum, char init)
   return;
 }
 
+/* 0xc1e10 — HS script function handler: switch the active structure BSP.
+ *
+ * Standard hs macro-function wrapper, identical in shape to FUN_000c1d90
+ * above.  The prologue is PUSH EBP; MOV EBP,ESP; PUSH ESI with no locals and
+ * no `sub esp`; [EBP+8]/[EBP+0xc]/[EBP+0x10] are the three cdecl parameters.
+ * ESI is loaded from [EBP+0xc] before the first call and holds thread_datum
+ * across the whole body, which is why the same value feeds both
+ * hs_macro_function_evaluate and hs_return.
+ *
+ * The push order for the evaluate call is PUSH EAX([EBP+0x10]); PUSH
+ * ESI([EBP+0xc]); PUSH ECX([EBP+8]), so under cdecl the arguments are
+ * (function_index, thread_datum, init) — matching the kb declaration.
+ *
+ * Ghidra printed `FUN_0018eb40()` with no argument, but the disassembly is
+ * `XOR EDX,EDX; MOV DX,word ptr [EAX]; PUSH EDX` — a zero-extended 16-bit
+ * load from offset +0x0 of the result block, so the BSP index is a narrow
+ * int16 field, not an int (matching the callee's `__int16` parameter).
+ *
+ * scenario_switch_structure_bsp returns bool in AL and the original discards
+ * it, so the result is not assigned here.
+ *
+ * The single `ADD ESP,0xc` at 0xc1e3f is MSVC's merged cleanup for BOTH the
+ * 1-argument scenario_switch_structure_bsp call and the 2-argument hs_return
+ * call (1 + 2 = 3 dwords) — it is not evidence of a 3-argument hs_return, and
+ * the call-site audit's ARG_COUNT warning on hs_return here is a false
+ * positive from that coalescing.
+ *
+ * hs_macro_function_evaluate is declared returning `int` in kb.json but is
+ * used here as a pointer, so it is cast (same as FUN_000c1d90). */
+void FUN_000c1e10(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (int *)0) {
+    scenario_switch_structure_bsp(*(short *)result);
+    hs_return(thread_datum, 0);
+  }
+  return;
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
