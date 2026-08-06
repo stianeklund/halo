@@ -2233,6 +2233,53 @@ void FUN_000c1d10(int16_t function_index, int thread_datum, char init)
   return;
 }
 
+/* HaloScript builtin: set the multiplayer map name.
+ *
+ * Identical in shape to FUN_000c1d10 immediately above; the only difference is
+ * the callee, 0x100010 main_set_multiplayer_map_name instead of 0xfffa0
+ * main_set_map_name.
+ *
+ * Callees:
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> int
+ *   0x100010 = main_set_multiplayer_map_name(const char *name) -> void
+ *   0xcbf80 = hs_return(int thread_datum, int value) -> void
+ *
+ * ABI (verified against disassembly 0xc1d50-0xc1d80): cdecl, frame is
+ * PUSH EBP; MOV EBP,ESP; PUSH ESI with no locals and no `sub esp`.  ESI is
+ * loaded once at 0xc1d5a and holds thread_datum ([EBP+0xc]) across the body.
+ * Ghidra's `void FUN_000c1d50(void)` prototype is wrong — the three
+ * `in_stack_*` phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], i.e. the standard
+ * hs-evaluator argument triple.
+ *
+ * The push order at 0xc1d60 is PUSH EAX([EBP+0x10]); PUSH ESI([EBP+0xc]);
+ * PUSH ECX([EBP+8]), so under cdecl the arguments are
+ * (function_index, thread_datum, init) — matching the kb declaration.
+ *
+ * Ghidra printed `FUN_00100010()` with no argument; the disassembly at
+ * 0xc1d6f is `MOV EDX,[EAX]; PUSH EDX`, so the record is dereferenced and the
+ * resulting pointer is the map-name string, not the record address.
+ *
+ * The single `ADD ESP,0xc` at 0xc1d7c is MSVC's merged cleanup for BOTH the
+ * 1-argument main_set_multiplayer_map_name call and the 2-argument hs_return
+ * call (1 + 2 = 3 dwords) — it is not evidence of a 3-argument hs_return, and
+ * the call-site audit's ARG_COUNT warning on hs_return here is a false
+ * positive from that coalescing.
+ *
+ * hs_macro_function_evaluate is declared returning `int` in kb.json but is
+ * used here as a pointer, so it is cast (same as FUN_000c1d10). */
+void FUN_000c1d50(int16_t function_index, int thread_datum, char init)
+{
+  char **result;
+
+  result =
+    (char **)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (char **)0) {
+    main_set_multiplayer_map_name(*result);
+    hs_return(thread_datum, 0);
+  }
+  return;
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
