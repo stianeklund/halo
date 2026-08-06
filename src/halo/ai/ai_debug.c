@@ -1066,6 +1066,214 @@ void ai_debug_vocalize(const char *vocalization_name,
   }
 }
 
+/* FUN_0004a030 (0x4a030): per-tick service routine for the debug "speak"
+ * request block that ai_debug_speak (0x4a220) and ai_debug_speak_list
+ * (0x4a290) arm.  While the block is active it waits for the unit to stop
+ * talking, waits out a countdown, asks the unit for the communication that
+ * matches the current vocalization index, dispatches it, prints
+ * "<vocalization name>: <sound tag name>" to the console, and then either
+ * advances to the next non-"unused" vocalization or shuts the block down.
+ *
+ * Confirmed ABI: __cdecl, no parameters, no return value.  Frame is PUSH EBP /
+ *   MOV EBP,ESP / SUB ESP,0x38 (56 bytes of locals) with a single PUSH ESI
+ *   mid-function; ESI carries the communication count and later the printed
+ *   tag-name pointer.  No FPU instructions, no SEH, no register arguments.
+ * Confirmed: the 0x30-byte AI communication record occupies EBP-0x38..EBP-0x09
+ *   and is zeroed by csmemset(LEA [EBP-0x38], 0, 0x30) at 0x4a0ef.  Ghidra's
+ *   `local_2c[32]` at EBP-0x28 is NOT an independent local: EBP-0x28 is
+ *   record + 0x10, so ai_communication_packet_new receives an interior pointer
+ *   into the same buffer.  Declaring it as a second array would grow the frame
+ *   past 0x38 and hand FUN_001a6ef0 the wrong bytes.  This is the same layout
+ *   ai_debug_vocalize (0x49f60) uses.
+ * Confirmed: [EBP-0x8] is a dword sound-definition index preset to -1 by
+ *   MOV dword ptr [EBP-0x8],0xffffffff before the lookup, and [EBP-0x4] is a
+ *   word vocalization type seeded from the 16-bit global at 0x6324ea.  Both
+ *   are out-parameters of FUN_001a68d0 and are read back afterwards.
+ * Confirmed global widths (all accesses are of the stated size; widening any
+ *   of them changes the emitted load/store and the 0xd1 wraparound):
+ *   0x6324e0  byte   speak-block active flag
+ *   0x6324e1  byte   auto-advance flag
+ *   0x6324e2  byte   skip-"unused" flag
+ *   0x6324e4  dword  unit datum handle
+ *   0x6324e8  word   countdown in ticks
+ *   0x6324ea  word   current vocalization index, signed, bounded by 0xd1
+ *   The same block is written by ai_debug_speak (0x4a220), which confirms the
+ *   byte/word split independently.
+ *
+ * Call-site verification (cdecl: the first PUSH is the last C argument):
+ *   arg# | binary source                    | C expression              | match
+ *   object_try_and_get_and_verify_type (0x13d640) @ 0x4a054, ADD ESP,8
+ *     1  | PUSH EAX (= [0x6324e4])          | *(int32_t *)0x6324e4      | yes
+ *     2  | PUSH 3 (pushed first)            | 3                         | yes
+ *   FUN_001a68d0 (0x1a68d0) @ 0x4a0d7, ADD ESP,0x1c (7 dwords)
+ *     1  | PUSH EDX (= [0x6324e4])          | *(int32_t *)0x6324e4      | yes
+ *     2  | PUSH 3                           | 3                         | yes
+ *     3  | PUSH 0                           | 0                         | yes
+ *     4  | PUSH 0                           | 0                         | yes
+ *     5  | PUSH 0                           | NULL                      | yes
+ *     6  | PUSH ECX (= LEA [EBP-0x4])       | &vocalization_type        | yes
+ *     7  | PUSH EAX (= LEA [EBP-0x8]), 1st  | &sound_definition_index   | yes
+ *   csmemset (0x8db80) @ 0x4a0ef
+ *     1  | PUSH EAX (= LEA [EBP-0x38])      | communication             | yes
+ *     2  | PUSH 0                           | 0                         | yes
+ *     3  | PUSH 0x30 (pushed first)         | 0x30                      | yes
+ *   ai_communication_packet_new (0x42d20) @ 0x4a112
+ *     1  | PUSH EAX (= LEA [EBP-0x28])      | communication + 0x10      | yes
+ *   FUN_001a6ef0 (0x1a6ef0) @ 0x4a123
+ *     1  | PUSH EDX (= [0x6324e4])          | *(int32_t *)0x6324e4      | yes
+ *     2  | PUSH ESI (communication count)   | communication_count       | yes
+ *     3  | PUSH ECX (= LEA [EBP-0x38]), 1st | communication             | yes
+ *   crt_strstr (0x1d9690) @ 0x4a141
+ *     1  | PUSH ESI (tag_get_name result)   | name                      | yes
+ *     2  | PUSH 0x25ad10 (pushed first)     | "conditional"             | yes
+ *   crt_strchr (0x1d95d0) @ 0x4a150
+ *     1  | PUSH EAX (strstr result)         | p                         | yes
+ *     2  | PUSH 0x5c (pushed first)         | '\\'                      | yes
+ *   FUN_001a67b0 (0x1a67b0) @ 0x4a174 and @ 0x4a1b7, ADD ESP,8
+ *     1  | PUSH EAX (= word [0x6324ea])     | *(int16_t *)0x6324ea      | yes
+ *     2  | PUSH 0 (pushed first)            | 0                         | yes
+ *   console_printf (0xff4d0) @ 0x4a184
+ *     1  | PUSH 0 (pushed last)             | 0                         | yes
+ *     2  | PUSH 0x259f2c                    | "%s: %s"                  | yes
+ *     3  | PUSH EAX (FUN_001a67b0 result)   | FUN_001a67b0(index, 0)    | yes
+ *     4  | PUSH ESI (pushed first)          | name                      | yes
+ *   csstrcmp (0x8dcb0) @ 0x4a1c0
+ *     1  | PUSH EAX (FUN_001a67b0 result)   | FUN_001a67b0(index, 0)    | yes
+ *     2  | PUSH 0x25ad00 (pushed first)     | "unused"                  | yes
+ *   The ADD ESP,0x1c at 0x4a12b is a single coalesced cleanup covering
+ *   csmemset's three pushes, ai_communication_packet_new's one and
+ *   FUN_001a6ef0's three, so the enrichment ARG_COUNT warnings on
+ *   FUN_001a6ef0 ("cleanup=7, decl=3") and crt_strstr ("cleanup=3, decl=2")
+ *   are false positives; the raw push counts above are 3 and 2.
+ *
+ * Store-offset table for the communication record (derived from the raw MOV
+ * instructions, not from the decompiler's field labels; base = EBP-0x38):
+ *   offset | width | source                       | notes
+ *   +0x00  | word  | 4                            | literal, not an index
+ *   +0x02  | word  | [EBP-0x4]                    | vocalization type readback
+ *   +0x04  | dword | [EBP-0x8]                    | sound definition index
+ *   +0x0c  | word  | 0xf                          | literal
+ *   +0x10  | -     | passed out                   | packet sub-record
+ *   Offsets +0x06..+0x0b and +0x0e..+0x0f stay zero from the csmemset; the
+ *   record layout is not otherwise known, so it is kept as a raw byte buffer
+ *   exactly as in ai_debug_vocalize rather than invented as a struct.
+ *
+ * Confirmed block layout: both `"<none>"` stores are tail-merged into one
+ *   block at LAB_0004a163, reached by `jl` from the count test and by `je`
+ *   from the sound-index test, and the tag-name path ends with an explicit
+ *   `jmp LAB_0004a168` over it.  That places the "<none>" store AFTER the
+ *   tag-name path, so both tests must be written with the positive (tag-name)
+ *   arm first and the failure arm as `else`; writing them the other way round
+ *   emits the store first and inverts both branch mnemonics.
+ * Confirmed control flow: `INC EAX / JZ` at 0x4a15c is a real test of
+ *   strchr_result + 1 against NULL and is preserved verbatim; folding it away
+ *   would drop two instructions.  The advance loop at 0x4a1a7 is a do/while
+ *   whose bottom test re-reads the 16-bit global.
+ *
+ * Inferred: FUN_001a68d0's second argument 3 is a priority/importance selector
+ *   (ai_debug_vocalize passes the looked-up vocalization index there instead),
+ *   and a returned count below 2 means "nothing to say", which is why the
+ *   printed tag name degenerates to "<none>".
+ * Uncertain: the meaning of the literals 4 (record+0x00) and 0xf (record+0x0c)
+ *   is not recoverable from this call site; 0xf is also the countdown reload
+ *   value written to 0x6324e8, but the two uses may be unrelated.
+ * Uncertain: the "conditional" / backslash trimming shortens a tag path such
+ *   as "...conditional\\<leaf>" to its leaf name; the exact tag-name shape it
+ *   targets is not observable here. */
+void FUN_0004a030(void)
+{
+  char communication[0x30];
+  int sound_definition_index;
+  int16_t vocalization_type;
+  void *unit;
+  int16_t communication_count;
+  const char *name;
+  char *p;
+
+  if (*(uint8_t *)0x6324e0 == 0) {
+    return;
+  }
+  if (*(int32_t *)0x6324e4 == -1) {
+    return;
+  }
+
+  unit = object_try_and_get_and_verify_type(*(int32_t *)0x6324e4, 3);
+  if (unit == NULL) {
+    *(uint8_t *)0x6324e0 = 0;
+    return;
+  }
+  if ((*(uint8_t *)((char *)unit + 0xb6) & 4) != 0) {
+    *(uint8_t *)0x6324e0 = 0;
+    return;
+  }
+  if (*(int16_t *)((char *)unit + 0x338) != 0) {
+    return;
+  }
+
+  if (*(int16_t *)0x6324e8 > 0) {
+    *(int16_t *)0x6324e8 = (int16_t)(*(int16_t *)0x6324e8 - 1);
+  }
+  if (*(int16_t *)0x6324e8 != 0) {
+    return;
+  }
+
+  if (*(int16_t *)0x6324ea >= 0 && *(int16_t *)0x6324ea < 0xd1) {
+    vocalization_type = *(int16_t *)0x6324ea;
+    sound_definition_index = -1;
+    communication_count =
+      FUN_001a68d0(*(int32_t *)0x6324e4, 3, 0, 0, NULL, &vocalization_type,
+                   &sound_definition_index);
+    if (communication_count >= 2) {
+      csmemset(communication, 0, 0x30);
+      *(int16_t *)(communication + 0x02) = vocalization_type;
+      *(int32_t *)(communication + 0x04) = sound_definition_index;
+      *(int16_t *)(communication + 0x00) = 4;
+      *(int16_t *)(communication + 0x0c) = 0xf;
+      ai_communication_packet_new(communication + 0x10);
+      FUN_001a6ef0(*(int32_t *)0x6324e4, communication_count, communication);
+      if (sound_definition_index != -1) {
+        name = tag_get_name(sound_definition_index);
+        p = crt_strstr(name, "conditional");
+        if (p != NULL) {
+          p = crt_strchr(p, '\\');
+          if (p != NULL) {
+            p = p + 1;
+            if (p != NULL) {
+              name = p;
+            }
+          }
+        }
+      } else {
+        name = "<none>";
+      }
+    } else {
+      name = "<none>";
+    }
+    console_printf(0, "%s: %s", FUN_001a67b0(*(int16_t *)0x6324ea, 0), name);
+    if (*(uint8_t *)0x6324e1 == 0) {
+      *(int16_t *)0x6324ea = -1;
+    } else {
+      *(int16_t *)0x6324e8 = 0xf;
+      do {
+        *(int16_t *)0x6324ea = (int16_t)(*(int16_t *)0x6324ea + 1);
+        if (csstrcmp(FUN_001a67b0(*(int16_t *)0x6324ea, 0), "unused") != 0) {
+          break;
+        }
+        if (*(uint8_t *)0x6324e2 == 0) {
+          *(int16_t *)0x6324ea = -1;
+          break;
+        }
+      } while (*(int16_t *)0x6324ea < 0xd1);
+    }
+  }
+
+  if (*(int16_t *)0x6324ea >= 0 && *(int16_t *)0x6324ea < 0xd1) {
+    return;
+  }
+  console_printf(0, "speech done");
+  *(uint8_t *)0x6324e0 = 0;
+}
+
 /* ai_debug_speak (0x4a220): arm the debug "speak" request block for the
  * currently selected debug actor, using a named vocalization type.
  *

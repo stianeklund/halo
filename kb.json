@@ -32254,7 +32254,9 @@
         },
         {
           "addr": "0x4a030",
-          "decl": "void FUN_0004a030(void);"
+          "decl": "void FUN_0004a030(void);",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x4a220",
