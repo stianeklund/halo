@@ -923,6 +923,108 @@ void ai_debug_idle_look_addprop(int index, float value)
   }
 }
 
+/* FUN_0004a9f0 (0x4a9f0) — O(n^2) pairwise suppression pass over the
+ * actor_path_debug_array (base *(char **)0x331f5c, stride 0x1ca7c, 0x20
+ * slots).  For every ordered pair (outer, inner) with inner > outer, when both
+ * records are live and they describe the "same" debug event, the older of the
+ * two is retired by clearing its valid flag at +0xc.  When the OUTER record is
+ * the one retired the inner scan stops immediately (the outer record is now
+ * dead, so no further pairing against it is meaningful).
+ *
+ * Record fields used (same layout as ai_debug_get_path_storage at 0x49120):
+ *   +0x00 int        key (actor handle / event id) — must be equal
+ *   +0x04 int        creation stamp — larger == newer; the SMALLER one dies
+ *   +0x0c char       valid flag (cleared to 0 to suppress)
+ *   +0x0d char       second gate flag (both records must have it set)
+ *   +0x28 float[3]   primary point (x,y,z)
+ *   +0x60 char       has-direction flag — must be equal on both records
+ *   +0x64 float[3]   secondary point, only compared when +0x60 != 0
+ *
+ * Confirmed ABI: __cdecl, no arguments, no return value.
+ * Frame: PUSH EBP / MOV EBP,ESP / SUB ESP,0xc / PUSH EBX,ESI,EDI — three
+ * dword locals: the byte-offset accumulator, the 16-bit outer index and the
+ * 0x20 down-counter that drives the outer do/while.  The outer loop is a
+ * counted do/while with a separate offset accumulator (offset += 0x1ca7c),
+ * NOT an index*stride multiply; only the INNER loop multiplies (MOVSX ESI,BX /
+ * IMUL ESI,ESI,0x1ca7c).  Both loops re-load the table base from 0x331f5c on
+ * every iteration (0x4aa10 and 0x4aa40), so it is not cached in a local.
+ *
+ * Loop induction is 16-bit: CMP BX,0x20 / JGE for the outer gate and
+ * CMP BX,0x20 / JL for the inner bottom test, with MOVSX before the IMUL.
+ *
+ * Distance block (0x4aa66..0x4aa99): three FLD/FSUB pairs in ASCENDING offset
+ * order 0x28, 0x2c, 0x30, each `FLD [ESI+off]; FSUB [EDI+off]` — the delta is
+ * inner MINUS outer.  The three deltas stay resident on the x87 stack and are
+ * then squared in the order z, x, y with two FADDPs, i.e. the sum is
+ * (dz*dz + dx*dx) + dy*dy.  Squaring makes the subtraction direction
+ * behaviourally irrelevant but both the direction and the summation order are
+ * transcribed literally for codegen fidelity.  VC71 schedules the second and
+ * third squares itself: writing the sum as (dz,dy,dx) instead of (dz,dx,dy)
+ * produces byte-identical output, so the residual [FPU-WARN] on the two
+ * `fld %st(N)` / `fmul %st(N+1),%st` pairs is a scheduling artifact of the
+ * verify compiler, not an operand-order bug (all three terms are squares, so
+ * the sum is order-independent).
+ *
+ * Both threshold tests are `FCOMP [0x25337c]; FNSTSW AX; TEST AH,0x5; JP` —
+ * STRICT less-than (JP is taken for greater-or-equal and for equal), not <=.
+ * [0x25337c] holds 0.25f; it is written as a literal so VC71 pools it the way
+ * the original did instead of emitting an absolute operand.
+ *
+ * Call-site verification (cdecl: the first PUSH is the LAST C argument):
+ *   distance_squared3d (0x121a0) at 0x4aaa7 — LEA EDX,[ESI+0x64] / PUSH EDX /
+ *   LEA EAX,[EDI+0x64] / PUSH EAX / CALL / (FCOMP) / ADD ESP,0x8
+ *     arg# | binary source           | C expression   | match
+ *       1  | last PUSH = EAX = EDI+0x64 (outer) | outer + 0x64 | yes
+ *       2  | first PUSH = EDX = ESI+0x64 (inner) | inner + 0x64 | yes
+ *   Result is consumed from ST(0) (float return) — the ADD ESP,0x8 lands
+ *   between the FCOMP and the FNSTSW, which is pure scheduling.
+ *   This is the ONLY call in the function; no buffers are allocated or passed,
+ *   so there is no store-offset table to derive. */
+void FUN_0004a9f0(void)
+{
+  char *inner;
+  char *outer;
+  float dx;
+  float dy;
+  float dz;
+  int offset;
+  int remaining;
+  short j;
+  short outer_index;
+
+  outer_index = 1;
+  offset = 0;
+  remaining = 0x20;
+  do {
+    outer = *(char **)0x331f5c + offset;
+    if (outer[0xc] != '\0' && outer[0xd] != '\0') {
+      for (j = outer_index; j < 0x20; j++) {
+        inner = *(char **)0x331f5c + (int)j * 0x1ca7c;
+        if (inner[0xc] != '\0' && inner[0xd] != '\0' &&
+            *(int *)inner == *(int *)outer) {
+          dx = *(float *)(inner + 0x28) - *(float *)(outer + 0x28);
+          dy = *(float *)(inner + 0x2c) - *(float *)(outer + 0x2c);
+          dz = *(float *)(inner + 0x30) - *(float *)(outer + 0x30);
+          if (dz * dz + dx * dx + dy * dy < 0.25f &&
+              outer[0x60] == inner[0x60] &&
+              (outer[0x60] == '\0' ||
+               distance_squared3d((const float *)(outer + 0x64),
+                                  (const float *)(inner + 0x64)) < 0.25f)) {
+            if (*(int *)(outer + 4) < *(int *)(inner + 4)) {
+              outer[0xc] = 0;
+              break;
+            }
+            inner[0xc] = 0;
+          }
+        }
+      }
+    }
+    offset += 0x1ca7c;
+    outer_index++;
+    remaining--;
+  } while (remaining != 0);
+}
+
 /* ai_debug_update: per-tick AI debug update.  Three independent debug actions:
  *
  *   1. Camera-follow (0x5ac9fc):  acquire actor or LOS-hit target, then

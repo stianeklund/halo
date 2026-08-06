@@ -32294,7 +32294,10 @@
         },
         {
           "addr": "0x4a9f0",
-          "decl": "void FUN_0004a9f0(void);"
+          "decl": "void FUN_0004a9f0(void);",
+          "name": "FUN_0004a9f0",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x4ab10",

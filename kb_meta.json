@@ -1356,6 +1356,10 @@
         "The residual [LOADW-WARN] on this function is not a width bug: reference and lift both use movswl n16 loads, but VC71 rebased the line-record induction pointer to the record start (+0x0/+0x2/+0x4) while the original bases it at the color field (-0x4/-0x2/+0x0); effective addresses are identical and the mnemonic match is 82/82."
       ]
     },
+    "0x4a460": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x4a6e0": {
       "kind": "function",
       "status": "ported",
@@ -1378,6 +1382,26 @@
     "0x4c0f0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x53680": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "TU attribution: both asserts reference c:\\\\halo\\\\SOURCE\\\\ai\\\\ai_profile.c (VA 0x25c0ac, xrefed only from 0x536a6 and 0x536ee), so the real ai_profile.c source file lives at 0x536xx; the function is nonetheless kept in ai_debug.obj because that is its kb object membership and delinked/ai_debug.obj already bounds it tightly.",
+        "Inferred: the definition table base is 0x2c8e98 with stride 8 ({short meter_id; short pad; short (*sample_fn)(void);}); EBX is biased +4 into the entry so the disassembly shows 0x2c8e9c.",
+        "Confirmed: the meter array base is 0x5abaac with 28 elements of 0x88 bytes, which is exactly the 0xee0-byte block that FUN_00053650 zeroes.",
+        "Uncertain: history_sum is only ever decremented here (the evicted sample is subtracted) and the newly stored sample is never added back; transcribed faithfully from the binary."
+      ]
+    },
+    "0x538f0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The ternary form (single ADD ESI,EAX after both arms materialise the addend in EAX at the 0x53925 join) was chosen over two accumulating if/else branches because a plain 'total += 1' arm would lower to ADD ESI,1 rather than the observed MOV EAX,1."
+      ],
+      "uncertain": [
+        "The int16_t field at actor record +0x1e is treated as a per-actor entity count but is left unnamed; actors_move_randomly reads swarm component counts from the swarm datum (+0x28 handle, count at swarm+2) rather than from this field, so the two are not proven to be the same quantity."
+      ]
     },
     "0x53bf0": {
       "kind": "function",
