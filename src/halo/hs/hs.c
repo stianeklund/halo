@@ -1448,6 +1448,42 @@ void FUN_000c18d0(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, value);
 }
 
+/* 0xc1900 — HaloScript function evaluator "game_difficulty_get": returns the
+ * current campaign difficulty level to the calling script thread.
+ *
+ * Disassembly (0xc1900-0xc1927, 15 instructions, 0x28 bytes):
+ *   PUSH EBP / MOV EBP,ESP / PUSH ECX   single 4-byte local at EBP-4
+ *   MOV dword [EBP-4],0                 zero the FULL dword first
+ *   CALL 0x000a7460                     game_difficulty_level_get(void) -> AX
+ *   MOV ECX,[EBP+0xc]                   thread_datum (hs-evaluator arg 2)
+ *   MOV word [EBP-4],AX                 store only the LOW WORD of the result
+ *   MOV EAX,[EBP-4]                     reload the (now zero-extended) dword
+ *   PUSH EAX / PUSH ECX                 cdecl: first PUSH is the last arg, so
+ *   CALL 0x000cbf80 / ADD ESP,8         hs_return(thread_datum, value)
+ *   MOV ESP,EBP / POP EBP / RET         cdecl, plain RET (caller cleans)
+ *
+ * Byte-for-byte the same shape as FUN_000c18d0 at 0xc18d0; only the producer
+ * call differs.  The zero-dword-then-word-store is load bearing: the 16-bit
+ * difficulty is ZERO-extended into the 32-bit hs_return slot.  A `(short)`
+ * cast would emit MOVSX instead.
+ *
+ * [EBP+0x8] (function_index) and [EBP+0x10] (init) are never read by this
+ * body; they complete the standard hs-evaluator signature shared by every
+ * other handler in this TU.
+ *
+ * Callees (both cdecl, no register args, both ported):
+ *   0xa7460 = game_difficulty_level_get(void) — returns int16_t in AX
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c1900(int16_t function_index, int thread_datum, char init)
+{
+  int32_t value;
+
+  value = 0;
+  *(int16_t *)&value = game_difficulty_level_get();
+  hs_return(thread_datum, value);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
