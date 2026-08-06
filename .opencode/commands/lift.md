@@ -2,7 +2,7 @@
 description: Two-phase lift — RE analysis then build + verify pipeline
 ---
 
-Use `halo-xbox-re` for doctrine and evidence rules, `halo-re-lift` for the
+Use `halo-lift` for doctrine and evidence rules, `halo-lift` for the
 lift workflow, and `halo-verify-debug` for the verification lane expectations.
 
 Two-phase lift: RE analysis + implementation, then build and verify.
@@ -27,7 +27,7 @@ Argument: $ARGUMENTS (optional target name or 0x... address)
 ## Phase 1 — Analysis + Implementation
 
 Using the xbox-halo-re-analyst persona (bounded RE worker following
-`halo-xbox-re` doctrine), perform a complete lift for the target:
+`halo-lift` doctrine), perform a complete lift for the target:
 
 **If $ARGUMENTS is provided:** use it as the target (name or 0x... address).
 **If $ARGUMENTS is empty:** run `rtk python3 tools/analysis/frontier.py --limit 5` and pick
@@ -35,8 +35,8 @@ the top candidate.
 
 Steps:
 1. Resolve the target in `kb.json`: address, name, object, and `source_path`.
-2. Follow the analysis and ABI checks from `halo-re-lift`.
-3. Apply token-efficient defaults from `halo-re-lift`:
+2. Follow the analysis and ABI checks from `halo-lift`.
+3. Apply token-efficient defaults from `halo-lift`:
    - no ad-hoc inline `python3 -c` for JSON parsing; use `rtk jq` for any JSON
      lookup or filter
    - stage MCP requests (resolve -> decompile -> callers/callees -> disasm if needed)
@@ -61,7 +61,7 @@ Steps:
 9. Run `rtk python3 tools/analysis/maintain.py <source_file>` to sort and reformat.
 10. Run `rtk python3 tools/audit/check_lift_hazards.py` after source edits and fix any target-relevant hazards.
 
-Output format follows `halo-xbox-re` (see `docs/references/output-schema.md`).
+Output format follows `halo-lift` (see `docs/references/output-schema.md`).
 
 Report at minimum:
 - Target / Confirmed / Inferred / Uncertain

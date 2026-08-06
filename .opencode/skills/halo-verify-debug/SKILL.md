@@ -7,7 +7,7 @@ description: "vc71, vc71_verify, low match, low-match, match percent, objdiff, d
 
 Use this skill for lift verification, XDK/delink comparison, Option 3 fallback,
 or regression investigation. Doctrine and evidence rules live in
-`halo-xbox-re`; this skill covers the operational verification and debugging
+`halo-lift`; this skill covers the operational verification and debugging
 procedures.
 
 Passing validation reduces risk, but it is not proof of behavioral equivalence
@@ -202,7 +202,7 @@ Do not save the Ghidra project after a delink export run.
 
 1. Start with git history before live probing.
 2. Inspect recent commits touching `kb.json`, `src/`, types, or prototypes.
-3. Check likely regression classes (see `halo-xbox-re` evidence policy for
+3. Check likely regression classes (see `halo-lift` evidence policy for
    labeling):
    - wrong calling convention or arg count
    - wrong return type or operand width
@@ -233,7 +233,7 @@ Useful xemu probes (fallback only):
 
 ## Debugging guardrails
 
-Follow the `halo-xbox-re` doctrine: fix only what evidence supports, prefer
+Follow the `halo-lift` doctrine: fix only what evidence supports, prefer
 narrow changes, do not repack or reorder structs without binary proof. If the
 hypothesis is too weak to fix safely, stop and say so.
 

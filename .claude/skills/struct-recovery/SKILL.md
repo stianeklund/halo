@@ -1,14 +1,17 @@
 ---
 name: struct-recovery
 tier: agent
-triggers: ["struct recovery", "recover struct", "identify struct", "tag block", "pool stride", "object stride", "packed layout", "array of structs", "union layout"]
-description: Identify structs, arrays of structs, unions, packed layouts, tag blocks, and object-pool strides from binary/disassembly evidence — producing a committed evidence-table artifact (recovery/evidence/<struct>.json — offset, width, signedness, access sites, name evidence) that struct-assert renders into a C definition. Evidence-gathering only; never invents fields.
+triggers: ["struct recovery", "recover struct", "identify struct", "tag block", "pool stride", "object stride", "packed layout", "array of structs", "union layout", "offsetof", "static_assert", "sizeof check", "define struct", "struct definition", "new struct", "struct assert"]
+description: >-
+  Identify structs from binary evidence, produce a committed evidence-table artifact,
+  and render it into a conservative C89 struct with cs()/co() asserts. Covers the
+  full pipeline from evidence-gathering through struct definition and placement.
 ---
 
 # Data Structure Recovery
 
 Recover layout facts from the binary, not from plausibility. The output is an
-**evidence table**, not C code — `struct-assert` writes the C. Every row must cite
+**evidence table**, not C code — Phase 2 below renders the C. Every row must cite
 where the evidence came from.
 
 Ghidra MCP pre-flight first: `python3 tools/audit/check_ghidra_mcp.py`. Follow Ghidra
@@ -82,5 +85,66 @@ UNKNOWN RANGES: <offset..offset — never seen accessed>
 UNIONS/OVERLAYS: <offset: armA type / armB type, discriminator>
 ```
 
-Hand the **artifact path** to `struct-assert`, which renders the C from it. Naming
-decisions beyond string/PDB evidence go through `naming-confidence`.
+Naming decisions beyond string/PDB evidence go through `naming-confidence`.
+
+---
+
+## Phase 2 — Render to C struct
+
+After the evidence artifact is committed, render and place the struct.
+
+### Workflow
+
+```bash
+rtk python3 tools/recovery/evidence_table.py validate recovery/evidence/<struct>.json
+rtk python3 tools/recovery/evidence_table.py render   recovery/evidence/<struct>.json
+```
+
+1. **Render** the skeleton — it applies rules below mechanically.
+2. **Review** against the rules — the renderer is a starting point, not authority.
+3. **Place** it — `src/types.h` or a binary-proven header (see `header-recovery`).
+4. **Build** so asserts fire: `rtk python3 tools/build/build.py -q --target halo`.
+
+**The artifact is the source of truth.** If a failing assert shows the table is
+wrong, fix `recovery/evidence/<struct>.json` and re-render — never patch only
+the placed struct.
+
+### House style
+
+```c
+#define cs(t, s)    static_assert(sizeof(t) == s)
+#define co(t, f, o) static_assert(offsetof(t, f) == o)
+
+typedef struct object_header {
+    int16_t  datum_salt;        ///< offset=0x00
+    int16_t  field_02;          ///< offset=0x02
+    uint32_t flags;             ///< offset=0x04
+    uint8_t  pad_08[4];         ///< offset=0x08  never observed accessed
+    float    position[3];       ///< offset=0x0C
+} object_header;
+cs(object_header, 0x18);
+co(object_header, field_02, 0x02);
+co(object_header, position, 0x0C);
+```
+
+### Rules
+
+1. **Every field width/signedness from evidence** (disasm operand sizes). Never widen
+   "for convenience" — `int16_t` read as `int` is the `[LOADW-WARN]` bug class.
+2. **Unknowns stay visibly unknown**: `field_XX` (accessed) or `pad_XX[n]` (unaccessed).
+3. **Explicit padding, no compiler discretion.** Spell out every gap byte.
+4. **`co()` for every field, `cs()` for size.** When size is unproven, assert only
+   offsets and comment `/* size unproven */`.
+5. **C89**: `typedef struct`, declarations before statements.
+6. **Unions**: named union member with discriminator comment; `co()` on union offset.
+7. **Placement**: shared → `src/types.h`; single-TU → top of TU. Always check for
+   existing partial definitions first — extend, don't fork.
+8. **Evidence in comments**: each non-obvious field carries its evidence hook.
+
+### Verify
+
+A failing `co()`/`cs()` is a *finding* — the evidence table was wrong. Fix the
+artifact, re-render, re-place. Don't bend the struct to compile.
+
+Defining the struct changes no codegen. Rewriting accesses to use it is a separate
+step: `offset-to-struct`.

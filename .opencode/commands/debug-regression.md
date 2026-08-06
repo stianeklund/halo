@@ -4,7 +4,7 @@ agent: deep
 subtask: true
 ---
 
-Use `halo-xbox-re` for doctrine, evidence rules, and the review checklist.
+Use `halo-lift` for doctrine, evidence rules, and the review checklist.
 Use `halo-verify-debug` for regression-specific workflow and xemu probing.
 
 Investigate and fix a Halo CE XBE regression. Bisect via git history first,
@@ -120,7 +120,7 @@ Once the root cause is established:
 
 ## Output format
 
-Follow the `halo-xbox-re` output format. Report:
+Follow the `halo-lift` output format. Report:
 
 - **Symptom**: what failed and how it was observed
 - **Commits investigated**: which changes were examined and why

@@ -4,7 +4,7 @@ model: opus
 subtask: false
 ---
 
-Use `halo-re-lift` for lift rules and `halo-verify-debug` for validation gates.
+Use `halo-lift` for lift rules and `halo-verify-debug` for validation gates.
 
 Autonomous lift loop: selects the best unported function, lifts it via `/lift`,
 auto-commits on success, reverts+logs on failure.

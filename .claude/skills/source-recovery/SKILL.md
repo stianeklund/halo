@@ -51,10 +51,10 @@ rtk python3 $R report  $M
 |---|---|---|---|---|
 | — | (pre) tooling check | `cleanup-report` | — | gaps → downgrade plan |
 | 1 | `comments` | `re-comment-capture` | none | (a) byte-identical |
-| 2 | `local-renames` | `local-var-cleanup` | none | (a) byte-identical |
+| 2 | `local-renames` | `name-cleanup` | none | (a) byte-identical |
 | 3 | `symbol-names` | `naming-confidence` | none | (a) byte-identical |
-| 4 | `const-enum` | `const-enum-recovery` | near-zero | (b) + no new `[IMM-WARN]` |
-| 5 | `struct-define` | `struct-recovery` → `struct-assert` | none (defs only) | (a) + build passes (cs/co) |
+| 4 | `const-enum` | `name-cleanup` | near-zero | (b) + no new `[IMM-WARN]` |
+| 5 | `struct-define` | `struct-recovery` → `struct-recovery` (Phase 2) | none (defs only) | (a) + build passes (cs/co) |
 | 6 | `offset-to-field` | `offset-to-struct` | low | (b) + hazard scan |
 | 7 | `expr-simplify` | `expr-simplify` | medium | (c) — **opt-in** |
 | 8 | `control-flow` | `control-flow-cleanup` | high | (c) — **opt-in** |

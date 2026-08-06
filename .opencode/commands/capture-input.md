@@ -2,7 +2,7 @@
 description: Capture a deterministic controller-input fixture for Halo CE Xbox testing
 ---
 
-Use `capture-input` and `input-replay-testing`.
+Use `input-fixture` and `input-replay-testing`.
 
 Request: $ARGUMENTS
 

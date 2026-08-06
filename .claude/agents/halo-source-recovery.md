@@ -60,10 +60,10 @@ renames before rewrites keep diffs reviewable):
 | # | Category | Skill | Gate |
 |---|---|---|---|
 | 1 | `comments` | `re-comment-capture` | (a) byte-identical |
-| 2 | `local-renames` | `local-var-cleanup` | (a) byte-identical |
+| 2 | `local-renames` | `name-cleanup` | (a) byte-identical |
 | 3 | `symbol-names` | `naming-confidence` | (a) byte-identical |
-| 4 | `const-enum` | `const-enum-recovery` | (b) + no new `[IMM-WARN]` |
-| 5 | `struct-define` | **`structize.py split`**, then `struct-recovery` → `struct-assert` for refusals | (a) + build passes |
+| 4 | `const-enum` | `name-cleanup` | (b) + no new `[IMM-WARN]` |
+| 5 | `struct-define` | **`structize.py split`**, then `struct-recovery` → `struct-recovery` for refusals | (a) + build passes |
 | 6 | `offset-to-field` | **`structize.py converge`** | (b) + hazard scan |
 | 7 | `expr-simplify` (opt-in) | `expr-simplify` | (c) |
 | 8 | `control-flow` (opt-in) | `control-flow-cleanup` | (c) |

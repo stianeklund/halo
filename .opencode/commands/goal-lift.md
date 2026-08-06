@@ -3,7 +3,7 @@ description: Goal-mode auto-lift — run until N functions committed at >=90% VC
 subtask: false
 ---
 
-Use `halo-re-lift` for lift rules and `halo-verify-debug` for validation gates.
+Use `halo-lift` for lift rules and `halo-verify-debug` for validation gates.
 
 **Goal:** Lift, verify, and commit as many Halo CE Xbox functions as possible at VC71 >=90%.
 

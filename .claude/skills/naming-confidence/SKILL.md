@@ -30,14 +30,14 @@ looks like health"). If you can't cite the evidence in one line, the name is T3 
   `@<reg>` annotations are immutable regardless of rename. After a rename, fix call
   sites via the build-error triage flow (grep `build/generated/decl.h`, `rtk jq` the
   addr) rather than re-reading sources.
-- **Struct fields.** Only via a `struct-assert`ed definition; a rename never changes
+- **Struct fields.** Only via a `struct-recovery` (Phase 2)ed definition; a rename never changes
   width/offset (the `co()` assert pins it). Record the evidence in the `///<` comment.
   Unknowns keep the canonical split — `field_<hex>` when the offset is accessed but its
   meaning is unproven, `pad_<hex>[n]` when it was never observed accessed. Legacy
   `unk_<hex>` means "one of those two, unspecified"; converting it is a T4→T4 rename
   (free), naming it something semantic is a tier claim that needs evidence.
-- **Locals.** See `local-var-cleanup` — T3 mechanical vocabulary by default.
-- **Constants/enums.** See `const-enum-recovery` — the *value* is proven by the binary;
+- **Locals.** See `name-cleanup` — T3 mechanical vocabulary by default.
+- **Constants/enums.** See `name-cleanup` — the *value* is proven by the binary;
   the *name* needs its own tier.
 - **Globals.** `rename_global_variable`/kb.json name + a matching Ghidra label so both
   views agree; cite the evidence address.

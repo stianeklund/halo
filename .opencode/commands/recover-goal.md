@@ -78,10 +78,10 @@ Use this exact order, filtering risky entries unless `--allow-risky` was passed:
 
 ```text
 comments        -> re-comment-capture
-local-renames   -> local-var-cleanup
+local-renames   -> name-cleanup
 symbol-names    -> naming-confidence
-const-enum      -> const-enum-recovery
-struct-define   -> struct-recovery + struct-assert
+const-enum      -> name-cleanup
+struct-define   -> struct-recovery + struct-recovery
 offset-to-field -> offset-to-struct
 expr-simplify   -> expr-simplify                 [risky]
 control-flow    -> control-flow-cleanup           [risky]
