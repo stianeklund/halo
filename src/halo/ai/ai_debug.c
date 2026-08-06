@@ -1065,21 +1065,21 @@ void ai_debug_speak_list(const char *list_name)
 
   {
     struct ai_speak_list_entry speak_lists[15] = {
-      { "all",                  0,      1 },
-      { "idle",                 0,      0 },
-      { "involuntary",          6,      0 },
-      { "hurting people",       0x15,   0 },
-      { "being hurt",           0x1d,   0 },
-      { "killing people",       0x31,   0 },
-      { "player kill comments", 0x50,   0 },
-      { "friends dying",        0x60,   0 },
-      { "shouting",             0x6c,   0 },
-      { "group communication",  0x7b,   0 },
-      { "actions",              0x94,   0 },
-      { "exclamations",         0xb1,   0 },
-      { "post-combat actions",  0xbc,   0 },
-      { "post-combat chatter",  0xc5,   0 },
-      { NULL,                   -1,     0 }
+      { "all", 0, 1 },
+      { "idle", 0, 0 },
+      { "involuntary", 6, 0 },
+      { "hurting people", 0x15, 0 },
+      { "being hurt", 0x1d, 0 },
+      { "killing people", 0x31, 0 },
+      { "player kill comments", 0x50, 0 },
+      { "friends dying", 0x60, 0 },
+      { "shouting", 0x6c, 0 },
+      { "group communication", 0x7b, 0 },
+      { "actions", 0x94, 0 },
+      { "exclamations", 0xb1, 0 },
+      { "post-combat actions", 0xbc, 0 },
+      { "post-combat chatter", 0xc5, 0 },
+      { NULL, -1, 0 }
     };
     struct ai_speak_list_entry *entry;
     void *actor;
@@ -1109,11 +1109,11 @@ void ai_debug_speak_list(const char *list_name)
           *(int16_t *)0x6324ea = index;
         }
       }
-    }
-    else {
-      console_printf(
-        0, "ai_speak_list: couldn't find the list '%s'... here are the known lists:",
-        list_name);
+    } else {
+      console_printf(0,
+                     "ai_speak_list: couldn't find the list '%s'... here are "
+                     "the known lists:",
+                     list_name);
       for (entry = speak_lists; entry->name != NULL; entry++)
         console_printf(0, "    %s", entry->name);
     }
@@ -1371,6 +1371,58 @@ void ai_debug_communication_ignore(int count, char **names)
 {
   ai_debug_toggle_flags(count, names, 0x5aca1c, 0x39,
                         ai_communication_get_type_by_name);
+}
+
+/* ai_debug_communication_focus (0x4a6b0): console/script command that
+ * toggles bits in a debug bit vector at 0x5aca24.
+ *
+ * Structurally identical to ai_debug_communication_suppress (0x4a650) and
+ * ai_debug_communication_ignore (0x4a680); all three are pure forwarders to
+ * ai_debug_toggle_flags (0x4a460) with three constants baked in: the
+ * destination bit vector, its size in bits, and the name->index lookup used
+ * to resolve each argument string.  This one differs in ALL THREE constants,
+ * not just the vector address.
+ *
+ * Confirmed: cdecl.  PUSH EBP / MOV EBP,ESP, no SUB ESP, no locals, no FPU,
+ * no struct access, a single CALL, then POP EBP / RET (no RET n, so cdecl
+ * and not stdcall).  Thirteen instructions total.
+ *
+ * The two incoming arguments are loaded into registers BEFORE the pushes
+ * (`MOV EAX,dword ptr [EBP+0xC]` and `MOV ECX,dword ptr [EBP+0x8]`), which
+ * is what proves this takes two stack parameters; the previous kb.json
+ * declaration of `void (void)` is why the decompiler emitted an
+ * argument-less wrapper around a bare FUN_0004a460() call.
+ *
+ * Call-site table for ai_debug_toggle_flags (last push = first arg, cdecl):
+ *   arg5 lookup      PUSH 0x1a67e0  -> FUN_001a67e0, the same name->index
+ *                                      lookup ai_debug_speak uses for the
+ *                                      vocalization type name
+ *   arg4 vector_size PUSH 0xd1      -> 209 entries
+ *   arg3 dest_vector PUSH 0x5aca24  -> bit vector, passed as an integer
+ *                                      address (the callee's dest_vector
+ *                                      parameter is `int`)
+ *   arg2 names       PUSH EAX       -> [EBP+0xC]
+ *   arg1 count       PUSH ECX       -> [EBP+0x8]
+ *   CALL 0x4a460 ; ADD ESP,0x14     (5 dwords, caller cleanup -> cdecl)
+ *
+ * UNCERTAIN — the name is from kb.json and is corroborated by the hs
+ * debug_string dispatch table (function_index 0x1a; see
+ * src/halo/hs/hs_library_internal_runtime.h:989), but the two constants
+ * disagree with the "communication" reading of that name: the sibling
+ * suppress/ignore commands use the 57-entry communication-type table via
+ * ai_communication_get_type_by_name (0x42ce0), whereas this one uses the
+ * 209-entry vocalization-type lookup FUN_001a67e0 (0x1a67e0).  So the bit
+ * vector at 0x5aca24 is indexed by vocalization type, not communication
+ * type.  Neither the vector nor the lookup has an independent name string,
+ * so the kb name is kept as-is and the discrepancy is recorded here.
+ *
+ * vector_size 0xd1 is far under the callee's "vector_size <= 2048" assert,
+ * so that path can never fire from here.  The callee allocates its own
+ * 64-dword scratch mask, so nothing is allocated on this frame.  No
+ * __FILE__ string of its own. */
+void ai_debug_communication_focus(int count, char **names)
+{
+  ai_debug_toggle_flags(count, names, 0x5aca24, 0xd1, FUN_001a67e0);
 }
 
 /* ai_debug_idle_look_clear: reset the idle-look debug block at 0x6323d4 to
