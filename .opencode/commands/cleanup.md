@@ -6,7 +6,12 @@ description: Run the evidence-preserving source-recovery ladder on already-lifte
 code. Use `/recover-source` for the complete manifest-driven workflow,
 including evidence-backed corrective fidelity work.
 
-Use `source-recovery` plus its support skills: `source-recovery-baseline`, `source-recovery-gap-audit`, `re-comment-capture`, `local-var-source-recovery`, `naming-confidence`, `name-cleanup`, `struct-recovery`, `struct-recovery` (Phase 2), `offset-to-struct`, `source-recovery-regression-triage`, and `source-recovery-report`.
+Use `source-recovery` plus its support skills, in ladder order: `cleanup-report`
+(pre-flight), `re-comment-capture`, `name-cleanup` (local renames + const/enum),
+`naming-confidence`, `struct-recovery` (+ Phase 2), `header-recovery`,
+`offset-to-struct`, and — opt-in only — `expr-simplify` and
+`control-flow-cleanup`. `cleanup-regression-triage` isolates a match/test
+regression caused by this work.
 
 Target: $ARGUMENTS
 

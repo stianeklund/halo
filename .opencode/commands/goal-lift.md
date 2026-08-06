@@ -13,6 +13,12 @@ Parse from $ARGUMENTS (all optional):
 - `--goal N` — commit this many functions before stopping (default: 20)
 - `--stop-on-fail N` — stop after N consecutive failures (default: 3)
 - `--dry-run` — skip commits (leave changes for manual review)
+- `--objects obj1,obj2,...` — hard allowlist: only select candidates from
+  these `.obj` files. Enforce this yourself when filtering candidate
+  selection output — treat it as a real filter, not a hint.
+- `--criteria "free text"` — freeform selection guidance appended to your own
+  candidate-selection judgment. Honor it, but nothing else in this procedure
+  mechanically enforces it.
 
 ## /goal harness integration
 
@@ -52,7 +58,11 @@ Keep a compact per-function log at `artifacts/auto_lift/goal_progress.md`:
 rtk python3 tools/llm_auto_lift.py select --limit 60 2>&1 | grep "auto-lift" | grep -v "prior_fail"
 ```
 
+If `--objects` was given, discard every candidate whose source `.obj` is not
+in that list before screening — this is a hard filter, not a preference.
+
 Preferred target areas (in order): `game_engine.obj`, `lruv_cache.obj`, `hud.obj`, `items.obj`, `input_xbox.obj`.
+If `--criteria` was given, weigh candidate choice by it ahead of this default order.
 
 Avoid: `hs_runtime.c` (C99/VC71 violations unfixed), `prior_fail` candidates unless queue is otherwise empty.
 
@@ -118,8 +128,8 @@ rtk python3 tools/lift_pipeline.py --target FUNCNAME --no-metadata-update --veri
 |---|---|
 | >=99% | Commit — byte-match sufficient |
 | 90–98% | Commit — meets policy |
-| 85–89% | Do NOT commit. One permutation attempt only if mapped delinked ref exists |
-| 65–85% | Check structural cap. If capped → skip. One focused escalation allowed if not capped |
+| 85–89% | Do NOT commit. Escalate to `vc71-match-optimizer` (lever-based recovery); if it stops in [85, 98] with a mapped delinked ref, one permutation attempt |
+| 65–85% | Check structural cap. If capped → skip. If not capped, escalate to `vc71-match-optimizer` for one focused lever pass |
 | <65% | Assume lift bug — revert unless there is a clear, cheap fix |
 | No VC71 data | Treat as infra/build issue, not pass |
 
@@ -153,15 +163,28 @@ rtk git status --short
 
 ## Escalation
 
-Escalate by re-running Phase 1 with `Agent(subagent_type="xbox-halo-re-analyst")`
-using the same prompt and the analyst default model.
-Revert the failed attempt first: `rtk git checkout -- src/ kb.json tools/kb_reg_baseline.json`
+Two escalation paths, by failure shape:
 
-Escalate when:
+**Structural (wrong logic/control-flow) — re-run RE.** Re-run Phase 1 with
+`Agent(subagent_type="xbox-halo-re-analyst")` using the same prompt and the
+analyst default model. Revert the failed attempt first:
+`rtk git checkout -- src/ kb.json tools/kb_reg_baseline.json`
+
+Escalate to the RE analyst when:
 - VC71 < 65% (control flow / structure wrong)
 - ABI audit fails (calling convention reasoning)
-- FPU-WARN (operand order)
 - Build fails on second attempt (not a simple typo)
+
+**Correct logic, under-scoring byte-match — lever-based score recovery.**
+When the lift is structurally correct (builds, behaviorally faithful) but
+VC71 is in the 65–89% band and not a documented structural cap (see
+`lift-score-improve`), escalate to `Agent(subagent_type="vc71-match-optimizer")`
+with the function name, TU path, and current score. It iterates one codegen
+lever at a time (operand-order, load-width, immediate, FCOM-sense, frame,
+anchor-collapse), re-measuring after each change, and reports a structured
+verdict (`promote` / `structural_cap` / `escalation_exhausted`) — never
+commits itself. This includes the FPU-WARN case (operand order) previously
+routed to the RE analyst: it is a codegen-shape fix, not a structural one.
 
 Do NOT escalate (revert+skip instead):
 - Target has SEH prolog/epilog (not liftable with current tooling)
