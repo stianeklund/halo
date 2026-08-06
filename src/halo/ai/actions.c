@@ -2270,7 +2270,7 @@ char actor_action_handle_vehicle_entry(int actor_handle)
             if (identifier != -1) {
               /* 0x1e289 NEG/SBB/INC materializes this compare into a byte
                * before it is branched on — keep it as an assignment. */
-              matched = (char)(((*(unsigned int *)(actor + 0x34) ^
+              matched = (char)(((((actor_t *)actor)->field_034 ^
                                  (unsigned int)identifier) &
                                 0xffff) == 0);
               if (matched != 0) {

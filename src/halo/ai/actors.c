@@ -36,41 +36,41 @@ void FUN_00036890(int actor_handle, int *position_a, short priority,
   float *pb;
 
   actor = (int)datum_get(actor_data, actor_handle);
-  if (*(short *)(actor + 0x6a) >= 3) {
+  if (((actor_t *)actor)->field_06a >= 3) {
     return;
   }
-  if (priority < *(short *)(actor + 0x312)) {
+  if (priority < ((actor_t *)actor)->field_312) {
     return;
   }
 
-  *(short *)(actor + 0x312) = priority;
+  ((actor_t *)actor)->field_312 = priority;
 
   pa = (float *)position_a;
   if (pa == (float *)0) {
-    *(char *)(actor + 0x314) = 0;
+    ((actor_t *)actor)->field_314 = 0;
   } else {
-    *(char *)(actor + 0x314) = 1;
+    ((actor_t *)actor)->field_314 = 1;
     *(float *)(actor + 0x318) = pa[0];
     *(float *)(actor + 0x31c) = pa[1];
     *(float *)(actor + 0x320) = pa[2];
-    *(int *)(actor + 0x324) = param5;
-    *(int *)(actor + 0x328) = param6;
+    ((actor_t *)actor)->field_324 = param5;
+    ((actor_t *)actor)->field_328 = param6;
   }
 
   pb = (float *)position_b;
   if (pb == (float *)0) {
-    *(char *)(actor + 0x32c) = 0;
+    ((actor_t *)actor)->field_32c = 0;
   } else {
-    *(char *)(actor + 0x32c) = 1;
+    ((actor_t *)actor)->field_32c = 1;
     *(float *)(actor + 0x330) = pb[0];
     *(float *)(actor + 0x334) = pb[1];
     *(float *)(actor + 0x338) = pb[2];
   }
 
   *(int *)(actor + 0x33c) = param7;
-  *(int *)(actor + 0x340) = param8;
+  ((actor_t *)actor)->field_340 = param8;
   *(int *)(actor + 0x344) = param9;
-  *(char *)(actor + 0x348) = param10;
+  ((actor_t *)actor)->field_348 = param10;
 }
 
 /* FUN_00036960 (0x36960) — post direction/position stimulus at a given
@@ -184,7 +184,7 @@ void FUN_00036a90(int actor_handle, int prop_handle)
   actor = (char *)datum_get(actor_data, actor_handle);
   prop = (char *)datum_get(prop_data, prop_handle);
   game_time = game_time_get();
-  *(int *)(actor + 0x3a0) = game_time;
+  ((actor_t *)actor)->field_3a0 = game_time;
   actor_perception_find_prop_pathfinding_location(actor_handle, prop_handle);
   FUN_00036890(actor_handle, (int *)(prop + 0xf0), 2, NULL,
                *(int *)(prop + 0xec), 0x3fc00000, 0x5a, prop_handle, 0x5a, 1);
@@ -317,7 +317,7 @@ void FUN_00036c50(int actor_handle, int prop_handle)
         obj_type2 =
           (char *)object_get_and_verify_type(*(int *)(player_datum + 0x40), 3);
         if (game_allegiance_get_team_is_friendly(
-              *(int16_t *)(actor + 0x3e), *(int16_t *)(obj_type2 + 0x68))) {
+              ((actor_t *)actor)->field_03e, *(int16_t *)(obj_type2 + 0x68))) {
           actor_perception_create_orphan_from_friend(
             actor_handle, *(int *)(player_datum + 0x40), -1, -1);
         }
@@ -424,22 +424,22 @@ void FUN_00036e50(int actor_handle)
   int encounter_handle;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  actor_tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
-  if (*(char *)(actor + 0x358) != 0 &&
+  actor_tag = (char *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
+  if (((actor_t *)actor)->field_358 != 0 &&
       *(float *)(actor_tag + 0x334) > *(float *)0x2533c0) {
-    *(char *)(actor + 0x358) = 0;
-    *(short *)(actor + 0x35a) =
+    ((actor_t *)actor)->field_358 = 0;
+    ((actor_t *)actor)->field_35a =
       (short)(*(float *)(actor_tag + 0x334) * TICKS_PER_SECOND);
-    encounter_handle = *(int *)(actor + 0x270);
+    encounter_handle = ((actor_t *)actor)->target_target_prop_index;
     if (encounter_handle != -1) {
       encounter = (char *)datum_get(*(data_t **)0x5ab23c, encounter_handle);
       if (*(float *)(encounter + 0x11c) < *(float *)0x2533d8) {
-        if (*(float *)(actor + 0x354) > *(float *)0x255154) {
+        if (((actor_t *)actor)->field_354 > *(float *)0x255154) {
           float tmp;
-          tmp = *(float *)(actor + 0x354);
+          tmp = ((actor_t *)actor)->field_354;
           *(volatile float *)(actor + 0x354) = tmp;
         } else {
-          *(float *)(actor + 0x354) = *(float *)0x255154;
+          ((actor_t *)actor)->field_354 = *(float *)0x255154;
         }
       }
     }
@@ -619,10 +619,10 @@ void FUN_00037240(int actor_handle, int prop_handle, int unused_param_3,
     }
   }
 
-  *(char *)(actor + 0x2ec) = 1;
+  ((actor_t *)actor)->field_2ec = 1;
 
   if ((prop == NULL || *(char *)(prop + 0x60) != 0) &&
-      *(short *)(actor + 0x6a) < 3) {
+      ((actor_t *)actor)->field_06a < 3) {
     FUN_00036960(actor_handle, 5, prop_handle, position_b);
     FUN_00036890(actor_handle, NULL, 5, position_b, -1, 0, 0x5a, prop_handle,
                  0x96, 0);
@@ -701,23 +701,23 @@ void FUN_000373b0(int actor_handle, int object_handle, float *position,
   (void)count;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  actr_def = (char *)tag_get(0x61637472 /* 'actr' */, *(int *)(actor + 0x58));
-  if (*(short *)(actor + 0x280) > 0 &&
-      *(int *)(actor + 0x28c) == object_handle &&
-      *(short *)(actor + 0x284) > 0) {
-    unit_handle = *(int *)(actor + 0x18);
+  actr_def = (char *)tag_get(0x61637472 /* 'actr' */, ((actor_t *)actor)->field_058);
+  if (((actor_t *)actor)->danger_zone_danger_type > 0 &&
+      ((actor_t *)actor)->danger_zone_object_index == object_handle &&
+      ((actor_t *)actor)->field_284 > 0) {
+    unit_handle = ((actor_t *)actor)->field_018;
     FUN_00046f10(10, unit_handle, -1, -1, -1, -1, 0);
   } else {
-    direction[0] = position[0] - *(float *)(actor + 0x120);
-    direction[1] = position[1] - *(float *)(actor + 0x124);
-    direction[2] = position[2] - *(float *)(actor + 0x128);
+    direction[0] = position[0] - ((actor_t *)actor)->field_120;
+    direction[1] = position[1] - ((actor_t *)actor)->field_124;
+    direction[2] = position[2] - ((actor_t *)actor)->field_128;
     length = normalize3d(direction);
     if (length < 0.0001f && length > -0.0001f) {
-      direction[0] = *(float *)(actor + 0x174);
-      direction[1] = *(float *)(actor + 0x178);
-      direction[2] = *(float *)(actor + 0x17c);
+      direction[0] = ((actor_t *)actor)->input_facing_vector[0];
+      direction[1] = ((actor_t *)actor)->input_facing_vector[1];
+      direction[2] = ((actor_t *)actor)->input_facing_vector[2];
     }
-    if (*(short *)(actor + 0x6a) < 3) {
+    if (((actor_t *)actor)->field_06a < 3) {
       if (length < *(float *)(actr_def + 0x2b0)) {
         FUN_00036960(actor_handle, 2, -1, (int *)direction);
       }
@@ -776,23 +776,23 @@ void FUN_000374f0(int actor_handle, int object_handle, float *position,
   (void)count;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  actor_tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
-  delta[0] = position[0] - *(float *)(actor + 0x120);
-  delta[1] = position[1] - *(float *)(actor + 0x124);
-  delta[2] = position[2] - *(float *)(actor + 0x128);
+  actor_tag = (char *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
+  delta[0] = position[0] - ((actor_t *)actor)->field_120;
+  delta[1] = position[1] - ((actor_t *)actor)->field_124;
+  delta[2] = position[2] - ((actor_t *)actor)->field_128;
   mag = normalize3d(delta);
   if (mag < (float)*(double *)0x2533d0) {
-    delta[0] = *(float *)(actor + 0x174);
-    delta[1] = *(float *)(actor + 0x178);
-    delta[2] = *(float *)(actor + 0x17c);
+    delta[0] = ((actor_t *)actor)->input_facing_vector[0];
+    delta[1] = ((actor_t *)actor)->input_facing_vector[1];
+    delta[2] = ((actor_t *)actor)->input_facing_vector[2];
   }
-  if (*(short *)(actor + 0x6a) < 3 && mag < *(float *)(actor_tag + 0x2b0)) {
+  if (((actor_t *)actor)->field_06a < 3 && mag < *(float *)(actor_tag + 0x2b0)) {
     FUN_00036960(actor_handle, 4, -1, (int *)delta);
   }
   FUN_00036890(actor_handle, (int *)0, 3, (int *)delta, -1, 0, 0x5a, -1, 0, 0);
   if (object_handle != -1) {
     object = (char *)object_get_and_verify_type(object_handle, -1);
-    if (game_allegiance_get_team_is_friendly(*(short *)(actor + 0x3e),
+    if (game_allegiance_get_team_is_friendly(((actor_t *)actor)->field_03e,
                                              *(short *)(object + 0x68))) {
       FUN_000369c0(actor_handle, 2, 900);
     }
@@ -991,8 +991,8 @@ void FUN_000378e0(int actor_handle, short param_2, short param_3, int param_4,
   (void)param_4;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
-  unit_handle = *(int *)(actor + 0x18);
+  tag = (char *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
+  unit_handle = ((actor_t *)actor)->field_018;
   if (unit_handle == -1)
     return;
 
@@ -1007,11 +1007,11 @@ void FUN_000378e0(int actor_handle, short param_2, short param_3, int param_4,
     FUN_00046f10(0xb, unit_handle, -1, type, -1, -1, 0);
   }
 
-  delta[0] = param_5[0] - *(float *)(actor + 0x120);
-  delta[1] = param_5[1] - *(float *)(actor + 0x124);
-  delta[2] = param_5[2] - *(float *)(actor + 0x128);
+  delta[0] = param_5[0] - ((actor_t *)actor)->field_120;
+  delta[1] = param_5[1] - ((actor_t *)actor)->field_124;
+  delta[2] = param_5[2] - ((actor_t *)actor)->field_128;
   mag = normalize3d(delta);
-  if (*(short *)(actor + 0x6a) < 3 && mag < *(float *)(tag + 0x2b0) &&
+  if (((actor_t *)actor)->field_06a < 3 && mag < *(float *)(tag + 0x2b0) &&
       param_2 == 2) {
     FUN_00036960(actor_handle, 4, -1, (int *)delta);
   }
@@ -1047,7 +1047,7 @@ void FUN_000379f0(int actor_handle)
   int uVar3;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  (void)tag_get(0x61637472, *(int *)(actor + 0x58));
+  (void)tag_get(0x61637472, ((actor_t *)actor)->field_058);
   actor_action_handle_initial_action(actor_handle);
   actor_action_handle_pending_command_list(actor_handle);
   actor_action_handle_surprise(actor_handle, 4);
@@ -1059,7 +1059,7 @@ void FUN_000379f0(int actor_handle)
     actor_action_handle_berserk_transition(actor_handle, 1);
     actor_action_handle_combat_transition(actor_handle);
   }
-  switch (*(short *)(actor + 0x6c)) {
+  switch (((actor_t *)actor)->state_action) {
   case 3:
   case 10:
     cVar1 = actor_action_handle_combat_status(actor_handle, 1, 0);
@@ -1078,7 +1078,7 @@ void FUN_000379f0(int actor_handle)
     actor_action_handle_combat_status(actor_handle, uVar3, 0);
     return;
   case 4:
-    if (*(char *)(actor + 0xaa) != '\0') {
+    if (((actor_t *)actor)->field_0aa != '\0') {
       actor_action_handle_combat_status(actor_handle, 1, 1);
       return;
     }
@@ -1095,8 +1095,8 @@ void FUN_000379f0(int actor_handle)
     break;
   case 0xb:
     actor_action_handle_combat_status(actor_handle,
-                                      *(unsigned char *)(actor + 0x9e),
-                                      *(unsigned char *)(actor + 0xa1));
+                                      ((actor_t *)actor)->field_09e,
+                                      ((actor_t *)actor)->field_0a1);
     break;
   }
 }
@@ -3093,7 +3093,7 @@ void FUN_0003a3b0(int actor_handle)
   if (cVar1 == '\0') {
     actor_action_handle_combat_transition(actor_handle);
   }
-  switch (*(short *)(actor + 0x6c)) {
+  switch (((actor_t *)actor)->state_action) {
   case 3:
   case 4:
   case 6:
@@ -3115,8 +3115,8 @@ void FUN_0003a3b0(int actor_handle)
     break;
   case 11:
     actor_action_handle_combat_status(actor_handle,
-                                      (int)*(unsigned char *)(actor + 0x9e),
-                                      (int)*(unsigned char *)(actor + 0xa1));
+                                      (int)((actor_t *)actor)->field_09e,
+                                      (int)((actor_t *)actor)->field_0a1);
     break;
   default:
     break;
@@ -3563,8 +3563,8 @@ void *actor_activation_debug_color(int actor_handle)
     return *(void **)0x2ee6c4;
   }
   /* Inactive/dormant actor: color based on encounter BSP */
-  if (*(unsigned int *)(actor + 0x34) != 0xffffffff) {
-    encounter_idx = (int)(*(unsigned int *)(actor + 0x34) & 0xffff);
+  if (((actor_t *)actor)->field_034 != 0xffffffff) {
+    encounter_idx = (int)(((actor_t *)actor)->field_034 & 0xffff);
     enc_def = (char *)tag_block_get_element(
       (char *)global_scenario_get() + 0x42c, encounter_idx, 0xb0);
     if (*(short *)(enc_def + 0x7e) != -1 &&
@@ -3787,7 +3787,7 @@ void actor_swarm_detach_from_unit(int actor_handle, int unit_handle)
   }
 
   /* Assert swarm_unit_count > 0 */
-  if (*(short *)(actor + 0x1e) <= 0) {
+  if (((actor_t *)actor)->field_01e <= 0) {
     display_assert("actor->meta.swarm_unit_count > 0",
                    "c:\\halo\\SOURCE\\ai\\actors.c", 0x579, 1);
     system_exit(-1);
@@ -3798,8 +3798,8 @@ void actor_swarm_detach_from_unit(int actor_handle, int unit_handle)
   unit_set_actively_controlled(unit_handle, 0);
 
   /* If actor has a swarm, remove unit from swarm arrays */
-  if (*(int *)(actor + 0x28) != -1) {
-    swarm = (char *)datum_get(swarm_data, *(int *)(actor + 0x28));
+  if (((actor_t *)actor)->meta_swarm_cache_index != -1) {
+    swarm = (char *)datum_get(swarm_data, ((actor_t *)actor)->meta_swarm_cache_index);
 
     /* Assert swarm->actor_index == actor_index */
     if (*(int *)(swarm + 4) != actor_handle) {
@@ -3809,7 +3809,7 @@ void actor_swarm_detach_from_unit(int actor_handle, int unit_handle)
     }
 
     /* Assert swarm->unit_count == actor->meta.swarm_unit_count */
-    if (*(short *)(swarm + 2) != *(short *)(actor + 0x1e)) {
+    if (*(short *)(swarm + 2) != ((actor_t *)actor)->field_01e) {
       display_assert("swarm->unit_count == actor->meta.swarm_unit_count",
                      "c:\\halo\\SOURCE\\ai\\actors.c", 0x586, 1);
       system_exit(-1);
@@ -3848,7 +3848,7 @@ update_linked_list:
   /* Update linked list of units */
   if (*(int *)(unit + 0x1b0) == -1) {
     /* No next unit - update actor's first unit pointer */
-    *(int *)(actor + 0x24) = *(int *)(unit + 0x1ac);
+    ((actor_t *)actor)->field_024 = *(int *)(unit + 0x1ac);
   } else {
     /* Update next unit's prev pointer */
     char *next_unit =
@@ -3865,7 +3865,7 @@ update_linked_list:
 
   /* Clear unit's actor reference and decrement count */
   *(int *)(unit + 0x1a8) = -1;
-  *(short *)(actor + 0x1e) = *(short *)(actor + 0x1e) - 1;
+  ((actor_t *)actor)->field_01e = ((actor_t *)actor)->field_01e - 1;
 }
 
 /* actor_swarm_cache_delete (0x3b030) — actor_delete_swarm
@@ -4014,19 +4014,19 @@ int FUN_0003b190(int actor_handle, int *attack_vector_out)
     display_assert("attack_vector", "c:\\halo\\SOURCE\\ai\\actors.c", 0x698, 1);
     system_exit(-1);
   }
-  if (*(int16_t *)(actor + 0x268) > 8) {
+  if (((actor_t *)actor)->target_target_type > 8) {
     mode = actor_action_try_to_panic(actor_handle);
     if (mode == 4) {
-      if (*(char *)(actor + 0x6a0)) {
+      if (((actor_t *)actor)->field_6a0) {
         attack_vector_out[0] = *(int *)(actor + 0x180);
         attack_vector_out[1] = *(int *)(actor + 0x184);
         attack_vector_out[2] = *(int *)(actor + 0x188);
         return 1;
       }
-      if (*(int16_t *)(actor + 0x60c) > 0) {
-        attack_vector_out[0] = *(int *)(actor + 0x63c);
+      if (((actor_t *)actor)->control_current_fire_target_type > 0) {
+        attack_vector_out[0] = ((actor_t *)actor)->field_63c;
         attack_vector_out[1] = *(int *)(actor + 0x640);
-        attack_vector_out[2] = *(int *)(actor + 0x644);
+        attack_vector_out[2] = ((actor_t *)actor)->field_644;
         return 1;
       }
     }
@@ -5047,7 +5047,7 @@ void FUN_0003be90(int actor_handle)
   if (*(int *)(actor + 0x34) == -1) {
     csstrcpy(local_114, "<no encounter>");
   } else {
-    encounter_idx = (int)(*(unsigned int *)(actor + 0x34) & 0xffff);
+    encounter_idx = (int)(((actor_t *)actor)->field_034 & 0xffff);
     encounter_elem = tag_block_get_element(
       (char *)global_scenario_get() + 0x42c, encounter_idx, 0xb0);
     squad_elem = tag_block_get_element(
@@ -6716,18 +6716,18 @@ char FUN_0003d9f0(int actor_handle)
 
   /* Per-tick counter updates */
   (*(short *)0x5abc44)++;
-  if (*(char *)(actor + 0x13) == 0) {
+  if (((actor_t *)actor)->field_013 == 0) {
     (*(short *)0x5abccc)++;
   }
-  if (*(char *)(actor + 0x6) == 0) {
+  if (((actor_t *)actor)->field_006 == 0) {
     (*(short *)0x5abddc)++;
-    if (*(char *)(actor + 0x13) == 0) {
+    if (((actor_t *)actor)->field_013 == 0) {
       (*(short *)0x5abe64)++;
     }
   } else {
-    *(short *)0x5abddc += *(short *)(actor + 0x1e);
-    if (*(char *)(actor + 0x13) == 0) {
-      *(short *)0x5abe64 += *(short *)(actor + 0x1e);
+    *(short *)0x5abddc += ((actor_t *)actor)->field_01e;
+    if (((actor_t *)actor)->field_013 == 0) {
+      *(short *)0x5abe64 += ((actor_t *)actor)->field_01e;
     }
   }
 
@@ -6737,11 +6737,11 @@ char FUN_0003d9f0(int actor_handle)
    * leaves 3 args on stack; PUSH EAX adds reason; CALL display_assert sees 4).
    * In C we write both calls explicitly; the compiler may or may not fold them.
    */
-  if (*(char *)(actor + 0x6) != 0 && *(int *)(actor + 0x28) == -1) {
+  if (((actor_t *)actor)->field_006 != 0 && ((actor_t *)actor)->meta_swarm_cache_index == -1) {
     csprintf(
       (char *)0x5ab100,
       "tried to update a swarm actor without a swarm cache, erasing %d units",
-      (int)*(short *)(actor + 0x1e));
+      (int)((actor_t *)actor)->field_01e);
     display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\ai\\actors.c", 0xaad,
                    0);
     actor_erase(actor_handle, 0);
@@ -6750,15 +6750,15 @@ char FUN_0003d9f0(int actor_handle)
   }
 
   /* Reset per-tick counters on actor */
-  *(char *)(actor + 0x4a4) = 0;
-  if (*(int *)(actor + 0x78) > 0) {
-    *(int *)(actor + 0x78) -= 1;
-    if (*(int *)(actor + 0x78) == 0) {
-      *(short *)(actor + 0x74) = 0;
+  ((actor_t *)actor)->field_4a4 = 0;
+  if (((actor_t *)actor)->field_078 > 0) {
+    ((actor_t *)actor)->field_078 -= 1;
+    if (((actor_t *)actor)->field_078 == 0) {
+      ((actor_t *)actor)->field_074 = 0;
     }
   }
-  if (*(short *)(actor + 0x92) > 0) {
-    *(short *)(actor + 0x92) -= 1;
+  if (((actor_t *)actor)->field_092 > 0) {
+    ((actor_t *)actor)->field_092 -= 1;
   }
 
   /* Resolve biped record if actor has a biped handle */
@@ -6768,19 +6768,19 @@ char FUN_0003d9f0(int actor_handle)
   }
 
   /* Combined flags: actor own flags OR biped flags */
-  flags = *(char *)(actor + 0xa);
+  flags = ((actor_t *)actor)->field_00a;
   if (biped != 0) {
     flags |= *(char *)(biped + 0xc);
   }
 
   /* Deactivate if no player present or combined flags set */
-  if (*(char *)(actor + 0x12) == 0 || flags != 0) {
+  if (((actor_t *)actor)->field_012 == 0 || flags != 0) {
     actor_set_dormant(actor_handle, 0);
     return ret;
   }
 
   /* Dormant actors pass immediately */
-  if (*(char *)(actor + 0x13) != 0) {
+  if (((actor_t *)actor)->field_013 != 0) {
     return ret;
   }
 
@@ -6791,9 +6791,9 @@ char FUN_0003d9f0(int actor_handle)
   }
 
   /* Encounter validity check */
-  if (*(int *)(actor + 0x270) != -1) {
+  if (((actor_t *)actor)->target_target_prop_index != -1) {
     encounter =
-      (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
+      (char *)datum_get(*(data_t **)0x5ab23c, ((actor_t *)actor)->target_target_prop_index);
     if (*(char *)(encounter + 0x12e) != 0 && *(char *)(encounter + 0x60) != 0 &&
         *(char *)(encounter + 0x127) == 0) {
       short enc_state = *(short *)(encounter + 0x24);
@@ -6809,12 +6809,12 @@ char FUN_0003d9f0(int actor_handle)
   /* Check in-vehicle / mounted flag */
   in_vehicle = FUN_0002a3d0(actor_handle);
   if (in_vehicle != 0) {
-    if (*(short *)(actor + 0x46c) == 3) {
+    if (((actor_t *)actor)->field_46c == 3) {
       /* Biped-ride mode: check biped action state */
-      if (*(short *)(actor + 0x6c) == 6 && *(short *)(biped + 0x62) == 1) {
+      if (((actor_t *)actor)->state_action == 6 && *(short *)(biped + 0x62) == 1) {
         return ret;
       }
-    } else if (*(short *)(actor + 0x46c) == 5) {
+    } else if (((actor_t *)actor)->field_46c == 5) {
       /* Encounter-board mode: check encounter scripted flag */
       encounter =
         (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x470));
@@ -6825,8 +6825,8 @@ char FUN_0003d9f0(int actor_handle)
   }
 
   /* Idle tick counter: if exceeded threshold, force deactivation */
-  *(short *)(actor + 0x14) += 1;
-  if (*(short *)(actor + 0x14) > 0x3b) {
+  ((actor_t *)actor)->field_014 += 1;
+  if (((actor_t *)actor)->field_014 > 0x3b) {
     actor_set_dormant(actor_handle, 1);
     return ret;
   }
@@ -6964,9 +6964,9 @@ void FUN_0003dc20(int actor_handle)
   int i;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  actr_tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  actr_tag = (char *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
 
-  if (*(char *)(actor + 0x6) != 0) {
+  if (((actor_t *)actor)->field_006 != 0) {
     /* SWARM PATH: compute centroid of all swarm components.
      * Confirmed: swarm record from swarm_data at [0x6325a0].
      * Confirmed: centroid at swarm+0xc (3 floats, init from zero-vector ptr).
@@ -6985,7 +6985,7 @@ void FUN_0003dc20(int actor_handle)
      * 0x3dd87–0x3dd90. Confirmed: early return if actor+0x24 == -1 at 0x3dd9e.
      * Confirmed: FUN_0003bde0(actor_handle, actor+0x24, actor+0x120) at
      * 0x3dda7. */
-    swarm = (char *)datum_get(swarm_data, *(int *)(actor + 0x28));
+    swarm = (char *)datum_get(swarm_data, ((actor_t *)actor)->meta_swarm_cache_index);
     zero_vec = *(float **)0x31fc1c;
     centroid = (float *)(swarm + 0xc);
     centroid[0] = zero_vec[0];
@@ -7025,17 +7025,17 @@ void FUN_0003dc20(int actor_handle)
     }
 
     csmemset(actor + 0x120, 0, 0xa8);
-    *(int *)(actor + 0x158) = -1;
-    *(int *)(actor + 0x164) = -1;
-    if (*(int *)(actor + 0x24) == -1) {
+    ((actor_t *)actor)->field_158 = -1;
+    ((actor_t *)actor)->field_164 = -1;
+    if (((actor_t *)actor)->field_024 == -1) {
       return;
     }
-    FUN_0003bde0(actor_handle, *(int *)(actor + 0x24), actor + 0x120);
+    FUN_0003bde0(actor_handle, ((actor_t *)actor)->field_024, actor + 0x120);
     return;
   }
 
   /* NORMAL PATH */
-  biped = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+  biped = (char *)object_get_and_verify_type(((actor_t *)actor)->field_018, 3);
   parent_handle = *(int *)(biped + 0xcc);
   if (parent_handle == -1) {
     parent_obj = (char *)0;
@@ -7043,7 +7043,7 @@ void FUN_0003dc20(int actor_handle)
     parent_obj = (char *)object_get_and_verify_type(parent_handle, -1);
   }
 
-  FUN_0003bde0(actor_handle, *(int *)(actor + 0x18), actor + 0x120);
+  FUN_0003bde0(actor_handle, ((actor_t *)actor)->field_018, actor + 0x120);
 
   /* Get world position of the biped into local stack buffer (12 bytes).
    * FUN_001a9520(unit_handle, out_pos[3]) writes 3 floats to local_pos.
@@ -7051,71 +7051,71 @@ void FUN_0003dc20(int actor_handle)
    *   returns byte outdoor flag; cluster stored at actor+0x15d. */
   {
     float local_pos[3];
-    FUN_001a9520(*(int *)(actor + 0x18), local_pos);
-    *(char *)(actor + 0x15d) =
+    FUN_001a9520(((actor_t *)actor)->field_018, local_pos);
+    ((actor_t *)actor)->field_15d =
       FUN_0018f3e0(actor + 0x144, (void *)local_pos, (int16_t *)0);
   }
 
   /* Extract player-proximity tag bit: (actr_tag[0] >> 0x15) & 1 → actor+0x99 */
-  *(char *)(actor + 0x99) = (char)((*(unsigned int *)actr_tag >> 0x15) & 1);
+  ((actor_t *)actor)->field_099 = (char)((*(unsigned int *)actr_tag >> 0x15) & 1);
 
   if (parent_obj == (char *)0 || *(short *)(parent_obj + 0x64) != 1) {
     /* No parent vehicle */
-    *(int *)(actor + 0x158) = -1;
-    *(short *)(actor + 0x15e) = 0;
-    *(char *)(actor + 0x160) = 0;
-    *(char *)(actor + 0x161) = 0;
-    if (*(char *)(actor + 0x40) != 0) {
-      FUN_0003baa0(actor_handle, *(int *)(actor + 0x44),
-                   *(short *)(actor + 0x48));
-      *(char *)(actor + 0x40) = 0;
+    ((actor_t *)actor)->field_158 = -1;
+    ((actor_t *)actor)->field_15e = 0;
+    ((actor_t *)actor)->field_160 = 0;
+    ((actor_t *)actor)->field_161 = 0;
+    if (((actor_t *)actor)->field_040 != 0) {
+      FUN_0003baa0(actor_handle, ((actor_t *)actor)->field_044,
+                   ((actor_t *)actor)->field_048);
+      ((actor_t *)actor)->field_040 = 0;
     }
   } else {
     /* Parent is a vehicle (parent_obj+0x64 == 1) */
     vehi_tag_data = (char *)tag_get(0x76656869, *(int *)parent_obj);
-    *(int *)(actor + 0x158) = parent_handle;
-    *(char *)(actor + 0x161) = 0;
-    *(char *)(actor + 0x162) = 0;
-    *(short *)(actor + 0x15e) = 0;
+    ((actor_t *)actor)->field_158 = parent_handle;
+    ((actor_t *)actor)->field_161 = 0;
+    ((actor_t *)actor)->field_162 = 0;
+    ((actor_t *)actor)->field_15e = 0;
 
     /* Check if actor's biped is in the driver seat (vehicle+0x2d4) */
-    if (*(int *)(parent_obj + 0x2d4) == *(int *)(actor + 0x18)) {
-      *(short *)(actor + 0x15e) = 1;
+    if (*(int *)(parent_obj + 0x2d4) == ((actor_t *)actor)->field_018) {
+      ((actor_t *)actor)->field_15e = 1;
       tag_flags = *(unsigned int *)(vehi_tag_data + 0x2f0);
       if ((tag_flags & 0x800) != 0) {
         if ((tag_flags & 0x1000) != 0) {
-          *(short *)(actor + 0x15e) = 4;
-          *(char *)(actor + 0x99) = 1;
+          ((actor_t *)actor)->field_15e = 4;
+          ((actor_t *)actor)->field_099 = 1;
         } else if ((tag_flags & 0x2000) != 0) {
-          *(short *)(actor + 0x15e) = (short)((~(tag_flags >> 0xe) & 1) | 2);
+          ((actor_t *)actor)->field_15e = (short)((~(tag_flags >> 0xe) & 1) | 2);
         }
       }
     }
 
     /* Check if actor's biped is in the passenger seat (vehicle+0x2d8) */
-    if (*(int *)(parent_obj + 0x2d8) == *(int *)(actor + 0x18)) {
-      *(char *)(actor + 0x161) = 1;
+    if (*(int *)(parent_obj + 0x2d8) == ((actor_t *)actor)->field_018) {
+      ((actor_t *)actor)->field_161 = 1;
       speed_rec =
         (char *)actor_combat_get_firing_variant_definition(actor_handle);
-      *(char *)(actor + 0x162) =
+      ((actor_t *)actor)->field_162 =
         (*(float *)(speed_rec + 0x14c) > *(float *)0x2533c0) ? 1 : 0;
     }
 
-    *(char *)(actor + 0x160) = (*(short *)(actor + 0x15e) < 2) ? 1 : 0;
+    ((actor_t *)actor)->field_160 = (((actor_t *)actor)->field_15e < 2) ? 1 : 0;
 
     /* Seat preference matching: check encounter vehicle+seat vs. preferred */
     if (*(short *)(parent_obj + 0x2e4) != (short)-1) {
-      if ((*(unsigned int *)(actor + 0x34) & 0xffff) ==
+      if ((((actor_t *)actor)->field_034 & 0xffff) ==
           (unsigned int)(int)(short)*(short *)(parent_obj + 0x2e4)) {
         if (*(short *)(parent_obj + 0x2e6) == (short)-1 ||
-            *(short *)(actor + 0x3a) == *(short *)(parent_obj + 0x2e6)) {
+            ((actor_t *)actor)->field_03a == *(short *)(parent_obj + 0x2e6)) {
           goto LAB_3e02c;
         }
         encounter = (char *)datum_get(*(data_t **)0x5ab270,
-                                      *(unsigned int *)(actor + 0x34));
+                                      ((actor_t *)actor)->field_034);
         if (*(short *)(encounter + 0x62) > 0) {
           squad =
-            (char *)encounter_get_squad(encounter, *(short *)(actor + 0x3a));
+            (char *)encounter_get_squad(encounter, ((actor_t *)actor)->field_03a);
           squad2 = (char *)encounter_get_squad(
             encounter, (int)(short)*(short *)(parent_obj + 0x2e6));
           if (*(char *)(squad + 0x10) != 0 && *(char *)(squad2 + 0x10) != 0) {
@@ -7124,11 +7124,11 @@ void FUN_0003dc20(int actor_handle)
         }
       }
 
-      if (*(char *)(actor + 0x40) == 0) {
+      if (((actor_t *)actor)->field_040 == 0) {
         int unit_h = *(int *)(actor + 0x34);
-        *(int *)(actor + 0x44) = unit_h;
-        *(short *)(actor + 0x48) = *(short *)(actor + 0x3a);
-        *(char *)(actor + 0x40) = 1;
+        ((actor_t *)actor)->field_044 = unit_h;
+        ((actor_t *)actor)->field_048 = ((actor_t *)actor)->field_03a;
+        ((actor_t *)actor)->field_040 = 1;
         if (unit_h != -1) {
           char *enc2 = (char *)datum_get(*(data_t **)0x5ab270, unit_h);
           *(char *)(enc2 + 0x1e) = 1;
@@ -7150,13 +7150,13 @@ LAB_3e02c:
    *   error(2, string, tag, scenario_elem) ADD ESP,0x10 cleanup.
    * Confirmed: 0x3e074 JZ: vehicle case (0x99!=0) increments when bit 5 clear;
    *   on-foot case (0x99==0) increments when bit 5 set. */
-  if (*(unsigned int *)(actor + 0x34) != 0xffffffff) {
-    int encounter_idx = (int)(*(unsigned int *)(actor + 0x34) & 0xffff);
+  if (((actor_t *)actor)->field_034 != 0xffffffff) {
+    int encounter_idx = (int)(((actor_t *)actor)->field_034 & 0xffff);
     player_base = (actor_handle & 0xffff) * 0x657c + *(int *)0x331f58;
     scenario_base = (char *)global_scenario_get();
     scenario_elem =
       (char *)tag_block_get_element(scenario_base + 0x42c, encounter_idx, 0xb0);
-    in_vehicle = *(char *)(actor + 0x99);
+    in_vehicle = ((actor_t *)actor)->field_099;
     bit5 = (*(unsigned char *)(scenario_elem + 0x20) & 0x20) != 0;
     /* Increment when vehicle && bit clear, or on-foot && bit set */
     if (in_vehicle ? !bit5 : bit5) {
@@ -7169,7 +7169,7 @@ LAB_3e02c:
           /* tag_get_name(actor_tag_handle) — 1 arg; scenario_elem is stack
            * residue from earlier push, acts as extra variadic arg to error().
            */
-          const char *tag_name = tag_get_name(*(int *)(actor + 0x58));
+          const char *tag_name = tag_get_name(((actor_t *)actor)->field_058);
           if (in_vehicle) {
             error(2, (const char *)0x257300, tag_name, scenario_elem);
           } else {
@@ -7183,9 +7183,9 @@ LAB_3e02c:
   }
 
   /* Crouching/grenade flags from biped */
-  *(char *)(actor + 0x1b5) = (*(unsigned char *)(biped + 0x23b) > 0) ? 1 : 0;
-  *(char *)(actor + 0x1b4) = 0;
-  *(int *)(actor + 0x1b0) = -1;
+  ((actor_t *)actor)->field_1b5 = (*(unsigned char *)(biped + 0x23b) > 0) ? 1 : 0;
+  ((actor_t *)actor)->field_1b4 = 0;
+  ((actor_t *)actor)->field_1b0 = -1;
 
   /* Walk child object chain to find equipped weapon and grenade.
    * Confirmed: chain starts at biped+0xc8; next ptr at obj+0xc4.
@@ -7198,14 +7198,14 @@ LAB_3e02c:
     while (child != -1) {
       obj = (char *)object_get_and_verify_type(child, -1);
       if (*(short *)(obj + 0x64) == 0) {
-        if (game_allegiance_get_team_is_friendly(*(short *)(actor + 0x3e),
+        if (game_allegiance_get_team_is_friendly(((actor_t *)actor)->field_03e,
                                                  *(short *)(obj + 0x68))) {
-          *(char *)(actor + 0x1b4) = 1;
+          ((actor_t *)actor)->field_1b4 = 1;
         }
       } else if (*(short *)(obj + 0x64) == 5) {
-        if (*(char *)(obj + 0x1dc) < 0 || (*(short *)(actor + 0x280) == 2 &&
-                                           child == *(int *)(actor + 0x28c))) {
-          *(int *)(actor + 0x1b0) = child;
+        if (*(char *)(obj + 0x1dc) < 0 || (((actor_t *)actor)->danger_zone_danger_type == 2 &&
+                                           child == ((actor_t *)actor)->danger_zone_object_index)) {
+          ((actor_t *)actor)->field_1b0 = child;
         }
       }
       child = *(int *)(obj + 0xc4);
@@ -7218,18 +7218,18 @@ LAB_3e02c:
    * vehicle). Confirmed: object_get_and_verify_type(actor+0x18, 1) at 0x3e1b6.
    * Confirmed: unit+0x459 > 5 → flashlight on (actor+0x15c = 1).
    * Confirmed: actor+0x164..+0x170 from unit+0x434..+0x440. */
-  *(char *)(actor + 0x15c) = 0;
-  *(int *)(actor + 0x164) = -1;
-  if (*(short *)(biped + 0x64) == 0 && *(int *)(actor + 0x158) == -1) {
+  ((actor_t *)actor)->field_15c = 0;
+  ((actor_t *)actor)->field_164 = -1;
+  if (*(short *)(biped + 0x64) == 0 && ((actor_t *)actor)->field_158 == -1) {
     char *unit_obj =
-      (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 1);
+      (char *)object_get_and_verify_type(((actor_t *)actor)->field_018, 1);
     if ((unsigned char)*(char *)(unit_obj + 0x459) > 5) {
-      *(char *)(actor + 0x15c) = 1;
+      ((actor_t *)actor)->field_15c = 1;
     }
-    *(int *)(actor + 0x164) = *(int *)(unit_obj + 0x434);
-    *(int *)(actor + 0x168) = *(int *)(unit_obj + 0x438);
-    *(int *)(actor + 0x16c) = *(int *)(unit_obj + 0x43c);
-    *(int *)(actor + 0x170) = *(int *)(unit_obj + 0x440);
+    ((actor_t *)actor)->field_164 = *(int *)(unit_obj + 0x434);
+    ((actor_t *)actor)->field_168 = *(int *)(unit_obj + 0x438);
+    ((actor_t *)actor)->field_16c = *(int *)(unit_obj + 0x43c);
+    ((actor_t *)actor)->field_170 = *(int *)(unit_obj + 0x440);
   }
 
   /* Facing vector: from vehicle if riding, otherwise from own biped.
@@ -7238,10 +7238,10 @@ LAB_3e02c:
    * 0x3e215. */
   {
     int facing_src;
-    if (*(short *)(actor + 0x15e) >= 1) {
-      facing_src = *(int *)(actor + 0x158);
+    if (((actor_t *)actor)->field_15e >= 1) {
+      facing_src = ((actor_t *)actor)->field_158;
     } else {
-      facing_src = *(int *)(actor + 0x18);
+      facing_src = ((actor_t *)actor)->field_018;
     }
     units_debug_get_closest_unit(facing_src, actor + 0x174);
   }
@@ -7251,14 +7251,14 @@ LAB_3e02c:
    * Confirmed: magnitude3d(actor+0x174) length check at 0x3e22e.
    * Confirmed: FCOMP [0x2533c0] (0.0f) at 0x3e233; if length <= 0 copy fwd_vec.
    * Confirmed: else case: MOV dword[ESI+0x17c],0 at 0x3e243 (clears .z). */
-  if (*(char *)(actor + 0x99) == 0) {
+  if (((actor_t *)actor)->field_099 == 0) {
     if (magnitude3d((float *)(actor + 0x174)) <= *(float *)0x2533c0) {
       fwd_vec = *(float **)0x31fc3c;
-      *(float *)(actor + 0x174) = fwd_vec[0];
-      *(float *)(actor + 0x178) = fwd_vec[1];
-      *(float *)(actor + 0x17c) = fwd_vec[2];
+      ((actor_t *)actor)->input_facing_vector[0] = fwd_vec[0];
+      ((actor_t *)actor)->input_facing_vector[1] = fwd_vec[1];
+      ((actor_t *)actor)->input_facing_vector[2] = fwd_vec[2];
     } else {
-      *(float *)(actor + 0x17c) = 0.0f;
+      ((actor_t *)actor)->input_facing_vector[2] = 0.0f;
     }
   }
 
@@ -7272,7 +7272,7 @@ LAB_3e02c:
    * vehicle+0x1ec..0x1f4. Confirmed: biped+0x1ec..0x1f4 for on-foot path
    * (0x3e2ae/0x3e2c6). Confirmed: biped+500 (0x1f4) used as int (500 == 0x1f4).
    */
-  if (*(char *)(actor + 0x161) == 0) {
+  if (((actor_t *)actor)->field_161 == 0) {
     /* On foot or driver: use biped aiming vector */
     *(int *)(actor + 0x180) = *(int *)(biped + 0x1ec);
     *(int *)(actor + 0x184) = *(int *)(biped + 0x1f0);
@@ -7280,14 +7280,14 @@ LAB_3e02c:
   } else {
     /* Passenger: use vehicle aiming vector (or self position if flag set) */
     char *vehi_obj =
-      (char *)object_get_and_verify_type(*(int *)(actor + 0x158), 2);
+      (char *)object_get_and_verify_type(((actor_t *)actor)->field_158, 2);
     char *vehi_tag2 = (char *)tag_get(0x76656869, *(int *)vehi_obj);
     if ((*(unsigned int *)(vehi_tag2 + 0x2f0) & 0x100) == 0) {
       *(int *)(actor + 0x180) = *(int *)(vehi_obj + 0x1ec);
       *(int *)(actor + 0x184) = *(int *)(vehi_obj + 0x1f0);
       *(int *)(actor + 0x188) = *(int *)(vehi_obj + 0x1f4);
     } else {
-      units_debug_get_closest_unit(*(int *)(actor + 0x18), actor + 0x180);
+      units_debug_get_closest_unit(((actor_t *)actor)->field_018, actor + 0x180);
     }
   }
 
@@ -7307,9 +7307,9 @@ LAB_3e02c:
    */
   {
     world_up = *(float **)0x31fc44;
-    lx = *(float *)(actor + 0x18c);
-    ly = *(float *)(actor + 0x190);
-    lz = *(float *)(actor + 0x194);
+    lx = ((actor_t *)actor)->input_looking_vector[0];
+    ly = ((actor_t *)actor)->input_looking_vector[1];
+    lz = ((actor_t *)actor)->input_looking_vector[2];
     ux = ly * world_up[0] - world_up[1] * lx;
     uy = world_up[2] * lx - lz * world_up[0];
     uz = lz * world_up[1] - world_up[2] * ly;
@@ -7320,9 +7320,9 @@ LAB_3e02c:
      * components (§4 cross- product / FPU-stack hazard). Invisible when ux==uz
      * (e.g. horizontal look) but corrupts the look-frame basis the perception
      * cone test (0x314f0) reads. */
-    *(float *)(actor + 0x198) = uz;
-    *(float *)(actor + 0x19c) = uy;
-    *(float *)(actor + 0x1a0) = ux;
+    ((actor_t *)actor)->field_198 = uz;
+    ((actor_t *)actor)->field_19c = uy;
+    ((actor_t *)actor)->field_1a0 = ux;
     normalize3d((float *)(actor + 0x198));
   }
 
@@ -7334,9 +7334,9 @@ LAB_3e02c:
    * (stored after normalize call on up, using post-normalize ux/uy/uz)
    */
   {
-    ux = *(float *)(actor + 0x198);
-    uy = *(float *)(actor + 0x19c);
-    uz = *(float *)(actor + 0x1a0);
+    ux = ((actor_t *)actor)->field_198;
+    uy = ((actor_t *)actor)->field_19c;
+    uz = ((actor_t *)actor)->field_1a0;
     ax = lx * uy - ly * ux;
     ay = ux * lz - lx * uz;
     az = ly * uz - lz * uy;
@@ -7347,9 +7347,9 @@ LAB_3e02c:
      * -> a degenerate look frame (right ~= look) that fails the perception
      * vision-cone test (0x314f0 reads +0x1a4), so grunts never visually
      * perceive their target. §4 cross-product / FPU-stack hazard. */
-    *(float *)(actor + 0x1a4) = az;
-    *(float *)(actor + 0x1a8) = ay;
-    *(float *)(actor + 0x1ac) = ax;
+    ((actor_t *)actor)->field_1a4 = az;
+    ((actor_t *)actor)->field_1a8 = ay;
+    ((actor_t *)actor)->field_1ac = ax;
   }
 
   /* Assert vector validity.
@@ -7362,27 +7362,27 @@ LAB_3e02c:
    */
   if (!valid_real_normal3d((float *)(actor + 0x174))) {
     csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
-             "&actor->input.facing_vector", (double)*(float *)(actor + 0x174),
-             (double)*(float *)(actor + 0x178),
-             (double)*(float *)(actor + 0x17c));
+             "&actor->input.facing_vector", (double)((actor_t *)actor)->input_facing_vector[0],
+             (double)((actor_t *)actor)->input_facing_vector[1],
+             (double)((actor_t *)actor)->input_facing_vector[2]);
     display_assert(error_string_buffer, "c:\\halo\\SOURCE\\ai\\actors.c", 0xcf1,
                    1);
     system_exit(-1);
   }
   if (!valid_real_normal3d((float *)(actor + 0x180))) {
     csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
-             "&actor->input.aiming_vector", (double)*(float *)(actor + 0x180),
-             (double)*(float *)(actor + 0x184),
-             (double)*(float *)(actor + 0x188));
+             "&actor->input.aiming_vector", (double)((actor_t *)actor)->input_aiming_vector[0],
+             (double)((actor_t *)actor)->input_aiming_vector[1],
+             (double)((actor_t *)actor)->input_aiming_vector[2]);
     display_assert(error_string_buffer, "c:\\halo\\SOURCE\\ai\\actors.c", 0xcf2,
                    1);
     system_exit(-1);
   }
   if (!valid_real_normal3d((float *)(actor + 0x18c))) {
     csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
-             "&actor->input.looking_vector", (double)*(float *)(actor + 0x18c),
-             (double)*(float *)(actor + 0x190),
-             (double)*(float *)(actor + 0x194));
+             "&actor->input.looking_vector", (double)((actor_t *)actor)->input_looking_vector[0],
+             (double)((actor_t *)actor)->input_looking_vector[1],
+             (double)((actor_t *)actor)->input_looking_vector[2]);
     display_assert(error_string_buffer, "c:\\halo\\SOURCE\\ai\\actors.c", 0xcf3,
                    1);
     system_exit(-1);
@@ -7392,17 +7392,17 @@ LAB_3e02c:
    * Confirmed: valid_real_normal2d checks xy-plane normal validity.
    * Confirmed: FABS + FCOMP double[0x2533d0] at 0x3e503/0x3e505; uses double.
    */
-  if (*(char *)(actor + 0x99) == 0) {
+  if (((actor_t *)actor)->field_099 == 0) {
     if (!valid_real_normal2d((float *)(actor + 0x174))) {
       csprintf(error_string_buffer, "%s: assert_valid_real_normal2d(%f, %f)",
                "(real_vector2d *) &actor->input.facing_vector",
-               (double)*(float *)(actor + 0x174),
-               (double)*(float *)(actor + 0x178));
+               (double)((actor_t *)actor)->input_facing_vector[0],
+               (double)((actor_t *)actor)->input_facing_vector[1]);
       display_assert(error_string_buffer, "c:\\halo\\SOURCE\\ai\\actors.c",
                      0xcf6, 1);
       system_exit(-1);
     }
-    if (fabsf(*(float *)(actor + 0x17c)) >= (float)*(double *)0x2533d0) {
+    if (fabsf(((actor_t *)actor)->input_facing_vector[2]) >= (float)*(double *)0x2533d0) {
       display_assert("realcmp(actor->input.facing_vector.k, 0.0f)",
                      "c:\\halo\\SOURCE\\ai\\actors.c", 0xcf7, 1);
       system_exit(-1);
@@ -7410,10 +7410,10 @@ LAB_3e02c:
   }
 
   /* Copy motion/velocity fields from biped */
-  *(int *)(actor + 0x1b8) = *(int *)(biped + 0x90);
+  ((actor_t *)actor)->field_1b8 = *(int *)(biped + 0x90);
   *(int *)(actor + 0x1bc) = *(int *)(biped + 0x94);
-  *(int *)(actor + 0x1c0) = *(int *)(biped + 0xa8);
-  *(int *)(actor + 0x1c4) = *(int *)(biped + 0xa4);
+  ((actor_t *)actor)->field_1c0 = *(int *)(biped + 0xa8);
+  ((actor_t *)actor)->field_1c4 = *(int *)(biped + 0xa4);
 }
 
 /* actors_handle_unit_effect (0x3e570) — propagate a unit effect (damage/sound)
