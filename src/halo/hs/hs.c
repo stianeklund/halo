@@ -2050,6 +2050,44 @@ void FUN_000c1c10(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, value);
 }
 
+/* 0xc1c40 — HS script-function handler: query whether the local player is
+ * applying movement input in any direction, and commit the boolean to the
+ * calling script thread.  Structural twin of 0xc1c10 (look-relative
+ * aggregate); the two differ only in the predicate callee — this one drives
+ * the move-relative aggregate at 0xb6b50.
+ *
+ * ABI (verified against disassembly 0xc1c40-0xc1c66, 15 instructions): cdecl,
+ * plain RET, one 4-byte local (PUSH ECX).  The body reads only [EBP+0xc] =
+ * thread_datum (the SECOND stack argument); function_index and init complete
+ * the standard hs-evaluator signature (same shape as 0xc0cb0/0xc1c10) but are
+ * unused here.  Ghidra reports the thread handle as `in_stack_00000008`
+ * (argument 1) — that is wrong, the load is [EBP+0xc].  Ghidra's
+ * `extraout_AL` is the AL return of the predicate, not a register argument;
+ * no ADD ESP follows the 0xb6b50 CALL, confirming the predicate takes no
+ * args.
+ *
+ * The result local is zero-initialised as a full dword (MOV dword [EBP-4],0)
+ * and then only its low byte is overwritten with AL (MOV byte [EBP-4],AL)
+ * before the whole dword is re-read and pushed (MOV EAX,[EBP-4] / PUSH EAX).
+ * The `*(char *)&value` store reproduces that pair; a direct
+ * call-in-argument or a (unsigned char) widen would emit MOVZX instead.  The
+ * original loads ECX = [EBP+0xc] between the CALL and the AL store (MSVC
+ * scheduling); C cannot express that ordering and it has no semantic effect.
+ * Push order (PUSH EAX ; PUSH ECX, ECX = [EBP+0xc]) confirms thread_datum is
+ * hs_return's first argument, and the trailing ADD ESP,0x8 confirms
+ * hs_return's two cdecl args.  Like 0xc1bb0/0xc1be0/0xc1c10 this handler has
+ * no hs_macro_function_evaluate call and no NULL-result check — the body
+ * contains exactly two CALLs. */
+void FUN_000c1c40(int16_t function_index, int thread_datum, char init)
+{
+  int value;
+
+  value = 0;
+  *(char *)&value =
+    (char)player_control_action_test_move_relative_all_directions();
+  hs_return(thread_datum, value);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
