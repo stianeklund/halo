@@ -1921,6 +1921,11 @@
       "score": 100.0,
       "source": "src/halo/ai/ai_debug.c"
     },
+    "FUN_0004c170": {
+      "opnd_percent": 95.4,
+      "score": 93.5,
+      "source": "src/halo/ai/ai_debug.c"
+    },
     "FUN_000534d0": {
       "opnd_percent": 93.3,
       "score": 94.4,
@@ -16389,6 +16394,11 @@
       "opnd_percent": 96.0,
       "ref": "synth",
       "score": 100.0,
+      "source": "src/halo/ai/ai_debug.c"
+    },
+    "ai_debug_change_selected_actor": {
+      "opnd_percent": 95.4,
+      "score": 93.5,
       "source": "src/halo/ai/ai_debug.c"
     },
     "ai_debug_change_selected_encounter": {

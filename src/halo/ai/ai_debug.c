@@ -1587,6 +1587,105 @@ void ai_debug_initialize_for_new_map(void)
     *(uint16_t *)0x6323dc = 0;
   }
 }
+
+/* ai_debug_change_selected_actor: step the debug actor selection forward or
+ * backward within the currently selected encounter.  Walks the encounter's
+ * actor iterator to the position of the currently selected actor, moves one
+ * step in the requested direction, then reports the new actor on the console
+ * and commits it via ai_debug_select_actor.
+ *
+ * Confirmed (XBE 0x4c170): PUSH EBP / MOV EBP,ESP / SUB ESP,0xc.  The 12 bytes
+ *   of frame are consumed entirely by the iterator passed as LEA [EBP-0xc] to
+ *   encounter_actor_iterator_new/_next/_prev, so Ghidra's "local_c" (EBP-0x8)
+ *   is iterator dword 1, not an independent local.  It is the current actor
+ *   handle.  EDI holds the encounter datum, ESI the 16-bit position counter;
+ *   ESI is pushed only after the early-exit branch, so that path pops EDI only.
+ * Confirmed: only AL of the parameter is consulted (MOV AL,[EBP+8] / TEST
+ *   AL,AL / JZ), hence the (char) test.
+ * Confirmed: the position counter is 16-bit -- it reaches console_printf via
+ *   MOVSX EDX,SI followed by INC EDX, i.e. widen-then-increment, so the
+ *   argument is the promoted "idx + 1" and not a truncated (short)(idx + 1).
+ * Confirmed: encounter + 0x2a is a int16_t actor count (MOVSX word ptr).
+ * Confirmed: the buffer handed to ai_debug_describe_actor is the shared
+ *   256-byte scratch at 0x5ab100 with an explicit 0x100 size.
+ *
+ * Call-site verification (cdecl, first PUSH is the last argument):
+ *   0x4c184  PUSH EAX([0x5ac9f4]) / PUSH ECX(*(void**)0x5ab270)
+ *            -> datum_absolute_index_to_index(*(data_t**)0x5ab270,
+ *                                             *(int32_t*)0x5ac9f4)  [match]
+ *   0x4c198  PUSH 0x25b0d0 / PUSH EAX -- EAX is the NULL result of the call
+ *            above, reused as the channel argument.  Written as
+ *            (int)encounter to reproduce the register reuse; it is provably
+ *            NULL on this path.                                      [match]
+ *   0x4c1a1  ai_debug_select_actor(-1,-1).  ADD ESP,0x10 folds the cleanup for
+ *            this call and the console_printf above (2 + 2 dwords) -- the
+ *            ARG_COUNT hazard on this site is a folded-cleanup false positive.
+ *   0x4c1bc  PUSH EDX([0x5ac9f4]) / PUSH EAX(LEA [EBP-0xc])
+ *            -> encounter_actor_iterator_new(iter, *(int32_t*)0x5ac9f4) [match]
+ *   0x4c235  PUSH 0x100 / PUSH 0x5ab100 / PUSH 1 / PUSH -1 / PUSH EAX([EBP-8])
+ *            -> ai_debug_describe_actor(iter[1], -1, 1, (char*)0x5ab100,
+ *                                       0x100)                       [match]
+ *   0x4c250  PUSH 0x5ab100 / PUSH MOVSX ECX,word[EDI+0x2a] /
+ *            PUSH (MOVSX EDX,SI; INC EDX) / PUSH 0x25b0c0 / PUSH 0
+ *            -> console_printf(0, "actor %d/%d: %s", idx + 1,
+ *                              (int)*(int16_t*)(encounter + 0x2a),
+ *                              (char*)0x5ab100)                       [match]
+ *   0x4c260  ai_debug_select_actor(*(int32_t*)0x5ac9f4, iter[1]).
+ *            ADD ESP,0x30 folds describe_actor(5) + console_printf(5) +
+ *            ai_debug_select_actor(2) = 12 dwords.
+ *   0x4c275  console_printf(0, "no more actors"); 0x4c283
+ *            ai_debug_select_actor(*(int32_t*)0x5ac9f4, -1); ADD ESP,0x10.
+ *
+ * Note: MOV EDI,EDI at 0x4c1de is two-byte loop-head alignment padding, not
+ *   code.  No FPU operations anywhere in this function.
+ *
+ * Uncertain: the remaining iterator dwords (0 and 2) are not touched here, so
+ *   their meaning is left opaque; only dword 1 (the current actor handle) is
+ *   read.
+ *
+ * Called from the ai_debug console/key handlers alongside
+ * ai_debug_change_selected_encounter. */
+void ai_debug_change_selected_actor(int param)
+{
+  int32_t iter[3];
+  char *encounter;
+  void *actor;
+  int16_t idx;
+  int more;
+
+  encounter = (char *)datum_absolute_index_to_index(*(data_t **)0x5ab270,
+                                                    *(int32_t *)0x5ac9f4);
+  if (encounter == NULL) {
+    console_printf((int)encounter, "no encounter selected (use F2/F3)");
+    ai_debug_select_actor(-1, -1);
+    return;
+  }
+  idx = 0;
+  encounter_actor_iterator_new(iter, *(int32_t *)0x5ac9f4);
+  if (*(int32_t *)0x5ac9f8 != -1) {
+    more = encounter_actor_iterator_next(iter);
+    while (more != 0 && iter[1] != *(int32_t *)0x5ac9f8) {
+      idx++;
+      more = encounter_actor_iterator_next(iter);
+    }
+  }
+  if ((char)param == 0) {
+    actor = encounter_actor_iterator_prev(iter);
+    idx--;
+  } else {
+    actor = (void *)encounter_actor_iterator_next(iter);
+    idx++;
+  }
+  if (actor != NULL) {
+    ai_debug_describe_actor(iter[1], -1, 1, (char *)0x5ab100, 0x100);
+    console_printf(0, "actor %d/%d: %s", idx + 1,
+                   (int)*(int16_t *)(encounter + 0x2a), (char *)0x5ab100);
+    ai_debug_select_actor(*(int32_t *)0x5ac9f4, iter[1]);
+  } else {
+    console_printf(0, "no more actors");
+    ai_debug_select_actor(*(int32_t *)0x5ac9f4, -1);
+  }
+}
 /* FUN_000534d0: per-frame ai_debug render dispatch.  Gated on a byte inside
  * the structure pointed to by the global at 0x632574; when set, refreshes two
  * scratch globals, re-derives the selected encounter index from the selected
