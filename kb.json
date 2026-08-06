@@ -32278,7 +32278,10 @@
         },
         {
           "addr": "0x4a680",
-          "decl": "void ai_debug_communication_ignore(void);"
+          "decl": "void ai_debug_communication_ignore(int count, char **names);",
+          "name": "ai_debug_communication_ignore",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x4a6b0",
