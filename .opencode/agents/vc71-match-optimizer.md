@@ -12,7 +12,7 @@ description: >
 mode: subagent
 model: aiolos/gpt-5.6-terra
 variant: xhigh
-color: cyan
+color: info
 memory: project
 ---
 
