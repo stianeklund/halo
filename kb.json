@@ -32239,7 +32239,10 @@
         },
         {
           "addr": "0x49f60",
-          "decl": "void ai_debug_vocalize(void);"
+          "decl": "void ai_debug_vocalize(const char *vocalization_name, const char *vocalization_type_name);",
+          "name": "ai_debug_vocalize",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x4a030",

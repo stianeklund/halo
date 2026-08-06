@@ -796,6 +796,88 @@ int FUN_00049c70(void)
   return result;
 }
 
+/* ai_debug_vocalize (0x49f60): debug console command that makes the currently
+ * selected debug actor speak a named vocalization.  Looks up the vocalization
+ * name and the vocalization-type name, asks the actor's unit for a matching
+ * communication, and if one is produced, fills a 0x30-byte AI communication
+ * record and hands it to the unit's speech dispatcher.
+ *
+ * Confirmed: two stack parameters at [EBP+8] and [EBP+0xC] (Ghidra surfaced
+ *   them as in_stack_00000004 / in_stack_00000008).  Both are passed straight
+ *   through to the name->index lookups FUN_001a6cd0 / FUN_001a67e0, whose kb
+ *   declarations take `const char *`.  The old kb declaration of `(void)` was
+ *   wrong and would have produced a caller/callee stack mismatch.
+ * Confirmed: frame is PUSH EBP / MOV EBP,ESP / SUB ESP,0x38.  EBX and EDI are
+ *   only saved on the non-early-exit path (PUSH EBX/EDI at 0x49f77/0x49f78),
+ *   which is why the body is written as nested ifs rather than early returns.
+ * Confirmed: ESI is materialised once as -1 (OR ESI,0xffffffff at 0x49f6c) and
+ *   serves all three sentinel compares (the debug actor handle, actor +0x18,
+ *   and CMP AX,SI at 0x49fbb) as well as the initial -1 stored to [EBP-0x8].
+ * Confirmed: the 0x30-byte communication record lives at EBP-0x38..EBP-0x09
+ *   (csmemset(EBP-0x38, 0, 0x30) at 0x49fe5-0x49fed; PUSH 0x30 / PUSH 0 /
+ *   PUSH LEA [EBP-0x38], cdecl so the first PUSH is the last argument).
+ *   Ghidra's `local_2c[32]` at EBP-0x28 is NOT an independent local: it is
+ *   record + 0x10, so ai_communication_packet_new receives an interior
+ *   pointer into the same buffer.
+ * Confirmed: the field stores are, in instruction order,
+ *   0x49ffd  MOV [EBP-0x38],BX   record+0x00 <- vocalization index
+ *   0x4a001  MOV [EBP-0x36],CX   record+0x02 <- vocalization type
+ *   0x4a005  MOV [EBP-0x34],EDX  record+0x04 <- sound definition index
+ * Confirmed: datum_get is (actor_data, handle) -- PUSH EAX (the handle read
+ *   from 0x5ac9f8) then PUSH [0x6325a4], ADD ESP,8 at 0x49f89.
+ * Confirmed: FUN_001a68d0's pushes at 0x49fd6 are EAX(=&[EBP-0x8]),
+ *   ECX(=&[EBP-0x4]), 0, 1, 1, EBX, EDX, so left-to-right the arguments are
+ *   (unit handle, vocalization index, 1, 1, NULL, &type, &sound index) and
+ *   ADD ESP,0x1c confirms 7 stack dwords.
+ * Confirmed: the single ADD ESP,0x8 at 0x49fb0 cleans both name-lookup pushes
+ *   and the single ADD ESP,0x1c at 0x4a01b cleans FUN_001a6ef0's three pushes
+ *   plus csmemset's three and ai_communication_packet_new's one -- MSVC
+ *   coalesced the cleanups, so the ARG_COUNT hazards on FUN_001a67e0 and
+ *   FUN_001a6ef0 are false positives.
+ * Confirmed: the width of every compare is 16-bit -- TEST BX,BX / JLE (signed
+ *   `> 0`), CMP AX,SI (`== -1`), TEST SI,SI -- so the three intermediates are
+ *   `short`, not `int`.
+ * Inferred: 0x5aca89 is a "debug speech requested" byte flag; it is set to 1
+ *   unconditionally once the debug actor handle resolves, before the unit
+ *   handle is even validated.
+ * Uncertain: the two `1` arguments to FUN_001a68d0 are byte-width literals
+ *   (PUSH 1 twice) whose meaning is not recoverable from this call site. */
+void ai_debug_vocalize(const char *vocalization_name,
+                       const char *vocalization_type_name)
+{
+  char communication[0x30];
+  int sound_definition_index;
+  short vocalization_type;
+  void *actor;
+  short vocalization_index;
+  short communication_count;
+
+  if (*(int32_t *)0x5ac9f8 != -1) {
+    actor = datum_get(*(data_t **)0x6325a4, *(int32_t *)0x5ac9f8);
+    *(uint8_t *)0x5aca89 = 1;
+    if (*(int32_t *)((char *)actor + 0x18) != -1) {
+      vocalization_index = FUN_001a6cd0(vocalization_name);
+      vocalization_type = FUN_001a67e0(vocalization_type_name);
+      if (vocalization_index > 0 && vocalization_type != -1) {
+        sound_definition_index = -1;
+        communication_count =
+          FUN_001a68d0(*(int32_t *)((char *)actor + 0x18), vocalization_index,
+                       1, 1, NULL, &vocalization_type,
+                       &sound_definition_index);
+        if (communication_count != 0) {
+          csmemset(communication, 0, 0x30);
+          *(short *)(communication + 0x00) = vocalization_index;
+          *(short *)(communication + 0x02) = vocalization_type;
+          *(int32_t *)(communication + 0x04) = sound_definition_index;
+          ai_communication_packet_new(communication + 0x10);
+          FUN_001a6ef0(*(int32_t *)((char *)actor + 0x18), communication_count,
+                       communication);
+        }
+      }
+    }
+  }
+}
+
 /* ai_debug_toggle_flags (0x4a460): parse a list of debug-flag names into a
  * temporary bit vector and toggle those bits in a caller-supplied vector.
  *
