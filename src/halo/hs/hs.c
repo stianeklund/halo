@@ -1325,6 +1325,53 @@ void FUN_000c1830(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc1870 - HS script function handler: select the multiplayer game variant by
+ * name.  Same three-call shape as FUN_000c0f10 (0xc0f10) and FUN_000c1830
+ * (0xc1830); the only difference is the type of the first dword of the
+ * evaluated result block, which here is a `const char *` variant name.
+ *
+ * Disassembly trace (0xc1870-0xc18a1, 22 instructions):
+ *   PUSH EBP / MOV EBP,ESP / PUSH ESI  no `sub esp` - one local, no spills
+ *   EAX=[EBP+0x10] init, ECX=[EBP+0x08] function_index,
+ *   ESI=[EBP+0x0C] thread_datum (kept live in ESI across the whole body)
+ *   PUSH EAX / PUSH ESI / PUSH ECX     cdecl, first push is the LAST arg, so
+ *                                      the call is (function_index,
+ *                                      thread_datum, init)
+ *   CALL 0x000cc560 / ADD ESP,0xc      hs_macro_function_evaluate, own cleanup
+ *   TEST EAX,EAX / JZ                  plain NULL check on the result block
+ *   MOV EDX,[EAX] / PUSH EDX           the argument is the FIRST DWORD OF THE
+ *                                      BLOCK, dereferenced - *(char **)result,
+ *                                      not the block pointer itself
+ *   CALL 0x000a78e0                    game_set_game_variant_from_name(*result)
+ *   PUSH 0x0 / PUSH ESI                hs_return arg2 = 0, arg1 = thread_datum
+ *   CALL 0x000cbf80                    hs_return(thread_datum, 0)
+ *   ADD ESP,0xc                        ONE coalesced cleanup for BOTH calls
+ *                                      (1 + 2 pushes); the call-site audit's
+ *                                      "cleanup=3 vs decl=2" note on hs_return
+ *                                      is that coalescing, not an
+ * argument-count mismatch POP ESI / POP EBP / RET            cdecl, plain RET
+ * (caller cleans)
+ *
+ * The evaluator's return is declared int in kb.json (0xcc560) but is used here
+ * as a pointer, so it is cast.
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0xa78e0 = game_set_game_variant_from_name(const char *)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c1870(int16_t function_index, int thread_datum, char init)
+{
+  char **result;
+
+  result =
+    (char **)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    game_set_game_variant_from_name(*result);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
