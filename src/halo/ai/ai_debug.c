@@ -312,6 +312,73 @@ void ai_debug_get_last_path(float *vec_a, float *vec_b)
   *(int32_t *)0x5acad4 = 0;
 }
 
+/* ai_debug_lineoffire_addpill (0x49430): append one pill (capsule) to the
+ * debug line-of-fire overlay list.
+ *
+ * TU anchored by the __FILE__ xref "c:\halo\SOURCE\ai\ai_debug.c" in the
+ * assert at 0x49441 (line 0xfc4 = 4036).
+ *
+ * 4 cdecl stack args, caller cleans; frame is PUSH EBP / MOV EBP,ESP with no
+ * `sub esp` (no spilled locals).
+ *
+ * Param 3 is a FLOAT, not an int: 0x49469 does `FLD dword ptr [EBP+0x10]` and
+ * 0x494bc does `FSTP dword ptr [EDX*4 + 0x5acc68]` -- the value travels
+ * through the x87 stack into a float[16].  The kb decl previously said `int`
+ * and the sole caller (ai.c) bit-punned a float through it; both are corrected
+ * in this change.
+ *
+ * Pill list layout (parallel arrays, all indexed by the count at 0x5acad4,
+ * which ai_debug_get_last_path resets to 0):
+ *   0x5acab8  uint8         valid/armed flag (assert guard)
+ *   0x5acad4  int32         pill count, bound 0x10
+ *   0x5acad8  char[16]      per-pill flag
+ *   0x5acae8  float[16][3]  endpoint A, stride 0xc  (LEA EAX+EAX*2, then *4)
+ *   0x5acba8  float[16][3]  endpoint B, stride 0xc
+ *   0x5acc68  float[16]     radius,     stride 4
+ *
+ * The count is re-read from memory five times (0x4945c bounds test + char
+ * index, 0x49472 endpoint A, 0x49494 endpoint B, 0x494b6 radius, 0x494c3
+ * increment); it is deliberately not hoisted into a local here.
+ *
+ * Store-offset table (from the disassembly; ECX = source vector, EAX = the
+ * LEA'd destination base -- NOT from the decompiler's field labels):
+ *   0x5acad8 + count      <- CL             from [EBP+0x14]  (byte store)
+ *   0x5acae8 + count*0xc  <- [ECX+0x0/4/8]  dword moves, no x87
+ *   0x5acba8 + count*0xc  <- [ECX+0x0/4/8]  dword moves, no x87
+ *   0x5acc68 + count*4    <- FSTP           x87, FLD'd at 0x49469
+ *   0x5acad4              <- INC EAX
+ *
+ * Uncertain: "pill" is from the kb name, not a recovered string; the two
+ * endpoints plus a radius describe a capsule, which matches the sphere and
+ * segment line-of-fire tests that feed this from ai.c. */
+void ai_debug_lineoffire_addpill(float *vec_a, float *vec_b, float radius,
+                                 char flag)
+{
+  float *dst;
+
+  if (*(uint8_t *)0x5acab8 == 0) {
+    display_assert("ai_debug.lineoffire_valid",
+                   "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0xfc4, 1);
+    system_exit(-1);
+  }
+  if (*(int32_t *)0x5acad4 < 0x10) {
+    ((char *)0x5acad8)[*(int32_t *)0x5acad4] = flag;
+
+    dst = (float *)0x5acae8 + *(int32_t *)0x5acad4 * 3;
+    dst[0] = vec_a[0];
+    dst[1] = vec_a[1];
+    dst[2] = vec_a[2];
+
+    dst = (float *)0x5acba8 + *(int32_t *)0x5acad4 * 3;
+    dst[0] = vec_b[0];
+    dst[1] = vec_b[1];
+    dst[2] = vec_b[2];
+
+    ((float *)0x5acc68)[*(int32_t *)0x5acad4] = radius;
+    *(int32_t *)0x5acad4 = *(int32_t *)0x5acad4 + 1;
+  }
+}
+
 /* FUN_000494d0: set debug ray-test success flag.
  *
  * No __FILE__ string. Called from ai_debug_get_last_path (ray setup) and

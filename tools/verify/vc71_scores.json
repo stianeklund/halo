@@ -1850,6 +1850,11 @@
       "score": 100.0,
       "source": "src/halo/ai/ai_debug.c"
     },
+    "FUN_00049430": {
+      "opnd_percent": 80.4,
+      "score": 95.7,
+      "source": "src/halo/ai/ai_debug.c"
+    },
     "FUN_000494d0": {
       "score": 100.0,
       "source": "src/halo/ai/ai_debug.c"
@@ -16538,6 +16543,11 @@
       "opnd_percent": 82.8,
       "ref": "synth",
       "score": 100.0,
+      "source": "src/halo/ai/ai_debug.c"
+    },
+    "ai_debug_lineoffire_addpill": {
+      "opnd_percent": 80.4,
+      "score": 95.7,
       "source": "src/halo/ai/ai_debug.c"
     },
     "ai_debug_point3d_set": {

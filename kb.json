@@ -32183,7 +32183,9 @@
         },
         {
           "addr": "0x49430",
-          "decl": "void ai_debug_lineoffire_addpill(float *vec_a, float *vec_b, int param_3, char param_4);"
+          "decl": "void ai_debug_lineoffire_addpill(float *vec_a, float *vec_b, float radius, char flag);",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x494d0",
