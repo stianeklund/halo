@@ -39,6 +39,10 @@ from tools.recovery.structize import (  # noqa: E402
     diverging_functions,
     compile_tu,
     gate,
+    triage,
+    CAUSE_TBAA,
+    CAUSE_ADDRESS_FORM,
+    CAUSE_COMBINATION,
     _parse_layout,
 )
 
@@ -419,6 +423,54 @@ class GateStaleObjectTests(unittest.TestCase):
         with self.assertRaises(StructizeError) as caught:
             gate("nonexistent/tu.c", "unused-baseline.json", build=False)
         self.assertIn("object not built", str(caught.exception))
+
+
+@unittest.skipUnless(TOOLCHAIN, WHY_SKIP)
+class TriageTests(_FixtureCase):
+    """`triage` explains a park. Its danger is explaining one away.
+
+    The `tbaa` verdict is a claim of semantic identity: byte-identical codegen
+    under -fno-strict-aliasing means the same accesses at the same addresses.
+    A wrong binding reaching that verdict would launder a real bug into a
+    documented non-issue, so that is the case tested first.
+    """
+
+    def _corrupt(self, data, from_offset, to_field, in_function):
+        hits = 0
+        for site in data["sites"]:
+            if (site["verdict"] == "rewrite" and site["offset"] == from_offset
+                    and site.get("function") == in_function):
+                site["field"] = to_field
+                hits += 1
+        self.assertEqual(hits, 1, "test setup: expected exactly one site to corrupt")
+        return data
+
+    def test_a_wrong_binding_is_never_called_benign(self):
+        data = self._corrupt(self.take_census(), 0x1C, "owner", "fx_flags")
+        report = triage(data, ["fx_flags"], source=self.source)
+        finding = report["findings"][0]
+        # It may be classed as address-form (a lead), never as tbaa (a proof of
+        # semantic identity), because reading 0x20 instead of 0x1c changes the
+        # emitted displacement no matter what the aliasing model says.
+        self.assertNotEqual(finding["cause"], CAUSE_TBAA, finding)
+        self.assertIn(finding["cause"], (CAUSE_ADDRESS_FORM, CAUSE_COMBINATION))
+
+    def test_a_wrong_binding_is_localised_to_the_offset_that_caused_it(self):
+        data = self._corrupt(self.take_census(), 0x1C, "owner", "fx_flags")
+        finding = triage(data, ["fx_flags"], source=self.source)["findings"][0]
+        if finding["cause"] == CAUSE_ADDRESS_FORM:
+            self.assertEqual(finding["culprit_offsets"], ["0x1c"], finding)
+
+    def test_triage_restores_the_source_it_was_given(self):
+        before = self.source.read_text(encoding="utf-8")
+        triage(self.take_census(), ["fx_flags"], source=self.source)
+        self.assertEqual(self.source.read_text(encoding="utf-8"), before)
+
+    def test_a_clean_function_is_not_reported_as_a_finding(self):
+        # fx_vec converts byte-identically, so triage must say "only in
+        # combination" rather than inventing a cause for it.
+        finding = triage(self.take_census(), ["fx_vec"], source=self.source)["findings"][0]
+        self.assertEqual(finding["cause"], CAUSE_COMBINATION, finding)
 
 
 if __name__ == "__main__":

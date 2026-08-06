@@ -98,11 +98,18 @@ many call sites each unblocks. Those are real `struct-recovery` questions
 (MOVSX vs MOVZX, union, sub-struct boundary). Answer one from disassembly,
 re-run `split`, and its sites convert automatically.
 
-Park, never force. A park means the function's codegen moved, which has two
-causes that look identical: benign `#pragma pack(1)` alignment shifting `-O3`
-scheduling, or a genuinely wrong field binding. The gate withholds both, so
-nothing wrong ships — but report a park in a just-split function as a suspected
-bad binding, not as alignment noise. Never edit code to force a park through.
+Park, never force — then explain the park rather than guessing at it:
+
+```bash
+rtk python3 tools/recovery/structize.py triage --census recovery/census/<f>.json
+```
+
+`tbaa` is a proof the rewrite is semantically identical (byte-identical under
+`-fno-strict-aliasing`, so a wrong binding cannot reach it). `address-form-or-alignment`
+is only a lead — it names the culprit offsets and you check those against
+disassembly, because a genuinely wrong binding also lands there.
+`only-in-combination` means the function is clean alone. Report the verdict and
+the culprit offsets, not just a count. Never edit code to force a park through.
 
 ## Hard gates per edit category
 

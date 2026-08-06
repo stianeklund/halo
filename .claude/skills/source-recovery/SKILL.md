@@ -125,19 +125,29 @@ the census, never a guess:
 A partial retype rescales every un-rewritten `base + 0xNN` by `sizeof(struct)`.
 Retyping is only safe once coverage reaches ~100%, and is a separate step.
 
-**Known divergence, measured:** `#pragma pack(1)` gives a member alignment 1
-where the original cast asserted natural alignment, which can change `-O3` load
-scheduling. On `actor_looking.c` this hit 2 of 119 functions; `-fno-strict-aliasing`
-makes no difference, so it is not an aliasing effect. `converge` parks those
-functions rather than losing the other 117.
+**A park is a finding, not a result** — but you no longer have to guess at it.
+Several causes produce the identical "this function's codegen moved" signal, and
+guessing between them has already been wrong once. Run:
 
-**A park is a finding, not a result.** Alignment noise and a genuinely wrong
-field binding produce the *identical* signal — "this function's codegen moved" —
-and the tool cannot tell them apart (proved by a test that feeds it a knowingly
-wrong offset and watches it park exactly like the benign case). Nothing wrong
-ever ships either way, because the gate withholds both. But treat a park in a
-function whose offsets were only just split as a suspected bad binding, not as
-alignment noise.
+```bash
+rtk python3 tools/recovery/structize.py triage --census recovery/census/<f>.json
+```
+
+It recompiles each parked function's rewrites with `-fno-strict-aliasing` and,
+for those that still diverge, bisects down to the individual offsets responsible.
+
+| Verdict | Meaning | Weight |
+|---|---|---|
+| `tbaa` | Byte-identical under `-fno-strict-aliasing`. The raw `*(char *)` cast aliases everything and pins ordering; the field access carries a precise struct-path tag and frees the scheduler. | **Proof.** Same accesses, same addresses — a wrong binding cannot reach this verdict. |
+| `address-form-or-alignment` | Survives the flag. Either LLVM keeping a raw `base + 0xNN` in a register for an indexed load vs. canonicalising the GEP to a `lea`, or a `pack(1)` alignment-1 member shifting `-O3` scheduling. | **Lead only.** A genuinely wrong binding lands here too. Read the named offsets against disassembly. |
+| `only-in-combination` | Byte-identical when rewritten alone. | Not itself the problem; re-check after the other parks resolve. |
+
+Measured on `actor_moving.c`: 3 parked functions → 2 pure TBAA, 1 reduced to two
+adjacent byte loads (`0x426`/`0x427`) whose address form changed. None was a
+wrong binding. On `actor_looking.c` the 2 parks were the `pack(1)` alignment
+case, where `-fno-strict-aliasing` makes no difference — hence the table, not a
+single story. Nothing wrong ever ships regardless, because the gate withholds
+in every case.
 
 **Verifying the tool itself:** `rtk python3 -m tools.recovery.test_structize_e2e`
 compiles real C with the project's flags and asserts the gate *fails* when fed a

@@ -83,8 +83,18 @@ class StructizeError(Exception):
 # Observed on actor_looking.c: 117/119 functions are byte-identical; two
 # diverge because `#pragma pack(1)` gives a struct member alignment 1 while the
 # original `*(int *)(actor + 0x340)` cast asserted alignment 4, and at -O3 that
-# changes load scheduling.  Not an aliasing effect -- `-fno-strict-aliasing`
-# makes no difference.
+# changes load scheduling.  For THAT pair, `-fno-strict-aliasing` makes no
+# difference.
+#
+# It is not the only cause, and assuming it is misleads.  Measured on
+# actor_moving.c (`triage`), three parked functions had two other causes and
+# none was alignment: two were pure TBAA -- a `*(char *)` cast aliases
+# everything and pins the surrounding accesses, while the field access carries
+# a precise struct-path tag and frees the scheduler, so the rewrite is
+# byte-identical again under `-fno-strict-aliasing` -- and the third came down
+# to two adjacent byte loads where LLVM kept the raw offset in a register for
+# an indexed load but canonicalised the struct GEP into a `lea`.  Use `triage`
+# to find out which; do not guess.
 # --------------------------------------------------------------------------
 FLAGS_MAKE = ROOT / "build" / "CMakeFiles" / "halo.dir" / "flags.make"
 
@@ -710,7 +720,7 @@ def apply_splits(plan, types_h=None, apply=False):
 # alias variable is additive and safe at any coverage level.
 # --------------------------------------------------------------------------
 def apply_rewrites(census_data, alias=None, source=None, apply=False,
-                   exclude=(), only=()):
+                   exclude=(), only=(), offsets=None):
     """Rewrite resolvable sites to a named field access.
 
     Default is an inline cast, `((actor_t *)actor)->field_38`, rather than an
@@ -735,6 +745,12 @@ def apply_rewrites(census_data, alias=None, source=None, apply=False,
     if only:
         wanted = set(only)
         edits = [s for s in edits if s.get("function") in wanted]
+    if offsets is not None:
+        # Offset-level selection exists for `triage`, which has to ask "which
+        # of these sites is the one that moves the codegen?" -- a question that
+        # cannot be answered at function granularity.
+        keep = set(offsets)
+        edits = [s for s in edits if s["offset_hex"] in keep]
     by_line = {}
     for site in edits:
         by_line.setdefault(site["line"], []).append(site)
@@ -858,17 +874,20 @@ def converge(census_data, source=None, alias=None, manifest=None):
                 report["parked_functions"] = sorted(excluded)
                 report["park_reason"] = (  # noqa: E501 - assigned below, read by sync
 
-                    "codegen moved, so the rewrite was withheld. Two causes produce "
-                    "this identical signal and only inspection tells them apart: "
-                    "(1) benign -- a pack(1) member has alignment 1 where the "
-                    "original cast asserted natural alignment, which at -O3 shifts "
-                    "instruction scheduling (a byte store sinking past adjacent "
-                    "float stores) or register allocation (%edi -> %ebx); "
-                    "(2) a real bug -- the field binding is wrong, and the rewrite "
-                    "reads a different address than the cast did. The gate withholds "
-                    "either way, so nothing wrong ships, but a park is a finding to "
-                    "triage, not a result to accept. Suspect (2) when a park appears "
-                    "in a function whose offsets were only recently split")
+                    "codegen moved, so the rewrite was withheld. Several causes "
+                    "produce this identical signal, and guessing between them has "
+                    "already been wrong once: (1) TBAA -- the `char *` cast aliases "
+                    "everything and pins ordering, the field access does not; "
+                    "(2) address form -- LLVM keeps a raw `base + 0xNN` constant in a "
+                    "register for an indexed load but canonicalises the struct GEP to "
+                    "a `lea`; (3) alignment -- a pack(1) member has alignment 1 where "
+                    "the cast asserted natural alignment, shifting -O3 scheduling; "
+                    "(4) a real bug -- the binding is wrong and the rewrite reads a "
+                    "different address. The gate withholds in every case, so nothing "
+                    "wrong ships. Do not assume which one applies: run "
+                    "`structize.py triage --census <census>`, which separates (1) by "
+                    "recompiling with -fno-strict-aliasing and bisects the rest down "
+                    "to the responsible offsets")
                 if manifest:
                     report["manifest_sync"] = sync_manifest(
                         census_data, manifest, sorted(excluded),
@@ -884,6 +903,155 @@ def converge(census_data, source=None, alias=None, manifest=None):
         path.write_text(original, encoding="utf-8")
         raise
     finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+CAUSE_TBAA = "tbaa"
+CAUSE_ADDRESS_FORM = "address-form-or-alignment"
+CAUSE_COMBINATION = "only-in-combination"
+
+_CAUSE_TEXT = {
+    CAUSE_TBAA:
+        "TBAA. The raw form casts through `char *`, which aliases everything and "
+        "pins the surrounding loads and stores in place; the field access carries a "
+        "precise struct-path TBAA tag, so the optimiser is free to reorder across "
+        "it. Same address, same width, same accesses -- only the scheduling "
+        "freedom differs. Confirmed by the rewrite being byte-identical under "
+        "-fno-strict-aliasing.",
+    CAUSE_ADDRESS_FORM:
+        "Address materialisation or member alignment, NOT aliasing (it survives "
+        "-fno-strict-aliasing). Observed form: the raw `base + 0xNN` lets LLVM keep "
+        "the constant in a register and use an indexed load (`mov $0x426,%ecx`), "
+        "while the struct GEP is canonicalised to a computed address (`lea "
+        "0x426(%edi),%ecx`); the pack(1) alignment-1 member is the other known "
+        "cause. Both read the same byte. Inspect the culprit offsets below before "
+        "accepting.",
+    CAUSE_COMBINATION:
+        "This function is byte-identical when rewritten alone, so it is not itself "
+        "the problem -- it only moves once other functions in the TU are rewritten "
+        "too (inlining or cross-function scheduling). Re-run converge with the "
+        "other parked functions resolved before treating this as a finding.",
+}
+
+
+def _culprit_offsets(census_data, function, path, original, reference, tmp, extra):
+    """Narrow one function's rewrites to the offsets that actually move codegen.
+
+    Peels one culprit at a time rather than stopping at the first: several
+    independent offsets can each move the same function, and reporting only one
+    would send the reader off to explain a divergence that survives fixing it.
+    """
+    sites = [s for s in census_data["sites"]
+             if s["function"] == function and s["verdict"] == "rewrite"]
+    offsets = sorted({s["offset_hex"] for s in sites}, key=lambda h: int(h, 16))
+    counter = [0]
+
+    def moves(subset):
+        counter[0] += 1
+        path.write_text(original, encoding="utf-8")
+        apply_rewrites(census_data, source=path, apply=True,
+                       only=[function], offsets=subset)
+        obj = compile_tu(path, tmp / ("triage%d.obj" % counter[0]), extra=extra)
+        return function in diverging_functions(reference, obj)["changed"]
+
+    # Delta-debug on the REMAINING set with found culprits excluded. Including
+    # them would make every probe move by construction, so the loop would peel
+    # every offset and report the whole function -- which is what it did before
+    # this was fixed, and is indistinguishable from a real answer in the output.
+    culprits, remaining, interacting = [], list(offsets), []
+    while remaining and moves(set(remaining)):
+        window = list(remaining)
+        while len(window) > 1:
+            mid = len(window) // 2
+            first, second = window[:mid], window[mid:]
+            if moves(set(first)):
+                window = first
+            elif moves(set(second)):
+                window = second
+            else:
+                # Neither half moves alone but the whole does: the cause is an
+                # interaction across the split, not any single offset. Report
+                # the window rather than looping or picking one arbitrarily.
+                interacting.append(list(window))
+                window = None
+                break
+        if window is None:
+            break
+        culprits.append(window[0])
+        remaining = [o for o in remaining if o != window[0]]
+    return culprits, counter[0], interacting
+
+
+def triage(census_data, functions, source=None):
+    """Explain each parked function: benign scheduling artefact, or a real finding?
+
+    `converge` parks at function granularity, which is safe but silent about
+    cause -- and the two causes that matter look identical from outside. This
+    answers the question mechanically:
+
+      * recompile the function's rewrites with -fno-strict-aliasing. If the
+        divergence vanishes, it was the `char *` aliasing barrier and nothing
+        more.
+      * if it survives, bisect down to the individual offsets responsible, so
+        a human inspects two lines instead of a hundred.
+
+    Measured on actor_moving.c: of three parked functions, two were pure TBAA
+    and the third reduced to two adjacent byte loads whose address form changed.
+    None was a wrong binding. The source file is restored unconditionally.
+    """
+    path = Path(source or (ROOT / census_data["source"]))
+    original = path.read_text(encoding="utf-8")
+    tmp = Path(tempfile.mkdtemp(prefix="structize-triage-"))
+    nsa = ("-fno-strict-aliasing",)
+    findings = []
+    try:
+        reference = compile_tu(path, tmp / "ref.obj")
+        reference_nsa = compile_tu(path, tmp / "ref_nsa.obj", extra=nsa)
+        for function in functions:
+            path.write_text(original, encoding="utf-8")
+            applied = apply_rewrites(census_data, source=path, apply=True,
+                                     only=[function])
+            moved = function in diverging_functions(
+                reference, compile_tu(path, tmp / "c.obj"))["changed"]
+            moved_nsa = function in diverging_functions(
+                reference_nsa, compile_tu(path, tmp / "c_nsa.obj", extra=nsa))["changed"]
+
+            entry = {"function": function, "sites": applied["sites_rewritten"]}
+            if not moved:
+                entry["cause"] = CAUSE_COMBINATION
+            elif not moved_nsa:
+                entry["cause"] = CAUSE_TBAA
+            else:
+                culprits, probes, interacting = _culprit_offsets(
+                    census_data, function, path, original, reference_nsa, tmp, nsa)
+                entry["cause"] = CAUSE_ADDRESS_FORM
+                entry["culprit_offsets"] = culprits
+                entry["clean_offsets"] = len({
+                    s["offset_hex"] for s in census_data["sites"]
+                    if s["function"] == function and s["verdict"] == "rewrite"
+                }) - len(culprits)
+                entry["probe_compiles"] = probes
+                if interacting:
+                    entry["interacting_offsets"] = interacting
+            entry["explanation"] = _CAUSE_TEXT[entry["cause"]]
+            findings.append(entry)
+        return {
+            "ok": True,
+            "source": census_data["source"],
+            "findings": findings,
+            "note": ("%r is a proof, %r is a lead. Byte-identical codegen under "
+                     "-fno-strict-aliasing means the rewrite performs the same "
+                     "accesses at the same addresses, so a wrong binding cannot "
+                     "reach that verdict -- those parks are explained and benign. "
+                     "%r only says 'not aliasing' and names the offsets involved; "
+                     "a genuinely wrong binding lands here too, because reading the "
+                     "wrong address also changes codegen and also survives the "
+                     "flag. Read the culprit offsets against the disassembly before "
+                     "calling them benign."
+                     % (CAUSE_TBAA, CAUSE_ADDRESS_FORM, CAUSE_ADDRESS_FORM)),
+        }
+    finally:
+        path.write_text(original, encoding="utf-8")
         shutil.rmtree(tmp, ignore_errors=True)
 
 
@@ -1190,6 +1358,13 @@ def main(argv=None):
     p.add_argument("--alias")
     p.add_argument("--manifest", help="source-recovery manifest to update on success")
 
+    p = sub.add_parser("triage",
+                       help="explain WHY converge parked a function (and which offsets)")
+    p.add_argument("--census", required=True)
+    p.add_argument("--functions", nargs="*",
+                   help="parked function names; default is every function that "
+                        "diverges when the whole census is applied")
+
     p = sub.add_parser("sync", help="write census outcomes back into a manifest")
     p.add_argument("--census", required=True)
     p.add_argument("--manifest", required=True)
@@ -1257,6 +1432,29 @@ def main(argv=None):
             # 2 = converged but rewrote nothing, so a caller polling the exit
             # code can tell "no work available" from "work done".
             return 2 if result.get("vacuous") else 0
+        if args.command == "triage":
+            data = json.loads(Path(args.census).read_text(encoding="utf-8"))
+            targets = args.functions
+            if not targets:
+                # Discovering the parked set here means the caller does not have
+                # to re-run converge (which rewrites the file) just to name it.
+                path = ROOT / data["source"]
+                original = path.read_text(encoding="utf-8")
+                scratch = Path(tempfile.mkdtemp(prefix="structize-find-"))
+                try:
+                    reference = compile_tu(path, scratch / "ref.obj")
+                    apply_rewrites(data, source=path, apply=True)
+                    candidate = compile_tu(path, scratch / "all.obj")
+                    targets = diverging_functions(reference, candidate)["changed"]
+                finally:
+                    path.write_text(original, encoding="utf-8")
+                    shutil.rmtree(scratch, ignore_errors=True)
+            if not targets:
+                _emit({"ok": True, "findings": [],
+                       "note": "nothing parked -- every eligible site converges"})
+                return 0
+            _emit(triage(data, sorted(targets)))
+            return 0
         if args.command == "sync":
             data = json.loads(Path(args.census).read_text(encoding="utf-8"))
             _emit(sync_manifest(data, args.manifest, args.parked,
