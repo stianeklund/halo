@@ -1877,6 +1877,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x5bbe0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x5c630": {
       "kind": "function",
       "status": "ported"
@@ -5483,6 +5487,74 @@
       "status": "unknown",
       "uncertain": [
         "HS script function name is unknown; the handler dispatches result[0] to FUN_00085110, which switches to first-person camera mode 3, so this is likely a camera/cinematic script command."
+      ]
+    },
+    "0xc17f0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The function_index (EBP+0x8) and init (EBP+0x10) parameters are never read by the body; they are declared to match the three-argument hs script-function handler signature shared by all 29 siblings in the 0xc1010-0xc17c0 range, which are dispatched through the same hs function table."
+      ]
+    },
+    "0xc1830": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter names function_index/thread_datum/init and the int16_t/char widths are inferred from the sibling HS script-function handlers (FUN_000c0c30, FUN_000c1810) rather than from local evidence; the prologue loads all three slots as full dwords with no MOVSX/MOVZX, so narrowing is free on the cdecl slots and the widths cannot be arbitrated from this function alone."
+      ]
+    },
+    "0xc1870": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The handler is the HaloScript builtin that selects a multiplayer game variant by name: the first dword of the evaluated macro result block is passed as a const char* to game_set_game_variant_from_name (0xa78e0), and a void (0) result is then committed to the calling thread via hs_return."
+      ],
+      "uncertain": [
+        "The single ADD ESP,0xc at 0xc189c is a coalesced cleanup for three pushes spanning two calls (one for game_set_game_variant_from_name plus two for hs_return), so the automated call-site audit reports hs_return as taking three stack arguments; hs_return is genuinely two-argument and its kb declaration must not be widened."
+      ]
+    },
+    "0xc18b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "function_index and init are unused by the body but complete the standard hs-evaluator signature; the only stack read is [EBP+0xC] (thread_datum), so the outer two slots are inferred from the sibling handlers at 0xc0cb0 and 0xc1870 rather than from this body."
+      ]
+    },
+    "0xc18d0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The callee at 0xa7470 returns a 16-bit value in AX; its kb decl was widened from void(void) to int16_t(void) so 0xc18d0 does not silently discard the result (no other src/ caller existed, so the change is contained).",
+        "The zero-dword-then-word-store shape (MOV dword [EBP-4],0 then MOV word [EBP-4],AX) is a deliberate ZERO extension of the 16-bit helper result into the 32-bit hs_return slot, reproduced in C as a zeroed int32_t plus a 16-bit store rather than a (short) cast, which would emit MOVSX and change the value for results at or above 0x8000."
+      ],
+      "uncertain": [
+        "The signedness of the 0xa7470 return is unproven: the caller pre-zeroes the dword and stores only AX, so signed short and unsigned short compile identically here; int16_t was chosen to match the TU convention without claiming unsignedness."
+      ]
+    },
+    "0xc1930": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The third parameter (char init at [EBP+0x10]) is inferred from the shared hs-evaluator signature used by every neighbouring handler in hs.obj; this body never reads it, and the disassembly only proves that [EBP+0xc] is loaded.",
+        "The name players_unzoom_all for callee 0xb69d0 comes from kb.json, so the script-command identity players_unzoom_all is inferred from that callee rather than from a string reference at this address."
+      ]
+    },
+    "0xc1990": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The byte stored by the original's MOV byte ptr [EBP-4],AL is provably *(char *)result: the void-declared callee 0xb6430 (scripted_player_control_set_camera_control) begins with MOV AL,[EBP+8], so it leaves its own argument byte in AL by accident of codegen; the lift re-loads the byte from result instead of reading a return value out of AL.",
+        "The ADD ESP,0xc after the hs_return call is a merged MSVC cleanup covering the leftover PUSH EDX from the 0xb6430 call plus hs_return's two arguments; a call-site audit reading it as three stack args for hs_return (0xcbf80) is a false positive."
+      ],
+      "uncertain": [
+        "The residual 4-instruction VC71 gap (93.5%, 33 ours vs 29 reference, zero unmatched reference instructions) is the cost of keeping result live across the 0xb6430 call \u2014 one extra callee-saved register save/restore pair, one MOV EAX,ESI copy, and one extra byte load \u2014 which is unavoidable without reading the void callee's incidental AL return."
+      ]
+    },
+    "0xc19e0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters function_index (arg1, [EBP+0x8]) and init (arg3) are never read by the body; they are inferred from the uniform 3-arg hs-evaluator signature shared by the sibling handlers in hs.obj, not from loads in this function."
       ]
     },
     "0xc3b60": {

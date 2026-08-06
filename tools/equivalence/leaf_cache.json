@@ -29101,6 +29101,11 @@
     "confidence": "moderate",
     "coverage_pct": 31.6
   },
+  "0x5bbe0": {
+    "class": "non_leaf",
+    "confidence": "weak",
+    "coverage_pct": 15.7
+  },
   "0x5df80": {
     "class": "leaf",
     "confidence": "high",
