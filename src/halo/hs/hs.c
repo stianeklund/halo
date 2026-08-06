@@ -2280,6 +2280,40 @@ void FUN_000c1d50(int16_t function_index, int thread_datum, char init)
   return;
 }
 
+/* 0xc1d90 — HS script function handler: set the campaign difficulty.
+ *
+ * Standard hs macro-function wrapper.  The prologue pushes only ESI, has no
+ * locals and no `sub esp`; [EBP+8]/[EBP+0xc]/[EBP+0x10] are the three cdecl
+ * parameters.  The call at 0xc1da0 pushes EAX([EBP+0x10]), ESI([EBP+0xc]),
+ * PUSH ECX([EBP+8]), so under cdecl the arguments are
+ * (function_index, thread_datum, init) — matching the kb declaration.
+ *
+ * Ghidra printed `FUN_00100060()` with no argument, but the disassembly at
+ * 0xc1dac is `XOR EDX,EDX; MOV DX,word ptr [EAX]; PUSH EDX` — a zero-extended
+ * 16-bit load from offset +0x0 of the result block, so the difficulty is a
+ * narrow int16 field, not an int.
+ *
+ * The single `ADD ESP,0xc` at 0xc1dbf is MSVC's merged cleanup for BOTH the
+ * 1-argument main_set_difficulty call and the 2-argument hs_return call
+ * (1 + 2 = 3 dwords) — it is not evidence of a 3-argument hs_return, and the
+ * call-site audit's ARG_COUNT warning on hs_return here is a false positive
+ * from that coalescing.
+ *
+ * hs_macro_function_evaluate is declared returning `int` in kb.json but is
+ * used here as a pointer, so it is cast (same as FUN_000c1d50). */
+void FUN_000c1d90(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (int *)0) {
+    main_set_difficulty(*(short *)result);
+    hs_return(thread_datum, 0);
+  }
+  return;
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
