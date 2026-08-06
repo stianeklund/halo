@@ -1372,6 +1372,43 @@ void FUN_000c1870(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc18b0 - HS script function handler: return the current game time to the
+ * calling script thread.  A pure forwarder - no `init` gating and no macro
+ * evaluation, because the builtin takes no script arguments.
+ *
+ * Disassembly trace (0xc18b0-0xc18c6, 10 instructions):
+ *   PUSH EBP / MOV EBP,ESP             no `sub esp` - no locals, no spills,
+ *                                      no callee-saved registers pushed
+ *   CALL 0x000b5aa0                    game_time_get(), result in EAX
+ *   PUSH EAX                           first PUSH is the LAST cdecl arg, so
+ *                                      this is hs_return's `value`
+ *   MOV EAX,[EBP+0x0C] / PUSH EAX      thread_datum - the SECOND stack
+ *                                      argument.  Ghidra names this
+ *                                      `in_stack_00000008` (arg 1); the
+ *                                      [EBP+0x0C] displacement proves it is
+ *                                      arg 2, matching the standard
+ *                                      hs-evaluator slot layout
+ *                                      (function_index@+8, thread_datum@+0xC,
+ *                                      init@+0x10).
+ *   CALL 0x000cbf80 / ADD ESP,0x8      hs_return(thread_datum, game_time)
+ *   POP EBP / RET                      cdecl, plain RET (caller cleans)
+ *
+ * The call order in the binary (game_time_get first, then the [EBP+0xC] load)
+ * is exactly MSVC's right-to-left cdecl argument evaluation for the single
+ * expression below; no temporary is needed to reproduce it.
+ *
+ * function_index and init are unused by this body but complete the standard
+ * hs-evaluator signature (same shape as FUN_000c0cb0 at 0xc0cb0).
+ *
+ * Callees (both cdecl, no register args, both ported):
+ *   0xb5aa0 = game_time_get(void)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c18b0(int16_t function_index, int thread_datum, char init)
+{
+  hs_return(thread_datum, game_time_get());
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
