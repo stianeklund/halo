@@ -2191,6 +2191,48 @@ void FUN_000c1cf0(int16_t function_index, int thread_datum, char init)
   return;
 }
 
+/* 0xc1d10 — HaloScript function evaluator that sets the pending map name.
+ * Evaluates the script macro function's argument list via
+ * hs_macro_function_evaluate; when that returns a non-NULL result record, the
+ * record's FIRST DWORD (a const char* string pointer) is forwarded to
+ * main_set_map_name, then a 0 result is committed to the calling thread.
+ *
+ * Callees (hardcoded addresses, all ported):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index,
+ *                                        int thread_datum, char init)
+ *               -> result record* or NULL
+ *   0xfffa0 = main_set_map_name(const char *name) -> void
+ *   0xcbf80 = hs_return(int thread_datum, int value) -> void
+ *
+ * ABI (verified against disassembly 0xc1d10-0xc1d40): cdecl, frame is
+ * PUSH EBP; MOV EBP,ESP; PUSH ESI with no locals and no `sub esp`.  ESI holds
+ * thread_datum ([EBP+0xc]) across all three calls.  Ghidra's
+ * `void FUN_000c1d10(void)` prototype is wrong — the three `in_stack_*`
+ * phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], i.e. the standard hs-evaluator
+ * argument triple.
+ *
+ * Ghidra also printed `FUN_000fffa0()` with no argument; the disassembly at
+ * 0xc1d2f is `MOV EDX,[EAX]; PUSH EDX`, so the record is dereferenced and the
+ * resulting pointer is the map-name string.  The single `ADD ESP,0xc` at
+ * 0xc1d3c is MSVC's merged cleanup for BOTH the 1-argument main_set_map_name
+ * call and the 2-argument hs_return call (1 + 2 = 3 dwords) — it is not
+ * evidence of a 3-argument hs_return.
+ *
+ * hs_macro_function_evaluate is declared returning `int` in kb.json but is
+ * used here as a pointer, so it is cast (same as FUN_000c0ed0/FUN_000c0f10). */
+void FUN_000c1d10(int16_t function_index, int thread_datum, char init)
+{
+  char **result;
+
+  result =
+    (char **)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (char **)0) {
+    main_set_map_name(*result);
+    hs_return(thread_datum, 0);
+  }
+  return;
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
