@@ -1,45 +1,45 @@
 {
-  "generated": "2026-08-05T01:25:09.604365+00:00",
+  "generated": "2026-08-06T01:22:58.088203+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-08-05T01:24:53Z",
+    "last_run_time": "2026-08-06T01:22:41Z",
     "last_commit": "41c10616",
     "workflows": [
       {
         "name": "Progress Report",
         "conclusion": "",
-        "created_at": "2026-08-05T01:24:53Z",
+        "created_at": "2026-08-06T01:22:41Z",
         "head_sha": "41c10616",
-        "url": "https://github.com/stianeklund/halo/actions/runs/30966304812"
+        "url": "https://github.com/stianeklund/halo/actions/runs/31062554469"
       },
       {
         "name": "Equivalence Tests",
         "conclusion": "success",
-        "created_at": "2026-08-05T01:24:18Z",
+        "created_at": "2026-08-06T01:22:04Z",
         "head_sha": "41c10616",
-        "url": "https://github.com/stianeklund/halo/actions/runs/30966278346"
+        "url": "https://github.com/stianeklund/halo/actions/runs/31062524890"
       },
       {
         "name": "Runtime Oracle Tests",
-        "conclusion": "success",
-        "created_at": "2026-08-04T06:22:22Z",
+        "conclusion": "failure",
+        "created_at": "2026-08-05T06:22:35Z",
         "head_sha": "41c10616",
-        "url": "https://github.com/stianeklund/halo/actions/runs/30883767149"
+        "url": "https://github.com/stianeklund/halo/actions/runs/30981148043"
       },
       {
         "name": "Audit Gates",
         "conclusion": "success",
-        "created_at": "2026-08-04T05:42:40Z",
+        "created_at": "2026-08-05T05:41:22Z",
         "head_sha": "41c10616",
-        "url": "https://github.com/stianeklund/halo/actions/runs/30881538905"
+        "url": "https://github.com/stianeklund/halo/actions/runs/30978875662"
       },
       {
         "name": "pages-build-deployment",
         "conclusion": "success",
-        "created_at": "2026-08-04T01:20:51Z",
-        "head_sha": "abcb9f6d",
-        "url": "https://github.com/stianeklund/halo/actions/runs/30868465784"
+        "created_at": "2026-08-05T01:25:16Z",
+        "head_sha": "6cf0973f",
+        "url": "https://github.com/stianeklund/halo/actions/runs/30966324061"
       },
       {
         "name": "Snapshot Verification",
