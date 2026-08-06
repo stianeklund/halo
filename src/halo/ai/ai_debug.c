@@ -1349,6 +1349,95 @@ void ai_debug_update(void)
  *   3 args to csmemset(0x629d44,...) + 3 args to csmemset(0x62a3b4,...) +
  *   2 args to ai_debug_select_actor = 8 dwords = 0x20 bytes. */
 
+/* ai_debug_change_selected_encounter: step the debug encounter selection to
+ * the next (param non-zero) or previous (param zero) allocated encounter datum
+ * and echo a one-line description of it to the console.
+ *
+ * When the datum walk runs off the end of the data array, print
+ * "no more encounters" and deselect (ai_debug_select_encounter(-1)).
+ * Otherwise fetch the matching scenario encounter tag-block element
+ * (scenario + 0x42c, element size 0xb0) and format:
+ *   "encounter <name> [<active|inactive> <description>] (<n> actors)"
+ * where <name> is the char name[32] at the head of the encounter element,
+ * <description> is either "3d-positions" (flags bit 0x20) or
+ * "<manual|auto>-bsp <bsp>" with <bsp> the int16 at +0x7e printed as "%d" or
+ * "NONE" when it is -1, and flags bit 0x40 selects "manual" over "auto".
+ *
+ * No __FILE__ string.  Globals: 0x5ab270 = encounter data_t*,
+ * 0x5ac9f4 = currently selected encounter datum index.
+ *
+ * Call-site verification (cdecl, first PUSH is last C arg):
+ *   0x4afd3 data_prev_index: PUSH EDX([0x5ac9f4]); PUSH EAX([0x5ab270])
+ *     -> data_prev_index(encounter_data, selected)                 [match]
+ *   0x4afbf data_next_index: PUSH EAX([0x5ac9f4]); PUSH ECX([0x5ab270])
+ *     -> data_next_index(encounter_data, selected)                 [match]
+ *   0x4afe5 datum_absolute_index_to_index: PUSH EBX(index); PUSH ECX(data)
+ *     -> datum_absolute_index_to_index(encounter_data, index)      [match]
+ *     Result kept in EDI and NULL-tested; it is a datum POINTER even though
+ *     the kb declaration types it int (ABI-immutable, so cast at the site).
+ *   early-return: PUSH "no more encounters"; PUSH EAX(the 0 just returned,
+ *     reused as the literal channel 0) -> console_printf(0, ...)   [match]
+ *     then PUSH -1; ai_debug_select_encounter(-1); one ADD ESP,0xC covers both.
+ *   0x4b01d/0x4b028: PUSH 0xB0; PUSH EDX(index & 0xffff); CALL
+ *     global_scenario_get; ADD EAX,0x42C; PUSH EAX; CALL tag_block_get_element
+ *     -> tag_block_get_element(scenario + 0x42c, index & 0xffff, 0xb0) [match]
+ *     (args are pushed before global_scenario_get runs — right-to-left cdecl
+ *     evaluation of the C call reproduces that order).
+ *   0x4b07f crt_sprintf: PUSH EDX(MOVSX int16 @+0x7e); PUSH "%d";
+ *     PUSH ECX(EBP-0x100) -> crt_sprintf(bsp_text, "%d", bsp)      [match]
+ *   0x4b0ab crt_sprintf: PUSH ECX(EBP-0x100); PUSH EAX("manual"/"auto");
+ *     PUSH "%s-bsp %s"; PUSH EDX(EBP-0x200); ADD ESP,0x10
+ *     -> crt_sprintf(description, "%s-bsp %s", mode, bsp_text)     [match]
+ *   0x4b0d9 console_printf: PUSH ECX(MOVSX int16 @EDI+0x2a); PUSH
+ * EDX(EBP-0x200); PUSH EAX("active"/"inactive"); PUSH ESI(encounter element,
+ * printed as the %s name); PUSH "encounter %s [%s %s] (%d actors)"; PUSH 0,
+ * then PUSH EBX; CALL ai_debug_select_encounter; one ADD ESP,0x1C covers both.
+ * [match]
+ *
+ * Frame: SUB ESP,0x200 — exactly two char[256] buffers, EBP-0x200
+ * (description) and EBP-0x100 (bsp_text).  No FPU instructions.
+ * The parameter test is a BYTE test (MOV AL,[EBP+8]; TEST AL,AL). */
+void ai_debug_change_selected_encounter(int next)
+{
+  unsigned int index;
+  char *datum;
+  void *encounter;
+  const char *text;
+  char description[256];
+  char bsp_text[256];
+
+  if ((char)next == 0) {
+    index = data_prev_index(*(data_t **)0x5ab270, *(int32_t *)0x5ac9f4);
+  } else {
+    index =
+      (unsigned int)data_next_index(*(data_t **)0x5ab270, *(int32_t *)0x5ac9f4);
+  }
+  datum =
+    (char *)datum_absolute_index_to_index(*(data_t **)0x5ab270, (int)index);
+  if (datum == NULL) {
+    console_printf((int)datum, "no more encounters");
+    ai_debug_select_encounter(-1);
+    return;
+  }
+  encounter = tag_block_get_element((char *)global_scenario_get() + 0x42c,
+                                    (int)(index & 0xffff), 0xb0);
+  if ((*((uint8_t *)encounter + 0x20) & 0x20) == 0) {
+    if (*(int16_t *)((char *)encounter + 0x7e) == -1) {
+      csstrcpy(bsp_text, "NONE");
+    } else {
+      crt_sprintf(bsp_text, "%d", (int)*(int16_t *)((char *)encounter + 0x7e));
+    }
+    text = (*((uint8_t *)encounter + 0x20) & 0x40) ? "manual" : "auto";
+    crt_sprintf(description, "%s-bsp %s", text, bsp_text);
+  } else {
+    csstrcpy(description, "3d-positions");
+  }
+  text = (datum[0xd] != 0) ? "active" : "inactive";
+  console_printf(0, "encounter %s [%s %s] (%d actors)", encounter, text,
+                 description, (int)*(int16_t *)(datum + 0x2a));
+  ai_debug_select_encounter((int)index);
+}
+
 /* ai_debug_select_actor: reinitialize secondary encounter debug state when
  * either the encounter index or param_2 changes.  Calls
  * ai_debug_select_encounter(encounter_idx) to reset the primary per-encounter

@@ -32307,7 +32307,10 @@
         },
         {
           "addr": "0x4afa0",
-          "decl": "void ai_debug_change_selected_encounter(int);"
+          "decl": "void ai_debug_change_selected_encounter(int next);",
+          "name": "ai_debug_change_selected_encounter",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x4b0f0",
