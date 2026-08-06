@@ -1513,6 +1513,44 @@ void FUN_000c1930(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc1950 — HS script function handler: enable/disable player input.
+ * Evaluates the macro arguments; on success the result block holds a single
+ * boolean byte at +0x0.  Calls player_input_enable(*(char *)result) then
+ * returns void to the HS thread via hs_return(thread_datum, 0).
+ *
+ * Disassembly notes (0xc1950-0xc1983, 52 bytes):
+ *   PUSH EBP / MOV EBP,ESP / PUSH ESI    no SUB ESP => no stack locals
+ *   PUSH EAX([EBP+0x10]) / PUSH ESI([EBP+0xc]) / PUSH ECX([EBP+0x8])
+ *   CALL 0x000cc560 / ADD ESP,0xc        cdecl: first PUSH is the LAST arg
+ *                                        -> hs_macro_function_evaluate(
+ *                                             function_index, thread_datum,
+ * init) TEST EAX,EAX / JZ end XOR EDX,EDX / MOV DL,byte ptr [EAX] zero-extended
+ * BYTE load at result+0 PUSH EDX / CALL 0x000ba6d0           ->
+ * player_input_enable(*(char *)result) PUSH 0x0 / PUSH ESI / CALL 0x000cbf80
+ *                                        -> hs_return(thread_datum, 0)
+ *   ADD ESP,0xc                          one cleanup covers BOTH calls (4 + 8)
+ *   POP ESI / POP EBP / RET              plain RET (caller cleans) => __cdecl
+ *
+ * The load at +0x0 is a narrow byte read, not an int32 — result is int*, so
+ * the value must be taken through a char* cast.
+ *
+ * Callees (all cdecl, no register args, all ported):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0xba6d0 = player_input_enable(bool)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c1950(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    player_input_enable(*(char *)result);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
