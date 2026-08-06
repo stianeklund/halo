@@ -862,8 +862,7 @@ void ai_debug_vocalize(const char *vocalization_name,
         sound_definition_index = -1;
         communication_count =
           FUN_001a68d0(*(int32_t *)((char *)actor + 0x18), vocalization_index,
-                       1, 1, NULL, &vocalization_type,
-                       &sound_definition_index);
+                       1, 1, NULL, &vocalization_type, &sound_definition_index);
         if (communication_count != 0) {
           csmemset(communication, 0, 0x30);
           *(short *)(communication + 0x00) = vocalization_index;
@@ -874,6 +873,74 @@ void ai_debug_vocalize(const char *vocalization_name,
                        communication);
         }
       }
+    }
+  }
+}
+
+/* ai_debug_speak (0x4a220): arm the debug "speak" request block for the
+ * currently selected debug actor, using a named vocalization type.
+ *
+ * Confirmed ABI: __cdecl, ONE dword stack argument.  `MOV ECX,dword ptr
+ *   [EBP+0x8]` at 0x4a23a reads the parameter and pushes it as the single
+ *   argument of FUN_001a67e0(const char *), so the parameter is a name
+ *   string.  The terminator is a plain RET (no RET n), and the kb.json
+ *   declaration previously read "void ai_debug_speak(void);", which is wrong;
+ *   it is corrected as part of this lift.
+ * Confirmed frame: PUSH EBP / MOV EBP,ESP with no SUB ESP and no locals.  ESI
+ *   is pushed only inside the `!= -1` branch (0x4a22d) and popped at 0x4a282;
+ *   it carries the datum_get result across the second call.
+ *
+ * Call-site verification (cdecl: the first PUSH is the last C argument):
+ *   arg# | binary source                     | C expression         | match
+ *   datum_get (0x119320)
+ *     1  | PUSH EAX (= [0x6325a4])           | *(data_t **)0x6325a4 | yes
+ *     2  | PUSH EAX (= [0x5ac9f8]), pushed 1st| *(int32_t *)0x5ac9f8| yes
+ *   FUN_001a67e0 (0x1a67e0)
+ *     1  | PUSH ECX (= [EBP+0x8])            | name                 | yes
+ *   The single ADD ESP,0xc at 0x4a248 cleans BOTH calls (8 + 4); MSVC
+ *   coalesced the cleanups, so the ARG_COUNT hazard on FUN_001a67e0
+ *   ("cleanup=3 stack args, decl=1") is a false positive.
+ *
+ * Confirmed store widths and order (LOADW-sensitive; derived from the raw
+ * MOV instructions, not from the decompiler's field labels):
+ *   offset     | width | source                   | notes
+ *   0x5aca89   | byte  | 1                        | shared with MOV CL,1
+ *   0x6324e0   | byte  | 1                        | same CL
+ *   0x6324e8   | word  | 0                        | MOV word ptr [...],CX
+ *   0x6324e1   | byte  | 0                        | same XOR-zeroed ECX
+ *   0x6324e4   | dword | actor[+0x18]             | unit handle
+ *   0x6324ea   | word  | FUN_001a67e0 result      | vocalization type index
+ * Declaring 0x6324e8 / 0x6324ea as 32-bit or 0x5aca89 / 0x6324e0 / 0x6324e1
+ * as anything wider than a byte changes the emitted store size.
+ *
+ * Confirmed compare widths: CMP ECX,-1 on the 32-bit actor field at +0x18 and
+ *   CMP AX,0xffff on the 16-bit lookup result, so the intermediate is a
+ *   `short`, not an `int`.  Both tests happen AFTER both calls, so the C `&&`
+ *   short-circuit costs nothing and matches the emitted order.
+ *
+ * Inferred: 0x5aca89 is the same "debug speech requested" byte flag that
+ *   ai_debug_vocalize (0x49f60) sets; 0x6324e0..0x6324ea is a small pending-
+ *   speech record (byte flag, byte flag, dword unit handle, word, word).
+ * Uncertain: the individual field meanings inside 0x6324e0..0x6324ea are not
+ *   recoverable from this call site alone, so they are left as raw addresses.
+ *
+ * No FPU instructions.  Only two CALLs, both cdecl and both already in
+ * kb.json; no register arguments are involved. */
+void ai_debug_speak(const char *name)
+{
+  void *actor;
+  int16_t vocalization_type;
+
+  if (*(int32_t *)0x5ac9f8 != -1) {
+    actor = datum_get(*(data_t **)0x6325a4, *(int32_t *)0x5ac9f8);
+    vocalization_type = FUN_001a67e0(name);
+    if (*(int32_t *)((char *)actor + 0x18) != -1 && vocalization_type != -1) {
+      *(uint8_t *)0x5aca89 = 1;
+      *(uint8_t *)0x6324e0 = 1;
+      *(int16_t *)0x6324e8 = 0;
+      *(uint8_t *)0x6324e1 = 0;
+      *(int32_t *)0x6324e4 = *(int32_t *)((char *)actor + 0x18);
+      *(int16_t *)0x6324ea = vocalization_type;
     }
   }
 }

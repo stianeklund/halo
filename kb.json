@@ -32250,7 +32250,10 @@
         },
         {
           "addr": "0x4a220",
-          "decl": "void ai_debug_speak(void);"
+          "decl": "void ai_debug_speak(const char *name);",
+          "name": "ai_debug_speak",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x4a290",
