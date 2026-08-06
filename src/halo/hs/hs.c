@@ -1161,6 +1161,25 @@ void FUN_000c1740(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc1780 — HS script function handler: evaluate a macro function and dispatch
+ * the result's first field to FUN_00085110 (switches to first-person camera
+ * mode 3).  The original consumes the result block with a single dword load
+ * (`MOV EDX,[EAX]; PUSH EDX`) — only result[0] is read, unlike the 0xc0d90 /
+ * 0xc0dd0 twins which also read result[1].  On success calls
+ * FUN_00085110(result[0]), then returns void to the HS thread via
+ * hs_return(thread_datum, 0). */
+void FUN_000c1780(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_00085110(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
