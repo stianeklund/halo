@@ -1017,3 +1017,125 @@ void FUN_00053650(void)
 {
   csmemset((void *)0x5abaac, 0, 0xee0);
 }
+
+/* FUN_00053680: per-tick update of the 28-entry AI meter array.
+ *
+ * TU attribution: both asserts here reference
+ * "c:\halo\SOURCE\ai\ai_profile.c" (@ VA 0x25c0ac, referenced from exactly two
+ * .text sites: 0x536a6 and 0x536ee, i.e. only this function).  The real
+ * ai_profile.c therefore lives around 0x536xx, not in the misnamed
+ * src/halo/ai/ai_profile.c (which is documented in its own header as being
+ * c:\halo\SOURCE\ai\ai_script.c, 0x540b0+).  The function is kept in
+ * ai_debug.obj because that is its current kb.json object membership AND
+ * because delinked/ai_debug.obj already bounds it (FUN_00053680 @ +0xa730,
+ * next symbol FUN_00053790 @ +0xa840), so the VC71 reference is valid here.
+ * Splitting a real ai_profile.obj TU out is a separate, larger change.
+ *
+ * Confirmed (0x53680-0x5378f):
+ *   PUSH EBP / MOV EBP,ESP / SUB ESP,8 / PUSH EBX,ESI,EDI.
+ *   EBX = definition cursor, base 0x2c8e9c (biased +4 into the entry, so the
+ *         table itself starts at 0x2c8e98), ADD EBX,8 per iteration.
+ *   ESI = meter cursor, base 0x5abab8 (biased +0xc into the element, so the
+ *         array itself starts at 0x5abaac), ADD ESI,0x88 per iteration.
+ *   DI  = index, INC EDI, CMP DI,0x1c / JL -> 28 iterations, 16-bit compare.
+ *   [EBP-4] = definition-cursor spill (EBX is reused as the 0x3c divisor at
+ *             0x5374b), [EBP-8] = int scratch feeding FIDIV.
+ *
+ * The meter array is the same 0xee0-byte block that FUN_00053650 zeroes:
+ * 28 * 0x88 = 0xee0, base 0x5abaac.  Element layout is taken from the
+ * biased-cursor offsets in the disassembly, not from the decompiler.
+ *
+ * Confirmed details:
+ *   - sample_fn returns 16 bits: MOV word [ESI-0xc],AX after CALL EAX.
+ *   - bound check is signed 16-bit on AX: TEST AX,AX / JL ; CMP AX,0x3c / JL,
+ *     i.e. 0 <= next_index < 60 with a strict upper bound.
+ *   - the evicted history entry is MOVSX-widened before the subtraction:
+ *     MOVSX ECX,AX ; MOVSX EDX,word [ESI+ECX*2+4] ; SUB dword [ESI-4],EDX.
+ *   - count clamp: MOV CX,[ESI+2] ; INC AX ; CMP CX,AX ; JG keep-CX.
+ *   - modulo is a signed IDIV by 0x3c; the remainder (DX) is stored back to
+ *     history_next_index.
+ *   - average: FILD dword [ESI-4] (history_sum, read AFTER the subtraction and
+ *     AFTER the history store) / FIDIV dword [EBP-8] (the clamped count as an
+ *     int in memory) / FSTP dword [ESI-0x90].
+ *
+ * Faithful oddity: history_sum is only ever DECREMENTED here (the evicted
+ * sample is subtracted); the newly stored sample is never added back.  That is
+ * what the binary does — do not "fix" it. */
+
+typedef short(__cdecl *ai_meter_sample_proc)(void);
+
+typedef struct ai_meter_definition {
+  short meter_id;                 /* +0x00 */
+  short pad_02;                   /* +0x02 */
+  ai_meter_sample_proc sample_fn; /* +0x04 */
+} ai_meter_definition;            /* 0x08 */
+
+typedef struct ai_meter {
+  short accumulator;        /* +0x00 */
+  short current_value;      /* +0x02 */
+  float average;            /* +0x04 */
+  int history_sum;          /* +0x08 */
+  short history_next_index; /* +0x0c */
+  short history_count;      /* +0x0e */
+  short history[60];        /* +0x10 */
+} ai_meter;                 /* 0x88 */
+
+#define AI_METER_HISTORY_TICKS 60
+#define NUMBER_OF_AI_METERS 28
+
+void FUN_00053680(void)
+{
+  const ai_meter_definition *definition;
+  int divisor;
+  ai_meter *meter;
+  short index;
+  short next_index;
+  short count;
+
+  index = 0;
+  definition = (const ai_meter_definition *)0x2c8e98;
+  meter = (ai_meter *)0x5abaac;
+
+  do {
+    if (definition->meter_id != index) {
+      display_assert("definition->meter_id == index",
+                     "c:\\halo\\SOURCE\\ai\\ai_profile.c", 0x8c, 1);
+      system_exit(-1);
+    }
+
+    if (definition->sample_fn != 0)
+      meter->accumulator = definition->sample_fn();
+
+    meter->current_value = meter->accumulator;
+    meter->accumulator = 0;
+
+    if (meter->history_next_index < 0 ||
+        meter->history_next_index >= AI_METER_HISTORY_TICKS) {
+      display_assert("(meter->history_next_index >= 0) && "
+                     "(meter->history_next_index < AI_METER_HISTORY_TICKS)",
+                     "c:\\halo\\SOURCE\\ai\\ai_profile.c", 0x97, 1);
+      system_exit(-1);
+    }
+
+    next_index = meter->history_next_index;
+    if (next_index < meter->history_count)
+      meter->history_sum -= meter->history[next_index];
+    meter->history[next_index] = meter->current_value;
+
+    next_index = (short)(next_index + 1);
+    meter->history_next_index = next_index;
+
+    count = meter->history_count;
+    if (count <= next_index)
+      count = next_index;
+    meter->history_count = count;
+
+    index = (short)(index + 1);
+    definition++;
+
+    meter->history_next_index = (short)(next_index % AI_METER_HISTORY_TICKS);
+    divisor = count;
+    meter->average = (float)meter->history_sum / (float)divisor;
+    meter++;
+  } while (index < NUMBER_OF_AI_METERS);
+}
