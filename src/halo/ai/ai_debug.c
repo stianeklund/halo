@@ -1265,3 +1265,46 @@ int16_t FUN_000538f0(void)
   }
   return (int16_t)total;
 }
+
+/* AI per-actor byte-field population sum (0x53960): walk every active actor
+ * via the standard encounter iterator and accumulate the unsigned byte at
+ * record+6, returning the 16-bit total.
+ *
+ * Confirmed (XBE 0x53960-0x539a1, 29 instructions): frame is PUSH EBP /
+ *   MOV EBP,ESP / SUB ESP,0x1c / PUSH ESI.  The single local is the 28-byte
+ *   (0x1c) iterator at EBP-0x1c; ESI is the accumulator, zeroed by XOR ESI,ESI.
+ * Confirmed: iterator init is encounter_iterator_next(&iter, 0) -- PUSH ESI
+ *   (still 0) then PUSH EAX (&iter), cdecl right-to-left, so flag = 0 (all
+ *   encounters), matching the sibling counter at 0x538f0.
+ * Confirmed: the ADD ESP,0xc after the second CALL is *coalesced* cleanup for
+ *   both preceding calls (2 dwords + 1 dword).  The loop-back call site has
+ *   its own ADD ESP,0x4, so FUN_00059b50 really takes exactly one argument;
+ *   the ARG_COUNT hazard on the first site is a false positive.
+ * Confirmed: FUN_00059b50 returns the actor record pointer (kb decl types it
+ *   int); it is dereferenced at +0x6 here, so the result is cast.
+ * Confirmed: MOVZX DX,byte ptr [EAX+0x6] -- the summed member is an *unsigned
+ *   8-bit* field widened to 16 bits, then ADD ESI,EDX.  It is not a word.
+ * Confirmed: the loop is a guarded while -- TEST EAX,EAX / JZ past the body
+ *   before the first iteration, then TEST/JNZ at the bottom.
+ * Confirmed: MOV AX,SI in the epilogue -- the result leaves in AX, so this is
+ *   int16_t-returning and the accumulator is short-width.  The kb declaration
+ *   previously typed it void, which is wrong.
+ *
+ * Uncertain: the semantics of record+6.  The sibling 0x538f0 tests the same
+ *   byte for non-zero to select its swarm branch; here it is summed instead,
+ *   so no speculative field name is applied. */
+int16_t FUN_00053960(void)
+{
+  char iter[0x1c];
+  unsigned char *record;
+  short total;
+
+  total = 0;
+  encounter_iterator_next(iter, 0);
+  record = (unsigned char *)FUN_00059b50(iter);
+  while (record != NULL) {
+    total += record[6];
+    record = (unsigned char *)FUN_00059b50(iter);
+  }
+  return total;
+}
