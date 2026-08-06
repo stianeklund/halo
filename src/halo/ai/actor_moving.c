@@ -7,8 +7,8 @@ void FUN_0002a3a0(int actor_handle)
   char *actor;
 
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
-  *(char *)(actor + 0x4a8) = 0;
-  *(char *)(actor + 0x484) = 1;
+  ((actor_t *)actor)->field_4a8 = 0;
+  ((actor_t *)actor)->field_484 = 1;
   *(int *)(actor + 0x4a0) = 0;
 }
 
@@ -41,22 +41,22 @@ void actor_path_input_new(int actor_handle, char *nav_state_out)
   int unit_handle;
 
   actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
-  p = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  p = (char *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
   local_8 = *(int *)(p + 0x8c);
-  unit_handle = *(int *)(actor + 0x18);
-  if (*(int16_t *)(actor + 0x15e) > 0) {
-    p = (char *)object_get_and_verify_type(*(int *)(actor + 0x158), 2);
+  unit_handle = ((actor_t *)actor)->field_018;
+  if (((actor_t *)actor)->field_15e > 0) {
+    p = (char *)object_get_and_verify_type(((actor_t *)actor)->field_158, 2);
     p = (char *)tag_get(0x76656869, *(int *)p);
-    unit_handle = *(int *)(actor + 0x158);
+    unit_handle = ((actor_t *)actor)->field_158;
     if (*(float *)(p + 0x38c) > *(float *)0x2533c0) {
       local_8 = *(int *)(p + 0x38c);
     }
   }
   actor_find_pathfinding_location(actor_handle);
-  path_input_new(nav_state_out, local_8, *(unsigned char *)(actor + 0x376),
+  path_input_new(nav_state_out, local_8, ((actor_t *)actor)->field_376,
                  unit_handle);
   path_input_set_start(nav_state_out, (float *)(actor + 0x168),
-                       *(int *)(actor + 0x164));
+                       ((actor_t *)actor)->field_164);
 }
 
 /* arccosine (0x2a530) — Single-precision arc cosine.
@@ -91,18 +91,18 @@ char actor_test_destination(int actor_handle)
   float dx, dy, dz;
 
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
-  if (*(short *)(actor + 0x46c) == 0 || *(short *)(actor + 0x46c) == 1) {
-    *(char *)(actor + 0x484) = 1;
+  if (((actor_t *)actor)->field_46c == 0 || ((actor_t *)actor)->field_46c == 1) {
+    ((actor_t *)actor)->field_484 = 1;
   } else {
     tol = actor_destination_tolerance(actor_handle);
-    dx = *(float *)(actor + 0x488) - *(float *)(actor + 0x12c);
-    dy = *(float *)(actor + 0x48c) - *(float *)(actor + 0x130);
-    dz = *(float *)(actor + 0x490) - *(float *)(actor + 0x134);
+    dx = ((actor_t *)actor)->field_488 - ((actor_t *)actor)->field_12c;
+    dy = ((actor_t *)actor)->field_48c - ((actor_t *)actor)->field_130;
+    dz = ((actor_t *)actor)->field_490 - ((actor_t *)actor)->field_134;
     if (tol * tol > dz * dz + dx * dx + dy * dy) {
-      *(char *)(actor + 0x484) = 1;
+      ((actor_t *)actor)->field_484 = 1;
     }
   }
-  return *(char *)(actor + 0x484);
+  return ((actor_t *)actor)->field_484;
 }
 
 /* actor_get_stopping_distances (0x2a610) — Compute stopping distances for an
@@ -147,9 +147,9 @@ void actor_get_stopping_distances(int actor_handle, float *param_2,
   turn_decel = 0.016666668f;
   brake_decel = 0.026666667f;
 
-  vehicle_handle = *(int *)(actor + 0x158);
+  vehicle_handle = ((actor_t *)actor)->field_158;
   if (vehicle_handle != -1) {
-    vehicle_count = (int)*(int16_t *)(actor + 0x15e);
+    vehicle_count = (int)((actor_t *)actor)->field_15e;
     if (vehicle_count >= 2 && vehicle_count <= 3) {
       /* seated in vehicle: object_get_and_verify_type asserts, no NULL check */
       obj = (char *)object_get_and_verify_type(vehicle_handle, 2);
@@ -166,7 +166,7 @@ void actor_get_stopping_distances(int actor_handle, float *param_2,
     }
   } else {
     /* no vehicle: check unit handle */
-    unit_handle = *(int *)(actor + 0x18);
+    unit_handle = ((actor_t *)actor)->field_018;
     if (unit_handle != -1) {
       obj = (char *)object_try_and_get_and_verify_type(unit_handle, 1);
       if (obj != NULL) {
@@ -232,9 +232,9 @@ int actor_move_animation_impulse(int actor_handle, int16_t param_2,
   if (*(int16_t *)(actor2 + 0x418) == -1) {
     if (*(int *)(actor2 + 0x18) == -1 ||
         !unit_is_busy(*(int *)(actor2 + 0x18))) {
-      *(int16_t *)(actor + 0x418) = param_2;
-      *(int *)(actor + 0x41c) = *param_3;
-      *(int *)(actor + 0x420) = param_3[1];
+      ((actor_t *)actor)->field_418 = param_2;
+      ((actor_t *)actor)->field_41c = *param_3;
+      ((actor_t *)actor)->field_420 = param_3[1];
       result = 1;
     }
   }
@@ -254,10 +254,10 @@ int actor_move_force_stop(int actor_handle)
 
   result = 0;
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
-  if (*(int16_t *)(actor + 0x418) == -1) {
-    if (*(int *)(actor + 0x18) == -1 || !unit_is_busy(*(int *)(actor + 0x18))) {
+  if (((actor_t *)actor)->field_418 == -1) {
+    if (((actor_t *)actor)->field_018 == -1 || !unit_is_busy(((actor_t *)actor)->field_018)) {
       if (!actor_action_deny_transition(actor_handle)) {
-        *(char *)(actor + 0x504) = 0;
+        ((actor_t *)actor)->field_504 = 0;
         ptr = (char *)*(int *)0x31fc38;
         *(int *)(actor + 0x6e0) = *(int *)ptr;
         *(int *)(actor + 0x6e4) = *(int *)(ptr + 4);
@@ -330,7 +330,7 @@ char actor_move_try_evasion_vector(int actor_handle, float *evasion_vector,
   char local_5;
 
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
-  actr_tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  actr_tag = (char *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
   found = 0;
   local_5 = 0;
 
@@ -340,16 +340,16 @@ char actor_move_try_evasion_vector(int actor_handle, float *evasion_vector,
     system_exit(-1);
   }
 
-  if (*(char *)(actor + 0x99) == '\0') {
-    local_target[0] = scale * evasion_vector[0] + *(float *)(actor + 0x12c);
-    local_target[1] = scale * evasion_vector[1] + *(float *)(actor + 0x130);
+  if (((actor_t *)actor)->field_099 == '\0') {
+    local_target[0] = scale * evasion_vector[0] + ((actor_t *)actor)->field_12c;
+    local_target[1] = scale * evasion_vector[1] + ((actor_t *)actor)->field_130;
     actor_find_pathfinding_location(actor_handle);
-    if (FUN_00063e90((int)scenario_get(), *(unsigned char *)(actor + 0x376),
-                     (float *)(actor + 0x168), *(int *)(actor + 0x164),
+    if (FUN_00063e90((int)scenario_get(), ((actor_t *)actor)->field_376,
+                     (float *)(actor + 0x168), ((actor_t *)actor)->field_164,
                      local_target, 0xffffffff, *(float *)(actr_tag + 0x8c), 0,
                      (unsigned int *)result) == '\0') {
       found = 1;
-      fVar1 = *(float *)((char *)result + 0xc) - *(float *)(actor + 0x134);
+      fVar1 = *(float *)((char *)result + 0xc) - ((actor_t *)actor)->field_134;
       if (!(fVar1 > scale * *(float *)0x253398) &&
           (param_4 != *(float *)0x2533c0 ||
            scale * *(float *)0x255964 <= fVar1)) {
@@ -359,11 +359,11 @@ char actor_move_try_evasion_vector(int actor_handle, float *evasion_vector,
     found = 0;
     if (*(float *)0x2533c0 < param_4) {
       bsp = (int)global_collision_bsp_get();
-      origin[0] = (*(float *)(actor + 0x120) + *(float *)(actor + 0x12c)) *
+      origin[0] = (((actor_t *)actor)->field_120 + ((actor_t *)actor)->field_12c) *
                   *(float *)0x253398;
-      origin[1] = (*(float *)(actor + 0x124) + *(float *)(actor + 0x130)) *
+      origin[1] = (((actor_t *)actor)->field_124 + ((actor_t *)actor)->field_130) *
                   *(float *)0x253398;
-      origin[2] = (*(float *)(actor + 0x128) + *(float *)(actor + 0x134)) *
+      origin[2] = (((actor_t *)actor)->field_128 + ((actor_t *)actor)->field_134) *
                   *(float *)0x253398;
       direction[0] = scale * evasion_vector[0];
       direction[1] = scale * evasion_vector[1];
@@ -536,14 +536,14 @@ int actor_aim_jump(int actor_handle, int a2, char param_3, float param_4,
   float magnitude;
 
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
-  if (*(int *)(actor + 0x158) == -1) {
-    if (*(char *)(actor + 0x6) != 0) {
+  if (((actor_t *)actor)->field_158 == -1) {
+    if (((actor_t *)actor)->field_006 != 0) {
       FUN_0003a920(actor_handle, a2, param_4, param_5);
-      *(char *)(actor + 0x530) = 0;
+      ((actor_t *)actor)->field_530 = 0;
       return 1;
     }
-    if (*(char *)(actor + 0x530) != 0) {
-      if (*(int16_t *)(actor + 0x6c) == 10 && *(int16_t *)(actor + 0xa0) == 3) {
+    if (((actor_t *)actor)->field_530 != 0) {
+      if (((actor_t *)actor)->state_action == 10 && *(int16_t *)(actor + 0xa0) == 3) {
         cVar3 = 1;
       } else {
         cVar3 = param_3;
@@ -562,7 +562,7 @@ int actor_aim_jump(int actor_handle, int a2, char param_3, float param_4,
       }
     }
   }
-  *(char *)(actor + 0x530) = 0;
+  ((actor_t *)actor)->field_530 = 0;
   return 1;
 }
 
@@ -1185,19 +1185,19 @@ char actor_path_3d_available(int actor_handle, float *dest_pos, float *dist_out)
   actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
   local_8 = 0.0f;
   result = 1;
-  if (*(int16_t *)(actor + 0x15e) == 4) {
-    vehi = (char *)object_get_and_verify_type(*(int *)(actor + 0x158), 2);
+  if (((actor_t *)actor)->field_15e == 4) {
+    vehi = (char *)object_get_and_verify_type(((actor_t *)actor)->field_158, 2);
     vehi = (char *)tag_get(0x76656869, *(int *)vehi);
     local_8 = *(float *)(vehi + 0x388);
     if (local_8 > *(float *)0x2533c0 &&
         *(float *)(actor + 0x5ec) > *(float *)0x2555d0) {
-      delta[0] = dest_pos[0] - *(float *)(actor + 0x12c);
-      delta[1] = dest_pos[1] - *(float *)(actor + 0x130);
-      delta[2] = dest_pos[2] - *(float *)(actor + 0x134);
+      delta[0] = dest_pos[0] - ((actor_t *)actor)->field_12c;
+      delta[1] = dest_pos[1] - ((actor_t *)actor)->field_130;
+      delta[2] = dest_pos[2] - ((actor_t *)actor)->field_134;
       if (normalize3d(delta) > *(float *)0x2533c0 &&
-          delta[0] * *(float *)(actor + 0x174) +
-              delta[1] * *(float *)(actor + 0x178) +
-              delta[2] * *(float *)(actor + 0x17c) >
+          delta[0] * ((actor_t *)actor)->input_facing_vector[0] +
+              delta[1] * ((actor_t *)actor)->input_facing_vector[1] +
+              delta[2] * ((actor_t *)actor)->input_facing_vector[2] >
             *(float *)0x253d54) {
         result = 0;
       }
@@ -1511,9 +1511,9 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
   out[2] = (*(float **)0x31fc38)[2];
   out_speed = *(float *)0x2533c0;
 
-  unit_handle = *(int *)(actor + 0x158);
+  unit_handle = ((actor_t *)actor)->field_158;
   if (unit_handle == -1) {
-    unit_handle = *(int *)(actor + 0x18);
+    unit_handle = ((actor_t *)actor)->field_018;
   }
 
   if (vel_out == (float *)0x0 || speed_out == (float *)0x0) {
@@ -1564,7 +1564,7 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
   max_weight = 0.0f;
 
   /* seed weights around the previously chosen best direction (actor[0x5d8]). */
-  last_best_dir = *(short *)(actor + 0x5d8);
+  last_best_dir = ((actor_t *)actor)->field_5d8;
   if (last_best_dir >= 0 && last_best_dir < 8) {
     idx = (int)last_best_dir;
     ip0 = (idx + 1) % 8;
@@ -1889,7 +1889,7 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
     goto emergency_state;
   }
 
-  if (*(short *)(actor + 0x5f0) == -1 || *(short *)(actor + 0x5f0) >= 0x5a) {
+  if (((actor_t *)actor)->field_5f0 == -1 || ((actor_t *)actor)->field_5f0 >= 0x5a) {
     float velsq = *(float *)(obj + 0x44) * *(float *)(obj + 0x44) +
                   *(float *)(obj + 0x40) * *(float *)(obj + 0x40) +
                   *(float *)(obj + 0x3c) * *(float *)(obj + 0x3c);
@@ -1906,7 +1906,7 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
       goto count_state;
     }
   emergency_state:
-    *(short *)(actor + 0x5f0) = -1;
+    ((actor_t *)actor)->field_5f0 = -1;
     if (*(float *)0x253398 <= move_idx) {
       /* mode 0/1: steer directly toward the chosen avoidance direction. */
       if (max_weight <= *(float *)0x2533c0) {
@@ -1994,10 +1994,10 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
   } else {
     *(short *)(avd + 0x653c) = 7;
   count_state:
-    if (*(short *)(actor + 0x5f0) == -1) {
-      *(short *)(actor + 0x5f0) = 0;
+    if (((actor_t *)actor)->field_5f0 == -1) {
+      ((actor_t *)actor)->field_5f0 = 0;
     } else {
-      *(short *)(actor + 0x5f0) = *(short *)(actor + 0x5f0) + 1;
+      ((actor_t *)actor)->field_5f0 = ((actor_t *)actor)->field_5f0 + 1;
     }
     /* mode 5/6/7: blend toward the chosen direction's world-space vector. */
     actor_move_transform_avoidance_vector(
@@ -2035,9 +2035,9 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
 
   *(char *)(avd + 0x6550) = have_dir;
   if (have_dir == 0) {
-    *(short *)(actor + 0x5d8) = -1;
+    ((actor_t *)actor)->field_5d8 = -1;
   } else {
-    *(short *)(actor + 0x5d8) = best_dir;
+    ((actor_t *)actor)->field_5d8 = best_dir;
   }
 
   /* publish the assembled avoidance state into the per-actor record. */
@@ -2133,14 +2133,14 @@ char actor_path_refresh(int actor_handle, char store_distance,
   /* datum_get confirmed at 0x0002cdcb: PUSH EAX(actor_handle), PUSH
    * ECX(0x6325a4) */
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
-  move_src = *(short *)(actor + 0x46c);
+  move_src = ((actor_t *)actor)->field_46c;
   had_path = 0;
 
   /* If move_src != 0 and != 1, save old destination and set had_path. */
   if (move_src != 0 && move_src != 1) {
-    saved_pos[0] = *(float *)(actor + 0x488);
-    saved_pos[1] = *(float *)(actor + 0x48c);
-    saved_pos[2] = *(float *)(actor + 0x490);
+    saved_pos[0] = ((actor_t *)actor)->field_488;
+    saved_pos[1] = ((actor_t *)actor)->field_48c;
+    saved_pos[2] = ((actor_t *)actor)->field_490;
     had_path = 1;
   }
 
@@ -2152,21 +2152,21 @@ char actor_path_refresh(int actor_handle, char store_distance,
    * In all cases: re-fetch actor, clear fields, set is_moving=1, return 1.
    * Confirmed at 0x0002d2fb: second datum_get, then BL (=1) is returned.
    */
-  if (*(char *)(actor + 0x160) != '\0' || move_src == 0 || move_src == 1 ||
-      (move_src == 3 && *(char *)(actor + 0x3bb) != '\0')) {
+  if (((actor_t *)actor)->field_160 != '\0' || move_src == 0 || move_src == 1 ||
+      (move_src == 3 && ((actor_t *)actor)->field_3bb != '\0')) {
     /* Second datum_get at 0x0002d305 */
     actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
     *(int *)(actor + 0x4a0) = 0;
-    *(char *)(actor + 0x4a8) = 0;
-    *(char *)(actor + 0x484) = 1;
+    ((actor_t *)actor)->field_4a8 = 0;
+    ((actor_t *)actor)->field_484 = 1;
     return '\x01';
   }
 
   /* Clear navigation state fields for this tick. */
-  *(char *)(actor + 0x4a8) = 0;
-  *(char *)(actor + 0x484) = 0;
+  ((actor_t *)actor)->field_4a8 = 0;
+  ((actor_t *)actor)->field_484 = 0;
   *(int *)(actor + 0x4a0) = 0;
-  *(char *)(actor + 0x506) = 0;
+  ((actor_t *)actor)->field_506 = 0;
 
   /* Resolve destination by movement source type. */
   switch (move_src) {
@@ -2194,15 +2194,15 @@ char actor_path_refresh(int actor_handle, char store_distance,
      *   tag_block_get_element(squad+0x98, actor[0x470], 0x18) -> order
      *   Copy order[0..8] -> actor[0x488..0x490], order[0x14] -> actor[0x494]
      */
-    if (*(unsigned int *)(actor + 0x34) == 0xffffffff) {
+    if (((actor_t *)actor)->field_034 == 0xffffffff) {
       goto LAB_fail;
     }
-    ai_idx = (int)(*(unsigned int *)(actor + 0x34) & 0xffff);
+    ai_idx = (int)(((actor_t *)actor)->field_034 & 0xffff);
     scenario = (int)global_scenario_get();
     squad_elem =
       (int)tag_block_get_element((void *)(scenario + 0x42c), ai_idx, 0xb0);
     order_elem = (int)tag_block_get_element(
-      (void *)(squad_elem + 0x98), (int)(short)*(short *)(actor + 0x470), 0x18);
+      (void *)(squad_elem + 0x98), (int)(short)((actor_t *)actor)->field_470, 0x18);
     *(unsigned int *)(actor + 0x488) = *(unsigned int *)(order_elem + 0);
     *(unsigned int *)(actor + 0x48c) = *(unsigned int *)(order_elem + 4);
     *(unsigned int *)(actor + 0x490) = *(unsigned int *)(order_elem + 8);
@@ -2218,16 +2218,16 @@ char actor_path_refresh(int actor_handle, char store_distance,
      * Disasm 0x0002cec7-0x0002cf5d: same ESP batch pattern.
      * actor[0x494] = order_entry[0x4c] (facing handle).
      */
-    if (*(unsigned int *)(actor + 0x34) == 0xffffffff) {
+    if (((actor_t *)actor)->field_034 == 0xffffffff) {
       goto LAB_fail;
     }
-    ai_idx = (int)(*(unsigned int *)(actor + 0x34) & 0xffff);
+    ai_idx = (int)(((actor_t *)actor)->field_034 & 0xffff);
     scenario = (int)global_scenario_get();
     squad_elem =
       (int)tag_block_get_element((void *)(scenario + 0x42c), ai_idx, 0xb0);
     order_elem = (int)tag_block_get_element(
-      (void *)(squad_elem + 0x80), (int)(short)*(short *)(actor + 0x3a), 0xe8);
-    order_idx = *(short *)(actor + 0x470);
+      (void *)(squad_elem + 0x80), (int)(short)((actor_t *)actor)->field_03a, 0xe8);
+    order_idx = ((actor_t *)actor)->field_470;
     if (order_idx < 0) {
       goto LAB_fail;
     }
@@ -2260,7 +2260,7 @@ char actor_path_refresh(int actor_handle, char store_distance,
       actor_perception_find_prop_pathfinding_location(actor_handle,
                                                       *(int *)(actor + 0x470));
     }
-    if (*(char *)(actor + 0x99) != '\0') {
+    if (((actor_t *)actor)->field_099 != '\0') {
       *(unsigned int *)(actor + 0x488) = *(unsigned int *)(prop + 0xc8);
       *(unsigned int *)(actor + 0x48c) = *(unsigned int *)(prop + 0xcc);
       *(unsigned int *)(actor + 0x490) = *(unsigned int *)(prop + 0xd0);
@@ -2296,7 +2296,7 @@ LAB_check_dest:
    *    actor[0x494]!=-1. If -1, fail. If actor[0x498]!=0.0f, fall through.
    *    Confirmed at 0x0002d096-0x0002d0b3.
    */
-  if (*(char *)(actor + 0x99) != '\0') {
+  if (((actor_t *)actor)->field_099 != '\0') {
     path_found =
       actor_path_3d_available(actor_handle, (float *)(actor + 0x488), &dist);
     if (path_found == '\0') {
@@ -2304,7 +2304,7 @@ LAB_check_dest:
     }
   } else {
     if (*(float *)(actor + 0x498) == 0.0f) {
-      path_found = (char)(*(int *)(actor + 0x494) != -1);
+      path_found = (char)(((actor_t *)actor)->field_494 != -1);
       if (path_found == '\0') {
         goto LAB_fail;
       }
@@ -2349,7 +2349,7 @@ LAB_check_dest:
    * game_time_get at 0x0002d12c: no args -> current game tick
    * Confirmed at 0x0002d131: MOV [EBX+4],EAX (path slot timestamp)
    */
-  tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  tag = (char *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
   dist =
     (float)FUN_0001ad60((float *)(actor + 0x12c), (float *)(actor + 0x488));
   actor_handle_u = (unsigned int)actor_handle;
@@ -2358,7 +2358,7 @@ LAB_check_dest:
     game_tick;
 
   /* Select pathfinding mode: mounted (vehicle) vs on-foot vs override. */
-  if (*(char *)(actor + 0x99) != '\0') {
+  if (((actor_t *)actor)->field_099 != '\0') {
     /*
      * Mounted: use scenario-based vehicle pathfinding (path_3d_build_path).
      * Args confirmed at 0x0002d13e-0x0002d155:
@@ -2388,14 +2388,14 @@ LAB_check_dest:
      *   the destination -> path_state_build_path failed -> scripted a10 door
      *   grunts could not advance to their firing positions.
      */
-    if (*(int *)(actor + 0x480) != -1) {
+    if (((actor_t *)actor)->control_path_destination_orders_ignore_target_object_index != -1) {
       display_assert("actor->control.path.destination_orders."
                      "ignore_target_object_index == NONE",
                      "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0xbbc, 1);
       system_exit(-1);
     }
     FUN_0005e0d0(override_path, (float *)(actor + 0x488),
-                 *(int *)(actor + 0x494), *(int *)(actor + 0x498));
+                 ((actor_t *)actor)->field_494, *(int *)(actor + 0x498));
     path_found = path_state_build_path((unsigned int)override_path,
                                        (unsigned int *)(actor + 0x4a8));
   } else {
@@ -2423,13 +2423,13 @@ LAB_check_dest:
      *   large_buf at [EBP+0xfffebf14] (82060 bytes = 0x1408c)
      */
     actor_path_input_new(actor_handle, local_nav);
-    if (*(int *)(actor + 0x480) != -1) {
-      paths_dispose(local_nav, *(int *)(actor + 0x480));
+    if (((actor_t *)actor)->control_path_destination_orders_ignore_target_object_index != -1) {
+      paths_dispose(local_nav, ((actor_t *)actor)->control_path_destination_orders_ignore_target_object_index);
     }
-    if ((*(short *)(actor + 0x280) > 0) && (*(char *)(actor + 0x28a) == '\0') &&
+    if ((((actor_t *)actor)->danger_zone_danger_type > 0) && (((actor_t *)actor)->field_28a == '\0') &&
         ((*(unsigned char *)(tag + 4) & 0x10) == 0)) {
       path_input_set_attractor(
-        local_nav, (float *)(actor + 0x2b0), *(float *)(actor + 0x294),
+        local_nav, (float *)(actor + 0x2b0), ((actor_t *)actor)->field_294,
         *(unsigned int *)(actor + 0x28c),
         10.0f); /* original PUSHes bits 0x41200000 = 10.0f attractor weight.
                    param_5 is float: an (unsigned int) cast here would do an
@@ -2439,7 +2439,7 @@ LAB_check_dest:
     }
     path_state = ai_debug_get_path_storage(actor_handle);
     path_state_new(local_nav, large_buf, path_state);
-    FUN_0005e0d0(large_buf, (float *)(actor + 0x488), *(int *)(actor + 0x494),
+    FUN_0005e0d0(large_buf, (float *)(actor + 0x488), ((actor_t *)actor)->field_494,
                  *(int *)(actor + 0x498));
     path_found = FUN_0005ff70((unsigned int *)large_buf);
     if (path_found != '\0') {
@@ -2450,7 +2450,7 @@ LAB_check_dest:
   }
 
   /* Mark path-computation attempted this tick. */
-  *(char *)(actor + 0x4a4) = 1;
+  ((actor_t *)actor)->field_4a4 = 1;
   if (store_distance != '\0') {
     *(float *)(actor + 0x4a0) = dist;
   }
@@ -2467,9 +2467,9 @@ LAB_check_dest:
      *   FLD dist; FSUB [ESI+0x4bc]; FCOMP [0x253398]; TEST AH,0x5; JP done
      *   CALL FUN_0002a3a0(actor_handle)
      */
-    if ((*(float *)(actor + 0x4bc) > 0.0f) &&
+    if ((((actor_t *)actor)->field_4bc > 0.0f) &&
         (dist < *(float *)(actor + 0x498)) &&
-        (dist - *(float *)(actor + 0x4bc) < *(float *)0x253398)) {
+        (dist - ((actor_t *)actor)->field_4bc < *(float *)0x253398)) {
       FUN_0002a3a0(actor_handle);
     }
     return path_found;
@@ -3021,18 +3021,18 @@ char actor_move_to_firing_position(int actor_handle, int16_t param_2,
   actor_set_dormant(actor_handle, 0);
   active_state = (int *)(actor + 0x46c);
   if ((*(int16_t *)active_state == 3) &&
-      (*(int16_t *)(actor + 0x470) == param_2)) {
-    if ((*(char *)(actor + 0x4c) != '\0') &&
-        (*(char *)(actor + 0x4a4) == '\0')) {
+      (((actor_t *)actor)->field_470 == param_2)) {
+    if ((((actor_t *)actor)->field_04c != '\0') &&
+        (((actor_t *)actor)->field_4a4 == '\0')) {
       return actor_path_refresh(actor_handle, 0, param_3);
     }
     return 1;
   }
   *(int16_t *)(actor + 0x404) = param_2;
-  *(char *)(actor + 0x402) = 0;
-  *(int *)(actor + 0x414) = -1;
-  *(char *)(actor + 0x3bb) = 0;
-  *(int16_t *)(actor + 0x400) = 3;
+  ((actor_t *)actor)->field_402 = 0;
+  ((actor_t *)actor)->field_414 = -1;
+  ((actor_t *)actor)->field_3bb = 0;
+  ((actor_t *)actor)->field_400 = 3;
   pending_state = (int *)(actor + 0x400);
   for (iVar3 = 6; iVar3 != 0; iVar3--) {
     *active_state++ = *pending_state++;
@@ -3070,28 +3070,28 @@ char actor_move_to_prop(int actor_handle, int encounter_handle, float distance)
   int *pending_state;
 
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
-  *(int16_t *)(actor + 0x3b8) = -1;
+  ((actor_t *)actor)->firing_positions_current_position_index = -1;
   actor_set_dormant(actor_handle, 0);
   active_state = (int *)(actor + 0x46c);
   if (*(int16_t *)active_state == 5 &&
       *(int *)(actor + 0x470) == encounter_handle &&
       *(float *)(actor + 0x474) == distance) {
-    if (*(char *)(actor + 0x4c) == 0) {
+    if (((actor_t *)actor)->field_04c == 0) {
       return 1;
     }
-    if (*(char *)(actor + 0x4a4) != 0) {
+    if (((actor_t *)actor)->field_4a4 != 0) {
       return 1;
     }
     return actor_path_refresh(actor_handle, 0, 0);
   }
   encounter = (char *)datum_get(*(data_t **)0x5ab23c, encounter_handle);
   *(int *)(actor + 0x404) = encounter_handle;
-  *(int16_t *)(actor + 0x400) = 5;
-  *(char *)(actor + 0x402) = 0;
-  *(float *)(actor + 0x408) = distance;
+  ((actor_t *)actor)->field_400 = 5;
+  ((actor_t *)actor)->field_402 = 0;
+  ((actor_t *)actor)->field_408 = distance;
   node_handle = *(int *)(encounter + 0x110) == -1 ? *(int *)(encounter + 0x18) :
                                                     *(int *)(encounter + 0x110);
-  *(int *)(actor + 0x414) = node_handle;
+  ((actor_t *)actor)->field_414 = node_handle;
   pending_state = (int *)(actor + 0x400);
   for (node_handle = 6; node_handle != 0; node_handle--) {
     *active_state++ = *pending_state++;
@@ -3161,11 +3161,11 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
   int node_handle;
 
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
-  actr_tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  actr_tag = (char *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
   accept_threshold = 0.8660254f;
   move_type = -1;
-  if (*(char *)(actor + 0x42a) != '\0') {
-    *(char *)(actor + 0x591) = 1;
+  if (((actor_t *)actor)->field_42a != '\0') {
+    ((actor_t *)actor)->field_591 = 1;
   }
 
   if (move_dir < 0 || move_dir > 3) {
@@ -3182,15 +3182,15 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
       scratch2[1] = movement[1];
       scratch2[2] = movement[2];
       use_perp = 0;
-      if (*(char *)(actor + 0x505) == '\0') {
-        facing[0] = *(float *)(actor + 0x174);
-        facing[1] = *(float *)(actor + 0x178);
-        facing[2] = *(float *)(actor + 0x17c);
+      if (((actor_t *)actor)->field_505 == '\0') {
+        facing[0] = ((actor_t *)actor)->input_facing_vector[0];
+        facing[1] = ((actor_t *)actor)->input_facing_vector[1];
+        facing[2] = ((actor_t *)actor)->input_facing_vector[2];
       } else {
-        facing[0] = *(float *)(actor + 0x524);
-        facing[1] = *(float *)(actor + 0x528);
-        facing[2] = *(float *)(actor + 0x52c);
-        if (*(int16_t *)(actor + 0x15e) > 0) {
+        facing[0] = ((actor_t *)actor)->field_524;
+        facing[1] = ((actor_t *)actor)->field_528;
+        facing[2] = ((actor_t *)actor)->field_52c;
+        if (((actor_t *)actor)->field_15e > 0) {
           use_perp = 1;
         }
       }
@@ -3199,9 +3199,9 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
         facing[2] = 0.0f;
       }
       if (normalize3d(facing) == *(float *)0x2533c0) {
-        facing[0] = *(float *)(actor + 0x174);
-        facing[1] = *(float *)(actor + 0x178);
-        facing[2] = *(float *)(actor + 0x17c);
+        facing[0] = ((actor_t *)actor)->input_facing_vector[0];
+        facing[1] = ((actor_t *)actor)->input_facing_vector[1];
+        facing[2] = ((actor_t *)actor)->input_facing_vector[2];
       }
       if (normalize3d(scratch2) == *(float *)0x2533c0) {
         scratch2[0] = facing[0];
@@ -3210,9 +3210,9 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
       }
       if (use_perp != '\0') {
         /* src = actor-forward, used as facing_direction for the solver. */
-        src[0] = *(float *)(actor + 0x174);
-        src[1] = *(float *)(actor + 0x178);
-        src[2] = *(float *)(actor + 0x17c);
+        src[0] = ((actor_t *)actor)->input_facing_vector[0];
+        src[1] = ((actor_t *)actor)->input_facing_vector[1];
+        src[2] = ((actor_t *)actor)->input_facing_vector[2];
         if (use_z == '\0') {
           src[2] = 0.0f;
         }
@@ -3229,7 +3229,7 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
       fdir = facing;
       goto bab0_converge;
     }
-    if (*(char *)(actor + 0x505) == '\0') {
+    if (((actor_t *)actor)->field_505 == '\0') {
       facing[0] = movement[0];
       facing[1] = movement[1];
       facing[2] = movement[2];
@@ -3237,9 +3237,9 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
         facing[2] = 0.0f;
       }
       if (normalize3d(facing) == *(float *)0x2533c0) {
-        facing[0] = *(float *)(actor + 0x174);
-        facing[1] = *(float *)(actor + 0x178);
-        facing[2] = *(float *)(actor + 0x17c);
+        facing[0] = ((actor_t *)actor)->input_facing_vector[0];
+        facing[1] = ((actor_t *)actor)->input_facing_vector[1];
+        facing[2] = ((actor_t *)actor)->input_facing_vector[2];
       }
       move_type = 0;
     } else {
@@ -3257,9 +3257,9 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
     }
     move_type = move_dir;
     if (normalize3d(src) == *(float *)0x2533c0) {
-      src[0] = *(float *)(actor + 0x174);
-      src[1] = *(float *)(actor + 0x178);
-      src[2] = *(float *)(actor + 0x17c);
+      src[0] = ((actor_t *)actor)->input_facing_vector[0];
+      src[1] = ((actor_t *)actor)->input_facing_vector[1];
+      src[2] = ((actor_t *)actor)->input_facing_vector[2];
     }
     switch (move_dir) {
     case 0:
@@ -3305,42 +3305,42 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
     system_exit(-1);
   }
 
-  facing_dot = facing[0] * *(float *)(actor + 0x174) +
-               facing[2] * *(float *)(actor + 0x17c) +
-               facing[1] * *(float *)(actor + 0x178);
+  facing_dot = facing[0] * ((actor_t *)actor)->input_facing_vector[0] +
+               facing[2] * ((actor_t *)actor)->input_facing_vector[2] +
+               facing[1] * ((actor_t *)actor)->input_facing_vector[1];
   want_steer = 1;
-  if (path_gate == '\0' && *(int16_t *)(actor + 0x6dc) != 4) {
-    if (*(char *)(actor + 0x99) == '\0') {
+  if (path_gate == '\0' && ((actor_t *)actor)->field_6dc != 4) {
+    if (((actor_t *)actor)->field_099 == '\0') {
       actor_find_pathfinding_location(actor_handle);
-      node_handle = *(int *)(actor + 0x164);
+      node_handle = ((actor_t *)actor)->field_164;
       if (node_handle != -1) {
         switch ((short)move_type) {
         case 0:
-          scratch2[1] = *(float *)(actor + 0x178);
-          scratch2[0] = *(float *)(actor + 0x174);
+          scratch2[1] = ((actor_t *)actor)->input_facing_vector[1];
+          scratch2[0] = ((actor_t *)actor)->input_facing_vector[0];
           break;
         case 1:
-          scratch2[0] = -*(float *)(actor + 0x174);
-          scratch2[1] = -*(float *)(actor + 0x178);
+          scratch2[0] = -((actor_t *)actor)->input_facing_vector[0];
+          scratch2[1] = -((actor_t *)actor)->input_facing_vector[1];
           break;
         case 2:
-          scratch2[0] = *(float *)(actor + 0x178);
-          scratch2[1] = -*(float *)(actor + 0x174);
+          scratch2[0] = ((actor_t *)actor)->input_facing_vector[1];
+          scratch2[1] = -((actor_t *)actor)->input_facing_vector[0];
           break;
         case 3:
-          scratch2[1] = *(float *)(actor + 0x174);
-          scratch2[0] = -*(float *)(actor + 0x178);
+          scratch2[1] = ((actor_t *)actor)->input_facing_vector[0];
+          scratch2[0] = -((actor_t *)actor)->input_facing_vector[1];
           break;
         default:
           goto eval_throttle;
         }
-        scratch2[2] = *(float *)(actor + 0x17c);
+        scratch2[2] = ((actor_t *)actor)->input_facing_vector[2];
         if (*(float *)0x2533c0 < magnitude3d(scratch2)) {
           scratch2[2] = 0.0f;
           vector3d_scale_add((float *)(actor + 0x12c), scratch2, 0.4f,
                              avoid_vec);
           if (FUN_000639e0((int)scenario_get(),
-                           *(unsigned char *)(actor + 0x376),
+                           ((actor_t *)actor)->field_376,
                            (float *)(actor + 0x12c), node_handle, avoid_vec, -1,
                            bsp_scratch) != 0 &&
               accept_threshold <= *(float *)0x255ed4) {
@@ -3360,7 +3360,7 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
            movement[0] * movement[0];
   *out_bool = (char)(mag_sq < accept_threshold * accept_threshold);
   actor_get_stopping_distances(actor_handle, &min_dist, &slow_dist);
-  if (*(char *)(actor + 0x46e) == '\0' && mag_sq < min_dist * min_dist) {
+  if (((actor_t *)actor)->field_46e == '\0' && mag_sq < min_dist * min_dist) {
     steer_temp = sqrtf(mag_sq);
     if (steer_temp <= slow_dist + *(float *)0x2533e8 || min_dist <= slow_dist) {
       maximum_throttle = 0.0f;
@@ -3411,7 +3411,7 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
     scratch2[1] = scratch2[1] * maximum_throttle;
     scratch2[2] = scratch2[2] * maximum_throttle;
   } else {
-    *(char *)(actor + 0x591) = 1;
+    ((actor_t *)actor)->field_591 = 1;
     *out_byte = 1;
   }
 
@@ -3484,7 +3484,7 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
           *(int *)(actor + 0x594) = 0;
         }
       }
-    } else if (*(char *)(actor + 0x591) == '\0' || steer_speed <= arg5) {
+    } else if (((actor_t *)actor)->field_591 == '\0' || steer_speed <= arg5) {
       if (*(char *)0x5aca5e != '\0') {
         console_printf(0, "steer %.4f", (double)steer_speed);
       }
@@ -3501,12 +3501,12 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
     }
     delta_angle = steer_speed - desired_speed;
     if (*(double *)0x2533d0 < fabsf(delta_angle)) {
-      avoid_vec[0] = facing[2] * *(float *)(actor + 0x178) -
-                     facing[1] * *(float *)(actor + 0x17c);
-      avoid_vec[1] = facing[0] * *(float *)(actor + 0x17c) -
-                     facing[2] * *(float *)(actor + 0x174);
-      avoid_vec[2] = facing[1] * *(float *)(actor + 0x174) -
-                     facing[0] * *(float *)(actor + 0x178);
+      avoid_vec[0] = facing[2] * ((actor_t *)actor)->input_facing_vector[1] -
+                     facing[1] * ((actor_t *)actor)->input_facing_vector[2];
+      avoid_vec[1] = facing[0] * ((actor_t *)actor)->input_facing_vector[2] -
+                     facing[2] * ((actor_t *)actor)->input_facing_vector[0];
+      avoid_vec[2] = facing[1] * ((actor_t *)actor)->input_facing_vector[0] -
+                     facing[0] * ((actor_t *)actor)->input_facing_vector[1];
       if (*(float *)0x2533c0 < normalize3d(avoid_vec)) {
         rotate_vector3d_by_sincos(facing, avoid_vec, x87_fsin(delta_angle),
                                   x87_fcos(delta_angle));
@@ -3518,7 +3518,7 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
     }
   }
 
-  if (*(char *)(actor + 0x505) == '\0' && *(int16_t *)(actor + 0x42e) == -1 &&
+  if (((actor_t *)actor)->field_505 == '\0' && ((actor_t *)actor)->field_42e == -1 &&
       (short)move_type != 0 && (short)move_type != 4) {
     display_assert("(facing_direction == _actor_facing_forward) || "
                    "(facing_direction == _actor_facing_free)",
