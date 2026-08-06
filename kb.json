@@ -33397,7 +33397,8 @@
         },
         {
           "addr": "0x5b790",
-          "decl": "bool FUN_0005B790(int encounter_handle, int platoon_index, int flag);"
+          "decl": "int16_t FUN_0005B790(int encounter_index, int squad_index, int flag);",
+          "ported": true
         },
         {
           "addr": "0x5ba70",

@@ -74,7 +74,6 @@ void FUN_00053b80(void)
   FUN_00053800((char *)0x5ab280, 3, column_positions, *(void **)0x2ee6c4);
 }
 
-
 /* 0x00053bf0 — debug overlay row: path-flood / path-find / action-change tally
  * counters (FUN_00053bf0).
  *
@@ -116,7 +115,6 @@ void FUN_00053bf0(void)
   column_positions[2] = 0x1c2; /* 450 */
   FUN_00053800((char *)0x5ab280, 3, column_positions, *(void **)0x2ee6c4);
 }
-
 
 /* 0x00053c50 — actor debug-line overlay pass (FUN_00053c50).
  *
@@ -220,7 +218,6 @@ void FUN_00053c50(void)
     }
   }
 }
-
 
 /* 0x00053da0 — encounters_update dispatcher (FUN_00053da0).
  *
@@ -5348,6 +5345,139 @@ bool encounter_pursuit_position_already_examined(
     *cost_out = cost;
   }
   return already_examined;
+}
+
+/* 0x0005b790 — encounter_squad_choose_location: pick a starting-location
+ * index for one squad of an encounter.
+ *
+ * Two passes over squad_definition->starting_locations (element count at
+ * +0xd0):
+ *   pass 1 draws uniformly from squad->first_locations (bit vector at
+ *          squad+0x00).  The chosen bit is cleared from first_locations and
+ *          from unused_locations (squad+0x04), which must already be set.
+ *   pass 2 draws from squad->unused_locations.  When every non-excluded
+ *          location has already been consumed the whole vector is refilled
+ *          with NONE (all bits set) and the tally recomputed.
+ *
+ * excluded_locations is an 8-byte stack bit vector that is zeroed here and
+ * never set, so the exclusion tests never fire; the original still emits them
+ * and they are preserved.
+ *
+ * Returns the chosen location index, or NONE.  The third parameter is pushed
+ * by every caller but never read by the body.
+ *
+ * Asserts (c:\halo\SOURCE\ai\encounters.c):
+ *   line 0x615  BIT_VECTOR_TEST_FLAG(squad->unused_locations, index)
+ *   line 0x623  found_index != NONE   (preferred-location pass)
+ *   line 0x665  found_index != NONE   (unused-location pass)
+ */
+int16_t FUN_0005B790(int encounter_index, int squad_index, int flag)
+{
+  char *encounter;
+  char *encounter_definition;
+  char *squad;
+  char *squad_definition;
+  unsigned long excluded_locations[2];
+  int16_t found_index;
+  int16_t count;
+  int16_t random_index;
+  int16_t index;
+  bool used_any;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_index);
+  encounter_definition = (char *)tag_block_get_element(
+    (char *)global_scenario_get() + 0x42c, encounter_index & 0xffff, 0xb0);
+  squad = encounter_get_squad(encounter, (int16_t)squad_index);
+  squad_definition = (char *)tag_block_get_element(encounter_definition + 0x80,
+                                                   squad_index, 0xe8);
+
+  found_index = NONE;
+  csmemset(excluded_locations, 0, sizeof(excluded_locations));
+
+  /* pass 1: tally, then draw from the preferred ("first") locations. */
+  count = 0;
+  for (index = 0; index < *(int *)(squad_definition + 0xd0); index++) {
+    if ((*(unsigned long *)(squad + (index >> 5) * 4) &
+         (1 << (index & 0x1f))) != 0 &&
+        (excluded_locations[index >> 5] & (1 << (index & 0x1f))) == 0)
+      count++;
+  }
+  if (count > 0) {
+    random_index =
+      random_range((unsigned int *)get_global_random_seed_address(), 0, count);
+    for (index = 0; index < *(int *)(squad_definition + 0xd0); index++) {
+      if ((*(unsigned long *)(squad + (index >> 5) * 4) &
+           (1 << (index & 0x1f))) != 0 &&
+          (excluded_locations[index >> 5] & (1 << (index & 0x1f))) == 0) {
+        if (random_index == 0) {
+          *(unsigned long *)(squad + (index >> 5) * 4) &=
+            ~(1 << (index & 0x1f));
+          if ((*(unsigned long *)(squad + (index >> 5) * 4 + 4) &
+               (1 << (index & 0x1f))) == 0) {
+            display_assert(
+              "BIT_VECTOR_TEST_FLAG(squad->unused_locations, index)",
+              "c:\\halo\\SOURCE\\ai\\encounters.c", 0x615, 1);
+            system_exit(-1);
+          }
+          *(unsigned long *)(squad + (index >> 5) * 4 + 4) &=
+            ~(1 << (index & 0x1f));
+          found_index = index;
+          break;
+        }
+        random_index--;
+      }
+    }
+    if (found_index == NONE) {
+      display_assert("found_index != NONE",
+                     "c:\\halo\\SOURCE\\ai\\encounters.c", 0x623, 1);
+      system_exit(-1);
+    } else {
+      return found_index;
+    }
+  }
+
+  /* pass 2: tally the unused locations, refilling the vector when every
+   * non-excluded location has been consumed. */
+  for (;;) {
+    used_any = 0;
+    count = 0;
+    for (index = 0; index < *(int *)(squad_definition + 0xd0); index++) {
+      if ((excluded_locations[index >> 5] & (1 << (index & 0x1f))) == 0) {
+        if ((*(unsigned long *)(squad + (index >> 5) * 4 + 4) &
+             (1 << (index & 0x1f))) != 0)
+          count++;
+        else
+          used_any = 1;
+      }
+    }
+    if (!used_any || count != 0)
+      break;
+    csmemset(squad + 4, NONE,
+             ((*(int *)(squad_definition + 0xd0) + 0x1f) >> 5) * 4);
+  }
+  if (count > 0) {
+    random_index =
+      random_range((unsigned int *)get_global_random_seed_address(), 0, count);
+    for (index = 0; index < *(int *)(squad_definition + 0xd0); index++) {
+      if ((*(unsigned long *)(squad + (index >> 5) * 4 + 4) &
+           (1 << (index & 0x1f))) != 0 &&
+          (excluded_locations[index >> 5] & (1 << (index & 0x1f))) == 0) {
+        if (random_index == 0) {
+          *(unsigned long *)(squad + (index >> 5) * 4 + 4) &=
+            ~(1 << (index & 0x1f));
+          found_index = index;
+          break;
+        }
+        random_index--;
+      }
+    }
+    if (found_index == NONE) {
+      display_assert("found_index != NONE",
+                     "c:\\halo\\SOURCE\\ai\\encounters.c", 0x665, 1);
+      system_exit(-1);
+    }
+  }
+  return found_index;
 }
 
 /* encounter_force_activate (0x5ba70) — Force an encounter active by setting
