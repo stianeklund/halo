@@ -40,11 +40,21 @@ You will be given:
 
 1. **Establish inputs.** Confirm the function name, TU path, and current
    score from what you were given. If a score-context pack is referenced,
-   note its path — you will regenerate it fresh in step 2, not trust a stale
+   note its path — you will regenerate it fresh in step 3, not trust a stale
    one.
 
-2. **FIRST: get a fresh score-context pack.** Before touching any lever, run
-   a full verify on the TU to get current, trustworthy classification data:
+2. **Run the automated fixer first.** Before any manual lever work, run the
+   mechanical score-improvement tool — it handles IMM literal fixes (and
+   reports LOADW/FCOM/FPU candidates for manual attention):
+   ```
+   rtk python3 tools/recovery/score_structize.py fix --source <TU_path>
+   ```
+   This applies each candidate edit, gates it with a VC71 recompile, and
+   keeps only improvements. After it finishes, check its `needs_llm` output
+   for diagnostics that require the manual recipes below.
+
+3. **Get a fresh score-context pack.** After the automated fixer, run a full
+   verify on the TU to get current, trustworthy classification data:
    ```
    rtk python3 tools/verify/vc71_verify.py <TU_path> -f <function_name> --no-cache
    ```
@@ -60,7 +70,7 @@ You will be given:
    the diff first. Record the score this run reports as your **start score**
    and your **running best**.
 
-3. **Apply exactly ONE lever per iteration.** Load the `lift-score-improve`
+4. **Apply exactly ONE lever per iteration.** Load the `lift-score-improve`
    skill (`.claude/skills/lift-score-improve/SKILL.md`) and find the
    recipe-atlas section matching the fired rule id (or, if no rule fired, the
    "No-rule-fired levers" section, tried in the order given there). Each
@@ -70,7 +80,7 @@ You will be given:
    ONE lever. Do not stack multiple levers before measuring — you cannot
    attribute a score change to a specific fix if you do.
 
-4. **Re-measure with the fast single-function path**, not a full TU verify:
+5. **Re-measure with the fast single-function path**, not a full TU verify:
    ```
    # one-time setup if artifacts/mizuchi/prompts/<function_name>/settings.yaml is missing
    rtk python3 tools/mizuchi/gen_prompts.py --target <function_name>
@@ -81,18 +91,18 @@ You will be given:
    ```
    This compiles only the target function against the TU's headers and diffs
    it against the delinked reference — it does not recompute the
-   classification pack, so treat step 2's pack as authoritative for
+   classification pack, so treat step 3's pack as authoritative for
    *diagnosis* and this command as authoritative for *the score after your
    edit*.
 
-5. **Keep running best; revert regressions immediately.** If the new score is
+6. **Keep running best; revert regressions immediately.** If the new score is
    higher than your running best, keep the edit and update running best. If
    it is equal or lower, revert that single edit (do not layer a "fix for the
    fix" on top of a regression) and move to the next lever. Never submit a
    score below the score you started this session with.
 
 6. **Confirm the final state with one more full TU verify.** The fast path in
-   step 4 compiles only the target function's text against the TU headers —
+   step 5 compiles only the target function's text against the TU headers —
    it does not prove the whole TU still builds after your edits. Before
    reporting your best score, run the full verify once more:
    ```
@@ -135,7 +145,7 @@ Run the permuter exactly once:
 ```
 timeout 150 rtk python3 tools/permuter/run.py -q --target <function_name> --attempts 100 2>&1 || echo "[permuter stopped]"
 ```
-Then re-measure with the fast path (step 4). Exit code 3 = vacuous run (0
+Then re-measure with the fast path (step 5). Exit code 3 = vacuous run (0
 candidate iterations — a setup problem, not a real result; do not count it,
 do not report it as a negative). Exit code 4 = baseline mismatch (the
 permuter's own baseline disagrees with the pipeline's — discard any candidate
@@ -153,14 +163,14 @@ is not the same thing as correctness.
 - Do not paste full objdiff/build-log output back into your own reasoning —
   parse the score/pass-fail line and move on. Quoting large tool output
   inflates every subsequent turn's re-read cost.
-- Prefer the fast single-function path (step 4) for every iteration; reserve
+- Prefer the fast single-function path (step 5) for every iteration; reserve
   a full `vc71_verify.py` TU run for the first (fresh pack) and last
   (final-state pack) measurement of the session.
 
 ## Output contract
 
 Report, in this order:
-1. **Start score** (what you were given / measured in step 2).
+1. **Start score** (what you were given / measured in step 3).
 2. **Best score** (your final running best).
 3. **Per-iteration ledger** — one line per lever tried:
    `<rule_id or lever name> → <score before> → <score after> (kept | reverted)`.

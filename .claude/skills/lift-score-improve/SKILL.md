@@ -26,6 +26,35 @@ cleanups are out of scope for this skill — see the `cleanup` family instead.
 
 ---
 
+## Step -1 — Run the automated fixer first
+
+Before any manual work, run the mechanical score-improvement tool.  It reads
+score-context packs, finds fixable diagnostics (wrong float literals, narrow
+field widths, comparison sense bugs), applies candidates one at a time, and
+gates each with a VC71 recompile.  Only improvements are kept.
+
+```bash
+# Census — what's fixable vs what needs an LLM:
+rtk python3 tools/recovery/score_structize.py scan --source <file.c>
+
+# Apply all mechanical fixes (per-edit VC71 gate):
+rtk python3 tools/recovery/score_structize.py fix --source <file.c>
+
+# Restrict to one rule or function:
+rtk python3 tools/recovery/score_structize.py fix --source <file.c> --rule imm_wrong_literal
+rtk python3 tools/recovery/score_structize.py fix --source <file.c> --function <func>
+```
+
+The `scan` output splits diagnostics into `fixable` (mechanical) and `needs_llm`
+(structural, requires judgment).  After `fix` completes, read the `needs_llm`
+list and proceed to the manual recipes below for those.
+
+Currently automated: `imm_wrong_literal` (exact float/int constant fixes).
+Reported but not yet auto-edited: `loadw_field_width`, `fcom_bound_sense`,
+`fpu_operand_order` — use the manual recipes below for these.
+
+---
+
 ## Step 0 — Read the score-context pack first
 
 Before any manual diffing, check whether `vc71_verify.py` already recorded a
