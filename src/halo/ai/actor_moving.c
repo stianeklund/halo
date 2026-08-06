@@ -2542,20 +2542,20 @@ void actor_destination_update(int actor_handle)
 
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
 
-  if (*(char *)(actor + 0x4c) != '\0' && *(char *)(actor + 0x4a4) == '\0' &&
-      *(char *)(actor + 0x13) == '\0') {
+  if (((actor_t *)actor)->field_04c != '\0' && ((actor_t *)actor)->field_4a4 == '\0' &&
+      ((actor_t *)actor)->field_013 == '\0') {
     actor_path_refresh(actor_handle, 0, 0);
   }
 
   actor_test_destination(actor_handle);
 
   path_ctl = actor + 0x4a8;
-  if (*(char *)(actor + 0x4a8) != '\0') {
+  if (((actor_t *)actor)->field_4a8 != '\0') {
     exhausted = '\0';
 
     while (1) {
-      step_idx = (int)*(signed char *)(actor + 0x4c2);
-      step_cnt = (int)*(signed char *)(actor + 0x4c1);
+      step_idx = (int)((actor_t *)actor)->field_4c2;
+      step_cnt = (int)((actor_t *)actor)->field_4c1;
 
       if (step_idx + 1 >= step_cnt) {
         exhausted = '\x01';
@@ -2570,17 +2570,17 @@ void actor_destination_update(int actor_handle)
       next_x = *(float *)(path_ctl + next_off);
       next_y = *(float *)(path_ctl + next_off + 4);
 
-      to_cur_x = cur_x - *(float *)(actor + 0x12c);
-      to_cur_y = cur_y - *(float *)(actor + 0x130);
+      to_cur_x = cur_x - ((actor_t *)actor)->field_12c;
+      to_cur_y = cur_y - ((actor_t *)actor)->field_130;
 
       seg_x = next_x - cur_x;
       seg_y = next_y - cur_y;
 
       /* Load path_final_step flag (actor+0x506). */
-      if (*(char *)(actor + 0x506) == '\0') {
+      if (((actor_t *)actor)->field_506 == '\0') {
         /* Check whether to use simple distance or projected segment test. */
-        if (*(char *)(actor + 0x504) != '\0' &&
-            *(char *)(actor + 0x507) != '\0') {
+        if (((actor_t *)actor)->field_504 != '\0' &&
+            ((actor_t *)actor)->field_507 != '\0') {
           /* Segment projection test.
            *
            * dot_seg_to_cur = dot(seg_dir, to_cur)
@@ -2602,8 +2602,8 @@ void actor_destination_update(int actor_handle)
            *   FADDP => dot_seg_facing = seg_y*facing_y + seg_x*facing_x
            */
           dot_seg_to_cur = seg_y * to_cur_y + seg_x * to_cur_x;
-          dot_seg_facing = seg_y * *(float *)(actor + 0x178) +
-                           seg_x * *(float *)(actor + 0x174);
+          dot_seg_facing = seg_y * ((actor_t *)actor)->input_facing_vector[1] +
+                           seg_x * ((actor_t *)actor)->input_facing_vector[0];
 
           /* FCOMP [0x2533c0]=0.0f; TEST AH,0x41; JNZ => jump if <= 0 */
           if (dot_seg_facing <= 0.0f) {
@@ -2673,12 +2673,12 @@ void actor_destination_update(int actor_handle)
       }
 
       /* Advance to next step. */
-      *(signed char *)(actor + 0x4c2) += 1;
-      *(char *)(actor + 0x506) = '\0';
+      ((actor_t *)actor)->field_4c2 += 1;
+      ((actor_t *)actor)->field_506 = '\0';
     }
 
     /* Handle path-exhausted or final-step state. */
-    if (*(char *)(actor + 0x506) != '\0') {
+    if (((actor_t *)actor)->field_506 != '\0') {
       if (exhausted == '\0') {
         /* Reached the final step but loop says we shouldn't be here. */
         display_assert("final_step", "c:\\halo\\SOURCE\\ai\\actor_moving.c",
@@ -2686,7 +2686,7 @@ void actor_destination_update(int actor_handle)
         system_exit(-1);
       }
 
-      if (*(char *)(actor + 0x4c0) != '\0') {
+      if (((actor_t *)actor)->field_4c0 != '\0') {
         /* Path has a loop/done handler — call actor_path_stop. */
         FUN_0002a3a0(actor_handle);
       } else if (*(char *)0x5aca62 != '\0') {
@@ -2697,34 +2697,34 @@ void actor_destination_update(int actor_handle)
          */
         ai_debug_describe_actor(actor_handle, -1, 1, name_buf, 0x200);
         error(2, "%s: fell off end of unfinished path %d/%d", name_buf,
-              (int)*(signed char *)(actor + 0x4c1), 4);
+              (int)((actor_t *)actor)->field_4c1, 4);
       }
     }
 
     /* If path_active and (has_destination or not is_moving), set the
      * current target position from the path node at step_index. */
-    if (*path_ctl != '\0' && (*(char *)(actor + 0x504) != '\0' ||
-                              *(char *)(actor + 0x484) == '\0')) {
-      *(char *)(actor + 0x504) = '\x01';
+    if (*path_ctl != '\0' && (((actor_t *)actor)->field_504 != '\0' ||
+                              ((actor_t *)actor)->field_484 == '\0')) {
+      ((actor_t *)actor)->field_504 = '\x01';
 
       /* Copy node position: actor[0x4c8 + step_index*0x10] → actor[0x50c].
        * Disasm 0x2d574-0x2d5a1: MOVSX EDX,byte[ESI+0x4c2]; SHL EDX,4;
        *   LEA ECX,[EDX+ESI+0x4c8]; copy 3 dwords to [ESI+0x50c].
        */
-      step_idx = (int)*(signed char *)(actor + 0x4c2);
+      step_idx = (int)((actor_t *)actor)->field_4c2;
       node = (float *)(actor + 0x4c8 + step_idx * 0x10);
 
-      *(float *)(actor + 0x50c) = node[0];
-      *(float *)(actor + 0x510) = node[1];
-      *(float *)(actor + 0x514) = node[2];
+      ((actor_t *)actor)->field_50c = node[0];
+      ((actor_t *)actor)->field_510 = node[1];
+      ((actor_t *)actor)->field_514 = node[2];
 
       /* Compute vector from actor to target. */
       *(float *)(actor + 0x518) =
-        *(float *)(actor + 0x50c) - *(float *)(actor + 0x12c);
+        ((actor_t *)actor)->field_50c - ((actor_t *)actor)->field_12c;
       *(float *)(actor + 0x51c) =
-        *(float *)(actor + 0x510) - *(float *)(actor + 0x130);
+        ((actor_t *)actor)->field_510 - ((actor_t *)actor)->field_130;
       *(float *)(actor + 0x520) =
-        *(float *)(actor + 0x514) - *(float *)(actor + 0x134);
+        ((actor_t *)actor)->field_514 - ((actor_t *)actor)->field_134;
 
       /* Sanity check: if distance^2 < 1,000,000 (i.e. < 1000 units), OK.
        * Disasm 0x2d5d0-0x2d605: FPU computes sqrt(dx^2+dy^2+dz^2), then
@@ -2796,17 +2796,17 @@ void actor_destination_update(int actor_handle)
    * active (entry 0x2d3ac), when an active path was cleared, or when an
    * active path yielded no target this tick.
    */
-  if (*(short *)(actor + 0x15e) != 4) {
+  if (((actor_t *)actor)->field_15e != 4) {
     /* Not far-movement: reset path destination and target state. */
-    *(char *)(actor + 0x504) = '\0';
-    *(char *)(actor + 0x506) = '\0';
-    *(char *)(actor + 0x484) = '\x01';
+    ((actor_t *)actor)->field_504 = '\0';
+    ((actor_t *)actor)->field_506 = '\0';
+    ((actor_t *)actor)->field_484 = '\x01';
 
     /* Re-fetch actor (second datum_get call in this branch, confirmed at
      * 0x2d6ea). */
     actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
-    *(char *)(actor + 0x4a8) = '\0';
-    *(char *)(actor + 0x484) = '\x01';
+    ((actor_t *)actor)->field_4a8 = '\0';
+    ((actor_t *)actor)->field_484 = '\x01';
     *(int *)(actor + 0x4a0) = 0;
     return;
   }
@@ -2823,8 +2823,8 @@ void actor_destination_update(int actor_handle)
    *     if actor[0x5ec]<=0.9: AL=0,DL=1 → EDX=1
    *   FILD [EBP-0x8] (=EDX); FMUL [0x254644]=3.0f  => sign * 3.0
    */
-  *(char *)(actor + 0x504) = '\x01';
-  *(char *)(actor + 0x506) = '\0';
+  ((actor_t *)actor)->field_504 = '\x01';
+  ((actor_t *)actor)->field_506 = '\0';
 
   /* FCOMP test: if actor[0x5ec] <= 0.9f → sign=+1, else sign=-1 */
   if (*(float *)(actor + 0x5ec) > 0.9f) {
@@ -2835,16 +2835,16 @@ void actor_destination_update(int actor_handle)
 
   step = (float)sign_val * 3.0f;
 
-  *(float *)(actor + 0x518) = step * *(float *)(actor + 0x174);
-  *(float *)(actor + 0x51c) = step * *(float *)(actor + 0x178);
-  *(float *)(actor + 0x520) = step * *(float *)(actor + 0x17c);
+  *(float *)(actor + 0x518) = step * ((actor_t *)actor)->input_facing_vector[0];
+  *(float *)(actor + 0x51c) = step * ((actor_t *)actor)->input_facing_vector[1];
+  *(float *)(actor + 0x520) = step * ((actor_t *)actor)->input_facing_vector[2];
 
-  *(float *)(actor + 0x50c) =
-    *(float *)(actor + 0x12c) + *(float *)(actor + 0x518);
-  *(float *)(actor + 0x510) =
-    *(float *)(actor + 0x130) + *(float *)(actor + 0x51c);
-  *(float *)(actor + 0x514) =
-    *(float *)(actor + 0x134) + *(float *)(actor + 0x520);
+  ((actor_t *)actor)->field_50c =
+    ((actor_t *)actor)->field_12c + *(float *)(actor + 0x518);
+  ((actor_t *)actor)->field_510 =
+    ((actor_t *)actor)->field_130 + *(float *)(actor + 0x51c);
+  ((actor_t *)actor)->field_514 =
+    ((actor_t *)actor)->field_134 + *(float *)(actor + 0x520);
 }
 
 /* 0x2d720 — actor_move_to_point: Set actor movement to point-movement mode
@@ -2894,29 +2894,29 @@ char actor_move_to_point(int actor_handle, float *destination, int param_3,
                    1);
     system_exit(-1);
   }
-  *(int16_t *)(actor + 0x3b8) = -1;
+  ((actor_t *)actor)->firing_positions_current_position_index = -1;
   actor_set_dormant(actor_handle, 0);
-  if ((*(int16_t *)(actor + 0x46c) == 2) &&
-      (*(int *)(actor + 0x47c) == param_3)) {
+  if ((((actor_t *)actor)->field_46c == 2) &&
+      (((actor_t *)actor)->field_47c == param_3)) {
     dx = *(float *)(actor + 0x470) - destination[0];
     dy = *(float *)(actor + 0x474) - destination[1];
     dz = *(float *)(actor + 0x478) - destination[2];
     dist_sq = dx * dx + dy * dy + dz * dz;
     if (dist_sq <= *(float *)0x255d1c) {
-      if ((*(char *)(actor + 0x4c) != '\0') &&
-          (*(char *)(actor + 0x4a4) == '\0')) {
+      if ((((actor_t *)actor)->field_04c != '\0') &&
+          (((actor_t *)actor)->field_4a4 == '\0')) {
         return actor_path_refresh(actor_handle, 0, 0);
       }
       return 1;
     }
   }
-  *(char *)(actor + 0x402) = 0;
-  *(int16_t *)(actor + 0x400) = 2;
+  ((actor_t *)actor)->field_402 = 0;
+  ((actor_t *)actor)->field_400 = 2;
   *(float *)(actor + 0x404) = destination[0];
-  *(float *)(actor + 0x408) = destination[1];
-  *(float *)(actor + 0x40c) = destination[2];
-  *(int *)(actor + 0x410) = param_3;
-  *(int *)(actor + 0x414) = param_4;
+  ((actor_t *)actor)->field_408 = destination[1];
+  ((actor_t *)actor)->field_40c = destination[2];
+  ((actor_t *)actor)->field_410 = param_3;
+  ((actor_t *)actor)->field_414 = param_4;
   pending_state = (int *)(actor + 0x400);
   active_state = (short *)(actor + 0x46c);
   for (iVar3 = 6; iVar3 != 0; iVar3--) {
@@ -3595,7 +3595,7 @@ void actor_move_update(int actor_handle)
   float forward[3]; /* [EBP-0x34..-0x30] cross-edge scratch */
 
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
-  actr_tag = (unsigned int *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  actr_tag = (unsigned int *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
   want_facing = 0;
   use_z = 0;
   path_gate = 0;
@@ -3613,35 +3613,35 @@ void actor_move_update(int actor_handle)
   if (valid_real_normal3d((float *)(actor + 0x174)) == 0) {
     display_assert(csprintf((char *)0x5ab100,
                             "%s: assert_valid_real_normal3d(%f, %f, %f)",
-                            (char *)0x255efc, (double)*(float *)(actor + 0x174),
-                            (double)*(float *)(actor + 0x178),
-                            (double)*(float *)(actor + 0x17c)),
+                            (char *)0x255efc, (double)((actor_t *)actor)->input_facing_vector[0],
+                            (double)((actor_t *)actor)->input_facing_vector[1],
+                            (double)((actor_t *)actor)->input_facing_vector[2]),
                    "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x11e, 1);
     system_exit(-1);
   }
-  *(float *)(actor + 0x5a4) = *(float *)(actor + 0x174);
+  ((actor_t *)actor)->control_desired_facing_vector[0] = ((actor_t *)actor)->input_facing_vector[0];
   *(int *)(actor + 0x5a8) = *(int *)(actor + 0x178);
   *(int *)(actor + 0x5ac) = *(int *)(actor + 0x17c);
-  *(char *)(actor + 0x591) = 0;
-  *(char *)(actor + 0x58d) = 1;
-  *(char *)(actor + 0x58e) = 1;
+  ((actor_t *)actor)->field_591 = 0;
+  ((actor_t *)actor)->field_58d = 1;
+  ((actor_t *)actor)->field_58e = 1;
 
-  if (*(char *)(actor + 0x430) != '\0') {
-    *(int *)(actor + 0x518) = *(int *)(actor + 0x434);
-    *(int *)(actor + 0x51c) = *(int *)(actor + 0x438);
-    *(int *)(actor + 0x520) = *(int *)(actor + 0x43c);
-    *(char *)(actor + 0x504) = 1;
-    *(char *)(actor + 0x58d) = 0;
+  if (((actor_t *)actor)->field_430 != '\0') {
+    ((actor_t *)actor)->field_518 = ((actor_t *)actor)->field_434;
+    ((actor_t *)actor)->field_51c = ((actor_t *)actor)->field_438;
+    ((actor_t *)actor)->field_520 = ((actor_t *)actor)->field_43c;
+    ((actor_t *)actor)->field_504 = 1;
+    ((actor_t *)actor)->field_58d = 0;
     *(int *)(actor + 0x5dc) = *(int *)*(int *)0x31fc38;
     *(int *)(actor + 0x5e0) = ((int *)*(int *)0x31fc38)[1];
     *(int *)(actor + 0x5e4) = ((int *)*(int *)0x31fc38)[2];
     *(int *)(actor + 0x5e8) = 0;
     *(int *)(actor + 0x5ec) = 0;
-  } else if (*(int16_t *)(actor + 0x15e) == 4) {
-    if (*(char *)(actor + 0x504) == '\0') {
-      vec_scratch[0] = *(float *)(actor + 0x174) * *(float *)0x254644;
-      vec_scratch[1] = *(float *)(actor + 0x178) * *(float *)0x254644;
-      vec_scratch[2] = *(float *)(actor + 0x17c) * *(float *)0x254644;
+  } else if (((actor_t *)actor)->field_15e == 4) {
+    if (((actor_t *)actor)->field_504 == '\0') {
+      vec_scratch[0] = ((actor_t *)actor)->input_facing_vector[0] * *(float *)0x254644;
+      vec_scratch[1] = ((actor_t *)actor)->input_facing_vector[1] * *(float *)0x254644;
+      vec_scratch[2] = ((actor_t *)actor)->input_facing_vector[2] * *(float *)0x254644;
       src = (char *)vec_scratch;
     } else {
       src = actor + 0x518;
@@ -3675,7 +3675,7 @@ void actor_move_update(int actor_handle)
     if (fade < *(float *)0x255ef8) {
       *(int *)(actor + 0x5e8) = 0;
     }
-    if (*(char *)(actor + 0x504) != '\0') {
+    if (((actor_t *)actor)->field_504 != '\0') {
       slerp[0] = *(float *)(actor + 0x5dc);
       slerp[1] = *(float *)(actor + 0x5e0);
       slerp[2] = *(float *)(actor + 0x5e4);
@@ -3693,15 +3693,15 @@ void actor_move_update(int actor_handle)
     }
   }
 
-  pending = *(int16_t *)(actor + 0x42c);
+  pending = ((actor_t *)actor)->field_42c;
   if (pending == -1) {
     pending = 2;
-    if (*(char *)(actor + 0x429) != '\0') {
+    if (((actor_t *)actor)->field_429 != '\0') {
       pending = 4;
-    } else if (*(char *)(actor + 0x428) != '\0') {
+    } else if (((actor_t *)actor)->field_428 != '\0') {
       pending = 3;
     } else {
-      submode = *(int16_t *)(actor + 0x6a);
+      submode = ((actor_t *)actor)->field_06a;
       if (submode == 1) {
         pending = 1;
       } else if (submode == 2) {
@@ -3711,35 +3711,35 @@ void actor_move_update(int actor_handle)
       }
     }
   }
-  *(int16_t *)(actor + 0x6dc) = pending;
-  facing_dir = *(int16_t *)(actor + 0x42e);
+  ((actor_t *)actor)->field_6dc = pending;
+  facing_dir = ((actor_t *)actor)->field_42e;
 
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
-  if (*(char *)(actor + 0x4a8) == '\0' ||
+  if (((actor_t *)actor)->field_4a8 == '\0' ||
       *(float *)(actor + 0x4a0) < (float)actr_tag[0x25]) {
-    crouch = *(char *)(actor + 0x426);
+    crouch = ((actor_t *)actor)->field_426;
   } else {
-    crouch = *(char *)(actor + 0x427);
+    crouch = ((actor_t *)actor)->field_427;
   }
 
-  if (*(int16_t *)(actor + 0x15e) < 1) {
-    if (*(char *)(actor + 0x160) == '\0') {
-      if (*(int16_t *)(actor + 0x418) == -1) {
-        pending = *(int16_t *)(actor + 0x6dc);
+  if (((actor_t *)actor)->field_15e < 1) {
+    if (((actor_t *)actor)->field_160 == '\0') {
+      if (((actor_t *)actor)->field_418 == -1) {
+        pending = ((actor_t *)actor)->field_6dc;
         if (pending == 1) {
           crouch = 0;
-          *(char *)(actor + 0x504) = 0;
-          *(char *)(actor + 0x58d) = 0;
-          *(char *)(actor + 0x58e) = 0;
+          ((actor_t *)actor)->field_504 = 0;
+          ((actor_t *)actor)->field_58d = 0;
+          ((actor_t *)actor)->field_58e = 0;
           need_jump = 1;
-        } else if (*(char *)(actor + 0x15c) == '\0' ||
-                   *(char *)(actor + 0x99) != '\0') {
-          if (*(char *)(actor + 0x6a0) == '\0') {
-            if (*(int16_t *)(actor + 0x360) < 1) {
+        } else if (((actor_t *)actor)->field_15c == '\0' ||
+                   ((actor_t *)actor)->field_099 != '\0') {
+          if (((actor_t *)actor)->field_6a0 == '\0') {
+            if (((actor_t *)actor)->field_360 < 1) {
               clear_firing = 1;
               if (pending != 2 || (crouch == 0 ? (*actr_tag & 0x4000) != 0 :
                                                  (char)(*actr_tag >> 8) < 0)) {
-                *(char *)(actor + 0x505) = 0;
+                ((actor_t *)actor)->field_505 = 0;
               }
               if (pending == 4) {
                 need_jump = 1;
@@ -3748,55 +3748,55 @@ void actor_move_update(int actor_handle)
                 max_speed_sq = (float)actr_tag[0x26] * (float)actr_tag[0x26];
                 use_z = 1;
                 want_facing = 1;
-                if (*(char *)(actor + 0x505) != '\0') {
+                if (((actor_t *)actor)->field_505 != '\0') {
                   max_speed_sq = max_speed_sq * *(float *)0x2533d8;
                 }
               }
             } else {
-              *(char *)(actor + 0x504) = 0;
-              *(char *)(actor + 0x58d) = 1;
+              ((actor_t *)actor)->field_504 = 0;
+              ((actor_t *)actor)->field_58d = 1;
               crouch = (char)(*actr_tag >> 0x1e) & 1;
             }
           } else {
-            *(char *)(actor + 0x504) = 0;
+            ((actor_t *)actor)->field_504 = 0;
             FUN_00012140((float *)(actor + 0x12c), (float *)(actor + 0x6a8),
                          vec_scratch);
             crouch = 0;
             if (normalize3d(vec_scratch) == *(float *)0x2533c0) {
-              *(char *)(actor + 0x58d) = 1;
+              ((actor_t *)actor)->field_58d = 1;
             } else {
-              *(float *)(actor + 0x5a4) = vec_scratch[0];
-              *(float *)(actor + 0x5a8) = vec_scratch[1];
-              *(float *)(actor + 0x5ac) = vec_scratch[2];
-              *(char *)(actor + 0x58d) = 0;
-              *(char *)(actor + 0x58e) = 0;
-              *(char *)(actor + 0x591) = 1;
+              ((actor_t *)actor)->control_desired_facing_vector[0] = vec_scratch[0];
+              ((actor_t *)actor)->control_desired_facing_vector[1] = vec_scratch[1];
+              ((actor_t *)actor)->control_desired_facing_vector[2] = vec_scratch[2];
+              ((actor_t *)actor)->field_58d = 0;
+              ((actor_t *)actor)->field_58e = 0;
+              ((actor_t *)actor)->field_591 = 1;
             }
           }
         } else {
           crouch = 0;
-          *(char *)(actor + 0x504) = 0;
-          *(char *)(actor + 0x58d) = 1;
+          ((actor_t *)actor)->field_504 = 0;
+          ((actor_t *)actor)->field_58d = 1;
         }
       } else {
         crouch = 0;
-        *(char *)(actor + 0x504) = 0;
-        *(char *)(actor + 0x58d) = 0;
-        *(char *)(actor + 0x58e) = 0;
+        ((actor_t *)actor)->field_504 = 0;
+        ((actor_t *)actor)->field_58d = 0;
+        ((actor_t *)actor)->field_58e = 0;
       }
     } else {
-      *(char *)(actor + 0x504) = 0;
-      *(int16_t *)(actor + 0x50a) = 0;
-      if (*(int16_t *)(actor + 4) == 0xf || *(char *)(actor + 0x161) != '\0') {
-        *(char *)(actor + 0x58d) = 1;
+      ((actor_t *)actor)->field_504 = 0;
+      ((actor_t *)actor)->field_50a = 0;
+      if (*(int16_t *)(actor + 4) == 0xf || ((actor_t *)actor)->field_161 != '\0') {
+        ((actor_t *)actor)->field_58d = 1;
       } else {
-        *(char *)(actor + 0x58d) = 0;
+        ((actor_t *)actor)->field_58d = 0;
       }
       crouch = 0;
-      *(char *)(actor + 0x58e) = 0;
+      ((actor_t *)actor)->field_58e = 0;
     }
   } else {
-    vehicle = (char *)object_get_and_verify_type(*(int *)(actor + 0x158), 2);
+    vehicle = (char *)object_get_and_verify_type(((actor_t *)actor)->field_158, 2);
     vehicle_tag = (char *)tag_get(0x76656869, *(int *)vehicle);
     arg4 = *(float *)(vehicle_tag + 0x3a0);
     if (*(float *)0x2533c0 < *(float *)(vehicle_tag + 0x3a4)) {
@@ -3804,7 +3804,7 @@ void actor_move_update(int actor_handle)
     }
     arg5 = *(float *)(vehicle_tag + 0x398);
     arg6 = *(float *)(vehicle_tag + 0x39c);
-    pending = *(int16_t *)(actor + 0x15e);
+    pending = ((actor_t *)actor)->field_15e;
     if (pending == 2) {
       if (*(char *)(vehicle + 0x428) == '\0') {
         if (*(float *)(vehicle + 0x444) < *(float *)0x2533c4 &&
@@ -3813,14 +3813,14 @@ void actor_move_update(int actor_handle)
           vec_scratch[1] = *(float *)(vehicle + 0x34);
           vec_scratch[2] = 0.0f;
           if (*(float *)0x2533c0 < magnitude3d(vec_scratch)) {
-            *(char *)(actor + 0x504) = 1;
+            ((actor_t *)actor)->field_504 = 1;
             crouch = 0;
             *(float *)(actor + 0x518) = vec_scratch[0] * *(float *)0x254644;
             *(float *)(actor + 0x51c) = vec_scratch[1] * *(float *)0x254644;
             *(float *)(actor + 0x520) = vec_scratch[2] * *(float *)0x254644;
           } else {
             crouch = 0;
-            *(char *)(actor + 0x504) = 0;
+            ((actor_t *)actor)->field_504 = 0;
           }
         } else {
           goto length_seed;
@@ -3828,8 +3828,8 @@ void actor_move_update(int actor_handle)
       } else {
         crouch = 0;
         leap_jump = 1;
-        *(char *)(actor + 0x504) = 0;
-        *(char *)(actor + 0x58d) = 1;
+        ((actor_t *)actor)->field_504 = 0;
+        ((actor_t *)actor)->field_58d = 1;
       }
     } else if (pending == 3) {
     length_seed:
@@ -3838,50 +3838,50 @@ void actor_move_update(int actor_handle)
         *(float *)(vehicle_tag + 0x380) * *(float *)(vehicle_tag + 0x380);
       want_facing = 1;
     } else if (pending == 4) {
-      if (vehicle_stuck(*(int *)(actor + 0x158), vec_scratch) == '\0') {
+      if (vehicle_stuck(((actor_t *)actor)->field_158, vec_scratch) == '\0') {
         crouch = 0;
         facing_dir = 0;
         path_gate = 1;
         use_z = 1;
       } else {
-        *(char *)(actor + 0x504) = 0;
-        *(char *)(actor + 0x58d) = 0;
-        *(char *)(actor + 0x58e) = 0;
-        *(float *)(actor + 0x5a4) = -vec_scratch[0];
+        ((actor_t *)actor)->field_504 = 0;
+        ((actor_t *)actor)->field_58d = 0;
+        ((actor_t *)actor)->field_58e = 0;
+        ((actor_t *)actor)->control_desired_facing_vector[0] = -vec_scratch[0];
         crouch = 0;
-        *(float *)(actor + 0x5a8) = -vec_scratch[1];
-        *(float *)(actor + 0x5ac) = -vec_scratch[2];
+        ((actor_t *)actor)->control_desired_facing_vector[1] = -vec_scratch[1];
+        ((actor_t *)actor)->control_desired_facing_vector[2] = -vec_scratch[2];
       }
     } else {
-      *(char *)(actor + 0x504) = 0;
-      *(int16_t *)(actor + 0x50a) = 0;
-      if (*(int16_t *)(actor + 4) == 0xf || *(char *)(actor + 0x161) != '\0') {
-        *(char *)(actor + 0x58d) = 1;
+      ((actor_t *)actor)->field_504 = 0;
+      ((actor_t *)actor)->field_50a = 0;
+      if (*(int16_t *)(actor + 4) == 0xf || ((actor_t *)actor)->field_161 != '\0') {
+        ((actor_t *)actor)->field_58d = 1;
       } else {
-        *(char *)(actor + 0x58d) = 0;
+        ((actor_t *)actor)->field_58d = 0;
       }
       crouch = 0;
     }
   }
 
-  if (*(char *)(actor + 0x504) == '\0') {
+  if (((actor_t *)actor)->field_504 == '\0') {
     goto seed_fallback;
   } else {
-    if (*(char *)(actor + 0x506) == '\0') {
+    if (((actor_t *)actor)->field_506 == '\0') {
       actor_move_compute_facing(
         want_facing, facing_dir, actor_handle, use_z, max_speed_sq, path_gate,
         arg4, arg5, arg6, arg7, maximum_throttle, (float *)(actor + 0x518),
         (float *)(actor + 0x5a4), (short *)(actor + 0x50a),
         (float *)(actor + 0x6e0), (char *)(actor + 0x507),
         (char *)(actor + 0x506));
-      if (*(char *)(actor + 0x506) != '\0') {
-        *(char *)(actor + 0x504) = 0;
+      if (((actor_t *)actor)->field_506 != '\0') {
+        ((actor_t *)actor)->field_504 = 0;
       }
     }
-    if (*(char *)(actor + 0x504) == '\0') {
+    if (((actor_t *)actor)->field_504 == '\0') {
       goto seed_fallback;
     }
-    *(char *)(actor + 0x58e) = 0;
+    ((actor_t *)actor)->field_58e = 0;
     goto clear_active;
   }
 
@@ -3890,111 +3890,111 @@ seed_fallback:
     *(int *)(actor + 0x5a4) = *(int *)(actor + 0x174);
     *(int *)(actor + 0x5a8) = *(int *)(actor + 0x178);
     *(int *)(actor + 0x5ac) = *(int *)(actor + 0x17c);
-    *(char *)(actor + 0x58e) = 0;
+    ((actor_t *)actor)->field_58e = 0;
     goto clear_pending;
   }
-  if (*(char *)(actor + 0x590) != '\0') {
+  if (((actor_t *)actor)->field_590 != '\0') {
     *(int *)(actor + 0x5a4) = *(int *)(actor + 0x598);
     *(int *)(actor + 0x5a8) = *(int *)(actor + 0x59c);
     *(int *)(actor + 0x5ac) = *(int *)(actor + 0x5a0);
-    *(char *)(actor + 0x58e) = 1;
+    ((actor_t *)actor)->field_58e = 1;
   clear_pending:
-    *(int16_t *)(actor + 0x50a) = 0;
+    ((actor_t *)actor)->field_50a = 0;
   clear_active:
-    *(char *)(actor + 0x58d) = 0;
+    ((actor_t *)actor)->field_58d = 0;
   }
 
   if (valid_real_normal3d((float *)(actor + 0x5a4)) == 0) {
     display_assert(csprintf((char *)0x5ab100,
                             "%s: assert_valid_real_normal3d(%f, %f, %f)",
                             "&actor->control.desired_facing_vector",
-                            (double)*(float *)(actor + 0x5a4),
-                            (double)*(float *)(actor + 0x5a8),
-                            (double)*(float *)(actor + 0x5ac)),
+                            (double)((actor_t *)actor)->control_desired_facing_vector[0],
+                            (double)((actor_t *)actor)->control_desired_facing_vector[1],
+                            (double)((actor_t *)actor)->control_desired_facing_vector[2]),
                    "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x28f, 1);
     system_exit(-1);
   }
-  if (clear_firing != '\0' && *(char *)(actor + 0x504) == '\0') {
+  if (clear_firing != '\0' && ((actor_t *)actor)->field_504 == '\0') {
     actor_clear_discarded_firing_positions(actor_handle, 1);
   }
-  if (*(char *)(actor + 0x504) != '\0' && (*actr_tag & 0x10000000) != 0) {
+  if (((actor_t *)actor)->field_504 != '\0' && (*actr_tag & 0x10000000) != 0) {
     crouch = 0;
   }
   if (game_connection() == 0 && *(char *)0x5ac9ce != '\0') {
     crouch = 1;
   }
-  *(char *)(actor + 0x58f) = 0;
+  ((actor_t *)actor)->field_58f = 0;
   if (crouch != 0 && (*actr_tag & 0x20000000) != 0) {
-    *(char *)(actor + 0x58f) = 1;
+    ((actor_t *)actor)->field_58f = 1;
   }
   *(char *)(actor + 0x508) = crouch;
   actor_unit_control_crouch(actor_handle, crouch);
 
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
-  if (*(int16_t *)(actor + 0x418) == -1 &&
-      (*(int *)(actor + 0x18) == -1 ||
-       unit_is_busy(*(int *)(actor + 0x18)) == 0) &&
-      *(int *)(actor + 0x158) == -1 && *(char *)(actor + 0x15c) == '\0' &&
-      *(char *)(actor + 0x378) != '\0' && *(char *)(actor + 0x379) == '\0') {
-    forward[0] = *(float *)(actor + 0x174);
-    forward[1] = *(float *)(actor + 0x178);
+  if (((actor_t *)actor)->field_418 == -1 &&
+      (((actor_t *)actor)->field_018 == -1 ||
+       unit_is_busy(((actor_t *)actor)->field_018) == 0) &&
+      ((actor_t *)actor)->field_158 == -1 && ((actor_t *)actor)->field_15c == '\0' &&
+      ((actor_t *)actor)->field_378 != '\0' && ((actor_t *)actor)->field_379 == '\0') {
+    forward[0] = ((actor_t *)actor)->input_facing_vector[0];
+    forward[1] = ((actor_t *)actor)->input_facing_vector[1];
     handle = -1;
-    if (*(int *)(actor + 0x270) != -1) {
-      src = (char *)datum_get(*(data_t **)0x5ab23c, *(int *)(actor + 0x270));
+    if (((actor_t *)actor)->target_target_prop_index != -1) {
+      src = (char *)datum_get(*(data_t **)0x5ab23c, ((actor_t *)actor)->target_target_prop_index);
       forward[0] = *(float *)(src + 0xe0);
       forward[1] = *(float *)(src + 0xe4);
       handle = *(int *)(src + 0x18);
       if (magnitude3d(forward) == *(float *)0x2533c0) {
-        forward[0] = *(float *)(actor + 0x174);
-        forward[1] = *(float *)(actor + 0x178);
+        forward[0] = ((actor_t *)actor)->input_facing_vector[0];
+        forward[1] = ((actor_t *)actor)->input_facing_vector[1];
       }
     }
     actor_move_animation_impulse(actor_handle, 0, (int *)forward);
-    FUN_00046f10(0x2a, *(int *)(actor + 0x18), handle, 3, -1, -1, 0);
-    *(char *)(actor + 0x379) = 1;
+    FUN_00046f10(0x2a, ((actor_t *)actor)->field_018, handle, 3, -1, -1, 0);
+    ((actor_t *)actor)->field_379 = 1;
   }
 
   if (leap_jump != '\0') {
     actor_unit_control_jump(actor_handle);
     goto store_prev;
   }
-  if (*(char *)(actor + 0x15c) != '\0' || *(int *)(actor + 0x158) != -1) {
-    *(char *)(actor + 0x530) = 0;
+  if (((actor_t *)actor)->field_15c != '\0' || ((actor_t *)actor)->field_158 != -1) {
+    ((actor_t *)actor)->field_530 = 0;
     goto store_prev;
   }
-  if (FUN_0002a360(actor_handle) != '\0' || *(char *)(actor + 0x440) == '\0') {
+  if (FUN_0002a360(actor_handle) != '\0' || ((actor_t *)actor)->field_440 == '\0') {
     goto store_prev;
   }
-  if (*(char *)(actor + 0x441) == '\0') {
+  if (((actor_t *)actor)->field_441 == '\0') {
     actor_unit_control_jump(actor_handle);
   } else {
-    if (*(char *)(actor + 0x442) == '\0') {
-      forward[0] = *(float *)(actor + 0x174);
-      forward[1] = *(float *)(actor + 0x178);
+    if (((actor_t *)actor)->field_442 == '\0') {
+      forward[0] = ((actor_t *)actor)->input_facing_vector[0];
+      forward[1] = ((actor_t *)actor)->input_facing_vector[1];
       if (magnitude3d(forward) == *(float *)0x2533c0) {
         forward[0] = *(float *)*(int *)0x31fc0c;
         forward[1] = ((float *)*(int *)0x31fc0c)[1];
       }
     } else {
-      forward[0] = *(float *)(actor + 0x444);
-      forward[1] = *(float *)(actor + 0x448);
+      forward[0] = ((actor_t *)actor)->field_444;
+      forward[1] = ((actor_t *)actor)->field_448;
     }
-    if (unit_leap_begin(*(int *)(actor + 0x18), forward) == '\0') {
+    if (unit_leap_begin(((actor_t *)actor)->field_018, forward) == '\0') {
       actor_unit_control_jump(actor_handle);
     } else {
-      FUN_00046f10(0x2f, *(int *)(actor + 0x18), -1, -1, -1, -1, 0);
+      FUN_00046f10(0x2f, ((actor_t *)actor)->field_018, -1, -1, -1, -1, 0);
     }
   }
-  if (*(char *)(actor + 0x442) != '\0') {
+  if (((actor_t *)actor)->field_442 != '\0') {
     *(int *)(actor + 0x534) = *(int *)(actor + 0x444);
-    *(char *)(actor + 0x530) = 1;
+    ((actor_t *)actor)->field_530 = 1;
     *(int *)(actor + 0x538) = *(int *)(actor + 0x448);
     *(int *)(actor + 0x53c) = *(int *)(actor + 0x44c);
     *(int *)(actor + 0x540) = *(int *)(actor + 0x450);
   }
 
 store_prev:
-  *(int *)(actor + 0x6ec) = *(int *)(actor + 0x418);
-  *(int *)(actor + 0x6f0) = *(int *)(actor + 0x41c);
-  *(int *)(actor + 0x6f4) = *(int *)(actor + 0x420);
+  ((actor_t *)actor)->field_6ec = *(int *)(actor + 0x418);
+  ((actor_t *)actor)->field_6f0 = ((actor_t *)actor)->field_41c;
+  ((actor_t *)actor)->field_6f4 = ((actor_t *)actor)->field_420;
 }
