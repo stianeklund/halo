@@ -32434,7 +32434,10 @@
         },
         {
           "addr": "0x53620",
-          "decl": "void set_real_point3d(void);"
+          "decl": "void set_real_point3d(void);",
+          "name": "set_real_point3d",
+          "ported": true,
+          "src": "src/halo/ai/ai_debug.c"
         },
         {
           "addr": "0x53640",

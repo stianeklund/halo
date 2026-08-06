@@ -2509,6 +2509,38 @@ void FUN_000534d0(void)
   }
 }
 
+/* set_real_point3d (0x53620): zero the whole 0xeec-byte ai-debug globals
+ * block at 0x5abaa0, then set the byte flag at 0x5abaa4.
+ *
+ * Confirmed (0x53620-0x5363b, 7 instructions, 0x1c bytes):
+ *   PUSH 0xeec / PUSH 0 / PUSH 0x5abaa0 / CALL csmemset (0x8db80)
+ *   / ADD ESP,0xc / MOV byte ptr [0x5abaa4],1 / RET
+ * cdecl, caller cleanup (ADD ESP,0xc = 3 stack args), no frame pointer, no
+ * locals, no callee-saved registers touched, no FPU.  csmemset's return value
+ * (the buffer pointer) is left in EAX as an implicit side effect; the declared
+ * return type is void.
+ *
+ * Confirmed ordering: 0x5abaa4 lies INSIDE the zeroed range
+ * (0x5abaa0 + 0xeec = 0x5ac98c), so the flag store must stay after the
+ * csmemset call.  The store is byte-width in the original, so it is written
+ * through a uint8_t * here; a dword store would clobber 0x5abaa5..0x5abaa7.
+ *
+ * Inferred: this is the full-reset counterpart of FUN_00053650 below, which
+ * clears only the 0xee0 tail at 0x5abaac (the 28 x 0x88 AI meter array).  This
+ * function additionally clears the 12-byte header at 0x5abaa0..0x5abaab and
+ * raises the flag at 0x5abaa4, i.e. an enabled/initialized marker.
+ *
+ * Uncertain: the kb name "set_real_point3d" is retained only because the build
+ * and verification tooling keys off it; it is almost certainly a bad auto-name
+ * (no point3d is involved anywhere in the body).  Sibling 0x53650 kept its
+ * FUN_ name for the same reason.  Uncertain: the layout and meaning of the
+ * 12-byte header, and the exact semantics of the 0x5abaa4 flag. */
+void set_real_point3d(void)
+{
+  csmemset((void *)0x5abaa0, 0, 0xeec);
+  *(uint8_t *)0x5abaa4 = 1;
+}
+
 /* FUN_00053650: zero the 0xee0-byte ai-debug globals block at 0x5abaac.
  *
  * Confirmed (0x53650-0x53664, 6 instructions, 21 bytes):
