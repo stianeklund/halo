@@ -1551,6 +1551,76 @@ void FUN_000c1950(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc1990 — HS script function handler: set the scripted-camera-control flag
+ * and echo the flag back to the calling script thread.
+ *
+ * Evaluates the macro arguments; on success the result block holds a single
+ * boolean byte at +0x0.  That byte is handed to
+ * scripted_player_control_set_camera_control() and is ALSO the value returned
+ * to the HS thread (unlike the neighbouring handlers, which return 0).
+ *
+ * Disassembly notes (0xc1990, 20 instructions):
+ *   PUSH EBP / MOV EBP,ESP / PUSH ECX      PUSH ECX => exactly ONE dword local
+ *   PUSH ESI                               ESI holds thread_datum throughout
+ *   MOV dword ptr [EBP-4],0                the local is pre-zeroed as a dword
+ *   PUSH EAX([EBP+0x10]) / PUSH ESI([EBP+0xc]) / PUSH ECX([EBP+0x8])
+ *   CALL 0x000cc560 / ADD ESP,0xc          cdecl: first PUSH is the LAST arg
+ *                                          -> hs_macro_function_evaluate(
+ *                                               function_index, thread_datum,
+ *                                               init)
+ *   TEST EAX,EAX / JZ end                  EAX is a result-record POINTER
+ *   XOR EDX,EDX / MOV DL,byte ptr [EAX]    zero-extended BYTE load at result+0
+ *   PUSH EDX / CALL 0x000b6430             -> set_camera_control(*result)
+ *   MOV byte ptr [EBP-4],AL                only the LOW BYTE of the local is
+ *                                          written; the pre-zero supplies the
+ *                                          upper three bytes
+ *   PUSH dword ptr [EBP-4] / PUSH ESI
+ *   CALL 0x000cbf80                        -> hs_return(thread_datum, value)
+ *   ADD ESP,0xc                            ONE cleanup covers the leftover
+ *                                          PUSH EDX of the 0xb6430 call (4)
+ *                                          plus hs_return's two args (8).
+ *                                          A call-site audit reading this as
+ *                                          "hs_return takes 3 args" is a false
+ *                                          positive.
+ *   POP ESI / MOV ESP,EBP / POP EBP / RET  plain RET (caller cleans) => cdecl
+ *
+ * The AL consumed by `MOV byte ptr [EBP-4],AL` is NOT garbage and NOT a real
+ * return value: 0xb6430's first instruction is `MOV AL,[EBP+8]`, so it leaves
+ * its own argument byte in AL by accident of codegen.  The stored byte is
+ * therefore provably *(unsigned char *)result.  The callee stays void-declared
+ * here; the byte is re-loaded from `result` instead of read out of AL.
+ *
+ * The `*(char *)&value` store reproduces the original's pre-zeroed-dword /
+ * narrow byte-store pair: only [EBP-4]'s low byte is written, and the earlier
+ * `value = 0` supplies the upper three bytes that the later dword PUSH reads.
+ * Re-loading the byte rather than taking it out of AL
+ * costs one extra byte load and keeps `result` live across the 0xb6430 call
+ * (so VC71 parks it in a callee-saved register).  Passing the byte straight out
+ * of the dereference — rather than through the local — is what reproduces the
+ * reference's `XOR EDX,EDX / MOV DL,(reg) / PUSH EDX` argument sequence; it is
+ * the same idiom the 100%-matching sibling at 0xc1950 uses.
+ *
+ * Callees (all cdecl, no register args, all ported):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *               declared int in kb.json but used as a record pointer
+ *   0xb6430 = scripted_player_control_set_camera_control(bool)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c1990(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+  int value;
+
+  value = 0;
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (int *)0) {
+    scripted_player_control_set_camera_control(*(char *)result);
+    *(char *)&value = *(char *)result;
+    hs_return(thread_datum, value);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
