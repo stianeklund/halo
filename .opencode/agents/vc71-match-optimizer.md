@@ -10,7 +10,8 @@ description: >
   readability/naming/refactor work (score/byte-accuracy content only —
   route readability/source-recovery work to halo-source-recovery instead).
 mode: subagent
-variant: xhigh
+model: aiolos/gpt-5.6-sol
+variant: medium
 color: info
 memory: project
 ---

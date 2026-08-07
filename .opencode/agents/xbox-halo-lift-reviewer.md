@@ -7,7 +7,7 @@ description: >
   supports auto-acceptance.
 mode: subagent
 model: aiolos/gpt-5.6-terra
-variant: xhigh
+variant: high
 color: error
 memory: project
 ---

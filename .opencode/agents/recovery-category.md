@@ -2,7 +2,7 @@
 description: Sequential source-recovery category worker for one manifest category
 mode: subagent
 model: aiolos/gpt-5.6-terra
-variant: xhigh
+variant: high
 permission:
   edit: allow
   bash: allow
