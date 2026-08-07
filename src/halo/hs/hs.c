@@ -2412,6 +2412,45 @@ void FUN_000c1e10(int16_t function_index, int thread_datum, char init)
   return;
 }
 
+/* 0xc1e50 — HaloScript script command "structure_bsp_index_get": report the
+ * index of the currently active structure BSP back to the calling script
+ * thread.
+ *
+ * Disassembly (15 instructions).  Frame is PUSH EBP; MOV EBP,ESP; PUSH ECX —
+ * a single 4-byte local at [EBP-0x4] and no `sub esp`.  Body:
+ *
+ *   MOV dword ptr [EBP-0x4],0   ; zero the FULL dword first
+ *   CALL 0x18f080               ; global_structure_bsp_index_get(), result in AX
+ *   MOV ECX,[EBP+0xc]           ; thread_datum, loaded before the word store
+ *   MOV word ptr [EBP-0x4],AX   ; store only the low 16 bits
+ *   MOV EAX,[EBP-0x4]
+ *   PUSH EAX                    ; arg2 = value
+ *   PUSH ECX                    ; arg1 = thread_datum  (cdecl: last PUSH first)
+ *   CALL 0xcbf80                ; hs_return
+ *   ADD ESP,0x8
+ *
+ * The zero-dword-then-store-word sequence means the int16 result is
+ * ZERO-extended into the 32-bit HS value slot, not sign-extended: a plain
+ * `hs_return(thread_datum, global_structure_bsp_index_get())` would promote
+ * the `short` return with MOVSX and is wrong.  Same idiom as FUN_000c1900.
+ *
+ * [EBP+0x8] (function_index) and [EBP+0x10] (init) are never read by this
+ * body; they complete the standard hs-evaluator signature shared by every
+ * other handler in this TU.
+ *
+ * Callees (both cdecl, no register args, both ported):
+ *   0x18f080 = global_structure_bsp_index_get(void) — returns int16_t in AX
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c1e50(int16_t function_index, int thread_datum, char init)
+{
+  int32_t value;
+
+  value = 0;
+  *(int16_t *)&value = global_structure_bsp_index_get();
+  hs_return(thread_datum, value);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
