@@ -2906,6 +2906,10 @@
         "Device object offsets +0x1a4 (byte flag bit0 = invert), +0x1ac (float, second animation scalar) and +0x1b8 (float, position) are named from usage only; no struct definition was recovered."
       ]
     },
+    "0x964a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x971a0": {
       "kind": "function",
       "status": "ported"

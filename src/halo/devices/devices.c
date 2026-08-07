@@ -100,3 +100,22 @@ void device_preprocess_node_orientations(int object_datum, void *node_data)
     }
   }
 }
+
+/* Read a device object's current power level.
+ *
+ * Original 0x964a0. For a real datum handle the object is resolved as a
+ * device (type mask 0x380) and the float at +0x1ac is returned; that is the
+ * same power field device_preprocess_node_orientations drives animation
+ * index [1] from. A NONE handle (-1) yields the shared float constant at
+ * 0x2533c0 instead. Both paths leave the result in ST0 (FLD).
+ */
+float device_get_power(int device_object)
+{
+  if (device_object != -1) {
+    return *(float *)((char *)object_get_and_verify_type(device_object,
+                                                         0x380) +
+                      0x1ac);
+  }
+
+  return *(float *)0x2533c0;
+}
