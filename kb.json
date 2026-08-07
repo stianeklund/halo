@@ -36870,7 +36870,8 @@
         },
         {
           "addr": "0x966b0",
-          "decl": "float device_group_get_value(int device_group_index);"
+          "decl": "float device_group_get_value(int device_group_index);",
+          "ported": true
         },
         {
           "addr": "0x966d0",

@@ -227,3 +227,25 @@ void device_group_change_only_once_more_set(int device_group_index,
   device_group[2] &= 0xfe;
   device_group[2] &= 0xfd;
 }
+
+/* Read a device group's current value.
+ *
+ * Original 0x966b0: sign-extends the low 16 bits of the incoming dword index
+ * (MOVSX word ptr [EBP+8]) before handing it to datum_get against the
+ * device-group data pool at 0x5aa8c8, then returns the float at +0x04 of the
+ * resolved record (FLD dword ptr [EAX+4] -- the value is left in ST0).
+ *
+ * The datum_get result is dereferenced unconditionally: unlike its sibling
+ * device_group_change_only_once_more_set, the original performs no NONE (-1)
+ * index test and no NULL check on the returned record. That is preserved
+ * deliberately -- adding a defensive guard would change the shape.
+ */
+float device_group_get_value(int device_group_index)
+{
+  char *device_group;
+
+  device_group =
+    (char *)datum_get(*(data_t **)0x5aa8c8, (int)(short)device_group_index);
+
+  return *(float *)(device_group + 4);
+}
