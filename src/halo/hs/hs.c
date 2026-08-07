@@ -1,4 +1,3 @@
-
 /* 0xc0c30 — HS script function handler: apply an encounter state change.
  * Evaluates the macro arguments; on success the result block holds an
  * encounter handle at +0x0 (int) and a state value at +0x4 (int16). Calls
@@ -3692,6 +3691,30 @@ void FUN_000c2480(int16_t function_index, int thread_datum, char init)
     hs_return(thread_datum, 0);
   }
   return;
+}
+
+/* 0xc24c0 — HaloScript function evaluator: run the event-manager tab advance
+ * for its side effect, then commit a 0 result to the calling script thread
+ * (a void-returning script builtin).
+ *
+ * Structural twin of 0xc0cb0 — the two bodies differ only in the first CALL
+ * target.
+ *
+ * Callees (both cdecl, ported):
+ *   0xdc140 = event_manager_tab_process(void) — no arguments
+ *   0xcbf80 = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc24c0-0xc24d7, 10 instructions): cdecl,
+ * plain RET, frame is PUSH EBP; MOV EBP,ESP only — no `sub esp`, no locals,
+ * no buffers, no FPU, no _chkstk, no register args. The body reads only
+ * [EBP+0xc] = thread_datum (arg 2); function_index ([EBP+0x8]) and init
+ * ([EBP+0x10]) are never read but complete the uniform hs-evaluator dispatch
+ * signature. Push order at the second call (PUSH 0x0 then PUSH EAX, ADD
+ * ESP,0x8) confirms hs_return(thread_datum, 0), not (0, thread_datum). */
+void FUN_000c24c0(int16_t function_index, int thread_datum, char init)
+{
+  event_manager_tab_process();
+  hs_return(thread_datum, 0);
 }
 
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
