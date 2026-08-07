@@ -8542,6 +8542,150 @@
       "metadata": {
         "source_path": "src/halo/bitmaps/targa_file.c"
       }
+    },
+    {
+      "name": "halo/FUN_000960c0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/960c0.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00096110",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/96110.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00096310",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/96310.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00096470",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/96470.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_000964a0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/964a0.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_000964d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/964d0.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00096510",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/96510.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_000965f0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/965f0.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00096630",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/96630.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00096670",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/96670.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_000966b0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/966b0.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_000966d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/966d0.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00096720",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/96720.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_000967a0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/967a0.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00096850",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/96850.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00096900",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/96900.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00096a00",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/96a00.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00096a90",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+      "base_path": "delinked/functions/96a90.obj",
+      "metadata": {
+        "source_path": "src/halo/devices/devices.c"
+      }
     }
   ]
 }

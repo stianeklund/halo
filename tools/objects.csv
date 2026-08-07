@@ -106,7 +106,7 @@ structure_runtime_decals.obj,true,0x001963C0-0x001965C0,1
 structure_visibility.obj,true,0x001965D0-0x00197D00,7
 telnet_console.obj,true,0x00130980-0x00132660,27
 terminal.obj,true,0x000E3410-0x000E3C10,10
-tiff_file.obj,true,0x0007F3A0-0x000802D0,8
+tiff_file.obj,true,0x0007F570-0x0007FC00,3
 thread_win32.obj,true,0x00081170-0x00081C20,15
 transport_endpoint_set_winsock.obj,true,0x00081EC0-0x00084B70,52
 ui_widget.obj,true,0x000E3B80-0x000ED0B0,121
@@ -173,7 +173,7 @@ object_lights.obj,true,0x001391E0-0x00139680,9
 <xdk_stubs>,true,0x001CFA3F-0x002064D0,73
 transport_address.obj,true,0x00081A90-0x00082000,4
 xbox_sound_cache.obj,true,0x001BDED0-0x001BE9B0,9
-message_header.obj,true,0x00080210-0x00081310,24
+message_header.obj,true,0x00080380-0x00081310,23
 data_packet_groups.obj,true,0x0011ABB0-0x0011B1A0,4
 devices.obj,true,0x000960C0-0x00096C90,18
 collision_bsp.obj,true,0x00147380-0x0014EC10,35
@@ -192,3 +192,5 @@ action_vehicle.obj,true,0x0001AEB0-0x0001BAA0,4
 glow.obj,true,0x001345B0-0x001347B0,1
 rasterizer_xbox_widgets.obj,true,0x0017ADC0-0x0017B9D0,8
 rasterizer_lights.obj,true,0x00181670-0x00181870,1
+64bit_math.obj,true,0x0007FF40-0x00080410,5
+targa_file.obj,true,0x0007F3A0-0x0007F5A0,1
