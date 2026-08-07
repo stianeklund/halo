@@ -2420,8 +2420,8 @@ void FUN_000c1e10(int16_t function_index, int thread_datum, char init)
  * a single 4-byte local at [EBP-0x4] and no `sub esp`.  Body:
  *
  *   MOV dword ptr [EBP-0x4],0   ; zero the FULL dword first
- *   CALL 0x18f080               ; global_structure_bsp_index_get(), result in AX
- *   MOV ECX,[EBP+0xc]           ; thread_datum, loaded before the word store
+ *   CALL 0x18f080               ; global_structure_bsp_index_get(), result in
+ * AX MOV ECX,[EBP+0xc]           ; thread_datum, loaded before the word store
  *   MOV word ptr [EBP-0x4],AX   ; store only the low 16 bits
  *   MOV EAX,[EBP-0x4]
  *   PUSH EAX                    ; arg2 = value
@@ -2449,6 +2449,38 @@ void FUN_000c1e50(int16_t function_index, int thread_datum, char init)
   value = 0;
   *(int16_t *)&value = global_structure_bsp_index_get();
   hs_return(thread_datum, value);
+}
+
+/* 0xc1e80 — HaloScript script command handler: print the engine version
+ * banner, then complete the calling script thread with the value 0.
+ *
+ * Disassembly (10 instructions).  Frame is PUSH EBP; MOV EBP,ESP only — no
+ * locals and no `sub esp`.  Body:
+ *
+ *   CALL 0x101cc0        ; main_print_version(), no args, no cleanup
+ *   MOV EAX,[EBP+0xc]    ; thread_datum
+ *   PUSH 0x0             ; hs_return arg2 = value
+ *   PUSH EAX             ; hs_return arg1 = thread_datum (cdecl: last PUSH
+ * first) CALL 0xcbf80         ; hs_return ADD ESP,0x8          ; cdecl cleanup,
+ * 2 dwords
+ *
+ * main_print_version leaves whatever it likes in EAX; the original never
+ * reads it after the CALL, so the result is discarded here as well.
+ *
+ * [EBP+0x8] (function_index) and [EBP+0x10] (init) are never read by this
+ * body; they complete the standard hs-evaluator signature shared by every
+ * other handler in this TU (same situation as FUN_000c1e50).  Ghidra
+ * mis-prototypes this as void(void) and reports the [EBP+0xc] read as the
+ * phantom local `in_stack_00000008`.
+ *
+ * Callees (both cdecl, no register args, both ported):
+ *   0x101cc0 = main_print_version(void)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c1e80(int16_t function_index, int thread_datum, char init)
+{
+  main_print_version();
+  hs_return(thread_datum, 0);
 }
 
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
