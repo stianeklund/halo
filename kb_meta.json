@@ -5557,6 +5557,93 @@
         "Parameters function_index (arg1, [EBP+0x8]) and init (arg3) are never read by the body; they are inferred from the uniform 3-arg hs-evaluator signature shared by the sibling handlers in hs.obj, not from loads in this function."
       ]
     },
+    "0xc1c10": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters function_index and init are unused by the body and are inferred from the shared hs-evaluator handler signature used by every sibling in this TU; only [EBP+0xc] (thread_datum) is read by the disassembly."
+      ]
+    },
+    "0xc1c70": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Argument-record field names (unit_handle @ +0x0, equipment_index @ +0x4 int16, reset_flag @ +0x8 char) are inferred from player_add_equipment's kb.json declaration; the load widths themselves are confirmed from the disassembly (MOV EDX,[EAX] / MOV CX,[EAX+4] / MOV DL,[EAX+8])."
+      ]
+    },
+    "0xc1cb0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters were recovered from the disassembly frame ([EBP+0x8] int16 function_index, [EBP+0xc] thread_datum, [EBP+0x10] char init); Ghidra's in_stack_00000004/8/c names were an artifact of the stale void(void) kb declaration, not register arguments.",
+        "The two debug_player_teleport arguments use deliberately different extension widths: MOVSX from the sign-extended int16 at record+0 for arg1 and XOR/MOV DX from the zero-extended uint16 at record+4 for arg2; typing them identically would be a LOADW-class bug."
+      ],
+      "uncertain": [
+        "The single-instruction VC71 residual (25 of 26 instructions) is the MSVC two-instruction XOR EDX,EDX plus MOV DX zero-extension form versus a single MOVZX; this is a codegen idiom difference with no known C-level lever."
+      ]
+    },
+    "0xc1d10": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The result record returned by hs_macro_function_evaluate has a const char* map-name string pointer as its first dword; inferred from MOV EDX,[EAX]; PUSH EDX feeding main_set_map_name(const char*).",
+        "The single ADD ESP,0xc at 0xc1d3c is MSVC merged cleanup for the 1-argument main_set_map_name call plus the 2-argument hs_return call, not evidence of a 3-argument hs_return; the call-site audit ARG_COUNT hazard on hs_return is a false positive here."
+      ]
+    },
+    "0xc1d90": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The single ADD ESP,0xc at 0xc1dbf is MSVC's coalesced cleanup for main_set_difficulty (1 push) plus hs_return (2 pushes), so the call-site auditor's ARG_COUNT cleanup=3 vs decl=2 warning on hs_return is a false positive."
+      ]
+    },
+    "0xc1ee0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters function_index ([EBP+0x8]) and init ([EBP+0x10]) are never read by this body; the 3-parameter hs-evaluator signature is inferred from the TU-wide convention shared by sibling handlers FUN_000c1e50/1e80/1ea0/1ec0, not from this function's own disassembly, which only reads thread_datum at [EBP+0xc]."
+      ]
+    },
+    "0xc1f40": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Result record field +0x0 is typed const char* rather than an int handle because the sole consumer, debug_dump_memory_for_file (0x8eb80), is declared in kb.json as taking a const char* tag_filter; the disassembly only shows MOV EDX,[EAX] followed by a PUSH, which is width-agnostic.",
+        "The call-site audit ARG_COUNT finding claiming hs_return has cleanup=3 versus decl=2 is a false positive: MSVC coalesced the one-dword cleanup for debug_dump_memory_for_file and the two-dword cleanup for hs_return into a single ADD ESP,0xc at 0xc1f6c."
+      ]
+    },
+    "0xc1fa0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters function_index ([EBP+0x8]) and init ([EBP+0x10]) are never read by this body; the 3-arg hs-evaluator signature is inferred from the identical already-ported siblings FUN_000c1f00/FUN_000c1f20/FUN_000c0cb0 rather than from reads in this function."
+      ]
+    },
+    "0xc2000": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Callee 0x90860 (profile_sections_activate) takes one cdecl pointer argument, not zero as the previous kb decl claimed; evidence is MOV EDX,[EAX]/PUSH EDX at 0xc201f plus MOV EDI,[EBP+8] in 0x90860's own prologue, and the kb decl was corrected accordingly."
+      ],
+      "uncertain": [
+        "The argument type const char *substring for profile_sections_activate is inferred by analogy with the adjacent profile_dump_to_file (0x90650) which takes a substring filter; only the 32-bit width of result[0] is confirmed by the binary."
+      ]
+    },
+    "0xc2040": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "hs_macro_function_evaluate (0xcc560) is declared int-returning in kb.json but actually returns a pointer to an evaluation record; the pointer nature is inferred from TEST EAX,EAX followed by MOV EDX,[EAX] and is handled by casting at the call site rather than widening the callee decl.",
+        "The kb decl for profile_sections_deactivate (0x90880) was corrected from void(void) to void(const char *substring) because 0x90880 forwards its single stack argument in EDI to the shared worker 0x907c0, which string-compares it against the profile-section name table at 0x3361b4, matching the const char * decl already present on its activate twin 0x90860."
+      ]
+    },
+    "0xc20c0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Handler identity 'debug_pvs' is inferred from the callee 0x1965d0 only; unlike the 0xc2080 sibling, the hs_function_definition record (name/return_type/param_types) for this handler was not read, so the builtin's script-level name and declared parameter type are unconfirmed."
+      ]
+    },
     "0xc3b60": {
       "kind": "function",
       "status": "ported",

@@ -3840,3 +3840,103 @@ Queue exhausted after 1 pass. All 31 targets rejected or skipped. The 27 fresh c
 - **Pre-screen failures**: 13 functions fail pre-screen (missing kb.json register annotations, register-arg callees undeclared, mixed-convention ABIs, trivial wrappers).
 - **Already-implemented**: 1 function already in source (skipped to avoid unnecessary re-porting).
 - **Needs_runtime**: 1 function (FUN_0005bbe0 at 86.1%) parked pending genuine runtime behavior verification — fabricated equivalence snapshot detected and VC71 lane broken for encounters.c.
+
+---
+
+## Run 2026-08-07: hs.obj Batch 2 — 12/12 committed (goal_reached)
+
+**Status**: goal_reached (12/12 committed)
+
+### Summary
+- **Goal reached**: 12 functions committed at ≥90% VC71 match (all from hs.obj).
+- **Skip_parked_repeat**: 5 previously-parked functions remain below 90% threshold; recommend recovery with `/lift-score-improve` pass.
+- **Pre-screen failures**: 13 functions fail pre-screen (missing kb.json register annotations, register-arg callees undeclared, mixed-convention ABIs, trivial wrappers, incorrect placeholder decls).
+- **Already-implemented**: 1 function already in source (encounters.c).
+- **Needs_runtime**: 1 function (FUN_0005bbe0) parked at 86.1% pending genuine runtime behavior verification (VC71 lane broken for encounters.c).
+
+### Results
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00053f40 | 0x53f40 | encounters.obj | - | skipped | skip_parked_repeat (2 attempts, best 83.6% < 90 — use the improve pass) |
+| FUN_00057330 | 0x57330 | encounters.obj | - | skipped | skip_parked_repeat (2 attempts, best 75.8% < 90 — use the improve pass) |
+| main_get_window_count | 0x100b00 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 84.2% < 90 — use the improve pass) |
+| main_skip | 0x100560 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 75% < 90 — use the improve pass) |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (3 attempts, best 83.7% < 90 — use the improve pass) |
+| FUN_00052b60 | 0x52b60 | ai_debug.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| FUN_00053800 | 0x53800 | ai_debug.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| FUN_0004c890 | 0x4c890 | ai_debug.obj | - | skipped | Two callees are invoked with register arguments that kb.json does not model: `MOV EAX,0x60d2ec; CALL 0x0004b220` and `MOV ESI,0x60d2c4; CALL 0x0004c560`. Both kb entries declare `void FUN_xxxx(void);` with no `@eax`/`@esi` annotation, so calling them by name from C would not set the registers and the callees would read garbage. Lifting this function requires first fixing the two callee decls in kb.json to carry `@eax` / `@esi` parameters (ABI annotations are immutable once set, so this must be a deliberate change, not a side effect of this lift). |
+| FUN_000ffeb0 | 0xffeb0 | main.obj | - | skipped | 9-instruction conditional tail-call wrapper: takes one char stack param, and if nonzero tail-jumps (JMP, not CALL) to FUN_00054df0. Body is a single `if (param) FUN_00054df0();`. Also note the kb.json decl is wrong — it says `void FUN_000ffeb0(void)` but the function reads byte ptr [EBP+0x8], i.e. it takes a char/bool parameter. A lift against the current decl would drop the argument. Fix the decl before ever porting this. |
+| FUN_00049280 | 0x49280 | ai_debug.obj | - | skipped | Decompile exposes undefined register arguments: `float *in_ECX` (used as the first point passed to FUN_00189450) and `void *unaff_EBX` (color pointer forwarded to both FUN_00189450 and FUN_001893e0). The kb.json entry declares only `void FUN_00049280(void);` with no `@<reg>` annotations, so the true ABI (ECX + EBX inbound, plus two stack params at +4/+8) is not registered and cannot be expressed by the current thunk generator. Also mixed convention: `in_stack_00000004` (short count) and `in_stack_00000008` (array base) arrive on the stack while ECX/EBX arrive in registers. |
+| FUN_00049300 | 0x49300 | ai_debug.obj | - | skipped | Decompile uses `int in_EAX` as the primary input (the structure_bsp/tag base pointer: `tag_block_get_element((void *)(in_EAX + 0xb0), 0, 0x60)`), so the function takes a register argument in EAX. The kb.json entry is a bare `void FUN_00049300(void);` with no `@eax` annotation, so the ABI is not expressible from C without an immutable `@<reg>` registration. Additionally the decompile shows three stack params (`in_stack_00000004` int, `in_stack_00000008` float, `in_stack_0000000c` void*) that the kb decl does not carry — the signature would have to be invented. Per pre-screen rule 4 (in_EAX present) this target is skipped. |
+| FUN_000498d0 | 0x498d0 | ai_debug.obj | - | skipped | Decompile contains in_AX and unaff_DI: the function takes two 16-bit arguments in registers (SI<-AX, DI) with no stack parameters. kb.json declares it as `void FUN_000498d0(void);` with no @<reg> annotations, so the true ABI is unrecorded and cannot be expressed by the current thunk generator without a kb.json ABI change (@reg annotations are immutable/must be added deliberately). Skipped per pre-screen rule 4. |
+| FUN_0004b670 | 0x4b670 | ai_debug.obj | - | skipped | Decompile uses unaff_EDI (object/unit handle, @edi) and unaff_EBX (color pointer, @ebx) — register-passed args not expressible via the current kb.json thunk mechanism. Also takes a stack byte (in_stack_00000004) alongside the reg args, i.e. a mixed custom convention. |
+| FUN_00052ab0 | 0x52ab0 | ai_debug.obj | - | skipped | already implemented: src/halo/ai/ai_debug.c |
+| ai_scripting_command_list_status | 0x57380 | encounters.obj | - | skipped | Callee FUN_00057330 (0x57330) takes a register argument: the disassembly at 0x57550 does `LEA ESI,[EAX+0x1c]` immediately before `CALL 0x00057330` (3 stack pushes: EDX=actor swarm handle, ECX=object handle, 0x0). Its kb.json entry is `void FUN_00057330(void);` — no `@esi` annotation and no stack params, so calling it by name from C would pass neither ESI nor the 3 stack args, and its return in AX (Ghidra `extraout_EAX`) is undeclared. kb.json must first be corrected with the real signature + `@esi` before this can be lifted. Also no delinked reference exists for 0x57380, so there would be no VC71 byte-match evidence. |
+| FUN_000497c0 | 0x497c0 | ai_debug.obj | - | skipped | Decompile contains unaff_BX (short) and unaff_EDI (float *) — the function takes two register-passed arguments (BX = a short id/index, EDI = pointer to a 3-float point). The kb.json entry has only `"decl": "void FUN_000497c0(void);"` with no `@<reg>` annotations, so lifting it as declared would silently read garbage. Per CLAUDE.md, `@<reg>` annotations are immutable and must be added by a human/ABI-audit pass before this can be lifted; register-arg thunk support is also limited. Skipping. |
+| ai_debug_lineofsight | 0x4b770 | ai_debug.obj | - | skipped | Callees FUN_000497c0 (0x497c0) and FUN_000498d0 (0x498d0) are register-arg functions (EDI/EBX in, AX out) but are registered in kb.json as `void FUN_000497c0(void);` / `void FUN_000498d0(void);` with no @<reg> annotations. Additionally ai_debug_lineofsight itself reads four stack params at [EBP+0x8/0xc/0x10/0x14] while its own kb decl is `void ai_debug_lineofsight(void);` — the decl is wrong. Cannot lift until kb.json signatures for 0x4b770, 0x497c0, 0x498d0 are corrected with real params and @<reg> annotations. |
+| FUN_0004c560 | 0x4c560 | ai_debug.obj | - | skipped | Decompile uses `int unaff_ESI` as the sole implicit input (whole body reads ESI), i.e. the function takes an @esi register argument. kb.json declares it as `void FUN_0004c560(void);` with no @reg annotation, so the ABI cannot be expressed without changing an immutable decl. Additionally several callees are register-arg: FUN_00049280 is called with ECX = ESI+0x28 plus 2 pushed args, FUN_0004c2a0 with ECX and DL live, FUN_00049300 with EAX = *(ESI+0x78) — none of these are in kb.json with @reg annotations. |
+| FUN_0005bbe0 | 0x5bbe0 | encounters.obj | 86.1 | parked | NEEDS_RUNTIME: 86.1% VC71 match but below 90% band floor; fabricated equivalence evidence (no snapshot exists); VC71 lane broken for encounters.c; recommit after fixing lane and obtaining genuine runtime proof. |
+| FUN_000c1c10 | 0xc1c10 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1c40 | 0xc1c40 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1c70 | 0xc1c70 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1cb0 | 0xc1cb0 | hs.obj | 94.1 | committed | mechanical gate: 94.1% clean (pass1) |
+| FUN_000c1cf0 | 0xc1cf0 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1d10 | 0xc1d10 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1d50 | 0xc1d50 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1d90 | 0xc1d90 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1dd0 | 0xc1dd0 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1e10 | 0xc1e10 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1e50 | 0xc1e50 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1e80 | 0xc1e80 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+### Decisions
+
+- **Goal reached**: 12 functions (all from hs.obj) committed at ≥90% VC71 match.
+- **Skip_parked_repeat**: 5 previously-parked functions remain below 90% after multiple attempts; use `/lift-score-improve` pass.
+- **Pre-screen failures**: 13 functions blocked by missing kb.json register annotations, undeclared register-arg callees, or mixed-convention ABIs.
+- **Already-implemented**: 1 function (FUN_00052ab0) already in source.
+- **Needs_runtime**: 1 function (FUN_0005bbe0 at 86.1%) parked on fabricated runtime claim; VC71 lane broken.
+
+---
+
+## Run 20260805-2 — 12/12 committed (goal_reached)
+
+### Summary
+- **Goal reached**: 12 functions committed at ≥90% VC71 match (all from hs.obj).
+- **Skip_parked_repeat**: 5 previously-parked functions remain below 90% threshold.
+- **Pre-screen failures**: 2 functions fail pre-screen (trivial wrappers, register-arg requirements).
+
+### Results
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00053f40 | 0x53f40 | encounters.obj | - | skipped | skip_parked_repeat (2 attempts, best 83.6% < 90 — use the improve pass) |
+| FUN_00057330 | 0x57330 | encounters.obj | - | skipped | skip_parked_repeat (2 attempts, best 75.8% < 90 — use the improve pass) |
+| main_skip | 0x100560 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 75% < 90 — use the improve pass) |
+| main_get_window_count | 0x100b00 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 84.2% < 90 — use the improve pass) |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (3 attempts, best 83.7% < 90 — use the improve pass) |
+| FUN_00052b60 | 0x52b60 | ai_debug.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| FUN_00053800 | 0x53800 | ai_debug.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| FUN_000c1f80 | 0xc1f80 | hs.obj | - | skipped | Body is a single unchanged wrapper call: FUN_000c1f80 loads [EBP+0xc] and tail-calls hs_return(arg, 0) with cdecl cleanup. 9 instructions total, one CALL, no logic. Nothing to lift beyond a passthrough. |
+| FUN_000c2100 | 0xc2100 | hs.obj | - | skipped | Body is a single-line cdecl wrapper: 9 instructions, one call to hs_return(arg1, 0). No FPU, no structs, no locals. Nothing to lift beyond the wrapper itself. |
+| FUN_000c2120 | 0xc2120 | hs.obj | - | skipped | Body is a single call wrapping one FUN_ unchanged: the whole function is `hs_return(arg2, 0);`. 9 instructions total, no FPU, no struct access, no locals. Nothing to lift. |
+| FUN_000c2140 | 0xc2140 | hs.obj | - | skipped | Body is a single call wrapping one FUN_ unchanged: the whole function is `hs_return([EBP+0xc], 0); return;` — 9 instructions, no logic. Classic hs script-function stub (one of many identical `hs_*` return-nothing handlers). Not worth a lift slot. |
+| FUN_000c1ea0 | 0xc1ea0 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1ec0 | 0xc1ec0 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1ee0 | 0xc1ee0 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1f00 | 0xc1f00 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1f20 | 0xc1f20 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1f40 | 0xc1f40 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1fa0 | 0xc1fa0 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c1fc0 | 0xc1fc0 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c2000 | 0xc2000 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c2040 | 0xc2040 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c2080 | 0xc2080 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000c20c0 | 0xc20c0 | hs.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+### Decisions
+
+- **Goal reached**: 12 functions (all from hs.obj) committed at ≥90% VC71 match.
+- **Skip_parked_repeat**: 5 previously-parked functions remain below 90% after multiple attempts; use `/lift-score-improve` pass.
+- **Pre-screen failures**: 2 functions skipped as trivial wrappers (single-call stubs, no logic to lift).
