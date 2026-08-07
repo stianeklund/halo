@@ -355,3 +355,65 @@ bool device_can_change_position(int object_handle)
 
   return can_change;
 }
+
+/* Spawn the effect or impulse sound that a device's state machine asked for.
+ *
+ * Original 0x967a0. Ghidra reports void(void) with in_stack_ parameters because
+ * the prologue has no `sub esp` and it loses the argument slots; the
+ * disassembly is unambiguous -- EBP+0x8 is loaded into ESI (object handle) and
+ * EBP+0xC into EBX (tag index), cleaned by the caller, so this is
+ * cdecl void(int, int).
+ *
+ * A NONE (-1) tag index means "nothing to play" and leaves immediately. That
+ * guard is tested before ESI/EDI are pushed, which is why the early exit at
+ * 0x9683f pops only EBX/EBP while both work paths fall through the wider
+ * EDI/ESI/EBX/EBP epilogue at 0x9683d.
+ *
+ * The object is resolved as a device (type mask 0x380) unconditionally, before
+ * the tag group is even known, and its result is discarded on the 'snd!' path.
+ * The call is kept where the original put it because object_get_and_verify_type
+ * asserts on a type mismatch -- sinking it into the 'effe' arm would drop that
+ * check for sounds.
+ *
+ * The tag group then selects the spawn routine:
+ *   'effe' (0x65666665) -> 0x9ec30, carrying the device's two floats at +0x1b8
+ *                          and +0x1ac and passing the object handle twice,
+ *   'snd!' (0x736e6421) -> object_impulse_sound_new, positioned at the global
+ *                          point pointed to by [0x31fc1c] with the global
+ *                          forward vector and gain 1.0f,
+ *   anything else       -> the devices.c:761 assert, which does not return.
+ *
+ * Block layout arbitrates the source shape: the assert is the fall-through at
+ * 0x967e7 and sits BEFORE both spawn bodies ('snd!' at 0x967fb, 'effe' at
+ * 0x9681e), so 'effe' is tested first and the 'snd!' check is nested inside the
+ * negated arm rather than written as an else-if chain.
+ */
+void FUN_000967a0(int object_handle, int tag_index)
+{
+  char *device;
+  int group_tag;
+
+  if (tag_index != -1) {
+    device = (char *)object_get_and_verify_type(object_handle, 0x380);
+    group_tag = tag_get_group_tag(tag_index);
+
+    if (group_tag != 0x65666665) { /* 'effe' */
+      if (group_tag != 0x736e6421) { /* 'snd!' */
+        display_assert(0, "c:\\halo\\SOURCE\\devices\\devices.c", 0x2f9, true);
+        system_exit(-1);
+      }
+
+      object_impulse_sound_new(object_handle, tag_index, -1,
+                               *(float **)0x31fc1c, global_forward_vector_ptr,
+                               1.0f);
+      return;
+    }
+
+    /* The two floats are moved through GPRs (MOV EDX,[EDI+0x1ac];
+     * MOV EAX,[EDI+0x1b8]; PUSH EDX; PUSH EAX), never the x87 stack, so the
+     * push order -- not the load order -- fixes the arguments: +0x1b8 is
+     * param_5 and +0x1ac is param_6. */
+    FUN_0009ec30(tag_index, object_handle, object_handle, -1,
+                 *(float *)(device + 0x1b8), *(float *)(device + 0x1ac), 0, 0);
+  }
+}

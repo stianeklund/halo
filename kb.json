@@ -36885,7 +36885,8 @@
         },
         {
           "addr": "0x967a0",
-          "decl": "void FUN_000967a0(void);"
+          "decl": "void FUN_000967a0(int object_handle, int tag_index);",
+          "ported": true
         },
         {
           "addr": "0x96850",
