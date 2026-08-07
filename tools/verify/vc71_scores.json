@@ -4262,7 +4262,8 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000a8820": {
-      "score": 82.8,
+      "opnd_percent": 66.1,
+      "score": 85.3,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000a8970": {
@@ -4294,7 +4295,8 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000a8e30": {
-      "score": 88.9,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000a8e40": {
@@ -4575,7 +4577,8 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000ab450": {
-      "score": 87.7,
+      "opnd_percent": 49.3,
+      "score": 93.0,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000ab510": {
@@ -4615,7 +4618,8 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000aba90": {
-      "score": 88.8,
+      "opnd_percent": 79.8,
+      "score": 91.0,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000abb90": {
@@ -4723,8 +4727,8 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000ad600": {
-      "opnd_percent": 47.9,
-      "score": 84.9,
+      "opnd_percent": 67.2,
+      "score": 86.7,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000ad9b0": {
@@ -4778,7 +4782,8 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000ae400": {
-      "score": 85.1,
+      "opnd_percent": 82.9,
+      "score": 100.0,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000ae460": {
@@ -19125,9 +19130,9 @@
       "source": "src/halo/game/game_engine.c"
     },
     "game_engine_player_update_netgame_flag": {
-      "opnd_percent": 63.4,
+      "opnd_percent": 60.6,
       "ref": "synth",
-      "score": 84.9,
+      "score": 86.7,
       "source": "src/halo/game/game_engine.c"
     },
     "game_engine_playlist_begin": {
@@ -19211,9 +19216,9 @@
       "source": "src/halo/game/game_engine.c"
     },
     "game_engine_running": {
-      "opnd_percent": 66.7,
+      "opnd_percent": 100.0,
       "ref": "synth",
-      "score": 88.9,
+      "score": 100.0,
       "source": "src/halo/game/game_engine.c"
     },
     "game_engine_score_reset": {
@@ -19246,9 +19251,9 @@
       "source": "src/halo/game/game_engine.c"
     },
     "game_engine_spawn_equipment": {
-      "opnd_percent": 66.0,
+      "opnd_percent": 63.3,
       "ref": "synth",
-      "score": 82.8,
+      "score": 85.3,
       "source": "src/halo/game/game_engine.c"
     },
     "game_engine_stalker_default": {
@@ -19306,9 +19311,9 @@
       "source": "src/halo/game/game_engine.c"
     },
     "game_engine_teams_still_playing": {
-      "opnd_percent": 70.8,
+      "opnd_percent": 79.8,
       "ref": "synth",
-      "score": 88.8,
+      "score": 91.0,
       "source": "src/halo/game/game_engine.c"
     },
     "game_engine_unit_can_enter_seat": {
@@ -25242,9 +25247,9 @@
       "source": "src/halo/effects/decals.c"
     },
     "ticks_to_unicode_time_string": {
-      "opnd_percent": 50.8,
+      "opnd_percent": 46.5,
       "ref": "synth",
-      "score": 87.7,
+      "score": 93.0,
       "source": "src/halo/game/game_engine.c"
     },
     "tiff_export": {

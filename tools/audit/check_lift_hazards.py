@@ -56,7 +56,7 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 SRC_DIR = os.path.join(ROOT_DIR, 'src')
 
 MSVC_INTRINSICS = {
-    '1d90e0': ('_chkstk', 'modifies ESP — declare locals normally or use static'),
+    '1d90e0': ('_chkstk', 'modifies ESP — declare locals normally (do not use static, see lift-learnings §20)'),
     '1d9068': ('_ftol2', 'FPU-stack ABI — use (int)float_expr cast'),
     '1dd5c8': ('__SEH_prolog', 'restructures stack frame — use __try/__except or skip'),
     '1dd601': ('__SEH_epilog', 'non-standard return — paired with __SEH_prolog'),
@@ -1738,6 +1738,45 @@ def check_vendored_source(filepath, content, lines):
 
 
 
+STATIC_ARRAY_PATTERN = re.compile(
+    r'^\s*static\s+(?:unsigned\s+)?(?:char|uint8_t|byte|int|short|float|double|int16_t|int32_t|uint16_t|uint32_t|wchar_t)\s+([A-Za-z_]\w*)\s*\[[^\]]+\]\s*;'
+)
+
+
+def check_static_local_buffers(filepath, content, lines):
+    """Check for local static array declarations inside function bodies.
+
+    Local static arrays degrade EBP-relative stack addressing across the whole
+    TU in VC71 builds, causing severe match drops (see lift-learnings §20).
+    """
+    errors = []
+    in_function = False
+    brace_depth = 0
+
+    for idx, line in enumerate(lines, 1):
+        stripped = line.strip()
+        if '{' in stripped:
+            brace_depth += stripped.count('{')
+            in_function = True
+        if '}' in stripped:
+            brace_depth -= stripped.count('}')
+            if brace_depth <= 0:
+                brace_depth = 0
+                in_function = False
+
+        if in_function and brace_depth > 0:
+            m = STATIC_ARRAY_PATTERN.match(line)
+            if m:
+                var_name = m.group(1)
+                relpath = os.path.relpath(filepath, ROOT_DIR)
+                errors.append(
+                    f"  {relpath}:{idx}: static local array '{var_name}' — "
+                    "breaks EBP-relative addressing across TU (see lift-learnings §20)"
+                )
+
+    return errors
+
+
 def main():
     frame_audit = '--frame-size-audit' in sys.argv
     quiet = '-q' in sys.argv or '--quiet' in sys.argv or os.environ.get('LOG_LEVEL') == 'WARNING'
@@ -1770,6 +1809,7 @@ def main():
     all_range_gate_errors = []
     all_fnptr_conv_errors = []
     all_vendored_errors = []
+    all_static_buf_errors = []
 
     for fpath in c_files:
         with open(fpath, 'r', errors='replace') as f:
@@ -1796,6 +1836,7 @@ def main():
         all_range_gate_errors.extend(check_range_gate_relational(fpath, content, lines))
         all_fnptr_conv_errors.extend(check_raw_fnptr_conv_cast(fpath, content, lines))
         all_vendored_errors.extend(check_vendored_source(fpath, content, lines))
+        all_static_buf_errors.extend(check_static_local_buffers(fpath, content, lines))
         if frame_audit:
             all_frame_errors.extend(check_frame_sizes(fpath, content, lines))
 
@@ -2089,6 +2130,18 @@ def main():
                 file=sys.stderr,
             )
             for e in all_fnptr_conv_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_static_buf_errors:
+            print(
+                'WARNING: static local array inside function body.\n'
+                'Static local buffers alter EBP-relative addressing across the\n'
+                'entire translation unit in VC71 builds, causing severe match drops.\n'
+                'Convert to plain stack arrays (see lift-learnings §20):\n',
+                file=sys.stderr,
+            )
+            for e in all_static_buf_errors:
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 

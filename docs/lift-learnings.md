@@ -1051,8 +1051,10 @@ The entire 10pp gain came from the addressing change alone; no logic was touched
 - `FUN_00025c10` (0x25c10): 77.3% with static → 87.1% with stack
 - `actor_has_accessible_firing_position` (0x25a00): stuck at 78.4% with static
   (lower impact because its buffer is accessed less densely)
+- `game_engine_player_update_netgame_flag` (0xad600): 44KB `los_scratch` array declared static degraded stack frame allocation across neighbor functions in `game_engine.c`; converting to stack array jumped `game_engine_update` from **55.0% to 93.8%** match (+38.8pp).
 
-**How to detect residual workarounds:**
+**Detector:** Automated check in `tools/audit/check_lift_hazards.py` (`check_static_local_buffers`).
+
 ```bash
 grep -rn 'static.*avoid.*_chkstk\|static.*_chkstk\|chkstk linker' src/
 ```
