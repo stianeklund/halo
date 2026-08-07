@@ -1,5 +1,11 @@
 #include "x87_math.h"
 
+/* MSVC 7.1 /Oi intrinsics memset() to inline `rep stos` for constant
+ * zero-fills (e.g. the 60-byte level-array clears in FUN_000d8ff0), matching
+ * the reference; the game's own csmemset() stays a real CALL.  Declared extern
+ * like structure_detail_objects.c / main.c do for the same pattern. */
+extern void *__cdecl memset(void *, int, unsigned int);
+
 /* hud_weapon.c — weapon HUD interface (0xd8af0-0xd91f0)
  *
  * Lifted from Halo CE Xbox (cachebeta.xbe).  Owns the weapon-HUD globals
@@ -366,9 +372,21 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
       /* seed the hierarchy walk: level_hud[0] = wphi, level_idx[0] = whud_index
        */
       level_hud[0] = wphi;
+      /* The original clears level_hud[1..15] / level_idx[1..15] with memset(),
+       * which MSVC 7.1 /Oi inlines to `mov ecx,0xf; rep stos` (reference
+       * 0x5f5/0x608).  clang has no memset symbol to link, so the shipped
+       * build uses the behaviorally identical csmemset(); both zero 60 bytes. */
+#if defined(_MSC_VER) && !defined(__clang__)
+      memset(&level_hud[1], 0, 15 * sizeof(int *));
+#else
       csmemset(&level_hud[1], 0, 15 * sizeof(int *));
+#endif
       level_idx[0] = whud_index;
+#if defined(_MSC_VER) && !defined(__clang__)
+      memset(&level_idx[1], 0, 15 * sizeof(int));
+#else
       csmemset(&level_idx[1], 0, 15 * sizeof(int));
+#endif
       selector_mask = (unsigned int)state[0x13];
       level = 1;
       do {
@@ -527,7 +545,6 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                           goto LAB_state_check;
                       LAB_set_invalid:
                         cur_valid = 0;
-                      LAB_time_check:
                         hold = FUN_000d2300(overlay_elem + 0x24);
                         if (game_time_get() - *state_slot < hold)
                           goto LAB_state_check;
