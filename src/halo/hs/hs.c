@@ -2889,6 +2889,45 @@ void FUN_000c20c0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2160 (hs.obj) — HaloScript function handler: "ai_lines".
+ *
+ * Script-function table record at 0x2719e4: name "ai_lines", parse 0xc7e50,
+ * help "cycles through AI line-spray modes", return_type 4 (void),
+ * num_params 0.  Because the command takes no script arguments there is no
+ * hs_macro_function_evaluate call — the handler runs the debug toggle and
+ * completes the calling thread with the value 0.  Same minimal 10-instruction
+ * sub-shape as FUN_000c1e80 / FUN_000c1ee0 / FUN_000c1f20 above.
+ *
+ * Disassembly (10 instructions).  Frame is PUSH EBP; MOV EBP,ESP only — no
+ * locals and no `sub esp`.  Body:
+ *
+ *   CALL 0x53890         ; FUN_00053890(), no args, no cleanup
+ *   MOV EAX,[EBP+0xc]    ; thread_datum
+ *   PUSH 0x0             ; hs_return arg2 = value
+ *   PUSH EAX             ; hs_return arg1 = thread_datum (cdecl: last PUSH
+ *                        ; is the first C argument)
+ *   CALL 0xcbf80         ; hs_return
+ *   ADD ESP,0x8          ; cdecl cleanup, 2 dwords
+ *
+ * FUN_00053890 returns int16_t in AX; the original overwrites EAX with the
+ * [EBP+0xc] load on the very next instruction, so the result is discarded
+ * here as well — do not bind it to a local.
+ *
+ * [EBP+0x8] (function_index) and [EBP+0x10] (init) are never read by this
+ * body; they complete the standard hs-evaluator signature shared by every
+ * other handler in this TU.  Ghidra mis-prototypes this as void(void) and
+ * reports the [EBP+0xc] read as the phantom local `in_stack_00000008`.
+ *
+ * Callees (both cdecl, no register args, both ported):
+ *   0x53890 = FUN_00053890(void) -> int16_t   (AI line-spray mode cycle)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c2160(int16_t function_index, int thread_datum, char init)
+{
+  FUN_00053890();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
