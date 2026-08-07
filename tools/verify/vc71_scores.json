@@ -25122,6 +25122,11 @@
       "score": 83.1,
       "source": "src/halo/bungie_net/thread_win32.c"
     },
+    "targa_export": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/bitmaps/targa_file.c"
+    },
     "tea_decrypt": {
       "opnd_percent": 82.8,
       "ref": "synth",

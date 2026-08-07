@@ -995,6 +995,7 @@ alongside the other manual-spot techniques.)*
    structural ceiling. Document which specific instructions are unmatched
    (FPU stack depth refs like `FLD ST(1)`, FPU comparison idioms, `@<reg>`
    prologue) so future sessions don't re-investigate.
+   - **FUN_000d8ca0 (79.2%):** `@<eax>` (`object_handle`) and `@<esi>` (`local_player_index`) register parameters on an unmapped function; VC71 emits a 3-instruction cdecl stack prologue (`push ebp; mov ebp, esp; ... pop ebp`) which accounts for the 79.2% ceiling (27 cand vs 26 ref insns).
 
 **Variant — vector3d_scale_add operand confusion (§2 + §4 interaction):**
 In FUN_001a2f40, the Ghidra decompiler lost track of which vector was

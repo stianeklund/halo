@@ -171,3 +171,5 @@ tmp/
 tools/verify/vc71_cache.db
 
 .serena
+recovery/*
+scratch/*
