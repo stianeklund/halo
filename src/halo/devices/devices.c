@@ -112,10 +112,43 @@ void device_preprocess_node_orientations(int object_datum, void *node_data)
 float device_get_power(int device_object)
 {
   if (device_object != -1) {
-    return *(float *)((char *)object_get_and_verify_type(device_object,
-                                                         0x380) +
+    return *(float *)((char *)object_get_and_verify_type(device_object, 0x380) +
                       0x1ac);
   }
 
   return *(float *)0x2533c0;
+}
+
+/* Set or clear a machine's "never appears locked" flag.
+ *
+ * Original 0x964d0. Unlike its neighbours this resolves the object with type
+ * mask 0x80 (object type 7, machine) alone rather than the 0x380 device
+ * supertype, and uses the _try_ variant of the accessor, so a handle that is
+ * live but not a machine yields NULL and the call becomes a no-op. Both the
+ * NONE-sentinel test and the NULL test are early-outs performed in that order.
+ *
+ * The flags word at +0x1c4 is the machine flags dword; bit 2 (0x4) is
+ * "never appears locked". Sibling setters drive bit 0 (operates
+ * automatically) and bit 1 (one sided) of the same word.
+ */
+void device_set_never_appears_locked(int object_index,
+                                     char never_appears_locked)
+{
+  char *machine;
+
+  if (object_index == -1) {
+    return;
+  }
+
+  machine = (char *)object_try_and_get_and_verify_type(object_index, 0x80);
+  if (machine == (char *)0) {
+    return;
+  }
+
+  if (never_appears_locked != '\0') {
+    *(unsigned int *)(machine + 0x1c4) |= 4;
+    return;
+  }
+
+  *(unsigned int *)(machine + 0x1c4) &= 0xfffffffb;
 }

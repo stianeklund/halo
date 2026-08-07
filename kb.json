@@ -36847,7 +36847,8 @@
         },
         {
           "addr": "0x964d0",
-          "decl": "void device_set_never_appears_locked(void);"
+          "decl": "void device_set_never_appears_locked(int object_index, char never_appears_locked);",
+          "ported": true
         },
         {
           "addr": "0x96510",
