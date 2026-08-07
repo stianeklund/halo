@@ -2515,6 +2515,39 @@ void FUN_000c1ea0(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc1ec0 — HaloScript script command handler: flush the texture cache, then
+ * complete the calling script thread with the value 0.
+ *
+ * Body is two calls and nothing else — the frame is a bare
+ * PUSH EBP / MOV EBP,ESP with no `sub esp`, so there are no locals at all.
+ *
+ * 000c1ec3  CALL 0x1bed30        ; texture_cache_flush(), no args, no cleanup
+ * 000c1ec8  MOV  EAX,[EBP+0xc]   ; thread_datum (SECOND stack arg)
+ * 000c1ecb  PUSH 0x0             ; value  (cdecl: last arg pushed first)
+ * 000c1ecd  PUSH EAX             ; thread_handle
+ * 000c1ece  CALL 0xcbf80         ; hs_return(thread_datum, 0)
+ * 000c1ed3  ADD  ESP,0x8         ; cdecl cleanup, 2 dwords
+ * 000c1ed7  RET                  ; plain RET => cdecl, caller cleans args
+ *
+ * texture_cache_flush takes no arguments and its EAX is never read after the
+ * CALL, so the result is discarded here as well.
+ *
+ * [EBP+0x8] (function_index) and [EBP+0x10] (init) are never read by this
+ * body; they complete the standard hs-evaluator signature shared by every
+ * other handler in this TU (same situation as FUN_000c1ea0 immediately
+ * above).  Ghidra mis-prototypes this as void(void) and reports the
+ * [EBP+0xc] read as the phantom local `in_stack_00000008`.
+ *
+ * Callees (both cdecl, no register args):
+ *   0x1bed30 = texture_cache_flush(void)   [not yet ported; called via thunk]
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c1ec0(int16_t function_index, int thread_datum, char init)
+{
+  texture_cache_flush();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
