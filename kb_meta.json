@@ -5644,6 +5644,57 @@
         "Handler identity 'debug_pvs' is inferred from the callee 0x1965d0 only; unlike the 0xc2080 sibling, the hs_function_definition record (name/return_type/param_types) for this handler was not read, so the builtin's script-level name and declared parameter type are unconfirmed."
       ]
     },
+    "0xc22a0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Result block from hs_macro_function_evaluate at 0xc22a0 is {+0x00 int handle, +0x04 float, +0x08 float, +0x0c uint16}; field types are inferred from the load instructions (FLD dword for the two floats, XOR EDX/MOV DX for the zero-extended 16-bit field), not from a struct definition.",
+        "VC71 scores 85.2 percent (30 of 31 insns) and the entire residual is the documented float memory-argument codegen cap: the reference emits flds/subl/fstps/flds/fstps while VC71 emits two integer movl, so this is a structural cap and not a lift defect."
+      ],
+      "uncertain": [
+        "The kb decl for callee 0xa2970 player_effect_screen_fade_in was corrected from void(void) to (int, float, float, uint16_t) purely from this call site's push sequence; 0xa2970 is not ported and its body was not analysed, so the parameter names effect_definition/scale_a/scale_b/flags_or_index are placeholders and only the widths and order are binary-confirmed."
+      ]
+    },
+    "0xc23c0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The kb decl for callee cinematic_show_letterbox (0x92e90) was corrected from void(void) to void(char show) because the disassembly zero-extends the byte at result+0x0 into EDX and pushes it before the CALL; its 4-byte cleanup is merged into the ADD ESP,0xc that follows hs_return."
+      ]
+    },
+    "0xc2400": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "hs_macro_function_evaluate (0xcc560) is declared returning int in kb.json but this call site dereferences EAX as a 16-bit pointer (XOR EDX,EDX; MOV DX,word ptr [EAX]) after a NULL test, so its real return is a pointer to the evaluated script value; the cast is applied locally because other callers share the decl.",
+        "FUN_00093640 (0x93640) takes exactly one stack argument: the merged ADD ESP,0xc at 0xc242f covers its single PUSH EDX plus hs_return's two pushes, so its kb decl was corrected from void(void) to void(int); the resulting ARG_COUNT warning on hs_return is a false positive from that merge."
+      ]
+    },
+    "0xc2440": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "kb decl for callee 0x930b0 cinematic_set_title_delayed was corrected from void(void) to (int index, float value); arg1 width is inferred as int (not int16_t) by analogy with the identically-shaped sibling call FUN_00093640(int) at 0xc2400, since the PUSH EDX at the call site cannot distinguish the two."
+      ],
+      "uncertain": [
+        "The 88.5 percent VC71 residual is exactly two instructions, both VC71 codegen idioms rather than lift errors: the float memory argument emits mov/push instead of the reference fld/push/fstp round-trip, and the 16-bit zero extension emits movzwl instead of the reference xor edx,edx plus mov dx; the latter is reproduced identically at the already-ported sibling FUN_000c2400 which is capped at 93.6 percent for the same single instruction."
+      ]
+    },
+    "0xc2480": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The result-record field at +0x0 is an unsigned 8-bit flag: the original emits XOR EDX,EDX / MOV DL,byte ptr [EAX] (zero extension), so a signed char or int load would be wrong.",
+        "kb.json decl for callee 0x93030 cinematic_suppress_bsp_object_creation was corrected from (void) to (unsigned char suppress) by this lift; the PUSH EDX at 0xc24a4 is the binary evidence and this handler is currently its only in-tree caller."
+      ]
+    },
+    "0xc2500": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters function_index and init are unread by the body (only [EBP+0xc] is loaded); their presence in the signature is inferred from the shared hs-evaluator triple used by sibling handlers 0xc0cb0 and 0xc24e0, not from any instruction in this function."
+      ]
+    },
     "0xc3b60": {
       "kind": "function",
       "status": "ported",
