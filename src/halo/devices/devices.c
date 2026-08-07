@@ -417,3 +417,57 @@ void FUN_000967a0(int object_handle, int tag_index)
                  *(float *)(device + 0x1b8), *(float *)(device + 0x1ac), 0, 0);
   }
 }
+
+/* Allocate a new device group and seed its value and flags.
+ *
+ * Original 0x96850. The kb name is device_effect_new, but every piece of
+ * binary evidence says this allocates a DEVICE GROUP: the pool it draws from
+ * is the device-group data_t at 0x5aa8c8 (the same pool used by
+ * device_group_get_value and device_group_change_only_once_more_set), the two
+ * fields it seeds are that record's value at +0x04 and flags word at +0x02,
+ * and the assert text is "no more free device groups". The name is left alone
+ * because renaming a kb symbol silently rebinds callers in other TUs; flagged
+ * here instead.
+ *
+ * Ghidra reports void(void) with in_stack_ parameters because the kb decl said
+ * so and the prologue has no `sub esp`. The disassembly is unambiguous:
+ * [EBP+0x8] is read as a dword and stored to +0x04, [EBP+0xC] is read as a
+ * WORD (MOV DX, word ptr [EBP+0xc]) and stored to +0x02, and the result comes
+ * back in AX (MOV AX,SI at 0x9688b), so this is
+ * cdecl short(float, short).
+ *
+ * The first parameter is a float: both call sites (0x970cb, 0x9710a)
+ * materialise 0x3f800000 / 0 through a stack temp and push it, and
+ * device_group_get_value returns +0x04 with FLD. The original copies it with
+ * integer MOVs rather than FLD/FSTP, which the bit-preserving store below
+ * reproduces without corrupting the value the way a numeric cast would.
+ *
+ * The pool pointer is re-read from 0x5aa8c8 for the datum_get call
+ * (MOV EDX,[0x5aa8c8] at 0x9686a) instead of being reused from the
+ * data_new_at_index argument, so it is dereferenced twice here on purpose.
+ *
+ * The NONE result takes the out-of-line block at 0x96891, which asserts and
+ * does not return; its epilogue at 0x968b1 is dead code the compiler emitted
+ * anyway.
+ */
+short device_effect_new(float initial_value, short flags)
+{
+  short device_group_index;
+  char *device_group;
+
+  device_group_index = (short)data_new_at_index(*(data_t **)0x5aa8c8);
+
+  if (device_group_index != -1) {
+    device_group =
+      (char *)datum_get(*(data_t **)0x5aa8c8, (int)device_group_index);
+
+    *(long *)(device_group + 4) = *(long *)&initial_value;
+    *(short *)(device_group + 2) = flags;
+    return device_group_index;
+  }
+
+  display_assert("no more free device groups",
+                 "c:\\halo\\SOURCE\\devices\\devices.c", 0x311, true);
+  system_exit(-1);
+  return device_group_index;
+}
