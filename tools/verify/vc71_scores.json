@@ -2852,8 +2852,8 @@
       "source": "src/halo/bitmaps/tiff_file.c"
     },
     "FUN_0007f5e0": {
-      "opnd_percent": 47.5,
-      "score": 82.6,
+      "opnd_percent": 48.9,
+      "score": 89.7,
       "source": "src/halo/bitmaps/tiff_file.c"
     },
     "FUN_0007fa00": {
@@ -9290,11 +9290,13 @@
       "source": "src/halo/memory/crc.c"
     },
     "FUN_001190c0": {
-      "score": 32.5,
+      "opnd_percent": 89.4,
+      "score": 93.6,
       "source": "src/halo/memory/crc.c"
     },
     "FUN_00119100": {
-      "score": 88.4,
+      "opnd_percent": 77.6,
+      "score": 91.8,
       "source": "src/halo/memory/crc.c"
     },
     "FUN_00119180": {
@@ -17650,9 +17652,9 @@
       "source": "src/halo/networking/network_server_manager.c"
     },
     "crc_checksum_buffer": {
-      "opnd_percent": 76.7,
+      "opnd_percent": 77.6,
       "ref": "synth",
-      "score": 88.4,
+      "score": 91.8,
       "source": "src/halo/memory/crc.c"
     },
     "crc_new": {
@@ -17662,9 +17664,9 @@
       "source": "src/halo/memory/crc.c"
     },
     "crc_table_init": {
-      "opnd_percent": 25.0,
+      "opnd_percent": 80.9,
       "ref": "synth",
-      "score": 32.5,
+      "score": 93.6,
       "source": "src/halo/memory/crc.c"
     },
     "create_local_players": {
@@ -25246,8 +25248,8 @@
       "source": "src/halo/game/game_engine.c"
     },
     "tiff_export": {
-      "opnd_percent": 47.5,
-      "score": 82.6,
+      "opnd_percent": 48.9,
+      "score": 89.7,
       "source": "src/halo/bitmaps/tiff_file.c"
     },
     "tiff_get_bounds": {
