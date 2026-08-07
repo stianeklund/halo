@@ -2642,7 +2642,7 @@
     },
     {
      "addr": "0x38e00",
-     "decl": "int FUN_00038e00(short unit_effect /* @<eax> */);",
+     "decl": "int FUN_00038e00(short unit_effect @<eax>);",
      "ported": true,
      "reg_args": {
       "unit_effect": "eax"
@@ -2684,7 +2684,7 @@
     },
     {
      "addr": "0x3a600",
-     "decl": "void *FUN_0003a600(int16_t actor_type@<ax>);",
+     "decl": "void *FUN_0003a600(int16_t actor_type @<ax>);",
      "ported": true
     },
     {
@@ -2724,7 +2724,7 @@
     },
     {
      "addr": "0x3a800",
-     "decl": "int FUN_0003a800(int16_t actor_type);",
+     "decl": "char FUN_0003a800(int16_t actor_type);",
      "ported": true
     },
     {
@@ -2780,7 +2780,7 @@
     },
     {
      "addr": "0x3ac20",
-     "decl": "void FUN_0003ac20(int actor_handle, const char *reason, int obj_handle /* @<eax> */);",
+     "decl": "void FUN_0003ac20(int actor_handle, const char *reason, int obj_handle @<eax>);",
      "ported": true
     },
     {
@@ -3003,7 +3003,7 @@
     },
     {
      "addr": "0x3cb50",
-     "decl": "void FUN_0003cb50(int swarm_handle /* @<eax> */, int swarm_component_handle /* @<edi> */, int unit_index /* @<ebx> */);",
+     "decl": "void FUN_0003cb50(int swarm_handle @<eax>, int swarm_component_handle @<edi>, int unit_index @<ebx>);",
      "ported": true,
      "source_path": "halo/ai/actors.c"
     },

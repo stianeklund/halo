@@ -736,7 +736,8 @@
       "source": "src/halo/ai/actions.c"
     },
     "FUN_0001ef90": {
-      "score": 83.0,
+      "opnd_percent": 76.1,
+      "score": 83.4,
       "source": "src/halo/ai/actions.c"
     },
     "FUN_0001f6e0": {
@@ -2061,6 +2062,11 @@
       "score": 90.2,
       "source": "src/halo/ai/encounters.c"
     },
+    "FUN_00053c50": {
+      "opnd_percent": 97.3,
+      "score": 97.3,
+      "source": "src/halo/ai/encounters.c"
+    },
     "FUN_00053da0": {
       "score": 93.8,
       "source": "src/halo/ai/encounters.c"
@@ -2276,6 +2282,21 @@
       "score": 84.5,
       "source": "src/halo/ai/encounters.c"
     },
+    "FUN_000564b0": {
+      "opnd_percent": 82.7,
+      "score": 93.2,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_000565c0": {
+      "opnd_percent": 94.6,
+      "score": 95.9,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_000566a0": {
+      "opnd_percent": 62.7,
+      "score": 96.4,
+      "source": "src/halo/ai/encounters.c"
+    },
     "FUN_00056790": {
       "score": 100.0,
       "source": "src/halo/ai/encounters.c"
@@ -2313,7 +2334,8 @@
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_00056c60": {
-      "score": 90.8,
+      "opnd_percent": 62.6,
+      "score": 91.3,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_00056d80": {
@@ -2394,6 +2416,11 @@
     },
     "FUN_00057c70": {
       "score": 91.1,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_00057d00": {
+      "opnd_percent": 85.7,
+      "score": 96.5,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_00057ef0": {
@@ -2500,12 +2527,27 @@
       "score": 100.0,
       "source": "src/halo/ai/encounters.c"
     },
+    "FUN_00058af0": {
+      "opnd_percent": 93.6,
+      "score": 97.9,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_00058c40": {
+      "opnd_percent": 92.0,
+      "score": 96.6,
+      "source": "src/halo/ai/encounters.c"
+    },
     "FUN_00058fa0": {
       "score": 100.0,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_00058fb0": {
       "score": 100.0,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_00058fd0": {
+      "opnd_percent": 94.0,
+      "score": 97.3,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_00059480": {
@@ -2560,6 +2602,21 @@
       "score": 93.3,
       "source": "src/halo/ai/encounters.c"
     },
+    "FUN_00059c40": {
+      "opnd_percent": 60.7,
+      "score": 92.9,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_00059d30": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_0005B790": {
+      "opnd_percent": 87.8,
+      "score": 95.8,
+      "source": "src/halo/ai/encounters.c"
+    },
     "FUN_0005a050": {
       "score": 82.7,
       "source": "src/halo/ai/encounters.c"
@@ -2596,6 +2653,11 @@
       "score": 92.9,
       "source": "src/halo/ai/encounters.c"
     },
+    "FUN_0005ac60": {
+      "opnd_percent": 86.0,
+      "score": 93.0,
+      "source": "src/halo/ai/encounters.c"
+    },
     "FUN_0005acf0": {
       "score": 95.0,
       "source": "src/halo/ai/encounters.c"
@@ -2628,12 +2690,42 @@
       "score": 88.6,
       "source": "src/halo/ai/encounters.c"
     },
+    "FUN_0005b370": {
+      "opnd_percent": 68.1,
+      "score": 91.1,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_0005b4b0": {
+      "opnd_percent": 73.0,
+      "score": 92.1,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_0005b6e0": {
+      "opnd_percent": 89.9,
+      "score": 94.6,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_0005b790": {
+      "opnd_percent": 87.8,
+      "score": 95.8,
+      "source": "src/halo/ai/encounters.c"
+    },
     "FUN_0005ba70": {
       "score": 75.9,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_0005baa0": {
       "score": 75.9,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_0005bad0": {
+      "opnd_percent": 78.1,
+      "score": 94.1,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "FUN_0005c630": {
+      "opnd_percent": 86.3,
+      "score": 86.3,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_0005c940": {
@@ -19064,6 +19156,12 @@
       "score": 100.0,
       "source": "src/halo/ai/encounters.c"
     },
+    "encounter_build_firing_position_owner_actor_indices": {
+      "opnd_percent": 61.4,
+      "ref": "synth",
+      "score": 92.1,
+      "source": "src/halo/ai/encounters.c"
+    },
     "encounter_compute_activation_cluster_bit_vector": {
       "opnd_percent": 100.0,
       "ref": "synth",
@@ -19124,6 +19222,21 @@
       "score": 85.2,
       "source": "src/halo/ai/encounters.c"
     },
+    "encounter_modify_pursuit_desires": {
+      "opnd_percent": 99.0,
+      "score": 99.0,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "encounter_post_combat_select_random_behavior": {
+      "opnd_percent": 78.1,
+      "score": 94.1,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "encounter_pursuit_position_already_examined": {
+      "opnd_percent": 89.9,
+      "score": 94.6,
+      "source": "src/halo/ai/encounters.c"
+    },
     "encounter_set_blind": {
       "opnd_percent": 100.0,
       "ref": "synth",
@@ -19134,6 +19247,11 @@
       "opnd_percent": 100.0,
       "ref": "synth",
       "score": 100.0,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "encounter_set_respawn": {
+      "opnd_percent": 86.3,
+      "score": 86.3,
       "source": "src/halo/ai/encounters.c"
     },
     "encounter_squad_timer_expire": {
@@ -19152,6 +19270,11 @@
       "opnd_percent": 79.5,
       "ref": "synth",
       "score": 86.0,
+      "source": "src/halo/ai/encounters.c"
+    },
+    "encounter_verify_firing_position_owner_actor_indices": {
+      "opnd_percent": 68.1,
+      "score": 91.1,
       "source": "src/halo/ai/encounters.c"
     },
     "encounterless_attach_actor": {
