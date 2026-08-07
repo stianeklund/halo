@@ -471,3 +471,89 @@ short device_effect_new(float initial_value, short flags)
   system_exit(-1);
   return device_group_index;
 }
+
+/* Create one device group per scenario device-group block entry.
+ *
+ * Original 0x96900. Walks the scenario's device_groups tag block (scenario +
+ * 0x288, element size 0x34 from PUSH 0x34 at 0x96926) and allocates a runtime
+ * device group for each entry, asserting that the allocation order matches the
+ * block order.
+ *
+ * The body is device_group_new (the out-of-line copy lives at 0x96850, which
+ * kb calls device_effect_new) inlined: data_new_at_index against the
+ * device-group pool at 0x5aa8c8, the shared "no more free device groups"
+ * assert at devices.c line 785 (0x311), then datum_get and the two seeding
+ * stores. It is written out here rather than as a call because the original
+ * has no CALL to 0x96850 in this range -- the compiler inlined it, and the
+ * success arm's `return` became the JMP over the assert block at 0x9697a.
+ *
+ * Per-iteration details taken from the disassembly rather than the decompile:
+ *   - The block count is re-read from [EBX] on every back edge (0x969c4), so
+ *     the loop condition dereferences the block pointer instead of a cached
+ *     count.
+ *   - group_index is a short: the compare is MOVSX EAX,SI / CMP EAX,ECX and
+ *     the second assert compares CMP DI,SI (16-bit). The dword stores to
+ *     [EBP-4] are just MSVC padding the slot, not int evidence.
+ *   - The allocation result is truncated before the NONE test (CMP DI,-1) and
+ *     sign-extended again for datum_get (MOVSX EDX,DI).
+ *   - element +0x20 is copied to the group's value at +0x04 with integer MOVs
+ *     (no x87 anywhere in this function), so it is moved bit-exactly through a
+ *     long rather than a float temp that could be renormalised.
+ *   - element +0x24 is a flags byte and only bit 0 is tested (TEST CL,1); the
+ *     result is stored to the group's 16-bit flags word at +0x02
+ *     (MOV word ptr [EAX+2],SI).
+ *
+ * The pool pointer at 0x5aa8c8 is re-read for datum_get (0x9695e) instead of
+ * being reused from the data_new_at_index argument, matching the out-of-line
+ * copy at 0x96850.
+ */
+void create_initial_device_groups(void)
+{
+  int *device_group_block;
+  char *element;
+  char *device_group;
+  short group_index;
+  short new_group_index;
+  short flags;
+  long value;
+
+  device_group_block = (int *)((char *)global_scenario_get() + 0x288);
+
+  group_index = 0;
+
+  if (*device_group_block > 0) {
+    do {
+      element =
+        (char *)tag_block_get_element(device_group_block, group_index, 0x34);
+
+      flags = 0;
+      if ((element[0x24] & 1) != 0) {
+        flags = 1;
+      }
+
+      value = *(long *)(element + 0x20);
+
+      new_group_index = (short)data_new_at_index(*(data_t **)0x5aa8c8);
+
+      if (new_group_index != -1) {
+        device_group =
+          (char *)datum_get(*(data_t **)0x5aa8c8, (int)new_group_index);
+
+        *(long *)(device_group + 4) = value;
+        *(short *)(device_group + 2) = flags;
+      } else {
+        display_assert("no more free device groups",
+                       "c:\\halo\\SOURCE\\devices\\devices.c", 0x311, true);
+        system_exit(-1);
+      }
+
+      if (new_group_index != group_index) {
+        display_assert("new_group_index==group_index",
+                       "c:\\halo\\SOURCE\\devices\\devices.c", 0x339, true);
+        system_exit(-1);
+      }
+
+      group_index++;
+    } while (group_index < *device_group_block);
+  }
+}
