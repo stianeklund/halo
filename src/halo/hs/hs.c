@@ -2625,6 +2625,39 @@ void FUN_000c1f20(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc1f40 — HaloScript script-function handler for the single-string form of
+ * the memory dump command.  Evaluates the macro arguments; on success the
+ * result block holds a `const char *` at +0x0 (the tag/file name filter),
+ * which is forwarded to debug_dump_memory_for_file.  The thread is then
+ * completed with a zero result via hs_return(thread_datum, 0).
+ *
+ * `thread_datum` lives in ESI across the whole body in the original, so it is
+ * still available for the hs_return after the evaluate call.  MSVC coalesces
+ * the stack cleanup for debug_dump_memory_for_file (1 arg) and hs_return
+ * (2 args) into a single `ADD ESP,0xc` at 0xc1f6c; the call-site audit reads
+ * that as a 3-argument hs_return, which is a false positive.
+ *
+ * Ghidra mis-prototypes this as void(void) and surfaces the three cdecl stack
+ * params as the phantom locals in_stack_00000004/8/c.
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560  = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *              -> int * (result record, NULL on failure)
+ *   0x8eb80  = debug_dump_memory_for_file(const char *tag_filter)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c1f40(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    debug_dump_memory_for_file((const char *)result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
