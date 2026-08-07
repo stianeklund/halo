@@ -4864,7 +4864,7 @@
         },
         {
           "addr": "0x93030",
-          "decl": "void cinematic_suppress_bsp_object_creation(void);"
+          "decl": "void cinematic_suppress_bsp_object_creation(unsigned char suppress);"
         },
         {
           "addr": "0x93050",
@@ -10384,7 +10384,9 @@
         },
         {
           "addr": "0xc2480",
-          "decl": "void FUN_000c2480(void);"
+          "decl": "void FUN_000c2480(int16_t function_index, int thread_datum, char init);",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xc24c0",

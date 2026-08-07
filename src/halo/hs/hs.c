@@ -3633,6 +3633,67 @@ void FUN_000c2440(int16_t function_index, int thread_datum, char init)
   return;
 }
 
+/* 0xc2480 (hs.obj) - HaloScript handler: evaluate the single macro-function
+ * argument and forward it to cinematic_suppress_bsp_object_creation.
+ *
+ * Structural twin of the 0xc1640 dispatch family: the argument is evaluated,
+ * a NULL result means "still evaluating" and the handler returns without
+ * completing the thread, and a non-NULL result has a SINGLE zero-extended
+ * byte read from OFFSET +0x0 of the result record, which becomes the only
+ * argument to the dispatch callee.  The thread is then completed with 0.
+ *
+ * Disassembly (0xc2480-0xc24b3, 52 bytes).  Frame is PUSH EBP; MOV EBP,ESP;
+ * PUSH ESI - no `sub esp`, no locals, no buffers, no SEH, no _chkstk, no
+ * register args.  Plain cdecl RET (no RET n).  Parameters (cdecl, first PUSH
+ * is the last C argument):
+ *
+ *   [EBP+0x08] = function_index (int16_t; loaded into ECX as a dword)
+ *   [EBP+0x0c] = thread_datum   (int; cached in ESI across the whole body,
+ *                                the natural codegen for a param read twice)
+ *   [EBP+0x10] = init           (char; loaded into EAX as a dword)
+ *
+ *   PUSH EAX / PUSH ESI / PUSH ECX ; CALL 0xcc560 ; ADD ESP,0xc
+ *     -> hs_macro_function_evaluate(function_index, thread_datum, init).
+ *        EAX is DEREFERENCED below, so the result is a POINTER to the
+ *        evaluated result record and the TEST EAX,EAX is a NULL test.
+ *   XOR EDX,EDX ; MOV DL,byte ptr [EAX]
+ *     -> ZERO-extended 8-bit field at record +0x0, so the load must be
+ *        unsigned char - not int, and not signed char (a signed load would
+ *        be MOVSX).
+ *   PUSH EDX ; CALL 0x93030  -> cinematic_suppress_bsp_object_creation(byte)
+ *   PUSH 0x0 ; PUSH ESI ; CALL 0xcbf80 -> hs_return(thread_datum, 0)
+ *   ADD ESP,0xc ; POP ESI ; POP EBP ; RET
+ *
+ * The single `ADD ESP,0xc` is MSVC's merge of 0x93030's one push with
+ * hs_return's two.  The call-site audit therefore reports a spurious
+ * ARG_COUNT warning on hs_return (cleanup=3 vs decl=2) - hs_return really
+ * does take 2 arguments; the third dword belongs to 0x93030.
+ *
+ * kb note: 0x93030's decl was `void cinematic_suppress_bsp_object_creation(
+ * void)`, which contradicts the PUSH EDX at this call site; it is corrected
+ * to take the single byte with this lift.  0xcc560 is declared returning
+ * `int` but is used as a pointer at every call site in this TU, so it is
+ * cast locally (the established hs.c idiom) rather than editing the shared
+ * decl that other callers depend on.
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0x93030 = cinematic_suppress_bsp_object_creation(unsigned char suppress)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c2480(int16_t function_index, int thread_datum, char init)
+{
+  unsigned char *result;
+
+  result = (unsigned char *)hs_macro_function_evaluate(function_index,
+                                                       thread_datum, init);
+  if (result != (unsigned char *)0) {
+    cinematic_suppress_bsp_object_creation(*result);
+    hs_return(thread_datum, 0);
+  }
+  return;
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
