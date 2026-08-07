@@ -4885,7 +4885,7 @@
         },
         {
           "addr": "0x93640",
-          "decl": "void FUN_00093640(void);"
+          "decl": "void FUN_00093640(int value);"
         },
         {
           "addr": "0x93660",
@@ -10372,7 +10372,9 @@
         },
         {
           "addr": "0xc2400",
-          "decl": "void FUN_000c2400(void);"
+          "decl": "void FUN_000c2400(int16_t function_index, int thread_datum, char init);",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xc2440",

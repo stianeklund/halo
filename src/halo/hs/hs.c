@@ -3499,6 +3499,66 @@ void FUN_000c23c0(int16_t function_index, int thread_datum, char init)
   return;
 }
 
+/* 0xc2400 (hs.obj) — HaloScript handler: evaluate the single macro-function
+ * argument and forward its 16-bit value to FUN_00093640.
+ *
+ * Structurally identical to the sibling at 0xc23c0 (letterbox toggle): the
+ * argument is evaluated, the NULL result means "still evaluating" and the
+ * handler returns without completing the thread; a non-NULL result is
+ * dereferenced and forwarded, then the thread is completed with 0.  The only
+ * differences from 0xc23c0 are the width of the load (WORD here vs BYTE
+ * there) and the inner callee.
+ *
+ * Disassembly.  Frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no `sub esp`, no
+ * locals, no buffers, no FPU, no SEH, no register args.  Plain cdecl RET
+ * (no RET n).  Parameters (cdecl, first PUSH is the last C argument):
+ *
+ *   [EBP+0x08] = function_index (int16_t; loaded into ECX as a dword)
+ *   [EBP+0x0c] = thread_datum   (int; cached in ESI across the whole body,
+ *                                the natural codegen for a param read twice)
+ *   [EBP+0x10] = init           (char; loaded into EAX as a dword)
+ *
+ *   0xc2410  PUSH EAX / PUSH ESI / PUSH ECX ; CALL 0xcc560 ; ADD ESP,0xc
+ *            -> hs_macro_function_evaluate(function_index, thread_datum, init)
+ *            TEST EAX,EAX ; JZ end
+ *   0xc241e  XOR EDX,EDX ; MOV DX,word ptr [EAX]
+ *            -> EAX is DEREFERENCED, so 0xcc560's result is a POINTER to the
+ *               evaluated 16-bit script value, not a scalar, and the TEST is
+ *               a NULL-pointer test.  XOR+MOV DX is an UNSIGNED widening, so
+ *               the load must be uint16_t (a signed load would emit MOVSX).
+ *   0xc2422  PUSH EDX ; CALL 0x93640
+ *   0xc242a  PUSH 0x0 ; PUSH ESI ; CALL 0xcbf80  -> hs_return(thread_datum, 0)
+ *   0xc242f  ADD ESP,0xc ; POP ESI ; POP EBP ; RET
+ *
+ * The single `ADD ESP,0xc` is MSVC's merge of 0x93640's one push with
+ * hs_return's two.  The call-site audit therefore reports a spurious
+ * ARG_COUNT warning on hs_return (cleanup=3 vs decl=2) — hs_return really
+ * does take 2 arguments; the extra dword belongs to 0x93640.  Conversely the
+ * merge is proof that 0x93640 takes exactly one stack argument, so its kb
+ * decl (`void FUN_00093640(void)`) was corrected with this lift.
+ *
+ * kb note: 0xcc560 is declared returning `int` but is used as a pointer at
+ * every call site in this TU, so it is cast locally (established hs.c idiom)
+ * rather than editing the shared decl, which other callers depend on.
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0x93640 = FUN_00093640(int value)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c2400(int16_t function_index, int thread_datum, char init)
+{
+  uint16_t *result;
+
+  result =
+    (uint16_t *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (uint16_t *)0) {
+    FUN_00093640((int)*result);
+    hs_return(thread_datum, 0);
+  }
+  return;
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
