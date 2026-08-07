@@ -8748,6 +8748,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x113a90": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x114630": {
       "kind": "function",
       "status": "ported"

@@ -797,7 +797,7 @@ int FUN_001155e0(int z, int flush)
       *(int *)(param_1[7] + 4) = 0;
       return 0xfffffffe;
     case 7:
-      result = FUN_00113a90(*(int *)(param_1[7] + 0x14), param_1, result);
+      result = inflate_blocks(*(int *)(param_1[7] + 0x14), param_1, result);
       if (result == 0xfffffffd) {
         *(int *)param_1[7] = 0xd;
         *(int *)(param_1[7] + 4) = 0;
@@ -1308,7 +1308,8 @@ free_and_return_outer:
 
 /* inflate_trees_fixed: set pointers to fixed Huffman decode tables.
  * 0x116250 / circular_queue.obj (inflate.c) */
-int inflate_trees_fixed(int *param_1, int *param_2, int **param_3, int **param_4)
+int inflate_trees_fixed(int *param_1, int *param_2, int **param_3, int **param_4,
+                        int z)
 {
   *param_1 = *(int *)0x31fc80;
   *param_2 = *(int *)0x31fc84;

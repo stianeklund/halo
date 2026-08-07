@@ -21190,6 +21190,11 @@
       "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
+    "inflate_blocks": {
+      "opnd_percent": 90.2,
+      "score": 96.3,
+      "source": "src/halo/math/real_math.c"
+    },
     "inflate_blocks_free": {
       "opnd_percent": 96.0,
       "ref": "synth",
