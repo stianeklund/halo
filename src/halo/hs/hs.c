@@ -2852,6 +2852,43 @@ void FUN_000c2080(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc20c0 (hs.obj) — HaloScript function handler: "debug_pvs".
+ *
+ * Evaluates the macro arguments; on success the result block holds a single
+ * BYTE at +0x0 which is zero-extended and passed to 0x1965d0 (debug_pvs).
+ * The disassembly does `XOR EDX,EDX; MOV DL,byte ptr [EAX]; PUSH EDX`, so the
+ * load is one byte wide — not the dword shape used by the 0xc2000/0xc2040/
+ * 0xc2080 siblings above.  `result` is therefore `unsigned char *`; an `int *`
+ * deref here would emit a dword load and be a width bug.
+ *
+ * `thread_datum` is held in ESI across the whole body because it is reused by
+ * the hs_return tail call.  The single `ADD ESP,0xc` at 0xc20ee is MSVC's
+ * merged cleanup for both tail calls (1 dword + 2 dwords); hs_return still
+ * takes exactly 2 arguments, so an ARG_COUNT finding on 0xcbf80 is a false
+ * positive.
+ *
+ * Ghidra mis-prototypes the handler as `void (void)` and reports the three
+ * stack parameters as in_stack_00000004/8/c; the real signature is cdecl
+ * (int16_t function_index, int thread_datum, char init).
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560  = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *              -> result record pointer (NULL on failure)
+ *   0x1965d0 = debug_pvs(uint8_t enabled)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c20c0(int16_t function_index, int thread_datum, char init)
+{
+  unsigned char *result;
+
+  result = (unsigned char *)hs_macro_function_evaluate(function_index,
+                                                       thread_datum, init);
+  if (result != NULL) {
+    debug_pvs(*result);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
