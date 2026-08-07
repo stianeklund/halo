@@ -3896,6 +3896,42 @@ void FUN_000c25b0(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, value);
 }
 
+/* 0xc25e0 — HaloScript handler: save the map (safe/deferred variant) and
+ * complete the calling script thread with a zero result.
+ *
+ * Disassembly (whole body):
+ *   PUSH EBP; MOV EBP,ESP
+ *   CALL 0x100330       ; main_save_map_safe(), no args pushed, no cleanup
+ *   MOV EAX,[EBP+0xc]   ; thread_datum
+ *   PUSH 0x0            ; hs_return arg2 = value
+ *   PUSH EAX            ; hs_return arg1 = thread_datum (cdecl: last PUSH
+ *                       ; is the first C argument)
+ *   CALL 0xcbf80        ; hs_return
+ *   ADD ESP,0x8         ; cdecl cleanup, 2 dwords -> hs_return takes 2 args
+ *   POP EBP; RET        ; plain cdecl RET, no RET n
+ *
+ * [EBP+0x8] (function_index) and [EBP+0x10] (init) are never read by this
+ * body; they complete the standard hs-evaluator signature shared by every
+ * handler in this TU (a cdecl parameter the callee ignores emits no code, so
+ * the disassembly cannot distinguish 2 params from 3 — the sibling handlers
+ * arbitrate).  Ghidra mis-prototypes this as void(void) and reports the
+ * [EBP+0xc] read as the phantom local `in_stack_00000008`; the kb decl was
+ * corrected with this lift.
+ *
+ * The absence of any cleanup after CALL 0x100330 confirms main_save_map_safe
+ * takes no arguments, matching its kb decl.  The `ADD ESP,0x8` is un-merged,
+ * so no ARG_COUNT warning is expected on 0xcbf80 from this call site.
+ *
+ * Callees (both cdecl, no register args):
+ *   0x100330 = main_save_map_safe(void)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c25e0(int16_t function_index, int thread_datum, char init)
+{
+  main_save_map_safe();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
