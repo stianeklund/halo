@@ -3333,6 +3333,46 @@ void FUN_000c2340(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc2360 (hs.obj) — HaloScript function handler: cinematic stop.
+ *
+ * Exact mirror of FUN_000c2340 above with the inner callee swapped from
+ * cinematic_start (0x92e20) to cinematic_stop (0x93050).  Zero-argument
+ * script builtin, so there is no hs_macro_function_evaluate call — the
+ * handler stops the cinematic and completes the calling thread with 0.
+ *
+ * Disassembly (10 instructions, 0x18 bytes).  Frame is PUSH EBP;
+ * MOV EBP,ESP only — no locals, no `sub esp`, no FPU, no SEH.  Body:
+ *
+ *   CALL 0x93050         ; cinematic_stop(), no args pushed, no cleanup
+ *   MOV EAX,[EBP+0xc]    ; thread_datum
+ *   PUSH 0x0             ; hs_return arg2 = value
+ *   PUSH EAX             ; hs_return arg1 = thread_datum (cdecl: last PUSH
+ *                        ; is the first C argument)
+ *   CALL 0xcbf80         ; hs_return
+ *   ADD ESP,0x8          ; cdecl cleanup, 2 dwords -> hs_return takes 2 args
+ *   POP EBP; RET         ; plain cdecl RET, no RET n
+ *
+ * [EBP+0x8] (function_index) and [EBP+0x10] (init) are never read by this
+ * body; they complete the standard hs-evaluator signature shared by every
+ * handler in this TU (a cdecl parameter the callee ignores emits no code, so
+ * the disassembly cannot distinguish 2 params from 3 — the sibling handlers
+ * arbitrate).  Ghidra mis-prototypes this as void(void) and reports the
+ * [EBP+0xc] read as the phantom local `in_stack_00000008`.
+ *
+ * Unlike the merged `ADD ESP,0xc` at 0xc206c, the cleanup here is a single
+ * un-merged `ADD ESP,0x8`, so no ARG_COUNT warning is expected on 0xcbf80
+ * from this call site.
+ *
+ * Callees (both cdecl, no register args):
+ *   0x93050 = cinematic_stop(void)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c2360(int16_t function_index, int thread_datum, char init)
+{
+  cinematic_stop();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
