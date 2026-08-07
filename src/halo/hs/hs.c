@@ -3221,7 +3221,8 @@ void FUN_000c22a0(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
-  result = (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
     player_effect_screen_fade_in(result[0], *(float *)(result + 1),
                                  *(float *)(result + 2),
@@ -3288,7 +3289,8 @@ void FUN_000c22f0(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
-  result = (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
     player_effect_screen_fade_out(result[0], *(float *)(result + 1),
                                   *(float *)(result + 2),
@@ -3456,6 +3458,45 @@ void FUN_000c23a0(int16_t function_index, int thread_datum, char init)
 {
   cinematic_skip_stop();
   hs_return(thread_datum, 0);
+}
+
+/* 0xc23c0 — HaloScript handler: evaluate the macro-function argument and use
+ * its result to toggle the cinematic letterbox bars.
+ *
+ * hs_macro_function_evaluate returns a pointer to the evaluated result record
+ * (or NULL while the argument is still being evaluated).  Only the BYTE at
+ * offset +0x0 of that record is read here (XOR EDX,EDX; MOV DL,[EAX]; PUSH
+ * EDX), i.e. the boolean value of the single argument, which is forwarded to
+ * cinematic_show_letterbox.  The thread is then completed with a zero result.
+ *
+ * kb notes: 0xcc560 is declared returning `int` but is used as a pointer at
+ * every call site in this TU, so it is cast locally (established hs.c idiom
+ * rather than editing the shared decl).  The kb decl for 0x92e90 said
+ * `void cinematic_show_letterbox(void)` but the disassembly pushes one
+ * byte-width argument before the CALL; the decl was corrected with this lift.
+ *
+ * The 4 bytes pushed for cinematic_show_letterbox are not popped after its
+ * CALL — MSVC merged that cleanup into the `ADD ESP,0xc` following hs_return,
+ * which therefore covers 3 pushes (EDX + 0 + ESI).  The call-site audit's
+ * ARG_COUNT warning on hs_return (cleanup=3 vs decl=2) is a false positive
+ * from that merge; hs_return really does take 2 arguments.
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0x92e90 = cinematic_show_letterbox(char show)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c23c0(int16_t function_index, int thread_datum, char init)
+{
+  char *result;
+
+  result =
+    (char *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (char *)0) {
+    cinematic_show_letterbox(*result);
+    hs_return(thread_datum, 0);
+  }
+  return;
 }
 
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
