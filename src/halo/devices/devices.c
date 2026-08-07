@@ -235,6 +235,43 @@ void device_group_set_actual_value(int device_group_index, float value)
   }
 }
 
+/* Set or clear a machine's "one sided" flag.
+ *
+ * Original 0x965f0. Resolves the object with type mask 0x80 (machine) using
+ * the _try_ accessor, so a live handle that is not a machine yields NULL and
+ * the call is a no-op. There is no NONE-sentinel early-out; the handle goes
+ * straight to the accessor.
+ *
+ * Bit 1 (0x2) of the machine flags dword at +0x1c4 is the "one sided" bit and
+ * the polarity follows the parameter directly: a non-zero argument SETS the
+ * bit, a zero argument clears it. Sibling setters drive bit 0 (operates
+ * automatically) and bit 2 (never appears locked) of the same word.
+ *
+ * The flags word is loaded once, above the branch (the original hoists
+ * MOV ECX,[EAX+0x1c4] between the byte TEST and the conditional jump), and
+ * each arm performs a single store. The set arm has its own epilogue -- the
+ * original returns from inside the true branch at 0x96620.
+ */
+void device_one_sided_set(int object_list, char one_sided)
+{
+  char *machine;
+  unsigned int flags;
+
+  machine = (char *)object_try_and_get_and_verify_type(object_list, 0x80);
+  if (machine == (char *)0) {
+    return;
+  }
+
+  flags = *(unsigned int *)(machine + 0x1c4);
+
+  if (one_sided != '\0') {
+    *(unsigned int *)(machine + 0x1c4) = flags | 2;
+    return;
+  }
+
+  *(unsigned int *)(machine + 0x1c4) = flags & 0xfffffffd;
+}
+
 /* Set or clear a machine's "operates automatically" behaviour.
  *
  * Original 0x96630. Resolves the object with type mask 0x80 (machine) using

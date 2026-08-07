@@ -2110,7 +2110,8 @@
       "source": "src/halo/ai/ai_profile.c"
     },
     "FUN_00054430": {
-      "score": 89.9,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/ai/ai_profile.c"
     },
     "FUN_000544a0": {
@@ -2259,7 +2260,8 @@
       "source": "src/halo/ai/ai_profile.c"
     },
     "FUN_000559a0": {
-      "score": 87.2,
+      "opnd_percent": 75.2,
+      "score": 92.8,
       "source": "src/halo/ai/ai_profile.c"
     },
     "FUN_00055dd0": {
@@ -17138,9 +17140,9 @@
       "source": "src/halo/ai/ai_profile.c"
     },
     "ai_index_platoon_iterator_next": {
-      "opnd_percent": 85.4,
+      "opnd_percent": 97.8,
       "ref": "synth",
-      "score": 89.9,
+      "score": 100.0,
       "source": "src/halo/ai/ai_profile.c"
     },
     "ai_index_squad_iterator_new": {

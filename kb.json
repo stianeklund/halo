@@ -36858,7 +36858,8 @@
         },
         {
           "addr": "0x965f0",
-          "decl": "void device_one_sided_set(int object_list, char one_sided);"
+          "decl": "void device_one_sided_set(int object_list, char one_sided);",
+          "ported": true
         },
         {
           "addr": "0x96630",
