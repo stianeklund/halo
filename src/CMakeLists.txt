@@ -40,6 +40,7 @@
 	halo/cseries/xbox_crt.c
 	halo/cseries/xcontent.c
 	halo/memory/crc.c
+	halo/devices/devices.c
 	halo/dialogs/edit_text.c
 	halo/cutscene/cinematics.c
 	halo/cutscene/recorded_animations.c

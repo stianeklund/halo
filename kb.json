@@ -36824,7 +36824,8 @@
       "functions": [
         {
           "addr": "0x960c0",
-          "decl": "void device_new(void);"
+          "decl": "bool device_new(int object_index);",
+          "ported": true
         },
         {
           "addr": "0x96110",
