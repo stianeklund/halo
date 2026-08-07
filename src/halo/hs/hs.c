@@ -2962,6 +2962,65 @@ void FUN_000c2180(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc21a0 (hs.obj) — HaloScript function handler: ai_debug_vocalize.
+ *
+ * Standard two-string macro-function wrapper.  The arguments are evaluated
+ * by hs_macro_function_evaluate(function_index, thread_datum, init); on
+ * success it returns a pointer to the evaluated result block, which here
+ * holds two full-width string pointers:
+ *
+ *   result[0] (+0x0) = vocalization name
+ *   result[1] (+0x4) = vocalization type name
+ *
+ * Disassembly (0xc21a0-0xc21d5, 25 bytes).  PUSH EBP; MOV EBP,ESP; PUSH ESI
+ * — ESI is the only callee-saved register used, and holds thread_datum live
+ * across both calls.  Body:
+ *
+ *   MOV ECX,[EBP+0x8]    ; function_index
+ *   MOV ESI,[EBP+0xc]    ; thread_datum
+ *   MOV EAX,[EBP+0x10]   ; init
+ *   PUSH EAX; PUSH ESI; PUSH ECX
+ *   CALL 0xcc560         ; hs_macro_function_evaluate(fn_index, thread, init)
+ *   ADD ESP,0xc
+ *   TEST EAX,EAX; JZ 0xc21d3   ; EAX is the result-block POINTER
+ *   MOV EDX,[EAX+0x4]    ; result[1] (type name)
+ *   MOV EAX,[EAX]        ; result[0] (name)
+ *   PUSH EDX; PUSH EAX   ; cdecl: last PUSH is the first C argument
+ *   CALL 0x49f60         ; ai_debug_vocalize(result[0], result[1])
+ *   PUSH 0x0; PUSH ESI
+ *   CALL 0xcbf80         ; hs_return(thread_datum, 0)
+ *   ADD ESP,0x10         ; single MERGED cleanup for both calls (2+2 dwords)
+ *   POP ESI; POP EBP; RET
+ *
+ * Both +0x0 and +0x4 are 32-bit loads with no MOVSX/MOVZX, so they are
+ * pointers, not narrow ints — hence `const char **result` rather than the
+ * `int *` used by the narrow-field siblings (FUN_000c0c30/FUN_000c0c70).
+ *
+ * The combined ADD ESP,0x10 is why the call-site audit reports an ARG_COUNT
+ * hazard on hs_return (cleanup=4 dwords vs decl=2): it is a merged-cleanup
+ * artifact, not an arity mismatch.  hs_return takes exactly 2 arguments.
+ *
+ * Ghidra mis-prototypes this as void(void) and reports the three stack
+ * parameters as the phantom locals in_stack_00000004/8/c; it also drops
+ * both arguments to ai_debug_vocalize entirely.
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0x49f60 = ai_debug_vocalize(vocalization_name, vocalization_type_name)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c21a0(int16_t function_index, int thread_datum, char init)
+{
+  const char **result;
+
+  result = (const char **)hs_macro_function_evaluate(function_index,
+                                                     thread_datum, init);
+  if (result != NULL) {
+    ai_debug_vocalize(result[0], result[1]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
