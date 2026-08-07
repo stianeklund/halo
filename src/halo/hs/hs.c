@@ -2685,6 +2685,43 @@ void FUN_000c1fa0(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc1fc0 — HaloScript builtin "profile_dump" (one string argument).
+ *
+ * The script-function definition record at 0x2718f0 gives return_type = 4
+ * (void), num_params = 1, param_types[0] = 9 (string), name = "profile_dump",
+ * help = "dumps profile based on a substring."  The handler therefore takes
+ * the standard hs evaluator triple, pulls the single evaluated argument out
+ * of the macro-function result block, and forwards it as a `const char *`
+ * substring filter.
+ *
+ * Ghidra mis-prototypes this as void(void) and surfaces the three cdecl stack
+ * params as the phantom locals in_stack_00000004/8/c ([EBP+0x8], [EBP+0xc],
+ * [EBP+0x10]).  It also drops the inner callee's argument: the disassembly at
+ * 0xc1fdc does `MOV EDX,dword ptr [EAX]; PUSH EDX` before the CALL, so the
+ * first dword of the result block is passed.  `thread_datum` is kept in ESI
+ * across the whole body.
+ *
+ * The single `ADD ESP,0xc` at 0xc1fec is MSVC's merged cleanup for both tail
+ * calls (1 dword + 2 dwords); hs_return still takes exactly 2 arguments.
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560  = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *              -> int * (result record, NULL on failure)
+ *   0x90650  = profile_dump_to_file(const char *substring)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c1fc0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    profile_dump_to_file((const char *)result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script

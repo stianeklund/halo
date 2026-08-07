@@ -10252,7 +10252,9 @@
         },
         {
           "addr": "0xc1fc0",
-          "decl": "void FUN_000c1fc0(void);"
+          "decl": "void FUN_000c1fc0(int16_t function_index, int thread_datum, char init);",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xc2000",
@@ -18693,7 +18695,7 @@
         },
         {
           "addr": "0x90650",
-          "decl": "void profile_dump_to_file(void);"
+          "decl": "void profile_dump_to_file(const char *substring);"
         },
         {
           "addr": "0x906d0",
