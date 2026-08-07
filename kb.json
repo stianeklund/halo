@@ -36905,7 +36905,8 @@
         },
         {
           "addr": "0x96a90",
-          "decl": "void FUN_00096a90(void);"
+          "decl": "bool device_update(int object_index);",
+          "ported": true
         }
       ],
       "name": "devices.obj",

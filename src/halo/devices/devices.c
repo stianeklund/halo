@@ -608,3 +608,150 @@ void device_delete(int object_index)
     }
   }
 }
+
+/* Advance one device object's power and position toward the device groups that
+ * drive them.
+ *
+ * Original 0x96a90.  Ghidra (and the stale kb.json entry) report
+ * `void FUN_00096a90(void)`; the disassembly shows a single cdecl stack
+ * argument at [EBP+8] and a byte result in AL loaded from the [EBP-1] flag at
+ * all three RET sites (0x96bb1, 0x96c76, 0x96d6e), so the real shape is
+ * `bool device_update(int)`.  The flag starts at 0 (0x96ac6) and is only set
+ * to 1 where accelerate_to_position reports it has NOT reached its target, so
+ * the return value means "this device is still in motion".
+ *
+ * Two independent axes are driven, each from its own device group datum in
+ * the device-group data array at *(data_t **)0x5aa8c8:
+ *   +0x1a8 group index -> power    at +0x1ac (rate at +0x1b0)
+ *   +0x1b4 group index -> position at +0x1b8 (rate at +0x1bc)
+ * A group index of NONE (-1) leaves that axis alone.  Whenever an axis
+ * actually moved, bit 2 (mask 4) is set in the object flags at +0x1a4.
+ *
+ * The position axis blends its acceleration and maximum speed between the
+ * unpowered pair (definition +0x27c / +0x280) and the powered pair
+ * (+0x284 / +0x288) using the current power as the factor, fires the
+ * open/close effects (+0x1cc / +0x1dc) on arrival and the blocked effects
+ * (+0x1ac / +0x1bc) on a rate sign change, and runs a stall counter at +0x1c0
+ * that fires the stalled effect (+0x218) on the tick it first reaches 1.
+ *
+ * FCOM senses below are transcribed from the FNSTSW/TEST masks, not from the
+ * decompiler:  TEST AH,0x44 -> ==/!= ;  TEST AH,1 + JE -> >= ;
+ * TEST AH,5 + JP -> < ;  TEST AH,0x41 + JNE -> > ;  TEST AH,0x41 + JP -> <=.
+ * Two places where that disagrees with Ghidra:
+ *   - 0x96bfa/0x96c02 sets the [EBP-2] flag from a negated `> 0.0f` (JE on
+ *     mask 0x41), so an unordered rate counts as "not positive", and the two
+ *     arrival effects at 0x96cd1 are selected the opposite way round from the
+ *     decompiler output.
+ *   - 0x96d1e is `<= 0.0f` (JP on mask 0x41), not `< 0.0f`.
+ */
+bool device_update(int object_index)
+{
+  char *device;
+  char *definition;
+  char *device_group;
+  float *power;
+  float *position;
+  float *position_rate;
+  float previous_power;
+  float previous_position;
+  float previous_rate;
+  float inverse_power;
+  float acceleration;
+  float maximum_speed;
+  short device_group_index;
+  short stall_ticks;
+  char rate_is_positive;
+  bool still_moving;
+
+  device = (char *)object_get_and_verify_type(object_index, 0x380);
+  definition = (char *)tag_get(0x64657669 /* 'devi' */, *(int *)device);
+
+  still_moving = false;
+
+  device_group_index = *(short *)(device + 0x1a8);
+  if (device_group_index != -1) {
+    device_group =
+      (char *)datum_get(*(data_t **)0x5aa8c8, (int)device_group_index);
+    power = (float *)(device + 0x1ac);
+
+    if (*(float *)(device_group + 4) != *power ||
+        *(float *)(device + 0x1b0) != 0.0f) {
+      previous_power = *power;
+      if (!accelerate_to_position(
+            power, (float *)(device + 0x1b0), *(float *)(device_group + 4),
+            *(float *)(definition + 0x274), *(float *)(definition + 0x278),
+            0.0f, 1.0f, 0)) {
+        still_moving = true;
+      }
+      if (previous_power != *power) {
+        *(int *)(device + 0x1a4) |= 4;
+      }
+    }
+  }
+
+  device_group_index = *(short *)(device + 0x1b4);
+  if (device_group_index != -1) {
+    device_group =
+      (char *)datum_get(*(data_t **)0x5aa8c8, (int)device_group_index);
+    position = (float *)(device + 0x1b8);
+
+    if (*(float *)(device_group + 4) == *position &&
+        *(float *)(device + 0x1bc) == 0.0f) {
+      *(short *)(device + 0x1c0) = 0;
+      return still_moving;
+    }
+
+    position_rate = (float *)(device + 0x1bc);
+    inverse_power = 1.0f - *(float *)(device + 0x1ac);
+    rate_is_positive = 1;
+    acceleration = inverse_power * *(float *)(definition + 0x27c) +
+                   *(float *)(definition + 0x284) * *(float *)(device + 0x1ac);
+    maximum_speed = inverse_power * *(float *)(definition + 0x280) +
+                    *(float *)(definition + 0x288) * *(float *)(device + 0x1ac);
+    if (!(*position_rate > 0.0f)) {
+      rate_is_positive = 0;
+    }
+
+    stall_ticks = *(short *)(device + 0x1c0);
+    if ((float)stall_ticks >= *(float *)(definition + 0x28c) ||
+        *position != 0.0f || *(float *)(device_group + 4) < *position) {
+      previous_rate = *position_rate;
+      previous_position = *position;
+
+      if (maximum_speed < fabs(*position_rate)) {
+        *position_rate = rate_is_positive ? maximum_speed : -maximum_speed;
+      }
+
+      if (accelerate_to_position(position, position_rate,
+                                 *(float *)(device_group + 4), acceleration,
+                                 maximum_speed, 0.0f, 1.0f,
+                                 (char)(*(char *)(definition + 0x17c) & 1))) {
+        if (rate_is_positive) {
+          FUN_000967a0(object_index, *(int *)(definition + 0x1cc));
+        } else {
+          FUN_000967a0(object_index, *(int *)(definition + 0x1dc));
+        }
+      } else {
+        if (*position_rate != 0.0f && previous_rate * *position_rate <= 0.0f) {
+          FUN_000967a0(object_index, *position_rate > previous_rate ?
+                                       *(int *)(definition + 0x1ac) :
+                                       *(int *)(definition + 0x1bc));
+        }
+        still_moving = true;
+      }
+
+      if (previous_position != *(float *)(device + 0x1b8)) {
+        *(int *)(device + 0x1a4) |= 4;
+      }
+    } else {
+      stall_ticks = (short)(stall_ticks + 1);
+      *(short *)(device + 0x1c0) = stall_ticks;
+      if (stall_ticks == 1) {
+        FUN_000967a0(object_index, *(int *)(definition + 0x218));
+      }
+      return still_moving;
+    }
+  }
+
+  return still_moving;
+}
