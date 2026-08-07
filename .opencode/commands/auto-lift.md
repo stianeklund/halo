@@ -1,5 +1,6 @@
 ---
 description: Target selection, Ghidra context caching, and lift delegation
+model: opus
 subtask: false
 ---
 
@@ -30,26 +31,21 @@ failures), repeat:
    Gather lightweight context for the target (KB entry via `rtk jq`, decompilation
    via Ghidra MCP, source file path). Then spawn a subagent:
    ```
-   Agent(subagent_type="xbox-halo-re-analyst", prompt=<brief>)
+   Agent(subagent_type="xbox-halo-re-analyst", model="opus", prompt=<brief>)
    ```
-   The prompt must include: target address, decompilation output, KB entry JSON,
-   source file path, and these file-write instructions:
-   - Write the C89 implementation to the source file at the correct address-ordered position
-   - Update kb.json declaration if needed (conservatively)
-   - Update `tools/kb_reg_baseline.json` for any `@<reg>` annotations
-   - Run `rtk python3 tools/analysis/maintain.py <source_file>`
-   - Run `rtk python3 tools/audit/check_lift_hazards.py` and fix target-relevant hazards
-   - Report: RESOLVED_TARGET, Confirmed/Inferred/Uncertain, kb.json updates made
+   The prompt must follow the **Phase-1 subagent briefing template** in
+   `docs/lift-policy.md`, filling in the target address, decompilation output,
+   KB entry JSON, and source file path.
 5. **Phase 2 — build + verify (orchestrator):**
    After the agent returns, ensure a delinked reference exists (export via
-   `ghidra-live export_delinked_object` if missing), then run:
+   `mcp__ghidra-live__export_delinked_object` if missing), then run:
    ```bash
    rtk python3 tools/lift_pipeline.py --target <name> --no-metadata-update --verify-policy auto
    ```
 6. Evaluate pipeline result (see pass/fail criteria below).
 7. **On pass**: auto-commit (unless `--dry-run`), reset consecutive failure counter.
-8. **On fail**: attempt focused escalation or revert+log (see escalation below),
-   increment consecutive failure counter.
+8. **On fail**: enter the opus effort ladder, or park/revert+log (see escalation
+   below), increment consecutive failure counter.
 9. If consecutive failures reach `--stop-on-fail`, stop and report.
 
 After the loop ends, print a summary: N attempted, N committed, N failed, N skipped.
@@ -66,51 +62,45 @@ Any hard failure stops the pipeline and reports the failing stage.
 | **VC71 verify** | Compiles with MSVC 7.1, compared against delinked reference | Depends on low-match policy |
 | **Low-match policy** (default: strict) | See thresholds below | Yes |
 
-Low-match thresholds (VC71 or objdiff structural match %):
-- **>= 65%**: PASS unconditionally — safe for auto-commit
-- **50–65%**: PASS if at least one behavior signal (behavior_check or runtime_check)
-- **40–50%**: PASS only if BOTH behavior_check AND runtime_check pass
-- **< 40%**: hard REJECT — no override
-- **FPU-WARN present**: FAIL — operand-order mismatch needs manual review
-
-Pass `--low-match-threshold 65 --low-match-behavior-both-below 50 --low-match-reject-below 40`
-to `lift_pipeline.py` to enforce these thresholds.
-
-When no delinked reference exists (no VC71 data), strict policy fails.
-The `/lift` skill uses `--verify-policy auto` which accepts when no VC71 data
-is available but the build and ABI audit pass.
+See `docs/lift-policy.md` §Verify-policy-presets for the canonical threshold table.
+Use `--verify-policy auto` (default) for this skill.  The `/lift` skill uses
+`auto` which accepts when no VC71 data is available but build and ABI audit pass.
 
 ## Escalation
 
-When a lift fails due to a reasoning-class failure (not a trivial build error),
-rerun Phase 1 with the strongest available `xbox-halo-re-analyst` configuration
-or hand the artifact to `/verify failure` for triage.
+This skill runs the lift subagent on **Opus-high** by default. Opus is pinned
+(rather than Sonnet) because Sonnet lift agents stall-loop under the workflow
+watchdog.  Escalation is the **opus effort ladder** — medium → xhigh → max — not
+a model swap, matching `goal-lift.js` (the canonical implementation).  Each rung
+runs only if the previous gained <1pp, the target is still sub-bar and not
+capped, budget remains (≥120k), and ≤3 targets have escalated this run.  A
+recipe-atlas rule match short-circuits to a mechanical lever at opus-low without
+charging an escalation slot.  Ladder exhausted → park with cap hypothesis +
+warm-start patch.
 
-**Escalate when:**
-- VC71 match < 65% (control flow / structure wrong)
-- ABI audit fails (calling convention reasoning)
-- FPU-WARN (operand order requires careful disassembly reading)
-- Build fails on the second attempt (not a simple typo)
+**Fable** appears only as the fresh-model re-lift for structure-wrong signals,
+via the improve-pass drain (`--improveModel fable`, with
+`park.py next --exclude-model`) — never as a ladder rung.
 
-**Do NOT escalate (just revert+log) when:**
-- Target has SEH prolog/epilog (not liftable with current tooling)
-- Target has >3 register args (disqualified)
-- Build fails on an unrelated file (repo state issue, not lift quality)
-
-**Escalation flow:**
-1. Revert the failed attempt: `rtk git checkout -- src/ kb.json`
-2. Re-run Phase 1 using `Agent(subagent_type="xbox-halo-re-analyst")` with the
-   same prompt as the original attempt.
-3. Run Phase 2 again. If the retry also fails, revert+log with both attempts recorded.
+See `docs/lift-policy.md` §Escalation-flow for the canonical escalation rules and
+pass/fail thresholds.  Summary: ladder on VC71 65–84% and not capped; fresh-model
+re-lift on VC71 <65%, ABI fail, FPU-WARN, or second build failure; do not escalate
+on SEH, >3 reg-args, or unrelated build fail; [85,98]% with a delinked ref goes to
+the permuter, not a bigger model.
 
 ## On success — auto-commit
 
 Unless `--dry-run` is set:
 ```bash
 rtk git add -- src/ kb.json
-rtk python3 tools/audit/generate_lift_commit.py --batch-name "<target_name>" > /tmp/commit_msg.txt
-rtk git commit -F /tmp/commit_msg.txt
+MSG=$(mktemp /tmp/halo-commit-msg.XXXXXX)
+rtk python3 tools/audit/generate_lift_commit.py --batch-name "<target_name>" > "$MSG"
+rtk git commit -F "$MSG" && rm -f "$MSG"
 ```
+
+**`mktemp`, never a fixed path** like `/tmp/commit_msg.txt` — auto-lift loops run
+unattended alongside other agents/cron on this box, and a shared path lets another
+writer's message land on your staged changes (observed 2026-07-31, `d6caee6b`).
 
 With `--dry-run`: leave changes staged, report what would be committed, then
 revert before the next iteration (`rtk git checkout -- src/ kb.json`).
@@ -129,8 +119,8 @@ Write failure record to `artifacts/auto_lift/failures/<target_name>.json`:
   "object": "<object_name>",
   "timestamp": "<ISO 8601>",
   "attempts": [
-    {"attempt": "initial", "failure_stage": "<stage>", "error_summary": "<msg>"},
-    {"attempt": "escalated", "failure_stage": "<stage>", "error_summary": "<msg>"}
+    {"model": "opus", "effort": "high",   "failure_stage": "<stage>", "error_summary": "<msg>"},
+    {"model": "opus", "effort": "xhigh",  "failure_stage": "<stage>", "error_summary": "<msg>"}
   ],
   "pipeline_output": "<full pipeline stderr/stdout from last attempt>"
 }

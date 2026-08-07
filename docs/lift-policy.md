@@ -24,7 +24,7 @@ Pass `--verify-policy <PRESET>` to `tools/lift_pipeline.py`.
 | ≥99% | `goal90: PASS` — byte-match sufficient, commit |
 | 90–98% | `goal90: PASS` — meets policy, commit |
 | 85–89% | `goal90: PASS` with "permuter recommended" note — commit after one permute pass |
-| 65–84% | `goal90: FAIL` — check structural cap; one focused Opus escalation allowed if not capped |
+| 65–84% | `goal90: FAIL` — check structural cap; if not capped, enter the opus effort ladder (see §Escalation-flow) |
 | <65% | `goal90: FAIL` — assume lift bug, revert unless there is a clear, cheap fix |
 | No VC71 data | Treat as infra/build issue, not pass |
 
@@ -41,8 +41,8 @@ column.  Use it to choose the Phase-1 model:
 | oracle_strength | Meaning | Suggested Phase-1 model |
 |-----------------|---------|------------------------|
 | `strong` | Delinked ref + pure-leaf or stubbable (leaf_cache) + no @\<reg\> args | Haiku (cheap, deterministic oracle catches mistakes) |
-| `medium` | Delinked ref only | Opus → Fable escalation |
-| `weak` | No delinked ref, or reg-args, or known structural-ceiling class | Opus → Fable (never Haiku) |
+| `medium` | Delinked ref only | Opus-high, then the effort ladder |
+| `weak` | No delinked ref, or reg-args, or known structural-ceiling class | Opus-high, then the effort ladder (never Haiku) |
 
 **Pilot status:** Haiku lane not yet adopted.  Run 10 strong-oracle targets with
 `model="haiku"` in Phase 1, record VC71 pass rate + escalation rate, and commit
@@ -87,29 +87,70 @@ File-write instructions (write directly to the repo, do not output code blocks):
 
 ## Escalation flow
 
-Applied identically in both `/auto-lift` and `/goal-lift`.
+Applied identically in both `/auto-lift` and `/goal-lift`.  Canonical
+implementation: the model/effort policy block in
+`.claude/workflows/goal-lift.js`.
 
-**Escalate to Fable when:**
+Escalation is an **opus effort ladder**, not a model swap.  Fable is not a rung;
+it is reachable only as a fresh-model re-lift through the improve-pass drain
+(`--improveModel fable`).
+
+### Ladder
+
+```
+attempt 1   lift                             opus-high
+gate        VC71 >= bar                      → commit lane
+[65,85), not capped, score-context classification matches a recipe-atlas rule id
+            → apply the mechanical lever     opus-low   (no escalation slot charged)
+[65,85), not capped, no rule match
+            → optimizer rung 1               opus-medium
+            → rung 2                         opus-xhigh
+            → rung 3                         opus-max
+ladder exhausted, still sub-bar
+            → park with cap hypothesis + warm-start patch
+```
+
+Each next rung runs only when all of these hold:
+- the previous rung gained < 1pp,
+- the target is still below the pass bar,
+- the target is not structurally capped,
+- remaining budget ≥ `ESCALATION_BUDGET_FLOOR` (120k),
+- fewer than `MAX_ESCALATIONS` (3) targets have entered the ladder this run.
+
+Rungs come from `IMPROVE_EFFORTS`; override with `--improveEfforts`,
+`--escalationBudgetFloor`, `--maxEscalations`.
+
+### Park (ladder exhausted)
+
+`tools/lift/park.py park` records the attempt as `{model, effort, score}` with a
+cap hypothesis and the warm-start patch (the diff, under `artifacts/parked/`),
+then reverts the tree.  Never checkout-discard sub-bar work.
+
+### Structure-wrong signals — one fresh-model re-lift
+
 - VC71 match < 65% (control flow / structure wrong)
 - ABI audit fails (calling convention reasoning)
 - FPU-WARN present (operand order requires careful disasm reading)
 - Build fails on the second attempt (not a simple typo)
+
+These mean the structure is wrong, not that the score needs tuning — a higher
+effort rung does not help.  Route one re-lift on a *different* model — **Fable**
+— for perspective diversity, via the improve-pass drain (`--improveModel fable`).
+`park.py next --exclude-model <model>` picks the closest-to-bar parked function
+that model has not already tried, so the ledger drains model-by-model instead of
+retrying the same model.  If that attempt also fails → revert+log with every
+attempt recorded; skip the target.
 
 **Do NOT escalate — just revert+log — when:**
 - Target has SEH prolog/epilog (not liftable with current tooling)
 - Target has >3 register args (disqualified)
 - Build fails on an unrelated file (repo state issue, not lift quality)
 
-**Escalation steps:**
-1. Revert the Opus attempt:
-   ```bash
-   rtk git checkout -- src/ kb.json tools/kb_reg_baseline.json
-   ```
-2. Re-run Phase 1 using `Agent(subagent_type="xbox-halo-re-analyst", model="fable")`
-   — a *different* model from the Opus base gives perspective diversity.
-   Include the same Phase-1 briefing prompt as the original attempt.
-3. Re-run Phase 2 (`lift_pipeline.py`).
-4. If Fable also fails → revert+log with both attempts recorded; skip target.
+**[85,98]% with a delinked reference → permuter, not a bigger model.**
+
+Escalation triggers are **realized signals only**: a measured sub-1pp gain after
+a rung, or a hard gate failure.  Do not add predictive futility heuristics —
+three were tested and measured dead.
 
 ---
 
@@ -124,8 +165,9 @@ Write to `artifacts/auto_lift/failures/<target_name>.json`:
   "object": "<object_name>",
   "timestamp": "<ISO 8601>",
   "attempts": [
-    {"model": "opus",  "failure_stage": "<stage>", "error_summary": "<msg>"},
-    {"model": "fable", "failure_stage": "<stage>", "error_summary": "<msg>"}
+    {"model": "opus",  "effort": "high",   "failure_stage": "<stage>", "error_summary": "<msg>"},
+    {"model": "opus",  "effort": "medium", "failure_stage": "<stage>", "error_summary": "<msg>"},
+    {"model": "opus",  "effort": "xhigh",  "failure_stage": "<stage>", "error_summary": "<msg>"}
   ],
   "pipeline_output": "<full pipeline stderr/stdout from last attempt>"
 }
@@ -138,7 +180,8 @@ Write to `artifacts/auto_lift/failures/<target_name>.json`:
 `.claude/workflows/mass-lift.js` was **removed** in the 2026-07-07 architecture
 review.  It was unwired (no command/skill backed it), committed without the
 `xbox-halo-lift-reviewer` fail-closed gate, carried no central model/effort
-policy, and its "Opus escalation" was a same-model retry.  `goal-lift.js` is the
+policy, and its "Opus escalation" was a same-model *same-effort* retry with no
+ladder, budget floor, or per-run cap.  `goal-lift.js` is the
 single governed mass-decompilation orchestrator; use `/goal-lift` instead.  If a
 mass path is ever needed again, extract goal-lift's `M` policy + reviewer gate
 into a shared module rather than reviving the old workflow.

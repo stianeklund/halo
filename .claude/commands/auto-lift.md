@@ -44,8 +44,8 @@ failures), repeat:
    ```
 6. Evaluate pipeline result (see pass/fail criteria below).
 7. **On pass**: auto-commit (unless `--dry-run`), reset consecutive failure counter.
-8. **On fail**: attempt escalation (Fable) or revert+log (see escalation below),
-   increment consecutive failure counter.
+8. **On fail**: enter the opus effort ladder, or park/revert+log (see escalation
+   below), increment consecutive failure counter.
 9. If consecutive failures reach `--stop-on-fail`, stop and report.
 
 After the loop ends, print a summary: N attempted, N committed, N failed, N skipped.
@@ -68,13 +68,25 @@ Use `--verify-policy auto` (default) for this skill.  The `/lift` skill uses
 
 ## Escalation
 
-This skill runs the lift subagent on **Opus** by default. Opus is pinned (rather
-than Sonnet) because Sonnet lift agents stall-loop under the workflow watchdog.
-Escalation retries on a *different* model — **Fable** — for perspective diversity,
-matching `goal-lift`'s escalation. (A same-model Opus→Opus retry buys nothing.)
+This skill runs the lift subagent on **Opus-high** by default. Opus is pinned
+(rather than Sonnet) because Sonnet lift agents stall-loop under the workflow
+watchdog.  Escalation is the **opus effort ladder** — medium → xhigh → max — not
+a model swap, matching `goal-lift.js` (the canonical implementation).  Each rung
+runs only if the previous gained <1pp, the target is still sub-bar and not
+capped, budget remains (≥120k), and ≤3 targets have escalated this run.  A
+recipe-atlas rule match short-circuits to a mechanical lever at opus-low without
+charging an escalation slot.  Ladder exhausted → park with cap hypothesis +
+warm-start patch.
+
+**Fable** appears only as the fresh-model re-lift for structure-wrong signals,
+via the improve-pass drain (`--improveModel fable`, with
+`park.py next --exclude-model`) — never as a ladder rung.
+
 See `docs/lift-policy.md` §Escalation-flow for the canonical escalation rules and
-pass/fail thresholds.  Summary: escalate on VC71 <65%, ABI fail, FPU-WARN, or
-second build failure; do not escalate on SEH, >3 reg-args, or unrelated build fail.
+pass/fail thresholds.  Summary: ladder on VC71 65–84% and not capped; fresh-model
+re-lift on VC71 <65%, ABI fail, FPU-WARN, or second build failure; do not escalate
+on SEH, >3 reg-args, or unrelated build fail; [85,98]% with a delinked ref goes to
+the permuter, not a bigger model.
 
 ## On success — auto-commit
 
@@ -107,8 +119,8 @@ Write failure record to `artifacts/auto_lift/failures/<target_name>.json`:
   "object": "<object_name>",
   "timestamp": "<ISO 8601>",
   "attempts": [
-    {"model": "opus", "failure_stage": "<stage>", "error_summary": "<msg>"},
-    {"model": "fable", "failure_stage": "<stage>", "error_summary": "<msg>"}
+    {"model": "opus", "effort": "high",   "failure_stage": "<stage>", "error_summary": "<msg>"},
+    {"model": "opus", "effort": "xhigh",  "failure_stage": "<stage>", "error_summary": "<msg>"}
   ],
   "pipeline_output": "<full pipeline stderr/stdout from last attempt>"
 }
