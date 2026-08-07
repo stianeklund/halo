@@ -3297,6 +3297,42 @@ void FUN_000c22f0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2340 (hs.obj) — HaloScript function handler: cinematic start.
+ *
+ * Zero-argument script builtin, so there is no hs_macro_function_evaluate
+ * call — the handler runs cinematic_start() and completes the calling thread
+ * with the value 0.  Structural twin of FUN_000c2180 above (same
+ * 10-instruction sub-shape, same frame).
+ *
+ * Disassembly (10 instructions).  Frame is PUSH EBP; MOV EBP,ESP only — no
+ * locals and no `sub esp`.  Body:
+ *
+ *   CALL 0x92e20         ; cinematic_start(), no args pushed, no cleanup
+ *   MOV EAX,[EBP+0xc]    ; thread_datum
+ *   PUSH 0x0             ; hs_return arg2 = value
+ *   PUSH EAX             ; hs_return arg1 = thread_datum (cdecl: last PUSH
+ *                        ; is the first C argument)
+ *   CALL 0xcbf80         ; hs_return
+ *   ADD ESP,0x8          ; cdecl cleanup, 2 dwords
+ *   POP EBP; RET         ; plain cdecl RET, no RET n
+ *
+ * [EBP+0x8] (function_index) and [EBP+0x10] (init) are never read by this
+ * body; they complete the standard hs-evaluator signature shared by every
+ * other handler in this TU (a cdecl parameter the callee ignores emits no
+ * code, so the disassembly cannot distinguish 2 params from 3 — the sibling
+ * handlers arbitrate).  Ghidra mis-prototypes this as void(void) and reports
+ * the [EBP+0xc] read as the phantom local `in_stack_00000008`.
+ *
+ * Callees (both cdecl, no register args):
+ *   0x92e20 = cinematic_start(void)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c2340(int16_t function_index, int thread_datum, char init)
+{
+  cinematic_start();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
