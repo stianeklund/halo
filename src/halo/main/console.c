@@ -63,12 +63,14 @@ static char *console_telnet_enabled(void)
  * Confirmed: CALL 0x8dff0 (csstrcpy) with "halo( ".
  * Confirmed: history head = 0xffff, count = 0, browse = 0xffff.
  */
+/* console_initialize — Address: 0x000ff400 */
 void console_initialize(void)
 {
   *(uint32_t *)0x46cfe8 = *(uint32_t *)0x31f9b8;
   *(uint32_t *)0x46cfec = *(uint32_t *)0x31f9bc;
   *(uint32_t *)0x46cff0 = *(uint32_t *)0x31f9c0;
   *(uint32_t *)0x46cff4 = *(uint32_t *)0x31f9c4;
+
   csstrcpy(console_prompt(), "halo( ");
   *console_input_buffer() = 0;
   *console_history_head() = -1;
@@ -111,6 +113,7 @@ bool console_is_active(void)
  * Confirmed: if telnet flag at 0x46d924, calls csstrcat +
  * debug_string_to_display.
  */
+/* console_printf — Address: 0x000ff4d0 */
 void console_printf(int channel, const char *format, ...)
 {
   char buffer[1024];
@@ -121,9 +124,7 @@ void console_printf(int channel, const char *format, ...)
   }
 
   vsprintf(buffer, format, arglist);
-  buffer[255] = 0;
-
-  terminal_output(NULL, (const char *)0x257984, buffer);
+  terminal_output(NULL, (const char *)0x257984, (buffer[255] = 0, buffer));
 
   if (*console_telnet_enabled() != 0) {
     csstrcat(buffer, (const char *)0x261f2c, 0x400);
@@ -142,6 +143,7 @@ void console_printf(int channel, const char *format, ...)
  * Confirmed: color pointer loaded from [0x2ee6d0] (indirect).
  * Confirmed: va_list starts at [EBP+0xc].
  */
+/* console_warning — Address: 0x000ff530 */
 void console_warning(const char *format, ...)
 {
   char buffer[1024];
@@ -169,21 +171,22 @@ static char *console_history_ring(void)
 /* Submit the current console input buffer as a command. Advances the
  * history ring, copies the input to the new slot, resets the browse
  * index, and evaluates via hs_console_evaluate. */
+/* console_submit_command — Address: 0x000ff5d0 */
 void console_submit_command(void)
 {
-  int16_t head = *console_history_head();
-  head = (head + 1) & 7;
+  int16_t head = (*console_history_head() + 1) % 8;
   *console_history_head() = head;
 
   csstrcpy(console_history_ring() + head * CONSOLE_HISTORY_SLOT_SIZE,
            console_input_buffer());
 
   {
-    int16_t count = *console_history_count();
-    if (count + 1 < 9)
-      *console_history_count() = count + 1;
-    else
+    int count = *console_history_count() + 1;
+    if (count <= 8) {
+      *console_history_count() = count;
+    } else {
       *console_history_count() = 8;
+    }
   }
 
   *console_history_browse_index() = -1;
@@ -220,36 +223,23 @@ char *console_get_text_to_autocomplete(void)
  * longest case-insensitive common prefix to the input buffer and updates
  * the cursor position.
  */
+/* console_process_enter — Address: 0x000ff680 */
 void console_process_enter(void)
 {
   char *token_array[256];
   char accum[1024];
   char *token_start;
-  char *sp;
-  char *lp;
-  char *qp;
   int16_t token_count;
   int16_t match_len;
-  int16_t cap;
+  int cap;
   int16_t i;
   int16_t idx;
-  int32_t batch_mod;
   int next_a;
   int next_b;
   int clen;
   bool large_list;
 
-  token_start = console_input_buffer();
-  sp = strrchr(console_input_buffer(), 0x20);
-  lp = strrchr(console_input_buffer(), 0x28);
-  qp = strrchr(console_input_buffer(), 0x22);
-
-  if (token_start <= sp + 1)
-    token_start = sp + 1;
-  if (token_start <= lp + 1)
-    token_start = lp + 1;
-  if (token_start <= qp + 1)
-    token_start = qp + 1;
+  token_start = console_get_text_to_autocomplete();
 
   token_count =
     hs_tokens_enumerate(token_start, 0xffffffff, token_array, 0x100);
@@ -284,10 +274,7 @@ void console_process_enter(void)
       } else {
         FUN_0008dc30(accum, token_array[idx]);
         FUN_0008dc30(accum, (char *)0x28094c);
-        batch_mod = (int32_t)idx & 0x80000003;
-        if (batch_mod < 0)
-          batch_mod = (batch_mod - 1 | 0xfffffffc) + 1;
-        if (batch_mod == 3) {
+        if (idx % 4 == 3) {
           console_printf(0, accum);
           accum[0] = 0;
         }
@@ -295,16 +282,13 @@ void console_process_enter(void)
     }
 
     if (large_list) {
-      batch_mod = (int32_t)(int16_t)token_count - 1 & 0x80000003;
-      if (batch_mod < 0)
-        batch_mod = (batch_mod - 1 | 0xfffffffc) + 1;
-      if (batch_mod != 3)
+      if ((token_count - 1) % 4 != 3)
         console_printf(0, accum);
     }
 
     csstrncpy(token_start, token_array[0], (size_t)(match_len + 1));
-    token_start[match_len + 1] = 0;
-    *(int16_t *)0x46d11e = (int16_t)(uintptr_t)token_start + 0x2fe9 + match_len;
+    token_start[cap + 1] = 0;
+    *(int16_t *)0x46d11e = (int16_t)(uintptr_t)token_start + 0x2fe9 + cap;
   }
 }
 
@@ -323,6 +307,7 @@ void console_process_enter(void)
  * Confirmed: head = (head + 1) % 8, count = min(count + 1, 8).
  * Confirmed: CALL 0xc50c0 (hs_console_evaluate), logs "init: %s" on success.
  */
+/* console_startup — Address: 0x000ff870 */
 void console_startup(void)
 {
   char buffer[200];
@@ -341,17 +326,17 @@ void console_startup(void)
 
   while (crt_fgets(buffer, 199, stream) != NULL) {
     int16_t head;
-    int16_t count;
+    int count;
     csstrtok(buffer, "\r\n\t");
 
-    head = (*console_history_head() + 1) & 7;
+    head = (*console_history_head() + 1) % 8;
     *console_history_head() = head;
 
     csstrcpy(console_history_ring() + head * CONSOLE_HISTORY_SLOT_SIZE, buffer);
 
     count = *console_history_count() + 1;
-    if (count > CONSOLE_HISTORY_SLOTS)
-      count = CONSOLE_HISTORY_SLOTS;
+    if (count > 8)
+      count = 8;
     *console_history_count() = count;
 
     *console_history_browse_index() = -1;
@@ -383,11 +368,6 @@ static int16_t *console_key_count(void)
   return (int16_t *)0x46cf64;
 }
 
-static int16_t *console_key_code(int index)
-{
-  return (int16_t *)(0x46cf68 + index * 4);
-}
-
 static void *console_edit_text(void)
 {
   return (void *)0x46d118;
@@ -416,76 +396,81 @@ static char *console_hud_chat_flag(void)
  * Confirmed: history ring indexing: (head - browse + 8) % 8 * 255.
  * Confirmed: CALL 0x97330 (edit_text_set_cursor_to_end) with 0x46d118.
  */
+struct console_key_entry {
+  int16_t key_code;
+  int16_t key_code2;
+};
+
+/* console_update — Address: 0x000ff9e0 */
 bool console_update(void)
 {
-  int16_t i;
+  int16_t key_index = 0;
+  struct console_key_entry *keys = (struct console_key_entry *)0x46cf68;
 
-  if (*console_is_open() == 0) {
-    if (input_key_is_down(0x10) == 1 && *console_is_open() == 0) {
-      *console_input_buffer() = 0;
-      *console_is_open() = terminal_open(console_terminal_state());
-      *console_hud_chat_flag() = 0;
-    }
-  } else {
-    for (i = 0; i < *console_key_count(); i++) {
-      if (*console_key_code(i) == -1) {
-        display_assert("key->key_code!=NONE",
-                       "c:\\halo\\SOURCE\\main\\console.c", 0xb8, 1);
-        system_exit(-1);
-      }
-
-      switch (*console_key_code(i)) {
-      case 0x10:
-        if (*console_is_open() != 0) {
-          terminal_dispose(console_terminal_state());
-          *console_is_open() = 0;
+  if (*console_is_open() != 0) {
+    if (key_index < *console_key_count()) {
+      do {
+        if (keys[key_index].key_code == -1) {
+          display_assert("key->key_code!=NONE",
+                         "c:\\halo\\SOURCE\\main\\console.c", 0xb8, 1);
+          system_exit(-1);
         }
-        break;
 
-      case 0x1e:
-        console_process_enter();
-        break;
-
-      case 0x38:
-      case 0x66:
-        if (*console_input_buffer() == 0) {
+        switch (keys[key_index].key_code2) {
+        case 0x10:
+        case_10:
           if (*console_is_open() != 0) {
             terminal_dispose(console_terminal_state());
             *console_is_open() = 0;
           }
-        } else {
+          break;
+
+        case 0x1e:
+          console_process_enter();
+          break;
+
+        case 0x38:
+        case 0x66:
+          if (*console_input_buffer() == 0)
+            goto case_10;
           console_submit_command();
           *console_input_buffer() = 0;
+          break;
+
+        case 0x4d:
+          *console_history_browse_index() += 2;
+          /* fall through */
+        case 0x4e: {
+          int16_t browse = *console_history_browse_index() - 1;
+          int16_t max_idx = *console_history_count() - 1;
+          int idx;
+          if (browse < 0)
+            browse = 0;
+          if (browse > max_idx)
+            browse = max_idx;
+          *console_history_browse_index() = browse;
+
+          if (browse != -1) {
+            idx = (*console_history_head() - browse + 8) % 8;
+            csstrcpy(console_input_buffer(),
+                     console_history_ring() + idx * CONSOLE_HISTORY_SLOT_SIZE);
+            edit_text_set_cursor_to_end(console_edit_text());
+          }
+          break;
         }
-        break;
 
-      case 0x4d:
-        *console_history_browse_index() += 2;
-        /* fall through */
-      case 0x4e: {
-        int16_t browse;
-        int16_t max_idx;
-        int idx;
-        browse = *console_history_browse_index() - 1;
-        if (browse < 1)
-          browse = 0;
-        max_idx = *console_history_count() - 1;
-        if (browse > max_idx)
-          browse = max_idx;
-        *console_history_browse_index() = browse;
-
-        if (browse != -1) {
-          idx = ((int)*console_history_head() - (int)browse + 8) & 7;
-          csstrcpy(console_input_buffer(),
-                   console_history_ring() + idx * CONSOLE_HISTORY_SLOT_SIZE);
-          edit_text_set_cursor_to_end(console_edit_text());
+        default:
+          break;
         }
-        break;
-      }
 
-      default:
-        break;
-      }
+        key_index++;
+      } while (key_index < *console_key_count());
+    }
+  } else {
+    if (input_key_is_down(0x10) == 1 && *console_is_open() == 0) {
+      *console_input_buffer() = 0;
+      *console_is_open() = terminal_open(console_terminal_state());
+      *console_hud_chat_flag() = 0;
     }
   }
 

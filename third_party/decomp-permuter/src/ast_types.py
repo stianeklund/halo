@@ -124,7 +124,7 @@ def expr_type(node: ca.Node, typemap: TypeMap) -> Type:
             return basic_type("int")
         return basic_type(node.type.split(" "))
     if isinstance(node, ca.ID):
-        return typemap.var_types[node.name]
+        return typemap.var_types.get(node.name, basic_type("int"))
     if isinstance(node, ca.UnaryOp):
         if node.op in ["p++", "p--", "++", "--"]:
             return rec(node.expr)
@@ -179,9 +179,9 @@ def expr_type(node: ca.Node, typemap: TypeMap) -> Type:
         fptr_type = resolve_typedefs(rec(expr), typemap)
         if isinstance(fptr_type, ca.PtrDecl):
             fptr_type = fptr_type.type
-        fptr_type = resolve_typedefs(fptr_type, typemap)
-        assert isinstance(fptr_type, ca.FuncDecl), "call to non-function"
-        return fptr_type.type
+        if isinstance(fptr_type, ca.FuncDecl):
+            return fptr_type.type
+        return basic_type("int")
     if isinstance(node, ca.ExprList):
         return rec(node.exprs[-1])
     if isinstance(node, ca.ArrayRef):

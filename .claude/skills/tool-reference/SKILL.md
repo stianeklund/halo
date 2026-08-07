@@ -18,7 +18,7 @@ description: "Command decision tree + full tools/ script reference: which comman
 - Need real Xbox probing: `/deploy --xbe-only`, then `/xbdm <mode>`.
 - Need xemu build/load: `/build` or `/xemu build-load`.
 - Need regression investigation: `/debug-regression <symptom>`.
-- Need to replay an existing fixture (quick path — no flags to remember): `/replay-input` — picks level/scenario/build interactively, fires `capture_scenario.py replay`.
+- Need to replay an existing fixture (quick path — no flags to remember): `/input-fixture` — picks level/scenario/build interactively, fires `capture_scenario.py replay`.
 - Need deterministic input testing (capture gameplay, replay the exact same input repeatedly, or diff patched vs unpatched build on identical input): `rtk python3 tools/xbox/capture_scenario.py replay --level <lvl> --scenario <name> [--xbe cachebeta.xbe|default.xbe]` — skill `input-replay-testing`, doc `docs/input-fixture-capture.md`.
 - Need an A/B regression test (does the patched build behave like the original on the same input): `rtk python3 tools/equivalence/ab_check.py --level <lvl> --scenario <name>` — one command: **builds+deploys your candidate and gates build-liveness first** (`verify_toggles_live --all-off`, so it tests your local build not a stale on-box one; `--no-deploy` to skip), then replays the fixture on cachebeta (golden) + default (candidate), captures both trajectories, runs the tolerant `behavior_diff`, and prints the localized divergence (exit 0 clean / 3 divergent / 2 inconclusive = deploy or gate failed). Add `--golden <frozen>.halorec` to reuse a frozen faithful golden (CI tripwire), `--aa-first` to self-check determinism. Skill `ab-trajectory-testing`, doc `docs/ab-trajectory-testing.md`.
 

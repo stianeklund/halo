@@ -9,7 +9,7 @@ description: "/verify, VC71, delink, objdiff, lift_pipeline, equivalence, golden
 
 Use this skill for lift verification, XDK/delink comparison, Option 3 fallback,
 or regression investigation. Doctrine and evidence rules live in
-`halo-xbox-re`; this skill covers the operational verification and debugging
+`halo-lift`; this skill covers the operational verification and debugging
 procedures.
 
 Passing validation reduces risk, but it is not proof of behavioral equivalence
@@ -62,6 +62,26 @@ Report:
 - low-match policy result
 - behavior/runtime check result if requested
 - summary path under `artifacts/lift_runs/.../summary.json`
+
+### Score-improvement gate
+
+Use this after a verified lift when making deliberate source-level changes to
+improve an existing VC71 score. First record the whole-TU baseline, then make
+one binary-backed candidate edit and gate it:
+
+```bash
+rtk python3 tools/verify/score_improve.py baseline \
+  --source <file.c> --output artifacts/score_improve/<func>-baseline.json
+rtk python3 tools/verify/score_improve.py check \
+  --baseline artifacts/score_improve/<func>-baseline.json \
+  --source <file.c> --target <func> \
+  --output artifacts/score_improve/<func>-check.json
+```
+
+`check` rejects a target that gains less than 0.01pp, any missing or regressed
+function score in the source file, or an increased warning count. Restore a
+failed candidate before pursuing another recipe. Use `lift-score-improve` to
+choose the next binary-backed lever from the score-context pack.
 
 ### Explicit structural verification
 
@@ -184,7 +204,7 @@ Do not save the Ghidra project after a delink export run.
 
 1. Start with git history before live probing.
 2. Inspect recent commits touching `kb.json`, `src/`, types, or prototypes.
-3. Check likely regression classes (see `halo-xbox-re` evidence policy for
+3. Check likely regression classes (see `halo-lift` evidence policy for
    labeling):
    - wrong calling convention or arg count
    - wrong return type or operand width
@@ -215,7 +235,7 @@ Useful xemu probes (fallback only):
 
 ## Debugging guardrails
 
-Follow the `halo-xbox-re` doctrine: fix only what evidence supports, prefer
+Follow the `halo-lift` doctrine: fix only what evidence supports, prefer
 narrow changes, do not repack or reorder structs without binary proof. If the
 hypothesis is too weak to fix safely, stop and say so.
 

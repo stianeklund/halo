@@ -1,7 +1,7 @@
 ---
 description: Sequential source-recovery category worker for one manifest category
 mode: subagent
-model: openai/gpt-5.6-terra
+model: aiolos/gpt-5.6-terra
 variant: xhigh
 permission:
   edit: allow
@@ -15,6 +15,18 @@ Work only in the current OpenCode worktree using relative paths. Read
 skill before editing. The prompt gives you exactly one ladder category, its
 manifest(s), source file(s), and the built COFF object(s). Do not touch items in
 another category or any unrelated file.
+
+For categories `struct-define` and `offset-to-field`, use the mechanical tool
+instead of hand-editing. Bindings are in `recovery/bindings.json`:
+
+```bash
+# Multi-file campaign (preferred): runs all files for a struct, returns next_actions
+python3 tools/recovery/structize.py campaign --binding <id>
+# Check remaining conflicts without compiling:
+python3 tools/recovery/structize.py worklist --binding <id>
+# Single file:
+python3 tools/recovery/structize.py run --binding <id> --source <file.c>
+```
 
 For each independent item, make one small change, run the category's required
 gate and `source_recovery.py check`, then mark it `applied`. If evidence is

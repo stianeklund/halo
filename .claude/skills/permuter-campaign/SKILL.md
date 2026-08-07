@@ -399,11 +399,17 @@ Record which gate failed and why in the results table.
 Only when the regression gate passes:
 ```bash
 rtk git add -- <source_file>
+MSG=$(mktemp /tmp/halo-perm-commit.XXXXXX)
 rtk python3 tools/audit/generate_lift_commit.py \
   --batch-name "permuter-campaign: <funcname> <baseline>%→<new>%" \
-  > /tmp/perm_commit.txt
-rtk git commit -F /tmp/perm_commit.txt
+  > "$MSG"
+rtk git commit -F "$MSG" && rm -f "$MSG"
 ```
+
+**`mktemp`, never a fixed path.** A campaign runs many workers in parallel and this
+box hosts concurrent agents and cron jobs; a shared `/tmp/perm_commit.txt` lets one
+worker commit another's staged changes under the wrong message (observed 2026-07-31,
+`d6caee6b`).
 
 **No freeform commit messages.** Use `generate_lift_commit.py` only.
 The ABI audit gate inside `generate_lift_commit.py` must pass — permuter

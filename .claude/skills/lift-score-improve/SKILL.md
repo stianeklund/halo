@@ -22,7 +22,36 @@ Source: `docs/lift-learnings.md` §19, §20, §24, §27, §38; classification ru
 in `tools/verify/vc71_verify.py::_classify_score_context`.
 
 This is score/byte-accuracy content only. Naming, comments, and readability
-cleanups are out of scope for this skill — see the `cleanup` family instead.
+cleanups are out of scope for this skill — see the `source-recovery` family instead.
+
+---
+
+## Step -1 — Run the automated fixer first
+
+Before any manual work, run the mechanical score-improvement tool.  It reads
+score-context packs, finds fixable diagnostics (wrong float literals, narrow
+field widths, comparison sense bugs), applies candidates one at a time, and
+gates each with a VC71 recompile.  Only improvements are kept.
+
+```bash
+# Census — what's fixable vs what needs an LLM:
+rtk python3 tools/recovery/score_structize.py scan --source <file.c>
+
+# Apply all mechanical fixes (per-edit VC71 gate):
+rtk python3 tools/recovery/score_structize.py fix --source <file.c>
+
+# Restrict to one rule or function:
+rtk python3 tools/recovery/score_structize.py fix --source <file.c> --rule imm_wrong_literal
+rtk python3 tools/recovery/score_structize.py fix --source <file.c> --function <func>
+```
+
+The `scan` output splits diagnostics into `fixable` (mechanical) and `needs_llm`
+(structural, requires judgment).  After `fix` completes, read the `needs_llm`
+list and proceed to the manual recipes below for those.
+
+Currently automated: `imm_wrong_literal` (exact float/int constant fixes).
+Reported but not yet auto-edited: `loadw_field_width`, `fcom_bound_sense`,
+`fpu_operand_order` — use the manual recipes below for these.
 
 ---
 
@@ -44,6 +73,30 @@ recipe corresponds 1:1 to a `rule` id. `frame.cand_frame_bytes` vs
 directly, independent of whether the summary classifier fired. Missing file
 just means no VC71 run has scored this function yet — run it, or proceed with
 the manual recipes below (the atlas entries work without a pack too).
+
+### Preserve only measured gains
+
+Before changing an existing lift specifically to improve its score, record a
+whole-TU baseline. Then make exactly one evidence-backed source change and
+gate it before trying another lever:
+
+```bash
+rtk python3 tools/verify/score_improve.py baseline \
+  --source <file.c> --output artifacts/score_improve/<func>-baseline.json
+
+# Apply one candidate change, then:
+rtk python3 tools/verify/score_improve.py check \
+  --baseline artifacts/score_improve/<func>-baseline.json \
+  --source <file.c> --target <func> \
+  --output artifacts/score_improve/<func>-check.json
+```
+
+`check` passes only when the target improves by at least 0.01pp, every scored
+function remains present, no score falls, and the warning count does not grow.
+On failure, restore only the candidate change; never accumulate neutral or
+regressive experiments. For an isolated candidate worktree, `score_improve.py
+trial --worktree <path> --candidate-cmd <command> ...` runs the command before
+the same gate.
 
 ### Preconditions worth checking once, before trusting any score
 

@@ -270,7 +270,7 @@ rtk python3 tools/equivalence/memsave_snapshot.py capture --plan artifacts/plan_
 #   add --follow to dereference *_ptr regions, --anchors for player/game-engine anchors
 
 # Real Xbox / XBDM only (virtual getmem — dump_xemu_memory.py's one kept path):
-rtk python3 tools/equivalence/dump_xemu_memory.py dump --method xbdm -o /tmp/full_dump.bin
+rtk python3 tools/equivalence/dump_xemu_memory.py dump --method xbdm -o artifacts/memory_dumps/dump_<target>.bin
 ```
 
 **Verify the capture before proceeding** (see Section B verification gate;
@@ -284,7 +284,7 @@ a targeted snapshot with:
 
 ```bash
 rtk python3 tools/equivalence/dump_xemu_memory.py snapshot \
-  --dump /tmp/full_dump.bin \
+  --dump artifacts/memory_dumps/dump_<target>.bin \
   --target <func_name_or_addr> \
   --full \
   -o artifacts/snapshot_<func>.json
@@ -298,7 +298,7 @@ stubbed.
 
 ```bash
 rtk python3 tools/equivalence/dump_xemu_memory.py snapshot \
-  --dump /tmp/full_dump.bin \
+  --dump artifacts/memory_dumps/dump_<target>.bin \
   --target <func> \
   --full \
   --arg dead_handle 0xec700000 \
@@ -345,4 +345,4 @@ loaded-XBE code pages, invalidating original-vs-candidate comparisons.
 | GDB attach | `mcp__xemu__xemu_send_monitor_command("gdbserver tcp::1234")` then gdb connect |
 | GDB cleanup | `gdb -ex "target remote :1234" -ex "delete" -ex "detach" -ex "quit"` |
 | Live capture (virtual, proven) | `rtk python3 tools/equivalence/memsave_snapshot.py plan --target <func> -o plan.json` then `... capture --plan plan.json -o snap.json` |
-| Real-HW dump (XBDM getmem) | `rtk python3 tools/equivalence/dump_xemu_memory.py dump --method xbdm -o /tmp/dump.bin` |
+| Real-HW dump (XBDM getmem) | `rtk python3 tools/equivalence/dump_xemu_memory.py dump --method xbdm -o artifacts/memory_dumps/dump_<target>.bin` |

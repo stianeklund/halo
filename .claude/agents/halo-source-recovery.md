@@ -60,17 +60,71 @@ renames before rewrites keep diffs reviewable):
 | # | Category | Skill | Gate |
 |---|---|---|---|
 | 1 | `comments` | `re-comment-capture` | (a) byte-identical |
-| 2 | `local-renames` | `local-var-cleanup` | (a) byte-identical |
+| 2 | `local-renames` | `name-cleanup` | (a) byte-identical |
 | 3 | `symbol-names` | `naming-confidence` | (a) byte-identical |
-| 4 | `const-enum` | `const-enum-recovery` | (b) + no new `[IMM-WARN]` |
-| 5 | `struct-define` | `struct-recovery` → `struct-assert` | (a) + build passes |
-| 6 | `offset-to-field` | `offset-to-struct` | (b) + hazard scan |
+| 4 | `const-enum` | `name-cleanup` | (b) + no new `[IMM-WARN]` |
+| 5 | `struct-define` | **`structize.py split`**, then `struct-recovery` → `struct-recovery` for refusals | (a) + build passes |
+| 6 | `offset-to-field` | **`structize.py converge`** | (b) + hazard scan |
 | 7 | `expr-simplify` (opt-in) | `expr-simplify` | (c) |
 | 8 | `control-flow` (opt-in) | `control-flow-cleanup` | (c) |
 
 Header placement (`header-recovery`) rides along with 3/5. One category per
 commit — `tools/recovery/check_category_purity.py <category> --staged` must
 pass before you commit that category's diff.
+
+### Rungs 5 and 6 are MECHANICAL — do not hand-edit offsets
+
+Once the struct exists, these two rungs are transcription, not judgement. Use
+the tool; hand-editing hundreds of offsets is how wrong-offset bugs get in, and
+the tool refuses exactly where a human would guess.
+
+Bindings are registered in `recovery/bindings.json` — each maps a struct name
+to the base variable name(s) used in source and a file glob. Use `--binding`
+instead of manually specifying `--base`/`--struct`:
+
+```bash
+# Multi-file campaign (preferred): runs all files touching a struct
+rtk python3 tools/recovery/structize.py campaign --binding actor_t
+# Check remaining conflicts without compiling:
+rtk python3 tools/recovery/structize.py worklist --binding actor_t
+# Discover which files have raw offsets for a struct:
+rtk python3 tools/recovery/structize.py discover --binding actor_t
+# Single file with binding:
+rtk python3 tools/recovery/structize.py run --binding actor_t \
+    --source <f.c> --manifest recovery/<f>.json
+```
+
+`campaign` returns a JSON report with a `next_actions` list — ranked conflicts
+and parked functions.  Resolve one, re-run `campaign`, repeat until
+`conflicts_total == 0`.
+
+One command: census → split (rung 5) → re-census → converge (rung 6). Use it
+rather than the individual steps — a census taken before the split misses every
+site the split just unblocked, and the run still reports success. Exit `0` work
+done, `1` failed (file restored), `2` converged but rewrote nothing.
+
+`converge` rewrites every eligible site, compiles, diffs at **function**
+granularity, re-applies excluding any function whose code moved, and proves the
+rest byte-identical. It restores the file untouched if it cannot converge.
+
+Your judgement goes into the **refusals**, not the rewrites. `split` emits a
+conflict list — offsets read at disagreeing widths or signedness — ranked by how
+many call sites each unblocks. Those are real `struct-recovery` questions
+(MOVSX vs MOVZX, union, sub-struct boundary). Answer one from disassembly,
+re-run `split`, and its sites convert automatically.
+
+Park, never force — then explain the park rather than guessing at it:
+
+```bash
+rtk python3 tools/recovery/structize.py triage --census recovery/census/<f>.json
+```
+
+`tbaa` is a proof the rewrite is semantically identical (byte-identical under
+`-fno-strict-aliasing`, so a wrong binding cannot reach it). `address-form-or-alignment`
+is only a lead — it names the culprit offsets and you check those against
+disassembly, because a genuinely wrong binding also lands there.
+`only-in-combination` means the function is clean alone. Report the verdict and
+the culprit offsets, not just a count. Never edit code to force a park through.
 
 ## Hard gates per edit category
 

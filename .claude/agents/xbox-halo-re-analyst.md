@@ -99,10 +99,12 @@ Procedure for analysis:
 Caller disassembly capture:
 When retrieving caller disassembly from Ghidra (callers of the target showing
 register setup before CALL instructions), save the raw disassembly text to
+`artifacts/lift/caller_disasm_<target>.txt` — keyed by target name, never a shared
 `/tmp/lift_caller_disasm.txt`. Phase 2 of `/lift` feeds this to the pipeline's
 ABI audit stage. Without it, the audit can only check kb.json declarations —
 with it, it can catch mismatches between declared register args and actual
-caller behavior.
+caller behavior. A shared path is worse than none: a concurrent lift's file makes
+the audit validate against another function's call sites and pass.
 
 Output format:
 - Target

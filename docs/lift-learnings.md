@@ -995,6 +995,7 @@ alongside the other manual-spot techniques.)*
    structural ceiling. Document which specific instructions are unmatched
    (FPU stack depth refs like `FLD ST(1)`, FPU comparison idioms, `@<reg>`
    prologue) so future sessions don't re-investigate.
+   - **FUN_000d8ca0 (79.2%):** `@<eax>` (`object_handle`) and `@<esi>` (`local_player_index`) register parameters on an unmapped function; VC71 emits a 3-instruction cdecl stack prologue (`push ebp; mov ebp, esp; ... pop ebp`) which accounts for the 79.2% ceiling (27 cand vs 26 ref insns).
 
 **Variant — vector3d_scale_add operand confusion (§2 + §4 interaction):**
 In FUN_001a2f40, the Ghidra decompiler lost track of which vector was
@@ -1051,8 +1052,10 @@ The entire 10pp gain came from the addressing change alone; no logic was touched
 - `FUN_00025c10` (0x25c10): 77.3% with static → 87.1% with stack
 - `actor_has_accessible_firing_position` (0x25a00): stuck at 78.4% with static
   (lower impact because its buffer is accessed less densely)
+- `game_engine_player_update_netgame_flag` (0xad600): 44KB `los_scratch` array declared static degraded stack frame allocation across neighbor functions in `game_engine.c`; converting to stack array jumped `game_engine_update` from **55.0% to 93.8%** match (+38.8pp).
 
-**How to detect residual workarounds:**
+**Detector:** Automated check in `tools/audit/check_lift_hazards.py` (`check_static_local_buffers`).
+
 ```bash
 grep -rn 'static.*avoid.*_chkstk\|static.*_chkstk\|chkstk linker' src/
 ```

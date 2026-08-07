@@ -1,5 +1,11 @@
 #include "x87_math.h"
 
+/* MSVC 7.1 /Oi intrinsics memset() to inline `rep stos` for constant
+ * zero-fills (e.g. the 60-byte level-array clears in FUN_000d8ff0), matching
+ * the reference; the game's own csmemset() stays a real CALL.  Declared extern
+ * like structure_detail_objects.c / main.c do for the same pattern. */
+extern void *__cdecl memset(void *, int, unsigned int);
+
 /* hud_weapon.c — weapon HUD interface (0xd8af0-0xd91f0)
  *
  * Lifted from Halo CE Xbox (cachebeta.xbe).  Owns the weapon-HUD globals
@@ -83,36 +89,36 @@ void FUN_000d8b90(char show)
  * Returns &globals[local_player_index] at stride 0x28.  Index in ESI. */
 void *FUN_000d8bc0(int16_t local_player_index /* @<esi> */)
 {
-  if (local_player_index >= 0 && local_player_index < 4) {
-    if (weapon_hud_globals == 0) {
-      display_assert("weapon_hud_globals",
-                     "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x1af, 1);
-      system_exit(-1);
-    }
-    return (char *)weapon_hud_globals + local_player_index * 0x28;
+  if (local_player_index < 0 || local_player_index >= 4) {
+    display_assert("local_player_index>=0 && "
+                   "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
+                   "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x1ae, 1);
+    system_exit(-1);
   }
-  display_assert("local_player_index>=0 && "
-                 "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
-                 "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x1ae, 1);
-  system_exit(-1);
+  if (weapon_hud_globals == 0) {
+    display_assert("weapon_hud_globals",
+                   "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x1af, 1);
+    system_exit(-1);
+  }
+  return (char *)weapon_hud_globals + local_player_index * 0x28;
 }
 
 /* FUN_000d8c30 (0xd8c30) — per-local-player accessor into a second globals
  * region: &globals[local_player_index+2] at stride 0x50.  Index in ESI. */
 void *FUN_000d8c30(int16_t local_player_index /* @<esi> */)
 {
-  if (local_player_index >= 0 && local_player_index < 4) {
-    if (weapon_hud_globals == 0) {
-      display_assert("weapon_hud_globals",
-                     "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x1b8, 1);
-      system_exit(-1);
-    }
-    return (char *)weapon_hud_globals + (local_player_index + 2) * 0x50;
+  if (local_player_index < 0 || local_player_index >= 4) {
+    display_assert("local_player_index>=0 && "
+                   "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
+                   "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x1b7, 1);
+    system_exit(-1);
   }
-  display_assert("local_player_index>=0 && "
-                 "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
-                 "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x1b7, 1);
-  system_exit(-1);
+  if (weapon_hud_globals == 0) {
+    display_assert("weapon_hud_globals",
+                   "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x1b8, 1);
+    system_exit(-1);
+  }
+  return (char *)weapon_hud_globals + (local_player_index + 2) * 0x50;
 }
 
 /* FUN_000d8ca0 (0xd8ca0) — refresh the tracked weapon object for a local
@@ -162,6 +168,7 @@ void FUN_000d8cf0(int param_1, int param_2)
   int flags7;
   int flags8;
   short count;
+  int off_148;
 
   canary = FUN_000d1540();
   csmemset(guard, 0x62, 0x200);
@@ -185,11 +192,12 @@ void FUN_000d8cf0(int param_1, int param_2)
     state = FUN_000d8bc0((short)param_1);
 
     if (whud_index != -1) {
+      off_148 = 0x148;
       grhi = (int)tag_get(0x67726869 /* 'grhi' */, whud_index);
 
       cVar = *(char *)((char *)unit + *(signed char *)((char *)unit + 0x2cc) +
                        0x2ce);
-      flags7 = ((short)cVar <= *(short *)(grhi + 0x148));
+      flags7 = ((short)cVar <= *(short *)(grhi + off_148));
       if (cVar == 0) {
         flags7 = flags7 | 2;
       } else {
@@ -249,7 +257,7 @@ void FUN_000d8cf0(int param_1, int param_2)
       goto LAB_corrupt;
     }
     sVar = sVar - 1;
-  } while (-1 < sVar);
+  } while (0 <= sVar);
   sVar = -1;
 LAB_corrupt:
   if (canary != FUN_000d1540()) {
@@ -313,7 +321,7 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
   int overlay_i;
   int overlay_elem;
   unsigned int flags;
-  float scale;
+  volatile float scale;
   int anim_block;
   int frame_index;
   short frame;
@@ -327,7 +335,7 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
   short frame_sel;
   float *uvs;
   int seq_elem;
-  int is32bpp;
+  char is32bpp;
   float rect2d[4]; /* contiguous rect passed by addr: [0]=rx0 [1]=rx1 [2]=ry0
                       [3]=ry1 */
   float sx, sy, dx, dy;
@@ -364,13 +372,21 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
       /* seed the hierarchy walk: level_hud[0] = wphi, level_idx[0] = whud_index
        */
       level_hud[0] = wphi;
-      for (i = 1; i < 16; i = i + 1) {
-        level_hud[i] = (int *)0;
-      }
+      /* The original clears level_hud[1..15] / level_idx[1..15] with memset(),
+       * which MSVC 7.1 /Oi inlines to `mov ecx,0xf; rep stos` (reference
+       * 0x5f5/0x608).  clang has no memset symbol to link, so the shipped
+       * build uses the behaviorally identical csmemset(); both zero 60 bytes. */
+#if defined(_MSC_VER) && !defined(__clang__)
+      memset(&level_hud[1], 0, 15 * sizeof(int *));
+#else
+      csmemset(&level_hud[1], 0, 15 * sizeof(int *));
+#endif
       level_idx[0] = whud_index;
-      for (i = 1; i < 16; i = i + 1) {
-        level_idx[i] = 0;
-      }
+#if defined(_MSC_VER) && !defined(__clang__)
+      memset(&level_idx[1], 0, 15 * sizeof(int));
+#else
+      csmemset(&level_idx[1], 0, 15 * sizeof(int));
+#endif
       selector_mask = (unsigned int)state[0x13];
       level = 1;
       do {
@@ -482,23 +498,24 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                       case 14:
                       case 18:
                         if (xhair_type == 18) {
-                          if (*(float *)(buf + 4) != 0.0f) {
-                            cur_valid = 0;
-                            goto LAB_time_check;
-                          }
-                          bv = ((*(unsigned int *)(unit_obj + 0x1b8) & 0x800) ==
-                                0);
-                          goto LAB_check_bv;
+                          /* Ref: FLD [buf+4]; FCOMP [0.0]; TEST AH,0x44; JP invalid */
+                          if (*(float *)(buf + 4) != *(float *)0x2533c0)
+                            goto LAB_set_invalid;
+                          if ((*(unsigned int *)(unit_obj + 0x1b8) & 0x800) == 0)
+                            goto LAB_set_invalid;
+                          cur_valid = 1;
+                          goto LAB_state_check;
                         }
                         if (xhair_type == 8) {
                           if ((*(short *)(buf + 0xe) == 0) &&
                               (*(short *)(buf + 0x12) == 0)) {
-                            bv = ((*(unsigned int *)(unit_obj + 0x1b8) &
-                                   0x800) == 0);
-                            goto LAB_check_bv;
+                            if ((*(unsigned int *)(unit_obj + 0x1b8) & 0x800) ==
+                                0)
+                              goto LAB_set_invalid;
+                            cur_valid = 1;
+                            goto LAB_state_check;
                           }
-                          cur_valid = 0;
-                          goto LAB_time_check;
+                          goto LAB_set_invalid;
                         }
                         if (xhair_type == 9) {
                           bv = 1;
@@ -514,28 +531,24 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                             k = k - 1;
                           } while (k != 0);
                           if ((bv) && (*(char *)(unit_obj + 0x23d) == 0)) {
-                            bv = ((*(unsigned int *)(unit_obj + 0x1b8) &
-                                   0x2000) == 0);
-                            goto LAB_check_bv;
+                            if ((*(unsigned int *)(unit_obj + 0x1b8) & 0x2000) ==
+                                0)
+                              goto LAB_set_invalid;
+                            cur_valid = 1;
+                            goto LAB_state_check;
                           }
-                          cur_valid = 0;
-                          goto LAB_time_check;
+                          goto LAB_set_invalid;
                         }
                         /* case 14: reuse cur_valid carried from a prior element
                          */
                         if (cur_valid != 0)
                           goto LAB_state_check;
-                      LAB_time_check:
+                      LAB_set_invalid:
+                        cur_valid = 0;
                         hold = FUN_000d2300(overlay_elem + 0x24);
                         if (game_time_get() - *state_slot < hold)
                           goto LAB_state_check;
                         goto LAB_kill_slot;
-                      LAB_check_bv:
-                        if (bv) {
-                          cur_valid = 0;
-                          goto LAB_time_check;
-                        }
-                        cur_valid = 1;
                       LAB_state_check:
                         if (*state_slot != -1)
                           goto LAB_animated;

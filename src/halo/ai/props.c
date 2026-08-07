@@ -111,15 +111,15 @@ void FUN_00064400(int actor_handle, int prop_handle) /* @<eax>, @<edi> */
   actor = (char *)datum_get(actor_data, actor_handle);
 
   /* Assertion: prop must be the actor's current target prop. */
-  if (*(int *)(actor + 0x270) == prop_handle) {
+  if (((actor_t *)actor)->target_target_prop_index == prop_handle) {
     display_assert("actor->target.target_prop_index != prop_index",
                    "c:\\halo\\SOURCE\\ai\\props.c", 0x19b, 1);
     system_exit(-1);
   }
 
   /* Assertion: prop must not be the secondary look direction. */
-  if ((*(short *)(actor + 0x544) != 0) && (*(short *)(actor + 0x54c) == 1) &&
-      (*(int *)(actor + 0x550) == prop_handle)) {
+  if ((((actor_t *)actor)->control_secondary_look_type != 0) && (((actor_t *)actor)->control_secondary_look_direction_type == 1) &&
+      (((actor_t *)actor)->control_secondary_look_direction_prop_index == prop_handle)) {
     display_assert(
       "!((actor->control.secondary_look_type != _secondary_look_none) && "
       "(actor->control.secondary_look_direction.type == "
@@ -130,8 +130,8 @@ void FUN_00064400(int actor_handle, int prop_handle) /* @<eax>, @<edi> */
   }
 
   /* Assertion: prop must not be the idle major direction. */
-  if ((*(char *)(actor + 0x55c) != 0) && (*(short *)(actor + 0x56c) == 1) &&
-      (*(int *)(actor + 0x570) == prop_handle)) {
+  if ((((actor_t *)actor)->control_idle_major_active != 0) && (((actor_t *)actor)->control_idle_major_direction_type == 1) &&
+      (((actor_t *)actor)->control_idle_major_direction_prop_index == prop_handle)) {
     display_assert(
       "!((actor->control.idle_major_active) && "
       "(actor->control.idle_major_direction.type == "
@@ -142,8 +142,8 @@ void FUN_00064400(int actor_handle, int prop_handle) /* @<eax>, @<edi> */
   }
 
   /* Assertion: prop must not be the idle minor direction. */
-  if ((*(char *)(actor + 0x55f) != 0) && (*(short *)(actor + 0x57c) == 1) &&
-      (*(int *)(actor + 0x580) == prop_handle)) {
+  if ((((actor_t *)actor)->control_idle_minor_active != 0) && (((actor_t *)actor)->control_idle_minor_direction_type == 1) &&
+      (((actor_t *)actor)->control_idle_minor_direction_prop_index == prop_handle)) {
     display_assert(
       "!((actor->control.idle_minor_active) && "
       "(actor->control.idle_minor_direction.type == "
@@ -155,12 +155,12 @@ void FUN_00064400(int actor_handle, int prop_handle) /* @<eax>, @<edi> */
 
   /* Splice prop_handle out of the singly-linked chain rooted at actor+0x50.
    * Chain links through prop+0x8 (confirmed from prop_iterator_next). */
-  head_handle = *(int *)(actor + 0x50);
+  head_handle = ((actor_t *)actor)->field_050;
   head_prop = (char *)datum_get(prop_data, head_handle);
 
-  if (*(int *)(actor + 0x50) == prop_handle) {
+  if (((actor_t *)actor)->field_050 == prop_handle) {
     /* Removing the head: advance head to head->next. */
-    *(int *)(actor + 0x50) = *(int *)(head_prop + 8);
+    ((actor_t *)actor)->field_050 = *(int *)(head_prop + 8);
     return;
   }
 
@@ -199,7 +199,7 @@ void FUN_00064400(int actor_handle, int prop_handle) /* @<eax>, @<edi> */
 void FUN_00064540(int *out, int actor_handle)
 {
   void *actor = datum_get(actor_data, actor_handle);
-  out[1] = *(int *)((char *)actor + 0x50);
+  out[1] = ((actor_t *)actor)->field_050;
 }
 
 /* 0x64570 — prop_iterator_next.
@@ -302,7 +302,7 @@ int prop_get_active_by_unit_index(int actor_handle, int object_handle)
   }
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  cur_handle = *(int *)(actor + 0x50); /* prop chain head */
+  cur_handle = ((actor_t *)actor)->field_050; /* prop chain head */
 
   for (;;) {
     if (cur_handle == -1) {

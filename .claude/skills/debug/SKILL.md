@@ -36,14 +36,14 @@ Read the symptom, then follow the matching row:
 
 | Symptom | Action |
 |---------|--------|
-| ACCESS_VIOLATION / page fault / CR2 nonzero | → Load `crash-triage` skill (signal table + root cause). If page fault, follow up with `halo-page-fault`. |
+| ACCESS_VIOLATION / page fault / CR2 nonzero | → Load `crash-debug` skill (signal table + root cause). If page fault, follow up with `crash-debug`. |
 | Assert in debug.txt (e.g. `tag_groups.c:3089`) | → Section B below (Assert Triage) |
 | Hang / freeze / soft-deadlock / CR2=0 / no output | → Section C below (Hang Investigation) |
 | Wrong visual: color, tint, culling, invisible geometry | → Section D below (Toggle-Bisect), then `lift-silent-bugs` |
 | Feature does nothing / wrong values / wrong positions | → `lift-silent-bugs` checks 1–5, then `/bug-hunt --full` |
 | Build failure (compile error, linker error) | → Section E below (Build Error Triage) |
 | Deploy failure (symbol absent, stale image) | → Section F below (Deploy Triage) |
-| Register dump available but cause unclear | → Load `crash-triage` (signal table match) |
+| Register dump available but cause unclear | → Load `crash-debug` (signal table match) |
 | Regression after recent commit | → Load `debug-regression` command (git bisect + verify) |
 | xemu-specific probing needed | → Load `debug-xemu` skill (QMP, GDB, screenshots) |
 
@@ -115,7 +115,7 @@ the thread is blocked on a wait/signal.
 
 ### Step 2 — Identify what the blocked thread was doing
 
-Read EBP chain to get the call stack (see `lift-crash-signals` Step 3). The
+Read EBP chain to get the call stack (see `crash-debug` Step 3). The
 return addresses above the kernel idle frame tell you which game function
 entered the wait.
 
@@ -267,7 +267,10 @@ Source file not registered in CMakeLists.txt. See Section E linker error.
 **Always use the exception symbolizer** (fresh `build/halo` PE exports, not `build/halo.map`):
 
 ```bash
-rtk python3 tools/xbox/symbolize_exception.py --file /tmp/exception.txt
+# mktemp, never a shared /tmp/exception.txt — a concurrent debug session
+# overwriting it gets its crash symbolized as yours.
+EXC=$(mktemp /tmp/halo-exception.XXXXXX)   # then paste the crash text into "$EXC"
+rtk python3 tools/xbox/symbolize_exception.py --file "$EXC"
 rtk python3 tools/xbox/symbolize_exception.py 0x<EIP> 0x<frame0> 0x<frame1>
 ```
 
@@ -305,9 +308,9 @@ reproduce. If the bug persists → it's pre-existing, not our regression.
 
 | Skill | Use When |
 |-------|----------|
-| `crash-triage` | Have register dump, need signal-table match and root cause |
-| `halo-page-fault` | Page fault specifically, need deep ABI/signature investigation |
-| `lift-crash-signals` | Xbox runtime signals, call-stack walk, deactivation stub diagnosis |
+| `crash-debug` | Have register dump, need signal-table match and root cause |
+| `crash-debug` | Page fault specifically, need deep ABI/signature investigation |
+| `crash-debug` | Xbox runtime signals, call-stack walk, deactivation stub diagnosis |
 | `lift-silent-bugs` | Non-crashing correctness bugs (5 specific check patterns) |
 | `lift-decompiler-traps` | Ghidra decompiler pitfalls, arg hazards, and stack frame hazards |
 | `check-callee-regs` | Missing `@<reg>` annotations on unported callees |

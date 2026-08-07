@@ -106,31 +106,62 @@ def find_units(source: str, units: list[dict]) -> list[dict]:
     return matches
 
 
-def function_aliases(function: str | None) -> set[str]:
-    """Return possible symbol names for a function across source/ref objects."""
-    if not function:
-        return set()
-
-    fn = function.lstrip("_")
+def function_aliases(fn: str, source: Path | None = None) -> set[str]:
+    """Find all name aliases for a function (e.g. console_update -> FUN_000ff9e0)."""
     aliases = {fn}
 
     try:
         kb = _load_kb()
-        for obj in kb.get("objects", []):
-            for entry in obj.get("functions", []):
-                addr = entry.get("addr", "")
-                decl = entry.get("decl", "")
-                m = re.search(r"\b(\w+)\s*\(", decl)
-                if not (addr and m):
-                    continue
-                declared = m.group(1)
-                fun_name = f"FUN_{int(addr, 16):08x}"
-                if fn == declared:
-                    aliases.add(fun_name)
-                elif fn == fun_name:
-                    aliases.add(declared)
+        if isinstance(kb, dict):
+            if "objects" in kb:
+                for obj in kb.get("objects", []):
+                    for entry in obj.get("functions", []):
+                        addr = entry.get("addr", "")
+                        decl = entry.get("decl", "")
+                        m = re.search(r"\b(\w+)\s*\(", decl)
+                        if not (addr and m):
+                            continue
+                        declared = m.group(1)
+                        fun_name = f"FUN_{int(addr, 16):08x}"
+                        if fn == declared:
+                            aliases.add(fun_name)
+                        elif fn == fun_name:
+                            aliases.add(declared)
+            else:
+                for addr_str, entry in kb.items():
+                    if isinstance(entry, dict):
+                        declared = entry.get("name")
+                        decl = entry.get("decl", "")
+                        if not declared and decl:
+                            m = re.search(r"\b(\w+)\s*\(", decl)
+                            if m:
+                                declared = m.group(1)
+                        if declared and addr_str.startswith("0x"):
+                            try:
+                                fun_name = f"FUN_{int(addr_str, 16):08x}"
+                                if fn == declared:
+                                    aliases.add(fun_name)
+                                elif fn == fun_name:
+                                    aliases.add(declared)
+                            except ValueError:
+                                pass
     except (OSError, ValueError, json.JSONDecodeError):
         pass
+
+    if source:
+        source_path = Path(source)
+        if source_path.exists():
+            try:
+                txt = source_path.read_text()
+                for m in re.finditer(r"/\*\s*(\w+)[^*]*?Address:\s*0x([0-9a-fA-F]+)", txt):
+                    name, addr_hex = m.group(1), m.group(2)
+                    fun_name = f"FUN_{int(addr_hex, 16):08x}"
+                    if fn == name:
+                        aliases.add(fun_name)
+                    elif fn == fun_name:
+                        aliases.add(name)
+            except Exception:
+                pass
 
     return aliases
 
@@ -149,7 +180,7 @@ def object_symbols(obj_path: Path) -> set[str]:
     return symbols
 
 
-def _per_function_ref(function: str) -> Path | None:
+def _per_function_ref(function: str, source: Path | None = None) -> Path | None:
     """Return delinked/functions/<hex8>.obj if it exists for this function address.
 
     Also accepts an unpadded-hex filename (e.g. c0f50.obj for 0x000c0f50) —
@@ -157,7 +188,7 @@ def _per_function_ref(function: str) -> Path | None:
     skips VC71 scoring (goal-lift then records 0% and parks a good lift; see
     commits f8e29209/daa39ee6).
     """
-    aliases = function_aliases(function)
+    aliases = function_aliases(function, source)
     for alias in aliases:
         m = re.match(r"FUN_([0-9a-f]{8})$", alias, re.IGNORECASE)
         if m:
@@ -193,9 +224,9 @@ def _kb_func_starts() -> list[int]:
     return _kb_starts_cache
 
 
-def _func_addr(function: str) -> int | None:
+def _func_addr(function: str, source: Path | None = None) -> int | None:
     """Resolve a function name/alias to its start address, or None."""
-    for alias in function_aliases(function) | {function}:
+    for alias in function_aliases(function, source) | {function}:
         m = re.match(r"FUN_0*([0-9a-fA-F]+)$", alias or "")
         if m:
             return int(m.group(1), 16)
@@ -443,11 +474,11 @@ def choose_unit(source: str, units: list[dict], function: str | None) -> dict | 
         if ref.exists():
             existing.append(unit)
 
-    aliases = function_aliases(function) if function else set()
+    aliases = function_aliases(function, source) if function else set()
 
     # A function-specific export is the authoritative reference for a targeted
     # comparison; do not let a whole-TU unit shadow it when both are present.
-    per_func = _per_function_ref(function) if function else None
+    per_func = _per_function_ref(function, source) if function else None
     if per_func:
         return {
             "base_path": str(per_func.relative_to(REPO_ROOT)),
@@ -1360,6 +1391,7 @@ def run_compare_cached(
     # present and itself valid.  Gated on byte span in BOTH directions so a
     # stale (pre-fix, bloated) chunk is never preferred over a good reference.
     ref_overrides: set[str] = set()
+    _chunk_truncation: dict[str, dict] = {}
 
     def _valid_chunk_ref(fn: str):
         """Instruction list from fn's per-function chunk, or None if unusable.
@@ -1384,7 +1416,20 @@ def run_compare_cached(
             return None
         if not cand:
             return None
-        return cand if _ref_insns_valid(len(cand), _func_span(fn)) else None
+        if not _ref_insns_valid(len(cand), _func_span(fn)):
+            return None
+        try:
+            bounded = co.count_bounded_insns(str(chunk), aliases)
+        except Exception:
+            bounded = None
+        if bounded is not None and bounded > 0:
+            ratio = len(cand) / bounded
+            if ratio < 0.90:
+                _chunk_truncation[fn] = {
+                    "parsed": len(cand), "bounded": bounded,
+                    "ratio": round(ratio, 3), "lost": bounded - len(cand),
+                }
+        return cand
 
     def _synth_ref(fn: str):
         """Instruction list from a reference synthesized out of the pristine XBE.
@@ -1486,7 +1531,7 @@ def run_compare_cached(
         out = []
         for p in _sibling_objects():
             slices = _sib_slices(p)
-            for alias in set(function_aliases(fn)) | {fn}:
+            for alias in set(function_aliases(fn, source)) | {fn}:
                 s = slices.get(alias)
                 if s and _ref_insns_valid(len(s), _func_span(fn)):
                     out.append(s)
@@ -1606,6 +1651,7 @@ def run_compare_cached(
     any_loadw_warn = False
     any_imm_warn = False
     any_fcom_warn = False
+    any_trunc_warn = False
     hits = 0
     misses = 0
 
@@ -1669,6 +1715,9 @@ def run_compare_cached(
         loadw_tag = " [LOADW-WARN]" if loadw_warnings else ""
         imm_tag = " [IMM-WARN]" if imm_warnings else ""
         fcom_tag = " [FCOM-WARN]" if fcom_warnings else ""
+        trunc_info = _chunk_truncation.get(fn)
+        trunc_tag = (f" [TRUNC-WARN:{trunc_info['parsed']}/{trunc_info['bounded']}]"
+                     if trunc_info else "")
 
         reg_tag = ""
         if reg_normalize:
@@ -1697,9 +1746,9 @@ def run_compare_cached(
 
         if not only_mode:
             if quiet:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{opnd_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{trunc_tag}{opnd_tag}")
             else:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{opnd_tag}{cache_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{trunc_tag}{opnd_tag}{cache_tag}")
 
         if fpu_warnings:
             any_fpu_warn = True
@@ -1742,6 +1791,9 @@ def run_compare_cached(
                 for w in fcom_warnings:
                     print(w)
 
+        if trunc_info:
+            any_trunc_warn = True
+
         if status == "FAIL":
             any_fail = True
 
@@ -1767,6 +1819,8 @@ def run_compare_cached(
                 fpu_warnings, loadw_warnings, imm_warnings, fcom_warnings,
                 source, ref_info, co,
             )
+            if trunc_info:
+                pack["warnings"]["trunc"] = trunc_info
             ctx_path = _write_score_context(pack)
             if not only_mode and not quiet and pct < 100.0:
                 try:
@@ -1813,6 +1867,17 @@ def run_compare_cached(
         elif not quiet:
             print("\n[FCOM-WARN] FPU-guard bound-sense differences found; re-run with --fcom-only for "
                   "details (<= vs <; see lift-learnings section 38).")
+
+    if any_trunc_warn and not quiet:
+        trunc_fns = sorted(_chunk_truncation.keys())
+        print(f"\n[TRUNC-WARN] {len(trunc_fns)} per-function delinked ref(s) appear "
+              "internally truncated (first_function_insns returned <90% of the "
+              "bounded instruction count). Score may be against a partial function "
+              "-- re-export with a corrected address range.")
+        for tfn in trunc_fns:
+            ti = _chunk_truncation[tfn]
+            print(f"  {tfn}: {ti['parsed']}/{ti['bounded']} insns "
+                  f"({ti['ratio']:.1%}, lost {ti['lost']})")
 
     return 1 if any_fail else 0
 

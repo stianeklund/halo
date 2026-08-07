@@ -118,6 +118,7 @@ opencode.json
 
 # Agent-memory notes and hook state (per-session, host-only, not source of truth)
 .claude/agent-memory/
+.agents/*
 
 # Semantic-retrieval index (rebuildable from kb.json + sources)
 tools/retrieval/index.duckdb
@@ -169,3 +170,7 @@ tmp/
 # destructive-command-guard local config
 .dcg/
 tools/verify/vc71_cache.db
+
+.serena
+recovery/*
+scratch/*

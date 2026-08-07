@@ -6,22 +6,34 @@ void crc_new(uint32_t *checksum)
 /* Generate the standard CRC32 lookup table (polynomial 0xEDB88320).
  * Fills 256 entries at the given table pointer.
  * table pointer passed in EDX (register arg). */
+#if defined(MSVC) && !defined(__clang__)
+#pragma optimize("y", on)
+#endif
 void crc_table_init(uint32_t *table /* @<edx> */)
 {
   uint32_t crc;
-  int i, j;
+  int i, j, count;
 
-  for (i = 0; i < 256; i++) {
+  i = 0;
+  count = 256;
+  do {
     crc = (uint32_t)i;
-    for (j = 0; j < 8; j++) {
+    j = 8;
+    do {
       if (crc & 1)
         crc = (crc >> 1) ^ 0xEDB88320;
       else
         crc = crc >> 1;
-    }
+      j--;
+    } while (j != 0);
     *table++ = crc;
-  }
+    i++;
+    count--;
+  } while (count != 0);
 }
+#if defined(MSVC) && !defined(__clang__)
+#pragma optimize("y", off)
+#endif
 
 void crc_checksum_buffer(uint32_t *checksum, void *data, int size)
 {
@@ -36,7 +48,12 @@ void crc_checksum_buffer(uint32_t *checksum, void *data, int size)
 
   /* initialize the CRC lookup table on first use */
   if (*(uint8_t *)0x46E800 == 0) {
+#if defined(MSVC) && !defined(__clang__)
+    /* VC71 models the original EDX register-argument call this way. */
+    ((void (__fastcall *)(int))crc_table_init)(0x46E400);
+#else
     crc_table_init((uint32_t *)0x46E400);
+#endif
     *(uint8_t *)0x46E800 = 1;
   }
 

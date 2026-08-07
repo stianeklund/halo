@@ -1290,10 +1290,6 @@
       "kind": "function",
       "status": "ported"
     },
-    "0x490c0": {
-      "kind": "function",
-      "status": "ported"
-    },
     "0x49120": {
       "kind": "function",
       "status": "ported"
@@ -1301,17 +1297,6 @@
     "0x49220": {
       "kind": "function",
       "status": "ported"
-    },
-    "0x493b0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Name ai_debug_point3d_set is descriptive, not recovered: the function has no __FILE__ string and no assert, so the only binary evidence is the 3-float store shape plus its ai_debug.obj address range (0x49220 select_encounter .. 0x494d0).",
-        "Parameters are typed float* / float / float / float because only [EBP+0xc] is loaded with FLD/FSTP; y and z move as raw dwords via ECX/EDX, which is MSVC scheduling of the natural three-assignment source form rather than evidence of integer types."
-      ],
-      "uncertain": [
-        "The destination is treated as a bare float[3] because no real_point3d struct type exists in src/types.h yet; if struct recovery later defines real_point3d the decl should become real_point3d* without any codegen change."
-      ]
     },
     "0x493d0": {
       "kind": "function",
@@ -1324,123 +1309,9 @@
         "The dword at 0x5acad4 is only ever zeroed here, so its role (path point count, render index, or frame stamp) is not determined by this function."
       ]
     },
-    "0x49430": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x494e0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "FUN_000494e0 renders the stored debug line-of-sight ray as one line (FUN_00189270) plus one sphere per recorded hit (FUN_00189860); the name is left as FUN_000494e0 because the function contains no __FILE__ string.",
-        "The per-hit debug arrays are parallel and hold 16 entries: uint8 flag at 0x5acad8 stride 1, float[3] point A at 0x5acae8 stride 0xc, float[3] point B at 0x5acba8 stride 0xc, float radius at 0x5acc68 stride 4; the 16-entry capacity is deduced from the 0xc0 byte gap between the two point arrays, which the original addresses as EDI+0xc0 off a single walking pointer."
-      ],
-      "uncertain": [
-        "The residual VC71 gap at 94.9 percent is a single scratch-register allocation difference: the reference loads the 0x5acab9 flag byte into AL and lets the following colour load clobber EAX, while our build uses CL; instruction count and order match exactly at 59 of 59.",
-        "The meaning of the second per-hit vector passed to FUN_00189860 as point plus 0xc0 is not established and is treated as an opaque vector rather than named."
-      ]
-    },
-    "0x495b0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The point arrays at 0x5f8cd4 and 0x5f8d94 have a 12-byte (vec3) stride, derived from 'lea (%eax,%eax,2),%ecx; shl $0x2,%ecx' in the delinked reference; Ghidra's undefined-byte pointer arithmetic misleadingly rendered this as a stride of 3.",
-        "Both loop counters are int16 held in SI and widened by 'movswl %si,%eax' before each bound compare, so they are transcribed as a 'short counter' with an 'int i' copy rather than a plain int induction variable."
-      ],
-      "uncertain": [
-        "The residual ~2.5pp VC71 gap at 86.1 percent is MSVC npad loop alignment ('leal (%esp),%esp', 'leal (%ecx),%ecx') plus duplicated loop-head jumps, none of which can be expressed in C source.",
-        "The permuter reached 90.1 percent only by narrowing the byte offset to 16 bits via a 'short' temporary; the delinked reference computes and consumes that offset entirely in 32 bits, so the permutation was rejected as a semantic mutation and the faithful 86.1 percent form was kept."
-      ]
-    },
-    "0x496c0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "The early-out path falls into POP EBP at 0x497ae without popping ESI (ESI is pushed at 0x49728, after the PVS-rebuild block), so the flag/index guard is lifted as a plain early return 0 ahead of any use of the out pointer rather than as the decompiler's nested-if accumulator.",
-        "The reference performs three loads of the selected-encounter global 0x5ac9f4 (CMP at 0x496da, MOV EDX at 0x496eb reused for the FUN_00058fd0 argument, MOV EDX at 0x49717 reused for the datum_get argument) with no stack spill, since the frame has no sub esp; the lift therefore re-reads the global at each use instead of caching it in a local."
-      ],
-      "uncertain": [
-        "The three color constants at 0x2ee6c8, 0x2ee6d8 and 0x2ee6e0 are dereferenced pointer globals (PTR_DAT_* in the delinked reference) whose meaning is unnamed; only the selector byte at encounter datum +0xd is known to choose between 0x2ee6e0 and 0x2ee6d8."
-      ]
-    },
-    "0x49990": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Function name ai_debug_render_points_and_lines is inferred from observed behavior only; the function contains no __FILE__ string or assert to anchor a real symbol name.",
-        "The debug-line record layout at 0x5eccb4 (int16 point_a, int16 point_b, int16 color, 6-byte stride) is inferred from the three MOVSX word reads at [ESI-4]/[ESI-2]/[ESI] and the ADD ESI,6 loop tail; no struct definition confirms it.",
-        "The residual [LOADW-WARN] on this function is not a width bug: reference and lift both use movswl n16 loads, but VC71 rebased the line-record induction pointer to the record start (+0x0/+0x2/+0x4) while the original bases it at the color field (-0x4/-0x2/+0x0); effective addresses are identical and the mnemonic match is 82/82."
-      ]
-    },
-    "0x49ac0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x49f60": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x4a220": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x4a290": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x4a460": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x4a650": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x4a680": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x4a6b0": {
-      "kind": "function",
-      "status": "ported",
-      "uncertain": [
-        "The kb name ai_debug_communication_focus is corroborated by the hs debug_string dispatch table (function_index 0x1a) but conflicts with the baked constants: unlike the sibling suppress/ignore commands, which use the 57-entry communication-type lookup ai_communication_get_type_by_name (0x42ce0), this one uses the 209-entry vocalization-type lookup FUN_001a67e0 (0x1a67e0), so the bit vector at 0x5aca24 is indexed by vocalization type rather than communication type."
-      ]
-    },
-    "0x4a6e0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Store widths are load-bearing: 0x6323d4 is a byte flag, 0x6323d8 a dword handle, 0x6323dc a 16-bit word; VC71 scores 100% against the address-symbol reference lane (10/10 insns) and 94.7% against the named-symbol lane whose only diff is a missing terminal retl (reference truncation artifact, not a code difference)."
-      ]
-    },
-    "0x4a710": {
-      "kind": "function",
-      "status": "ported"
-    },
     "0x4ab10": {
       "kind": "function",
       "status": "ported"
-    },
-    "0x4afa0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "The kb declaration of datum_absolute_index_to_index (0x119270) returns int, but this function NULL-tests the result and dereferences it at +0xd (active flag, char) and +0x2a (actor count, int16), so the return value is really a datum pointer; the declaration is ABI-immutable so the result is cast to char* at the call site."
-      ],
-      "uncertain": [
-        "Scenario encounter tag-block element layout (element size 0xb0 at scenario+0x42c) is only partially known: +0x00 is the char name[32] printed as %s, +0x20 is a flags byte with bit 0x20 selecting the 3d-positions description and bit 0x40 selecting manual over auto bsp mode, and +0x7e is an int16 bsp index where -1 prints NONE; the remaining fields are unexamined."
-      ]
-    },
-    "0x4b0f0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "The single stack parameter is a scenario encounter index: it indexes the scenario tag_block at +0x42c with element size 0xb0, and -1 is the no-selection sentinel used throughout ai_debug.obj."
-      ],
-      "uncertain": [
-        "Only two fields of the 0x34-byte starting-location element are identified: the position triple at +0x00..+0x08 passed straight to object_set_position, and the yaw at +0x0c fed to FCOS/FSIN; the remaining 0x28 bytes are unclassified."
-      ]
     },
     "0x4b1b0": {
       "kind": "function",
@@ -1449,44 +1320,6 @@
     "0x4c0f0": {
       "kind": "function",
       "status": "ported"
-    },
-    "0x4c170": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x534d0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The kb declarations for FUN_00052bb0 (1 stack arg), FUN_0004c920 (3 stack args) and FUN_00052b60 (byte in DL) were corrected from void(void) based on the call sites at 0x53575, 0x53588 and 0x535c8; the parameter names are inferred from the globals feeding them, not from the callees."
-      ],
-      "uncertain": [
-        "The byte at 0x5aca67 passed in DL to FUN_00052b60 is an opaque mode selector; it sits immediately after the 0x5aca66 enable flag but its meaning is unconfirmed."
-      ]
-    },
-    "0x53620": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x53680": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "TU attribution: both asserts reference c:\\\\halo\\\\SOURCE\\\\ai\\\\ai_profile.c (VA 0x25c0ac, xrefed only from 0x536a6 and 0x536ee), so the real ai_profile.c source file lives at 0x536xx; the function is nonetheless kept in ai_debug.obj because that is its kb object membership and delinked/ai_debug.obj already bounds it tightly.",
-        "Inferred: the definition table base is 0x2c8e98 with stride 8 ({short meter_id; short pad; short (*sample_fn)(void);}); EBX is biased +4 into the entry so the disassembly shows 0x2c8e9c.",
-        "Confirmed: the meter array base is 0x5abaac with 28 elements of 0x88 bytes, which is exactly the 0xee0-byte block that FUN_00053650 zeroes.",
-        "Uncertain: history_sum is only ever decremented here (the evicted sample is subtracted) and the newly stored sample is never added back; transcribed faithfully from the binary."
-      ]
-    },
-    "0x538f0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The ternary form (single ADD ESI,EAX after both arms materialise the addend in EAX at the 0x53925 join) was chosen over two accumulating if/else branches because a plain 'total += 1' arm would lower to ADD ESI,1 rather than the observed MOV EAX,1."
-      ],
-      "uncertain": [
-        "The int16_t field at actor record +0x1e is treated as a per-actor entity count but is left unnamed; actors_move_randomly reads swarm component counts from the swarm datum (+0x28 handle, count at swarm+2) rather than from this field, so the two are not proven to be the same quantity."
-      ]
     },
     "0x53bf0": {
       "kind": "function",
@@ -1791,10 +1624,6 @@
       "kind": "function",
       "status": "ported"
     },
-    "0x59d30": {
-      "kind": "function",
-      "status": "ported"
-    },
     "0x5a120": {
       "kind": "function",
       "status": "ported"
@@ -1814,16 +1643,6 @@
     "0x5aab0": {
       "kind": "function",
       "status": "ported"
-    },
-    "0x5ac60": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Return type is bool, not Ghidra's void: DL is zeroed at 0x5ac69, set to 1 on any insertion at 0x5accf, and moved to AL at 0x5acdd immediately before RET."
-      ],
-      "uncertain": [
-        "Element field meanings are unknown: the 0x10-byte entry is only interpreted at +0x4 (the descending sort key compared by FCOMPS); the dwords at +0x0, +0x8 and +0xC are stored from the caller's args and copied opaquely during the shift."
-      ]
     },
     "0x5acf0": {
       "kind": "function",
@@ -1853,35 +1672,11 @@
       "kind": "function",
       "status": "ported"
     },
-    "0x5b370": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x5b4b0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x5b6e0": {
-      "kind": "function",
-      "status": "ported"
-    },
     "0x5ba70": {
       "kind": "function",
       "status": "ported"
     },
     "0x5baa0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x5bad0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x5bbe0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x5c630": {
       "kind": "function",
       "status": "ported"
     },
@@ -5482,219 +5277,6 @@
         "FUN_000585d0 return-type corrected void->int (it tail-returns FUN_00046b60's int in EAX); this call site consumes the low byte AL via a zero-init dword local (union partial-store/wide-read)."
       ]
     },
-    "0xc1780": {
-      "kind": "function",
-      "status": "unknown",
-      "uncertain": [
-        "HS script function name is unknown; the handler dispatches result[0] to FUN_00085110, which switches to first-person camera mode 3, so this is likely a camera/cinematic script command."
-      ]
-    },
-    "0xc17f0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The function_index (EBP+0x8) and init (EBP+0x10) parameters are never read by the body; they are declared to match the three-argument hs script-function handler signature shared by all 29 siblings in the 0xc1010-0xc17c0 range, which are dispatched through the same hs function table."
-      ]
-    },
-    "0xc1830": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Parameter names function_index/thread_datum/init and the int16_t/char widths are inferred from the sibling HS script-function handlers (FUN_000c0c30, FUN_000c1810) rather than from local evidence; the prologue loads all three slots as full dwords with no MOVSX/MOVZX, so narrowing is free on the cdecl slots and the widths cannot be arbitrated from this function alone."
-      ]
-    },
-    "0xc1870": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The handler is the HaloScript builtin that selects a multiplayer game variant by name: the first dword of the evaluated macro result block is passed as a const char* to game_set_game_variant_from_name (0xa78e0), and a void (0) result is then committed to the calling thread via hs_return."
-      ],
-      "uncertain": [
-        "The single ADD ESP,0xc at 0xc189c is a coalesced cleanup for three pushes spanning two calls (one for game_set_game_variant_from_name plus two for hs_return), so the automated call-site audit reports hs_return as taking three stack arguments; hs_return is genuinely two-argument and its kb declaration must not be widened."
-      ]
-    },
-    "0xc18b0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "function_index and init are unused by the body but complete the standard hs-evaluator signature; the only stack read is [EBP+0xC] (thread_datum), so the outer two slots are inferred from the sibling handlers at 0xc0cb0 and 0xc1870 rather than from this body."
-      ]
-    },
-    "0xc18d0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The callee at 0xa7470 returns a 16-bit value in AX; its kb decl was widened from void(void) to int16_t(void) so 0xc18d0 does not silently discard the result (no other src/ caller existed, so the change is contained).",
-        "The zero-dword-then-word-store shape (MOV dword [EBP-4],0 then MOV word [EBP-4],AX) is a deliberate ZERO extension of the 16-bit helper result into the 32-bit hs_return slot, reproduced in C as a zeroed int32_t plus a 16-bit store rather than a (short) cast, which would emit MOVSX and change the value for results at or above 0x8000."
-      ],
-      "uncertain": [
-        "The signedness of the 0xa7470 return is unproven: the caller pre-zeroes the dword and stores only AX, so signed short and unsigned short compile identically here; int16_t was chosen to match the TU convention without claiming unsignedness."
-      ]
-    },
-    "0xc1930": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The third parameter (char init at [EBP+0x10]) is inferred from the shared hs-evaluator signature used by every neighbouring handler in hs.obj; this body never reads it, and the disassembly only proves that [EBP+0xc] is loaded.",
-        "The name players_unzoom_all for callee 0xb69d0 comes from kb.json, so the script-command identity players_unzoom_all is inferred from that callee rather than from a string reference at this address."
-      ]
-    },
-    "0xc1990": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The byte stored by the original's MOV byte ptr [EBP-4],AL is provably *(char *)result: the void-declared callee 0xb6430 (scripted_player_control_set_camera_control) begins with MOV AL,[EBP+8], so it leaves its own argument byte in AL by accident of codegen; the lift re-loads the byte from result instead of reading a return value out of AL.",
-        "The ADD ESP,0xc after the hs_return call is a merged MSVC cleanup covering the leftover PUSH EDX from the 0xb6430 call plus hs_return's two arguments; a call-site audit reading it as three stack args for hs_return (0xcbf80) is a false positive."
-      ],
-      "uncertain": [
-        "The residual 4-instruction VC71 gap (93.5%, 33 ours vs 29 reference, zero unmatched reference instructions) is the cost of keeping result live across the 0xb6430 call \u2014 one extra callee-saved register save/restore pair, one MOV EAX,ESI copy, and one extra byte load \u2014 which is unavoidable without reading the void callee's incidental AL return."
-      ]
-    },
-    "0xc19e0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Parameters function_index (arg1, [EBP+0x8]) and init (arg3) are never read by the body; they are inferred from the uniform 3-arg hs-evaluator signature shared by the sibling handlers in hs.obj, not from loads in this function."
-      ]
-    },
-    "0xc1c10": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Parameters function_index and init are unused by the body and are inferred from the shared hs-evaluator handler signature used by every sibling in this TU; only [EBP+0xc] (thread_datum) is read by the disassembly."
-      ]
-    },
-    "0xc1c70": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Argument-record field names (unit_handle @ +0x0, equipment_index @ +0x4 int16, reset_flag @ +0x8 char) are inferred from player_add_equipment's kb.json declaration; the load widths themselves are confirmed from the disassembly (MOV EDX,[EAX] / MOV CX,[EAX+4] / MOV DL,[EAX+8])."
-      ]
-    },
-    "0xc1cb0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Parameters were recovered from the disassembly frame ([EBP+0x8] int16 function_index, [EBP+0xc] thread_datum, [EBP+0x10] char init); Ghidra's in_stack_00000004/8/c names were an artifact of the stale void(void) kb declaration, not register arguments.",
-        "The two debug_player_teleport arguments use deliberately different extension widths: MOVSX from the sign-extended int16 at record+0 for arg1 and XOR/MOV DX from the zero-extended uint16 at record+4 for arg2; typing them identically would be a LOADW-class bug."
-      ],
-      "uncertain": [
-        "The single-instruction VC71 residual (25 of 26 instructions) is the MSVC two-instruction XOR EDX,EDX plus MOV DX zero-extension form versus a single MOVZX; this is a codegen idiom difference with no known C-level lever."
-      ]
-    },
-    "0xc1d10": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The result record returned by hs_macro_function_evaluate has a const char* map-name string pointer as its first dword; inferred from MOV EDX,[EAX]; PUSH EDX feeding main_set_map_name(const char*).",
-        "The single ADD ESP,0xc at 0xc1d3c is MSVC merged cleanup for the 1-argument main_set_map_name call plus the 2-argument hs_return call, not evidence of a 3-argument hs_return; the call-site audit ARG_COUNT hazard on hs_return is a false positive here."
-      ]
-    },
-    "0xc1d90": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The single ADD ESP,0xc at 0xc1dbf is MSVC's coalesced cleanup for main_set_difficulty (1 push) plus hs_return (2 pushes), so the call-site auditor's ARG_COUNT cleanup=3 vs decl=2 warning on hs_return is a false positive."
-      ]
-    },
-    "0xc1ee0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Parameters function_index ([EBP+0x8]) and init ([EBP+0x10]) are never read by this body; the 3-parameter hs-evaluator signature is inferred from the TU-wide convention shared by sibling handlers FUN_000c1e50/1e80/1ea0/1ec0, not from this function's own disassembly, which only reads thread_datum at [EBP+0xc]."
-      ]
-    },
-    "0xc1f40": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Result record field +0x0 is typed const char* rather than an int handle because the sole consumer, debug_dump_memory_for_file (0x8eb80), is declared in kb.json as taking a const char* tag_filter; the disassembly only shows MOV EDX,[EAX] followed by a PUSH, which is width-agnostic.",
-        "The call-site audit ARG_COUNT finding claiming hs_return has cleanup=3 versus decl=2 is a false positive: MSVC coalesced the one-dword cleanup for debug_dump_memory_for_file and the two-dword cleanup for hs_return into a single ADD ESP,0xc at 0xc1f6c."
-      ]
-    },
-    "0xc1fa0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Parameters function_index ([EBP+0x8]) and init ([EBP+0x10]) are never read by this body; the 3-arg hs-evaluator signature is inferred from the identical already-ported siblings FUN_000c1f00/FUN_000c1f20/FUN_000c0cb0 rather than from reads in this function."
-      ]
-    },
-    "0xc2000": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Callee 0x90860 (profile_sections_activate) takes one cdecl pointer argument, not zero as the previous kb decl claimed; evidence is MOV EDX,[EAX]/PUSH EDX at 0xc201f plus MOV EDI,[EBP+8] in 0x90860's own prologue, and the kb decl was corrected accordingly."
-      ],
-      "uncertain": [
-        "The argument type const char *substring for profile_sections_activate is inferred by analogy with the adjacent profile_dump_to_file (0x90650) which takes a substring filter; only the 32-bit width of result[0] is confirmed by the binary."
-      ]
-    },
-    "0xc2040": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "hs_macro_function_evaluate (0xcc560) is declared int-returning in kb.json but actually returns a pointer to an evaluation record; the pointer nature is inferred from TEST EAX,EAX followed by MOV EDX,[EAX] and is handled by casting at the call site rather than widening the callee decl.",
-        "The kb decl for profile_sections_deactivate (0x90880) was corrected from void(void) to void(const char *substring) because 0x90880 forwards its single stack argument in EDI to the shared worker 0x907c0, which string-compares it against the profile-section name table at 0x3361b4, matching the const char * decl already present on its activate twin 0x90860."
-      ]
-    },
-    "0xc20c0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Handler identity 'debug_pvs' is inferred from the callee 0x1965d0 only; unlike the 0xc2080 sibling, the hs_function_definition record (name/return_type/param_types) for this handler was not read, so the builtin's script-level name and declared parameter type are unconfirmed."
-      ]
-    },
-    "0xc22a0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Result block from hs_macro_function_evaluate at 0xc22a0 is {+0x00 int handle, +0x04 float, +0x08 float, +0x0c uint16}; field types are inferred from the load instructions (FLD dword for the two floats, XOR EDX/MOV DX for the zero-extended 16-bit field), not from a struct definition.",
-        "VC71 scores 85.2 percent (30 of 31 insns) and the entire residual is the documented float memory-argument codegen cap: the reference emits flds/subl/fstps/flds/fstps while VC71 emits two integer movl, so this is a structural cap and not a lift defect."
-      ],
-      "uncertain": [
-        "The kb decl for callee 0xa2970 player_effect_screen_fade_in was corrected from void(void) to (int, float, float, uint16_t) purely from this call site's push sequence; 0xa2970 is not ported and its body was not analysed, so the parameter names effect_definition/scale_a/scale_b/flags_or_index are placeholders and only the widths and order are binary-confirmed."
-      ]
-    },
-    "0xc23c0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The kb decl for callee cinematic_show_letterbox (0x92e90) was corrected from void(void) to void(char show) because the disassembly zero-extends the byte at result+0x0 into EDX and pushes it before the CALL; its 4-byte cleanup is merged into the ADD ESP,0xc that follows hs_return."
-      ]
-    },
-    "0xc2400": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "hs_macro_function_evaluate (0xcc560) is declared returning int in kb.json but this call site dereferences EAX as a 16-bit pointer (XOR EDX,EDX; MOV DX,word ptr [EAX]) after a NULL test, so its real return is a pointer to the evaluated script value; the cast is applied locally because other callers share the decl.",
-        "FUN_00093640 (0x93640) takes exactly one stack argument: the merged ADD ESP,0xc at 0xc242f covers its single PUSH EDX plus hs_return's two pushes, so its kb decl was corrected from void(void) to void(int); the resulting ARG_COUNT warning on hs_return is a false positive from that merge."
-      ]
-    },
-    "0xc2440": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "kb decl for callee 0x930b0 cinematic_set_title_delayed was corrected from void(void) to (int index, float value); arg1 width is inferred as int (not int16_t) by analogy with the identically-shaped sibling call FUN_00093640(int) at 0xc2400, since the PUSH EDX at the call site cannot distinguish the two."
-      ],
-      "uncertain": [
-        "The 88.5 percent VC71 residual is exactly two instructions, both VC71 codegen idioms rather than lift errors: the float memory argument emits mov/push instead of the reference fld/push/fstp round-trip, and the 16-bit zero extension emits movzwl instead of the reference xor edx,edx plus mov dx; the latter is reproduced identically at the already-ported sibling FUN_000c2400 which is capped at 93.6 percent for the same single instruction."
-      ]
-    },
-    "0xc2480": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The result-record field at +0x0 is an unsigned 8-bit flag: the original emits XOR EDX,EDX / MOV DL,byte ptr [EAX] (zero extension), so a signed char or int load would be wrong.",
-        "kb.json decl for callee 0x93030 cinematic_suppress_bsp_object_creation was corrected from (void) to (unsigned char suppress) by this lift; the PUSH EDX at 0xc24a4 is the binary evidence and this handler is currently its only in-tree caller."
-      ]
-    },
-    "0xc2500": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Parameters function_index and init are unread by the body (only [EBP+0xc] is loaded); their presence in the signature is inferred from the shared hs-evaluator triple used by sibling handlers 0xc0cb0 and 0xc24e0, not from any instruction in this function."
-      ]
-    },
     "0xc3b60": {
       "kind": "function",
       "status": "ported",
@@ -7964,10 +7546,6 @@
       "status": "ported",
       "name": "main_load_last_solo_map",
       "name_confidence": "high"
-    },
-    "0x101ec0": {
-      "kind": "function",
-      "status": "ported"
     },
     "0x101f00": {
       "kind": "function",
@@ -13996,6 +13574,492 @@
     "0x5065a4": {
       "kind": "data",
       "status": "ported"
+    },
+    "0x5bad0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5c630": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7f3a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7f570": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7fa00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7ff40": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Symbol name math64_add is ours; the original Bungie name is stripped from the binary. Only the TU (c:\\halo\\SOURCE\\bungie_net\\common\\64bit_math.c) and the parameter names a/b/result (from the assert message string at 0x265a40) are binary-proven.",
+        "The four-limb sequence is written as a for(i=0;i<4;i++) loop because VC71 fully unrolls it to the reference's constant +0/+2/+4/+6 displacements, and because limb 0 has no carry-in while limb 3 has no carry-out, which is exactly what constant-folding carry=0 and dead-code-eliminating the final carry out of a uniform loop body produces."
+      ],
+      "uncertain": [
+        "VC71 scores 78.2 percent (55 candidate vs 55 reference instructions, dp_lcs 90.9 percent). The whole gap is register allocation: the reference keeps the carry in ECX and accumulates into the b-limb register (add ecx,edx then add eax,ecx), whereas VC71 on our source keeps the carry in EDX, accumulates into it, and adds a movl edx,eax shuffle.",
+        "The root cause of that allocation difference is that VC71 narrows limb 3 to 16-bit memory-operand adds (addw 0x6(esi),dx / addw 0x6(ebx),dx) because the final carry is dead, while the reference keeps limb 3 in 32-bit form (movzwl/movzwl/addl/addl); no source form found blocks the narrowing. Commutative reorderings of the sum expression, loop versus straight-line, and a single-accumulator form all compile to byte-identical VC71 output, and an optimization sweep confirmed /O2 is best (/O1 and /Og /Os drop to 67.3 percent with LOADW warnings)."
+      ]
+    },
+    "0x7ffe0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Named math64_negate from behaviour: the routine computes the two's-complement negation of a 4x16-bit little-endian value, and its only two callers (FUN_00080070 subtract, FUN_00080210 divide) use it as the negate half of an a + (-b) subtraction; the original Bungie symbol name is not recovered from any string.",
+        "The borrow is typed uint16_t rather than int on the strength of ADD CX,DI being a 16-bit add; the XOR EDI,EDI / MOV EDI,1 that produce it are full 32-bit writes, so only the consuming ADD pins the width."
+      ],
+      "uncertain": [
+        "VC71 match is capped at 89.1% (50 candidate vs 43 reference instructions) by the @<reg>-defining ceiling: cl.exe cannot emit a regcall prologue for a function that is itself @<reg>-defined, so the candidate builds an EBP frame and loads a/result from [ebp+8]/[ebp+0xc] where the reference has them inbound in ESI/EBX. All seven excess instructions are prologue/epilogue; two independent source-shape variants (named temp vs inlined expression, a[i] != 0 vs a[i]) both scored exactly 89.1% with the same 50/43 instruction counts, so no source lever remains.",
+        "The operand-normalized score of 41.3% is the documented canonicalization artifact, not an operand defect: canonicalize_registers aliases registers by global first-appearance order, and the pushl %ebp vs pushl %edi prologue divergence reshuffles the whole alias map for the rest of the function.",
+        "audit_reg_abi.py --caller-disasm-file raises a false-positive \u00a710 REG_ORDER error claiming ESI carries param_2 where kb.json expects param_0; the heuristic assumes a caller forwards its own parameter N to the callee's argument N, but FUN_00080070 deliberately passes its own b (param_2) as the callee's a, and FUN_00080210 passes its param_1, so the two call sites contradict each other. The default gate path (no caller-disasm file) reports zero errors and zero warnings."
+      ]
+    },
+    "0x80070": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Name math64_subtract is inferred from behaviour (result = a + (-b) via math64_negate then math64_add) and the TU's math64_* naming pattern; the original symbol name is not present in the binary."
+      ],
+      "uncertain": [
+        "No CALL-instruction xref exists for 0x80070; the only reference is a data/pointer-table entry at 0x32ff58, so the function's actual use in the 2276 beta is unproven and it may be unexercised bungie_net Xbox Live support code.",
+        "VC71 match is capped at 90.9%: the reference calls math64_negate with its two arguments in ESI/EBX (an MSVC LTCG custom convention that cannot be expressed in source, since __fastcall is ECX/EDX), so our compile emits two extra pushes; the residual gap is that plus one result-register allocation choice, not a structural defect."
+      ]
+    },
+    "0x800d0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The original source is a nested i/j loop over the four limbs of a and b, not a flat i loop with four hand-written limb steps: VC71 fully unrolls the four-iteration inner loop but leaves the outer one rolled, which reproduces the reference's indexed -0x24(ebp,eax,4) accumulator traffic and its LICM-hoisted b limbs exactly (100.0 percent, 93/93 insns), whereas the flat form scores 69.7 percent with 105 instructions because VC71 unrolls everything and promotes the whole accumulator into registers.",
+        "The original accumulator array is seven elements, one short of the eight a 4x4-limb product needs: the 0x24 frame holds exactly seven seeded dwords at EBP-0x24..EBP-0xc plus the b[3] and b[2] temporaries at EBP-0x8 and EBP-0x4, so acc[i+j+1] at i==j==3 reads and overwrites the b[3] slot after its last use. The lift declares eight elements but deliberately initializes only the first seven, which reproduces the reference's seven init stores and its exact 0x24 frame because VC71 overlays the b[3] spill on the never-read slot; adding an eighth initializer drops the match to 94.1 percent."
+      ],
+      "uncertain": [
+        "The accumulator is seeded with the literal values 0,1,2,3,4,5,6 (verified byte-for-byte as C7 45 dc 00000000 / C7 45 e0 01000000 / ... at 0x800e1-0x80112, not a decompiler artifact), so every result limb above limb 0 is offset by its seed and the routine does not compute a correct product; whether this is unfinished scaffolding or a shipped bug is unknown, and no caller was traced to confirm the 2276 beta ever exercises it.",
+        "The dwords at EBP-0x4 and EBP-0x8 holding b[2] and b[3] are modelled as compiler spills of LICM-hoisted b[j] loads rather than named source locals; the lift declares no b-limb variables and VC71 reproduces the slots on its own, but a source form with explicit b0..b3 locals cannot be ruled out."
+      ]
+    },
+    "0x80210": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x101ec0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x490c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x493b0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Name ai_debug_point3d_set is descriptive, not recovered: the function has no __FILE__ string and no assert, so the only binary evidence is the 3-float store shape plus its ai_debug.obj address range (0x49220 select_encounter .. 0x494d0).",
+        "Parameters are typed float* / float / float / float because only [EBP+0xc] is loaded with FLD/FSTP; y and z move as raw dwords via ECX/EDX, which is MSVC scheduling of the natural three-assignment source form rather than evidence of integer types."
+      ],
+      "uncertain": [
+        "The destination is treated as a bare float[3] because no real_point3d struct type exists in src/types.h yet; if struct recovery later defines real_point3d the decl should become real_point3d* without any codegen change."
+      ]
+    },
+    "0x49430": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x494e0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "FUN_000494e0 renders the stored debug line-of-sight ray as one line (FUN_00189270) plus one sphere per recorded hit (FUN_00189860); the name is left as FUN_000494e0 because the function contains no __FILE__ string.",
+        "The per-hit debug arrays are parallel and hold 16 entries: uint8 flag at 0x5acad8 stride 1, float[3] point A at 0x5acae8 stride 0xc, float[3] point B at 0x5acba8 stride 0xc, float radius at 0x5acc68 stride 4; the 16-entry capacity is deduced from the 0xc0 byte gap between the two point arrays, which the original addresses as EDI+0xc0 off a single walking pointer."
+      ],
+      "uncertain": [
+        "The residual VC71 gap at 94.9 percent is a single scratch-register allocation difference: the reference loads the 0x5acab9 flag byte into AL and lets the following colour load clobber EAX, while our build uses CL; instruction count and order match exactly at 59 of 59.",
+        "The meaning of the second per-hit vector passed to FUN_00189860 as point plus 0xc0 is not established and is treated as an opaque vector rather than named."
+      ]
+    },
+    "0x495b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The point arrays at 0x5f8cd4 and 0x5f8d94 have a 12-byte (vec3) stride, derived from 'lea (%eax,%eax,2),%ecx; shl $0x2,%ecx' in the delinked reference; Ghidra's undefined-byte pointer arithmetic misleadingly rendered this as a stride of 3.",
+        "Both loop counters are int16 held in SI and widened by 'movswl %si,%eax' before each bound compare, so they are transcribed as a 'short counter' with an 'int i' copy rather than a plain int induction variable."
+      ],
+      "uncertain": [
+        "The residual ~2.5pp VC71 gap at 86.1 percent is MSVC npad loop alignment ('leal (%esp),%esp', 'leal (%ecx),%ecx') plus duplicated loop-head jumps, none of which can be expressed in C source.",
+        "The permuter reached 90.1 percent only by narrowing the byte offset to 16 bits via a 'short' temporary; the delinked reference computes and consumes that offset entirely in 32 bits, so the permutation was rejected as a semantic mutation and the faithful 86.1 percent form was kept."
+      ]
+    },
+    "0x496c0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The early-out path falls into POP EBP at 0x497ae without popping ESI (ESI is pushed at 0x49728, after the PVS-rebuild block), so the flag/index guard is lifted as a plain early return 0 ahead of any use of the out pointer rather than as the decompiler's nested-if accumulator.",
+        "The reference performs three loads of the selected-encounter global 0x5ac9f4 (CMP at 0x496da, MOV EDX at 0x496eb reused for the FUN_00058fd0 argument, MOV EDX at 0x49717 reused for the datum_get argument) with no stack spill, since the frame has no sub esp; the lift therefore re-reads the global at each use instead of caching it in a local."
+      ],
+      "uncertain": [
+        "The three color constants at 0x2ee6c8, 0x2ee6d8 and 0x2ee6e0 are dereferenced pointer globals (PTR_DAT_* in the delinked reference) whose meaning is unnamed; only the selector byte at encounter datum +0xd is known to choose between 0x2ee6e0 and 0x2ee6d8."
+      ]
+    },
+    "0x49990": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Function name ai_debug_render_points_and_lines is inferred from observed behavior only; the function contains no __FILE__ string or assert to anchor a real symbol name.",
+        "The debug-line record layout at 0x5eccb4 (int16 point_a, int16 point_b, int16 color, 6-byte stride) is inferred from the three MOVSX word reads at [ESI-4]/[ESI-2]/[ESI] and the ADD ESI,6 loop tail; no struct definition confirms it.",
+        "The residual [LOADW-WARN] on this function is not a width bug: reference and lift both use movswl n16 loads, but VC71 rebased the line-record induction pointer to the record start (+0x0/+0x2/+0x4) while the original bases it at the color field (-0x4/-0x2/+0x0); effective addresses are identical and the mnemonic match is 82/82."
+      ]
+    },
+    "0x49ac0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x49f60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x4a220": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x4a290": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x4a460": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x4a650": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x4a680": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x4a6b0": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "The kb name ai_debug_communication_focus is corroborated by the hs debug_string dispatch table (function_index 0x1a) but conflicts with the baked constants: unlike the sibling suppress/ignore commands, which use the 57-entry communication-type lookup ai_communication_get_type_by_name (0x42ce0), this one uses the 209-entry vocalization-type lookup FUN_001a67e0 (0x1a67e0), so the bit vector at 0x5aca24 is indexed by vocalization type rather than communication type."
+      ]
+    },
+    "0x4a6e0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Store widths are load-bearing: 0x6323d4 is a byte flag, 0x6323d8 a dword handle, 0x6323dc a 16-bit word; VC71 scores 100% against the address-symbol reference lane (10/10 insns) and 94.7% against the named-symbol lane whose only diff is a missing terminal retl (reference truncation artifact, not a code difference)."
+      ]
+    },
+    "0x4a710": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x4afa0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The kb declaration of datum_absolute_index_to_index (0x119270) returns int, but this function NULL-tests the result and dereferences it at +0xd (active flag, char) and +0x2a (actor count, int16), so the return value is really a datum pointer; the declaration is ABI-immutable so the result is cast to char* at the call site."
+      ],
+      "uncertain": [
+        "Scenario encounter tag-block element layout (element size 0xb0 at scenario+0x42c) is only partially known: +0x00 is the char name[32] printed as %s, +0x20 is a flags byte with bit 0x20 selecting the 3d-positions description and bit 0x40 selecting manual over auto bsp mode, and +0x7e is an int16 bsp index where -1 prints NONE; the remaining fields are unexamined."
+      ]
+    },
+    "0x4b0f0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The single stack parameter is a scenario encounter index: it indexes the scenario tag_block at +0x42c with element size 0xb0, and -1 is the no-selection sentinel used throughout ai_debug.obj."
+      ],
+      "uncertain": [
+        "Only two fields of the 0x34-byte starting-location element are identified: the position triple at +0x00..+0x08 passed straight to object_set_position, and the yaw at +0x0c fed to FCOS/FSIN; the remaining 0x28 bytes are unclassified."
+      ]
+    },
+    "0x4c170": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x534d0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The kb declarations for FUN_00052bb0 (1 stack arg), FUN_0004c920 (3 stack args) and FUN_00052b60 (byte in DL) were corrected from void(void) based on the call sites at 0x53575, 0x53588 and 0x535c8; the parameter names are inferred from the globals feeding them, not from the callees."
+      ],
+      "uncertain": [
+        "The byte at 0x5aca67 passed in DL to FUN_00052b60 is an opaque mode selector; it sits immediately after the 0x5aca66 enable flag but its meaning is unconfirmed."
+      ]
+    },
+    "0x53620": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x53680": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "TU attribution: both asserts reference c:\\\\halo\\\\SOURCE\\\\ai\\\\ai_profile.c (VA 0x25c0ac, xrefed only from 0x536a6 and 0x536ee), so the real ai_profile.c source file lives at 0x536xx; the function is nonetheless kept in ai_debug.obj because that is its kb object membership and delinked/ai_debug.obj already bounds it tightly.",
+        "Inferred: the definition table base is 0x2c8e98 with stride 8 ({short meter_id; short pad; short (*sample_fn)(void);}); EBX is biased +4 into the entry so the disassembly shows 0x2c8e9c.",
+        "Confirmed: the meter array base is 0x5abaac with 28 elements of 0x88 bytes, which is exactly the 0xee0-byte block that FUN_00053650 zeroes.",
+        "Uncertain: history_sum is only ever decremented here (the evicted sample is subtracted) and the newly stored sample is never added back; transcribed faithfully from the binary."
+      ]
+    },
+    "0x538f0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The ternary form (single ADD ESI,EAX after both arms materialise the addend in EAX at the 0x53925 join) was chosen over two accumulating if/else branches because a plain 'total += 1' arm would lower to ADD ESI,1 rather than the observed MOV EAX,1."
+      ],
+      "uncertain": [
+        "The int16_t field at actor record +0x1e is treated as a per-actor entity count but is left unnamed; actors_move_randomly reads swarm component counts from the swarm datum (+0x28 handle, count at swarm+2) rather than from this field, so the two are not proven to be the same quantity."
+      ]
+    },
+    "0x59d30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5ac60": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Return type is bool, not Ghidra's void: DL is zeroed at 0x5ac69, set to 1 on any insertion at 0x5accf, and moved to AL at 0x5acdd immediately before RET."
+      ],
+      "uncertain": [
+        "Element field meanings are unknown: the 0x10-byte entry is only interpreted at +0x4 (the descending sort key compared by FCOMPS); the dwords at +0x0, +0x8 and +0xC are stored from the caller's args and copied opaquely during the shift."
+      ]
+    },
+    "0x5b370": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5b4b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5b6e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5bbe0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1780": {
+      "kind": "function",
+      "status": "unknown",
+      "uncertain": [
+        "HS script function name is unknown; the handler dispatches result[0] to FUN_00085110, which switches to first-person camera mode 3, so this is likely a camera/cinematic script command."
+      ]
+    },
+    "0xc17f0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The function_index (EBP+0x8) and init (EBP+0x10) parameters are never read by the body; they are declared to match the three-argument hs script-function handler signature shared by all 29 siblings in the 0xc1010-0xc17c0 range, which are dispatched through the same hs function table."
+      ]
+    },
+    "0xc1830": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter names function_index/thread_datum/init and the int16_t/char widths are inferred from the sibling HS script-function handlers (FUN_000c0c30, FUN_000c1810) rather than from local evidence; the prologue loads all three slots as full dwords with no MOVSX/MOVZX, so narrowing is free on the cdecl slots and the widths cannot be arbitrated from this function alone."
+      ]
+    },
+    "0xc1870": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The handler is the HaloScript builtin that selects a multiplayer game variant by name: the first dword of the evaluated macro result block is passed as a const char* to game_set_game_variant_from_name (0xa78e0), and a void (0) result is then committed to the calling thread via hs_return."
+      ],
+      "uncertain": [
+        "The single ADD ESP,0xc at 0xc189c is a coalesced cleanup for three pushes spanning two calls (one for game_set_game_variant_from_name plus two for hs_return), so the automated call-site audit reports hs_return as taking three stack arguments; hs_return is genuinely two-argument and its kb declaration must not be widened."
+      ]
+    },
+    "0xc18b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "function_index and init are unused by the body but complete the standard hs-evaluator signature; the only stack read is [EBP+0xC] (thread_datum), so the outer two slots are inferred from the sibling handlers at 0xc0cb0 and 0xc1870 rather than from this body."
+      ]
+    },
+    "0xc18d0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The callee at 0xa7470 returns a 16-bit value in AX; its kb decl was widened from void(void) to int16_t(void) so 0xc18d0 does not silently discard the result (no other src/ caller existed, so the change is contained).",
+        "The zero-dword-then-word-store shape (MOV dword [EBP-4],0 then MOV word [EBP-4],AX) is a deliberate ZERO extension of the 16-bit helper result into the 32-bit hs_return slot, reproduced in C as a zeroed int32_t plus a 16-bit store rather than a (short) cast, which would emit MOVSX and change the value for results at or above 0x8000."
+      ],
+      "uncertain": [
+        "The signedness of the 0xa7470 return is unproven: the caller pre-zeroes the dword and stores only AX, so signed short and unsigned short compile identically here; int16_t was chosen to match the TU convention without claiming unsignedness."
+      ]
+    },
+    "0xc1930": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The third parameter (char init at [EBP+0x10]) is inferred from the shared hs-evaluator signature used by every neighbouring handler in hs.obj; this body never reads it, and the disassembly only proves that [EBP+0xc] is loaded.",
+        "The name players_unzoom_all for callee 0xb69d0 comes from kb.json, so the script-command identity players_unzoom_all is inferred from that callee rather than from a string reference at this address."
+      ]
+    },
+    "0xc1990": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The byte stored by the original's MOV byte ptr [EBP-4],AL is provably *(char *)result: the void-declared callee 0xb6430 (scripted_player_control_set_camera_control) begins with MOV AL,[EBP+8], so it leaves its own argument byte in AL by accident of codegen; the lift re-loads the byte from result instead of reading a return value out of AL.",
+        "The ADD ESP,0xc after the hs_return call is a merged MSVC cleanup covering the leftover PUSH EDX from the 0xb6430 call plus hs_return's two arguments; a call-site audit reading it as three stack args for hs_return (0xcbf80) is a false positive."
+      ],
+      "uncertain": [
+        "The residual 4-instruction VC71 gap (93.5%, 33 ours vs 29 reference, zero unmatched reference instructions) is the cost of keeping result live across the 0xb6430 call \u2014 one extra callee-saved register save/restore pair, one MOV EAX,ESI copy, and one extra byte load \u2014 which is unavoidable without reading the void callee's incidental AL return."
+      ]
+    },
+    "0xc19e0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters function_index (arg1, [EBP+0x8]) and init (arg3) are never read by the body; they are inferred from the uniform 3-arg hs-evaluator signature shared by the sibling handlers in hs.obj, not from loads in this function."
+      ]
+    },
+    "0xc1c10": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters function_index and init are unused by the body and are inferred from the shared hs-evaluator handler signature used by every sibling in this TU; only [EBP+0xc] (thread_datum) is read by the disassembly."
+      ]
+    },
+    "0xc1c70": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Argument-record field names (unit_handle @ +0x0, equipment_index @ +0x4 int16, reset_flag @ +0x8 char) are inferred from player_add_equipment's kb.json declaration; the load widths themselves are confirmed from the disassembly (MOV EDX,[EAX] / MOV CX,[EAX+4] / MOV DL,[EAX+8])."
+      ]
+    },
+    "0xc1cb0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters were recovered from the disassembly frame ([EBP+0x8] int16 function_index, [EBP+0xc] thread_datum, [EBP+0x10] char init); Ghidra's in_stack_00000004/8/c names were an artifact of the stale void(void) kb declaration, not register arguments.",
+        "The two debug_player_teleport arguments use deliberately different extension widths: MOVSX from the sign-extended int16 at record+0 for arg1 and XOR/MOV DX from the zero-extended uint16 at record+4 for arg2; typing them identically would be a LOADW-class bug."
+      ],
+      "uncertain": [
+        "The single-instruction VC71 residual (25 of 26 instructions) is the MSVC two-instruction XOR EDX,EDX plus MOV DX zero-extension form versus a single MOVZX; this is a codegen idiom difference with no known C-level lever."
+      ]
+    },
+    "0xc1d10": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The result record returned by hs_macro_function_evaluate has a const char* map-name string pointer as its first dword; inferred from MOV EDX,[EAX]; PUSH EDX feeding main_set_map_name(const char*).",
+        "The single ADD ESP,0xc at 0xc1d3c is MSVC merged cleanup for the 1-argument main_set_map_name call plus the 2-argument hs_return call, not evidence of a 3-argument hs_return; the call-site audit ARG_COUNT hazard on hs_return is a false positive here."
+      ]
+    },
+    "0xc1d90": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The single ADD ESP,0xc at 0xc1dbf is MSVC's coalesced cleanup for main_set_difficulty (1 push) plus hs_return (2 pushes), so the call-site auditor's ARG_COUNT cleanup=3 vs decl=2 warning on hs_return is a false positive."
+      ]
+    },
+    "0xc1ee0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters function_index ([EBP+0x8]) and init ([EBP+0x10]) are never read by this body; the 3-parameter hs-evaluator signature is inferred from the TU-wide convention shared by sibling handlers FUN_000c1e50/1e80/1ea0/1ec0, not from this function's own disassembly, which only reads thread_datum at [EBP+0xc]."
+      ]
+    },
+    "0xc1f40": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Result record field +0x0 is typed const char* rather than an int handle because the sole consumer, debug_dump_memory_for_file (0x8eb80), is declared in kb.json as taking a const char* tag_filter; the disassembly only shows MOV EDX,[EAX] followed by a PUSH, which is width-agnostic.",
+        "The call-site audit ARG_COUNT finding claiming hs_return has cleanup=3 versus decl=2 is a false positive: MSVC coalesced the one-dword cleanup for debug_dump_memory_for_file and the two-dword cleanup for hs_return into a single ADD ESP,0xc at 0xc1f6c."
+      ]
+    },
+    "0xc1fa0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters function_index ([EBP+0x8]) and init ([EBP+0x10]) are never read by this body; the 3-arg hs-evaluator signature is inferred from the identical already-ported siblings FUN_000c1f00/FUN_000c1f20/FUN_000c0cb0 rather than from reads in this function."
+      ]
+    },
+    "0xc2000": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Callee 0x90860 (profile_sections_activate) takes one cdecl pointer argument, not zero as the previous kb decl claimed; evidence is MOV EDX,[EAX]/PUSH EDX at 0xc201f plus MOV EDI,[EBP+8] in 0x90860's own prologue, and the kb decl was corrected accordingly."
+      ],
+      "uncertain": [
+        "The argument type const char *substring for profile_sections_activate is inferred by analogy with the adjacent profile_dump_to_file (0x90650) which takes a substring filter; only the 32-bit width of result[0] is confirmed by the binary."
+      ]
+    },
+    "0xc2040": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "hs_macro_function_evaluate (0xcc560) is declared int-returning in kb.json but actually returns a pointer to an evaluation record; the pointer nature is inferred from TEST EAX,EAX followed by MOV EDX,[EAX] and is handled by casting at the call site rather than widening the callee decl.",
+        "The kb decl for profile_sections_deactivate (0x90880) was corrected from void(void) to void(const char *substring) because 0x90880 forwards its single stack argument in EDI to the shared worker 0x907c0, which string-compares it against the profile-section name table at 0x3361b4, matching the const char * decl already present on its activate twin 0x90860."
+      ]
+    },
+    "0xc20c0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Handler identity 'debug_pvs' is inferred from the callee 0x1965d0 only; unlike the 0xc2080 sibling, the hs_function_definition record (name/return_type/param_types) for this handler was not read, so the builtin's script-level name and declared parameter type are unconfirmed."
+      ]
+    },
+    "0xc22a0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Result block from hs_macro_function_evaluate at 0xc22a0 is {+0x00 int handle, +0x04 float, +0x08 float, +0x0c uint16}; field types are inferred from the load instructions (FLD dword for the two floats, XOR EDX/MOV DX for the zero-extended 16-bit field), not from a struct definition.",
+        "VC71 scores 85.2 percent (30 of 31 insns) and the entire residual is the documented float memory-argument codegen cap: the reference emits flds/subl/fstps/flds/fstps while VC71 emits two integer movl, so this is a structural cap and not a lift defect."
+      ],
+      "uncertain": [
+        "The kb decl for callee 0xa2970 player_effect_screen_fade_in was corrected from void(void) to (int, float, float, uint16_t) purely from this call site's push sequence; 0xa2970 is not ported and its body was not analysed, so the parameter names effect_definition/scale_a/scale_b/flags_or_index are placeholders and only the widths and order are binary-confirmed."
+      ]
+    },
+    "0xc23c0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The kb decl for callee cinematic_show_letterbox (0x92e90) was corrected from void(void) to void(char show) because the disassembly zero-extends the byte at result+0x0 into EDX and pushes it before the CALL; its 4-byte cleanup is merged into the ADD ESP,0xc that follows hs_return."
+      ]
+    },
+    "0xc2400": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "hs_macro_function_evaluate (0xcc560) is declared returning int in kb.json but this call site dereferences EAX as a 16-bit pointer (XOR EDX,EDX; MOV DX,word ptr [EAX]) after a NULL test, so its real return is a pointer to the evaluated script value; the cast is applied locally because other callers share the decl.",
+        "FUN_00093640 (0x93640) takes exactly one stack argument: the merged ADD ESP,0xc at 0xc242f covers its single PUSH EDX plus hs_return's two pushes, so its kb decl was corrected from void(void) to void(int); the resulting ARG_COUNT warning on hs_return is a false positive from that merge."
+      ]
+    },
+    "0xc2440": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "kb decl for callee 0x930b0 cinematic_set_title_delayed was corrected from void(void) to (int index, float value); arg1 width is inferred as int (not int16_t) by analogy with the identically-shaped sibling call FUN_00093640(int) at 0xc2400, since the PUSH EDX at the call site cannot distinguish the two."
+      ],
+      "uncertain": [
+        "The 88.5 percent VC71 residual is exactly two instructions, both VC71 codegen idioms rather than lift errors: the float memory argument emits mov/push instead of the reference fld/push/fstp round-trip, and the 16-bit zero extension emits movzwl instead of the reference xor edx,edx plus mov dx; the latter is reproduced identically at the already-ported sibling FUN_000c2400 which is capped at 93.6 percent for the same single instruction."
+      ]
+    },
+    "0xc2480": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The result-record field at +0x0 is an unsigned 8-bit flag: the original emits XOR EDX,EDX / MOV DL,byte ptr [EAX] (zero extension), so a signed char or int load would be wrong.",
+        "kb.json decl for callee 0x93030 cinematic_suppress_bsp_object_creation was corrected from (void) to (unsigned char suppress) by this lift; the PUSH EDX at 0xc24a4 is the binary evidence and this handler is currently its only in-tree caller."
+      ]
+    },
+    "0xc2500": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters function_index and init are unread by the body (only [EBP+0xc] is loaded); their presence in the signature is inferred from the shared hs-evaluator triple used by sibling handlers 0xc0cb0 and 0xc24e0, not from any instruction in this function."
+      ]
     }
   }
 }

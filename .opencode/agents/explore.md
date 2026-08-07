@@ -2,7 +2,7 @@
 name: explore
 description: Use when the parent agent needs a high-confidence map of files, symbols, code paths, ownership boundaries, and repository facts before work proceeds.
 mode: subagent
-model: openai/gpt-5.6-luna
+model: aiolos/gpt-5.6-terra
 permission:
   edit: deny
   bash: deny

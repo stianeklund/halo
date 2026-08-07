@@ -28,7 +28,10 @@ void FUN_001c93f0(void)
                        "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x6a, 1);
         system_exit(-1);
       }
-      channel_obj = *(int **)(0x4fdfc8 + (short)i * 0x74 + 0x70);
+      {
+        char *base = (char *)0x4fdfc8 + 0x70;
+        channel_obj = *(int **)(base + (short)i * 0x74);
+      }
       if (channel_obj != 0) {
         /* vtable slot 1 (offset 0x4) — Release. */
         ((void(__stdcall *)(int *))(*(void **)((char *)*channel_obj + 4)))(
@@ -41,15 +44,13 @@ void FUN_001c93f0(void)
 
   primary_buffer = *(void **)0x505460;
   if (primary_buffer != 0) {
-    /* IDirectSoundBuffer_Release stdcall thunk. */
     ((void(__stdcall *)(void *))0x203897)(primary_buffer);
   }
+  dsound_obj = *(void **)0x50545c;
   *(short *)0x4fdfc4 = 0;
   *(short *)0x4fdbc2 = 0;
 
-  dsound_obj = *(void **)0x50545c;
   if (dsound_obj != 0) {
-    /* IDirectSound_Release stdcall thunk. */
     ((void(__stdcall *)(void *))0x203861)(dsound_obj);
     *(void **)0x50545c = 0;
   }
@@ -59,5 +60,6 @@ void FUN_001c93f0(void)
 /* Return the DirectSound handle if sound is initialized, else 0 (0x1c94b0). */
 int bink_get_dsound_handle(void)
 {
-  return *(char *)0x4fdbc0 ? *(int *)0x50545c : 0;
+  int handle = *(int *)0x50545c;
+  return *(char *)0x4fdbc0 ? handle : 0;
 }

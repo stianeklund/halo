@@ -8494,6 +8494,54 @@
       "metadata": {
         "source_path": "src/halo/text/draw_string.c"
       }
+    },
+    {
+      "name": "halo/FUN_0007ff40",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bungie_net/64bit_math.c.obj",
+      "base_path": "delinked/functions/0007ff40.obj",
+      "metadata": {
+        "source_path": "src/halo/bungie_net/64bit_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_0007ffe0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bungie_net/64bit_math.c.obj",
+      "base_path": "delinked/functions/0007ffe0.obj",
+      "metadata": {
+        "source_path": "src/halo/bungie_net/64bit_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00080070",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bungie_net/64bit_math.c.obj",
+      "base_path": "delinked/functions/00080070.obj",
+      "metadata": {
+        "source_path": "src/halo/bungie_net/64bit_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_000800d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bungie_net/64bit_math.c.obj",
+      "base_path": "delinked/functions/000800d0.obj",
+      "metadata": {
+        "source_path": "src/halo/bungie_net/64bit_math.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00080210",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bungie_net/64bit_math.c.obj",
+      "base_path": "delinked/functions/00080210.obj",
+      "metadata": {
+        "source_path": "src/halo/bungie_net/64bit_math.c"
+      }
+    },
+    {
+      "name": "halo/targa_export",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bitmaps/targa_file.c.obj",
+      "base_path": "delinked/functions/0007f3a0.obj",
+      "metadata": {
+        "source_path": "src/halo/bitmaps/targa_file.c"
+      }
     }
   ]
 }

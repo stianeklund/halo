@@ -960,63 +960,538 @@ co(ai_firing_pos_entry_t, radius,    0x24);
 #pragma pack(1)
 typedef struct {
   int16_t salt;                                       /* +0x000  data_t pool convention: 16-bit datum salt at element +0 */
-  char pad_002[0x26];
+  char pad_002[0x2];
+  int16_t field_004;                                 /* +0x004  accessed 5x, meaning unproven */
+  char field_006;                                    /* +0x006  accessed 7x, meaning unproven */
+  char field_007;                                    /* +0x007  accessed 1x, meaning unproven */
+  char field_008;                                    /* +0x008  accessed 7x, meaning unproven */
+  char field_009;                                    /* +0x009  accessed 1x, meaning unproven */
+  char field_00a;                                    /* +0x00a  accessed 1x, meaning unproven */
+  char field_00b;                                    /* +0x00b  accessed 1x, meaning unproven */
+  int32_t field_00c;                                 /* +0x00c  accessed 2x, meaning unproven */
+  char pad_010[0x2];
+  char field_012;                                    /* +0x012  accessed 3x, meaning unproven */
+  char field_013;                                    /* +0x013  accessed 1x, meaning unproven */
+  int16_t field_014;                                 /* +0x014  accessed 4x, meaning unproven */
+  char pad_016[0x2];
+  int32_t field_018;                                 /* +0x018  accessed 55x, meaning unproven */
+  char field_01c;                                    /* +0x01c  accessed 4x, meaning unproven */
+  char pad_01d[0x1];
+  int16_t field_01e;                                 /* +0x01e  accessed 15x, meaning unproven */
+  int16_t field_020;                                 /* +0x020  accessed 2x, meaning unproven */
+  char pad_022[0x2];
+  int32_t field_024;                                 /* +0x024  accessed 18x, meaning unproven */
   int32_t meta_swarm_cache_index;                     /* +0x028  CMP dword [ESI+0x28],-1 @0x16d66 (NONE sentinel) */
-  char pad_02c[0x40];
+  int32_t field_02c;                                 /* +0x02c  accessed 15x, meaning unproven */
+  int32_t field_030;                                 /* +0x030  accessed 1x, meaning unproven */
+  uint32_t field_034;                                /* +0x034  accessed 4x, meaning unproven */
+  int16_t field_038;                                 /* +0x038  accessed 1x, meaning unproven */
+  int16_t field_03a;                                 /* +0x03a  accessed 1x, meaning unproven */
+  int16_t field_03c;                                 /* +0x03c  accessed 1x, meaning unproven */
+  int16_t field_03e;                                 /* +0x03e  accessed 5x, meaning unproven */
+  char field_040;                                    /* +0x040  accessed 4x, meaning unproven */
+  char pad_041[0x3];
+  int32_t field_044;                                 /* +0x044  accessed 2x, meaning unproven */
+  int16_t field_048;                                 /* +0x048  accessed 2x, meaning unproven */
+  int16_t field_04a;                                 /* +0x04a  accessed 4x, meaning unproven */
+  char field_04c;                                    /* +0x04c  accessed 9x, meaning unproven */
+  char pad_04d[0x1];
+  int16_t field_04e;                                 /* +0x04e  accessed 5x, meaning unproven */
+  int32_t field_050;                                 /* +0x050  accessed 4x, meaning unproven */
+  int32_t field_054;                                 /* +0x054  accessed 1x, meaning unproven */
+  int32_t field_058;                                 /* +0x058  accessed 23x, meaning unproven */
+  int32_t field_05c;                                 /* +0x05c  accessed 4x, meaning unproven */
+  int16_t field_060;                                 /* +0x060  accessed 2x, meaning unproven */
+  int16_t field_062;                                 /* +0x062  accessed 3x, meaning unproven */
+  int32_t field_064;                                 /* +0x064  accessed 1x, meaning unproven */
+  char field_068;                                    /* +0x068  accessed 1x, meaning unproven */
+  char pad_069[0x1];
+  int16_t field_06a;                                 /* +0x06a  accessed 9x, meaning unproven */
   int16_t state_action;                               /* +0x06c  CMP word [ESI+0x6c],3/6/0xa @0x1ef57/0x1cf29/0x1eec3 */
-  char pad_06e[0x106];
+  int16_t field_06e;                                 /* +0x06e  accessed 15x, meaning unproven */
+  char field_070;                                    /* +0x070  accessed 3x, meaning unproven */
+  char pad_071[0x1];
+  int16_t field_072;                                 /* +0x072  accessed 2x, meaning unproven */
+  int16_t field_074;                                 /* +0x074  accessed 2x, meaning unproven */
+  char pad_076[0x2];
+  int32_t field_078;                                 /* +0x078  accessed 3x, meaning unproven */
+  char pad_07c[0x8];
+  int32_t field_084;                                 /* +0x084  accessed 1x, meaning unproven */
+  int32_t field_088;                                 /* +0x088  accessed 1x, meaning unproven */
+  char field_08c;                                    /* +0x08c  accessed 1x, meaning unproven */
+  char field_08d;                                    /* +0x08d  accessed 1x, meaning unproven */
+  char field_08e;                                    /* +0x08e  accessed 2x, meaning unproven */
+  char pad_08f[0x1];
+  int16_t field_090;                                 /* +0x090  accessed 1x, meaning unproven */
+  int16_t field_092;                                 /* +0x092  accessed 3x, meaning unproven */
+  int32_t field_094;                                 /* +0x094  accessed 1x, meaning unproven */
+  char field_098;                                    /* +0x098  accessed 8x, meaning unproven */
+  char field_099;                                    /* +0x099  accessed 10x, meaning unproven */
+  char pad_09a[0x3];
+  char field_09d;                                    /* +0x09d  accessed 7x, meaning unproven */
+  uint8_t field_09e;                                 /* +0x09e  accessed 12x, meaning unproven */
+  char field_09f;                                    /* +0x09f  accessed 8x, meaning unproven */
+  char field_0a0;                                    /* +0x0a0  accessed 12x, meaning unproven */
+  char field_0a1;                                    /* +0x0a1  accessed 13x, meaning unproven */
+  char field_0a2;                                    /* +0x0a2  accessed 2x, meaning unproven */
+  char field_0a3;                                    /* +0x0a3  accessed 3x, meaning unproven */
+  char field_0a4;                                    /* +0x0a4  accessed 1x, meaning unproven */
+  char field_0a5;                                    /* +0x0a5  accessed 2x, meaning unproven */
+  char field_0a6;                                    /* +0x0a6  accessed 7x, meaning unproven */
+  char pad_0a7[0x1];
+  int16_t field_0a8;                                 /* +0x0a8  accessed 8x, meaning unproven */
+  char field_0aa;                                    /* +0x0aa  accessed 10x, meaning unproven */
+  char field_0ab;                                    /* +0x0ab  accessed 3x, meaning unproven */
+  int16_t field_0ac;                                 /* +0x0ac  accessed 4x, meaning unproven */
+  char pad_0ae[0x3];
+  char field_0b1;                                    /* +0x0b1  accessed 1x, meaning unproven */
+  char pad_0b2[0x4];
+  uint8_t field_0b6;                                 /* +0x0b6  accessed 1x, meaning unproven */
+  char pad_0b7[0x1];
+  int32_t field_0b8;                                 /* +0x0b8  accessed 9x, meaning unproven */
+  int32_t field_0bc;                                 /* +0x0bc  accessed 1x, meaning unproven */
+  int16_t field_0c0;                                 /* +0x0c0  accessed 2x, meaning unproven */
+  int16_t field_0c2;                                 /* +0x0c2  accessed 1x, meaning unproven */
+  char pad_0c4[0x1];
+  char field_0c5;                                    /* +0x0c5  accessed 5x, meaning unproven */
+  int16_t field_0c6;                                 /* +0x0c6  accessed 4x, meaning unproven */
+  char pad_0c8[0x2];
+  int16_t field_0ca;                                 /* +0x0ca  accessed 3x, meaning unproven */
+  char pad_0cc[0x4];
+  int32_t field_0d0;                                 /* +0x0d0  accessed 2x, meaning unproven */
+  float field_0d4;                                   /* +0x0d4  accessed 1x, meaning unproven */
+  int32_t field_0d8;                                 /* +0x0d8  accessed 5x, meaning unproven */
+  int32_t field_0dc;                                 /* +0x0dc  accessed 1x, meaning unproven */
+  char field_0e0;                                    /* +0x0e0  accessed 1x, meaning unproven */
+  char pad_0e1[0x3];
+  int32_t field_0e4;                                 /* +0x0e4  accessed 2x, meaning unproven */
+  int32_t field_0e8;                                 /* +0x0e8  accessed 1x, meaning unproven */
+  int32_t field_0ec;                                 /* +0x0ec  accessed 1x, meaning unproven */
+  char field_0f0;                                    /* +0x0f0  accessed 1x, meaning unproven */
+  char pad_0f1[0x3];
+  float field_0f4;                                   /* +0x0f4  accessed 1x, meaning unproven */
+  char field_0f8;                                    /* +0x0f8  accessed 2x, meaning unproven */
+  char pad_0f9[0x1];
+  int16_t field_0fa;                                 /* +0x0fa  accessed 2x, meaning unproven */
+  int16_t field_0fc;                                 /* +0x0fc  accessed 2x, meaning unproven */
+  char field_0fe;                                    /* +0x0fe  accessed 1x, meaning unproven */
+  char pad_0ff[0x1];
+  int32_t field_100;                                 /* +0x100  accessed 1x, meaning unproven */
+  int32_t field_104;                                 /* +0x104  accessed 1x, meaning unproven */
+  int32_t field_108;                                 /* +0x108  accessed 1x, meaning unproven */
+  int32_t field_10c;                                 /* +0x10c  accessed 1x, meaning unproven */
+  char field_110;                                    /* +0x110  accessed 2x, meaning unproven */
+  char pad_111[0xf];
+  float field_120;                                   /* +0x120  accessed 1x, meaning unproven */
+  float field_124;                                   /* +0x124  accessed 1x, meaning unproven */
+  float field_128;                                   /* +0x128  accessed 3x, meaning unproven */
+  float field_12c;                                   /* +0x12c  accessed 1x, meaning unproven */
+  float field_130;                                   /* +0x130  accessed 1x, meaning unproven */
+  float field_134;                                   /* +0x134  accessed 1x, meaning unproven */
+  char pad_138[0xc];
+  int32_t field_144;                                 /* +0x144  accessed 1x, meaning unproven */
+  uint16_t field_148;                                /* +0x148  accessed 1x, meaning unproven */
+  char pad_14a[0xe];
+  int32_t field_158;                                 /* +0x158  accessed 10x, meaning unproven */
+  char field_15c;                                    /* +0x15c  accessed 3x, meaning unproven */
+  char field_15d;                                    /* +0x15d  accessed 2x, meaning unproven */
+  int16_t field_15e;                                 /* +0x15e  accessed 6x, meaning unproven */
+  char field_160;                                    /* +0x160  accessed 17x, meaning unproven */
+  char field_161;                                    /* +0x161  accessed 2x, meaning unproven */
+  char field_162;                                    /* +0x162  accessed 2x, meaning unproven */
+  char pad_163[0x1];
+  int32_t field_164;                                 /* +0x164  accessed 1x, meaning unproven */
+  int32_t field_168;                                 /* +0x168  accessed 1x, meaning unproven */
+  int32_t field_16c;                                 /* +0x16c  accessed 1x, meaning unproven */
+  int32_t field_170;                                 /* +0x170  accessed 1x, meaning unproven */
   float input_facing_vector[3];                       /* +0x174  FLD [ESI+0x17c] @0x3e4fd = .k, so base 0x174 */
   float input_aiming_vector[3];                       /* +0x180  FLD [ESI+0x180/184/188] @0x3e411/3e407/3e3ee */
   float input_looking_vector[3];                      /* +0x18c  FLD [ESI+0x190/194] @0x3e467/0x3e44e */
-  char pad_198[0xd0];
+  float field_198;                                   /* +0x198  accessed 2x, meaning unproven */
+  float field_19c;                                   /* +0x19c  accessed 2x, meaning unproven */
+  float field_1a0;                                   /* +0x1a0  accessed 2x, meaning unproven */
+  float field_1a4;                                   /* +0x1a4  accessed 1x, meaning unproven */
+  float field_1a8;                                   /* +0x1a8  accessed 1x, meaning unproven */
+  float field_1ac;                                   /* +0x1ac  accessed 1x, meaning unproven */
+  int32_t field_1b0;                                 /* +0x1b0  accessed 1x, meaning unproven */
+  char field_1b4;                                    /* +0x1b4  accessed 1x, meaning unproven */
+  char field_1b5;                                    /* +0x1b5  accessed 1x, meaning unproven */
+  char pad_1b6[0x2];
+  int32_t field_1b8;                                 /* +0x1b8  accessed 1x, meaning unproven */
+  char pad_1bc[0x4];
+  int32_t field_1c0;                                 /* +0x1c0  accessed 1x, meaning unproven */
+  int32_t field_1c4;                                 /* +0x1c4  accessed 1x, meaning unproven */
+  char field_1c8;                                    /* +0x1c8  accessed 1x, meaning unproven */
+  char field_1c9;                                    /* +0x1c9  accessed 1x, meaning unproven */
+  char field_1ca;                                    /* +0x1ca  accessed 3x, meaning unproven */
+  char field_1cb;                                    /* +0x1cb  accessed 5x, meaning unproven */
+  char field_1cc;                                    /* +0x1cc  accessed 1x, meaning unproven */
+  char pad_1cd[0x3];
+  int32_t field_1d0;                                 /* +0x1d0  accessed 3x, meaning unproven */
+  int16_t field_1d4;                                 /* +0x1d4  accessed 1x, meaning unproven */
+  char pad_1d6[0x6];
+  int32_t field_1dc;                                 /* +0x1dc  accessed 6x, meaning unproven */
+  int32_t field_1e0;                                 /* +0x1e0  accessed 2x, meaning unproven */
+  int16_t field_1e4;                                 /* +0x1e4  accessed 6x, meaning unproven */
+  char pad_1e6[0x2];
+  int32_t field_1e8;                                 /* +0x1e8  accessed 6x, meaning unproven */
+  char pad_1ec[0x1];
+  char field_1ed;                                    /* +0x1ed  accessed 1x, meaning unproven */
+  char pad_1ee[0x8];
+  char field_1f6;                                    /* +0x1f6  accessed 1x, meaning unproven */
+  char pad_1f7[0x1];
+  char field_1f8;                                    /* +0x1f8  accessed 1x, meaning unproven */
+  char pad_1f9[0x3];
+  char field_1fc;                                    /* +0x1fc  accessed 1x, meaning unproven */
+  char pad_1fd[0x3];
+  char field_200;                                    /* +0x200  accessed 1x, meaning unproven */
+  char pad_201[0x1];
+  char field_202;                                    /* +0x202  accessed 1x, meaning unproven */
+  char pad_203[0x42];
+  char field_245;                                    /* +0x245  accessed 1x, meaning unproven */
+  char pad_246[0x22];
   int16_t target_target_type;                         /* +0x268  MOVSX EAX,word [ESI+0x268] @0x3033c */
-  char pad_26a[0x6];
+  char pad_26a[0x2];
+  int32_t field_26c;                                 /* +0x26c  accessed 1x, meaning unproven */
   int32_t target_target_prop_index;                   /* +0x270  CMP dword [ESI+0x270],-1 @0x38535 */
-  char pad_274[0xc];
+  char field_274;                                    /* +0x274  accessed 1x, meaning unproven */
+  char pad_275[0x3];
+  int32_t field_278;                                 /* +0x278  accessed 1x, meaning unproven */
+  char field_27c;                                    /* +0x27c  accessed 1x, meaning unproven */
+  char pad_27d[0x3];
   int16_t danger_zone_danger_type;                    /* +0x280  CMP word [ESI+0x280],0 @0x3239c; [EBX+0x280] @0x484e8 */
-  char pad_282[0xa];
+  char pad_282[0x2];
+  int16_t field_284;                                 /* +0x284  accessed 1x, meaning unproven */
+  char field_286;                                    /* +0x286  accessed 1x, meaning unproven */
+  char field_287;                                    /* +0x287  accessed 2x, meaning unproven */
+  char field_288;                                    /* +0x288  accessed 5x, meaning unproven */
+  char pad_289[0x1];
+  char field_28a;                                    /* +0x28a  accessed 1x, meaning unproven */
+  char pad_28b[0x1];
   int32_t danger_zone_object_index;                   /* +0x28c  CMP dword [EBX+0x28c],-1 @0x484f2 */
-  char pad_290[0x78];
+  char pad_290[0x4];
+  float field_294;                                   /* +0x294  accessed 9x, meaning unproven */
+  char pad_298[0x18];
+  float field_2b0;                                   /* +0x2b0  accessed 1x, meaning unproven */
+  float field_2b4;                                   /* +0x2b4  accessed 1x, meaning unproven */
+  float field_2b8;                                   /* +0x2b8  accessed 1x, meaning unproven */
+  char pad_2bc[0xc];
+  float field_2c8;                                   /* +0x2c8  accessed 1x, meaning unproven */
+  float field_2cc;                                   /* +0x2cc  accessed 1x, meaning unproven */
+  float field_2d0;                                   /* +0x2d0  accessed 1x, meaning unproven */
+  float field_2d4;                                   /* +0x2d4  accessed 2x, meaning unproven */
+  float field_2d8;                                   /* +0x2d8  accessed 3x, meaning unproven */
+  float field_2dc;                                   /* +0x2dc  accessed 2x, meaning unproven */
+  float field_2e0;                                   /* +0x2e0  accessed 2x, meaning unproven */
+  float field_2e4;                                   /* +0x2e4  accessed 2x, meaning unproven */
+  char pad_2e8[0x4];
+  char field_2ec;                                    /* +0x2ec  accessed 1x, meaning unproven */
+  char field_2ed;                                    /* +0x2ed  accessed 1x, meaning unproven */
+  int16_t field_2ee;                                 /* +0x2ee  accessed 2x, meaning unproven */
+  char field_2f0;                                    /* +0x2f0  accessed 1x, meaning unproven */
+  char pad_2f1[0x3];
+  int32_t field_2f4;                                 /* +0x2f4  accessed 3x, meaning unproven */
+  char field_2f8;                                    /* +0x2f8  accessed 2x, meaning unproven */
+  char pad_2f9[0x3];
+  int32_t field_2fc;                                 /* +0x2fc  accessed 1x, meaning unproven */
+  int32_t field_300;                                 /* +0x300  accessed 1x, meaning unproven */
+  int32_t field_304;                                 /* +0x304  accessed 1x, meaning unproven */
   int16_t stimuli_panic_type;                         /* +0x308  CMP word [ESI+0x308],0 @0x1c61a */
   char pad_30a[0x2];
   int32_t stimuli_panic_prop_index;                   /* +0x30c  MOV EAX,[ESI+0x30c] @0x1c624 */
-  char pad_310[0xa8];
+  int16_t field_310;                                 /* +0x310  accessed 13x, meaning unproven */
+  int16_t field_312;                                 /* +0x312  accessed 2x, meaning unproven */
+  char field_314;                                    /* +0x314  accessed 1x, meaning unproven */
+  char pad_315[0x3];
+  int32_t field_318;                                 /* +0x318  accessed 1x, meaning unproven */
+  int32_t field_31c;                                 /* +0x31c  accessed 1x, meaning unproven */
+  int32_t field_320;                                 /* +0x320  accessed 1x, meaning unproven */
+  int32_t field_324;                                 /* +0x324  accessed 2x, meaning unproven */
+  int32_t field_328;                                 /* +0x328  accessed 1x, meaning unproven */
+  char field_32c;                                    /* +0x32c  accessed 1x, meaning unproven */
+  char pad_32d[0x3];
+  int32_t field_330;                                 /* +0x330  accessed 1x, meaning unproven */
+  int32_t field_334;                                 /* +0x334  accessed 1x, meaning unproven */
+  int32_t field_338;                                 /* +0x338  accessed 1x, meaning unproven */
+  int16_t field_33c;                                 /* +0x33c  accessed 1x, meaning unproven */
+  char pad_33e[0x2];
+  int32_t field_340;                                 /* +0x340  accessed 3x, meaning unproven */
+  int16_t field_344;                                 /* +0x344  accessed 1x, meaning unproven */
+  char pad_346[0x2];
+  char field_348;                                    /* +0x348  accessed 1x, meaning unproven */
+  char pad_349[0x1];
+  int16_t field_34a;                                 /* +0x34a  accessed 3x, meaning unproven */
+  int32_t field_34c;                                 /* +0x34c  accessed 3x, meaning unproven */
+  char pad_350[0x4];
+  float field_354;                                   /* +0x354  accessed 3x, meaning unproven */
+  char field_358;                                    /* +0x358  accessed 2x, meaning unproven */
+  char pad_359[0x1];
+  int16_t field_35a;                                 /* +0x35a  accessed 1x, meaning unproven */
+  char pad_35c[0x4];
+  int16_t field_360;                                 /* +0x360  accessed 1x, meaning unproven */
+  char field_362;                                    /* +0x362  accessed 16x, meaning unproven */
+  char field_363;                                    /* +0x363  accessed 4x, meaning unproven */
+  int16_t field_364;                                 /* +0x364  accessed 4x, meaning unproven */
+  int16_t field_366;                                 /* +0x366  accessed 3x, meaning unproven */
+  int16_t field_368;                                 /* +0x368  accessed 2x, meaning unproven */
+  char pad_36a[0x2];
+  int32_t field_36c;                                 /* +0x36c  accessed 1x, meaning unproven */
+  int32_t field_370;                                 /* +0x370  accessed 1x, meaning unproven */
+  char field_374;                                    /* +0x374  accessed 1x, meaning unproven */
+  char pad_375[0x1];
+  uint8_t field_376;                                 /* +0x376  accessed 1x, meaning unproven */
+  char field_377;                                    /* +0x377  accessed 2x, meaning unproven */
+  char field_378;                                    /* +0x378  accessed 2x, meaning unproven */
+  char field_379;                                    /* +0x379  accessed 2x, meaning unproven */
+  char pad_37a[0x2];
+  int32_t field_37c;                                 /* +0x37c  accessed 1x, meaning unproven */
+  int32_t field_380;                                 /* +0x380  accessed 1x, meaning unproven */
+  int32_t field_384;                                 /* +0x384  accessed 1x, meaning unproven */
+  int32_t field_388;                                 /* +0x388  accessed 1x, meaning unproven */
+  char field_38c;                                    /* +0x38c  accessed 3x, meaning unproven */
+  char pad_38d[0x3];
+  int32_t field_390;                                 /* +0x390  accessed 1x, meaning unproven */
+  int32_t field_394;                                 /* +0x394  accessed 1x, meaning unproven */
+  int32_t field_398;                                 /* +0x398  accessed 1x, meaning unproven */
+  int32_t field_39c;                                 /* +0x39c  accessed 1x, meaning unproven */
+  int32_t field_3a0;                                 /* +0x3a0  accessed 2x, meaning unproven */
+  int32_t field_3a4;                                 /* +0x3a4  accessed 1x, meaning unproven */
+  int16_t field_3a8;                                 /* +0x3a8  accessed 2x, meaning unproven */
+  char pad_3aa[0x2];
+  int32_t field_3ac;                                 /* +0x3ac  accessed 3x, meaning unproven */
+  int32_t field_3b0;                                 /* +0x3b0  accessed 1x, meaning unproven */
+  float field_3b4;                                   /* +0x3b4  accessed 1x, meaning unproven */
   int16_t firing_positions_current_position_index;    /* +0x3b8  MOVSX EDX,word [ESI+0x3b8] @0x5b463 */
-  char pad_3ba[0xc6];
+  char field_3ba;                                    /* +0x3ba  accessed 7x, meaning unproven */
+  char field_3bb;                                    /* +0x3bb  accessed 1x, meaning unproven */
+  char field_3bc;                                    /* +0x3bc  accessed 2x, meaning unproven */
+  char field_3bd;                                    /* +0x3bd  accessed 3x, meaning unproven */
+  char pad_3be[0x2];
+  int32_t field_3c0;                                 /* +0x3c0  accessed 1x, meaning unproven */
+  int16_t field_3c4;                                 /* +0x3c4  accessed 5x, meaning unproven */
+  char pad_3c6[0x12];
+  char field_3d8;                                    /* +0x3d8  accessed 1x, meaning unproven */
+  char pad_3d9[0x3];
+  int32_t field_3dc;                                 /* +0x3dc  accessed 1x, meaning unproven */
+  int32_t field_3e0;                                 /* +0x3e0  accessed 1x, meaning unproven */
+  int32_t field_3e4;                                 /* +0x3e4  accessed 1x, meaning unproven */
+  int16_t field_3e8;                                 /* +0x3e8  accessed 30x, meaning unproven */
+  char pad_3ea[0x2];
+  int16_t field_3ec;                                 /* +0x3ec  accessed 21x, meaning unproven */
+  char pad_3ee[0x2];
+  int32_t field_3f0;                                 /* +0x3f0  accessed 6x, meaning unproven */
+  int32_t field_3f4;                                 /* +0x3f4  accessed 2x, meaning unproven */
+  int32_t field_3f8;                                 /* +0x3f8  accessed 3x, meaning unproven */
+  int16_t field_3fc;                                 /* +0x3fc  accessed 14x, meaning unproven */
+  char pad_3fe[0x2];
+  int16_t field_400;                                 /* +0x400  accessed 3x, meaning unproven */
+  char field_402;                                    /* +0x402  accessed 1x, meaning unproven */
+  char pad_403[0x5];
+  float field_408;                                   /* +0x408  accessed 2x, meaning unproven */
+  float field_40c;                                   /* +0x40c  accessed 1x, meaning unproven */
+  int32_t field_410;                                 /* +0x410  accessed 1x, meaning unproven */
+  int32_t field_414;                                 /* +0x414  accessed 3x, meaning unproven */
+  int16_t field_418;                                 /* +0x418  accessed 1x, meaning unproven */
+  char pad_41a[0x2];
+  int32_t field_41c;                                 /* +0x41c  accessed 2x, meaning unproven */
+  int32_t field_420;                                 /* +0x420  accessed 2x, meaning unproven */
+  char field_424;                                    /* +0x424  accessed 6x, meaning unproven */
+  char field_425;                                    /* +0x425  accessed 6x, meaning unproven */
+  char field_426;                                    /* +0x426  accessed 10x, meaning unproven */
+  char field_427;                                    /* +0x427  accessed 8x, meaning unproven */
+  char field_428;                                    /* +0x428  accessed 6x, meaning unproven */
+  char field_429;                                    /* +0x429  accessed 2x, meaning unproven */
+  char field_42a;                                    /* +0x42a  accessed 1x, meaning unproven */
+  char pad_42b[0x1];
+  int16_t field_42c;                                 /* +0x42c  accessed 1x, meaning unproven */
+  int16_t field_42e;                                 /* +0x42e  accessed 2x, meaning unproven */
+  char field_430;                                    /* +0x430  accessed 2x, meaning unproven */
+  char pad_431[0x3];
+  int32_t field_434;                                 /* +0x434  accessed 2x, meaning unproven */
+  int32_t field_438;                                 /* +0x438  accessed 2x, meaning unproven */
+  int32_t field_43c;                                 /* +0x43c  accessed 2x, meaning unproven */
+  char field_440;                                    /* +0x440  accessed 1x, meaning unproven */
+  char field_441;                                    /* +0x441  accessed 1x, meaning unproven */
+  char field_442;                                    /* +0x442  accessed 1x, meaning unproven */
+  char pad_443[0x1];
+  float field_444;                                   /* +0x444  accessed 1x, meaning unproven */
+  float field_448;                                   /* +0x448  accessed 1x, meaning unproven */
+  float field_44c;                                   /* +0x44c  accessed 1x, meaning unproven */
+  float field_450;                                   /* +0x450  accessed 1x, meaning unproven */
+  char field_454;                                    /* +0x454  accessed 12x, meaning unproven */
+  char field_455;                                    /* +0x455  accessed 1x, meaning unproven */
+  char field_456;                                    /* +0x456  accessed 2x, meaning unproven */
+  char field_457;                                    /* +0x457  accessed 1x, meaning unproven */
+  int32_t field_458;                                 /* +0x458  accessed 1x, meaning unproven */
+  char field_45c;                                    /* +0x45c  accessed 1x, meaning unproven */
+  char field_45d;                                    /* +0x45d  accessed 2x, meaning unproven */
+  char pad_45e[0xe];
+  int16_t field_46c;                                 /* +0x46c  accessed 2x, meaning unproven */
+  char field_46e;                                    /* +0x46e  accessed 1x, meaning unproven */
+  char pad_46f[0x1];
+  int16_t field_470;                                 /* +0x470  accessed 2x, meaning unproven */
+  char pad_472[0xa];
+  int32_t field_47c;                                 /* +0x47c  accessed 1x, meaning unproven */
   int32_t control_path_destination_orders_ignore_target_object_index;/* +0x480  CMP dword [ESI+0x480],-1 @0x2d16b (NONE sentinel) */
-  char pad_484[0xc0];
+  char field_484;                                    /* +0x484  accessed 6x, meaning unproven */
+  char pad_485[0x3];
+  float field_488;                                   /* +0x488  accessed 1x, meaning unproven */
+  float field_48c;                                   /* +0x48c  accessed 1x, meaning unproven */
+  float field_490;                                   /* +0x490  accessed 1x, meaning unproven */
+  int32_t field_494;                                 /* +0x494  accessed 2x, meaning unproven */
+  char pad_498[0xc];
+  char field_4a4;                                    /* +0x4a4  accessed 1x, meaning unproven */
+  char pad_4a5[0x3];
+  char field_4a8;                                    /* +0x4a8  accessed 3x, meaning unproven */
+  char pad_4a9[0x13];
+  float field_4bc;                                   /* +0x4bc  accessed 2x, meaning unproven */
+  char field_4c0;                                    /* +0x4c0  accessed 1x, meaning unproven */
+  int8_t field_4c1;                                  /* +0x4c1  accessed 2x, meaning unproven */
+  int8_t field_4c2;                                  /* +0x4c2  accessed 3x, meaning unproven */
+  char pad_4c3[0x41];
+  char field_504;                                    /* +0x504  accessed 10x, meaning unproven */
+  char field_505;                                    /* +0x505  accessed 1x, meaning unproven */
+  char field_506;                                    /* +0x506  accessed 8x, meaning unproven */
+  char field_507;                                    /* +0x507  accessed 1x, meaning unproven */
+  char pad_508[0x2];
+  int16_t field_50a;                                 /* +0x50a  accessed 1x, meaning unproven */
+  float field_50c;                                   /* +0x50c  accessed 3x, meaning unproven */
+  float field_510;                                   /* +0x510  accessed 3x, meaning unproven */
+  float field_514;                                   /* +0x514  accessed 3x, meaning unproven */
+  int32_t field_518;                                 /* +0x518  accessed 1x, meaning unproven */
+  int32_t field_51c;                                 /* +0x51c  accessed 1x, meaning unproven */
+  int32_t field_520;                                 /* +0x520  accessed 1x, meaning unproven */
+  float field_524;                                   /* +0x524  accessed 1x, meaning unproven */
+  float field_528;                                   /* +0x528  accessed 1x, meaning unproven */
+  float field_52c;                                   /* +0x52c  accessed 1x, meaning unproven */
+  char field_530;                                    /* +0x530  accessed 5x, meaning unproven */
+  char pad_531[0x13];
   int16_t control_secondary_look_type;                /* +0x544  CMP word [ESI+0x544],0 @0x6443d */
-  char pad_546[0x6];
+  int16_t field_546;                                 /* +0x546  accessed 4x, meaning unproven */
+  int16_t field_548;                                 /* +0x548  accessed 6x, meaning unproven */
+  char pad_54a[0x2];
   int16_t control_secondary_look_direction_type;      /* +0x54c  CMP word [ESI+0x54c],1 @0x64447 */
   char pad_54e[0x2];
   int32_t control_secondary_look_direction_prop_index;/* +0x550  CMP dword [ESI+0x550],EDI @0x64451 */
-  char pad_554[0x8];
+  int32_t field_554;                                 /* +0x554  accessed 1x, meaning unproven */
+  int32_t field_558;                                 /* +0x558  accessed 1x, meaning unproven */
   char control_idle_major_active;                     /* +0x55c  MOV AL,byte [ESI+0x55c] @0x64479, @0x299d7 */
-  char pad_55d[0x2];
+  char field_55d;                                    /* +0x55d  accessed 2x, meaning unproven */
+  char field_55e;                                    /* +0x55e  accessed 4x, meaning unproven */
   char control_idle_minor_active;                     /* +0x55f  MOV AL,byte [ESI+0x55f] @0x644b5 */
-  char pad_560[0x4];
+  int32_t field_560;                                 /* +0x560  accessed 4x, meaning unproven */
   int32_t control_idle_major_timer;                   /* +0x564  MOV EAX,[ESI+0x564] @0x299e4 */
   int32_t control_idle_minor_timer;                   /* +0x568  MOV EAX,[ESI+0x568]; TEST; JG @0x29c49..0x29c54 */
   int16_t control_idle_major_direction_type;          /* +0x56c  CMP word [ESI+0x56c],1 @0x64483 */
   char pad_56e[0x2];
   int32_t control_idle_major_direction_prop_index;    /* +0x570  CMP dword [ESI+0x570],EDI @0x6448d */
-  char pad_574[0x8];
+  float field_574;                                   /* +0x574  accessed 1x, meaning unproven */
+  float field_578;                                   /* +0x578  accessed 1x, meaning unproven */
   int16_t control_idle_minor_direction_type;          /* +0x57c  CMP word [ESI+0x57c],1 @0x644bf */
   char pad_57e[0x2];
   int32_t control_idle_minor_direction_prop_index;    /* +0x580  CMP dword [ESI+0x580],EDI @0x644c9 */
-  char pad_584[0x20];
+  float field_584;                                   /* +0x584  accessed 1x, meaning unproven */
+  float field_588;                                   /* +0x588  accessed 1x, meaning unproven */
+  char field_58c;                                    /* +0x58c  accessed 5x, meaning unproven */
+  char field_58d;                                    /* +0x58d  accessed 4x, meaning unproven */
+  char field_58e;                                    /* +0x58e  accessed 2x, meaning unproven */
+  char field_58f;                                    /* +0x58f  accessed 1x, meaning unproven */
+  char field_590;                                    /* +0x590  accessed 4x, meaning unproven */
+  char field_591;                                    /* +0x591  accessed 6x, meaning unproven */
+  char pad_592[0x6];
+  float field_598;                                   /* +0x598  accessed 1x, meaning unproven */
+  float field_59c;                                   /* +0x59c  accessed 1x, meaning unproven */
+  float field_5a0;                                   /* +0x5a0  accessed 1x, meaning unproven */
   float control_desired_facing_vector[3];             /* +0x5a4  LEA EDI,[ESI+0x5a4] @0x2906b */
   float control_desired_aiming_vector[3];             /* +0x5b0  LEA EBX,[ESI+0x5b0] @0x290d8 */
   float control_desired_looking_vector[3];            /* +0x5bc  LEA EBX,[ESI+0x5bc] @0x2913d */
-  char pad_5c8[0x2a];
+  char pad_5c8[0x10];
+  int16_t field_5d8;                                 /* +0x5d8  accessed 1x, meaning unproven */
+  char pad_5da[0x2];
+  char field_5dc;                                    /* +0x5dc  accessed 1x, meaning unproven */
+  char pad_5dd[0x13];
+  int16_t field_5f0;                                 /* +0x5f0  accessed 1x, meaning unproven */
   int16_t control_fire_state;                         /* +0x5f2  MOVSX from word [EBX+0x5f2] @0x237d7, 5-case jump table */
-  char pad_5f4[0x18];
+  int16_t field_5f4;                                 /* +0x5f4  accessed 1x, meaning unproven */
+  int16_t field_5f6;                                 /* +0x5f6  accessed 1x, meaning unproven */
+  int16_t field_5f8;                                 /* +0x5f8  accessed 1x, meaning unproven */
+  int16_t field_5fa;                                 /* +0x5fa  accessed 1x, meaning unproven */
+  char field_5fc;                                    /* +0x5fc  accessed 2x, meaning unproven */
+  char pad_5fd[0x3];
+  char field_600;                                    /* +0x600  accessed 2x, meaning unproven */
+  char field_601;                                    /* +0x601  accessed 2x, meaning unproven */
+  char field_602;                                    /* +0x602  accessed 1x, meaning unproven */
+  char field_603;                                    /* +0x603  accessed 2x, meaning unproven */
+  char field_604;                                    /* +0x604  accessed 4x, meaning unproven */
+  char pad_605[0x3];
+  float field_608;                                   /* +0x608  accessed 3x, meaning unproven */
   int16_t control_current_fire_target_type;           /* +0x60c  CMP word [ESI+0x60c],1 @0x22032; ESI from datum_get on ACTOR_TABLE_PTR @0x22013 */
   char pad_60e[0x2];
   int32_t control_current_fire_target_prop_index;     /* +0x610  MOV [EBX+0x610],EAX after CMP EAX,-1 @0x22f52-0x22f55 */
-  char pad_614[0x78];
+  float field_614;                                   /* +0x614  accessed 1x, meaning unproven */
+  float field_618;                                   /* +0x618  accessed 1x, meaning unproven */
+  int32_t field_61c;                                 /* +0x61c  accessed 1x, meaning unproven */
+  char pad_620[0x8];
+  char field_628;                                    /* +0x628  accessed 1x, meaning unproven */
+  char pad_629[0x3];
+  int32_t field_62c;                                 /* +0x62c  accessed 1x, meaning unproven */
+  float field_630;                                   /* +0x630  accessed 1x, meaning unproven */
+  float field_634;                                   /* +0x634  accessed 1x, meaning unproven */
+  float field_638;                                   /* +0x638  accessed 1x, meaning unproven */
+  int32_t field_63c;                                 /* +0x63c  accessed 1x, meaning unproven */
+  uint16_t field_640;                                /* +0x640  accessed 1x, meaning unproven */
+  char pad_642[0x2];
+  int32_t field_644;                                 /* +0x644  accessed 1x, meaning unproven */
+  float field_648;                                   /* +0x648  accessed 1x, meaning unproven */
+  float field_64c;                                   /* +0x64c  accessed 2x, meaning unproven */
+  float field_650;                                   /* +0x650  accessed 2x, meaning unproven */
+  float field_654;                                   /* +0x654  accessed 2x, meaning unproven */
+  char pad_658[0xc];
+  float field_664;                                   /* +0x664  accessed 2x, meaning unproven */
+  int16_t field_668;                                 /* +0x668  accessed 2x, meaning unproven */
+  int16_t field_66a;                                 /* +0x66a  accessed 2x, meaning unproven */
+  int16_t field_66c;                                 /* +0x66c  accessed 2x, meaning unproven */
+  char pad_66e[0x2];
+  float field_670;                                   /* +0x670  accessed 1x, meaning unproven */
+  float field_674;                                   /* +0x674  accessed 1x, meaning unproven */
+  float field_678;                                   /* +0x678  accessed 1x, meaning unproven */
+  float field_67c;                                   /* +0x67c  accessed 1x, meaning unproven */
+  float field_680;                                   /* +0x680  accessed 1x, meaning unproven */
+  float field_684;                                   /* +0x684  accessed 1x, meaning unproven */
+  char pad_688[0x4];
   float control_burst_aim_vector[3];                  /* +0x68c  LEA EDI,[EBX+0x68c] @0x23d1a */
-  char pad_698[0x64];
+  float field_698;                                   /* +0x698  accessed 2x, meaning unproven */
+  char pad_69c[0x4];
+  char field_6a0;                                    /* +0x6a0  accessed 1x, meaning unproven */
+  uint8_t field_6a1;                                 /* +0x6a1  accessed 1x, meaning unproven */
+  char pad_6a2[0x2];
+  int32_t field_6a4;                                 /* +0x6a4  accessed 1x, meaning unproven */
+  float field_6a8;                                   /* +0x6a8  accessed 1x, meaning unproven */
+  float field_6ac;                                   /* +0x6ac  accessed 1x, meaning unproven */
+  char pad_6b0[0x4];
+  int32_t field_6b4;                                 /* +0x6b4  accessed 3x, meaning unproven */
+  int32_t field_6b8;                                 /* +0x6b8  accessed 1x, meaning unproven */
+  float field_6bc;                                   /* +0x6bc  accessed 2x, meaning unproven */
+  float field_6c0;                                   /* +0x6c0  accessed 2x, meaning unproven */
+  float field_6c4;                                   /* +0x6c4  accessed 2x, meaning unproven */
+  float field_6c8;                                   /* +0x6c8  accessed 2x, meaning unproven */
+  char field_6cc;                                    /* +0x6cc  accessed 1x, meaning unproven */
+  char pad_6cd[0x1];
+  int16_t field_6ce;                                 /* +0x6ce  accessed 1x, meaning unproven */
+  char pad_6d0[0x4];
+  int16_t field_6d4;                                 /* +0x6d4  accessed 2x, meaning unproven */
+  char pad_6d6[0x2];
+  int32_t field_6d8;                                 /* +0x6d8  accessed 1x, meaning unproven */
+  int16_t field_6dc;                                 /* +0x6dc  accessed 1x, meaning unproven */
+  char pad_6de[0x2];
+  float field_6e0;                                   /* +0x6e0  accessed 2x, meaning unproven */
+  float field_6e4;                                   /* +0x6e4  accessed 2x, meaning unproven */
+  float field_6e8;                                   /* +0x6e8  accessed 2x, meaning unproven */
+  int32_t field_6ec;                                 /* +0x6ec  accessed 1x, meaning unproven */
+  int32_t field_6f0;                                 /* +0x6f0  accessed 1x, meaning unproven */
+  int32_t field_6f4;                                 /* +0x6f4  accessed 1x, meaning unproven */
+  int16_t field_6f8;                                 /* +0x6f8  accessed 2x, meaning unproven */
+  char pad_6fa[0x2];
   float output_facing_vector[3];                      /* +0x6fc  LEA EDI,[ESI+0x6fc] @0x2a0c8 */
   float output_aiming_vector[3];                      /* +0x708  LEA EDI,[ESI+0x708] @0x2a17d */
   float output_looking_vector[3];                     /* +0x714  LEA EDI,[ESI+0x714] (k/j at 0x71c/0x718 @0x2a1ec) */

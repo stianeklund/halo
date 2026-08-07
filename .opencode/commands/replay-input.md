@@ -2,7 +2,7 @@
 description: Replay an existing deterministic controller-input fixture
 ---
 
-Use `replay-input` and `input-replay-testing`.
+Use `input-fixture` and `input-replay-testing`.
 
 Request: $ARGUMENTS
 

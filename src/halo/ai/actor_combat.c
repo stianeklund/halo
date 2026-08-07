@@ -10,17 +10,17 @@ int actor_combat_check_mode(int actor_handle /* @<eax> */, short mode)
 
   switch (mode) {
   case 1:
-    if (*(short *)(actor + 0x60c) == _actor_fire_target_prop && *(short *)(actor + 0x268) >= 8)
+    if (((actor_t *)actor)->control_current_fire_target_type == _actor_fire_target_prop && ((actor_t *)actor)->target_target_type >= 8)
       return 1;
     break;
   case 2:
-    if (*(short *)(actor + 0x60c) == 0 && *(short *)(actor + 0x268) >= 5 &&
-        *(char *)(actor + 0x27c) != 0 && *(int *)(actor + 0x278) >= 0x4b)
+    if (((actor_t *)actor)->control_current_fire_target_type == 0 && ((actor_t *)actor)->target_target_type >= 5 &&
+        ((actor_t *)actor)->field_27c != 0 && ((actor_t *)actor)->field_278 >= 0x4b)
       return 1;
     break;
   case 3:
-    if (*(short *)(actor + 0x60c) == _actor_fire_target_prop && *(short *)(actor + 0x268) >= 8 &&
-        *(char *)(actor + 0x161) != 0)
+    if (((actor_t *)actor)->control_current_fire_target_type == _actor_fire_target_prop && ((actor_t *)actor)->target_target_type >= 8 &&
+        ((actor_t *)actor)->field_161 != 0)
       return 1;
     break;
   }
@@ -36,8 +36,8 @@ void FUN_00021010(int actor_handle, int ticks)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
 
-  *(short *)(actor + 0x5f2) = 4;
-  *(short *)(actor + 0x5f4) = (short)ticks;
+  ((actor_t *)actor)->control_fire_state = 4;
+  ((actor_t *)actor)->field_5f4 = (short)ticks;
 }
 
 /* 0x21040 — Raise an actor's "hold burst" timer (actor+0x5f6) to at least
@@ -50,10 +50,10 @@ void FUN_00021040(int actor_handle, int ticks)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
 
-  if (ticks < *(short *)(actor + 0x5f6))
-    *(short *)(actor + 0x5f6) = *(short *)(actor + 0x5f6);
+  if (ticks < ((actor_t *)actor)->field_5f6)
+    ((actor_t *)actor)->field_5f6 = ((actor_t *)actor)->field_5f6;
   else
-    *(short *)(actor + 0x5f6) = (short)ticks;
+    ((actor_t *)actor)->field_5f6 = (short)ticks;
 }
 
 /* 0x21130 — Get the weapon/aim direction for an actor.
@@ -64,15 +64,15 @@ void actor_combat_get_weapon_vector(int actor_handle /* @<eax> */,
                                     float *weapon_vector /* @<ebx> */)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
-  int handle = *(int *)(actor + 0x18);
+  int handle = ((actor_t *)actor)->field_018;
 
   assert_halt(weapon_vector != NULL);
 
-  if (*(char *)(actor + 0x161) != 0) {
+  if (((actor_t *)actor)->field_161 != 0) {
     int *vehicle_obj =
-      (int *)object_get_and_verify_type(*(int *)(actor + 0x158), 2);
+      (int *)object_get_and_verify_type(((actor_t *)actor)->field_158, 2);
     char *vehi_tag = (char *)tag_get(0x76656869, *vehicle_obj);
-    handle = *(int *)(actor + 0x158);
+    handle = ((actor_t *)actor)->field_158;
     if ((*(unsigned int *)(vehi_tag + 0x2f0) & 0x100) != 0) {
       weapon_vector[0] = *(float *)((char *)vehicle_obj + 0x24);
       weapon_vector[1] = *(float *)((char *)vehicle_obj + 0x28);
@@ -89,7 +89,7 @@ void actor_combat_get_weapon_vector(int actor_handle /* @<eax> */,
 char *actor_combat_get_firing_variant_definition(int actor_handle)
 {
   char *actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
-  char *actv = (char *)tag_get(0x61637476, *(int *)(actor + 0x5c));
+  char *actv = (char *)tag_get(0x61637476, ((actor_t *)actor)->field_05c);
   int weapon_handle = actor_attacking_target(actor_handle);
   if (weapon_handle != -1) {
     int *obj = (int *)object_get_and_verify_type(weapon_handle, 4);
@@ -112,11 +112,11 @@ void actor_combat_get_burst_parameters(int actor_handle /* @<eax> */,
   void *burst = tag + 0xcc;
   void *firing = NULL;
 
-  if (*(char *)(actor + 0x378) != 0)
+  if (((actor_t *)actor)->field_378 != 0)
     firing = tag + 0x130;
-  else if (*(char *)(actor + 0x600) != 0)
+  else if (((actor_t *)actor)->field_600 != 0)
     firing = tag + 0x100;
-  else if (*(char *)(actor + 0x601) != 0)
+  else if (((actor_t *)actor)->field_601 != 0)
     firing = tag + 0x118;
 
   assert_halt(burst_ref != NULL && firing_ref != NULL);
@@ -170,11 +170,11 @@ void actor_combat_set_fire_timer(int actor_handle /* @<esi> */)
       result *= *(float *)((char *)firing_ref + 4);
   }
 
-  if (*(char *)(actor + 0x1ca) != 0)
+  if (((actor_t *)actor)->field_1ca != 0)
     result *= *(float *)0x254970;
 
   result *= TICKS_PER_SECOND;
-  *(short *)(actor + 0x5f4) = (short)(int)result;
+  ((actor_t *)actor)->field_5f4 = (short)(int)result;
 }
 
 /* 0x21640 — Evaluate whether the actor should fire and compute delay.
@@ -192,20 +192,20 @@ bool actor_combat_evaluate_firing(int actor_handle /* @<eax> */,
                                   void *timing_data /* @<edi> */)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
-  char flag = *(char *)(actor + 0x457);
+  char flag = ((actor_t *)actor)->field_457;
 
-  if (*(short *)(actor + 0x60c) == _actor_fire_target_prop) {
-    char *prop = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
+  if (((actor_t *)actor)->control_current_fire_target_type == _actor_fire_target_prop) {
+    char *prop = (char *)datum_get(*(void **)0x5ab23c, ((actor_t *)actor)->control_current_fire_target_prop_index);
     short prop_state = *(short *)(prop + 0x24);
     if (prop_state >= 4 && prop_state <= 5) {
-      *(char *)(actor + 0x3bc) = 1;
-      *(short *)(actor + 0x5f4) = 0;
+      ((actor_t *)actor)->field_3bc = 1;
+      ((actor_t *)actor)->field_5f4 = 0;
       return 0;
     }
   }
 
   if (flag != 0) {
-    *(short *)(actor + 0x5f4) = 0;
+    ((actor_t *)actor)->field_5f4 = 0;
     return 0;
   }
 
@@ -214,7 +214,7 @@ bool actor_combat_evaluate_firing(int actor_handle /* @<eax> */,
     float max_time = *(float *)((char *)timing_data + 0x84);
     int *seed = get_global_random_seed_address();
     float delay = random_real_range(seed, min_time, max_time);
-    *(short *)(actor + 0x5f4) = (short)(int)(delay * TICKS_PER_SECOND);
+    ((actor_t *)actor)->field_5f4 = (short)(int)(delay * TICKS_PER_SECOND);
   }
 
   return 1;
@@ -248,7 +248,7 @@ char actor_combat_compute_ballistic_solution(int actor_handle, int param_2)
   float accel;
 
   actor = (int)datum_get(*(void **)0x6325a4, actor_handle);
-  variant = tag_get(0x61637476, *(int *)(actor + 0x5c));
+  variant = tag_get(0x61637476, ((actor_t *)actor)->field_05c);
   defn_index = *(short *)((int)variant + 0x180);
   element =
     tag_block_get_element((char *)game_globals_get() + 0x128, defn_index, 0x44);
@@ -265,7 +265,7 @@ char actor_combat_compute_ballistic_solution(int actor_handle, int param_2)
   }
 
   if (!projectile_aim(projectile, param_2, actor + 0x6a8, 0, 0, 0,
-                      actor + 0x6c8, (int)*(unsigned char *)(actor + 0x6a1),
+                      actor + 0x6c8, (int)((actor_t *)actor)->field_6a1,
                       (int)aim_dir, (int)&speed, (int)&param_3, 0,
                       &line_of_fire_flag)) {
     return 0;
@@ -283,8 +283,8 @@ char actor_combat_compute_ballistic_solution(int actor_handle, int param_2)
     return 0;
   }
 
-  if (ground[1] * *(float *)(actor + 0x178) +
-        ground[0] * *(float *)(actor + 0x174) <=
+  if (ground[1] * ((actor_t *)actor)->input_facing_vector[1] +
+        ground[0] * ((actor_t *)actor)->input_facing_vector[0] <=
       *(float *)0x2533dc) {
     return 0;
   }
@@ -300,15 +300,15 @@ char actor_combat_compute_ballistic_solution(int actor_handle, int param_2)
   }
 
   if (!ai_test_ballistic_line_of_fire(actor_handle, param_2, param_3, scaled,
-                                      accel, *(int *)(actor + 0x6b8),
-                                      (char)(*(int *)(actor + 0x158) != -1))) {
+                                      accel, ((actor_t *)actor)->field_6b8,
+                                      (char)(((actor_t *)actor)->field_158 != -1))) {
     return 0;
   }
 
-  *(float *)(actor + 0x6bc) = aim_dir[0];
-  *(float *)(actor + 0x6c0) = aim_dir[1];
-  *(float *)(actor + 0x6c4) = aim_dir[2];
-  *(float *)(actor + 0x6c8) = speed;
+  ((actor_t *)actor)->field_6bc = aim_dir[0];
+  ((actor_t *)actor)->field_6c0 = aim_dir[1];
+  ((actor_t *)actor)->field_6c4 = aim_dir[2];
+  ((actor_t *)actor)->field_6c8 = speed;
   return 1;
 }
 
@@ -328,13 +328,13 @@ char actor_combat_find_grenade_target(int actor_handle, float *out_pos,
                                       int *out_handle, int *out_extra)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
-  char *actv = (char *)tag_get(0x61637476 /* 'actv' */, *(int *)(actor + 0x5c));
+  char *actv = (char *)tag_get(0x61637476 /* 'actv' */, ((actor_t *)actor)->field_05c);
   char result = 0;
   char *prop;
   short type;
 
-  if (*(int *)(actor + 0x270) != -1) {
-    prop = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x270));
+  if (((actor_t *)actor)->target_target_prop_index != -1) {
+    prop = (char *)datum_get(*(void **)0x5ab23c, ((actor_t *)actor)->target_target_prop_index);
     if (*(char *)(prop + 0x60) != 0 && *(char *)(prop + 0x127) == 0) {
       type = *(short *)(prop + 0x24);
       if ((type > 1 && type < 4) || type == 4) {
@@ -345,9 +345,9 @@ char actor_combat_find_grenade_target(int actor_handle, float *out_pos,
           out_pos[2] = *(float *)(prop + 0xc4);
           result = 1;
           out_pos[2] = out_pos[2] + *(float *)0x2549d4;
-          *out_handle = *(int *)(actor + 0x270);
+          *out_handle = ((actor_t *)actor)->target_target_prop_index;
           *out_extra = *(int *)(prop + 0x110);
-          if (*(char *)(actor + 0x1ca) != 0)
+          if (((actor_t *)actor)->field_1ca != 0)
             FUN_00021430(out_pos, 1.5f);
         }
       }
@@ -379,7 +379,7 @@ char FUN_00021ae0(int actor_handle, float range, float param3,
   eps = *(float *)0x2533c0;
   actor = (int)datum_get(*(void **)0x6325a4, actor_handle);
   ez = encounter_pos[2];
-  tag_get(0x61637476, *(int *)(actor + 0x5c));
+  tag_get(0x61637476, ((actor_t *)actor)->field_05c);
 
   candidate_n = 0;
   result = 1;
@@ -410,7 +410,7 @@ char FUN_00021ae0(int actor_handle, float range, float param3,
                 count += 1;
               } else {
                 actor = (int)datum_get(*(void **)0x6325a4, handle);
-                count += *(short *)(actor + 0x1e);
+                count += ((actor_t *)actor)->field_01e;
               }
             }
           }
@@ -429,8 +429,8 @@ char FUN_00021ae0(int actor_handle, float range, float param3,
   }
 
   actor = (int)datum_get(*(void **)0x6325a4, actor_handle);
-  if (range > eps && *(int *)(actor + 0x270) != -1) {
-    related = (int)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x270));
+  if (range > eps && ((actor_t *)actor)->target_target_prop_index != -1) {
+    related = (int)datum_get(*(void **)0x5ab23c, ((actor_t *)actor)->target_target_prop_index);
     if (*(int *)(related + 0x1c) != -1) {
       related = (int)datum_get(*(void **)0x6325a4, *(int *)(related + 0x1c));
       if (*(int *)(related + 0x34) != -1) {
@@ -497,14 +497,14 @@ int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
   if (mode != 3)
     return 1;
 
-  if (*(short *)(actor + 0x60c) != _actor_fire_target_prop) {
+  if (((actor_t *)actor)->control_current_fire_target_type != _actor_fire_target_prop) {
     display_assert(
       "actor->control.current_fire_target_type == _actor_fire_target_prop",
       "c:\\halo\\SOURCE\\ai\\actor_combat.c", 0x3ca, 1);
     system_exit(-1);
   }
 
-  prop = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
+  prop = (char *)datum_get(*(void **)0x5ab23c, ((actor_t *)actor)->control_current_fire_target_prop_index);
 
   if (*(int *)(prop + 0x110) != -1)
     return 1;
@@ -569,17 +569,17 @@ void FUN_00022390(int actor_handle)
   actv = actor_combat_get_firing_variant_definition(actor_handle);
   suppress_flag = 0;
 
-  if (*(char *)(actor + 0x604) != 0) {
+  if (((actor_t *)actor)->field_604 != 0) {
     if (actor_combat_check_fire_target(actor_handle,
                                        *(int16_t *)(actv + 0x156)) == 0) {
-      *(char *)(actor + 0x604) = 0;
+      ((actor_t *)actor)->field_604 = 0;
     }
   }
-  *(char *)(actor + 0x603) = *(char *)(actor + 0x604);
-  *(char *)(actor + 0x604) = 0;
+  ((actor_t *)actor)->field_603 = ((actor_t *)actor)->field_604;
+  ((actor_t *)actor)->field_604 = 0;
 
-  if (*(int *)(actor + 0x158) != -1) {
-    vehicle_obj = (int *)object_get_and_verify_type(*(int *)(actor + 0x158), 2);
+  if (((actor_t *)actor)->field_158 != -1) {
+    vehicle_obj = (int *)object_get_and_verify_type(((actor_t *)actor)->field_158, 2);
     fvar = *(float *)((char *)vehicle_obj + 0x18);
     dy = *(float *)((char *)vehicle_obj + 0x1c);
     dz = *(float *)((char *)vehicle_obj + 0x20);
@@ -589,18 +589,18 @@ void FUN_00022390(int actor_handle)
       is_moving = 0;
     }
   } else {
-    if (*(char *)(actor + 0x15c) != 0 || *(char *)(actor + 0x504) != 0) {
+    if (((actor_t *)actor)->field_15c != 0 || ((actor_t *)actor)->field_504 != 0) {
       is_moving = 1;
     } else {
       is_moving = 0;
     }
   }
-  *(char *)(actor + 0x601) = is_moving;
+  ((actor_t *)actor)->field_601 = is_moving;
 
   combat_prop = FUN_000b55b0(0xd, (int)*(unsigned short *)(actor + 0x3e));
   scaled_val = combat_prop * *(float *)(actv + 0x88) * TICKS_PER_SECOND;
-  *(char *)(actor + 0x600) =
-    (float)*(int *)(actor + 0x61c) < scaled_val ? 1 : 0;
+  ((actor_t *)actor)->field_600 =
+    (float)((actor_t *)actor)->field_61c < scaled_val ? 1 : 0;
 
   actor_combat_get_burst_parameters(actor_handle, actv, &burst_ref,
                                     &firing_ref);
@@ -618,11 +618,11 @@ void FUN_00022390(int actor_handle)
       delay *= *(float *)firing_ref;
     }
   }
-  if (*(char *)(actor + 0x1ca) != 0) {
+  if (((actor_t *)actor)->field_1ca != 0) {
     delay *= *(float *)0x253f3c;
   }
   delay *= TICKS_PER_SECOND;
-  *(short *)(actor + 0x5f4) = (short)(int)delay;
+  ((actor_t *)actor)->field_5f4 = (short)(int)delay;
 
   rate_of_fire = FUN_000b55b0(0xb, (int)*(unsigned short *)(actor + 0x3e)) *
                  *(float *)(actv + 0x7c);
@@ -630,10 +630,10 @@ void FUN_00022390(int actor_handle)
       *(float *)((char *)firing_ref + 0xc) != *(float *)0x2533c0) {
     rate_of_fire *= *(float *)((char *)firing_ref + 0xc);
   }
-  if (*(char *)(actor + 0x1ca) != 0) {
+  if (((actor_t *)actor)->field_1ca != 0) {
     rate_of_fire = rate_of_fire + rate_of_fire + *(float *)0x253d4c;
   }
-  *(float *)(actor + 0x698) = rate_of_fire;
+  ((actor_t *)actor)->field_698 = rate_of_fire;
   *(int *)(actor + 0x69c) = 0;
 
   if (*(float *)(actv + 0xc4) > *(float *)0x2533c0) {
@@ -641,7 +641,7 @@ void FUN_00022390(int actor_handle)
     *(float *)(actor + 0x69c) = rof_modifier;
     if (*(char *)0x5aca5c != 0) {
       console_printf(0, "%s: manual damage modifier %.2f",
-                     tag_name_strip_path(tag_get_name(*(int *)(actor + 0x5c))),
+                     tag_name_strip_path(tag_get_name(((actor_t *)actor)->field_05c)),
                      (double)rof_modifier);
     }
   } else if (*(float *)(actv + 0xc8) > *(float *)0x2533c0) {
@@ -660,7 +660,7 @@ void FUN_00022390(int actor_handle)
         if (*(char *)0x5aca5c != 0) {
           console_printf(
             0, "%s: proj %.1f rof %.1f dmg/s %.1f -> to get %.1f mod= %.2f",
-            tag_name_strip_path(tag_get_name(*(int *)(actor + 0x5c))),
+            tag_name_strip_path(tag_get_name(((actor_t *)actor)->field_05c)),
             (double)projectile_damage, (double)max_range,
             (double)damage_per_second, (double)*(float *)(actv + 0xc8),
             (double)rof_modifier);
@@ -669,16 +669,16 @@ void FUN_00022390(int actor_handle)
     }
   }
 
-  if (*(char *)(actor + 0x603) != 0 || *(char *)(actor + 0x602) != 0) {
+  if (((actor_t *)actor)->field_603 != 0 || ((actor_t *)actor)->field_602 != 0) {
     if (*(float *)(actv + 0xf8) > *(float *)0x2533c0) {
       *(float *)(actor + 0x69c) *= *(float *)(actv + 0xf8);
     }
-    *(float *)(actor + 0x698) += *(float *)(actv + 0xfc);
+    ((actor_t *)actor)->field_698 += *(float *)(actv + 0xfc);
   }
 
   if (*(float *)(actv + 0x14c) > *(float *)0x2533c0 &&
-      *(short *)(actor + 0x60c) == _actor_fire_target_prop) {
-    prop = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
+      ((actor_t *)actor)->control_current_fire_target_type == _actor_fire_target_prop) {
+    prop = (char *)datum_get(*(void **)0x5ab23c, ((actor_t *)actor)->control_current_fire_target_prop_index);
     prop_state = *(short *)(prop + 0x24);
     if (prop_state < 2 || prop_state > 3 || *(short *)(prop + 0x32) == 0) {
       suppress_flag = 1;
@@ -686,16 +686,16 @@ void FUN_00022390(int actor_handle)
   }
 
   target_pos[0] = *(float *)(actor + 0x62c);
-  target_pos[1] = *(float *)(actor + 0x630);
-  target_pos[2] = *(float *)(actor + 0x634);
+  target_pos[1] = ((actor_t *)actor)->field_630;
+  target_pos[2] = ((actor_t *)actor)->field_634;
 
   if (suppress_flag != 0) {
     FUN_00021430(target_pos, *(float *)(actv + 0x14c));
   }
 
-  dx = target_pos[0] - *(float *)(actor + 0x120);
-  dy = target_pos[1] - *(float *)(actor + 0x124);
-  dz = target_pos[2] - *(float *)(actor + 0x128);
+  dx = target_pos[0] - ((actor_t *)actor)->field_120;
+  dy = target_pos[1] - ((actor_t *)actor)->field_124;
+  dz = target_pos[2] - ((actor_t *)actor)->field_128;
   perp[0] = dy - dz * 0.0f;
   perp[1] = dz * 0.0f - dx;
   perp[2] = dx * 0.0f - dy * 0.0f;
@@ -730,12 +730,12 @@ void FUN_00022390(int actor_handle)
       FUN_000b55b0(0xc, (int)*(unsigned short *)(actor + 0x3e)) *
       random_real_range(seed, sec_min, sec_max);
   }
-  if (*(char *)(actor + 0x1ca) != 0) {
+  if (((actor_t *)actor)->field_1ca != 0) {
     error_primary = error_primary + error_primary;
     error_secondary = error_secondary + error_secondary;
   }
 
-  fire_timer = *(short *)(actor + 0x5f4);
+  fire_timer = ((actor_t *)actor)->field_5f4;
   if (fire_timer > 0 &&
       *(float *)((char *)burst_ref + 0x24) > *(float *)0x2533c0) {
     float fire_timer_f = (float)(int)fire_timer;
@@ -744,16 +744,16 @@ void FUN_00022390(int actor_handle)
     if (cone_angle > *(float *)0x254a58) {
       cone_angle = *(float *)0x254a58;
     }
-    cone_radius = x87_fptan(cone_angle) * *(float *)(actor + 0x638);
+    cone_radius = x87_fptan(cone_angle) * ((actor_t *)actor)->field_638;
     if (error_primary > cone_radius) {
       extended_radius = cone_radius * *(float *)0x2533ec;
       if (error_primary < extended_radius) {
-        *(short *)(actor + 0x5f4) =
+        ((actor_t *)actor)->field_5f4 =
           (short)(int)(error_primary / cone_radius * fire_timer_f);
         error_secondary = (extended_radius / error_primary) * error_secondary;
         error_primary = extended_radius;
       } else {
-        *(short *)(actor + 0x5f4) =
+        ((actor_t *)actor)->field_5f4 =
           (short)(int)(fire_timer_f * *(float *)0x2533ec);
         error_secondary = (extended_radius / error_primary) * error_secondary;
         error_primary = extended_radius;
@@ -784,7 +784,7 @@ void FUN_00022390(int actor_handle)
     -((perp[1] * cos_comb + sin_comb * 0.0f) * error_secondary);
   secondary_err[2] = -((perp[2] * cos_comb + sin_comb) * error_secondary);
 
-  fire_timer = *(short *)(actor + 0x5f4);
+  fire_timer = ((actor_t *)actor)->field_5f4;
   if (fire_timer > 0) {
     fvar = *(float *)0x2533c8 / (float)(int)fire_timer;
     secondary_err[0] *= fvar;
@@ -792,40 +792,40 @@ void FUN_00022390(int actor_handle)
     secondary_err[2] *= fvar;
   }
 
-  *(float *)(actor + 0x64c) = target_pos[0];
-  *(float *)(actor + 0x650) = target_pos[1];
-  *(float *)(actor + 0x654) = target_pos[2];
-  *(float *)(actor + 0x664) = primary_err[0];
+  ((actor_t *)actor)->field_64c = target_pos[0];
+  ((actor_t *)actor)->field_650 = target_pos[1];
+  ((actor_t *)actor)->field_654 = target_pos[2];
+  ((actor_t *)actor)->field_664 = primary_err[0];
   *(float *)(actor + 0x668) = primary_err[1];
   *(float *)(actor + 0x66c) = primary_err[2];
-  *(float *)(actor + 0x670) = secondary_err[0];
-  *(float *)(actor + 0x674) = secondary_err[1];
-  *(float *)(actor + 0x678) = secondary_err[2];
-  *(float *)(actor + 0x67c) =
-    *(float *)(actor + 0x64c) + *(float *)(actor + 0x664);
-  *(float *)(actor + 0x680) =
-    *(float *)(actor + 0x650) + *(float *)(actor + 0x668);
-  *(float *)(actor + 0x684) =
-    *(float *)(actor + 0x654) + *(float *)(actor + 0x66c);
+  ((actor_t *)actor)->field_670 = secondary_err[0];
+  ((actor_t *)actor)->field_674 = secondary_err[1];
+  ((actor_t *)actor)->field_678 = secondary_err[2];
+  ((actor_t *)actor)->field_67c =
+    ((actor_t *)actor)->field_64c + ((actor_t *)actor)->field_664;
+  ((actor_t *)actor)->field_680 =
+    ((actor_t *)actor)->field_650 + *(float *)(actor + 0x668);
+  ((actor_t *)actor)->field_684 =
+    ((actor_t *)actor)->field_654 + *(float *)(actor + 0x66c);
 
-  if (*(short *)(actor + 0x6e) > 6) {
+  if (((actor_t *)actor)->field_06e > 6) {
     prop_flag = 0;
     prop_handle = -1;
-    if (*(short *)(actor + 0x60c) == _actor_fire_target_prop) {
-      prop = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x610));
+    if (((actor_t *)actor)->control_current_fire_target_type == _actor_fire_target_prop) {
+      prop = (char *)datum_get(*(void **)0x5ab23c, ((actor_t *)actor)->control_current_fire_target_prop_index);
       prop_flag = *(char *)(prop + 0x61);
       prop_handle = *(int *)(prop + 0x18);
     }
-    if (*(char *)(actor + 0x378) != 0) {
+    if (((actor_t *)actor)->field_378 != 0) {
       sound_type = 0x1c;
     } else if (prop_flag != 0) {
       sound_type = 0x1e;
-    } else if (*(char *)(actor + 0x1f8) >= 5) {
+    } else if (((actor_t *)actor)->field_1f8 >= 5) {
       sound_type = 0x1d;
     } else {
-      sound_type = (*(char *)(actor + 0x161) != 0) ? 0x1b : 0x1a;
+      sound_type = (((actor_t *)actor)->field_161 != 0) ? 0x1b : 0x1a;
     }
-    FUN_00046f10(sound_type, *(int *)(actor + 0x18), prop_handle, 3, -1, -1, 0);
+    FUN_00046f10(sound_type, ((actor_t *)actor)->field_018, prop_handle, 3, -1, -1, 0);
   }
 }
 
@@ -881,8 +881,8 @@ int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
   float sin_a;
 
   result = -1;
-  if (*(int *)(actor + 0x6b4) != -1) {
-    prop = (char *)datum_get(*(void **)0x5ab23c, *(int *)(actor + 0x6b4));
+  if (((actor_t *)actor)->field_6b4 != -1) {
+    prop = (char *)datum_get(*(void **)0x5ab23c, ((actor_t *)actor)->field_6b4);
     prop_type = *(short *)(prop + 0x24);
     if (prop_type > 1 && prop_type < 4)
       result = *(int *)(prop + 0x18);
@@ -896,21 +896,21 @@ int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
 
   actor_combat_compute_ballistic_solution(actor_handle, (int)aim_params);
 
-  aim_x = *(float *)(actor + 0x6bc);
-  aim_y = *(float *)(actor + 0x6c0);
-  aim_z = *(float *)(actor + 0x6c4);
-  if (*(int *)(actor + 0x158) == -1) {
+  aim_x = ((actor_t *)actor)->field_6bc;
+  aim_y = ((actor_t *)actor)->field_6c0;
+  aim_z = ((actor_t *)actor)->field_6c4;
+  if (((actor_t *)actor)->field_158 == -1) {
     planar[0] = aim_x;
     planar[1] = aim_y;
     if (magnitude3d(planar) > *(float *)0x2533c0 &&
-        planar[0] * *(float *)(actor + 0x174) +
-            planar[1] * *(float *)(actor + 0x178) <
+        planar[0] * ((actor_t *)actor)->input_facing_vector[0] +
+            planar[1] * ((actor_t *)actor)->input_facing_vector[1] <
           *(float *)0x2533dc) {
-      nrm[0] = *(float *)(actor + 0x174);
-      nrm[1] = *(float *)(actor + 0x178);
-      nrm[2] = *(float *)(actor + 0x17c);
-      t = planar[1] * *(float *)(actor + 0x174) -
-          planar[0] * *(float *)(actor + 0x178);
+      nrm[0] = ((actor_t *)actor)->input_facing_vector[0];
+      nrm[1] = ((actor_t *)actor)->input_facing_vector[1];
+      nrm[2] = ((actor_t *)actor)->input_facing_vector[2];
+      t = planar[1] * ((actor_t *)actor)->input_facing_vector[0] -
+          planar[0] * ((actor_t *)actor)->input_facing_vector[1];
       sign = (t > *(float *)0x2533c0) ? 1 : -1;
       sin_a = (float)sign * *(float *)0x253398;
       /* orig 0x22cc2: rotate input z is the facing z (actor+0x17c), set at
@@ -943,7 +943,7 @@ int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
     }
   }
 
-  speed = *(float *)(actor + 0x6c8);
+  speed = ((actor_t *)actor)->field_6c8;
   out_aim_vector[0] = aim_x * speed;
   out_aim_vector[1] = aim_y * speed;
   out_aim_vector[2] = speed * aim_z;

@@ -36,9 +36,27 @@ const CACHE_CONTEXT = !!(args && args.cacheContext)
 // - Reasoning stages (lift, review) use Opus-high.
 // - Cheap deterministic tool-runs (revert, permute-run, equiv-run, redelink,
 //   park, report) use Haiku-low.
-// - The escalation / improve pass uses a DIFFERENT model for perspective
-//   diversity: Fable-high, falling back to Opus-xhigh when Fable is unavailable.
-const IMPROVE_MODEL = (args && args.improveModel) || 'fable'
+// - The escalation / improve tune uses Opus (NOT Fable): a low-token model
+//   whose reasoning EFFORT we climb only for targets that resist the cheap
+//   pass. Default ladder is medium -> xhigh -> max; most targets stop at the
+//   first rung. Fable was the old default (chosen for model-diversity) but is
+//   token-heavy; pass --improveModel fable to restore it.
+const IMPROVE_MODEL = (args && args.improveModel) || 'opus'
+// Effort ladder for the in-place score tune. Each rung re-runs the optimizer at
+// a higher effort, but only for a target still below the pass bar, not capped,
+// and while budget remains. Override as a comma list, e.g. --improveEfforts
+// "medium,max". For a non-opus model, default to a single 'high' rung.
+const IMPROVE_EFFORTS = (args && args.improveEfforts)
+  ? String(args.improveEfforts).split(',').map(s => s.trim()).filter(Boolean)
+  : (IMPROVE_MODEL === 'opus' ? ['medium', 'xhigh', 'max'] : ['high'])
+// Do NOT start an escalation rung below this remaining-budget floor (an
+// optimizer run can be sizable). Higher than the batch-loop floor (80k) so a
+// rung never strands the loop. Override with --escalationBudgetFloor.
+const ESCALATION_BUDGET_FLOOR = (args && args.escalationBudgetFloor) || 120000
+// Max targets that may enter the escalation ladder per goal-lift run, bounding
+// token blast radius regardless of how many land in [65,85). 0 = unlimited.
+// Override with --maxEscalations.
+const MAX_ESCALATIONS = (args && args.maxEscalations != null) ? args.maxEscalations : 3
 const M = {
   mechanical: { model: 'haiku', effort: 'low'  },  // tool-run + parse
   // select + research. Deliberately NOT downgraded to haiku, though research is
@@ -54,7 +72,7 @@ const M = {
   // on `mechanical`. Measured 31 agents / ~4% of session spend on opus for it.
   commit:     { model: 'haiku', effort: 'low'  },  // runs the clean-build gate
   reason:     { model: 'opus',  effort: 'high' },  // lift, review
-  improve:    { model: IMPROVE_MODEL, effort: IMPROVE_MODEL === 'opus' ? 'xhigh' : 'high' },
+  improve:    { model: IMPROVE_MODEL, effort: IMPROVE_EFFORTS[0] },  // improve-pass base rung
 }
 
 // --objects: hard allowlist, enforced in code (not just prompted) — see the
@@ -1471,6 +1489,7 @@ let consecutiveInfra = pendingInfra
 let stopReason = 'queue_exhausted'
 
 let liftIdx = 0
+let escalationsThisRun = 0   // targets that entered the escalation ladder (bounded by MAX_ESCALATIONS)
 while (true) {
   const committed = results.filter(r => r.status === 'committed')
   if (committed.length >= GOAL) { stopReason = 'goal_reached'; break }
@@ -1580,39 +1599,68 @@ while (true) {
   const treatAsCapped = a1.capped === true
   const capProvenance = a1.cap_confidence === 'high' ? 'deterministic(classify_cap.py)' : 'agent-judgment'
   if (band === 'fail_check_cap' && !treatAsCapped) {
-    log(`  ${brief.name} ${score}% — not a structural cap (${a1.cap_confidence || 'n/a'}), escalating to vc71-match-optimizer (${IMPROVE_MODEL})`)
-    // Preserve the attempt-1 work before escalating: park keeps the
-    // best-scoring attempt's patch, so if the optimizer makes things worse
-    // (it shouldn't — it only reverts-on-regression internally, but the
-    // park ledger is the outer safety net) the ledger still has attempt 1.
-    // Unlike the old cold-rewrite escalation, this does NOT hand the
-    // function to a fresh re-lift: attempt 1 already builds and is already
-    // believed faithful, so the optimizer tunes THAT source in place
-    // (one score-recovery lever at a time) instead of re-deriving it.
+    // Escalation caps (token discipline): the tune below can climb an effort
+    // ladder (several optimizer passes), so bound both how many targets enter
+    // it per run and whether we can afford to start one. When gated, park
+    // attempt-1 — it is landable and the opt-in improve pass can drain it
+    // later — instead of spending here. A budget/cap defer is NOT a lift
+    // failure, so it does not increment consecutiveFails.
+    const budgetOk = !budget.total || budget.remaining() >= ESCALATION_BUDGET_FLOOR
+    const capOk    = MAX_ESCALATIONS <= 0 || escalationsThisRun < MAX_ESCALATIONS
+    if (!budgetOk || !capOk) {
+      const why = !budgetOk ? 'budget_floor' : 'escalation_cap'
+      log(`  ${brief.name} ${score}% — escalation skipped (${why}); parked for the improve pass`)
+      await parkBuilt(brief, srcFile, score, M.reason, `escalation_skipped_${why}`, a1.cap_reason || '', 'Lift', a1.reason || '')
+      results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, reason: `escalation_skipped_${why}` })
+      continue
+    }
+    escalationsThisRun++
+
+    // Preserve the attempt-1 work before tuning: park keeps the best-scoring
+    // patch as the outer safety net (the optimizer also reverts-on-regression
+    // internally). Unlike the old cold-rewrite escalation this does NOT re-lift
+    // — attempt 1 already builds and is believed faithful, so the optimizer
+    // tunes THAT source in place, one score-recovery lever at a time.
     await parkBuilt(brief, srcFile, score, M.reason, 'pre_escalation', a1.cap_reason || '', 'Lift', a1.reason || '')
-    const mo = await agent(matchOptimizerPrompt(brief.name, brief.addr, brief.obj, srcFile, score, brief.neighbors), {
-      label: `match-optimize:${brief.name}`, phase: 'Lift', agentType: 'vc71-match-optimizer', ...M.improve, schema: MATCH_OPTIMIZER_SCHEMA,
-    })
-    if (mo && typeof mo.vc71_score === 'number') {
-      // srcFile is unchanged — the optimizer edits the existing file in place,
-      // it does not produce a new one. Never let a lower/garbled number regress
-      // the score the ledger already has for attempt 1.
-      score  = Math.max(score, mo.vc71_score)
-      band   = classifyBand(score)
-      path   = 'escalated+optimize'
-      lastME = M.improve
-      lift    = { ...lift, reason: mo.reason || lift.reason }
-      if (mo.capped === true) {
-        // Match-optimizer hit a documented ceiling itself (its own equivalent
-        // of classify_cap) — treat it exactly like the attempt-1 cap path below.
-        log(`  ${brief.name} ${score}% capped [agent-judgment:optimizer]: ${mo.cap_reason || 'unclassified'} — parked, no further escalation`)
-        await parkBuilt(brief, srcFile, score, lastME, 'structural_cap', mo.cap_reason || 'unclassified', 'Lift', mo.reason || '')
-        consecutiveFails++
-        results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, reason: `structural_cap[agent-judgment:optimizer]: ${mo.cap_reason || 'unclassified'}` })
-        continue
+
+    // Effort ladder (Opus, NOT Fable): start at the cheap rung and step up to
+    // xhigh/max ONLY for a target still below the 85% pass bar, not documented-
+    // capped, and while budget remains. Most targets stop at the first rung.
+    // The optimizer edits srcFile in place, so each rung builds on the last.
+    let capReason  = ''
+    let rungCapped = false
+    for (let ri = 0; ri < IMPROVE_EFFORTS.length; ri++) {
+      const eff = IMPROVE_EFFORTS[ri]
+      const ME  = { model: IMPROVE_MODEL, effort: eff }
+      log(`  ${brief.name} ${score}% — vc71-match-optimizer ${IMPROVE_MODEL}-${eff} [rung ${ri + 1}/${IMPROVE_EFFORTS.length}] (not a structural cap: ${a1.cap_confidence || 'n/a'})`)
+      const mo = await agent(matchOptimizerPrompt(brief.name, brief.addr, brief.obj, srcFile, score, brief.neighbors), {
+        label: `match-optimize:${brief.name}:${eff}`, phase: 'Lift', agentType: 'vc71-match-optimizer', ...ME, schema: MATCH_OPTIMIZER_SCHEMA,
+      })
+      if (mo && typeof mo.vc71_score === 'number') {
+        // Never let a lower/garbled number regress the ledger's best.
+        score  = Math.max(score, mo.vc71_score)
+        band   = classifyBand(score)
+        path   = 'escalated+optimize'
+        lastME = ME
+        lift   = { ...lift, reason: mo.reason || lift.reason }
+        if (mo.capped === true) { rungCapped = true; capReason = mo.cap_reason || 'unclassified'; break }
+      } else {
+        log(`  ${brief.name} ${score}% — match-optimizer (${eff}) returned no usable score`)
       }
-    } else {
-      log(`  ${brief.name} ${score}% — match-optimizer returned no usable score, keeping attempt-1 result`)
+      if (band !== 'fail_check_cap') break                               // crossed the pass bar — done climbing
+      if (budget.total && budget.remaining() < ESCALATION_BUDGET_FLOOR) { // out of budget mid-ladder
+        log(`  ${brief.name} ${score}% — budget floor reached, stopping ladder at ${eff}`)
+        break
+      }
+    }
+    if (rungCapped) {
+      // Optimizer hit a documented ceiling (its own classify_cap equivalent) —
+      // treat exactly like the attempt-1 structural-cap path.
+      log(`  ${brief.name} ${score}% capped [agent-judgment:optimizer]: ${capReason} — parked, no further escalation`)
+      await parkBuilt(brief, srcFile, score, lastME, 'structural_cap', capReason, 'Lift', lift.reason || '')
+      consecutiveFails++
+      results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, reason: `structural_cap[agent-judgment:optimizer]: ${capReason}` })
+      continue
     }
   } else if (band === 'fail_check_cap' && treatAsCapped) {
     // Structural cap — a future model may still beat it, so PARK (with the cap

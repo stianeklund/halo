@@ -51,10 +51,10 @@ rtk python3 $R report  $M
 |---|---|---|---|---|
 | — | (pre) tooling check | `cleanup-report` | — | gaps → downgrade plan |
 | 1 | `comments` | `re-comment-capture` | none | (a) byte-identical |
-| 2 | `local-renames` | `local-var-cleanup` | none | (a) byte-identical |
+| 2 | `local-renames` | `name-cleanup` | none | (a) byte-identical |
 | 3 | `symbol-names` | `naming-confidence` | none | (a) byte-identical |
-| 4 | `const-enum` | `const-enum-recovery` | near-zero | (b) + no new `[IMM-WARN]` |
-| 5 | `struct-define` | `struct-recovery` → `struct-assert` | none (defs only) | (a) + build passes (cs/co) |
+| 4 | `const-enum` | `name-cleanup` | near-zero | (b) + no new `[IMM-WARN]` |
+| 5 | `struct-define` | `struct-recovery` → `struct-recovery` (Phase 2) | none (defs only) | (a) + build passes (cs/co) |
 | 6 | `offset-to-field` | `offset-to-struct` | low | (b) + hazard scan |
 | 7 | `expr-simplify` | `expr-simplify` | medium | (c) — **opt-in** |
 | 8 | `control-flow` | `control-flow-cleanup` | high | (c) — **opt-in** |
@@ -68,6 +68,116 @@ need the asserts from 5, and renames before rewrites keep diffs reviewable.
 has pending items; the warning is advisory (a category may not apply) but an
 unexplained warning means you skipped a step. Without `--allow-risky` on the
 manifest, `set-status ... applied` on a risky item is refused and `check` fails.
+
+## Mechanical path for rungs 5 and 6 (`structize.py`)
+
+`struct-define` and `offset-to-field` are **transcription, not judgement** once
+the struct exists. Do them with the tool, not by hand — hand-editing hundreds of
+offsets is where wrong-offset bugs come from, and the tool refuses where a human
+would guess.
+
+**Use `campaign` for multi-file runs (preferred) or `run` for a single file:**
+
+```bash
+# Multi-file: discover + run across all files touching a struct, in one call.
+# Returns a JSON report with next_actions — the LLM's work queue.
+rtk python3 tools/recovery/structize.py campaign --binding actor_t [--dry-run]
+
+# Check what conflicts remain without compiling (cheap to poll):
+rtk python3 tools/recovery/structize.py worklist --binding actor_t
+
+# Discover which files have raw offsets for a struct:
+rtk python3 tools/recovery/structize.py discover --binding actor_t
+
+# Single file — --binding looks up --base/--struct from recovery/bindings.json:
+rtk python3 tools/recovery/structize.py run --binding actor_t \
+    --source src/halo/ai/actor_looking.c [--manifest recovery/<file>.json]
+```
+
+Bindings are registered in `recovery/bindings.json` — each maps a struct name
+to the base variable name(s) used in source and a glob constraining the search.
+
+**The LLM automation loop:**
+1. `campaign --binding X` → get JSON with `next_actions`
+2. Resolve the top conflict (Ghidra MCP query → edit `types.h`)
+3. `campaign --binding X` → conflict count decreases
+4. Repeat until `conflicts_total == 0`
+
+`run` does census → split → **re-census** → converge. That re-census is the
+reason to prefer it: splitting is what makes `pad_` sites resolvable, so a
+census taken before the split misses every site the split just unblocked — and
+the run still reports success. Exit codes: `0` work done, `1` failed (file
+restored), `2` converged but rewrote nothing.
+
+The individual steps remain available for inspection or partial work:
+
+```bash
+S=tools/recovery/structize.py
+rtk python3 $S layout actor_t                                     # authoritative offsets (from clang)
+rtk python3 $S census --source <f.c> --base actor --struct actor_t -o recovery/census/<f>.json
+rtk python3 $S split    --census recovery/census/<f>.json --apply  # rung 5: pad_ -> field_XX
+rtk python3 $S census   ... -o recovery/census/<f>.json            # re-census (run does this for you)
+rtk python3 $S converge --census recovery/census/<f>.json          # rung 6: rewrite what stays neutral
+```
+
+`converge` is the one command worth remembering: it rewrites every eligible
+site, compiles, diffs at **function** granularity, re-applies while excluding
+any function whose code moved, and proves the result byte-identical. Divergent
+functions come back as `parked_functions` with a reason. It restores the file
+untouched if it cannot converge.
+
+What the tool will **not** do, by construction — each of these is a refusal in
+the census, never a guess:
+
+| Refusal | Why |
+|---|---|
+| cast kind ≠ field kind | `*(float*)` over an `int32_t` field is a pun; rewriting changes codegen |
+| width or signedness mismatch | MOVSX vs MOVZX are different instructions |
+| offset lands in a `pad_` run | rung 5 must split it first (that is what `split` is for) |
+| offset ≥ `sizeof(struct)` | the **binding is wrong** — stop, do not rewrite |
+| `volatile` access | the qualifier must survive |
+| whole-struct cast (`*(vector3_t*)`) | a multi-field copy, not a field access |
+| address taken, not dereferenced | would require `&` of a packed field |
+| conflicting widths at one offset | a genuine RE question; it goes on the worklist |
+
+**Known limit, measured:** the base declaration is deliberately never retyped.
+A partial retype rescales every un-rewritten `base + 0xNN` by `sizeof(struct)`.
+Retyping is only safe once coverage reaches ~100%, and is a separate step.
+
+**A park is a finding, not a result** — but you no longer have to guess at it.
+Several causes produce the identical "this function's codegen moved" signal, and
+guessing between them has already been wrong once. Run:
+
+```bash
+rtk python3 tools/recovery/structize.py triage --census recovery/census/<f>.json
+```
+
+It recompiles each parked function's rewrites with `-fno-strict-aliasing` and,
+for those that still diverge, bisects down to the individual offsets responsible.
+
+| Verdict | Meaning | Weight |
+|---|---|---|
+| `tbaa` | Byte-identical under `-fno-strict-aliasing`. The raw `*(char *)` cast aliases everything and pins ordering; the field access carries a precise struct-path tag and frees the scheduler. | **Proof.** Same accesses, same addresses — a wrong binding cannot reach this verdict. |
+| `address-form-or-alignment` | Survives the flag. Either LLVM keeping a raw `base + 0xNN` in a register for an indexed load vs. canonicalising the GEP to a `lea`, or a `pack(1)` alignment-1 member shifting `-O3` scheduling. | **Lead only.** A genuinely wrong binding lands here too. Read the named offsets against disassembly. |
+| `only-in-combination` | Byte-identical when rewritten alone. | Not itself the problem; re-check after the other parks resolve. |
+
+Measured on `actor_moving.c`: 3 parked functions → 2 pure TBAA, 1 reduced to two
+adjacent byte loads (`0x426`/`0x427`) whose address form changed. None was a
+wrong binding. On `actor_looking.c` the 2 parks were the `pack(1)` alignment
+case, where `-fno-strict-aliasing` makes no difference — hence the table, not a
+single story. Nothing wrong ever ships regardless, because the gate withholds
+in every case.
+
+**Verifying the tool itself:** `rtk python3 -m tools.recovery.test_structize_e2e`
+compiles real C with the project's flags and asserts the gate *fails* when fed a
+wrong offset, a nonexistent field, and a build error. Run it after touching
+`structize.py`; `test_structize.py` alone cannot catch a corruption bug because
+it never invokes a compiler.
+
+The conflict list from `split` is the **ranked RE worklist** — offsets ordered
+by how many call sites they unblock. Resolve them with `struct-recovery`
+(disassembly widths), then re-run `split`; each answer converts its sites from
+refused to mechanical.
 
 ## Gates
 

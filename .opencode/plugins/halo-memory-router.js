@@ -11,9 +11,9 @@ const MAX_SYMBOLIZER_CHARS = 3600
 const SKILL_RULES = [
 
   {
-    re: /\b(cleanup|readability rewrite|cleanup baseline|cleanup report|match floor|rename locals|local variable cleanup|magic number|enum recovery|named constant|raw offset|pointer arithmetic|struct field access|simplify expression|control flow cleanup|comment capture|knowledge capture)\b/i,
-    skills: ["cleanup", "source-recovery", "recover-goal", "local-var-cleanup", "naming-confidence", "const-enum-recovery", "struct-recovery", "struct-assert", "offset-to-struct", "expr-simplify", "control-flow-cleanup", "re-comment-capture", "cleanup-report"],
-    why: "cleanup ladder, evidence-preserving renames, constants, structs, offset rewrites, expression/control-flow gates",
+    re: /\b(cleanup|readability rewrite|cleanup baseline|cleanup report|match floor|rename locals|local variable cleanup|magic number|enum recovery|named constant|raw offset|pointer arithmetic|struct field access|header recovery|simplify expression|control flow cleanup|comment capture|knowledge capture)\b/i,
+    skills: ["source-recovery", "recover-goal", "name-cleanup", "naming-confidence", "struct-recovery", "header-recovery", "offset-to-struct", "expr-simplify", "control-flow-cleanup", "re-comment-capture", "cleanup-report", "cleanup-regression-triage"],
+    why: "source-recovery ladder, evidence-preserving renames, constants, structs, header placement, offset rewrites, expression/control-flow gates, regression triage",
   },
   {
     re: /\b(recover[- ]goal|goal[- ]mode source recovery|recovery frontier|goal ledger)\b/i,
@@ -22,7 +22,7 @@ const SKILL_RULES = [
   },
   {
     re: /\b(capture input|record gameplay|record fixture|controller fixture|replay input|replay fixture|capture_scenario|input-recordings)\b/i,
-    skills: ["capture-input", "replay-input", "input-replay-testing"],
+    skills: ["input-fixture", "input-replay-testing"],
     why: "deterministic controller-input capture and replay workflow",
   },
   {
@@ -42,7 +42,7 @@ const SKILL_RULES = [
   },
   {
     re: /\b(lift|lifting|ported|porting|re[- ]?lift|FUN_[0-9a-f]{8}|0x[0-9a-f]{5,}|ghidra|decompil|cachebeta|kb\.json)\b|@<[a-z]+>/i,
-    skills: ["halo-xbox-re", "halo-re-lift"],
+    skills: ["halo-lift"],
     why: "Halo RE/lift workflow, binary evidence rules, ABI and kb.json discipline",
   },
   {
@@ -67,7 +67,7 @@ const SKILL_RULES = [
   },
   {
     re: DEBUG_RE,
-    skills: ["debug", "crash-triage", "lift-crash-signals"],
+    skills: ["debug", "crash-debug"],
     why: "runtime symptom router, crash signal table, toggle-bisect and liveness gates",
   },
   {
@@ -182,7 +182,7 @@ function buildSkillMessage(matches) {
     }
   }
   const routes = matches.map((match) => `- ${match.skills.map((name) => `\`${name}\``).join(" + ")}: ${match.why}`).join("\n")
-  return `[skill-router] Local Halo trigger words matched. Before acting, load/use these skills if the Skill tool exposes them; otherwise read \`.claude/skills/<skill>/SKILL.md\` and follow its checklist. When delegating to a subagent, name these skills in the brief.\n\nRecommended skills: ${skills.map((name) => `\`${name}\``).join(", ")}\n\nMatched routes:\n${routes}`
+  return `[skill-router] Local Halo trigger words matched. Before acting, load/use these skills if the Skill tool exposes them; otherwise read \`.opencode/skills/<skill>/SKILL.md\` and follow its checklist. When delegating to a subagent, name these skills in the brief.\n\nRecommended skills: ${skills.map((name) => `\`${name}\``).join(", ")}\n\nMatched routes:\n${routes}`
 }
 
 function runExceptionSymbolizer(root, prompt) {

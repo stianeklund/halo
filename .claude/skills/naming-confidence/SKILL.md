@@ -17,7 +17,7 @@ must be justified by a tier below, and the name's *shape* must not exceed its ti
 | T1 | Binary strings: assert expression text, `__FILE__` anchors, format strings; PDB corpus match (`punpckhdq_import.py`) | Full semantic name, verbatim from evidence (`actor_set_active`, `vertical_field_of_view`) |
 | T2 | Strong structural evidence: writes a T1-named global, mirror of a named PC/CE symbol, callee role proven by disasm across all callers | Semantic name + evidence comment; prefer domain-neutral wording |
 | T3 | Behavior only: role clear from code shape, meaning unproven | **Mechanical** name (`count`, `elem_index`, `scale_q`, `out_buf`) — never domain semantics |
-| T4 | No evidence | Stays `FUN_<addr>`, `field_XX`, `unknown_<addr>`, `local_NN` |
+| T4 | No evidence | Stays `FUN_<addr>`, `field_<hex>` (accessed) / `pad_<hex>[n]` (never observed accessed), `unknown_<addr>`, `local_NN` |
 
 The cardinal sin is a T3 rename with a T1-shaped name (`player_health` because "it
 looks like health"). If you can't cite the evidence in one line, the name is T3 or T4.
@@ -30,10 +30,14 @@ looks like health"). If you can't cite the evidence in one line, the name is T3 
   `@<reg>` annotations are immutable regardless of rename. After a rename, fix call
   sites via the build-error triage flow (grep `build/generated/decl.h`, `rtk jq` the
   addr) rather than re-reading sources.
-- **Struct fields.** Only via a `struct-assert`ed definition; a rename never changes
+- **Struct fields.** Only via a `struct-recovery` (Phase 2)ed definition; a rename never changes
   width/offset (the `co()` assert pins it). Record the evidence in the `///<` comment.
-- **Locals.** See `local-var-cleanup` — T3 mechanical vocabulary by default.
-- **Constants/enums.** See `const-enum-recovery` — the *value* is proven by the binary;
+  Unknowns keep the canonical split — `field_<hex>` when the offset is accessed but its
+  meaning is unproven, `pad_<hex>[n]` when it was never observed accessed. Legacy
+  `unk_<hex>` means "one of those two, unspecified"; converting it is a T4→T4 rename
+  (free), naming it something semantic is a tier claim that needs evidence.
+- **Locals.** See `name-cleanup` — T3 mechanical vocabulary by default.
+- **Constants/enums.** See `name-cleanup` — the *value* is proven by the binary;
   the *name* needs its own tier.
 - **Globals.** `rename_global_variable`/kb.json name + a matching Ghidra label so both
   views agree; cite the evidence address.

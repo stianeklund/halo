@@ -121,6 +121,8 @@ typedef unsigned char _BYTE;
 typedef unsigned short _WORD;
 typedef unsigned int _DWORD;
 typedef struct data_s data_t; /* opaque: pointer-only use in extracted bodies */
+typedef struct data_iter_s data_iter_t;
+typedef unsigned short wchar_t;
 """
 
 
@@ -207,7 +209,7 @@ def _per_function_chunk(func_name: str) -> Path | None:
     return cand if cand.exists() else None
 
 
-def _ref_has_function(ref_obj: Path, func_name: str) -> bool:
+def _ref_has_function(ref_obj: Path, func_name: str, source: Path | None = None) -> bool:
     """True if the reference object contains the function (by lifted name or
     FUN_<addr> alias). A missing symbol means the TU reference is truncated
     for this target and a per-function chunk should be used instead."""
@@ -218,7 +220,7 @@ def _ref_has_function(ref_obj: Path, func_name: str) -> bool:
     fn = func_name.lstrip("_")
     if fn in funcs:
         return True
-    alias = _resolve_ref_name(fn)
+    alias = _resolve_ref_name(fn, source)
     return bool(alias and alias in funcs)
 
 
@@ -259,7 +261,7 @@ def find_delinked_reference(source: Path, func_name: str | None = None) -> Path 
         # back matches[0] -- which, when the whole-TU object is absent, is a
         # DIFFERENT function's per-function unit. The permuter then scored
         # every candidate against the wrong function's reference.
-        alias = _resolve_ref_name(func_name)
+        alias = _resolve_ref_name(func_name, source)
         for name, cand in matches:
             if func_name in name or (alias and alias in name):
                 return cand
@@ -269,7 +271,7 @@ def find_delinked_reference(source: Path, func_name: str | None = None) -> Path 
         # fallback and must not be returned as "the TU".
         tu = next((c for n, c in matches
                    if not re.search(r"FUN_[0-9a-fA-F]{8}", n)), None)
-        if tu is not None and _ref_has_function(tu, func_name):
+        if tu is not None and _ref_has_function(tu, func_name, source):
             return tu
         # 3. per-function chunk fallback
         chunk = _per_function_chunk(func_name)
@@ -447,7 +449,7 @@ def _generate_implicit_decls(func_body: str, file_statics: str) -> str:
     call_pattern = re.compile(r'\b([A-Za-z_]\w*)\s*\(')
     called = set(call_pattern.findall(func_body)) - _C_KEYWORDS
     combined = file_statics + "\n" + func_body
-    sig_pattern = re.compile(r'\b(?:void|int|char|float|short|unsigned|long)\s+\**\s*([A-Za-z_]\w*)\s*\(')
+    sig_pattern = re.compile(r'\b(?:void|int|char|float|short|unsigned|long|bool|boolean|byte|word|dword|real)\s+\**\s*([A-Za-z_]\w*)\s*\(')
     declared = set(sig_pattern.findall(combined))
     undeclared = called - declared
     if not undeclared:
@@ -632,41 +634,50 @@ def compile_base(work_dir: Path) -> bool:
     return True
 
 
-def _resolve_ref_name(func_name: str) -> str | None:
-    """Map a lifted function name to its FUN_<addr> delinked symbol via kb.json."""
+def _resolve_ref_name(func_name: str, source: Path | None = None) -> str | None:
+    """Map a lifted function name to its FUN_<addr> delinked symbol via kb.json or source comments."""
     kb_path = REPO_ROOT / "kb.json"
-    if not kb_path.exists():
-        return None
-    try:
-        kb = json.loads(kb_path.read_text())
-        # Match the function name as a whole identifier immediately followed by
-        # '(' so that e.g. "actor_look_secondary" does not spuriously match
-        # "actor_look_secondary_stop" (a substring) and resolve to the wrong addr.
-        name_re = re.compile(r"\b" + re.escape(func_name) + r"\s*\(")
-        for obj in kb.get("objects", []):
-            for fn in obj.get("functions", []):
-                decl = fn.get("decl", "")
-                addr = fn.get("addr", "")
-                if addr and name_re.search(decl):
-                    raw = int(addr, 16)
-                    return f"FUN_{raw:08x}"
-    except Exception:
-        pass
+    if kb_path.exists():
+        try:
+            kb = json.loads(kb_path.read_text())
+            if isinstance(kb, dict):
+                if "objects" in kb:
+                    name_re = re.compile(r"\b" + re.escape(func_name) + r"\s*\(")
+                    for obj in kb.get("objects", []):
+                        for fn in obj.get("functions", []):
+                            decl = fn.get("decl", "")
+                            addr = fn.get("addr", "")
+                            if addr and name_re.search(decl):
+                                raw = int(addr, 16)
+                                return f"FUN_{raw:08x}"
+                else:
+                    for addr_str, entry in kb.items():
+                        if isinstance(entry, dict):
+                            declared = entry.get("name")
+                            decl = entry.get("decl", "")
+                            if declared == func_name or (decl and re.search(r"\b" + re.escape(func_name) + r"\s*\(", decl)):
+                                if addr_str.startswith("0x"):
+                                    return f"FUN_{int(addr_str, 16):08x}"
+        except Exception:
+            pass
+
+    if source and source.exists():
+        try:
+            txt = source.read_text()
+            for m in re.finditer(r"/\*\s*(\w+)[^*]*?Address:\s*0x([0-9a-fA-F]+)", txt):
+                name, addr_hex = m.group(1), m.group(2)
+                if name == func_name:
+                    return f"FUN_{int(addr_hex, 16):08x}"
+        except Exception:
+            pass
+
     return None
 
 
-def _resolve_ref_insns(co, func_name: str, ref_obj: Path, ref_is_chunk: bool):
-    """Resolve the reference instruction list for func_name from ref_obj.
-
-    Shared by get_lcs_score() and write_ref_mnemonics_file() so both use the
-    exact same chunk-aware boundary logic. ref_is_chunk selects the
-    boundary-capped chunk read (first_function_insns) that vc71_verify uses
-    for delinked/functions/<addr>.obj references, so a stale chunk that
-    swallowed unregistered neighbour functions collapses to its true first
-    function instead of producing a false low.
-    """
+def _resolve_ref_insns(co, func_name: str, ref_obj: Path, ref_is_chunk: bool, source: Path | None = None):
+    """Resolve the reference instruction list for func_name from ref_obj."""
     fn = func_name.lstrip("_")
-    delinked_name = _resolve_ref_name(fn)
+    delinked_name = _resolve_ref_name(fn, source)
 
     ref_insns = None
     if not ref_is_chunk:
@@ -688,7 +699,7 @@ def _resolve_ref_insns(co, func_name: str, ref_obj: Path, ref_is_chunk: bool):
 
 
 def get_lcs_score(func_name: str, compiled_obj: Path, ref_obj: Path,
-                  ref_is_chunk: bool = False) -> float | None:
+                  ref_is_chunk: bool = False, source: Path | None = None) -> float | None:
     """Get LCS match % for a function between compiled and reference objects."""
     co = _load_compare_obj()
 
@@ -699,7 +710,7 @@ def get_lcs_score(func_name: str, compiled_obj: Path, ref_obj: Path,
     if not cand_fn:
         return None
 
-    ref_insns = _resolve_ref_insns(co, func_name, ref_obj, ref_is_chunk)
+    ref_insns = _resolve_ref_insns(co, func_name, ref_obj, ref_is_chunk, source)
     if ref_insns:
         pct, *_ = co.compare_functions(cand_funcs[cand_fn], ref_insns)
         return pct
@@ -707,17 +718,10 @@ def get_lcs_score(func_name: str, compiled_obj: Path, ref_obj: Path,
 
 
 def write_ref_mnemonics_file(func_name: str, ref_obj: Path, ref_is_chunk: bool,
-                             dest_path: Path) -> bool:
-    """Precompute the reference mnemonic sequence once and write it to
-    dest_path (one mnemonic per line), for the in-search LCS scorer
-    (score_algorithm="lcs" in scorer.py). Reuses the exact same chunk-aware
-    reference resolution as get_lcs_score(), so the in-search score for a
-    given .o agrees with this script's own post-hoc get_lcs_score() for that
-    .o. Returns False (and leaves dest_path untouched) if resolution fails,
-    so callers can fall back to default upstream scoring.
-    """
+                             dest_path: Path, source: Path | None = None) -> bool:
+    """Precompute the reference mnemonic sequence once and write it to dest_path."""
     co = _load_compare_obj()
-    ref_insns = _resolve_ref_insns(co, func_name, ref_obj, ref_is_chunk)
+    ref_insns = _resolve_ref_insns(co, func_name, ref_obj, ref_is_chunk, source)
     if not ref_insns:
         return False
     mnemonics = co.extract_mnemonic_sequence(ref_insns)
@@ -878,7 +882,7 @@ def main():
         # scoring rather than crash the run.
         ref_mnemonics_path = work_dir / "ref_mnemonics.txt"
         has_lcs_ref = write_ref_mnemonics_file(func_name, target_o, ref_is_chunk,
-                                               ref_mnemonics_path)
+                                               ref_mnemonics_path, source)
         if not has_lcs_ref:
             _log("[run.py] WARNING: could not precompute reference mnemonics; "
                  "falling back to upstream difflib scoring for in-search ranking.")
@@ -904,7 +908,7 @@ def main():
         # Get initial score via vc71_verify
         base_o = work_dir / "base.o"
         init_pct = get_lcs_score(func_name, base_o, target_o,
-                                 ref_is_chunk=ref_is_chunk)
+                                 ref_is_chunk=ref_is_chunk, source=source)
         init_score = None
         if init_pct is not None:
             init_score = round((100.0 - init_pct) * 10)

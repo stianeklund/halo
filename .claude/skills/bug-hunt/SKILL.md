@@ -47,8 +47,8 @@ rtk python3 tools/audit/extract_reg_args.py --check 2>&1
 
 ## Tier 2 — Crash-time (<10s, auto-triggered on crash output)
 
-Delegate to `crash-triage` skill — parses register patterns, matches signal table,
-proposes root cause. Then follow `halo-page-fault` for detailed investigation.
+Delegate to `crash-debug` skill — parses register patterns, matches signal table,
+proposes root cause. Then follow `crash-debug` for detailed investigation.
 
 ---
 

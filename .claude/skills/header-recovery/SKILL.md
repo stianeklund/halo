@@ -70,7 +70,7 @@ drifts from the `@<reg>` annotations.
 A recovered header carries only:
 - `typedef`/`struct` definitions **and their `cs()`/`co()` asserts** (the asserts
   move with the struct — they are its proof, not decoration)
-- `#define`s and enums (see `const-enum-recovery`)
+- `#define`s and enums (see `name-cleanup`)
 - `static inline` functions, if the binary shows one lived there
 
 ## 3. Placement: which header does a type belong in?
@@ -149,6 +149,6 @@ silently as part of a header move.)
 "commit 4 = encounters.h" and skim it. Never mix a header move with a lift, a
 rename, or an offset→field rewrite — those are `/lift` and the `source-recovery` ladder.
 
-Related: [`struct-assert`](../struct-assert/SKILL.md) (defines the struct and its
+Related: [`struct-recovery` (Phase 2)](../struct-recovery/SKILL.md) (defines the struct and its
 asserts), [`struct-recovery`](../struct-recovery/SKILL.md) (produces the evidence
 table), [`naming-confidence`](../naming-confidence/SKILL.md) (what may be named).

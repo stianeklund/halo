@@ -339,21 +339,21 @@ def _self_test() -> int:
 
     check(len(rules) >= 15, f"loaded {len(rules)} agent rules from frontmatter")
     skills = {s for _, s, _ in rules}
-    check("crash-triage" in skills, "crash-triage routed")
+    check("crash-debug" in skills, "crash-debug routed")
     check("check-callee-regs" in skills, "check-callee-regs routed")
     # user-tier skills must NOT be routed
     check("handover" not in skills, "handover (user tier) not routed")
-    check("replay-input" not in skills, "replay-input (user tier) not routed")
+    check("input-fixture" not in skills, "input-fixture (user tier) not routed")
 
     def routes(prompt: str) -> set[str]:
         return {s for s, _ in matching_rules(prompt)}
 
     check("check-callee-regs" in routes("the decompile shows in_EAX for the callee"),
           "in_EAX -> check-callee-regs")
-    check("lift-frame-hazards" in routes("passing &local_44 into the callee"),
-          "local_44 -> lift-frame-hazards")
-    check("crash-triage" in routes("got an ACCESS_VIOLATION at boot"),
-          "ACCESS_VIOLATION -> crash-triage")
+    check("lift-decompiler-traps" in routes("passing &local_44 into the callee"),
+          "local_44 -> lift-decompiler-traps")
+    check("crash-debug" in routes("got an ACCESS_VIOLATION at boot"),
+          "ACCESS_VIOLATION -> crash-debug")
     check("permuter-campaign" in routes("stuck at 92% VC71, run the permuter"),
           "permuter -> permuter-campaign")
     check(routes("please refactor the readme wording") == set(),

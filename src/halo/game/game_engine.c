@@ -356,7 +356,7 @@ void game_engine_update_flag_state(int weapon_index /* @<esi> */)
 void game_engine_spawn_equipment(void)
 {
   int iter_buf[4];
-  int handle;
+  volatile long handle;
   char *obj;
   char *tag_data;
   float scale;
@@ -678,7 +678,8 @@ void game_engine_prespawn_player_update(int player_handle)
 
 bool game_engine_running(void)
 {
-  return current_game_engine != 0;
+  bool result = current_game_engine != 0;
+  return result;
 }
 
 bool game_engine_can_score(void)
@@ -698,7 +699,8 @@ bool game_engine_force_single_screen(void)
    * int16 the global is declared as. */
   if (current_game_engine) {
     int variant = *(int *)0x5aa730;
-    if (variant >= 2 && variant <= 3)
+    int max_variant = 3;
+    if (variant >= 2 && variant <= max_variant)
       return 1;
   }
   return 0;
@@ -2871,7 +2873,7 @@ void ticks_to_unicode_time_string(int param_1, int param_2, wchar_t *param_3)
   wchar_t sec_buf[64];
 
 
-  minutes = (param_1 / 30) / 60;
+  minutes = ((param_1 / 30) & 0xFF) / 60;
 
   seconds = (param_1 / 30) % 60;
 
@@ -3195,6 +3197,7 @@ bool game_engine_teams_still_playing(void)
   data_iter_t iter;
   char *player;
   int first_team;
+  int32_t lives_limit;
   bool result;
 
   if (game_engine_player_count() < 2)
@@ -3210,10 +3213,11 @@ bool game_engine_teams_still_playing(void)
     if (*(int *)(player + 0x34) == NONE) {
       if (game_engine_is_player_leading(iter.datum_handle))
         continue;
-      if (*(int32_t *)0x456b30 >= 1) {
+      lives_limit = *(int32_t *)0x456b30;
+      if (lives_limit >= 1) {
         char *p = (char *)datum_get(player_data, iter.datum_handle);
         if (*(int *)(p + 0x34) == NONE &&
-            (int)*(int16_t *)(p + 0xaa) >= *(int32_t *)0x456b30)
+            (int)*(int16_t *)(p + 0xaa) >= lives_limit)
           continue;
       }
     }
@@ -4674,7 +4678,7 @@ void game_engine_player_update_netgame_flag(int player_handle)
   float search_pos[3];
   float distance_a;
   float distance_b;
-  static unsigned char los_scratch[0xac6c];
+  unsigned char los_scratch[0xac6c];
   unsigned char hit_info[0x2c];
 
   scenario = (unsigned char *)global_scenario_get();
@@ -5126,12 +5130,13 @@ void FUN_000ae400(int16_t param_1, int param_2, int16_t param_3, int param_4)
   count = 0;
   i = 0;
   if (0 < total_flags) {
+    count = i;
     do {
       flag_elem = ((int (*)(int))player_get_starting_location)(i);
       if (match_game_type((int)param_1, 4, (int16_t *)(flag_elem + 0x14)))
         count++;
       i++;
-    } while ((int16_t)i < total_flags);
+    } while (((int16_t)count) < total_flags);
   }
   if (count < param_3)
     error(2, (char *)param_4, count, (int)param_3);

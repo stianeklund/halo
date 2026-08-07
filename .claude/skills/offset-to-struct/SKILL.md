@@ -2,7 +2,7 @@
 name: offset-to-struct
 tier: agent
 triggers: ["raw offset", "pointer arithmetic", "offset replacement", "replace offsets", "struct field access", "field access rewrite"]
-description: Replace verified raw pointer arithmetic (*(T*)(base+0xNN)) with struct field access, preserving behavior and VC71 match. Requires the struct to exist with co()/cs() asserts first (struct-assert); every rewritten function is gated on zero match drop.
+description: Replace verified raw pointer arithmetic (*(T*)(base+0xNN)) with struct field access, preserving behavior and VC71 match. Requires the struct to exist with co()/cs() asserts first (struct-recovery); every rewritten function is gated on zero match drop.
 ---
 
 # Raw Offset Replacement
@@ -11,12 +11,37 @@ Mechanically replace `*(int16_t *)(obj + 0x2A)` with `((object_header *)obj)->fi
 — same bytes out of the compiler, radically more readable. This is a *transcription*,
 not an interpretation step.
 
+## Automated path (preferred)
+
+Use `structize.py` with `--binding` for automatic `--base`/`--struct` lookup
+(bindings are in `recovery/bindings.json`):
+
+```bash
+# Single file (preferred in per-object recovery):
+rtk python3 tools/recovery/structize.py run --binding <id> --source <file.c>
+# Multi-file campaign:
+rtk python3 tools/recovery/structize.py campaign --binding <id>
+# Check remaining conflicts without compiling:
+rtk python3 tools/recovery/structize.py worklist --binding <id>
+```
+
+When conflicts arise (same offset accessed at different widths), verify against
+the delinked MSVC 7.1 binary before choosing a type:
+
+```bash
+rtk python3 tools/recovery/verify_conflict.py --binding <id> --offset 0xNN
+```
+
+Verdicts: `uniform` = binary proves the type (high confidence, edit types.h);
+`genuine-conflict` = multiple widths in the binary itself (union/sub-struct,
+park and investigate). Do NOT guess a type the binary does not confirm.
+
 ## Preconditions (hard gates)
 
 1. `cleanup-baseline` block exists; target functions have a delinked reference
    (no reference → no byte oracle → do not rewrite offsets in that function).
 2. The struct exists with `co()` asserts covering **every offset you will replace**
-   (`struct-assert`). No assert for 0xNN → add it first or leave that access raw.
+   (`struct-recovery` (Phase 2)). No assert for 0xNN → add it first or leave that access raw.
 3. Clean tree; one TU per pass.
 
 ## Rewrite rules

@@ -5,7 +5,7 @@ description: >
   analyze functions/globals, verify decompilation against disassembly,
   infer prototypes and structs, map Xbox/XDK calls, produce faithful C lifts,
   and propose conservative kb.json updates.
-model: openai/gpt-5.6-terra
+model: aiolos/gpt-5.6-terra
 variant: xhigh
 color: warning
 memory: project

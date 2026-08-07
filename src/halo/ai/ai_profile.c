@@ -543,11 +543,11 @@ int ai_index_actor_iterator_next(void *iter_arg)
     if (actor == 0) {
       break;
     }
-    if (iter[1] == -1 || iter[1] == (int)*(short *)((char *)actor + 0x3a)) {
+    if (iter[1] == -1 || iter[1] == (int)((actor_t *)actor)->field_03a) {
       if (iter[2] == -1) {
         break;
       }
-      if (iter[2] == (int)*(short *)((char *)actor + 0x3c)) {
+      if (iter[2] == (int)((actor_t *)actor)->field_03c) {
         break;
       }
     }
@@ -574,11 +574,11 @@ int FUN_000547c0(int encounter_handle)
       actor = (void *)ai_index_actor_iterator_next(iter);
       if (actor != 0) {
         do {
-          if (*(int *)((char *)actor + 0x18) != -1) {
-            FUN_000ce2b0(resource, *(int *)((char *)actor + 0x18));
+          if (((actor_t *)actor)->field_018 != -1) {
+            FUN_000ce2b0(resource, ((actor_t *)actor)->field_018);
           }
 
-          child = *(int *)((char *)actor + 0x24);
+          child = ((actor_t *)actor)->field_024;
           while (child != -1) {
             void *object = object_get_and_verify_type(child, 3);
             FUN_000ce2b0(resource, child);
@@ -1835,7 +1835,7 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
   encounter_actor_iterator_new(actor_iter, src_index);
   actor = (void *)encounter_actor_iterator_next(actor_iter);
   while (actor != 0) {
-    cur_squad = *(short *)((char *)actor + 0x3a);
+    cur_squad = ((actor_t *)actor)->field_03a;
     if (cur_squad < 0 || cur_squad >= MAXIMUM_SQUADS_PER_ENCOUNTER) {
       display_assert("(current_squad_index >= 0) && "
                      "(current_squad_index < MAXIMUM_SQUADS_PER_ENCOUNTER)",
@@ -1902,8 +1902,8 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
   encounter_actor_iterator_new(actor_iter, -1);
   actor = (void *)encounter_actor_iterator_next(actor_iter);
   while (actor != 0) {
-    if ((*(int *)((char *)actor + 0x30) & 0xffff) == src_index) {
-      cur_squad = *(short *)((char *)actor + 0x38);
+    if ((((actor_t *)actor)->field_030 & 0xffff) == src_index) {
+      cur_squad = ((actor_t *)actor)->field_038;
       if (cur_squad < 0 || cur_squad >= MAXIMUM_SQUADS_PER_ENCOUNTER) {
         display_assert(
           "(source_iterator.squad_index >= 0) && "
@@ -1922,13 +1922,13 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
                          "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x6b0, 1);
           system_exit(-1);
         }
-        *(int *)((char *)actor + 0x30) = dst_index;
-        *(short *)((char *)actor + 0x38) = target_squad_indices[cur_squad];
+        ((actor_t *)actor)->field_030 = dst_index;
+        ((actor_t *)actor)->field_038 = target_squad_indices[cur_squad];
         if (match_flag == 0 && *(short *)((char *)dst_element + 0x7e) ==
                                  global_structure_bsp_index_get()) {
           encounterless_detach_actor(actor_iter[1]);
-          encounter_attach_actor(actor_iter[1], *(int *)((char *)actor + 0x30),
-                                 *(short *)((char *)actor + 0x38), 1);
+          encounter_attach_actor(actor_iter[1], ((actor_t *)actor)->field_030,
+                                 ((actor_t *)actor)->field_038, 1);
         }
       }
     }

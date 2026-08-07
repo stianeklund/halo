@@ -4,7 +4,7 @@ model: opus
 subtask: false
 ---
 
-Use `halo-re-lift` for lift rules and `halo-verify-debug` for validation gates.
+Use `halo-lift` for lift rules and `halo-verify-debug` for validation gates.
 
 Autonomous lift loop: selects the best unported function, lifts it via `/lift`,
 auto-commits on success, reverts+logs on failure.
@@ -81,9 +81,14 @@ second build failure; do not escalate on SEH, >3 reg-args, or unrelated build fa
 Unless `--dry-run` is set:
 ```bash
 rtk git add -- src/ kb.json
-rtk python3 tools/audit/generate_lift_commit.py --batch-name "<target_name>" > /tmp/commit_msg.txt
-rtk git commit -F /tmp/commit_msg.txt
+MSG=$(mktemp /tmp/halo-commit-msg.XXXXXX)
+rtk python3 tools/audit/generate_lift_commit.py --batch-name "<target_name>" > "$MSG"
+rtk git commit -F "$MSG" && rm -f "$MSG"
 ```
+
+**`mktemp`, never a fixed path** like `/tmp/commit_msg.txt` — auto-lift loops run
+unattended alongside other agents/cron on this box, and a shared path lets another
+writer's message land on your staged changes (observed 2026-07-31, `d6caee6b`).
 
 With `--dry-run`: leave changes staged, report what would be committed, then
 revert before the next iteration (`rtk git checkout -- src/ kb.json`).
