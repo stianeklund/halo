@@ -3021,6 +3021,54 @@ void FUN_000c21a0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* HaloScript builtin: evaluate the macro-function argument block, then hand
+ * the first dword of the result record to the AI debug teleport command.
+ *
+ * Disassembly (0xc21e0):
+ *   PUSH EBP; MOV EBP,ESP; PUSH ESI
+ *   MOV ESI,[EBP+0xc]    ; thread_datum, kept in ESI across both calls
+ *   MOV EAX,[EBP+0x10]   ; init
+ *   MOV ECX,[EBP+0x8]    ; function_index (full dword load, no MOVSX)
+ *   PUSH EAX; PUSH ESI; PUSH ECX
+ *   CALL 0xcc560         ; hs_macro_function_evaluate(fn_index, thread, init)
+ *   ADD ESP,0xc
+ *   TEST EAX,EAX; JZ epilogue
+ *   MOV EDX,dword ptr [EAX]; PUSH EDX
+ *   CALL 0x4b0f0         ; ai_debug_teleport_to(result[0])
+ *   PUSH 0x0; PUSH ESI
+ *   CALL 0xcbf80         ; hs_return(thread_datum, 0)
+ *   ADD ESP,0xc          ; single MERGED cleanup for both calls (1+2 dwords)
+ *   POP ESI; POP EBP; RET
+ *
+ * The result block is read at +0x0 as a full 32-bit load with no MOVSX/MOVZX,
+ * matching ai_debug_teleport_to's `int` parameter.
+ *
+ * The one ADD ESP,0xc covers ai_debug_teleport_to's single argument plus
+ * hs_return's two, which is why the call-site audit reports an ARG_COUNT
+ * hazard on hs_return (cleanup=3 dwords vs decl=2).  That is a merged-cleanup
+ * artifact, not an arity mismatch — hs_return takes exactly 2 arguments.
+ *
+ * Ghidra mis-prototypes this as void(void) and surfaces the three cdecl
+ * parameters as the phantom locals in_stack_00000004/8/c; it also drops the
+ * argument to ai_debug_teleport_to entirely.
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0x4b0f0 = ai_debug_teleport_to(encounter_index)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c21e0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result = (int *)hs_macro_function_evaluate(function_index, thread_datum,
+                                             init);
+  if (result != NULL) {
+    ai_debug_teleport_to(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
