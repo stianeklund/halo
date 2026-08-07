@@ -3061,10 +3061,57 @@ void FUN_000c21e0(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
-  result = (int *)hs_macro_function_evaluate(function_index, thread_datum,
-                                             init);
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
     ai_debug_teleport_to(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* Script macro-function wrapper for ai_debug_speak.
+ *
+ * Evaluates the macro function's single argument, then — if the evaluator
+ * returned a non-NULL value block — passes that block's first dword (a char *
+ * string, the name to speak) to ai_debug_speak and commits a zero result to
+ * the calling script thread.
+ *
+ * Disassembly (0xc2220):
+ *   PUSH EBP; MOV EBP,ESP; PUSH ESI
+ *   MOV ECX,[EBP+0x8]    ; function_index
+ *   MOV ESI,[EBP+0xc]    ; thread_datum  (kept live in ESI across both calls)
+ *   MOV EAX,[EBP+0x10]   ; init
+ *   PUSH EAX; PUSH ESI; PUSH ECX; CALL 0xcc560; ADD ESP,0xc
+ *   TEST EAX,EAX; JZ end
+ *   MOV EDX,[EAX]        ; result[0] — the char * name
+ *   PUSH EDX; CALL 0x4a220
+ *   PUSH 0x0; PUSH ESI; CALL 0xcbf80
+ *   ADD ESP,0xc          ; single MERGED cleanup for both calls (1+2 dwords)
+ *   POP ESI; POP EBP; RET
+ *
+ * The one ADD ESP,0xc covers ai_debug_speak's single argument plus
+ * hs_return's two, which is why the call-site audit reports an ARG_COUNT
+ * hazard on hs_return (cleanup=3 dwords vs decl=2).  That is a merged-cleanup
+ * artifact, not an arity mismatch — hs_return takes exactly 2 arguments.
+ *
+ * Ghidra mis-prototypes this as void(void) and surfaces the three cdecl
+ * parameters as the phantom locals in_stack_00000004/8/c; it also drops the
+ * argument to ai_debug_speak entirely.  The evaluator's return is declared
+ * int in kb.json (0xcc560) but is used here as a pointer, so it is cast.
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0x4a220 = ai_debug_speak(name)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c2220(int16_t function_index, int thread_datum, char init)
+{
+  char **result;
+
+  result =
+    (char **)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    ai_debug_speak(result[0]);
     hs_return(thread_datum, 0);
   }
 }
