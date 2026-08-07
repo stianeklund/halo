@@ -3746,6 +3746,24 @@ void FUN_000c24e0(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc2500 — HS script function handler: invoke the main-loop transition
+ * helper at 0x100380 for its side effect, then commit a 0 result to the
+ * calling script thread (a void-returning script builtin).
+ *
+ * Callees (both cdecl, ported):
+ *   0x100380 = FUN_00100380(void) — main map/menu transition helper
+ *   0xcbf80  = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc2500-0xc2517): cdecl, plain RET. The
+ * body reads only [EBP+0xc] = thread_datum (arg 2); function_index and init
+ * complete the standard hs-evaluator signature (matches 0xc0cb0 / 0xc24e0)
+ * but are unused in this body. */
+void FUN_000c2500(int16_t function_index, int thread_datum, char init)
+{
+  FUN_00100380();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
