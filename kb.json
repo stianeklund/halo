@@ -10324,7 +10324,9 @@
         },
         {
           "addr": "0xc2260",
-          "decl": "void FUN_000c2260(void);"
+          "decl": "void FUN_000c2260(int16_t function_index, int thread_datum, char init);",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xc22a0",

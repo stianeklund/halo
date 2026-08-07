@@ -3116,6 +3116,55 @@ void FUN_000c2220(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2260 (hs.obj) — HaloScript function handler: ai_debug_speak_list.
+ *
+ * Single-string macro-function wrapper, identical in shape to 0xc2220
+ * (ai_debug_speak).  The arguments are evaluated by
+ * hs_macro_function_evaluate(function_index, thread_datum, init); on success
+ * it returns a pointer to the evaluated result block whose FIRST dword
+ * (+0x0) is the dialogue-list name string pointer.
+ *
+ * Disassembly (0xc2260-0xc2292, 25 instructions).  PUSH EBP; MOV EBP,ESP;
+ * PUSH ESI — no `sub esp`, so there are no stack locals; ESI is the only
+ * callee-saved register used and caches thread_datum live across the first
+ * call.  Body:
+ *
+ *   MOV EAX,[EBP+0x10]   ; init
+ *   MOV ECX,[EBP+0x8]    ; function_index
+ *   MOV ESI,[EBP+0xc]    ; thread_datum
+ *   PUSH EAX; PUSH ESI; PUSH ECX
+ *   CALL 0xcc560         ; hs_macro_function_evaluate(fn_index, thread, init)
+ *   ADD ESP,0xc
+ *   TEST EAX,EAX; JZ 0xc228f  ; EAX is the result-block POINTER
+ *   MOV EDX,[EAX]        ; *(char **)result — deref, NOT the record pointer
+ *   PUSH EDX
+ *   CALL 0x4a290         ; ai_debug_speak_list(result[0])
+ *   PUSH 0x0; PUSH ESI   ; cdecl: last PUSH is the first C argument
+ *   CALL 0xcbf80         ; hs_return(thread_datum, 0)
+ *   ADD ESP,0xc          ; one coalesced cleanup for BOTH calls (1 + 2 args)
+ *   POP ESI; POP EBP; RET
+ *
+ * Note: the Ghidra decompile rendered the middle call as `FUN_0004a290()`
+ * with no argument — it dropped the `MOV EDX,[EAX]` deref.  The argument is
+ * the dword at result+0x0, not the record pointer.
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0x4a290 = ai_debug_speak_list(list_name)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c2260(int16_t function_index, int thread_datum, char init)
+{
+  char **result;
+
+  result =
+    (char **)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    ai_debug_speak_list(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
