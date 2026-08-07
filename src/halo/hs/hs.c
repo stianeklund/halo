@@ -3764,6 +3764,34 @@ void FUN_000c2500(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc2520 — HS script function handler: query whether the game is currently
+ * safe to save, and return that boolean to the calling script thread.
+ *
+ * Takes no script arguments, so there is no hs_macro_function_evaluate call
+ * and no result-record null check — it is the value-returning member of the
+ * bare side-effect wrapper family (compare 0xc2500 directly above, which
+ * returns a constant 0).
+ *
+ * Callees (both cdecl, ported):
+ *   0xa7530 = game_safe_to_save(void) -> bool in AL
+ *   0xcbf80 = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc2520-0xc2545): cdecl, plain RET. The
+ * body reads only [EBP+0xc] = thread_datum (arg 2); function_index and init
+ * complete the standard hs-evaluator signature but are unused here.
+ *
+ * The single 4-byte local (frame is `PUSH ECX`) is zeroed as a full dword
+ * BEFORE the call, then only its low byte is overwritten with AL — the
+ * type-pun widening idiom, not a movzx conversion. */
+void FUN_000c2520(int16_t function_index, int thread_datum, char init)
+{
+  int value;
+
+  value = 0;
+  *(bool *)&value = game_safe_to_save();
+  hs_return(thread_datum, value);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script

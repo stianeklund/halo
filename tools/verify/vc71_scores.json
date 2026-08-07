@@ -6940,6 +6940,11 @@
       "score": 100.0,
       "source": "src/halo/hs/hs.c"
     },
+    "FUN_000c2520": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
     "FUN_000c4b40": {
       "score": 100.0,
       "source": "src/halo/hs/hs.c"
