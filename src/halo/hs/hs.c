@@ -2483,6 +2483,38 @@ void FUN_000c1e80(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* hs script-function handler: switch the game connection over to film
+ * playback, then return void to the calling script thread.
+ *
+ * Body is two calls and nothing else — the frame is a bare
+ * PUSH EBP / MOV EBP,ESP with no `sub esp`, so there are no locals at all.
+ *
+ * 000c1ea3  CALL 0x1006e0        ; main_set_game_connection_to_film_playback()
+ * 000c1ea8  MOV  EAX,[EBP+0xc]   ; thread_datum (SECOND stack arg)
+ * 000c1eab  PUSH 0x0             ; value  (cdecl: last arg pushed first)
+ * 000c1ead  PUSH EAX             ; thread_handle
+ * 000c1eae  CALL 0xcbf80         ; hs_return(thread_datum, 0)
+ * 000c1eb3  ADD  ESP,0x8         ; cdecl cleanup, 2 dwords
+ *
+ * main_set_game_connection_to_film_playback takes no arguments and its EAX
+ * is never read after the CALL, so the result is discarded here as well.
+ *
+ * [EBP+0x8] (function_index) and [EBP+0x10] (init) are never read by this
+ * body; they complete the standard hs-evaluator signature shared by every
+ * other handler in this TU (same situation as FUN_000c1e80 immediately
+ * above).  Ghidra mis-prototypes this as void(void) and reports the
+ * [EBP+0xc] read as the phantom local `in_stack_00000008`.
+ *
+ * Callees (both cdecl, no register args, both ported):
+ *   0x1006e0 = main_set_game_connection_to_film_playback(void)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c1ea0(int16_t function_index, int thread_datum, char init)
+{
+  main_set_game_connection_to_film_playback();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
