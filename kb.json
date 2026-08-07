@@ -36865,7 +36865,8 @@
         },
         {
           "addr": "0x96670",
-          "decl": "void device_group_change_only_once_more_set(int device_group_index, char change_only_once_more);"
+          "decl": "void device_group_change_only_once_more_set(int device_group_index, char change_only_once_more);",
+          "ported": true
         },
         {
           "addr": "0x966b0",

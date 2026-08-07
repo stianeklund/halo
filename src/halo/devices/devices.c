@@ -189,3 +189,41 @@ void device_operates_automatically_set(int object_list,
 
   *(unsigned int *)(machine + 0x1c4) = flags & 0xfffffffe;
 }
+
+/* Set or clear a device group's "change only once more" request.
+ *
+ * Original 0x96670. The device-group index is a plain array/datum index and
+ * the NONE sentinel (-1) is rejected up front, before the datum lookup — this
+ * is the only sibling in the file that guards the handle instead of relying on
+ * a _try_ accessor.
+ *
+ * The group record is resolved out of the device-group data array whose
+ * data_t pointer lives at 0x5aa8c8, and only the flags byte at +0x02 is
+ * touched. Bit 0 carries the request itself; bit 1 is a companion flag that
+ * both arms clear unconditionally (its meaning is unproven).
+ *
+ * Each arm performs two separate read-modify-write byte operations on the same
+ * flags byte rather than one combined mask, and the request arm has its own
+ * epilogue (the original returns from inside the true branch at 0x96699).
+ */
+void device_group_change_only_once_more_set(int device_group_index,
+                                            char change_only_once_more)
+{
+  unsigned char *device_group;
+
+  if (device_group_index == -1) {
+    return;
+  }
+
+  device_group =
+    (unsigned char *)datum_get(*(data_t **)0x5aa8c8, device_group_index);
+
+  if (change_only_once_more != '\0') {
+    device_group[2] |= 1;
+    device_group[2] &= 0xfd;
+    return;
+  }
+
+  device_group[2] &= 0xfe;
+  device_group[2] &= 0xfd;
+}
