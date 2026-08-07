@@ -3792,6 +3792,37 @@ void FUN_000c2520(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, value);
 }
 
+/* 0xc2550 — HS script function handler: query whether the game world is
+ * currently "all quiet" (no active combat / hostile contact) and return that
+ * boolean to the calling script thread.
+ *
+ * Structurally identical to 0xc2520 directly above: no script arguments, so
+ * there is no hs_macro_function_evaluate call and no result-record null
+ * check.  Only the queried predicate differs.
+ *
+ * Callees (both cdecl, ported):
+ *   0xa74f0 = game_all_quiet(void) -> bool in AL
+ *   0xcbf80 = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc2550-0xc2576, 15 instructions): cdecl,
+ * plain RET (caller cleans).  The body reads only [EBP+0xc] = thread_datum
+ * (arg 2); function_index ([EBP+8]) and init ([EBP+0x10]) complete the
+ * standard hs-evaluator signature but are never referenced here.  Keeping
+ * them in the prototype is what puts thread_datum at the correct offset.
+ *
+ * The single 4-byte local (frame is `PUSH ECX`, no `sub esp`) is zeroed as a
+ * full dword BEFORE the call, then only its low byte is overwritten with AL
+ * — the type-pun widening idiom, not a movzx conversion.  Declaring the local
+ * as bool/char would drop the dword zeroing and lose the match. */
+void FUN_000c2550(int16_t function_index, int thread_datum, char init)
+{
+  int value;
+
+  value = 0;
+  *(bool *)&value = game_all_quiet();
+  hs_return(thread_datum, value);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
