@@ -22,6 +22,7 @@
  *
  * Re-implemented functions (by XBE address, ascending):
  *   0x7ff40  math64_add
+ *   0x7ffe0  math64_negate
  *   0x800d0  math64_multiply
  */
 
@@ -73,6 +74,69 @@ void math64_add(const uint16_t *a, const uint16_t *b, uint16_t *result)
     sum = carry + a[i] + b[i];
     result[i] = (uint16_t)sum;
     carry = (sum > 0xffff);
+  }
+}
+
+/* 64-bit two's-complement negate: result = -a across four 16-bit limbs.
+ *
+ * Confirmed (0x7ffe0-0x80062, bytes read back from the XBE):
+ *  - REGISTER ARGS, not cdecl. The body reads [ESI]/[ESI+2/4/6] and writes
+ *    [EBX]/[EBX+2/4/6] with no prologue, no EBP frame and no load of ESI/EBX
+ *    from the stack, and it ends in a bare `RET` (no immediate, nothing to
+ *    clean). Only EDI is saved (PUSH EDI at 0x7ffe0 / POP EDI at 0x8005b), so
+ *    ESI and EBX are inbound: a@<esi> (read-only), result@<ebx> (written).
+ *    Caller-confirmed at 0x80070 (64-bit subtract, same TU, assert line 0x4f):
+ *    `MOV ESI,[EBP+0xc]` (its `b` parameter), `SUB ESP,8` + `LEA EBX,[EBP-8]`
+ *    (an 8-byte = 4x uint16_t scratch), `CALL 0x7ffe0`, then
+ *    `math64_add(a, scratch, result)` — i.e. a - b implemented as a + (-b).
+ *    The 8-byte scratch independently confirms the 4x16-bit limb layout.
+ *    Second call site 0x802c6 in FUN_00080210. This is an LTCG custom
+ *    convention; kb.json carries it as @<esi>/@<ebx> and the build emits the
+ *    reverse thunk.
+ *  - Guard order is TEST ESI / TEST EBX, so the assert condition is
+ *    `a && result` — only two operands (the string at 0x265a84 is literally
+ *    "a && result", NOT the "a && b && result" at 0x265a40 that add/multiply/
+ *    subtract use). Line 0x3a, same 64bit_math.c __FILE__ string at 0x265a54.
+ *  - The borrow lives in EDI: `XOR EDI,EDI` before the guard, and a sticky
+ *    `MOV EDI,1` after each of limbs 0..2. It is only ever set, never cleared,
+ *    so it means "some lower limb was non-zero". `ADD CX,DI` is a *16-bit* add,
+ *    which is why the borrow is a 16-bit type and not an int.
+ *  - Each limb re-reads a[i] from memory for the non-zero test
+ *    (`MOV AX,[ESI]` ... `MOV [EBX],AX` ... `CMP word ptr [ESI],0`) instead of
+ *    reusing the loaded register. `a` and `result` are unrelated pointers, so
+ *    the store to result[i] may alias a[i] and the compiler must reload —
+ *    i.e. two separate source reads of a[i], store first, test second.
+ *  - Limb 0 negates 16-bit (`66 f7 d8` = NEG AX) because there is no carry-in;
+ *    limbs 1..3 zero-extend into a 32-bit register (`XOR ECX,ECX` +
+ *    `MOV CX,[ESI+2]`), add the borrow 16-bit, then negate 32-bit
+ *    (`f7 d9` = NEG ECX, no 0x66 prefix) and store the low 16. That is exactly
+ *    the integer-promotion shape of `-sum` on a `uint16_t sum`.
+ *  - Limb 0's `+ borrow` is constant-folded away (borrow is provably 0) and
+ *    limb 3 computes no borrow-out (dead), i.e. a uniform four-iteration loop
+ *    body that VC71 fully unrolls to the constant +0/+2/+4/+6 displacements —
+ *    the same treatment math64_add gets, so it is written as a loop here too.
+ *
+ * The arithmetic is a correct negate, unlike math64_multiply's seeded
+ * accumulator: with borrow = 1 the limb value is -(a[i]+1) == ~a[i] (mod
+ * 2^16), and borrow is 1 exactly when a lower limb was non-zero, which is the
+ * textbook ripple form of ~a + 1.
+ */
+void math64_negate(const uint16_t *a, uint16_t *result)
+{
+  uint16_t sum;
+  uint16_t borrow;
+  int32_t i;
+
+  assert_halt_at("c:\\halo\\SOURCE\\bungie_net\\common\\64bit_math.c", 0x3a,
+                 a && result);
+
+  borrow = 0;
+  for (i = 0; i < 4; i++) {
+    sum = (uint16_t)(a[i] + borrow);
+    result[i] = (uint16_t)-sum;
+    if (a[i] != 0) {
+      borrow = 1;
+    }
   }
 }
 

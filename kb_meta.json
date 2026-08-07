@@ -2023,6 +2023,19 @@
         "The root cause of that allocation difference is that VC71 narrows limb 3 to 16-bit memory-operand adds (addw 0x6(esi),dx / addw 0x6(ebx),dx) because the final carry is dead, while the reference keeps limb 3 in 32-bit form (movzwl/movzwl/addl/addl); no source form found blocks the narrowing. Commutative reorderings of the sum expression, loop versus straight-line, and a single-accumulator form all compile to byte-identical VC71 output, and an optimization sweep confirmed /O2 is best (/O1 and /Og /Os drop to 67.3 percent with LOADW warnings)."
       ]
     },
+    "0x7ffe0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Named math64_negate from behaviour: the routine computes the two's-complement negation of a 4x16-bit little-endian value, and its only two callers (FUN_00080070 subtract, FUN_00080210 divide) use it as the negate half of an a + (-b) subtraction; the original Bungie symbol name is not recovered from any string.",
+        "The borrow is typed uint16_t rather than int on the strength of ADD CX,DI being a 16-bit add; the XOR EDI,EDI / MOV EDI,1 that produce it are full 32-bit writes, so only the consuming ADD pins the width."
+      ],
+      "uncertain": [
+        "VC71 match is capped at 89.1% (50 candidate vs 43 reference instructions) by the @<reg>-defining ceiling: cl.exe cannot emit a regcall prologue for a function that is itself @<reg>-defined, so the candidate builds an EBP frame and loads a/result from [ebp+8]/[ebp+0xc] where the reference has them inbound in ESI/EBX. All seven excess instructions are prologue/epilogue; two independent source-shape variants (named temp vs inlined expression, a[i] != 0 vs a[i]) both scored exactly 89.1% with the same 50/43 instruction counts, so no source lever remains.",
+        "The operand-normalized score of 41.3% is the documented canonicalization artifact, not an operand defect: canonicalize_registers aliases registers by global first-appearance order, and the pushl %ebp vs pushl %edi prologue divergence reshuffles the whole alias map for the rest of the function.",
+        "audit_reg_abi.py --caller-disasm-file raises a false-positive \u00a710 REG_ORDER error claiming ESI carries param_2 where kb.json expects param_0; the heuristic assumes a caller forwards its own parameter N to the callee's argument N, but FUN_00080070 deliberately passes its own b (param_2) as the callee's a, and FUN_00080210 passes its param_1, so the two call sites contradict each other. The default gate path (no caller-disasm file) reports zero errors and zero warnings."
+      ]
+    },
     "0x800d0": {
       "kind": "function",
       "status": "ported",

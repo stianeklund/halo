@@ -105,6 +105,7 @@
     "0x7bcb0": "void FUN_0007bcb0(void *bitmap@<esi>);",
     "0x7bd90": "void FUN_0007bd90(void *bitmap@<ebx>);",
     "0x7d440": "bool bitmap_validate_depth(int depth@<eax>, int format, int type);",
+    "0x7ffe0": "void math64_negate(const uint16_t *a@<esi>, uint16_t *result@<ebx>);",
     "0x83930": "int FUN_00083930(int af @<ecx>, int type @<edx>, int protocol @<eax>);",
     "0x865a0": "void FUN_000865a0(int16_t local_player_index@<si>, int param_1, bool param_2);",
     "0x86600": "void director_init_player_cameras(int16_t local_player_index@<ax>);",

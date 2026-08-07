@@ -39536,7 +39536,8 @@
         },
         {
           "addr": "0x7ffe0",
-          "decl": "void FUN_0007ffe0(void);"
+          "decl": "void math64_negate(const uint16_t *a@<esi>, uint16_t *result@<ebx>);",
+          "ported": true
         },
         {
           "addr": "0x80070",
