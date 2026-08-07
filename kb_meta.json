@@ -2023,6 +2023,18 @@
         "The root cause of that allocation difference is that VC71 narrows limb 3 to 16-bit memory-operand adds (addw 0x6(esi),dx / addw 0x6(ebx),dx) because the final carry is dead, while the reference keeps limb 3 in 32-bit form (movzwl/movzwl/addl/addl); no source form found blocks the narrowing. Commutative reorderings of the sum expression, loop versus straight-line, and a single-accumulator form all compile to byte-identical VC71 output, and an optimization sweep confirmed /O2 is best (/O1 and /Og /Os drop to 67.3 percent with LOADW warnings)."
       ]
     },
+    "0x800d0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The original source is a nested i/j loop over the four limbs of a and b, not a flat i loop with four hand-written limb steps: VC71 fully unrolls the four-iteration inner loop but leaves the outer one rolled, which reproduces the reference's indexed -0x24(ebp,eax,4) accumulator traffic and its LICM-hoisted b limbs exactly (100.0 percent, 93/93 insns), whereas the flat form scores 69.7 percent with 105 instructions because VC71 unrolls everything and promotes the whole accumulator into registers.",
+        "The original accumulator array is seven elements, one short of the eight a 4x4-limb product needs: the 0x24 frame holds exactly seven seeded dwords at EBP-0x24..EBP-0xc plus the b[3] and b[2] temporaries at EBP-0x8 and EBP-0x4, so acc[i+j+1] at i==j==3 reads and overwrites the b[3] slot after its last use. The lift declares eight elements but deliberately initializes only the first seven, which reproduces the reference's seven init stores and its exact 0x24 frame because VC71 overlays the b[3] spill on the never-read slot; adding an eighth initializer drops the match to 94.1 percent."
+      ],
+      "uncertain": [
+        "The accumulator is seeded with the literal values 0,1,2,3,4,5,6 (verified byte-for-byte as C7 45 dc 00000000 / C7 45 e0 01000000 / ... at 0x800e1-0x80112, not a decompiler artifact), so every result limb above limb 0 is offset by its seed and the routine does not compute a correct product; whether this is unfinished scaffolding or a shipped bug is unknown, and no caller was traced to confirm the 2276 beta ever exercises it.",
+        "The dwords at EBP-0x4 and EBP-0x8 holding b[2] and b[3] are modelled as compiler spills of LICM-hoisted b[j] loads rather than named source locals; the lift declares no b-limb variables and VC71 reproduces the slots on its own, but a source form with explicit b0..b3 locals cannot be ruled out."
+      ]
+    },
     "0x803d0": {
       "kind": "function",
       "status": "ported"

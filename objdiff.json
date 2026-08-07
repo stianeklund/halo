@@ -8502,6 +8502,14 @@
       "metadata": {
         "source_path": "src/halo/bungie_net/64bit_math.c"
       }
+    },
+    {
+      "name": "halo/FUN_000800d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bungie_net/64bit_math.c.obj",
+      "base_path": "delinked/functions/000800d0.obj",
+      "metadata": {
+        "source_path": "src/halo/bungie_net/64bit_math.c"
+      }
     }
   ]
 }
