@@ -35106,7 +35106,7 @@
         },
         {
           "addr": "0x122240",
-          "decl": "void overlay_animation_apply(void);"
+          "decl": "void overlay_animation_apply(void *anim_entry, int frame, void *node_data);"
         },
         {
           "addr": "0x122450",
@@ -36833,7 +36833,8 @@
         },
         {
           "addr": "0x96310",
-          "decl": "void device_preprocess_node_orientations(void);"
+          "decl": "void device_preprocess_node_orientations(int object_datum, void *node_data);",
+          "ported": true
         },
         {
           "addr": "0x96470",
