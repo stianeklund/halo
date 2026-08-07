@@ -2604,6 +2604,27 @@ void FUN_000c1f00(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc1f20 — HaloScript script-function stub (no-argument, void-result form).
+ * Twin of FUN_000c1f00 immediately above: it takes no script arguments, so it
+ * never calls hs_macro_function_evaluate and has no null-check branch.  The
+ * body unconditionally invokes debug_dump_memory_by_file and then commits a
+ * zero result to the calling thread via hs_return.
+ *
+ * [EBP+0x8] (function_index) and [EBP+0x10] (init) are never read by this
+ * body; they complete the standard hs-evaluator signature shared by every
+ * other handler in this TU.  Ghidra mis-prototypes this as void(void) and
+ * reports the [EBP+0xc] read as the phantom local `in_stack_00000008`.
+ *
+ * Callees (both cdecl, no register args):
+ *   0x8ec60  = debug_dump_memory_by_file(void)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c1f20(int16_t function_index, int thread_datum, char init)
+{
+  debug_dump_memory_by_file();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
