@@ -101,6 +101,26 @@ void device_preprocess_node_orientations(int object_datum, void *node_data)
   }
 }
 
+/* Read a device object's current position.
+ *
+ * Original 0x96470. Structurally identical to device_get_power below: a real
+ * datum handle is resolved as a device (type mask 0x380) and the float at
+ * +0x1b8 is returned, while a NONE handle (-1) yields the shared float
+ * constant at 0x2533c0 (which reads 00 00 00 00, i.e. 0.0f). Both paths leave
+ * the result in ST0 (FLD), so the return type is float even though Ghidra
+ * reports void(void) — the sole caller (player_control device interaction)
+ * consumes it with FSTP.
+ */
+float device_get_position(int device_object)
+{
+  if (device_object != -1) {
+    return *(float *)((char *)object_get_and_verify_type(device_object, 0x380) +
+                      0x1b8);
+  }
+
+  return *(float *)0x2533c0;
+}
+
 /* Read a device object's current power level.
  *
  * Original 0x964a0. For a real datum handle the object is resolved as a

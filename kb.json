@@ -36838,7 +36838,8 @@
         },
         {
           "addr": "0x96470",
-          "decl": "float device_get_position(int device_object);"
+          "decl": "float device_get_position(int device_object);",
+          "ported": true
         },
         {
           "addr": "0x964a0",
