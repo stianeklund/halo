@@ -3717,6 +3717,35 @@ void FUN_000c24c0(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc24e0 — HaloScript function evaluator: flag the current map as won for
+ * the main menu / campaign progression, then commit a 0 result to the calling
+ * script thread (a void-returning script builtin).
+ *
+ * Structural twin of 0xc24c0 and 0xc0cb0 — the three bodies differ only in
+ * the first CALL target.
+ *
+ * Callees (both cdecl, ported):
+ *   0x100370 = main_won_map(void) — no arguments
+ *   0xcbf80  = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc24e0-0xc24f7, 10 instructions): cdecl,
+ * plain RET, frame is PUSH EBP; MOV EBP,ESP only — no `sub esp`, no locals,
+ * no buffers, no FPU, no _chkstk, no register args. The body reads only
+ * [EBP+0xc] = thread_datum (arg 2); function_index ([EBP+0x8]) and init
+ * ([EBP+0x10]) are never read but complete the uniform hs-evaluator dispatch
+ * signature shared with the ported neighbours at 0xc2400-0xc24c0. Push order
+ * at the second call (PUSH 0x0 then PUSH EAX, ADD ESP,0x8) confirms
+ * hs_return(thread_datum, 0), not (0, thread_datum).
+ *
+ * kb note: the prior decl was `void FUN_000c24e0(void);`, which contradicts
+ * the MOV EAX,[EBP+0xc] at 0xc24e8; it is corrected to the 3-argument
+ * evaluator signature with this lift. */
+void FUN_000c24e0(int16_t function_index, int thread_datum, char init)
+{
+  main_won_map();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
