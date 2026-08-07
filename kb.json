@@ -36900,7 +36900,8 @@
         },
         {
           "addr": "0x96a00",
-          "decl": "void device_delete(void);"
+          "decl": "void device_delete(int object_index);",
+          "ported": true
         },
         {
           "addr": "0x96a90",

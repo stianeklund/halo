@@ -557,3 +557,54 @@ void create_initial_device_groups(void)
     } while (group_index < *device_group_block);
   }
 }
+
+/* Release the device groups a device object owns.
+ *
+ * Original 0x96a00: resolves the object datum to a device (type mask 0x380)
+ * and inspects the two 16-bit device-group indices device_new clears at
+ * +0x1a8 and +0x1b4. For each index that is not NONE, the group datum is
+ * fetched from the device-group pool at 0x5aa8c8 and its flags byte at +0x02
+ * is tested for bit 0x4; only groups carrying that bit are deleted, so groups
+ * the scenario owns outlive the device.
+ *
+ * Confirmed from disassembly:
+ *   - one stack parameter (MOV EAX,[EBP+8]); the prior kb declaration of
+ *     void device_delete(void) was wrong,
+ *   - both index loads are 16-bit (MOV AX,word ptr [EDI+0x1a8] / [EDI+0x1b4])
+ *     compared CMP AX,0xffff and widened with MOVSX ESI,AX, so the indices are
+ *     signed shorts sign-extended into the int handle the pool calls take,
+ *   - the flag test is an 8-bit load (MOV CL,byte ptr [EAX+2]; TEST CL,4) of
+ *     the same word device_effect_new writes at +0x02,
+ *   - the pool pointer is re-read from 0x5aa8c8 before each of the four calls
+ *     (0x5aa8c8 is never hoisted into a register across them), matching the
+ *     repeated dereference here,
+ *   - EDI holds the device pointer across the whole body, so the second
+ *     datum_get result goes to a separate variable rather than overwriting it
+ *     the way the decompiler's reused temporary suggests.
+ */
+void device_delete(int object_index)
+{
+  char *device;
+  short device_group_index;
+  char *device_group;
+
+  device = (char *)object_get_and_verify_type(object_index, 0x380);
+
+  device_group_index = *(short *)(device + 0x1a8);
+  if (device_group_index != -1) {
+    device_group =
+      (char *)datum_get(*(data_t **)0x5aa8c8, (int)device_group_index);
+    if ((device_group[2] & 4) != 0) {
+      datum_delete(*(data_t **)0x5aa8c8, (int)device_group_index);
+    }
+  }
+
+  device_group_index = *(short *)(device + 0x1b4);
+  if (device_group_index != -1) {
+    device_group =
+      (char *)datum_get(*(data_t **)0x5aa8c8, (int)device_group_index);
+    if ((device_group[2] & 4) != 0) {
+      datum_delete(*(data_t **)0x5aa8c8, (int)device_group_index);
+    }
+  }
+}
