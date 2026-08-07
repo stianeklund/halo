@@ -121,6 +121,8 @@ typedef unsigned char _BYTE;
 typedef unsigned short _WORD;
 typedef unsigned int _DWORD;
 typedef struct data_s data_t; /* opaque: pointer-only use in extracted bodies */
+typedef struct data_iter_s data_iter_t;
+typedef unsigned short wchar_t;
 """
 
 
@@ -207,7 +209,7 @@ def _per_function_chunk(func_name: str) -> Path | None:
     return cand if cand.exists() else None
 
 
-def _ref_has_function(ref_obj: Path, func_name: str) -> bool:
+def _ref_has_function(ref_obj: Path, func_name: str, source: Path | None = None) -> bool:
     """True if the reference object contains the function (by lifted name or
     FUN_<addr> alias). A missing symbol means the TU reference is truncated
     for this target and a per-function chunk should be used instead."""
@@ -218,7 +220,7 @@ def _ref_has_function(ref_obj: Path, func_name: str) -> bool:
     fn = func_name.lstrip("_")
     if fn in funcs:
         return True
-    alias = _resolve_ref_name(fn)
+    alias = _resolve_ref_name(fn, source)
     return bool(alias and alias in funcs)
 
 
@@ -259,7 +261,7 @@ def find_delinked_reference(source: Path, func_name: str | None = None) -> Path 
         # back matches[0] -- which, when the whole-TU object is absent, is a
         # DIFFERENT function's per-function unit. The permuter then scored
         # every candidate against the wrong function's reference.
-        alias = _resolve_ref_name(func_name)
+        alias = _resolve_ref_name(func_name, source)
         for name, cand in matches:
             if func_name in name or (alias and alias in name):
                 return cand
@@ -269,7 +271,7 @@ def find_delinked_reference(source: Path, func_name: str | None = None) -> Path 
         # fallback and must not be returned as "the TU".
         tu = next((c for n, c in matches
                    if not re.search(r"FUN_[0-9a-fA-F]{8}", n)), None)
-        if tu is not None and _ref_has_function(tu, func_name):
+        if tu is not None and _ref_has_function(tu, func_name, source):
             return tu
         # 3. per-function chunk fallback
         chunk = _per_function_chunk(func_name)

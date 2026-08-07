@@ -22,7 +22,7 @@ Source: `docs/lift-learnings.md` §19, §20, §24, §27, §38; classification ru
 in `tools/verify/vc71_verify.py::_classify_score_context`.
 
 This is score/byte-accuracy content only. Naming, comments, and readability
-cleanups are out of scope for this skill — see the `cleanup` family instead.
+cleanups are out of scope for this skill — see the `source-recovery` family instead.
 
 ---
 

@@ -169,3 +169,5 @@ tmp/
 # destructive-command-guard local config
 .dcg/
 tools/verify/vc71_cache.db
+
+.serena
