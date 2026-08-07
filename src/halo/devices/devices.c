@@ -25,6 +25,116 @@ bool device_new(int object_index)
   return true;
 }
 
+/* Export a device's four driver values into its object function-value slots.
+ *
+ * Original 0x96110. Resolves the object datum to a device (type mask 0x380)
+ * and loads its 'devi' definition tag, then walks the four export selectors
+ * in the definition at +0x198 (int16 each) in parallel with the four float
+ * slots on the object at +0xd4.
+ *
+ * Selector 0 means "no export" and leaves the slot untouched. Otherwise the
+ * value defaults to 0.0f and is overridden per selector:
+ *   1  device power     (object +0x1ac)
+ *   2  |power change|   (object +0x1b0) / devi +0x278; 0.0f if delta is 0
+ *   3  device position  (object +0x1b8)
+ *   4  |position change| (object +0x1bc) / devi +0x288; 0.0f if delta is 0
+ *   5  "powered off": 1.0f when power is 0.0f, with a machine-specific
+ *      (object type 7) override that re-resolves the same handle as a
+ *      unit and consults its device-group record
+ *   6  object +0x1c0 (int16) / devi +0x28c, guarded so the denominator
+ *      is strictly positive and equal operands yield 0.0f
+ *
+ * The unit view at 0x96226 is fetched with the same object handle the device
+ * view came from, so the two pointers are numerically identical; the original
+ * still issues the second object_get_and_verify_type call.
+ */
+void device_export_function_values(int object_index)
+{
+  short *selector;
+  float *out;
+  float value;
+  int count;
+  char *device;
+  char *definition;
+  char *unit;
+  unsigned char *device_group;
+
+  device = (char *)object_get_and_verify_type(object_index, 0x380);
+  definition = (char *)tag_get(0x64657669 /* 'devi' */, *(int *)device);
+
+  out = (float *)(device + 0xd4);
+  selector = (short *)(definition + 0x198);
+  count = 4;
+  do {
+    if (*selector != 0) {
+      value = 0.0f;
+      switch (*selector) {
+      case 1:
+        value = *(float *)(device + 0x1ac);
+        break;
+
+      case 2:
+        if (*(float *)(device + 0x1b0) != 0.0f) {
+          value =
+            fabs(*(float *)(device + 0x1b0)) / *(float *)(definition + 0x278);
+        }
+        break;
+
+      case 3:
+        value = *(float *)(device + 0x1b8);
+        break;
+
+      case 4:
+        if (*(float *)(device + 0x1bc) != 0.0f) {
+          value =
+            fabs(*(float *)(device + 0x1bc)) / *(float *)(definition + 0x288);
+        }
+        break;
+
+      case 5:
+        if (*(float *)(device + 0x1ac) == 0.0f) {
+          value = 1.0f;
+        }
+        if (*(short *)(device + 0x64) == 7 &&
+            *(short *)(device + 0x1b4) != -1) {
+          unit = (char *)object_get_and_verify_type(object_index, 0x80);
+          device_group = (unsigned char *)datum_get(
+            *(data_t **)0x5aa8c8, (int)*(short *)(unit + 0x1b4));
+
+          if ((*(unsigned int *)(unit + 0x1c4) & 3) != 0) {
+            value = 1.0f;
+          }
+          if ((*(unsigned short *)(device_group + 2) & 1) != 0 &&
+              (*(unsigned short *)(device_group + 2) & 2) != 0) {
+            value = 1.0f;
+          }
+          if (*(int *)(unit + 0x1b8) == 0x3f800000 ||
+              (*(unsigned int *)(unit + 0x1c4) & 4) != 0) {
+            value = 0.0f;
+          }
+        }
+        break;
+
+      case 6:
+        if (*(float *)(definition + 0x28c) > 0.0f &&
+            (float)*(short *)(device + 0x1c0) !=
+              *(float *)(definition + 0x28c)) {
+          value =
+            (float)*(short *)(device + 0x1c0) / *(float *)(definition + 0x28c);
+        } else {
+          value = 0.0f;
+        }
+        break;
+      }
+      *out = value;
+    }
+
+    selector = selector + 1;
+    out = out + 1;
+    count = count - 1;
+  } while (count != 0);
+}
+
 /* Drive a device's animation graph from its current position/power values.
  *
  * Original 0x96310. Resolves the object datum to a device (type mask 0x380),

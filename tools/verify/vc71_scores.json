@@ -3629,6 +3629,16 @@
       "score": 97.8,
       "source": "src/halo/cutscene/recorded_animations.c"
     },
+    "FUN_000960c0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/devices/devices.c"
+    },
+    "FUN_000967a0": {
+      "opnd_percent": 96.0,
+      "score": 96.0,
+      "source": "src/halo/devices/devices.c"
+    },
     "FUN_000977e0": {
       "score": 100.0,
       "source": "src/halo/game/editor_stubs.c"
@@ -18355,6 +18365,11 @@
       "score": 93.6,
       "source": "src/halo/memory/crc.c"
     },
+    "create_initial_device_groups": {
+      "opnd_percent": 56.8,
+      "score": 90.5,
+      "source": "src/halo/devices/devices.c"
+    },
     "create_local_players": {
       "score": 99.3,
       "source": "src/halo/main/main.c"
@@ -18739,6 +18754,86 @@
     "destroy_endpoint": {
       "score": 100.0,
       "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
+    },
+    "device_can_change_position": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/devices/devices.c"
+    },
+    "device_delete": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/devices/devices.c"
+    },
+    "device_effect_new": {
+      "opnd_percent": 92.5,
+      "score": 92.5,
+      "source": "src/halo/devices/devices.c"
+    },
+    "device_export_function_values": {
+      "opnd_percent": 90.7,
+      "score": 90.7,
+      "source": "src/halo/devices/devices.c"
+    },
+    "device_get_position": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/devices/devices.c"
+    },
+    "device_get_power": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/devices/devices.c"
+    },
+    "device_group_change_only_once_more_set": {
+      "opnd_percent": 83.7,
+      "score": 88.4,
+      "source": "src/halo/devices/devices.c"
+    },
+    "device_group_get_value": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/devices/devices.c"
+    },
+    "device_group_set_actual_value": {
+      "opnd_percent": 96.3,
+      "score": 97.8,
+      "source": "src/halo/devices/devices.c"
+    },
+    "device_group_set_real": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/devices/devices.c"
+    },
+    "device_new": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/devices/devices.c"
+    },
+    "device_one_sided_set": {
+      "opnd_percent": 90.5,
+      "score": 100.0,
+      "source": "src/halo/devices/devices.c"
+    },
+    "device_operates_automatically_set": {
+      "opnd_percent": 90.5,
+      "score": 100.0,
+      "source": "src/halo/devices/devices.c"
+    },
+    "device_preprocess_node_orientations": {
+      "opnd_percent": 98.7,
+      "score": 98.7,
+      "source": "src/halo/devices/devices.c"
+    },
+    "device_set_never_appears_locked": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/devices/devices.c"
+    },
+    "device_update": {
+      "opnd_percent": 83.3,
+      "score": 93.5,
+      "source": "src/halo/devices/devices.c"
     },
     "display_assert": {
       "opnd_percent": 59.7,
