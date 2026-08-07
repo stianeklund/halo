@@ -2752,6 +2752,68 @@ void FUN_000c2000(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2040 (hs.obj) — HaloScript function handler: deactivate profile sections.
+ *
+ * The exact deactivate twin of FUN_000c2000 above; byte-identical in shape,
+ * differing only in which result-consumer it calls (0x90880
+ * profile_sections_deactivate instead of 0x90860 profile_sections_activate).
+ * Evaluates the macro arguments; while hs_macro_function_evaluate returns NULL
+ * the evaluation is still pending and nothing is committed.  On success the
+ * result record holds a single dword at +0x0 (a profile-section name
+ * substring) which is passed straight through.
+ *
+ * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ESI; no _chkstk, no locals, no FPU,
+ * plain RET so the caller cleans — 0x32 bytes total):
+ *   function_index  int16_t  [EBP+0x08]  -> evaluate arg1 (loaded to ECX)
+ *   thread_datum    int      [EBP+0x0c]  -> evaluate arg2; held in ESI across
+ *                                           the whole body, reused as
+ *                                           hs_return arg1
+ *   init            char     [EBP+0x10]  -> evaluate arg3 (loaded to EAX)
+ *
+ * The evaluate call pushes EAX([+0x10]), ESI([+0x0c]), ECX([+0x08]) and cleans
+ * with ADD ESP,0xc, so its first argument is [EBP+0x08].  The returned EAX is
+ * tested (TEST EAX,EAX / JZ 0xc206f) and then dereferenced at offset 0
+ * (MOV EDX,[EAX]; PUSH EDX) as the single profile_sections_deactivate
+ * argument — the kb decl `int hs_macro_function_evaluate(...)` really returns
+ * a record POINTER, so cast at the call site rather than widening the callee
+ * decl.  hs_return's arg1 comes from the preserved ESI (the ORIGINAL
+ * thread_datum), not from the record.
+ *
+ * The single `ADD ESP,0xc` at 0xc206c is MSVC's merged cleanup for both tail
+ * calls (1 dword + 2 dwords); the ARG_COUNT warning on 0xcbf80 ("cleanup=3 vs
+ * decl=2") is that merge, and the PUSH count proves hs_return still takes
+ * exactly 2 arguments (do NOT "fix" either decl).  Ghidra modeled this
+ * void(void), so the three cdecl params surfaced as in_stack_* — they are
+ * stack args, not @<reg>.
+ *
+ * 0x90880's kb decl was `void profile_sections_deactivate(void)`, which
+ * contradicts the one pushed dword.  Its disassembly settles it: it is
+ * `PUSH EBP; MOV EBP,ESP; PUSH EDI; MOV EDI,[EBP+8]; PUSH 0; CALL 0x907c0;
+ * ADD ESP,4; POP EDI; POP EBP; RET` — one stack argument, forwarded in EDI to
+ * the shared worker 0x907c0, which strcmp/prefix-matches it against the
+ * profile-section name table at 0x3361b4 and stores the pushed enable byte
+ * (0 here, 1 from profile_sections_activate 0x90860) into section+0x8.  The
+ * argument is therefore a name substring, matching the sibling's existing
+ * `const char *` decl; the kb decl is corrected to take it.
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560  = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *              -> int * (result record, NULL on failure)
+ *   0x90880  = profile_sections_deactivate(const char *substring)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c2040(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    profile_sections_deactivate((const char *)result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
