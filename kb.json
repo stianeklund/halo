@@ -10270,7 +10270,9 @@
         },
         {
           "addr": "0xc2080",
-          "decl": "void FUN_000c2080(void);"
+          "decl": "void FUN_000c2080(int16_t function_index, int thread_datum, char init);",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xc20c0",
@@ -12804,7 +12806,7 @@
         },
         {
           "addr": "0xdf350",
-          "decl": "void profile_graph_toggle(void);"
+          "decl": "void profile_graph_toggle(const char *value_name);"
         },
         {
           "addr": "0xdf3d0",

@@ -2814,6 +2814,44 @@ void FUN_000c2040(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2080 (hs.obj) — HaloScript function handler: "profile_graph_toggle".
+ *
+ * Evaluates the macro arguments; on success the result block holds a single
+ * dword at +0x0 which is passed straight through to 0xdf350
+ * (profile_graph_toggle).  0xc209c does `MOV EDX,dword ptr [EAX]; PUSH EDX`
+ * before the CALL, so exactly one argument is passed — Ghidra's decompile
+ * drops it and also mis-prototypes the handler as `void (void)`.  There is no
+ * +0x4 read in this handler.  `thread_datum` is kept in ESI across the whole
+ * body because it is reused by the hs_return tail call.
+ *
+ * The single `ADD ESP,0xc` at 0xc20ac is MSVC's merged cleanup for both tail
+ * calls (1 dword + 2 dwords); hs_return still takes exactly 2 arguments, so
+ * the call-site audit's ARG_COUNT finding on 0xcbf80 is a false positive.
+ *
+ * Argument type is arbitrated from the hs_function_definition record at
+ * 0x271950 (the sole data xref to this handler): name="profile_graph_toggle",
+ * return_type=4 (void), num_params=1, param_types[0]=9 (string).  The pushed
+ * dword is therefore a `const char *` value name, and the kb decl for 0xdf350
+ * is corrected from `(void)` to take it.
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560  = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *              -> int * (result record, NULL on failure)
+ *   0xdf350  = profile_graph_toggle(const char *value_name)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c2080(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    profile_graph_toggle((const char *)result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
