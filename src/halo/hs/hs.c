@@ -2548,6 +2548,41 @@ void FUN_000c1ec0(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc1ee0 — HaloScript script command handler: flush the sound cache, then
+ * complete the calling script thread with the value 0.
+ *
+ * Body is two calls and nothing else — the frame is a bare
+ * PUSH EBP / MOV EBP,ESP with no `sub esp`, so there are no locals at all.
+ * Exact twin of FUN_000c1ec0 immediately above (identical codegen; differs
+ * only in the cache-flush callee).
+ *
+ * 000c1ee3  CALL 0x1be490        ; sound_cache_flush(), no args, no cleanup
+ * 000c1ee8  MOV  EAX,[EBP+0xc]   ; thread_datum (SECOND stack arg)
+ * 000c1eeb  PUSH 0x0             ; value  (cdecl: last arg pushed first)
+ * 000c1eed  PUSH EAX             ; thread_handle
+ * 000c1eee  CALL 0xcbf80         ; hs_return(thread_datum, 0)
+ * 000c1ef3  ADD  ESP,0x8         ; cdecl cleanup, 2 dwords
+ * 000c1ef7  RET                  ; plain RET => cdecl, caller cleans args
+ *
+ * sound_cache_flush takes no arguments and its EAX is never read after the
+ * CALL, so the result is discarded here as well.
+ *
+ * [EBP+0x8] (function_index) and [EBP+0x10] (init) are never read by this
+ * body; they complete the standard hs-evaluator signature shared by every
+ * other handler in this TU (same situation as FUN_000c1ec0 immediately
+ * above).  Ghidra mis-prototypes this as void(void) and reports the
+ * [EBP+0xc] read as the phantom local `in_stack_00000008`.
+ *
+ * Callees (both cdecl, no register args):
+ *   0x1be490 = sound_cache_flush(void)   [not yet ported; called via thunk]
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c1ee0(int16_t function_index, int thread_datum, char init)
+{
+  sound_cache_flush();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
