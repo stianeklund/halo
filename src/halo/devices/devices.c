@@ -249,3 +249,47 @@ float device_group_get_value(int device_group_index)
 
   return *(float *)(device_group + 4);
 }
+
+/* Route a device-group "set real value" request to the concrete device kind.
+ *
+ * Original 0x966d0. The handle is resolved as a device (type mask 0x380) and
+ * the object's 16-bit type field at +0x64 selects the handler:
+ *
+ *   type 7 (machine) -> FUN_00095be0, which re-resolves the same handle with
+ *                       mask 0x80 and loads its 'mach' definition tag.
+ *   type 8 (control) -> FUN_000958f0, which re-resolves with mask 0x100 and
+ *                       loads its 'ctrl' definition tag.
+ *
+ * Any other device type falls through and does nothing.
+ *
+ * The type is read exactly once (MOVSX EAX, word ptr [EAX+0x64]) and both
+ * comparisons run off that single sign-extended register via SUB EAX,7 /
+ * DEC EAX. That lowering is why the selector is a switch rather than an
+ * if-else cascade, and why the local is an int fed by a 16-bit load: the
+ * load stays MOVSX-width, but the compares are done at 32 bits.
+ *
+ * Both handlers are cdecl and take (device_group_handle, unit_handle): each
+ * call site pushes two dwords and cleans 8 bytes. Neither body dereferences
+ * the second argument in this build, but the argument is part of the shared
+ * signature and must still be pushed.
+ *
+ * The accessor result is dereferenced without a NULL check, matching the
+ * original -- no defensive guard is added.
+ */
+void device_group_set_real(int device_group_handle, int unit_handle)
+{
+  int type;
+
+  type =
+    *(short *)((char *)object_get_and_verify_type(device_group_handle, 0x380) +
+               0x64);
+
+  switch (type) {
+  case 7:
+    FUN_00095be0(device_group_handle, unit_handle);
+    break;
+  case 8:
+    FUN_000958f0(device_group_handle, unit_handle);
+    return;
+  }
+}

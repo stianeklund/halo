@@ -21641,7 +21641,7 @@
         },
         {
           "addr": "0x958f0",
-          "decl": "void FUN_000958f0(void);"
+          "decl": "void FUN_000958f0(int device_group_handle, int unit_handle);"
         },
         {
           "addr": "0x95930",
@@ -21669,7 +21669,7 @@
         },
         {
           "addr": "0x95be0",
-          "decl": "void FUN_00095be0(void);"
+          "decl": "void FUN_00095be0(int device_group_handle, int unit_handle);"
         },
         {
           "addr": "0x95c10",
@@ -36875,7 +36875,8 @@
         },
         {
           "addr": "0x966d0",
-          "decl": "void device_group_set_real(int device_group_handle, int unit_handle);"
+          "decl": "void device_group_set_real(int device_group_handle, int unit_handle);",
+          "ported": true
         },
         {
           "addr": "0x96720",
