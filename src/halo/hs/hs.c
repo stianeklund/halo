@@ -3165,6 +3165,71 @@ void FUN_000c2260(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc22a0 (hs.obj) — HaloScript function handler: screen effect fade in.
+ *
+ * Standard macro-function wrapper: hs_macro_function_evaluate() parses and
+ * evaluates the script arguments and returns a pointer to the evaluated
+ * result block (NULL on failure / while the thread is still evaluating).
+ * On success the four fields of that block are handed to
+ * player_effect_screen_fade_in() and the script call returns 0.
+ *
+ * Result block layout (0x0e bytes read, derived from the disassembly):
+ *   +0x00  int     effect / definition handle   (MOV EAX,[EAX])
+ *   +0x04  float   scale a                      (FLD dword [EAX+4])
+ *   +0x08  float   scale b                      (FLD dword [EAX+8])
+ *   +0x0c  uint16  flags / index                (XOR EDX,EDX; MOV DX,[EAX+0xc])
+ *
+ * Disassembly (0xc22a0-0xc22e8, 73 bytes).  PUSH EBP; MOV EBP,ESP; PUSH ESI —
+ * no `sub esp`, so there are no stack locals; ESI is the only callee-saved
+ * register used and caches thread_datum across the first call.  Body:
+ *
+ *   MOV ECX,[EBP+0x8]    ; function_index
+ *   MOV ESI,[EBP+0xc]    ; thread_datum
+ *   MOV EAX,[EBP+0x10]   ; init
+ *   PUSH EAX; PUSH ESI; PUSH ECX
+ *   CALL 0xcc560         ; hs_macro_function_evaluate(fn_index, thread, init)
+ *   ADD ESP,0xc
+ *   TEST EAX,EAX; JZ 0xc22e4  ; EAX is the result-block POINTER
+ *   FLD  dword [EAX+0x8]      ; NOTE: the floats are loaded in the OPPOSITE
+ *   XOR  EDX,EDX              ; order from the stack slots they end up in
+ *   MOV  DX,word [EAX+0xc]
+ *   PUSH EDX                  ; -> [ESP+0xc] = arg 4 (zero-extended uint16)
+ *   SUB  ESP,0x8
+ *   FSTP dword [ESP+0x4]      ; -> arg 3 = *(float *)(result + 2)
+ *   FLD  dword [EAX+0x4]
+ *   MOV  EAX,[EAX]            ; base pointer consumed LAST
+ *   FSTP dword [ESP]          ; -> arg 2 = *(float *)(result + 1)
+ *   PUSH EAX                  ; -> [ESP]   = arg 1 = result[0]
+ *   CALL 0xa2970              ; player_effect_screen_fade_in(...)
+ *   PUSH 0x0; PUSH ESI        ; cdecl: last PUSH is the first C argument
+ *   CALL 0xcbf80              ; hs_return(thread_datum, 0)
+ *   ADD ESP,0x18              ; one coalesced cleanup for BOTH calls (4 + 2)
+ *   POP ESI; POP EBP; RET
+ *
+ * The Ghidra decompile prototyped this as `void FUN_000c22a0(void)` with
+ * `in_stack_*` phantoms and rendered the middle call as `FUN_000a2970()` with
+ * no arguments — it dropped all four (both floats are hidden behind the
+ * PUSH/FSTP idiom).  The ARG_COUNT hazard on hs_return (cleanup=6 vs decl=2)
+ * is a false positive from the single merged `ADD ESP,0x18`.
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0xa2970 = player_effect_screen_fade_in(effect, scale_a, scale_b, flags)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c22a0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result = (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    player_effect_screen_fade_in(result[0], *(float *)(result + 1),
+                                 *(float *)(result + 2),
+                                 *(uint16_t *)(result + 3));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
