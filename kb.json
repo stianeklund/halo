@@ -36860,7 +36860,8 @@
         },
         {
           "addr": "0x96630",
-          "decl": "void device_operates_automatically_set(int object_list, char operates_automatically);"
+          "decl": "void device_operates_automatically_set(int object_list, char operates_automatically);",
+          "ported": true
         },
         {
           "addr": "0x96670",

@@ -2910,6 +2910,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x964d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x96630": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Machine flags bit 0 at object+0x1c4 means 'does NOT operate automatically': a zero operates_automatically argument SETS the bit and a non-zero argument CLEARS it, so the parameter polarity is inverted relative to the stored flag."
+      ]
+    },
     "0x971a0": {
       "kind": "function",
       "status": "ported"

@@ -152,3 +152,40 @@ void device_set_never_appears_locked(int object_index,
 
   *(unsigned int *)(machine + 0x1c4) &= 0xfffffffb;
 }
+
+/* Set or clear a machine's "operates automatically" behaviour.
+ *
+ * Original 0x96630. Resolves the object with type mask 0x80 (machine) using
+ * the _try_ accessor, so a live handle that is not a machine yields NULL and
+ * the call is a no-op. Unlike device_set_never_appears_locked there is no
+ * NONE-sentinel early-out; the handle goes straight to the accessor.
+ *
+ * The polarity is INVERTED with respect to the parameter: bit 0 of the machine
+ * flags dword at +0x1c4 means "does NOT operate automatically", so a zero
+ * argument SETS the bit and a non-zero argument CLEARS it. Sibling setters
+ * drive bit 1 (one sided) and bit 2 (never appears locked) of the same word.
+ *
+ * The flags word is loaded once, above the branch, and each arm performs a
+ * single store (the original hoists MOV ECX,[EAX+0x1c4] between the byte
+ * TEST and the conditional jump).
+ */
+void device_operates_automatically_set(int object_list,
+                                       char operates_automatically)
+{
+  char *machine;
+  unsigned int flags;
+
+  machine = (char *)object_try_and_get_and_verify_type(object_list, 0x80);
+  if (machine == (char *)0) {
+    return;
+  }
+
+  flags = *(unsigned int *)(machine + 0x1c4);
+
+  if (operates_automatically == '\0') {
+    *(unsigned int *)(machine + 0x1c4) = flags | 1;
+    return;
+  }
+
+  *(unsigned int *)(machine + 0x1c4) = flags & 0xfffffffe;
+}
