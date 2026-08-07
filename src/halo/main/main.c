@@ -3005,8 +3005,16 @@ void main_start_time(void)
  * is the string's ADDRESS, not its bytes, and the DIR32 relocation against the
  * literal is the function's only relocation. The store must stay volatile so
  * the compiler cannot discard it as undefined behaviour.
+ *
+ * Takes one cdecl argument that the body deliberately ignores. Evidence: the
+ * function has exactly one call site in the whole XBE (0xc1def, the HaloScript
+ * `crash` builtin at 0xc1dd0), and that site pushes one dword -- the string
+ * the script passed -- before the CALL. A cdecl parameter that the callee
+ * never reads produces byte-identical codegen to no parameter at all, so the
+ * two-instruction body is not evidence against the argument; the caller's PUSH
+ * is evidence for it.
  */
-void main_crash(void)
+void main_crash(const char *reason)
 {
   *(const char *volatile *)0 = "chucky was here!  NULL belongs to me!!!!!";
 }
