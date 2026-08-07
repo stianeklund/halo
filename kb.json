@@ -36853,7 +36853,8 @@
         },
         {
           "addr": "0x96510",
-          "decl": "void device_group_set_actual_value(int device_group_index, float value);"
+          "decl": "void device_group_set_actual_value(int device_group_index, float value);",
+          "ported": true
         },
         {
           "addr": "0x965f0",

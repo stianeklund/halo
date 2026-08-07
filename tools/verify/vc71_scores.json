@@ -2214,7 +2214,8 @@
       "source": "src/halo/ai/ai_profile.c"
     },
     "FUN_00055350": {
-      "score": 94.2,
+      "opnd_percent": 80.4,
+      "score": 96.3,
       "source": "src/halo/ai/ai_profile.c"
     },
     "FUN_00055620": {

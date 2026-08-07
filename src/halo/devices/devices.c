@@ -173,6 +173,68 @@ void device_set_never_appears_locked(int object_index,
   *(unsigned int *)(machine + 0x1c4) &= 0xfffffffb;
 }
 
+/* Drive a device group to a new actual value and propagate it to its members.
+ *
+ * Original 0x96510. The incoming value is first clamped into the closed range
+ * spanned by the two shared float constants at 0x2533c0 (reads 0.0f) and
+ * 0x2533c8 (reads 1.0f). Both bounds are strict: the lower test is
+ * FCOMP/TEST AH,5/JP (taken when value < lo, so equality keeps the value) and
+ * the upper test is FCOMP/TEST AH,0x41/JNZ (skipped on <= or NaN, so only a
+ * value strictly greater than hi is pinned). The clamped result is written
+ * back over the parameter slot as a raw dword before anything else runs.
+ *
+ * The group record is resolved out of the device-group data array at 0x5aa8c8
+ * and its value field at +0x04 is updated. The index is 16 bits throughout:
+ * the original keeps it in SI (MOV SI, word ptr [EBP+8]) and sign-extends it
+ * only for the datum_get argument; every later comparison is a 16-bit
+ * CMP word ptr against SI.
+ *
+ * Every live device object (type mask 0x380) is then walked. A device carries
+ * two independent device-group attachments -- (index +0x1a8, value +0x1ac,
+ * companion +0x1b0) and (index +0x1b4, value +0x1b8, companion +0x1bc) -- and
+ * both are tested against this group, so one object can be driven twice in a
+ * single pass. Each match sets bit 2 of the object's device flags dword at
+ * +0x1a4, stores the clamped value, and zeroes the companion dword (a change
+ * request, whose exact meaning is unproven). The iterator is advanced once
+ * before the loop guard, giving the original's do/while shape.
+ */
+void device_group_set_actual_value(int device_group_index, float value)
+{
+  short index;
+  char *device_group;
+  int iterator[4];
+  char *object;
+
+  index = (short)device_group_index;
+
+  if (value < *(float *)0x2533c0) {
+    value = 0.0f;
+  } else if (value > *(float *)0x2533c8) {
+    value = 1.0f;
+  }
+
+  device_group = (char *)datum_get(*(data_t **)0x5aa8c8, index);
+  *(float *)(device_group + 4) = value;
+
+  object_iterator_new(iterator, 0x380, 0);
+  object = (char *)object_iterator_next(iterator);
+  while (object != (char *)0) {
+    if (*(short *)(object + 0x1a8) == index) {
+      *(unsigned int *)(object + 0x1a4) |= 4;
+      *(float *)(object + 0x1ac) = value;
+      *(unsigned int *)(object + 0x1b0) = 0;
+    }
+
+    if (*(short *)(object + 0x1b4) == index) {
+      *(unsigned int *)(object + 0x1a4) |= 4;
+      *(float *)(object + 0x1b8) = value;
+      *(unsigned int *)(object + 0x1bc) = 0;
+    }
+
+    object = (char *)object_iterator_next(iterator);
+  }
+}
+
 /* Set or clear a machine's "operates automatically" behaviour.
  *
  * Original 0x96630. Resolves the object with type mask 0x80 (machine) using

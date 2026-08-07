@@ -1175,7 +1175,7 @@ int FUN_00055350(unsigned int ai_ref, int *out_min, int *out_handle,
                  int count_type /* @<edi> */)
 {
   int ret_val; /* [ebp-0x4], EAX result */
-  int handle_val; /* [ebp-0x8], flows to *out_handle */
+  volatile int handle_val; /* [ebp-0x8], flows to *out_handle */
   int min_val; /* EBX, flows to *out_min */
   void *scenario;
   void *element;
