@@ -10336,7 +10336,9 @@
         },
         {
           "addr": "0xc22f0",
-          "decl": "void FUN_000c22f0(void);"
+          "decl": "void FUN_000c22f0(int16_t function_index, int thread_datum, char init);",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xc2340",
@@ -16858,7 +16860,7 @@
         },
         {
           "addr": "0xa29c0",
-          "decl": "void player_effect_screen_fade_out(void);"
+          "decl": "void player_effect_screen_fade_out(int effect_definition, float scale_a, float scale_b, uint16_t flags_or_index);"
         },
         {
           "addr": "0xa2a10",

@@ -6605,6 +6605,286 @@
       "score": 100.0,
       "source": "src/halo/hs/hs.c"
     },
+    "FUN_000c1780": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c17c0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c17f0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1810": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1830": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1870": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c18b0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c18d0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1900": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1930": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1950": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1990": {
+      "opnd_percent": 71.0,
+      "score": 93.5,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c19e0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1a00": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1a30": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1a60": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1a90": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1ac0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1af0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1b20": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1b50": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1b80": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1bb0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1be0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1c10": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1c40": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1c70": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1cb0": {
+      "opnd_percent": 94.1,
+      "score": 94.1,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1cf0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1d10": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1d50": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1d90": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1dd0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1e10": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1e50": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1e80": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1ea0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1ec0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1ee0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1f00": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1f20": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1f40": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1fa0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c1fc0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c2000": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c2040": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c2080": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c20c0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c2160": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c2180": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c21a0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c21e0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c2220": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c2260": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c22a0": {
+      "opnd_percent": 85.2,
+      "score": 85.2,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c22f0": {
+      "opnd_percent": 85.2,
+      "score": 85.2,
+      "source": "src/halo/hs/hs.c"
+    },
     "FUN_000c4b40": {
       "score": 100.0,
       "source": "src/halo/hs/hs.c"
