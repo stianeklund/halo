@@ -2846,9 +2846,19 @@
       "score": 100.0,
       "source": "src/halo/bitmaps/bitmaps.c"
     },
+    "FUN_0007f570": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/bitmaps/tiff_file.c"
+    },
     "FUN_0007f5e0": {
       "opnd_percent": 47.5,
       "score": 82.6,
+      "source": "src/halo/bitmaps/tiff_file.c"
+    },
+    "FUN_0007fa00": {
+      "opnd_percent": 65.2,
+      "score": 93.4,
       "source": "src/halo/bitmaps/tiff_file.c"
     },
     "FUN_0007ff40": {
@@ -25238,6 +25248,18 @@
     "tiff_export": {
       "opnd_percent": 47.5,
       "score": 82.6,
+      "source": "src/halo/bitmaps/tiff_file.c"
+    },
+    "tiff_get_bounds": {
+      "opnd_percent": 93.3,
+      "ref": "synth",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/tiff_file.c"
+    },
+    "tiff_import": {
+      "opnd_percent": 61.9,
+      "ref": "synth",
+      "score": 93.4,
       "source": "src/halo/bitmaps/tiff_file.c"
     },
     "transition_function_evaluate": {

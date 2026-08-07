@@ -6679,7 +6679,7 @@
         {
           "addr": "0x9ca70",
           "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+          "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
           "ported": true
         },
         {
@@ -6740,7 +6740,7 @@
         {
           "addr": "0x9dcf0",
           "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-          "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+          "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
           "ported": true
         },
         {
@@ -7346,7 +7346,7 @@
         },
         {
           "addr": "0x19ac00",
-          "decl": "void file_write(void);"
+          "decl": "bool file_write(file_ref_t *info, int size, const void *buffer);"
         },
         {
           "addr": "0x19acb0",
@@ -24817,12 +24817,9 @@
     {
       "functions": [
         {
-          "addr": "0x7f3a0",
-          "decl": "void targa_export(void);"
-        },
-        {
           "addr": "0x7f570",
-          "decl": "void tiff_get_bounds(void);"
+          "decl": "bool tiff_get_bounds(file_ref_t *info, int *width_out, int *height_out);",
+          "ported": true
         },
         {
           "addr": "0x7f5e0",
@@ -24831,7 +24828,8 @@
         },
         {
           "addr": "0x7fa00",
-          "decl": "void FUN_0007fa00(void);"
+          "decl": "const char *tiff_import(file_ref_t *info, void **bitmap_out, int16_t *bounds_opt, int16_t format);",
+          "ported": true
         }
       ],
       "name": "tiff_file.obj",
@@ -29156,11 +29154,11 @@
         },
         {
           "addr": "0x108a10",
-          "decl": "void FUN_00108a10(void);"
+          "decl": "int FUN_00108a10(const int16_t *rect);"
         },
         {
           "addr": "0x108a30",
-          "decl": "void FUN_00108a30(void);"
+          "decl": "int FUN_00108a30(const int16_t *rect);"
         },
         {
           "addr": "0x108a50",
@@ -33468,7 +33466,7 @@
         },
         {
           "addr": "0x64ec0",
-          "decl": "void FUN_00064ec0(void);"
+          "decl": "int FUN_00064ec0(int file, int field, void *value);"
         },
         {
           "addr": "0x64f50",
@@ -33531,7 +33529,7 @@
       "functions": [
         {
           "addr": "0x659f0",
-          "decl": "void TIFFSetField(int file, int field, int value);"
+          "decl": "int TIFFSetField(int file, int field, ...);"
         },
         {
           "addr": "0x65a70",
@@ -33543,7 +33541,7 @@
         },
         {
           "addr": "0x65e90",
-          "decl": "void TIFFGetField(void);"
+          "decl": "int TIFFGetField(int file, int field, ...);"
         },
         {
           "addr": "0x65f00",
@@ -33977,7 +33975,7 @@
         },
         {
           "addr": "0x6d820",
-          "decl": "void TIFFScanlineSize(void);"
+          "decl": "int TIFFScanlineSize(int file);"
         },
         {
           "addr": "0x6d850",
@@ -34100,7 +34098,7 @@
         },
         {
           "addr": "0x6f040",
-          "decl": "void FUN_0006f040(void);"
+          "decl": "int FUN_0006f040(int file, void *buf, int row, int sample);"
         },
         {
           "addr": "0x6f0d0",
@@ -39551,6 +39549,17 @@
           "ported": true
         }
       ]
+    },
+    {
+      "functions": [
+        {
+          "addr": "0x7f3a0",
+          "decl": "const char *targa_export(file_ref_t *file, __int16 *bitmap);",
+          "ported": true
+        }
+      ],
+      "name": "targa_file.obj",
+      "source": "bitmaps/targa_file.c"
     }
   ],
   "0x1a080": {

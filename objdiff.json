@@ -8534,6 +8534,14 @@
       "metadata": {
         "source_path": "src/halo/bungie_net/64bit_math.c"
       }
+    },
+    {
+      "name": "halo/targa_export",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/bitmaps/targa_file.c.obj",
+      "base_path": "delinked/functions/0007f3a0.obj",
+      "metadata": {
+        "source_path": "src/halo/bitmaps/targa_file.c"
+      }
     }
   ]
 }

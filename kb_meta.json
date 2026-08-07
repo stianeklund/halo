@@ -2007,7 +2007,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x7f3a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7f570": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x7f5e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7fa00": {
       "kind": "function",
       "status": "ported"
     },
@@ -2058,6 +2070,10 @@
         "The accumulator is seeded with the literal values 0,1,2,3,4,5,6 (verified byte-for-byte as C7 45 dc 00000000 / C7 45 e0 01000000 / ... at 0x800e1-0x80112, not a decompiler artifact), so every result limb above limb 0 is offset by its seed and the routine does not compute a correct product; whether this is unfinished scaffolding or a shipped bug is unknown, and no caller was traced to confirm the 2276 beta ever exercises it.",
         "The dwords at EBP-0x4 and EBP-0x8 holding b[2] and b[3] are modelled as compiler spills of LICM-hoisted b[j] loads rather than named source locals; the lift declares no b-limb variables and VC71 reproduces the slots on its own, but a source form with explicit b0..b3 locals cannot be ruled out."
       ]
+    },
+    "0x80210": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x803d0": {
       "kind": "function",
