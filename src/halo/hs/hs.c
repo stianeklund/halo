@@ -3857,6 +3857,45 @@ void FUN_000c2580(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, value);
 }
 
+/* 0xc25b0 — HS script function handler: query whether the current game is
+ * running in cooperative mode and return that boolean to the calling script
+ * thread.
+ *
+ * Structurally identical to 0xc2580 and 0xc2550 directly above: the builtin
+ * takes no script arguments, so there is no hs_macro_function_evaluate call
+ * and no result-record null check.  Only the queried predicate differs.
+ *
+ * Callees (both cdecl, ported):
+ *   0xa7690 = game_is_cooperative(void) -> bool in AL
+ *   0xcbf80 = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc25b0-0xc25d6, 15 instructions): cdecl,
+ * plain RET (caller cleans; `ADD ESP,8` after the hs_return call covers its
+ * two cdecl args).  The body reads only [EBP+0xc] = thread_datum (arg 2);
+ * function_index ([EBP+8]) and init ([EBP+0x10]) complete the standard
+ * hs-evaluator signature but are never referenced here.  Keeping them in the
+ * prototype is what puts thread_datum at the correct offset.
+ *
+ * The single 4-byte local (frame is `PUSH ECX`, no `sub esp`) is zeroed as a
+ * full dword BEFORE the call (MOV dword [EBP-4],0), then only its low byte is
+ * overwritten with AL (MOV byte [EBP-4],AL) and the whole dword reloaded (MOV
+ * EAX,[EBP-4]) — the type-pun widening idiom, not a movzx conversion.
+ * Declaring the local as bool/char would drop the dword zeroing and lose the
+ * match.
+ *
+ * `MOV ECX,[EBP+0xc]` is scheduled before the AL store; that is instruction
+ * scheduling, not argument order.  Push order is PUSH EAX (value) then PUSH
+ * ECX (thread_datum), so under cdecl right-to-left the call is
+ * hs_return(thread_datum, value). */
+void FUN_000c25b0(int16_t function_index, int thread_datum, char init)
+{
+  int value;
+
+  value = 0;
+  *(bool *)&value = game_is_cooperative();
+  hs_return(thread_datum, value);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script

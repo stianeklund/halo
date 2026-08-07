@@ -10420,7 +10420,8 @@
         },
         {
           "addr": "0xc25b0",
-          "decl": "void FUN_000c25b0(void);"
+          "decl": "void FUN_000c25b0(int16_t function_index, int thread_datum, char init);",
+          "ported": true
         },
         {
           "addr": "0xc25e0",
