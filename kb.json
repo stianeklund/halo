@@ -39541,7 +39541,8 @@
         },
         {
           "addr": "0x80070",
-          "decl": "void FUN_00080070(void);"
+          "decl": "void math64_subtract(const uint16_t *a, const uint16_t *b, uint16_t *result);",
+          "ported": true
         },
         {
           "addr": "0x800d0",

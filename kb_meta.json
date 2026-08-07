@@ -2036,6 +2036,17 @@
         "audit_reg_abi.py --caller-disasm-file raises a false-positive \u00a710 REG_ORDER error claiming ESI carries param_2 where kb.json expects param_0; the heuristic assumes a caller forwards its own parameter N to the callee's argument N, but FUN_00080070 deliberately passes its own b (param_2) as the callee's a, and FUN_00080210 passes its param_1, so the two call sites contradict each other. The default gate path (no caller-disasm file) reports zero errors and zero warnings."
       ]
     },
+    "0x80070": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Name math64_subtract is inferred from behaviour (result = a + (-b) via math64_negate then math64_add) and the TU's math64_* naming pattern; the original symbol name is not present in the binary."
+      ],
+      "uncertain": [
+        "No CALL-instruction xref exists for 0x80070; the only reference is a data/pointer-table entry at 0x32ff58, so the function's actual use in the 2276 beta is unproven and it may be unexercised bungie_net Xbox Live support code.",
+        "VC71 match is capped at 90.9%: the reference calls math64_negate with its two arguments in ESI/EBX (an MSVC LTCG custom convention that cannot be expressed in source, since __fastcall is ECX/EDX), so our compile emits two extra pushes; the residual gap is that plus one result-register allocation choice, not a structural defect."
+      ]
+    },
     "0x800d0": {
       "kind": "function",
       "status": "ported",

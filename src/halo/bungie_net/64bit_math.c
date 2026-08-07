@@ -4,7 +4,7 @@
  *
  * Confirmed TU identity: the assert at 0x7ff5f pushes the __FILE__ string at
  * 0x265a54, "c:\halo\SOURCE\bungie_net\common\64bit_math.c". The neighbouring
- * unported functions 0x7ffe0 / 0x80070 / 0x800d0 share that string (0x265a81,
+ * functions 0x7ffe0 / 0x80070 / 0x800d0 share that string (0x265a81,
  * "a && result", is one of their assert messages), so they belong here too.
  *
  * Operands are 4-element arrays of 16-bit limbs in little-endian order
@@ -12,17 +12,16 @@
  * MOVZX of a `word ptr` at +0/+2/+4/+6 and every store is a 16-bit
  * `MOV word ptr [dst+N], AX`.
  *
- * NOTE: kb.json currently files 0x7ff40 under the object label "tiff_file.obj".
- * That label is an adjacent-linkage grouping artifact, not the real TU — these
- * are 64bit_math.c functions. Because of it, `maintain.py` (which derives the
- * expected source file from the kb object -> source mapping) will try to move
- * this function into src/halo/bitmaps/tiff_file.c. Splitting a real
- * "64bit_math.obj" entry out of tiff_file.obj is the proper fix and is left to
- * a dedicated kb.json object-partition change.
+ * NOTE (resolved): these functions were originally filed under the object
+ * label "tiff_file.obj", an adjacent-linkage grouping artifact that made
+ * `maintain.py` try to move them into src/halo/bitmaps/tiff_file.c. kb.json
+ * now carries a real "64bit_math.obj" entry mapped to this file, so that no
+ * longer applies.
  *
  * Re-implemented functions (by XBE address, ascending):
  *   0x7ff40  math64_add
  *   0x7ffe0  math64_negate
+ *   0x80070  math64_subtract
  *   0x800d0  math64_multiply
  */
 
@@ -138,6 +137,55 @@ void math64_negate(const uint16_t *a, uint16_t *result)
       borrow = 1;
     }
   }
+}
+
+/* 64-bit subtract: result = a - b, implemented as a + (-b).
+ *
+ * Confirmed (0x80070-0x800ca):
+ *  - cdecl, three stack pointer args: a @[EBP+8]->EDI, b @[EBP+0xc]->ESI,
+ *    result @[EBP+0x10]. Bare `RET` with no immediate, so the caller cleans;
+ *    no register args of its own and no return value.
+ *  - Guard order is TEST EDI (a) / TEST ESI (b) / TEST EAX (result), so the
+ *    assert condition is `a && b && result`. The failure block at 0x8008e
+ *    pushes 0x265a40 "a && b && result", 0x265a54 (the 64bit_math.c __FILE__
+ *    string), line 0x4f and TRUE into display_assert, then system_exit(-1).
+ *  - `SUB ESP,0x8` (0x80073) reserves exactly one 8-byte local at EBP-0x8.
+ *    Eight bytes is four 16-bit limbs, which independently corroborates the
+ *    limb layout the rest of this TU uses.
+ *  - 0x800ab-0x800ae is the register-argument call into math64_negate:
+ *    ESI already holds b (loaded at 0x80078, never rewritten on the path to
+ *    the call) and `LEA EBX,[EBP-0x8]` points at the scratch, i.e.
+ *    math64_negate(b, negated_b) — it is `b` that gets negated, not `a`.
+ *  - 0x800b3-0x800c1 is the cdecl call into math64_add, pushed in reverse
+ *    argument order: PUSH EAX = [EBP+0x10] (result), PUSH ECX = LEA [EBP-0x8]
+ *    (the scratch), PUSH EDI = [EBP+8] (a), then `ADD ESP,0xc` for the three
+ *    dwords. So math64_add(a, negated_b, result), and negate strictly precedes
+ *    add.
+ *  - EDI is loaded at 0x8007c and consumed 15 instructions later at 0x800bb
+ *    with no intervening write; likewise ESI from 0x80078 to the call at
+ *    0x800ae. Neither is a decompiler register-aliasing artifact.
+ *
+ * Note that because math64_negate is a true two's-complement negate (see
+ * above), this is a correct modular subtract — unlike math64_multiply, whose
+ * seeded accumulator makes it produce wrong products.
+ *
+ * Match note: the call into math64_negate is the whole gap. The reference
+ * passes its two arguments in ESI/EBX, which is an MSVC LTCG custom calling
+ * convention we cannot ask VC71 to reproduce from source (`__fastcall` is
+ * ECX/EDX, not ESI/EBX), so our compile necessarily emits a two-push cdecl
+ * call plus the register loads the reference folds away. This is the known
+ * @<reg>-call-site ceiling, not a structural defect in the lift. Behaviour is
+ * proven separately by unicorn equivalence.
+ */
+void math64_subtract(const uint16_t *a, const uint16_t *b, uint16_t *result)
+{
+  uint16_t negated_b[4];
+
+  assert_halt_at("c:\\halo\\SOURCE\\bungie_net\\common\\64bit_math.c", 0x4f,
+                 a && b && result);
+
+  math64_negate(b, negated_b);
+  math64_add(a, negated_b, result);
 }
 
 /* 64-bit unsigned multiply: result = a * b, schoolbook over four 16-bit limbs.

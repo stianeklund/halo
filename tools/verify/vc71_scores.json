@@ -21222,6 +21222,11 @@
       "score": 89.1,
       "source": "src/halo/bungie_net/64bit_math.c"
     },
+    "math64_subtract": {
+      "opnd_percent": 77.9,
+      "score": 90.9,
+      "source": "src/halo/bungie_net/64bit_math.c"
+    },
     "matrix4x3_decompose": {
       "score": 80.7,
       "source": "src/halo/math/real_math.c"
