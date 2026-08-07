@@ -74,6 +74,21 @@ const M = {
   reason:     { model: 'opus',  effort: 'high' },  // lift, review
   improve:    { model: IMPROVE_MODEL, effort: IMPROVE_EFFORTS[0] },  // improve-pass base rung
 }
+// --reviewEffort: A/B lever for reviewer cost (docs/plans/agent-model-routing-2026-08.md
+// §6/§7.4). The review gate is fail-closed CLASSIFICATION of evidence that other
+// tools already produced (VC71/objdiff/hazard/ABI -> AUTO_ACCEPT | NEEDS_RUNTIME |
+// REJECT), not open-ended reasoning, so it may not need M.reason's 'high'. Default
+// stays 'high': measure false-accept/false-reject over a full session before
+// lowering it — one bad accept costs far more than the effort saved.
+const REVIEW_EFFORTS_OK = ['low', 'medium', 'high', 'xhigh', 'max']
+const REVIEW_EFFORT = (() => {
+  const raw = (args && args.reviewEffort) ? String(args.reviewEffort).trim() : 'high'
+  if (!REVIEW_EFFORTS_OK.includes(raw)) {
+    log(`--reviewEffort "${raw}" is not one of ${REVIEW_EFFORTS_OK.join('/')} — using high`)
+    return 'high'
+  }
+  return raw
+})()
 
 // --objects: hard allowlist, enforced in code (not just prompted) — see the
 // filter applied to selection.targets below.
@@ -699,6 +714,42 @@ if you simply ran out of applicable levers), cap_reason (the ceiling's rule id
 when capped is true, else empty string), reason (short: which lever(s) you
 kept, and why — capped or not).`
 
+// Recipe-atlas short-circuit (docs/plans/agent-model-routing-2026-08.md §5/§7.2).
+// vc71_verify's _classify_score_context() writes classification[].rule into
+// artifacts/score_context/<name>.json, and those rule ids map 1:1 onto the
+// lift-score-improve recipe atlas — i.e. the remaining gap is already NAMED and
+// the fix is mechanical. This prompt is the cheap-tier "apply exactly what the
+// classifier said" pass; anything not already classified belongs to the ladder.
+// The pack read is the FIRST and possibly ONLY command, so a missing pack or an
+// empty classification costs one short turn.
+const atlasLeverPrompt = (name, addr, obj, srcFile, priorScore) =>
+  `${AGENT_RULES}
+
+Apply the ALREADY-CLASSIFIED score-recovery lever(s) for ${name} at ${addr}
+(object: ${obj}). Source: ${srcFile} | Current score: ${priorScore}%.
+
+FIRST, run exactly one command — read the existing score-context pack:
+  rtk jq '{scores, frame, classification}' artifacts/score_context/${name}.json
+If that file is missing, or classification is empty/null, or every entry is a
+documented ceiling (regarg_structural_ceiling, anchor_collapse), STOP
+IMMEDIATELY and return vc71_score ${priorScore}, improved false, reason
+"no_atlas_rule". Do NOT open the source, do NOT run any other command — the
+escalation ladder handles that case and is about to.
+
+Otherwise this is a mechanical atlas hit. Apply ONLY the levers the pack names
+(classification[].rule / .action — fpu_operand_order, loadw_field_width,
+imm_wrong_literal, fcom_bound_sense, frame_mismatch, chkstk_static_buffer, ...),
+one lever at a time, re-measuring each with the fast single-function path:
+  rtk python3 tools/verify/vc71_verify.py ${srcFile} -f ${name} --no-cache
+Keep a change only if it raised the score; revert it otherwise. Do NOT invent
+levers beyond the classified ones, do NOT refactor or rename, do NOT commit, do
+NOT run the review gate. Never submit a score below ${priorScore}%.
+
+Return: vc71_score (final, from the closing verify), improved (bool vs
+${priorScore}%), capped (bool — true ONLY for a documented non-recoverable
+ceiling), cap_reason (that ceiling's rule id when capped, else empty string),
+reason (which rule ids you applied and kept, or "no_atlas_rule").`
+
 const equivalencePrompt = (name) =>
   `${AGENT_RULES}
 
@@ -901,7 +952,8 @@ async function reviewThenCommit(brief, score, srcFile, path, phaseTitle, preEqui
   if (havePreEquiv) path = `${path}${equivNote(preEquiv.equiv_confidence, preEquiv.equiv_reason)}`
   let review = await agent(reviewPrompt(brief, score, srcFile, path), {
     label: `review:${brief.name}`, phase: phaseTitle,
-    agentType: 'xbox-halo-lift-reviewer', ...M.reason, schema: REVIEW_SCHEMA,
+    // Model stays M.reason's; effort is the --reviewEffort A/B lever (see above).
+    agentType: 'xbox-halo-lift-reviewer', model: M.reason.model, effort: REVIEW_EFFORT, schema: REVIEW_SCHEMA,
   })
   if (!review) return { committed: false, verdict: 'infra_blocked', rationale: 'review_agent_returned_null' }
 
@@ -1598,6 +1650,37 @@ while (true) {
   // explicit and logged, not an opaque model boolean.
   const treatAsCapped = a1.capped === true
   const capProvenance = a1.cap_confidence === 'high' ? 'deterministic(classify_cap.py)' : 'agent-judgment'
+
+  // ── Atlas-rule short-circuit (docs/plans/agent-model-routing-2026-08.md §5,
+  // §7.2). When the score-context classifier already produced a concrete recipe-
+  // atlas rule id for this function, the remaining gap is a KNOWN mechanical
+  // lever, not open-ended reasoning — apply it once at the cheap M.extract tier
+  // before paying for an optimizer rung. Deliberately placed BEFORE the budget /
+  // MAX_ESCALATIONS gate below and it does NOT increment escalationsThisRun: a
+  // classified lever costs a fraction of a rung, so charging it a slot would let
+  // the cheapest fixes crowd out the expensive ones. Clearing the bar here drops
+  // straight through to the commit gate; a partial gain simply becomes the
+  // ladder's new baseline for rung-gain comparison. The agent self-aborts after
+  // one jq when the pack is missing or names no rule, and the try/catch means a
+  // missing/unparseable pack can never fail the loop.
+  if (band === 'fail_check_cap' && !treatAsCapped) {
+    try {
+      const al = await agent(atlasLeverPrompt(brief.name, brief.addr, brief.obj, srcFile, score), {
+        label: `atlas-lever:${brief.name}`, phase: 'Lift', agentType: 'vc71-match-optimizer', ...M.extract, schema: MATCH_OPTIMIZER_SCHEMA,
+      })
+      if (al && typeof al.vc71_score === 'number' && al.vc71_score > score) {
+        score  = al.vc71_score
+        band   = classifyBand(score)
+        path   = `${path}+atlas-lever`
+        lastME = M.extract
+        lift   = { ...lift, reason: al.reason || lift.reason }
+        log(`  ${brief.name} atlas-lever (${M.extract.model}-${M.extract.effort}) → ${score}%${band === 'fail_check_cap' ? ' (still sub-bar — ladder continues from here)' : ' — cleared the bar, no escalation slot charged'}`)
+      }
+    } catch (e) {
+      log(`  ${brief.name} atlas-lever skipped: ${(e && e.message) || e}`)
+    }
+  }
+
   if (band === 'fail_check_cap' && !treatAsCapped) {
     // Escalation caps (token discipline): the tune below can climb an effort
     // ladder (several optimizer passes), so bound both how many targets enter
