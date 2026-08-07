@@ -4877,7 +4877,7 @@
         },
         {
           "addr": "0x930b0",
-          "decl": "void cinematic_set_title_delayed(void);"
+          "decl": "void cinematic_set_title_delayed(int index, float value);"
         },
         {
           "addr": "0x93140",
@@ -10378,7 +10378,9 @@
         },
         {
           "addr": "0xc2440",
-          "decl": "void FUN_000c2440(void);"
+          "decl": "void FUN_000c2440(int16_t function_index, int thread_datum, char init);",
+          "ported": true,
+          "source_path": "src/halo/hs/hs.c"
         },
         {
           "addr": "0xc2480",

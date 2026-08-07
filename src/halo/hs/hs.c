@@ -3559,6 +3559,80 @@ void FUN_000c2400(int16_t function_index, int thread_datum, char init)
   return;
 }
 
+/* 0xc2440 (hs.obj) — HaloScript handler: evaluate the macro-function argument
+ * and forward its two-field result record to cinematic_set_title_delayed.
+ *
+ * Same shape as the siblings at 0xc23c0 (byte field) and 0xc2400 (word field),
+ * but the first handler in this cluster that forwards a FLOAT out of the
+ * result record: the argument is evaluated, a NULL result means "still
+ * evaluating" and the handler returns without completing the thread, and a
+ * non-NULL result is dereferenced twice and forwarded before the thread is
+ * completed with 0.
+ *
+ * Disassembly (27 instructions, 0xc2440-0xc247b).  Frame is PUSH EBP;
+ * MOV EBP,ESP; PUSH ESI — no `sub esp`, no locals, no buffers, no SEH, no
+ * _chkstk, no register args.  Plain cdecl RET (no RET n).  Parameters
+ * (cdecl, first PUSH is the last C argument):
+ *
+ *   [EBP+0x08] = function_index (int16_t; loaded into ECX as a dword)
+ *   [EBP+0x0c] = thread_datum   (int; cached in ESI across the whole body,
+ *                                the natural codegen for a param read twice)
+ *   [EBP+0x10] = init           (char; loaded into EAX as a dword)
+ *
+ *   0xc2450  PUSH EAX / PUSH ESI / PUSH ECX ; CALL 0xcc560 ; ADD ESP,0xc
+ *            -> hs_macro_function_evaluate(function_index, thread_datum, init)
+ *               The un-merged 0xc cleanup confirms the 3-param cdecl decl.
+ *            TEST EAX,EAX ; JZ 0xc2479
+ *            -> EAX is DEREFERENCED below, so 0xcc560's result is a POINTER
+ *               to the evaluated result record and the TEST is a NULL test.
+ *   0xc2460  FLD dword ptr [EAX+0x4]   ; float field at record +0x4
+ *            XOR EDX,EDX ; MOV DX,[EAX]; ZERO-extended 16-bit field at +0x0.
+ *               Unlike the sibling handler at 0xbe030 (which uses MOVSX), this
+ *               is an unsigned widening, so the load must be uint16_t.
+ *   0xc2469  PUSH ECX                  ; dummy dword slot; ECX is irrelevant
+ *            FSTP dword ptr [ESP]      ; the real arg2 = record float @ +0x4
+ *            PUSH EDX                  ; arg1 = record u16 @ +0x0
+ *            CALL 0x930b0              ; cinematic_set_title_delayed
+ *   0xc2471  PUSH 0x0 ; PUSH ESI ; CALL 0xcbf80 -> hs_return(thread_datum, 0)
+ *   0xc2476  ADD ESP,0x10 ; POP ESI ; POP EBP ; RET
+ *
+ * The PUSH-then-FSTP at 0xc2469 is MSVC's float-argument idiom: the pushed
+ * register only reserves the stack dword, which FSTP then overwrites with the
+ * FPU value.  Ghidra reads the dummy PUSH as the argument and consequently
+ * printed the call as `FUN_000930b0()` with no arguments at all; the kb decl
+ * `void cinematic_set_title_delayed(void)` inherited that error and was
+ * corrected with this lift to (int, float).
+ *
+ * The single `ADD ESP,0x10` is MSVC's merge of cinematic_set_title_delayed's
+ * two pushes with hs_return's two.  The call-site audit therefore reports a
+ * spurious ARG_COUNT warning on hs_return (cleanup=4 vs decl=2) — hs_return
+ * really does take 2 arguments; the other two dwords belong to 0x930b0.
+ *
+ * The lone FLD/FSTP pair is a pure pass-through of a memory float onto the
+ * argument stack: no arithmetic, so no operand-order hazard.
+ *
+ * kb note: 0xcc560 is declared returning `int` but is used as a pointer at
+ * every call site in this TU, so it is cast locally (established hs.c idiom)
+ * rather than editing the shared decl, which other callers depend on.
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0x930b0 = cinematic_set_title_delayed(int index, float value)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c2440(int16_t function_index, int thread_datum, char init)
+{
+  uint16_t *result;
+
+  result =
+    (uint16_t *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (uint16_t *)0) {
+    cinematic_set_title_delayed((int)*result, *(float *)(result + 2));
+    hs_return(thread_datum, 0);
+  }
+  return;
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
