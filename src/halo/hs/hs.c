@@ -2722,6 +2722,36 @@ void FUN_000c1fc0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2000 (hs.obj) — HaloScript function handler: activate profile sections.
+ *
+ * Evaluates the macro arguments; on success the result block holds a single
+ * dword at +0x0 which is passed straight through to 0x90860
+ * (profile_sections_activate).  0xc2010 does `MOV EDX,dword ptr [EAX];
+ * PUSH EDX` before the CALL, so exactly one argument is passed — Ghidra's
+ * decompile drops it.  There is no +0x4 read in this handler, unlike most of
+ * its neighbours.  `thread_datum` is kept in ESI across the whole body.
+ *
+ * The single `ADD ESP,0xc` at 0xc202c is MSVC's merged cleanup for both tail
+ * calls (1 dword + 2 dwords); hs_return still takes exactly 2 arguments.
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560  = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *              -> int * (result record, NULL on failure)
+ *   0x90860  = profile_sections_activate(const char *substring)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c2000(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    profile_sections_activate((const char *)result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
