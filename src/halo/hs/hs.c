@@ -2658,6 +2658,33 @@ void FUN_000c1f40(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc1fa0 — HaloScript script-function stub (no-argument, void-result form).
+ * Same shape as FUN_000c1f00/FUN_000c1f20 above: it takes no script
+ * arguments, so it never calls hs_macro_function_evaluate and has no
+ * null-check branch.  The body unconditionally invokes the errors.c
+ * error-ring-buffer reset helper FUN_0008f630 and then commits a zero result
+ * to the calling thread via hs_return.
+ *
+ * [EBP+0x8] (function_index) and [EBP+0x10] (init) are never read by this
+ * body; they complete the standard hs-evaluator signature shared by every
+ * other handler in this TU.  Ghidra mis-prototypes this as void(void) and
+ * reports the [EBP+0xc] read as the phantom local `in_stack_00000008`.
+ *
+ * ABI (verified against the full 10-instruction body at 0xc1fa0): cdecl,
+ * plain RET.  Push order for hs_return is `PUSH 0` then `PUSH EAX` where EAX
+ * was loaded from [EBP+0xc], so arg1 = thread_datum and arg2 = 0.  The
+ * `ADD ESP,8` belongs to hs_return alone.
+ *
+ * Callees (both cdecl, no register args):
+ *   0x8f630  = FUN_0008f630(void)   [errors.c] — reset error ring buffer
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c1fa0(int16_t function_index, int thread_datum, char init)
+{
+  FUN_0008f630();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
