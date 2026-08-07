@@ -36880,7 +36880,8 @@
         },
         {
           "addr": "0x96720",
-          "decl": "bool device_can_change_position(int object_handle);"
+          "decl": "bool device_can_change_position(int object_handle);",
+          "ported": true
         },
         {
           "addr": "0x967a0",

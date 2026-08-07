@@ -293,3 +293,65 @@ void device_group_set_real(int device_group_handle, int unit_handle)
     return;
   }
 }
+
+/* Decide whether a device is currently allowed to move towards its desired
+ * position.
+ *
+ * Original 0x96720. The handle is resolved as a device (type mask 0x380) and
+ * the answer is seeded false (XOR AL,AL at 0x9673e) before the guard, so a
+ * device whose group index at +0x1b4 is NONE (-1) always answers false without
+ * touching the device-group pool.
+ *
+ * Two records are pulled out of the device-group data array at 0x5aa8c8: the
+ * device's own group (+0x1b4) and a second group index at +0x1a8 whose value
+ * gates the motion. The answer then starts true and each of three independent
+ * tests can only clear it -- the original emits three fall-through
+ * XOR AL,AL blocks, never an else chain:
+ *
+ *   1. the group's 16-bit flags at +0x02 with BOTH bit 0 and bit 1 set,
+ *   2. object flag bit 1 (0x2) in the byte at +0x1a4,
+ *   3. the second group's value at +0x04 not being exactly 1.0f.
+ *
+ * Test 3 is an INTEGER compare of the raw float bits (CMP dword ptr [EDX+4],
+ * 0x3f800000) -- the whole function contains no FPU instruction, so the value
+ * is read as a uint32 rather than compared as a float.
+ *
+ * The +0x1b4 group index is held as a 16-bit local (MOV CX,word / CMP CX,-1 /
+ * MOVSX ECX,CX) while the +0x1a8 index is loaded straight to width at its use
+ * site (MOVSX EAX,word ptr); that asymmetry is preserved.
+ */
+bool device_can_change_position(int object_handle)
+{
+  char *device;
+  char *device_group;
+  char *power_group;
+  short group_index;
+  unsigned short group_flags;
+  bool can_change;
+
+  device = (char *)object_get_and_verify_type(object_handle, 0x380);
+
+  group_index = *(short *)(device + 0x1b4);
+  can_change = false;
+
+  if (group_index != -1) {
+    device_group = (char *)datum_get(*(data_t **)0x5aa8c8, group_index);
+    power_group =
+      (char *)datum_get(*(data_t **)0x5aa8c8, (int)*(short *)(device + 0x1a8));
+
+    group_flags = *(unsigned short *)(device_group + 2);
+
+    can_change = true;
+    if ((group_flags & 1) != 0 && (group_flags & 2) != 0) {
+      can_change = false;
+    }
+    if ((*(unsigned char *)(device + 0x1a4) & 2) != 0) {
+      can_change = false;
+    }
+    if (*(unsigned int *)(power_group + 4) != 0x3f800000) {
+      can_change = false;
+    }
+  }
+
+  return can_change;
+}
