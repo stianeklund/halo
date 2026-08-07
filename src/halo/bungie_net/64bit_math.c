@@ -23,9 +23,28 @@
  *   0x7ffe0  math64_negate
  *   0x80070  math64_subtract
  *   0x800d0  math64_multiply
+ *   0x80210  math64_divide
  */
 
 #include "common.h"
+
+/* An 8-byte limb group. math64_divide's working register is two of these laid
+ * out contiguously, and the reference copies each group with a single
+ * load/load/store/store dword pair rather than four 16-bit moves, so the
+ * copies have to be whole-object assignments and not element loops. */
+typedef struct {
+  uint16_t limb[4];
+} math64_half_t;
+
+/* The 128-bit shift-subtract working register: half[0] is the quotient
+ * accumulator, half[1] the remainder accumulator, and the shift step walks all
+ * eight limbs through `limb`. The union is what lets one object be addressed
+ * both ways; the reference's shift loop indexes `word ptr [EBP+ECX*2-0x2c]`
+ * for ECX in 0..7, i.e. straight across the two halves. */
+typedef union {
+  math64_half_t half[2];
+  uint16_t limb[8];
+} math64_work_t;
 
 /* 64-bit unsigned add: result = a + b, carry propagated across four 16-bit
  * limbs.
@@ -286,4 +305,131 @@ void math64_multiply(const uint16_t *a, const uint16_t *b, uint16_t *result)
   result[1] = (uint16_t)acc[1];
   result[2] = (uint16_t)acc[2];
   result[3] = (uint16_t)acc[3];
+}
+
+/* 64-bit division by restoring shift-subtract: 64 iterations over a 128-bit
+ * working register. Both outputs are optional.
+ *
+ * Confirmed (0x80210-0x80326):
+ *  - cdecl, FOUR stack args and no return value: [EBP+8]->ESI, [EBP+0xc]->EDI,
+ *    [EBP+0x10], [EBP+0x14]; bare `RET`, caller cleans. Both call sites live in
+ *    FUN_00080fc0 (a modular-exponentiation loop) at 0x81018 and 0x81041, each
+ *    pushing four dwords with a literal `PUSH 0x0` for arg3 -- so arg3 is
+ *    nullable by design, and the `ADD ESP,0x1c` that follows is the combined
+ *    cleanup for those 16 bytes plus the 12 left by the preceding
+ *    math64_multiply call.
+ *  - Guard order is `CMP ESI,EBX(=0) / JZ` then `CMP EDI,EBX / JNZ body`, so
+ *    the assert tests arg1 then arg2. Its message string at 0x265a90 is
+ *    literally "numerator && denominator" (read back from the XBE), which pins
+ *    arg1 = numerator and arg2 = denominator. __FILE__ is the usual 0x265a54
+ *    64bit_math.c string; line 0x7c.
+ *  - `SUB ESP,0x2c` = 44 bytes: work[8] at EBP-0x2c (16), the subtract result
+ *    at EBP-0x1c (8), four dead bytes at EBP-0x14, the inlined negate scratch
+ *    at EBP-0x10 (8) and the trial copy at EBP-0x8 (8). The dead four bytes are
+ *    not a source local -- see the sign-test bullet below, which is what makes
+ *    the compiler reserve them.
+ *    (check_lift_hazards' frame-size heuristic reports a 32-byte gap here. It
+ *    is a false positive: _sum_locals only knows built-in type keywords, so it
+ *    counts the three scalars and skips work/trial/difference, whose types are
+ *    the file-local typedefs above. 16+8+8 aggregate + 8 inlined scratch + 4
+ *    pad = 44, and VC71 emits `sub esp,0x2c` byte-identical to the reference.)
+ *  - The 64-iteration counter is kept in the *parameter* slot [EBP+8]
+ *    (`MOV dword ptr [EBP+8],0x40` at 0x80268, `DEC dword ptr [EBP+8] / JNZ` at
+ *    0x802f6): numerator is enregistered in ESI for the whole body, so MSVC
+ *    reuses its now-free home slot as scratch. That is a register-allocation
+ *    artifact, not a second use of the parameter.
+ *  - Both loops end `CMP reg,N / JC`, i.e. *unsigned* counters. The shift
+ *    accumulator ends `SHR EAX,0x10` (not SAR), so the carry is unsigned too --
+ *    unlike math64_add above, whose SETG proves a signed accumulator.
+ *  - The trial subtraction is math64_subtract INLINED, not a call: 0x80296's
+ *    `TEST ESI,ESI` is all that survives of subtract's own
+ *    `a && b && result` guard (a and result are address-of-local, provably
+ *    non-null, so only b == numerator is still tested), the failure block at
+ *    0x802a6 pushes subtract's line 0x4f and its 0x265a40 message, and the body
+ *    is subtract's exact `math64_negate(b, scratch)` +
+ *    `math64_add(a, scratch, result)` pair at 0x802c6 / 0x802d7. So the source
+ *    calls math64_subtract and VC71 inlines it; we write the call.
+ *  - The sign test is `MOV EAX,dword ptr [EBP-0x16] / TEST AH,AH / JS`.
+ *    EBP-0x16 is &difference.limb[3], so AH is that limb's high byte, i.e. bit
+ *    63 of the 64-bit difference: the branch keeps the subtraction when the
+ *    result is non-negative. Note the load is a *dword* at an address only two
+ *    bytes below the end of an 8-byte object -- it deliberately overruns into
+ *    EBP-0x14. That pins the source form: writing the test as a signed
+ *    comparison, `(int16_t)difference.limb[3] >= 0`, makes VC71 emit
+ *    `cmpw $0,...` on the last local and the frame comes out 0x28, four bytes
+ *    short. Writing it as the high-bit mask below makes VC71 widen the load to
+ *    a dword, which in turn forces it to reserve four bytes of trailing frame
+ *    so the overrun stays inside the frame -- reproducing both the reference's
+ *    `MOV EAX,dword / TEST AH,AH / JS` and its exact `SUB ESP,0x2c`. Two
+ *    independent reference artifacts fall out of one source choice, so the mask
+ *    form is the recovered original, not a score tweak.
+ *  - `INC word ptr [EBP-0x2c]` at 0x802ec is the quotient-bit set: the register
+ *    was just shifted left, so limb 0's bit 0 is clear and ++ sets it.
+ *  - Each 8-byte group copy is load/load/store/store of dwords
+ *    (0x80298, 0x802e6, 0x80306, 0x80318), never four 16-bit moves, which is
+ *    why math64_half_t exists and the copies are whole-object assignments.
+ *  - At the tail EDI still holds the low dword of the remainder accumulator
+ *    (loaded at 0x80298 every iteration, rewritten at 0x802e6 when the
+ *    subtraction is kept), so `MOV dword ptr [EAX],EDI` at 0x8031b is a CSE of
+ *    that value and not a fifth variable.
+ *
+ * ORIGINAL BUG, reproduced deliberately -- the operands are swapped. The
+ * working register is seeded from `denominator` (0x80246 copies from EDI =
+ * arg2) and the value trial-subtracted each iteration is `numerator` (ESI =
+ * arg1), so this computes denominator / numerator, not numerator /
+ * denominator. FUN_00080fc0 calls it as
+ * `math64_divide(product, modulus, NULL, &accumulator)` plainly intending
+ * `product % modulus`, and gets `modulus % product` instead. This is the same
+ * flavour of unfinished scaffolding as math64_multiply's seeded accumulator
+ * above; the 2276 beta does not appear to exercise this bungie_net TU. The
+ * parameter names are kept as the assert string spells them so that `#cond`
+ * reproduces "numerator && denominator" byte for byte.
+ */
+void math64_divide(const uint16_t *numerator, const uint16_t *denominator,
+                   uint16_t *quotient, uint16_t *remainder)
+{
+  math64_work_t work;
+  math64_half_t trial;
+  math64_half_t difference;
+  uint32_t carry;
+  uint32_t i;
+  int32_t count;
+
+  assert_halt_at("c:\\halo\\SOURCE\\bungie_net\\common\\64bit_math.c", 0x7c,
+                 numerator && denominator);
+
+  /* Seed the low half with the dividend and clear the high half. */
+  for (i = 0; i < 4; i++) {
+    work.limb[i] = denominator[i];
+    work.limb[i + 4] = 0;
+  }
+
+  count = 0x40;
+  do {
+    /* Shift the whole 128-bit register left by one. */
+    carry = 0;
+    for (i = 0; i < 8; i++) {
+      carry = carry + work.limb[i] * 2;
+      work.limb[i] = (uint16_t)carry;
+      carry >>= 16;
+    }
+
+    trial = work.half[1];
+    math64_subtract(trial.limb, numerator, difference.limb);
+
+    /* Bit 63 clear = the difference is non-negative, i.e. the divisor fit:
+     * keep it and set the quotient bit. See the sign-test bullet above for why
+     * this is the mask form and not a signed comparison. */
+    if ((difference.limb[3] & 0x8000) == 0) {
+      work.limb[0]++;
+      work.half[1] = difference;
+    }
+  } while (--count != 0);
+
+  if (quotient) {
+    *(math64_half_t *)quotient = work.half[0];
+  }
+  if (remainder) {
+    *(math64_half_t *)remainder = work.half[1];
+  }
 }

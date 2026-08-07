@@ -21212,6 +21212,11 @@
       "score": 78.2,
       "source": "src/halo/bungie_net/64bit_math.c"
     },
+    "math64_divide": {
+      "opnd_percent": 81.6,
+      "score": 96.5,
+      "source": "src/halo/bungie_net/64bit_math.c"
+    },
     "math64_multiply": {
       "opnd_percent": 100.0,
       "score": 100.0,

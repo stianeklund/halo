@@ -36465,10 +36465,6 @@
     {
       "functions": [
         {
-          "addr": "0x80210",
-          "decl": "void FUN_00080210(void);"
-        },
-        {
           "addr": "0x80380",
           "decl": "void FUN_00080380(void);"
         },
@@ -39547,6 +39543,11 @@
         {
           "addr": "0x800d0",
           "decl": "void math64_multiply(const uint16_t *a, const uint16_t *b, uint16_t *result);",
+          "ported": true
+        },
+        {
+          "addr": "0x80210",
+          "decl": "void math64_divide(const uint16_t *numerator, const uint16_t *denominator, uint16_t *quotient, uint16_t *remainder);",
           "ported": true
         }
       ]
