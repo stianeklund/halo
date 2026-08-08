@@ -8588,7 +8588,8 @@
       "source": "src/halo/items/projectiles.c"
     },
     "FUN_000f7da0": {
-      "score": 62.1,
+      "opnd_percent": 66.7,
+      "score": 86.7,
       "source": "src/halo/items/projectiles.c"
     },
     "FUN_000f7dd0": {
@@ -8612,7 +8613,8 @@
       "source": "src/halo/items/projectiles.c"
     },
     "FUN_000f7fa0": {
-      "score": 61.8,
+      "opnd_percent": 45.5,
+      "score": 69.7,
       "source": "src/halo/items/projectiles.c"
     },
     "FUN_000f8000": {
@@ -8620,7 +8622,8 @@
       "source": "src/halo/items/projectiles.c"
     },
     "FUN_000f8070": {
-      "score": 87.5,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/items/projectiles.c"
     },
     "FUN_000f80a0": {
@@ -8636,7 +8639,8 @@
       "source": "src/halo/items/projectiles.c"
     },
     "FUN_000f8590": {
-      "score": 57.4,
+      "opnd_percent": 52.7,
+      "score": 60.0,
       "source": "src/halo/items/projectiles.c"
     },
     "FUN_000f8640": {
@@ -8664,7 +8668,8 @@
       "source": "src/halo/items/projectiles.c"
     },
     "FUN_000f9c40": {
-      "score": 81.0,
+      "opnd_percent": 60.6,
+      "score": 84.4,
       "source": "src/halo/items/projectiles.c"
     },
     "FUN_000fac20": {
@@ -11564,7 +11569,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00139c20": {
-      "score": 93.2,
+      "opnd_percent": 84.4,
+      "score": 97.1,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_00139e50": {
@@ -11592,8 +11598,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013a740": {
-      "opnd_percent": 77.8,
-      "score": 90.1,
+      "opnd_percent": 84.0,
+      "score": 96.2,
       "source": "src/halo/objects/objects.c"
     },
     "FUN_0013aa10": {
@@ -18794,6 +18800,12 @@
       "score": 100.0,
       "source": "src/halo/items/items.c"
     },
+    "dangerous_projectiles_near_player": {
+      "opnd_percent": 96.3,
+      "ref": "synth",
+      "score": 100.0,
+      "source": "src/halo/items/projectiles.c"
+    },
     "data_allocation_size": {
       "opnd_percent": 100.0,
       "ref": "synth",
@@ -23349,8 +23361,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "object_iterator_next": {
-      "opnd_percent": 60.7,
-      "score": 85.5,
+      "opnd_percent": 58.9,
+      "score": 86.3,
       "source": "src/halo/objects/objects.c"
     },
     "object_mark": {
@@ -24487,6 +24499,90 @@
       "score": 81.5,
       "source": "src/halo/effects/decals.c"
     },
+    "projectile_accelerate": {
+      "opnd_percent": 61.1,
+      "ref": "synth",
+      "score": 83.6,
+      "source": "src/halo/items/projectiles.c"
+    },
+    "projectile_aim": {
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "score": 100.0,
+      "source": "src/halo/items/projectiles.c"
+    },
+    "projectile_aim_ballistic": {
+      "opnd_percent": 78.9,
+      "ref": "synth",
+      "score": 91.3,
+      "source": "src/halo/items/projectiles.c"
+    },
+    "projectile_aim_linear": {
+      "opnd_percent": 88.1,
+      "ref": "synth",
+      "score": 92.5,
+      "source": "src/halo/items/projectiles.c"
+    },
+    "projectile_estimate_time_to_target": {
+      "opnd_percent": 66.7,
+      "ref": "synth",
+      "score": 86.7,
+      "source": "src/halo/items/projectiles.c"
+    },
+    "projectile_export_function_values": {
+      "opnd_percent": 62.0,
+      "ref": "synth",
+      "score": 69.0,
+      "source": "src/halo/items/projectiles.c"
+    },
+    "projectile_get_ballistic_acceleration": {
+      "opnd_percent": 75.0,
+      "ref": "synth",
+      "score": 87.5,
+      "source": "src/halo/items/projectiles.c"
+    },
+    "projectile_handle_deleted_object": {
+      "opnd_percent": 92.9,
+      "ref": "synth",
+      "score": 100.0,
+      "source": "src/halo/items/projectiles.c"
+    },
+    "projectile_handle_parent_destroyed": {
+      "opnd_percent": 94.3,
+      "ref": "synth",
+      "score": 100.0,
+      "source": "src/halo/items/projectiles.c"
+    },
+    "projectile_kill_tracer": {
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "score": 100.0,
+      "source": "src/halo/items/projectiles.c"
+    },
+    "projectile_make_tracer": {
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "score": 100.0,
+      "source": "src/halo/items/projectiles.c"
+    },
+    "projectile_new": {
+      "opnd_percent": 70.0,
+      "ref": "synth",
+      "score": 91.3,
+      "source": "src/halo/items/projectiles.c"
+    },
+    "projectile_set_target_object_index": {
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "score": 100.0,
+      "source": "src/halo/items/projectiles.c"
+    },
+    "projectiles_delete_all": {
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "score": 100.0,
+      "source": "src/halo/items/projectiles.c"
+    },
     "prop_get_active_by_unit_index": {
       "opnd_percent": 66.1,
       "ref": "synth",
@@ -24606,6 +24702,12 @@
       "ref": "synth",
       "score": 100.0,
       "source": "src/halo/math/random_math.c"
+    },
+    "random_vector_in_cone3d": {
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "score": 100.0,
+      "source": "src/halo/items/projectiles.c"
     },
     "rasterizer_decals_dispose": {
       "score": 100.0,

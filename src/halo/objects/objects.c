@@ -3317,7 +3317,8 @@ void FUN_00139c20(int object_handle, int16_t marker_index, float *position,
   int16_t argmin;
   int16_t cur_count;
   float dx, dy, dz, dist, radius;
-  float brightness, min_weight;
+  float brightness, min_weight, weight;
+  float *wp;
   int slot_offset;
 
   if (*(char *)0x5a8d60 == '\0') {
@@ -3346,37 +3347,41 @@ void FUN_00139c20(int object_handle, int16_t marker_index, float *position,
         dz = position[2] - *(float *)(light + 0x38);
         dist = sqrtf(dx * dx + dy * dy + dz * dz);
         radius = *(float *)(light + 0x54);
-        if (dist < bias + radius) {
+        if (dist < bias + *(float *)(light + 0x54)) {
           attenuation = 1.0f - (dist * dist) / (radius * radius);
           brightness = real_rgb_color_brightness((float *)(light + 0x14));
+          weight = brightness * attenuation;
 
           cur_count = *count;
           if (cur_count < max_count) {
-            *count = cur_count + 1;
             slot = cur_count;
+            cur_count++;
+            *count = cur_count;
           } else {
             min_weight = *(float *)0x2548fc;
             argmin = -1;
             slot = 0;
             if (cur_count > 0) {
               i = 0;
+              wp = out_weights;
               do {
-                if (out_weights[i] < min_weight) {
-                  min_weight = out_weights[i];
+                if (*wp < min_weight) {
+                  min_weight = *wp;
                   argmin = i;
                 }
                 i++;
+                wp++;
               } while (i < *count);
               slot = i; /* slot ends at *count after the search loop */
             }
-            if (min_weight < brightness * attenuation)
+            if (min_weight < weight)
               slot = argmin;
           }
 
           if (slot < max_count) {
             slot_offset = slot * 4;
             *(int *)(out_index_base + slot_offset) = light_index;
-            out_weights[slot] = brightness * attenuation;
+            out_weights[slot] = weight;
             *(float *)(out_atten_base + slot_offset) = attenuation;
           }
         }
@@ -3945,7 +3950,7 @@ void FUN_0013a740(int param_1, int param_2, float *param_3)
     *(char *)0x5a8d60 = '\0';
     if (0 < (short)(int)param_3) {
       iVar5 = 0;
-      uVar9 = (unsigned int)param_3 & 0xffff;
+      uVar9 = (unsigned short)(unsigned int)param_3;
       do {
         iVar8 = (int)datum_get(*(void **)0x5a90bc,
                                 *(int *)((char *)light_indices + iVar5));
@@ -3970,22 +3975,31 @@ void FUN_0013a740(int param_1, int param_2, float *param_3)
   }
   /* clamp each channel to [0, 1] */
   if (*pfVar3 < *(float *)0x2533c0) {
-    *pfVar3 = *(float *)0x2533c0;
+    fVar1 = *(float *)0x2533c0;
   } else if (*pfVar3 > *(float *)0x2533c8) {
-    *pfVar3 = *(float *)0x2533c8;
+    fVar1 = *(float *)0x2533c8;
+  } else {
+    fVar1 = *pfVar3;
   }
+  *pfVar3 = fVar1;
 
   if (pfVar3[1] < *(float *)0x2533c0) {
-    pfVar3[1] = *(float *)0x2533c0;
+    fVar1 = *(float *)0x2533c0;
   } else if (pfVar3[1] > *(float *)0x2533c8) {
-    pfVar3[1] = *(float *)0x2533c8;
+    fVar1 = *(float *)0x2533c8;
+  } else {
+    fVar1 = pfVar3[1];
   }
+  pfVar3[1] = fVar1;
 
   if (pfVar3[2] < *(float *)0x2533c0) {
-    pfVar3[2] = 0.0f;
+    fVar1 = 0.0f;
   } else if (pfVar3[2] > *(float *)0x2533c8) {
-    pfVar3[2] = 1.0f;
+    fVar1 = 1.0f;
+  } else {
+    fVar1 = pfVar3[2];
   }
+  pfVar3[2] = fVar1;
 }
 
 /* 0x13aa10: gather the light markers that illuminate an object.  Computes the
@@ -6508,7 +6522,7 @@ void *object_iterator_next(void *iter)
       idx++;
       if (entry->unk_0 != 0 &&
           ((entry->unk_2 & (uint8_t)it->flags) == (uint8_t)it->flags) &&
-          (it->type_mask & (1 << (entry->type & 0x1f))) != 0) {
+          (it->type_mask & (1 << entry->type)) != 0) {
         it->last_handle = handle;
         it->current_index = idx;
         return entry->object;
