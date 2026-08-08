@@ -4812,6 +4812,10 @@
     {
      "addr": "0x44df00",
      "decl": "cinematic_globals_t * cinematic_globals;"
+    },
+    {
+     "addr": "0x2ee950",
+     "decl": "void *byte_swap_definition_lists[];"
     }
    ],
    "functions": [
@@ -4837,7 +4841,8 @@
     },
     {
      "addr": "0x92e20",
-     "decl": "void cinematic_start(void);"
+     "decl": "void cinematic_start(void);",
+     "ported": true
     },
     {
      "addr": "0x92e60",
@@ -4846,31 +4851,38 @@
     },
     {
      "addr": "0x92e70",
-     "decl": "void cinematic_skip_start(void);"
+     "decl": "void cinematic_skip_start(void);",
+     "ported": true
     },
     {
      "addr": "0x92e80",
-     "decl": "void cinematic_skip_stop(void);"
+     "decl": "void cinematic_skip_stop(void);",
+     "ported": true
     },
     {
      "addr": "0x92e90",
-     "decl": "void cinematic_show_letterbox(char show);"
+     "decl": "void cinematic_show_letterbox(char show);",
+     "ported": true
     },
     {
      "addr": "0x92ec0",
-     "decl": "void draw_quad(int16_t *rect, int color);"
+     "decl": "void draw_quad(int16_t *rect, int color);",
+     "ported": true
     },
     {
      "addr": "0x93010",
-     "decl": "void cinematic_force_title(void);"
+     "decl": "void cinematic_force_title(int16_t title_index);",
+     "ported": true
     },
     {
      "addr": "0x93030",
-     "decl": "void cinematic_suppress_bsp_object_creation(unsigned char suppress);"
+     "decl": "void cinematic_suppress_bsp_object_creation(unsigned char suppress);",
+     "ported": true
     },
     {
      "addr": "0x93050",
-     "decl": "void cinematic_stop(void);"
+     "decl": "void cinematic_stop(void);",
+     "ported": true
     },
     {
      "addr": "0x930a0",
@@ -4879,11 +4891,13 @@
     },
     {
      "addr": "0x930b0",
-     "decl": "void cinematic_set_title_delayed(int index, float value);"
+     "decl": "void cinematic_set_title_delayed(int index, float value);",
+     "ported": true
     },
     {
      "addr": "0x93140",
-     "decl": "void cinematic_render(void);"
+     "decl": "void cinematic_render(void);",
+     "ported": true
     },
     {
      "addr": "0x93640",
@@ -4891,44 +4905,53 @@
     },
     {
      "addr": "0x93660",
-     "decl": "void FUN_00093660(void);"
+     "decl": "void FUN_00093660(void *state, int arg1, int arg2);",
+     "ported": true
     },
     {
      "addr": "0x936b0",
      "decl": "short FUN_000936b0(void *scenario, void *entry);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x93710",
-     "decl": "void FUN_00093710(void);"
+     "decl": "void FUN_00093710(int *cursor, unsigned char count);",
+     "ported": true
     },
     {
      "addr": "0x93780",
-     "decl": "void FUN_00093780(void);"
+     "decl": "void FUN_00093780(void *dest, int *cursor, unsigned char count);",
+     "ported": true
     },
     {
      "addr": "0x93810",
-     "decl": "void FUN_00093810(void);"
+     "decl": "void FUN_00093810(void *source_record, int *cursor, unsigned char count);",
+     "ported": true
     },
     {
      "addr": "0x93880",
-     "decl": "void FUN_00093880(void);"
+     "decl": "void FUN_00093880(void *unused, unsigned char *control, unsigned char *header, unsigned char **stream);",
+     "ported": true
     },
     {
      "addr": "0x93910",
-     "decl": "void FUN_00093910(void);"
+     "decl": "void FUN_00093910(void *unused, unsigned char *control, unsigned char *header, unsigned char **stream);",
+     "ported": true
     },
     {
      "addr": "0x939a0",
-     "decl": "void FUN_000939a0(void);"
+     "decl": "void FUN_000939a0(void *unused, unsigned char *control, unsigned char *header, unsigned char **stream);",
+     "ported": true
     },
     {
      "addr": "0x93a30",
-     "decl": "void FUN_00093a30(void);"
+      "decl": "void FUN_00093a30(void *unused, unsigned char *control, unsigned char *header, unsigned char **stream);",
+      "ported": true
     },
     {
      "addr": "0x93ac0",
-     "decl": "void FUN_00093ac0(void);"
+     "decl": "void FUN_00093ac0(void *unused, unsigned char *control, unsigned char *header, unsigned char **stream);",
+     "ported": true
     },
     {
      "addr": "0x93b60",
@@ -4936,11 +4959,11 @@
     },
     {
      "addr": "0x93ba0",
-     "decl": "void FUN_00093ba0(void);"
+     "decl": "void FUN_00093ba0(short *angles @<eax>, short *cursor @<edx>);"
     },
     {
      "addr": "0x93be0",
-     "decl": "void FUN_00093be0(void);"
+     "decl": "void FUN_00093be0(short *angles @<eax>, float *out_vector);"
     },
     {
      "addr": "0x93c20",
@@ -4948,7 +4971,8 @@
     },
     {
      "addr": "0x93e20",
-     "decl": "void FUN_00093e20(void);"
+     "decl": "void FUN_00093e20(short *angles, unsigned char *control, unsigned char *header, unsigned char **stream);",
+     "ported": true
     }
    ],
    "name": "cinematics.obj",
@@ -21562,7 +21586,7 @@
     },
     {
      "addr": "0x94290",
-     "decl": "void FUN_00094290(void);"
+     "decl": "void FUN_00094290(int arg1, int arg2, unsigned char mode_arg);"
     },
     {
      "addr": "0x942a0",
@@ -21614,7 +21638,7 @@
     },
     {
      "addr": "0x94ba0",
-     "decl": "void FUN_00094ba0(void);"
+     "decl": "void FUN_00094ba0(int arg1, int arg2, unsigned char mode_arg);"
     },
     {
      "addr": "0x94bb0",
@@ -25350,7 +25374,7 @@
     },
     {
      "addr": "0xe3d70",
-     "decl": "void ui_widgets_active(void);"
+     "decl": "bool ui_widgets_active(void);"
     },
     {
      "addr": "0xe3da0",
@@ -29186,7 +29210,7 @@
     },
     {
      "addr": "0x17dec0",
-     "decl": "void FUN_0017dec0(void);"
+     "decl": "void FUN_0017dec0(int param_1);"
     },
     {
      "addr": "0x17dee0",

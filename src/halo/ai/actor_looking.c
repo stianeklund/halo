@@ -15,8 +15,7 @@ extern float actor_destination_tolerance(int actor_handle);
 extern char *actor_combat_get_firing_variant_definition(int actor_handle);
 extern void actor_find_pathfinding_location(int actor_handle);
 
-__declspec(noinline) static int
-s_actor_charge_estimate_target(char *actor, float *target_pos)
+static int s_actor_charge_estimate_target(char *actor, float *target_pos)
 {
   if (!((actor_t *)actor)->field_4a8)
     return 0;
@@ -4458,7 +4457,6 @@ void FUN_00019370(int actor_handle)
 {
   char *actor;
   int mode;
-  int tmp;
   float tmp_v[2]; /* contiguous: magnitude3d (2D) reads/normalizes [0],[1] */
   float len_sq;
 
@@ -4471,31 +4469,39 @@ void FUN_00019370(int actor_handle)
   }
 
   if (((actor_t *)actor)->field_0fe != '\0') {
+    int *action_target;
+    int *look_target;
+
+    action_target = (int *)(actor + 0x100);
+    look_target = (int *)(actor + 0x460);
     ((actor_t *)actor)->field_3e8 = 7;
     ((actor_t *)actor)->field_3ec = 2;
     ((actor_t *)actor)->field_3fc = 4;
     ((actor_t *)actor)->field_454 = 1;
     ((actor_t *)actor)->field_457 = 1;
     ((actor_t *)actor)->field_45d = 1;
-    *(int *)(actor + 0x460) = ((actor_t *)actor)->field_100;
-    *(int *)(actor + 0x464) = ((actor_t *)actor)->field_104;
-    *(int *)(actor + 0x468) = ((actor_t *)actor)->field_108;
+    look_target[0] = action_target[0];
+    look_target[1] = action_target[1];
+    look_target[2] = action_target[2];
     ((actor_t *)actor)->field_458 = ((actor_t *)actor)->field_10c;
     goto LAB_done;
   }
 
   if (((actor_t *)actor)->field_0e0 != '\0' && FUN_0002a3f0(actor_handle)) {
+    int *aim_target;
+    int *look_target;
+
+    aim_target = (int *)(actor + 0xe4);
+    look_target = (int *)(actor + 0x3f0);
     ((actor_t *)actor)->field_3e8 = 4;
     ((actor_t *)actor)->field_3ec = 3;
-    ((actor_t *)actor)->field_3f0 = ((actor_t *)actor)->field_0e4;
-    ((actor_t *)actor)->field_3f4 = ((actor_t *)actor)->field_0e8;
-    ((actor_t *)actor)->field_3f8 = ((actor_t *)actor)->field_0ec;
+    look_target[0] = aim_target[0];
+    look_target[1] = aim_target[1];
+    look_target[2] = aim_target[2];
     if (((actor_t *)actor)->field_099 == '\0') {
       ((actor_t *)actor)->field_3f8 = *(int *)(actor + 0x128);
     }
-    mode = 4;
-    if (((actor_t *)actor)->field_06a < 3)
-      mode = 1;
+    mode = ((actor_t *)actor)->field_06a < 3 ? 1 : 4;
     goto LAB_set_fc;
   }
 
@@ -4514,10 +4520,7 @@ void FUN_00019370(int actor_handle)
     mode = 0;
     ((actor_t *)actor)->field_3e8 = 0;
     if (((actor_t *)actor)->field_09f != '\0') {
-      tmp = 4;
-      if (((actor_t *)actor)->field_06a < 3)
-        tmp = 1;
-      mode = tmp;
+      mode = ((actor_t *)actor)->field_06a < 3 ? 1 : 4;
       goto LAB_set_fc;
     }
   }
@@ -4553,21 +4556,41 @@ LAB_done:
   }
 
   if ((*(char *)(actor + 0xa9) & 1) != 0) {
+    int *source;
+    int *destination;
+
+    source = (int *)(actor + 0xb0);
+    destination = (int *)(actor + 0x434);
     ((actor_t *)actor)->field_430 = 1;
-    ((actor_t *)actor)->field_434 = *(int *)(actor + 0xb0);
-    ((actor_t *)actor)->field_438 = *(int *)(actor + 0xb4);
-    ((actor_t *)actor)->field_43c = ((actor_t *)actor)->field_0b8;
+    destination[0] = source[0];
+    destination[1] = source[1];
+    destination[2] = source[2];
     ((actor_t *)actor)->field_42e = ((actor_t *)actor)->field_0ac;
   }
 
   if ((*(char *)(actor + 0xa9) & 4) != 0) {
-    if ((*(char *)(actor + 0xa9) & 8) == 0) {
+    if ((*(char *)(actor + 0xa9) & 8) != 0) {
+      int *source;
+      int *destination;
+
+      if (((actor_t *)actor)->field_0ac < 1) {
+        return;
+      }
+      source = (int *)(actor + 0x174);
+      destination = (int *)(actor + 0x434);
+      destination[0] = source[0];
+      destination[1] = source[1];
+      ((actor_t *)actor)->field_430 = 1;
+      destination[2] = source[2];
+      ((actor_t *)actor)->field_42e = 0;
+      return;
+    } else {
       if (((actor_t *)actor)->field_0ac == 0 && ((actor_t *)actor)->field_15c == '\0' &&
           !unit_is_busy(((actor_t *)actor)->field_018)) {
         tmp_v[0] = ((actor_t *)actor)->input_facing_vector[0];
         tmp_v[1] = ((actor_t *)actor)->input_facing_vector[1];
         len_sq = magnitude3d(tmp_v);
-        if (len_sq == *(float *)0x2533c0) {
+        if (len_sq == 0.0f) {
           tmp_v[0] = **(float **)0x31fc0c;
           tmp_v[1] = *(float *)(*(int *)0x31fc0c + 4);
         }
@@ -4588,16 +4611,6 @@ LAB_done:
         ((actor_t *)actor)->field_0ac = 15;
         return;
       }
-    } else {
-      if (((actor_t *)actor)->field_0ac < 1) {
-        return;
-      }
-      ((actor_t *)actor)->field_434 = *(int *)(actor + 0x174);
-      ((actor_t *)actor)->field_438 = *(int *)(actor + 0x178);
-      ((actor_t *)actor)->field_430 = 1;
-      ((actor_t *)actor)->field_43c = *(int *)(actor + 0x17c);
-      ((actor_t *)actor)->field_42e = 0;
-      return;
     }
   }
 }
@@ -7726,13 +7739,13 @@ int FUN_00027a10(int actor_handle)
   actor = (char *)datum_get(actor_data, actor_handle);
   tag = (char *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
   look_type = (int)((actor_t *)actor)->field_3fc;
-  if (look_type == 2) {
-    return (int)(tag + 0xf4);
+  if (look_type != 2) {
+    if (look_type <= 2 || look_type > 4) {
+      return (int)(tag + 0xdc);
+    }
+    return (int)(tag + 0x10c);
   }
-  if (look_type <= 2 || look_type > 4) {
-    return (int)(tag + 0xdc);
-  }
-  return (int)(tag + 0x10c);
+  return (int)(tag + 0xf4);
 }
 
 /* FUN_00027a60 (0x27a60)
@@ -7936,24 +7949,19 @@ bool FUN_00027dd0(float *dir, float *vec2, float threshold)
   float dx;
   float dy;
   float len;
+  bool result;
 
   dx = dir[0];
   dy = dir[1];
   len = xbox_sqrtf(dx * dx + dy * dy);
-
-  if (!(len >= 0.0001f))
-    return 0;
-
-  dx = (1.0f / len) * dx;
-  dy = (1.0f / len) * dy;
-
-  if (!(len > 0.0f))
-    return 0;
-
-  if (!(dx * vec2[0] + dy * vec2[1] > threshold))
-    return 0;
-
-  return 1;
+  result = false;
+  if (!(fabs((double)len) < 0.0001f)) {
+    dx = (1.0f / len) * dx;
+    dy = (1.0f / len) * dy;
+    if (len > 0.0f && dx * vec2[0] + dy * vec2[1] > threshold)
+      result = true;
+  }
+  return result;
 }
 
 /* FUN_00027e50 (0x27e50)
@@ -7964,52 +7972,43 @@ bool FUN_00027dd0(float *dir, float *vec2, float threshold)
 bool FUN_00027e50(float *dir, float *vec2, float *limit, float threshold,
                   float *output)
 {
-  float dx;
-  float dy;
+  float tmp[3];
   float len;
   float vx;
-  float vy;
   float mag;
   float cross;
   float dot;
   int idx;
 
-  dx = dir[0];
-  dy = dir[1];
+  tmp[2] = dir[0];
+  tmp[0] = dir[1];
   vx = vec2[0];
-  vy = vec2[1];
+  tmp[1] = vec2[1];
 
-  len = xbox_sqrtf(dx * dx + dy * dy);
+  len = xbox_sqrtf(tmp[2] * tmp[2] + tmp[0] * tmp[0]);
 
   if (xbox_fabsf(len) < 0.0001f)
     return 0;
 
-  dx = (1.0f / len) * dx;
-  dy = (1.0f / len) * dy;
+  tmp[2] = (1.0f / len) * tmp[2];
+  tmp[0] = (1.0f / len) * tmp[0];
 
-  if (!(dx * limit[0] + dy * limit[1] > threshold))
+  if (!(tmp[2] * limit[0] + tmp[0] * limit[1] > threshold))
     return 0;
 
-  {
-    float tmp[3];
-    tmp[0] = vx;
-    tmp[1] = vy;
-    tmp[2] = dx;
-    mag = magnitude3d(tmp);
-  }
+  mag = magnitude3d(tmp);
   if (!(mag > 0.0f))
     return 0;
 
-  cross = vy * dx - vx * dy;
+  cross = tmp[1] * tmp[2] - vx * tmp[0];
   idx = 0;
   if (cross > 0.0f)
     idx = 1;
 
-  dot = dx * vx + dy * vy;
-  if (!(dot > output[idx]))
-    return 0;
-
-  return 1;
+  dot = tmp[2] * vx + tmp[0] * tmp[1];
+  if (dot > output[idx])
+    return 1;
+  return 0;
 }
 
 /* FUN_00027f40 (0x27f40) — Actor look-at angle constraint evaluator.
@@ -9328,7 +9327,7 @@ char FUN_0002a3d0(int actor_handle)
 /* FUN_0002a3f0 (0x2a3f0) — Check if actor can move (not on active path and
  * is_moving). Returns 0 if path_active (+0x4a8) is set AND is_moving (+0x484)
  * is clear, else 1. */
-int FUN_0002a3f0(int actor_handle)
+__declspec(noinline) int FUN_0002a3f0(int actor_handle)
 {
   char *actor;
 

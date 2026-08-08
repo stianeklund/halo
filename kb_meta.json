@@ -2872,9 +2872,55 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x92e20": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Field at cinematic_globals_t+0x04 named field_04 (mechanical): it receives the game_time_get() return value stamped at cinematic start, so the meaning is inferred from behavior only with no string or assert anchor."
+      ],
+      "uncertain": [
+        "The ADD ESP,0x8 at 0x92e33 is a merged cdecl cleanup for the two preceding one-argument calls (player_input_enable and ai_globals_dialogue_triggers_enabled); the call_site_audit ARG_COUNT warning on 0x3f7b0 is a false positive and both callees remain one-argument."
+      ]
+    },
     "0x92e60": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x92e70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x92e80": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Delinked reference for FUN_00092e80 was already present inside the neighbour chunk delinked/functions/00092e70.obj (and 00092e20/00092d30); copying it to the discoverable name 00092e80.obj resolved a false 'no existing delinked reference' and scored 100% without any ghidra-live re-export."
+      ]
+    },
+    "0x92e90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x92ec0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x93010": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The single 16-bit cdecl stack argument is a title index: cinematic_force_title stores it at cinematic_globals+0x0C while the sibling cinematic_set_title_delayed (0x930b0) writes the same record with a delay value."
+      ],
+      "uncertain": [
+        "The semantics of cinematic_globals+0x0E are unproven; cinematic_force_title only ever clears it to 0, and the 16 bytes from +0x0C are memset to 0xFF by cinematic_initialize_for_new_map, so it may be a datum-handle salt rather than an independent field."
+      ]
+    },
+    "0x93030": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The byte field at cinematic_globals_t+0x0B is named suppress_bsp_object_creation solely from this function's kb.json symbol name; no reader of the field has been located in the binary yet, so the semantic meaning is inferred from the writer's name rather than proven by use."
+      ]
     },
     "0x930a0": {
       "kind": "function",

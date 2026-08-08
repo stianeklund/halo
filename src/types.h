@@ -757,12 +757,24 @@ typedef struct
 /// size=0x1C
 typedef struct
 {
-  char unk_0[8];       ///< offset=0x00
+  /* Letterbox coverage fraction in [0,1]. cinematic_render (0x93140) ramps it
+   * by elapsed_ticks/30 s toward 1 while unk_8 is set and toward 0 once it is
+   * cleared, then scales it by 0.125 to size the bars. */
+  float   letterbox_fraction; ///< offset=0x00
+  int32_t field_04;    ///< offset=0x04 — game_time_get() stamped at cinematic_start
   bool unk_8;          ///< offset=0x08
   bool in_progress;    ///< offset=0x09
   bool can_be_skipped; ///< offset=0x0A
-  char unk_11;         ///< offset=0x0B
-  char unk_12[16];     ///< offset=0x0C — initialized to 0xFF (datum handles)
+  /* Named from the kb.json symbol of its only writer,
+   * cinematic_suppress_bsp_object_creation (0x93030), which stores its byte
+   * parameter here (MOV byte ptr [ECX+0xb],AL). Byte-wide: keep it 1 byte. */
+  char suppress_bsp_object_creation; ///< offset=0x0B
+  /* The 16 bytes from +0x0C are memset to 0xFF by
+   * cinematic_initialize_for_new_map (datum-handle style init).
+   * cinematic_force_title writes 16-bit values at +0x0C and +0x0E. */
+  int16_t field_0c;   ///< offset=0x0C — title index written by cinematic_force_title
+  int16_t field_0e;   ///< offset=0x0E — cleared to 0 by cinematic_force_title
+  char    unk_10[12]; ///< offset=0x10 — initialized to 0xFF (datum handles)
 } cinematic_globals_t;
 
 #define GAME_STATE_BASE_ADDRESS 0x80061000

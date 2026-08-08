@@ -139,7 +139,8 @@
       "source": "src/halo/math/vector_math.c"
     },
     "FUN_00013dd0": {
-      "score": 73.1,
+      "opnd_percent": 67.8,
+      "score": 82.5,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00013ef0": {
@@ -147,7 +148,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_000142a0": {
-      "score": 94.6,
+      "opnd_percent": 96.8,
+      "score": 96.8,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00014360": {
@@ -239,7 +241,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_000153e0": {
-      "score": 87.0,
+      "opnd_percent": 79.3,
+      "score": 88.5,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00015520": {
@@ -408,7 +411,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00019370": {
-      "score": 74.2,
+      "opnd_percent": 59.2,
+      "score": 85.5,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00019750": {
@@ -492,7 +496,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_0001ab70": {
-      "score": 86.8,
+      "opnd_percent": 79.2,
+      "score": 95.8,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_0001abd0": {
@@ -962,7 +967,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00027a10": {
-      "score": 79.2,
+      "opnd_percent": 90.6,
+      "score": 90.6,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00027a60": {
@@ -970,11 +976,13 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00027dd0": {
-      "score": 57.4,
+      "opnd_percent": 59.6,
+      "score": 70.2,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00027e50": {
-      "score": 74.3,
+      "opnd_percent": 58.0,
+      "score": 79.3,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00027f40": {
