@@ -3625,68 +3625,6 @@
       "score": 100.0,
       "source": "src/halo/cseries/errors.c"
     },
-    "FUN_0008fa40": {
-      "opnd_percent": 81.1,
-      "score": 86.5,
-      "source": "src/halo/cseries/profile.c"
-    },
-    "FUN_0008fac0": {
-      "opnd_percent": 64.6,
-      "score": 81.2,
-      "source": "src/halo/cseries/profile.c"
-    },
-    "FUN_000913e0": {
-      "opnd_percent": 67.5,
-      "score": 80.0,
-      "source": "src/halo/cseries/profile.c"
-    },
-    "FUN_00091470": {
-      "opnd_percent": 78.4,
-      "score": 86.6,
-      "source": "src/halo/cseries/profile.c"
-    },
-    "FUN_00091510": {
-      "score": 87.5,
-      "source": "src/halo/cseries/profile.c"
-    },
-    "FUN_00091540": {
-      "opnd_percent": 74.2,
-      "score": 83.9,
-      "source": "src/halo/cseries/profile.c"
-    },
-    "FUN_000915b0": {
-      "opnd_percent": 73.4,
-      "score": 86.1,
-      "source": "src/halo/cseries/profile.c"
-    },
-    "FUN_00091640": {
-      "opnd_percent": 78.4,
-      "score": 86.6,
-      "source": "src/halo/cseries/profile.c"
-    },
-    "FUN_000916e0": {
-      "score": 86.7,
-      "source": "src/halo/cseries/profile.c"
-    },
-    "FUN_00091710": {
-      "opnd_percent": 74.2,
-      "score": 83.9,
-      "source": "src/halo/cseries/profile.c"
-    },
-    "FUN_00091780": {
-      "opnd_percent": 80.6,
-      "score": 90.3,
-      "source": "src/halo/cseries/profile.c"
-    },
-    "FUN_00091800": {
-      "opnd_percent": 74.2,
-      "score": 84.7,
-      "source": "src/halo/cseries/profile.c"
-    },
-    "FUN_00092090": {
-      "score": 100.0,
-      "source": "src/halo/cseries/profile.c"
-    },
     "FUN_00092370": {
       "score": 30.6,
       "source": "src/halo/cseries/stack_walk_windows.c"
