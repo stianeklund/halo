@@ -10879,6 +10879,179 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1559a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1559b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1559c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1559d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x155a00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x155a40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x155a70": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The per-unbind HRESULT check folds to a constant: the inline D3D8 wrappers always return S_OK so the report call at 0x167ff0 is unreachable at runtime; the MOV BL,1 / XOR BL,BL pair is the && normalisation of the success flag, not a live failure path."
+      ]
+    },
+    "0x155b90": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The trailing if (d3d) d3d = NULL at 0x155be4 is an IDirect3D8 Release() whose Xbox inline wrapper compiles away entirely, leaving only the pointer clear."
+      ]
+    },
+    "0x155c20": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Return type corrected from void to char: both exits execute MOV AL,0x1 at 0x155c7f and 0x155cae, so the function returns true unconditionally.",
+        "stage narrowed from int to short: the prologue loads it with MOV SI, word ptr [EBP+8] and both range compares are 16-bit."
+      ]
+    },
+    "0x155cf0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "stage and frame_index are int16: stage is compared with TEST DI,DI / CMP DI,4 and promoted with MOVSX EAX,DI for the printf, and frame_index is loaded with MOVSX EAX, word ptr [EBP+0x10] before the IDIV."
+      ]
+    },
+    "0x155da0": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "Return polarity looks inverted relative to the blocking variant: the function returns 1 when the texture is NOT resident and the zero result flag when the bind succeeds; transcribed exactly as the binary has it but the intended meaning of the bool is unproven."
+      ]
+    },
+    "0x155e80": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Return type is void* not void: every exit runs MOV AL,flag / NEG AL / SBB EAX,EAX / AND EAX,0x476a4c, MSVC's lowering of 'return valid ? &texture_size : NULL', and caller 0x00162a17 dereferences the result with MOV EDX,dword ptr [EAX].",
+        "Parameters narrowed from five ints to (short stage, short type, short usage, int bitmap_tag_index, short frame_index) on the basis of the 16-bit TEST/CMP on [EBP+8]/[EBP+0xc]/[EBP+0x10] and the MOVSX word on [EBP+0x18]; the plain dword loads feeding those 16-bit compares match the already-lifted rasterizer_set_texture_direct at 0x155cf0 which is declared short."
+      ],
+      "uncertain": [
+        "Globals 0x476a4c and 0x476a4e are the width and height of the last bound texture and 0x476a4c is the returned pointer, but the containing struct type and its name are unproven; the non-blocking twin at 0x1560a0 writes a separate pair at 0x476a48/0x476a4a and discards it.",
+        "The char flag at [EBP-1] is modelled as one local with a shared done: label because MSVC tail-duplicated the epilogue, folding the reload to MOV AL,1 at 0x155f73 while keeping the store-then-reload at 0x155ffb; the single-local reading is inferred from that asymmetry, not directly proven."
+      ]
+    },
+    "0x1560a0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Return polarity is inverted: 1 (MOV AL,0x1 at 0x156206) only when xbox_texture_cache_get_hardware_format reports the bitmap is not resident, 0 (XOR AL,AL) both on a successful bind and on the hard-failure path, matching the sibling rasterizer_set_texture_direct_non_blocking at 0x155da0.",
+        "Parameters narrowed from five ints to (short stage, short type, short usage, int bitmap_tag_index, short frame_index) from the 16-bit TEST/CMP on the first three stack slots and the MOVSX word on [EBP+0x18]."
+      ]
+    },
+    "0x156250": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Function takes two int16 arguments and returns the selected D3D surface pointer in EAX; the kb declaration void(void) was wrong on both counts, and the default arm returns the zero left in ESI by the prologue XOR ESI,ESI, i.e. a NULL-initialised result variable that each case overwrites."
+      ],
+      "uncertain": [
+        "The VC71 score of 94.8 percent is a measurement artifact: both the whole-object and per-function delinked references stop before the out-of-line default arm, so the 12 extra candidate instructions at the tail are present in the XBE at 0x1563c0-0x1563e4 and match ours mnemonic for mnemonic."
+      ]
+    },
+    "0x156440": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Takes one int16 parameter that the previous void decl hid; proven by MOV DI, word ptr [EBP+8], the 16-bit compares against 0 and 0x43, and the MOV word ptr [0x325164],DI write-back."
+      ]
+    },
+    "0x156510": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The parameter is a D3DPIXELSHADERDEF; the loop base pointer starts at pixel_shader+0x88 and steps 4 per combiner stage, so the six loads map onto the stock XDK dword arrays PSAlphaInputs +0x00, PSConstant0 +0x28, PSConstant1 +0x48, PSAlphaOutputs +0x68, PSRGBInputs +0x88 and PSRGBOutputs +0xb4."
+      ],
+      "uncertain": [
+        "PSCombinerCount bits 12 and 16 are read as per-stage mux enables for PSConstant0 and PSConstant1 respectively because each gates its own SetRenderStateNotInline call unless the stage index is zero, but the field names for those two bits are unproven."
+      ]
+    },
+    "0x156710": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x156850": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Parameter list recovered from in_stack_00000004/8/c: widths are int light_index (MOV dword, compared with -1), short light_slot (MOVSX word), void *lighting_constants; confirmed by the single call site at 0x156b96 pushing 3 args and cleaning 0xc."
+      ],
+      "uncertain": [
+        "The -1.0f test at 0x15695f is an integer compare against the bit pattern 0xbf800000, transcribed literally as an integer compare; whether the original source compared a float or a packed sentinel is unproven."
+      ]
+    },
+    "0x1569f0": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "The per-light record base inside lighting_constants is unproven; the 0x20 stride and the 0x60/0x70 sub-offsets are kept in the original algebraic form ((index+3)*0x20 and index*0x20+0x70) rather than folded."
+      ]
+    },
+    "0x156ab0": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "Constant-block bytes 0xac..0xaf are left uninitialised on the per-light path in the original (no memset, no store), so the lift leaves them uninitialised too."
+      ]
+    },
+    "0x156c30": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Globals 0x5a5bc8..0x5a5bdc and 0x5a5c64..0x5a5c78 feeding constant rows 4-7 are referenced by absolute address; their owning structure is unidentified, only that 0x5a5c1c is the global frustum whose matrix4x3 starts at +0x10 and whose 4x4 projection starts at +0x144."
+      ]
+    },
+    "0x156d80": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Source shape is a dword-index loop over four 0x20-entry stage tables, not a byte-offset loop: VC71 strength-reduces the index into the byte offset the original uses, whereas a literal byte-offset loop gets replaced with a pointer plus a down-counter."
+      ]
+    },
+    "0x156e00": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Function name rasterizer_filthy_bitmap_default_initialize comes from the failure assert string at 0x29e258 (line 0x137); the global roles 0x3256a4/a8/ac = default 2D/volume/cubemap hardware format come from the error-reporter argument-echo strings."
+      ],
+      "uncertain": [
+        "The cube-face LockRect and UnlockRect result checks push a literal 0 as the HRESULT and there is no UnlockRect CALL in the binary at all, so the exact XDK inline wrappers the original source named are inferred from the echoed argument strings only."
+      ]
+    },
+    "0x157010": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Return type corrected from the kb decl's void to char: MOV AL,BL precedes both RETs (0x15790c and 0x15792b), so the accumulated success flag is the return value; the only in-binary reference is the incremental-link JMP thunk at 0x17c7ca, so no caller confirms the consumption.",
+        "The 0x34-byte stack block at EBP-0x3c is D3DPRESENT_PARAMETERS: BackBufferWidth is right(0x32565a) minus left(0x325656) and BackBufferHeight is bottom(0x325658) minus top(0x325654), so the two short quads at 0x325654 and 0x32565c are rectangle2d globals ordered {top,left,bottom,right}.",
+        "The refresh-rate dispatch is transcribed as a switch on a short local because the reference emits sequential CMP against -1/0x1e/0x3c with the case blocks laid out in reverse address order, and the default arm re-tests the 16-bit value (CMP CX,SI) rather than the sign-extended EAX."
+      ],
+      "uncertain": [
+        "The IMM-WARN for 0x80000000 at EBP-0xc is a delinked-reference defect, not a lift error: the pristine XBE at 0x15718c stores 0x80000000 but the relocation synthesizer zeroed the immediate in delinked/functions/157010.obj.",
+        "The store of success=1 at 0x157767 inside the render-state block is redundant on the path that reaches it, so its exact source position is unproven; it is emitted first in the block to match the reference schedule.",
+        "IDirect3DPalette8_Unlock has no CALL in the reference; only its success test survives, so the Unlock is assumed to be a no-op inline on Xbox and is represented by the FUN_00167ff0 guard alone."
+      ]
+    },
     "0x157e40": {
       "kind": "function",
       "status": "ported"

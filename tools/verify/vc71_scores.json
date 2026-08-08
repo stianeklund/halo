@@ -12485,13 +12485,184 @@
       "score": 88.9,
       "source": "src/halo/rasterizer/common/rasterizer_common.c"
     },
+    "FUN_00155350": {
+      "opnd_percent": 90.9,
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00155380": {
+      "opnd_percent": 90.9,
+      "score": 97.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_001553a0": {
+      "opnd_percent": 91.9,
+      "score": 97.3,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_001553d0": {
+      "opnd_percent": 92.9,
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
     "FUN_001553f0": {
-      "score": 59.9,
+      "opnd_percent": 28.9,
+      "score": 72.7,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00155560": {
+      "opnd_percent": 90.9,
+      "score": 97.0,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
     },
     "FUN_00155580": {
       "opnd_percent": 84.2,
       "score": 84.2,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00155620": {
+      "opnd_percent": 54.5,
+      "score": 72.7,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00155630": {
+      "opnd_percent": 53.0,
+      "score": 79.6,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00155850": {
+      "opnd_percent": 36.4,
+      "score": 72.7,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00155860": {
+      "opnd_percent": 61.5,
+      "score": 76.9,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00155870": {
+      "opnd_percent": 61.5,
+      "score": 76.9,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00155880": {
+      "opnd_percent": 57.1,
+      "score": 85.7,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_001559b0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_001559c0": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00155b60": {
+      "opnd_percent": 92.3,
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00155c10": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00155c20": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00155cc0": {
+      "opnd_percent": 92.3,
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00155cf0": {
+      "opnd_percent": 93.7,
+      "score": 95.2,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00155da0": {
+      "opnd_percent": 92.8,
+      "score": 94.1,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00155e80": {
+      "opnd_percent": 96.9,
+      "score": 98.8,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00156070": {
+      "opnd_percent": 90.3,
+      "score": 96.8,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_001560a0": {
+      "opnd_percent": 99.3,
+      "score": 99.3,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00156250": {
+      "opnd_percent": 99.2,
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00156440": {
+      "opnd_percent": 92.4,
+      "score": 99.2,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00156510": {
+      "opnd_percent": 91.4,
+      "score": 96.9,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00156710": {
+      "opnd_percent": 61.2,
+      "score": 99.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00156850": {
+      "opnd_percent": 76.5,
+      "score": 91.6,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_001569f0": {
+      "opnd_percent": 71.7,
+      "score": 86.8,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00156a90": {
+      "opnd_percent": 87.0,
+      "score": 95.7,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00156ab0": {
+      "opnd_percent": 93.2,
+      "score": 94.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00156c30": {
+      "opnd_percent": 72.8,
+      "score": 94.6,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00156d80": {
+      "opnd_percent": 54.5,
+      "score": 94.5,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00156e00": {
+      "opnd_percent": 85.9,
+      "score": 88.6,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "FUN_00157010": {
+      "opnd_percent": 81.8,
+      "score": 90.4,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
     },
     "FUN_00157e40": {
@@ -16040,6 +16211,11 @@
     "FUN_001d8368": {
       "score": 50.0,
       "source": "src/halo/cseries/xcontent.c"
+    },
+    "SetupSmartStates": {
+      "opnd_percent": 54.5,
+      "score": 94.5,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
     },
     "XapiFormatFATVolume": {
       "score": 50.0,
@@ -24441,6 +24617,11 @@
       "score": 100.0,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
+    "rasterizer_dispose": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
     "rasterizer_dispose_from_old_map": {
       "opnd_percent": 40.0,
       "ref": "synth",
@@ -24456,6 +24637,11 @@
       "ref": "synth",
       "score": 79.6,
       "source": "src/halo/rasterizer/rasterizer_text.c"
+    },
+    "rasterizer_filthy_bitmap_default_initialize": {
+      "opnd_percent": 85.9,
+      "score": 88.6,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
     },
     "rasterizer_frame_begin": {
       "opnd_percent": 83.5,
@@ -24478,6 +24664,11 @@
     "rasterizer_get_default_hardware_format": {
       "opnd_percent": 84.2,
       "score": 84.2,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "rasterizer_get_target": {
+      "opnd_percent": 99.2,
+      "score": 100.0,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
     },
     "rasterizer_initialize": {
@@ -24534,6 +24725,11 @@
       "score": 86.2,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
+    "rasterizer_reset_state": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
     "rasterizer_secondary_geometry_group_new": {
       "opnd_percent": 96.0,
       "ref": "synth",
@@ -24546,11 +24742,76 @@
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
+    "rasterizer_set_frustum_z": {
+      "opnd_percent": 72.8,
+      "score": 94.6,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "rasterizer_set_model_lighting": {
+      "opnd_percent": 93.2,
+      "score": 94.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "rasterizer_set_model_lighting_point_light": {
+      "opnd_percent": 76.5,
+      "score": 91.6,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "rasterizer_set_model_skinning": {
+      "opnd_percent": 61.2,
+      "score": 99.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "rasterizer_set_pixel_shader": {
+      "opnd_percent": 91.4,
+      "score": 96.9,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "rasterizer_set_texture": {
+      "opnd_percent": 96.9,
+      "score": 98.8,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "rasterizer_set_texture_bitmap_data": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "rasterizer_set_texture_direct": {
+      "opnd_percent": 93.7,
+      "score": 95.2,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "rasterizer_set_texture_direct_non_blocking": {
+      "opnd_percent": 92.8,
+      "score": 94.1,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "rasterizer_set_texture_non_blocking": {
+      "opnd_percent": 99.3,
+      "score": 99.3,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
     "rasterizer_set_vblank_callback": {
       "opnd_percent": 66.7,
       "ref": "synth",
       "score": 66.7,
       "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_set_vertex_shader": {
+      "opnd_percent": 92.4,
+      "score": 99.2,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "rasterizer_spin_begin": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "rasterizer_spin_end": {
+      "opnd_percent": 100.0,
+      "score": 100.0,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
     },
     "rasterizer_sprites_render": {
       "score": 100.0,

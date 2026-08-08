@@ -4218,7 +4218,7 @@
     {
       "name": "halo/actor_moving",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_moving.c.obj",
-      "base_path": "delinked/actors.obj",
+      "base_path": "delinked/actor_moving.obj",
       "metadata": {
         "source_path": "src/halo/ai/actor_moving.c"
       }
@@ -4597,7 +4597,7 @@
       "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
       "base_path": "delinked/collision_usage.obj",
       "metadata": {
-        "source_path": "src/halo/physics/collision_usage.c"
+        "source_path": "halo/physics/collision_usage.c"
       }
     },
     {
@@ -4657,14 +4657,6 @@
       }
     },
     {
-      "name": "halo/collision_usage_FUN_0014cc80",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
-      "base_path": "delinked/collision_usage_FUN_0014cc80.obj",
-      "metadata": {
-        "source_path": "src/halo/physics/collision_usage.c"
-      }
-    },
-    {
       "name": "halo/collision_usage_FUN_0014cde0",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
       "base_path": "delinked/collision_usage_FUN_0014cde0.obj",
@@ -4694,14 +4686,6 @@
       "base_path": "delinked/collision_usage_FUN_0014dab0.obj",
       "metadata": {
         "source_path": "halo/physics/collision_usage.c"
-      }
-    },
-    {
-      "name": "halo/collision_usage_FUN_0014db10",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
-      "base_path": "delinked/collision_usage_FUN_0014db10.obj",
-      "metadata": {
-        "source_path": "src/halo/physics/collision_usage.c"
       }
     },
     {
@@ -4806,14 +4790,6 @@
       "base_path": "delinked/console.obj",
       "metadata": {
         "source_path": "src/halo/main/console.c"
-      }
-    },
-    {
-      "name": "halo/contrails",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/contrails.c.obj",
-      "base_path": "delinked/contrails.obj",
-      "metadata": {
-        "source_path": "src/halo/effects/contrails.c"
       }
     },
     {
@@ -5297,14 +5273,6 @@
       }
     },
     {
-      "name": "halo/hs_compile",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/hs/hs_compile.c.obj",
-      "base_path": "delinked/hs_compile.obj",
-      "metadata": {
-        "source_path": "src/halo/hs/hs_compile.c"
-      }
-    },
-    {
       "name": "halo/hs_runtime",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/hs/hs_runtime.c.obj",
       "base_path": "delinked/hs_runtime.obj",
@@ -5489,14 +5457,6 @@
       }
     },
     {
-      "name": "halo/hud_messaging",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud_messaging.c.obj",
-      "base_path": "delinked/hud_messaging.obj",
-      "metadata": {
-        "source_path": "src/halo/interface/hud_messaging.c"
-      }
-    },
-    {
       "name": "halo/hud_messaging_FUN_0d46d0",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/interface/hud_messaging.c.obj",
       "base_path": "delinked/hud_messaging_FUN_0d46d0.obj",
@@ -5601,14 +5561,6 @@
       }
     },
     {
-      "name": "halo/memory_pool",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/memory_pool.c.obj",
-      "base_path": "delinked/memory_pool.obj",
-      "metadata": {
-        "source_path": "src/halo/memory/memory_pool.c"
-      }
-    },
-    {
       "name": "halo/model_animations",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/models/model_animations.c.obj",
       "base_path": "delinked/model_animations.obj",
@@ -5630,14 +5582,6 @@
       "base_path": "delinked/network_game_globals.obj",
       "metadata": {
         "source_path": "src/halo/networking/network_game_globals.c"
-      }
-    },
-    {
-      "name": "halo/network_messages",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_messages.c.obj",
-      "base_path": "delinked/network_messages.obj",
-      "metadata": {
-        "source_path": "src/halo/networking/network_messages.c"
       }
     },
     {
@@ -5691,7 +5635,7 @@
     {
       "name": "halo/objects",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
-      "base_path": "delinked/objects_region_9eb40.obj",
+      "base_path": "delinked/objects.obj",
       "metadata": {
         "source_path": "src/halo/objects/objects.c"
       }
@@ -6472,22 +6416,6 @@
       }
     },
     {
-      "name": "halo/random_math_FUN_10b110",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
-      "base_path": "delinked/random_math_FUN_10b110.obj",
-      "metadata": {
-        "source_path": "src/halo/math/random_math.c"
-      }
-    },
-    {
-      "name": "halo/random_math_FUN_10b110",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
-      "base_path": "delinked/random_math_FUN_10b110.obj",
-      "metadata": {
-        "source_path": "src/halo/math/random_math.c"
-      }
-    },
-    {
       "name": "halo/random_math_FUN_10b160",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
       "base_path": "delinked/random_math_FUN_10b160.obj",
@@ -6499,22 +6427,6 @@
       "name": "halo/random_math_FUN_10b3c0",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
       "base_path": "delinked/random_math_FUN_10b3c0.obj",
-      "metadata": {
-        "source_path": "src/halo/math/random_math.c"
-      }
-    },
-    {
-      "name": "halo/random_math_FUN_10b3c0",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
-      "base_path": "delinked/random_math_FUN_10b3c0.obj",
-      "metadata": {
-        "source_path": "src/halo/math/random_math.c"
-      }
-    },
-    {
-      "name": "halo/random_math_FUN_10b9c0",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
-      "base_path": "delinked/random_math_FUN_10b9c0.obj",
       "metadata": {
         "source_path": "src/halo/math/random_math.c"
       }
@@ -6552,22 +6464,6 @@
       }
     },
     {
-      "name": "halo/random_math_FUN_10c2e0",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
-      "base_path": "delinked/random_math_FUN_10c2e0.obj",
-      "metadata": {
-        "source_path": "src/halo/math/random_math.c"
-      }
-    },
-    {
-      "name": "halo/random_math_FUN_10c340",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
-      "base_path": "delinked/random_math_FUN_10c340.obj",
-      "metadata": {
-        "source_path": "src/halo/math/random_math.c"
-      }
-    },
-    {
       "name": "halo/random_math_FUN_10c340",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
       "base_path": "delinked/random_math_FUN_10c340.obj",
@@ -6592,33 +6488,9 @@
       }
     },
     {
-      "name": "halo/random_math_FUN_10c780",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
-      "base_path": "delinked/random_math_FUN_10c780.obj",
-      "metadata": {
-        "source_path": "src/halo/math/random_math.c"
-      }
-    },
-    {
       "name": "halo/random_math_FUN_10c7d0",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
       "base_path": "delinked/random_math_FUN_10c7d0.obj",
-      "metadata": {
-        "source_path": "src/halo/math/random_math.c"
-      }
-    },
-    {
-      "name": "halo/random_math_FUN_10c7d0",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
-      "base_path": "delinked/random_math_FUN_10c7d0.obj",
-      "metadata": {
-        "source_path": "src/halo/math/random_math.c"
-      }
-    },
-    {
-      "name": "halo/random_math_FUN_10c920",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
-      "base_path": "delinked/random_math_FUN_10c920.obj",
       "metadata": {
         "source_path": "src/halo/math/random_math.c"
       }
@@ -6836,7 +6708,7 @@
       "target_path": "build/CMakeFiles/halo.dir/src/halo/sound/sound_classes.c.obj",
       "base_path": "delinked/sound_classes.obj",
       "metadata": {
-        "source_path": "src/halo/sound/sound_classes.c"
+        "source_path": "halo/sound/sound_classes.c"
       }
     },
     {
@@ -6888,14 +6760,6 @@
       }
     },
     {
-      "name": "halo/sound_manager",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/sound/sound_manager.c.obj",
-      "base_path": "delinked/sound_manager.obj",
-      "metadata": {
-        "source_path": "src/halo/sound/sound_manager.c"
-      }
-    },
-    {
       "name": "halo/stack_memory_pool",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/memory/stack_memory_pool.c.obj",
       "base_path": "delinked/stack_memory_pool.obj",
@@ -6909,14 +6773,6 @@
       "base_path": "delinked/stack_walk_windows.obj",
       "metadata": {
         "source_path": "src/halo/cseries/stack_walk_windows.c"
-      }
-    },
-    {
-      "name": "halo/structure_bsp_definitions",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/structures/structure_bsp_definitions.c.obj",
-      "base_path": "delinked/structure_bsp_definitions.obj",
-      "metadata": {
-        "source_path": "src/halo/structures/structure_bsp_definitions.c"
       }
     },
     {
@@ -7042,9 +6898,9 @@
     {
       "name": "halo/units",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/units/units.c.obj",
-      "base_path": "delinked/units_region_8dc30.obj",
+      "base_path": "delinked/units.obj",
       "metadata": {
-        "source_path": "src/halo/units/units.c"
+        "source_path": "units/units.c"
       }
     },
     {
@@ -7220,7 +7076,7 @@
       "target_path": "build/CMakeFiles/halo.dir/src/halo/items/weapons.c.obj",
       "base_path": "delinked/weapons.obj",
       "metadata": {
-        "source_path": "src/halo/items/weapons.c"
+        "source_path": "halo/items/weapons.c"
       }
     },
     {
@@ -7936,62 +7792,6 @@
       }
     },
     {
-      "name": "halo/objects",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
-      "base_path": "delinked/objects_region_9eb40.obj",
-      "metadata": {
-        "source_path": "src/halo/objects/objects.c"
-      }
-    },
-    {
-      "name": "halo/objects",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
-      "base_path": "delinked/objects_region_9eb40.obj",
-      "metadata": {
-        "source_path": "src/halo/objects/objects.c"
-      }
-    },
-    {
-      "name": "halo/objects",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
-      "base_path": "delinked/objects_region_9eb40.obj",
-      "metadata": {
-        "source_path": "src/halo/objects/objects.c"
-      }
-    },
-    {
-      "name": "halo/objects",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
-      "base_path": "delinked/objects_region_9eb40.obj",
-      "metadata": {
-        "source_path": "src/halo/objects/objects.c"
-      }
-    },
-    {
-      "name": "halo/units",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/units.c.obj",
-      "base_path": "delinked/units_region_8dc30.obj",
-      "metadata": {
-        "source_path": "src/halo/units/units.c"
-      }
-    },
-    {
-      "name": "halo/units",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/units.c.obj",
-      "base_path": "delinked/units_region_8dc30.obj",
-      "metadata": {
-        "source_path": "src/halo/units/units.c"
-      }
-    },
-    {
-      "name": "halo/bored_camera",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/camera/bored_camera.c.obj",
-      "base_path": "delinked/bored_camera.obj",
-      "metadata": {
-        "source_path": "src/halo/camera/bored_camera.c"
-      }
-    },
-    {
       "name": "halo/rasterizer_FUN_00174d10",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/rasterizer.c.obj",
       "base_path": "delinked/rasterizer_FUN_00174d10.obj",
@@ -8360,51 +8160,11 @@
       }
     },
     {
-      "name": "halo/weapons",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/items/weapons.c.obj",
-      "base_path": "delinked/weapons.obj",
-      "metadata": {
-        "source_path": "halo/items/weapons.c"
-      }
-    },
-    {
       "name": "halo/bsp3d",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/bsp3d.c.obj",
       "base_path": "delinked/bsp3d.obj",
       "metadata": {
         "source_path": "halo/physics/bsp3d.c"
-      }
-    },
-    {
-      "name": "halo/collision_usage",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/collision_usage.c.obj",
-      "base_path": "delinked/collision_usage.obj",
-      "metadata": {
-        "source_path": "halo/physics/collision_usage.c"
-      }
-    },
-    {
-      "name": "halo/sound_classes",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/sound/sound_classes.c.obj",
-      "base_path": "delinked/sound_classes.obj",
-      "metadata": {
-        "source_path": "halo/sound/sound_classes.c"
-      }
-    },
-    {
-      "name": "halo/objects",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
-      "base_path": "delinked/objects.obj",
-      "metadata": {
-        "source_path": "objects/objects.c"
-      }
-    },
-    {
-      "name": "halo/actor_moving",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/ai/actor_moving.c.obj",
-      "base_path": "delinked/actor_moving.obj",
-      "metadata": {
-        "source_path": "src/halo/ai/actor_moving.c"
       }
     },
     {
@@ -8424,14 +8184,6 @@
       }
     },
     {
-      "name": "halo/objects",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/objects/objects.c.obj",
-      "base_path": "delinked/objects.obj",
-      "metadata": {
-        "source_path": "src/halo/objects/objects.c"
-      }
-    },
-    {
       "name": "halo/rasterizer_xbox_profile",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox_profile.c.obj",
       "base_path": "delinked/rasterizer_xbox_profile.obj",
@@ -8445,22 +8197,6 @@
       "base_path": "delinked/static_camera.obj",
       "metadata": {
         "source_path": "src/halo/camera/static_camera.c"
-      }
-    },
-    {
-      "name": "halo/units",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/units.c.obj",
-      "base_path": "delinked/units.obj",
-      "metadata": {
-        "source_path": "src/halo/units/units.c"
-      }
-    },
-    {
-      "name": "halo/units",
-      "target_path": "build/CMakeFiles/halo.dir/src/halo/units/units.c.obj",
-      "base_path": "delinked/units.obj",
-      "metadata": {
-        "source_path": "units/units.c"
       }
     },
     {
@@ -8709,6 +8445,342 @@
       "base_path": "delinked/functions/96a90.obj",
       "metadata": {
         "source_path": "src/halo/devices/devices.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155350",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155350.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155380",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155380.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_001553a0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/1553a0.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_001553d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/1553d0.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_001553f0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/1553f0.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155560",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155560.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155580",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155580.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155620",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155620.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155880",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155880.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_001559a0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/1559a0.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_001559b0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/1559b0.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_001559c0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/1559c0.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_001559d0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/1559d0.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155a00",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155a00.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155a40",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155a40.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155a70",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155a70.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155b60",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155b60.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155b90",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155b90.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155c10",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155c10.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155c20",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155c20.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155cc0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155cc0.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155cf0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155cf0.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155da0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155da0.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155e80",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155e80.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00156070",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/156070.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_001560a0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/1560a0.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00156250",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/156250.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00156440",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/156440.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00156510",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/156510.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00156710",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/156710.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00156850",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/156850.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_001569f0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/1569f0.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00156a90",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/156a90.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00156ab0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/156ab0.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00156c30",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/156c30.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00156d80",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/156d80.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00156e00",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/156e00.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00157010",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/157010.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155630",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155630.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155850",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155850.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155860",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155860.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+      }
+    },
+    {
+      "name": "halo/FUN_00155870",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/rasterizer/xbox/rasterizer_xbox.c.obj",
+      "base_path": "delinked/functions/155870.obj",
+      "metadata": {
+        "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
       }
     }
   ]

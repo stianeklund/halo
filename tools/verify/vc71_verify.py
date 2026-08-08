@@ -106,9 +106,53 @@ def find_units(source: str, units: list[dict]) -> list[dict]:
     return matches
 
 
+_alias_source: Path | None = None
+
+
+def _set_alias_source(source: Path | None) -> None:
+    """Set the default source TU for alias resolution.
+
+    Alias/addr lookups deep inside the scoring path don't all thread the
+    source parameter; the TU being scored is authoritative for resolving
+    same-stem name collisions (e.g. _rasterizer_windows_end @ 0x155a40 vs the
+    rasterizer.obj thunk rasterizer_windows_end @ 0x17c910), so stash it here
+    and invalidate the name-keyed caches that depend on it.
+    """
+    global _alias_source
+    if _alias_source != source:
+        _alias_source = source
+        _func_span_cache.clear()
+
+
 def function_aliases(fn: str, source: Path | None = None) -> set[str]:
     """Find all name aliases for a function (e.g. console_update -> FUN_000ff9e0)."""
     aliases = {fn}
+    if source is None:
+        source = _alias_source
+
+    # House-style address comment in the source TU is authoritative:
+    #   /* 0x155a40 */
+    #   void _rasterizer_windows_end(void)
+    # llvm-nm normalization strips ALL leading underscores from the
+    # candidate symbol, so an underscore-prefixed impl (_rasterizer_windows_end
+    # @ 0x155a40) would otherwise alias-collide with a same-stem kb name
+    # (rasterizer_windows_end @ 0x17c910, the tail-call thunk) and score
+    # against the wrong reference.
+    if source:
+        _sp = Path(source)
+        if _sp.exists():
+            try:
+                _txt = _sp.read_text()
+                m = re.search(
+                    r"/\*\s*0x([0-9a-fA-F]{4,8})\s*\*/\s*\n[^\n(]*?\b(_{0,2}"
+                    + re.escape(fn) + r")\s*\(",
+                    _txt,
+                )
+                if m:
+                    addr_int = int(m.group(1), 16)
+                    return {fn, m.group(2), f"FUN_{addr_int:08x}"}
+            except Exception:
+                pass
 
     try:
         kb = _load_kb()
@@ -1287,6 +1331,7 @@ def run_compare_cached(
     Imports compare_obj as a module so results can be cached per function.
     Falls back to subprocess invocation if import fails.
     """
+    _set_alias_source(source)
     # Lazy import so compare_obj.py's sys.path setup runs in subprocess context
     # when invoked standalone, but we can reuse it as a library here.
     try:

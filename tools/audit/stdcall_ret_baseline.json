@@ -66,6 +66,31 @@
       "expected": 0,
       "observed": 20
     },
+    "0x155620": {
+      "name": "FUN_00155620",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155630": {
+      "name": "FUN_00155630",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155850": {
+      "name": "FUN_00155850",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155860": {
+      "name": "FUN_00155860",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155870": {
+      "name": "FUN_00155870",
+      "expected": 0,
+      "observed": 4
+    },
     "0x155880": {
       "name": "FUN_00155880",
       "expected": 0,
@@ -236,21 +261,6 @@
       "expected": 0,
       "observed": 24
     },
-    "0x1703f0": {
-      "name": "FUN_001703f0",
-      "expected": 0,
-      "observed": 12
-    },
-    "0x172650": {
-      "name": "FUN_00172650",
-      "expected": 0,
-      "observed": 12
-    },
-    "0x173af0": {
-      "name": "FUN_00173af0",
-      "expected": 0,
-      "observed": 12
-    },
     "0x1744f0": {
       "name": "FUN_001744f0",
       "expected": 0,
@@ -260,26 +270,6 @@
       "name": "FUN_00174980",
       "expected": 0,
       "observed": 8
-    },
-    "0x178820": {
-      "name": "FUN_00178820",
-      "expected": 0,
-      "observed": 8
-    },
-    "0x179570": {
-      "name": "FUN_00179570",
-      "expected": 0,
-      "observed": 12
-    },
-    "0x17ad20": {
-      "name": "FUN_0017ad20",
-      "expected": 0,
-      "observed": 12
-    },
-    "0x17ad40": {
-      "name": "FUN_0017ad40",
-      "expected": 0,
-      "observed": 24
     },
     "0x1bafa0": {
       "name": "FUN_001bafa0",
@@ -1031,16 +1021,6 @@
       "expected": 0,
       "observed": 4
     },
-    "0x1e6b10": {
-      "name": "D3DDevice_CreateVolumeTexture",
-      "expected": 0,
-      "observed": 32
-    },
-    "0x1e6b40": {
-      "name": "D3DDevice_CreateCubeTexture",
-      "expected": 0,
-      "observed": 24
-    },
     "0x1e6ba0": {
       "name": "D3DDevice_CreateImageSurface",
       "expected": 0,
@@ -1093,16 +1073,6 @@
     },
     "0x1e6fa0": {
       "name": "D3DDevice_BlockOnFence",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1e7030": {
-      "name": "D3DDevice_GetVisibilityTestResult",
-      "expected": 0,
-      "observed": 12
-    },
-    "0x1e70e0": {
-      "name": "D3DDevice_SetVerticalBlankCallback",
       "expected": 0,
       "observed": 4
     },
@@ -1181,20 +1151,10 @@
       "expected": 0,
       "observed": 8
     },
-    "0x1e88a0": {
-      "name": "D3DDevice_SetPalette",
-      "expected": 0,
-      "observed": 8
-    },
     "0x1e8920": {
       "name": "D3DDevice_SetIndices",
       "expected": 0,
       "observed": 8
-    },
-    "0x1e8a70": {
-      "name": "D3DDevice_EndVisibilityTest",
-      "expected": 0,
-      "observed": 4
     },
     "0x1e8ad0": {
       "name": "D3DDevice_GetDisplayFieldStatus",
@@ -1216,75 +1176,10 @@
       "expected": 0,
       "observed": 12
     },
-    "0x1e92f0": {
-      "name": "D3DDevice_SetRenderState_MultiSampleType",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1e9320": {
-      "name": "D3DDevice_SetRenderState_PSTextureModes",
-      "expected": 0,
-      "observed": 4
-    },
     "0x1e93a0": {
       "name": "D3DDevice_SetRenderStateNotInline",
       "expected": 0,
       "observed": 8
-    },
-    "0x1e9620": {
-      "name": "D3DDevice_SetRenderState_EdgeAntiAlias",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1e9650": {
-      "name": "D3DDevice_SetRenderState_ShadowFunc",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1e9680": {
-      "name": "D3DDevice_SetRenderState_FogColor",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1e9780": {
-      "name": "D3DDevice_SetRenderState_NormalizeNormals",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1e97b0": {
-      "name": "D3DDevice_SetRenderState_TextureFactor",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1e9800": {
-      "name": "D3DDevice_SetRenderState_LineWidth",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1e9860": {
-      "name": "D3DDevice_SetRenderState_Dxt1NoiseEnable",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1e9960": {
-      "name": "D3DDevice_SetRenderState_LogicOp",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1e99f0": {
-      "name": "D3DDevice_SetRenderState_BackFillMode",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1e9a40": {
-      "name": "D3DDevice_SetRenderState_TwoSidedLighting",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1e9aa0": {
-      "name": "D3DDevice_SetRenderState_VertexBlend",
-      "expected": 0,
-      "observed": 4
     },
     "0x1e9ae0": {
       "name": "D3DDevice_SetTextureState_TexCoordIndex",
@@ -1306,55 +1201,10 @@
       "expected": 0,
       "observed": 12
     },
-    "0x1ea3f0": {
-      "name": "D3DDevice_SetRenderState_YuvEnable",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1ea420": {
-      "name": "D3DDevice_SetRenderState_OcclusionCullEnable",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1ea480": {
-      "name": "D3DDevice_SetRenderState_StencilCullEnable",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1ea4e0": {
-      "name": "D3DDevice_SetRenderState_RopZCmpAlwaysRead",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1ea500": {
-      "name": "D3DDevice_SetRenderState_RopZRead",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1ea520": {
-      "name": "D3DDevice_SetRenderState_DoNotCullUncompressed",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1ea540": {
-      "name": "D3DDevice_SetRenderState_MultiSampleAntiAlias",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x1ea590": {
-      "name": "D3DDevice_SetRenderState_MultiSampleMask",
-      "expected": 0,
-      "observed": 4
-    },
     "0x1eac90": {
       "name": "D3DDevice_GetShaderConstantMode",
       "expected": 0,
       "observed": 4
-    },
-    "0x1eaf70": {
-      "name": "D3DDevice_CreateVertexShader",
-      "expected": 0,
-      "observed": 16
     },
     "0x1eb0b0": {
       "name": "D3DDevice_GetVertexShader",
@@ -1376,23 +1226,8 @@
       "expected": 0,
       "observed": 8
     },
-    "0x1eb400": {
-      "name": "D3DDevice_LoadVertexShader",
-      "expected": 0,
-      "observed": 8
-    },
     "0x1eb460": {
       "name": "D3DDevice_LoadVertexShaderProgram",
-      "expected": 0,
-      "observed": 8
-    },
-    "0x1eb4d0": {
-      "name": "D3DDevice_SelectVertexShader",
-      "expected": 0,
-      "observed": 8
-    },
-    "0x1eb540": {
-      "name": "D3DDevice_GetVertexShaderSize",
       "expected": 0,
       "observed": 8
     },
@@ -1481,16 +1316,6 @@
       "expected": 0,
       "observed": 16
     },
-    "0x1edd10": {
-      "name": "D3DCubeTexture_LockRect",
-      "expected": 0,
-      "observed": 24
-    },
-    "0x1edd80": {
-      "name": "D3DVolumeTexture_LockBox",
-      "expected": 0,
-      "observed": 20
-    },
     "0x1eddd0": {
       "name": "D3D_CreateTexture",
       "expected": 0,
@@ -1550,11 +1375,6 @@
       "name": "D3DPalette_Lock",
       "expected": 0,
       "observed": 12
-    },
-    "0x1ef100": {
-      "name": "D3DVertexBuffer_Lock",
-      "expected": 0,
-      "observed": 20
     },
     "0x1ef150": {
       "name": "D3DVertexBuffer_GetDesc",
@@ -2151,40 +1971,15 @@
       "expected": 0,
       "observed": 12
     },
-    "0x204dc9": {
-      "name": "IDirectSound_SetOrientation",
-      "expected": 0,
-      "observed": 32
-    },
-    "0x204e13": {
-      "name": "IDirectSound_SetPosition",
-      "expected": 0,
-      "observed": 20
-    },
     "0x204e48": {
       "name": "IDirectSound_SetRolloffFactor",
       "expected": 0,
       "observed": 12
     },
-    "0x204e6c": {
-      "name": "IDirectSound_SetVelocity",
-      "expected": 0,
-      "observed": 20
-    },
-    "0x204ea1": {
-      "name": "IDirectSound_CommitDeferredSettings",
-      "expected": 0,
-      "observed": 4
-    },
     "0x204eb9": {
       "name": "IDirectSound_GetTime",
       "expected": 0,
       "observed": 8
-    },
-    "0x204ed5": {
-      "name": "IDirectSound_SetI3DL2Listener",
-      "expected": 0,
-      "observed": 12
     },
     "0x204f5b": {
       "name": "IDirectSoundBuffer_SetLFO",
