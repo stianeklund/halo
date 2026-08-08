@@ -1808,9 +1808,8 @@
       "source": "src/halo/ai/ai.c"
     },
     "FUN_000425c0": {
-      "opnd_percent": 20.1,
-      "ref": "synth",
-      "score": 40.5,
+      "opnd_percent": 45.9,
+      "score": 79.5,
       "source": "src/halo/ai/ai.c"
     },
     "FUN_00042a30": {
@@ -17559,7 +17558,8 @@
       "source": "src/halo/ai/ai.c"
     },
     "ai_update": {
-      "score": 78.5,
+      "opnd_percent": 96.8,
+      "score": 100.0,
       "source": "src/halo/ai/ai.c"
     },
     "ai_update_team_status": {

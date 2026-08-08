@@ -35,6 +35,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 OBJDIFF_JSON = REPO_ROOT / "objdiff.json"
 BUILD_DIR = REPO_ROOT / "build"
 VC71_OUT_DIR = BUILD_DIR / "vc71"
+_DEFAULT_OPT = "/O2"
 DELINKED_DIR = REPO_ROOT / "delinked"
 
 # Machine-readable per-function score-context packs (diff ops, warning
@@ -1319,6 +1320,30 @@ def _write_score_context(pack: dict) -> Path:
     return out_path
 
 
+# Mixed-optimization TUs: a handful of functions in an otherwise /O2 file were
+# built with optimization disabled (MSVC #pragma optimize("",off)), so the
+# reference spills every temp to EBP-relative slots, keeps a large frame, and
+# emits JMP-to-next-instruction. One flag per file cannot score both groups, so
+# these functions get a second compile at their own flag.
+#
+# ai.c: FUN_000425c0 has SUB ESP,0x40 with every value round-tripped through the
+# stack, while ai_update next door is fully register-allocated. Measured across
+# all 54 scored functions in the TU: exactly 2 gain at /Od, 50 lose (many by
+# 40-80pp). FUN_000425c0 36.1% (/O2) -> 79.5% (/Od).
+_PER_FUNCTION_OPT: dict[str, dict[str, str]] = {
+    "ai/ai.c": {"FUN_000425c0": "/Od"},
+}
+
+
+def _per_function_opt_for(source: Path) -> dict[str, str]:
+    """Per-function optimization overrides for a mixed-optimization TU."""
+    key = str(source).replace("\\", "/")
+    for tu, overrides in _PER_FUNCTION_OPT.items():
+        if key.endswith(tu):
+            return dict(overrides)
+    return {}
+
+
 def run_compare_cached(
     compiled: Path,
     reference: Path,
@@ -1329,6 +1354,8 @@ def run_compare_cached(
     quiet: bool = False,
     opt: str = "/O2",
     score_context: bool = True,
+    per_fn_opt: dict[str, str] | None = None,
+    regcall_elide: bool = False,
 ) -> int:
     """Run per-function comparison with cache integration.
 
@@ -1386,6 +1413,33 @@ def run_compare_cached(
 
     compiled_funcs: dict[str, list[str]] = co.disassemble(str(compiled))
     reference_funcs: dict[str, list[str]] = co.disassemble(str(reference))
+
+    # Mixed-optimization TU: recompile at the override flag and swap in only
+    # those functions' bodies. Everything else keeps the primary-pass object.
+    fn_opt: dict[str, str] = {}
+    if per_fn_opt:
+        by_flag: dict[str, list[str]] = {}
+        for name, flag in per_fn_opt.items():
+            if flag != opt:
+                by_flag.setdefault(flag, []).append(name)
+        for flag, names in sorted(by_flag.items()):
+            alt_obj = compiled.with_name(
+                f"{compiled.stem}.opt{flag.replace('/', '').replace(' ', '')}.obj"
+            )
+            if not compile_vc71(source, alt_obj, regcall_elide=regcall_elide,
+                                opt=flag):
+                print(f"[opt] per-function recompile at {flag} failed; "
+                      f"{', '.join(sorted(names))} stay at {opt}",
+                      file=sys.stderr)
+                continue
+            alt_funcs = co.disassemble(str(alt_obj))
+            for name in names:
+                if name in alt_funcs:
+                    compiled_funcs[name] = alt_funcs[name]
+                    fn_opt[name] = flag
+                    if not quiet:
+                        print(f"[opt] {name}: mixed-optimization TU -> "
+                              f"scored at {flag}", flush=True)
 
     matched: set[str] = set(compiled_funcs.keys()) & set(reference_funcs.keys())
 
@@ -1726,8 +1780,11 @@ def run_compare_cached(
         cached_result = None
         # Overridden functions were scored against a per-function chunk, not the
         # whole-object `reference` the cache key is derived from — bypass cache.
+        # Overridden functions are scored from a different object; key their
+        # cache entry on their own flag so it cannot collide with a primary run.
+        cache_opt = fn_opt.get(fn, opt)
         if not no_cache and cache is not None and fn not in ref_overrides:
-            cached_result = cache.get(fn, source, reference, opt=opt)
+            cached_result = cache.get(fn, source, reference, opt=cache_opt)
 
         if cached_result is not None:
             hits += 1
@@ -1762,7 +1819,7 @@ def run_compare_cached(
             if cache is not None and not no_cache and fn not in ref_overrides:
                 cache.put(fn, source, reference, pct, fpu_warnings, diffs,
                           loadw_warnings=loadw_warnings, imm_warnings=imm_warnings,
-                          fcom_warnings=fcom_warnings, opt=opt)
+                          fcom_warnings=fcom_warnings, opt=cache_opt)
 
         n_c = len(compiled_funcs[fn])
         n_r = len(reference_funcs[fn])
@@ -2013,6 +2070,9 @@ def main():
     # they use compact idioms (push imm8/pop, leave) that /O2 never emits.
     # Auto-select /O1 for those when the caller didn't override it. Verified:
     # xbox_crt timer fns jump 81-82% (/O2) -> 100% (/O1).
+    # Captured before the auto-select rules below rewrite args.opt.
+    opt_was_default = args.opt == _DEFAULT_OPT
+
     _O1_TUS = ("cseries/xbox_crt.c",)
     if args.opt == "/O2" and any(str(source).replace("\\", "/").endswith(t) for t in _O1_TUS):
         args.opt = "/O1"
@@ -2149,10 +2209,15 @@ def main():
         extra += ["--regdef-params", args.regdef_params]
     extra += ["--threshold", str(args.threshold)]
 
+    # Only auto-apply per-function overrides when the caller didn't pin --opt;
+    # an explicit flag means the user is deliberately measuring one setting.
+    per_fn_opt = _per_function_opt_for(source) if opt_was_default else {}
+
     rc = run_compare_cached(
         vc71_obj, ref_path, source, extra, cache, no_cache=args.no_cache,
         quiet=args.quiet, opt=args.opt,
         score_context=not args.no_score_context,
+        per_fn_opt=per_fn_opt, regcall_elide=args.regcall_elide,
     )
     sys.exit(rc)
 
