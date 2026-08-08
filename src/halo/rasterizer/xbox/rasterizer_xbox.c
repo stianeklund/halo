@@ -67,6 +67,11 @@ void FUN_001553d0(int r1, int r2, int r3, int s1, int s2, int s3, int s4)
  * device caps are fetched, Present is called, then the device and IDirect3D8
  * object are released.  On any failure an error is logged.
  *
+ * Return value: `XOR BL,BL` / `MOV BL,1` accumulate a success flag and
+ * `MOV AL,BL` precedes both RETs (0x15542b and 0x155506), so this returns a
+ * char, not void (the old kb decl was a void-EAX misread).  The only caller,
+ * shell_xbox.c, discards it.
+ *
  * Globals (not in kb.json, hardcoded):
  *   0x476a50  void *  – IDirect3D8 object pointer
  *   0x476ab0  void *  – IDirect3DDevice8 pointer
@@ -74,6 +79,21 @@ void FUN_001553d0(int r1, int r2, int r3, int s1, int s2, int s3, int s4)
  *
  * Present_parameters layout confirmed against D3DPRESENT_PARAMETERS from
  * third_party/xbox/d3d8types.h (0x34 bytes total).
+ *
+ * VC71 86.6% (95/92 insns) is a block-placement ceiling, not a logic gap.
+ * The original keeps the success flag live in BL across every reporter call
+ * (XOR BL,BL / MOV BL,1 ... MOV AL,BL) and so pushes EBX in the prologue;
+ * VC71 /O2 constant-propagates the flag on the failure paths (XOR AL,AL /
+ * MOV AL,1) and therefore sinks PUSH EBX into the success block.  It also
+ * coalesces the two ADD ESP,8 error cleanups into one ADD ESP,0x10, because
+ * the duplicated tail below is not a separate basic block the way the
+ * original's LAB_0015541a is.  Two rewrites that reproduce the original's
+ * shared-tail layout were measured and both lost: hoisting the success body
+ * behind a forward goto scored 78.0%, and making the "preinitialize failed"
+ * tail a shared backward-jump target scored 83.5%.  Duplicating that tail
+ * into the create-object failure path (the current form) is the best
+ * measured shape and the permuter found nothing better.  Accepted at
+ * ceiling.
  */
 
 /*
@@ -100,84 +120,73 @@ typedef struct {
 #pragma pack(pop)
 
 /* 0x1553f0 */
-void rasterizer_preinitialize(void)
+char rasterizer_preinitialize(void)
 {
-  int hr;
   d3d_present_parameters_t d3dpp;
+  char success;
+  int hr;
 
-  /* 0x1eeab0: stdcall Direct3DCreate(UINT sdkVersion) -> void * (IDirect3D8)
-   */
-  *(void **)0x476a50 = ((void *(__stdcall *)(unsigned int))0x1eeab0)(0);
-
+  *(void **)0x476a50 = Direct3DCreate8(0);
   if (*(void **)0x476a50 == 0) {
     error(2, "### ERROR failed to create D3D object");
+    success = 0;
     error(2, "### ERROR rasterizer_preinitialize failed");
-    return;
-  }
+    return success;
+  } else {
+    /* Zero-fill D3DPRESENT_PARAMETERS (0x34 bytes) then set used fields */
+    csmemset(&d3dpp, 0, 0x34);
+    d3dpp.BackBufferWidth = 0x280; /* 640 */
+    d3dpp.BackBufferHeight = 0x1e0; /* 480 */
+    d3dpp.BackBufferFormat = 6; /* D3DFMT_A8R8G8B8 */
+    d3dpp.SwapEffect = 1; /* D3DSWAPEFFECT_DISCARD */
+    d3dpp.Windowed = 0; /* fullscreen */
+    d3dpp.EnableAutoDepthStencil = 1;
+    d3dpp.AutoDepthStencilFormat = 0x2a; /* D3DFMT_D24S8 */
+    d3dpp.Flags = 1;
+    d3dpp.FullScreen_PresentationInterval = 0;
 
-  /* Zero-fill D3DPRESENT_PARAMETERS (0x34 bytes) then set used fields */
-  csmemset(&d3dpp, 0, 0x34);
-  d3dpp.BackBufferWidth = 0x280; /* 640 */
-  d3dpp.BackBufferHeight = 0x1e0; /* 480 */
-  d3dpp.BackBufferFormat = 0x06; /* D3DFMT_A8R8G8B8 */
-  d3dpp.SwapEffect = 1; /* D3DSWAPEFFECT_DISCARD */
-  d3dpp.Windowed = 0; /* fullscreen */
-  d3dpp.EnableAutoDepthStencil = 1;
-  d3dpp.AutoDepthStencilFormat = 0x2a; /* D3DFMT_D24S8 */
-  d3dpp.Flags = 1;
-  d3dpp.FullScreen_PresentationInterval = 0;
+    hr = Direct3D_CreateDevice(0, 1, 0, 0x40, &d3dpp, (void **)0x476ab0);
+    /* The original clears the accumulator BEFORE the reporter call
+     * (PUSH msg / PUSH hr / XOR BL,BL / CALL), which keeps `success` live
+     * across the call and forces it into a callee-saved register. */
+    if (hr >= 0) {
+      success = 1;
+    } else {
+      success = 0;
+      FUN_00167ff0(hr, "IDirect3D8_CreateDevice(d3d, D3DADAPTER_DEFAULT, "
+                       "D3DDEVTYPE_HAL, NULL, "
+                       "RASTERIZER_DEVICE_CREATION_FLAGS, "
+                       "&d3d_present_parameters, &global_d3d_device)");
+    }
 
-  /*
-   * 0x1edec0: stdcall IDirect3D8_CreateDevice(
-   *   Adapter, DeviceType, hFocusWindow, BehaviorFlags,
-   *   pPresentationParameters, ppReturnedDeviceInterface)
-   * RET 0x18 confirms 6 args (stdcall).
-   */
-  hr = ((int(__stdcall *)(unsigned int, unsigned int, void *, unsigned int,
-                          d3d_present_parameters_t *, void **))0x1edec0)(
-    0, /* D3DADAPTER_DEFAULT */
-    1, /* D3DDEVTYPE_HAL */
-    0, /* hFocusWindow = NULL (fullscreen) */
-    0x40, /* D3DCREATE_HARDWARE_VERTEXPROCESSING */
-    &d3dpp, (void **)0x476ab0);
-
-  if (hr < 0) {
-    /*
-     * 0x167ff0: reports a D3D HRESULT failure with context string and
-     * logs via error(). Signature: (HRESULT, const char *context).
-     */
-    ((void (*)(int, const char *))0x167ff0)(
-      hr,
-      "IDirect3D8_CreateDevice(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, NULL,"
-      " RASTERIZER_DEVICE_CREATION_FLAGS, &d3d_present_parameters,"
-      " &global_d3d_device)");
-  }
-
-  if (*(void **)0x476ab0 == 0 || hr < 0) {
+    /* Separate early exit rather than a merged `if (!success)`: the original
+     * emits CMP/JNE/XOR BL,BL/JMP here, i.e. the null-device test jumps to the
+     * failure body on its own instead of being folded into the flag test. */
+    if (*(void **)0x476ab0 == 0) {
+      success = 0;
+      goto device_failed;
+    }
+    if (success != 0) {
+      D3DDevice_GetDeviceCaps((void *)0x5a59e0);
+      D3DDevice_Present(0, 0, 0, 0);
+      success = 1;
+      /* Probe device torn down again — the real device is created later by
+       * rasterizer_initialize (FUN_00157010). */
+      if (*(void **)0x476ab0 != 0) {
+        D3DDevice_Release();
+        *(void **)0x476ab0 = 0;
+      }
+      if (*(void **)0x476a50 != 0) {
+        *(void **)0x476a50 = 0;
+      }
+      return success;
+    }
+  device_failed:
     *(void **)0x476ab0 = 0;
     error(2, "### ERROR failed to create D3D device");
-    error(2, "### ERROR rasterizer_preinitialize failed");
-    return;
   }
-
-  /* 0x1e69f0: D3DDevice_GetDeviceCaps(&d3d_caps) — 1 arg (stdcall, RET 0x4) */
-  ((void(__stdcall *)(void *))0x1e69f0)((void *)0x5a59e0);
-
-  /* 0x1ee920: D3DDevice_Present(NULL, NULL, NULL, NULL) — 4 args (stdcall, RET
-   * 0x10) */
-  ((void(__stdcall *)(void *, void *, void *, void *))0x1ee920)(0, 0, 0, 0);
-
-  /* Release device if acquired */
-  if (*(void **)0x476ab0 != 0) {
-    /* 0x1e6f50: D3DDevice_Release() — no args */
-    ((void (*)(void))0x1e6f50)();
-    *(void **)0x476ab0 = 0;
-  }
-
-  /* Release IDirect3D8 object */
-  if (*(void **)0x476a50 != 0) {
-    *(void **)0x476a50 = 0;
-  }
+  error(2, "### ERROR rasterizer_preinitialize failed");
+  return success;
 }
 
 /*
@@ -213,7 +222,6 @@ int FUN_00155560(int r1, int r3, int s1, int s2, int s3, int s4, float s5)
 /* 0x155580 */
 void *rasterizer_get_default_hardware_format(void *bitmap_data)
 {
-  short type;
   void *result;
 
   if (!bitmap_data) {
@@ -223,19 +231,26 @@ void *rasterizer_get_default_hardware_format(void *bitmap_data)
     system_exit(-1);
   }
 
-  type = *(short *)((char *)bitmap_data + 0xa);
-  if (type != 0 && type != 1) {
-    if (type == 2) {
-      result = *(void **)0x3256ac;
-    } else {
-      display_assert("### ERROR unsupported bitmap type",
-                     "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
-                     0xdf, true);
-      system_exit(-1);
-      result = bitmap_data;
-    }
-  } else {
+  /* MOVSWL + SUB $0 / DEC / DEC dispatch at 0x1555ab is a jump-free switch
+   * lowering, not an if/else chain: the short type field is promoted to int
+   * by the switch and compared against 0, 1, 2 in sequence. */
+  switch (*(short *)((char *)bitmap_data + 0xa)) {
+  case 0:
     result = *(void **)0x3256a4;
+    break;
+  case 1:
+    result = *(void **)0x3256a4;
+    break;
+  case 2:
+    result = *(void **)0x3256ac;
+    break;
+  default:
+    display_assert("### ERROR unsupported bitmap type",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                   0xdf, true);
+    system_exit(-1);
+    result = bitmap_data;
+    break;
   }
 
   if (!result) {
@@ -2042,6 +2057,15 @@ void SetupSmartStates(void)
  * slots.  pBits is re-read from the stack on every fill iteration in the
  * original (MOV ESI,[EBP-0x18] is inside the loop), which is what writing the
  * store through the array element reproduces.
+ *
+ * Failure bodies are written as the fall-through with the success bodies
+ * jumped to, which is the shape the original emits (JGE over the reporter /
+ * JMP LAB_00156fc5, and JNE LAB_00156fe5 with the assert falling straight
+ * into the publish stores) — worth +5.0pp over the equivalent if/else form.
+ * VC71 95.7% (188/186 insns): the residual is two alignment fillers VC71
+ * inserts ahead of the fill loops (LEA ESP,[ESP] and NOP) that the original
+ * does not have, plus the CreateCubeTexture reporter being placed beside the
+ * assert tail instead of inline at its test.
  */
 /* 0x156e00 */
 void rasterizer_filthy_bitmap_default_initialize(void)
@@ -2067,25 +2091,39 @@ void rasterizer_filthy_bitmap_default_initialize(void)
   }
 
   hr = D3DDevice_CreateTexture(4, 4, 1, 0, 4, 1, &default_2d);
-  success = (hr >= 0) ?
-              1 :
-              (FUN_00167ff0(
-                 hr, "IDirect3DDevice8_CreateTexture(global_d3d_device, 4, 4,"
-                     " 1, 0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, "
-                     "&(IDirect3DTexture8*)default_2d_hardware_format)"),
-               0);
+  if (hr >= 0) {
+    success = 1;
+  } else {
+    success = 0;
+    FUN_00167ff0(hr,
+                 "IDirect3DDevice8_CreateTexture(global_d3d_device, 4, 4,"
+                 " 1, 0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, "
+                 "&(IDirect3DTexture8*)default_2d_hardware_format)");
+  }
 
   hr = D3DDevice_CreateVolumeTexture(4, 4, 4, 1, 0, 4, 1, &default_3d);
-  success = (success != 0 && hr >= 0) ?
-              1 :
-              (FUN_00167ff0(
-                 hr, "IDirect3DDevice8_CreateVolumeTexture(global_d3d_device,"
-                     " 4, 4, 4, 1, 0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, "
-                     "&(IDirect3DVolumeTexture8*)default_3d_hardware_format)"),
-               0);
+  if (success != 0 && hr >= 0) {
+    success = 1;
+  } else {
+    success = 0;
+    FUN_00167ff0(hr,
+                 "IDirect3DDevice8_CreateVolumeTexture(global_d3d_device,"
+                 " 4, 4, 4, 1, 0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, "
+                 "&(IDirect3DVolumeTexture8*)default_3d_hardware_format)");
+  }
 
   hr = D3DDevice_CreateCubeTexture(4, 1, 0, 4, 1, &default_cm);
-  if (success != 0 && hr >= 0) {
+  /* Failure body is the fall-through and jumps to the shared assert tail
+   * (JGE over / PUSH msg / PUSH hr / CALL / JMP LAB_00156fc5); the success
+   * body is the jumped-to block. */
+  if (success == 0 || hr < 0) {
+    FUN_00167ff0(hr,
+                 "IDirect3DDevice8_CreateCubeTexture(global_d3d_device, 4, 1, "
+                 "0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, "
+                 "&(IDirect3DCubeTexture8*)default_cm_hardware_format)");
+    goto failed;
+  }
+  {
     if (default_2d != 0 && default_3d != 0 && default_cm != 0) {
       pattern[0] = 0x0f00;
       pattern[1] = 0xf0f0;
@@ -2116,14 +2154,15 @@ void rasterizer_filthy_bitmap_default_initialize(void)
       face_count = 6;
       do {
         D3DCubeTexture_LockRect(default_cm, face_index, 0, locked_rect, 0, 0);
-        success =
-          (success != 0) ?
-            1 :
-            (FUN_00167ff0(
-               0, "IDirect3DCubeTexture8_LockRect((IDirect3DCubeTexture8*)"
-                  "default_cm_hardware_format, face_index, 0, "
-                  "&d3d_locked_rect, NULL, 0)"),
-             0);
+        if (success != 0) {
+          success = 1;
+        } else {
+          success = 0;
+          FUN_00167ff0(
+            0, "IDirect3DCubeTexture8_LockRect((IDirect3DCubeTexture8*)"
+               "default_cm_hardware_format, face_index, 0, "
+               "&d3d_locked_rect, NULL, 0)");
+        }
 
         i = 0;
         n = 0x10;
@@ -2133,37 +2172,39 @@ void rasterizer_filthy_bitmap_default_initialize(void)
           n = n - 1;
         } while (n != 0);
 
-        success =
-          (success != 0) ?
-            1 :
-            (FUN_00167ff0(
-               0, "IDirect3DCubeTexture8_UnlockRect((IDirect3DCubeTexture8*)"
-                  "default_cm_hardware_format, face_index, 0)"),
-             0);
+        if (success != 0) {
+          success = 1;
+        } else {
+          success = 0;
+          FUN_00167ff0(
+            0, "IDirect3DCubeTexture8_UnlockRect((IDirect3DCubeTexture8*)"
+               "default_cm_hardware_format, face_index, 0)");
+        }
 
         face_index = face_index + 1;
         face_count = face_count - 1;
       } while (face_count != 0);
 
       if (success != 0) {
-        *(void **)0x3256a4 = default_2d;
-        *(void **)0x3256a8 = default_3d;
-        *(void **)0x3256ac = default_cm;
-        return;
+        goto publish;
       }
     }
-  } else {
-    FUN_00167ff0(hr,
-                 "IDirect3DDevice8_CreateCubeTexture(global_d3d_device, 4, 1, "
-                 "0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, "
-                 "&(IDirect3DCubeTexture8*)default_cm_hardware_format)");
   }
 
+  /* The assert body is the fall-through of the final flag test (JNE over it)
+   * and the publish stores are the jumped-to block placed last -- the
+   * original falls out of the noreturn system_exit straight into them. */
+failed:
   display_assert("### ERROR rasterizer_filthy_bitmap_default_initialize "
                  "failed",
                  "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c", 0x137,
                  true);
   system_exit(-1);
+
+publish:
+  *(void **)0x3256a4 = default_2d;
+  *(void **)0x3256a8 = default_3d;
+  *(void **)0x3256ac = default_cm;
 }
 /*
  * FUN_00157010 @ 0x157010 — rasterizer initialize.

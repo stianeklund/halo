@@ -20281,7 +20281,7 @@
     },
     {
      "addr": "0x1553f0",
-     "decl": "void rasterizer_preinitialize(void);",
+     "decl": "char rasterizer_preinitialize(void);",
      "ported": true
     },
     {

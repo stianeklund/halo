@@ -10873,11 +10873,20 @@
     },
     "0x1553f0": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "Returns a char success flag in AL (XOR BL,BL / MOV BL,1 / MOV AL,BL at 0x155418, 0x155487, 0x155429 and 0x1554f3); the previous void kb decl was a void-EAX misread and the sole caller in shell_xbox.c discards the value."
+      ],
+      "uncertain": [
+        "Residual 8-instruction VC71 gap at 77.0 percent is a register-class artifact: VC71 constant-folds our success flag into AL and cross-jumps the two error() arms, so it never allocates the reference's second callee-saved register (ESI holds the zero constant, EBX the flag). Moving the global_d3d_device=0 store after the error() call in the device-failure arm breaks the cross-jump and reaches 79.5 percent, but the disassembly at 0x1554cd puts the store before the CALL, so that lever was rejected as unfaithful."
+      ]
     },
     "0x155580": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "Bitmap-type dispatch at 0x1555ab is a switch (MOVSWL then SUB 0 / DEC / DEC sequential-compare lowering), not an if/else chain; cases 0 and 1 must be written as separate case labels with duplicated bodies or VC71 emits a range compare instead."
+      ]
     },
     "0x1559a0": {
       "kind": "function",
