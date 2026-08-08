@@ -127,6 +127,10 @@ def _set_alias_source(source: Path | None) -> None:
 def function_aliases(fn: str, source: Path | None = None) -> set[str]:
     """Find all name aliases for a function (e.g. console_update -> FUN_000ff9e0)."""
     aliases = {fn}
+    # CRT lifts retain this prefix to avoid colliding with host CRT declarations;
+    # COFF's leading underscore is normalized away by object_symbols().
+    if fn.startswith("crt_"):
+        aliases.add(fn[4:])
     if source is None:
         source = _alias_source
 
@@ -1395,6 +1399,13 @@ def run_compare_cached(
             if ref_name not in matched:
                 compiled_funcs[ref_name] = compiled_funcs[short_name]
                 matched.add(ref_name)
+
+    # CRT lifts keep a crt_ prefix; COFF's normalized symbol omits it.
+    # Preserve source name as the score key so its KB address/span still resolve.
+    for fn in set(compiled_funcs) - matched:
+        if fn.startswith("crt_") and fn[4:] in reference_funcs:
+            reference_funcs[fn] = reference_funcs[fn[4:]]
+            matched.add(fn)
     rename_map = _build_rename_map(set(compiled_funcs.keys()), matched)
 
     if fn_filter:
