@@ -1,7 +1,7 @@
 ---
 description: Clean-context Fable oracle for independent expert second opinions on hard debugging, architecture, security, performance, and validation questions.
 mode: subagent
-model: aiolos/gpt-5.6-sol
+model: aiolos/gpt-5.6-terra
 variant: max
 permission:
   edit: deny
