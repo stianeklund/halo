@@ -40,6 +40,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -75,6 +76,18 @@ VALIDITY_PATH = REPO_ROOT / "artifacts" / "audit" / "reference_validity.json"
 # Per-TU input fingerprints for `populate --incremental` (host-local, gitignored).
 # Lets a dashboard refresh re-verify only the TUs whose inputs changed.
 POPULATE_STATE_PATH = REPO_ROOT / "artifacts" / "audit" / "populate_state.json"
+# Whole-TU measurement memo shared by check/update/populate (host-local, gitignored).
+# Keyed by the same fingerprint populate uses -- source bytes, whole-object delinked
+# reference, the TU's slice of the generated decl.h, and the tool epoch (verify
+# tooling shas + kb address signature + per-function chunk directory).  Those are
+# every input that can move a score, so a hit is sound; anything else forces a real
+# re-measure.  Exists because the pre-commit hook runs `check` and then `update`
+# over the same staged file list -- two full recompiles of identical inputs -- and
+# because a hook that times out is otherwise re-run from scratch.
+MEASURE_CACHE_PATH = REPO_ROOT / "artifacts" / "audit" / "vc71_measure_cache.json"
+# Cheap stat-keyed cache for the delinked/functions/*.obj content signature; see
+# _chunk_dir_signature.  Host-local, gitignored.
+CHUNK_SIG_CACHE_PATH = REPO_ROOT / "artifacts" / "audit" / "vc71_chunk_sig.json"
 VC71_VERIFY = REPO_ROOT / "tools" / "verify" / "vc71_verify.py"
 # Generated header the VC71 compile includes; produced from kb.json by knowledge.py.
 # Nothing on the populate path used to regenerate it, so a stale header (disagreeing
@@ -287,20 +300,86 @@ def _tool_epoch() -> str:
     # content is captured elsewhere — decls via _tu_decl_digest (from the generated
     # header), address layout via the light signature below (span gate input).
     parts.append(_kb_addr_signature())
-    # Per-function chunk directory signature by *content* (name+size+sha), not
-    # mtime: a re-delink of any fallback chunk must invalidate the cache, but a
-    # bare `touch`/checkout of an unchanged .obj must not force a full pass.
-    fdir = REPO_ROOT / "delinked" / "functions"
-    sig = []
-    if fdir.is_dir():
-        for p in sorted(fdir.glob("*.obj")):
-            try:
-                sig.append(f"{p.name}:{p.stat().st_size}:{_sha_file(p)}")
-            except OSError:
-                continue
-    parts.append(_sha_bytes("\n".join(sig)))
+    parts.append(_chunk_dir_signature())
     _TOOL_EPOCH = _sha_bytes(*parts)
     return _TOOL_EPOCH
+
+
+def _delinked_obj_stats() -> list:
+    """[(name, size, mtime_ns, Path)] for every delinked reference .obj: the
+    whole-object refs in delinked/ and the per-function fallback chunks in
+    delinked/functions/.
+
+    Uses os.scandir rather than Path.glob + Path.stat because it reads size and
+    mtime from the directory entry instead of issuing a stat syscall per file.
+    On this repo's ~2000 references over a WSL2 /mnt/g mount that is the whole
+    difference between 7.4s and well under a second -- and it was being paid on
+    every invocation, including pure cache hits.
+    """
+    out = []
+    root = REPO_ROOT / "delinked"
+    for d in (root, root / "functions"):
+        try:
+            with os.scandir(d) as it:
+                for e in it:
+                    if not e.name.endswith(".obj"):
+                        continue
+                    try:
+                        st = e.stat()
+                    except OSError:
+                        continue
+                    out.append((e.name, st.st_size, st.st_mtime_ns, Path(e.path)))
+        except (OSError, FileNotFoundError):
+            continue
+    out.sort()
+    return out
+
+
+def _chunk_dir_signature() -> str:
+    """Content signature (name+size+sha) of every delinked reference .obj.
+
+    Content, not mtime: a re-delink of any reference must invalidate the cache,
+    but a bare `touch`/checkout of an unchanged .obj must not force a full pass.
+    Hashing the whole tree costs ~19s, which every invocation of this script was
+    paying -- more than the actual measurement on a one-TU lift.  So the content
+    hash is itself cached under a cheap stat signature.  A checkout that only
+    moves mtimes misses the stat key, recomputes, and lands on the identical
+    content hash, so the epoch is unchanged: the stat signature is a cache key,
+    never an input to the answer.
+
+    Covering BOTH directories is what lets the per-TU measurement memo key on
+    the epoch alone.  objdiff.json carries one unit per per-function chunk, so
+    there is no single `base_path` that identifies a TU's reference.
+    """
+    entries = _delinked_obj_stats()
+    if not entries:
+        return _sha_bytes("")
+    stat_key = _sha_bytes("\n".join(
+        f"{name}:{size}:{mtime}" for name, size, mtime, _ in entries))
+
+    cache = {}
+    if CHUNK_SIG_CACHE_PATH.exists():
+        try:
+            cache = json.loads(CHUNK_SIG_CACHE_PATH.read_text())
+        except (json.JSONDecodeError, OSError):
+            cache = {}
+    if cache.get("stat_key") == stat_key and cache.get("content_sig"):
+        return cache["content_sig"]
+
+    sig = []
+    for name, size, _mtime, path in entries:
+        try:
+            sig.append(f"{name}:{size}:{_sha_file(path)}")
+        except OSError:
+            continue
+    content_sig = _sha_bytes("\n".join(sig))
+    try:
+        CHUNK_SIG_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _atomic_write_json(CHUNK_SIG_CACHE_PATH,
+                           {"stat_key": stat_key, "content_sig": content_sig})
+    except OSError:
+        pass
+    return content_sig
 
 
 def _tu_fingerprint(src: Path, ref: Path) -> str:
@@ -311,6 +390,77 @@ def _tu_fingerprint(src: Path, ref: Path) -> str:
     a lift only invalidates TUs that reference the changed signature.
     The tool/kb-addr/chunk epoch is tracked separately at the state-file level."""
     return _sha_bytes(_sha_file(src), _sha_file(ref), _tu_decl_digest(src))
+
+
+_MEASURE_MEMO: dict | None = None
+_MEASURE_MEMO_DIRTY = False
+_MEASURE_MEMO_LOCK = threading.Lock()
+
+
+def _measure_key(src: Path) -> str | None:
+    """Fingerprint one TU's measurement inputs, or None if it cannot be pinned
+    down.  A None key disables the memo for that TU -- it re-measures, which is
+    always correct, just slower.
+
+    Three components cover every input that can move a score: the tool epoch
+    (verify tooling, kb.json address signature, and the content of every
+    delinked reference), this TU's source bytes, and this TU's slice of the
+    generated decl.h.  The floor itself is deliberately absent -- the memo
+    stores measurements, and the caller compares them to a freshly-loaded
+    baseline."""
+    try:
+        if not src.is_file():
+            return None
+        return _sha_bytes(_tool_epoch(), _sha_file(src), _tu_decl_digest(src))
+    except (OSError, ValueError):
+        return None
+
+
+def _load_measure_memo() -> dict:
+    global _MEASURE_MEMO
+    if _MEASURE_MEMO is not None:
+        return _MEASURE_MEMO
+    _MEASURE_MEMO = {}
+    if MEASURE_CACHE_PATH.exists():
+        try:
+            data = json.loads(MEASURE_CACHE_PATH.read_text())
+            if data.get("version") == 1:
+                _MEASURE_MEMO = data.get("entries", {})
+        except (json.JSONDecodeError, OSError):
+            pass
+    return _MEASURE_MEMO
+
+
+def flush_measure_memo() -> None:
+    """Persist the memo if anything new was measured.  Bounded so a long-lived
+    checkout does not grow it without limit: entries are keyed by content, so
+    stale ones are simply unreachable, and we keep the most recent 4000."""
+    if not _MEASURE_MEMO_DIRTY or _MEASURE_MEMO is None:
+        return
+    try:
+        entries = _MEASURE_MEMO
+        if len(entries) > 4000:
+            entries = dict(list(entries.items())[-4000:])
+        MEASURE_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _atomic_write_json(MEASURE_CACHE_PATH, {"version": 1, "entries": entries})
+    except OSError:
+        pass
+
+
+def _atomic_write_json(path: Path, payload: dict) -> None:
+    """Write via temp-file + rename.  Several agents run gates concurrently in
+    this checkout; a torn write would leave unparseable JSON that every later
+    process silently discards (the loader falls back to an empty cache), turning
+    a shared speedup into a permanent cold start."""
+    tmp = path.with_suffix(path.suffix + f".{os.getpid()}.tmp")
+    try:
+        tmp.write_text(json.dumps(payload) + "\n")
+        os.replace(tmp, path)
+    finally:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
 
 
 def load_populate_state() -> dict:
@@ -497,7 +647,27 @@ def run_vc71_verify(source: Path, no_cache: bool = True,
     score against any valid reference (DROP lines) are appended to it as
     ``{"function", "reason", "span_bytes"}`` dicts.  These never appear in the
     returned score dict — they exist only in ``drops_out``.
+
+    Whole-TU calls (``function is None``) are memoized across processes by
+    ``_measure_key`` -- see MEASURE_CACHE_PATH for why and for what makes a hit
+    sound.  This is NOT the vc71_verify SQLite cache the --no-cache flag above
+    disables: that one is keyed by source hash alone and can serve a stale .obj;
+    this one is keyed by every input that can move a score, and stores the parsed
+    result rather than an object file.  Set VC71_NO_MEASURE_MEMO=1 to bypass.
     """
+    memo_key = None
+    if function is None and not os.environ.get("VC71_NO_MEASURE_MEMO"):
+        memo_key = _measure_key(source)
+    if memo_key is not None:
+        hit = _load_measure_memo().get(memo_key)
+        if hit is not None:
+            if drops_out is not None:
+                drops_out.extend(hit.get("drops", []))
+            if meta_out is not None:
+                meta_out.update(hit.get("meta", {}))
+            return hit.get("out", {})
+
+    drops_start = len(drops_out) if drops_out is not None else 0
     cmd = [sys.executable, str(VC71_VERIFY), str(source), "--quiet"]
     if function:
         cmd.extend(["--function", function])
@@ -554,6 +724,41 @@ def run_vc71_verify(source: Path, no_cache: bool = True,
             meta_out["status"] = "parse_failed" if (result.stdout + result.stderr).strip() else "compile_failed"
         else:
             meta_out["status"] = "ok"
+
+    if memo_key is not None:
+        # Only cache a run that actually produced a measurement.  A compile
+        # failure or unparseable output must re-measure next time -- caching it
+        # would turn a transient toolchain hiccup into a permanent verdict.
+        # Note this keys off parsed output, NOT the exit code: vc71_verify exits
+        # 1 whenever any function scores below its threshold, which is a normal
+        # result with 164 perfectly good score lines attached.
+        new_drops = drops_out[drops_start:] if drops_out is not None else []
+        # A TU with no delinked reference at all scores nothing, deterministically,
+        # and there is no cheaper way to find out than asking -- vc71_verify exits
+        # 1 for this exactly as it does for a compile failure, so the exit code
+        # cannot tell them apart.  Match the structural marker instead: "no unit
+        # in objdiff.json" is a fact about the repo, safe to remember, while a
+        # compile failure may be a transient toolchain hiccup that a re-run fixes
+        # (and would NOT invalidate this key, since the key covers source and
+        # tooling but not the wine/CL environment).  11 of the 26 TUs in the
+        # maintain commit were in this state, each paying a full subprocess twice
+        # per hook to learn nothing.
+        structural_miss = (
+            not out and not new_drops
+            and any("No usable objdiff.json unit" in l
+                    for l in (meta_out or {}).get("stderr_tail", []))
+        )
+        if out or new_drops or structural_miss:
+            global _MEASURE_MEMO_DIRTY
+            entry = {
+                "out": out,
+                "drops": list(new_drops),
+                "meta": {k: meta_out[k] for k in ("returncode", "stderr_tail", "status")
+                         if meta_out is not None and k in meta_out},
+            }
+            with _MEASURE_MEMO_LOCK:
+                _load_measure_memo()[memo_key] = entry
+                _MEASURE_MEMO_DIRTY = True
     return out
 
 
@@ -787,6 +992,45 @@ def cmd_check(args) -> int:
     strict_failures = []
     checked = 0
 
+    # Measure every source concurrently BEFORE the comparison loop.  Each
+    # run_vc71_verify is a subprocess (compile + compare) that releases the GIL,
+    # and it dominates this command: on a 29-file staged set the pre-commit hook
+    # spent ~6 of its ~7 minutes here, single-threaded, while cmd_update further
+    # down this same file already had a ThreadPoolExecutor.  Nothing below reads
+    # another source's results, so measuring up-front is order-independent; the
+    # comparison loop still walks sorted(by_source) serially, so output ordering
+    # and every regression/improvement verdict are unchanged.
+    to_measure = [
+        (src_rel, REPO_ROOT / src_rel)
+        for src_rel in sorted(by_source)
+        if (REPO_ROOT / src_rel).exists() and not (strict and not (REPO_ROOT / src_rel).is_file())
+    ]
+    premeasured: dict[str, tuple] = {}
+    if to_measure:
+        # Pre-warm lazy module caches so worker threads never race on first init.
+        _kb_maps(); _kb_source_funcs(); _decl_index()
+        n_workers = min(len(to_measure), max(1, (os.cpu_count() or 4) - 2), 8)
+
+        def _measure(src_path):
+            meta: dict = {}
+            drops: list = []
+            try:
+                return run_vc71_verify(src_path, drops_out=drops, meta_out=meta), drops, meta, None
+            except Exception as exc:  # re-raised or recorded serially below
+                return None, drops, meta, exc
+
+        if n_workers > 1:
+            if not args.quiet:
+                print(f"Verifying {len(to_measure)} source file(s) "
+                      f"({n_workers} workers)...", flush=True)
+            with ThreadPoolExecutor(max_workers=n_workers) as ex:
+                futs = {ex.submit(_measure, p): rel for rel, p in to_measure}
+                for fut, rel in futs.items():
+                    premeasured[rel] = fut.result()
+        else:
+            for rel, p in to_measure:
+                premeasured[rel] = _measure(p)
+
     for src_rel, fn_names in sorted(by_source.items()):
         src_path = REPO_ROOT / src_rel
         if not src_path.exists() or (strict and not src_path.is_file()):
@@ -797,13 +1041,10 @@ def cmd_check(args) -> int:
                 strict_failures.append(f"{src_rel or '<missing source>'}: file not found")
             continue
 
-        meta = {}
-        drops = []
-        try:
-            results = run_vc71_verify(src_path, drops_out=drops, meta_out=meta)
-        except Exception as exc:
+        results, drops, meta, exc = premeasured[src_rel]
+        if exc is not None:
             if not strict:
-                raise
+                raise exc
             strict_failures.append(f"{src_rel}: vc71_verify failed: {exc}")
             continue
 
@@ -877,12 +1118,27 @@ def cmd_check(args) -> int:
     if regressions:
         return 1
 
-    if not strict:
-        checked = sum(len(v) for v in by_source.values()) - skipped - ref_flagged
-    flagged_note = (f", {ref_flagged} skipped for invalid reference"
-                    if ref_flagged else "")
-    print(f"OK — no regressions ({checked} functions in "
-          f"{len(by_source)} source file(s){flagged_note}).")
+    # `checked` counts functions we actually compared against the floor.  It used
+    # to be overwritten here with (baseline entries - skipped - ref_flagged),
+    # which silently counted every function whose TU produced NO measurement at
+    # all -- a TU with no delinked reference scores nothing, each of its
+    # functions hits the `current is None` continue above, and the recomputed
+    # total still reported them as passing.  Observed on the 26-TU maintain
+    # commit: "1589 functions" reported, 948 actually measured.  Report both, so
+    # a green gate cannot be mistaken for coverage it does not have.
+    expected = sum(len(v) for v in by_source.values())
+    unmeasured = expected - checked - skipped - ref_flagged
+    notes = []
+    if ref_flagged:
+        notes.append(f"{ref_flagged} skipped for invalid reference")
+    if unmeasured > 0:
+        notes.append(f"{unmeasured} not measured (no reference or not in "
+                     f"compiled output)")
+    if skipped:
+        notes.append(f"{skipped} source file(s) missing")
+    note = (", " + ", ".join(notes)) if notes else ""
+    print(f"OK — no regressions ({checked} of {expected} functions measured in "
+          f"{len(by_source)} source file(s){note}).")
     return 0
 
 
@@ -1242,21 +1498,28 @@ def build_parser():
 
 
 def main():
-    args = build_parser().parse_args()
+    parser = build_parser()
+    args = parser.parse_args()
 
-    if args.command == "update":
-        sys.exit(cmd_update(args))
-    elif args.command == "check":
-        sys.exit(cmd_check(args))
-    elif args.command == "show":
-        sys.exit(cmd_show(args))
-    elif args.command == "populate":
-        sys.exit(cmd_populate(args))
-    elif args.command == "loadw":
-        sys.exit(cmd_loadw(args))
-    else:
-        ap.print_help()
+    dispatch = {
+        "update": cmd_update,
+        "check": cmd_check,
+        "show": cmd_show,
+        "populate": cmd_populate,
+        "loadw": cmd_loadw,
+    }
+    fn = dispatch.get(args.command)
+    if fn is None:
+        parser.print_help()
         sys.exit(1)
+    try:
+        rc = fn(args)
+    finally:
+        # Persist whatever we measured even on a non-zero exit: a `check` that
+        # found a regression measured every staged TU to get there, and the
+        # operator's very next action is to re-run it.
+        flush_measure_memo()
+    sys.exit(rc)
 
 
 if __name__ == "__main__":

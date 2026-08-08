@@ -9,6 +9,16 @@
 #   floors. If vc71_scores.json changed, it's auto-staged into the commit so
 #   the progress dashboard stays in sync without a separate step.
 # - To bypass in an emergency: git commit --no-verify
+#
+# COST. Both passes below are memoized: run_vc71_verify caches each TU's
+# measurement under (tool epoch + source sha + the TU's decl.h slice), so
+# `update` reuses what `check` just measured instead of recompiling everything a
+# second time, and a hook killed by a timeout does not start over. The key covers
+# every input that can move a score EXCEPT the VC71 toolchain environment itself
+# (wine/CL), which is why compile failures are never cached. If you have just
+# repaired that environment and want to force a clean re-measure:
+#   VC71_NO_MEASURE_MEMO=1 git commit ...
+# or delete artifacts/audit/vc71_measure_cache.json.
 
 STAGED_SRC=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^src/.*\.c$')
 if [ -z "$STAGED_SRC" ]; then

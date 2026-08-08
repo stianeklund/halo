@@ -23,10 +23,24 @@ session's existing branch.
 Argument: $ARGUMENTS
 
 Parse from $ARGUMENTS (all optional):
-- `--batches N` — maximum land cycles before stopping (default: 6).
-- `--batch-goal N` — functions per `goal-lift` run (default: 4). Keep small:
-  smaller branches land conflict-free far more often and shrink the no-drop
-  surface.
+- `--batches N` — maximum land cycles before stopping (default: 2).
+- `--batch-goal N` — functions per `goal-lift` run (default: 12).
+- `--no-land` — lift and commit normally, but never attempt to land. Use when
+  `main` is known to be in use by another workstream; commits accumulate on the
+  branch and go in as one fast-forward later.
+
+  **Sizing.** Each batch carries ~7 min of serial fixed overhead (select 3.2 +
+  retrieval-warm 1.6 + delink-prefetch 1.1 + liftability 0.6 + progress-log 0.5
+  + preflight 0.2, measured 2026-08-04). So batch *count* is what costs, not
+  batch size: 6x4 spends ~42 min on overhead to produce the same 24 functions
+  that 2x12 produces for ~14 min. Prefer few large batches.
+
+  The old advice here was "keep small — smaller branches land conflict-free more
+  often", which is why the documented defaults were 6x4 while the script's were
+  2x12. That rationale no longer holds: a dirty main worktree is classified
+  `inconclusive` rather than `parked`, so the run keeps lifting and retries the
+  land next batch instead of throwing the remaining batches away. Small batches
+  now buy nothing and cost ~7 min each.
 - `--objects obj1,obj2,...` — restrict goal-lift selection to these `.obj`
   files (comma-separated). Split into an array for `args.objects`.
 - `--criteria "free text"` — freeform selection instruction passed to
@@ -39,7 +53,7 @@ Parse from $ARGUMENTS (all optional):
 1. Print a one-line banner: `Auto-session: {batches} batches x {batch-goal} functions, land-to-main auto-FF`.
 2. Call the Workflow tool — do not reimplement any of its steps inline:
    ```
-   Workflow({ name: "auto-session", args: { batches: N, batchGoal: M, dryRun: <bool>, objects: [<obj>, ...], criteria: "<text>" } })
+   Workflow({ name: "auto-session", args: { batches: N, batchGoal: M, dryRun: <bool>, noLand: <bool>, objects: [<obj>, ...], criteria: "<text>" } })
    ```
    Omit `objects`/`criteria` when not passed (don't send `null`/empty).
 3. The workflow runs in the background. Report the returned task info and
@@ -54,10 +68,11 @@ Parse from $ARGUMENTS (all optional):
 ## Usage
 
 ```bash
-/auto-session                                  # up to 6 batches of 4, auto-land each
+/auto-session                                  # up to 2 batches of 12, auto-land each
 /auto-session --batches 1 --batch-goal 2 --dry-run   # trial: lift 2, gate, land nothing
 /auto-session --batches 1 --batch-goal 2       # one real batch, then FF main
-/auto-session --batches 10 --batch-goal 4 --objects real_math.obj,rasterizer.obj
+/auto-session --batches 3 --batch-goal 12 --objects real_math.obj,rasterizer.obj
+/auto-session --batches 2 --batch-goal 12 --no-land  # main is busy; land later
 ```
 
 ## Landing policy (why it may stop early)

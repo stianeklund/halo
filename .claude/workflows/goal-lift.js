@@ -542,7 +542,17 @@ STEPS:
 
 5. MAINTAIN + HAZARDS:
    rtk python3 tools/analysis/maintain.py ${brief.source_path}
-   rtk python3 tools/audit/check_lift_hazards.py
+   maintain.py is NOT scoped to the path you pass it — it relocates functions
+   across every TU whose kb.json object mapping disagrees with its current file.
+   On 2026-08-08 this left 25 unrelated files modified (rasterizer_xbox_water.c
+   and shader_transparent_generic_preprocessor.c folded into rasterizer.c,
+   +926/-924) in the shared worktree, where a later agent staged one of them
+   into an unrelated lift commit. After running it, check:
+     rtk git status --short -- src/
+   If files OTHER than ${brief.source_path} changed, do NOT stage them and do
+   NOT revert them (they may be another lane's work) — report them in your
+   return value so the operator can commit them separately.
+   rtk python3 tools/audit/check_lift_hazards.py --files ${brief.source_path}
    Fix any HIGH-RISK hazards.
 
 6. BUILD + VC71 — run the build-fix loop at MOST twice in this agent (initial run,
@@ -794,7 +804,7 @@ Acceptance path so far: ${path}
 Gather your own evidence before deciding:
 - Source diff: rtk git diff -- ${srcFile} kb.json
 - ABI audit: rtk python3 tools/audit/audit_reg_abi.py (or reuse the pass already run by generate_lift_commit.py)
-- Hazard scan: rtk python3 tools/audit/check_lift_hazards.py --changed-only
+- Hazard scan: rtk python3 tools/audit/check_lift_hazards.py --files ${srcFile}
 - Caller/callee/disassembly context around each CALL touched by this lift (Ghidra MCP)
 - Relevant kb.json declarations and register args for ${brief.name}
 
@@ -807,7 +817,11 @@ const mechGatePrompt = (brief, srcFile) =>
   `Mechanical pre-commit gate for ${brief.name} (${brief.addr}). Report booleans ONLY —
 do NOT edit, fix, build, or commit anything.
 
-1. HAZARDS: rtk python3 tools/audit/check_lift_hazards.py --changed-only 2>&1
+1. HAZARDS: rtk python3 tools/audit/check_lift_hazards.py --files ${srcFile} 2>&1
+   (--files, not --changed-only: this gate only reads findings for ${srcFile},
+   and --changed-only rescans every file the branch has touched so far, which
+   grows with the batch — ~7.5s and ~20 files by the end of a 21-function run
+   versus ~0.4s here, for identical output after the filter.)
    - hazards_clean=true  iff NO HIGH-RISK / ERROR finding references ${srcFile}
    - warns=true          iff any WARN-level finding references ${srcFile}
 2. ABI: rtk python3 tools/audit/audit_reg_abi.py 2>&1
@@ -843,8 +857,25 @@ Then commit — note src/CMakeLists.txt is in the add list precisely because a
 new TU's registration was repeatedly written but left unstaged, which landed
 three unlinked translation units on 2026-08-01:
   rtk git add -- ${sourceFile} kb.json tools/kb_reg_baseline.json src/CMakeLists.txt
-  rtk python3 tools/audit/generate_lift_commit.py --batch-name "${name}" > /tmp/commit_msg.txt
-  rtk git commit -F /tmp/commit_msg.txt
+
+  STRAY-FILE GATE. Agents have staged unrelated files that happened to be dirty
+  in the shared worktree, landing 74+/75- of ai/actor_looking.c inside a commit
+  titled "Port cinematic_show_letterbox" (bdaac19d, 2026-08-08). The add above is
+  already scoped, so a stray file means something deviated from it -- check
+  mechanically rather than trusting the add. src/types.h is allowed because
+  struct recovery legitimately lands there:
+  rtk git diff --cached --name-only -- src/ | grep -v -e "^${sourceFile}$" -e '^src/types.h$' -e '^src/CMakeLists.txt$'
+  If that prints ANY path, unstage it (rtk git restore --staged -- <path>) and
+  note it in the return value. Do NOT commit unrelated source files.
+
+  The message file MUST be mktemp'd. A fixed /tmp path is shared by every
+  concurrent agent, cron job, and worktree on this box, and they all follow this
+  same recipe -- a second writer between the redirect and the commit silently
+  commits YOUR staged changes under THEIR message (observed 2026-07-31, commit
+  d6caee6b):
+  MSG=$(mktemp /tmp/halo-commit-msg.XXXXXX)
+  rtk python3 tools/audit/generate_lift_commit.py --batch-name "${name}" > "$MSG"
+  rtk git commit -F "$MSG" && rm -f "$MSG"
 Then, if this function had a parked record from an earlier attempt, mark it
 promoted so the improve pass won't re-pick it (ignore errors if none exists):
   rtk python3 tools/lift/park.py promote --name ${JSON.stringify(name)} --commit "$(git rev-parse --short HEAD)" 2>/dev/null || true

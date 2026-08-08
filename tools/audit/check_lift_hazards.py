@@ -46,6 +46,7 @@ Usage:
     python3 tools/audit/check_lift_hazards.py -q
     python3 tools/audit/check_lift_hazards.py --changed-only
     python3 tools/audit/check_lift_hazards.py --staged-only
+    python3 tools/audit/check_lift_hazards.py --files src/halo/cutscene/cinematics.c
 """
 import os
 import re
@@ -1311,8 +1312,15 @@ def check_inplace_mutator_misuse(filepath, content, lines):
     return errors
 
 
-def _collect_c_files(changed_only=False, staged_only=False):
+def _collect_c_files(changed_only=False, staged_only=False, only_files=None):
     """Collect .c file paths under SRC_DIR.
+
+    If only_files is a non-empty list of paths, return exactly those (resolved
+    against ROOT_DIR). Callers that already know which file they care about --
+    the per-function lift gates, which scan and then grep for a single source
+    file -- should use this instead of --changed-only, whose cost grows with the
+    branch: on a 21-function batch the changed set reached ~20 files, so each
+    per-function scan re-checked every previously cleared file.
 
     If staged_only is True, only return files staged in the index
     (git diff --cached), for use in pre-commit hooks.
@@ -1330,6 +1338,12 @@ def _collect_c_files(changed_only=False, staged_only=False):
             return r.stdout.strip().splitlines()
         except (subprocess.SubprocessError, FileNotFoundError):
             return []
+
+    if only_files:
+        return sorted(
+            os.path.normpath(p if os.path.isabs(p) else os.path.join(ROOT_DIR, p))
+            for p in only_files
+        )
 
     if staged_only:
         lines = _git_lines(['git', 'diff', '--cached', '--name-only', '--', 'src/'])
@@ -1783,7 +1797,17 @@ def main():
     changed_only = '--changed-only' in sys.argv
     staged_only = '--staged-only' in sys.argv
 
-    c_files = _collect_c_files(changed_only=changed_only, staged_only=staged_only)
+    only_files = []
+    if '--files' in sys.argv:
+        # Everything after --files up to the next flag is a path.
+        for arg in sys.argv[sys.argv.index('--files') + 1:]:
+            if arg.startswith('-'):
+                break
+            only_files.append(arg)
+
+    c_files = _collect_c_files(
+        changed_only=changed_only, staged_only=staged_only, only_files=only_files
+    )
 
     params_map = _parse_decl_params()
 

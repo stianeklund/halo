@@ -71,6 +71,11 @@ const GUARD_SCHEMA = {
     branch:       { type: 'string' },
     mainWorktree: { type: 'string' },
     reason:       { type: 'string' },
+    // Advisory only — a dirty main worktree does NOT block the run (it lands as
+    // 'inconclusive' and the batches keep going), but the operator should learn
+    // it at minute 1 rather than after the last batch.
+    mainDirty:      { type: 'boolean' },
+    mainDirtyFiles: { type: 'array', items: { type: 'string' } },
   },
   required: ['ok', 'branch'],
 }
@@ -95,7 +100,12 @@ const guard = await agent(
   `Run these read-only git commands from the current working directory and report the result as JSON.
 1. \`rtk git branch --show-current\` — the current branch name.
 2. \`rtk git worktree list\` — find the entry marked \`[main]\`; its path is the main worktree.
-Return {ok:true, branch:"<name>", mainWorktree:"<path>"} if the current branch is NOT "main" and a main worktree was found.
+3. \`rtk git -C <that main worktree path> status --short\` — report mainDirty=true and
+   list the paths in mainDirtyFiles (tracked modifications only; ignore untracked \`??\`
+   lines) if it prints anything. This is ADVISORY: a dirty main does not block the run,
+   it only means batches will accumulate unlanded until main goes quiet. Still return
+   ok:true.
+Return {ok:true, branch:"<name>", mainWorktree:"<path>", mainDirty:<bool>, mainDirtyFiles:[...]} if the current branch is NOT "main" and a main worktree was found.
 Return {ok:false, branch:"<name>", reason:"..."} if the current branch IS "main" (we must run on an isolated branch, never commit lifts onto main) or no main worktree exists.`,
   { label: 'guard', phase: 'Guard', ...MECH, schema: GUARD_SCHEMA })
 
@@ -107,6 +117,17 @@ if (!guard || !guard.ok) {
 const BRANCH = guard.branch
 const MAIN_WT = guard.mainWorktree || 'auto'
 log(`Branch: ${BRANCH}  |  main worktree: ${MAIN_WT}`)
+
+// Advisory, not a gate. On 2026-08-08 a 6-batch run committed 21 functions and
+// landed none: main was dirty before batch 1 and stayed dirty, so every land
+// returned 'inconclusive'. That is the designed behaviour (the commits stay
+// landable), but the operator only found out at the end. Say it up front so
+// they can quiet main, or re-run with noLand and land once, deliberately.
+if (guard.mainDirty && !DRY_RUN && !NO_LAND) {
+  const files = (guard.mainDirtyFiles || []).slice(0, 5).join(', ')
+  log(`⚠ main worktree is dirty${files ? ` (${files})` : ''} — batches will accumulate unlanded until it is clean.`)
+  log(`  This does not stop the run. To land deliberately later instead, re-run with noLand:true.`)
+}
 
 // ── Batch loop ────────────────────────────────────────────────────────────────
 phase('Batch')
