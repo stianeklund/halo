@@ -51,7 +51,7 @@ void profile_enter_private(void *section)
   char *s = (char *)section;
   uint32_t lo, hi;
 
-  ((void (*)(void *))0x8f8e0)(section);
+  find_profile_section();
 
   if (*(int16_t *)(s + 0xa) != -1) {
     display_assert("section->stack_depth==NONE",
@@ -74,36 +74,30 @@ void profile_exit_private(void *section)
 {
   char *s = (char *)section;
 
-  if (*(uint8_t *)0x3361aa != 0) {
+  if (*(uint8_t *)0x3361aa == 0) {
+    find_profile_section();
+
+    if (*(int16_t *)(s + 0xa) != *(int16_t *)0x3361a8) {
+      display_assert("section->stack_depth==profile_globals.stack_depth",
+                     "c:\\halo\\SOURCE\\cseries\\profile.c", 0x267, 1);
+      system_exit(-1);
+    }
+
+    *(int16_t *)0x3361a8 -= 1;
+
+    {
+      int64_t timestamp;
+      uint32_t *timestamp_parts;
+
+      timestamp_parts = (uint32_t *)&timestamp;
+      RDTSC(timestamp_parts[0], timestamp_parts[1]);
+      *(int64_t *)(s + 0x5d0) += timestamp - *(int64_t *)(s + 0x10);
+    }
+
     *(int16_t *)(s + 0xa) = -1;
-    return;
+  } else {
+    *(int16_t *)(s + 0xa) = -1;
   }
-
-  ((void (*)(void *))0x8f8e0)(section);
-
-  if (*(int16_t *)(s + 0xa) != *(int16_t *)0x3361a8) {
-    display_assert("section->stack_depth==profile_globals.stack_depth",
-                   "c:\\halo\\SOURCE\\cseries\\profile.c", 0x267, 1);
-    system_exit(-1);
-  }
-
-  *(int16_t *)0x3361a8 -= 1;
-
-  {
-    uint32_t lo, hi;
-    uint32_t diff_lo, diff_hi;
-    uint32_t old_lo;
-
-    RDTSC(lo, hi);
-    diff_lo = lo - *(uint32_t *)(s + 0x10);
-    diff_hi = hi - *(uint32_t *)(s + 0x14) - (lo < *(uint32_t *)(s + 0x10));
-
-    old_lo = *(uint32_t *)(s + 0x5d0);
-    *(uint32_t *)(s + 0x5d0) = old_lo + diff_lo;
-    *(uint32_t *)(s + 0x5d4) += diff_hi + (*(uint32_t *)(s + 0x5d0) < old_lo);
-  }
-
-  *(int16_t *)(s + 0xa) = -1;
 }
 
 /* Start timing a game tick. Increments the tick counter and records
@@ -114,7 +108,7 @@ void profile_tick_start(void)
   uint32_t lo, hi;
 
   if (*(uint8_t *)0x449ef0 != 0)
-    ((void (*)(void))0x8f6b0)();
+    FUN_0008f6b0();
 
   if (*(int16_t *)0x448dd8 < 0x96)
     *(int16_t *)0x448dd8 += 1;
@@ -137,7 +131,9 @@ void profile_tick_start(void)
 void profile_tick_end(void)
 {
   int idx;
-  uint32_t lo, hi, start_lo, start_hi, diff_lo, diff_hi;
+  char *tick;
+  int64_t timestamp;
+  uint32_t *timestamp_parts;
   float elapsed;
 
   if (*(int16_t *)0x448dd8 < 1 || *(int16_t *)0x448dd8 > 0x96) {
@@ -149,19 +145,18 @@ void profile_tick_end(void)
   }
 
   idx = (int)*(int16_t *)0x448dd8;
-  RDTSC(lo, hi);
+  tick = (char *)(0x448de0 + idx * 0x18);
+  timestamp_parts = (uint32_t *)&timestamp;
+  RDTSC(timestamp_parts[0], timestamp_parts[1]);
 
-  start_lo = *(uint32_t *)(0x448de0 + idx * 0x18);
-  start_hi = *(uint32_t *)(0x448de4 + idx * 0x18);
-  *(uint32_t *)(0x448de8 + idx * 0x18) = lo;
-  *(uint32_t *)(0x448dec + idx * 0x18) = hi;
+  *(uint32_t *)(tick + 0x8) = timestamp_parts[0];
+  *(uint32_t *)(tick + 0xc) = timestamp_parts[1];
 
-  diff_lo = lo - start_lo;
-  diff_hi = hi - start_hi - (lo < start_lo);
-  elapsed = cycles_to_msec(diff_lo, diff_hi);
+  timestamp -= *(int64_t *)tick;
+  elapsed = (float)timestamp * *(float *)0x254cb8 / (float)*(int64_t *)0x3361a0;
 
-  *(float *)(0x448df0 + idx * 0x18) += elapsed;
-  *(float *)(0x448df4 + idx * 0x18) += elapsed;
+  *(float *)(tick + 0x10) += elapsed;
+  *(float *)(tick + 0x14) += elapsed;
 }
 
 /* Start timing the render phase. Resets window count and records
@@ -178,16 +173,17 @@ void profile_render_start(void)
 /* End timing the render phase. Computes elapsed msec. */
 void profile_render_end(void)
 {
-  uint32_t lo, hi, diff_lo, diff_hi;
+  int64_t timestamp;
+  uint32_t *timestamp_parts;
   float elapsed;
 
-  RDTSC(lo, hi);
-  *(uint32_t *)0x449c70 = lo;
-  *(uint32_t *)0x449c74 = hi;
+  timestamp_parts = (uint32_t *)&timestamp;
+  RDTSC(timestamp_parts[0], timestamp_parts[1]);
+  *(uint32_t *)0x449c70 = timestamp_parts[0];
+  *(uint32_t *)0x449c74 = timestamp_parts[1];
 
-  diff_lo = lo - *(uint32_t *)0x449c68;
-  diff_hi = hi - *(uint32_t *)0x449c6c - (lo < *(uint32_t *)0x449c68);
-  elapsed = cycles_to_msec(diff_lo, diff_hi);
+  timestamp -= *(int64_t *)0x449c68;
+  elapsed = (float)timestamp * *(float *)0x254cb8 / (float)*(int64_t *)0x3361a0;
 
   *(float *)0x449c78 += elapsed;
   *(float *)0x449c7c += elapsed;
@@ -197,18 +193,16 @@ void profile_render_end(void)
  * window parameter, and records the start timestamp. */
 void profile_render_window_start(char window_param)
 {
-  int16_t count;
   int idx;
   uint32_t lo, hi;
 
-  count = *(int16_t *)0x448dda;
-  if (count < 4) {
-    count++;
-    *(int16_t *)0x448dda = count;
-    *(uint8_t *)(0x448ddb + (int)count) = (uint8_t)window_param;
+  if (*(int16_t *)0x448dda < 4) {
+    *(int16_t *)0x448dda += 1;
+    *(uint8_t *)(0x448ddb + (int)*(int16_t *)0x448dda) =
+      (uint8_t)window_param;
   }
 
-  if (*(int16_t *)0x448dda < 1 || *(int16_t *)0x448dda > 4) {
+  if (!(*(int16_t *)0x448dda > 0 && *(int16_t *)0x448dda <= 4)) {
     display_assert(
       "(profile_globals.current_frame.window_count > 0) && "
       "(profile_globals.current_frame.window_count <= MAXIMUM_WINDOWS)",
@@ -226,7 +220,9 @@ void profile_render_window_start(char window_param)
 void profile_render_window_end(void)
 {
   int idx;
-  uint32_t lo, hi, start_lo, diff_lo, diff_hi;
+  int64_t timestamp;
+  uint32_t *timestamp_parts;
+  char *window;
   float elapsed;
 
   if (*(int16_t *)0x448dda < 1 || *(int16_t *)0x448dda > 4) {
@@ -238,18 +234,18 @@ void profile_render_window_end(void)
   }
 
   idx = (int)*(int16_t *)0x448dda;
-  RDTSC(lo, hi);
+  window = (char *)(0x449bf0 + idx * 0x18);
+  timestamp_parts = (uint32_t *)&timestamp;
+  RDTSC(timestamp_parts[0], timestamp_parts[1]);
 
-  start_lo = *(uint32_t *)(0x449bf0 + idx * 0x18);
-  *(uint32_t *)(0x449bf8 + idx * 0x18) = lo;
-  *(uint32_t *)(0x449bfc + idx * 0x18) = hi;
+  *(uint32_t *)(window + 0x8) = timestamp_parts[0];
+  *(uint32_t *)(window + 0xc) = timestamp_parts[1];
 
-  diff_lo = lo - start_lo;
-  diff_hi = hi - *(uint32_t *)(0x449bf4 + idx * 0x18) - (lo < start_lo);
-  elapsed = cycles_to_msec(diff_lo, diff_hi);
+  timestamp -= *(int64_t *)window;
+  elapsed = (float)timestamp * *(float *)0x254cb8 / (float)*(int64_t *)0x3361a0;
 
-  *(float *)(0x449c00 + idx * 0x18) += elapsed;
-  *(float *)(0x449c04 + idx * 0x18) += elapsed;
+  *(float *)(window + 0x10) += elapsed;
+  *(float *)(window + 0x14) += elapsed;
 }
 
 /* Snapshot the current TSC into a dedicated low/high global pair at
@@ -267,16 +263,17 @@ void profile_texture_start(void)
  * and accumulates into the two custom accumulators at 0x449ca8/0x449cac. */
 void profile_texture_end(void)
 {
-  uint32_t lo, hi, diff_lo, diff_hi;
+  int64_t timestamp;
+  uint32_t *timestamp_parts;
   float elapsed;
 
-  RDTSC(lo, hi);
-  *(uint32_t *)0x449ca0 = lo;
-  *(uint32_t *)0x449ca4 = hi;
+  timestamp_parts = (uint32_t *)&timestamp;
+  RDTSC(timestamp_parts[0], timestamp_parts[1]);
+  *(uint32_t *)0x449ca0 = timestamp_parts[0];
+  *(uint32_t *)0x449ca4 = timestamp_parts[1];
 
-  diff_lo = lo - *(uint32_t *)0x449c98;
-  diff_hi = hi - *(uint32_t *)0x449c9c - (lo < *(uint32_t *)0x449c98);
-  elapsed = cycles_to_msec(diff_lo, diff_hi);
+  timestamp -= *(int64_t *)0x449c98;
+  elapsed = (float)timestamp * *(float *)0x254cb8 / (float)*(int64_t *)0x3361a0;
 
   *(float *)0x449ca8 += elapsed;
   *(float *)0x449cac += elapsed;
@@ -289,7 +286,7 @@ void profile_frame_start(void)
   uint32_t lo, hi;
 
   if (*(uint8_t *)0x449ef0 == 0)
-    ((void (*)(void))0x8f6b0)();
+    FUN_0008f6b0();
 
   csmemset((void *)0x448dc8, 0, 0x1128);
   *(int *)(0x448dcc) = *(int *)0x506540;
@@ -312,7 +309,8 @@ void profile_frame_end(void)
   int16_t i;
   int16_t tick_count;
   int16_t window_count;
-  uint32_t ring_idx;
+  int32_t ring_idx;
+  float *child_section;
 
   /* compute total frame time */
   RDTSC(lo, hi);
@@ -336,15 +334,15 @@ void profile_frame_end(void)
 
   tick_count = *(int16_t *)0x448dd8;
   for (i = 0; i < tick_count; i++) {
-    float child = *(float *)(0x448e08 + (int)i * 0x18);
-    if (*(float *)0x448df4 < child) {
+    child_section = (float *)(0x448df8 + (int)i * 0x18);
+    if (!(*(float *)0x448df4 >= child_section[4])) {
       display_assert(
         "parent_timesection->self_msec >= child_timesection->elapsed_msec",
         "c:\\halo\\SOURCE\\cseries\\profile.c", 0x1b2, 1);
       system_exit(-1);
       tick_count = *(int16_t *)0x448dd8;
     }
-    *(float *)0x448df4 -= child;
+    *(float *)0x448df4 -= child_section[4];
   }
 
   /* validate window count */
@@ -357,7 +355,7 @@ void profile_frame_end(void)
   }
 
   /* subtract render time from frame self_msec */
-  if (*(float *)0x448df4 < *(float *)0x449c78) {
+  if (!(*(float *)0x448df4 >= *(float *)0x449c78)) {
     display_assert(
       "parent_timesection->self_msec >= child_timesection->elapsed_msec",
       "c:\\halo\\SOURCE\\cseries\\profile.c", 0x1b2, 1);
@@ -368,18 +366,17 @@ void profile_frame_end(void)
   /* subtract window child times from render self_msec */
   window_count = *(int16_t *)0x448dda;
   for (i = 0; i < window_count; i++) {
-    float child = *(float *)(0x449c18 + (int)i * 0x18);
-    if (*(float *)0x449c7c < child) {
+    if (*(float *)0x449c7c < *(float *)(0x449c18 + (int)i * 0x18)) {
       display_assert(
         "parent_timesection->self_msec >= child_timesection->elapsed_msec",
         "c:\\halo\\SOURCE\\cseries\\profile.c", 0x1b2, 1);
       system_exit(-1);
     }
-    *(float *)0x449c7c -= child;
+    *(float *)0x449c7c -= *(float *)(0x449c18 + (int)i * 0x18);
   }
 
   /* subtract custom profile time */
-  if (*(float *)0x448df4 < *(float *)0x449cc0) {
+  if (!(*(float *)0x448df4 >= *(float *)0x449cc0)) {
     display_assert(
       "parent_timesection->self_msec >= child_timesection->elapsed_msec",
       "c:\\halo\\SOURCE\\cseries\\profile.c", 0x1b2, 1);
@@ -391,22 +388,22 @@ void profile_frame_end(void)
   qmemcpy((void *)(0x3365c8 + (int)*(int16_t *)0x3365c4 * 0x1128),
           (void *)0x448dc8, 0x1128);
 
-  ring_idx = (uint32_t)((int)*(int16_t *)0x3365c4 + 1);
+  ring_idx = (int)*(int16_t *)0x3365c4 + 1; /* hazard-ok: value increment */
   if (*(int16_t *)0x3365c2 <= (int16_t)ring_idx)
     *(int16_t *)0x3365c2 = (int16_t)ring_idx;
 
   /* wrap ring index to 0-255 */
-  ring_idx &= 0xff;
+  ring_idx %= 0x100;
   *(int16_t *)0x3365c4 = (int16_t)ring_idx;
 
   /* handle profile output */
   if (*(uint8_t *)0x449cd4 == 0) {
-    *(int16_t *)0x3365bc += 1;
+    *(int32_t *)0x3365bc += 1;
     if (*(uint8_t *)0x449ef3 == 0)
       goto check_output;
     if (*(uint8_t *)0x449ef2 != 0)
       goto do_output;
-    if (*(int16_t *)0x3365bc > 3 && *(uint8_t *)0x3365c0 != 0) {
+    if (*(int32_t *)0x3365bc > 3 && *(uint8_t *)0x3365c0 != 0) {
       if (*(void **)0x3365b4 != 0) {
         ((void (*)(void *, const void *))0x1da685)(*(void **)0x3365b4, L"\r\n");
         ((void (*)(void *))0x1d8f31)(*(void **)0x3365b4);
@@ -415,22 +412,26 @@ void profile_frame_end(void)
       goto check_output;
     }
   } else {
-    *(int16_t *)0x3365bc = 0;
+    *(int32_t *)0x3365bc = 0;
   check_output:
     if (*(uint8_t *)0x449ef2 != 0)
       goto do_output;
   }
   if (*(uint8_t *)0x449ef3 == 0)
     return;
-  if (*(int16_t *)0x3365bc > 3)
+  if (*(int32_t *)0x3365bc > 3)
     return;
 
 do_output: {
-  uint32_t idx = ((int)*(int16_t *)0x3365c4 + 0xfd) & 0xff;
+  /* Signed modulo, not a mask: the reference expands both wraps with MSVC's
+   * signed %-by-power-of-two idiom (AND 0x800000ff / JNS / DEC / OR
+   * 0xffffff00 / INC) at 0x91b16 and 0x91b49. `& 0xff` emits a single
+   * AND and cannot reproduce it. */
+  int idx = ((int)*(int16_t *)0x3365c4 + 0xfd) % 0x100;
   do {
     if ((int16_t)idx < *(int16_t *)0x3365c2)
       ((void (*)(void))0x906d0)();
-    idx = ((int)(int16_t)idx + 1) & 0xff;
+    idx = ((int)(int16_t)idx + 1) % 0x100;
   } while ((int16_t)idx != *(int16_t *)0x3365c4);
 }
 }

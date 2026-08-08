@@ -3613,19 +3613,23 @@
       "source": "src/halo/cseries/errors.c"
     },
     "FUN_0008fa40": {
-      "score": 83.1,
+      "opnd_percent": 81.1,
+      "score": 86.5,
       "source": "src/halo/cseries/profile.c"
     },
     "FUN_0008fac0": {
-      "score": 68.5,
+      "opnd_percent": 64.6,
+      "score": 81.2,
       "source": "src/halo/cseries/profile.c"
     },
     "FUN_000913e0": {
-      "score": 79.0,
+      "opnd_percent": 67.5,
+      "score": 80.0,
       "source": "src/halo/cseries/profile.c"
     },
     "FUN_00091470": {
-      "score": 80.8,
+      "opnd_percent": 78.4,
+      "score": 86.6,
       "source": "src/halo/cseries/profile.c"
     },
     "FUN_00091510": {
@@ -3633,15 +3637,18 @@
       "source": "src/halo/cseries/profile.c"
     },
     "FUN_00091540": {
-      "score": 76.5,
+      "opnd_percent": 74.2,
+      "score": 83.9,
       "source": "src/halo/cseries/profile.c"
     },
     "FUN_000915b0": {
-      "score": 80.0,
+      "opnd_percent": 73.4,
+      "score": 86.1,
       "source": "src/halo/cseries/profile.c"
     },
     "FUN_00091640": {
-      "score": 80.8,
+      "opnd_percent": 78.4,
+      "score": 86.6,
       "source": "src/halo/cseries/profile.c"
     },
     "FUN_000916e0": {
@@ -3649,15 +3656,18 @@
       "source": "src/halo/cseries/profile.c"
     },
     "FUN_00091710": {
-      "score": 76.5,
+      "opnd_percent": 74.2,
+      "score": 83.9,
       "source": "src/halo/cseries/profile.c"
     },
     "FUN_00091780": {
-      "score": 88.9,
+      "opnd_percent": 80.6,
+      "score": 90.3,
       "source": "src/halo/cseries/profile.c"
     },
     "FUN_00091800": {
-      "score": 74.7,
+      "opnd_percent": 74.2,
+      "score": 84.7,
       "source": "src/halo/cseries/profile.c"
     },
     "FUN_00092090": {
@@ -24422,33 +24432,33 @@
       "source": "src/halo/interface/ui_widget.c"
     },
     "profile_enter_private": {
-      "opnd_percent": 75.3,
+      "opnd_percent": 78.4,
       "ref": "synth",
-      "score": 83.1,
+      "score": 86.5,
       "source": "src/halo/cseries/profile.c"
     },
     "profile_exit_private": {
-      "opnd_percent": 41.4,
+      "opnd_percent": 60.4,
       "ref": "synth",
-      "score": 68.5,
+      "score": 81.2,
       "source": "src/halo/cseries/profile.c"
     },
     "profile_frame_end": {
-      "opnd_percent": 62.7,
+      "opnd_percent": 69.4,
       "ref": "synth",
-      "score": 74.7,
+      "score": 84.7,
       "source": "src/halo/cseries/profile.c"
     },
     "profile_frame_start": {
-      "opnd_percent": 63.5,
+      "opnd_percent": 77.4,
       "ref": "synth",
-      "score": 88.9,
+      "score": 90.3,
       "source": "src/halo/cseries/profile.c"
     },
     "profile_render_end": {
-      "opnd_percent": 58.8,
+      "opnd_percent": 74.2,
       "ref": "synth",
-      "score": 76.5,
+      "score": 83.9,
       "source": "src/halo/cseries/profile.c"
     },
     "profile_render_start": {
@@ -24458,21 +24468,21 @@
       "source": "src/halo/cseries/profile.c"
     },
     "profile_render_window_end": {
-      "opnd_percent": 48.1,
+      "opnd_percent": 76.3,
       "ref": "synth",
-      "score": 80.8,
+      "score": 86.6,
       "source": "src/halo/cseries/profile.c"
     },
     "profile_render_window_start": {
-      "opnd_percent": 65.0,
+      "opnd_percent": 68.4,
       "ref": "synth",
-      "score": 80.0,
+      "score": 86.1,
       "source": "src/halo/cseries/profile.c"
     },
     "profile_texture_end": {
-      "opnd_percent": 58.8,
+      "opnd_percent": 74.2,
       "ref": "synth",
-      "score": 76.5,
+      "score": 83.9,
       "source": "src/halo/cseries/profile.c"
     },
     "profile_texture_start": {
@@ -24482,15 +24492,15 @@
       "source": "src/halo/cseries/profile.c"
     },
     "profile_tick_end": {
-      "opnd_percent": 48.1,
+      "opnd_percent": 76.3,
       "ref": "synth",
-      "score": 80.8,
+      "score": 86.6,
       "source": "src/halo/cseries/profile.c"
     },
     "profile_tick_start": {
-      "opnd_percent": 59.3,
+      "opnd_percent": 65.0,
       "ref": "synth",
-      "score": 79.0,
+      "score": 80.0,
       "source": "src/halo/cseries/profile.c"
     },
     "project_point2d": {

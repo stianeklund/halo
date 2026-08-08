@@ -1025,8 +1025,6 @@ void ai_update(void)
   bool should_update;
   char schedule_flag;
 
-  schedule_flag = *(char *)0x5abaa1;
-
   /* check AI active and not paused */
   if (*(char *)(*(int *)0x632574 + 1) && !*(char *)0x5abaa0) {
     should_update = 1;
@@ -1034,8 +1032,19 @@ void ai_update(void)
     should_update = 0;
   }
 
-  if (*(bool *)0x449ef1 && *(char *)0x2c8738) {
-    profile_enter_private(*(void **)0x2c8730);
+  /* MATCH-SENSITIVE: the 0x5abaa1 read is duplicated into both arms of the
+   * profile_global_enable test on purpose.  The original loads BL between
+   * `TEST AL,AL` (0x449ef1) and `TEST AL,AL` (0x2c8738) at 0x411a9, right
+   * after PUSH EBX; the split-if is the only C form that reproduces that
+   * ordering.  Hoisting the read above or sinking it below the block costs
+   * 3.2pp and 9.4pp of VC71 match respectively. */
+  if (*(bool *)0x449ef1) {
+    schedule_flag = *(char *)0x5abaa1;
+    if (*(char *)0x2c8738) {
+      profile_enter_private((void *)0x2c8730);
+    }
+  } else {
+    schedule_flag = *(char *)0x5abaa1;
   }
 
   if (should_update) {
@@ -1064,7 +1073,7 @@ void ai_update(void)
   }
 
   if (*(bool *)0x449ef1 && *(char *)0x2c8738) {
-    profile_exit_private(*(void **)0x2c8730);
+    profile_exit_private((void *)0x2c8730);
   }
 }
 
