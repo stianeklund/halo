@@ -2266,7 +2266,7 @@ bool FUN_000f9c40(int projectile_handle)
     if ((*(int16_t *)(proj + 0x1e0) != 0) &&
         (((*(int16_t *)(proj + 0x1e0) != 1) ||
           (*(float *)(proj + 0x1fc) == 0.0f) ||
-          (*(float *)(proj + 0x1f8) >= 1.0f)))) {
+          (!(*(float *)(proj + 0x1f8) < 1.0f))))) {
       break;
     }
     if (((*(uint8_t *)(proj + 0x1dc) & 8) != 0) ||
@@ -2414,17 +2414,7 @@ bool FUN_000f9c40(int projectile_handle)
       } else {
         decel_frac = time_remaining * *(float *)(proj + 0x20c);
         dist_at_hit = speed_prev - decel_frac;
-        if (!(dist_at_hit <= *(float *)(proj_tag + 0x1e8))) {
-          /* Speed stays above min: normal decel. */
-          dist_post = speed_prev - decel_frac * *(float *)0x253398;
-          decel_frac = dist_at_hit / speed_prev;
-          vel[0] *= decel_frac;
-          vel[1] *= decel_frac;
-          vel[2] *= decel_frac;
-          avg_vel[0] = (vel[0] + *pfVel) * *(float *)0x253398;
-          avg_vel[1] = (vel[1] + *(float *)(proj + 0x1c)) * *(float *)0x253398;
-          avg_vel[2] = (vel[2] + *(float *)(proj + 0x20)) * *(float *)0x253398;
-        } else {
+        if (dist_at_hit <= *(float *)(proj_tag + 0x1e8)) {
           /* Speed will cross min: split tick. */
           decel_frac = (speed_prev - *(float *)(proj_tag + 0x1e8)) / decel_frac;
           dist_at_hit = *(float *)(proj_tag + 0x1e8) * *(float *)0x28ace8;
@@ -2442,6 +2432,16 @@ bool FUN_000f9c40(int projectile_handle)
                                              decel_frac * *(float *)0x253398;
           avg_vel[2] = tmp_frac * vel[2] + (vel[2] + *(float *)(proj + 0x20)) *
                                              decel_frac * *(float *)0x253398;
+        } else {
+          /* Speed stays above min: normal decel. */
+          dist_post = speed_prev - decel_frac * *(float *)0x253398;
+          decel_frac = dist_at_hit / speed_prev;
+          vel[0] *= decel_frac;
+          vel[1] *= decel_frac;
+          vel[2] *= decel_frac;
+          avg_vel[0] = (vel[0] + *pfVel) * *(float *)0x253398;
+          avg_vel[1] = (vel[1] + *(float *)(proj + 0x1c)) * *(float *)0x253398;
+          avg_vel[2] = (vel[2] + *(float *)(proj + 0x20)) * *(float *)0x253398;
         }
       }
     }
@@ -2478,13 +2478,13 @@ bool FUN_000f9c40(int projectile_handle)
            *(float *)(proj_tag + 0x1c8)))) {
       range_frac = 1.0f;
     } else {
-      if (dist_post == 0.0f) {
-        range_frac = 0.0f;
-      } else {
+      if (dist_post != 0.0f) {
         range_frac =
           ((*(float *)(proj_tag + 0x1c8) - *(float *)(proj + 0x200)) /
            dist_post) *
           time_remaining;
+      } else {
+        range_frac = 0.0f;
       }
       tmp_int = (int)object_get_and_verify_type(projectile_handle, 0x20);
       if (*(int16_t *)(tmp_int + 0x1e0) < 1) {
