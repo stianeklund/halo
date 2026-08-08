@@ -57,53 +57,67 @@
 
 void FUN_001345b0(int glow_widget, int object_handle)
 {
-  char *w;
   float *glow_tag;
-  int marker_count;
-  short marker_order[GLOW_MARKER_MAX];
-  int i, j;
-  short best_j;
-  float best_dot;
-  float d[3];
-  float fn_val;
-  float scale_a, scale_b, ratio;
+  short marker_count;
+  float scale_b, ratio;
   int particle;
   void *tag_block;
 
+  char *w;
   w = (char *)glow_widget;
   glow_tag = (float *)tag_get(GLOW_TAG, *(int *)(w + 0x224));
   if (glow_tag == 0)
     return;
 
-  marker_count = object_get_markers_by_string_id(object_handle, glow_tag, w + 8,
-                                                 GLOW_MARKER_MAX);
-  *(short *)(w + 4) = (short)marker_count;
+  marker_count = (short)object_get_markers_by_string_id(
+    object_handle, glow_tag, w + 8, GLOW_MARKER_MAX);
+  *(short *)(w + 4) = marker_count;
 
   if (*(char *)(w + 2) == 0) {
+    short marker_order[GLOW_MARKER_MAX];
+    short i, j;
+    int best_j;
+    float best_dot;
+    short *order_out;
+    float *basis_i;
+    float *basis_j;
+
     /* One-time init: build nearest-neighbour ordering, thread it, and
      * accumulate segment arc lengths. */
-    if ((short)marker_count > 1) {
-      for (i = 0; i < marker_count; i++) {
-        float *basis_i = (float *)(w + 0x70 + i * 0x6c);
-        best_j = -1;
-        best_dot = 0.0f;
-        for (j = 0; j < marker_count; j++) {
-          if (i != j) {
-            float *basis_j = (float *)(w + 0x70 + j * 0x6c);
-            float dot;
-            d[0] = basis_j[-2] - basis_i[-2];
-            d[1] = basis_j[-1] - basis_i[-1];
-            d[2] = basis_j[0] - basis_i[0];
-            normalize3d(d);
-            dot =
-              d[0] * basis_i[-0xb] + d[1] * basis_i[-0xa] + d[2] * basis_i[-9];
-            if (dot > best_dot) {
-              best_dot = dot;
-              best_j = (short)j;
+    if (*(short *)(w + 4) > 1) {
+      order_out = marker_order;
+      basis_i = (float *)(w + 0x70);
+      i = 0;
+      if (i < *(short *)(w + 4)) {
+        do {
+          float d[3];
+          best_j = -1;
+          best_dot = 0.0f;
+          basis_j = (float *)(w + 0x70);
+          j = 0;
+          do {
+            if (i != j) {
+              float dot;
+              d[0] = basis_j[-2] - basis_i[-2];
+              d[1] = basis_j[-1] - basis_i[-1];
+              d[2] = basis_j[0] - basis_i[0];
+              normalize3d(d);
+              dot =
+                d[0] * basis_i[-0xb] + d[1] * basis_i[-0xa] +
+                d[2] * basis_i[-9];
+              if (dot > best_dot) {
+                best_dot = dot;
+                best_j = j;
+              }
             }
-          }
-        }
-        marker_order[i] = best_j;
+            basis_j += 0x6c / 4;
+            j++;
+          } while (j < *(short *)(w + 4));
+          *order_out = (short)best_j;
+          order_out++;
+          basis_i += 0x6c / 4;
+          i++;
+        } while (i < *(short *)(w + 4));
       }
 
       /* Thread the ordering into the +0x22a table, filling from the last
@@ -111,21 +125,23 @@ void FUN_001345b0(int glow_widget, int object_handle)
        * the previously chained marker. */
       {
         short prev_idx = -1;
-        short *order_out = (short *)(w + 0x22a + (marker_count - 1) * 2);
         int remaining = marker_count;
-        int k;
-        while (remaining != 0) {
-          k = *(short *)(w + 4) - 1;
-          while (k >= 0) {
-            if (marker_order[k] == prev_idx) {
-              *order_out = (short)k;
-              break;
+        short k;
+        glow_tag = (float *)(w + 0x22a + (marker_count - 1) * 2);
+        if (remaining != 0) {
+          do {
+            k = *(short *)(w + 4) - 1;
+            while (k >= 0) {
+              if (marker_order[k] == prev_idx) {
+                *(short *)glow_tag = (short)k;
+                break;
+              }
+              k--;
             }
-            k--;
-          }
-          order_out--;
-          remaining--;
-          prev_idx = (short)k;
+            glow_tag = (float *)((char *)glow_tag - 2);
+            remaining--;
+            prev_idx = (short)k;
+          } while (remaining != 0);
         }
       }
 
@@ -133,19 +149,33 @@ void FUN_001345b0(int glow_widget, int object_handle)
       *(float *)(w + 0x234) = 0.0f;
       *(float *)(w + 0x238) = 0.0f;
       {
-        int count = *(short *)(w + 4);
-        int seg;
-        for (seg = 0; seg < count - 1; seg++) {
-          int a_idx = *(short *)(w + 0x22a + seg * 2);
-          int b_idx = *(short *)(w + 0x22a + (seg + 1) * 2);
-          float *pa = (float *)(w + 8 + a_idx * 0x6c + 0x60);
-          float *pb = (float *)(w + 8 + b_idx * 0x6c + 0x60);
-          float dx = pb[0] - pa[0];
-          float dy = pb[1] - pa[1];
-          float dz = pb[2] - pa[2];
-          float dist = sqrtf(dx * dx + dy * dy + dz * dz);
-          *(float *)(w + 0x234) += dist;
-          *(float *)(w + 0x23c + seg * 4) = *(float *)(w + 0x234);
+        int seg_index;
+        short seg_count;
+        seg_index = 0;
+        seg_count = 0;
+        if (*(short *)(w + 4) - 1 > 0) {
+          do {
+            int a_idx = *(short *)(w + 0x22a + seg_index * 2);
+            int b_idx = *(short *)(w + 0x22a + (seg_index + 1) * 2);
+          volatile float point_a[3];
+          volatile float point_b[3];
+          point_a[0] = *(float *)(w + 8 + a_idx * 0x6c + 0x60);
+          point_a[1] = *(float *)(w + 8 + a_idx * 0x6c + 0x64);
+          point_a[2] = *(float *)(w + 8 + a_idx * 0x6c + 0x68);
+          point_b[0] = *(float *)(w + 8 + b_idx * 0x6c + 0x60);
+          point_b[1] = *(float *)(w + 8 + b_idx * 0x6c + 0x64);
+          point_b[2] = *(float *)(w + 8 + b_idx * 0x6c + 0x68);
+          {
+            float dx = point_b[0] - point_a[0];
+            float dy = point_b[1] - point_a[1];
+            float dz = point_b[2] - point_a[2];
+            float dist = sqrtf(dx * dx + dy * dy + dz * dz);
+            *(float *)(w + 0x234) += dist;
+            *(float *)(w + 0x23c + seg_index * 4) = *(float *)(w + 0x234);
+            seg_count++;
+            seg_index = (int)seg_count;
+          }
+          } while (seg_index < *(short *)(w + 4) - 1);
         }
       }
 
@@ -154,26 +184,28 @@ void FUN_001345b0(int glow_widget, int object_handle)
       *(char *)(w + 2) = 1;
       return;
     }
-  } else if ((short)marker_count > 1) {
+  } else if (*(short *)(w + 4) > 1) {
+    float scale_a;
+
     /* Steady-state: derive a scale ratio from the two tag functions. */
     float v;
     scale_a = glow_tag[0x19];
     if (*(short *)((char *)glow_tag + 0x60) != -1) {
-      if (object_get_function_value(
-            object_handle, *(short *)((char *)glow_tag + 0x60), &fn_val))
-        v = fn_val;
-      else
+      if (!object_get_function_value(
+            object_handle, *(short *)((char *)glow_tag + 0x60), &ratio))
         v = *(float *)0x2533c0;
+      else
+        v = ratio;
       scale_a =
         ((glow_tag[0x1b] - glow_tag[0x1a]) * v + glow_tag[0x1a]) * scale_a;
     }
     scale_b = glow_tag[0x1d];
     if (*(short *)((char *)glow_tag + 0x70) != -1) {
-      if (object_get_function_value(
-            object_handle, *(short *)((char *)glow_tag + 0x70), &fn_val))
-        v = fn_val;
-      else
+      if (!object_get_function_value(
+            object_handle, *(short *)((char *)glow_tag + 0x70), &ratio))
         v = *(float *)0x2533c0;
+      else
+        v = ratio;
       scale_b =
         ((glow_tag[0x1f] - glow_tag[0x1e]) * v + glow_tag[0x1e]) * scale_b;
     }
@@ -232,14 +264,14 @@ void FUN_001345b0(int glow_widget, int object_handle)
       if (*(short *)(particle + 0x50) > *(short *)(particle + 0x52)) {
         int prev = *(int *)(particle + 0x60);
         int next = *(int *)(particle + 0x5c);
-        if (prev == 0)
-          *(int *)(w + 0x250) = next;
-        else
+        if (prev != 0)
           *(int *)(prev + 0x5c) = next;
-        if (next == 0)
-          *(int *)(w + 0x254) = prev;
         else
+          *(int *)(w + 0x250) = next;
+        if (next != 0)
           *(int *)(next + 0x60) = prev;
+        else
+          *(int *)(w + 0x254) = prev;
         datum_delete(*(data_t **)0x5a90cc, *(int *)(particle + 4));
         *(short *)(w + 0x24c) -= 1;
       }
@@ -260,13 +292,14 @@ void FUN_001345b0(int glow_widget, int object_handle)
                          "c:\\halo\\SOURCE\\objects\\widgets\\glow.c", 0x209,
                          1);
           system_exit(-1);
+          return;
         }
         *(short *)(w + 0x24c) += 1;
-        if (*(int *)(w + 0x254) == 0) {
-          *(int *)(w + 0x250) = particle;
-        } else {
+        if (*(int *)(w + 0x254) != 0) {
           *(int *)(*(int *)(w + 0x254) + 0x5c) = particle;
           *(int *)(particle + 0x60) = *(int *)(w + 0x254);
+        } else {
+          *(int *)(w + 0x250) = particle;
         }
         *(int *)(w + 0x254) = particle;
         *(short *)(w + 0x258) -= (short)(int)spacing;

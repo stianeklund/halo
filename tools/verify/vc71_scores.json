@@ -11311,7 +11311,8 @@
       "source": "src/halo/objects/objects.c"
     },
     "FUN_001345b0": {
-      "score": 76.4,
+      "opnd_percent": 75.5,
+      "score": 90.3,
       "source": "src/halo/objects/widgets/glow.c"
     },
     "FUN_00134ae0": {
