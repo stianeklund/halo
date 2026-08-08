@@ -3875,6 +3875,21 @@ void FUN_0013a740(int param_1, int param_2, float *param_3)
   void *local_10;
   int local_c;
   short local_8[2];
+  /*
+   * Marker-light output arrays for the FUN_00139c20 call below. max_count is 2
+   * (PUSH 0x2 at 0x13a8a2), and the accumulation loop at 0x13a915/0x13a934
+   * indexes both bases with EDI stepping by 4 — so all three are 2-element
+   * arrays, not scalars. In the original frame MSVC overlaps them with the
+   * now-dead lightmap locals (indices at EBP-0x1c/-0x18 = local_20/local_1c,
+   * attenuations at EBP-0x24/-0x20 = local_28/local_24, weights at
+   * EBP-0x14/-0x10 = local_18/local_14); Ghidra split every slot into its own
+   * scalar. Reading element 1 through a scalar picked up an adjacent float
+   * (observed handle 0x3f54ebf5) and tripped the "lights index is unused"
+   * datum_get assert.
+   */
+  int light_indices[2];
+  float light_weights[2];
+  float light_attenuations[2];
 
   pfVar3 = param_3;
   puVar2 = *(char **)0x2ee710;
@@ -3920,8 +3935,8 @@ void FUN_0013a740(int param_1, int param_2, float *param_3)
     *(int *)0x5a8d64 = *(int *)0x5a8d64 + 1;
     *(char *)0x5a8d60 = '\x01';
     FUN_00139c20(-1, (int16_t) * (unsigned short *)(param_2 + 4),
-                  (float *)param_1, 0.0f, (int)&local_20, (float *)&local_18,
-                  (int)&local_28, (int16_t *)&param_3, 2);
+                  (float *)param_1, 0.0f, (int)light_indices, light_weights,
+                  (int)light_attenuations, (int16_t *)&param_3, 2);
     if (*(char *)0x5a8d60 == '\0') {
       display_assert("lights_globals.marker_initialized",
                      "c:\\halo\\SOURCE\\objects\\object_lights.c", 0x68e, 1);
@@ -3933,16 +3948,19 @@ void FUN_0013a740(int param_1, int param_2, float *param_3)
       uVar9 = (unsigned int)param_3 & 0xffff;
       do {
         iVar8 = (int)datum_get(*(void **)0x5a90bc,
-                                *(int *)((char *)&local_20 + iVar5));
+                                *(int *)((char *)light_indices + iVar5));
         if ((*(unsigned char *)(iVar8 + 2) & 1) != 0) {
           *pfVar3 =
-            *(float *)(iVar8 + 0x14) * *(float *)((char *)&local_28 + iVar5) +
+            *(float *)(iVar8 + 0x14) *
+              *(float *)((char *)light_attenuations + iVar5) +
             *pfVar3;
           pfVar3[1] =
-            *(float *)(iVar8 + 0x18) * *(float *)((char *)&local_28 + iVar5) +
+            *(float *)(iVar8 + 0x18) *
+              *(float *)((char *)light_attenuations + iVar5) +
             pfVar3[1];
           pfVar3[2] =
-            *(float *)(iVar8 + 0x1c) * *(float *)((char *)&local_28 + iVar5) +
+            *(float *)(iVar8 + 0x1c) *
+              *(float *)((char *)light_attenuations + iVar5) +
             pfVar3[2];
         }
         iVar5 = iVar5 + 4;
@@ -6497,6 +6515,16 @@ void *object_iterator_next(void *iter)
       }
       entry = (object_header_data_t *)((char *)entry + 0xc);
     } while (idx < data->current_count);
+
+    /*
+     * Loop-exhausted epilogue (0x13d7cb): MOV word ptr [EBX+6],DX; XOR EAX,EAX
+     * — the original returns NULL here, NOT the last composite handle still
+     * live in EDI. The separate never-entered-loop epilogue at 0x13d7e5 does
+     * MOV EAX,EDI, but EDI is still the XOR EDI,EDI from function entry, so
+     * that path also returns 0.
+     */
+    it->current_index = idx;
+    return (void *)0;
   }
 
   it->current_index = idx;
