@@ -1309,7 +1309,8 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038370": {
-      "score": 61.0,
+      "opnd_percent": 58.2,
+      "score": 65.5,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038880": {
@@ -1329,7 +1330,8 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038e00": {
-      "score": 71.7,
+      "opnd_percent": 75.5,
+      "score": 75.5,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038e60": {
@@ -1389,7 +1391,8 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a800": {
-      "score": 75.0,
+      "opnd_percent": 87.5,
+      "score": 87.5,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a810": {
@@ -1417,7 +1420,8 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003aac0": {
-      "score": 55.7,
+      "opnd_percent": 95.0,
+      "score": 95.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003ab80": {
@@ -1429,7 +1433,8 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003aca0": {
-      "score": 76.9,
+      "opnd_percent": 91.1,
+      "score": 95.9,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003ad80": {
@@ -1597,7 +1602,8 @@
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003ca40": {
-      "score": 66.3,
+      "opnd_percent": 96.9,
+      "score": 96.9,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003cb50": {
@@ -16010,11 +16016,25 @@
       "source": "src/halo/sound/sound_manager.c"
     },
     "FUN_001d7817": {
-      "score": 43.1,
+      "opnd_percent": 47.6,
+      "score": 57.1,
       "source": "src/halo/cseries/xbox_crt.c"
     },
     "FUN_001d789a": {
-      "score": 28.7,
+      "opnd_percent": 78.9,
+      "ref": "synth",
+      "score": 94.7,
+      "source": "src/halo/cseries/xbox_crt.c"
+    },
+    "FUN_001d7cb4": {
+      "opnd_percent": 91.7,
+      "score": 100.0,
+      "source": "src/halo/cseries/xbox_crt.c"
+    },
+    "FUN_001d7d21": {
+      "opnd_percent": 86.1,
+      "ref": "synth",
+      "score": 100.0,
       "source": "src/halo/cseries/xbox_crt.c"
     },
     "FUN_001d8368": {
@@ -16774,9 +16794,9 @@
       "source": "src/halo/ai/actors.c"
     },
     "actor_set_dormant": {
-      "opnd_percent": 66.3,
+      "opnd_percent": 96.9,
       "ref": "synth",
-      "score": 66.3,
+      "score": 96.9,
       "source": "src/halo/ai/actors.c"
     },
     "actor_set_prop_if_match": {
@@ -16786,9 +16806,9 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "actor_set_team": {
-      "opnd_percent": 50.0,
+      "opnd_percent": 95.0,
       "ref": "synth",
-      "score": 55.7,
+      "score": 95.0,
       "source": "src/halo/ai/actors.c"
     },
     "actor_swarm_attach_unit": {
@@ -16882,9 +16902,9 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "actor_verify_activation": {
-      "opnd_percent": 59.2,
+      "opnd_percent": 91.1,
       "ref": "synth",
-      "score": 76.9,
+      "score": 95.9,
       "source": "src/halo/ai/actors.c"
     },
     "actors_dispose": {
@@ -18477,6 +18497,12 @@
       "ref": "synth",
       "score": 100.0,
       "source": "src/halo/ai/actor_looking.c"
+    },
+    "crt_localtime": {
+      "opnd_percent": 97.2,
+      "ref": "synth",
+      "score": 100.0,
+      "source": "src/halo/cseries/xbox_crt.c"
     },
     "cseries_dispose": {
       "opnd_percent": 100.0,
@@ -24290,6 +24316,12 @@
       "ref": "synth",
       "score": 93.3,
       "source": "src/halo/ai/props.c"
+    },
+    "qsort": {
+      "opnd_percent": 96.5,
+      "ref": "synth",
+      "score": 97.8,
+      "source": "src/halo/cseries/xbox_crt.c"
     },
     "quantize_real_to_byte_lower_bound": {
       "score": 85.1,

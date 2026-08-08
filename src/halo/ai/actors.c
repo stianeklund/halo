@@ -1593,18 +1593,17 @@ char FUN_00038370(int actor_handle)
   firing_variant = actor_combat_get_firing_variant_definition(actor_handle);
 
   /* Early exit: actor is busy or in flood-specific suppressed state */
-  if (unit_is_busy(((actor_t *)actor)->field_018) || FUN_0002a3d0(actor_handle)) {
-    goto exit_1;
-  }
-
-  /* Early exit: not enough health ticks */
-  if (((actor_t *)actor)->field_06a < 3) {
-    goto exit_1;
+  if (unit_is_busy(((actor_t *)actor)->field_018) || FUN_0002a3d0(actor_handle) || ((actor_t *)actor)->field_06a < 3) {
+  exit_1:
+    *(char *)(actor + 0x362) = 0;
+    return 1;
   }
 
   /* Early exit: not enough ammo */
   if (((actor_t *)actor)->field_06e < 5) {
-    goto exit_0;
+  exit_0:
+    *(char *)(actor + 0x362) = 0;
+    return 0;
   }
 
   unit = (char *)object_get_and_verify_type(((actor_t *)actor)->field_018, 3);
@@ -1651,12 +1650,10 @@ char FUN_00038370(int actor_handle)
     goto exit_0;
   }
 
-  /* actv tag crouch count == 0: skip entirely */
-  if (*(short *)(actv_tag + 0x4c) == 0) {
+  switch (*(short *)(actv_tag + 0x4c)) {
+  case 0:
     goto exit_0;
-  }
-  /* actv tag crouch count == 1: always reset and return "ok" */
-  if (*(short *)(actv_tag + 0x4c) == 1) {
+  case 1:
     goto exit_1;
   }
 
@@ -1829,14 +1826,6 @@ update_state:
 
 return_current:
   return ((actor_t *)actor)->field_363;
-
-exit_0:
-  ((actor_t *)actor)->field_362 = 0;
-  return 0;
-
-exit_1:
-  ((actor_t *)actor)->field_362 = 0;
-  return 1;
 }
 
 /* FUN_00038880 (0x38880) — actor action state-machine tick (panic/berserking
@@ -2150,20 +2139,16 @@ compute:
 int FUN_00038e00(short unit_effect /* @<eax> */)
 {
   int mode = (int)unit_effect;
-  float timer_raw;
+  float timer_raw = *(float *)0x2533c8;
   short final_val;
 
-  timer_raw = *(float *)0x2533c8;
   if (mode == 1) {
-    timer_raw = random_real_range(get_global_random_seed_address(), 0.6f, 1.8f);
-  } else if (mode <= 1) {
-    goto scale;
-  } else if (mode > 3) {
-    goto scale;
-  } else {
     timer_raw = random_real_range(get_global_random_seed_address(), 1.0f, 2.5f);
+  } else if (mode <= 1 || mode > 3) {
+    /* default timer_raw */
+  } else {
+    timer_raw = random_real_range(get_global_random_seed_address(), 0.6f, 1.8f);
   }
-scale:
   final_val = (short)(int)(timer_raw * TICKS_PER_SECOND);
   if (final_val > 0xff)
     return 0xff;
@@ -2255,7 +2240,7 @@ void FUN_00038e60(int actor_handle)
   actor_tag = (char *)tag_get(0x61637476, ((actor_t *)actor)->field_05c);
   swarm = (char *)datum_get(swarm_data, ((actor_t *)actor)->meta_swarm_cache_index);
   special_index = -1;
-  if (*(short *)(swarm + 8) < 1) {
+  if (*(short *)(swarm + 8) <= 0) {
     if ((((actor_t *)actor)->state_action == 7) || (((actor_t *)actor)->state_action == 10)) {
       count = *(short *)(swarm + 2);
       icount = count;
@@ -2272,7 +2257,7 @@ void FUN_00038e60(int actor_handle)
     *(short *)(swarm + 8) = *(short *)(swarm + 8) + -1;
   }
   i = 0;
-  if (*(short *)(swarm + 2) < 1)
+  if (*(short *)(swarm + 2) <= 0)
     return;
   do {
     unit_handle = *(int *)(swarm + 0x18 + i * 4);
@@ -2302,16 +2287,17 @@ void FUN_00038e60(int actor_handle)
     if (((actor_t *)actor)->field_06e < 3) {
       *(int *)(component + 0x14) = -1;
       best_target = 0;
-    } else {
-      audibility_range = *(float *)(actor_tag + 0xa0);
-      best_target = 0;
-      best_handle = -1;
-      best_score = 0.0f;
-      best_dist = 0.0f;
-      FUN_00064540(iter, actor_handle);
-      encounter = (char *)FUN_00064570(iter);
-      while (encounter != 0) {
-        if (*(float *)0x2533c0 < *(float *)(encounter + 0x50)) {
+      goto skip_target_search;
+    }
+    audibility_range = *(float *)(actor_tag + 0xa0);
+    best_target = 0;
+    best_handle = -1;
+    best_score = 0.0f;
+    best_dist = 0.0f;
+    FUN_00064540(iter, actor_handle);
+    encounter = (char *)FUN_00064570(iter);
+    while (encounter != 0) {
+        if (*(float *)(encounter + 0x50) > *(float *)0x2533c0) {
           dx = *(float *)(component + 4) - *(float *)(encounter + 0xbc);
           dy = *(float *)(component + 8) - *(float *)(encounter + 0xc0);
           dz = *(float *)(component + 0xc) - *(float *)(encounter + 0xc4);
@@ -2345,7 +2331,7 @@ void FUN_00038e60(int actor_handle)
            (*(short *)(best_target + 0x24) <= 3))) {
         audible_in_range = 1;
       }
-    }
+skip_target_search:
     switch (((actor_t *)actor)->state_action) {
     case 1:
       mode = 0;

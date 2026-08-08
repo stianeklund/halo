@@ -670,7 +670,9 @@
    "functions": [
     {
      "addr": "0x1d9260",
-     "decl": "void __cdecl qsort(void *base, size_t nmemb, size_t size, int (__cdecl *compar)(const void *, const void *));"
+      "decl": "void __cdecl qsort(void *base, size_t nmemb, size_t size, qsort_compar_proc compar);",
+      "ported": true,
+      "source_path": "cseries/xbox_crt.c"
     }
    ],
    "name": "LIBCMT:qsort.obj"
@@ -1523,11 +1525,11 @@
     },
     {
      "addr": "0x1e1997",
-     "decl": "void FUN_001e1997(void);"
+          "decl": "int FUN_001e1997(void *tm);"
     },
     {
      "addr": "0x1e19b7",
-     "decl": "void _gmtime(void);"
+          "decl": "int *_gmtime(int *timer);"
     },
     {
      "addr": "0x1e1abe",
@@ -29433,7 +29435,9 @@
    "functions": [
     {
      "addr": "0x1da92a",
-     "decl": "void *crt_localtime(int *timer);"
+          "decl": "void *crt_localtime(int *timer);",
+          "ported": true,
+          "source_path": "cseries/xbox_crt.c"
     }
    ],
    "name": "LIBCMT:localtim.obj"
@@ -30377,7 +30381,7 @@
     },
     {
      "addr": "0x1d91f0",
-     "decl": "void _shortsort(void);"
+      "decl": "void _shortsort(void *hi @<eax>, void *lo, size_t size, qsort_compar_proc compar);"
     }
    ],
    "name": "LIBCMT:snprintf.obj"

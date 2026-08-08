@@ -24,6 +24,22 @@
       }
     },
     {
+      "name": "LIBCMT/qsort",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cseries/xbox_crt.c.obj",
+      "base_path": "delinked/qsort.obj",
+      "metadata": {
+        "source_path": "src/halo/cseries/xbox_crt.c"
+      }
+    },
+    {
+      "name": "LIBCMT/localtim",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cseries/xbox_crt.c.obj",
+      "base_path": "delinked/localtim.obj",
+      "metadata": {
+        "source_path": "src/halo/cseries/xbox_crt.c"
+      }
+    },
+    {
       "name": "halo/FUN_000120e0",
       "target_path": "build/CMakeFiles/halo.dir/src/halo/math/vector_math.c.obj",
       "base_path": "delinked/functions/000120e0.obj",
@@ -8421,6 +8437,14 @@
       "base_path": "delinked/rasterizer_xbox_profile.obj",
       "metadata": {
         "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_profile.c"
+      }
+    },
+    {
+      "name": "halo/static_camera",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/camera/static_camera.c.obj",
+      "base_path": "delinked/static_camera.obj",
+      "metadata": {
+        "source_path": "src/halo/camera/static_camera.c"
       }
     },
     {

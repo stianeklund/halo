@@ -1573,4 +1573,7 @@ typedef void (*draw_string_emit_proc)(void *state, void *font_table,
                                       short dest_y, int src_x, int src_y,
                                       short width, short height);
 
+/* CRT qsort/_shortsort comparator: two cdecl record pointers, int result. */
+typedef int(__cdecl *qsort_compar_proc)(const void *, const void *);
+
 #endif /* TYPES_H */

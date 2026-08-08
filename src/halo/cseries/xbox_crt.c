@@ -276,9 +276,18 @@ int strncmp(const char *s1, const char *s2, unsigned int n)
 /* fabs is used by valid_real_normal3d_perpendicular; not in XDK libm.
  * VC71 inlines it as x87 FABS — this stub is only reached by the clang build.
  */
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma function(fabs)
+#endif
 double fabs(double x)
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+  __asm {
+    fabs
+  }
+#else
   __asm__ __volatile__("fabs" : "+t"(x));
+#endif
   return x;
 }
 
@@ -294,6 +303,7 @@ double fabs(double x)
  * corrupted firing-position records driving AI aim in FUN_00025c10 (0x25c10).
  * Byte-faithful to 0x1d90e0; Xbox fully commits the thread stack, so no
  * page-probing is needed. */
+#if !defined(_MSC_VER) || defined(__clang__)
 __attribute__((naked)) void _chkstk(void)
 {
   __asm__("test %eax, %eax\n\t" /* frame size == 0? nothing to do */
@@ -306,4 +316,207 @@ __attribute__((naked)) void _chkstk(void)
           "push %eax\n\t" /* re-push it at the new top */
           "1:\n\t"
           "ret\n\t");
+}
+#endif
+
+/* LIBCMT:qsort.obj, 0x1d9260. _shortsort receives hi in EAX; its remaining
+ * arguments use cdecl stack slots (verified at 0x1d92ba-0x1d92c4). */
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma optimize("ty", on)
+#endif
+static __forceinline void __cdecl qsort_swap(char *left, char *right,
+                                              size_t byte_count)
+{
+  char swap_byte;
+
+  if (left != right) {
+    while (byte_count--) {
+      swap_byte = *left;
+      *left++ = *right;
+      *right++ = swap_byte;
+    }
+  }
+}
+
+void __cdecl qsort(void *base, size_t nmemb, size_t width,
+                   qsort_compar_proc compar)
+{
+  char *lo;
+  char *hi;
+  char *mid;
+  char *loguy;
+  char *higuy;
+  size_t size;
+  char *lostk[30];
+  char *histk[30];
+  int stkptr;
+
+  if (nmemb < 2 || width == 0)
+    return;
+
+  stkptr = 0;
+  lo = (char *)base;
+  hi = (char *)base + width * (nmemb - 1);
+
+recurse:
+  size = (size_t)(hi - lo) / width + 1;
+  if (size <= 8) {
+    _shortsort(hi, lo, width, compar);
+  } else {
+    mid = lo + (size >> 1) * width;
+
+    if (compar(lo, mid) > 0)
+      qsort_swap(lo, mid, width);
+    if (compar(lo, hi) > 0)
+      qsort_swap(lo, hi, width);
+    if (compar(mid, hi) > 0)
+      qsort_swap(mid, hi, width);
+
+    loguy = lo;
+    higuy = hi;
+
+    for (;;) {
+      if (mid > loguy) {
+        do {
+          loguy += width;
+        } while (loguy < mid && compar(loguy, mid) <= 0);
+      }
+
+      if (mid <= loguy) {
+        do {
+          loguy += width;
+        } while (loguy <= hi && compar(loguy, mid) <= 0);
+      }
+
+      do {
+        higuy -= width;
+      } while (higuy > mid && compar(higuy, mid) > 0);
+
+      if (loguy > higuy)
+        break;
+
+      qsort_swap(loguy, higuy, width);
+
+      if (mid == higuy)
+        mid = loguy;
+    }
+
+    higuy += width;
+    if (mid < higuy) {
+      do {
+        higuy -= width;
+      } while (higuy > mid && compar(higuy, mid) == 0);
+    }
+    if (mid >= higuy) {
+      do {
+        higuy -= width;
+      } while (higuy > lo && compar(higuy, mid) == 0);
+    }
+
+    if (higuy - lo >= hi - loguy) {
+      if (lo < higuy) {
+        lostk[stkptr] = lo;
+        histk[stkptr] = higuy;
+        stkptr++;
+      }
+      if (loguy < hi) {
+        lo = loguy;
+        goto recurse;
+      }
+    } else {
+      if (loguy < hi) {
+        lostk[stkptr] = loguy;
+        histk[stkptr] = hi;
+        stkptr++;
+      }
+      if (lo < higuy) {
+        hi = higuy;
+        goto recurse;
+      }
+    }
+  }
+
+  stkptr--;
+  if (stkptr >= 0) {
+    lo = lostk[stkptr];
+    hi = histk[stkptr];
+    goto recurse;
+  }
+}
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma optimize("", on)
+#endif
+
+/* LIBCMT:localtim.obj, 0x1da92a.  The CRT tm storage is treated as nine
+ * 32-bit fields; field offsets are verified from the original stores. */
+void *crt_localtime(int *timer)
+{
+  int *tm;
+  int time;
+
+  if (*timer < 0)
+    return 0;
+
+  FUN_001e1953();
+
+  if (*timer > 0x3f480 && *timer < 0x7ffc0b7f) {
+    time = *timer - *(int *)0x3317d0;
+    tm = _gmtime(&time);
+    if (*(int *)0x3317d4 != 0 && FUN_001e1997(tm) != 0) {
+      time -= *(int *)0x3317d8;
+      tm = _gmtime(&time);
+      tm[8] = 1;
+    }
+    return tm;
+  }
+
+  tm = _gmtime(timer);
+  if (*(int *)0x3317d4 != 0 && FUN_001e1997(tm) != 0) {
+    time = tm[0] - *(int *)0x3317d8 - *(int *)0x3317d0;
+    tm[8] = 1;
+  } else {
+    time = tm[0] - *(int *)0x3317d0;
+  }
+
+  tm[0] = time % 60;
+  if (tm[0] < 0) {
+    tm[0] += 60;
+    time -= 60;
+  }
+
+  time = time / 60 + tm[1];
+  tm[1] = time % 60;
+  if (tm[1] < 0) {
+    tm[1] += 60;
+    time -= 60;
+  }
+
+  time = time / 60 + tm[2];
+  tm[2] = time % 24;
+  if (tm[2] < 0) {
+    tm[2] += 24;
+    time -= 24;
+  }
+
+  time /= 24;
+  if (time > 0) {
+    tm[6] = (tm[6] + time) % 7;
+    tm[3] += time;
+  } else {
+    if (time >= 0)
+      return tm;
+
+    tm[6] = (tm[6] + time + 7) % 7;
+    tm[3] += time;
+    if (tm[3] <= 0) {
+      tm[3] += 0x1f;
+      tm[5]--;
+      tm[7] = 0x16c;
+      tm[4] = 0xb;
+      return tm;
+    }
+  }
+
+  tm[7] += time;
+  return tm;
 }
