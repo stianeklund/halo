@@ -57,108 +57,118 @@ void *inflate_codes_new(int bl, int bd, int tl, int td, int z)
 #define z_verbose (*(int *)0x320e30)
 #define z_stderr (*(void **)0x331070)
 #define inflate_mask ((const unsigned int *)0x320d88)
-#define Tracevv(x)                                                             \
-  {                                                                            \
-    if (z_verbose > 1)                                                         \
-      crt_fprintf x;                                                           \
+#define Tracevv(x)     \
+  {                    \
+    if (z_verbose > 1) \
+      crt_fprintf x;   \
   }
-#define Assert(cond, msg)                                                      \
-  {                                                                            \
-    if (!(cond))                                                               \
-      FUN_00117a80(msg);                                                       \
+#define Assert(cond, msg) \
+  {                       \
+    if (!(cond))          \
+      FUN_00117a80(msg);  \
   }
 
 /* update pointers and return */
-#define UPDBITS                                                                \
-  {                                                                            \
-    *(unsigned int *)(s + 0x20) = b;                                           \
-    *(unsigned int *)(s + 0x1c) = k;                                           \
+#define UPDBITS                      \
+  {                                  \
+    *(unsigned int *)(s + 0x20) = b; \
+    *(unsigned int *)(s + 0x1c) = k; \
   }
-#define UPDIN                                                                  \
-  {                                                                            \
-    z[1] = (int)n;                                                             \
-    z[2] = (int)(p + (z[2] - *z));                                             \
-    *z = (int)p;                                                               \
+#define UPDIN                      \
+  {                                \
+    z[1] = (int)n;                 \
+    z[2] = (int)(p + (z[2] - *z)); \
+    *z = (int)p;                   \
   }
-#define UPDOUT { *(unsigned char **)(s + 0x34) = q; }
-#define UPDATE { UPDBITS UPDIN UPDOUT }
-#define LEAVE { UPDATE return FUN_00116280((int)s, (int)z, r); }
+#define UPDOUT                         \
+  {                                    \
+    *(unsigned char **)(s + 0x34) = q; \
+  }
+#define UPDATE           \
+  {                      \
+    UPDBITS UPDIN UPDOUT \
+  }
+#define LEAVE                                      \
+  {                                                \
+    UPDATE return FUN_00116280((int)s, (int)z, r); \
+  }
 
 /* get bytes and bits */
-#define LOADIN                                                                 \
-  {                                                                            \
-    p = (unsigned char *)*z;                                                   \
-    n = (unsigned int)z[1];                                                    \
-    b = *(unsigned int *)(s + 0x20);                                           \
-    k = *(unsigned int *)(s + 0x1c);                                           \
+#define LOADIN                       \
+  {                                  \
+    p = (unsigned char *)*z;         \
+    n = (unsigned int)z[1];          \
+    b = *(unsigned int *)(s + 0x20); \
+    k = *(unsigned int *)(s + 0x1c); \
   }
-#define NEEDBYTE                                                               \
-  {                                                                            \
-    if (n != 0)                                                                \
-      r = 0;                                                                   \
-    else                                                                       \
-      LEAVE                                                                    \
+#define NEEDBYTE \
+  {              \
+    if (n != 0)  \
+      r = 0;     \
+    else         \
+      LEAVE      \
   }
 #define NEXTBYTE (n--, *p++)
-#define NEEDBITS(j)                                                            \
-  {                                                                            \
-    while (k < (j)) {                                                          \
-      NEEDBYTE                                                                 \
-      b |= (unsigned int)NEXTBYTE << k;                                        \
-      k += 8;                                                                  \
-    }                                                                          \
+#define NEEDBITS(j)                     \
+  {                                     \
+    while (k < (j)) {                   \
+      NEEDBYTE                          \
+      b |= (unsigned int)NEXTBYTE << k; \
+      k += 8;                           \
+    }                                   \
   }
-#define DUMPBITS(j)                                                            \
-  {                                                                            \
-    b >>= (j);                                                                 \
-    k -= (j);                                                                  \
+#define DUMPBITS(j) \
+  {                 \
+    b >>= (j);      \
+    k -= (j);       \
   }
 
 /* output bytes */
-#define WAVAIL                                                                 \
-  ((unsigned int)(q < *(unsigned char **)(s + 0x30)                            \
-                      ? *(int *)(s + 0x30) + (-1 - (int)q)                     \
-                      : *(int *)(s + 0x2c) - (int)q))
-#define LOADOUT                                                                \
-  {                                                                            \
-    q = *(unsigned char **)(s + 0x34);                                         \
-    m = WAVAIL;                                                                \
+#define WAVAIL                                           \
+  ((unsigned int)(q < *(unsigned char **)(s + 0x30) ?    \
+                    *(int *)(s + 0x30) + (-1 - (int)q) : \
+                    *(int *)(s + 0x2c) - (int)q))
+#define LOADOUT                        \
+  {                                    \
+    q = *(unsigned char **)(s + 0x34); \
+    m = WAVAIL;                        \
   }
-#define WRAP                                                                   \
-  {                                                                            \
-    if (q == *(unsigned char **)(s + 0x2c) &&                                  \
-        *(unsigned char **)(s + 0x30) != *(unsigned char **)(s + 0x28)) {      \
-      q = *(unsigned char **)(s + 0x28);                                       \
-      m = WAVAIL;                                                              \
-    }                                                                          \
+#define WRAP                                                              \
+  {                                                                       \
+    if (q == *(unsigned char **)(s + 0x2c) &&                             \
+        *(unsigned char **)(s + 0x30) != *(unsigned char **)(s + 0x28)) { \
+      q = *(unsigned char **)(s + 0x28);                                  \
+      m = WAVAIL;                                                         \
+    }                                                                     \
   }
-#define FLUSH                                                                  \
-  {                                                                            \
-    UPDOUT                                                                     \
-    r = FUN_00116280((int)s, (int)z, r);                                       \
-    LOADOUT                                                                    \
+#define FLUSH                            \
+  {                                      \
+    UPDOUT                               \
+    r = FUN_00116280((int)s, (int)z, r); \
+    LOADOUT                              \
   }
-#define NEEDOUT                                                                \
-  {                                                                            \
-    if (m == 0) {                                                              \
-      WRAP                                                                     \
-      if (m == 0) {                                                            \
-        FLUSH                                                                  \
-        WRAP                                                                   \
-        if (m == 0)                                                            \
-          LEAVE                                                                \
-      }                                                                        \
-    }                                                                          \
-    r = 0;                                                                     \
+#define NEEDOUT                \
+  {                            \
+    if (m == 0) {              \
+      WRAP if (m == 0)         \
+      {                        \
+        FLUSH                  \
+        WRAP if (m == 0) LEAVE \
+      }                        \
+    }                          \
+    r = 0;                     \
   }
-#define OUTBYTE(a)                                                             \
-  {                                                                            \
-    *q++ = (unsigned char)(a);                                                 \
-    m--;                                                                       \
+#define OUTBYTE(a)             \
+  {                            \
+    *q++ = (unsigned char)(a); \
+    m--;                       \
   }
 
 /* load local pointers */
-#define LOAD { LOADIN LOADOUT }
+#define LOAD       \
+  {                \
+    LOADIN LOADOUT \
+  }
 
 /* inflate_codes: decode literal/length and distance codes until an
  * end-of-block code or until enough input/output is available to hand off to
@@ -172,159 +182,158 @@ void *inflate_codes_new(int bl, int bd, int tl, int td, int z)
  * +0x11 dbits, [5] ltree, [6] dtree. */
 int inflate_codes(unsigned int s, int *z, int r)
 {
-  unsigned int j;   /* temporary storage */
+  unsigned int j; /* temporary storage */
   unsigned char *t; /* temporary pointer */
-  unsigned int e;   /* extra bits or operation */
-  unsigned int b;   /* bit buffer */
-  unsigned int k;   /* bits in bit buffer */
+  unsigned int e; /* extra bits or operation */
+  unsigned int b; /* bit buffer */
+  unsigned int k; /* bits in bit buffer */
   unsigned char *p; /* input data pointer */
-  unsigned int n;   /* bytes available there */
+  unsigned int n; /* bytes available there */
   unsigned char *q; /* output window write pointer */
-  unsigned int m;   /* bytes to end of window or read pointer */
+  unsigned int m; /* bytes to end of window or read pointer */
   unsigned char *f; /* pointer to copy strings from */
-  unsigned int *c;  /* codes state */
+  unsigned int *c; /* codes state */
 
   c = *(unsigned int **)(s + 4);
 
   /* copy input/output information to locals (UPDATE macro restores) */
   LOAD
 
-  /* process input and output based on current state */
-  while (1)
-    switch (*c) {
-    /* waiting for "i:"=input, "o:"=output, "x:"=nothing */
-    case 0: /* START: x: set up for LEN */
-      if (m >= 258 && n >= 10) {
-        UPDATE
-        r = FUN_00114fa0((int)*((unsigned char *)c + 0x10),
-                         (int)*((unsigned char *)c + 0x11), (int)c[5],
-                         (int)c[6], (int)s, z);
-        LOAD
-        if (r != 0) {
-          *c = r == 1 ? 7 : 9;
-          break;
-        }
-      }
-      c[3] = (unsigned int)*((unsigned char *)c + 0x10);
-      c[2] = c[5];
-      *c = 1;
-      /* fall through */
-    case 1: /* LEN: i: get length/literal/eob next */
-      j = c[3];
-      NEEDBITS(j)
-      t = (unsigned char *)(c[2] + (inflate_mask[j] & b) * 8);
-      DUMPBITS(t[1])
-      e = (unsigned int)*t;
-      if (e == 0) { /* literal */
-        c[2] = *(unsigned int *)(t + 4);
-        Tracevv((z_stderr,
-                 c[2] >= 0x20 && c[2] < 0x7f
-                     ? "inflate:         literal '%c'\n"
-                     : "inflate:         literal 0x%02x\n",
-                 c[2]));
-        *c = 6;
+    /* process input and output based on current state */
+    while (1) switch (*c)
+  {
+  /* waiting for "i:"=input, "o:"=output, "x:"=nothing */
+  case 0: /* START: x: set up for LEN */
+    if (m >= 258 && n >= 10) {
+      UPDATE
+      r = FUN_00114fa0((int)*((unsigned char *)c + 0x10),
+                       (int)*((unsigned char *)c + 0x11), (int)c[5], (int)c[6],
+                       (int)s, z);
+      LOAD if (r != 0)
+      {
+        *c = r == 1 ? 7 : 9;
         break;
       }
-      if ((e & 0x10) != 0) { /* length */
-        c[2] = e & 0xf;
-        c[1] = *(unsigned int *)(t + 4);
-        *c = 2;
-        break;
-      }
-      if ((e & 0x40) == 0) { /* next table */
-        c[3] = e;
-        c[2] = (unsigned int)(t + *(int *)(t + 4) * 8);
-        break;
-      }
-      if ((e & 0x20) != 0) { /* end of block */
-        Tracevv((z_stderr, "inflate:         end of block\n"));
-        *c = 7;
-        break;
-      }
-      *c = 9; /* invalid code */
-      z[6] = (int)"invalid literal/length code";
-      r = -3;
-      LEAVE
-    case 2: /* LENEXT: i: getting length extra (have base) */
-      j = c[2];
-      NEEDBITS(j)
-      c[1] += inflate_mask[j] & b;
-      DUMPBITS(j)
-      c[3] = (unsigned int)*((unsigned char *)c + 0x11);
-      c[2] = c[6];
-      Tracevv((z_stderr, "inflate:         length %u\n", c[1]));
-      *c = 3;
-      /* fall through */
-    case 3: /* DIST: i: get distance next */
-      j = c[3];
-      NEEDBITS(j)
-      t = (unsigned char *)(c[2] + (inflate_mask[j] & b) * 8);
-      DUMPBITS(t[1])
-      e = (unsigned int)*t;
-      if ((e & 0x10) != 0) { /* distance */
-        c[2] = e & 0xf;
-        c[3] = *(unsigned int *)(t + 4);
-        *c = 4;
-        break;
-      }
-      if ((e & 0x40) == 0) { /* next table */
-        c[3] = e;
-        c[2] = (unsigned int)(t + *(int *)(t + 4) * 8);
-        break;
-      }
-      *c = 9; /* invalid code */
-      z[6] = (int)"invalid distance code";
-      r = -3;
-      LEAVE
-    case 4: /* DISTEXT: i: getting distance extra */
-      j = c[2];
-      NEEDBITS(j)
-      c[3] += inflate_mask[j] & b;
-      DUMPBITS(j)
-      Tracevv((z_stderr, "inflate:         distance %u\n", c[3]));
-      *c = 5;
-      /* fall through */
-    case 5: /* COPY: o: copying bytes in window, waiting for space */
-      f = q - c[3];
-      /* modulo window size -- handles invalid distances */
-      if ((unsigned int)((int)q - *(int *)(s + 0x28)) < c[3])
-        f += *(int *)(s + 0x2c) - *(int *)(s + 0x28);
-      while (c[1] != 0) {
-        NEEDOUT
-        OUTBYTE(*f++)
-        if (f == *(unsigned char **)(s + 0x2c))
-          f = *(unsigned char **)(s + 0x28);
-        c[1]--;
-      }
-      *c = 0;
-      break;
-    case 6: /* LIT: o: got literal, waiting for output space */
-      NEEDOUT
-      OUTBYTE(c[2])
-      *c = 0;
-      break;
-    case 7: /* WASH: o: got eob, possibly more output */
-      if (k > 7) { /* return unused byte, if any */
-        Assert(k < 16, "inflate_codes grabbed too many bytes")
-        k -= 8;
-        n++;
-        p--; /* can always return one */
-      }
-      FLUSH
-      if (*(unsigned char **)(s + 0x30) != *(unsigned char **)(s + 0x34))
-        LEAVE
-      *c = 8;
-      /* fall through */
-    case 8: /* END */
-      r = 1;
-      LEAVE
-    case 9: /* BADCODE: x: got error */
-      r = -3;
-      LEAVE
-    default:
-      r = -2;
-      LEAVE
     }
+    c[3] = (unsigned int)*((unsigned char *)c + 0x10);
+    c[2] = c[5];
+    *c = 1;
+    /* fall through */
+  case 1: /* LEN: i: get length/literal/eob next */
+    j = c[3];
+    NEEDBITS(j)
+    t = (unsigned char *)(c[2] + (inflate_mask[j] & b) * 8);
+    DUMPBITS(t[1])
+    e = (unsigned int)*t;
+    if (e == 0) { /* literal */
+      c[2] = *(unsigned int *)(t + 4);
+      Tracevv((z_stderr,
+               c[2] >= 0x20 && c[2] < 0x7f ?
+                 "inflate:         literal '%c'\n" :
+                 "inflate:         literal 0x%02x\n",
+               c[2]));
+      *c = 6;
+      break;
+    }
+    if ((e & 0x10) != 0) { /* length */
+      c[2] = e & 0xf;
+      c[1] = *(unsigned int *)(t + 4);
+      *c = 2;
+      break;
+    }
+    if ((e & 0x40) == 0) { /* next table */
+      c[3] = e;
+      c[2] = (unsigned int)(t + *(int *)(t + 4) * 8);
+      break;
+    }
+    if ((e & 0x20) != 0) { /* end of block */
+      Tracevv((z_stderr, "inflate:         end of block\n"));
+      *c = 7;
+      break;
+    }
+    *c = 9; /* invalid code */
+    z[6] = (int)"invalid literal/length code";
+    r = -3;
+    LEAVE
+  case 2: /* LENEXT: i: getting length extra (have base) */
+    j = c[2];
+    NEEDBITS(j)
+    c[1] += inflate_mask[j] & b;
+    DUMPBITS(j)
+    c[3] = (unsigned int)*((unsigned char *)c + 0x11);
+    c[2] = c[6];
+    Tracevv((z_stderr, "inflate:         length %u\n", c[1]));
+    *c = 3;
+    /* fall through */
+  case 3: /* DIST: i: get distance next */
+    j = c[3];
+    NEEDBITS(j)
+    t = (unsigned char *)(c[2] + (inflate_mask[j] & b) * 8);
+    DUMPBITS(t[1])
+    e = (unsigned int)*t;
+    if ((e & 0x10) != 0) { /* distance */
+      c[2] = e & 0xf;
+      c[3] = *(unsigned int *)(t + 4);
+      *c = 4;
+      break;
+    }
+    if ((e & 0x40) == 0) { /* next table */
+      c[3] = e;
+      c[2] = (unsigned int)(t + *(int *)(t + 4) * 8);
+      break;
+    }
+    *c = 9; /* invalid code */
+    z[6] = (int)"invalid distance code";
+    r = -3;
+    LEAVE
+  case 4: /* DISTEXT: i: getting distance extra */
+    j = c[2];
+    NEEDBITS(j)
+    c[3] += inflate_mask[j] & b;
+    DUMPBITS(j)
+    Tracevv((z_stderr, "inflate:         distance %u\n", c[3]));
+    *c = 5;
+    /* fall through */
+  case 5: /* COPY: o: copying bytes in window, waiting for space */
+    f = q - c[3];
+    /* modulo window size -- handles invalid distances */
+    if ((unsigned int)((int)q - *(int *)(s + 0x28)) < c[3])
+      f += *(int *)(s + 0x2c) - *(int *)(s + 0x28);
+    while (c[1] != 0) {
+      NEEDOUT
+      OUTBYTE(*f++)
+      if (f == *(unsigned char **)(s + 0x2c))
+        f = *(unsigned char **)(s + 0x28);
+      c[1]--;
+    }
+    *c = 0;
+    break;
+  case 6: /* LIT: o: got literal, waiting for output space */
+    NEEDOUT
+    OUTBYTE(c[2])
+    *c = 0;
+    break;
+  case 7: /* WASH: o: got eob, possibly more output */
+    if (k > 7) { /* return unused byte, if any */
+      Assert(k < 16, "inflate_codes grabbed too many bytes") k -= 8;
+      n++;
+      p--; /* can always return one */
+    }
+    FLUSH
+    if (*(unsigned char **)(s + 0x30) != *(unsigned char **)(s + 0x34))
+      LEAVE
+    *c = 8;
+    /* fall through */
+  case 8: /* END */
+    r = 1;
+    LEAVE
+  case 9: /* BADCODE: x: got error */
+    r = -3;
+    LEAVE
+  default:
+    r = -2;
+    LEAVE
+  }
 }
 
 #undef z_verbose
@@ -366,9 +375,8 @@ void inflate_codes_free(int c, int z)
  * param_1=bl (literal bits), param_2=bd (distance bits),
  * param_3=tl (literal table), param_4=td (distance table),
  * param_5=s (block state), param_6=z (z_stream) */
-__declspec(noinline) int FUN_00114fa0(int param_1, int param_2,
-                                      int param_3, int param_4,
-                                      int param_5, int *param_6)
+__declspec(noinline) int FUN_00114fa0(int param_1, int param_2, int param_3,
+                                      int param_4, int param_5, int *param_6)
 {
   unsigned char *t;
   int bits;
@@ -393,8 +401,7 @@ __declspec(noinline) int FUN_00114fa0(int param_1, int param_2,
   k = *(unsigned int *)(param_5 + 0x1c);
   b = *(unsigned int *)(param_5 + 0x20);
   if (out_ptr < *(unsigned char **)(param_5 + 0x30)) {
-    m_ptr =
-      (unsigned char *)(*(int *)(param_5 + 0x30) + (-1 - (int)out_ptr));
+    m_ptr = (unsigned char *)(*(int *)(param_5 + 0x30) + (-1 - (int)out_ptr));
   } else {
     m_ptr = (unsigned char *)(*(int *)(param_5 + 0x2c) - (int)out_ptr);
   }
@@ -449,8 +456,7 @@ __declspec(noinline) int FUN_00114fa0(int param_1, int param_2,
         *(unsigned char **)(param_5 + 0x34) = out_ptr;
         return (int)0xfffffffd;
       }
-      tmp_i = (*(unsigned int *)(0x320d88 + tmp_e * 4) & b) +
-              *(int *)(t + 4);
+      tmp_i = (*(unsigned int *)(0x320d88 + tmp_e * 4) & b) + *(int *)(t + 4);
       bits = t[tmp_i * 8 + 1];
       t = t + tmp_i * 8;
       exop = *t;
@@ -461,12 +467,12 @@ __declspec(noinline) int FUN_00114fa0(int param_1, int param_2,
       k = k - t[1];
     }
     tmp_e = tmp_e & 0xf;
-    copy_len =
-      (*(unsigned int *)(0x320d88 + tmp_e * 4) & b) + *(int *)(t + 4);
+    copy_len = (*(unsigned int *)(0x320d88 + tmp_e * 4) & b) + *(int *)(t + 4);
     k = k - tmp_e;
     b = b >> (unsigned char)tmp_e;
     if (*(int *)0x320e30 > 1) {
-      crt_fprintf(*(void **)0x331070, "inflate:         * length %u\n", copy_len);
+      crt_fprintf(*(void **)0x331070, "inflate:         * length %u\n",
+                  copy_len);
     }
     for (; k < 0xf; k = k + 8) {
       n = n - 1;
@@ -509,8 +515,7 @@ __declspec(noinline) int FUN_00114fa0(int param_1, int param_2,
       b = b | (unsigned int)*in_ptr << (unsigned char)k;
       in_ptr = in_ptr + 1;
     }
-    copy_dist =
-      (*(unsigned int *)(0x320d88 + tmp_e * 4) & b) + *(int *)(t + 4);
+    copy_dist = (*(unsigned int *)(0x320d88 + tmp_e * 4) & b) + *(int *)(t + 4);
     k = k - tmp_e;
     b = b >> (unsigned char)tmp_e;
     if (*(int *)0x320e30 > 1) {
@@ -729,7 +734,8 @@ int FUN_001155e0(int z, int flush)
       param_1[2] = param_1[2] + 1;
       flags_byte = *(unsigned char *)*param_1;
       *param_1 = *param_1 + 1;
-      if ((((int *)param_1[7])[1] * 0x100 + (unsigned int)flags_byte) % 0x1f == 0) {
+      if ((((int *)param_1[7])[1] * 0x100 + (unsigned int)flags_byte) % 0x1f ==
+          0) {
         if (0 < *(int *)0x320e30) {
           crt_fprintf(*(void **)0x331070, "inflate: zlib header ok\n");
         }
@@ -905,7 +911,8 @@ int inflateSetDictionary(int z, int dictionary, unsigned int dictLength)
       n = wsize - 1;
       dictionary = dictionary + (int)(dictLength - n);
     }
-    inflate_set_dictionary(*(int *)(*(int *)(z + 0x1c) + 0x14), dictionary, (int)n);
+    inflate_set_dictionary(*(int *)(*(int *)(z + 0x1c) + 0x14), dictionary,
+                           (int)n);
     **(int **)(z + 0x1c) = 7;
     return 0;
   }
@@ -997,7 +1004,7 @@ typedef struct inflate_huft_s {
   unsigned int base; /* literal, length base, distance base, or table offset */
 } inflate_huft;
 
-#define BMAX 15    /* maximum bit length of any code */
+#define BMAX 15 /* maximum bit length of any code */
 #define MANY 0x5a0 /* number of huft entries in the caller's table space */
 
 /* huft_build: build a Huffman decoding table.
@@ -1020,29 +1027,28 @@ typedef struct inflate_huft_s {
  *
  * Returns 0 (Z_OK), -3 (Z_DATA_ERROR: over-subscribed set), -4 (Z_MEM_ERROR:
  * out of huft space) or -5 (Z_BUF_ERROR: incomplete set). */
-int FUN_00115ba0(int *b, unsigned int n, unsigned int s, int *d, int *e,
-                 int *t, unsigned int *m, int hp, unsigned int *hn,
-                 unsigned int *v)
+int FUN_00115ba0(int *b, unsigned int n, unsigned int s, int *d, int *e, int *t,
+                 unsigned int *m, int hp, unsigned int *hn, unsigned int *v)
 {
-  unsigned int a;           /* counter for codes of length k */
+  unsigned int a; /* counter for codes of length k */
   unsigned int c[BMAX + 1]; /* bit length count table */
-  unsigned int f;           /* i repeats in table every f entries */
-  int g;                    /* maximum code length */
-  int h;                    /* table level */
-  unsigned int i;           /* counter, current code */
-  unsigned int j;           /* counter */
-  int k;                    /* number of bits in current code */
-  int l;                    /* bits per table (returned in m) */
-  unsigned int mask;        /* (1 << w) - 1 */
-  unsigned int *p;          /* pointer into c[], b[], or v[] */
-  inflate_huft *q;          /* points to current table */
-  inflate_huft r;           /* table entry for structure assignment */
-  inflate_huft *u[BMAX];    /* table stack */
-  int w;                    /* bits before this table == (l * h) */
+  unsigned int f; /* i repeats in table every f entries */
+  int g; /* maximum code length */
+  int h; /* table level */
+  unsigned int i; /* counter, current code */
+  unsigned int j; /* counter */
+  int k; /* number of bits in current code */
+  int l; /* bits per table (returned in m) */
+  unsigned int mask; /* (1 << w) - 1 */
+  unsigned int *p; /* pointer into c[], b[], or v[] */
+  inflate_huft *q; /* points to current table */
+  inflate_huft r; /* table entry for structure assignment */
+  inflate_huft *u[BMAX]; /* table stack */
+  int w; /* bits before this table == (l * h) */
   unsigned int x[BMAX + 1]; /* bit offsets, then code stack */
-  unsigned int *xp;         /* pointer into x */
-  int y;                    /* number of dummy codes added */
-  unsigned int z;           /* number of entries in current table */
+  unsigned int *xp; /* pointer into x */
+  int y; /* number of dummy codes added */
+  unsigned int z; /* number of entries in current table */
 
   /* Generate counts for each bit length */
   c[0] = 0;
@@ -1117,12 +1123,12 @@ int FUN_00115ba0(int *b, unsigned int n, unsigned int s, int *d, int *e,
   /* Generate the Huffman codes and for each, make the table entries */
   x[0] = 0; /* first Huffman code is zero */
   i = 0;
-  p = v;                  /* grab values in bit order */
-  h = -1;                 /* no tables yet--level -1 */
-  w = -l;                 /* bits decoded == (l * h) */
+  p = v; /* grab values in bit order */
+  h = -1; /* no tables yet--level -1 */
+  w = -l; /* bits decoded == (l * h) */
   u[0] = (inflate_huft *)0; /* just to keep compilers happy */
-  q = (inflate_huft *)0;    /* ditto */
-  z = 0;                    /* ditto */
+  q = (inflate_huft *)0; /* ditto */
+  z = 0; /* ditto */
 
   /* go through the bit lengths (k already is bits in shortest code) */
   for (; k <= g; k++) {
@@ -1136,7 +1142,8 @@ int FUN_00115ba0(int *b, unsigned int n, unsigned int s, int *d, int *e,
 
         /* compute minimum size table less than or equal to l bits */
         z = (unsigned int)(g - w);
-        z = z > (unsigned int)l ? (unsigned int)l : z; /* table size upper limit */
+        z = z > (unsigned int)l ? (unsigned int)l :
+                                  z; /* table size upper limit */
         j = (unsigned int)(k - w);
         f = 1u << j;
         if (f > a + 1) { /* try a k-w bit table */
@@ -1147,7 +1154,7 @@ int FUN_00115ba0(int *b, unsigned int n, unsigned int s, int *d, int *e,
             while (++j < z) { /* try smaller tables up to z bits */
               f <<= 1;
               if (f <= *++xp)
-                break;  /* enough codes to use up j bits */
+                break; /* enough codes to use up j bits */
               f -= *xp; /* else deduct codes from patterns */
             }
         }
@@ -1162,12 +1169,12 @@ int FUN_00115ba0(int *b, unsigned int n, unsigned int s, int *d, int *e,
 
         /* connect to last table, if there is one */
         if (h != 0) {
-          x[h] = i;                  /* save pattern for backing up */
+          x[h] = i; /* save pattern for backing up */
           r.bits = (unsigned char)l; /* bits to dump before this table */
           r.exop = (unsigned char)j; /* bits in this table */
           j = i >> (w - l);
           r.base = (unsigned int)(q - u[h - 1] - j); /* offset to this table */
-          u[h - 1][j] = r;                           /* connect to last table */
+          u[h - 1][j] = r; /* connect to last table */
         } else {
           *t = (int)q; /* first table is returned result */
         }
@@ -1243,9 +1250,9 @@ int inflate_trees_bits(int *c, int *bb, int tl, int td, int z)
 
 /* inflate_trees_dynamic: build decode tables for dynamic Huffman block.
  * 0x1160c0 / circular_queue.obj (inflate.c) */
-int inflate_trees_dynamic(unsigned int param_1, int param_2, int param_3, int *param_4,
-                 int *param_5, int param_6, int param_7, int param_8,
-                 int param_9)
+int inflate_trees_dynamic(unsigned int param_1, int param_2, int param_3,
+                          int *param_4, int *param_5, int param_6, int param_7,
+                          int param_8, int param_9)
 {
   int work;
   int result;
@@ -1253,13 +1260,13 @@ int inflate_trees_dynamic(unsigned int param_1, int param_2, int param_3, int *p
 
   hn = 0;
   work = (*(int (**)(int, int, int))(param_9 + 0x20))(*(int *)(param_9 + 0x28),
-                                                       0x120, 4);
+                                                      0x120, 4);
   if (work == 0)
     return -4;
-  result = FUN_00115ba0((int *)param_3, param_1, 0x101, (int *)0x28d960,
-                        (int *)0x28d9e0, (int *)param_6,
-                        (unsigned int *)param_4, param_8, &hn,
-                        (unsigned int *)work);
+  result =
+    FUN_00115ba0((int *)param_3, param_1, 0x101, (int *)0x28d960,
+                 (int *)0x28d9e0, (int *)param_6, (unsigned int *)param_4,
+                 param_8, &hn, (unsigned int *)work);
   if (result == 0) {
     if (*param_4 != 0) {
       result = FUN_00115ba0(
@@ -1308,8 +1315,8 @@ free_and_return_outer:
 
 /* inflate_trees_fixed: set pointers to fixed Huffman decode tables.
  * 0x116250 / circular_queue.obj (inflate.c) */
-int inflate_trees_fixed(int *param_1, int *param_2, int **param_3, int **param_4,
-                        int z)
+int inflate_trees_fixed(int *param_1, int *param_2, int **param_3,
+                        int **param_4, int z)
 {
   *param_1 = *(int *)0x31fc80;
   *param_2 = *(int *)0x31fc84;
@@ -1377,8 +1384,8 @@ int FUN_00116280(int param_1, int param_2, int param_3)
       param_1 + 0x38);
     if (callback !=
         (unsigned int (*)(unsigned int, unsigned int, unsigned int))0) {
-      check =
-        callback(*(unsigned int *)(param_1 + 0x3c), (unsigned int)read_cur, copy_n);
+      check = callback(*(unsigned int *)(param_1 + 0x3c),
+                       (unsigned int)read_cur, copy_n);
       *(unsigned int *)(param_1 + 0x3c) = check;
       *(unsigned int *)(param_2 + 0x30) = check;
     }
@@ -1490,8 +1497,7 @@ void FUN_001164d0(int param_1, int state, int tree)
     if (j < heap_len) {
       tmp_i = *(int *)(state + 0xb58 + j * 4);
       freq_a = *(unsigned short *)(tree + tmp_i * 4);
-      freq_b =
-        *(unsigned short *)(tree + *(int *)(state + 0xb54 + j * 4) * 4);
+      freq_b = *(unsigned short *)(tree + *(int *)(state + 0xb54 + j * 4) * 4);
       if (freq_a < freq_b ||
           (freq_a == freq_b &&
            *(unsigned char *)(tmp_i + 0x1450 + state) <=
@@ -1505,7 +1511,7 @@ void FUN_001164d0(int param_1, int state, int tree)
     freq_b = *(unsigned short *)(tree + tmp_i * 4);
     if (freq_a < freq_b ||
         (freq_a == freq_b && *(unsigned char *)(node + 0x1450 + state) <=
-                             *(unsigned char *)(tmp_i + 0x1450 + state)))
+                               *(unsigned char *)(tmp_i + 0x1450 + state)))
       break;
     *(int *)(state + 0xb54 + param_1 * 4) = tmp_i;
     heap_len_cur = *(int *)(state + 0x1448);
@@ -1932,9 +1938,9 @@ int _tr_tally(int param_1, int param_2, int param_3)
     FUN_00117a80("_tr_tally: bad match");
   after_assert:
     freq_ptr = (short *)(param_1 + 0x490 +
-                       (unsigned int)(unsigned char)(*(
-                         unsigned char *)(0x28e488 + (unsigned int)param_3)) *
-                         4);
+                         (unsigned int)(unsigned char)(*(
+                           unsigned char *)(0x28e488 + (unsigned int)param_3)) *
+                           4);
     *freq_ptr += 1;
     if ((unsigned int)param_2 < 0x100) {
       code = *(unsigned char *)(0x28e288 + (unsigned int)param_2);
@@ -2029,12 +2035,12 @@ void FUN_00117000(int state)
 
   ascii_freq = 0;
   bin_freq = (unsigned int)*(unsigned short *)(state + 0xa4) +
-          (unsigned int)*(unsigned short *)(state + 0xa0) +
-          (unsigned int)*(unsigned short *)(state + 0x9c) +
-          (unsigned int)*(unsigned short *)(state + 0x98) +
-          (unsigned int)*(unsigned short *)(state + 0x94) +
-          (unsigned int)*(unsigned short *)(state + 0x90) +
-          (unsigned int)*(unsigned short *)(state + 0x8c);
+             (unsigned int)*(unsigned short *)(state + 0xa0) +
+             (unsigned int)*(unsigned short *)(state + 0x9c) +
+             (unsigned int)*(unsigned short *)(state + 0x98) +
+             (unsigned int)*(unsigned short *)(state + 0x94) +
+             (unsigned int)*(unsigned short *)(state + 0x90) +
+             (unsigned int)*(unsigned short *)(state + 0x8c);
   freq_ptr = (unsigned short *)(state + 0xa8);
   count = 0x79;
   do {
@@ -2181,8 +2187,7 @@ void FUN_001172d0(int *param_1, int param_2, short *bl_count)
   code = 0;
   i = 1;
   do {
-    code =
-      (unsigned short)((*(short *)((int)bl_count + i * 2 - 2) + code) * 2);
+    code = (unsigned short)((*(short *)((int)bl_count + i * 2 - 2) + code) * 2);
     auStack_28[i] = code;
     i++;
   } while (i < 0x10);
@@ -2199,8 +2204,7 @@ void FUN_001172d0(int *param_1, int param_2, short *bl_count)
       len = (unsigned int)*(unsigned short *)((int)param_1 + i * 4 + 2);
       if (len != 0) {
         code_val = (unsigned int)auStack_28[len];
-        auStack_28[len] =
-          (unsigned short)((unsigned int)auStack_28[len] + 1);
+        auStack_28[len] = (unsigned short)((unsigned int)auStack_28[len] + 1);
         res_next = 0;
         bits_left = len;
         do {
@@ -2217,10 +2221,10 @@ void FUN_001172d0(int *param_1, int param_2, short *bl_count)
           ch = i;
           if (is_graph == 0)
             ch = 0x20;
-          crt_fprintf(
-            *(void **)0x331070, "\nn %3d %c l %2d c %4x (%x) ", i, ch,
-            len, (unsigned int)*(unsigned short *)((int)param_1 + i * 4),
-            ((unsigned int)auStack_28[len] & 0xffff) - 1);
+          crt_fprintf(*(void **)0x331070, "\nn %3d %c l %2d c %4x (%x) ", i, ch,
+                      len,
+                      (unsigned int)*(unsigned short *)((int)param_1 + i * 4),
+                      ((unsigned int)auStack_28[len] & 0xffff) - 1);
         }
       }
       i++;

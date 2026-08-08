@@ -79,7 +79,7 @@ rasterizer_xbox_vertex_shaders_initialize.obj,true,0x00178850-0x00178CB0,2
 rasterizer_xbox_vertex_shaders_runtime.obj,true,0x00178B40-0x00178D40,1
 rasterizer_common.obj,true,0x00154FC0-0x00155310,5
 rasterizer_decals.obj,true,0x00157E40-0x0015D7B0,62
-rasterizer_xbox.obj,true,0x00155350-0x00157210,37
+rasterizer_xbox.obj,true,0x00155350-0x00157210,42
 vector_math.obj,true,0x00012000-0x00028810,46
 real_math.obj,true,0x0001ACB0-0x00113C90,168
 recorded_animations.obj,true,0x00094020-0x00095E60,47
@@ -186,7 +186,7 @@ static_camera.obj,true,0x0008D410-0x0008D610,1
 rasterizer_xbox_screen_effect.obj,true,0x001700D0-0x00171DC0,2
 rasterizer_xbox_shadows.obj,true,0x00172590-0x00172FE0,3
 rasterizer_xbox_profile.obj,true,0x0016F910-0x0016FC40,2
-<xdk_stubs>,true,0x001CFB73-0x0024D209,530
+<xdk_stubs>,true,0x001CFB73-0x0024D209,531
 wind.obj,true,0x0018FF00-0x001901E0,2
 action_vehicle.obj,true,0x0001AEB0-0x0001BAA0,4
 glow.obj,true,0x001345B0-0x001347B0,1

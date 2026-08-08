@@ -149,7 +149,6 @@ void network_game_reset_for_next_round(void *game, bool flag)
 }
 
 
-
 bool network_player_is_valid(void *client)
 {
   char *c = (char *)client;

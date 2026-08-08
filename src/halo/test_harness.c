@@ -777,9 +777,9 @@ void run_tests(void)
     }
   }
 
-  /* inflate round-trip: exercises inflate_trees_bits / inflate_trees_dynamic which call
-   * FUN_00115ba0 with @<eax>=bb.  A missing @<eax> annotation causes the
-   * Huffman tables to be built with a garbage bit-count pointer, corrupting
+  /* inflate round-trip: exercises inflate_trees_bits / inflate_trees_dynamic
+   * which call FUN_00115ba0 with @<eax>=bb.  A missing @<eax> annotation causes
+   * the Huffman tables to be built with a garbage bit-count pointer, corrupting
    * s->trees.bb and s->trees.tb and freezing the game on map selection. */
   {
     /* "HaloInflateTest" compressed with zlib -9 (23 bytes, includes header) */

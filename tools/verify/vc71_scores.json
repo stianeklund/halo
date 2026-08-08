@@ -139,8 +139,8 @@
       "source": "src/halo/math/vector_math.c"
     },
     "FUN_00013dd0": {
-      "opnd_percent": 67.8,
-      "score": 82.5,
+      "opnd_percent": 76.5,
+      "score": 86.3,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00013ef0": {
@@ -169,7 +169,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00014540": {
-      "score": 41.6,
+      "opnd_percent": 91.3,
+      "score": 100.0,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_000145c0": {
@@ -310,7 +311,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_000169a0": {
-      "score": 69.9,
+      "opnd_percent": 48.5,
+      "score": 74.7,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00016bd0": {
@@ -362,7 +364,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00017120": {
-      "score": 61.3,
+      "opnd_percent": 37.4,
+      "score": 68.0,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_000178b0": {
@@ -391,7 +394,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00018b90": {
-      "score": 68.5,
+      "opnd_percent": 56.0,
+      "score": 71.1,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00019110": {
@@ -411,8 +415,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00019370": {
-      "opnd_percent": 59.2,
-      "score": 85.5,
+      "opnd_percent": 66.1,
+      "score": 89.8,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00019750": {
@@ -931,7 +935,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_000257a0": {
-      "score": 78.9,
+      "opnd_percent": 61.9,
+      "score": 86.0,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00025970": {
@@ -976,8 +981,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00027dd0": {
-      "opnd_percent": 59.6,
-      "score": 70.2,
+      "opnd_percent": 86.9,
+      "score": 94.9,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00027e50": {
@@ -2260,7 +2265,8 @@
       "source": "src/halo/ai/ai_profile.c"
     },
     "FUN_000556f0": {
-      "score": 88.6,
+      "opnd_percent": 100.0,
+      "score": 100.0,
       "source": "src/halo/ai/ai_profile.c"
     },
     "FUN_00055750": {
@@ -16241,6 +16247,11 @@
     "FUN_001d8368": {
       "score": 50.0,
       "source": "src/halo/cseries/xcontent.c"
+    },
+    "FUN_001d9260": {
+      "opnd_percent": 97.4,
+      "score": 97.8,
+      "source": "src/halo/cseries/xbox_crt.c"
     },
     "SetupSmartStates": {
       "opnd_percent": 54.5,

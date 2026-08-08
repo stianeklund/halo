@@ -361,8 +361,8 @@ bool ai_handle_unit_approach(int ai_handle, int unit_handle, bool flag)
     if (*(int *)(unit + 0x1c8) != -1) {
       /* game_allegiance_get_team_is_friendly returns true when friendly;
        * we return true (enemy) only when NOT friendly. */
-      if (!game_allegiance_get_team_is_friendly(*(int16_t *)(unit + 0x68),
-                                                ((actor_t *)actor)->field_03e)) {
+      if (!game_allegiance_get_team_is_friendly(
+            *(int16_t *)(unit + 0x68), ((actor_t *)actor)->field_03e)) {
         result = 1;
         if (flag) {
           /* set the approach-active flag at actor+0x2ed */
@@ -1330,8 +1330,7 @@ bool ai_test_line_of_fire(int actor_handle, int excluded_handle, float *origin,
     ai_debug_get_last_path(origin, offset);
     for (i = 0; i < count; i++) {
       ai_firing_pos_entry_t *e = &buf[i];
-      ai_debug_lineoffire_addpill(e->vec_a, e->vec_b, e->radius,
-                                  e->occupied);
+      ai_debug_lineoffire_addpill(e->vec_a, e->vec_b, e->radius, e->occupied);
     }
     FUN_000494d0((char)success);
   }
@@ -1433,7 +1432,8 @@ bool ai_clump(char param_1)
         /* squad check: actor->field_0x270 must match iter.datum_handle
          * (iter.datum_handle = EBP-0xc in disassembly, overlaps the
          * decompiler's 'local_10' variable) */
-        if (((actor_t *)actor)->target_target_prop_index == (int)iter.datum_handle) {
+        if (((actor_t *)actor)->target_target_prop_index ==
+            (int)iter.datum_handle) {
           if (state > 1 && state <= 3) {
             return 1;
           }

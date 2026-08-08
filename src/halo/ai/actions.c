@@ -248,8 +248,7 @@ char FUN_0001beb0(int actor_handle)
     return *(char *)(actor + 0x9c);
   }
   ((actor_t *)actor)->field_09f = 0;
-  actor_pursuit_find_nearby_actors(actor_handle,
-                                   ((actor_t *)actor)->field_1cc);
+  actor_pursuit_find_nearby_actors(actor_handle, ((actor_t *)actor)->field_1cc);
   if (((actor_t *)actor)->field_09d != '\0') {
     if (((actor_t *)actor)->field_1d0 == -1) {
       if (*(short *)(actor + 0xaa) == 0) {
@@ -269,7 +268,8 @@ char FUN_0001beb0(int actor_handle)
     goto LAB_0001bf35;
   }
   prop = (int)datum_get(prop_data, ((actor_t *)actor)->field_1d0);
-  if (((actor_t *)actor)->field_09e == '\0' || ((actor_t *)actor)->field_0a0 != '\0') {
+  if (((actor_t *)actor)->field_09e == '\0' ||
+      ((actor_t *)actor)->field_0a0 != '\0') {
     if (*(short *)(prop + 0x32) < 2 ||
         *(const float *)0x253f78 <= *(float *)(prop + 0x11c)) {
       goto LAB_0001bf2e;
@@ -291,8 +291,8 @@ LAB_0001c009:
 LAB_0001bf35:
   if (*(char *)(actor + 6) == '\0') {
     if (((actor_t *)actor)->field_09f != '\0') {
-      if (actor_move_to_prop(actor_handle, ((actor_t *)actor)->field_1d0, 8.0f) ==
-          '\0') {
+      if (actor_move_to_prop(actor_handle, ((actor_t *)actor)->field_1d0,
+                             8.0f) == '\0') {
         ((actor_t *)actor)->field_0a0 = 1;
       }
     } else {
@@ -316,7 +316,8 @@ void FUN_0001c030(int actor_handle)
     ((actor_t *)actor)->field_3e8 = 3;
     ((actor_t *)actor)->field_3ec = 0;
   } else if (((actor_t *)actor)->field_1cc == '\0' &&
-             ((actor_t *)actor)->field_1d0 != -1 && ((actor_t *)actor)->field_0a8 > 0) {
+             ((actor_t *)actor)->field_1d0 != -1 &&
+             ((actor_t *)actor)->field_0a8 > 0) {
     ((actor_t *)actor)->field_3e8 = 5;
     ((actor_t *)actor)->field_3ec = 1;
     ((actor_t *)actor)->field_3f0 = ((actor_t *)actor)->field_1d0;
@@ -380,13 +381,15 @@ void FUN_0001c190(int actor_handle)
     sVar1 = *(int16_t *)(actor + 0xaa) - 1;
     *(int16_t *)(actor + 0xaa) = sVar1;
     if (sVar1 == 0) {
-      if (((actor_t *)actor)->field_09d != '\0' && ((actor_t *)actor)->field_018 != -1) {
+      if (((actor_t *)actor)->field_09d != '\0' &&
+          ((actor_t *)actor)->field_018 != -1) {
         FUN_00046f10(0x14, ((actor_t *)actor)->field_018, -1, -1, -1, -1, 0);
       }
       *(char *)(actor + 0x9c) = 1;
     }
   }
-  if (((actor_t *)actor)->field_09f == '\0' && ((actor_t *)actor)->field_0a8 > 0) {
+  if (((actor_t *)actor)->field_09f == '\0' &&
+      ((actor_t *)actor)->field_0a8 > 0) {
     ((actor_t *)actor)->field_0a8 = ((actor_t *)actor)->field_0a8 - 1;
   }
 }
@@ -658,8 +661,10 @@ int actor_action_handle_panic_from_surprise(int actor_handle)
   if ((((actor_t *)actor)->field_2f0 != '\0') &&
       ((*(unsigned int *)actr_tag & 0x400) != 0)) {
     panic_type = ((actor_t *)actor)->stimuli_panic_type;
-    if ((panic_type == 0) || (((actor_t *)actor)->stimuli_panic_prop_index == -1)) {
-      ((actor_t *)actor)->stimuli_panic_prop_index = ((actor_t *)actor)->field_2f4;
+    if ((panic_type == 0) ||
+        (((actor_t *)actor)->stimuli_panic_prop_index == -1)) {
+      ((actor_t *)actor)->stimuli_panic_prop_index =
+        ((actor_t *)actor)->field_2f4;
     }
     if (panic_type < 8) {
       panic_type = 7;
@@ -668,7 +673,8 @@ int actor_action_handle_panic_from_surprise(int actor_handle)
     ((actor_t *)actor)->field_2f0 = 0;
     result = 1;
   }
-  assert_halt(((actor_t *)actor)->stimuli_panic_type == 0 || ((actor_t *)actor)->stimuli_panic_prop_index != 0);
+  assert_halt(((actor_t *)actor)->stimuli_panic_type == 0 ||
+              ((actor_t *)actor)->stimuli_panic_prop_index != 0);
   return result;
 }
 
@@ -705,8 +711,10 @@ char actor_action_handle_panic_from_damage(int actor_handle)
         goto check_assert_damage;
     }
     panic_type = ((actor_t *)actor)->stimuli_panic_type;
-    if ((panic_type == 0) || (((actor_t *)actor)->stimuli_panic_prop_index == -1)) {
-      ((actor_t *)actor)->stimuli_panic_prop_index = actor_get_best_damaging_prop(actor_handle, 1);
+    if ((panic_type == 0) ||
+        (((actor_t *)actor)->stimuli_panic_prop_index == -1)) {
+      ((actor_t *)actor)->stimuli_panic_prop_index =
+        actor_get_best_damaging_prop(actor_handle, 1);
     }
     if (((actor_t *)actor)->stimuli_panic_type < 2) {
       ((actor_t *)actor)->stimuli_panic_type = 1;
@@ -715,7 +723,8 @@ char actor_action_handle_panic_from_damage(int actor_handle)
     result = 1;
   }
 check_assert_damage:
-  assert_halt(((actor_t *)actor)->stimuli_panic_type == 0 || ((actor_t *)actor)->stimuli_panic_prop_index != 0);
+  assert_halt(((actor_t *)actor)->stimuli_panic_type == 0 ||
+              ((actor_t *)actor)->stimuli_panic_prop_index != 0);
   return result;
 }
 
@@ -754,7 +763,8 @@ int actor_action_handle_panic_from_burning_to_death(int actor_handle)
       }
     }
     panic_type = ((actor_t *)actor)->stimuli_panic_type;
-    if ((panic_type == 0) || (((actor_t *)actor)->stimuli_panic_prop_index == -1)) {
+    if ((panic_type == 0) ||
+        (((actor_t *)actor)->stimuli_panic_prop_index == -1)) {
       ((actor_t *)actor)->stimuli_panic_prop_index = prop_handle;
     }
     if (panic_type < 0xd) {
@@ -800,7 +810,8 @@ int actor_action_handle_panic_from_attached_projectiles(int actor_handle)
       }
     }
     panic_type = ((actor_t *)actor)->stimuli_panic_type;
-    if ((panic_type == 0) || (((actor_t *)actor)->stimuli_panic_prop_index == -1)) {
+    if ((panic_type == 0) ||
+        (((actor_t *)actor)->stimuli_panic_prop_index == -1)) {
       ((actor_t *)actor)->stimuli_panic_prop_index = prop_handle;
     }
     if (panic_type < 0xb) {
@@ -868,7 +879,8 @@ char actor_action_handle_berserking_from_attacking_mode(int actor_handle)
   actr_tag = (int *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
   result = 0;
   if (((*(unsigned int *)actr_tag & 0x80000) != 0) &&
-      (((actor_t *)actor)->field_1c9 == '\0') && (((actor_t *)actor)->field_06e >= 5)) {
+      (((actor_t *)actor)->field_1c9 == '\0') &&
+      (((actor_t *)actor)->field_06e >= 5)) {
     berserk_state = ((actor_t *)actor)->field_310;
     if (berserk_state < 2) {
       berserk_state = 1;
@@ -906,7 +918,8 @@ char actor_action_handle_berserking_from_proximity(int actor_handle)
   actor = (char *)datum_get(actor_data, actor_handle);
   actr_tag = (char *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
   if (4 < ((actor_t *)actor)->field_06e) {
-    prop = (char *)datum_get(*(data_t **)0x5ab23c, ((actor_t *)actor)->target_target_prop_index);
+    prop = (char *)datum_get(*(data_t **)0x5ab23c,
+                             ((actor_t *)actor)->target_target_prop_index);
     prop_handle = ((actor_t *)actor)->target_target_prop_index;
     assert_halt(prop_handle != -1);
     dist = *(float *)(prop + 0x11c);
@@ -966,7 +979,8 @@ char actor_action_deny_transition(int actor_handle)
 
   actor = (char *)datum_get(actor_data, actor_handle);
   result = 0;
-  if ((((actor_t *)actor)->field_090 != -1) && (0 < ((actor_t *)actor)->field_092)) {
+  if ((((actor_t *)actor)->field_090 != -1) &&
+      (0 < ((actor_t *)actor)->field_092)) {
     result = 1;
   }
   if (*(int *)(actor + 0x34) != -1) {
@@ -1111,7 +1125,8 @@ char actor_action_allow_cover_seeking(int actor_handle, char param_2)
       } else {
         cooldown_ticks = (short)(int)(*(float *)(actr_tag + 0x2d8) * 30.0f);
         if (((actor_t *)actor)->field_26c != -1) {
-          if (game_time_get() < (int)cooldown_ticks + ((actor_t *)actor)->field_26c) {
+          if (game_time_get() <
+              (int)cooldown_ticks + ((actor_t *)actor)->field_26c) {
             result = 0;
           }
         }
@@ -1147,7 +1162,8 @@ char actor_action_can_stop_guarding(int actor_handle, short min_state,
   }
   if (((0 < *(short *)(actor + 0x9c)) &&
        (((actor_t *)actor)->field_06e < min_state)) &&
-      ((((actor_t *)actor)->field_1e4 < 1 || (((actor_t *)actor)->field_0a1 != '\0')))) {
+      ((((actor_t *)actor)->field_1e4 < 1 ||
+        (((actor_t *)actor)->field_0a1 != '\0')))) {
     return 0;
   }
   return 1;
@@ -1194,7 +1210,8 @@ char actor_action_can_stop_conversing(int actor_handle, int flag)
      */
     can_stop = 1;
     if (((actor_t *)actor)->field_1dc != -1) {
-      conv = (char *)datum_get(*(data_t **)0x6324ec, ((actor_t *)actor)->field_1dc);
+      conv =
+        (char *)datum_get(*(data_t **)0x6324ec, ((actor_t *)actor)->field_1dc);
       elem =
         (char *)tag_block_get_element((char *)global_scenario_get() + 0x468,
                                       (int)*(int16_t *)(conv + 2), 0x74);
@@ -1254,16 +1271,18 @@ void actor_action_change(int actor_handle, int new_action_type, int param_3)
 
   (*(uint16_t *)0x5ac87c)++;
 
-  assert_halt(new_action_type >= 0 && new_action_type < NUMBER_OF_ACTOR_ACTIONS);
+  assert_halt(new_action_type >= 0 &&
+              new_action_type < NUMBER_OF_ACTOR_ACTIONS);
 
   table_offset = new_action_type * 0x38;
 
   assert_halt(*(int *)(0x253fa0 + table_offset) == new_action_type);
 
-  assert_halt(((actor_t *)actor)->state_action >= 0 && ((actor_t *)actor)->state_action < NUMBER_OF_ACTOR_ACTIONS);
+  assert_halt(((actor_t *)actor)->state_action >= 0 &&
+              ((actor_t *)actor)->state_action < NUMBER_OF_ACTOR_ACTIONS);
 
-  handler =
-    *(action_handler_fn_t *)(0x253fc4 + ((actor_t *)actor)->state_action * 0x38);
+  handler = *(action_handler_fn_t *)(0x253fc4 +
+                                     ((actor_t *)actor)->state_action * 0x38);
   if (handler != NULL) {
     handler(actor_handle);
   }
@@ -1334,7 +1353,8 @@ char actor_action_test_grenade(int actor_handle)
   float delay_f;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  actv = (char *)tag_get(0x61637476 /* 'actv' */, ((actor_t *)actor)->field_05c);
+  actv =
+    (char *)tag_get(0x61637476 /* 'actv' */, ((actor_t *)actor)->field_05c);
   extra = game_time_get();
   slot = (actor_handle & 0xffff) * 0x657c + *(int *)0x331f58;
   *(int *)(slot + 0x150) = extra;
@@ -1406,8 +1426,9 @@ char actor_action_try_to_seek_cover(int actor_handle, char param_2,
   short local_88[66];
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  cVar1 = FUN_00015040(actor_handle, 0, ((actor_t *)actor)->target_target_prop_index, 0, param_2,
-                       param_3, local_88);
+  cVar1 =
+    FUN_00015040(actor_handle, 0, ((actor_t *)actor)->target_target_prop_index,
+                 0, param_2, param_3, local_88);
   if (cVar1 != '\0') {
     actor_action_change(actor_handle, 4, (int)local_88);
     return 1;
@@ -1632,8 +1653,9 @@ void *actor_action_debug_color(int actor_handle)
     *(uint32_t *)0x6328e8 = color[2];
     *(uint32_t *)0x6328ec = color[3];
 
-    callback = *(action_debug_color_fn_t *)(0x253fc8 +
-                                            ((actor_t *)actor)->state_action * 0x38);
+    callback =
+      *(action_debug_color_fn_t *)(0x253fc8 +
+                                   ((actor_t *)actor)->state_action * 0x38);
     if (callback != NULL) {
       callback(actor_handle, (void *)0x6328e0);
     }
@@ -1806,7 +1828,8 @@ char actor_action_set_default_state(int actor_handle, short state)
     }
     break;
   case 8:
-    if ((((actor_t *)actor)->state_action != _actor_action_guard || ((actor_t *)actor)->field_0c0 != 1) &&
+    if ((((actor_t *)actor)->state_action != _actor_action_guard ||
+         ((actor_t *)actor)->field_0c0 != 1) &&
         FUN_00015880(actor_handle, (char *)local_88)) {
       actor_action_change(actor_handle, 6, (int)local_88);
       result = 1;
@@ -1880,7 +1903,8 @@ char actor_action_handle_initial_action(int actor_handle)
 
   actor = (char *)datum_get(actor_data, actor_handle);
   result = 0;
-  if ((((actor_t *)actor)->state_action == _actor_action_none) && (((actor_t *)actor)->field_06a != 0)) {
+  if ((((actor_t *)actor)->state_action == _actor_action_none) &&
+      (((actor_t *)actor)->field_06a != 0)) {
     result = actor_action_set_default_state(actor_handle, 0xffff);
   }
   return result;
@@ -1992,8 +2016,8 @@ char actor_action_handle_surprise(int actor_handle, short type)
     weapon_state = (*(char *)(prop + 0x60) != '\0') + 2;
   }
 
-  FUN_00046f10(0x29, ((actor_t *)actor)->field_018, weapon_trigger_index, weapon_state,
-               -1, -1, 0);
+  FUN_00046f10(0x29, ((actor_t *)actor)->field_018, weapon_trigger_index,
+               weapon_state, -1, -1, 0);
 
   if (*(float *)(actv_tag + 0x90) > 0.0f) {
     FUN_00021010(actor_handle, (int)(*(float *)(actv_tag + 0x90) * 30.0f));
@@ -2102,7 +2126,8 @@ char actor_action_handle_combat_targeting(int actor_handle)
   firing_variant = actor_combat_get_firing_variant_definition(actor_handle);
   if ((*(unsigned int *)(actor + 0x1b0) != 0xffffffff) &&
       (4 < ((actor_t *)actor)->field_06e)) {
-    prop = (char *)datum_get(prop_data, ((actor_t *)actor)->target_target_prop_index);
+    prop = (char *)datum_get(prop_data,
+                             ((actor_t *)actor)->target_target_prop_index);
     if (((actor_t *)actor)->target_target_prop_index == -1) {
       display_assert("actor->target.target_prop_index != NONE",
                      "c:\\halo\\SOURCE\\ai\\actions.c", 0x2c8, 1);
@@ -2188,13 +2213,15 @@ char actor_action_handle_vehicle_entry(int actor_handle)
   actr_tag = (int *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
   now = game_time_get();
   result = 0;
-  if (((actor_t *)actor)->state_action == _actor_action_flee && ((actor_t *)actor)->field_0a8 > 0) {
+  if (((actor_t *)actor)->state_action == _actor_action_flee &&
+      ((actor_t *)actor)->field_0a8 > 0) {
     return result;
   }
   if (((actor_t *)actor)->state_action == _actor_action_obey) {
     return result;
   }
-  if (((actor_t *)actor)->field_384 != -1 && ((actor_t *)actor)->field_384 + 0x2d >= now) {
+  if (((actor_t *)actor)->field_384 != -1 &&
+      ((actor_t *)actor)->field_384 + 0x2d >= now) {
     return result;
   }
   ((actor_t *)actor)->field_384 = now;
@@ -2256,8 +2283,8 @@ char actor_action_handle_vehicle_entry(int actor_handle)
            dist2 <= *(float *)(entry + 4) * *(float *)(entry + 4)) &&
           (*(short *)(entry + 8) <= 0 ||
            (((actor_t *)actor)->field_03e != -1 &&
-            ((int)*(short *)(entry + 8) & (1 << ((actor_t *)actor)->field_03e)) !=
-              0)) &&
+            ((int)*(short *)(entry + 8) &
+             (1 << ((actor_t *)actor)->field_03e)) != 0)) &&
           (*(short *)(entry + 0xa) <= 0 ||
            ((int)*(short *)(entry + 0xa) &
             (1 << *(unsigned char *)(actor + 4))) != 0)) {
@@ -2387,8 +2414,9 @@ char actor_action_handle_active_cover_seeking(int actor_handle, char param2,
                 return 1;
               }
               if (param2 != '\0') {
-                cVar1 = FUN_0001d3c0(actor_handle, 4, ((actor_t *)actor)->target_target_prop_index,
-                                     param3);
+                cVar1 = FUN_0001d3c0(
+                  actor_handle, 4, ((actor_t *)actor)->target_target_prop_index,
+                  param3);
                 if (cVar1 != '\0') {
                   *(int16_t *)(trace + 0xba) = 7;
                   result = 1;
@@ -2463,9 +2491,11 @@ char actor_action_handle_combat_selection(int actor_handle)
   prop = 0;
   distance = 3.4028235e+38f;
   if (((actor_t *)actor)->target_target_prop_index != -1) {
-    prop = (char *)datum_get(prop_data, ((actor_t *)actor)->target_target_prop_index);
+    prop = (char *)datum_get(prop_data,
+                             ((actor_t *)actor)->target_target_prop_index);
     distance = *(float *)(prop + 0x11c);
-    if (((actor_t *)actor)->state_action == _actor_action_charge && *(short *)(actor + 0xa0) == 1) {
+    if (((actor_t *)actor)->state_action == _actor_action_charge &&
+        *(short *)(actor + 0xa0) == 1) {
       if ((*(char *)(prop + 0x74) != '\0' ||
            (*(char *)(prop + 0x12f) != '\0' && *(char *)(prop + 0x121) <= 1)) ||
           (*(float *)(actr_tag + 0x328) > *(float *)0x2533c0 &&
@@ -2482,7 +2512,8 @@ char actor_action_handle_combat_selection(int actor_handle)
         (((actor_t *)actor)->state_action != _actor_action_charge ||
          (*(short *)(actor + 0xa0) != 2 && *(short *)(actor + 0xa0) != 3)) &&
         result == '\0' && *(char *)(actor + 6) == '\0' &&
-        ((actor_t *)actor)->field_158 == -1 && ((actor_t *)actor)->control_fire_state != 2) {
+        ((actor_t *)actor)->field_158 == -1 &&
+        ((actor_t *)actor)->control_fire_state != 2) {
       /* result discarded in the original; the call performs the
        * handle-verify assert side effect */
       object_get_and_verify_type(((actor_t *)actor)->field_018, 3);
@@ -2524,7 +2555,8 @@ char actor_action_handle_combat_selection(int actor_handle)
       }
     }
   handle_vehicle_charge:
-    if (((actor_t *)actor)->state_action != _actor_action_charge && ((actor_t *)actor)->field_1cb == '\0') {
+    if (((actor_t *)actor)->state_action != _actor_action_charge &&
+        ((actor_t *)actor)->field_1cb == '\0') {
       if (result != '\0')
         return result;
       if (((actor_t *)actor)->field_15e > 0) {
@@ -2569,7 +2601,8 @@ decide_charge:
   if (((actor_t *)actor)->state_action == _actor_action_charge) {
     state = *(short *)(actor + 0xa0);
     if (state == 2 || state == 3) {
-      if (((actor_t *)actor)->field_0a3 == '\0' && *(char *)(actor + 0xa4) == '\0' &&
+      if (((actor_t *)actor)->field_0a3 == '\0' &&
+          *(char *)(actor + 0xa4) == '\0' &&
           ((actor_t *)actor)->field_0c5 == '\0') {
         want_charge = 1;
         goto maybe_start_charge;
@@ -2589,10 +2622,13 @@ decide_charge:
     want_charge = 1;
     if (state != 4)
       goto maybe_start_charge;
-    veh_object = (int *)object_get_and_verify_type(((actor_t *)actor)->field_158, 2);
+    veh_object =
+      (int *)object_get_and_verify_type(((actor_t *)actor)->field_158, 2);
     vehi_tag = (int)tag_get(0x76656869, *veh_object);
-    if (((actor_t *)actor)->field_484 != '\0' && ((actor_t *)actor)->field_46c == 5 &&
-        *(int *)(actor + 0x470) == ((actor_t *)actor)->target_target_prop_index) {
+    if (((actor_t *)actor)->field_484 != '\0' &&
+        ((actor_t *)actor)->field_46c == 5 &&
+        *(int *)(actor + 0x470) ==
+          ((actor_t *)actor)->target_target_prop_index) {
       want_charge = 0;
       goto try_fight;
     }
@@ -2651,7 +2687,8 @@ verify_action_state:
     }
     state = *(short *)(actor + 0xa0);
     if (state == 2 || state == 3) {
-      if (((actor_t *)actor)->field_0a3 == '\0' && *(char *)(actor + 0xa4) == '\0' &&
+      if (((actor_t *)actor)->field_0a3 == '\0' &&
+          *(char *)(actor + 0xa4) == '\0' &&
           ((actor_t *)actor)->field_0c5 == '\0')
         return result;
       display_assert("!actor->state.action_data.charge.finished_melee_attack "
@@ -2784,7 +2821,8 @@ char actor_action_handle_lost_contact(int actor_handle)
     if (((actor_t *)actor)->target_target_prop_index == -1)
       prop = (char *)0;
     else
-      prop = (char *)datum_get(prop_data, ((actor_t *)actor)->target_target_prop_index);
+      prop = (char *)datum_get(prop_data,
+                               ((actor_t *)actor)->target_target_prop_index);
 
     flag_12 = 0;
     flag_6 = 0;
@@ -2830,9 +2868,11 @@ char actor_action_handle_lost_contact(int actor_handle)
                    &flag_a2, &flag_e, &flag_b, &can_search);
     }
 
-    if (((actor_t *)actor)->field_3c0 != ((actor_t *)actor)->target_target_prop_index) {
+    if (((actor_t *)actor)->field_3c0 !=
+        ((actor_t *)actor)->target_target_prop_index) {
       ((actor_t *)actor)->field_3c4 = 0;
-      ((actor_t *)actor)->field_3c0 = ((actor_t *)actor)->target_target_prop_index;
+      ((actor_t *)actor)->field_3c0 =
+        ((actor_t *)actor)->target_target_prop_index;
       ((actor_t *)actor)->field_3bc = 0;
       ((actor_t *)actor)->field_3bd = 0;
     }
@@ -2842,7 +2882,8 @@ char actor_action_handle_lost_contact(int actor_handle)
       result = 1;
       return result;
     }
-    actor_perception_tried_to_uncover(actor_handle, ((actor_t *)actor)->target_target_prop_index);
+    actor_perception_tried_to_uncover(
+      actor_handle, ((actor_t *)actor)->target_target_prop_index);
     if (flag_a2 != '\0' &&
         (char)FUN_00019750(actor_handle, *(unsigned char *)(actor + 0x375),
                            (char *)action_buf) != '\0') {
@@ -2850,8 +2891,10 @@ char actor_action_handle_lost_contact(int actor_handle)
       result = 1;
       return result;
     }
-    actor_perception_tried_to_search(actor_handle, ((actor_t *)actor)->target_target_prop_index);
-    if (((actor_t *)actor)->field_3bc != '\0' && ((actor_t *)actor)->field_3bd == '\0') {
+    actor_perception_tried_to_search(
+      actor_handle, ((actor_t *)actor)->target_target_prop_index);
+    if (((actor_t *)actor)->field_3bc != '\0' &&
+        ((actor_t *)actor)->field_3bd == '\0') {
       FUN_00046f10(0xd, ((actor_t *)actor)->field_018,
                    actor_target_unit_index(actor_handle), -1, -1, -1, 0);
       ((actor_t *)actor)->field_3bd = 1;
@@ -2871,8 +2914,8 @@ char actor_action_handle_lost_contact(int actor_handle)
       goto commit_action;
     }
 
-    if (((actor_t *)actor)->state_action == _actor_action_uncover && flag_b != '\0' &&
-        *(short *)(actor + 0xa4) == 1) {
+    if (((actor_t *)actor)->state_action == _actor_action_uncover &&
+        flag_b != '\0' && *(short *)(actor + 0xa4) == 1) {
       firing_pos = *(short *)(actor + 0xa6);
       have_pos = 1;
       if (firing_pos != -1)
@@ -2883,7 +2926,9 @@ char actor_action_handle_lost_contact(int actor_handle)
       threshold = *(short *)((char *)actor_tag + 0x356);
     else
       threshold = *(short *)((char *)actor_tag + 0x354);
-    if (flag_12 == '\0' && ((actor_t *)actor)->field_3c0 == ((actor_t *)actor)->target_target_prop_index &&
+    if (flag_12 == '\0' &&
+        ((actor_t *)actor)->field_3c0 ==
+          ((actor_t *)actor)->target_target_prop_index &&
         ((actor_t *)actor)->field_3c4 >= threshold)
       goto pursuit_failed;
 
@@ -2895,7 +2940,8 @@ char actor_action_handle_lost_contact(int actor_handle)
     else
       *(int *)(eval_ctx + 0xc) = *(int *)(prop + 0x7c);
     *(char *)(eval_ctx + 0x10) = flag_12;
-    *(char *)(eval_ctx + 0x43) = (char)(((actor_t *)actor)->target_target_prop_index != -1);
+    *(char *)(eval_ctx + 0x43) =
+      (char)(((actor_t *)actor)->target_target_prop_index != -1);
     *(int *)eval_ctx = actor_get_firing_position_group(actor_handle, 5, 0);
     *(float *)(eval_ctx + 0x1c) = 20.0f;
     /* &found is a single byte at EBP-0x1d in the original frame; FUN_00025c10's
@@ -2937,7 +2983,8 @@ char actor_action_handle_lost_contact(int actor_handle)
     return result;
 
   pursuit_failed:
-    if (((actor_t *)actor)->field_3c4 > 0 && ((actor_t *)actor)->field_018 != -1)
+    if (((actor_t *)actor)->field_3c4 > 0 &&
+        ((actor_t *)actor)->field_018 != -1)
       FUN_00046f10(0x13, ((actor_t *)actor)->field_018, -1, -1, -1, -1, 0);
     if (*(char *)(actor + 6) == '\0' && can_search != '\0' &&
         FUN_0001c0e0(actor_handle, flag_e, (int)action_buf) != '\0') {
@@ -2947,7 +2994,8 @@ char actor_action_handle_lost_contact(int actor_handle)
     }
   } else {
     if (flag_a != '\0') {
-      if (((actor_t *)actor)->state_action == _actor_action_guard && ((actor_t *)actor)->field_0a1 != '\0') {
+      if (((actor_t *)actor)->state_action == _actor_action_guard &&
+          ((actor_t *)actor)->field_0a1 != '\0') {
         result = 1;
         return result;
       }
@@ -2972,7 +3020,8 @@ char actor_action_handle_lost_contact(int actor_handle)
   action = ((actor_t *)actor)->state_action;
   if ((action != 7 || ((actor_t *)actor)->field_09d != '\0') && action != 8)
     delay = 0x5a;
-  actor_perception_abandoned_search(actor_handle, ((actor_t *)actor)->target_target_prop_index);
+  actor_perception_abandoned_search(
+    actor_handle, ((actor_t *)actor)->target_target_prop_index);
   if ((char)FUN_00015900(actor_handle, delay, (char *)action_buf) == '\0') {
     display_assert("success", "c:\\halo\\SOURCE\\ai\\actions.c", 0xa62, 1);
     system_exit(-1);
@@ -3065,10 +3114,12 @@ char actor_action_handle_combat_status(int actor_handle, int param2, int param3)
       result = actor_action_handle_combat_selection(actor_handle);
       goto check_result;
     } else {
-      if (level < 2 && ((actor_t *)actor)->state_action != _actor_action_alert) {
+      if (level < 2 &&
+          ((actor_t *)actor)->state_action != _actor_action_alert) {
         if (level != 0)
           goto no_transition;
-        if (((actor_t *)actor)->field_1c8 == 0 && ((actor_t *)actor)->field_1e4 <= 0)
+        if (((actor_t *)actor)->field_1c8 == 0 &&
+            ((actor_t *)actor)->field_1e4 <= 0)
           goto no_transition;
       }
       goto lost_contact;
@@ -3090,9 +3141,11 @@ char actor_action_handle_combat_status(int actor_handle, int param2, int param3)
       if (prop_handle == -1)
         goto no_transition;
       prop = (char *)datum_get(prop_data, prop_handle);
-      if (((actor_t *)actor)->target_target_prop_index == ((actor_t *)actor)->field_3c0) {
+      if (((actor_t *)actor)->target_target_prop_index ==
+          ((actor_t *)actor)->field_3c0) {
         if (*(char *)(prop + 0xb9) != 0 ||
-            (((actor_t *)actor)->state_action == _actor_action_uncover && *(short *)(actor + 0xa4) == 0)) {
+            (((actor_t *)actor)->state_action == _actor_action_uncover &&
+             *(short *)(actor + 0xa4) == 0)) {
           if (*(char *)(prop + 0xba) != 0)
             goto no_transition;
           action_type = ((actor_t *)actor)->state_action;
@@ -3174,20 +3227,23 @@ char actor_action_handle_exit_pursuit(int actor_handle)
     if (((actor_t *)actor)->field_09d == '\0')
       return 0;
     if (*(short *)(actor + 0xa4) == 0)
-      actor_perception_tried_to_uncover(actor_handle, ((actor_t *)actor)->target_target_prop_index);
+      actor_perception_tried_to_uncover(
+        actor_handle, ((actor_t *)actor)->target_target_prop_index);
     return actor_action_handle_lost_contact(actor_handle);
   case 7:
     if (*(char *)(actor + 0x9c) == '\0')
       return 0;
     if (*(short *)(actor + 0xa4) == 0) {
-      actor_perception_tried_to_search(actor_handle, ((actor_t *)actor)->target_target_prop_index);
+      actor_perception_tried_to_search(
+        actor_handle, ((actor_t *)actor)->target_target_prop_index);
       return actor_action_handle_lost_contact(actor_handle);
     }
     return actor_action_handle_lost_contact(actor_handle);
   case 8:
     if (*(char *)(actor + 0x9c) == '\0')
       return 0;
-    actor_perception_abandoned_search(actor_handle, ((actor_t *)actor)->target_target_prop_index);
+    actor_perception_abandoned_search(
+      actor_handle, ((actor_t *)actor)->target_target_prop_index);
     return actor_action_handle_lost_contact(actor_handle);
   default:
     return 0;
@@ -3229,11 +3285,14 @@ char actor_action_try_to_throw_grenade(int actor_handle, char flag)
         }
       }
       if (((actor_t *)actor)->field_6a0 != '\0') {
-        delta[0] = ((actor_t *)actor)->field_6a8 - ((actor_t *)actor)->field_12c;
-        delta[1] = ((actor_t *)actor)->field_6ac - ((actor_t *)actor)->field_130;
+        delta[0] =
+          ((actor_t *)actor)->field_6a8 - ((actor_t *)actor)->field_12c;
+        delta[1] =
+          ((actor_t *)actor)->field_6ac - ((actor_t *)actor)->field_130;
         if (*(float *)0x2533c0 < magnitude3d(delta)) {
-          if (*(float *)0x2533dc <= delta[0] * ((actor_t *)actor)->input_facing_vector[0] +
-                                      delta[1] * ((actor_t *)actor)->input_facing_vector[1]) {
+          if (*(float *)0x2533dc <=
+              delta[0] * ((actor_t *)actor)->input_facing_vector[0] +
+                delta[1] * ((actor_t *)actor)->input_facing_vector[1]) {
             ((actor_t *)actor)->field_45c = 1;
             ((actor_t *)actor)->field_6a0 = 0;
             if (*(int *)(actor + 0x34) != -1) {
@@ -3365,9 +3424,10 @@ char actor_action_try_to_evade(int actor_handle)
   }
 
   actr_tag = (int *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
-  unit_tag = (char *)tag_get(
-    0x756e6974, *(int *)object_get_and_verify_type(((actor_t *)actor)->field_018, 3));
-  prop = (char *)datum_get(*(data_t **)0x5ab23c, ((actor_t *)actor)->target_target_prop_index);
+  unit_tag = (char *)tag_get(0x756e6974, *(int *)object_get_and_verify_type(
+                                           ((actor_t *)actor)->field_018, 3));
+  prop = (char *)datum_get(*(data_t **)0x5ab23c,
+                           ((actor_t *)actor)->target_target_prop_index);
   if (*(float *)(unit_tag + 0x234) <= *(float *)0x2533c0) {
     return result;
   }
@@ -3406,7 +3466,8 @@ do_evade:
                      "c:\\halo\\SOURCE\\ai\\actions.c", 0xce3, 1);
       system_exit(-1);
     }
-    if (unit_test_animation_impulse(((actor_t *)actor)->field_018, impulse) != 0) {
+    if (unit_test_animation_impulse(((actor_t *)actor)->field_018, impulse) !=
+        0) {
       result = (char)actor_move_animation_impulse(
         actor_handle, (int16_t)impulse, (int *)alignment_vec);
     }
@@ -3504,10 +3565,10 @@ char actor_action_try_to_dive(int actor_handle, short direction_ref,
   best_index = -1;
   *(int *)(out_vec + 1) = -1;
   best_score = -0.5f;
-  scores[2] =
-    dive_y * ((actor_t *)actor)->input_facing_vector[0] + dive_x * ((actor_t *)actor)->input_facing_vector[1];
-  scores[0] =
-    ((actor_t *)actor)->input_facing_vector[0] * dive_x + -((actor_t *)actor)->input_facing_vector[1] * dive_y;
+  scores[2] = dive_y * ((actor_t *)actor)->input_facing_vector[0] +
+              dive_x * ((actor_t *)actor)->input_facing_vector[1];
+  scores[0] = ((actor_t *)actor)->input_facing_vector[0] * dive_x +
+              -((actor_t *)actor)->input_facing_vector[1] * dive_y;
   scores[3] = -scores[2];
   scores[1] = -scores[0];
 
@@ -3520,7 +3581,8 @@ char actor_action_try_to_dive(int actor_handle, short direction_ref,
       system_exit(-1);
     }
     if (best_score < scores[(short)poss[0]] + *(float *)(poss + 1) &&
-        unit_test_animation_impulse(((actor_t *)actor)->field_018, poss[-1]) != 0) {
+        unit_test_animation_impulse(((actor_t *)actor)->field_018, poss[-1]) !=
+          0) {
       best_index = poss[-1];
       *(int *)(out_vec + 1) = poss[0];
       best_score = scores[(short)poss[0]] + *(float *)(poss + 1);
@@ -3751,7 +3813,8 @@ char actor_action_handle_berserk_transition(int actor_handle, short param_2)
   char *actor;
 
   actor = (char *)datum_get(actor_data, actor_handle);
-  if (((actor_t *)actor)->field_310 < param_2 || ((actor_t *)actor)->field_378 != '\0') {
+  if (((actor_t *)actor)->field_310 < param_2 ||
+      ((actor_t *)actor)->field_378 != '\0') {
     ((actor_t *)actor)->field_310 = 0;
     return 0;
   }
@@ -3789,7 +3852,8 @@ char actor_action_handle_combat_transition(int actor_handle)
     ((actor_t *)actor)->field_312 = 0;
     return 1;
   }
-  if (((actor_t *)actor)->field_06a == 3 && ((actor_t *)actor)->field_06e == 0) {
+  if (((actor_t *)actor)->field_06a == 3 &&
+      ((actor_t *)actor)->field_06e == 0) {
     actor_action_try_to_panic(actor_handle);
   }
   return 0;
@@ -3814,18 +3878,21 @@ char actor_action_handle_grenade_throwing(int actor_handle)
   actv_tag = (char *)tag_get(0x61637476, ((actor_t *)actor)->field_05c);
   result = 0;
   if (((actor_t *)actor)->target_target_type < 5 ||
-      (((actor_t *)actor)->state_action == _actor_action_flee && ((actor_t *)actor)->field_0a8 > 0)) {
+      (((actor_t *)actor)->state_action == _actor_action_flee &&
+       ((actor_t *)actor)->field_0a8 > 0)) {
     ((actor_t *)actor)->field_6a0 = 0;
     return 0;
   }
-  prop = (char *)datum_get(prop_data, ((actor_t *)actor)->target_target_prop_index);
+  prop =
+    (char *)datum_get(prop_data, ((actor_t *)actor)->target_target_prop_index);
   if (*(short *)(actv_tag + 0x184) == 1) {
     if (((actor_t *)actor)->field_06e >= 5) {
       result = actor_action_consider_grenade(actor_handle);
     }
   } else if (*(short *)(actv_tag + 0x184) == 2) {
     if (*(char *)(prop + 0x14) != '\0' ||
-        (((actor_t *)actor)->state_action == _actor_action_flee && ((actor_t *)actor)->field_0a8 != 0)) {
+        (((actor_t *)actor)->state_action == _actor_action_flee &&
+         ((actor_t *)actor)->field_0a8 != 0)) {
       result = actor_action_consider_grenade(actor_handle);
     }
   }
@@ -3890,7 +3957,8 @@ char actor_action_handle_evasion(int actor_handle)
   now = game_time_get();
   status = 0;
 
-  if (((actor_t *)actor)->field_3a8 > 0 && ((actor_t *)actor)->field_158 == -1) {
+  if (((actor_t *)actor)->field_3a8 > 0 &&
+      ((actor_t *)actor)->field_158 == -1) {
     prop = (char *)datum_get(prop_data, ((actor_t *)actor)->field_3ac);
     if (*(char *)(prop + 0xa4) != '\0' &&
         (*(short *)(prop + 0x38) == 0 || *(short *)(prop + 0x38) == 1) &&
@@ -3909,7 +3977,8 @@ char actor_action_handle_evasion(int actor_handle)
     }
   }
 
-  if (((actor_t *)actor)->field_374 != '\0' && ((actor_t *)actor)->field_378 == '\0') {
+  if (((actor_t *)actor)->field_374 != '\0' &&
+      ((actor_t *)actor)->field_378 == '\0') {
     radius = *(float *)(actr_tag + 0x314);
   } else {
     radius = *(float *)(actr_tag + 0x310);
@@ -3936,10 +4005,12 @@ char actor_action_handle_evasion(int actor_handle)
 
   b_retreat = 1;
   b_sidestep = 1;
-  if (((actor_t *)actor)->field_358 != '\0' && (*(unsigned int *)actr_tag & 0x20)) {
+  if (((actor_t *)actor)->field_358 != '\0' &&
+      (*(unsigned int *)actr_tag & 0x20)) {
     b_retreat = 0;
     if (((actor_t *)actor)->target_target_prop_index != -1) {
-      other_prop = (char *)datum_get(prop_data, ((actor_t *)actor)->target_target_prop_index);
+      other_prop = (char *)datum_get(
+        prop_data, ((actor_t *)actor)->target_target_prop_index);
       if (*(char *)(other_prop + 0x122) <= 2 &&
           *(char *)(other_prop + 0x121) <= 1) {
         b_retreat = 1;
@@ -4003,8 +4074,8 @@ char FUN_00021080(int actor_handle)
  * (same field read by sibling FUN_00021080) equals 2. Positive here means "a
  * fire target is set" — the named values are _actor_fire_target_prop (1) and
  * _actor_fire_target_manual_point (2); 0 is never named by an assert string.
- * When no fire target is set it returns false without inspecting fire_state. Called by actor_looking to gate primary
- * look-mode selection. */
+ * When no fire target is set it returns false without inspecting fire_state.
+ * Called by actor_looking to gate primary look-mode selection. */
 bool FUN_000210b0(int actor_handle)
 {
   char *actor;

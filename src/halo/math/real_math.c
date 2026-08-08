@@ -750,10 +750,10 @@ void FUN_001099f0(float *src, float *dst)
  * ST for every element multiply. */
 float *FUN_00109a60(float *m, float determinant, float *out)
 {
-  float *column;   /* out + i: walks one float (column) per outer pass */
+  float *column; /* out + i: walks one float (column) per outer pass */
   short j;
-  int jm1;         /* j - 1, kept as a running induction variable */
-  float *element;  /* column + 3*j: walks one row (3 floats) per inner pass */
+  int jm1; /* j - 1, kept as a running induction variable */
+  float *element; /* column + 3*j: walks one row (3 floats) per inner pass */
   int jp_i;
   float *dst;
   float scratch[9];
@@ -803,7 +803,8 @@ float *FUN_00109a60(float *m, float determinant, float *out)
       element = element + 3;
       jm1 = jm1 + 1;
       *dst = (m[jp_i + ip * 3] * m[jm + im * 3] -
-              m[ip * 3 + jm] * m[jp_i + im * 3]) * one_over_det;
+              m[ip * 3 + jm] * m[jp_i + im * 3]) *
+             one_over_det;
     } while (j < 3);
     column = column + 1;
   }
@@ -5205,12 +5206,12 @@ unsigned char FUN_00111910(int *strm, int flush)
 
       /* FLUSH_BLOCK(s, 0): _tr_flush_block + inline flush_pending. */
       _tr_flush_block(s,
-                   *(long *)(s + 0x54) < 0 ?
-                     0 :
-                     *(int *)(s + 0x30) +
-                       *(long *)(s + 0x54), /* window+block_start */
-                   max_start - (unsigned int)*(long *)(s + 0x54), /* len */
-                   0);
+                      *(long *)(s + 0x54) < 0 ?
+                        0 :
+                        *(int *)(s + 0x30) +
+                          *(long *)(s + 0x54), /* window+block_start */
+                      max_start - (unsigned int)*(long *)(s + 0x54), /* len */
+                      0);
       *(int *)(s + 0x54) = *(int *)(s + 0x64); /* block_start = strstart */
 
       /* inline flush_pending(s->strm) */
@@ -5369,8 +5370,8 @@ unsigned char FUN_00111ba0(int *strm, int flush)
       FUN_001116b0((int)match_length, *(int *)(s + 0x68), *(int *)(s + 0x64),
                    s); /* check_match(len, match_start, strstart, s) */
       bflush = _tr_tally(s, *(int *)(s + 0x64) - *(int *)(s + 0x68),
-                            (int)match_length -
-                              3); /* _tr_tally(s, dist, len-MIN_MATCH) */
+                         (int)match_length -
+                           3); /* _tr_tally(s, dist, len-MIN_MATCH) */
       *(unsigned int *)(s + 0x6c) -=
         match_length; /* lookahead -= match_length */
       if (match_length <=
@@ -5549,10 +5550,10 @@ unsigned char FUN_00111ea0(int *strm, int flush)
                    3; /* strstart + lookahead - MIN_MATCH */
       FUN_001116b0((int)prev_length, *(int *)(s + 0x5c), *(int *)(s + 0x64) - 1,
                    s); /* check_match(prev_length, prev_match, strstart-1, s) */
-      bflush = _tr_tally(
-        s, *(int *)(s + 0x64) - *(int *)(s + 0x5c) - 1,
-        (int)prev_length -
-          3); /* _tr_tally(s, strstart-prev_match-1, prev_length-3) */
+      bflush =
+        _tr_tally(s, *(int *)(s + 0x64) - *(int *)(s + 0x5c) - 1,
+                  (int)prev_length -
+                    3); /* _tr_tally(s, strstart-prev_match-1, prev_length-3) */
       *(unsigned int *)(s + 0x6c) +=
         1 - prev_length; /* lookahead -= prev_length - 1 */
       *(int *)(s + 0x70) = (int)prev_length - 2;
@@ -6671,103 +6672,113 @@ void *FUN_001139d0(int z, int adler_fn, int wsize)
 #define inflate_mask ((const unsigned int *)0x320d88)
 /* border[]: order of the bit length code lengths (infblock.c) */
 #define zlib_border ((const unsigned int *)0x28d410)
-#define Tracev(x)                                                              \
-  {                                                                            \
-    if (z_verbose > 0)                                                         \
-      crt_fprintf x;                                                           \
+#define Tracev(x)      \
+  {                    \
+    if (z_verbose > 0) \
+      crt_fprintf x;   \
   }
 
 /* update pointers and return */
-#define UPDBITS                                                                \
-  {                                                                            \
-    *(unsigned int *)(s + 0x20) = b;                                           \
-    *(unsigned int *)(s + 0x1c) = k;                                           \
+#define UPDBITS                      \
+  {                                  \
+    *(unsigned int *)(s + 0x20) = b; \
+    *(unsigned int *)(s + 0x1c) = k; \
   }
-#define UPDIN                                                                  \
-  {                                                                            \
-    z[1] = (int)n;                                                             \
-    z[2] = (int)(p + (z[2] - *z));                                             \
-    *z = (int)p;                                                               \
+#define UPDIN                      \
+  {                                \
+    z[1] = (int)n;                 \
+    z[2] = (int)(p + (z[2] - *z)); \
+    *z = (int)p;                   \
   }
-#define UPDOUT { *(unsigned char **)(s + 0x34) = q; }
-#define UPDATE { UPDBITS UPDIN UPDOUT }
-#define LEAVE { UPDATE return FUN_00116280((int)s, (int)z, r); }
+#define UPDOUT                         \
+  {                                    \
+    *(unsigned char **)(s + 0x34) = q; \
+  }
+#define UPDATE           \
+  {                      \
+    UPDBITS UPDIN UPDOUT \
+  }
+#define LEAVE                                      \
+  {                                                \
+    UPDATE return FUN_00116280((int)s, (int)z, r); \
+  }
 
 /* get bytes and bits */
-#define LOADIN                                                                 \
-  {                                                                            \
-    p = (unsigned char *)*z;                                                   \
-    n = (unsigned int)z[1];                                                    \
-    b = *(unsigned int *)(s + 0x20);                                           \
-    k = *(unsigned int *)(s + 0x1c);                                           \
+#define LOADIN                       \
+  {                                  \
+    p = (unsigned char *)*z;         \
+    n = (unsigned int)z[1];          \
+    b = *(unsigned int *)(s + 0x20); \
+    k = *(unsigned int *)(s + 0x1c); \
   }
-#define NEEDBYTE                                                               \
-  {                                                                            \
-    if (n != 0)                                                                \
-      r = 0;                                                                   \
-    else                                                                       \
-      LEAVE                                                                    \
+#define NEEDBYTE \
+  {              \
+    if (n != 0)  \
+      r = 0;     \
+    else         \
+      LEAVE      \
   }
 #define NEXTBYTE (n--, *p++)
-#define NEEDBITS(j)                                                            \
-  {                                                                            \
-    while (k < (j)) {                                                          \
-      NEEDBYTE                                                                 \
-      b |= (unsigned int)NEXTBYTE << k;                                        \
-      k += 8;                                                                  \
-    }                                                                          \
+#define NEEDBITS(j)                     \
+  {                                     \
+    while (k < (j)) {                   \
+      NEEDBYTE                          \
+      b |= (unsigned int)NEXTBYTE << k; \
+      k += 8;                           \
+    }                                   \
   }
-#define DUMPBITS(j)                                                            \
-  {                                                                            \
-    b >>= (j);                                                                 \
-    k -= (j);                                                                  \
+#define DUMPBITS(j) \
+  {                 \
+    b >>= (j);      \
+    k -= (j);       \
   }
 
 /* output bytes */
-#define WAVAIL                                                                 \
-  ((unsigned int)(q < *(unsigned char **)(s + 0x30)                            \
-                      ? *(int *)(s + 0x30) + (-1 - (int)q)                     \
-                      : *(int *)(s + 0x2c) - (int)q))
-#define LOADOUT                                                                \
-  {                                                                            \
-    q = *(unsigned char **)(s + 0x34);                                         \
-    m = WAVAIL;                                                                \
+#define WAVAIL                                           \
+  ((unsigned int)(q < *(unsigned char **)(s + 0x30) ?    \
+                    *(int *)(s + 0x30) + (-1 - (int)q) : \
+                    *(int *)(s + 0x2c) - (int)q))
+#define LOADOUT                        \
+  {                                    \
+    q = *(unsigned char **)(s + 0x34); \
+    m = WAVAIL;                        \
   }
-#define WRAP                                                                   \
-  {                                                                            \
-    if (q == *(unsigned char **)(s + 0x2c) &&                                  \
-        *(unsigned char **)(s + 0x30) != *(unsigned char **)(s + 0x28)) {      \
-      q = *(unsigned char **)(s + 0x28);                                       \
-      m = WAVAIL;                                                              \
-    }                                                                          \
+#define WRAP                                                              \
+  {                                                                       \
+    if (q == *(unsigned char **)(s + 0x2c) &&                             \
+        *(unsigned char **)(s + 0x30) != *(unsigned char **)(s + 0x28)) { \
+      q = *(unsigned char **)(s + 0x28);                                  \
+      m = WAVAIL;                                                         \
+    }                                                                     \
   }
-#define FLUSH                                                                  \
-  {                                                                            \
-    UPDOUT                                                                     \
-    r = FUN_00116280((int)s, (int)z, r);                                       \
-    LOADOUT                                                                    \
+#define FLUSH                            \
+  {                                      \
+    UPDOUT                               \
+    r = FUN_00116280((int)s, (int)z, r); \
+    LOADOUT                              \
   }
-#define NEEDOUT                                                                \
-  {                                                                            \
-    if (m == 0) {                                                              \
-      WRAP                                                                     \
-      if (m == 0) {                                                            \
-        FLUSH                                                                  \
-        WRAP                                                                   \
-        if (m == 0)                                                            \
-          LEAVE                                                                \
-      }                                                                        \
-    }                                                                          \
-    r = 0;                                                                     \
+#define NEEDOUT                \
+  {                            \
+    if (m == 0) {              \
+      WRAP if (m == 0)         \
+      {                        \
+        FLUSH                  \
+        WRAP if (m == 0) LEAVE \
+      }                        \
+    }                          \
+    r = 0;                     \
   }
-#define OUTBYTE(a)                                                             \
-  {                                                                            \
-    *q++ = (unsigned char)(a);                                                 \
-    m--;                                                                       \
+#define OUTBYTE(a)             \
+  {                            \
+    *q++ = (unsigned char)(a); \
+    m--;                       \
   }
 
 /* load local pointers */
-#define LOAD { LOADIN LOADOUT }
+#define LOAD       \
+  {                \
+    LOADIN LOADOUT \
+  }
 
 /* 0x113a90 — zlib inflate_blocks (infblock.c): decompress deflate blocks.
  * State machine over s->mode: 0 TYPE, 1 LENS, 2 STORED, 3 TABLE, 4 BTREE,
@@ -6783,249 +6794,245 @@ void *FUN_001139d0(int z, int adler_fn, int wsize)
  * [6] msg, [8] zalloc, [9] zfree, [10] opaque. */
 int inflate_blocks(int s, int *z, int r)
 {
-  unsigned int t;   /* temporary storage */
-  unsigned int b;   /* bit buffer */
-  unsigned int k;   /* bits in bit buffer */
+  unsigned int t; /* temporary storage */
+  unsigned int b; /* bit buffer */
+  unsigned int k; /* bits in bit buffer */
   unsigned char *p; /* input data pointer */
-  unsigned int n;   /* bytes available there */
+  unsigned int n; /* bytes available there */
   unsigned char *q; /* output window write pointer */
-  unsigned int m;   /* bytes to end of window or read pointer */
+  unsigned int m; /* bytes to end of window or read pointer */
 
   /* copy input/output information to locals (UPDATE macro restores) */
   LOAD
 
-  /* process input based on current state */
-  while (1)
-    switch (*(unsigned int *)s) {
-    case 0: /* TYPE */
-      NEEDBITS(3)
-      t = b & 7;
-      *(unsigned int *)(s + 0x18) = t & 1; /* last */
-      switch (t >> 1) {
-      case 0: /* stored */
-        Tracev((z_stderr, "inflate:     stored block%s\n",
-                *(int *)(s + 0x18) ? " (last)" : ""));
-        DUMPBITS(3)
-        t = k & 7; /* go to byte boundary */
-        DUMPBITS(t)
-        *(unsigned int *)s = 1; /* get length of stored block */
-        break;
-      case 1: /* fixed */
-        Tracev((z_stderr, "inflate:     fixed codes block%s\n",
-                *(int *)(s + 0x18) ? " (last)" : ""));
-        {
-          int bl, bd;
-          int *tl, *td;
-
-          inflate_trees_fixed(&bl, &bd, &tl, &td, (int)z);
-          *(void **)(s + 4) =
-            inflate_codes_new(bl, bd, (int)tl, (int)td, (int)z);
-          if (*(void **)(s + 4) == 0) {
-            r = -4; /* Z_MEM_ERROR */
-            LEAVE
-          }
-        }
-        DUMPBITS(3)
-        *(unsigned int *)s = 6; /* CODES */
-        break;
-      case 2: /* dynamic */
-        Tracev((z_stderr, "inflate:     dynamic codes block%s\n",
-                *(int *)(s + 0x18) ? " (last)" : ""));
-        DUMPBITS(3)
-        *(unsigned int *)s = 3; /* TABLE */
-        break;
-      case 3: /* illegal */
-        DUMPBITS(3)
-        *(unsigned int *)s = 9; /* BAD */
-        z[6] = (int)"invalid block type";
-        r = -3; /* Z_DATA_ERROR */
-        LEAVE
-      }
+    /* process input based on current state */
+    while (1) switch (*(unsigned int *)s)
+  {
+  case 0: /* TYPE */
+    NEEDBITS(3)
+    t = b & 7;
+    *(unsigned int *)(s + 0x18) = t & 1; /* last */
+    switch (t >> 1) {
+    case 0: /* stored */
+      Tracev((z_stderr, "inflate:     stored block%s\n",
+              *(int *)(s + 0x18) ? " (last)" : ""));
+      DUMPBITS(3)
+      t = k & 7; /* go to byte boundary */
+      DUMPBITS(t)
+      *(unsigned int *)s = 1; /* get length of stored block */
       break;
-    case 1: /* LENS */
-      NEEDBITS(32)
-      if (((~b) >> 16 & 0xffff) != (b & 0xffff)) {
-        *(unsigned int *)s = 9; /* BAD */
-        z[6] = (int)"invalid stored block lengths";
-        r = -3; /* Z_DATA_ERROR */
-        LEAVE
-      }
-      *(unsigned int *)(s + 4) = b & 0xffff; /* sub.left */
-      b = k = 0; /* dump bits */
-      Tracev((z_stderr, "inflate:       stored length %u\n",
-              *(unsigned int *)(s + 4)));
-      *(unsigned int *)s =
-        *(int *)(s + 4) != 0 ? 2 : (*(int *)(s + 0x18) != 0 ? 7 : 0);
-      break;
-    case 2: /* STORED */
-      if (n == 0)
-        LEAVE
-      NEEDOUT
-      t = *(unsigned int *)(s + 4);
-      if (t > n)
-        t = n;
-      if (t > m)
-        t = m;
-      csmemcpy(q, p, t);
-      p += t;
-      n -= t;
-      q += t;
-      m -= t;
-      if ((*(unsigned int *)(s + 4) -= t) != 0)
-        break;
-      Tracev((z_stderr, "inflate:       stored end, %lu total out\n",
-              z[5] + (q >= *(unsigned char **)(s + 0x30)
-                        ? (int)(q - *(unsigned char **)(s + 0x30))
-                        : (int)((*(unsigned char **)(s + 0x2c) -
-                                 *(unsigned char **)(s + 0x30)) +
-                                (q - *(unsigned char **)(s + 0x28))))));
-      *(unsigned int *)s = *(int *)(s + 0x18) != 0 ? 7 : 0;
-      break;
-    case 3: /* TABLE */
-      NEEDBITS(14)
-      *(unsigned int *)(s + 4) = t = b & 0x3fff; /* sub.trees.table */
-      if ((t & 0x1f) > 29 || ((t >> 5) & 0x1f) > 29) {
-        *(unsigned int *)s = 9; /* BAD */
-        z[6] = (int)"too many length or distance symbols";
-        r = -3; /* Z_DATA_ERROR */
-        LEAVE
-      }
-      t = 258 + (t & 0x1f) + ((t >> 5) & 0x1f);
-      *(int *)(s + 0xc) = (int)((zlib_zalloc_fn)z[8])((void *)z[10], t, 4);
-      if (*(int *)(s + 0xc) == 0) {
-        r = -4; /* Z_MEM_ERROR */
-        LEAVE
-      }
-      *(unsigned int *)(s + 8) = 0; /* sub.trees.index */
-      Tracev((z_stderr, "inflate:       table sizes ok\n"));
-      *(unsigned int *)s = 4; /* BTREE */
-      /* fall through */
-    case 4: /* BTREE */
-      while (*(unsigned int *)(s + 8) < 4 + (*(unsigned int *)(s + 4) >> 10)) {
-        NEEDBITS(3)
-        ((unsigned int *)*(int *)(s + 0xc))
-          [zlib_border[(*(unsigned int *)(s + 8))++]] = b & 7;
-        DUMPBITS(3)
-      }
-      while (*(unsigned int *)(s + 8) < 19)
-        ((unsigned int *)*(int *)(s + 0xc))
-          [zlib_border[(*(unsigned int *)(s + 8))++]] = 0;
-      *(int *)(s + 0x10) = 7; /* sub.trees.bb */
-      t = inflate_trees_bits((int *)*(int *)(s + 0xc), (int *)(s + 0x10),
-                             s + 0x14, *(int *)(s + 0x24), (int)z);
-      if (t != 0) {
-        ((zlib_zfree_fn)z[9])((void *)z[10], (void *)*(int *)(s + 0xc));
-        r = t;
-        if (r == (unsigned int)-3)
-          *(unsigned int *)s = 9; /* BAD */
-        LEAVE
-      }
-      *(unsigned int *)(s + 8) = 0;
-      Tracev((z_stderr, "inflate:       bits tree ok\n"));
-      *(unsigned int *)s = 5; /* DTREE */
-      /* fall through */
-    case 5: /* DTREE */
-      while (t = *(unsigned int *)(s + 4),
-             *(unsigned int *)(s + 8) <
-               258 + (t & 0x1f) + ((t >> 5) & 0x1f)) {
-        unsigned int *h;
-        unsigned int i, j, c;
-
-        t = *(unsigned int *)(s + 0x10); /* bb */
-        NEEDBITS(t)
-        h = (unsigned int *)(*(int *)(s + 0x14) + (b & inflate_mask[t]) * 8);
-        t = ((unsigned char *)h)[1]; /* h->bits */
-        c = h[1];                    /* h->base */
-        if (c < 16) {
-          DUMPBITS(t)
-          ((unsigned int *)*(int *)(s + 0xc))
-            [(*(unsigned int *)(s + 8))++] = c;
-        } else { /* c == 16..18 */
-          i = c == 18 ? 7 : c - 14;
-          j = c == 18 ? 11 : 3;
-          NEEDBITS(t + i)
-          DUMPBITS(t)
-          j += b & inflate_mask[i];
-          DUMPBITS(i)
-          i = *(unsigned int *)(s + 8);
-          t = *(unsigned int *)(s + 4);
-          if (i + j > 258 + (t & 0x1f) + ((t >> 5) & 0x1f) ||
-              (c == 16 && i < 1)) {
-            ((zlib_zfree_fn)z[9])((void *)z[10], (void *)*(int *)(s + 0xc));
-            *(unsigned int *)s = 9; /* BAD */
-            z[6] = (int)"invalid bit length repeat";
-            r = -3; /* Z_DATA_ERROR */
-            LEAVE
-          }
-          c = c == 16 ? ((unsigned int *)*(int *)(s + 0xc))[i - 1] : 0;
-          do {
-            ((unsigned int *)*(int *)(s + 0xc))[i++] = c;
-          } while (--j);
-          *(unsigned int *)(s + 8) = i;
-        }
-      }
-      *(int *)(s + 0x14) = 0; /* sub.trees.tb = Z_NULL */
+    case 1: /* fixed */
+      Tracev((z_stderr, "inflate:     fixed codes block%s\n",
+              *(int *)(s + 0x18) ? " (last)" : ""));
       {
         int bl, bd;
-        int tl, td;
-        void *c;
+        int *tl, *td;
 
-        bl = 9; /* must be <= 9 for lookahead assumptions */
-        bd = 6; /* must be <= 6 for lookahead assumptions */
-        t = *(unsigned int *)(s + 4);
-        t = inflate_trees_dynamic(257 + (t & 0x1f), 1 + ((t >> 5) & 0x1f),
-                                  *(int *)(s + 0xc), &bl, &bd, (int)&tl,
-                                  (int)&td, *(int *)(s + 0x24), (int)z);
-        ((zlib_zfree_fn)z[9])((void *)z[10], (void *)*(int *)(s + 0xc));
-        if (t != 0) {
-          if (t == (unsigned int)-3)
-            *(unsigned int *)s = 9; /* BAD */
-          r = t;
-          LEAVE
-        }
-        Tracev((z_stderr, "inflate:       trees ok\n"));
-        c = inflate_codes_new(bl, bd, tl, td, (int)z);
-        if (c == 0) {
+        inflate_trees_fixed(&bl, &bd, &tl, &td, (int)z);
+        *(void **)(s + 4) = inflate_codes_new(bl, bd, (int)tl, (int)td, (int)z);
+        if (*(void **)(s + 4) == 0) {
           r = -4; /* Z_MEM_ERROR */
           LEAVE
         }
-        *(void **)(s + 4) = c; /* sub.decode.codes */
       }
+      DUMPBITS(3)
       *(unsigned int *)s = 6; /* CODES */
-      /* fall through */
-    case 6: /* CODES */
-      UPDATE
-      if ((r = inflate_codes((unsigned int)s, z, r)) != 1)
-        return FUN_00116280(s, (int)z, r);
-      r = 0;
-      inflate_codes_free(*(int *)(s + 4), (int)z);
-      LOAD
-      Tracev((z_stderr, "inflate:       codes end, %lu total out\n",
-              z[5] + (q >= *(unsigned char **)(s + 0x30)
-                        ? (int)(q - *(unsigned char **)(s + 0x30))
-                        : (int)((*(unsigned char **)(s + 0x2c) -
-                                 *(unsigned char **)(s + 0x30)) +
-                                (q - *(unsigned char **)(s + 0x28))))));
-      if (*(int *)(s + 0x18) == 0) {
-        *(unsigned int *)s = 0; /* TYPE */
-        break;
-      }
-      *(unsigned int *)s = 7; /* DRY */
-      /* fall through */
-    case 7: /* DRY */
-      FLUSH
-      if (*(int *)(s + 0x30) != *(int *)(s + 0x34)) /* read != write */
-        LEAVE
-      *(unsigned int *)s = 8; /* DONE */
-      /* fall through */
-    case 8: /* DONE */
-      r = 1; /* Z_STREAM_END */
-      LEAVE
-    case 9: /* BAD */
+      break;
+    case 2: /* dynamic */
+      Tracev((z_stderr, "inflate:     dynamic codes block%s\n",
+              *(int *)(s + 0x18) ? " (last)" : ""));
+      DUMPBITS(3)
+      *(unsigned int *)s = 3; /* TABLE */
+      break;
+    case 3: /* illegal */
+      DUMPBITS(3)
+      *(unsigned int *)s = 9; /* BAD */
+      z[6] = (int)"invalid block type";
       r = -3; /* Z_DATA_ERROR */
       LEAVE
-    default:
-      r = -2; /* Z_STREAM_ERROR */
+    }
+    break;
+  case 1: /* LENS */
+    NEEDBITS(32)
+    if (((~b) >> 16 & 0xffff) != (b & 0xffff)) {
+      *(unsigned int *)s = 9; /* BAD */
+      z[6] = (int)"invalid stored block lengths";
+      r = -3; /* Z_DATA_ERROR */
       LEAVE
     }
+    *(unsigned int *)(s + 4) = b & 0xffff; /* sub.left */
+    b = k = 0; /* dump bits */
+    Tracev((z_stderr, "inflate:       stored length %u\n",
+            *(unsigned int *)(s + 4)));
+    *(unsigned int *)s =
+      *(int *)(s + 4) != 0 ? 2 : (*(int *)(s + 0x18) != 0 ? 7 : 0);
+    break;
+  case 2: /* STORED */
+    if (n == 0)
+      LEAVE
+    NEEDOUT
+    t = *(unsigned int *)(s + 4);
+    if (t > n)
+      t = n;
+    if (t > m)
+      t = m;
+    csmemcpy(q, p, t);
+    p += t;
+    n -= t;
+    q += t;
+    m -= t;
+    if ((*(unsigned int *)(s + 4) -= t) != 0)
+      break;
+    Tracev((z_stderr, "inflate:       stored end, %lu total out\n",
+            z[5] + (q >= *(unsigned char **)(s + 0x30) ?
+                      (int)(q - *(unsigned char **)(s + 0x30)) :
+                      (int)((*(unsigned char **)(s + 0x2c) -
+                             *(unsigned char **)(s + 0x30)) +
+                            (q - *(unsigned char **)(s + 0x28))))));
+    *(unsigned int *)s = *(int *)(s + 0x18) != 0 ? 7 : 0;
+    break;
+  case 3: /* TABLE */
+    NEEDBITS(14)
+    *(unsigned int *)(s + 4) = t = b & 0x3fff; /* sub.trees.table */
+    if ((t & 0x1f) > 29 || ((t >> 5) & 0x1f) > 29) {
+      *(unsigned int *)s = 9; /* BAD */
+      z[6] = (int)"too many length or distance symbols";
+      r = -3; /* Z_DATA_ERROR */
+      LEAVE
+    }
+    t = 258 + (t & 0x1f) + ((t >> 5) & 0x1f);
+    *(int *)(s + 0xc) = (int)((zlib_zalloc_fn)z[8])((void *)z[10], t, 4);
+    if (*(int *)(s + 0xc) == 0) {
+      r = -4; /* Z_MEM_ERROR */
+      LEAVE
+    }
+    *(unsigned int *)(s + 8) = 0; /* sub.trees.index */
+    Tracev((z_stderr, "inflate:       table sizes ok\n"));
+    *(unsigned int *)s = 4; /* BTREE */
+    /* fall through */
+  case 4: /* BTREE */
+    while (*(unsigned int *)(s + 8) < 4 + (*(unsigned int *)(s + 4) >> 10)) {
+      NEEDBITS(3)
+      ((unsigned int *)*(
+        int *)(s + 0xc))[zlib_border[(*(unsigned int *)(s + 8))++]] = b & 7;
+      DUMPBITS(3)
+    }
+    while (*(unsigned int *)(s + 8) < 19)
+      ((unsigned int *)*(
+        int *)(s + 0xc))[zlib_border[(*(unsigned int *)(s + 8))++]] = 0;
+    *(int *)(s + 0x10) = 7; /* sub.trees.bb */
+    t = inflate_trees_bits((int *)*(int *)(s + 0xc), (int *)(s + 0x10),
+                           s + 0x14, *(int *)(s + 0x24), (int)z);
+    if (t != 0) {
+      ((zlib_zfree_fn)z[9])((void *)z[10], (void *)*(int *)(s + 0xc));
+      r = t;
+      if (r == (unsigned int)-3)
+        *(unsigned int *)s = 9; /* BAD */
+      LEAVE
+    }
+    *(unsigned int *)(s + 8) = 0;
+    Tracev((z_stderr, "inflate:       bits tree ok\n"));
+    *(unsigned int *)s = 5; /* DTREE */
+    /* fall through */
+  case 5: /* DTREE */
+    while (t = *(unsigned int *)(s + 4),
+           *(unsigned int *)(s + 8) < 258 + (t & 0x1f) + ((t >> 5) & 0x1f)) {
+      unsigned int *h;
+      unsigned int i, j, c;
+
+      t = *(unsigned int *)(s + 0x10); /* bb */
+      NEEDBITS(t)
+      h = (unsigned int *)(*(int *)(s + 0x14) + (b & inflate_mask[t]) * 8);
+      t = ((unsigned char *)h)[1]; /* h->bits */
+      c = h[1]; /* h->base */
+      if (c < 16) {
+        DUMPBITS(t)
+        ((unsigned int *)*(int *)(s + 0xc))[(*(unsigned int *)(s + 8))++] = c;
+      } else { /* c == 16..18 */
+        i = c == 18 ? 7 : c - 14;
+        j = c == 18 ? 11 : 3;
+        NEEDBITS(t + i)
+        DUMPBITS(t)
+        j += b & inflate_mask[i];
+        DUMPBITS(i)
+        i = *(unsigned int *)(s + 8);
+        t = *(unsigned int *)(s + 4);
+        if (i + j > 258 + (t & 0x1f) + ((t >> 5) & 0x1f) ||
+            (c == 16 && i < 1)) {
+          ((zlib_zfree_fn)z[9])((void *)z[10], (void *)*(int *)(s + 0xc));
+          *(unsigned int *)s = 9; /* BAD */
+          z[6] = (int)"invalid bit length repeat";
+          r = -3; /* Z_DATA_ERROR */
+          LEAVE
+        }
+        c = c == 16 ? ((unsigned int *)*(int *)(s + 0xc))[i - 1] : 0;
+        do {
+          ((unsigned int *)*(int *)(s + 0xc))[i++] = c;
+        } while (--j);
+        *(unsigned int *)(s + 8) = i;
+      }
+    }
+    *(int *)(s + 0x14) = 0; /* sub.trees.tb = Z_NULL */
+    {
+      int bl, bd;
+      int tl, td;
+      void *c;
+
+      bl = 9; /* must be <= 9 for lookahead assumptions */
+      bd = 6; /* must be <= 6 for lookahead assumptions */
+      t = *(unsigned int *)(s + 4);
+      t = inflate_trees_dynamic(257 + (t & 0x1f), 1 + ((t >> 5) & 0x1f),
+                                *(int *)(s + 0xc), &bl, &bd, (int)&tl, (int)&td,
+                                *(int *)(s + 0x24), (int)z);
+      ((zlib_zfree_fn)z[9])((void *)z[10], (void *)*(int *)(s + 0xc));
+      if (t != 0) {
+        if (t == (unsigned int)-3)
+          *(unsigned int *)s = 9; /* BAD */
+        r = t;
+        LEAVE
+      }
+      Tracev((z_stderr, "inflate:       trees ok\n"));
+      c = inflate_codes_new(bl, bd, tl, td, (int)z);
+      if (c == 0) {
+        r = -4; /* Z_MEM_ERROR */
+        LEAVE
+      }
+      *(void **)(s + 4) = c; /* sub.decode.codes */
+    }
+    *(unsigned int *)s = 6; /* CODES */
+    /* fall through */
+  case 6: /* CODES */
+    UPDATE
+    if ((r = inflate_codes((unsigned int)s, z, r)) != 1)
+      return FUN_00116280(s, (int)z, r);
+    r = 0;
+    inflate_codes_free(*(int *)(s + 4), (int)z);
+    LOAD Tracev((z_stderr, "inflate:       codes end, %lu total out\n",
+                 z[5] + (q >= *(unsigned char **)(s + 0x30) ?
+                           (int)(q - *(unsigned char **)(s + 0x30)) :
+                           (int)((*(unsigned char **)(s + 0x2c) -
+                                  *(unsigned char **)(s + 0x30)) +
+                                 (q - *(unsigned char **)(s + 0x28))))));
+    if (*(int *)(s + 0x18) == 0) {
+      *(unsigned int *)s = 0; /* TYPE */
+      break;
+    }
+    *(unsigned int *)s = 7; /* DRY */
+    /* fall through */
+  case 7: /* DRY */
+    FLUSH
+    if (*(int *)(s + 0x30) != *(int *)(s + 0x34)) /* read != write */
+      LEAVE
+    *(unsigned int *)s = 8; /* DONE */
+    /* fall through */
+  case 8: /* DONE */
+    r = 1; /* Z_STREAM_END */
+    LEAVE
+  case 9: /* BAD */
+    r = -3; /* Z_DATA_ERROR */
+    LEAVE
+  default:
+    r = -2; /* Z_STREAM_ERROR */
+    LEAVE
+  }
 }

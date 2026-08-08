@@ -878,9 +878,12 @@ void FUN_0008c150(float *up, float *focus_distance, float near_plane_dist,
   up_scaled[2] = up[2] * near_plane_scale;
 
   /* Compute scaled right vector = cross(up, forward) * near_plane_scale */
-  right_scaled[0] = (up[1] * forward[2] - up[2] * forward[1]) * near_plane_scale;
-  right_scaled[1] = (up[2] * forward[0] - up[0] * forward[2]) * near_plane_scale;
-  right_scaled[2] = (up[0] * forward[1] - up[1] * forward[0]) * near_plane_scale;
+  right_scaled[0] =
+    (up[1] * forward[2] - up[2] * forward[1]) * near_plane_scale;
+  right_scaled[1] =
+    (up[2] * forward[0] - up[0] * forward[2]) * near_plane_scale;
+  right_scaled[2] =
+    (up[0] * forward[1] - up[1] * forward[0]) * near_plane_scale;
 
   best_t = initial_fraction;
   best_plane = (float *)0;

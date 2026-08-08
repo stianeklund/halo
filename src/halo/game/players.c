@@ -3405,9 +3405,8 @@ void FUN_000be1d0(int16_t function_index, int thread_datum, char init)
 {
   const char **record;
 
-  record =
-    (const char **)hs_macro_function_evaluate(function_index, thread_datum,
-                                               init);
+  record = (const char **)hs_macro_function_evaluate(function_index,
+                                                     thread_datum, init);
   if (record != 0) {
     FUN_000ca140(*record);
     hs_return(thread_datum, 0);

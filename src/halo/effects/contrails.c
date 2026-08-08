@@ -24,22 +24,33 @@
  * its own gate (offset-to-struct); defining the types changes no codegen.
  * ------------------------------------------------------------------------- */
 typedef struct contrail {
-  int16_t salt;                            /* +0x00  data_t pool convention (cf. actor_t salt @+0x00) */
-  uint16_t flags;                          /* +0x02  bit 0 = object-attached; set/cleared bytewise @0x986af/0x98890 */
-  int32_t definition_index;                /* +0x04  assert "definition_index!=NONE"; 'cont' tag index */
-  int32_t object_index;                    /* +0x08  assert "object_index!=NONE"; NONE when detached */
-  int16_t attachment_index;                /* +0x0c  assert "attachment index %d is outside the valid range"; MOVSX @0x98621 => signed */
-  uint16_t field_0e;                       /* +0x0e  = obje attachment element +0x30 - 1; XOR+MOV DX @0x98695 => unsigned */
-  float scale;                             /* +0x10  scales 'cont' rates; ALSO address-taken as an in/out cell @0x9869b */
-  int16_t sequence_index;                  /* +0x14  bitmap sequence index; MOVSX @0x97dea => signed; init NONE */
-  int16_t field_16;                        /* +0x16  INC word @0x97dd6, reset @0x97e32; per-sequence frame counter */
-  float field_18;                          /* +0x18  FSUBR @0x988ae by ('cont' +0x24 rate) * elapsed */
-  float field_1c;                          /* +0x1c  FADD @0x988c8 by ('cont' +0x28 rate) * elapsed */
-  float field_20;                          /* +0x20  next-point emission countdown, reloaded to 1/rate */
-  float field_24;                          /* +0x24  leftover step-time accumulator; zeroed @0x97de1 */
-  float field_28;                          /* +0x28  elapsed = delta_time - this (FSUB @0x987a0); zeroed @0x987bb */
-  int16_t contrail_point_counts[4];        /* +0x2c  assert-named; SETG @0x988ee => signed, stride 2, length 4 */
-  int32_t first_contrail_point_indices[4]; /* +0x34  assert-named; per-instance chain heads, NONE when empty */
+  int16_t salt; /* +0x00  data_t pool convention (cf. actor_t salt @+0x00) */
+  uint16_t flags; /* +0x02  bit 0 = object-attached; set/cleared bytewise
+                     @0x986af/0x98890 */
+  int32_t definition_index; /* +0x04  assert "definition_index!=NONE"; 'cont'
+                               tag index */
+  int32_t
+    object_index; /* +0x08  assert "object_index!=NONE"; NONE when detached */
+  int16_t attachment_index; /* +0x0c  assert "attachment index %d is outside the
+                               valid range"; MOVSX @0x98621 => signed */
+  uint16_t field_0e; /* +0x0e  = obje attachment element +0x30 - 1; XOR+MOV DX
+                        @0x98695 => unsigned */
+  float scale; /* +0x10  scales 'cont' rates; ALSO address-taken as an in/out
+                  cell @0x9869b */
+  int16_t sequence_index; /* +0x14  bitmap sequence index; MOVSX @0x97dea =>
+                             signed; init NONE */
+  int16_t field_16; /* +0x16  INC word @0x97dd6, reset @0x97e32; per-sequence
+                       frame counter */
+  float field_18; /* +0x18  FSUBR @0x988ae by ('cont' +0x24 rate) * elapsed */
+  float field_1c; /* +0x1c  FADD @0x988c8 by ('cont' +0x28 rate) * elapsed */
+  float field_20; /* +0x20  next-point emission countdown, reloaded to 1/rate */
+  float field_24; /* +0x24  leftover step-time accumulator; zeroed @0x97de1 */
+  float field_28; /* +0x28  elapsed = delta_time - this (FSUB @0x987a0); zeroed
+                     @0x987bb */
+  int16_t contrail_point_counts[4]; /* +0x2c  assert-named; SETG @0x988ee =>
+                                       signed, stride 2, length 4 */
+  int32_t first_contrail_point_indices[4]; /* +0x34  assert-named; per-instance
+                                              chain heads, NONE when empty */
 } contrail;
 cs(contrail, 0x44);
 co(contrail, salt, 0x00);
@@ -60,16 +71,21 @@ co(contrail, contrail_point_counts, 0x2c);
 co(contrail, first_contrail_point_indices, 0x34);
 
 typedef struct contrail_point {
-  int16_t salt;        /* +0x00  data_t pool convention (cf. actor_t salt @+0x00) */
-  uint8_t pad_02[10];  /* +0x02  never observed accessed */
-  float scale;         /* +0x0c  seeded from the owning contrail's scale, then interpolated */
-  uint8_t pad_10[4];   /* +0x10  never observed accessed; NOT covered by the location at +0x14 */
-  int32_t field_14;    /* +0x14  base of the scenario_location written by scenario_location_from_point */
-  int16_t field_18;    /* +0x18  that location's 16-bit member; tested != NONE for validity */
-  uint8_t pad_1a[2];   /* +0x1a  never observed accessed */
-  float position[3];   /* +0x1c  the point passed to scenario_location_from_point */
-  float velocity[3];   /* +0x28  vel[i] * vel_scale + root_scale * root_loc[i] */
-  int32_t next_index;  /* +0x34  singly-linked chain cursor; NONE terminates */
+  int16_t salt; /* +0x00  data_t pool convention (cf. actor_t salt @+0x00) */
+  uint8_t pad_02[10]; /* +0x02  never observed accessed */
+  float scale; /* +0x0c  seeded from the owning contrail's scale, then
+                  interpolated */
+  uint8_t pad_10[4]; /* +0x10  never observed accessed; NOT covered by the
+                        location at +0x14 */
+  int32_t field_14; /* +0x14  base of the scenario_location written by
+                       scenario_location_from_point */
+  int16_t field_18; /* +0x18  that location's 16-bit member; tested != NONE for
+                       validity */
+  uint8_t pad_1a[2]; /* +0x1a  never observed accessed */
+  float
+    position[3]; /* +0x1c  the point passed to scenario_location_from_point */
+  float velocity[3]; /* +0x28  vel[i] * vel_scale + root_scale * root_loc[i] */
+  int32_t next_index; /* +0x34  singly-linked chain cursor; NONE terminates */
 } contrail_point;
 cs(contrail_point, 0x38);
 co(contrail_point, salt, 0x00);
@@ -495,9 +511,12 @@ void FUN_00097e40(int contrail_handle /* @<eax> */, int count, int flag)
 
             object_get_root_location(*(int *)(datum + 8), root_loc, NULL);
 
-            *(float *)(pd + 0x28) = vel[0] * vel_scale + root_scale * root_loc[0];
-            *(float *)(pd + 0x2c) = vel[1] * vel_scale + root_scale * root_loc[1];
-            *(float *)(pd + 0x30) = vel[2] * vel_scale + root_scale * root_loc[2];
+            *(float *)(pd + 0x28) =
+              vel[0] * vel_scale + root_scale * root_loc[0];
+            *(float *)(pd + 0x2c) =
+              vel[1] * vel_scale + root_scale * root_loc[1];
+            *(float *)(pd + 0x30) =
+              vel[2] * vel_scale + root_scale * root_loc[2];
           }
 
           if ((int16_t)cur_iter < emit_count) {

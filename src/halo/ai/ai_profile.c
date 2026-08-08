@@ -330,9 +330,8 @@ void *ai_index_platoon_iterator_next(int *iter)
 
   handle = iter[0];
   if (handle != -1 && iter[1] <= iter[2]) {
-    encounter = FUN_00054020(
-      (char *)datum_get(*(data_t **)0x5ab270, handle),
-      (short)(unsigned short)iter[1]);
+    encounter = FUN_00054020((char *)datum_get(*(data_t **)0x5ab270, handle),
+                             (short)(unsigned short)iter[1]);
     iter[1] = iter[1] + 1;
     result = encounter;
   }
@@ -1379,22 +1378,27 @@ bool FUN_000556f0(unsigned int ai_ref)
 {
   int iter[3];
   char *encounter;
+  bool result;
 
+  result = 0;
   if (ai_ref == 0xffffffff)
-    return 0;
+    goto done;
 
   ai_index_platoon_iterator_new(ai_ref, iter);
   encounter = (char *)ai_index_platoon_iterator_next(iter);
   if (encounter == 0)
-    return 0;
+    goto done;
 
   do {
-    if (*encounter == 0)
-      return 1;
+    if (*encounter == 0) {
+      result = 1;
+      goto done;
+    }
     encounter = (char *)ai_index_platoon_iterator_next(iter);
   } while (encounter != 0);
 
-  return 0;
+done:
+  return result;
 }
 
 /* ---------------------------------------------------------------------------

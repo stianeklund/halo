@@ -4867,7 +4867,7 @@ float *FUN_001037b0(float *out_plane, float *p0, float *p1, float *p2)
   length = normalize3d(out_plane);
   if (length != 0.0f) {
     out_plane[3] =
-        out_plane[1] * p0[1] + p0[2] * out_plane[2] + out_plane[0] * p0[0];
+      out_plane[1] * p0[1] + p0[2] * out_plane[2] + out_plane[0] * p0[0];
     return out_plane;
   }
   out_plane[3] = 0.0f;

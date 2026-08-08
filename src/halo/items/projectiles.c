@@ -1288,8 +1288,7 @@ void projectile_accelerate(int projectile_handle, float *acceleration)
   tag_get(0x70726f6a, *(int *)proj);
   if (!real_vector3d_valid(acc)) {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
-             "acceleration", (double)acc[0], (double)acc[1],
-             (double)acc[2]);
+             "acceleration", (double)acc[0], (double)acc[1], (double)acc[2]);
     display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\items\\projectiles.c",
                    0x3ef, 1);
     system_exit(-1);
@@ -2377,7 +2376,7 @@ bool FUN_000f9c40(int projectile_handle)
         steer_cos = x87_fcos(steer_turn_rate);
         steer_sin = x87_fsin(steer_turn_rate);
 #endif
-            rotate_vector3d_by_sincos(pfVel, cross_buf, steer_sin, steer_cos);
+        rotate_vector3d_by_sincos(pfVel, cross_buf, steer_sin, steer_cos);
       }
     }
 

@@ -606,7 +606,8 @@ char FUN_000f5fb0(void)
                        true);
         system_exit(-1);
       }
-      csmemset(*(char **)0x46cf08, 0, (unsigned int)*(unsigned short *)0x46cefc);
+      csmemset(*(char **)0x46cf08, 0,
+               (unsigned int)*(unsigned short *)0x46cefc);
       *(char **)0x46cf0c = *(char **)0x46cf08;
       *(unsigned char *)0x46cf07 = 0;
     } else {
@@ -635,7 +636,8 @@ char FUN_000f5fb0(void)
                        true);
         system_exit(-1);
       }
-      csmemset(*(char **)0x46cf08, 0, (unsigned int)*(unsigned short *)0x46cefc);
+      csmemset(*(char **)0x46cf08, 0,
+               (unsigned int)*(unsigned short *)0x46cefc);
       *(char **)0x46cf0c = *(char **)0x46cf08;
       *(unsigned char *)0x46cf07 = 0;
     }
@@ -644,9 +646,10 @@ char FUN_000f5fb0(void)
     } else {
       cursor = *(char **)0x46cf0c;
       base = *(char **)0x46cf08;
-      csmemmove(cursor + 2, cursor,
-                (unsigned int)(((int)*(unsigned short *)0x46cefc - (int)cursor) +
-                               (int)base - 2));
+      csmemmove(
+        cursor + 2, cursor,
+        (unsigned int)(((int)*(unsigned short *)0x46cefc - (int)cursor) +
+                       (int)base - 2));
       **(short **)0x46cf0c = 0x20;
       *(char **)0x46cf0c += 2;
       ui_play_audio_feedback_sound(2);
@@ -661,7 +664,8 @@ char FUN_000f5fb0(void)
                        true);
         system_exit(-1);
       }
-      csmemset(*(char **)0x46cf08, 0, (unsigned int)*(unsigned short *)0x46cefc);
+      csmemset(*(char **)0x46cf08, 0,
+               (unsigned int)*(unsigned short *)0x46cefc);
       *(char **)0x46cf0c = *(char **)0x46cf08;
       *(unsigned char *)0x46cf07 = 0;
     }
@@ -670,8 +674,8 @@ char FUN_000f5fb0(void)
     if (size - (len * 2 + 2) >= 2) {
       cursor = *(char **)0x46cf0c;
       base = *(char **)0x46cf08;
-      csmemmove(cursor + 2, cursor, (unsigned int)((size - (int)cursor) +
-                                                   (int)base - 2));
+      csmemmove(cursor + 2, cursor,
+                (unsigned int)((size - (int)cursor) + (int)base - 2));
       **(unsigned short **)0x46cf0c = FUN_000f5800((short)((
         char *)0x28a790)[(int)*(short *)0x46cefa + *(short *)0x46cef8 * 0xb]);
       *(char **)0x46cf0c += 2;

@@ -58,8 +58,9 @@ char FUN_0001b750(int actor_handle, int vehicle_handle, int16_t seat_index,
       *(int *)state_data = vehicle_handle;
       *(int16_t *)((char *)state_data + 4) = seat_index;
       *((char *)state_data + 6) = 0;
-      if (unit_has_animation_to_enter_seat(
-            ((actor_t *)actor)->field_018, vehicle_handle, seat_index) != '\0' &&
+      if (unit_has_animation_to_enter_seat(((actor_t *)actor)->field_018,
+                                           vehicle_handle,
+                                           seat_index) != '\0' &&
           FUN_0001aeb0(actor_handle, vehicle_handle, seat_index, 1, &attach[0],
                        &attach[3], &attach[6], 0, 0, 0, 0) != '\0' &&
           FUN_0001b280(actor_handle, vehicle_handle, &attach[0], &attach[3],
@@ -149,7 +150,8 @@ int action_vehicle_perform(int actor_handle)
     goto give_up;
   }
   if (FUN_0001ada0(actor_handle, ((actor_t *)actor)->field_0a2 == 0,
-                   ((actor_t *)actor)->field_0bc, *(int *)(actor + 0xc0), 0, 1) == 0) {
+                   ((actor_t *)actor)->field_0bc, *(int *)(actor + 0xc0), 0,
+                   1) == 0) {
     goto give_up;
   }
   now = game_time_get();
@@ -178,7 +180,8 @@ int action_vehicle_perform(int actor_handle)
     goto give_up;
   }
   if (flag_7 != 0) {
-    ((actor_t *)actor)->field_0c6 = (int16_t)(((actor_t *)actor)->field_0c6 + 1);
+    ((actor_t *)actor)->field_0c6 =
+      (int16_t)(((actor_t *)actor)->field_0c6 + 1);
     if (((actor_t *)actor)->field_0c6 >= 0x1e) {
       flag_5 = 1;
       flag_6 = 1;
@@ -204,7 +207,8 @@ int action_vehicle_perform(int actor_handle)
           actor_move_to_point(actor_handle, (float *)(actor + 0xcc),
                               ((actor_t *)actor)->field_0e4,
                               *(int *)(actor + 0x9c)) == 0) {
-        ((actor_t *)actor)->field_0a8 = (int16_t)(((actor_t *)actor)->field_0a8 + 1);
+        ((actor_t *)actor)->field_0a8 =
+          (int16_t)(((actor_t *)actor)->field_0a8 + 1);
         limit = (int16_t)(((actor_t *)actor)->field_0a2 != 0 ? 5 : 0x32);
         if (((actor_t *)actor)->field_0a8 > limit) {
           *(actor + 0xa6) = 1;
@@ -227,5 +231,6 @@ int action_vehicle_perform(int actor_handle)
 give_up:
   *(actor + 0xa6) = 1;
 done:
-  return (((actor_t *)actor)->field_0a5 != 0 || ((actor_t *)actor)->field_0a6 != 0);
+  return (((actor_t *)actor)->field_0a5 != 0 ||
+          ((actor_t *)actor)->field_0a6 != 0);
 }

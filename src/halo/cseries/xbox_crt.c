@@ -325,7 +325,7 @@ __attribute__((naked)) void _chkstk(void)
 #pragma optimize("ty", on)
 #endif
 static __forceinline void __cdecl qsort_swap(char *left, char *right,
-                                              size_t byte_count)
+                                             size_t byte_count)
 {
   char swap_byte;
 

@@ -375,7 +375,8 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
       /* The original clears level_hud[1..15] / level_idx[1..15] with memset(),
        * which MSVC 7.1 /Oi inlines to `mov ecx,0xf; rep stos` (reference
        * 0x5f5/0x608).  clang has no memset symbol to link, so the shipped
-       * build uses the behaviorally identical csmemset(); both zero 60 bytes. */
+       * build uses the behaviorally identical csmemset(); both zero 60 bytes.
+       */
 #if defined(_MSC_VER) && !defined(__clang__)
       memset(&level_hud[1], 0, 15 * sizeof(int *));
 #else
@@ -498,10 +499,12 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                       case 14:
                       case 18:
                         if (xhair_type == 18) {
-                          /* Ref: FLD [buf+4]; FCOMP [0.0]; TEST AH,0x44; JP invalid */
+                          /* Ref: FLD [buf+4]; FCOMP [0.0]; TEST AH,0x44; JP
+                           * invalid */
                           if (*(float *)(buf + 4) != *(float *)0x2533c0)
                             goto LAB_set_invalid;
-                          if ((*(unsigned int *)(unit_obj + 0x1b8) & 0x800) == 0)
+                          if ((*(unsigned int *)(unit_obj + 0x1b8) & 0x800) ==
+                              0)
                             goto LAB_set_invalid;
                           cur_valid = 1;
                           goto LAB_state_check;
@@ -531,8 +534,8 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                             k = k - 1;
                           } while (k != 0);
                           if ((bv) && (*(char *)(unit_obj + 0x23d) == 0)) {
-                            if ((*(unsigned int *)(unit_obj + 0x1b8) & 0x2000) ==
-                                0)
+                            if ((*(unsigned int *)(unit_obj + 0x1b8) &
+                                 0x2000) == 0)
                               goto LAB_set_invalid;
                             cur_valid = 1;
                             goto LAB_state_check;

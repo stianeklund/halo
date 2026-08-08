@@ -24,7 +24,8 @@ void FUN_0002f1a0(int actor_handle)
 
   actor = (char *)datum_get(actor_data, actor_handle);
 
-  if (((actor_t *)actor)->field_15e == 4 && ((actor_t *)actor)->field_504 != '\0') {
+  if (((actor_t *)actor)->field_15e == 4 &&
+      ((actor_t *)actor)->field_504 != '\0') {
     actor_move_to_point(actor_handle, (float *)(actor + 0x12c),
                         ((actor_t *)actor)->field_164, -1);
     return;
@@ -62,7 +63,9 @@ void FUN_0002f230(int actor_handle)
       FUN_0002f1a0(actor_handle);
       return;
     }
-    actor_move_to_firing_position(actor_handle, ((actor_t *)actor)->firing_positions_current_position_index, 0);
+    actor_move_to_firing_position(
+      actor_handle, ((actor_t *)actor)->firing_positions_current_position_index,
+      0);
     return;
   }
 
@@ -136,8 +139,8 @@ uint16_t FUN_0002f380(int actor_handle, int prop_handle)
     }
     if ((*(short *)(prop + 0x24) >= 2 && *(short *)(prop + 0x24) <= 3) ||
         *(short *)(prop + 0x66) == 1 || *(short *)(prop + 0x66) == 2 ||
-        (*(char *)(prop + 0x60) == 0 &&
-         (*(char *)(prop + 0x127) == 0 || ((actor_t *)actor)->field_06a >= 3))) {
+        (*(char *)(prop + 0x60) == 0 && (*(char *)(prop + 0x127) == 0 ||
+                                         ((actor_t *)actor)->field_06a >= 3))) {
       return 3;
     }
     if (*(int *)(prop + 0xc) != -1) {
@@ -379,7 +382,8 @@ bool actor_get_perception_knowledge(int actor_handle, int prop_handle)
          ((actor_t *)actor)->field_1ed == 0)) {
       result = 1;
     } else if ((*(char *)(prop + 0x135) != 0 || *(char *)(prop + 0x136) != 0) &&
-               ((actor_t *)actor)->field_161 == 0 && ((actor_t *)actor)->field_202 == 0) {
+               ((actor_t *)actor)->field_161 == 0 &&
+               ((actor_t *)actor)->field_202 == 0) {
       result = 1;
     } else if (*(short *)(prop + 0x10) == 0xf) {
       result = 1;
@@ -392,7 +396,8 @@ bool actor_get_perception_knowledge(int actor_handle, int prop_handle)
     *(uint16_t *)(prop + 0xac) = 0;
   }
 
-  if (type > 1 && type < 4 && result == 0 && ((actor_t *)actor)->field_3a8 > 0 &&
+  if (type > 1 && type < 4 && result == 0 &&
+      ((actor_t *)actor)->field_3a8 > 0 &&
       ((actor_t *)actor)->field_3ac == prop_handle) {
     *(uint16_t *)(actor + 0x3a8) = 0;
     ((actor_t *)actor)->field_3ac = -1;
@@ -545,7 +550,8 @@ done_vision:
         clump_item_handle == ((actor_t *)actor)->field_054) {
       local_c = 3.0f;
     }
-  } else if (clump_item_handle == ((actor_t *)actor)->target_target_prop_index &&
+  } else if (clump_item_handle ==
+               ((actor_t *)actor)->target_target_prop_index &&
              ((actor_t *)actor)->field_06e > 2) {
     bonus_flag = 1;
   }
@@ -662,8 +668,10 @@ void FUN_000355f0(int actor_handle)
     goto iterate_props;
 
   if (((actor_t *)actor)->field_28a == 0 && *(int16_t *)(actor + 0x282) == 0) {
-    if (((actor_t *)actor)->field_284 > 0 && ((actor_t *)actor)->field_286 != 0) {
-      if (((actor_t *)actor)->field_088 == -1 || ((actor_t *)actor)->field_088 > 0x3b) {
+    if (((actor_t *)actor)->field_284 > 0 &&
+        ((actor_t *)actor)->field_286 != 0) {
+      if (((actor_t *)actor)->field_088 == -1 ||
+          ((actor_t *)actor)->field_088 > 0x3b) {
         remaining = (int16_t)(((actor_t *)actor)->field_284 - 1);
         ramp_ready = (char)(remaining == 0);
         ((actor_t *)actor)->field_284 = remaining;
@@ -714,7 +722,8 @@ void FUN_000355f0(int actor_handle)
           ((actor_t *)actor)->field_288 = 0;
         }
         FUN_000378e0(actor_handle, *(uint16_t *)(actor + 0x280),
-                     *(uint16_t *)(actor + 0x282), ((actor_t *)actor)->danger_zone_object_index,
+                     *(uint16_t *)(actor + 0x282),
+                     ((actor_t *)actor)->danger_zone_object_index,
                      (float *)(actor + 0x2b0));
       }
     }
@@ -826,13 +835,16 @@ iterate_props:
             ((actor_t *)actor)->field_1d0 == iter[0] ||
             (((actor_t *)actor)->control_secondary_look_type != 0 &&
              ((actor_t *)actor)->control_secondary_look_direction_type == 1 &&
-             ((actor_t *)actor)->control_secondary_look_direction_prop_index == iter[0]) ||
+             ((actor_t *)actor)->control_secondary_look_direction_prop_index ==
+               iter[0]) ||
             (((actor_t *)actor)->control_idle_major_active != 0 &&
              ((actor_t *)actor)->control_idle_major_direction_type == 1 &&
-             ((actor_t *)actor)->control_idle_major_direction_prop_index == iter[0]) ||
+             ((actor_t *)actor)->control_idle_major_direction_prop_index ==
+               iter[0]) ||
             (((actor_t *)actor)->control_idle_minor_active != 0 &&
              ((actor_t *)actor)->control_idle_minor_direction_type == 1 &&
-             ((actor_t *)actor)->control_idle_minor_direction_prop_index == iter[0]))
+             ((actor_t *)actor)->control_idle_minor_direction_prop_index ==
+               iter[0]))
           *(char *)(prop + 0x63) = 1;
         else
           *(char *)(prop + 0x63) = 0;
@@ -1121,10 +1133,14 @@ iterate_props:
     case 5:
       if (*(int16_t *)(prop + 0x24) == 4) {
         retire_threshold =
-          (int16_t)((-(uint16_t)(((actor_t *)actor)->field_162 != 0) & 0xff) + 0x2d);
+          (int16_t)((-(uint16_t)(((actor_t *)actor)->field_162 != 0) & 0xff) +
+                    0x2d);
         if (*(int16_t *)(prop + 0x32) > 1 ||
-            (((actor_t *)actor)->control_current_fire_target_type == _actor_fire_target_prop &&
-             ((actor_t *)actor)->control_current_fire_target_prop_index == iter[0] && game_time_get() % 3 == 0)) {
+            (((actor_t *)actor)->control_current_fire_target_type ==
+               _actor_fire_target_prop &&
+             ((actor_t *)actor)->control_current_fire_target_prop_index ==
+               iter[0] &&
+             game_time_get() % 3 == 0)) {
           *(int16_t *)(prop + 0x3c) = (int16_t)(*(int16_t *)(prop + 0x3c) + 1);
           if (*(int16_t *)(prop + 0x3c) >= retire_threshold)
             new_state = 5;
@@ -1205,8 +1221,8 @@ iterate_props:
           *(char *)(prop + 0x122) < 3 &&
           *(float *)(prop + 0x11c) < *(float *)0x2548f4) {
         ((actor_t *)actor)->field_377 = 1;
-        FUN_00046f10(0x19, ((actor_t *)actor)->field_018, *(int *)(prop + 0x18), 2, -1,
-                     -1, 0);
+        FUN_00046f10(0x19, ((actor_t *)actor)->field_018, *(int *)(prop + 0x18),
+                     2, -1, -1, 0);
         FUN_00036a20(actor_handle, iter[0], 0);
       }
 
@@ -1275,8 +1291,8 @@ iterate_props:
                          actor_is_fighting(actor_handle) == 0 &&
                          *(char *)(prop + 0x12b) != 0 &&
                          *(int16_t *)(prop + 0x32) > 1) {
-                FUN_00046f10(0xf, ((actor_t *)actor)->field_018, *(int *)(prop + 0x18),
-                             2, -1, 2, 0);
+                FUN_00046f10(0xf, ((actor_t *)actor)->field_018,
+                             *(int *)(prop + 0x18), 2, -1, 2, 0);
               }
             }
           }
@@ -1299,8 +1315,8 @@ iterate_props:
   }
 
   if (((actor_t *)actor)->target_target_prop_index != -1) {
-    parent_prop =
-      (char *)datum_get(*(data_t **)0x5ab23c, ((actor_t *)actor)->target_target_prop_index);
+    parent_prop = (char *)datum_get(
+      *(data_t **)0x5ab23c, ((actor_t *)actor)->target_target_prop_index);
     if (*(int16_t *)(parent_prop + 0x24) > 3 &&
         *(int16_t *)(parent_prop + 0x24) < 6)
       best_prop = -1;

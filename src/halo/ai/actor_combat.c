@@ -10,16 +10,22 @@ int actor_combat_check_mode(int actor_handle /* @<eax> */, short mode)
 
   switch (mode) {
   case 1:
-    if (((actor_t *)actor)->control_current_fire_target_type == _actor_fire_target_prop && ((actor_t *)actor)->target_target_type >= 8)
+    if (((actor_t *)actor)->control_current_fire_target_type ==
+          _actor_fire_target_prop &&
+        ((actor_t *)actor)->target_target_type >= 8)
       return 1;
     break;
   case 2:
-    if (((actor_t *)actor)->control_current_fire_target_type == 0 && ((actor_t *)actor)->target_target_type >= 5 &&
-        ((actor_t *)actor)->field_27c != 0 && ((actor_t *)actor)->field_278 >= 0x4b)
+    if (((actor_t *)actor)->control_current_fire_target_type == 0 &&
+        ((actor_t *)actor)->target_target_type >= 5 &&
+        ((actor_t *)actor)->field_27c != 0 &&
+        ((actor_t *)actor)->field_278 >= 0x4b)
       return 1;
     break;
   case 3:
-    if (((actor_t *)actor)->control_current_fire_target_type == _actor_fire_target_prop && ((actor_t *)actor)->target_target_type >= 8 &&
+    if (((actor_t *)actor)->control_current_fire_target_type ==
+          _actor_fire_target_prop &&
+        ((actor_t *)actor)->target_target_type >= 8 &&
         ((actor_t *)actor)->field_161 != 0)
       return 1;
     break;
@@ -194,8 +200,11 @@ bool actor_combat_evaluate_firing(int actor_handle /* @<eax> */,
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
   char flag = ((actor_t *)actor)->field_457;
 
-  if (((actor_t *)actor)->control_current_fire_target_type == _actor_fire_target_prop) {
-    char *prop = (char *)datum_get(*(void **)0x5ab23c, ((actor_t *)actor)->control_current_fire_target_prop_index);
+  if (((actor_t *)actor)->control_current_fire_target_type ==
+      _actor_fire_target_prop) {
+    char *prop = (char *)datum_get(
+      *(void **)0x5ab23c,
+      ((actor_t *)actor)->control_current_fire_target_prop_index);
     short prop_state = *(short *)(prop + 0x24);
     if (prop_state >= 4 && prop_state <= 5) {
       ((actor_t *)actor)->field_3bc = 1;
@@ -299,9 +308,10 @@ char actor_combat_compute_ballistic_solution(int actor_handle, int param_2)
     accel = projectile_get_ballistic_acceleration(projectile);
   }
 
-  if (!ai_test_ballistic_line_of_fire(actor_handle, param_2, param_3, scaled,
-                                      accel, ((actor_t *)actor)->field_6b8,
-                                      (char)(((actor_t *)actor)->field_158 != -1))) {
+  if (!ai_test_ballistic_line_of_fire(
+        actor_handle, param_2, param_3, scaled, accel,
+        ((actor_t *)actor)->field_6b8,
+        (char)(((actor_t *)actor)->field_158 != -1))) {
     return 0;
   }
 
@@ -328,13 +338,15 @@ char actor_combat_find_grenade_target(int actor_handle, float *out_pos,
                                       int *out_handle, int *out_extra)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
-  char *actv = (char *)tag_get(0x61637476 /* 'actv' */, ((actor_t *)actor)->field_05c);
+  char *actv =
+    (char *)tag_get(0x61637476 /* 'actv' */, ((actor_t *)actor)->field_05c);
   char result = 0;
   char *prop;
   short type;
 
   if (((actor_t *)actor)->target_target_prop_index != -1) {
-    prop = (char *)datum_get(*(void **)0x5ab23c, ((actor_t *)actor)->target_target_prop_index);
+    prop = (char *)datum_get(*(void **)0x5ab23c,
+                             ((actor_t *)actor)->target_target_prop_index);
     if (*(char *)(prop + 0x60) != 0 && *(char *)(prop + 0x127) == 0) {
       type = *(short *)(prop + 0x24);
       if ((type > 1 && type < 4) || type == 4) {
@@ -430,7 +442,8 @@ char FUN_00021ae0(int actor_handle, float range, float param3,
 
   actor = (int)datum_get(*(void **)0x6325a4, actor_handle);
   if (range > eps && ((actor_t *)actor)->target_target_prop_index != -1) {
-    related = (int)datum_get(*(void **)0x5ab23c, ((actor_t *)actor)->target_target_prop_index);
+    related = (int)datum_get(*(void **)0x5ab23c,
+                             ((actor_t *)actor)->target_target_prop_index);
     if (*(int *)(related + 0x1c) != -1) {
       related = (int)datum_get(*(void **)0x6325a4, *(int *)(related + 0x1c));
       if (*(int *)(related + 0x34) != -1) {
@@ -497,14 +510,17 @@ int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
   if (mode != 3)
     return 1;
 
-  if (((actor_t *)actor)->control_current_fire_target_type != _actor_fire_target_prop) {
+  if (((actor_t *)actor)->control_current_fire_target_type !=
+      _actor_fire_target_prop) {
     display_assert(
       "actor->control.current_fire_target_type == _actor_fire_target_prop",
       "c:\\halo\\SOURCE\\ai\\actor_combat.c", 0x3ca, 1);
     system_exit(-1);
   }
 
-  prop = (char *)datum_get(*(void **)0x5ab23c, ((actor_t *)actor)->control_current_fire_target_prop_index);
+  prop = (char *)datum_get(
+    *(void **)0x5ab23c,
+    ((actor_t *)actor)->control_current_fire_target_prop_index);
 
   if (*(int *)(prop + 0x110) != -1)
     return 1;
@@ -579,7 +595,8 @@ void FUN_00022390(int actor_handle)
   ((actor_t *)actor)->field_604 = 0;
 
   if (((actor_t *)actor)->field_158 != -1) {
-    vehicle_obj = (int *)object_get_and_verify_type(((actor_t *)actor)->field_158, 2);
+    vehicle_obj =
+      (int *)object_get_and_verify_type(((actor_t *)actor)->field_158, 2);
     fvar = *(float *)((char *)vehicle_obj + 0x18);
     dy = *(float *)((char *)vehicle_obj + 0x1c);
     dz = *(float *)((char *)vehicle_obj + 0x20);
@@ -589,7 +606,8 @@ void FUN_00022390(int actor_handle)
       is_moving = 0;
     }
   } else {
-    if (((actor_t *)actor)->field_15c != 0 || ((actor_t *)actor)->field_504 != 0) {
+    if (((actor_t *)actor)->field_15c != 0 ||
+        ((actor_t *)actor)->field_504 != 0) {
       is_moving = 1;
     } else {
       is_moving = 0;
@@ -640,9 +658,10 @@ void FUN_00022390(int actor_handle)
     rof_modifier = *(float *)(actv + 0xc4);
     *(float *)(actor + 0x69c) = rof_modifier;
     if (*(char *)0x5aca5c != 0) {
-      console_printf(0, "%s: manual damage modifier %.2f",
-                     tag_name_strip_path(tag_get_name(((actor_t *)actor)->field_05c)),
-                     (double)rof_modifier);
+      console_printf(
+        0, "%s: manual damage modifier %.2f",
+        tag_name_strip_path(tag_get_name(((actor_t *)actor)->field_05c)),
+        (double)rof_modifier);
     }
   } else if (*(float *)(actv + 0xc8) > *(float *)0x2533c0) {
     weapon_handle = actor_attacking_target(actor_handle);
@@ -669,7 +688,8 @@ void FUN_00022390(int actor_handle)
     }
   }
 
-  if (((actor_t *)actor)->field_603 != 0 || ((actor_t *)actor)->field_602 != 0) {
+  if (((actor_t *)actor)->field_603 != 0 ||
+      ((actor_t *)actor)->field_602 != 0) {
     if (*(float *)(actv + 0xf8) > *(float *)0x2533c0) {
       *(float *)(actor + 0x69c) *= *(float *)(actv + 0xf8);
     }
@@ -677,8 +697,11 @@ void FUN_00022390(int actor_handle)
   }
 
   if (*(float *)(actv + 0x14c) > *(float *)0x2533c0 &&
-      ((actor_t *)actor)->control_current_fire_target_type == _actor_fire_target_prop) {
-    prop = (char *)datum_get(*(void **)0x5ab23c, ((actor_t *)actor)->control_current_fire_target_prop_index);
+      ((actor_t *)actor)->control_current_fire_target_type ==
+        _actor_fire_target_prop) {
+    prop = (char *)datum_get(
+      *(void **)0x5ab23c,
+      ((actor_t *)actor)->control_current_fire_target_prop_index);
     prop_state = *(short *)(prop + 0x24);
     if (prop_state < 2 || prop_state > 3 || *(short *)(prop + 0x32) == 0) {
       suppress_flag = 1;
@@ -811,8 +834,11 @@ void FUN_00022390(int actor_handle)
   if (((actor_t *)actor)->field_06e > 6) {
     prop_flag = 0;
     prop_handle = -1;
-    if (((actor_t *)actor)->control_current_fire_target_type == _actor_fire_target_prop) {
-      prop = (char *)datum_get(*(void **)0x5ab23c, ((actor_t *)actor)->control_current_fire_target_prop_index);
+    if (((actor_t *)actor)->control_current_fire_target_type ==
+        _actor_fire_target_prop) {
+      prop = (char *)datum_get(
+        *(void **)0x5ab23c,
+        ((actor_t *)actor)->control_current_fire_target_prop_index);
       prop_flag = *(char *)(prop + 0x61);
       prop_handle = *(int *)(prop + 0x18);
     }
@@ -825,7 +851,8 @@ void FUN_00022390(int actor_handle)
     } else {
       sound_type = (((actor_t *)actor)->field_161 != 0) ? 0x1b : 0x1a;
     }
-    FUN_00046f10(sound_type, ((actor_t *)actor)->field_018, prop_handle, 3, -1, -1, 0);
+    FUN_00046f10(sound_type, ((actor_t *)actor)->field_018, prop_handle, 3, -1,
+                 -1, 0);
   }
 }
 

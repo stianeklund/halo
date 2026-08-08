@@ -16,14 +16,14 @@
  * ------------------------------------------------------------------------- */
 
 /* Pool-resident copies, read by address to preserve the original operand. */
-#define REAL_ZERO_POOL        (*(float *)0x2533c0) /* 0.0f         */
-#define REAL_PI_POOL          (*(float *)0x256980) /* 3.1415927f   */
+#define REAL_ZERO_POOL (*(float *)0x2533c0) /* 0.0f         */
+#define REAL_PI_POOL (*(float *)0x256980) /* 3.1415927f   */
 #define REAL_NEGATIVE_PI_POOL (*(float *)0x26e280) /* -3.1415927f  */
-#define REAL_TWO_PI_POOL      (*(float *)0x255a54) /* 6.2831855f   */
+#define REAL_TWO_PI_POOL (*(float *)0x255a54) /* 6.2831855f   */
 
 /* Inline immediates. */
-#define REAL_PI      3.1415927f /* 0x40490fdb */
-#define REAL_TWO_PI  6.2831855f /* 0x40c90fdb */
+#define REAL_PI 3.1415927f /* 0x40490fdb */
+#define REAL_TWO_PI 6.2831855f /* 0x40c90fdb */
 #define REAL_HALF_PI 1.5707964f /* 0x3fc90fdb */
 
 /* Limits on player->desired_angles.pitch: +-85.5 degrees, equivalently
@@ -1260,21 +1260,20 @@ void player_control_set_facing(uint16_t local_player_index, float *direction)
 
   /* assert_valid_real on desired_angles.pitch (slot+0x10) */
   if ((*(uint32_t *)&pc->desired_angles_pitch & 0x7f800000u) == 0x7f800000u) {
-    char *msg = csprintf(error_string_buffer,
-                         "%s: assert_valid_real(0x%08X %f)",
-                         "player_control->desired_angles.pitch",
-                         *(uint32_t *)&pc->desired_angles_pitch,
-                         (double)pc->desired_angles_pitch);
+    char *msg = csprintf(
+      error_string_buffer, "%s: assert_valid_real(0x%08X %f)",
+      "player_control->desired_angles.pitch",
+      *(uint32_t *)&pc->desired_angles_pitch, (double)pc->desired_angles_pitch);
     display_assert(msg, "c:\\halo\\SOURCE\\game\\player_control.c", 0xbb, 1);
     system_exit(NONE);
   }
 
   /* assert_valid_real on desired_angles.yaw (slot+0xc) */
   if ((*(uint32_t *)desired_yaw & 0x7f800000u) == 0x7f800000u) {
-    char *msg = csprintf(error_string_buffer,
-                         "%s: assert_valid_real(0x%08X %f)",
-                         "player_control->desired_angles.yaw",
-                         *(uint32_t *)desired_yaw, (double)*desired_yaw);
+    char *msg =
+      csprintf(error_string_buffer, "%s: assert_valid_real(0x%08X %f)",
+               "player_control->desired_angles.yaw", *(uint32_t *)desired_yaw,
+               (double)*desired_yaw);
     display_assert(msg, "c:\\halo\\SOURCE\\game\\player_control.c", 0xbc, 1);
     system_exit(NONE);
   }
@@ -1625,8 +1624,7 @@ void player_control_update_desired_angles(int16_t local_player_index,
       float scaled;
       float magnitude;
 
-      scaled =
-        (float)(fabs(*desired_pitch - pitch_target) * REAL_TWO_OVER_PI);
+      scaled = (float)(fabs(*desired_pitch - pitch_target) * REAL_TWO_OVER_PI);
       if ((*(uint32_t *)desired_pitch & 0x7f800000) == 0x7f800000) {
         display_assert(
           csprintf(error_string_buffer, "%s: assert_valid_real(0x%08X %f)",

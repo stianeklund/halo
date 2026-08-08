@@ -110,8 +110,7 @@ const char *tiff_export(file_ref_t *info, __int16 *bitmap)
                   ((pixel16 >> 9) & 3) | ((uint8_t)(pixel16 >> 5) << 2);
                 samples_per_pixel = samples_per_pixel + 1;
                 row_buffer[x * 4 + 3] = 0xff;
-                row_buffer[x * 4 + 0] =
-                  (b1 & 0xf8) | (uint8_t)(pixel16 >> 13);
+                row_buffer[x * 4 + 0] = (b1 & 0xf8) | (uint8_t)(pixel16 >> 13);
               } while ((short)samples_per_pixel < bitmap[2]);
             }
             break;

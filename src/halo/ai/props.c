@@ -118,8 +118,10 @@ void FUN_00064400(int actor_handle, int prop_handle) /* @<eax>, @<edi> */
   }
 
   /* Assertion: prop must not be the secondary look direction. */
-  if ((((actor_t *)actor)->control_secondary_look_type != 0) && (((actor_t *)actor)->control_secondary_look_direction_type == 1) &&
-      (((actor_t *)actor)->control_secondary_look_direction_prop_index == prop_handle)) {
+  if ((((actor_t *)actor)->control_secondary_look_type != 0) &&
+      (((actor_t *)actor)->control_secondary_look_direction_type == 1) &&
+      (((actor_t *)actor)->control_secondary_look_direction_prop_index ==
+       prop_handle)) {
     display_assert(
       "!((actor->control.secondary_look_type != _secondary_look_none) && "
       "(actor->control.secondary_look_direction.type == "
@@ -130,8 +132,10 @@ void FUN_00064400(int actor_handle, int prop_handle) /* @<eax>, @<edi> */
   }
 
   /* Assertion: prop must not be the idle major direction. */
-  if ((((actor_t *)actor)->control_idle_major_active != 0) && (((actor_t *)actor)->control_idle_major_direction_type == 1) &&
-      (((actor_t *)actor)->control_idle_major_direction_prop_index == prop_handle)) {
+  if ((((actor_t *)actor)->control_idle_major_active != 0) &&
+      (((actor_t *)actor)->control_idle_major_direction_type == 1) &&
+      (((actor_t *)actor)->control_idle_major_direction_prop_index ==
+       prop_handle)) {
     display_assert(
       "!((actor->control.idle_major_active) && "
       "(actor->control.idle_major_direction.type == "
@@ -142,8 +146,10 @@ void FUN_00064400(int actor_handle, int prop_handle) /* @<eax>, @<edi> */
   }
 
   /* Assertion: prop must not be the idle minor direction. */
-  if ((((actor_t *)actor)->control_idle_minor_active != 0) && (((actor_t *)actor)->control_idle_minor_direction_type == 1) &&
-      (((actor_t *)actor)->control_idle_minor_direction_prop_index == prop_handle)) {
+  if ((((actor_t *)actor)->control_idle_minor_active != 0) &&
+      (((actor_t *)actor)->control_idle_minor_direction_type == 1) &&
+      (((actor_t *)actor)->control_idle_minor_direction_prop_index ==
+       prop_handle)) {
     display_assert(
       "!((actor->control.idle_minor_active) && "
       "(actor->control.idle_minor_direction.type == "

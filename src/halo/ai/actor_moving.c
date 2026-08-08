@@ -91,7 +91,8 @@ char actor_test_destination(int actor_handle)
   float dx, dy, dz;
 
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
-  if (((actor_t *)actor)->field_46c == 0 || ((actor_t *)actor)->field_46c == 1) {
+  if (((actor_t *)actor)->field_46c == 0 ||
+      ((actor_t *)actor)->field_46c == 1) {
     ((actor_t *)actor)->field_484 = 1;
   } else {
     tol = actor_destination_tolerance(actor_handle);
@@ -255,7 +256,8 @@ int actor_move_force_stop(int actor_handle)
   result = 0;
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
   if (((actor_t *)actor)->field_418 == -1) {
-    if (((actor_t *)actor)->field_018 == -1 || !unit_is_busy(((actor_t *)actor)->field_018)) {
+    if (((actor_t *)actor)->field_018 == -1 ||
+        !unit_is_busy(((actor_t *)actor)->field_018)) {
       if (!actor_action_deny_transition(actor_handle)) {
         ((actor_t *)actor)->field_504 = 0;
         ptr = (char *)*(int *)0x31fc38;
@@ -359,12 +361,15 @@ char actor_move_try_evasion_vector(int actor_handle, float *evasion_vector,
     found = 0;
     if (*(float *)0x2533c0 < param_4) {
       bsp = (int)global_collision_bsp_get();
-      origin[0] = (((actor_t *)actor)->field_120 + ((actor_t *)actor)->field_12c) *
-                  *(float *)0x253398;
-      origin[1] = (((actor_t *)actor)->field_124 + ((actor_t *)actor)->field_130) *
-                  *(float *)0x253398;
-      origin[2] = (((actor_t *)actor)->field_128 + ((actor_t *)actor)->field_134) *
-                  *(float *)0x253398;
+      origin[0] =
+        (((actor_t *)actor)->field_120 + ((actor_t *)actor)->field_12c) *
+        *(float *)0x253398;
+      origin[1] =
+        (((actor_t *)actor)->field_124 + ((actor_t *)actor)->field_130) *
+        *(float *)0x253398;
+      origin[2] =
+        (((actor_t *)actor)->field_128 + ((actor_t *)actor)->field_134) *
+        *(float *)0x253398;
       direction[0] = scale * evasion_vector[0];
       direction[1] = scale * evasion_vector[1];
       direction[2] = 0.0f;
@@ -543,7 +548,8 @@ int actor_aim_jump(int actor_handle, int a2, char param_3, float param_4,
       return 1;
     }
     if (((actor_t *)actor)->field_530 != 0) {
-      if (((actor_t *)actor)->state_action == 10 && *(int16_t *)(actor + 0xa0) == 3) {
+      if (((actor_t *)actor)->state_action == 10 &&
+          *(int16_t *)(actor + 0xa0) == 3) {
         cVar3 = 1;
       } else {
         cVar3 = param_3;
@@ -1889,7 +1895,8 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
     goto emergency_state;
   }
 
-  if (((actor_t *)actor)->field_5f0 == -1 || ((actor_t *)actor)->field_5f0 >= 0x5a) {
+  if (((actor_t *)actor)->field_5f0 == -1 ||
+      ((actor_t *)actor)->field_5f0 >= 0x5a) {
     float velsq = *(float *)(obj + 0x44) * *(float *)(obj + 0x44) +
                   *(float *)(obj + 0x40) * *(float *)(obj + 0x40) +
                   *(float *)(obj + 0x3c) * *(float *)(obj + 0x3c);
@@ -2202,7 +2209,8 @@ char actor_path_refresh(int actor_handle, char store_distance,
     squad_elem =
       (int)tag_block_get_element((void *)(scenario + 0x42c), ai_idx, 0xb0);
     order_elem = (int)tag_block_get_element(
-      (void *)(squad_elem + 0x98), (int)(short)((actor_t *)actor)->field_470, 0x18);
+      (void *)(squad_elem + 0x98), (int)(short)((actor_t *)actor)->field_470,
+      0x18);
     *(unsigned int *)(actor + 0x488) = *(unsigned int *)(order_elem + 0);
     *(unsigned int *)(actor + 0x48c) = *(unsigned int *)(order_elem + 4);
     *(unsigned int *)(actor + 0x490) = *(unsigned int *)(order_elem + 8);
@@ -2226,7 +2234,8 @@ char actor_path_refresh(int actor_handle, char store_distance,
     squad_elem =
       (int)tag_block_get_element((void *)(scenario + 0x42c), ai_idx, 0xb0);
     order_elem = (int)tag_block_get_element(
-      (void *)(squad_elem + 0x80), (int)(short)((actor_t *)actor)->field_03a, 0xe8);
+      (void *)(squad_elem + 0x80), (int)(short)((actor_t *)actor)->field_03a,
+      0xe8);
     order_idx = ((actor_t *)actor)->field_470;
     if (order_idx < 0) {
       goto LAB_fail;
@@ -2388,7 +2397,8 @@ LAB_check_dest:
      *   the destination -> path_state_build_path failed -> scripted a10 door
      *   grunts could not advance to their firing positions.
      */
-    if (((actor_t *)actor)->control_path_destination_orders_ignore_target_object_index != -1) {
+    if (((actor_t *)actor)
+          ->control_path_destination_orders_ignore_target_object_index != -1) {
       display_assert("actor->control.path.destination_orders."
                      "ignore_target_object_index == NONE",
                      "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0xbbc, 1);
@@ -2423,10 +2433,15 @@ LAB_check_dest:
      *   large_buf at [EBP+0xfffebf14] (82060 bytes = 0x1408c)
      */
     actor_path_input_new(actor_handle, local_nav);
-    if (((actor_t *)actor)->control_path_destination_orders_ignore_target_object_index != -1) {
-      paths_dispose(local_nav, ((actor_t *)actor)->control_path_destination_orders_ignore_target_object_index);
+    if (((actor_t *)actor)
+          ->control_path_destination_orders_ignore_target_object_index != -1) {
+      paths_dispose(
+        local_nav,
+        ((actor_t *)actor)
+          ->control_path_destination_orders_ignore_target_object_index);
     }
-    if ((((actor_t *)actor)->danger_zone_danger_type > 0) && (((actor_t *)actor)->field_28a == '\0') &&
+    if ((((actor_t *)actor)->danger_zone_danger_type > 0) &&
+        (((actor_t *)actor)->field_28a == '\0') &&
         ((*(unsigned char *)(tag + 4) & 0x10) == 0)) {
       path_input_set_attractor(
         local_nav, (float *)(actor + 0x2b0), ((actor_t *)actor)->field_294,
@@ -2439,8 +2454,8 @@ LAB_check_dest:
     }
     path_state = ai_debug_get_path_storage(actor_handle);
     path_state_new(local_nav, large_buf, path_state);
-    FUN_0005e0d0(large_buf, (float *)(actor + 0x488), ((actor_t *)actor)->field_494,
-                 *(int *)(actor + 0x498));
+    FUN_0005e0d0(large_buf, (float *)(actor + 0x488),
+                 ((actor_t *)actor)->field_494, *(int *)(actor + 0x498));
     path_found = FUN_0005ff70((unsigned int *)large_buf);
     if (path_found != '\0') {
       path_found2 = path_state_build_path((unsigned int)large_buf,
@@ -2542,7 +2557,8 @@ void actor_destination_update(int actor_handle)
 
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
 
-  if (((actor_t *)actor)->field_04c != '\0' && ((actor_t *)actor)->field_4a4 == '\0' &&
+  if (((actor_t *)actor)->field_04c != '\0' &&
+      ((actor_t *)actor)->field_4a4 == '\0' &&
       ((actor_t *)actor)->field_013 == '\0') {
     actor_path_refresh(actor_handle, 0, 0);
   }
@@ -3339,8 +3355,7 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
           scratch2[2] = 0.0f;
           vector3d_scale_add((float *)(actor + 0x12c), scratch2, 0.4f,
                              avoid_vec);
-          if (FUN_000639e0((int)scenario_get(),
-                           ((actor_t *)actor)->field_376,
+          if (FUN_000639e0((int)scenario_get(), ((actor_t *)actor)->field_376,
                            (float *)(actor + 0x12c), node_handle, avoid_vec, -1,
                            bsp_scratch) != 0 &&
               accept_threshold <= *(float *)0x255ed4) {
@@ -3518,8 +3533,9 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
     }
   }
 
-  if (((actor_t *)actor)->field_505 == '\0' && ((actor_t *)actor)->field_42e == -1 &&
-      (short)move_type != 0 && (short)move_type != 4) {
+  if (((actor_t *)actor)->field_505 == '\0' &&
+      ((actor_t *)actor)->field_42e == -1 && (short)move_type != 0 &&
+      (short)move_type != 4) {
     display_assert("(facing_direction == _actor_facing_forward) || "
                    "(facing_direction == _actor_facing_free)",
                    "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x6f1, 1);
@@ -3613,13 +3629,15 @@ void actor_move_update(int actor_handle)
   if (valid_real_normal3d((float *)(actor + 0x174)) == 0) {
     display_assert(csprintf((char *)0x5ab100,
                             "%s: assert_valid_real_normal3d(%f, %f, %f)",
-                            (char *)0x255efc, (double)((actor_t *)actor)->input_facing_vector[0],
+                            (char *)0x255efc,
+                            (double)((actor_t *)actor)->input_facing_vector[0],
                             (double)((actor_t *)actor)->input_facing_vector[1],
                             (double)((actor_t *)actor)->input_facing_vector[2]),
                    "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x11e, 1);
     system_exit(-1);
   }
-  ((actor_t *)actor)->control_desired_facing_vector[0] = ((actor_t *)actor)->input_facing_vector[0];
+  ((actor_t *)actor)->control_desired_facing_vector[0] =
+    ((actor_t *)actor)->input_facing_vector[0];
   *(int *)(actor + 0x5a8) = *(int *)(actor + 0x178);
   *(int *)(actor + 0x5ac) = *(int *)(actor + 0x17c);
   ((actor_t *)actor)->field_591 = 0;
@@ -3639,9 +3657,12 @@ void actor_move_update(int actor_handle)
     *(int *)(actor + 0x5ec) = 0;
   } else if (((actor_t *)actor)->field_15e == 4) {
     if (((actor_t *)actor)->field_504 == '\0') {
-      vec_scratch[0] = ((actor_t *)actor)->input_facing_vector[0] * *(float *)0x254644;
-      vec_scratch[1] = ((actor_t *)actor)->input_facing_vector[1] * *(float *)0x254644;
-      vec_scratch[2] = ((actor_t *)actor)->input_facing_vector[2] * *(float *)0x254644;
+      vec_scratch[0] =
+        ((actor_t *)actor)->input_facing_vector[0] * *(float *)0x254644;
+      vec_scratch[1] =
+        ((actor_t *)actor)->input_facing_vector[1] * *(float *)0x254644;
+      vec_scratch[2] =
+        ((actor_t *)actor)->input_facing_vector[2] * *(float *)0x254644;
       src = (char *)vec_scratch;
     } else {
       src = actor + 0x518;
@@ -3765,9 +3786,12 @@ void actor_move_update(int actor_handle)
             if (normalize3d(vec_scratch) == *(float *)0x2533c0) {
               ((actor_t *)actor)->field_58d = 1;
             } else {
-              ((actor_t *)actor)->control_desired_facing_vector[0] = vec_scratch[0];
-              ((actor_t *)actor)->control_desired_facing_vector[1] = vec_scratch[1];
-              ((actor_t *)actor)->control_desired_facing_vector[2] = vec_scratch[2];
+              ((actor_t *)actor)->control_desired_facing_vector[0] =
+                vec_scratch[0];
+              ((actor_t *)actor)->control_desired_facing_vector[1] =
+                vec_scratch[1];
+              ((actor_t *)actor)->control_desired_facing_vector[2] =
+                vec_scratch[2];
               ((actor_t *)actor)->field_58d = 0;
               ((actor_t *)actor)->field_58e = 0;
               ((actor_t *)actor)->field_591 = 1;
@@ -3787,7 +3811,8 @@ void actor_move_update(int actor_handle)
     } else {
       ((actor_t *)actor)->field_504 = 0;
       ((actor_t *)actor)->field_50a = 0;
-      if (*(int16_t *)(actor + 4) == 0xf || ((actor_t *)actor)->field_161 != '\0') {
+      if (*(int16_t *)(actor + 4) == 0xf ||
+          ((actor_t *)actor)->field_161 != '\0') {
         ((actor_t *)actor)->field_58d = 1;
       } else {
         ((actor_t *)actor)->field_58d = 0;
@@ -3796,7 +3821,8 @@ void actor_move_update(int actor_handle)
       ((actor_t *)actor)->field_58e = 0;
     }
   } else {
-    vehicle = (char *)object_get_and_verify_type(((actor_t *)actor)->field_158, 2);
+    vehicle =
+      (char *)object_get_and_verify_type(((actor_t *)actor)->field_158, 2);
     vehicle_tag = (char *)tag_get(0x76656869, *(int *)vehicle);
     arg4 = *(float *)(vehicle_tag + 0x3a0);
     if (*(float *)0x2533c0 < *(float *)(vehicle_tag + 0x3a4)) {
@@ -3855,7 +3881,8 @@ void actor_move_update(int actor_handle)
     } else {
       ((actor_t *)actor)->field_504 = 0;
       ((actor_t *)actor)->field_50a = 0;
-      if (*(int16_t *)(actor + 4) == 0xf || ((actor_t *)actor)->field_161 != '\0') {
+      if (*(int16_t *)(actor + 4) == 0xf ||
+          ((actor_t *)actor)->field_161 != '\0') {
         ((actor_t *)actor)->field_58d = 1;
       } else {
         ((actor_t *)actor)->field_58d = 0;
@@ -3905,13 +3932,13 @@ seed_fallback:
   }
 
   if (valid_real_normal3d((float *)(actor + 0x5a4)) == 0) {
-    display_assert(csprintf((char *)0x5ab100,
-                            "%s: assert_valid_real_normal3d(%f, %f, %f)",
-                            "&actor->control.desired_facing_vector",
-                            (double)((actor_t *)actor)->control_desired_facing_vector[0],
-                            (double)((actor_t *)actor)->control_desired_facing_vector[1],
-                            (double)((actor_t *)actor)->control_desired_facing_vector[2]),
-                   "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x28f, 1);
+    display_assert(
+      csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+               "&actor->control.desired_facing_vector",
+               (double)((actor_t *)actor)->control_desired_facing_vector[0],
+               (double)((actor_t *)actor)->control_desired_facing_vector[1],
+               (double)((actor_t *)actor)->control_desired_facing_vector[2]),
+      "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x28f, 1);
     system_exit(-1);
   }
   if (clear_firing != '\0' && ((actor_t *)actor)->field_504 == '\0') {
@@ -3934,13 +3961,16 @@ seed_fallback:
   if (((actor_t *)actor)->field_418 == -1 &&
       (((actor_t *)actor)->field_018 == -1 ||
        unit_is_busy(((actor_t *)actor)->field_018) == 0) &&
-      ((actor_t *)actor)->field_158 == -1 && ((actor_t *)actor)->field_15c == '\0' &&
-      ((actor_t *)actor)->field_378 != '\0' && ((actor_t *)actor)->field_379 == '\0') {
+      ((actor_t *)actor)->field_158 == -1 &&
+      ((actor_t *)actor)->field_15c == '\0' &&
+      ((actor_t *)actor)->field_378 != '\0' &&
+      ((actor_t *)actor)->field_379 == '\0') {
     forward[0] = ((actor_t *)actor)->input_facing_vector[0];
     forward[1] = ((actor_t *)actor)->input_facing_vector[1];
     handle = -1;
     if (((actor_t *)actor)->target_target_prop_index != -1) {
-      src = (char *)datum_get(*(data_t **)0x5ab23c, ((actor_t *)actor)->target_target_prop_index);
+      src = (char *)datum_get(*(data_t **)0x5ab23c,
+                              ((actor_t *)actor)->target_target_prop_index);
       forward[0] = *(float *)(src + 0xe0);
       forward[1] = *(float *)(src + 0xe4);
       handle = *(int *)(src + 0x18);
@@ -3958,11 +3988,13 @@ seed_fallback:
     actor_unit_control_jump(actor_handle);
     goto store_prev;
   }
-  if (((actor_t *)actor)->field_15c != '\0' || ((actor_t *)actor)->field_158 != -1) {
+  if (((actor_t *)actor)->field_15c != '\0' ||
+      ((actor_t *)actor)->field_158 != -1) {
     ((actor_t *)actor)->field_530 = 0;
     goto store_prev;
   }
-  if (FUN_0002a360(actor_handle) != '\0' || ((actor_t *)actor)->field_440 == '\0') {
+  if (FUN_0002a360(actor_handle) != '\0' ||
+      ((actor_t *)actor)->field_440 == '\0') {
     goto store_prev;
   }
   if (((actor_t *)actor)->field_441 == '\0') {
