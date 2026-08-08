@@ -8,8 +8,17 @@ when the assistant is about to DEPLOY or COMMIT a lift — which has nothing to 
 with how the user phrased anything. This hook watches Bash commands and injects a
 terse reminder at exactly that moment.
 
-Non-blocking: emits {"systemMessage": ...} and exits 0 (never denies the tool).
+Two modes per action:
+  "block"  — deny-once-with-reason: the FIRST matching call inside the dedupe
+             window is denied with the gate checklist as the reason; the retry
+             passes (the deny records the dedupe stamp). Guarantees the model
+             actually sees the gate — a plain systemMessage is droppable by
+             output-filtering wrappers, a permissionDecision is not.
+  "advise" — non-blocking {"systemMessage": ...} as before.
+
 Deduped so the same action doesn't nag repeatedly. Silent for everything else.
+NOTE: hook commands in .claude/settings.json must NOT be wrapped in `rtk` —
+the proxy filters stdout, which silently ate every hook message (2026-08-08).
 """
 
 from __future__ import annotations
@@ -25,22 +34,31 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 STATE_PATH = REPO_ROOT / ".claude" / "agent-memory" / "action_skill_router_state.json"
 DEDUPE_WINDOW = 300  # seconds
 
-# (category, command regex, skills, reminder)
-ACTIONS: list[tuple[str, re.Pattern[str], str]] = [
+# (category, mode, command regex, reminder)
+ACTIONS: list[tuple[str, str, re.Pattern[str], str]] = [
     (
         "deploy",
-        re.compile(r"build_deploy_run|--xbe-only|xbdm.*(send|setmem)|\bdeploy\b|/deploy", re.IGNORECASE),
-        "[skill-router:deploy] About to deploy to Xbox. The box is the only oracle for "
-        "SILENT (non-crashing) lift bugs — wrong color/tint, invisible geometry, no-op "
-        "effects. Apply `lift-silent-bugs` (its §6/§8/§11/§16/§17 checklist) and confirm "
-        "`bug-hunt` is clean on your changed files BEFORE this deploy.",
+        "block",
+        # Match actual deploy invocations only — a bare \bdeploy\b also matched
+        # the word inside commit messages / echoed text (live false positive
+        # 2026-08-08) and denied unrelated commands.
+        re.compile(r"build_deploy_run|--xbe-only|xbdm.*(send|setmem)|deploy\.(py|sh)|(^|\s)/deploy\b", re.IGNORECASE),
+        "[skill-router:deploy] GATE (deny-once; rerun the same command to proceed). "
+        "The box is the only oracle for SILENT (non-crashing) lift bugs — wrong "
+        "color/tint, invisible geometry, no-op effects. Before rerunning: apply "
+        "`lift-silent-bugs` (§6/§8/§11/§16/§17 checklist) and confirm `bug-hunt` is "
+        "clean on your changed files.",
     ),
     (
         "commit",
+        "block",
         re.compile(r"git\s+commit", re.IGNORECASE),
-        "[skill-router:commit] Committing. If this includes a lift, ensure `bug-hunt` "
-        "(hazard + ABI + reg-arg scan) ran clean on the changed files; amend if it "
-        "surfaces anything.",
+        "[skill-router:commit] GATE (deny-once; rerun the same command to proceed). "
+        "If this commit includes lift/score work, confirm before rerunning: (1) "
+        "check_lift_hazards --staged-only clean, (2) VC71/score gate ran "
+        "(lift_pipeline or score_improve check), (3) for new lifts the /lift or "
+        "/auto-lift route was used and xbox-halo-lift-reviewer has reviewed the "
+        "result. If all already done, just rerun the command.",
     ),
     (
         # The lift-* hazard skills are keyed on mid-analysis jargon (`add esp`,
@@ -49,6 +67,7 @@ ACTIONS: list[tuple[str, re.Pattern[str], str]] = [
         # action-time moment they matter — when VC71 comes back low, the fix is a
         # call-site / arg / buffer-frame audit. Surface them here as a backstop.
         "lift-verify",
+        "advise",
         re.compile(r"vc71_verify|lift_pipeline\.py|objdiff_lift|/verify\b", re.IGNORECASE),
         "[skill-router:lift-verify] Verifying a lift. If the match is low or a call "
         "site looks off, apply `lift-decompiler-traps` (covering register aliasing, "
@@ -93,11 +112,20 @@ def main() -> int:
     if not command:
         return 0
 
-    for category, pattern, message in ACTIONS:
+    for category, mode, pattern, message in ACTIONS:
         if pattern.search(command):
             if _recently_ran(category):
                 return 0
-            print(json.dumps({"systemMessage": message}))
+            if mode == "block":
+                print(json.dumps({
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "deny",
+                        "permissionDecisionReason": message,
+                    }
+                }))
+            else:
+                print(json.dumps({"systemMessage": message}))
             return 0
     return 0
 

@@ -34,13 +34,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/memory/skill_router_hook.py --surface claude",
+            "command": "cd $(git rev-parse --show-toplevel) && python3 tools/memory/skill_router_hook.py --surface claude",
             "timeout": 5,
             "statusMessage": "Skill router: matching local Halo skills"
           },
           {
             "type": "command",
-            "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/memory/prior_fix_hook.py --surface claude",
+            "command": "cd $(git rev-parse --show-toplevel) && python3 tools/memory/prior_fix_hook.py --surface claude",
             "timeout": 25,
             "statusMessage": "Prior-fix router: checking local bug memory"
           },
@@ -59,7 +59,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/memory/action_skill_router.py",
+            "command": "cd $(git rev-parse --show-toplevel) && python3 tools/memory/action_skill_router.py",
             "timeout": 5,
             "statusMessage": "Action router: commit/deploy skill reminders"
           }
@@ -83,7 +83,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/audit/token_discipline_hook.py",
+            "command": "cd $(git rev-parse --show-toplevel) && python3 tools/audit/token_discipline_hook.py",
             "timeout": 10,
             "statusMessage": "Token-discipline tracker"
           }
@@ -94,7 +94,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path // \"\"' | { read -r f; [[ \"$f\" == src/* || \"$f\" == *kb.json ]] && cd /mnt/g/dev/halo && rtk python3 tools/audit/check_lift_hazards.py --changed-only 2>&1 | head -60; } 2>/dev/null || true",
+            "command": "jq -r '.tool_input.file_path // \"\"' | { read -r f; [[ \"$f\" == src/* || \"$f\" == *kb.json ]] && cd $(git rev-parse --show-toplevel) && python3 tools/audit/check_lift_hazards.py --changed-only 2>&1 | head -60; } 2>/dev/null || true",
             "timeout": 15,
             "statusMessage": "Bug-hunt T0: scanning changed files for lift hazards"
           }
@@ -105,13 +105,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/retrieval/decompile_hook.py",
+            "command": "cd $(git rev-parse --show-toplevel) && python3 tools/retrieval/decompile_hook.py",
             "timeout": 15,
             "statusMessage": "Retrieval: finding similar ported functions"
           },
           {
             "type": "command",
-            "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/retrieval/enrichment_hook.py",
+            "command": "cd $(git rev-parse --show-toplevel) && python3 tools/retrieval/enrichment_hook.py",
             "timeout": 5,
             "statusMessage": "Enrichment: injecting cached callee/struct/alias analysis"
           }
@@ -124,13 +124,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/audit/structural_ceiling_hook.py",
+            "command": "cd $(git rev-parse --show-toplevel) && python3 tools/audit/structural_ceiling_hook.py",
             "timeout": 10,
             "statusMessage": "Structural-ceiling guard: checking for premature ceiling declarations"
           },
           {
             "type": "command",
-            "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/audit/token_discipline_hook.py",
+            "command": "cd $(git rev-parse --show-toplevel) && python3 tools/audit/token_discipline_hook.py",
             "timeout": 10,
             "statusMessage": "Emit token-discipline summary"
           }
@@ -143,13 +143,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/audit/structural_ceiling_hook.py",
+            "command": "cd $(git rev-parse --show-toplevel) && python3 tools/audit/structural_ceiling_hook.py",
             "timeout": 10,
             "statusMessage": "Structural-ceiling guard: checking for premature ceiling declarations"
           },
           {
             "type": "command",
-            "command": "cd $(git rev-parse --show-toplevel) && rtk python3 tools/audit/token_discipline_hook.py",
+            "command": "cd $(git rev-parse --show-toplevel) && python3 tools/audit/token_discipline_hook.py",
             "timeout": 10,
             "statusMessage": "Emit token-discipline summary"
           }
