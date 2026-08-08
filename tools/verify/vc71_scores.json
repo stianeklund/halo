@@ -3367,6 +3367,11 @@
       "score": 77.2,
       "source": "src/halo/camera/observer.c"
     },
+    "FUN_0008d410": {
+      "opnd_percent": 97.6,
+      "score": 98.0,
+      "source": "src/halo/camera/static_camera.c"
+    },
     "FUN_0008d830": {
       "score": 100.0,
       "source": "src/halo/cseries/cseries.c"

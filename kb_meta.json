@@ -2557,10 +2557,12 @@
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "The three stack arguments are cdecl camera, action, and result pointers at EBP+0x8, +0xc, and +0x10, respectively."
+        "The three stack arguments are cdecl camera, action, and result pointers at EBP+0x8, +0xc, and +0x10, respectively.",
+        "The camera and result layouts remain represented by binary-confirmed raw offsets because semantic field names are not established."
       ],
       "uncertain": [
-        "Camera and result field semantics remain unproven, so the lift uses byte-addressed offsets rather than a speculative struct."
+        "Camera and result field semantics remain unproven, so the lift uses byte-addressed offsets rather than a speculative struct.",
+        "No direct caller was recovered by Ghidra, so caller-side argument preparation remains unverified despite the callee's EBP stack offsets."
       ]
     },
     "0x8d830": {

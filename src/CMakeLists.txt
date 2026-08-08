@@ -27,6 +27,7 @@
 	halo/bink/bink_playback.c
 	halo/bink/bink_sound.c
 	halo/camera/bored_camera.c
+	halo/camera/static_camera.c
 	halo/camera/director.c
 	halo/camera/observer.c
 	halo/common.c
@@ -179,4 +180,3 @@ halo/rasterizer/rasterizer_text.c
 	endif()
 
 	target_sources(halo PRIVATE ${HALO_SOURCES})
-

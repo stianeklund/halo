@@ -37532,8 +37532,10 @@
    "source_path": "src/halo/camera/static_camera.c",
    "functions": [
     {
-     "addr": "0x8d410",
-     "decl": "void FUN_0008d410(void);"
+    "addr": "0x8d410",
+    "decl": "void FUN_0008d410(void *camera, int action, void *result);",
+    "ported": true,
+    "source_path": "halo/camera/static_camera.c"
     }
    ]
   },
