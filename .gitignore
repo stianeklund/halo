@@ -104,6 +104,14 @@ artifacts/*snapshot*.json
 # Equivalence-test artifacts — must NEVER be committed (game-state snapshots, logs, dumps)
 artifacts/equivalence/
 artifacts/memory_dumps/
+# CI snapshot fixture: derived from a live RAM capture, so it embeds raw game
+# memory and must stay local. See docs/repository-artifact-cleanup.md.
+/ci/snapshot.json
+# Golden waveform tables: read straight out of the unpatched cachebeta.xbe (see
+# the docstring of tools/verify/test_periodic_tables.py), so they are original
+# game data, not synthetic fixtures. Regenerate locally from a real Xbox/XBDM
+# read instead of committing them.
+tests/golden/periodic_tables/*.bin
 
 # Ephemeral repo-local state
 /.claude/scheduled_tasks.lock

@@ -94,6 +94,7 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
   char *actr_tag;
   char *encounter;
   char return_flag;
+  int completion_state;
   int is_secondary;
   int melee_tick_count;
   float attack_time;
@@ -119,126 +120,125 @@ char FUN_00013ef0(int actor_handle, int action_type, void *charge_state)
   csmemset(charge_state, 0, 0x38);
   *(int *)charge_state = game_time_get();
 
-  if ((short)action_type == 5 || (short)action_type == 4)
-    goto case_invade_retreat;
-  if ((short)action_type != 2)
-    goto case_default;
-
-  /* action_type == 2: melee charge */
-  if (((actor_t *)actor)->field_006) {
-    return_flag = 0;
-    *(int16_t *)(actor_state + 0x190) = 2;
-    goto done;
-  }
-  /* Original zeroes return_flag unconditionally here (0x13fe4: MOV byte
-   * [EBP-0x1],0 before the JNS) — the rest of the melee path is pessimistic:
-   * fail reasons 3-6 all return 0; only reason 7 re-sets 1. */
-  return_flag = 0;
-  if (*(int8_t *)((char *)object_get_and_verify_type(
-                    ((actor_t *)actor)->field_018, 3) +
-                  0xb6) < 0) {
-    return_flag = 0;
-    *(int16_t *)(actor_state + 0x190) = 3;
-    goto done;
-  }
-  enc_handle = ((actor_t *)actor)->target_target_prop_index;
-  if (enc_handle == -1) {
-    return_flag = 0;
-    *(int16_t *)(actor_state + 0x190) = 4;
-    goto done;
-  }
-
-  encounter = (char *)datum_get(*(data_t **)0x5ab23c, enc_handle);
-
-  /* determine is_secondary (lunge vs normal melee) */
-  if (*(float *)(actr_tag + 0x388) == *(float *)0x2533c0 ||
-      *(float *)(actr_tag + 0x390) == *(float *)0x2533c0) {
-    *(char *)((char *)charge_state + 0xa) = 0;
-    is_secondary = 0;
-  } else if (*(char *)(encounter + 0x130) == 0 &&
-             *(int16_t *)(encounter + 0x9c) <= 0) {
-    rand_val =
-      random_math_real((unsigned int *)get_global_random_seed_address());
-    if (rand_val < *(float *)(actr_tag + 0x390))
-      is_secondary = 1;
-    else
-      is_secondary = 0;
-    *(char *)((char *)charge_state + 0xa) = (char)is_secondary;
-    if (*(float *)(encounter + 0x11c) < *(float *)(actr_tag + 0x384)) {
-      is_secondary = 0;
+  if ((short)action_type == 5 || (short)action_type == 4) {
+    return_flag = (char)(((actor_t *)actor)->field_15e > 1);
+    completion_state = return_flag == '\0';
+  } else if ((short)action_type == 2) {
+    /* action_type == 2: melee charge */
+    if (((actor_t *)actor)->field_006) {
+      return_flag = 0;
+      completion_state = 2;
     } else {
-      if (is_secondary)
-        action_type = 3;
-    }
-  } else {
-    *(char *)((char *)charge_state + 0xa) = 1;
-    is_secondary = 1;
-    action_type = 3;
-  }
-  *(char *)(actor_state + 0x198) = is_secondary;
+      /* Original zeroes return_flag unconditionally here (0x13fe4: MOV byte
+       * [EBP-0x1],0 before the JNS) — the rest of the melee path is pessimistic:
+       * fail reasons 3-6 all return 0; only reason 7 re-sets 1. */
+      return_flag = 0;
+      if (*(int8_t *)((char *)object_get_and_verify_type(
+                        ((actor_t *)actor)->field_018, 3) +
+                      0xb6) < 0) {
+        return_flag = 0;
+        completion_state = 3;
+      } else {
+        enc_handle = ((actor_t *)actor)->target_target_prop_index;
+        if (enc_handle == -1) {
+          return_flag = 0;
+          completion_state = 4;
+        } else {
+          encounter = (char *)datum_get(*(data_t **)0x5ab23c, enc_handle);
 
-  if (!unit_get_melee_range_and_ticks(
-        ((actor_t *)actor)->field_018, is_secondary, &melee_tick_count,
-        &attack_time, &tick_count_short, &damage_time)) {
-    *(int16_t *)(actor_state + 0x190) = 5;
-    goto done;
-  }
+          /* determine is_secondary (lunge vs normal melee) */
+          if (*(float *)(actr_tag + 0x388) == *(float *)0x2533c0 ||
+              *(float *)(actr_tag + 0x390) == *(float *)0x2533c0) {
+            *(char *)((char *)charge_state + 0xa) = 0;
+            is_secondary = 0;
+          } else if (*(char *)(encounter + 0x130) == 0 &&
+                     *(int16_t *)(encounter + 0x9c) <= 0) {
+            rand_val = random_math_real(
+              (unsigned int *)get_global_random_seed_address());
+            if (rand_val < *(float *)(actr_tag + 0x390))
+              is_secondary = 1;
+            else
+              is_secondary = 0;
+            *(char *)((char *)charge_state + 0xa) = (char)is_secondary;
+            if (*(float *)(encounter + 0x11c) <
+                *(float *)(actr_tag + 0x384)) {
+              is_secondary = 0;
+            } else {
+              if (is_secondary)
+                action_type = 3;
+            }
+          } else {
+            *(char *)((char *)charge_state + 0xa) = 1;
+            is_secondary = 1;
+            action_type = 3;
+          }
+          *(char *)(actor_state + 0x198) = is_secondary;
 
-  if (*(int *)actr_tag & 0x8000000) {
-    /* dual-wield: use weapon tick count directly */
-    *(int16_t *)((char *)charge_state + 0x32) = tick_count_short;
-    *(int *)((char *)charge_state + 0x34) = 0;
-    *(char *)((char *)charge_state + 0x30) = 1;
-  } else {
-    if (!(int16_t)melee_tick_count) {
-      actv_tag = (char *)tag_get(0x61637476, ((actor_t *)actor)->field_05c);
-      if (*(int *)(actv_tag + 0x8)) {
-        error(2, "actor %s melee animation has no damage keyframe",
-              *(int *)(actv_tag + 0x8));
+          if (!unit_get_melee_range_and_ticks(
+                ((actor_t *)actor)->field_018, is_secondary, &melee_tick_count,
+                &attack_time, &tick_count_short, &damage_time)) {
+            completion_state = 5;
+          } else {
+            if (*(int *)actr_tag & 0x8000000) {
+              /* dual-wield: use weapon tick count directly */
+              *(int16_t *)((char *)charge_state + 0x32) = tick_count_short;
+              *(int *)((char *)charge_state + 0x34) = 0;
+              *(char *)((char *)charge_state + 0x30) = 1;
+            } else {
+              if (!(int16_t)melee_tick_count) {
+                actv_tag =
+                  (char *)tag_get(0x61637476, ((actor_t *)actor)->field_05c);
+                if (*(int *)(actv_tag + 0x8)) {
+                  error(2, "actor %s melee animation has no damage keyframe",
+                        *(int *)(actv_tag + 0x8));
+                }
+                melee_tick_count = (int16_t)tick_count_short / 2;
+                attack_time = damage_time * *(float *)0x253398;
+              }
+              *(int16_t *)((char *)charge_state + 0x32) =
+                (int16_t)melee_tick_count;
+              *(float *)((char *)charge_state + 0x34) =
+                damage_time - attack_time;
+            }
+
+            speed = FUN_00012ad0(actor_handle, action_type, charge_state);
+            *(float *)((char *)charge_state + 0x2c) = speed;
+
+            min_speed = ((short)action_type == 3) ? *(float *)0x2533d8
+                                                  : *(float *)0x2533ec;
+            if (speed < min_speed)
+              speed = min_speed;
+
+            if (actor_move_to_prop(
+                  actor_handle, ((actor_t *)actor)->target_target_prop_index,
+                  speed)) {
+              FUN_0002a330(actor_handle);
+              if (FUN_00013dd0(actor_handle, (float *)(encounter + 0xc8))) {
+                return_flag = 1;
+                completion_state = 7;
+              } else {
+                completion_state = 6;
+                *(float *)(actor_state + 0x194) = speed;
+              }
+            } else {
+              completion_state = 6;
+              *(float *)(actor_state + 0x194) = speed;
+            }
+          }
+        }
       }
-      melee_tick_count = (int16_t)tick_count_short / 2;
-      attack_time = damage_time * *(float *)0x253398;
     }
-    *(int16_t *)((char *)charge_state + 0x32) = (int16_t)melee_tick_count;
-    *(float *)((char *)charge_state + 0x34) = damage_time - attack_time;
-  }
-
-  speed = FUN_00012ad0(actor_handle, action_type, charge_state);
-  *(float *)((char *)charge_state + 0x2c) = speed;
-
-  min_speed =
-    ((short)action_type == 3) ? *(float *)0x2533d8 : *(float *)0x2533ec;
-  if (speed < min_speed)
-    speed = min_speed;
-
-  if (actor_move_to_prop(actor_handle,
-                         ((actor_t *)actor)->target_target_prop_index, speed)) {
-    FUN_0002a330(actor_handle);
-    if (FUN_00013dd0(actor_handle, (float *)(encounter + 0xc8))) {
-      return_flag = 1;
-      *(int16_t *)(actor_state + 0x190) = 7;
-      goto done;
-    }
-  }
-  *(int16_t *)(actor_state + 0x190) = 6;
-  *(float *)(actor_state + 0x194) = speed;
-  goto done;
-
-case_default:
-  if ((short)action_type == 0 && (*(int *)actr_tag & 0x20000) &&
-      ((actor_t *)actor)->field_06e >= 5 && !((actor_t *)actor)->field_378) {
-    action_type = 1;
-    *(int16_t *)(actor_state + 0x190) = 8;
   } else {
-    *(int16_t *)(actor_state + 0x190) = 9;
+    if ((short)action_type == 0 && (*(int *)actr_tag & 0x20000) &&
+        ((actor_t *)actor)->field_06e >= 5 && !((actor_t *)actor)->field_378) {
+      action_type = 1;
+      completion_state = 8;
+    } else {
+      completion_state = 9;
+    }
   }
-  goto done;
 
-case_invade_retreat:
-  return_flag = (char)(((actor_t *)actor)->field_15e > 1);
-  *(int16_t *)(actor_state + 0x190) = (int16_t)(return_flag == '\0');
-
-done:
+  *(int16_t *)(actor_state + 0x190) = (int16_t)completion_state;
   *(int16_t *)((char *)charge_state + 0x4) = (int16_t)action_type;
   return return_flag;
 }
@@ -2511,6 +2511,7 @@ void FUN_000169a0(volatile int actor_handle, int unit_handle,
 {
   char *actor;
   char *scenario;
+  char *command_list;
   char *cmd_entry;
   int cmd_type;
   int idx;
@@ -2520,16 +2521,16 @@ void FUN_000169a0(volatile int actor_handle, int unit_handle,
 
   actor = (char *)datum_get(actor_data, actor_handle);
   scenario = (char *)global_scenario_get();
-  cmd_entry =
+  command_list =
     (char *)tag_block_get_element(scenario + 0x438, (int)scenario_idx, 0x60);
 
   sp = (char *)state_ptr; /* ESI: state block */
 
   idx = (int)(unsigned char)sp[0];
-  if (idx >= *(int *)(cmd_entry + 0x30)) {
+  if (idx >= *(int *)(command_list + 0x30)) {
     return;
   }
-  cmd_entry = (char *)tag_block_get_element(cmd_entry + 0x30, idx, 0x20);
+  cmd_entry = (char *)tag_block_get_element(command_list + 0x30, idx, 0x20);
 
   cmd_type = (int)*(short *)cmd_entry - 1;
   if ((unsigned int)cmd_type > 0x18) {
@@ -2581,32 +2582,32 @@ void FUN_000169a0(volatile int actor_handle, int unit_handle,
     break;
   case 0x13: /* case 0x14 */
     if (*(short *)(cmd_entry + 2) == 1) {
-      char flags = sp[4];
-      char flag_bit = (char)(~(flags >> 3) & 1);
-      flags = flags & (char)0xf7;
-      sp[4] = flags;
-      if (flag_bit == 0) {
-        flags = flags & (char)0xef;
-        sp[4] = flags;
+      unsigned char flags = (unsigned char)sp[4];
+      unsigned char flag_bit = (unsigned char)(~(flags >> 3) & 1);
+      flags = (unsigned char)(flags & 0xf7);
+      sp[4] = (char)flags;
+      if (flag_bit != 0) {
+        flags = (unsigned char)(flags | 0x10);
+        sp[4] = (char)flags;
+      } else {
+        flags = (unsigned char)(flags & 0xef);
+        sp[4] = (char)flags;
         return;
       }
-      flags = flags | (char)0x10;
-      sp[4] = flags;
     }
     if (*(short *)(cmd_entry + 0x16) == (short)(unsigned char)sp[0]) {
       ai_debug_describe_actor(actor_handle, -1, 1, local_buf, 0x200);
       error(2, "%s: command list %s entry #%d tried to loop to itself",
-            (int)local_buf, (int)cmd_entry, (int)(unsigned char)sp[0]);
+            (int)local_buf, (int)command_list, (int)(unsigned char)sp[0]);
       return;
     }
     if ((unsigned char)sp[1] >= 10) {
       ai_debug_describe_actor(actor_handle, -1, 1, local_buf, 0x200);
       error(2, "%s: command list %s is stuck looping (aborting on loop #%d)",
-            (int)local_buf, (int)cmd_entry, (int)(unsigned char)sp[0]);
+            (int)local_buf, (int)command_list, (int)(unsigned char)sp[0]);
       return;
     }
-    if (out_index != NULL)
-      *out_index = *(char *)(cmd_entry + 0x16);
+    *out_index = *(char *)(cmd_entry + 0x16);
     sp[1]++;
     return;
   default:
@@ -2954,7 +2955,10 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
 {
   int cmd_type;
   int sub_type;
-  const char *mode_names[5] = { 0, 0, 0, 0, 0 };
+  const char *mode_names[5] = {
+    "idle aim weapon", "idle turn around", "idle look with head",
+    "forced exact facing", "forced aim weapon"
+  };
 
   cmd_type = cmd[0];
   sub_type = cmd[1];
@@ -2966,11 +2970,6 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
 
   switch (cmd_type) {
   case 1: {
-    mode_names[0] = "idle aim weapon";
-    mode_names[1] = "idle turn around";
-    mode_names[2] = "idle look with head";
-    mode_names[3] = "forced exact facing";
-    mode_names[4] = "forced aim weapon";
     snprintf(out_buf, out_size, "go to (p%d) %s", cmd[6], mode_names[sub_type]);
     return;
   }
@@ -2978,52 +2977,40 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     snprintf(out_buf, out_size, "go to (p%d) and face (p%d)", cmd[6], cmd[7]);
     return;
   case 3: {
-    mode_names[0] = "forwards";
-    mode_names[1] = "left";
-    mode_names[2] = "right";
-    mode_names[3] = "backwards";
-    mode_names[4] = "any-facing";
+    const char *move_names[5] = {
+      "forwards", "left", "right", "backwards", "any-facing"
+    };
     if (cmd[6] == -1) {
       snprintf(out_buf, out_size, "move %s along angle %.1f, dist %.2f",
-               mode_names[sub_type], *(float *)(cmd + 4), *(float *)(cmd + 2));
+               move_names[sub_type], *(float *)(cmd + 4), *(float *)(cmd + 2));
       return;
     }
     snprintf(out_buf, out_size, "move %s towards (p%d), dist %.2f",
-             mode_names[sub_type], cmd[6], *(float *)(cmd + 2));
+             move_names[sub_type], cmd[6], *(float *)(cmd + 2));
     return;
   }
   case 22: {
-    mode_names[0] = "forwards";
-    mode_names[1] = "left";
-    mode_names[2] = "right";
-    mode_names[3] = "backwards";
-    snprintf(out_buf, out_size, "move %s for %.1f sec", mode_names[sub_type],
+    const char *move_names[4] = { "forwards", "left", "right", "backwards" };
+    snprintf(out_buf, out_size, "move %s for %.1f sec", move_names[sub_type],
              *(float *)(cmd + 2));
     return;
   }
   case 4: {
-    mode_names[0] = "idle aim weapon";
-    mode_names[1] = "idle turn around";
-    mode_names[2] = "idle look with head";
-    mode_names[3] = "forced exact facing";
-    mode_names[4] = "forced aim weapon";
     snprintf(out_buf, out_size, "look %s at (p%d) for %.1f",
              mode_names[sub_type], cmd[6], *(float *)(cmd + 2));
     return;
   }
   case 5: {
-    mode_names[0] = "idle aim weapon";
-    mode_names[1] = "noncombat";
-    mode_names[2] = "asleep";
-    mode_names[3] = "combat";
-    mode_names[4] = "panic";
-    snprintf(out_buf, out_size, "animation mode %s", mode_names[sub_type + 1]);
+    const char *animation_modes[5] = {
+      "idle aim weapon", "noncombat", "asleep", "combat", "panic"
+    };
+    snprintf(out_buf, out_size, "animation mode %s",
+             animation_modes[sub_type + 1]);
     return;
   }
   case 6: {
-    mode_names[0] = "disable";
-    mode_names[1] = "enable";
-    snprintf(out_buf, out_size, "crouch %s", mode_names[sub_type]);
+    const char *toggle_names[2] = { "disable", "enable" };
+    snprintf(out_buf, out_size, "crouch %s", toggle_names[sub_type]);
     return;
   }
   case 7:
@@ -3034,13 +3021,11 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     snprintf(out_buf, out_size, "throw grenade at (p%d)", cmd[6]);
     return;
   case 9: {
-    mode_names[0] = "any-non-driver";
-    mode_names[1] = "gunner";
-    mode_names[2] = "passenger";
-    mode_names[3] = "driver";
-    mode_names[4] = "any-seat";
+    const char *seat_names[5] = {
+      "any-non-driver", "gunner", "passenger", "driver", "any-seat"
+    };
     snprintf(out_buf, out_size, "enter vehicle as %s if within %.1f",
-             mode_names[sub_type], *(float *)(cmd + 2));
+             seat_names[sub_type], *(float *)(cmd + 2));
     return;
   }
   case 10:
@@ -3055,15 +3040,14 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     return;
   case 12: {
     char *name;
-    mode_names[0] = "wait-for-finish";
-    mode_names[1] = "wake-and-continue";
+    const char *script_modes[2] = { "wait-for-finish", "wake-and-continue" };
     name = "<error>";
     if (cmd[9] == -1)
       name = "NONE";
     else if (cmd[9] >= 0 && cmd[9] < *(int *)((char *)scenario_data + 0x450))
       name = (char *)tag_block_get_element((char *)scenario_data + 0x450,
                                            cmd[9], 0x28);
-    snprintf(out_buf, out_size, "script %s %s", name, mode_names[sub_type]);
+    snprintf(out_buf, out_size, "script %s %s", name, script_modes[sub_type]);
     return;
   }
   case 13: {
@@ -3103,36 +3087,33 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     snprintf(out_buf, out_size, "vocalize %s", FUN_001a67b0(sub_type, 0));
     return;
   case 17: {
-    mode_names[0] = "enable";
-    mode_names[1] = "disable";
-    snprintf(out_buf, out_size, "targeting %s", mode_names[sub_type]);
+    const char *toggle_names[2] = { "enable", "disable" };
+    snprintf(out_buf, out_size, "targeting %s", toggle_names[sub_type]);
     return;
   }
   case 18: {
-    mode_names[0] = "enable";
-    mode_names[1] = "disable";
-    snprintf(out_buf, out_size, "initiative %s", mode_names[sub_type]);
+    const char *toggle_names[2] = { "enable", "disable" };
+    snprintf(out_buf, out_size, "initiative %s", toggle_names[sub_type]);
     return;
   }
   case 19: {
-    mode_names[0] = "until alerted";
-    mode_names[1] = "until visible enemy";
-    mode_names[2] = "until told to advance";
-    snprintf(out_buf, out_size, "wait %s", mode_names[sub_type]);
+    const char *wait_modes[3] = {
+      "until alerted", "until visible enemy", "until told to advance"
+    };
+    snprintf(out_buf, out_size, "wait %s", wait_modes[sub_type]);
     return;
   }
   case 20: {
-    mode_names[0] = "always";
-    mode_names[1] = "only until told to advance";
+    const char *loop_modes[2] = { "always", "only until told to advance" };
     if (cmd[11] == -1) {
-      snprintf(out_buf, out_size, "loop to <none> %s", mode_names[sub_type]);
+      snprintf(out_buf, out_size, "loop to <none> %s", loop_modes[sub_type]);
     } else {
       char local_buf[256];
       csstrcpy(local_buf, "");
       if (cmd[7] != -1)
         crt_sprintf(local_buf, " (p%d)", cmd[7]);
       snprintf(out_buf, out_size, "loop to (p%d)%s %s", cmd[6], local_buf,
-               mode_names[sub_type]);
+               loop_modes[sub_type]);
     }
     return;
   }
@@ -3140,11 +3121,6 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     snprintf(out_buf, out_size, "pause in loop %.1f", *(float *)(cmd + 2));
     return;
   case 23: {
-    mode_names[0] = "idle aim weapon";
-    mode_names[1] = "idle turn around";
-    mode_names[2] = "idle look with head";
-    mode_names[3] = "forced exact facing";
-    mode_names[4] = "forced aim weapon";
     snprintf(out_buf, out_size,
              "look %s at random one of (p%d-p%d) for %.1f-%.1f",
              mode_names[sub_type], cmd[6], cmd[7], *(float *)(cmd + 2),
@@ -3152,22 +3128,12 @@ void FUN_00017120(void *scenario_data, short *cmd, char *out_buf, int out_size)
     return;
   }
   case 24: {
-    mode_names[0] = "idle aim weapon";
-    mode_names[1] = "idle turn around";
-    mode_names[2] = "idle look with head";
-    mode_names[3] = "forced exact facing";
-    mode_names[4] = "forced aim weapon";
     snprintf(out_buf, out_size, "look %s at player for %.1f",
              mode_names[sub_type], *(float *)(cmd + 2));
     return;
   }
   case 25: {
     char *elem_name;
-    mode_names[0] = "idle aim weapon";
-    mode_names[1] = "idle turn around";
-    mode_names[2] = "idle look with head";
-    mode_names[3] = "forced exact facing";
-    mode_names[4] = "forced aim weapon";
     elem_name = "<error>";
     if (cmd[12] >= 0 && cmd[12] < *(int *)((char *)scenario_data + 0x204))
       elem_name = (char *)tag_block_get_element((char *)scenario_data + 0x204,
@@ -4074,7 +4040,7 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
   char *scenario;
   char *atom_table;
   short *atom;
-  char check_result;
+  char result = 1;
   short command_priority;
   float range;
   float dot;
@@ -4113,15 +4079,15 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
   case 1:
   case 2:
     if (unit_handle == ((actor_t *)actor)->field_018 && command != NULL) {
-      check_result = (char)FUN_0002a3f0(actor_handle);
-      if (check_result == 0 && *(char *)((char *)command + 5) != '\0' &&
+      result = (char)FUN_0002a3f0(actor_handle);
+      if (result == 0 && *(char *)((char *)command + 5) != '\0' &&
           *(char *)((char *)command + 4) != '\0') {
         range = actor_destination_tolerance(actor_handle);
         FUN_00012140((float *)(actor + 0x12c), (float *)((char *)command + 8),
                      local_vec);
         dot = FUN_00012170(local_vec);
         if (dot < range * range) {
-          check_result = 1;
+          result = 1;
         } else if (dot < (range + 0.5f) * (range + 0.5f)) {
           unit = (char *)object_get_and_verify_type(
             ((actor_t *)actor)->field_018, 3);
@@ -4129,7 +4095,7 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
                 local_vec[2] * *(float *)(unit + 0x20) +
                 local_vec[1] * *(float *)(unit + 0x1c) <
               0.0f) {
-            check_result = 1;
+            result = 1;
           }
         }
       }
@@ -4138,12 +4104,12 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
           *(short *)(output + 2) = 10;
           *(char *)(output + 3) = 0;
         }
-        if (check_result == 0)
+        if (result == 0)
           return 0;
         if (*(short *)(output + 2) != 0)
           return 0;
-        check_result = 1;
-      } else if (check_result == 0) {
+        result = 1;
+      } else if (result == 0) {
         return 0;
       }
       if (*(char *)((char *)command + 0x18) != '\0') {
@@ -4181,7 +4147,7 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
         }
       }
       FUN_0002f1a0(actor_handle);
-      return check_result != 0;
+      return result;
     }
     break;
 
@@ -4219,7 +4185,7 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
       if (((actor_t *)actor)->control_current_fire_target_type !=
             _actor_fire_target_manual_point ||
           !(distance_squared3d((float *)((char *)command + 0x38),
-                               (float *)(actor + 0x610)) >= 0.5f)) {
+                               (float *)(actor + 0x610)) < 0.5f)) {
         char *weapon_tag;
         weapon_tag = (char *)tag_get(0x61637476, ((actor_t *)actor)->field_05c);
         command_priority =
@@ -4242,15 +4208,15 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
                            0x1e);
         return *(short *)(output + 2) == 0;
       }
-      check_result = unit_is_busy(unit_handle);
-      if (check_result == 0) {
+      result = unit_is_busy(unit_handle);
+      if (result == 0) {
         threat_position[0] = *(float *)((char *)command + 0x4c);
         threat_position[1] = *(float *)((char *)command + 0x50);
         threat_position[2] = *(float *)((char *)command + 0x54);
-        check_result =
+        result =
           FUN_00021e50(actor_handle, *(short *)((char *)command + 0x4a),
                        threat_position, -1, -1);
-        if (check_result != 0) {
+        if (result != 0) {
           *(char *)((char *)command + 0x48) = 1;
         }
       }
@@ -4262,11 +4228,11 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
   case 0xb:
     if ((output[5] & 4) != 0) {
       if (unit_handle == ((actor_t *)actor)->field_018) {
-        check_result = ((actor_t *)actor)->field_15c;
+        result = ((actor_t *)actor)->field_15c;
       } else {
-        check_result = unit_flying_through_air(unit_handle);
+        result = unit_flying_through_air(unit_handle);
       }
-      if ((output[5] & 8) != 0 && check_result != '\0') {
+      if ((output[5] & 8) != 0 && result != '\0') {
         *(short *)(output + 2) = 0;
         *(char *)(output + 3) = 0;
       }
@@ -4279,8 +4245,8 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
                      0x253) != 0x1c;
 
   case 0xe:
-    check_result = recorded_animation_controlling_unit(unit_handle);
-    return (char)(check_result == '\0');
+    result = recorded_animation_controlling_unit(unit_handle);
+    return (char)(result == '\0');
 
   case 0xf:
     if (command != NULL && *(char *)((char *)command + 0x30) != '\0') {
@@ -4313,7 +4279,7 @@ bool FUN_00018b90(int unit_handle, int actor_handle, short scenario_index,
     break;
   }
 
-  return 1;
+  return result;
 }
 
 /* FUN_00019110 (0x19110)
@@ -4542,6 +4508,7 @@ void FUN_00019370(int actor_handle)
   int selected_y;
   float tmp_v[2]; /* contiguous: magnitude3d (2D) reads/normalizes [0],[1] */
   float len_sq;
+  int16_t animation_impulse;
 
   actor = (char *)datum_get(actor_data, actor_handle);
 
@@ -4625,12 +4592,13 @@ LAB_done:
 
   if (((actor_t *)actor)->field_0f8 != '\0' &&
       (char)FUN_0002a360(actor_handle) == '\0') {
-    if (((actor_t *)actor)->field_0fa != -1) {
+    animation_impulse = ((actor_t *)actor)->field_0fa;
+    if (animation_impulse != -1) {
       tmp_v[1] = ((actor_t *)actor)->control_desired_facing_vector[1];
       tmp_v[0] = ((actor_t *)actor)->control_desired_facing_vector[0];
       magnitude3d(tmp_v); /* normalizes tmp_v[0],tmp_v[1] in place (2D) */
       (void)actor_move_animation_impulse(
-        actor_handle, ((actor_t *)actor)->field_0fa,
+        actor_handle, animation_impulse,
         (int *)tmp_v); /* hazard-ok: intentional-discard (output via pointer
                           param; return val = success bool not needed here) */
     }
@@ -4653,19 +4621,13 @@ LAB_done:
   }
 
   if ((*(char *)(actor + 0xa9) & 4) != 0) {
-    if ((*(char *)(actor + 0xa9) & 8) != 0) {
-      vector3_t *source;
-      vector3_t *destination;
+    vector3_t *source;
+    vector3_t *destination;
 
+    if ((*(char *)(actor + 0xa9) & 8) != 0) {
       if (((actor_t *)actor)->field_0ac < 1) {
         return;
       }
-      source = (vector3_t *)(actor + 0x174);
-      destination = (vector3_t *)(actor + 0x434);
-      *destination = *source;
-      ((actor_t *)actor)->field_430 = 1;
-      ((actor_t *)actor)->field_42e = 0;
-      return;
     } else {
       if (((actor_t *)actor)->field_0ac == 0 &&
           ((actor_t *)actor)->field_15c == '\0' &&
@@ -4698,6 +4660,11 @@ LAB_done:
         return;
       }
     }
+    source = (vector3_t *)(actor + 0x174);
+    destination = (vector3_t *)(actor + 0x434);
+    *destination = *source;
+    ((actor_t *)actor)->field_430 = 1;
+    ((actor_t *)actor)->field_42e = 0;
   }
 }
 
@@ -8111,6 +8078,9 @@ bool FUN_00027e50(float *dir, float *vec2, float *limit, float threshold,
 
   tmp[2] = (1.0f / len) * tmp[2];
   tmp[0] = (1.0f / len) * tmp[0];
+
+  if (!(len > 0.0f))
+    return false;
 
   if (!(tmp[2] * limit[0] + tmp[0] * limit[1] > threshold))
     return 0;

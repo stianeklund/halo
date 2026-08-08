@@ -144,7 +144,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00013ef0": {
-      "score": 67.6,
+      "opnd_percent": 58.7,
+      "score": 80.1,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_000142a0": {
@@ -311,8 +312,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_000169a0": {
-      "opnd_percent": 48.5,
-      "score": 74.7,
+      "opnd_percent": 71.1,
+      "score": 80.9,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00016bd0": {
@@ -364,8 +365,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00017120": {
-      "opnd_percent": 37.4,
-      "score": 68.0,
+      "opnd_percent": 37.9,
+      "score": 68.8,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_000178b0": {
@@ -394,8 +395,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00018b90": {
-      "opnd_percent": 56.0,
-      "score": 71.1,
+      "opnd_percent": 56.3,
+      "score": 71.5,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00019110": {
@@ -986,8 +987,8 @@
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00027e50": {
-      "opnd_percent": 58.0,
-      "score": 79.3,
+      "opnd_percent": 62.9,
+      "score": 83.4,
       "source": "src/halo/ai/actor_looking.c"
     },
     "FUN_00027f40": {
