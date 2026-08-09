@@ -13554,10 +13554,10 @@
       "end": "0x10914c",
       "kind": "auto",
       "n_r": 17,
-      "opnd_percent": 64.7,
+      "opnd_percent": 70.3,
       "ref": "synth",
       "ref_sha": "ed2cb29de1a1ffa4",
-      "score": 64.7,
+      "score": 64.9,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00109240": {
@@ -13576,10 +13576,10 @@
       "end": "0x1093ae",
       "kind": "auto",
       "n_r": 78,
-      "opnd_percent": 47.6,
+      "opnd_percent": 47.3,
       "ref": "synth",
       "ref_sha": "6f90d4b9b62f0800",
-      "score": 64.6,
+      "score": 66.3,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_001093b0": {
@@ -13796,10 +13796,10 @@
       "end": "0x10a924",
       "kind": "auto",
       "n_r": 77,
-      "opnd_percent": 60.3,
+      "opnd_percent": 72.3,
       "ref": "synth",
       "ref_sha": "c5fbb6bae108477b",
-      "score": 65.9,
+      "score": 91.6,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010a930": {

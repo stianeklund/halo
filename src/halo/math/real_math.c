@@ -104,20 +104,18 @@ void FUN_001090e0(float *out)
  * Swaps [2]<->[4], [3]<->[7], [6]<->[8] (0-indexed from float[1]). */
 void FUN_00109120(float *m)
 {
-  uint32_t *p = (uint32_t *)m;
-  uint32_t t;
+  float first;
+  float second;
 
-  t = p[2];
-  p[2] = p[4];
-  p[4] = t;
-
-  t = p[3];
-  p[3] = p[7];
-  p[7] = t;
-
-  t = p[6];
-  p[6] = p[8];
-  p[8] = t;
+  first = m[2];
+  second = m[3];
+  m[2] = m[4];
+  m[4] = first;
+  first = m[6];
+  m[3] = m[7];
+  m[7] = second;
+  m[6] = m[8];
+  m[8] = first;
 }
 
 /* Compute the inverse of a 4x3 matrix (scale + rotation + translation).
@@ -245,9 +243,9 @@ void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine)
   float yy;
   volatile float zz;
   volatile float one_minus_cosine;
-  float xy_term;
-  float xz_term;
-  float yz_term;
+  volatile float xy_term;
+  volatile float xz_term;
+  volatile float yz_term;
   volatile float sine_x;
   volatile float sine_y;
   float sine_z;
@@ -1375,28 +1373,55 @@ void FUN_0010a830(float *buf)
   float fi;
   float recip;
   int i;
+  int count;
+  float *out;
 
   sum = 0.0f; /* 0x2533c0 */
-  for (i = 0; i < 0x400; i++) {
-    buf[i] = sum;
+  i = 0;
+  count = 0x400;
+  out = buf;
+  do {
+    *out = sum;
     r1 = random_math_real((unsigned int *)get_global_random_seed_address());
     r2 = random_math_real((unsigned int *)get_global_random_seed_address());
     r3 = random_math_real((unsigned int *)get_global_random_seed_address());
     fi = (float)i;
     /* 4th random kept inline (no 32-bit spill in the original) */
-    sum = (random_math_real((unsigned int *)get_global_random_seed_address()) +
+    sum = (
+#if defined(_MSC_VER) && !defined(__clang__)
+             (float)cos((double)(fi * *(float *)0x28c8c4))
+#else
+             x87_fcos(fi * *(float *)0x28c8c4)
+#endif
+             + 1.0f) * r1 +
+          (
+#if defined(_MSC_VER) && !defined(__clang__)
+             (float)cos((double)(fi * *(float *)0x28c8c8))
+#else
+             x87_fcos(fi * *(float *)0x28c8c8)
+#endif
+             + 1.0f) * r2 +
+          (
+#if defined(_MSC_VER) && !defined(__clang__)
+             (float)cos((double)(fi * *(float *)0x28c8cc))
+#else
+             x87_fcos(fi * *(float *)0x28c8cc)
+#endif
+             + 1.0f) * r3 +
+          (random_math_real((unsigned int *)get_global_random_seed_address()) +
            1.0f) *
             0.25f + /* 0x25337c */
-          (x87_fcos_mul(fi, 0.04479224f) + 1.0f) * r3 + /* 0x28c8cc */
-          (x87_fcos_mul(fi, 0.03129321f) + 1.0f) * r2 + /* 0x28c8c8 */
-          (x87_fcos_mul(fi, 0.02515729f) + 1.0f) * r1 + /* 0x28c8c4 */
           sum;
-  }
+    out++;
+    i++;
+  } while (--count != 0);
 
   recip = 1.0f / sum; /* 0x2533c8 = 1.0 / total */
-  for (i = 0; i < 0x400; i++) {
-    buf[i] = buf[i] * recip;
-  }
+  count = 0x400;
+  do {
+    *buf = *buf * recip;
+    buf++;
+  } while (--count != 0);
 }
 
 /* 0x10b5c0 — real_math_initialize: init random tables and periodic functions.
