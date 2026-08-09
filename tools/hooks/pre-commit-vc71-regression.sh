@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
-# Pre-commit: run vc71_regression.py check on staged source files, then
-# refresh the floor with any improvements or new ports and re-stage scores.
+# Pre-commit: run vc71_regression.py check on the staged work, then refresh the
+# floor with any improvements or new ports and re-stage scores.
 #
-# - Only fires when src/**/*.c files are staged.
+# - Fires when src/**/*.c files are staged, OR when the reference table itself
+#   (tools/verify/function_bounds.json) is staged. The second trigger exists
+#   because editing that table IS editing every reference cut from it: scores
+#   move with no .c file touched, and a src-only trigger would never run.
 # - Files not yet in the baseline are silently skipped by `check` (no false
 #   positives on new ports).
+# - `check` fails on three things: a score drop past the threshold, a reference
+#   change (measured ref_sha != the floor's ref_sha -- the numbers describe
+#   different bytes), and silence (a baselined function this run did not measure
+#   at all). A whole-TU compile failure is reported but not fatal: a checkout
+#   without the RXDK/wine VC71 toolchain fails every compile, and a gate that
+#   blocks every commit there is a gate people turn off.
 # - After `check` passes, `update` records new ports and raises any improved
 #   floors. If vc71_scores.json changed, it's auto-staged into the commit so
 #   the progress dashboard stays in sync without a separate step.
@@ -20,8 +29,11 @@
 #   VC71_NO_MEASURE_MEMO=1 git commit ...
 # or delete artifacts/audit/vc71_measure_cache.json.
 
-STAGED_SRC=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^src/.*\.c$')
-if [ -z "$STAGED_SRC" ]; then
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
+STAGED_SRC=$(echo "$STAGED" | grep -E '^src/.*\.c$')
+STAGED_BOUNDS=$(echo "$STAGED" | grep -Fx 'tools/verify/function_bounds.json')
+
+if [ -z "$STAGED_SRC" ] && [ -z "$STAGED_BOUNDS" ]; then
     exit 0
 fi
 
@@ -33,19 +45,52 @@ if [ ! -f "$REGR" ]; then
     exit 0
 fi
 
-# Build the --source list from staged files only
 SRC_ARGS=()
 while IFS= read -r f; do
-    SRC_ARGS+=("$f")
+    [ -n "$f" ] && SRC_ARGS+=("$f")
 done <<< "$STAGED_SRC"
 
-echo "vc71-regression: checking $(echo "$STAGED_SRC" | wc -l | tr -d ' ') staged source file(s)..."
+# A staged bounds edit moves the reference for every baselined function on a
+# changed entry. bounds-gate maps those entries back to their source files and
+# exits non-zero when the commit does not also carry a re-baselined floor -- the
+# per-function ref_sha pin in `check` then verifies the rebaseline is real.
+if [ -n "$STAGED_BOUNDS" ]; then
+    BOUNDS_SRC=$(python3 "$REGR" bounds-gate)
+    RC=$?
+    if [ $RC -ne 0 ]; then
+        echo ""
+        echo "Emergency bypass (records no floor update): git commit --no-verify"
+        exit $RC
+    fi
+    while IFS= read -r f; do
+        [ -n "$f" ] && SRC_ARGS+=("$f")
+    done <<< "$BOUNDS_SRC"
+fi
+
+# De-duplicate: a file can be both staged and bounds-affected.
+if [ ${#SRC_ARGS[@]} -gt 0 ]; then
+    mapfile -t SRC_ARGS < <(printf '%s\n' "${SRC_ARGS[@]}" | sort -u)
+fi
+if [ ${#SRC_ARGS[@]} -eq 0 ]; then
+    exit 0
+fi
+
+echo "vc71-regression: checking ${#SRC_ARGS[@]} source file(s)..."
 python3 "$REGR" check --source "${SRC_ARGS[@]}" --quiet
 RC=$?
 if [ $RC -ne 0 ]; then
     echo ""
-    echo "Fix the regression, then update the floor:"
+    echo "A score drop: investigate, fix, then update the floor:"
     echo "  python3 tools/verify/vc71_regression.py update --source <file>"
+    echo ""
+    echo "MEASUREMENT CHANGED (the reference moved, not the lift): do NOT lower"
+    echo "the floor. Review, then re-baseline the affected TUs:"
+    echo "  python3 tools/verify/vc71_regression.py populate --rebaseline --source <file>"
+    echo "  python3 tools/verify/vc71_regression.py rebaseline-report"
+    echo ""
+    echo "UNMEASURED (a baselined function produced no score): it was deleted,"
+    echo "renamed, or is no longer compiled into that TU. Re-baseline the TU if"
+    echo "that was intended."
     echo ""
     echo "Emergency bypass (records no floor update): git commit --no-verify"
     exit $RC

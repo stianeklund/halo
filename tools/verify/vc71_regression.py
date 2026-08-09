@@ -19,8 +19,22 @@ Commands:
 
     check [--source src/...] [--threshold N]
         Run vc71_verify and compare against stored floors.
-        Exits 1 if any function dropped more than --threshold pp (default 2).
-        Limits to specific files when --source is given.
+        Limits to specific files when --source is given.  Exits 1 when, for any
+        baselined function:
+          * the score dropped more than --threshold pp (default 2);
+          * the REFERENCE changed (measured ref_sha != the entry's ref_sha) --
+            the two scores describe different bytes, so they are not compared;
+          * the run produced no score for it at all (deleted, renamed, dropped
+            for a missing bounds entry).  Silence is a failure, not a skip.
+        The one non-fatal gap is a whole-TU compile failure, which is an
+        infrastructure fact (no VC71 toolchain) rather than a lift result; it is
+        reported loudly and fails under --strict.
+
+    bounds-gate
+        Pre-commit helper for a staged tools/verify/function_bounds.json: prints
+        the source files whose baselined functions sit on a CHANGED bounds entry
+        (their references moved), or exits 1 with instructions when the staged
+        commit does not also carry a re-baselined vc71_scores.json.
 
     show
         Print the current baseline in a human-readable table.
@@ -107,6 +121,18 @@ POPULATE_STATE_PATH = REPO_ROOT / "artifacts" / "audit" / "populate_state.json"
 # over the same staged file list -- two full recompiles of identical inputs -- and
 # because a hook that times out is otherwise re-run from scratch.
 MEASURE_CACHE_PATH = REPO_ROOT / "artifacts" / "audit" / "vc71_measure_cache.json"
+# Schema/semantics version of the memo above.  Bumped whenever what we are
+# willing to REMEMBER changes, which the content-derived key cannot express:
+# the key hashes the inputs, not the rules for caching a result.
+#   1 -> 2: version 1 cached a "structural miss" class -- a TU whose functions
+#           had no objdiff.json unit and therefore scored nothing, remembered as
+#           a permanent verdict.  Scoring no longer reads objdiff.json at all
+#           (references are derived from the XBE + function_bounds.json), so the
+#           condition cannot recur, but its cached empty results would keep
+#           answering "this TU scores nothing" until the epoch happened to move.
+#           Bumping purges them and pins the rule: only a run that produced a
+#           measurement (scores or DROPs) is memoized.
+MEASURE_MEMO_VERSION = 2
 # Cheap stat-keyed cache for the delinked/functions/*.obj content signature; see
 # _chunk_dir_signature.  Host-local, gitignored.
 CHUNK_SIG_CACHE_PATH = REPO_ROOT / "artifacts" / "audit" / "vc71_chunk_sig.json"
@@ -438,8 +464,8 @@ def _kb_addr_signature() -> str:
     The full kb.json changes on every lift (decls), so hashing it into the tool
     epoch defeats incrementality.  Per-TU decl content is captured by
     _tu_decl_digest instead; the only remaining kb input to *scoring* is the
-    address layout feeding the reference-validity span gate (_func_span), which
-    changes rarely (a re-address implies a re-delink → chunk-dir epoch bump too).
+    address layout — which function each symbol is, and therefore which bounds
+    entry its reference is cut from — and that changes rarely.
     """
     addrs, _ = _kb_maps()
     return _sha_bytes(",".join(f"{a:x}" for a in addrs))
@@ -599,7 +625,9 @@ def _load_measure_memo() -> dict:
     if MEASURE_CACHE_PATH.exists():
         try:
             data = json.loads(MEASURE_CACHE_PATH.read_text())
-            if data.get("version") == 1:
+            # A memo written under an older rule set is discarded wholesale, not
+            # migrated: its entries encode decisions this version would not make.
+            if data.get("version") == MEASURE_MEMO_VERSION:
                 _MEASURE_MEMO = data.get("entries", {})
         except (json.JSONDecodeError, OSError):
             pass
@@ -617,7 +645,8 @@ def flush_measure_memo() -> None:
         if len(entries) > 4000:
             entries = dict(list(entries.items())[-4000:])
         MEASURE_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        _atomic_write_json(MEASURE_CACHE_PATH, {"version": 1, "entries": entries})
+        _atomic_write_json(MEASURE_CACHE_PATH,
+                           {"version": MEASURE_MEMO_VERSION, "entries": entries})
     except OSError:
         pass
 
@@ -756,6 +785,13 @@ def _expected_ported_functions(src_rel: str) -> list[dict]:
 def _func_span(fn_name: str):
     """Byte span of a function, or None when it is not tracked in kb.json.
 
+    No longer consumed by this module's gates (the instruction-count validity
+    heuristics it fed are gone — see the provenance-gate note below).  Kept
+    because it is this module's answer to "how big is this function", and its
+    test pins that answer to the SAME committed bounds table vc71_verify cuts
+    references from: two modules disagreeing about a function's size means they
+    disagree about which bytes a score describes.
+
     Delegates to vc71_verify._func_span, which reads the committed bounds table
     (tools/verify/function_bounds.json).  The delegation is load-bearing: the
     verifier CUTS each reference from that same table entry, so a gate using a
@@ -782,28 +818,64 @@ def _func_span(fn_name: str):
     return (addrs[i] - addr) if i < len(addrs) else None
 
 
-def _reference_valid(n_r, span):
-    """Whether a delinked reference is a usable byte-match oracle.
+# ---------------------------------------------------------------------------
+# Reference provenance gate
+# ---------------------------------------------------------------------------
+#
+# What replaced the instruction-count heuristics.  Until the bounds-table
+# rework a reference was SELECTED (whole-object slice / sibling export /
+# per-function chunk / synthesized fallback), so it could genuinely be the wrong
+# bytes, and the only cheap detector was arithmetic: a reference whose
+# instruction count could not fill the function's byte span was truncated, one
+# with more instructions than bytes had swallowed a neighbour.  Both tests are
+# dead weight now.  A reference is CUT from [start, end) of the pristine XBE
+# using the committed bounds table, so it cannot be truncated or bloated
+# relative to the span -- the span IS its length.  What can still happen is a
+# missing bounds entry, and vc71_verify reports that as a DROP (no score line at
+# all), which `check` treats as a hard failure rather than as a skip.
+#
+# The remaining risk is not an invalid reference but a CHANGED one: edit the
+# bounds table or the synthesizer and today's score is measured against
+# different bytes than the floor was.  Comparing the two numbers then answers a
+# question nobody asked.  ref_sha makes that visible.
 
-    A reference's instruction count must plausibly match the function's known
-    byte size:
-    - n_r * 15 (max x86 instruction length) < span  => truncated (too few insns
-      to cover the function's bytes; e.g. a 144-byte function whose reference is
-      a single instruction).
-    - n_r > span                                     => bloated (more insns than
-      bytes is impossible for real code — the reference swallowed neighbours).
-    Both are hard bounds with no false positives on legitimately tiny functions
-    (their span is small too).  Returns (ok: bool, reason: str).
+REBASELINE_HINT = (
+    "The reference itself changed (bounds table or reference synthesizer), so\n"
+    "the stored floor was measured against different bytes than this run.  Those\n"
+    "two numbers are not comparable -- do not commit through this by lowering a\n"
+    "floor.  Review the delta, then re-baseline the affected TUs:\n"
+    "  python3 tools/verify/vc71_regression.py populate --rebaseline --source <file>\n"
+    "  python3 tools/verify/vc71_regression.py rebaseline-report"
+)
+
+
+def compare_provenance(base_entry: dict, current: dict) -> tuple[str, str]:
+    """Classify a fresh measurement against the reference its floor was set on.
+
+    Returns ``(verdict, detail)``:
+
+    - ``"ok"``                  same reference bytes; the scores are comparable.
+    - ``"measurement_changed"`` baseline and run name DIFFERENT reference bytes.
+    - ``"provenance_missing"``  the baseline knows its reference, the run did not
+      report one (the scorer stopped emitting REFMETA).  The score is still a
+      measurement, so it is compared, but the pin could not be verified.
+    - ``"grandfathered"``       the baseline entry predates provenance stamping
+      (47 such entries at the version-2 migration).  Compared as before; the
+      next ``populate --rebaseline`` stamps it.
     """
-    if not n_r:
-        return False, "reference symbol empty or absent"
-    if span and n_r * 15 < span:
-        return False, (f"reference/span inconsistent: {n_r} insns cannot fill "
-                       f"{span} bytes (reference truncated, or the span is "
-                       f"wrong -- check delinked bounds)")
-    if span and n_r > span:
-        return False, f"bloated reference: {n_r} insns exceed {span} bytes"
-    return True, ""
+    base_sha = base_entry.get("ref_sha")
+    cur_sha = current.get("ref_sha")
+    if not base_sha:
+        return "grandfathered", ""
+    if not cur_sha:
+        return "provenance_missing", (f"baseline ref_sha={base_sha}, this run "
+                                      f"emitted no REFMETA")
+    if base_sha != cur_sha:
+        return "measurement_changed", (
+            f"ref_sha {base_sha} → {cur_sha}; "
+            f"bytes {base_entry.get('addr', '?')}..{base_entry.get('end', '?')} "
+            f"→ {current.get('addr', '?')}..{current.get('end', '?')}")
+    return "ok", ""
 
 
 # ---------------------------------------------------------------------------
@@ -944,22 +1016,17 @@ def run_vc71_verify(source: Path, no_cache: bool = True,
         # 1 whenever any function scores below its threshold, which is a normal
         # result with 164 perfectly good score lines attached.
         new_drops = drops_out[drops_start:] if drops_out is not None else []
-        # A TU with no delinked reference at all scores nothing, deterministically,
-        # and there is no cheaper way to find out than asking -- vc71_verify exits
-        # 1 for this exactly as it does for a compile failure, so the exit code
-        # cannot tell them apart.  Match the structural marker instead: "no unit
-        # in objdiff.json" is a fact about the repo, safe to remember, while a
-        # compile failure may be a transient toolchain hiccup that a re-run fixes
-        # (and would NOT invalidate this key, since the key covers source and
-        # tooling but not the wine/CL environment).  11 of the 26 TUs in the
-        # maintain commit were in this state, each paying a full subprocess twice
-        # per hook to learn nothing.
-        structural_miss = (
-            not out and not new_drops
-            and any("No usable objdiff.json unit" in l
-                    for l in (meta_out or {}).get("stderr_tail", []))
-        )
-        if out or new_drops or structural_miss:
+        # Version 1 also memoized a third class: a TU with no objdiff.json unit,
+        # which scored nothing deterministically and was therefore treated as a
+        # permanent fact about the repo.  References are now derived from the XBE
+        # + function_bounds.json, so no TU can be in that state and the marker
+        # ("No usable objdiff.json unit") is no longer printed by anything.  The
+        # class is deleted rather than left dormant: an empty result is now
+        # ALWAYS re-measured, so a broken wine/CL environment (which the key
+        # deliberately does not cover) can never harden into a cached verdict.
+        # MEASURE_MEMO_VERSION was bumped so entries written under the old rule
+        # are discarded instead of answering for TUs they no longer describe.
+        if out or new_drops:
             global _MEASURE_MEMO_DIRTY
             entry = {
                 "out": out,
@@ -1034,22 +1101,14 @@ def _measure_source(src: Path):
         log.append(f"  ⚠ {d['function']}: no valid reference — {d['reason']}; "
                    f"skipped (flagged for re-delink)")
 
+    # Every score line here was computed against a reference cut from the
+    # committed bounds table, so there is nothing left to validate about the
+    # reference's shape (see the provenance-gate note above): a function whose
+    # bounds entry is missing produces a DROP, handled directly above, not a
+    # suspicious score.  The old instruction-count gate lived here and skipped
+    # scores it judged truncated/bloated.
     for fn_name, info in sorted(results.items()):
         new_score = info["score"]
-
-        # Reference-validity gate: never trust a score computed against a
-        # truncated/absent reference — skip it and flag for re-delink so a
-        # broken reference cannot pollute the floor or the dashboard.
-        n_r = info.get("n_r")
-        span = _func_span(fn_name)
-        ok, reason = _reference_valid(n_r, span)
-        if not ok:
-            flagged_slice.append({"function": fn_name, "source": src_rel,
-                                  "n_r": n_r, "span_bytes": span,
-                                  "state": "no_reference", "reason": reason})
-            log.append(f"  ⚠ {fn_name}: reference invalid — {reason}; "
-                       f"skipped (flagged for re-delink)")
-            continue
 
         # Built by the shared entry constructor so the honest snapshot and the
         # floor cannot drift apart in shape.  n_c (candidate instruction count)
@@ -1203,10 +1262,21 @@ def cmd_check(args) -> int:
         print("No baseline entries match the given --source filter.")
         return 1 if strict else 0
 
-    regressions = []
+    # Hard failures (fatal in every mode) vs strict-only evidence gaps.  The
+    # split is deliberate: a hard failure means this run cannot answer the
+    # question `check` exists to answer for a specific baselined function, so
+    # passing would be a false negative.  Strict adds the "prove there were no
+    # gaps at all" gates on top.
+    regressions = []          # (fn, base, curr, src)               FATAL
+    measurement_changed = []  # (fn, base, curr, detail, src)       FATAL
+    vanished = []             # (fn, src, reason)                   FATAL
     improvements = []
+    provenance_missing = []   # (fn, src, detail)   compared, unverifiable pin
+    grandfathered = []        # (fn, src)           pre-provenance floor
+    # TU-level infrastructure failures (compile/parse/subprocess) — see the
+    # carve-out note in the loop.
+    infra_failed = []         # (src, status, tail, n_functions)
     skipped = 0
-    ref_flagged = 0
     strict_failures = []
     checked = 0
 
@@ -1266,43 +1336,101 @@ def cmd_check(args) -> int:
             strict_failures.append(f"{src_rel}: vc71_verify failed: {exc}")
             continue
 
-        if strict and meta.get("status") not in (None, "ok"):
-            strict_failures.append(f"{src_rel}: vc71_verify {meta['status']}")
+        status = meta.get("status")
+        fn_set = set(fn_names)
+
+        # TU-level infrastructure failure: the run produced no score line AND no
+        # DROP, so nothing about this TU was measured.  This is the ONE case that
+        # does not fail the gate, and the reason is not that it is harmless: a
+        # checkout without the RXDK/wine VC71 toolchain fails EVERY compile, and
+        # a gate that blocks every commit there is a gate people disable.  It is
+        # reported loudly instead, and --strict (CI, where the toolchain is a
+        # precondition) still fails on it.
+        #
+        # Note the hook does NOT abort on its own for this: `check` returns 0,
+        # `update` then runs non-blocking, and the commit proceeds.  So this
+        # print is the only signal — keep it unmissable.
+        if not results and not drops:
+            infra_failed.append((src_rel, status or "no output",
+                                 meta.get("stderr_tail") or [], len(fn_names)))
+            if strict:
+                strict_failures.append(
+                    f"{src_rel}: vc71_verify {status or 'produced no output'}")
             continue
 
-        if strict and drops:
-            for drop in drops:
+        if strict and status not in (None, "ok"):
+            strict_failures.append(f"{src_rel}: vc71_verify {status}")
+            continue
+
+        # A DROP is vc71_verify saying it compiled the function but could derive
+        # no reference for it (missing bounds entry).  For a function this check
+        # is responsible for, that is silence with a known cause: fail it here
+        # rather than letting the "no score line" branch below report it with a
+        # vaguer reason.  Drops for functions with no baseline entry (helpers,
+        # statics, new ports) stay a strict-only signal — failing on those would
+        # block a commit over a symbol the floor never covered.
+        dropped: set[str] = set()
+        for drop in sorted(drops, key=lambda d: d["function"]):
+            fn = drop["function"]
+            if fn in dropped:
+                continue  # one verdict per function, or the accounting doubles
+            if fn in fn_set:
+                dropped.add(fn)
+                vanished.append((fn, src_rel,
+                                 f"no valid reference — {drop['reason']}"))
+            elif strict:
                 strict_failures.append(
-                    f"{drop['function']}: invalid or missing delinked reference: "
-                    f"{drop['reason']}"
-                )
+                    f"{fn}: invalid or missing delinked reference: "
+                    f"{drop['reason']}")
 
         for fn_name in fn_names:
+            if fn_name in dropped:
+                continue
             current = results.get(fn_name)
             if current is None:
-                # Function not found in compiled output — may be unported or renamed
+                # Silence is a failure.  The TU compiled (it scored other
+                # functions), so a baselined function with no score line was
+                # deleted, renamed, or is no longer compiled into this TU — and
+                # the old behaviour, a bare `continue`, reported that as a pass.
+                # This is the shape of the stale-object bug: FUN_000f56b0 held
+                # exactly 81.8% across 13 attempts with no definition in the
+                # tree at all.
+                vanished.append((
+                    fn_name, src_rel,
+                    f"no score line (the TU scored {len(results)} other "
+                    f"function(s)) — deleted, renamed, or no longer compiled "
+                    f"here; re-baseline the TU if this was intended"))
                 if strict:
                     strict_failures.append(f"{fn_name}: no parsed vc71_verify result")
                 continue
-            # Reference-validity gate: a truncated/absent reference produces a
-            # spuriously low current score.  Skip it (don't raise a false
-            # regression) — it is tracked separately in the re-delink queue.
-            ok, _ = _reference_valid(current.get("n_r"), _func_span(fn_name))
-            if not ok:
-                ref_flagged += 1
-                if not args.quiet:
-                    print(f"  ⚠ {fn_name}: reference invalid — skipped "
-                          f"(flagged for re-delink, not a regression)")
-                if strict:
-                    strict_failures.append(f"{fn_name}: invalid delinked reference")
-                continue
+
+            base_entry = baseline[fn_name]
             try:
-                baseline_score = float(baseline[fn_name]["score"])
+                baseline_score = float(base_entry["score"])
                 current_score = float(current["score"])
             except (KeyError, TypeError, ValueError):
+                vanished.append((fn_name, src_rel,
+                                 "invalid baseline or parsed score"))
                 if strict:
                     strict_failures.append(f"{fn_name}: invalid baseline or parsed score")
                 continue
+
+            # Provenance pin BEFORE the floor comparison: if the reference moved,
+            # the two scores are measurements of different bytes and comparing
+            # them (in either direction) is meaningless.
+            verdict, detail = compare_provenance(base_entry, current)
+            if verdict == "measurement_changed":
+                measurement_changed.append(
+                    (fn_name, baseline_score, current_score, detail, src_rel))
+                continue
+            if verdict == "provenance_missing":
+                provenance_missing.append((fn_name, src_rel, detail))
+                if strict:
+                    strict_failures.append(
+                        f"{fn_name}: no reference provenance in this run ({detail})")
+            elif verdict == "grandfathered":
+                grandfathered.append((fn_name, src_rel))
+
             checked += 1
             delta = current_score - baseline_score
             if delta < -threshold:
@@ -1316,6 +1444,35 @@ def cmd_check(args) -> int:
             print(f"  ↑ {fn}: {base:.1f}% → {curr:.1f}% in {src}")
         print()
 
+    # Advisory, non-fatal: the floor was compared, we just could not verify the
+    # pin.  One line per function so a recurring one is greppable, never a
+    # repeated warning for the same function.
+    if grandfathered and not args.quiet:
+        print(f"Compared without reference provenance ({len(grandfathered)}) — "
+              f"pre-provenance baseline entries, stamped on the next "
+              f"`populate --rebaseline`:")
+        for fn, src in grandfathered:
+            print(f"  ~ {fn} in {src}")
+        print()
+
+    if provenance_missing:
+        print(f"NO PROVENANCE IN THIS RUN ({len(provenance_missing)}) — the "
+              f"baseline pins a reference the scorer did not report:")
+        for fn, src, detail in provenance_missing:
+            print(f"  ~ {fn}: {detail} in {src}")
+        print()
+
+    if infra_failed:
+        n_fns = sum(n for _s, _st, _t, n in infra_failed)
+        print(f"NOT MEASURED — vc71 toolchain/compile failure "
+              f"({len(infra_failed)} TU(s), {n_fns} function(s)):")
+        for src, status, tail, n in infra_failed:
+            print(f"  ! {src}: {status}; {n} function(s) NOT covered by this gate")
+            for line in tail:
+                print(f"      {line}")
+        print("  (infrastructure, not a lift regression — these functions were "
+              "not checked at all)\n")
+
     if regressions:
         print(f"REGRESSIONS ({len(regressions)}):")
         for fn, base, curr, src in regressions:
@@ -1325,6 +1482,33 @@ def cmd_check(args) -> int:
             "\nHint: investigate the change, fix the regression, then re-run:\n"
             "  python3 tools/verify/vc71_regression.py update --source <file>"
         )
+
+    if measurement_changed:
+        print(f"\nMEASUREMENT CHANGED ({len(measurement_changed)}) — scores not "
+              f"comparable:")
+        for fn, base, curr, detail, src in measurement_changed:
+            print(f"  ✗ {fn}: floor {base:.1f}% vs measured {curr:.1f}% in {src}")
+            print(f"      {detail}")
+        print("\n" + REBASELINE_HINT)
+
+    if vanished:
+        print(f"\nUNMEASURED BASELINED FUNCTIONS ({len(vanished)}) — the floor "
+              f"covers them, this run did not measure them:")
+        for fn, src, reason in vanished:
+            print(f"  ✗ {fn} in {src}: {reason}")
+
+    # Accounting.  Every baselined function in a present source file must have
+    # landed in exactly one bucket; a non-zero residual means this command lost
+    # track of one, which is the same failure mode as silence and is reported the
+    # same way.  It used to be a note (and before that, `checked` was overwritten
+    # with expected-minus-skips, which counted never-measured functions as
+    # passing: 1589 "checked" on the 26-TU maintain commit, 948 measured).
+    expected = sum(len(v) for v in by_source.values())
+    infra_fns = sum(n for _s, _st, _t, n in infra_failed)
+    accounted = (checked + skipped + infra_fns
+                 + len(vanished) + len(measurement_changed))
+    unaccounted = expected - accounted
+
     if strict and (strict_failures or checked == 0):
         if checked == 0:
             strict_failures.append("zero functions checked")
@@ -1333,30 +1517,168 @@ def cmd_check(args) -> int:
             print(f"  ✗ {failure}")
         return 1
 
-    if regressions:
+    if unaccounted:
+        # Negative means a function reached two verdicts, which corrupts the
+        # coverage number the same way a missing one does; both are bugs in this
+        # command and both fail rather than print a number nobody can trust.
+        what = ("reached no verdict" if unaccounted > 0
+                else "were counted twice")
+        print(f"\nACCOUNTING ERROR: {abs(unaccounted)} of {expected} baselined "
+              f"function(s) {what} (checked={checked}, "
+              f"skipped={skipped}, compile-failed={infra_fns}, "
+              f"unmeasured={len(vanished)}, "
+              f"measurement-changed={len(measurement_changed)}).")
+
+    if regressions or measurement_changed or vanished or unaccounted:
         return 1
 
-    # `checked` counts functions we actually compared against the floor.  It used
-    # to be overwritten here with (baseline entries - skipped - ref_flagged),
-    # which silently counted every function whose TU produced NO measurement at
-    # all -- a TU with no delinked reference scores nothing, each of its
-    # functions hits the `current is None` continue above, and the recomputed
-    # total still reported them as passing.  Observed on the 26-TU maintain
-    # commit: "1589 functions" reported, 948 actually measured.  Report both, so
-    # a green gate cannot be mistaken for coverage it does not have.
-    expected = sum(len(v) for v in by_source.values())
-    unmeasured = expected - checked - skipped - ref_flagged
     notes = []
-    if ref_flagged:
-        notes.append(f"{ref_flagged} skipped for invalid reference")
-    if unmeasured > 0:
-        notes.append(f"{unmeasured} not measured (no reference or not in "
-                     f"compiled output)")
+    if infra_fns:
+        notes.append(f"{infra_fns} not measured (compile failure)")
     if skipped:
         notes.append(f"{skipped} source file(s) missing")
+    if grandfathered:
+        notes.append(f"{len(grandfathered)} without reference provenance")
     note = (", " + ", ".join(notes)) if notes else ""
     print(f"OK — no regressions ({checked} of {expected} functions measured in "
           f"{len(by_source)} source file(s){note}).")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# bounds-gate command
+# ---------------------------------------------------------------------------
+#
+# Editing tools/verify/function_bounds.json IS editing the references: every
+# score is the candidate compared against the bytes at [addr, end) of the
+# pristine XBE, and that end comes from this table.  A commit that moves a bound
+# therefore moves scores without touching a single .c file — and the pre-commit
+# gate only fires on staged src/**.c, so it would not even run.  This command is
+# the missing trigger: it maps the CHANGED bounds entries back to the baselined
+# functions that sit on them, and refuses a bounds edit that arrives without a
+# re-baselined floor (where the per-function ref_sha pin then does the real
+# verification).
+
+BOUNDS_REL = "tools/verify/function_bounds.json"
+SCORES_REL = "tools/verify/vc71_scores.json"
+
+
+def _norm_addr(value) -> str | None:
+    """'0x0015c2d0' / '15c2d0' / 1425104 → '0x15c2d0'.  None when unparseable."""
+    if value is None:
+        return None
+    try:
+        if isinstance(value, int):
+            return f"0x{value:x}"
+        return f"0x{int(str(value), 16):x}"
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_bounds(text: str) -> dict[str, dict]:
+    """{normalized addr: entry} from one revision of the bounds table.
+
+    Non-address keys (the `_meta` block) are dropped: a regenerated table stamps
+    its own counters there, and a metadata-only change moves no reference.
+    """
+    try:
+        data = json.loads(text or "{}")
+    except (json.JSONDecodeError, TypeError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    out: dict[str, dict] = {}
+    for key, entry in data.items():
+        addr = _norm_addr(key)
+        if addr is None:
+            continue
+        out[addr] = entry
+    return out
+
+
+def bounds_changed_addrs(old_text: str, new_text: str) -> set[str]:
+    """Addresses whose bound differs between two revisions (added/removed/edited)."""
+    old = _parse_bounds(old_text)
+    new = _parse_bounds(new_text)
+    return {a for a in set(old) | set(new) if old.get(a) != new.get(a)}
+
+
+def sources_for_bounds_addrs(addrs: set[str],
+                             baseline: dict[str, dict]) -> dict[str, list[str]]:
+    """{source: [baselined fn, ...]} for entries whose reference sits on ``addrs``.
+
+    An entry with no ``addr`` (a pre-provenance floor) cannot be joined and is
+    invisible here — one more reason the grandfathered entries want stamping.
+    """
+    out: dict[str, list[str]] = {}
+    for fn, entry in baseline.items():
+        addr = _norm_addr(entry.get("addr"))
+        if addr is None or addr not in addrs:
+            continue
+        out.setdefault(entry.get("source", ""), []).append(fn)
+    for fns in out.values():
+        fns.sort()
+    return out
+
+
+def _git_lines(*args) -> list[str]:
+    try:
+        r = subprocess.run(["git", *args], capture_output=True, text=True,
+                           cwd=REPO_ROOT)
+    except OSError:
+        return []
+    if r.returncode != 0:
+        return []
+    return [l for l in r.stdout.splitlines() if l.strip()]
+
+
+def _git_show(spec: str) -> str:
+    """Contents of a blob (``:path`` = staged, ``HEAD:path`` = committed)."""
+    try:
+        r = subprocess.run(["git", "show", spec], capture_output=True, text=True,
+                           cwd=REPO_ROOT)
+    except OSError:
+        return ""
+    return r.stdout if r.returncode == 0 else ""
+
+
+def staged_paths() -> set[str]:
+    return set(_git_lines("diff", "--cached", "--name-only", "--diff-filter=ACMR"))
+
+
+def cmd_bounds_gate(args) -> int:
+    """Print the sources a staged bounds edit affects; 1 if it lacks a rebaseline."""
+    staged = staged_paths()
+    if BOUNDS_REL not in staged:
+        return 0
+
+    changed = bounds_changed_addrs(_git_show(f"HEAD:{BOUNDS_REL}"),
+                                   _git_show(f":{BOUNDS_REL}"))
+    if not changed:
+        return 0
+    affected = sources_for_bounds_addrs(changed, load_baseline())
+    if not affected:
+        # Bounds moved, but no floor is measured against them (new functions, or
+        # entries the baseline does not cover).  Nothing to verify.
+        return 0
+
+    n_fns = sum(len(v) for v in affected.values())
+    if SCORES_REL not in staged:
+        print(
+            f"vc71-bounds-gate: {BOUNDS_REL} is staged and {len(changed)} bounds "
+            f"entry(ies) changed, moving the reference for {n_fns} baselined "
+            f"function(s) in {len(affected)} source file(s):",
+            file=sys.stderr)
+        for src in sorted(affected):
+            print(f"    {src} ({len(affected[src])} function(s))", file=sys.stderr)
+        print("\n" + REBASELINE_HINT, file=sys.stderr)
+        print(f"\nThen stage {SCORES_REL} in the same commit, or bypass with "
+              f"`git commit --no-verify`.", file=sys.stderr)
+        return 1
+
+    for src in sorted(affected):
+        if src:
+            print(src)
     return 0
 
 
@@ -2077,6 +2399,11 @@ def build_parser():
 
     sub.add_parser("show", help="Display current baseline")
 
+    sub.add_parser("bounds-gate",
+                   help="Pre-commit helper: print the sources a staged "
+                        "function_bounds.json edit moves references for; exit 1 "
+                        "when the commit carries no re-baselined floor")
+
     p_pop = sub.add_parser("populate",
                            help="Populate baseline for all objdiff.json source files")
     p_pop.add_argument("--force", action="store_true",
@@ -2128,6 +2455,7 @@ def main():
         "update": cmd_update,
         "check": cmd_check,
         "show": cmd_show,
+        "bounds-gate": cmd_bounds_gate,
         "populate": cmd_populate,
         "rebaseline-report": cmd_rebaseline_report,
         "loadw": cmd_loadw,

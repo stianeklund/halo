@@ -776,6 +776,56 @@ def _make_fastcall_decl_shadow(names: set[str]) -> Path | None:
     return shadow_dir
 
 
+def obj_stamp_path(obj: Path) -> Path:
+    """Sidecar recording WHICH source content produced this object."""
+    return obj.with_name(obj.name + ".srcsha")
+
+
+def source_stamp(source: Path, opt: str) -> str:
+    """Identity of a compile input: source CONTENT plus the flags it was built
+    with.  Content, not mtime — see obj_is_current."""
+    try:
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    except OSError:
+        return ""
+    return f"{digest}:{opt}"
+
+
+def obj_is_current(obj: Path, source: Path, opt: str) -> bool:
+    """Whether ``obj`` was compiled from the CURRENT bytes of ``source``.
+
+    Reusing a stale object silently measures code that is no longer in the tree,
+    in both directions:
+      * a function deleted from the source keeps scoring from the old object --
+        FUN_000f56b0 sat at exactly 81.8% across 13 attempts while having no
+        definition at all, and the unmoving score read as a structural ceiling;
+      * a function newly added is absent from the object, so `--function <new>`
+        aborts with "not found in both objects" and the lift pipeline reports
+        "VC71 compilation or comparison failed".
+
+    This used to compare mtimes (obj >= source).  mtime is the wrong oracle for
+    the question: this repo lives on a WSL2 /mnt/g DrvFs mount with coarse
+    timestamps, so an edit landing in the same tick as the previous compile
+    looks current; and anything that restores content while preserving times
+    (`cp -p`, an archive extract, some checkout paths) makes a stale object look
+    newer than the source it no longer matches.  Compare the source's CONTENT
+    hash against a stamp written at compile time instead, plus the flags, since
+    the same source at /O2 and /O2 /Ob1 are different objects.
+
+    An object with no stamp (built before this existed, or by another tool) is
+    NOT current: one extra compile is cheaper than one wrong score.
+    """
+    if not obj.exists() or not source.exists():
+        return False
+    want = source_stamp(source, opt)
+    if not want:
+        return False
+    try:
+        return obj_stamp_path(obj).read_text().strip() == want
+    except OSError:
+        return False
+
+
 def compile_vc71(source: Path, output: Path, regcall_elide: bool = False, opt: str = "/O2") -> bool:
     """Compile a source file with VC++ 7.1 cl.exe. Returns True on success.
 
@@ -842,6 +892,17 @@ def compile_vc71(source: Path, output: Path, regcall_elide: bool = False, opt: s
     if not output.exists():
         print(f"VC71 compilation produced no output at {output}", file=sys.stderr)
         return False
+
+    # Record which source content this object is, so a later run can tell a
+    # reusable object from a stale one (see obj_is_current).  Written last, so a
+    # failed or interrupted compile leaves no stamp and the object is treated as
+    # stale.  Stamp the ORIGINAL source, not the preprocessed temp: the temp is
+    # derived from it and is deleted above.
+    try:
+        obj_stamp_path(output).write_text(source_stamp(source, opt) + "\n")
+    except OSError:
+        # A missing stamp only costs a recompile next time; never fail here.
+        pass
 
     return True
 
@@ -1847,31 +1908,20 @@ def main():
     # try satisfying the entire run from cache before touching the compiler.
     # We still need the obj for disassembly in case of any miss — so we only
     # skip compile when ALL functions are cache hits.
-    # Only reuse the object when it is at least as new as the source.  Reusing a
-    # STALE object silently measures code that is no longer in the tree, in both
-    # directions:
-    #   * a function deleted from the source keeps scoring from the old object --
-    #     FUN_000f56b0 sat at exactly 81.8% across 13 attempts while having no
-    #     definition at all, and the unmoving score read as a structural ceiling.
-    #   * a function newly added to the source is absent from the object, so
-    #     --function <new fn> aborts with "not found in both objects" and the
-    #     lift pipeline reports "VC71 compilation or comparison failed".
-    # The SQLite result cache keys on the source hash and was never the problem;
-    # only this object reuse is.  Compare mtimes rather than trusting existence.
-    obj_is_current = (
-        vc71_obj.exists()
-        and source.exists()
-        and vc71_obj.stat().st_mtime >= source.stat().st_mtime
-    )
-    if need_compile and cache is not None and obj_is_current and not args.no_cache:
+    # Only reuse the object when it was compiled from the current source CONTENT
+    # at the current flags — see obj_is_current for what a stale object costs and
+    # why mtime could not answer this.  The SQLite result cache keys on the
+    # source hash and was never the problem; only this object reuse is.
+    obj_current = obj_is_current(vc71_obj, source, args.opt)
+    if need_compile and cache is not None and obj_current and not args.no_cache:
         # We'll attempt cached compare first; compile only if there are misses.
         # The cached-compare path reads this object for disassembly on misses,
         # which is sound now that we know it matches the current source.
         need_compile = False  # tentative; compile_vc71 called below if obj absent
     elif (need_compile and cache is not None and vc71_obj.exists()
           and not args.no_cache and not args.quiet):
-        print(f"[cache] {vc71_obj.name} is older than {source.name}; recompiling",
-              flush=True)
+        print(f"[cache] {vc71_obj.name} was not built from the current "
+              f"{source.name}; recompiling", flush=True)
 
     if need_compile:
         if not args.quiet:
@@ -1885,6 +1935,14 @@ def main():
     elif not args.skip_compile and vc71_obj.exists():
         if not args.quiet:
             print(f"Using cached VC71 object: {vc71_obj.name}", flush=True)
+    elif args.skip_compile and vc71_obj.exists() and not obj_current:
+        # Explicit user request, so it is honoured — but say plainly that the
+        # scores below describe whatever source built that object, not the file
+        # on disk.  Always printed, --quiet included: a silent stale measurement
+        # is the exact failure this stamp exists to end.
+        print(f"WARNING: --skip-compile is reusing {vc71_obj.name}, which was "
+              f"NOT built from the current {source.name}; scores describe stale "
+              f"code", file=sys.stderr, flush=True)
 
     if not vc71_obj.exists():
         if not args.quiet:

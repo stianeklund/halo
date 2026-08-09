@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Unit tests for vc71_regression check-mode evidence gates."""
 
+import contextlib
 import importlib.util
+import io
 import json
 import subprocess
 import sys
@@ -91,19 +93,22 @@ class TestStrictCheck(unittest.TestCase):
         scores = {"fn": {"score": 90, "source": SOURCE}}
         self.assertNotEqual(self.run_check(scores, self.runner()), 0)
 
-    def test_invalid_reference_fails_strict(self):
+    def test_instruction_count_heuristics_are_gone(self):
+        """A reference is CUT from the bounds table, so it cannot be truncated
+        or bloated relative to the span -- the span is its length.  The old
+        n_r*15<span / n_r>span gate rejected both shapes below; a reference that
+        genuinely cannot be derived is a DROP now (see the test after this one),
+        not a suspicious score."""
         scores = {"fn": {"score": 90, "source": SOURCE}}
-        result = {"fn": {"score": 90, "n_r": 0}}
-        self.assertNotEqual(self.run_check(scores, self.runner(result)), 0)
-
-    def test_truncated_reference_fails_strict(self):
-        scores = {"fn": {"score": 90, "source": SOURCE}}
-        result = {"fn": {"score": 90, "n_r": 1}}
-        with patch.object(vc71, "_func_span", return_value=100):
-            self.write_baseline(scores)
-            with patch.object(vc71, "BASELINE_PATH", self.baseline_path):
-                with patch.object(vc71, "run_vc71_verify", self.runner(result)):
-                    self.assertNotEqual(vc71.cmd_check(self.args), 0)
+        for n_r, span in ((0, 10), (1, 100), (200, 10)):
+            with self.subTest(n_r=n_r, span=span):
+                result = {"fn": {"score": 90, "n_r": n_r}}
+                with patch.object(vc71, "_func_span", return_value=span):
+                    self.write_baseline(scores)
+                    with patch.object(vc71, "BASELINE_PATH", self.baseline_path):
+                        with patch.object(vc71, "run_vc71_verify",
+                                          self.runner(result)):
+                            self.assertEqual(vc71.cmd_check(self.args), 0)
 
     def test_missing_reference_drop_fails_strict(self):
         scores = {"fn": {"score": 90, "source": SOURCE}}
@@ -126,6 +131,12 @@ class TestStrictCheck(unittest.TestCase):
 
 
 class TestLegacyCheckSkipsEvidenceGaps(unittest.TestCase):
+    """Default (non-strict) mode tolerates exactly two evidence gaps: an empty
+    baseline, and a TU that measured NOTHING (compile failure -- a checkout with
+    no RXDK/wine VC71 toolchain fails every compile, and a gate that blocks every
+    commit there gets disabled).  Every other kind of silence is fatal; see
+    TestSilenceIsFailure."""
+
     def test_empty_baseline_and_missing_result_still_pass(self):
         with tempfile.TemporaryDirectory() as temp:
             baseline = Path(temp) / "scores.json"
@@ -322,6 +333,374 @@ class TestBaselineDocument(unittest.TestCase):
             self.assertEqual(doc["version"], 2)
             self.assertEqual(doc["note"], "keep me")
             self.assertEqual(sorted(doc["scores"]), ["fn", "fn2"])
+
+
+class CheckHarness(unittest.TestCase):
+    """Run cmd_check against an in-memory baseline and a scripted scorer."""
+
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.baseline_path = Path(self.temp_dir.name) / "scores.json"
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    @staticmethod
+    def scorer(results=None, status="ok", drops=None):
+        results = results or {}
+        drops = drops or []
+
+        def run(_source, drops_out=None, meta_out=None):
+            if drops_out is not None:
+                drops_out.extend(drops)
+            if meta_out is not None:
+                meta_out["status"] = status
+                meta_out["stderr_tail"] = []
+            return results
+
+        return run
+
+    def check(self, scores, results=None, strict=False, threshold=2.0,
+              status="ok", drops=None, runner=None):
+        """Returns (rc, stdout)."""
+        self.baseline_path.write_text(json.dumps({"version": 2, "scores": scores}))
+        args = SimpleNamespace(source=None, threshold=threshold, quiet=False,
+                               strict=strict)
+        run = runner or self.scorer(results, status=status, drops=drops)
+        buf = io.StringIO()
+        with patch.object(vc71, "BASELINE_PATH", self.baseline_path):
+            with patch.object(vc71, "run_vc71_verify", run):
+                with contextlib.redirect_stdout(buf):
+                    rc = vc71.cmd_check(args)
+        return rc, buf.getvalue()
+
+
+class TestRefShaPin(CheckHarness):
+    """A score is only comparable to a floor measured against the SAME bytes."""
+
+    BASE = {"score": 90.0, "source": SOURCE, "addr": "0x100c10",
+            "end": "0x100d54", "ref_sha": "aaaa1111bbbb2222"}
+
+    def test_matching_ref_sha_compares_normally(self):
+        rc, out = self.check({"fn": dict(self.BASE)},
+                             {"fn": {"score": 90.0, "n_r": 10,
+                                     "ref_sha": "aaaa1111bbbb2222"}})
+        self.assertEqual(rc, 0, out)
+        self.assertIn("OK — no regressions", out)
+
+    def test_matching_ref_sha_still_catches_a_regression(self):
+        rc, out = self.check({"fn": dict(self.BASE)},
+                             {"fn": {"score": 80.0, "n_r": 10,
+                                     "ref_sha": "aaaa1111bbbb2222"}})
+        self.assertEqual(rc, 1)
+        self.assertIn("REGRESSIONS", out)
+
+    def test_mismatched_ref_sha_fails_as_measurement_changed(self):
+        """The reference moved: the two numbers describe different bytes, so
+        they are NOT compared -- in either direction."""
+        rc, out = self.check({"fn": dict(self.BASE)},
+                             {"fn": {"score": 99.0, "n_r": 10,
+                                     "ref_sha": "cccc3333dddd4444",
+                                     "addr": "0x100c10", "end": "0x100d90"}})
+        self.assertEqual(rc, 1)
+        self.assertIn("MEASUREMENT CHANGED", out)
+        self.assertIn("aaaa1111bbbb2222", out)
+        self.assertIn("cccc3333dddd4444", out)
+        self.assertIn("populate --rebaseline", out)
+        # An improvement across a changed reference must not be reported as one.
+        self.assertNotIn("Improvements", out)
+
+    def test_mismatch_fails_even_when_the_score_is_identical(self):
+        rc, out = self.check({"fn": dict(self.BASE)},
+                             {"fn": {"score": 90.0, "n_r": 10,
+                                     "ref_sha": "cccc3333dddd4444"}})
+        self.assertEqual(rc, 1)
+        self.assertIn("MEASUREMENT CHANGED", out)
+
+    def test_baseline_without_ref_sha_is_grandfathered(self):
+        """The 47 pre-provenance entries compare as before, with one warning
+        per function; a real drop under them still fails."""
+        legacy = {"score": 90.0, "source": SOURCE}
+        rc, out = self.check({"fn": dict(legacy)},
+                             {"fn": {"score": 90.0, "n_r": 10,
+                                     "ref_sha": "cccc3333dddd4444"}})
+        self.assertEqual(rc, 0, out)
+        self.assertIn("without reference provenance", out)
+        self.assertIn("fn", out)
+
+        rc, out = self.check({"fn": dict(legacy)},
+                             {"fn": {"score": 70.0, "n_r": 10}})
+        self.assertEqual(rc, 1)
+        self.assertIn("REGRESSIONS", out)
+
+    def test_run_without_refmeta_warns_but_still_compares(self):
+        """A scorer that stops printing REFMETA loses the pin, not the score."""
+        rc, out = self.check({"fn": dict(self.BASE)},
+                             {"fn": {"score": 90.0, "n_r": 10}})
+        self.assertEqual(rc, 0, out)
+        self.assertIn("NO PROVENANCE IN THIS RUN", out)
+
+        rc, out = self.check({"fn": dict(self.BASE)},
+                             {"fn": {"score": 50.0, "n_r": 10}})
+        self.assertEqual(rc, 1)
+        self.assertIn("REGRESSIONS", out)
+
+    def test_run_without_refmeta_fails_strict(self):
+        rc, _out = self.check({"fn": dict(self.BASE)},
+                              {"fn": {"score": 90.0, "n_r": 10}}, strict=True)
+        self.assertEqual(rc, 1)
+
+
+class TestSilenceIsFailure(CheckHarness):
+    """A baselined function this run did not measure is a failure, not a skip."""
+
+    def test_vanished_function_fails_in_default_mode(self):
+        """The stale-object class: FUN_000f56b0 held exactly 81.8% across 13
+        attempts with no definition in the tree -- a deleted function kept
+        scoring from a stale build/vc71/<tu>.obj, and `check` reported a pass
+        because a missing score line was a bare `continue`."""
+        scores = {"gone": {"score": 81.8, "source": SOURCE,
+                           "ref_sha": "aaaa1111bbbb2222"},
+                  "kept": {"score": 90.0, "source": SOURCE,
+                           "ref_sha": "bbbb2222cccc3333"}}
+        rc, out = self.check(scores, {"kept": {"score": 90.0, "n_r": 10,
+                                               "ref_sha": "bbbb2222cccc3333"}})
+        self.assertEqual(rc, 1, out)
+        self.assertIn("UNMEASURED BASELINED FUNCTIONS", out)
+        self.assertIn("gone", out)
+        self.assertNotIn("81.8", out.split("UNMEASURED")[0])
+
+    def test_dropped_function_fails_in_default_mode(self):
+        """A DROP is silence with a known cause (no bounds entry)."""
+        scores = {"fn": {"score": 90.0, "source": SOURCE},
+                  "other": {"score": 90.0, "source": SOURCE}}
+        drops = [{"function": "fn", "reason": "no bounds entry",
+                  "span_bytes": 10}]
+        rc, out = self.check(scores,
+                             {"other": {"score": 90.0, "n_r": 10}},
+                             drops=drops)
+        self.assertEqual(rc, 1, out)
+        self.assertIn("no valid reference", out)
+        self.assertIn("no bounds entry", out)
+
+    def test_drop_for_an_unbaselined_function_is_not_fatal_by_default(self):
+        """A helper/static/new port the floor never covered must not block a
+        commit -- but --strict still reports it."""
+        scores = {"fn": {"score": 90.0, "source": SOURCE}}
+        drops = [{"function": "helper", "reason": "no bounds entry",
+                  "span_bytes": 10}]
+        rc, out = self.check(scores, {"fn": {"score": 90.0, "n_r": 10}},
+                             drops=drops)
+        self.assertEqual(rc, 0, out)
+        rc, _ = self.check(scores, {"fn": {"score": 90.0, "n_r": 10}},
+                           drops=drops, strict=True)
+        self.assertEqual(rc, 1)
+
+    def test_whole_tu_compile_failure_is_reported_but_not_fatal(self):
+        """The one carve-out, and it is explicit: no VC71 toolchain fails every
+        compile.  Verified behaviour of the hook around this: `check` returns 0,
+        `update` then runs non-blocking, and the commit proceeds -- so the report
+        below is the ONLY signal, and it must say the functions were not
+        covered."""
+        scores = {"a": {"score": 90.0, "source": SOURCE},
+                  "b": {"score": 90.0, "source": SOURCE}}
+        rc, out = self.check(scores, {}, status="compile_failed")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("compile failure", out)
+        self.assertIn("2 function(s)", out)
+        self.assertIn("NOT covered", out)
+        self.assertNotIn("ACCOUNTING ERROR", out)
+
+    def test_whole_tu_compile_failure_fails_strict(self):
+        scores = {"a": {"score": 90.0, "source": SOURCE}}
+        rc, _out = self.check(scores, {}, status="compile_failed", strict=True)
+        self.assertEqual(rc, 1)
+
+    def test_every_baselined_function_reaches_a_verdict(self):
+        """The accounting residual is itself a failure: a function that reached
+        no bucket is the same false negative as silence."""
+        scores = {"ok": {"score": 90.0, "source": SOURCE},
+                  "gone": {"score": 90.0, "source": SOURCE}}
+        rc, out = self.check(scores, {"ok": {"score": 90.0, "n_r": 10}})
+        self.assertEqual(rc, 1)
+        self.assertNotIn("ACCOUNTING ERROR", out)
+
+
+class TestBoundsGate(unittest.TestCase):
+    """Editing function_bounds.json IS editing the references."""
+
+    OLD = json.dumps({
+        "_meta": {"entries": 2, "version": 1},
+        "0x100c10": {"end": "0x100d54", "kind": "auto"},
+        "0x200000": {"end": "0x200040", "kind": "auto"},
+    })
+    NEW = json.dumps({
+        "_meta": {"entries": 3, "version": 1},
+        "0x100c10": {"end": "0x100d90", "kind": "auto"},   # moved
+        "0x200000": {"end": "0x200040", "kind": "auto"},   # unchanged
+        "0x300000": {"end": "0x300010", "kind": "auto"},   # added
+    })
+    BASELINE = {
+        "moved_fn": {"score": 90.0, "source": "src/halo/main/main.c",
+                     "addr": "0x100c10"},
+        "stable_fn": {"score": 90.0, "source": "src/halo/main/main.c",
+                      "addr": "0x200000"},
+        "no_addr_fn": {"score": 90.0, "source": "src/halo/game/game.c"},
+    }
+
+    def test_metadata_only_change_moves_nothing(self):
+        other = json.loads(self.OLD)
+        other["_meta"]["generated"] = "today"
+        self.assertEqual(
+            vc71.bounds_changed_addrs(self.OLD, json.dumps(other)), set())
+
+    def test_changed_addrs_cover_edits_and_additions(self):
+        self.assertEqual(vc71.bounds_changed_addrs(self.OLD, self.NEW),
+                         {"0x100c10", "0x300000"})
+
+    def test_removal_counts_as_a_change(self):
+        trimmed = json.loads(self.OLD)
+        del trimmed["0x200000"]
+        self.assertIn("0x200000",
+                      vc71.bounds_changed_addrs(self.OLD, json.dumps(trimmed)))
+
+    def test_addresses_join_regardless_of_spelling(self):
+        baseline = {"fn": {"score": 1.0, "source": "src/x.c",
+                           "addr": "0x0000100C10"}}
+        self.assertEqual(vc71.sources_for_bounds_addrs({"0x100c10"}, baseline),
+                         {"src/x.c": ["fn"]})
+
+    def test_only_affected_sources_are_returned(self):
+        affected = vc71.sources_for_bounds_addrs({"0x100c10", "0x300000"},
+                                                 self.BASELINE)
+        self.assertEqual(affected, {"src/halo/main/main.c": ["moved_fn"]})
+
+    def _gate(self, staged, old=None, new=None, baseline=None):
+        blobs = {f"HEAD:{vc71.BOUNDS_REL}": old if old is not None else self.OLD,
+                 f":{vc71.BOUNDS_REL}": new if new is not None else self.NEW}
+        buf, err = io.StringIO(), io.StringIO()
+        with patch.object(vc71, "staged_paths", return_value=set(staged)):
+            with patch.object(vc71, "_git_show", side_effect=lambda s: blobs.get(s, "")):
+                with patch.object(vc71, "load_baseline",
+                                  return_value=baseline if baseline is not None
+                                  else self.BASELINE):
+                    with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                        rc = vc71.cmd_bounds_gate(SimpleNamespace())
+        return rc, buf.getvalue(), err.getvalue()
+
+    def test_no_bounds_staged_is_a_no_op(self):
+        rc, out, err = self._gate(["src/halo/main/main.c"])
+        self.assertEqual((rc, out, err), (0, "", ""))
+
+    def test_bounds_without_rebaselined_scores_fails_with_instructions(self):
+        rc, _out, err = self._gate([vc71.BOUNDS_REL])
+        self.assertEqual(rc, 1)
+        self.assertIn("src/halo/main/main.c", err)
+        self.assertIn("populate --rebaseline", err)
+        self.assertIn(vc71.SCORES_REL, err)
+
+    def test_bounds_with_scores_prints_the_affected_sources(self):
+        rc, out, _err = self._gate([vc71.BOUNDS_REL, vc71.SCORES_REL])
+        self.assertEqual(rc, 0)
+        self.assertEqual(out.split(), ["src/halo/main/main.c"])
+
+    def test_bounds_change_touching_no_floor_is_a_no_op(self):
+        rc, out, err = self._gate([vc71.BOUNDS_REL],
+                                  baseline={"fn": {"score": 1.0,
+                                                   "source": "src/x.c",
+                                                   "addr": "0x999999"}})
+        self.assertEqual((rc, out, err), (0, "", ""))
+
+
+class TestMeasureMemoVersioning(unittest.TestCase):
+    """The memo caches decisions, so its rules need their own version."""
+
+    def test_version_is_2(self):
+        self.assertEqual(vc71.MEASURE_MEMO_VERSION, 2)
+
+    def test_older_memo_is_discarded_wholesale(self):
+        """Version 1 cached a 'no objdiff.json unit' miss as a permanent verdict.
+        That route is gone; its entries must not answer for anything."""
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "memo.json"
+            path.write_text(json.dumps(
+                {"version": 1, "entries": {"key": {"out": {}, "drops": []}}}))
+            with patch.object(vc71, "MEASURE_CACHE_PATH", path):
+                with patch.object(vc71, "_MEASURE_MEMO", None):
+                    self.assertEqual(vc71._load_measure_memo(), {})
+            path.write_text(json.dumps(
+                {"version": vc71.MEASURE_MEMO_VERSION,
+                 "entries": {"key": {"out": {"fn": {"score": 1.0}}}}}))
+            with patch.object(vc71, "MEASURE_CACHE_PATH", path):
+                with patch.object(vc71, "_MEASURE_MEMO", None):
+                    self.assertIn("key", vc71._load_measure_memo())
+
+    def test_empty_measurement_is_never_memoized(self):
+        """A TU that scored nothing must re-measure: with the objdiff route gone
+        the only way to get here is a broken toolchain, which the key does not
+        cover and a re-run may fix."""
+        completed = SimpleNamespace(returncode=1, stdout="", stderr="fatal error")
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "memo.json"
+            with patch.object(vc71, "MEASURE_CACHE_PATH", path):
+                with patch.object(vc71, "_MEASURE_MEMO", {}):
+                    with patch.object(vc71, "_measure_key", return_value="k"):
+                        with patch.object(vc71.subprocess, "run",
+                                          return_value=completed):
+                            meta = {}
+                            vc71.run_vc71_verify(Path("src/x.c"), meta_out=meta)
+                    self.assertEqual(vc71._MEASURE_MEMO, {})
+
+
+class TestCandidateStaleness(unittest.TestCase):
+    """A candidate score must never come from an object older than the source."""
+
+    def setUp(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import vc71_verify
+        self.vv = vc71_verify
+        self.temp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.temp.name)
+        self.src = self.dir / "unit.c"
+        self.obj = self.dir / "unit.obj"
+        self.src.write_text("void fn(void) {}\n")
+        self.obj.write_bytes(b"\x00compiled\x00")
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def _stamp(self, opt="/O2"):
+        self.vv.obj_stamp_path(self.obj).write_text(
+            self.vv.source_stamp(self.src, opt) + "\n")
+
+    def test_unstamped_object_is_not_current(self):
+        self.assertFalse(self.vv.obj_is_current(self.obj, self.src, "/O2"))
+
+    def test_stamped_object_is_current(self):
+        self._stamp()
+        self.assertTrue(self.vv.obj_is_current(self.obj, self.src, "/O2"))
+
+    def test_edited_source_invalidates_even_at_an_identical_mtime(self):
+        """The mtime rule this replaced: /mnt/g is a coarse-timestamp DrvFs
+        mount, so an edit landing in the same tick as the compile looked
+        current, and content-preserving restores (cp -p, archive extract) made a
+        stale object look newer than the source it no longer matches."""
+        self._stamp()
+        st = self.obj.stat()
+        self.src.write_text("void fn(void) { int x = 1; }\n")
+        import os
+        os.utime(self.src, ns=(st.st_atime_ns, st.st_mtime_ns))
+        self.assertEqual(self.src.stat().st_mtime, self.obj.stat().st_mtime)
+        self.assertFalse(self.vv.obj_is_current(self.obj, self.src, "/O2"))
+
+    def test_flags_are_part_of_the_identity(self):
+        self._stamp(opt="/O2")
+        self.assertFalse(self.vv.obj_is_current(self.obj, self.src, "/O2 /Ob1"))
+
+    def test_missing_object_is_not_current(self):
+        self._stamp()
+        self.obj.unlink()
+        self.assertFalse(self.vv.obj_is_current(self.obj, self.src, "/O2"))
 
 
 if __name__ == "__main__":
