@@ -1,7 +1,7 @@
 ---
 description: Goal-mode source recovery across the frontier with sequential GPT-5.6 Luna category workers
 agent: build
-model: openai/gpt-5.6-luna
+model: aiolos/gpt-5.6-luna
 subtask: false
 ---
 

@@ -1,7 +1,7 @@
 ---
 description: Run the manifest-driven faithful source recovery workflow
 agent: build
-model: openai/gpt-5.6-luna
+model: aiolos/gpt-5.6-luna
 ---
 
 Invoke the `source-recovery` skill and follow it as the sole end-to-end
