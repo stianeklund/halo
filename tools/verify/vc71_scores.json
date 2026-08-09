@@ -39417,6 +39417,17 @@
       "score": 82.4,
       "source": "src/halo/effects/particle_systems.c"
     },
+    "particle_system_update": {
+      "addr": "0xa1170",
+      "end": "0xa120b",
+      "kind": "auto",
+      "n_r": 51,
+      "opnd_percent": 95.1,
+      "ref": "synth",
+      "ref_sha": "d202b84740821619",
+      "score": 97.1,
+      "source": "src/halo/effects/particle_systems.c"
+    },
     "particle_systems_dispose": {
       "addr": "0x9f7c0",
       "end": "0x9f7c1",

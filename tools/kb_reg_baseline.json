@@ -133,6 +133,8 @@
     "0x8e8e0": "void FUN_0008e8e0(void *ptr /* @<ebx> */, uint32_t size);",
     "0x8e950": "void FUN_0008e950(void *header /* @<esi> */);",
     "0x8e9f0": "void FUN_0008e9f0(void *header /* @<eax> */, const char *file, int line);",
+    "0x93ba0": "void FUN_00093ba0(short *angles @<eax>, short *cursor @<edx>);",
+    "0x93be0": "void FUN_00093be0(short *angles @<eax>, float *out_vector);",
     "0x972b0": "void edit_text_clamp_cursor(void *edit_text @<edi>);",
     "0x97a50": "int16_t FUN_00097a50(int contrail_handle @<eax>, float delta_time);",
     "0x97ae0": "void FUN_00097ae0(int contrail_handle /* @<eax> */);",
@@ -164,6 +166,7 @@
     "0x9f9d0": "void FUN_0009f9d0(void *particle@<eax>, void *sys_def@<ecx>);",
     "0x9fd30": "void FUN_0009fd30(void *ps@<ebx>, int16_t type_index, float dt);",
     "0xa0080": "void FUN_000a0080(void *sys_def@<ecx>, short state_index@<eax>, void *output@<edi>);",
+    "0xa0800": "void FUN_000a0800(int particle_system_handle@<eax>);",
     "0xa1770": "void FUN_000a1770(int particle@<eax>, int tag_group@<ecx>, int physics_tag@<esi>, int param);",
     "0xa18c0": "void FUN_000a18c0(int datum_handle@<ebx>);",
     "0xa1a90": "bool FUN_000a1a90(int datum_handle@<eax>);",
@@ -719,8 +722,6 @@
     "0x224904": "int __stdcall connect(void *xnet@<ecx>, unsigned int socket, const void *name, int namelen);",
     "0x225021": "int __stdcall socket(void *xnet@<ecx>, int af, int type, int protocol);",
     "0x2256bb": "int __stdcall recv(void *xnet@<ecx>, unsigned int socket, char *buf, int len, int flags);",
-    "0x2258a4": "int __stdcall send(void *xnet@<ecx>, unsigned int socket, const char *buf, int len, int flags);",
-    "0x93ba0": "void FUN_00093ba0(short *angles @<eax>, short *cursor @<edx>);",
-    "0x93be0": "void FUN_00093be0(short *angles @<eax>, float *out_vector);"
+    "0x2258a4": "int __stdcall send(void *xnet@<ecx>, unsigned int socket, const char *buf, int len, int flags);"
   }
 }

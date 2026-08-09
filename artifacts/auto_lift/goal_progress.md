@@ -75,6 +75,19 @@ Confirmed:
 | rasterizer_hud_motion_sensor_blip_begin | 0x17ca10 | rasterizer.obj | - | skipped | Body is a single unchanged tail-call to FUN_0015a7f0 (already ported). Disassembly is a pure thunk: PUSH EBP / MOV EBP,ESP / POP EBP / JMP 0x0015a7f0 — no work of its own. Additional hazard: kb.json declares it `void rasterizer_hud_motion_sensor_blip_begin(void)` but the JMP target takes 4 stack args (`void FUN_0015a7f0(float *p0, float *p1, float *color0, float *color1)`), so the wrapper actually forwards its caller's 4 arguments. Lifting it as `void f(void){ FUN_0015a7f0(); }` would compile but pass garbage. Any lift must first correct the kb.json decl to the 4-float-pointer signature; not worth a lift slot as-is. |
 | rasterizer_hud_motion_sensor_blip_draw | 0x17ca20 | rasterizer.obj | - | skipped | Body is a bare frame-setup + tail JMP to 0x15a8f0: `PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x0015a8f0`. Ghidra decompile is `void __cdecl FUN_0017ca20(void) { FUN_0015a8f0(); return; }` — a 1-line wrapper around one FUN_ with no argument transformation. |
 
+## Goal-lift run — 7/10 committed (queue_exhausted) — 2026-08-09
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| particle_system_update | 0xa1170 | particle_systems.obj | - | skipped | Callee FUN_000a0800 (0xa0800) is invoked with an implicit EAX register argument (`MOV EAX,ESI; CALL 0x000a0800` at 000a11eb) but its kb.json decl is `void FUN_000a0800(void);` with no @eax annotation and ported=null. Lifting particle_system_update as-is would call it as a zero-arg function and drop the particle-system index, silently corrupting per-system update. Requires kb.json ABI fix first: `void FUN_000a0800(int index @eax);` (or the recovered name, e.g. particle_system_update_one). |
+| FUN_0009fa60 | 0x9fa60 | particle_systems.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_0009fad0 | 0x9fad0 | particle_systems.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_0009fca0 | 0x9fca0 | particle_systems.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| particle_systems_reconnect_to_structure_bsp | 0x9f7e0 | particle_systems.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_0009fb10 | 0x9fb10 | particle_systems.obj | 98.1 | committed | mechanical gate: 98.1% clean (pass1) |
+| FUN_000a0d50 | 0xa0d50 | particle_systems.obj | 95 | committed | mechanical gate: 95% clean (pass1) |
+| FUN_0009f570 | 0x9f570 | particle_systems.obj | 93.4 | committed | mechanical gate: 93.4% clean (pass1) |
+
 Inferred:
 - The loop is re-rolling this target from scratch each cycle rather than editing the parked patch, so each attempt loses fixes the previous one earned. This is the fifth rejection and the third time the movzbl fix has been lost.
 
@@ -4085,3 +4098,38 @@ Queue exhausted after 1 pass. All 31 targets rejected or skipped. The 27 fresh c
 - **Build failure blocks 1 target**: ai_profile.c orphaned label prevents tree build; unblock by restoring or removing the orphaned `count_check` label.
 - **No structural verification**: VC71 cannot run for devices.c TU until build is green; the 90.7% score is fabricated (measures sibling, not target). Once build is fixed, device_export_function_values should be re-reviewed with actual VC71 data.
 
+## Run 20260809-1 — 0/10 committed (queue_exhausted)
+
+### Summary
+- **0 of 10 targets committed** — all skipped due to auto-lift blockers.
+- **3 targets blocked** on register-argument ABI mismatches requiring kb.json updates.
+- **Queue exhausted**: No auto-liftable targets remain in particle_systems.obj queue.
+
+### Results
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000a0800 | 0xa0800 | particle_systems.obj | - | skipped | lane=manual-lift (not auto-liftable) |
+| FUN_000a0e60 | 0xa0e60 | particle_systems.obj | - | skipped | lane=manual-lift (not auto-liftable) |
+| particle_system_update | 0xa1170 | particle_systems.obj | - | skipped | Callee FUN_000a0800 (0xa0800) is called with an implicit EAX register argument (`MOV EAX,ESI; CALL 0x000a0800` at 000a11eb/000a11ed — ESI is the particle-system datum index from data_next_index). Its kb.json entry is `void FUN_000a0800(void);` — no `@eax` annotation and no parameter. Lifting particle_system_update as-is would call it with no argument, silently passing garbage in EAX. kb.json must first be updated to `void FUN_000a0800(int index @eax);` (immutable ABI annotation, requires binary confirmation of the parameter's use inside 0xa0800) before this function can be lifted. |
+
+### Decisions
+
+- **Register-argument blocking**: Automatic lifting is blocked on 1 target (particle_system_update) pending kb.json ABI corrections to its callee (FUN_000a0800). The callee's `@eax` register-argument annotation must be established via binary evidence before auto-lift can proceed.
+- **Manual-lift tier**: 2 targets (FUN_000a0800, FUN_000a0e60) are classified as manual-lift due to complexity or incomplete decompilation.
+- **Next steps**: (1) Audit FUN_000a0800 disassembly to confirm parameter use in EAX and establish kb.json `@eax` annotation; (2) Re-run auto-lift on particle_system_update once ABI is corrected.
+
+
+## Goal-lift run — 0/10 committed (queue_exhausted)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000a0800 | 0xa0800 | particle_systems.obj | - | skipped | lane=manual-lift (not auto-liftable) |
+| FUN_000a0e60 | 0xa0e60 | particle_systems.obj | - | skipped | lane=manual-lift (not auto-liftable) |
+| particle_system_update | 0xa1170 | particle_systems.obj | - | skipped | Callee FUN_000a0800 (0xa0800) is called with an implicit EAX register argument (`MOV EAX,ESI; CALL 0x000a0800` at 000a11eb-000a11ed) but its kb.json decl is `void FUN_000a0800(void);` — no `@eax` annotation. Lifting this function would emit `FUN_000a0800()` and silently drop the particle-system datum index. Requires kb.json ABI annotation (`void FUN_000a0800(int index @eax);`) before this target is liftable. |
+
+## Goal-lift run — 0/10 committed (queue_exhausted)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| particle_system_update | 0xa1170 | particle_systems.obj | - | skipped | Callee FUN_000a0800 (0xa0800) is invoked with a register argument: `000a11eb MOV EAX,ESI` / `000a11ed CALL 0x000a0800`. Its kb.json entry is `void FUN_000a0800(void);` with no `@eax` annotation and no `ported` flag — so calling it by name from C would pass nothing in EAX and the callee would read a stale register (the exact "(void) decl over a reg-arg function" hazard). Blocked until 0xa0800 is annotated `void FUN_000a0800(int datum_index @eax);` in kb.json. |

@@ -16444,7 +16444,7 @@
     },
     {
      "addr": "0xa0800",
-     "decl": "void FUN_000a0800(void);"
+     "decl": "void FUN_000a0800(int particle_system_handle@<eax>);"
     },
     {
      "addr": "0xa0d50",
@@ -16457,7 +16457,8 @@
     },
     {
      "addr": "0xa1170",
-     "decl": "void particle_system_update(void);"
+     "decl": "void particle_system_update(void);",
+     "ported": true
     }
    ],
    "name": "particle_systems.obj",

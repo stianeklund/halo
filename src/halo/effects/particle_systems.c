@@ -1195,3 +1195,49 @@ void particle_systems_update(float dt)
     FUN_000a0180(dt, particle_system_index);
   }
 }
+
+/* Per-frame visible-particle-system pass (0xa1170).
+ *
+ * Gated on the byte flag at [0x32574c]: one of four adjacent enable bytes
+ * (0x32574a..0x32574d) that 0x184b60 writes together from a single argument;
+ * 0xa54b0 reads the same byte.  When it is clear the entire pass is skipped
+ * and the function returns immediately (000a1170 MOV AL,[0x0032574c] /
+ * TEST AL,AL / JZ 0x000a120a).
+ *
+ * Otherwise it asserts the particle-system datum array is live and walks every
+ * allocated datum.  A system is processed only when
+ *   - its location has resolved to a BSP leaf: the 16-bit bsp reference at
+ *     +0x1C is not NONE (000a11d4 CMP word ptr [EAX+0x1c],-0x1), and
+ *   - the location block at +0x18 is potentially visible from the local
+ *     player's cluster (000a11df CALL 0x0018e910, result tested in AL).
+ * The global at 0x5aa8a8 is re-read on every iteration in the original
+ * (000a11c5 and 000a11f2), so it is not hoisted here.
+ *
+ * ABI: FUN_000a0800 takes the particle-system datum index in EAX, not on the
+ * stack (000a11eb MOV EAX,ESI / 000a11ed CALL 0x000a0800, no stack cleanup
+ * after the call).  Confirmed at the callee: 0xa0800 immediately does
+ * datum_get(g_particle_systems_data, in_EAX).  kb.json declares it
+ * `int particle_system_handle@<eax>` so the forward thunk supplies EAX. */
+void particle_system_update(void)
+{
+  int particle_system_index;
+  char *entry;
+
+  if (*(char *)0x32574c != 0) {
+    assert_halt(particle_system_header_data &&
+                particle_system_header_data->valid);
+    for (particle_system_index =
+           data_next_index(particle_system_header_data, NONE);
+         particle_system_index != NONE;
+         particle_system_index =
+           data_next_index(particle_system_header_data,
+                           particle_system_index)) {
+      entry =
+        (char *)datum_get(particle_system_header_data, particle_system_index);
+      if (*(short *)(entry + 0x1c) != NONE &&
+          scenario_location_potentially_visible_local(entry + 0x18)) {
+        FUN_000a0800(particle_system_index);
+      }
+    }
+  }
+}
