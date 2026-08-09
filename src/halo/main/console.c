@@ -390,7 +390,16 @@ static char *console_hud_chat_flag(void)
  *
  * Confirmed: input_key_is_down(0x10) to toggle open (key 0x10 identity TBD).
  * Confirmed: terminal_open(0x46cf64), terminal_dispose(0x46cf64).
- * Confirmed: key events at 0x46cf68, 4 bytes each, key_code at +2.
+ * Confirmed: key events at 0x46cf68, 4 bytes each, key_code at +0.
+ *   The sentinel test and the dispatch read the SAME halfword. In the
+ *   original the two are spelled differently -- the sentinel indexes
+ *   0x46cf68 directly, while the dispatch LEAs 0x46cf66 and reads [esi+2] --
+ *   but 0x46cf66 + 4*i + 2 == 0x46cf68 + 4*i, so both land on offset 0.
+ *   delinked/console.obj, FUN_000ff9e0:
+ *     613: cmpw   $0xffff,0x0(,%esi,4)   reloc DAT_0046cf68
+ *     61c: lea    0x0(,%esi,4),%esi      reloc DAT_0046cf66
+ *     645: movswl 0x2(%esi),%eax
+ *   Offset +2 is never observed accessed, hence pad_02.
  * Confirmed: switch on key_code: 0x10=close, 0x1e=enter, 0x38/0x66=cancel,
  *            0x4d=history up, 0x4e=history down.
  * Confirmed: history ring indexing: (head - browse + 8) % 8 * 255.
@@ -398,7 +407,7 @@ static char *console_hud_chat_flag(void)
  */
 struct console_key_entry {
   int16_t key_code;
-  int16_t key_code2;
+  int8_t pad_02[2];
 };
 
 /* console_update — Address: 0x000ff9e0 */
@@ -416,7 +425,7 @@ bool console_update(void)
           system_exit(-1);
         }
 
-        switch (keys[key_index].key_code2) {
+        switch (keys[key_index].key_code) {
         case 0x10:
         case_10:
           if (*console_is_open() != 0) {

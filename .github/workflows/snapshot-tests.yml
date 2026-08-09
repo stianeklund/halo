@@ -1,47 +1,64 @@
 name: Snapshot Verification
 
+# Runs on the self-hosted runner only. This job needs two artifacts that are
+# deliberately never committed, because they are original-XBE-derived:
+#
+#   delinked/game_state.obj  - COFF slice exported from the original binary
+#   ci/snapshot.json         - converted from a live RAM capture
+#
+# See docs/repository-artifact-cleanup.md. On a GitHub-hosted runner neither
+# file exists after checkout, so the job could only ever fail -- which is what
+# it did for its last 8 runs before this was fixed. Both are symlinked in from
+# the host, the same way equivalence.yml and runtime-oracle.yml do it.
+
 on:
   push:
     paths:
       - "src/**"
       - "tools/equivalence/**"
       - "kb.json"
-      - "delinked/game_state.obj"
       - ".github/workflows/snapshot-tests.yml"
   pull_request:
     paths:
       - "src/**"
       - "tools/equivalence/**"
       - "kb.json"
-      - "delinked/game_state.obj"
+  workflow_dispatch:
+
+env:
+  VENV_PYTHON: /mnt/g/dev/halo/.venv/bin/python3
+  DELINKED_DIR: /mnt/g/dev/halo/delinked
+  BUILD_DIR: /mnt/g/dev/halo/build
+  # Host-only CI snapshot (raw game memory - never committed).
+  CI_DIR: /mnt/g/dev/halo/ci
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install system deps
+      - name: Link local assets
         run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake ninja-build
+          ln -sfn ${{ env.DELINKED_DIR }} delinked
+          ln -sfn ${{ env.BUILD_DIR }} build
+          ln -sfn ${{ env.CI_DIR }} ci
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install Python deps
-        run: pip install unicorn lief capstone
+      - name: Verify prerequisites
+        run: |
+          ${{ env.VENV_PYTHON }} -c "import unicorn, capstone; print('deps ok')"
+          test -d delinked
+          test -f delinked/game_state.obj
+          test -f ci/snapshot.json
 
       - name: Build
-        run: python3 tools/build/build.py -q --target halo
-        timeout-minutes: 10
+        run: ${{ env.VENV_PYTHON }} tools/build/build.py -q --target halo
+        timeout-minutes: 20
 
       - name: Run snapshot verification
         run: |
-          mkdir -p artifacts/progress
-          python3 tools/equivalence/game_state_verify.py \
+          mkdir -p artifacts/progress artifacts/equivalence
+          ${{ env.VENV_PYTHON }} tools/equivalence/game_state_verify.py \
             --snapshot ci/snapshot.json \
             --objects game_state.obj \
             --seeds 25 \
@@ -52,14 +69,14 @@ jobs:
       - name: Generate progress report
         if: always()
         run: |
-          python3 tools/report/generate_decomp_report.py \
+          ${{ env.VENV_PYTHON }} tools/report/generate_decomp_report.py \
             -o artifacts/progress/report.json \
             --html artifacts/progress/index.html
 
       - name: Report results
         if: always()
         run: |
-          python3 -c "
+          ${{ env.VENV_PYTHON }} -c "
           import json
           with open('artifacts/equivalence/ci_results.json') as f:
               r = json.load(f)

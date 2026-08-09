@@ -13318,6 +13318,11 @@
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
+    "FUN_00181670": {
+      "opnd_percent": 81.7,
+      "score": 91.8,
+      "source": "src/halo/rasterizer/rasterizer_lights.c"
+    },
     "FUN_00181900": {
       "score": 78.5,
       "source": "src/halo/rasterizer/rasterizer_text.c"
