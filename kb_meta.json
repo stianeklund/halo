@@ -2922,7 +2922,19 @@
         "The byte field at cinematic_globals_t+0x0B is named suppress_bsp_object_creation solely from this function's kb.json symbol name; no reader of the field has been located in the binary yet, so the semantic meaning is inferred from the writer's name rather than proven by use."
       ]
     },
+    "0x93050": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x930a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x930b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x93140": {
       "kind": "function",
       "status": "ported"
     },
@@ -13284,6 +13296,10 @@
       "status": "ported"
     },
     "0x1b3580": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1b5580": {
       "kind": "function",
       "status": "ported"
     },

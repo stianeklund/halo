@@ -23268,6 +23268,39 @@
       "score": 81.5,
       "source": "src/halo/units/units.c"
     },
+    "FUN_001b5400": {
+      "addr": "0x1b5400",
+      "end": "0x1b54fb",
+      "kind": "auto",
+      "n_r": 89,
+      "opnd_percent": 86.5,
+      "ref": "synth",
+      "ref_sha": "374d54d49146c349",
+      "score": 94.4,
+      "source": "src/halo/units/vehicles.c"
+    },
+    "FUN_001b5500": {
+      "addr": "0x1b5500",
+      "end": "0x1b5538",
+      "kind": "auto",
+      "n_r": 21,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "27ed3223687359bf",
+      "score": 100.0,
+      "source": "src/halo/units/vehicles.c"
+    },
+    "FUN_001b5610": {
+      "addr": "0x1b5610",
+      "end": "0x1b5657",
+      "kind": "auto",
+      "n_r": 30,
+      "opnd_percent": 93.5,
+      "ref": "synth",
+      "ref_sha": "abf2c2044277a4cb",
+      "score": 96.8,
+      "source": "src/halo/units/vehicles.c"
+    },
     "FUN_001b9b00": {
       "addr": "0x1b9b00",
       "end": "0x1b9b13",
@@ -47560,6 +47593,17 @@
       "ref_sha": "842d0d14ee738346",
       "score": 100.0,
       "source": "src/halo/math/real_math.c"
+    },
+    "vehicle_causes_collision_damage": {
+      "addr": "0x1b5580",
+      "end": "0x1b55a6",
+      "kind": "auto",
+      "n_r": 19,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "7429e99531c0b009",
+      "score": 100.0,
+      "source": "src/halo/units/vehicles.c"
     },
     "vehicle_get_estimated_position": {
       "addr": "0x1b5df0",

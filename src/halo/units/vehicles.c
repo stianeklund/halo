@@ -1,3 +1,81 @@
+/* FUN_001b5400 (0x1b5400)
+ * Iterates objects with type mask 3. For each object whose +0xcc datum equals
+ * vehicle_handle, copies and lowercases tag-block element (+0x2e4) name +4.
+ * The current object's datum is iter.last_handle (+0x08), written by
+ * object_iterator_next; do not replace it with the object pointer.
+ */
+uint16_t FUN_001b5400(int vehicle_handle, const char *name_filter)
+{
+  uint32_t exit_count;
+  object_iter_t iter;
+  void *unit_tag;
+  void *object;
+  void *tag_element;
+  char name_buf[256];
+  int filter_is_empty;
+
+  exit_count = 0;
+  if (vehicle_handle != -1) {
+    unit_tag = tag_get(0x756e6974,
+                       *(int *)object_get_and_verify_type(vehicle_handle, 3));
+    filter_is_empty = name_filter == NULL || csstrlen(name_filter) == 0;
+    object_iterator_new(&iter, 3, 0);
+    object = object_iterator_next(&iter);
+    while (object != NULL) {
+      if (*(int *)((char *)object + 0xcc) == vehicle_handle) {
+        tag_element = tag_block_get_element(
+          (char *)unit_tag + 0x2e4, (int)*(int16_t *)((char *)object + 0x2a0),
+          0x11c);
+        csstrcpy(name_buf, (char *)tag_element + 4);
+        csstr_tolower(name_buf);
+        if ((filter_is_empty || crt_strstr(name_buf, name_filter) != NULL) &&
+            unit_try_and_exit_seat(iter.last_handle) != 0) {
+          exit_count++;
+        }
+      }
+      object = object_iterator_next(&iter);
+    }
+  }
+
+  return (uint16_t)exit_count;
+}
+
+/* FUN_001b5500 (0x1b5500) */
+void FUN_001b5500(int param_1)
+{
+  char *unit;
+
+  if (param_1 != -1) {
+    unit = (char *)object_get_and_verify_type(param_1, 3);
+    if (*(int *)(unit + 0xcc) != -1 && *(int16_t *)(unit + 0x2a0) != -1) {
+      unit_try_and_exit_seat(param_1);
+    }
+  }
+}
+
+/* FUN_001b5580 (0x1b5580) */
+void vehicle_causes_collision_damage(int param_1, void *param_2)
+{
+  unit_place(param_1, (char *)param_2 + 0x48);
+  FUN_0013d870(param_1, (char *)param_2 + 0x28);
+}
+
+/* FUN_001b5610 (0x1b5610) */
+void FUN_001b5610(int vehicle_handle, uint8_t param_2)
+{
+  char *vehicle;
+
+  if (vehicle_handle != -1) {
+    vehicle = (char *)object_get_and_verify_type(vehicle_handle, 2);
+    if (param_2 != 0) {
+      object_get_world_position(vehicle_handle, (vector3_t *)(vehicle + 0x454));
+      *(uint8_t *)(vehicle + 0x424) |= 2;
+      return;
+    }
+    *(uint8_t *)(vehicle + 0x424) &= 0xfd;
+  }
+}
+
 /*
  * vehicle_get_estimated_position (0x1b5df0) — predict vehicle contact point.
  *

@@ -27773,15 +27773,18 @@
     },
     {
      "addr": "0x1b5400",
-     "decl": "uint16_t FUN_001b5400(int param_1, int param_2);"
+     "decl": "uint16_t FUN_001b5400(int vehicle_handle, const char *name_filter);",
+     "ported": true
     },
     {
      "addr": "0x1b5500",
-     "decl": "void FUN_001b5500(int param_1);"
+     "decl": "void FUN_001b5500(int param_1);",
+     "ported": true
     },
     {
      "addr": "0x1b5580",
-     "decl": "void vehicle_causes_collision_damage(void);"
+     "decl": "void vehicle_causes_collision_damage(int param_1, void *param_2);",
+     "ported": true
     },
     {
      "addr": "0x1b55c0",
@@ -27789,7 +27792,8 @@
     },
     {
      "addr": "0x1b5610",
-     "decl": "void FUN_001b5610(void);"
+     "decl": "void FUN_001b5610(int vehicle_handle, uint8_t param_2);",
+     "ported": true
     },
     {
      "addr": "0x1b5680",
