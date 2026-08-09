@@ -191,6 +191,12 @@ def _parked_state(name: str) -> dict:
         return {}
 
 
+def _is_confirmed_cap(state: dict) -> bool:
+    """Return whether a parked record is a terminal structural-cap finding."""
+    status = str(state.get("parked_status") or "").strip().lower()
+    return status in {"capped_confirmed", "confirmed_cap"}
+
+
 # Known callee buffer requirements (synced with tools/audit/check_lift_hazards.py)
 KNOWN_BUFFER_SIZES = {
     'FUN_0013fc20': (0x88, 'object placement init — memsets 0x88 bytes'),
@@ -1092,6 +1098,12 @@ def _select_targets(
                     bonus = 5
                 total_score += bonus
                 reasons.append(f"struct_easy=+{bonus}(score={prescreen.difficulty_score})")
+
+        parked_state = _parked_state(target.name)
+        if _is_confirmed_cap(parked_state):
+            total_score -= 50
+            lane = "defer"
+            reasons.append("confirmed_cap=-50(parked ledger)")
 
         rejected = _check_rejected_branch(target.name)
         if rejected:
