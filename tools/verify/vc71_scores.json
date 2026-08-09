@@ -15452,6 +15452,16 @@
       "score": 81.5,
       "source": "src/halo/units/units.c"
     },
+    "FUN_001b5df0": {
+      "opnd_percent": 94.8,
+      "score": 96.9,
+      "source": "src/halo/units/vehicles.c"
+    },
+    "FUN_001b7ee0": {
+      "opnd_percent": 54.6,
+      "score": 88.2,
+      "source": "src/halo/units/vehicles.c"
+    },
     "FUN_001b9a90": {
       "score": 100.0,
       "source": "src/halo/tag_files/tag_groups.c"
@@ -27506,6 +27516,16 @@
     "vectors_interpolate": {
       "score": 100.0,
       "source": "src/halo/math/real_math.c"
+    },
+    "vehicle_get_estimated_position": {
+      "opnd_percent": 94.8,
+      "score": 96.9,
+      "source": "src/halo/units/vehicles.c"
+    },
+    "vehicle_moving_near_any_player": {
+      "opnd_percent": 54.6,
+      "score": 88.2,
+      "source": "src/halo/units/vehicles.c"
     },
     "vehicle_scripting_find_available_seats": {
       "score": 95.2,

@@ -44,6 +44,7 @@ int vehicle_get_estimated_position(int vehicle_handle, vector3_t *out_position)
   float result_buf[0x10d]; /* 0x434/4 floats; ray hit result buffer, at
                               EBP-0x434; only [0] and [2] used */
   int default_ret;
+  int16_t vtype;
 
   object_data_t *obj =
     (object_data_t *)object_get_and_verify_type(vehicle_handle, 2);
@@ -55,7 +56,7 @@ int vehicle_get_estimated_position(int vehicle_handle, vector3_t *out_position)
   object_get_world_position(vehicle_handle, out_position);
 
   /* Switch on vehicle type at tag+0x2f4. */
-  int16_t vtype = *(int16_t *)((char *)vehicle_tag + 0x2f4);
+  vtype = *(int16_t *)((char *)vehicle_tag + 0x2f4);
   switch (vtype) {
   case 0:
   case 1:
