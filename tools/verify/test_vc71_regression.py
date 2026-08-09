@@ -157,9 +157,16 @@ class TestFuncSpanDelegatesWhenImported(unittest.TestCase):
     recovery run: FUN_000d8b70/FUN_000d8b80 scored a 16-byte kb gap against a true
     span of 1, failing a check the CLI passed.
 
-    Asserted via sys.modules rather than a span value so the test does not depend
-    on kb.json contents: if the delegating import had failed, vc71_verify would
-    never be loaded at all.
+    The delegated answer now comes from the committed bounds table
+    (tools/verify/function_bounds.json), which is also where the reference itself
+    is cut from -- so a gate that disagrees with vc71_verify about a function's
+    size is disagreeing about which bytes were scored.
+
+    Delegation is asserted via sys.modules rather than a span value, so the test
+    does not depend on kb.json contents: if the delegating import had failed,
+    vc71_verify would never be loaded at all.  The values are then pinned against
+    the table directly, which catches the subtler failure where both sides
+    delegate but the table has stopped being the authority.
     """
 
     def test_import_as_package_module_still_delegates(self):
@@ -182,6 +189,23 @@ class TestFuncSpanDelegatesWhenImported(unittest.TestCase):
             cwd=str(repo_root), capture_output=True, text=True,
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
+
+    def test_span_is_the_committed_bound(self):
+        """Both sides must report end-start from function_bounds.json."""
+        repo_root = Path(__file__).resolve().parent.parent.parent
+        sys.path.insert(0, str(repo_root / "tools" / "verify"))
+        sys.path.insert(0, str(repo_root / "tools" / "audit"))
+        import function_bounds as fb
+        import vc71_verify as vv
+        table = fb.load_table()
+        # A listing-gap case (kb gap 800 for a 102-byte function) and a thunk,
+        # the two shapes the old kb-gap rule got wrong in opposite directions.
+        for addr in (0x15C2D0, 0x18E300, 0x1A0680):
+            entry = table.get(hex(addr))
+            self.assertIsNotNone(entry, f"0x{addr:x} missing from the table")
+            want = int(entry["end"], 16) - addr
+            self.assertEqual(vv._func_span(f"FUN_{addr:08x}"), want)
+            self.assertEqual(vc71._func_span(f"FUN_{addr:08x}"), want)
 
 
 if __name__ == "__main__":

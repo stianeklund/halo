@@ -293,7 +293,12 @@ def _tool_epoch() -> str:
     for rel in ("tools/verify/vc71_verify.py",
                 "tools/verify/compare_obj.py",
                 "tools/verify/vc71_regression.py",
-                "tools/verify/vc71_cache.py"):
+                "tools/verify/vc71_cache.py",
+                # The reference side of every score: the synthesizer and the
+                # committed bounds table it cuts from.  A regenerated table
+                # moves scores without touching any other input here.
+                "tools/verify/xbe_reference.py",
+                "tools/verify/function_bounds.json"):
         parts.append(_sha_file(REPO_ROOT / rel))
     # kb.json is deliberately NOT hashed whole here: it changes on every lift
     # (decls), which would force a full re-verify each time.  Its per-TU-relevant
@@ -581,11 +586,14 @@ def _expected_ported_functions(src_rel: str) -> list[dict]:
 def _func_span(fn_name: str):
     """Byte span of a function, or None when it is not tracked in kb.json.
 
-    Delegates to vc71_verify._func_span so this gate and the verifier agree on
-    what a function's size is.  That matters because kb.json's gap (distance to
-    the next *listed* function) overshoots wherever the listing has a hole, and
-    a correct-but-short reference then reads as truncated; see the docstring
-    there.  Falls back to the kb gap if the import is unavailable.
+    Delegates to vc71_verify._func_span, which reads the committed bounds table
+    (tools/verify/function_bounds.json).  The delegation is load-bearing: the
+    verifier CUTS each reference from that same table entry, so a gate using a
+    different notion of a function's size would be judging a reference against a
+    span the reference was never built from.  The old fallback below -- the
+    kb.json listing gap -- overshoots wherever the listing has a hole, which is
+    exactly how correct-but-short references used to read as truncated; it
+    survives only for the case where the import is unavailable.
     """
     try:
         from vc71_verify import _func_span as _verify_func_span

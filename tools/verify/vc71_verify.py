@@ -4,17 +4,28 @@ _tools_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _tools_dir not in sys.path:
     sys.path.insert(0, _tools_dir)
 
-"""Compile a source file with Visual C++ 7.1 and compare against delinked reference.
+"""Compile a source file with Visual C++ 7.1 and score it against the binary.
 
-Finds the matching delinked reference via objdiff.json, compiles the source with
-CL.Exe (MSVC 13.10.3077 — the same compiler that built cachebeta.xbe),
-and runs instruction-level comparison to flag FPU operand-order differences.
+Compiles the source with CL.Exe (MSVC 13.10.3077 — the same compiler that built
+cachebeta.xbe) and runs an instruction-level comparison against ONE canonical
+reference per function, derived from two committed inputs:
+
+  * the pristine XBE (halo-patched/cachebeta.xbe), for the bytes;
+  * tools/verify/function_bounds.json, for where each function ends.
+
+Those bytes are wrapped in a minimal COFF (tools/verify/xbe_reference.py) and
+disassembled with the SAME llvm-objdump the candidate goes through, so the two
+sides cannot disagree on a mnemonic spelling.
+
+Ghidra's delinker and delinked/ are NOT part of scoring any more.  They remain
+the oracle for the lanes that EXECUTE code and therefore need real relocations:
+the permuter, unicorn_diff, z3, and objdiff.
 
 Usage:
     python3 tools/verify/vc71_verify.py src/halo/effects/decals.c
     python3 tools/verify/vc71_verify.py src/halo/effects/decals.c --function FUN_0009ac90
     python3 tools/verify/vc71_verify.py src/halo/effects/decals.c --show-diffs
-    python3 tools/verify/vc71_verify.py --list  # show available units
+    python3 tools/verify/vc71_verify.py --list  # show registered objdiff units
     python3 tools/verify/vc71_verify.py src/halo/effects/decals.c --no-cache
     python3 tools/verify/vc71_verify.py src/halo/effects/decals.c --rebuild-cache
 """
@@ -22,7 +33,7 @@ Usage:
 import argparse
 import bisect
 import datetime
-import functools
+import hashlib
 import json
 import os
 import re
@@ -36,19 +47,12 @@ OBJDIFF_JSON = REPO_ROOT / "objdiff.json"
 BUILD_DIR = REPO_ROOT / "build"
 VC71_OUT_DIR = BUILD_DIR / "vc71"
 _DEFAULT_OPT = "/O2"
-DELINKED_DIR = REPO_ROOT / "delinked"
 
 # Machine-readable per-function score-context packs (diff ops, warning
 # detail, DP-LCS score, classification) -- see _build_score_context().
 # Default ON; disable with --no-score-context. Already covered by the
 # repo-wide `artifacts` gitignore entry.
 SCORE_CONTEXT_DIR = REPO_ROOT / "artifacts" / "score_context"
-
-# Fall back to a reference synthesized from the pristine XBE when no delinked
-# reference bounds a function.  Purely additive: it is consulted only where the
-# run would otherwise emit a DROP and produce no score line at all.  Disable
-# with --no-synth-ref.  See tools/verify/xbe_reference.py.
-SYNTH_REFS = True
 
 VC71_CL = r"C:\Program Files (x86)\RXDK\xbox\bin\vc71\CL.Exe"
 VC71_CL_WSL = "/mnt/c/Program Files (x86)/RXDK/xbox/bin/vc71/CL.Exe"
@@ -81,10 +85,10 @@ def wsl_to_win(path: Path) -> str:
 def load_units() -> list[dict]:
     """Load objdiff.json units.
 
-    Multiple delinked references may exist for one source file, for example a
-    full object plus one or more per-function exports. Keep all of them so a
-    function-specific verify can choose a reference that actually contains the
-    requested symbol.
+    Scoring no longer consults this registry -- every reference is derived from
+    the XBE.  It survives only to back `--list`, which reports which delinked
+    references exist for the lanes that still need them (permuter, unicorn, z3,
+    objdiff).
     """
     with open(OBJDIFF_JSON) as f:
         data = json.load(f)
@@ -94,17 +98,6 @@ def load_units() -> list[dict]:
         if src:
             units.append(u)
     return units
-
-
-def find_units(source: str, units: list[dict]) -> list[dict]:
-    """Find all objdiff units matching a source file path."""
-    source = str(source).replace("\\", "/")
-    matches = []
-    for unit in units:
-        key = unit.get("metadata", {}).get("source_path", "")
-        if key and (source.endswith(key) or key.endswith(source)):
-            matches.append(unit)
-    return matches
 
 
 _alias_source: Path | None = None
@@ -125,39 +118,47 @@ def _set_alias_source(source: Path | None) -> None:
         _func_span_cache.clear()
 
 
+def _source_comment_addr(fn: str, source: Path | None) -> tuple[int, str] | None:
+    """(addr, spelling) from the house-style address comment above `fn`, else None.
+
+        /* 0x155a40 */
+        void _rasterizer_windows_end(void)
+
+    Authoritative, and the only thing that separates two same-stem symbols:
+    llvm-nm normalization strips ALL leading underscores from the candidate
+    symbol, so an underscore-prefixed impl (_rasterizer_windows_end @ 0x155a40)
+    would otherwise collide with the same-stem kb name (rasterizer_windows_end
+    @ 0x17c910, the tail-call thunk) and be scored against the wrong bytes.
+    """
+    if not source:
+        return None
+    sp = Path(source)
+    if not sp.exists():
+        return None
+    try:
+        m = re.search(
+            r"/\*\s*0x([0-9a-fA-F]{4,8})\s*\*/\s*\n[^\n(]*?\b(_{0,2}"
+            + re.escape(fn) + r")\s*\(",
+            sp.read_text(),
+        )
+    except Exception:
+        return None
+    return (int(m.group(1), 16), m.group(2)) if m else None
+
+
 def function_aliases(fn: str, source: Path | None = None) -> set[str]:
     """Find all name aliases for a function (e.g. console_update -> FUN_000ff9e0)."""
     aliases = {fn}
     # CRT lifts retain this prefix to avoid colliding with host CRT declarations;
-    # COFF's leading underscore is normalized away by object_symbols().
+    # COFF's leading underscore is normalized away by the objdump symbol parse.
     if fn.startswith("crt_"):
         aliases.add(fn[4:])
     if source is None:
         source = _alias_source
 
-    # House-style address comment in the source TU is authoritative:
-    #   /* 0x155a40 */
-    #   void _rasterizer_windows_end(void)
-    # llvm-nm normalization strips ALL leading underscores from the
-    # candidate symbol, so an underscore-prefixed impl (_rasterizer_windows_end
-    # @ 0x155a40) would otherwise alias-collide with a same-stem kb name
-    # (rasterizer_windows_end @ 0x17c910, the tail-call thunk) and score
-    # against the wrong reference.
-    if source:
-        _sp = Path(source)
-        if _sp.exists():
-            try:
-                _txt = _sp.read_text()
-                m = re.search(
-                    r"/\*\s*0x([0-9a-fA-F]{4,8})\s*\*/\s*\n[^\n(]*?\b(_{0,2}"
-                    + re.escape(fn) + r")\s*\(",
-                    _txt,
-                )
-                if m:
-                    addr_int = int(m.group(1), 16)
-                    return {fn, m.group(2), f"FUN_{addr_int:08x}"}
-            except Exception:
-                pass
+    hit = _source_comment_addr(fn, source)
+    if hit is not None:
+        return {fn, hit[1], f"FUN_{hit[0]:08x}"}
 
     try:
         kb = _load_kb()
@@ -213,40 +214,6 @@ def function_aliases(fn: str, source: Path | None = None) -> set[str]:
                 pass
 
     return aliases
-
-
-def object_symbols(obj_path: Path) -> set[str]:
-    """List normalized defined symbols in an object file."""
-    result = subprocess.run(["llvm-nm", str(obj_path)], capture_output=True, text=True)
-    if result.returncode != 0:
-        return set()
-
-    symbols = set()
-    for line in result.stdout.splitlines():
-        parts = line.split()
-        if len(parts) >= 3 and parts[-2].upper() in {"T", "t"}:
-            symbols.add(parts[-1].lstrip("_"))
-    return symbols
-
-
-def _per_function_ref(function: str, source: Path | None = None) -> Path | None:
-    """Return delinked/functions/<hex8>.obj if it exists for this function address.
-
-    Also accepts an unpadded-hex filename (e.g. c0f50.obj for 0x000c0f50) —
-    exporters have produced both forms, and a name-format mismatch silently
-    skips VC71 scoring (goal-lift then records 0% and parks a good lift; see
-    commits f8e29209/daa39ee6).
-    """
-    aliases = function_aliases(function, source)
-    for alias in aliases:
-        m = re.match(r"FUN_([0-9a-f]{8})$", alias, re.IGNORECASE)
-        if m:
-            hex8 = m.group(1).lower()
-            for stem in (hex8, hex8.lstrip("0") or "0"):
-                candidate = DELINKED_DIR / "functions" / f"{stem}.obj"
-                if candidate.exists():
-                    return candidate
-    return None
 
 
 _kb_starts_cache: list[int] | None = None
@@ -330,80 +297,184 @@ _func_span_cache: dict[str, int | None] = {}
 
 
 def _func_span(function: str) -> int | None:
-    """Byte span of a function, or None when it is not tracked in kb.json.
+    """Byte span of a function, or None when its address cannot be resolved.
 
-    kb.json's gap (distance to the next *listed* function) overshoots wherever
-    the listing has a hole -- and kb.json is not a full listing of the binary,
-    so holes are common.  A function followed by an unlisted neighbour gets a
-    span many times its real size, and `_ref_insns_valid` then rejects its
-    CORRECT reference as "truncated" (measured: FUN_0015c2d0, 33 real insns,
-    kb gap 800 bytes for a 102-byte function).
+    Read from `tools/verify/function_bounds.json` -- the committed, CI-gated
+    bounds table, which is the single authority for where a function ends.  The
+    reference this function is scored against is cut from the SAME entry, so the
+    span and the reference can no longer disagree.
 
-    So: take the binary's answer, capped by the kb gap.  The cap matters
-    because the kb gap is a genuine upper bound (the next listed function is
-    real code that cannot be part of this one), and it also bounds the
-    disassembly window.
+    The table is what removed the listing-gap span class: kb.json's gap
+    (distance to the next *listed* function) overshoots wherever the listing has
+    a hole, and kb.json is not a full listing of the binary.  Measured:
+    FUN_0015c2d0 is 102 bytes, its kb gap is 800, because its real neighbour at
+    0x15c340 was never listed.
 
-    None is preserved for functions absent from kb.json -- callers use that to
-    mean "not a kb.json-tracked function" (helper/thunk/static), which is a
+    An address absent from the table falls back to a run-time computation (with
+    a warning from `xbe_reference`), so a freshly-added kb.json function is
+    scored rather than dropped until the table is regenerated.
+
+    None is preserved for symbols with no resolvable address -- callers use that
+    to mean "not a kb.json-tracked function" (helper/thunk/static), which is a
     different condition from "tracked, size unknown".
     """
     if function in _func_span_cache:
         return _func_span_cache[function]
     addr = _func_addr(function)
-    starts = _kb_func_starts()
     span: int | None = None
-    if addr is not None and starts:
-        i = bisect.bisect_right(starts, addr)
-        kb_gap = (starts[i] - addr) if i < len(starts) else None
-        if kb_gap:
-            true_size = _true_end_offset(addr, kb_gap)
-            span = min(kb_gap, true_size) if true_size else kb_gap
-        else:
-            span = kb_gap
+    if addr is not None:
+        span = _addr_span(addr)
     _func_span_cache[function] = span
     return span
 
 
-def _trim_trailing_padding(insns: list[str]) -> list[str]:
-    """Drop inter-function alignment padding from the end of a symbol's slice.
+def _addr_span(addr: int) -> int | None:
+    """Byte span at `addr` from the bounds table, else a computed fallback."""
+    try:
+        import xbe_reference as xr
+        ext = xr.function_extent(addr)
+        if ext is not None:
+            return ext[0] - addr
+        return None
+    except Exception:
+        pass
+    # xbe_reference (or capstone, or the XBE) unavailable: degrade to the kb gap
+    # capped by a local terminator scan, which is what the table encodes anyway.
+    starts = _kb_func_starts()
+    if not starts:
+        return None
+    i = bisect.bisect_right(starts, addr)
+    kb_gap = (starts[i] - addr) if i < len(starts) else None
+    if not kb_gap:
+        return kb_gap
+    true_size = _true_end_offset(addr, kb_gap)
+    return min(kb_gap, true_size) if true_size else kb_gap
 
-    A symbol slice runs to the next symbol, so it absorbs whatever alignment
-    filler the linker put after the function.  Measured 2026-07-29:
-    delinked/bipeds.obj's FUN_001a0680 slice is 152 instructions where the
-    function is 91 -- instruction 91 is the real `ret` (pristine XBE 0x1a0680
-    +0xf3), followed by 61 instructions of `nop`-run + `ret` filler.  That
-    padding is pure mismatch against a candidate that does not have it, so the
-    function scored 61.5% against the bloated slice and 86.7% against a
-    correctly-bounded per-function chunk.
 
-    Keeps the last instruction that is neither `nop` nor `ret`, plus one
-    trailing `ret` if present -- so a normal `pop ebp; ret` ending survives
-    untouched, a multi-`ret` body is never cut (the last real instruction still
-    follows every interior `ret`), and only genuine trailing filler is removed.
+# ---------------------------------------------------------------------------
+# Which functions a TU owns
+# ---------------------------------------------------------------------------
+#
+# kb.json replaces the delinked object's symbol list as the answer to "which
+# functions belong to this translation unit".  That list used to be the gate on
+# what got scored, which is why a narrow export silently dropped a file's other
+# functions; kb.json is the authority on ownership and is the same input the
+# build and the patcher use.
+
+_kb_source_index_cache: dict[str, dict[str, dict]] | None = None
+
+
+def _kb_source_index() -> dict[str, dict[str, dict]]:
+    """{kb.json source path -> {symbol -> record}} over every listed function.
+
+    A function's owning TU is its own ``source_path``/``source``/``src``/``file``
+    override when it has one, else its object's -- kb.json carries per-function
+    overrides precisely because one .obj can be split across several .c files.
+    Both the declared symbol and the ``FUN_<addr>`` spelling key the same
+    record, so either resolves.  ``record`` is {addr, name, ported}.
     """
-    def _mnem(insn: str) -> str:
-        return insn.split(None, 1)[0] if insn else ""
+    global _kb_source_index_cache
+    if _kb_source_index_cache is not None:
+        return _kb_source_index_cache
+    index: dict[str, dict[str, dict]] = {}
+    try:
+        kb = _load_kb()
+        for obj in kb.get("objects", []) or []:
+            obj_src = (obj.get("source") or obj.get("source_path")
+                       or obj.get("src") or "")
+            for entry in obj.get("functions", []) or []:
+                addr = entry.get("addr")
+                if not addr:
+                    continue
+                try:
+                    a = int(addr, 16)
+                except (ValueError, TypeError):
+                    continue
+                src = (entry.get("source_path") or entry.get("source")
+                       or entry.get("src") or entry.get("file") or obj_src)
+                if not src:
+                    continue
+                fun = f"FUN_{a:08x}"
+                m = re.search(r"\b(\w+)\s*\(", entry.get("decl", "") or "")
+                declared = m.group(1) if m else fun
+                rec = {"addr": a, "name": declared,
+                       "ported": bool(entry.get("ported"))}
+                bucket = index.setdefault(str(src).replace("\\", "/"), {})
+                bucket[declared] = rec
+                bucket.setdefault(fun, rec)
+    except Exception:
+        pass
+    _kb_source_index_cache = index
+    return index
 
-    def _is_pad(insn: str) -> bool:
-        # "nop" also covers the multi-byte forms objdump prints with operands
-        # ("nopw 0x0(%eax)", "nopl ..."), which a plain equality test misses.
-        m = _mnem(insn)
-        return m.startswith("nop") or m in ("ret", "retl", "retw", "retq")
 
-    last_real = -1
+def _kb_functions_for_source(source: Path) -> dict[str, dict]:
+    """The kb.json functions this TU owns, keyed by declared name and FUN_<addr>.
+
+    kb source paths are src/halo-relative (``ai/actors.c``) while callers hold a
+    repo-root-relative or absolute path, so match on a path-component suffix.
+    A bare `endswith` would let ``profiles.c`` claim ``files.c``'s entries.
+    """
+    norm = str(source).replace("\\", "/")
+    for key, fns in _kb_source_index().items():
+        if norm == key or norm.endswith("/" + key):
+            return fns
+    return {}
+
+
+def _resolve_func_addr(fn: str, source: Path, tu_funcs: dict) -> int | None:
+    """Address for a compiled symbol, most-specific evidence first.
+
+    1. the house-style ``/* 0xADDR */`` comment above the definition;
+    2. the kb.json functions THIS TU owns -- so a static helper whose name also
+       exists in another TU is not resolved to that other TU's address and then
+       scored against unrelated code;
+    3. the global kb.json name <-> FUN_<addr> alias map.
+    """
+    hit = _source_comment_addr(fn, source)
+    if hit is not None:
+        return hit[0]
+    rec = tu_funcs.get(fn) or tu_funcs.get(fn.lstrip("_"))
+    if rec:
+        return rec["addr"]
+    return _func_addr(fn, source)
+
+
+def _resolve_compiled_name(requested: str, compiled_funcs: dict,
+                           source: Path) -> str | None:
+    """The compiled symbol the caller means by `requested`, or None.
+
+    Callers routinely pass ``FUN_<addr>`` for a function the source now names
+    something else (lift_pipeline does, and goal-lift does).  The delinked
+    reference used to bridge that by carrying the pre-rename symbol; with the
+    reference derived per address, the bridge has to be explicit.
+    """
+    want = requested.lstrip("_")
+    if want in compiled_funcs:
+        return want
+    aliases = function_aliases(want, source) | {want}
+    for name in compiled_funcs:
+        if name in aliases or name.rsplit("::", 1)[-1] in aliases:
+            return name
+        if function_aliases(name, source) & aliases:
+            return name
+    return None
+
+
+def _trim_after_last_terminator(insns: list[str]) -> list[str]:
+    """Drop everything after the last ret/jmp -- inline table data, never code.
+
+    Backstop for a `table_data` bound, whose span deliberately covers the
+    switch/index table MSVC emitted in .text after the final ret.
+    """
+    last = -1
     for i, insn in enumerate(insns):
-        if not _is_pad(insn):
-            last_real = i
-    if last_real < 0:
-        return insns  # nothing but nop/ret: an empty stub, leave it alone
-    end = last_real + 1
-    if end < len(insns) and _mnem(insns[end]) in ("ret", "retl", "retw", "retq"):
-        end += 1
-    return insns[:end]
+        mnem = (insn.split(None, 1)[0] if insn else "").lower()
+        if mnem in ("ret", "retl", "retw", "retq", "retn", "jmp", "jmpl"):
+            last = i
+    return insns[:last + 1] if last >= 0 else insns
 
 
-_true_insn_cache: dict[int, int | None] = {}
 _xbe_sections_cache: list[tuple[int, int, int, int]] | None = None
 
 
@@ -430,176 +501,6 @@ def _xbe_read(va: int, n: int) -> bytes | None:
         return None
     return None
 
-
-def _true_insn_count(function: str) -> int | None:
-    """Instruction count of a function as it exists in the pristine XBE.
-
-    The binary is the source of truth for where a function ends, and nothing
-    else here is: kb.json's span is the distance to the next *listed* function,
-    which overshoots wherever the listing has a gap (FUN_000b97b0's span is
-    480 bytes for a 196-byte function), and a reference slice runs to the next
-    symbol in its own object, which overshoots into padding or the neighbouring
-    function.  Used only to choose between already-valid references.
-
-    Counts up to the first `ret` followed by `nop` padding, which is where MSVC
-    ends a function.  Returns None when capstone or the XBE is unavailable, so
-    every caller must treat None as "no opinion".
-    """
-    if function in _true_insn_cache:
-        return _true_insn_cache[function]
-    result = None
-    try:
-        import capstone
-        addr = _func_addr(function)
-        span = _func_span(function)
-        if addr is not None and span:
-            code = _xbe_read(addr, span + 32)
-            if code:
-                md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
-                insns = list(md.disasm(code, addr))
-                for i, insn in enumerate(insns):
-                    if (insn.mnemonic == "ret" and i + 1 < len(insns)
-                            and insns[i + 1].mnemonic.startswith("nop")):
-                        result = i + 1
-                        break
-                else:
-                    result = len(insns) or None
-    except Exception:
-        result = None
-    _true_insn_cache[function] = result
-    return result
-
-
-def _closer_to_truth(a: int, b: int, truth: int | None) -> bool:
-    """Whether length a is a better fit for the function than length b."""
-    if truth is None:
-        return False
-    return abs(a - truth) < abs(b - truth)
-
-
-def _slice_is_bloated(insns: list[str]) -> bool:
-    """Whether a reference slice over-ran the function into alignment filler.
-
-    Used only to pick BETWEEN references, never to edit the compared
-    instruction lists.  Trimming the lists for scoring is the more complete fix
-    but recalibrates every score in the committed baseline: padding present on
-    both sides currently contributes free LCS matches, so symmetric trimming
-    *lowers* honest scores (measured 2026-07-29: files.c file_open 85.2% ->
-    80.6% with the reference unchanged).  That needs a deliberate baseline
-    repopulate, not a drive-by change.
-    """
-    return len(_trim_trailing_padding(insns)) < len(insns)
-
-
-def _ref_insns_valid(n_r: int, span: int | None) -> bool:
-    """Whether a reference's instruction count plausibly matches the function's
-    byte size.  Rejects both truncated and bloated references:
-
-    - n_r * 15 (max x86 instruction length) < span  => truncated (too few insns
-      to cover the function's bytes).
-    - n_r > span                                     => bloated (more insns than
-      bytes is impossible for real code; the reference swallowed neighbours).
-
-    The bloat bound matters here because ~stale per-function chunks (pre-fix,
-    0x2000-byte window) still exist on disk; without it the fallback could pick
-    a bloated chunk over a good whole-object reference.  Mirrors the gate in
-    vc71_regression.py.
-    """
-    if not n_r:
-        return False
-    if span and n_r * 15 < span:
-        return False
-    if span and n_r > span:
-        return False
-    return True
-
-
-def choose_unit(source: str, units: list[dict], function: str | None) -> dict | None:
-    """Choose the best delinked reference for a source/function pair."""
-    matches = find_units(source, units)
-    existing = []
-    for unit in matches:
-        ref = REPO_ROOT / unit.get("base_path", "")
-        if ref.exists():
-            existing.append(unit)
-
-    aliases = function_aliases(function, source) if function else set()
-
-    # A function-specific export is the authoritative reference for a targeted
-    # comparison; do not let a whole-TU unit shadow it when both are present.
-    per_func = _per_function_ref(function, source) if function else None
-    if per_func:
-        return {
-            "base_path": str(per_func.relative_to(REPO_ROOT)),
-            "metadata": {"source_path": str(source)},
-        }
-
-    # Among the references registered for THIS TU, prefer the one that actually
-    # covers the most functions.  A partial range export or per-function chunk
-    # carries one or two symbols, so choosing one silently DROPs every other
-    # function in the file -- and a DROP produces no score line, so the loss is
-    # invisible in the output.  Measured 2026-07-29: objects.c was scored
-    # against a 2-symbol objects_FUN_00084a10.obj while a 754-symbol
-    # objects.obj sat on disk, and actor_moving.c against 1 of 33.
-    #
-    # Ranked by symbol count rather than by name, because neither direction of
-    # a name rule is safe alone: delinked/units.obj holds 4 symbols while the
-    # units_batch*.obj slices hold more (so "prefer the exact stem" would LOSE
-    # coverage), yet delinked/actors.obj is a candidate for actor_moving.c
-    # while being a different TU (so "prefer the biggest" would pick a wrong
-    # reference and fake the score).  Counting only same-TU names gets both.
-    # Same-TU means the exact stem, or the stem followed only by address-range
-    # / FUN_<addr> suffixes -- the forms the delinker emits for a slice of one
-    # TU.  A bare "<stem>_<word>" is NOT accepted: sibling TUs share prefixes,
-    # so files.c would otherwise adopt the 368-symbol files_windows.obj (a
-    # different TU) over its own correct 17-symbol files.obj and report scores
-    # against the wrong code.  This deliberately also skips units_new.obj /
-    # objects_full.obj: they may well be wider exports of the same TU, but the
-    # name cannot prove it, and a wrong reference fakes the score.
-    stem = Path(source).stem.lower()
-    _range_suffix = re.compile(r"^(?:_FUN_[0-9a-f]+|_[0-9a-f]{4,})+$", re.IGNORECASE)
-
-    def _same_tu(base: str) -> bool:
-        b = base.lower()
-        if not b.endswith(".obj"):
-            return False
-        b = b[:-len(".obj")]
-        if b == stem:
-            return True
-        if not b.startswith(stem):
-            return False
-        return bool(_range_suffix.match(b[len(stem):]))
-
-    @functools.lru_cache(maxsize=None)
-    def _n_symbols(base_path: str) -> int:
-        return len(object_symbols(REPO_ROOT / base_path))
-
-    def unit_priority(unit: dict) -> tuple[bool, bool, int, str]:
-        name = unit.get("name", "")
-        base_path = unit.get("base_path", "")
-        base = Path(base_path).name
-        # Prefer units whose name explicitly contains the function address (per-function export)
-        name_matches = any(alias in name for alias in aliases if alias.startswith("FUN_"))
-        # Then prefer full object files over chunk exports
-        is_chunk = bool(re.match(r"[0-9a-f]{8}\.obj$", base, re.IGNORECASE))
-        # Then the widest same-TU reference.  Chunks are per-function by
-        # construction, so counting them is pointless and would cost hundreds
-        # of llvm-nm calls per run (delinked/functions/*.obj); leave them at 0
-        # so the is_chunk tier keeps them last regardless.
-        width = -_n_symbols(base_path) if (_same_tu(base) and not is_chunk) else 0
-        return (not name_matches, is_chunk, width, base)
-
-    existing.sort(key=unit_priority)
-
-    if not function:
-        return existing[0] if existing else None
-
-    for unit in existing:
-        ref_path = REPO_ROOT / unit["base_path"]
-        if object_symbols(ref_path) & aliases:
-            return unit
-
-    return None
 
 
 def _get_regarg_callees(source: Path) -> dict[str, str]:
@@ -943,34 +844,6 @@ def compile_vc71(source: Path, output: Path, regcall_elide: bool = False, opt: s
         return False
 
     return True
-
-
-def run_compare(compiled: Path, reference: Path, extra_args: list[str]) -> int:
-    """Run compare_obj.py and return its exit code (legacy path, no caching)."""
-    cmd = [sys.executable, str(COMPARE_SCRIPT), str(compiled), str(reference)] + extra_args
-    return subprocess.run(cmd).returncode
-
-
-def _build_rename_map(compiled_keys: set[str], matched: set[str]) -> dict[str, str]:
-    """Build {declared_name -> FUN_xxx} rename map from kb.json."""
-    rename_map: dict[str, str] = {}
-    if not (compiled_keys - matched):
-        return rename_map
-    try:
-        kb = _load_kb()
-        for obj in kb.get("objects", []):
-            for fn_entry in obj.get("functions", []):
-                addr = fn_entry.get("addr", "")
-                decl = fn_entry.get("decl", "")
-                m = re.search(r"\b(\w+)\s*\(", decl)
-                if m and addr:
-                    declared_name = m.group(1)
-                    fun_name = f"FUN_{int(addr, 16):08x}"
-                    if declared_name != fun_name:
-                        rename_map[declared_name] = fun_name
-    except Exception:
-        pass
-    return rename_map
 
 
 _regdef_map_cache: dict[str, list[tuple[int, str]]] | None = None
@@ -1344,9 +1217,80 @@ def _per_function_opt_for(source: Path) -> dict[str, str]:
     return {}
 
 
+def load_compare_obj():
+    """Import compare_obj.py as a module (its CLI path sets up sys.path itself)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("compare_obj", str(COMPARE_SCRIPT))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def derive_reference(fn: str, source: Path, tu_funcs: dict, co):
+    """(insns, meta) for fn's canonical reference, or (None, reason).
+
+    THE reference path.  The bytes at [start, end) in the pristine XBE, where
+    the bound comes from the committed tools/verify/function_bounds.json, are
+    wrapped in a COFF and disassembled with the same llvm-objdump the candidate
+    goes through.  `meta` is {addr, end, kind, provenance, obj, n_r, sha}.
+
+    Module-level rather than a closure inside the scoring loop so the tests and
+    tools/verify/validate_ref_migration.py measure exactly what a verify run
+    measures, instead of a re-implementation that can drift from it.
+    """
+    addr = _resolve_func_addr(fn, source, tu_funcs)
+    if addr is None:
+        return None, ("no address: absent from kb.json for this TU and no "
+                      "/* 0xADDR */ comment in the source")
+    try:
+        import xbe_reference as xr
+    except Exception as exc:                       # pragma: no cover
+        return None, f"xbe_reference unavailable ({exc})"
+    ext = xr.function_extent(addr)
+    if ext is None:
+        return None, (f"no bound for 0x{addr:x} in function_bounds.json "
+                      f"(regenerate: tools/verify/function_bounds.py)")
+    end, kind, provenance = ext
+    obj = xr.reference_object(addr)
+    if obj is None:
+        return None, f"could not synthesize a reference object for 0x{addr:x}"
+    aliases = (set(function_aliases(fn, source))
+               | {fn, f"FUN_{addr & 0xffffffff:08x}"})
+    try:
+        insns = co.first_function_insns(str(obj), aliases)
+    except Exception as exc:                       # pragma: no cover
+        return None, f"reference object unreadable ({exc})"
+    if not insns:
+        return None, "reference decoded to zero instructions"
+    # Raw XBE bytes keep the real cross-reference addresses; a delinked object
+    # and a VC71 candidate both store those as zeroed fields plus a relocation.
+    # Undo that one asymmetry -- and ONLY that one -- so the two sides are
+    # comparable without loosening the scoring metric.
+    insns = [xr.normalize_synth_insn(i) for i in insns]
+    if kind == "table_data":
+        # A hand-verified `table_data` bound deliberately includes the switch /
+        # index table MSVC placed in .text after the final ret, so the span
+        # covers the whole function.  Those bytes are DATA and decode as
+        # garbage; the reference must stop at the last real instruction.
+        # first_function_insns already trims this in the common cases (a
+        # data-decode marker, or a scaled indirect jmp proving a jump table
+        # exists); this is the backstop for a table whose bytes happen to
+        # decode as plausible instructions.
+        insns = _trim_after_last_terminator(insns)
+    return insns, {
+        "addr": addr, "end": end, "kind": kind, "provenance": provenance,
+        "obj": obj, "n_r": len(insns),
+        # Identity of the exact instruction list that was scored against.
+        # Hashed AFTER normalize_synth_insn (the reference-side rewrite) but
+        # BEFORE the scorer's own normalization, which collapses immediates and
+        # displacements -- a hash taken after that would be blind to a
+        # reference carrying the wrong constants.
+        "sha": hashlib.sha256("\n".join(insns).encode()).hexdigest()[:16],
+    }
+
+
 def run_compare_cached(
     compiled: Path,
-    reference: Path,
     source: Path,
     extra_args: list[str],
     cache,
@@ -1357,25 +1301,25 @@ def run_compare_cached(
     per_fn_opt: dict[str, str] | None = None,
     regcall_elide: bool = False,
 ) -> int:
-    """Run per-function comparison with cache integration.
+    """Score every function in `compiled` against its canonical reference.
+
+    There is no `reference` object parameter any more: each function's reference
+    is derived from the pristine XBE, bounded by the committed
+    tools/verify/function_bounds.json entry (see `derive_reference`).
 
     Imports compare_obj as a module so results can be cached per function.
-    Falls back to subprocess invocation if import fails.
     """
     _set_alias_source(source)
     # Lazy import so compare_obj.py's sys.path setup runs in subprocess context
     # when invoked standalone, but we can reuse it as a library here.
     try:
-        import importlib.util
-        spec = importlib.util.spec_from_file_location(
-            "compare_obj", str(COMPARE_SCRIPT)
-        )
-        co = importlib.util.util if False else None  # sentinel
-        co = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(co)
+        co = load_compare_obj()
     except Exception as exc:
-        print(f"[cache] Could not import compare_obj as module ({exc}); falling back to subprocess", file=sys.stderr)
-        return run_compare(compiled, reference, extra_args)
+        # There is no subprocess fallback any more: compare_obj.py's CLI takes
+        # two object files, and the reference side is now built in-process from
+        # the XBE rather than existing on disk as a delinked object.
+        print(f"Could not import compare_obj as a module ({exc})", file=sys.stderr)
+        return 1
 
     # Parse extra_args subset we need
     fn_filter = None
@@ -1412,7 +1356,6 @@ def run_compare_cached(
             i += 1
 
     compiled_funcs: dict[str, list[str]] = co.disassemble(str(compiled))
-    reference_funcs: dict[str, list[str]] = co.disassemble(str(reference))
 
     # Mixed-optimization TU: recompile at the override flag and swap in only
     # those functions' bodies. Everything else keeps the primary-pass object.
@@ -1441,319 +1384,99 @@ def run_compare_cached(
                         print(f"[opt] {name}: mixed-optimization TU -> "
                               f"scored at {flag}", flush=True)
 
-    matched: set[str] = set(compiled_funcs.keys()) & set(reference_funcs.keys())
+    # ---- Reference derivation ------------------------------------------
+    #
+    # ONE canonical reference per function, derived from two committed inputs:
+    # the pristine XBE and tools/verify/function_bounds.json.  The bytes at
+    # [start, end) are wrapped in a COFF and disassembled with the SAME
+    # llvm-objdump the candidate goes through, so neither side can pick up a
+    # disassembler-spelling difference the other does not have.
+    #
+    # This replaces a four-rung selection ladder (whole-object slice -> sibling
+    # range export -> per-function chunk -> synthesized fallback).  Every rung
+    # was a way to measure the wrong bytes: a whole-object slice runs to the
+    # next SYMBOL, so it absorbs alignment filler or the neighbouring function;
+    # a per-function chunk could be stale; and when no rung produced a bounded
+    # reference the function was DROPped, which emits no score line at all and
+    # so reads as "this file has fewer functions" rather than as a measurement
+    # gap.
+    #
+    # delinked/ and the Ghidra delinker are untouched.  The permuter, unicorn,
+    # z3 and objdiff lanes EXECUTE the oracle and still need real relocations;
+    # only scoring moved off them.
+    tu_funcs = _kb_functions_for_source(source)
+    reference_funcs: dict[str, list[str]] = {}
+    ref_meta: dict[str, dict] = {}
+    ref_failures: dict[str, str] = {}
+    matched: set[str] = set()
 
-    # Delinked XDK objects can keep C++ namespace-qualified symbols while our
-    # C source emits plain function names.
-    namespace_map: dict[str, str] = {}
-    for ref_name in reference_funcs:
-        short_name = ref_name.rsplit("::", 1)[-1]
-        if short_name != ref_name and short_name in compiled_funcs:
-            namespace_map[short_name] = ref_name
-            if ref_name not in matched:
-                compiled_funcs[ref_name] = compiled_funcs[short_name]
-                matched.add(ref_name)
-
-    # CRT lifts keep a crt_ prefix; COFF's normalized symbol omits it.
-    # Preserve source name as the score key so its KB address/span still resolve.
-    for fn in set(compiled_funcs) - matched:
-        if fn.startswith("crt_") and fn[4:] in reference_funcs:
-            reference_funcs[fn] = reference_funcs[fn[4:]]
-            matched.add(fn)
-    rename_map = _build_rename_map(set(compiled_funcs.keys()), matched)
+    def _reference_for(fn: str):
+        return derive_reference(fn, source, tu_funcs, co)
 
     if fn_filter:
-        fn = fn_filter.lstrip("_")
-        if fn not in matched:
-            namespace_name = namespace_map.get(fn)
-            if namespace_name and namespace_name in reference_funcs and fn in compiled_funcs:
-                compiled_funcs[namespace_name] = compiled_funcs[fn]
-                matched = {namespace_name}
-                fn = namespace_name
-            else:
-                old_name = rename_map.get(fn)
-                if old_name and old_name in reference_funcs and fn in compiled_funcs:
-                    compiled_funcs[old_name] = compiled_funcs[fn]
-                    matched = {old_name}
-                    fn = old_name
-                else:
-                    print(f"Function {fn} not found in both objects")
-                    print(f"  compiled:  {sorted(compiled_funcs.keys())[:10]}")
-                    print(f"  reference: {sorted(reference_funcs.keys())[:10]}")
-                    return 1
-        matched = {fn}
+        want = _resolve_compiled_name(fn_filter, compiled_funcs, source)
+        if want is None:
+            print(f"Function {fn_filter} not found in the compiled object")
+            print(f"  compiled:  {sorted(compiled_funcs.keys())[:10]}")
+            return 1
+        insns, info = _reference_for(want)
+        if insns is None:
+            print(f"Function {want}: no reference could be derived — {info}")
+            return 1
+        reference_funcs[want] = insns
+        ref_meta[want] = info
+        matched = {want}
     else:
-        for new_name, old_name in rename_map.items():
-            if new_name in compiled_funcs and old_name in reference_funcs and new_name not in matched:
-                compiled_funcs[old_name] = compiled_funcs[new_name]
-                matched.add(old_name)
-
-    # NB: the "no matching functions" bail-out is deferred until *after* the
-    # per-function fallback below, so a TU whose whole-object reference has no
-    # symbol overlap (missing/truncated) can still recover functions from valid
-    # per-function chunks instead of returning empty here.
-
-    # Per-function reference fallback: when a function's whole-object reference
-    # is unusable — truncated (instruction count cannot span its kb.json byte
-    # size) or dropped entirely (e.g. a last-function excluded by the BFT COFF
-    # relocation-bug truncation workaround) — score it against its
-    # function-aligned per-function chunk instead, if that chunk's symbol is
-    # present and itself valid.  Gated on byte span in BOTH directions so a
-    # stale (pre-fix, bloated) chunk is never preferred over a good reference.
-    ref_overrides: set[str] = set()
-    _chunk_truncation: dict[str, dict] = {}
-
-    def _valid_chunk_ref(fn: str):
-        """Instruction list from fn's per-function chunk, or None if unusable.
-
-        Uses the chunk-aware, boundary-capped disassembly (co.first_function_insns)
-        so a stale 0x2000-window chunk that packed following functions/stub slots
-        under the same symbol collapses to its true first function — which then
-        either scores honestly or fails the byte-span validity gate (and is
-        quarantined for re-delink) rather than producing a false low against
-        swallowed neighbours.
-        """
-        chunk = _per_function_ref(fn)
-        if not chunk or not chunk.exists():
-            return None
-        aliases = set(function_aliases(fn)) | {fn}
-        addr = _func_addr(fn)
-        if addr is not None:
-            aliases.add(f"FUN_{addr & 0xffffffff:08x}")
-        try:
-            cand = co.first_function_insns(str(chunk), aliases)
-        except Exception:
-            return None
-        if not cand:
-            return None
-        if not _ref_insns_valid(len(cand), _func_span(fn)):
-            return None
-        try:
-            bounded = co.count_bounded_insns(str(chunk), aliases)
-        except Exception:
-            bounded = None
-        if bounded is not None and bounded > 0:
-            ratio = len(cand) / bounded
-            if ratio < 0.90:
-                _chunk_truncation[fn] = {
-                    "parsed": len(cand), "bounded": bounded,
-                    "ratio": round(ratio, 3), "lost": bounded - len(cand),
-                }
-        return cand
-
-    def _synth_ref(fn: str):
-        """Instruction list from a reference synthesized out of the pristine XBE.
-
-        FALLBACK ONLY.  Consulted where no delinked reference bounds the
-        function -- the case that otherwise emits a DROP and no score at all.
-        It cannot displace a delinked reference, so no existing score moves.
-
-        Why this can stand in for a delinked reference: the scorer consumes
-        instruction TEXT, and `compare_obj.normalize_instruction` already
-        rewrites immediates and displacements before matching, so the symbols
-        and relocations the delinker reconstructs are discarded anyway.
-        Measured agreement against 1,464 existing chunks: 95.9%, and the
-        disagreements are dominated by stale 0x2000-window chunks where the
-        synthesized reference is the correct one.
-
-        Runs the object through the same `co.first_function_insns` used for
-        chunks (shared boundary/padding logic), then applies
-        `normalize_synth_insn` to undo the one asymmetry raw bytes introduce:
-        a delinked object stores cross-references as zeroed fields, so its
-        absolute displacements print as nothing.
-        """
-        if not SYNTH_REFS:
-            return None
-        addr = _func_addr(fn)
-        if addr is None:
-            return None
-        try:
-            import xbe_reference as xr
-            obj = xr.reference_object(addr)
-        except Exception:
-            return None          # capstone/XBE unavailable -- stay silent
-        if obj is None:
-            return None
-        aliases = set(function_aliases(fn)) | {fn, f"FUN_{addr & 0xffffffff:08x}"}
-        try:
-            cand = co.first_function_insns(str(obj), aliases)
-        except Exception:
-            return None
-        if not cand:
-            return None
-        cand = [xr.normalize_synth_insn(i) for i in cand]
-        return cand if _ref_insns_valid(len(cand), _func_span(fn)) else None
-
-    _tu_units_cache: list[dict] = []
-
-    def _tu_units() -> list[dict]:
-        """Registered units for this TU (loaded once, not once per function)."""
-        if not _tu_units_cache:
-            try:
-                _tu_units_cache.extend(find_units(str(source), load_units()))
-            except Exception:
-                _tu_units_cache.append({})
-        return [u for u in _tu_units_cache if u]
-
-    _sib_objs_cache: list[Path] = []
-    _sib_slices_cache: dict[str, dict] = {}
-
-    def _sibling_objects() -> list[Path]:
-        """Other whole/range references for this TU, disassembled at most once.
-
-        Skips delinked/functions/<hex8>.obj -- those are per-function chunks
-        already covered by _valid_chunk_ref, and a TU like objects.c registers
-        ~150 of them, which would otherwise be disassembled per function.
-        """
-        if not _sib_objs_cache:
-            for u in _tu_units():
-                p = REPO_ROOT / u.get("base_path", "")
-                if not p.exists():
-                    continue
-                if re.match(r"[0-9a-f]{8}\.obj$", p.name, re.IGNORECASE):
-                    continue
-                try:
-                    if p.samefile(reference):
-                        continue
-                except OSError:
-                    continue
-                _sib_objs_cache.append(p)
-        return _sib_objs_cache
-
-    def _sib_slices(p: Path) -> dict:
-        key = str(p)
-        if key not in _sib_slices_cache:
-            try:
-                _sib_slices_cache[key] = co.disassemble(key)
-            except Exception:
-                _sib_slices_cache[key] = {}
-        return _sib_slices_cache[key]
-
-    def _sibling_refs(fn: str) -> list[list[str]]:
-        """Slices of fn from OTHER registered references for the same TU.
-
-        A narrow range export is often the only correctly-bounded reference for
-        a function: FUN_000b97b0 is 68 instructions in the pristine XBE, and
-        delinked/ has it at 68 (player_queues_b97b0_b9880.obj), 112
-        (…_b9900.obj) and 154 (player_queues_new.obj).  Without this the
-        widest-reference rule scores it against the 154-instruction slice.
-        """
-        out = []
-        for p in _sibling_objects():
-            slices = _sib_slices(p)
-            for alias in set(function_aliases(fn, source)) | {fn}:
-                s = slices.get(alias)
-                if s and _ref_insns_valid(len(s), _func_span(fn)):
-                    out.append(s)
-                    break
-        return out
-
-    # (1) Replace a whole-object slice that does not bound the function well.
-    # The pristine XBE decides: a slice is preferred when its instruction count
-    # is closer to the function's real length.  This catches both failure modes
-    # a byte-span gate cannot -- padding over-run (bipeds.obj FUN_001a0680 is
-    # 152 instructions for a 91-instruction function, scoring 61.5% against the
-    # filler vs 83.2% correctly bounded) and over-run into the neighbouring
-    # function, which carries no padding to detect.
-    for fn in list(matched):
-        whole = reference_funcs.get(fn, [])
-        truth = _true_insn_count(fn)
-        span_ok = _ref_insns_valid(len(whole), _func_span(fn))
-        # Nothing to do when the slice is already valid, unpadded, and either
-        # matches the binary or the binary gave no opinion.
-        if span_ok and not _slice_is_bloated(whole) and (
-                truth is None or len(whole) == truth):
-            continue
-        alternates = _sibling_refs(fn)
-        chunk = _valid_chunk_ref(fn)
-        if chunk is not None:
-            alternates.append(chunk)
-        best, best_len = None, len(whole)
-        for alt in alternates:
-            if truth is not None:
-                if _closer_to_truth(len(alt), best_len, truth):
-                    best, best_len = alt, len(alt)
-            elif _slice_is_bloated(whole) and not _slice_is_bloated(alt):
-                # No binary opinion: only trust the unambiguous padding signal.
-                best, best_len = alt, len(alt)
-            elif not span_ok and len(alt) > best_len:
-                best, best_len = alt, len(alt)
-        if best is not None:
-            reference_funcs[fn] = best
-            ref_overrides.add(fn)
-
-    # (2) Add candidate functions the whole-object reference dropped entirely.
-    # A synthesized reference is the last resort here, after both the whole
-    # object and the per-function chunk have failed to bound the function.
-    synth_used: set[str] = set()
-    for fn in list(compiled_funcs.keys()):
-        if fn in matched:
-            continue
-        cand = _valid_chunk_ref(fn)
-        if cand is None:
-            cand = _synth_ref(fn)
-            if cand is not None:
-                synth_used.add(fn)
-        if cand is not None:
-            reference_funcs[fn] = cand
-            matched.add(fn)
-            ref_overrides.add(fn)
-
-    chunk_overrides = ref_overrides - synth_used
-    if chunk_overrides and not quiet:
-        shown = ", ".join(sorted(chunk_overrides)[:6])
-        more = " ..." if len(chunk_overrides) > 6 else ""
-        print(f"[ref] {len(chunk_overrides)} function(s) scored against per-function "
-              f"chunk (whole-object reference truncated): {shown}{more}", flush=True)
-    # Always announce a synthesized reference, even under --quiet: it is a
-    # different provenance from a Ghidra-delinked one and a score carrying it
-    # should never look like a delinked-backed score.
-    if synth_used:
-        shown = ", ".join(sorted(synth_used)[:6])
-        more = " ..." if len(synth_used) > 6 else ""
-        print(f"[synth] {len(synth_used)} function(s) scored against a reference "
-              f"synthesized from the pristine XBE (no delinked reference bounds "
-              f"them): {shown}{more}", flush=True)
-        # Machine-parseable, one per function and never truncated, so callers can
-        # record provenance per entry.  The human line above elides after 6.
-        # Same convention as the DROP lines below.
-        for fn in sorted(synth_used):
-            print(f"  SYNTHREF {fn}", flush=True)
-
-    # Report compiled, kb.json-tracked functions we could NOT score against any
-    # valid reference (whole-object truncated/absent AND no valid per-function
-    # chunk).  These never produce a score line, so vc71_regression's gate — which
-    # only sees scored functions — would miss them and leave the re-delink queue
-    # incomplete.  Emit a machine-parseable DROP line per function so the runner
-    # can record them.  Only in whole-file mode (a --function run scores exactly
-    # one requested symbol; a miss there is already reported above).
-    if fn_filter is None:
-        for fn in sorted(compiled_funcs.keys()):
-            # A renamed function is scored under whichever symbol its reference
-            # carries: if the delinked ref still uses the pre-rename FUN_<addr>,
-            # the rename bridge scores it under that name and adds *it* (not the
-            # source's real name) to `matched`.  So a compiled `magnitude3d` whose
-            # ref symbol is `FUN_00012f10` is NOT literally in `matched` yet is
-            # not a drop — check the function's aliases too.
-            if fn in matched or (function_aliases(fn) & matched):
+        for fn in compiled_funcs:
+            insns, info = _reference_for(fn)
+            if insns is None:
+                ref_failures[fn] = info
                 continue
+            reference_funcs[fn] = insns
+            ref_meta[fn] = info
+            matched.add(fn)
+
+    # Provenance, one machine-parseable line per scored function.  Emitted even
+    # under --quiet, because vc71_regression parses a --quiet run.
+    #
+    #   SYNTHREF <fn>
+    #       Kept for compatibility: vc71_regression stamps ref="synth" from it.
+    #       Every reference is now derived, so this fires for every function.
+    #   REFMETA <fn> addr=.. end=.. kind=.. n_r=.. sha=..
+    #       Which bytes were scored against, and their identity.  `kind` comes
+    #       straight from the bounds table, so a `no_terminator` bound (a
+    #       function whose end could not be proven from a terminator) is visible
+    #       downstream instead of looking like any other score.
+    for fn in sorted(matched):
+        m = ref_meta[fn]
+        print(f"  SYNTHREF {fn}", flush=True)
+        print(f"  REFMETA {fn} addr=0x{m['addr']:08x} end=0x{m['end']:08x} "
+              f"kind={m['kind']} n_r={m['n_r']} sha={m['sha']}", flush=True)
+
+    # Functions we could NOT score.  These produce no score line, so a gate that
+    # only sees score lines would miss them entirely; emit one machine-parseable
+    # DROP each.  Whole-file mode only -- a --function run scores exactly one
+    # requested symbol and reports its own failure above.
+    #
+    # A DROP means exactly one thing and keeps meaning it: a COMPILED function
+    # for which no reference could be derived.  Deliberately NOT extended to
+    # "kb.json lists a ported function this object does not define" -- that is a
+    # real condition, but vc71_regression already reports it from its own
+    # _expected_ported_functions, and vc71_regression treats every DROP as a
+    # hard failure under --strict.  Feeding a second, differently-derived
+    # source-mapping heuristic into that gate risks failing CI on a stale
+    # kb.json `source` field rather than on anything about the lift.
+    if fn_filter is None:
+        for fn in sorted(ref_failures):
             span = _func_span(fn)
             if span is None:
                 continue  # not a kb.json-tracked function (helper/thunk/static)
-            chunk = _per_function_ref(fn)
-            if chunk and chunk.exists():
-                reason = ("per-function chunk invalid after boundary cap "
-                          "(stale/truncated) — re-delink")
-            else:
-                reason = ("no reference (whole-object truncated/absent, no "
-                          "per-function chunk) — delink")
-            print(f"  DROP {fn}: no valid reference — {reason} (span {span} bytes)",
-                  flush=True)
+            print(f"  DROP {fn}: no valid reference — {ref_failures[fn]} "
+                  f"(span {span} bytes)", flush=True)
 
     if not matched:
-        print("No matching functions found between objects")
+        print("No functions could be scored in this translation unit")
         print(f"  compiled:  {sorted(compiled_funcs.keys())[:10]}")
-        print(f"  reference: {sorted(reference_funcs.keys())[:10]}")
         return 1
 
     any_fail = False
@@ -1761,7 +1484,6 @@ def run_compare_cached(
     any_loadw_warn = False
     any_imm_warn = False
     any_fcom_warn = False
-    any_trunc_warn = False
     hits = 0
     misses = 0
 
@@ -1778,13 +1500,15 @@ def run_compare_cached(
         regdef = (regdef_override if regdef_override is not None
                   else _regdef_params_for(fn, co))
         cached_result = None
-        # Overridden functions were scored against a per-function chunk, not the
-        # whole-object `reference` the cache key is derived from — bypass cache.
-        # Overridden functions are scored from a different object; key their
-        # cache entry on their own flag so it cannot collide with a primary run.
+        # Every function now has one derived reference, so there is no
+        # per-function reference override to bypass the cache for.  The cache
+        # key covers the bounds entry the reference was cut from (see
+        # vc71_cache.make_cache_key), so a moved bound invalidates on its own.
+        # A mixed-optimization function is keyed on its own flag so it cannot
+        # collide with a primary-pass entry.
         cache_opt = fn_opt.get(fn, opt)
-        if not no_cache and cache is not None and fn not in ref_overrides:
-            cached_result = cache.get(fn, source, reference, opt=cache_opt)
+        if not no_cache and cache is not None:
+            cached_result = cache.get(fn, source, None, opt=cache_opt)
 
         if cached_result is not None:
             hits += 1
@@ -1814,10 +1538,8 @@ def run_compare_cached(
                     print(f"  [REGPARM] {fn}: stripped {n_stripped} @<reg> "
                           f"phantom load(s); raw {raw_pct:.1f}% -> modeled {pct:.1f}%")
             # Store result; always save diff_lines so future --show-diffs works.
-            # Skip overridden functions — their score is against a per-function
-            # chunk, not the whole-object reference the cache key encodes.
-            if cache is not None and not no_cache and fn not in ref_overrides:
-                cache.put(fn, source, reference, pct, fpu_warnings, diffs,
+            if cache is not None and not no_cache:
+                cache.put(fn, source, None, pct, fpu_warnings, diffs,
                           loadw_warnings=loadw_warnings, imm_warnings=imm_warnings,
                           fcom_warnings=fcom_warnings, opt=cache_opt)
 
@@ -1828,9 +1550,12 @@ def run_compare_cached(
         loadw_tag = " [LOADW-WARN]" if loadw_warnings else ""
         imm_tag = " [IMM-WARN]" if imm_warnings else ""
         fcom_tag = " [FCOM-WARN]" if fcom_warnings else ""
-        trunc_info = _chunk_truncation.get(fn)
-        trunc_tag = (f" [TRUNC-WARN:{trunc_info['parsed']}/{trunc_info['bounded']}]"
-                     if trunc_info else "")
+        # A bound the generator could not close on a terminator: the reference
+        # may run past the real body or stop short of it.  Tagged rather than
+        # suppressed, so the score is still measured but is identifiable as
+        # resting on a weaker bound.  See function_bounds.py's `kind` field.
+        kind_tag = (" [BOUND-WARN:no_terminator]"
+                    if ref_meta[fn]["kind"] == "no_terminator" else "")
 
         reg_tag = ""
         if reg_normalize:
@@ -1859,9 +1584,9 @@ def run_compare_cached(
 
         if not only_mode:
             if quiet:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{trunc_tag}{opnd_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{kind_tag}{opnd_tag}")
             else:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{trunc_tag}{opnd_tag}{cache_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{kind_tag}{opnd_tag}{cache_tag}")
 
         if fpu_warnings:
             any_fpu_warn = True
@@ -1904,36 +1629,29 @@ def run_compare_cached(
                 for w in fcom_warnings:
                     print(w)
 
-        if trunc_info:
-            any_trunc_warn = True
-
         if status == "FAIL":
             any_fail = True
 
         if score_context:
-            if fn in synth_used:
-                ref_info = {"obj": None, "per_function": False, "synthesized": True}
-            elif fn in ref_overrides:
-                per_ref = _per_function_ref(fn)
-                try:
-                    obj_str = str(per_ref.relative_to(REPO_ROOT)) if per_ref else None
-                except ValueError:
-                    obj_str = str(per_ref) if per_ref else None
-                ref_info = {"obj": obj_str, "per_function": True, "synthesized": False}
-            else:
-                try:
-                    obj_str = str(reference.relative_to(REPO_ROOT))
-                except ValueError:
-                    obj_str = str(reference)
-                ref_info = {"obj": obj_str, "per_function": False, "synthesized": False}
+            m = ref_meta[fn]
+            try:
+                obj_str = str(m["obj"].relative_to(REPO_ROOT))
+            except ValueError:
+                obj_str = str(m["obj"])
+            # `per_function`/`synthesized` are kept (and are now always True)
+            # so a consumer written against the old pack shape keeps working.
+            ref_info = {
+                "obj": obj_str, "per_function": True, "synthesized": True,
+                "addr": f"0x{m['addr']:08x}", "end": f"0x{m['end']:08x}",
+                "kind": m["kind"], "bound_provenance": m["provenance"],
+                "n_insns": m["n_r"], "sha": m["sha"],
+            }
 
             pack = _build_score_context(
                 fn, compiled_funcs[fn], reference_funcs[fn], pct,
                 fpu_warnings, loadw_warnings, imm_warnings, fcom_warnings,
                 source, ref_info, co,
             )
-            if trunc_info:
-                pack["warnings"]["trunc"] = trunc_info
             ctx_path = _write_score_context(pack)
             if not only_mode and not quiet and pct < 100.0:
                 try:
@@ -1981,16 +1699,17 @@ def run_compare_cached(
             print("\n[FCOM-WARN] FPU-guard bound-sense differences found; re-run with --fcom-only for "
                   "details (<= vs <; see lift-learnings section 38).")
 
-    if any_trunc_warn and not quiet:
-        trunc_fns = sorted(_chunk_truncation.keys())
-        print(f"\n[TRUNC-WARN] {len(trunc_fns)} per-function delinked ref(s) appear "
-              "internally truncated (first_function_insns returned <90% of the "
-              "bounded instruction count). Score may be against a partial function "
-              "-- re-export with a corrected address range.")
-        for tfn in trunc_fns:
-            ti = _chunk_truncation[tfn]
-            print(f"  {tfn}: {ti['parsed']}/{ti['bounded']} insns "
-                  f"({ti['ratio']:.1%}, lost {ti['lost']})")
+    weak_bounds = sorted(fn for fn in matched
+                         if ref_meta[fn]["kind"] == "no_terminator")
+    if weak_bounds and not quiet:
+        print(f"\n[BOUND-WARN] {len(weak_bounds)} function(s) scored against a "
+              "reference whose end could not be proven from a terminator "
+              "(function_bounds.json kind=no_terminator). Review the entry's "
+              "`note` before trusting the score.")
+        for fn in weak_bounds:
+            m = ref_meta[fn]
+            print(f"  {fn}: 0x{m['addr']:08x}-0x{m['end']:08x} "
+                  f"({m['n_r']} insns)")
 
     return 1 if any_fail else 0
 
@@ -2030,20 +1749,23 @@ def main():
                          "function(s): 'idx:reg[,idx:reg]' e.g. '0:eax'. By default "
                          "this is derived per function from kb.json @<reg> annotations.")
     ap.add_argument("--no-synth-ref", action="store_true",
-                    help="Do not fall back to a reference synthesized from the "
-                         "pristine XBE when no delinked reference bounds a "
-                         "function; report the function as a DROP instead")
+                    help=argparse.SUPPRESS)  # deprecated no-op; see below
     ap.add_argument("--no-score-context", action="store_true",
                     help="Disable machine-readable score-context pack output "
                          "(artifacts/score_context/<name>.json); on by default")
     args = ap.parse_args()
 
-    global SYNTH_REFS
-    SYNTH_REFS = not args.no_synth_ref
-
-    units = load_units()
+    # --no-synth-ref used to force a DROP where no delinked reference bounded a
+    # function.  Derivation from the pristine XBE plus the committed bounds
+    # table is now the ONLY reference path, so there is nothing to fall back
+    # from.  Accepted and ignored so an old command line still runs.
+    if args.no_synth_ref:
+        print("[deprecated] --no-synth-ref is a no-op: every reference is now "
+              "derived from the pristine XBE and function_bounds.json",
+              file=sys.stderr)
 
     if args.list:
+        units = load_units()
         def list_key(unit: dict) -> tuple[str, str]:
             return (unit.get("metadata", {}).get("source_path", ""), unit.get("base_path", ""))
 
@@ -2093,21 +1815,6 @@ def main():
         if not args.quiet:
             print(f"[opt] merged game TU detected -> using /O2 /Ob1", flush=True)
 
-    unit = choose_unit(str(source), units, args.function)
-    if not unit:
-        print(f"No usable objdiff.json unit found for {source}", file=sys.stderr)
-        if args.function:
-            aliases = ", ".join(sorted(function_aliases(args.function)))
-            print(f"No existing delinked reference contains: {aliases}", file=sys.stderr)
-        print("Run with --list to see available units")
-        sys.exit(1)
-
-    ref_path = REPO_ROOT / unit["base_path"]
-    if not ref_path.exists():
-        print(f"Delinked reference not found: {ref_path}", file=sys.stderr)
-        print("Export it via: python3 tools/audit/batch_delink.py --object <name>")
-        sys.exit(1)
-
     obj_name = source.stem + ".obj"
     vc71_obj = VC71_OUT_DIR / obj_name
 
@@ -2126,7 +1833,7 @@ def main():
                 pass
 
         if cache is not None and args.rebuild_cache:
-            dropped = cache.invalidate(source_path=source, ref_path=ref_path)
+            dropped = cache.invalidate(source_path=source)
             if not args.quiet:
                 print(f"[cache] Dropped {dropped} stale entries for {source.name}", flush=True)
 
@@ -2189,7 +1896,8 @@ def main():
             print(f"Compiled in {time.perf_counter() - t0:.1f}s", flush=True)
 
     if not args.quiet:
-        print(f"Comparing against {ref_path.name}...\n", flush=True)
+        print("Comparing against references derived from the pristine XBE "
+              "(bounds: tools/verify/function_bounds.json)...\n", flush=True)
     extra = []
     if args.function:
         extra += ["--function", args.function]
@@ -2214,7 +1922,7 @@ def main():
     per_fn_opt = _per_function_opt_for(source) if opt_was_default else {}
 
     rc = run_compare_cached(
-        vc71_obj, ref_path, source, extra, cache, no_cache=args.no_cache,
+        vc71_obj, source, extra, cache, no_cache=args.no_cache,
         quiet=args.quiet, opt=args.opt,
         score_context=not args.no_score_context,
         per_fn_opt=per_fn_opt, regcall_elide=args.regcall_elide,

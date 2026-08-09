@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Per-function SQLite cache for vc71_verify.py.
 
-Cache key: (source_sha256, ref_sha256, compiler_version, fn_decl_sha256, comparator_sha256)
+Cache key: (KEY_VERSION, source_sha256, compiler_version, fn_decl_sha256,
+            comparator_sha256, xbe_reference_sha256, function bound)
 Cache value: match_pct, fpu_warnings (JSON), diff_lines (JSON|NULL), created_utc
 
 Safe to delete at any time — a fresh run rebuilds it.
@@ -113,45 +114,64 @@ def _load_kb() -> dict[str, str]:
     return _KB_DECL_MAP
 
 
-def _fn_span_token(fn_name: str) -> str:
-    """The function's byte span, as a cache-key component.
+# Bumped whenever the meaning of a cached score changes for reasons the other
+# key components cannot express.  2 = references are derived from the pristine
+# XBE bounded by the committed function_bounds.json, replacing the delinked
+# reference-selection ladder; every score from version 1 was measured against a
+# reference that may have been chosen differently, so all of them must recompute
+# exactly once.
+KEY_VERSION = 2
 
-    The span decides which references are accepted (`_ref_insns_valid`) and
-    therefore which one a function is scored against -- so a span change is a
-    result change, even when source, reference and compiler are all identical.
-    Without this the cache silently serves pre-change scores and a sweep
-    measures nothing.
 
-    Keyed on the span VALUE rather than on vc71_verify.py's hash so that only
-    the functions whose span actually moved recompute; hashing that file would
-    invalidate all ~4,300 entries on every unrelated edit to it.  Imported
-    lazily because vc71_verify imports this module.
+def _fn_bounds_token(fn_name: str) -> str:
+    """The function's (start, end, kind) bound, as a cache-key component.
+
+    The bound IS the reference: the reference is the bytes at [start, end) in
+    the pristine XBE.  A bound that moves -- a regenerated table, a new kb.json
+    neighbour, an added `table_data` override -- is therefore a result change
+    even when source, compiler and comparator are all identical.  Without this
+    the cache serves pre-change scores and a re-measure measures nothing.
+
+    Keyed on the bound VALUE rather than on function_bounds.json's hash so that
+    only the functions whose bound actually moved recompute; hashing the whole
+    table would invalidate all ~6,100 entries whenever kb.json gains a single
+    function.  Imported lazily because vc71_verify imports this module.
     """
     try:
-        from vc71_verify import _func_span
-        return str(_func_span(fn_name))
+        from vc71_verify import _func_addr
+        import xbe_reference as xr
+        addr = _func_addr(fn_name)
+        if addr is None:
+            return "?"
+        ext = xr.function_extent(addr)
+        if ext is None:
+            return f"{addr:x}:none"
+        end, kind, _prov = ext
+        return f"{addr:x}:{end:x}:{kind}"
     except Exception:
-        return "?"  # no opinion; degrades to the previous key behaviour
+        return "?"  # no opinion; the version bump below still forces one pass
 
 
-def make_cache_key(fn_name: str, source_path: Path, ref_path: Path,
+def make_cache_key(fn_name: str, source_path: Path, ref_path: Path | None = None,
                    opt: str = "/O2") -> str:
-    """Build the composite cache key for a single function."""
+    """Build the composite cache key for a single function.
+
+    `ref_path` is vestigial: scoring no longer reads a delinked object, so
+    callers pass None and the reference's identity enters the key through
+    `_fn_bounds_token` and the synthesizer's hash instead.  Still accepted so an
+    external caller holding a reference object keeps working.
+    """
     src_sha = _sha256_file(source_path)
-    ref_sha = _sha256_file(ref_path)
+    ref_sha = _sha256_file(ref_path) if ref_path else "derived"
     cc_ver = compiler_version_token()
     decl_sha = fn_decl_sha256(fn_name)
     comparator_sha = _sha256_file(REPO_ROOT / "tools" / "verify" / "compare_obj.py")
-    # A function with no delinked reference is scored against one synthesized
-    # from the XBE, so that synthesizer is an input to the result exactly as
-    # the comparator is.  `ref_sha` cannot stand in for it: it hashes the TU's
-    # delinked object, which does not change when the synthesizer does.
-    # Included unconditionally because whether a given function takes the
-    # synthesized path is not knowable at key-construction time.
+    # The reference is built by xbe_reference.py from the XBE, so that module is
+    # an input to the result exactly as the comparator is.
     synth_sha = _sha256_file(REPO_ROOT / "tools" / "verify" / "xbe_reference.py")
-    span_tok = _fn_span_token(fn_name)
-    raw = (f"{fn_name}|{src_sha}|{ref_sha}|{cc_ver}|{decl_sha}|"
-           f"{comparator_sha}|{synth_sha}|{span_tok}|{opt}")
+    bounds_tok = _fn_bounds_token(fn_name)
+    raw = (f"v{KEY_VERSION}|{fn_name}|{src_sha}|{ref_sha}|{cc_ver}|{decl_sha}|"
+           f"{comparator_sha}|{synth_sha}|{bounds_tok}|{opt}")
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
@@ -200,7 +220,7 @@ class Vc71Cache:
         self,
         fn_name: str,
         source_path: Path,
-        ref_path: Path,
+        ref_path: Path | None = None,
         opt: str = "/O2",
     ) -> dict | None:
         """Return cached result or None on miss."""
@@ -228,7 +248,7 @@ class Vc71Cache:
         self,
         fn_name: str,
         source_path: Path,
-        ref_path: Path,
+        ref_path: Path | None,
         match_pct: float,
         fpu_warnings: list[str],
         diff_lines: list[str] | None,
@@ -253,7 +273,7 @@ class Vc71Cache:
                 key,
                 fn_name,
                 str(source_path),
-                str(ref_path),
+                str(ref_path) if ref_path else "derived",
                 match_pct,
                 json.dumps(fpu_warnings),
                 json.dumps(diff_lines) if diff_lines is not None else None,

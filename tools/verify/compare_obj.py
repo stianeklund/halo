@@ -448,6 +448,22 @@ _DATA_GARBAGE_MARKERS = ('<unknown>', 'addb\t%al, (%eax)', 'addb %al, (%eax)')
 _INDIRECT_TABLE_JMP_RE = re.compile(r'\bjmp\w*\s+\*[^(]*\(\s*,\s*%\w+\s*,\s*4\s*\)')
 
 
+def _branch_target_symbol(ref: str) -> str:
+    """The symbol name inside an objdump `<...>` branch reference.
+
+    objdump spells an intra-symbol target as `<sym+0xNNN>`.  Comparing the whole
+    string against a symbol set therefore never matches, which matters most for
+    a reference synthesized from raw XBE bytes: that object holds ONE symbol, so
+    EVERY internal branch prints with an offset and the back-edge signal
+    disappears entirely.  Measured on FUN_000d27a0 (hud_messaging): its post-RET
+    out-of-line block `movl %eax,%esi; jmp <FUN_000d27a0+0x825>` looked like
+    inline table data and was cut, leaving a 624-instruction reference for a
+    626-instruction function.
+    """
+    name = re.sub(r'\+0x[0-9a-f]+$', '', ref)
+    return re.sub(r'@\d+$', '', name.lstrip("_@"))
+
+
 def _tail_branches_into_body(tail: list, body_label_names: set) -> bool:
     """True if any tail instruction branches to a label defined in the body.
 
@@ -456,7 +472,7 @@ def _tail_branches_into_body(tail: list, body_label_names: set) -> bool:
     to a symbolic branch back into the function we are measuring."""
     for ins in tail:
         for ref in re.findall(r'<([^>]+)>', ins):
-            if re.sub(r'@\d+$', '', ref.lstrip("_@")) in body_label_names:
+            if _branch_target_symbol(ref) in body_label_names:
                 return True
     return False
 
