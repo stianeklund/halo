@@ -143,7 +143,10 @@ const TARGETS_SCHEMA = {
           obj:           { type: 'string' },
           score:         { type: 'number' },
           has_reg_args:  { type: 'boolean' },  // target.has_reg_args
-          delinked:      { type: 'boolean' },  // target.score_details.delinked_ref > 0
+          // VC71-scoreable: score_details.delinked_ref > 0. The key kept its
+          // historical name, but the selector now derives it from bounds-table
+          // membership (tools/verify/function_bounds.json), not from delinked/.
+          delinked:      { type: 'boolean' },
           source_exists: { type: 'boolean' },  // target.score_details.source_exists present
           lane:          { type: 'string' },   // item.lane
           // Prior-attempt state. These MUST be declared here even though the
@@ -218,10 +221,14 @@ const LIFT_RESULT_SCHEMA = {
     status:      { type: 'string' },   // needs_verify | skipped | build_failed | infra_blocked
     source_file: { type: 'string' },
     vc71_score:  { type: 'number' },
-    // false when vc71_verify never produced a per-function % (no delinked
-    // reference / "No usable objdiff.json unit" / verify skipped). A skipped
-    // verify is an infrastructure gap, NOT a 0% lift — the loop must not park
-    // it as below_65pct or count it toward stop_on_fail (see f8e29209/daa39ee6:
+    // false when vc71_verify never produced a per-function %. Since references
+    // are derived from the pristine XBE + the committed bounds table, that now
+    // means one of: the address is absent from tools/verify/function_bounds.json,
+    // or the TU failed to compile under VC71 — NOT a missing Ghidra export. (The
+    // legacy strings "no delinked reference" / "No usable objdiff.json unit" are
+    // still treated the same way if they ever appear.) A skipped verify is an
+    // infrastructure gap, NOT a 0% lift — the loop must not park it as
+    // below_65pct or count it toward stop_on_fail (see f8e29209/daa39ee6:
     // 9 faithful lifts parked at "0%" across two runs).
     vc71_measured: { type: 'boolean' },
     capped:         { type: 'boolean' },  // matches a known structural-cap signature (see liftPrompt)
@@ -231,7 +238,7 @@ const LIFT_RESULT_SCHEMA = {
     // redelink, permute, and state-snapshot equivalence itself, in the same
     // context that produced the lift. The loop's separate redelink/permute/
     // equiv agents only run as FALLBACK when these fields are absent.
-    redelinked:       { type: 'boolean' },
+    redelinked:       { type: 'boolean' },   // retired: no export can change a VC71 score; always false
     permuted:         { type: 'boolean' },
     equiv_passes:     { type: 'boolean' },
     equiv_confidence: { type: 'string' },
@@ -444,7 +451,8 @@ ${LIFT_REG_ARGS ? `   - (reg-arg lifting ENABLED for this run: do NOT skip on un
      artifacts/auto_lift/context_cache/${t.name}.json
    Return JSON array: [{addr,name,has_reg_args,in_kb}]
 
-6. DELINKED CHECK: objdump -t delinked/*.obj 2>/dev/null | grep -i "${t.name.replace('FUN_', '')}"
+6. DELINKED CHECK (for the EQUIVALENCE lane only — VC71 scoring never reads
+   delinked/): objdump -t delinked/*.obj 2>/dev/null | grep -i "${t.name.replace('FUN_', '')}"
    delinked_exists=true if found.
 
 7. HAZARD SCAN: rtk python3 tools/audit/check_lift_hazards.py 2>&1 | grep -A2 "${t.addr.replace('0x', '')}"
@@ -518,13 +526,12 @@ A near-identical neighbor capped below 90% is evidence THIS one is capped too):
 ${brief.neighbors || '  (none — retrieval server was cold)'}
 
 STEPS:
-1. DELINKED — a prefetch stage already exported delinked/functions/<addr_no_0x>.obj.
-   Do NOT export it yourself and make NO ghidra-live calls here. If the ref is
-   missing, VC71 simply scores low and the workflow's cheap redelink stage exports
-   it and re-verifies afterward. In-lifter export is a multi-turn ghidra-live dance
-   (decompile → find end → export → copy) whose accumulated output is re-read on
-   every later turn of this agent — skipping it keeps this agent short and is the
-   single biggest per-lift token saving.
+1. REFERENCE — nothing to do. The VC71 reference is DERIVED: the pristine XBE's
+   bytes for this function, bounded by the committed tools/verify/function_bounds.json.
+   Make NO ghidra-live calls to export one, and do not treat a low score as a
+   reference problem. (A prefetch stage may have exported delinked/functions/<addr_no_0x>.obj
+   — that object is for the EQUIVALENCE lane, which executes the oracle and needs
+   real relocations. It has no effect on the VC71 %.)
 
 2. CALLEE PREP — for any callee with has_reg_args=true and in_kb=false:
    add to kb.json with @<reg> + update tools/kb_reg_baseline.json.
@@ -567,26 +574,17 @@ STEPS:
    build log into your reasoning — quoting large tool output back inflates every
    following turn's re-read. If it timed out, status="needs_review", vc71_score=0.
    vc71_measured: report true ONLY if a per-function VC71 % was actually produced.
-   If verify was SKIPPED (no delinked reference, "No usable objdiff.json unit",
-   "no delinked reference existed"), report vc71_measured=false and do NOT invent
-   vc71_score=0 as if it were a real match result — first attempt the redelink
-   in 6b to create the missing reference.
+   If verify was SKIPPED, report vc71_measured=false and do NOT invent
+   vc71_score=0 as if it were a real match result. There are only two real causes
+   now — the address is missing from tools/verify/function_bounds.json (the skip
+   message names it), or the TU failed to compile under VC71 (fix the C89 error).
+   Neither is fixed by exporting anything from Ghidra.
 
-6b. REDELINK RETRY (if the build passed and vc71_score < 90 OR verify was
-   skipped for want of a reference): a stale, missing, or whole-object delink
-   boundary often causes a falsely low/absent score. You already
-   know the function's exact range from the decompile — re-export a fresh
-   per-function reference via mcp__ghidra-live__export_delinked_object with
-   selection_mode="range", range="<start_no_0x>-<end_no_0x>" (last instruction
-   of THIS function). The export MUST land at
-   delinked/functions/<8-hex-lowercase-addr>.obj (zero-padded, e.g.
-   000c0f50.obj — vc71_verify discovers per-function refs by that name; copy
-   it into this worktree's delinked/functions/ if you exported elsewhere),
-   then re-run the step-6 lift_pipeline command; if the pipeline still reports
-   no unit, fall back to: rtk python3 tools/verify/vc71_verify.py <source_file>
-   -f ${brief.name} --no-cache (per-function refs are auto-discovered).
-   Keep the better score and
-   report redelinked=true (and vc71_measured=true once a real % exists).
+6b. (retired) There is no redelink retry. The reference is derived from the
+   pristine XBE + the committed bounds table, so no Ghidra export can raise or
+   restore a VC71 score. A low score is a lift problem; a *missing* score is a
+   bounds-table or VC71-compile problem — report it, do not chase it. Leave
+   redelinked=false.
 
 6c. PERMUTE (only if the score is now in [85,89] — skip otherwise):
    timeout 150 rtk python3 tools/permuter/run.py -q --target ${brief.name} --attempts 100 2>&1 || echo "[permuter stopped]"
@@ -635,34 +633,12 @@ ${CAP_TABLE}
    redelinked/permuted/equiv_passes/equiv_confidence/equiv_reason for whichever
    of steps 6b-6d ran.`
 
-const redelinkPrompt = (name, addr) =>
-  `${AGENT_RULES}
-
-Re-export a fresh per-function delinked reference for ${name} and re-run VC71 verify.
-This is the primary fix for "badly delinked object" false-low scores.
-
-1. Find the function end address in Ghidra: decompile_function at ${addr}, note the last instruction address.
-   If decompile_function is not in your toolset, get the end address either from the
-   cached pack's disassembly (last instruction):
-     timeout 240 rtk python3 tools/llm_auto_lift.py cache-context --target ${addr} --force 2>&1 || true
-     rtk jq -r '.disassembly' artifacts/auto_lift/context_cache/${name}.json | tail -5
-   or from the next symbol via mcp__ghidra-live__list_symbols_in_range (end = next symbol - 1).
-2. Export via mcp__ghidra-live__export_delinked_object:
-   selection_mode="range", range="<start_no_0x>-<end_no_0x>" (exact function body range).
-   The file MUST be named delinked/functions/<8-hex-lowercase-addr>.obj (zero-padded,
-   e.g. 000c0f50.obj) — vc71_verify discovers per-function references by that exact
-   name. Copy it into a worktree's delinked/functions/ if you are operating inside one.
-3. Re-run (wrap — see [STALL]):
-   timeout 165 rtk python3 tools/lift_pipeline.py --target ${name} --no-metadata-update --verify-policy goal90 2>&1 || echo "[timed-out]"
-
-BOUNDED PASS — this is a mechanical export+verify, NOT a re-lift. Do the three
-steps ONCE each: one decompile to find the end address, one export, one verify.
-Do NOT re-lift, edit source, try alternate ranges, or iterate — if the fresh
-reference does not raise the score, return improved=false with the score you got.
-Do NOT paste the objdiff/build log into your reasoning (it inflates every
-following turn's re-read). At most ~10 turns.
-
-Return: vc71_score, improved (bool), reason.`
+// (retired) redelinkPrompt lived here.  Re-exporting a per-function delinked
+// reference can no longer change a VC71 score: vc71_verify derives THE
+// reference from the pristine XBE, bounded by the committed
+// tools/verify/function_bounds.json.  delinked/ still backs the equivalence
+// lane (unicorn executes the oracle and needs real relocations) — that is
+// what delinkPrefetch below exists for.
 
 const permutePrompt = (name) =>
   `${AGENT_RULES}
@@ -1176,10 +1152,9 @@ rtk python3 tools/verify/vc71_verify.py ${refreshSrc} -f ${rec.name} --no-cache 
     let band    = classifyBand(score)
     log(`  improve-lift ${rec.name}: ${score}% (band=${band}, was ${rec.best_score}%, ${warm ? 'warm' : 'cold'}-start)`)
 
-    if (band !== 'pass') {
-      const rd = await agent(redelinkPrompt(rec.name, rec.addr), { label: `redelink:${rec.name}`, phase: 'Improve', ...M.mechanical, schema: SCORE_SCHEMA })
-      if (rd && rd.vc71_score > score) { score = rd.vc71_score; band = classifyBand(score); log(`  ${rec.name} redelink → ${score}%`) }
-    }
+    // (retired) A redelink retry ran here for any non-passing band. VC71 scores
+    // are derived from the pristine XBE + the committed bounds table, so a fresh
+    // Ghidra export cannot move the number.
     if (band === 'pass_permute') {
       const ps = await maybePermute(rec.name, 'Improve')
       if (ps !== null) { score = ps; band = classifyBand(score) }
@@ -1503,8 +1478,10 @@ const results   = []
 let   nextTarget = 0
 let   pendingInfra = 0
 
-// Export missing per-function delinked references so each lift starts with a
-// trustworthy VC71 baseline and the per-candidate redelink stage rarely fires.
+// Export missing per-function delinked references for the EQUIVALENCE lane.
+// (Not for VC71: scoring derives its reference from the pristine XBE + the
+// committed bounds table and never reads delinked/. unicorn_diff EXECUTES the
+// oracle, so it still needs an object with real relocations.)
 // Called per research window rather than once for the whole queue.
 async function delinkPrefetch(newOk) {
   const needDelink = newOk.filter(b => !b.delinked_exists)
@@ -1615,7 +1592,7 @@ while (true) {
     continue
   }
 
-  let lift    = a1   // the active lift result — carries in-agent redelink/permute/equiv flags
+  let lift    = a1   // the active lift result — carries in-agent permute/equiv flags
   let score   = a1.vc71_score || 0
   let srcFile = a1.source_file || brief.source_path
   let band    = classifyBand(score)
@@ -1624,53 +1601,29 @@ while (true) {
   log(`  lift1 ${brief.name}: ${a1.status} ${score}% (band=${band}${a1.capped ? ', capped: ' + (a1.cap_reason || '?') : ''})`)
 
   // ── VERIFY-SKIPPED GUARD: a build-passing lift whose VC71 was never measured
-  // (no delinked reference / no objdiff unit) is an INFRASTRUCTURE gap, not a
-  // 0% match. Two runs (f8e29209, daa39ee6) parked 9 faithful lifts as
-  // "below_65pct @ 0%" this way, and the bogus fails tripped stop_on_fail.
-  // Repair path: one redelink agent (exports the per-function reference and
-  // re-scores). If a real % emerges, fall through to normal banding; if not,
-  // park as verify_skipped_no_ref WITHOUT counting a consecutive failure.
+  // is an INFRASTRUCTURE gap, not a 0% match. Two runs (f8e29209, daa39ee6)
+  // parked 9 faithful lifts as "below_65pct @ 0%" this way, and the bogus fails
+  // tripped stop_on_fail.
+  // The cause used to be a missing delinked reference and the repair was a
+  // redelink agent. References are now DERIVED from the pristine XBE + the
+  // committed tools/verify/function_bounds.json, so no export can restore a
+  // score: an unmeasured function is either absent from the bounds table or its
+  // TU does not compile under VC71 — both need a human, not another agent turn.
+  // Park WITHOUT counting a consecutive failure, same as before.
   const verifySkipped =
     a1.status === 'needs_verify' &&
     (a1.vc71_measured === false || (score === 0 && a1.vc71_measured !== true))
   if (verifySkipped) {
-    log(`  ${brief.name}: VC71 never measured (missing reference) — attempting redelink repair`)
-    const rd = await agent(redelinkPrompt(brief.name, brief.addr), { label: `redelink:${brief.name}`, phase: 'Lift', ...M.mechanical, schema: SCORE_SCHEMA })
-    if (rd && rd.vc71_score > 0) {
-      score = rd.vc71_score
-      band  = classifyBand(score)
-      path  = 'redelink'
-      lift  = { ...lift, redelinked: true }
-      log(`  ${brief.name} redelink repaired verify → ${score}%`)
-    } else {
-      await parkBuilt(brief, srcFile, 0, lastME, 'verify_skipped_no_ref', 'VC71 unmeasured: no delinked reference could be produced; not a lift failure', 'Lift', a1.reason || '')
-      results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: null, reason: 'verify_skipped_no_ref (infrastructure — VC71 never measured; do not treat as below_65pct)' })
-      continue
-    }
+    log(`  ${brief.name}: VC71 never measured — bounds-table entry missing or VC71 compile failed`)
+    await parkBuilt(brief, srcFile, 0, lastME, 'verify_skipped_no_ref', 'VC71 unmeasured: no bounds entry (tools/verify/function_bounds.json) or the TU failed to compile under VC71; not a lift failure', 'Lift', a1.reason || '')
+    results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: null, reason: 'verify_skipped_no_ref (infrastructure — VC71 never measured; do not treat as below_65pct)' })
+    continue
   }
 
-  // FALLBACK ONLY — the lift agent normally redelinks in-context (step 6b); this
-  // runs only when it did not (lift.redelinked absent). A fresh per-function
-  // delinked reference can recover VC71 that was falsely low from a stale or
-  // whole-object delink boundary artifact. Two guards keep this fallback from
-  // becoming a sink (wf_927b1d1d: redelink was 50% of the run's tokens, 0 gains):
-  //   - boundary artifacts cost single-digit %, so a sub-65 (fail_revert) score is
-  //     a real structural mismatch, not a delink artifact — re-delinking won't help;
-  //   - if a1 already proved a high-confidence structural cap (classify_cap.py),
-  //     a fresh delink cannot beat a codegen/register-allocation cap.
-  const redelinkWorthwhile =
-    !lift.redelinked &&
-    (band === 'pass_permute' || band === 'fail_check_cap') &&
-    !(a1.capped === true && a1.cap_confidence === 'high')
-  if (redelinkWorthwhile) {
-    const rd = await agent(redelinkPrompt(brief.name, brief.addr), { label: `redelink:${brief.name}`, phase: 'Lift', ...M.mechanical, schema: SCORE_SCHEMA })
-    if (rd && rd.vc71_score > score) {
-      score = rd.vc71_score
-      band  = classifyBand(score)
-      path  = 'redelink'
-      log(`  ${brief.name} redelink improved to ${score}%`)
-    }
-  }
+  // (retired) The redelink fallback lived here. A fresh Ghidra export can no
+  // longer change a VC71 score — scoring reads the XBE, not delinked/ — so the
+  // stage was pure token spend (wf_927b1d1d: 50% of a run's tokens, 0 gains).
+  // delinked/ exports still matter for the equivalence lane; see delinkPrefetch.
 
   // ── 65-84%: explicit structural-cap gate (P3). The lift agent ran
   // tools/analysis/classify_cap.py in step 7: a cap_confidence==="high" verdict is

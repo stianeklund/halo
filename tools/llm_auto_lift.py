@@ -390,46 +390,69 @@ def _load_manifest() -> dict:
     return _MANIFEST_CACHE
 
 
+_BOUNDS_CACHE: set[int] | None = None
+
+
+def _bounds_addrs() -> set[int]:
+    """Addresses the committed VC71 bounds table can build a reference for.
+
+    tools/verify/function_bounds.json + the pristine XBE are the whole input to
+    a VC71 reference now (tools/verify/xbe_reference.py), so membership here is
+    exactly "this function is scoreable".  Loaded once; an unreadable table
+    yields an empty set, which degrades to "unknown", not to a false 'ok'.
+    """
+    global _BOUNDS_CACHE
+    if _BOUNDS_CACHE is not None:
+        return _BOUNDS_CACHE
+    _BOUNDS_CACHE = set()
+    try:
+        table = json.loads((ROOT / "tools" / "verify" / "function_bounds.json")
+                           .read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return _BOUNDS_CACHE
+    for key, entry in table.items():
+        if key == "_meta" or not isinstance(entry, dict):
+            continue
+        try:
+            start = int(key, 16)
+            if int(entry["end"], 16) > start:
+                _BOUNDS_CACHE.add(start)
+        except (KeyError, TypeError, ValueError):
+            continue
+    return _BOUNDS_CACHE
+
+
 def _delinked_ref_status(source_path: str, addr: str, units: dict[str, dict]) -> str:
     """Return 'ok' | 'per_function' | 'needs_delink' | 'none'.
 
-    'ok'           — TU-level delinked obj exists and is not a split TU.
-    'per_function' — per-function obj exists at delinked/functions/<addr>.obj.
-    'needs_delink' — TU is split, function not in it, per-function obj missing.
-    'none'         — no delinked reference at all.
+    Scoring readiness, NOT delinker state.  VC71 references are derived from the
+    pristine XBE + the committed bounds table, so a function is scoreable iff
+    the table bounds it — Ghidra exports no longer enter into it.
+
+    'ok'   — the bounds table bounds this address; VC71 can score it.
+    'none' — no bound (absent from the table, or zero-length).
+
+    'per_function' and 'needs_delink' are retained in the contract only so a
+    caller matching on them keeps compiling; neither is returned any more.
     """
-    # Per-function file takes priority (already exported and usable)
+    if not addr:
+        return "none"
+    try:
+        return "ok" if int(addr, 16) in _bounds_addrs() else "none"
+    except (TypeError, ValueError):
+        return "none"
+
+
+def _has_delinked_ref(source_path: str, units: dict[str, dict],
+                      addr: str | None = None) -> bool:
+    """True when VC71 can score this target (see _delinked_ref_status).
+
+    Name kept for its callers; the meaning is now bounds-table membership.  With
+    no address to check, falls back to the old objdiff/delinked existence probe
+    so a caller without an address is no worse off than before.
+    """
     if addr:
-        try:
-            addr_hex = f"{int(addr, 16):08x}"
-            if (DELINKED_DIR / "functions" / f"{addr_hex}.obj").exists():
-                return "per_function"
-        except ValueError:
-            pass
-
-    unit = _find_objdiff_unit(source_path, units)
-    if not unit:
-        return "none"
-    base = unit.get("base_path", "")
-    if not base or not (ROOT / base).exists():
-        return "none"
-
-    # TU file exists — is it a split TU that won't contain this function?
-    # Match by obj_path since manifest keys use ':' (e.g. 'XNET:wsock.obj')
-    # but file paths use '/' (e.g. 'delinked/XNET/wsock.obj').
-    ref_abs = str((ROOT / base).resolve())
-    is_split = any(
-        v.get("split") and str(Path(v.get("obj_path", "")).resolve()) == ref_abs
-        for v in _load_manifest().values()
-        if isinstance(v, dict)
-    )
-    if is_split:
-        return "needs_delink"
-
-    return "ok"
-
-
-def _has_delinked_ref(source_path: str, units: dict[str, dict]) -> bool:
+        return _delinked_ref_status(source_path, addr, units) == "ok"
     unit = _find_objdiff_unit(source_path, units)
     if not unit:
         return False
@@ -876,7 +899,9 @@ class LiftabilityScorer:
                 score = 0
                 details: dict[str, int] = {}
 
-                # Delinked reference
+                # VC71 scoring readiness (bounds-table membership; the score key
+                # keeps its historical name "delinked_ref" because the selector
+                # lanes and oracle-strength routing below match on it).
                 _dref = _delinked_ref_status(source_path, addr, self.objdiff_units)
                 if _dref in ("ok", "per_function"):
                     score += 20
@@ -1157,7 +1182,8 @@ class ContextPackBuilder:
         ghidra_ctx = self._gather_ghidra_context(target)
         ghidra_ctx = self._enrich_ghidra_context(target, ghidra_ctx)
         hazards = self._assess_hazards(target, ghidra_ctx)
-        delinked = _has_delinked_ref(target.source_path, self.objdiff_units)
+        delinked = _has_delinked_ref(target.source_path, self.objdiff_units,
+                                     target.addr)
         score_context = self._gather_score_context(target)
         prior_official_pct = (score_context.get("scores") or {}).get("official_pct")
         shape_donor = self._gather_shape_donor(target)

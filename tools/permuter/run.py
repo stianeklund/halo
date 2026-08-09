@@ -12,7 +12,10 @@ Usage:
 
 Steps performed:
     1. Extract and preprocess the target function into base.c (with pycparser-compat typedefs)
-    2. Copy delinked reference COFF to target.o
+    2. Copy the reference COFF to target.o.  That reference is the one vc71_verify
+       scores against: the pristine XBE bytes for the function, bounded by the
+       committed tools/verify/function_bounds.json (tools/verify/xbe_reference.py).
+       --delinked-ref opts into the Ghidra delinker's object instead.
     3. Write compile.sh symlink + settings.toml into a temp work dir
     4. Run permuter.py -j<threads> --best-only <workdir>
 
@@ -42,6 +45,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 PERMUTER_DIR = REPO_ROOT / "third_party" / "decomp-permuter"
 COMPILE_SH = REPO_ROOT / "tools" / "permuter" / "compile.sh"
 COMPARE_OBJ = REPO_ROOT / "tools" / "verify" / "compare_obj.py"
+XBE_REFERENCE = REPO_ROOT / "tools" / "verify" / "xbe_reference.py"
 LIFT_PIPELINE = REPO_ROOT / "tools" / "lift_pipeline.py"
 OBJDIFF_JSON = REPO_ROOT / "objdiff.json"
 DELINKED_DIR = REPO_ROOT / "delinked"
@@ -131,6 +135,7 @@ typedef unsigned short wchar_t;
 # ---------------------------------------------------------------------------
 
 _co_module = None
+_xr_module = None
 
 
 def _load_compare_obj():
@@ -192,6 +197,57 @@ def _resolve_target_to_function_and_source(target: str) -> tuple[str, Path] | No
     return hit.name, source
 
 
+def _load_xbe_reference():
+    """Load tools/verify/xbe_reference.py once and cache the module."""
+    global _xr_module
+    if _xr_module is None:
+        spec = importlib.util.spec_from_file_location(
+            "xbe_reference", str(XBE_REFERENCE))
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = mod
+        spec.loader.exec_module(mod)
+        _xr_module = mod
+    return _xr_module
+
+
+def _target_address(func_name: str, source: Path | None = None) -> int | None:
+    """Resolve a function name to its absolute VA in the pristine XBE."""
+    fn = func_name.lstrip("_")
+    alias = (fn if re.match(r"FUN_[0-9a-fA-F]{8}$", fn)
+             else _resolve_ref_name(fn, source))
+    if not alias:
+        return None
+    m = re.match(r"FUN_([0-9a-fA-F]{8})$", alias)
+    if not m:
+        return None
+    return int(m.group(1), 16)
+
+
+def find_synth_reference(source: Path, func_name: str) -> Path | None:
+    """THE reference: the pristine XBE bytes for this function, in a COFF.
+
+    Identical to what vc71_verify scores against (tools/verify/xbe_reference.py,
+    bounded by the committed tools/verify/function_bounds.json), so the
+    permuter's in-search objective is the same metric the pipeline reports.
+    Resolving through objdiff.json/delinked/ instead would optimize a DIFFERENT
+    reference than the one that decides whether the lift lands.
+    """
+    addr = _target_address(func_name, source)
+    if addr is None:
+        return None
+    try:
+        xr = _load_xbe_reference()
+    except Exception as exc:                       # pragma: no cover
+        print(f"[run.py] xbe_reference unavailable ({exc})", file=sys.stderr)
+        return None
+    try:
+        return xr.reference_object(addr)
+    except Exception as exc:                       # pragma: no cover
+        print(f"[run.py] could not synthesize reference for 0x{addr:x}: {exc}",
+              file=sys.stderr)
+        return None
+
+
 def _per_function_chunk(func_name: str) -> Path | None:
     """Return delinked/functions/<hex8>.obj for this function if it exists.
 
@@ -227,7 +283,11 @@ def _ref_has_function(ref_obj: Path, func_name: str, source: Path | None = None)
 def find_delinked_reference(source: Path, func_name: str | None = None) -> Path | None:
     """Locate the best delinked .obj reference for a source file via objdiff.json.
 
-    Resolution order (mirrors vc71_verify's reference selection):
+    OPT-IN FALLBACK (--delinked-ref, or no bounds entry for the target).  This is
+    no longer what vc71_verify scores against -- see find_synth_reference -- so a
+    run using it optimizes a different reference than the pipeline reports.
+
+    Resolution order:
       1. per-function object registered in objdiff.json (name contains func_name)
       2. whole-TU object, if it actually contains the target function's symbol
       3. per-function chunk export (delinked/functions/<addr>.obj)
@@ -674,20 +734,26 @@ def _resolve_ref_name(func_name: str, source: Path | None = None) -> str | None:
     return None
 
 
-def _resolve_ref_insns(co, func_name: str, ref_obj: Path, ref_is_chunk: bool, source: Path | None = None):
-    """Resolve the reference instruction list for func_name from ref_obj."""
+def _resolve_ref_insns(co, func_name: str, ref_obj: Path, ref_kind: str,
+                       source: Path | None = None):
+    """Resolve the reference instruction list for func_name from ref_obj.
+
+    `ref_kind` is "synth" (XBE-derived, one symbol), "chunk" (per-function
+    delinked export) or "tu" (whole-object delinked export).
+    """
     fn = func_name.lstrip("_")
     delinked_name = _resolve_ref_name(fn, source)
 
     ref_insns = None
-    if not ref_is_chunk:
+    if ref_kind == "tu":
         ref_funcs = co.disassemble(str(ref_obj))
         if fn in ref_funcs:
             ref_insns = ref_funcs[fn]
         elif delinked_name and delinked_name in ref_funcs:
             ref_insns = ref_funcs[delinked_name]
     if ref_insns is None:
-        # chunk reference (or TU lookup failed): boundary-capped first-function
+        # synth/chunk reference (or TU lookup failed): boundary-capped
+        # first-function read, exactly as vc71_verify.derive_reference does.
         aliases = {fn, f"_{fn}"}
         if delinked_name:
             aliases.add(delinked_name)
@@ -695,11 +761,23 @@ def _resolve_ref_insns(co, func_name: str, ref_obj: Path, ref_is_chunk: bool, so
             ref_insns = co.first_function_insns(str(ref_obj), aliases)
         except Exception:
             ref_insns = None
+    if ref_insns and ref_kind == "synth":
+        # Raw XBE bytes keep the real cross-reference addresses; a VC71
+        # candidate stores those as zeroed fields plus a relocation.  Undo that
+        # one asymmetry -- the same rewrite vc71_verify applies -- or every
+        # call/global reference scores as a mismatch and the permuter optimizes
+        # a baseline the pipeline never reports.
+        try:
+            xr = _load_xbe_reference()
+            ref_insns = [xr.normalize_synth_insn(i) for i in ref_insns]
+        except Exception as exc:                   # pragma: no cover
+            print(f"[run.py] WARNING: synth normalization unavailable ({exc}); "
+                  "baseline will not agree with vc71_verify", file=sys.stderr)
     return ref_insns
 
 
 def get_lcs_score(func_name: str, compiled_obj: Path, ref_obj: Path,
-                  ref_is_chunk: bool = False, source: Path | None = None) -> float | None:
+                  ref_kind: str = "synth", source: Path | None = None) -> float | None:
     """Get LCS match % for a function between compiled and reference objects."""
     co = _load_compare_obj()
 
@@ -710,18 +788,18 @@ def get_lcs_score(func_name: str, compiled_obj: Path, ref_obj: Path,
     if not cand_fn:
         return None
 
-    ref_insns = _resolve_ref_insns(co, func_name, ref_obj, ref_is_chunk, source)
+    ref_insns = _resolve_ref_insns(co, func_name, ref_obj, ref_kind, source)
     if ref_insns:
         pct, *_ = co.compare_functions(cand_funcs[cand_fn], ref_insns)
         return pct
     return None
 
 
-def write_ref_mnemonics_file(func_name: str, ref_obj: Path, ref_is_chunk: bool,
+def write_ref_mnemonics_file(func_name: str, ref_obj: Path, ref_kind: str,
                              dest_path: Path, source: Path | None = None) -> bool:
     """Precompute the reference mnemonic sequence once and write it to dest_path."""
     co = _load_compare_obj()
-    ref_insns = _resolve_ref_insns(co, func_name, ref_obj, ref_is_chunk, source)
+    ref_insns = _resolve_ref_insns(co, func_name, ref_obj, ref_kind, source)
     if not ref_insns:
         return False
     mnemonics = co.extract_mnemonic_sequence(ref_insns)
@@ -771,6 +849,12 @@ def main():
                     help="Save work dir to this path after run")
     ap.add_argument("--quiet", "-q", action="store_true",
                     help="Suppress diagnostic noise; only print final summary and errors")
+    ap.add_argument("--delinked-ref", action="store_true",
+                    help="Score against the Ghidra-delinked object instead of the "
+                         "XBE-derived reference vc71_verify uses. Opt-in only: the "
+                         "delinked object carries real relocations, but it is a "
+                         "DIFFERENT reference than the pipeline reports, so the "
+                         "in-search baseline need not agree with the VC71 score.")
     args = ap.parse_args()
 
     global _quiet
@@ -818,17 +902,29 @@ def main():
     tempfile.tempdir = str(WIN_TMPDIR)
 
     # ------------------------------------------------------------------
-    # Locate delinked reference
+    # Locate the reference.  PRIMARY is the XBE-derived object vc71_verify
+    # scores against; --delinked-ref opts into the Ghidra delinker instead
+    # (real relocations, but a different reference than the pipeline reports,
+    # so its baseline need not agree with the pipeline's score).
     # ------------------------------------------------------------------
-    ref_coff = find_delinked_reference(source, func_name)
+    ref_coff = None
+    ref_kind = "synth"
+    if not args.delinked_ref:
+        ref_coff = find_synth_reference(source, func_name)
+        if not ref_coff:
+            print("[run.py] WARNING: no XBE-derived reference for this function "
+                  "(missing from tools/verify/function_bounds.json?); falling "
+                  "back to the delinked reference — its baseline will NOT match "
+                  "vc71_verify's score.", file=sys.stderr)
     if not ref_coff:
-        print("[run.py] ERROR: No delinked reference found. "
-              "Run batch_delink.py to export the reference object.", file=sys.stderr)
+        ref_coff = find_delinked_reference(source, func_name)
+        ref_kind = "chunk" if (ref_coff and ref_coff.parent.name == "functions") else "tu"
+    if not ref_coff:
+        print("[run.py] ERROR: No reference found. Regenerate the bounds table "
+              "(tools/verify/function_bounds.py) or export a delinked reference.",
+              file=sys.stderr)
         sys.exit(1)
-    # Chunk references need the boundary-capped read in get_lcs_score
-    ref_is_chunk = ref_coff.parent.name == "functions"
-    _log(f"[run.py] Reference COFF  : {ref_coff}"
-         + (" (per-function chunk)" if ref_is_chunk else ""))
+    _log(f"[run.py] Reference COFF  : {ref_coff} ({ref_kind})")
 
     # ------------------------------------------------------------------
     # Set up work directory (must be on Windows-accessible path)
@@ -881,7 +977,7 @@ def main():
         # If resolution fails for any reason, fall back to default upstream
         # scoring rather than crash the run.
         ref_mnemonics_path = work_dir / "ref_mnemonics.txt"
-        has_lcs_ref = write_ref_mnemonics_file(func_name, target_o, ref_is_chunk,
+        has_lcs_ref = write_ref_mnemonics_file(func_name, target_o, ref_kind,
                                                ref_mnemonics_path, source)
         if not has_lcs_ref:
             _log("[run.py] WARNING: could not precompute reference mnemonics; "
@@ -908,7 +1004,7 @@ def main():
         # Get initial score via vc71_verify
         base_o = work_dir / "base.o"
         init_pct = get_lcs_score(func_name, base_o, target_o,
-                                 ref_is_chunk=ref_is_chunk, source=source)
+                                 ref_kind=ref_kind, source=source)
         init_score = None
         if init_pct is not None:
             init_score = round((100.0 - init_pct) * 10)
@@ -1033,7 +1129,7 @@ def main():
                     _log(f"  penalty={perm_penalty}: compile failed, skipping")
                     continue
                 lcs = get_lcs_score(func_name, obj_file, target_o,
-                                    ref_is_chunk=ref_is_chunk)
+                                    ref_kind=ref_kind, source=source)
                 if lcs is None:
                     _log(f"  penalty={perm_penalty}: LCS lookup failed, skipping")
                     continue

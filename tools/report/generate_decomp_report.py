@@ -107,30 +107,33 @@ def _source_path(source: str | None) -> str | None:
     return f'src/halo/{source}'
 
 
-def _load_delinked_ref_map(root_dir: str) -> dict:
-    """Return {source_path: bool} — whether a delinked reference .obj exists on disk.
+def _load_scoreable_addrs(root_dir: str) -> set:
+    """Addresses VC71 can build a reference for, from the committed bounds table.
 
-    Reads objdiff.json (metadata.source_path -> base_path) and tests each base_path
-    for existence. A unit with a delinked reference can be VC71 byte-matched; one
-    without cannot, and can only be verified behaviorally (equivalence / runtime oracle).
+    A VC71 reference is derived, not exported: the pristine XBE's bytes for the
+    function, bounded by tools/verify/function_bounds.json
+    (tools/verify/xbe_reference.py).  So "can this be byte-matched?" is exactly
+    "does the table bound this address?" — objdiff.json and the on-disk delinked
+    objects no longer decide it.  An unreadable table returns an empty set, which
+    the caller treats as "unknown", not as "nothing is scoreable".
     """
-    objdiff_path = os.path.join(root_dir, 'objdiff.json')
-    if not os.path.exists(objdiff_path):
-        return {}
+    bounds_path = os.path.join(root_dir, 'tools', 'verify', 'function_bounds.json')
     try:
-        with open(objdiff_path) as f:
-            config = json.load(f)
+        with open(bounds_path) as f:
+            table = json.load(f)
     except (OSError, json.JSONDecodeError):
-        return {}
-    ref_map = {}
-    for unit in config.get('units', []):
-        src = unit.get('metadata', {}).get('source_path')
-        base = unit.get('base_path')
-        if not src:
+        return set()
+    addrs = set()
+    for key, entry in table.items():
+        if key == '_meta' or not isinstance(entry, dict):
             continue
-        has_ref = bool(base and os.path.exists(os.path.join(root_dir, base)))
-        ref_map[src] = ref_map.get(src, False) or has_ref
-    return ref_map
+        try:
+            start = int(key, 16)
+            if int(entry['end'], 16) > start:
+                addrs.add(start)
+        except (KeyError, TypeError, ValueError):
+            continue
+    return addrs
 
 
 def _load_equiv_verdicts(root_dir: str) -> dict:
@@ -244,14 +247,15 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
                        leaf_cache: dict = None,
                        snapshot_data: dict = None,
                        runtime_oracle_data: dict = None,
-                       delinked_ref_map: dict = None,
+                       scoreable_addrs: set = None,
                        equiv_verdicts: dict = None,
                        validity_data: dict = None) -> list[dict]:
     """Compute per-unit statistics in decomp.dev format.
 
-    delinked_ref_map: {source_path: bool} — whether a delinked reference object
-    exists on disk for that source file. Drives the dashboard's distinction
-    between "scoreable, not yet run" and "no reference (VC71 impossible)".
+    scoreable_addrs: addresses the committed VC71 bounds table can derive a
+    reference for. Drives the dashboard's distinction between "scoreable, not yet
+    run" and "not scoreable (VC71 impossible)". A unit counts as scoreable when
+    at least one of its functions is bounded.
 
     validity_data: the VC71 attention queue (reference_validity.json). Functions
     listed there were not scored; each carries a state (compile_failed |
@@ -283,8 +287,8 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
                 except (ValueError, TypeError):
                     pass
 
-    if delinked_ref_map is None:
-        delinked_ref_map = {}
+    if scoreable_addrs is None:
+        scoreable_addrs = set()
 
     if equiv_verdicts is None:
         equiv_verdicts = {}
@@ -552,7 +556,11 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
         tracked_runtime_passed += runtime_passed
             
         unit_source_path = _source_path(source)
-        has_delinked_ref = bool(unit_source_path and delinked_ref_map.get(unit_source_path, False))
+        # Scoreable = the bounds table bounds at least one of this unit's
+        # functions.  An empty table (unreadable/absent) must not badge every
+        # unit as unscoreable, so fall back to "assume scoreable" in that case.
+        unit_scoreable = (not scoreable_addrs) or any(
+            f['addr'] in scoreable_addrs for f in funcs)
 
         unit = {
             'name': obj_name.replace('.obj', ''),
@@ -570,7 +578,11 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
                 'bytes_percent': round(ported_bytes / total_bytes * 100, 2) if total_bytes else 0,
                 'match_avg': match_avg,
                 'match_weighted': match_weighted,
-                'has_delinked_ref': has_delinked_ref,
+                # Canonical name; `has_delinked_ref` is the legacy alias kept for
+                # existing consumers (tools/report/progress_server.py) and now
+                # carries the same bounds-derived meaning.
+                'vc71_scoreable': unit_scoreable,
+                'has_delinked_ref': unit_scoreable,
             },
             'data_summary': {
                 'total': data_count,
@@ -697,10 +709,10 @@ def generate_report(output_path: str) -> dict:
     # Load runtime-oracle verification results
     runtime_oracle_data = _load_runtime_oracle_data()
 
-    # Build {source_path: bool} of which units have a delinked reference object
-    # on disk. This is what makes VC71 byte-match possible; the dashboard uses it
-    # to distinguish "scoreable, not yet run" from "no reference (VC71 impossible)".
-    delinked_ref_map = _load_delinked_ref_map(root_dir)
+    # Addresses the committed VC71 bounds table can derive a reference for. This
+    # is what makes VC71 byte-match possible; the dashboard uses it to distinguish
+    # "scoreable, not yet run" from "not scoreable (VC71 impossible)".
+    scoreable_addrs = _load_scoreable_addrs(root_dir)
 
     # Load equivalence pass/fail verdicts (correctness, distinct from coverage)
     equiv_verdicts = _load_equiv_verdicts(root_dir)
@@ -720,7 +732,7 @@ def generate_report(output_path: str) -> dict:
     # Compute unit stats
     units, drift, overall_match, overall_equiv, overall_snapshot, overall_runtime_oracle = compute_unit_stats(
         kb, store, function_cache, vc71_scores, leaf_cache, snapshot_data, runtime_oracle_data,
-        delinked_ref_map=delinked_ref_map,
+        scoreable_addrs=scoreable_addrs,
         equiv_verdicts=equiv_verdicts,
         validity_data=validity_data,
     )
@@ -1687,13 +1699,15 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             if (vData.divergent > 0) verifiedTip += '\\n\\u2717 Divergent (equiv FAIL \\u2014 investigate): ' + vData.divergent;
 
             // Match-coverage buckets: a ported function is "scored" if it has a
-            // VC71 match, "scoreable" if its unit has a delinked reference (could be
-            // scored), or "no reference" if VC71 is impossible (needs behavioral
-            // verification instead). Honest scope for the Match Quality headline.
+            // VC71 match, "scoreable" if the committed bounds table can derive a
+            // reference for its unit (could be scored), or "not scoreable" if VC71
+            // is impossible (needs behavioral verification instead). Honest scope
+            // for the Match Quality headline.
             var mScored = 0, mScoreable = 0, mNoRef = 0;
             for (var mui = 0; mui < u.length; mui++) {
                 if (u[mui].synthetic) continue;
-                var hasRef = !!(u[mui].summary && u[mui].summary.has_delinked_ref);
+                var su = u[mui].summary || {};
+                var hasRef = !!(su.vc71_scoreable !== undefined ? su.vc71_scoreable : su.has_delinked_ref);
                 var mfuncs = u[mui].functions || [];
                 for (var mfi = 0; mfi < mfuncs.length; mfi++) {
                     var mf = mfuncs[mfi];
@@ -1706,7 +1720,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             var matchTip = 'Byte-level accuracy of ported code compiled with MSVC 7.1 vs the original Xbox binary.\\n';
             matchTip += 'Scored: ' + mScored + ' of ' + s.functions.ported + ' ported\\n';
             matchTip += 'Scoreable, not yet run: ' + mScoreable + '\\n';
-            matchTip += 'No delinked reference (needs equivalence/oracle): ' + mNoRef;
+            matchTip += 'Not scoreable — no bounds entry (needs equivalence/oracle): ' + mNoRef;
 
             document.getElementById('summary-cards').innerHTML =
                 '<div class="card" title="Functions ported out of total game source functions.">' +
@@ -2500,7 +2514,7 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
             var funcs = unit.functions || [];
             var s = unit.summary;
-            currentUnitHasRef = !!s.has_delinked_ref && !unit.synthetic;
+            currentUnitHasRef = !!(s.vc71_scoreable !== undefined ? s.vc71_scoreable : s.has_delinked_ref) && !unit.synthetic;
 
             // Header
             document.getElementById('detail-unit-name').textContent = unit.name;
@@ -2526,13 +2540,14 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 (snap.tested > 0 ?
                     '<span class="unit-meta-item">Snapshot: <strong style="color:#a855f7">' + snap.tested + '</strong> tested &middot; <strong>' + snap.passed + '</strong> passed &middot; <strong>' + (snap.avg_coverage !== null ? snap.avg_coverage.toFixed(1) + '%' : '?') + '</strong> avg cov</span>' : '') +
                 // VC71 scoring is a whole-translation-unit MSVC compile, so this is a
-                // single unit-level action — not per function. Only offered when a
-                // delinked reference exists; otherwise VC71 byte-match is impossible.
+                // single unit-level action — not per function. Only offered when the
+                // committed bounds table can derive a reference for this unit's
+                // functions; otherwise VC71 byte-match is impossible.
                 (unit.synthetic ?
                     '<span class="unit-meta-item pct-none" title="Synthetic platform/common bucket, not a real source translation unit.">Synthetic bucket &middot; excluded from source progress</span>' :
                 (currentUnitHasRef ?
-                    '<span class="unit-meta-item"><button class="score-btn" data-unit="' + jsEsc(unit.name) + '" onclick="scoreFunction(this)" title="Recompile this unit with MSVC 7.1 and diff against the delinked reference">&#x25B6; Score unit (VC71)</button></span>' :
-                    '<span class="unit-meta-item pct-none" title="No delinked reference object on disk — VC71 byte-match is unavailable for this unit. Verify behaviorally via equivalence or the runtime oracle.">No delinked reference &middot; VC71 unavailable</span>'));
+                    '<span class="unit-meta-item"><button class="score-btn" data-unit="' + jsEsc(unit.name) + '" onclick="scoreFunction(this)" title="Recompile this unit with MSVC 7.1 and diff against the reference derived from the pristine XBE (bounds: tools/verify/function_bounds.json)">&#x25B6; Score unit (VC71)</button></span>' :
+                    '<span class="unit-meta-item pct-none" title="No entry in tools/verify/function_bounds.json for this unit’s functions — no reference can be derived, so VC71 byte-match is unavailable. Verify behaviorally via equivalence or the runtime oracle.">Not VC71-scoreable</span>'));
 
             // Unit history chart & Match distribution chart
             renderUnitHistoryChart(unit.name);
@@ -2724,8 +2739,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 var mClass = matchBadge(f.match_percent);
                 // Scoring is a unit-level action (see the header button), so no
                 // per-function Score button here. A ported function with no score
-                // is either "scoreable but not yet run" (unit has a reference) or
-                // "n/a" (no delinked reference \u2014 VC71 impossible, needs equivalence).
+                // is either "scoreable but not yet run" (the bounds table covers the
+                // unit) or "n/a" (no bounds entry \u2014 VC71 impossible, needs equivalence).
                 var matchDisplay;
                 if (f.match_percent !== null && f.match_percent !== undefined) {
                     // Advisory operand-normalized score, shown as a muted
@@ -2739,9 +2754,9 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
                 } else if (f.vc71_flagged === 'compile_failed') {
                     matchDisplay = '<span class="func-status" style="background:#da363322;color:#f85149;border-color:#f85149" title="VC71 compile FAILED for this translation unit (often a clang-ism the C89 CL.Exe rejects: __attribute__, inline in a header, C99 mixed decls). No byte-match evidence until the TU compiles under VC71.">compile fail</span>';
                 } else if (f.vc71_flagged === 'no_reference') {
-                    matchDisplay = '<span class="func-status" style="background:#d2992222;color:#d29922;border-color:#d29922" title="Delinked reference broken / truncated / absent \u2014 re-delink before this score can be trusted.">no ref</span>';
+                    matchDisplay = '<span class="func-status" style="background:#d2992222;color:#d29922;border-color:#d29922" title="No reference could be derived for this function \u2014 it is missing from tools/verify/function_bounds.json, or its bound is zero-length. Regenerate with tools/verify/function_bounds.py.">no ref</span>';
                 } else if (f.ported && !currentUnitHasRef) {
-                    matchDisplay = '<span class="pct-none" title="No delinked reference \u2014 verify via equivalence or the runtime oracle">n/a</span>';
+                    matchDisplay = '<span class="pct-none" title="Not VC71-scoreable (no bounds entry) \u2014 verify via equivalence or the runtime oracle">n/a</span>';
                 } else {
                     matchDisplay = '<span class="pct-none">\u2014</span>';
                 }

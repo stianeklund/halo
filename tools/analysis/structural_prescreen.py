@@ -321,8 +321,50 @@ def load_objdiff_map() -> dict[str, str]:
     return result
 
 
+_xr_module = None
+
+
+def _load_xbe_reference():
+    """Load tools/verify/xbe_reference.py once and cache the module."""
+    global _xr_module
+    if _xr_module is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "xbe_reference", str(ROOT / "tools" / "verify" / "xbe_reference.py"))
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = mod
+        spec.loader.exec_module(mod)
+        _xr_module = mod
+    return _xr_module
+
+
+def _synth_insns(addr: str, cache: dict[str, dict[str, list[str]]]) -> Optional[list[str]]:
+    """Instruction text for `addr` from the pristine XBE, or None.
+
+    Strictly better than a delinked chunk for shape analysis: it exists for
+    every address the committed bounds table covers, so a function in a TU with
+    no Ghidra export is no longer invisible to the pre-screener.  Disassembled
+    through this module's own `disassemble_obj` so the text is identical to the
+    delinked path; the synthesized object holds exactly one symbol, so the
+    symbol's NAME (which may be the pre-rename FUN_ spelling) does not matter.
+    """
+    try:
+        obj = _load_xbe_reference().reference_object(int(addr, 16))
+    except Exception:
+        return None
+    if obj is None:
+        return None
+    key = str(obj)
+    if key not in cache:
+        cache[key] = disassemble_obj(key)
+    syms = cache[key]
+    if not syms:
+        return None
+    return next(iter(syms.values()))
+
+
 def screen_all(function_filter: Optional[str] = None) -> list[FunctionFeatures]:
-    """Screen all unported functions that have delinked references."""
+    """Screen all unported functions the bounds table (or a delinked ref) covers."""
     unported = load_unported_functions()
     objdiff = load_objdiff_map()
     callee_reg_arg_names = _load_callee_reg_arg_names()
@@ -340,31 +382,24 @@ def screen_all(function_filter: Optional[str] = None) -> list[FunctionFeatures]:
 
     for source_path, func_names in source_to_funcs.items():
         obj_path = objdiff.get(source_path)
-        if not obj_path:
-            continue
-
-        if obj_path not in disasm_cache:
-            disasm_cache[obj_path] = disassemble_obj(obj_path)
-        funcs = disasm_cache[obj_path]
+        funcs: dict[str, list[str]] = {}
+        if obj_path:
+            if obj_path not in disasm_cache:
+                disasm_cache[obj_path] = disassemble_obj(obj_path)
+            funcs = disasm_cache[obj_path]
 
         for name in func_names:
             if function_filter and name != function_filter:
                 continue
             insns = funcs.get(name)
 
-            # Function not in TU obj (split TU) — try per-function delinked ref
+            # Not in the TU obj (split TU, no export, or no objdiff unit at all):
+            # derive the bytes from the pristine XBE.  This used to fall back to a
+            # per-function delinked chunk, which only existed where someone had
+            # already run the delinker.
             if not insns:
                 info = unported[name]
-                addr = info.get("addr", "")
-                if addr:
-                    try:
-                        addr_hex = f"{int(addr, 16):08x}"
-                        per_func = str(DELINKED_DIR / "functions" / f"{addr_hex}.obj")
-                        if per_func not in disasm_cache:
-                            disasm_cache[per_func] = disassemble_obj(per_func)
-                        insns = disasm_cache[per_func].get(name)
-                    except (ValueError, OSError):
-                        pass
+                insns = _synth_insns(info.get("addr", ""), disasm_cache)
 
             if not insns:
                 continue

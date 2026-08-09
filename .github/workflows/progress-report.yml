@@ -45,10 +45,13 @@ jobs:
           if [ ! -e build ] && [ -d "$BUILD_DIR" ]; then
             ln -s "$BUILD_DIR" build
           fi
-          # VC71 populate needs the delinked reference objects (objdiff base_paths
-          # and the per-function chunk dir all live under delinked/, which is
-          # gitignored and wiped by the clean checkout).  Symlink it from the dev
-          # tree so populate can score.
+          # NOTE: scoring no longer needs this.  VC71 references are derived from
+          # the pristine XBE + the committed tools/verify/function_bounds.json
+          # (tools/verify/xbe_reference.py), so populate scores with or without
+          # delinked/.  The symlink is kept because delinked/ is gitignored and
+          # wiped by the clean checkout, and the equivalence/objdiff artifacts the
+          # report surfaces are still produced against those objects.  Safe to drop
+          # once nothing in this job reads delinked/.
           if [ ! -e delinked ] && [ -d "$DELINKED_DIR" ]; then
             ln -s "$DELINKED_DIR" delinked
           fi

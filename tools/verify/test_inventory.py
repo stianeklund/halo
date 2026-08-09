@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 KB_JSON = ROOT / "kb.json"
 LEAF_CACHE = ROOT / "tools" / "equivalence" / "leaf_cache.json"
 DELINKED_MANIFEST = ROOT / "delinked" / "manifest.json"
+FUNCTION_BOUNDS = ROOT / "tools" / "verify" / "function_bounds.json"
 BATCH_VERIFY_DIR = ROOT / "artifacts" / "batch_verify"
 OUTPUT_DIR = ROOT / "artifacts" / "test_inventory"
 EQUIV_CLASSES = {"leaf", "data_only", "stubbable"}
@@ -47,7 +48,48 @@ def manifest_keys() -> set[str]:
     return {key.replace("LIBCMT:", "") for key in raw.keys()}
 
 
+_BOUNDS_CACHE: set[int] | None = None
+
+
+def bounds_addrs() -> set[int]:
+    """Addresses the committed VC71 bounds table can derive a reference for.
+
+    VC71 scoring reads the pristine XBE bounded by tools/verify/function_bounds.json
+    (tools/verify/xbe_reference.py), so membership here — not the presence of a
+    Ghidra export — is what "byte-matchable" means.
+    """
+    global _BOUNDS_CACHE
+    if _BOUNDS_CACHE is not None:
+        return _BOUNDS_CACHE
+    _BOUNDS_CACHE = set()
+    table = load_json(FUNCTION_BOUNDS, {})
+    for key, entry in table.items():
+        if key == "_meta" or not isinstance(entry, dict):
+            continue
+        try:
+            start = int(key, 16)
+            if int(entry["end"], 16) > start:
+                _BOUNDS_CACHE.add(start)
+        except (KeyError, TypeError, ValueError):
+            continue
+    return _BOUNDS_CACHE
+
+
+def is_vc71_scoreable(addr: str) -> bool:
+    """True when VC71 can score this function (a bound exists for its address)."""
+    try:
+        return int(addr, 16) in bounds_addrs()
+    except (TypeError, ValueError):
+        return False
+
+
 def has_delinked_reference(obj_name: str, addr: str, manifest: set[str]) -> bool:
+    """True when a Ghidra-delinked object exists for this function.
+
+    This is the EQUIVALENCE-lane precondition, not the VC71 one: unicorn_diff
+    executes the oracle and needs an object with real relocations. For "can this
+    be byte-matched?" use is_vc71_scoreable().
+    """
     bare = obj_name.replace("LIBCMT:", "")
     if bare in manifest:
         return True
@@ -132,6 +174,9 @@ def inventory() -> tuple[dict, dict, dict]:
             class_counts[cls] += 1
 
             has_ref = has_delinked_reference(obj_name, addr, manifest)
+            scoreable = is_vc71_scoreable(addr)
+            if ported and scoreable:
+                totals["vc71_scoreable"] += 1
             prior = prior_artifacts.get(name)
             if not prior:
                 prior = prior_artifacts.get(fun_name_from_addr(addr))
@@ -163,6 +208,9 @@ def inventory() -> tuple[dict, dict, dict]:
                 "object": obj_name,
                 "ported": ported,
                 "class": cls,
+                # VC71 byte-match readiness (bounds table).  Distinct from
+                # has_delinked_reference, which gates the equivalence lane.
+                "vc71_scoreable": scoreable,
                 "has_delinked_reference": has_ref,
                 "recommended_lane": lane,
                 "blocked_reason": reason,
@@ -180,6 +228,7 @@ def inventory() -> tuple[dict, dict, dict]:
     summary = {
         "total_functions": totals["functions"],
         "ported_functions": totals["ported"],
+        "vc71_scoreable_functions": totals["vc71_scoreable"],
         "unicorn_z3_verifiable_functions": totals["unicorn_z3_verifiable"],
         "class_counts": dict(sorted(class_counts.items())),
         "lane_counts": dict(sorted(lane_counts.items())),
@@ -213,6 +262,7 @@ def main() -> int:
     print("Test inventory")
     print(f"  Total functions:              {summary['total_functions']}")
     print(f"  Ported functions:             {summary['ported_functions']}")
+    print(f"  VC71-scoreable (ported):      {summary['vc71_scoreable_functions']}")
     print(f"  Unicorn/Z3 verifiable:        {summary['unicorn_z3_verifiable_functions']}")
     print(f"  Classes:                      {summary['class_counts']}")
     print(f"  Lanes:                        {summary['lane_counts']}")

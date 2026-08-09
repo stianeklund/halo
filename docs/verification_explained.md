@@ -66,7 +66,15 @@ a mnemonic spelling.
 
 Ghidra's delinker and `delinked/` are no longer part of scoring. They remain the
 oracle for the lanes that **execute** code and therefore need real relocations:
-the permuter, `unicorn_diff`, z3, and objdiff.
+`unicorn_diff`, z3, and objdiff.
+
+The permuter uses the same derived reference. `tools/permuter/run.py` copies the
+synthesized COFF into its work directory and builds the in-search mnemonic
+sequence from it (applying `xbe_reference.normalize_synth_insn`, the same
+reference-side rewrite `vc71_verify` applies), so the objective it optimizes and
+the number the pipeline reports are the same metric — which is what run.py's
+baseline-agreement guard checks. `--delinked-ref` opts back into the delinked
+object; its baseline is then not expected to match the VC71 score.
 
 This replaced a four-rung selection ladder (whole delinked object → sibling range
 export → per-function chunk → synthesized fallback). Every rung was a way to

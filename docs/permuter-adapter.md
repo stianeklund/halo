@@ -32,7 +32,12 @@ python3 tools/permuter/run.py \
 The driver:
 1. Preprocesses the source with `cpp -P` to get a fully expanded single function.
 2. Writes `base.c` with explicit typedefs for pycparser compatibility.
-3. Converts the delinked COFF reference to ELF (`target.o`).
+3. Copies the reference COFF to `target.o`. That reference is the one
+   `vc71_verify` scores against: the pristine XBE's bytes for the function,
+   bounded by the committed `tools/verify/function_bounds.json`
+   (`tools/verify/xbe_reference.py`). `--delinked-ref` opts into Ghidra's
+   delinked object instead — useful when you want real relocations, but its
+   baseline is then not expected to equal the VC71 score.
 4. Symlinks `compile.sh` into the work dir.
 5. Runs `permuter.py --best-only`.
 6. Reports initial and best LCS match percentages.
@@ -41,9 +46,10 @@ The driver:
 
 ### COFF→ELF conversion
 
-Both VC71 (our compiler) and Ghidra's delinker emit COFF i386 objects. The permuter's
-`get_arch()` reads ELF headers. `objcopy -I pe-i386 -O elf32-i386` converts both
-transparently. Function symbols and instruction bytes are preserved correctly.
+Historical. VC71, Ghidra's delinker and `xbe_reference` all emit COFF i386 objects,
+and `objcopy -I pe-i386 -O elf32-i386` used to convert them for the permuter's
+`get_arch()`. No conversion happens any more: `get_arch()` recognizes COFF machine
+`0x14C` directly, and `run.py` copies the reference object through unchanged.
 
 ### Windows-accessible TMPDIR
 
@@ -87,11 +93,11 @@ Use it for ad-hoc comparison: `python3 tools/permuter/score.py candidate.o targe
 
 ## Limitations
 
-1. **COFF single-function isolation is hard.** The delinked reference contains the full
-   translation unit. `target.o` has all functions; `base.c` has only the target function.
-   The permuter's score includes a constant penalty for the deleted functions, but relative
-   improvement is still valid. If per-function isolation is needed, export a per-function
-   reference via `ghidra-live` MCP or `batch_delink.py --function`.
+1. **COFF single-function isolation** (historical). A whole-TU delinked reference
+   holds every function in the translation unit while `base.c` holds only the
+   target, so the permuter's score carried a constant penalty for the deleted
+   functions. The default reference is now synthesized per function — exactly one
+   symbol — so this only applies under `--delinked-ref`.
 
 2. **pycparser parse failures (~2/60 iterations).** The randomizer sometimes produces C
    that pycparser's AST can't round-trip (e.g. compound literals, MSVC-specific syntax).
