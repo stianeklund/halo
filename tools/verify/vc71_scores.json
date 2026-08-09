@@ -8120,10 +8120,10 @@
       "end": "0xbe242",
       "kind": "auto",
       "n_r": 23,
-      "opnd_percent": 95.5,
+      "opnd_percent": 100.0,
       "ref": "synth",
       "ref_sha": "ca48bb9eb1b83d69",
-      "score": 95.5,
+      "score": 100.0,
       "source": "src/halo/game/players.c"
     },
     "FUN_000be270": {
@@ -8219,10 +8219,10 @@
       "end": "0xbe4f6",
       "kind": "auto",
       "n_r": 25,
-      "opnd_percent": 91.3,
+      "opnd_percent": 100.0,
       "ref": "synth",
       "ref_sha": "a0e57036b9a7afc5",
-      "score": 91.3,
+      "score": 100.0,
       "source": "src/halo/game/players.c"
     },
     "FUN_000be500": {
@@ -10903,10 +10903,10 @@
       "end": "0xc5042",
       "kind": "auto",
       "n_r": 23,
-      "opnd_percent": 95.5,
+      "opnd_percent": 100.0,
       "ref": "synth",
       "ref_sha": "b637308a0ea0b875",
-      "score": 95.5,
+      "score": 100.0,
       "source": "src/halo/hs/hs.c"
     },
     "FUN_000c57d0": {
@@ -20155,38 +20155,68 @@
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017cbb0": {
+      "addr": "0x17cbb0",
+      "end": "0x17cbb9",
+      "kind": "auto",
+      "n_r": 4,
       "opnd_percent": 100.0,
       "ref": "synth",
+      "ref_sha": "da75f2131a18a4b7",
       "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017cbc0": {
+      "addr": "0x17cbc0",
+      "end": "0x17cbc9",
+      "kind": "auto",
+      "n_r": 4,
       "opnd_percent": 100.0,
       "ref": "synth",
+      "ref_sha": "6aaee3cad5f6887b",
       "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017cbd0": {
+      "addr": "0x17cbd0",
+      "end": "0x17cbd9",
+      "kind": "auto",
+      "n_r": 4,
       "opnd_percent": 100.0,
       "ref": "synth",
+      "ref_sha": "7eae9f645c8eea3d",
       "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017cc10": {
+      "addr": "0x17cc10",
+      "end": "0x17cc19",
+      "kind": "auto",
+      "n_r": 4,
       "opnd_percent": 100.0,
       "ref": "synth",
+      "ref_sha": "3f8c6d7fc6019735",
       "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017cc20": {
+      "addr": "0x17cc20",
+      "end": "0x17cc29",
+      "kind": "auto",
+      "n_r": 4,
       "opnd_percent": 100.0,
       "ref": "synth",
+      "ref_sha": "5d1f54dcb2c0d5b5",
       "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017cc70": {
+      "addr": "0x17cc70",
+      "end": "0x17cc79",
+      "kind": "auto",
+      "n_r": 4,
       "opnd_percent": 100.0,
       "ref": "synth",
+      "ref_sha": "19ca6ccead3acbba",
       "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
@@ -20224,14 +20254,24 @@
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017ccf0": {
+      "addr": "0x17ccf0",
+      "end": "0x17ccf9",
+      "kind": "auto",
+      "n_r": 4,
       "opnd_percent": 100.0,
       "ref": "synth",
+      "ref_sha": "5ef309cfbad01b91",
       "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017cd30": {
+      "addr": "0x17cd30",
+      "end": "0x17cd39",
+      "kind": "auto",
+      "n_r": 4,
       "opnd_percent": 100.0,
       "ref": "synth",
+      "ref_sha": "bf98fb6761d53a93",
       "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
@@ -39074,10 +39114,10 @@
       "end": "0x145485",
       "kind": "auto",
       "n_r": 253,
-      "opnd_percent": 66.4,
+      "opnd_percent": 66.7,
       "ref": "synth",
       "ref_sha": "76839dbf4f2f65f0",
-      "score": 88.5,
+      "score": 88.9,
       "source": "src/halo/objects/objects.c"
     },
     "observer_apply_acceleration": {
@@ -40893,10 +40933,10 @@
       "end": "0x8fab6",
       "kind": "auto",
       "n_r": 40,
-      "opnd_percent": 78.4,
+      "opnd_percent": 84.2,
       "ref": "synth",
       "ref_sha": "7b35b0d3774eb514",
-      "score": 86.5,
+      "score": 92.1,
       "source": "src/halo/cseries/profile.c"
     },
     "profile_exit_private": {
@@ -40904,10 +40944,10 @@
       "end": "0x8fb51",
       "kind": "auto",
       "n_r": 49,
-      "opnd_percent": 60.4,
+      "opnd_percent": 63.3,
       "ref": "synth",
       "ref_sha": "6fc7c98ee318e63b",
-      "score": 81.2,
+      "score": 83.7,
       "source": "src/halo/cseries/profile.c"
     },
     "profile_frame_end": {

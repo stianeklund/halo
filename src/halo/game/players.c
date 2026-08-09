@@ -3423,7 +3423,8 @@ void FUN_000be1d0(int16_t function_index, int thread_datum, char init)
  * Callees (all in kb.json):
  *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
  *             -> result node ptr in EAX (NULL while evaluation pending)
- *   0xc9bb0 = FUN_000c9bb0() (void, no args)
+ *   0xc9bb0 = FUN_000c9bb0(record->field_0) — MOV EDX,[EAX]; PUSH EDX at
+ *             0xbe22c before the CALL; the callee reads it at [EBP+8].
  *   0xcbf80 = hs_return(thread_datum, 0)
  */
 void FUN_000be210(int16_t function_index, int thread_datum, char init)
@@ -3433,7 +3434,7 @@ void FUN_000be210(int16_t function_index, int thread_datum, char init)
   record =
     (void *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != 0) {
-    FUN_000c9bb0();
+    FUN_000c9bb0(*(int *)record);
     hs_return(thread_datum, 0);
   }
 }
@@ -3770,7 +3771,7 @@ void FUN_000be4c0(int16_t function_index, int thread_datum, char init)
 
   record = hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != 0) {
-    FUN_000c9f30();
+    FUN_000c9f30(*(int *)record, *(int *)(record + 4));
     hs_return(thread_datum, 0);
   }
 }

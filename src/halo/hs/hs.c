@@ -4557,15 +4557,16 @@ void FUN_000c4ff0(int16_t function_index, int thread_datum, char init)
 
 /* 0xc5010 — HS console command handler: context-sensitive help.
  * Evaluates the macro argument via hs_macro_function_evaluate. If
- * evaluation succeeds (non-zero return), calls hs_help() and returns
- * void to the HS thread. */
+ * evaluation succeeds (non-zero return), forwards the result record's first
+ * dword to hs_help (MOV EDX,[EAX]; PUSH EDX at 0xc502c before the CALL; the
+ * callee reads it at [EBP+8]) and returns void to the HS thread. */
 void FUN_000c5010(int16_t function_index, int thread_datum, char init)
 {
   int result;
 
   result = hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != 0) {
-    hs_help();
+    hs_help(*(int *)result);
     hs_return(thread_datum, 0);
   }
 }

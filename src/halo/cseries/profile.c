@@ -51,7 +51,7 @@ void profile_enter_private(void *section)
   char *s = (char *)section;
   uint32_t lo, hi;
 
-  find_profile_section();
+  find_profile_section(section);
 
   if (*(int16_t *)(s + 0xa) != -1) {
     display_assert("section->stack_depth==NONE",
@@ -75,7 +75,7 @@ void profile_exit_private(void *section)
   char *s = (char *)section;
 
   if (*(uint8_t *)0x3361aa == 0) {
-    find_profile_section();
+    find_profile_section(section);
 
     if (*(int16_t *)(s + 0xa) != *(int16_t *)0x3361a8) {
       display_assert("section->stack_depth==profile_globals.stack_depth",

@@ -1462,3 +1462,47 @@ three latent form divergences (`player_control_update_desired_angles`
 ## 39. VC71 Byte Accuracy Tuning Playbook
 
 **Automation:** PARTIAL — `vc71_verify.py` provides `--show-diffs`, `--loadw-only`, `--imm-only`, `--fcom-only`, and per-function classification packs in `artifacts/score_context/`; full recipe atlas is now `.claude/skills/lift-score-improve/SKILL.md` (see also `docs/vc71-byte-accuracy-playbook.md`, a stub pointing at the same skill).
+
+---
+
+## 40. kb.json Decl Claims No Parameters While the Original Reads Stack Args — Callee Consumes Stale Stack
+
+**Automation:** YES — `tools/audit/check_lift_hazards.py::check_noparam_decl_args` (ERROR-level, fails the pre-commit hook).
+
+A kb.json entry declared `void f(void);` (or `void f();`) generates a
+zero-parameter prototype in `build/generated/decl.h`. Our lifted C then calls
+`f()` and pushes nothing, while the unported original reads its arguments from
+`[EBP+8]` onward — so the callee consumes whatever the previous frame left on
+the stack as its parameters. C89 will not warn: the prototype says zero args
+and the call passes zero args.
+
+This is silent until the code path actually runs. It shipped the F9 freeze
+(2026-08-09, `docs/bugs/f9-error-reset-crash.md`): `find_profile_section`
+(0x8f8e0) was declared `(void)` but takes a `section` pointer, and profiling is
+only enabled by the F9 debug key, so the bad call sat dormant for months. The
+live fault was `0xc0000005 read=0x00000014` — the callee's `section->active`
+read at `[esi+8]` with `esi` = stale stack garbage.
+
+The same sweep found 13 more instances across `rasterizer_xbox_dynavobgeom`,
+`rasterizer`, `hs`, `hs_runtime`, `game_state_xbox`, and the XDK stubs — the
+largest cluster being tail-call thunks in `decals.obj`
+(`PUSH EBP; MOV EBP,ESP; POP EBP; JMP target`), which forward the caller's
+frame verbatim and therefore share the target's signature exactly. Lifting such
+a thunk as `void thunk(void) { target(); }` drops every argument.
+
+**Detection.** For each unported kb.json entry whose decl has no parameters and
+which our C calls as `f()`, disassemble the original. If it opens with the
+standard `PUSH EBP; MOV EBP,ESP` frame and reads any `[EBP + N]` with `N >= 8`
+before its first `RET`, the decl is wrong; `(max_offset - 8) / 4 + 1` is the
+minimum argument count. Restrict to the standard-frame case — `[ESP + N]`
+offsets shift after `PUSH`/`SUB ESP` and produce false positives (this is what
+made `director_save_camera`, which genuinely takes no arguments, look bad).
+
+**Fix.** Correct the kb.json decl, then recover each call site's actual
+arguments from the original caller's `PUSH` sequence — not from the decompiler,
+which invented the `(void)` signature in the first place. Remember cdecl pushes
+right-to-left: the last `PUSH` before the `CALL` is argument 1.
+
+**Related:** §31 (thunk decl carries the real signature), and the `(void)` decl
+over a `RET 4` stdcall wrapper, which is the same failure with an added ESP
+imbalance.

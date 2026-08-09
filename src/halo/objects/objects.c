@@ -13907,7 +13907,10 @@ void objects_update(void)
   /* --- profiling entry (gated on two flags) --- */
   if ((*(volatile uint8_t *)0x449ef1 != 0) &&
       (*(volatile uint8_t *)0x324640 != 0)) {
-    profile_enter_private(*(void *volatile *)0x324638);
+    /* 0x324638 IS the profile_section struct (PUSH 0x324638 at 0x1451a2), not
+     * a pointer to one.  Its +0x0 field is the name string "objects_update"
+     * and +0x8 is the `active` byte the guard above reads as 0x324640. */
+    profile_enter_private((void *)0x324638);
   }
 
   /* --- double-speed player flag --- */
@@ -14174,7 +14177,7 @@ void objects_update(void)
   /* --- profiling exit --- */
   if ((*(volatile uint8_t *)0x449ef1 != 0) &&
       (*(volatile uint8_t *)0x324640 != 0)) {
-    profile_exit_private(*(void *volatile *)0x324638);
+    profile_exit_private((void *)0x324638);
   }
 }
 

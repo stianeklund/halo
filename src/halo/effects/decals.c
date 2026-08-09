@@ -2569,9 +2569,7 @@ void FUN_0017cb90(void *decal)
 /* Tail-call thunk to dynamic vertex geometry decal flush (FUN_0016bed0). */
 void FUN_0017cbb0(void *param_1, int param_2)
 {
-  (void)param_1;
-  (void)param_2;
-  FUN_0016bed0();
+  FUN_0016bed0(param_1, param_2);
 }
 
 /* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c5a0).
@@ -2579,14 +2577,7 @@ void FUN_0017cbb0(void *param_1, int param_2)
 void FUN_0017cbc0(int shader, int p2, int p3, int widget_handle, int p5, int p6,
                   int zbuf_handle)
 {
-  (void)shader;
-  (void)p2;
-  (void)p3;
-  (void)widget_handle;
-  (void)p5;
-  (void)p6;
-  (void)zbuf_handle;
-  FUN_0016c5a0();
+  FUN_0016c5a0(shader, p2, p3, widget_handle, p5, p6, zbuf_handle);
 }
 
 /* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c090).
@@ -2594,37 +2585,31 @@ void FUN_0017cbc0(int shader, int p2, int p3, int widget_handle, int p5, int p6,
 void FUN_0017cbd0(int shader, int p2, int p3, int widget_handle, int p5, int p6,
                   int zbuf_handle, float *position, int p9)
 {
-  (void)shader;
-  (void)p2;
-  (void)p3;
-  (void)widget_handle;
-  (void)p5;
-  (void)p6;
-  (void)zbuf_handle;
-  (void)position;
-  (void)p9;
-  FUN_0016c090();
+  FUN_0016c090(shader, p2, p3, widget_handle, p5, p6, zbuf_handle, position,
+               p9);
 }
 
 /* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00160dc0).
  */
-void FUN_0017cc10(void)
+void FUN_0017cc10(int param_1)
 {
-  FUN_00160dc0();
+  FUN_00160dc0(param_1);
 }
 
 /* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00160f50).
  */
-void FUN_0017cc20(void)
+void FUN_0017cc20(int param_1, int param_2, int param_3, int param_4,
+                  int param_5, int param_6)
 {
-  FUN_00160f50();
+  FUN_00160f50(param_1, param_2, param_3, param_4, param_5, param_6);
 }
 
 /* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00162560).
  */
-void FUN_0017cc70(void)
+void FUN_0017cc70(int param_1, int param_2, int param_3, int param_4,
+                  int param_5, int param_6)
 {
-  FUN_00162560();
+  FUN_00162560(param_1, param_2, param_3, param_4, param_5, param_6);
 }
 
 /* Tail-call thunk to rasterizer shadow-pass begin (FUN_00172a30).
@@ -2661,14 +2646,16 @@ void FUN_0017ccd0(void *decal, int param_2, void *param_3, void *param_4)
 }
 
 /* Tail-call thunk to rasterizer decal rendering (FUN_00173090). */
-void FUN_0017ccf0(void)
+void FUN_0017ccf0(int param_1, int param_2, int param_3, int param_4,
+                  int param_5, int param_6)
 {
-  FUN_00173090();
+  FUN_00173090(param_1, param_2, param_3, param_4, param_5, param_6);
 }
 
 /* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00162920).
  */
-void FUN_0017cd30(void)
+void FUN_0017cd30(int param_1, int param_2, int param_3, int param_4,
+                  int param_5, int param_6)
 {
-  FUN_00162920();
+  FUN_00162920(param_1, param_2, param_3, param_4, param_5, param_6);
 }

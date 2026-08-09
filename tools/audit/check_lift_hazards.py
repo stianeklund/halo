@@ -48,6 +48,7 @@ Usage:
     python3 tools/audit/check_lift_hazards.py --staged-only
     python3 tools/audit/check_lift_hazards.py --files src/halo/cutscene/cinematics.c
 """
+import json
 import os
 import re
 import subprocess
@@ -152,6 +153,138 @@ def check_void_eax_returns():
                 f'  decl.h: {name} ({addr}) declared void but must return '
                 f'its first out-param as int* — {desc}'
             )
+    return errors
+
+
+def check_noparam_decl_args():
+    """Check for kb.json decls that claim no parameters but really take stack args.
+
+    A kb.json entry declared ``void f(void);`` (or ``void f();``) generates a
+    zero-parameter prototype in decl.h.  Our lifted C then calls ``f()`` and
+    pushes nothing, while the unported original reads its arguments from
+    ``[EBP+8]`` onward -- so the callee consumes stale stack as its parameters.
+
+    This is silent until the guarded code path actually runs.  It shipped the
+    F9 freeze: ``find_profile_section`` (0x8f8e0) was declared ``(void)`` but
+    takes a ``section`` pointer, and profiling is only enabled by the F9 debug
+    key, so the bad call sat dormant until someone pressed it.
+
+    Detection is binary-backed: for each no-parameter, unported kb.json entry
+    that our C calls with an empty argument list, disassemble the original.  If
+    it opens with the standard ``PUSH EBP; MOV EBP,ESP`` frame and reads any
+    ``[EBP + N]`` with N >= 8 before its first RET, the decl is wrong.
+    """
+    errors = []
+    try:
+        import capstone
+        from xbe import Xbe
+    except ImportError:
+        return errors
+
+    kb_path = os.path.join(ROOT_DIR, 'kb.json')
+    xbe_path = os.path.join(ROOT_DIR, 'halo-patched', 'cachebeta.xbe')
+    if not os.path.isfile(kb_path) or not os.path.isfile(xbe_path):
+        return errors
+
+    try:
+        with open(kb_path, 'r', errors='replace') as f:
+            kb = json.load(f)
+        xbe = Xbe.from_file(xbe_path)
+        text = xbe.sections['.text']
+    except Exception:
+        return errors
+
+    base = text.header.virtual_addr
+    data = text.data
+
+    decl_re = re.compile(r'([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*;\s*$')
+    candidates = {}
+    for obj in kb.get('objects', []):
+        for fn in obj.get('functions', []):
+            if fn.get('ported') is True:
+                continue
+            m = decl_re.search((fn.get('decl') or '').strip())
+            if not m:
+                continue
+            if m.group(2).strip() not in ('', 'void'):
+                continue
+            try:
+                candidates[m.group(1)] = (int(fn['addr'], 16), obj.get('name', '?'))
+            except (KeyError, ValueError):
+                continue
+    if not candidates:
+        return errors
+
+    # Find zero-argument call sites in our C for those names.  One alternation
+    # over whole-file content -- a per-name regex per line is ~100x slower and
+    # this runs in the pre-commit hook.
+    # Match any empty-argument call, then filter by set lookup.  A 150-way
+    # name alternation over every .c file is ~10x slower than this.
+    call_re = re.compile(r'\b([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*\)')
+    sites = {}
+    src_dir = os.path.join(ROOT_DIR, 'src')
+    for dirpath, _dirnames, filenames in os.walk(src_dir):
+        for fname in filenames:
+            if not fname.endswith('.c'):
+                continue
+            fpath = os.path.join(dirpath, fname)
+            try:
+                with open(fpath, 'r', errors='replace') as f:
+                    content = f.read()
+            except OSError:
+                continue
+            for m in call_re.finditer(content):
+                if m.group(1) not in candidates:
+                    continue
+                line_start = content.rfind('\n', 0, m.start()) + 1
+                line_end = content.find('\n', m.start())
+                line = content[line_start:line_end if line_end != -1 else None]
+                # Skip comment lines -- prose mentions f() constantly.
+                if line.lstrip().startswith(('*', '//', '/*')):
+                    continue
+                lineno = content.count('\n', 0, m.start()) + 1
+                sites.setdefault(m.group(1), []).append(
+                    (os.path.relpath(fpath, ROOT_DIR), lineno)
+                )
+
+    if not sites:
+        return errors
+
+    md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
+    ebp_re = re.compile(r'\[ebp \+ (0x[0-9a-f]+|\d+)\]')
+    for name in sorted(sites):
+        addr, objname = candidates[name]
+        off = addr - base
+        if off < 0 or off + 0x140 > len(data):
+            continue
+        try:
+            insns = list(md.disasm(data[off:off + 0x140], addr))
+        except Exception:
+            continue
+        if len(insns) < 2:
+            continue
+        if not (insns[0].mnemonic == 'push' and insns[0].op_str == 'ebp'
+                and insns[1].mnemonic == 'mov' and insns[1].op_str == 'ebp, esp'):
+            continue
+        slots = set()
+        for ins in insns:
+            if ins.mnemonic == 'ret':
+                break
+            for v in ebp_re.findall(ins.op_str):
+                iv = int(v, 16) if v.startswith('0x') else int(v)
+                if iv >= 8:
+                    slots.add(iv)
+        if not slots:
+            continue
+        nargs = (max(slots) - 8) // 4 + 1
+        where = ', '.join(f'{p}:{n}' for p, n in sites[name][:4])
+        if len(sites[name]) > 4:
+            where += f' (+{len(sites[name]) - 4} more)'
+        errors.append(
+            f'  {name} (0x{addr:x}, {objname}) declared with no parameters but '
+            f'reads {nargs} stack arg(s) at [EBP+8..{max(slots):#x}] — '
+            f'called with () at {where}'
+        )
     return errors
 
 
@@ -1812,6 +1945,7 @@ def main():
     params_map = _parse_decl_params()
 
     all_void_eax_errors = check_void_eax_returns()
+    all_noparam_decl_errors = check_noparam_decl_args()
     all_intrinsic_errors = []
     all_buffer_errors = []
     all_duplicate_errors = []
@@ -1867,6 +2001,7 @@ def main():
     if quiet:
         counts = (
             f'void_eax: {len(all_void_eax_errors)}, '
+            f'noparam_decl: {len(all_noparam_decl_errors)}, '
             f'intrinsics: {len(all_intrinsic_errors)}, '
             f'buffer_sizes: {len(all_buffer_errors)}, '
             f'duplicate_args: {len(all_duplicate_errors)}, '
@@ -1890,7 +2025,8 @@ def main():
         )
         if frame_audit:
             counts += f', frame_sizes: {len(all_frame_errors)}'
-        total = (len(all_void_eax_errors) + len(all_intrinsic_errors) + len(all_buffer_errors) +
+        total = (len(all_void_eax_errors) + len(all_noparam_decl_errors) +
+                 len(all_intrinsic_errors) + len(all_buffer_errors) +
                  len(all_duplicate_errors) + len(all_ptr_float_errors) +
                  len(all_alias_errors) + len(all_frame_errors) +
                  len(all_output_size_errors) + len(all_wide_out_errors) +
@@ -1913,6 +2049,19 @@ def main():
                 file=sys.stderr,
             )
             for e in all_void_eax_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_noparam_decl_errors:
+            print(
+                'ERROR: kb.json decls claim no parameters but the original\n'
+                'reads stack arguments.  Our C calls them with () and pushes\n'
+                'nothing, so the callee consumes stale stack as its args.\n'
+                'Fix the kb.json decl and pass the real arguments (derive them\n'
+                'from the original caller\'s PUSH sequence):\n',
+                file=sys.stderr,
+            )
+            for e in all_noparam_decl_errors:
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 
@@ -2183,7 +2332,8 @@ def main():
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 
-    if all_void_eax_errors or all_intrinsic_errors or all_buffer_errors \
+    if all_void_eax_errors or all_noparam_decl_errors or all_intrinsic_errors \
+            or all_buffer_errors \
             or all_output_size_errors or all_packer_arity_errors \
             or all_concat_errors:
         return 1
