@@ -16444,7 +16444,8 @@
     },
     {
      "addr": "0xa0800",
-     "decl": "void FUN_000a0800(int particle_system_handle@<eax>);"
+     "decl": "void FUN_000a0800(int particle_system_handle@<eax>);",
+     "ported": true
     },
     {
      "addr": "0xa0d50",

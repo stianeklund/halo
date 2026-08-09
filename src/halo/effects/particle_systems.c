@@ -1041,6 +1041,275 @@ done:
   }
 }
 
+/* Submit every visible particle of one particle system to the sprite renderer
+ * (0xa0800).  Called once per visible system from particle_system_update
+ * (0xa11eb MOV EAX,ESI / CALL 0xa0800 -- the datum index arrives in EAX and
+ * there is no stack cleanup, hence the @<eax> declaration in kb.json).
+ *
+ * Walks the 'ptcl' tag's particle-type block (tag+0x5c, element size 0x80) and
+ * for each type walks the per-system particle list whose head short lives at
+ * type_state+0x3c (type_state = datum+0x58+index*0x40).  A type is skipped when
+ * its state's leading short is NONE (0xa085d) or when bit 0x100 of the type
+ * definition's flags dword is set (0xa086d MOV ECX,[EDI+0x20] / TEST CH,1).
+ *
+ * Per particle (skipped unless the byte at +3 is set and render_location_visible
+ * accepts the location at +0x14, 0xa08a2/0xa08b4):
+ *   - the position (+0x1c) and direction (+0x34) are pushed through the view
+ *     matrix at 0x5065b4 (matrix_transform_point/_vector, 0xa08ed/0xa08ff);
+ *   - the particle's current state block (type_def+0x74, element size 0x178) is
+ *     fetched with the index at particle+8, and the next state with the index at
+ *     particle+0xa.  When the next index is NONE (0xa090b) the radius (+0x48)
+ *     and the four tint channels (+0x54..+0x60) are taken straight from the
+ *     current state; otherwise they are lerped against the second block of five
+ *     floats (+0x64, +0x70..+0x7c) using age/lifetime (particle+0xc / +0x10)
+ *     clamped to [0,1] (0xa0976 FCOMP 0.0 with TEST AH,5/JP = strict `<`;
+ *     0xa098f FCOMP 1.0 with TEST AH,0x41/JNE = strict `>`).  Both are then
+ *     scaled by the type state's five multipliers (+0x0c, +0x18..+0x24).
+ *   - when both states resolve to the same shader (equal shorts at +0xe2/+0xe6
+ *     of state+0xb8 and equal sequence index at state+0x40, 0xa0a10..0xa0a3d)
+ *     the blend collapses back to the single-state case.
+ *   - the sprite index comes from the 'bitm' sequence's sprite count
+ *     (sequence+0x34): a fresh particle (animation frame still the raw bit
+ *     pattern of -1.0f, 0xa0a85 CMP EAX,0xBF800000) picks a random sprite and
+ *     caches it back into particle+0x44, otherwise the cached frame is reduced
+ *     modulo the sprite count and biased positive.
+ *   - each non-negligible blend weight (> 0.01, 0xa0adf/0xa0bf6) emits one
+ *     sprite batch: FUN_0018d2c0 opens the record, FUN_0018dcf0 (sprite path,
+ *     type_def+0x28 == 1) or FUN_0018d6e0 adds the sprite, the batch's shader
+ *     pointer (record+8) receives the state's dword at +0x80, and FUN_0018d360
+ *     closes it.  The second pass nudges the view-space z of the origin by
+ *     0.001 (0xa0c5f) so the two blended sprites do not z-fight.
+ *
+ * Confirmed: record[0xa4] is the render_sprite build record -- the frame is
+ * 0x118 bytes and `record+8` (EBP-0x110, read at 0xa0bd8/0xa0cfd) is the
+ * pointer FUN_0018d2c0 stores at its param_1[2] (0x18d323 MOV [EAX+8],ESI);
+ * scenario.c's sprite batcher declares the same `char record[0xa4]`.
+ * Uncertain: the second pass copies state_a's dword at +0x80 into state_b's
+ * shader record (0xa0cf7 MOV ECX,[EBX+0x80] with EBX still the *first* state);
+ * this asymmetry is reproduced verbatim. */
+void FUN_000a0800(int particle_system_handle)
+{
+  float intensity_a;      /* EBP-0x04 */
+  float intensity_b;      /* EBP-0x08 */
+  int sprite_index;       /* EBP-0x0c */
+  float radius;           /* EBP-0x10 */
+  char *type_def;         /* EBP-0x14 */
+  float tint_b;           /* EBP-0x18 */
+  float tint_g;           /* EBP-0x1c */
+  float tint_r;           /* EBP-0x20 */
+  float tint_a;           /* EBP-0x24 */
+  char *ps_datum;         /* EBP-0x28 */
+  char *particle_state_b; /* EBP-0x2c */
+  short i;                /* EBP-0x30 */
+  char *shader_b;         /* EBP-0x34 */
+  char *type_state;       /* EBP-0x38 */
+  float color_b[4];       /* EBP-0x48 */
+  float color_a[4];       /* EBP-0x58 */
+  float origin[3];        /* EBP-0x64 */
+  int *type_block;        /* EBP-0x68 */
+  float direction[3];     /* EBP-0x74 */
+  char record[0xa4];      /* EBP-0x118 render_sprite build record */
+  int type_index;
+  short particle_index;
+  short sequence_index;
+  char *particle;
+  char *particle_state_a;
+  char *shader_a;
+  char *bitmap_tag;
+  char *bitmap_sequence;
+  unsigned int sprite_flags;
+
+  ps_datum =
+    (char *)datum_get(particle_system_header_data, particle_system_handle);
+  type_block =
+    (int *)((char *)tag_get(0x7063746c, *(int *)(ps_datum + 8)) + 0x5c);
+  i = 0;
+  type_index = 0;
+  if (*type_block > 0) {
+    do {
+      type_def = (char *)tag_block_get_element(type_block, type_index, 0x80);
+      type_state = ps_datum + 0x58 + type_index * 0x40;
+      if (*(short *)type_state != NONE &&
+          (*(unsigned int *)(type_def + 0x20) & 0x100) == 0) {
+        particle_index = *(short *)(type_state + 0x3c);
+        while (particle_index != NONE) {
+          particle =
+            (char *)datum_get(particle_system_data, (int)particle_index);
+          if (*(char *)(particle + 3) != 0 &&
+              render_location_visible(particle + 0x14) != 0) {
+            particle_state_a = (char *)tag_block_get_element(
+              type_def + 0x74, (int)*(short *)(particle + 8), 0x178);
+            shader_b = NULL;
+            matrix_transform_point((float *)0x5065b4,
+                                   (float *)(particle + 0x1c), origin);
+            matrix_transform_vector((float *)0x5065b4,
+                                    (float *)(particle + 0x34), direction);
+            if (*(short *)(particle + 0xa) == NONE) {
+              particle_state_b = NULL;
+              radius = *(float *)(particle + 0x48) *
+                       *(float *)(type_state + 0x0c);
+              tint_a = *(float *)(particle + 0x54) *
+                       *(float *)(type_state + 0x18);
+              tint_r = *(float *)(particle + 0x58) *
+                       *(float *)(type_state + 0x1c);
+              tint_g = *(float *)(particle + 0x5c) *
+                       *(float *)(type_state + 0x20);
+              tint_b = *(float *)(particle + 0x60) *
+                       *(float *)(type_state + 0x24);
+            } else {
+              particle_state_b = (char *)tag_block_get_element(
+                type_def + 0x74, (int)*(short *)(particle + 0xa), 0x178);
+              shader_b = particle_state_b + 0xb8;
+              intensity_a =
+                *(float *)(particle + 0x0c) / *(float *)(particle + 0x10);
+              if (intensity_a < 0.0f) {
+                intensity_a = 0.0f;
+              } else if (intensity_a > 1.0f) {
+                intensity_a = 1.0f;
+              }
+              intensity_b = 1.0f - intensity_a;
+              radius = (intensity_b * *(float *)(particle + 0x64) +
+                        intensity_a * *(float *)(particle + 0x48)) *
+                       *(float *)(type_state + 0x0c);
+              tint_a = (intensity_b * *(float *)(particle + 0x70) +
+                        intensity_a * *(float *)(particle + 0x54)) *
+                       *(float *)(type_state + 0x18);
+              tint_r = (intensity_b * *(float *)(particle + 0x74) +
+                        intensity_a * *(float *)(particle + 0x58)) *
+                       *(float *)(type_state + 0x1c);
+              tint_g = (intensity_b * *(float *)(particle + 0x78) +
+                        intensity_a * *(float *)(particle + 0x5c)) *
+                       *(float *)(type_state + 0x20);
+              tint_b = (intensity_b * *(float *)(particle + 0x7c) +
+                        intensity_a * *(float *)(particle + 0x60)) *
+                       *(float *)(type_state + 0x24);
+              /* The original materializes state_a's shader base into a
+               * register here (0xa0a10 LEA EAX,[EBX+0xb8]) and indexes it at
+               * +0x2a / +0x2e, but folds the same fields as +0xe2 elsewhere. */
+              shader_a = particle_state_a + 0xb8;
+              if (!(shader_a != NULL && shader_b != NULL &&
+                    *(short *)(shader_a + 0x2a) ==
+                      *(short *)(shader_b + 0x2a) &&
+                    *(short *)(shader_a + 0x2e) ==
+                      *(short *)(shader_b + 0x2e) &&
+                    *(short *)(particle_state_a + 0x40) ==
+                      *(short *)(particle_state_b + 0x40))) {
+                goto have_blend;
+              }
+            }
+            intensity_a = 1.0f;
+            intensity_b = 0.0f;
+          have_blend:
+            bitmap_tag = (char *)tag_get(
+              0x6269746d, *(int *)(particle_state_a + 0x3c));
+            sequence_index = *(short *)(particle_state_a + 0x40);
+            if (*(short *)(type_def + 0x28) == 1) {
+              sequence_index = sequence_index + 1;
+            }
+            bitmap_sequence = (char *)tag_block_get_element(
+              bitmap_tag + 0x54, (int)sequence_index, 0x40);
+
+            if (*(int *)(particle + 0x44) == (int)0xbf800000) {
+              sprite_index =
+                random_range(random_math_get_local_seed_address(), 0,
+                             *(short *)(bitmap_sequence + 0x34));
+              *(float *)(particle + 0x44) = (float)sprite_index;
+              sprite_index = (int)*(float *)(particle + 0x44);
+            } else {
+              sprite_index = (short)*(float *)(particle + 0x44) %
+                             *(int *)(bitmap_sequence + 0x34);
+              /* The original writes only the low half of the slot here
+               * (0xa0ad1 ADD AX,[EDI+0x34] / 0xa0ad5 MOV [EBP-0xc],AX), so the
+               * upper 16 bits keep the raw remainder from the IDIV.  Both
+               * consumers take the value as a 16-bit sprite index, so only the
+               * low half is observable. */
+              if ((short)sprite_index < 0) {
+                *(short *)&sprite_index =
+                  (short)((short)sprite_index +
+                          *(short *)(bitmap_sequence + 0x34));
+              }
+            }
+
+            if (intensity_a > 0.01f) {
+              color_a[0] = tint_a;
+              color_a[1] = tint_r;
+              color_a[2] = tint_g;
+              color_a[3] = tint_b;
+              if (*(short *)(particle_state_a + 0xe2) == 0) {
+                color_a[1] = color_a[1] * *(float *)(ps_datum + 0x48);
+                color_a[2] = color_a[2] * *(float *)(ps_datum + 0x4c);
+                color_a[3] = color_a[3] * *(float *)(ps_datum + 0x50);
+              }
+              FUN_0018d2c0((uint32_t *)record, 2,
+                           *(unsigned int *)(particle_state_a + 0x3c),
+                           (int)(particle_state_a + 0xb8), 0);
+              sprite_flags = 1;
+              if (*(short *)(type_def + 0x28) == 1) {
+                if ((*(unsigned char *)(type_def + 0x20) & 0x80) != 0) {
+                  sprite_flags = 3;
+                }
+                FUN_0018dcf0(record, sprite_flags,
+                             (int)*(unsigned short *)(particle_state_a + 0x40),
+                             sprite_index, origin, direction,
+                             *(float *)(particle + 0x40), radius, color_a,
+                             intensity_a);
+              } else {
+                FUN_0018d6e0(record, *(short *)(type_def + 0x2a),
+                             *(unsigned short *)(particle_state_a + 0x40),
+                             (short)sprite_index, origin, direction,
+                             *(float *)(particle + 0x40), radius, color_a,
+                             intensity_a, 1);
+              }
+              *(int *)(*(char **)(record + 8) + 0x98) =
+                *(int *)(particle_state_a + 0x80);
+              FUN_0018d360(record);
+            }
+
+            if (intensity_b > 0.01f) {
+              color_b[0] = tint_a;
+              color_b[1] = tint_r;
+              color_b[2] = tint_g;
+              color_b[3] = tint_b;
+              if (*(short *)(particle_state_a + 0xe2) == 0) {
+                color_b[1] = color_b[1] * *(float *)(ps_datum + 0x48);
+                color_b[2] = color_b[2] * *(float *)(ps_datum + 0x4c);
+                color_b[3] = color_b[3] * *(float *)(ps_datum + 0x50);
+              }
+              FUN_0018d2c0((uint32_t *)record, 2,
+                           *(unsigned int *)(particle_state_b + 0x3c),
+                           (int)shader_b, 0);
+              origin[2] = origin[2] + 0.001f;
+              sprite_flags = 1;
+              if (*(short *)(type_def + 0x28) == 1) {
+                if ((*(unsigned char *)(type_def + 0x20) & 0x80) != 0) {
+                  sprite_flags = 3;
+                }
+                FUN_0018dcf0(record, sprite_flags,
+                             (int)*(unsigned short *)(particle_state_b + 0x40),
+                             sprite_index, origin, direction,
+                             *(float *)(particle + 0x40), radius, color_b,
+                             intensity_b);
+              } else {
+                FUN_0018d6e0(record, *(short *)(type_def + 0x2a),
+                             *(unsigned short *)(particle_state_b + 0x40),
+                             (short)sprite_index, origin, direction,
+                             *(float *)(particle + 0x40), radius, color_b,
+                             intensity_b, 1);
+              }
+              *(int *)(*(char **)(record + 8) + 0x98) =
+                *(int *)(particle_state_a + 0x80);
+              FUN_0018d360(record);
+            }
+          }
+          particle_index = *(short *)(particle + 4);
+        }
+      }
+      i = i + 1;
+      type_index = (int)i;
+    } while (type_index < *type_block);
+  }
+}
+
 /* Initialize a newly created particle's direction, position and velocity
  * (0xa0d50).
  *
