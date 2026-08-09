@@ -19662,13 +19662,13 @@
     {
      "addr": "0x1795c0",
      "decl": "void FUN_001795c0(void *shader);",
-     "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_water.c",
+     "source_path": "src/halo/rasterizer/rasterizer.c",
      "ported": true
     },
     {
      "addr": "0x179de0",
      "decl": "void FUN_00179de0(void *group);",
-     "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_water.c",
+     "source_path": "src/halo/rasterizer/rasterizer.c",
      "ported": true
     },
     {
@@ -19704,19 +19704,19 @@
     },
     {
      "addr": "0x17be50",
-     "source": "src/halo/rasterizer/xbox/shader_transparent_generic_preprocessor.c",
+     "source": "src/halo/rasterizer/rasterizer.c",
      "decl": "int FUN_0017be50(int16_t register_index@<si>, int16_t mapping_index@<di>);",
      "ported": true
     },
     {
      "addr": "0x17bf20",
-     "source": "src/halo/rasterizer/xbox/shader_transparent_generic_preprocessor.c",
+     "source": "src/halo/rasterizer/rasterizer.c",
      "decl": "int FUN_0017bf20(void *stage@<esi>);",
      "ported": true
     },
     {
      "addr": "0x17c000",
-     "source": "src/halo/rasterizer/xbox/shader_transparent_generic_preprocessor.c",
+     "source": "src/halo/rasterizer/rasterizer.c",
      "decl": "int FUN_0017c000(int16_t register_index@<si>, int16_t mapping_index@<di>);",
      "ported": true
     },
