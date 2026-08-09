@@ -6074,10 +6074,10 @@
       "end": "0x9fa5f",
       "kind": "auto",
       "n_r": 63,
-      "opnd_percent": 31.7,
+      "opnd_percent": 93.9,
       "ref": "synth",
       "ref_sha": "72e495af45891acc",
-      "score": 60.3,
+      "score": 95.5,
       "source": "src/halo/effects/particle_systems.c"
     },
     "FUN_0009fa60": {
