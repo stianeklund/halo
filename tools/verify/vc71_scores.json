@@ -6069,6 +6069,39 @@
       "score": 60.3,
       "source": "src/halo/effects/particle_systems.c"
     },
+    "FUN_0009fa60": {
+      "addr": "0x9fa60",
+      "end": "0x9fac1",
+      "kind": "auto",
+      "n_r": 39,
+      "opnd_percent": 92.3,
+      "ref": "synth",
+      "ref_sha": "05086fe943ff20e3",
+      "score": 100.0,
+      "source": "src/halo/effects/particle_systems.c"
+    },
+    "FUN_0009fad0": {
+      "addr": "0x9fad0",
+      "end": "0x9fb0c",
+      "kind": "auto",
+      "n_r": 25,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "3f1c722580230dc7",
+      "score": 100.0,
+      "source": "src/halo/effects/particle_systems.c"
+    },
+    "FUN_0009fca0": {
+      "addr": "0x9fca0",
+      "end": "0x9fcc5",
+      "kind": "auto",
+      "n_r": 16,
+      "opnd_percent": 93.8,
+      "ref": "synth",
+      "ref_sha": "bbb179d0c365d2bf",
+      "score": 100.0,
+      "source": "src/halo/effects/particle_systems.c"
+    },
     "FUN_0009fd30": {
       "addr": "0x9fd30",
       "end": "0xa007b",

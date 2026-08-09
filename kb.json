@@ -16422,11 +16422,13 @@
     },
     {
      "addr": "0x9fa60",
-     "decl": "void FUN_0009fa60(void);"
+     "decl": "void FUN_0009fa60(void *particle, float dt);",
+     "ported": true
     },
     {
      "addr": "0x9fad0",
-     "decl": "void FUN_0009fad0(void);"
+     "decl": "void FUN_0009fad0(void *param_1, void *param_2, void *out, void *src);",
+     "ported": true
     },
     {
      "addr": "0x9fb10",
@@ -16434,7 +16436,8 @@
     },
     {
      "addr": "0x9fca0",
-     "decl": "void FUN_0009fca0(void);"
+     "decl": "void FUN_0009fca0(void *particle, float dt);",
+     "ported": true
     },
     {
      "addr": "0xa0800",

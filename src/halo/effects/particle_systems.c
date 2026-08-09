@@ -175,6 +175,65 @@ terminate:
   *(short *)(particle + 0xa) = -1;
 }
 
+/* Run the collision/physics step for one particle (0x9fa60).
+ * Looks up the owning particle system's 'ptcl' tag by the index at
+ * particle+0x8. If the particle has no active collision/attachment record
+ * (particle+0xc == NONE) and the tag names a physics tag (tagdata+0x44 !=
+ * NONE), fetches that 'pphy' tag and runs the collision step over the
+ * particle's position (+0x20) and velocity (+0x2c) for dt, recording the
+ * result into the collision-location record at +0x18. The step's return
+ * value is discarded by the original (ADD ESP,0x2c then RET, EAX unused). */
+void FUN_0009fa60(void *particle_arg, float dt)
+{
+  char *particle = (char *)particle_arg;
+  char *tag;
+  int physics_tag_index;
+
+  tag = (char *)tag_get(0x7063746c, *(int *)(particle + 8));
+  if (*(int *)(particle + 0xc) == NONE) {
+    physics_tag_index = *(int *)(tag + 0x44);
+    if (physics_tag_index != NONE) {
+      FUN_00154a50(0, (int)tag_get(0x70706879, physics_tag_index),
+                   (int *)(particle + 0x18), NONE, (float *)(particle + 0x20),
+                   (float *)(particle + 0x2c), (float *)0, (float *)0,
+                   (int16_t *)0, 1.0f, dt);
+    }
+  }
+}
+
+/* Copy two 3-float vectors into an output parameter block (0x9fad0).
+ * out+0x1c receives the 12 bytes at src+0x60, and out+0x28 receives the 12
+ * bytes at param_1+0x2c. Both copies are three dword MOV pairs in the
+ * original; no FPU instruction appears in the body, so the values travel
+ * through GPRs and a plain aggregate assignment reproduces the shape.
+ * The second cdecl slot ([EBP+0xC]) is never read by the original; it is
+ * kept in the signature so caller push order and stack shape are preserved.
+ * Frame is `push ebp; mov ebp,esp; push esi` with no `sub esp` — do not add
+ * locals here. */
+void FUN_0009fad0(void *param_1, void *param_2, void *out, void *src)
+{
+  *(vector3_t *)((char *)out + 0x1c) = *(vector3_t *)((char *)src + 0x60);
+  *(vector3_t *)((char *)out + 0x28) = *(vector3_t *)((char *)param_1 + 0x2c);
+}
+
+/* Particle physics update wrapper (0x9fca0).
+ * Fetches the particle's 'ltcp' definition tag from the tag index stored at
+ * particle+0x8 and discards the result (the original ignores EAX; the call is
+ * kept because a tag_get on a bad index asserts inside the tag system), then
+ * forwards the particle and dt verbatim to the collision/physics step at
+ * 0x9fa60.
+ * dt travels as an untouched 4-byte copy (MOV ECX,[EBP+0xC]; PUSH ECX) with no
+ * FPU instruction anywhere in the body, so it must stay typed `float` end to
+ * end — an `int` passthrough would insert FILD/FSTP.
+ * Frame is `push ebp; mov ebp,esp; push esi` with no `sub esp`; ESI holds the
+ * particle pointer across both calls, and a single `ADD ESP,0x10` cleans up
+ * both cdecl call sites. Do not introduce locals here. */
+void FUN_0009fca0(void *particle_arg, float dt)
+{
+  tag_get(0x7063746c, *(int *)((char *)particle_arg + 8));
+  FUN_0009fa60(particle_arg, dt);
+}
+
 void particle_systems_dispose_from_old_map(void)
 {
   int particle_system_index;
