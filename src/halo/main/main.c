@@ -2008,11 +2008,6 @@ void main_change_map_name(void)
   int delta;
   int i;
 
-  typedef void(__cdecl * fn_ui_fade_start_t)(int duration_ms);
-  typedef void(__cdecl * fn_set_fade_t)(float fade);
-  typedef void(__cdecl * fn_set_widget_flag2_t)(bool enable);
-  typedef void(__cdecl * fn_save_player_level_t)(int local_player_index);
-
   if (main_globals.main_menu_scenario_loaded) {
     if (*(int *)0x46da34 == 0) {
       /* music not yet fading: check if music is still playing */
@@ -2020,9 +2015,9 @@ void main_change_map_name(void)
         /* set deadline and kick off the 1000 ms fade sequence */
         *(uint32_t *)0x46da34 = (uint32_t)unk_time_globals.unk_0 + 1000;
         /* MSVC interleaved pre-push: PUSH 0x3e8, PUSH 0x1, PUSH 0x0 */
-        ((fn_ui_fade_start_t)0xe5a40)(1000);
+        main_screen_shell_begin_fade(1000);
         ui_widget_set_events_suppressed(1);
-        ((fn_set_fade_t)0xe3c90)(0.0f);
+        ui_widgets_set_fade_value(0.0f);
       }
     } else {
       /* compute remaining time and update the rasterizer blend */
@@ -2033,7 +2028,7 @@ void main_change_map_name(void)
           flt_delta = flt_delta + 4294967296.0f; /* uint32 wrap correction */
         }
         /* fade = 1.0f - remaining_ms * (1/1000) */
-        ((fn_set_fade_t)0xe3c90)(1.0f - flt_delta * *(float *)0x255ef8);
+        ui_widgets_set_fade_value(1.0f - flt_delta * *(float *)0x255ef8);
       }
     }
     /* bail out if deadline has not been reached */
@@ -2047,9 +2042,9 @@ void main_change_map_name(void)
 
   /* timer expired (or was never pending): finalize fade and start new map */
   /* MSVC interleaved pre-push: PUSH 0xbf800000, PUSH 0x0, PUSH 0x0 */
-  ((fn_set_fade_t)0xe3c90)(-1.0f); /* 0xbf800000 */
+  ui_widgets_set_fade_value(-1.0f); /* 0xbf800000 */
   ui_widget_stop_attract_mode();
-  ((fn_set_widget_flag2_t)0xe43d0)(0);
+  main_menu_active(false);
   main_globals.main_menu_scenario_loaded = 0;
   ui_widget_set_events_suppressed(0);
 
@@ -2067,7 +2062,7 @@ void main_change_map_name(void)
 
     /* save level progress for each local player (signed int16 compare) */
     for (i = 0; (int16_t)i < player_spawn_count; i++) {
-      ((fn_save_player_level_t)0x1c1c00)(i);
+      FUN_001c1c00(i);
     }
   }
 
@@ -2259,9 +2254,6 @@ void main_won_map_private(void)
   int level_index;
   int i;
 
-  typedef void(__cdecl * fn_save_player_level_t)(int local_player_index);
-  typedef void(__cdecl * fn_level_transition_t)(int level_index);
-
   main_menu_load_pending = 1;
   main_won_map_private_pending = 0;
 
@@ -2274,11 +2266,11 @@ void main_won_map_private(void)
 
   /* record level completion in each local player's saved profile */
   for (i = 0; (int16_t)i < player_spawn_count; i++) {
-    ((fn_save_player_level_t)0x1c1cc0)(i);
+    FUN_001c1cc0(i);
   }
 
   /* trigger level transition or return to main menu */
-  ((fn_level_transition_t)0xe4420)(level_index);
+  ui_set_next_level(level_index);
 }
 
 /*

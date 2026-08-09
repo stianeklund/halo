@@ -22187,11 +22187,11 @@
     },
     {
      "addr": "0x1c1c00",
-     "decl": "void FUN_001c1c00(void);"
+     "decl": "void FUN_001c1c00(int local_player_index);"
     },
     {
      "addr": "0x1c1cc0",
-     "decl": "void FUN_001c1cc0(void);"
+     "decl": "void FUN_001c1cc0(int local_player_index);"
     },
     {
      "addr": "0x1c1da0",
@@ -25344,7 +25344,7 @@
     },
     {
      "addr": "0xe3c90",
-     "decl": "void ui_widgets_set_fade_value(void);"
+     "decl": "void ui_widgets_set_fade_value(float value);"
     },
     {
      "addr": "0xe3ca0",
@@ -25416,7 +25416,7 @@
     },
     {
      "addr": "0xe4420",
-     "decl": "void ui_set_next_level(void);"
+     "decl": "void ui_set_next_level(int level_index);"
     },
     {
      "addr": "0xe4470",
@@ -25586,7 +25586,7 @@
     },
     {
      "addr": "0xe5a40",
-     "decl": "void main_screen_shell_begin_fade(void);"
+     "decl": "void main_screen_shell_begin_fade(int duration_ms);"
     },
     {
      "addr": "0xe5ab0",

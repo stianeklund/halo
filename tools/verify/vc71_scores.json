@@ -35561,10 +35561,10 @@
       "end": "0x100d84",
       "kind": "auto",
       "n_r": 90,
-      "opnd_percent": 50.8,
+      "opnd_percent": 41.8,
       "ref": "synth",
       "ref_sha": "a83d44a43ddd6b18",
-      "score": 72.0,
+      "score": 74.7,
       "source": "src/halo/main/main.c"
     },
     "main_change_map_name_in_progress": {
@@ -36276,10 +36276,10 @@
       "end": "0x101096",
       "kind": "auto",
       "n_r": 28,
-      "opnd_percent": 84.2,
+      "opnd_percent": 94.5,
       "ref": "synth",
       "ref_sha": "b04f0e92a6670a39",
-      "score": 91.2,
+      "score": 94.5,
       "source": "src/halo/main/main.c"
     },
     "match_game_type": {
