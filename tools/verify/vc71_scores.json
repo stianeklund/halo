@@ -6168,6 +6168,17 @@
       "score": 95.0,
       "source": "src/halo/effects/particle_systems.c"
     },
+    "FUN_000a0e60": {
+      "addr": "0xa0e60",
+      "end": "0xa0fcd",
+      "kind": "auto",
+      "n_r": 133,
+      "opnd_percent": 71.2,
+      "ref": "synth",
+      "ref_sha": "a9507823aa9b9351",
+      "score": 93.6,
+      "source": "src/halo/effects/particle_systems.c"
+    },
     "FUN_000a0fd0": {
       "addr": "0xa0fd0",
       "end": "0xa10e6",

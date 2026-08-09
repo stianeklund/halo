@@ -1115,6 +1115,116 @@ void FUN_000a0d50(void *definition, short block_index, void *state,
                             0.0f);
 }
 
+/* Seed a particle's launch velocity, origin and axis frame for the second
+ * emitter shape (0xa0e60).  Sibling of FUN_000a0d50: both sit in the emitter
+ * dispatch table at 0x26ab14/0x26ab18 and share the same 4-argument shape.
+ *
+ * Reads three scalars from the particle type's nested tag block (type+0x5c):
+ *   scale_a (index 0), scale_b (index 1), scale_c (index 2).
+ * With step = (1/30) * scale_a, the launch velocity written to
+ * state+0x28..0x30 is
+ *     (1 - scale_b)*step * origin+0x3c..0x44        (emitter axis term)
+ *   + random_unit_direction  * scale_b*step         (random term)
+ *   + definition+0x2c..0x34                         (constant bias)
+ * The emitter point (origin+0x60..0x68) is copied verbatim into
+ * state+0x1c..0x24.  state+0x34..0x3c then receives a cross product that
+ * frames the particle: cross(velocity, *global_up_vector_ptr) when
+ * scale_c != 0, otherwise cross(origin+0x3c..0x44, velocity).
+ *
+ * Confirmed: signature recovered from the frame - [ebp+8] is captured into
+ * ESI at 0xa0e67 and later supplies def+0x2c/0x30/0x34 (0xa0f09/0xa0f1d/
+ * 0xa0f31); [ebp+0xc] is widened by MOVSX at 0xa0e79 so it is 16-bit;
+ * [ebp+0x10] is the written-to state (0xa0ef8); [ebp+0x14] is the read-only
+ * origin (0xa0ef2).  Both [ebp+8] and [ebp+0xc] are dead after their first
+ * use and MSVC repacks those slots as float locals (0xa0ea0/0xa0eaf, then
+ * 0xa0ed1/0xa0edf) - they are ordinary locals here, not extra parameters.
+ * Both exits are a bare RET with no deliberate EAX value, so the return is
+ * void; the function is only reached through the dispatch table (no CALL
+ * imm32 site exists in the image).
+ * Confirmed calls: tag_get('pctl', def+8) at 0xa0e74; tag_block_get_element(
+ * tag+0x5c, block_index, 0x80) at 0xa0e87; three tag_block_get_element(
+ * type_def+0x5c, {0,1,2}, 4) at 0xa0e94/0xa0ea3/0xa0eb2 - all five cdecl,
+ * with one merged ADD ESP,0x38 at 0xa0ec8 (14 dwords).
+ * The shared factor step lives in ST(1) and is consumed by FMUL ST,ST(1) at
+ * 0xa0ecb and 0xa0edd, then popped at 0xa0ee2; 1/30 is the pool constant at
+ * 0x26ab24 (0x3d088889) and the 1.0f at 0x2533c8.
+ * random_seed_get_direction3d(seed, dir) at 0xa0eea: the out pointer is
+ * pushed at 0xa0ecd BEFORE the seed getter is called at 0xa0ee4 (cdecl
+ * right-to-left), and ADD ESP,8 at 0xa0f04 proves two arguments - not a
+ * one-argument call as the push order suggests.
+ * origin+0x60..0x68 is copied with integer MOVs at 0xa0f3a-0xa0f47.
+ * The branch at 0xa0f4e is FCOMP against the 0.0f pool constant at 0x2533c0
+ * with TEST AH,0x44 / JNP: JNP is taken only on equality, so the
+ * fall-through arm (0xa0f5c) is the scale_c != 0 case.
+ * Uncertain: field meanings of state+0x1c/0x24/0x34/0x3c, origin+0x3c and
+ * origin+0x60; whether scale_c has a scalar meaning elsewhere or is only
+ * ever tested as a flag. */
+void FUN_000a0e60(void *definition, short block_index, void *state,
+                  void *origin)
+{
+  char *def = (char *)definition;
+  char *st = (char *)state;
+  char *org = (char *)origin;
+  char *type_def;
+  void *scale_block;
+  float scale_a;
+  float scale_b;
+  float scale_c;
+  float step;
+  float weight_random;
+  float weight_axis;
+  float *up;
+  float cross_i;
+  float cross_j;
+  float cross_k;
+  float dir[3];
+
+  type_def = (char *)tag_block_get_element(
+    (char *)tag_get(0x7063746c, *(int *)(def + 8)) + 0x5c, (int)block_index,
+    0x80);
+  scale_block = type_def + 0x5c;
+  scale_a = *(float *)tag_block_get_element(scale_block, 0, 4);
+  scale_b = *(float *)tag_block_get_element(scale_block, 1, 4);
+  scale_c = *(float *)tag_block_get_element(scale_block, 2, 4);
+
+  step = 0.0333333351f * scale_a;
+  weight_random = scale_b * step;
+  weight_axis = (1.0f - scale_b) * step;
+
+  random_seed_get_direction3d(random_math_get_local_seed_address(), dir);
+
+  *(float *)(st + 0x28) = weight_axis * *(float *)(org + 0x3c) +
+                          dir[0] * weight_random + *(float *)(def + 0x2c);
+  *(float *)(st + 0x2c) = weight_axis * *(float *)(org + 0x40) +
+                          dir[1] * weight_random + *(float *)(def + 0x30);
+  *(float *)(st + 0x30) = weight_axis * *(float *)(org + 0x44) +
+                          dir[2] * weight_random + *(float *)(def + 0x34);
+
+  *(float *)(st + 0x1c) = *(float *)(org + 0x60);
+  *(float *)(st + 0x20) = *(float *)(org + 0x64);
+  *(float *)(st + 0x24) = *(float *)(org + 0x68);
+
+  if (scale_c != 0.0f) {
+    up = *(float **)0x31fc44;
+    cross_k = *(float *)(st + 0x28) * up[1] - *(float *)(st + 0x2c) * up[0];
+    cross_j = *(float *)(st + 0x30) * up[0] - up[2] * *(float *)(st + 0x28);
+    cross_i = up[2] * *(float *)(st + 0x2c) - *(float *)(st + 0x30) * up[1];
+    *(float *)(st + 0x34) = cross_i;
+    *(float *)(st + 0x38) = cross_j;
+    *(float *)(st + 0x3c) = cross_k;
+  } else {
+    cross_k = *(float *)(st + 0x2c) * *(float *)(org + 0x3c) -
+              *(float *)(st + 0x28) * *(float *)(org + 0x40);
+    cross_j = *(float *)(org + 0x44) * *(float *)(st + 0x28) -
+              *(float *)(st + 0x30) * *(float *)(org + 0x3c);
+    cross_i = *(float *)(st + 0x30) * *(float *)(org + 0x40) -
+              *(float *)(org + 0x44) * *(float *)(st + 0x2c);
+    *(float *)(st + 0x34) = cross_i;
+    *(float *)(st + 0x38) = cross_j;
+    *(float *)(st + 0x3c) = cross_k;
+  }
+}
+
 /* Initialize particle system type instances from the pctl tag (0xa0fd0).
  * For each particle type in the tag definition:
  *   - If the type has no particle states, returns false (setup failed).

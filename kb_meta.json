@@ -3650,6 +3650,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa1170": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa1210": {
       "kind": "function",
       "status": "ported"
