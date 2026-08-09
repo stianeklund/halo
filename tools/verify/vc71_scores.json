@@ -6063,10 +6063,10 @@
       "end": "0x9f9cb",
       "kind": "auto",
       "n_r": 77,
-      "opnd_percent": 32.2,
+      "opnd_percent": 89.9,
       "ref": "synth",
       "ref_sha": "861ce48bbc8cedc1",
-      "score": 65.7,
+      "score": 96.6,
       "source": "src/halo/effects/particle_systems.c"
     },
     "FUN_0009f9d0": {
@@ -6074,10 +6074,10 @@
       "end": "0x9fa5f",
       "kind": "auto",
       "n_r": 63,
-      "opnd_percent": 31.7,
+      "opnd_percent": 93.9,
       "ref": "synth",
       "ref_sha": "72e495af45891acc",
-      "score": 60.3,
+      "score": 95.5,
       "source": "src/halo/effects/particle_systems.c"
     },
     "FUN_0009fa60": {
@@ -6129,10 +6129,10 @@
       "end": "0xa007b",
       "kind": "auto",
       "n_r": 254,
-      "opnd_percent": 54.5,
+      "opnd_percent": 74.3,
       "ref": "synth",
       "ref_sha": "55a85fc6ea4f4546",
-      "score": 72.4,
+      "score": 95.5,
       "source": "src/halo/effects/particle_systems.c"
     },
     "FUN_000a0080": {
@@ -6140,10 +6140,10 @@
       "end": "0xa0173",
       "kind": "auto",
       "n_r": 90,
-      "opnd_percent": 65.0,
+      "opnd_percent": 95.0,
       "ref": "synth",
       "ref_sha": "62d2bb41ec75e802",
-      "score": 85.9,
+      "score": 97.2,
       "source": "src/halo/effects/particle_systems.c"
     },
     "FUN_000a0180": {
@@ -6151,10 +6151,21 @@
       "end": "0xa07f3",
       "kind": "auto",
       "n_r": 536,
-      "opnd_percent": 24.9,
+      "opnd_percent": 69.3,
       "ref": "synth",
       "ref_sha": "0d9107b3aa7c60db",
-      "score": 75.4,
+      "score": 91.8,
+      "source": "src/halo/effects/particle_systems.c"
+    },
+    "FUN_000a0800": {
+      "addr": "0xa0800",
+      "end": "0xa0d42",
+      "kind": "auto",
+      "n_r": 442,
+      "opnd_percent": 82.4,
+      "ref": "synth",
+      "ref_sha": "e6e717e2c3df0eb6",
+      "score": 95.7,
       "source": "src/halo/effects/particle_systems.c"
     },
     "FUN_000a0d50": {
@@ -6168,15 +6179,26 @@
       "score": 95.0,
       "source": "src/halo/effects/particle_systems.c"
     },
+    "FUN_000a0e60": {
+      "addr": "0xa0e60",
+      "end": "0xa0fcd",
+      "kind": "auto",
+      "n_r": 133,
+      "opnd_percent": 71.2,
+      "ref": "synth",
+      "ref_sha": "a9507823aa9b9351",
+      "score": 93.6,
+      "source": "src/halo/effects/particle_systems.c"
+    },
     "FUN_000a0fd0": {
       "addr": "0xa0fd0",
       "end": "0xa10e6",
       "kind": "auto",
       "n_r": 99,
-      "opnd_percent": 79.6,
+      "opnd_percent": 95.4,
       "ref": "synth",
       "ref_sha": "3aadf3e4d7b8f2d3",
-      "score": 87.6,
+      "score": 98.5,
       "source": "src/halo/effects/particle_systems.c"
     },
     "FUN_000a1210": {
@@ -39411,10 +39433,21 @@
       "end": "0x9f7b6",
       "kind": "auto",
       "n_r": 63,
-      "opnd_percent": 65.5,
+      "opnd_percent": 96.8,
       "ref": "synth",
       "ref_sha": "ee031900df4eb645",
-      "score": 82.4,
+      "score": 98.4,
+      "source": "src/halo/effects/particle_systems.c"
+    },
+    "particle_system_update": {
+      "addr": "0xa1170",
+      "end": "0xa120b",
+      "kind": "auto",
+      "n_r": 51,
+      "opnd_percent": 95.1,
+      "ref": "synth",
+      "ref_sha": "d202b84740821619",
+      "score": 97.1,
       "source": "src/halo/effects/particle_systems.c"
     },
     "particle_systems_dispose": {

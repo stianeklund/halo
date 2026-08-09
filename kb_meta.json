@@ -3632,6 +3632,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa0800": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Locals were declared in the order that reproduces the original 0x118 frame: intensity_a at EBP-0x04 down to record[0xa4] at EBP-0x118; the four-float color_a/color_b blocks sit at EBP-0x58/EBP-0x48 and the two matrix_transform outputs at EBP-0x64 (point) and EBP-0x74 (vector)."
+      ],
+      "uncertain": [
+        "The second blend pass copies the FIRST state's dword at +0x80 into the SECOND state's shader record (0xa0cf7 MOV ECX,[EBX+0x80] while EBX still holds particle_state_a, stored through record+8 which points at particle_state_b+0xb8); this asymmetry is transcribed verbatim and may be an original-source bug.",
+        "The modulo fixup at 0xa0ad1 writes only the low 16 bits of the sprite-index slot (ADD AX,[EDI+0x34] / MOV [EBP-0xc],AX), leaving the IDIV remainder in the upper half; the lift reproduces this with a 16-bit store through the int local because both consumers (FUN_0018dcf0 / FUN_0018d6e0) read the slot as a 16-bit sprite index.",
+        "The bitmap sequence field at +0x34 is read at three widths in one function: MOVSX word for the random_range bound (0xa0a8c), IDIV dword for the modulo (0xa0ac3) and ADD word for the negative fixup (0xa0ad1); this is consistent with a bitmap_group_sequence sprites tag_block whose first dword is the count, with MSVC narrowing the loads whose results are truncated to 16 bits."
+      ]
+    },
     "0xa0d50": {
       "kind": "function",
       "status": "unknown",
@@ -3647,6 +3659,10 @@
       "status": "ported"
     },
     "0xa10f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa1170": {
       "kind": "function",
       "status": "ported"
     },
