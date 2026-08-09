@@ -6129,10 +6129,10 @@
       "end": "0xa007b",
       "kind": "auto",
       "n_r": 254,
-      "opnd_percent": 54.5,
+      "opnd_percent": 76.7,
       "ref": "synth",
       "ref_sha": "55a85fc6ea4f4546",
-      "score": 72.4,
+      "score": 91.5,
       "source": "src/halo/effects/particle_systems.c"
     },
     "FUN_000a0080": {

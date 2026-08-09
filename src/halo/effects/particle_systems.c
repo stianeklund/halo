@@ -444,11 +444,10 @@ void FUN_0009fd30(void *ps_arg, int16_t type_index, float dt)
   char *particle;
   char marker_buf[8 * 0x6c]; /* 8 entries at 0x6c bytes each; original SUB
                                 ESP,0x380 */
-  float local_position[3];
   float local_up[3];
   int particle_handle;
-  int loop_count;
-  unsigned int target_count;
+  short loop_count;
+  unsigned short target_count;
   short creation_func_idx;
   int emit_count_int;
   float emit_frac;
@@ -463,7 +462,17 @@ void FUN_0009fd30(void *ps_arg, int16_t type_index, float dt)
     (char *)tag_block_get_element((void *)(tag_def + 0x5c), type_index, 0x80);
   is_location_resolved = (*(unsigned int *)(ps + 4) >> 1) & 1;
 
-  if (is_location_resolved == 0) {
+  if (is_location_resolved != 0) {
+    /* Fixed or random emission count */
+    state_def = (char *)0;
+    if ((*(unsigned int *)(type_def + 0x20) & 0x400) != 0) {
+      emit_count_int = (int)*(short *)(type_def + 0x24);
+      emit_frac = (float)emit_count_int * *(float *)(ps + 0x14) + 0.5f;
+      target_count = (unsigned int)(int)emit_frac;
+    } else {
+      target_count = (unsigned int)(unsigned short)*(short *)(type_def + 0x24);
+    }
+  } else {
     /* Time-based emission with fractional accumulator */
     state_def = (char *)tag_block_get_element((void *)(type_def + 0x68),
                                               (int)*(short *)type_state, 0xc0);
@@ -479,16 +488,6 @@ void FUN_0009fd30(void *ps_arg, int16_t type_index, float dt)
       target_count = target_count + 1;
       *(float *)(type_state + 0x34) = emit_frac - 1.0f;
     }
-  } else {
-    /* Fixed or random emission count */
-    state_def = (char *)0;
-    if ((*(unsigned int *)(type_def + 0x20) & 0x400) == 0) {
-      target_count = (unsigned int)(unsigned short)*(short *)(type_def + 0x24);
-    } else {
-      emit_count_int = (int)*(short *)(type_def + 0x24);
-      emit_frac = (float)emit_count_int * *(float *)(ps + 0x14) + 0.5f;
-      target_count = (unsigned int)(int)emit_frac;
-    }
   }
 
   if (*(short *)(type_state + 0x3a) >= (short)target_count) {
@@ -496,25 +495,9 @@ void FUN_0009fd30(void *ps_arg, int16_t type_index, float dt)
   }
 
   /* Set up position and orientation for new particles */
-  if (*(int *)(ps + 0xc) == -1) {
-    /* No object attachment: use system position and gravity */
-    local_position[0] = *(float *)(ps + 0x20);
-    local_position[1] = *(float *)(ps + 0x24);
-    local_position[2] = *(float *)(ps + 0x28);
-    local_up[0] = *(float *)(*(int *)0x31fc38 + 0);
-    local_up[1] = *(float *)(*(int *)0x31fc38 + 4);
-    local_up[2] = *(float *)(*(int *)0x31fc38 + 8);
-    location_valid = 1;
-    /* Original MSVC stack layout places local_position at marker_buf+0x60.
-       The creation physics function (original binary) reads position from
-       marker_buf+0x60. Replicate the overlap explicitly. */
-    *(float *)(marker_buf + 0x60) = local_position[0];
-    *(float *)(marker_buf + 0x64) = local_position[1];
-    *(float *)(marker_buf + 0x68) = local_position[2];
-  } else {
+  if (*(int *)(ps + 0xc) != -1) {
     /* Get marker from attached object */
     char *obj = (char *)object_get_and_verify_type(*(int *)(ps + 0xc), -1);
-    char *obj_tag = (char *)tag_get(0x6f626a65, *(int *)obj);
     /* The 'obje' particle_systems block at +0x140 has 0x48-byte elements --
        original is `PUSH 0x48` at 0x9fd30+0x110, and five other sites
        (contrails.c x2, particles.c, objects.c x2) already use 0x48 for the
@@ -522,11 +505,30 @@ void FUN_0009fd30(void *ps_arg, int16_t type_index, float dt)
        and unrelated: with the wrong stride any attachment index != 0 lands
        mid-element, so marker_elem+0x10 is a bogus string_id and the marker
        lookup fails or matches the wrong marker. */
-    char *marker_elem = (char *)tag_block_get_element(
-      (void *)(obj_tag + 0x140), (int)*(short *)(ps + 0x10), 0x48);
     location_valid = object_get_markers_by_string_id(
-      *(int *)(ps + 0xc), (void *)(marker_elem + 0x10), marker_buf, 8);
+      *(int *)(ps + 0xc),
+      (void *)((char *)tag_block_get_element(
+                 (void *)((char *)tag_get(0x6f626a65, *(int *)obj) + 0x140),
+                 (int)*(short *)(ps + 0x10), 0x48) +
+               0x10),
+      marker_buf, 8);
     object_get_location(*(int *)(ps + 0xc), ps + 0x18);
+  } else {
+    /* No object attachment: use system position and gravity.
+       Original MSVC stack layout places the position triple at
+       marker_buf+0x60; the creation physics function (original binary) reads
+       position from there.  Store into the marker buffer directly -- the
+       separate local array is what pushed our frame to 0x38c vs the
+       original's 0x380. */
+    int *pos_src = (int *)(ps + 0x20);
+    int *pos_dst = (int *)(marker_buf + 0x60);
+    pos_dst[0] = pos_src[0];
+    pos_dst[1] = pos_src[1];
+    pos_dst[2] = pos_src[2];
+    local_up[0] = *(float *)(*(int *)0x31fc38 + 0);
+    local_up[1] = *(float *)(*(int *)0x31fc38 + 4);
+    local_up[2] = *(float *)(*(int *)0x31fc38 + 8);
+    location_valid = 1;
   }
 
   if (*(short *)(ps + 0x1c) == -1) {
@@ -545,10 +547,10 @@ void FUN_0009fd30(void *ps_arg, int16_t type_index, float dt)
       break;
 
     particle = (char *)datum_get(particle_system_data, particle_handle);
-    if (is_location_resolved == 0) {
-      creation_func_idx = *(short *)(state_def + 0xb0);
-    } else {
+    if (is_location_resolved != 0) {
       creation_func_idx = *(short *)(type_def + 0x54);
+    } else {
+      creation_func_idx = *(short *)(state_def + 0xb0);
     }
 
     if (particle == (char *)0) {
@@ -585,14 +587,14 @@ void FUN_0009fd30(void *ps_arg, int16_t type_index, float dt)
     /* Resolve particle location from its position */
     scenario_location_from_point(particle + 0x14, particle + 0x1c);
 
-    if (*(short *)(particle + 0x18) == -1) {
-      /* Invalid location: delete particle */
-      datum_delete(particle_system_data, particle_handle);
-    } else {
+    if (*(short *)(particle + 0x18) != -1) {
       /* Link particle into type's list */
       *(short *)(type_state + 0x3a) = *(short *)(type_state + 0x3a) + 1;
       *(int *)(particle + 4) = *(int *)(type_state + 0x3c);
       *(int *)(type_state + 0x3c) = particle_handle;
+    } else {
+      /* Invalid location: delete particle */
+      datum_delete(particle_system_data, particle_handle);
     }
 
     loop_count = loop_count + 1;
