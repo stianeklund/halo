@@ -670,9 +670,9 @@
    "functions": [
     {
      "addr": "0x1d9260",
-      "decl": "void __cdecl qsort(void *base, size_t nmemb, size_t size, qsort_compar_proc compar);",
-      "ported": true,
-      "source_path": "cseries/xbox_crt.c"
+     "decl": "void __cdecl qsort(void *base, size_t nmemb, size_t size, qsort_compar_proc compar);",
+     "ported": true,
+     "source_path": "cseries/xbox_crt.c"
     }
    ],
    "name": "LIBCMT:qsort.obj"
@@ -1525,11 +1525,11 @@
     },
     {
      "addr": "0x1e1997",
-          "decl": "int FUN_001e1997(void *tm);"
+     "decl": "int FUN_001e1997(void *tm);"
     },
     {
      "addr": "0x1e19b7",
-          "decl": "int *_gmtime(int *timer);"
+     "decl": "int *_gmtime(int *timer);"
     },
     {
      "addr": "0x1e1abe",
@@ -4945,8 +4945,8 @@
     },
     {
      "addr": "0x93a30",
-      "decl": "void FUN_00093a30(void *unused, unsigned char *control, unsigned char *header, unsigned char **stream);",
-      "ported": true
+     "decl": "void FUN_00093a30(void *unused, unsigned char *control, unsigned char *header, unsigned char **stream);",
+     "ported": true
     },
     {
      "addr": "0x93ac0",
@@ -6705,7 +6705,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -6766,7 +6766,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
@@ -22900,11 +22900,6 @@
      "ported": true
     },
     {
-     "addr": "0x18e3c0",
-     "decl": "void *scenario_get(void);",
-     "ported": true
-    },
-    {
      "addr": "0x18e5c0",
      "decl": "char FUN_0018e5c0(int location);",
      "ported": true
@@ -29519,9 +29514,9 @@
    "functions": [
     {
      "addr": "0x1da92a",
-          "decl": "void *crt_localtime(int *timer);",
-          "ported": true,
-          "source_path": "cseries/xbox_crt.c"
+     "decl": "void *crt_localtime(int *timer);",
+     "ported": true,
+     "source_path": "cseries/xbox_crt.c"
     }
    ],
    "name": "LIBCMT:localtim.obj"
@@ -30465,7 +30460,7 @@
     },
     {
      "addr": "0x1d91f0",
-      "decl": "void _shortsort(void *hi @<eax>, void *lo, size_t size, qsort_compar_proc compar);"
+     "decl": "void _shortsort(void *hi @<eax>, void *lo, size_t size, qsort_compar_proc compar);"
     }
    ],
    "name": "LIBCMT:snprintf.obj"
@@ -31007,10 +31002,6 @@
     {
      "addr": "0x1d8259",
      "decl": "void XapiInitProcess(void);"
-    },
-    {
-     "addr": "0x1d8368",
-     "decl": "int __stdcall XapiFormatFATVolume(void *device_path);"
     },
     {
      "addr": "0x1d86c3",
@@ -37556,10 +37547,10 @@
    "source_path": "src/halo/camera/static_camera.c",
    "functions": [
     {
-    "addr": "0x8d410",
-    "decl": "void FUN_0008d410(void *camera, int action, void *result);",
-    "ported": true,
-    "source_path": "halo/camera/static_camera.c"
+     "addr": "0x8d410",
+     "decl": "void FUN_0008d410(void *camera, int action, void *result);",
+     "ported": true,
+     "source_path": "halo/camera/static_camera.c"
     }
    ]
   },

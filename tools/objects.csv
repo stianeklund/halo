@@ -91,7 +91,7 @@ scenario.obj,true,0x0018E280-0x0018F710,20
 shaders.obj,true,0x00190240-0x00191010,25
 shell.obj,true,0x001910F0-0x00191440,9
 shell_xbox.obj,true,0x00191250-0x00191530,3
-scenario.obj,true,0x0018AEF0-0x001900F0,63
+scenario.obj,true,0x0018AEF0-0x001900F0,62
 sound_classes.obj,true,0x001C8990-0x001C8E60,10
 sound_dsound_xbox.obj,true,0x001C90E0-0x0020F281,30
 sound_manager.obj,true,0x001AC030-0x001CFA20,93
@@ -136,7 +136,7 @@ XAPILIB:fileio.obj,true,0x001D0E96-0x001D2110,25
 XAPILIB:lasterr.obj,true,0x001D21F2-0x001D2DBD,18
 XAPILIB:physmem.obj,true,0x001D2D48-0x001D5A42,59
 XAPILIB:xvutil.obj,true,0x001D04F1-0x001D0FF0,25
-XNET:xnet.obj,true,0x001D8259-0x001D900A,16
+XNET:xnet.obj,true,0x001D8259-0x001D900A,15
 XNET:wsock.obj,true,0x00222DF7-0x00225ED1,8
 edit_text.obj,true,0x00096D70-0x000976A0,12
 international_strings.obj,true,0x0019C5D0-0x0019D960,22
