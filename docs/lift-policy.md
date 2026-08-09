@@ -92,8 +92,10 @@ implementation: the model/effort policy block in
 `.claude/workflows/goal-lift.js`.
 
 Escalation is an **opus effort ladder**, not a model swap.  Fable is not a rung;
-it is reachable only as a fresh-model re-lift through the improve-pass drain
-(`--improveModel fable`).
+it is reached only as a fresh-model re-lift through the improve-pass drain
+(fable-high is the drain's default model since 2026-08-09 — routing_stats
+measured 80% promote, +14.7pp mean gain vs opus-high 52%; `--improveModel opus`
+is the low-token fallback).
 
 ### Ladder
 
@@ -135,7 +137,8 @@ then reverts the tree.  Never checkout-discard sub-bar work.
 
 These mean the structure is wrong, not that the score needs tuning — a higher
 effort rung does not help.  Route one re-lift on a *different* model — **Fable**
-— for perspective diversity, via the improve-pass drain (`--improveModel fable`).
+— for perspective diversity, via the improve-pass drain (fable is its default
+model since 2026-08-09).
 `park.py next --exclude-model <model>` picks the closest-to-bar parked function
 that model has not already tried, so the ledger drains model-by-model instead of
 retrying the same model.  If that attempt also fails → revert+log with every
