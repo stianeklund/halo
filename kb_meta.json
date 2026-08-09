@@ -3522,6 +3522,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x9f570": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "param_4 is a float, not an int: the original loads [EBP+0x14] as a raw dword and pushes it unchanged into FUN_0009f430's float param_7, with no FILD or other conversion, so the kb decl was retyped from int to float.",
+        "The surface index selected at 0x9f620-0x9f627 is 32-bit: the original emits MOV EAX,0x1c and MOV EAX,dword [EBP-0x34] with no MOVSX, so collision_result+0x34 is read as an int even though FUN_0009f430 reads its third parameter as a 16-bit value."
+      ],
+      "uncertain": [
+        "The tag_block_get_element(tag_data, index, 0x1c) result at 0x9f59e is discarded by the original (EAX is immediately overwritten at 0x9f5a6); the call is preserved for side-effect and bounds-assert parity but its purpose is unproven."
+      ]
+    },
     "0x9f680": {
       "kind": "function",
       "status": "ported"
@@ -3542,6 +3553,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x9f7e0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The per-particle-type list-head array lives at particle_system+0x94 with stride 0x40, and its element count is read from the 'lctp' particle system definition tag at +0x5C; the count is re-read from memory on every loop iteration rather than hoisted.",
+        "particle_system+0x1C and particle+0x18 are 16-bit BSP/leaf indices with -1 as the not-found sentinel, proven by CMP word ptr [reg+off],-1 in the reference; the surrounding +0x18/+0x14 fields are the location-out structs and +0x20/+0x1C are the source points, inferred from the scenario_location_from_point(location_out, point) signature."
+      ],
+      "uncertain": [
+        "Ghidra emits a stale label 'input_get_binding' for the CALL at 0x9f8c8; the target 0x9f710 is particle_system_delete, confirmed by address and by the single pushed index argument."
+      ]
+    },
     "0x9f920": {
       "kind": "function",
       "status": "ported"
@@ -3549,6 +3571,50 @@
     "0x9f9d0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x9fa60": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter 2 is a float: the original copies [EBP+0xc] as a raw dword (MOV ECX,[EBP+0xc]; PUSH ECX) with no FPU instructions anywhere in the function, and it lands in slot 11 of FUN_00154a50, whose kb declaration types that slot as 'float delta_time'.",
+        "Offset 0x44 in the 'ptcl' (0x7063746c) tag data is a physics tag index: it is compared against -1 and then passed as the tag_index argument to tag_get(0x70706879 'pphy')."
+      ],
+      "uncertain": [
+        "The particle+0xc == -1 guard is described in the comment as 'no active collision/attachment record', but only the -1 sentinel comparison is proven by the binary; the field's actual meaning is unverified.",
+        "The size and layout of the collision-location record at particle+0x18 are unknown; only its address is taken and handed to FUN_00154a50, so the record could extend into the position field at +0x20."
+      ]
+    },
+    "0x9fad0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Signature widened from the wrong 'void FUN_0009fad0(void)' kb declaration to four cdecl pointer slots, proven by the loads at [EBP+0x8], [EBP+0x10] and [EBP+0x14] and the plain RET (caller-cleaned stack)."
+      ],
+      "uncertain": [
+        "The second cdecl slot at [EBP+0xC] is never read by the original and is kept only as a placeholder param_2, so its real type and meaning are unknown.",
+        "Semantic identity of the two copied vectors is unproven: src+0x60 and param_1+0x2c are copied as 12-byte aggregates into out+0x1c and out+0x28, but no FPU or naming evidence in this function identifies them as position or velocity."
+      ]
+    },
+    "0x9fb10": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Prototype (void *particle_system, int16_t type_index, float delta_time, void *particle) is inferred from the frame: [EBP+0x8] and [EBP+0xc] are read once each at 0x9fb17/0x9fb2a and then reused by MSVC as float scratch for the scale and interpolation-factor locals, so Ghidra renders them as in_stack_* rather than parameters.",
+        "Register aliasing at 0x9fbf9/0x9fc01 was resolved from the raw disassembly: EBX holds the state-block element for particle+0x8 and ECX the element for particle+0xa, so the lerp is (1-t)*state_at_particle_0xa + t*state_at_particle_0x8."
+      ],
+      "uncertain": [
+        "The 0x40-byte stack buffer at EBP-0x40 is sized from the frame's SUB ESP,0x40 alone; point_physics_definition_interpolate (0x1548c0) is still unported, so its actual write size into that output block has not been independently confirmed."
+      ]
+    },
+    "0x9fca0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The discarded tag_get('ltcp', particle->field_08) result is preserved because tag_get validates the index and asserts on a bad one; the original ignores EAX entirely."
+      ],
+      "uncertain": [
+        "particle+0x8 is unproven as a semantic field; it is only known to be the tag index passed as tag_get's second argument, matching the identical read in callee FUN_0009fa60."
+      ]
     },
     "0x9fcd0": {
       "kind": "function",
@@ -3565,6 +3631,16 @@
     "0xa0180": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xa0d50": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter 2 is a 16-bit short: the prologue does MOVSX ECX, word ptr [EBP+0xc] at 0xa0d68, so declaring it int would change codegen at the tag_block_get_element call."
+      ],
+      "uncertain": [
+        "Field meanings of state+0x1c/0x20/0x24 (world position), state+0x34/0x38 (copied direction later rotated), state+0x3c (cleared int) and origin+0x60..0x68 are unproven; only the raw offsets are confirmed from the disassembly."
+      ]
     },
     "0xa0fd0": {
       "kind": "function",
@@ -10918,6 +10994,13 @@
     "0x1548a0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1548c0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Declaration corrected from void(void) to void *point_physics_definition_interpolate(void *physics_a, void *physics_b, float interpolation, void *out): the only observed call site (0x9fc40) pushes four args, cleans up with ADD ESP,0x10, and consumes the EAX return as the physics-definition argument to FUN_00154a50."
+      ]
     },
     "0x154fc0": {
       "kind": "function",

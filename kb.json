@@ -16414,11 +16414,13 @@
     },
     {
      "addr": "0x9f570",
-     "decl": "void FUN_0009f570(int effect_tag_index, int param_2, void *position, int param_4);"
+     "decl": "void FUN_0009f570(int effect_tag_index, int param_2, void *position, float param_4);",
+     "ported": true
     },
     {
      "addr": "0x9f7e0",
-     "decl": "void particle_systems_reconnect_to_structure_bsp(void);"
+     "decl": "void particle_systems_reconnect_to_structure_bsp(void);",
+     "ported": true
     },
     {
      "addr": "0x9fa60",
@@ -16432,7 +16434,8 @@
     },
     {
      "addr": "0x9fb10",
-     "decl": "void FUN_0009fb10(void);"
+     "decl": "void FUN_0009fb10(void *particle_system, int16_t type_index, float delta_time, void *particle);",
+     "ported": true
     },
     {
      "addr": "0x9fca0",
@@ -16445,7 +16448,8 @@
     },
     {
      "addr": "0xa0d50",
-     "decl": "void FUN_000a0d50(void);"
+     "decl": "void FUN_000a0d50(void *definition, short block_index, void *state, void *origin);",
+     "ported": true
     },
     {
      "addr": "0xa0e60",
@@ -18656,7 +18660,7 @@
     },
     {
      "addr": "0x1548c0",
-     "decl": "void point_physics_definition_interpolate(void);"
+     "decl": "void *point_physics_definition_interpolate(void *physics_a, void *physics_b, float interpolation, void *out);"
     },
     {
      "addr": "0x154a20",

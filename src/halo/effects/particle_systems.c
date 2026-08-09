@@ -1,3 +1,62 @@
+/* Spawn a foot effect where a step lands (0x9f570).
+ *
+ * Looks up the 'foot' effect tag by handle and range-checks the low 16 bits of
+ * param_2 against the tag's first block count, then traces a short ray from
+ * position (raised 0.15 in z) along the global vector at [0x31fc50] scaled by
+ * 0.3, using collision flags 0xc2a0.  On a hit, the surface index is taken
+ * from the collision result (+0x34) unless the hit resolves through 0x18f3e0,
+ * in which case 0x1c is used; the collision result's location (+0x18), normal
+ * (+0x24) and point (+0x0c) are forwarded to the foot-effect spawner at
+ * 0x9f430 together with param_4.
+ *
+ * On a miss, and only when the collision debug flag [0x4557e9] is set, a 0.05
+ * debug sphere is drawn at the original position.
+ *
+ * The tag_block_get_element result is intentionally discarded: the original
+ * makes the call (for its bounds assert / side effect) and never reads EAX. */
+void FUN_0009f570(int effect_tag_index, int param_2, void *position,
+                  float param_4)
+{
+  float origin[3];
+  float direction[3];
+  char collision_result[0x50];
+  int *tag_data;
+  float *down;
+  int surface_index;
+
+  tag_data = (int *)tag_get(0x666f6f74, effect_tag_index);
+  if ((int)(short)param_2 >= *tag_data) {
+    return;
+  }
+  tag_block_get_element(tag_data, (int)(short)param_2, 0x1c);
+
+  /* Copy the point verbatim (dword moves in the original), then bias z. */
+  ((int *)origin)[0] = ((int *)position)[0];
+  ((int *)origin)[1] = ((int *)position)[1];
+  ((int *)origin)[2] = ((int *)position)[2];
+  origin[2] = origin[2] + 0.15f;
+
+  down = *(float **)0x31fc50;
+  direction[0] = down[0] * 0.3f;
+  direction[1] = down[1] * 0.3f;
+  direction[2] = down[2] * 0.3f;
+
+  if (FUN_0014df70(0xc2a0, origin, direction, -1,
+                   (int16_t *)collision_result)) {
+    surface_index =
+      FUN_0018f3e0(collision_result + 0x0c, collision_result + 0x18, NULL) ?
+        0x1c :
+        *(int *)(collision_result + 0x34);
+    FUN_0009f430(effect_tag_index, param_2, surface_index,
+                 collision_result + 0x18, collision_result + 0x24,
+                 collision_result + 0x0c, param_4);
+    return;
+  }
+  if (*(char *)0x4557e9 != '\0') {
+    FUN_00189540(0, position, 0.05f, *(void **)0x2ee6d0);
+  }
+}
+
 void particle_systems_initialize(void)
 {
   particle_system_header_data =
@@ -36,6 +95,57 @@ void particle_system_delete(int particle_system_handle)
 
 void particle_systems_dispose(void)
 {
+}
+
+/* Re-resolve every live particle system (and each of its particles) against
+ * the newly-active structure BSP (0x9f7e0).
+ *
+ * For each particle system datum:
+ * - If it is attached to an object (+0xC != NONE), refresh its location from
+ *   the object.
+ * - Otherwise recompute the location from its own point (+0x20); if the point
+ *   no longer falls inside any BSP leaf (location bsp index at +0x1C == NONE)
+ *   the whole particle system is deleted and its particles are skipped.
+ * Then walk each of the type's particle lists (heads at +0x94, stride 0x40,
+ * count from the particle system definition tag at +0x5C) and re-resolve every
+ * particle's location from its point; particles that fall outside the BSP are
+ * unlinked from the list and deleted. */
+void particle_systems_reconnect_to_structure_bsp(void)
+{
+  char *entry, *tag, *particle_entry;
+  int *cursor;
+  int index;
+  short i;
+
+  for (index = data_next_index(particle_system_header_data, NONE);
+       index != NONE;
+       index = data_next_index(particle_system_header_data, index)) {
+    entry = (char *)datum_get(particle_system_header_data, index);
+    tag = (char *)tag_get(0x7063746c, *(int *)(entry + 8));
+    if (*(int *)(entry + 0xc) != NONE) {
+      object_get_location(*(int *)(entry + 0xc), entry + 0x18);
+    } else {
+      scenario_location_from_point(entry + 0x18, entry + 0x20);
+      if (*(short *)(entry + 0x1c) == NONE) {
+        particle_system_delete(index);
+        continue;
+      }
+    }
+    for (i = 0; i < *(int *)(tag + 0x5c); i++) {
+      cursor = (int *)(entry + 0x94 + i * 0x40);
+      while (*cursor != NONE) {
+        particle_entry = (char *)datum_get(particle_system_data, *cursor);
+        scenario_location_from_point(particle_entry + 0x14,
+                                     particle_entry + 0x1c);
+        if (*(short *)(particle_entry + 0x18) == NONE) {
+          datum_delete(particle_system_data, *cursor);
+          *cursor = *(int *)(particle_entry + 4);
+        } else {
+          cursor = (int *)(particle_entry + 4);
+        }
+      }
+    }
+  }
 }
 
 /* Advance particle type state to next state index (0x9f920).
@@ -214,6 +324,87 @@ void FUN_0009fad0(void *param_1, void *param_2, void *out, void *src)
 {
   *(vector3_t *)((char *)out + 0x1c) = *(vector3_t *)((char *)src + 0x60);
   *(vector3_t *)((char *)out + 0x28) = *(vector3_t *)((char *)param_1 + 0x2c);
+}
+
+/* Advance one particle of a particle system through its collision/physics step
+ * (0x9fb10).
+ * Resolves the system's 'pctl' definition tag (index at system+0x8), takes the
+ * particle type element `type_index` from the definition's block at +0x5c
+ * (0x80 stride), and the matching per-type runtime record inside the system at
+ * +0x58 (0x40 stride).
+ * A particle carries a current state index at +0x8 and, when it is mid-way
+ * between two states, a second index at +0xa. Both index the definition's state
+ * block at +0x74 (0x178 stride).
+ *   - particle+0xa == NONE: single state. Radius scale is the state's +0x80
+ *     scaled by the runtime record's +0x28 and the type's +0x2c; physics comes
+ *     from the state's 'pphy' tag index at +0x90.
+ *   - otherwise: t = particle+0xc / particle+0x10, clamped to [0,1] (the low
+ *     clamp is `FCOMP 0.0; TEST AH,5; JP` = strict `t < 0.0f`; the high clamp
+ * is `FCOMP 1.0; TEST AH,0x41; JNZ`-to-skip = strict `t > 1.0f`), the scale is
+ *     the lerp of the two states' +0x80, and the physics definition is the
+ *     interpolation of both states' 'pphy' tags into a 0x40-byte stack buffer.
+ * The FPU sequence at 0x9fbe6 is `FLD 1.0; FSUB t; FLD t; FMUL [EBX+0x80];
+ * FXCH; FMUL [ECX+0x80]; FADDP` with EBX = the state at particle+0x8 and
+ * ECX = the state at particle+0xa, i.e. `(1-t)*state_b + t*state_a`.
+ * FUN_00154a50's collision result is tested byte-wise: bit 0 against the type's
+ * flag 0x20, bit 1 against 0x10, bit 2 against 0x40; any hit clears the
+ * particle's live byte at +0x3.
+ * Frame is `push ebp; mov ebp,esp; sub esp,0x40` with a single 0x40-byte local
+ * at EBP-0x40 and an `MOV ESP,EBP` epilogue - keep the buffer as one array.
+ * MSVC recycles the dead incoming slots [EBP+0x8] and [EBP+0xc] to hold the
+ * scale and `t` locals; that packing is the compiler's, not a source feature.
+ */
+void FUN_0009fb10(void *particle_system, int16_t type_index, float delta_time,
+                  void *particle)
+{
+  char physics_buffer[0x40];
+  char *definition;
+  char *type;
+  char *runtime;
+  char *state_a;
+  char *state_b;
+  char *particle_bytes;
+  void *physics;
+  float scale;
+  float t;
+  int result;
+
+  definition =
+    (char *)tag_get(0x7063746c, *(int *)((char *)particle_system + 8));
+  type = (char *)tag_block_get_element(definition + 0x5c, type_index, 0x80);
+  runtime = (char *)particle_system + 0x58 + type_index * 0x40;
+  particle_bytes = (char *)particle;
+  state_a = (char *)tag_block_get_element(
+    type + 0x74, *(int16_t *)(particle_bytes + 8), 0x178);
+  if (*(int16_t *)(particle_bytes + 0xa) == NONE) {
+    scale = *(float *)(state_a + 0x80) * *(float *)(runtime + 0x28) *
+            *(float *)(type + 0x2c);
+    physics = tag_get(0x70706879, *(int *)(state_a + 0x90));
+  } else {
+    state_b = (char *)tag_block_get_element(
+      type + 0x74, *(int16_t *)(particle_bytes + 0xa), 0x178);
+    t = *(float *)(particle_bytes + 0xc) / *(float *)(particle_bytes + 0x10);
+    if (t < 0.0f) {
+      t = 0.0f;
+    } else if (t > 1.0f) {
+      t = 1.0f;
+    }
+    scale = ((1.0f - t) * *(float *)(state_b + 0x80) +
+             t * *(float *)(state_a + 0x80)) *
+            *(float *)(runtime + 0x28) * *(float *)(type + 0x2c);
+    physics = point_physics_definition_interpolate(
+      tag_get(0x70706879, *(int *)(state_a + 0x90)),
+      tag_get(0x70706879, *(int *)(state_b + 0x90)), t, physics_buffer);
+  }
+  result = FUN_00154a50(0, (int)physics, (int *)(particle_bytes + 0x14), NONE,
+                        (float *)(particle_bytes + 0x1c),
+                        (float *)(particle_bytes + 0x28), (float *)0,
+                        (float *)0, (int16_t *)0, scale, delta_time);
+  if (((result & 1) && (*(unsigned char *)(type + 0x20) & 0x20)) ||
+      ((result & 2) && (*(unsigned char *)(type + 0x20) & 0x10)) ||
+      ((result & 4) && (*(unsigned char *)(type + 0x20) & 0x40))) {
+    *(unsigned char *)(particle_bytes + 3) = 0;
+  }
 }
 
 /* Particle physics update wrapper (0x9fca0).
@@ -848,6 +1039,80 @@ done:
   if (active_types == 0 && *(int *)(ps_datum + 0xc) == -1) {
     particle_system_delete(particle_system_handle);
   }
+}
+
+/* Initialize a newly created particle's direction, position and velocity
+ * (0xa0d50).
+ *
+ * Reads three scalars from the particle type's block at type_def+0x5c
+ * (element size 4, indices 0/1/2), generates a random unit direction into
+ * state+0x28, then scales it:
+ *   state+0x28 = scale_a * dir.i
+ *   state+0x2c = scale_a * dir.j
+ *   state+0x30 = scale_b * dir.k   (forced positive when def+0x54 is set)
+ * The scaled direction is offset by the origin point (origin+0x60..0x68)
+ * into state+0x1c..0x24, copied into state+0x34..0x38, and finally scaled
+ * by scale_c and biased by def+0x2c..0x34 back into state+0x28..0x30.
+ * state+0x3c is cleared.  The state+0x34 vector is then rotated with
+ * sin=1.0/cos=0.0 about the global axis at *(float **)0x31fc44.
+ *
+ * Confirmed: tag_get('pctl', def+8) at 0xa0d63; tag_block_get_element(
+ * tag+0x5c, block_index, 0x80) at 0xa0d76; three tag_block_get_element(
+ * type_def+0x5c, {0,1,2}, 4) calls at 0xa0d83/0xa0d92/0xa0da1;
+ * random_seed_get_direction3d(seed, state+0x28) at 0xa0dbb (out pointer
+ * pushed at 0xa0db1 before the seed); FABS guarded by the byte at def+0x54
+ * at 0xa0ddc (the value is popped on both paths); rotate_vector3d_by_sincos(
+ * state+0x34, *(float **)0x31fc44, 1.0f, 0.0f) at 0xa0e47.
+ * Uncertain: field meanings of state+0x1c/0x24/0x34/0x3c and origin+0x60. */
+void FUN_000a0d50(void *definition, short block_index, void *state,
+                  void *origin)
+{
+  char *def = (char *)definition;
+  char *st = (char *)state;
+  char *org = (char *)origin;
+  char *type_def;
+  void *scale_block;
+  float scale_a;
+  float scale_b;
+  float scale_c;
+  float x;
+  float y;
+  float z;
+
+  type_def = (char *)tag_block_get_element(
+    (char *)tag_get(0x7063746c, *(int *)(def + 8)) + 0x5c, (int)block_index,
+    0x80);
+  scale_block = type_def + 0x5c;
+  scale_a = *(float *)tag_block_get_element(scale_block, 0, 4);
+  scale_b = *(float *)tag_block_get_element(scale_block, 1, 4);
+  scale_c = *(float *)tag_block_get_element(scale_block, 2, 4);
+
+  random_seed_get_direction3d(random_math_get_local_seed_address(),
+                              (float *)(st + 0x28));
+
+  x = scale_a * *(float *)(st + 0x28);
+  *(float *)(st + 0x28) = x;
+  y = scale_a * *(float *)(st + 0x2c);
+  *(float *)(st + 0x2c) = y;
+  z = scale_b * *(float *)(st + 0x30);
+  *(float *)(st + 0x30) = z;
+  if (*(char *)(def + 0x54) != 0) {
+    *(float *)(st + 0x30) = (float)fabs(z);
+  }
+
+  *(float *)(st + 0x1c) = x + *(float *)(org + 0x60);
+  *(float *)(st + 0x20) = y + *(float *)(org + 0x64);
+  *(int *)(st + 0x3c) = 0;
+  *(float *)(st + 0x24) = *(float *)(org + 0x68) + *(float *)(st + 0x30);
+  *(float *)(st + 0x34) = x;
+  *(float *)(st + 0x38) = y;
+  *(float *)(st + 0x28) = x * scale_c + *(float *)(def + 0x2c);
+  *(float *)(st + 0x2c) = y * scale_c + *(float *)(def + 0x30);
+  *(float *)(st + 0x30) =
+    scale_c * *(float *)(st + 0x30) + *(float *)(def + 0x34);
+
+  rotate_vector3d_by_sincos((float *)(st + 0x34), *(float **)0x31fc44, 1.0f,
+                            0.0f);
 }
 
 /* Initialize particle system type instances from the pctl tag (0xa0fd0).
