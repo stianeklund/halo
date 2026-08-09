@@ -6063,10 +6063,10 @@
       "end": "0x9f9cb",
       "kind": "auto",
       "n_r": 77,
-      "opnd_percent": 32.2,
+      "opnd_percent": 89.9,
       "ref": "synth",
       "ref_sha": "861ce48bbc8cedc1",
-      "score": 65.7,
+      "score": 96.6,
       "source": "src/halo/effects/particle_systems.c"
     },
     "FUN_0009f9d0": {

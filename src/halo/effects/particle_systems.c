@@ -180,41 +180,28 @@ void FUN_0009f920(void *type_state_arg, void *type_def_arg, void *ps_datum)
 
   /* Out of bounds - check if we can loop */
   flags = *(unsigned int *)(type_def + 0x20);
-  if ((flags & 1) == 0) {
-    goto terminate;
-  }
-  if (*(int *)((char *)ps_datum + 0xc) == -1) {
-    goto terminate;
-  }
-  state_count = *(int *)(type_def + 0x68);
-  if (state_count <= 0) {
-    goto terminate;
-  }
-
-  /* Can loop */
-  if ((flags & 2) != 0) {
-    /* Ping-pong mode: bounce off ends and flip direction */
-    int bounced = (int)current_state - (int)delta;
-    if (bounced < 0) {
-      *(short *)(type_state + 0x2) = 0;
+  if ((flags & 1) != 0 && *(int *)((char *)ps_datum + 0xc) != -1 &&
+      (state_count = *(int *)(type_def + 0x68)) > 0) {
+    /* Can loop */
+    if ((flags & 2) != 0) {
+      /* Ping-pong mode: bounce off ends and flip direction */
+      int bounced = (int)current_state - (int)delta;
+      if (bounced < 0) {
+        bounced = 0;
+      } else if (bounced > state_count - 1) {
+        bounced = state_count - 1;
+      }
+      *(short *)(type_state + 0x2) = (short)bounced;
       *(char *)(type_state + 0x38) = (direction == 0) ? 1 : 0;
       return;
     }
-    if (bounced > state_count - 1) {
-      bounced = state_count - 1;
-    }
-    *(short *)(type_state + 0x2) = (short)bounced;
-    *(char *)(type_state + 0x38) = (direction == 0) ? 1 : 0;
-    return;
+    /* Wrap mode: restart at state 0 */
+    *(short *)(type_state + 0x2) = 0;
+  } else {
+    /* Terminate */
+    *(short *)type_state = -1;
+    *(short *)(type_state + 0x2) = -1;
   }
-
-  /* Wrap mode: restart at state 0 */
-  *(short *)(type_state + 0x2) = 0;
-  return;
-
-terminate:
-  *(short *)type_state = -1;
-  *(short *)(type_state + 0x2) = -1;
 }
 
 /* Advance particle state to next state index (0x9f9d0).
