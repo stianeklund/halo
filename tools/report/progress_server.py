@@ -272,6 +272,7 @@ class SSEHandler(SimpleHTTPRequestHandler):
                 run_vc71_verify as _run_vc71_verify,
                 load_baseline as _load_baseline,
                 save_baseline as _save_baseline,
+                make_score_entry as _make_score_entry,
             )
         except ImportError as e:
             logging.error('Cannot import vc71_regression: %s', e)
@@ -380,17 +381,14 @@ class SSEHandler(SimpleHTTPRequestHandler):
                 else:
                     logging.info('  %s: %.1f%% -> %.1f%% (baseline raised)',
                                  fn_name, old.get('score', 0.0), new_score)
-                entry = {'score': new_score, 'source': source_path_rel}
-                # Advisory operand-normalized score rides along on entries we
-                # are already rewriting; omitted when vc71_verify printed none.
-                if info.get('opnd_percent') is not None:
-                    entry['opnd_percent'] = info['opnd_percent']
-                # Reference provenance: 'synth' when the score came from an
-                # XBE-synthesized reference rather than a Ghidra-delinked one.
-                # Absent means delinked, so pre-existing entries are unchanged.
-                if info.get('ref'):
-                    entry['ref'] = info['ref']
-                baseline[fn_name] = entry
+                # Built by vc71_regression.make_score_entry -- the SAME helper
+                # the floor merge uses.  This writer used to assemble the dict
+                # by hand, which meant every field the other writer added
+                # (operand score, reference provenance, the addr/end/kind/n_r/
+                # ref_sha block) was silently dropped whenever a dashboard
+                # refresh happened to touch the entry.
+                baseline[fn_name] = _make_score_entry(
+                    new_score, source_path_rel, info, previous=old)
                 baseline_changed = True
         if baseline_changed:
             _save_baseline(baseline)

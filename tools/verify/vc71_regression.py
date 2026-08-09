@@ -25,11 +25,33 @@ Commands:
     show
         Print the current baseline in a human-readable table.
 
-    populate
+    populate [--rebaseline] [--source ...] [--workers N]
         Re-derive scores for every ported function in kb.json by scanning
         all relevant source files (slow, but useful for initial population
         or after bulk changes). Writes new floors for any function not yet
         in the baseline.
+
+        --rebaseline switches the merge from raise-only to REPLACE, stamps
+        reference provenance (addr/end/kind/n_r/ref_sha) onto every measured
+        entry, widens discovery to every kb.json TU with ported functions, and
+        journals the pass for `rebaseline-report`. --source shards it.
+
+    rebaseline-report
+        Prune stale duplicate keys (same address under two spellings; keep the
+        one today's scorer emits) and write artifacts/audit/rebaseline_report.json
+        -- per-function old vs new with a reason code, plus aggregates and the
+        list of drops that would trip the regression gate.
+
+Baseline schema (version 2), keyed by the symbol the scorer emits:
+
+    "<fn>": {"score": 91.2, "source": "src/halo/main/main.c",
+             "addr": "0x100c10", "end": "0x100d54", "kind": "auto",
+             "n_r": 28, "ref_sha": "ab12cd34ef567890",
+             "opnd_percent": 73.3, "ref": "synth"}
+
+The addr/end/kind/n_r/ref_sha block is reference PROVENANCE: which bytes the
+score was measured against. Without it a score change and a reference change
+are indistinguishable in a diff.
 """
 
 import argparse
@@ -88,6 +110,17 @@ MEASURE_CACHE_PATH = REPO_ROOT / "artifacts" / "audit" / "vc71_measure_cache.jso
 # Cheap stat-keyed cache for the delinked/functions/*.obj content signature; see
 # _chunk_dir_signature.  Host-local, gitignored.
 CHUNK_SIG_CACHE_PATH = REPO_ROOT / "artifacts" / "audit" / "vc71_chunk_sig.json"
+# Cross-shard journal for `populate --rebaseline`; consumed by
+# `rebaseline-report` (see record_rebaseline_journal).  Host-local scratch.
+REBASELINE_JOURNAL_PATH = REPO_ROOT / "artifacts" / "audit" / "rebaseline_journal.json"
+# Snapshot of the floor taken before a re-baseline starts, so the delta report
+# can say what each score WAS after the file has already been rewritten.
+REBASELINE_PRE_PATH = REPO_ROOT / "artifacts" / "audit" / "rebaseline_pre.json"
+# The delta report itself (committed as evidence for the re-baseline).
+REBASELINE_REPORT_PATH = REPO_ROOT / "artifacts" / "audit" / "rebaseline_report.json"
+# Reference-migration evidence from the bounds-table phase; joined by address to
+# explain WHY a score moved (the reference got closer to the truth).
+REF_MIGRATION_PATH = REPO_ROOT / "artifacts" / "audit" / "ref_migration_report.json"
 VC71_VERIFY = REPO_ROOT / "tools" / "verify" / "vc71_verify.py"
 # Generated header the VC71 compile includes; produced from kb.json by knowledge.py.
 # Nothing on the populate path used to regenerate it, so a stale header (disagreeing
@@ -119,6 +152,65 @@ _OPND_RE = re.compile(r"\|\s*opnd\s+([\d.]+)%")
 # 1,464 existing chunks is 95.9%.  A score with no delinked reference behind it
 # should be identifiable as such in the baseline, not silently equivalent.
 _SYNTHREF_RE = re.compile(r"^\s*SYNTHREF\s+(\S+)\s*$")
+# Reference provenance, one line per scored function (emitted by vc71_verify even
+# under --quiet).  This says WHICH BYTES the score was measured against: the
+# derived reference's address range, how its end was determined (`kind`, straight
+# from the committed bounds table), its instruction count, and a content hash.
+#
+#   REFMETA <fn> addr=0x00102e40 end=0x001034aa kind=auto n_r=432 sha=7988df1c...
+#
+# Recorded into every baseline entry so a score can be audited without re-running
+# the scorer: a later reference change (bounds edit, re-derivation) shows up as a
+# changed ref_sha, which is the difference between "this lift regressed" and "we
+# are no longer measuring the same bytes".  The line shape is pinned by
+# test_ref_selection.test_refmeta_line_shape -- change both together.
+_REFMETA_RE = re.compile(
+    r"^\s*REFMETA (\S+) addr=0x([0-9a-fA-F]+) end=0x([0-9a-fA-F]+) "
+    r"kind=(\w+) n_r=(\d+) sha=([0-9a-f]+)\s*$"
+)
+
+# Provenance fields carried from REFMETA onto each baseline/current entry.
+# Every one of them describes the REFERENCE, never the candidate: a consumer
+# diffing two baselines can therefore separate a real score move from a
+# reference move without recompiling anything.
+PROVENANCE_FIELDS = ("addr", "end", "kind", "n_r", "ref_sha")
+# Advisory fields that ride along when the scorer produced them.
+_OPTIONAL_FIELDS = ("opnd_percent", "ref")
+# Fields this module owns and may overwrite when rebuilding an entry.  Anything
+# else found on an existing entry is copied forward untouched, so a key some
+# other consumer stamped into the baseline is not lost the next time a score is
+# refreshed.
+_OWNED_FIELDS = ("score", "source") + PROVENANCE_FIELDS + _OPTIONAL_FIELDS
+
+BASELINE_VERSION = 2
+
+
+def make_score_entry(score: float, source: str, info: dict | None = None,
+                     previous: dict | None = None) -> dict:
+    """Build one baseline/current entry: {score, source} + provenance + advisory.
+
+    THE single place an entry is constructed.  It exists because there are two
+    writers -- this module's floor merge and tools/report/progress_server.py --
+    which used to build the dict independently, each keeping only the fields its
+    own author knew about.  Whichever ran last silently stripped the other's, so
+    a field could not survive a dashboard refresh.
+
+    ``info`` is a parsed vc71_verify result (see run_vc71_verify).  ``previous``
+    is the entry being replaced, if any.  Optional fields are written only when
+    present, never as null noise.
+    """
+    entry: dict = {}
+    if previous:
+        for k, v in previous.items():
+            if k not in _OWNED_FIELDS:
+                entry[k] = v
+    entry["score"] = score
+    entry["source"] = source
+    info = info or {}
+    for k in PROVENANCE_FIELDS + _OPTIONAL_FIELDS:
+        if info.get(k) is not None:
+            entry[k] = info[k]
+    return entry
 
 
 # ---------------------------------------------------------------------------
@@ -126,7 +218,7 @@ _SYNTHREF_RE = re.compile(r"^\s*SYNTHREF\s+(\S+)\s*$")
 # ---------------------------------------------------------------------------
 
 def load_baseline() -> dict[str, dict]:
-    """Return {fn_name: {"score": float, "source": str}} from the baseline file."""
+    """Return {fn_name: entry} from the baseline file (see make_score_entry)."""
     if not BASELINE_PATH.exists():
         return {}
     try:
@@ -136,14 +228,36 @@ def load_baseline() -> dict[str, dict]:
         return {}
 
 
+def _load_baseline_doc() -> dict:
+    """The whole baseline document, for writers that must preserve siblings."""
+    if not BASELINE_PATH.exists():
+        return {}
+    try:
+        data = json.loads(BASELINE_PATH.read_text())
+        return data if isinstance(data, dict) else {}
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
 def save_baseline(scores: dict[str, dict]) -> None:
-    data = {"version": 1, "scores": scores}
+    """Write the floor.  Top-level keys other than version/scores are preserved:
+    a writer that only knows about `scores` must not delete a sibling key that
+    some other tool put in this file."""
+    data = {k: v for k, v in _load_baseline_doc().items()
+            if k not in ("version", "scores")}
+    data["version"] = BASELINE_VERSION
+    data["scores"] = scores
     BASELINE_PATH.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
 
 
 def save_current(scores: dict[str, dict]) -> None:
-    """Write honest current scores (dashboard source of truth)."""
-    data = {"version": 1,
+    """Write honest current scores (dashboard source of truth).
+
+    Same entry schema as the floor: generate_decomp_report swaps between the two
+    files transparently, so a field present in one and absent from the other
+    would render differently depending on which file happened to be usable.
+    """
+    data = {"version": BASELINE_VERSION,
             "note": "Honest current VC71 scores, gated on reference validity. "
                     "Regenerated by `populate`; not a committed floor.",
             "scores": scores}
@@ -156,6 +270,62 @@ def save_validity(flagged: list[dict]) -> None:
     VALIDITY_PATH.parent.mkdir(parents=True, exist_ok=True)
     VALIDITY_PATH.write_text(
         json.dumps({"version": 1, "flagged": flagged}, indent=2, sort_keys=True) + "\n")
+
+
+def _merged_current(honest: dict[str, dict]) -> dict[str, dict]:
+    """This shard's honest scores layered over whatever the file already held."""
+    merged: dict = {}
+    if CURRENT_PATH.exists():
+        try:
+            merged = json.loads(CURRENT_PATH.read_text()).get("scores", {}) or {}
+        except (json.JSONDecodeError, OSError):
+            merged = {}
+    merged.update(honest)
+    return merged
+
+
+def _merged_validity(flagged: list[dict], measured_sources: set) -> list[dict]:
+    """This shard's attention-queue entries, replacing only its own TUs' rows.
+
+    Keyed by source so a shard clears the stale entries for the TUs it just
+    re-measured (a fixed compile failure must disappear) without touching rows
+    belonging to TUs it never looked at.
+    """
+    prior: list = []
+    if VALIDITY_PATH.exists():
+        try:
+            prior = json.loads(VALIDITY_PATH.read_text()).get("flagged", []) or []
+        except (json.JSONDecodeError, OSError):
+            prior = []
+    kept = [f for f in prior if f.get("source") not in measured_sources]
+    return kept + list(flagged)
+
+
+def record_rebaseline_journal(honest: dict[str, dict], flagged: list[dict],
+                              sources: list[str]) -> None:
+    """Merge one rebaseline shard's outcome into the cross-shard journal.
+
+    Records the keys the scorer emitted (with their fresh entries), the
+    attention-queue rows, and the TUs visited.  `rebaseline-report` reads this
+    to tell a measured-and-unchanged entry from a never-measured one — a
+    distinction the baseline itself cannot express.
+    """
+    doc = {"version": 1, "measured": {}, "flagged": [], "sources": []}
+    if REBASELINE_JOURNAL_PATH.exists():
+        try:
+            loaded = json.loads(REBASELINE_JOURNAL_PATH.read_text())
+            if isinstance(loaded, dict):
+                doc.update({k: loaded.get(k, doc[k]) for k in doc if k != "version"})
+        except (json.JSONDecodeError, OSError):
+            pass
+    doc["measured"].update(honest)
+    visited = set(sources)
+    doc["flagged"] = [f for f in doc["flagged"]
+                      if f.get("source") not in visited] + list(flagged)
+    doc["sources"] = sorted(set(doc["sources"]) | visited)
+    REBASELINE_JOURNAL_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REBASELINE_JOURNAL_PATH.write_text(
+        json.dumps(doc, indent=1, sort_keys=True) + "\n")
 
 
 # ---------------------------------------------------------------------------
@@ -688,6 +858,7 @@ def run_vc71_verify(source: Path, no_cache: bool = True,
         meta_out["stderr_tail"] = [l for l in combined.strip().splitlines()[-6:]]
     out = {}
     synth_refs: set[str] = set()
+    ref_meta: dict[str, dict] = {}
     for line in (result.stdout + result.stderr).splitlines():
         m = _LINE_RE.search(line)
         if m:
@@ -697,6 +868,19 @@ def run_vc71_verify(source: Path, no_cache: bool = True,
                 "n_c": int(m.group(3)),
                 "n_r": int(m.group(4)),
                 "opnd_percent": float(o.group(1)) if o else None,
+            }
+            continue
+        r = _REFMETA_RE.match(line)
+        if r:
+            ref_meta[r.group(1)] = {
+                # Kept as hex STRINGS, matching kb.json's own address form, so a
+                # baseline entry can be grepped for an address the way every
+                # other artifact in this repo spells it.
+                "addr": f"0x{int(r.group(2), 16):x}",
+                "end": f"0x{int(r.group(3), 16):x}",
+                "kind": r.group(4),
+                "n_r": int(r.group(5)),
+                "ref_sha": r.group(6),
             }
             continue
         s = _SYNTHREF_RE.match(line)
@@ -724,6 +908,25 @@ def run_vc71_verify(source: Path, no_cache: bool = True,
             if k.rsplit("::", 1)[-1] == fn:
                 out[k]["ref"] = "synth"
                 break
+
+    # Attach reference provenance to each score.  Same two-step join as SYNTHREF
+    # above: vc71_verify labels a score line by the compiled symbol, which is the
+    # same key REFMETA uses, but a namespace-qualified reference name can differ
+    # in its qualifier only.  A score with no REFMETA keeps its parsed n_r and
+    # simply carries no provenance -- it must never be dropped, or a scorer that
+    # stops printing the line would silently blank the baseline.
+    for fn, meta in ref_meta.items():
+        target = fn if fn in out else next(
+            (k for k in out if k.rsplit("::", 1)[-1] == fn), None)
+        if target is None:
+            continue
+        # The score line and REFMETA are produced from the same reference, so a
+        # disagreement means the two were parsed from different runs (or the
+        # output format drifted).  Trust the score line's n_r -- it is what the
+        # percentage was computed from -- and keep the rest of the provenance.
+        out[target].update({k: v for k, v in meta.items() if k != "n_r"})
+        if out[target].get("n_r") in (None, meta["n_r"]):
+            out[target]["n_r"] = meta["n_r"]
 
     if meta_out is not None:
         if result.returncode != 0:
@@ -848,51 +1051,60 @@ def _measure_source(src: Path):
                        f"skipped (flagged for re-delink)")
             continue
 
-        honest_slice[fn_name] = {"score": new_score, "source": src_rel,
-                                 "n_c": info.get("n_c"), "n_r": n_r}
-        # Advisory operand-normalized score; omitted entirely when vc71_verify
-        # did not print one (older cached lines), never written as null noise.
-        if info.get("opnd_percent") is not None:
-            honest_slice[fn_name]["opnd_percent"] = info["opnd_percent"]
-        # Reference provenance; only the synthesized minority is tagged, so an
-        # absent key still means "delinked" for every pre-existing entry.
-        if info.get("ref"):
-            honest_slice[fn_name]["ref"] = info["ref"]
+        # Built by the shared entry constructor so the honest snapshot and the
+        # floor cannot drift apart in shape.  n_c (candidate instruction count)
+        # is measurement detail rather than reference provenance, so it stays a
+        # local extra here rather than joining PROVENANCE_FIELDS.
+        entry = make_score_entry(new_score, src_rel, info)
+        entry["n_c"] = info.get("n_c")
+        honest_slice[fn_name] = entry
         scored.append((fn_name, new_score))
 
     return src_rel, honest_slice, flagged_slice, scored, log
 
 
 def _apply_floor(baseline: dict, src_rel: str, scored: list, force: bool,
-                 opnd_map: dict = None, ref_map: dict = None):
-    """Apply the raise-only floor merge for one TU's scored functions into
-    ``baseline`` (in place).  Serial and order-independent for distinct
-    functions.  Returns ``(n_changed, log)``.
+                 info_map: dict = None, rebaseline: bool = False):
+    """Merge one TU's scored functions into ``baseline`` (in place).  Serial and
+    order-independent for distinct functions.  Returns ``(n_changed, log)``.
 
-    ``opnd_map`` optionally supplies the advisory operand-normalized score per
-    function (``{fn_name: pct}``).  It rides along on entries this call already
-    rewrites — it never causes a rewrite of its own, so untouched entries in the
-    committed floor stay byte-identical.
+    ``info_map`` supplies the parsed measurement per function (``{fn_name:
+    entry}``, as built by ``_measure_source``) — the provenance and advisory
+    fields ride along on entries this call already rewrites.
+
+    Two mutually exclusive semantics, never mixed by accident:
+
+    - default (``rebaseline=False``): RAISE-ONLY.  The floor is a tripwire, so a
+      lower measurement is reported and refused unless ``force``.  Entries the
+      call does not rewrite stay byte-identical, provenance included.
+    - ``rebaseline=True``: REPLACE.  Every measured entry is rewritten from the
+      fresh measurement regardless of direction, because the point of a
+      re-baseline is to make the file say what the scorer says today.  ``force``
+      is irrelevant here and ignored.
     """
     n_changed = 0
     log: list = []
 
     def _entry(fn_name, score):
-        e = {"score": score, "source": src_rel}
-        opnd = (opnd_map or {}).get(fn_name)
-        if opnd is not None:
-            e["opnd_percent"] = opnd
-        # Provenance rides along on entries this call already rewrites, exactly
-        # like opnd_percent: it never triggers a rewrite of its own, so
-        # untouched floor entries stay byte-identical.
-        ref = (ref_map or {}).get(fn_name)
-        if ref:
-            e["ref"] = ref
-        return e
+        return make_score_entry(score, src_rel, (info_map or {}).get(fn_name),
+                                previous=baseline.get(fn_name))
 
     for fn_name, new_score in scored:
         old_entry = baseline.get(fn_name)
         old_score = old_entry["score"] if old_entry else None
+
+        if rebaseline:
+            # Replace unconditionally: provenance must be stamped even when the
+            # score is unchanged, or a re-baseline would leave every stable
+            # function without the fields it exists to record.
+            baseline[fn_name] = _entry(fn_name, new_score)
+            if old_score is None:
+                log.append(f"  + {fn_name}: {new_score:.1f}% (new)")
+            elif abs(new_score - old_score) >= 0.05:
+                arrow = "↑" if new_score > old_score else "↓"
+                log.append(f"  {arrow} {fn_name}: {old_score:.1f}% → {new_score:.1f}%")
+            n_changed += 1
+            continue
 
         if old_score is None:
             baseline[fn_name] = _entry(fn_name, new_score)
@@ -925,9 +1137,7 @@ def _verify_source(src: Path, baseline: dict, force: bool):
     for l in log:
         print(l)
     n_changed, floor_log = _apply_floor(
-        baseline, src_rel, scored, force,
-        opnd_map={k: v.get("opnd_percent") for k, v in honest_slice.items()},
-        ref_map={k: v.get("ref") for k, v in honest_slice.items()})
+        baseline, src_rel, scored, force, info_map=honest_slice)
     for l in floor_log:
         print(l)
     return n_changed, honest_slice, flagged_slice
@@ -1192,9 +1402,55 @@ def cmd_show(args) -> int:
 # populate command
 # ---------------------------------------------------------------------------
 
+def _discover_scoreable_tus(include_kb_only: bool) -> list[tuple]:
+    """Return ``[(src_abs, src_rel, ref_abs)]`` for every TU that can be scored.
+
+    Two sources, unioned:
+
+    1. objdiff.json units whose source AND delinked reference both exist.  This
+       was the whole set historically, back when a score REQUIRED a Ghidra
+       delinked object to compare against.
+    2. (``include_kb_only``) source files that kb.json says hold ported
+       functions.  Every reference is now DERIVED from the pristine XBE, so a
+       missing objdiff unit no longer means unscoreable -- it means invisible.
+       Ten such TUs (collision_bsp.c, path_smoothing.c,
+       network_client_message_handler.c, ...) held ported functions that had
+       never been measured at all, because discovery, not scoring, excluded them.
+
+    ``ref_abs`` for a kb-only TU points at the objdiff base_path that does not
+    exist; it feeds only the incremental fingerprint (``_sha_file`` returns ""
+    for a missing file), never the measurement.
+    """
+    tus: list[tuple] = []
+    seen: set[str] = set()
+    objdiff = REPO_ROOT / "objdiff.json"
+    if objdiff.exists():
+        data = json.loads(objdiff.read_text())
+        for unit in data.get("units", []):
+            src = unit.get("metadata", {}).get("source_path", "")
+            ref = unit.get("base_path", "")
+            if not (src and ref):
+                continue
+            ref_abs = REPO_ROOT / ref
+            full = REPO_ROOT / src
+            if full.exists() and ref_abs.exists() and str(full) not in seen:
+                seen.add(str(full))
+                tus.append((full, str(Path(src)), ref_abs))
+
+    if include_kb_only:
+        for kb_src in sorted(_kb_source_funcs()):
+            for cand in (REPO_ROOT / "src" / "halo" / kb_src, REPO_ROOT / kb_src):
+                if cand.is_file() and str(cand) not in seen:
+                    seen.add(str(cand))
+                    rel = str(cand.relative_to(REPO_ROOT))
+                    tus.append((cand, rel, REPO_ROOT / "delinked" / "__absent__.obj"))
+                    break
+    return tus
+
+
 def cmd_populate(args) -> int:
-    """Scan objdiff.json for source files with a delinked reference and refresh
-    the floored baseline, the honest current scores, and the re-delink queue.
+    """Refresh the floored baseline, the honest current scores, and the
+    re-delink queue across every scoreable TU (see _discover_scoreable_tus).
 
     With ``--incremental`` only TUs whose inputs changed since the last populate
     are re-verified; unchanged TUs carry their cached honest/flagged results
@@ -1202,38 +1458,46 @@ def cmd_populate(args) -> int:
     tooling, kb.json, or the delinked chunk directory bumps the tool epoch and
     forces a full re-verify.  Without the flag, every TU is re-verified (the
     conservative default used by CI).
+
+    With ``--rebaseline`` the merge is REPLACE rather than raise-only, stale
+    duplicate keys are pruned, and a delta report is written.  That mode is the
+    deliberate, provenance-backed re-measurement of the whole file — not
+    something a routine populate should ever do by accident, which is why it is
+    its own flag and not a variation on ``--force``.
+
+    ``--source`` restricts the pass to the given TUs.  It exists so a full
+    re-baseline can be SHARDED across processes: this box OOM-kills a single
+    25-minute whole-tree pass, and a shard that dies takes only its own slice
+    with it.  Shards merge safely because each one rewrites only the functions
+    it measured.
     """
     # Pin decl.h == kb.json before fingerprinting or compiling any TU.  The
     # per-TU decl digest (in _tu_fingerprint) reads this freshly generated
     # header, so a header that was stale on disk is corrected here and the
     # affected TUs are re-verified rather than reusing a stale/empty slice.
-    print("Regenerating build/generated/decl.h from kb.json ...", flush=True)
-    regen_decl_header()
+    rebaseline = getattr(args, "rebaseline", False)
+    if getattr(args, "skip_decl_regen", False):
+        print("Skipping decl.h regeneration (--skip-decl-regen).", flush=True)
+    else:
+        print("Regenerating build/generated/decl.h from kb.json ...", flush=True)
+        regen_decl_header()
 
-    objdiff = REPO_ROOT / "objdiff.json"
-    if not objdiff.exists():
-        print("objdiff.json not found.", file=sys.stderr)
-        return 1
+    tus = _discover_scoreable_tus(include_kb_only=rebaseline)
 
-    data = json.loads(objdiff.read_text())
-    units = data.get("units", [])
-
-    # Collect (src_abs, src_rel, ref_abs) for TUs whose reference exists on disk.
-    tus = []
-    seen = set()
-    for unit in units:
-        src = unit.get("metadata", {}).get("source_path", "")
-        ref = unit.get("base_path", "")
-        if not (src and ref):
-            continue
-        ref_abs = REPO_ROOT / ref
-        full = REPO_ROOT / src
-        if full.exists() and ref_abs.exists() and str(full) not in seen:
-            seen.add(str(full))
-            tus.append((full, str(Path(src)), ref_abs))
+    only = getattr(args, "source", None)
+    if only:
+        wanted = set()
+        for s in only:
+            p = Path(s)
+            p = p if p.is_absolute() else REPO_ROOT / p
+            wanted.add(str(p.resolve()))
+        tus = [t for t in tus if str(t[0].resolve()) in wanted]
+        missing = wanted - {str(t[0].resolve()) for t in tus}
+        for m in sorted(missing):
+            print(f"  SKIP {m} (not a scoreable TU)", file=sys.stderr)
 
     if not tus:
-        print("No source files with delinked references found in objdiff.json.")
+        print("No scoreable source files found.")
         return 1
 
     incremental = getattr(args, "incremental", False)
@@ -1247,9 +1511,26 @@ def cmd_populate(args) -> int:
               "(incremental cache invalidated).")
 
     mode = "incremental" if incremental else "full"
+    if rebaseline:
+        mode += ", REBASELINE (replace, not raise-only)"
     print(f"Populating baseline from {len(tus)} source files ({mode})...")
 
     baseline = load_baseline()
+    if rebaseline:
+        if getattr(args, "reset_journal", False):
+            for p in (REBASELINE_JOURNAL_PATH, REBASELINE_PRE_PATH):
+                if p.exists():
+                    p.unlink()
+            print("Re-baseline journal and pre-snapshot reset.")
+        if not REBASELINE_PRE_PATH.exists():
+            # Snapshot the floor BEFORE the first shard rewrites it.  The delta
+            # report is written after every shard has run, by which time the
+            # file no longer remembers what it used to say.
+            REBASELINE_PRE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            REBASELINE_PRE_PATH.write_text(json.dumps(
+                {"version": 1, "scores": baseline}, indent=1, sort_keys=True) + "\n")
+            print(f"Pre-rebaseline snapshot ({len(baseline)} entries) → "
+                  f"{REBASELINE_PRE_PATH.relative_to(REPO_ROOT)}")
     honest: dict[str, dict] = {}
     flagged: list[dict] = []
     new_state: dict[str, dict] = {}
@@ -1283,7 +1564,13 @@ def cmd_populate(args) -> int:
     if to_verify:
         # Pre-warm lazy module caches so worker threads never race on first init.
         _kb_maps(); _kb_source_funcs(); _decl_index()
+        # --workers caps concurrency.  Each worker holds a compiler subprocess
+        # and its parsed output; a whole-tree pass at the default width is what
+        # OOM-kills this box, and a shard that dies mid-flight leaves the
+        # baseline half-written.
         n_workers = min(len(to_verify), max(1, (os.cpu_count() or 4) - 2), 8)
+        if getattr(args, "workers", None):
+            n_workers = max(1, min(n_workers, args.workers))
         print(f"Re-verifying {len(to_verify)} changed TU(s) "
               f"({n_workers} workers)...", flush=True)
         with ThreadPoolExecutor(max_workers=n_workers) as ex:
@@ -1301,9 +1588,8 @@ def cmd_populate(args) -> int:
         for l in log:
             print(l)
         n, floor_log = _apply_floor(
-            baseline, src_rel, scored, force,
-            opnd_map={k: v.get("opnd_percent") for k, v in honest_slice.items()},
-        ref_map={k: v.get("ref") for k, v in honest_slice.items()})
+            baseline, src_rel, scored, force, info_map=honest_slice,
+            rebaseline=rebaseline)
         for l in floor_log:
             print(l)
         total_changed += n
@@ -1341,10 +1627,28 @@ def cmd_populate(args) -> int:
         print(f"Reference provenance stamped on {n_prov} floor entry(ies) "
               f"(scored against an XBE-synthesized reference).")
 
+    if rebaseline:
+        # Journal what THIS pass measured, merged across shards.  Two consumers:
+        # duplicate pruning needs the set of keys today's scorer actually emits
+        # (a key nobody emitted is a stale alias, not a measurement), and the
+        # delta report needs the per-TU compile-failure verdicts.  Neither can be
+        # recovered from the baseline afterwards, because the baseline cannot
+        # distinguish "measured and unchanged" from "never measured".
+        record_rebaseline_journal(honest, flagged,
+                                  [rel for _a, rel, _r, _f in to_verify])
+
     # Honest current scores drive the dashboard; the floored baseline stays the
-    # CI tripwire.  The validity report is the re-delink work queue.
-    save_current(honest)
-    save_validity(flagged)
+    # CI tripwire.  The validity report is the re-delink work queue.  A --source
+    # run measured only part of the tree, so it MERGES into both files: writing
+    # its slice wholesale would delete every function it was not asked about,
+    # which is exactly how a sharded pass would end up publishing the last
+    # shard's TUs as the entire project.
+    if only:
+        save_current(_merged_current(honest))
+        save_validity(_merged_validity(flagged, {rel for _a, rel, _r, _f in to_verify}))
+    else:
+        save_current(honest)
+        save_validity(flagged)
     if incremental:
         save_populate_state(epoch, new_state)
         print(f"Incremental: {n_verified} TU(s) re-verified, {n_cached} cached "
@@ -1458,6 +1762,293 @@ def cmd_loadw(args) -> int:
 
 
 # ---------------------------------------------------------------------------
+# rebaseline-report -- duplicate pruning + old-vs-new delta
+# ---------------------------------------------------------------------------
+
+_ADDR_KEY_RE = re.compile(r"(?:thunk_)?FUN_0*([0-9a-fA-F]+)$")
+
+
+def _resolve_addr(key: str, entry: dict | None) -> int | None:
+    """Best-effort address for a baseline key.
+
+    Order matters.  A freshly measured entry carries the address the scorer
+    ACTUALLY cut its reference from, so it wins over any name lookup; kb.json is
+    next; the FUN_<addr> spelling is the last resort, because it is the only
+    thing available for a key whose function no longer exists in kb.json (which
+    is precisely the stale-alias case duplicate pruning has to recognise).
+    """
+    if entry:
+        a = entry.get("addr")
+        if isinstance(a, str):
+            try:
+                return int(a, 16)
+            except ValueError:
+                pass
+    _addrs, name2addr = _kb_maps()
+    for cand in (key, key.rsplit("::", 1)[-1]):
+        if cand in name2addr:
+            return name2addr[cand]
+    m = _ADDR_KEY_RE.match(key)
+    if m:
+        return int(m.group(1), 16)
+    return None
+
+
+def _load_ref_migration() -> dict[int, dict]:
+    """{addr: {reason, ...}} from the bounds-table migration evidence.
+
+    Explains WHY a score moved without re-deriving anything: `changed` means the
+    reference's length changed and the new one is provably closer to the truth,
+    which is the expected cause of a score move in this re-baseline.
+    """
+    out: dict[int, dict] = {}
+    if not REF_MIGRATION_PATH.exists():
+        return out
+    try:
+        doc = json.loads(REF_MIGRATION_PATH.read_text())
+    except (json.JSONDecodeError, OSError):
+        return out
+
+    def _add(rows, note, extra=()):
+        for r in rows or []:
+            try:
+                a = int(r.get("addr", ""), 16)
+            except (ValueError, TypeError):
+                continue
+            rec = {"ref_note": note}
+            for k in extra:
+                if r.get(k) is not None:
+                    rec[k] = r[k]
+            out.setdefault(a, rec)
+
+    # Most specific first: a function in `changed` must not be relabelled by a
+    # later, weaker bucket.
+    _add(doc.get("changed"), "ref_length_changed_closer",
+         ("old", "new", "truth", "kind", "old_rung"))
+    _add(doc.get("same_length_differs_beyond_annotation"),
+         "ref_same_length_text_differs", ("n", "old_rung"))
+    _add(doc.get("same_length_scored_differs"),
+         "ref_same_length_annotation_only", ("n", "old_rung"))
+    return out
+
+
+def cmd_rebaseline_report(args) -> int:
+    """Prune stale duplicate keys and report every old-vs-new score change.
+
+    Inputs: the pre-rebaseline snapshot (what the floor said), the cross-shard
+    journal (what the scorer emitted this pass), and the rewritten baseline.
+    """
+    if not REBASELINE_PRE_PATH.exists():
+        print(f"No pre-rebaseline snapshot at "
+              f"{REBASELINE_PRE_PATH.relative_to(REPO_ROOT)}; run "
+              f"`populate --rebaseline` first.", file=sys.stderr)
+        return 1
+    pre = json.loads(REBASELINE_PRE_PATH.read_text()).get("scores", {}) or {}
+    journal = {}
+    if REBASELINE_JOURNAL_PATH.exists():
+        journal = json.loads(REBASELINE_JOURNAL_PATH.read_text())
+    measured = journal.get("measured", {}) or {}
+    flagged = journal.get("flagged", []) or []
+    baseline = load_baseline()
+    migration = _load_ref_migration()
+
+    compile_failed = {f["function"] for f in flagged
+                      if f.get("state") == "compile_failed"}
+    no_reference = {f["function"] for f in flagged
+                    if f.get("state") == "no_reference"}
+    # A TU with a compile failure has NO evidence for any of its functions, so
+    # every one of them keeps its old floor rather than being read as a drop.
+    compile_failed_sources = sorted({f["source"] for f in flagged
+                                     if f.get("state") == "compile_failed"})
+
+    # ---- group every key (pre + post) by resolved address --------------------
+    keys = set(pre) | set(baseline)
+    addr_of: dict[str, int | None] = {
+        k: _resolve_addr(k, baseline.get(k) or pre.get(k)) for k in keys}
+    groups: dict[int, list[str]] = {}
+    for k, a in addr_of.items():
+        if a is not None:
+            groups.setdefault(a, []).append(k)
+
+    # ---- duplicate pruning ---------------------------------------------------
+    # Keep the key today's scorer emits; drop its aliases.  When NOTHING at that
+    # address was measured we cannot arbitrate, so every key is kept and flagged
+    # stale_key -- dropping one would silently delete a floor on a guess.
+    pruned: list[dict] = []
+    # Old score inherited by a surviving key from the alias that carried it, so
+    # the delta for a merged function compares the floor that actually existed
+    # against the score that actually replaced it.
+    inherited_old: dict[str, float] = {}
+    for addr, ks in sorted(groups.items()):
+        if len(ks) < 2:
+            continue
+        live = sorted(k for k in ks if k in measured)
+        if not live:
+            continue
+        keep = live[0]
+        for k in ks:
+            if k in live or k not in baseline:
+                continue
+            old_entry = baseline.get(k) or pre.get(k) or {}
+            pruned.append({
+                "dropped_key": k,
+                "merged_into": keep,
+                "addr": f"0x{addr:x}",
+                "old_score": old_entry.get("score"),
+                "new_score": baseline.get(keep, {}).get("score"),
+                "source": old_entry.get("source"),
+                "reason": "alias_merged",
+            })
+            if (pre.get(k) or {}).get("score") is not None:
+                inherited_old.setdefault(keep, pre[k]["score"])
+            baseline.pop(k, None)
+
+    # ---- per-function reasons ------------------------------------------------
+    rows: list[dict] = []
+    dropped_keys = {p["dropped_key"] for p in pruned}
+    merged_into = {}
+    for p in pruned:
+        merged_into.setdefault(p["merged_into"], []).append(p["dropped_key"])
+    for key in sorted(set(baseline) | set(pre)):
+        if key in dropped_keys:
+            continue  # reported under `pruned`, not twice
+        old = (pre.get(key) or {}).get("score")
+        merged_from_alias = old is None and key in inherited_old
+        if merged_from_alias:
+            old = inherited_old[key]
+        new = (baseline.get(key) or {}).get("score")
+        entry = baseline.get(key) or {}
+        addr = addr_of.get(key)
+        mig = migration.get(addr) if addr is not None else None
+        row = {
+            "function": key,
+            "source": entry.get("source") or (pre.get(key) or {}).get("source"),
+            "addr": f"0x{addr:x}" if addr is not None else None,
+            "old": old, "new": new,
+            "delta": (round(new - old, 3) if (old is not None and new is not None)
+                      else None),
+            "kind": entry.get("kind"),
+            "ref_sha": entry.get("ref_sha"),
+        }
+        if mig:
+            row["ref_note"] = mig.get("ref_note")
+            for k in ("old", "new", "truth"):
+                if mig.get(k) is not None:
+                    row[f"ref_insns_{k}"] = mig[k]
+
+        was_measured = key in measured
+        alias_had_score = any(
+            k in measured for k in groups.get(addr, []) if k != key
+        ) if addr is not None else False
+
+        # Order is load-bearing.  A merged alias must be recognised BEFORE the
+        # "no old score" test, or a function that has been measured under this
+        # repo for months reads as brand-new coverage merely because its floor
+        # was filed under the other spelling of its name.
+        if key in compile_failed:
+            row["reason"] = "compile_failed"
+            row["note"] = "TU failed to compile under VC71; old floor kept"
+        elif merged_from_alias:
+            row["reason"] = "alias_merged"
+            row["merged_from"] = merged_into.get(key, [])
+        elif not was_measured and old is not None and not alias_had_score:
+            row["reason"] = "stale_key"
+            row["note"] = ("no_reference" if key in no_reference
+                           else "not emitted by the current scorer")
+        elif was_measured and old is None:
+            row["reason"] = "new_coverage"
+        elif old is None or new is None:
+            row["reason"] = "stale_key"
+        elif abs(new - old) < 0.05:
+            row["reason"] = "unchanged"
+        elif mig and mig.get("ref_note") == "ref_length_changed_closer":
+            row["reason"] = "ref_changed_closer"
+        else:
+            row["reason"] = "remeasured_moved"
+        row["delta"] = (round(new - old, 3)
+                        if (old is not None and new is not None) else None)
+        row["old"] = old
+        rows.append(row)
+
+    # ---- aggregates ----------------------------------------------------------
+    # Counted per FUNCTION, not per key: a merged pair contributes one
+    # alias_merged row (the surviving key), and `pruned` is the record of which
+    # spellings were dropped, not a second population.
+    counts: dict[str, int] = {}
+    for r in rows:
+        counts[r["reason"]] = counts.get(r["reason"], 0) + 1
+
+    moved = [r for r in rows if r["delta"] is not None and abs(r["delta"]) >= 0.05]
+    ups = [r for r in moved if r["delta"] > 0]
+    downs = [r for r in moved if r["delta"] < 0]
+    drops_over_2 = sorted((r for r in downs if r["delta"] <= -2.0),
+                          key=lambda r: r["delta"])
+
+    def _mean(vals):
+        return round(sum(vals) / len(vals), 3) if vals else 0.0
+
+    aggregates = {
+        "entries_before": len(pre),
+        "entries_after": len(baseline),
+        "measured_this_pass": len(measured),
+        "moved": len(moved),
+        "up": len(ups), "down": len(downs),
+        "mean_delta_up": _mean([r["delta"] for r in ups]),
+        "max_delta_up": max([r["delta"] for r in ups], default=0.0),
+        "mean_delta_down": _mean([r["delta"] for r in downs]),
+        "max_delta_down": min([r["delta"] for r in downs], default=0.0),
+        "beats_old_floor": len(ups),
+        "drops_over_2pp": len(drops_over_2),
+        "without_provenance": sum(1 for e in baseline.values()
+                                  if not e.get("ref_sha")),
+        "compile_failed_sources": compile_failed_sources,
+    }
+
+    report = {
+        "version": 1,
+        "counts": counts,
+        "aggregates": aggregates,
+        "top_up": sorted(ups, key=lambda r: -r["delta"])[:25],
+        "top_down": sorted(downs, key=lambda r: r["delta"])[:25],
+        "drops_over_2pp": drops_over_2,
+        "pruned": pruned,
+        "functions": rows,
+    }
+    REBASELINE_REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REBASELINE_REPORT_PATH.write_text(
+        json.dumps(report, indent=1, sort_keys=True) + "\n")
+
+    if pruned and not getattr(args, "dry_run", False):
+        save_baseline(baseline)
+
+    # ---- stdout summary ------------------------------------------------------
+    print(f"Re-baseline delta report → "
+          f"{REBASELINE_REPORT_PATH.relative_to(REPO_ROOT)}\n")
+    print(f"Entries: {len(pre)} → {len(baseline)} "
+          f"({len(pruned)} stale duplicate key(s) pruned)")
+    print(f"Measured this pass: {len(measured)} function(s)\n")
+    print("Reason codes:")
+    for reason, n in sorted(counts.items(), key=lambda kv: -kv[1]):
+        print(f"  {reason:<22s} {n:>6d}")
+    print(f"\nMoved: {len(moved)} ({len(ups)} up, {len(downs)} down)")
+    print(f"  up:   mean +{aggregates['mean_delta_up']:.2f}pp  "
+          f"max +{aggregates['max_delta_up']:.2f}pp")
+    print(f"  down: mean {aggregates['mean_delta_down']:.2f}pp  "
+          f"max {aggregates['max_delta_down']:.2f}pp")
+    print(f"  beats the old floor: {len(ups)}")
+    print(f"  drops >2pp (would trip the gate): {len(drops_over_2)}")
+    print(f"  entries without provenance: {aggregates['without_provenance']}")
+    if drops_over_2:
+        print("\nDrops over 2pp:")
+        for r in drops_over_2[:40]:
+            print(f"  ✗ {r['function']:<40s} {r['old']:6.1f}% → {r['new']:6.1f}% "
+                  f"({r['delta']:+.1f}pp) [{r['reason']}] {r['source'] or ''}")
+        if len(drops_over_2) > 40:
+            print(f"  ... and {len(drops_over_2) - 40} more (see report)")
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
@@ -1496,6 +2087,30 @@ def build_parser():
                             "since the last populate (state in "
                             "artifacts/audit/populate_state.json). A tooling, "
                             "kb.json, or delinked-chunk change forces a full pass.")
+    p_pop.add_argument("--rebaseline", action="store_true",
+                       help="REPLACE stored scores with freshly measured ones "
+                            "(not raise-only) and stamp reference provenance. "
+                            "Also widens discovery to every kb.json TU with "
+                            "ported functions. Journals to "
+                            "artifacts/audit/rebaseline_journal.json for "
+                            "`rebaseline-report`.")
+    p_pop.add_argument("--source", "-s", nargs="+",
+                       help="Restrict the pass to these TUs (used to shard a "
+                            "full re-baseline across processes).")
+    p_pop.add_argument("--workers", type=int,
+                       help="Cap concurrent vc71_verify subprocesses.")
+    p_pop.add_argument("--reset-journal", action="store_true",
+                       help="Start a fresh re-baseline campaign: discard the "
+                            "journal and the pre-rebaseline snapshot.")
+    p_pop.add_argument("--skip-decl-regen", action="store_true",
+                       help="Do not regenerate decl.h (a sharded run only needs "
+                            "it done once, by the first shard).")
+
+    p_rb = sub.add_parser("rebaseline-report",
+                          help="Prune stale duplicate keys and write the "
+                               "old-vs-new delta report")
+    p_rb.add_argument("--dry-run", action="store_true",
+                      help="Write the report but do not prune the baseline")
 
     p_loadw = sub.add_parser("loadw",
                              help="Sweep for load-width (int vs int16/int8) differences")
@@ -1514,6 +2129,7 @@ def main():
         "check": cmd_check,
         "show": cmd_show,
         "populate": cmd_populate,
+        "rebaseline-report": cmd_rebaseline_report,
         "loadw": cmd_loadw,
     }
     fn = dispatch.get(args.command)

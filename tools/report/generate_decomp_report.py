@@ -42,8 +42,42 @@ def _estimate_missing_sizes(funcs: list) -> dict[int, int]:
     return estimates
 
 
+_SCORE_ADDR_INDEX: dict = {}
+
+
+def _score_addr_index(scores_data: dict) -> dict:
+    """{addr_int: entry} built from each entry's own `addr` provenance field.
+
+    Cached per scores dict (identity-keyed) because it is consulted once per
+    ported function and the score file holds thousands of entries.
+    """
+    cached = _SCORE_ADDR_INDEX.get(id(scores_data))
+    if cached is not None:
+        return cached
+    index: dict = {}
+    for entry in scores_data.values():
+        a = entry.get('addr') if isinstance(entry, dict) else None
+        if not isinstance(a, str):
+            continue
+        try:
+            index.setdefault(int(a, 16), entry)
+        except ValueError:
+            continue
+    _SCORE_ADDR_INDEX.clear()          # only ever one live scores dict
+    _SCORE_ADDR_INDEX[id(scores_data)] = index
+    return index
+
+
 def _lookup_score(scores_data: dict, name: str, addr: int, source_path: str | None) -> dict | None:
-    """Find a VC71 score by plain name, FUN alias, or namespace-qualified ref name."""
+    """Find a VC71 score by plain name, FUN alias, namespace-qualified ref name,
+    or — last — the address recorded in the entry's own provenance.
+
+    The address fallback matters after duplicate pruning: the baseline keeps
+    exactly ONE key per address (whichever the scorer emits today) instead of
+    carrying both the kb.json name and a stale FUN_<addr> alias, so a function
+    whose surviving key matches neither spelling used here would otherwise
+    render as unscored despite having a perfectly good measurement.
+    """
     keys = (
         name,
         f'FUN_{addr:08x}',
@@ -58,7 +92,7 @@ def _lookup_score(scores_data: dict, name: str, addr: int, source_path: str | No
         if key.rsplit('::', 1)[-1] == name:
             if not source_path or score_entry.get('source') == source_path:
                 return score_entry
-    return None
+    return _score_addr_index(scores_data).get(addr)
 
 
 def _is_synthetic_unit(obj_name: str, source: str | None) -> bool:

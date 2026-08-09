@@ -208,5 +208,121 @@ class TestFuncSpanDelegatesWhenImported(unittest.TestCase):
             self.assertEqual(vc71._func_span(f"FUN_{addr:08x}"), want)
 
 
+class TestScoreEntrySchema(unittest.TestCase):
+    """Entry construction is shared by two writers; pin what it keeps."""
+
+    INFO = {
+        "score": 91.2, "n_c": 30, "n_r": 28,
+        "addr": "0x100c10", "end": "0x100d54", "kind": "auto",
+        "ref_sha": "ab12cd34ef567890", "opnd_percent": 73.3, "ref": "synth",
+    }
+
+    def test_provenance_is_written(self):
+        e = vc71.make_score_entry(91.2, "src/halo/main/main.c", self.INFO)
+        for field in vc71.PROVENANCE_FIELDS:
+            self.assertIn(field, e, field)
+        self.assertEqual(e["addr"], "0x100c10")
+        self.assertEqual(e["n_r"], 28)
+        self.assertEqual(e["opnd_percent"], 73.3)
+        # n_c describes the CANDIDATE, not the reference: it must not leak into
+        # the committed floor's provenance block.
+        self.assertNotIn("n_c", e)
+
+    def test_absent_optional_fields_are_not_written_as_null(self):
+        e = vc71.make_score_entry(50.0, "src/x.c", {"score": 50.0})
+        self.assertEqual(set(e), {"score", "source"})
+
+    def test_unknown_fields_round_trip(self):
+        """A key some other consumer stamped in must survive a score refresh."""
+        prev = {"score": 10.0, "source": "src/old.c", "reviewed_by": "someone"}
+        e = vc71.make_score_entry(91.2, "src/x.c", self.INFO, previous=prev)
+        self.assertEqual(e["reviewed_by"], "someone")
+        self.assertEqual(e["score"], 91.2)
+        self.assertEqual(e["source"], "src/x.c")
+
+
+class TestRefmetaParsing(unittest.TestCase):
+    """REFMETA lines must reach the entry; the shape is pinned in
+    test_ref_selection, this pins the consumption side."""
+
+    OUT = (
+        "  SYNTHREF main_loop\n"
+        "  REFMETA main_loop addr=0x00102e40 end=0x001034aa kind=auto "
+        "n_r=432 sha=7988df1cab63ec0e\n"
+        "  PASS main_loop: 97.8% match (430/432 insns) | opnd 90.3% (operand-normalized)\n"
+    )
+
+    def _run(self, stdout):
+        completed = SimpleNamespace(returncode=0, stdout=stdout, stderr="")
+        with patch.object(vc71.subprocess, "run", return_value=completed):
+            with patch.dict("os.environ", {"VC71_NO_MEASURE_MEMO": "1"}):
+                return vc71.run_vc71_verify(Path("src/halo/main/main.c"))
+
+    def test_provenance_attached_to_score(self):
+        out = self._run(self.OUT)
+        entry = out["main_loop"]
+        self.assertEqual(entry["addr"], "0x102e40")
+        self.assertEqual(entry["end"], "0x1034aa")
+        self.assertEqual(entry["kind"], "auto")
+        self.assertEqual(entry["ref_sha"], "7988df1cab63ec0e")
+        self.assertEqual(entry["n_r"], 432)
+        self.assertEqual(entry["score"], 97.8)
+
+    def test_score_without_refmeta_is_still_kept(self):
+        """A scorer that stops printing REFMETA must not blank the baseline."""
+        out = self._run(
+            "  PASS main_loop: 97.8% match (430/432 insns)\n")
+        self.assertEqual(out["main_loop"]["score"], 97.8)
+        self.assertIsNone(out["main_loop"].get("ref_sha"))
+
+
+class TestRebaselineMerge(unittest.TestCase):
+    """Raise-only and replace must never be reachable by accident."""
+
+    INFO = {"main_loop": {"score": 80.0, "addr": "0x102e40",
+                          "ref_sha": "7988df1cab63ec0e", "n_r": 432}}
+
+    def test_default_merge_refuses_to_lower(self):
+        baseline = {"main_loop": {"score": 95.0, "source": "src/x.c"}}
+        n, _log = vc71._apply_floor(baseline, "src/x.c", [("main_loop", 80.0)],
+                                    force=False, info_map=self.INFO)
+        self.assertEqual(n, 0)
+        self.assertEqual(baseline["main_loop"]["score"], 95.0)
+
+    def test_rebaseline_replaces_and_stamps_provenance(self):
+        baseline = {"main_loop": {"score": 95.0, "source": "src/x.c"}}
+        n, _log = vc71._apply_floor(baseline, "src/x.c", [("main_loop", 80.0)],
+                                    force=False, info_map=self.INFO,
+                                    rebaseline=True)
+        self.assertEqual(n, 1)
+        self.assertEqual(baseline["main_loop"]["score"], 80.0)
+        self.assertEqual(baseline["main_loop"]["ref_sha"], "7988df1cab63ec0e")
+
+    def test_rebaseline_stamps_provenance_on_an_unchanged_score(self):
+        """The whole point: a stable function still gains its provenance."""
+        baseline = {"main_loop": {"score": 80.0, "source": "src/x.c"}}
+        vc71._apply_floor(baseline, "src/x.c", [("main_loop", 80.0)],
+                          force=False, info_map=self.INFO, rebaseline=True)
+        self.assertEqual(baseline["main_loop"]["addr"], "0x102e40")
+
+
+class TestBaselineDocument(unittest.TestCase):
+    def test_version_2_and_sibling_keys_preserved(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "scores.json"
+            path.write_text(json.dumps({
+                "version": 1, "note": "keep me",
+                "scores": {"fn": {"score": 1.0, "source": "src/x.c"}},
+            }))
+            with patch.object(vc71, "BASELINE_PATH", path):
+                scores = vc71.load_baseline()
+                scores["fn2"] = vc71.make_score_entry(50.0, "src/y.c")
+                vc71.save_baseline(scores)
+                doc = json.loads(path.read_text())
+            self.assertEqual(doc["version"], 2)
+            self.assertEqual(doc["note"], "keep me")
+            self.assertEqual(sorted(doc["scores"]), ["fn", "fn2"])
+
+
 if __name__ == "__main__":
     unittest.main()
