@@ -2864,6 +2864,8 @@ bool game_engine_check_input_button(int button_index /* @<edi> */)
 void ticks_to_unicode_time_string(int param_1, int param_2, wchar_t *param_3)
 
 {
+  int total_seconds;
+
   int minutes;
 
   int seconds;
@@ -2873,9 +2875,15 @@ void ticks_to_unicode_time_string(int param_1, int param_2, wchar_t *param_3)
   wchar_t sec_buf[64];
 
 
-  minutes = ((param_1 / 30) & 0xFF) / 60;
+  /* Original does two sequential magic-divides (/30 then /60) and derives
+     seconds by subtraction, not a second modulo. Folding this to /1800 or
+     using %60 both change codegen. */
 
-  seconds = (param_1 / 30) % 60;
+  total_seconds = param_1 / 30;
+
+  minutes = total_seconds / 60;
+
+  seconds = total_seconds - minutes * 60;
 
   if (minutes == 0)
 

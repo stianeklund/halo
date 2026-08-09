@@ -45388,10 +45388,10 @@
       "end": "0xab50c",
       "kind": "auto",
       "n_r": 69,
-      "opnd_percent": 46.5,
+      "opnd_percent": 52.6,
       "ref": "synth",
       "ref_sha": "844980d833ed57c8",
-      "score": 93.0,
+      "score": 97.8,
       "source": "src/halo/game/game_engine.c"
     },
     "tiff_export": {
