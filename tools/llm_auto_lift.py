@@ -164,6 +164,9 @@ def _prior_fail_attempts(fail_path) -> int:
 # on 3 -- prior_fail was reading a near-empty legacy directory.
 PARKED_DIR = ROOT / "artifacts" / "parked"
 
+# The VC71 commit bar, mirrored from tools/lift/park.py.
+COMMIT_BAR = 90.0
+
 
 def _park_slug(name: str) -> str:
     """Mirror of park.py's slugify() -- keep the two in sync."""
@@ -195,6 +198,114 @@ def _is_confirmed_cap(state: dict) -> bool:
     """Return whether a parked record is a terminal structural-cap finding."""
     status = str(state.get("parked_status") or "").strip().lower()
     return status in {"capped_confirmed", "confirmed_cap"}
+
+
+# Statuses that mean "this target resisted a lift and was preserved", i.e. the
+# record still describes unfinished work. "superseded"/"promoted" do not.
+_UNFINISHED_PARK_STATUSES = {"parked", "capped_confirmed", "confirmed_cap"}
+
+
+def _is_mined_record(rec: dict) -> bool:
+    """Whether a raw parked record marks its target as worked-but-sub-bar."""
+    if not rec:
+        return False
+    status = str(rec.get("status") or "").strip().lower()
+    if status not in _UNFINISHED_PARK_STATUSES:
+        return False
+    best = rec.get("best_score")
+    return isinstance(best, (int, float)) and float(best) < COMMIT_BAR
+
+
+def _is_parked_subbar(state: dict) -> bool:
+    """Whether `state` is a sub-bar target with a real attempt history.
+
+    Two or more lifts have already landed under the commit bar. This is a
+    DEPRIORITIZE signal only, never a skip: attempt count was measured NOT to
+    separate parked from promoted (targets have promoted at 6-10 attempts), so
+    a hard futility gate here would discard recoverable work.
+    """
+    best = state.get("parked_best_score")
+    if not isinstance(best, (int, float)) or float(best) >= COMMIT_BAR:
+        return False
+    return int(state.get("parked_attempts") or 0) >= 2
+
+
+_PARKED_RECORDS_CACHE: Optional[dict[str, dict]] = None
+
+
+def _load_parked_records() -> dict[str, dict]:
+    """Every parked-ledger record, keyed by function name.
+
+    The TU-level mined-tail damper asks about a whole remaining tail rather
+    than one target, so it needs the ledger in bulk instead of _parked_state()'s
+    single-file read. Loading it in one place is also the only spot that can
+    notice the ledger has gone stale: a record still marked "parked" whose
+    function is ported in kb.json is leftover bookkeeping, and every consumer
+    reading its best_score/attempts is being told a lie about a target that
+    already landed. Warn only -- artifacts/parked is git-tracked and selection
+    must stay read-only.
+    """
+    global _PARKED_RECORDS_CACHE
+    if _PARKED_RECORDS_CACHE is not None:
+        return _PARKED_RECORDS_CACHE
+    records: dict[str, dict] = {}
+    if PARKED_DIR.exists():
+        for path in sorted(PARKED_DIR.glob("*.json")):
+            try:
+                rec = json.loads(path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                continue
+            if isinstance(rec, dict) and rec.get("name"):
+                records[str(rec["name"])] = rec
+    _PARKED_RECORDS_CACHE = records
+    _warn_stale_parked(records)
+    return records
+
+
+def _warn_stale_parked(records: dict[str, dict]) -> None:
+    """One stderr line if the ledger still parks functions kb.json has ported."""
+    ported = _ported_kb_keys()
+    if not ported:
+        return
+    stale = 0
+    for name, rec in records.items():
+        if str(rec.get("status") or "").strip().lower() != "parked":
+            continue
+        addr = str(rec.get("addr") or "").strip().lower()
+        if name in ported or (addr and addr in ported):
+            stale += 1
+    if stale:
+        print(
+            f"warning: {stale} stale parked records (already ported) — "
+            "run: rtk python3 tools/lift/park.py reconcile --apply",
+            file=sys.stderr,
+        )
+
+
+_PORTED_KB_KEYS_CACHE: Optional[set[str]] = None
+
+
+def _ported_kb_keys() -> set[str]:
+    """Names and addresses of every kb.json function marked ported."""
+    global _PORTED_KB_KEYS_CACHE
+    if _PORTED_KB_KEYS_CACHE is not None:
+        return _PORTED_KB_KEYS_CACHE
+    keys: set[str] = set()
+    try:
+        for obj in _load_kb_raw().get("objects", []):
+            for func in obj.get("functions", []):
+                if not func.get("ported"):
+                    continue
+                name = _parse_name_from_decl(func.get("decl", ""))
+                if name:
+                    keys.add(name)
+                addr = str(func.get("addr") or "").strip().lower()
+                if addr:
+                    keys.add(addr)
+    except (OSError, json.JSONDecodeError, KeyError):
+        return set()
+    _PORTED_KB_KEYS_CACHE = keys
+    return keys
 
 
 # Known callee buffer requirements (synced with tools/audit/check_lift_hazards.py)
@@ -295,6 +406,10 @@ class LiftTarget:
     register_args: list[tuple[int, str]]
     score: int = 0
     score_details: dict = field(default_factory=dict)
+    # Annotated reason for the tu_history component ("" when it did not apply);
+    # carries the share95/n evidence that the generic score_details rendering
+    # cannot express.
+    tu_history_reason: str = ""
 
 
 @dataclass
@@ -632,6 +747,70 @@ def _prior_vc71_score(name: str) -> Optional[float]:
     return float(entry["score"]) if entry else None
 
 
+# TU-history steering (selector v2). Measured across auto-session runs: picking
+# targets by their translation unit's DEMONSTRATED VC71 score history is ~4x
+# cheaper and ~6x faster than the attribute-based rank alone. The attribute
+# components reward "cheap to attempt" (delinked ref, no reg args, few params,
+# small body) rather than "likely to match", so the queue head scatters across
+# unrelated TUs and keeps re-testing known-capped families.
+TU_HISTORY_MAX = 25          # points at share95=1.0 with full confidence
+TU_HISTORY_GOOD = 95.0       # a "matched" function
+TU_HISTORY_MIN_N = 3         # below this the TU is unmeasured -> neutral, not penalized
+TU_HISTORY_CONF_N = 5.0      # sample size at which confidence saturates
+
+
+def _tu_history_points(scores: list[float]) -> tuple[int, float, int]:
+    """(points, share95, n) for one TU's scored functions.
+
+    Kept pure and separate from the table build so --self-test-tu-history can
+    exercise the arithmetic without touching disk.
+    """
+    n = len(scores)
+    if n < TU_HISTORY_MIN_N:
+        return 0, 0.0, n
+    share95 = sum(1 for s in scores if s >= TU_HISTORY_GOOD) / float(n)
+    confidence = min(1.0, n / TU_HISTORY_CONF_N)
+    return int(round(TU_HISTORY_MAX * share95 * confidence)), share95, n
+
+
+def _is_mined_tail(remaining_n: int, mined_n: int) -> bool:
+    """Whether a TU's remaining candidates are mostly already-worked residue.
+
+    A TU can have an excellent history and a mined-out tail -- the
+    rasterizer.obj / rasterizer_text.obj / sound_dsound_xbox.obj pattern, where
+    everything recoverable already landed and what remains is exactly the set
+    that resisted previous attempts. History earned by the landed functions
+    must not promote that residue.
+    """
+    return remaining_n >= 5 and mined_n * 10 >= remaining_n * 6
+
+
+_TU_HISTORY_CACHE: Optional[dict[str, tuple[int, float, int]]] = None
+
+
+def _tu_history_table() -> dict[str, tuple[int, float, int]]:
+    """Per-TU (points, share95, n), keyed by source path, from vc71_scores.json.
+
+    Thunks are excluded: a thunk is one JMP, so its score says nothing about
+    how well this TU's real functions recover, and 12 of the 29 in the cache
+    sit at 0.0 -- counting them would both dilute good TUs and, in small ones,
+    manufacture a low share95 out of noise.
+    """
+    global _TU_HISTORY_CACHE
+    if _TU_HISTORY_CACHE is not None:
+        return _TU_HISTORY_CACHE
+    by_tu: dict[str, list[float]] = {}
+    for entry in _load_vc71_scores().values():
+        if str(entry.get("kind") or "") == "thunk":
+            continue
+        src = str(entry.get("source") or "").replace("\\", "/")
+        if not src:
+            continue
+        by_tu.setdefault(src, []).append(float(entry["score"]))
+    _TU_HISTORY_CACHE = {src: _tu_history_points(ss) for src, ss in by_tu.items()}
+    return _TU_HISTORY_CACHE
+
+
 def _load_pdb_proposal_addrs() -> set[str]:
     """Return the set of addresses (lowercase hex with 0x prefix) that have
     a real-name proposal from the punpckhdq PDB import. Empty if the importer
@@ -835,9 +1014,10 @@ def _count_params(decl: str) -> int:
 
 class LiftabilityScorer:
 
-    def __init__(self):
+    def __init__(self, *, tu_history: bool = True):
         self.kb_raw = _load_kb_raw()
         self.objdiff_units = _load_objdiff_units()
+        self.tu_history = tu_history
 
     def score_all(self, *, object_filter: str = "", min_score: int = 0) -> list[LiftTarget]:
         targets = []
@@ -996,9 +1176,6 @@ class LiftabilityScorer:
                     except (json.JSONDecodeError, OSError):
                         pass
 
-                if score < min_score:
-                    continue
-
                 targets.append(LiftTarget(
                     addr=addr,
                     name=name,
@@ -1011,8 +1188,47 @@ class LiftabilityScorer:
                     score_details=details,
                 ))
 
+        # TU history is a whole-queue property (the mined-tail damper needs each
+        # TU's full remaining tail), so it lands after the per-function pass --
+        # and before min_score, which must judge the final score.
+        self._apply_tu_history(targets)
+        targets = [t for t in targets if t.score >= min_score]
+
         targets.sort(key=lambda t: -t.score)
         return targets
+
+    def _apply_tu_history(self, targets: list[LiftTarget]) -> None:
+        """Add the tu_history component (max +25) to each candidate in place."""
+        # Loaded before the escape hatch: the stale-ledger warning it emits is
+        # not part of what --no-tu-history turns off.
+        parked = _load_parked_records()
+        if not self.tu_history:
+            return
+        table = _tu_history_table()
+
+        remaining: dict[str, int] = {}
+        mined: dict[str, int] = {}
+        for target in targets:
+            tu = target.source_path
+            remaining[tu] = remaining.get(tu, 0) + 1
+            if _is_mined_record(parked.get(target.name, {})):
+                mined[tu] = mined.get(tu, 0) + 1
+
+        for target in targets:
+            points, share95, n = table.get(target.source_path, (0, 0.0, 0))
+            if not points:
+                continue
+            rem = remaining.get(target.source_path, 0)
+            worked = mined.get(target.source_path, 0)
+            if _is_mined_tail(rem, worked):
+                target.score_details["tu_history"] = 0
+                target.tu_history_reason = f"tu_history=0(mined_tail {worked}/{rem})"
+                continue
+            target.score += points
+            target.score_details["tu_history"] = points
+            target.tu_history_reason = (
+                f"tu_history=+{points}(share95={share95:.2f},n={n})"
+            )
 
 
 def _load_frontier_priorities(limit: int) -> dict[str, dict]:
@@ -1087,7 +1303,14 @@ def _select_targets(
         frontier_entry = frontier.get(target.name) or frontier.get(target.addr.lower())
         frontier_score = int(frontier_entry.get("bonus", 0)) if frontier_entry else 0
         total_score = target.score + frontier_score
-        reasons = [f"{k}=+{v}" for k, v in target.score_details.items()]
+        # tu_history renders its own reason (it carries the share95/n evidence,
+        # and a damped TU is "=0", not "=+0"), so keep it out of the generic pass.
+        reasons = [
+            f"{k}=+{v}" for k, v in target.score_details.items()
+            if k != "tu_history"
+        ]
+        if target.tu_history_reason:
+            reasons.append(target.tu_history_reason)
         frontier_rank = None
         if frontier_entry:
             frontier_rank = int(frontier_entry.get("rank", 0) or 0)
@@ -1129,6 +1352,12 @@ def _select_targets(
             total_score -= 50
             lane = "defer"
             reasons.append("confirmed_cap=-50(parked ledger)")
+        if _is_parked_subbar(parked_state):
+            # Deprioritize only -- see _is_parked_subbar(). No attempt-count or
+            # park-reason hard skip: those futility signals were measured NOT to
+            # separate parked from promoted targets.
+            total_score -= 15
+            reasons.append("parked_subbar=-15")
 
         rejected = _check_rejected_branch(target.name)
         if rejected:
@@ -1921,6 +2150,80 @@ class GhidraMCPClient:
 # CLI
 # ---------------------------------------------------------------------------
 
+def _selftest_tu_history() -> int:
+    """Exercise the TU-history arithmetic and the mined-tail damper.
+
+    Run with: python3 tools/llm_auto_lift.py --self-test-tu-history
+    """
+    global _VC71_SCORES_CACHE, _TU_HISTORY_CACHE
+    failures: list[str] = []
+
+    def check(label: str, got, want):
+        if got != want:
+            failures.append(f"{label}: got {got!r}, want {want!r}")
+
+    # share95 / confidence arithmetic
+    check("share95 8/10", _tu_history_points([100.0] * 8 + [50.0] * 2), (20, 0.8, 10))
+    check("share95 all", _tu_history_points([99.0] * 10), (25, 1.0, 10))
+    check("share95 none", _tu_history_points([70.0] * 10), (0, 0.0, 10))
+    # 95.0 is a match (inclusive bound); 94.9 is not.
+    check("share95 boundary", _tu_history_points([95.0, 94.9, 95.0]), (10, 2 / 3, 3))
+    # Confidence ramps with n: 4 perfect scores are worth less than 5.
+    check("confidence n=4", _tu_history_points([100.0] * 4), (20, 1.0, 4))
+    check("confidence n=5", _tu_history_points([100.0] * 5), (25, 1.0, 5))
+    # Below TU_HISTORY_MIN_N the TU is unmeasured -> neutral, never penalized.
+    check("n<3 neutral", _tu_history_points([100.0, 100.0]), (0, 0.0, 2))
+    check("n=0 neutral", _tu_history_points([]), (0, 0.0, 0))
+
+    # Mined-tail damper: needs BOTH a real tail (>=5) and a majority (>=60%).
+    check("mined 3/5", _is_mined_tail(5, 3), True)
+    check("mined 6/10", _is_mined_tail(10, 6), True)
+    check("mined 5/10", _is_mined_tail(10, 5), False)
+    check("mined 4/4 too small", _is_mined_tail(4, 4), False)
+    check("mined 2/5", _is_mined_tail(5, 2), False)
+    check("mined 0/9", _is_mined_tail(9, 0), False)
+
+    # Records that count toward a mined tail.
+    check("mined rec parked", _is_mined_record({"status": "parked", "best_score": 84.0}), True)
+    check("mined rec capped", _is_mined_record({"status": "capped_confirmed", "best_score": 70.0}), True)
+    check("mined rec at bar", _is_mined_record({"status": "parked", "best_score": 90.0}), False)
+    check("mined rec promoted", _is_mined_record({"status": "promoted", "best_score": 80.0}), False)
+    check("mined rec empty", _is_mined_record({}), False)
+
+    # Per-target sub-bar deprioritize (never a skip).
+    check("subbar 2 attempts", _is_parked_subbar({"parked_best_score": 84.0, "parked_attempts": 2}), True)
+    check("subbar 1 attempt", _is_parked_subbar({"parked_best_score": 84.0, "parked_attempts": 1}), False)
+    check("subbar at bar", _is_parked_subbar({"parked_best_score": 91.0, "parked_attempts": 5}), False)
+    check("subbar unscored", _is_parked_subbar({"parked_attempts": 5}), False)
+
+    # Table build: thunks excluded, sources grouped, scoreless rows ignored.
+    saved_scores, saved_table = _VC71_SCORES_CACHE, _TU_HISTORY_CACHE
+    try:
+        _VC71_SCORES_CACHE = {
+            "a": {"score": 100.0, "source": "src/halo/x/a.c", "kind": "auto"},
+            "b": {"score": 100.0, "source": "src/halo/x/a.c", "kind": "auto"},
+            "c": {"score": 40.0, "source": "src/halo/x/a.c", "kind": "auto"},
+            "t": {"score": 0.0, "source": "src/halo/x/a.c", "kind": "thunk"},
+            "d": {"score": 100.0, "source": "src/halo/y/b.c", "kind": "auto"},
+        }
+        _TU_HISTORY_CACHE = None
+        table = _tu_history_table()
+        # a.c: 3 real functions (the thunk's 0.0 must not drag share95 to 0.5).
+        check("table a.c", table.get("src/halo/x/a.c"), (10, 2 / 3, 3))
+        # b.c: n=1 -> unmeasured.
+        check("table b.c", table.get("src/halo/y/b.c"), (0, 0.0, 1))
+    finally:
+        _VC71_SCORES_CACHE, _TU_HISTORY_CACHE = saved_scores, saved_table
+
+    if failures:
+        for line in failures:
+            print(f"FAIL {line}", file=sys.stderr)
+        print(f"{len(failures)} tu_history self-test failure(s)", file=sys.stderr)
+        return 1
+    print("tu_history self-test: OK")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(
         description="Auto-Lift Target Selector & Context Cache",
@@ -1928,6 +2231,8 @@ def main():
     )
     ap.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
     ap.add_argument("-q", "--quiet", action="store_true", help="Suppress decorative output")
+    ap.add_argument("--self-test-tu-history", action="store_true",
+                    help=argparse.SUPPRESS)
     sub = ap.add_subparsers(dest="mode")
 
     # -- score --
@@ -1936,6 +2241,8 @@ def main():
     p_score.add_argument("--min-score", type=int, default=0, help="Minimum score")
     p_score.add_argument("--limit", type=int, default=30, help="Max results")
     p_score.add_argument("--json", action="store_true", help="JSON output")
+    p_score.add_argument("--no-tu-history", action="store_true",
+                         help="Disable TU-score-history steering (and its mined-tail damper)")
 
     # -- select --
     p_select = sub.add_parser("select", help="Combine frontier priority with liftability")
@@ -1945,6 +2252,8 @@ def main():
     p_select.add_argument("--frontier-limit", type=int, default=50, help="Frontier rows to consider")
     p_select.add_argument("--auto-threshold", type=int, default=30, help="Liftability score needed for automation lanes")
     p_select.add_argument("--json", action="store_true", help="JSON output")
+    p_select.add_argument("--no-tu-history", action="store_true",
+                          help="Disable TU-score-history steering (and its mined-tail damper)")
 
     # -- cache-context --
     p_cache = sub.add_parser("cache-context", help="Build Ghidra context packs (requires MCP)")
@@ -1959,6 +2268,8 @@ def main():
     p_cache.add_argument("--stats", action="store_true", help="Print cache coverage and exit")
 
     args = ap.parse_args()
+    if args.self_test_tu_history:
+        sys.exit(_selftest_tu_history())
     if args.mode is None:
         args.mode = "select"
         args.object = ""
@@ -1967,6 +2278,7 @@ def main():
         args.frontier_limit = 50
         args.auto_threshold = 30
         args.json = False
+        args.no_tu_history = False
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(levelname)s: %(message)s",
@@ -1981,7 +2293,7 @@ def main():
 
 
 def cmd_score(args: argparse.Namespace):
-    scorer = LiftabilityScorer()
+    scorer = LiftabilityScorer(tu_history=not getattr(args, "no_tu_history", False))
     targets = scorer.score_all(object_filter=args.object, min_score=args.min_score)
     targets = targets[: args.limit]
 
@@ -2007,7 +2319,7 @@ def cmd_score(args: argparse.Namespace):
 
 
 def cmd_select(args: argparse.Namespace):
-    scorer = LiftabilityScorer()
+    scorer = LiftabilityScorer(tu_history=not getattr(args, "no_tu_history", False))
     targets = scorer.score_all(object_filter=args.object, min_score=args.min_score)
     selected = _select_targets(
         targets,
