@@ -5118,7 +5118,24 @@ void FUN_000ae3c0(int param_1, int param_2, int16_t team)
 
 /* Validate a player handle for CTF purposes (aff70 already above). */
 
-/* Netgame flag position validation (ae400). */
+/* Netgame flag position validation (ae400).
+ *
+ * The loop bound is the scan index `i`, NOT the match counter `count`:
+ *   000ae434  inc esi        ; i++
+ *   000ae435  cmp si, di     ; i vs total_flags  (ebx=count, esi=i, edi=total)
+ *   000ae438  jl  0xae416
+ * A 2026-08-07 byte-accuracy edit swapped these and reached a stored 100%
+ * while running `i` past the end of the starting-location array whenever
+ * fewer locations matched the game type than `total_flags`.
+ * player_get_starting_location(i) then returned NULL and the inlined
+ * match_game_type read *(int16_t *)(0 + 0x14) — the MP "Loading level..."
+ * page fault (CR2=0x14).  Do not re-derive this bound from the decompiler;
+ * Ghidra aliases ebx/esi here.
+ *
+ * The residual VC71 gap (89.4%) is register allocation: MSVC keeps
+ * total_flags in EDI across the loop, clang spills it to -0x4(%ebp).  Two
+ * attempts to steer it (int + explicit 16-bit compare: 88.4%; dropping the
+ * redundant `count = i`: 85.1%) both scored worse and were reverted. */
 void FUN_000ae400(int16_t param_1, int param_2, int16_t param_3, int param_4)
 {
   int16_t total_flags;
@@ -5136,7 +5153,7 @@ void FUN_000ae400(int16_t param_1, int param_2, int16_t param_3, int param_4)
       if (match_game_type((int)param_1, 4, (int16_t *)(flag_elem + 0x14)))
         count++;
       i++;
-    } while (((int16_t)count) < total_flags);
+    } while (((int16_t)i) < total_flags);
   }
   if (count < param_3)
     error(2, (char *)param_4, count, (int)param_3);

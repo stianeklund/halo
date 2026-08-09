@@ -6954,10 +6954,10 @@
       "end": "0xae457",
       "kind": "auto",
       "n_r": 41,
-      "opnd_percent": 82.9,
+      "opnd_percent": 80.0,
       "ref": "synth",
       "ref_sha": "8191a5ab1f10346e",
-      "score": 100.0,
+      "score": 89.4,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000ae460": {
@@ -20155,69 +20155,39 @@
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017cbb0": {
-      "addr": "0x17cbb0",
-      "end": "0x17cbb9",
-      "kind": "auto",
-      "n_r": 4,
-      "opnd_percent": 40.0,
+      "opnd_percent": 100.0,
       "ref": "synth",
-      "ref_sha": "da75f2131a18a4b7",
-      "score": 40.0,
+      "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017cbc0": {
-      "addr": "0x17cbc0",
-      "end": "0x17cbc9",
-      "kind": "auto",
-      "n_r": 4,
-      "opnd_percent": 40.0,
+      "opnd_percent": 100.0,
       "ref": "synth",
-      "ref_sha": "6aaee3cad5f6887b",
-      "score": 40.0,
+      "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017cbd0": {
-      "addr": "0x17cbd0",
-      "end": "0x17cbd9",
-      "kind": "auto",
-      "n_r": 4,
-      "opnd_percent": 40.0,
+      "opnd_percent": 100.0,
       "ref": "synth",
-      "ref_sha": "7eae9f645c8eea3d",
-      "score": 40.0,
+      "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017cc10": {
-      "addr": "0x17cc10",
-      "end": "0x17cc19",
-      "kind": "auto",
-      "n_r": 4,
-      "opnd_percent": 40.0,
+      "opnd_percent": 100.0,
       "ref": "synth",
-      "ref_sha": "3f8c6d7fc6019735",
-      "score": 40.0,
+      "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017cc20": {
-      "addr": "0x17cc20",
-      "end": "0x17cc29",
-      "kind": "auto",
-      "n_r": 4,
-      "opnd_percent": 40.0,
+      "opnd_percent": 100.0,
       "ref": "synth",
-      "ref_sha": "5d1f54dcb2c0d5b5",
-      "score": 40.0,
+      "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017cc70": {
-      "addr": "0x17cc70",
-      "end": "0x17cc79",
-      "kind": "auto",
-      "n_r": 4,
-      "opnd_percent": 40.0,
+      "opnd_percent": 100.0,
       "ref": "synth",
-      "ref_sha": "19ca6ccead3acbba",
-      "score": 40.0,
+      "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017ccb0": {
@@ -20254,25 +20224,15 @@
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017ccf0": {
-      "addr": "0x17ccf0",
-      "end": "0x17ccf9",
-      "kind": "auto",
-      "n_r": 4,
-      "opnd_percent": 40.0,
+      "opnd_percent": 100.0,
       "ref": "synth",
-      "ref_sha": "5ef309cfbad01b91",
-      "score": 40.0,
+      "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017cd30": {
-      "addr": "0x17cd30",
-      "end": "0x17cd39",
-      "kind": "auto",
-      "n_r": 4,
-      "opnd_percent": 40.0,
+      "opnd_percent": 100.0,
       "ref": "synth",
-      "ref_sha": "bf98fb6761d53a93",
-      "score": 40.0,
+      "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0017ff50": {
