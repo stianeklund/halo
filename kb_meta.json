@@ -14284,6 +14284,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1d771c": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1d7817": {
       "kind": "function",
       "status": "unknown",
@@ -14291,6 +14295,14 @@
         "FUN_001d8766 is a locale/collation pre-screen (__stdcall, 5 args, RET 0x14); non-zero return means ordering was resolved and is returned as result-2.",
         "The duplicate 0xffffffff args (arg3 and arg5) to FUN_001d8766 are intentional: they represent unbounded length sentinels, confirmed by two separate PUSH -0x1 instructions in the disassembly."
       ]
+    },
+    "0x1d7e6b": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1d81f4": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1d8368": {
       "kind": "function",

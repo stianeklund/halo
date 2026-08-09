@@ -641,7 +641,7 @@
     },
     {
      "addr": "0x1d5c66",
-     "decl": "void FUN_001d5c66(void);"
+     "decl": "void * __stdcall FUN_001d5c66(void *heap, unsigned int flags, unsigned int size);"
     },
     {
      "addr": "0x1e67e7",
@@ -720,6 +720,11 @@
     {
      "addr": "0x1dbc26",
      "decl": "double ceil(double x);"
+    },
+    {
+     "addr": "0x1dbdec",
+     "comment": "LIBCMT _except_handler3 \u2014 VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
+     "decl": "int __cdecl _except_handler3(void *ExceptionRecord, void *EstablisherFrame, void *ContextRecord, void *DispatcherContext);"
     },
     {
      "addr": "0x1dbcf4",
@@ -29727,7 +29732,7 @@
     },
     {
      "addr": "0x1dd6f5",
-     "decl": "void FUN_001dd6f5(void);"
+     "decl": "int FUN_001dd6f5(unsigned short *buffer, int count, const unsigned short *format, ...);"
     },
     {
      "addr": "0x1dd770",
@@ -30807,7 +30812,7 @@
     },
     {
      "addr": "0x1d4464",
-     "decl": "void FUN_001d4464(void);"
+     "decl": "int __stdcall FUN_001d4464(int value_index, void *type_out, void *value_buf, int value_len, void *result_len_out);"
     },
     {
      "addr": "0x1d4486",
@@ -30855,15 +30860,15 @@
     },
     {
      "addr": "0x1d4a34",
-     "decl": "void FUN_001d4a34(void);"
+     "decl": "void * __stdcall FUN_001d4a34(void *heap, void *block, int *size_out, int unused);"
     },
     {
      "addr": "0x1d4cd9",
-     "decl": "void FUN_001d4cd9(void);"
+     "decl": "void __stdcall FUN_001d4cd9(void *heap, void *node, unsigned int size);"
     },
     {
      "addr": "0x1d4dd3",
-     "decl": "void FUN_001d4dd3(void);"
+     "decl": "void * __stdcall FUN_001d4dd3(void *chunk);"
     },
     {
      "addr": "0x1d4e37",
@@ -30871,7 +30876,7 @@
     },
     {
      "addr": "0x1d4ec6",
-     "decl": "void FUN_001d4ec6(void);"
+     "decl": "char __stdcall FUN_001d4ec6(void *heap, unsigned int flags, void *chunk, unsigned int newsize, unsigned int newidx);"
     },
     {
      "addr": "0x1d52c4",
@@ -30887,7 +30892,7 @@
     },
     {
      "addr": "0x1d5598",
-     "decl": "void FUN_001d5598(void);"
+     "decl": "void __stdcall FUN_001d5598(void *heap, void *node, unsigned int size);"
     },
     {
      "addr": "0x1d5842",
@@ -31029,19 +31034,19 @@
     },
     {
      "addr": "0x1d8a88",
-     "decl": "void FUN_001d8a88(void);"
+     "decl": "int __stdcall FUN_001d8a88(const char *section_name);"
     },
     {
      "addr": "0x1d8aef",
-     "decl": "void FUN_001d8aef(void);"
+     "decl": "void *FUN_001d8aef(int section);"
     },
     {
      "addr": "0x1d8b10",
-     "decl": "void FUN_001d8b10(void);"
+     "decl": "int FUN_001d8b10(int section);"
     },
     {
      "addr": "0x1d8b64",
-     "decl": "void XGetSectionSize(void);"
+     "decl": "unsigned long __stdcall XGetSectionSize(void *section);"
     },
     {
      "addr": "0x1d8b76",
@@ -37455,35 +37460,41 @@
    "functions": [
     {
      "addr": "0x1d63d5",
-     "decl": "void FUN_001d63d5(void);"
+     "decl": "void FUN_001d63d5(void);",
+     "ported": true
     },
     {
      "addr": "0x1d6ca8",
-     "decl": "void FUN_001d6ca8(void);"
+     "decl": "unsigned char __stdcall FUN_001d6ca8(void *heap, unsigned int flags, void *block);",
+     "ported": true
     },
     {
      "addr": "0x1d6e65",
-     "decl": "void FUN_001d6e65(void);"
+     "decl": "void FUN_001d6e65(void);",
+     "ported": true
     },
     {
      "addr": "0x1d703b",
-     "decl": "void FUN_001d703b(void);"
+     "decl": "void * __stdcall FUN_001d703b(void *heap, unsigned int flags, void *block, unsigned int newsize);"
     },
     {
      "addr": "0x1d76fc",
-     "decl": "void FUN_001d76fc(void);"
+     "decl": "void FUN_001d76fc(void);",
+     "ported": true
     },
     {
      "addr": "0x1d771c",
-     "decl": "void XAutoPowerDownResetTimer(void);"
+     "decl": "void XAutoPowerDownResetTimer(void);",
+     "ported": true
     },
     {
      "addr": "0x1d7749",
-     "decl": "void FUN_001d7749(void);"
+     "decl": "void FUN_001d7749(void);",
+     "ported": true
     },
     {
      "addr": "0x1d77b3",
-     "decl": "void FUN_001d77b3(void);"
+     "decl": "int __stdcall FUN_001d77b3(const unsigned char *a, const unsigned char *b);"
     },
     {
      "addr": "0x1d7817",
@@ -37497,11 +37508,13 @@
     },
     {
      "addr": "0x1d7a59",
-     "decl": "void FUN_001d7a59(void);"
+     "decl": "short * __stdcall FUN_001d7a59(short *dst, const short *src, int count);",
+     "ported": true
     },
     {
      "addr": "0x1d7b37",
-     "decl": "int __stdcall FUN_001d7b37(void *handle, void *buf);"
+     "decl": "int __stdcall FUN_001d7b37(void *handle, void *buf);",
+     "ported": true
     },
     {
      "addr": "0x1d7cb4",
@@ -37515,19 +37528,23 @@
     },
     {
      "addr": "0x1d7d84",
-     "decl": "void FUN_001d7d84(void);"
+     "decl": "int __stdcall FUN_001d7d84(int section, char *path, int path_size, char *suffix);",
+     "ported": true
     },
     {
      "addr": "0x1d7e6b",
-     "decl": "void XapiMapLetterToDirectory(void);"
+     "decl": "int __stdcall XapiMapLetterToDirectory(void *link_name, unsigned short *name, char *letter, int create, short *title_name, int flags);",
+     "ported": true
     },
     {
      "addr": "0x1d819f",
-     "decl": "void FUN_001d819f(void);"
+     "decl": "void __stdcall FUN_001d819f(unsigned long handle_id, short *out);",
+     "ported": true
     },
     {
      "addr": "0x1d81f4",
-     "decl": "void XapiBootToDash(void);"
+     "decl": "void __stdcall XapiBootToDash(unsigned long param_1, unsigned long param_2, unsigned long param_3);",
+     "ported": true
     }
    ],
    "name": "XAPILIB:xbox_crt.obj",
