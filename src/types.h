@@ -1585,6 +1585,43 @@ typedef void (*draw_string_emit_proc)(void *state, void *font_table,
                                       short dest_y, int src_x, int src_y,
                                       short width, short height);
 
+/* -------------------------------------------------------------------------
+ * collision_test_result -- 0x50-byte record filled by the world collision
+ * entry points in physics/collision_bsp.c (FUN_0014e7d0, FUN_0014e940).
+ *
+ * Widths are taken from the store instructions at 0x14e7f9..0x14e872 and
+ * 0x14e8b9..0x14e8ef: +0x00, +0x08, +0x10, +0x34 and +0x4e are 16-bit stores
+ * (MOV word ptr), +0x4c/+0x4d are byte stores, everything else is a dword.
+ * 0x36..0x43 is never touched by either function, so it stays pad_.
+ * ------------------------------------------------------------------------- */
+typedef struct collision_test_result {
+    int16_t field_00;      /* +0x00: -1 when no hit, 2 on a bsp surface hit */
+    int16_t pad_02;        /* +0x02 */
+    int32_t field_04;      /* +0x04: leading surface/leaf index */
+    int16_t field_08;      /* +0x08: cluster index for field_04 (MOVSX) */
+    int16_t pad_0a;        /* +0x0a */
+    int32_t field_0c;      /* +0x0c: trailing leaf index */
+    int16_t field_10;      /* +0x10: cluster index for field_0c (MOVSX) */
+    int16_t pad_12;        /* +0x12 */
+    float   t;             /* +0x14: hit fraction along the sweep */
+    float   position[3];   /* +0x18: point + t * delta */
+    float   normal[3];     /* +0x24 */
+    float   field_30;      /* +0x30 */
+    int16_t field_34;      /* +0x34 */
+    char    pad_36[0xe];   /* +0x36 */
+    int32_t field_44;      /* +0x44 */
+    int32_t field_48;      /* +0x48 */
+    char    field_4c;      /* +0x4c */
+    char    field_4d;      /* +0x4d */
+    int16_t field_4e;      /* +0x4e */
+} collision_test_result;
+cs(collision_test_result, 0x50);
+co(collision_test_result, t,        0x14);
+co(collision_test_result, position, 0x18);
+co(collision_test_result, normal,   0x24);
+co(collision_test_result, field_44, 0x44);
+co(collision_test_result, field_4e, 0x4e);
+
 /* CRT qsort/_shortsort comparator: two cdecl record pointers, int result. */
 typedef int(__cdecl *qsort_compar_proc)(const void *, const void *);
 

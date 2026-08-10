@@ -509,7 +509,7 @@
     },
     {
      "addr": "0x150b60",
-     "decl": "void FUN_00150b60(void);"
+     "decl": "char FUN_00150b60(void *ctx, void *origin, void *direction, void *out);"
     },
     {
      "addr": "0x150c80",
@@ -37233,7 +37233,8 @@
     },
     {
      "addr": "0x14dce0",
-     "decl": "char FUN_0014dce0(int object_handle, unsigned int type_mask, int param_3, int origin, int direction, int exclude_handle, void *collision_result);"
+     "decl": "char FUN_0014dce0(int object_handle, unsigned int type_mask, int param_3, int origin, int direction, int exclude_handle, void *collision_result);",
+     "ported": true
     },
     {
      "addr": "0x14e640",

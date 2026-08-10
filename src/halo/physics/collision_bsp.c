@@ -972,6 +972,149 @@ char FUN_0014dc30(int param_1, float *pos, int param_3)
   return 0;
 }
 
+/* 0x14dce0 - Ray-vs-object collision test over one object sibling chain.
+ *
+ * Walks the chain rooted at `object_handle` through object+0xc4 (next sibling)
+ * and recurses into object+0xc8 (first child) for every object that passes the
+ * entry filter. `collision_result` is the same 0x50-byte record the rest of
+ * collision_usage.c fills; the field map documented there applies verbatim
+ * (+0x00 type word, +0x14 hit distance, +0x24..+0x30 plane, +0x34 shader,
+ * +0x38 object handle, +0x3c/+0x3e/+0x40 indices, +0x44/+0x48 dwords,
+ * +0x4c/+0x4d bytes, +0x4e leaf/surface index).
+ *
+ * Confirmed (disassembly 0x14dce0..0x14df6d):
+ *  - cdecl, 7 stack args at EBP+0x08..+0x20, char return in AL from EBP-0x1.
+ *  - Entry filter, in order: handle != exclude_handle; (object+0x4 & 1) == 0;
+ *    type_mask & (1 << (zero-extended word object+0x64 + 8));
+ *    fast_vector_intersects_sphere(origin, direction, object+0x50,
+ *    float object+0x5c). The radius is a push-then-FSTP float arg
+ *    (PUSH ECX / FSTP [ESP] at 0x14dd3c-0x14dd43), not the pushed pointer.
+ *  - Path select: byte object+0x64 shifted (TEST DL,0x2) AND
+ *    type_mask & 0x400000 picks the FUN_001509c0/FUN_00150b60 model path;
+ *    otherwise the collision-bsp path via FUN_0014c8e0/FUN_0014cb00.
+ *  - Both distance guards are `FLD [ESI+0x14]; FCOMP <candidate>;
+ *    TEST AH,0x41; JNZ skip` (0x14ddae and 0x14de51), i.e. the source form is
+ *    `collision_result->distance > candidate`, NOT `candidate < ...`. Writing
+ *    it the other way emits the `TEST AH,5 / JP` shape instead.
+ *  - The -1 sentinel is materialised in ECX by OR ECX,0xffffffff at three
+ *    sites (0x14df19/0x14df20/0x14df53) and compared with CMP; semantically a
+ *    plain `!= -1`.
+ *
+ * Frame (SUB ESP,0x484 = 1156 bytes), derived from the EBP displacements:
+ *   EBP-0x484 (1056)  FUN_0014cb00 output record; only the first 0x1c bytes
+ *                     are read back here, the remaining 0x404 are scratch the
+ *                     callee owns (size inferred from the frame arithmetic,
+ *                     not from a decompiled callee - see Uncertain).
+ *   EBP-0x64  (60)    FUN_001509c0 context
+ *   EBP-0x28  (16)    FUN_0014c8e0 context (+0x4 tag data, +0xc surface base)
+ *   EBP-0x18  (20)    FUN_00150b60 result
+ *   EBP-0x4   (4)     `found`
+ * Ghidra split every field of those four buffers into independent locals
+ * (local_488/local_486/.../local_46e are all one struct at EBP-0x484).
+ *
+ * FUN_0014cb00 output fields actually consumed:
+ *   +0x00 short surface index (also the FUN_0010a1c0 row selector, *0x34)
+ *   +0x02 short  -> +0x3c        +0x04 short  -> +0x40
+ *   +0x08 float  hit distance    +0x0c float* plane to transform
+ *   +0x10 dword  -> +0x44        +0x14 int    -> +0x48, sign selects negate
+ *   +0x18 byte   -> +0x4c        +0x19 byte   -> +0x4d
+ *   +0x1a short  -> +0x4e and the FUN_0014da80 index argument
+ */
+char FUN_0014dce0(int object_handle, unsigned int type_mask, int param_3,
+                  int origin, int direction, int exclude_handle,
+                  void *collision_result)
+{
+  char found;
+  int32_t model_result[5];
+  int32_t bsp_ctx[4];
+  int32_t model_ctx[15];
+  int32_t bsp_result[264];
+  char *obj;
+  char *res;
+  char *bres;
+  int child;
+  int idx;
+
+  found = 0;
+  do {
+    obj = (char *)object_get_and_verify_type(object_handle, -1);
+
+    if (object_handle != exclude_handle &&
+        (*(unsigned char *)(obj + 4) & 1) == 0 &&
+        (type_mask & (1u << (*(uint16_t *)(obj + 0x64) + 8))) != 0 &&
+        fast_vector_intersects_sphere((float *)origin, (float *)direction,
+                                      (float *)(obj + 0x50),
+                                      *(float *)(obj + 0x5c))) {
+      res = (char *)collision_result;
+
+      if (((1 << *(unsigned char *)(obj + 0x64)) & 2) != 0 &&
+          (type_mask & 0x400000) != 0) {
+        if (FUN_001509c0((int *)model_ctx, object_handle) != 0 &&
+            FUN_00150b60(model_ctx, (void *)origin, (void *)direction,
+                         model_result) != 0 &&
+            *(float *)(res + 0x14) > *(float *)model_result) {
+          *(int32_t *)(res + 0x24) = model_result[1];
+          *(int32_t *)(res + 0x14) = model_result[0];
+          *(int32_t *)(res + 0x28) = model_result[2];
+          *(int32_t *)(res + 0x2c) = model_result[3];
+          *(int16_t *)res = 3;
+          *(int32_t *)(res + 0x30) = model_result[4];
+          *(int16_t *)(res + 0x34) = -1;
+          *(int32_t *)(res + 0x38) = object_handle;
+          *(int16_t *)(res + 0x3c) = -1;
+          *(int16_t *)(res + 0x3e) = -1;
+          *(int16_t *)(res + 0x40) = -1;
+          *(int32_t *)(res + 0x44) = -1;
+          *(int32_t *)(res + 0x48) = -1;
+          res[0x4c] = 0;
+          res[0x4d] = 0;
+          *(int16_t *)(res + 0x4e) = -1;
+          found = 1;
+        }
+      } else {
+        bres = (char *)bsp_result;
+        if ((char)FUN_0014c8e0((int *)bsp_ctx, object_handle) != 0 &&
+            FUN_0014cb00((int)bsp_ctx, (void *)param_3, (void *)origin,
+                         (void *)direction, (int16_t *)bres) != 0 &&
+            *(float *)(res + 0x14) > *(float *)(bres + 8)) {
+          /* MOVSX at 0x14de65: the row selector is the signed short at +0x00.
+           */
+          idx = *(int16_t *)bres;
+          *(int16_t *)res = 3;
+          *(int32_t *)(res + 0x14) = *(int32_t *)(bres + 8);
+          FUN_0010a1c0((float *)(bsp_ctx[3] + idx * 0x34),
+                       *(float **)(bres + 0xc), (float *)(res + 0x24));
+          if (*(int32_t *)(bres + 0x14) < 0)
+            plane_negate((float *)(res + 0x24), (float *)(res + 0x24));
+          *(int16_t *)(res + 0x34) =
+            (int16_t)FUN_0014da80(bsp_ctx[1], *(int16_t *)(bres + 0x1a));
+          *(int16_t *)(res + 0x3c) = *(int16_t *)(bres + 2);
+          *(int16_t *)(res + 0x3e) = *(int16_t *)bres;
+          *(int16_t *)(res + 0x40) = *(int16_t *)(bres + 4);
+          *(int32_t *)(res + 0x44) = *(int32_t *)(bres + 0x10);
+          *(int32_t *)(res + 0x48) = *(int32_t *)(bres + 0x14);
+          res[0x4c] = bres[0x18];
+          *(int32_t *)(res + 0x38) = object_handle;
+          res[0x4d] = bres[0x19];
+          *(int16_t *)(res + 0x4e) = *(int16_t *)(bres + 0x1a);
+          found = 1;
+        }
+      }
+
+      child = *(int32_t *)(obj + 0xc8);
+      if (child != -1 &&
+          FUN_0014dce0(child, type_mask, param_3, origin, direction,
+                       exclude_handle, collision_result) != 0) {
+        found = 1;
+      }
+    }
+
+    object_handle = *(int32_t *)(obj + 0xc4);
+  } while (object_handle != -1);
+
+  return found;
+}
+
 /* 0x14e7d0
  *
  * Casts one ray [point, point+offset_vec] against the STRUCTURE bsp only (the
