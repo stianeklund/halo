@@ -461,6 +461,50 @@ float collision_surface_area(int bsp, int surface_index)
   return 0.0f;
 }
 
+/* 0x147990 - collision_surface_project_point2d
+ *
+ * Projects a 3D point onto a collision-BSP surface's 2D plane space by looking
+ * up the surface's plane and delegating to project_point2d.
+ *
+ * The collision_bsp tag block headers are 0xc bytes each and sit at fixed
+ * offsets from the bsp base; this function touches two of them:
+ *   +0x0c planes   (stride 0x10): 4 float32 plane equation (nx ny nz d)
+ *   +0x3c surfaces (stride 0x0c): surface[+0] = plane index
+ *
+ * surface[+0] carries a plane-flip flag in bit 31 (`AND EDX,0x7fffffff` at
+ * 0x1479ac), so the index must be masked before indexing the plane block --
+ * without the mask the lookup runs off the end of the block.
+ *
+ * param3/param4 are passed straight through; the original pushes both as full
+ * dwords ([EBP+0x10], [EBP+0x14]) and the callee's int16_t/uint8_t prototype
+ * performs the truncation.
+ *
+ * Returns out_point (MOV EAX,ESI at 0x1479d3, where ESI was reloaded from
+ * [EBP+0x1c] at 0x1479ba) -- the same pointer that was passed in, NOT a status
+ * code (lift-silent-bugs Check 16, void-EAX/wrong-return).
+ *
+ * Note on the frame: ADD ESP,0x2c at 0x1479d0 is a single coalesced cdecl
+ * cleanup for all three calls (3 + 3 + 5 dwords), not evidence of an 11-arg
+ * call (lift-decompiler-traps, cdecl ADD ESP mis-grouping).
+ *
+ * project_point2d writes 3 floats to out_point, so callers must supply a
+ * buffer of at least 12 bytes (projection-output-size, §5).
+ */
+int collision_surface_project_point2d(int bsp, int surface_index, int param3,
+                                      int param4, float *point,
+                                      float *out_point)
+{
+  int *surface;
+  float *plane;
+
+  surface =
+    (int *)tag_block_get_element((void *)(bsp + 0x3c), surface_index, 0xc);
+  plane = (float *)tag_block_get_element((void *)(bsp + 0xc),
+                                         *surface & 0x7fffffff, 0x10);
+  project_point2d(point, plane, param3, param4, out_point);
+  return (int)out_point;
+}
+
 /* 0x147d10 - collision_surface_test_line2d
  *
  * Clips a 2D line (point + direction) against one collision-BSP surface's

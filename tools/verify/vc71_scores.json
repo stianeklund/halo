@@ -28791,6 +28791,17 @@
       "score": 94.0,
       "source": "src/halo/physics/collision_bsp.c"
     },
+    "collision_surface_project_point2d": {
+      "addr": "0x147990",
+      "end": "0x1479d8",
+      "kind": "auto",
+      "n_r": 32,
+      "opnd_percent": 96.9,
+      "ref": "synth",
+      "ref_sha": "0bcde506d8661cdd",
+      "score": 100.0,
+      "source": "src/halo/physics/collision_bsp.c"
+    },
     "collision_surface_test_line2d": {
       "addr": "0x147d10",
       "end": "0x147ecc",

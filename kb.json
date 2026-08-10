@@ -37132,7 +37132,10 @@
     },
     {
      "addr": "0x147990",
-     "decl": "int collision_surface_project_point2d(int bsp, int surface_index, int param3, int param4, float *point, float *out_point);"
+     "decl": "int collision_surface_project_point2d(int bsp, int surface_index, int param3, int param4, float *point, float *out_point);",
+     "name": "collision_surface_project_point2d",
+     "ported": true,
+     "source_path": "src/halo/physics/collision_bsp.c"
     },
     {
      "addr": "0x1479e0",
