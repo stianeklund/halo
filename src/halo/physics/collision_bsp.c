@@ -4,6 +4,26 @@
  * from the generated decl.h via kb.json.
  */
 
+/* 0x147380
+ *
+ * __cdecl adapter over the bsp3d node walker at 0x1470b0. Forwards all seven
+ * caller arguments unchanged and injects 0xffffffff as the callee's third
+ * argument (`flags`); that constant is the only thing the thunk contributes.
+ * The callee's EAX result falls straight through the epilogue (no MOV/XOR
+ * after the CALL), so this thunk returns the callee's value.
+ *
+ * Binary: 8 pushes / ADD ESP,0x20 out, 7 dword params in at EBP+0x08..+0x20,
+ * plain RET (caller cleanup on both sides). Parameter types are taken from the
+ * callee's declaration; +0x18 is the callee's `float epsilon`.
+ */
+int FUN_00147380(
+  int tag_base, uint32_t node_index, float *verts, int counts, float epsilon,
+  void (*callback)(float *, int, unsigned int, unsigned int, void *), void *ctx)
+{
+  return FUN_001470b0(tag_base, node_index, 0xffffffff, verts, counts, epsilon,
+                      callback, ctx);
+}
+
 /* 0x1473b0 - collision_surface_edge_count
  *
  * Counts the edges around one collision-BSP surface by walking its circular

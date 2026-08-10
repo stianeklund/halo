@@ -19546,7 +19546,11 @@
      "addr": "0x170c90",
      "decl": "void FUN_00170c90(void *effect);"
     },
-    {"addr":"0x172520","decl":"void FUN_00172520(void);","ported":true},
+    {
+     "addr": "0x172520",
+     "decl": "void FUN_00172520(void);",
+     "ported": true
+    },
     {
      "addr": "0x172640",
      "decl": "void FUN_00172640(void);",
@@ -19752,7 +19756,11 @@
      "decl": "void rasterizer_window_set_fog(void);",
      "ported": true
     },
-    {"addr":"0x17c7d0","decl":"void FUN_0017C7D0(void);","ported":true},
+    {
+     "addr": "0x17c7d0",
+     "decl": "void FUN_0017C7D0(void);",
+     "ported": true
+    },
     {
      "addr": "0x17c7e0",
      "decl": "void rasterizer_frame_begin(float *a1);",
@@ -19793,8 +19801,16 @@
      "decl": "void rasterizer_frame_end(void);",
      "ported": true
     },
-    {"addr":"0x17c930","decl":"void rasterizer_dynamic_lit_geometry_draw(void *param_1, void *param_2);","ported":true},
-    {"addr":"0x17c940","decl":"void rasterizer_dynamic_screen_geometry_draw(void);","ported":true},
+    {
+     "addr": "0x17c930",
+     "decl": "void rasterizer_dynamic_lit_geometry_draw(void *param_1, void *param_2);",
+     "ported": true
+    },
+    {
+     "addr": "0x17c940",
+     "decl": "void rasterizer_dynamic_screen_geometry_draw(void);",
+     "ported": true
+    },
     {
      "addr": "0x17c950",
      "decl": "void rasterizer_set_vblank_callback(void *);",
@@ -19805,7 +19821,11 @@
      "decl": "void rasterizer_psuedo_dynamic_screen_quad_draw(int param_1);",
      "ported": true
     },
-    {"addr":"0x17c970","decl":"int rasterizer_widget_submit(int mode);","ported":true},
+    {
+     "addr": "0x17c970",
+     "decl": "int rasterizer_widget_submit(int mode);",
+     "ported": true
+    },
     {
      "addr": "0x17c980",
      "decl": "void *rasterizer_widget_begin(int handle);",
@@ -19813,32 +19833,44 @@
     },
     {
      "addr": "0x17c990",
-      "decl": "void rasterizer_widget_set_texture(int handle);",
-      "ported": true
+     "decl": "void rasterizer_widget_set_texture(int handle);",
+     "ported": true
     },
     {
      "addr": "0x17c9a0",
-      "decl": "void rasterizer_widget_set_tint_factor(int handle);",
-      "ported": true
+     "decl": "void rasterizer_widget_set_tint_factor(int handle);",
+     "ported": true
     },
     {
      "addr": "0x17c9b0",
      "decl": "int rasterizer_widget_set_zbuffer_enable(int param_1, int param_2);",
      "ported": true
     },
-    {"addr":"0x17c9c0","decl":"short rasterizer_widget_draw_sprite2d(int dynamic_vertex_buffer_index);","ported":true},
-    {"addr":"0x17c9d0","decl":"int rasterizer_widget_draw_sprite3d(int zbuf_result);","ported":true},
+    {
+     "addr": "0x17c9c0",
+     "decl": "short rasterizer_widget_draw_sprite2d(int dynamic_vertex_buffer_index);",
+     "ported": true
+    },
+    {
+     "addr": "0x17c9d0",
+     "decl": "int rasterizer_widget_draw_sprite3d(int zbuf_result);",
+     "ported": true
+    },
     {
      "addr": "0x17c9e0",
-      "decl": "void rasterizer_widget_end(int handle);",
-      "ported": true
+     "decl": "void rasterizer_widget_end(int handle);",
+     "ported": true
     },
     {
      "addr": "0x17c9f0",
      "decl": "void FUN_0017c9f0(int handle);",
      "ported": true
     },
-    {"addr":"0x17ca00","decl":"void FUN_0017ca00(void);","ported":true},
+    {
+     "addr": "0x17ca00",
+     "decl": "void FUN_0017ca00(void);",
+     "ported": true
+    },
     {
      "addr": "0x17ca10",
      "decl": "void rasterizer_hud_motion_sensor_blip_begin(float *p0, float *p1, float *color0, float *color1);",
@@ -19849,8 +19881,16 @@
      "decl": "void rasterizer_hud_motion_sensor_blip_draw(float *p0, float *p1, float *p2, float *color0, float *color1, float *color2);",
      "ported": true
     },
-    {"addr":"0x17ca30","decl":"void rasterizer_hud_motion_sensor_blip_end(void);","ported":true},
-    {"addr":"0x17ca40","decl":"void FUN_0017ca40(void);","ported":true}
+    {
+     "addr": "0x17ca30",
+     "decl": "void rasterizer_hud_motion_sensor_blip_end(void);",
+     "ported": true
+    },
+    {
+     "addr": "0x17ca40",
+     "decl": "void FUN_0017ca40(void);",
+     "ported": true
+    }
    ],
    "name": "rasterizer.obj",
    "source": "rasterizer/rasterizer.c"
@@ -37034,7 +37074,8 @@
    "functions": [
     {
      "addr": "0x147380",
-     "decl": "void FUN_00147380(void);"
+     "decl": "int FUN_00147380(int tag_base, uint32_t node_index, float *verts, int counts, float epsilon, void (*callback)(float *, int, unsigned int, unsigned int, void *), void *ctx);",
+     "ported": true
     },
     {
      "addr": "0x1473b0",
