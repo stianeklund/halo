@@ -127,3 +127,51 @@ void FUN_0006c860(char *cp, int cc, int stride)
     } while (cc > 0);
   }
 }
+
+/**
+ * Apply horizontal differencing over a scanline of 16-bit samples in place.
+ *
+ * The 16-bit twin of FUN_0006c860 (libtiff tif_predict.c horDiff16), and the
+ * encode-side inverse of FUN_0006c6f0. Every access is word-wide -- the body
+ * is `mov di,[ecx]` / `sub word ptr [ecx+edx*2],di` / `sub ecx,2` -- so the
+ * element type is 16-bit, not int. A 32-bit element type here is a silent
+ * width bug that still compiles.
+ *
+ * `cc` is a byte count halved to a word count before the compare. The halving
+ * is SIGNED in the binary (`cdq / sub eax,edx / sar eax,1` at 0x6c8d3-0x6c8dc),
+ * so `cc` stays a signed int; an unsigned count would emit a bare `shr`.
+ *
+ * Like the 8-bit differencer the walk runs BACKWARD, because the predecessor
+ * must still hold its ORIGINAL value when it is read: `lea ecx,[ecx+eax*2-2]`
+ * at 0x6c8e8 seeds the cursor at wp + (wc - stride) - 1 words and every body
+ * ends in `sub ecx,2`. Walking forward would feed already-differenced samples
+ * back in, and would still compile and still score.
+ *
+ * Bungie's copy omits the upstream stride==3 / stride==4 pipelined arms and
+ * keeps only the generic REPEAT4 tail: the binary goes from the LEA straight
+ * to the `cmp edx,4 / ja` bound check and the five-entry jump table at
+ * 0x6c944. The loop head is that `cmp edx,4`, not the switch body, so the
+ * stride dispatch is re-evaluated on every outer pass -- the do/while below
+ * reproduces that. Direction is `wp[stride] -= wp[0]`, destination FAR and
+ * source near; the subtraction is NOT reversible. Both compares are signed
+ * (`jle` / `jg`). ESI/EDI are saved only inside the taken branch, which is
+ * the MSVC shape of the guard wrapping the whole body -- a plain `if`, not an
+ * early `return`.
+ *
+ * @param wp     scanline base; at least `cc` bytes of caller memory.
+ * @param cc     byte count of the scanline (halved internally to words).
+ * @param stride words between a sample and its horizontal predecessor.
+ */
+void FUN_0006c8d0(unsigned short *wp, int cc, int stride)
+{
+  int wc = cc / 2;
+
+  if (wc > stride) {
+    wc -= stride;
+    wp += wc - 1;
+    do {
+      REPEAT4(stride, wp[stride] -= wp[0]; wp--)
+      wc -= stride;
+    } while (wc > 0);
+  }
+}
