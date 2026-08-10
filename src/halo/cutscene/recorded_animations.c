@@ -146,6 +146,27 @@ void recorded_animations_update(void)
   }
 }
 
+/* Return nonzero while an active recorded animation controls this unit. */
+char recorded_animation_controlling_unit(int unit_handle)
+{
+  data_iter_t iter;
+  char *thread;
+  char result;
+
+  result = 0;
+  data_iterator_new(&iter, *(data_t **)0x44df04);
+  thread = (char *)data_iterator_next(&iter);
+  while (thread != NULL) {
+    if (*(int *)(thread + 4) == unit_handle &&
+        (*(uint8_t *)(thread + 0xa) & 1) == 0) {
+      result = 1;
+      break;
+    }
+    thread = (char *)data_iterator_next(&iter);
+  }
+  return result;
+}
+
 /* Clear animation threads and zero the debug buffer for a new map. */
 void recorded_animations_initialize_for_new_map(void)
 {

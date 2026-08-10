@@ -43425,6 +43425,17 @@
       "score": 100.0,
       "source": "src/halo/objects/objects.c"
     },
+    "recorded_animation_controlling_unit": {
+      "addr": "0x94ff0",
+      "end": "0x9504b",
+      "kind": "auto",
+      "n_r": 41,
+      "opnd_percent": 92.0,
+      "ref": "synth",
+      "ref_sha": "52e2fcc0a266cfe8",
+      "score": 92.0,
+      "source": "src/halo/cutscene/recorded_animations.c"
+    },
     "recorded_animations_dispose": {
       "addr": "0x94c30",
       "end": "0x94c54",

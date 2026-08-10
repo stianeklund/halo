@@ -2983,6 +2983,16 @@
         "summary": "Advance all active recorded animation threads by one tick: tick per-type event stream via vtable, sanity-check against debug state, apply frame to unit; finished threads restore unit flags and are deleted."
       }
     },
+    "0x94ff0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Each 0x40-byte recorded-animation datum has a 32-bit unit handle at offset 0x04, and bit 0 of byte 0x0a excludes it from this query."
+      ],
+      "uncertain": [
+        "The semantic name and full layout of the 0x40-byte recorded-animation datum remain unproven; only its unit handle and tested flag bit are established here."
+      ]
+    },
     "0x95280": {
       "kind": "function",
       "status": "ported"
