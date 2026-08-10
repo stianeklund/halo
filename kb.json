@@ -32973,10 +32973,6 @@
    "data": [],
    "functions": [
     {
-     "addr": "0x58eb0",
-     "decl": "void FUN_00058eb0(void);"
-    },
-    {
      "addr": "0x58cc0",
      "decl": "void ai_scripting_follow_distance(unsigned int ai_index, int vehicle_handle, const char *seat_substring);",
      "ported": true
@@ -32990,7 +32986,24 @@
    "source": "ai/ai_script.c"
   },
   {
-   "data": [],
+   "data": [
+    {
+     "addr": "0x5ab26c",
+     "decl": "data_t *pursuit_data;"
+    },
+    {
+     "addr": "0x5ab270",
+     "decl": "data_t *encounter_data;"
+    },
+    {
+     "addr": "0x5ab274",
+     "decl": "void *platoon_array;"
+    },
+    {
+     "addr": "0x5ab278",
+     "decl": "void *squad_array;"
+    }
+   ],
    "functions": [
     {
      "addr": "0x53b80",
@@ -33367,6 +33380,11 @@
     {
      "addr": "0x58c40",
      "decl": "void FUN_00058c40(unsigned int ai_index, int vehicle_handle, const char *seat_substring);",
+     "ported": true
+    },
+    {
+     "addr": "0x58eb0",
+     "decl": "void encounters_initialize(void);",
      "ported": true
     },
     {

@@ -2781,6 +2781,42 @@ void ai_scripting_follow_distance(unsigned int ai_index, int vehicle_handle,
   FUN_00058af0(ai_index, vehicle_handle, (int)seat_substring, 1);
 }
 
+/* 0x00058eb0 — encounters_initialize.
+ *
+ * Allocates the four encounter-system game-state blocks and halts if any
+ * allocation fails.  Straight-line cdecl with NO prologue (no PUSH EBP, no
+ * SUB ESP, no locals): 0x58eb0..0x58f9f, single RET at 0x58f9e.
+ *
+ * Assert file/line recovered from the XBE rather than stamped from our own
+ * __FILE__/__LINE__: all four blocks push 0x25d27c
+ * ("c:\halo\SOURCE\ai\encounters.c") with line immediates
+ * 0x6e/0x71/0x74/0x77 = 110/113/116/119.  The reason strings
+ * (0x25d26c/0x25d258/0x25d240/0x25d224) are the stringized variable names, so
+ * assert_halt_at's #cond reproduces them exactly.
+ *
+ * game_state_malloc is called with the SAME string address pushed twice
+ * (PUSH 0x25d264 twice at the "squad" site, PUSH 0x25d250 twice at the
+ * "platoon" site) — a genuine duplicate argument, not a decompiler artifact.
+ *
+ * Codegen note: the original tests EAX BEFORE storing it
+ * (ADD ESP,0xc / TEST EAX,EAX / MOV [glob],EAX / JNZ), i.e. MSVC scheduled the
+ * global store between the test and the branch.  A plain
+ * `g = f(...); assert_halt_at(..., g);` reproduces that shape. */
+void encounters_initialize(void)
+{
+  encounter_data = game_state_data_new("encounter", 0x80, 0x6c);
+  assert_halt_at("c:\\halo\\SOURCE\\ai\\encounters.c", 110, encounter_data);
+
+  squad_array = game_state_malloc("squad", "squad", 0x8000);
+  assert_halt_at("c:\\halo\\SOURCE\\ai\\encounters.c", 113, squad_array);
+
+  platoon_array = game_state_malloc("platoon", "platoon", 0x1000);
+  assert_halt_at("c:\\halo\\SOURCE\\ai\\encounters.c", 116, platoon_array);
+
+  pursuit_data = game_state_data_new("ai pursuit", 0x100, 0x28);
+  assert_halt_at("c:\\halo\\SOURCE\\ai\\encounters.c", 119, pursuit_data);
+}
+
 /* 0x00058fa0 — encounter_dispose stub.
  * Called from ai_dispose (0x3f6f0). No teardown needed at this level.
  * Binary: single RET instruction. */

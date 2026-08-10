@@ -74,7 +74,7 @@ void ai_initialize(void)
   FUN_0005df80();
   actors_initialize();
   FUN_00064100();
-  FUN_00058eb0();
+  encounters_initialize();
   ai_script_initialize();
   ai_communication_initialize();
   actor_move_get_avoidance_direction();

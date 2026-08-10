@@ -1735,6 +1735,20 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x58cc0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Only the low 16 bits of vehicle_handle are logged (MOV ECX,EBX; AND ECX,0xffff at 0x58cff), while the full 32-bit handle is forwarded to FUN_00058af0 via EBX which stays live from the prologue through the tail call at 0x58d24."
+      ],
+      "uncertain": [
+        "The kb.json name ai_scripting_follow_distance disagrees with the binary: the trace format string at 0x25d1d0 reads '%s: ai_go_to_vehicle_override %s 0x%04X %s', and the function is the immediate sibling of ai_go_to_vehicle (0x58c40) forwarding to the same vehicle-entry order builder FUN_00058af0 with allow_type9=1, so the original Bungie name is almost certainly ai_go_to_vehicle_override."
+      ]
+    },
+    "0x58eb0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x58fa0": {
       "kind": "function",
       "status": "ported"

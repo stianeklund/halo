@@ -406,7 +406,7 @@ void FUN_0001c190(int actor_handle)
  * compiled as an out-of-line instance here).
  * MAXIMUM_SQUADS_PER_ENCOUNTER = 0x40; MAXIMUM_SQUADS_PER_MAP = 0x400.
  * squad_array (0x5ab278) is a flat game_state_malloc block of 0x8000 bytes
- * (0x400 * 0x20), initialized by FUN_00058eb0.
+ * (0x400 * 0x20), initialized by encounters_initialize (0x58eb0).
  *
  * Confirmed: encounter+0x4 = squad_base (int16_t), encounter+0x6 =
  *   squad_count (int16_t).  Each squad record is 0x20 bytes.

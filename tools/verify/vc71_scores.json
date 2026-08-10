@@ -30782,6 +30782,17 @@
       "score": 100.0,
       "source": "src/halo/ai/encounters.c"
     },
+    "encounters_initialize": {
+      "addr": "0x58eb0",
+      "end": "0x58f9f",
+      "kind": "auto",
+      "n_r": 65,
+      "opnd_percent": 73.8,
+      "ref": "synth",
+      "ref_sha": "3e1a5f8b80b3c4eb",
+      "score": 100.0,
+      "source": "src/halo/ai/encounters.c"
+    },
     "encounters_initialize_for_new_map": {
       "addr": "0x5b200",
       "end": "0x5b292",
