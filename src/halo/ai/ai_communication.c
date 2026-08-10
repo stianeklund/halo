@@ -203,6 +203,22 @@ void ai_communication_dispose_from_old_map(void)
   data_make_invalid(*(void **)0x6324ec);
 }
 
+/* ai_communication_packet_new (0x42d20): initialize 0x20-byte packet. */
+void ai_communication_packet_new(void *packet)
+{
+  if (packet == NULL) {
+    display_assert("information", "c:\\halo\\SOURCE\\ai\\ai_communication.c",
+                   0x300, 1);
+    system_exit(-1);
+  }
+
+  csmemset(packet, 0, 0x20);
+  *(int32_t *)packet = -1;
+  *(int16_t *)((char *)packet + 4) = -1;
+  *(int16_t *)((char *)packet + 6) = -1;
+  *(int16_t *)((char *)packet + 8) = -1;
+}
+
 /* ai_conversation_advance (0x43520) — iterate all conversations and mark
  * matching entries as advanced. For each conversation whose index field
  * (+0x2) matches param_1, sets byte +0x9 to 1. When the AI debug flag

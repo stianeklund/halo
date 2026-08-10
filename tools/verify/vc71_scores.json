@@ -26481,6 +26481,17 @@
       "score": 94.6,
       "source": "src/halo/ai/ai_communication.c"
     },
+    "ai_communication_packet_new": {
+      "addr": "0x42d20",
+      "end": "0x42d73",
+      "kind": "auto",
+      "n_r": 26,
+      "opnd_percent": 80.8,
+      "ref": "synth",
+      "ref_sha": "8465a4371bf92709",
+      "score": 100.0,
+      "source": "src/halo/ai/ai_communication.c"
+    },
     "ai_conversation_advance": {
       "addr": "0x43520",
       "end": "0x435a1",

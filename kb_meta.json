@@ -1266,6 +1266,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x42d20": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The function initializes a 0x20-byte packet and writes -1 sentinels at offsets 0x0, 0x4, 0x6, and 0x8."
+      ],
+      "uncertain": [
+        "The packet structure type and the semantic meanings of its initialized fields are not recovered."
+      ]
+    },
     "0x43520": {
       "kind": "function",
       "status": "ported"
