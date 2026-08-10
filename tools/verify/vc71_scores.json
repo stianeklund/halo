@@ -20033,6 +20033,17 @@
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
+    "FUN_0017a8a0": {
+      "addr": "0x17a8a0",
+      "end": "0x17aa5c",
+      "kind": "auto",
+      "n_r": 131,
+      "opnd_percent": 61.5,
+      "ref": "synth",
+      "ref_sha": "abebdbd3a3329666",
+      "score": 86.2,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_0017ad20": {
       "addr": "0x17ad20",
       "end": "0x17ad37",
@@ -20176,6 +20187,17 @@
       "score": 87.8,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
+    "FUN_0017c140": {
+      "addr": "0x17c140",
+      "end": "0x17c1ad",
+      "kind": "auto",
+      "n_r": 38,
+      "opnd_percent": 80.5,
+      "ref": "synth",
+      "ref_sha": "e24867b319005fc9",
+      "score": 80.5,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_0017c1b0": {
       "addr": "0x17c1b0",
       "end": "0x17c2ec",
@@ -20185,6 +20207,17 @@
       "ref": "synth",
       "ref_sha": "e64fb4576bc41898",
       "score": 93.8,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "FUN_0017c9f0": {
+      "addr": "0x17c9f0",
+      "end": "0x17c9f9",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "f0cdda5e703876ee",
+      "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_0017ca00": {
@@ -42567,6 +42600,17 @@
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
+    "rasterizer_widget_set_tint_factor": {
+      "addr": "0x17c9a0",
+      "end": "0x17c9a9",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "2a0a1362edb41220",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "rasterizer_widget_set_zbuffer_enable": {
       "addr": "0x17c9b0",
       "end": "0x17c9b9",
@@ -42594,10 +42638,10 @@
       "end": "0x17bc82",
       "kind": "auto",
       "n_r": 207,
-      "opnd_percent": 77.1,
+      "opnd_percent": 78.5,
       "ref": "synth",
       "ref_sha": "19548fe30fee0f7f",
-      "score": 94.5,
+      "score": 95.4,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "rasterizer_window_begin": {

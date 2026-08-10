@@ -5056,6 +5056,125 @@ void FUN_0017ad90(void)
 {
 }
 
+/* Render-target-0 viewport rectangle at 0x5a5bf4, in Bungie's rectangle2d
+ * field order (top, left, bottom, right) — the same block
+ * rasterizer_xbox_decals.c reads for D3DVIEWPORT8.Y/.Height. The order is
+ * proven by which extent scales which screen axis in FUN_0017a8a0: the
+ * right/left difference multiplies screen X, the bottom/top difference
+ * multiplies screen Y. (Two older comments in this tree call the bottom/top
+ * difference "width"; they are wrong and are not relied on here.) */
+#define VIEWPORT_LEFT (*(short *)0x5a5bf6)
+#define VIEWPORT_RIGHT (*(short *)0x5a5bfa)
+
+/* Active 4x4 projection matrix, rows at 0x5a5d60/0x5a5d70/0x5a5d80/0x5a5d90;
+ * rasterizer_xbox.c reaches the same block as +0x144 of the render globals.
+ * Indexed [row][col]. */
+#define PROJECTION_MATRIX(row, col) \
+  (*(const float *)(0x5a5d60 + (row) * 0x10 + (col) * 4))
+
+/* World-to-view matrix handed to matrix_transform_point (PUSH 0x5a5c2c
+ * @0x17a8e0). */
+#define WORLD_TO_VIEW_MATRIX ((float *)0x5a5c2c)
+
+/* 0x17a8a0 — project a world-space point plus a radius into screen space,
+ * returning whether it landed in front of the eye.
+ *
+ * out_screen receives (x, y, depth); out_extent receives the projected
+ * half-width and half-height of the radius. out_screen arrives in EBX
+ * (no store to it from any parameter slot, and FSTP float ptr [EBX] at
+ * 0x17a9dd is the first write), so it is annotated @<ebx> in kb.json;
+ * Ghidra's `void FUN_0017a8a0(void)` misses both that and the AL return
+ * (MOV AL,1 @0x17aa44 versus XOR AL,AL @0x17aa4d and MOV AL,CL @0x17aa55).
+ *
+ * Both guards are FCOMP against 0.0f with TEST AH,0x41: the guard is taken
+ * when C0 (less) or C3 (equal) is set, and unordered sets both, so each one
+ * is exactly C's `<= 0.0f` including the NaN case.
+ *
+ * The dot products are written in index order (row 0, 1, 2, then the
+ * translation row) even though the reference EMITS them row-2-first: VC71
+ * evaluates a left-associative x87 sum from the innermost term outwards, so
+ * `r0*v0 + r1*v1 + r2*v2 + r3` compiles to FLD [row2]; FMUL v2; FLD [row1];
+ * FMUL v1; FADDP; ... — writing the terms in the emitted order produces the
+ * mirror image and scores worse.
+ *
+ * Measured VC71 notes:
+ *   - Swapping each product to `v[k] * MATRIX[r][c]` is codegen-identical;
+ *     VC71 canonicalises FMUL operands for local*global and always loads the
+ *     local first, so the residual FPU-WARN operand-order lines here are not
+ *     source-addressable (they cost operand-normalised score only, not the
+ *     mnemonic score).
+ *   - Mirroring the original's `bool visible = 0; return visible;` flag on
+ *     the first guard (XOR CL,CL / MOV AL,CL) is score-neutral, so the plain
+ *     `return 0;` is kept. */
+bool FUN_0017a8a0(float *point, float radius, float *out_extent,
+                  float *out_screen)
+{
+  float view_point[3]; /* [EBP-0x1c..-0x14] matrix_transform_point output */
+  float radius_y;      /* [EBP-0x10] */
+  float radius_x;      /* [EBP-0xc]  */
+  float proj_z;        /* [EBP-8]  FST (not FSTP) -- stays live in ST0 */
+  float proj_y;        /* [EBP-4]  */
+  float inv_w;
+  float depth;
+  short viewport_width;
+  int viewport_extent; /* packed (bottom,right)-(top,left); low word = height */
+
+  if (!(radius > 0.0f)) {
+    return 0;
+  }
+
+  /* Width via word ops (MOV SI,[0x5a5bfa]; SUB SI,[0x5a5bf6]); height via one
+   * 32-bit subtraction of the packed (top,left)/(bottom,right) dwords whose
+   * low word is then sign-extended (MOV EDI,[0x5a5bf8]; SUB EDI,EDX;
+   * MOVSX EAX,DI) -- the same idiom already used at 0x17bb2b in this TU. */
+  viewport_width = VIEWPORT_RIGHT - VIEWPORT_LEFT;
+  viewport_extent = *(int *)0x5a5bf8 - *(int *)0x5a5bf4;
+
+  matrix_transform_point(WORLD_TO_VIEW_MATRIX, point, view_point);
+
+  proj_y = PROJECTION_MATRIX(0, 1) * view_point[0] +
+           PROJECTION_MATRIX(1, 1) * view_point[1] +
+           PROJECTION_MATRIX(2, 1) * view_point[2] + PROJECTION_MATRIX(3, 1);
+  proj_z = PROJECTION_MATRIX(0, 2) * view_point[0] +
+           PROJECTION_MATRIX(1, 2) * view_point[1] +
+           PROJECTION_MATRIX(2, 2) * view_point[2] + PROJECTION_MATRIX(3, 2);
+  radius_x = PROJECTION_MATRIX(0, 0) * radius;
+  radius_y = PROJECTION_MATRIX(1, 1) * radius;
+
+  if (!(proj_z > 0.0f)) {
+    return 0;
+  }
+
+  inv_w = 1.0f / (PROJECTION_MATRIX(0, 3) * view_point[0] +
+                  PROJECTION_MATRIX(1, 3) * view_point[1] +
+                  PROJECTION_MATRIX(2, 3) * view_point[2] +
+                  PROJECTION_MATRIX(3, 3));
+
+  out_screen[0] = (((PROJECTION_MATRIX(0, 0) * view_point[0] +
+                     PROJECTION_MATRIX(1, 0) * view_point[1] +
+                     PROJECTION_MATRIX(2, 0) * view_point[2] +
+                     PROJECTION_MATRIX(3, 0)) *
+                        inv_w +
+                    1.0f) *
+                       (float)viewport_width -
+                   1.0f) *
+                  0.5f;
+  out_screen[1] =
+    ((1.0f - inv_w * proj_y) * (float)(short)viewport_extent - 1.0f) * 0.5f;
+
+  /* FLD 1.0f ; FCOMP -- the constant is the left operand, so the clamp is
+   * written 1.0f <= depth rather than depth >= 1.0f. */
+  depth = inv_w * proj_z;
+  if (!(1.0f > depth)) {
+    depth = 1.0f;
+  }
+  out_screen[2] = depth;
+
+  out_extent[0] = (float)viewport_width * inv_w * radius_x * 0.5f;
+  out_extent[1] = (float)(short)viewport_extent * inv_w * radius_y * 0.5f;
+  return 1;
+}
+
 /* rasterizer_widget_submit_occlusion_test (0x17ba10): submit one screen-space
  * quad to the Xbox D3D occlusion-query ("visibility test") unit for a HUD
  * widget / lens-flare style point.
@@ -5506,6 +5625,68 @@ int FUN_0017c000(short register_index, short mapping_index)
   return SHADER_TRANSPARENT_GENERIC_ALPHA_MAPPING_TABLE[mapping_index] | base;
 }
 
+/* The two shader_transparent_generic map fields validated by FUN_0017c140.
+ * Both names are taken from the error strings the checks report with —
+ * 0x2af00c "has no associated bitmap" and 0x2aefc0 "has non-zero mipmap
+ * bias"; the widths are proven by the accessing instruction listed against
+ * each. */
+#define MAP_BITMAP_TAG_REFERENCE(map) \
+  (*(int *)((char *)(map) + 0x28)) /* CMP dword [ESI+0x28],-1 @0x17c167 */
+#define MAP_MIPMAP_BIAS(map) \
+  (*(float *)((char *)(map) + 0x18)) /* FLD  float [ESI+0x18]  @0x17c182 */
+
+/* 0x17c140 — validate one shader_transparent_generic map, reporting every
+ * problem it finds and returning whether the map came through clean.
+ *
+ * Same shape as FUN_0017c1b0 below: no prologue at all, so the map pointer
+ * arrives in ESI (TEST ESI,ESI is the first instruction) and the map index in
+ * DI (MOVSX EAX/ECX,DI before each error() push). PUSH EBX / MOV BL,1 at
+ * 0x17c142/0x17c143 set up a running "valid" flag returned in AL by the two
+ * tails at 0x17c1a5 (XOR AL,AL) and 0x17c1a9 (MOV AL,BL) — Ghidra's `void`
+ * return is wrong. The assert is at source line 0x13c and tails into
+ * system_exit(-1).
+ *
+ * The bias test is FLD [ESI+0x18] / FCOMP [0x2533c0] / FNSTSW AX /
+ * TEST AH,0x44 / JNP. 0x2533c0 holds 0.0f, and the mask reaches the clean
+ * tail only when AH&0x44 == 0x40 (C3 alone, i.e. ordered-equal); a non-zero
+ * bias and an unordered compare both fall into the report. That is exactly
+ * C's `!=`, which is what is written here.
+ *
+ * Measured VC71 notes, so the next session does not re-derive them:
+ *   - `!= 0.0f` and `!= *(const float *)0x2533c0` compile identically (both
+ *     load the constant and use FUCOMPP); the original's `FCOMP <mem>` form
+ *     is not reachable from either spelling. Costs 1 instruction.
+ *   - Inverting to `if (bias == 0.0f) return valid;` with the report as the
+ *     fall-through is worse: 78.2% and an FCOM-WARN. */
+bool FUN_0017c140(void *map, short map_index)
+{
+  bool valid;
+
+  valid = 1;
+  if (map == 0) {
+    display_assert("map",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                   "generic_preprocessor.c",
+                   0x13c, 1);
+    system_exit(-1);
+  }
+
+  if (MAP_BITMAP_TAG_REFERENCE(map) == -1) {
+    error(2, "### ERROR transparent shader map #%d has no associated bitmap",
+          (int)map_index);
+    valid = 0;
+  }
+
+  if (MAP_MIPMAP_BIAS(map) != 0.0f) {
+    error(2,
+          "### ERROR unsupported: transparent shader map #%d has non-zero "
+          "mipmap bias",
+          (int)map_index);
+    return 0;
+  }
+  return valid;
+}
+
 /* The six output-register selector fields tested by FUN_0017c1b0. They form
  * two structurally identical triples (one per combiner side): the colour side
  * at +0x4c/+0x50/+0x54 interleaves with the already-named AB/CD function
@@ -5767,6 +5948,15 @@ void rasterizer_widget_set_texture(int handle)
   FUN_0015eb90(handle);
 }
 
+/* Adapter thunk (PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15d300).  The callee
+ * at 0x15d300 is a single RET followed by NOP padding -- a stripped no-op in
+ * rasterizer_decals.obj -- so the tint factor is discarded in this build.
+ * Kept as a real call so the redirect preserves the original control flow. */
+void rasterizer_widget_set_tint_factor(int handle)
+{
+  FUN_0015d300(handle);
+}
+
 int rasterizer_widget_set_zbuffer_enable(int param_1, int param_2)
 {
   return FUN_0015d310((short)param_1, param_2);
@@ -5785,6 +5975,13 @@ int rasterizer_widget_draw_sprite3d(int zbuf_result)
 void rasterizer_widget_end(int handle)
 {
   FUN_0015ee80(handle);
+}
+
+/* Adapter thunk (PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15d5a0).  As with
+ * rasterizer_widget_set_tint_factor, the callee at 0x15d5a0 is a lone RET. */
+void FUN_0017c9f0(int handle)
+{
+  FUN_0015d5a0(handle);
 }
 
 void FUN_0017ca00(void)

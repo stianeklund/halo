@@ -19687,7 +19687,8 @@
     },
     {
      "addr": "0x17a8a0",
-     "decl": "bool FUN_0017a8a0(float *point, float radius, float *out_extent, float *out_screen @<ebx>);"
+     "decl": "bool FUN_0017a8a0(float *point, float radius, float *out_extent, float *out_screen @<ebx>);",
+     "ported": true
     },
     {
      "addr": "0x17ad20",
@@ -19737,7 +19738,8 @@
     },
     {
      "addr": "0x17c140",
-     "decl": "void FUN_0017c140(void);"
+     "decl": "bool FUN_0017c140(void *map@<esi>, short map_index@<di>);",
+     "ported": true
     },
     {
      "addr": "0x17c1b0",
@@ -19819,7 +19821,8 @@
     },
     {
      "addr": "0x17c9a0",
-      "decl": "void rasterizer_widget_set_tint_factor(int handle);"
+      "decl": "void rasterizer_widget_set_tint_factor(int handle);",
+      "ported": true
     },
     {
      "addr": "0x17c9b0",
@@ -19835,7 +19838,8 @@
     },
     {
      "addr": "0x17c9f0",
-     "decl": "void FUN_0017c9f0(int handle);"
+     "decl": "void FUN_0017c9f0(int handle);",
+     "ported": true
     },
     {"addr":"0x17ca00","decl":"void FUN_0017ca00(void);","ported":true},
     {
@@ -20247,6 +20251,14 @@
      "decl": "int FUN_0015d2d0(int index@<eax>, int a2@<ecx>, int s1, int s2, int s3, int s4);",
      "ported": true,
      "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    {
+     "addr": "0x15d300",
+     "decl": "void FUN_0015d300(int handle);"
+    },
+    {
+     "addr": "0x15d5a0",
+     "decl": "void FUN_0015d5a0(int handle);"
     },
     {
      "addr": "0x15d310",
