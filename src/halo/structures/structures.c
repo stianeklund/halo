@@ -384,7 +384,7 @@ void obstacles_get_discs_in_sphere(int16_t *obstacle_set, float *center,
   uint32_t handles[256]; /* EBP-0x464: object_find_in_radius scratch */
   float matrix[13];      /* EBP-0x64 : object world matrix (scale + 3x4) */
   float position[3];     /* EBP-0x2c : transformed disc centre */
-  int i;                 /* EBP-0x20 */
+  volatile int i;        /* EBP-0x20 (original keeps the counter in memory) */
   int *block;            /* EBP-0x1c : coll+0x280 tag block */
   unsigned int remaining;/* EBP-0x18 */
   float dx;              /* EBP-0x14 */

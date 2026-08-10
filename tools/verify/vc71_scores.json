@@ -2136,10 +2136,10 @@
       "end": "0x37b24",
       "kind": "auto",
       "n_r": 122,
-      "opnd_percent": 95.0,
+      "opnd_percent": 94.7,
       "ref": "synth",
       "ref_sha": "08e9e66a71598382",
-      "score": 95.9,
+      "score": 97.1,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00037b50": {
@@ -2147,10 +2147,10 @@
       "end": "0x37d15",
       "kind": "auto",
       "n_r": 174,
-      "opnd_percent": 93.6,
+      "opnd_percent": 93.4,
       "ref": "synth",
       "ref_sha": "2997b9df508cd1f6",
-      "score": 94.8,
+      "score": 95.7,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00037d50": {
@@ -2158,10 +2158,10 @@
       "end": "0x37fcb",
       "kind": "auto",
       "n_r": 232,
-      "opnd_percent": 93.9,
+      "opnd_percent": 93.7,
       "ref": "synth",
       "ref_sha": "8737a18a6f6ae9b4",
-      "score": 95.2,
+      "score": 95.9,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038000": {
@@ -2169,10 +2169,10 @@
       "end": "0x381c5",
       "kind": "auto",
       "n_r": 174,
-      "opnd_percent": 93.6,
+      "opnd_percent": 93.4,
       "ref": "synth",
       "ref_sha": "3f58c592c12dc508",
-      "score": 94.8,
+      "score": 95.7,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038200": {
@@ -2180,10 +2180,10 @@
       "end": "0x38338",
       "kind": "auto",
       "n_r": 122,
-      "opnd_percent": 95.0,
+      "opnd_percent": 94.7,
       "ref": "synth",
       "ref_sha": "dbeccf330424ae55",
-      "score": 95.9,
+      "score": 97.1,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038370": {
@@ -2202,10 +2202,10 @@
       "end": "0x38adf",
       "kind": "auto",
       "n_r": 229,
-      "opnd_percent": 94.1,
+      "opnd_percent": 94.3,
       "ref": "synth",
       "ref_sha": "4e9ec6e207b23e8a",
-      "score": 94.9,
+      "score": 95.6,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038b10": {
@@ -2224,10 +2224,10 @@
       "end": "0x38d71",
       "kind": "auto",
       "n_r": 105,
-      "opnd_percent": 94.2,
+      "opnd_percent": 93.8,
       "ref": "synth",
       "ref_sha": "f01864d040027453",
-      "score": 95.2,
+      "score": 96.7,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038da0": {
@@ -2279,10 +2279,10 @@
       "end": "0x3a159",
       "kind": "auto",
       "n_r": 204,
-      "opnd_percent": 91.6,
+      "opnd_percent": 92.4,
       "ref": "synth",
       "ref_sha": "73494776c4b535ef",
-      "score": 94.1,
+      "score": 94.8,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a190": {
@@ -2290,10 +2290,10 @@
       "end": "0x3a380",
       "kind": "auto",
       "n_r": 188,
-      "opnd_percent": 94.1,
+      "opnd_percent": 93.9,
       "ref": "synth",
       "ref_sha": "54d53a06bae6b6ca",
-      "score": 95.2,
+      "score": 96.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a3b0": {
@@ -2312,10 +2312,10 @@
       "end": "0x3a5d0",
       "kind": "auto",
       "n_r": 133,
-      "opnd_percent": 92.8,
+      "opnd_percent": 92.5,
       "ref": "synth",
       "ref_sha": "3fb59a09c99b2958",
-      "score": 95.1,
+      "score": 96.2,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a600": {
@@ -39411,10 +39411,10 @@
       "end": "0x62408",
       "kind": "auto",
       "n_r": 261,
-      "opnd_percent": 68.3,
+      "opnd_percent": 81.2,
       "ref": "synth",
       "ref_sha": "4b0a5a00d2631bbf",
-      "score": 95.6,
+      "score": 97.3,
       "source": "src/halo/structures/structures.c"
     },
     "orientations_interpolate": {

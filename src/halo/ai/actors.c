@@ -1048,7 +1048,6 @@ void FUN_000379f0(int actor_handle)
 {
   char *actor;
   char cVar1;
-  int uVar3;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   (void)tag_get(0x61637472, ((actor_t *)actor)->field_058);
@@ -1078,8 +1077,8 @@ void FUN_000379f0(int actor_handle)
     /* PUSH 0x0 at 0x37aa2 is pre-positioned residue for handle_combat_status
      * 3rd arg; actor_action_can_stop_guarding takes 3 args (ADD ESP,0xc at
      * 0x37aae cleans 3). */
-    uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
-    actor_action_handle_combat_status(actor_handle, uVar3, 0);
+    actor_action_handle_combat_status(
+      actor_handle, actor_action_can_stop_guarding(actor_handle, 3, 6), 0);
     return;
   case 4:
     if (((actor_t *)actor)->field_0aa != '\0') {
@@ -1150,8 +1149,8 @@ void FUN_00037b50(int actor_handle)
     actor_action_handle_evasion(actor_handle);
     return;
   case 6:
-    uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
-    actor_action_handle_combat_status(actor_handle, uVar3, 0);
+    actor_action_handle_combat_status(
+      actor_handle, actor_action_can_stop_guarding(actor_handle, 3, 6), 0);
     return;
   case 4:
     if (((actor_t *)actor)->field_0aa != '\0') {
@@ -1281,8 +1280,8 @@ void FUN_00037d50(int actor_handle)
         ((actor_t *)actor)->field_0a8 = 0x1e;
       }
     }
-    uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
-    actor_action_handle_combat_status(actor_handle, uVar3, 0);
+    actor_action_handle_combat_status(
+      actor_handle, actor_action_can_stop_guarding(actor_handle, 3, 6), 0);
     return;
   case 4:
     if (((actor_t *)actor)->field_0aa != '\0') {
@@ -1398,8 +1397,8 @@ void FUN_00038000(int actor_handle)
   case 6:
     /* PUSH 0x0 at 0x380ba is pre-positioned residue for handle_combat_status
      * 3rd arg; ADD ESP,0xc at 0x380c6 cleans 3 args for can_stop_guarding. */
-    uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
-    actor_action_handle_combat_status(actor_handle, uVar3, 0);
+    actor_action_handle_combat_status(
+      actor_handle, actor_action_can_stop_guarding(actor_handle, 3, 6), 0);
     return;
   case 4:
     if (((actor_t *)actor)->field_0aa == '\0') {
@@ -1476,7 +1475,6 @@ void FUN_00038200(int actor_handle)
 {
   char *actor;
   char cVar1;
-  int uVar3;
   unsigned char bVar1;
   unsigned char bVar2;
 
@@ -1513,8 +1511,8 @@ void FUN_00038200(int actor_handle)
   case 6:
     /* PUSH 0x0 at 0x382c3 is pre-positioned residue for combat_status 3rd arg;
      * ADD ESP,0xc at 0x382cf cleans 3 args for can_stop_guarding. */
-    uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
-    actor_action_handle_combat_status(actor_handle, uVar3, 0);
+    actor_action_handle_combat_status(
+      actor_handle, actor_action_can_stop_guarding(actor_handle, 3, 6), 0);
     return;
   case 5:
   case 7:
@@ -1891,8 +1889,8 @@ void FUN_00038880(int actor_handle)
     actor_action_handle_evasion(actor_handle);
     return;
   case 6:
-    uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
-    actor_action_handle_combat_status(actor_handle, uVar3, 0);
+    actor_action_handle_combat_status(
+      actor_handle, actor_action_can_stop_guarding(actor_handle, 3, 6), 0);
     return;
   case 4:
     if (bVar_247 != '\0') {
@@ -2048,7 +2046,6 @@ void FUN_00038c70(int actor_handle)
 {
   char *actor;
   char cVar1;
-  int uVar3;
   unsigned char bVar1;
   unsigned char bVar2;
 
@@ -2077,8 +2074,8 @@ void FUN_00038c70(int actor_handle)
     actor_action_handle_done_fleeing(actor_handle);
     return;
   case 6:
-    uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
-    actor_action_handle_combat_status(actor_handle, uVar3, 0);
+    actor_action_handle_combat_status(
+      actor_handle, actor_action_can_stop_guarding(actor_handle, 3, 6), 0);
     return;
   case 5:
   case 7:
@@ -2921,8 +2918,8 @@ void FUN_00039f30(int actor_handle)
         ((actor_t *)actor)->field_0a8 = 0;
       }
     }
-    uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
-    actor_action_handle_combat_status(actor_handle, uVar3, 0);
+    actor_action_handle_combat_status(
+      actor_handle, actor_action_can_stop_guarding(actor_handle, 3, 6), 0);
     return;
   case 4:
     if (((actor_t *)actor)->field_0aa != '\0') {
@@ -3018,8 +3015,8 @@ void FUN_0003a190(int actor_handle)
     actor_action_handle_evasion(actor_handle);
     return;
   case 6:
-    uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
-    actor_action_handle_combat_status(actor_handle, uVar3, 0);
+    actor_action_handle_combat_status(
+      actor_handle, actor_action_can_stop_guarding(actor_handle, 3, 6), 0);
     return;
   case 4:
     if (((actor_t *)actor)->field_0aa != '\0') {
@@ -3163,8 +3160,8 @@ void FUN_0003a480(int actor_handle)
     actor_action_handle_evasion(actor_handle);
     return;
   case 6:
-    uVar3 = actor_action_can_stop_guarding(actor_handle, 3, 6);
-    actor_action_handle_combat_status(actor_handle, uVar3, 0);
+    actor_action_handle_combat_status(
+      actor_handle, actor_action_can_stop_guarding(actor_handle, 3, 6), 0);
     return;
   case 4:
     if (((actor_t *)actor)->field_0aa != '\0') {
