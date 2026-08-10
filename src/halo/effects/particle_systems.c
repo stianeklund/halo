@@ -75,13 +75,12 @@ void particle_system_delete(int particle_system_handle)
 {
   char *entry, *tag, *particle_entry;
   int particle_index, next_particle;
-  int i, instance_count;
+  short i;
 
   entry =
     (char *)datum_get(particle_system_header_data, particle_system_handle);
   tag = (char *)tag_get(0x7063746c, *(int *)(entry + 8));
-  instance_count = *(int *)(tag + 0x5c);
-  for (i = 0; i < instance_count; i++) {
+  for (i = 0; i < *(int *)(tag + 0x5c); i++) {
     particle_index = *(int *)(entry + 0x94 + i * 0x40);
     while (particle_index != NONE) {
       particle_entry = (char *)datum_get(particle_system_data, particle_index);

@@ -39433,10 +39433,10 @@
       "end": "0x9f7b6",
       "kind": "auto",
       "n_r": 63,
-      "opnd_percent": 65.5,
+      "opnd_percent": 96.8,
       "ref": "synth",
       "ref_sha": "ee031900df4eb645",
-      "score": 82.4,
+      "score": 98.4,
       "source": "src/halo/effects/particle_systems.c"
     },
     "particle_system_update": {
