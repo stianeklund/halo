@@ -28846,6 +28846,17 @@
       "score": 96.0,
       "source": "src/halo/physics/collision_bsp.c"
     },
+    "collision_surface_test_point2d": {
+      "addr": "0x1479e0",
+      "end": "0x147ad7",
+      "kind": "auto",
+      "n_r": 104,
+      "opnd_percent": 82.0,
+      "ref": "synth",
+      "ref_sha": "38b356dbf275b247",
+      "score": 91.7,
+      "source": "src/halo/physics/collision_bsp.c"
+    },
     "component_vectors_from_normal3d": {
       "addr": "0x1094d0",
       "end": "0x1094fb",

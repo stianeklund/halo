@@ -505,6 +505,79 @@ int collision_surface_project_point2d(int bsp, int surface_index, int param3,
   return (int)out_point;
 }
 
+/* 0x1479e0 - collision_surface_test_point2d
+ *
+ * Point-in-surface test in the surface's 2D projection space. Walks the
+ * winged-edge ring of one collision-BSP surface; the point is inside iff it
+ * lies on the non-positive side of every bounding edge.
+ *
+ * Same tag block geometry as collision_surface_polygon:
+ *   bsp+0x3c surfaces (stride 0xc): surface[+4] = first-edge index
+ *   bsp+0x48 edges    (stride 0x18): edge[0]/edge[1] endpoint vertex indices,
+ *                                    edge[2]/edge[3] next-edge links,
+ *                                    edge[5] (+0x14) owning surface index
+ *   bsp+0x54 vertices (stride 0x10)
+ * `side` = (edge[5] == surface_index) selects this surface's half-edge slot,
+ * so the ring is traversed consistently: the leading endpoint is edge[side],
+ * the trailing one edge[!side], and the link forward is edge[2 + side].
+ * The original computes !side as a SECOND `sete` off the same compare
+ * (XOR ECX,ECX / TEST BL,BL / SETE CL at 0x147a41), not as 1 - side.
+ *
+ * Both endpoints are projected to 2D with the caller's projection basis
+ * (param3) and axis sign (param4); FUN_00061df0 writes 2 floats, hence the
+ * float[2] scratch pairs rather than scalars (Ghidra's local_18/local_14 and
+ * local_20/local_1c are NOT in buffer order -- a2d is [EBP-0x14], b2d is
+ * [EBP-0x1c]; lift-decompiler-traps buffer-alias confusion).
+ *
+ * Rejection test, FPU operand order verified instruction-by-instruction at
+ * 0x147a83-0x147aa2 (cross-product operand swap, lift-decompiler-traps
+ * Trap 4 -- swapping the two products negates the test and inverts
+ * inside/outside for every collision surface):
+ *   (point.y - b2d.y) * (point.x - a2d.x) - (point.x - b2d.x) * (point.y -
+ * a2d.y) FCOMP is against the .rdata pooled 0.0f at 0x2533c0, and TEST AH,0x41
+ * / JE takes the C0=C3=0 path (strictly greater) to the XOR AL,AL return, i.e.
+ * `> 0.0f` rejects. Returns are MOV AL,1 / XOR AL,AL -- bool in AL.
+ *
+ * ADD ESP,0x44 at 0x147a88 is one coalesced cdecl cleanup for the four calls
+ * that follow the first (0x18 + 0x10 + 0x10 dwords of args plus the two
+ * projections), not a 17-argument call (lift-decompiler-traps, cdecl ADD ESP
+ * mis-grouping). The hazard scanner's ARG_COUNT warning on 0x147a7e is this.
+ */
+char collision_surface_test_point2d(int bsp, int surface_index, int param3,
+                                    int param4, float *point)
+{
+  void *edges;
+  int side;
+  int first_edge;
+  int edge_index;
+  int *edge;
+  void *va;
+  void *vb;
+  float a2d[2];
+  float b2d[2];
+
+  first_edge = *(int *)((char *)tag_block_get_element((void *)(bsp + 0x3c),
+                                                      surface_index, 0xc) +
+                        4);
+  edges = (void *)(bsp + 0x48);
+  edge_index = first_edge;
+  do {
+    edge = (int *)tag_block_get_element(edges, edge_index, 0x18);
+    side = (edge[5] == surface_index);
+    va = tag_block_get_element((void *)(bsp + 0x54), edge[side], 0x10);
+    vb = tag_block_get_element((void *)(bsp + 0x54), edge[!side], 0x10);
+    FUN_00061df0(va, (short)param3, (unsigned char)param4, a2d);
+    FUN_00061df0(vb, (short)param3, (unsigned char)param4, b2d);
+    if ((point[1] - b2d[1]) * (point[0] - a2d[0]) -
+          (point[0] - b2d[0]) * (point[1] - a2d[1]) >
+        0.0f) {
+      return 0;
+    }
+    edge_index = edge[2 + side];
+  } while (edge_index != first_edge);
+  return 1;
+}
+
 /* 0x147d10 - collision_surface_test_line2d
  *
  * Clips a 2D line (point + direction) against one collision-BSP surface's
@@ -736,8 +809,8 @@ typedef struct {
  * sub esp,0x10), which is a structural mismatch against the binary. */
 bool __declspec(noinline)
 collision_bsp_test_pill_new(int bsp3d, short flags, int param3, float *origin,
-                            float *direction, float radius,
-                            float *out_distance, float *out_normal)
+                            float *direction, float radius, float *out_distance,
+                            float *out_normal)
 {
   bsp3d_pill_test_data data;
 
