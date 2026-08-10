@@ -37241,7 +37241,8 @@
     },
     {
      "addr": "0x14e7d0",
-     "decl": "char FUN_0014e7d0(uint32_t collision_flags, float *point, float *offset_vec, float p4, int unit_handle, void *result);"
+     "decl": "char FUN_0014e7d0(uint32_t collision_flags, float *point, float *offset_vec, float p4, int unit_handle, void *result);",
+     "ported": true
     },
     {
      "addr": "0x14e940",

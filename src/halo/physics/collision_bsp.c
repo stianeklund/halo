@@ -972,6 +972,142 @@ char FUN_0014dc30(int param_1, float *pos, int param_3)
   return 0;
 }
 
+/* 0x14e7d0
+ *
+ * Casts one ray [point, point+offset_vec] against the STRUCTURE bsp only (the
+ * bsp handed back by global_collision_bsp_get) and fills the caller's 0x50-byte
+ * collision-result record. The walker at 0x149c60 both reports the nearest hit
+ * and accumulates the list of leaves the ray crossed; both are consumed here.
+ *
+ * FRAME (0x14e7d3: SUB ESP,0x420): the whole frame is ONE contiguous 1056-byte
+ * scratch record at EBP-0x420, handed to the walker as its last argument
+ * (0x14e7e8: LEA EAX,[EBP-0x420]). Every "local" Ghidra invents for this
+ * function is a field inside that record (CLAUDE.md buffer-alias pitfall 5):
+ *   +0x00 out distance, +0x04..+0x10 the four dwords copied to result+0x24,
+ *   +0x14 -> result+0x44, +0x1a a 16-bit value copied to result+0x34 AND
+ *   +0x4e, +0x1c the leaf count, +0x20.. the leaf index array. The record must
+ *   stay one object - separate locals do not reproduce the layout and the
+ *   callee writes past them.
+ *
+ * Call at 0x14e80b is cdecl (ADD ESP,0x18 = 6 dwords). Pushed right-to-left:
+ * &scratch, 0x7f7fffff, [EBP+0x14], [EBP+0x10], [EBP+0xc], then the getter's
+ * EAX - i.e. (bsp, point, offset_vec, p4, FLT_MAX, &scratch). Both float args
+ * go out as plain dword pushes (MOV ECX,[EBP+0x14] / PUSH ECX and
+ * PUSH 0x7f7fffff), the usual MSVC form for forwarding a float parameter and
+ * for a float literal - do not convert either value.
+ *
+ * `unit_handle` ([EBP+0x18]) is never referenced by the body; it keeps its
+ * mechanical name. ESI caches the result pointer from [EBP+0x1c] throughout,
+ * and is destroyed (ADD ESI,0xc at 0x14e90c) before the tail call, so the
+ * +0x18 pointer is captured first.
+ *
+ * The +0x24..+0x30 block is copied with integer MOVs (0x14e826..0x14e849), not
+ * FLD/FSTP, so it is written here as dword copies through the raw record
+ * pointer rather than through collision_test_result's float fields - typing
+ * them as floats would emit an x87 copy the original does not have.
+ *
+ * Both cluster lookups read MOVSX EAX,word ptr [elem+8] - a sign-extending
+ * 16-bit load. The -1 path reaches the same store via OR EAX,EAX with EAX
+ * already 0xffffffff, which is the same visible value as cluster = -1.
+ *
+ * result+0x14 is seeded to FLT_MAX at entry, replaced by the walker's distance
+ * on a hit, and forced to 1.0f at 0x14e8f7 when the hit flag never got set.
+ *
+ * Return: MOV AL,BL - the char hit flag.
+ */
+typedef struct {
+  float best_dist; /* 0x00 - out distance written by the walker */
+  int32_t field_04; /* 0x04 - copied verbatim to result+0x24 */
+  int32_t field_08; /* 0x08 - copied verbatim to result+0x28 */
+  int32_t field_0c; /* 0x0c - copied verbatim to result+0x2c */
+  int32_t field_10; /* 0x10 - copied verbatim to result+0x30 */
+  int32_t field_14; /* 0x14 - copied verbatim to result+0x44 */
+  int16_t pad_18; /* 0x18 - never read back */
+  int16_t field_1a; /* 0x1a - 16-bit, copied to result+0x34 and +0x4e */
+  int32_t count; /* 0x1c - number of leaf indices gathered */
+  uint32_t indices[256]; /* 0x20 - leaf indices, [0] first and [count-1] last */
+} collision_bsp_test_vector_scratch;
+
+char FUN_0014e7d0(uint32_t collision_flags, float *point, float *offset_vec,
+                  float p4, int unit_handle, void *result)
+{
+  collision_bsp_test_vector_scratch scratch;
+  char *out;
+  char hit;
+  uint32_t index;
+  int32_t cluster;
+  void *elem;
+  float t;
+
+  out = (char *)result;
+  hit = 0;
+
+  *(int16_t *)out = -1;
+  *(float *)(out + 0x14) = 3.4028235e+38f;
+
+  if (FUN_00149c60((int *)global_collision_bsp_get(), point, offset_vec, p4,
+                   3.4028235e+38f, (float *)&scratch)) {
+    /* Ghidra fuses these two tests into one comma expression; the distance
+     * store at 0x14e81d happens before the 0x20 flag test at 0x14e820 and is
+     * not guarded by it. */
+    *(float *)(out + 0x14) = scratch.best_dist;
+    if ((collision_flags & 0x20) != 0) {
+      *(int32_t *)(out + 0x24) = scratch.field_04;
+      *(int32_t *)(out + 0x28) = scratch.field_08;
+      *(int32_t *)(out + 0x2c) = scratch.field_0c;
+      *(int32_t *)(out + 0x30) = scratch.field_10;
+      out[0x4c] = 0;
+      out[0x4d] = 0;
+      *(int16_t *)out = 2;
+      *(int16_t *)(out + 0x34) = scratch.field_1a;
+      *(int32_t *)(out + 0x44) = scratch.field_14;
+      *(int32_t *)(out + 0x48) = -1;
+      *(int16_t *)(out + 0x4e) = scratch.field_1a;
+      hit = 1;
+    }
+  }
+
+  if (scratch.count > 0) {
+    index = scratch.indices[0];
+    *(uint32_t *)(out + 4) = index;
+    if (index == 0xffffffff) {
+      cluster = -1;
+    } else {
+      elem = tag_block_get_element((char *)scenario_get() + 0xe0,
+                                   index & 0x7fffffff, 0x10);
+      cluster = *(int16_t *)((char *)elem + 8);
+    }
+    *(int16_t *)(out + 8) = (int16_t)cluster;
+
+    index = scratch.indices[scratch.count - 1];
+    *(uint32_t *)(out + 0xc) = index;
+    if (index == 0xffffffff) {
+      cluster = -1;
+    } else {
+      elem = tag_block_get_element((char *)scenario_get() + 0xe0,
+                                   index & 0x7fffffff, 0x10);
+      cluster = *(int16_t *)((char *)elem + 8);
+    }
+    *(int16_t *)(out + 0x10) = (int16_t)cluster;
+  }
+
+  if (hit == 0) {
+    *(float *)(out + 0x14) = 1.0f;
+  }
+
+  /* One FLD of result+0x14 held on the x87 stack and duplicated per component
+   * (0x14e8fe: FLD [ESI+0x14] / FLD ST(0) ...), multiply by offset_vec first
+   * then add point - do not reorder into point + t * offset_vec. */
+  t = *(float *)(out + 0x14);
+  *(float *)(out + 0x18) = t * offset_vec[0] + point[0];
+  *(float *)(out + 0x1c) = t * offset_vec[1] + point[1];
+  *(float *)(out + 0x20) = t * offset_vec[2] + point[2];
+
+  scenario_location_from_point(out + 0xc, out + 0x18);
+
+  return hit;
+}
+
 /* 0x14e940
  *
  * Sweeps one pill of radius `radius` along the segment [origin, origin+delta]
