@@ -291,3 +291,32 @@ void FUN_0006c960(void *tif_, long value)
   sp->bitcount += sp->nbits;
   tif->tif_rawcc = (sp->bitpos + 7) >> 3;
 }
+
+/**
+ * Release the codec private state hanging off a TIFF handle.
+ *
+ * Upstream libtiff's LZWCleanup: `if (tif->tif_data) {
+ * _TIFFfree(tif->tif_data); tif->tif_data = NULL; }`. Bungie's _TIFFfree
+ * expands to the debug allocator, so the call carries __FILE__/__LINE__ -- and
+ * that __FILE__ is tif_lzw.c, not tif_open.c: kb.json lumps every vendored
+ * libtiff translation unit into a single tif_open.obj, so this body lives here
+ * alongside the tif_predict.c and tif_lzw.c neighbours. Line 925 (0x39d) is the
+ * free site.
+ *
+ * The handle field is loaded once (0x6cac6 `mov eax,[esi+0x120]`) and the same
+ * EAX is both tested and pushed as the free argument, hence the local.
+ * The store-back to 0x120 is inside the taken branch, after the free.
+ *
+ * @param tif_ TIFF handle; may carry a null tif_data, in which case nothing
+ *             happens. The handle pointer itself is never checked.
+ */
+void FUN_0006cac0(void *tif_)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  tiff_bitstate_t *sp = tif->tif_data;
+
+  if (sp) {
+    debug_free(sp, "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_lzw.c", 0x39d);
+    tif->tif_data = 0;
+  }
+}

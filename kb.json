@@ -34293,7 +34293,8 @@
     },
     {
      "addr": "0x6cac0",
-     "decl": "void FUN_0006cac0(void);"
+     "decl": "void FUN_0006cac0(void *tif);",
+     "ported": true
     },
     {
      "addr": "0x6cb00",
