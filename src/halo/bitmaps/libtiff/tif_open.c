@@ -196,12 +196,14 @@ static const unsigned char tiff_leadmask[9] = { 0x00, 0x80, 0xc0, 0xe0, 0xf0,
                                                 0xf8, 0xfc, 0xfe, 0xff };
 
 /* Codec private bit-writer state, reached through TIFF::tif_data.
- * Only the four offsets below are touched by this function; everything else
+ * Only the four offsets below are touched by FUN_0006c960; everything else
  * is padding as far as the recovery is concerned. Offsets are proven by
  * 0x6c972 (+0x06 movzx word), 0x6c976 (+0x14 dword), 0x6c979 (+0x18 dword)
- * and 0x6ca25 (+0x2c dword). */
+ * and 0x6ca25 (+0x2c dword). +0x00 is proven separately by FUN_0006cda0
+ * (0x6cda9 `mov eax,[esi]`, 0x6cdbc `mov dword ptr [esi],0xffffffff`). */
 typedef struct tiff_bitstate_s {
-  char pad_00[6];
+  int oldcode; /* 0x00 code matched but not yet emitted, -1 when none pending */
+  char pad_04[2];
   unsigned short nbits; /* 0x06 bits emitted per call, constant per strip */
   char pad_08[12];
   int bitpos; /* 0x14 write cursor, in bits from tif_rawdata */
@@ -414,5 +416,42 @@ int FUN_0006cd40(void *tif_, char *op0, int occ0, int s)
     occ0 -= sp->rowsize;
     op0 += sp->rowsize;
   }
+  return 1;
+}
+
+/* LZW end-of-information code -- upstream libtiff's CODE_EOI (tif_lzw.c).
+ * The binary pushes it as the literal 0x101 at 0x6cdc5. */
+#define CODE_EOI 257
+
+/**
+ * Finish an LZW-encoded strip: flush the pending code, then emit EOI.
+ *
+ * Upstream libtiff's LZWPostEncode. `oldcode` is the last string code the
+ * encoder matched but had not yet written out; the sentinel -1 means there is
+ * none pending, and it is reset to -1 after being flushed so the pending half
+ * of a second call is a no-op.
+ *
+ * The state field is loaded once (0x6cda9 `mov eax,[esi]`) and that same EAX
+ * is both compared against -1 and pushed as the code argument, hence the
+ * local. Bungie's copy keeps the code as a full dword -- the test is
+ * `cmp eax,-1` and the reset is a dword store -- not upstream's u_short
+ * hcode_t.
+ *
+ * @param tif_ TIFF handle (declared void* so the generated header needs no
+ *             libtiff types); tif->tif_data must be the LZW encoder state.
+ * @return always 1; this stage reports no failure (`mov eax,1` at 0x6cdd4,
+ *         scheduled between the two epilogue pops).
+ */
+int FUN_0006cda0(void *tif_)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  tiff_bitstate_t *sp = tif->tif_data;
+  int oldcode = sp->oldcode;
+
+  if (oldcode != -1) {
+    FUN_0006c960(tif_, oldcode);
+    sp->oldcode = -1;
+  }
+  FUN_0006c960(tif_, CODE_EOI);
   return 1;
 }
