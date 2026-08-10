@@ -639,38 +639,42 @@ void FUN_000a0080(void *sys_def_arg, short state_index, void *output_arg)
   char *sys_def = (char *)sys_def_arg;
   float *output = (float *)output_arg;
   char *state_def;
-  float t;
+  float range[3];
 
   state_def = (char *)tag_block_get_element((void *)(sys_def + 0x74),
                                             (int)state_index, 0x178);
 
   /* Generate random interpolation factor */
-  t =
+  range[2] =
     random_real_range((int *)random_math_get_local_seed_address(), 0.0f, 1.0f);
 
   /* Fill output with random ranges */
+  range[1] = *(float *)(state_def + 0x54);
+  range[0] = *(float *)(state_def + 0x50);
   output[1] = random_real_range((int *)random_math_get_local_seed_address(),
-                                *(float *)(state_def + 0x50),
-                                *(float *)(state_def + 0x54));
+                                range[0], range[1]);
+  range[1] = *(float *)(state_def + 0x5c);
+  range[0] = *(float *)(state_def + 0x58);
   output[2] = random_real_range((int *)random_math_get_local_seed_address(),
-                                *(float *)(state_def + 0x58),
-                                *(float *)(state_def + 0x5c));
+                                range[0], range[1]);
+  range[1] = *(float *)(state_def + 0x4c);
+  range[0] = *(float *)(state_def + 0x48);
   output[0] = random_real_range((int *)random_math_get_local_seed_address(),
-                                *(float *)(state_def + 0x48),
-                                *(float *)(state_def + 0x4c));
+                                range[0], range[1]);
+  range[1] = *(float *)(state_def + 0x70);
+  range[0] = *(float *)(state_def + 0x60);
   output[3] = random_real_range((int *)random_math_get_local_seed_address(),
-                                *(float *)(state_def + 0x60),
-                                *(float *)(state_def + 0x70));
+                                range[0], range[1]);
 
   /* Fill output with linear interpolations */
   output[4] =
-    (*(float *)(state_def + 0x74) - *(float *)(state_def + 0x64)) * t +
+    (*(float *)(state_def + 0x74) - *(float *)(state_def + 0x64)) * range[2] +
     *(float *)(state_def + 0x64);
   output[5] =
-    (*(float *)(state_def + 0x78) - *(float *)(state_def + 0x68)) * t +
+    (*(float *)(state_def + 0x78) - *(float *)(state_def + 0x68)) * range[2] +
     *(float *)(state_def + 0x68);
   output[6] =
-    (*(float *)(state_def + 0x7c) - *(float *)(state_def + 0x6c)) * t +
+    (*(float *)(state_def + 0x7c) - *(float *)(state_def + 0x6c)) * range[2] +
     *(float *)(state_def + 0x6c);
 }
 

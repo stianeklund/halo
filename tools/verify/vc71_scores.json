@@ -6140,10 +6140,10 @@
       "end": "0xa0173",
       "kind": "auto",
       "n_r": 90,
-      "opnd_percent": 65.0,
+      "opnd_percent": 95.0,
       "ref": "synth",
       "ref_sha": "62d2bb41ec75e802",
-      "score": 85.9,
+      "score": 97.2,
       "source": "src/halo/effects/particle_systems.c"
     },
     "FUN_000a0180": {
