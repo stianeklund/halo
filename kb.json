@@ -34284,7 +34284,8 @@
     },
     {
      "addr": "0x6c960",
-     "decl": "void FUN_0006c960(void);"
+     "decl": "void FUN_0006c960(void *tif, long value);",
+     "ported": true
     },
     {
      "addr": "0x6ca50",
@@ -34587,7 +34588,7 @@
     },
     {
      "addr": "0x6fe10",
-     "decl": "void TIFFFlushData1(void);"
+     "decl": "void TIFFFlushData1(void *tif);"
     },
     {
      "addr": "0x6fea0",

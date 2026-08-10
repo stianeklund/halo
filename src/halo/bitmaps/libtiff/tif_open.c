@@ -175,3 +175,119 @@ void FUN_0006c8d0(unsigned short *wp, int cc, int stride)
     } while (wc > 0);
   }
 }
+
+/* Bit masks used by the packer below. Both live in .rdata in the original
+ * image and both are NINE bytes, not eight -- element 8 (0xff) is present at
+ * 0x2ec7d8 and 0x2ec7e4 respectively, each followed by alignment padding.
+ *
+ * tiff_msbmask[n]  = 0x2ec7d0, keeps the LOW n bits of a value.
+ * tiff_leadmask[n] = 0x2ec7dc, keeps the HIGH n bits of a byte, i.e. the bits
+ *                    already written at a sub-byte bit position.
+ *
+ * Declared static rather than imported at their original VAs: they are
+ * read-only constants, and the direct `mov al, table[reg]` addressing form
+ * that a static reproduces is what the original emits (an HDATA import would
+ * add an __imp_ indirection the binary does not have).
+ */
+static const unsigned char tiff_msbmask[9] = { 0x00, 0x01, 0x03, 0x07, 0x0f,
+                                               0x1f, 0x3f, 0x7f, 0xff };
+
+static const unsigned char tiff_leadmask[9] = { 0x00, 0x80, 0xc0, 0xe0, 0xf0,
+                                                0xf8, 0xfc, 0xfe, 0xff };
+
+/* Codec private bit-writer state, reached through TIFF::tif_data.
+ * Only the four offsets below are touched by this function; everything else
+ * is padding as far as the recovery is concerned. Offsets are proven by
+ * 0x6c972 (+0x06 movzx word), 0x6c976 (+0x14 dword), 0x6c979 (+0x18 dword)
+ * and 0x6ca25 (+0x2c dword). */
+typedef struct tiff_bitstate_s {
+  char pad_00[6];
+  unsigned short nbits; /* 0x06 bits emitted per call, constant per strip */
+  char pad_08[12];
+  int bitpos; /* 0x14 write cursor, in bits from tif_rawdata */
+  int bitlimit; /* 0x18 capacity of the raw buffer, in bits */
+  char pad_1c[16];
+  int bitcount; /* 0x2c running total of bits emitted */
+} tiff_bitstate_t;
+
+/* The three TIFF fields this function reaches: +0x120 codec private state
+ * (0x6c96c), +0x12c raw write pointer (0x6c991/0x6c9a7/0x6c9bb/0x6c9cc) and
+ * +0x138 raw byte count (0x6c99a/0x6ca40). This layout is NOT upstream
+ * libtiff's -- there tif_rawcc immediately follows tif_rawcp; here they are
+ * 12 bytes apart -- so nothing between them is named. */
+typedef struct tiff_s {
+  char pad_000[0x120];
+  tiff_bitstate_t *tif_data; /* 0x120 */
+  char pad_124[8];
+  unsigned char *tif_rawcp; /* 0x12c */
+  char pad_130[8];
+  long tif_rawcc; /* 0x138 */
+} tiff_t;
+
+/**
+ * Append `sp->nbits` bits of `value` to the raw output buffer, MSB first,
+ * flushing the buffer first if the write would run past the bit limit.
+ *
+ * The write lands at the current bit cursor and spans one, two or three
+ * bytes: the head byte is merged with the bits already present (preserving
+ * the top `bitpos & 7` of them via tiff_leadmask), an optional whole middle
+ * byte follows, and any residual bits are left-justified into the next byte
+ * through tiff_msbmask. `cp` is advanced past every byte actually stored.
+ *
+ * Flush handling has two shapes, and the difference matters. When the cursor
+ * sits on a byte boundary the buffer is simply flushed. When it does not, the
+ * partially-filled byte must survive: the OLD write pointer plus the whole-
+ * byte offset is captured BEFORE the flush, tif_rawcc is trimmed to the whole
+ * bytes only, and after the flush that saved byte is copied to the front of
+ * the freshly-reset buffer. Reading it after the flush instead would read the
+ * new buffer -- the load at 0x6c9ad uses the pre-call ESI on purpose.
+ *
+ * @param tif   TIFF handle (declared void* so the generated header needs no
+ *              libtiff types); tif->tif_data must be the bit-writer state.
+ * @param value right-justified bit payload. SIGNED: both extractions are
+ *              `sar` (0x6c9ef, 0x6ca03), so the sign bit propagates.
+ */
+void FUN_0006c960(void *tif_, long value)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  tiff_bitstate_t *sp = tif->tif_data;
+  int nbits = sp->nbits;
+  int bitpos = sp->bitpos;
+  unsigned char *cp;
+  int shift;
+
+  /* signed compare (`jle` at 0x6c984) */
+  if (nbits + bitpos > sp->bitlimit) {
+    if ((bitpos & 7) == 0) {
+      TIFFFlushData1(tif);
+    } else {
+      unsigned char *op = tif->tif_rawcp + (bitpos >> 3);
+      tif->tif_rawcc = bitpos >> 3;
+      TIFFFlushData1(tif);
+      *tif->tif_rawcp = *op; /* carry the partial byte across the flush */
+    }
+    cp = tif->tif_rawcp;
+    bitpos &= 7;
+    sp->bitpos = bitpos;
+  } else {
+    cp = tif->tif_rawcp + (bitpos >> 3);
+    bitpos &= 7;
+  }
+
+  shift = nbits + bitpos - 8;
+  *cp = (unsigned char)((tiff_leadmask[bitpos] & *cp) | (value >> shift));
+  cp++;
+  if (shift >= 8) {
+    shift -= 8;
+    *cp++ = (unsigned char)(value >> shift);
+  }
+  if (shift != 0) {
+    *cp = (unsigned char)((tiff_msbmask[shift] & value) << (8 - shift));
+  }
+
+  /* Re-read sp->nbits rather than reusing the local: the tail issues a fresh
+   * `movzx eax, word ptr [edi+6]` at 0x6ca21. */
+  sp->bitpos += sp->nbits;
+  sp->bitcount += sp->nbits;
+  tif->tif_rawcc = (sp->bitpos + 7) >> 3;
+}
