@@ -20,6 +20,7 @@
 	halo/ai/props.c
 	halo/bitmaps/bitmap_utilities.c
 	halo/bitmaps/bitmaps.c
+	halo/bitmaps/libtiff/tif_open.c
 	halo/bitmaps/targa_file.c
 	halo/bitmaps/tiff_file.c
 	halo/bungie_net/64bit_math.c
