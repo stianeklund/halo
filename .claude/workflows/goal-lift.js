@@ -36,16 +36,14 @@ const CACHE_CONTEXT = !!(args && args.cacheContext)
 // - Reasoning stages (lift, review) use Opus-high.
 // - Cheap deterministic tool-runs (revert, permute-run, equiv-run, redelink,
 //   park, report) use Haiku-low.
-// - The escalation / improve tune uses Fable at high effort. routing_stats.py
-//   measured fable-high at an 80% promote rate with a +14.7pp mean score gain
-//   over 16 improve handoffs, vs 52% for opus-high (2026-08-07). Fable costs
-//   more tokens per attempt, but the improve pass only ever runs on the hardest
-//   targets — parked, sub-bar functions that already resisted the cheap pass —
-//   so the metric that matters is conversion per target, not tokens per attempt.
-//   Cheap fallback: pass --improveModel opus to get the low-token model whose
-//   reasoning EFFORT we climb instead (ladder medium -> xhigh -> max; most
-//   targets stop at the first rung).
-const IMPROVE_MODEL = (args && args.improveModel) || 'fable'
+// - The escalation / improve tune defaults to Opus, climbing reasoning EFFORT
+//   (ladder medium -> xhigh -> max; most targets stop at the first rung).
+//   Fable is opt-in only (--improveModel fable), per user policy 2026-08-10:
+//   never route to fable unless explicitly requested. For reference,
+//   routing_stats.py measured fable-high at an 80% promote rate with a +14.7pp
+//   mean score gain over 16 improve handoffs, vs 52% for opus-high
+//   (2026-08-07) — so it is worth requesting for the hardest parked targets.
+const IMPROVE_MODEL = (args && args.improveModel) || 'opus'
 // Effort ladder for the in-place score tune. Each rung re-runs the optimizer at
 // a higher effort, but only for a target still below the pass bar, not capped,
 // and while budget remains. Override as a comma list, e.g. --improveEfforts

@@ -6,6 +6,11 @@ workflows generally.
 **Written:** 2026-07-04, by the Fable 5 instance that ran the scenario.obj
 goal-lift session in `/mnt/g/dev/halo-clean-main`.
 
+> **Policy override (2026-08-10):** fable is never routed to by default in any
+> workflow — opt-in only, when the user explicitly asks for it. Where this doc
+> recommends fable for a slot (e.g. lift escalation), read that as "the slot
+> where fable is worth *requesting*", not as a default.
+
 ## 1. What this project is
 
 Faithful, evidence-based decompilation of Halo CE Xbox (`cachebeta.xbe`) back

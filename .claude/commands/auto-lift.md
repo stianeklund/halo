@@ -78,10 +78,10 @@ recipe-atlas rule match short-circuits to a mechanical lever at opus-low without
 charging an escalation slot.  Ladder exhausted → park with cap hypothesis +
 warm-start patch.
 
-**Fable** appears only as the fresh-model re-lift for structure-wrong signals,
-via the improve-pass drain (its default model since 2026-08-09, with
-`park.py next --exclude-model`; `--improveModel opus` is the low-token
-fallback) — never as a ladder rung.
+**Fable** is opt-in only (`--improveModel fable`) — never a ladder rung and
+never the default; the improve-pass drain runs on opus (with
+`park.py next --exclude-model`). Use fable only when the user explicitly
+asks for it.
 
 See `docs/lift-policy.md` §Escalation-flow for the canonical escalation rules and
 pass/fail thresholds.  Summary: ladder on VC71 65–84% and not capped; fresh-model
