@@ -4133,3 +4133,22 @@ Queue exhausted after 1 pass. All 31 targets rejected or skipped. The 27 fresh c
 | function | addr | obj | vc71 | action | reason |
 |---|---|---|---|---|---|
 | particle_system_update | 0xa1170 | particle_systems.obj | - | skipped | Callee FUN_000a0800 (0xa0800) is invoked with a register argument: `000a11eb MOV EAX,ESI` / `000a11ed CALL 0x000a0800`. Its kb.json entry is `void FUN_000a0800(void);` with no `@eax` annotation and no `ported` flag — so calling it by name from C would pass nothing in EAX and the callee would read a stale register (the exact "(void) decl over a reg-arg function" hazard). Blocked until 0xa0800 is annotated `void FUN_000a0800(int datum_index @eax);` in kb.json. |
+
+## Goal-lift run — 3/12 committed (queue_exhausted)
+
+### Summary
+- **3 of 3 targets committed** at ≥90% VC71 match.
+- **Queue exhausted**: No remaining auto-liftable targets.
+
+### Results
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| ai_scripting_follow_distance | 0x58cc0 | ai_script.obj | 96.6 | committed | mechanical gate: 96.6% clean (pass1) |
+| FUN_00058eb0 | 0x58eb0 | encounters.obj (c:\halo\SOURCE\ai\encounters.c) — task brief said ai_script.obj, which is wrong per __FILE__ string at 0x25d27c | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_00058d40 | 0x58d40 | ai_script.obj | 97.4 | committed | mechanical gate: 97.4% clean (pass1) |
+
+### Decisions
+
+- **3 of 3 targets committed** at ≥90% VC71 match (3 live builds, 0 regressions).
+- **Queue exhausted**: No remaining auto-liftable targets in ai_script.obj and encounters.obj.

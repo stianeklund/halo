@@ -1745,6 +1745,18 @@
         "The kb.json name ai_scripting_follow_distance disagrees with the binary: the trace format string at 0x25d1d0 reads '%s: ai_go_to_vehicle_override %s 0x%04X %s', and the function is the immediate sibling of ai_go_to_vehicle (0x58c40) forwarding to the same vehicle-entry order builder FUN_00058af0 with allow_type9=1, so the original Bungie name is almost certainly ai_go_to_vehicle_override."
       ]
     },
+    "0x58d40": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Actor-record offsets +0x18 (unit object handle, -1 = none) and +0x5c (actor_variant tag index) are inferred from use only; no struct definition backs them.",
+        "Actor_variant tag offsets +0x180 (grenade type, -1 = none), +0x1d0 (count min) and +0x1d2 (count max) are inferred from the random_range call shape; the [min,max+1) half-open range follows from the 16-bit INC AX.",
+        "Unit-object floats +0x88/+0x8c are inferred to be desired-movement scalars because they are binarized into +0x90/+0x94; the semantic role is not proven."
+      ],
+      "uncertain": [
+        "The 24-byte iterator local size is confirmed by ai_index_actor_iterator_new writing iter[0..2] plus a 3-dword embedded encounter iterator at iter+3, but the frame gap between EBP-0x18 and EBP-0x118 leaves room for MSVC to have packed padding, so 24 is the minimum proven size rather than a proven exact size."
+      ]
+    },
     "0x58eb0": {
       "kind": "function",
       "status": "ported"
