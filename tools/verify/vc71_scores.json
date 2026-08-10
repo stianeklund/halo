@@ -1199,6 +1199,17 @@
       "score": 91.7,
       "source": "src/halo/math/real_math.c"
     },
+    "FUN_0001ada0": {
+      "addr": "0x1ada0",
+      "end": "0x1aeb0",
+      "kind": "auto",
+      "n_r": 100,
+      "opnd_percent": 67.0,
+      "ref": "synth",
+      "ref_sha": "f03bf092450a34c6",
+      "score": 74.5,
+      "source": "src/halo/math/real_math.c"
+    },
     "FUN_0001b750": {
       "addr": "0x1b750",
       "end": "0x1b898",
@@ -14605,6 +14616,17 @@
       "score": 95.0,
       "source": "src/halo/math/real_math.c"
     },
+    "FUN_00111770": {
+      "addr": "0x111770",
+      "end": "0x111908",
+      "kind": "auto",
+      "n_r": 158,
+      "opnd_percent": 60.2,
+      "ref": "synth",
+      "ref_sha": "2557120f6c8ef70a",
+      "score": 83.2,
+      "source": "src/halo/math/real_math.c"
+    },
     "FUN_00111910": {
       "addr": "0x111910",
       "end": "0x111b9c",
@@ -14702,6 +14724,17 @@
       "ref": "synth",
       "ref_sha": "f66c83708912a5cb",
       "score": 89.4,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_001128c0": {
+      "addr": "0x1128c0",
+      "end": "0x112ccb",
+      "kind": "auto",
+      "n_r": 374,
+      "opnd_percent": 28.8,
+      "ref": "synth",
+      "ref_sha": "58525ad9777ed481",
+      "score": 39.5,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00112cd0": {
@@ -14834,6 +14867,17 @@
       "ref": "synth",
       "ref_sha": "d2544d96f398a07a",
       "score": 93.3,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00113230": {
+      "addr": "0x113230",
+      "end": "0x113475",
+      "kind": "auto",
+      "n_r": 220,
+      "opnd_percent": 71.2,
+      "ref": "synth",
+      "ref_sha": "a358390a161d2af8",
+      "score": 85.3,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00113480": {
@@ -21520,7 +21564,7 @@
       "end": "0x18ffd5",
       "kind": "auto",
       "n_r": 69,
-      "opnd_percent": 38.0,
+      "opnd_percent": 37.8,
       "ref": "synth",
       "ref_sha": "424028da2768740d",
       "score": 73.2,
@@ -47808,10 +47852,10 @@
       "end": "0x10d379",
       "kind": "auto",
       "n_r": 478,
-      "opnd_percent": 38.9,
+      "opnd_percent": 38.0,
       "ref": "synth",
       "ref_sha": "96ea88a4d7edbb9e",
-      "score": 47.3,
+      "score": 48.1,
       "source": "src/halo/math/real_math.c"
     },
     "vectors3d_from_euler_angles3d": {

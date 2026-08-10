@@ -34,10 +34,15 @@
   #define _XBOX_PROVIDE_DECLS
 #endif
 
-#define atan2 atan2_
+/* atan2 uses the VC71 compiler intrinsic (inline FPATAN) — the original
+ * binary has bare fpatan at atan2 call sites, never a CALL. The old
+ * `#define atan2 atan2_` rename compiled every use into a CALL to the
+ * __asm helper below (MSVC refuses to inline __asm bodies), which also
+ * macro-expanded any later `#pragma intrinsic(atan2)` into a no-op. */
 
 #ifdef _XBOX_PROVIDE_DECLS
-double atan2(double y, double x);
+double __cdecl atan2(double y, double x);
+double __cdecl acos(double x);
 double asin(double x);
 double pow(double base, double exponent);
 void *memcpy(void *s1, const void *s2, size_t n);
@@ -55,6 +60,7 @@ size_t strlen(const char *s);
 #pragma intrinsic(memcpy)
 #pragma intrinsic(strlen)
 #pragma intrinsic(sqrt)
+#pragma intrinsic(atan2)
 #undef _XBOX_PRAGMA_INTRINSICS
 #endif
 
@@ -95,7 +101,7 @@ size_t strlen(const char *s)
 #define xbox_sqrtf(x)  ((float)sqrt((double)(x)))
 #define xbox_fabsf  fabsf
 #define xbox_acosf  acosf
-#define xbox_atan2  atan2_
+#define xbox_atan2  atan2
 #define xbox_log10  log10
 #define xbox_pow    pow
 #define xbox_memcpy memcpy

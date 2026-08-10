@@ -1099,7 +1099,7 @@
     },
     {
      "addr": "0x1dbabf",
-     "decl": "void _ftell(void);"
+     "decl": "int _ftell(void *stream);"
     },
     {
      "addr": "0x1dbaf6",
@@ -1107,7 +1107,7 @@
     },
     {
      "addr": "0x1dbb00",
-     "decl": "void FUN_001dbb00(void);"
+     "decl": "void *FUN_001dbb00(int fd, char *mode);"
     }
    ],
    "name": "LIBCMT:_control87.obj"
@@ -20767,7 +20767,8 @@
     },
     {
      "addr": "0x1ada0",
-     "decl": "char FUN_0001ada0(int actor_handle@<eax>, int param_2, int param_3, int param_4, int param_5, int param_6);"
+     "decl": "char FUN_0001ada0(int actor_handle@<eax>, int vehicle_handle@<esi>, char param_2, float param_3, float param_4, char param_5, char param_6);",
+     "ported": true
     },
     {
      "addr": "0x109010",
@@ -20959,7 +20960,7 @@
     {
      "addr": "0x10a5e0",
      "decl": "float FUN_0010a5e0(int16_t function_type, float input);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x10a710",
@@ -21410,8 +21411,9 @@
      "ported": true
     },
     {
-     "addr": "0x111770",
-     "decl": "void FUN_00111770(int state @<esi>);"
+      "addr": "0x111770",
+      "decl": "void FUN_00111770(int state @<esi>);",
+      "ported": true
     },
     {
      "addr": "0x111910",
@@ -21460,7 +21462,8 @@
     },
     {
      "addr": "0x1128c0",
-     "decl": "void FUN_001128c0(int gz @<eax>);"
+     "decl": "void FUN_001128c0(int gz @<eax>);",
+     "ported": true
     },
     {
      "addr": "0x112cd0",
@@ -21529,7 +21532,8 @@
     },
     {
      "addr": "0x113230",
-     "decl": "void * FUN_00113230(char *path, int fd, char *mode@<eax>);"
+     "decl": "void * FUN_00113230(char *path, int fd, char *mode@<eax>);",
+     "ported": true
     },
     {
      "addr": "0x113480",

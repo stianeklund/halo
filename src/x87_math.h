@@ -17,7 +17,8 @@
 double __cdecl cos(double);
 double __cdecl sin(double);
 double __cdecl sqrt(double);
-#pragma intrinsic(cos, sin, sqrt)
+double __cdecl atan2(double, double);
+#pragma intrinsic(cos, sin, sqrt, atan2)
 #endif
 
 static __inline float x87_fcos(float val) {
