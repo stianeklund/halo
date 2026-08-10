@@ -2820,6 +2820,7 @@ void FUN_00058fd0(int encounter_handle, char flag, int bit_vector_size, int pvs,
   int move_group_mask;
   int actor_index;
   int object_index;
+  int root_handle;
   int mask;
   int16_t cluster_index;
   int16_t state;
@@ -2852,8 +2853,8 @@ void FUN_00058fd0(int encounter_handle, char flag, int bit_vector_size, int pvs,
       object_index = *(int *)(actor + 0x24);
       while (object_index != -1) {
         object = (char *)object_get_and_verify_type(object_index, 3);
-        root = (char *)object_get_and_verify_type(
-          object_get_root_parent(object_index), -1);
+        root_handle = object_get_root_parent(object_index);
+        root = (char *)object_get_and_verify_type(root_handle, -1);
         cluster_index = *(int16_t *)(root + 0x4c);
         if (cluster_index != -1) {
           if (cluster_index < 0 || (int)cluster_index >= bit_vector_size) {
