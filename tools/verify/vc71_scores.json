@@ -19538,6 +19538,17 @@
       "score": 82.9,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
+    "FUN_0016f480": {
+      "addr": "0x16f480",
+      "end": "0x16f4f2",
+      "kind": "auto",
+      "n_r": 37,
+      "opnd_percent": 80.5,
+      "ref": "synth",
+      "ref_sha": "b6f04c28e0e5f189",
+      "score": 90.2,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_0016f500": {
       "addr": "0x16f500",
       "end": "0x16f608",
@@ -19648,6 +19659,17 @@
       "score": 96.3,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
+    "FUN_0016fec0": {
+      "addr": "0x16fec0",
+      "end": "0x16fec1",
+      "kind": "auto",
+      "n_r": 1,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "685e11c0b354c113",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_001700d0": {
       "addr": "0x1700d0",
       "end": "0x170154",
@@ -19680,6 +19702,17 @@
       "ref_sha": "8cd45607af51dce0",
       "score": 92.9,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_screen_effect.c"
+    },
+    "FUN_00172520": {
+      "addr": "0x172520",
+      "end": "0x172529",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "9fa6e04e879fb8c7",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_00172590": {
       "addr": "0x172590",
@@ -19757,6 +19790,17 @@
       "ref_sha": "188a71b2ec59c47c",
       "score": 90.8,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_shadows.c"
+    },
+    "FUN_00173ae0": {
+      "addr": "0x173ae0",
+      "end": "0x173ae1",
+      "kind": "auto",
+      "n_r": 1,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "685e11c0b354c113",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_00173af0": {
       "addr": "0x173af0",
@@ -19978,6 +20022,17 @@
       "score": 93.2,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
+    "FUN_0017C7D0": {
+      "addr": "0x17c7d0",
+      "end": "0x17c7d5",
+      "kind": "thunk",
+      "n_r": 1,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "ee2d779f4db34657",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_0017ad20": {
       "addr": "0x17ad20",
       "end": "0x17ad37",
@@ -19997,6 +20052,17 @@
       "opnd_percent": 100.0,
       "ref": "synth",
       "ref_sha": "0b19791e2eac5d7a",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "FUN_0017ad90": {
+      "addr": "0x17ad90",
+      "end": "0x17ad91",
+      "kind": "auto",
+      "n_r": 1,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "685e11c0b354c113",
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
@@ -20119,6 +20185,28 @@
       "ref": "synth",
       "ref_sha": "e64fb4576bc41898",
       "score": 93.8,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "FUN_0017ca00": {
+      "addr": "0x17ca00",
+      "end": "0x17ca05",
+      "kind": "thunk",
+      "n_r": 1,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "34c6fc5a95a11721",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "FUN_0017ca40": {
+      "addr": "0x17ca40",
+      "end": "0x17ca45",
+      "kind": "thunk",
+      "n_r": 1,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "be6c4d85483d5ac2",
+      "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_0017ca50": {
@@ -41720,6 +41808,50 @@
       "score": 79.6,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
+    "rasterizer_dynamic_lit_geometry_draw": {
+      "addr": "0x17c930",
+      "end": "0x17c939",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "79e78dea0efc9444",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_dynamic_screen_geometry_draw": {
+      "addr": "0x17c940",
+      "end": "0x17c945",
+      "kind": "thunk",
+      "n_r": 1,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "f03f84ca05293cd8",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_environment_fog_screen_draw": {
+      "addr": "0x17c8e0",
+      "end": "0x17c8e9",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "5043d01db1948e66",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_environment_fog_screen_end": {
+      "addr": "0x17c8f0",
+      "end": "0x17c8f9",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "fbf270ff3f7e8f3a",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "rasterizer_filthy_bitmap_default_initialize": {
       "addr": "0x156e00",
       "end": "0x157004",
@@ -41785,6 +41917,39 @@
       "ref_sha": "047c3a4160975240",
       "score": 100.0,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "rasterizer_hud_motion_sensor_blip_begin": {
+      "addr": "0x17ca10",
+      "end": "0x17ca19",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "77f525b0f94462da",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_hud_motion_sensor_blip_draw": {
+      "addr": "0x17ca20",
+      "end": "0x17ca29",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "529e3024583e6af2",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_hud_motion_sensor_blip_end": {
+      "addr": "0x17ca30",
+      "end": "0x17ca35",
+      "kind": "thunk",
+      "n_r": 1,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "fe159996fa842d77",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
     },
     "rasterizer_initialize": {
       "addr": "0x16fb80",
@@ -41895,6 +42060,17 @@
       "ref_sha": "81ade064d5c97a96",
       "score": 86.2,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "rasterizer_psuedo_dynamic_screen_quad_draw": {
+      "addr": "0x17c960",
+      "end": "0x17c969",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "d9cd885b7a4209d8",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
     },
     "rasterizer_reset_state": {
       "addr": "0x1559a0",
@@ -42325,6 +42501,50 @@
       "score": 95.7,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_vertex_shaders_initialize.c"
     },
+    "rasterizer_widget_begin": {
+      "addr": "0x17c980",
+      "end": "0x17c989",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "1b936a9d00d34156",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_widget_draw_sprite2d": {
+      "addr": "0x17c9c0",
+      "end": "0x17c9c9",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "903581c1fb6b8d83",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_widget_draw_sprite3d": {
+      "addr": "0x17c9d0",
+      "end": "0x17c9d9",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "249e092b5c75cfa2",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_widget_end": {
+      "addr": "0x17c9e0",
+      "end": "0x17c9e9",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "04ad1ccaa78449d4",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "rasterizer_widget_get_occlusion_test_result": {
       "addr": "0x17adc0",
       "end": "0x17ae84",
@@ -42335,6 +42555,39 @@
       "ref_sha": "930d5520d1ca4582",
       "score": 92.9,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_widgets.c"
+    },
+    "rasterizer_widget_set_texture": {
+      "addr": "0x17c990",
+      "end": "0x17c999",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "dc3a77e699918eec",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_widget_set_zbuffer_enable": {
+      "addr": "0x17c9b0",
+      "end": "0x17c9b9",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "cdec7adf354f0b8f",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_widget_submit": {
+      "addr": "0x17c970",
+      "end": "0x17c979",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "6f74fca63d519e2b",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
     },
     "rasterizer_widget_submit_occlusion_test": {
       "addr": "0x17ba10",

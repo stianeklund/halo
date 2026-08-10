@@ -553,7 +553,7 @@
     },
     {
      "addr": "0x1579d0",
-     "decl": "void FUN_001579d0(void);"
+     "decl": "void FUN_001579d0(void *screen_fog);"
     },
     {
      "addr": "0x15d8b0",
@@ -19530,7 +19530,8 @@
     },
     {
      "addr": "0x16fec0",
-     "decl": "void FUN_0016fec0(void);"
+     "decl": "void FUN_0016fec0(void);",
+     "ported": true
     },
     {
      "addr": "0x1703f0",
@@ -19545,10 +19546,7 @@
      "addr": "0x170c90",
      "decl": "void FUN_00170c90(void *effect);"
     },
-    {
-     "addr": "0x172520",
-     "decl": "void FUN_00172520(void);"
-    },
+    {"addr":"0x172520","decl":"void FUN_00172520(void);","ported":true},
     {
      "addr": "0x172640",
      "decl": "void FUN_00172640(void);",
@@ -19580,7 +19578,8 @@
     },
     {
      "addr": "0x173ae0",
-     "decl": "void FUN_00173ae0(void);"
+     "decl": "void FUN_00173ae0(void);",
+     "ported": true
     },
     {
      "addr": "0x173af0",
@@ -19704,7 +19703,8 @@
     },
     {
      "addr": "0x17ad90",
-     "decl": "void FUN_0017ad90(void);"
+     "decl": "void FUN_0017ad90(void);",
+     "ported": true
     },
     {
      "addr": "0x17ba10",
@@ -19753,10 +19753,7 @@
      "decl": "void rasterizer_window_set_fog(void);",
      "ported": true
     },
-    {
-     "addr": "0x17c7d0",
-     "decl": "void FUN_0017C7D0(void);"
-    },
+    {"addr":"0x17c7d0","decl":"void FUN_0017C7D0(void);","ported":true},
     {
      "addr": "0x17c7e0",
      "decl": "void rasterizer_frame_begin(float *a1);",
@@ -19774,11 +19771,13 @@
     },
     {
      "addr": "0x17c8e0",
-     "decl": "void rasterizer_environment_fog_screen_draw(void);"
+     "decl": "void rasterizer_environment_fog_screen_draw(void *fog);",
+     "ported": true
     },
     {
      "addr": "0x17c8f0",
-     "decl": "void rasterizer_environment_fog_screen_end(void *screen_fog);"
+     "decl": "void rasterizer_environment_fog_screen_end(void *screen_fog);",
+     "ported": true
     },
     {
      "addr": "0x17c900",
@@ -19795,14 +19794,8 @@
      "decl": "void rasterizer_frame_end(void);",
      "ported": true
     },
-    {
-     "addr": "0x17c930",
-     "decl": "void rasterizer_dynamic_lit_geometry_draw(void *param_1, void *param_2);"
-    },
-    {
-     "addr": "0x17c940",
-     "decl": "void rasterizer_dynamic_screen_geometry_draw(void);"
-    },
+    {"addr":"0x17c930","decl":"void rasterizer_dynamic_lit_geometry_draw(void *param_1, void *param_2);","ported":true},
+    {"addr":"0x17c940","decl":"void rasterizer_dynamic_screen_geometry_draw(void);","ported":true},
     {
      "addr": "0x17c950",
      "decl": "void rasterizer_set_vblank_callback(void *);",
@@ -19810,64 +19803,53 @@
     },
     {
      "addr": "0x17c960",
-     "decl": "void rasterizer_psuedo_dynamic_screen_quad_draw(int param_1);"
+     "decl": "void rasterizer_psuedo_dynamic_screen_quad_draw(int param_1);",
+     "ported": true
     },
-    {
-     "addr": "0x17c970",
-     "decl": "int rasterizer_widget_submit(int mode);"
-    },
+    {"addr":"0x17c970","decl":"int rasterizer_widget_submit(int mode);","ported":true},
     {
      "addr": "0x17c980",
-     "decl": "void *rasterizer_widget_begin(int handle);"
+     "decl": "void *rasterizer_widget_begin(int handle);",
+     "ported": true
     },
     {
      "addr": "0x17c990",
-     "decl": "void rasterizer_widget_set_texture(int handle);"
+      "decl": "void rasterizer_widget_set_texture(int handle);",
+      "ported": true
     },
     {
      "addr": "0x17c9a0",
-     "decl": "void rasterizer_widget_set_tint_factor(int handle);"
+      "decl": "void rasterizer_widget_set_tint_factor(int handle);"
     },
     {
      "addr": "0x17c9b0",
-     "decl": "int rasterizer_widget_set_zbuffer_enable(int param_1, int param_2);"
+     "decl": "int rasterizer_widget_set_zbuffer_enable(int param_1, int param_2);",
+     "ported": true
     },
-    {
-     "addr": "0x17c9c0",
-     "decl": "short rasterizer_widget_draw_sprite2d(int dynamic_vertex_buffer_index);"
-    },
-    {
-     "addr": "0x17c9d0",
-     "decl": "int rasterizer_widget_draw_sprite3d(int zbuf_result);"
-    },
+    {"addr":"0x17c9c0","decl":"short rasterizer_widget_draw_sprite2d(int dynamic_vertex_buffer_index);","ported":true},
+    {"addr":"0x17c9d0","decl":"int rasterizer_widget_draw_sprite3d(int zbuf_result);","ported":true},
     {
      "addr": "0x17c9e0",
-     "decl": "void rasterizer_widget_end(int handle);"
+      "decl": "void rasterizer_widget_end(int handle);",
+      "ported": true
     },
     {
      "addr": "0x17c9f0",
      "decl": "void FUN_0017c9f0(int handle);"
     },
-    {
-     "addr": "0x17ca00",
-     "decl": "void FUN_0017ca00(void);"
-    },
+    {"addr":"0x17ca00","decl":"void FUN_0017ca00(void);","ported":true},
     {
      "addr": "0x17ca10",
-     "decl": "void rasterizer_hud_motion_sensor_blip_begin(void);"
+     "decl": "void rasterizer_hud_motion_sensor_blip_begin(float *p0, float *p1, float *color0, float *color1);",
+     "ported": true
     },
     {
      "addr": "0x17ca20",
-     "decl": "void rasterizer_hud_motion_sensor_blip_draw(void);"
+     "decl": "void rasterizer_hud_motion_sensor_blip_draw(float *p0, float *p1, float *p2, float *color0, float *color1, float *color2);",
+     "ported": true
     },
-    {
-     "addr": "0x17ca30",
-     "decl": "void rasterizer_hud_motion_sensor_blip_end(void);"
-    },
-    {
-     "addr": "0x17ca40",
-     "decl": "void FUN_0017ca40(void);"
-    }
+    {"addr":"0x17ca30","decl":"void rasterizer_hud_motion_sensor_blip_end(void);","ported":true},
+    {"addr":"0x17ca40","decl":"void FUN_0017ca40(void);","ported":true}
    ],
    "name": "rasterizer.obj",
    "source": "rasterizer/rasterizer.c"
@@ -35633,7 +35615,7 @@
     },
     {
      "addr": "0x15eb90",
-     "decl": "void FUN_0015eb90(void);"
+     "decl": "void FUN_0015eb90(int handle);"
     },
     {
      "addr": "0x15ec50",
@@ -35641,7 +35623,7 @@
     },
     {
      "addr": "0x15ee80",
-     "decl": "void FUN_0015ee80(void);"
+     "decl": "void FUN_0015ee80(int handle);"
     },
     {
      "addr": "0x15f1f0",
