@@ -752,6 +752,91 @@ bool collision_bsp_test_pill_new(int bsp3d, short flags, int param3,
   return FUN_00148440(&data, 0, 0.0f, 1.0f);
 }
 
+/* 0x1493b0 - collision_bsp_test_sphere
+ *
+ * Packs the six caller arguments plus a zeroed seventh field into a 0x228-byte
+ * bsp3d sphere-test context on the stack, clears the four result-list counters,
+ * and runs the recursive bsp3d sphere walk from node 0.
+ *
+ * Binary: PUSH EBP / MOV EBP,ESP / SUB ESP,0x228 (no _chkstk), EBX/ESI/EDI
+ * saved, and a single grouped ADD ESP,0x1c at 0x149454 covering ALL FOUR calls
+ * (1 + 1 + 2 + 3 = 7 dwords). The enrichment's "cleanup=7 stack args, decl=3"
+ * report against the collision_log_add_time site is that cdecl mis-grouping,
+ * not a real arg-count mismatch: that call pushes exactly EAX/ECX/EDI at
+ * 0x14944a-0x14944c.
+ *
+ * Only the first 0x1c bytes of the context are written here; the remaining
+ * 0x20c bytes are scratch the recursive walk fills, so the aggregate must stay
+ * 0x228 bytes or the callee overruns the frame.
+ *
+ * ESI is loaded with `bsp` ([EBP+0x8]) early and then RELOADED at 0x1493f9
+ * with `results` ([EBP+0x1c]); the `MOV [ESI+0xc0c],EBX` style stores are
+ * therefore against `results`, not `bsp` (register-aliasing trap).
+ *
+ * EDI = (bsp == *(int *)0x5064dc) + 6, i.e. log id 7 when the bsp is the
+ * structure BSP the scenario installed at 0x5064dc, else 6. The same value is
+ * passed to collision_log_add_call and collision_log_add_time.
+ *
+ * `flags` is stored with `MOV word ptr [EBP-0x224],CX` - 16-bit, so the upper
+ * half of that context dword is never written.
+ *
+ * `results` is indexed with 0x404-byte strides (int indices 0, 0x101, 0x202,
+ * 0x303): four parallel lists, each a count int followed by 0x100 entries. No
+ * struct is recovered for it, so the raw int-index form is kept. Store order
+ * in the binary is +0xc0c, +0x000, +0x404, +0x808 and is preserved here.
+ *
+ * Return: 1 when either of the first two list counters ended up positive (both
+ * compared signed with JG against EBX = 0), else 0. The epilogue is duplicated
+ * on both paths, so there is no shared tail.
+ */
+typedef struct {
+  int bsp; /* 0x00 */
+  short flags; /* 0x04 - 16-bit store */
+  short pad_06; /* 0x06 - never written by the builder */
+  int origin; /* 0x08 */
+  int direction; /* 0x0c */
+  int radius; /* 0x10 */
+  int *results; /* 0x14 */
+  int field_18; /* 0x18 */
+  char scratch[0x228 - 0x1c]; /* 0x1c - filled by the recursive walk */
+} bsp3d_sphere_test_data;
+
+int collision_bsp_test_sphere(int bsp, short flags, int origin, int direction,
+                              int radius, int *results)
+{
+  bsp3d_sphere_test_data data;
+  short log_id;
+
+  log_id = (short)((bsp == *(int *)0x5064dc) + 6);
+  collision_log_add_call(log_id);
+  collision_log_query_counter((void *)0x46f098);
+
+  data.bsp = bsp;
+  data.flags = flags;
+  data.origin = origin;
+  data.direction = direction;
+  data.radius = radius;
+  data.results = results;
+  data.field_18 = 0;
+
+  results[0x303] = 0;
+  results[0] = 0;
+  results[0x101] = 0;
+  results[0x202] = 0;
+
+  bsp3d_test_sphere_recursive(&data, 0);
+
+  collision_log_add_time(log_id, *(unsigned int *)0x46f098, *(int *)0x46f09c);
+
+  /* Both tests are JG against EBX = 0, i.e. `> 0`, and each branch carries its
+   * own copy of the epilogue - Ghidra's `< 1 && < 1 -> return 0` rendition is
+   * the same predicate but compiles to JGE and a shared tail. */
+  if (results[0] > 0 || results[0x101] > 0) {
+    return 1;
+  }
+  return 0;
+}
+
 /* 0x14dc30 - Point-vs-world collision test. If any of the collision-type
  * flags (0xE0) are set, locate the BSP3D leaf containing `pos`; a leaf of -1
  * (point outside the BSP) reports a hit. When flag bit 7 (0x80) is set and the

@@ -28494,6 +28494,17 @@
       "score": 100.0,
       "source": "src/halo/physics/collision_bsp.c"
     },
+    "collision_bsp_test_sphere": {
+      "addr": "0x1493b0",
+      "end": "0x149478",
+      "kind": "auto",
+      "n_r": 64,
+      "opnd_percent": 96.9,
+      "ref": "synth",
+      "ref_sha": "cc3983b69533dabd",
+      "score": 100.0,
+      "source": "src/halo/physics/collision_bsp.c"
+    },
     "collision_cylinder_test_point": {
       "addr": "0x14b960",
       "end": "0x14bada",
