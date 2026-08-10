@@ -53,6 +53,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 SRC_DIR = os.path.join(ROOT_DIR, 'src')
@@ -126,6 +127,92 @@ LOCAL_SCALAR16_PATTERN = re.compile(
 LOCAL_SCALAR8_PATTERN = re.compile(
     r'^\s+(?:unsigned\s+)?(?:char|int8_t|uint8_t)\s+\w+\s*;',
 )
+
+
+def check_decl_header_stale():
+    """Check that build/generated/decl.h still matches kb.json (WARN).
+
+    decl.h is generated from kb.json by knowledge.py, but only a CMake build
+    regenerates it.  Edit a prototype in kb.json and every tool that reads the
+    header without rebuilding is reading the PREVIOUS declarations:
+
+      * vc71_verify.py compiles the TU against them -- a corrected prototype
+        turns each call site into a hard cl.exe error, the run reports zero
+        scored functions for the whole TU, and the failure reads like a missing
+        or broken delinked reference rather than a stale header.  (Observed on
+        particle_systems.c: C2440 at the point_physics_definition_interpolate
+        call site with decl.h 12h behind kb.json.)  That tool now pins the
+        header itself; this check covers everyone else.
+      * check_void_eax_returns and check_noparam_decl_args below -- both grep
+        this header, so a stale copy makes them pass on prototypes that were
+        already fixed, or fire on ones that were.
+
+    Generating a throwaway copy and comparing bytes costs ~0.3s and is exact;
+    mtime is not a usable oracle here (any checkout or archive extract can give
+    a stale file a fresh timestamp -- the same reason vc71_verify stamps object
+    identity by content).
+
+    WARN, not ERROR: a stale header is a workspace state, not a defect in the
+    committed source, and this scan gates commits.
+    """
+    warnings = []
+    if not os.path.isfile(DECL_H):
+        return warnings
+
+    knowledge_py = os.path.join(ROOT_DIR, 'tools', 'analysis', 'knowledge.py')
+    if not os.path.isfile(knowledge_py):
+        return warnings
+
+    tmp_fd, tmp_path = tempfile.mkstemp(prefix='decl_fresh_', suffix='.h')
+    os.close(tmp_fd)
+    try:
+        r = subprocess.run(
+            [sys.executable, knowledge_py, '--gen-header', tmp_path],
+            capture_output=True, text=True, cwd=ROOT_DIR)
+        if r.returncode != 0:
+            # Cannot tell fresh from stale; say nothing rather than cry wolf.
+            return warnings
+        with open(tmp_path, 'r', errors='replace') as f:
+            fresh = f.read()
+    except OSError:
+        return warnings
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+
+    with open(DECL_H, 'r', errors='replace') as f:
+        current = f.read()
+
+    if fresh == current:
+        return warnings
+
+    # Report the prototypes that actually differ, not just "files differ" —
+    # the symbol name is what tells you which call site will fail to compile.
+    def _protos(text):
+        out = {}
+        for line in text.splitlines():
+            m = re.search(r'\b([A-Za-z_]\w*)\s*\(', line)
+            if m:
+                out[m.group(1)] = line.strip()
+        return out
+
+    cur_p, new_p = _protos(current), _protos(fresh)
+    changed = sorted(
+        n for n in set(cur_p) | set(new_p) if cur_p.get(n) != new_p.get(n)
+    )
+    warnings.append(
+        f'  decl.h is stale relative to kb.json '
+        f'({len(changed)} prototype(s) differ); regenerate with: '
+        f'python3 tools/analysis/knowledge.py --gen-header '
+        f'build/generated/decl.h'
+    )
+    for name in changed[:10]:
+        warnings.append(f'    {name}: kb.json now says {new_p.get(name, "(removed)")}')
+    if len(changed) > 10:
+        warnings.append(f'    ... and {len(changed) - 10} more')
+    return warnings
 
 
 def check_void_eax_returns():
@@ -1944,6 +2031,9 @@ def main():
 
     params_map = _parse_decl_params()
 
+    # Run first: both decl.h-reading checks below are only meaningful if the
+    # header matches kb.json.
+    all_stale_decl_warnings = check_decl_header_stale()
     all_void_eax_errors = check_void_eax_returns()
     all_noparam_decl_errors = check_noparam_decl_args()
     all_intrinsic_errors = []
@@ -2000,6 +2090,7 @@ def main():
 
     if quiet:
         counts = (
+            f'stale_decl: {len(all_stale_decl_warnings)}, '
             f'void_eax: {len(all_void_eax_errors)}, '
             f'noparam_decl: {len(all_noparam_decl_errors)}, '
             f'intrinsics: {len(all_intrinsic_errors)}, '
@@ -2025,7 +2116,8 @@ def main():
         )
         if frame_audit:
             counts += f', frame_sizes: {len(all_frame_errors)}'
-        total = (len(all_void_eax_errors) + len(all_noparam_decl_errors) +
+        total = (len(all_stale_decl_warnings) +
+                 len(all_void_eax_errors) + len(all_noparam_decl_errors) +
                  len(all_intrinsic_errors) + len(all_buffer_errors) +
                  len(all_duplicate_errors) + len(all_ptr_float_errors) +
                  len(all_alias_errors) + len(all_frame_errors) +
@@ -2041,6 +2133,20 @@ def main():
         if total:
             print(counts, file=sys.stderr)
     else:
+        if all_stale_decl_warnings:
+            print(
+                'WARNING: build/generated/decl.h no longer matches kb.json.\n'
+                'Every tool that reads this header without rebuilding is using\n'
+                'the previous prototypes: vc71_verify compiles the TU against\n'
+                'them (a corrected prototype then fails the whole TU and looks\n'
+                'like a missing delinked reference), and the two decl.h checks\n'
+                'in this scan judge prototypes that have already changed.\n',
+                file=sys.stderr,
+            )
+            for w in all_stale_decl_warnings:
+                print(w, file=sys.stderr)
+            print(file=sys.stderr)
+
         if all_void_eax_errors:
             print(
                 'ERROR: void-return functions that must return out-param in EAX.\n'

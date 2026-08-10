@@ -909,11 +909,50 @@ def extract_fpu_blocks(insns: list[str]) -> list[list[str]]:
     return blocks
 
 
+def _align_fpu_blocks(compiled_blocks: list[list[str]],
+                      ref_blocks: list[list[str]]) -> list[tuple[int, list[str], list[str]]]:
+    """Pair FPU blocks by mnemonic-sequence identity, not by ordinal position.
+
+    Ordinal pairing (the original `zip`) is wrong as soon as the two sides split
+    into FPU runs differently -- and they routinely do, because MSVC schedules a
+    single FPU instruction into or out of a neighbouring run without changing any
+    arithmetic.  One hoisted `fmuls` merges two candidate blocks into one on the
+    reference side, every later index shifts by one, and the comparison then
+    holds an entirely different region of code against each block.
+
+    That is not a harmless mis-label: the per-insn operand check below only runs
+    when the two blocks' mnemonic sequences are equal, and two *different*
+    cross products have identical mnemonics (fld/fmul/fld/fmul/fsubrp x3).  So a
+    shifted pairing emits a full set of confident-looking operand warnings that
+    classify as `fpu_operand_order` and point at the wrong arm of the function.
+    Observed on FUN_000a0e60 (particle_systems.obj) 2026-08-10: 9 warnings
+    comparing the candidate's `if` arm (cross product against the global up
+    vector) with the reference's `else` arm (cross product against origin
+    fields).  Both arms were correct; only the block indices had slipped.
+
+    Aligning on the mnemonic sequence pairs each block with the block that
+    actually holds the same computation, so surviving warnings are real operand
+    differences.  Blocks with no counterpart are dropped rather than forced into
+    a pair.
+    """
+    c_keys = [tuple(mnemonic(x).lower() for x in b) for b in compiled_blocks]
+    r_keys = [tuple(mnemonic(x).lower() for x in b) for b in ref_blocks]
+    pairs = []
+    matcher = SequenceMatcher(None, c_keys, r_keys, autojunk=False)
+    for ci, ri, size in matcher.get_matching_blocks():
+        for k in range(size):
+            pairs.append((ci + k, compiled_blocks[ci + k], ref_blocks[ri + k]))
+    if pairs:
+        return pairs
+    # No block matched on mnemonics: fall back to ordinal pairing so the
+    # "same ops, different order" heuristic below can still fire.
+    return [(i, cb, rb) for i, (cb, rb) in enumerate(zip(compiled_blocks, ref_blocks))]
+
+
 def compare_fpu_blocks(compiled_blocks: list[list[str]], ref_blocks: list[list[str]]) -> list[str]:
     """Compare FPU blocks between compiled and reference, flag operand swaps."""
     warnings = []
-    # Match blocks by position (rough heuristic)
-    for i, (cb, rb) in enumerate(zip(compiled_blocks, ref_blocks)):
+    for i, cb, rb in _align_fpu_blocks(compiled_blocks, ref_blocks):
         c_mnems = [mnemonic(x).lower() for x in cb]
         r_mnems = [mnemonic(x).lower() for x in rb]
         if c_mnems == r_mnems:

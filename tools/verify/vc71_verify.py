@@ -60,6 +60,12 @@ RXDK_INC = r"C:\Program Files (x86)\RXDK\xbox\include"
 
 COMPARE_SCRIPT = REPO_ROOT / "tools" / "verify" / "compare_obj.py"
 
+# Generated header the VC71 compile includes (via xdk_common.h); produced from
+# kb.json by knowledge.py.  See regen_decl_header for why this tool regenerates
+# it rather than trusting whatever the last CMake build left behind.
+DECL_H = BUILD_DIR / "generated" / "decl.h"
+KNOWLEDGE_PY = REPO_ROOT / "tools" / "analysis" / "knowledge.py"
+
 _kb_cache: dict | None = None
 
 
@@ -750,6 +756,49 @@ def _preprocess_fastcall_defs(source: Path, names: set[str],
     tmp = orig_source.parent / f".vc71_fastcall_{orig_source.name}"
     tmp.write_text(text)
     return tmp
+
+
+def regen_decl_header(quiet: bool = False) -> bool:
+    """Regenerate build/generated/decl.h from kb.json before compiling.
+
+    decl.h is a *compile input*, and this tool already refuses to trust a stale
+    .obj (see obj_is_current / source_stamp).  The header had no such guard: only
+    a CMake build regenerates it, so editing a prototype in kb.json and then
+    running this script directly compiles the TU against the PREVIOUS header.
+
+    That is not a soft failure.  A corrected prototype (say void(void) -> the
+    real void *f(void*, void*, float, void*)) makes every call site in the lifted
+    C a hard error against the old header, cl.exe returns non-zero, and the run
+    reports zero scored functions for the whole TU -- which reads like a missing
+    or broken reference, sending the investigation at the delinked object instead
+    of the header.  Observed on particle_systems.c (C2440 at the
+    point_physics_definition_interpolate call site, decl.h 12h older than
+    kb.json); vc71_regression.py already pins the header for the same reason
+    after it silently blanked network_game_globals on the dashboard.
+
+    Cheap, idempotent, and deterministic for an unchanged kb.json.  Returns True
+    on success; on failure warns and returns False so the run still proceeds
+    against whatever header exists (a compile error then names the real cause).
+    """
+    DECL_H.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        r = subprocess.run(
+            [sys.executable, str(KNOWLEDGE_PY), "--gen-header", str(DECL_H)],
+            capture_output=True, text=True, cwd=REPO_ROOT)
+    except OSError as e:
+        print(f"  ⚠ could not regenerate decl.h ({e}); using existing header",
+              file=sys.stderr)
+        return False
+    if r.returncode != 0:
+        tail = (r.stderr or r.stdout or "").strip().splitlines()[-3:]
+        print("  ⚠ decl.h regeneration failed; using existing header:",
+              file=sys.stderr)
+        for line in tail:
+            print(f"      {line}", file=sys.stderr)
+        return False
+    if not quiet:
+        print("[decl] build/generated/decl.h pinned to kb.json", flush=True)
+    return True
 
 
 def _make_fastcall_decl_shadow(names: set[str]) -> Path | None:
@@ -1814,6 +1863,11 @@ def main():
     ap.add_argument("--no-score-context", action="store_true",
                     help="Disable machine-readable score-context pack output "
                          "(artifacts/score_context/<name>.json); on by default")
+    ap.add_argument("--skip-decl-regen", action="store_true",
+                    help="Do not regenerate build/generated/decl.h from kb.json "
+                         "before compiling. Only for callers that already pinned "
+                         "the header this process (e.g. a sharded batch run); a "
+                         "stale header silently blanks a whole TU's scores")
     args = ap.parse_args()
 
     # --no-synth-ref used to force a DROP where no delinked reference bounded a
@@ -1848,6 +1902,11 @@ def main():
     if not source.exists():
         print(f"Source file not found: {source}", file=sys.stderr)
         sys.exit(1)
+
+    # Pin decl.h == kb.json before any compile.  --skip-compile still wants it:
+    # the fastcall decl shadow is derived from this header.
+    if not args.skip_decl_regen:
+        regen_decl_header(quiet=args.quiet)
 
     # Size-optimized prebuilt library TUs (XAPILIB / CRT) were compiled /O1, so
     # they use compact idioms (push imm8/pop, leave) that /O2 never emits.

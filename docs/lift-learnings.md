@@ -1506,3 +1506,115 @@ right-to-left: the last `PUSH` before the `CALL` is argument 1.
 **Related:** §31 (thunk decl carries the real signature), and the `(void)` decl
 over a `RET 4` stdcall wrapper, which is the same failure with an added ESP
 imbalance.
+
+## 41. Stale `build/generated/decl.h` — a Whole TU Scores Zero and It Looks Like a Missing Reference
+
+**Automation:** YES — `tools/verify/vc71_verify.py::regen_decl_header` pins the
+header to kb.json before every compile (bypass: `--skip-decl-regen`), and
+`tools/audit/check_lift_hazards.py::check_decl_header_stale` reports drift
+(WARN-level; a stale workspace header is not a defect in committed source).
+`tools/verify/vc71_regression.py` already carried the same pin.
+
+`build/generated/decl.h` is generated from kb.json by
+`tools/analysis/knowledge.py --gen-header`, but only a CMake build regenerates
+it. Correct a prototype in kb.json and then run a verify tool directly — without
+rebuilding — and the tool compiles against the *previous* declarations.
+
+This is not a soft failure. When the correction widens a signature, every call
+site in the lifted C becomes a hard error against the old header, `cl.exe`
+returns non-zero, and the run reports **zero scored functions for the entire
+TU**. Nothing in that output points at the header, so the natural reading is a
+missing or broken delinked reference — and the investigation goes to
+`delinked/`, `objdiff.json`, and symbol bounds, all of which are fine.
+
+Observed 2026-08-10 on `src/halo/effects/particle_systems.c`:
+
+```
+particle_systems.c(377) : error C2440: '=' : cannot convert from 'void' to 'void *'
+```
+
+kb.json (`point_physics.obj`, `0x1548c0`) had been corrected from
+`void point_physics_definition_interpolate(void)` to
+`void *point_physics_definition_interpolate(void *physics_a, void *physics_b, float interpolation, void *out)`,
+but `decl.h` was 12 hours behind. `delinked/particle_systems.obj` existed
+(22.5 KB), was registered in `objdiff.json`, and bounded all 22 functions the
+whole time. Regenerating the header scored 22/22 (seven at 100%). The identical
+failure mode had previously blanked `network_game_globals` on the dashboard,
+which is why `vc71_regression.py` pins the header.
+
+**Detection.** Compare content, not timestamps: generate a throwaway header
+(`knowledge.py --gen-header <tmp>`, ~0.3 s) and diff it against
+`build/generated/decl.h`; report the prototypes that differ, since the symbol
+name is what identifies the call site that will fail. mtime is not a usable
+oracle — any checkout or archive extract can give a stale file a fresh
+timestamp, the same reason `vc71_verify` stamps object identity by content
+(`obj_is_current` / `source_stamp`).
+
+**Rule of thumb.** A verify run that scores *zero* functions in a TU is a
+compile failure until proven otherwise. Read the first `cl.exe` diagnostic
+before touching the reference side — a reference problem degrades or drops
+individual functions, it does not blank a whole TU.
+
+**Related:** §40 (the kb.json decl itself being wrong, which is what this header
+propagates), and §31.
+
+## 42. FPU-WARN Blocks Paired by Ordinal Position — Confident Operand Warnings Against the Wrong Arm
+
+**Automation:** YES — `tools/verify/compare_obj.py::_align_fpu_blocks` pairs FPU
+blocks by mnemonic-sequence identity instead of by list index. `compare_obj.py`
+is hashed into `vc71_regression.py`'s tool epoch, so existing memos re-measure
+automatically.
+
+`compare_fpu_blocks` used to pair candidate and reference FPU runs with
+`zip(compiled_blocks, ref_blocks)` — block *i* against block *i*. The two sides
+split into runs differently as soon as MSVC schedules one FPU instruction into
+or out of a neighbouring run, which it does freely without changing any
+arithmetic. One hoisted `fmuls` merges two runs on one side, every later index
+shifts by one, and each comparison then holds a different region of code.
+
+The mis-pairing is not self-announcing, because the per-instruction operand
+check only runs when the two blocks' *mnemonic sequences* are equal — and two
+different cross products have identical mnemonics
+(`fld/fmul/fld/fmul/fsubrp` ×3). A shifted pairing therefore emits a full set of
+confident-looking operand warnings, which `score_improve.py categorize` labels
+`fpu_operand_order` and points at real-looking field offsets.
+
+Observed 2026-08-10 on `FUN_000a0e60` (`particle_systems.obj`, 93.6%): 9
+warnings, produced by comparing the candidate's `if` arm (cross product against
+the global up vector at `0x31fc44`) with the reference's `else` arm (cross
+product against `origin+0x3c..0x44`). Both arms were correct. The most
+misleading line,
+
+```
+FPU block 2, insn 5: fadds 0x30(%edi)  vs  fadds 0x34(%esi)
+```
+
+reads as a wrong-field recovery bug — different offset *and* different base
+register. After alignment it is `fadds 0x30(%edi) vs fadds 0x30(%esi)`: same
+field, and `%edi`/`%esi` both hold `definition` (`movl 0x8(%ebp), %esi` in the
+reference vs `movl 0x8(%ebp), %edi` in the candidate). Pure register allocation.
+
+**A differing base register is not evidence of anything on its own.** Compare
+the *offsets* first, and confirm what each register holds by tracing back to its
+defining `mov`, before treating a base-register difference as a finding.
+
+**Corollary — operand order is invisible to the official score.** The official
+VC71 percentage is a mnemonic-only LCS, so a product with its `fld`/`fmul`
+operands commuted costs nothing there; it shows up only in the
+`opnd NN.N% (operand-normalized)` figure. On `FUN_000a0e60` all 12 surviving
+operand differences are commuted products (`fld a; fmul b` vs `fld b; fmul a`,
+identical results), and the 6.4pp official gap comes entirely from elsewhere:
+`mov`+`add` where the original uses one `lea`, two missing `lea`s in the
+12-byte `origin+0x60 → state+0x1c` copy, and `flds`+`fucompp` where the original
+uses `flds`+`fcomps <pool const>`. Read the mnemonic diff, not the FPU-WARN
+list, to find what is actually costing the score.
+
+VC71 canonicalizes x87 product operand order independently of source order —
+three source permutations were measured on this function (`vector3_t` struct
+assignment for the copy: 93.6% → 92.2%; pointer locals for the copy: no change;
+`0.0f != scale_c` instead of `scale_c != 0.0f`: official unchanged, `opnd`
+71.2% → 71.9%). None were retained. Do not spend cycles rewriting a product's
+operand order to chase the official metric.
+
+**Related:** §39 (byte-accuracy tuning playbook) and the `lift-score-improve`
+skill's recipe atlas.
