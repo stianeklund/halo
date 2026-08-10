@@ -729,9 +729,15 @@ typedef struct {
   int field_28; /* 0x28 */
 } bsp3d_pill_test_data;
 
-bool collision_bsp_test_pill_new(int bsp3d, short flags, int param3,
-                                 float *origin, float *direction, float radius,
-                                 float *out_distance, float *out_normal)
+/* noinline: the sole caller FUN_0014e940 (0x14e940) reaches this through a real
+ * CALL at 0x14e989, so the original build did NOT inline it. Left to its own
+ * devices the compiler folds this body into that caller and hoists the 0x2c
+ * bsp3d_pill_test_data record into the caller's frame (sub esp,0x3c instead of
+ * sub esp,0x10), which is a structural mismatch against the binary. */
+bool __declspec(noinline)
+collision_bsp_test_pill_new(int bsp3d, short flags, int param3, float *origin,
+                            float *direction, float radius,
+                            float *out_distance, float *out_normal)
 {
   bsp3d_pill_test_data data;
 
@@ -891,4 +897,84 @@ char FUN_0014dc30(int param_1, float *pos, int param_3)
     }
   }
   return 0;
+}
+
+/* 0x14e940
+ *
+ * Sweeps one pill of radius `radius` along the segment [origin, origin+delta]
+ * against the STRUCTURE bsp only (the bsp handed back by
+ * global_collision_bsp_get - no object or model collision is consulted here)
+ * and fills the caller's 0x50-byte collision-result record.
+ *
+ * Binary: PUSH EBP / MOV EBP,ESP / SUB ESP,0x10, EBX/ESI/EDI saved, plain RET
+ * (cdecl both ways). Six dword parameter slots at EBP+0x08..+0x1c; +0x08 and
+ * +0x18 are never referenced by the body, so they keep mechanical names.
+ * ESI caches the result pointer from EBP+0x1c at 0x14e94e.
+ *
+ * Call site at 0x14e989: eight pushes cleaned by a single ADD ESP,0x20, so
+ * every push belongs to collision_bsp_test_pill_new. In push order they are
+ * &normal, &t, radius, delta, origin, 0, 0, bsp - i.e. reversed into C order:
+ * (bsp, 0, 0, origin, delta, radius, &t, &normal). The bsp pointer is the
+ * LAST push (0x14e988, straight off the getter's EAX) and is therefore the
+ * FIRST argument; the enrichment's "getter swallowed the args" note is the
+ * usual cdecl mis-grouping and does not apply.
+ *
+ * `t` lives in the dead EBP+0x1c parameter slot in the original: the result
+ * pointer is already cached in ESI, so MSVC recycled the incoming slot as the
+ * out-distance scratch and reads the callee-written float back from it at
+ * 0x14e995. Modelled here as an ordinary local, which is behaviourally
+ * identical - the result pointer must NOT be re-read after the call.
+ *
+ * The surface normal is copied into the record at +0x24..+0x2c inside the hit
+ * branch and then unconditionally zeroed again by the tail at 0x14e9fe. That
+ * double write is in the binary (MSVC 7.1 does not eliminate the dead store
+ * across the branch merge); do not collapse it.
+ *
+ * Return: AL. The hit path sets AL=1 directly (0x14e9d1) and the miss path
+ * reloads the byte flag seeded to 0 at 0x14e967, so the frame slot is real
+ * even though the true path never stores through it.
+ */
+bool FUN_0014e940(int param_1, float *origin, float *delta, float radius,
+                  int param_5, collision_test_result *result)
+{
+  float normal[3];
+  float t;
+  float hit_t;
+  bool hit = false;
+
+  result->field_00 = -1;
+  result->field_04 = -1;
+  result->field_08 = -1;
+  result->field_0c = -1;
+  result->field_10 = -1;
+  result->t = 1.0f;
+
+  if (collision_bsp_test_pill_new((int)global_collision_bsp_get(), 0, 0, origin,
+                                  delta, radius, &t, normal)) {
+    result->t = t;
+    result->normal[0] = normal[0];
+    result->normal[1] = normal[1];
+    result->normal[2] = normal[2];
+    result->field_00 = 2;
+    result->field_30 = 3.4028235e+38f;
+    result->field_34 = -1;
+    result->field_44 = -1;
+    result->field_48 = -1;
+    result->field_4c = 0;
+    result->field_4d = 0;
+    result->field_4e = -1;
+    hit = true;
+  }
+
+  /* One FLD of result->t held on the x87 stack and duplicated per component
+   * (0x14e9d8: FLD [ESI+0x14] / FLD ST(0) ...), not three reloads. */
+  hit_t = result->t;
+  result->position[0] = hit_t * delta[0] + origin[0];
+  result->position[1] = hit_t * delta[1] + origin[1];
+  result->position[2] = hit_t * delta[2] + origin[2];
+  result->normal[0] = 0.0f;
+  result->normal[1] = 0.0f;
+  result->normal[2] = 0.0f;
+
+  return hit;
 }

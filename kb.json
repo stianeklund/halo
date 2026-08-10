@@ -37243,7 +37243,8 @@
     },
     {
      "addr": "0x14e940",
-     "decl": "void FUN_0014e940(void);"
+     "decl": "bool FUN_0014e940(int param_1, float *origin, float *delta, float radius, int param_5, collision_test_result *result);",
+     "ported": true
     },
     {
      "addr": "0x14ea10",
