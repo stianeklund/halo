@@ -1521,6 +1521,7 @@ char FUN_000a0fd0(int particle_handle)
   int idx;
   char result;
   float duration;
+  float bounds[2];
 
   entry = (char *)datum_get(particle_system_header_data, particle_handle);
   tag = (char *)tag_get(0x7063746c, *(int *)(entry + 8));
@@ -1530,15 +1531,11 @@ char FUN_000a0fd0(int particle_handle)
   *(unsigned int *)(entry + 4) |= 2;
   idx = 0;
   i = 0;
-  if (*tag_block_ptr < 1) {
-    result = 1;
-  } else {
+  if (idx < *tag_block_ptr) {
     do {
       instance = entry + 0x58 + idx * 0x40;
       type_def = (char *)tag_block_get_element(tag_block_ptr, idx, 0x80);
-      if (*(int *)(type_def + 0x68) == 0) {
-        result = 0;
-      } else {
+      if (*(int *)(type_def + 0x68) != 0) {
         *(short *)(instance + 0x00) = 0;
         *(short *)(instance + 0x02) = (short)NONE;
         *(char *)(instance + 0x38) = 1;
@@ -1547,21 +1544,23 @@ char FUN_000a0fd0(int particle_handle)
         if (*(int *)(type_def + 0x68) > 0) {
           state_elem =
             (char *)tag_block_get_element((int *)(type_def + 0x68), 0, 0xc0);
+          bounds[0] = *(float *)(state_elem + 0x20);
+          bounds[1] = *(float *)(state_elem + 0x24);
           duration = random_real_range(
-            (int *)random_math_get_local_seed_address(),
-            *(float *)(state_elem + 0x20), *(float *)(state_elem + 0x24));
+            (int *)random_math_get_local_seed_address(), bounds[0], bounds[1]);
           *(float *)(instance + 0x04) = duration;
           *(float *)(instance + 0x08) = duration;
         }
+      } else {
+        result = 0;
       }
       i = i + 1;
       idx = (int)i;
     } while (idx < *tag_block_ptr);
-    if (result == 0) {
-      return 0;
-    }
   }
-  FUN_000a0180(0.001f, particle_handle);
+  if (result != 0) {
+    FUN_000a0180(0.001f, particle_handle);
+  }
   return result;
 }
 

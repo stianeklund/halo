@@ -6195,10 +6195,10 @@
       "end": "0xa10e6",
       "kind": "auto",
       "n_r": 99,
-      "opnd_percent": 79.6,
+      "opnd_percent": 95.4,
       "ref": "synth",
       "ref_sha": "3aadf3e4d7b8f2d3",
-      "score": 87.6,
+      "score": 98.5,
       "source": "src/halo/effects/particle_systems.c"
     },
     "FUN_000a1210": {
