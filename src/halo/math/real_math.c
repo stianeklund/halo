@@ -165,18 +165,19 @@ void FUN_001090e0(float *out)
  * Swaps [2]<->[4], [3]<->[7], [6]<->[8] (0-indexed from float[1]). */
 void FUN_00109120(float *m)
 {
-  float first;
-  float second;
+  float t;
 
-  first = m[2];
-  second = m[3];
+  t = m[2];
   m[2] = m[4];
-  m[4] = first;
-  first = m[6];
+  m[4] = t;
+
+  t = m[3];
   m[3] = m[7];
-  m[7] = second;
+  m[7] = t;
+
+  t = m[6];
   m[6] = m[8];
-  m[8] = first;
+  m[8] = t;
 }
 
 /* Compute the inverse of a 4x3 matrix (scale + rotation + translation).
@@ -304,50 +305,44 @@ void matrix4x3_identity_with_position(float *out, float *position)
 
 void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine)
 {
-  float x;
-  float y;
-  float z;
   float xx;
   float yy;
-  volatile float zz;
-  volatile float one_minus_cosine;
-  volatile float xy_term;
-  volatile float xz_term;
-  volatile float yz_term;
-  volatile float sine_x;
-  volatile float sine_y;
+  float zz;
+  float one_minus_cosine;
+  float xy_term;
+  float xz_term;
+  float yz_term;
+  float sine_x;
+  float sine_y;
   float sine_z;
   volatile float *out;
 
   out = (volatile float *)out_matrix;
-  x = axis[0];
-  y = axis[1];
-  z = axis[2];
 
-  xx = x * x;
-  yy = y * y;
-  zz = z * z;
-  one_minus_cosine = 1.0f - cosine;
-  sine_x = sine * x;
-  sine_y = sine * y;
-  sine_z = sine * z;
+  xx = axis[0] * axis[0];
+  yy = axis[1] * axis[1];
+  zz = axis[2] * axis[2];
+  sine_x = sine * axis[0];
+  sine_y = sine * axis[1];
+  sine_z = sine * axis[2];
 
   out_matrix[0] = 1.0f;
   out_matrix[1] = (1.0f - xx) * cosine + xx;
 
-  xy_term = y * x * one_minus_cosine;
+  one_minus_cosine = 1.0f - cosine;
+  xy_term = axis[1] * axis[0] * one_minus_cosine;
   out[2] = xy_term;
   out[4] = xy_term - sine_z;
   out[2] = sine_z + out[2];
   out_matrix[5] = (1.0f - yy) * cosine + yy;
 
-  xz_term = z * x * one_minus_cosine;
+  xz_term = axis[2] * axis[0] * one_minus_cosine;
   out[3] = xz_term;
   out[7] = xz_term + sine_y;
   out[3] = out[3] - sine_y;
   out_matrix[9] = (1.0f - zz) * cosine + zz;
 
-  yz_term = z * y * one_minus_cosine;
+  yz_term = axis[2] * axis[1] * one_minus_cosine;
   out[6] = yz_term;
   out[8] = yz_term - sine_x;
   out[6] = sine_x + out[6];
