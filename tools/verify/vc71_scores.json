@@ -20209,6 +20209,17 @@
       "score": 93.8,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
+    "FUN_0017c2f0": {
+      "addr": "0x17c2f0",
+      "end": "0x17c78a",
+      "kind": "auto",
+      "n_r": 358,
+      "opnd_percent": 52.7,
+      "ref": "synth",
+      "ref_sha": "33b919fd51c759f2",
+      "score": 85.1,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_0017c9f0": {
       "addr": "0x17c9f0",
       "end": "0x17c9f9",

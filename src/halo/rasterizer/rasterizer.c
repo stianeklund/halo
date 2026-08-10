@@ -5792,6 +5792,277 @@ bool FUN_0017c1b0(void *stage, short stage_index)
   return valid;
 }
 
+/* Bound proven by the six CMP SI,0x9 / JL pairs at 0x17c4c7, 0x17c503,
+ * 0x17c53f, 0x17c60c, 0x17c648 and 0x17c681 — all JL, so exclusive. The name
+ * is verbatim from the assert message string at 0x2aed50. */
+#define NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS 9
+
+/* Three more absolute-addressed lookup tables in the same run of .rdata as
+ * SHADER_TRANSPARENT_GENERIC_OUTPUT_MAPPING_TABLE above; the sizes follow from
+ * the bound each index is asserted against, and the addresses are contiguous
+ * (0x2aebd0 + 9*4 == 0x2aebf4, 0x2aebf4 + 9*4 == 0x2aec18,
+ * 0x2aec18 + 6*4 == 0x2aec30). Referenced by absolute address so the loads
+ * keep the original's [reg*4 + disp] form. */
+#define SHADER_TRANSPARENT_GENERIC_COLOR_OUTPUT_TABLE ((int *)0x2aebd0)
+#define SHADER_TRANSPARENT_GENERIC_ALPHA_OUTPUT_TABLE ((int *)0x2aebf4)
+#define SHADER_TRANSPARENT_GENERIC_ALPHA_OUTPUT_MAPPING_TABLE ((int *)0x2aec30)
+
+/* Stage flag bit 2 (TEST byte ptr [EBX],0x2 @0x17c6eb) ORs 0x4 into the alpha
+ * output-mapping bits. No string names it, so the name is mechanical. */
+#define STAGE_FLAG_02 0x2
+
+/* 0x17c2f0 — compile one shader_transparent_generic tag into the 0xf0-byte
+ * Xbox pixel-shader block, returning whether every map and stage validated.
+ *
+ * Structure recovered from the disassembly, not the decompiler: Ghidra loses
+ * every register-argument callee's arguments AND its EAX result here (the
+ * `extraout_EAX*` pseudo-variables), so all five reg-arg callees below have
+ * their arguments read straight out of the MOV SI/MOV DI pairs that precede
+ * each CALL:
+ *   FUN_0017c140(map@<esi>, map_index@<di>)          @0x17c3f5
+ *   FUN_0017c1b0(stage@<esi>, stage_index@<di>)      @0x17c460
+ *   FUN_0017be50(reg@<si>, mapping@<di>)  x4         @0x17c486..0x17c4b6
+ *   FUN_0017bf20(stage@<esi>)                        @0x17c571
+ *   FUN_0017c000(reg@<si>, mapping@<di>)  x4         @0x17c5cb..0x17c5fb
+ *
+ * The six register-index bounds checks are written out inline rather than
+ * behind a static helper: the reference has no CALL at those sites, and VC71
+ * refuses to inline a static function, so a helper would cost a call each.
+ * Their source lines (0xe9 for the colour side, 0x11f for the alpha side,
+ * 0x12d for the alpha output mapping) are the two/three distinct __LINE__
+ * values the original's inline accessors were defined at. */
+char FUN_0017c2f0(void *shader, void *pixel_shader)
+{
+  char valid;                  /* [EBP-1] */
+  void *generic;               /* FUN_001906b0 result, [EBP+8] after reuse */
+  int *maps;                   /* &generic->maps.count   (EBX @0x17c368) */
+  int *stages;                 /* &generic->stages.count ([EBP-0xc]) */
+  unsigned char *stage;        /* EBX inside the stage loop */
+  void *map;
+  int map_count;
+  int stage_count;
+  int texture_bits;
+  int index;                   /* [EBP+8] reused as the loop element index */
+  short i;
+  int color_in0, color_in1, color_in2, color_in3;
+  int color_out_a, color_out_b, color_out_c, color_function;
+  int alpha_in0, alpha_in1, alpha_in2, alpha_in3;
+  int alpha_out_a, alpha_out_b, alpha_out_c, alpha_out_mapping;
+  short reg;
+
+  valid = 1;
+  if (shader == 0) {
+    display_assert("shader",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                   "generic_preprocessor.c",
+                   0x184, 1);
+    system_exit(-1);
+  }
+  if (pixel_shader == 0) {
+    display_assert("pixel_shader",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                   "generic_preprocessor.c",
+                   0x185, 1);
+    system_exit(-1);
+  }
+
+  generic = FUN_001906b0(shader, 5);
+  csmemset(pixel_shader, 0, 0xf0);
+
+  maps = (int *)((char *)generic + 0x54);
+  map_count = *maps;
+  if (map_count <= 0 && *(int *)((char *)generic + 0x60) <= 0) {
+    error(2, "### ERROR generic shader has no maps or stages");
+    valid = 0;
+  } else {
+    /* MOV EAX,3/2/1 + SETG chain at 0x17c3a5..0x17c3cc: one bit per map past
+     * the first, packed five bits apart, with the first map's texture mode in
+     * the low field. */
+    if (map_count > 0) {
+      texture_bits = (*(short *)((char *)generic + 0x2a) != 0) * 2 + 1;
+    } else {
+      texture_bits = 0;
+    }
+    *(unsigned int *)((char *)pixel_shader + 0xd8) =
+      (unsigned int)(((((map_count > 3) << 5) | (map_count > 2)) << 5 |
+                      (map_count > 1))
+                     << 5) |
+      texture_bits;
+
+    if (*maps > 0) {
+      i = 0;
+      do {
+        map = tag_block_get_element(maps, i, 100);
+        if (valid) {
+          valid = FUN_0017c140(map, i);
+        }
+        i++;
+      } while (i < *maps);
+    }
+  }
+
+  stages = (int *)((char *)generic + 0x60);
+  stage_count = *stages;
+  if (stage_count < 1) {
+    stage_count = 1;
+  }
+  *(unsigned int *)((char *)pixel_shader + 0xd4) =
+    (unsigned int)(stage_count + 1) | 0x11100;
+
+  if (*stages <= 0) {
+    *(unsigned int *)((char *)pixel_shader + 0x88) = 0x8200000;
+    *(unsigned int *)((char *)pixel_shader + 0xb4) = 0xc0;
+    *(unsigned int *)pixel_shader = 0x18200000;
+    *(unsigned int *)((char *)pixel_shader + 0x68) = 0xc0;
+  } else {
+    i = 0;
+    index = 0;
+    do {
+      stage = (unsigned char *)tag_block_get_element(stages, index, 0x70);
+      if (valid) {
+        valid = FUN_0017c1b0(stage, i);
+      }
+
+      *(unsigned int *)((char *)pixel_shader + index * 4 + 0x48) =
+        FUN_000d1c90((float *)(stage + 0x2c));
+
+      color_in0 = FUN_0017be50(*(short *)(stage + 0x3c),
+                               *(short *)(stage + 0x3e));
+      color_in1 = FUN_0017be50(*(short *)(stage + 0x40),
+                               *(short *)(stage + 0x42));
+      color_in2 = FUN_0017be50(*(short *)(stage + 0x44),
+                               *(short *)(stage + 0x46));
+      color_in3 = FUN_0017be50(*(short *)(stage + 0x48),
+                               *(short *)(stage + 0x4a));
+
+      reg = *(short *)(stage + 0x4c);
+      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+        display_assert("register_index>=0 && "
+                       "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
+                       "STAGE_OUTPUTS",
+                       "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                       "generic_preprocessor.c",
+                       0xe9, 1);
+        system_exit(-1);
+      }
+      color_out_a = SHADER_TRANSPARENT_GENERIC_COLOR_OUTPUT_TABLE[reg];
+
+      reg = *(short *)(stage + 0x50);
+      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+        display_assert("register_index>=0 && "
+                       "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
+                       "STAGE_OUTPUTS",
+                       "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                       "generic_preprocessor.c",
+                       0xe9, 1);
+        system_exit(-1);
+      }
+      color_out_b = SHADER_TRANSPARENT_GENERIC_COLOR_OUTPUT_TABLE[reg];
+
+      reg = *(short *)(stage + 0x54);
+      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+        display_assert("register_index>=0 && "
+                       "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
+                       "STAGE_OUTPUTS",
+                       "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                       "generic_preprocessor.c",
+                       0xe9, 1);
+        system_exit(-1);
+      }
+      color_out_c = SHADER_TRANSPARENT_GENERIC_COLOR_OUTPUT_TABLE[reg];
+
+      color_function = FUN_0017bf20(stage);
+
+      *(unsigned int *)((char *)pixel_shader + index * 4 + 0x88) =
+        (unsigned int)(((color_in0 << 8 | color_in1) << 8 | color_in2) << 8 |
+                       color_in3);
+      *(unsigned int *)((char *)pixel_shader + index * 4 + 0xb4) =
+        (unsigned int)(((color_function << 4 | (color_out_c & 0xf)) << 4 |
+                        (color_out_a & 0xf))
+                         << 4 |
+                       (color_out_b & 0xf));
+
+      alpha_in0 = FUN_0017c000(*(short *)(stage + 0x58),
+                               *(short *)(stage + 0x5a));
+      alpha_in1 = FUN_0017c000(*(short *)(stage + 0x5c),
+                               *(short *)(stage + 0x5e));
+      alpha_in2 = FUN_0017c000(*(short *)(stage + 0x60),
+                               *(short *)(stage + 0x62));
+      alpha_in3 = FUN_0017c000(*(short *)(stage + 0x64),
+                               *(short *)(stage + 0x66));
+
+      reg = *(short *)(stage + 0x68);
+      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+        display_assert("register_index>=0 && "
+                       "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
+                       "STAGE_OUTPUTS",
+                       "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                       "generic_preprocessor.c",
+                       0x11f, 1);
+        system_exit(-1);
+      }
+      alpha_out_a = SHADER_TRANSPARENT_GENERIC_ALPHA_OUTPUT_TABLE[reg];
+
+      reg = *(short *)(stage + 0x6a);
+      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+        display_assert("register_index>=0 && "
+                       "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
+                       "STAGE_OUTPUTS",
+                       "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                       "generic_preprocessor.c",
+                       0x11f, 1);
+        system_exit(-1);
+      }
+      alpha_out_b = SHADER_TRANSPARENT_GENERIC_ALPHA_OUTPUT_TABLE[reg];
+
+      reg = *(short *)(stage + 0x6c);
+      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+        display_assert("register_index>=0 && "
+                       "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
+                       "STAGE_OUTPUTS",
+                       "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                       "generic_preprocessor.c",
+                       0x11f, 1);
+        system_exit(-1);
+      }
+      alpha_out_c = SHADER_TRANSPARENT_GENERIC_ALPHA_OUTPUT_TABLE[reg];
+
+      if (*(short *)(stage + 0x6e) < 0 ||
+          *(short *)(stage + 0x6e) >=
+            NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUT_MAPPINGS) {
+        display_assert("stage->alpha_output_mapping>=0 && "
+                       "stage->alpha_output_mapping<NUMBER_OF_SHADER_"
+                       "TRANSPARENT_GENERIC_STAGE_OUTPUT_MAPPINGS",
+                       "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                       "generic_preprocessor.c",
+                       0x12d, 1);
+        system_exit(-1);
+      }
+      alpha_out_mapping = SHADER_TRANSPARENT_GENERIC_ALPHA_OUTPUT_MAPPING_TABLE
+        [*(short *)(stage + 0x6e)];
+      if ((*stage & STAGE_FLAG_02) != 0) {
+        alpha_out_mapping = alpha_out_mapping | 4;
+      }
+
+      *(unsigned int *)((char *)pixel_shader + index * 4) =
+        (unsigned int)(((alpha_in0 << 8 | alpha_in1) << 8 | alpha_in2) << 8 |
+                       alpha_in3);
+      *(unsigned int *)((char *)pixel_shader + index * 4 + 0x68) =
+        (unsigned int)(((alpha_out_mapping << 4 | (alpha_out_c & 0xf)) << 4 |
+                        (alpha_out_a & 0xf))
+                         << 4 |
+                       (alpha_out_b & 0xf));
+
+      i++;
+      index = i;
+    } while (index < *stages);
+  }
+
+  *(unsigned int *)((char *)pixel_shader + 0x20) = 0xc;
+  *(unsigned int *)((char *)pixel_shader + 0x24) = 0x1c00;
+  return valid;
+}
+
 /* global_rasterizer_model_ambient_reflection_tint (DAT_0047e4d0): 0x10-byte
  * game-state allocation holding the model ambient reflection tint. Name is
  * taken verbatim from the assert message at 0x17c7aa (#cond string). */

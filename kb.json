@@ -19748,7 +19748,8 @@
     },
     {
      "addr": "0x17c2f0",
-     "decl": "char FUN_0017c2f0(void *shader, void *state);"
+     "decl": "char FUN_0017c2f0(void *shader, void *pixel_shader);",
+     "ported": true
     },
     {
      "addr": "0x17c790",
