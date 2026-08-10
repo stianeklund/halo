@@ -1079,9 +1079,7 @@ void actor_move_get_avoidance_direction(void)
   float *basis;
   float *p_b;
 
-  const float *angle_table_9 = (const float *)0x2557cc;
   const float *scale_table_9 = (const float *)0x2557a8;
-  const float *length_table_9 = (const float *)0x255784;
   const float k_angle = *(const float *)0x255780;
   const float k_length = *(const float *)0x25577c;
   const float k_base = *(const float *)0x255778;
@@ -1091,20 +1089,20 @@ void actor_move_get_avoidance_direction(void)
   const float *inner_angles;
   const float k_inner_base = *(const float *)0x2557f0;
 
-  int i;
   int row;
   int col;
   float angle, sin_angle, cos_angle, scaled_angle, sin_scaled, scaled_len;
   float sin_outer, cos_outer, row_scale;
   float inner, cos_inner, sin_inner;
 
-  for (i = 0; i < 9; i++) {
-    angle = angle_table_9[i];
+  for (scale_table_9 = (const float *)0x2557a8;
+       scale_table_9 != (const float *)0x2557cc; scale_table_9++) {
+    angle = scale_table_9[9];
     sin_angle = x87_fsin(angle);
     cos_angle = x87_fcos(angle);
-    scaled_angle = k_angle * scale_table_9[i];
+    scaled_angle = k_angle * scale_table_9[0];
     sin_scaled = x87_fsin(scaled_angle);
-    scaled_len = k_length * length_table_9[i];
+    scaled_len = k_length * scale_table_9[-9];
 
     p_a[0] = k_base;
     p_a[1] = 0.0f;
@@ -2122,7 +2120,7 @@ char actor_path_refresh(int actor_handle, char store_distance,
                       * and zeroed the cached actor+0x4a8 nav_state_out pointer
                       * -> NULL write in path_state_build_path -> PoA campaign
                       * access-violation. */
-  static char
+  char
     large_buf[0x1408c]; /* [EBP+0xfffebf14]: path-build scratch 82060 bytes */
   void
     *path_state; /* allocated path cache slot from ai_debug_get_path_storage */

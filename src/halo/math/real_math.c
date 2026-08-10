@@ -53,26 +53,87 @@ float FUN_0001ad60(float *a, float *b)
   return sqrtf(dx * dx + dy * dy + dz * dz);
 }
 
+/* 0x1ada0 — vehicle-action qualification.  actor_handle and vehicle_handle
+ * arrive in EAX and ESI; remaining controls are stack arguments. */
+char FUN_0001ada0(int actor_handle /*@<eax>*/, int vehicle_handle /*@<esi>*/,
+                  char param_2, float param_3, float param_4, char param_5,
+                  char param_6)
+{
+  char *actor;
+  char *vehicle;
+  float vehicle_position[3];
+  float range;
+  float dx;
+  float dy;
+  float dz;
+  char result;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  vehicle = (char *)object_get_and_verify_type(vehicle_handle, 3);
+  result = 0;
+  if ((*(unsigned char *)(vehicle + 0xb6) & 4) != 0) {
+    if (param_5 != 0)
+      return result;
+  } else if (param_2 != 0) {
+    result = 1;
+    if (param_5 != 0)
+      return result;
+  } else {
+    {
+      if (param_6 != 0)
+        range = param_3;
+      else
+        range = param_4;
+      object_get_world_position(vehicle_handle, (vector3_t *)vehicle_position);
+      if (param_5 != 0) {
+        result = 1;
+      } else {
+        dx = vehicle_position[0] - *(float *)(actor + 0x12c);
+        dy = vehicle_position[1] - *(float *)(actor + 0x130);
+        dz = vehicle_position[2] - *(float *)(actor + 0x134);
+        if (dz * dz + dx * dx + dy * dy < range * range)
+          result = 1;
+      }
+      if (result != 0) {
+        if (param_5 != 0)
+          return result;
+        /* Ref 0x1ade1: param_6 skips the tilt test but still runs the speed
+         * gate below -- it does NOT return early. */
+        if (param_6 == 0) {
+          if (FUN_00012170((float *)(vehicle + 0x18)) > *(float *)0x253f2c)
+            result = 0;
+        }
+      }
+    }
+  }
+
+  /* Ref 0x1adfb: TEST AH,5 / JP means speed-below-0.5 is the fail path; NaN
+   * falls through to the result return, matching the original. */
+  if (!(*(float *)(vehicle + 0x38) < *(float *)0x253398))
+    return result;
+  return 0;
+}
+
 /* 0x109010 — Scale a rectangle (short coords) by a fraction param_4/256,
  * clamping the aspect ratio to the smaller dimension of param_2. */
 void FUN_00109010(short *param_1, short *param_2, uint32_t *param_3,
                   short param_4)
 {
-  int w1 = param_1[2] - param_1[0];
-  int h1 = param_1[3] - param_1[1];
-  int w2 = param_2[2] - param_2[0];
-  int h2 = param_2[3] - param_2[1];
+  short w1 = param_1[2] - param_1[0];
+  short h1 = param_1[3] - param_1[1];
+  short w2 = param_2[2] - param_2[0];
+  short h2 = param_2[3] - param_2[1];
   short sw, sh;
   short x0, y0;
 
-  if (w1 * h2 - h1 * w2 == 0 || w1 * h2 < h1 * w2) {
+  if (w1 * h2 <= h1 * w2) {
     h1 = (short)(w1 * h2 / w2);
   } else {
     w1 = (short)(h1 * w2 / h2);
   }
 
-  sw = (short)((uint32_t)(w1 * param_4) >> 8);
-  sh = (short)((uint32_t)(h1 * param_4) >> 8);
+  sw = (short)((w1 * param_4) >> 8);
+  sh = (short)((h1 * param_4) >> 8);
   x0 = (short)((w1 - sw) / 2) + param_1[0];
   y0 = (short)((h1 - sh) / 2) + param_1[1];
 
@@ -104,26 +165,27 @@ void FUN_001090e0(float *out)
  * Swaps [2]<->[4], [3]<->[7], [6]<->[8] (0-indexed from float[1]). */
 void FUN_00109120(float *m)
 {
-  float first;
-  float second;
+  float t;
 
-  first = m[2];
-  second = m[3];
+  t = m[2];
   m[2] = m[4];
-  m[4] = first;
-  first = m[6];
+  m[4] = t;
+
+  t = m[3];
   m[3] = m[7];
-  m[7] = second;
+  m[7] = t;
+
+  t = m[6];
   m[6] = m[8];
-  m[8] = first;
+  m[8] = t;
 }
 
 /* Compute the inverse of a 4x3 matrix (scale + rotation + translation).
- * Intermediates use double to prevent precision loss from x87 register spills.
- */
+ * The reference computes every intermediate in 4-byte float ops (flds / fdivs /
+ * fmuls / fstps), so the intermediates are float, not double. */
 void matrix_inverse(float *src, float *dst)
 {
-  double tx, ty, tz;
+  float tx, ty, tz;
 
   if (*(float *)((char *)src + 0x00) == 0.0f) {
     csmemset(dst, 0, 0x34);
@@ -134,14 +196,17 @@ void matrix_inverse(float *src, float *dst)
   ty = -*(float *)((char *)src + 0x2c);
   tz = -*(float *)((char *)src + 0x30);
 
-  if (*(int *)src == 0x3f800000) {
-    *(int *)dst = 0x3f800000;
-  } else {
-    double inv_scale = 1.0f / *(float *)((char *)src + 0x00);
-    *(float *)((char *)dst + 0x00) = (float)inv_scale;
+  /* Negated form: the reference's `cmpl $0x3f800000,%eax ; je` puts the
+   * scale-is-1 store in the sunk else block, with the reciprocal path as the
+   * fallthrough. */
+  if (*(int *)src != 0x3f800000) {
+    float inv_scale = 1.0f / *(float *)((char *)src + 0x00);
+    *(float *)((char *)dst + 0x00) = inv_scale;
     tx = inv_scale * tx;
     ty = inv_scale * ty;
     tz = inv_scale * tz;
+  } else {
+    *(int *)dst = 0x3f800000;
   }
 
   *(float *)((char *)dst + 0x04) = *(float *)((char *)src + 0x04);
@@ -151,38 +216,42 @@ void matrix_inverse(float *src, float *dst)
   /* Load both sides before writing either — the original uses FPU+GPR
    * pairs so both values are live simultaneously.  Without this, in-place
    * inversion (src==dst) corrupts the second read. */
+  /* The reference moves one side of each swap through the FPU (flds/fstps of
+   * the HIGH offset) and the other through a GPR (movl of the LOW offset); a
+   * bit copy is also the faithful choice for the GPR side, since an FPU
+   * load/store would quiet a signalling NaN. */
   {
-    float s2 = *(float *)((char *)src + 0x08);
+    uint32_t s2 = *(uint32_t *)((char *)src + 0x08);
     float s4 = *(float *)((char *)src + 0x10);
     *(float *)((char *)dst + 0x08) = s4;
-    *(float *)((char *)dst + 0x10) = s2;
+    *(uint32_t *)((char *)dst + 0x10) = s2;
   }
   {
-    float s3 = *(float *)((char *)src + 0x0c);
+    uint32_t s3 = *(uint32_t *)((char *)src + 0x0c);
     float s7 = *(float *)((char *)src + 0x1c);
     *(float *)((char *)dst + 0x0c) = s7;
-    *(float *)((char *)dst + 0x1c) = s3;
+    *(uint32_t *)((char *)dst + 0x1c) = s3;
   }
   {
-    float s6 = *(float *)((char *)src + 0x18);
+    uint32_t s6 = *(uint32_t *)((char *)src + 0x18);
     float s8 = *(float *)((char *)src + 0x20);
-    *(float *)((char *)dst + 0x20) = s6;
+    *(uint32_t *)((char *)dst + 0x20) = s6;
     *(float *)((char *)dst + 0x18) = s8;
   }
 
   /* Original MSVC evaluation order: (tx*col + tz*col) + ty*col */
   *(float *)((char *)dst + 0x28) =
-    (float)((tx * *(float *)((char *)dst + 0x04) +
-             tz * *(float *)((char *)dst + 0x1c)) +
-            ty * *(float *)((char *)dst + 0x10));
+    (tx * *(float *)((char *)dst + 0x04) +
+     tz * *(float *)((char *)dst + 0x1c)) +
+    ty * *(float *)((char *)dst + 0x10);
   *(float *)((char *)dst + 0x2c) =
-    (float)((tx * *(float *)((char *)dst + 0x08) +
-             tz * *(float *)((char *)dst + 0x20)) +
-            ty * *(float *)((char *)dst + 0x14));
+    (tx * *(float *)((char *)dst + 0x08) +
+     tz * *(float *)((char *)dst + 0x20)) +
+    ty * *(float *)((char *)dst + 0x14);
   *(float *)((char *)dst + 0x30) =
-    (float)((tx * *(float *)((char *)dst + 0x0c) +
-             tz * *(float *)((char *)dst + 0x24)) +
-            ty * *(float *)((char *)dst + 0x18));
+    (tx * *(float *)((char *)dst + 0x0c) +
+     tz * *(float *)((char *)dst + 0x24)) +
+    ty * *(float *)((char *)dst + 0x18);
 }
 
 /* 0x109240 — Initialize a scaled 4x3 identity matrix. */
@@ -236,50 +305,44 @@ void matrix4x3_identity_with_position(float *out, float *position)
 
 void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine)
 {
-  float x;
-  float y;
-  float z;
   float xx;
   float yy;
-  volatile float zz;
-  volatile float one_minus_cosine;
-  volatile float xy_term;
-  volatile float xz_term;
-  volatile float yz_term;
-  volatile float sine_x;
-  volatile float sine_y;
+  float zz;
+  float one_minus_cosine;
+  float xy_term;
+  float xz_term;
+  float yz_term;
+  float sine_x;
+  float sine_y;
   float sine_z;
   volatile float *out;
 
   out = (volatile float *)out_matrix;
-  x = axis[0];
-  y = axis[1];
-  z = axis[2];
 
-  xx = x * x;
-  yy = y * y;
-  zz = z * z;
-  one_minus_cosine = 1.0f - cosine;
-  sine_x = sine * x;
-  sine_y = sine * y;
-  sine_z = sine * z;
+  xx = axis[0] * axis[0];
+  yy = axis[1] * axis[1];
+  zz = axis[2] * axis[2];
+  sine_x = sine * axis[0];
+  sine_y = sine * axis[1];
+  sine_z = sine * axis[2];
 
   out_matrix[0] = 1.0f;
   out_matrix[1] = (1.0f - xx) * cosine + xx;
 
-  xy_term = y * x * one_minus_cosine;
+  one_minus_cosine = 1.0f - cosine;
+  xy_term = axis[1] * axis[0] * one_minus_cosine;
   out[2] = xy_term;
   out[4] = xy_term - sine_z;
   out[2] = sine_z + out[2];
   out_matrix[5] = (1.0f - yy) * cosine + yy;
 
-  xz_term = z * x * one_minus_cosine;
+  xz_term = axis[2] * axis[0] * one_minus_cosine;
   out[3] = xz_term;
   out[7] = xz_term + sine_y;
   out[3] = out[3] - sine_y;
   out_matrix[9] = (1.0f - zz) * cosine + zz;
 
-  yz_term = z * y * one_minus_cosine;
+  yz_term = axis[2] * axis[1] * one_minus_cosine;
   out[6] = yz_term;
   out[8] = yz_term - sine_x;
   out[6] = sine_x + out[6];
@@ -336,9 +399,7 @@ void FUN_001093b0(float *out, float *q)
 void component_vectors_from_normal3d(float *out_matrix, float *position,
                                      float *basis_data)
 {
-  typedef void (*quat_to_matrix_fn)(float *out, float *basis);
-
-  ((quat_to_matrix_fn)0x1093b0)(out_matrix, basis_data);
+  FUN_001093b0(out_matrix, basis_data);
   out_matrix[10] = position[0];
   out_matrix[11] = position[1];
   out_matrix[12] = position[2];
@@ -368,17 +429,9 @@ void FUN_00109500(float *out, float *qsp)
 __declspec(noinline) void matrix4x3_decompose(float *matrix, float *out_pos,
                                               float *out_forward, float *out_up)
 {
-  out_forward[0] = *(float *)((char *)matrix + 0x04);
-  out_forward[1] = *(float *)((char *)matrix + 0x08);
-  out_forward[2] = *(float *)((char *)matrix + 0x0c);
-
-  out_up[0] = *(float *)((char *)matrix + 0x1c);
-  out_up[1] = *(float *)((char *)matrix + 0x20);
-  out_up[2] = *(float *)((char *)matrix + 0x24);
-
-  out_pos[0] = *(float *)((char *)matrix + 0x28);
-  out_pos[1] = *(float *)((char *)matrix + 0x2c);
-  out_pos[2] = *(float *)((char *)matrix + 0x30);
+  *(vector3_t *)out_forward = *(vector3_t *)((char *)matrix + 0x04);
+  *(vector3_t *)out_up = *(vector3_t *)((char *)matrix + 0x1c);
+  *(vector3_t *)out_pos = *(vector3_t *)((char *)matrix + 0x28);
 }
 
 /* Transform a 3D point by a 4x3 matrix (scale + rotation + translation).
@@ -465,33 +518,32 @@ void real_matrix3x3_transform_point(void *matrix, float *point, float *out)
   float *m = (float *)matrix;
   float x, y, z;
 
-  if (*m == *(float *)0x2533c0) {
+  if (*m != *(float *)0x2533c0) {
+    x = point[0] - *(float *)((char *)matrix + 0x28);
+    y = point[1] - *(float *)((char *)matrix + 0x2c);
+    z = point[2] - *(float *)((char *)matrix + 0x30);
+
+    if (*(int *)m != 0x3f800000) {
+      float inv_scale = *(float *)0x2533c8 / *m;
+      x = inv_scale * x;
+      y = inv_scale * y;
+      z = inv_scale * z;
+    }
+
+    out[0] = x * *(float *)((char *)matrix + 0x04) +
+             y * *(float *)((char *)matrix + 0x08) +
+             z * *(float *)((char *)matrix + 0x0c);
+    out[1] = x * *(float *)((char *)matrix + 0x10) +
+             y * *(float *)((char *)matrix + 0x14) +
+             z * *(float *)((char *)matrix + 0x18);
+    out[2] = x * *(float *)((char *)matrix + 0x1c) +
+             y * *(float *)((char *)matrix + 0x20) +
+             z * *(float *)((char *)matrix + 0x24);
+  } else {
     out[0] = 0.0f;
     out[1] = 0.0f;
     out[2] = 0.0f;
-    return;
   }
-
-  x = point[0] - *(float *)((char *)matrix + 0x28);
-  y = point[1] - *(float *)((char *)matrix + 0x2c);
-  z = point[2] - *(float *)((char *)matrix + 0x30);
-
-  if (*(int *)m != 0x3f800000) {
-    float inv_scale = *(float *)0x2533c8 / *m;
-    x = inv_scale * x;
-    y = inv_scale * y;
-    z = inv_scale * z;
-  }
-
-  out[0] = x * *(float *)((char *)matrix + 0x04) +
-           y * *(float *)((char *)matrix + 0x08) +
-           z * *(float *)((char *)matrix + 0x0c);
-  out[1] = x * *(float *)((char *)matrix + 0x10) +
-           y * *(float *)((char *)matrix + 0x14) +
-           z * *(float *)((char *)matrix + 0x18);
-  out[2] = x * *(float *)((char *)matrix + 0x1c) +
-           y * *(float *)((char *)matrix + 0x20) +
-           z * *(float *)((char *)matrix + 0x24);
 }
 
 /* real_matrix3x3_transform_vector (0x109780)
@@ -577,6 +629,9 @@ void matrix4x3_multiply(float *a, float *b, float *out)
 {
   /* All __m128 declarations hoisted to the top for C89 (MSVC 7.1)
    * compatibility. */
+  float *volatile a_rows_slot = a + 1;
+  float *volatile b_rows_slot = b + 1;
+  float *volatile out_rows_slot = out + 1;
   float *a_rows; /* &a[1] */
   float *b_rows; /* &b[1] */
   float *out_rows; /* &out[1] */
@@ -584,9 +639,13 @@ void matrix4x3_multiply(float *a, float *b, float *out)
   __m128 xmm3, xmm4, xmm5, xmm6, xmm7;
   __m128 t3, t4, t5, a_trans, scale_v;
 
-  a_rows = a + 1;
-  b_rows = b + 1;
-  out_rows = out + 1;
+  /* The reference computes all three row pointers, spills them to stack slots
+   * (`leal 0x4(...)` x3 ; `movl` into -0x8/-0x4(%ebp) and the param homes) and
+   * then reloads them once into the registers it uses for the body
+   * (`movl -0x8(%ebp),%ecx` etc.).  The volatile staging reproduces that. */
+  a_rows = a_rows_slot;
+  b_rows = b_rows_slot;
+  out_rows = out_rows_slot;
 
   /* Load a's 3 rotation rows into XMM registers.
    * Pattern: MOVSS loads first component to lane 0 (lanes 1-3 zeroed),
@@ -711,20 +770,20 @@ float FUN_001099a0(float *m)
 /* 0x1099f0 — Transpose a 3x3 matrix. Supports src == dst (in-place). */
 void FUN_001099f0(float *src, float *dst)
 {
-  uint32_t t;
+  float t;
   uint32_t *s = (uint32_t *)src;
   uint32_t *d = (uint32_t *)dst;
 
   if (src == dst) {
-    t = s[3];
-    d[3] = s[1];
-    d[1] = t;
-    t = s[6];
-    d[6] = s[2];
-    d[2] = t;
-    t = s[7];
-    d[7] = s[5];
-    d[5] = t;
+    t = src[3];
+    dst[3] = src[1];
+    dst[1] = t;
+    t = src[6];
+    dst[6] = src[2];
+    dst[2] = t;
+    t = src[7];
+    dst[7] = src[5];
+    dst[5] = t;
     return;
   }
   d[0] = s[0];
@@ -816,56 +875,43 @@ void FUN_00109ba0(float *out, float *axis, float sine, float cosine)
   float xx = axis[0] * axis[0];
   float yy = axis[1] * axis[1];
   float zz = axis[2] * axis[2];
-  float one_minus_cos = 1.0f - cosine;
-  float xy, xz, yz;
+  float sx = sine * axis[0];
+  float sy = sine * axis[1];
+  float sz = sine * axis[2];
+  float one_minus_cos;
 
   out[0] = (1.0f - xx) * cosine + xx;
+  one_minus_cos = 1.0f - cosine;
 
-  xy = axis[1] * axis[0] * one_minus_cos;
-  out[1] = xy;
-  out[3] = xy - sine * axis[2];
-  out[1] = sine * axis[2] + out[1];
+  out[1] = axis[1] * axis[0] * one_minus_cos;
+  out[3] = out[1] - sz;
+  out[1] = sz + out[1];
 
   out[4] = (1.0f - yy) * cosine + yy;
 
-  xz = axis[2] * axis[0] * one_minus_cos;
-  out[2] = xz;
-  out[6] = xz + sine * axis[1];
-  out[2] = out[2] - sine * axis[1];
+  out[2] = axis[2] * axis[0] * one_minus_cos;
+  out[6] = out[2] + sy;
+  out[2] = out[2] - sy;
 
   out[8] = (1.0f - zz) * cosine + zz;
 
-  yz = axis[2] * axis[1] * one_minus_cos;
-  out[5] = yz;
-  out[7] = yz - sine * axis[0];
-  out[5] = sine * axis[0] + out[5];
+  out[5] = axis[2] * axis[1] * one_minus_cos;
+  out[7] = out[5] - sx;
+  out[5] = sx + out[5];
 }
 
 /* 0x109c70 — Multiply two 3x3 matrices: out = a * b. Supports aliasing. */
 void FUN_00109c70(float *a, float *b, float *out)
 {
-  int i;
-  float *p;
-  float local_a[9];
-  float local_b[9];
+  float scratch[9];
 
   if (a == out) {
-    p = local_a;
-    for (i = 9; i != 0; i--) {
-      *p = *a;
-      a++;
-      p++;
-    }
-    a = local_a;
+    memcpy(scratch, a, 9 * sizeof(float));
+    a = scratch;
   }
   if (b == out) {
-    p = local_b;
-    for (i = 9; i != 0; i--) {
-      *p = *b;
-      b++;
-      p++;
-    }
-    b = local_b;
+    memcpy(scratch, b, 9 * sizeof(float));
+    b = scratch;
   }
   out[0] = b[2] * a[6] + a[3] * b[1] + a[0] * b[0];
   out[1] = a[7] * b[2] + a[1] * b[0] + a[4] * b[1];
@@ -929,9 +975,9 @@ void matrix_from_forward_and_up(float *out, float *forward, float *up)
 void FUN_00109e90(float *out, float yaw, float pitch, float roll)
 {
   float cr, sr, sp, cy, sy;
-  float cp_f;
-  volatile float sy_cp;
-  volatile float cp_sr;
+  float sp_cr;
+  volatile float cp;
+  volatile float sp_sr;
 
   cr = x87_fcos(roll);
   ((uint32_t *)out)[0] = 0x3f800000;
@@ -939,21 +985,21 @@ void FUN_00109e90(float *out, float yaw, float pitch, float roll)
   ((uint32_t *)out)[11] = 0;
   ((uint32_t *)out)[12] = 0;
   sr = x87_fsin(roll);
-  cp_f = x87_fcos(pitch);
+  cp = x87_fcos(pitch);
   sp = x87_fsin(pitch);
   cy = x87_fcos(yaw);
   sy = x87_fsin(yaw);
-  sy_cp = sy * cp_f;
-  cp_sr = cp_f * sr;
-  out[1] = cy * cp_f;
-  out[2] = sy * cr - (float)(sp * sr) * cy;
-  out[3] = sy * sr + sp * cr * cy;
-  out[4] = -sy_cp;
-  out[5] = cy * cr + (float)(sp * sr) * sy;
-  out[6] = cy * sr - sp * cr * sy;
+  sp_cr = sp * cr;
+  sp_sr = sp * sr;
+  out[1] = cy * cp;
+  out[2] = sy * cr - sp_sr * cy;
+  out[3] = sp_cr * cy + sy * sr;
+  out[4] = -(sy * cp);
+  out[5] = sp_sr * sy + cy * cr;
+  out[6] = cy * sr - sp_cr * sy;
   out[7] = -sp;
-  out[8] = -cp_sr;
-  out[9] = cp_f * cr;
+  out[8] = -(cp * sr);
+  out[9] = cp * cr;
 }
 
 /* 0x109f40 — Extract yaw/pitch/roll euler angles from a 4x3 matrix's
@@ -980,7 +1026,12 @@ void FUN_00109f40(float *matrix, float *euler)
   euler[1] = pitch;
   cos_pitch = x87_fcos(pitch);
 
-  if ((double)*(float *)0x28c728 < (double)cos_pitch) {
+  /* CORRECTNESS: 0x28c728 is a *double* (0.0001) -- the reference compares it
+   * with `fcompl` (FCOM m64).  Reading it as a float yields -1.889e+26, which
+   * made the gimbal-lock guard always take the normal branch.  Operand order
+   * follows the reference (ST0 = cos_pitch, memory operand = the epsilon:
+   * `testb $0x41,%ah / jne` = the `!(x > b)` fail-branch). */
+  if (cos_pitch > *(double *)0x28c728) {
     inv_neg = *(float *)0x255e94 / cos_pitch;
     inv_pos = *(float *)0x2533c8 / cos_pitch;
     euler[2] = x87_fatan2f(inv_neg * matrix[8], inv_pos * matrix[9]);
@@ -1125,7 +1176,7 @@ void FUN_0010a330(float *m, float *quat)
 {
   float trace;
   float s;
-  int i, j, k;
+  short i, j, k;
   float local_10[3];
 
   trace = m[4] + m[0] + m[8];
@@ -1148,7 +1199,7 @@ void FUN_0010a330(float *m, float *quat)
 
   s = sqrtf(m[i * 4] - (m[k * 4] + m[j * 4]) + 1.0f);
   local_10[i] = 0.5f * s;
-  if (s != 0.0f)
+  if (s != *(float *)0x2533c0)
     s = 0.5f / s;
   local_10[j] = (m[i * 3 + j] + m[j * 3 + i]) * s;
   local_10[k] = (m[i * 3 + k] + m[k * 3 + i]) * s;
@@ -1235,6 +1286,12 @@ void FUN_0010a570(void)
  * (flag at 0x46e39c == 0) it returns 0.0. */
 float FUN_0010a5e0(int16_t function_type, float input)
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+  /* VC71 lowers fmod() to the FPU-convention CRT helper _CIfmod (0x1daf7e) --
+   * one CALL, exactly as the original -- while x87_fmod inlines the same FPREM
+   * truncated-remainder loop.  Identical math, matching codegen shape. */
+  double __cdecl fmod(double, double);
+#endif
   unsigned char *table;
   float scaled;
   float weight;
@@ -1247,37 +1304,39 @@ float FUN_0010a5e0(int16_t function_type, float input)
     return *(float *)0x2533c8;
   }
 
-  if (function_type < 0 || function_type > 0xb) {
+  if (function_type < 0 || function_type >= 0xc) {
     display_assert(
       "function_type>=0 && function_type<NUMBER_OF_PERIODIC_FUNCTIONS",
       "c:\\halo\\SOURCE\\math\\periodic_functions.c", 0x9d, 1);
     system_exit(-1);
   }
 
-  if (*(char *)0x46e39c == '\0') {
-    return *(float *)0x2533c0;
-  }
+  if (*(char *)0x46e39c != '\0') {
+    scaled = input * *(float *)0x28c838;
+#if defined(_MSC_VER) && !defined(__clang__)
+    weight = (float)fmod((double)scaled, *(double *)0x2573d8);
+#else
+    weight = x87_fmod(scaled, *(double *)0x2573d8);
+#endif
+    idx = (unsigned int)x87_round_to_int(scaled - weight) & 0x3ff;
 
-  scaled = input * *(float *)0x28c838;
-  weight = x87_fmod(scaled, *(double *)0x2573d8);
-  idx = (unsigned int)x87_round_to_int(scaled - weight) & 0x3ff;
+    table = ((unsigned char **)0x46e3b8)[function_type];
+    v0 = (float)table[idx] * *(float *)0x261518;
+    v1 = (float)table[(idx + 1) & 0x3ff] * *(float *)0x261518;
 
-  table = ((unsigned char **)0x46e3b8)[function_type];
-  v0 = (float)table[idx] * *(float *)0x261518;
-  v1 = (float)table[(idx + 1) & 0x3ff] * *(float *)0x261518;
-
-  if ((1 << function_type & 0xc0) == 0) {
+    if ((1 << function_type & 0xc0) != 0) {
+      if (v0 > *(float *)0x25afcc && v1 < *(float *)0x25337c) {
+        v1 = v1 + *(float *)0x2533c8;
+      }
+      result = (*(float *)0x2533c8 - weight) * v0 + v1 * weight;
+      if (result > *(float *)0x2533c8) {
+        return result - *(float *)0x2533c8;
+      }
+      return result;
+    }
     return (*(float *)0x2533c8 - weight) * v0 + v1 * weight;
   }
-
-  if (*(float *)0x25afcc < v0 && v1 < *(float *)0x25337c) {
-    v1 = v1 + *(float *)0x2533c8;
-  }
-  result = (*(float *)0x2533c8 - weight) * v0 + v1 * weight;
-  if (*(float *)0x2533c8 < result) {
-    return result - *(float *)0x2533c8;
-  }
-  return result;
+  return *(float *)0x2533c0;
 }
 
 /* 0x10a710 — transition_function_evaluate: evaluate one of the built-in
@@ -1295,14 +1354,22 @@ float FUN_0010a5e0(int16_t function_type, float input)
  * (flag at 0x46e39c == 0) it returns 0.0. */
 float transition_function_evaluate(short function_type, float t)
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+  /* VC71 lowers fmod() to the FPU-convention CRT helper _CIfmod (0x1daf7e) --
+   * one CALL, exactly as the original -- while x87_fmod inlines the same FPREM
+   * truncated-remainder loop.  Identical math, matching codegen shape. */
+  double __cdecl fmod(double, double);
+#endif
   unsigned char *table;
   float scaled;
   float weight;
+  float v0;
+  float v1;
   int idx;
 
   if (t < *(float *)0x2533c0) {
     t = 0.0f;
-  } else if (*(float *)0x2533c8 < t) {
+  } else if (t > *(float *)0x2533c8) {
     t = 1.0f;
   }
 
@@ -1310,29 +1377,32 @@ float transition_function_evaluate(short function_type, float t)
     return t;
   }
 
-  if (function_type < 0 || function_type > 5) {
+  if (function_type < 0 || function_type >= 6) {
     display_assert(
       "function_type>=0 && function_type<NUMBER_OF_TRANSITION_FUNCTIONS",
       "c:\\halo\\SOURCE\\math\\periodic_functions.c", 0xd8, 1);
     system_exit(-1);
   }
 
-  if (*(char *)0x46e39c == '\0') {
-    return *(float *)0x2533c0;
+  if (*(char *)0x46e39c != '\0') {
+    table = ((unsigned char **)0x46e3a0)[function_type];
+    scaled = t * *(float *)0x28c87c;
+#if defined(_MSC_VER) && !defined(__clang__)
+    weight = (float)fmod((double)scaled, *(double *)0x2573d8);
+#else
+    weight = x87_fmod(scaled, *(double *)0x2573d8);
+#endif
+    idx = x87_round_to_int(scaled - *(float *)0x253398);
+
+    if ((short)idx == 0x3ff) {
+      return (float)table[0x3ff] * *(float *)0x261518;
+    }
+
+    v0 = (float)table[(short)idx] * *(float *)0x261518;
+    v1 = (float)table[(short)idx + 1] * *(float *)0x261518;
+    return v0 * (*(float *)0x2533c8 - weight) + v1 * weight;
   }
-
-  table = ((unsigned char **)0x46e3a0)[function_type];
-  scaled = t * *(float *)0x28c87c;
-  weight = x87_fmod(scaled, *(double *)0x2573d8);
-  idx = x87_round_to_int(scaled - *(float *)0x253398);
-
-  if ((short)idx == 0x3ff) {
-    return (float)table[0x3ff] * *(float *)0x261518;
-  }
-
-  return (float)table[idx] * *(float *)0x261518 *
-           (*(float *)0x2533c8 - weight) +
-         (float)table[idx + 1] * *(float *)0x261518 * weight;
+  return *(float *)0x2533c0;
 }
 
 /* 0x10a830 (real_math.obj) — build a 1024-entry cumulative-distribution
@@ -1466,9 +1536,10 @@ void perpendicular2d(float *in, float *out)
  */
 void perpendicular3d(float *in, float *out)
 {
-  float abs_x = fabsf(in[0]);
-  float abs_y = fabsf(in[1]);
-  float abs_z = fabsf(in[2]);
+  /* Intrinsic x87 FABS (fabsf is an out-of-line CRT call under VC71). */
+  float abs_x = (float)real_math_fabs_double_from_float(in[0]);
+  float abs_y = (float)real_math_fabs_double_from_float(in[1]);
+  float abs_z = (float)real_math_fabs_double_from_float(in[2]);
 
   if (abs_x <= abs_y && abs_x <= abs_z) {
     out[0] = 0.0f;
@@ -1500,26 +1571,20 @@ void perpendicular4d(float *in, float *out)
 void rotate_vector3d_by_sincos(float *vector, float *axis, float sin_angle,
                                float cos_angle)
 {
-  float v0 = vector[0], v1 = vector[1], v2 = vector[2];
-  float a0 = axis[0], a1 = axis[1], a2 = axis[2];
+  float k;
+  float cy;
+  float cz;
 
-  float k = (1.0f - cos_angle) * (v0 * a0 + v1 * a1 + v2 * a2);
-
-  float cx = v1 * a2 - v2 * a1;
-  float cy = v2 * a0 - v0 * a2;
-  float cz = v0 * a1 - v1 * a0;
-
-  vector[0] = k * a0 + cos_angle * v0 - cx * sin_angle;
-  vector[1] = k * a1 + cos_angle * v1 - cy * sin_angle;
-  vector[2] = k * a2 + cos_angle * v2 - cz * sin_angle;
-  if (vector[0] != vector[0] || vector[1] != vector[1] ||
-      vector[2] != vector[2]) {
-    error(2,
-          "rotate_vector3d_by_sincos: NaN OUTPUT v=(%f,%f,%f) axis=(%f,%f,%f) "
-          "sin=%f cos=%f",
-          (double)vector[0], (double)vector[1], (double)vector[2], (double)a0,
-          (double)a1, (double)a2, (double)sin_angle, (double)cos_angle);
-  }
+  /* reference (0x10b6e0, 58 insns, zero frame) re-reads vector[]/axis[]
+   * per use — do not cache components in locals */
+  k = (vector[1] * axis[1] + axis[2] * vector[2] + vector[0] * axis[0]) *
+      (1.0f - cos_angle);
+  cy = axis[0] * vector[2] - vector[0] * axis[2];
+  cz = vector[0] * axis[1] - vector[1] * axis[0];
+  vector[0] = cos_angle * vector[0] + k * axis[0] -
+              (vector[1] * axis[2] - vector[2] * axis[1]) * sin_angle;
+  vector[1] = cos_angle * vector[1] + k * axis[1] - cy * sin_angle;
+  vector[2] = cos_angle * vector[2] + k * axis[2] - cz * sin_angle;
 }
 
 /* 0x10b780 — Linearly interpolate between two 3D vectors: out = a*(1-t) + b*t.
@@ -1567,15 +1632,13 @@ void scalars_interpolate(float a, float b, float blend, float *out)
 void scalars_interpolate_and_clamp_0_to_1(float a, float b, float t, float *out)
 {
   float result = b * t + (1.0f - t) * a;
-  if (result < 0.0f) {
+  if (result < *(float *)0x2533c0) {
     *out = 0.0f;
-    return;
-  }
-  if (1.0f < result) {
+  } else if (result > *(float *)0x2533c8) {
     *out = 1.0f;
-    return;
+  } else {
+    *out = result;
   }
-  *out = result;
 }
 
 /* 0x10b8a0 — Project a vector onto an axis: parallel = dot(v,axis)*axis,
@@ -1604,23 +1667,18 @@ void quaternion_transform_point(float *q, float *v, float *out)
 {
   float ww = q[3] * q[3];
   float ww2_minus_1 = (ww + ww) - 1.0f;
-  float dot2 = q[1] * v[1] + q[2] * v[2] + q[0] * v[0];
+  float dot2 = q[0] * v[0] + q[2] * v[2] + q[1] * v[1];
   float w2;
-  float q2, v0, v2, q0, q0b, v1, q1, v0b;
+  float cross0, cross1, cross2;
 
   dot2 = dot2 + dot2;
   w2 = q[3] + q[3];
-  q2 = q[2];
-  v0 = v[0];
-  v2 = v[2];
-  q0 = q[0];
-  q0b = q[0];
-  v1 = v[1];
-  q1 = q[1];
-  v0b = v[0];
-  out[0] = ww2_minus_1 * v[0] + dot2 * q[0] + (q[1] * v[2] - q[2] * v[1]) * w2;
-  out[1] = (q2 * v0 - v2 * q0) * w2 + ww2_minus_1 * v[1] + dot2 * q[1];
-  out[2] = (q0b * v1 - q1 * v0b) * w2 + ww2_minus_1 * v[2] + dot2 * q[2];
+  cross1 = q[2] * v[0] - v[2] * q[0];
+  cross2 = q[0] * v[1] - q[1] * v[0];
+  cross0 = q[1] * v[2] - q[2] * v[1];
+  out[0] = cross0 * w2 + dot2 * q[0] + ww2_minus_1 * v[0];
+  out[1] = cross1 * w2 + dot2 * q[1] + ww2_minus_1 * v[1];
+  out[2] = cross2 * w2 + dot2 * q[2] + ww2_minus_1 * v[2];
 }
 
 /* 0x10bbc0 — Build forward/up vectors from euler angles by computing the
@@ -1659,7 +1717,9 @@ bool fast_vector_intersects_sphere(float *line_start, float *line_end,
   dx = line_start[0] - sphere_center[0];
   dy = line_start[1] - sphere_center[1];
   dz = line_start[2] - sphere_center[2];
-  c = dx * dx + dy * dy + dz * dz - sphere_radius * sphere_radius;
+  /* reference accumulates all three dot products z-first (MSVC never
+   * reassociates FP adds — z-first in the binary proves z-first source) */
+  c = dz * dz + dy * dy + dx * dx - sphere_radius * sphere_radius;
 
   if (c < 0.0f)
     return true;
@@ -1667,12 +1727,12 @@ bool fast_vector_intersects_sphere(float *line_start, float *line_end,
   dir_x = line_end[0];
   dir_y = line_end[1];
   dir_z = line_end[2];
-  b = dir_x * dx + dir_y * dy + dir_z * dz;
+  b = dir_z * dz + dir_y * dy + dir_x * dx;
 
   if (b >= 0.0f)
     return false;
 
-  a = dir_x * dir_x + dir_y * dir_y + dir_z * dir_z;
+  a = dir_z * dir_z + dir_y * dir_y + dir_x * dir_x;
   disc = b * b - a * c;
 
   if (disc <= 0.0f)
@@ -1717,55 +1777,63 @@ char FUN_0010be20(float *ray_origin, float *ray_dir, float *aabb)
   float tmax = 3.4028235e+38f;
   float t1, t2;
 
-  if (real_math_fabs_double_from_float(ray_dir[0]) < *(double *)0x2533d0) {
+  /* degenerate arms written as else so VC71 sinks them past the join,
+   * matching the reference block order (test ah,5 / jnp → sunk block) */
+  if (!(real_math_fabs_double_from_float(ray_dir[0]) < *(double *)0x2533d0)) {
+    t1 = (aabb[0] - ray_origin[0]) * (1.0f / ray_dir[0]);
+    t2 = (aabb[1] - ray_origin[0]) * (1.0f / ray_dir[0]);
+    /* ref: fcomp 0x2533c0 / test ah,0x41 / jne = fail-branch of (dir > 0);
+     * NaN takes the else arm */
+    if (ray_dir[0] > 0.0f) {
+      if (-3.4028235e+38f < t1)
+        tmin = t1;
+      if (3.4028235e+38f > t2)
+        tmax = t2;
+    } else {
+      if (-3.4028235e+38f < t2)
+        tmin = t2;
+      if (3.4028235e+38f > t1)
+        tmax = t1;
+    }
+    if (tmin > tmax)
+      return 0;
+  } else {
     if (ray_origin[0] < aabb[0])
       return 0;
     if (ray_origin[0] > aabb[1])
       return 0;
-  } else {
-    t1 = (aabb[0] - ray_origin[0]) * (1.0f / ray_dir[0]);
-    t2 = (aabb[1] - ray_origin[0]) * (1.0f / ray_dir[0]);
-    if (ray_dir[0] <= 0.0f) {
-      if (t2 > -3.4028235e+38f)
-        tmin = t2;
-      if (t1 < 3.4028235e+38f)
-        tmax = t1;
-    } else {
-      if (t1 > -3.4028235e+38f)
+  }
+
+  if (!(real_math_fabs_double_from_float(ray_dir[1]) < *(double *)0x2533d0)) {
+    t1 = (aabb[2] - ray_origin[1]) * (1.0f / ray_dir[1]);
+    t2 = (aabb[3] - ray_origin[1]) * (1.0f / ray_dir[1]);
+    if (ray_dir[1] > 0.0f) {
+      if (tmin < t1)
         tmin = t1;
-      if (t2 < 3.4028235e+38f)
+      if (tmax > t2)
         tmax = t2;
+    } else {
+      if (tmin < t2)
+        tmin = t2;
+      if (tmax > t1)
+        tmax = t1;
     }
     if (tmin > tmax)
       return 0;
-  }
-
-  if (real_math_fabs_double_from_float(ray_dir[1]) < *(double *)0x2533d0) {
+  } else {
     if (ray_origin[1] < aabb[2])
       return 0;
     if (ray_origin[1] > aabb[3])
       return 0;
-  } else {
-    t1 = (aabb[2] - ray_origin[1]) * (1.0f / ray_dir[1]);
-    t2 = (aabb[3] - ray_origin[1]) * (1.0f / ray_dir[1]);
-    if (ray_dir[1] <= 0.0f) {
-      if (tmin < t2)
-        tmin = t2;
-      if (t1 < tmax)
-        tmax = t1;
-    } else {
-      if (tmin < t1)
-        tmin = t1;
-      if (t2 < tmax)
-        tmax = t2;
-    }
-    if (tmin > tmax)
-      return 0;
   }
 
-  if (0.0f <= tmax && tmin <= 1.0f)
-    return 1;
-  return 0;
+  /* ref: fcomp 0x2533c0/test ah,1/jne then fcomp 0x2533c8/test ah,0x41/jp —
+   * two separate guards, tmax/tmin on the left, NaN returns 0 on both */
+  if (!(tmax >= 0.0f))
+    return 0;
+  if (!(tmin <= 1.0f))
+    return 0;
+  return 1;
 }
 
 /* 0x10bff0 — 3D ray vs AABB intersection (slab method).
@@ -1774,37 +1842,45 @@ char FUN_0010bff0(float *ray_origin, float *ray_dir, float *aabb)
 {
   float tmin = -3.4028235e+38f;
   float tmax = 3.4028235e+38f;
-  float t1, t2;
+  /* t1 lives in a stack slot in the reference (`fstps 0xc(%ebp)` into the dead
+   * ray_dir param home, then `fcomps 0xc(%ebp)` / `movl 0xc(%ebp),%eax` at each
+   * use) while t2 stays FPU-resident.  volatile reproduces that split. */
+  volatile float t1;
+  float t2;
 
-  if (real_math_fabs_double_from_float(ray_dir[0]) < *(double *)0x2533d0) {
-    if (ray_origin[0] < aabb[0])
-      return 0;
-    if (ray_origin[0] > aabb[1])
-      return 0;
-  } else {
+  /* Negated guard: the reference's `testb $0x5,%ah ; jnp` keeps the slab block
+   * as the fallthrough and jumps out to the axis-parallel block.  The `!(x <
+   * eps)` spelling also preserves the original's NaN path (NaN -> slab). */
+  if (!(real_math_fabs_double_from_float(ray_dir[0]) < *(double *)0x2533d0)) {
     t1 = (aabb[0] - ray_origin[0]) * (1.0f / ray_dir[0]);
     t2 = (aabb[1] - ray_origin[0]) * (1.0f / ray_dir[0]);
+    /* The reference loads the +/-REAL_MAX pool constants (0x255c98 = -FLT_MAX,
+     * 0x2548fc = +FLT_MAX) into ST0 and uses the t-value as the memory/register
+     * operand, i.e. the constant is on the LEFT of each compare. */
     if (ray_dir[0] <= 0.0f) {
-      if (t2 > -3.4028235e+38f)
+      if (*(const float *)0x255c98 < t2)
         tmin = t2;
-      if (t1 < 3.4028235e+38f)
+      if (*(const float *)0x2548fc > t1)
         tmax = t1;
     } else {
-      if (t1 > -3.4028235e+38f)
+      if (*(const float *)0x255c98 < t1)
         tmin = t1;
-      if (t2 < 3.4028235e+38f)
+      if (*(const float *)0x2548fc > t2)
         tmax = t2;
     }
     if (tmin > tmax)
       return 0;
+  } else {
+    if (ray_origin[0] < aabb[0])
+      return 0;
+    if (ray_origin[0] > aabb[1])
+      return 0;
   }
 
-  if (real_math_fabs_double_from_float(ray_dir[1]) < *(double *)0x2533d0) {
-    if (ray_origin[1] < aabb[2])
-      return 0;
-    if (ray_origin[1] > aabb[3])
-      return 0;
-  } else {
+  /* Negated guard: the reference's `testb $0x5,%ah ; jnp` keeps the slab block
+   * as the fallthrough and jumps out to the axis-parallel block.  The `!(x <
+   * eps)` spelling also preserves the original's NaN path (NaN -> slab). */
+  if (!(real_math_fabs_double_from_float(ray_dir[1]) < *(double *)0x2533d0)) {
     t1 = (aabb[2] - ray_origin[1]) * (1.0f / ray_dir[1]);
     t2 = (aabb[3] - ray_origin[1]) * (1.0f / ray_dir[1]);
     if (ray_dir[1] <= 0.0f) {
@@ -1820,14 +1896,17 @@ char FUN_0010bff0(float *ray_origin, float *ray_dir, float *aabb)
     }
     if (tmin > tmax)
       return 0;
+  } else {
+    if (ray_origin[1] < aabb[2])
+      return 0;
+    if (ray_origin[1] > aabb[3])
+      return 0;
   }
 
-  if (real_math_fabs_double_from_float(ray_dir[2]) < *(double *)0x2533d0) {
-    if (ray_origin[2] < aabb[4])
-      return 0;
-    if (ray_origin[2] > aabb[5])
-      return 0;
-  } else {
+  /* Negated guard: the reference's `testb $0x5,%ah ; jnp` keeps the slab block
+   * as the fallthrough and jumps out to the axis-parallel block.  The `!(x <
+   * eps)` spelling also preserves the original's NaN path (NaN -> slab). */
+  if (!(real_math_fabs_double_from_float(ray_dir[2]) < *(double *)0x2533d0)) {
     t1 = (aabb[4] - ray_origin[2]) * (1.0f / ray_dir[2]);
     t2 = (aabb[5] - ray_origin[2]) * (1.0f / ray_dir[2]);
     if (ray_dir[2] <= 0.0f) {
@@ -1843,6 +1922,11 @@ char FUN_0010bff0(float *ray_origin, float *ray_dir, float *aabb)
     }
     if (tmin > tmax)
       return 0;
+  } else {
+    if (ray_origin[2] < aabb[4])
+      return 0;
+    if (ray_origin[2] > aabb[5])
+      return 0;
   }
 
   if (0.0f <= tmax && tmin <= 1.0f)
@@ -1852,8 +1936,13 @@ char FUN_0010bff0(float *ray_origin, float *ray_dir, float *aabb)
 
 float angle_between_normals3d(float *a, float *b)
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+  /* VC71 /Oi lowers acos() to a tail JMP into _CIacos (FUN_001d94f0 at
+   * 0x1d94f0), exactly as the original does; declared block-scope so the
+   * clang/nxdk build keeps using xbox_acosf below. */
+  double acos(double x);
+#endif
   float dot;
-  float sine_term;
 
   if (*(uint32_t *)&a[0] == *(uint32_t *)&b[0] &&
       *(uint32_t *)&a[1] == *(uint32_t *)&b[1] &&
@@ -1861,18 +1950,19 @@ float angle_between_normals3d(float *a, float *b)
     return 0.0f;
   }
 
-  dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  dot = a[2] * b[2] + a[1] * b[1] + a[0] * b[0];
 
-  if (dot < -1.0f) {
+  if (dot < *(float *)0x00255e94) {
     dot = -1.0f;
-  }
-
-  if (dot > 1.0f) {
+  } else if (dot > *(float *)0x002533c8) {
     dot = 1.0f;
   }
 
-  sine_term = sqrtf((1.0f - dot) * (1.0f + dot));
-  return (float)atan2((double)sine_term, (double)dot);
+#if defined(_MSC_VER) && !defined(__clang__)
+  return (float)acos((double)dot);
+#else
+  return acosf(dot);
+#endif
 }
 
 /* 0x10c690 — Update v1 = scale1 * cross(axis, v1) + scale2 * v1.
@@ -1895,16 +1985,16 @@ void FUN_0010c690(float *v1, float *axis, float scale1, float scale2)
  * away from v1 by (scale1, scale2). Uses temporaries to allow aliasing. */
 void FUN_0010c700(float *v1, float *v2, float scale1, float scale2)
 {
-  float a = v1[0];
-  float b = v1[1];
-  float c = v1[2];
+  float a = -v1[0];
+  float b = -v1[1];
+  float c = -v1[2];
 
-  v1[0] = scale1 * v2[0] + scale2 * v1[0];
-  v1[1] = scale1 * v2[1] + scale2 * v1[1];
-  v1[2] = scale1 * v2[2] + scale2 * v1[2];
-  v2[0] = -a * scale1 + scale2 * v2[0];
-  v2[1] = scale2 * v2[1] + -b * scale1;
-  v2[2] = -c * scale1 + scale2 * v2[2];
+  v1[0] = scale2 * v1[0] + scale1 * v2[0];
+  v1[1] = scale2 * v1[1] + scale1 * v2[1];
+  v1[2] = scale2 * v1[2] + scale1 * v2[2];
+  v2[0] = scale2 * v2[0] + a * scale1;
+  v2[1] = b * scale1 + scale2 * v2[1];
+  v2[2] = scale2 * v2[2] + c * scale1;
 }
 
 /* Normalize a quaternion [x,y,z,w] in place.
@@ -1937,10 +2027,13 @@ void sphere_intersects_rectangle3d(float *quaternion)
  * out = (axis * sin(angle/2), cos(angle/2)). */
 void FUN_0010cab0(float *out, float angle, float *axis)
 {
+  float h;
   float s;
   float c;
 
-  x87_fsincos(angle * 0.5f, &s, &c);
+  h = angle * 0.5f;
+  s = x87_fsin(h);
+  c = x87_fcos(h);
   out[3] = c;
   out[0] = s * axis[0];
   out[1] = s * axis[1];
@@ -1961,14 +2054,20 @@ void FUN_0010caf0(float *in_quat4, float *out_angle, float *out_axis3)
   out_axis3[2] = in_quat4[2];
 
   magnitude = normalize3d(out_axis3);
+#if defined(_MSC_VER) && !defined(__clang__)
+  angle = x87_fatan2f(magnitude, w);
+  angle = angle + angle;
+#else
   angle = (float)(2.0 * atan2((double)magnitude, (double)w));
+#endif
   *out_angle = angle;
 
-  if (angle > 3.1415927f) {
+  if (angle > *(float *)0x256980) { /* pi */
     out_axis3[0] = -out_axis3[0];
     out_axis3[1] = -out_axis3[1];
     out_axis3[2] = -out_axis3[2];
-    *out_angle = 6.2831855f - angle;
+    /* Ref 0x10cb5f reloads the stored angle (FSUBS [ECX]), not the ST copy. */
+    *out_angle = *(float *)0x255a54 - *out_angle;
   }
 }
 
@@ -1996,15 +2095,22 @@ void orientations_interpolate(float *orient1, float *orient2, float t,
   out[7] = t * orient2[7] + inv_t * orient1[7];
 }
 
-/* Convert a 3D direction vector to yaw/pitch angles (radians). */
+/* Convert a 3D direction vector to yaw/pitch angles (radians).
+ * Reference (0x10cc00, 25 insns, zero frame) re-reads in_vector[] per use —
+ * no cached locals; sum order x*x + y*y. */
 void vector_to_angles(float *out_angles, float *in_vector)
 {
-  float x = in_vector[0];
-  float y = in_vector[1];
-  float z = in_vector[2];
+  float y;
+  float x;
+  float z;
 
+  y = in_vector[1];
+  x = in_vector[0];
   out_angles[0] = (float)atan2((double)y, (double)x);
-  out_angles[1] = (float)atan2((double)z, (double)sqrtf(y * y + x * x));
+  y = in_vector[1];
+  x = in_vector[0];
+  z = in_vector[2];
+  out_angles[1] = (float)atan2((double)z, (double)sqrtf(x * x + y * y));
 }
 
 /* Convert yaw/pitch angles to a unit direction vector.
@@ -2036,23 +2142,27 @@ void vector3d_from_angle(float *out, float angle)
  * p1=point, p2=line start, p3=line direction, r=radius². */
 int FUN_0010cc90(float *p1, float *p2, float *p3, float r)
 {
-  float t = ((p1[1] - p2[1]) * p3[1] + (p1[0] - p2[0]) * p3[0]) /
-            (p3[1] * p3[1] + p3[0] * p3[0]);
+  float d0 = p1[0] - p2[0];
+  float d1 = p1[1] - p2[1];
+  float t;
+  float clamped_t;
   float dx, dy;
-  float clamped_t = 0.0f;
 
-  if (0.0f <= t) {
+  t = (d0 * p3[0] + d1 * p3[1]) / (p3[0] * p3[0] + p3[1] * p3[1]);
+  if (t < 0.0f) {
+    clamped_t = 0.0f;
+  } else if (t > 1.0f) {
+    clamped_t = 1.0f;
+  } else {
     clamped_t = t;
-    if (1.0f < t) {
-      clamped_t = 1.0f;
-    }
   }
-  dx = -clamped_t * p3[0] + (p1[0] - p2[0]);
-  dy = -clamped_t * p3[1] + (p1[1] - p2[1]);
-  if (r * r < dy * dy + dx * dx) {
-    return 0;
+  clamped_t = -clamped_t;
+  dx = clamped_t * p3[0] + d0;
+  dy = clamped_t * p3[1] + d1;
+  if (dx * dx + dy * dy <= r * r) {
+    return 1;
   }
-  return 1;
+  return 0;
 }
 
 /* 0x10cd40 — Squared distance from a 3D point to a line segment.
@@ -2060,26 +2170,24 @@ int FUN_0010cc90(float *p1, float *p2, float *p3, float r)
  * Returns dot(closest - point, closest - point). */
 float FUN_0010cd40(float *p1, float *p2, float *p3)
 {
-  float t_unclamped = ((p1[0] - p2[0]) * p3[0] + (p1[1] - p2[1]) * p3[1] +
-                       (p1[2] - p2[2]) * p3[2]) /
-                      (p3[2] * p3[2] + p3[1] * p3[1] + p3[0] * p3[0]);
+  volatile float t_unclamped = ((p1[2] - p2[2]) * p3[2] + (p1[1] - p2[1]) * p3[1] +
+                       (p1[0] - p2[0]) * p3[0]) /
+                      (p3[0] * p3[0] + p3[1] * p3[1] + p3[2] * p3[2]);
   float t;
   float dx, dy, dz;
 
-  if (0.0f <= t_unclamped) {
-    if (t_unclamped <= 1.0f) {
-      t = t_unclamped;
-    } else {
-      t = 1.0f;
-    }
-  } else {
+  if (t_unclamped < 0.0f) {
     t = 0.0f;
+  } else if (t_unclamped > 1.0f) {
+    t = 1.0f;
+  } else {
+    t = t_unclamped;
   }
   t = -t;
   dx = t * p3[0] + (p1[0] - p2[0]);
   dy = t * p3[1] + (p1[1] - p2[1]);
   dz = t * p3[2] + (p1[2] - p2[2]);
-  return dy * dy + dx * dx + dz * dz;
+  return dz * dz + dx * dx + dy * dy;
 }
 
 /* 0x10ce10 — squared distance between two 3D line segments.
@@ -2100,7 +2208,7 @@ float vector_to_line_distance_squared3d(float *p1, float *p2, float *p3,
   float nx, ny, nz;
   float cross_sq;
   float d0_d1, d0_sq, d1_sq;
-  float inv;
+  double inv;
   float s, t;
   float s_start, s_end, t_start, t_end;
   float clamped_s, clamped_t;
@@ -2118,57 +2226,11 @@ float vector_to_line_distance_squared3d(float *p1, float *p2, float *p3,
   nx = p2[1] * p4[2] - p4[1] * p2[2];
   ny = p2[2] * p4[0] - p2[0] * p4[2];
   nz = p4[1] * p2[0] - p2[1] * p4[0];
-  cross_sq = nx * nx + ny * ny + nz * nz;
+  /* ref: cross_sq accumulates nz^2 + ny^2 + nx^2 (z-first); parallel block
+   * sunk to 0x289 (test ah,5 / jnp); eps compare double-width */
+  cross_sq = nz * nz + ny * ny + nx * nx;
 
-  if (fabsf(cross_sq) < (float)*(double *)0x2533d0) {
-    /* parallel: closest-point parameters via projection + clamp-midpoint */
-    d0_d1 = p2[1] * p4[1] + p2[2] * p4[2] + p2[0] * p4[0];
-    d0_sq = p2[1] * p2[1] + p2[2] * p2[2] + p2[0] * p2[0];
-    if (d0_sq <= *(float *)0x253f44) {
-      s = *(float *)0x2533c0;
-    } else {
-      inv = *(float *)0x2533c8 / d0_sq;
-      s_start = (delta_x * p2[0] + delta_y * p2[1] + delta_z * p2[2]) * inv;
-      s_end = inv * d0_d1 + s_start;
-      clamped_s = *(float *)0x2533c0;
-      if (*(float *)0x2533c0 <= s_start) {
-        clamped_s = s_start;
-        if (*(float *)0x2533c8 < s_start)
-          clamped_s = *(float *)0x2533c8;
-      }
-      if (*(float *)0x2533c0 <= s_end) {
-        if (s_end <= *(float *)0x2533c8)
-          s = (s_end + clamped_s) * *(float *)0x253398;
-        else
-          s = (*(float *)0x2533c8 + clamped_s) * *(float *)0x253398;
-      } else {
-        s = (*(float *)0x2533c0 + clamped_s) * *(float *)0x253398;
-      }
-    }
-    d1_sq = p4[2] * p4[2] + p4[1] * p4[1] + p4[0] * p4[0];
-    if (d1_sq <= *(float *)0x253f44) {
-      t = *(float *)0x2533c0;
-    } else {
-      inv = *(float *)0x2533c8 / d1_sq;
-      t_start = -((delta_z * p4[2] + delta_x * p4[0] + delta_y * p4[1]) * inv);
-      t_end = inv * d0_d1 + t_start;
-      clamped_t = *(float *)0x2533c0;
-      if (*(float *)0x2533c0 <= t_start) {
-        clamped_t = t_start;
-        if (*(float *)0x2533c8 < t_start)
-          clamped_t = *(float *)0x2533c8;
-      }
-      if (*(float *)0x2533c0 <= t_end) {
-        if (t_end <= *(float *)0x2533c8)
-          t = (t_end + clamped_t) * *(float *)0x253398;
-        else
-          t = (*(float *)0x2533c8 + clamped_t) * *(float *)0x253398;
-      } else {
-        t = (*(float *)0x2533c0 + clamped_t) * *(float *)0x253398;
-      }
-    }
-    /* fall through to closest-point distance */
-  } else {
+  if (!(real_math_fabs_double_from_float(cross_sq) < *(double *)0x2533d0)) {
     inv = *(float *)0x2533c8 / cross_sq;
     s = (delta_y * p4[2] - delta_z * p4[1]) * nx * inv +
         (delta_z * p4[0] - delta_x * p4[2]) * ny * inv +
@@ -2177,25 +2239,23 @@ float vector_to_line_distance_squared3d(float *p1, float *p2, float *p3,
         (delta_z * p2[0] - delta_x * p2[2]) * ny * inv +
         (delta_x * p2[1] - delta_y * p2[0]) * nz * inv;
 
-    s_oob = (s < *(float *)0x2533c0 || *(float *)0x2533c8 < s);
-    t_oob = (t < *(float *)0x2533c0 || *(float *)0x2533c8 < t);
+    s_oob = (s < *(float *)0x2533c0 || s > *(float *)0x2533c8);
+    t_oob = (t < *(float *)0x2533c0 || t > *(float *)0x2533c8);
 
     if (s_oob || t_oob) {
       d0 = 3.4028235e+38f; /* REAL_MAX */
       d1 = 3.4028235e+38f;
       if (s_oob) {
-        clamped_s = *(float *)0x2533c8;
-        if (s < *(float *)0x2533c0)
-          clamped_s = *(float *)0x2533c0;
+        clamped_s =
+          (s < *(float *)0x2533c0) ? *(float *)0x2533c0 : *(float *)0x2533c8;
         closest_a[0] = clamped_s * p2[0] + p1[0];
         closest_a[1] = clamped_s * p2[1] + p1[1];
         closest_a[2] = clamped_s * p2[2] + p1[2];
         d0 = FUN_0010cd40(closest_a, p3, p4);
       }
       if (t_oob) {
-        clamped_t = *(float *)0x2533c8;
-        if (t < *(float *)0x2533c0)
-          clamped_t = *(float *)0x2533c0;
+        clamped_t =
+          (t < *(float *)0x2533c0) ? *(float *)0x2533c0 : *(float *)0x2533c8;
         closest_b[0] = clamped_t * p4[0] + p3[0];
         closest_b[1] = clamped_t * p4[1] + p3[1];
         closest_b[2] = clamped_t * p4[2] + p3[2];
@@ -2203,7 +2263,7 @@ float vector_to_line_distance_squared3d(float *p1, float *p2, float *p3,
          * FUN_0010cd40 preserves EDX which still holds p1 from entry. */
         d1 = FUN_0010cd40(closest_b, p1, p2);
       }
-      if (*(float *)0x2548fc <= d0 && *(float *)0x2548fc <= d1) {
+      if (!(d0 < *(float *)0x2548fc) && !(d1 < *(float *)0x2548fc)) {
         display_assert("(d0 < REAL_MAX) || (d1 < REAL_MAX)",
                        "c:\\halo\\SOURCE\\math\\real_math.c", 0x3ae, 1);
         system_exit(-1);
@@ -2212,16 +2272,59 @@ float vector_to_line_distance_squared3d(float *p1, float *p2, float *p3,
         return d0;
       return d1;
     }
+  } else {
+    /* parallel: closest-point parameters via projection + clamp-midpoint */
+    d0_d1 = p2[1] * p4[1] + p2[2] * p4[2] + p2[0] * p4[0];
+    d0_sq = p2[1] * p2[1] + p2[2] * p2[2] + p2[0] * p2[0];
+    if (d0_sq > *(float *)0x253f44) {
+      inv = *(float *)0x2533c8 / d0_sq;
+      s_start = (delta_x * p2[0] + delta_y * p2[1] + delta_z * p2[2]) * inv;
+      s_end = inv * d0_d1 + s_start;
+      if (s_start < *(float *)0x2533c0)
+        clamped_s = *(float *)0x2533c0;
+      else if (s_start > *(float *)0x2533c8)
+        clamped_s = *(float *)0x2533c8;
+      else
+        clamped_s = s_start;
+      if (s_end < *(float *)0x2533c0)
+        s = (*(float *)0x2533c0 + clamped_s) * *(float *)0x253398;
+      else if (s_end > *(float *)0x2533c8)
+        s = (*(float *)0x2533c8 + clamped_s) * *(float *)0x253398;
+      else
+        s = (s_end + clamped_s) * *(float *)0x253398;
+    } else {
+      s = 0.0f;
+    }
+    d1_sq = p4[2] * p4[2] + p4[1] * p4[1] + p4[0] * p4[0];
+    if (d1_sq > *(float *)0x253f44) {
+      inv = *(float *)0x2533c8 / d1_sq;
+      t_start = -((delta_z * p4[2] + delta_x * p4[0] + delta_y * p4[1]) * inv);
+      t_end = inv * d0_d1 + t_start;
+      if (t_start < *(float *)0x2533c0)
+        clamped_t = *(float *)0x2533c0;
+      else if (t_start > *(float *)0x2533c8)
+        clamped_t = *(float *)0x2533c8;
+      else
+        clamped_t = t_start;
+      if (t_end < *(float *)0x2533c0)
+        t = (*(float *)0x2533c0 + clamped_t) * *(float *)0x253398;
+      else if (t_end > *(float *)0x2533c8)
+        t = (*(float *)0x2533c8 + clamped_t) * *(float *)0x253398;
+      else
+        t = (t_end + clamped_t) * *(float *)0x253398;
+    } else {
+      t = 0.0f;
+    }
   }
 
   /* both params in [0, 1] (parallel clamped, or non-parallel in-range):
    * sanity-assert then return the closest-point squared distance */
-  if (s < *(float *)0x2533c0 || *(float *)0x2533c8 < s) {
+  if (!(s >= *(float *)0x2533c0) || !(s <= *(float *)0x2533c8)) {
     display_assert("(t0 >= 0.0f) && (t0 <= 1.0f)",
                    "c:\\halo\\SOURCE\\math\\real_math.c", 0x3da, 1);
     system_exit(-1);
   }
-  if (t < *(float *)0x2533c0 || *(float *)0x2533c8 < t) {
+  if (!(t >= *(float *)0x2533c0) || !(t <= *(float *)0x2533c8)) {
     display_assert("(t1 >= 0.0f) && (t1 <= 1.0f)",
                    "c:\\halo\\SOURCE\\math\\real_math.c", 0x3db, 1);
     system_exit(-1);
@@ -2291,11 +2394,15 @@ char FUN_0010d4c0(float *p1, float p2, float p3, float *p4, float *p5,
   bp = local_origin[1] * p5[0] + local_origin[2] * p5[1];
   c2 = (local_origin[2] * local_origin[2] + local_origin[1] * local_origin[1]) -
        p3 * p3;
-  t = 0.0f;
-  if (!(c2 <= 0.0f)) {
+  if (c2 <= 0.0f) {
+    t = 0.0f;
+  } else {
     a = p5[0] * p5[0] + p5[1] * p5[1];
     c2 = bp * bp - a * c2;
-    if (!(0.0f <= c2))
+    /* Operand order follows the reference: the discriminant is the ST0 value
+     * and 0.0f is the memory operand (`fcoms 0x2533c0 ; testb $0x1,%ah ; jne`
+     * == the fail-branch of `c2 >= 0.0f`). */
+    if (!(c2 >= 0.0f))
       return 0;
     c2 = -(sqrtf(c2) + bp);
     if (!(c2 <= a))
@@ -2304,28 +2411,35 @@ char FUN_0010d4c0(float *p1, float p2, float p3, float *p4, float *p5,
   }
   hit = 1;
   c2 = (t * p5[2] + (p4[2] - p1[2])) / (p2 * p2);
-  if (0.0f <= c2) {
-    if (c2 <= 1.0f) {
-      if (0.0f <= bp)
-        return 0;
-      *p6 = t;
-      p7[0] = t * p5[0] + local_origin[1];
-      p7[1] = t * p5[1] + local_origin[2];
-      FUN_0010c290(p7);
-      p7[2] = 0.0f;
-      goto check;
-    }
+  /* BOUND SENSE (four guards): every one of these compares has the computed
+   * value in ST0 and the constant as the memory operand in the reference, and
+   * every one is a NEGATED form -- so NaN takes the opposite path from the
+   * positive spellings this lift previously used:
+   *   `fcoms 0.0f ; testb $0x5,%ah  ; jp`  = fail-branch of `c2 < 0.0f`
+   *   `fcomps 1.0f ; testb $0x41,%ah ; jne` = fail-branch of `c2 > 1.0f`
+   *   `flds bp ; fcomps 0.0f ; testb $0x5,%ah ; jp` = fail-branch of `bp < 0.0f`
+   *   `fcomps 0.0f ; testb $0x41,%ah ; jne` = fail-branch of `dot > 0.0f` */
+  if (c2 < 0.0f) {
+    hit = FUN_0010d380(p1, p3, p4, p5, p6, p7);
+  } else if (!(c2 > 1.0f)) {
+    if (!(bp < 0.0f))
+      return 0;
+    *p6 = t;
+    p7[0] = t * p5[0] + local_origin[1];
+    p7[1] = t * p5[1] + local_origin[2];
+    FUN_0010c290(p7);
+    p7[2] = 0.0f;
+    goto check;
+  } else {
     local_origin[0] = p1[0];
     local_origin[1] = p1[1];
     local_origin[2] = p2 + p1[2];
     hit = FUN_0010d380(local_origin, p3, p4, p5, p6, p7);
-  } else {
-    hit = FUN_0010d380(p1, p3, p4, p5, p6, p7);
   }
   if (hit == 0)
     return 0;
 check:
-  if (p7[2] * p5[2] + p7[1] * p5[1] + p5[0] * p7[0] <= 0.0f) {
+  if (!(p7[2] * p5[2] + p7[1] * p5[1] + p5[0] * p7[0] > 0.0f)) {
     return hit;
   }
   return 0;
@@ -2340,23 +2454,41 @@ float FUN_0010d680(float *ray_origin, float *ray_dir, float *sphere_center,
   float dx = ray_origin[0] - sphere_center[0];
   float dy = ray_origin[1] - sphere_center[1];
   float dz = ray_origin[2] - sphere_center[2];
-  float c = (dx * dx + dy * dy + dz * dz) - radius * radius;
-  float dr_x, dr_y, dr_z;
-  float b, a, disc;
+  /* c, b, a and the ray-direction components all live in stack slots in the
+   * reference (`fsts 0x8(%ebp)`, `fstps 0x14(%ebp)`, `fstps 0x10(%ebp)`,
+   * `movl`+`flds -0x4/-0x8/-0xc(%ebp)`) and are re-read at each use; disc stays
+   * FPU-resident (non-popping `fcoms`, then `fsqrt`). */
+  volatile float c;
+  volatile float dr_x, dr_y, dr_z;
+  volatile float b, a;
+  float disc;
 
+  /* Summation order follows the reference: the z term is squared first
+   * (`fld %st(0)` on the dz that is on top of the FPU stack). */
+  c = (dz * dz + dy * dy + dx * dx) - radius * radius;
   if (c < 0.0f) {
     return 0.0f;
   }
   dr_x = ray_dir[0];
   dr_y = ray_dir[1];
   dr_z = ray_dir[2];
-  b = dr_x * dx + dr_y * dy + dr_z * dz;
-  if (b < 0.0f) {
-    a = dr_x * dr_x + dr_y * dr_y + dr_z * dr_z;
-    disc = b * b - a * c;
-    if (disc >= 0.0f) {
-      return (-b - sqrtf(disc)) / a;
-    }
+  b = dr_z * dz + dr_y * dy + dr_x * dx;
+  /* BOUND SENSE: the reference guards with `flds b ; fcomps 0.0f ;
+   * testb $0x1,%ah ; je <return REAL_MAX>` == the positive `b >= 0.0f` form,
+   * so a NaN b falls THROUGH into the discriminant path.  The previous
+   * `if (b < 0.0f) {...}` spelling returned REAL_MAX for NaN instead. */
+  if (b >= 0.0f) {
+    return 3.4028235e+38f;
+  }
+  a = dr_z * dr_z + dr_y * dr_y + dr_x * dr_x;
+  disc = b * b - a * c;
+  /* BOUND SENSE: `fcoms 0.0f ; testb $0x41,%ah ; jp <hit>` is the fail-branch
+   * of `disc <= 0.0f`, i.e. the hit path runs for disc > 0 OR NaN -- a tangent
+   * ray (disc == 0) is a MISS in the original.  The previous
+   * `if (disc >= 0.0f)` spelling treated disc == 0 as a hit and NaN as a miss:
+   * both senses were inverted relative to the reference. */
+  if (!(disc <= 0.0f)) {
+    return (-b - sqrtf(disc)) / a;
   }
   return 3.4028235e+38f;
 }
@@ -2368,16 +2500,19 @@ float FUN_0010d680(float *ray_origin, float *ray_dir, float *sphere_center,
 char FUN_0010d770(float *p1, float *p2, float *p3, float *p4, float *out_u,
                   float *out_v)
 {
-  float det =
-    (p1[1] - p2[1]) * (p3[0] - p2[0]) - (p1[0] - p2[0]) * (p3[1] - p2[1]);
+  float e0 = p3[0] - p2[0];
+  float e1 = p3[1] - p2[1];
+  float d0 = p1[0] - p2[0];
+  float d1 = p1[1] - p2[1];
+  float det = d1 * e0 - d0 * e1;
   float det2, total, inv_total;
 
-  if (0.0f <= det) {
-    det2 =
-      (p1[0] - p2[0]) * (p4[1] - p2[1]) - (p1[1] - p2[1]) * (p4[0] - p2[0]);
-    if (0.0f <= det2) {
-      total =
-        (p4[1] - p2[1]) * (p3[0] - p2[0]) - (p4[0] - p2[0]) * (p3[1] - p2[1]);
+  if (det >= 0.0f) {
+    float f0 = p4[0] - p2[0];
+    float f1 = p4[1] - p2[1];
+    det2 = d0 * f1 - d1 * f0;
+    if (det2 >= 0.0f) {
+      total = f1 * e0 - f0 * e1;
       if (det2 + det <= total) {
         inv_total = 1.0f / total;
         *out_u = det2 * inv_total;
@@ -2451,7 +2586,7 @@ char FUN_0010d9e0(float *p1, float *p2, float *p3, float cone_radius,
   float dot;
   float rsq, dist_sq;
 
-  if (cosine < 0.0f) {
+  if (!(cosine >= 0.0f)) {
     display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x55f,
                    1);
     system_exit(-1);
@@ -2459,18 +2594,18 @@ char FUN_0010d9e0(float *p1, float *p2, float *p3, float cone_radius,
   dx = p1[0] - p2[0];
   dy = p1[1] - p2[1];
   dot = dx * p3[0] + dy * p3[1];
-  if (dot < 0.0f) {
+  if (!(dot >= 0.0f)) {
     return 0;
   }
-  if (dot > cone_radius) {
+  if (!(dot <= cone_radius)) {
     return 0;
   }
   rsq = dot * dot;
-  dist_sq = (dy * dy + dx * dx) * cosine * cosine;
-  if (dist_sq < rsq) {
-    return 0;
+  dist_sq = (dx * dx + dy * dy) * cosine * cosine;
+  if (rsq >= dist_sq) {
+    return 1;
   }
-  return 1;
+  return 0;
 }
 
 /* 0x10da90 — 3D cone vs sphere test.
@@ -2483,7 +2618,7 @@ char FUN_0010da90(float *p1, float *p2, float *p3, float cone_radius,
   float dot;
   float rsq, dist_sq;
 
-  if (cosine < 0.0f) {
+  if (!(cosine >= 0.0f)) {
     display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x57c,
                    1);
     system_exit(-1);
@@ -2492,7 +2627,8 @@ char FUN_0010da90(float *p1, float *p2, float *p3, float cone_radius,
   dy = p1[1] - p2[1];
   dz = p1[2] - p2[2];
   dot = dz * p3[2] + dy * p3[1] + dx * p3[0];
-  if (!(0.0f <= dot)) {
+  /* ref: fst [ebp+8]; fcomp 0.0; test ah,1; jne — dot on the left */
+  if (!(dot >= 0.0f)) {
     return 0;
   }
   if (!(dot <= cone_radius)) {
@@ -2500,10 +2636,12 @@ char FUN_0010da90(float *p1, float *p2, float *p3, float cone_radius,
   }
   rsq = dot * dot;
   dist_sq = (dz * dz + dx * dx + dy * dy) * cosine * cosine;
-  if (!(rsq <= dist_sq)) {
-    return 0;
-  }
-  return 1;
+  /* ref fcompp has dist_sq in ST0: return 0 when dist_sq > rsq (or NaN) —
+   * i.e. inside requires rsq >= dist_sq. The old !(rsq <= dist_sq) form was
+   * INVERTED (same bug family as FUN_0010db50/dbf0/d9e0). */
+  if (rsq >= dist_sq)
+    return 1;
+  return 0;
 }
 
 /* 0x10db50 — 2D cone vs circle test. */
@@ -2515,7 +2653,7 @@ __declspec(noinline) char FUN_0010db50(float *p1, float *p2, float *p3,
   float dot;
   float radius_sq;
 
-  if (!(0.0f <= cosine)) {
+  if (!(cosine >= 0.0f)) {
     display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x599,
                    1);
     system_exit(-1);
@@ -2524,17 +2662,15 @@ __declspec(noinline) char FUN_0010db50(float *p1, float *p2, float *p3,
   dy = p1[1] - p2[1];
   dist_sq = dx * dx + dy * dy;
   radius_sq = cone_radius * cone_radius;
-  if (!(dist_sq <= radius_sq)) {
-    return 0;
+  if (dist_sq <= radius_sq) {
+    dot = dx * p3[0] + dy * p3[1];
+    if (dot >= 0.0f) {
+      if (dot * dot >= dist_sq * cosine * cosine) {
+        return 1;
+      }
+    }
   }
-  dot = dx * p3[0] + dy * p3[1];
-  if (!(0.0f <= dot)) {
-    return 0;
-  }
-  if (!(dot * dot <= dist_sq * cosine * cosine)) {
-    return 0;
-  }
-  return 1;
+  return 0;
 }
 
 /* 0x10dbf0 — 3D cone vs sphere test (variant). */
@@ -2546,7 +2682,7 @@ __declspec(noinline) char FUN_0010dbf0(float *p1, float *p2, float *p3,
   float dot;
   float radius_sq;
 
-  if (!(0.0f <= cosine)) {
+  if (!(cosine >= 0.0f)) {
     display_assert("cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c", 0x5b6,
                    1);
     system_exit(-1);
@@ -2556,17 +2692,15 @@ __declspec(noinline) char FUN_0010dbf0(float *p1, float *p2, float *p3,
   dz = p1[2] - p2[2];
   dist_sq = dz * dz + dx * dx + dy * dy;
   radius_sq = cone_radius * cone_radius;
-  if (!(dist_sq <= radius_sq)) {
-    return 0;
+  if (dist_sq <= radius_sq) {
+    dot = dx * p3[0] + dy * p3[1] + dz * p3[2];
+    if (dot >= 0.0f) {
+      if (dot * dot >= dist_sq * cosine * cosine) {
+        return 1;
+      }
+    }
   }
-  dot = dx * p3[0] + dy * p3[1] + dz * p3[2];
-  if (!(0.0f <= dot)) {
-    return 0;
-  }
-  if (!(dot * dot <= dist_sq * cosine * cosine)) {
-    return 0;
-  }
-  return 1;
+  return 0;
 }
 
 /* 0x10dcb0 — 2D segment vs pill (capsule) intersection.
@@ -2584,7 +2718,9 @@ char vector_intersects_pill2d(float *line_start, float *line_dir,
                               float *pill_center, float *pill_dir,
                               float pill_radius)
 {
-  float delta_x, delta_y;
+  /* deltas are stored to [ebp-8]/[ebp-4] in the reference (fstp right after
+   * the fsub) and reloaded per use — volatile reproduces the spill */
+  volatile float delta_x, delta_y;
   float cross2d;
   float d0_d1, d0_sq, d1_sq;
   float inv;
@@ -2602,64 +2738,97 @@ char vector_intersects_pill2d(float *line_start, float *line_dir,
   /* 2D cross of the two directions */
   cross2d = line_dir[0] * pill_dir[1] - line_dir[1] * pill_dir[0];
 
-  if (fabsf(cross2d) < (float)*(double *)0x2533d0) {
-    /* parallel or nearly parallel lines */
-    d0_d1 = line_dir[0] * pill_dir[0] + line_dir[1] * pill_dir[1];
-    d0_sq = line_dir[0] * line_dir[0] + line_dir[1] * line_dir[1];
+  /* non-parallel case first: reference sinks the parallel block to the end
+   * (test ah,5 / jnp -> sunk block); eps compare is double-width per ref
+   * fcomp QWORD 0x2533d0 */
+  if (!(real_math_fabs_double_from_float(cross2d) < *(double *)0x2533d0)) {
+    /* non-parallel: solve the 2D line intersection */
+    inv = *(float *)0x2533c8 / cross2d;
+    s = (delta_x * pill_dir[1] - delta_y * pill_dir[0]) * inv;
+    t = (delta_x * line_dir[1] - delta_y * line_dir[0]) * inv;
 
-    if (d0_sq <= *(float *)0x253f44) {
-      s = *(float *)0x2533c0;
-    } else {
-      inv = *(float *)0x2533c8 / d0_sq;
-      s_start = (delta_y * line_dir[1] + delta_x * line_dir[0]) * inv;
-      s_end = inv * d0_d1 + s_start;
+    /* ref: fld s; fcomp 1.0 — s/t on the LEFT of the >1 test; clamps are
+     * two-way ?: selects (fcomp 0.0/test5/jp -> 1.0 arm) kept ST-resident */
+    s_oob = (s < *(float *)0x2533c0 || s > *(float *)0x2533c8);
+    t_oob = (t < *(float *)0x2533c0 || t > *(float *)0x2533c8);
 
-      /* clamp s_start to [0, 1] (decompile branch shape: default 0, take
-       * value if >=0, cap at 1 if >1 — comparison directions preserved) */
-      clamped_s = *(float *)0x2533c0;
-      if (*(float *)0x2533c0 <= s_start) {
-        clamped_s = s_start;
-        if (*(float *)0x2533c8 < s_start)
-          clamped_s = *(float *)0x2533c8;
-      }
-
-      /* clamp s_end to [0, 1], average with clamped s_start */
-      if (*(float *)0x2533c0 <= s_end) {
-        if (s_end <= *(float *)0x2533c8)
-          s = (s_end + clamped_s) * *(float *)0x253398;
-        else
-          s = (*(float *)0x2533c8 + clamped_s) * *(float *)0x253398;
-      } else {
-        s = (*(float *)0x2533c0 + clamped_s) * *(float *)0x253398;
-      }
+    if (s_oob) {
+      clamped_s = (s < *(float *)0x2533c0) ? *(float *)0x2533c0
+                                           : *(float *)0x2533c8;
+      closest_a_x = clamped_s * line_dir[0] + line_start[0];
+      closest_a_y = clamped_s * line_dir[1] + line_start[1];
+      if (!t_oob)
+        goto point_segment_checks;
+    } else if (!t_oob) {
+      return 1;
     }
 
-    d1_sq = pill_dir[1] * pill_dir[1] + pill_dir[0] * pill_dir[0];
+    clamped_t = (t < *(float *)0x2533c0) ? *(float *)0x2533c0
+                                         : *(float *)0x2533c8;
+    closest_b_x = clamped_t * pill_dir[0] + pill_center[0];
+    closest_b_y = clamped_t * pill_dir[1] + pill_center[1];
 
-    if (d1_sq <= *(float *)0x253f44) {
-      t = *(float *)0x2533c0;
+  point_segment_checks:
+    if ((!s_oob ||
+         FUN_0010cc90(&closest_a_x, pill_center, pill_dir, pill_radius) == 0) &&
+        (!t_oob ||
+         FUN_0010cc90(&closest_b_x, line_start, line_dir, pill_radius) == 0))
+      return 0;
+    return 1;
+  }
+
+  /* parallel or nearly parallel lines */
+  {
+    /* ref 0x178+: d0_d1 and d0_sq accumulate y-first, d1_sq x-first;
+     * clamps are three-way selects (fcomp 0x2533c0/test5/jp then
+     * fcomp 0x2533c8/test41/jne) whose NaN path falls to the last arm */
+    d0_d1 = line_dir[1] * pill_dir[1] + line_dir[0] * pill_dir[0];
+    d0_sq = line_dir[1] * line_dir[1] + line_dir[0] * line_dir[0];
+
+    if (d0_sq > *(float *)0x253f44) {
+      inv = 1.0f / d0_sq;
+      s_start = (delta_x * line_dir[0] + delta_y * line_dir[1]) * inv;
+      s_end = inv * d0_d1 + s_start;
+
+      if (s_start < 0.0f)
+        clamped_s = 0.0f;
+      else if (s_start > 1.0f)
+        clamped_s = 1.0f;
+      else
+        clamped_s = s_start;
+
+      if (s_end < 0.0f)
+        s = (0.0f + clamped_s) * 0.5f;
+      else if (s_end > 1.0f)
+        s = (1.0f + clamped_s) * 0.5f;
+      else
+        s = (s_end + clamped_s) * 0.5f;
     } else {
-      inv = *(float *)0x2533c8 / d1_sq;
-      t_start = -((delta_y * pill_dir[1] + delta_x * pill_dir[0]) * inv);
+      s = 0.0f;
+    }
+
+    d1_sq = pill_dir[0] * pill_dir[0] + pill_dir[1] * pill_dir[1];
+
+    if (d1_sq > *(float *)0x253f44) {
+      inv = 1.0f / d1_sq;
+      t_start = -((delta_x * pill_dir[0] + delta_y * pill_dir[1]) * inv);
       t_end = inv * d0_d1 + t_start;
 
-      /* clamp t_start to [0, 1] */
-      clamped_t = *(float *)0x2533c0;
-      if (*(float *)0x2533c0 <= t_start) {
+      if (t_start < 0.0f)
+        clamped_t = 0.0f;
+      else if (t_start > 1.0f)
+        clamped_t = 1.0f;
+      else
         clamped_t = t_start;
-        if (*(float *)0x2533c8 < t_start)
-          clamped_t = *(float *)0x2533c8;
-      }
 
-      /* clamp t_end to [0, 1], average with clamped t_start */
-      if (*(float *)0x2533c0 <= t_end) {
-        if (t_end <= *(float *)0x2533c8)
-          t = (t_end + clamped_t) * *(float *)0x253398;
-        else
-          t = (*(float *)0x2533c8 + clamped_t) * *(float *)0x253398;
-      } else {
-        t = (*(float *)0x2533c0 + clamped_t) * *(float *)0x253398;
-      }
+      if (t_end < 0.0f)
+        t = (0.0f + clamped_t) * 0.5f;
+      else if (t_end > 1.0f)
+        t = (1.0f + clamped_t) * 0.5f;
+      else
+        t = (t_end + clamped_t) * 0.5f;
+    } else {
+      t = 0.0f;
     }
 
     closest_a_x = s * line_dir[0] + line_start[0];
@@ -2672,40 +2841,6 @@ char vector_intersects_pill2d(float *line_start, float *line_dir,
       return 0;
     return 1;
   }
-
-  /* non-parallel: solve the 2D line intersection */
-  inv = *(float *)0x2533c8 / cross2d;
-  s = (delta_x * pill_dir[1] - delta_y * pill_dir[0]) * inv;
-  t = (delta_x * line_dir[1] - delta_y * line_dir[0]) * inv;
-
-  s_oob = (s < *(float *)0x2533c0 || *(float *)0x2533c8 < s);
-  t_oob = (t < *(float *)0x2533c0 || *(float *)0x2533c8 < t);
-
-  if (s_oob) {
-    clamped_s = *(float *)0x2533c8;
-    if (s < *(float *)0x2533c0)
-      clamped_s = *(float *)0x2533c0;
-    closest_a_x = clamped_s * line_dir[0] + line_start[0];
-    closest_a_y = clamped_s * line_dir[1] + line_start[1];
-    if (!t_oob)
-      goto point_segment_checks;
-  } else if (!t_oob) {
-    return 1;
-  }
-
-  clamped_t = *(float *)0x2533c8;
-  if (t < *(float *)0x2533c0)
-    clamped_t = *(float *)0x2533c0;
-  closest_b_x = clamped_t * pill_dir[0] + pill_center[0];
-  closest_b_y = clamped_t * pill_dir[1] + pill_center[1];
-
-point_segment_checks:
-  if ((!s_oob ||
-       FUN_0010cc90(&closest_a_x, pill_center, pill_dir, pill_radius) == 0) &&
-      (!t_oob ||
-       FUN_0010cc90(&closest_b_x, line_start, line_dir, pill_radius) == 0))
-    return 0;
-  return 1;
 }
 
 /* vector_intersects_pill3d (0x10e040) — Test if two line segments are within a
@@ -2737,16 +2872,64 @@ bool vector_intersects_pill3d(float *start_a, float *dir_a, float *start_b,
   ny = dir_a[2] * dir_b[0] - dir_a[0] * dir_b[2];
   nz = dir_b[1] * dir_a[0] - dir_a[1] * dir_b[0];
 
-  cross_sq = nx * nx + ny * ny + nz * nz;
+  /* ref: cross_sq accumulates nz^2 + ny^2 + nx^2 (z-first) */
+  cross_sq = nz * nz + ny * ny + nx * nx;
 
-  if (fabsf(cross_sq) < (float)*(double *)0x2533d0) {
+  /* non-parallel case first: reference sinks the parallel block to 0x220
+   * (test ah,5 / jnp); eps compare is double-width (fcomp QWORD 0x2533d0) */
+  if (!(real_math_fabs_double_from_float(cross_sq) < *(double *)0x2533d0)) {
+    /* non-parallel case */
+    inv = *(float *)0x2533c8 / cross_sq;
+    nx = nx * inv;
+    ny = ny * inv;
+
+    /* s = dot(delta x dir_b, n_norm) */
+    s = (delta_y * dir_b[2] - delta_z * dir_b[1]) * nx +
+        (delta_z * dir_b[0] - delta_x * dir_b[2]) * ny +
+        (delta_x * dir_b[1] - delta_y * dir_b[0]) * nz * inv;
+
+    /* t = dot(delta x dir_a, n_norm) */
+    t = (delta_y * dir_a[2] - delta_z * dir_a[1]) * nx +
+        (delta_z * dir_a[0] - delta_x * dir_a[2]) * ny +
+        (delta_x * dir_a[1] - delta_y * dir_a[0]) * nz * inv;
+
+    s_oob = (s < *(float *)0x2533c0 || s > *(float *)0x2533c8);
+    t_oob = (t < *(float *)0x2533c0 || t > *(float *)0x2533c8);
+
+    if (s_oob) {
+      clamped_s =
+        (s < *(float *)0x2533c0) ? *(float *)0x2533c0 : *(float *)0x2533c8;
+      closest_a_x = clamped_s * dir_a[0] + start_a[0];
+      closest_a_y = clamped_s * dir_a[1] + start_a[1];
+      closest_a_z = clamped_s * dir_a[2] + start_a[2];
+      if (!t_oob)
+        goto point_segment_checks;
+    } else if (!t_oob) {
+      goto distance_check;
+    }
+
+    clamped_t =
+      (t < *(float *)0x2533c0) ? *(float *)0x2533c0 : *(float *)0x2533c8;
+    closest_b_x = clamped_t * dir_b[0] + start_b[0];
+    closest_b_y = clamped_t * dir_b[1] + start_b[1];
+    closest_b_z = clamped_t * dir_b[2] + start_b[2];
+
+  point_segment_checks:
+    if (s_oob) {
+      if (fast_vector_intersects_sphere(start_b, dir_b, &closest_a_x, radius))
+        return 1;
+    }
+    if (t_oob) {
+      if (fast_vector_intersects_sphere(start_a, dir_a, &closest_b_x, radius))
+        return 1;
+    }
+    return 0;
+  } else {
     /* parallel or nearly parallel lines */
     d0_d1 = dir_a[0] * dir_b[0] + dir_a[1] * dir_b[1] + dir_a[2] * dir_b[2];
     d0_sq = dir_a[0] * dir_a[0] + dir_a[1] * dir_a[1] + dir_a[2] * dir_a[2];
 
-    if (d0_sq <= *(float *)0x253f44) {
-      s = 0.0f;
-    } else {
+    if (d0_sq > *(float *)0x253f44) {
       inv = *(float *)0x2533c8 / d0_sq;
       s_start =
         (delta_x * dir_a[0] + delta_y * dir_a[1] + delta_z * dir_a[2]) * inv;
@@ -2767,13 +2950,13 @@ bool vector_intersects_pill3d(float *start_a, float *dir_a, float *start_b,
         s = (*(float *)0x2533c8 + clamped_s) * *(float *)0x253398;
       else
         s = (s_end + clamped_s) * *(float *)0x253398;
+    } else {
+      s = 0.0f;
     }
 
     d1_sq = dir_b[0] * dir_b[0] + dir_b[1] * dir_b[1] + dir_b[2] * dir_b[2];
 
-    if (d1_sq <= *(float *)0x253f44) {
-      t = *(float *)0x2533c0;
-    } else {
+    if (d1_sq > *(float *)0x253f44) {
       inv = *(float *)0x2533c8 / d1_sq;
       t_start =
         -((delta_x * dir_b[0] + delta_y * dir_b[1] + delta_z * dir_b[2]) * inv);
@@ -2794,59 +2977,12 @@ bool vector_intersects_pill3d(float *start_a, float *dir_a, float *start_b,
         t = (*(float *)0x2533c8 + clamped_t) * *(float *)0x253398;
       else
         t = (t_end + clamped_t) * *(float *)0x253398;
+    } else {
+      t = 0.0f;
     }
 
     goto distance_check;
   }
-
-  /* non-parallel case */
-  inv = *(float *)0x2533c8 / cross_sq;
-  nx = nx * inv;
-  ny = ny * inv;
-
-  /* s = dot(delta × dir_b, n_norm) */
-  s = (delta_y * dir_b[2] - delta_z * dir_b[1]) * nx +
-      (delta_z * dir_b[0] - delta_x * dir_b[2]) * ny +
-      (delta_x * dir_b[1] - delta_y * dir_b[0]) * nz * inv;
-
-  /* t = dot(delta × dir_a, n_norm) */
-  t = (delta_y * dir_a[2] - delta_z * dir_a[1]) * nx +
-      (delta_z * dir_a[0] - delta_x * dir_a[2]) * ny +
-      (delta_x * dir_a[1] - delta_y * dir_a[0]) * nz * inv;
-
-  /* check if s is out of [0, 1] */
-  s_oob = (s < *(float *)0x2533c0 || s > *(float *)0x2533c8);
-  /* check if t is out of [0, 1] */
-  t_oob = (t < *(float *)0x2533c0 || t > *(float *)0x2533c8);
-
-  if (s_oob) {
-    clamped_s =
-      (s < *(float *)0x2533c0) ? *(float *)0x2533c0 : *(float *)0x2533c8;
-    closest_a_x = clamped_s * dir_a[0] + start_a[0];
-    closest_a_y = clamped_s * dir_a[1] + start_a[1];
-    closest_a_z = clamped_s * dir_a[2] + start_a[2];
-    if (!t_oob)
-      goto point_segment_checks;
-  } else if (!t_oob) {
-    goto distance_check;
-  }
-
-  clamped_t =
-    (t < *(float *)0x2533c0) ? *(float *)0x2533c0 : *(float *)0x2533c8;
-  closest_b_x = clamped_t * dir_b[0] + start_b[0];
-  closest_b_y = clamped_t * dir_b[1] + start_b[1];
-  closest_b_z = clamped_t * dir_b[2] + start_b[2];
-
-point_segment_checks:
-  if (s_oob) {
-    if (fast_vector_intersects_sphere(start_b, dir_b, &closest_a_x, radius))
-      return 1;
-  }
-  if (t_oob) {
-    if (fast_vector_intersects_sphere(start_a, dir_a, &closest_b_x, radius))
-      return 1;
-  }
-  return 0;
 
 distance_check:
   closest_a_x = s * dir_a[0] + start_a[0];
@@ -2878,7 +3014,8 @@ distance_check:
 char FUN_0010e4d0(float *point, float *dir, float *v0, float *v1, float *v2)
 {
   float tmin, tmax;
-  float e_x, e_y, p_x, p_y, num, den, t;
+  volatile float e_x;
+  float e_y, p_x, p_y, num, den, t;
 
   tmin = 0.0f;
   tmax = 1.0f;
@@ -2970,7 +3107,7 @@ char FUN_0010e6f0(float *p1, float *p2, float *p3, float *p4, float *p5,
                   float *p6)
 {
   float e1[3], e2[3];
-  float n[3];
+  float n0, n1, n2;
   float det, inv_det;
   float origin_to_v0[3];
   float t, u, v;
@@ -2982,12 +3119,12 @@ char FUN_0010e6f0(float *p1, float *p2, float *p3, float *p4, float *p5,
   e2[0] = p5[0] - p3[0];
   e2[1] = p5[1] - p3[1];
   e2[2] = p5[2] - p3[2];
-  n[0] = e2[2] * e1[1] - e2[1] * e1[2];
-  n[1] = e1[2] * e2[0] - e2[2] * e1[0];
-  n[2] = e2[1] * e1[0] - e2[0] * e1[1];
-  det = n[0] * p2[0] + n[1] * p2[1] + n[2] * p2[2];
+  n0 = e2[2] * e1[1] - e2[1] * e1[2];
+  n1 = e1[2] * e2[0] - e2[2] * e1[0];
+  n2 = e2[1] * e1[0] - e2[0] * e1[1];
+  det = n0 * p2[0] + n1 * p2[1] + n2 * p2[2];
 
-  if (fabsf(det) < *(double *)0x2533d0) {
+  if (real_math_fabs_double_from_float(det) < *(double *)0x2533d0) {
     return 0;
   }
 
@@ -2996,22 +3133,22 @@ char FUN_0010e6f0(float *p1, float *p2, float *p3, float *p4, float *p5,
   origin_to_v0[1] = p3[1] - p1[1];
   origin_to_v0[2] = p3[2] - p1[2];
   t =
-    (origin_to_v0[0] * n[0] + origin_to_v0[1] * n[1] + origin_to_v0[2] * n[2]) *
+    (origin_to_v0[0] * n0 + origin_to_v0[1] * n1 + origin_to_v0[2] * n2) *
     inv_det;
-  if (!(0.0f <= t))
+  if (!(t >= 0.0f))
     return 0;
   if (!(t <= 1.0f))
     return 0;
 
   cross_product3d(origin_to_v0, p2, scratch);
   u = (e2[0] * scratch[0] + scratch[1] * e2[1] + scratch[2] * e2[2]) * inv_det;
-  if (!(0.0f <= u))
+  if (!(u >= 0.0f))
     return 0;
   if (!(u <= 1.0f))
     return 0;
   v =
     -((e1[0] * scratch[0] + scratch[1] * e1[1] + scratch[2] * e1[2]) * inv_det);
-  if (!(0.0f <= v))
+  if (!(v >= 0.0f))
     return 0;
   if (!(u + v <= 1.0f))
     return 0;
@@ -3025,26 +3162,26 @@ char FUN_0010e8a0(float *point, float radius, float *rect)
 {
   float dx, dy;
 
-  if (!(point[0] <= rect[1])) {
-    dx = point[0] - rect[1];
-  } else {
-    dx = 0.0f;
-    if (point[0] < rect[0]) {
+  if (point[0] <= rect[1]) {
+    if (point[0] < rect[0])
       dx = rect[0] - point[0];
-    }
-  }
-  if (!(point[1] <= rect[3])) {
-    dy = point[1] - rect[3];
+    else
+      dx = 0.0f;
   } else {
-    dy = 0.0f;
-    if (point[1] < rect[2]) {
+    dx = point[0] - rect[1];
+  }
+  if (point[1] <= rect[3]) {
+    if (point[1] < rect[2])
       dy = rect[2] - point[1];
-    }
+    else
+      dy = 0.0f;
+  } else {
+    dy = point[1] - rect[3];
   }
-  if (!(dx * dx + dy * dy <= radius * radius)) {
-    return 0;
+  if (dx * dx + dy * dy <= radius * radius) {
+    return 1;
   }
-  return 1;
+  return 0;
 }
 
 /* 0x10e930 — 3D point-to-AABB distance test.
@@ -3054,34 +3191,34 @@ char FUN_0010e930(float *point, float radius, float *aabb)
 {
   float dx, dy, dz;
 
-  if (!(point[0] <= aabb[1])) {
-    dx = point[0] - aabb[1];
-  } else {
-    dx = 0.0f;
-    if (point[0] < aabb[0]) {
+  if (point[0] <= aabb[1]) {
+    if (point[0] < aabb[0])
       dx = aabb[0] - point[0];
-    }
-  }
-  if (!(point[1] <= aabb[3])) {
-    dy = point[1] - aabb[3];
+    else
+      dx = 0.0f;
   } else {
-    dy = 0.0f;
-    if (point[1] < aabb[2]) {
+    dx = point[0] - aabb[1];
+  }
+  if (point[1] <= aabb[3]) {
+    if (point[1] < aabb[2])
       dy = aabb[2] - point[1];
-    }
-  }
-  if (!(point[2] <= aabb[5])) {
-    dz = point[2] - aabb[5];
+    else
+      dy = 0.0f;
   } else {
-    dz = 0.0f;
-    if (point[2] < aabb[4]) {
+    dy = point[1] - aabb[3];
+  }
+  if (point[2] <= aabb[5]) {
+    if (point[2] < aabb[4])
       dz = aabb[4] - point[2];
-    }
+    else
+      dz = 0.0f;
+  } else {
+    dz = point[2] - aabb[5];
   }
-  if (!(dx * dx + dy * dy + dz * dz < radius * radius)) {
-    return 0;
+  if (dx * dx + dy * dy + dz * dz < radius * radius) {
+    return 1;
   }
-  return 1;
+  return 0;
 }
 
 /* 0x10e9f0 — 2D triangle vs circle test. Tests the 3 edges (cw winding)
@@ -3090,33 +3227,33 @@ char FUN_0010e930(float *point, float radius, float *aabb)
 char FUN_0010e9f0(float *circle_center, float radius, float *p3, float *p4,
                   float *p5)
 {
-  float local_c, local_8;
+  float seg[2];
 
   char result = 1;
-  local_c = p4[0] - p3[0];
-  local_8 = p4[1] - p3[1];
-  if (0.0f < local_8 * (circle_center[0] - p3[0]) -
-               local_c * (circle_center[1] - p3[1])) {
-    if (FUN_0010cc90(circle_center, p3, &local_c, radius)) {
+  seg[0] = p4[0] - p3[0];
+  seg[1] = p4[1] - p3[1];
+  if (0.0f < seg[1] * (circle_center[0] - p3[0]) -
+               seg[0] * (circle_center[1] - p3[1])) {
+    if ((char)FUN_0010cc90(circle_center, p3, seg, radius)) {
       return 1;
     }
     result = 0;
   }
-  local_c = p5[0] - p4[0];
-  local_8 = p5[1] - p4[1];
-  if (local_8 * (circle_center[0] - p4[0]) -
-        local_c * (circle_center[1] - p4[1]) <
+  seg[0] = p5[0] - p4[0];
+  seg[1] = p5[1] - p4[1];
+  if (seg[1] * (circle_center[0] - p4[0]) -
+        seg[0] * (circle_center[1] - p4[1]) <
       0.0f) {
-    if (FUN_0010cc90(circle_center, p4, &local_c, radius)) {
+    if ((char)FUN_0010cc90(circle_center, p4, seg, radius)) {
       return 1;
     }
     result = 0;
   }
-  local_c = p3[0] - p5[0];
-  local_8 = p3[1] - p5[1];
-  if (0.0f < local_8 * (circle_center[0] - p5[0]) -
-               local_c * (circle_center[1] - p5[1])) {
-    if (FUN_0010cc90(circle_center, p5, &local_c, radius)) {
+  seg[0] = p3[0] - p5[0];
+  seg[1] = p3[1] - p5[1];
+  if (0.0f < seg[1] * (circle_center[0] - p5[0]) -
+               seg[0] * (circle_center[1] - p5[1])) {
+    if ((char)FUN_0010cc90(circle_center, p5, seg, radius)) {
       return 1;
     }
     result = 0;
@@ -3130,9 +3267,11 @@ char FUN_0010e9f0(float *circle_center, float radius, float *p3, float *p4,
 char sphere_intersects_triangle3d(float *center, float radius, float *v0,
                                   float *v1, float *v2)
 {
-  float d0[3], e01[3], e12[3], n[3];
+  volatile float d0[3];
+  float e01[3], e12[3];
+  volatile float n[3];
   float c12[3], c20[3];
-  float plane_dot, n_mag_sq;
+  float plane_dot;
   char result;
 
   d0[0] = center[0] - v0[0];
@@ -3153,8 +3292,8 @@ char sphere_intersects_triangle3d(float *center, float radius, float *v0,
   n[2] = e12[1] * e01[0] - e01[1] * e12[0];
 
   plane_dot = n[0] * d0[0] + n[1] * d0[1] + n[2] * d0[2];
-  n_mag_sq = n[0] * n[0] + n[1] * n[1] + n[2] * n[2];
-  if (n_mag_sq * radius * radius < plane_dot * plane_dot)
+  if ((n[0] * n[0] + n[1] * n[1] + n[2] * n[2]) * radius * radius <
+      plane_dot * plane_dot)
     return 0;
 
   if (0.0f < (e01[1] * d0[2] - d0[1] * e01[2]) * n[0] +
@@ -3297,7 +3436,7 @@ int pill_intersects_triangle3d(float *pill_start, float *pill_dir,
   float e20[3], cp[3];
   float proj[3];
   float t, closest_x, closest_y;
-  char outside;
+  volatile char outside;
 
   e01[0] = v1[0] - v0[0];
   outside = 0;
@@ -3356,22 +3495,22 @@ int pill_intersects_triangle3d(float *pill_start, float *pill_dir,
   cp[1] = proj[1] - v2[1];
   cp[2] = proj[2] - v2[2];
 
-  if (0.0f <= (e20[1] * cp[2] - e20[2] * cp[1]) * n[0] +
-                (e20[2] * cp[0] - e20[0] * cp[2]) * n[1] +
-                n[2] * (e20[0] * cp[1] - e20[1] * cp[0])) {
-    if (outside == 0) {
-      if (0.0f < t && t < 1.0f)
-        return 1;
-      closest_y = n[0] * cp[0] + n[1] * cp[1] + n[2] * cp[2];
-      if (closest_y * closest_y <=
-          (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]) * pill_radius * pill_radius)
-        return 1;
-      return 0;
-    }
-  } else {
+  if ((e20[1] * cp[2] - e20[2] * cp[1]) * n[0] +
+        (e20[2] * cp[0] - e20[0] * cp[2]) * n[1] +
+        n[2] * (e20[0] * cp[1] - e20[1] * cp[0]) <
+      0.0f) {
     if (vector_intersects_pill3d(v2, e20, pill_start, pill_dir, pill_radius))
       return 1;
+    return 0;
   }
+  if (outside != 0)
+    return 0;
+  if (0.0f < t && t < 1.0f)
+    return 1;
+  closest_y = n[0] * cp[0] + n[1] * cp[1] + n[2] * cp[2];
+  if (closest_y * closest_y <=
+      (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]) * pill_radius * pill_radius)
+    return 1;
   return 0;
 }
 
@@ -3381,31 +3520,38 @@ int pill_intersects_triangle3d(float *pill_start, float *pill_dir,
 char FUN_0010f310(float *p1, float *p2, float *p3, float *out)
 {
   float det;
-  float d0;
+  /* The reference keeps the plane-distance scalar and the 1/det reciprocal in
+   * stack slots (dead param homes) and re-reads them as float memory operands
+   * at each use (`fmuls 0x8(%ebp)` / `fmuls 0xc(%ebp)`); volatile reproduces
+   * that store-once / reload-per-use shape. */
+  volatile float d0;
+  volatile float inv_det;
 
   det = (p2[2] * p1[1] - p1[2] * p2[1]) * p3[0] +
         (p1[2] * p2[0] - p1[0] * p2[2]) * p3[1] +
         (p1[0] * p2[1] - p2[0] * p1[1]) * p3[2];
-  if (real_math_fabs_double_from_float(det) < *(double *)0x2533d0) {
-    return 0;
+  /* Negated guard: the reference's `testb $0x5,%ah ; jnp` sinks the degenerate
+   * `return 0` past the solve, keeping the solve as the fallthrough.  `!(x <
+   * eps)` preserves the original's NaN path (NaN -> solve). */
+  if (!(real_math_fabs_double_from_float(det) < *(double *)0x2533d0)) {
+    d0 = p1[3];
+    out[0] = (p3[2] * p2[1] - p3[1] * p2[2]) * d0;
+    out[1] = (p2[2] * p3[0] - p3[2] * p2[0]) * d0;
+    out[2] = (p3[1] * p2[0] - p3[0] * p2[1]) * d0;
+
+    d0 = p2[3];
+    out[0] = (p1[2] * p3[1] - p3[2] * p1[1]) * d0 + out[0];
+    out[1] = (p3[2] * p1[0] - p1[2] * p3[0]) * d0 + out[1];
+    out[2] = (p3[0] * p1[1] - p3[1] * p1[0]) * d0 + out[2];
+
+    d0 = p3[3];
+    inv_det = 1.0f / det;
+    out[0] = ((p2[2] * p1[1] - p1[2] * p2[1]) * d0 + out[0]) * inv_det;
+    out[1] = ((p1[2] * p2[0] - p1[0] * p2[2]) * d0 + out[1]) * inv_det;
+    out[2] = ((p1[0] * p2[1] - p2[0] * p1[1]) * d0 + out[2]) * inv_det;
+    return 1;
   }
-
-  d0 = p1[3];
-  out[0] = (p3[2] * p2[1] - p3[1] * p2[2]) * d0;
-  out[1] = (p2[2] * p3[0] - p3[2] * p2[0]) * d0;
-  out[2] = (p3[1] * p2[0] - p3[0] * p2[1]) * d0;
-
-  d0 = p2[3];
-  out[0] = (p1[2] * p3[1] - p3[2] * p1[1]) * d0 + out[0];
-  out[1] = (p3[2] * p1[0] - p1[2] * p3[0]) * d0 + out[1];
-  out[2] = (p3[0] * p1[1] - p3[1] * p1[0]) * d0 + out[2];
-
-  d0 = p3[3];
-  det = 1.0f / det;
-  out[0] = ((p2[2] * p1[1] - p1[2] * p2[1]) * d0 + out[0]) * det;
-  out[1] = ((p1[2] * p2[0] - p1[0] * p2[2]) * d0 + out[1]) * det;
-  out[2] = ((p1[0] * p2[1] - p2[0] * p1[1]) * d0 + out[2]) * det;
-  return 1;
+  return 0;
 }
 
 /* 0x10f480 — Intersect a line (described by two planes p1, p2) with a third
@@ -3414,7 +3560,10 @@ char FUN_0010f310(float *p1, float *p2, float *p3, float *out)
 char FUN_0010f480(float *p1, float *p2, float *out, float *cross_out)
 {
   float cy, cz;
-  float det, inv_det;
+  /* The reference spills det and reloads it for the fabs guard
+   * (`fstps 0x8(%ebp)` ; `flds 0x8(%ebp)` ; `fabs` ; `fcompl 0x2533d0`). */
+  volatile float det;
+  float inv_det;
   float d;
 
   cross_out[2] = p1[0] * p2[1] - p1[1] * p2[0];
@@ -3423,24 +3572,26 @@ char FUN_0010f480(float *p1, float *p2, float *out, float *cross_out)
   cross_out[0] = cz;
   cross_out[1] = cy;
   det = cross_out[2] * cross_out[2] + cy * cy + cz * cz;
-  if (fabsf(det) < *(double *)0x2533d0) {
-    return 0;
+  /* Negated guard: the reference's `fabs ; fcompl 0x2533d0 ; testb $0x5,%ah ;
+   * jnp` sinks the degenerate `return 0` past the solve.  `!(x < eps)` keeps
+   * the original's NaN path (NaN -> solve). */
+  if (!(fabsf(det) < *(double *)0x2533d0)) {
+    d = p1[3];
+    out[0] = (cross_out[2] * p2[1] - cy * p2[2]) * d;
+    out[1] = (p2[2] * cross_out[0] - cross_out[2] * p2[0]) * d;
+    out[2] = (cy * p2[0] - cross_out[0] * p2[1]) * d;
+
+    d = p2[3];
+    inv_det = 1.0f / det;
+    out[0] =
+      ((cross_out[1] * p1[2] - p1[1] * cross_out[2]) * d + out[0]) * inv_det;
+    out[1] =
+      ((p1[0] * cross_out[2] - p1[2] * cross_out[0]) * d + out[1]) * inv_det;
+    out[2] =
+      ((cross_out[0] * p1[1] - cross_out[1] * p1[0]) * d + out[2]) * inv_det;
+    return 1;
   }
-
-  d = p1[3];
-  out[0] = (cross_out[2] * p2[1] - cy * p2[2]) * d;
-  out[1] = (p2[2] * cross_out[0] - cross_out[2] * p2[0]) * d;
-  out[2] = (cy * p2[0] - cross_out[0] * p2[1]) * d;
-
-  d = p2[3];
-  inv_det = 1.0f / det;
-  out[0] =
-    ((cross_out[1] * p1[2] - p1[1] * cross_out[2]) * d + out[0]) * inv_det;
-  out[1] =
-    ((p1[0] * cross_out[2] - p1[2] * cross_out[0]) * d + out[1]) * inv_det;
-  out[2] =
-    ((cross_out[0] * p1[1] - cross_out[1] * p1[0]) * d + out[2]) * inv_det;
-  return 1;
+  return 0;
 }
 
 /* 0x10f5b0 — accelerate_to_position: advance a 1D value (*pos) and its rate
@@ -3470,7 +3621,6 @@ __declspec(noinline) char accelerate_to_position(float *pos, float *vel,
   float step;
   float step_clamped;
   float new_pos;
-  float out_pos;
   float max_speed_sq;
   char result;
 
@@ -3480,70 +3630,78 @@ __declspec(noinline) char accelerate_to_position(float *pos, float *vel,
   result = 0;
   delta = target - cur_pos;
 
+  /* ref 0x10f5b0: wrap arms are then/else-if with delta (then -half_range)
+   * on the left; NaN delta takes neither arm */
   if (wrap_flag != '\0') {
     half_range = (wrap_max - wrap_min) * *(float *)0x253398;
-    if (delta <= half_range) {
-      if (delta < -half_range)
-        delta = (half_range + half_range) + delta;
-    } else {
+    if (delta > half_range) {
       delta = delta - (half_range + half_range);
+    } else if (-half_range > delta) {
+      delta = (half_range + half_range) + delta;
     }
   }
 
-  limit = accel;
-  if (max_speed < accel)
-    limit = max_speed;
+  /* ref: fld accel; fcomp max_speed; test41/jne — accel on the left */
+  limit = (accel > max_speed) ? max_speed : accel;
 
-  if (limit < fabsf(delta - cur_vel)) {
+  /* ref: fcompp limit vs |delta-vel|; test ah,1; jne -> accelerating arm
+   * sunk to 0xe3; >= spelling keeps NaN on the accelerating path */
+  if (limit >= real_math_fabs_double_from_float(delta - cur_vel)) {
+    /* within reach: snap to target, zero velocity */
+    cur_vel = 0.0f;
+    if (target < wrap_min) {
+      *vel = cur_vel;
+      *pos = wrap_min;
+      result = 1;
+      return result;
+    }
+    if (target > wrap_max) {
+      *vel = cur_vel;
+      *pos = wrap_max;
+      result = 1;
+      return result;
+    }
+    *vel = cur_vel;
+    *pos = target;
+    result = 1;
+    return result;
+  } else {
     /* still accelerating toward target */
-    brake_dist = (accel + accel) * fabsf(delta);
-    speed = max_speed;
+    brake_dist = real_math_fabs_double_from_float(delta) * (accel + accel);
     if (brake_dist < max_speed_sq)
       speed = sqrtf(brake_dist);
+    else
+      speed = max_speed;
     if (delta < *(float *)0x2533c0)
       speed = -speed;
     step = speed - cur_vel;
-    step_clamped = step;
     if (accel < real_math_fabs_double_from_float(step)) {
-      step_clamped = accel;
-      if (step < *(float *)0x2533c0)
-        step_clamped = -accel;
+      step_clamped = (step < *(float *)0x2533c0) ? -accel : accel;
+    } else {
+      step_clamped = step;
     }
     cur_vel = cur_vel + step_clamped;
     new_pos = step_clamped * *(float *)0x253398 + cur_vel + cur_pos;
     if (wrap_flag != '\0') {
       if (new_pos < wrap_min)
         new_pos = (wrap_max - wrap_min) + new_pos;
-      else if (wrap_max < new_pos)
+      else if (new_pos > wrap_max)
         new_pos = new_pos - (wrap_max - wrap_min);
     }
-    if (new_pos >= wrap_min) {
-      out_pos = new_pos;
-      if (wrap_max < new_pos)
-        out_pos = wrap_max;
+    if (new_pos < wrap_min) {
       *vel = cur_vel;
-      *pos = out_pos;
+      *pos = wrap_min;
+      return result;
+    }
+    if (new_pos > wrap_max) {
+      *vel = cur_vel;
+      *pos = wrap_max;
       return result;
     }
     *vel = cur_vel;
-    *pos = wrap_min;
+    *pos = new_pos;
     return result;
   }
-
-  /* within reach: snap to target, zero velocity */
-  if (target >= wrap_min) {
-    out_pos = target;
-    if (wrap_max < target)
-      out_pos = wrap_max;
-    *vel = *(float *)0x2533c0;
-    *pos = out_pos;
-    result = 1;
-    return result;
-  }
-  *vel = *(float *)0x2533c0;
-  *pos = wrap_min;
-  result = 1;
-  return result;
 }
 
 /* 0x10f770 — angular_accelerate_to_position: rotate a unit facing vector
@@ -3582,6 +3740,12 @@ void angular_accelerate_to_position(float *facing, float *target_facing,
                                     float *ang_vel, float max_ang_speed,
                                     float ang_accel)
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+  /* VC71 /Oi lowers acos() to _CIacos (FUN_001d94f0 at 0x1d94f0), the callee
+   * the original uses; declared block-scope so the clang/nxdk build keeps
+   * using xbox_acosf below. */
+  double acos(double x);
+#endif
   float *ref;
   float cos_theta;
   float speed;
@@ -3611,19 +3775,25 @@ void angular_accelerate_to_position(float *facing, float *target_facing,
               target_facing[1] * facing[1];
   if (cos_theta < *(float *)0x00255e94) {
     cos_theta = -1.0f;
-  } else if (*(float *)0x002533c8 < cos_theta) {
+  } else if (cos_theta > *(float *)0x002533c8) {
     cos_theta = 1.0f;
   }
 
   /* sp = 2 * acos(cos_theta) * ang_accel.  acosf macro-expands to xbox_acosf,
    * the faithful _CIacos-style atan2(sqrt((1+x)(1-x)), x) helper matching the
    * original CRT callee FUN_001d94f0 at 0x1d94f0. */
+#if defined(_MSC_VER) && !defined(__clang__)
+  sp = (float)acos((double)cos_theta);
+#else
   sp = acosf(cos_theta);
+#endif
   sp = sp * ang_accel + sp * ang_accel;
-  if (sp < ang_accel * ang_accel) {
+  /* disasm compares against 0x14(%ebp)^2 (max_ang_speed), not ang_accel^2, and
+   * the else arm copies 0x14(%ebp) into the speed slot. */
+  if (sp < max_ang_speed * max_ang_speed) {
     speed = sqrtf(sp);
   } else {
-    speed = ang_accel;
+    speed = max_ang_speed;
   }
 
   /* axis = cross(facing, target_facing) */
@@ -3640,9 +3810,11 @@ void angular_accelerate_to_position(float *facing, float *target_facing,
   dy = axis[1] - ang_vel[1];
   dz = axis[2] - ang_vel[2];
   mag_sq = dz * dz + dy * dy + dx * dx;
-  if (max_ang_speed * max_ang_speed <= mag_sq) {
-    /* nudge ang_vel toward target axis by max_ang_speed */
-    scale = max_ang_speed / sqrtf(mag_sq);
+  /* disasm squares 0x18(%ebp) (ang_accel) here and divides by it below; the
+   * prior lift had ang_accel and max_ang_speed swapped at both clamp sites. */
+  if (ang_accel * ang_accel <= mag_sq) {
+    /* nudge ang_vel toward target axis by ang_accel */
+    scale = ang_accel / sqrtf(mag_sq);
     ang_vel[0] = dx * scale + ang_vel[0];
     ang_vel[1] = dy * scale + ang_vel[1];
     ang_vel[2] = dz * scale + ang_vel[2];
@@ -3783,7 +3955,7 @@ unsigned char quantize_real_to_byte_lower_bound(float min, float max,
    * i.e. assert when (max + eps) < value; its unordered case is unreachable
    * because a NaN would already have been caught above. */
   if (!(min - *(float *)0x253f44 <= value) ||
-      max + *(float *)0x253f44 < value) {
+      !(max + *(float *)0x253f44 >= value)) {
     csprintf((char *)0x5ab100, "%lf is not between %lf and %lf", (double)value,
              (double)min, (double)max);
     display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\math\\real_math.c",
@@ -3791,19 +3963,21 @@ unsigned char quantize_real_to_byte_lower_bound(float min, float max,
     system_exit(-1);
   }
 
-  for (; test != 0; test--) {
-    if (test != 0xff)
-      dequant = (float)test * (1.0f / 255.0f) * range + min;
-    else
+  for (; test > 0; test--) {
+    if (test == 0xff)
       dequant = max;
-    if (dequant <= value)
+    else
+      dequant = (float)test * (1.0f / 255.0f) * range + min;
+    /* ref: fld value; fcomp st(1); test ah,5; jp -> break on
+     * !(value < dequant), NaN breaks */
+    if (!(value < dequant))
       break;
   }
 
-  if (test != 0xff)
-    dequant = (float)test * (1.0f / 255.0f) * range + min;
-  else
+  if (test == 0xff)
     dequant = max;
+  else
+    dequant = (float)test * (1.0f / 255.0f) * range + min;
   if (!(dequant <= value) &&
       !(test == 0 && range * 0.0f + min <= value + *(float *)0x253f44)) {
     display_assert("dequantize_byte_to_real(min, max, test)<=value || "
@@ -3820,10 +3994,12 @@ unsigned char quantize_real_to_byte_lower_bound(float min, float max,
 unsigned char quantize_real_to_byte_upper_bound(float min, float max,
                                                 float value)
 {
+  float range;
   unsigned char test;
   float dequant;
 
-  test = (unsigned char)(int)((value - min) / (max - min) * 255.0f);
+  range = max - min;
+  test = (unsigned char)(int)((value - min) / range * 255.0f);
 
   /* 0x10fb4f / 0x10fc8f: FCOMP (min-eps) against value / TEST AH,0x41 / JP
    * assert.  JP is taken only when C0 and C3 are both clear (strictly greater)
@@ -3839,31 +4015,30 @@ unsigned char quantize_real_to_byte_upper_bound(float min, float max,
    * i.e. assert when (max + eps) < value; its unordered case is unreachable
    * because a NaN would already have been caught above. */
   if (!(min - *(float *)0x253f44 <= value) ||
-      max + *(float *)0x253f44 < value) {
-    csprintf((char *)0x5ab100, "%lf is not between %lf and %lf", (double)value,
-             (double)min, (double)max);
-    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\math\\real_math.c",
-                   0xb07, 1);
+      !(max + *(float *)0x253f44 >= value)) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "%lf is not between %lf and %lf", (double)value,
+                            (double)min, (double)max),
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0xb07, 1);
     system_exit(-1);
   }
 
-  if (test != 0xff) {
-    dequant = max;
-    if (test != 0xff) {
-      dequant = (float)test * (1.0f / 255.0f) * (max - min) + min;
-    }
-    while (dequant < value && (test = test + 1, test != 0xff)) {
-      dequant = (float)test * (1.0f / 255.0f) * (max - min) + min;
-    }
+  while (test < 0xff) {
+    if (test == 0xff)
+      dequant = max;
+    else
+      dequant = (float)test * (1.0f / 255.0f) * range + min;
+    if (!(value > dequant))
+      break;
+    test = test + 1;
   }
 
-  if (test != 0xff)
-    dequant = (float)test * (1.0f / 255.0f) * (max - min) + min;
-  else
+  if (test == 0xff)
     dequant = max;
-  if (dequant < value) {
-    if (test == 0xff && value - *(float *)0x253f44 < max)
-      return 0xff;
+  else
+    dequant = (float)test * (1.0f / 255.0f) * range + min;
+  if (!(dequant >= value) &&
+      (test != 0xff || !(value - *(float *)0x253f44 <= max))) {
     display_assert(
       "dequantize_byte_to_real(min, max, test)>=value || "
       "(test==UNSIGNED_CHAR_MAX && dequantize_byte_to_real(min, max, test)"
@@ -3987,10 +4162,7 @@ char FUN_001100c0(float *p1, float p2, float *p3, float *p4, float p5,
   float far_lim;
   float dist_sq;
 
-  if (sine <= 0.0f || cosine < 0.0f) {
-    csprintf((char *)0x5ab100, "%s: assert_valid_real_sine_cosine(%f, %f)",
-             "sine>0.0f && cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c",
-             0x877, 1);
+  if (!(sine > 0.0f) || !(cosine >= 0.0f)) {
     display_assert("sine>0.0f && cosine>=0.0f",
                    "c:\\halo\\SOURCE\\math\\real_math.c", 0x877, 1);
     system_exit(-1);
@@ -3998,10 +4170,11 @@ char FUN_001100c0(float *p1, float p2, float *p3, float *p4, float p5,
   {
     float diff = (sine * sine + cosine * cosine) - 1.0f;
     if ((*(unsigned int *)&diff & 0x7f800000) == 0x7f800000 ||
-        *(double *)0x2549d8 <= real_math_fabs_double_from_float(diff)) {
+        !(real_math_fabs_double_from_float(diff) < *(double *)0x2549d8)) {
       csprintf((char *)0x5ab100,
                "%s, %s: assert_valid_real_sine_cosine(%f, %f)", "sine",
-               "cosine", "c:\\halo\\SOURCE\\math\\real_math.c", 0x878, 1);
+               "cosine", (double)sine, (double)cosine,
+               "c:\\halo\\SOURCE\\math\\real_math.c", 0x878, 1);
       display_assert("...", "c:\\halo\\SOURCE\\math\\real_math.c", 0x878, 1);
       system_exit(-1);
     }
@@ -4010,12 +4183,12 @@ char FUN_001100c0(float *p1, float p2, float *p3, float *p4, float p5,
   dy = p1[1] - p3[1];
   dot = dy * p4[1] + dx * p4[0];
   far_lim = -p2;
-  if (far_lim < dot) {
+  if (far_lim <= dot) {
     far_lim = p2 + p5;
     if (far_lim >= dot) {
       dist_sq = (p2 * sine + p2 * sine + dot) * dot + p2 * p2;
       cosine = (dy * dy + dx * dx) * cosine * cosine;
-      if (cosine < dist_sq) {
+      if (dist_sq >= cosine) {
         return 1;
       }
     }
@@ -4032,10 +4205,7 @@ char FUN_00110210(float *p1, float p2, float *p3, float *p4, float p5,
   float far_lim;
   float dist_sq;
 
-  if (sine <= 0.0f || cosine < 0.0f) {
-    csprintf((char *)0x5ab100, "%s: assert_valid_real_sine_cosine(%f, %f)",
-             "sine>0.0f && cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c",
-             0x897, 1);
+  if (!(sine > 0.0f) || !(cosine >= 0.0f)) {
     display_assert("sine>0.0f && cosine>=0.0f",
                    "c:\\halo\\SOURCE\\math\\real_math.c", 0x897, 1);
     system_exit(-1);
@@ -4043,10 +4213,11 @@ char FUN_00110210(float *p1, float p2, float *p3, float *p4, float p5,
   {
     float diff = (sine * sine + cosine * cosine) - 1.0f;
     if ((*(unsigned int *)&diff & 0x7f800000) == 0x7f800000 ||
-        *(double *)0x2549d8 <= real_math_fabs_double_from_float(diff)) {
+        !(real_math_fabs_double_from_float(diff) < *(double *)0x2549d8)) {
       csprintf((char *)0x5ab100,
                "%s, %s: assert_valid_real_sine_cosine(%f, %f)", "sine",
-               "cosine", "c:\\halo\\SOURCE\\math\\real_math.c", 0x898, 1);
+               "cosine", (double)sine, (double)cosine,
+               "c:\\halo\\SOURCE\\math\\real_math.c", 0x898, 1);
       display_assert("...", "c:\\halo\\SOURCE\\math\\real_math.c", 0x898, 1);
       system_exit(-1);
     }
@@ -4056,12 +4227,12 @@ char FUN_00110210(float *p1, float p2, float *p3, float *p4, float p5,
   dz = p1[2] - p3[2];
   dot = dz * p4[2] + dy * p4[1] + dx * p4[0];
   far_lim = -p2;
-  if (far_lim < dot) {
+  if (far_lim <= dot) {
     far_lim = p2 + p5;
     if (far_lim >= dot) {
       dist_sq = (p2 * sine + p2 * sine + dot) * dot + p2 * p2;
       cosine = (dz * dz + dy * dy + dx * dx) * cosine * cosine;
-      if (cosine < dist_sq) {
+      if (dist_sq >= cosine) {
         return 1;
       }
     }
@@ -4074,11 +4245,13 @@ char FUN_00110380(float *p1, float p2, float *p3, float *p4, float p5,
                   float sine, float cosine)
 {
   float dot;
+  float radius_offset;
+  float neg_offset;
+  float dx;
+  float dy;
+  float apex[2];
 
-  if (sine <= 0.0f || cosine < 0.0f) {
-    csprintf((char *)0x5ab100, "%s: assert_valid_real_sine_cosine(%f, %f)",
-             "sine>0.0f && cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c",
-             0x8b7, 1);
+  if (!(sine > 0.0f && cosine >= 0.0f)) {
     display_assert("sine>0.0f && cosine>=0.0f",
                    "c:\\halo\\SOURCE\\math\\real_math.c", 0x8b7, 1);
     system_exit(-1);
@@ -4086,19 +4259,28 @@ char FUN_00110380(float *p1, float p2, float *p3, float *p4, float p5,
   {
     float diff = (sine * sine + cosine * cosine) - 1.0f;
     if ((*(unsigned int *)&diff & 0x7f800000) == 0x7f800000 ||
-        *(double *)0x2549d8 <= real_math_fabs_double_from_float(diff)) {
-      csprintf((char *)0x5ab100,
-               "%s, %s: assert_valid_real_sine_cosine(%f, %f)", "sine",
-               "cosine", "c:\\halo\\SOURCE\\math\\real_math.c", 0x8b8, 1);
-      display_assert("...", "c:\\halo\\SOURCE\\math\\real_math.c", 0x8b8, 1);
+        !(real_math_fabs_double_from_float(diff) < *(double *)0x2549d8)) {
+      display_assert(csprintf((char *)0x5ab100,
+                              "%s, %s: assert_valid_real_sine_cosine(%f, %f)",
+                              "sine", "cosine", (double)sine, (double)cosine),
+                     "c:\\halo\\SOURCE\\math\\real_math.c", 0x8b8, 1);
       system_exit(-1);
     }
   }
-  dot = (p1[0] - p3[0]) * p4[0] + (p1[1] - p3[1]) * p4[1];
-  if (-p2 <= dot) {
-    if (dot <= p2 + p5 &&
-        FUN_0010db50(p1, p3, p4, p2 + p5 - dot + p2, cosine)) {
-      return 1;
+  dx = p1[0] - p3[0];
+  dy = p1[1] - p3[1];
+  dot = dx * p4[0] + dy * p4[1];
+  if (dot >= -p2) {
+    if (dot <= p2 + p5) {
+      /* Back the cone apex off along the axis by radius/sin(half-angle) so the
+       * swept-sphere test degenerates to a point-vs-cone test (ref 0x110487). */
+      radius_offset = p2 / sine;
+      neg_offset = -radius_offset;
+      apex[0] = neg_offset * p4[0] + p3[0];
+      apex[1] = neg_offset * p4[1] + p3[1];
+      if (FUN_0010db50(p1, apex, p4, radius_offset + p2 + p5, cosine)) {
+        return 1;
+      }
     }
   }
   return 0;
@@ -4109,11 +4291,11 @@ char FUN_001104e0(float *p1, float p2, float *p3, float *p4, float p5,
                   float sine, float cosine)
 {
   float dot;
+  float radius_offset;
+  float neg_offset;
+  float apex[3];
 
-  if (sine <= 0.0f || cosine < 0.0f) {
-    csprintf((char *)0x5ab100, "%s: assert_valid_real_sine_cosine(%f, %f)",
-             "sine>0.0f && cosine>=0.0f", "c:\\halo\\SOURCE\\math\\real_math.c",
-             0x8dd, 1);
+  if (!(sine > 0.0f) || !(cosine >= 0.0f)) {
     display_assert("sine>0.0f && cosine>=0.0f",
                    "c:\\halo\\SOURCE\\math\\real_math.c", 0x8dd, 1);
     system_exit(-1);
@@ -4121,20 +4303,29 @@ char FUN_001104e0(float *p1, float p2, float *p3, float *p4, float p5,
   {
     float diff = (sine * sine + cosine * cosine) - 1.0f;
     if ((*(unsigned int *)&diff & 0x7f800000) == 0x7f800000 ||
-        *(double *)0x2549d8 <= real_math_fabs_double_from_float(diff)) {
-      csprintf((char *)0x5ab100,
-               "%s, %s: assert_valid_real_sine_cosine(%f, %f)", "sine",
-               "cosine", "c:\\halo\\SOURCE\\math\\real_math.c", 0x8de, 1);
-      display_assert("...", "c:\\halo\\SOURCE\\math\\real_math.c", 0x8de, 1);
+        !(real_math_fabs_double_from_float(diff) < *(double *)0x2549d8)) {
+      display_assert(csprintf((char *)0x5ab100,
+                              "%s, %s: assert_valid_real_sine_cosine(%f, %f)",
+                              "sine", "cosine", (double)sine, (double)cosine),
+                     "c:\\halo\\SOURCE\\math\\real_math.c", 0x8de, 1);
       system_exit(-1);
     }
   }
   dot = ((p1[0] - p3[0]) * p4[0] + (p1[2] - p3[2]) * p4[2]) +
         (p1[1] - p3[1]) * p4[1];
   if (-p2 <= dot) {
-    if (dot <= p2 + p5 &&
-        FUN_0010dbf0(p1, p3, p4, p2 + p5 - dot + p2, cosine)) {
-      return 1;
+    if (dot <= p2 + p5) {
+      /* Back the cone apex off along the axis by radius/sin(half-angle), as
+       * in the 2D sibling FUN_00110380 (ref 0x110596): the old lift passed p3
+       * directly with extent p2+p5-dot+p2 — a genuine behavioral divergence. */
+      radius_offset = p2 / sine;
+      neg_offset = -radius_offset;
+      apex[0] = neg_offset * p4[0] + p3[0];
+      apex[1] = neg_offset * p4[1] + p3[1];
+      apex[2] = neg_offset * p4[2] + p3[2];
+      if (FUN_0010dbf0(p1, apex, p4, radius_offset + p2 + p5, cosine)) {
+        return 1;
+      }
     }
   }
   return 0;
@@ -4176,32 +4367,43 @@ void FUN_00110650(float *p_a, float *p_b, float accel, float value,
   float new_pos;
   float acc;
   float target;
+#if defined(_MSC_VER) && !defined(__clang__)
+  double __cdecl fmod(double, double);
+#endif
 
   if (wrap_flag != '\0') {
+    float base = p_a[0];
     step = value - p_b[0];
-    if (accel < real_math_fabs_double_from_float(step)) {
+    if (real_math_fabs_double_from_float(step) > accel) {
       if (step < *(float *)0x2533c0)
         step = -accel;
       else
         step = accel;
     }
     new_pos = p_b[0] + step;
-    acc = step * *(float *)0x253398 + new_pos + p_a[0];
-    if (acc < wrap_min || wrap_max < acc) {
+    acc = step * *(float *)0x253398 + new_pos + base;
+    if (acc < wrap_min || acc > wrap_max) {
       /* _CIfmod (FUN_001daf7e) = C fmod = truncated remainder (x87 FPREM with
        * the C2-reduction loop).  Use x87_fmod, NOT the fmod macro (which maps
        * to xbox_fmod / FPREM1 = IEEE round-to-nearest remainder — wrong). */
+#if defined(_MSC_VER) && !defined(__clang__)
+      acc = (float)fmod((double)(acc - wrap_min),
+                        (double)(wrap_max - wrap_min)) -
+            wrap_min;
+#else
       acc = x87_fmod(acc - wrap_min, (double)(wrap_max - wrap_min)) - wrap_min;
+#endif
     }
     p_a[0] = acc;
     p_b[0] = new_pos;
     return;
   }
 
-  if (*(float *)0x2533c0 <= value)
-    target = wrap_max;
-  else
+  /* Ref 0x110696: TEST AH,5 / JP -- NaN takes the wrap_max side. */
+  if (value < *(float *)0x2533c0)
     target = wrap_min;
+  else
+    target = wrap_max;
   accelerate_to_position(p_a, p_b, target, accel,
                          (float)real_math_fabs_double_from_float(value),
                          wrap_min, wrap_max, 0);
@@ -4256,13 +4458,14 @@ void FUN_00110800(int param_1)
 int FUN_00110820(int start /*@<eax>*/, int passthru /*@<ebx>*/,
                  void *obj /*@<esi>*/, int param_1)
 {
-  int (*callback)(int, int, int, int);
   int index;
 
   index = start;
   while ((short)index < *(short *)((char *)obj + 0x10)) { /* index < count */
-    callback = *(int (**)(int, int, int, int))((char *)obj + 0x1c);
-    if (callback(*(int *)((char *)obj + 0x14), param_1, passthru, index) != 0)
+    /* Ref 0x11083a calls straight through the member slot (CALL [ESI+0x1C]);
+     * loading it into a local first costs an extra MOV. */
+    if ((*(int (**)(int, int, int, int))((char *)obj + 0x1c))(
+          *(int *)((char *)obj + 0x14), param_1, passthru, index) != 0)
       return 0;
     index = index + 1;
   }
@@ -4523,17 +4726,19 @@ void FUN_00110be0(unsigned int *param_1, int *param_2, int param_3,
    exit (the standard zlib convention). The bulk loop is unrolled by 8; each
    step chains the running CRC through one table lookup. A trailing per-byte
    loop handles len % 8. Returns 0 if buf is NULL. */
-unsigned int FUN_00110c10(unsigned int crc, void *buf, int len)
+__declspec(noinline) unsigned int FUN_00110c10(unsigned int crc, void *buf,
+                                              int len)
 {
   unsigned char *p = (unsigned char *)buf;
-  unsigned int rem = (unsigned int)len;
+  unsigned int rem;
   unsigned int n8;
 
   if (p == (unsigned char *)0) {
     return 0;
   }
+  rem = (unsigned int)len;
   crc = ~crc;
-  if (7 < rem) {
+  if (rem >= 8) {
     n8 = rem >> 3;
     do {
       rem = rem - 8;
@@ -4575,60 +4780,53 @@ int FUN_00110d40(int param_1, int param_2, unsigned int param_3)
   int state;
   unsigned int more;
   unsigned int n;
-  unsigned int count;
+  unsigned int count = param_3;
   unsigned int ins_h;
 
-  if (param_1 == 0)
-    goto stream_error_d40;
-  state = *(int *)(param_1 + 0x1c);
-  if (state == 0)
-    goto stream_error_d40;
-  if (param_2 == 0)
-    goto stream_error_d40;
-  if (*(int *)(state + 4) != 0x2a)
-    goto stream_error_d40;
+  if (param_1 != 0) {
+    state = *(int *)(param_1 + 0x1c);
+    if (state != 0 && param_2 != 0 && *(int *)(state + 4) == 0x2a) {
 
-  *(int *)(param_1 + 0x30) = (int)FUN_00110a10(
-    *(unsigned int *)(param_1 + 0x30), (unsigned char *)param_2, param_3);
+      *(int *)(param_1 + 0x30) = (int)FUN_00110a10(
+        *(unsigned int *)(param_1 + 0x30), (unsigned char *)param_2, param_3);
 
-  if (2 < param_3) {
-    count = param_3;
-    more = *(int *)(state + 0x24) - 0x106;
-    if (more < param_3) {
-      param_2 = param_2 + (param_3 - more);
-      param_3 = more;
-      count = more;
-    }
-    csmemcpy(*(void **)(state + 0x30), (void *)param_2, param_3);
-    *(unsigned int *)(state + 0x64) = count;
-    *(unsigned int *)(state + 0x54) = count;
+      if (param_3 >= 3) {
+        more = *(int *)(state + 0x24) - 0x106;
+        if (param_3 > more) {
+          param_2 = param_2 + (param_3 - more);
+          param_3 = more;
+          count = more;
+        }
+        csmemcpy(*(void **)(state + 0x30), (void *)param_2, param_3);
+        *(unsigned int *)(state + 0x64) = count;
+        *(unsigned int *)(state + 0x54) = count;
 
-    ins_h = (unsigned int)**(unsigned char **)(state + 0x30);
-    *(unsigned int *)(state + 0x40) = ins_h;
-    ins_h = ((ins_h << ((unsigned char)*(int *)(state + 0x50) & 0x1f)) ^
-             (unsigned int)(*(unsigned char **)(state + 0x30))[1]) &
+        ins_h = (unsigned int)**(unsigned char **)(state + 0x30);
+        *(unsigned int *)(state + 0x40) = ins_h;
+        ins_h = ((ins_h << *(int *)(state + 0x50)) ^
+                 (unsigned int)(*(unsigned char **)(state + 0x30))[1]) &
+                *(unsigned int *)(state + 0x4c);
+        *(unsigned int *)(state + 0x40) = ins_h;
+
+        n = 0;
+        do {
+          ins_h =
+            ((unsigned int)*(unsigned char *)(*(int *)(state + 0x30) + 2 + n) ^
+             (*(int *)(state + 0x40) << *(int *)(state + 0x50))) &
             *(unsigned int *)(state + 0x4c);
-    *(unsigned int *)(state + 0x40) = ins_h;
-
-    n = 0;
-    do {
-      ins_h =
-        ((unsigned int)*(unsigned char *)(*(int *)(state + 0x30) + 2 + n) ^
-         (*(int *)(state + 0x40)
-          << ((unsigned char)*(int *)(state + 0x50) & 0x1f))) &
-        *(unsigned int *)(state + 0x4c);
-      *(unsigned int *)(state + 0x40) = ins_h;
-      *(unsigned short *)(*(int *)(state + 0x38) +
-                          (*(unsigned int *)(state + 0x2c) & n) * 2) =
-        *(unsigned short *)(*(int *)(state + 0x3c) + ins_h * 2);
-      *(unsigned short *)(*(int *)(state + 0x3c) +
-                          *(unsigned int *)(state + 0x40) * 2) =
-        (unsigned short)n;
-      n = n + 1;
-    } while (n <= param_3 - 3);
+          *(unsigned int *)(state + 0x40) = ins_h;
+          *(unsigned short *)(*(int *)(state + 0x38) +
+                              (*(unsigned int *)(state + 0x2c) & n) * 2) =
+            *(unsigned short *)(*(int *)(state + 0x3c) + ins_h * 2);
+          *(unsigned short *)(*(int *)(state + 0x3c) +
+                              *(unsigned int *)(state + 0x40) * 2) =
+            (unsigned short)n;
+          n = n + 1;
+        } while (n <= param_3 - 3);
+      }
+      return 0;
+    }
   }
-  return 0;
-stream_error_d40:
   return -2;
 }
 
@@ -5149,6 +5347,115 @@ void FUN_001116b0(int length /*@<eax>*/, int match /*@<ecx>*/,
       start = start + 1;
       length = length - 1;
     } while (length != 0);
+  }
+}
+
+/* 0x111770 — zlib fill_window().  The state pointer arrives in ESI in the
+ * original build; the body is kept in pointer-offset form to preserve the
+ * zlib state layout and update order. */
+void FUN_00111770(int state /*@<esi>*/)
+{
+  unsigned int uVar2;
+  unsigned int m;
+  int iVar3;
+  int iVar4;
+  int *piVar5;
+  short sVar6;
+  unsigned int uVar7;
+  short *psVar8;
+  int iVar9;
+  unsigned char *pbVar10;
+  unsigned int uVar11;
+  volatile unsigned int more;
+
+  uVar2 = *(unsigned int *)(state + 0x24);
+  for (;;) {
+    uVar7 = *(unsigned int *)(state + 0x64);
+    uVar11 = (*(int *)(state + 0x34) - uVar7) - *(int *)(state + 0x6c);
+    if (uVar11 == 0) {
+      if (uVar7 != 0 || *(int *)(state + 0x6c) != 0) {
+        more = uVar11;
+        if ((uVar2 - 0x106) + *(int *)(state + 0x24) <= uVar7) {
+          csmemcpy(*(void **)(state + 0x30),
+                   (void *)((int)*(void **)(state + 0x30) + uVar2), uVar2);
+          *(unsigned int *)(state + 0x68) -= uVar2;
+          iVar9 = *(int *)(state + 0x44);
+          *(unsigned int *)(state + 0x54) -= uVar2;
+          *(unsigned int *)(state + 0x64) -= uVar2;
+          psVar8 = (short *)(*(int *)(state + 0x3c) + iVar9 * 2);
+          do {
+            psVar8 = psVar8 - 1;
+            m = *(unsigned short *)psVar8;
+            if (m >= uVar2)
+              sVar6 = (short)(m - uVar2);
+            else
+              sVar6 = 0;
+            iVar9 = iVar9 - 1;
+            *psVar8 = sVar6;
+          } while (iVar9 != 0);
+          psVar8 = (short *)(*(int *)(state + 0x38) + uVar2 * 2);
+          uVar7 = uVar2;
+          do {
+            psVar8 = psVar8 - 1;
+            m = *(unsigned short *)psVar8;
+            if (m >= uVar2)
+              sVar6 = (short)(m - uVar2);
+            else
+              sVar6 = 0;
+            uVar7 = uVar7 - 1;
+            *psVar8 = sVar6;
+          } while (uVar7 != 0);
+          more = uVar11 + uVar2;
+        }
+      } else {
+        more = uVar2;
+      }
+    } else if (uVar11 == 0xffffffff) {
+      more = 0xfffffffe;
+    } else {
+      more = uVar11;
+    }
+
+    if (*(int *)(*(int *)state + 4) == 0)
+      return;
+    if (more < 2)
+      FUN_00117a80("more < 2");
+
+    iVar9 = *(int *)(state + 0x64);
+    iVar3 = *(int *)(state + 0x6c);
+    iVar4 = *(int *)(state + 0x30);
+    piVar5 = *(int **)state;
+    uVar7 = (unsigned int)piVar5[1];
+    uVar11 = uVar7;
+    if (more < uVar7)
+      uVar11 = more;
+    if (uVar11 != 0) {
+      piVar5[1] = (int)(uVar7 - uVar11);
+      if (*(int *)(piVar5[7] + 0x18) == 0) {
+        uVar7 = FUN_00110a10((unsigned int)piVar5[0xc],
+                             (unsigned char *)piVar5[0], uVar11);
+        piVar5[0xc] = (int)uVar7;
+      }
+      csmemcpy((void *)(iVar3 + iVar9 + iVar4), (void *)piVar5[0], uVar11);
+      piVar5[0] += uVar11;
+      piVar5[2] += uVar11;
+    }
+    uVar11 = (unsigned int)*(int *)(state + 0x6c) + uVar11;
+    *(unsigned int *)(state + 0x6c) = uVar11;
+    if (uVar11 >= 3) {
+      pbVar10 =
+        (unsigned char *)(*(int *)(state + 0x64) + *(int *)(state + 0x30));
+      uVar7 = (unsigned int)*pbVar10;
+      *(unsigned int *)(state + 0x40) = uVar7;
+      *(unsigned int *)(state + 0x40) =
+        ((uVar7 << (*(unsigned int *)(state + 0x50) & 0x1f)) ^
+         (unsigned int)pbVar10[1]) &
+        *(unsigned int *)(state + 0x4c);
+    }
+    if (uVar11 >= 0x106)
+      return;
+    if (*(int *)(*(int *)state + 4) == 0)
+      return;
   }
 }
 
@@ -5880,8 +6187,6 @@ int FUN_00112590(int param_1, int param_2, int param_3, int param_4,
   int wrap;
   int w_size;
   int lit_bufsize;
-  int opaque;
-  void *(*zalloc)(int, unsigned int, unsigned int);
 
   if (param_7 == (char *)0 || *param_7 != **(char **)0x31fc70 ||
       param_8 != 0x38)
@@ -5908,9 +6213,10 @@ int FUN_00112590(int param_1, int param_2, int param_3, int param_4,
       param_4 > 0xf || param_2 < 0 || param_2 > 9 || param_6 < 0 || param_6 > 2)
     return -2;
 
-  zalloc = *(void *(**)(int, unsigned int, unsigned int))(param_1 + 0x20);
-  opaque = *(int *)(param_1 + 0x28);
-  s = (int *)zalloc(opaque, 1, 0x16c0);
+  /* upstream ZALLOC(strm, items, size) re-reads strm->zalloc and strm->opaque
+   * at every call site; caching them in locals loses that reload. */
+  s = (int *)(*(void *(**)(int, unsigned int, unsigned int))(param_1 + 0x20))(
+    *(int *)(param_1 + 0x28), 1, 0x16c0);
   if (s == (int *)0)
     return -4;
   *(int *)(param_1 + 0x1c) = (int)s;
@@ -5923,16 +6229,21 @@ int FUN_00112590(int param_1, int param_2, int param_3, int param_4,
   s[0x11] = 1 << (param_5 + 7);
   s[0x13] = s[0x11] - 1;
   s[9] = w_size;
-  s[0x14] = (unsigned int)(param_5 + 9) / 3;
-  s[0xc] = (int)zalloc(opaque, w_size, 2);
-  s[0xe] = (int)zalloc(opaque, s[9], 2);
-  s[0xf] = (int)zalloc(opaque, s[0x11], 2);
+  s[0x14] = (unsigned int)(s[0x12] + 2) / 3;
+  s[0xc] = (int)(*(void *(**)(int, unsigned int, unsigned int))(param_1 + 0x20))(
+    *(int *)(param_1 + 0x28), w_size, 2);
+  s[0xe] = (int)(*(void *(**)(int, unsigned int, unsigned int))(param_1 + 0x20))(
+    *(int *)(param_1 + 0x28), s[9], 2);
+  s[0xf] = (int)(*(void *(**)(int, unsigned int, unsigned int))(param_1 + 0x20))(
+    *(int *)(param_1 + 0x28), s[0x11], 2);
   lit_bufsize = 1 << (param_5 + 6);
   s[0x5a5] = lit_bufsize;
-  s[2] = (int)zalloc(opaque, lit_bufsize, 4);
+  s[2] = (int)(*(void *(**)(int, unsigned int, unsigned int))(param_1 + 0x20))(
+    *(int *)(param_1 + 0x28), lit_bufsize, 4);
   s[3] = s[0x5a5] * 4;
   if (s[0xc] != 0 && s[0xe] != 0 && s[0xf] != 0 && s[2] != 0) {
-    s[0x5a7] = s[2] + (int)((unsigned int)s[0x5a5] & 0xfffffffe);
+    /* upstream: d_buf = overlay + lit_bufsize/sizeof(ush), overlay is ushf * */
+    s[0x5a7] = s[2] + (int)((unsigned int)s[0x5a5] / 2) * 2;
     s[0x5a4] = s[2] + s[0x5a5] * 3;
     s[0x1f] = param_2;
     s[0x20] = param_6;
@@ -6010,6 +6321,110 @@ unsigned int FUN_00112850(int gz)
   return (unsigned int)b;
 }
 
+/* 0x1128c0 — zlib gzio check_header.  It consumes the gzip header, supports
+ * transparent input when the magic is absent, and leaves z_err/z_eof in the
+ * embedded stream exactly as the original macro-expanded implementation does.
+ */
+/* Score shape: the original check_header has zlib's `local int get_byte()`
+ * inlined at every call site (the reference is 374 insns; an out-of-line call
+ * form emits ~153).  gz_get_byte_inl below is a byte-identical copy of
+ * FUN_00112850's body, forced inline so the codegen mass lands inside
+ * FUN_001128c0 exactly as in the original.  Used only by FUN_001128c0. */
+#if defined(_MSC_VER) && !defined(__clang__)
+#define GZ_FORCEINLINE __forceinline
+#else
+#define GZ_FORCEINLINE
+#endif
+
+static GZ_FORCEINLINE unsigned int gz_get_byte_inl(int gz)
+{
+  unsigned int n;
+  unsigned char b;
+
+  if (*(int *)(gz + 0x3c) != 0)
+    return 0xffffffff;
+  if (*(int *)(gz + 4) == 0) {
+    *(int *)FUN_001db777() = 0;
+    n = FUN_001db3f7(*(void **)(gz + 0x44), 1, 0x4000, *(void **)(gz + 0x40));
+    *(int *)(gz + 4) = n;
+    if (n == 0) {
+      *(int *)(gz + 0x3c) = 1;
+      if ((*(unsigned char *)(*(int *)(gz + 0x40) + 0xc) & 0x20) != 0)
+        *(int *)(gz + 0x38) = -1;
+      return 0xffffffff;
+    }
+    *(int *)gz = *(int *)(gz + 0x44);
+  }
+  *(int *)(gz + 4) = *(int *)(gz + 4) - 1;
+  b = **(unsigned char **)gz;
+  *(int *)gz = *(int *)gz + 1;
+  return (unsigned int)b;
+}
+
+void FUN_001128c0(int gz /*@<eax>*/)
+{
+  unsigned int c;
+  unsigned int method;
+  unsigned int flags;
+  unsigned int len;
+
+  /* Check the gzip magic header.  gz_magic[] is a dword pair at 0x31fc74;
+   * the original compares it with a scaled index (cmpl (,%edi,4), %eax). */
+  for (len = 0; len < 2; len++) {
+    c = gz_get_byte_inl(gz);
+    if (c != (unsigned int)((int *)0x31fc74)[len]) {
+      if (len != 0) {
+        *(int *)(gz + 4) += 1;
+        *(int *)gz -= 1;
+      }
+      if (c != 0xffffffff) {
+        *(int *)(gz + 4) += 1;
+        *(int *)gz -= 1;
+        *(int *)(gz + 0x58) = 1;
+      }
+      *(int *)(gz + 0x38) = (*(int *)(gz + 4) == 0);
+      return;
+    }
+  }
+
+  method = gz_get_byte_inl(gz);
+  flags = gz_get_byte_inl(gz);
+  if (method != 8 || (flags & 0xe0) != 0) {
+    *(int *)(gz + 0x38) = -3;
+    return;
+  }
+
+  for (len = 6; len != 0; len--)
+    gz_get_byte_inl(gz);
+
+  if ((flags & 4) != 0) {
+    /* The extra-field length pair is the one site the original leaves as an
+     * out-of-line get_byte call (two `calll 0x112850` in the reference), and
+     * it reads the low byte first -- keep these as two statements so the
+     * evaluation order is not left to the compiler. */
+    len = FUN_00112850(gz);
+    len += FUN_00112850(gz) << 8;
+    while (len-- != 0 && gz_get_byte_inl(gz) != 0xffffffff)
+      ;
+  }
+
+  if ((flags & 8) != 0) {
+    while ((c = gz_get_byte_inl(gz)) != 0 && c != 0xffffffff)
+      ;
+  }
+
+  if ((flags & 0x10) != 0) {
+    while ((c = gz_get_byte_inl(gz)) != 0 && c != 0xffffffff)
+      ;
+  }
+
+  if ((flags & 2) != 0) {
+    for (len = 2; len != 0; len--)
+      gz_get_byte_inl(gz);
+  }
+  *(int *)(gz + 0x38) = *(int *)(gz + 0x3c) != 0 ? -3 : 0;
+}
+
 /* 0x112cd0 — zlib gzio gz_destroy: tear down a gz stream (gz @<esi>). Frees the
  * inflate/deflate workspace (gz+0x50); ends the deflate (write mode 'w' ->
  * FUN_00111170 deflateEnd) or inflate (read mode 'r' -> FUN_00115430
@@ -6059,6 +6474,13 @@ int FUN_00112cd0(int gz)
  * the input buffer, updates the running crc32, and returns the number of bytes
  * consumed (len - remaining avail_in). s modelled as unsigned int* (dword
  * fields). */
+/* Score shape: deflate (FUN_00110ed0) and crc32 (FUN_00110c10) are defined
+ * earlier in this same TU, so /Ob2 inlines them here (225 insns vs the
+ * reference's 61).  The original emits plain calls, so disable automatic
+ * inline expansion for this function only. */
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma inline_depth(0)
+#endif
 int FUN_00112db0(void *param_1, int param_2, int param_3)
 {
   unsigned int *s;
@@ -6071,31 +6493,27 @@ int FUN_00112db0(void *param_1, int param_2, int param_3)
   }
   s[0] = (unsigned int)param_2; /* stream.next_in  = buf */
   s[1] = (unsigned int)param_3; /* stream.avail_in = len */
-  n = param_3;
-  do {
-    if (n == 0) {
-      s[0x13] = FUN_00110c10(s[0x13], (void *)param_2, param_3); /* crc32 */
-      return param_3 - (int)s[1];
-    }
+  while (s[1] != 0) {
     if (s[4] == 0) {
-      s[3] = s[0x12];
-      r = _fread((void *)s[0x12], 1, 0x4000, (void *)s[0x10]); /* fread */
+      s[3] = s[0x12];                                       /* next_out = outbuf */
+      r = _fread((void *)s[0x12], 1, 0x4000, (void *)s[0x10]);
       if (r != 0x4000) {
-        s[0xe] = 0xffffffff;
-        s[0x13] = FUN_00110c10(s[0x13], (void *)param_2, param_3); /* crc32 */
-        return param_3 - (int)s[1];
+        s[0xe] = 0xffffffff;                                /* z_err = Z_ERRNO */
+        break;
       }
-      s[4] = 0x4000;
+      s[4] = 0x4000;                                        /* avail_out = Z_BUFSIZE */
     }
-    n = FUN_00110ed0(s, 0); /* deflate */
+    n = FUN_00110ed0(s, 0);                                 /* deflate */
     s[0xe] = (unsigned int)n;
-    if (n != 0) {
-      s[0x13] = FUN_00110c10(s[0x13], (void *)param_2, param_3); /* crc32 */
-      return param_3 - (int)s[1];
-    }
-    n = (int)s[1];
-  } while (1);
+    if (n != 0)
+      break;
+  }
+  s[0x13] = FUN_00110c10(s[0x13], (void *)param_2, param_3); /* crc32 */
+  return param_3 - (int)s[1];
 }
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma inline_depth()
+#endif
 
 /* zlib gzprintf: vsprintf into a 4 KB stack buffer, then write strlen bytes to
  * the gzFile. */
@@ -6243,12 +6661,13 @@ unsigned int FUN_00113080(int param_1)
  * (structural ceiling). */
 void FUN_001130a0(unsigned int value, void *file)
 {
+  unsigned int v = value;
   int i;
 
   i = 4;
   do {
-    _fputc((int)(value & 0xff), file);
-    value = value >> 8;
+    _fputc((int)(v & 0xff), file);
+    v = v >> 8;
     i = i - 1;
   } while (i != 0);
 }
@@ -6260,15 +6679,20 @@ void FUN_001130a0(unsigned int value, void *file)
  * reproduce the EAX-receiving prologue (structural ceiling). */
 int D3DX_getLong(int gz)
 {
-  int b0, b1, b2, b3;
+  unsigned int x;
+  int c;
 
-  b0 = FUN_00112850(gz);
-  b1 = FUN_00112850(gz);
-  b2 = FUN_00112850(gz);
-  b3 = FUN_00112850(gz);
-  if (b3 == -1)
+  /* Score shape: the original accumulates into one register after each read
+   * (movl %eax,%edi / shll / addl) instead of holding four live bytes, which
+   * is what four separate locals force VC71 to spill. */
+  x = FUN_00112850(gz);
+  x += FUN_00112850(gz) << 8;
+  x += FUN_00112850(gz) << 0x10;
+  c = FUN_00112850(gz);
+  if (c == -1)
     *(int *)(gz + 0x38) = 0xfffffffd;
-  return b0 + (b1 << 8) + (b2 << 0x10) + (b3 << 0x18);
+  x += (unsigned int)c << 0x18;
+  return (int)x;
 }
 
 /* 0x113110 — zlib gzclose: close a gzip stream. For a write-stream (gz+0x5c ==
@@ -6333,6 +6757,123 @@ char *FUN_00113160(int gz, int *errnum)
   FUN_0008dc30(*(char **)(gz + 0x50), (char *)0x28d3ec);
   FUN_0008dc30(*(char **)(gz + 0x50), pcVar4);
   return *(char **)(gz + 0x50);
+}
+
+/* 0x113230 — zlib gzio gz_open.  The mode parser mirrors zlib's small option
+ * scanner; stream setup and gzip header emission stay in binary order. */
+void *FUN_00113230(char *path, int fd, char *mode /*@<eax>*/)
+{
+  char c;
+  int *s;
+  unsigned int crc;
+  int length;
+  void *buffer;
+  void *file;
+  int local_60[20];
+  int level;
+  int strategy;
+  char *options;
+
+  options = (char *)local_60;
+  level = -1;
+  strategy = 0;
+  if (path == (char *)0 || mode == (char *)0)
+    return (void *)0;
+
+  s = (int *)debug_malloc(100, false, "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c",
+                          0x58);
+  if (s == (int *)0)
+    return (void *)0;
+
+  s[8] = 0;
+  s[9] = 0;
+  s[10] = 0;
+  s[0x11] = 0;
+  s[0] = 0;
+  s[0x12] = 0;
+  s[3] = 0;
+  s[4] = 0;
+  s[1] = 0;
+  s[0x10] = 0;
+  s[0xe] = 0;
+  s[0xf] = 0;
+  crc = FUN_00110c10(0, (void *)0, 0);
+  s[0x13] = (int)crc;
+  s[0x14] = 0;
+  s[0x16] = 0;
+
+  length = csstrlen(path);
+  s[0x15] = (int)debug_malloc(length + 1, false,
+                              "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c", 0x68);
+  if (s[0x15] == 0)
+    goto fail;
+  csstrcpy((char *)s[0x15], path);
+  *(char *)(s + 0x17) = 0;
+
+  do {
+    if (*mode == 'r')
+      *(char *)(s + 0x17) = 'r';
+    if (*mode == 'w' || *mode == 'a')
+      *(char *)(s + 0x17) = 'w';
+    c = *mode;
+    if (c < '0' || c > '9') {
+      if (c == 'f')
+        strategy = 1;
+      else if (c == 'h')
+        strategy = 2;
+      else {
+        *options = c;
+        options++;
+      }
+    } else {
+      level = c - '0';
+    }
+    mode++;
+  } while (c != '\0' && options != (char *)&level);
+
+  if (*(char *)(s + 0x17) != '\0') {
+    if (*(char *)(s + 0x17) == 'w') {
+      length = FUN_00112590((int)s, level, 8, -0xf, 8, strategy, "1.1.3", 0x38);
+      buffer = debug_malloc(0x4000, false,
+                            "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c", 0x86);
+      s[0x12] = (int)buffer;
+      s[3] = (int)buffer;
+      if (length != 0)
+        goto fail;
+    } else {
+      buffer = debug_malloc(0x4000, false,
+                            "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c", 0x8c);
+      s[0x11] = (int)buffer;
+      s[0] = (int)buffer;
+      length = FUN_001154a0((int)s, -0xf, "1.1.3", 0x38);
+      if (length != 0)
+        goto fail;
+      buffer = (void *)s[0x11];
+    }
+    if (buffer != (void *)0) {
+      s[4] = 0x4000;
+      *FUN_001db777() = 0;
+      if (fd < 0)
+        file = crt_fopen(path, (char *)local_60);
+      else
+        file = FUN_001dbb00(fd, (char *)local_60);
+      s[0x10] = (int)file;
+      if (file != (void *)0) {
+        if (*(char *)(s + 0x17) != 'w') {
+          FUN_001128c0((int)s);
+          s[0x18] = _ftell(file) - s[1];
+          return s;
+        }
+        crt_fprintf(file, "%c%c%c%c%c%c%c%c%c%c", *(unsigned char *)0x31fc74,
+                    *(unsigned char *)0x31fc78, 8, 0, 0, 0, 0, 0, 0, 0xb);
+        s[0x18] = 10;
+        return s;
+      }
+    }
+  }
+fail:
+  FUN_00112cd0((int)s);
+  return (void *)0;
 }
 
 /* 0x113480 — zlib gzopen(path, mode): open a gzip file by path. Forwards to the

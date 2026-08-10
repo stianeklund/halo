@@ -71,6 +71,27 @@ Parse from $ARGUMENTS (all optional):
    | `parked` | Real signal about this work — merge conflict, failed gate, non-FF. **STOP.** Report `park_reason` + `conflicts` and hand off to `/reintegrate-to-main`. |
    | `guard_failed` / `no_commit` | **STOP** (guard) or count as a zero-commit run (no_commit). |
 
+   After triage, **append one row to the campaign ledger**
+   `artifacts/campaigns/campaigns.jsonl` (create the directory if missing) so
+   campaigns are quantifiable and comparable across future selector/workflow
+   changes. One JSON object per line:
+
+   ```json
+   {"ts": "<ISO-8601 finish time>", "campaign": "<branch>@<campaign start date>",
+    "run": <n>, "branch": "<branch>", "objects": [...], "batches": N,
+    "batch_goal": N, "functions_committed": N, "improve_promoted": N,
+    "batches_landed": N, "batches_unlanded": N, "stopped_reason": "...",
+    "tokens_spent": N, "wall_s": N}
+   ```
+
+   `tokens_spent` comes from the run's result JSON; `wall_s` is your own
+   launch→completion timestamps (workflow scripts cannot read the clock).
+   The ledger lives under gitignored `artifacts/` — force-track it once with
+   `rtk git add -f artifacts/campaigns/campaigns.jsonl` and include it in the
+   between-run or final chore commit (same precedent as the parked records).
+   Compare later with e.g.
+   `rtk jq -s 'group_by(.campaign) | map({c: .[0].campaign, fns: map(.functions_committed) | add, tokens: map(.tokens_spent) | add})' artifacts/campaigns/campaigns.jsonl`.
+
 7. **Manual land-gate rerun** (used by the rows above, at most once per run):
    `rtk python3 tools/integrate/auto_reintegrate.py --branch <branch> --json`
    with an explicit `timeout: 600000`; if it still overruns, background it and
@@ -93,7 +114,10 @@ Parse from $ARGUMENTS (all optional):
 Report, in this order: runs completed / max; total functions committed; batches
 landed vs. still unlanded; every park encountered and how it was resolved
 (rerun gate / resumed / rotated / stopped); which branch the commits sit on and
-whether they are in `main` yet.
+whether they are in `main` yet. Include the campaign's ledger totals
+(functions committed, tokens spent, wall time) and, when a prior campaign row
+exists in `campaigns.jsonl`, the per-function token/time cost next to the
+previous campaign's for comparison.
 
 Close with the explicit note that **promotion to `main` stays human-gated** when
 the campaign ran with `noLand` or ended unlanded — land it deliberately with

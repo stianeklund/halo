@@ -2646,10 +2646,11 @@ void FUN_0017ccd0(void *decal, int param_2, void *param_3, void *param_4)
 }
 
 /* Tail-call thunk to rasterizer decal rendering (FUN_00173090). */
-void FUN_0017ccf0(int param_1, int param_2, int param_3, int param_4,
-                  int param_5, int param_6)
+void FUN_0017ccf0(void *shader, int param_2, int vertices_per_primitive,
+                  int a2, int triangle_count, void *vertex_buffer)
 {
-  FUN_00173090(param_1, param_2, param_3, param_4, param_5, param_6);
+  FUN_00173090(shader, param_2, vertices_per_primitive, a2, triangle_count,
+               vertex_buffer);
 }
 
 /* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00162920).

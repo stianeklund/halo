@@ -320,6 +320,10 @@ return {
   stopped_reason: stoppedReason,
   park_reason: parkReason,
   conflicts: parkConflicts,
+  // Output tokens spent by this run (main-loop + all nested workflows share the
+  // pool, so this is the run's share as observed at return time). Consumed by
+  // /campaign's per-run ledger (artifacts/campaigns/campaigns.jsonl).
+  tokens_spent: budget.spent(),
   // Resume with Workflow({scriptPath, resumeFromRunId}) rather than launching a
   // fresh run: succeeded agents replay from cache, only failures re-run. Wait
   // for the outage to clear first -- an immediate resume re-fails.

@@ -149,8 +149,9 @@ int action_vehicle_perform(int actor_handle)
     *(int *)(actor + 0x9c) = -1;
     goto give_up;
   }
-  if (FUN_0001ada0(actor_handle, ((actor_t *)actor)->field_0a2 == 0,
-                   ((actor_t *)actor)->field_0bc, *(int *)(actor + 0xc0), 0,
+  if (FUN_0001ada0(actor_handle, *(int *)(actor + 0x9c),
+                   ((actor_t *)actor)->field_0a2 == 0,
+                   *(float *)(actor + 0xbc), *(float *)(actor + 0xc0), 0,
                    1) == 0) {
     goto give_up;
   }

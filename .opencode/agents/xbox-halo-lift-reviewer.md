@@ -6,8 +6,8 @@ description: >
   offsets, and hazard scan output. Fails closed unless binary-backed evidence
   supports auto-acceptance.
 mode: subagent
-model: aiolos/gpt-5.6-terra
-variant: high
+model: aiolos/gpt-5.6-luna
+variant: max
 color: error
 memory: project
 ---

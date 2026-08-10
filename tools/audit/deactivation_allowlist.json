@@ -1200,7 +1200,7 @@
     "addr": "0x135210",
     "name": "FUN_00135210",
     "object": "objects.obj",
-    "reason": "Faithful lift kept dormant: VC71 80.7% (FPU view-depth dot product computed/kept on the x87 stack across a branch then conditionally discarded — clang single-expression cannot reproduce the FSTP ST0 cleanup; marker-buffer/float-local overlap). x87 temps-across-branch ceiling. References FUN_00134e80 (also dormant) as render callback. Equivalence vacuous (zero-fill early-exits tag gate; unported FUN_0017cfb0).",
+    "reason": "Faithful lift kept dormant: VC71 80.7% (FPU view-depth dot product computed/kept on the x87 stack across a branch then conditionally discarded \u2014 clang single-expression cannot reproduce the FSTP ST0 cleanup; marker-buffer/float-local overlap). x87 temps-across-branch ceiling. References FUN_00134e80 (also dormant) as render callback. Equivalence vacuous (zero-fill early-exits tag gate; unported FUN_0017cfb0).",
     "since": "2026-06-22"
   },
   {
@@ -1214,14 +1214,14 @@
     "addr": "0x13cb80",
     "name": "FUN_0013cb80",
     "object": "objects.obj",
-    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 86.7%). Calls object_new_from_scenario (0x144770) and objects_garbage_collect_tick (0x144b50) — both GC/lifecycle cluster members — and mutates streaming state (DAT_0046f078 BSP-loaded mask + per-placement flags element+0x20). Scenario object spawner for a BSP slot; piecemeal cluster activation is unsafe. Activate only as part of a coordinated object-lifecycle cluster activation.",
+    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 86.7%). Calls object_new_from_scenario (0x144770) and objects_garbage_collect_tick (0x144b50) \u2014 both GC/lifecycle cluster members \u2014 and mutates streaming state (DAT_0046f078 BSP-loaded mask + per-placement flags element+0x20). Scenario object spawner for a BSP slot; piecemeal cluster activation is unsafe. Activate only as part of a coordinated object-lifecycle cluster activation.",
     "since": "2026-06-22"
   },
   {
     "addr": "0x13ecb0",
     "name": "attachments_new",
     "object": "objects.obj",
-    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 92.1% vs fresh per-function ref delinked/functions/0013ecb0.obj — note vc71_verify auto-selects a stale chunk 0013dda0.obj giving a false 42.6%). Caller edge from object_new (0x143c80, lifecycle cluster member) at 0x144147, AND object-lifecycle mutation: fills the object attachment table (object+0xf4 type bytes, object+0xfc handles) and sets creation flags (object+0x4 |= 0x100/0x400). Part of the object creation path; activate only with the lifecycle cluster.",
+    "reason": "Faithful lift kept dormant by Gate B cluster coupling (NOT a score failure: VC71 92.1% vs fresh per-function ref delinked/functions/0013ecb0.obj \u2014 note vc71_verify auto-selects a stale chunk 0013dda0.obj giving a false 42.6%). Caller edge from object_new (0x143c80, lifecycle cluster member) at 0x144147, AND object-lifecycle mutation: fills the object attachment table (object+0xf4 type bytes, object+0xfc handles) and sets creation flags (object+0x4 |= 0x100/0x400). Part of the object creation path; activate only with the lifecycle cluster.",
     "since": "2026-06-22"
   },
   {
@@ -1475,5 +1475,33 @@
     "object": "network_server_manager.obj",
     "reason": "sub-80% VC71 lift; deactivated pending lift-score-improve (integrate-scenario-20260704). Runs original binary behavior until the lift is improved past the 80% ship threshold.",
     "since": "2026-07-05"
+  },
+  {
+    "addr": "0x1ada0",
+    "name": "FUN_0001ada0",
+    "object": "real_math.obj",
+    "reason": "re-parked 2026-08-10: activated by the real_math VC71 score campaign (4b686ba5d) without runtime evidence. Signature IS binary-proven (caller 0x1b970 sets ESI=[edi+0x9c], EAX=actor; callee pushes ESI into object_get_and_verify_type; [ebp+0xc]/[ebp+0x10] land in a FLD/FMUL'd local) and the caller-side fix in action_vehicle.c stands on its own. Body match only 74.5% (opnd 67.0), no equivalence run. Dormant pending equivalence or a10/a30 hardware evidence.",
+    "since": "2026-08-10"
+  },
+  {
+    "addr": "0x111770",
+    "name": "FUN_00111770",
+    "object": "real_math.obj",
+    "reason": "re-parked 2026-08-10: activated by the real_math VC71 score campaign (4b686ba5d) without runtime evidence. VC71 83.2% (opnd 60.2), @<esi> reg-arg, no equivalence entry in leaf_cache. Dormant pending verification.",
+    "since": "2026-08-10"
+  },
+  {
+    "addr": "0x1128c0",
+    "name": "FUN_001128c0",
+    "object": "real_math.obj",
+    "reason": "re-parked 2026-08-10: activated by the real_math VC71 score campaign (4b686ba5d) without runtime evidence. VC71 39.5% (opnd 28.8) is far below the 85% investigate-the-lift threshold - treat the body as structurally unproven, not merely low-scoring. Dormant pending a lift review.",
+    "since": "2026-08-10"
+  },
+  {
+    "addr": "0x113230",
+    "name": "FUN_00113230",
+    "object": "real_math.obj",
+    "reason": "re-parked 2026-08-10: activated by the real_math VC71 score campaign (4b686ba5d) without runtime evidence. VC71 85.3% (opnd 71.2), @<eax> reg-arg, no equivalence entry in leaf_cache. Dormant pending verification.",
+    "since": "2026-08-10"
   }
 ]

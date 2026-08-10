@@ -112,13 +112,24 @@ def measure(source, worktree):
         [sys.executable, str(verifier), _relative(source_path, worktree)],
         cwd=str(worktree), text=True, capture_output=True, check=False,
     )
+    # vc71_verify exits 1 when any function scores below its PASS threshold
+    # (default 50%). That is still a valid measurement for baseline/gating
+    # purposes; only treat the run as failed when no scores can be parsed.
     if proc.returncode != 0:
-        raise ScoreImproveError("vc71_verify failed:\n%s%s" % (proc.stdout, proc.stderr))
+        try:
+            scores = _parse_scores(proc.stdout, worktree)
+        except ScoreImproveError:
+            scores = None
+        if not scores:
+            raise ScoreImproveError(
+                "vc71_verify failed:\n%s%s" % (proc.stdout, proc.stderr))
+    else:
+        scores = _parse_scores(proc.stdout, worktree)
     return {
         "schema": 1,
         "source": _relative(source_path, worktree),
         "source_sha256": _sha256(source_path),
-        "scores": _parse_scores(proc.stdout, worktree),
+        "scores": scores,
     }
 
 

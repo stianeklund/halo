@@ -217,6 +217,34 @@ void FUN_0016eef0(void *group)
   FUN_00174510(grp, 0);
 }
 
+/* Profile-name table: 0x1d (NUMBER_OF_RASTERIZER_PROFILES) pointers into
+ * .rdata, verified in the XBE (0x2a3a8c..0x2a3c50 plus 0x25be84 and
+ * 0x26de40).  Indexed with a 4-byte stride by the MOV EAX,[ECX*4+0x325188]
+ * at 0x16fb96. */
+#define NUMBER_OF_RASTERIZER_PROFILES 0x1d
+#define rasterizer_profile_names ((const char *const *)0x325188)
+
+void FUN_0016f480(const char *message, int16_t profile_index, char condition)
+{
+  if (message == 0) {
+    display_assert(
+      "message",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_profile.c", 0x3c,
+      true);
+    system_exit(-1);
+  }
+  if (condition == 0 && *(int16_t *)0x47e468 < 3) {
+    if (profile_index != -1) {
+      error(2, "### PROFILE (#%d): %s -- tell Bernie!", (int)profile_index,
+            message);
+      ++*(int16_t *)0x47e468;
+      return;
+    }
+    error(2, "### PROFILE: %s -- tell Bernie!", -1, message);
+    ++*(int16_t *)0x47e468;
+  }
+}
+
 /*
  * rasterizer_xbox_profile.c
  *
@@ -593,13 +621,6 @@ void FUN_0016f8a0(bool enable_profiling)
   }
 }
 
-/* Profile-name table: 0x1d (NUMBER_OF_RASTERIZER_PROFILES) pointers into
- * .rdata, verified in the XBE (0x2a3a8c..0x2a3c50 plus 0x25be84 and
- * 0x26de40).  Indexed with a 4-byte stride by the MOV EAX,[ECX*4+0x325188]
- * at 0x16fb96. */
-#define NUMBER_OF_RASTERIZER_PROFILES 0x1d
-#define rasterizer_profile_names ((const char *const *)0x325188)
-
 /* 0x16fb80
  *
  * Return the display name of a rasterizer profile.
@@ -882,6 +903,10 @@ void FUN_0016FEB0(void)
 {
 }
 
+void FUN_0016fec0(void)
+{
+}
+
 /* 0x1703f0 and 0x172650 — two byte-identical dead instantiations of the
  * D3D8 __forceinline wrapper around D3DDevice_SetVertexData2f.
  *
@@ -919,6 +944,11 @@ int FUN_001703f0(void *device, uint32_t reg, float a, float b)
   (void)device;
   D3DDevice_SetVertexData2f(reg, a, b);
   return 0;
+}
+
+void FUN_00172520(void)
+{
+  FUN_0016f910(4);
 }
 
 /* 0x172640
@@ -1189,6 +1219,10 @@ char FUN_00172a30(int param_1, const float *shadow_matrix,
     }
   }
   return 1;
+}
+
+void FUN_00173ae0(void)
+{
 }
 
 /* 0x173af0
@@ -4336,23 +4370,24 @@ int FUN_00179570(void *device, uint32_t reg, float a, float b)
  * at 0x179662-0x179676). Only the fields the bump-map pass touches are
  * named; everything else stays explicitly unknown. */
 typedef struct s_water_ripple {
-  char unknown_00[0x04];          /* +0x00 */
-  float contribution_factor;      /* +0x04 */
-  char unknown_08[0x20];          /* +0x08 */
-  float animation_angle;          /* +0x28 */
-  float animation_velocity;       /* +0x2c */
-  float map_offset_x;             /* +0x30 */
-  float map_offset_y;             /* +0x34 */
-  short map_repeats;              /* +0x38 */
+  char unknown_00[0x04]; /* +0x00 */
+  float contribution_factor; /* +0x04 */
+  char unknown_08[0x20]; /* +0x08 */
+  float animation_angle; /* +0x28 */
+  float animation_velocity; /* +0x2c */
+  float map_offset_x; /* +0x30 */
+  float map_offset_y; /* +0x34 */
+  short map_repeats; /* +0x38 */
   unsigned short animation_frame; /* +0x3a */
-  char unknown_3c[0x10];          /* +0x3c */
-} s_water_ripple;                 /* sizeof == 0x4c */
+  char unknown_3c[0x10]; /* +0x3c */
+} s_water_ripple; /* sizeof == 0x4c */
 
 /* Inlined from ..\bitmaps\bitmaps_inlines.h:0x123 (the assert string and
  * line number are stamped into the original at three call sites here).
  * FISTP, not a truncating (int) cast: the original rounds with the FPU's
  * current rounding mode. */
-static __inline int water_alpha_to_pixel32(float alpha_in) {
+static __inline int water_alpha_to_pixel32(float alpha_in)
+{
   /* The original stores the computed alpha once and reloads it from memory
    * at each of its three uses (two range compares + the scale multiply,
    * FSTP [EBP+0x8] / FLD x3 at 0x1799a6..0x1799e9) — volatile forces the
@@ -4362,8 +4397,8 @@ static __inline int water_alpha_to_pixel32(float alpha_in) {
   volatile float scale = 255.0f;
   int packed;
   if (!(alpha >= 0.0f && alpha <= 1.0f)) {
-    display_assert("alpha>=0.0f && alpha<=1.0f", "..\\bitmaps\\bitmaps_inlines.h",
-                   0x123, 1);
+    display_assert("alpha>=0.0f && alpha<=1.0f",
+                   "..\\bitmaps\\bitmaps_inlines.h", 0x123, 1);
     system_exit(-1);
   }
   /* SHL is applied to the FISTP slot in memory before the load
@@ -4402,7 +4437,8 @@ static __inline int water_alpha_to_pixel32(float alpha_in) {
  *
  * shader: shader tag pointer; shader definition 7 is the water definition.
  */
-void FUN_001795c0(void *shader) {
+void FUN_001795c0(void *shader)
+{
   int ripple;
   int gather_count;
   s_water_ripple *gather;
@@ -4456,7 +4492,7 @@ void FUN_001795c0(void *shader) {
   do {
     if (ripple < *ripple_block) {
       *gather =
-          *(s_water_ripple *)tag_block_get_element(ripple_block, ripple, 0x4c);
+        *(s_water_ripple *)tag_block_get_element(ripple_block, ripple, 0x4c);
     } else {
       csmemset(gather, 0, 0x4c);
       gather->map_repeats = 1;
@@ -4528,12 +4564,12 @@ void FUN_001795c0(void *shader) {
     vs_constants[ripple * 8 + 1] = 0.0f;
     vs_constants[ripple * 8 + 2] = 0.0f;
     vs_constants[ripple * 8 + 3] =
-        cos_angle * animation_offset + ripples[ripple].map_offset_x;
+      cos_angle * animation_offset + ripples[ripple].map_offset_x;
     vs_constants[ripple * 8 + 4] = 0.0f;
     vs_constants[ripple * 8 + 5] = (float)ripples[ripple].map_repeats;
     vs_constants[ripple * 8 + 6] = 0.0f;
     vs_constants[ripple * 8 + 7] =
-        animation_offset * sin_angle + ripples[ripple].map_offset_y;
+      animation_offset * sin_angle + ripples[ripple].map_offset_y;
   }
   D3DDevice_SetVertexShaderConstant(-0x51, vs_constants, 8);
 
@@ -4544,7 +4580,7 @@ void FUN_001795c0(void *shader) {
    * hoisting it into a single-assignment temp lets VC71 hold it FPU-
    * resident across the integer stores the same way. */
   contribution_sum =
-      ripples[0].contribution_factor + ripples[1].contribution_factor;
+    ripples[0].contribution_factor + ripples[1].contribution_factor;
   *(int *)0x5a5b74 = 0xc00;
   *(int *)0x5a5b80 = 0xc00;
   *(int *)0x5a5b98 = 0x8421;
@@ -4560,28 +4596,28 @@ void FUN_001795c0(void *shader) {
 
   if (!(contribution_sum > 0.0f)) {
     display_assert(
-        "ripples[0].contibution_factor + ripples[1].contibution_factor>0.0f",
-        RASTERIZER_XBOX_WATER_FILE, 0x9f, 1);
+      "ripples[0].contibution_factor + ripples[1].contibution_factor>0.0f",
+      RASTERIZER_XBOX_WATER_FILE, 0x9f, 1);
     system_exit(-1);
   }
   if (!(ripples[2].contribution_factor + ripples[3].contribution_factor >
         0.0f)) {
     display_assert(
-        "ripples[2].contibution_factor + ripples[3].contibution_factor>0.0f",
-        RASTERIZER_XBOX_WATER_FILE, 0xa0, 1);
+      "ripples[2].contibution_factor + ripples[3].contibution_factor>0.0f",
+      RASTERIZER_XBOX_WATER_FILE, 0xa0, 1);
     system_exit(-1);
   }
 
   *(int *)0x5a5ae8 = water_alpha_to_pixel32(
-      ripples[0].contribution_factor /
-      (ripples[0].contribution_factor + ripples[1].contribution_factor));
+    ripples[0].contribution_factor /
+    (ripples[0].contribution_factor + ripples[1].contribution_factor));
   *(int *)0x5a5aec = water_alpha_to_pixel32(
-      ripples[2].contribution_factor /
-      (ripples[2].contribution_factor + ripples[3].contribution_factor));
+    ripples[2].contribution_factor /
+    (ripples[2].contribution_factor + ripples[3].contribution_factor));
   *(int *)0x5a5af0 = water_alpha_to_pixel32(
-      (ripples[0].contribution_factor + ripples[1].contribution_factor) /
-      (ripples[0].contribution_factor + ripples[1].contribution_factor +
-       ripples[2].contribution_factor + ripples[3].contribution_factor));
+    (ripples[0].contribution_factor + ripples[1].contribution_factor) /
+    (ripples[0].contribution_factor + ripples[1].contribution_factor +
+     ripples[2].contribution_factor + ripples[3].contribution_factor));
 
   rasterizer_set_pixel_shader((void *)0x5a5ac0);
   FUN_00158ae0(0);
@@ -4610,39 +4646,39 @@ void FUN_001795c0(void *shader) {
 
     D3DDevice_Begin(7);
     VERIFY_D3D_CALL(
-        "IDirect3DDevice8_Begin(global_d3d_device, D3DPT_TRIANGLEFAN)");
+      "IDirect3DDevice8_Begin(global_d3d_device, D3DPT_TRIANGLEFAN)");
     D3DDevice_SetVertexData2s(4, 0, 0);
     VERIFY_D3D_CALL(
-        "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, 0, 0)");
+      "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, 0, 0)");
     D3DDevice_SetVertexData2f(0, scale - 1.0f + horizontal_offset,
                               scale + 1.0f);
     VERIFY_D3D_CALL(
-        "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
-        "scale - 1.0f + mysterious_horizontal_offset, scale + 1.0f)");
+      "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
+      "scale - 1.0f + mysterious_horizontal_offset, scale + 1.0f)");
     D3DDevice_SetVertexData2s(4, 1, 0);
     VERIFY_D3D_CALL(
-        "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, 1, 0)");
+      "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, 1, 0)");
     D3DDevice_SetVertexData2f(0, scale + 1.0f + horizontal_offset,
                               scale + 1.0f);
     VERIFY_D3D_CALL(
-        "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
-        "scale + 1.0f + mysterious_horizontal_offset, scale + 1.0f)");
+      "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
+      "scale + 1.0f + mysterious_horizontal_offset, scale + 1.0f)");
     D3DDevice_SetVertexData2s(4, 1, 1);
     VERIFY_D3D_CALL(
-        "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, 1, 1)");
+      "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, 1, 1)");
     D3DDevice_SetVertexData2f(0, scale + 1.0f + horizontal_offset,
                               scale - 1.0f);
     VERIFY_D3D_CALL(
-        "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
-        "scale + 1.0f + mysterious_horizontal_offset, scale - 1.0f)");
+      "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
+      "scale + 1.0f + mysterious_horizontal_offset, scale - 1.0f)");
     D3DDevice_SetVertexData2s(4, 0, 1);
     VERIFY_D3D_CALL(
-        "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, 0, 1)");
+      "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, 0, 1)");
     D3DDevice_SetVertexData2f(0, scale - 1.0f + horizontal_offset,
                               scale - 1.0f);
     VERIFY_D3D_CALL(
-        "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
-        "scale - 1.0f + mysterious_horizontal_offset, scale - 1.0f)");
+      "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
+      "scale - 1.0f + mysterious_horizontal_offset, scale - 1.0f)");
     D3DDevice_End();
     VERIFY_D3D_CALL("IDirect3DDevice8_End(global_d3d_device)");
     layer_index++;
@@ -4674,7 +4710,8 @@ void FUN_001795c0(void *shader) {
  * group: render-group record; +0x0 flags, +0xc shader tag, +0x10 frame index,
  *        +0x80 float3.
  */
-void FUN_00179de0(void *group) {
+void FUN_00179de0(void *group)
+{
   void *shader;
   int permutation;
   int vertex_type;
@@ -4707,7 +4744,8 @@ void FUN_00179de0(void *group) {
   }
 
   shader = FUN_001906b0(*(void **)((char *)group + 0xc), 7);
-  permutation = shader_get_vertex_shader_permutation(*(void **)((char *)group + 0xc));
+  permutation =
+    shader_get_vertex_shader_permutation(*(void **)((char *)group + 0xc));
   vertex_type = FUN_00184610(group);
   /* 16-bit load/AND, as the original: MOV AX,[ESI+0x28]; AND AX,0x8. */
   water_flag = *(unsigned short *)((char *)shader + 0x28);
@@ -4813,7 +4851,9 @@ void FUN_00179de0(void *group) {
     *(int *)0x5a5b98 = 1;
     *(int *)0x5a5b94 = 1;
     *(int *)0x5a5ae0 =
-        ((((*(unsigned char *)((char *)shader + 0x28) & 4) != 0) ? 0x13 : 0) << 24) | 0x200800;
+      ((((*(unsigned char *)((char *)shader + 0x28) & 4) != 0) ? 0x13 : 0)
+       << 24) |
+      0x200800;
     rasterizer_set_pixel_shader((void *)0x5a5ac0);
     FUN_00174510(group, 0);
   }
@@ -4838,7 +4878,8 @@ void FUN_00179de0(void *group) {
   SetRenderStateSmart(0x43, 0x10101);
   SetRenderStateSmart(0x3b, ~(*(unsigned int *)group >> 4) & 1);
   SetRenderStateSmart(
-      0x3e, ((((*(unsigned char *)((char *)shader + 0x28) & 1) != 0) ? 0x303 : 0) + 1));
+    0x3e,
+    ((((*(unsigned char *)((char *)shader + 0x28) & 1) != 0) ? 0x303 : 0) + 1));
   SetRenderStateSmart(0x3f, 1);
   SetRenderStateSmart(0x4a, 0x8006);
   SetRenderStateSmart(0x3c, 0);
@@ -4848,7 +4889,8 @@ void FUN_00179de0(void *group) {
   FUN_00178b40(0x17, vertex_type, permutation);
 
   /* c[-0x54] .. c[-0x52]: ripple scroll matrix.  Must stay one contiguous
-   * 48-byte block - SetVertexShaderConstant uploads 3 vec4 from &constants[0]. */
+   * 48-byte block - SetVertexShaderConstant uploads 3 vec4 from &constants[0].
+   */
   /* The original copies +0xc4 as an integer move (MOV EDX,[ESI+0xC4] /
    * MOV [EBP-0x44],EDX / MOV [EBP-0x40],EAX at 0x17a41d), not through the
    * FPU — bit-identical either way. */
@@ -4900,8 +4942,8 @@ void FUN_00179de0(void *group) {
     *(int *)0x5a5ae8 = 0xffffff;
   } else {
     weight = 0.0f;
-    if (-(*(float *)0x5a5bd8 * v[1] + *(float *)0x5a5bdc * v[2] + *(float *)0x5a5bd4 * v[0]) >=
-        0.0f) {
+    if (-(*(float *)0x5a5bd8 * v[1] + *(float *)0x5a5bdc * v[2] +
+          *(float *)0x5a5bd4 * v[0]) >= 0.0f) {
       weight = 1.0f;
       if (-(*(float *)0x5a5bd8 * v[1] + *(float *)0x5a5bdc * v[2] +
             *(float *)0x5a5bd4 * v[0]) <= 1.0f) {
@@ -5008,6 +5050,129 @@ int __stdcall FUN_0017ad40(void *device, uint32_t reg, float a, float b,
   (void)device;
   D3DDevice_SetVertexData4f(reg, a, b, c, d);
   return 0;
+}
+
+void FUN_0017ad90(void)
+{
+}
+
+/* Render-target-0 viewport rectangle at 0x5a5bf4, in Bungie's rectangle2d
+ * field order (top, left, bottom, right) — the same block
+ * rasterizer_xbox_decals.c reads for D3DVIEWPORT8.Y/.Height. The order is
+ * proven by which extent scales which screen axis in FUN_0017a8a0: the
+ * right/left difference multiplies screen X, the bottom/top difference
+ * multiplies screen Y. (Two older comments in this tree call the bottom/top
+ * difference "width"; they are wrong and are not relied on here.) */
+#define VIEWPORT_LEFT (*(short *)0x5a5bf6)
+#define VIEWPORT_RIGHT (*(short *)0x5a5bfa)
+
+/* Active 4x4 projection matrix, rows at 0x5a5d60/0x5a5d70/0x5a5d80/0x5a5d90;
+ * rasterizer_xbox.c reaches the same block as +0x144 of the render globals.
+ * Indexed [row][col]. */
+#define PROJECTION_MATRIX(row, col) \
+  (*(const float *)(0x5a5d60 + (row) * 0x10 + (col) * 4))
+
+/* World-to-view matrix handed to matrix_transform_point (PUSH 0x5a5c2c
+ * @0x17a8e0). */
+#define WORLD_TO_VIEW_MATRIX ((float *)0x5a5c2c)
+
+/* 0x17a8a0 — project a world-space point plus a radius into screen space,
+ * returning whether it landed in front of the eye.
+ *
+ * out_screen receives (x, y, depth); out_extent receives the projected
+ * half-width and half-height of the radius. out_screen arrives in EBX
+ * (no store to it from any parameter slot, and FSTP float ptr [EBX] at
+ * 0x17a9dd is the first write), so it is annotated @<ebx> in kb.json;
+ * Ghidra's `void FUN_0017a8a0(void)` misses both that and the AL return
+ * (MOV AL,1 @0x17aa44 versus XOR AL,AL @0x17aa4d and MOV AL,CL @0x17aa55).
+ *
+ * Both guards are FCOMP against 0.0f with TEST AH,0x41: the guard is taken
+ * when C0 (less) or C3 (equal) is set, and unordered sets both, so each one
+ * is exactly C's `<= 0.0f` including the NaN case.
+ *
+ * The dot products are written in index order (row 0, 1, 2, then the
+ * translation row) even though the reference EMITS them row-2-first: VC71
+ * evaluates a left-associative x87 sum from the innermost term outwards, so
+ * `r0*v0 + r1*v1 + r2*v2 + r3` compiles to FLD [row2]; FMUL v2; FLD [row1];
+ * FMUL v1; FADDP; ... — writing the terms in the emitted order produces the
+ * mirror image and scores worse.
+ *
+ * Measured VC71 notes:
+ *   - Swapping each product to `v[k] * MATRIX[r][c]` is codegen-identical;
+ *     VC71 canonicalises FMUL operands for local*global and always loads the
+ *     local first, so the residual FPU-WARN operand-order lines here are not
+ *     source-addressable (they cost operand-normalised score only, not the
+ *     mnemonic score).
+ *   - Mirroring the original's `bool visible = 0; return visible;` flag on
+ *     the first guard (XOR CL,CL / MOV AL,CL) is score-neutral, so the plain
+ *     `return 0;` is kept. */
+bool FUN_0017a8a0(float *point, float radius, float *out_extent,
+                  float *out_screen)
+{
+  float view_point[3]; /* [EBP-0x1c..-0x14] matrix_transform_point output */
+  float radius_y;      /* [EBP-0x10] */
+  float radius_x;      /* [EBP-0xc]  */
+  float proj_z;        /* [EBP-8]  FST (not FSTP) -- stays live in ST0 */
+  float proj_y;        /* [EBP-4]  */
+  float inv_w;
+  float depth;
+  short viewport_width;
+  int viewport_extent; /* packed (bottom,right)-(top,left); low word = height */
+
+  if (!(radius > 0.0f)) {
+    return 0;
+  }
+
+  /* Width via word ops (MOV SI,[0x5a5bfa]; SUB SI,[0x5a5bf6]); height via one
+   * 32-bit subtraction of the packed (top,left)/(bottom,right) dwords whose
+   * low word is then sign-extended (MOV EDI,[0x5a5bf8]; SUB EDI,EDX;
+   * MOVSX EAX,DI) -- the same idiom already used at 0x17bb2b in this TU. */
+  viewport_width = VIEWPORT_RIGHT - VIEWPORT_LEFT;
+  viewport_extent = *(int *)0x5a5bf8 - *(int *)0x5a5bf4;
+
+  matrix_transform_point(WORLD_TO_VIEW_MATRIX, point, view_point);
+
+  proj_y = PROJECTION_MATRIX(0, 1) * view_point[0] +
+           PROJECTION_MATRIX(1, 1) * view_point[1] +
+           PROJECTION_MATRIX(2, 1) * view_point[2] + PROJECTION_MATRIX(3, 1);
+  proj_z = PROJECTION_MATRIX(0, 2) * view_point[0] +
+           PROJECTION_MATRIX(1, 2) * view_point[1] +
+           PROJECTION_MATRIX(2, 2) * view_point[2] + PROJECTION_MATRIX(3, 2);
+  radius_x = PROJECTION_MATRIX(0, 0) * radius;
+  radius_y = PROJECTION_MATRIX(1, 1) * radius;
+
+  if (!(proj_z > 0.0f)) {
+    return 0;
+  }
+
+  inv_w = 1.0f / (PROJECTION_MATRIX(0, 3) * view_point[0] +
+                  PROJECTION_MATRIX(1, 3) * view_point[1] +
+                  PROJECTION_MATRIX(2, 3) * view_point[2] +
+                  PROJECTION_MATRIX(3, 3));
+
+  out_screen[0] = (((PROJECTION_MATRIX(0, 0) * view_point[0] +
+                     PROJECTION_MATRIX(1, 0) * view_point[1] +
+                     PROJECTION_MATRIX(2, 0) * view_point[2] +
+                     PROJECTION_MATRIX(3, 0)) *
+                        inv_w +
+                    1.0f) *
+                       (float)viewport_width -
+                   1.0f) *
+                  0.5f;
+  out_screen[1] =
+    ((1.0f - inv_w * proj_y) * (float)(short)viewport_extent - 1.0f) * 0.5f;
+
+  /* FLD 1.0f ; FCOMP -- the constant is the left operand, so the clamp is
+   * written 1.0f <= depth rather than depth >= 1.0f. */
+  depth = inv_w * proj_z;
+  if (!(1.0f > depth)) {
+    depth = 1.0f;
+  }
+  out_screen[2] = depth;
+
+  out_extent[0] = (float)viewport_width * inv_w * radius_x * 0.5f;
+  out_extent[1] = (float)(short)viewport_extent * inv_w * radius_y * 0.5f;
+  return 1;
 }
 
 /* rasterizer_widget_submit_occlusion_test (0x17ba10): submit one screen-space
@@ -5344,12 +5509,13 @@ int FUN_0017be50(short register_index, short mapping_index)
  * the accessing instruction listed against each. */
 #define STAGE_FLAGS(stage) (*(unsigned char *)(stage))
 /* TEST byte ptr [ESI],1 @0x17bff0 */
-#define STAGE_COLOR_OUTPUT_AB_FUNCTION(stage)                                  \
+#define STAGE_COLOR_OUTPUT_AB_FUNCTION(stage) \
   (*(short *)((char *)(stage) + 0x4e)) /* MOV AX,word [ESI+0x4e] @0x17bf73 */
-#define STAGE_COLOR_OUTPUT_CD_FUNCTION(stage)                                  \
+#define STAGE_COLOR_OUTPUT_CD_FUNCTION(stage) \
   (*(short *)((char *)(stage) + 0x52)) /* MOV AX,word [ESI+0x52] @0x17bfa2 */
-#define STAGE_COLOR_OUTPUT_MAPPING(stage)                                      \
-  (*(short *)((char *)(stage) + 0x56)) /* MOVSX EAX,word [ESI+0x56] @0x17bfd6 */
+#define STAGE_COLOR_OUTPUT_MAPPING(stage)                                     \
+  (*(short *)((char *)(stage) + 0x56)) /* MOVSX EAX,word [ESI+0x56] @0x17bfd6 \
+                                        */
 
 /* 0x17bf20 — pack one shader_transparent_generic stage's colour-output
  * configuration into the hardware combiner's output-mapping/flag dword.
@@ -5402,8 +5568,9 @@ int FUN_0017bf20(void *stage)
     system_exit(-1);
   }
 
-  output_flags = SHADER_TRANSPARENT_GENERIC_OUTPUT_MAPPING_TABLE
-    [STAGE_COLOR_OUTPUT_MAPPING(stage)];
+  output_flags =
+    SHADER_TRANSPARENT_GENERIC_OUTPUT_MAPPING_TABLE[STAGE_COLOR_OUTPUT_MAPPING(
+      stage)];
   if (STAGE_COLOR_OUTPUT_AB_FUNCTION(stage) == 1) {
     output_flags |= 0x2;
   }
@@ -5458,6 +5625,68 @@ int FUN_0017c000(short register_index, short mapping_index)
   return SHADER_TRANSPARENT_GENERIC_ALPHA_MAPPING_TABLE[mapping_index] | base;
 }
 
+/* The two shader_transparent_generic map fields validated by FUN_0017c140.
+ * Both names are taken from the error strings the checks report with —
+ * 0x2af00c "has no associated bitmap" and 0x2aefc0 "has non-zero mipmap
+ * bias"; the widths are proven by the accessing instruction listed against
+ * each. */
+#define MAP_BITMAP_TAG_REFERENCE(map) \
+  (*(int *)((char *)(map) + 0x28)) /* CMP dword [ESI+0x28],-1 @0x17c167 */
+#define MAP_MIPMAP_BIAS(map) \
+  (*(float *)((char *)(map) + 0x18)) /* FLD  float [ESI+0x18]  @0x17c182 */
+
+/* 0x17c140 — validate one shader_transparent_generic map, reporting every
+ * problem it finds and returning whether the map came through clean.
+ *
+ * Same shape as FUN_0017c1b0 below: no prologue at all, so the map pointer
+ * arrives in ESI (TEST ESI,ESI is the first instruction) and the map index in
+ * DI (MOVSX EAX/ECX,DI before each error() push). PUSH EBX / MOV BL,1 at
+ * 0x17c142/0x17c143 set up a running "valid" flag returned in AL by the two
+ * tails at 0x17c1a5 (XOR AL,AL) and 0x17c1a9 (MOV AL,BL) — Ghidra's `void`
+ * return is wrong. The assert is at source line 0x13c and tails into
+ * system_exit(-1).
+ *
+ * The bias test is FLD [ESI+0x18] / FCOMP [0x2533c0] / FNSTSW AX /
+ * TEST AH,0x44 / JNP. 0x2533c0 holds 0.0f, and the mask reaches the clean
+ * tail only when AH&0x44 == 0x40 (C3 alone, i.e. ordered-equal); a non-zero
+ * bias and an unordered compare both fall into the report. That is exactly
+ * C's `!=`, which is what is written here.
+ *
+ * Measured VC71 notes, so the next session does not re-derive them:
+ *   - `!= 0.0f` and `!= *(const float *)0x2533c0` compile identically (both
+ *     load the constant and use FUCOMPP); the original's `FCOMP <mem>` form
+ *     is not reachable from either spelling. Costs 1 instruction.
+ *   - Inverting to `if (bias == 0.0f) return valid;` with the report as the
+ *     fall-through is worse: 78.2% and an FCOM-WARN. */
+bool FUN_0017c140(void *map, short map_index)
+{
+  bool valid;
+
+  valid = 1;
+  if (map == 0) {
+    display_assert("map",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                   "generic_preprocessor.c",
+                   0x13c, 1);
+    system_exit(-1);
+  }
+
+  if (MAP_BITMAP_TAG_REFERENCE(map) == -1) {
+    error(2, "### ERROR transparent shader map #%d has no associated bitmap",
+          (int)map_index);
+    valid = 0;
+  }
+
+  if (MAP_MIPMAP_BIAS(map) != 0.0f) {
+    error(2,
+          "### ERROR unsupported: transparent shader map #%d has non-zero "
+          "mipmap bias",
+          (int)map_index);
+    return 0;
+  }
+  return valid;
+}
+
 /* The six output-register selector fields tested by FUN_0017c1b0. They form
  * two structurally identical triples (one per combiner side): the colour side
  * at +0x4c/+0x50/+0x54 interleaves with the already-named AB/CD function
@@ -5465,17 +5694,17 @@ int FUN_0017c000(short register_index, short mapping_index)
  * No string proves a semantic name for any of them, so the names are
  * mechanical (offset-derived); only the widths are proven, by the accessing
  * instruction listed against each. */
-#define STAGE_FIELD_4C(stage)                                                  \
+#define STAGE_FIELD_4C(stage) \
   (*(short *)((char *)(stage) + 0x4c)) /* MOV ?X,word [ESI+0x4c] @0x17c1d7 */
-#define STAGE_FIELD_50(stage)                                                  \
+#define STAGE_FIELD_50(stage) \
   (*(short *)((char *)(stage) + 0x50)) /* CMP word [ESI+0x50]    @0x17c1e0 */
-#define STAGE_FIELD_54(stage)                                                  \
+#define STAGE_FIELD_54(stage) \
   (*(short *)((char *)(stage) + 0x54)) /* CMP word [ESI+0x54]    @0x17c1f3 */
-#define STAGE_FIELD_68(stage)                                                  \
+#define STAGE_FIELD_68(stage) \
   (*(short *)((char *)(stage) + 0x68)) /* MOV ?X,word [ESI+0x68] @0x17c218 */
-#define STAGE_FIELD_6A(stage)                                                  \
+#define STAGE_FIELD_6A(stage) \
   (*(short *)((char *)(stage) + 0x6a)) /* CMP word [ESI+0x6a]    @0x17c221 */
-#define STAGE_FIELD_6C(stage)                                                  \
+#define STAGE_FIELD_6C(stage) \
   (*(short *)((char *)(stage) + 0x6c)) /* CMP word [ESI+0x6c]    @0x17c234 */
 
 /* The fog-density register index, compared against +0x68 and +0x6c by
@@ -5539,8 +5768,10 @@ bool FUN_0017c1b0(void *stage, short stage_index)
     valid = 0;
   }
 
-  if (STAGE_FIELD_68(stage) == SHADER_TRANSPARENT_GENERIC_FOG_DENSITY_REGISTER ||
-      STAGE_FIELD_6C(stage) == SHADER_TRANSPARENT_GENERIC_FOG_DENSITY_REGISTER) {
+  if (STAGE_FIELD_68(stage) ==
+        SHADER_TRANSPARENT_GENERIC_FOG_DENSITY_REGISTER ||
+      STAGE_FIELD_6C(stage) ==
+        SHADER_TRANSPARENT_GENERIC_FOG_DENSITY_REGISTER) {
     error(2,
           "### ERROR transparent shader writes to fog density register in "
           "stage #%d",
@@ -5561,6 +5792,277 @@ bool FUN_0017c1b0(void *stage, short stage_index)
   return valid;
 }
 
+/* Bound proven by the six CMP SI,0x9 / JL pairs at 0x17c4c7, 0x17c503,
+ * 0x17c53f, 0x17c60c, 0x17c648 and 0x17c681 — all JL, so exclusive. The name
+ * is verbatim from the assert message string at 0x2aed50. */
+#define NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS 9
+
+/* Three more absolute-addressed lookup tables in the same run of .rdata as
+ * SHADER_TRANSPARENT_GENERIC_OUTPUT_MAPPING_TABLE above; the sizes follow from
+ * the bound each index is asserted against, and the addresses are contiguous
+ * (0x2aebd0 + 9*4 == 0x2aebf4, 0x2aebf4 + 9*4 == 0x2aec18,
+ * 0x2aec18 + 6*4 == 0x2aec30). Referenced by absolute address so the loads
+ * keep the original's [reg*4 + disp] form. */
+#define SHADER_TRANSPARENT_GENERIC_COLOR_OUTPUT_TABLE ((int *)0x2aebd0)
+#define SHADER_TRANSPARENT_GENERIC_ALPHA_OUTPUT_TABLE ((int *)0x2aebf4)
+#define SHADER_TRANSPARENT_GENERIC_ALPHA_OUTPUT_MAPPING_TABLE ((int *)0x2aec30)
+
+/* Stage flag bit 2 (TEST byte ptr [EBX],0x2 @0x17c6eb) ORs 0x4 into the alpha
+ * output-mapping bits. No string names it, so the name is mechanical. */
+#define STAGE_FLAG_02 0x2
+
+/* 0x17c2f0 — compile one shader_transparent_generic tag into the 0xf0-byte
+ * Xbox pixel-shader block, returning whether every map and stage validated.
+ *
+ * Structure recovered from the disassembly, not the decompiler: Ghidra loses
+ * every register-argument callee's arguments AND its EAX result here (the
+ * `extraout_EAX*` pseudo-variables), so all five reg-arg callees below have
+ * their arguments read straight out of the MOV SI/MOV DI pairs that precede
+ * each CALL:
+ *   FUN_0017c140(map@<esi>, map_index@<di>)          @0x17c3f5
+ *   FUN_0017c1b0(stage@<esi>, stage_index@<di>)      @0x17c460
+ *   FUN_0017be50(reg@<si>, mapping@<di>)  x4         @0x17c486..0x17c4b6
+ *   FUN_0017bf20(stage@<esi>)                        @0x17c571
+ *   FUN_0017c000(reg@<si>, mapping@<di>)  x4         @0x17c5cb..0x17c5fb
+ *
+ * The six register-index bounds checks are written out inline rather than
+ * behind a static helper: the reference has no CALL at those sites, and VC71
+ * refuses to inline a static function, so a helper would cost a call each.
+ * Their source lines (0xe9 for the colour side, 0x11f for the alpha side,
+ * 0x12d for the alpha output mapping) are the two/three distinct __LINE__
+ * values the original's inline accessors were defined at. */
+char FUN_0017c2f0(void *shader, void *pixel_shader)
+{
+  char valid;                  /* [EBP-1] */
+  void *generic;               /* FUN_001906b0 result, [EBP+8] after reuse */
+  int *maps;                   /* &generic->maps.count   (EBX @0x17c368) */
+  int *stages;                 /* &generic->stages.count ([EBP-0xc]) */
+  unsigned char *stage;        /* EBX inside the stage loop */
+  void *map;
+  int map_count;
+  int stage_count;
+  int texture_bits;
+  int index;                   /* [EBP+8] reused as the loop element index */
+  short i;
+  int color_in0, color_in1, color_in2, color_in3;
+  int color_out_a, color_out_b, color_out_c, color_function;
+  int alpha_in0, alpha_in1, alpha_in2, alpha_in3;
+  int alpha_out_a, alpha_out_b, alpha_out_c, alpha_out_mapping;
+  short reg;
+
+  valid = 1;
+  if (shader == 0) {
+    display_assert("shader",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                   "generic_preprocessor.c",
+                   0x184, 1);
+    system_exit(-1);
+  }
+  if (pixel_shader == 0) {
+    display_assert("pixel_shader",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                   "generic_preprocessor.c",
+                   0x185, 1);
+    system_exit(-1);
+  }
+
+  generic = FUN_001906b0(shader, 5);
+  csmemset(pixel_shader, 0, 0xf0);
+
+  maps = (int *)((char *)generic + 0x54);
+  map_count = *maps;
+  if (map_count <= 0 && *(int *)((char *)generic + 0x60) <= 0) {
+    error(2, "### ERROR generic shader has no maps or stages");
+    valid = 0;
+  } else {
+    /* MOV EAX,3/2/1 + SETG chain at 0x17c3a5..0x17c3cc: one bit per map past
+     * the first, packed five bits apart, with the first map's texture mode in
+     * the low field. */
+    if (map_count > 0) {
+      texture_bits = (*(short *)((char *)generic + 0x2a) != 0) * 2 + 1;
+    } else {
+      texture_bits = 0;
+    }
+    *(unsigned int *)((char *)pixel_shader + 0xd8) =
+      (unsigned int)(((((map_count > 3) << 5) | (map_count > 2)) << 5 |
+                      (map_count > 1))
+                     << 5) |
+      texture_bits;
+
+    if (*maps > 0) {
+      i = 0;
+      do {
+        map = tag_block_get_element(maps, i, 100);
+        if (valid) {
+          valid = FUN_0017c140(map, i);
+        }
+        i++;
+      } while (i < *maps);
+    }
+  }
+
+  stages = (int *)((char *)generic + 0x60);
+  stage_count = *stages;
+  if (stage_count < 1) {
+    stage_count = 1;
+  }
+  *(unsigned int *)((char *)pixel_shader + 0xd4) =
+    (unsigned int)(stage_count + 1) | 0x11100;
+
+  if (*stages <= 0) {
+    *(unsigned int *)((char *)pixel_shader + 0x88) = 0x8200000;
+    *(unsigned int *)((char *)pixel_shader + 0xb4) = 0xc0;
+    *(unsigned int *)pixel_shader = 0x18200000;
+    *(unsigned int *)((char *)pixel_shader + 0x68) = 0xc0;
+  } else {
+    i = 0;
+    index = 0;
+    do {
+      stage = (unsigned char *)tag_block_get_element(stages, index, 0x70);
+      if (valid) {
+        valid = FUN_0017c1b0(stage, i);
+      }
+
+      *(unsigned int *)((char *)pixel_shader + index * 4 + 0x48) =
+        FUN_000d1c90((float *)(stage + 0x2c));
+
+      color_in0 = FUN_0017be50(*(short *)(stage + 0x3c),
+                               *(short *)(stage + 0x3e));
+      color_in1 = FUN_0017be50(*(short *)(stage + 0x40),
+                               *(short *)(stage + 0x42));
+      color_in2 = FUN_0017be50(*(short *)(stage + 0x44),
+                               *(short *)(stage + 0x46));
+      color_in3 = FUN_0017be50(*(short *)(stage + 0x48),
+                               *(short *)(stage + 0x4a));
+
+      reg = *(short *)(stage + 0x4c);
+      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+        display_assert("register_index>=0 && "
+                       "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
+                       "STAGE_OUTPUTS",
+                       "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                       "generic_preprocessor.c",
+                       0xe9, 1);
+        system_exit(-1);
+      }
+      color_out_a = SHADER_TRANSPARENT_GENERIC_COLOR_OUTPUT_TABLE[reg];
+
+      reg = *(short *)(stage + 0x50);
+      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+        display_assert("register_index>=0 && "
+                       "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
+                       "STAGE_OUTPUTS",
+                       "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                       "generic_preprocessor.c",
+                       0xe9, 1);
+        system_exit(-1);
+      }
+      color_out_b = SHADER_TRANSPARENT_GENERIC_COLOR_OUTPUT_TABLE[reg];
+
+      reg = *(short *)(stage + 0x54);
+      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+        display_assert("register_index>=0 && "
+                       "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
+                       "STAGE_OUTPUTS",
+                       "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                       "generic_preprocessor.c",
+                       0xe9, 1);
+        system_exit(-1);
+      }
+      color_out_c = SHADER_TRANSPARENT_GENERIC_COLOR_OUTPUT_TABLE[reg];
+
+      color_function = FUN_0017bf20(stage);
+
+      *(unsigned int *)((char *)pixel_shader + index * 4 + 0x88) =
+        (unsigned int)(((color_in0 << 8 | color_in1) << 8 | color_in2) << 8 |
+                       color_in3);
+      *(unsigned int *)((char *)pixel_shader + index * 4 + 0xb4) =
+        (unsigned int)(((color_function << 4 | (color_out_c & 0xf)) << 4 |
+                        (color_out_a & 0xf))
+                         << 4 |
+                       (color_out_b & 0xf));
+
+      alpha_in0 = FUN_0017c000(*(short *)(stage + 0x58),
+                               *(short *)(stage + 0x5a));
+      alpha_in1 = FUN_0017c000(*(short *)(stage + 0x5c),
+                               *(short *)(stage + 0x5e));
+      alpha_in2 = FUN_0017c000(*(short *)(stage + 0x60),
+                               *(short *)(stage + 0x62));
+      alpha_in3 = FUN_0017c000(*(short *)(stage + 0x64),
+                               *(short *)(stage + 0x66));
+
+      reg = *(short *)(stage + 0x68);
+      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+        display_assert("register_index>=0 && "
+                       "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
+                       "STAGE_OUTPUTS",
+                       "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                       "generic_preprocessor.c",
+                       0x11f, 1);
+        system_exit(-1);
+      }
+      alpha_out_a = SHADER_TRANSPARENT_GENERIC_ALPHA_OUTPUT_TABLE[reg];
+
+      reg = *(short *)(stage + 0x6a);
+      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+        display_assert("register_index>=0 && "
+                       "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
+                       "STAGE_OUTPUTS",
+                       "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                       "generic_preprocessor.c",
+                       0x11f, 1);
+        system_exit(-1);
+      }
+      alpha_out_b = SHADER_TRANSPARENT_GENERIC_ALPHA_OUTPUT_TABLE[reg];
+
+      reg = *(short *)(stage + 0x6c);
+      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+        display_assert("register_index>=0 && "
+                       "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
+                       "STAGE_OUTPUTS",
+                       "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                       "generic_preprocessor.c",
+                       0x11f, 1);
+        system_exit(-1);
+      }
+      alpha_out_c = SHADER_TRANSPARENT_GENERIC_ALPHA_OUTPUT_TABLE[reg];
+
+      if (*(short *)(stage + 0x6e) < 0 ||
+          *(short *)(stage + 0x6e) >=
+            NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUT_MAPPINGS) {
+        display_assert("stage->alpha_output_mapping>=0 && "
+                       "stage->alpha_output_mapping<NUMBER_OF_SHADER_"
+                       "TRANSPARENT_GENERIC_STAGE_OUTPUT_MAPPINGS",
+                       "c:\\halo\\SOURCE\\rasterizer\\xbox\\shader_transparent_"
+                       "generic_preprocessor.c",
+                       0x12d, 1);
+        system_exit(-1);
+      }
+      alpha_out_mapping = SHADER_TRANSPARENT_GENERIC_ALPHA_OUTPUT_MAPPING_TABLE
+        [*(short *)(stage + 0x6e)];
+      if ((*stage & STAGE_FLAG_02) != 0) {
+        alpha_out_mapping = alpha_out_mapping | 4;
+      }
+
+      *(unsigned int *)((char *)pixel_shader + index * 4) =
+        (unsigned int)(((alpha_in0 << 8 | alpha_in1) << 8 | alpha_in2) << 8 |
+                       alpha_in3);
+      *(unsigned int *)((char *)pixel_shader + index * 4 + 0x68) =
+        (unsigned int)(((alpha_out_mapping << 4 | (alpha_out_c & 0xf)) << 4 |
+                        (alpha_out_a & 0xf))
+                         << 4 |
+                       (alpha_out_b & 0xf));
+
+      i++;
+      index = i;
+    } while (index < *stages);
+  }
+
+  *(unsigned int *)((char *)pixel_shader + 0x20) = 0xc;
+  *(unsigned int *)((char *)pixel_shader + 0x24) = 0x1c00;
+  return valid;
+}
+
 /* global_rasterizer_model_ambient_reflection_tint (DAT_0047e4d0): 0x10-byte
  * game-state allocation holding the model ambient reflection tint. Name is
  * taken verbatim from the assert message at 0x17c7aa (#cond string). */
@@ -5578,6 +6080,11 @@ void rasterizer_window_set_fog(void)
   assert_halt_at("c:\\halo\\SOURCE\\rasterizer\\rasterizer.c", 0x121,
                  global_rasterizer_model_ambient_reflection_tint);
   FUN_00157010();
+}
+
+void FUN_0017C7D0(void)
+{
+  _rasterizer_reset_state();
 }
 
 void rasterizer_frame_begin(float *elapsed)
@@ -5652,6 +6159,16 @@ int rasterizer_window_begin(window_parameters_t *a1)
   return ((int (*)(window_parameters_t *))0x158df0)(a1);
 }
 
+void rasterizer_environment_fog_screen_draw(void *fog)
+{
+  _rasterizer_window_get_fog(fog);
+}
+
+void rasterizer_environment_fog_screen_end(void *screen_fog)
+{
+  FUN_001579d0(screen_fog);
+}
+
 void rasterizer_window_end(void)
 {
   ((void (*)(void))0x158f90)();
@@ -5667,7 +6184,101 @@ void rasterizer_frame_end(void)
   ((void (*)(void))0x155a70)();
 }
 
+void rasterizer_dynamic_lit_geometry_draw(void *param_1, void *param_2)
+{
+  rasterizer_present(param_1, (short *)param_2);
+}
+
+void rasterizer_dynamic_screen_geometry_draw(void)
+{
+  _rasterizer_dispose();
+}
+
 void rasterizer_set_vblank_callback(void *cb)
 {
   ((void (*)(void *))0x155c10)(cb);
+}
+
+void rasterizer_psuedo_dynamic_screen_quad_draw(int param_1)
+{
+  FUN_0016f8a0((bool)param_1);
+}
+
+int rasterizer_widget_submit(int mode)
+{
+  return FUN_0015d170(mode);
+}
+
+void *rasterizer_widget_begin(int handle)
+{
+  return FUN_0015ea70(handle);
+}
+
+void rasterizer_widget_set_texture(int handle)
+{
+  FUN_0015eb90(handle);
+}
+
+/* Adapter thunk (PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15d300).  The callee
+ * at 0x15d300 is a single RET followed by NOP padding -- a stripped no-op in
+ * rasterizer_decals.obj -- so the tint factor is discarded in this build.
+ * Kept as a real call so the redirect preserves the original control flow. */
+void rasterizer_widget_set_tint_factor(int handle)
+{
+  FUN_0015d300(handle);
+}
+
+int rasterizer_widget_set_zbuffer_enable(int param_1, int param_2)
+{
+  return FUN_0015d310((short)param_1, param_2);
+}
+
+short rasterizer_widget_draw_sprite2d(int dynamic_vertex_buffer_index)
+{
+  return FUN_0015d480(dynamic_vertex_buffer_index);
+}
+
+int rasterizer_widget_draw_sprite3d(int zbuf_result)
+{
+  return FUN_0015ec50(zbuf_result);
+}
+
+void rasterizer_widget_end(int handle)
+{
+  FUN_0015ee80(handle);
+}
+
+/* Adapter thunk (PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15d5a0).  As with
+ * rasterizer_widget_set_tint_factor, the callee at 0x15d5a0 is a lone RET. */
+void FUN_0017c9f0(int handle)
+{
+  FUN_0015d5a0(handle);
+}
+
+void FUN_0017ca00(void)
+{
+  FUN_0015a700();
+}
+
+void rasterizer_hud_motion_sensor_blip_begin(float *p0, float *p1,
+                                             float *color0, float *color1)
+{
+  FUN_0015a7f0(p0, p1, color0, color1);
+}
+
+void rasterizer_hud_motion_sensor_blip_draw(float *p0, float *p1, float *p2,
+                                            float *color0, float *color1,
+                                            float *color2)
+{
+  FUN_0015a8f0(p0, p1, p2, color0, color1, color2);
+}
+
+void rasterizer_hud_motion_sensor_blip_end(void)
+{
+  FUN_0015a4c0();
+}
+
+void FUN_0017ca40(void)
+{
+  FUN_0015aa40();
 }

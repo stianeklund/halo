@@ -71,10 +71,10 @@
       "end": "0x113108",
       "kind": "auto",
       "n_r": 20,
-      "opnd_percent": 50.9,
+      "opnd_percent": 75.0,
       "ref": "synth",
       "ref_sha": "d02feea54b0fadfd",
-      "score": 58.2,
+      "score": 75.0,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_000120e0": {
@@ -1199,6 +1199,17 @@
       "score": 91.7,
       "source": "src/halo/math/real_math.c"
     },
+    "FUN_0001ada0": {
+      "addr": "0x1ada0",
+      "end": "0x1aeb0",
+      "kind": "auto",
+      "n_r": 100,
+      "opnd_percent": 68.9,
+      "ref": "synth",
+      "ref_sha": "f03bf092450a34c6",
+      "score": 81.1,
+      "source": "src/halo/math/real_math.c"
+    },
     "FUN_0001b750": {
       "addr": "0x1b750",
       "end": "0x1b898",
@@ -2125,10 +2136,10 @@
       "end": "0x37b24",
       "kind": "auto",
       "n_r": 122,
-      "opnd_percent": 95.0,
+      "opnd_percent": 94.7,
       "ref": "synth",
       "ref_sha": "08e9e66a71598382",
-      "score": 95.9,
+      "score": 97.1,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00037b50": {
@@ -2136,10 +2147,10 @@
       "end": "0x37d15",
       "kind": "auto",
       "n_r": 174,
-      "opnd_percent": 93.6,
+      "opnd_percent": 93.4,
       "ref": "synth",
       "ref_sha": "2997b9df508cd1f6",
-      "score": 94.8,
+      "score": 95.7,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00037d50": {
@@ -2147,10 +2158,10 @@
       "end": "0x37fcb",
       "kind": "auto",
       "n_r": 232,
-      "opnd_percent": 93.9,
+      "opnd_percent": 93.7,
       "ref": "synth",
       "ref_sha": "8737a18a6f6ae9b4",
-      "score": 95.2,
+      "score": 95.9,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038000": {
@@ -2158,10 +2169,10 @@
       "end": "0x381c5",
       "kind": "auto",
       "n_r": 174,
-      "opnd_percent": 93.6,
+      "opnd_percent": 93.4,
       "ref": "synth",
       "ref_sha": "3f58c592c12dc508",
-      "score": 94.8,
+      "score": 95.7,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038200": {
@@ -2169,10 +2180,10 @@
       "end": "0x38338",
       "kind": "auto",
       "n_r": 122,
-      "opnd_percent": 95.0,
+      "opnd_percent": 94.7,
       "ref": "synth",
       "ref_sha": "dbeccf330424ae55",
-      "score": 95.9,
+      "score": 97.1,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038370": {
@@ -2191,10 +2202,10 @@
       "end": "0x38adf",
       "kind": "auto",
       "n_r": 229,
-      "opnd_percent": 94.1,
+      "opnd_percent": 94.3,
       "ref": "synth",
       "ref_sha": "4e9ec6e207b23e8a",
-      "score": 94.9,
+      "score": 95.6,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038b10": {
@@ -2213,10 +2224,10 @@
       "end": "0x38d71",
       "kind": "auto",
       "n_r": 105,
-      "opnd_percent": 94.2,
+      "opnd_percent": 93.8,
       "ref": "synth",
       "ref_sha": "f01864d040027453",
-      "score": 95.2,
+      "score": 96.7,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_00038da0": {
@@ -2268,10 +2279,10 @@
       "end": "0x3a159",
       "kind": "auto",
       "n_r": 204,
-      "opnd_percent": 91.6,
+      "opnd_percent": 92.4,
       "ref": "synth",
       "ref_sha": "73494776c4b535ef",
-      "score": 94.1,
+      "score": 94.8,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a190": {
@@ -2279,10 +2290,10 @@
       "end": "0x3a380",
       "kind": "auto",
       "n_r": 188,
-      "opnd_percent": 94.1,
+      "opnd_percent": 93.9,
       "ref": "synth",
       "ref_sha": "54d53a06bae6b6ca",
-      "score": 95.2,
+      "score": 96.0,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a3b0": {
@@ -2301,10 +2312,10 @@
       "end": "0x3a5d0",
       "kind": "auto",
       "n_r": 133,
-      "opnd_percent": 92.8,
+      "opnd_percent": 92.5,
       "ref": "synth",
       "ref_sha": "3fb59a09c99b2958",
-      "score": 95.1,
+      "score": 96.2,
       "source": "src/halo/ai/actors.c"
     },
     "FUN_0003a600": {
@@ -4149,10 +4160,10 @@
       "end": "0x5947e",
       "kind": "auto",
       "n_r": 389,
-      "opnd_percent": 91.5,
+      "opnd_percent": 92.2,
       "ref": "synth",
       "ref_sha": "f4d0c6f23b56790f",
-      "score": 97.3,
+      "score": 98.1,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_000599c0": {
@@ -13554,10 +13565,10 @@
       "end": "0x1090da",
       "kind": "auto",
       "n_r": 80,
-      "opnd_percent": 36.2,
+      "opnd_percent": 34.6,
       "ref": "synth",
       "ref_sha": "178d02e8f1178cef",
-      "score": 63.7,
+      "score": 75.6,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_001090e0": {
@@ -13576,10 +13587,10 @@
       "end": "0x10914c",
       "kind": "auto",
       "n_r": 17,
-      "opnd_percent": 70.3,
+      "opnd_percent": 100.0,
       "ref": "synth",
       "ref_sha": "ed2cb29de1a1ffa4",
-      "score": 64.9,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00109240": {
@@ -13598,10 +13609,10 @@
       "end": "0x1093ae",
       "kind": "auto",
       "n_r": 78,
-      "opnd_percent": 47.3,
+      "opnd_percent": 89.9,
       "ref": "synth",
       "ref_sha": "6f90d4b9b62f0800",
-      "score": 66.3,
+      "score": 97.5,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_001093b0": {
@@ -13642,10 +13653,10 @@
       "end": "0x109a59",
       "kind": "auto",
       "n_r": 40,
-      "opnd_percent": 82.9,
+      "opnd_percent": 100.0,
       "ref": "synth",
       "ref_sha": "5e2148956e42c942",
-      "score": 82.9,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00109a60": {
@@ -13664,10 +13675,10 @@
       "end": "0x109c6c",
       "kind": "auto",
       "n_r": 73,
-      "opnd_percent": 39.7,
+      "opnd_percent": 95.9,
       "ref": "synth",
       "ref_sha": "95ee467205369458",
-      "score": 75.5,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00109c70": {
@@ -13675,10 +13686,10 @@
       "end": "0x109d85",
       "kind": "auto",
       "n_r": 107,
-      "opnd_percent": 71.4,
+      "opnd_percent": 100.0,
       "ref": "synth",
       "ref_sha": "d2e5b971a5e6bc3f",
-      "score": 82.2,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00109d90": {
@@ -13697,10 +13708,10 @@
       "end": "0x109f3c",
       "kind": "auto",
       "n_r": 72,
-      "opnd_percent": 65.3,
+      "opnd_percent": 93.1,
       "ref": "synth",
       "ref_sha": "4c1e3de003e068cb",
-      "score": 81.9,
+      "score": 94.4,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00109f40": {
@@ -13708,10 +13719,10 @@
       "end": "0x109fb1",
       "kind": "auto",
       "n_r": 43,
-      "opnd_percent": 50.9,
+      "opnd_percent": 51.9,
       "ref": "synth",
       "ref_sha": "f5637e800f5067f1",
-      "score": 58.2,
+      "score": 59.3,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00109fc0": {
@@ -13763,10 +13774,10 @@
       "end": "0x10a474",
       "kind": "auto",
       "n_r": 112,
-      "opnd_percent": 69.6,
+      "opnd_percent": 81.6,
       "ref": "synth",
       "ref_sha": "3be452bf2b3387bf",
-      "score": 79.3,
+      "score": 86.8,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010a480": {
@@ -13807,10 +13818,10 @@
       "end": "0x10a707",
       "kind": "auto",
       "n_r": 93,
-      "opnd_percent": 65.7,
+      "opnd_percent": 94.6,
       "ref": "synth",
       "ref_sha": "d2e1e812f0a46134",
-      "score": 70.7,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010a830": {
@@ -13972,10 +13983,10 @@
       "end": "0x10bfed",
       "kind": "auto",
       "n_r": 169,
-      "opnd_percent": 37.5,
+      "opnd_percent": 96.7,
       "ref": "synth",
       "ref_sha": "729fb42da74ed72e",
-      "score": 44.7,
+      "score": 97.9,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010bff0": {
@@ -13983,10 +13994,10 @@
       "end": "0x10c280",
       "kind": "auto",
       "n_r": 239,
-      "opnd_percent": 35.7,
+      "opnd_percent": 78.0,
       "ref": "synth",
       "ref_sha": "2361a4dd384af604",
-      "score": 51.1,
+      "score": 80.9,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010c290": {
@@ -14060,10 +14071,10 @@
       "end": "0x10c780",
       "kind": "auto",
       "n_r": 51,
-      "opnd_percent": 73.5,
+      "opnd_percent": 94.0,
       "ref": "synth",
       "ref_sha": "0537e181740d073b",
-      "score": 81.6,
+      "score": 98.0,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010c780": {
@@ -14115,10 +14126,10 @@
       "end": "0x10cae3",
       "kind": "auto",
       "n_r": 21,
-      "opnd_percent": 60.7,
+      "opnd_percent": 100.0,
       "ref": "synth",
       "ref_sha": "bc54edd23efd039d",
-      "score": 64.3,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010caf0": {
@@ -14126,10 +14137,10 @@
       "end": "0x10cb5d",
       "kind": "auto",
       "n_r": 45,
-      "opnd_percent": 66.7,
+      "opnd_percent": 71.7,
       "ref": "synth",
       "ref_sha": "51703bba2592e9c6",
-      "score": 77.8,
+      "score": 87.0,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010cc90": {
@@ -14137,10 +14148,10 @@
       "end": "0x10cd3a",
       "kind": "auto",
       "n_r": 68,
-      "opnd_percent": 54.1,
+      "opnd_percent": 82.7,
       "ref": "synth",
       "ref_sha": "bad3e236d7922d51",
-      "score": 64.7,
+      "score": 97.7,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010cd40": {
@@ -14148,10 +14159,10 @@
       "end": "0x10ce02",
       "kind": "auto",
       "n_r": 76,
-      "opnd_percent": 55.8,
+      "opnd_percent": 68.5,
       "ref": "synth",
       "ref_sha": "a3afba5c314d5633",
-      "score": 83.0,
+      "score": 91.3,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010d380": {
@@ -14170,10 +14181,10 @@
       "end": "0x10d67d",
       "kind": "auto",
       "n_r": 180,
-      "opnd_percent": 55.8,
+      "opnd_percent": 57.7,
       "ref": "synth",
       "ref_sha": "81b5d5da45bbe966",
-      "score": 55.8,
+      "score": 66.3,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010d680": {
@@ -14181,10 +14192,10 @@
       "end": "0x10d766",
       "kind": "auto",
       "n_r": 90,
-      "opnd_percent": 34.6,
+      "opnd_percent": 79.8,
       "ref": "synth",
       "ref_sha": "1f6a5b34a7b5f600",
-      "score": 59.2,
+      "score": 87.4,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010d770": {
@@ -14192,10 +14203,10 @@
       "end": "0x10d824",
       "kind": "auto",
       "n_r": 70,
-      "opnd_percent": 49.7,
+      "opnd_percent": 91.4,
       "ref": "synth",
       "ref_sha": "21647b2f4ec2fe32",
-      "score": 73.1,
+      "score": 97.1,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010d830": {
@@ -14214,10 +14225,10 @@
       "end": "0x10da85",
       "kind": "auto",
       "n_r": 60,
-      "opnd_percent": 78.3,
+      "opnd_percent": 91.7,
       "ref": "synth",
       "ref_sha": "c0b266513a347841",
-      "score": 81.7,
+      "score": 98.3,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010da90": {
@@ -14225,10 +14236,10 @@
       "end": "0x10db4e",
       "kind": "auto",
       "n_r": 69,
-      "opnd_percent": 79.1,
+      "opnd_percent": 92.8,
       "ref": "synth",
       "ref_sha": "50bebccf9b2c231b",
-      "score": 86.3,
+      "score": 98.6,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010db50": {
@@ -14236,10 +14247,10 @@
       "end": "0x10dbed",
       "kind": "auto",
       "n_r": 60,
-      "opnd_percent": 71.1,
+      "opnd_percent": 91.7,
       "ref": "synth",
       "ref_sha": "b5c4bb057e3d69b2",
-      "score": 82.6,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010dbf0": {
@@ -14247,10 +14258,10 @@
       "end": "0x10dca2",
       "kind": "auto",
       "n_r": 69,
-      "opnd_percent": 74.8,
+      "opnd_percent": 94.2,
       "ref": "synth",
       "ref_sha": "0bd3fb35400f247d",
-      "score": 83.5,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010e4d0": {
@@ -14258,10 +14269,10 @@
       "end": "0x10e6ea",
       "kind": "auto",
       "n_r": 215,
-      "opnd_percent": 41.0,
+      "opnd_percent": 60.7,
       "ref": "synth",
       "ref_sha": "70485c96bfafcbbd",
-      "score": 60.6,
+      "score": 69.4,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010e6f0": {
@@ -14269,10 +14280,10 @@
       "end": "0x10e896",
       "kind": "auto",
       "n_r": 155,
-      "opnd_percent": 73.7,
+      "opnd_percent": 92.8,
       "ref": "synth",
       "ref_sha": "f875bfdab978fd3e",
-      "score": 78.2,
+      "score": 92.8,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010e8a0": {
@@ -14280,10 +14291,10 @@
       "end": "0x10e926",
       "kind": "auto",
       "n_r": 55,
-      "opnd_percent": 71.4,
+      "opnd_percent": 96.4,
       "ref": "synth",
       "ref_sha": "f971343b0a19a5be",
-      "score": 67.9,
+      "score": 96.4,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010e930": {
@@ -14291,10 +14302,10 @@
       "end": "0x10e9eb",
       "kind": "auto",
       "n_r": 75,
-      "opnd_percent": 70.6,
+      "opnd_percent": 97.3,
       "ref": "synth",
       "ref_sha": "587fd6dd9e2b2ca3",
-      "score": 66.7,
+      "score": 97.3,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010e9f0": {
@@ -14302,10 +14313,10 @@
       "end": "0x10eb05",
       "kind": "auto",
       "n_r": 124,
-      "opnd_percent": 44.7,
+      "opnd_percent": 77.8,
       "ref": "synth",
       "ref_sha": "635a8cfa64827d45",
-      "score": 66.7,
+      "score": 82.8,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010f310": {
@@ -14313,10 +14324,10 @@
       "end": "0x10f473",
       "kind": "auto",
       "n_r": 138,
-      "opnd_percent": 25.4,
+      "opnd_percent": 62.1,
       "ref": "synth",
       "ref_sha": "1cd3967630bd2052",
-      "score": 56.2,
+      "score": 68.9,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010f480": {
@@ -14324,10 +14335,10 @@
       "end": "0x10f5a9",
       "kind": "auto",
       "n_r": 116,
-      "opnd_percent": 40.5,
+      "opnd_percent": 35.2,
       "ref": "synth",
       "ref_sha": "a028f9116b7ada4e",
-      "score": 51.7,
+      "score": 57.5,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010f9b0": {
@@ -14357,10 +14368,10 @@
       "end": "0x11020b",
       "kind": "auto",
       "n_r": 111,
-      "opnd_percent": 74.7,
+      "opnd_percent": 87.0,
       "ref": "synth",
       "ref_sha": "0452756a9ac09c2d",
-      "score": 80.0,
+      "score": 95.1,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00110210": {
@@ -14368,10 +14379,10 @@
       "end": "0x110374",
       "kind": "auto",
       "n_r": 120,
-      "opnd_percent": 75.7,
+      "opnd_percent": 88.0,
       "ref": "synth",
       "ref_sha": "fbebdc0a8b820c1d",
-      "score": 80.7,
+      "score": 95.4,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00110380": {
@@ -14379,10 +14390,10 @@
       "end": "0x1104d3",
       "kind": "auto",
       "n_r": 121,
-      "opnd_percent": 58.8,
+      "opnd_percent": 90.4,
       "ref": "synth",
       "ref_sha": "3b1464748d2f1f51",
-      "score": 71.1,
+      "score": 96.2,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_001104e0": {
@@ -14390,10 +14401,10 @@
       "end": "0x110649",
       "kind": "auto",
       "n_r": 129,
-      "opnd_percent": 55.8,
+      "opnd_percent": 87.4,
       "ref": "synth",
       "ref_sha": "d0d93f3d44c97aa3",
-      "score": 67.5,
+      "score": 92.9,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00110650": {
@@ -14401,10 +14412,10 @@
       "end": "0x110730",
       "kind": "auto",
       "n_r": 90,
-      "opnd_percent": 45.1,
+      "opnd_percent": 77.5,
       "ref": "synth",
       "ref_sha": "6c946cec3962211a",
-      "score": 75.8,
+      "score": 93.3,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00110730": {
@@ -14434,10 +14445,10 @@
       "end": "0x110855",
       "kind": "auto",
       "n_r": 28,
-      "opnd_percent": 60.3,
+      "opnd_percent": 74.2,
       "ref": "synth",
       "ref_sha": "267685c3e247b448",
-      "score": 79.4,
+      "score": 80.6,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_001108b0": {
@@ -14489,10 +14500,10 @@
       "end": "0x110d36",
       "kind": "auto",
       "n_r": 104,
-      "opnd_percent": 20.8,
+      "opnd_percent": 25.7,
       "ref": "synth",
       "ref_sha": "dc49d0b72b20fd5d",
-      "score": 84.0,
+      "score": 86.7,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00110d40": {
@@ -14500,10 +14511,10 @@
       "end": "0x110e34",
       "kind": "auto",
       "n_r": 92,
-      "opnd_percent": 52.7,
+      "opnd_percent": 66.7,
       "ref": "synth",
       "ref_sha": "72e762e739eaf8ea",
-      "score": 75.3,
+      "score": 93.5,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00110e40": {
@@ -14605,6 +14616,17 @@
       "score": 95.0,
       "source": "src/halo/math/real_math.c"
     },
+    "FUN_00111770": {
+      "addr": "0x111770",
+      "end": "0x111908",
+      "kind": "auto",
+      "n_r": 158,
+      "opnd_percent": 70.0,
+      "ref": "synth",
+      "ref_sha": "2557120f6c8ef70a",
+      "score": 89.6,
+      "source": "src/halo/math/real_math.c"
+    },
     "FUN_00111910": {
       "addr": "0x111910",
       "end": "0x111b9c",
@@ -14665,10 +14687,10 @@
       "end": "0x1127b0",
       "kind": "auto",
       "n_r": 185,
-      "opnd_percent": 53.0,
+      "opnd_percent": 75.1,
       "ref": "synth",
       "ref_sha": "17a8c4a1d99f559d",
-      "score": 84.9,
+      "score": 89.5,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_001127b0": {
@@ -14704,6 +14726,17 @@
       "score": 89.4,
       "source": "src/halo/math/real_math.c"
     },
+    "FUN_001128c0": {
+      "addr": "0x1128c0",
+      "end": "0x112ccb",
+      "kind": "auto",
+      "n_r": 374,
+      "opnd_percent": 70.4,
+      "ref": "synth",
+      "ref_sha": "58525ad9777ed481",
+      "score": 85.2,
+      "source": "src/halo/math/real_math.c"
+    },
     "FUN_00112cd0": {
       "addr": "0x112cd0",
       "end": "0x112dac",
@@ -14720,10 +14753,10 @@
       "end": "0x112e49",
       "kind": "auto",
       "n_r": 61,
-      "opnd_percent": 33.6,
+      "opnd_percent": 93.4,
       "ref": "synth",
       "ref_sha": "492b881f59402ec8",
-      "score": 42.7,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00112e50": {
@@ -14786,10 +14819,10 @@
       "end": "0x113075",
       "kind": "auto",
       "n_r": 46,
-      "opnd_percent": 72.5,
+      "opnd_percent": 100.0,
       "ref": "synth",
       "ref_sha": "39f8c192f78edcc3",
-      "score": 81.3,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00113080": {
@@ -14808,10 +14841,10 @@
       "end": "0x1130ca",
       "kind": "auto",
       "n_r": 17,
-      "opnd_percent": 61.5,
+      "opnd_percent": 78.9,
       "ref": "synth",
       "ref_sha": "c572e79883d59cf5",
-      "score": 82.1,
+      "score": 84.2,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00113110": {
@@ -14834,6 +14867,17 @@
       "ref": "synth",
       "ref_sha": "d2544d96f398a07a",
       "score": 93.3,
+      "source": "src/halo/math/real_math.c"
+    },
+    "FUN_00113230": {
+      "addr": "0x113230",
+      "end": "0x113475",
+      "kind": "auto",
+      "n_r": 220,
+      "opnd_percent": 73.1,
+      "ref": "synth",
+      "ref_sha": "a358390a161d2af8",
+      "score": 87.0,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00113480": {
@@ -14863,10 +14907,10 @@
       "end": "0x11370b",
       "kind": "auto",
       "n_r": 211,
-      "opnd_percent": 63.0,
+      "opnd_percent": 65.4,
       "ref": "synth",
       "ref_sha": "cb6c3d5eeabb8b1a",
-      "score": 75.9,
+      "score": 77.6,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_00113710": {
@@ -19494,6 +19538,17 @@
       "score": 82.9,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
+    "FUN_0016f480": {
+      "addr": "0x16f480",
+      "end": "0x16f4f2",
+      "kind": "auto",
+      "n_r": 37,
+      "opnd_percent": 80.5,
+      "ref": "synth",
+      "ref_sha": "b6f04c28e0e5f189",
+      "score": 90.2,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_0016f500": {
       "addr": "0x16f500",
       "end": "0x16f608",
@@ -19604,6 +19659,17 @@
       "score": 96.3,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
+    "FUN_0016fec0": {
+      "addr": "0x16fec0",
+      "end": "0x16fec1",
+      "kind": "auto",
+      "n_r": 1,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "685e11c0b354c113",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_001700d0": {
       "addr": "0x1700d0",
       "end": "0x170154",
@@ -19636,6 +19702,17 @@
       "ref_sha": "8cd45607af51dce0",
       "score": 92.9,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_screen_effect.c"
+    },
+    "FUN_00172520": {
+      "addr": "0x172520",
+      "end": "0x172529",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "9fa6e04e879fb8c7",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_00172590": {
       "addr": "0x172590",
@@ -19713,6 +19790,28 @@
       "ref_sha": "188a71b2ec59c47c",
       "score": 90.8,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_shadows.c"
+    },
+    "FUN_00173090": {
+      "addr": "0x173090",
+      "end": "0x173642",
+      "kind": "auto",
+      "n_r": 353,
+      "opnd_percent": 78.4,
+      "ref": "synth",
+      "ref_sha": "dabff17718ec07e2",
+      "score": 89.2,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_shadows.c"
+    },
+    "FUN_00173ae0": {
+      "addr": "0x173ae0",
+      "end": "0x173ae1",
+      "kind": "auto",
+      "n_r": 1,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "685e11c0b354c113",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_00173af0": {
       "addr": "0x173af0",
@@ -19934,6 +20033,28 @@
       "score": 93.2,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
+    "FUN_0017C7D0": {
+      "addr": "0x17c7d0",
+      "end": "0x17c7d5",
+      "kind": "thunk",
+      "n_r": 1,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "ee2d779f4db34657",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "FUN_0017a8a0": {
+      "addr": "0x17a8a0",
+      "end": "0x17aa5c",
+      "kind": "auto",
+      "n_r": 131,
+      "opnd_percent": 61.5,
+      "ref": "synth",
+      "ref_sha": "abebdbd3a3329666",
+      "score": 86.2,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_0017ad20": {
       "addr": "0x17ad20",
       "end": "0x17ad37",
@@ -19953,6 +20074,17 @@
       "opnd_percent": 100.0,
       "ref": "synth",
       "ref_sha": "0b19791e2eac5d7a",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "FUN_0017ad90": {
+      "addr": "0x17ad90",
+      "end": "0x17ad91",
+      "kind": "auto",
+      "n_r": 1,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "685e11c0b354c113",
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
@@ -20066,6 +20198,17 @@
       "score": 87.8,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
+    "FUN_0017c140": {
+      "addr": "0x17c140",
+      "end": "0x17c1ad",
+      "kind": "auto",
+      "n_r": 38,
+      "opnd_percent": 80.5,
+      "ref": "synth",
+      "ref_sha": "e24867b319005fc9",
+      "score": 80.5,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_0017c1b0": {
       "addr": "0x17c1b0",
       "end": "0x17c2ec",
@@ -20075,6 +20218,50 @@
       "ref": "synth",
       "ref_sha": "e64fb4576bc41898",
       "score": 93.8,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "FUN_0017c2f0": {
+      "addr": "0x17c2f0",
+      "end": "0x17c78a",
+      "kind": "auto",
+      "n_r": 358,
+      "opnd_percent": 52.7,
+      "ref": "synth",
+      "ref_sha": "33b919fd51c759f2",
+      "score": 85.1,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "FUN_0017c9f0": {
+      "addr": "0x17c9f0",
+      "end": "0x17c9f9",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "f0cdda5e703876ee",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "FUN_0017ca00": {
+      "addr": "0x17ca00",
+      "end": "0x17ca05",
+      "kind": "thunk",
+      "n_r": 1,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "34c6fc5a95a11721",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "FUN_0017ca40": {
+      "addr": "0x17ca40",
+      "end": "0x17ca45",
+      "kind": "thunk",
+      "n_r": 1,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "be6c4d85483d5ac2",
+      "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "FUN_0017ca50": {
@@ -21520,7 +21707,7 @@
       "end": "0x18ffd5",
       "kind": "auto",
       "n_r": 69,
-      "opnd_percent": 38.0,
+      "opnd_percent": 37.8,
       "ref": "synth",
       "ref_sha": "424028da2768740d",
       "score": 73.2,
@@ -24073,10 +24260,10 @@
       "end": "0x10f762",
       "kind": "auto",
       "n_r": 182,
-      "opnd_percent": 39.6,
+      "opnd_percent": 73.1,
       "ref": "synth",
       "ref_sha": "d1f28a84e52c7c03",
-      "score": 38.0,
+      "score": 83.7,
       "source": "src/halo/math/real_math.c"
     },
     "accerate_to_position3d": {
@@ -26618,10 +26805,10 @@
       "end": "0x10c685",
       "kind": "auto",
       "n_r": 46,
-      "opnd_percent": 75.0,
+      "opnd_percent": 81.8,
       "ref": "synth",
       "ref_sha": "1cf2de57b0a3e3f7",
-      "score": 81.2,
+      "score": 86.4,
       "source": "src/halo/math/real_math.c"
     },
     "angles_to_vector": {
@@ -26640,10 +26827,10 @@
       "end": "0x10f9a9",
       "kind": "auto",
       "n_r": 216,
-      "opnd_percent": 67.6,
+      "opnd_percent": 65.9,
       "ref": "synth",
       "ref_sha": "1ddc911cd1c06203",
-      "score": 82.5,
+      "score": 86.0,
       "source": "src/halo/math/real_math.c"
     },
     "animation_get_node_orientations": {
@@ -28587,10 +28774,10 @@
       "end": "0x1094fb",
       "kind": "auto",
       "n_r": 18,
-      "opnd_percent": 47.4,
+      "opnd_percent": 57.1,
       "ref": "synth",
       "ref_sha": "902ce57abe6b6a88",
-      "score": 73.7,
+      "score": 91.4,
       "source": "src/halo/math/real_math.c"
     },
     "compress_real_to_int16": {
@@ -36639,10 +36826,10 @@
       "end": "0x10958c",
       "kind": "auto",
       "n_r": 31,
-      "opnd_percent": 45.6,
+      "opnd_percent": 100.0,
       "ref": "synth",
       "ref_sha": "02d050412d9e3cad",
-      "score": 80.7,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "matrix4x3_from_forward_up_position": {
@@ -36672,10 +36859,10 @@
       "end": "0x109993",
       "kind": "auto",
       "n_r": 95,
-      "opnd_percent": 9.0,
+      "opnd_percent": 17.8,
       "ref": "synth",
       "ref_sha": "b0397c3c2386cb6a",
-      "score": 53.0,
+      "score": 55.1,
       "source": "src/halo/math/real_math.c"
     },
     "matrix_from_forward_and_up": {
@@ -36694,10 +36881,10 @@
       "end": "0x109231",
       "kind": "auto",
       "n_r": 86,
-      "opnd_percent": 56.0,
+      "opnd_percent": 75.9,
       "ref": "synth",
       "ref_sha": "cf0b2b4b5cf39f83",
-      "score": 52.6,
+      "score": 81.6,
       "source": "src/halo/math/real_math.c"
     },
     "matrix_scale_transform_vector": {
@@ -39400,10 +39587,10 @@
       "end": "0x62408",
       "kind": "auto",
       "n_r": 261,
-      "opnd_percent": 68.3,
+      "opnd_percent": 81.2,
       "ref": "synth",
       "ref_sha": "4b0a5a00d2631bbf",
-      "score": 95.6,
+      "score": 97.3,
       "source": "src/halo/structures/structures.c"
     },
     "orientations_interpolate": {
@@ -39818,10 +40005,10 @@
       "end": "0x10b6aa",
       "kind": "auto",
       "n_r": 55,
-      "opnd_percent": 56.2,
+      "opnd_percent": 98.2,
       "ref": "synth",
       "ref_sha": "e2b3715c0401177f",
-      "score": 72.7,
+      "score": 98.2,
       "source": "src/halo/math/real_math.c"
     },
     "perpendicular4d": {
@@ -39866,10 +40053,10 @@
       "end": "0x10f30c",
       "kind": "auto",
       "n_r": 323,
-      "opnd_percent": 58.5,
+      "opnd_percent": 72.1,
       "ref": "synth",
       "ref_sha": "33f455d65970e681",
-      "score": 65.3,
+      "score": 78.7,
       "source": "src/halo/math/real_math.c"
     },
     "pin_normal_to_cone3d": {
@@ -41406,10 +41593,10 @@
       "end": "0x10fc5a",
       "kind": "auto",
       "n_r": 103,
-      "opnd_percent": 80.2,
+      "opnd_percent": 90.2,
       "ref": "synth",
       "ref_sha": "d6357bfd082bff49",
-      "score": 85.1,
+      "score": 95.1,
       "source": "src/halo/math/real_math.c"
     },
     "quantize_real_to_byte_rectangle3d": {
@@ -41428,10 +41615,10 @@
       "end": "0x10fd8f",
       "kind": "auto",
       "n_r": 99,
-      "opnd_percent": 65.4,
+      "opnd_percent": 94.9,
       "ref": "synth",
       "ref_sha": "6fa75e28c603a0a2",
-      "score": 68.3,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "quaternion_decompress_6byte": {
@@ -41472,10 +41659,10 @@
       "end": "0x10bbc0",
       "kind": "auto",
       "n_r": 67,
-      "opnd_percent": 54.4,
+      "opnd_percent": 81.2,
       "ref": "synth",
       "ref_sha": "395774b0ac957916",
-      "score": 70.7,
+      "score": 96.2,
       "source": "src/halo/math/real_math.c"
     },
     "quaternions_interpolate_and_normalize": {
@@ -41709,6 +41896,50 @@
       "score": 79.6,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
+    "rasterizer_dynamic_lit_geometry_draw": {
+      "addr": "0x17c930",
+      "end": "0x17c939",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "79e78dea0efc9444",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_dynamic_screen_geometry_draw": {
+      "addr": "0x17c940",
+      "end": "0x17c945",
+      "kind": "thunk",
+      "n_r": 1,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "f03f84ca05293cd8",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_environment_fog_screen_draw": {
+      "addr": "0x17c8e0",
+      "end": "0x17c8e9",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "5043d01db1948e66",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_environment_fog_screen_end": {
+      "addr": "0x17c8f0",
+      "end": "0x17c8f9",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "fbf270ff3f7e8f3a",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "rasterizer_filthy_bitmap_default_initialize": {
       "addr": "0x156e00",
       "end": "0x157004",
@@ -41774,6 +42005,39 @@
       "ref_sha": "047c3a4160975240",
       "score": 100.0,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "rasterizer_hud_motion_sensor_blip_begin": {
+      "addr": "0x17ca10",
+      "end": "0x17ca19",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "77f525b0f94462da",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_hud_motion_sensor_blip_draw": {
+      "addr": "0x17ca20",
+      "end": "0x17ca29",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "529e3024583e6af2",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_hud_motion_sensor_blip_end": {
+      "addr": "0x17ca30",
+      "end": "0x17ca35",
+      "kind": "thunk",
+      "n_r": 1,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "fe159996fa842d77",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
     },
     "rasterizer_initialize": {
       "addr": "0x16fb80",
@@ -41884,6 +42148,17 @@
       "ref_sha": "81ade064d5c97a96",
       "score": 86.2,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
+    },
+    "rasterizer_psuedo_dynamic_screen_quad_draw": {
+      "addr": "0x17c960",
+      "end": "0x17c969",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "d9cd885b7a4209d8",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
     },
     "rasterizer_reset_state": {
       "addr": "0x1559a0",
@@ -42314,6 +42589,50 @@
       "score": 95.7,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_vertex_shaders_initialize.c"
     },
+    "rasterizer_widget_begin": {
+      "addr": "0x17c980",
+      "end": "0x17c989",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "1b936a9d00d34156",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_widget_draw_sprite2d": {
+      "addr": "0x17c9c0",
+      "end": "0x17c9c9",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "903581c1fb6b8d83",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_widget_draw_sprite3d": {
+      "addr": "0x17c9d0",
+      "end": "0x17c9d9",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "249e092b5c75cfa2",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_widget_end": {
+      "addr": "0x17c9e0",
+      "end": "0x17c9e9",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "04ad1ccaa78449d4",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "rasterizer_widget_get_occlusion_test_result": {
       "addr": "0x17adc0",
       "end": "0x17ae84",
@@ -42325,15 +42644,59 @@
       "score": 92.9,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_widgets.c"
     },
+    "rasterizer_widget_set_texture": {
+      "addr": "0x17c990",
+      "end": "0x17c999",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "dc3a77e699918eec",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_widget_set_tint_factor": {
+      "addr": "0x17c9a0",
+      "end": "0x17c9a9",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "2a0a1362edb41220",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_widget_set_zbuffer_enable": {
+      "addr": "0x17c9b0",
+      "end": "0x17c9b9",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "cdec7adf354f0b8f",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "rasterizer_widget_submit": {
+      "addr": "0x17c970",
+      "end": "0x17c979",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "6f74fca63d519e2b",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "rasterizer_widget_submit_occlusion_test": {
       "addr": "0x17ba10",
       "end": "0x17bc82",
       "kind": "auto",
       "n_r": 207,
-      "opnd_percent": 77.1,
+      "opnd_percent": 78.5,
       "ref": "synth",
       "ref_sha": "19548fe30fee0f7f",
-      "score": 94.5,
+      "score": 95.4,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
     "rasterizer_window_begin": {
@@ -42539,10 +42902,10 @@
       "end": "0x109777",
       "kind": "auto",
       "n_r": 61,
-      "opnd_percent": 82.9,
+      "opnd_percent": 95.9,
       "ref": "synth",
       "ref_sha": "952b000c117596c5",
-      "score": 84.6,
+      "score": 97.6,
       "source": "src/halo/math/real_math.c"
     },
     "real_matrix3x3_transform_vector": {
@@ -42913,10 +43276,10 @@
       "end": "0x10b772",
       "kind": "auto",
       "n_r": 58,
-      "opnd_percent": 28.2,
+      "opnd_percent": 100.0,
       "ref": "synth",
       "ref_sha": "e28dc49d432e362f",
-      "score": 43.5,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "rumble_calculate": {
@@ -43067,10 +43430,10 @@
       "end": "0x10b896",
       "kind": "auto",
       "n_r": 32,
-      "opnd_percent": 73.0,
+      "opnd_percent": 76.2,
       "ref": "synth",
       "ref_sha": "3a4ddc762cbc8c0b",
-      "score": 73.0,
+      "score": 76.2,
       "source": "src/halo/math/real_math.c"
     },
     "scenario_debug_to_file": {
@@ -44497,10 +44860,10 @@
       "end": "0x10ed6f",
       "kind": "auto",
       "n_r": 243,
-      "opnd_percent": 47.0,
+      "opnd_percent": 55.7,
       "ref": "synth",
       "ref_sha": "342f655c7a38fecd",
-      "score": 62.8,
+      "score": 76.7,
       "source": "src/halo/math/real_math.c"
     },
     "stack_memory_pool_alloc_internal": {
@@ -45575,10 +45938,10 @@
       "end": "0x10a828",
       "kind": "auto",
       "n_r": 87,
-      "opnd_percent": 66.3,
+      "opnd_percent": 96.6,
       "ref": "synth",
       "ref_sha": "049e6148b9c56659",
-      "score": 75.3,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "transport_dispose": {
@@ -47808,10 +48171,10 @@
       "end": "0x10e035",
       "kind": "auto",
       "n_r": 316,
-      "opnd_percent": 27.1,
+      "opnd_percent": 61.3,
       "ref": "synth",
       "ref_sha": "24adf8ebefe3415d",
-      "score": 31.0,
+      "score": 67.7,
       "source": "src/halo/math/real_math.c"
     },
     "vector_intersects_pill3d": {
@@ -47819,10 +48182,10 @@
       "end": "0x10e4ca",
       "kind": "auto",
       "n_r": 413,
-      "opnd_percent": 38.0,
+      "opnd_percent": 65.4,
       "ref": "synth",
       "ref_sha": "133adc3964ab624f",
-      "score": 47.2,
+      "score": 80.2,
       "source": "src/halo/math/real_math.c"
     },
     "vector_to_angles": {
@@ -47830,10 +48193,10 @@
       "end": "0x10cc35",
       "kind": "auto",
       "n_r": 25,
-      "opnd_percent": 23.3,
+      "opnd_percent": 100.0,
       "ref": "synth",
       "ref_sha": "ff55b53fbf6087af",
-      "score": 46.7,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "vector_to_line_distance_squared3d": {
@@ -47841,10 +48204,10 @@
       "end": "0x10d379",
       "kind": "auto",
       "n_r": 478,
-      "opnd_percent": 38.9,
+      "opnd_percent": 83.2,
       "ref": "synth",
       "ref_sha": "96ea88a4d7edbb9e",
-      "score": 47.3,
+      "score": 87.2,
       "source": "src/halo/math/real_math.c"
     },
     "vectors3d_from_euler_angles3d": {

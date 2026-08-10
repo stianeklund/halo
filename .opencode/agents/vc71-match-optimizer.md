@@ -11,7 +11,7 @@ description: >
   route readability/source-recovery work to halo-source-recovery instead).
 mode: subagent
 model: aiolos/gpt-5.6-terra
-variant: medium
+variant: high
 color: info
 memory: project
 ---

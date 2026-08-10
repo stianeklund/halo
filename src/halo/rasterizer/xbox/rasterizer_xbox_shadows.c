@@ -312,3 +312,186 @@ void FUN_00172de0(void *shader, int frame_index, void *triangle_buffer,
     }
   }
 }
+
+/*
+ * FUN_00173090 (0x173090) — draw one batch of stencil-shadow geometry,
+ * performing the one-time render-state / pixel-shader / vertex-shader-constant
+ * setup on the first call of a frame.
+ *
+ * Original TU: c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_shadows.c
+ * (assert line 0x194), the same TU as the three functions above.
+ *
+ * Ghidra reports `void FUN_00173090(void)` and loses every parameter: the six
+ * cdecl arguments are read straight off the frame — [EBP+8] shader,
+ * [EBP+0xc] (never referenced), [EBP+0x10]/[EBP+0x14]/[EBP+0x18] forwarded to
+ * FUN_0015dc10 and the statistics counter, and [EBP+0x1c] the vertex buffer
+ * whose leading 16-bit operand feeds FUN_00178b40 (XOR EAX,EAX;
+ * MOV AX,[ESI] @0x1733e4).
+ *
+ * *(char *)0x47e4b4 is the once-per-frame latch: everything between it and
+ * the store of 1 at 0x1735dc runs only on the first batch.
+ *
+ * The vertex-shader constant block is one contiguous 20-float array at
+ * EBP-0x58 (SUB ESP,0x58 = 80 bytes of constants plus the two scratch floats
+ * below), uploaded as five vec4s at register -0x51.  Three reciprocals of the
+ * shadow range at 0x47e478 scale it: 1/range, 1/(range*4) and 1/(range*0.5);
+ * VC71 keeps the first two on the x87 stack (FMUL ST2 / FMUL ST1) and spills
+ * only the third, which is why only one of the three has a frame slot.
+ *
+ * The residual FPU-WARN lines (candidate FLD local / FMUL global where the
+ * reference is FLD global / FMUL local) are not source-addressable: VC71
+ * canonicalises commutative FMUL operands and always loads the local first.
+ * Writing `inv_half_range * *(float *)0x47e498` instead was measured
+ * codegen-identical.  They cost operand-normalised score only.
+ */
+void FUN_00173090(void *shader, int param_2, int vertices_per_primitive,
+                  int a2, int triangle_count, void *vertex_buffer)
+{
+  /* One contiguous 0x50-byte block: SetVertexShaderConstant uploads all five
+   * vec4s starting at &shader_constants[0]. */
+  float shader_constants[20];
+  float dot;             /* [EBP-8], FST (not FSTP) -- reused twice below */
+  float inv_half_range;  /* [EBP-4] */
+  float inv_range;
+  float inv_range_scaled;
+
+  (void)param_2; /* [EBP+0xc] is never referenced by the original */
+
+  if (*(void **)0x476ab0 == 0) {
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_shadows.c", 0x194,
+      1);
+    system_exit(-1);
+  }
+  if (*(short *)0x5a5bc0 == 0 && *(char *)0x3256ca != 0) {
+    if (*(char *)0x47e4b4 == 0) {
+      if (*(char *)0x3256f6 != 0) {
+        FUN_00172730();
+      }
+      FUN_001584f0(0, (*(char *)0x3256f6 != 0) + 2, 0);
+      D3DDevice_SetTextureStageState(0, 10, 4);
+      D3DDevice_SetTextureStageState(0, 0xb, 4);
+      D3DDevice_SetTextureStageState(0, 0xd, 2);
+      D3DDevice_SetTextureStageState(0, 0xe, 2);
+      D3DDevice_SetTextureStageState(0, 0xf, 2);
+
+      rasterizer_set_texture_direct(1, *(int *)(*(char **)0x476204 + 0x4c), 0);
+      D3DDevice_SetTextureStageState(1, 10, 3);
+      D3DDevice_SetTextureStageState(1, 0xb, 3);
+      D3DDevice_SetTextureStageState(1, 0xd, 2);
+      D3DDevice_SetTextureStageState(1, 0xe, 2);
+      D3DDevice_SetTextureStageState(1, 0xf, 2);
+
+      rasterizer_set_texture_direct(2, *(int *)(*(char **)0x476204 + 0x1c), 0);
+      D3DDevice_SetTextureStageState(2, 10, 3);
+      D3DDevice_SetTextureStageState(2, 0xb, 3);
+      D3DDevice_SetTextureStageState(2, 0xc, 3);
+      D3DDevice_SetTextureStageState(2, 0xd, 2);
+      D3DDevice_SetTextureStageState(2, 0xe, 2);
+      D3DDevice_SetTextureStageState(2, 0xf, 2);
+
+      D3DDevice_SetRenderState_CullMode(0x901);
+      D3DDevice_SetRenderState_Simple(0x40358, 0x1010101);
+      *(uint32_t *)0x1fb7a4 = 0x1010101;
+      D3DDevice_SetRenderState_Simple(0x40304, 1);
+      *(uint32_t *)0x1fb784 = 1;
+      D3DDevice_SetRenderState_Simple(0x40344, 0);
+      *(uint32_t *)0x1fb790 = 0;
+      D3DDevice_SetRenderState_Simple(0x40348, 0x301);
+      *(uint32_t *)0x1fb794 = 0x301;
+      D3DDevice_SetRenderState_Simple(0x40350, 0x8006);
+      *(uint32_t *)0x1fb7c0 = 0x8006;
+      D3DDevice_SetRenderState_Simple(0x40300, 1);
+      *(uint32_t *)0x1fb788 = 1;
+      D3DDevice_SetRenderState_Simple(0x40340, 0);
+      *(uint32_t *)0x1fb78c = 0;
+      D3DDevice_SetRenderState_ZEnable(1);
+      D3DDevice_SetRenderState_Simple(0x40354, 0x202);
+      *(uint32_t *)0x1fb77c = 0x202;
+      D3DDevice_SetRenderState_Simple(0x4035c, 0);
+      *(uint32_t *)0x1fb798 = 0;
+      D3DDevice_SetRenderState_ZBias(0);
+
+      csmemset((void *)0x5a5ac0, 0, 0xf0);
+      *(uint32_t *)0x5a5b98 = 0x21;
+      *(uint32_t *)0x5a5b94 = 4;
+      *(uint32_t *)0x5a5ae8 = FUN_000d1dd0((float *)0x47e46c);
+      *(uint32_t *)0x5a5b08 = 0xffffff;
+      *(uint32_t *)0x5a5b48 = 0x14200000;
+      *(uint32_t *)0x5a5b74 = 0xc0;
+      *(uint32_t *)0x5a5b4c = 0x290c0821;
+      *(uint32_t *)0x5a5b78 = 0xcd;
+      *(uint32_t *)0x5a5b50 = 0x2c200c2d;
+      *(uint32_t *)0x5a5b7c = 0xc00;
+      *(uint32_t *)0x5a5b54 = 0x2c020000;
+      *(uint32_t *)0x5a5b80 = 0x20d0;
+      *(uint32_t *)0x5a5ae0 = 0x2c;
+      *(uint32_t *)0x5a5ae4 = 0xd00;
+      if (*(char *)0x3256f7 != 0) {
+        *(uint32_t *)0x5a5ae0 = 0xc;
+        D3DDevice_SetRenderState_Simple(0x40300, 0);
+        *(uint32_t *)0x1fb788 = 0;
+      }
+      rasterizer_set_pixel_shader((void *)0x5a5ac0);
+
+      /* MSVC evaluates the argument list right to left, which is why the
+       * permutation lookup is emitted before the 16-bit vertex-buffer read. */
+      FUN_00178b40(0x1d, (int)*(unsigned short *)vertex_buffer,
+                   shader_get_vertex_shader_permutation(shader));
+
+      inv_range = 1.0f / *(float *)0x47e478;
+      inv_range_scaled = 1.0f / (*(float *)0x47e478 * 4.0f);
+      inv_half_range = 1.0f / (*(float *)0x47e478 * 0.5f);
+
+      shader_constants[0] = *(float *)0x47e480 * inv_range * 0.5f;
+      shader_constants[1] = *(float *)0x47e484 * inv_range * 0.5f;
+      shader_constants[2] = *(float *)0x47e488 * inv_range * 0.5f;
+      shader_constants[3] = (1.0f - (*(float *)0x47e4a8 * *(float *)0x47e484 +
+                                     *(float *)0x47e4ac * *(float *)0x47e488 +
+                                     *(float *)0x47e4a4 * *(float *)0x47e480) *
+                                      inv_range) *
+                            0.5f;
+      shader_constants[4] = *(float *)0x47e48c * inv_range * -0.5f;
+      shader_constants[5] = *(float *)0x47e490 * inv_range * -0.5f;
+      shader_constants[6] = *(float *)0x47e494 * inv_range * -0.5f;
+      shader_constants[7] = ((*(float *)0x47e4a8 * *(float *)0x47e490 +
+                              *(float *)0x47e4ac * *(float *)0x47e494 +
+                              *(float *)0x47e4a4 * *(float *)0x47e48c) *
+                               inv_range +
+                             1.0f) *
+                            0.5f;
+      shader_constants[8] = *(float *)0x47e498 * inv_range_scaled;
+      shader_constants[9] = *(float *)0x47e49c * inv_range_scaled;
+      shader_constants[10] = *(float *)0x47e4a0 * inv_range_scaled;
+      shader_constants[16] = *(float *)0x47e498;
+      shader_constants[17] = *(float *)0x47e49c;
+      shader_constants[18] = *(float *)0x47e4a0;
+      shader_constants[19] = 0.0f;
+      dot = *(float *)0x47e4a8 * *(float *)0x47e49c +
+            *(float *)0x47e4ac * *(float *)0x47e4a0 +
+            *(float *)0x47e4a4 * *(float *)0x47e498;
+      shader_constants[11] = -(dot * inv_range_scaled);
+      shader_constants[12] = -(*(float *)0x47e498 * inv_half_range);
+      shader_constants[13] = -(*(float *)0x47e49c * inv_half_range);
+      shader_constants[14] = -(*(float *)0x47e4a0 * inv_half_range);
+      shader_constants[15] = dot * inv_half_range;
+      D3DDevice_SetVertexShaderConstant(-0x51, shader_constants, 5);
+
+      if (*(char *)0x3251fc == 0) {
+        FUN_00158140((int)*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
+        *(char *)0x3251fc = 1;
+      }
+      *(char *)0x47e4b4 = 1;
+    }
+    FUN_00158ae0(2);
+    FUN_0015dc10(vertices_per_primitive, a2, triangle_count, vertex_buffer);
+    if (*(short *)0x3256ba == 2) {
+      *(int *)0x5a543c = *(int *)0x5a543c + 1;
+      *(int *)0x5a5438 = *(int *)0x5a5438 + triangle_count;
+      *(int *)0x5a5434 =
+        *(int *)0x5a5434 + rasterizer_frame_statistics_count_static_vertices(
+                             vertices_per_primitive, a2, triangle_count);
+    }
+  }
+}
