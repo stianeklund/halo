@@ -6151,10 +6151,10 @@
       "end": "0xa07f3",
       "kind": "auto",
       "n_r": 536,
-      "opnd_percent": 24.9,
+      "opnd_percent": 69.3,
       "ref": "synth",
       "ref_sha": "0d9107b3aa7c60db",
-      "score": 75.4,
+      "score": 91.8,
       "source": "src/halo/effects/particle_systems.c"
     },
     "FUN_000a0800": {

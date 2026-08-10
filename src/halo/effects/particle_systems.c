@@ -688,8 +688,7 @@ void FUN_000a0180(float dt, int particle_system_handle)
   char *tag_def;
   char *type_def;
   char *type_state;
-  char *saved_type_state;
-  char *states_block;
+  char *volatile states_block;
   char *state_elem;
   char *particle;
   char *prev_particle;
@@ -702,6 +701,10 @@ void FUN_000a0180(float dt, int particle_system_handle)
   short active_types;
   float t, t_inv;
   float duration;
+  float rr_lo, rr_hi;
+  float rr_lo_e, rr_hi_e;
+  float rr_lo_a, rr_hi_a, rr_lo_b, rr_hi_b;
+  float *src;
 
   ps_datum =
     (char *)datum_get(particle_system_header_data, particle_system_handle);
@@ -748,7 +751,7 @@ void FUN_000a0180(float dt, int particle_system_handle)
 
   tag_block_ptr = tag_def + 0x5c;
   i = 0;
-  if (*(int *)tag_block_ptr < 1)
+  if (*(int *)tag_block_ptr <= 0)
     goto done;
 
   /* Outer loop: iterate particle types */
@@ -756,7 +759,6 @@ void FUN_000a0180(float dt, int particle_system_handle)
     type_def =
       (char *)tag_block_get_element((void *)tag_block_ptr, (int)(short)i, 0x80);
     type_state = ps_datum + 0x58 + (int)(short)i * 0x40;
-    saved_type_state = type_state;
 
     /* Skip disabled types (flag 0x100) */
     if ((*(unsigned int *)(type_def + 0x20) & 0x100) != 0)
@@ -777,39 +779,41 @@ void FUN_000a0180(float dt, int particle_system_handle)
     next_state = *(short *)(type_state + 2);
 
     /* If timer >= 0.0, do interpolation */
-    if (*(float *)(type_state + 4) >= 0.0f)
+    if (!(*(float *)(type_state + 4) < 0.0f))
       goto do_interpolation;
 
     /* Timer expired: state transition */
     if (next_state == -1) {
       /* No next state: advance via FUN_0009f920 */
       FUN_0009f920(type_state, type_def, ps_datum);
+      rr_lo_a = *(float *)(state_elem + 0x28);
+      rr_hi_a = *(float *)(state_elem + 0x2c);
       duration = random_real_range((int *)random_math_get_local_seed_address(),
-                                   *(float *)(state_elem + 0x28),
-                                   *(float *)(state_elem + 0x2c));
+                                   rr_lo_a, rr_hi_a);
     } else {
       *(short *)type_state = next_state;
       *(short *)(type_state + 2) = -1;
       state_elem = (char *)tag_block_get_element((void *)states_block,
                                                  (int)next_state, 0xc0);
+      rr_lo_b = *(float *)(state_elem + 0x20);
+      rr_hi_b = *(float *)(state_elem + 0x24);
       duration = random_real_range((int *)random_math_get_local_seed_address(),
-                                   *(float *)(state_elem + 0x20),
-                                   *(float *)(state_elem + 0x24));
+                                   rr_lo_b, rr_hi_b);
     }
     *(float *)(type_state + 8) = duration;
     *(float *)(type_state + 4) = duration + *(float *)(type_state + 4);
-    if (*(short *)type_state == -1)
-      goto after_interpolation;
-    goto state_transition_loop;
+    if (*(short *)type_state != -1)
+      goto state_transition_loop;
+    goto after_interpolation;
 
   do_interpolation:
+    src = (float *)(state_elem + 0x34);
     if (next_state == -1) {
       /* Single state: copy properties directly */
-      csmemcpy(type_state + 0xc, state_elem + 0x34, 0x28);
+      csmemcpy(type_state + 0xc, src, 0x28);
     } else {
       char *state_elem2 = (char *)tag_block_get_element((void *)states_block,
                                                         (int)next_state, 0xc0);
-      float *src = (float *)(state_elem + 0x34);
       float *src2 = (float *)(state_elem2 + 0x34);
       float *dst = (float *)(type_state + 0xc);
       int k;
@@ -819,9 +823,13 @@ void FUN_000a0180(float dt, int particle_system_handle)
       else if (t > 1.0f)
         t = 1.0f;
       t_inv = 1.0f - t;
-      for (k = 0; k < 10; k++) {
-        dst[k] = t * src[k] + t_inv * src2[k];
-      }
+      k = 10;
+      do {
+        *dst = t * *src + t_inv * *src2;
+        dst++;
+        src++;
+        src2++;
+      } while (--k != 0);
     }
 
     /* Flag-based multipliers */
@@ -885,9 +893,10 @@ void FUN_000a0180(float dt, int particle_system_handle)
           *(short *)(particle + 8) = 0;
           pstate_elem =
             (char *)tag_block_get_element((void *)(type_def + 0x74), 0, 0x178);
+          rr_lo_e = *(float *)(pstate_elem + 0x20);
+          rr_hi_e = *(float *)(pstate_elem + 0x24);
           duration = random_real_range(
-            (int *)random_math_get_local_seed_address(),
-            *(float *)(pstate_elem + 0x20), *(float *)(pstate_elem + 0x24));
+            (int *)random_math_get_local_seed_address(), rr_lo_e, rr_hi_e);
           *(float *)(particle + 0xc) = duration;
           *(float *)(particle + 0x10) = duration;
           FUN_000a0080(type_def, *(short *)(particle + 8), particle + 0x48);
@@ -899,7 +908,7 @@ void FUN_000a0180(float dt, int particle_system_handle)
         }
 
         if (*(short *)(particle + 8) != -1) {
-          char *pstates_block = type_def + 0x74;
+          char *volatile pstates_block = type_def + 0x74;
 
           /* Particle state transition loop */
           for (;;) {
@@ -907,119 +916,112 @@ void FUN_000a0180(float dt, int particle_system_handle)
               (void *)pstates_block, (int)*(short *)(particle + 8), 0x178);
 
             /* If lifetime >= 0, stop transitioning */
-            if (*(float *)(particle + 0xc) >= 0.0f)
+            if (!(*(float *)(particle + 0xc) < 0.0f))
               break;
 
             particle_next_state = *(short *)(particle + 0xa);
             if (particle_next_state == -1) {
               /* End of states: advance particle state */
               FUN_0009f9d0(particle, type_def);
-              duration = random_real_range(
-                (int *)random_math_get_local_seed_address(),
-                *(float *)(pstate_elem + 0x28), *(float *)(pstate_elem + 0x2c));
+              rr_lo = *(float *)(pstate_elem + 0x28);
+              rr_hi = *(float *)(pstate_elem + 0x2c);
             } else {
               /* Advance to next particle state */
               *(short *)(particle + 8) = particle_next_state;
               *(short *)(particle + 0xa) = -1;
               pstate_elem = (char *)tag_block_get_element(
                 (void *)pstates_block, (int)particle_next_state, 0x178);
-              duration = random_real_range(
-                (int *)random_math_get_local_seed_address(),
-                *(float *)(pstate_elem + 0x20), *(float *)(pstate_elem + 0x24));
+              rr_lo = *(float *)(pstate_elem + 0x20);
+              rr_hi = *(float *)(pstate_elem + 0x24);
             }
+            duration = random_real_range(
+              (int *)random_math_get_local_seed_address(), rr_lo, rr_hi);
             *(float *)(particle + 0x10) = duration;
             *(float *)(particle + 0xc) = duration + *(float *)(particle + 0xc);
 
-            if (*(short *)(particle + 0xa) == -1) {
-              int *src_p = (int *)(particle + 0x64);
-              int *dst_p = (int *)(particle + 0x48);
-              int n;
-              for (n = 7; n != 0; n--) {
-                *dst_p = *src_p;
-                src_p++;
-                dst_p++;
-              }
-            } else {
+            if (*(short *)(particle + 0xa) != -1) {
               /* Regenerate particle output via FUN_000a0080 using next_state */
               FUN_000a0080(type_def, *(short *)(particle + 0xa),
                            particle + 0x64);
-            }
-
-            type_state = saved_type_state;
-
-            if (*(short *)(particle + 8) == -1)
-              break;
-          } /* end particle state transition loop */
-
-          if (*(short *)(particle + 8) != -1) {
-            /* Particle is alive: apply physics */
-            type_state_def = (char *)tag_block_get_element(
-              (void *)states_block, (int)*(short *)type_state, 0xc0);
-
-            if (*(short *)(particle + 0xa) == -1) {
-              /* Single state: direct scale */
-              *(float *)(particle + 0x40) = *(float *)(particle + 0x50) *
-                                              *(float *)(type_state + 0x14) *
-                                              dt +
-                                            *(float *)(particle + 0x40);
-              t = *(float *)(particle + 0x4c);
             } else {
-              /* Interpolated state */
-              tag_block_get_element((void *)(type_def + 0x74),
-                                    (int)*(short *)(particle + 8), 0x178);
-              t = *(float *)(particle + 0xc) / *(float *)(particle + 0x10);
-              if (t < 0.0f)
-                t = 0.0f;
-              else if (t > 1.0f)
-                t = 1.0f;
-              t_inv = 1.0f - t;
-              *(float *)(particle + 0x40) =
-                (t * *(float *)(particle + 0x50) +
-                 t_inv * *(float *)(particle + 0x6c)) *
-                  *(float *)(type_state + 0x14) * dt +
-                *(float *)(particle + 0x40);
-              t = t * *(float *)(particle + 0x4c) +
-                  t_inv * *(float *)(particle + 0x68);
+              memcpy(particle + 0x48, particle + 0x64, 7 * 4);
             }
 
-            *(float *)(particle + 0x44) =
-              t * *(float *)(type_state + 0x10) * dt +
-              *(float *)(particle + 0x44);
 
-            if (*(short *)(type_state_def + 0xb2) < 0 ||
-                *(short *)(type_state_def + 0xb2) >= 1) {
-              display_assert(
-                "type_state_definition->particle_update_physics>=0 && "
-                "type_state_definition->particle_update_physics<"
-                "NUMBER_OF_PARTICLE_SYSTEM_TYPE_UPDATE_PHYSICS",
-                "c:\\halo\\SOURCE\\effects\\particle_systems.c", 0x3af, 1);
-              system_exit(-1);
-            }
+            if (*(short *)(particle + 8) != -1)
+              continue;
+            break;
+          } /* end particle state transition loop */
+        }
 
-            /* Indirect call: particle physics update */
-            {
-              typedef void (*particle_physics_fn)(char *, int, float, char *);
-              ((particle_physics_fn *)(0x26ab1c))[*(
-                short *)(type_state_def + 0xb2)](ps_datum, (int)(short)i, dt,
-                                                 particle);
-            }
-
-            prev_particle = particle;
-            bx = *(short *)(particle + 4);
-            continue;
+        if (*(short *)(particle + 8) == -1) {
+          /* Particle is dead: unlink and delete */
+          if (prev_particle != (char *)0) {
+            *(int *)(prev_particle + 4) = *(int *)(particle + 4);
+          } else {
+            *(int *)(type_state + 0x3c) = *(int *)(particle + 4);
           }
+          datum_delete(particle_system_data, particle_handle);
+          bx = *(short *)(particle + 4);
+          *(short *)(type_state + 0x3a) = *(short *)(type_state + 0x3a) - 1;
+          continue;
         }
 
-        /* Particle is dead: unlink and delete */
-        if (prev_particle == (char *)0) {
-          *(int *)(type_state + 0x3c) = *(int *)(particle + 4);
-        } else {
-          *(int *)(prev_particle + 4) = *(int *)(particle + 4);
-        }
-        datum_delete(particle_system_data, particle_handle);
-        bx = *(short *)(particle + 4);
-        *(short *)(type_state + 0x3a) = *(short *)(type_state + 0x3a) - 1;
-        continue;
+          /* Particle is alive: apply physics */
+          type_state_def = (char *)tag_block_get_element(
+            (void *)states_block, (int)*(short *)type_state, 0xc0);
+
+          if (*(short *)(particle + 0xa) == -1) {
+            /* Single state: direct scale */
+            *(float *)(particle + 0x40) = *(float *)(particle + 0x50) *
+                                            *(float *)(type_state + 0x14) *
+                                            dt +
+                                          *(float *)(particle + 0x40);
+            t = *(float *)(particle + 0x4c);
+          } else {
+            /* Interpolated state */
+            tag_block_get_element((void *)(type_def + 0x74),
+                                  (int)*(short *)(particle + 8), 0x178);
+            t = *(float *)(particle + 0xc) / *(float *)(particle + 0x10);
+            if (t < 0.0f)
+              t = 0.0f;
+            else if (t > 1.0f)
+              t = 1.0f;
+            t_inv = 1.0f - t;
+            *(float *)(particle + 0x40) =
+              (t * *(float *)(particle + 0x50) +
+               t_inv * *(float *)(particle + 0x6c)) *
+                *(float *)(type_state + 0x14) * dt +
+              *(float *)(particle + 0x40);
+            t = t * *(float *)(particle + 0x4c) +
+                t_inv * *(float *)(particle + 0x68);
+          }
+
+          *(float *)(particle + 0x44) =
+            t * *(float *)(type_state + 0x10) * dt +
+            *(float *)(particle + 0x44);
+
+          if (*(short *)(type_state_def + 0xb2) < 0 ||
+              *(short *)(type_state_def + 0xb2) >= 1) {
+            display_assert(
+              "type_state_definition->particle_update_physics>=0 && "
+              "type_state_definition->particle_update_physics<"
+              "NUMBER_OF_PARTICLE_SYSTEM_TYPE_UPDATE_PHYSICS",
+              "c:\\halo\\SOURCE\\effects\\particle_systems.c", 0x3af, 1);
+            system_exit(-1);
+          }
+
+          /* Indirect call: particle physics update */
+          {
+            typedef void (*particle_physics_fn)(char *, int, float, char *);
+            ((particle_physics_fn *)(0x26ab1c))[*(
+              short *)(type_state_def + 0xb2)](ps_datum, (int)(short)i, dt,
+                                               particle);
+          }
+
+          prev_particle = particle;
+          bx = *(short *)(particle + 4);
+          continue;
       }
     }
 
