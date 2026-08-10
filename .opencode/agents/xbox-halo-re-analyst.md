@@ -5,8 +5,8 @@ description: >
   analyze functions/globals, verify decompilation against disassembly,
   infer prototypes and structs, map Xbox/XDK calls, produce faithful C lifts,
   and propose conservative kb.json updates.
-model: aiolos/gpt-5.6-terra
-variant: xhigh
+model: aiolos/gpt-5.6-luna
+variant: max 
 color: warning
 memory: project
 ---

@@ -1,7 +1,6 @@
 ---
 description: Fully-automated lift session — run goal-lift in batches and land each batch into main (auto FF, park-on-conflict)
 agent: build
-model: aiolos/gpt-5.6-terra
 ---
 
 Run `/goal-lift` in batches and land each batch into `main` with

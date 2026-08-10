@@ -3,11 +3,12 @@ name: explore
 description: Use when the parent agent needs a high-confidence map of files, symbols, code paths, ownership boundaries, and repository facts before work proceeds.
 mode: subagent
 model: aiolos/gpt-5.6-luna
+variant: high
 permission:
   edit: deny
-  bash: deny
-  webfetch: deny
-  websearch: deny
+  bash: allow
+  webfetch: allow
+  websearch: allow
   task: deny
 ---
 
