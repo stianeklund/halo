@@ -37166,7 +37166,7 @@
     },
     {
      "addr": "0x148440",
-     "decl": "void FUN_00148440(void);"
+     "decl": "bool FUN_00148440(void *data, unsigned int node_index, float t_min, float t_max);"
     },
     {
      "addr": "0x1486e0",
@@ -37182,7 +37182,9 @@
     },
     {
      "addr": "0x148b20",
-     "decl": "void collision_bsp_test_pill_new(void);"
+     "decl": "bool collision_bsp_test_pill_new(int bsp3d, short flags, int param3, float *origin, float *direction, float radius, float *out_distance, float *out_normal);",
+     "name": "collision_bsp_test_pill_new",
+     "ported": true
     },
     {
      "addr": "0x148b90",

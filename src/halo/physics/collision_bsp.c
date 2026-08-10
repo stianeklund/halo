@@ -572,3 +572,72 @@ int collision_surface_test_line2d(int bsp, int surface_index, int param3,
   }
   return 0;
 }
+
+/* 0x148b20 - collision_bsp_test_pill_new
+ *
+ * Packs the eight caller arguments plus three fixed defaults into a 0x2c-byte
+ * bsp3d traversal record on the stack, seeds the caller's distance slot with
+ * +FLT_MAX, and tail-calls the recursive bsp3d walker at 0x148440 over the
+ * whole parametric span [0.0, 1.0].
+ *
+ * Binary: PUSH EBP / MOV EBP,ESP / SUB ESP,0x2c, plain RET, eight dword
+ * parameter slots at EBP+0x08..+0x24 and a four-argument CALL cleaned with
+ * ADD ESP,0x10 - cdecl on both sides. EBP+0x0c is loaded with
+ * `MOV CX, word ptr` and stored with `MOV word ptr [EBP-0x28],CX`: that
+ * parameter is 16-bit, and record bytes +0x06..+0x07 are never written. The
+ * three bytes after the +0x24 byte store are likewise never written; the
+ * record is deliberately NOT zero-initialised, so do not add an initialiser.
+ *
+ * Record field meanings are taken from the reads performed by the callee at
+ * 0x148440: [+0x00] is the bsp3d tag base (tag_blocks at +0x00 and +0x0c),
+ * [+0x0c]/[+0x10] are the two float[3] vectors dotted against each node plane,
+ * [+0x14] is the plane-distance tolerance (the pill radius), [+0x18] is the
+ * float* the walker overwrites with the hit distance, [+0x1c] is the float[3]
+ * the surface normal is copied into, and [+0x28] is the signed plane index the
+ * walker latches (hence the 0xffffffff seed). [+0x04] (the 16-bit parameter),
+ * [+0x08], [+0x20] and [+0x24] are not read by 0x148440 itself - they are
+ * consumed further down the traversal - so they keep mechanical names.
+ *
+ * Return: the function performs no MOV/XOR after the CALL, so the walker's AL
+ * result falls through the epilogue. The single caller (FUN_0014e940 at
+ * 0x14e989) consumes it with TEST AL,AL / JE, so the return type is bool, not
+ * void.
+ */
+typedef struct {
+  int bsp3d; /* 0x00 */
+  short flags; /* 0x04 */
+  short pad_06; /* 0x06 - never written by the builder */
+  int field_08; /* 0x08 */
+  float *origin; /* 0x0c */
+  float *direction; /* 0x10 */
+  float radius; /* 0x14 */
+  float *out_distance; /* 0x18 */
+  float *out_normal; /* 0x1c */
+  int field_20; /* 0x20 */
+  char field_24; /* 0x24 */
+  char pad_25[3]; /* 0x25 - never written by the builder */
+  int field_28; /* 0x28 */
+} bsp3d_pill_test_data;
+
+bool collision_bsp_test_pill_new(int bsp3d, short flags, int param3,
+                                 float *origin, float *direction, float radius,
+                                 float *out_distance, float *out_normal)
+{
+  bsp3d_pill_test_data data;
+
+  data.bsp3d = bsp3d;
+  data.flags = flags;
+  data.field_08 = param3;
+  data.origin = origin;
+  data.direction = direction;
+  data.radius = radius;
+  data.out_distance = out_distance;
+  data.out_normal = out_normal;
+  data.field_20 = -1;
+  data.field_24 = 0;
+  data.field_28 = -1;
+
+  *out_distance = 3.4028235e+38f;
+
+  return FUN_00148440(&data, 0, 0.0f, 1.0f);
+}
