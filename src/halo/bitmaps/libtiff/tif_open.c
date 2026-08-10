@@ -328,11 +328,15 @@ void FUN_0006cac0(void *tif_)
  * FUN_0006c680/FUN_0006c6f0 take their `stride` in -- and +0x0c, the
  * accumulator itself (0x6cd1f `call dword ptr [esi+0xc]`). This is upstream
  * libtiff's TIFFPredictorState with Bungie's explicit-stride accumulator
- * signature; everything before +0x08 is unproven from this function. */
+ * signature; everything before +0x08 is unproven from this function.
+ * +0x0a comes from FUN_0006cd40, which reads it as a word at 0x6cd71 and
+ * 0x6cd7f and uses it as both the accumulator's byte count and the stride
+ * by which the tile buffer advances -- upstream's TIFFPredictorState.rowsize
+ * narrowed to 16 bits. Offsets 0x00-0x07 remain unobserved. */
 typedef struct tiff_predictor_state_s {
   char pad_00[8];
   unsigned short stride; /* 0x08 samples between a value and its predecessor */
-  char pad_0a[2];
+  unsigned short rowsize; /* 0x0a bytes per decoded row (0x6cd71/0x6cd7f) */
   void (*pfunc)(char *cp, int cc, int stride); /* 0x0c horizontal accumulator */
 } tiff_predictor_state_t;
 
@@ -368,4 +372,47 @@ int FUN_0006ccf0(void *tif_, char *op0, int occ0, int s)
     return 1;
   }
   return 0;
+}
+
+/**
+ * Decode a whole tile/strip through the predictor: run the parent codec once,
+ * then undo the horizontal differencing one row at a time.
+ *
+ * Upstream libtiff's PredictorDecodeTile, with the same two Bungie deviations
+ * seen in FUN_0006ccf0: the parent codec is called directly (0x6cd5c
+ * `call 0x6cb00`) instead of through a codetile slot, and the accumulator
+ * takes the stride as an explicit third argument.
+ *
+ * The state pointer is loaded from the handle BEFORE the codec call (0x6cd4e,
+ * kept in callee-saved ESI across it), so the loop runs against the state as
+ * it was on entry. Both words are re-read from the state inside the loop --
+ * `stride` at the top of every iteration (0x6cd75) and `rowsize` after every
+ * accumulator call (0x6cd7f), whose value then feeds BOTH the count decrement
+ * and the buffer advance. Hoisting either read out of the loop would change
+ * behaviour if the accumulator mutates the state, and it is not what the
+ * binary does.
+ *
+ * @param tif_ TIFF handle (declared void* so the generated header needs no
+ *             libtiff types); tif->tif_data must be the predictor state.
+ * @param op0  tile buffer, decoded in place by the codec then accumulated.
+ * @param occ0 byte count of the tile. Signed throughout (`test edi,edi / jg`),
+ *             so a rowsize that overshoots the remainder ends the loop.
+ * @param s    sample number, passed through to the parent codec untouched.
+ * @return 1 when the parent codec succeeded, 0 when it failed (the loop is
+ *         then not run).
+ */
+int FUN_0006cd40(void *tif_, char *op0, int occ0, int s)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  tiff_predictor_state_t *sp = (tiff_predictor_state_t *)tif->tif_data;
+
+  if (!FUN_0006cb00(tif_, op0, occ0, s)) {
+    return 0;
+  }
+  while (occ0 > 0) {
+    (*sp->pfunc)(op0, sp->rowsize, sp->stride);
+    occ0 -= sp->rowsize;
+    op0 += sp->rowsize;
+  }
+  return 1;
 }

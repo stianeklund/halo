@@ -34307,7 +34307,8 @@
     },
     {
      "addr": "0x6cd40",
-     "decl": "void FUN_0006cd40(void);"
+     "decl": "int FUN_0006cd40(void *tif, char *op0, int occ0, int s);",
+     "ported": true
     },
     {
      "addr": "0x6cda0",
