@@ -1330,3 +1330,132 @@ bool FUN_0014e940(int param_1, float *origin, float *delta, float radius,
 
   return hit;
 }
+
+/* 0x14ea10 — Walk the object sibling chain starting at first_handle (next at
+ * [obj+0xC4]) and, for every object inside the search sphere, add its
+ * collision features to the caller's feature buffer (param_8). Recurses into
+ * each object's child chain ([obj+0xC8]).
+ *
+ * Confirmed (disassembly 0x14ea10..0x14ec0f):
+ *  - cdecl, 8 stack args at EBP+0x08..+0x24; SUB ESP,0x60 + PUSH EBX/ESI/EDI.
+ *    EBX = param_8, EDI = current handle (live across the whole loop),
+ *    ESI = object pointer from 0x13d680.
+ *  - Reject filter, in order: handle == exclude_handle; [obj+0x04] bit0;
+ *    [obj+0x04] bit24; ([obj+0xB6] & 4) together with a zero type word at
+ *    [obj+0x64].
+ *  - Sphere reject at 0x14ea62: FLD [obj+0x5C]; FADD radius gives r, then
+ *    d = obj_center([obj+0x50..0x58]) - origin (object minus origin — the
+ *    FSUB operand order is object first). The FCOMPP / TEST AH,1 branch
+ *    rejects when d.y*d.y + d.z*d.z + d.x*d.x > r*r; the accumulation order
+ *    is dy, dz, dx (FLD ST2/FMUL ST3 chain) — do not reassociate.
+ *  - Dispatch at 0x14eaa5: MOVSX EAX,word[obj+0x64]; type_mask & (1 << (type+8))
+ *    gates a real MSVC switch over types 0..8 (index byte table at 0x14EC1C
+ *    feeding a jump table at 0x14EC10). Only case 0 and cases 1/6/7/8 do
+ *    work; 2..5 fall to the default at 0x14ebcd.
+ *  - The child recursion at 0x14ebf2 (8 args, ADD ESP,0x20) sits inside the
+ *    sphere test but OUTSIDE the type_mask gate, and passes the CHILD handle
+ *    [obj+0xC8] — not the sibling [obj+0xC4] that drives the do/while.
+ *  - FUN_0014c8e0 returns its result in AL only; EDI (the handle) is never
+ *    reloaded from it. Ghidra's `iVar9 = FUN_0014c8e0(...)` is register
+ *    aliasing and would corrupt the sibling walk.
+ *
+ * Frame (SUB ESP,0x60), derived from the EBP displacements:
+ *   EBP-0x60 (60)  FUN_001509c0 model context
+ *   EBP-0x24 (16)  FUN_0014c8e0 collision-bsp context
+ *   EBP-0x14 (12)  biped camera position (vector3)
+ *   EBP-0x08 (4)   biped camera height
+ *   EBP-0x04 (4)   shift temp for (1 << type)  [Ghidra: `local_c[1] = 1.4e-45`
+ *                  is really `MOV dword ptr [EBP-4],1`, not a float denormal]
+ * MSVC reused the dead `first_handle` parameter slot (EBP+0x0C) as the float
+ * `height_offset` out-parameter of biped_get_camera_height_and_offset; that
+ * reuse is reproduced here so the frame stays 0x60 bytes.
+ *
+ * Note: collision_features_from_point's param_3 is declared `int` in kb.json
+ * but the original stores it with FSTP [ESP+4] — it is a float dword. The
+ * value is forwarded bit-exact (never through a numeric cast). Likewise
+ * FUN_0014cde0/FUN_00150790 params 4 and 5 are raw float dwords. */
+void FUN_0014ea10(unsigned int type_mask, int first_handle, float *origin,
+                  float radius, float param_5, float param_6,
+                  int exclude_handle, int param_8)
+{
+  char *obj;
+  int cur;
+  int child;
+  int type;
+  float r;
+  float dx;
+  float dy;
+  float dz;
+  float camera_height;
+  float camera_pos[3];
+  int bsp_ctx[4];
+  int model_ctx[15];
+
+  cur = first_handle;
+  do {
+    obj = (char *)object_get_and_verify_type(cur, -1);
+
+    if (cur != exclude_handle && (*(unsigned int *)(obj + 4) & 1) == 0 &&
+        (*(unsigned int *)(obj + 4) & 0x1000000) == 0 &&
+        ((*(unsigned char *)(obj + 0xb6) & 4) == 0 ||
+         *(short *)(obj + 0x64) != 0)) {
+      r = *(float *)(obj + 0x5c) + radius;
+      dx = *(float *)(obj + 0x50) - origin[0];
+      dy = *(float *)(obj + 0x54) - origin[1];
+      dz = *(float *)(obj + 0x58) - origin[2];
+
+      if (dy * dy + dz * dz + dx * dx <= r * r) {
+        type = (int)*(short *)(obj + 0x64);
+
+        if ((type_mask & (1u << (type + 8))) != 0) {
+          switch (type) {
+            case 0:
+              if (((type_mask & 0x200000) == 0 ||
+                   (*(unsigned char *)(obj + 0x424) & 0x10) == 0) &&
+                  (*(int *)(obj + 0xcc) == -1 ||
+                   *(short *)(obj + 0x2a0) == -1)) {
+                /* &first_handle is the reused EBP+0x0C slot: the handle has
+                 * already been copied into `cur`, so MSVC repurposed it as
+                 * the float height_offset out-parameter. */
+                biped_get_camera_height_and_offset(cur,
+                                                   (vector3_t *)camera_pos,
+                                                   (float *)&first_handle,
+                                                   &camera_height);
+                camera_pos[2] = camera_pos[2] + *(float *)&first_handle;
+                camera_height = camera_height + param_6;
+                collision_features_from_point(
+                  (int)camera_pos, *(float *)&first_handle + param_5,
+                  *(int *)&camera_height, cur, -1, 0, 0xff, -1,
+                  (void *)param_8);
+              }
+              break;
+            case 1:
+            case 6:
+            case 7:
+            case 8:
+              if (((1 << type) & 2) != 0 && (type_mask & 0x400000) != 0) {
+                if (FUN_001509c0(model_ctx, cur) != 0) {
+                  FUN_00150790((int)model_ctx, (int)origin, radius,
+                               *(int *)&param_5, *(int *)&param_6, param_8);
+                }
+              } else {
+                if ((char)FUN_0014c8e0(bsp_ctx, cur) != 0) {
+                  FUN_0014cde0((int)bsp_ctx, (int)origin, radius,
+                               *(int *)&param_5, *(int *)&param_6, param_8);
+                }
+              }
+              break;
+          }
+        }
+
+        child = *(int *)(obj + 0xc8);
+        if (child != -1) {
+          FUN_0014ea10(type_mask, child, origin, radius, param_5, param_6,
+                       exclude_handle, param_8);
+        }
+      }
+    }
+
+    cur = *(int *)(obj + 0xc4);
+  } while (cur != -1);
+}
