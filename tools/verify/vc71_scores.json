@@ -26558,6 +26558,17 @@
       "score": 100.0,
       "source": "src/halo/ai/ai_profile.c"
     },
+    "ai_scripting_follow_distance": {
+      "addr": "0x58cc0",
+      "end": "0x58d33",
+      "kind": "auto",
+      "n_r": 43,
+      "opnd_percent": 85.1,
+      "ref": "synth",
+      "ref_sha": "b1c24ccf25d96932",
+      "score": 96.6,
+      "source": "src/halo/ai/encounters.c"
+    },
     "ai_test_line_of_fire": {
       "addr": "0x41590",
       "end": "0x416d7",

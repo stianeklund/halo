@@ -32978,7 +32978,8 @@
     },
     {
      "addr": "0x58cc0",
-     "decl": "void ai_scripting_follow_distance(int param_1, int param_2, int param_3);"
+     "decl": "void ai_scripting_follow_distance(unsigned int ai_index, int vehicle_handle, const char *seat_substring);",
+     "ported": true
     },
     {
      "addr": "0x58d40",
