@@ -18614,6 +18614,17 @@
       "score": 97.4,
       "source": "src/halo/physics/collision_usage.c"
     },
+    "FUN_0014dc30": {
+      "addr": "0x14dc30",
+      "end": "0x14dcd3",
+      "kind": "auto",
+      "n_r": 68,
+      "opnd_percent": 98.5,
+      "ref": "synth",
+      "ref_sha": "b050b349dab86c23",
+      "score": 100.0,
+      "source": "src/halo/physics/collision_bsp.c"
+    },
     "FUN_0014df70": {
       "addr": "0x14df70",
       "end": "0x14e632",

@@ -37219,7 +37219,8 @@
     },
     {
      "addr": "0x14dc30",
-     "decl": "char FUN_0014dc30(int param_1, float *pos, int param_3);"
+     "decl": "char FUN_0014dc30(int param_1, float *pos, int param_3);",
+     "ported": true
     },
     {
      "addr": "0x14dce0",

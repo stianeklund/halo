@@ -641,3 +641,59 @@ bool collision_bsp_test_pill_new(int bsp3d, short flags, int param3,
 
   return FUN_00148440(&data, 0, 0.0f, 1.0f);
 }
+
+/* 0x14dc30 - Point-vs-world collision test. If any of the collision-type
+ * flags (0xE0) are set, locate the BSP3D leaf containing `pos`; a leaf of -1
+ * (point outside the BSP) reports a hit. When flag bit 7 (0x80) is set and the
+ * global at 0x4761f8 is clear, walk the collideable object partition of the
+ * leaf's cluster and sphere-test each object list via FUN_0014db10; the first
+ * hit returns 1. Otherwise returns 0.
+ *
+ * Confirmed: cdecl, 3 stack args, char return in AL (XOR AL,AL at 0x14dcc7 /
+ * MOV AL,1 at 0x14dcce). No FPU ops anywhere in the function. Entry test is
+ * TEST BL,0xE0. The original has no locals (no `sub esp`) - the iterator state
+ * is written into the incoming [EBP+8] arg slot, but EBX/EDI/ESI already hold
+ * param_1/pos/param_3 before that happens, so using a separate local here is
+ * behaviourally identical (same idiom as the sibling loops in
+ * collision_usage.c). */
+char FUN_0014dc30(int param_1, float *pos, int param_3)
+{
+  uint32_t leaf;
+  char use_water;
+  void *elem;
+  int16_t cluster_idx;
+  int object_handle;
+  int iter_state;
+
+  if ((param_1 & 0xe0) != 0) {
+    leaf = bsp3d_find_leaf(FUN_0018e420(), 0, pos);
+
+    /* SHR ECX,7 / AND CL,1, then zeroed when the global is set. */
+    use_water = (char)(((uint32_t)param_1 >> 7) & 1);
+    if (*(char *)0x4761f8 != '\0')
+      use_water = 0;
+
+    if (leaf == 0xffffffff)
+      return 1;
+
+    if (use_water != 0) {
+      /* Ghidra cdecl arg mis-grouping (ADD ESP,0x14 covers these pushes plus
+       * the iter_first pushes): block is scenario_get()+0xe0, index is
+       * leaf&0x7fffffff, element size 0x10. Cluster index is MOVSX word
+       * [elem+8] - int16, sign-extended. */
+      elem = tag_block_get_element((char *)scenario_get() + 0xe0,
+                                   leaf & 0x7fffffff, 0x10);
+      cluster_idx = *(int16_t *)((char *)elem + 8);
+
+      object_handle =
+        cluster_partition_object_iter_first(&iter_state, cluster_idx);
+      while (object_handle != -1) {
+        if (FUN_0014db10(object_handle, param_1, (int)pos, param_3)) {
+          return 1;
+        }
+        object_handle = cluster_partition_object_iter_next(&iter_state);
+      }
+    }
+  }
+  return 0;
+}
