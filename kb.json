@@ -37173,7 +37173,9 @@
     },
     {
      "addr": "0x1486e0",
-     "decl": "void FUN_001486e0(void);"
+     "decl": "void FUN_001486e0(void *state, int node_index);",
+     "ported": true,
+     "source_path": "src/halo/physics/collision_bsp.c"
     },
     {
      "addr": "0x148780",

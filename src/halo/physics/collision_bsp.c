@@ -617,6 +617,72 @@ int collision_surface_test_line2d(int bsp, int surface_index, int param3,
   return 0;
 }
 
+/* 0x1486e0
+ *
+ * Recursive descent through a 2D BSP with a two-sided plane epsilon: visits
+ * every node whose splitting line the query point straddles within `epsilon`,
+ * and hands each reached leaf to FUN_00147ed0.
+ *
+ * `state` is the walk context; only four fields are touched here:
+ *   +0x000 pointer to the bsp tag base; the 2D-node tag_block sits at +0x30
+ *   +0x010 float epsilon (used for BOTH the +eps and -eps bound; the original
+ *          re-reads the field for each compare rather than caching it)
+ *   +0x220 float query x
+ *   +0x224 float query y
+ *
+ * Node record is 0x14 bytes:
+ *   +0x00 float i, +0x04 float j  (2D plane normal)
+ *   +0x08 float d                 (plane offset)
+ *   +0x0c int front child, +0x10 int back child
+ * A negative child index is a leaf: bit 31 is the leaf flag, so the index is
+ * masked with 0x7fffffff before it reaches FUN_00147ed0 (which takes its
+ * state pointer in EAX, @<eax>).
+ *
+ * Ordering is load-bearing and is taken from the disassembly, not the
+ * decompile:
+ *  - The sum is built as `j*y` FIRST (`FLD [ESI+4]; FMUL [EDI+0x224]`) and
+ *    `x*i` second (`FLD [EDI+0x220]; FMUL [ESI]`), then FADDP; Ghidra prints
+ *    the addends in the opposite order because it normalises commutative adds.
+ *  - `FSUB dword ptr [ESI+8]` is sum MINUS the plane offset, not the reverse.
+ *  - BOTH comparisons are evaluated before either branch is taken: FCOM
+ *    against +epsilon latches the front flag into CL, then FLD/FCHS/FXCH/
+ *    FCOMPP against -epsilon latches the back flag into BL. The recursive
+ *    call happens after both flags exist, so the flags must be materialised
+ *    into byte-wide locals up front rather than folded into the `if`s.
+ *
+ * The loop is the rotated form MSVC emits for `while`: the entry sign test
+ * jumps straight to the leaf handler, and the bottom `MOV ESI,[ESI+0x10];
+ * JNS` either re-enters the body or falls through to that same leaf handler.
+ */
+void FUN_001486e0(void *state, int node_index)
+{
+  float *node;
+  float d;
+  unsigned char front; /* CL in the original */
+  unsigned char back; /* BL in the original */
+
+  while (node_index >= 0) {
+    node = (float *)tag_block_get_element((void *)(*(int *)state + 0x30),
+                                          node_index, 0x14);
+
+    d = node[1] * *(float *)((char *)state + 0x224) +
+        *(float *)((char *)state + 0x220) * node[0] - node[2];
+
+    front = (unsigned char)(d > *(float *)((char *)state + 0x10));
+    back = (unsigned char)(d < -*(float *)((char *)state + 0x10));
+
+    if (front) {
+      FUN_001486e0(state, ((int *)node)[3]);
+    }
+    if (!back) {
+      return;
+    }
+    node_index = ((int *)node)[4];
+  }
+
+  FUN_00147ed0(state, node_index & 0x7fffffff);
+}
+
 /* 0x148b20 - collision_bsp_test_pill_new
  *
  * Packs the eight caller arguments plus three fixed defaults into a 0x2c-byte
