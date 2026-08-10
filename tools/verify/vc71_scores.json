@@ -19791,6 +19791,17 @@
       "score": 90.8,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_shadows.c"
     },
+    "FUN_00173090": {
+      "addr": "0x173090",
+      "end": "0x173642",
+      "kind": "auto",
+      "n_r": 353,
+      "opnd_percent": 78.4,
+      "ref": "synth",
+      "ref_sha": "dabff17718ec07e2",
+      "score": 89.2,
+      "source": "src/halo/rasterizer/xbox/rasterizer_xbox_shadows.c"
+    },
     "FUN_00173ae0": {
       "addr": "0x173ae0",
       "end": "0x173ae1",

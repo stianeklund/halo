@@ -6386,7 +6386,7 @@
     },
     {
      "addr": "0x17ccf0",
-     "decl": "void FUN_0017ccf0(int param_1, int param_2, int param_3, int param_4, int param_5, int param_6);",
+     "decl": "void FUN_0017ccf0(void *shader, int param_2, int vertices_per_primitive, int a2, int triangle_count, void *vertex_buffer);",
      "ported": true
     },
     {
@@ -19573,10 +19573,6 @@
      "ported": true
     },
     {
-     "addr": "0x173090",
-     "decl": "void FUN_00173090(int param_1, int param_2, int param_3, int param_4, int param_5, int param_6);"
-    },
-    {
      "addr": "0x173ae0",
      "decl": "void FUN_00173ae0(void);",
      "ported": true
@@ -29299,7 +29295,7 @@
     },
     {
      "addr": "0x17edd0",
-     "decl": "void rasterizer_frame_statistics_count_static_vertices(void);"
+     "decl": "int rasterizer_frame_statistics_count_static_vertices(int vertices_per_primitive, int a2, int triangle_count);"
     },
     {
      "addr": "0x17ef00",
@@ -37617,6 +37613,11 @@
     {
      "addr": "0x172de0",
      "decl": "void FUN_00172de0(void *shader, int frame_index, void *triangle_buffer, void *vertex_buffer);",
+     "ported": true
+    },
+    {
+     "addr": "0x173090",
+     "decl": "void FUN_00173090(void *shader, int param_2, int vertices_per_primitive, int a2, int triangle_count, void *vertex_buffer);",
      "ported": true
     }
    ]
