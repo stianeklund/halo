@@ -2075,6 +2075,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x648a0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "FUN_000647c0 retains its actor_handle stack argument because every observed caller passes the parent actor handle, although its recovered body does not read that argument."
+      ],
+      "uncertain": [
+        "No prop datum layout is recovered here, so accesses at offsets 0x04 and 0x0c remain raw pointer arithmetic."
+      ]
+    },
     "0x64a80": {
       "kind": "function",
       "status": "ported"

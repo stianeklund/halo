@@ -33808,7 +33808,7 @@
     },
     {
      "addr": "0x64170",
-     "decl": "void prop_add(void);"
+      "decl": "void prop_add(int unit_handle@<eax>, int actor_handle, int prop_handle);"
     },
     {
      "addr": "0x643d0",
@@ -33820,11 +33820,12 @@
     },
     {
      "addr": "0x647c0",
-     "decl": "void FUN_000647c0(void);"
+      "decl": "void FUN_000647c0(int parent_prop_handle@<eax>, int actor_handle, int orphan_prop_handle);"
     },
     {
      "addr": "0x648a0",
-     "decl": "int prop_orphan_transition(int actor_handle, int prop_handle);"
+      "decl": "int prop_orphan_transition(int actor_handle, int prop_handle);",
+      "ported": true
     },
     {
      "addr": "0x64970",

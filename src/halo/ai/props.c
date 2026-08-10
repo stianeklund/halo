@@ -245,6 +245,52 @@ int FUN_00064570(int *iter)
   return (int)prop;
 }
 
+/* 0x648a0 — prop_orphan_transition.
+ *
+ * Allocates a new prop with no unit handle, initializes it from prop_handle,
+ * and links the parent/orphan records through prop+0xc. The source prop must
+ * belong to actor_handle and must not already have an orphan.
+ *
+ * Call-site verification (disasm 0x648a0):
+ *   data_new_at_index: PUSH [0x5ab23c] -> prop_data
+ *   prop_add:          EAX=-1, PUSH ESI -> new handle,
+ *                      PUSH [EBP+8] -> actor_handle
+ *   FUN_000647c0:      EAX=EBX -> prop_handle,
+ *                      PUSH ESI -> new handle,
+ *                      PUSH [EBP+8] -> actor_handle
+ *
+ * Store offsets (from disasm):
+ *   parent_prop+0x0c: new orphan handle
+ *   orphan_prop+0x0c: parent prop handle
+ */
+int prop_orphan_transition(int actor_handle, int prop_handle)
+{
+  int orphan_handle;
+  char *parent_prop;
+  char *orphan_prop;
+
+  orphan_handle = data_new_at_index(prop_data);
+  prop_add(-1, actor_handle, orphan_handle);
+  if (orphan_handle != -1) {
+    parent_prop = (char *)datum_get(prop_data, prop_handle);
+    orphan_prop = (char *)datum_get(prop_data, orphan_handle);
+    if (*(int *)(parent_prop + 4) != actor_handle) {
+      display_assert("parent_prop->owner_actor_index == actor_index",
+                     "c:\\halo\\SOURCE\\ai\\props.c", 0x155, 1);
+      system_exit(-1);
+    }
+    if (*(int *)(parent_prop + 0xc) != -1) {
+      display_assert("parent_prop->orphan_prop_index == NONE",
+                     "c:\\halo\\SOURCE\\ai\\props.c", 0x156, 1);
+      system_exit(-1);
+    }
+    FUN_000647c0(prop_handle, actor_handle, orphan_handle);
+    *(int *)(parent_prop + 0xc) = orphan_handle;
+    *(int *)(orphan_prop + 0xc) = prop_handle;
+  }
+  return orphan_handle;
+}
+
 /* 0x64a80 — prop_detach.
  * Removes the prop record identified by prop_handle from the actor's prop
  * chain and then frees it from prop_data.
