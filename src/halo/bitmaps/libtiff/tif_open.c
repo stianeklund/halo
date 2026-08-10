@@ -88,3 +88,42 @@ void FUN_0006c6f0(unsigned short *wp, int cc, int stride)
     } while (wc > 0);
   }
 }
+
+/**
+ * Apply horizontal differencing over a scanline of 8-bit samples in place.
+ *
+ * The encode-side inverse of FUN_0006c680 (libtiff tif_predict.c horDiff8):
+ * each sample has its horizontal predecessor subtracted from it. Because the
+ * predecessor must still hold its ORIGINAL value when it is read, the walk
+ * runs BACKWARD from the end of the row -- `lea eax,[eax+edi-1]` at 0x6c873
+ * seeds the cursor at cp + (cc - stride) - 1 and every body ends in `dec eax`.
+ * Walking forward here would feed already-differenced bytes back in.
+ *
+ * Bungie's copy omits the upstream stride==3 / stride==4 pipelined arms and
+ * keeps only the generic REPEAT4 tail: the binary goes straight from the LEA
+ * to the `cmp ecx,4 / ja` bound check and the five-entry jump table at
+ * 0x6c8bc. Same Duff device as the accumulate twins above.
+ *
+ * The loop head is the `cmp ecx,4` at 0x6c878, not the switch body, so the
+ * stride dispatch is re-evaluated on every outer pass -- the do/while below
+ * reproduces that. Direction is `cp[stride] -= cp[0]` (`mov dl,[eax]` then
+ * `sub byte ptr [eax+ecx],dl`); the subtraction is NOT reversible. Byte math
+ * wraps, and both compares are signed (`jle` / `jg`), so `cc` and `stride`
+ * stay `int`. stride==0 with cc>0 spins forever here exactly as upstream does.
+ *
+ * @param cp     scanline base; at least `cc` bytes of caller memory.
+ * @param cc     byte count of the scanline.
+ * @param stride bytes between a sample and its horizontal predecessor
+ *               (samples-per-pixel).
+ */
+void FUN_0006c860(char *cp, int cc, int stride)
+{
+  if (cc > stride) {
+    cc -= stride;
+    cp += cc - 1;
+    do {
+      REPEAT4(stride, cp[stride] = (char)(cp[stride] - *cp); cp--)
+      cc -= stride;
+    } while (cc > 0);
+  }
+}
