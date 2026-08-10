@@ -55,3 +55,36 @@ void FUN_0006c680(char *cp, int cc, int stride)
     } while (cc > 0);
   }
 }
+
+/**
+ * Undo horizontal differencing over a scanline of 16-bit samples in place.
+ *
+ * The 16-bit twin of FUN_0006c680: same REPEAT4 Duff device (jump table at
+ * 0x6c764, five entries for stride 0..4, reached through `cmp edx,4 / ja`),
+ * but every access is word-wide -- `mov si,[ecx]` / `add [ecx+edx*2], si` /
+ * `add ecx,2` -- so the element type is 16-bit, not int.
+ *
+ * `cc` is a byte count that is halved to a word count before the compare.
+ * The halving is SIGNED in the binary (`cdq / sub eax,edx / sar eax,1`), so
+ * `cc` is a signed int; an unsigned count would emit a bare `shr`.
+ *
+ * The accumulation direction is `wp[stride] += wp[0]` -- the destination is
+ * the FAR element and the source the near one. Reversing it still compiles
+ * and still scores, so it is checked against 0x6c730 explicitly.
+ *
+ * @param wp     scanline base; at least `cc` bytes of caller memory.
+ * @param cc     byte count of the scanline (halved internally to words).
+ * @param stride words between a sample and its horizontal predecessor.
+ */
+void FUN_0006c6f0(unsigned short *wp, int cc, int stride)
+{
+  int wc = cc / 2;
+
+  if (wc > stride) {
+    wc -= stride;
+    do {
+      REPEAT4(stride, wp[stride] += wp[0]; wp++)
+      wc -= stride;
+    } while (wc > 0);
+  }
+}
