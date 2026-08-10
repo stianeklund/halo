@@ -34298,11 +34298,12 @@
     },
     {
      "addr": "0x6cb00",
-     "decl": "void FUN_0006cb00(void);"
+     "decl": "int FUN_0006cb00(void *tif, char *op0, int occ0, int s);"
     },
     {
      "addr": "0x6ccf0",
-     "decl": "void FUN_0006ccf0(void);"
+     "decl": "int FUN_0006ccf0(void *tif, char *op0, int occ0, int s);",
+     "ported": true
     },
     {
      "addr": "0x6cd40",

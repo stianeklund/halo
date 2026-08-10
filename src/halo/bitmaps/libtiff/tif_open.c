@@ -320,3 +320,52 @@ void FUN_0006cac0(void *tif_)
     tif->tif_data = 0;
   }
 }
+
+/* Predictor private state, reached through TIFF::tif_data. Only two offsets
+ * are touched here: +0x08, read as a zero-extended word (0x6cd18
+ * `movzx edx, word ptr [esi+8]`) and handed to the accumulator as its third
+ * argument -- the same slot the already-recovered horizontal accumulators
+ * FUN_0006c680/FUN_0006c6f0 take their `stride` in -- and +0x0c, the
+ * accumulator itself (0x6cd1f `call dword ptr [esi+0xc]`). This is upstream
+ * libtiff's TIFFPredictorState with Bungie's explicit-stride accumulator
+ * signature; everything before +0x08 is unproven from this function. */
+typedef struct tiff_predictor_state_s {
+  char pad_00[8];
+  unsigned short stride; /* 0x08 samples between a value and its predecessor */
+  char pad_0a[2];
+  void (*pfunc)(char *cp, int cc, int stride); /* 0x0c horizontal accumulator */
+} tiff_predictor_state_t;
+
+/**
+ * Decode one scanline through the predictor: run the parent codec, then undo
+ * the horizontal differencing in place.
+ *
+ * Upstream libtiff's PredictorDecodeRow. Two differences from stock, both
+ * proven by the disassembly: the parent codec row decoder is called directly
+ * (0x6cd0c `call 0x6cb00`) rather than through a coderow slot in the state,
+ * and the accumulator receives the stride as an explicit third argument
+ * instead of fetching it from the state itself.
+ *
+ * The state pointer is loaded from the handle BEFORE the codec call (0x6ccfe,
+ * kept in callee-saved ESI across it) and is never re-read afterwards, so the
+ * accumulator runs against the state as it was on entry.
+ *
+ * @param tif_ TIFF handle (declared void* so the generated header needs no
+ *             libtiff types); tif->tif_data must be the predictor state.
+ * @param op0  scanline buffer, decoded in place by the codec then accumulated.
+ * @param occ0 byte count of the scanline.
+ * @param s    sample number, passed through to the parent codec untouched.
+ * @return 1 when the parent codec succeeded and the row was accumulated,
+ *         0 when it failed (the accumulator is then not run).
+ */
+int FUN_0006ccf0(void *tif_, char *op0, int occ0, int s)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  tiff_predictor_state_t *sp = (tiff_predictor_state_t *)tif->tif_data;
+
+  if (FUN_0006cb00(tif_, op0, occ0, s)) {
+    (*sp->pfunc)(op0, occ0, sp->stride);
+    return 1;
+  }
+  return 0;
+}
