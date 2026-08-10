@@ -20,6 +20,14 @@ void FUN_001544d0(float *param_1, float *param_2, char param_3, float param_4)
   }
 }
 
+/* 0x1546b0 */
+void FUN_001546b0(float *param_1, float *param_2, float *param_3, char param_4,
+                  float param_5)
+{
+  FUN_00154540(param_2, param_3 + 2, param_5);
+  FUN_001544d0(param_1, param_3, param_4, *param_2);
+}
+
 void point_physics_initialize_for_new_map(void)
 {
   *(float *)0x476200 = *(float *)0x325134 * *(float *)0x29d954;

@@ -18977,6 +18977,17 @@
       "score": 100.0,
       "source": "src/halo/physics/point_physics.c"
     },
+    "FUN_001546b0": {
+      "addr": "0x1546b0",
+      "end": "0x1546e1",
+      "kind": "auto",
+      "n_r": 25,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "5bc0d84a033e4774",
+      "score": 100.0,
+      "source": "src/halo/physics/point_physics.c"
+    },
     "FUN_001550c0": {
       "addr": "0x1550c0",
       "end": "0x1550db",

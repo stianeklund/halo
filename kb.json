@@ -18624,7 +18624,7 @@
     },
     {
      "addr": "0x154540",
-     "decl": "void FUN_00154540(void);"
+     "decl": "void FUN_00154540(float *param_1, float *param_2, float param_3);"
     },
     {
      "addr": "0x154630",
@@ -18632,7 +18632,8 @@
     },
     {
      "addr": "0x1546b0",
-     "decl": "void FUN_001546b0(void);"
+     "decl": "void FUN_001546b0(float *param_1, float *param_2, float *param_3, char param_4, float param_5);",
+     "ported": true
     },
     {
      "addr": "0x1546f0",

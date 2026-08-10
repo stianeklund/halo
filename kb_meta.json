@@ -11161,6 +11161,16 @@
         "Resolved from void(void) to a 10-arg cdecl collision/line-of-sight query returning a u16 result count in AX; arg9 is the max-result count (0x10) and arg10 is the base of a 16-entry 0x2c-byte result array; arg4 is a float field pushed as physics[0x15]."
       ]
     },
+    "0x1546b0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The wrapper forwards param_3 + 2 to FUN_00154540 before it passes param_3 as the bounds pointer to FUN_001544d0."
+      ],
+      "uncertain": [
+        "No direct code xrefs to FUN_001546b0 were present in the analyzed XBE, so its external caller-side argument construction was not observed."
+      ]
+    },
     "0x154860": {
       "kind": "function",
       "status": "ported"
