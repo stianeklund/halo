@@ -444,7 +444,6 @@ void FUN_0009fd30(void *ps_arg, int16_t type_index, float dt)
   char *particle;
   char marker_buf[8 * 0x6c]; /* 8 entries at 0x6c bytes each; original SUB
                                 ESP,0x380 */
-  float local_up[3];
   int particle_handle;
   short loop_count;
   unsigned short target_count;
@@ -477,7 +476,11 @@ void FUN_0009fd30(void *ps_arg, int16_t type_index, float dt)
     state_def = (char *)tag_block_get_element((void *)(type_def + 0x68),
                                               (int)*(short *)type_state, 0xc0);
     emit_frac = dt * *(float *)(type_state + 0x30);
-    emit_count_int = (int)emit_frac;
+    /* 0x9fdc8-0x9fdd0: `call _ftol2; movsx edx,ax; mov [ebp-0xc],edx` --
+       the ftol result is truncated to a SIGNED 16-bit value before being
+       stored, and it is that truncated value which 0x9fdd9 `fisub
+       dword [ebp-0xc]` converts back to float. */
+    emit_count_int = (short)(int)emit_frac;
     target_count =
       (unsigned int)(unsigned short)(*(short *)(type_state + 0x3a) +
                                      (short)emit_count_int);
@@ -522,12 +525,20 @@ void FUN_0009fd30(void *ps_arg, int16_t type_index, float dt)
        original's 0x380. */
     int *pos_src = (int *)(ps + 0x20);
     int *pos_dst = (int *)(marker_buf + 0x60);
+    /* 0x9fe92-0x9febf: `mov edx,[0x31fc38]` then three dword copies to
+       [ebp-0x344], [ebp-0x340], [ebp-0x33c].  marker_buf is at EBP-0x380
+       (proved by 0x9fe39 `lea ecx,[ebp-0x380]` and 0x9ffe3
+       `lea ecx,[ebp+eax-0x380]`), so 0x380-0x344 = marker_buf+0x3c.  This
+       previously went to a dead local array, which clang eliminated --
+       leaving the creation-physics callee reading uninitialized stack. */
+    int *up_src = (int *)*(int *)0x31fc38;
+    int *up_dst = (int *)(marker_buf + 0x3c);
     pos_dst[0] = pos_src[0];
     pos_dst[1] = pos_src[1];
     pos_dst[2] = pos_src[2];
-    local_up[0] = *(float *)(*(int *)0x31fc38 + 0);
-    local_up[1] = *(float *)(*(int *)0x31fc38 + 4);
-    local_up[2] = *(float *)(*(int *)0x31fc38 + 8);
+    up_dst[0] = up_src[0];
+    up_dst[1] = up_src[1];
+    up_dst[2] = up_src[2];
     location_valid = 1;
   }
 
@@ -576,12 +587,18 @@ void FUN_0009fd30(void *ps_arg, int16_t type_index, float dt)
       system_exit(-1);
     }
 
-    /* Call creation physics via function table */
+    /* Call creation physics via function table.
+       0x9ffd8 calls 0x10b2d0 = random_range (int16_t result in AX), NOT
+       random_real_range (0x10b270, used above for the rotation).  Its result
+       selects which marker to use: 0x9ffdd-0x9ffe3
+       `movsx eax,ax; imul eax,eax,0x6c; lea ecx,[ebp+eax-0x380]`, i.e.
+       marker_buf + index*0x6c.  We previously discarded the result and always
+       passed element 0. */
     {
-      random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
-                        (float)location_valid);
+      int marker_index = (int)random_range(random_math_get_local_seed_address(),
+                                           0, location_valid);
       ((creation_physics_fn *)(0x26ab10))[creation_func_idx](
-        ps, (short)type_index, particle, marker_buf);
+        ps, (short)type_index, particle, marker_buf + marker_index * 0x6c);
     }
 
     /* Resolve particle location from its position */
