@@ -32979,7 +32979,8 @@
     },
     {
      "addr": "0x58d40",
-     "decl": "void FUN_00058d40(int handle);"
+     "decl": "void ai_renew(int handle);",
+     "ported": true
     }
    ],
    "name": "ai_script.obj",

@@ -26514,6 +26514,17 @@
       "score": 100.0,
       "source": "src/halo/ai/ai.c"
     },
+    "ai_renew": {
+      "addr": "0x58d40",
+      "end": "0x58ea9",
+      "kind": "auto",
+      "n_r": 116,
+      "opnd_percent": 88.8,
+      "ref": "synth",
+      "ref_sha": "2f3abad8f8eb39ee",
+      "score": 97.4,
+      "source": "src/halo/ai/ai_script.c"
+    },
     "ai_script_dispose": {
       "addr": "0x540c0",
       "end": "0x540c1",

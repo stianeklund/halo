@@ -10978,7 +10978,8 @@ void FUN_000c0770(int16_t function_index, int thread_datum, char init)
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
     /* dwords @ +0x0 / +0x4 / +0x8, in C argument order */
-    ai_scripting_follow_distance(record[0], record[1], record[2]);
+    ai_scripting_follow_distance((unsigned int)record[0], record[1],
+                                 (const char *)record[2]);
     hs_return(thread_datum, 0);
   }
 }
@@ -11415,7 +11416,7 @@ void FUN_000c0970(int16_t function_index, int thread_datum, char init)
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    FUN_00058d40(result[0]);
+    ai_renew(result[0]);
     hs_return(thread_datum, 0);
   }
 }
