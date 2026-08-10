@@ -20768,7 +20768,7 @@
     {
      "addr": "0x1ada0",
      "decl": "char FUN_0001ada0(int actor_handle@<eax>, int vehicle_handle@<esi>, char param_2, float param_3, float param_4, char param_5, char param_6);",
-     "ported": true
+     "ported": false
     },
     {
      "addr": "0x109010",
@@ -20960,7 +20960,7 @@
     {
      "addr": "0x10a5e0",
      "decl": "float FUN_0010a5e0(int16_t function_type, float input);",
-     "ported": true
+     "ported": false
     },
     {
      "addr": "0x10a710",
@@ -21411,9 +21411,9 @@
      "ported": true
     },
     {
-      "addr": "0x111770",
-      "decl": "void FUN_00111770(int state @<esi>);",
-      "ported": true
+     "addr": "0x111770",
+     "decl": "void FUN_00111770(int state @<esi>);",
+     "ported": false
     },
     {
      "addr": "0x111910",
@@ -21463,7 +21463,7 @@
     {
      "addr": "0x1128c0",
      "decl": "void FUN_001128c0(int gz @<eax>);",
-     "ported": true
+     "ported": false
     },
     {
      "addr": "0x112cd0",
@@ -21533,7 +21533,7 @@
     {
      "addr": "0x113230",
      "decl": "void * FUN_00113230(char *path, int fd, char *mode@<eax>);",
-     "ported": true
+     "ported": false
     },
     {
      "addr": "0x113480",
