@@ -34415,7 +34415,8 @@
     },
     {
      "addr": "0x6d980",
-     "decl": "void FUN_0006d980(void);"
+     "decl": "int FUN_0006d980(void *tif);",
+     "ported": true
     },
     {
      "addr": "0x6d9c0",
@@ -34562,7 +34563,7 @@
     },
     {
      "addr": "0x6f890",
-     "decl": "void FUN_0006f890(void);"
+     "decl": "int FUN_0006f890(void *tif);"
     },
     {
      "addr": "0x6f8d0",

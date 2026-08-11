@@ -778,6 +778,15 @@ int FUN_0006d4d0(void *tif_)
  *             rather than widening the prototype and every call site.
  * @return bytes per scanline, rounded up to a whole byte. Returned in EAX.
  */
+/* Not auto-inlinable: the reference at 0x6d992 CALLS this function rather
+ * than expanding it, which is only possible if it lived in its own
+ * translation unit (upstream libtiff has it in tif_strip.c). kb.json lumps
+ * every vendored libtiff object into tif_open.obj, so MSVC 7.1 sees a small
+ * same-TU callee and inlines it, costing 6 instructions at every call site.
+ * The pragma restores the original call. */
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma auto_inline(off)
+#endif
 int TIFFScanlineSize(int file)
 {
   tiff_t *tif = (tiff_t *)file;
@@ -789,6 +798,9 @@ int TIFFScanlineSize(int file)
   }
   return (int)TIFFhowmany8(scanline);
 }
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma auto_inline(on)
+#endif
 
 /**
  * Name of the file backing an open TIFF handle.
@@ -1127,22 +1139,22 @@ static int _TIFFgetMode(const char *mode, const char *module)
   int m = -1;
 
   switch (mode[0]) {
-    case 'r':
-      m = _O_RDONLY;
-      if (mode[1] == '+') {
-        m = _O_RDWR;
-      }
-      break;
-    case 'w':
-    case 'a':
-      m = _O_RDWR | _O_CREAT;
-      if (mode[0] == 'w') {
-        m |= _O_TRUNC;
-      }
-      break;
-    default:
-      FUN_00068a30(module, "\"%s\": Bad mode", mode);
-      break;
+  case 'r':
+    m = _O_RDONLY;
+    if (mode[1] == '+') {
+      m = _O_RDWR;
+    }
+    break;
+  case 'w':
+  case 'a':
+    m = _O_RDWR | _O_CREAT;
+    if (mode[0] == 'w') {
+      m |= _O_TRUNC;
+    }
+    break;
+  default:
+    FUN_00068a30(module, "\"%s\": Bad mode", mode);
+    break;
   }
   return m;
 }
@@ -1163,4 +1175,80 @@ int FUN_0006d8e0(const char *path, const char *mode)
     return 0;
   }
   return TIFFFdOpen(fd, path, mode);
+}
+
+/**
+ * Recompute the handle's cached row size after the directory changes.
+ *
+ * Ghidra's cached listing has 0x6d980 as `void(void)`: both the stack
+ * parameter and the EAX return are the void-EAX / dropped-parameter artifact
+ * (lift-learnings s16), so the disassembly at 0x6d980-0x6d9ba is the only
+ * usable evidence. Eleven instructions per arm, cdecl, one stack argument
+ * (`mov esi,[ebp+8]`), no locals -- there is no `sub esp`, so no `tiff_t *`
+ * temp is introduced, matching TIFFIsTiled and TIFFGetMode above.
+ *
+ * The argument is pushed ONCE at 0x6d98c, before the `jns` at 0x6d98d, and is
+ * shared by whichever CALL runs; each arm then does its own `add esp,4`. That
+ * is a scheduling detail of the original, not two different argument lists --
+ * both callees take the same single `tif` and return their result in EAX.
+ *
+ * The branch is a signed test of the byte at 0x0a (`mov al,[esi+0xa] / test
+ * al,al / jns`), i.e. the same bit-7 flag TIFFIsTiled returns; the sign-set
+ * (tiled) arm falls through to TIFFTileRowSize and the sign-clear arm jumps to
+ * TIFFScanlineSize. Written as `< 0` rather than via TIFFIsTiled because the
+ * original does not call it -- the flag is tested inline.
+ *
+ * 0x6f890 is upstream TIFFTileRowSize: its body at 0x6f890-0x6f8c0 matches upstream
+ * libtiff instruction for instruction (null-check td_tilelength at 0x2c and
+ * td_tilewidth at 0x28, `td_bitspersample * td_tilewidth`, `*=
+ * td_samplesperpixel` when td_planarconfig is PLANARCONFIG_CONTIG, then
+ * howmany8). It lives in tif_write.obj and keeps its mechanical name because
+ * the XBE import library is keyed on it, so only its kb.json prototype is
+ * corrected here; its body is not part of this port.
+ *
+ * UNRESOLVED: the destination offset 0x120 is written here with a byte count,
+ * but the same offset is a freeable pointer everywhere else in this TU --
+ * 0x6cac6 loads it, passes it to _TIFFfree and stores 0 back, and 0x6c96c
+ * dereferences it as the bit-writer state. Both readings are disassembly, not
+ * inference, so one of them is not `tif_data`. Upstream libtiff places
+ * tif_scanlinesize immediately after tif_data, which would put it at 0x124,
+ * not 0x120; nothing local decides between "Bungie reused the slot" and "the
+ * surrounding field boundaries are off by one word". Until that is settled the
+ * store stays an explicit raw-offset write rather than claiming a field name:
+ * spelling it `tif_data` would assert a pointer here, and inventing
+ * `tif_scanlinesize` would contradict the free at 0x6cac6. Codegen is
+ * identical either way (`mov [esi+0x120],eax`).
+ *
+ * The strip arm must be a CALL, not an inlined copy of TIFFScanlineSize. Both
+ * live in tif_open.c here only because kb.json lumps every vendored libtiff
+ * object into tif_open.obj; upstream keeps TIFFScanlineSize in tif_strip.c, and
+ * the reference's `call 0x6d820` proves the original saw it across a TU
+ * boundary. Left to itself MSVC 7.1 expands it (28 candidate instructions
+ * against 22 reference, 72.0%), so its definition is bracketed in
+ * `#pragma auto_inline(off)` -- 95.5% with an exact 22/22 instruction count,
+ * guarded to cl.exe only because clang rejects the pragma under -Werror and
+ * its codegen is not what is scored,
+ * and TIFFScanlineSize's own score is unchanged at 100.0%.
+ *
+ * The single residual instruction is the branch opcode: the reference selects
+ * `jns`, our VC71 build `jge`. Both follow the identical `test al,al` and are
+ * semantically the same edge here (the `test` clears OF), so this is MSVC's
+ * sign-test-versus-signed-relational peephole, not a different condition. The
+ * `< 0` spelling is what produces the matching `mov al` / `test al,al` pair in
+ * the first place; a mask spelling reaches `jns` only by way of a `movsx`+`and`
+ * that costs more than it recovers, the same trade documented on TIFFIsTiled
+ * above.
+ *
+ * @param tif TIFF handle (declared void* so the generated header needs no
+ *            libtiff types). Never null-checked, exactly as upstream.
+ * @return always 1; both arms end in `mov eax,1`.
+ */
+int FUN_0006d980(void *tif)
+{
+  if (((tiff_t *)tif)->field_0a < 0) {
+    *(int *)((char *)tif + 0x120) = FUN_0006f890(tif);
+    return 1;
+  }
+  *(int *)((char *)tif + 0x120) = TIFFScanlineSize((int)tif);
+  return 1;
 }
