@@ -2366,15 +2366,12 @@ void _tr_flush_block(int param_1, int param_2, int param_3, int param_4)
   unsigned int opt_len;
   unsigned int static_len;
   int max_blindex;
+  volatile int new_var;
+  int new_var2;
   int bits_sent;
 
   max_blindex = 0;
-  if (*(int *)(param_1 + 0x7c) < 1) {
-    if (param_2 == 0) {
-      FUN_00117a80("lost buf");
-    }
-    static_len = param_3 + 5;
-  } else {
+  if (*(int *)(param_1 + 0x7c) > 0) {
     if (*(char *)(param_1 + 0x1c) == 2) {
       FUN_00117000(param_1);
     }
@@ -2397,34 +2394,41 @@ void _tr_flush_block(int param_1, int param_2, int param_3, int param_4)
                   *(int *)(param_1 + 0x16a4), param_3,
                   *(int *)(param_1 + 0x1698));
     }
-    if (static_len > opt_len)
-      goto use_opt;
-  }
-  opt_len = static_len;
-use_opt:
-  if (opt_len < (unsigned int)(param_3 + 4) || param_2 == 0) {
-    if (static_len == opt_len) {
-      FUN_00116390(param_4 + 2, 3, param_1);
-      FUN_00116e00(param_1, (int)&zlib_static_ltree, (int)&zlib_static_dtree);
-      bits_sent = *(int *)(param_1 + 0x16a4);
-    } else {
-      FUN_00116390(param_4 + 4, 3, param_1);
-      FUN_00116b00(param_1, *(int *)(param_1 + 0xb14) + 1,
-                   *(int *)(param_1 + 0xb20) + 1, max_blindex + 1);
-      FUN_00116e00(param_1, param_1 + 0x8c, param_1 + 0x980);
-      bits_sent = *(int *)(param_1 + 0x16a0);
+    if (static_len <= opt_len) {
+      opt_len = static_len;
     }
+  } else {
+    if (param_2 == 0) {
+      FUN_00117a80("lost buf");
+    }
+    opt_len = static_len = param_3 + 5;
+  }
+
+  if ((unsigned int)(param_3 + 4) <= opt_len && param_2 != 0) {
+    FUN_001176a0(param_1, (unsigned char *)param_2, param_3, param_4);
+  } else if (static_len == opt_len) {
+    FUN_00116390(param_4 + 2, 3, param_1);
+    FUN_00116e00(param_1, (int)&zlib_static_ltree, (int)&zlib_static_dtree);
+    bits_sent = *(int *)(param_1 + 0x16a4);
     *(int *)(param_1 + 0x16b0) = *(int *)(param_1 + 0x16b0) + bits_sent + 3;
   } else {
-    FUN_001176a0(param_1, (unsigned char *)param_2, param_3, param_4);
+    FUN_00116390(param_4 + 4, 3, param_1);
+    FUN_00116b00(param_1, *(int *)(param_1 + 0xb14) + 1,
+                 *(int *)(param_1 + 0xb20) + 1, max_blindex + 1);
+    FUN_00116e00(param_1, param_1 + 0x8c, param_1 + 0x980);
+    new_var = 0x16a0;
+    new_var = param_1 + new_var;
+    bits_sent = *(int *)new_var;
+    *(int *)(param_1 + 0x16b0) = *(int *)(param_1 + 0x16b0) + bits_sent + 3;
   }
   if (*(int *)(param_1 + 0x16b0) != *(int *)(param_1 + 0x16b4)) {
     FUN_00117a80("bad compressed size");
   }
   FUN_00116460(param_1);
   if (param_4 != 0) {
+    new_var2 = *(int *)(param_1 + 0x16b0) + 7;
     FUN_00117130(param_1);
-    *(int *)(param_1 + 0x16b0) = *(int *)(param_1 + 0x16b0) + 7;
+    *(int *)(param_1 + 0x16b0) = new_var2;
   }
   if (z_verbose > 0) {
     crt_fprintf(&z_stderr, "\ncomprlen %lu(%lu) ",
