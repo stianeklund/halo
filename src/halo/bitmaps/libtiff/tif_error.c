@@ -18,11 +18,9 @@
  *
  * Identified as the ERROR handler, not the warning handler: tif_warning.c's
  * `TIFFDefaultWarningHandler` emits an extra "Warning, " literal before the
- * format, and no such push exists here. The remaining tif_error.c residents
- * (`TIFFError` at 0x68a30 and `TIFFSetErrorHandler` at 0x68a10, which
- * together own the `_TIFFerrorHandler` function-pointer global at 0x2ca1f4
- * that holds this address) are not yet ported, so this TU currently carries
- * only the handler itself.
+ * format, and no such push exists here. `TIFFSetErrorHandler` at 0x68a10 is
+ * now ported below; `TIFFError` at 0x68a30 -- the third resident, which reads
+ * the same `_TIFFerrorHandler` slot and calls through it -- is not yet ported.
  *
  * Disassembly of 0x689c0 (pristine cachebeta.xbe, capstone), which the
  * transcription is checked against instruction for instruction:
@@ -71,6 +69,27 @@
  * inside it. Same form as the other vendored TUs (real_math.c/zlib). */
 #define crt_stderr ((void *)0x331070)
 
+/* `_TIFFerrorHandler`, upstream libtiff's module-global error-handler slot.
+ * Its address is PROVEN to be 0x2ca1f4 and its identity as the ERROR (not
+ * warning) slot is proven by its static initializer: the pristine image's
+ * .data holds `c0 89 06 00` at 0x2ca1f4, i.e. 0x000689c0 -- the address of
+ * `TIFFDefaultErrorHandler` in this very TU, exactly as upstream's
+ *
+ *     TIFFErrorHandler _TIFFerrorHandler = TIFFDefaultErrorHandler;
+ *
+ * writes it. That initializer also fixes the slot's real type: a
+ * `void (*)(const char *module, const char *fmt, char *ap)`, the signature of
+ * FUN_000689c0 above. It is nevertheless declared `void *` here because
+ * neither resident of this TU that touches the slot ever calls through it
+ * -- 0x68a10 only swaps the raw word in and out -- so an opaque pointer is
+ * the narrowest type the code actually requires, and it keeps the setter free
+ * of function-pointer/`void *` conversions that C89 does not guarantee.
+ * `TIFFError` at 0x68a30 (`mov eax,[0x2ca1f4] / test eax,eax / call eax`) is
+ * the one that will need the function-pointer type; it belongs with that lift.
+ * Same file-scope address-macro form the other vendored libtiff TUs use for
+ * their statics (see tif_open.c's `photometric`/`BWmap`). */
+#define _TIFFerrorHandler (*(void **)0x2ca1f4)
+
 /* `va_list` is `char *` on i386 MSVC 7.1, which is how kb.json declares the
  * third parameter of both this function and the vfprintf it forwards to. `ap`
  * must be forwarded as an opaque pointer -- routing it through a `...` slot
@@ -81,4 +100,57 @@ void FUN_000689c0(const char *module, const char *fmt, char *ap)
     crt_fprintf(crt_stderr, "%s: ", module);
   FUN_001d9850(crt_stderr, fmt, ap); /* vfprintf */
   crt_fprintf(crt_stderr, ".\n");
+}
+
+/**
+ * Install a new error handler and hand back the one it displaced.
+ *
+ * Upstream libtiff tif_error.c's `TIFFSetErrorHandler`, transcribed verbatim
+ * rather than reshaped from the decompiler (the vendored-library rule):
+ *
+ *     TIFFErrorHandler
+ *     TIFFSetErrorHandler(TIFFErrorHandler handler)
+ *     {
+ *             TIFFErrorHandler prev = _TIFFerrorHandler;
+ *             _TIFFerrorHandler = handler;
+ *             return (prev);
+ *     }
+ *
+ * Disassembly of 0x68a10 (7 instructions, 0x68a10-0x68a22):
+ *
+ *   068a10  push ebp                  ; no `sub esp`, no locals, no _chkstk --
+ *   068a11  mov  ebp, esp             ; frame is the one parameter and nothing
+ *   068a13  mov  ecx, [ebp+8]         ; else; `handler` staged in ECX first
+ *   068a16  mov  eax, [0x2ca1f4]      ; OLD value -> EAX == the return value
+ *   068a1b  mov  [0x2ca1f4], ecx      ; ...then the new one is stored
+ *   068a21  pop  ebp
+ *   068a22  ret                       ; no immediate => cdecl, caller cleans
+ *
+ * Two things the decompiler got wrong, both load-bearing, and both the same
+ * failures already recorded for this object's other residents:
+ *
+ *   1. It reported `void FUN_00068a10(void)` and surfaced the parameter only
+ *      as `in_stack_00000004`, because kb.json carried a `(void)` prototype.
+ *      There is exactly one stack argument, at [ebp+8].
+ *   2. It dropped the return entirely. The `mov eax,[0x2ca1f4]` at 0x68a16 is
+ *      never overwritten before the RET, so EAX carries the previous handler
+ *      out -- the classic void-EAX implicit return. Shipping the `void(void)`
+ *      prototype would have dropped the argument at every call site AND
+ *      discarded the value libtiff's callers use to chain/restore handlers.
+ *
+ * Consequently the read of `_TIFFerrorHandler` must stay ABOVE the assignment:
+ * the ordering is not stylistic, it is what puts the old value in EAX. Writing
+ * it as a `prev` temporary rather than reading the slot twice matches the
+ * binary, which touches 0x2ca1f4 once for the load and once for the store.
+ */
+void *FUN_00068a10(void *handler)
+{
+  /* 0x68a16. Load before store -- this value is the return. */
+  void *prev = _TIFFerrorHandler;
+
+  /* 0x68a1b. */
+  _TIFFerrorHandler = handler;
+
+  /* EAX from 0x68a16, untouched. */
+  return prev;
 }
