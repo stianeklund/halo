@@ -416,15 +416,83 @@ typedef struct tiff_s {
    * and the surrounding bytes stay padding. Do not import upstream's
    * TIFF_ISTILED value. */
   char field_0a; /* 0x0a */
-  char pad_00b[0x11];
+  char pad_00b[1];
+  /* Byte offset of this directory in the file. TIFFPrintDirectory prints it
+   * in its header line -- `mov eax,[esi+0xc]` at 0x6dda8, a plain dword load
+   * with no widening. Upstream libtiff names the member `toff_t tif_diroff`
+   * on `struct tiff`; the OFFSET is Bungie's. */
+  unsigned long tif_diroff; /* 0x0c */
+  char pad_010[4];
+  /* Two-word "which tags are present" bit array. TIFFPrintDirectory (0x6dda0)
+   * tests both words ~40 times, from 0x6ddbb (word 0) and 0x6de50 (word 1).
+   * Upstream libtiff spells this `unsigned long td_fieldsset[FIELD_SETLONGS]`
+   * inside a nested `TIFFDirectory tif_dir`; this build flattens the directory
+   * into TIFF, so every td_* member below sits at an absolute TIFF offset.
+   *
+   * The bit numbering is NOT stock libtiff's. Word 0 bit 0 is image
+   * dimensions and bit 1 is tile dimensions (0x6de37/0x6de7b), where upstream
+   * numbers those 1 and 2; from bit 3 (resolution) onward the two agree. The
+   * FIELD_* macros below record the binary's numbering, not upstream's. */
+  unsigned long td_fieldsset[2]; /* 0x14 */
   long td_imagewidth; /* 0x1c */
-  char pad_020[0x16];
+  long td_imagelength; /* 0x20 */
+  long td_imagedepth; /* 0x24 */
+  long td_tilewidth; /* 0x28 */
+  long td_tilelength; /* 0x2c */
+  long td_tiledepth; /* 0x30 */
+  /* Upstream types td_subfiletype `uint32`. This binary reads it with
+   * `movzx eax, word ptr [esi+0x34]` (0x6de23) and prints it through a plain
+   * `%u`, so Bungie's field is 16-bit. */
+  unsigned short td_subfiletype; /* 0x34 */
   unsigned short td_bitspersample; /* 0x36 */
-  char pad_038[0x0c];
+  unsigned short td_sampleformat; /* 0x38 */
+  unsigned short td_compression; /* 0x3a */
+  unsigned short td_photometric; /* 0x3c */
+  unsigned short td_threshholding; /* 0x3e */
+  unsigned short td_fillorder; /* 0x40 */
+  unsigned short td_orientation; /* 0x42 */
   unsigned short td_samplesperpixel; /* 0x44 */
-  char pad_046[0x18];
+  unsigned short td_predictor; /* 0x46 */
+  unsigned long td_rowsperstrip; /* 0x48 */
+  /* Upstream types the min/max sample values `uint16`. This binary loads both
+   * as full dwords (`mov edx,[esi+0x4c]` at 0x6e412, `mov eax,[esi+0x50]` at
+   * 0x6e42d), so Bungie's fields are 32-bit. */
+  unsigned long td_minsamplevalue; /* 0x4c */
+  unsigned long td_maxsamplevalue; /* 0x50 */
+  float td_xresolution; /* 0x54 */
+  float td_yresolution; /* 0x58 */
+  unsigned short td_resolutionunit; /* 0x5c */
   unsigned short td_planarconfig; /* 0x5e */
-  char pad_060[0x74];
+  float td_xposition; /* 0x60 */
+  float td_yposition; /* 0x64 */
+  unsigned long td_group3options; /* 0x68 */
+  unsigned long td_group4options; /* 0x6c */
+  unsigned short td_pagenumber[2]; /* 0x70 */
+  unsigned short td_matteing; /* 0x74 */
+  unsigned short td_cleanfaxdata; /* 0x76 */
+  /* Bungie's copy swaps upstream's badfaxlines/consecutivebadfaxlines widths
+   * and order: 0x78 is read `movzx eax, word ptr` (0x6e592) for the
+   * CONSECUTIVE counter while 0x7c is a plain dword (0x6e57a) for the plain
+   * one. Upstream declares both `uint32` in the opposite order. */
+  unsigned short td_consecutivebadfaxlines; /* 0x78 */
+  char pad_07a[2];
+  unsigned long td_badfaxlines; /* 0x7c */
+  unsigned short *td_colormap[3]; /* 0x80 */
+  unsigned short td_halftonehints[2]; /* 0x8c */
+  char *td_documentname; /* 0x90 */
+  char *td_artist; /* 0x94 */
+  char *td_datetime; /* 0x98 */
+  char *td_hostcomputer; /* 0x9c */
+  char *td_imagedescription; /* 0xa0 */
+  char *td_make; /* 0xa4 */
+  char *td_model; /* 0xa8 */
+  char *td_software; /* 0xac */
+  char *td_pagename; /* 0xb0 */
+  char pad_0b4[4];
+  unsigned long td_nstrips; /* 0xb8 */
+  unsigned long *td_stripoffset; /* 0xbc */
+  unsigned long *td_stripbytecount; /* 0xc0 */
+  char pad_0c4[0x10];
   /* Current scanline. TIFFCurrentRow (0x6d8a0) reads it with a plain dword
    * `mov eax,[eax+0xd4]` -- no MOVSX/MOVZX, so this is a full 32-bit field and
    * no narrower spelling is admissible. Upstream libtiff types the member
@@ -1989,4 +2057,494 @@ int FUN_0006dd50(void *tif_)
   tif->tif_encodestrip = FUN_0006dd00;
   tif->tif_encodetile = FUN_0006dd00;
   return 1;
+}
+
+/* ===========================================================================
+ * tif_print.c -- upstream libtiff TIFFPrintDirectory (0x6dda0).
+ *
+ * Transcribed from upstream libtiff 3.4's tif_print.c rather than reshaped
+ * from the decompiler, per the vendored-source rule: this is public library
+ * code, and the block order, the sep/comma accumulators and the two switch
+ * shapes all reproduce upstream verbatim once the directory is flattened into
+ * TIFF (every read here is `[esi+0xNN]`, never `tif->tif_dir.td_NN`).
+ *
+ * Two things are pinned to THIS binary rather than to upstream:
+ *   - the FIELD_* bit numbering (see td_fieldsset above),
+ *   - SAMPLEFORMAT_INT == 1 / SAMPLEFORMAT_UINT == 2, proven by the jump table
+ *     at 0x6e714: index 0 (value 1) lands on 0x6dfae, which pushes
+ *     "signed integer\n". Later libtiff releases swap those two values.
+ *
+ * The per-case `fprintf(fd, "<literal>")` calls in the resolution-unit,
+ * threshholding, fill-order, predictor, planar-config and fax-data switches
+ * are written out one per case, as upstream has them, NOT hoisted into a
+ * `sep = "..."` variable. The binary shows `PUSH <imm>; JMP <shared call>` at
+ * each arm (e.g. 0x6df0e/0x6df15/0x6df1c -> 0x6df21), i.e. MSVC tail-merged
+ * separate calls; a real string variable would have produced `MOV EAX,<imm>;
+ * PUSH EAX` instead -- which is exactly what the genuine sep accumulators at
+ * 0x6ddd9 and 0x6e4c4 do look like.
+ * ======================================================================== */
+
+/* Bit indices into tiff_t::td_fieldsset. Derived from the tests in
+ * TIFFPrintDirectory, not imported from upstream -- see td_fieldsset. */
+#define FIELD_IMAGEDIMENSIONS 0
+#define FIELD_TILEDIMENSIONS 1
+#define FIELD_RESOLUTION 3
+#define FIELD_POSITION 4
+#define FIELD_SUBFILETYPE 5
+#define FIELD_BITSPERSAMPLE 6
+#define FIELD_COMPRESSION 7
+#define FIELD_PHOTOMETRIC 8
+#define FIELD_THRESHHOLDING 9
+#define FIELD_FILLORDER 10
+#define FIELD_DOCUMENTNAME 11
+#define FIELD_IMAGEDESCRIPTION 12
+#define FIELD_MAKE 13
+#define FIELD_MODEL 14
+#define FIELD_ORIENTATION 15
+#define FIELD_SAMPLESPERPIXEL 16
+#define FIELD_ROWSPERSTRIP 17
+#define FIELD_MINSAMPLEVALUE 18
+#define FIELD_MAXSAMPLEVALUE 19
+#define FIELD_PLANARCONFIG 20
+#define FIELD_PAGENAME 21
+#define FIELD_GROUP3OPTIONS 22
+#define FIELD_GROUP4OPTIONS 23
+#define FIELD_RESOLUTIONUNIT 24
+#define FIELD_PAGENUMBER 25
+#define FIELD_STRIPOFFSETS 27
+#define FIELD_COLORMAP 28
+#define FIELD_PREDICTOR 29
+#define FIELD_ARTIST 30
+#define FIELD_DATETIME 31
+#define FIELD_HOSTCOMPUTER 32
+#define FIELD_SOFTWARE 33
+#define FIELD_MATTEING 34
+#define FIELD_BADFAXLINES 35
+#define FIELD_CLEANFAXDATA 36
+#define FIELD_CONSECUTIVEBADFAXLINES 37
+#define FIELD_SAMPLEFORMAT 38
+#define FIELD_IMAGEDEPTH 41
+#define FIELD_TILEDEPTH 42
+#define FIELD_HALFTONEHINTS 43
+
+#define TIFFFieldSet(tif, field) \
+  ((tif)->td_fieldsset[(field) / 32] & (1UL << ((field) % 32)))
+
+/* Caller-selectable detail flags, third parameter. Only two of upstream's
+ * three are read here: bit 0 at 0x6e698 and bit 2 at 0x6e623. */
+#define TIFFPRINT_STRIPS 0x1
+#define TIFFPRINT_COLORMAP 0x4
+
+#define FILETYPE_REDUCEDIMAGE 0x1
+#define FILETYPE_PAGE 0x2
+#define FILETYPE_MASK 0x4
+
+#define GROUP3OPT_2DENCODING 0x1
+#define GROUP3OPT_UNCOMPRESSED 0x2
+#define GROUP3OPT_FILLBITS 0x4
+#define GROUP4OPT_UNCOMPRESSED 0x2
+
+#define RESUNIT_NONE 1
+#define RESUNIT_INCH 2
+#define RESUNIT_CENTIMETER 3
+
+/* Old-style TIFF 5.0 numbering; see the file comment above. */
+#define SAMPLEFORMAT_INT 1
+#define SAMPLEFORMAT_UINT 2
+#define SAMPLEFORMAT_IEEEFP 3
+#define SAMPLEFORMAT_VOID 4
+
+#define COMPRESSION_NONE 1
+#define COMPRESSION_CCITTRLE 2
+#define COMPRESSION_CCITTFAX3 3
+#define COMPRESSION_CCITTFAX4 4
+#define COMPRESSION_LZW 5
+#define COMPRESSION_JPEG 6
+#define COMPRESSION_NEXT 32766
+#define COMPRESSION_CCITTRLEW 32771
+#define COMPRESSION_PACKBITS 32773
+#define COMPRESSION_THUNDERSCAN 32809
+
+#define THRESHHOLD_BILEVEL 1
+#define THRESHHOLD_HALFTONE 2
+#define THRESHHOLD_ERRORDIFFUSE 3
+
+#define FILLORDER_MSB2LSB 1
+#define FILLORDER_LSB2MSB 2
+
+#define PREDICTOR_NONE 1
+#define PREDICTOR_HORIZONTAL 2
+
+#define PLANARCONFIG_CONTIG 1
+#define PLANARCONFIG_SEPARATE 2
+
+#define CLEANFAXDATA_CLEAN 0
+#define CLEANFAXDATA_REGENERATED 1
+#define CLEANFAXDATA_UNCLEAN 2
+
+/* Both tables are nine entries of `const char *` in .rdata, at 0x2eca34 and
+ * 0x2eca58; the strings themselves are 0x2607e4-0x260850 and
+ * 0x26071c-0x2607dc. Indexed directly by the tag value after an unsigned
+ * `< 9` bound check (0x6e117, 0x6e37b). */
+static const char *tiff_photo_names[] = { "min-is-white",
+                                          "min-is-black",
+                                          "RGB color",
+                                          "palette color (RGB from colormap)",
+                                          "transparency mask",
+                                          "separated",
+                                          "YCbCr",
+                                          "7 (0x7)",
+                                          "CIE L*a*b*" };
+#define NPHOTONAMES (sizeof(tiff_photo_names) / sizeof(tiff_photo_names[0]))
+
+static const char *tiff_orient_names[] = { "0 (0x0)",
+                                           "row 0 top, col 0 lhs",
+                                           "row 0 top, col 0 rhs",
+                                           "row 0 bottom, col 0 rhs",
+                                           "row 0 bottom, col 0 lhs",
+                                           "row 0 lhs, col 0 top",
+                                           "row 0 rhs, col 0 top",
+                                           "row 0 rhs, col 0 bottom",
+                                           "row 0 lhs, col 0 bottom" };
+#define NORIENTNAMES (sizeof(tiff_orient_names) / sizeof(tiff_orient_names[0]))
+
+void TIFFPrintDirectory(void *tif_, void *fd, long flags)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  const char *sep;
+  long l;
+  long n;
+  unsigned long s;
+
+  crt_fprintf(fd, "TIFF Directory at offset 0x%x\n", tif->tif_diroff);
+  if (TIFFFieldSet(tif, FIELD_SUBFILETYPE)) {
+    crt_fprintf(fd, "  Subfile Type:");
+    sep = " ";
+    if (tif->td_subfiletype & FILETYPE_REDUCEDIMAGE) {
+      crt_fprintf(fd, "%sreduced-resolution image", sep);
+      sep = "/";
+    }
+    if (tif->td_subfiletype & FILETYPE_PAGE) {
+      crt_fprintf(fd, "%smulti-page document", sep);
+      sep = "/";
+    }
+    if (tif->td_subfiletype & FILETYPE_MASK) {
+      crt_fprintf(fd, "%stransparency mask", sep);
+    }
+    crt_fprintf(fd, " (%u = 0x%x)\n", tif->td_subfiletype, tif->td_subfiletype);
+  }
+  if (TIFFFieldSet(tif, FIELD_IMAGEDIMENSIONS)) {
+    crt_fprintf(fd, "  Image Width: %lu Image Length: %lu", tif->td_imagewidth,
+                tif->td_imagelength);
+    if (TIFFFieldSet(tif, FIELD_IMAGEDEPTH)) {
+      crt_fprintf(fd, " Image Depth: %lu", tif->td_imagedepth);
+    }
+    crt_fprintf(fd, "\n");
+  }
+  if (TIFFFieldSet(tif, FIELD_TILEDIMENSIONS)) {
+    crt_fprintf(fd, "  Tile Width: %lu Tile Length: %lu", tif->td_tilewidth,
+                tif->td_tilelength);
+    if (TIFFFieldSet(tif, FIELD_TILEDEPTH)) {
+      crt_fprintf(fd, " Tile Depth: %lu", tif->td_tiledepth);
+    }
+    crt_fprintf(fd, "\n");
+  }
+  if (TIFFFieldSet(tif, FIELD_RESOLUTION)) {
+    crt_fprintf(fd, "  Resolution: %g, %g", tif->td_xresolution,
+                tif->td_yresolution);
+    if (TIFFFieldSet(tif, FIELD_RESOLUTIONUNIT)) {
+      switch (tif->td_resolutionunit) {
+      case RESUNIT_NONE:
+        crt_fprintf(fd, " (unitless)");
+        break;
+      case RESUNIT_INCH:
+        crt_fprintf(fd, " pixels/inch");
+        break;
+      case RESUNIT_CENTIMETER:
+        crt_fprintf(fd, " pixels/cm");
+        break;
+      default:
+        crt_fprintf(fd, " (unit %u = 0x%x)", tif->td_resolutionunit,
+                    tif->td_resolutionunit);
+        break;
+      }
+    }
+    crt_fprintf(fd, "\n");
+  }
+  if (TIFFFieldSet(tif, FIELD_POSITION)) {
+    crt_fprintf(fd, "  Position: %g, %g\n", tif->td_xposition,
+                tif->td_yposition);
+  }
+  if (TIFFFieldSet(tif, FIELD_BITSPERSAMPLE)) {
+    crt_fprintf(fd, "  Bits/Sample: %u\n", tif->td_bitspersample);
+  }
+  if (TIFFFieldSet(tif, FIELD_SAMPLEFORMAT)) {
+    crt_fprintf(fd, "  Sample Format: ");
+    switch (tif->td_sampleformat) {
+    case SAMPLEFORMAT_VOID:
+      crt_fprintf(fd, "void\n");
+      break;
+    case SAMPLEFORMAT_INT:
+      crt_fprintf(fd, "signed integer\n");
+      break;
+    case SAMPLEFORMAT_UINT:
+      crt_fprintf(fd, "unsigned integer\n");
+      break;
+    case SAMPLEFORMAT_IEEEFP:
+      crt_fprintf(fd, "IEEE floating point\n");
+      break;
+    default:
+      crt_fprintf(fd, "%u (0x%x)\n", tif->td_sampleformat,
+                  tif->td_sampleformat);
+      break;
+    }
+  }
+  if (TIFFFieldSet(tif, FIELD_COMPRESSION)) {
+    crt_fprintf(fd, "  Compression Scheme: ");
+    switch (tif->td_compression) {
+    case COMPRESSION_NONE:
+      crt_fprintf(fd, "none\n");
+      break;
+    case COMPRESSION_CCITTRLE:
+      crt_fprintf(fd, "CCITT modified Huffman encoding\n");
+      break;
+    case COMPRESSION_CCITTFAX3:
+      crt_fprintf(fd, "CCITT Group 3 facsimile encoding\n");
+      break;
+    case COMPRESSION_CCITTFAX4:
+      crt_fprintf(fd, "CCITT Group 4 facsimile encoding\n");
+      break;
+    case COMPRESSION_LZW:
+      crt_fprintf(fd, "Lempel-Ziv & Welch encoding\n");
+      break;
+    case COMPRESSION_JPEG:
+      crt_fprintf(fd, "JPEG encoding\n");
+      break;
+    case COMPRESSION_NEXT:
+      crt_fprintf(fd, "NeXT 2-bit encoding\n");
+      break;
+    case COMPRESSION_CCITTRLEW:
+      crt_fprintf(fd, "CCITT modified Huffman encoding %s\n",
+                  "w/ word alignment");
+      break;
+    case COMPRESSION_PACKBITS:
+      crt_fprintf(fd, "Macintosh PackBits encoding\n");
+      break;
+    case COMPRESSION_THUNDERSCAN:
+      crt_fprintf(fd, "ThunderScan 4-bit encoding\n");
+      break;
+    default:
+      crt_fprintf(fd, "%u (0x%x)\n", tif->td_compression, tif->td_compression);
+      break;
+    }
+  }
+  if (TIFFFieldSet(tif, FIELD_PHOTOMETRIC)) {
+    crt_fprintf(fd, "  Photometric Interpretation: ");
+    if (tif->td_photometric < NPHOTONAMES) {
+      crt_fprintf(fd, "%s\n", tiff_photo_names[tif->td_photometric]);
+    } else {
+      crt_fprintf(fd, "%u (0x%x)\n", tif->td_photometric, tif->td_photometric);
+    }
+  }
+  if (TIFFFieldSet(tif, FIELD_MATTEING)) {
+    crt_fprintf(fd, "  Matteing: %s\n",
+                tif->td_matteing ? "pre-multiplied with alpha channel" :
+                                   "none");
+  }
+  if (TIFFFieldSet(tif, FIELD_THRESHHOLDING)) {
+    crt_fprintf(fd, "  Thresholding: ");
+    switch (tif->td_threshholding) {
+    case THRESHHOLD_BILEVEL:
+      crt_fprintf(fd, "bilevel art scan\n");
+      break;
+    case THRESHHOLD_HALFTONE:
+      crt_fprintf(fd, "halftone or dithered scan\n");
+      break;
+    case THRESHHOLD_ERRORDIFFUSE:
+      crt_fprintf(fd, "error diffused\n");
+      break;
+    default:
+      crt_fprintf(fd, "%u (0x%x)\n", tif->td_threshholding,
+                  tif->td_threshholding);
+      break;
+    }
+  }
+  if (TIFFFieldSet(tif, FIELD_FILLORDER)) {
+    crt_fprintf(fd, "  FillOrder: ");
+    switch (tif->td_fillorder) {
+    case FILLORDER_MSB2LSB:
+      crt_fprintf(fd, "msb-to-lsb\n");
+      break;
+    case FILLORDER_LSB2MSB:
+      crt_fprintf(fd, "lsb-to-msb\n");
+      break;
+    default:
+      crt_fprintf(fd, "%u (0x%x)\n", tif->td_fillorder, tif->td_fillorder);
+      break;
+    }
+  }
+  if (TIFFFieldSet(tif, FIELD_PREDICTOR)) {
+    crt_fprintf(fd, "  Predictor: ");
+    switch (tif->td_predictor) {
+    case PREDICTOR_NONE:
+      crt_fprintf(fd, "none\n");
+      break;
+    case PREDICTOR_HORIZONTAL:
+      crt_fprintf(fd, "horizontal differencing\n");
+      break;
+    default:
+      crt_fprintf(fd, "%u (0x%x)\n", tif->td_predictor, tif->td_predictor);
+      break;
+    }
+  }
+  if (TIFFFieldSet(tif, FIELD_HALFTONEHINTS)) {
+    crt_fprintf(fd, "  Halftone Hints: light %u dark %u\n",
+                tif->td_halftonehints[0], tif->td_halftonehints[1]);
+  }
+  if (TIFFFieldSet(tif, FIELD_ARTIST)) {
+    crt_fprintf(fd, "  Artist: \"%s\"\n", tif->td_artist);
+  }
+  if (TIFFFieldSet(tif, FIELD_DATETIME)) {
+    crt_fprintf(fd, "  Date & Time: \"%s\"\n", tif->td_datetime);
+  }
+  if (TIFFFieldSet(tif, FIELD_HOSTCOMPUTER)) {
+    crt_fprintf(fd, "  Host Computer: \"%s\"\n", tif->td_hostcomputer);
+  }
+  if (TIFFFieldSet(tif, FIELD_SOFTWARE)) {
+    crt_fprintf(fd, "  Software: \"%s\"\n", tif->td_software);
+  }
+  if (TIFFFieldSet(tif, FIELD_DOCUMENTNAME)) {
+    crt_fprintf(fd, "  Document Name: \"%s\"\n", tif->td_documentname);
+  }
+  if (TIFFFieldSet(tif, FIELD_IMAGEDESCRIPTION)) {
+    crt_fprintf(fd, "  Image Description: \"%s\"\n", tif->td_imagedescription);
+  }
+  if (TIFFFieldSet(tif, FIELD_MAKE)) {
+    crt_fprintf(fd, "  Make: \"%s\"\n", tif->td_make);
+  }
+  if (TIFFFieldSet(tif, FIELD_MODEL)) {
+    crt_fprintf(fd, "  Model: \"%s\"\n", tif->td_model);
+  }
+  if (TIFFFieldSet(tif, FIELD_ORIENTATION)) {
+    crt_fprintf(fd, "  Orientation: ");
+    if (tif->td_orientation < NORIENTNAMES) {
+      crt_fprintf(fd, "%s\n", tiff_orient_names[tif->td_orientation]);
+    } else {
+      crt_fprintf(fd, "%u (0x%x)\n", tif->td_orientation, tif->td_orientation);
+    }
+  }
+  if (TIFFFieldSet(tif, FIELD_SAMPLESPERPIXEL)) {
+    crt_fprintf(fd, "  Samples/Pixel: %u\n", tif->td_samplesperpixel);
+  }
+  if (TIFFFieldSet(tif, FIELD_ROWSPERSTRIP)) {
+    crt_fprintf(fd, "  Rows/Strip: ");
+    if (tif->td_rowsperstrip == (unsigned long)-1) {
+      crt_fprintf(fd, "(infinite)\n");
+    } else {
+      crt_fprintf(fd, "%u\n", tif->td_rowsperstrip);
+    }
+  }
+  if (TIFFFieldSet(tif, FIELD_MINSAMPLEVALUE)) {
+    crt_fprintf(fd, "  Min Sample Value: %u\n", tif->td_minsamplevalue);
+  }
+  if (TIFFFieldSet(tif, FIELD_MAXSAMPLEVALUE)) {
+    crt_fprintf(fd, "  Max Sample Value: %u\n", tif->td_maxsamplevalue);
+  }
+  if (TIFFFieldSet(tif, FIELD_PLANARCONFIG)) {
+    crt_fprintf(fd, "  Planar Configuration: ");
+    switch (tif->td_planarconfig) {
+    case PLANARCONFIG_CONTIG:
+      crt_fprintf(fd, "single image plane\n");
+      break;
+    case PLANARCONFIG_SEPARATE:
+      crt_fprintf(fd, "separate image planes\n");
+      break;
+    default:
+      crt_fprintf(fd, "%u (0x%x)\n", tif->td_planarconfig,
+                  tif->td_planarconfig);
+      break;
+    }
+  }
+  if (TIFFFieldSet(tif, FIELD_PAGENAME)) {
+    crt_fprintf(fd, "  Page Name: \"%s\"\n", tif->td_pagename);
+  }
+  if (TIFFFieldSet(tif, FIELD_GROUP3OPTIONS)) {
+    crt_fprintf(fd, "  Group 3 Options:");
+    sep = " ";
+    if (tif->td_group3options & GROUP3OPT_2DENCODING) {
+      crt_fprintf(fd, "%s2-d encoding", sep);
+      sep = "+";
+    }
+    if (tif->td_group3options & GROUP3OPT_FILLBITS) {
+      crt_fprintf(fd, "%sEOL padding", sep);
+      sep = "+";
+    }
+    if (tif->td_group3options & GROUP3OPT_UNCOMPRESSED) {
+      crt_fprintf(fd, "%suncompressed data", sep);
+    }
+    crt_fprintf(fd, " (%u = 0x%x)\n", tif->td_group3options,
+                tif->td_group3options);
+  }
+  if (TIFFFieldSet(tif, FIELD_CLEANFAXDATA)) {
+    crt_fprintf(fd, "  Fax Data: ");
+    switch (tif->td_cleanfaxdata) {
+    case CLEANFAXDATA_CLEAN:
+      crt_fprintf(fd, "clean\n");
+      break;
+    case CLEANFAXDATA_REGENERATED:
+      crt_fprintf(fd, "receiver regenerated\n");
+      break;
+    case CLEANFAXDATA_UNCLEAN:
+      crt_fprintf(fd, "uncorrected errors\n");
+      break;
+    default:
+      crt_fprintf(fd, "(%u = 0x%x)\n", tif->td_cleanfaxdata,
+                  tif->td_cleanfaxdata);
+      break;
+    }
+  }
+  if (TIFFFieldSet(tif, FIELD_BADFAXLINES)) {
+    crt_fprintf(fd, "  Bad Fax Lines: %u\n", tif->td_badfaxlines);
+  }
+  if (TIFFFieldSet(tif, FIELD_CONSECUTIVEBADFAXLINES)) {
+    crt_fprintf(fd, "  Consecutive Bad Fax Lines: %u\n",
+                tif->td_consecutivebadfaxlines);
+  }
+  if (TIFFFieldSet(tif, FIELD_GROUP4OPTIONS)) {
+    crt_fprintf(fd, "  Group 4 Options:");
+    /* No `%s` separator here -- 0x6e5c3 pushes only the format, ADD ESP,8. */
+    if (tif->td_group4options & GROUP4OPT_UNCOMPRESSED) {
+      crt_fprintf(fd, "uncompressed data");
+    }
+    crt_fprintf(fd, " (%u = 0x%x)\n", tif->td_group4options,
+                tif->td_group4options);
+  }
+  if (TIFFFieldSet(tif, FIELD_PAGENUMBER)) {
+    crt_fprintf(fd, "  Page Number: %u-%u\n", tif->td_pagenumber[0],
+                tif->td_pagenumber[1]);
+  }
+  if (TIFFFieldSet(tif, FIELD_COLORMAP)) {
+    crt_fprintf(fd, "  Color Map: ");
+    if (flags & TIFFPRINT_COLORMAP) {
+      crt_fprintf(fd, "\n");
+      n = 1L << tif->td_bitspersample;
+      for (l = 0; l < n; l++) {
+        crt_fprintf(fd, "   %5d: %5u %5u %5u\n", l, tif->td_colormap[0][l],
+                    tif->td_colormap[1][l], tif->td_colormap[2][l]);
+      }
+    } else {
+      crt_fprintf(fd, "(present)\n");
+    }
+  }
+  if ((flags & TIFFPRINT_STRIPS) && TIFFFieldSet(tif, FIELD_STRIPOFFSETS)) {
+    /* `tif->field_0a < 0` and not `& 0x80`: 0x6e6a7 loads the byte and does a
+     * bare `TEST AL,AL / JS`, i.e. a sign test, the same shape TIFFIsTiled
+     * (0x6d880) reads. */
+    crt_fprintf(fd, "  %u %s:\n", tif->td_nstrips,
+                tif->field_0a < 0 ? "Tiles" : "Strips");
+    for (s = 0; s < tif->td_nstrips; s++) {
+      crt_fprintf(fd, "    %3d: [%8u, %8u]\n", s, tif->td_stripoffset[s],
+                  tif->td_stripbytecount[s]);
+    }
+  }
 }

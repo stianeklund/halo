@@ -24596,6 +24596,17 @@
       "score": 87.5,
       "source": "src/halo/bitmaps/libtiff/tif_open.c"
     },
+    "TIFFPrintDirectory": {
+      "addr": "0x6dda0",
+      "end": "0x6e713",
+      "kind": "auto",
+      "n_r": 773,
+      "opnd_percent": 93.7,
+      "ref": "synth",
+      "ref_sha": "b7d66ecfec746fe1",
+      "score": 98.7,
+      "source": "src/halo/bitmaps/libtiff/tif_open.c"
+    },
     "TIFFReadRGBAImage": {
       "addr": "0x6c400",
       "end": "0x6c5aa",

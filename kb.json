@@ -34442,7 +34442,8 @@
     },
     {
      "addr": "0x6dda0",
-     "decl": "void FUN_0006dda0(void);"
+     "decl": "void TIFFPrintDirectory(void *tif_, void *fd, long flags);",
+     "ported": true
     }
    ],
    "name": "tif_open.obj",
