@@ -638,3 +638,47 @@ void FUN_00069590(void *tif_)
     (void)FUN_00069520(tif);
   }
 }
+
+/**
+ * Release the codec private state hanging off a TIFF handle.
+ *
+ * Upstream libtiff tif_fax3.c's `Fax3Cleanup`: `if (tif->tif_data) {
+ * _TIFFfree(tif->tif_data); tif->tif_data = NULL; }`. Bungie's _TIFFfree
+ * expands to the debug allocator, so the call carries __FILE__/__LINE__ -- and
+ * that __FILE__ is `c:\halo\SOURCE\bitmaps\libtiff\tif_fax3.c`, the string at
+ * 0x260058 pushed here. That literal is what CONFIRMS the tif_fax3.c origin of
+ * this body; the two neighbours above are the same codec by shape only, with no
+ * `__FILE__` of their own. Line 1077 (0x435) is the free site. kb.json maps the
+ * address into tif_flush.obj, which is why the body lives here.
+ *
+ * The structural twin FUN_0006cac0 (tif_open.c) is the same cleanup hook for a
+ * different codec: same handle field, same allocator call, differing only in
+ * the file/line literals.
+ *
+ * ABI recovered from the frame at 0x695c0: `push ebp / mov ebp,esp / push esi /
+ * mov esi,[ebp+8]` with no `sub esp` (zero locals -- ESI=tif), plain `ret` with
+ * the argument cleanup done caller-side (`add esp,0xc` after the CALL), so
+ * cdecl with a single stack argument. Ghidra reported `void(void)` here as it
+ * did for the two bodies above: it saw neither the `[ebp+8]` load nor the push,
+ * and surfaced the parameter as `in_stack_00000004`. There is no `mov eax` on
+ * either path, so the return really is void, matching upstream's
+ * `void (*tif_cleanup)(TIFF*)` slot.
+ *
+ * @param tif_ TIFF handle; may carry a null tif_data, in which case nothing
+ *             happens. The handle pointer itself is never checked.
+ */
+void FUN_000695c0(void *tif_)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  /* 0x695c7 `mov eax,[esi+0x120]`: the field is loaded ONCE, and the same EAX
+   * is both tested and pushed as the free argument -- hence the local. Reading
+   * `tif->tif_data` again at the call site would emit a second load. */
+  tiff_codec_bits_t *sp = tif->tif_data;
+
+  if (sp) {
+    debug_free(sp, "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_fax3.c", 0x435);
+    /* 0x695e7: the null store is inside the taken branch, AFTER the free, and
+     * writes a dword immediate to the field rather than going through `sp`. */
+    tif->tif_data = 0;
+  }
+}
