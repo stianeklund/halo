@@ -503,6 +503,8 @@
     "0x140a00": "char object_select_random_region_permutations_by_variant(int object_handle@<eax>, void *model_tag, int16_t variant);",
     "0x140ad0": "void object_choose_random_region_permutations(int object_handle@<edi>);",
     "0x147ed0": "void FUN_00147ed0(void *state /* @<eax> */, int surface_index);",
+    "0x148240": "char FUN_00148240(short param_1, unsigned int *bit_vector, int elem_index, short projection, unsigned char sign, float *point2d, void *bsp@<eax>);",
+    "0x148780": "int FUN_00148780(void *bsp, short param_2, unsigned int *bit_vector, float *origin, float *direction, int surface_index, float t, char param_8, int node_index@<eax>);",
     "0x1491d0": "bool FUN_001491d0(void *state /* @<esi> */, int surface_index);",
     "0x14d080": "void collision_log_period_helper(int time_period@<esi>, int begin_flag);",
     "0x14d1b0": "void collision_log_format_stat(char *buf @<edi>, void *stat @<esi>);",

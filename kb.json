@@ -37197,7 +37197,7 @@
     },
     {
      "addr": "0x148240",
-     "decl": "void FUN_00148240(void);"
+     "decl": "char FUN_00148240(short param_1, unsigned int *bit_vector, int elem_index, short projection, unsigned char sign, float *point2d, void *bsp@<eax>);"
     },
     {
      "addr": "0x148370",
@@ -37215,7 +37215,7 @@
     },
     {
      "addr": "0x148780",
-     "decl": "void FUN_00148780(void);"
+     "decl": "int FUN_00148780(void *bsp, short param_2, unsigned int *bit_vector, float *origin, float *direction, int surface_index, float t, char param_8, int node_index@<eax>);"
     },
     {
      "addr": "0x148910",
