@@ -34182,7 +34182,8 @@
     },
     {
      "addr": "0x6a190",
-     "decl": "void FUN_0006a190(void);"
+     "decl": "int FUN_0006a190(void *tif);",
+     "ported": true
     },
     {
      "addr": "0x6a210",

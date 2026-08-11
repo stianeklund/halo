@@ -50,6 +50,16 @@
  * which reads exactly (tif, nrows). */
 typedef int (*tiff_code_method_t)(void *tif, char *buf, int cc, int s);
 typedef int (*tiff_seek_method_t)(void *tif, unsigned long nrows);
+/* The setup/postencode and close/cleanup method shapes, repeated from
+ * tif_open.c for the same file-scope-typedef reason. `tiff_bool_method_t` is
+ * pinned for 0xf8 by FUN_00069520 in this TU (kb.json: `int (void *tif)`);
+ * 0xf0 and 0xf4 take FUN_00068d80 / FUN_00069420, whose own prototypes are
+ * still unrecovered, so their `int` return is INFERRED from upstream's
+ * `tif_setupdecode` / `tif_setupencode` rather than proven.
+ * `tiff_void_method_t` is pinned for 0x114 and 0x11c by FUN_00069590 and
+ * FUN_000695c0, both already recovered in this TU as `void (void *tif)`. */
+typedef int (*tiff_bool_method_t)(void *tif);
+typedef void (*tiff_void_method_t)(void *tif);
 
 /* Private codec state reached through `tif_data` (0x120) by FUN_00069520. This
  * is NOT tif_open.c's `tiff_bitstate_t`: that struct carries `int bitpos` at
@@ -103,7 +113,18 @@ typedef struct tiff_s {
    * MOVSX/MOVZX (`mov eax,[esi+0xd4]` at 0x688a5), matching the same field
    * recovered at the same offset in tif_open.c. */
   unsigned long tif_row;
-  char pad_0d8[36];
+  char pad_0d8[24];
+  /* 0xf0..0xf8 -- upstream's tif_setupdecode / tif_setupencode /
+   * tif_postencode. All three are promoted out of the pad_0d8[36] run by
+   * FUN_0006a190, which stores immediates into them
+   * (`mov dword ptr [eax+0xf0],0x68d80` and the two following); tif_open.c
+   * recovers the same three offsets and names independently from the
+   * LZW/predictor codec installers. Upstream's tif_predecode (0xfc in a stock
+   * build) is absent from Bungie's copy -- the six code slots start at 0xfc
+   * here -- which tif_open.c already notes. */
+  tiff_bool_method_t tif_setupdecode; /* 0xf0 */
+  tiff_bool_method_t tif_setupencode; /* 0xf4 */
+  tiff_bool_method_t tif_postencode; /* 0xf8 */
   /* 0xfc..0x110 -- the six codec code slots. FUN_00068970 stores 0x68890
    * (the decoder) into 0xfc/0x104/0x10c and 0x68780 (the encoder) into
    * 0x100/0x108/0x110, which proves the decode/encode split but not the
@@ -117,14 +138,20 @@ typedef struct tiff_s {
   tiff_code_method_t tif_encodestrip; /* 0x108 */
   tiff_code_method_t tif_decodetile; /* 0x10c */
   tiff_code_method_t tif_encodetile; /* 0x110 */
-  /* 0x114 -- upstream's tif_close. Never written by anything recovered so
-   * far, in this TU or in tif_open.c. */
-  char pad_114[4];
+  /* 0x114 -- upstream's tif_close. Promoted out of pad_114 by FUN_0006a190,
+   * which stores FUN_00069590 (recovered in this TU as `void (void *tif)`)
+   * into it with `mov dword ptr [eax+0x114],0x69590`. tif_open.c still carries
+   * it inside a pad_114[8] run. */
+  tiff_void_method_t tif_close; /* 0x114 */
   /* 0x118 -- upstream's tif_seek. Written with an immediate at 0x68986
    * (`mov dword ptr [eax+0x118],0x68940`), which is what promotes it out of
    * the pad_114[8] run tif_open.c still carries. */
   tiff_seek_method_t tif_seek; /* 0x118 */
-  char pad_11c[4];
+  /* 0x11c -- upstream's tif_cleanup. Promoted out of pad_11c by FUN_0006a190
+   * (`mov dword ptr [eax+0x11c],0x695c0`); FUN_000695c0 is the Fax3 cleanup
+   * recovered at the bottom of this TU, and tif_open.c recovers the same offset
+   * and name from the LZW installer. */
+  tiff_void_method_t tif_cleanup; /* 0x11c */
   /* 0x120 -- upstream's `tidata_t tif_data`, the codec's private state block.
    * `mov edi,[esi+0x120]` at 0x69528; tif_open.c recovers the same offset and
    * name independently. Typed to this TU's own state shape (see
@@ -681,4 +708,111 @@ void FUN_000695c0(void *tif_)
      * writes a dword immediate to the field rather than going through `sp`. */
     tif->tif_data = 0;
   }
+}
+
+/**
+ * Install one of the CCITT Group 3/4 ("fax") codecs into a TIFF handle.
+ *
+ * This is a `TIFFInitCCITT*` entry point from upstream libtiff tif_fax3.c --
+ * the same TU that stamps the `c:\halo\SOURCE\bitmaps\libtiff\tif_fax3.c`
+ * string used by FUN_000695c0 above -- with upstream's shared `InitCCITTFax3`
+ * helper fully inlined: this body issues NO CALL at all, it only takes the six
+ * addresses below as function-pointer VALUES
+ * (`mov ecx,0x6a070` / `mov dword ptr [eax+imm],0x68d80`) and stores them.
+ *
+ * WHICH variant (RLE / RLEW / Fax3 / Fax4) is UNRESOLVED. The three sibling
+ * installers at 0x6a210, 0x6a2a0 and 0x6a310 are still unrecovered, and
+ * nothing here writes a `mode`/`groupoptions` field that would separate them,
+ * so the decode/encode pair 0x6a070 / 0x69f30 is the only discriminator and it
+ * is not yet identified. The name therefore stays FUN_0006a190.
+ *
+ * The batch that scheduled this lift labelled the target `tif_dumpmode.c`.
+ * That is wrong: upstream's TIFFInitDumpMode is FUN_00068970, already recovered
+ * higher up in this TU (it installs the dump encode/decode pair 0x68780/0x68890
+ * plus tif_seek, and touches no setup or cleanup slot). This body installs a
+ * disjoint set -- setupdecode/setupencode/postencode and close/cleanup, all of
+ * them Fax3 helpers already resident here -- so it is filed with its kb.json
+ * object (tif_flush.obj -> this file) rather than in a new tif_dumpmode.c.
+ *
+ * ABI recovered from the frame at 0x6a190 (0x6a190-0x6a20a): `push ebp /
+ * mov ebp,esp` with NO `sub esp` (the only temporaries are the ECX the two
+ * shared immediates are staged in and the CL the +0x9 flag byte is read into),
+ * one stack argument read at [ebp+8] into EAX, `mov eax,1 / pop ebp / ret` with
+ * no immediate -- cdecl, caller cleans, and the return type is `int`, not the
+ * `void` kb.json carried. The decompiler surfaced the parameter as
+ * `in_stack_00000004` and dropped the `mov eax,1` at 0x6a205 purely because of
+ * that stale `(void)` prototype; every upstream `TIFFInitCCITT*` returns a
+ * success flag its caller tests, so shipping this as `void` would have silently
+ * dropped it (lift-silent-bugs section 16, void-EAX).
+ *
+ * Upstream takes a second `int scheme` argument which it discards. Nothing here
+ * reads [ebp+0xc], so only the first parameter is binary-proven and only it is
+ * declared; cdecl makes an extra pushed argument harmless, exactly as for
+ * FUN_00068970.
+ *
+ * Store order below is the emitted order. MSVC stages 0x6a070 in ECX once for
+ * the three decode slots (0x6a19b-0x6a1a9) and 0x69f30 in ECX once for the
+ * three encode slots (0x6a1af-0x6a1bd), then writes the five remaining slots as
+ * plain immediates. The two flag bytes are handled asymmetrically and are left
+ * in source order for the scheduler to split: `[eax+0xa] |= 0x20` is a
+ * read-modify-write in place at 0x6a1ca, while `[eax+9]` is read into CL and
+ * OR'd with 1 early (0x6a1c4-0x6a1c7) but not written back until 0x6a200.
+ *
+ * 0x118 (tif_seek) is NOT written here -- it is the dump codec's slot and this
+ * body leaves it alone.
+ */
+int FUN_0006a190(void *tif_)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+
+  /* 0x6a19b-0x6a1a9. One ECX load, three stores. */
+  tif->tif_decoderow = (tiff_code_method_t)FUN_0006a070;
+  tif->tif_decodestrip = (tiff_code_method_t)FUN_0006a070;
+  tif->tif_decodetile = (tiff_code_method_t)FUN_0006a070;
+
+  /* 0x6a1af-0x6a1bd. A second ECX load, three more stores. */
+  tif->tif_encoderow = (tiff_code_method_t)FUN_00069f30;
+  tif->tif_encodestrip = (tiff_code_method_t)FUN_00069f30;
+  tif->tif_encodetile = (tiff_code_method_t)FUN_00069f30;
+
+  /* 0x6a1ca: `or byte ptr [eax+0xa],0x20`. Upstream's
+   * `tif->tif_flags |= TIFF_NOBITREV` -- "we handle bit reversal ourselves" --
+   * which is how every fax installer opens after the codec slots. The bit is
+   * set with a literal rather than a TIFF_* macro because whether field_0a is
+   * byte 2 of an upstream `uint32 tif_flags` based at 0x08 is UNPROVEN: under
+   * that reading TIFF_NOBITREV (0x100) would land in field_09, not here, so the
+   * numbering in Bungie's copy does not match stock libtiff and naming the bit
+   * would overstate what the binary shows. Same reasoning as field_09 above. */
+  tif->field_0a |= 0x20;
+
+  /* 0x6a1cd-0x6a1e1. Immediate stores, no register staging. Upstream's inlined
+   * InitCCITTFax3 body: Fax3SetupState into both setup slots in stock libtiff,
+   * but this build stores two DIFFERENT addresses (0x68d80 decode, 0x69420
+   * encode), so the two slots are kept distinct here rather than collapsed. */
+  tif->tif_setupdecode = (tiff_bool_method_t)FUN_00068d80;
+  tif->tif_setupencode = (tiff_bool_method_t)FUN_00069420;
+  tif->tif_postencode = FUN_00069520;
+
+  /* 0x6a1e8-0x6a1f9. */
+  tif->tif_close = FUN_00069590;
+  tif->tif_cleanup = FUN_000695c0;
+
+  /* Read into CL at 0x6a1c4-0x6a1c7 and stored back at 0x6a200 -- MSVC hoists
+   * the load and OR ahead of the +0xa flag byte and keeps the value live in CL
+   * across the five immediate stores above, none of which touch CL. The
+   * statement is written LAST anyway, matching the decompiler's ordering (which
+   * ranks the two flag bytes by their STORE addresses, 0x6a1ca vs 0x6a200):
+   * moving it up to where the hoisted read lands was MEASURED and made the
+   * match WORSE (95.7% -> 95.5%, operand-normalized 95.7% -> 90.9%, and the
+   * instruction count moved off 23/23), because VC71 then materializes the
+   * read-modify-write in place instead of sinking the store. The residual ~4.3%
+   * gap is exactly this one hoisted `movb 0x9(%eax),%cl`, and it is a scheduling
+   * artifact, not a logic difference.
+   *
+   * Bit 0 of field_09 is the same bit FUN_00068a50 sets and clears; its
+   * upstream identity is unproven, so it too is a literal. */
+  tif->field_09 |= 1;
+
+  /* 0x6a205: `mov eax,1`. Unconditional success -- nothing above can fail. */
+  return 1;
 }
