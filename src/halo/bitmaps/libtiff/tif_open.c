@@ -487,7 +487,17 @@ typedef struct tiff_s {
   tiff_bitstate_t *tif_data; /* 0x120 */
   char pad_124[8];
   unsigned char *tif_rawcp; /* 0x12c */
-  char pad_130[8];
+  char pad_130[4];
+  /* 0x134 -- raw-buffer READ cursor. PackBitsDecode (0x6dbf0) loads it at
+   * 0x6dc02, walks it one byte at a time, and writes the advanced value back
+   * at 0x6dcc8, paired with the byte count at 0x138 (loaded 0x6dbf9, stored
+   * 0x6dcbd). That adjacency is upstream libtiff's tif_rawcp/tif_rawcc pair,
+   * which would make the 0x12c pointer above `tif_rawdata` (the buffer base)
+   * rather than a cursor -- consistent with the bit writer at 0x6c960 using
+   * 0x12c as a base it adds `bitpos >> 3` to and stores the carried partial
+   * byte through. That re-attribution of 0x12c is NOT made here; this field
+   * keeps a mechanical name until a lift forces the question. */
+  unsigned char *field_134;
   long tif_rawcc; /* 0x138 */
 } tiff_t;
 
@@ -1409,6 +1419,105 @@ int FUN_0006d980(void *tif)
     return 1;
   }
   *(int *)((char *)tif + 0x120) = TIFFScanlineSize((int)tif);
+  return 1;
+}
+
+/**
+ * PackBits (RLE) scanline decoder -- upstream libtiff's `PackBitsDecode`
+ * from tif_packbits.c, installed into tif_decoderow/decodestrip/decodetile
+ * by FUN_0006dd50.
+ *
+ * This is the OLDER upstream shape, not the 3.5.x one. `cc` is decremented
+ * exactly ONCE on the replicate path (`dec eax` at 0x6dc41, ahead of the -128
+ * test) and never again for the replicated data byte, whereas 3.5.x carries a
+ * second `cc--` alongside `b = *bp++`. Transcribing the newer upstream text
+ * here would consume one raw byte too many per run and desynchronise every
+ * following scanline. The literal path folds its two decrements into the
+ * single `sub eax,esi` at 0x6dca2, using the already pre-incremented count.
+ *
+ * The `if (n >= 128) n -= 256;` guard is upstream's defence against compilers
+ * that do not sign-extend `char`. It is dead on this target -- 0x6dc2b is
+ * `movsx esi, byte ptr [ebx]` -- but the compiler cannot know that and emits
+ * it anyway (`cmp esi,0x80 / jl / sub esi,0x100`, 0x6dc2f-0x6dc3a), so it is
+ * kept rather than folded away.
+ *
+ * The replicate fill stays as upstream's `while (n-- > 0) *op++ = b;` byte
+ * loop even though the binary carries a `rep stosd`/`rep stosb` pair, because
+ * both halves of the loop survive around it: the `test edx,edx / jle` at
+ * 0x6dc5d is the while's entry guard, and 0x6dc83 RELOADS `op` from its stack
+ * slot and adds the count rather than reusing the EDI the rep-string pair
+ * already left pointing there -- i.e. the fill was substituted for the loop
+ * body while `op`'s live-out value was still recomputed from source. What
+ * sits between (0x6dc64-0x6dc81: broadcast the byte through BL/BH into EAX,
+ * `shr ecx,2 / rep stosd`, `and ecx,3 / rep stosb`, count shifted LOGICALLY)
+ * is the compiler's fill expansion, not something the C says; writing an
+ * explicit memset call here is not an option either, since this build is
+ * `-nostdlib -ffreestanding -fno-builtin` and has no memset to link against.
+ * EBX (`bp`) is spilled at 0x6dc5f and restored at 0x6dc77 because the byte
+ * broadcast needs BL/BH.
+ *
+ * `op` and `occ` are the parameters themselves, mutated in place: the
+ * original spills them back into their own argument slots ([EBP+0xc] at
+ * 0x6dcad, [EBP+0x10] at 0x6dc56 and 0x6dca4) instead of keeping copies.
+ *
+ * @param tif_ TIFF handle (declared void* so the generated header needs no
+ *             libtiff types). Never null-checked.
+ * @param op   output scanline buffer, advanced past each decoded run.
+ * @param occ  output bytes still wanted. Signed (`test edx,edx / jle` at
+ *             0x6dc23), and deliberately allowed to go negative -- a run that
+ *             overshoots ends the loop and lands in the error arm.
+ * @param s    sample number. Upstream's `(void) s;`: the frame slot at
+ *             [EBP+0x14] is never read.
+ * @return 1 when `occ` was fully satisfied (`mov eax,1` at 0x6dcee), 0 after
+ *         reporting the short scanline (`xor eax,eax` at 0x6dce8). The
+ *         decompiler types the body void because it drops both EAX writes
+ *         (void-EAX hazard, lift-learnings SS16); FUN_0006dd50 storing this
+ *         address into three `tiff_code_method_t` slots settles the shape.
+ */
+int FUN_0006dbf0(void *tif_, char *op, int occ, int s)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  char *bp;
+  int cc;
+  int n;
+  int b;
+
+  (void)s;
+  bp = (char *)tif->field_134;
+  cc = tif->tif_rawcc;
+  while (cc > 0 && occ > 0) {
+    n = (int)*bp++;
+    /* Watch out for compilers that don't sign extend chars... */
+    if (n >= 128) {
+      n -= 256;
+    }
+    if (n < 0) { /* replicate next byte -n+1 times */
+      cc--;
+      if (n == -128) { /* nop */
+        continue;
+      }
+      n = -n + 1;
+      occ -= n;
+      b = *bp++;
+      while (n-- > 0) {
+        *op++ = (char)b;
+      }
+    } else { /* copy next n+1 bytes literally */
+      csmemcpy(op, bp, ++n);
+      op += n;
+      occ -= n;
+      bp += n;
+      cc -= n;
+    }
+  }
+  tif->field_134 = (unsigned char *)bp;
+  tif->tif_rawcc = cc;
+  if (occ > 0) {
+    FUN_00068a30(tif->tif_name,
+                 "PackBitsDecode: Not enough data for scanline %d",
+                 tif->tif_row);
+    return 0;
+  }
   return 1;
 }
 
