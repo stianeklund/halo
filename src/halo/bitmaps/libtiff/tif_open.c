@@ -359,10 +359,11 @@ typedef struct tiff_bitstate_s {
 } tiff_bitstate_t;
 
 /* The three TIFF fields this function reaches: +0x120 codec private state
- * (0x6c96c), +0x12c raw write pointer (0x6c991/0x6c9a7/0x6c9bb/0x6c9cc) and
- * +0x138 raw byte count (0x6c99a/0x6ca40). This layout is NOT upstream
- * libtiff's -- there tif_rawcc immediately follows tif_rawcp; here they are
- * 12 bytes apart -- so nothing between them is named. */
+ * (0x6c96c), +0x12c raw buffer base (0x6c991/0x6c9a7/0x6c9bb/0x6c9cc) and
+ * +0x138 raw byte count (0x6c99a/0x6ca40). 0x12c is the buffer BASE, not the
+ * cursor -- see the tif_rawdata comment in tiff_t below, where PackBitsEncode
+ * pins the whole 0x12c..0x138 quartet to upstream's
+ * tif_rawdata/tif_rawdatasize/tif_rawcp/tif_rawcc. */
 /* Codec method pointer types, from upstream libtiff's tiffiop.h. `tif` is
  * declared void* throughout this TU so the generated header needs no libtiff
  * types; the six installed stubs already carry exactly these shapes in
@@ -494,18 +495,31 @@ typedef struct tiff_s {
    * member `tsize_t tif_scanlinesize`; the OFFSET is Bungie's. */
   long tif_scanlinesize; /* 0x124 */
   char pad_128[4];
-  unsigned char *tif_rawcp; /* 0x12c */
-  char pad_130[4];
-  /* 0x134 -- raw-buffer READ cursor. PackBitsDecode (0x6dbf0) loads it at
-   * 0x6dc02, walks it one byte at a time, and writes the advanced value back
-   * at 0x6dcc8, paired with the byte count at 0x138 (loaded 0x6dbf9, stored
-   * 0x6dcbd). That adjacency is upstream libtiff's tif_rawcp/tif_rawcc pair,
-   * which would make the 0x12c pointer above `tif_rawdata` (the buffer base)
-   * rather than a cursor -- consistent with the bit writer at 0x6c960 using
-   * 0x12c as a base it adds `bitpos >> 3` to and stores the carried partial
-   * byte through. That re-attribution of 0x12c is NOT made here; this field
-   * keeps a mechanical name until a lift forces the question. */
-  unsigned char *field_134;
+  /* 0x12c -- raw output buffer BASE, not a cursor. The previous revision of
+   * this struct named it `tif_rawcp` and left the question open; PackBitsEncode
+   * (0x6d9c0) settles it. That function forms the buffer end as
+   * `[tif+0x130] + [tif+0x12c]` (`add ecx,[edx+0x12c]` at 0x6d9d8), so exactly
+   * one of the pair is a pointer and the other a length -- and 0x12c is the
+   * pointer, because the bit writer at 0x6c960 DEREFERENCES it (0x6c9cc, the
+   * partial-byte carry `*tif->tif_rawdata = *op`) while nothing anywhere
+   * dereferences 0x130. The bit writer's `tif_rawdata + (bitpos >> 3)`
+   * addressing and its `tif_rawcc = bitpos >> 3` store are the same
+   * base-relative accounting.
+   *
+   * So the quartet is upstream libtiff 3.5.x's
+   * tif_rawdata / tif_rawdatasize / tif_rawcp / tif_rawcc, in that order.
+   * (libtiff 4.x swaps the first two; this build is from 2001, so 3.5.x.) */
+  unsigned char *tif_rawdata; /* 0x12c */
+  /* 0x130 -- capacity of the raw buffer in bytes. Only ever read, only ever
+   * as the addend that turns tif_rawdata into the end pointer (0x6d9d8). */
+  long tif_rawdatasize;
+  /* 0x134 -- current spot in the raw buffer, used by both directions.
+   * PackBitsDecode (0x6dbf0) loads it at 0x6dc02, walks it one byte at a time
+   * and writes the advanced value back at 0x6dcc8; PackBitsEncode (0x6d9c0)
+   * uses it as the flush watermark, reloads it after every TIFFFlushData1, and
+   * stores the finished `op` through it at 0x6da16. Paired with the byte count
+   * at 0x138 (loaded 0x6dbf9, stored 0x6dcbd). */
+  unsigned char *tif_rawcp;
   long tif_rawcc; /* 0x138 */
 } tiff_t;
 
@@ -546,16 +560,16 @@ void FUN_0006c960(void *tif_, long value)
     if ((bitpos & 7) == 0) {
       TIFFFlushData1(tif);
     } else {
-      unsigned char *op = tif->tif_rawcp + (bitpos >> 3);
+      unsigned char *op = tif->tif_rawdata + (bitpos >> 3);
       tif->tif_rawcc = bitpos >> 3;
       TIFFFlushData1(tif);
-      *tif->tif_rawcp = *op; /* carry the partial byte across the flush */
+      *tif->tif_rawdata = *op; /* carry the partial byte across the flush */
     }
-    cp = tif->tif_rawcp;
+    cp = tif->tif_rawdata;
     bitpos &= 7;
     sp->bitpos = bitpos;
   } else {
-    cp = tif->tif_rawcp + (bitpos >> 3);
+    cp = tif->tif_rawdata + (bitpos >> 3);
     bitpos &= 7;
   }
 
@@ -985,7 +999,7 @@ int FUN_0006d340(void *tif_, char *buf, int occ, int s)
     *op++ = 0xff;
   }
 
-  bp = tif->field_134;
+  bp = tif->tif_rawcp;
   cc = tif->tif_rawcc;
   scanline = tif->tif_scanlinesize;
   for (row = (unsigned char *)buf; occ > 0; occ -= scanline, row += scanline) {
@@ -1049,7 +1063,7 @@ int FUN_0006d340(void *tif_, char *buf, int occ, int s)
     }
     }
   }
-  tif->field_134 = bp;
+  tif->tif_rawcp = bp;
   tif->tif_rawcc = cc;
   return 1;
 bad:
@@ -1613,6 +1627,178 @@ int FUN_0006d980(void *tif)
 }
 
 /**
+ * PackBits (RLE) scanline encoder -- upstream libtiff's `PackBitsEncode` from
+ * tif_packbits.c, installed into tif_encoderow (0x100) by FUN_0006dd50 and
+ * called a row at a time by the strip/tile driver FUN_0006dd00.
+ *
+ * Transcribed from upstream rather than reshaped out of the decompiler
+ * (lift-learnings SS36): this TU is public libtiff. It is the OLDER upstream
+ * shape, matching the sibling decoder at 0x6dbf0 -- `char *op, *ep,
+ * *lastliteral` rather than 3.5.x's `tidata_t` (unsigned) trio. The binary
+ * settles that: the two ceiling tests on the literal count are SIGNED
+ * (`cmp cl,0x7e / jge` at 0x6db82, `cmp cl,0x7f` at 0x6dbb7), which an
+ * unsigned char pointer would have compiled to `jae`.
+ *
+ * Frame notes. `sub esp,0xc` buys exactly three DWORD slots -- [EBP-0x4]
+ * state, [EBP-0x8] the current byte, [EBP-0xc] the end pointer. That width
+ * is what pins `b` to upstream's `register int b` and `state` to a plain
+ * (int-sized) enum: byte-wide locals let MSVC pack the two into one slot and
+ * the frame comes out `sub esp,0x8`, which is what a first pass here scored
+ * 87.0% with. Ghidra rendering both as `char` is just narrowing of the
+ * movsx/byte-store traffic. `ep` is computed once at entry
+ * (`add ecx,[edx+0x12c]` at 0x6d9d8) rather than per iteration; `bp` and `cc`
+ * are the parameters themselves, mutated in their own argument slots,
+ * exactly as in FUN_0006dbf0.
+ *
+ * The buffer-space test at 0x6da60 is `lea ecx,[eax+2] / cmp ecx,esi / jc`,
+ * an UNSIGNED compare of `op + 2` against `ep` -- which is what plain C
+ * pointer comparison gives, so no cast is needed to reproduce it.
+ *
+ * The three `n > 128` chunking arms of BASE/LITERAL/RUN are written out
+ * separately here, as upstream has them; MSVC tail-merges them into the one
+ * shared block at 0x6db2f (`cmp ebx,0x80 / jle`, emit 0x81 + b, `sub ebx,0x80`,
+ * back to the space test). Do not hand-merge them in source to chase that.
+ *
+ * The LITERAL_RUN collapse assigns the next state from a comparison result
+ * rather than branching -- `setnz` at 0x6db8f, i.e. `(v != 127)` mapped onto
+ * BASE=0 / LITERAL=1 -- so it is written as a direct assignment, not as
+ * upstream's `== 127 ? BASE : LITERAL` ternary (flag-assign-before-call
+ * lever). The compound assignment's own value is used; the store back through
+ * `lastliteral` is the same instruction that feeds the test.
+ *
+ * @param tif_ TIFF handle (declared void* so the generated header needs no
+ *             libtiff types). Never null-checked.
+ * @param bp   input scanline, advanced past every byte consumed.
+ * @param cc   input bytes remaining. Signed (`cmp dword ptr [ebp+0x10],1 /
+ *             jl` guards the loop), so a zero-length row falls straight to
+ *             the flush accounting.
+ * @param s    sample number. Upstream's `(void) s;`: the slot at [EBP+0x14]
+ *             is never read. Its presence is proven only by the caller
+ *             FUN_0006dd00 pushing four arguments, not by any read here.
+ * @return 1 on success (`mov eax,1` at 0x6da0d), -1 as soon as a
+ *         TIFFFlushData1 fails (`or eax,-1` at 0x6dbd1). Note this is the old
+ *         upstream convention; 4.x returns 0 there. The decompiler types the
+ *         body void because it drops both EAX writes (void-EAX hazard,
+ *         lift-learnings SS16).
+ */
+int FUN_0006d9c0(void *tif_, char *bp, int cc, int s)
+{
+  enum packbits_state { BASE = 0, LITERAL = 1, RUN = 2, LITERAL_RUN = 3 };
+  tiff_t *tif = (tiff_t *)tif_;
+  char *op;
+  char *ep;
+  char *lastliteral;
+  long n;
+  long slop;
+  int b;
+  enum packbits_state state;
+
+  (void)s;
+  op = (char *)tif->tif_rawcp;
+  ep = (char *)tif->tif_rawdata + tif->tif_rawdatasize;
+  state = BASE;
+  lastliteral = 0;
+  while (cc > 0) {
+    /* Find the longest string of identical bytes. */
+    b = *bp++, cc--, n = 1;
+    for (; cc > 0 && b == *bp; cc--, bp++) {
+      n++;
+    }
+  again:
+    if (op + 2 >= ep) { /* insure space for new data */
+      /* Be careful about writing the last literal: write up to that point,
+       * then copy the partial literal to the front of the freed block. */
+      if (state == LITERAL || state == LITERAL_RUN) {
+        slop = (long)(op - lastliteral);
+        tif->tif_rawcc += lastliteral - (char *)tif->tif_rawcp;
+        if (!TIFFFlushData1(tif)) {
+          return -1;
+        }
+        op = (char *)tif->tif_rawcp;
+        while (slop-- > 0) {
+          *op++ = *lastliteral++;
+        }
+        lastliteral = (char *)tif->tif_rawcp;
+      } else {
+        tif->tif_rawcc += op - (char *)tif->tif_rawcp;
+        if (!TIFFFlushData1(tif)) {
+          return -1;
+        }
+        op = (char *)tif->tif_rawcp;
+      }
+    }
+    switch (state) {
+    case BASE: /* initial state, set run/literal */
+      if (n > 1) {
+        state = RUN;
+        if (n > 128) {
+          *op++ = (char)-127;
+          *op++ = (char)b;
+          n -= 128;
+          goto again;
+        }
+        *op++ = (char)(-(n - 1));
+        *op++ = (char)b;
+      } else {
+        lastliteral = op;
+        *op++ = 0;
+        *op++ = (char)b;
+        state = LITERAL;
+      }
+      break;
+    case LITERAL: /* last object was literal string */
+      if (n > 1) {
+        state = LITERAL_RUN;
+        if (n > 128) {
+          *op++ = (char)-127;
+          *op++ = (char)b;
+          n -= 128;
+          goto again;
+        }
+        *op++ = (char)(-(n - 1)); /* encode run */
+        *op++ = (char)b;
+      } else { /* extend literal */
+        if (++(*lastliteral) == 127) {
+          state = BASE;
+        }
+        *op++ = (char)b;
+      }
+      break;
+    case RUN: /* last object was run */
+      if (n > 1) {
+        if (n > 128) {
+          *op++ = (char)-127;
+          *op++ = (char)b;
+          n -= 128;
+          goto again;
+        }
+        *op++ = (char)(-(n - 1));
+        *op++ = (char)b;
+      } else {
+        lastliteral = op;
+        *op++ = 0;
+        *op++ = (char)b;
+        state = LITERAL;
+      }
+      break;
+    case LITERAL_RUN: /* literal followed by a run */
+      /* If the previous run can be turned back into a literal, collapse
+       * literal-run-literal into a single literal. */
+      if (n == 1 && op[-2] == (char)-1 && *lastliteral < 126) {
+        state = (enum packbits_state)((*lastliteral += 2) != 127);
+        op[-2] = op[-1]; /* replicate */
+      } else {
+        state = RUN;
+      }
+      goto again;
+    }
+  }
+  tif->tif_rawcc += op - (char *)tif->tif_rawcp;
+  tif->tif_rawcp = (unsigned char *)op;
+  return 1;
+}
+
+/**
  * PackBits (RLE) scanline decoder -- upstream libtiff's `PackBitsDecode`
  * from tif_packbits.c, installed into tif_decoderow/decodestrip/decodetile
  * by FUN_0006dd50.
@@ -1673,7 +1859,7 @@ int FUN_0006dbf0(void *tif_, char *op, int occ, int s)
   int b;
 
   (void)s;
-  bp = (char *)tif->field_134;
+  bp = (char *)tif->tif_rawcp;
   cc = tif->tif_rawcc;
   while (cc > 0 && occ > 0) {
     n = (int)*bp++;
@@ -1690,7 +1876,7 @@ int FUN_0006dbf0(void *tif_, char *op, int occ, int s)
       occ -= n;
       b = *bp++;
       while (n-- > 0) {
-        *op++ = (char)b;
+        *op++ = b;
       }
     } else { /* copy next n+1 bytes literally */
       csmemcpy(op, bp, ++n);
@@ -1700,7 +1886,7 @@ int FUN_0006dbf0(void *tif_, char *op, int occ, int s)
       cc -= n;
     }
   }
-  tif->field_134 = (unsigned char *)bp;
+  tif->tif_rawcp = (unsigned char *)bp;
   tif->tif_rawcc = cc;
   if (occ > 0) {
     FUN_00068a30(tif->tif_name,

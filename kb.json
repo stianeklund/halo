@@ -34422,7 +34422,8 @@
     },
     {
      "addr": "0x6d9c0",
-     "decl": "int FUN_0006d9c0(void *tif, char *bp, int cc, int s);"
+     "decl": "int FUN_0006d9c0(void *tif, char *bp, int cc, int s);",
+     "ported": true
     },
     {
      "addr": "0x6dbf0",
@@ -34612,7 +34613,7 @@
     },
     {
      "addr": "0x6fe10",
-     "decl": "void TIFFFlushData1(void *tif);"
+     "decl": "int TIFFFlushData1(void *tif);"
     },
     {
      "addr": "0x6fea0",
