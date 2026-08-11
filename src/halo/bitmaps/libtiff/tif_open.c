@@ -293,7 +293,16 @@ typedef struct tiff_s {
    * TIFF). Signedness is unobservable from a bare dword load; the field keeps
    * upstream's unsigned typing, matching tif_row above. */
   unsigned long tif_curdir; /* 0xd8 */
-  char pad_0dc[0x14];
+  /* Current strip index. TIFFCurrentStrip (0x6d8c0) reads it with a plain
+   * dword `mov eax,[eax+0xdc]` -- no MOVSX/MOVZX, so this is a full 32-bit
+   * field and no narrower spelling is admissible. Upstream libtiff types the
+   * member `tstrip_t tif_curstrip`, i.e. a uint32, which agrees with the
+   * observed width; the OFFSET is Bungie's (upstream places tif_curstrip far
+   * earlier in TIFF), so only the name is transcribed. Signedness is
+   * unobservable from a bare dword load; the field keeps upstream's unsigned
+   * typing, matching tif_row and tif_curdir above. */
+  unsigned long tif_curstrip; /* 0xdc */
+  char pad_0e0[0x10];
   /* Codec vtable, 0xf0-0x11c, installed wholesale by FUN_0006d2d0. Upstream
    * libtiff orders these setupdecode, predecode, setupencode, preencode,
    * postencode, then the six code methods, then close/seek/cleanup; Bungie's
@@ -960,4 +969,34 @@ unsigned long TIFFCurrentRow(void *tif)
 unsigned long TIFFCurrentDirectory(void *tif)
 {
   return ((tiff_t *)tif)->tif_curdir;
+}
+
+/**
+ * Index of the strip the handle's decoder/encoder is currently positioned at.
+ *
+ * Transcribed from the vendored libtiff (tif_open.c TIFFCurrentStrip), whose
+ * body is literally `return tif->tif_curstrip;`. Ghidra's cached listing has
+ * 0x6d8c0 as an empty `void(void)` body -- the void-EAX artifact
+ * (lift-learnings s16), since nothing in the cached listing consumes the
+ * return, and kb.json carried the same wrong `void TIFFCurrentStrip(void)`
+ * prototype. The XBE bytes at 0x6d8c0-0x6d8cd are six instructions with one
+ * stack argument and an EAX return: `push ebp / mov ebp,esp / mov eax,[ebp+8]
+ * / mov eax,[eax+0xdc] / pop ebp / ret`. cdecl, no callee cleanup (plain
+ * `ret`, not `ret n`), no register arguments, no locals (there is no `sub
+ * esp`), so no `tiff_t *tif` temp is introduced here -- the cast happens
+ * inside the return expression, matching TIFFCurrentDirectory and
+ * TIFFCurrentRow immediately above.
+ *
+ * The load is a plain dword MOV, not MOVSX/MOVZX word or byte, so the field at
+ * 0xdc is a full 32-bit value and there is no width-narrowing hazard here.
+ * Signedness is unobservable from a bare load; the field keeps upstream's
+ * unsigned typing.
+ *
+ * @param tif TIFF handle (declared void* so the generated header needs no
+ *            libtiff types). Never null-checked, exactly as upstream.
+ * @return the current strip index, in EAX.
+ */
+unsigned long TIFFCurrentStrip(void *tif)
+{
+  return ((tiff_t *)tif)->tif_curstrip;
 }

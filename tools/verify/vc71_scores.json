@@ -24453,6 +24453,17 @@
       "score": 100.0,
       "source": "src/halo/bitmaps/libtiff/tif_open.c"
     },
+    "TIFFCurrentStrip": {
+      "addr": "0x6d8c0",
+      "end": "0x6d8ce",
+      "kind": "auto",
+      "n_r": 6,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "29f548c83b5b7abe",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_open.c"
+    },
     "TIFFFileName": {
       "addr": "0x6d850",
       "end": "0x6d85a",
