@@ -37295,7 +37295,8 @@
     },
     {
      "addr": "0x14e640",
-     "decl": "void FUN_0014e640(void);"
+     "decl": "char FUN_0014e640(void *test_record, float *origin, float *delta, void *result);",
+     "ported": true
     },
     {
      "addr": "0x14e7d0",
