@@ -89,6 +89,7 @@
     "0x61f10": "char FUN_00061f10(float *vec_a@<eax>, float *pt0@<ecx>, float *pt1@<edx>, float *out@<esi>, float radius);",
     "0x61fa0": "void FUN_00061fa0(float *vec@<ecx>, float *out_a@<edx>, float *out_b@<esi>, float denom, float num, float *out_scalar);",
     "0x64400": "void FUN_00064400(int actor_handle@<eax>, int prop_handle@<edi>);",
+    "0x6c780": "int FUN_0006c780(void *tif@<ecx>);",
     "0x73fd0": "int FUN_00073fd0(void *bitmap /* @<eax> */);",
     "0x75380": "short FUN_00075380(void *bitmap /* @<eax> */);",
     "0x77720": "void *FUN_00077720(short scale /* @<eax> */, void *source_bitmap, short brightness_adjust, char alpha_weighted);",

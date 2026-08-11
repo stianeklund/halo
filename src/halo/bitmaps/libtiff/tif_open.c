@@ -688,6 +688,199 @@ void FUN_0006cac0(void *tif_)
   }
 }
 
+/* LZW codec private state, reached through TIFF::tif_data. This is upstream
+ * libtiff's LZWCodecState (tif_lzw.c) with Bungie's own field placement. Every
+ * offset below is proven by an access in FUN_0006cb00:
+ *
+ *   +0x00   0x6cb48 `mov edx,[esi]`, 0x6ccb9 dword store -- the code carried
+ *           across calls (upstream's dec_oldcodep, an index here).
+ *   +0x04   0x6cb15 `test byte ptr [esi+4],1`, 0x6cb3c `and ...,0xfe`,
+ *           0x6cc3f `or ...,1`; bit 1 at 0x6cba3 / 0x6cc8e `test al,2`.
+ *           A byte holding two independent flags.
+ *   +0x06   0x6cbac `mov word ptr [esi+6],9`, 0x6cc6b `inc word ptr`,
+ *           0x6cc74 `cmp word ...,ax` with JBE -- UNSIGNED 16-bit.
+ *   +0x10   0x6cbb2 / 0x6cc91 dword stores, 0x6cc60 load, compared signed.
+ *   +0x1c   0x6cbeb `cmp eax,[esi+0x1c]` JL, 0x6cc46 `cmp eax,0xfff` JGE --
+ *           signed 32-bit.
+ *   +0x20   0x6cc09 `movsx eax, word ptr [esi+eax*2+0x20]` -- SIGNED shorts.
+ *           The walk guard bounds the index to [0x100,0xfff], so 0x1000
+ *           entries; the load being MOVSX and not MOVZX is load-bearing.
+ *   +0x2736 0x6cc00 `mov cl, byte ptr [esi+eax+0x2736]` and 0x6cc16
+ *           `movzx ebx, byte ptr [...]` -- unsigned bytes, index [0,0xfff].
+ *   +0x3736 0x6cb31 / 0x6cc33 `lea ...,[esi+0x3736]`, used only as the
+ *           exclusive lower bound of the reverse-string stack (compared with
+ *           JA, i.e. unsigned pointer comparison).
+ *   +0x3ac4 0x6cb1a load, 0x6cb61 / 0x6ccb3 stores -- the stack cursor.
+ *   +0x3ac8 0x6cb4a load, 0x6ccbb dword store -- last byte emitted, held
+ *           zero-extended in a full dword.
+ *
+ * Two extents are inferred rather than proven. The CODE_CLEAR memset spans
+ * 0x2716 bytes from +0x20 (0x6cb8d), i.e. it stops exactly where the suffix
+ * table starts and deliberately leaves the suffix table intact -- so the
+ * 0x716 bytes between the end of the 0x1000-entry prefix table and +0x2736
+ * are inside the cleared region but are never otherwise touched here, and
+ * stay padding. Likewise the stack at +0x3736 is only bounded from above by
+ * the next proven field. */
+#define LZW_FLAG_RESTART \
+  0x01 /* output was cut short mid-string; resume first */
+#define LZW_FLAG_OLDSTYLE 0x02 /* off-by-one maxcode bias (old-style streams) \
+                                */
+
+typedef struct lzw_codec_state_s {
+  int oldcode; /* 0x00 */
+  unsigned char flags; /* 0x04 */
+  char pad_05[1];
+  unsigned short nbits; /* 0x06 code width currently being read */
+  char pad_08[8];
+  int maxcode; /* 0x10 last code representable in nbits bits */
+  char pad_14[8];
+  int free_ent; /* 0x1c next table slot to hand out */
+  short prefix[0x1000]; /* 0x20 */
+  char pad_2020[0x716];
+  unsigned char suffix[0x1000]; /* 0x2736 */
+  unsigned char stack[0x38e]; /* 0x3736 reverse-string scratch */
+  unsigned char *stackp; /* 0x3ac4 */
+  int finchar; /* 0x3ac8 */
+} lzw_codec_state_t;
+
+/**
+ * Decode LZW-compressed data into a caller-supplied scanline/strip buffer.
+ *
+ * Upstream libtiff's LZWDecode, in its pre-3.5 stack-based shape: strings are
+ * reconstructed backwards onto a scratch stack and then copied out forwards.
+ * The code reader is out of line here (0x6c780, `mov ecx,[ebp+8]` then CALL,
+ * i.e. a single ECX register argument) rather than the NextCode macro
+ * upstream expands inline.
+ *
+ * When the caller's buffer fills in the middle of a string the remainder is
+ * left on the stack and LZW_FLAG_RESTART is set (0x6cc3f); the next call
+ * flushes it first (0x6cb15..0x6cb3c). Both flush loops are do-while with the
+ * decrement-then-test-negative order the binary uses -- `occ` is signed and
+ * `--occ < 0` is what arms the restart flag, so the order is load-bearing.
+ *
+ * The two flushes differ in what they do when the buffer fills: the entry
+ * flush returns 1 immediately (0x6cb5b) without arming the flag, because the
+ * flag is still set from the previous call; the in-loop flush arms the flag
+ * and falls through into the table update.
+ *
+ * @param tif_ TIFF handle; tif->tif_data must be the LZW codec state.
+ * @param op0  output buffer.
+ * @param occ0 output buffer size in bytes.
+ * @param s    sample number; unused by this codec.
+ * @return 1 when the buffer was filled, 0 when the code stream ran out first
+ *         (an EOI or a short strip), after reporting the shortfall.
+ */
+int FUN_0006cb00(void *tif_, char *op0, int occ0, int s)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  lzw_codec_state_t *sp = (lzw_codec_state_t *)tif->tif_data;
+  unsigned char *op;
+  unsigned char *tp;
+  int occ;
+  int oldcode;
+  int finchar;
+  int code;
+  int incode;
+
+  op = (unsigned char *)op0;
+  occ = occ0;
+  tp = sp->stackp;
+
+  if (sp->flags & LZW_FLAG_RESTART) {
+    do {
+      if (--occ < 0) {
+        sp->stackp = tp;
+        return 1;
+      }
+      *op++ = *--tp;
+    } while (tp > sp->stack);
+    sp->flags &= ~LZW_FLAG_RESTART;
+  }
+
+  oldcode = sp->oldcode;
+  finchar = sp->finchar;
+  while (occ > 0) {
+    code = FUN_0006c780(tif_);
+    if (code == 0x101) { /* CODE_EOI */
+      break;
+    }
+    if (code == 0x100) { /* CODE_CLEAR */
+      /* Stops exactly at the suffix table; the suffix bytes survive a clear. */
+      csmemset(sp->prefix, 0, 0x2716);
+      sp->free_ent = 0x102;
+      sp->nbits = 9;
+      sp->maxcode = 0x1fe;
+      if (sp->flags & LZW_FLAG_OLDSTYLE) {
+        sp->maxcode = 0x1ff;
+      }
+      code = FUN_0006c780(tif_);
+      if (code == 0x101) {
+        break;
+      }
+      *op++ = (unsigned char)code;
+      occ--;
+      finchar = code;
+      oldcode = code;
+      continue;
+    }
+
+    incode = code;
+    if (code >= sp->free_ent) {
+      /* Code not yet in the table: the string is the previous one plus its
+       * own first byte, so seed the stack with that byte and re-walk the
+       * previous code (0x6cbf2 reloads `code` from the oldcode slot). */
+      code = oldcode;
+      *tp++ = (unsigned char)finchar;
+    }
+    while (code >= 0x100) {
+      *tp++ = sp->suffix[code];
+      code = sp->prefix[code];
+    }
+    finchar = sp->suffix[code];
+    *tp++ = (unsigned char)finchar;
+
+    do {
+      if (--occ < 0) {
+        sp->flags |= LZW_FLAG_RESTART;
+        break;
+      }
+      *op++ = *--tp;
+    } while (tp > sp->stack);
+
+    if (sp->free_ent < 0xfff) {
+      /* The prefix table is 16-bit: 0x6cc4d loads only the low word of the
+       * oldcode slot (`mov cx, word ptr [ebp+0x10]`). */
+      sp->prefix[sp->free_ent] = (short)oldcode;
+      sp->suffix[sp->free_ent] = (unsigned char)finchar;
+      sp->free_ent++;
+      if (sp->free_ent > sp->maxcode) {
+        sp->nbits++;
+        if (sp->nbits > 12) {
+          sp->nbits = 12;
+        }
+        sp->maxcode = (1 << sp->nbits) - 2;
+        if (sp->flags & LZW_FLAG_OLDSTYLE) {
+          sp->maxcode++;
+        }
+      }
+    }
+    oldcode = incode;
+  }
+
+  sp->stackp = tp;
+  sp->oldcode = oldcode;
+  sp->finchar = finchar;
+  if (occ > 0) {
+    /* The handle is dereferenced inline here (0x6ccce `mov ecx,[ecx]`), not
+     * routed through TIFFFileName the way the setup paths in this TU are. */
+    FUN_00068a30(tif->tif_name,
+                 "LZWDecode: Not enough data at scanline %d (short %d bytes)",
+                 tif->tif_row, occ);
+    return 0;
+  }
+  return 1;
+}
+
 /* Predictor private state, reached through TIFF::tif_data. Only two offsets
  * are touched here: +0x08, read as a zero-extended word (0x6cd18
  * `movzx edx, word ptr [esi+8]`) and handed to the accumulator as its third
