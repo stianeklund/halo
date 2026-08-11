@@ -1850,7 +1850,7 @@
     },
     {
      "addr": "0x1e4eb2",
-     "decl": "void __open(void);"
+     "decl": "int __open(const char *path, int oflag, int pmode);"
     },
     {
      "addr": "0x1e4ef7",
@@ -34041,7 +34041,7 @@
     },
     {
      "addr": "0x68a30",
-     "decl": "void FUN_00068a30(int param_1, const char *format, ...);"
+     "decl": "void FUN_00068a30(const char *module, const char *format, ...);"
     },
     {
      "addr": "0x68a50",
@@ -34361,7 +34361,7 @@
     },
     {
      "addr": "0x6d590",
-     "decl": "void TIFFFdOpen(void);"
+     "decl": "int TIFFFdOpen(int fd, const char *name, const char *mode);"
     },
     {
      "addr": "0x6d820",
@@ -34410,7 +34410,8 @@
     },
     {
      "addr": "0x6d8e0",
-     "decl": "int FUN_0006d8e0(const char *path, const char *mode);"
+     "decl": "int FUN_0006d8e0(const char *path, const char *mode);",
+     "ported": true
     },
     {
      "addr": "0x6d980",

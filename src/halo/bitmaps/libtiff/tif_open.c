@@ -1040,3 +1040,127 @@ unsigned long TIFFCurrentTile(void *tif)
 {
   return ((tiff_t *)tif)->tif_curtile;
 }
+
+/* MSVC CRT open() oflag bits, named from the immediates the binary actually
+ * pushes/ORs at 0x6d910-0x6d962. _O_RDONLY is 0, so it never appears as an
+ * operand -- the 'r' arm materialises it with `xor eax,eax`. Guarded because
+ * the CRT's own fcntl.h may already be in scope under some toolchains. */
+#ifndef _O_RDONLY
+#define _O_RDONLY 0x0000
+#endif
+#ifndef _O_RDWR
+#define _O_RDWR 0x0002
+#endif
+#ifndef _O_CREAT
+#define _O_CREAT 0x0100
+#endif
+#ifndef _O_TRUNC
+#define _O_TRUNC 0x0200
+#endif
+#ifndef _O_BINARY
+#define _O_BINARY 0x8000
+#endif
+
+/* pmode passed as open()'s third argument: 0666, pushed literally as 0x1b6. */
+#define TIFF_OPEN_PMODE 0x01b6
+
+/**
+ * Open a TIFF file by path and return a handle, or 0 on failure.
+ *
+ * Transcribed from the vendored libtiff (tif_open.c TIFFOpen) rather than
+ * reshaped from the decompiler, keeping upstream's separate `_TIFFgetMode`
+ * helper above -- which the binary's block layout proves was the real source
+ * shape. Folding the helper's switch directly into this function instead
+ * compiles to the same instructions in a different order and scores 82.6%;
+ * the two-function form scores 100.0% (59/59). Two details give it away:
+ *
+ *  - `_TIFFgetMode` returns a sentinel `m = -1` that upstream's caller tests
+ *    with `if (m == -1) return 0;`. After inlining, that test is statically
+ *    true on the default arm and statically false everywhere else, so MSVC
+ *    deletes it -- which is why no `cmp eax,-1` survives at 0x6d8e0 even
+ *    though the sentinel is what makes the source well-formed.
+ *  - The inlined arms are laid out around the deleted test: the 'r' arm at
+ *    0x6d910 FALLS THROUGH into the shared open() block at 0x6d91f, while the
+ *    'w'/'a' arm is exiled to 0x6d954 (past both error returns) and jumps
+ *    back. Writing the switch inline instead makes both arms jump forward to
+ *    the shared block, costing an extra `jmp` and reversing the placement.
+ *
+ * The rest of the body reads directly off the disassembly:
+ *
+ *  - Upstream's `switch (mode[0])` over 'r' / 'w' / 'a' comes out as an
+ *    ascending compare chain at 0x6d8e7-0x6d8f6 (`cmp cl,0x61` 'a',
+ *    `cmp cl,0x72` 'r', `cmp cl,0x77` 'w'), so the source case order is not
+ *    recoverable from the branch order and upstream's r/w/a is kept.
+ *  - The 'r' arm at 0x6d910 is `xor eax,eax / cmp cl,0x2b / jnz / mov eax,2`,
+ *    i.e. upstream's `m = O_RDONLY; if (mode[1] == '+') m = O_RDWR;`.
+ *  - 'w' and 'a' share ONE tail at 0x6d954 that re-tests mode[0]
+ *    (`cmp cl,0x77 / mov eax,0x102 / jnz / mov eax,0x302`). That is upstream's
+ *    fallthrough `case 'w': case 'a':` arm, with `m |= O_TRUNC` const-folded
+ *    into the 0x302 immediate. Note the '+' suffix is NOT examined for 'w'/'a'
+ *    in this libtiff revision.
+ *  - All three arms converge on the single block at 0x6d91f, so `O_BINARY` is
+ *    OR'd at the call site (`or eax,0x8000` immediately before the push) and
+ *    the open() call is NOT duplicated per case.
+ *
+ * Ghidra's cached listing degrades this into `FID_conflict___open()` with an
+ * `extraout_EAX`, purely because kb.json carried `void __open(void)` and
+ * `void TIFFFdOpen(void)` -- the void-EAX artifact (lift-learnings s16). Both
+ * results are consumed here: open()'s fd is the value tested, and TIFFFdOpen's
+ * EAX is this function's return value, flowing straight through with no `mov`.
+ * Both prototypes are corrected in kb.json alongside this port; no register
+ * arguments are involved anywhere in this function.
+ *
+ * The failure test at 0x6d937 is `test eax,eax / jge`, i.e. a SIGNED `< 0`
+ * check on the descriptor, not a zero check -- open() returns -1 on error.
+ *
+ * @param path file to open, forwarded to open() and to the error message.
+ * @param mode libtiff mode string; only mode[0] (and mode[1] for 'r') is read.
+ * @return the TIFF handle from TIFFFdOpen, or 0 if the mode is bad or the
+ *         file cannot be opened.
+ */
+/* Upstream libtiff's mode-string decoder, kept as its own static function
+ * because that is what the binary's block layout proves the source looked
+ * like -- see the FUN_0006d8e0 comment below. It is inlined into its single
+ * caller at /O2, so it contributes no call of its own. */
+static int _TIFFgetMode(const char *mode, const char *module)
+{
+  int m = -1;
+
+  switch (mode[0]) {
+    case 'r':
+      m = _O_RDONLY;
+      if (mode[1] == '+') {
+        m = _O_RDWR;
+      }
+      break;
+    case 'w':
+    case 'a':
+      m = _O_RDWR | _O_CREAT;
+      if (mode[0] == 'w') {
+        m |= _O_TRUNC;
+      }
+      break;
+    default:
+      FUN_00068a30(module, "\"%s\": Bad mode", mode);
+      break;
+  }
+  return m;
+}
+
+int FUN_0006d8e0(const char *path, const char *mode)
+{
+  static const char module[] = "TIFFOpen";
+  int m;
+  int fd;
+
+  m = _TIFFgetMode(mode, module);
+  if (m == -1) {
+    return 0;
+  }
+  fd = __open(path, m | _O_BINARY, TIFF_OPEN_PMODE);
+  if (fd < 0) {
+    FUN_00068a30(module, "%s: Cannot open", path);
+    return 0;
+  }
+  return TIFFFdOpen(fd, path, mode);
+}
