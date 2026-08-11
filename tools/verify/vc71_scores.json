@@ -4716,6 +4716,50 @@
       "score": 100.0,
       "source": "src/halo/ai/props.c"
     },
+    "FUN_00068780": {
+      "addr": "0x68780",
+      "end": "0x68881",
+      "kind": "auto",
+      "n_r": 97,
+      "opnd_percent": 95.9,
+      "ref": "synth",
+      "ref_sha": "70bc8f7c10faa072",
+      "score": 97.9,
+      "source": "src/halo/bitmaps/libtiff/tif_flush.c"
+    },
+    "FUN_00068890": {
+      "addr": "0x68890",
+      "end": "0x6893a",
+      "kind": "auto",
+      "n_r": 67,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "10c8908ea9c79b3c",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_flush.c"
+    },
+    "FUN_00068940": {
+      "addr": "0x68940",
+      "end": "0x68963",
+      "kind": "auto",
+      "n_r": 10,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "81a13577f7d2543e",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_flush.c"
+    },
+    "FUN_00068970": {
+      "addr": "0x68970",
+      "end": "0x689b5",
+      "kind": "auto",
+      "n_r": 15,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "9a73108a64e7ece2",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_flush.c"
+    },
     "FUN_0006c680": {
       "addr": "0x6c680",
       "end": "0x6c6d2",

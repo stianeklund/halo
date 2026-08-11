@@ -34031,19 +34031,23 @@
    "functions": [
     {
      "addr": "0x68780",
-     "decl": "void FUN_00068780(void);"
+     "decl": "int FUN_00068780(void *tif, char *pp, int cc, int s);",
+     "ported": true
     },
     {
      "addr": "0x68890",
-     "decl": "void FUN_00068890(void);"
+     "decl": "int FUN_00068890(void *tif, unsigned char *buf, int occ, int s);",
+     "ported": true
     },
     {
      "addr": "0x68940",
-     "decl": "void FUN_00068940(void);"
+     "decl": "int FUN_00068940(void *tif, unsigned long nrows);",
+     "ported": true
     },
     {
      "addr": "0x68970",
-     "decl": "void FUN_00068970(void);"
+     "decl": "int FUN_00068970(void *tif);",
+     "ported": true
     },
     {
      "addr": "0x689c0",
@@ -34549,11 +34553,11 @@
     },
     {
      "addr": "0x6f1f0",
-     "decl": "void FUN_0006f1f0(void);"
+     "decl": "void FUN_0006f1f0(void *wp, int n);"
     },
     {
      "addr": "0x6f220",
-     "decl": "void FUN_0006f220(void);"
+     "decl": "void FUN_0006f220(void *lp, int n);"
     },
     {
      "addr": "0x6f260",

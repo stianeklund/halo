@@ -615,21 +615,24 @@ def build_base_c(func_name: str, func_body: str, file_statics: str = "") -> str:
 
 
 def _fix_struct_scope_issue(base_c_path: Path) -> None:
-    """Move struct/union definitions outside the #ifndef TYPES_H guard.
+    """Fix base.c compilation issues from typedef/struct scoping.
 
-    Structs defined inside #ifndef TYPES_H are unavailable after #endif.
-    This moves them to after the #endif so the function body can use them.
+    The generated base.c has two main issues:
+    1. TIFF-specific function pointer typedefs (tiff_*_method_t) are inside
+       #ifndef TYPES_H but needed by struct definitions outside the guard
+    2. Some structs reference other structs defined later
+
+    This function:
+    - Moves TIFF-specific function pointer typedefs outside the guard
+    - Keeps generic typedefs (data_t, etc) inside the guard to avoid conflicts with types.h
+    - Adds forward declarations for referenced structs
     """
+    import re
     content = base_c_path.read_text()
-
-    # Simple fix: if there's a struct definition inside #ifndef TYPES_H,
-    # move it outside. Match the pattern: #ifndef, then struct..., then #endif
-    # This is a band-aid fix for the permuter tool's struct scope issue.
-
     lines = content.split('\n')
+
     ifndef_idx = None
     endif_idx = None
-    struct_lines = []
 
     # Find #ifndef TYPES_H and #endif
     for i, line in enumerate(lines):
@@ -642,33 +645,63 @@ def _fix_struct_scope_issue(base_c_path: Path) -> None:
     if ifndef_idx is None or endif_idx is None:
         return
 
-    # Collect struct definitions between #ifndef and #endif
-    i = ifndef_idx + 1
-    output_lines = lines[:ifndef_idx+1]
+    # Move only TIFF-specific function pointer typedefs outside the guard
+    tiff_typedefs_to_move = []
+    output_lines = []
+    i = 0
 
-    while i < endif_idx:
+    while i < len(lines):
         line = lines[i]
-        if line.strip().startswith('struct ') and '{' in line:
-            # Collect this struct definition until we find the closing };
-            struct_start = i
-            while i < endif_idx and '};' not in lines[i]:
-                struct_lines.append(lines[i])
+
+        if i == endif_idx:
+            output_lines.append(line)
+            # After #endif, insert TIFF-specific typedefs before remaining content
+            output_lines.extend(tiff_typedefs_to_move)
+            i += 1
+        elif i < endif_idx and line.strip().startswith('typedef') and 'tiff_' in line and ('*' in line or '_method_t' in line):
+            # This is a TIFF-specific typedef we want to move out
+            if line.strip().endswith(';'):
+                # Single-line typedef (function pointers)
+                tiff_typedefs_to_move.append(line)
                 i += 1
-            if i < endif_idx:
-                struct_lines.append(lines[i])  # Include the }; line
+            else:
+                # Multi-line typedef
+                typedef_lines = [line]
                 i += 1
+                while i < endif_idx and ';' not in lines[i]:
+                    typedef_lines.append(lines[i])
+                    i += 1
+                if i < endif_idx:
+                    typedef_lines.append(lines[i])
+                    i += 1
+                tiff_typedefs_to_move.extend(typedef_lines)
         else:
             output_lines.append(line)
             i += 1
 
-    # Add the #endif
-    output_lines.append(lines[endif_idx])
+    # Append remaining lines after the endif-inserted typedefs
+    if i < len(lines):
+        output_lines.extend(lines[i:])
 
-    # Add struct definitions after #endif
-    output_lines.extend(struct_lines)
+    # Now add forward declarations for structs that are referenced before defined
+    # Look for usage patterns like "tiff_bitstate_t *" before the struct definition
+    forward_decls_needed = set()
+    for line in output_lines:
+        if 'tiff_bitstate_t *' in line:
+            forward_decls_needed.add('typedef struct tiff_bitstate_s tiff_bitstate_t;')
 
-    # Add the rest of the file
-    output_lines.extend(lines[endif_idx+1:])
+    # Insert forward declarations after typedef definitions but before struct definitions
+    if forward_decls_needed:
+        # Find the right insertion point (after function pointer typedefs, before struct definitions)
+        insert_idx = -1
+        for i, line in enumerate(output_lines):
+            if 'typedef struct tiff' in line and '{' in line:
+                insert_idx = i
+                break
+        if insert_idx > 0:
+            for decl in forward_decls_needed:
+                output_lines.insert(insert_idx, decl)
+                insert_idx += 1
 
     base_c_path.write_text('\n'.join(output_lines))
 
