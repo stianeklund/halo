@@ -34370,7 +34370,8 @@
     },
     {
      "addr": "0x6d850",
-     "decl": "void TIFFFileName(void);"
+     "decl": "char * TIFFFileName(void *tif);",
+     "ported": true
     },
     {
      "addr": "0x6d860",

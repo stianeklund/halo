@@ -227,15 +227,22 @@ typedef int (*tiff_code_method_t)(void *tif, char *buf, int cc, int s);
 typedef void (*tiff_void_method_t)(void *tif);
 
 typedef struct tiff_s {
-  /* 0x00-0xef holds the directory. Upstream libtiff reaches these through a
-   * nested `TIFFDirectory tif_dir` member; Bungie's copy is addressed straight
-   * off the TIFF base, so the four fields below carry their upstream td_*
-   * names at their absolute offsets. Only the offsets TIFFScanlineSize
-   * (0x6d820) touches are split out of the padding -- everything else in this
-   * range is still unobserved. Widths are load-bearing: 0x36/0x44/0x5e are
-   * read with `movzx ... word` (0x6d823, 0x6d836, 0x6d82d) and 0x1c with a
-   * dword `imul` operand (0x6d827). */
-  char pad_000[0x1c];
+  /* UNRESOLVED layout conflict in 0x00-0xef. The td_* fields below were split
+   * out of this range on the inference that Bungie inlined the directory at
+   * the TIFF base (upstream libtiff reaches them through a nested
+   * `TIFFDirectory tif_dir` member), so they carry their upstream td_* names
+   * at their absolute offsets. That inference cannot hold at 0x00 as well:
+   * TIFFFileName (0x6d850) is `mov eax,[ebp+8] / mov eax,[eax]`, i.e. it
+   * returns the dword at offset 0x00 as the file name, which is upstream's
+   * `tif_name` -- the first member of `struct tiff`, not of TIFFDirectory.
+   * Only the offsets TIFFScanlineSize (0x6d820) and TIFFFileName touch are
+   * split out; everything else in this range is still unobserved, and which
+   * of the two readings is right for the rest of it is unproven.
+   * Widths are load-bearing: 0x36/0x44/0x5e are read with `movzx ... word`
+   * (0x6d823, 0x6d836, 0x6d82d) and 0x1c with a dword `imul` operand
+   * (0x6d827). */
+  char *tif_name; /* 0x00 */
+  char pad_004[0x18];
   long td_imagewidth; /* 0x1c */
   char pad_020[0x16];
   unsigned short td_bitspersample; /* 0x36 */
@@ -719,4 +726,32 @@ int TIFFScanlineSize(int file)
     scanline *= tif->td_samplesperpixel;
   }
   return (int)TIFFhowmany8(scanline);
+}
+
+/**
+ * Name of the file backing an open TIFF handle.
+ *
+ * Transcribed from the vendored libtiff (tif_open.c TIFFFileName), whose body
+ * is literally `return tif->tif_name;`. Ghidra's cached listing has 0x6d850 as
+ * an empty `void(void)` body -- a decl artifact, since the disassembly at
+ * 0x6d850-0x6d859 is six instructions with one stack argument and an EAX
+ * return: `push ebp / mov ebp,esp / mov eax,[ebp+8] / mov eax,[eax] / pop ebp
+ * / ret`. cdecl, no callee cleanup, no register arguments.
+ *
+ * The dereference is at struct offset 0x00, which is upstream's `tif_name`;
+ * see the layout note on tiff_t for the conflict this creates with the
+ * directory fields split out of the same range.
+ *
+ * There is no `sub esp` in the original, so no local is introduced here --
+ * the cast happens inside the return expression. A `tiff_t *tif` temp of the
+ * kind the rest of this file uses would cost frame shape on a six-instruction
+ * function.
+ *
+ * @param tif TIFF handle (declared void* so the generated header needs no
+ *            libtiff types). Never null-checked, exactly as upstream.
+ * @return the stored file name pointer, returned in EAX.
+ */
+char *TIFFFileName(void *tif)
+{
+  return ((tiff_t *)tif)->tif_name;
 }
