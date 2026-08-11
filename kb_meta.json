@@ -2097,6 +2097,50 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x6c400": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x6d820": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x6d850": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x6d860": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x6d870": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x6d880": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x6d8a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x6d8b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x6d8c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x6d8d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x6dda0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x76bb0": {
       "kind": "function",
       "status": "ported"
