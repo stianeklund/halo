@@ -1143,6 +1143,89 @@ int collision_bsp_test_sphere(int bsp, short flags, int origin, int direction,
   return 0;
 }
 
+
+/* 0x149480 - Ray/vector-vs-BSP3D test. Thin logging wrapper around the
+ * recursive BSP3D vector walk at 0x148eb0: it builds the 0x28-byte query
+ * context on the stack, seeds the caller's result record, clamps the ray
+ * parameter and hands the whole thing to the walker.
+ *
+ * ESI = (bsp == *(int *)0x5064dc) + 4, i.e. log id 5 when the bsp is the
+ * structure BSP the scenario installed at 0x5064dc, else 4. The same value is
+ * passed to collision_log_add_call and collision_log_add_time.
+ *
+ * `flags` is stored with `MOV word ptr [EBP-0x20],DX` - 16-bit, so the upper
+ * half of that context dword is never written. field_20 is a BYTE store
+ * (`MOV byte ptr [EBP-8],DL`), so the three bytes above it stay untouched.
+ *
+ * The clamp appears twice and the two are NOT the same value:
+ *   0x1494ae  *result   = max_t < 0.0f ? 0.0f : max_t   (FSTP [ECX])
+ *   0x1494fa  walker t  = clamp(max_t, 0.0f, 1.0f)
+ * The first clamp never writes back to the parameter slot - 0x1494fa and
+ * 0x14951d both reload the ORIGINAL [EBP+0x20]. Collapsing them into one
+ * clamped local silently changes the value handed to the walker.
+ *
+ * FCOM parity senses: `TEST AH,5; JP` is taken when NOT strictly less-than
+ * (fallthrough = `max_t < 0.0f`); `FCOMP 1.0f; TEST AH,0x41; JNZ` is taken on
+ * below-or-equal, so the fallthrough arm is the `> 1.0f` case that forces 1.0f.
+ *
+ * Return: MOV BL,AL across the trailing log call, then MOV AL,BL - the char
+ * hit flag produced by the walker.
+ */
+typedef struct {
+  int32_t field_00; /* 0x00 - first caller argument, opaque here */
+  int32_t bsp; /* 0x04 */
+  int16_t flags; /* 0x08 - 16-bit store */
+  int16_t pad_0a; /* 0x0a - never written by the builder */
+  int32_t field_0c; /* 0x0c */
+  int32_t field_10; /* 0x10 - read by the walker as a point (plane distance) */
+  int32_t field_14; /* 0x14 - read by the walker as a point (plane distance) */
+  float *result; /* 0x18 */
+  int32_t field_1c; /* 0x1c - seeded to -1 */
+  char field_20; /* 0x20 - BYTE store, seeded to 0 */
+  char pad_21[3]; /* 0x21 - never written */
+  int32_t field_24; /* 0x24 - seeded to -1 */
+} bsp3d_vector_test_data;
+
+char collision_bsp_test_vector(int param_1, int bsp, short flags, int origin,
+                               int direction, int radius, float max_t,
+                               float *result)
+{
+  bsp3d_vector_test_data data;
+  short log_id;
+  float t;
+  char hit;
+
+  log_id = (short)((bsp == *(int *)0x5064dc) + 4);
+  collision_log_add_call(log_id);
+  collision_log_query_counter((void *)0x46f090);
+
+  data.field_00 = param_1;
+  data.bsp = bsp;
+  data.flags = flags;
+  data.field_0c = origin;
+  data.field_10 = direction;
+  data.field_14 = radius;
+  data.result = result;
+  data.field_1c = -1;
+  data.field_20 = 0;
+  data.field_24 = -1;
+
+  *result = (max_t < 0.0f) ? 0.0f : max_t;
+  result[5] = 0.0f;
+
+  if (max_t < 0.0f) {
+    t = 0.0f;
+  } else if (max_t > 1.0f) {
+    t = 1.0f;
+  } else {
+    t = max_t;
+  }
+
+  hit = FUN_00148eb0(&data, 0, 0, t);
+
+  collision_log_add_time(log_id, *(unsigned int *)0x46f090, *(int *)0x46f094);
+  return hit;
+}
 /* 0x14dc30 - Point-vs-world collision test. If any of the collision-type
  * flags (0xE0) are set, locate the BSP3D leaf containing `pos`; a leaf of -1
  * (point outside the BSP) reports a hit. When flag bit 7 (0x80) is set and the

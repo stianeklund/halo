@@ -29033,6 +29033,17 @@
       "score": 100.0,
       "source": "src/halo/physics/collision_bsp.c"
     },
+    "collision_bsp_test_vector": {
+      "addr": "0x149480",
+      "end": "0x14956c",
+      "kind": "auto",
+      "n_r": 84,
+      "opnd_percent": 82.1,
+      "ref": "synth",
+      "ref_sha": "f8d02575b9a3840a",
+      "score": 90.5,
+      "source": "src/halo/physics/collision_bsp.c"
+    },
     "collision_cylinder_test_point": {
       "addr": "0x14b960",
       "end": "0x14bada",
