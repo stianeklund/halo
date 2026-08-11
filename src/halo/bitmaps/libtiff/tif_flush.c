@@ -18,6 +18,8 @@
  * every parameter and reported the body as `void(void)`.
  * ======================================================================== */
 
+#include <stdarg.h>
+
 /* Partial view of the TIFF handle. The fuller recovery of this struct lives
  * in tif_open.c (`tiff_t`, offsets 0x00..0x138 with per-field evidence); this
  * TU repeats only the five offsets it touches, at the same offsets and with
@@ -340,4 +342,98 @@ int FUN_00068970(void *tif_)
 
   /* 0x689af. */
   return 1;
+}
+
+/* ===========================================================================
+ * `TIFFError`, upstream libtiff tif_error.c.
+ *
+ * kb.json places this address in tif_flush.obj, so the body lives here even
+ * though its two upstream TU-mates (`TIFFDefaultErrorHandler` at 0x689c0 and
+ * `TIFFSetErrorHandler` at 0x68a10) are mapped to tif_error.obj. The object
+ * assignment is INFERRED for every resident of this libtiff cluster -- the
+ * binary carries no `__FILE__` string for tif_error.c or tif_flush.c -- so the
+ * mapping is followed as-is rather than second-guessed here.
+ *
+ * Transcribed from upstream and adapted to the observed control flow, per the
+ * vendored-library rule, rather than reshaped from the decompiler (which lost
+ * the varargs entirely and reported `void(undefined4,undefined4)`):
+ *
+ *     void
+ *     TIFFError(const char* module, const char* fmt, ...)
+ *     {
+ *             if (_TIFFerrorHandler) {
+ *                     va_list ap;
+ *                     va_start(ap, fmt);
+ *                     (*_TIFFerrorHandler)(module, fmt, ap);
+ *                     va_end(ap);
+ *             }
+ *     }
+ *
+ * Disassembly of 0x68a30 (15 instructions, 0x68a30-0x68a4e):
+ *
+ *   068a30  push ebp                  ; NO `sub esp` -- zero locals, zero
+ *   068a31  mov  ebp, esp             ; callee-saved pushes, no _chkstk. `ap`
+ *   068a33  mov  eax, [0x2ca1f4]      ; never gets a stack slot; it is the LEA
+ *   068a38  test eax, eax             ; below, staged straight into ECX.
+ *   068a3a  jz   0x68a4d              ; handler unset => do nothing
+ *   068a3c  mov  edx, [ebp+0xc]       ; fmt
+ *   068a3f  lea  ecx, [ebp+0x10]      ; &first vararg == va_start(ap, fmt)
+ *   068a42  push ecx                  ;   arg3 = ap
+ *   068a43  mov  ecx, [ebp+8]         ; module (ECX REUSED -- see below)
+ *   068a46  push edx                  ;   arg2 = fmt
+ *   068a47  push ecx                  ;   arg1 = module
+ *   068a48  call eax
+ *   068a4a  add  esp, 0xc             ; 3 args, cdecl => the handler is cdecl
+ *   068a4d  pop  ebp
+ *   068a4e  ret                       ; no immediate, no EAX write => void
+ *
+ * Three load-bearing details:
+ *
+ *   1. The varargs are real. The decompiler's third argument
+ *      `&stack0x0000000c` is `lea ecx,[ebp+0x10]`, the address of the first
+ *      vararg slot -- i.e. a va_list, not a third named parameter. Lifting
+ *      this as a fixed 3-parameter function would push the caller's first
+ *      variadic value BY VALUE and print garbage.
+ *   2. ECX is loaded twice, in interleaved order (LEA for `ap` at 0x68a3f,
+ *      then MOV for `module` at 0x68a43), so load order is NOT push order.
+ *      Traced per-push: 0x68a47 pushes the 0x68a43 load (module), 0x68a46
+ *      pushes the 0x68a3c load (fmt), 0x68a42 pushes the 0x68a3f LEA (ap).
+ *      Reverse-order cdecl therefore gives the logical order (module, fmt, ap)
+ *      -- which is also the signature of FUN_000689c0, the handler this slot
+ *      is statically initialized to.
+ *   3. The NULL test at 0x68a38/0x68a3a is load-bearing and must stay: the
+ *      handler slot is a writable .data word that `TIFFSetErrorHandler`
+ *      (0x68a10) can clear, so the guard is reachable.
+ *
+ * `_TIFFerrorHandler` is the same 0x2ca1f4 slot tif_error.c documents (that
+ * TU's `#define` proves the address and the ERROR-vs-warning identity from the
+ * static initializer 0x000689c0 = FUN_000689c0). It is declared with its real
+ * function-pointer type here -- unlike in tif_error.c, which only swaps the
+ * raw word and so needs nothing sharper than `void *` -- because this is the
+ * resident that calls through it, and the pointee shape is what fixes the push
+ * count and the cdecl cleanup. `va_list` is `char *` on i386 MSVC 7.1, matching
+ * the third parameter of FUN_000689c0 and of the vfprintf it forwards to.
+ * Address-macro form is the one the other vendored libtiff TUs use for their
+ * file-scope statics (tif_open.c's `photometric`/`BWmap`, tif_error.c's own
+ * `_TIFFerrorHandler`).
+ */
+typedef void (*tiff_error_handler_t)(const char *module, const char *fmt,
+                                     char *ap);
+
+#define _TIFFerrorHandler (*(tiff_error_handler_t *)0x2ca1f4)
+
+void FUN_00068a30(const char *module, const char *format, ...)
+{
+  va_list ap;
+
+  /* 0x68a33-0x68a3a. */
+  if (_TIFFerrorHandler != NULL) {
+    /* 0x68a3f. Folds to the bare LEA -- no stack slot for `ap`. */
+    va_start(ap, format);
+
+    /* 0x68a42-0x68a4a. Pushes traced individually above. */
+    (*_TIFFerrorHandler)(module, format, (char *)ap);
+
+    va_end(ap);
+  }
 }
