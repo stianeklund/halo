@@ -1602,7 +1602,13 @@ typedef void (*draw_string_emit_proc)(void *state, void *font_table,
  * Widths are taken from the store instructions at 0x14e7f9..0x14e872 and
  * 0x14e8b9..0x14e8ef: +0x00, +0x08, +0x10, +0x34 and +0x4e are 16-bit stores
  * (MOV word ptr), +0x4c/+0x4d are byte stores, everything else is a dword.
- * 0x36..0x43 is never touched by either function, so it stays pad_.
+ *
+ * +0x38..+0x41 are not touched by those two entry points but ARE written by
+ * FUN_0014dce0 (0x14dce0), which fills the same record through a raw char*:
+ * +0x38 dword object handle, +0x3c/+0x3e/+0x40 16-bit indices (all three set
+ * to -1 on the model path at 0x14df19/0x14df20/0x14df53, and copied from the
+ * FUN_0014cb00 output +0x02/+0x00/+0x04 on the bsp path).  Only +0x36 and
+ * +0x42 remain unobserved.
  * ------------------------------------------------------------------------- */
 typedef struct collision_test_result {
     int16_t field_00;      /* +0x00: -1 when no hit, 2 on a bsp surface hit */
@@ -1618,7 +1624,12 @@ typedef struct collision_test_result {
     float   normal[3];     /* +0x24 */
     float   field_30;      /* +0x30 */
     int16_t field_34;      /* +0x34 */
-    char    pad_36[0xe];   /* +0x36 */
+    int16_t pad_36;        /* +0x36 */
+    int32_t field_38;      /* +0x38: object handle (FUN_0014dce0) */
+    int16_t field_3c;      /* +0x3c */
+    int16_t field_3e;      /* +0x3e */
+    int16_t field_40;      /* +0x40 */
+    int16_t pad_42;        /* +0x42 */
     int32_t field_44;      /* +0x44 */
     int32_t field_48;      /* +0x48 */
     char    field_4c;      /* +0x4c */
@@ -1629,6 +1640,10 @@ cs(collision_test_result, 0x50);
 co(collision_test_result, t,        0x14);
 co(collision_test_result, position, 0x18);
 co(collision_test_result, normal,   0x24);
+co(collision_test_result, field_38, 0x38);
+co(collision_test_result, field_3c, 0x3c);
+co(collision_test_result, field_3e, 0x3e);
+co(collision_test_result, field_40, 0x40);
 co(collision_test_result, field_44, 0x44);
 co(collision_test_result, field_4e, 0x4e);
 
