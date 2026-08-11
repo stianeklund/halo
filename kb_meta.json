@@ -10842,6 +10842,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x147380": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter types are inherited from the callee FUN_001470b0 kb declaration rather than proven at this call site; the thunk moves all seven params through GPRs (including the float epsilon at EBP+0x18), so the disassembly alone does not distinguish float from dword."
+      ]
+    },
     "0x1473b0": {
       "kind": "function",
       "status": "ported",
@@ -10899,9 +10906,57 @@
         "VC71 capped at 80.6% (155/160 raw insns match, no FPU/IMM/LOADW warnings, cross-product operand order verified against disasm). Residual gap is pure x87 stack-scheduling (candidate spills reused component-diffs to stack temps where original keeps them on the FPU register stack), bool sete/movzx materialization, and float-compare branch form (original jp vs candidate jne) \u2014 known permanent structural classes, not a correctness bug."
       ]
     },
+    "0x147990": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The tag_block at bsp+0x0c is the collision-BSP plane block: element size 0x10 matches a 4-float plane equation and the index comes from surface[+0], but no string or assert names it directly.",
+        "Bit 31 of surface[+0] is masked off with AND 0x7fffffff at 0x1479ac; the mask itself is confirmed by disassembly but the bit's meaning as a plane-flip flag is inferred from collision-BSP convention."
+      ],
+      "uncertain": [
+        "Parameters param3 and param4 are forwarded verbatim as full dwords and only narrowed by the callee prototype (int16_t projection, uint8_t sign); their semantics are not determined by this function, and every in-repo call site passes the literals 2 and 1."
+      ]
+    },
+    "0x1479e0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "param3/param4 are passed to FUN_00061df0 as raw dwords from their home slots (MOV EAX,[EBP+0x10] / MOV EDX,[EBP+0x14], no MOVSX/MOVZX), which means the original source declared them with the callee's own short/unsigned char widths; the kb decl keeps them int, so the explicit (short)/(unsigned char) casts at the call sites are documentation only and do not change codegen."
+      ],
+      "uncertain": [
+        "The vertex pair is read swapped relative to collision_surface_polygon: this function takes the leading endpoint from edge[side] and the trailing one from edge[!side], whereas collision_surface_polygon always emits edge[side] only, so the winged-edge orientation convention for the second endpoint is inferred from the two SETE sequences at 0x147a29 and 0x147a45 rather than from any independent evidence."
+      ]
+    },
     "0x147d10": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x148b20": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Record fields origin (+0x0c), direction (+0x10), radius (+0x14), out_distance (+0x18) and out_normal (+0x1c) are named from the reads FUN_00148440 (0x148440) performs on its first argument; the builder itself only copies dwords, so the types are inferred from the callee."
+      ],
+      "uncertain": [
+        "Record offsets +0x04 (the 16-bit parameter), +0x08, +0x20 and +0x24 are never read by FUN_00148440, so their meaning is unproven and they keep mechanical names; the sole caller FUN_0014e940 passes 0 for both +0x04 and +0x08.",
+        "Record bytes +0x06..+0x07 and +0x25..+0x27 are deliberately left uninitialised by the original; a zero-initialiser on the struct would diverge from the binary."
+      ]
+    },
+    "0x1493b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x149480": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "FUN_00148eb0's four stack arguments are inferred by structural analogy with the pill walker FUN_00148440 at 0x148440 (void *data, unsigned int node_index, float t_min, float t_max); arg2 and arg3 are both pushed from a zeroed EDX and are therefore indistinguishable between integer 0 and 0.0f in the binary.",
+        "The record's leading dword at offset 0x00 (fed from param_1) is inferred to be a collision-type selector because all four known call sites in actor_moving.c pass the literal 3."
+      ],
+      "uncertain": [
+        "The record fields at offsets 0x1c (-1), 0x20 (byte 0) and 0x24 (-1) are sentinels whose meaning is unrecovered; they carry mechanical names because FUN_00148eb0 is not yet lifted and no read of them has been observed.",
+        "The original build materialised the clamped span end in the dead flags parameter slot at EBP+0x10 via MSVC stack-slot colouring; the lift writes it back into max_t instead, which preserves the 0x28 frame and the instruction shape but not the displacement operands."
+      ]
     },
     "0x14ad40": {
       "kind": "function",
@@ -11009,6 +11064,67 @@
     "0x14d9d0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x14dc30": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Iterator state uses a separate local int rather than the incoming [EBP+8] arg slot the original reuses; param_1/pos/param_3 are cached in EBX/EDI/ESI before the overwrite, so this is behaviourally identical and VC71 still scores 100.0%."
+      ],
+      "uncertain": [
+        "The flag bit 7 boolean is named use_water by analogy with FUN_0014df70 which gates the same 0x4761f8 global; the semantic meaning of that global is unproven."
+      ]
+    },
+    "0x14dce0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The type-mask test at 0x14dd1d reads the WORD at object+0x64 and adds 8, while the branch-select at 0x14dd59 reads only the BYTE at object+0x64 for its shift; both operand widths are preserved verbatim in the lift because the binary uses two different widths at the same offset.",
+        "The FUN_0014cb00 out struct based at EBP-0x484 is 0x420 bytes (the frame gap up to the EBP-0x64 branch-A context); only fields +0x00,+0x02,+0x04,+0x08,+0x0c,+0x10,+0x14,+0x18,+0x19,+0x1a are read back by this function, the tail is filled by collision_bsp_test_vector.",
+        "FUN_00150b60 at 0x150b60 has the real signature char FUN_00150b60(void *ctx, void *origin, void *direction, void *out): the call site at 0x14dd9e pushes four dwords, cleans with ADD ESP,0x10 and tests AL, so the previous kb decl void FUN_00150b60(void) was wrong and has been corrected.",
+        "The 20-byte FUN_00150b60 output record at EBP-0x18 holds the hit distance at +0x00 and a four-dword plane at +0x04..+0x10, which are copied to collision_result+0x14 and +0x24..+0x30 respectively.",
+        "Object field +0xc4 is the next-sibling object handle that drives the do/while chain walk and +0xc8 is the first-child handle that drives the recursive call at 0x14df43, both terminated by the -1 sentinel."
+      ],
+      "uncertain": [
+        "kb.json declared FUN_00150b60 as void(void) but the call site at 0x14dd9e pushes four arguments (ADD ESP,0x10) and reads AL; the corrected declaration char FUN_00150b60(int *ctx, float *origin, float *direction, float *out) is inferred from push order and the 0x18-byte out buffer at EBP-0x18, and has not been confirmed by decompiling FUN_00150b60 itself.",
+        "The 1056-byte size of the FUN_0014cb00 output buffer at EBP-0x484 is inferred from frame arithmetic (0x484 total minus the 60-byte FUN_001509c0 context, the 16-byte FUN_0014c8e0 context, the 20-byte FUN_00150b60 result and the 4-byte return slot) rather than from decompiling FUN_0014cb00; only the first 0x1c bytes are ever read back by this function.",
+        "The original loads the FUN_0014da80 index argument as a dword at buffer+0x1a (MOV EAX at 0x14dea8) while storing the same offset as a word to collision_result+0x4e; the lift passes the int16_t that the existing kb decl for FUN_0014da80 declares, which is the identical value on little-endian but does not reproduce the dword-load instruction shape."
+      ]
+    },
+    "0x14e7d0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter 5 (unit_handle, [EBP+0x18]) is never referenced anywhere in the body, so it keeps a mechanical name; its purpose is only guessable from the call sites.",
+        "The collision_test_result struct added to src/types.h has its field widths derived from the store instructions at 0x14e7f9-0x14e872 and 0x14e8b9-0x14e8ef: offsets 0x00/0x08/0x10/0x34/0x4e are 16-bit stores, 0x4c/0x4d are byte stores, the rest are dwords."
+      ],
+      "uncertain": [
+        "The scratch record fields at buffer offsets 0x04-0x14 and 0x1a are copied verbatim into the result record as raw dwords and one word, so their semantic meaning is unproven and they keep field_ names.",
+        "The 0x36-0x43 range of collision_test_result is never touched by either of the two functions that fill the record, so it is marked pad_36 and may turn out to hold real fields used by other consumers."
+      ]
+    },
+    "0x14e940": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters at EBP+0x08 and EBP+0x18 are never referenced by the body; they are declared as param_1 and param_5 with mechanical names because their types cannot be recovered from this function alone.",
+        "MSVC recycled the dead EBP+0x1c parameter slot (the result pointer, already cached in ESI at 0x14e94e) as the out-distance float scratch passed to collision_bsp_test_pill_new; the lift models it as an ordinary local, which VC71 reproduces as the same slot reuse."
+      ],
+      "uncertain": [
+        "All collision_test_result fields other than t (0x14), position (0x18) and normal (0x24) keep mechanical field_XX names; the 0xffff and -1 seeds at 0x00/0x04/0x08/0x0c/0x10/0x34/0x44/0x48/0x4e look like index sentinels but no binary evidence in this function proves their meaning.",
+        "The surface normal copied into result+0x24..0x2c inside the hit branch is unconditionally zeroed again by the tail at 0x14e9fe, so that store is dead in the original binary; it is preserved verbatim rather than collapsed."
+      ]
+    },
+    "0x14ea10": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "FUN_00150790 (0x150790) had decl 'void FUN_00150790(void)' in kb.json but the call site at 0x14eb98 pushes six stack args sharing ADD ESP,0x18 with the sibling FUN_0014cde0 path at 0x14ebca; the decl was widened to mirror FUN_0014cde0 (int state, int origin, float radius, int p4, int p5, int p6)."
+      ],
+      "uncertain": [
+        "collision_features_from_point param_3 and FUN_0014cde0/FUN_00150790 params 4 and 5 are declared int in kb.json but this call site stores them with FSTP, so they are float dwords; they are forwarded bit-exact here rather than widening the shared decls, because collision_features.c has an existing caller that passes an integer through the same slot.",
+        "MSVC reused the dead first_handle parameter slot at EBP+0x0C as the float height_offset out-parameter of biped_get_camera_height_and_offset; the lift reproduces this by passing (float *)&first_handle, which keeps the frame at 0x60 bytes but is a source-level liberty, not a recovered source construct."
+      ]
     },
     "0x14eeb0": {
       "kind": "function",
