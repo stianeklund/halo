@@ -34279,7 +34279,7 @@
     },
     {
      "addr": "0x6c5e0",
-     "decl": "void FUN_0006c5e0(void);"
+     "decl": "int FUN_0006c5e0(void *tif@<eax>, void *hordiff8, void *hordiff16);"
     },
     {
      "addr": "0x6c680",
@@ -34345,7 +34345,8 @@
     },
     {
      "addr": "0x6ce60",
-     "decl": "int FUN_0006ce60(void *tif);"
+     "decl": "int FUN_0006ce60(void *tif);",
+     "ported": true
     },
     {
      "addr": "0x6cfa0",
@@ -34613,7 +34614,7 @@
     },
     {
      "addr": "0x6f9d0",
-     "decl": "void FUN_0006f9d0(void);"
+     "decl": "void FUN_0006f9d0(const char *module, const char *format, ...);"
     },
     {
      "addr": "0x6f9f0",

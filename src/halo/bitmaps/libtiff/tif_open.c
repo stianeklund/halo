@@ -723,17 +723,53 @@ void FUN_0006cac0(void *tif_)
  * the next proven field. */
 #define LZW_FLAG_RESTART \
   0x01 /* output was cut short mid-string; resume first */
-#define LZW_FLAG_OLDSTYLE 0x02 /* off-by-one maxcode bias (old-style streams) \
-                                */
+#define LZW_FLAG_OLDSTYLE                             \
+  0x02 /* off-by-one maxcode bias (old-style streams) \
+        */
 
+/* 0x08/0x0a/0x0c, 0x14/0x18 and the extent past 0x3acc were split out of the
+ * pad runs by FUN_0006ce60 (LZWPreDecode), which is the allocation site:
+ *
+ *   +0x05   written, never read. 0x6cec2 zeroes 0x04 and 0x05 together with a
+ *           single `mov word ptr [esi+4],bx`. Either `flags` is really a
+ *           16-bit field and every bit op on it (`and byte ptr [esi+4],0xfe`
+ *           and friends, all byte-sized here and in FUN_0006cb00) is MSVC's
+ *           narrowing peephole, or `flags` is the byte it is spelled as and
+ *           0x05 is a separate field zeroed alongside it. UNRESOLVED; the byte
+ *           spelling is kept because it is what the bit ops directly prove.
+ *   +0x08   the predictor sub-state's `stride`, and +0x0a its `rowsize`,
+ *           +0x0c its accumulator -- the same three offsets
+ *           tiff_predictor_state_t above reaches through tif_data. 0x6cec9
+ *           zeroes 0x0a as a word and 0x6cec6 zeroes 0x0c as a dword; 0x6ced9
+ *           then tests 0x0c to decide whether the predictor wrapper methods
+ *           get installed, which is upstream's `predictor != 1` test. So this
+ *           struct and tiff_predictor_state_t are two views of one block:
+ *           Bungie flattened upstream's `TIFFPredictorState predict` member
+ *           into the LZW state instead of nesting it, and the LZW-specific
+ *           0x00-0x07 sits in front of the surviving predictor fields.
+ *   +0x14   read cursor in bits (zeroed at 0x6cf21) and +0x18 the last bit
+ *           position a full BITS_MAX code still fits at, formed as
+ *           `(tif_rawdatasize << 3) - (BITS_MAX-1)` by the LEA at 0x6cf2a.
+ *           Same offsets, same roles and same names as the bit-writer's
+ *           bitpos/bitlimit in tiff_bitstate_t above.
+ *   +0x3acc onwards is unobserved. The extent is not: the allocation at
+ *           0x6ce84 is a bare `push 0x7574` with no addition, so sizeof is
+ *           0x7574 exactly and 0x3aa8 bytes past the decoder's last field are
+ *           unaccounted for. Upstream libtiff of this vintage carries the
+ *           encoder members and its hash table in the same struct, which is
+ *           the obvious candidate, but nothing recovered so far touches them.
+ */
 typedef struct lzw_codec_state_s {
   int oldcode; /* 0x00 */
   unsigned char flags; /* 0x04 */
-  char pad_05[1];
+  unsigned char field_05; /* 0x05 written by the word store at 0x6cec2 */
   unsigned short nbits; /* 0x06 code width currently being read */
-  char pad_08[8];
+  unsigned short stride; /* 0x08 predictor: samples between neighbours */
+  unsigned short rowsize; /* 0x0a predictor: bytes per decoded row */
+  void (*pfunc)(char *cp, int cc, int stride); /* 0x0c predictor accumulator */
   int maxcode; /* 0x10 last code representable in nbits bits */
-  char pad_14[8];
+  int bitpos; /* 0x14 read cursor, in bits from tif_rawdata */
+  int bitlimit; /* 0x18 last bit position a full BITS_MAX code fits at */
   int free_ent; /* 0x1c next table slot to hand out */
   short prefix[0x1000]; /* 0x20 */
   char pad_2020[0x716];
@@ -741,7 +777,10 @@ typedef struct lzw_codec_state_s {
   unsigned char stack[0x38e]; /* 0x3736 reverse-string scratch */
   unsigned char *stackp; /* 0x3ac4 */
   int finchar; /* 0x3ac8 */
+  char pad_3acc[0x3aa8]; /* 0x3acc unobserved; extent from the 0x7574 alloc */
 } lzw_codec_state_t;
+
+cs(lzw_codec_state_t, 0x7574);
 
 /**
  * Decode LZW-compressed data into a caller-supplied scanline/strip buffer.
@@ -1011,6 +1050,125 @@ int FUN_0006cda0(void *tif_)
     sp->oldcode = -1;
   }
   FUN_0006c960(tif_, CODE_EOI);
+  return 1;
+}
+
+/* Code-width bounds and the first assignable string code, from upstream
+ * libtiff's tif_lzw.c. Each one is formed literally by FUN_0006ce60:
+ * BITS_MIN as the `mov word ptr [esi+6],9` at 0x6ceff, CODE_FIRST as the
+ * `0x102` at 0x6cf1a, BITS_MAX-1 as the `-0xb` displacement of the LEA at
+ * 0x6cf2a, and MAXCODE(BITS_MIN)-1 / MAXCODE(BITS_MIN) as the 0x1fe / 0x1ff
+ * pair at 0x6cf84 / 0x6cf8d. CODE_FIRST is 256 literals + CODE_CLEAR +
+ * CODE_EOI. */
+#define BITS_MIN 9
+#define BITS_MAX 12
+#define CODE_FIRST 258
+#define MAXCODE(n) ((1 << (n)) - 1)
+
+/**
+ * Prepare the LZW decoder for a new strip/tile: allocate the codec state on
+ * first use, then reset the code width, the string table and the bit cursor.
+ *
+ * Upstream libtiff's LZWPreDecode, in the pre-3.5 shape that matches the
+ * stack-based FUN_0006cb00 decoder: the string table is the prefix/suffix
+ * pair rather than the later code_t chain, and this function also does the
+ * work upstream split into LZWSetupDecode -- it allocates tif_data itself and
+ * preloads the 256 literal suffixes. __FILE__ is tif_lzw.c (VA 0x2604d8,
+ * pushed at 0x6ce7e) at line 308 (0x134), so this body belongs to the same
+ * translation unit as FUN_0006cb00/FUN_0006cac0 and lives here for the reason
+ * given at the top of this file.
+ *
+ * Two Bungie deviations from stock, both proven by the disassembly:
+ *
+ *   - The predictor is set up through 0x6c5e0, which takes the handle in EAX
+ *     and the two horizontal accumulators (8-bit at 0x6c680, 16-bit at
+ *     0x6c6f0) as stack arguments, instead of upstream's argument-less
+ *     TIFFPredictorInit picking them from a bit-depth switch of its own.
+ *   - "Old-style" (bit-reversed) streams are tracked as bit 1 of sp->flags
+ *     rather than by swapping in a LZWDecodeCompat method, so the only thing
+ *     that changes for them is the off-by-one on maxcode.
+ *
+ * The compat probe reads the first two raw bytes through one cached pointer
+ * (0x6cf50 `mov eax,[edi+0x12c]`, then `cmp byte ptr [eax],bl` and
+ * `test byte ptr [eax+1],1`), and the warning fires only on the transition
+ * into the compat state -- bit 1 already set means the file was diagnosed on
+ * an earlier strip and stays quiet.
+ *
+ * @param tif_ TIFF handle (declared void* so the generated header needs no
+ *             libtiff types). tif->tif_data may be null on entry, in which
+ *             case it is allocated here; tif->tif_rawdata must hold at least
+ *             two bytes of the compressed stream.
+ * @return 1 once the state is armed, 0 if the state block could not be
+ *         allocated or the predictor refused the directory. Both failure
+ *         paths share the `xor eax,eax` tail at 0x6cead.
+ */
+int FUN_0006ce60(void *tif_)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  lzw_codec_state_t *sp = (lzw_codec_state_t *)tif->tif_data;
+  int code;
+
+  if (sp == 0) {
+    /* The allocation is not zeroed (the flag argument is the same EBX zero the
+     * null tests use, 0x6ce83), so the three fields below are cleared by hand
+     * exactly as upstream does before handing the state to the predictor. */
+    tif->tif_data = (tiff_bitstate_t *)debug_malloc(
+      sizeof(lzw_codec_state_t), 0,
+      "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_lzw.c", 0x134);
+    if (tif->tif_data == 0) {
+      FUN_00068a30("LZWPreDecode", "No space for LZW state block");
+      return 0;
+    }
+    sp = (lzw_codec_state_t *)tif->tif_data;
+    sp->flags = 0;
+    sp->pfunc = 0;
+    sp->rowsize = 0;
+    /* 0x6c5e0's two stack arguments are the horizontal accumulators it may
+     * install: 0x6c680 for 8-bit samples and 0x6c6f0 for 16-bit ones, in that
+     * push order (0x6cebb then 0x6ceb6). kb.json types them void* because the
+     * generated header cannot spell a function-pointer parameter; the real
+     * shapes are tiff_predictor_state_t::pfunc and its unsigned short twin. */
+    if (!FUN_0006c5e0(tif_, (void *)FUN_0006c680, (void *)FUN_0006c6f0)) {
+      return 0;
+    }
+    /* A non-null accumulator is this build's spelling of upstream's
+     * `predictor == 2`: the wrapper methods only go in when the predictor
+     * setup actually chose a differencing function. */
+    if (sp->pfunc != 0) {
+      tif->tif_decoderow = FUN_0006ccf0;
+      tif->tif_decodestrip = FUN_0006cd40;
+      tif->tif_decodetile = FUN_0006cd40;
+    }
+  } else {
+    /* A fresh strip cancels any mid-string restart left by the last one; the
+     * compat bit is deliberately left alone, it is re-derived below. */
+    sp->flags &= ~LZW_FLAG_RESTART;
+  }
+  sp->nbits = BITS_MIN;
+  /* Descending, and signed: the loop guard is `dec eax / jns` (0x6cf17). */
+  for (code = 255; code >= 0; code--) {
+    sp->suffix[code] = (unsigned char)code;
+  }
+  sp->free_ent = CODE_FIRST;
+  sp->bitpos = 0;
+  sp->bitlimit = (tif->tif_rawdatasize << 3) - (BITS_MAX - 1);
+  sp->stackp = sp->stack;
+  sp->oldcode = -1;
+  sp->finchar = -1;
+  if (tif->tif_rawdata[0] == 0 && (tif->tif_rawdata[1] & 0x1)) {
+    if (!(sp->flags & LZW_FLAG_OLDSTYLE)) {
+      FUN_0006f9d0(tif->tif_name, "Old-style LZW codes, convert file");
+    }
+    sp->flags |= LZW_FLAG_OLDSTYLE;
+  } else {
+    sp->flags &= ~LZW_FLAG_OLDSTYLE;
+  }
+  /* Two independent immediate stores, not an increment: the binary writes
+   * 0x1fe at 0x6cf84 and overwrites it with 0x1ff at 0x6cf8d. */
+  sp->maxcode = MAXCODE(BITS_MIN) - 1;
+  if (sp->flags & LZW_FLAG_OLDSTYLE) {
+    sp->maxcode = MAXCODE(BITS_MIN);
+  }
   return 1;
 }
 

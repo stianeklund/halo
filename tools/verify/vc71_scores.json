@@ -4870,6 +4870,17 @@
       "score": 100.0,
       "source": "src/halo/bitmaps/libtiff/tif_open.c"
     },
+    "FUN_0006ce60": {
+      "addr": "0x6ce60",
+      "end": "0x6cf9e",
+      "kind": "auto",
+      "n_r": 88,
+      "opnd_percent": 83.3,
+      "ref": "synth",
+      "ref_sha": "997f5a2ba93ea461",
+      "score": 95.6,
+      "source": "src/halo/bitmaps/libtiff/tif_open.c"
+    },
     "FUN_0006d140": {
       "addr": "0x6d140",
       "end": "0x6d173",
