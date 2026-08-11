@@ -16,7 +16,7 @@ When invoked:
 
 ## Command Prompt
 
-Use `capture-input` and `input-replay-testing`.
+Use `input-fixture` and `input-replay-testing`.
 
 Request: $ARGUMENTS
 

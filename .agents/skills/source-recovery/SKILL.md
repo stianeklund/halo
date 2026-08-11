@@ -41,10 +41,10 @@ explicitly authorized. Use `parked --reason <why>` for failed items.
 | # | Category | Skill | Gate |
 |---|---|---|---|
 | 1 | `comments` | `re-comment-capture` | byte-identical |
-| 2 | `local-renames` | `local-var-cleanup` | byte-identical |
+| 2 | `local-renames` | `name-cleanup` | byte-identical |
 | 3 | `symbol-names` | `naming-confidence` | byte-identical |
-| 4 | `const-enum` | `const-enum-recovery` | byte-identical and no new `[IMM-WARN]` |
-| 5 | `struct-define` | `struct-recovery` + `struct-assert` | byte-identical and build passes |
+| 4 | `const-enum` | `name-cleanup` | byte-identical and no new `[IMM-WARN]` |
+| 5 | `struct-define` | `struct-recovery` + `struct-recovery` (Phase 2) | byte-identical and build passes |
 | 6 | `offset-to-field` | `offset-to-struct` | VC71 gate and hazard scan |
 | 7 | `expr-simplify` | `expr-simplify` | opt-in plus behavioral oracle |
 | 8 | `control-flow` | `control-flow-cleanup` | opt-in plus behavioral oracle |
