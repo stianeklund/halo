@@ -34380,7 +34380,8 @@
     },
     {
      "addr": "0x6d870",
-     "decl": "void TIFFGetMode(void);"
+     "decl": "int TIFFGetMode(void *tif);",
+     "ported": true
     },
     {
      "addr": "0x6d880",

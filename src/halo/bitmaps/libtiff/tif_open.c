@@ -247,7 +247,14 @@ typedef struct tiff_s {
    * load, so Bungie's field is a short. Declaring it `int` produces a plain
    * dword MOV and does not match. */
   short tif_fd; /* 0x04 */
-  char pad_006[0x16];
+  /* Upstream libtiff declares tif_mode as `int`, and places it immediately
+   * after tif_fd. This binary reads offset 0x06 with `movsx eax, word ptr
+   * [eax+6]` (TIFFGetMode, 0x6d876) -- a SIGNED 16-bit load at exactly the
+   * offset upstream's field order predicts once tif_fd is 16-bit, so this is
+   * the same `int`-narrowed-to-`short` pattern as tif_fd. Declaring it `int`
+   * produces a plain dword MOV and does not match. */
+  short tif_mode; /* 0x06 */
+  char pad_008[0x14];
   long td_imagewidth; /* 0x1c */
   char pad_020[0x16];
   unsigned short td_bitspersample; /* 0x36 */
@@ -785,4 +792,31 @@ char *TIFFFileName(void *tif)
 int TIFFFileno(void *tif)
 {
   return ((tiff_t *)tif)->tif_fd;
+}
+
+/**
+ * Open mode (the O_* flags) an open TIFF handle was created with.
+ *
+ * Transcribed from the vendored libtiff (tif_open.c TIFFGetMode), whose body
+ * is literally `return tif->tif_mode;`. Ghidra's cached listing has 0x6d870 as
+ * an empty `void(void)` body -- the void-EAX artifact (lift-learnings s16),
+ * since nothing in the cached listing consumes the return. The XBE bytes at
+ * 0x6d870-0x6d87b are `55 8b ec 8b 45 08 0f bf 40 06 5d c3`, i.e. six
+ * instructions with one stack argument and an EAX return: `push ebp / mov
+ * ebp,esp / mov eax,[ebp+8] / movsx eax,word [eax+6] / pop ebp / ret`. cdecl,
+ * no callee cleanup, no register arguments, no locals (there is no `sub esp`),
+ * so no `tiff_t *tif` temp is introduced here -- the cast happens inside the
+ * return expression, matching TIFFFileName and TIFFFileno above.
+ *
+ * The load is MOVSX word, not a dword MOV: the field at 0x06 is a signed
+ * 16-bit value in this build even though upstream types tif_mode as `int`.
+ * See the tiff_t layout note.
+ *
+ * @param tif TIFF handle (declared void* so the generated header needs no
+ *            libtiff types). Never null-checked, exactly as upstream.
+ * @return the stored open mode, sign-extended into EAX.
+ */
+int TIFFGetMode(void *tif)
+{
+  return ((tiff_t *)tif)->tif_mode;
 }

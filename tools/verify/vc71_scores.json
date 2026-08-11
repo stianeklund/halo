@@ -24453,6 +24453,17 @@
       "score": 100.0,
       "source": "src/halo/bitmaps/libtiff/tif_open.c"
     },
+    "TIFFGetMode": {
+      "addr": "0x6d870",
+      "end": "0x6d87c",
+      "kind": "auto",
+      "n_r": 6,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "edfff960a783f94a",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_open.c"
+    },
     "TIFFScanlineSize": {
       "addr": "0x6d820",
       "end": "0x6d844",
