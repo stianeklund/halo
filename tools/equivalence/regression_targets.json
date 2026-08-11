@@ -1,719 +1,904 @@
 {
-  "description": "Curated high-risk ported functions for fast regression testing. Run with: python3 tools/equivalence/regression_test.py",
-  "targets": [
-    {
-      "addr": "0x130580",
-      "name": "FUN_00130580",
-      "obj": "network_server_message_handler.obj",
-      "seeds": 40,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp.json",
-        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
-      ],
-      "reason": "network_game_server_handle_client_message dispatcher on live MP-host state (server @0x5a90e0). Reachable-path tripwire for @<reg>-marshaling/control-flow/return-value drift (obs 14.3% cov, 50/50 PASS). --no-stub-arg-trace: the only diverging stub args are display_assert/halt_and_catch_fire string-literal pointers (harness artifact). NOT a state-mutation test (state callees stubbed; 0 witnessed server writes). SKIPs when host snapshot absent."
-    },
-    {
-      "addr": "0x130270",
-      "name": "FUN_00130270",
-      "obj": "network_server_message_handler.obj",
-      "seeds": 40,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp.json",
-        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
-      ],
-      "reason": "network_game_server_handle_datagram (broadcast/ping/game-update) on live MP-host state. Reachable-path drift tripwire (obs 10.0% cov, 40/40 PASS). See dispatcher entry for --no-stub-arg-trace rationale. SKIPs when host snapshot absent."
-    },
-    {
-      "addr": "0x12fd80",
-      "name": "FUN_0012fd80",
-      "obj": "network_server_message_handler.obj",
-      "seeds": 40,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp.json",
-        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
-      ],
-      "reason": "add_player_request_pregame handler (server @<esi>) on live MP-host state. Reachable-path drift tripwire (obs 52.4% cov, 40/40 PASS). SKIPs when host snapshot absent."
-    },
-    {
-      "addr": "0x12fe40",
-      "name": "FUN_0012fe40",
-      "obj": "network_server_message_handler.obj",
-      "seeds": 40,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp.json",
-        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
-      ],
-      "reason": "remove_player_request_pregame handler (server @<esi>) on live MP-host state. Reachable-path drift tripwire (obs 52.4% cov, 40/40 PASS). SKIPs when host snapshot absent."
-    },
-    {
-      "addr": "0x12ff00",
-      "name": "FUN_0012ff00",
-      "obj": "network_server_message_handler.obj",
-      "seeds": 40,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp.json",
-        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
-      ],
-      "reason": "settings_request handler (server @<esi>) on live MP-host state. Reachable-path drift tripwire (obs 45.0% cov, 40/40 PASS). SKIPs when host snapshot absent."
-    },
-    {
-      "addr": "0x12ffe0",
-      "name": "FUN_0012ffe0",
-      "obj": "network_server_message_handler.obj",
-      "seeds": 40,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp.json",
-        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
-      ],
-      "reason": "player_settings_request handler (server @<esi>) on live MP-host state. Reachable-path drift tripwire (obs 48.5% cov, 40/40 PASS). SKIPs when host snapshot absent."
-    },
-    {
-      "addr": "0x1300b0",
-      "name": "FUN_001300b0",
-      "obj": "network_server_message_handler.obj",
-      "seeds": 40,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp.json",
-        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
-      ],
-      "reason": "graceful_game_exit_pregame handler (server @<esi>) on live MP-host state. Reachable-path drift tripwire (obs 51.0% cov, 40/40 PASS). SKIPs when host snapshot absent."
-    },
-    {
-      "addr": "0x130180",
-      "name": "FUN_00130180",
-      "obj": "network_server_message_handler.obj",
-      "seeds": 40,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp.json",
-        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
-      ],
-      "reason": "remove_player_request_ingame handler (server @<eax>) on live MP-host state. Reachable-path drift tripwire (obs 21.6% cov, 40/40 PASS). Note: server arrives in EAX not ESI. SKIPs when host snapshot absent."
-    },
-    {
-      "addr": "0x2fd10",
-      "name": "actor_compute_prop_target_weight",
-      "obj": "actor_perception.obj",
-      "seeds": 8,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt6.json",
-        "--allow-stubs", "--float-tolerance", "32", "--mem-trace"
-      ],
-      "reason": "perception prop-weight scorer; runs on real actor+perception-prop state from host-only Recording 19 (door grunt slot6, awareness=10). Audited faithful (a10) — this guards against future lift drift. SKIPs cleanly when the host recording/snapshot is absent (forks, hosted CI) — no game memory in git."
-    },
-    {
-      "addr": "0x2fd10",
-      "name": "actor_compute_prop_target_weight",
-      "obj": "actor_perception.obj",
-      "seeds": 8,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt10.json",
-        "--allow-stubs", "--float-tolerance", "32", "--mem-trace"
-      ],
-      "reason": "prop-weight scorer on Recording 19 door grunt slot10 (awareness=6) — mid-alertness state covers a different path than grunt6 (52.9% vs 48.6%). SKIPs if host snapshot absent."
-    },
-    {
-      "addr": "0x2fd10",
-      "name": "actor_compute_prop_target_weight",
-      "obj": "actor_perception.obj",
-      "seeds": 8,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt11.json",
-        "--allow-stubs", "--float-tolerance", "32", "--mem-trace"
-      ],
-      "reason": "prop-weight scorer on Recording 19 door grunt slot11 (awareness=6) — second mid-alertness grunt for added path coverage. SKIPs if host snapshot absent."
-    },
-    {
-      "addr": "0x2f910",
-      "name": "actor_perception_find_prop_pathfinding_location",
-      "obj": "actor_perception.obj",
-      "seeds": 20,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt6.json",
-        "--allow-stubs", "--float-tolerance", "32", "--mem-trace", "--no-concolic", "--no-leaf-cache"
-      ],
-      "reason": "Recording 19 door grunt slot6 actor+prop state; confirmed PASS 20/20 seeds with 48.1% moderate real-state coverage. SKIPs if host snapshot absent."
-    },
-    {
-      "addr": "0x2f910",
-      "name": "actor_perception_find_prop_pathfinding_location",
-      "obj": "actor_perception.obj",
-      "seeds": 20,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt10.json",
-        "--allow-stubs", "--float-tolerance", "32", "--mem-trace", "--no-concolic", "--no-leaf-cache"
-      ],
-      "reason": "Recording 19 door grunt slot10 actor+prop state; confirmed PASS 20/20 seeds with 48.1% moderate real-state coverage. SKIPs if host snapshot absent."
-    },
-    {
-      "addr": "0x2f910",
-      "name": "actor_perception_find_prop_pathfinding_location",
-      "obj": "actor_perception.obj",
-      "seeds": 20,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt11.json",
-        "--allow-stubs", "--float-tolerance", "32", "--mem-trace", "--no-concolic", "--no-leaf-cache"
-      ],
-      "reason": "Recording 19 door grunt slot11 actor+prop state; confirmed PASS 20/20 seeds with 48.1% moderate real-state coverage. SKIPs if host snapshot absent."
-    },
-    {
-      "addr": "0x2f9b0",
-      "name": "actor_perception_find_killer_prop_index",
-      "obj": "actor_perception.obj",
-      "seeds": 20,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt6.json",
-        "--allow-stubs", "--float-tolerance", "32", "--mem-trace", "--no-concolic", "--no-leaf-cache"
-      ],
-      "reason": "Recording 19 door grunt slot6 actor+prop state; confirmed PASS 20/20 seeds with 83.3% weak real-state coverage. SKIPs if host snapshot absent."
-    },
-    {
-      "addr": "0x2f9b0",
-      "name": "actor_perception_find_killer_prop_index",
-      "obj": "actor_perception.obj",
-      "seeds": 20,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt10.json",
-        "--allow-stubs", "--float-tolerance", "32", "--mem-trace", "--no-concolic", "--no-leaf-cache"
-      ],
-      "reason": "Recording 19 door grunt slot10 actor+prop state; confirmed PASS 20/20 seeds with 83.3% weak real-state coverage. SKIPs if host snapshot absent."
-    },
-    {
-      "addr": "0x2f9b0",
-      "name": "actor_perception_find_killer_prop_index",
-      "obj": "actor_perception.obj",
-      "seeds": 20,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt11.json",
-        "--allow-stubs", "--float-tolerance", "32", "--mem-trace", "--no-concolic", "--no-leaf-cache"
-      ],
-      "reason": "Recording 19 door grunt slot11 actor+prop state; confirmed PASS 20/20 seeds with 83.3% weak real-state coverage. SKIPs if host snapshot absent."
-    },
-    {
-      "addr": "0x2fc20",
-      "name": "actor_get_perception_knowledge",
-      "obj": "actor_perception.obj",
-      "seeds": 20,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt6.json",
-        "--allow-stubs", "--float-tolerance", "32", "--mem-trace", "--no-concolic", "--no-leaf-cache"
-      ],
-      "reason": "Recording 19 door grunt slot6 actor+clump state; confirmed PASS 20/20 seeds with 51.3% weak real-state coverage. SKIPs if host snapshot absent."
-    },
-    {
-      "addr": "0x2fc20",
-      "name": "actor_get_perception_knowledge",
-      "obj": "actor_perception.obj",
-      "seeds": 20,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt10.json",
-        "--allow-stubs", "--float-tolerance", "32", "--mem-trace", "--no-concolic", "--no-leaf-cache"
-      ],
-      "reason": "Recording 19 door grunt slot10 actor+clump state; confirmed PASS 20/20 seeds with 40.3% weak real-state coverage. SKIPs if host snapshot absent."
-    },
-    {
-      "addr": "0x2fc20",
-      "name": "actor_get_perception_knowledge",
-      "obj": "actor_perception.obj",
-      "seeds": 20,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt11.json",
-        "--allow-stubs", "--float-tolerance", "32", "--mem-trace", "--no-concolic", "--no-leaf-cache"
-      ],
-      "reason": "Recording 19 door grunt slot11 actor+clump state; confirmed PASS 20/20 seeds with 40.3% weak real-state coverage. SKIPs if host snapshot absent."
-    },
-    {
-      "addr": "0x2f2b0",
-      "name": "actor_perception_acknowledge",
-      "obj": "actor_perception.obj",
-      "seeds": 20,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt6.json",
-        "--allow-stubs", "--float-tolerance", "32", "--mem-trace", "--no-concolic", "--no-leaf-cache"
-      ],
-      "reason": "Recording 19 door grunt slot6 actor+acknowledgeable prop state; confirmed PASS 20/20 seeds with 52.2% moderate real-state coverage. Separate a10-checkpoint high-cadence sweep also confirmed 176/176 active frames. SKIPs if host snapshot absent."
-    },
-    {
-      "addr": "0x2f2b0",
-      "name": "actor_perception_acknowledge",
-      "obj": "actor_perception.obj",
-      "seeds": 20,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt10_ack.json",
-        "--allow-stubs", "--float-tolerance", "32", "--mem-trace", "--no-concolic", "--no-leaf-cache"
-      ],
-      "reason": "Recording 19 door grunt slot10 with valid alternate ack prop 0xf7480029; confirmed PASS 20/20 seeds with 52.2% moderate real-state coverage. SKIPs if host snapshot absent."
-    },
-    {
-      "addr": "0x2f2b0",
-      "name": "actor_perception_acknowledge",
-      "obj": "actor_perception.obj",
-      "seeds": 20,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/rec19_grunt11_ack.json",
-        "--allow-stubs", "--float-tolerance", "32", "--mem-trace", "--no-concolic", "--no-leaf-cache"
-      ],
-      "reason": "Recording 19 door grunt slot11 with valid alternate ack prop 0xf7460026; confirmed PASS 20/20 seeds with 52.2% moderate real-state coverage. SKIPs if host snapshot absent."
-    },
-    {
-      "addr": "0xb4da0",
-      "name": "FUN_000b4da0",
-      "obj": "game.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "format string dereference bug \u2014 Ghidra showed *(wchar_t**)0x26c118 instead of (wchar_t*)0x26c118"
-    },
-    {
-      "addr": "0xb4dd0",
-      "name": "FUN_000b4dd0",
-      "obj": "game.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "related score format function, same TU as dereference bug"
-    },
-    {
-      "addr": "0xb4df0",
-      "name": "FUN_000b4df0",
-      "obj": "game.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "format string dereference bug \u2014 same pattern as FUN_000b4da0"
-    },
-    {
-      "addr": "0x1c3e0",
-      "name": "actor_action_control",
-      "obj": "actions.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x1c450",
-      "name": "actor_action_replace_prop",
-      "obj": "actions.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 45/45 seeds"
-    },
-    {
-      "addr": "0x1d6d0",
-      "name": "actor_action_try_to_panic",
-      "obj": "actions.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x2a360",
-      "name": "FUN_0002a360",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 45/45 seeds"
-    },
-    {
-      "addr": "0x36960",
-      "name": "FUN_00036960",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x369c0",
-      "name": "FUN_000369c0",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x36a20",
-      "name": "FUN_00036a20",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x36bd0",
-      "name": "FUN_00036bd0",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x36da0",
-      "name": "FUN_00036da0",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x36dc0",
-      "name": "FUN_00036dc0",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x36e30",
-      "name": "FUN_00036e30",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x3aa60",
-      "name": "actor_in_combat",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x3ac20",
-      "name": "FUN_0003ac20",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 45/45 seeds"
-    },
-    {
-      "addr": "0x3ad80",
-      "name": "actor_detach_from_unit",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x3ae60",
-      "name": "actor_swarm_detach_from_unit",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x3b030",
-      "name": "actor_swarm_cache_delete",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x3b0b0",
-      "name": "actor_switch_props",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x3b120",
-      "name": "FUN_0003b120",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x3b190",
-      "name": "FUN_0003b190",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 50/50 seeds"
-    },
-    {
-      "addr": "0x3b270",
-      "name": "actor_attacking_target",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x3bb50",
-      "name": "FUN_0003bb50",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x3bbf0",
-      "name": "FUN_0003bbf0",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x1c4c0",
-      "name": "actor_action_flush_position_indices",
-      "obj": "actions.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x1d5c0",
-      "name": "actor_action_name",
-      "obj": "actions.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x1d730",
-      "name": "actor_action_get_default_state",
-      "obj": "actions.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x3aac0",
-      "name": "actor_set_team",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 60/60 seeds"
-    },
-    {
-      "addr": "0x3ab80",
-      "name": "actor_activation_debug_color",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x3b100",
-      "name": "actor_is_noncombat",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x3b150",
-      "name": "actor_is_fighting",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x3b240",
-      "name": "actor_is_leaping",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x3b380",
-      "name": "actor_target_unit_index",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x3b5e0",
-      "name": "actor_flush_position_indices",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 20/20 seeds"
-    },
-    {
-      "addr": "0x3bc90",
-      "name": "actor_find_pathfinding_location",
-      "obj": "actors.obj",
-      "seeds": 20,
-      "flags": [
-        "--allow-stubs"
-      ],
-      "reason": "auto: batch pass 40/40 seeds"
-    },
-    {
-      "addr": "0xa83a0",
-      "name": "game_engine_player_count",
-      "obj": "game_engine.obj",
-      "seeds": 20,
-      "flags": [
-        "--real-callees",
-        "--mem-trace",
-        "--state-snapshot",
-        "tools/equivalence/regression_snapshots/player_count.json"
-      ],
-      "reason": "real-callee + live snapshot: data_iterator loop executes over the 'players' data_array (73.4% weak -> 100% high)"
-    },
-    {
-      "addr": "0xd04d0",
-      "name": "FUN_000d04d0",
-      "obj": "hud.obj",
-      "seeds": 1,
-      "flags": [
-        "--state-snapshot",
-        "artifacts/snapshots/original/action_8_e271002_multiplayer_fun_d04d0.json",
-        "--allow-stubs",
-        "--mem-trace",
-        "--no-concolic",
-        "--no-leaf-cache"
-      ],
-      "reason": "HUD action-result 8 vehicle-seat prompt with live player handle override; guards player+0x2a seat-index source. SKIPs if the local host snapshot artifact is absent."
-    },
-    {
-      "addr": "0xa8220",
-      "name": "game_engine_evaluate_game_complexity",
-      "obj": "game_engine.obj",
-      "seeds": 20,
-      "flags": [
-        "--real-callees",
-        "--mem-trace",
-        "--state-snapshot",
-        "tools/equivalence/regression_snapshots/evaluate_game_complexity.json"
-      ],
-      "reason": "real-callee + live snapshot: player + vehicle-seat counting via data_iterator + global complexity-flag branches"
-    },
-    {
-      "addr": "0x130270",
-      "name": "FUN_00130270",
-      "label": "FUN_00130270[gameupd]",
-      "obj": "network_server_message_handler.obj",
-      "seeds": 40,
-      "flags": [
-        "--state-snapshot", "tools/equivalence/host_snapshots/network_server_mp_gameupdate.json",
-        "--allow-stubs", "--mem-trace", "--no-stub-arg-trace"
-      ],
-      "reason": "Same function as the FUN_00130270 entry above, but on the gate-satisfied snapshot: size=16 / msg[0]=0x010c makes the header self-consistent, so the assert path is skipped and the category-3 packet switch actually dispatches (packet_type 0x19 = client_game_update, the deepest chain). Covers 24.4% vs 10.0% (40/40 PASS) and exercises code the sibling entry never reaches; the sibling still covers the assert/early-exit path, so both are kept. NOTE: both write the same artifacts/equivalence/FUN_00130270_smoke.log, so the log reflects whichever ran last. SKIPs when host snapshot absent."
-    },
-    {
-      "addr": "0xd7cd0",
-      "name": "FUN_000d7cd0",
-      "obj": "hud_messaging.obj",
-      "seeds": 40,
-      "flags": ["--z3-equiv", "--allow-stubs", "--mem-trace", "--float-tolerance", "32"],
-      "reason": "Tripwire for the data-page execution guard (hook_code / _mapped_regions). Before it, an indirect call through synthetic state landed in a zero-filled auto-mapped page, whose zeros decode as 2-byte 'add [eax],al' and slid execution through the whole page -- 0% coverage, all 40 seeds ORACLE-CRASH FETCH_UNMAPPED. Now 100.0% coverage, 40/40 PASS, confidence high. Reverting the guard returns this to error."
-    },
-    {
-      "addr": "0xcb980",
-      "name": "hs_runtime_get_executing_thread_name",
-      "obj": "hs_runtime.obj",
-      "seeds": 40,
-      "flags": ["--z3-equiv", "--allow-stubs", "--mem-trace", "--float-tolerance", "32"],
-      "reason": "Second data-page-execution-guard tripwire, different object. 0% coverage / all-seeds error before the guard; 100.0% coverage, 40/40 PASS after."
-    },
-    {
-      "addr": "0x1bfe50",
-      "name": "game_state_memory_pool_new",
-      "obj": "game_state.obj",
-      "seeds": 40,
-      "flags": ["--z3-equiv", "--allow-stubs", "--mem-trace", "--float-tolerance", "32"],
-      "reason": "Third data-page-execution-guard tripwire. 0% -> 60.0% coverage, 40/40 PASS, confidence high. Kept alongside the two 100%-coverage ones because it exercises a partial-coverage path rather than a whole tiny function."
-    },
-    {
-      "addr": "0x5ae70",
-      "name": "FUN_0005ae70",
-      "obj": "encounters.obj",
-      "seeds": 50,
-      "flags": ["--allow-stubs", "--mem-trace", "--float-tolerance", "32"],
-      "reason": "Sign-extension fix: the squad index is the handle's low word ZERO-extended (original is a plain 'AND ESI,0xffff; PUSH ESI'), but the lift had an (int16_t) cast that sign-extended indices >= 0x8000. Was 32/50 with 'arg[1] to tag_block_get_element: oracle=0x8020 candidate=0xffff8020'; now 50/50 clean. VC71 is blind to it -- 78.4% both before and after -- so this differential is the only guard."
-    },
-    {
-      "addr": "0xdc1d0",
-      "name": "event_manager_initialize",
-      "obj": "event_manager.obj",
-      "seeds": 20,
-      "flags": ["--allow-stubs", "--mem-trace"],
-      "reason": "Tripwire for the dllimport-indirection seeding (_seed_dllimport_indirection). kb.json HDATA globals are __declspec(dllimport), so the candidate reaches event_manager_globals via a pointer-to-pointer while the delinked oracle references DAT_0046bd40 directly; the unseeded import slot made the candidate pass NULL to csmemset. Was 0/N with 'arg[0]: oracle=0x500000 candidate=0x0'; now clean."
-    },
-    {
-      "addr": "0xe1350",
-      "name": "player_ui_initialize",
-      "obj": "player_ui.obj",
-      "seeds": 20,
-      "flags": ["--allow-stubs", "--mem-trace"],
-      "reason": "Second dllimport-indirection tripwire, different object and global (player_ui_globals @0x46bee0), so the fix is not pinned to one symbol."
-    }
-  ]
+ "description": "Curated high-risk ported functions for fast regression testing. Run with: python3 tools/equivalence/regression_test.py",
+ "targets": [
+  {
+   "addr": "0x130580",
+   "name": "FUN_00130580",
+   "obj": "network_server_message_handler.obj",
+   "seeds": 40,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/network_server_mp.json",
+    "--allow-stubs",
+    "--mem-trace",
+    "--no-stub-arg-trace"
+   ],
+   "reason": "network_game_server_handle_client_message dispatcher on live MP-host state (server @0x5a90e0). Reachable-path tripwire for @<reg>-marshaling/control-flow/return-value drift (obs 14.3% cov, 50/50 PASS). --no-stub-arg-trace: the only diverging stub args are display_assert/halt_and_catch_fire string-literal pointers (harness artifact). NOT a state-mutation test (state callees stubbed; 0 witnessed server writes). SKIPs when host snapshot absent."
+  },
+  {
+   "addr": "0x130270",
+   "name": "FUN_00130270",
+   "obj": "network_server_message_handler.obj",
+   "seeds": 40,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/network_server_mp.json",
+    "--allow-stubs",
+    "--mem-trace",
+    "--no-stub-arg-trace"
+   ],
+   "reason": "network_game_server_handle_datagram (broadcast/ping/game-update) on live MP-host state. Reachable-path drift tripwire (obs 10.0% cov, 40/40 PASS). See dispatcher entry for --no-stub-arg-trace rationale. SKIPs when host snapshot absent."
+  },
+  {
+   "addr": "0x12fd80",
+   "name": "FUN_0012fd80",
+   "obj": "network_server_message_handler.obj",
+   "seeds": 40,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/network_server_mp.json",
+    "--allow-stubs",
+    "--mem-trace",
+    "--no-stub-arg-trace"
+   ],
+   "reason": "add_player_request_pregame handler (server @<esi>) on live MP-host state. Reachable-path drift tripwire (obs 52.4% cov, 40/40 PASS). SKIPs when host snapshot absent."
+  },
+  {
+   "addr": "0x12fe40",
+   "name": "FUN_0012fe40",
+   "obj": "network_server_message_handler.obj",
+   "seeds": 40,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/network_server_mp.json",
+    "--allow-stubs",
+    "--mem-trace",
+    "--no-stub-arg-trace"
+   ],
+   "reason": "remove_player_request_pregame handler (server @<esi>) on live MP-host state. Reachable-path drift tripwire (obs 52.4% cov, 40/40 PASS). SKIPs when host snapshot absent."
+  },
+  {
+   "addr": "0x12ff00",
+   "name": "FUN_0012ff00",
+   "obj": "network_server_message_handler.obj",
+   "seeds": 40,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/network_server_mp.json",
+    "--allow-stubs",
+    "--mem-trace",
+    "--no-stub-arg-trace"
+   ],
+   "reason": "settings_request handler (server @<esi>) on live MP-host state. Reachable-path drift tripwire (obs 45.0% cov, 40/40 PASS). SKIPs when host snapshot absent."
+  },
+  {
+   "addr": "0x12ffe0",
+   "name": "FUN_0012ffe0",
+   "obj": "network_server_message_handler.obj",
+   "seeds": 40,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/network_server_mp.json",
+    "--allow-stubs",
+    "--mem-trace",
+    "--no-stub-arg-trace"
+   ],
+   "reason": "player_settings_request handler (server @<esi>) on live MP-host state. Reachable-path drift tripwire (obs 48.5% cov, 40/40 PASS). SKIPs when host snapshot absent."
+  },
+  {
+   "addr": "0x1300b0",
+   "name": "FUN_001300b0",
+   "obj": "network_server_message_handler.obj",
+   "seeds": 40,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/network_server_mp.json",
+    "--allow-stubs",
+    "--mem-trace",
+    "--no-stub-arg-trace"
+   ],
+   "reason": "graceful_game_exit_pregame handler (server @<esi>) on live MP-host state. Reachable-path drift tripwire (obs 51.0% cov, 40/40 PASS). SKIPs when host snapshot absent."
+  },
+  {
+   "addr": "0x130180",
+   "name": "FUN_00130180",
+   "obj": "network_server_message_handler.obj",
+   "seeds": 40,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/network_server_mp.json",
+    "--allow-stubs",
+    "--mem-trace",
+    "--no-stub-arg-trace"
+   ],
+   "reason": "remove_player_request_ingame handler (server @<eax>) on live MP-host state. Reachable-path drift tripwire (obs 21.6% cov, 40/40 PASS). Note: server arrives in EAX not ESI. SKIPs when host snapshot absent."
+  },
+  {
+   "addr": "0x2fd10",
+   "name": "actor_compute_prop_target_weight",
+   "obj": "actor_perception.obj",
+   "seeds": 8,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/rec19_grunt6.json",
+    "--allow-stubs",
+    "--float-tolerance",
+    "32",
+    "--mem-trace"
+   ],
+   "reason": "perception prop-weight scorer; runs on real actor+perception-prop state from host-only Recording 19 (door grunt slot6, awareness=10). Audited faithful (a10) \u2014 this guards against future lift drift. SKIPs cleanly when the host recording/snapshot is absent (forks, hosted CI) \u2014 no game memory in git."
+  },
+  {
+   "addr": "0x2fd10",
+   "name": "actor_compute_prop_target_weight",
+   "obj": "actor_perception.obj",
+   "seeds": 8,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/rec19_grunt10.json",
+    "--allow-stubs",
+    "--float-tolerance",
+    "32",
+    "--mem-trace"
+   ],
+   "reason": "prop-weight scorer on Recording 19 door grunt slot10 (awareness=6) \u2014 mid-alertness state covers a different path than grunt6 (52.9% vs 48.6%). SKIPs if host snapshot absent."
+  },
+  {
+   "addr": "0x2fd10",
+   "name": "actor_compute_prop_target_weight",
+   "obj": "actor_perception.obj",
+   "seeds": 8,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/rec19_grunt11.json",
+    "--allow-stubs",
+    "--float-tolerance",
+    "32",
+    "--mem-trace"
+   ],
+   "reason": "prop-weight scorer on Recording 19 door grunt slot11 (awareness=6) \u2014 second mid-alertness grunt for added path coverage. SKIPs if host snapshot absent."
+  },
+  {
+   "addr": "0x2f910",
+   "name": "actor_perception_find_prop_pathfinding_location",
+   "obj": "actor_perception.obj",
+   "seeds": 20,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/rec19_grunt6.json",
+    "--allow-stubs",
+    "--float-tolerance",
+    "32",
+    "--mem-trace",
+    "--no-concolic",
+    "--no-leaf-cache"
+   ],
+   "reason": "Recording 19 door grunt slot6 actor+prop state; confirmed PASS 20/20 seeds with 48.1% moderate real-state coverage. SKIPs if host snapshot absent."
+  },
+  {
+   "addr": "0x2f910",
+   "name": "actor_perception_find_prop_pathfinding_location",
+   "obj": "actor_perception.obj",
+   "seeds": 20,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/rec19_grunt10.json",
+    "--allow-stubs",
+    "--float-tolerance",
+    "32",
+    "--mem-trace",
+    "--no-concolic",
+    "--no-leaf-cache"
+   ],
+   "reason": "Recording 19 door grunt slot10 actor+prop state; confirmed PASS 20/20 seeds with 48.1% moderate real-state coverage. SKIPs if host snapshot absent."
+  },
+  {
+   "addr": "0x2f910",
+   "name": "actor_perception_find_prop_pathfinding_location",
+   "obj": "actor_perception.obj",
+   "seeds": 20,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/rec19_grunt11.json",
+    "--allow-stubs",
+    "--float-tolerance",
+    "32",
+    "--mem-trace",
+    "--no-concolic",
+    "--no-leaf-cache"
+   ],
+   "reason": "Recording 19 door grunt slot11 actor+prop state; confirmed PASS 20/20 seeds with 48.1% moderate real-state coverage. SKIPs if host snapshot absent."
+  },
+  {
+   "addr": "0x2f9b0",
+   "name": "actor_perception_find_killer_prop_index",
+   "obj": "actor_perception.obj",
+   "seeds": 20,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/rec19_grunt6.json",
+    "--allow-stubs",
+    "--float-tolerance",
+    "32",
+    "--mem-trace",
+    "--no-concolic",
+    "--no-leaf-cache"
+   ],
+   "reason": "Recording 19 door grunt slot6 actor+prop state; confirmed PASS 20/20 seeds with 83.3% weak real-state coverage. SKIPs if host snapshot absent."
+  },
+  {
+   "addr": "0x2f9b0",
+   "name": "actor_perception_find_killer_prop_index",
+   "obj": "actor_perception.obj",
+   "seeds": 20,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/rec19_grunt10.json",
+    "--allow-stubs",
+    "--float-tolerance",
+    "32",
+    "--mem-trace",
+    "--no-concolic",
+    "--no-leaf-cache"
+   ],
+   "reason": "Recording 19 door grunt slot10 actor+prop state; confirmed PASS 20/20 seeds with 83.3% weak real-state coverage. SKIPs if host snapshot absent."
+  },
+  {
+   "addr": "0x2f9b0",
+   "name": "actor_perception_find_killer_prop_index",
+   "obj": "actor_perception.obj",
+   "seeds": 20,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/rec19_grunt11.json",
+    "--allow-stubs",
+    "--float-tolerance",
+    "32",
+    "--mem-trace",
+    "--no-concolic",
+    "--no-leaf-cache"
+   ],
+   "reason": "Recording 19 door grunt slot11 actor+prop state; confirmed PASS 20/20 seeds with 83.3% weak real-state coverage. SKIPs if host snapshot absent."
+  },
+  {
+   "addr": "0x2fc20",
+   "name": "actor_get_perception_knowledge",
+   "obj": "actor_perception.obj",
+   "seeds": 20,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/rec19_grunt6.json",
+    "--allow-stubs",
+    "--float-tolerance",
+    "32",
+    "--mem-trace",
+    "--no-concolic",
+    "--no-leaf-cache"
+   ],
+   "reason": "Recording 19 door grunt slot6 actor+clump state; confirmed PASS 20/20 seeds with 51.3% weak real-state coverage. SKIPs if host snapshot absent."
+  },
+  {
+   "addr": "0x2fc20",
+   "name": "actor_get_perception_knowledge",
+   "obj": "actor_perception.obj",
+   "seeds": 20,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/rec19_grunt10.json",
+    "--allow-stubs",
+    "--float-tolerance",
+    "32",
+    "--mem-trace",
+    "--no-concolic",
+    "--no-leaf-cache"
+   ],
+   "reason": "Recording 19 door grunt slot10 actor+clump state; confirmed PASS 20/20 seeds with 40.3% weak real-state coverage. SKIPs if host snapshot absent."
+  },
+  {
+   "addr": "0x2fc20",
+   "name": "actor_get_perception_knowledge",
+   "obj": "actor_perception.obj",
+   "seeds": 20,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/rec19_grunt11.json",
+    "--allow-stubs",
+    "--float-tolerance",
+    "32",
+    "--mem-trace",
+    "--no-concolic",
+    "--no-leaf-cache"
+   ],
+   "reason": "Recording 19 door grunt slot11 actor+clump state; confirmed PASS 20/20 seeds with 40.3% weak real-state coverage. SKIPs if host snapshot absent."
+  },
+  {
+   "addr": "0x2f2b0",
+   "name": "actor_perception_acknowledge",
+   "obj": "actor_perception.obj",
+   "seeds": 20,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/rec19_grunt6.json",
+    "--allow-stubs",
+    "--float-tolerance",
+    "32",
+    "--mem-trace",
+    "--no-concolic",
+    "--no-leaf-cache"
+   ],
+   "reason": "Recording 19 door grunt slot6 actor+acknowledgeable prop state; confirmed PASS 20/20 seeds with 52.2% moderate real-state coverage. Separate a10-checkpoint high-cadence sweep also confirmed 176/176 active frames. SKIPs if host snapshot absent."
+  },
+  {
+   "addr": "0x2f2b0",
+   "name": "actor_perception_acknowledge",
+   "obj": "actor_perception.obj",
+   "seeds": 20,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/rec19_grunt10_ack.json",
+    "--allow-stubs",
+    "--float-tolerance",
+    "32",
+    "--mem-trace",
+    "--no-concolic",
+    "--no-leaf-cache"
+   ],
+   "reason": "Recording 19 door grunt slot10 with valid alternate ack prop 0xf7480029; confirmed PASS 20/20 seeds with 52.2% moderate real-state coverage. SKIPs if host snapshot absent."
+  },
+  {
+   "addr": "0x2f2b0",
+   "name": "actor_perception_acknowledge",
+   "obj": "actor_perception.obj",
+   "seeds": 20,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/rec19_grunt11_ack.json",
+    "--allow-stubs",
+    "--float-tolerance",
+    "32",
+    "--mem-trace",
+    "--no-concolic",
+    "--no-leaf-cache"
+   ],
+   "reason": "Recording 19 door grunt slot11 with valid alternate ack prop 0xf7460026; confirmed PASS 20/20 seeds with 52.2% moderate real-state coverage. SKIPs if host snapshot absent."
+  },
+  {
+   "addr": "0xb4da0",
+   "name": "FUN_000b4da0",
+   "obj": "game.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "format string dereference bug \u2014 Ghidra showed *(wchar_t**)0x26c118 instead of (wchar_t*)0x26c118"
+  },
+  {
+   "addr": "0xb4dd0",
+   "name": "FUN_000b4dd0",
+   "obj": "game.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "related score format function, same TU as dereference bug"
+  },
+  {
+   "addr": "0xb4df0",
+   "name": "FUN_000b4df0",
+   "obj": "game.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "format string dereference bug \u2014 same pattern as FUN_000b4da0"
+  },
+  {
+   "addr": "0x1c3e0",
+   "name": "actor_action_control",
+   "obj": "actions.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x1c450",
+   "name": "actor_action_replace_prop",
+   "obj": "actions.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 45/45 seeds"
+  },
+  {
+   "addr": "0x1d6d0",
+   "name": "actor_action_try_to_panic",
+   "obj": "actions.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x2a360",
+   "name": "FUN_0002a360",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 45/45 seeds"
+  },
+  {
+   "addr": "0x36960",
+   "name": "FUN_00036960",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x369c0",
+   "name": "FUN_000369c0",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x36a20",
+   "name": "FUN_00036a20",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x36bd0",
+   "name": "FUN_00036bd0",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x36da0",
+   "name": "FUN_00036da0",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x36dc0",
+   "name": "FUN_00036dc0",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x36e30",
+   "name": "FUN_00036e30",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x3aa60",
+   "name": "actor_in_combat",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x3ac20",
+   "name": "FUN_0003ac20",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 45/45 seeds"
+  },
+  {
+   "addr": "0x3ad80",
+   "name": "actor_detach_from_unit",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x3ae60",
+   "name": "actor_swarm_detach_from_unit",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x3b030",
+   "name": "actor_swarm_cache_delete",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x3b0b0",
+   "name": "actor_switch_props",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x3b120",
+   "name": "FUN_0003b120",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x3b190",
+   "name": "FUN_0003b190",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 50/50 seeds"
+  },
+  {
+   "addr": "0x3b270",
+   "name": "actor_attacking_target",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x3bb50",
+   "name": "FUN_0003bb50",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x3bbf0",
+   "name": "FUN_0003bbf0",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x1c4c0",
+   "name": "actor_action_flush_position_indices",
+   "obj": "actions.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x1d5c0",
+   "name": "actor_action_name",
+   "obj": "actions.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x1d730",
+   "name": "actor_action_get_default_state",
+   "obj": "actions.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x3aac0",
+   "name": "actor_set_team",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 60/60 seeds"
+  },
+  {
+   "addr": "0x3ab80",
+   "name": "actor_activation_debug_color",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x3b100",
+   "name": "actor_is_noncombat",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x3b150",
+   "name": "actor_is_fighting",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x3b240",
+   "name": "actor_is_leaping",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x3b380",
+   "name": "actor_target_unit_index",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x3b5e0",
+   "name": "actor_flush_position_indices",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 20/20 seeds"
+  },
+  {
+   "addr": "0x3bc90",
+   "name": "actor_find_pathfinding_location",
+   "obj": "actors.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs"
+   ],
+   "reason": "auto: batch pass 40/40 seeds"
+  },
+  {
+   "addr": "0xa83a0",
+   "name": "game_engine_player_count",
+   "obj": "game_engine.obj",
+   "seeds": 20,
+   "flags": [
+    "--real-callees",
+    "--mem-trace",
+    "--state-snapshot",
+    "tools/equivalence/regression_snapshots/player_count.json"
+   ],
+   "reason": "real-callee + live snapshot: data_iterator loop executes over the 'players' data_array (73.4% weak -> 100% high)"
+  },
+  {
+   "addr": "0xd04d0",
+   "name": "FUN_000d04d0",
+   "obj": "hud.obj",
+   "seeds": 1,
+   "flags": [
+    "--state-snapshot",
+    "artifacts/snapshots/original/action_8_e271002_multiplayer_fun_d04d0.json",
+    "--allow-stubs",
+    "--mem-trace",
+    "--no-concolic",
+    "--no-leaf-cache"
+   ],
+   "reason": "HUD action-result 8 vehicle-seat prompt with live player handle override; guards player+0x2a seat-index source. SKIPs if the local host snapshot artifact is absent."
+  },
+  {
+   "addr": "0xa8220",
+   "name": "game_engine_evaluate_game_complexity",
+   "obj": "game_engine.obj",
+   "seeds": 20,
+   "flags": [
+    "--real-callees",
+    "--mem-trace",
+    "--state-snapshot",
+    "tools/equivalence/regression_snapshots/evaluate_game_complexity.json"
+   ],
+   "reason": "real-callee + live snapshot: player + vehicle-seat counting via data_iterator + global complexity-flag branches"
+  },
+  {
+   "addr": "0x130270",
+   "name": "FUN_00130270",
+   "label": "FUN_00130270[gameupd]",
+   "obj": "network_server_message_handler.obj",
+   "seeds": 40,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/host_snapshots/network_server_mp_gameupdate.json",
+    "--allow-stubs",
+    "--mem-trace",
+    "--no-stub-arg-trace"
+   ],
+   "reason": "Same function as the FUN_00130270 entry above, but on the gate-satisfied snapshot: size=16 / msg[0]=0x010c makes the header self-consistent, so the assert path is skipped and the category-3 packet switch actually dispatches (packet_type 0x19 = client_game_update, the deepest chain). Covers 24.4% vs 10.0% (40/40 PASS) and exercises code the sibling entry never reaches; the sibling still covers the assert/early-exit path, so both are kept. NOTE: both write the same artifacts/equivalence/FUN_00130270_smoke.log, so the log reflects whichever ran last. SKIPs when host snapshot absent."
+  },
+  {
+   "addr": "0xd7cd0",
+   "name": "FUN_000d7cd0",
+   "obj": "hud_messaging.obj",
+   "seeds": 40,
+   "flags": [
+    "--z3-equiv",
+    "--allow-stubs",
+    "--mem-trace",
+    "--float-tolerance",
+    "32"
+   ],
+   "reason": "Tripwire for the data-page execution guard (hook_code / _mapped_regions). Before it, an indirect call through synthetic state landed in a zero-filled auto-mapped page, whose zeros decode as 2-byte 'add [eax],al' and slid execution through the whole page -- 0% coverage, all 40 seeds ORACLE-CRASH FETCH_UNMAPPED. Now 100.0% coverage, 40/40 PASS, confidence high. Reverting the guard returns this to error."
+  },
+  {
+   "addr": "0xcb980",
+   "name": "hs_runtime_get_executing_thread_name",
+   "obj": "hs_runtime.obj",
+   "seeds": 40,
+   "flags": [
+    "--z3-equiv",
+    "--allow-stubs",
+    "--mem-trace",
+    "--float-tolerance",
+    "32"
+   ],
+   "reason": "Second data-page-execution-guard tripwire, different object. 0% coverage / all-seeds error before the guard; 100.0% coverage, 40/40 PASS after."
+  },
+  {
+   "addr": "0x1bfe50",
+   "name": "game_state_memory_pool_new",
+   "obj": "game_state.obj",
+   "seeds": 40,
+   "flags": [
+    "--z3-equiv",
+    "--allow-stubs",
+    "--mem-trace",
+    "--float-tolerance",
+    "32"
+   ],
+   "reason": "Third data-page-execution-guard tripwire. 0% -> 60.0% coverage, 40/40 PASS, confidence high. Kept alongside the two 100%-coverage ones because it exercises a partial-coverage path rather than a whole tiny function."
+  },
+  {
+   "addr": "0x5ae70",
+   "name": "FUN_0005ae70",
+   "obj": "encounters.obj",
+   "seeds": 50,
+   "flags": [
+    "--allow-stubs",
+    "--mem-trace",
+    "--float-tolerance",
+    "32"
+   ],
+   "reason": "Sign-extension fix: the squad index is the handle's low word ZERO-extended (original is a plain 'AND ESI,0xffff; PUSH ESI'), but the lift had an (int16_t) cast that sign-extended indices >= 0x8000. Was 32/50 with 'arg[1] to tag_block_get_element: oracle=0x8020 candidate=0xffff8020'; now 50/50 clean. VC71 is blind to it -- 78.4% both before and after -- so this differential is the only guard."
+  },
+  {
+   "addr": "0xdc1d0",
+   "name": "event_manager_initialize",
+   "obj": "event_manager.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs",
+    "--mem-trace"
+   ],
+   "reason": "Tripwire for the dllimport-indirection seeding (_seed_dllimport_indirection). kb.json HDATA globals are __declspec(dllimport), so the candidate reaches event_manager_globals via a pointer-to-pointer while the delinked oracle references DAT_0046bd40 directly; the unseeded import slot made the candidate pass NULL to csmemset. Was 0/N with 'arg[0]: oracle=0x500000 candidate=0x0'; now clean."
+  },
+  {
+   "addr": "0xe1350",
+   "name": "player_ui_initialize",
+   "obj": "player_ui.obj",
+   "seeds": 20,
+   "flags": [
+    "--allow-stubs",
+    "--mem-trace"
+   ],
+   "reason": "Second dllimport-indirection tripwire, different object and global (player_ui_globals @0x46bee0), so the fix is not pinned to one symbol."
+  },
+  {
+   "addr": "0x148240",
+   "name": "FUN_00148240",
+   "obj": "collision_bsp.obj",
+   "seeds": 40,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/regression_snapshots/snap_collision_bsp_surface_ring.json",
+    "--allow-stubs",
+    "--mem-trace",
+    "--float-tolerance",
+    "16"
+   ],
+   "reason": "Surface edge-ring 2D point test. Snapshot pins valid surface/edge/vertex tag blocks so the semantic tag_block_get_element stub resolves every lookup; without it 2/40 seeds hit ORACLE-CRASH eip=0x0 on an unrelocated oracle target. Observed 40/40 PASS, 83.6% cov, high confidence. Guards the byte-typed `side` flag (SETZ BL / MOVZX EDI,BL) and the cross-product guard sense at 0x14833c."
+  },
+  {
+   "addr": "0x148780",
+   "name": "FUN_00148780",
+   "obj": "collision_bsp.obj",
+   "seeds": 30,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/regression_snapshots/snap_collision_bsp2d_ref_body.json",
+    "--allow-stubs",
+    "--mem-trace",
+    "--float-tolerance",
+    "16"
+   ],
+   "reason": "bsp2d surface-reference scan, body-reached path (param_8==0). Snapshot seeds tag_block headers in the bsp param so the ref matches surface_index and the loop body runs: axis selection, sign XOR, t*direction+origin, both external calls. Observed 30/30 PASS, 75.9% cov, high confidence (vs 15.4% weak with no snapshot)."
+  },
+  {
+   "addr": "0x148780",
+   "name": "FUN_00148780",
+   "obj": "collision_bsp.obj",
+   "seeds": 30,
+   "flags": [
+    "--state-snapshot",
+    "tools/equivalence/regression_snapshots/snap_collision_bsp2d_ref_nomatch.json",
+    "--allow-stubs",
+    "--mem-trace",
+    "--float-tolerance",
+    "16"
+   ],
+   "reason": "bsp2d surface-reference scan, no-match path: ref[0] != surface_index so the body is skipped and the loop exhausts to the -1 sentinel. Observed 30/30 PASS, 30.8% cov, moderate. NOT registered: the param_8!=0 paths that call the now-ported FUN_00148240 -- the oracle ignores that callee's stub return (returns a constant 0x00400f2c for both stub=0 and stub=1) while the lifted side correctly returns -1 and 7 respectively; oracle-side harness defect, not a lift defect. Call arguments there are covered by the stub-arg differential (9 calls, 0 mismatches)."
+  }
+ ]
 }
