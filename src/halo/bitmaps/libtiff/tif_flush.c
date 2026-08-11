@@ -585,3 +585,56 @@ int FUN_00069520(void *tif_)
   }
   return 1; /* 0x69583 -- reached from both paths */
 }
+
+/**
+ * Codec close hook: emit the six-EOL end-of-block sequence, then flush the
+ * partially-filled bit accumulator, unless the caller asked to suppress it.
+ *
+ * By shape this is upstream libtiff tif_fax3.c's `Fax3Close`, whose whole body
+ * is a `NORTC` guard around `for (i = 0; i < 6; i++) <put one EOL>;` followed
+ * by a bit flush -- the six-iteration count, the single-argument helper, and
+ * the trailing call to this TU's flush (0x69520, the Fax3PostEncode-shaped
+ * neighbour above) all line up. The upstream identity is INFERRED from that
+ * shape only: no `__FILE__` string for tif_fax3.c is stamped anywhere in this
+ * body, and kb.json maps the address into tif_flush.obj, which is why the body
+ * lives here. FUN_000693b0 is UNNAMED on purpose -- upstream's `Fax3PutEOL`
+ * takes the same lone `TIFF*`, but nothing recovered so far proves it writes
+ * an EOL code rather than some other fixed bit pattern.
+ *
+ * ABI recovered from the frame at 0x69590: `push ebp / mov ebp,esp / push esi /
+ * mov esi,[ebp+8]` with no `sub esp` (zero locals -- ESI=tif, EDI=counter),
+ * plain `ret` with caller-side `add esp,4` at each call, so cdecl with a single
+ * stack argument, and both callees take that same lone pointer (one `push esi`
+ * per CALL, each followed by `add esp,4`). Ghidra reported `void(void)` here as
+ * it did for the flush above: it saw neither the `[ebp+8]` load nor the pushes,
+ * and folded them into a following call. The return really is void -- there is
+ * no `mov eax` on either path, so the 1 that 0x69520 leaves in EAX just falls
+ * through untouched, matching upstream's `void (*tif_close)(TIFF*)` slot.
+ *
+ * `push edi` sits INSIDE the taken branch (0x6959d, popped at 0x695b8), so the
+ * register-save shape differs between the two paths; the guard is written as an
+ * `if` block rather than an early `return` to keep that layout.
+ */
+void FUN_00069590(void *tif_)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  int i;
+
+  /* 0x69597: `test byte ptr [esi+9],1` -- bit 0 of the second flags byte, the
+   * same bit FUN_00068a50 sets and clears at 0x68a5a. Upstream's guard is
+   * `(mode & FAXMODE_NORTC) == 0`, but that macro lives in the codec's private
+   * state, not in the handle, so the bit is tested with a literal rather than a
+   * FAXMODE_* name. */
+  if ((tif->field_09 & 1) == 0) {
+    /* 0x6959d-0x695ad: `mov edi,6`, then a rolled loop -- the `push esi` is
+     * inside it at 0x695a3 and `dec edi / jnz` closes it, so the six calls are
+     * a real loop in the binary rather than an unrolled run. */
+    i = 6;
+    do {
+      FUN_000693b0(tif);
+      i--;
+    } while (i != 0);
+    /* 0x695af: int result discarded with no test, as at 0x69549 above. */
+    (void)FUN_00069520(tif);
+  }
+}
