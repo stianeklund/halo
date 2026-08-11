@@ -1,3 +1,24 @@
+## Auto-session batch 1 — 4/4 committed — 2026-08-10
+
+| function | addr | source_file | screen_result | vc71 | action | reason |
+|---|---|---|---|---|---|---|
+| recorded_animation_controlling_unit | 0x94ff0 | src/halo/cutscene/recorded_animations.c | pass | 92.0 | committed | score recovery promoted; equivalence 100/100 |
+| FUN_000a54b0 | 0xa54b0 | src/halo/game/cheats.c | pass | 86.6 | reverted | score recovery exhausted; goal-lift requires VC71 >=90 |
+| FUN_000a6030 | 0xa6030 | src/halo/game/cheats.c | skip_reg_args | 72.5 | reverted | implicit EDI argument; known register-argument structural cap |
+| ai_communication_packet_new | 0x42d20 | src/halo/ai/ai_communication.c | pass | 100.0 | committed | mechanical gate; equivalence oracle unavailable due missing delinked object |
+| FUN_001546b0 | 0x1546b0 | src/halo/physics/point_physics.c | pass | 100.0 | committed | mechanical gate; corrected five-stack-argument wrapper |
+| FUN_001547d0 | 0x1547d0 | src/halo/physics/point_physics.c | skip_reg_args | - | skipped | callee FUN_001546f0 has implicit ECX argument with unmodeled KB ABI |
+| FUN_00154a20 | 0x154a20 | src/halo/physics/point_physics.c | skip_reg_args | - | skipped | decompile exposes implicit EAX and EDX arguments |
+| prop_orphan_transition | 0x648a0 | src/halo/ai/props.c | pass | 97.1 | committed | ABI annotations verified; equivalence oracle truncated |
+
+Landing: parked — gate_failed:build_failed. Generated decl.h:2567 references unknown type `collision_test_result` in FUN_0014e940; main not advanced.
+
+## Goal-lift run — 0/4 committed (infra-blocked) — 2026-08-10
+
+| function | addr | source_file | screen_result | vc71 | action | reason |
+|---|---|---|---|---|---|---|
+| input_abstraction_get_local_player_preferences | 0xce6c0 | src/halo/input/input_abstraction.c | pass | - | reverted | VC71 cannot compile pre-existing clang-style `asm volatile` at input_abstraction.c:286; target build and hazards passed, but no VC71 score is available. |
+
 ## Goal-lift run — 2/4 committed (queue_exhausted) — 2026-08-01
 
 | function | addr | obj | vc71 | action | reason |
