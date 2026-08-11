@@ -34365,7 +34365,8 @@
     },
     {
      "addr": "0x6d820",
-     "decl": "int TIFFScanlineSize(int file);"
+     "decl": "int TIFFScanlineSize(int file);",
+     "ported": true
     },
     {
      "addr": "0x6d850",

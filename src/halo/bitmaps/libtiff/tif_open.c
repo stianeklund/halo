@@ -227,7 +227,23 @@ typedef int (*tiff_code_method_t)(void *tif, char *buf, int cc, int s);
 typedef void (*tiff_void_method_t)(void *tif);
 
 typedef struct tiff_s {
-  char pad_000[0xf0];
+  /* 0x00-0xef holds the directory. Upstream libtiff reaches these through a
+   * nested `TIFFDirectory tif_dir` member; Bungie's copy is addressed straight
+   * off the TIFF base, so the four fields below carry their upstream td_*
+   * names at their absolute offsets. Only the offsets TIFFScanlineSize
+   * (0x6d820) touches are split out of the padding -- everything else in this
+   * range is still unobserved. Widths are load-bearing: 0x36/0x44/0x5e are
+   * read with `movzx ... word` (0x6d823, 0x6d836, 0x6d82d) and 0x1c with a
+   * dword `imul` operand (0x6d827). */
+  char pad_000[0x1c];
+  long td_imagewidth; /* 0x1c */
+  char pad_020[0x16];
+  unsigned short td_bitspersample; /* 0x36 */
+  char pad_038[0x0c];
+  unsigned short td_samplesperpixel; /* 0x44 */
+  char pad_046[0x18];
+  unsigned short td_planarconfig; /* 0x5e */
+  char pad_060[0x90];
   /* Codec vtable, 0xf0-0x11c, installed wholesale by FUN_0006d2d0. Upstream
    * libtiff orders these setupdecode, predecode, setupencode, preencode,
    * postencode, then the six code methods, then close/seek/cleanup; Bungie's
@@ -663,4 +679,44 @@ int FUN_0006d4d0(void *tif_)
   tif->tif_decodestrip = (tiff_code_method_t)FUN_0006d340;
   tif->tif_decodetile = (tiff_code_method_t)FUN_0006d340;
   return 1;
+}
+
+/* Upstream libtiff spellings (tiff.h / tiffiop.h). TIFFhowmany casts to
+ * unsigned before dividing, which is what makes the divide a plain `shr`
+ * rather than the signed power-of-two sequence; the binary ends on
+ * `add eax,7 / shr eax,3` at 0x6d83c-0x6d841, so the unsigned form is the
+ * one Bungie compiled. The alternative `((x)&7)?((x)>>3)+1:((x)>>3)` spelling
+ * of TIFFhowmany8 would emit a test and a branch, and there is none. */
+#define PLANARCONFIG_CONTIG 1
+#define TIFFhowmany(x, y) \
+  ((((unsigned long)(x)) + (((unsigned long)(y)) - 1)) / ((unsigned long)(y)))
+#define TIFFhowmany8(x) (TIFFhowmany((x), 8))
+
+/**
+ * Size in bytes of one decoded scanline of the currently open directory.
+ *
+ * Transcribed from the vendored libtiff (tif_strip.c TIFFScanlineSize) rather
+ * than reshaped from the decompiler -- Ghidra's cached listing has 0x6d820 as
+ * an empty `void(void)` body, so the disassembly at 0x6d820-0x6d843 is the
+ * only usable evidence. It matches upstream instruction for instruction.
+ *
+ * The multiply order is bits-per-sample first: `movzx eax,[ecx+0x36]` then
+ * `imul eax,[ecx+0x1c]`. Swapping the operands changes which one lands in EAX
+ * and therefore the IMUL form.
+ *
+ * @param file TIFF handle. kb.json types this `int` because the caller in
+ *             tiff_file.c holds it as one; it is really a tiff_t*, cast here
+ *             rather than widening the prototype and every call site.
+ * @return bytes per scanline, rounded up to a whole byte. Returned in EAX.
+ */
+int TIFFScanlineSize(int file)
+{
+  tiff_t *tif = (tiff_t *)file;
+  int scanline;
+
+  scanline = tif->td_bitspersample * tif->td_imagewidth;
+  if (tif->td_planarconfig == PLANARCONFIG_CONTIG) {
+    scanline *= tif->td_samplesperpixel;
+  }
+  return (int)TIFFhowmany8(scanline);
 }

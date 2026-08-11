@@ -4848,6 +4848,17 @@
       "score": 100.0,
       "source": "src/halo/bitmaps/libtiff/tif_open.c"
     },
+    "FUN_0006d4d0": {
+      "addr": "0x6d4d0",
+      "end": "0x6d4f4",
+      "kind": "auto",
+      "n_r": 10,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "889836aeafda13d9",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_open.c"
+    },
     "FUN_00075380": {
       "addr": "0x75380",
       "end": "0x75610",
@@ -24419,6 +24430,17 @@
       "ref_sha": "dba068e01fdcf8eb",
       "score": 94.5,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
+    },
+    "TIFFScanlineSize": {
+      "addr": "0x6d820",
+      "end": "0x6d844",
+      "kind": "auto",
+      "n_r": 13,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "827e2e95b83a0eff",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_open.c"
     },
     "XAutoPowerDownResetTimer": {
       "addr": "0x1d771c",
