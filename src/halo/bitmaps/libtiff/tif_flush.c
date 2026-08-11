@@ -51,6 +51,33 @@
 typedef int (*tiff_code_method_t)(void *tif, char *buf, int cc, int s);
 typedef int (*tiff_seek_method_t)(void *tif, unsigned long nrows);
 
+/* Private codec state reached through `tif_data` (0x120) by FUN_00069520. This
+ * is NOT tif_open.c's `tiff_bitstate_t`: that struct carries `int bitpos` at
+ * 0x14, while 0x69520 loads a POINTER from 0x14 (`mov edx,[edi+0x14]` at
+ * 0x6954f) and indexes it with a byte load, and its 0x00/0x02 fields are 16-bit
+ * where tiff_bitstate_t's 0x00 is a dword. A different libtiff codec owns this
+ * block, so it gets its own file-scope type here rather than a retype of the
+ * shared one.
+ *
+ * Offsets proven from the disassembly of FUN_00069520:
+ *   +0x00  `movsx ecx,word ptr [edi]`   (0x6954c)  -- SIGNED 16-bit
+ *   +0x02  `cmp word ptr [edi+2],8`     (0x6952e)  -- 16-bit
+ *          `mov word ptr [edi+2],8`     (0x6957c)
+ *   +0x14  `mov edx,[edi+0x14]`         (0x6954f)  -- pointer, consumed as
+ *                                                    `mov cl,[ecx+edx]`
+ *
+ * The field names come from upstream libtiff tif_fax3.c's encoder state
+ * (`data` / `bit` / `bitmap`, the bit-reversal table indexed by the
+ * accumulator), whose flush shape this body matches exactly; that
+ * identification is INFERRED from shape, not proven by a `__FILE__` string.
+ * 0x04..0x13 is untouched by this body, hence pad_ rather than field_. */
+typedef struct tiff_codec_bits_s {
+  short data; /* 0x00 */
+  short bit; /* 0x02 */
+  char pad_004[16];
+  const unsigned char *bitmap; /* 0x14 */
+} tiff_codec_bits_t;
+
 typedef struct tiff_s {
   /* 0x00 -- upstream's `char* tif_name`, the first member of `struct tiff`.
    * FUN_00068890 pushes it straight into the TIFFError module slot
@@ -97,7 +124,14 @@ typedef struct tiff_s {
    * (`mov dword ptr [eax+0x118],0x68940`), which is what promotes it out of
    * the pad_114[8] run tif_open.c still carries. */
   tiff_seek_method_t tif_seek; /* 0x118 */
-  char pad_11c[8];
+  char pad_11c[4];
+  /* 0x120 -- upstream's `tidata_t tif_data`, the codec's private state block.
+   * `mov edi,[esi+0x120]` at 0x69528; tif_open.c recovers the same offset and
+   * name independently. Typed to this TU's own state shape (see
+   * tiff_codec_bits_t) rather than tif_open.c's tiff_bitstate_t, because the
+   * codec that owns the block here is a different one. It was inside
+   * pad_11c[8] until FUN_00069520 proved the access. */
+  tiff_codec_bits_t *tif_data; /* 0x120 */
   /* 0x124 -- upstream's `tsize_t tif_scanlinesize`, the byte size of one
    * decoded scanline. Read as a full dword with no widening
    * (`mov ecx,[eax+0x124]` at 0x68947). Same offset, name and width as the
@@ -499,4 +533,55 @@ void FUN_00068a50(void *tif_, int flag)
   } else {
     tif->field_09 = (char)(tif->field_09 & 0xfe);
   }
+}
+
+/**
+ * Flush the codec's partially-filled bit accumulator into the raw output
+ * buffer, so an encoded strip ends on a byte boundary.
+ *
+ * By shape this is upstream libtiff tif_fax3.c's `Fax3PostEncode`, whose whole
+ * body is `if (sp->bit != 8) Fax3FlushBits(tif, sp); return (1);` -- the guard,
+ * the flush-check-before-store order inside the macro, and the unconditional
+ * `return 1` all line up. One codec difference: upstream stores the accumulator
+ * itself, this build stores `bitmap[data]` (`mov cl,[ecx+edx]` at 0x69552),
+ * i.e. it pushes the bit-reversal table through the same store. The upstream
+ * identity is INFERRED from shape; kb.json maps the address into tif_flush.obj,
+ * which is why the body lives here rather than in a tif_fax3.c of its own.
+ *
+ * ABI recovered from the frame at 0x69520: `push ebp / mov ebp,esp / push esi /
+ * mov esi,[ebp+8] / push edi` with no `sub esp` (zero locals -- ESI=tif,
+ * EDI=state), plain `ret` with no immediate and caller-side cleanup, so cdecl
+ * with a single stack argument. Ghidra reported `void(void)`: it saw neither
+ * the
+ * `[ebp+8]` load nor the return. The return really is an int -- `mov eax,1` at
+ * 0x69583 -- and it is 1 on BOTH paths, because the early-exit `jz` at 0x69533
+ * lands at 0x69582, one instruction ABOVE that `mov`.
+ *
+ * TIFFFlushData1's int result is deliberately discarded (`add esp,4` at 0x69549
+ * with no test), matching upstream's `(void) TIFFFlushData1(tif)`. The
+ * DumpModeEncode neighbour in this TU tests the same call, so the difference is
+ * real rather than a branch lost in translation.
+ */
+int FUN_00069520(void *tif_)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  tiff_codec_bits_t *sp = tif->tif_data; /* 0x69528 */
+
+  /* 0x6952e: 16-bit compare against 8 -- a full byte means nothing is
+   * buffered, so there is nothing to flush. */
+  if (sp->bit != 8) {
+    /* 0x69535-0x69549: SIGNED `cmp eax,[esi+0x130]` + `jl`, so the flush runs
+     * once rawcc has caught up with the buffer size. Result discarded. */
+    if (tif->tif_rawcc >= tif->tif_rawdatasize) {
+      (void)TIFFFlushData1(tif);
+    }
+    /* 0x6954c-0x69575: store bitmap[data], then bump rawcp and rawcc in that
+     * order (each is reloaded, incremented and stored back). */
+    *tif->tif_rawcp++ = sp->bitmap[sp->data];
+    tif->tif_rawcc++;
+    /* 0x69577, 0x6957c: two adjacent 16-bit stores. */
+    sp->data = 0;
+    sp->bit = 8;
+  }
+  return 1; /* 0x69583 -- reached from both paths */
 }
