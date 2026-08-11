@@ -644,6 +644,34 @@ void cinematic_render(void)
   } while (count != 0);
 }
 
+/* 0x93640 - queue a cinematic title with no extra delay.
+ *
+ * Whole body, 19 bytes (0x93640-0x93652):
+ *   PUSH EBP / MOV EBP,ESP
+ *   MOV EAX,[EBP+0x8]   <- the incoming int parameter
+ *   PUSH 0x0            <- pushed FIRST  => second (rightmost) argument
+ *   PUSH EAX            <- pushed SECOND => first argument
+ *   CALL 0x000930b0     (cinematic_set_title_delayed)
+ *   ADD ESP,0x8         <- cdecl, two dwords
+ *   POP EBP / RET       <- void, EAX is never set
+ *
+ * Ghidra decompiled this as `void FUN_00093640(void)`, which is wrong: the
+ * MOV EAX,[EBP+0x8] proves one stack parameter is read and forwarded.  The
+ * kb.json declaration already carries the corrected `(int value)` signature
+ * and src/halo/hs/hs.c relies on it, so it is left untouched.
+ *
+ * The second argument is the integer immediate 0, whose bit pattern is
+ * exactly 0.0f, and the callee's second parameter is `float`.  Writing the
+ * literal `0.0f` reproduces the same `PUSH 0`; a runtime int-to-float
+ * conversion here would be a lift bug (see lift-silent-bugs float-slot).
+ *
+ * No locals, so no _chkstk and the minimal `PUSH EBP; MOV EBP,ESP` frame.
+ */
+void FUN_00093640(int value)
+{
+  cinematic_set_title_delayed(value, 0.0f);
+}
+
 /* 0x93660 - dispatches a recorded-animation update based on a mode byte in the
 
  * * caller-supplied state block. Mode 0 does nothing; modes 1..3 route to

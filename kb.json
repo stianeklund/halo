@@ -4913,7 +4913,8 @@
     },
     {
      "addr": "0x93640",
-     "decl": "void FUN_00093640(int value);"
+     "decl": "void FUN_00093640(int value);",
+     "ported": true
     },
     {
      "addr": "0x93660",

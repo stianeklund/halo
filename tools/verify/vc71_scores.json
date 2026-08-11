@@ -5717,6 +5717,17 @@
       "score": 30.6,
       "source": "src/halo/cseries/stack_walk_windows.c"
     },
+    "FUN_00093640": {
+      "addr": "0x93640",
+      "end": "0x93653",
+      "kind": "auto",
+      "n_r": 9,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "7737fb9cb343e6fe",
+      "score": 100.0,
+      "source": "src/halo/cutscene/cinematics.c"
+    },
     "FUN_00093660": {
       "addr": "0x93660",
       "end": "0x936a5",
