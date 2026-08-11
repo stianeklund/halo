@@ -250,7 +250,8 @@ typedef struct tiff_s {
   tiff_code_method_t tif_encodestrip; /* 0x108 */
   tiff_code_method_t tif_decodetile; /* 0x10c */
   tiff_code_method_t tif_encodetile; /* 0x110 */
-  char pad_114[8]; /* 0x114/0x118 -- close/seek in upstream; never written here */
+  char
+    pad_114[8]; /* 0x114/0x118 -- close/seek in upstream; never written here */
   tiff_void_method_t tif_cleanup; /* 0x11c */
   tiff_bitstate_t *tif_data; /* 0x120 */
   char pad_124[8];
@@ -624,5 +625,42 @@ int FUN_0006d2d0(void *tif_)
   tif->tif_encodestrip = FUN_0006cfa0;
   tif->tif_encodetile = FUN_0006cfa0;
   tif->tif_cleanup = FUN_0006cac0;
+  return 1;
+}
+
+/**
+ * Repoint the three decode slots of the codec vtable at FUN_0006d340.
+ *
+ * Overwrites only tif_decoderow/tif_decodestrip/tif_decodetile (0xfc, 0x104,
+ * 0x10c), leaving the interleaved encode slots at 0x100/0x108/0x110 and the
+ * rest of the vtable installed by FUN_0006d2d0 untouched. The three offsets
+ * are 8 bytes apart, so this is deliberately three independent field stores
+ * and not a run over an array of pointers.
+ *
+ * The whole body is ten instructions at 0x6d4d0-0x6d4f3: `push ebp / mov
+ * ebp,esp` with no `sub esp`, `mov eax,[ebp+8]`, one `mov ecx,0x6d340`, three
+ * stores off that single ECX, `mov eax,1`, `pop ebp / ret`. Keeping the same
+ * expression in all three assignments is what reproduces the single constant
+ * materialisation; introducing a local temp adds a frame the original has not
+ * got.
+ *
+ * FUN_0006d340 is only ever taken by address, never called, so kb.json still
+ * carries its placeholder `void (void)` prototype and the assignment casts.
+ * Widening that prototype would be inferred from the slot it lands in rather
+ * than from its own body, so it is left alone.
+ *
+ * @param tif_ TIFF handle (declared void* so the generated header needs no
+ *             libtiff types). Never null-checked.
+ * @return always 1; `mov eax,1` at 0x6d4ed, after the stores and immediately
+ *         before the epilogue. The decompiler types this void because nothing
+ *         in the cached listing consumes EAX (void-EAX hazard).
+ */
+int FUN_0006d4d0(void *tif_)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+
+  tif->tif_decoderow = (tiff_code_method_t)FUN_0006d340;
+  tif->tif_decodestrip = (tiff_code_method_t)FUN_0006d340;
+  tif->tif_decodetile = (tiff_code_method_t)FUN_0006d340;
   return 1;
 }
