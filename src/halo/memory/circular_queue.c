@@ -843,28 +843,26 @@ int FUN_001155e0(int strm, int flush)
  * 0x115a00 / circular_queue.obj (inflate.c) */
 int inflateSetDictionary(int z, int dictionary, unsigned int dictLength)
 {
-  int adler_check;
-  unsigned int wsize;
-  int *new_var;
   unsigned int n;
-  new_var = (int *)0;
+
   n = dictLength;
-  if (z != 0 && *(int **)(z + 0x1c) != new_var && **(int **)(z + 0x1c) == 6) {
-    adler_check = FUN_00110a10(1, (unsigned char *)dictionary, dictLength);
-    if (adler_check != *(int *)(z + 0x30))
-      return (int)0xfffffffd;
-    *(int *)(z + 0x30) = 1;
-    wsize = 1 << *(int *)(*(int *)(z + 0x1c) + 0x10);
-    if (dictLength >= wsize) {
-      n = wsize - 1;
-      dictionary = dictionary + (int)(dictLength - n);
-    }
-    inflate_set_dictionary(*(int *)(*(int *)(z + 0x1c) + 0x14), dictionary,
-                           (int)n);
-    **(int **)(z + 0x1c) = 7;
-    return 0;
+  if (z == 0 || *(int **)(z + 0x1c) == (int *)0 || **(int **)(z + 0x1c) != 6)
+    return (int)0xfffffffe; /* Z_STREAM_ERROR */
+  if (FUN_00110a10(1, (unsigned char *)dictionary, dictLength) !=
+      *(int *)(z + 0x30))
+    return (int)0xfffffffd; /* Z_DATA_ERROR */
+  *(int *)(z + 0x30) = 1;
+  /* Re-express 1<<wbits at both sites rather than holding it in a temp: the
+   * original keeps it live for the compare and leas the -1 into a second
+   * register, which a temp turns into an in-place dec. */
+  if (n >= (unsigned int)(1 << *(int *)(*(int *)(z + 0x1c) + 0x10))) {
+    n = (1 << *(int *)(*(int *)(z + 0x1c) + 0x10)) - 1;
+    dictionary = dictionary + (int)(dictLength - n);
   }
-  return (int)0xfffffffe;
+  inflate_set_dictionary(*(int *)(*(int *)(z + 0x1c) + 0x14), dictionary,
+                         (int)n);
+  **(int **)(z + 0x1c) = 7;
+  return 0;
 }
 
 /* inflateSync: scan for a zlib sync point (0x00 0x00 0xff 0xff) in next_in.

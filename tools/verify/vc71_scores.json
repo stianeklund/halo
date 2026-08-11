@@ -35534,10 +35534,10 @@
       "end": "0x115a8a",
       "kind": "auto",
       "n_r": 63,
-      "opnd_percent": 66.1,
+      "opnd_percent": 96.8,
       "ref": "synth",
       "ref_sha": "cc91adacd2fddc57",
-      "score": 91.9,
+      "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "inflateSync": {
