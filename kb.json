@@ -34321,7 +34321,7 @@
     },
     {
      "addr": "0x6ce60",
-     "decl": "void FUN_0006ce60(void);"
+     "decl": "int FUN_0006ce60(void *tif);"
     },
     {
      "addr": "0x6cfa0",
@@ -34339,11 +34339,12 @@
     },
     {
      "addr": "0x6d1e0",
-     "decl": "void FUN_0006d1e0(void);"
+     "decl": "int FUN_0006d1e0(void *tif);"
     },
     {
      "addr": "0x6d2d0",
-     "decl": "void FUN_0006d2d0(void);"
+     "decl": "int FUN_0006d2d0(void *tif);",
+     "ported": true
     },
     {
      "addr": "0x6d340",

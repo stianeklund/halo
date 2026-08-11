@@ -217,8 +217,41 @@ typedef struct tiff_bitstate_s {
  * +0x138 raw byte count (0x6c99a/0x6ca40). This layout is NOT upstream
  * libtiff's -- there tif_rawcc immediately follows tif_rawcp; here they are
  * 12 bytes apart -- so nothing between them is named. */
+/* Codec method pointer types, from upstream libtiff's tiffiop.h. `tif` is
+ * declared void* throughout this TU so the generated header needs no libtiff
+ * types; the six installed stubs already carry exactly these shapes in
+ * kb.json (0x6cb00/0x6cfa0 are (tif, buf, cc, s), 0x6cda0 is (tif) -> int,
+ * 0x6cac0 is (tif) -> void). */
+typedef int (*tiff_bool_method_t)(void *tif);
+typedef int (*tiff_code_method_t)(void *tif, char *buf, int cc, int s);
+typedef void (*tiff_void_method_t)(void *tif);
+
 typedef struct tiff_s {
-  char pad_000[0x120];
+  char pad_000[0xf0];
+  /* Codec vtable, 0xf0-0x11c, installed wholesale by FUN_0006d2d0. Upstream
+   * libtiff orders these setupdecode, predecode, setupencode, preencode,
+   * postencode, then the six code methods, then close/seek/cleanup; Bungie's
+   * copy has no predecode/preencode slot here (nothing writes 0xf0-0x11c
+   * except FUN_0006d2d0, and it writes exactly ten of the twelve dwords).
+   * Identities are proven by the installed stub bodies: 0xf8 gets
+   * FUN_0006cda0, which is upstream LZWPostEncode verbatim, and 0x11c gets
+   * FUN_0006cac0, which is LZWCleanup; 0xf0/0xf4 get the two tif_data
+   * allocators at tif_lzw.c lines 308 and 619, i.e. LZWSetupDecode and
+   * LZWSetupEncode. The row/strip/tile suborder of the six code slots is
+   * INFERRED from upstream's field order -- locally the binary only proves
+   * that 0xfc/0x104/0x10c take the decoder and 0x100/0x108/0x110 the
+   * encoder. */
+  tiff_bool_method_t tif_setupdecode; /* 0xf0 */
+  tiff_bool_method_t tif_setupencode; /* 0xf4 */
+  tiff_bool_method_t tif_postencode; /* 0xf8 */
+  tiff_code_method_t tif_decoderow; /* 0xfc */
+  tiff_code_method_t tif_encoderow; /* 0x100 */
+  tiff_code_method_t tif_decodestrip; /* 0x104 */
+  tiff_code_method_t tif_encodestrip; /* 0x108 */
+  tiff_code_method_t tif_decodetile; /* 0x10c */
+  tiff_code_method_t tif_encodetile; /* 0x110 */
+  char pad_114[8]; /* 0x114/0x118 -- close/seek in upstream; never written here */
+  tiff_void_method_t tif_cleanup; /* 0x11c */
   tiff_bitstate_t *tif_data; /* 0x120 */
   char pad_124[8];
   unsigned char *tif_rawcp; /* 0x12c */
@@ -545,4 +578,51 @@ int FUN_0006d180(void *tif_, char *bp0, int cc0, int s)
     bp += sp->rowsize;
   }
   return FUN_0006cfa0(tif_, bp0, cc0, s);
+}
+
+/**
+ * Install the LZW codec method table into a TIFF handle.
+ *
+ * The vtable-install half of upstream libtiff's TIFFInitLZW (tif_lzw.c --
+ * confirmed as this TU's __FILE__ at 0x2604d8, which the neighbouring
+ * allocators stamp into their debug-allocator calls). Bungie split the
+ * scheme check, the tif_data reset and the TIFFPredictorInit call out of it:
+ * what is left at 0x6d2d0 is ten stores and `return 1`, with no CALL, no
+ * branch and no locals -- the frame is a bare push-ebp/mov-ebp,esp.
+ *
+ * Two upstream slots are absent from Bungie's copy: tif_predecode and
+ * tif_preencode are never written here, and the two dwords upstream would
+ * place at 0x114/0x118 (close/seek) are likewise untouched. That is
+ * consistent with the rest of this TU, where the predictor wrappers call the
+ * parent codec directly (FUN_0006d140/FUN_0006d180 `call 0x6cfa0`) instead of
+ * dispatching through a coderow slot.
+ *
+ * Store order follows upstream: the decode group first, then the encode
+ * group. That grouping -- not ascending offset -- is what the binary's
+ * scheduling shows, since the three FUN_0006cb00 stores are emitted back to
+ * back off one `mov ecx,0x6cb00`, and the three FUN_0006cfa0 stores back to
+ * back off one `mov ecx,0x6cfa0`, with the three immediate stores hoisted in
+ * between the two ECX loads.
+ *
+ * @param tif_ TIFF handle (declared void* so the generated header needs no
+ *             libtiff types). Never null-checked.
+ * @return always 1; `mov eax,1` at 0x6d32b, immediately before the epilogue.
+ *         The decompiler types this void because nothing in the cached
+ *         listing consumes EAX (void-EAX hazard).
+ */
+int FUN_0006d2d0(void *tif_)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+
+  tif->tif_setupdecode = FUN_0006ce60;
+  tif->tif_decoderow = FUN_0006cb00;
+  tif->tif_decodestrip = FUN_0006cb00;
+  tif->tif_decodetile = FUN_0006cb00;
+  tif->tif_setupencode = FUN_0006d1e0;
+  tif->tif_postencode = FUN_0006cda0;
+  tif->tif_encoderow = FUN_0006cfa0;
+  tif->tif_encodestrip = FUN_0006cfa0;
+  tif->tif_encodetile = FUN_0006cfa0;
+  tif->tif_cleanup = FUN_0006cac0;
+  return 1;
 }
