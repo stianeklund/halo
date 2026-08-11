@@ -1297,3 +1297,52 @@ int FUN_0006dd00(void *tif, char *bp, int cc, int s)
   }
   return 1;
 }
+
+/**
+ * Install the PackBits codec into the TIFF handle's codec vtable.
+ *
+ * Writes exactly seven of the twelve code slots: the three decode entries
+ * (0xfc/0x104/0x10c) all take FUN_0006dbf0, tif_setupencode (0xf4) takes
+ * FUN_0006d980, tif_encoderow (0x100) takes FUN_0006d9c0, and the two chunk
+ * encoders (0x108/0x110) take FUN_0006dd00. tif_setupdecode (0xf0),
+ * tif_postencode (0xf8) and tif_cleanup (0x11c) are deliberately NOT touched
+ * -- unlike the sibling installer FUN_0006d2d0, which writes ten slots.
+ *
+ * Note the encode side is not uniform: 0x100 gets FUN_0006d9c0 while
+ * 0x108/0x110 get FUN_0006dd00 (the row encoder vs. the strip/tile chunk
+ * encoder that loops over it). Collapsing all three onto one pointer, the way
+ * FUN_0006d2d0 legitimately does, would be wrong here.
+ *
+ * Inferred (not proven by any string in this build): this is upstream
+ * libtiff's TIFFInitPackBits, in a revision predating the tif_postencode
+ * assignment -- FUN_0006dbf0 = PackBitsDecode, FUN_0006d980 =
+ * PackBitsPreEncode, FUN_0006d9c0 = PackBitsEncode, FUN_0006dd00 =
+ * PackBitsEncodeChunk. The store order below is upstream's (decode group,
+ * setupencode, then encode group) and it reproduces the listing 1:1. The one
+ * apparent discrepancy is scheduling only: MSVC CSEs 0x6dbf0 into ECX for the
+ * three decode stores, then hoists the `mov ecx,0x6dd00` reload (0x6dd6d)
+ * above the two single-use immediate stores (0x6dd72, 0x6dd7c) that source
+ * order places before it. Do not reorder the source to chase that.
+ *
+ * The upstream `scheme` argument is absent: the frame reads only [EBP+8], and
+ * the caller-cleanup RET takes no second slot.
+ *
+ * @param tif_ TIFF handle (declared void* so the generated header needs no
+ *             libtiff types). Never null-checked.
+ * @return always 1; `mov eax,0x1` at 0x6dd92, immediately before the epilogue.
+ *         The decompiler types this void because nothing in the cached
+ *         listing consumes EAX (void-EAX hazard, lift-learnings §16).
+ */
+int FUN_0006dd50(void *tif_)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+
+  tif->tif_decoderow = (tiff_code_method_t)FUN_0006dbf0;
+  tif->tif_decodestrip = (tiff_code_method_t)FUN_0006dbf0;
+  tif->tif_decodetile = (tiff_code_method_t)FUN_0006dbf0;
+  tif->tif_setupencode = FUN_0006d980;
+  tif->tif_encoderow = FUN_0006d9c0;
+  tif->tif_encodestrip = FUN_0006dd00;
+  tif->tif_encodetile = FUN_0006dd00;
+  return 1;
+}
