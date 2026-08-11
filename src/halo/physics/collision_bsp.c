@@ -833,6 +833,105 @@ void FUN_001486e0(void *state, int node_index)
   FUN_00147ed0(state, node_index & 0x7fffffff);
 }
 
+/* 0x148780
+ *
+ * Scan one bsp2d node's surface-reference run for the surface the ray hit, and
+ * resolve it down to a leaf surface index. Returns that index, or -1 when the
+ * run holds no reference to `surface_index` (0x1488f5 OR EAX,0xffffffff).
+ *
+ * `node_index` arrives in EAX (0x14878e PUSH EAX straight into the first
+ * tag_block_get_element); the eight remaining arguments are cdecl stack slots
+ * and the call site at 0x1490e8 cleans exactly 0x20.
+ *
+ * For each matching reference the surface plane picks a projection axis by
+ * dropping the largest-magnitude component (0x1487e4-0x148828): the three
+ * FABS values are compared as |p2| vs |p1| then |p2| vs |p0|, so axis 2 wins
+ * only when |p2| dominates both. `sign` then XORs the sign of the surviving
+ * plane component against bit 31 of the reference word.
+ *
+ * The byte flag at 0x148860 is stored as a byte and reloaded as a dword at
+ * 0x148866 (Ghidra renders the dead upper bytes as CONCAT31). Every consumer
+ * -- FUN_00061df0 and FUN_00148240 -- declares the parameter `unsigned char`,
+ * so the upper three bytes are provably dead and the CONCAT is not modelled.
+ *
+ * The ray point is formed multiply-then-add (t * direction + origin), matching
+ * the FMUL/FADD order at 0x14886c-0x148885; do not reorder.
+ */
+int FUN_00148780(void *bsp, short param_2, unsigned int *bit_vector,
+                 float *origin, float *direction, int surface_index, float t,
+                 char param_8, int node_index)
+{
+  int *node;
+  unsigned int *ref;
+  float *plane;
+  int i;
+  int end;
+  /* short: 0x148828 MOVSX EDX,DI sign-extends the axis from 16 bits before
+   * it indexes the plane. */
+  short axis;
+  unsigned char sign;
+  unsigned int flipped;
+  int result;
+  /* Held on the x87 stack, not in frame slots: 0x1487f5 FCOM ST(1) and
+   * 0x1487fe FCOMP ST(2) compare register-to-register, so all three
+   * magnitudes are live simultaneously and none is spilled. */
+  float abs0;
+  float abs1;
+  float abs2;
+  float point3d[3];
+  float point2d[2];
+
+  node = (int *)tag_block_get_element((char *)bsp + 0x18, node_index, 8);
+  i = node[1];
+  end = *(short *)((char *)node + 2) + i;
+  if (i >= end) {
+    return -1;
+  }
+
+  do {
+    ref = (unsigned int *)tag_block_get_element((char *)bsp + 0x24, i, 8);
+    if ((ref[0] & 0x7fffffff) == (unsigned int)surface_index) {
+      plane =
+        (float *)tag_block_get_element((char *)bsp + 0xc, surface_index, 0x10);
+
+      abs0 = (float)fabs((double)plane[0]);
+      abs1 = (float)fabs((double)plane[1]);
+      abs2 = (float)fabs((double)plane[2]);
+      if (abs2 >= abs1 && abs2 >= abs0) {
+        axis = 2;
+      } else if (abs1 >= abs0) {
+        axis = 1;
+      } else {
+        axis = 0;
+      }
+
+      /* 0x148849 AND ECX,0x80000000 / NEG / SBB / NEG materialises the sign
+       * bit as an explicit 0-or-1 before the compare, so the mask lives in a
+       * local rather than folding into a sign test. */
+      flipped = ref[0] & 0x80000000u;
+      sign = (plane[axis] > 0.0f) != (flipped != 0);
+
+      point3d[0] = t * direction[0] + origin[0];
+      point3d[1] = t * direction[1] + origin[1];
+      point3d[2] = t * direction[2] + origin[2];
+
+      FUN_00061df0(point3d, axis, sign, point2d);
+      result = (int)FUN_00146d40((char *)bsp + 0x30, point2d, (int)ref[1]);
+
+      if (param_8 == 0) {
+        return result;
+      }
+      if (FUN_00148240(param_2, bit_vector, result, axis, sign, point2d, bsp) !=
+          0) {
+        return result;
+      }
+    }
+    i = i + 1;
+  } while (i < *(short *)((char *)node + 2) + node[1]);
+
+  return -1;
+}
+
 /* 0x148b20 - collision_bsp_test_pill_new
  *
  * Packs the eight caller arguments plus three fixed defaults into a 0x2c-byte

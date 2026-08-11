@@ -37216,7 +37216,8 @@
     },
     {
      "addr": "0x148780",
-     "decl": "int FUN_00148780(void *bsp, short param_2, unsigned int *bit_vector, float *origin, float *direction, int surface_index, float t, char param_8, int node_index@<eax>);"
+     "decl": "int FUN_00148780(void *bsp, short param_2, unsigned int *bit_vector, float *origin, float *direction, int surface_index, float t, char param_8, int node_index@<eax>);",
+     "ported": true
     },
     {
      "addr": "0x148910",
