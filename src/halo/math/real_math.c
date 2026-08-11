@@ -7234,7 +7234,7 @@ void *FUN_001139d0(int z, int adler_fn, int wsize)
  * update/reload blocks and lets the compiler tail-merge them itself.
  * (Same set as circular_queue.c; this TU holds the infblock.c half.) */
 #define z_verbose (*(int *)0x320e30)
-#define z_stderr (*(void **)0x331070)
+#define z_stderr ((void *)0x331070)
 #define inflate_mask ((const unsigned int *)0x320d88)
 /* border[]: order of the bit length code lengths (infblock.c) */
 #define zlib_border ((const unsigned int *)0x28d410)
