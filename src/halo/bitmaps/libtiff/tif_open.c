@@ -455,3 +455,42 @@ int FUN_0006cda0(void *tif_)
   FUN_0006c960(tif_, CODE_EOI);
   return 1;
 }
+
+/**
+ * Encode one scanline through the predictor: apply the horizontal differencing
+ * in place, then hand the differenced row to the parent codec.
+ *
+ * Upstream libtiff's PredictorEncodeRow, and the encode-side mirror of
+ * FUN_0006ccf0. The same two Bungie deviations seen on the decode side hold
+ * here, both proven by the disassembly: the parent codec row encoder is called
+ * directly (0x6d166 `call 0x6cfa0`) rather than through a coderow slot in the
+ * state, and the differencer receives the stride as an explicit third argument
+ * (0x6d151 `movzx ecx, word ptr [eax+8]` -- a zero-extended word, not a dword)
+ * instead of fetching it from the state itself.
+ *
+ * Ordering is the reverse of the decode path: the differencer runs FIRST and
+ * rewrites the caller's buffer in place -- upstream's own comment flags this
+ * as an abuse of user data -- and only then does the codec consume it.
+ *
+ * The state pointer is read once, before the differencer call (0x6d14b), and
+ * is never re-read afterwards.
+ *
+ * @param tif_ TIFF handle (declared void* so the generated header needs no
+ *             libtiff types); tif->tif_data must be the predictor state.
+ * @param bp0  scanline buffer, differenced in place then encoded.
+ * @param cc0  byte count of the scanline.
+ * @param s    sample number, passed through to the parent codec untouched.
+ * @return the parent codec's status, forwarded untouched -- the binary leaves
+ *         EAX from `call 0x6cfa0` alone through the whole epilogue
+ *         (0x6d16b-0x6d172), so this is a value-returning function despite the
+ *         decompiler typing it void.
+ */
+int FUN_0006d140(void *tif_, char *bp0, int cc0, int s)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  tiff_predictor_state_t *sp = (tiff_predictor_state_t *)tif->tif_data;
+
+  /* XXX horizontal differencing alters user's data XXX */
+  (*sp->pfunc)(bp0, cc0, sp->stride);
+  return FUN_0006cfa0(tif_, bp0, cc0, s);
+}

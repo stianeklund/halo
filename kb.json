@@ -34325,11 +34325,12 @@
     },
     {
      "addr": "0x6cfa0",
-     "decl": "void FUN_0006cfa0(void);"
+     "decl": "int FUN_0006cfa0(void *tif, char *bp0, int cc0, int s);"
     },
     {
      "addr": "0x6d140",
-     "decl": "void FUN_0006d140(void);"
+     "decl": "int FUN_0006d140(void *tif, char *bp0, int cc0, int s);",
+     "ported": true
     },
     {
      "addr": "0x6d180",
