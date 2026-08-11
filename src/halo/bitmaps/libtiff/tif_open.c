@@ -485,7 +485,15 @@ typedef struct tiff_s {
     pad_114[8]; /* 0x114/0x118 -- close/seek in upstream; never written here */
   tiff_void_method_t tif_cleanup; /* 0x11c */
   tiff_bitstate_t *tif_data; /* 0x120 */
-  char pad_124[8];
+  /* Cached bytes per decoded scanline. NeXTDecode (0x6d340) loads it once
+   * before its row loop (`mov esi,[ecx+0x124]`, 0x6d36e) and then uses it as
+   * BOTH the `occ` decrement and the `row` advance (0x6d455/0x6d457), i.e. it
+   * is a byte count and not a pixel count. A plain dword load with no
+   * MOVSX/MOVZX, and the `cmp ebx,esi / jl` short-data test at 0x6d47f is
+   * signed, so this is a signed 32-bit field. Upstream libtiff names the
+   * member `tsize_t tif_scanlinesize`; the OFFSET is Bungie's. */
+  long tif_scanlinesize; /* 0x124 */
+  char pad_128[4];
   unsigned char *tif_rawcp; /* 0x12c */
   char pad_130[4];
   /* 0x134 -- raw-buffer READ cursor. PackBitsDecode (0x6dbf0) loads it at
@@ -869,6 +877,187 @@ int FUN_0006d2d0(void *tif_)
   return 1;
 }
 
+/* Upstream libtiff tif_next.c spellings. The two run-type codes are the only
+ * values `n` is compared against (0x6d395 `test eax,eax`, 0x6d39d
+ * `cmp eax,0x40`); everything else falls into the run-length arm. */
+#define LITERALROW 0x00
+#define LITERALSPAN 0x40
+
+/* Upstream's SETPIXEL, transcribed verbatim including its reliance on the
+ * caller's `npixels`. The `switch (npixels++ & 3)` is what produces the
+ * four-entry jump table at 0x6d4bc -- which lives in .rdata immediately past
+ * the end of the function (bounds end 0x6d4ba) -- together with the
+ * `cmp eax,3 / ja` range check at 0x6d3c6 that MSVC emits even though the
+ * mask makes the index provably in range. Writing this as an if-chain loses
+ * the table. Only case 3 advances `op`, so a run writes two bits per pixel
+ * MSB-first into each byte. */
+#define SETPIXEL(op, v)                  \
+  {                                      \
+    switch (npixels++ & 3) {             \
+    case 0:                              \
+      op[0] = (unsigned char)((v) << 6); \
+      break;                             \
+    case 1:                              \
+      op[0] |= (v) << 4;                 \
+      break;                             \
+    case 2:                              \
+      op[0] |= (v) << 2;                 \
+      break;                             \
+    case 3:                              \
+      *op++ |= (v);                      \
+      break;                             \
+    }                                    \
+  }
+
+/**
+ * Decode one or more 2-bit-grey NeXT-RLE scanlines into `buf`.
+ *
+ * Upstream libtiff's NeXTDecode (tif_next.c), transcribed rather than
+ * reshaped from the decompiler -- the vendored-source posture this TU already
+ * uses for horAcc8 and PackBitsDecode. Each row starts as a byte code: 0x00
+ * means the whole scanline follows literally, 0x40 means a literal span at a
+ * 16-bit offset, anything else is a run byte <grey:2><count:6> and the row is
+ * decoded as a sequence of such runs until `td_imagewidth` pixels are
+ * produced.
+ *
+ * The 0xff prefill (0x6d353-0x6d364) stays as upstream's
+ * `for (op = buf, cc = occ; cc-- > 0;) *op++ = 0xff;` byte loop even though
+ * the binary carries a `rep stosd`/`rep stosb` pair, for the same reason as
+ * PackBitsDecode above: the `test ecx,ecx / jle 0x6d366` at 0x6d349 is the
+ * loop's entry guard, and an inline memset expansion needs no guard (`rep`
+ * with ECX=0 is already a no-op). The count is shifted LOGICALLY
+ * (`shr ecx,2`) inside the expansion while the guard is signed, which is the
+ * compiler's fill substitution, not something the C says. `memset` is also
+ * not linkable in this build (`-nostdlib -ffreestanding -fno-builtin`).
+ *
+ * `row` has no stack slot of its own: the frame is `sub esp,0xc` and its
+ * three dwords are the inner run counter ([EBP-0x4], 0x6d3bd), the cached
+ * scanline size ([EBP-0x8], 0x6d380) and the cached image width ([EBP-0xc],
+ * 0x6d3a8). MSVC coalesced `row` into the dead `buf` parameter slot -- hence
+ * the `mov [ebp+0xc],edx` at 0x6d383 that seeds it and the `add edx,esi /
+ * mov [ebp+0xc],edx` at 0x6d457 that advances it. The separate `row`
+ * variable is upstream's; the coalescing is the compiler's.
+ *
+ * BYTE INDICES in the LITERALSPAN arm are read straight off the
+ * disassembly, NOT off the decompiler: with EDI already past the `*bp++` at
+ * 0x6d390, 0x6d409-0x6d414 is `movzx esi,[edi+2] / movzx ecx,[edi+3] /
+ * shl esi,8 / add esi,ecx`, i.e. n = bp[2]*256 + bp[3], and 0x6d41d-0x6d431
+ * is the same shape on [edi+0]/[edi+1] for the destination offset. The
+ * decompiler's CONCAT11(pbVar6[3], pbVar6[4]) is shifted one byte by the
+ * pre-increment and is wrong in both indices and width.
+ *
+ * `grey` is extracted with a SIGNED shift (`sar ecx,6`, 0x6d3b2), which is
+ * upstream's `n` being a signed tsize_t rather than the unsigned byte it was
+ * loaded from; an unsigned `n` would emit `shr`.
+ *
+ * @param tif_ TIFF handle (declared void* so the generated header needs no
+ *             libtiff types). Never null-checked.
+ * @param buf  output scanline buffer. Prefilled with 0xff (white under
+ *             min-is-black) before any decoding.
+ * @param occ  output bytes wanted, consumed `tif_scanlinesize` at a time.
+ *             Signed (`test eax,eax / jle` at 0x6d36c, `jg` at 0x6d461).
+ * @param s    sample number. Upstream's `(void) s;`: the frame slot at
+ *             [EBP+0x14] is never read.
+ * @return 1 once `occ` is exhausted, with the raw cursor/count written back
+ *         (`mov eax,1` at 0x6d475); 0 after reporting a short scanline
+ *         (`xor eax,eax` at 0x6d4b3), leaving them unwritten. The decompiler
+ *         types the body void because it drops both EAX writes (void-EAX
+ *         hazard, lift-learnings SS16); FUN_0006d4d0 storing this address
+ *         into three `tiff_code_method_t` slots settles the shape.
+ */
+int FUN_0006d340(void *tif_, char *buf, int occ, int s)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  unsigned char *bp;
+  unsigned char *op;
+  int cc;
+  unsigned char *row;
+  int scanline;
+  int n;
+
+  (void)s;
+  /*
+   * Each scanline is assumed to start off as all
+   * white (we assume a PhotometricInterpretation
+   * of ``min-is-black'').
+   */
+  for (op = (unsigned char *)buf, cc = occ; cc-- > 0;) {
+    *op++ = 0xff;
+  }
+
+  bp = tif->field_134;
+  cc = tif->tif_rawcc;
+  scanline = tif->tif_scanlinesize;
+  for (row = (unsigned char *)buf; occ > 0; occ -= scanline, row += scanline) {
+    n = *bp++;
+    cc--;
+    switch (n) {
+    case LITERALROW:
+      /*
+       * The entire scanline is given as literal values.
+       */
+      if (cc < scanline) {
+        goto bad;
+      }
+      csmemcpy(row, bp, scanline);
+      bp += scanline;
+      cc -= scanline;
+      break;
+    case LITERALSPAN: {
+      int off;
+      /*
+       * The scanline has a literal span that begins at some offset.
+       */
+      off = (bp[0] * 256) + bp[1];
+      n = (bp[2] * 256) + bp[3];
+      if (cc < 4 + n) {
+        goto bad;
+      }
+      csmemcpy(row + off, bp + 4, n);
+      bp += 4 + n;
+      cc -= 4 + n;
+      break;
+    }
+    default: {
+      int npixels = 0;
+      int grey;
+      unsigned long imagewidth = tif->td_imagewidth;
+
+      /*
+       * The scanline is composed of a sequence of constant
+       * color ``runs''.  We shift into ``run mode'' and
+       * interpret bytes as codes of the form
+       * <color><npixels> until we've filled the scanline.
+       */
+      op = row;
+      for (;;) {
+        grey = (int)((n >> 6) & 0x3);
+        n &= 0x3f;
+        while (n-- > 0) {
+          SETPIXEL(op, grey);
+        }
+        if (npixels >= (int)imagewidth) {
+          break;
+        }
+        if (cc == 0) {
+          goto bad;
+        }
+        n = *bp++;
+        cc--;
+      }
+      break;
+    }
+    }
+  }
+  tif->field_134 = bp;
+  tif->tif_rawcc = cc;
+  return 1;
+bad:
+  FUN_00068a30(tif->tif_name, "NeXTDecode: Not enough data for scanline %d",
+               tif->tif_row);
+  return 0;
+}
+
 /**
  * Repoint the three decode slots of the codec vtable at FUN_0006d340.
  *
@@ -885,10 +1074,11 @@ int FUN_0006d2d0(void *tif_)
  * materialisation; introducing a local temp adds a frame the original has not
  * got.
  *
- * FUN_0006d340 is only ever taken by address, never called, so kb.json still
- * carries its placeholder `void (void)` prototype and the assignment casts.
- * Widening that prototype would be inferred from the slot it lands in rather
- * than from its own body, so it is left alone.
+ * FUN_0006d340 is only ever taken by address, never called. Its prototype is
+ * now widened from its OWN body (four [EBP+8..0x14] argument slots, `mov
+ * eax,1` / `xor eax,eax` on the two epilogues) rather than inferred from the
+ * slot it lands in, so it matches `tiff_code_method_t` exactly and the
+ * assignment casts that stood in for the old placeholder are gone.
  *
  * @param tif_ TIFF handle (declared void* so the generated header needs no
  *             libtiff types). Never null-checked.
@@ -900,9 +1090,9 @@ int FUN_0006d4d0(void *tif_)
 {
   tiff_t *tif = (tiff_t *)tif_;
 
-  tif->tif_decoderow = (tiff_code_method_t)FUN_0006d340;
-  tif->tif_decodestrip = (tiff_code_method_t)FUN_0006d340;
-  tif->tif_decodetile = (tiff_code_method_t)FUN_0006d340;
+  tif->tif_decoderow = FUN_0006d340;
+  tif->tif_decodestrip = FUN_0006d340;
+  tif->tif_decodetile = FUN_0006d340;
   return 1;
 }
 
