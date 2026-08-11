@@ -242,7 +242,12 @@ typedef struct tiff_s {
    * (0x6d823, 0x6d836, 0x6d82d) and 0x1c with a dword `imul` operand
    * (0x6d827). */
   char *tif_name; /* 0x00 */
-  char pad_004[0x18];
+  /* Upstream libtiff declares tif_fd as `int`. This binary reads it with
+   * `movsx eax, word ptr [eax+4]` (TIFFFileno, 0x6d866), i.e. a SIGNED 16-bit
+   * load, so Bungie's field is a short. Declaring it `int` produces a plain
+   * dword MOV and does not match. */
+  short tif_fd; /* 0x04 */
+  char pad_006[0x16];
   long td_imagewidth; /* 0x1c */
   char pad_020[0x16];
   unsigned short td_bitspersample; /* 0x36 */
@@ -754,4 +759,30 @@ int TIFFScanlineSize(int file)
 char *TIFFFileName(void *tif)
 {
   return ((tiff_t *)tif)->tif_name;
+}
+
+/**
+ * File descriptor backing an open TIFF handle.
+ *
+ * Transcribed from the vendored libtiff (tif_open.c TIFFFileno), whose body is
+ * literally `return tif->tif_fd;`. Ghidra's cached listing has 0x6d860 as an
+ * empty `void(void)` body -- the void-EAX artifact (lift-learnings s16), since
+ * nothing in the cached listing consumes the return. The disassembly at
+ * 0x6d860-0x6d86b is six instructions with one stack argument and an EAX
+ * return: `push ebp / mov ebp,esp / mov eax,[ebp+8] / movsx eax,word [eax+4] /
+ * pop ebp / ret`. cdecl, no callee cleanup, no register arguments, no locals
+ * (there is no `sub esp`), so no `tiff_t *tif` temp is introduced here -- the
+ * cast happens inside the return expression, matching TIFFFileName above.
+ *
+ * The load is MOVSX word, not a dword MOV: the field at 0x04 is a signed
+ * 16-bit value in this build even though upstream types tif_fd as `int`. See
+ * the tiff_t layout note.
+ *
+ * @param tif TIFF handle (declared void* so the generated header needs no
+ *            libtiff types). Never null-checked, exactly as upstream.
+ * @return the stored descriptor, sign-extended into EAX.
+ */
+int TIFFFileno(void *tif)
+{
+  return ((tiff_t *)tif)->tif_fd;
 }

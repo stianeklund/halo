@@ -34375,7 +34375,8 @@
     },
     {
      "addr": "0x6d860",
-     "decl": "void TIFFFileno(void);"
+     "decl": "int TIFFFileno(void *tif);",
+     "ported": true
     },
     {
      "addr": "0x6d870",
