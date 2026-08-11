@@ -306,6 +306,9 @@ float collision_edge_length(int bsp, int edge_index)
   unsigned int *edge;
   float *vertex_a;
   float *vertex_b;
+  float dx;
+  float dy;
+  float dz;
 
   edge = (unsigned int *)tag_block_get_element((void *)(bsp + 0x48), edge_index,
                                                0x18);
@@ -313,9 +316,17 @@ float collision_edge_length(int bsp, int edge_index)
     (float *)tag_block_get_element((void *)(bsp + 0x54), edge[0], 0x10);
   vertex_b =
     (float *)tag_block_get_element((void *)(bsp + 0x54), edge[1], 0x10);
-  return sqrtf((vertex_b[0] - vertex_a[0]) * (vertex_b[0] - vertex_a[0]) +
-               (vertex_b[1] - vertex_a[1]) * (vertex_b[1] - vertex_a[1]) +
-               (vertex_b[2] - vertex_a[2]) * (vertex_b[2] - vertex_a[2]));
+  /* All three deltas are formed first (0x1476d5..0x1476e7, in x/y/z order) and
+   * only then squared and accumulated, in x, z, y order: 0x1476ec FLD ST(2) /
+   * FMULP ST(3) squares dx, 0x1476f0 FLD ST(0) / FMUL ST(1) squares dz, and
+   * 0x1476f6 FLD ST(1) / FMUL ST(2) squares dy last. x87 addition is not
+   * associative, so the sum must be written in that order to round the same
+   * way; the same pattern appears in collision_surface_perimeter and in
+   * FUN_0014ea10. */
+  dx = vertex_b[0] - vertex_a[0];
+  dy = vertex_b[1] - vertex_a[1];
+  dz = vertex_b[2] - vertex_a[2];
+  return sqrtf(dx * dx + dz * dz + dy * dy);
 }
 
 /* 0x147710 - collision_surface_perimeter
@@ -799,6 +810,14 @@ char FUN_00148240(short param_1, unsigned int *bit_vector, int elem_index,
  *    FCOMPP against -epsilon latches the back flag into BL. The recursive
  *    call happens after both flags exist, so the flags must be materialised
  *    into byte-wide locals up front rather than folded into the `if`s.
+ *  - Both flag polarities come from PARITY, not zero: 0x14871e is
+ *    `TEST AH,0x41; JP` (not JZ). AH&0x41 has even parity for "greater"
+ *    (0x00) and for "unordered" (0x41), odd for "less" (0x01) and "equal"
+ *    (0x40), so CL = (d <= +eps) and NaN clears it. 0x148734 is
+ *    `TEST AH,0x1; JNZ` on C0 alone, so BL = (d >= -eps). Reading the JP as
+ *    a JZ inverts BOTH descents: points within epsilon of a splitting plane
+ *    then reach no leaf at all and every other point takes the wrong half,
+ *    which drops BSP ground collision entirely.
  *
  * The loop is the rotated form MSVC emits for `while`: the entry sign test
  * jumps straight to the leaf handler, and the bottom `MOV ESI,[ESI+0x10];
@@ -808,8 +827,12 @@ void FUN_001486e0(void *state, int node_index)
 {
   float *node;
   float d;
-  unsigned char front; /* CL in the original */
-  unsigned char back; /* BL in the original */
+  /* Named for the descent condition each flag gates, not for a plane side:
+   * the child at +0x0c is entered when d <= +eps and the child at +0x10 when
+   * d >= -eps, so calling them "front"/"back" would assert a sign convention
+   * the code contradicts. CL and BL in the original. */
+  unsigned char take_le; /* CL in the original */
+  unsigned char take_ge; /* BL in the original */
 
   while (node_index >= 0) {
     node = (float *)tag_block_get_element((void *)(*(int *)state + 0x30),
@@ -818,13 +841,13 @@ void FUN_001486e0(void *state, int node_index)
     d = node[1] * *(float *)((char *)state + 0x224) +
         *(float *)((char *)state + 0x220) * node[0] - node[2];
 
-    front = (unsigned char)(d > *(float *)((char *)state + 0x10));
-    back = (unsigned char)(d < -*(float *)((char *)state + 0x10));
+    take_le = (unsigned char)(d <= *(float *)((char *)state + 0x10));
+    take_ge = (unsigned char)(d >= -*(float *)((char *)state + 0x10));
 
-    if (front) {
+    if (take_le) {
       FUN_001486e0(state, ((int *)node)[3]);
     }
-    if (!back) {
+    if (!take_ge) {
       return;
     }
     node_index = ((int *)node)[4];
@@ -856,6 +879,31 @@ void FUN_001486e0(void *state, int node_index)
  *
  * The ray point is formed multiply-then-add (t * direction + origin), matching
  * the FMUL/FADD order at 0x14886c-0x148885; do not reorder.
+ *
+ * VC71 ceiling: 93.6% match (158 vs 157 insns), operand-normalized 75.8%. The
+ * frame matches exactly (0x20 both sides) and dp-LCS agrees with the official
+ * score, so there is no anchor collapse hiding progress. What remains, all
+ * checked and not source-reachable:
+ *  - The single extra instruction is `MOV EAX,[EBP+0x28]` at entry. node_index
+ *    is @<eax>, so the generated thunk hands it to us in the ninth stack slot
+ *    and our body has to load it; the original already has it in EAX.
+ *  - Register allocation is permuted throughout: axis in ESI (ref EDI), plane
+ *    in EDX (ref ECX), result in EDI (ref ESI), point2d address in ECX (ref
+ *    EAX). That is most of the operand-score gap and it moves nothing in match.
+ *  - 0x14884f NEG/SBB/NEG vs our XOR/TEST/SETNE for `flipped != 0`. Two source
+ *    forms tried and both measured worse: inlining the mask lets VC71 fold it
+ *    to SHR $31 and drop the 0x80000000 constant (93.6 -> 93.2, IMM-WARN);
+ *    forcing the plane compare into a byte local to provoke the reference's
+ *    MOVZBL emits MOVB/XORB for the 0-or-1 and wrecks the point3d schedule
+ *    (93.6 -> 88.9).
+ *  - FMULS/FADDS scheduling around 0x148866-0x14888e, and the epilogue's POP
+ *    EDI position. Both are VC71 scheduling, not expressible in source.
+ *  - `FCOMPS 0x0` vs the reference's pooled `FCOMP [0x2533c0]` is already
+ *    scored equal, so spelling the zero as *(float *)0x2533c0 gains nothing.
+ * The permuter was run (6376 iterations, 4 threads): it reported a better
+ * in-search score only for candidates that truncate `flipped` to 16 or 8 bits
+ * or rewrite `> 0.0f` as `>= 1.0f` - i.e. by breaking the logic - and the run
+ * itself printed BASELINE MISMATCH. Nothing to take from it.
  */
 int FUN_00148780(void *bsp, short param_2, unsigned int *bit_vector,
                  float *origin, float *direction, int surface_index, float t,
@@ -865,7 +913,6 @@ int FUN_00148780(void *bsp, short param_2, unsigned int *bit_vector,
   unsigned int *ref;
   float *plane;
   int i;
-  int end;
   /* short: 0x148828 MOVSX EDX,DI sign-extends the axis from 16 bits before
    * it indexes the plane. */
   short axis;
@@ -883,12 +930,13 @@ int FUN_00148780(void *bsp, short param_2, unsigned int *bit_vector,
 
   node = (int *)tag_block_get_element((char *)bsp + 0x18, node_index, 8);
   i = node[1];
-  end = *(short *)((char *)node + 2) + i;
-  if (i >= end) {
-    return -1;
-  }
 
-  do {
+  /* A plain `while`, not guard + do-while: the original has ONE -1 epilogue at
+   * 0x1488f3, entered both by the 0x1487ac JGE that skips an empty run and by
+   * the 0x1488ed JL falling through at the bottom. Splitting the guard out
+   * duplicates the epilogue. The bound is recomputed from `node` at both tests
+   * (0x14879b and 0x1488de each MOVSX the count and re-add node[1]). */
+  while (i < *(short *)((char *)node + 2) + node[1]) {
     ref = (unsigned int *)tag_block_get_element((char *)bsp + 0x24, i, 8);
     if ((ref[0] & 0x7fffffff) == (unsigned int)surface_index) {
       plane =
@@ -906,8 +954,11 @@ int FUN_00148780(void *bsp, short param_2, unsigned int *bit_vector,
       }
 
       /* 0x148849 AND ECX,0x80000000 / NEG / SBB / NEG materialises the sign
-       * bit as an explicit 0-or-1 before the compare, so the mask lives in a
-       * local rather than folding into a sign test. */
+       * bit as an explicit 0-or-1 before the compare, so the mask must stay in
+       * a local. Folding it inline as `((ref[0] & 0x80000000u) != 0)` lets
+       * VC71 recognise the sign-bit extraction and collapse the whole sequence
+       * to a single SHR $31, which drops the 0x80000000 constant the original
+       * carries (measured: match 93.6% -> 93.2%, IMM-WARN). */
       flipped = ref[0] & 0x80000000u;
       sign = (plane[axis] > 0.0f) != (flipped != 0);
 
@@ -927,7 +978,7 @@ int FUN_00148780(void *bsp, short param_2, unsigned int *bit_vector,
       }
     }
     i = i + 1;
-  } while (i < *(short *)((char *)node + 2) + node[1]);
+  }
 
   return -1;
 }
@@ -1580,7 +1631,7 @@ void FUN_0014ea10(unsigned int type_mask, int first_handle, float *origin,
       dy = *(float *)(obj + 0x54) - origin[1];
       dz = *(float *)(obj + 0x58) - origin[2];
 
-      if (dy * dy + dz * dz + dx * dx <= r * r) {
+      if (dx * dx + dz * dz + dy * dy <= r * r) {
         type = (int)*(short *)(obj + 0x64);
 
         if ((type_mask & (1u << (type + 8))) != 0) {

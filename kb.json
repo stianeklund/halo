@@ -3305,7 +3305,7 @@
     {
      "addr": "0x15bb0",
      "decl": "void FUN_00015bb0(int actor_handle /* @<eax> */);",
-     "ported": true
+     "ported": false
     },
     {
      "addr": "0x15cf0",
@@ -3714,7 +3714,7 @@
     {
      "addr": "0x28660",
      "decl": "char FUN_00028660(int actor_handle, short *look_spec @<ebx>, float *direction @<edi>);",
-     "ported": true
+     "ported": false
     },
     {
      "addr": "0x28cc0",
@@ -36385,7 +36385,7 @@
     {
      "addr": "0x137170",
      "decl": "void FUN_00137170(float *incident_direction @<eax>, float *surface_normal @<ecx>, int object_handle @<esi>, int effect_tag_index, short marker_index, float *position);",
-     "ported": true
+     "ported": false
     },
     {
      "addr": "0x137370",

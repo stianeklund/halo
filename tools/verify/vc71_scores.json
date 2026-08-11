@@ -18680,6 +18680,17 @@
       "score": 100.0,
       "source": "src/halo/physics/collision_bsp.c"
     },
+    "FUN_00148240": {
+      "addr": "0x148240",
+      "end": "0x148365",
+      "kind": "auto",
+      "n_r": 119,
+      "opnd_percent": 91.0,
+      "ref": "synth",
+      "ref_sha": "3633444f1bf6ecc7",
+      "score": 95.3,
+      "source": "src/halo/physics/collision_bsp.c"
+    },
     "FUN_001486e0": {
       "addr": "0x1486e0",
       "end": "0x148771",
@@ -18689,6 +18700,17 @@
       "ref": "synth",
       "ref_sha": "bb1d33c6d07ae56d",
       "score": 91.9,
+      "source": "src/halo/physics/collision_bsp.c"
+    },
+    "FUN_00148780": {
+      "addr": "0x148780",
+      "end": "0x148906",
+      "kind": "auto",
+      "n_r": 157,
+      "opnd_percent": 72.9,
+      "ref": "synth",
+      "ref_sha": "026789176944d1ef",
+      "score": 90.3,
       "source": "src/halo/physics/collision_bsp.c"
     },
     "FUN_0014b220": {
