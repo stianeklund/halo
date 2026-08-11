@@ -690,6 +690,83 @@ int collision_surface_test_line2d(int bsp, int surface_index, int param3,
   return 0;
 }
 
+/* 0x148240
+ *
+ * Walk the edge ring of one collision surface and test an already-projected 2D
+ * point against every edge. Returns 1 when the point lies on the inner side of
+ * (or exactly on) all edges, 0 at the first edge it falls outside of.
+ *
+ * Before the ring walk the surface is screened against the breakable-surface
+ * bit vector: when the surface carries flag 0x8 and its breakable index
+ * (surface+9, a byte) is below `param_1`, the matching bit must be set in
+ * `bit_vector` or the surface is rejected outright (0x148260-0x148289).
+ *
+ * `bsp` arrives in EAX (0x148249 MOV EDI,EAX); the six remaining arguments are
+ * ordinary cdecl stack slots -- the call site at 0x1488c9 cleans 0x18. The
+ * return is written to AL only (0x148355 MOV AL,0x1 / 0x14835e XOR AL,AL),
+ * hence char rather than int.
+ *
+ * Each edge is projected through FUN_00061df0 with the caller's projection
+ * axis and sign, then the 2D cross product decides the side. Operand order is
+ * load-order-faithful to 0x148310-0x148330: the four differences are pushed
+ * dx, dy, ex, ey and the products are dx*ey then dy*ex. The guard rejects on
+ * strictly-greater-than-zero (0x14833c TEST AH,0x41 / JZ to the failure tail),
+ * so a NaN cross falls through to the next edge rather than rejecting.
+ */
+char FUN_00148240(short param_1, unsigned int *bit_vector, int elem_index,
+                  short projection, unsigned char sign, float *point2d,
+                  void *bsp)
+{
+  int *surface;
+  int *edge;
+  float *v0;
+  float *v1;
+  unsigned char breakable;
+  int edge_index;
+  /* byte-typed: 0x1482b9 SETZ BL / 0x1482bc MOVZX EDI,BL keeps the side flag
+   * in a byte register and widens it only for the edge[] index. */
+  unsigned char side;
+  float proj0[2];
+  float proj1[2];
+  float dx;
+  float dy;
+  float ex;
+  float ey;
+
+  surface = (int *)tag_block_get_element((char *)bsp + 0x3c, elem_index, 0xc);
+  if ((((unsigned char *)surface)[8] & 8) != 0) {
+    breakable = ((unsigned char *)surface)[9];
+    if (breakable < param_1 &&
+        (bit_vector[breakable >> 5] & (1u << (breakable & 0x1f))) == 0) {
+      return 0;
+    }
+  }
+
+  edge_index = surface[1];
+
+  do {
+    edge = (int *)tag_block_get_element((char *)bsp + 0x48, edge_index, 0x18);
+    side = (edge[5] == elem_index);
+    v0 = (float *)tag_block_get_element((char *)bsp + 0x54, edge[side], 0x10);
+    v1 = (float *)tag_block_get_element((char *)bsp + 0x54, edge[!side], 0x10);
+
+    FUN_00061df0(v0, projection, sign, proj0);
+    FUN_00061df0(v1, projection, sign, proj1);
+
+    dx = point2d[0] - proj0[0];
+    dy = point2d[1] - proj0[1];
+    ex = proj1[0] - proj0[0];
+    ey = proj1[1] - proj0[1];
+    if (dx * ey - dy * ex > 0.0f) {
+      return 0;
+    }
+
+    edge_index = edge[side + 2];
+  } while (edge_index != surface[1]);
+
+  return 1;
+}
+
 /* 0x1486e0
  *
  * Recursive descent through a 2D BSP with a two-sided plane epsilon: visits
@@ -1348,9 +1425,9 @@ bool FUN_0014e940(int param_1, float *origin, float *delta, float radius,
  *    FSUB operand order is object first). The FCOMPP / TEST AH,1 branch
  *    rejects when d.y*d.y + d.z*d.z + d.x*d.x > r*r; the accumulation order
  *    is dy, dz, dx (FLD ST2/FMUL ST3 chain) — do not reassociate.
- *  - Dispatch at 0x14eaa5: MOVSX EAX,word[obj+0x64]; type_mask & (1 << (type+8))
- *    gates a real MSVC switch over types 0..8 (index byte table at 0x14EC1C
- *    feeding a jump table at 0x14EC10). Only case 0 and cases 1/6/7/8 do
+ *  - Dispatch at 0x14eaa5: MOVSX EAX,word[obj+0x64]; type_mask & (1 <<
+ * (type+8)) gates a real MSVC switch over types 0..8 (index byte table at
+ * 0x14EC1C feeding a jump table at 0x14EC10). Only case 0 and cases 1/6/7/8 do
  *    work; 2..5 fall to the default at 0x14ebcd.
  *  - The child recursion at 0x14ebf2 (8 args, ADD ESP,0x20) sits inside the
  *    sphere test but OUTSIDE the type_mask gate, and passes the CHILD handle
@@ -1409,42 +1486,39 @@ void FUN_0014ea10(unsigned int type_mask, int first_handle, float *origin,
 
         if ((type_mask & (1u << (type + 8))) != 0) {
           switch (type) {
-            case 0:
-              if (((type_mask & 0x200000) == 0 ||
-                   (*(unsigned char *)(obj + 0x424) & 0x10) == 0) &&
-                  (*(int *)(obj + 0xcc) == -1 ||
-                   *(short *)(obj + 0x2a0) == -1)) {
-                /* &first_handle is the reused EBP+0x0C slot: the handle has
-                 * already been copied into `cur`, so MSVC repurposed it as
-                 * the float height_offset out-parameter. */
-                biped_get_camera_height_and_offset(cur,
-                                                   (vector3_t *)camera_pos,
-                                                   (float *)&first_handle,
-                                                   &camera_height);
-                camera_pos[2] = camera_pos[2] + *(float *)&first_handle;
-                camera_height = camera_height + param_6;
-                collision_features_from_point(
-                  (int)camera_pos, *(float *)&first_handle + param_5,
-                  *(int *)&camera_height, cur, -1, 0, 0xff, -1,
-                  (void *)param_8);
+          case 0:
+            if (((type_mask & 0x200000) == 0 ||
+                 (*(unsigned char *)(obj + 0x424) & 0x10) == 0) &&
+                (*(int *)(obj + 0xcc) == -1 || *(short *)(obj + 0x2a0) == -1)) {
+              /* &first_handle is the reused EBP+0x0C slot: the handle has
+               * already been copied into `cur`, so MSVC repurposed it as
+               * the float height_offset out-parameter. */
+              biped_get_camera_height_and_offset(cur, (vector3_t *)camera_pos,
+                                                 (float *)&first_handle,
+                                                 &camera_height);
+              camera_pos[2] = camera_pos[2] + *(float *)&first_handle;
+              camera_height = camera_height + param_6;
+              collision_features_from_point(
+                (int)camera_pos, *(float *)&first_handle + param_5,
+                *(int *)&camera_height, cur, -1, 0, 0xff, -1, (void *)param_8);
+            }
+            break;
+          case 1:
+          case 6:
+          case 7:
+          case 8:
+            if (((1 << type) & 2) != 0 && (type_mask & 0x400000) != 0) {
+              if (FUN_001509c0(model_ctx, cur) != 0) {
+                FUN_00150790((int)model_ctx, (int)origin, radius,
+                             *(int *)&param_5, *(int *)&param_6, param_8);
               }
-              break;
-            case 1:
-            case 6:
-            case 7:
-            case 8:
-              if (((1 << type) & 2) != 0 && (type_mask & 0x400000) != 0) {
-                if (FUN_001509c0(model_ctx, cur) != 0) {
-                  FUN_00150790((int)model_ctx, (int)origin, radius,
-                               *(int *)&param_5, *(int *)&param_6, param_8);
-                }
-              } else {
-                if ((char)FUN_0014c8e0(bsp_ctx, cur) != 0) {
-                  FUN_0014cde0((int)bsp_ctx, (int)origin, radius,
-                               *(int *)&param_5, *(int *)&param_6, param_8);
-                }
+            } else {
+              if ((char)FUN_0014c8e0(bsp_ctx, cur) != 0) {
+                FUN_0014cde0((int)bsp_ctx, (int)origin, radius,
+                             *(int *)&param_5, *(int *)&param_6, param_8);
               }
-              break;
+            }
+            break;
           }
         }
 

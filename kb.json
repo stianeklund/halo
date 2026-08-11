@@ -37197,7 +37197,8 @@
     },
     {
      "addr": "0x148240",
-     "decl": "char FUN_00148240(short param_1, unsigned int *bit_vector, int elem_index, short projection, unsigned char sign, float *point2d, void *bsp@<eax>);"
+     "decl": "char FUN_00148240(short param_1, unsigned int *bit_vector, int elem_index, short projection, unsigned char sign, float *point2d, void *bsp@<eax>);",
+     "ported": true
     },
     {
      "addr": "0x148370",
