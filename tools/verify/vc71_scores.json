@@ -6624,10 +6624,10 @@
       "end": "0xa6126",
       "kind": "auto",
       "n_r": 91,
-      "opnd_percent": 32.7,
+      "opnd_percent": 50.3,
       "ref": "synth",
       "ref_sha": "bfa9e37c4ce0a7ff",
-      "score": 76.2,
+      "score": 81.0,
       "source": "src/halo/game/cheats.c"
     },
     "FUN_000a67c0": {
@@ -18740,10 +18740,10 @@
       "end": "0x148771",
       "kind": "auto",
       "n_r": 62,
-      "opnd_percent": 90.3,
+      "opnd_percent": 93.5,
       "ref": "synth",
       "ref_sha": "bb1d33c6d07ae56d",
-      "score": 91.9,
+      "score": 95.2,
       "source": "src/halo/physics/collision_bsp.c"
     },
     "FUN_00148780": {
@@ -18751,10 +18751,10 @@
       "end": "0x148906",
       "kind": "auto",
       "n_r": 157,
-      "opnd_percent": 72.9,
+      "opnd_percent": 75.8,
       "ref": "synth",
       "ref_sha": "026789176944d1ef",
-      "score": 90.3,
+      "score": 93.6,
       "source": "src/halo/physics/collision_bsp.c"
     },
     "FUN_0014b220": {

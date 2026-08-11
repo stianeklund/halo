@@ -4717,7 +4717,7 @@
     },
     {
      "addr": "0xa5830",
-     "decl": "char FUN_000a5830(int object_handle, void *elem_data, float *arg3, int arg4);",
+     "decl": "char FUN_000a5830(float *point, void *elem_data, float *arg3, int arg4);",
      "ported": false
     },
     {
@@ -4738,12 +4738,15 @@
     },
     {
      "addr": "0xa5f00",
-     "decl": "int16_t FUN_000a5f00(int arg1, int object_handle, float *arg3, float *arg4, float *arg5, int max_count, void *out_buffer);",
-     "ported": false
+     "decl": "int16_t FUN_000a5f00(float *cone_spec /* @<edi> */, int16_t starting_cluster, float *point, float *direction, float *arg4, float *arg5, int max_count, void *out_buffer);",
+     "ported": false,
+     "reg_args": {
+      "cone_spec": "edi"
+     }
     },
     {
      "addr": "0xa6030",
-     "decl": "char FUN_000a6030(int arg1, int object_handle, float *arg3, float *arg4, float *arg5, void *out_struct);",
+     "decl": "char FUN_000a6030(float *cone_spec, float *point, float *direction, float *arg4, float *arg5, void *out_struct);",
      "ported": true
     },
     {
@@ -40435,17 +40438,20 @@
  },
  "0xa5830": {
   "addr": "0xa5830",
-  "decl": "char FUN_000a5830(int object_handle, void *elem_data, float *arg3, int arg4);",
+  "decl": "char FUN_000a5830(float *point, void *elem_data, float *arg3, int arg4);",
   "ported": false
  },
  "0xa5f00": {
   "addr": "0xa5f00",
-  "decl": "int16_t FUN_000a5f00(int arg1, int object_handle, float *arg3, float *arg4, float *arg5, int max_count, void *out_buffer);",
-  "ported": false
+  "decl": "int16_t FUN_000a5f00(float *cone_spec /* @<edi> */, int16_t starting_cluster, float *point, float *direction, float *arg4, float *arg5, int max_count, void *out_buffer);",
+  "ported": false,
+  "reg_args": {
+   "cone_spec": "edi"
+  }
  },
  "0xa6030": {
   "addr": "0xa6030",
-  "decl": "char FUN_000a6030(int arg1, int object_handle, float *arg3, float *arg4, float *arg5, void *out_struct);",
+  "decl": "char FUN_000a6030(float *cone_spec, float *point, float *direction, float *arg4, float *arg5, void *out_struct);",
   "ported": true
  },
  "0x154540": {
