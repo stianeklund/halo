@@ -1,3 +1,149 @@
+/* ===========================================================================
+ * tif_getimage.c -- upstream libtiff RGBA image reader.
+ *
+ * kb.json lumps every vendored libtiff translation unit into a single
+ * tif_open.obj, so this body lives here alongside the tif_predict.c,
+ * tif_lzw.c and tif_open.c neighbours (same arrangement as FUN_0006cac0).
+ * Its own __FILE__ is proven by the string pushed at 0x6c55d / 0x6c576
+ * (VA 0x260264): "c:\halo\SOURCE\bitmaps\libtiff\tif_getimage.c".
+ * ======================================================================== */
+
+#define TIFFTAG_IMAGEWIDTH 256 /* 0x100, pushed at 0x6c4f9 */
+#define TIFFTAG_IMAGELENGTH 257 /* 0x101, pushed at 0x6c508 */
+#define TIFFTAG_BITSPERSAMPLE 258 /* 0x102, pushed at 0x6c40e */
+#define TIFFTAG_PHOTOMETRIC 262 /* 0x106, pushed at 0x6c478 */
+#define TIFFTAG_SAMPLESPERPIXEL 277 /* 0x115, pushed at 0x6c444 */
+
+#define PHOTOMETRIC_MINISBLACK 1 /* stored to 0x3340f4 in the 1-channel arm */
+#define PHOTOMETRIC_RGB 2 /* stored to 0x3340f4 in the 3/4-channel arm */
+
+/* File-static state of the original tif_getimage.c. This build of libtiff
+ * predates the TIFFRGBAImage struct: the decoder state is a block of file
+ * statics that TIFFReadRGBAImage fills in and the gtImage worker (0x6c080,
+ * still unported) reads back, so these must alias the original addresses.
+ *
+ * The three tag values are 16 bit -- every read in the binary is
+ * `movzx reg, word ptr [addr]` (0x6c41d, 0x6c451, 0x6c489) -- while
+ * stoponerr is a dword store (0x6c4f0) and Map/BWmap are pointers.
+ *
+ * Which of the two freed pointers is upstream's `Map` (the 8-bit sample
+ * lookup table) and which is `BWmap` (the bilevel row table) is INFERRED
+ * from upstream's free order, not proven: the binary only shows 0x3340c8
+ * freed at source line 125 and 0x3340c4 at line 127, in that order. */
+#define bitspersample (*(unsigned short *)0x3340fc)
+#define samplesperpixel (*(unsigned short *)0x3340f8)
+#define photometric (*(unsigned short *)0x3340f4)
+#define stoponerr (*(int *)0x3340e0)
+#define Map (*(void **)0x3340c8)
+#define BWmap (*(void **)0x3340c4)
+
+/**
+ * Read a whole TIFF image into a caller-supplied 32-bit RGBA raster.
+ *
+ * Transcribed from the vendored libtiff (tif_getimage.c TIFFReadRGBAImage)
+ * rather than reshaped from the decompiler, which lost every parameter and
+ * reported the body as `void(void)`. The real ABI is recovered from the
+ * frame at 0x6c400: `push ebp / mov ebp,esp / sub esp,8`, five stack
+ * arguments at [ebp+8]..[ebp+0x18], cdecl (all cleanup is caller-side), and
+ * an EAX return -- `xor eax,eax` on all three error exits, `mov eax,esi` on
+ * the success exit where ESI carries gtImage's result across the two frees.
+ *
+ * The bits-per-sample filter really is a jump table in the binary (byte index
+ * at 0x6c5b4, targets at 0x6c5ac, guarded by `cmp ecx,0xf / ja`), so the
+ * upstream switch is kept verbatim rather than folded into comparisons.
+ *
+ * The raster origin is bottom-adjusted before the worker runs:
+ * 0x6c512-0x6c52f computes `raster + (rheight - height) * rwidth` in uint32
+ * elements (`sub edx,eax / imul edx,rwidth / lea ..., [raster+edx*4]`), so a
+ * short image lands at the bottom of a taller destination buffer.
+ *
+ * NOTE on the epilogue: the single `add esp,0x28` at 0x6c553 retires THREE
+ * call frames at once (both 12-byte TIFFGetField frames plus gtImage's
+ * 16-byte frame). It is not a ten-argument call.
+ *
+ * @param tif     TIFF handle (declared void* so decl.h needs no libtiff
+ *                types); held in ESI for the whole body.
+ * @param rwidth  destination raster pitch in pixels.
+ * @param rheight destination raster height in pixels.
+ * @param raster  destination, rwidth*rheight uint32 pixels of caller memory.
+ * @param stop    non-zero to abort on the first decode error; published to
+ *                the worker through the `stoponerr` file static.
+ * @return non-zero on success, 0 if the image cannot be handled or decoded.
+ */
+int TIFFReadRGBAImage(void *tif, unsigned long rwidth, unsigned long rheight,
+                      unsigned long *raster, int stop)
+{
+  int ok;
+  unsigned long width, height;
+  const char *photoname;
+
+  FUN_00064ec0((int)tif, TIFFTAG_BITSPERSAMPLE, &bitspersample);
+  switch (bitspersample) {
+  case 1:
+  case 2:
+  case 4:
+  case 8:
+  case 16:
+    break;
+  default:
+    FUN_00068a30(TIFFFileName(tif), "Sorry, can not handle %d-bit pictures",
+                 bitspersample);
+    return (0);
+  }
+  FUN_00064ec0((int)tif, TIFFTAG_SAMPLESPERPIXEL, &samplesperpixel);
+  switch (samplesperpixel) {
+  case 1:
+  case 3:
+  case 4:
+    break;
+  default:
+    FUN_00068a30(TIFFFileName(tif), "Sorry, can not handle %d-channel images",
+                 samplesperpixel);
+    return (0);
+  }
+  if (!TIFFGetField((int)tif, TIFFTAG_PHOTOMETRIC, &photometric)) {
+    switch (samplesperpixel) {
+    case 1:
+      photometric = PHOTOMETRIC_MINISBLACK;
+      photoname = "min-is-black";
+      break;
+    case 3:
+    case 4:
+      photometric = PHOTOMETRIC_RGB;
+      photoname = "RGB"; /* 0x260408, loaded straight into EAX at 0x6c4d1 */
+      break;
+    default:
+      FUN_00068a30(TIFFFileName(tif),
+                   "Missing needed \"PhotometricInterpretation\" tag");
+      return (0);
+    }
+    /* Upstream selects the name with a
+     * `photometric == PHOTOMETRIC_RGB ? "RGB" : "min-is-black"` ternary at
+     * this point. The binary has no such compare -- each arm materialises its
+     * own string pointer -- so the name is carried out of the switch instead.
+     * Restoring the ternary costs a `cmpw $2, 0x3340f4` plus a branch that
+     * the original does not have. */
+    FUN_00068a30(TIFFFileName(tif),
+                 "No \"PhotometricInterpretation\" tag, assuming %s\n",
+                 photoname);
+  }
+  TIFFGetField((int)tif, TIFFTAG_IMAGEWIDTH, &width);
+  TIFFGetField((int)tif, TIFFTAG_IMAGELENGTH, &height);
+  stoponerr = stop;
+  Map = 0;
+  BWmap = 0;
+  ok = FUN_0006c080(tif, rwidth, height, raster + (rheight - height) * rwidth);
+  /* Line numbers are the original tif_getimage.c __LINE__ stamps (0x7d/0x7f
+   * at 0x6c568 and 0x6c581); this file's own line numbers are meaningless
+   * here, so they are written literally rather than via __LINE__. */
+  if (Map)
+    debug_free(Map, "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_getimage.c", 125);
+  if (BWmap)
+    debug_free(BWmap, "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_getimage.c",
+               127);
+  return (ok);
+}
+
 /* Horizontal differencing predictor accumulator, 8-bit samples.
  *
  * Transcribed from the vendored libtiff (tif_predict.c horAcc8) rather than
@@ -825,10 +971,23 @@ int TIFFScanlineSize(int file)
  *            libtiff types). Never null-checked, exactly as upstream.
  * @return the stored file name pointer, returned in EAX.
  */
+/* Not auto-inlinable, same reason as TIFFScanlineSize below: every reference
+ * in the binary CALLs this (0x6c4b5, 0x6c4e2, 0x6c592 in TIFFReadRGBAImage
+ * above), which is only possible if it lived in its own translation unit --
+ * upstream libtiff has it in tif_open.c and the caller in tif_getimage.c.
+ * kb.json lumps both into tif_open.obj, so MSVC 7.1 sees a two-instruction
+ * same-TU callee and expands it, costing the `push/call/add esp,4` triple at
+ * every call site. The pragma restores the original call. */
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma auto_inline(off)
+#endif
 char *TIFFFileName(void *tif)
 {
   return ((tiff_t *)tif)->tif_name;
 }
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma auto_inline(on)
+#endif
 
 /**
  * File descriptor backing an open TIFF handle.

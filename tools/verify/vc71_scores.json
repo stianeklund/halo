@@ -24563,6 +24563,17 @@
       "score": 87.5,
       "source": "src/halo/bitmaps/libtiff/tif_open.c"
     },
+    "TIFFReadRGBAImage": {
+      "addr": "0x6c400",
+      "end": "0x6c5aa",
+      "kind": "auto",
+      "n_r": 134,
+      "opnd_percent": 91.8,
+      "ref": "synth",
+      "ref_sha": "5576959726f2ea88",
+      "score": 98.5,
+      "source": "src/halo/bitmaps/libtiff/tif_open.c"
+    },
     "TIFFScanlineSize": {
       "addr": "0x6d820",
       "end": "0x6d844",

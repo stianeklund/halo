@@ -301,7 +301,7 @@
     },
     {
      "addr": "0x6c080",
-     "decl": "void FUN_0006c080(void);"
+     "decl": "int FUN_0006c080(void *tif, unsigned long rwidth, unsigned long height, unsigned long *raster);"
     },
     {
      "addr": "0x74fb0",
@@ -34252,7 +34252,8 @@
    "functions": [
     {
      "addr": "0x6c400",
-     "decl": "void FUN_0006c400(void);"
+     "decl": "int TIFFReadRGBAImage(void *tif, unsigned long rwidth, unsigned long rheight, unsigned long *raster, int stop);",
+     "ported": true
     },
     {
      "addr": "0x6c5e0",
