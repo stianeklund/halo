@@ -26646,6 +26646,17 @@
       "score": 100.0,
       "source": "src/halo/ai/ai_communication.c"
     },
+    "ai_conversation_line": {
+      "addr": "0x434c0",
+      "end": "0x43519",
+      "kind": "auto",
+      "n_r": 38,
+      "opnd_percent": 90.4,
+      "ref": "synth",
+      "ref_sha": "1ecfae7fcdfa35b7",
+      "score": 93.2,
+      "source": "src/halo/ai/ai_communication.c"
+    },
     "ai_create_mounted_weapons_for_unit": {
       "addr": "0x40690",
       "end": "0x406f3",

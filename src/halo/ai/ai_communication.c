@@ -219,6 +219,48 @@ void ai_communication_packet_new(void *packet)
   *(int16_t *)((char *)packet + 8) = -1;
 }
 
+/* ai_conversation_line (0x434c0) — look up the current line index of the
+ * conversation whose index field (+0x2) matches param_1. Returns the first
+ * match's 16-bit field at +0x48; returns 999 (NONE) when no conversation
+ * matches or the conversation list is empty.
+ *
+ * Confirmed (disasm 0x434c0-0x43519):
+ *   - Frame PUSH EBP; MOV EBP,ESP; SUB ESP,0x10 — the single 0x10 local is the
+ *     data_iter_t at EBP-0x10; ESI/EDI pushed after the SUB.
+ *   - EDI = 0x3e7 loaded at 0x434d2 (before the first CALL) and read only at
+ *     the not-found exit (MOV AX,DI at 0x43506): a callee-saved register-
+ *     allocated local holding the NONE result across the loop, hence `line`.
+ *     The load is 32-bit (MOV EDI,0x3e7) and the return truncates (MOV AX,DI),
+ *     so the local is int-width and narrowed at the return, not a short.
+ *   - data_iterator_new(&iter, *(data_t **)0x6324ec) — the global is loaded by
+ *     value (MOV EAX,[0x6324ec]; PUSH EAX), then LEA ECX,[EBP-0x10]; PUSH ECX,
+ *     so the stack order is (iter, data).
+ *   - param read once, hoisted out of the loop (MOV SI,word[EBP+8] at
+ *     0x434ec) — 16-bit, so the parameter is a short, not an int.
+ *   - Loop back-edge (JNZ -> 0x434f0) targets the CMP word[EAX+2],SI, i.e. the
+ *     rotated form of a top-tested while loop: the initial TEST/JE at 0x434ea
+ *     and the loop-exhausted fallthrough converge on ONE not-found exit at
+ *     0x43506, so the 999 return is NOT duplicated (unlike the neighbour
+ *     ai_conversation_advance, which early-returns before a do/while).
+ *   - Both fields are word ptr reads: +0x2 index, +0x48 returned line.
+ *   - Two RETs, no shared epilogue: found at 0x4350f (MOV AX,word[EAX+0x48]),
+ *     not-found at 0x43506 (MOV AX,DI). Return is 16-bit in AX. */
+int16_t ai_conversation_line(int16_t param_1)
+{
+  data_iter_t iter;
+  char *conversation;
+  int line;
+
+  line = 999;
+  data_iterator_new(&iter, *(data_t **)0x6324ec);
+  while ((conversation = (char *)data_iterator_next(&iter)) != 0) {
+    if (*(int16_t *)(conversation + 2) == param_1) {
+      return *(int16_t *)(conversation + 0x48);
+    }
+  }
+  return (int16_t)line;
+}
+
 /* ai_conversation_advance (0x43520) — iterate all conversations and mark
  * matching entries as advanced. For each conversation whose index field
  * (+0x2) matches param_1, sets byte +0x9 to 1. When the AI debug flag
