@@ -34334,7 +34334,8 @@
     },
     {
      "addr": "0x6d180",
-     "decl": "void FUN_0006d180(void);"
+     "decl": "int FUN_0006d180(void *tif_, char *bp0, int cc0, int s);",
+     "ported": true
     },
     {
      "addr": "0x6d1e0",

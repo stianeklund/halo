@@ -494,3 +494,55 @@ int FUN_0006d140(void *tif_, char *bp0, int cc0, int s)
   (*sp->pfunc)(bp0, cc0, sp->stride);
   return FUN_0006cfa0(tif_, bp0, cc0, s);
 }
+
+/**
+ * Encode a whole tile/strip through the predictor: apply the horizontal
+ * differencing one row at a time, then hand the whole differenced buffer to
+ * the parent codec.
+ *
+ * Upstream libtiff's PredictorEncodeTile, and the encode-side mirror of
+ * FUN_0006cd40. The same two Bungie deviations hold: the parent codec tile
+ * encoder is called directly (0x6d1c9 `call 0x6cfa0`) instead of through an
+ * encodetile slot in the state, and the differencer receives the stride as an
+ * explicit third argument (0x6d1a0 `movzx ecx, word ptr [esi+8]`).
+ *
+ * The state pointer is loaded once in the prologue (0x6d18b, callee-saved ESI)
+ * and never re-read. Both words ARE re-read from the state inside the loop --
+ * `stride` at the top of every iteration and `rowsize` after every differencer
+ * call (0x6d1aa), whose value then feeds BOTH the count decrement and the
+ * buffer advance. Hoisting either read would change behaviour if the
+ * differencer mutates the state, and it is not what the binary does.
+ *
+ * The loop walks COPIES: the binary keeps the running pointer in EBX and the
+ * running count in EDI, and reloads the untouched originals from the frame for
+ * the codec call (0x6d1b9 `mov edi,[ebp+0x10]`, 0x6d1bf `mov eax,[ebp+0xc]`),
+ * so the codec sees the full buffer and the full byte count, not the loop
+ * residue.
+ *
+ * @param tif_ TIFF handle (declared void* so the generated header needs no
+ *             libtiff types); tif->tif_data must be the predictor state.
+ * @param bp0  tile buffer, differenced in place then encoded.
+ * @param cc0  byte count of the tile. Signed throughout (`test edi,edi / jle`
+ *             on entry, `jg` on the back edge), so a rowsize that overshoots
+ *             the remainder ends the loop.
+ * @param s    sample number, passed through to the parent codec untouched.
+ * @return the parent codec's status, forwarded untouched -- the binary leaves
+ *         EAX from `call 0x6cfa0` alone through the whole epilogue
+ *         (0x6d1ce-0x6d1d5), so this is a value-returning function despite the
+ *         decompiler typing it void.
+ */
+int FUN_0006d180(void *tif_, char *bp0, int cc0, int s)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  tiff_predictor_state_t *sp = (tiff_predictor_state_t *)tif->tif_data;
+  char *bp = bp0;
+  int cc = cc0;
+
+  /* XXX horizontal differencing alters user's data XXX */
+  while (cc > 0) {
+    (*sp->pfunc)(bp, sp->rowsize, sp->stride);
+    cc -= sp->rowsize;
+    bp += sp->rowsize;
+  }
+  return FUN_0006cfa0(tif_, bp0, cc0, s);
+}
