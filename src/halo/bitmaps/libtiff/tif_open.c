@@ -1198,9 +1198,9 @@ int FUN_0006d8e0(const char *path, const char *mode)
  * TIFFScanlineSize. Written as `< 0` rather than via TIFFIsTiled because the
  * original does not call it -- the flag is tested inline.
  *
- * 0x6f890 is upstream TIFFTileRowSize: its body at 0x6f890-0x6f8c0 matches upstream
- * libtiff instruction for instruction (null-check td_tilelength at 0x2c and
- * td_tilewidth at 0x28, `td_bitspersample * td_tilewidth`, `*=
+ * 0x6f890 is upstream TIFFTileRowSize: its body at 0x6f890-0x6f8c0 matches
+ * upstream libtiff instruction for instruction (null-check td_tilelength at
+ * 0x2c and td_tilewidth at 0x28, `td_bitspersample * td_tilewidth`, `*=
  * td_samplesperpixel` when td_planarconfig is PLANARCONFIG_CONTIG, then
  * howmany8). It lives in tif_write.obj and keeps its mechanical name because
  * the XBE import library is keyed on it, so only its kb.json prototype is
@@ -1250,5 +1250,50 @@ int FUN_0006d980(void *tif)
     return 1;
   }
   *(int *)((char *)tif + 0x120) = TIFFScanlineSize((int)tif);
+  return 1;
+}
+
+/**
+ * Decode a whole strip/tile one row at a time.
+ *
+ * The row size is not recomputed here: it is the dword FUN_0006d980 caches at
+ * `tif + 0x120` (tiled handles get the tile row size, strip handles the
+ * scanline size), read ONCE at 0x6dd0d into callee-saved ESI and reused for
+ * every iteration -- both for the row-decoder argument and for the two
+ * advances. That hoist is the binary's, not ours; upstream libtiff recomputes
+ * the length per call site instead.
+ *
+ * Bungie's copy calls the row decoder directly (0x6dd2a `call 0x6d9c0`)
+ * rather than through a `tif_decoderow` slot, and reports failure with -1
+ * (`or eax,-1` at 0x6dd48) instead of upstream's 0/`cc == 0` convention. The
+ * success arm is `mov eax,1` at 0x6dd3e.
+ *
+ * The buffer advance (`add edi,esi` at 0x6dd38) is absent from the Ghidra
+ * decompilation of this function; it is present in the disassembly and is
+ * load-bearing -- without it every iteration decodes over the same bytes.
+ *
+ * @param tif TIFF handle (declared void* so the generated header needs no
+ *            libtiff types). Never null-checked.
+ * @param bp  strip/tile buffer, advanced one row per iteration.
+ * @param cc  byte count remaining. Signed throughout (`test ebx,ebx / jle`
+ *            guards entry and `jg` closes the loop), so a row size that
+ *            overshoots the remainder ends the loop rather than wrapping.
+ * @param s   sample number, reloaded from the frame each iteration and passed
+ *            through to the row decoder untouched.
+ * @return 1 when every row decoded (including the zero-length case, which
+ *         skips the loop entirely), -1 as soon as one row decoder call
+ *         returns negative.
+ */
+int FUN_0006dd00(void *tif, char *bp, int cc, int s)
+{
+  int rowsize = *(int *)((char *)tif + 0x120);
+
+  while (cc > 0) {
+    if (FUN_0006d9c0(tif, bp, rowsize, s) < 0) {
+      return -1;
+    }
+    cc -= rowsize;
+    bp += rowsize;
+  }
   return 1;
 }

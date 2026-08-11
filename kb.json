@@ -34420,7 +34420,7 @@
     },
     {
      "addr": "0x6d9c0",
-     "decl": "void FUN_0006d9c0(void);"
+     "decl": "int FUN_0006d9c0(void *tif, char *bp, int cc, int s);"
     },
     {
      "addr": "0x6dbf0",
@@ -34428,7 +34428,8 @@
     },
     {
      "addr": "0x6dd00",
-     "decl": "void FUN_0006dd00(void);"
+     "decl": "int FUN_0006dd00(void *tif, char *bp, int cc, int s);",
+     "ported": true
     },
     {
      "addr": "0x6dd50",
