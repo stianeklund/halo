@@ -1267,7 +1267,13 @@ source_path, score_details{...}}. For each element parse:
 Do NOT invent these booleans — copy them from the JSON. (The code-side pre-screen
 depends on has_reg_args/lane/prior_fail/parked_* being exact.)
 
-Filter: keep lane=="auto-lift" (also allow "cache-context");
+${ADDRS
+    ? `Filter: an explicit ADDRESS PIN-LIST is in force for this run. Return EVERY element
+whose target.addr matches one of these (hex, case-insensitive), REGARDLESS of its lane —
+manual-lift and defer entries included, they are a deliberate operator choice:
+  ${[...ADDRS].map(a => '0x' + a.toString(16)).join(', ')}
+Return nothing else. Do NOT apply any lane filter; the code-side pre-screen handles it.`
+    : `Filter: keep lane=="auto-lift" (also allow "cache-context");`}
 skip hs_runtime.obj (C99/VC71 violations unfixed) and xbox_crt.obj (NT-import/CRT wrappers).
 Do NOT drop prior_fail entries yourself — return them with the flag set and let
 the code-side pre-screen decide, so it can keep them when the queue would

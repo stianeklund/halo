@@ -2097,7 +2097,83 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x68890": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The 4th stack parameter at [EBP+0x14] is never read by the body; it is retained in the prototype because 0x68890 is installed as a codec method pointer by FUN_00068970, whose method shape is pinned to (tif, buf, occ, s).",
+        "The first argument pushed to FUN_00068a30 (TIFFError) is [ESI+0x00] = tif_name, upstream's TIFFError module slot, not tif_clientdata; corroborated by tif_open.c's TIFFFileName (0x6d850) reading the same offset as a char*."
+      ],
+      "uncertain": [
+        "Upstream translation unit is INFERRED, not proven: the binary carries no __FILE__ string for either tif_flush.c or tif_dumpmode.c, and this function has no assert to stamp one; by shape it is upstream libtiff 3.x tif_dumpmode.c:DumpModeDecode, and kb.json places it in tif_flush.obj."
+      ]
+    },
+    "0x68970": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The row/strip/tile suborder within each method triple is inferred from upstream libtiff field order; the binary only proves that 0xfc/0x104/0x10c take the decoder (0x68890) and 0x100/0x108/0x110 take the encoder (0x68780).",
+        "Identified as upstream libtiff tif_dumpmode.c TIFFInitDumpMode by shape only; no __FILE__ string for tif_dumpmode.c exists in the XBE and the function carries no assert to stamp one."
+      ],
+      "uncertain": [
+        "Upstream TIFFInitDumpMode takes a second int scheme parameter that it discards; nothing here reads [ebp+0xc], so only the first parameter is declared. Under cdecl an extra pushed argument is harmless, but the true arity of the codec-registration call site remains unproven."
+      ]
+    },
     "0x6c400": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x6c8d0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "First parameter is declared unsigned short* rather than upstream libtiff's uint8 *cp0 with an inner (uint16*) cast, because the LEA at 0x6c8e8 scales by 2 directly off the incoming pointer and the sibling FUN_0006c6f0 uses the same word-typed parameter form."
+      ]
+    },
+    "0x6c960": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters recovered from the frame, not from Ghidra: [EBP+8] is the TIFF handle and [EBP+0xc] is a SIGNED long payload, proven signed by the two SAR extractions at 0x6c9ef and 0x6ca03.",
+        "The two mask tables at 0x2ec7d0 and 0x2ec7dc are NINE bytes each, not eight: element 8 (0xff) is present at 0x2ec7d8 and 0x2ec7e4 followed by alignment padding, read directly from the pristine XBE."
+      ],
+      "uncertain": [
+        "The upstream libtiff routine this corresponds to was not identified; the TIFF layout here is not upstream's (tif_rawcp at 0x12c and tif_rawcc at 0x138 are 12 bytes apart, whereas upstream has them adjacent), so the structs are offset-proven only and everything between named fields is left as pad_."
+      ]
+    },
+    "0x6cb00": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The 0x716 bytes between the end of the 0x1000-entry prefix table (+0x2020) and the suffix table (+0x2736) are inferred padding: they fall inside the CODE_CLEAR memset span but no instruction in FUN_0006cb00 reads or writes them."
+      ],
+      "uncertain": [
+        "The reverse-string stack at lzw_codec_state_t+0x3736 is sized 0x38e bytes only because +0x3ac4 is the next proven field; the true extent is unproven and 0x38e is smaller than the 0x1000-byte worst-case string this decoder can build."
+      ]
+    },
+    "0x6cda0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Identified as upstream libtiff LZWPostEncode: the literal 0x101 pushed at 0x6cdc5 is CODE_EOI (257), and the guarded flush-then-reset of a -1 sentinel matches that function exactly.",
+        "Return type is int returning constant 1, recovered from MOV EAX,0x1 at 0x6cdd4 scheduled between the epilogue pops; the prior kb declaration of void(void) hid both the return and the single [EBP+8] stack parameter."
+      ],
+      "uncertain": [
+        "The codec-state field at offset 0x00 is named oldcode from the upstream LZWPostEncode correspondence only; the binary proves just that it is a dword compared against -1 and reset to -1, and Bungie widened it from upstream's u_short hcode_t."
+      ]
+    },
+    "0x6d2d0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Store order follows upstream libtiff TIFFInitLZW (decode group, then encode group) rather than ascending struct offset; the binary emits the three FUN_0006cb00 stores back to back off one 'mov ecx,0x6cb00' and the three FUN_0006cfa0 stores back to back off one 'mov ecx,0x6cfa0', which the grouped order reproduces with minimal scheduling."
+      ],
+      "uncertain": [
+        "The row/strip/tile suborder of the six code-method slots (0xfc/0x104/0x10c decode, 0x100/0x108/0x110 encode) is inferred from upstream libtiff's tiffiop.h field order; the binary only proves which of the two shared stubs lands in each slot, since all three decode slots receive the same pointer and all three encode slots receive the same pointer.",
+        "Upstream TIFFInitLZW also assigns tif_predecode and tif_preencode, and this function writes neither; offsets 0x114 and 0x118 (upstream close/seek) are likewise untouched, so they are recorded as pad_114[8] and their real meaning is unproven."
+      ]
+    },
+    "0x6d590": {
       "kind": "function",
       "status": "ported"
     },
@@ -2160,6 +2236,14 @@
     "0x6d8d0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x6dd50": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Identified as upstream libtiff TIFFInitPackBits (PackBits codec installer) in a revision predating the tif_postencode assignment; no string or PDB evidence in this build proves the name, so the symbol stays FUN_0006dd50.",
+        "Store order is upstream's (decode group, setupencode, encode group) and reproduces the 15-instruction listing exactly; the mov ecx,0x6dd00 reload hoisted above the two single-use immediate stores is MSVC scheduling, not a different source order."
+      ]
     },
     "0x6dda0": {
       "kind": "function",
@@ -11033,6 +11117,19 @@
         "The vertex pair is read swapped relative to collision_surface_polygon: this function takes the leading endpoint from edge[side] and the trailing one from edge[!side], whereas collision_surface_polygon always emits edge[side] only, so the winged-edge orientation convention for the second endpoint is inferred from the two SETE sequences at 0x147a29 and 0x147a45 rather than from any independent evidence."
       ]
     },
+    "0x147ae0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The return type was narrowed from the kb draft int to char on the evidence of XOR AL,AL at 0x147c3d/0x147cb3/0x147cf?? and MOV AL,1 at 0x147c8e; the sole caller (bipeds.c:1774) discards the result, and the narrowing raised VC71 from 81.9 to 84.0 percent.",
+        "The dot-versus-len2 guard is written as the > form with the projection in the else arm because the <= form compiles to a semantically identical but non-matching TEST AH,0x41 / JNP where the reference has JNE at 0x147bfd.",
+        "The four carried corner flags at [EBP-2], [EBP-3], [EBP-4] and [EBP-5] are deliberately left uninitialized to match the original, which never pre-initializes them because the first-iteration pair is always written on the guaranteed first pass and the previous pair is always written before the back-edge."
+      ],
+      "uncertain": [
+        "The remaining VC71 gap (239 candidate versus 230 reference instructions) is MSVC x87 scheduling: the reference keeps dy in ST via FST [EBP-0x20] at 0x147ba8 and multiplies with FMUL ST(2),ST, while our lift pops dy to memory and reloads it with FLD ST(1) plus FMUL m32. No known source-level lever forces the register-resident form.",
+        "The classification of [EBP-1] and [EBP+0xb] as the per-iteration before_start and beyond_end flags is inferred from them only ever being stored 0 and reloaded into AL and DL; the original reuses the dead bsp parameter home slot [EBP+0xb] for the second flag, which our build also happens to do."
+      ]
+    },
     "0x147d10": {
       "kind": "function",
       "status": "ported"
@@ -11048,6 +11145,16 @@
         "Record bytes +0x06..+0x07 and +0x25..+0x27 are deliberately left uninitialised by the original; a zero-initialiser on the struct would diverge from the binary."
       ]
     },
+    "0x148b90": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The projection axis at data+0x21c is an unsigned short: 0x148e58 reloads it with XOR EDX,EDX / MOV DX,[ESI+0x21c] (zero-extended) for the FUN_00061df0 argument, while the bound check at 0x148df1 is a signed 16-bit TEST BX,BX / JL on the register, so the local is a signed short stored through an unsigned short field."
+      ],
+      "uncertain": [
+        "The dominant-axis pick asserts against ..\\\\math\\\\real_math.h line 848, so in the original it was an inline function in that header rather than open-coded here; recovering it as a static helper is the most plausible route past the measured 87.1% ceiling, because the three named xbox_fabsf locals this lift needs cost 12 bytes of frame (sub esp,0x20 vs the original 0x14) yet removing them costs about 20pp."
+      ]
+    },
     "0x1493b0": {
       "kind": "function",
       "status": "ported"
@@ -11057,11 +11164,13 @@
       "status": "ported",
       "inferred": [
         "FUN_00148eb0's four stack arguments are inferred by structural analogy with the pill walker FUN_00148440 at 0x148440 (void *data, unsigned int node_index, float t_min, float t_max); arg2 and arg3 are both pushed from a zeroed EDX and are therefore indistinguishable between integer 0 and 0.0f in the binary.",
-        "The record's leading dword at offset 0x00 (fed from param_1) is inferred to be a collision-type selector because all four known call sites in actor_moving.c pass the literal 3."
+        "The record's leading dword at offset 0x00 (fed from param_1) is inferred to be a collision-type selector because all four known call sites in actor_moving.c pass the literal 3.",
+        "Context struct fields at 0x10 and 0x14 are read by the walker FUN_00148eb0 as points (dotted against a plane normal and compared with plane distance at [eax+0xc]), so the kb parameter names origin/direction/radius inherited from collision_bsp_test_sphere are likely wrong for this vector variant; the struct fields are therefore left as field_0c/field_10/field_14."
       ],
       "uncertain": [
         "The record fields at offsets 0x1c (-1), 0x20 (byte 0) and 0x24 (-1) are sentinels whose meaning is unrecovered; they carry mechanical names because FUN_00148eb0 is not yet lifted and no read of them has been observed.",
-        "The original build materialised the clamped span end in the dead flags parameter slot at EBP+0x10 via MSVC stack-slot colouring; the lift writes it back into max_t instead, which preserves the 0x28 frame and the instruction shape but not the displacement operands."
+        "The original build materialised the clamped span end in the dead flags parameter slot at EBP+0x10 via MSVC stack-slot colouring; the lift writes it back into max_t instead, which preserves the 0x28 frame and the instruction shape but not the displacement operands.",
+        "The second and third arguments to FUN_00148eb0 are both literal 0 (xor edx,edx pushed twice) so their true types are unproven; they are declared int node_index and int param_3 from the callee prologue only, where [ebp+0xc] is sign-tested as a BSP3D node index."
       ]
     },
     "0x14ad40": {
@@ -11195,6 +11304,19 @@
         "kb.json declared FUN_00150b60 as void(void) but the call site at 0x14dd9e pushes four arguments (ADD ESP,0x10) and reads AL; the corrected declaration char FUN_00150b60(int *ctx, float *origin, float *direction, float *out) is inferred from push order and the 0x18-byte out buffer at EBP-0x18, and has not been confirmed by decompiling FUN_00150b60 itself.",
         "The 1056-byte size of the FUN_0014cb00 output buffer at EBP-0x484 is inferred from frame arithmetic (0x484 total minus the 60-byte FUN_001509c0 context, the 16-byte FUN_0014c8e0 context, the 20-byte FUN_00150b60 result and the 4-byte return slot) rather than from decompiling FUN_0014cb00; only the first 0x1c bytes are ever read back by this function.",
         "The original loads the FUN_0014da80 index argument as a dword at buffer+0x1a (MOV EAX at 0x14dea8) while storing the same offset as a word to collision_result+0x4e; the lift passes the int16_t that the existing kb decl for FUN_0014da80 declares, which is the identical value on little-endian but does not reproduce the dword-load instruction shape."
+      ]
+    },
+    "0x14e640": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The 1056-byte size of the FUN_0014cb00 output record at EBP-0x448 is inferred from the frame arithmetic (0x448 minus the 0x28 of locals above it), not from a decompiled FUN_0014cb00; only the first 0x1c bytes are read back here.",
+        "The second argument to FUN_0014cb00 is the literal 1 (PUSH 1 at 0x14e6ca); the structurally twin bsp branch in FUN_0014dce0 forwards its own param_3 into the same slot, so the parameter's meaning is only known to be an integer selector."
+      ],
+      "uncertain": [
+        "The FUN_0014da80 index argument is loaded by the original as MOV EDX, dword [EBP-0x42e] with no widening, while the field is elsewhere read as a word (MOV CX, word [EBP-0x42e] at 0x14e78a); it is lifted as the int16_t the callee's kb declaration specifies, which costs at most one instruction if the source field was in fact wider.",
+        "The residual VC71 gap is one instruction: the reference zeroes AL early at 0x14e650 so the type-guard exit shares the shallow epilogue, giving two XOR AL,AL sites. Rewriting the guard and the two call checks as early returns was measured WORSE (86.9%, 132 insns, both branch polarities inverted), so the nested form is retained and the two-exit tail-merge shape was not reproduced from either C form tried.",
+        "Equivalence covers only the type-guard reject path (11.4%, 100/100 seeds pass, 0 stub-arg mismatches). The per-function delinked oracle 14e640.obj carries 3 relocations for 5 call sites, so a snapshot that passes the guard crashes the oracle at eip=0xffffffff; the success path is therefore unverified at runtime."
       ]
     },
     "0x14e7d0": {
@@ -14911,90 +15033,6 @@
     "0x5065a4": {
       "kind": "data",
       "status": "ported"
-    },
-    "0x68890": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The 4th stack parameter at [EBP+0x14] is never read by the body; it is retained in the prototype because 0x68890 is installed as a codec method pointer by FUN_00068970, whose method shape is pinned to (tif, buf, occ, s).",
-        "The first argument pushed to FUN_00068a30 (TIFFError) is [ESI+0x00] = tif_name, upstream's TIFFError module slot, not tif_clientdata; corroborated by tif_open.c's TIFFFileName (0x6d850) reading the same offset as a char*."
-      ],
-      "uncertain": [
-        "Upstream translation unit is INFERRED, not proven: the binary carries no __FILE__ string for either tif_flush.c or tif_dumpmode.c, and this function has no assert to stamp one; by shape it is upstream libtiff 3.x tif_dumpmode.c:DumpModeDecode, and kb.json places it in tif_flush.obj."
-      ]
-    },
-    "0x68970": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The row/strip/tile suborder within each method triple is inferred from upstream libtiff field order; the binary only proves that 0xfc/0x104/0x10c take the decoder (0x68890) and 0x100/0x108/0x110 take the encoder (0x68780).",
-        "Identified as upstream libtiff tif_dumpmode.c TIFFInitDumpMode by shape only; no __FILE__ string for tif_dumpmode.c exists in the XBE and the function carries no assert to stamp one."
-      ],
-      "uncertain": [
-        "Upstream TIFFInitDumpMode takes a second int scheme parameter that it discards; nothing here reads [ebp+0xc], so only the first parameter is declared. Under cdecl an extra pushed argument is harmless, but the true arity of the codec-registration call site remains unproven."
-      ]
-    },
-    "0x6c8d0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "First parameter is declared unsigned short* rather than upstream libtiff's uint8 *cp0 with an inner (uint16*) cast, because the LEA at 0x6c8e8 scales by 2 directly off the incoming pointer and the sibling FUN_0006c6f0 uses the same word-typed parameter form."
-      ]
-    },
-    "0x6c960": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Parameters recovered from the frame, not from Ghidra: [EBP+8] is the TIFF handle and [EBP+0xc] is a SIGNED long payload, proven signed by the two SAR extractions at 0x6c9ef and 0x6ca03.",
-        "The two mask tables at 0x2ec7d0 and 0x2ec7dc are NINE bytes each, not eight: element 8 (0xff) is present at 0x2ec7d8 and 0x2ec7e4 followed by alignment padding, read directly from the pristine XBE."
-      ],
-      "uncertain": [
-        "The upstream libtiff routine this corresponds to was not identified; the TIFF layout here is not upstream's (tif_rawcp at 0x12c and tif_rawcc at 0x138 are 12 bytes apart, whereas upstream has them adjacent), so the structs are offset-proven only and everything between named fields is left as pad_."
-      ]
-    },
-    "0x6cb00": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The 0x716 bytes between the end of the 0x1000-entry prefix table (+0x2020) and the suffix table (+0x2736) are inferred padding: they fall inside the CODE_CLEAR memset span but no instruction in FUN_0006cb00 reads or writes them."
-      ],
-      "uncertain": [
-        "The reverse-string stack at lzw_codec_state_t+0x3736 is sized 0x38e bytes only because +0x3ac4 is the next proven field; the true extent is unproven and 0x38e is smaller than the 0x1000-byte worst-case string this decoder can build."
-      ]
-    },
-    "0x6cda0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Identified as upstream libtiff LZWPostEncode: the literal 0x101 pushed at 0x6cdc5 is CODE_EOI (257), and the guarded flush-then-reset of a -1 sentinel matches that function exactly.",
-        "Return type is int returning constant 1, recovered from MOV EAX,0x1 at 0x6cdd4 scheduled between the epilogue pops; the prior kb declaration of void(void) hid both the return and the single [EBP+8] stack parameter."
-      ],
-      "uncertain": [
-        "The codec-state field at offset 0x00 is named oldcode from the upstream LZWPostEncode correspondence only; the binary proves just that it is a dword compared against -1 and reset to -1, and Bungie widened it from upstream's u_short hcode_t."
-      ]
-    },
-    "0x6d2d0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Store order follows upstream libtiff TIFFInitLZW (decode group, then encode group) rather than ascending struct offset; the binary emits the three FUN_0006cb00 stores back to back off one 'mov ecx,0x6cb00' and the three FUN_0006cfa0 stores back to back off one 'mov ecx,0x6cfa0', which the grouped order reproduces with minimal scheduling."
-      ],
-      "uncertain": [
-        "The row/strip/tile suborder of the six code-method slots (0xfc/0x104/0x10c decode, 0x100/0x108/0x110 encode) is inferred from upstream libtiff's tiffiop.h field order; the binary only proves which of the two shared stubs lands in each slot, since all three decode slots receive the same pointer and all three encode slots receive the same pointer.",
-        "Upstream TIFFInitLZW also assigns tif_predecode and tif_preencode, and this function writes neither; offsets 0x114 and 0x118 (upstream close/seek) are likewise untouched, so they are recorded as pad_114[8] and their real meaning is unproven."
-      ]
-    },
-    "0x6d590": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x6dd50": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Identified as upstream libtiff TIFFInitPackBits (PackBits codec installer) in a revision predating the tif_postencode assignment; no string or PDB evidence in this build proves the name, so the symbol stays FUN_0006dd50.",
-        "Store order is upstream's (decode group, setupencode, encode group) and reproduces the 15-instruction listing exactly; the mov ecx,0x6dd00 reload hoisted above the two single-use immediate stores is MSVC scheduling, not a different source order."
-      ]
     }
   }
 }
