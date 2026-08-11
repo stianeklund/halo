@@ -1,3 +1,92 @@
+void FUN_000a54b0(void)
+{
+  int16_t local_player_index;
+  char *player_data;
+  int16_t palette_index;
+  int particle_system_tag_index;
+  void *scenario;
+  char *palette_element;
+
+  if (*(char *)0x32574c == '\0' || *(char *)0x2ef7ee == '\0')
+    return;
+
+  local_player_index = *(int16_t *)0x506548;
+  if (local_player_index == -1)
+    return;
+
+  player_data = (char *)FUN_000a3e60(local_player_index);
+  *(int16_t *)(player_data + 0x14) = *(int16_t *)0x506784;
+  *(int *)(player_data + 0x10) = *(int *)0x506780;
+
+  *(char *)(player_data + 0x1a) = (char)FUN_0018f3e0(
+    player_data + 0x10, (void *)0x506550, (int16_t *)(player_data + 0x18));
+
+  palette_index = *(int16_t *)(player_data + 0x18);
+  particle_system_tag_index = -1;
+
+  if (palette_index != -1) {
+    scenario = scenario_get();
+    palette_element = (char *)tag_block_get_element((char *)scenario + 0x1b4,
+                                                    (int)palette_index, 0xf0);
+    particle_system_tag_index = *(int *)(palette_element + 0x2c);
+  }
+
+  if (*(int *)player_data != particle_system_tag_index) {
+    if (*(int *)player_data != -1) {
+      FUN_000a4200(local_player_index);
+    }
+    if (particle_system_tag_index != -1) {
+      FUN_000a40a0(local_player_index, particle_system_tag_index, 1.0f);
+    }
+  }
+
+  if (*(int *)player_data != -1) {
+    FUN_000a4310(local_player_index);
+  }
+}
+
+char FUN_000a6030(int arg1, int object_handle, float *arg3, float *arg4,
+                  float *arg5, void *out_struct)
+{
+  void *obj;
+  void *scenario;
+  void *weapon_element;
+  int16_t count;
+  int16_t i;
+  char local_buffer[0xe00];
+  char *elem;
+
+  obj = (void *)FUN_0018e720(object_handle);
+  if (obj == (void *)-1 || obj == NULL)
+    return 0;
+
+  obj = (void *)FUN_0018e720(object_handle);
+  scenario = scenario_get();
+  weapon_element = tag_block_get_element((char *)scenario + 0xe0,
+                                         (uint32_t)obj & 0x7fffffff, 0x10);
+
+  if (*(int16_t *)((char *)weapon_element + 8) == -1)
+    return 0;
+
+  count = (int16_t)FUN_000a5f00(arg1, object_handle, arg3, arg4, arg5, 0x40,
+                                local_buffer);
+
+  if (count <= 0)
+    return 0;
+
+  qsort(local_buffer, (size_t)count, 0x38, (qsort_compar_proc)0x000a5700);
+
+  for (i = 0; i < count; i++) {
+    elem = local_buffer + (int)i * 0x38;
+    if (FUN_000a5830(object_handle, elem + 4, arg4, *(int *)elem)) {
+      csmemcpy(out_struct, elem, 0x38);
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
 void cheats_initialize(void)
 {
   csmemset(cheats_globals, 0, sizeof(cheats_globals));

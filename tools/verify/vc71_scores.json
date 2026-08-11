@@ -6564,6 +6564,28 @@
       "score": 82.5,
       "source": "src/halo/effects/player_effects.c"
     },
+    "FUN_000a54b0": {
+      "addr": "0xa54b0",
+      "end": "0xa5586",
+      "kind": "auto",
+      "n_r": 67,
+      "opnd_percent": 72.3,
+      "ref": "synth",
+      "ref_sha": "a9796b86adc5941d",
+      "score": 80.9,
+      "source": "src/halo/game/cheats.c"
+    },
+    "FUN_000a6030": {
+      "addr": "0xa6030",
+      "end": "0xa6126",
+      "kind": "auto",
+      "n_r": 91,
+      "opnd_percent": 32.7,
+      "ref": "synth",
+      "ref_sha": "bfa9e37c4ce0a7ff",
+      "score": 76.2,
+      "source": "src/halo/game/cheats.c"
+    },
     "FUN_000a67c0": {
       "addr": "0xa67c0",
       "end": "0xa6814",
@@ -18986,6 +19008,28 @@
       "ref": "synth",
       "ref_sha": "5bc0d84a033e4774",
       "score": 100.0,
+      "source": "src/halo/physics/point_physics.c"
+    },
+    "FUN_001547d0": {
+      "addr": "0x1547d0",
+      "end": "0x15485e",
+      "kind": "auto",
+      "n_r": 65,
+      "opnd_percent": 55.3,
+      "ref": "synth",
+      "ref_sha": "3620db4e6a8b8f58",
+      "score": 72.3,
+      "source": "src/halo/physics/point_physics.c"
+    },
+    "FUN_00154a20": {
+      "addr": "0x154a20",
+      "end": "0x154a44",
+      "kind": "auto",
+      "n_r": 15,
+      "opnd_percent": 75.0,
+      "ref": "synth",
+      "ref_sha": "8871e8448345f354",
+      "score": 93.8,
       "source": "src/halo/physics/point_physics.c"
     },
     "FUN_001550c0": {

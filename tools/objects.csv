@@ -74,11 +74,11 @@ profile.obj,true,0x0008F870-0x000924A0,50
 projectiles.obj,true,0x000F7CB0-0x000FAF00,28
 progress_bar.obj,true,0x000E19C0-0x000E35E0,31
 random_math.obj,true,0x0010A930-0x0010CB20,38
-rasterizer.obj,true,0x0016EEF0-0x0017CC40,85
+rasterizer.obj,true,0x0016EEF0-0x0017CC40,84
 rasterizer_xbox_vertex_shaders_initialize.obj,true,0x00178850-0x00178CB0,2
 rasterizer_xbox_vertex_shaders_runtime.obj,true,0x00178B40-0x00178D40,1
 rasterizer_common.obj,true,0x00154FC0-0x00155310,5
-rasterizer_decals.obj,true,0x00157E40-0x0015D7B0,62
+rasterizer_decals.obj,true,0x00157E40-0x0015D7B0,64
 rasterizer_xbox.obj,true,0x00155350-0x00157210,42
 vector_math.obj,true,0x00012000-0x00028810,46
 real_math.obj,true,0x0001ACB0-0x00113C90,168
@@ -149,8 +149,8 @@ actor_perception.obj,true,0x0002F1A0-0x000357F0,45
 ai_communication.obj,true,0x00042A30-0x00049090,48
 ai_debug.obj,true,0x00048F50-0x00053CF0,73
 ai_profile.obj,true,0x000540B0-0x00055FD0,46
-ai_script.obj,true,0x00058CC0-0x000590B0,3
-encounters.obj,true,0x00053B80-0x0005E1B0,139
+ai_script.obj,true,0x00058CC0-0x00058F40,2
+encounters.obj,true,0x00053B80-0x0005E1B0,140
 props.obj,true,0x00063E30-0x000654F0,35
 tif_dir.obj,true,0x000659F0-0x00067070,26
 tif_flush.obj,true,0x00068780-0x0006BC70,57
@@ -184,7 +184,7 @@ XAPILIB:xbox_crt.obj,true,0x001D63D5-0x001D83F4,18
 XAPILIB:xcontent.obj,true,0x001D8368-0x001D8568,1
 static_camera.obj,true,0x0008D410-0x0008D610,1
 rasterizer_xbox_screen_effect.obj,true,0x001700D0-0x00171DC0,2
-rasterizer_xbox_shadows.obj,true,0x00172590-0x00172FE0,3
+rasterizer_xbox_shadows.obj,true,0x00172590-0x00173290,4
 rasterizer_xbox_profile.obj,true,0x0016F910-0x0016FC40,2
 <xdk_stubs>,true,0x001CFB73-0x0024D209,531
 wind.obj,true,0x0018FF00-0x001901E0,2

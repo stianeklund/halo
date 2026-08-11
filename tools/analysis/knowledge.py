@@ -302,7 +302,7 @@ class KnowledgeBase:
 		decl = strip_stdcall(filter_reg_assignments(s.decl))[:-1]
 
 		thunk_functions = f'''\
-#ifdef MSVC
+#if defined(MSVC) || defined(_MSC_VER)
 #pragma comment(linker, "/alternatename:{mangled_name}={mangled_name_alternate}")
 #endif
 
@@ -409,7 +409,7 @@ __attribute__((naked)) { decl.replace(name, 'THUNK('+name+')') }
 		log.info('Generating thunks...')
 		with open(path, 'w') as f:
 			f.write("""
-#ifdef MSVC
+#if defined(MSVC) || defined(_MSC_VER)
 #pragma code_seg(".thunks")
 #define asm __asm
 #define THUNK(x) x ## __thunk
