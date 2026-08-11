@@ -4155,7 +4155,6 @@ Queue exhausted after 1 pass. All 31 targets rejected or skipped. The 27 fresh c
 |---|---|---|---|---|---|
 | particle_system_update | 0xa1170 | particle_systems.obj | - | skipped | Callee FUN_000a0800 (0xa0800) is invoked with a register argument: `000a11eb MOV EAX,ESI` / `000a11ed CALL 0x000a0800`. Its kb.json entry is `void FUN_000a0800(void);` with no `@eax` annotation and no `ported` flag — so calling it by name from C would pass nothing in EAX and the callee would read a stale register (the exact "(void) decl over a reg-arg function" hazard). Blocked until 0xa0800 is annotated `void FUN_000a0800(int datum_index @eax);` in kb.json. |
 
-<<<<<<< Updated upstream
 ## Goal-lift run — 3/12 committed (queue_exhausted)
 
 ### Summary
@@ -4174,7 +4173,7 @@ Queue exhausted after 1 pass. All 31 targets rejected or skipped. The 27 fresh c
 
 - **3 of 3 targets committed** at ≥90% VC71 match (3 live builds, 0 regressions).
 - **Queue exhausted**: No remaining auto-liftable targets in ai_script.obj and encounters.obj.
-=======
+
 ---
 
 ## Run 2026-08-10 collision_bsp.obj (9/12 committed, queue_exhausted)
@@ -4212,8 +4211,6 @@ Queue exhausted after 1 pass. All 31 targets rejected or skipped. The 27 fresh c
 1. Fix kb.json FUN_0014c8e0 return type to `char` (resolves FUN_0014dce0 REJECT).
 2. Rewrite collision_bsp_test_vector clamp to original source form; register delinked ref; run equivalence.
 3. Resolve collision_test_result type definition (types.h) and bundle separately from FUN_0014dce0 fix.
-
->>>>>>> Stashed changes
 
 ---
 
