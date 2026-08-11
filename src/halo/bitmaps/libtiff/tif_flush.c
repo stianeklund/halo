@@ -30,6 +30,8 @@
  * them. Offsets proven from the disassembly of FUN_00068780, FUN_00068890 and
  * FUN_00068940:
  *   +0x00  `mov ecx,[esi]`                            (0x688ab)
+ *   +0x09  `mov cl,[eax+0x9]` / `mov [eax+0x9],cl`    (0x68a5a, 0x68a62,
+ *                                                      0x68a6b)
  *   +0x0a  `mov al,[esi+0xa]`   / `test al,0x10`      (0x687df, 0x687e5)
  *   +0x36  `movzx eax,word ptr [esi+0x36]`            (0x687e9, 0x688e1)
  *   +0xd4  `mov eax,[esi+0xd4]`                       (0x688a5)
@@ -55,7 +57,15 @@ typedef struct tiff_s {
    * (`mov ecx,[esi]` at 0x688ab), the same use tif_open.c's TIFFFileName
    * (0x6d850) makes of it. */
   char *tif_name;
-  char pad_004[6];
+  char pad_004[5];
+  /* 0x09 -- second flags byte, one byte below field_0a. FUN_00068a50 loads it
+   * with `mov cl,[eax+9]` (0x68a5a) and stores bit 0 back set or cleared, so
+   * the width is BYTE and the offset is accessed -- it was inside pad_004[6]
+   * until this body proved it. Whether it is byte 1 of an upstream `uint32
+   * tif_flags` based at 0x08 (which would make this bit 0x100) is UNPROVEN
+   * from anything recovered so far, so the bit is set with a literal rather
+   * than a TIFF_* macro. */
+  char field_09;
   /* 0x0a -- flags byte. TIFFIsTiled (0x6d880) reads it as a SIGNED byte, so
    * the field is `char`; bit 4 (0x10) is upstream libtiff's TIFF_SWAB. */
   char field_0a;
@@ -435,5 +445,58 @@ void FUN_00068a30(const char *module, const char *format, ...)
     (*_TIFFerrorHandler)(module, format, (char *)ap);
 
     va_end(ap);
+  }
+}
+
+/**
+ * Set or clear bit 0 of the flags byte at tif+0x9 according to `flag`.
+ *
+ * ABI recovered from the frame at 0x68a50: bare `push ebp / mov ebp,esp` with
+ * NO `sub esp` -- no locals -- two stack arguments at [ebp+8] and [ebp+0xc],
+ * `pop ebp / ret` with no immediate (cdecl), and no EAX write on either path,
+ * so the return is void. The decompiler lost both parameters and reported them
+ * as `in_stack_00000004` / `in_stack_00000008` with the prototype
+ * `void(void)`; they are ordinary cdecl stack slots, not register arguments.
+ *
+ *   068a50  push ebp
+ *   068a51  mov  ebp, esp
+ *   068a53  mov  eax, [ebp+0xc]     ; flag
+ *   068a56  test eax, eax
+ *   068a58  mov  eax, [ebp+8]       ; tif -- EAX reloaded, `flag` only tested
+ *   068a5b  mov  cl,  [eax+9]       ; BYTE load, once, BEFORE the branch
+ *   068a5e  jz   068a68
+ *   068a60  or   cl,  1
+ *   068a62  mov  [eax+9], cl
+ *   068a65  pop  ebp
+ *   068a66  ret
+ *   068a68  and  cl,  0xfe
+ *   068a6b  mov  [eax+9], cl
+ *   068a6e  pop  ebp
+ *   068a6f  ret
+ *
+ * Three shape details worth keeping:
+ *   1. The load is `mov cl,` -- a BYTE, not a word and not a dword. Typing
+ *      the field wider would be a field-width bug, and the immediate mask
+ *      would grow with it.
+ *   2. The byte is loaded ONCE, above the branch, and each arm stores its own
+ *      result, so the source is a plain if/else with two stores rather than a
+ *      single store of a conditional expression (which risks a merge/CMOV
+ *      shape).
+ *   3. Two separate epilogues (duplicated `pop ebp / ret`) is what MSVC 7.1
+ *      emits for that if/else; it is not evidence of a shared tail.
+ *
+ * Which upstream libtiff entry point this is remains UNKNOWN: the flag's
+ * meaning is unproven (see `field_09`), so the bit is set with a literal 1 and
+ * cleared with 0xfe rather than a named TIFF_* macro.
+ */
+void FUN_00068a50(void *tif_, int flag)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+
+  /* 0x68a56-0x68a6b. */
+  if (flag != 0) {
+    tif->field_09 = (char)(tif->field_09 | 1);
+  } else {
+    tif->field_09 = (char)(tif->field_09 & 0xfe);
   }
 }

@@ -2130,6 +2130,47 @@
         "Upstream TIFFInitDumpMode takes a second int scheme parameter that it discards; nothing here reads [ebp+0xc], so only the first parameter is declared. Under cdecl an extra pushed argument is harmless, but the true arity of the codec-registration call site remains unproven."
       ]
     },
+    "0x689c0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Body is byte-for-byte upstream libtiff 3.x tif_error.c:TIFFDefaultErrorHandler; identified as the error handler rather than tif_warning.c:TIFFDefaultWarningHandler because no \"Warning, \" literal is pushed.",
+        "The owning translation unit tif_error.obj is inferred from the upstream-source match plus the TIFFError/TIFFSetErrorHandler cluster at 0x68a10/0x68a30 and the _TIFFerrorHandler function-pointer global at 0x2ca1f4; the binary carries no __FILE__ string for tif_error.c, so the object name is not string-proven."
+      ],
+      "uncertain": [
+        "The third parameter is typed char * because va_list is char * on i386 MSVC 7.1; the disassembly only proves a 4-byte value at [EBP+0x10] forwarded unchanged to vfprintf at 0x1d9850, so its va_list nature comes from the upstream source, not from the binary.",
+        "0x331070 is treated as the CRT stderr FILE record (MSVC stderr expands to the address of _iob[2]); kb.json carries the same slot under the zlib-side name z_stderr, and no __FILE__ or symbol evidence confirms which _iob index it is."
+      ]
+    },
+    "0x68a10": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Placed in tif_error.obj/tif_error.c rather than the kb.json catch-all tif_flush.obj: the .data word at 0x2ca1f4 is statically initialized to 0x000689c0 (TIFFDefaultErrorHandler, already resident in tif_error.c), and upstream libtiff keeps _TIFFerrorHandler, TIFFSetErrorHandler and TIFFError in tif_error.c together.",
+        "The handler slot at 0x2ca1f4 is proven to hold a void (*)(const char *module, const char *fmt, char *ap) by its initializer, but is declared void * here because this function only swaps the raw word and never calls through it; TIFFError at 0x68a30 (mov eax,[0x2ca1f4] / test / call eax) is the lift that needs the real function-pointer type."
+      ]
+    },
+    "0x68a30": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Upstream identity as libtiff tif_error.c:TIFFError is inferred from the verbatim shape match (NULL-guarded indirect call to the 0x2ca1f4 handler slot with (module, fmt, va_list)) and from the statically initialized handler at 0x2ca1f4 pointing at FUN_000689c0/TIFFDefaultErrorHandler; the binary carries no __FILE__ string for tif_error.c, so the name is not string-proven.",
+        "The handler slot at 0x2ca1f4 is typed here as void (*)(const char *module, const char *fmt, char *ap); the pointee signature is proven by its static initializer 0x000689c0 (FUN_000689c0) and by the ADD ESP,0xc cdecl cleanup at 0x68a4a fixing exactly three stack arguments, while tif_error.c keeps the same slot as an opaque void * because that TU only swaps the raw word."
+      ],
+      "uncertain": [
+        "The owning object is followed from kb.json as tif_flush.obj, but the function's two upstream TU-mates (FUN_000689c0 at 0x689c0 and FUN_00068a10 at 0x68a10) are mapped to tif_error.obj, so this address may belong in tif_error.obj as well; no __FILE__ string exists for either libtiff TU to arbitrate, and moving it would require a whole-object kb.json move rather than a per-function edit."
+      ]
+    },
+    "0x68a50": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The parameter names tif and flag are INFERRED: the frame proves two cdecl stack slots at [EBP+8] (a pointer dereferenced at +0x9) and [EBP+0xc] (tested only for zero), but nothing in the binary names them."
+      ],
+      "uncertain": [
+        "The upstream libtiff identity of this entry point and the meaning of bit 0 of the byte at tif+0x9 are both UNKNOWN; in particular it is unproven whether that byte is byte 1 of an upstream uint32 tif_flags based at 0x08, so the bit is set with a literal 1 and cleared with 0xfe rather than a named TIFF_ macro."
+      ]
+    },
     "0x6c400": {
       "kind": "function",
       "status": "ported"

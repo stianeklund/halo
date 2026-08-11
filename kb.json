@@ -34078,7 +34078,8 @@
     },
     {
      "addr": "0x68a50",
-     "decl": "void FUN_00068a50(void);"
+     "decl": "void FUN_00068a50(void *tif, int flag);",
+     "ported": true
     },
     {
      "addr": "0x68a70",
