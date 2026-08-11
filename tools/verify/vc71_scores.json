@@ -15292,10 +15292,10 @@
       "end": "0x1153c0",
       "kind": "auto",
       "n_r": 392,
-      "opnd_percent": 20.2,
+      "opnd_percent": 96.7,
       "ref": "synth",
       "ref_sha": "0c947495aff68882",
-      "score": 75.3,
+      "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00115430": {
@@ -15303,10 +15303,10 @@
       "end": "0x115497",
       "kind": "auto",
       "n_r": 41,
-      "opnd_percent": 94.0,
+      "opnd_percent": 95.1,
       "ref": "synth",
       "ref_sha": "9df05f7b771017df",
-      "score": 98.8,
+      "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001154a0": {
@@ -15314,10 +15314,10 @@
       "end": "0x1155b9",
       "kind": "auto",
       "n_r": 101,
-      "opnd_percent": 85.7,
+      "opnd_percent": 86.1,
       "ref": "synth",
       "ref_sha": "14829ea9dbaccd95",
-      "score": 96.6,
+      "score": 97.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001155e0": {
@@ -15325,10 +15325,10 @@
       "end": "0x1159b9",
       "kind": "auto",
       "n_r": 329,
-      "opnd_percent": 38.2,
+      "opnd_percent": 92.8,
       "ref": "synth",
       "ref_sha": "9875fce6d04058ee",
-      "score": 83.9,
+      "score": 95.8,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00115ba0": {
@@ -15358,10 +15358,10 @@
       "end": "0x11644a",
       "kind": "auto",
       "n_r": 55,
-      "opnd_percent": 25.6,
+      "opnd_percent": 27.4,
       "ref": "synth",
       "ref_sha": "534d68f985b3505d",
-      "score": 76.8,
+      "score": 77.4,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00116460": {
@@ -15430,10 +15430,6 @@
       "score": 89.5,
       "source": "src/halo/memory/circular_queue.c"
     },
-    "FUN_00116d10": {
-      "score": 100.0,
-      "source": "src/halo/memory/circular_queue.c"
-    },
     "FUN_00116e00": {
       "addr": "0x116e00",
       "end": "0x116ff7",
@@ -15489,19 +15485,15 @@
       "score": 89.1,
       "source": "src/halo/memory/circular_queue.c"
     },
-    "FUN_00117250": {
-      "score": 88.4,
-      "source": "src/halo/memory/circular_queue.c"
-    },
     "FUN_001172d0": {
       "addr": "0x1172d0",
       "end": "0x1173e7",
       "kind": "auto",
       "n_r": 99,
-      "opnd_percent": 69.2,
+      "opnd_percent": 73.8,
       "ref": "synth",
       "ref_sha": "4fdbe5deafc85211",
-      "score": 88.5,
+      "score": 89.3,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001173f0": {
@@ -15535,14 +15527,6 @@
       "ref": "synth",
       "ref_sha": "58093b35d78e900b",
       "score": 79.2,
-      "source": "src/halo/memory/circular_queue.c"
-    },
-    "FUN_001176f0": {
-      "score": 64.9,
-      "source": "src/halo/memory/circular_queue.c"
-    },
-    "FUN_001177c0": {
-      "score": 81.7,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00117a80": {
@@ -35539,10 +35523,10 @@
       "end": "0x11542a",
       "kind": "auto",
       "n_r": 36,
-      "opnd_percent": 93.2,
+      "opnd_percent": 94.4,
       "ref": "synth",
       "ref_sha": "10294f40e2a06ac6",
-      "score": 98.6,
+      "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "inflateSetDictionary": {
@@ -35594,10 +35578,10 @@
       "end": "0x114686",
       "kind": "auto",
       "n_r": 37,
-      "opnd_percent": 96.0,
+      "opnd_percent": 97.3,
       "ref": "synth",
       "ref_sha": "f4c617198ef71bf3",
-      "score": 98.7,
+      "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "inflate_codes": {
@@ -35605,10 +35589,10 @@
       "end": "0x114e8e",
       "kind": "auto",
       "n_r": 647,
-      "opnd_percent": 86.0,
+      "opnd_percent": 87.2,
       "ref": "synth",
       "ref_sha": "413f4a26e9beebb2",
-      "score": 93.9,
+      "score": 94.3,
       "source": "src/halo/memory/circular_queue.c"
     },
     "inflate_codes_free": {
@@ -35616,10 +35600,10 @@
       "end": "0x114f91",
       "kind": "auto",
       "n_r": 18,
-      "opnd_percent": 91.9,
+      "opnd_percent": 94.4,
       "ref": "synth",
       "ref_sha": "5ee56bc944300c05",
-      "score": 97.3,
+      "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "inflate_codes_new": {
@@ -35627,10 +35611,10 @@
       "end": "0x114739",
       "kind": "auto",
       "n_r": 33,
-      "opnd_percent": 95.5,
+      "opnd_percent": 97.0,
       "ref": "synth",
       "ref_sha": "4dbf4e4fe4146295",
-      "score": 98.5,
+      "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "inflate_set_dictionary": {
@@ -46570,6 +46554,50 @@
       "ref_sha": "5b07e66c59a771fe",
       "score": 93.4,
       "source": "src/halo/bitmaps/tiff_file.c"
+    },
+    "tr_align": {
+      "addr": "0x1176f0",
+      "end": "0x1177b6",
+      "kind": "auto",
+      "n_r": 52,
+      "opnd_percent": 48.6,
+      "ref": "synth",
+      "ref_sha": "6e9b4772f412f372",
+      "score": 64.9,
+      "source": "src/halo/memory/circular_queue.c"
+    },
+    "tr_flush_block": {
+      "addr": "0x1177c0",
+      "end": "0x1179da",
+      "kind": "auto",
+      "n_r": 168,
+      "opnd_percent": 75.0,
+      "ref": "synth",
+      "ref_sha": "d6f01509e6e79cba",
+      "score": 82.6,
+      "source": "src/halo/memory/circular_queue.c"
+    },
+    "tr_init": {
+      "addr": "0x117250",
+      "end": "0x1172c3",
+      "kind": "auto",
+      "n_r": 20,
+      "opnd_percent": 74.4,
+      "ref": "synth",
+      "ref_sha": "587e78546887a895",
+      "score": 88.4,
+      "source": "src/halo/memory/circular_queue.c"
+    },
+    "tr_tally": {
+      "addr": "0x116d10",
+      "end": "0x116dfa",
+      "kind": "auto",
+      "n_r": 62,
+      "opnd_percent": 87.1,
+      "ref": "synth",
+      "ref_sha": "e8409554dc7b5834",
+      "score": 100.0,
+      "source": "src/halo/memory/circular_queue.c"
     },
     "transition_function_evaluate": {
       "addr": "0x10a710",
