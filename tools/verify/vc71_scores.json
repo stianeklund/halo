@@ -24464,6 +24464,17 @@
       "score": 100.0,
       "source": "src/halo/bitmaps/libtiff/tif_open.c"
     },
+    "TIFFIsTiled": {
+      "addr": "0x6d880",
+      "end": "0x6d894",
+      "kind": "auto",
+      "n_r": 8,
+      "opnd_percent": 87.5,
+      "ref": "synth",
+      "ref_sha": "927a3f1ab870c829",
+      "score": 87.5,
+      "source": "src/halo/bitmaps/libtiff/tif_open.c"
+    },
     "TIFFScanlineSize": {
       "addr": "0x6d820",
       "end": "0x6d844",

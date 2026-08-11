@@ -254,7 +254,22 @@ typedef struct tiff_s {
    * the same `int`-narrowed-to-`short` pattern as tif_fd. Declaring it `int`
    * produces a plain dword MOV and does not match. */
   short tif_mode; /* 0x06 */
-  char pad_008[0x14];
+  char pad_008[2];
+  /* Flags byte. TIFFIsTiled (0x6d880) reads it with `movsx eax, byte ptr
+   * [eax+0xa]` and tests bit 7 (`and eax,0x80 / shr eax,7`), so this offset IS
+   * accessed and cannot stay padding. The load is a SIGNED byte, hence `char`
+   * and not `unsigned char` -- an unsigned field produces `movzx` and does not
+   * match.
+   *
+   * Upstream libtiff has a single `uint32 tif_flags` here with
+   * TIFF_ISTILED == 0x0400, i.e. bit 10. This binary tests bit 7 of the byte
+   * at 0x0a, which is bit 23 of a dword at 0x08 -- not an upstream flag bit at
+   * all. Either Bungie renumbered the flag word or 0x0a is a separate byte
+   * field; nothing local proves which, so the field keeps a mechanical name
+   * and the surrounding bytes stay padding. Do not import upstream's
+   * TIFF_ISTILED value. */
+  char field_0a; /* 0x0a */
+  char pad_00b[0x11];
   long td_imagewidth; /* 0x1c */
   char pad_020[0x16];
   unsigned short td_bitspersample; /* 0x36 */
@@ -819,4 +834,53 @@ int TIFFFileno(void *tif)
 int TIFFGetMode(void *tif)
 {
   return ((tiff_t *)tif)->tif_mode;
+}
+
+/**
+ * Whether an open TIFF handle describes a tiled image (rather than
+ * strip-based).
+ *
+ * Upstream libtiff exposes TIFFIsTiled as a macro over tif_flags; Bungie's copy
+ * is an out-of-line function, so it is transcribed from the disassembly rather
+ * than from upstream source. Ghidra's cached listing has 0x6d880 as an empty
+ * `void(void)` body -- the void-EAX artifact (lift-learnings s16), since
+ * nothing in the cached listing consumes the return. The eight instructions at
+ * 0x6d880-0x6d893 are `push ebp / mov ebp,esp / mov eax,[ebp+8] / movsx eax,
+ * byte ptr [eax+0xa] / and eax,0x80 / shr eax,7 / pop ebp / ret`: cdecl, one
+ * stack argument, no callee cleanup, no register arguments, no locals (there is
+ * no `sub esp`), so no `tiff_t *tif` temp is introduced here -- the cast
+ * happens inside the return expression, matching TIFFFileName, TIFFFileno and
+ * TIFFGetMode above.
+ *
+ * The returned value is the shifted bit, i.e. literally 0 or 1, NOT a
+ * normalised boolean: the original emits `and`/`shr`, so writing `!= 0` or a
+ * ternary here would generate a setcc/test sequence instead. See the field_0a
+ * note in the tiff_t layout for why bit 7 of the byte at 0x0a (and not
+ * upstream's TIFF_ISTILED == 0x0400) is the tested flag.
+ *
+ * The `u` on the mask is load-bearing, not decoration. With a plain `0x80`
+ * MSVC 7.1 proves the mask redundant against a zero-extended byte load and
+ * folds `movsx`+`and` into a bare `movzx`, dropping the `and` entirely (7
+ * instructions, 80.0%). Forcing the mask into the unsigned domain keeps the
+ * `and` and reproduces the reference's 8-instruction shape (87.5%). Measured,
+ * not assumed: `(int)` casts, a named local, `/ 128`, and a volatile-qualified
+ * read all fold the same way and all score 80.0%.
+ *
+ * The single residual instruction is the load: the reference uses `movsx`, our
+ * VC71 build `movzx`. That is unreachable from source here -- every form that
+ * keeps the signed load also lets MSVC drop the `and`. The reference's
+ * `movsx`+`and 0x80` pair is itself the proof that the field is a SIGNED byte
+ * in Bungie's header (an unsigned field would have been loaded with `movzx`
+ * there too). The alternative reading -- a dword flags word at 0x08 with the
+ * mask 0x00800000 narrowed to a byte access, which would match upstream's
+ * field order -- was tested and disproven: MSVC 7.1 does not narrow it, it
+ * keeps the dword load and scores 75.0% for both signed and unsigned spellings.
+ *
+ * @param tif TIFF handle (declared void* so the generated header needs no
+ *            libtiff types). Never null-checked, exactly as upstream.
+ * @return 1 when the handle is tiled, 0 when it is strip-based, in EAX.
+ */
+int TIFFIsTiled(void *tif)
+{
+  return (((tiff_t *)tif)->field_0a & 0x80u) >> 7;
 }
