@@ -19015,10 +19015,10 @@
       "end": "0x15485e",
       "kind": "auto",
       "n_r": 65,
-      "opnd_percent": 55.3,
+      "opnd_percent": 64.1,
       "ref": "synth",
       "ref_sha": "3620db4e6a8b8f58",
-      "score": 72.3,
+      "score": 90.1,
       "source": "src/halo/physics/point_physics.c"
     },
     "FUN_00154a20": {
