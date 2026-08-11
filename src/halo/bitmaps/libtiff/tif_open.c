@@ -302,7 +302,17 @@ typedef struct tiff_s {
    * unobservable from a bare dword load; the field keeps upstream's unsigned
    * typing, matching tif_row and tif_curdir above. */
   unsigned long tif_curstrip; /* 0xdc */
-  char pad_0e0[0x10];
+  char pad_0e0[8];
+  /* Current tile index. TIFFCurrentTile (0x6d8d0) reads it with a plain dword
+   * `mov eax,[eax+0xe8]` -- no MOVSX/MOVZX, so this is a full 32-bit field and
+   * no narrower spelling is admissible. Upstream libtiff types the member
+   * `ttile_t tif_curtile`, i.e. a uint32, which agrees with the observed
+   * width; the OFFSET is Bungie's, so only the name is transcribed.
+   * Signedness is unobservable from a bare dword load; the field keeps
+   * upstream's unsigned typing, matching tif_curstrip/tif_curdir/tif_row
+   * above. */
+  unsigned long tif_curtile; /* 0xe8 */
+  char pad_0ec[4];
   /* Codec vtable, 0xf0-0x11c, installed wholesale by FUN_0006d2d0. Upstream
    * libtiff orders these setupdecode, predecode, setupencode, preencode,
    * postencode, then the six code methods, then close/seek/cleanup; Bungie's
@@ -999,4 +1009,34 @@ unsigned long TIFFCurrentDirectory(void *tif)
 unsigned long TIFFCurrentStrip(void *tif)
 {
   return ((tiff_t *)tif)->tif_curstrip;
+}
+
+/**
+ * Index of the tile the handle's decoder/encoder is currently positioned at.
+ *
+ * Transcribed from the vendored libtiff (tif_open.c TIFFCurrentTile), whose
+ * body is literally `return tif->tif_curtile;`. Ghidra's cached listing has
+ * 0x6d8d0 as an empty `void(void)` body -- the void-EAX artifact
+ * (lift-learnings s16), since nothing in the cached listing consumes the
+ * return, and kb.json carried the same wrong `void TIFFCurrentTile(void)`
+ * prototype. The XBE bytes at 0x6d8d0-0x6d8dd are six instructions with one
+ * stack argument and an EAX return: `push ebp / mov ebp,esp / mov eax,[ebp+8]
+ * / mov eax,[eax+0xe8] / pop ebp / ret`. cdecl, no callee cleanup (plain
+ * `ret`, not `ret n`), no register arguments, no locals (there is no `sub
+ * esp`), so no `tiff_t *tif` temp is introduced here -- the cast happens
+ * inside the return expression, matching TIFFCurrentStrip immediately above.
+ *
+ * The load is a plain dword MOV, not MOVSX/MOVZX word or byte, so the field at
+ * 0xe8 is a full 32-bit value and there is no width-narrowing hazard here.
+ * Offset 0xe8 previously sat inside pad_0e0[0x10]; a `pad_` field proven read
+ * is a recovery bug, so the pad is split here without moving any neighbour
+ * (0xe0 + 8 + 4 + 4 == 0xf0, the codec vtable base, unchanged).
+ *
+ * @param tif TIFF handle (declared void* so the generated header needs no
+ *            libtiff types). Never null-checked, exactly as upstream.
+ * @return the current tile index, in EAX.
+ */
+unsigned long TIFFCurrentTile(void *tif)
+{
+  return ((tiff_t *)tif)->tif_curtile;
 }
