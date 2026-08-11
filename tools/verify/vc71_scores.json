@@ -24431,6 +24431,17 @@
       "score": 94.5,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
     },
+    "TIFFCurrentRow": {
+      "addr": "0x6d8a0",
+      "end": "0x6d8ae",
+      "kind": "auto",
+      "n_r": 6,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "9b900030d491e809",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_open.c"
+    },
     "TIFFFileName": {
       "addr": "0x6d850",
       "end": "0x6d85a",

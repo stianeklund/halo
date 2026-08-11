@@ -277,7 +277,14 @@ typedef struct tiff_s {
   unsigned short td_samplesperpixel; /* 0x44 */
   char pad_046[0x18];
   unsigned short td_planarconfig; /* 0x5e */
-  char pad_060[0x90];
+  char pad_060[0x74];
+  /* Current scanline. TIFFCurrentRow (0x6d8a0) reads it with a plain dword
+   * `mov eax,[eax+0xd4]` -- no MOVSX/MOVZX, so this is a full 32-bit field and
+   * no narrower spelling is admissible. Upstream libtiff types the member
+   * `uint32 tif_row`; the OFFSET is Bungie's, not upstream's (their tif_row
+   * sits far earlier in TIFF), so only the name is transcribed. */
+  unsigned long tif_row; /* 0xd4 */
+  char pad_0d8[0x18];
   /* Codec vtable, 0xf0-0x11c, installed wholesale by FUN_0006d2d0. Upstream
    * libtiff orders these setupdecode, predecode, setupencode, preencode,
    * postencode, then the six code methods, then close/seek/cleanup; Bungie's
@@ -883,4 +890,35 @@ int TIFFGetMode(void *tif)
 int TIFFIsTiled(void *tif)
 {
   return (((tiff_t *)tif)->field_0a & 0x80u) >> 7;
+}
+
+/**
+ * Scanline index the handle's decoder/encoder is currently positioned at.
+ *
+ * Transcribed from the vendored libtiff (tif_open.c TIFFCurrentRow), whose
+ * body is literally `return tif->tif_row;`. Ghidra's cached listing has
+ * 0x6d8a0 as an empty `void(void)` body -- the void-EAX artifact
+ * (lift-learnings s16), since nothing in the cached listing consumes the
+ * return, and kb.json carried the same wrong `void TIFFCurrentRow(void)`
+ * prototype. The XBE bytes at 0x6d8a0-0x6d8ad are six instructions with one
+ * stack argument and an EAX return: `push ebp / mov ebp,esp / mov eax,[ebp+8]
+ * / mov eax,[eax+0xd4] / pop ebp / ret`. cdecl, no callee cleanup (plain
+ * `ret`, not `ret n`), no register arguments, no locals (there is no `sub
+ * esp`), so no `tiff_t *tif` temp is introduced here -- the cast happens
+ * inside the return expression, matching TIFFFileName, TIFFFileno,
+ * TIFFGetMode and TIFFIsTiled above.
+ *
+ * The load is a plain dword MOV, not MOVSX/MOVZX word or byte, so the field at
+ * 0xd4 is a full 32-bit value and there is no width-narrowing hazard here (the
+ * signed 16-bit reads that TIFFFileno and TIFFGetMode perform have no analogue
+ * in this function). Signedness is unobservable from a bare load; the field
+ * keeps upstream's unsigned typing.
+ *
+ * @param tif TIFF handle (declared void* so the generated header needs no
+ *            libtiff types). Never null-checked, exactly as upstream.
+ * @return the current scanline index, in EAX.
+ */
+unsigned long TIFFCurrentRow(void *tif)
+{
+  return ((tiff_t *)tif)->tif_row;
 }

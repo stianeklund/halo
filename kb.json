@@ -34390,7 +34390,8 @@
     },
     {
      "addr": "0x6d8a0",
-     "decl": "void TIFFCurrentRow(void);"
+     "decl": "unsigned long TIFFCurrentRow(void *tif);",
+     "ported": true
     },
     {
      "addr": "0x6d8b0",
