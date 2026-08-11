@@ -35583,10 +35583,10 @@
       "end": "0x1145f8",
       "kind": "auto",
       "n_r": 999,
-      "opnd_percent": 89.8,
+      "opnd_percent": 90.3,
       "ref": "synth",
       "ref_sha": "6d3b2ae92c94fe5d",
-      "score": 96.3,
+      "score": 96.7,
       "source": "src/halo/math/real_math.c"
     },
     "inflate_blocks_free": {

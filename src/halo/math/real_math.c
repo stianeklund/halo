@@ -7472,6 +7472,7 @@ int inflate_blocks(int s, int *z, int r)
       r = -4; /* Z_MEM_ERROR */
       LEAVE
     }
+    DUMPBITS(14)
     *(unsigned int *)(s + 8) = 0; /* sub.trees.index */
     Tracev((z_stderr, "inflate:       table sizes ok\n"));
     *(unsigned int *)s = 4; /* BTREE */
