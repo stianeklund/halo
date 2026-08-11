@@ -284,7 +284,16 @@ typedef struct tiff_s {
    * `uint32 tif_row`; the OFFSET is Bungie's, not upstream's (their tif_row
    * sits far earlier in TIFF), so only the name is transcribed. */
   unsigned long tif_row; /* 0xd4 */
-  char pad_0d8[0x18];
+  /* Current directory index. TIFFCurrentDirectory (0x6d8b0) reads it with a
+   * plain dword `mov eax,[eax+0xd8]` -- no MOVSX/MOVZX, so this is a full
+   * 32-bit field. Upstream libtiff types the member `tdir_t tif_curdir`, i.e.
+   * a uint16; a 16-bit field here would compile to `movzx eax,word ptr` and
+   * would not match, so only the NAME is transcribed from upstream, not the
+   * width. The OFFSET is Bungie's (upstream places tif_curdir far earlier in
+   * TIFF). Signedness is unobservable from a bare dword load; the field keeps
+   * upstream's unsigned typing, matching tif_row above. */
+  unsigned long tif_curdir; /* 0xd8 */
+  char pad_0dc[0x14];
   /* Codec vtable, 0xf0-0x11c, installed wholesale by FUN_0006d2d0. Upstream
    * libtiff orders these setupdecode, predecode, setupencode, preencode,
    * postencode, then the six code methods, then close/seek/cleanup; Bungie's
@@ -921,4 +930,34 @@ int TIFFIsTiled(void *tif)
 unsigned long TIFFCurrentRow(void *tif)
 {
   return ((tiff_t *)tif)->tif_row;
+}
+
+/**
+ * Index of the IFD (image file directory) the handle is currently positioned
+ * at.
+ *
+ * Transcribed from the vendored libtiff (tif_open.c TIFFCurrentDirectory),
+ * whose body is literally `return tif->tif_curdir;`. Ghidra's cached listing
+ * has 0x6d8b0 as an empty `void(void)` body -- the void-EAX artifact
+ * (lift-learnings s16), since nothing in the cached listing consumes the
+ * return, and kb.json carried the same wrong `void TIFFCurrentDirectory(void)`
+ * prototype. The XBE bytes at 0x6d8b0-0x6d8bd are six instructions with one
+ * stack argument and an EAX return: `push ebp / mov ebp,esp / mov eax,[ebp+8]
+ * / mov eax,[eax+0xd8] / pop ebp / ret`. cdecl, no callee cleanup (plain
+ * `ret`, not `ret n`), no register arguments, no locals (there is no `sub
+ * esp`), so no `tiff_t *tif` temp is introduced here -- the cast happens
+ * inside the return expression, matching TIFFCurrentRow immediately above and
+ * the four accessors before it.
+ *
+ * The load is a plain dword MOV, not MOVZX word, so the field at 0xd8 is a
+ * full 32-bit value even though upstream's `tdir_t` is 16-bit; see the field
+ * comment on tif_curdir in the tiff_t layout.
+ *
+ * @param tif TIFF handle (declared void* so the generated header needs no
+ *            libtiff types). Never null-checked, exactly as upstream.
+ * @return the current directory index, in EAX.
+ */
+unsigned long TIFFCurrentDirectory(void *tif)
+{
+  return ((tiff_t *)tif)->tif_curdir;
 }

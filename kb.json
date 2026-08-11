@@ -34395,7 +34395,8 @@
     },
     {
      "addr": "0x6d8b0",
-     "decl": "void TIFFCurrentDirectory(void);"
+     "decl": "unsigned long TIFFCurrentDirectory(void *tif);",
+     "ported": true
     },
     {
      "addr": "0x6d8c0",
