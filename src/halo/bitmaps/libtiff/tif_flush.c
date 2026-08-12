@@ -1264,3 +1264,87 @@ void FUN_0006a910(unsigned long *cp, unsigned char *pp,
     pp += fromskew;
   }
 }
+
+/* The 8-bit colormap expansion table, the other static tif_open.c frees at
+ * tif_getimage.c line 125 (which is what pins this TU's upstream source file
+ * to tif_getimage.c, not tif_flush.c -- kb.json's object grouping is what puts
+ * the body here). tif_open.c declares it `void *` because it only ever assigns
+ * and frees it; FUN_0006ac60 below proves the pointee type with the same three
+ * chained loads per pixel that FUN_0006a910 uses for BWmap:
+ *   mov   esi, [0x3340c8]      0x6ac6f  the table, loaded ONCE ahead of both
+ *                                       loops
+ *   movzx ebx, byte ptr [ecx]  0x6ac94  the source byte
+ *   mov   ebx, [esi+ebx*4]     0x6ac97  Map[byte] -- the *4 scale makes this an
+ *                                       array of POINTERS, not of pixels
+ *   mov   ebx, [ebx]           0x6ac9a  *that pointer -- the pixel value
+ * so the storage at 0x3340c8 has type `unsigned long **`. Collapsing the
+ * double indirection would store the row pointer itself as a pixel -- a
+ * wrong-pixel bug that no match score would notice. */
+#define Map (*(unsigned long ***)0x3340c8)
+
+/**
+ * Expand one 8-bit colormapped tile into the 32-bit RGBA raster.
+ *
+ * Transcribed from the vendored libtiff (tif_getimage.c `put8bitcmaptile`)
+ * rather than reshaped from the decompiler, which lost every parameter and
+ * reported the body as `void(void)`. Bungie's build differs from upstream in
+ * two ways, both read off the disassembly: the colormap comes from the
+ * file-scope static at 0x3340c8 instead of an `img` struct field, and the
+ * source cursor advances by a plain `inc ecx` (0x6ac9f) rather than upstream's
+ * `pp += samplesperpixel`, so samplesperpixel is folded to a compile-time 1
+ * here. Do not reintroduce the multiply.
+ *
+ * The seven cdecl stack slots are proven by their reads; only the ORDER is
+ * INFERRED, from upstream's (img, cp, x, y, w, h, fromskew, toskew, pp)
+ * prototype collapsed onto this build's frame:
+ *   +0x08 -> eax  cp        the dword raster cursor
+ *   +0x0c -> ecx  pp        the byte source cursor
+ *   +0x10         NEVER READ -- upstream's tile-origin y. Kept as a parameter
+ *                 because dropping it would shift every later slot.
+ *   +0x14 -> edx  w         inner count, re-loaded per row at 0x6aca5
+ *   +0x18 -> edi  h         outer count; the SLOT is then reused as scratch
+ *   +0x1c         fromskew  added to the byte cursor at 0x6acab
+ *   +0x20         toskew    added to the dword cursor at 0x6aca8
+ *
+ * Both counters are unsigned, read off the branch mnemonics rather than
+ * assumed: the row guard is `test eax,eax; jbe` (0x6ac68, skipping the whole
+ * body before the callee-saved registers are even pushed) and the pixel guard
+ * is `test edx,edx; jbe` (0x6ac92). Signed counters would emit jle/jl and
+ * invert the zero-trip behaviour for w or h of 0.
+ *
+ * toskew is scaled ONCE before the loops -- `lea edx,[ecx*4]` (0x6ac75) stored
+ * into the now-dead h slot at 0x6ac80 -- and added back each row at 0x6aca8.
+ * That x4 is the compiler's doing: `cp` is a dword pointer, so `cp += toskew`
+ * is the correct spelling. Pre-scaling it in C would advance the raster four
+ * times too far.
+ *
+ * The PUSH EBX/ESI/EDI order is interleaved with the setup (0x6ac6d, 0x6ac6e,
+ * 0x6ac7f) because the h == 0 early-out precedes the saves; that is scheduling,
+ * not something the source expresses.
+ */
+void FUN_0006ac60(unsigned long *cp, unsigned char *pp,
+                  unsigned long unused_arg, unsigned long w, unsigned long h,
+                  long fromskew, long toskew)
+{
+  unsigned long **palmap;
+  unsigned long x;
+
+  /* Upstream discards the tile-origin arguments the same way. */
+  (void)unused_arg;
+
+  /* 0x6ac6f: hoisted into ESI for the whole call, ahead of both loops. */
+  palmap = Map;
+
+  /* 0x6ac68 guard, 0x6acae-0x6acb3 decrement-and-branch. */
+  while (h-- > 0) {
+    /* 0x6ac92 guard, 0x6ac94-0x6aca2 body: one source byte, one raster
+     * dword, both cursors incremented by one element. */
+    for (x = w; x-- > 0;)
+      *cp++ = palmap[*pp++][0];
+
+    /* 0x6aca8: `add eax,[ebp+0x18]` with the slot holding toskew*4. */
+    cp += toskew;
+    /* 0x6acab: `add ecx,[ebp+0x1c]`, unscaled -- pp is a byte cursor. */
+    pp += fromskew;
+  }
+}
