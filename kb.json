@@ -6247,7 +6247,7 @@
         },
         {
           "addr": "0x11ecf0",
-          "decl": "int memory_block_valid(void *block_hdr@<ecx>);",
+          "decl": "bool memory_block_valid(void *block_hdr@<ecx>);",
           "ported": true
         },
         {
@@ -6292,7 +6292,7 @@
         },
         {
           "addr": "0x11eac0",
-          "decl": "void memory_block_get_user_size(void);"
+          "decl": "unsigned int memory_block_get_user_size(void *block_hdr@<esi>);"
         },
         {
           "addr": "0x11eb10",
