@@ -36877,7 +36877,10 @@
     },
     {
      "addr": "0x1bdf60",
-     "decl": "void FUN_001bdf60(void);"
+     "decl": "void sound_cache_sound_delete(sound_cache_sound *sound);",
+     "name": "sound_cache_sound_delete",
+     "ported": true,
+     "source_path": "cache/xbox_sound_cache.c"
     },
     {
      "addr": "0x1be3e0",

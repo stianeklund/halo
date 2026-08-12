@@ -44883,6 +44883,17 @@
       "score": 84.8,
       "source": "src/halo/sound/sound_manager.c"
     },
+    "sound_cache_sound_delete": {
+      "addr": "0x1bdf60",
+      "end": "0x1be08f",
+      "kind": "auto",
+      "n_r": 97,
+      "opnd_percent": 99.0,
+      "ref": "synth",
+      "ref_sha": "99decf6cf8e50313",
+      "score": 100.0,
+      "source": "src/halo/cache/xbox_sound_cache.c"
+    },
     "sound_cache_sound_finished": {
       "addr": "0x1be090",
       "end": "0x1be0fa",
