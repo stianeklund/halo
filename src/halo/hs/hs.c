@@ -4132,6 +4132,73 @@ void FUN_000c2690(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc26b0 — core-save/load HaloScript function evaluator.  Runs
+ * main_load_core() for its side effect, then commits a 0 result to the calling
+ * script thread (a void-returning script builtin).  Structurally identical to
+ * FUN_000c2690 directly above and to FUN_000c0cb0 at 0xc0cb0, with the
+ * side-effect callee swapped.
+ *
+ * kb.json carried the placeholder decl `void FUN_000c26b0(void);`; widened to
+ * the standard hs-evaluator triple with this lift, since the body reads the
+ * stack argument at [EBP+0xc].  Under the void(void) decl Ghidra surfaced the
+ * read as the artifact local `in_stack_00000008`.
+ *
+ * Callees (both cdecl, no register args, both ported):
+ *   0x100420 = main_load_core(void)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc26b0-0xc26c7, 24 bytes / 9
+ * instructions): cdecl, plain RET, frame is PUSH EBP / MOV EBP,ESP with no
+ * locals (no SUB ESP, no _chkstk).  The body reads only [EBP+0xc] =
+ * thread_datum (arg 2), and does so with a full 32-bit MOV EAX, so the
+ * parameter is `int`, never int16 — the LOADW trap that distinguishes the
+ * 0xc0c30/0xc0cd0 pair does not apply here.  function_index and init complete
+ * the standard hs-evaluator signature shared by the sibling handlers but are
+ * unused in this body.  hs_return's pushes are PUSH 0x0 (the value) then PUSH
+ * EAX (=[EBP+0xc], the thread), so the first PUSH is the last C argument;
+ * ADD ESP,0x8 confirms exactly 2 args.  No FPU ops and no conditional jumps —
+ * there is no null-check branch here, unlike the hs_macro_function_evaluate
+ * shape at 0xc0c30. */
+void FUN_000c26b0(int16_t function_index, int thread_datum, char init)
+{
+  main_load_core();
+  hs_return(thread_datum, 0);
+}
+
+/* 0xc26d0 — core-load-at-startup HaloScript function evaluator.  Runs
+ * main_load_core_at_startup() for its side effect, then commits a 0 result to
+ * the calling script thread (a void-returning script builtin).  Structurally
+ * identical to FUN_000c26b0 directly above and to FUN_000c0cb0 at 0xc0cb0,
+ * with the side-effect callee swapped.
+ *
+ * kb.json carried the placeholder decl `void FUN_000c26d0(void);`; widened to
+ * the standard hs-evaluator triple with this lift, since the body reads the
+ * stack argument at [EBP+0xc].  Under the void(void) decl Ghidra surfaced the
+ * read as the artifact local `in_stack_00000008`.
+ *
+ * Callees (both cdecl, no register args, both ported):
+ *   0x100440 = main_load_core_at_startup(void)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc26d0-0xc26e7, 24 bytes / 10
+ * instructions): cdecl, plain RET, frame is PUSH EBP / MOV EBP,ESP with no
+ * locals (no SUB ESP, no _chkstk).  The body reads only [EBP+0xc] =
+ * thread_datum (arg 2), and does so with a full 32-bit MOV EAX, so the
+ * parameter is `int`, never int16 — the LOADW trap that distinguishes the
+ * 0xc0c30/0xc0cd0 pair does not apply here.  function_index and init complete
+ * the standard hs-evaluator signature shared by the sibling handlers but are
+ * unused in this body.  hs_return's pushes are PUSH 0x0 (the value) then PUSH
+ * EAX (=[EBP+0xc], the thread), so the first PUSH is the last C argument;
+ * ADD ESP,0x8 confirms exactly 2 args.  No FPU ops and no conditional jumps —
+ * there is no null-check branch here, and no call to
+ * hs_macro_function_evaluate, so no argument evaluation belongs in this
+ * body. */
+void FUN_000c26d0(int16_t function_index, int thread_datum, char init)
+{
+  main_load_core_at_startup();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
