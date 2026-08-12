@@ -1891,6 +1891,97 @@ void FUN_0006ac60(unsigned long *cp, unsigned char *pp,
   }
 }
 
+/**
+ * Expand one 2-bit greyscale (min-is-white / min-is-black) tile into the
+ * 32-bit RGBA raster.
+ *
+ * Transcribed from the vendored libtiff (tif_getimage.c `put2bitbwtile`, the
+ * bitspersample == 2 arm of FUN_0006b780's inner dispatch) rather than
+ * reshaped from the decompiler, which lost every parameter and reported the
+ * body as `void(void)`. The four dword stores per source byte are UNROLL4
+ * expanded verbatim; each table entry at 0x3340c8 is the four-pixel run for
+ * one packed source byte, so `bw` walks forward inside the entry while `pp`
+ * advances one byte per four pixels (`inc esi` once per unrolled block,
+ * 0x6ae7f).
+ *
+ * Frame, read off the disassembly (Ghidra's `in_stack_...` labels are
+ * ESP-relative junk -- EBX/ESI/EDI are pushed INSIDE the h != 0 guard at
+ * 0x6ae31/0x6ae32/0x6ae3f, after the early-out, so the decompiler's frame
+ * base is wrong):
+ *   +0x08 -> ecx  cp        the dword raster cursor
+ *   +0x0c -> esi  pp        the packed byte source cursor
+ *   +0x10         NEVER READ -- upstream's tile origin. Kept as a parameter
+ *                 because dropping it would shift every later slot.
+ *   +0x14 -> edi  w         re-loaded per row at the 0x6ae43 loop re-entry
+ *   +0x18         h         outer count, spilled back each row (0x6aeca)
+ *   +0x1c         fromskew, OVERWRITTEN in place at 0x6ae25 with fromskew/4
+ *   +0x20         toskew, pre-scaled by `shl edx,2` (0x6ae36) into EBP-4
+ *
+ * Signedness is read off the mnemonics, not assumed: the row guard is
+ * `test ecx,ecx; jbe` (0x6ae23) and the unroll trip count is `shr` -- w and h
+ * are UNSIGNED. fromskew is SIGNED: the divide-by-4 at 0x6ae1a-0x6ae20 is the
+ * `cdq; and edx,3; add eax,edx; sar eax,2` sequence, which only exists for a
+ * signed operand. Making it unsigned would collapse it to a bare shr.
+ *
+ * Both the x4 on toskew and the /4 on fromskew stay unspelled in C: `cp` is a
+ * dword pointer so the compiler supplies the scale, and `pp` advances one byte
+ * per four pixels so upstream's `fromskew/4` is the source-level form.
+ *
+ * Unlike the 8-bit sibling above, the table pointer is re-loaded from 0x3340c8
+ * inside BOTH loops (0x6ae53 and 0x6ae92) instead of being hoisted into a
+ * register for the whole call, so it is spelled as a direct `Map[...]` here.
+ */
+void FUN_0006ae10(unsigned long *cp, unsigned char *pp,
+                  unsigned long unused_arg, unsigned long w, unsigned long h,
+                  long fromskew, long toskew)
+{
+  unsigned long *bw;
+  unsigned long x;
+
+  /* Upstream discards the tile-origin arguments the same way. */
+  (void)unused_arg;
+
+  /* 0x6ae1a-0x6ae25: the signed divide-by-4 runs ONCE, ahead of the h == 0
+   * test, and its result is written back over this parameter's own frame slot
+   * (`mov [ebp+0x1c],eax` at 0x6ae25) before being held in EAX for the rest of
+   * the call. Upstream spells the same thing as `pp += fromskew/4` inside the
+   * row loop; folding it into the parameter here is what reproduces the
+   * reference's single-slot frame and its entry-block quotient. */
+  fromskew /= 4;
+
+  /* 0x6ae23 guard, 0x6aec9-0x6aece decrement-and-branch back to 0x6ae43. */
+  while (h-- > 0) {
+    /* 0x6ae50-0x6ae86: EBX = w >> 2 trip count, EDI keeps the residue via
+     * `sub edi,4`, and the last of the four loads folds into
+     * `mov edx,[edx+4]`. */
+    for (x = w; x >= 4; x -= 4) {
+      bw = Map[*pp++];
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+    }
+    /* 0x6ae8f-0x6aebd: one table load, `inc esi`, then the DEC EDI / JZ chain
+     * that is this switch with its case 3 -> 2 -> 1 fallthrough. */
+    if (x > 0) {
+      bw = Map[*pp++];
+      switch (x) {
+      case 3:
+        *cp++ = *bw++;
+      case 2:
+        *cp++ = *bw++;
+      case 1:
+        *cp++ = *bw++;
+      }
+    }
+
+    /* 0x6aec6: `add ecx,[ebp-4]` with the slot holding toskew*4. */
+    cp += toskew;
+    /* 0x6aec9: `add esi,eax` with EAX holding the quotient computed above. */
+    pp += fromskew;
+  }
+}
+
 /*
  * FUN_0006b780 -- 0x6b780, upstream libtiff's PickContigCase.
  *

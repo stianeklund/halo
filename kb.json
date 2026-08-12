@@ -34279,7 +34279,8 @@
     },
     {
      "addr": "0x6ae10",
-     "decl": "void FUN_0006ae10(void);"
+     "decl": "void FUN_0006ae10(unsigned long *cp, unsigned char *pp, unsigned long unused_arg, unsigned long w, unsigned long h, long fromskew, long toskew);",
+     "ported": true
     },
     {
      "addr": "0x6aee0",
