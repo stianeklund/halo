@@ -34299,7 +34299,8 @@
     },
     {
      "addr": "0x6b0a0",
-     "decl": "void FUN_0006b0a0(void);"
+     "decl": "void FUN_0006b0a0(unsigned long *cp, unsigned short *pp, unsigned char *map, unsigned long w, unsigned long h, long fromskew, long toskew);",
+     "ported": true
     },
     {
      "addr": "0x6b190",

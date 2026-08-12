@@ -2655,6 +2655,103 @@ void FUN_0006af80(unsigned long *cp, unsigned char *pp, unsigned char *map,
   }
 }
 
+/**
+ * Expand one 16-bit-per-sample RGB contiguous tile into the 32-bit RGBA
+ * raster, optionally through a lookup table.
+ *
+ * The 16bps twin of FUN_0006af80 above: same seven-slot cdecl frame, same
+ * merged `if (map != 0)` body, same skew fold. Upstream ships this as
+ * putRGBcontig16bitMaptile / putRGBcontig16bittile (tif_getimage.c) and
+ * PickContigCase selects between them; Bungie merged the pair the same way it
+ * merged the 8bps pair, with the branch taken inside the routine
+ * (0x6b0b1 `test ecx,ecx; jz 0x6b12e` -- fall-through is the Map arm ending at
+ * the 0x6b129 epilogue, the taken arm is the plain one ending at 0x6b18b).
+ *
+ * Frame, read off the disassembly. Ghidra had no prototype (the seeded kb.json
+ * decl was the placeholder `void FUN_0006b0a0(void)`), so every argument came
+ * back as an ESP-relative `in_stack_...` label; the seven cdecl slots are
+ * proven by their reads:
+ *   +0x08  cp        dword raster cursor (`add esi,4`, stored `[esi-4]`)
+ *   +0x0c  pp        source cursor -- every load is `movzx ...,WORD ptr`
+ *                    ([eax], [eax+2], [eax+4]) and the advance is
+ *                    `lea eax,[eax+edx*2]`, so this is `unsigned short *`,
+ *                    NOT the byte cursor the 8bps sibling takes
+ *   +0x10  map       branch selector, and a BYTE table in the taken arm
+ *   +0x14  w         inner trip count, reloaded from the slot each row
+ *   +0x18  h         outer trip count (`test esi,esi; jbe` guards both arms,
+ *                    so h == 0 skips everything)
+ *   +0x1c  fromskew  0x6b0a3-0x6b0ad `movzx edx,word[0x3340f8]; imul edx,
+ *                    [ebp+0x1c]`, then `add edx,edx` -- the *2 is the ushort
+ *                    pointer scaling, hoisted as loop-invariant and written
+ *                    back over this parameter's own slot
+ *   +0x20  toskew    `shl edi,2` (the dword scaling for `cp`), parked in the
+ *                    by-then-dead [ebp+0x0c] slot
+ * Only the `fromskew *= samplesperpixel` below is source; both the *2 and the
+ * *4 are the compiler's own strength reduction of `pp += fromskew` /
+ * `cp += toskew`, exactly as in the sibling.
+ *
+ * `map` is indexed by the FULL zero-extended 16-bit sample
+ * (`movzx edx,word ptr [eax+4]; mov bh,byte ptr [edx+ecx]`), so it is
+ * upstream's Bitdepth16To8 -- a 65536-entry table, not an 8-bit palette.
+ * Typing the index as a byte would truncate every sample above 0xff.
+ *
+ * Two hazards this transcription is deliberate about:
+ *  1. The Map arm packs through the same PACK macro as the sibling and in the
+ *     same proven order: 0x6b0e4-0x6b101 is `movzx edx,[eax+4]` /
+ *     `xor ebx,ebx` / `mov bh,[edx+ecx]` (map[pp[2]] at bits 8-15 pre-shift),
+ *     `mov bl,[edx+ecx]` with EDX = pp[1] (map[pp[1]] at bits 0-7), then
+ *     `shl ebx,8` / `or ebx,edx` folds map[pp[0]] in at the bottom and lifts
+ *     BH to bits 16-23. Net map[pp[2]]<<16 | map[pp[1]]<<8 | map[pp[0]].
+ *  2. The plain arm (0x6b154-0x6b167) packs the RAW 16-bit words with two
+ *     shifts of 8 and no `>>8` narrowing anywhere, so the high halves of
+ *     pp[2] and pp[1] overlap the neighbouring byte lanes. Upstream narrows
+ *     (`PACK(pp[0]>>8, pp[1]>>8, pp[2]>>8)`); this build does not, and
+ *     "fixing" it would be a wrong-pixel change no match score notices. The
+ *     chained `((pp[2] << 8 | pp[1]) << 8) | pp[0]` spelling is the shape in
+ *     the binary -- PACK() would emit a shl 8 plus a shl 16 instead.
+ * As with the sibling: no 0xff alpha in either pack, samplesperpixel is
+ * re-read from 0x3340f8 inside BOTH inner loops (0x6b107, 0x6b16b) so it stays
+ * a macro read rather than upstream's hoisted local, neither arm is UNROLL8'd
+ * here (both are flat per-pixel loops -- unlike the sibling, whose plain arm
+ * is unrolled), and Ghidra's CONCAT21(CONCAT11(...)) spelling of the pack is
+ * a rendering artifact that must not reach the source.
+ *
+ * This is the target FUN_0006b780 stores for PHOTOMETRIC_RGB when
+ * bitspersample != 8 (the dispatch below in this file).
+ */
+void FUN_0006b0a0(unsigned long *cp, unsigned short *pp, unsigned char *map,
+                  unsigned long w, unsigned long h, long fromskew, long toskew)
+{
+  unsigned long x;
+
+  /* 0x6b0a3-0x6b0ad, folded back over this parameter's own frame slot. */
+  fromskew *= samplesperpixel;
+
+  if (map != 0) {
+    /* 0x6b0b5 guard; 0x6b0e0 row head, 0x6b0e4 pixel head. */
+    while (h-- > 0) {
+      for (x = w; x-- > 0;) {
+        *cp++ = PACK(map[pp[0]], map[pp[1]], map[pp[2]]);
+        pp += samplesperpixel;
+      }
+
+      cp += toskew; /* slot holds toskew*4 -- `cp` is a dword pointer */
+      pp += fromskew; /* slot holds fromskew*spp*2 -- `pp` is a ushort ptr */
+    }
+  } else {
+    /* 0x6b130 guard; 0x6b14b `jmp 0x6b150` is the do/while entry. */
+    while (h-- > 0) {
+      for (x = w; x-- > 0;) {
+        *cp++ = ((((unsigned long)pp[2] << 8) | pp[1]) << 8) | pp[0];
+        pp += samplesperpixel;
+      }
+
+      cp += toskew;
+      pp += fromskew;
+    }
+  }
+}
+
 /*
  * FUN_0006b190 -- 0x6b190, upstream libtiff's putRGBseparate8bitMaptile and
  * putRGBseparate8bittile fused into one routine, exactly as FUN_0006af80 above
