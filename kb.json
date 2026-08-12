@@ -32025,7 +32025,7 @@
     },
     {
      "addr": "0x30b80",
-     "decl": "void actor_perception_aiming_vector_test_blockage(void);"
+     "decl": "short actor_perception_aiming_vector_test_blockage(float *point, float *aiming_vector, int object_index, int param_4);"
     },
     {
      "addr": "0x30d10",
@@ -36204,7 +36204,8 @@
     },
     {
      "addr": "0x24130",
-     "decl": "void FUN_00024130(void);"
+     "decl": "void FUN_00024130(int actor_handle, char *eval_state, short firing_position_count, char *firing_positions);",
+     "ported": true
     },
     {
      "addr": "0x24370",

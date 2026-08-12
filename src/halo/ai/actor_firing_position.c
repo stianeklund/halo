@@ -55,6 +55,136 @@
 #define global_temporary_sort_firing_position_array (*(char **)0x331f04)
 #define global_temporary_sort_firing_position_count (*(int16_t *)0x331f00)
 
+/* The float clamp at 0x241de..0x241ef keeps both candidate values live on the
+ * x87 stack and throws one away (FLD 0.0f; FCOMP ST(1); then either FSTP ST(0)
+ * + FLD 0.0f, or fall through with the computed value still in ST(0)). A plain
+ * `if (v < 0.0f) v = 0.0f;` would have stored v to memory and compared against
+ * it, so the original had to be a max macro over a single expression. The two
+ * int16 accumulators in the second pass reduce the same way (both arms of the
+ * memory-resident one store, at 0x242e1 / 0x242e6). */
+#ifndef MAX
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#endif
+
+/* FUN_00024130 (0x24130) — run the two shared scoring passes over a whole
+ * candidate firing-position array.
+ *
+ * Confirmed from the listing at 0x24130:
+ *   MOV EAX,[0x6325a4] (actor_data); PUSH ESI (actor_handle) -> datum_get. The
+ *   resolved datum is discarded — EAX is overwritten by the very next call at
+ *   0x24149 — so it was a dead local in the original source. The call itself is
+ *   kept: it is a real call with the pool's own bounds asserts behind it.
+ *   PUSH ESI -> actor_combat_get_firing_variant_definition, result into ECX.
+ *
+ * Four cdecl stack parameters, read at [EBP+8], [EBP+0xc], [EBP+0x10] (MOV BX,
+ * word ptr — an int16) and [EBP+0x14]. kb.json previously declared this
+ * void(void); that was wrong.
+ *
+ * Pass 1 (0x241b1..0x24248) adds a distance-ramp score scaled by a weight
+ * shared across the whole array; pass 2 (0x24265..0x2435a) adds an aiming
+ * blockage score. Both walk the same 0x3c-stride candidate record that
+ * FUN_00024370 and FUN_00024950 use:
+ *   +0x00  int    the object the aiming/blockage test is run against
+ *   +0x08  float  the candidate's distance
+ *   +0x30  char   usable flag
+ *   +0x38  float  the accumulated score
+ *
+ * eval_state offsets, all straight off the listing; meanings are unproven, so
+ * they stay as offsets:
+ *   +0x018 float  distance normaliser for pass 1
+ *   +0x254 int16  number of 0x1c-byte aiming records
+ *   +0x256 int16  guard — pass 2 is skipped entirely when this is <= 0
+ *   +0x25c        base of the 0x1c-byte aiming-record array (LEA ESI,[EAX+EDX]
+ *                 after IMUL EAX,EAX,0x1c, then disp 0x25c/0x260/0x26c), each
+ *                 record being an int16 kind at +0x00 and two 12-byte vectors
+ *                 at +0x04 and +0x10
+ *   +0x5fc char   enables the pass-1 weight ramp
+ *   +0x600 float  the value that ramp is computed from
+ *
+ * FPU direction is load-bearing: 0x24188 and 0x241d8 are FSUBR against the
+ * 1.0f at 0x2533c8, so both ramps are (1.0f - x/y), never (x/y - 1.0f).
+ *
+ * The blockage callee returns an int16 in AX (CMP CX,AX at 0x242dc, CMP BX,AX /
+ * MOV EBX,EAX at 0x242f1) and takes four cdecl arguments (ADD ESP,0x10 at
+ * 0x242d1). kb.json declared it void(void); corrected as part of this port.
+ * Its kind field is re-read from the record after the call (MOV SI,[ESI+0x25c]
+ * at 0x242ca) rather than reusing the value the guard loaded. */
+void FUN_00024130(int actor_handle, char *eval_state,
+                  short firing_position_count, char *firing_positions)
+{
+  char *definition;
+  char *firing_position;
+  char *aim_record;
+  float weight;
+  float evaluation;
+  float blockage_score;
+  short worst_kind0;
+  short worst_kind1;
+  short blockage;
+  short i;
+  short j;
+
+  datum_get(actor_data, actor_handle);
+  definition = actor_combat_get_firing_variant_definition(actor_handle);
+
+  weight = 8.0f;
+  if ((*(char *)(eval_state + 0x5fc) == '\0' ||
+       (*(float *)(eval_state + 0x600) <= *(float *)(definition + 0x74) &&
+        (weight = (1.0f - *(float *)(eval_state + 0x600) /
+                            *(float *)(definition + 0x74)) *
+                  8.0f) > 0.0f)) &&
+      firing_position_count > 0) {
+    firing_position = firing_positions;
+    for (i = 0; i < firing_position_count; i++) {
+      if (firing_position[0x30] != '\0' &&
+          *(float *)(firing_position + 8) < *(float *)(eval_state + 0x18)) {
+        evaluation = MAX(0.0f, 1.0f - *(float *)(firing_position + 8) /
+                                        *(float *)(eval_state + 0x18)) *
+                     weight;
+        assert_halt_at("c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x81,
+                       (evaluation >= 0.0f) && (evaluation < 1e+03f));
+        *(float *)(firing_position + 0x38) += evaluation;
+      }
+      firing_position += 0x3c;
+    }
+  }
+
+  if (*(short *)(eval_state + 0x256) > 0 && firing_position_count > 0) {
+    firing_position = firing_positions;
+    for (i = 0; i < firing_position_count; i++) {
+      if (firing_position[0x30] != '\0') {
+        worst_kind0 = 0;
+        worst_kind1 = 0;
+        for (j = 0; j < *(short *)(eval_state + 0x254); j++) {
+          aim_record = eval_state + j * 0x1c;
+          if (*(short *)(aim_record + 0x25c) == 0 ||
+              *(short *)(aim_record + 0x25c) == 1) {
+            blockage = actor_perception_aiming_vector_test_blockage(
+              (float *)(aim_record + 0x260), (float *)(aim_record + 0x26c),
+              *(int *)firing_position, 0);
+            if (*(short *)(aim_record + 0x25c) == 0)
+              worst_kind0 = MAX(worst_kind0, blockage);
+            else if (*(short *)(aim_record + 0x25c) == 1)
+              worst_kind1 = MAX(worst_kind1, blockage);
+          }
+        }
+        if (worst_kind1 >= 2)
+          blockage_score = 0.0f;
+        else if (worst_kind1 >= 1)
+          blockage_score = 1.5f;
+        else if (worst_kind0 >= 2)
+          blockage_score = 6.0f;
+        else if (worst_kind0 >= 1)
+          blockage_score = 8.5f;
+        else
+          blockage_score = 10.0f;
+        *(float *)(firing_position + 0x38) += blockage_score;
+      }
+      firing_position += 0x3c;
+    }
+  }
+}
+
 /* FUN_00024370 (0x24370) — score one candidate firing position for an actor.
  *
  * Confirmed from the listing at 0x24370:
