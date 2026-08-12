@@ -126,3 +126,23 @@ void sound_cache_new(void)
     system_exit(-1);
   }
 }
+
+/* Release every cache block that nothing is playing out of. Walks the cache
+ * datum table and hands each idle record's sound back to
+ * sound_cache_sound_delete; a record whose software (+0x04) or hardware
+ * (+0x05) reference count is non-zero is skipped. The deleted argument is the
+ * sound the block was filled from (+0x08), not the datum itself. */
+void sound_cache_flush(void)
+{
+  data_iter_t iterator;
+  char *cache_datum;
+
+  data_iterator_new(&iterator, sound_cache_data);
+  cache_datum = (char *)data_iterator_next(&iterator);
+  while (cache_datum != NULL) {
+    if (cache_datum[4] == 0 && cache_datum[5] == 0) {
+      sound_cache_sound_delete(*(sound_cache_sound **)(cache_datum + 8));
+    }
+    cache_datum = (char *)data_iterator_next(&iterator);
+  }
+}

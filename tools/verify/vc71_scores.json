@@ -45235,6 +45235,17 @@
       "score": 84.8,
       "source": "src/halo/sound/sound_manager.c"
     },
+    "sound_cache_flush": {
+      "addr": "0x1be490",
+      "end": "0x1be4e3",
+      "kind": "auto",
+      "n_r": 33,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "0c64c22df565e9fd",
+      "score": 100.0,
+      "source": "src/halo/cache/xbox_sound_cache.c"
+    },
     "sound_cache_new": {
       "addr": "0x1be3e0",
       "end": "0x1be48f",

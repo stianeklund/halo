@@ -36932,7 +36932,8 @@
     },
     {
      "addr": "0x1be490",
-     "decl": "void sound_cache_flush(void);"
+     "decl": "void sound_cache_flush(void);",
+     "ported": true
     },
     {
      "addr": "0x1be4f0",
