@@ -1982,6 +1982,106 @@ void FUN_0006ae10(unsigned long *cp, unsigned char *pp,
   }
 }
 
+/**
+ * Expand one 4-bit colormapped tile into the 32-bit RGBA raster.
+ *
+ * Transcribed from the vendored libtiff (tif_getimage.c `put4bitcmaptile`, the
+ * bitspersample == 4 arm of FUN_0006b780's palette dispatch) rather than
+ * reshaped from the decompiler, which lost every parameter and reported the
+ * body as `void(void)`. Bungie's build differs from upstream the same single
+ * way FUN_0006ac60 does: the colormap comes from the file-scope static at
+ * 0x3340c8 (`Map` above) instead of an `img->PALmap` field. Two dword stores
+ * per source byte is what makes this the 4-bit writer -- each table entry is
+ * the two-pixel run for one packed source byte, so `bw` walks forward inside
+ * the entry while `pp` advances one byte per two pixels (`inc esi`, 0x6af2c).
+ *
+ * The table is read at 0x3340c8, NOT the 0x3340c4 of FUN_0006a910 -- those are
+ * two different statics (BWmap vs Map) and confusing them would silently index
+ * the greyscale table with palette indices.
+ *
+ * Frame, read off the disassembly (Ghidra's `in_stack_...` labels are
+ * ESP-relative junk -- EBX/ESI/EDI are pushed INSIDE the h != 0 guard at
+ * 0x6aef9-0x6af01, after the early-out, so its frame reconstruction is off by
+ * the saves). One 4-byte local at EBP-4 holds the pre-scaled toskew; no
+ * _chkstk. The seven cdecl slots are proven by their reads; only the ORDER is
+ * INFERRED, from upstream's (img, cp, x, y, w, h, fromskew, toskew, pp)
+ * prototype collapsed onto this build's frame:
+ *   +0x08 -> ecx  cp        the dword raster cursor (0x6af08, `add ecx,4`)
+ *   +0x0c -> esi  pp        the byte source cursor (0x6aefb, `inc esi`)
+ *   +0x10         NEVER READ -- upstream's tile-origin y. Kept as a parameter
+ *                 because dropping it would shift every later slot, and all
+ *                 eleven dispatch sites in this TU cast through
+ *                 tiff_put_contig_proc, so a shifted slot would not even warn.
+ *   +0x14 -> edi  w         inner count, re-loaded per row at 0x6af45
+ *   +0x18 -> ecx  h         outer count; the SLOT is then reused as the row
+ *                 counter (0x6af05, then DEC/store/JNZ at 0x6af68-0x6af6c)
+ *   +0x1c         fromskew  halved once up front (see below)
+ *   +0x20         toskew    scaled once, added per row at 0x6af60
+ *
+ * Both counters are unsigned, read off the branch mnemonics rather than
+ * assumed: the row guard is `test ecx,ecx; jbe` (0x6aeef) and the pixel guard
+ * is `cmp edi,2; jc` (0x6af10). Signed counters would emit jle/jl and invert
+ * the zero-trip behaviour for w or h of 0.
+ *
+ * 0x6aee4-0x6aef1: the signed divide-by-2 (`cdq; sub eax,edx; sar eax,1`) runs
+ * ONCE, ahead of the h == 0 test, and is written back over this parameter's own
+ * frame slot before being held for the rest of the call. Upstream spells the
+ * same thing as `pp += fromskew/2` inside the row loop; folding it into the
+ * parameter here is what reproduces the reference's single-slot frame. An
+ * unsigned `>> 1` would drop the round-toward-zero the CDQ/SUB pair encodes.
+ *
+ * toskew is scaled ONCE -- `shl edx,2` (0x6aefe) stored to EBP-4 -- and added
+ * back each row at 0x6af60. That x4 is the compiler's doing: `cp` is a dword
+ * pointer, so `cp += toskew` is the correct spelling. Pre-scaling it in C would
+ * advance the raster four times too far.
+ *
+ * Unlike FUN_0006ac60, this variant re-loads the table from 0x3340c8 INSIDE the
+ * pixel loop (`mov edx,[0x3340c8]`, 0x6af23), so `Map` is indexed in place here
+ * rather than hoisted into a local -- hoisting would move the load out of the
+ * loop and out of the reference's shape.
+ *
+ * Each pixel is three chained loads (0x6af20-0x6af36): the source byte, then
+ * `mov edx,[edx+eax*4]` for the row POINTER, then `[edx]` / `[edx+4]` for the
+ * two pixels. Collapsing that double indirection would store the row pointer
+ * itself as a pixel -- a wrong-pixel bug that no match score would notice.
+ */
+void FUN_0006aee0(unsigned long *cp, unsigned char *pp,
+                  unsigned long unused_arg, unsigned long w, unsigned long h,
+                  long fromskew, long toskew)
+{
+  unsigned long *bw;
+  unsigned long x;
+
+  /* Upstream discards the tile-origin arguments the same way. */
+  (void)unused_arg;
+
+  /* 0x6aee4-0x6aef1, written back over the parameter's own slot. */
+  fromskew /= 2;
+
+  /* 0x6aeef guard, 0x6af68-0x6af6c decrement-and-branch back to 0x6af05. */
+  while (h-- > 0) {
+    /* 0x6af10 guard, 0x6af20-0x6af3e body: EDI = w >> 1 is the unrolled trip
+     * count (DEC EDI / JNZ 0x6af40) and EBX = w carries the residue via
+     * `sub ebx,2` (0x6af3c). That is libtiff's UNROLL2 verbatim. */
+    for (x = w; x >= 2; x -= 2) {
+      bw = Map[*pp++];
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+    }
+    /* 0x6af48 `test ebx,ebx; jz`, then 0x6af4c-0x6af5d: the same table load
+     * and `inc esi`, but only the first pixel of the entry. */
+    if (x > 0) {
+      bw = Map[*pp++];
+      *cp++ = *bw;
+    }
+
+    /* 0x6af60: `add ecx,[ebp-4]` with the slot holding toskew*4. */
+    cp += toskew;
+    /* 0x6af63: unscaled -- pp is a byte cursor. */
+    pp += fromskew;
+  }
+}
+
 /*
  * FUN_0006b780 -- 0x6b780, upstream libtiff's PickContigCase.
  *
