@@ -36888,7 +36888,8 @@
     },
     {
      "addr": "0x81c80",
-     "decl": "const char *FUN_00081c80(int error_code);"
+     "decl": "const char *FUN_00081c80(int error_code);",
+     "ported": true
     },
     {
      "addr": "0x81e00",

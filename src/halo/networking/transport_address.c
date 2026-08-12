@@ -130,3 +130,96 @@ const char *transport_address_to_string(void *addr_)
 
 #undef addr
 }
+
+/* Transport-layer result/error codes.
+ *
+ * Confirmed: the member NAMES are exact -- each one is the .rdata string the
+ * matching case returns (0x26611c-0x266438), and the leading underscore is
+ * Bungie's usual enum-constant spelling, so the original almost certainly
+ * stringized the constant rather than hand-typing a parallel literal table.
+ * Confirmed: the VALUES are exact -- the dispatch biases the selector by +23
+ * and indexes a 24-entry jump table at 0x81d4c, so table index i selects
+ * selector (i - 23): index 0 is _transport_result_connect_in_progress (-23)
+ * and index 0x17 is _transport_error_none (0).
+ * Uncertain: the enum's TYPE name is not recoverable from the binary (no
+ * assert or string names it), so this stays an anonymous enum rather than
+ * inventing one. */
+enum {
+  _transport_error_none = 0,
+  _transport_error_unknown = -1,
+  _transport_error_endpoint_io = -2,
+  _transport_error_connection_lost = -3,
+  _transport_result_operation_would_block = -4,
+  _transport_error_not_initialized = -5,
+  _transport_result_already_initialized = -6,
+  _transport_error_bad_input_parameters = -7,
+  _transport_error_dns_lookup_failure = -8,
+  _transport_error_out_of_memory = -9,
+  _transport_error_seg_fault = -10,
+  _transport_error_buffers_full = -11,
+  _transport_error_bad_endpoint = -12,
+  _transport_result_poll_timeout = -13,
+  _transport_error_bind_endpoint = -14,
+  _transport_error_address_unknown = -15,
+  _transport_error_connect_failed = -16,
+  _transport_error_listen_failed = -17,
+  _transport_error_options_failed = -18,
+  _transport_error_endpoint_not_in_set = -19,
+  _transport_error_endpoint_set_full = -20,
+  _transport_error_poll_error = -21,
+  _transport_result_dns_lookup_in_progress = -22,
+  _transport_result_connect_in_progress = -23
+};
+
+/* Emit one `case <code>: return "<code>";` pair. Keeps the returned literal
+ * and the case label from ever drifting apart, which is the only real hazard
+ * in a 25-way table of near-identical strings. */
+#define TRANSPORT_ERROR_CASE(code) \
+  case code:                       \
+    return #code
+
+/* Map a transport result/error code to its printable name.
+ *
+ * Confirmed: cdecl, one stack parameter (EBP+8), returns in EAX; pure leaf --
+ * there is not a single CALL in the body, every case is
+ * MOV EAX,<string VA> / POP EBP / RET.
+ * Confirmed: the selector is NARROWED TO SIGNED 16 BITS before dispatch
+ * (MOVSX EAX, word ptr [EBP+8] at 0x81c83), so only the low half of the
+ * argument participates; a caller passing 0x1ffff would select the same case
+ * as -1. The (short) cast below is what makes MSVC re-emit that MOVSX -- with
+ * the raw int the dispatch degenerates into a different (much wider) form.
+ * Confirmed: the case ARMS are emitted in the source order reproduced below
+ * (0, -1, -2, ... -23, then default) -- the return blocks ascend through
+ * 0x81c9a..0x81d3b while their string operands descend through
+ * 0x266438..0x26611c, and the default arm at 0x81d42 is last. */
+const char *FUN_00081c80(int error_code)
+{
+  switch ((short)error_code) {
+    TRANSPORT_ERROR_CASE(_transport_error_none);
+    TRANSPORT_ERROR_CASE(_transport_error_unknown);
+    TRANSPORT_ERROR_CASE(_transport_error_endpoint_io);
+    TRANSPORT_ERROR_CASE(_transport_error_connection_lost);
+    TRANSPORT_ERROR_CASE(_transport_result_operation_would_block);
+    TRANSPORT_ERROR_CASE(_transport_error_not_initialized);
+    TRANSPORT_ERROR_CASE(_transport_result_already_initialized);
+    TRANSPORT_ERROR_CASE(_transport_error_bad_input_parameters);
+    TRANSPORT_ERROR_CASE(_transport_error_dns_lookup_failure);
+    TRANSPORT_ERROR_CASE(_transport_error_out_of_memory);
+    TRANSPORT_ERROR_CASE(_transport_error_seg_fault);
+    TRANSPORT_ERROR_CASE(_transport_error_buffers_full);
+    TRANSPORT_ERROR_CASE(_transport_error_bad_endpoint);
+    TRANSPORT_ERROR_CASE(_transport_result_poll_timeout);
+    TRANSPORT_ERROR_CASE(_transport_error_bind_endpoint);
+    TRANSPORT_ERROR_CASE(_transport_error_address_unknown);
+    TRANSPORT_ERROR_CASE(_transport_error_connect_failed);
+    TRANSPORT_ERROR_CASE(_transport_error_listen_failed);
+    TRANSPORT_ERROR_CASE(_transport_error_options_failed);
+    TRANSPORT_ERROR_CASE(_transport_error_endpoint_not_in_set);
+    TRANSPORT_ERROR_CASE(_transport_error_endpoint_set_full);
+    TRANSPORT_ERROR_CASE(_transport_error_poll_error);
+    TRANSPORT_ERROR_CASE(_transport_result_dns_lookup_in_progress);
+    TRANSPORT_ERROR_CASE(_transport_result_connect_in_progress);
+  default:
+    return "<unknown transport error>";
+  }
+}

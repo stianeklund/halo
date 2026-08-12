@@ -5519,6 +5519,17 @@
       "score": 80.0,
       "source": "src/halo/bitmaps/bitmaps.c"
     },
+    "FUN_00081c80": {
+      "addr": "0x81c80",
+      "end": "0x81d49",
+      "kind": "auto",
+      "n_r": 82,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "5c074ab2a86a8cfa",
+      "score": 100.0,
+      "source": "src/halo/networking/transport_address.c"
+    },
     "FUN_00082b30": {
       "addr": "0x82b30",
       "end": "0x82bc5",
