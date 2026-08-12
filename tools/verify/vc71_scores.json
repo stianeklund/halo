@@ -1471,6 +1471,17 @@
       "score": 80.6,
       "source": "src/halo/ai/actor_combat.c"
     },
+    "FUN_00024060": {
+      "addr": "0x24060",
+      "end": "0x2412d",
+      "kind": "auto",
+      "n_r": 67,
+      "opnd_percent": 98.5,
+      "ref": "synth",
+      "ref_sha": "c4c5473c7a791dff",
+      "score": 100.0,
+      "source": "src/halo/ai/actor_firing_position.c"
+    },
     "FUN_00024130": {
       "addr": "0x24130",
       "end": "0x24367",
@@ -1491,6 +1502,17 @@
       "ref": "synth",
       "ref_sha": "227586b3b68b04c1",
       "score": 89.0,
+      "source": "src/halo/ai/actor_firing_position.c"
+    },
+    "FUN_00024770": {
+      "addr": "0x24770",
+      "end": "0x24848",
+      "kind": "auto",
+      "n_r": 69,
+      "opnd_percent": 84.4,
+      "ref": "synth",
+      "ref_sha": "f606b430b79fe493",
+      "score": 90.4,
       "source": "src/halo/ai/actor_firing_position.c"
     },
     "FUN_00024950": {

@@ -69,6 +69,78 @@
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif
 
+/* FUN_00024060 (0x24060) — the "close is good" distance ramp over a whole
+ * candidate firing-position array.
+ *
+ * Four cdecl stack parameters, same shape as FUN_00024130 below (its twin in
+ * the same dispatch family): [EBP+8] is never read in the body — a dead
+ * parameter kept for the shared signature — [EBP+0xc] is the eval_state
+ * pointer (only field touched is the float at +0x18), [EBP+0x10] is read as
+ * MOV AX,word ptr / TEST AX,AX / JLE, i.e. a signed int16 count, and
+ * [EBP+0x14] is the candidate array base. kb.json previously declared this
+ * void(void); that was wrong.
+ *
+ * The PUSH EBX/ESI/EDI saves sit *inside* the count>0 branch, after the JLE —
+ * the empty-count path touches only EBP, which is what a plain leading
+ * `for (i = 0; i < count; i++)` compiles to once MSVC inverts the loop
+ * (MOVZX EBX,AX then DEC EBX / JNZ).
+ *
+ * After the prologue MSVC reuses the incoming parameter home slots as float
+ * scratch: [EBP+0x10] holds `evaluation` and [EBP+0x14] holds `threshold`.
+ * Ghidra's `_in_stack_0000000c` is that spilled local, not a write back
+ * through a parameter.
+ *
+ * ESI is loaded as firing_positions + 8, so every ESI-relative displacement in
+ * the listing is 8 short of the true record offset. The record is the same
+ * 0x3c-stride candidate FUN_00024130 / FUN_00024370 / FUN_00024950 walk:
+ *   +0x08  float  the candidate's distance
+ *   +0x30  char   usable flag
+ *   +0x38  float  the accumulated score
+ *
+ * Branch senses are both the MSVC `<` idiom (FLD lhs; FCOMP rhs; TEST AH,0x5;
+ * JP over-the-then-block), so the JP-taken edge is the >= case and the
+ * fallthrough is the `<` case — the 8.0f store at 0x240b3 is the then-block of
+ * `distance < threshold`, not an else.
+ *
+ * Constants read out of .rdata rather than guessed: [0x253398] = 0.5f,
+ * [0x2533c8] = 1.0f, [0x253f78] = 8.0f, [0x2533c0] = 0.0f, [0x254cb8] =
+ * 1000.0f. The 8.0f fallback is stored as the immediate 0x41000000.
+ *
+ * x87 association is load-bearing: 0x2408f..0x240a0 evaluate (eval_state+0x18
+ * minus distance) first (FLD [EDI+0x18]; FSUB [ESI]), then form the reciprocal
+ * factor on a fresh stack slot (FLD 1.0f; FDIV threshold) and FMULP, then
+ * FMUL 8.0f. Ghidra printed the two factors in the opposite order. */
+void FUN_00024060(int actor_handle, char *eval_state,
+                  short firing_position_count, char *firing_positions)
+{
+  char *firing_position;
+  float threshold;
+  float evaluation;
+  short i;
+
+  (void)actor_handle;
+
+  firing_position = firing_positions;
+  for (i = 0; i < firing_position_count; i++) {
+    if (firing_position[0x30] != '\0') {
+      evaluation = 0.0f;
+      threshold = *(float *)(eval_state + 0x18) * 0.5f;
+      if (*(float *)(firing_position + 8) < threshold) {
+        evaluation = 8.0f;
+      } else if (*(float *)(firing_position + 8) <
+                 *(float *)(eval_state + 0x18)) {
+        evaluation =
+          (*(float *)(eval_state + 0x18) - *(float *)(firing_position + 8)) *
+          (1.0f / threshold) * 8.0f;
+        assert_halt_at("c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x81,
+                       (evaluation >= 0.0f) && (evaluation < 1e+03f));
+      }
+      *(float *)(firing_position + 0x38) += evaluation;
+    }
+    firing_position += 0x3c;
+  }
+}
+
 /* FUN_00024130 (0x24130) — run the two shared scoring passes over a whole
  * candidate firing-position array.
  *
