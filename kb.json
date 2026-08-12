@@ -34214,7 +34214,8 @@
     },
     {
      "addr": "0x6a910",
-     "decl": "void FUN_0006a910(void);"
+     "decl": "void FUN_0006a910(unsigned long *cp, unsigned char *pp, unsigned long unused_arg, unsigned long w, unsigned long h, long fromskew, long toskew);",
+     "ported": true
     },
     {
      "addr": "0x6a9a0",

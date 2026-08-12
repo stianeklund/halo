@@ -2171,6 +2171,91 @@
         "The upstream libtiff identity of this entry point and the meaning of bit 0 of the byte at tif+0x9 are both UNKNOWN; in particular it is unproven whether that byte is byte 1 of an upstream uint32 tif_flags based at 0x08, so the bit is set with a literal 1 and cleared with 0xfe rather than a named TIFF_ macro."
       ]
     },
+    "0x69520": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "By shape this is upstream libtiff tif_fax3.c:Fax3PostEncode -- the bit!=8 guard, the flush-check-before-store order inside _FlushBits/Fax3FlushBits, and the unconditional return 1 all line up; no __FILE__ string proves the TU and kb.json maps the address into tif_flush.obj, so the upstream identity is shape-inferred only.",
+        "The codec private state reached through tif_data (0x120) is typed locally in tif_flush.c as tiff_codec_bits_t (short data at 0x00, short bit at 0x02, const unsigned char *bitmap at 0x14); the offsets and widths are proven from MOVSX word [edi], cmp/mov word [edi+2],8 and mov edx,[edi+0x14], but the field NAMES are borrowed from upstream fax3 encoder state and are not proven by any binary string."
+      ],
+      "uncertain": [
+        "Bytes 0x04..0x13 of the codec state block are never touched by this body and are carried as pad_004[16]; a later function reading them would mean this struct recovery is incomplete, not that the padding is wrong.",
+        "The byte written is a table lookup bitmap[data] (mov cl,[ecx+edx] at 0x69552) rather than upstream's raw accumulator store; the table is assumed to be a FillOrder bit-reversal table by analogy with fax3, which is not proven from this function alone."
+      ]
+    },
+    "0x69590": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "By shape this is upstream libtiff tif_fax3.c Fax3Close: a flag guard around six iterations of a single-pointer helper followed by a bit flush into the Fax3PostEncode-shaped neighbour at 0x69520; the upstream identity is inferred from shape alone because no __FILE__ string for tif_fax3.c is stamped in this body and kb.json maps the address into tif_flush.obj.",
+        "Return type is void: there is no MOV EAX on either path, so the 1 that FUN_00069520 leaves in EAX falls through untouched, consistent with upstream's void (*tif_close)(TIFF*) slot."
+      ],
+      "uncertain": [
+        "The guard tests bit 0 of the byte at tif+9 (tiff_t.field_09) with a literal rather than a FAXMODE_NORTC name, because upstream keeps that mode word in the codec private state block at tif_data (0x120) and not in the handle itself, so the correspondence is unproven.",
+        "FUN_000693b0 is deliberately left unnamed: it takes the same lone TIFF pointer as upstream Fax3PutEOL, but nothing recovered so far proves it emits an EOL code rather than some other fixed bit pattern."
+      ]
+    },
+    "0x695c0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The upstream identity Fax3Cleanup is inferred from body shape (test tif_data / free / null store) rather than proven; what IS confirmed is the translation unit, because the pushed __FILE__ literal at 0x260058 is c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_fax3.c with __LINE__ 1077 (0x435).",
+        "The kb.json declaration was widened from void FUN_000695c0(void) to void FUN_000695c0(void *tif) because the body reads the first stack argument at 0x695c4 (mov esi,[ebp+8]), which Ghidra surfaced only as in_stack_00000004; this is plain cdecl with caller-side add esp,0xc, so no @<reg> annotation is involved."
+      ],
+      "uncertain": [
+        "The freed block at tif+0x120 is typed tiff_codec_bits_t* by reusing this translation unit's own private-state shape recovered from FUN_00069520; nothing in this body proves the fax3 codec's state has that layout, and debug_free takes void* so the type is never load-bearing here."
+      ]
+    },
+    "0x6a190": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Upstream TU is tif_fax3.c, not tif_dumpmode.c: the callees this body installs as tif_close and tif_cleanup (0x69590, 0x695c0) are the Fax3 helpers already recovered in tif_flush.c, and 0x695c0 stamps the string c:\\\\halo\\\\SOURCE\\\\bitmaps\\\\libtiff\\\\tif_fax3.c; upstream TIFFInitDumpMode is a different function, FUN_00068970.",
+        "The shared upstream helper InitCCITTFax3 is fully inlined here: the body issues no CALL at all and takes all six callee addresses as function-pointer values only.",
+        "tif_setupdecode (0xf0) and tif_setupencode (0xf4) receive two DIFFERENT addresses (0x68d80 and 0x69420) where stock libtiff installs Fax3SetupState in both slots, so the two slots are kept distinct rather than collapsed."
+      ],
+      "uncertain": [
+        "Which CCITT variant this is (RLE / RLEW / Fax3 / Fax4) is unresolved: the sibling installers at 0x6a210, 0x6a2a0 and 0x6a310 are unrecovered and nothing here writes a mode or groupoptions field, so the decode/encode pair 0x6a070 / 0x69f30 is the only discriminator and it is not yet identified.",
+        "The bit meanings of field_09 bit 0 and field_0a bit 0x20 are unproven: under the assumption that tif_flags is a uint32 based at 0x08, upstream TIFF_NOBITREV (0x100) would land in field_09 rather than field_0a, so Bungie's flag numbering does not match stock libtiff and both bits are set with literals rather than TIFF_* macros.",
+        "The int return type of tif_setupdecode and tif_setupencode is inferred from upstream field types; the prototypes of FUN_00068d80 and FUN_00069420 are still unrecovered."
+      ]
+    },
+    "0x6a210": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The bit identities 0x8 = TIFF_BEENWRITING and 0x200 = TIFF_POSTENCODE are inferred from upstream libtiff, not proven from this binary: Bungie's flag numbering does not match stock libtiff, so both bits are written as literals rather than TIFF_* macros.",
+        "The 16-bit flags field at tiff_s+0x0a is inferred to be a single upstream uint16 tif_flags whose byte accesses elsewhere in the TU (TIFFIsTiled, FUN_00068780, FUN_0006a190) are MSVC narrowings; the struct models it as a union of a char and an unsigned short view so each recovered body keeps the width its own disassembly shows."
+      ],
+      "uncertain": [
+        "The VC71 score of 81.5% is depressed by a scorer artifact rather than a lift defect: the compiled body is 29 instructions and differs from the 31-instruction reference only in a single test ah,2 replacing mov ecx,eax/and ecx,0x200/testw cx,cx, but the candidate is truncated at its first RET so the six-instruction TIFFFlushData1 tail block is dropped from the count; true LCS is 28 of 31."
+      ]
+    },
+    "0x6a310": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "By shape this is upstream libtiff tif_getimage.c:setorientation, not a tif_flush.obj/tif_dumpmode function: the body is the ORIENTATION-normalisation switch (TIFFGetFieldDefaulted for tag 0x112, TIFFWarning, force to BOTLEFT or TOPLEFT), and kb.json's tif_flush.obj placement is the object mapping rather than proof of the upstream translation unit.",
+        "The EAX return is upstream's starting raster row y: the bottom-left arm returns 0 (xor eax,eax at 0x6a35a) and the top-left arm returns the second parameter minus one (mov eax,[ebp+0xc]; dec eax at 0x6a37b), which is upstream's y = 0 / y = h-1, so the second stack parameter is the image height in rows.",
+        "The global at 0x3340dc is INFERRED to be a cached copy of the TIFF file name: the binary proves only that it holds a dword pointer (mov ecx,[0x3340dc] at 0x6a33d, mov edx at 0x6a35e) that is passed as TIFFWarning's module argument, the slot upstream fills with TIFFFileName(tif); there is no call to TIFFFileName anywhere in this function."
+      ],
+      "uncertain": [
+        "No callers of 0x6a310 are recovered yet, so the second parameter's identity as the image height cannot be cross-checked against a call site; it rests entirely on the h-1 return matching upstream setorientation.",
+        "The global at 0x3340f0 is named orientation because it slots directly below photometric in the tif_getimage.c file-static run already recovered in tif_open.c (0x3340f4 photometric, 0x3340f8 samplesperpixel, 0x3340fc bitspersample); the 16-bit width is proven by the movzx word read and the two word stores, but the position in that static block is inference from layout, not from a string or assert."
+      ]
+    },
+    "0x6a910": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Identified as upstream libtiff tif_getimage.c putgreytile (the UNROLL8 greyscale/palette contig put routine) from the double-indirection body BWmap[*pp++][0] plus the w>>3-and-remainder loop split; the object mapping into tif_flush.obj is kb.json grouping and not evidence of the upstream translation unit, exactly as with setorientation at 0x6a310.",
+        "The pointee type of the file static at 0x3340c4 is PROVEN to be unsigned long ** by the three chained loads at 0x6a92b/0x6a953/0x6a956, but the name BWmap remains inferred from tif_open.c's upstream free order rather than proven."
+      ],
+      "uncertain": [
+        "The stack slot at EBP+0x10 is never read anywhere in the body; it is one of upstream libtiff's tile-origin arguments (x or y), but which one is unrecoverable because this build's put-routine typedef takes only one where upstream takes both.",
+        "The unrolled loop at 0x6a950 emits the copy body exactly ONCE while counting sub esi,8 and running w>>3 iterations, so a row of w pixels advances the cursors by only w/8 (+1) pixels instead of upstream's eight-per-iteration REPEAT8 expansion; whether Bungie reduced the REPEAT macros for code size or these paths are simply dead in this build is not recoverable from the binary."
+      ]
+    },
     "0x6c400": {
       "kind": "function",
       "status": "ported"

@@ -1044,6 +1044,22 @@ int FUN_0006a260(void *tif_)
 #define orientation (*(unsigned short *)0x3340f0)
 #define filename (*(char **)0x3340dc)
 
+/* The bilevel/greyscale expansion table, same static tif_open.c frees at
+ * tif_getimage.c line 127. tif_open.c only ever assigns and frees it, so it is
+ * declared `void *` there; FUN_0006a910 below is what proves the pointee type,
+ * and the proof is three chained loads per pixel:
+ *   mov   edi, [0x3340c4]      0x6a92b  the table, loaded ONCE for the whole
+ *                                       call, ahead of both loops
+ *   movzx ebx, byte ptr [ecx]  0x6a950  the source byte
+ *   mov   ebx, [edi+ebx*4]     0x6a953  BWmap[byte] -- the *4 scale makes this
+ *                                       an array of POINTERS, not of pixels
+ *   mov   ebx, [ebx]           0x6a956  *that pointer -- the pixel value
+ * so the storage at 0x3340c4 has type `unsigned long **`. The double
+ * indirection is load-bearing: collapsing it to one load would store the row
+ * pointer itself as a pixel, which is a wrong-pixel bug no match score would
+ * notice. */
+#define BWmap (*(unsigned long ***)0x3340c4)
+
 #define TIFFTAG_ORIENTATION 274 /* 0x112, pushed at 0x6a31b */
 
 /* The standard TIFF tag-6 enumeration. The jump table at 0x6a384 spans exactly
@@ -1053,10 +1069,12 @@ int FUN_0006a260(void *tif_)
  * only the ORIENTATION_* assignment below puts the three bottom-row codes and
  * the three top-row codes in those groups. */
 #define ORIENTATION_TOPLEFT 1 /* jump idx 0 -> 0x6a37b (y = h-1) */
-#define ORIENTATION_TOPRIGHT 2 /* jump idx 1 -> 0x6a35e (warn, force TOPLEFT) \
-                                */
-#define ORIENTATION_BOTRIGHT 3 /* jump idx 2 -> 0x6a33d (warn, force BOTLEFT) \
-                                */
+#define ORIENTATION_TOPRIGHT                       \
+  2 /* jump idx 1 -> 0x6a35e (warn, force TOPLEFT) \
+     */
+#define ORIENTATION_BOTRIGHT                       \
+  3 /* jump idx 2 -> 0x6a33d (warn, force BOTLEFT) \
+     */
 #define ORIENTATION_BOTLEFT 4 /* jump idx 3 -> 0x6a35a (y = 0) */
 #define ORIENTATION_LEFTTOP 5 /* jump idx 4 -> 0x6a35e */
 #define ORIENTATION_RIGHTTOP 6 /* jump idx 5 -> 0x6a35e */
@@ -1143,4 +1161,106 @@ unsigned long FUN_0006a310(void *tif, unsigned long h)
     break;
   }
   return y;
+}
+
+/**
+ * Expand one contiguous 8-bit greyscale/palette tile into the 32bpp raster.
+ *
+ * Upstream libtiff tif_getimage.c putgreytile -- the `UNROLL8(w, ,
+ * *tp++ = BWmap[*pp++][0])` body -- grouped by kb.json into tif_flush.obj like
+ * setorientation above, and like setorientation it reaches its table through a
+ * file static because this build predates the TIFFRGBAImage struct.
+ *
+ * ABI recovered from the frame at 0x6a910: `push ebp / mov ebp,esp / push ecx`
+ * (that single push is the one 4-byte local at EBP-4, see toskew below), plus
+ * `push ebx / esi / edi` scheduled *after* the zero-row guard, and a plain
+ * `mov esp,ebp / pop ebp / ret` with no `add esp` -- cdecl, void return, no
+ * register arguments. The decompiler reported this as `void(void)` and put
+ * every parameter in an `in_stack_...` pseudo-local, so the kb.json decl it
+ * seeded (`void FUN_0006a910(void)`) was a placeholder; the seven stack slots
+ * below are read straight off the disassembly:
+ *   EBP+0x08  cp        `mov eax,[ebp+8]`     0x6a93a  dword cursor, `mov
+ *                                                      [eax],ebx` + `add eax,4`
+ *   EBP+0x0c  pp        `mov ecx,[ebp+0xc]`   0x6a926  byte cursor, `movzx
+ *                                                      ebx,byte ptr [ecx]`
+ *   EBP+0x10  (unread)  --                             see below
+ *   EBP+0x14  w         `mov edx,[ebp+0x14]`  0x6a934  and again at 0x6a964
+ *   EBP+0x18  h         `mov eax,[ebp+0x18]`  0x6a914  row counter, written
+ *                                                      back at 0x6a987
+ *   EBP+0x1c  fromskew  `mov ebx,[ebp+0x1c]`  0x6a97c  `add ecx,ebx` 0x6a984
+ *   EBP+0x20  toskew    `mov ecx,[ebp+0x20]`  0x6a91b  `lea edx,[ecx*4]`
+ *
+ * The slot at EBP+0x10 is never read anywhere in the body. It is one of
+ * upstream's `(void) x; (void) y;` tile-origin arguments, but WHICH one is
+ * unknown -- upstream's put routines take both and this build's typedef takes
+ * only one, so there is nothing to disambiguate against and the parameter
+ * keeps a deliberately empty name. It must stay in the signature regardless:
+ * dropping it would shift w/h/fromskew/toskew down one slot each and silently
+ * mis-call the function from every future caller.
+ *
+ * Every counter is unsigned, and that is read off the branch mnemonics rather
+ * than assumed: the row guard is `test eax,eax; jbe` (0x6a917), the unrolled
+ * entry is `cmp edx,8; jb` (0x6a940) and the remainder test is `test esi,esi;
+ * jbe` (0x6a967). Signed counters would emit jle/jl and invert the zero-trip
+ * and remainder guards on a negative w or h.
+ *
+ * toskew is scaled ONCE, before the row loop: `mov ecx,[ebp+0x20]; lea
+ * edx,[ecx*4]; mov [ebp-4],edx` (0x6a91b-0x6a931), and each row then does
+ * `mov esi,[ebp-4]; add eax,esi` (0x6a979, 0x6a97f). That hoisted `toskew * 4`
+ * is the sole stack local and it is the compiler's doing, not the source's --
+ * `cp` is a dword pointer, so `cp += toskew` is the correct spelling here.
+ * Pre-scaling it in C would advance the raster four times too far.
+ *
+ * WARNING -- the unrolled loop below is deliberately NOT eight copies, and
+ * this is the one thing to leave alone. Upstream's UNROLL8 expands op2 through
+ * REPEAT8, so upstream consumes eight source bytes and writes eight raster
+ * pixels per iteration of the `_x >= 8` loop, with a Duff's-device REPEAT for
+ * the tail. This build emits the op2 body exactly ONCE in each arm
+ * (0x6a950-0x6a95d for the loop, 0x6a96b-0x6a978 for the tail) while still
+ * counting `sub esi,8` (0x6a95e) and running `w >> 3` iterations (`shr edx,3`,
+ * 0x6a947), so a row of w pixels advances the cursors by only w/8 (+1) pixels.
+ * Whether Bungie reduced the REPEAT macros for size or the paths are simply
+ * dead here is not recoverable from the binary, but the emitted arithmetic is
+ * unambiguous. "Fixing" this into eight copies would change behaviour.
+ *
+ * The `mov edx,[ebp+0x14]` at 0x6a964 sits on the taken path only: EDX doubles
+ * as the `w >> 3` trip counter and is left at zero by `dec edx; jne`, so w has
+ * to be reloaded for the next row's `cmp edx,8`, whereas the w < 8 path never
+ * touched it. That is register allocation around a live-after-loop counter,
+ * not a second source read.
+ */
+void FUN_0006a910(unsigned long *cp, unsigned char *pp,
+                  unsigned long unused_arg, unsigned long w, unsigned long h,
+                  long fromskew, long toskew)
+{
+  unsigned long **bwmap;
+  unsigned long x;
+
+  /* Upstream discards the tile-origin arguments the same way. */
+  (void)unused_arg;
+
+  /* 0x6a92b: hoisted out of both loops into EDI for the whole call. */
+  bwmap = BWmap;
+
+  /* 0x6a914-0x6a919 guard, 0x6a981-0x6a98a decrement-and-branch: the counter
+   * lives in its own argument slot (`mov [ebp+0x18],esi` at 0x6a987) because
+   * all six usable GPRs are already taken by cp, pp, w, the table and the two
+   * scratch values, so h is genuinely modified in place here. */
+  while (h-- > 0) {
+    /* 0x6a940-0x6a962. `x` is upstream's UNROLL8 `_x`; it stays live past the
+     * loop for the tail test, which is why the compiler keeps `sub esi,8`
+     * alongside the separate `dec edx` trip count. */
+    for (x = w; x >= 8; x -= 8)
+      *cp++ = bwmap[*pp++][0];
+
+    /* 0x6a967-0x6a978. One copy, not REPEAT(_x, op2) -- see the warning
+     * above. */
+    if (x > 0)
+      *cp++ = bwmap[*pp++][0];
+
+    /* 0x6a97f: `add eax,esi` with ESI = the pre-scaled toskew*4. */
+    cp += toskew;
+    /* 0x6a984: `add ecx,ebx`, unscaled -- pp is a byte cursor. */
+    pp += fromskew;
+  }
 }
