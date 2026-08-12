@@ -33543,10 +33543,10 @@
       "end": "0xad9ad",
       "kind": "auto",
       "n_r": 318,
-      "opnd_percent": 60.6,
+      "opnd_percent": 61.2,
       "ref": "synth",
       "ref_sha": "ffff6464131a9467",
-      "score": 86.7,
+      "score": 88.3,
       "source": "src/halo/game/game_engine.c"
     },
     "game_engine_playlist_begin": {
