@@ -36878,7 +36878,8 @@
    "functions": [
     {
      "addr": "0x81b90",
-     "decl": "const char *transport_address_to_string(void *addr);"
+     "decl": "const char *transport_address_to_string(void *addr);",
+     "ported": true
     },
     {
      "addr": "0x81a90",

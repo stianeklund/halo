@@ -47149,6 +47149,17 @@
       "score": 98.2,
       "source": "src/halo/networking/transport_address.c"
     },
+    "transport_address_to_string": {
+      "addr": "0x81b90",
+      "end": "0x81c75",
+      "kind": "auto",
+      "n_r": 76,
+      "opnd_percent": 92.1,
+      "ref": "synth",
+      "ref_sha": "11194def76a26f7a",
+      "score": 100.0,
+      "source": "src/halo/networking/transport_address.c"
+    },
     "transport_dispose": {
       "addr": "0x822d0",
       "end": "0x822f9",
