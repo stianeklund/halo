@@ -10528,7 +10528,8 @@
     },
     {
      "addr": "0xc27d0",
-     "decl": "void FUN_000c27d0(void);"
+     "decl": "void FUN_000c27d0(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc2810",
@@ -13389,7 +13390,7 @@
     },
     {
      "addr": "0x100560",
-     "decl": "void main_skip(void);"
+     "decl": "void main_skip(int param_1);"
     },
     {
      "addr": "0x100590",

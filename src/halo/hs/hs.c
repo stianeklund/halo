@@ -4419,6 +4419,55 @@ void FUN_000c2790(int16_t function_index, int thread_datum, char init)
   return;
 }
 
+/* 0xc27d0 — HS script function handler: main-loop skip request. Structural
+ * twin of 0xc1050/0xc1090 (identical codegen; differs only in the dispatch
+ * callee). Drives hs_macro_function_evaluate to evaluate the call's argument
+ * expressions; when the values array is ready (non-null return), reads the
+ * first evaluated value as a zero-extended 16-bit quantity (original:
+ * XOR EDX,EDX; MOV DX,word ptr [EAX], so the low 16 bits are the payload and
+ * the value widens unsigned to int) and passes it to main_skip at 0x100560,
+ * then commits a zero result to the thread via hs_return. While arguments are
+ * still being evaluated the return is null and nothing is dispatched.
+ *
+ * ABI (verified against disassembly 0xc27d0-0xc2805): cdecl, plain RET. Frame
+ * is PUSH EBP / MOV EBP,ESP / PUSH ESI; the params are pure stack slots that
+ * Ghidra drops entirely (it reports `void FUN_000c27d0(void)` with
+ * in_stack_* locals):
+ *   [EBP+0x8]  = function_index (int16), loaded into ECX
+ *   [EBP+0xc]  = thread_datum, held in ESI across both calls
+ *   [EBP+0x10] = init (char), loaded into EAX
+ *   0xcc560 = hs_macro_function_evaluate — PUSH EAX / PUSH ESI / PUSH ECX,
+ *             right-to-left, and ADD ESP,0xc confirms 3 args.
+ *   0x100560 = main_skip — ONE stack arg (PUSH EDX after the zero-extending
+ *             word load). Ghidra shows a bare `FUN_00100560()` and kb.json
+ *             declared `void main_skip(void)`; both are wrong, and calling it
+ *             as (void) would leave the callee reading whatever was on the
+ *             stack. The decl is widened here with that push as the evidence.
+ *   0xcbf80 = hs_return(thread_datum, 0) — PUSH 0x0 then PUSH ESI, so the
+ *             first PUSH is the last C argument.
+ *
+ * The trailing ADD ESP,0xc at 0xc27ff covers THREE pushes: the one for
+ * main_skip plus the two for hs_return, coalesced as ordinary MSVC
+ * adjacent-call codegen. main_skip's single argument is not popped separately,
+ * which also proves it is cdecl and not stdcall. The ARG_COUNT hazard reported
+ * against hs_return (cleanup=3 vs decl=2) is therefore a false positive from
+ * mis-grouping that shared cleanup — hs_return really does take 2 args and
+ * must not be widened.
+ *
+ * No FPU ops, no local buffers, and no struct offsets beyond the int16 field
+ * at record +0. */
+void FUN_000c27d0(int16_t function_index, int thread_datum, char init)
+{
+  unsigned short *result;
+
+  result = (unsigned short *)hs_macro_function_evaluate(function_index,
+                                                        thread_datum, init);
+  if (result != (unsigned short *)0x0) {
+    main_skip(*result);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
