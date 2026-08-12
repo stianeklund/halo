@@ -37434,7 +37434,9 @@
       "functions": [
         {
           "addr": "0x1be550",
-          "decl": "int sound_cache_request_sound(void *permutation, int a2, int a3, int a4);"
+          "decl": "bool sound_cache_request_sound(void *sound_ptr, bool block, bool load, bool reference);",
+          "name": "sound_cache_request_sound",
+          "ported": true
         },
         {
           "addr": "0x1bded0",
