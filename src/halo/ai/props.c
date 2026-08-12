@@ -431,7 +431,7 @@ void FUN_00064ee0(int tif_)
 
   /* Flush / write-back if flags indicate pending output. */
   if (*(short *)(tif + 0x6) != 0) {
-    FUN_0006a260(tif_);
+    FUN_0006a260((void *)tif_);
   }
 
   /* Call per-codec cleanup callback if registered. */
