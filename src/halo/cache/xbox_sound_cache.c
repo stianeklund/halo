@@ -21,6 +21,12 @@
 #define sound_cache_permutation(sound) \
   (*(char **)(sound_cache_datum(sound) + 8))
 
+/* Base address of the cache's backing store in hardware sound memory. Named
+ * from the assert message ("xbox_sound_cache_globals.base_address"); typed int
+ * because its producer (FUN_001bdd70) returns EAX as an int and the only use
+ * observed here is the != 0 test. */
+#define xbox_sound_cache_base_address (*(int *)0x4e936c)
+
 /* Outstanding hardware sound references. Compared with a 16-bit operand
  * (CMP word ptr [0x5054ea],0), so the global is 2 bytes wide, not 4. Name from
  * the assert message; signedness unproven (only the != 0 test is observed). */
@@ -88,4 +94,35 @@ void sound_cache_sound_delete(sound_cache_sound *sound)
 
   sound->field_2c = NONE;
   sound->cache_base_address = NULL;
+}
+
+/* Bring up the Xbox sound cache: the datum table that tracks per-sound cache
+ * records, the LRU-V cache itself (0x400 pages of 2^0xc bytes, up to 0x200
+ * blocks, with the TU's own block-delete and block-query callbacks), and the
+ * base address of the backing store in hardware sound memory. Every step is
+ * fatal on failure. */
+void sound_cache_new(void)
+{
+  sound_cache_data = data_new("xbox sound", 0x200, 0xc);
+  if (sound_cache_data == NULL) {
+    display_assert("xbox_sound_cache_globals.cache_sounds",
+                   XBOX_SOUND_CACHE_FILE, 0x45, true);
+    system_exit(-1);
+  }
+
+  xbox_sound_cache =
+    lruv_new((int)"xbox sound cache", 0x400, 0xc, 0x200,
+             (void (*)(int))FUN_001be1b0, (int (*)(int))FUN_001be170);
+  if (xbox_sound_cache == NULL) {
+    display_assert("xbox_sound_cache_globals.cache", XBOX_SOUND_CACHE_FILE,
+                   0x49, true);
+    system_exit(-1);
+  }
+
+  xbox_sound_cache_base_address = FUN_001bdd70();
+  if (xbox_sound_cache_base_address == 0) {
+    display_assert("xbox_sound_cache_globals.base_address",
+                   XBOX_SOUND_CACHE_FILE, 0x4c, true);
+    system_exit(-1);
+  }
 }

@@ -36884,7 +36884,10 @@
     },
     {
      "addr": "0x1be3e0",
-     "decl": "void sound_cache_new(void);"
+     "decl": "void sound_cache_new(void);",
+     "name": "sound_cache_new",
+     "ported": true,
+     "source_path": "cache/xbox_sound_cache.c"
     },
     {
      "addr": "0x1be490",
