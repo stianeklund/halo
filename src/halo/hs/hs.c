@@ -4104,6 +4104,34 @@ void FUN_000c2660(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, value);
 }
 
+/* 0xc2690 — map-revert HaloScript function evaluator.  Runs main_revert_map()
+ * for its side effect, then commits a 0 result to the calling script thread (a
+ * void-returning script builtin).  Structurally identical to FUN_000c0cb0 at
+ * 0xc0cb0 with the side-effect callee swapped.
+ *
+ * kb.json carried the placeholder decl `void FUN_000c2690(void);`; widened to
+ * the standard hs-evaluator triple with this lift, since the body reads the
+ * stack argument at [EBP+0xc].
+ *
+ * Callees (both cdecl, no register args, both ported):
+ *   0x1002c0 = main_revert_map(void)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc2690-0xc26a8, 10 instructions): cdecl,
+ * plain RET, frame is PUSH EBP / MOV EBP,ESP with no locals (no SUB ESP).  The
+ * body reads only [EBP+0xc] = thread_datum (arg 2), and does so with a full
+ * 32-bit MOV EAX, so the parameter is `int`, never int16 — the LOADW trap that
+ * distinguishes the 0xc0c30/0xc0cd0 pair does not apply here.  function_index
+ * and init complete the standard hs-evaluator signature shared by the sibling
+ * handlers but are unused in this body.  hs_return's pushes are PUSH 0x0 (the
+ * value) then PUSH EAX (=[EBP+0xc], the thread), so the first PUSH is the last
+ * C argument; ADD ESP,0x8 confirms exactly 2 args. */
+void FUN_000c2690(int16_t function_index, int thread_datum, char init)
+{
+  main_revert_map();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script

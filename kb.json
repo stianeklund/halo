@@ -10493,7 +10493,8 @@
     },
     {
      "addr": "0xc2690",
-     "decl": "void FUN_000c2690(void);"
+     "decl": "void FUN_000c2690(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc26b0",
