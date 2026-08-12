@@ -13878,6 +13878,46 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1b9ce0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Cache file header layout proven by this function's field reads: +0x00 dword 'head' magic (0x68656164), +0x04 dword version (must be 5), +0x08 signed dword total file size (0 <= size <= 0x11600000), +0x20 char scenario name (csstrlen must be <= 0x1f, so the field is at most 32 bytes), +0x40 char build string (csstrcmp against \"01.10.12.2276\"), +0x7fc dword 'foot' magic (0x666f6f74), total header size 0x800.",
+        "The three display_assert line-number arguments are literal immediates (0x1ed=493, 0x1f1=497, 0x1f6=502), so the three error sites sit on those source lines of c:\\halo\\SOURCE\\cache\\cache_files.c.",
+        "The upper file-size bound 0x11600000 (278 MiB) is an inclusive limit (CMP EAX,0x11600000 / JG fail); its origin is not established by this function."
+      ],
+      "uncertain": [
+        "report_errors is tested only as a byte (MOV AL,[EBP+0x10] / TEST AL,AL), so the original parameter was probably bool rather than the int in the kb declaration; the lift keeps int and casts to char to reproduce the byte test."
+      ]
+    },
+    "0x1b9de0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1b9e70": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Named scenario_tags_load from the exact mirror of scenario_tags_unload in the same TU: it opens the texture cache and cache file, registers the tags header vertex/index buffers, and sets the availability flag (0x4e4d00) and tag instance base (0x5054f0) that the unload clears.",
+        "Named scenario_tags_load as the exact inverse of scenario_tags_unload (0x1b9890): this opens the texture cache, the cache file and the tag data block, registers the tags header vertex/index buffers and sets cache_tags_available=1 / tag_instances, while the unload closes and clears the same four things.",
+        "Globals 0x4e4d14 and 0x4e4d18 are the cache file header's own +0x10 and +0x14 fields (the header block starts at 0x4e4d04), matching the tag data offset and tag data size fields of the cache file header layout; they are read here as the source range for the single tag block read.",
+        "Named scenario_tags_load from its exact inverse pairing with scenario_tags_unload (0x1b9890): this sets the tags header, the tag instance base (0x5054f0) and the availability byte (0x4e4d00) that the unload clears, and it returns the tags header +0x04 scenario tag handle.",
+        "Globals 0x4e4d14 and 0x4e4d18 are the cache file header's +0x10 and +0x14 fields (header base 0x4e4d04) and are passed as cache_file_read's offset and size for the region later checked for the 'tags' signature, so they describe the tag data; the role is proven by that call, not by any symbol.",
+        "kb.json's decl for cache_file_open (0x1bd4d0) was widened from void(void) to bool cache_file_open(const char *map_name, void *header_out): the call site pushes 0x4e4d04 then ESI and tests AL, and the single ADD ESP,0xc also retires tag_name_strip_path's earlier PUSH EDI.",
+        "Named scenario_tags_load rather than left as FUN_001b9e70: the address carried that name in kb.json before it was dropped, the TU already contains its exact counterpart scenario_tags_unload, and the body matches (open cache file, verify header, read tags block, check 'tags' signature, register vertex/index buffers).",
+        "The return value is read as *(int *)(tags_header + 4) and is taken to be the scenario tag index because the only caller (scenario_load, 0x18f090) stores it into 0x326a08 and compares it against -1 before reporting 'couldn't open map file'.",
+        "kb.json's decl for cache_file_open (0x1bd4d0) was widened from void(void) to bool(const char *name, void *header) on this lift's evidence alone: the call site pushes two dwords (stripped name, 0x4e4d04) inside an ADD ESP,0xc that also covers the preceding tag_name_strip_path argument, and the result is tested as TEST AL,AL. It has no other callers in src/."
+      ],
+      "uncertain": [
+        "The return value is the tags header +0x4 dword, taken to be the loaded scenario tag index because failure returns NONE, but no consumer was inspected to confirm it.",
+        "The 0x1600000 memset length is named TAG_BUFFER_SIZE on the assumption it equals the buffer FUN_001bdd50 returns (global 0x4e9258); only the clear length is proven.",
+        "VC71 match is 86.4% (97/102) and structurally capped: of the five unmatched reference instructions one is an assembler alignment nop (lea ebx,[ebx]) that cannot be emitted from C, and the rest are the post-assert reload of 0x4e5504 plus its EAX phi, which kb.json's __noreturn on system_exit deletes; holding the failure value in a local was previously measured at 0.00pp.",
+        "The residual VC71 gap at 88.3% is the documented structural cost of kb.json declaring system_exit __noreturn, which removes the original's post-assert reload of 0x4e5504 and the EAX phi MSVC CSEs from it, plus one assembler alignment nop (LEA EBX,[EBX]) that cannot be emitted from C.",
+        "Behavioural equivalence was NOT established: the delinked object registered for cache_files.obj is delinked/scenario.obj, which covers 0x18aef0-0x18c370 and does not contain this address, so unicorn_diff could not extract an oracle.",
+        "FUN_001bdec0 is deliberately left unnamed. The call order texture_cache_open then FUN_001bdec0 then cache_file_open invites reading it as sound_cache_open by symmetry with scenario_tags_unload, but sound_cache_new is 0x1be3e0 and sound_cache_close is 0x1be4f0, and 0x1bdec0 is grouped into predicted_resources.obj next to FUN_001bde90, so the symmetry argument is not supported.",
+        "The 22 MiB tags region size 0x1600000 and the tags-block offset/size globals 0x4e4d14/0x4e4d18 are confirmed as operands, but whether 0x4e4d14 and 0x4e4d18 are genuinely fields of the 0x4e4d04 cache file header (they sit at +0x10 and +0x14) or independent globals is not established; the reference addresses them absolutely, so the lift does too."
+      ]
+    },
     "0x1ba140": {
       "kind": "function",
       "status": "ported",
@@ -14074,11 +14114,20 @@
       "inferred": [
         "Params 2/3/4 are bools named block/load/reference, inferred from the assert texts 'load || !block' (line 0xc2) and 'load || !reference' (line 0xc4) plus the MOV AL/TEST AL,AL byte tests on each.",
         "Cache datum +0x02 is the block ready flag: the spin loop breaks only once it is non-zero, and +0x03 marks the block as initialized (setting it also zeroes the software and hardware reference counts at +0x04 and +0x05).",
-        "FUN_001be2b0 is the allocate/load path for this cache, inferred from being called only when sound->field_2c == NONE and load is set."
+        "FUN_001be2b0 is the allocate/load path for this cache, inferred from being called only when sound->field_2c == NONE and load is set.",
+        "Assert text 'sound->cache_tag_index!=0' names the dword at sound_cache_sound+0x34 cache_tag_index; it is still typed void * (field_34) in types.h because sound_cache_sound_new only stores a caller-supplied dword there, but an int tag index is the likelier type.",
+        "Cache datum +0x04 is software_reference_count per the assert 'cache_sound->software_reference_count<UNSIGNED_CHAR_MAX'; the guard is CMP byte/JC (unsigned below), so the field is an unsigned char and the datum is walked as unsigned char * in this function.",
+        "The dword at sound+0x34 is the cache tag index: the line-0xc6 assert reads sound->cache_tag_index!=0, but the struct field is still typed void* and named field_34 because only the !=0 test is observed here.",
+        "FUN_001be2b0 (0x1be2b0) takes the sound in ESI: its first instruction is MOV EAX,[ESI+0x40] and it writes back [ESI+0x2c] and [ESI+0x30], so its kb.json decl was corrected from void(void) to a single @<esi> parameter and tools/kb_reg_baseline.json updated to match.",
+        "Cache datum layout is inferred from byte accesses only: +0x02 ready flag, +0x03 initialized flag, +0x04 software reference count (unsigned, from the JB against 0xFF and the assert text), +0x05 hardware reference count, +0x08 the permutation pointer handed to a %s conversion."
       ],
       "uncertain": [
         "sound_cache_sound +0x34 is called cache_tag_index by the line-0xc6 assert but is still typed void* from sound_cache_sound_new; renaming and retyping it is deferred to a separate byte-identical-gated edit.",
-        "The debug trace flag macro sound_cache_debug at 0x5054ec is a mechanical name -- only the CMP byte ptr [0x5054ec],0 test is observed, there is no string evidence for what it is called."
+        "The debug trace flag macro sound_cache_debug at 0x5054ec is a mechanical name -- only the CMP byte ptr [0x5054ec],0 test is observed, there is no string evidence for what it is called.",
+        "Cache datum +0x02 (spun on until non-zero) and +0x03 (set to 1 once, zeroing +0x04 and +0x05) are unnamed: no assert or format string mentions them, so 'data resident' and 'block claimed' are behavioural readings only.",
+        "The byte at 0x5054ec that gates the '--- request %d %s' spew is named mechanically (sound_cache_debug_trace); only the !=0 gate is observed, and it is a distinct byte from the 16-bit hardware_sound_reference_count at 0x5054ea.",
+        "VC71 constant-folds the write-once result bool that the original keeps in the [EBP-1] slot (PUSH ECX plus MOV byte [EBP-1],0 at 0x1be55b), which tail-merges the two false exits into one XOR AL,AL epilogue and accounts for most of the 129-vs-122 insn gap; the remaining ~2 insns are the @<esi> call thunk for FUN_001be2b0.",
+        "FUN_001be2b0 is called with no pushed arguments and kb declares it void(void), but a cache-fill helper that receives no sound is unexplained; it may consume ESI implicitly and would then need an @esi annotation."
       ]
     },
     "0x1bea30": {
