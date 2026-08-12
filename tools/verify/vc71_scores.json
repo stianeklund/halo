@@ -49547,6 +49547,17 @@
       "score": 100.0,
       "source": "src/halo/networking/network_game_manager.c"
     },
+    "xbox_sound_cache_idle": {
+      "addr": "0x1bded0",
+      "end": "0x1bdf09",
+      "kind": "auto",
+      "n_r": 15,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "dd156100fa91d815",
+      "score": 100.0,
+      "source": "src/halo/cache/xbox_sound_cache.c"
+    },
     "xbox_texture_cache_get_hardware_format": {
       "addr": "0x1bf570",
       "end": "0x1bf75d",

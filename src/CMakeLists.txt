@@ -176,6 +176,7 @@ halo/rasterizer/rasterizer_text.c
 		halo/cache/xbox_texture_cache.c
 	halo/cache/physical_memory_map.c
 	halo/cache/predicted_resources.c
+	halo/cache/xbox_sound_cache.c
 	halo/cache/tags.c
 	)
 
