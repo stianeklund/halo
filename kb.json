@@ -36240,7 +36240,8 @@
     },
     {
      "addr": "0x24950",
-     "decl": "int FUN_00024950(int index1, int index2);"
+     "decl": "bool FUN_00024950(long index1, long index2);",
+     "ported": true
     },
     {
      "addr": "0x24a60",

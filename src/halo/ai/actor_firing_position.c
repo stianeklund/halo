@@ -41,6 +41,20 @@
  * verbatim from the assert predicate string in the XBE. */
 #define NUMBER_OF_FIRING_POSITION_GROUPS 7
 
+/* Sort context consumed by FUN_00024950. The look-scoring pass in
+ * actor_looking.c publishes the candidate-record array base and the record
+ * count into these two adjacent globals (stores at 0x26de8/0x26def) just
+ * before handing FUN_00024950 to the generic sort FUN_00091ef0.
+ *
+ * Both identifiers are verbatim from the assert predicate strings in the XBE
+ * (0x254d88 / 0x254d40 / 0x254cf8), so they are string-proven, not inferred.
+ *
+ * Widths are load-bearing and differ between the two: the count is a 16-bit
+ * global, read with MOVSX ECX,word ptr [0x331f00] at 0x24995/0x249c7; the
+ * array base is a full dword, read with MOV EAX,[0x331f04] at 0x24953. */
+#define global_temporary_sort_firing_position_array (*(char **)0x331f04)
+#define global_temporary_sort_firing_position_count (*(int16_t *)0x331f00)
+
 /* FUN_00024370 (0x24370) — score one candidate firing position for an actor.
  *
  * Confirmed from the listing at 0x24370:
@@ -112,6 +126,85 @@ int FUN_00024370(int actor_handle, char *eval_state, char *firing_position)
   if (firing_position == (char *)0)
     return 1;
   return *(unsigned char *)(firing_position + 0x30);
+}
+
+/* FUN_00024950 (0x24950) — ordering predicate for the candidate
+ * firing-position records built by actor_looking.c. Handed to the generic sort
+ * FUN_00091ef0 as its comparator, which passes indices (not pointers), so the
+ * record array and its count travel in the two globals above.
+ *
+ * Returns a bool in AL, not an int: the two float exits at 0x24a4f/0x24a51 are
+ * a bare `MOV AL,1` / `XOR AL,AL` with the upper three bytes of EAX left
+ * undefined. (The two byte-flag exits do clear EAX first, but that is just
+ * MSVC's partial-register-stall idiom in front of SETcc.)
+ *
+ * Record layout, read straight off the listing — element stride 0x3c from
+ * IMUL ESI,ESI,0x3c at 0x24966, matching the 0x200 * 0x3c record buffer in
+ * actor_looking.c. Field meanings are unproven, so they stay as offsets:
+ *   +0x30  char   the same flag FUN_00024370 clears on a rejected candidate
+ *   +0x31  char   the same flag FUN_00024370 sets on a rejected candidate
+ *   +0x38  float  the accumulated score
+ *
+ * The two byte-flag branches are written with an explicit 1/-1 rank compared
+ * against zero because that is what the binary computes, and the round trip is
+ * visible in the codegen rather than folded away:
+ *   0x249fa  XOR EDX,EDX / TEST AL,AL / SETE DL      ; rank = (flag == 0)
+ *   0x24a06  LEA EDX,[EDX+EDX-1]                     ; rank = 2*rank - 1
+ *   0x24a0a  TEST EDX,EDX / SETG AL                  ; return rank > 0
+ * A plain `return p1[0x30] == 0;` collapses to SETE AL and loses the LEA, so
+ * the ternary form is the faithful one. Note the two branches use OPPOSITE
+ * senses — SETE at +0x30 (0x249fe) but SETNE at +0x31 (0x24a1d) — despite
+ * looking symmetric.
+ *
+ * The float tail nets out to one strict `<`, but it is written as a nested
+ * `<=` then `<` because that is the guard shape the binary emits, and the two
+ * FLD/FCOMP pairs are two distinct source comparisons, not one re-load:
+ *   0x24a38  TEST AH,0x41 / JZ  -> mask C3|C0. The jump is TAKEN when the mask
+ *            is zero, i.e. exactly when a > b, and it lands on the shared
+ *            XOR AL,AL. The guard is therefore the NEGATED greater-than, not
+ *            `a <= b`: the two differ only for NaN, which sets all of C3/C2/C0
+ *            and so leaves the mask non-zero and ENTERS the block. Writing
+ *            `a <= b` makes VC71 emit JP instead of JE to exclude NaN up
+ *            front, which costs the last instruction of the match. NaN still
+ *            returns 0 either way, because the inner `a < b` rejects it.
+ *   0x24a45  TEST AH,0x5  / JP  -> mask C0|C2. a<b gives 0x01 (PF clear, no
+ *            jump, MOV AL,1); a==b gives 0x00 and NaN gives 0x05 (PF set, both
+ *            jump to XOR AL,AL). So NaN orders false, as a strict `<` should.
+ * Writing the flattened `if (a > b) return 0; return a < b;` is semantically
+ * identical but inverts the first guard to JNE and costs six instructions of
+ * branch layout — vc71_verify flags it as [FCOM-WARN] bound-sense.
+ *
+ * The record pointers are formed before the asserts because that is the
+ * emitted order: the array base is loaded at 0x24953 and both IMUL/ADD pairs
+ * complete at 0x2496b, ahead of the TEST EAX,EAX at 0x2496d that guards the
+ * first assert. Nothing is dereferenced until after all three asserts pass. */
+bool FUN_00024950(long index1, long index2)
+{
+  char *record1;
+  char *record2;
+
+  record1 = global_temporary_sort_firing_position_array + index1 * 0x3c;
+  record2 = global_temporary_sort_firing_position_array + index2 * 0x3c;
+
+  assert_halt_at("c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x50f,
+                 global_temporary_sort_firing_position_array);
+  assert_halt_at("c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x510,
+                 (index1 >= 0) &&
+                   (index1 < global_temporary_sort_firing_position_count));
+  assert_halt_at("c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x511,
+                 (index2 >= 0) &&
+                   (index2 < global_temporary_sort_firing_position_count));
+
+  if (record1[0x30] != record2[0x30])
+    return ((record1[0x30] == 0) ? 1 : -1) > 0;
+  if (record1[0x31] != record2[0x31])
+    return ((record1[0x31] != 0) ? 1 : -1) > 0;
+
+  if (!(*(float *)(record1 + 0x38) > *(float *)(record2 + 0x38))) {
+    if (*(float *)(record1 + 0x38) < *(float *)(record2 + 0x38))
+      return 1;
+  }
+  return 0;
 }
 
 int actor_get_firing_position_group(int actor_handle, short param_2,
