@@ -2212,6 +2212,148 @@ void FUN_0006aee0(unsigned long *cp, unsigned char *pp,
   }
 }
 
+/* Read as a WORD (`movzx edx, word ptr [0x3340f8]`, 0x6af86), so this is the
+ * same `unsigned short` decoder-state global tif_open.c recovered for the
+ * other two tags at 0x3340f4 / 0x3340fc. Widening it to int would change the
+ * load width. */
+#define samplesperpixel (*(unsigned short *)0x3340f8)
+
+/* Upstream's PACK, MINUS the alpha term. Upstream libtiff spells it
+ * `((uint32)(r)|((uint32)(g)<<8)|((uint32)(b)<<16)|0xff000000)`; this build
+ * leaves the high byte ZERO -- the two pack sites below (0x6afc4-0x6afe3 and
+ * 0x6b030-0x6b046) end at `shl ebx,8; or ebx,edx; mov [esi-4],ebx` with no
+ * `or ...,0xff000000` anywhere in the function, and the bounds table stops at
+ * 0x6b093. Adding the alpha would be a wrong-pixel bug no match score
+ * notices. */
+#define PACK(r, g, b) \
+  ((unsigned long)(r) | ((unsigned long)(g) << 8) | ((unsigned long)(b) << 16))
+
+/**
+ * Expand one 8-bit-per-sample RGB contiguous tile into the 32-bit RGBA raster,
+ * optionally through a byte lookup table.
+ *
+ * Transcribed from the vendored libtiff (tif_getimage.c) rather than reshaped
+ * from the decompiler. Upstream ships this as TWO routines that
+ * PickContigCase selects between on `img->Map`; Bungie merged them into one
+ * body with the branch taken inside, which is the `if (map != 0)` at 0x6afc4
+ * (fall-through) versus 0x6b026 (the taken arm). The two arms are
+ * putRGBcontig8bitMaptile and putRGBcontig8bittile respectively -- note the
+ * asymmetry is upstream's, not a transcription artifact: only the plain arm is
+ * UNROLL8'd, the Map arm is a flat `for (x = w; x-- > 0;)`.
+ *
+ * This is the target FUN_0006b780 stores for PHOTOMETRIC_RGB with
+ * bitspersample == 8 (tif_flush.c:2285 in this file).
+ *
+ * Frame, read off the disassembly. Ghidra had no prototype at all here (the
+ * seeded kb.json decl was the placeholder `void FUN_0006af80(void)`), so every
+ * argument came back as an ESP-relative `in_stack_...` label; the seven cdecl
+ * slots below are proven by their reads and match the two writers in this TU
+ * that were lifted first (FUN_0006a910, FUN_0006ac60):
+ *   +0x08  cp        the dword raster cursor (`add esi,4`, stored `[esi-4]`)
+ *   +0x0c  pp        the byte source cursor
+ *   +0x10  map       USED HERE. The sibling writers never read this slot and
+ *                    name it `unused_arg` (upstream's discarded tile origin);
+ *                    this variant indexes it as a BYTE table -- `mov
+ * bh,[edx+ecx]` with ECX = the slot and EDX = a zero-extended source byte
+ *                    (0x6afd4). That byte-sized load is what types it
+ *                    `unsigned char *`, i.e. upstream's `TIFFRGBValue *Map`,
+ *                    and not the `unsigned long` the shared
+ *                    tiff_put_contig_proc typedef declares for slot 3. The
+ *                    typedef is deliberately left alone: all eleven dispatch
+ *                    sites already cast through it.
+ *   +0x14  w         inner count, re-loaded per row (0x6aff5 / 0x6b058) because
+ *                    the counter register was consumed -- register allocation,
+ *                    not a second semantic read.
+ *   +0x18  h         row counter
+ *   +0x1c  fromskew  multiplied by samplesperpixel ONCE up front (see below)
+ *   +0x20  toskew    scaled `shl ...,2` once up front because `cp` is a dword
+ *                    pointer
+ * One 4-byte local at EBP-4 (`push ecx` for the frame) holds the h counter.
+ * No _chkstk, no CALLs, no FPU, no SEH -- pure byte/word integer work.
+ *
+ * Both row guards are `test eax,eax; jbe` (0x6af9f for the Map arm, 0x6b00f
+ * for the plain arm) and the UNROLL8 remainder guard is `test edi,edi; jbe`
+ * (0x6b05b), so every counter is UNSIGNED. Signed counters would emit
+ * jle/jl and invert the zero-trip behaviour for a w or h of 0. The remainder
+ * guard's `jbe` is upstream UNROLL8's `if (_x > 0)`; the sibling
+ * FUN_0006a9a0 documents that UNROLL2's `if (_x)` gets a `jz` instead, so the
+ * spelling is load-bearing for mnemonic-LCS.
+ *
+ * Three things here are NOT upstream and must not be "corrected" to it:
+ *
+ * 1. The pack has no 0xff alpha (see the PACK macro above).
+ *
+ * 2. The UNROLL8 remainder writes exactly ONE pixel, not REPEAT(_x, op2).
+ *    The block at 0x6b05f-0x6b07c has NO back-edge, so a tile row whose
+ *    width leaves a remainder of 2..7 is short by that many pixels. The same
+ *    quirk is already recorded for the identical tail in FUN_0006a910.
+ *
+ * 3. samplesperpixel is re-read from 0x3340f8 INSIDE both loops (0x6afe6,
+ *    0x6b049, 0x6b075) in addition to the once-up-front read for the fromskew
+ *    fold. Upstream hoists it into a local `int samplesperpixel` at the top;
+ *    doing that here would move the load out of the loops and out of the
+ *    reference's shape, so it stays a macro read at every use.
+ *
+ * The pack ORDER is proven, and it is the one place a plausible-looking
+ * transcription would silently swap channels. Map arm, 0x6afc4-0x6afe3:
+ * `movzx edx,[eax+2]` then `xor ebx,ebx` / `mov bh,[edx+ecx]` puts map[pp[2]]
+ * in BH (bits 8-15 pre-shift), `mov bl,[edx+ecx]` with EDX = pp[1] puts
+ * map[pp[1]] in BL, and `shl ebx,8` / `or ebx,edx` folds map[pp[0]] in at the
+ * bottom -- so BH lands at bits 16-23. The plain arm (0x6b030-0x6b046) is the
+ * same shape on the raw bytes (EBX = pp[0], DH = pp[2], DL = pp[1]).
+ *
+ * Ghidra's rendering of the source cursor as a `uint3 *` with a single
+ * `*puVar1 = (uint)*pp` is a FICTION: the binary issues three separate
+ * zero-extending BYTE loads at [eax], [eax+1], [eax+2]. A 3-byte struct load
+ * (or a `*(unsigned long *)pp`) would also over-read the tile by one byte on
+ * the last pixel. Its CONCAT21(CONCAT11(...)) spelling of the pack must not
+ * reach the source either.
+ */
+void FUN_0006af80(unsigned long *cp, unsigned char *pp, unsigned char *map,
+                  unsigned long w, unsigned long h, long fromskew, long toskew)
+{
+  unsigned long x;
+
+  /* 0x6af86-0x6af8e: `movzx edx,word[0x3340f8]; imul edx,[ebp+0x1c]`, written
+   * back over this parameter's own frame slot. Upstream is `fromskew *=
+   * samplesperpixel` ahead of the row loop; the fold means `pp += fromskew`
+   * below is already in source bytes. */
+  fromskew *= samplesperpixel;
+
+  /* 0x6afc4 falls through with the table, 0x6b026 is the taken arm. */
+  if (map != 0) {
+    /* 0x6af9f guard. */
+    while (h-- > 0) {
+      for (x = w; x-- > 0;) {
+        *cp++ = PACK(map[pp[0]], map[pp[1]], map[pp[2]]);
+        pp += samplesperpixel;
+      }
+
+      cp += toskew; /* the slot holds toskew*4 -- `cp` is a dword pointer */
+      pp += fromskew; /* pre-scaled above; `pp` is a byte cursor */
+    }
+  } else {
+    /* 0x6b00f guard. */
+    while (h-- > 0) {
+      /* Upstream UNROLL8 with op1 = NOP: the trip count is w >> 3 in its own
+       * register (DEC / JNZ) while `x` carries the residue via `sub ...,8`. */
+      for (x = w; x >= 8; x -= 8) {
+        *cp++ = PACK(pp[0], pp[1], pp[2]);
+        pp += samplesperpixel;
+      }
+      /* 0x6b05b `test edi,edi; jbe`, then 0x6b05f-0x6b07c: ONE pixel, see
+       * note (2) above -- not REPEAT(_x, op2). */
+      if (x > 0) {
+        *cp++ = PACK(pp[0], pp[1], pp[2]);
+        pp += samplesperpixel;
+      }
+
+      cp += toskew;
+      pp += fromskew;
+    }
+  }
+}
+
 /*
  * FUN_0006b780 -- 0x6b780, upstream libtiff's PickContigCase.
  *
