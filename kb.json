@@ -289,7 +289,7 @@
     },
     {
      "addr": "0x680a0",
-     "decl": "void FUN_000680a0(void);"
+     "decl": "int FUN_000680a0(void *tif);"
     },
     {
      "addr": "0x6bcb0",
@@ -34187,11 +34187,13 @@
     },
     {
      "addr": "0x6a210",
-     "decl": "void FUN_0006a210(void);"
+     "decl": "int FUN_0006a210(void *tif);",
+     "ported": true
     },
     {
      "addr": "0x6a260",
-     "decl": "int FUN_0006a260(int file);"
+     "decl": "int FUN_0006a260(void *tif_);",
+     "ported": true
     },
     {
      "addr": "0x6a2a0",

@@ -94,7 +94,17 @@ typedef struct tiff_s {
    * (`mov ecx,[esi]` at 0x688ab), the same use tif_open.c's TIFFFileName
    * (0x6d850) makes of it. */
   char *tif_name;
-  char pad_004[5];
+  char pad_004[2];
+  /* 0x06 -- upstream's `tif_mode`, the open() mode the handle was created with;
+   * O_RDONLY is 0, so `!= 0` is upstream's "opened for writing" test.
+   * FUN_0006a260 reads it with `cmp word ptr [esi+6],0` (0x6a267), a 16-bit
+   * compare, so the field is 2 bytes and NOT the `int` upstream declares -- the
+   * offset itself is only where upstream's field order lands once tif_fd at
+   * 0x04 is also narrowed to 16 bits. tif_open.c recovers the same offset,
+   * width and name independently from TIFFGetMode's `movsx eax,word ptr
+   * [eax+6]` (0x6d876); this was inside pad_004[5] until 0x6a267 proved it. */
+  short tif_mode;
+  char pad_008[1];
   /* 0x09 -- second flags byte, one byte below field_0a. FUN_00068a50 loads it
    * with `mov cl,[eax+9]` (0x68a5a) and stores bit 0 back set or cleared, so
    * the width is BYTE and the offset is accessed -- it was inside pad_004[6]
@@ -103,10 +113,25 @@ typedef struct tiff_s {
    * from anything recovered so far, so the bit is set with a literal rather
    * than a TIFF_* macro. */
   char field_09;
-  /* 0x0a -- flags byte. TIFFIsTiled (0x6d880) reads it as a SIGNED byte, so
-   * the field is `char`; bit 4 (0x10) is upstream libtiff's TIFF_SWAB. */
-  char field_0a;
-  char pad_00b[43];
+  /* 0x0a..0x0b -- flags. TWO access widths are proven at this offset, so the
+   * field carries both views rather than picking one and casting at the use
+   * sites. BYTE: TIFFIsTiled (0x6d880) reads it as a SIGNED byte, and
+   * FUN_00068780/FUN_00068890 test bit 4 with `test byte ptr [esi+0xa],0x10`
+   * (upstream libtiff's TIFF_SWAB), while FUN_0006a190 sets bit 5 with
+   * `or byte ptr [eax+0xa],0x20`. WORD: FUN_0006a210 loads and stores 0x0a as
+   * a 16-bit quantity -- `mov ax,word ptr [esi+0xa]` at 0x6a216 and
+   * `mov word ptr [esi+0xa],ax` at 0x6a231 -- because the bit it clears
+   * (0x200) lives in the HIGH byte at 0x0b and is unreachable through the byte
+   * view. Upstream's single `uint16 tif_flags`, with every byte access being an
+   * MSVC narrowing of it, is the likely original declaration, but that is
+   * INFERRED; the union keeps each recovered body at the width its own
+   * disassembly shows. Bit numbering still does not match stock libtiff (see
+   * `field_09`), so bits stay literals rather than TIFF_* macros. */
+  union {
+    char b; /* 0x0a -- byte view */
+    unsigned short w; /* 0x0a..0x0b -- word view */
+  } field_0a;
+  char pad_00c[42];
   unsigned short td_bitspersample; /* 0x36 */
   char pad_038[156];
   /* 0xd4 -- upstream's `uint32 tif_row`. Read as a full dword with no
@@ -227,7 +252,7 @@ int FUN_00068780(void *tif_, char *pp, int cc, int s)
      * upstream's TIFFSwabArrayOfShort / TIFFSwabArrayOfLong (buffer, count),
      * but they carry no name evidence of their own, so they keep their
      * mechanical kb.json names. */
-    if (tif->field_0a & 0x10) {
+    if (tif->field_0a.b & 0x10) {
       switch (tif->td_bitspersample) {
       case 16:
         FUN_0006f1f0(tif->tif_rawcp, n / 2);
@@ -304,7 +329,7 @@ int FUN_00068890(void *tif_, unsigned char *buf, int occ, int s)
 
   /* 0x688db-0x68911. Swab over the bytes just delivered. Same two callees,
    * same signed element counts, as the encoder above. */
-  if (tif->field_0a & 0x10) {
+  if (tif->field_0a.b & 0x10) {
     switch (tif->td_bitspersample) {
     case 16:
       FUN_0006f1f0(buf, occ / 2);
@@ -783,7 +808,7 @@ int FUN_0006a190(void *tif_)
    * that reading TIFF_NOBITREV (0x100) would land in field_09, not here, so the
    * numbering in Bungie's copy does not match stock libtiff and naming the bit
    * would overstate what the binary shows. Same reasoning as field_09 above. */
-  tif->field_0a |= 0x20;
+  tif->field_0a.b |= 0x20;
 
   /* 0x6a1cd-0x6a1e1. Immediate stores, no register staging. Upstream's inlined
    * InitCCITTFax3 body: Fax3SetupState into both setup slots in stock libtiff,
@@ -806,13 +831,187 @@ int FUN_0006a190(void *tif_)
    * match WORSE (95.7% -> 95.5%, operand-normalized 95.7% -> 90.9%, and the
    * instruction count moved off 23/23), because VC71 then materializes the
    * read-modify-write in place instead of sinking the store. The residual ~4.3%
-   * gap is exactly this one hoisted `movb 0x9(%eax),%cl`, and it is a scheduling
-   * artifact, not a logic difference.
+   * gap is exactly this one hoisted `movb 0x9(%eax),%cl`, and it is a
+   * scheduling artifact, not a logic difference.
    *
    * Bit 0 of field_09 is the same bit FUN_00068a50 sets and clears; its
    * upstream identity is unproven, so it too is a literal. */
   tif->field_09 |= 1;
 
   /* 0x6a205: `mov eax,1`. Unconditional success -- nothing above can fail. */
+  return 1;
+}
+
+/* FUN_0006a210 @ 0x6a210-0x6a259 (74 bytes) -- upstream libtiff's
+ * `TIFFFlushData` from tif_flush.c, the routine this object is named after.
+ * Transcribed from upstream and adapted to the observed control flow rather
+ * than reshaped from the decompiler, which lost the parameter and the return
+ * value and reported the body as `void(void)` with an `in_stack_00000004`.
+ *
+ * Frame is `push ebp; mov ebp,esp; push esi` with no `sub esp` -- no locals get
+ * a slot, and ESI holds the single stack parameter for the whole body
+ * (`mov esi,[ebp+8]` at 0x6a213). cdecl, one pushed argument at both call
+ * sites, EAX live at every RET, so the prototype is `int (void *tif)`.
+ *
+ * Two deviations from stock libtiff 3.x, both proven from the disassembly:
+ *
+ *  1. The early-out returns 0, not 1. `test al,8; jz 0x6a249` lands on
+ *     `xor eax,eax; pop esi; pop ebp; ret`. Stock TIFFFlushData returns 1 when
+ *     TIFF_BEENWRITING is clear (nothing buffered is not an error); Bungie's
+ *     copy returns 0, which is the same value its failure paths return.
+ *
+ *  2. The postencode method pointer is NULL-checked, and a NULL pointer does
+ *     NOT abort the flush -- `mov eax,[esi+0xf8]; test eax,eax; jz 0x6a24e`
+ *     jumps to the TIFFFlushData1 tail, not to the `xor eax,eax` epilogue.
+ *     Stock libtiff calls through the slot unconditionally. The short-circuit
+ *     `&&` reproduces both edges: NULL skips the call and still flushes, a
+ *     zero return from the call bails with 0.
+ *
+ * Bit identities: 0x8 is upstream's TIFF_BEENWRITING and 0x200 upstream's
+ * TIFF_POSTENCODE under the reading that 0x0a is a `uint16 tif_flags`, but this
+ * build's bit numbering does not match stock libtiff (see `field_09` and
+ * `field_0a`), so both stay literals.
+ *
+ * noinline (VC71 verification only): the original build emits this out of line
+ * and CALLs it -- FUN_0006a260 at 0x6a26f has a real `call 0x6a210` with
+ * `push esi` / `add esp,4` around it. Because that caller now lives in this same
+ * TU with this body in scope, cl.exe inlines the whole thing into it: that alone
+ * held FUN_0006a260 at 76.5% (42 insns against the reference's 26) and produced
+ * a spurious [LOADW-WARN] blaming FUN_0006a260 for the `movw 0xa(%esi),%ax` at
+ * 0x6a216 that belongs to THIS function's word-width flags access. MEASURED
+ * both ways.
+ *
+ * The guard is `_MSC_VER && !__clang__` because our clang build targets
+ * i386-pc-win32 and therefore also defines _MSC_VER; this must apply to cl.exe
+ * ONLY and must never change the shipped binary's codegen. */
+#if defined(_MSC_VER) && !defined(__clang__)
+__declspec(noinline)
+#endif
+int FUN_0006a210(void *tif_)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+
+  /* 0x6a216-0x6a21d: `mov ax,word ptr [esi+0xa]; test al,8; jz 0x6a249`.
+   * The flags word is re-read at each use below rather than cached in a local:
+   * MSVC folds the three reads into the ONE load at 0x6a216, and caching it in
+   * a `unsigned short` local was MEASURED to score WORSE (81.5% -> the local
+   * form let VC71 narrow the 0x200 test to a single `test ah,2` and shrink the
+   * write-back immediate to 0xfdff, costing three instructions against the
+   * reference's `mov ecx,eax; and ecx,0x200; testw cx,cx` and its full-width
+   * `and eax,0xfffffdff`). Reading the member directly is also the upstream
+   * form, which spells all three uses as `tif->tif_flags`. */
+  if ((tif->field_0a.w & 8) == 0) {
+    return 0;
+  }
+
+  /* 0x6a21f-0x6a226: `mov ecx,eax; and ecx,0x200; test cx,cx; jz 0x6a24e` --
+   * the postencode bit is masked into a scratch register (EAX still holds the
+   * value the write-back needs) and tested 16 bits wide, which is what pins the
+   * field to `unsigned short`; a clear bit jumps straight to the tail flush.
+   *
+   * VC71 collapses this to the single `test ah,2` and will not emit the
+   * three-instruction form from any C spelling. MEASURED, by compiling the TU
+   * and disassembling the object: reading the member directly, caching it in an
+   * `unsigned short` local, and materialising the masked value into a separate
+   * `unsigned short` temp all produce `test $0x2,%ah`. Bit 9 sits in AH, so the
+   * narrowing is always available to the optimiser, and the original's scratch
+   * copy is an artifact of Bungie's compiler settings rather than of the
+   * source. Those two instructions -- plus the write-back immediate below --
+   * are the ENTIRE residual gap: the compiled body is otherwise
+   * instruction-identical to the reference, 29 instructions against its 31,
+   * same order, same branches. */
+  if ((tif->field_0a.w & 0x200) != 0) {
+    /* 0x6a228-0x6a231: `and eax,0xfffffdff; mov word ptr [esi+0xa],ax` --
+     * cleared from the value already in hand and stored back as a WORD, which
+     * is why the byte view at 0x0a cannot express this statement. VC71 narrows
+     * the immediate to `and $0xfdff` because only AX is stored -- MEASURED with
+     * both `&= ~0x200` and `= (unsigned short)(flags & ~0x200)`, so the 32-bit
+     * 0xfffffdff is unreachable here. Operand-level only: the mnemonic and the
+     * store both match, so this costs the operand-normalized % and not the
+     * official one. */
+    tif->field_0a.w &= ~0x200;
+
+    /* 0x6a234-0x6a247: load the slot once into EAX, test it, then
+     * `push esi; call eax; add esp,4; test eax,eax; jnz 0x6a24e`. */
+    if (tif->tif_postencode != (tiff_bool_method_t)0 &&
+        (*tif->tif_postencode)(tif) == 0) {
+      return 0;
+    }
+  }
+
+  /* 0x6a24e-0x6a259: `push esi; call 0x6fe10; add esp,4; pop esi; pop ebp;
+   * ret` -- EAX is untouched after the call, so its result is the return
+   * value. */
+  return TIFFFlushData1(tif);
+}
+
+/* FUN_0006a260 @ 0x6a260-0x6a29a (59 bytes, 27 instructions) -- upstream
+ * libtiff's `TIFFFlush` from tif_flush.c, the other half of the pair this
+ * object is named after. Transcribed from upstream rather than reshaped from
+ * the decompiler: with both callees mis-declared `void(void)` in kb.json the
+ * decompile rendered the body as `FUN_0006a210(); if (extraout_EAX == 0)`, a
+ * comma-expression artifact of the lost parameter and return value, not the
+ * original's shape. Upstream is reproduced verbatim in structure:
+ *
+ *     if (tif->tif_mode != O_RDONLY) {
+ *       if (!TIFFFlushData(tif)) return (0);
+ *       if ((tif->tif_flags & TIFF_DIRTYDIRECT) && !TIFFWriteDirectory(tif))
+ *         return (0);
+ *     }
+ *     return (1);
+ *
+ * Frame is `push ebp; mov ebp,esp; push esi` with no `sub esp` -- zero locals
+ * get a slot, and ESI holds the single stack parameter for the whole body
+ * (`mov esi,[ebp+8]` at 0x6a264). cdecl, one pushed argument at both call
+ * sites with `add esp,4` cleanup at each, EAX live at both RETs, so the
+ * prototype is `int (void *tif)`. The `tiff_t *` bind below is deliberately
+ * the ONLY local: any second local would earn a `sub esp` the reference does
+ * not have.
+ *
+ * Two epilogues, not one: `xor eax,eax; pop esi; pop ebp; ret` at 0x6a28e and
+ * `mov eax,1; pop esi; pop ebp; ret` at 0x6a293. Both `return 0;` statements
+ * share the first and both `return 1;` paths share the second -- MSVC folds
+ * each pair, so upstream's two literal `return (0);` statements are the right
+ * spelling and do not cost an instruction.
+ *
+ * O_RDONLY is 0 and TIFF_DIRTYDIRECT is 0x2 upstream, and both values match
+ * this build, but the flags bit stays a literal for the same reason the rest of
+ * this TU's bits do: the numbering at 0x0a does not otherwise line up with
+ * stock libtiff (see `field_09` and `field_0a`), so a TIFF_* macro would assert
+ * an identity that is not proven here. */
+int FUN_0006a260(void *tif_)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+
+  /* 0x6a267-0x6a26c: `cmp word ptr [esi+6],0; je 0x6a293` -- a WORD compare,
+   * which is what pins tif_mode to 16 bits; read-only handles skip the entire
+   * body and fall straight to `mov eax,1`. */
+  if (tif->tif_mode != 0) {
+    /* 0x6a26e-0x6a279: `push esi; call 0x6a210; add esp,4; test eax,eax;
+     * je 0x6a28e`. The result IS consumed -- a zero flush is the failure edge
+     * and returns 0, so this call must not be spelled as a bare statement. */
+    if (!FUN_0006a210(tif)) {
+      return 0;
+    }
+
+    /* 0x6a27b-0x6a28c: `test byte ptr [esi+0xa],2; je 0x6a293` then
+     * `push esi; call 0x680a0; add esp,4; test eax,eax; jne 0x6a293`.
+     *
+     * The flags test is a BYTE load here, so this uses the union's `.b` view
+     * and not the `.w` view FUN_0006a210 needs for its 0x200 bit -- bit 1 is
+     * reachable through the low byte, and widening the access to 16 bits would
+     * emit `test word` against a `test byte` reference.
+     *
+     * Both edges of the `&&` land on `mov eax,1`, not on the failure epilogue:
+     * a clear bit jumps to 0x6a293 directly, and a NON-zero return from
+     * TIFFWriteDirectory jumps there too. Only the taken-and-failed path falls
+     * through into `xor eax,eax`, which is exactly what the short-circuit
+     * form expresses. */
+    if ((tif->field_0a.b & 2) && !FUN_000680a0(tif)) {
+      return 0;
+    }
+  }
+
+  /* 0x6a293: `mov eax,1`. */
   return 1;
 }

@@ -4848,6 +4848,28 @@
       "score": 95.7,
       "source": "src/halo/bitmaps/libtiff/tif_flush.c"
     },
+    "FUN_0006a210": {
+      "addr": "0x6a210",
+      "end": "0x6a25a",
+      "kind": "auto",
+      "n_r": 31,
+      "opnd_percent": 77.8,
+      "ref": "synth",
+      "ref_sha": "84e4e3b9405eadaf",
+      "score": 81.5,
+      "source": "src/halo/bitmaps/libtiff/tif_flush.c"
+    },
+    "FUN_0006a260": {
+      "addr": "0x6a260",
+      "end": "0x6a29b",
+      "kind": "auto",
+      "n_r": 26,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "373371af562d686b",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_flush.c"
+    },
     "FUN_0006c680": {
       "addr": "0x6c680",
       "end": "0x6c6d2",
