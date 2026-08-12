@@ -1892,6 +1892,136 @@ void FUN_0006ac60(unsigned long *cp, unsigned char *pp,
 }
 
 /**
+ * Expand one 1-bit greyscale (min-is-white / min-is-black) tile into the
+ * 32-bit RGBA raster.
+ *
+ * Transcribed from the vendored libtiff (tif_getimage.c `put1bitbwtile`, the
+ * bitspersample == 1 arm of FUN_0006b780's MINISWHITE/MINISBLACK dispatch --
+ * the store at tif_flush.c:1770 in this file) rather than reshaped from the
+ * decompiler, which lost every parameter and reported the body as
+ * `void(void)`. Eight dword stores per source byte is what makes this the
+ * 1-bit writer: each entry of the table at 0x3340c8 is the eight-pixel run for
+ * one packed source byte, so `bw` walks forward inside the entry while `pp`
+ * advances one byte per eight pixels (`inc esi`, 0x6ad5e / 0x6ad7b). The same
+ * fold the other writers in this TU show applies -- samplesperpixel is a
+ * compile-time 1 here, so the source cursor is a plain increment rather than
+ * upstream's `pp += samplesperpixel`.
+ *
+ * Bungie's single delta from upstream: the expansion table is the file-scope
+ * static at 0x3340c8 (`Map` above) instead of an `img->BWmap` field.
+ *
+ * Frame, read off the disassembly (Ghidra's `in_stack_...` labels are
+ * ESP-relative junk -- EBX/ESI/EDI are pushed at 0x6ace1/0x6ace2/0x6acef,
+ * INSIDE the h == 0 early-out, so its frame reconstruction is off by the
+ * saves). One 4-byte local at EBP-4 holds the pre-scaled toskew; no _chkstk,
+ * no calls, no FPU. The seven cdecl slots are proven by their reads; only the
+ * ORDER is INFERRED, from upstream's (img, cp, x, y, w, h, fromskew, toskew,
+ * pp) prototype collapsed onto this build's frame:
+ *   +0x08 -> ecx  cp        the dword raster cursor (`add ecx,4`)
+ *   +0x0c -> esi  pp        the byte source cursor (`inc esi`)
+ *   +0x10         NEVER READ -- upstream's tile-origin y. Kept as a parameter
+ *                 because dropping it would shift every later slot, and all
+ *                 eleven dispatch sites in this TU cast through
+ *                 tiff_put_contig_proc, so a shifted slot would not even warn.
+ *   +0x14 -> edi  w         inner count, re-loaded per row at 0x6acf3
+ *   +0x18         h         counted down in its own argument slot
+ *                           (0x6add6-0x6add7)
+ *   +0x1c         fromskew  divided by 8 once up front (see below)
+ *   +0x20         toskew    scaled `shl edx,2` once at 0x6ace6 into EBP-4, and
+ *                           added back per row at 0x6add2
+ *
+ * Both counters are unsigned, read off the branch mnemonics rather than
+ * assumed: the row guard is `test ecx,ecx; jbe` (0x6acd3/0x6acd8) and the
+ * remainder guard is `test edi,edi; jbe` (0x6ad6b). Signed counters would emit
+ * jle/jl and invert the zero-trip behaviour for w or h of 0.
+ *
+ * 0x6acc4-0x6acd0: the SIGNED divide-by-8 (`cdq; and edx,7; add eax,edx;
+ * sar eax,3`) runs ONCE, ahead of the h == 0 test, and is written back over
+ * this parameter's own frame slot at 0x6acd5 (re-read into EAX at 0x6ad68).
+ * Upstream spells the same thing as `fromskew /= 8` before the row loop.
+ * An unsigned `>> 3` would drop the round-toward-zero the CDQ/AND pair
+ * encodes and change behaviour for a negative skew.
+ *
+ * toskew is pre-scaled x4 by the COMPILER; `cp` is a dword pointer, so
+ * `cp += toskew` is the correct spelling. Pre-scaling it in C would advance
+ * the raster four times too far.
+ *
+ * The table is re-loaded from 0x3340c8 INSIDE both loops here (0x6ad03 and
+ * 0x6ad72), so `Map` is indexed in place rather than hoisted into a local the
+ * way FUN_0006ac60 legitimately does -- hoisting would move the load out of
+ * the loops and out of the reference's shape.
+ *
+ * The double indirection is load-bearing: `mov edx,[0x3340c8]` /
+ * `mov edx,[edx+eax*4]` gives the row POINTER, and the eight
+ * `mov eax,[edx]` / `[edx+4]` ... loads with interleaved `add edx,4` walk
+ * eight SEQUENTIAL dwords inside that one row. Collapsing it to eight copies
+ * of `Map[*pp][0]` would store the same pixel eight times -- a wrong-pixel bug
+ * that no match score would notice.
+ *
+ * The remainder is upstream's CASE8: `dec edi; cmp edi,6; ja; jmp
+ * [edi*4+0x6ade8]` is a 7-entry jump table, i.e. a switch with 7 -> 1
+ * fallthrough entered after the table lookup has already advanced `pp`.
+ */
+void FUN_0006acc0(unsigned long *cp, unsigned char *pp,
+                  unsigned long unused_arg, unsigned long w, unsigned long h,
+                  long fromskew, long toskew)
+{
+  unsigned long *bw;
+  unsigned long x;
+
+  /* Upstream discards the tile-origin arguments the same way. */
+  (void)unused_arg;
+
+  /* 0x6acc4-0x6acd0, written back over the parameter's own slot. */
+  fromskew /= 8;
+
+  /* 0x6acd3 guard, 0x6add6-0x6add9 decrement-and-branch back to 0x6acf3. */
+  while (h-- > 0) {
+    /* 0x6acf6 guard (EDI = w >> 3 is the unrolled trip count, DEC/JNZ at
+     * 0x6ad61), 0x6ad03-0x6ad5f body: one table load, one `inc esi`, and
+     * eight sequential dwords out of the resolved row. */
+    for (x = w; x >= 8; x -= 8) {
+      bw = Map[*pp++];
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+    }
+    /* 0x6ad6b guard, 0x6ad72-0x6adc9: one table load, `inc esi`, then the
+     * jump table at 0x6ade8 that is this switch with its 7 -> 1 fallthrough. */
+    if (x > 0) {
+      bw = Map[*pp++];
+      switch (x) {
+      case 7:
+        *cp++ = *bw++;
+      case 6:
+        *cp++ = *bw++;
+      case 5:
+        *cp++ = *bw++;
+      case 4:
+        *cp++ = *bw++;
+      case 3:
+        *cp++ = *bw++;
+      case 2:
+        *cp++ = *bw++;
+      case 1:
+        *cp++ = *bw++;
+      }
+    }
+
+    /* 0x6add2: `add ecx,ebx` with EBX holding the pre-scaled toskew*4. */
+    cp += toskew;
+    /* 0x6add4: `add esi,eax` with EAX holding the quotient computed above;
+     * unscaled -- pp is a byte cursor. */
+    pp += fromskew;
+  }
+}
+
+/**
  * Expand one 2-bit greyscale (min-is-white / min-is-black) tile into the
  * 32-bit RGBA raster.
  *
