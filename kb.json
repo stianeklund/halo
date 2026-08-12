@@ -34276,7 +34276,8 @@
     },
     {
      "addr": "0x6b780",
-     "decl": "void FUN_0006b780(void);"
+     "decl": "void *FUN_0006b780(void);",
+     "ported": true
     },
     {
      "addr": "0x6b8e0",

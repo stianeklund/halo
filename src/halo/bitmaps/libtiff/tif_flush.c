@@ -1348,3 +1348,130 @@ void FUN_0006ac60(unsigned long *cp, unsigned char *pp,
     pp += fromskew;
   }
 }
+
+/*
+ * FUN_0006b780 -- 0x6b780, upstream libtiff's PickContigCase.
+ *
+ * Selects the packed-sample tile writer for the decoder state that
+ * tif_open.c's reader already populated. Both selectors are read as WORDS
+ * (`movzx eax, word ptr [0x3340f4]` at 0x6b780, `movzx eax, word ptr
+ * [0x3340fc]` in each arm), so they are the same `unsigned short` globals
+ * tif_open.c recovered; widening either to int would change the load width.
+ *
+ * The return value is PROVEN, and it is not upstream's 0/1 success flag: the
+ * epilogue is `mov eax,esi; pop esi; ret` at 0x6b838 with ESI zeroed by the
+ * `xor esi,esi` at 0x6b78a, so the routine hands its caller the selected
+ * routine address and NULL when the format is unsupported. Ghidra reports
+ * this function as returning void, which would silently leak whatever EAX
+ * happened to hold (lift-learnings section 16).
+ *
+ * Dispatch shape, all from the disassembly:
+ *   0x6b787  cmp eax,6 / ja  -> the error tail; a 7-entry outer table lives at
+ *            0x6b83c (just past the function end recorded in the bounds
+ *            table), so photometric 4 and 5 land on default.
+ *   inner    `movzx eax,word[0x3340fc]; dec eax; cmp eax,7; ja; jmp [eax*4+T]`
+ *            with T = 0x6b858 for the palette arm and T = 0x6b878 for the
+ *            min-is-white/min-is-black arm -- 8 entries biased by one, only
+ *            1/2/4/8 distinct. The palette table is emitted first, which is
+ *            why the arms are ordered RGB, palette, grey, YCbCr here: that is
+ *            upstream's source order and it puts the two blocks in the
+ *            observed order.
+ *   0x6b82x  the RGB and YCbCr arms use a direct `cmp word ptr [0x3340fc],8`
+ *            instead of a table, so they are spelled as compares, not as
+ *            switches over 8/16.
+ *
+ * Both paths share one tail: the error report FALLS THROUGH into
+ * `mov eax,esi`, so the failure case returns NULL rather than returning
+ * early. Do not hoist a `return NULL;` into the error branch.
+ *
+ * The photometric numbers are proven; the PHOTOMETRIC_* spellings are the
+ * TIFF-spec names for those values (tif_open.c already committed to
+ * MINISBLACK == 1 and RGB == 2 from its own stores). Nothing here proves what
+ * the individual writers do with the samples.
+ */
+#define photometric (*(unsigned short *)0x3340f4)
+#define bitspersample (*(unsigned short *)0x3340fc)
+
+#define PHOTOMETRIC_MINISWHITE 0
+#define PHOTOMETRIC_MINISBLACK 1
+#define PHOTOMETRIC_RGB 2
+#define PHOTOMETRIC_PALETTE 3
+#define PHOTOMETRIC_YCBCR 6
+
+/* The pointee signature is carried over from the two writers in this file that
+ * have been lifted -- FUN_0006a910 (palette, 8bpp) and FUN_0006ac60 (grey,
+ * 8bpp) both take (cp, pp, tile-origin, w, h, fromskew, toskew). The other
+ * nine dispatch targets are still seeded `void (void)` in kb.json, so each
+ * assignment below is cast; the pointer-ness is proven, the argument list is
+ * INFERRED from those two siblings. */
+typedef void (*tiff_put_contig_proc)(unsigned long *cp, unsigned char *pp,
+                                     unsigned long unused_arg, unsigned long w,
+                                     unsigned long h, long fromskew,
+                                     long toskew);
+
+void *FUN_0006b780(void)
+{
+  /* 0x6b78a: `xor esi,esi` ahead of the dispatch -- ESI is the result slot and
+   * the only callee-saved register the function touches. */
+  tiff_put_contig_proc put = NULL;
+
+  switch (photometric) {
+  case PHOTOMETRIC_RGB:
+    /* 0x6b7bf: one `cmp word ptr [0x3340fc],8` with both arms populated. */
+    if (bitspersample == 8)
+      put = (tiff_put_contig_proc)FUN_0006af80;
+    else
+      put = (tiff_put_contig_proc)FUN_0006b0a0;
+    break;
+  case PHOTOMETRIC_PALETTE:
+    /* Inner table at 0x6b858. */
+    switch (bitspersample) {
+    case 8:
+      put = (tiff_put_contig_proc)FUN_0006a910;
+      break;
+    case 4:
+      put = (tiff_put_contig_proc)FUN_0006a9a0;
+      break;
+    case 2:
+      put = (tiff_put_contig_proc)FUN_0006aa40;
+      break;
+    case 1:
+      put = (tiff_put_contig_proc)FUN_0006ab10;
+      break;
+    }
+    break;
+  case PHOTOMETRIC_MINISWHITE:
+  case PHOTOMETRIC_MINISBLACK:
+    /* Inner table at 0x6b878; the two photometrics share one arm. */
+    switch (bitspersample) {
+    case 8:
+      put = (tiff_put_contig_proc)FUN_0006ac60;
+      break;
+    case 4:
+      put = (tiff_put_contig_proc)FUN_0006aee0;
+      break;
+    case 2:
+      put = (tiff_put_contig_proc)FUN_0006ae10;
+      break;
+    case 1:
+      put = (tiff_put_contig_proc)FUN_0006acc0;
+      break;
+    }
+    break;
+  case PHOTOMETRIC_YCBCR:
+    /* 0x6b810: same direct compare as the RGB arm, but with no else -- any
+     * other depth falls through to the error tail. */
+    if (bitspersample == 8)
+      put = (tiff_put_contig_proc)FUN_0006b610;
+    break;
+  }
+
+  /* 0x6b821 `test esi,esi; jnz` joins the default arms here; 0x6b825 loads the
+   * name as a dword (`mov eax,[0x3340dc]`) and pushes the format string FIRST,
+   * so the name is argument zero. `add esp,8` proves the variadic call passes
+   * no extra arguments. */
+  if (put == NULL)
+    FUN_00068a30(filename, "Can not handle format");
+
+  return (void *)put;
+}
