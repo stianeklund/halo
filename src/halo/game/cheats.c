@@ -41,7 +41,7 @@ void FUN_000a54b0(void)
   }
 
   if (*(int *)player_data != -1) {
-    FUN_000a4310(local_player_index);
+    weather_particle_system_render(local_player_index);
   }
 }
 

@@ -28060,7 +28060,7 @@
     },
     {
      "addr": "0xa4e20",
-     "decl": "void weather_particle_system_render(void);"
+     "decl": "void weather_particle_system_render(int16_t local_player_index@<eax>);"
     }
    ],
    "name": "weather_particle_systems.obj",
