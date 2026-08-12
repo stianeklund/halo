@@ -22,3 +22,19 @@ void xbox_sound_cache_idle(void)
     system_exit(-1);
   }
 }
+
+/* Initialize a freshly created cache record. The sound must not already own a
+ * cache allocation; a1 is the dword the creator hands through to +0x34 (its
+ * meaning is unproven -- only the store is observed). */
+void sound_cache_sound_new(void *a1, sound_cache_sound *sound)
+{
+  if (sound->cache_base_address != NULL) {
+    display_assert("sound->cache_base_address==NULL", XBOX_SOUND_CACHE_FILE,
+                   0x9e, true);
+    system_exit(-1);
+  }
+
+  sound->field_2c = -1;
+  sound->cache_base_address = NULL;
+  sound->field_34 = a1;
+}
