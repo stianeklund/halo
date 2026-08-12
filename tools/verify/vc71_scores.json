@@ -17107,10 +17107,10 @@
       "end": "0x11ec09",
       "kind": "auto",
       "n_r": 29,
-      "opnd_percent": 52.3,
+      "opnd_percent": 51.7,
       "ref": "synth",
       "ref_sha": "767b7d49241696f4",
-      "score": 67.7,
+      "score": 72.4,
       "source": "src/halo/memory/stack_memory_pool.c"
     },
     "FUN_0011ec10": {
@@ -17118,10 +17118,10 @@
       "end": "0x11ec65",
       "kind": "auto",
       "n_r": 30,
-      "opnd_percent": 63.6,
+      "opnd_percent": 81.8,
       "ref": "synth",
       "ref_sha": "c4f8ccd441c03db1",
-      "score": 75.8,
+      "score": 87.9,
       "source": "src/halo/memory/stack_memory_pool.c"
     },
     "FUN_0011ec70": {
@@ -17129,10 +17129,10 @@
       "end": "0x11ecf0",
       "kind": "auto",
       "n_r": 58,
-      "opnd_percent": 55.2,
+      "opnd_percent": 58.6,
       "ref": "synth",
       "ref_sha": "0f600188197a4cb6",
-      "score": 75.9,
+      "score": 79.3,
       "source": "src/halo/memory/stack_memory_pool.c"
     },
     "FUN_0011ee80": {
@@ -24670,6 +24670,17 @@
       "ref_sha": "af50bb8d4f3b4fdd",
       "score": 92.0,
       "source": "src/halo/tag_files/tag_groups.c"
+    },
+    "FUN_001b9e70": {
+      "addr": "0x1b9e70",
+      "end": "0x1b9f9a",
+      "kind": "auto",
+      "n_r": 102,
+      "opnd_percent": 83.7,
+      "ref": "synth",
+      "ref_sha": "c1ee8fae74aaca20",
+      "score": 93.6,
+      "source": "src/halo/cache/cache_files.c"
     },
     "FUN_001bc720": {
       "addr": "0x1bc720",
@@ -33708,10 +33719,10 @@
       "end": "0xad9ad",
       "kind": "auto",
       "n_r": 318,
-      "opnd_percent": 60.6,
+      "opnd_percent": 61.2,
       "ref": "synth",
       "ref_sha": "ffff6464131a9467",
-      "score": 86.7,
+      "score": 88.3,
       "source": "src/halo/game/game_engine.c"
     },
     "game_engine_playlist_begin": {
@@ -38207,10 +38218,10 @@
       "end": "0x11ed81",
       "kind": "auto",
       "n_r": 43,
-      "opnd_percent": 34.7,
+      "opnd_percent": 86.0,
       "ref": "synth",
       "ref_sha": "25a775687609573b",
-      "score": 56.0,
+      "score": 100.0,
       "source": "src/halo/memory/stack_memory_pool.c"
     },
     "memory_check": {
@@ -45499,6 +45510,17 @@
       "score": 100.0,
       "source": "src/halo/cache/xbox_sound_cache.c"
     },
+    "sound_cache_request_sound": {
+      "addr": "0x1be550",
+      "end": "0x1be6ac",
+      "kind": "auto",
+      "n_r": 122,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "41d7d2392ed22055",
+      "score": 100.0,
+      "source": "src/halo/cache/xbox_sound_cache.c"
+    },
     "sound_cache_sound_delete": {
       "addr": "0x1bdf60",
       "end": "0x1be08f",
@@ -46263,10 +46285,10 @@
       "end": "0x11f808",
       "kind": "auto",
       "n_r": 77,
-      "opnd_percent": 43.4,
+      "opnd_percent": 60.0,
       "ref": "synth",
       "ref_sha": "d0fc10888d83f58e",
-      "score": 52.9,
+      "score": 72.5,
       "source": "src/halo/memory/stack_memory_pool.c"
     },
     "stack_memory_pool_allocate": {
@@ -46285,10 +46307,10 @@
       "end": "0x11f6c5",
       "kind": "auto",
       "n_r": 55,
-      "opnd_percent": 70.2,
+      "opnd_percent": 84.2,
       "ref": "synth",
       "ref_sha": "267e19fe42b72806",
-      "score": 89.5,
+      "score": 91.2,
       "source": "src/halo/memory/stack_memory_pool.c"
     },
     "stack_memory_pool_initialize": {

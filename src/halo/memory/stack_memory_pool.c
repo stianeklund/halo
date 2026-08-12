@@ -12,6 +12,27 @@
  * (EAX/ECX/ESI/EDI) declared in kb.json with @<reg> annotations.
  */
 
+/* fatal_assert — display_assert immediately followed by noreturn system_exit.
+ *
+ * The original compiler deferred display_assert's cdecl arg cleanup past the
+ * noreturn system_exit call and dropped it, so reference assert blocks end
+ * "calll display_assert; pushl $-1; calll system_exit" with no addl esp.
+ * VC71 instead emits "addl $0x10,%esp" between the two calls (a spurious
+ * scoring insn).  Calling through a __stdcall cast reproduces the reference's
+ * no-cleanup shape; the path is dead (system_exit never returns) so the
+ * unbalanced stack is unreachable and the pushl $-1 still lands on [esp+4]
+ * exactly as in the original.
+ */
+typedef void(__stdcall *fatal_assert_stdcall_fn)(const char *reason,
+                                                 const char *filepath, int line,
+                                                 int halt);
+
+#define fatal_assert(reason, line)                                      \
+  ((fatal_assert_stdcall_fn)(void *)display_assert)(reason,             \
+                                                    "c:\\halo\\SOURCE\\" \
+                                                    "memory\\stack_memory_pool.c", \
+                                                    line, 1)
+
 
 /* stack_memory_pool_initialize — reset a pool back to its initial state.
  *
@@ -148,9 +169,9 @@ unsigned int FUN_0011eb40(void *pool)
 int FUN_0011ebc0(void *pool)
 {
   char *pool_p = (char *)pool;
-  unsigned int slot_count;
-  unsigned int slot_index;
-  unsigned int *slot_entry;
+  int slot_count;
+  int slot_index;
+  int *slot_entry;
 
   if (pool == 0) {
     display_assert("pool", "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c",
@@ -158,22 +179,22 @@ int FUN_0011ebc0(void *pool)
     system_exit(-1);
   }
 
-  slot_count = *(unsigned int *)(pool_p + 0xc);
-  if (slot_count == 0) {
+  slot_count = *(int *)(pool_p + 0xc);
+  if (slot_count <= 0) {
     return -1;
   }
 
   slot_index = 0;
-  slot_entry = (unsigned int *)(pool_p + 0x34);
-  while (*slot_entry != 0) {
+  slot_entry = (int *)(pool_p + 0x34);
+  do {
+    if (*slot_entry == 0) {
+      return slot_index;
+    }
     slot_index++;
     slot_entry++;
-    if (slot_index >= slot_count) {
-      return -1;
-    }
-  }
+  } while (slot_index < slot_count);
 
-  return (int)slot_index;
+  return -1;
 }
 
 /* FUN_0011ec10 — refresh pool->next_block_index from current table state.
@@ -187,38 +208,28 @@ void FUN_0011ec10(void *pool)
 {
   char *pool_p = (char *)pool;
   int slot_index;
-  unsigned int slot_count;
   int *slot_entry;
 
   if (pool == 0) {
-    display_assert("pool", "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c",
-                   0x321, 1);
+    fatal_assert("pool", 0x321);
     system_exit(-1);
   }
 
-  slot_index = *(int *)(pool_p + 0x10);
-  if (slot_index == -1) {
-    return;
-  }
-
-  slot_count = *(unsigned int *)(pool_p + 0xc);
-  slot_index++;
-  *(int *)(pool_p + 0x10) = -1;
-
-  if ((unsigned int)slot_index >= slot_count) {
-    return;
-  }
-
-  slot_entry = (int *)(pool_p + 0x34 + slot_index * 4);
-  while (*slot_entry != 0) {
-    slot_index++;
-    slot_entry++;
-    if ((unsigned int)slot_index >= slot_count) {
-      return;
+  if (*(int *)(pool_p + 0x10) != -1) {
+    slot_index = *(int *)(pool_p + 0x10) + 1;
+    *(int *)(pool_p + 0x10) = -1;
+    if (slot_index < *(int *)(pool_p + 0xc)) {
+      slot_entry = (int *)(pool_p + 0x34 + slot_index * 4);
+      do {
+        if (*slot_entry == 0) {
+          *(int *)(pool_p + 0x10) = slot_index;
+          return;
+        }
+        slot_index++;
+        slot_entry++;
+      } while (slot_index < *(volatile int *)(pool_p + 0xc));
     }
   }
-
-  *(int *)(pool_p + 0x10) = slot_index;
 }
 
 /* FUN_0011ec70 — find a free gap large enough for alloc_size.
@@ -238,44 +249,47 @@ void *FUN_0011ec70(void *pool, int alloc_size,
   char *pool_p = (char *)pool;
   unsigned int *block;
   unsigned int *next;
+  void *ret;
 
+  ret = 0;
   block = *(unsigned int **)(pool_p + 0x2c);
-  if (block == 0) {
-    return 0;
+  if (block != 0 &&
+      (unsigned int)((char *)block - *(char **)(pool_p + 4)) >=
+      (unsigned int)alloc_size) {
+    return *(void **)(pool_p + 4);
   }
 
-  if ((unsigned int)alloc_size <=
-      (unsigned int)((char *)block - *(char **)(pool_p + 4))) {
-    return *(void **)(pool_p + 4);
+  if (block == 0) {
+    return ret;
   }
 
   next = *(unsigned int **)((char *)block + 0xc);
   if (next == 0) {
-    return 0;
+    return ret;
   }
 
   while (1) {
     if (block == 0) {
-      display_assert("block", "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c",
-                     0x22f, 1);
+      fatal_assert("block", 0x22f);
       system_exit(-1);
     }
 
-    if ((unsigned int)alloc_size <=
-        (unsigned int)((char *)next -
-                       ((char *)block + (block[0] & 0x7fffffff)))) {
+    if ((unsigned int)((char *)next -
+                       ((char *)block + (block[0] & 0x7fffffff))) >=
+        (unsigned int)alloc_size) {
       break;
     }
 
     block = next;
     next = *(unsigned int **)((char *)next + 0xc);
     if (next == 0) {
-      return 0;
+      return ret;
     }
   }
 
+  ret = (char *)block + (block[0] & 0x7fffffff);
   *free_space_in_pool_previous = block;
-  return (char *)block + (block[0] & 0x7fffffff);
+  return ret;
 }
 
 /* memory_block_valid — validate a block header's integrity.
@@ -291,39 +305,37 @@ void *FUN_0011ec70(void *pool, int alloc_size,
  *
  * Register convention: block_hdr passed in ECX (declared @<ecx> in kb.json).
  */
-int memory_block_valid(void *block_hdr)
+bool memory_block_valid(void *block_hdr)
 {
   unsigned int *p = (unsigned int *)block_hdr;
   unsigned int usable_size;
 
-  if (p == 0) {
-    return 0;
+  if (p != 0) {
+    usable_size = p[0] & 0x7fffffff;
+
+    if (!(usable_size - 0x20 > 0)) {
+      fatal_assert("!\"pointer has invalid size\"", 0x1e4);
+      system_exit(-1);
+      return false;
+    } else {
+      if (p[6] != 0x66727964) {
+        fatal_assert("!\"this memory has been corrupted\"", 0x1e9);
+        system_exit(-1);
+        return false;
+      }
+
+      if (*(unsigned int *)((char *)p + usable_size - 4) != 0x63686b6e) {
+        fatal_assert("!\"wrote beyond the valid address space for this block\"",
+                     0x1ee);
+        system_exit(-1);
+        return false;
+      }
+
+      return true;
+    }
   }
 
-  usable_size = p[0] & 0x7fffffff;
-
-  if (usable_size == 0x20) {
-    display_assert("!\"pointer has invalid size\"",
-                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x1e4, 1);
-    system_exit(-1);
-    return 0;
-  }
-
-  if (p[6] != 0x66727964) {
-    display_assert("!\"this memory has been corrupted\"",
-                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x1e9, 1);
-    system_exit(-1);
-    return 0;
-  }
-
-  if (*(unsigned int *)((char *)p + usable_size - 4) != 0x63686b6e) {
-    display_assert("!\"wrote beyond the valid address space for this block\"",
-                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x1ee, 1);
-    system_exit(-1);
-    return 0;
-  }
-
-  return 1;
+  return false;
 }
 
 /* FUN_0011ee80 — compact unlocked blocks toward pool base.
@@ -367,7 +379,7 @@ void FUN_0011ee80(void *pool)
         unsigned int size = block[0] & 0x7fffffff;
         unsigned int *moved = (unsigned int *)(previous_block + previous_size);
 
-        qmemcpy(moved, block, size);
+        memcpy(moved, block, size);
         block = moved;
 
         if (block[2] != 0) {
@@ -407,7 +419,7 @@ void FUN_0011ee80(void *pool)
  *   +0x0c: slot_count
  *   +0x34: start of slot table (slot_count entries, 4 bytes each)
  */
-int stack_memory_pool_valid_block(void *block_hdr, void *pool)
+bool stack_memory_pool_valid_block(void *block_hdr, void *pool)
 {
   unsigned int *blk = (unsigned int *)block_hdr;
   char *pool_p = (char *)pool;
@@ -415,7 +427,6 @@ int stack_memory_pool_valid_block(void *block_hdr, void *pool)
   unsigned int *end;
   unsigned int slot_index;
   unsigned int *slot_entry;
-  int valid;
 
   if (pool == 0 || *(unsigned int *)(pool_p + 4) == 0) {
     display_assert("pool && pool->base_address",
@@ -430,8 +441,7 @@ int stack_memory_pool_valid_block(void *block_hdr, void *pool)
     return 0;
   }
 
-  valid = memory_block_valid(block_hdr) & 0xff;
-  if (!valid) {
+  if (!memory_block_valid(block_hdr)) {
     return 0;
   }
 
@@ -573,7 +583,7 @@ void stack_memory_pool_mark_used(void *block_hdr, void *pool)
   }
 
   /* Check if block is already locked (high bit set). */
-  if ((blk[0] >> 0x1f) & 1) {
+  if ((int)blk[0] < 0) {
     goto combined_assert;
   }
 
@@ -628,13 +638,12 @@ void *stack_memory_pool_alloc_internal(int alloc_size, void *pool,
   int free_space_found;
 
   if (pool == 0 || *(int *)(pool_p + 4) == 0) {
-    display_assert("pool && pool->base_address",
-                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x342, 1);
+    fatal_assert("pool && pool->base_address", 0x342);
     system_exit(-1);
   }
 
   if (alloc_size == 0 || (unsigned int)alloc_size > 0x7fffffff ||
-      *(unsigned int *)(pool_p + 8) <= (unsigned int)alloc_size) {
+      (unsigned int)alloc_size >= *(unsigned int *)(pool_p + 8)) {
     display_assert("invalid size",
                    "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x3a4, 0);
     return 0;
@@ -687,9 +696,7 @@ void *stack_memory_pool_alloc_internal(int alloc_size, void *pool,
         *(unsigned int *)(pool_p + 4);
     } else {
       if (*(int *)(pool_p + 0x30) == 0) {
-        display_assert("pool->last_block",
-                       "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x370,
-                       1);
+        fatal_assert("pool->last_block", 0x370);
         system_exit(-1);
       }
 
@@ -707,9 +714,9 @@ void *stack_memory_pool_alloc_internal(int alloc_size, void *pool,
 
   if (*(int *)(pool_p + 0x2c) == 0) {
     if (*(int *)(pool_p + 0x30) != 0 || *(int *)(pool_p + 0x10) != 0) {
-      display_assert(
-        "(pool->last_block == NULL) && (pool->next_block_index == 0)",
-        "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x37d, 1);
+      fatal_assert("(pool->last_block == NULL) && "
+                   "(pool->next_block_index == 0)",
+                   0x37d);
       system_exit(-1);
     }
 
@@ -740,8 +747,7 @@ void *stack_memory_pool_alloc_internal(int alloc_size, void *pool,
   }
 
   if (free_space_in_pool_previous == 0) {
-    display_assert("free_space_in_pool_previous",
-                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x394, 1);
+    fatal_assert("free_space_in_pool_previous", 0x394);
     system_exit(-1);
   }
 
@@ -770,37 +776,33 @@ void *stack_memory_pool_alloc_internal(int alloc_size, void *pool,
 void stack_memory_pool_deallocate(void *pool, void *block)
 {
   char *pool_p = (char *)pool;
-  char *block_hdr;
   unsigned int size_flags;
   unsigned int usable_size;
   int valid;
 
   if (block == 0) {
-    display_assert("block", "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c",
-                   0x197, 1);
+    fatal_assert("block", 0x197);
     system_exit(-1);
   }
 
-  block_hdr = (char *)block - 0x1c;
+  block = (char *)block + (-0x1c);
 
-  valid = stack_memory_pool_valid_block(block_hdr, pool) & 0xff;
+  valid = stack_memory_pool_valid_block(block, pool) & 0xff;
 
   if (!valid) {
-    display_assert("invalid pointer",
-                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x19d, 1);
+    fatal_assert("invalid pointer", 0x19d);
     system_exit(-1);
   }
 
-  if (block_hdr == 0) {
-    display_assert("block", "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c",
-                   0x22f, 1);
+  if (block == 0) {
+    fatal_assert("block", 0x22f);
     system_exit(-1);
   }
 
-  size_flags = *(unsigned int *)block_hdr;
+  size_flags = *(unsigned int *)block;
   usable_size = size_flags & 0x7fffffff;
 
-  stack_memory_pool_unlink_block(block_hdr, pool);
+  stack_memory_pool_unlink_block(block, pool);
 
   *(unsigned int *)(pool_p + 0x14) -= usable_size;
   *(int *)(pool_p + 0x1c) -= 1;
@@ -819,53 +821,32 @@ void *stack_memory_pool_alloc_or_resize(int new_size, void *pool,
                                         void *block_hdr, const char *file,
                                         unsigned int line)
 {
-  char *old_hdr = (char *)block_hdr;
-  char *new_hdr;
-  unsigned int old_payload_size;
-  int valid;
+  void *new_hdr;
 
   if (new_size == 0) {
     return 0;
   }
 
-  if (old_hdr == 0) {
+  if (block_hdr == 0) {
     return stack_memory_pool_alloc_internal(new_size, pool, file, line);
   }
 
-  valid = stack_memory_pool_valid_block(old_hdr, pool) & 0xff;
-  if (!valid) {
-    display_assert("stack_memory_pool_valid_block(pool, reference)",
-                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x2b4, 1);
+  if (!stack_memory_pool_valid_block(block_hdr, pool)) {
+    fatal_assert("stack_memory_pool_valid_block(pool, reference)", 0x2b4);
     system_exit(-1);
   }
 
-  old_payload_size = FUN_0011ea90(old_hdr) - 0x20;
-  if ((unsigned int)new_size <= old_payload_size) {
-    return old_hdr;
+  if ((unsigned int)new_size <= memory_block_get_user_size(block_hdr)) {
+    return block_hdr;
   }
 
-  new_hdr =
-    (char *)stack_memory_pool_alloc_internal(new_size, pool, file, line);
-  if (new_hdr == 0) {
-    return 0;
+  new_hdr = stack_memory_pool_alloc_internal(new_size, pool, file, line);
+  if (new_hdr != 0) {
+    csmemcpy((char *)new_hdr + 0x1c, (char *)block_hdr + 0x1c,
+             memory_block_get_user_size(block_hdr));
+    stack_memory_pool_unlink_block(block_hdr, pool);
   }
 
-  valid = memory_block_valid(old_hdr) & 0xff;
-  if (!valid) {
-    display_assert("memory_block_valid(block)",
-                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x23f, 1);
-    system_exit(-1);
-  }
-
-  valid = memory_block_valid(new_hdr) & 0xff;
-  if (!valid) {
-    display_assert("memory_block_valid(block)",
-                   "c:\\halo\\SOURCE\\memory\\stack_memory_pool.c", 0x23f, 1);
-    system_exit(-1);
-  }
-
-  csmemcpy(new_hdr + 0x1c, old_hdr + 0x1c, old_payload_size);
-  stack_memory_pool_unlink_block(old_hdr, pool);
   return new_hdr;
 }
 
@@ -914,10 +895,9 @@ void *stack_memory_pool_allocate(void *pool, int size, const char *file,
   usable_size = size_flags & 0x7fffffff;
 
   bytes_used = *(unsigned int *)(pool_p + 0x14) + usable_size;
-  *(unsigned int *)(pool_p + 0x14) = bytes_used;
-
   alloc_count = *(unsigned int *)(pool_p + 0x1c) + 1;
   *(unsigned int *)(pool_p + 0x1c) = alloc_count;
+  *(unsigned int *)(pool_p + 0x14) = bytes_used;
 
   if ((int)bytes_used > *(int *)(pool_p + 0x18)) {
     *(unsigned int *)(pool_p + 0x18) = bytes_used;
@@ -996,7 +976,7 @@ void *stack_memory_pool_realloc(void *pool, int block, unsigned short new_size,
   }
 
   new_size_flags = *(unsigned int *)new_hdr;
-  if (!((new_size_flags >> 0x1f) & 1)) {
+  if ((int)new_size_flags >= 0) {
     stack_memory_pool_mark_used(new_hdr, pool);
   }
 

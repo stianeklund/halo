@@ -2236,18 +2236,6 @@
         "The upstream libtiff identity of this entry point and the meaning of bit 0 of the byte at tif+0x9 are both UNKNOWN; in particular it is unproven whether that byte is byte 1 of an upstream uint32 tif_flags based at 0x08, so the bit is set with a literal 1 and cleared with 0xfe rather than a named TIFF_ macro."
       ]
     },
-    "0x69420": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Upstream identity as libtiff tif_fax3.c Fax3PreEncode is INFERRED from body shape (bit=8/data=0/tag=0 triple, is2DEncoding guard, maxk=(res>150?4:2) with k=maxk-1, and the k=maxk=0 else arm), not proven by any __FILE__ string.",
-        "Codec state members k (0x24) and maxk (0x26) take their names from upstream Fax3CodecState, but this build stores both as 16-bit words where upstream declares int; maxk sits above k in memory because 0x26 is stored first and dec eax then feeds 0x24."
-      ],
-      "uncertain": [
-        "Which of the two cached run-scan tables at state+0x1c and state+0x20 is the white scanner and which the black one is unproven: no recovered body reads either slot, only FUN_00069420 writing the 0x2ec3c8/0x2ec4c8 pair and swapping it on the photometric flag at state+0x04.",
-        "The RESUNIT_CENTIMETER arm applies two double multiplies (0.3937 at 0x260140 then exactly 1/2.54 at 0x260138) for a net factor near 0.155, which contradicts upstream's single res*=2.54f cm-to-inch conversion; the two FMULs are binary-proven and MSVC cannot fold them, but the intended meaning of the scale is unknown."
-      ]
-    },
     "0x69520": {
       "kind": "function",
       "status": "unknown",
@@ -2333,38 +2321,6 @@
         "The unrolled loop at 0x6a950 emits the copy body exactly ONCE while counting sub esi,8 and running w>>3 iterations, so a row of w pixels advances the cursors by only w/8 (+1) pixels instead of upstream's eight-per-iteration REPEAT8 expansion; whether Bungie reduced the REPEAT macros for code size or these paths are simply dead in this build is not recoverable from the binary."
       ]
     },
-    "0x6a9a0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Identified as upstream libtiff tif_getimage.c put4bitcmaptile: the dispatcher at 0x6b858 (FUN_0006b780) selects 0x6a9a0 for PHOTOMETRIC_PALETTE with bitspersample==4, which also proves the static at 0x3340c4 is upstream's PALmap and NOT BWmap, so this TU's existing BWmap/Map macro names for 0x3340c4/0x3340c8 are swapped relative to upstream.",
-        "The seven cdecl stack slot ROLES are proven by their reads but the slot ORDER is inferred from upstream's prototype collapsed onto this build's frame, matching the sibling writers FUN_0006a910 and FUN_0006ac60; slot EBP+0x10 is never read and must be kept or w/h/fromskew/toskew shift down one slot each."
-      ],
-      "uncertain": [
-        "kb.json groups this body into tif_flush.obj but the upstream translation unit is tif_getimage.c; the binary carries no __FILE__ string for tif_flush.c and this function has no assert, so the object grouping is not evidence of the upstream source file."
-      ]
-    },
-    "0x6aa40": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Identity as upstream libtiff 3.5.7 tif_getimage.c put2bitcmaptile is inferred from the dispatcher at 0x6b858 (FUN_0006b780), whose PHOTOMETRIC_PALETTE inner table selects 0x6aa40 for bitspersample==2, between FUN_0006a9a0 (4 bpp) and FUN_0006ab10 (1 bpp).",
-        "Parameter ORDER is inferred from upstream's prototype collapsed onto this build's seven cdecl stack slots; the slot-to-role mapping itself is confirmed from disassembly (cp EBP+0x08, pp EBP+0x0c, w EBP+0x14, h EBP+0x18, fromskew EBP+0x1c, toskew EBP+0x20)."
-      ],
-      "uncertain": [
-        "Stack slot EBP+0x10 is never read anywhere in the function body; it is retained in the prototype as unused_arg on the inference that it is upstream's discarded tile-origin argument, and dropping it would shift w/h/fromskew/toskew down one slot at every call site including the function-pointer cast at the dispatcher."
-      ]
-    },
-    "0x6ab10": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Parameter ORDER of the seven cdecl stack slots is inferred from upstream libtiff put1bitcmaptile's prototype collapsed onto this build's frame; only the slot offsets themselves are confirmed from the disassembly (EBP+0x08 cp, +0x0c pp, +0x14 w, +0x18 h, +0x1c fromskew, +0x20 toskew)."
-      ],
-      "uncertain": [
-        "Slot EBP+0x10 is never read anywhere in the body; it is identified as upstream's discarded tile-origin argument by analogy with the three sibling writers, not by direct evidence, and must be preserved or w/h/fromskew/toskew shift down one slot."
-      ]
-    },
     "0x6ac60": {
       "kind": "function",
       "status": "unknown",
@@ -2375,81 +2331,6 @@
       "uncertain": [
         "Whether 0x3340c8 is upstream's Map (8-bit colormap table) rather than BWmap is unproven; tif_open.c only shows 0x3340c8 freed at tif_getimage.c line 125 and 0x3340c4 at line 127, and the Map/BWmap assignment follows upstream's free order rather than direct evidence. The pointee type unsigned long ** is proven by the three chained loads at 0x6ac6f/0x6ac97/0x6ac9a.",
         "samplesperpixel is folded to a compile-time 1 here (the source cursor advances by a plain inc ecx at 0x6ac9f instead of upstream's pp += img->samplesperpixel); whether Bungie specialized the routine or the general path is simply unused in this build is not recoverable from the binary."
-      ]
-    },
-    "0x6ae10": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Parameter ORDER for FUN_0006ae10 is inferred from upstream libtiff put2bitbwtile collapsed onto this build's frame; only the seven slots and their individual reads are proven by disassembly."
-      ]
-    },
-    "0x6aee0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Parameter ORDER is inferred from upstream libtiff put4bitcmaptile's (img, cp, x, y, w, h, fromskew, toskew, pp) prototype collapsed onto this build's seven cdecl slots; each slot's ROLE is proven by its read but the mapping of name to slot is not independently confirmed."
-      ],
-      "uncertain": [
-        "The EBP+0x10 slot is never read by this function and is retained only as unused_arg to keep the later slot offsets correct; its upstream meaning as the tile-origin y coordinate is unverified in this build."
-      ]
-    },
-    "0x6af80": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Parameter ORDER of the seven cdecl slots is inferred from upstream libtiff's (img, cp, x, y, w, h, fromskew, toskew, pp) prototype collapsed onto this build's frame; only the individual slot reads at EBP+0x08..+0x20 are proven by the disassembly.",
-        "Slot EBP+0x10 is typed unsigned char * (upstream's TIFFRGBValue *Map) because it is indexed by a byte-sized load at 0x6afd4 (mov bh,[edx+ecx] with EDX a zero-extended source byte); the shared tiff_put_contig_proc typedef still declares that slot unsigned long and every dispatch site casts through it, so the typedef was deliberately left unchanged."
-      ],
-      "uncertain": [
-        "The UNROLL8 remainder block at 0x6b05f-0x6b07c has no back-edge, so it writes exactly one pixel instead of upstream's REPEAT(_x, op2) and a tile row whose width leaves a remainder of 2..7 is short by that many pixels; it is unknown whether that is a Bungie bug or intentional, and it was transcribed literally rather than corrected to upstream."
-      ]
-    },
-    "0x6b0a0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The seven-slot cdecl prototype (unsigned long *cp, unsigned short *pp, unsigned char *map, unsigned long w, unsigned long h, long fromskew, long toskew) is inferred from the frame reads alone because Ghidra had no prototype and the seeded kb.json decl was the placeholder void FUN_0006b0a0(void); pp is unsigned short * because every sample load is a MOVZX of a word at [eax], [eax+2], [eax+4] and the advance is LEA EAX,[EAX+EDX*2].",
-        "The map table is indexed by the full zero-extended 16-bit sample (MOVZX EDX,word ptr [EAX+4] then MOV BH,byte ptr [EDX+ECX]), so it is upstream libtiff's 65536-entry Bitdepth16To8 table rather than a 256-entry palette; the identification is inferred from the index width, not from any string or symbol."
-      ],
-      "uncertain": [
-        "The no-map arm packs the RAW 16-bit words with two shifts of 8 and no >>8 narrowing (0x6b154-0x6b167), so the high halves of pp[2] and pp[1] bleed into the neighbouring byte lanes; upstream putRGBcontig16bittile narrows each sample first, so it is unclear whether this build's divergence is an intentional Bungie change or an upstream-version difference, and it must not be silently corrected."
-      ]
-    },
-    "0x6b190": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The map parameter is typed unsigned char * from the byte-sized table load 'mov bh,[edx+eax]' at 0x6b1d1 (EAX = slot +0x18, EDX = a zero-extended plane byte); upstream libtiff spells the same thing TIFFRGBValue *Map, and the shared tiff_put_contig_proc typedef's unsigned long for slot 3 is deliberately left alone because all existing dispatch sites cast through it.",
-        "The upstream identity as putRGBseparate8bitMaptile and putRGBseparate8bittile fused into one routine is INFERRED from shape only: the binary carries no __FILE__ string for tif_getimage.c-resident putters and this function has no assert to stamp one.",
-        "kb.json places 0x6b190 in objects[184] = tif_flush.obj (src bitmaps/libtiff/tif_flush.c), which is why the body was written there next to its sibling putters, but by upstream shape this address region (0x6a000-0x6b800) is tif_getimage.c putter family, not tif_flush/tif_dumpmode; the obj NAME is probably wrong for all 55 functions in that object and should be revisited as a whole rather than forked per-lift."
-      ],
-      "uncertain": [
-        "The per-arm ordering of the row-advance statements (r/g/b += fromskew before cp += toskew in the map arm, and cp += toskew first in the plain arm) is taken from the decompiler's rendering of independent adds; the adds cannot alias so both orders are behaviorally identical, and the 100 percent mnemonic match does not arbitrate which order the reference source used."
-      ]
-    },
-    "0x6b2d0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The ORDER of the nine cdecl parameters (cp, r, g, b, map, w, h, fromskew, toskew) is inferred from the 8-bit sibling FUN_0006b190 at 0x6b190, which has an identical nine-slot frame; only the existence of each slot and its use are proven by reads at EBP+8 through EBP+0x28.",
-        "The channel-to-plane assignment (r at bits 0..7, g at 8..15, b at 16..23) follows from the pack construction at 0x6b320 and 0x6b3a0 plus the sibling's PACK order, but the plane NAMES themselves are conventional and unproven since no string or symbol identifies them."
-      ],
-      "uncertain": [
-        "The no-table arm at 0x6b3a0-0x6b3b3 packs RAW 16-bit samples with movzx/shl 8/or twice and never narrows them, so a sample above 0xff overlaps into the next channel; upstream libtiff has no no-table 16-bit separate writer at all, so whether this is a Bungie bug or intentional is unknown and adding a >> 8 would be a behaviour change.",
-        "The lookup table is indexed by the full zero-extended 16-bit sample via byte ptr [edx+edi], implying a table of at least 64K bytes (upstream Bitdepth16To8), but the allocation site that sizes it was not located in this lift."
-      ]
-    },
-    "0x6b610": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "FUN_0006b440's argument NAMES (coffset/nrows/ncols/w/hskip/toskew) are inferred from their roles at the four call sites in FUN_0006b610; only the register slots (EAX=pp, ECX=hsub*vsub, EDX=block row count) and the five-slot cdecl push order are proven by the disassembly.",
-        "The third stack argument to FUN_0006b440 is the full raster width w: Ghidra renders the bottom-row tail as 'in_stack_00000010 -= DAT_003340d8' as if the w argument slot were decremented, but the column counter is EBX in both nests and [EBP+0x14] is never written.",
-        "0x3340d4 and 0x3340d8 are inferred to be the TIFF YCbCr vertical and horizontal subsampling factors from their roles (block height and width, product = chroma byte offset); the binary proves only that both are uint16 file-scope statics."
-      ],
-      "uncertain": [
-        "What FUN_0006b440 does with the YCbCr samples inside one subsampling block is not established here; only its argument marshalling is."
       ]
     },
     "0x6b780": {
@@ -14598,7 +14479,10 @@
         "Cache datum +0x04 is software_reference_count per the assert 'cache_sound->software_reference_count<UNSIGNED_CHAR_MAX'; the guard is CMP byte/JC (unsigned below), so the field is an unsigned char and the datum is walked as unsigned char * in this function.",
         "The dword at sound+0x34 is the cache tag index: the line-0xc6 assert reads sound->cache_tag_index!=0, but the struct field is still typed void* and named field_34 because only the !=0 test is observed here.",
         "FUN_001be2b0 (0x1be2b0) takes the sound in ESI: its first instruction is MOV EAX,[ESI+0x40] and it writes back [ESI+0x2c] and [ESI+0x30], so its kb.json decl was corrected from void(void) to a single @<esi> parameter and tools/kb_reg_baseline.json updated to match.",
-        "Cache datum layout is inferred from byte accesses only: +0x02 ready flag, +0x03 initialized flag, +0x04 software reference count (unsigned, from the JB against 0xFF and the assert text), +0x05 hardware reference count, +0x08 the permutation pointer handed to a %s conversion."
+        "Cache datum layout is inferred from byte accesses only: +0x02 ready flag, +0x03 initialized flag, +0x04 software reference count (unsigned, from the JB against 0xFF and the assert text), +0x05 hardware reference count, +0x08 the permutation pointer handed to a %s conversion.",
+        "param 1 is a sound_cache_sound*; it is declared void* only because the callers in sound_manager.c and predicted_resources.c hold it as an untyped permutation pointer.",
+        "sound_cache_sound +0x34 is the cache tag index, named from the assert text sound->cache_tag_index!=0 at line 0xc6.",
+        "FUN_001be2b0 (0x1be2b0) is the cache-fill path, called only when the sound owns no block (field_2c == NONE) and load is set."
       ],
       "uncertain": [
         "sound_cache_sound +0x34 is called cache_tag_index by the line-0xc6 assert but is still typed void* from sound_cache_sound_new; renaming and retyping it is deferred to a separate byte-identical-gated edit.",
@@ -14606,7 +14490,8 @@
         "Cache datum +0x02 (spun on until non-zero) and +0x03 (set to 1 once, zeroing +0x04 and +0x05) are unnamed: no assert or format string mentions them, so 'data resident' and 'block claimed' are behavioural readings only.",
         "The byte at 0x5054ec that gates the '--- request %d %s' spew is named mechanically (sound_cache_debug_trace); only the !=0 gate is observed, and it is a distinct byte from the 16-bit hardware_sound_reference_count at 0x5054ea.",
         "VC71 constant-folds the write-once result bool that the original keeps in the [EBP-1] slot (PUSH ECX plus MOV byte [EBP-1],0 at 0x1be55b), which tail-merges the two false exits into one XOR AL,AL epilogue and accounts for most of the 129-vs-122 insn gap; the remaining ~2 insns are the @<esi> call thunk for FUN_001be2b0.",
-        "FUN_001be2b0 is called with no pushed arguments and kb declares it void(void), but a cache-fill helper that receives no sound is unexplained; it may consume ESI implicitly and would then need an @esi annotation."
+        "FUN_001be2b0 is called with no pushed arguments and kb declares it void(void), but a cache-fill helper that receives no sound is unexplained; it may consume ESI implicitly and would then need an @esi annotation.",
+        "The byte flag at 0x5054ec that gates the error() request trace has no string evidence for its original name; the macro name sound_cache_debug_trace is mechanical."
       ]
     },
     "0x1bea30": {
@@ -15604,6 +15489,125 @@
     "0x5065a4": {
       "kind": "data",
       "status": "ported"
+    },
+    "0x69420": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Upstream identity as libtiff tif_fax3.c Fax3PreEncode is INFERRED from body shape (bit=8/data=0/tag=0 triple, is2DEncoding guard, maxk=(res>150?4:2) with k=maxk-1, and the k=maxk=0 else arm), not proven by any __FILE__ string.",
+        "Codec state members k (0x24) and maxk (0x26) take their names from upstream Fax3CodecState, but this build stores both as 16-bit words where upstream declares int; maxk sits above k in memory because 0x26 is stored first and dec eax then feeds 0x24."
+      ],
+      "uncertain": [
+        "Which of the two cached run-scan tables at state+0x1c and state+0x20 is the white scanner and which the black one is unproven: no recovered body reads either slot, only FUN_00069420 writing the 0x2ec3c8/0x2ec4c8 pair and swapping it on the photometric flag at state+0x04.",
+        "The RESUNIT_CENTIMETER arm applies two double multiplies (0.3937 at 0x260140 then exactly 1/2.54 at 0x260138) for a net factor near 0.155, which contradicts upstream's single res*=2.54f cm-to-inch conversion; the two FMULs are binary-proven and MSVC cannot fold them, but the intended meaning of the scale is unknown."
+      ]
+    },
+    "0x6a9a0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Identified as upstream libtiff tif_getimage.c put4bitcmaptile: the dispatcher at 0x6b858 (FUN_0006b780) selects 0x6a9a0 for PHOTOMETRIC_PALETTE with bitspersample==4, which also proves the static at 0x3340c4 is upstream's PALmap and NOT BWmap, so this TU's existing BWmap/Map macro names for 0x3340c4/0x3340c8 are swapped relative to upstream.",
+        "The seven cdecl stack slot ROLES are proven by their reads but the slot ORDER is inferred from upstream's prototype collapsed onto this build's frame, matching the sibling writers FUN_0006a910 and FUN_0006ac60; slot EBP+0x10 is never read and must be kept or w/h/fromskew/toskew shift down one slot each."
+      ],
+      "uncertain": [
+        "kb.json groups this body into tif_flush.obj but the upstream translation unit is tif_getimage.c; the binary carries no __FILE__ string for tif_flush.c and this function has no assert, so the object grouping is not evidence of the upstream source file."
+      ]
+    },
+    "0x6aa40": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Identity as upstream libtiff 3.5.7 tif_getimage.c put2bitcmaptile is inferred from the dispatcher at 0x6b858 (FUN_0006b780), whose PHOTOMETRIC_PALETTE inner table selects 0x6aa40 for bitspersample==2, between FUN_0006a9a0 (4 bpp) and FUN_0006ab10 (1 bpp).",
+        "Parameter ORDER is inferred from upstream's prototype collapsed onto this build's seven cdecl stack slots; the slot-to-role mapping itself is confirmed from disassembly (cp EBP+0x08, pp EBP+0x0c, w EBP+0x14, h EBP+0x18, fromskew EBP+0x1c, toskew EBP+0x20)."
+      ],
+      "uncertain": [
+        "Stack slot EBP+0x10 is never read anywhere in the function body; it is retained in the prototype as unused_arg on the inference that it is upstream's discarded tile-origin argument, and dropping it would shift w/h/fromskew/toskew down one slot at every call site including the function-pointer cast at the dispatcher."
+      ]
+    },
+    "0x6ab10": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter ORDER of the seven cdecl stack slots is inferred from upstream libtiff put1bitcmaptile's prototype collapsed onto this build's frame; only the slot offsets themselves are confirmed from the disassembly (EBP+0x08 cp, +0x0c pp, +0x14 w, +0x18 h, +0x1c fromskew, +0x20 toskew)."
+      ],
+      "uncertain": [
+        "Slot EBP+0x10 is never read anywhere in the body; it is identified as upstream's discarded tile-origin argument by analogy with the three sibling writers, not by direct evidence, and must be preserved or w/h/fromskew/toskew shift down one slot."
+      ]
+    },
+    "0x6ae10": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter ORDER for FUN_0006ae10 is inferred from upstream libtiff put2bitbwtile collapsed onto this build's frame; only the seven slots and their individual reads are proven by disassembly."
+      ]
+    },
+    "0x6aee0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter ORDER is inferred from upstream libtiff put4bitcmaptile's (img, cp, x, y, w, h, fromskew, toskew, pp) prototype collapsed onto this build's seven cdecl slots; each slot's ROLE is proven by its read but the mapping of name to slot is not independently confirmed."
+      ],
+      "uncertain": [
+        "The EBP+0x10 slot is never read by this function and is retained only as unused_arg to keep the later slot offsets correct; its upstream meaning as the tile-origin y coordinate is unverified in this build."
+      ]
+    },
+    "0x6af80": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter ORDER of the seven cdecl slots is inferred from upstream libtiff's (img, cp, x, y, w, h, fromskew, toskew, pp) prototype collapsed onto this build's frame; only the individual slot reads at EBP+0x08..+0x20 are proven by the disassembly.",
+        "Slot EBP+0x10 is typed unsigned char * (upstream's TIFFRGBValue *Map) because it is indexed by a byte-sized load at 0x6afd4 (mov bh,[edx+ecx] with EDX a zero-extended source byte); the shared tiff_put_contig_proc typedef still declares that slot unsigned long and every dispatch site casts through it, so the typedef was deliberately left unchanged."
+      ],
+      "uncertain": [
+        "The UNROLL8 remainder block at 0x6b05f-0x6b07c has no back-edge, so it writes exactly one pixel instead of upstream's REPEAT(_x, op2) and a tile row whose width leaves a remainder of 2..7 is short by that many pixels; it is unknown whether that is a Bungie bug or intentional, and it was transcribed literally rather than corrected to upstream."
+      ]
+    },
+    "0x6b0a0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The seven-slot cdecl prototype (unsigned long *cp, unsigned short *pp, unsigned char *map, unsigned long w, unsigned long h, long fromskew, long toskew) is inferred from the frame reads alone because Ghidra had no prototype and the seeded kb.json decl was the placeholder void FUN_0006b0a0(void); pp is unsigned short * because every sample load is a MOVZX of a word at [eax], [eax+2], [eax+4] and the advance is LEA EAX,[EAX+EDX*2].",
+        "The map table is indexed by the full zero-extended 16-bit sample (MOVZX EDX,word ptr [EAX+4] then MOV BH,byte ptr [EDX+ECX]), so it is upstream libtiff's 65536-entry Bitdepth16To8 table rather than a 256-entry palette; the identification is inferred from the index width, not from any string or symbol."
+      ],
+      "uncertain": [
+        "The no-map arm packs the RAW 16-bit words with two shifts of 8 and no >>8 narrowing (0x6b154-0x6b167), so the high halves of pp[2] and pp[1] bleed into the neighbouring byte lanes; upstream putRGBcontig16bittile narrows each sample first, so it is unclear whether this build's divergence is an intentional Bungie change or an upstream-version difference, and it must not be silently corrected."
+      ]
+    },
+    "0x6b190": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The map parameter is typed unsigned char * from the byte-sized table load 'mov bh,[edx+eax]' at 0x6b1d1 (EAX = slot +0x18, EDX = a zero-extended plane byte); upstream libtiff spells the same thing TIFFRGBValue *Map, and the shared tiff_put_contig_proc typedef's unsigned long for slot 3 is deliberately left alone because all existing dispatch sites cast through it.",
+        "The upstream identity as putRGBseparate8bitMaptile and putRGBseparate8bittile fused into one routine is INFERRED from shape only: the binary carries no __FILE__ string for tif_getimage.c-resident putters and this function has no assert to stamp one.",
+        "kb.json places 0x6b190 in objects[184] = tif_flush.obj (src bitmaps/libtiff/tif_flush.c), which is why the body was written there next to its sibling putters, but by upstream shape this address region (0x6a000-0x6b800) is tif_getimage.c putter family, not tif_flush/tif_dumpmode; the obj NAME is probably wrong for all 55 functions in that object and should be revisited as a whole rather than forked per-lift."
+      ],
+      "uncertain": [
+        "The per-arm ordering of the row-advance statements (r/g/b += fromskew before cp += toskew in the map arm, and cp += toskew first in the plain arm) is taken from the decompiler's rendering of independent adds; the adds cannot alias so both orders are behaviorally identical, and the 100 percent mnemonic match does not arbitrate which order the reference source used."
+      ]
+    },
+    "0x6b2d0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The ORDER of the nine cdecl parameters (cp, r, g, b, map, w, h, fromskew, toskew) is inferred from the 8-bit sibling FUN_0006b190 at 0x6b190, which has an identical nine-slot frame; only the existence of each slot and its use are proven by reads at EBP+8 through EBP+0x28.",
+        "The channel-to-plane assignment (r at bits 0..7, g at 8..15, b at 16..23) follows from the pack construction at 0x6b320 and 0x6b3a0 plus the sibling's PACK order, but the plane NAMES themselves are conventional and unproven since no string or symbol identifies them."
+      ],
+      "uncertain": [
+        "The no-table arm at 0x6b3a0-0x6b3b3 packs RAW 16-bit samples with movzx/shl 8/or twice and never narrows them, so a sample above 0xff overlaps into the next channel; upstream libtiff has no no-table 16-bit separate writer at all, so whether this is a Bungie bug or intentional is unknown and adding a >> 8 would be a behaviour change.",
+        "The lookup table is indexed by the full zero-extended 16-bit sample via byte ptr [edx+edi], implying a table of at least 64K bytes (upstream Bitdepth16To8), but the allocation site that sizes it was not located in this lift."
+      ]
+    },
+    "0x6b610": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "FUN_0006b440's argument NAMES (coffset/nrows/ncols/w/hskip/toskew) are inferred from their roles at the four call sites in FUN_0006b610; only the register slots (EAX=pp, ECX=hsub*vsub, EDX=block row count) and the five-slot cdecl push order are proven by the disassembly.",
+        "The third stack argument to FUN_0006b440 is the full raster width w: Ghidra renders the bottom-row tail as 'in_stack_00000010 -= DAT_003340d8' as if the w argument slot were decremented, but the column counter is EBX in both nests and [EBP+0x14] is never written.",
+        "0x3340d4 and 0x3340d8 are inferred to be the TIFF YCbCr vertical and horizontal subsampling factors from their roles (block height and width, product = chroma byte offset); the binary proves only that both are uint16 file-scope statics."
+      ],
+      "uncertain": [
+        "What FUN_0006b440 does with the YCbCr samples inside one subsampling block is not established here; only its argument marshalling is."
+      ]
     }
   }
 }

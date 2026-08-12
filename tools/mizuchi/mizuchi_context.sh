@@ -49,6 +49,7 @@ obj_path="${1:-}"
   fi
 } | cpp -P -m32 \
     -I"$PROJECT_ROOT/src" \
+    -I"$PROJECT_ROOT/third_party/xbox" \
     -I"$PROJECT_ROOT/build/generated" \
     "-I$RXDK_INC" \
     -DMSVC -DXDK_BUILD -D_MSC_VER=1300 \

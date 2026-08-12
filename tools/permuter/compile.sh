@@ -114,6 +114,7 @@ COFF_WIN="$(wsl_to_win "$COFF_TMP")"
 FI_WIN="$(wsl_to_win "${FI_OVERRIDE:-$REPO_ROOT/src/xdk_common.h}")"
 GEN_INC="$(wsl_to_win "${GEN_INC_OVERRIDE:-$REPO_ROOT/build/generated}")"
 SRC_INC="$(wsl_to_win "${SRC_INC_OVERRIDE:-$REPO_ROOT/src}")"
+TP_XBOX_INC="$(wsl_to_win "${TP_XBOX_INC_OVERRIDE:-$REPO_ROOT/third_party/xbox}")"
 
 # --------------------------------------------------------------------------
 # Invoke CL.Exe — same flags as vc71_verify.py:compile_vc71()
@@ -128,6 +129,7 @@ SRC_INC="$(wsl_to_win "${SRC_INC_OVERRIDE:-$REPO_ROOT/src}")"
     "/FI${FI_WIN}" \
     "/I${GEN_INC}" \
     "/I${SRC_INC}" \
+    "/I${TP_XBOX_INC}" \
     "/I${RXDK_INC}" \
     "/Fo${COFF_WIN}" \
     "$C_WIN" \

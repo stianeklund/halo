@@ -137,7 +137,7 @@ XAPILIB:lasterr.obj,true,0x001D21F2-0x001D2DBD,18
 XAPILIB:physmem.obj,true,0x001D2D48-0x001D5A42,59
 XAPILIB:xvutil.obj,true,0x001D04F1-0x001D0FF0,25
 XNET:xnet.obj,true,0x001D8259-0x001D900A,15
-XNET:wsock.obj,true,0x00222DF7-0x00225ED1,8
+XNET:wsock.obj,true,0x00222DE0-0x00225ED1,9
 edit_text.obj,true,0x00096D70-0x000976A0,12
 international_strings.obj,true,0x0019C5D0-0x0019D960,22
 weapons.obj,true,0x000FAD60-0x000FD770,57
