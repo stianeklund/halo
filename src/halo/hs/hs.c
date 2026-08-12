@@ -4067,6 +4067,43 @@ void FUN_000c2640(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc2660 — HS script function handler: reports whether a map save is
+ * currently in progress, returning the boolean to the calling script thread.
+ * Reads no macro arguments; the queried state lives entirely in main_*.
+ *
+ * Ghidra mis-prototypes this as void(void) and surfaces the [EBP+0xc] read as
+ * the phantom local `in_stack_00000008`; taking that at face value would pass
+ * function_index as the thread handle.  The kb decl was widened from
+ * `void FUN_000c2660(void);` with this lift.  The `extraout_AL` Ghidra reports
+ * is main_saving_map's bool-in-AL return, NOT a register argument.
+ *
+ * Callees (both cdecl, no register args, both ported):
+ *   0x100310 = main_saving_map(void) -> bool in AL
+ *   0xcbf80  = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc2660-0xc2687, 15 instructions): cdecl,
+ * plain RET, frame is PUSH EBP / MOV EBP,ESP / PUSH ECX (one 4-byte local at
+ * EBP-0x4).  The body reads only [EBP+0xc] = thread_datum (arg 2);
+ * function_index and init complete the standard hs-evaluator signature shared
+ * by the sibling handlers but are unused here.  hs_return's two pushes are
+ * PUSH EAX (=[EBP-4], the value) then PUSH ECX (=[EBP+0xc], the thread), so
+ * the first PUSH is the last C argument; ADD ESP,0x8 confirms exactly 2 args.
+ *
+ * The result local is zero-initialised as a full dword (MOV dword [EBP-4],0)
+ * *before* the call, and only afterwards is its low byte overwritten with AL
+ * (MOV byte [EBP-4],AL) before the whole dword is re-read and pushed (MOV
+ * EAX,[EBP-4] / PUSH EAX).  The `*(char *)&value` store reproduces that pair;
+ * a direct call-in-argument or a (unsigned char) widen would emit MOVZX
+ * instead.  Same idiom as the siblings at 0xc1a00 / 0xc1a30. */
+void FUN_000c2660(int16_t function_index, int thread_datum, char init)
+{
+  int value;
+
+  value = 0;
+  *(char *)&value = (char)main_saving_map();
+  hs_return(thread_datum, value);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
