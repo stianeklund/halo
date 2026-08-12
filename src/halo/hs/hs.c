@@ -4320,6 +4320,43 @@ void FUN_000c2730(int16_t function_index, int thread_datum, char init)
   return;
 }
 
+/* 0xc2770 — core-save HaloScript function evaluator.  Requests a core save
+ * unconditionally and commits a 0 (void) result to the calling script thread.
+ * No argument evaluation and no null check: unlike the load-by-name siblings
+ * above, this handler takes no script arguments, so the body is just the
+ * side-effect callee followed by hs_return.  Structurally identical to
+ * FUN_000c0cb0 at 0xc0cb0 with the side-effect callee swapped from
+ * FUN_00057c60 to main_save_core.
+ *
+ * kb.json carried the placeholder decl `void FUN_000c2770(void);`; widened to
+ * the standard hs-evaluator triple with this lift, since the body reads
+ * [EBP+0xc].  Under the void(void) decl Ghidra surfaced that slot as the
+ * artifact local in_stack_00000008 — an ordinary stack parameter, NOT a
+ * register argument.  Leaving the no-arg decl in place would have read garbage
+ * for thread_datum (the void-decl ESP-drift footgun).
+ *
+ * ABI (verified against disassembly 0xc2770-0xc2787, 0x18 bytes / 9
+ * instructions): cdecl, plain RET.  Frame is PUSH EBP / MOV EBP,ESP with no
+ * SUB ESP and no _chkstk — zero locals, and no callee-saved register is
+ * spilled.  Do not introduce a temporary here: a spilled local would add a SUB
+ * ESP and change the frame shape, which dominates the match on a body this
+ * short.  Slots: [EBP+0x8] = function_index and [EBP+0x10] = init are never
+ * read and exist only to complete the standard hs-evaluator signature;
+ * [EBP+0xc] = thread_datum is loaded into EAX at 0xc2778.
+ *
+ * Callees (both cdecl, no register args, both ported):
+ *   0x1003b0 = main_save_core() — called with no arguments and no stack
+ *              cleanup after it, confirming the void(void) decl.
+ *   0xcbf80  = hs_return(thread_datum, 0) — PUSH 0x0 then PUSH EAX, so the
+ *              first PUSH is the last C argument; ADD ESP,0x8 confirms 2 args.
+ *
+ * No FPU ops, no local buffers, no struct access. */
+void FUN_000c2770(int16_t function_index, int thread_datum, char init)
+{
+  main_save_core();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
