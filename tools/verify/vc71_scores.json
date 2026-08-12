@@ -1471,6 +1471,17 @@
       "score": 80.6,
       "source": "src/halo/ai/actor_combat.c"
     },
+    "FUN_00024370": {
+      "addr": "0x24370",
+      "end": "0x24446",
+      "kind": "auto",
+      "n_r": 83,
+      "opnd_percent": 62.2,
+      "ref": "synth",
+      "ref_sha": "227586b3b68b04c1",
+      "score": 89.0,
+      "source": "src/halo/ai/actor_firing_position.c"
+    },
     "FUN_00024ca0": {
       "addr": "0x24ca0",
       "end": "0x24cee",
@@ -25460,6 +25471,17 @@
       "score": 96.6,
       "source": "src/halo/ai/actor_looking.c"
     },
+    "actor_clear_discarded_firing_positions": {
+      "addr": "0x24b80",
+      "end": "0x24bdf",
+      "kind": "auto",
+      "n_r": 28,
+      "opnd_percent": 96.4,
+      "ref": "synth",
+      "ref_sha": "40ef8328672b6617",
+      "score": 100.0,
+      "source": "src/halo/ai/actor_firing_position.c"
+    },
     "actor_clear_flee_target": {
       "addr": "0x15f30",
       "end": "0x15f5b",
@@ -25749,6 +25771,17 @@
       "ref_sha": "1b0f8c8c4b6a1584",
       "score": 89.3,
       "source": "src/halo/ai/actor_perception.c"
+    },
+    "actor_get_firing_position_group": {
+      "addr": "0x24a60",
+      "end": "0x24b73",
+      "kind": "auto",
+      "n_r": 97,
+      "opnd_percent": 61.6,
+      "ref": "synth",
+      "ref_sha": "f007013026c5c3c6",
+      "score": 88.9,
+      "source": "src/halo/ai/actor_firing_position.c"
     },
     "actor_get_perception_knowledge": {
       "addr": "0x2fc20",
