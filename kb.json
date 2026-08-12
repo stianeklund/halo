@@ -5158,7 +5158,7 @@
         },
         {
           "addr": "0x1bd4d0",
-          "decl": "void cache_file_open(void);"
+          "decl": "bool cache_file_open(const char *stripped_name, void *header);"
         },
         {
           "addr": "0x1bd5f0",
@@ -36748,7 +36748,8 @@
         },
         {
           "addr": "0x1b9e70",
-          "decl": "void FUN_001b9e70(void);"
+          "decl": "int FUN_001b9e70(const char *map_name);",
+          "ported": true
         }
       ],
       "name": "cache_files.obj",

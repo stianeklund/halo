@@ -24506,6 +24506,17 @@
       "score": 92.0,
       "source": "src/halo/tag_files/tag_groups.c"
     },
+    "FUN_001b9e70": {
+      "addr": "0x1b9e70",
+      "end": "0x1b9f9a",
+      "kind": "auto",
+      "n_r": 102,
+      "opnd_percent": 83.7,
+      "ref": "synth",
+      "ref_sha": "c1ee8fae74aaca20",
+      "score": 93.6,
+      "source": "src/halo/cache/cache_files.c"
+    },
     "FUN_001bc720": {
       "addr": "0x1bc720",
       "end": "0x1bc75a",

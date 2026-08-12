@@ -148,3 +148,88 @@ bool cache_files_give_time_to_precache(const char *name)
   display_error_damaged_media();
   return done;
 }
+
+/* The 0x800-byte cache file header, read from disk into this fixed buffer by
+ * cache_file_open and validated by cache_file_header_verify (which reads the
+ * 'foot' magic at +0x7fc, so the buffer is at least 0x800 bytes). Addressed,
+ * not loaded: PUSH 0x4e4d04 at 001b9e8f and 001b9eb8. */
+#define cache_file_header ((void *)0x4e4d04)
+
+/* Header fields +0x10 and +0x14, loaded absolutely (MOV EDX,[0x4e4d14] /
+ * MOV ECX,[0x4e4d18]) and handed straight to cache_file_read as its offset
+ * and size arguments. */
+#define cache_file_tag_data_offset (*(int *)0x4e4d14)
+#define cache_file_tag_data_size (*(unsigned int *)0x4e4d18)
+
+/* Big-endian FourCC 'tags' stamped at tags header +0x20. The mismatch message
+ * prints the four bytes high offset first and says they "should be 'tags'", so
+ * the dword 0x74616773 sits in memory as 's','g','a','t'. */
+#define TAGS_HEADER_SIGNATURE 0x74616773
+
+/* Bytes of tag memory scrubbed with the 0xcd uninitialized-fill pattern before
+ * the tag block is read over them. 0x1600000 = 22 MiB. */
+#define CACHE_FILE_TAGS_BUFFER_SIZE 0x1600000
+
+/* 0x1b9e70 -- open the named map's cache file and load its tag block.
+ *
+ * Returns -1 on either failure (the file would not open, or its header did not
+ * validate); EBX is seeded with OR EBX,0xffffffff in the prologue and is the
+ * value returned by both early exits. On success the result is the tags
+ * header's +0x4 field, re-read through the just-stored global rather than from
+ * the local buffer pointer (MOV EDX,[0x4e5504] / MOV EAX,[EDX+4]).
+ *
+ * cache_file_open gets the path-stripped name; cache_file_header_verify gets
+ * the ORIGINAL `map_name` for its diagnostics. Both spellings live in ESI/EDI
+ * in the original and ESI is later reused for the tag buffer, which is exactly
+ * the register-aliasing case the decompiler collapses.
+ *
+ * The read is issued asynchronously (async_flag 1) and its return is discarded;
+ * completion is awaited by spinning on the byte out-param at EBP-1. */
+int FUN_001b9e70(const char *map_name)
+{
+  int result = -1;
+  char completion_flag;
+  const char *stripped_name;
+  void *tags_base;
+  unsigned int signature;
+
+  stripped_name = tag_name_strip_path(map_name);
+  texture_cache_open();
+  FUN_001bdec0();
+  if (cache_file_open(stripped_name, cache_file_header)) {
+    tags_base = (void *)FUN_001bdd50();
+    if (cache_file_header_verify(cache_file_header, map_name, 1)) {
+      csmemset(tags_base, 0xcd, CACHE_FILE_TAGS_BUFFER_SIZE);
+      cache_file_read(-1, cache_file_tag_data_offset, cache_file_tag_data_size,
+                      (int)tags_base, &completion_flag, 1);
+      while (completion_flag == 0)
+        SwitchToThread();
+
+      tags_header = tags_base;
+      /* The signature dword stays live across the compare: the fourth %c is
+       * its low byte (MOVSX EAX,CL), not a fresh load of +0x20. That is why
+       * Ghidra renders that one operand as (char)puVar2[8] while the other
+       * three stay byte loads. */
+      signature = *(unsigned int *)((char *)tags_base + 0x20);
+      if (signature != TAGS_HEADER_SIGNATURE) {
+        display_assert(csprintf(error_string_buffer,
+                                "signature is '%c%c%c%c', should be '%c%c%c%c'",
+                                ((char *)tags_base)[0x23],
+                                ((char *)tags_base)[0x22],
+                                ((char *)tags_base)[0x21], (char)signature, 't',
+                                'a', 'g', 's'),
+                       "c:\\halo\\SOURCE\\cache\\cache_files.c", 0x61, 1);
+        system_exit(-1);
+      }
+
+      tag_instances = *(void **)tags_base;
+      /* Both of these re-read the global instead of reusing the buffer
+       * pointer: the tail holds two separate loads of 0x4e5504, one into EAX
+       * for the push and one into EDX for the returned +0x4 field. */
+      tags_header_register_vertex_and_index_buffers(tags_header);
+      cache_tags_available = 1;
+      result = *(int *)((char *)tags_header + 4);
+    }
+  }
+  return result;
+}
