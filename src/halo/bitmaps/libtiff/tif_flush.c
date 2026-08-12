@@ -874,12 +874,12 @@ int FUN_0006a190(void *tif_)
  *
  * noinline (VC71 verification only): the original build emits this out of line
  * and CALLs it -- FUN_0006a260 at 0x6a26f has a real `call 0x6a210` with
- * `push esi` / `add esp,4` around it. Because that caller now lives in this same
- * TU with this body in scope, cl.exe inlines the whole thing into it: that alone
- * held FUN_0006a260 at 76.5% (42 insns against the reference's 26) and produced
- * a spurious [LOADW-WARN] blaming FUN_0006a260 for the `movw 0xa(%esi),%ax` at
- * 0x6a216 that belongs to THIS function's word-width flags access. MEASURED
- * both ways.
+ * `push esi` / `add esp,4` around it. Because that caller now lives in this
+ * same TU with this body in scope, cl.exe inlines the whole thing into it: that
+ * alone held FUN_0006a260 at 76.5% (42 insns against the reference's 26) and
+ * produced a spurious [LOADW-WARN] blaming FUN_0006a260 for the `movw
+ * 0xa(%esi),%ax` at 0x6a216 that belongs to THIS function's word-width flags
+ * access. MEASURED both ways.
  *
  * The guard is `_MSC_VER && !__clang__` because our clang build targets
  * i386-pc-win32 and therefore also defines _MSC_VER; this must apply to cl.exe
@@ -1014,4 +1014,133 @@ int FUN_0006a260(void *tif_)
 
   /* 0x6a293: `mov eax,1`. */
   return 1;
+}
+
+/* ---------------------------------------------------------------------------
+ * tif_getimage.c state touched by setorientation (0x6a310).
+ *
+ * kb.json maps 0x6a310 into tif_flush.obj, but by shape the body is upstream
+ * libtiff tif_getimage.c:setorientation -- see the doc comment below. Both
+ * globals it touches are absolute addresses with no register base, so this
+ * build still keeps the RGBA-decoder state in file statics rather than in the
+ * TIFFRGBAImage struct later libtiff versions use. The same static block is
+ * partially recovered in tif_open.c (bitspersample 0x3340fc, samplesperpixel
+ * 0x3340f8, photometric 0x3340f4, stoponerr 0x3340e0); 0x3340f0 slots into
+ * that run directly below photometric, which is what makes `orientation` the
+ * name rather than a guess.
+ *
+ * `orientation` is 16 bit and that width is PROVEN, not assumed: the only read
+ * is `movzx eax, word ptr [0x3340f0]` (0x6a326) and both stores are
+ * `mov word ptr [0x3340f0], imm` (0x6a351, 0x6a372). Widening it to int would
+ * emit a dword load against a word reference.
+ *
+ * `filename` is a dword load (`mov ecx,[0x3340dc]` at 0x6a33d, `mov edx,...`
+ * at 0x6a35e) feeding TIFFWarning's `module` parameter, which upstream fills
+ * with `TIFFFileName(tif)`. That the global is a cached copy of the file name
+ * is INFERRED from that role -- the binary proves only that 0x3340dc holds a
+ * pointer TIFFWarning is happy to take as its module string. Note there is no
+ * `call TIFFFileName` here at all, so this build hoisted the name into a
+ * static instead of re-deriving it per warning. */
+#define orientation (*(unsigned short *)0x3340f0)
+#define filename (*(char **)0x3340dc)
+
+#define TIFFTAG_ORIENTATION 274 /* 0x112, pushed at 0x6a31b */
+
+/* The standard TIFF tag-6 enumeration. The jump table at 0x6a384 spans exactly
+ * eight entries -- `dec eax; cmp eax,7; ja` at 0x6a330 -- so the switch covers
+ * orientation values 1..8, and the two target groups it forms (idx 2/6/7 ->
+ * 0x6a33d, idx 1/4/5 -> 0x6a35e) are what pin these names onto the values:
+ * only the ORIENTATION_* assignment below puts the three bottom-row codes and
+ * the three top-row codes in those groups. */
+#define ORIENTATION_TOPLEFT 1 /* jump idx 0 -> 0x6a37b (y = h-1) */
+#define ORIENTATION_TOPRIGHT 2 /* jump idx 1 -> 0x6a35e (warn, force TOPLEFT) \
+                                */
+#define ORIENTATION_BOTRIGHT 3 /* jump idx 2 -> 0x6a33d (warn, force BOTLEFT) \
+                                */
+#define ORIENTATION_BOTLEFT 4 /* jump idx 3 -> 0x6a35a (y = 0) */
+#define ORIENTATION_LEFTTOP 5 /* jump idx 4 -> 0x6a35e */
+#define ORIENTATION_RIGHTTOP 6 /* jump idx 5 -> 0x6a35e */
+#define ORIENTATION_RIGHTBOT 7 /* jump idx 6 -> 0x6a33d */
+#define ORIENTATION_LEFTBOT 8 /* jump idx 7 -> 0x6a33d */
+
+/**
+ * Normalise the image orientation and return the first raster row to fill.
+ *
+ * Upstream libtiff tif_getimage.c:setorientation, transcribed from the
+ * upstream source rather than reshaped from the decompiler -- which lost both
+ * parameters and the return value and reported the body as `void(void)`. The
+ * real ABI is recovered from the frame at 0x6a310: `push ebp / mov ebp,esp`
+ * with NO `sub esp` (no locals, `y` lives entirely in EAX), two stack
+ * arguments at [ebp+8] and [ebp+0xc], cdecl (both callee arg blocks are
+ * cleaned up caller-side with `add esp`), and an EAX return.
+ *
+ * The second parameter and the return value are what the decompiler's
+ * `void(void)` hid, and they are the whole point of the function: the
+ * bottom-left arm returns 0 (`xor eax,eax` at 0x6a35a) and the top-left arm
+ * returns `h - 1` (`mov eax,[ebp+0xc]; dec eax` at 0x6a37b). That pair is
+ * upstream's `y = 0` / `y = h-1`, i.e. the row the caller starts writing at,
+ * counting up from the bottom of the raster or down from the top. Nothing
+ * else in the body explains a `param - 1` return, and no caller is recovered
+ * yet to cross-check it, so the row-origin reading is INFERRED from the
+ * upstream shape -- but it is the only reading consistent with both exits.
+ *
+ * Upstream takes a `TIFFRGBAImage*` and reaches the handle as `img->tif`.
+ * Here [ebp+8] is pushed straight through to TIFFGetFieldDefaulted with no
+ * dereference (0x6a313, 0x6a320), so in this build the first parameter IS the
+ * TIFF handle -- consistent with the orientation living in a file static
+ * instead of in an img struct.
+ *
+ * The fall-through switch is load-bearing and must not be flattened into
+ * per-case returns: the 3/7/8 arm falls into case 4 (its `xor eax,eax` sits
+ * directly after the `mov word ptr [0x3340f0],4` store at 0x6a351) and the
+ * 2/5/6/default arm falls into case 1 (its `mov eax,[ebp+0xc]` sits directly
+ * after the `mov word ptr [0x3340f0],1` store at 0x6a372). Both groupings are
+ * read off the jump table at 0x6a384, not from upstream: 3/7/8 go bottom-left
+ * and 2/5/6 go top-left in THIS build.
+ */
+unsigned long FUN_0006a310(void *tif, unsigned long h)
+{
+  unsigned long y;
+
+  /* 0x6a316-0x6a321: `push 0x3340f0; push 0x112; push eax; call 0x64ec0;
+   * add esp,0xc` -- cdecl, C-order (tif, tag, &value). The int return is
+   * genuinely discarded: the next instruction (0x6a326) reloads the global
+   * into EAX, and upstream ignores TIFFGetFieldDefaulted's result here too,
+   * because the tag is defaulted and cannot fail. */
+  FUN_00064ec0((int)tif, TIFFTAG_ORIENTATION, &orientation);
+
+  /* 0x6a326-0x6a336: `movzx eax, word ptr [0x3340f0]` -- note the load is
+   * scheduled BEFORE the `add esp,0xc` -- then `dec eax; cmp eax,7; ja
+   * <default>; jmp [eax*4+0x6a384]`. */
+  switch (orientation) {
+  case ORIENTATION_BOTRIGHT:
+  case ORIENTATION_RIGHTBOT: /* XXX */
+  case ORIENTATION_LEFTBOT: /* XXX */
+    /* 0x6a33d-0x6a351: `mov ecx,[0x3340dc]; push 0x260224; push ecx;
+     * call 0x6f9d0; add esp,8` then `mov word ptr [0x3340f0],4`. The
+     * `add esp,8` matches exactly two pushes: TIFFWarning is variadic but is
+     * called here with module + format only and no variadic values, so the
+     * two-arg call is correct and must NOT be padded to three. */
+    FUN_0006f9d0(filename, "using bottom-left orientation");
+    orientation = ORIENTATION_BOTLEFT;
+    /* fall through */
+  case ORIENTATION_BOTLEFT:
+    /* 0x6a35a: `xor eax,eax`. */
+    y = 0;
+    break;
+  case ORIENTATION_TOPRIGHT:
+  case ORIENTATION_RIGHTTOP: /* XXX */
+  case ORIENTATION_LEFTTOP: /* XXX */
+  default:
+    /* 0x6a35e-0x6a372: the mirror of the arm above, with EDX instead of ECX
+     * as the scratch register and 0x260208 as the format string. */
+    FUN_0006f9d0(filename, "using top-left orientation");
+    orientation = ORIENTATION_TOPLEFT;
+    /* fall through */
+  case ORIENTATION_TOPLEFT:
+    /* 0x6a37b-0x6a37e: `mov eax,[ebp+0xc]; dec eax`. */
+    y = h - 1;
+    break;
+  }
+  return y;
 }
