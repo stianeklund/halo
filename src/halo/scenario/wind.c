@@ -63,56 +63,39 @@ void FUN_0018ff00(float *out, float *position, float scale, float magnitude)
 {
   float timescale[3];
   float mag;
-  int *dir;
-  float *ts;
-  volatile float *phase;
-  volatile int *phase_bits;
+  float *ts_base;
   int bank;
   int count;
   int idx;
+  const float (*table)[3] = (const float (*)[3])0x5057c4;
 
-  /* The original spills the loop's phase value into the magnitude arg slot
-   * ([ebp+0xc]) with FSTP — rounding to single precision BOTH before the
-   * 0x7fffffff fabs-mask AND after the 2^23 magic-add. clang otherwise
-   * folds the mask to FABS and keeps extended precision (one rounding),
-   * which yields a different noise index for phase values near a rounding
-   * boundary. volatile access through the param slot forces the exact
-   * store/reload sequence. */
-  phase = &magnitude;
-  phase_bits = (volatile int *)&magnitude;
-
+  typedef struct { float v[3]; } vec3_t;
   mag = magnitude * *(float *)0x259ec0;
-  dir = *(int **)0x31fc38; /* pointer loaded once, matching MOV ECX,[mem] */
-  ((int *)out)[0] = dir[0];
-  ((int *)out)[1] = dir[1];
-  ((int *)out)[2] = dir[2];
+  *(vec3_t *)out = *(const vec3_t *)*(const void **)0x31fc38;
   timescale[0] = 0.1f;
   timescale[1] = 0.2f;
   timescale[2] = 0.07f;
-  ts = timescale;
+  ts_base = (float *)((char *)timescale - (unsigned int)position);
   bank = 0;
   count = 3;
   do {
-    *phase =
-      ((float)*(int *)0x5064c8 * *ts * scale + *position) * *(float *)0x253f78;
-    *phase_bits &= 0x7fffffff;
-    *phase = *phase + *(float *)0x2b229c;
-    idx = (*phase_bits & 0x3f) + bank;
-    /* volatile view: the original rounds each running sum to single
-     * precision in [out] every iteration (FADD mem; FSTP mem) and reloads
-     * it next pass; without this clang carries extended precision in ST
-     * across iterations (1-ULP drift). */
-    ((volatile float *)out)[0] += *(float *)(0x5057c4 + idx * 12);
-    ((volatile float *)out)[1] += *(float *)(0x5057c8 + idx * 12);
-    ((volatile float *)out)[2] += *(float *)(0x5057cc + idx * 12);
-    ts++;
+    float ts_val = *(float *)((char *)position + (unsigned int)ts_base);
+    float pos_val = *position;
+    *(volatile float *)&magnitude =
+      ((float)*(int *)0x5064c8 * ts_val * scale + pos_val) * *(float *)0x253f78;
+    *(volatile int *)&magnitude &= 0x7fffffff;
+    *(volatile float *)&magnitude = *(volatile float *)&magnitude + *(float *)0x2b229c;
+    idx = (short)(*(char *)&magnitude & 0x3f) + bank;
+    out[0] = out[0] + table[idx][0];
+    out[1] = out[1] + table[idx][1];
+    out[2] = out[2] + table[idx][2];
     position++;
     bank += 0x40;
     count--;
   } while (count != 0);
-  ((volatile float *)out)[0] *= mag;
-  ((volatile float *)out)[1] *= mag;
-  ((volatile float *)out)[2] *= mag;
+  out[0] = out[0] * mag;
+  out[1] = out[1] * mag;
+  out[2] = out[2] * mag;
 }
 
 void wind_update(void)
@@ -147,29 +130,32 @@ void wind_update(void)
 
     seed = random_math_get_local_seed_address();
     delta = (random_range(seed, 0, 2) != 0) ? 0.01f : -0.01f;
-    rec->t = rec->t + delta;
-    if (rec->t < 0.0f) {
-      rec->t = 0.0f;
-    } else if (rec->t > 1.0f) {
-      rec->t = 1.0f;
+    {
+      float val_t = rec->t + delta;
+      rec->t = val_t;
+      if (val_t < 0.0f) val_t = 0.0f;
+      else if (val_t > 1.0f) val_t = 1.0f;
+      rec->t = val_t;
     }
 
     seed = random_math_get_local_seed_address();
     delta = (random_range(seed, 0, 2) != 0) ? 0.01f : -0.01f;
-    rec->yaw_perturbation = rec->yaw_perturbation + delta;
-    if (rec->yaw_perturbation < -1.0f) {
-      rec->yaw_perturbation = -1.0f;
-    } else if (rec->yaw_perturbation > 1.0f) {
-      rec->yaw_perturbation = 1.0f;
+    {
+      float val_yaw = rec->yaw_perturbation + delta;
+      rec->yaw_perturbation = val_yaw;
+      if (val_yaw < -1.0f) val_yaw = -1.0f;
+      else if (val_yaw > 1.0f) val_yaw = 1.0f;
+      rec->yaw_perturbation = val_yaw;
     }
 
     seed = random_math_get_local_seed_address();
     delta = (random_range(seed, 0, 2) != 0) ? 0.01f : -0.01f;
-    rec->pitch_perturbation = rec->pitch_perturbation + delta;
-    if (rec->pitch_perturbation < -1.0f) {
-      rec->pitch_perturbation = -1.0f;
-    } else if (rec->pitch_perturbation > 1.0f) {
-      rec->pitch_perturbation = 1.0f;
+    {
+      float val_pitch = rec->pitch_perturbation + delta;
+      rec->pitch_perturbation = val_pitch;
+      if (val_pitch < -1.0f) val_pitch = -1.0f;
+      else if (val_pitch > 1.0f) val_pitch = 1.0f;
+      rec->pitch_perturbation = val_pitch;
     }
 
     rec->velocity = (wind[1] - wind[0]) * rec->t + wind[0];

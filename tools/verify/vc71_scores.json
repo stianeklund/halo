@@ -17844,10 +17844,10 @@
       "end": "0x12fe3f",
       "kind": "auto",
       "n_r": 70,
-      "opnd_percent": 67.6,
+      "opnd_percent": 96.6,
       "ref": "synth",
       "ref_sha": "58100d17c32a6d4f",
-      "score": 71.7,
+      "score": 96.6,
       "source": "src/halo/networking/network_server_message_handler.c"
     },
     "FUN_0012fe40": {
@@ -17855,10 +17855,10 @@
       "end": "0x12feff",
       "kind": "auto",
       "n_r": 70,
-      "opnd_percent": 67.6,
+      "opnd_percent": 96.6,
       "ref": "synth",
       "ref_sha": "5094199faf3e7b3e",
-      "score": 71.7,
+      "score": 96.6,
       "source": "src/halo/networking/network_server_message_handler.c"
     },
     "FUN_0012ff00": {
@@ -17866,10 +17866,10 @@
       "end": "0x12ffde",
       "kind": "auto",
       "n_r": 81,
-      "opnd_percent": 67.1,
+      "opnd_percent": 94.6,
       "ref": "synth",
       "ref_sha": "c7bde8036331574c",
-      "score": 67.1,
+      "score": 94.6,
       "source": "src/halo/networking/network_server_message_handler.c"
     },
     "FUN_0012ffe0": {
@@ -17877,10 +17877,10 @@
       "end": "0x1300ae",
       "kind": "auto",
       "n_r": 73,
-      "opnd_percent": 61.3,
+      "opnd_percent": 93.3,
       "ref": "synth",
       "ref_sha": "51be92e2f8bd904a",
-      "score": 64.0,
+      "score": 93.3,
       "source": "src/halo/networking/network_server_message_handler.c"
     },
     "FUN_001300b0": {
@@ -17888,10 +17888,10 @@
       "end": "0x130174",
       "kind": "auto",
       "n_r": 72,
-      "opnd_percent": 64.4,
+      "opnd_percent": 96.6,
       "ref": "synth",
       "ref_sha": "1868d464bba4c0b9",
-      "score": 64.4,
+      "score": 96.6,
       "source": "src/halo/networking/network_server_message_handler.c"
     },
     "FUN_00130180": {
@@ -17899,10 +17899,10 @@
       "end": "0x130268",
       "kind": "auto",
       "n_r": 89,
-      "opnd_percent": 59.7,
+      "opnd_percent": 98.9,
       "ref": "synth",
       "ref_sha": "83fc6ee1c7e9aacb",
-      "score": 68.5,
+      "score": 100.0,
       "source": "src/halo/networking/network_server_message_handler.c"
     },
     "FUN_00130270": {
@@ -17910,10 +17910,10 @@
       "end": "0x13057a",
       "kind": "auto",
       "n_r": 310,
-      "opnd_percent": 48.6,
+      "opnd_percent": 67.4,
       "ref": "synth",
       "ref_sha": "2701a006f3d604c3",
-      "score": 67.8,
+      "score": 79.9,
       "source": "src/halo/networking/network_server_message_handler.c"
     },
     "FUN_00130580": {
@@ -22571,10 +22571,10 @@
       "end": "0x18ffd5",
       "kind": "auto",
       "n_r": 69,
-      "opnd_percent": 37.8,
+      "opnd_percent": 71.5,
       "ref": "synth",
       "ref_sha": "424028da2768740d",
-      "score": 73.2,
+      "score": 89.1,
       "source": "src/halo/scenario/wind.c"
     },
     "FUN_00191180": {
@@ -49970,10 +49970,10 @@
       "end": "0x190231",
       "kind": "auto",
       "n_r": 189,
-      "opnd_percent": 73.9,
+      "opnd_percent": 54.6,
       "ref": "synth",
       "ref_sha": "b27b2f175196b45e",
-      "score": 86.3,
+      "score": 93.4,
       "source": "src/halo/scenario/wind.c"
     },
     "winsock_error_report": {

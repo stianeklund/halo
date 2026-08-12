@@ -22,31 +22,30 @@ char FUN_0012fd80(int server, int machine, void *message_data, int message_size)
   short packet_type;
   short packet_version;
 
-  if (network_game_server_get_state(server, (short *)0) != 0) {
+  if (network_game_server_get_state(server, (short *)0) == 0) {
+    message_size -= 2;
+    packet_type = 0xd;
+    packet_version = 1;
+    if (FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
+                      (short *)&message_size, &packet_type, &packet_version, 3)) {
+      if (network_game_server_add_player_to_game(server, machine, decoded_buf)) {
+        if (!FUN_0012f5d0((void *)server)) {
+          network_game_log("server failed to send pregame game data in network_game_"
+                           "server_handle_message_client_add_player_request_"
+                           "pregame()");
+        }
+      } else {
+        network_game_log("server failed to add a network player in network_game_"
+                         "server_handle_message_client_add_player_request_"
+                         "pregame()");
+      }
+    } else {
+      network_game_log("server failed to decode a message_client_add_player_"
+                       "request_pregame packet");
+    }
+  } else {
     network_game_log("failed to handle a message_client_add_player_request_"
                      "pregame because the server is not in pregame");
-    return 1;
-  }
-  message_size -= 2;
-  packet_type = 0xd;
-  packet_version = 1;
-  if (!FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
-                    (short *)&message_size, &packet_type, &packet_version, 3)) {
-    network_game_log("server failed to decode a message_client_add_player_"
-                     "request_pregame packet");
-    return 1;
-  }
-  if (!network_game_server_add_player_to_game(server, machine, decoded_buf)) {
-    network_game_log("server failed to add a network player in network_game_"
-                     "server_handle_message_client_add_player_request_"
-                     "pregame()");
-    return 1;
-  }
-  if (!FUN_0012f5d0((void *)server)) {
-    network_game_log("server failed to send pregame game data in network_game_"
-                     "server_handle_message_client_add_player_request_"
-                     "pregame()");
-    return 1;
   }
   return 1;
 }
@@ -58,32 +57,31 @@ char FUN_0012fe40(int server, int machine, void *message_data, int message_size)
   short packet_type;
   short packet_version;
 
-  if (network_game_server_get_state(server, (short *)0) != 0) {
+  if (network_game_server_get_state(server, (short *)0) == 0) {
+    message_size -= 2;
+    packet_type = 0xe;
+    packet_version = 1;
+    if (FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
+                      (short *)&message_size, &packet_type, &packet_version, 3)) {
+      if (network_game_server_remove_player_from_game(server, machine,
+                                                       (int)decoded_buf)) {
+        if (!FUN_0012f5d0((void *)server)) {
+          network_game_log("server failed to send pregame game data in network_game_"
+                           "server_handle_message_client_remove_player_request_"
+                           "pregame()");
+        }
+      } else {
+        network_game_log("server failed to remove a network player in network_"
+                         "game_server_handle_message_client_remove_player_request_"
+                         "pregame()");
+      }
+    } else {
+      network_game_log("server failed to decode a message_client_remove_player_"
+                       "request_pregame packet");
+    }
+  } else {
     network_game_log("failed to handle a message_client_remove_player_request_"
                      "pregame because the server is not in pregame");
-    return 1;
-  }
-  message_size -= 2;
-  packet_type = 0xe;
-  packet_version = 1;
-  if (!FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
-                    (short *)&message_size, &packet_type, &packet_version, 3)) {
-    network_game_log("server failed to decode a message_client_remove_player_"
-                     "request_pregame packet");
-    return 1;
-  }
-  if (!network_game_server_remove_player_from_game(server, machine,
-                                                   (int)decoded_buf)) {
-    network_game_log("server failed to remove a network player in network_"
-                     "game_server_handle_message_client_remove_player_request_"
-                     "pregame()");
-    return 1;
-  }
-  if (!FUN_0012f5d0((void *)server)) {
-    network_game_log("server failed to send pregame game data in network_game_"
-                     "server_handle_message_client_remove_player_request_"
-                     "pregame()");
-    return 1;
   }
   return 1;
 }
@@ -98,33 +96,32 @@ char FUN_0012ff00(int server, int machine, void *message_data, int message_size)
   short packet_version;
   char *name;
 
-  if (network_game_server_get_state(server, (short *)0) != 0) {
+  if (network_game_server_get_state(server, (short *)0) == 0) {
+    message_size -= 2;
+    packet_type = 0xf;
+    packet_version = 1;
+    if (FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
+                      (short *)&message_size, &packet_type, &packet_version, 3)) {
+      if (FUN_0012ca00(server, machine, (int)decoded_buf)) {
+        name = wide_to_ascii((const wchar_t *)decoded_buf, decoded_buf, 0x40);
+        network_game_log("server received machine settings for machine #%d/'%s'",
+                         (int)decoded_buf[0x40], name);
+        if (!FUN_0012f5d0((void *)server)) {
+          network_game_log("server failed to send pregame game data in network_game_"
+                           "server_handle_message_client_settings_request()");
+        }
+      } else {
+        network_game_log("network_game_server_adjust_machine_settings() failed in "
+                         "network_game_server_handle_message_client_settings_"
+                         "request()");
+      }
+    } else {
+      network_game_log("server failed to decode a message_client_settings_"
+                       "request packet");
+    }
+  } else {
     network_game_log("failed to handle a message_client_settings_request "
                      "because the server is not in pregame");
-    return 1;
-  }
-  message_size -= 2;
-  packet_type = 0xf;
-  packet_version = 1;
-  if (!FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
-                    (short *)&message_size, &packet_type, &packet_version, 3)) {
-    network_game_log("server failed to decode a message_client_settings_"
-                     "request packet");
-    return 1;
-  }
-  if (!FUN_0012ca00(server, machine, (int)decoded_buf)) {
-    network_game_log("network_game_server_adjust_machine_settings() failed in "
-                     "network_game_server_handle_message_client_settings_"
-                     "request()");
-    return 1;
-  }
-  name = wide_to_ascii((const wchar_t *)decoded_buf, decoded_buf, 0x40);
-  network_game_log("server received machine settings for machine #%d/'%s'",
-                   (int)decoded_buf[0x40], name);
-  if (!FUN_0012f5d0((void *)server)) {
-    network_game_log("server failed to send pregame game data in network_game_"
-                     "server_handle_message_client_settings_request()");
-    return 1;
   }
   return 1;
 }
@@ -137,31 +134,30 @@ char FUN_0012ffe0(int server, int machine, void *message_data, int message_size)
   short packet_version;
   int game;
 
-  if (network_game_server_get_state(server, (short *)0) != 0) {
+  if (network_game_server_get_state(server, (short *)0) == 0) {
+    message_size -= 2;
+    packet_type = 0x10;
+    packet_version = 1;
+    if (FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
+                      (short *)&message_size, &packet_type, &packet_version, 3)) {
+      game = network_game_server_get_game((void *)server);
+      if (network_game_update_player((void *)game, decoded_buf)) {
+        network_game_log("server received updated player settings");
+        if (!FUN_0012f5d0((void *)server)) {
+          network_game_log("server failed to send pregame game data in network_game_"
+                           "server_handle_message_client_player_settings_request()");
+        }
+      } else {
+        network_game_log("network_game_update_player() failed in network_game_"
+                         "server_handle_message_client_player_settings_request()");
+      }
+    } else {
+      network_game_log("server failed to decode a message_client_player_"
+                       "settings_request packet");
+    }
+  } else {
     network_game_log("failed to handle a message_client_player_settings_"
                      "request because the server is not in pregame");
-    return 1;
-  }
-  message_size -= 2;
-  packet_type = 0x10;
-  packet_version = 1;
-  if (!FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
-                    (short *)&message_size, &packet_type, &packet_version, 3)) {
-    network_game_log("server failed to decode a message_client_player_"
-                     "settings_request packet");
-    return 1;
-  }
-  game = network_game_server_get_game((void *)server);
-  if (!network_game_update_player((void *)game, decoded_buf)) {
-    network_game_log("network_game_update_player() failed in network_game_"
-                     "server_handle_message_client_player_settings_request()");
-    return 1;
-  }
-  network_game_log("server received updated player settings");
-  if (!FUN_0012f5d0((void *)server)) {
-    network_game_log("server failed to send pregame game data in network_game_"
-                     "server_handle_message_client_player_settings_request()");
-    return 1;
   }
   return 1;
 }
@@ -175,33 +171,32 @@ char FUN_001300b0(int server, int machine, void *message_data, int message_size)
   short packet_version;
   int client_machine;
 
-  if (network_game_server_get_state(server, (short *)0) != 0) {
+  if (network_game_server_get_state(server, (short *)0) == 0) {
+    message_size -= 2;
+    packet_type = 0x12;
+    packet_version = 1;
+    if (FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
+                      (short *)&message_size, &packet_type, &packet_version, 3)) {
+      client_machine =
+        network_game_server_get_client_machine(server, machine, (int *)0);
+      if (FUN_0012e090((void *)server, (void *)client_machine)) {
+        if (!FUN_0012f5d0((void *)server)) {
+          network_game_log("server failed to send pregame game data in network_game_"
+                           "server_handle_message_client_graceful_game_exit_"
+                           "pregame()");
+        }
+      } else {
+        network_game_log("network_game_server_remove_machine_from_game() failed in "
+                         "network_game_server_handle_message_client_graceful_game_"
+                         "exit_pregame()");
+      }
+    } else {
+      network_game_log("server failed to decode a message_client_graceful_game_"
+                       "exit_pregame packet");
+    }
+  } else {
     network_game_log("failed to handle a message_client_graceful_game_exit_"
                      "pregame message because the server is not in pregame");
-    return 1;
-  }
-  message_size -= 2;
-  packet_type = 0x12;
-  packet_version = 1;
-  if (!FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
-                    (short *)&message_size, &packet_type, &packet_version, 3)) {
-    network_game_log("server failed to decode a message_client_graceful_game_"
-                     "exit_pregame packet");
-    return 1;
-  }
-  client_machine =
-    network_game_server_get_client_machine(server, machine, (int *)0);
-  if (!FUN_0012e090((void *)server, (void *)client_machine)) {
-    network_game_log("network_game_server_remove_machine_from_game() failed in "
-                     "network_game_server_handle_message_client_graceful_game_"
-                     "exit_pregame()");
-    return 1;
-  }
-  if (!FUN_0012f5d0((void *)server)) {
-    network_game_log("server failed to send pregame game data in network_game_"
-                     "server_handle_message_client_graceful_game_exit_"
-                     "pregame()");
-    return 1;
   }
   return 1;
 }
@@ -220,34 +215,35 @@ char FUN_00130180(int server, int machine, void *message_data, int message_size)
   void *message;
   char result;
 
-  if (network_game_server_get_state(server, (short *)0) != 1) {
+  if (network_game_server_get_state(server, (short *)0) == 1) {
+    message_size -= 2;
+    packet_type = 0x1a;
+    packet_version = 1;
+    if (FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
+                      (short *)&message_size, &packet_type, &packet_version, 5)) {
+      game = network_game_server_get_game((void *)server);
+      if (network_game_remove_player((void *)game, (void *)decoded_buf)) {
+        typedef struct { char data[0x20]; } msg_data_32;
+        *(msg_data_32 *)notify_buf = *(msg_data_32 *)decoded_buf;
+        *(int *)(notify_buf + 0x20) = game_time_get() + 0x21;
+        message = encode_network_game_message(0x16, notify_buf, 0x24);
+        if (message != (void *)0) {
+          result = (char)FUN_0012f430((void *)server, message);
+          if (!result) {
+            network_game_log("network_game_server_send_message_to_all_machines() "
+                             "failed in network_game_server_handle_message_client_"
+                             "remove_player_request_ingame()");
+          }
+          return result;
+        }
+      }
+    } else {
+      network_game_log("server failed to decode a message_client_remove_player_"
+                       "request_ingame packet");
+    }
+  } else {
     network_game_log("failed to handle a message_client_remove_player_request_"
                      "ingame because the server is not in game");
-    return 1;
-  }
-  message_size -= 2;
-  packet_type = 0x1a;
-  packet_version = 1;
-  if (!FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
-                    (short *)&message_size, &packet_type, &packet_version, 5)) {
-    network_game_log("server failed to decode a message_client_remove_player_"
-                     "request_ingame packet");
-    return 1;
-  }
-  game = network_game_server_get_game((void *)server);
-  if (network_game_remove_player((void *)game, (void *)decoded_buf)) {
-    csmemcpy(notify_buf, decoded_buf, 0x20);
-    *(int *)(notify_buf + 0x20) = game_time_get() + 0x21;
-    message = encode_network_game_message(0x16, notify_buf, 0x24);
-    if (message != (void *)0) {
-      result = (char)FUN_0012f430((void *)server, message);
-      if (!result) {
-        network_game_log("network_game_server_send_message_to_all_machines() "
-                         "failed in network_game_server_handle_message_client_"
-                         "remove_player_request_ingame()");
-      }
-      return result;
-    }
   }
   return 1;
 }
@@ -264,7 +260,7 @@ bool FUN_00130270(void *server, void *buffer, int size, void *addr)
   unsigned char category;
   short packet_type;
   short packet_version;
-  char game_update_buf[136];
+  char game_update_buf[140];
   char broadcast_buf[4];
   char ping_buf[8];
   int machine;
@@ -272,7 +268,7 @@ bool FUN_00130270(void *server, void *buffer, int size, void *addr)
   msg = (unsigned short *)buffer;
   if (server == (void *)0 || msg == (unsigned short *)0 || addr == (void *)0 ||
       (unsigned short)size <= 2 ||
-      (unsigned short)size != (unsigned short)(msg[0] >> 4)) {
+      (unsigned short)size != ((unsigned short)*msg >> 4)) {
     display_assert("server && message && source_address && (datagram_size > "
                    "sizeof(message_header)) && (datagram_size == "
                    "GET_MESSAGE_SIZE(*message))",
@@ -282,98 +278,93 @@ bool FUN_00130270(void *server, void *buffer, int size, void *addr)
     system_exit(-1);
   }
   category = (unsigned char)(msg[0] >> 2) & 3;
-  if ((msg[0] & 3) != 0) {
+  if ((msg[0] & 3) == 0) {
+    if (category == 3) {
+      packet_version = 1;
+      packet_type = *((char *)msg + (short)(unsigned short)size - 1);
+      size -= 2;
+      switch (packet_type) {
+      case 0:
+        if (network_game_accept_remote_connections()) {
+          if (FUN_0012bce0((int)broadcast_buf, (int)((char *)msg + 2),
+                            (short *)&size, &packet_type, &packet_version, 0)) {
+            if (!network_game_server_reset_to_pregame((int)server, broadcast_buf,
+                                                       addr)) {
+              network_game_log("server failed to advertise game to prospective client "
+                               "at '%s'",
+                               transport_address_to_string(addr));
+            }
+          } else {
+            network_game_log("failed to decode a message_client_broadcast_game_"
+                             "search packet");
+          }
+        }
+        break;
+      case 1:
+        if (network_game_accept_remote_connections()) {
+          if (FUN_0012bce0((int)ping_buf, (int)((char *)msg + 2), (short *)&size,
+                            &packet_type, &packet_version, 0)) {
+            if (!FUN_0012f8d0((int)server, ping_buf, addr)) {
+              network_game_log("server failed to handle a client ping");
+            }
+          } else {
+            network_game_log("failed to decode a message_client_ping packet");
+          }
+        }
+        break;
+      case 0x19:
+        if (network_game_server_get_state((int)server, (short *)0) == 1) {
+          machine = network_game_server_get_client_machine_at_address((int)server,
+                                                                      *(int *)addr);
+          if (machine != 0) {
+            if (FUN_0012bce0((int)game_update_buf, (int)((char *)msg + 2),
+                              (short *)&size, &packet_type, &packet_version, 5)) {
+              network_game_server_handle_client_update_packet((int)server, machine,
+                                                              game_update_buf);
+            } else {
+              network_game_log("failed to decode a message_client_game_update packet");
+            }
+          } else {
+            network_game_log("failed to handle a message_client_game_update message; "
+                             "this client doesn't seem to be in the game");
+          }
+        } else {
+          network_game_log("ignoring a message_client_game_update message; we are "
+                           "not in game");
+        }
+        break;
+      default:
+        network_game_log("server received datagram with an unexpected packet type; "
+                         "sender= '%s'",
+                         transport_address_to_string(addr));
+        break;
+      }
+    } else if (category == 1) {
+      if ((unsigned short)size >= 0x83) {
+        network_game_log("server received low-level error message: error= #%d "
+                         "(%s); sender= '%s'",
+                         ((unsigned char *)msg)[0x80], (char *)(msg + 1),
+                         transport_address_to_string(addr));
+      } else {
+        network_game_log("server received a malformed/damaged message; sender= "
+                         "'%s'",
+                         transport_address_to_string(addr));
+      }
+    } else if (category == 2) {
+      network_game_log("server received a bad message type (_message_type_data); "
+                       "sender= '%s'",
+                       transport_address_to_string(addr));
+    } else {
+      network_game_log("server received a datagram with an unknown message type "
+                       "(#%d); sender= '%s'",
+                       category, transport_address_to_string(addr));
+    }
+  } else {
     network_game_log("server received a datagram with invalid flags; sender= "
                      "'%s'",
                      transport_address_to_string(addr));
-    return 1;
   }
-  if (category == 1) {
-    if ((unsigned short)size < 0x83) {
-      network_game_log("server received a malformed/damaged message; sender= "
-                       "'%s'",
-                       transport_address_to_string(addr));
-      return 1;
-    }
-    network_game_log("server received low-level error message: error= #%d "
-                     "(%s); sender= '%s'",
-                     ((unsigned char *)(msg + 1))[0x80], (char *)(msg + 1),
-                     transport_address_to_string(addr));
-    return 1;
-  }
-  if (category == 2) {
-    network_game_log("server received a bad message type (_message_type_data); "
-                     "sender= '%s'",
-                     transport_address_to_string(addr));
-    return 1;
-  }
-  if (category != 3) {
-    network_game_log("server received a datagram with an unknown message type "
-                     "(#%d); sender= '%s'",
-                     category, transport_address_to_string(addr));
-    return 1;
-  }
-  packet_version = 1;
-  packet_type = *((char *)msg + (short)(unsigned short)size - 1);
-  size -= 2;
-  switch (packet_type) {
-  case 0:
-    if (!network_game_accept_remote_connections())
-      return 1;
-    if (!FUN_0012bce0((int)broadcast_buf, (int)((char *)msg + 2),
-                      (short *)&size, &packet_type, &packet_version, 0)) {
-      network_game_log("failed to decode a message_client_broadcast_game_"
-                       "search packet");
-      return 1;
-    }
-    if (!network_game_server_reset_to_pregame((int)server, broadcast_buf,
-                                              addr)) {
-      network_game_log("server failed to advertise game to prospective client "
-                       "at '%s'",
-                       transport_address_to_string(addr));
-      return 1;
-    }
-    return 1;
-  case 1:
-    if (!network_game_accept_remote_connections())
-      return 1;
-    if (!FUN_0012bce0((int)ping_buf, (int)((char *)msg + 2), (short *)&size,
-                      &packet_type, &packet_version, 0)) {
-      network_game_log("failed to decode a message_client_ping packet");
-      return 1;
-    }
-    if (!FUN_0012f8d0((int)server, ping_buf, addr)) {
-      network_game_log("server failed to handle a client ping");
-      return 1;
-    }
-    return 1;
-  case 0x19:
-    if (network_game_server_get_state((int)server, (short *)0) != 1) {
-      network_game_log("ignoring a message_client_game_update message; we are "
-                       "not in game");
-      return 1;
-    }
-    machine = network_game_server_get_client_machine_at_address((int)server,
-                                                                *(int *)addr);
-    if (machine == 0) {
-      network_game_log("failed to handle a message_client_game_update message; "
-                       "this client doesn't seem to be in the game");
-      return 1;
-    }
-    if (!FUN_0012bce0((int)game_update_buf, (int)((char *)msg + 2),
-                      (short *)&size, &packet_type, &packet_version, 5)) {
-      network_game_log("failed to decode a message_client_game_update packet");
-      return 1;
-    }
-    network_game_server_handle_client_update_packet((int)server, machine,
-                                                    game_update_buf);
-    return 1;
-  default:
-    network_game_log("server received datagram with an unexpected packet type; "
-                     "sender= '%s'",
-                     transport_address_to_string(addr));
-    return 1;
-  }
+  return 1;
 }
 
 /* Dispatch an incoming connected-client message (0x130580).
@@ -410,7 +401,7 @@ bool FUN_00130580(void *server, void *machine, void *buffer, int size)
     }
     network_game_log("server received low-level error message from a client: "
                      "error= #%d (%s)",
-                     ((unsigned char *)(msg + 1))[0x80], (char *)(msg + 1));
+                     ((unsigned char *)msg)[0x80], (char *)(msg + 1));
     return 1;
   }
   if (category == 2) {
