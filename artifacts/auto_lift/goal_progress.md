@@ -4798,3 +4798,16 @@ Detailed notes saved to /mnt/g/dev/halo-clean-main/.claude/agent-memory/xbox-hal
 1. FUN_00147ed0: add golden-harness case or capture live game state, re-run equivalence via state-snapshot lane.
 2. FUN_00148370: apply volatile keyword fix to float-precision assignments, swap kb.json parameter name annotations, rebuild and re-score.
 
+## Goal-lift run — 2/12 committed (queue_exhausted)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00024900 | 0x24900 | actor_firing_position.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| tag_instance_resolve | 0x1b9bf0 | cache_files.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| FUN_00024850 | 0x24850 | actor_firing_position.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| FUN_00024890 | 0x24890 | actor_firing_position.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| FUN_00024000 | 0x24000 | actor_firing_position.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| sound_cache_request_sound | 0x1be550 | xbox_sound_cache.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_001b9e70 | 0x1b9e70 | cache_files.obj | 93.6 | committed | mechanical gate: 93.6% clean (pass1) |
+
+**Summary:** 2 targets committed at ≥90% VC71 match (100% and 93.6%); 5 targets skipped due to @reg-arg constraints.
