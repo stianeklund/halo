@@ -4026,6 +4026,47 @@ void FUN_000c2620(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* hs script-function handler: unconditionally saves the map via the nonsafe
+ * path, then returns 0 to the calling script thread.  Structural twin of
+ * FUN_000c2620 directly above with the save callee swapped from
+ * main_save_map_no_timeout to main_save_map_nonsafe; the whole body is 10
+ * instructions.
+ *
+ * Disassembly (0xc2640..0xc2658, complete):
+ *   PUSH EBP; MOV EBP,ESP   ; no SUB ESP, no _chkstk → zero locals
+ *   CALL 0x100300           ; main_save_map_nonsafe(); no pushes before it and
+ *                           ; no cleanup after → confirms void(void)
+ *   MOV EAX,[EBP+0xc]       ; thread_datum (2nd cdecl param), NOT [EBP+0x8]
+ *   PUSH 0x0                ; hs_return arg2 = value
+ *   PUSH EAX                ; hs_return arg1 = thread_datum — cdecl pushes
+ *                           ; right-to-left, so the LAST push is the FIRST
+ *                           ; C argument: hs_return(thread_datum, 0)
+ *   CALL 0xcbf80            ; hs_return
+ *   ADD ESP,0x8             ; un-merged cdecl cleanup, 2 dwords → 2 args, all
+ *                           ; belonging to hs_return (main_save_map_nonsafe
+ *                           ; takes none)
+ *   POP EBP; RET            ; plain RET, no RET n → cdecl
+ *
+ * No FPU ops, no struct access, no locals, no buffers.  [EBP+0x8]
+ * (function_index) and [EBP+0x10] (init) are never read by this body; a cdecl
+ * parameter the callee ignores emits no code, so the disassembly alone cannot
+ * distinguish 2 params from 3 — the sibling handlers in this TU
+ * (0xc25e0/0xc2600/0xc2620) arbitrate the uniform hs-evaluator triple.
+ * Ghidra mis-prototypes this as void(void) and surfaces the [EBP+0xc] read as
+ * the phantom local `in_stack_00000008`; taking that at face value would pass
+ * function_index as the thread handle.  The kb decl was widened from
+ * `void FUN_000c2640(void);` with this lift.
+ *
+ * Callees (both cdecl, ported, no register args):
+ *   0x100300 = main_save_map_nonsafe(void)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c2640(int16_t function_index, int thread_datum, char init)
+{
+  main_save_map_nonsafe();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script

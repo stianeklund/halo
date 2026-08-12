@@ -11470,6 +11470,17 @@
       "score": 100.0,
       "source": "src/halo/hs/hs.c"
     },
+    "FUN_000c2640": {
+      "addr": "0xc2640",
+      "end": "0xc2658",
+      "kind": "auto",
+      "n_r": 10,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "f49e1d1dd0f84ba5",
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
     "FUN_000c4b40": {
       "addr": "0xc4b40",
       "end": "0xc4b5a",
