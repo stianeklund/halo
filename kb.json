@@ -36220,7 +36220,8 @@
     },
     {
      "addr": "0x1b9ce0",
-     "decl": "bool cache_file_header_verify(void *header, const char *path, int report_errors);"
+     "decl": "bool cache_file_header_verify(void *header, const char *path, int report_errors);",
+     "ported": true
     },
     {
      "addr": "0x1b9e70",

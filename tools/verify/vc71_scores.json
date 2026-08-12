@@ -28852,6 +28852,17 @@
       "score": 100.0,
       "source": "src/halo/cache/cache_files_windows.c"
     },
+    "cache_file_header_verify": {
+      "addr": "0x1b9ce0",
+      "end": "0x1b9dd2",
+      "kind": "auto",
+      "n_r": 79,
+      "opnd_percent": 92.4,
+      "ref": "synth",
+      "ref_sha": "55a5af391246ae17",
+      "score": 100.0,
+      "source": "src/halo/cache/cache_files.c"
+    },
     "cache_file_read": {
       "addr": "0x1bc9e0",
       "end": "0x1bcb29",
