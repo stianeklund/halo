@@ -9,6 +9,10 @@
  *     actor's 'actr' tag, then either accumulate a penalty (no candidate) or
  *     test 3D path availability to the candidate and either credit it via
  *     FUN_00024000 or mark it rejected.
+ *   FUN_00024450 (0x24450) — the third evaluator: credit the candidate by how
+ *     stale the encounter's record of examining it is (type 5) and by how few
+ *     times it has been examined (type 6), after either marking it examined or
+ *     querying the existing record.
  *   FUN_00024770 (0x24770) — the twin evaluator from the same dispatch table:
  *     score a candidate by its aiming kind (0 / 1 / default) rather than by
  *     path availability, crediting the same FUN_00024000 accumulator.
@@ -330,6 +334,118 @@ int FUN_00024370(int actor_handle, char *eval_state, char *firing_position)
 
   if (firing_position == (char *)0)
     return 1;
+  return *(unsigned char *)(firing_position + 0x30);
+}
+
+/* FUN_00024450 (0x24450) — score one candidate firing position by how long ago
+ * the actor's encounter last examined it, and by how many times.
+ *
+ * Third member of the evaluator family stored in the dispatch table beside
+ * FUN_00024370 and FUN_00024770: same three-parameter shape, same
+ * MOVZX EAX,BYTE PTR [ESI+0x30] tail at 0x245c4, so the return is int-width
+ * and not char.
+ *
+ * Confirmed from the listing at 0x24450:
+ *   datum_get (0x24462) and game_time_get (0x2446d) both run BEFORE the null
+ *   test on firing_position (JZ at 0x24486), so they are not guarded by it.
+ *   The early return is 0 — EAX is zeroed at 0x24478 to serve the CMP ESI,EAX
+ *   and falls straight through the epilogue.
+ *
+ *   0x24496 FLD [ESI+8] / FCOMP [0x254640] / FNSTSW AX / TEST AH,0x5 / JP.
+ *   The mask covers C0|C2, so PF is set unless C0 alone is set: the jump is
+ *   taken when the value is NOT below the constant, and the fall-through
+ *   (mark-examined) arm is `field_08 < 6.0f`. Do not read the JP as a JZ.
+ *   [0x254640] == 0x40C00000 == 6.0f is this TU's literal pool, not a global.
+ *
+ *   encounter_pursuit_position_already_examined takes SIX pushed arguments
+ *   here (ADD ESP,0x18 at 0x24501); Ghidra renders it as a nullary call with
+ *   an extraout_AL result and hides the two OUT pointers. &last_examined
+ *   (EBP-0x4) and &examined_count (EBP-0xc) are written by the callee — that
+ *   is where the values both scoring blocks consume come from.
+ *
+ *   Both pursuit-index pushes are zero-extended (XOR EAX,EAX / MOV AX at
+ *   0x244af, XOR ECX,ECX / MOV CX at 0x244e2). The examined count is instead
+ *   sign-extended when consumed (MOVSX ECX,AX at 0x2459c), so only the count
+ *   is signed.
+ *
+ *   `score` occupies the dead third parameter's home slot in the original
+ *   (MOV DWORD PTR [EBP+0x10],0 / 0x41200000 while ESI still holds
+ *   firing_position), exactly as in both twins. It is a distinct float local;
+ *   the raw dword pushes at 0x24582/0x245ba are its bits, not a pointer.
+ *
+ *   [0x2546A4] == 0x3D088889 == 0.033333335f (one tick in seconds) and
+ *   [0x254CC4] == 0x40A00000 == 5.0f are literals, not game globals.
+ *
+ *   0x24549 CMP ECX,-1 / JZ, then LEA EDX,[ECX+0x12c] / CMP EDX,EAX / JL:
+ *   the 10.0f arm is taken when there is no recorded time at all or when the
+ *   record is more than 300 ticks stale.
+ *
+ * Offsets used (raw; struct identities not yet proven):
+ *   actor           +0x034 int    encounter index
+ *   eval_state      +0x00c int    threat/encounter handed to both queries
+ *                   +0x010 char   master gate
+ *                   +0x014 char   "keep rejected positions" gate (as the twins)
+ *   firing_position +0x004 int16  pursuit-position index
+ *                   +0x006 int16  non-zero forces the already-examined query
+ *                   +0x008 float  compared against 6.0f
+ *                   +0x030 char   usable flag (also the return value)
+ *                   +0x031 char   rejected flag
+ */
+int FUN_00024450(int actor_handle, char *eval_state, char *firing_position)
+{
+  char *actor;
+  int now;
+  int last_examined;
+  short examined_count;
+  bool unexamined;
+  float score;
+
+  actor = (char *)datum_get(actor_data, actor_handle);
+  now = game_time_get();
+  last_examined = -1;
+  examined_count = 0;
+  if (firing_position == (char *)0)
+    return 0;
+
+  unexamined = 1;
+  if (*(short *)(firing_position + 6) == 0 &&
+      *(float *)(firing_position + 8) < 6.0f) {
+    encounter_mark_examined_pursuit_position(
+      *(int *)(actor + 0x34), actor_handle, *(short *)(firing_position + 4),
+      *(int *)(eval_state + 0xc));
+    last_examined = now;
+    examined_count = 7;
+    unexamined = 0;
+  } else if (encounter_pursuit_position_already_examined(
+               *(int *)(actor + 0x34), actor_handle,
+               *(short *)(firing_position + 4), *(int *)(eval_state + 0xc),
+               &examined_count, &last_examined)) {
+    unexamined = 0;
+  }
+
+  if (*(char *)(eval_state + 0x10) != '\0') {
+    if (unexamined)
+      FUN_00024000(eval_state, 15.0f, 7, firing_position);
+  } else if (!unexamined) {
+    *(char *)(firing_position + 0x31) = 1;
+    if (*(char *)(eval_state + 0x14) == '\0')
+      *(char *)(firing_position + 0x30) = '\0';
+  }
+
+  if (*(char *)(firing_position + 0x30) != '\0') {
+    score = 0.0f;
+    if (last_examined == -1 || last_examined + 300 < now)
+      score = 10.0f;
+    else if (last_examined < now)
+      score = (float)(now - last_examined) * 0.033333335f;
+    FUN_00024000(eval_state, score, 5, firing_position);
+
+    score = 0.0f;
+    if (examined_count < 4)
+      score = (float)(4 - examined_count) * 5.0f;
+    FUN_00024000(eval_state, score, 6, firing_position);
+  }
+
   return *(unsigned char *)(firing_position + 0x30);
 }
 
