@@ -80,12 +80,21 @@ typedef void (*tiff_void_method_t)(void *tif);
  * (`data` / `bit` / `bitmap`, the bit-reversal table indexed by the
  * accumulator), whose flush shape this body matches exactly; that
  * identification is INFERRED from shape, not proven by a `__FILE__` string.
- * 0x04..0x13 is untouched by this body, hence pad_ rather than field_. */
+ * The other members below are promoted by FUN_00068c70/FUN_00068d80; their
+ * offsets and access widths are taken from those bodies. */
 typedef struct tiff_codec_bits_s {
   short data; /* 0x00 */
   short bit; /* 0x02 */
-  char pad_004[16];
+  unsigned short fill_white; /* 0x04 */
+  char pad_006[2];
+  int rowbytes; /* 0x08 */
+  int rowpixels; /* 0x0c */
+  /* Written 0 on reset and then `(first_bit == 0)` by FUN_00068d80; only ever
+   * observed holding 0 or 1, so the meaning is unproven -- do NOT read this as
+   * a counter. */
+  int field_10; /* 0x10 */
   const unsigned char *bitmap; /* 0x14 */
+  unsigned char *fill_line; /* 0x18 */
 } tiff_codec_bits_t;
 
 typedef struct tiff_s {
@@ -817,26 +826,24 @@ void *FUN_00068c70(void *tif_ /* @<esi> */, int extra_size)
     return 0;
   }
 
-  *(int *)((char *)state + 0x08) = scanline_size;
-  *(int *)((char *)state + 0x0c) = row_pixels;
+  state->rowbytes = scanline_size;
+  state->rowpixels = row_pixels;
   bitmap = (const unsigned char *)0x2ecbe0;
   if ((int)*(char *)(tif + 0x08) ==
       (unsigned int)*(unsigned short *)(tif + 0x40))
     bitmap = (const unsigned char *)0x2ecce0;
-  *(const unsigned char **)((char *)state + 0x14) = bitmap;
-  *(unsigned short *)((char *)state + 0x04) =
-    (unsigned short)(*(short *)(tif + 0x3c) == 1);
+  state->bitmap = bitmap;
+  state->fill_white = (unsigned short)(*(short *)(tif + 0x3c) == 1);
 
   if ((*(unsigned char *)(tif + 0x68) & 1) == 0 &&
       *(short *)(tif + 0x3a) != 4) {
-    *(int *)((char *)state + 0x18) = 0;
+    state->fill_line = 0;
     return state;
   }
 
   state_end = (char *)state + extra_size + 1;
-  *(char **)((char *)state + 0x18) = state_end;
-  *(char *)(state_end - 1) =
-    (*(unsigned short *)((char *)state + 0x04) == 0) ? 0 : (char)-1;
+  state->fill_line = (unsigned char *)state_end;
+  *(char *)(state_end - 1) = (state->fill_white == 0) ? 0 : (char)-1;
   return state;
 }
 
@@ -865,17 +872,17 @@ int FUN_00068d80(void *tif_)
       return 0;
   }
 
-  fill_ptr = *(unsigned char **)((char *)state + 0x18);
+  fill_ptr = state->fill_line;
   state->bit = 0;
   state->data = 0;
-  *(int *)((char *)state + 0x10) = 0;
+  state->field_10 = 0;
 
   if (fill_ptr != 0) {
     /* Paint the whole reference line white (0xff) for a photometrically
      * inverted image, black (0x00) otherwise.  The reference widens the flag
      * to a full byte mask with neg/sbb rather than branching on it. */
-    fill_count = *(int *)((char *)state + 0x08);
-    fill_byte = (unsigned char)-(*(unsigned short *)((char *)state + 0x04) != 0);
+    fill_count = state->rowbytes;
+    fill_byte = (unsigned char)-(state->fill_white != 0);
     while (fill_count > 0) {
       *fill_ptr = fill_byte;
       fill_ptr++;
@@ -887,7 +894,7 @@ int FUN_00068d80(void *tif_)
     FUN_00068a70(0, tif_);
     if ((*(unsigned char *)(tif + 0x68) & 1) != 0) {
       bit_result = FUN_00068bd0(tif_);
-      *(int *)((char *)state + 0x10) = (bit_result == 0);
+      state->field_10 = (bit_result == 0);
     }
   }
   return 1;
