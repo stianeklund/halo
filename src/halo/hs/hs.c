@@ -4258,6 +4258,68 @@ void FUN_000c26f0(int16_t function_index, int thread_datum, char init)
   return;
 }
 
+/* 0xc2730 — core-load-by-name-at-startup HaloScript function evaluator.
+ * Evaluates the script function's arguments and, on a non-NULL evaluation
+ * record, requests the named core be loaded at the next startup, then commits
+ * a 0 (void) result to the calling script thread.  Structurally identical to
+ * the immediately-preceding sibling FUN_000c26f0 at 0xc26f0 (evaluate /
+ * null-check / one side-effect callee reading record +0 as a char* / hs_return)
+ * with only the side-effect callee swapped from main_load_core_name to
+ * main_load_core_name_at_startup.
+ *
+ * kb.json carried the placeholder decl `void FUN_000c2730(void);`; widened to
+ * the standard hs-evaluator triple with this lift, since the body reads all
+ * three stack slots.  Under the void(void) decl Ghidra surfaced them as the
+ * artifact locals in_stack_00000004/8/c — those are ordinary stack parameters,
+ * NOT register arguments, and leaving the no-arg decl in place would have been
+ * the void-decl ESP-drift footgun.
+ *
+ * ABI (verified against disassembly 0xc2730-0xc2762, 23 instructions): cdecl,
+ * plain RET.  Frame is PUSH EBP / MOV EBP,ESP / PUSH ESI — no locals, no SUB
+ * ESP, no _chkstk.  ESI is the only callee-saved register and caches
+ * thread_datum across the whole body so it can be reused as hs_return's first
+ * argument.  Slots are [EBP+0x8] = function_index (int16, loaded into ECX),
+ * [EBP+0xc] = thread_datum (into ESI), [EBP+0x10] = init (char, into EAX).
+ *
+ * Callees (all cdecl, no register args, all ported):
+ *   0xcc560  = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *              — pushes EAX(+0x10), ESI(+0xc), ECX(+0x8), i.e. cdecl
+ *              right-to-left, and ADD ESP,0xc at 0xc2745 confirms 3 args.
+ *              kb.json declares an `int` return but the value is a POINTER to
+ *              the evaluated-argument record; TEST EAX,EAX / JZ 0xc275f is a
+ *              NULL check, not a boolean test.  Cast locally at the call site
+ *              as the siblings do — do not mutate the shared kb decl.
+ *   0x1004b0 = main_load_core_name_at_startup(const char *name).  Ghidra
+ *              modelled this as no-arg and dropped the argument entirely; the
+ *              disassembly has MOV EDX,dword ptr [EAX] at 0xc274c (a single
+ *              dereference of record +0, as a pointer) and then PUSH EDX
+ *              before the CALL.  Transcribing the decompile verbatim would
+ *              have called it with whatever happened to be on the stack.
+ *   0xcbf80  = hs_return(thread_datum, 0) — PUSH 0x0 then PUSH ESI, so the
+ *              first PUSH is the last C argument.
+ *
+ * The trailing ADD ESP,0xc at 0xc275c covers THREE pushes: the one for
+ * main_load_core_name_at_startup plus the two for hs_return, coalesced as
+ * ordinary MSVC adjacent-call codegen.  The side-effect callee's single
+ * argument is not popped separately.  The ARG_COUNT hazard reported against
+ * hs_return (cleanup=3 vs decl=2) is therefore a false positive from
+ * mis-grouping that shared cleanup — hs_return really does take 2 args and
+ * must not be widened.
+ *
+ * No FPU ops, no local buffers, and no struct offsets beyond the char* field
+ * at record +0. */
+void FUN_000c2730(int16_t function_index, int thread_datum, char init)
+{
+  char *args;
+
+  args = (char *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (args != (char *)0) {
+    main_load_core_name_at_startup(*(const char **)args);
+    hs_return(thread_datum, 0);
+  }
+  return;
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
