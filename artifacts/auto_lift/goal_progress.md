@@ -4719,3 +4719,82 @@ AUTOLIFT_REVIEW: NEEDS_RUNTIME |
 1. Prioritize bsp3d_test_sphere_recursive unblock via delinked-export + unicorn_diff (state-snapshot technique proven on other collision targets).
 2. Escalation-exhausted targets deferred pending prior-fix review or ABI refinement.
 
+## Goal-lift run — 0/2 committed (queue_exhausted)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00147ed0 | 0x147ed0 | collision_bsp.obj | 88.1 | parked | NEEDS_RUNTIME: Target: FUN_00147ed0 @ 0x147ed0 (collision_bsp.obj), /mnt/g/dev/halo-clean-main/src/halo/physics/collision_bsp.c lines ~703-919. Run artifacts: /mnt/g/dev/halo-clean-main/artifacts/lift_runs/20260811-234959/summary.json, /mnt/g/dev/halo-clean-main/artifacts/score_context/FUN_00147ed0.json, /mnt/g/dev/halo-clean-main/artifacts/equivalence/FUN_00147ed0_smoke.log
+
+Structural Match: 88.1% VC71, attribution verified — the scorer prints `PASS FUN_00147ed0: 88.1% match (295/302 insns) [FCOM-WARN] | opnd 71.7%` on its own line, so this is not a sibling's headline (the neighbours score 95.3%, 95.2%, 87.1%). dp_lcs 88.8%. No objdiff unit; equivalence used delinked/collision_bsp.obj.
+
+Mismatch Classes: see the mismatch_classes field — all 66 diff ops classified, none unexplained, one class blocking.
+
+Call Argument Audit / Memory Offset Audit / ABI Audit: see those fields. All complete, all clean, zero defects found. I read the full 302-instruction reference disassembly rather than trusting the decompiler.
+
+Confirmed (against the pristine binary):
+- The material screen at 0x147ee7-0x147f1b, including MOVZX-vs-MOVSX widths and the signed JGE. Independently corroborated by the identical screen in the already-ported sibling FUN_00148240.
+- Both float guards, including the unordered case. 0x147fbb `TEST AH,0x41; JP`: the masked byte is 0x00 for greater and 0x41 for unordered (even popcount, PF=1, jump taken) and 0x01/0x40 for less/equal (odd, PF=0, fall through) — so the body runs iff dist2 <= radius2 and NaN skips, exactly C's `dist2 <= radius2`. 0x1481e5 `TEST AH,0x5; JNP`: only 0x01 (less) is odd, so the function returns iff cross < 0 and NaN continues, exactly C's `cross < 0.0f`. Both match the source operators bit-for-bit.
+- Cross-product operand order at 0x1481aa-0x1481d7: ax*by - ay*bx with ax=pa[0]-qx, ay=pa[1]-qy, bx=pb[0]-qx, by=pb[1]-qy. Trap 4 cleared. Cross-checked algebraically against sibling FUN_00148240, which computes (point-v0) x (v1-v0) > 0 -> reject; that is the exact negation of this function's (v0-q) x (v1-q) < 0 -> reject, so the two ported functions agree on the winding convention.
+- 12 = 12 CALLs with all three ADD ESP cleanups reconciling exactly.
+- x87 stack balanced; frame 44 = 44.
+- Equivalence is genuinely non-vacuous: 97 passed / 0 diverged / 3 errors of 100 seeds, coverage 747/875 bytes (85.4%), trace_diffs 0, and a stub-arg differential over 588 calls with 0 argument mismatches and 0 soft-matched stack pointers. The three errors are symmetric UC_ERR_FETCH_UNMAPPED (1 lifted-side, 2 oracle-side) from garbage seeded pointers, not divergences.
+
+Inferred:
+- The `-mno-sse` x87 regrouping of the squared distance is sub-ULP within the candidate itself, because the squares of 32-bit floats are exact in the x87 64-bit mantissa.
+- state+0x21c is a small projection axis (the callee asserts 0..2), so the zero/sign-extension delta on that argument can never be observed.
+- The lift is currently ABI-safe because its single XBE caller is itself ported.
+
+Uncertain (all resolved except one):
+- The SSE-to-x87 precision class on `dist2` remains open and cannot be closed statically. It is not a transcription defect and not grounds for rejection — it is a build-configuration property that CLAUDE.md already accepts project-wide with ULP tolerance — but here the value gates a branch rather than landing in an output buffer, so tolerance does not apply and the 100 random-float seeds do not probe the boundary.
+
+Verdict Rationale:
+The transcription is, as far as I can prove, correct. I found no bug: every offset, every call argument, every branch sense, and the whole LCS residue are accounted for against the pristine disassembly. That is why this is not a REJECT.
+
+It is not an AUTO_ACCEPT for three reasons.
+
+First, 88.1% sits in the sub-90 band, which requires golden or runtime behavioral verification. None exists: summary.json records behavior_check "skipped (no --behavior-check-cmd)" and runtime_check "skipped (--with-runtime not set)", and there is no golden-master case. The pipeline's own gate said `verdict=PASS reason=goal90: 88.1% in 85-89 band — permuter recommended before commit`.
+
+Second, the acceptance path I was handed is materially false in two places, so I cannot treat it as evidence. It claims "pass1+permute", but summary.json records `permute: ran=false, "skipped (--permute not set)"`. And it closes with the boilerplate sentence asserting that "a 0-divergence pass on the live-state infection_swarm snapshot (populated datum tables, real actor handles) is accepted runtime behavioral evidence for the sub-90% band" — in the same breath as admitting that artifacts/snapshots/infection_swarm.json does not exist and zero-fill was used. This is the 14th time I have seen that exact sentence bolted onto a sub-90 lift. The underlying equivalence numbers here are real and good, unlike most prior sightings, but they are emulator-level evidence under zero-filled globals, not runtime evidence, and they do not discharge the band.
+
+Third, and decisively, one mismatch class is a real numerical divergence on a branch input. The reference computes the loop-1 squared distance in packed SSE with single-precision rounding at each ADDSS; our -mno-sse build accumulates in x87 80-bit and rounds once. That value is immediately compared against radius2. At exact tangency the two implementations can take different branches, adding or dropping a vertex in the collision result list and, through the `hit` flag, changing whether the 2D inside-test runs and whether the surface itself is accepted. Random-float seeds essentially never land on that boundary, so the 97/100 pass says nothing about it. Unlike the sibling FUN_0014e640 that I accepted at 87.1% on a 0/0/0 caller census, this function is live: Ghidra shows a real caller at 0x148764 in the ported FUN_001486e0, so a boundary flip reaches actual collision behavior.
+
+The lift looks committable on its merits and I would expect it to survive; it needs the golden/runtime lane run to bound the SSE/x87 boundary case before an automated loop commits it without a human.
+
+AUTOLIFT_REVIEW: NEEDS_RUNTIME |
+| FUN_00148370 | 0x148370 | collision_bsp.obj | 93.6 | parked | REJECT: Target: FUN_00148370 @ 0x148370 (ray/segment vs sphere), collision_bsp.obj, src/halo/physics/collision_bsp.c:814. Diff is additive (+71 .c, kb.json decl widened + ported:true).
+
+Structural Match: 93.6% re-derived myself, --no-cache, "Cache: 0/1 hits" (87 cand / 86 ref insns, opnd 41.6%, 23 [FPU-WARN] lines, ref_sha 1d3d074a9d877a74, bounds end 0x14843c). The supplied acceptance path could not be trusted: artifacts/lift_runs/20260812-001129/ contains ONLY abi_audit.log — no summary.json, no vc71 log, no hazard log — so the "93.6% / pass1" headline did not come from a recorded gate. Build re-run green (exit 0); the patched XBE on disk was a day stale, so I rebuilt to inspect the live redirect.
+
+I read 100% of three instruction streams: the pristine XBE reference (0x148370-0x14843b, 86 insns), the VC71 candidate COMDAT, and the shipped clang body (build/CMakeFiles/halo.dir/src/halo/physics/collision_bsp.c.obj +0xce0, linked at 0x712e60).
+
+THE TRANSCRIPTION IS CORRECT AND SHOULD BE KEPT. The blocker is our shipped codegen, not the C.
+
+Blocking finding — 80-bit excess precision where the reference narrows to float32:
+The reference stores q and b to 32-bit slots at their assignment points and re-reads the NARROWED values in the quadratic (0x14839c FST [EBP-4] then FCOMP pops the 80-bit copy, then 0x148404 FMUL [EBP-4]; same for b at [EBP+8], re-read at 0x1483fc/0x1483ff/0x148418). That is MSVC honoring C's rule that assignment to a float object discards excess precision. Our clang -O3 -mno-sse body keeps both in x87 registers end to end and never narrows: q is produced by `fsubp st(4)` and consumed by `fmul st(2)` with no intervening store; b is produced by `faddp st(2)` and consumed from registers. The only narrowing store in the shipped body is `fstp [eax]` for *out_t.
+
+Measured divergence (long-double model of both sides, float-quantized inputs, 3M seeds per run):
+- q loses bits to float32 in 100% of invocations; b in ~100%.
+- Output t on generic hits: median 2 ulp, p90 8, p99 17, p99.9 28, max 62. 1.19% of hits exceed the project's own 16-ulp tolerance. Up to 2626 ulp in near-tangent geometry.
+- `t <= 1` branch flips 745 / 3M (0.025%) when the sweep is sized to end near the surface — i.e. the resting-contact case, the steady state for anything at rest on geometry.
+- `disc >= 0` branch flips 2-3 / 3M.
+
+This is live at runtime: caller census over the pristine XBE returns exactly 2 rel32 calls (0x148a96, 0x148ae3), both inside FUN_00148910, which is NOT ported (ported: null). Contrast FUN_0014e640 in this same TU, accepted at 87.1% because its census was 0/0/0.
+
+Fixable in source, which is why this is REJECT and not NEEDS_RUNTIME: a volatile round-trip at the two assignments (`*(volatile float *)&q = ...`) restores `fstp [ebp-4]` / `fstp [ebp-8]` at real -O3 for +2 instructions (101 -> 103). I verified `-ffloat-store` and `-fexcess-precision=standard` are both no-ops here (byte-identical 101-insn output for all three settings; do not test at -O0, which spills everything and hides the effect). Confirm the maintainers' preferred idiom before adopting volatile — the point is that a cheap source remedy exists, so this goes back rather than to a runtime sign-off.
+
+Also worth fixing while it is open: the kb.json parameter names are inverted. The code computes ECX - EAX, requires that dot delta > 0, and uses t = (b - sqrt(disc))/a — the textbook form for a vector pointing TOWARD the sphere. So ECX is the sphere centre and EAX the ray start; `center@<eax>, origin@<ecx>` has them backwards. Zero codegen or ABI effect (both sides emit ecx-eax regardless), but per naming-confidence a wrong semantic name is worse than a mechanical one.
+
+Everything else is clean and I am recording it so a re-review does not redo it: all three x87 sums associate exactly as the reference does with only single commuted addends; all four guards match including NaN; FSQRT is inline (sqrtf does not become a call); zero CALLs out; both constants verified in the XBE; ABI proven end to end through the marshal stub; ECX clobber delta discharged at both call sites.
+
+Detailed notes saved to /mnt/g/dev/halo-clean-main/.claude/agent-memory/xbox-halo-lift-reviewer/project_fun_00148370_ray_sphere_excess_precision_reject.md and the reusable class to reference_clang_keeps_float_locals_in_80bit.md. |
+
+**Summary:** Goal-lift run completed with 0 commits (queue_exhausted). Two collision_bsp.obj targets analyzed; both parked pending resolution.
+
+**Parked Summary:**
+- **FUN_00147ed0 (88.1%):** Full static audit clean (302 insns verified, all offsets/args/branches reconciled). Equivalence 97/100 seeds pass, coverage 85.4%. Blocking: sub-90% band requires golden/runtime verification; equivalence used zero-fill, not live state. Unblock with golden-harness case or input-fixture A/B runtime validation.
+- **FUN_00148370 (93.6%):** Transcription correct. Blocking: clang -mno-sse x87 keeps float locals at 80-bit precision while MSVC reference narrows to 32-bit, causing up-to-2626 ULP output divergence and 0.025% branch-flip rate on resting-contact geometry where the function is live (2 XBE callers in unported FUN_00148910). Fixable in source via volatile round-trip at assignments; cheap 2-instruction remedy exists. Also: kb.json parameter names inverted (center/origin swapped), zero ABI/codegen effect but semantic naming issue.
+
+**Next Steps:**
+1. FUN_00147ed0: add golden-harness case or capture live game state, re-run equivalence via state-snapshot lane.
+2. FUN_00148370: apply volatile keyword fix to float-precision assignments, swap kb.json parameter name annotations, rebuild and re-score.
+
