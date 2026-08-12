@@ -53,9 +53,9 @@ typedef int (*tiff_seek_method_t)(void *tif, unsigned long nrows);
 /* The setup/postencode and close/cleanup method shapes, repeated from
  * tif_open.c for the same file-scope-typedef reason. `tiff_bool_method_t` is
  * pinned for 0xf8 by FUN_00069520 in this TU (kb.json: `int (void *tif)`);
- * 0xf0 and 0xf4 take FUN_00068d80 / FUN_00069420, whose own prototypes are
- * still unrecovered, so their `int` return is INFERRED from upstream's
- * `tif_setupdecode` / `tif_setupencode` rather than proven.
+ * 0xf0 and 0xf4 take FUN_00068d80 / FUN_00069420. FUN_00068d80's int return
+ * is proven below; FUN_00069420 remains unrecovered, so its int return is
+ * still INFERRED from upstream's `tif_setupencode` shape.
  * `tiff_void_method_t` is pinned for 0x114 and 0x11c by FUN_00069590 and
  * FUN_000695c0, both already recovered in this TU as `void (void *tif)`. */
 typedef int (*tiff_bool_method_t)(void *tif);
@@ -585,6 +585,312 @@ void FUN_00068a50(void *tif_, int flag)
   } else {
     tif->field_09 = (char)(tif->field_09 & 0xfe);
   }
+}
+
+/**
+ * Consume input bytes until at least twelve bits have been accumulated, or
+ * until the accumulator becomes positive. This is the bit-reversal and
+ * bit-count helper used by the fax codec.
+ *
+ * ABI: `bit_count` arrives in EAX and `tif_` arrives in EDI; there are no
+ * stack arguments. The original does not write a deliberate return value.
+ * The two register arguments are ordered by their kb.json parameter slots,
+ * not by the order in which the callee first reads them.
+ *
+ * The switch/fall-through shape is intentional. Each case consumes one bit
+ * from the current reversed byte, and a non-positive accumulator falls into
+ * the next case without re-dispatching. The default arm obtains another raw
+ * byte and retries case zero. All offsets outside the existing partial
+ * tiff_t view are kept as raw accesses so this TU's established layout stays
+ * unchanged.
+ */
+void FUN_00068a70(int bit_count /* @<eax> */, void *tif_ /* @<edi> */)
+{
+  tiff_t *tif;
+  tiff_codec_bits_t *sp;
+  int accumulator;
+  int bit;
+  int data;
+
+  tif = (tiff_t *)tif_;
+  sp = tif->tif_data;
+  bit = (short)sp->bit;
+  data = (short)sp->data;
+  if (bit == 0)
+    bit = 8;
+  accumulator = 0;
+
+dispatch:
+  switch (bit) {
+  case 0:
+    goto bit_0;
+  case 1:
+    goto bit_1;
+  case 2:
+    goto bit_2;
+  case 3:
+    goto bit_3;
+  case 4:
+    goto bit_4;
+  case 5:
+    goto bit_5;
+  case 6:
+    goto bit_6;
+  case 7:
+    goto bit_7;
+  default:
+    goto get_byte;
+  }
+
+bit_0:
+  accumulator <<= 1;
+  if ((data & 0x80) != 0)
+    accumulator |= 1;
+  bit_count++;
+  if (accumulator > 0) {
+    bit = 1;
+    goto finish_bits;
+  }
+bit_1:
+  accumulator <<= 1;
+  if ((data & 0x40) != 0)
+    accumulator |= 1;
+  bit_count++;
+  if (accumulator > 0) {
+    bit = 2;
+    goto finish_bits;
+  }
+bit_2:
+  accumulator <<= 1;
+  if ((data & 0x20) != 0)
+    accumulator |= 1;
+  bit_count++;
+  if (accumulator > 0) {
+    bit = 3;
+    goto finish_bits;
+  }
+bit_3:
+  accumulator <<= 1;
+  if ((data & 0x10) != 0)
+    accumulator |= 1;
+  bit_count++;
+  if (accumulator > 0) {
+    bit = 4;
+    goto finish_bits;
+  }
+bit_4:
+  accumulator <<= 1;
+  if ((data & 0x08) != 0)
+    accumulator |= 1;
+  bit_count++;
+  if (accumulator > 0) {
+    bit = 5;
+    goto finish_bits;
+  }
+bit_5:
+  accumulator <<= 1;
+  if ((data & 0x04) != 0)
+    accumulator |= 1;
+  bit_count++;
+  if (accumulator > 0) {
+    bit = 6;
+    goto finish_bits;
+  }
+bit_6:
+  accumulator <<= 1;
+  if ((data & 0x02) != 0)
+    accumulator |= 1;
+  bit_count++;
+  if (accumulator > 0) {
+    bit = 7;
+    goto finish_bits;
+  }
+bit_7:
+  accumulator <<= 1;
+  if ((data & 0x01) != 0)
+    accumulator |= 1;
+  bit_count++;
+  if (accumulator <= 0)
+    goto get_byte;
+  bit = 8;
+
+finish_bits:
+  if (bit_count >= 12 && accumulator == 1) {
+    sp->data = (short)data;
+    sp->bit = (short)((bit > 7) ? 0 : bit);
+    return;
+  }
+  bit_count = 0;
+  accumulator = 0;
+  goto dispatch;
+
+get_byte:
+  if (tif->tif_rawcc <= 0)
+    return;
+  tif->tif_rawcc--;
+  data = sp->bitmap[*tif->tif_rawcp];
+  tif->tif_rawcp++;
+  goto bit_0;
+}
+
+/**
+ * Read one bit from fax decoder state and advance its bit cursor.
+ *
+ * ABI: TIFF handle arrives in EAX, with no stack arguments. The return is the
+ * masked bit value left in EAX. The raw input cursor is advanced only when
+ * the state cursor was zero and raw input remains.
+ */
+int FUN_00068bd0(void *tif_ /* @<eax> */)
+{
+  tiff_t *tif;
+  tiff_codec_bits_t *sp;
+  int data;
+  short bit;
+  int result;
+
+  tif = (tiff_t *)tif_;
+  sp = tif->tif_data;
+  if (sp->bit == 0 && tif->tif_rawcc > 0) {
+    tif->tif_rawcc--;
+    sp->data = sp->bitmap[*tif->tif_rawcp];
+    tif->tif_rawcp++;
+  }
+  data = (short)sp->data;
+  bit = (short)sp->bit;
+  result = *(const unsigned char *)(0x2ec370 + bit) & data;
+  bit++;
+  sp->bit = (short)bit;
+  if (bit > 7)
+    sp->bit = 0;
+  return result;
+}
+
+/**
+ * Allocate and initialize the private Group 3/4 fax codec state.
+ *
+ * ABI: TIFF handle arrives in ESI and `extra_size` is the sole cdecl stack
+ * argument. Successful return is the allocated state pointer in EAX; all
+ * rejected or allocation-failure paths return zero. The 0x68c40 CRT REP STOS
+ * helper is deliberately not implemented: this body has no call to it.
+ *
+ * State offsets 0x04, 0x08, 0x0c and 0x18 are accessed through raw offsets
+ * because tiff_codec_bits_t intentionally exposes only its already-proven
+ * data/bit/bitmap members. The existing tiff_t and state layouts are not
+ * reordered or repadded.
+ */
+void *FUN_00068c70(void *tif_ /* @<esi> */, int extra_size)
+{
+  char *tif;
+  int scanline_size;
+  int row_pixels;
+  unsigned int allocation_size;
+  tiff_codec_bits_t *state;
+  char *state_end;
+  const unsigned char *bitmap;
+
+  tif = (char *)tif_;
+  if (*(short *)(tif + 0x36) != 1) {
+    FUN_00068a30(*(const char **)tif,
+                 "Bits/sample must be 1 for Group 3/4 encoding/decoding");
+    return 0;
+  }
+
+  if (*(char *)(tif + 0x0a) < 0) {
+    scanline_size = FUN_0006f890(tif_);
+    row_pixels = *(int *)(tif + 0x28);
+  } else {
+    scanline_size = TIFFScanlineSize((int)tif_);
+    row_pixels = *(int *)(tif + 0x1c);
+  }
+
+  allocation_size = (unsigned int)extra_size;
+  if ((*(unsigned char *)(tif + 0x68) & 1) != 0 || *(short *)(tif + 0x3a) == 4)
+    allocation_size = (unsigned int)(scanline_size + 1 + extra_size);
+
+  state = (tiff_codec_bits_t *)debug_malloc(
+    allocation_size, false, "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_fax3.c",
+    0xfc);
+  *(tiff_codec_bits_t **)(tif + 0x120) = state;
+  if (state == 0) {
+    FUN_00068a30("Fax3SetupState", "%s: No space for Fax3 state block",
+                 *(const char **)tif);
+    return 0;
+  }
+
+  *(int *)((char *)state + 0x08) = scanline_size;
+  *(int *)((char *)state + 0x0c) = row_pixels;
+  bitmap = (const unsigned char *)0x2ecbe0;
+  if ((int)*(char *)(tif + 0x08) ==
+      (unsigned int)*(unsigned short *)(tif + 0x40))
+    bitmap = (const unsigned char *)0x2ecce0;
+  *(const unsigned char **)((char *)state + 0x14) = bitmap;
+  *(unsigned short *)((char *)state + 0x04) =
+    (unsigned short)(*(short *)(tif + 0x3c) == 1);
+
+  if ((*(unsigned char *)(tif + 0x68) & 1) == 0 &&
+      *(short *)(tif + 0x3a) != 4) {
+    *(int *)((char *)state + 0x18) = 0;
+    return state;
+  }
+
+  state_end = (char *)state + extra_size + 1;
+  *(char **)((char *)state + 0x18) = state_end;
+  *(char *)(state_end - 1) =
+    (*(unsigned short *)((char *)state + 0x04) == 0) ? 0 : (char)-1;
+  return state;
+}
+
+/**
+ * Reset fax codec state, initialize its reference line, and prime decoding.
+ *
+ * ABI: one cdecl TIFF pointer on the stack; returns 1 on success and 0 when
+ * state allocation fails. Calls below are verified against the binary: the
+ * setup call receives ESI=tif and stack extra_size 0x1c, the bit accumulator
+ * call receives EAX=0 and EDI=tif, and the bit reader receives EAX=tif.
+ */
+int FUN_00068d80(void *tif_)
+{
+  char *tif;
+  tiff_codec_bits_t *state;
+  unsigned char *fill_ptr;
+  unsigned char fill_byte;
+  int fill_count;
+  int bit_result;
+
+  tif = (char *)tif_;
+  state = *(tiff_codec_bits_t **)(tif + 0x120);
+  if (state == 0) {
+    state = (tiff_codec_bits_t *)FUN_00068c70(tif_, 0x1c);
+    if (state == 0)
+      return 0;
+  }
+
+  fill_ptr = *(unsigned char **)((char *)state + 0x18);
+  state->bit = 0;
+  state->data = 0;
+  *(int *)((char *)state + 0x10) = 0;
+
+  if (fill_ptr != 0) {
+    /* Paint the whole reference line white (0xff) for a photometrically
+     * inverted image, black (0x00) otherwise.  The reference widens the flag
+     * to a full byte mask with neg/sbb rather than branching on it. */
+    fill_count = *(int *)((char *)state + 0x08);
+    fill_byte = (unsigned char)-(*(unsigned short *)((char *)state + 0x04) != 0);
+    while (fill_count > 0) {
+      *fill_ptr = fill_byte;
+      fill_ptr++;
+      fill_count--;
+    }
+  }
+
+  if ((*(unsigned char *)(tif + 0x09) & 2) == 0) {
+    FUN_00068a70(0, tif_);
+    if ((*(unsigned char *)(tif + 0x68) & 1) != 0) {
+      bit_result = FUN_00068bd0(tif_);
+      *(int *)((char *)state + 0x10) = (bit_result == 0);
+    }
+  }
+  return 1;
 }
 
 /**

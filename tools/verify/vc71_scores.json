@@ -4892,6 +4892,50 @@
       "score": 100.0,
       "source": "src/halo/bitmaps/libtiff/tif_flush.c"
     },
+    "FUN_00068a70": {
+      "addr": "0x68a70",
+      "end": "0x68bae",
+      "kind": "auto",
+      "n_r": 119,
+      "opnd_percent": 92.4,
+      "ref": "synth",
+      "ref_sha": "dd114f37ba7fc0e1",
+      "score": 95.0,
+      "source": "src/halo/bitmaps/libtiff/tif_flush.c"
+    },
+    "FUN_00068bd0": {
+      "addr": "0x68bd0",
+      "end": "0x68c31",
+      "kind": "auto",
+      "n_r": 28,
+      "opnd_percent": 91.5,
+      "ref": "synth",
+      "ref_sha": "e97690ba899bd1ad",
+      "score": 94.9,
+      "source": "src/halo/bitmaps/libtiff/tif_flush.c"
+    },
+    "FUN_00068c70": {
+      "addr": "0x68c70",
+      "end": "0x68d80",
+      "kind": "auto",
+      "n_r": 97,
+      "opnd_percent": 67.4,
+      "ref": "synth",
+      "ref_sha": "c7cb1245641e6136",
+      "score": 87.7,
+      "source": "src/halo/bitmaps/libtiff/tif_flush.c"
+    },
+    "FUN_00068d80": {
+      "addr": "0x68d80",
+      "end": "0x68e1f",
+      "kind": "auto",
+      "n_r": 67,
+      "opnd_percent": 61.2,
+      "ref": "synth",
+      "ref_sha": "532839381678352e",
+      "score": 74.6,
+      "source": "src/halo/bitmaps/libtiff/tif_flush.c"
+    },
     "FUN_00069520": {
       "addr": "0x69520",
       "end": "0x6958b",

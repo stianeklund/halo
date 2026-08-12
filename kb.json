@@ -34108,11 +34108,17 @@
     },
     {
      "addr": "0x68a70",
-     "decl": "void FUN_00068a70(void);"
+     "decl": "void FUN_00068a70(int bit_count @<eax>, void *tif @<edi>);",
+     "ported": true,
+     "source_path": "src/halo/bitmaps/libtiff/tif_flush.c",
+     "object": "tif_flush.obj"
     },
     {
      "addr": "0x68bd0",
-     "decl": "void FUN_00068bd0(void);"
+     "decl": "int FUN_00068bd0(void *tif @<eax>);",
+     "ported": true,
+     "source_path": "src/halo/bitmaps/libtiff/tif_flush.c",
+     "object": "tif_flush.obj"
     },
     {
      "addr": "0x68c40",
@@ -34120,11 +34126,17 @@
     },
     {
      "addr": "0x68c70",
-     "decl": "void FUN_00068c70(void);"
+     "decl": "void *FUN_00068c70(void *tif @<esi>, int extra_size);",
+     "ported": true,
+     "source_path": "src/halo/bitmaps/libtiff/tif_flush.c",
+     "object": "tif_flush.obj"
     },
     {
      "addr": "0x68d80",
-     "decl": "void FUN_00068d80(void);"
+     "decl": "int FUN_00068d80(void *tif);",
+     "ported": true,
+     "source_path": "src/halo/bitmaps/libtiff/tif_flush.c",
+     "object": "tif_flush.obj"
     },
     {
      "addr": "0x68e20",
