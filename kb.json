@@ -36225,7 +36225,7 @@
     },
     {
      "addr": "0x24770",
-     "decl": "void FUN_00024770(void);"
+     "decl": "int FUN_00024770(int actor_handle, char *eval_state, char *firing_position);"
     },
     {
      "addr": "0x24850",

@@ -9,6 +9,9 @@
  *     actor's 'actr' tag, then either accumulate a penalty (no candidate) or
  *     test 3D path availability to the candidate and either credit it via
  *     FUN_00024000 or mark it rejected.
+ *   FUN_00024770 (0x24770) — the twin evaluator from the same dispatch table:
+ *     score a candidate by its aiming kind (0 / 1 / default) rather than by
+ *     path availability, crediting the same FUN_00024000 accumulator.
  *   actor_get_firing_position_group (0x24a60) — map an actor plus a
  *     group-selector and a searching-state override onto one of the squad
  *     definition's firing-position group indices, returned as the int stored
@@ -251,6 +254,96 @@ int FUN_00024370(int actor_handle, char *eval_state, char *firing_position)
       if (*(char *)(eval_state + 0x14) == '\0')
         *(char *)(firing_position + 0x30) = '\0';
     }
+  }
+
+  if (firing_position == (char *)0)
+    return 1;
+  return *(unsigned char *)(firing_position + 0x30);
+}
+
+/* FUN_00024770 (0x24770) — score one candidate firing position against the
+ * actor's aiming state. Sibling of FUN_00024370: both addresses are stored as
+ * function pointers eight bytes apart in the evaluator dispatch table
+ * (0x254c30 holds 0x24370, 0x254c38 holds 0x24770), and neither is reached by
+ * a direct CALL anywhere in the image, so the three-parameter prototype and
+ * the int-width return are the twin's shape.
+ *
+ * The first parameter is DEAD here: nothing in 0x24770..0x24848 touches
+ * [EBP+0x8]. The name is carried over from the table's other entries, not
+ * proven from this listing.
+ *
+ * Confirmed from the listing:
+ *   0x24773  MOV EAX,[EBP+0xC]  — eval_state stays in EAX for the whole body.
+ *   0x2477f  MOV ESI,[EBP+0x10] — firing_position stays in ESI and is
+ *            re-tested at the shared tail 0x24835 to choose the return value.
+ *            Ghidra collapses that tail to `if (x == 0) return; return;` and
+ *            loses the value entirely.
+ *
+ *   0x24796/0x247b0 hold the only x87 in the function, and they load the
+ *   CONSTANT first: FLD [0x254640] / FADD [EAX+0x660] / FSTP [EAX+0x660].
+ *   That is `field = C + field`, not `field += C` — the twin emits the
+ *   compound form at 0x243b4, where the constant is instead the FADD operand.
+ *   Writing `+=` here swaps FLD and FADD. Both addresses are VC71 literal-pool
+ *   slots rather than game globals: [0x254640] == 0x40C00000 == 6.0f and
+ *   [0x254CC0] == 0x41700000 == 15.0f, the latter shared with the twin.
+ *
+ *   0x247ce  SUB ECX,0 / JE, then DEC ECX / JE — MSVC's switch decrement
+ *   chain, not two CMPs, so the kind dispatch is a switch and not an
+ *   if/else-if ladder. The `score = 0.0f` seed is scheduled into the branch
+ *   shadow at 0x247d1, ahead of the first JE, which is why the default arm
+ *   reaches the call with zero without ever storing a score.
+ *
+ *   `score` reuses the second parameter's home slot: [EBP+0xC] is rewritten
+ *   with float bit patterns at 0x247fc/0x24805/0x24816/0x2481f long after EAX
+ *   already holds eval_state. It is a distinct float local — Ghidra's
+ *   `in_stack_00000008 = (void *)0x40c00000` is that slot reuse, and passing
+ *   it as a pointer would convert the value instead of reinterpreting it.
+ *
+ *   0x2482d pushes 0xE, then score, then eval_state (ADD ESP,0xC pays for
+ *   exactly three) while firing_position is still live in ESI, matching
+ *   FUN_00024000's @<esi> fourth parameter.
+ *
+ * Offsets used (raw; struct identities not yet proven):
+ *   eval_state      +0x014 char   "keep rejected positions" gate (as the twin)
+ *                   +0x5fc char   master gate
+ *                   +0x628 char   selects the smaller score in every arm
+ *                   +0x660 float  rejected-position accumulator
+ *   firing_position +0x006 int16  aim kind, dispatched 0 / 1 / default
+ *                   +0x030 char   usable flag (also the return value)
+ *                   +0x031 char   rejected flag
+ */
+int FUN_00024770(int actor_handle, char *eval_state, char *firing_position)
+{
+  float score;
+
+  (void)actor_handle; /* DEAD: no [EBP+8] access in disasm */
+
+  if (*(char *)(eval_state + 0x5fc) != '\0') {
+    if (firing_position == (char *)0) {
+      if (*(char *)(eval_state + 0x628) != '\0')
+        *(float *)(eval_state + 0x660) = 6.0f + *(float *)(eval_state + 0x660);
+      else
+        *(float *)(eval_state + 0x660) = 15.0f + *(float *)(eval_state + 0x660);
+      return 1;
+    }
+
+    score = 0.0f;
+    switch (*(short *)(firing_position + 6)) {
+    case 0:
+      score = (*(char *)(eval_state + 0x628) != '\0') ? 6.0f : 15.0f;
+      break;
+    case 1:
+      score = (*(char *)(eval_state + 0x628) != '\0') ? 2.5f : 5.0f;
+      break;
+    default:
+      if (*(char *)(eval_state + 0x628) == '\0') {
+        *(char *)(firing_position + 0x31) = 1;
+        if (*(char *)(eval_state + 0x14) == '\0')
+          *(char *)(firing_position + 0x30) = '\0';
+      }
+      break;
+    }
+    FUN_00024000(eval_state, score, 0xe, firing_position);
   }
 
   if (firing_position == (char *)0)
