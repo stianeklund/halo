@@ -51,6 +51,7 @@ C_WIN="$(wsl_to_win "$C_FILE")"
 COFF_WIN="$(wsl_to_win "$COFF_TMP")"
 GEN_INC="$(wsl_to_win "$REPO_ROOT/build/generated")"
 SRC_INC="$(wsl_to_win "$REPO_ROOT/src")"
+TP_XBOX_INC="$(wsl_to_win "$REPO_ROOT/third_party/xbox")"
 
 # No /FI here — xdk_common.h types are already inlined by mizuchi_context.sh
 "$VC71_CL_WSL" \
@@ -60,6 +61,7 @@ SRC_INC="$(wsl_to_win "$REPO_ROOT/src")"
     /DMSVC /DXDK_BUILD \
     "/I${GEN_INC}" \
     "/I${SRC_INC}" \
+    "/I${TP_XBOX_INC}" \
     "/I${RXDK_INC}" \
     "/Fo${COFF_WIN}" \
     "$C_WIN" \

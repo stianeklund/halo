@@ -35,7 +35,13 @@
 #pragma clang diagnostic ignored "-Wgnu-empty-initializer"
 #endif
 
+#ifdef XDK_BUILD
+#include <Xbox.h>
+unsigned long __stdcall MmQueryAddressProtect(void *VirtualAddress);
+void __stdcall MmFreeContiguousMemory(void *BaseAddress);
+#else
 #include "xboxkrnl.h"
+#endif
 
 #ifdef XBOX_D3D8
 #include "d3d8.h"

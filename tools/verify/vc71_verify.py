@@ -919,6 +919,7 @@ def compile_vc71(source: Path, output: Path, regcall_elide: bool = False, opt: s
     fi_win = wsl_to_win(REPO_ROOT / "src" / "xdk_common.h")
     gen_inc = wsl_to_win(BUILD_DIR / "generated")
     src_inc = wsl_to_win(REPO_ROOT / "src")
+    tp_xbox_inc = wsl_to_win(REPO_ROOT / "third_party" / "xbox")
 
     cmd = [
         VC71_CL_WSL,
@@ -930,6 +931,7 @@ def compile_vc71(source: Path, output: Path, regcall_elide: bool = False, opt: s
         *([f"/I{wsl_to_win(shadow_inc)}"] if shadow_inc else []),
         f"/I{gen_inc}",
         f"/I{src_inc}",
+        f"/I{tp_xbox_inc}",
         f"/I{RXDK_INC}",
         f"/Fo{out_win}",
         src_win,
