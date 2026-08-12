@@ -1471,6 +1471,94 @@
       "score": 80.6,
       "source": "src/halo/ai/actor_combat.c"
     },
+    "FUN_00024060": {
+      "addr": "0x24060",
+      "end": "0x2412d",
+      "kind": "auto",
+      "n_r": 67,
+      "opnd_percent": 98.5,
+      "ref": "synth",
+      "ref_sha": "c4c5473c7a791dff",
+      "score": 100.0,
+      "source": "src/halo/ai/actor_firing_position.c"
+    },
+    "FUN_00024130": {
+      "addr": "0x24130",
+      "end": "0x24367",
+      "kind": "auto",
+      "n_r": 172,
+      "opnd_percent": 91.6,
+      "ref": "synth",
+      "ref_sha": "b32f9c218494887d",
+      "score": 96.3,
+      "source": "src/halo/ai/actor_firing_position.c"
+    },
+    "FUN_00024370": {
+      "addr": "0x24370",
+      "end": "0x24446",
+      "kind": "auto",
+      "n_r": 83,
+      "opnd_percent": 62.2,
+      "ref": "synth",
+      "ref_sha": "227586b3b68b04c1",
+      "score": 89.0,
+      "source": "src/halo/ai/actor_firing_position.c"
+    },
+    "FUN_00024450": {
+      "addr": "0x24450",
+      "end": "0x245cf",
+      "kind": "auto",
+      "n_r": 137,
+      "opnd_percent": 92.5,
+      "ref": "synth",
+      "ref_sha": "77f8e30c01f98c2a",
+      "score": 94.7,
+      "source": "src/halo/ai/actor_firing_position.c"
+    },
+    "FUN_000246b0": {
+      "addr": "0x246b0",
+      "end": "0x2476b",
+      "kind": "auto",
+      "n_r": 64,
+      "opnd_percent": 88.0,
+      "ref": "synth",
+      "ref_sha": "a0f2a4e850bacd49",
+      "score": 91.2,
+      "source": "src/halo/ai/actor_firing_position.c"
+    },
+    "FUN_00024770": {
+      "addr": "0x24770",
+      "end": "0x24848",
+      "kind": "auto",
+      "n_r": 69,
+      "opnd_percent": 84.4,
+      "ref": "synth",
+      "ref_sha": "f606b430b79fe493",
+      "score": 90.4,
+      "source": "src/halo/ai/actor_firing_position.c"
+    },
+    "FUN_00024950": {
+      "addr": "0x24950",
+      "end": "0x24a58",
+      "kind": "auto",
+      "n_r": 102,
+      "opnd_percent": 97.1,
+      "ref": "synth",
+      "ref_sha": "2a37dba5bc3aa8b5",
+      "score": 100.0,
+      "source": "src/halo/ai/actor_firing_position.c"
+    },
+    "FUN_00024be0": {
+      "addr": "0x24be0",
+      "end": "0x24ca0",
+      "kind": "auto",
+      "n_r": 57,
+      "opnd_percent": 90.3,
+      "ref": "synth",
+      "ref_sha": "47ac946216c2047f",
+      "score": 97.3,
+      "source": "src/halo/ai/actor_firing_position.c"
+    },
     "FUN_00024ca0": {
       "addr": "0x24ca0",
       "end": "0x24cee",
@@ -15622,10 +15710,10 @@
       "end": "0x1153c0",
       "kind": "auto",
       "n_r": 392,
-      "opnd_percent": 20.2,
+      "opnd_percent": 96.7,
       "ref": "synth",
       "ref_sha": "0c947495aff68882",
-      "score": 75.3,
+      "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00115430": {
@@ -15633,10 +15721,10 @@
       "end": "0x115497",
       "kind": "auto",
       "n_r": 41,
-      "opnd_percent": 94.0,
+      "opnd_percent": 95.1,
       "ref": "synth",
       "ref_sha": "9df05f7b771017df",
-      "score": 98.8,
+      "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001154a0": {
@@ -15644,10 +15732,10 @@
       "end": "0x1155b9",
       "kind": "auto",
       "n_r": 101,
-      "opnd_percent": 85.7,
+      "opnd_percent": 86.1,
       "ref": "synth",
       "ref_sha": "14829ea9dbaccd95",
-      "score": 96.6,
+      "score": 97.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001155e0": {
@@ -15655,10 +15743,10 @@
       "end": "0x1159b9",
       "kind": "auto",
       "n_r": 329,
-      "opnd_percent": 38.2,
+      "opnd_percent": 92.8,
       "ref": "synth",
       "ref_sha": "9875fce6d04058ee",
-      "score": 83.9,
+      "score": 95.8,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00115ba0": {
@@ -15688,10 +15776,10 @@
       "end": "0x11644a",
       "kind": "auto",
       "n_r": 55,
-      "opnd_percent": 25.6,
+      "opnd_percent": 27.4,
       "ref": "synth",
       "ref_sha": "534d68f985b3505d",
-      "score": 76.8,
+      "score": 77.4,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00116460": {
@@ -15760,10 +15848,6 @@
       "score": 89.5,
       "source": "src/halo/memory/circular_queue.c"
     },
-    "FUN_00116d10": {
-      "score": 100.0,
-      "source": "src/halo/memory/circular_queue.c"
-    },
     "FUN_00116e00": {
       "addr": "0x116e00",
       "end": "0x116ff7",
@@ -15819,19 +15903,15 @@
       "score": 89.1,
       "source": "src/halo/memory/circular_queue.c"
     },
-    "FUN_00117250": {
-      "score": 88.4,
-      "source": "src/halo/memory/circular_queue.c"
-    },
     "FUN_001172d0": {
       "addr": "0x1172d0",
       "end": "0x1173e7",
       "kind": "auto",
       "n_r": 99,
-      "opnd_percent": 69.2,
+      "opnd_percent": 73.8,
       "ref": "synth",
       "ref_sha": "4fdbe5deafc85211",
-      "score": 88.5,
+      "score": 89.3,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_001173f0": {
@@ -15865,14 +15945,6 @@
       "ref": "synth",
       "ref_sha": "58093b35d78e900b",
       "score": 79.2,
-      "source": "src/halo/memory/circular_queue.c"
-    },
-    "FUN_001176f0": {
-      "score": 64.9,
-      "source": "src/halo/memory/circular_queue.c"
-    },
-    "FUN_001177c0": {
-      "score": 81.7,
       "source": "src/halo/memory/circular_queue.c"
     },
     "FUN_00117a80": {
@@ -19306,6 +19378,17 @@
       "ref_sha": "f8f8f0afdb56f691",
       "score": 84.9,
       "source": "src/halo/physics/collision_usage.c"
+    },
+    "FUN_0014e640": {
+      "addr": "0x14e640",
+      "end": "0x14e7cb",
+      "kind": "auto",
+      "n_r": 128,
+      "opnd_percent": 80.0,
+      "ref": "synth",
+      "ref_sha": "dd372df1c684d304",
+      "score": 87.1,
+      "source": "src/halo/physics/collision_bsp.c"
     },
     "FUN_0014e7d0": {
       "addr": "0x14e7d0",
@@ -25795,6 +25878,17 @@
       "score": 96.6,
       "source": "src/halo/ai/actor_looking.c"
     },
+    "actor_clear_discarded_firing_positions": {
+      "addr": "0x24b80",
+      "end": "0x24bdf",
+      "kind": "auto",
+      "n_r": 28,
+      "opnd_percent": 96.4,
+      "ref": "synth",
+      "ref_sha": "40ef8328672b6617",
+      "score": 100.0,
+      "source": "src/halo/ai/actor_firing_position.c"
+    },
     "actor_clear_flee_target": {
       "addr": "0x15f30",
       "end": "0x15f5b",
@@ -26084,6 +26178,17 @@
       "ref_sha": "1b0f8c8c4b6a1584",
       "score": 89.3,
       "source": "src/halo/ai/actor_perception.c"
+    },
+    "actor_get_firing_position_group": {
+      "addr": "0x24a60",
+      "end": "0x24b73",
+      "kind": "auto",
+      "n_r": 97,
+      "opnd_percent": 61.6,
+      "ref": "synth",
+      "ref_sha": "f007013026c5c3c6",
+      "score": 88.9,
+      "source": "src/halo/ai/actor_firing_position.c"
     },
     "actor_get_perception_knowledge": {
       "addr": "0x2fc20",
@@ -35880,10 +35985,10 @@
       "end": "0x11542a",
       "kind": "auto",
       "n_r": 36,
-      "opnd_percent": 93.2,
+      "opnd_percent": 94.4,
       "ref": "synth",
       "ref_sha": "10294f40e2a06ac6",
-      "score": 98.6,
+      "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "inflateSetDictionary": {
@@ -35891,10 +35996,10 @@
       "end": "0x115a8a",
       "kind": "auto",
       "n_r": 63,
-      "opnd_percent": 66.1,
+      "opnd_percent": 96.8,
       "ref": "synth",
       "ref_sha": "cc91adacd2fddc57",
-      "score": 91.9,
+      "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "inflateSync": {
@@ -35924,10 +36029,10 @@
       "end": "0x1145f8",
       "kind": "auto",
       "n_r": 999,
-      "opnd_percent": 90.3,
+      "opnd_percent": 95.9,
       "ref": "synth",
       "ref_sha": "6d3b2ae92c94fe5d",
-      "score": 96.7,
+      "score": 97.7,
       "source": "src/halo/math/real_math.c"
     },
     "inflate_blocks_free": {
@@ -35935,10 +36040,10 @@
       "end": "0x114686",
       "kind": "auto",
       "n_r": 37,
-      "opnd_percent": 96.0,
+      "opnd_percent": 97.3,
       "ref": "synth",
       "ref_sha": "f4c617198ef71bf3",
-      "score": 98.7,
+      "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "inflate_codes": {
@@ -35946,10 +36051,10 @@
       "end": "0x114e8e",
       "kind": "auto",
       "n_r": 647,
-      "opnd_percent": 86.0,
+      "opnd_percent": 87.2,
       "ref": "synth",
       "ref_sha": "413f4a26e9beebb2",
-      "score": 93.9,
+      "score": 94.3,
       "source": "src/halo/memory/circular_queue.c"
     },
     "inflate_codes_free": {
@@ -35957,10 +36062,10 @@
       "end": "0x114f91",
       "kind": "auto",
       "n_r": 18,
-      "opnd_percent": 91.9,
+      "opnd_percent": 94.4,
       "ref": "synth",
       "ref_sha": "5ee56bc944300c05",
-      "score": 97.3,
+      "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "inflate_codes_new": {
@@ -35968,10 +36073,10 @@
       "end": "0x114739",
       "kind": "auto",
       "n_r": 33,
-      "opnd_percent": 95.5,
+      "opnd_percent": 97.0,
       "ref": "synth",
       "ref_sha": "4dbf4e4fe4146295",
-      "score": 98.5,
+      "score": 100.0,
       "source": "src/halo/memory/circular_queue.c"
     },
     "inflate_set_dictionary": {
@@ -45119,6 +45224,28 @@
       "score": 84.8,
       "source": "src/halo/sound/sound_manager.c"
     },
+    "sound_cache_new": {
+      "addr": "0x1be3e0",
+      "end": "0x1be48f",
+      "kind": "auto",
+      "n_r": 48,
+      "opnd_percent": 93.8,
+      "ref": "synth",
+      "ref_sha": "59ab35fe7fbd85a8",
+      "score": 100.0,
+      "source": "src/halo/cache/xbox_sound_cache.c"
+    },
+    "sound_cache_sound_delete": {
+      "addr": "0x1bdf60",
+      "end": "0x1be08f",
+      "kind": "auto",
+      "n_r": 97,
+      "opnd_percent": 99.0,
+      "ref": "synth",
+      "ref_sha": "99decf6cf8e50313",
+      "score": 100.0,
+      "source": "src/halo/cache/xbox_sound_cache.c"
+    },
     "sound_cache_sound_finished": {
       "addr": "0x1be090",
       "end": "0x1be0fa",
@@ -45129,6 +45256,17 @@
       "ref_sha": "c41ad64f37a08172",
       "score": 88.1,
       "source": "src/halo/sound/sound_manager.c"
+    },
+    "sound_cache_sound_new": {
+      "addr": "0x1bdf10",
+      "end": "0x1bdf55",
+      "kind": "auto",
+      "n_r": 22,
+      "opnd_percent": 95.5,
+      "ref": "synth",
+      "ref_sha": "4c88bf8a7b0cbd31",
+      "score": 100.0,
+      "source": "src/halo/cache/xbox_sound_cache.c"
     },
     "sound_can_play": {
       "addr": "0x1cba20",
@@ -46911,6 +47049,50 @@
       "ref_sha": "5b07e66c59a771fe",
       "score": 93.4,
       "source": "src/halo/bitmaps/tiff_file.c"
+    },
+    "tr_align": {
+      "addr": "0x1176f0",
+      "end": "0x1177b6",
+      "kind": "auto",
+      "n_r": 52,
+      "opnd_percent": 48.6,
+      "ref": "synth",
+      "ref_sha": "6e9b4772f412f372",
+      "score": 64.9,
+      "source": "src/halo/memory/circular_queue.c"
+    },
+    "tr_flush_block": {
+      "addr": "0x1177c0",
+      "end": "0x1179da",
+      "kind": "auto",
+      "n_r": 168,
+      "opnd_percent": 75.0,
+      "ref": "synth",
+      "ref_sha": "d6f01509e6e79cba",
+      "score": 82.6,
+      "source": "src/halo/memory/circular_queue.c"
+    },
+    "tr_init": {
+      "addr": "0x117250",
+      "end": "0x1172c3",
+      "kind": "auto",
+      "n_r": 20,
+      "opnd_percent": 74.4,
+      "ref": "synth",
+      "ref_sha": "587e78546887a895",
+      "score": 88.4,
+      "source": "src/halo/memory/circular_queue.c"
+    },
+    "tr_tally": {
+      "addr": "0x116d10",
+      "end": "0x116dfa",
+      "kind": "auto",
+      "n_r": 62,
+      "opnd_percent": 87.1,
+      "ref": "synth",
+      "ref_sha": "e8409554dc7b5834",
+      "score": 100.0,
+      "source": "src/halo/memory/circular_queue.c"
     },
     "transition_function_evaluate": {
       "addr": "0x10a710",
@@ -49738,6 +49920,17 @@
       "ref_sha": "65268df1635cc864",
       "score": 100.0,
       "source": "src/halo/networking/network_game_manager.c"
+    },
+    "xbox_sound_cache_idle": {
+      "addr": "0x1bded0",
+      "end": "0x1bdf09",
+      "kind": "auto",
+      "n_r": 15,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "dd156100fa91d815",
+      "score": 100.0,
+      "source": "src/halo/cache/xbox_sound_cache.c"
     },
     "xbox_texture_cache_get_hardware_format": {
       "addr": "0x1bf570",

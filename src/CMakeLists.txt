@@ -4,6 +4,7 @@
 	halo/ai/actions.c
 	halo/ai/action_vehicle.c
 	halo/ai/actor_combat.c
+halo/ai/actor_firing_position.c
 	halo/ai/actor_moving.c
 	halo/ai/actor_perception.c
 	halo/ai/actor_looking.c
@@ -176,6 +177,7 @@ halo/rasterizer/rasterizer_text.c
 		halo/cache/xbox_texture_cache.c
 	halo/cache/physical_memory_map.c
 	halo/cache/predicted_resources.c
+	halo/cache/xbox_sound_cache.c
 	halo/cache/tags.c
 	)
 

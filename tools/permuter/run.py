@@ -212,7 +212,7 @@ def _load_xbe_reference():
 
 def _target_address(func_name: str, source: Path | None = None) -> int | None:
     """Resolve a function name to its absolute VA in the pristine XBE."""
-    fn = func_name.lstrip("_")
+    fn = func_name
     alias = (fn if re.match(r"FUN_[0-9a-fA-F]{8}$", fn)
              else _resolve_ref_name(fn, source))
     if not alias:
@@ -254,7 +254,7 @@ def _per_function_chunk(func_name: str) -> Path | None:
     Mirrors vc71_verify._per_function_ref: resolve the lifted name to its
     FUN_<addr> alias via kb.json, then look up the per-function chunk export.
     """
-    fn = func_name.lstrip("_")
+    fn = func_name
     alias = fn if re.match(r"FUN_[0-9a-fA-F]{8}$", fn) else _resolve_ref_name(fn)
     if not alias:
         return None
@@ -273,7 +273,7 @@ def _ref_has_function(ref_obj: Path, func_name: str, source: Path | None = None)
         funcs = _load_compare_obj().disassemble(str(ref_obj))
     except Exception:
         return False
-    fn = func_name.lstrip("_")
+    fn = func_name
     if fn in funcs:
         return True
     alias = _resolve_ref_name(fn, source)
@@ -774,7 +774,7 @@ def _resolve_ref_insns(co, func_name: str, ref_obj: Path, ref_kind: str,
     `ref_kind` is "synth" (XBE-derived, one symbol), "chunk" (per-function
     delinked export) or "tu" (whole-object delinked export).
     """
-    fn = func_name.lstrip("_")
+    fn = func_name
     delinked_name = _resolve_ref_name(fn, source)
 
     ref_insns = None
@@ -816,7 +816,7 @@ def get_lcs_score(func_name: str, compiled_obj: Path, ref_obj: Path,
 
     cand_funcs = co.disassemble(str(compiled_obj))
 
-    fn = func_name.lstrip("_")
+    fn = func_name.lstrip("_@")
     cand_fn = fn if fn in cand_funcs else None
     if not cand_fn:
         return None
@@ -922,7 +922,7 @@ def main():
         print(f"[run.py] Source not found: {source}", file=sys.stderr)
         sys.exit(1)
 
-    func_name = args.function.lstrip("_")
+    func_name = args.function
     _log(f"[run.py] Target function : {func_name}")
     _log(f"[run.py] Source file     : {source}")
 

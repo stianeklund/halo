@@ -1425,6 +1425,123 @@ char FUN_0014dce0(int object_handle, unsigned int type_mask, int param_3,
   return found;
 }
 
+/* 0x14e640
+ *
+ * Casts the BACKWARD half of one ray against a single object's collision bsp
+ * and fills the caller's 0x50-byte collision-result record. Structurally the
+ * twin of the bsp branch inside FUN_0014dce0 (0x14dce0), so the result field
+ * map documented there applies verbatim; the differences are all at the two
+ * ends:
+ *
+ *  - Entry seeds the record as "no hit" (word +0x00 = -1, +0x14 = FLT_MAX)
+ *    BEFORE the type guard, so a rejected record still leaves a sane result.
+ *  - The walk is run from the far endpoint backwards: the point handed to
+ *    FUN_0014cb00 is origin+delta and the direction is -delta, so the hit
+ *    parameter comes back measured from the far end. It is converted to a
+ *    forward parameter by 1.0f - t (FLD [0x2533c8] = 1.0f, FSUB, at
+ *    0x14e6e4-0x14e6f3) before being stored to +0x14.
+ *  - The forward parameter is then re-read from +0x14 and used to write the
+ *    world-space hit point into +0x18/+0x1c/+0x20.
+ *
+ * Confirmed (disassembly 0x14e640..0x14e7ca):
+ *  - cdecl, 4 stack args at EBP+0x08..+0x14, char return in AL. AL is zeroed
+ *    at 0x14e650 (covers the type-guard exit, which jumps past the second
+ *    XOR because EBX/EDI are not pushed yet), zeroed again at 0x14e7c3 for
+ *    the two call-failure exits, and set to 1 at 0x14e7a0 on success.
+ *  - Guard is CMP word [record],3 / JNE - the record type word must be 3.
+ *  - The three component sums do NOT share an addend order:
+ *      +0x00  FLD [origin]  ; FADD [delta]    -> origin[0] + delta[0]
+ *      +0x04  FLD [delta+4] ; FADD [origin+4] -> delta[1]  + origin[1]
+ *      +0x08  FLD [delta+8] ; FADD [origin+8] -> delta[2]  + origin[2]
+ *    Normalising all three to one form is an FPU-WARN-class change.
+ *  - FUN_0014cb00's second argument is the literal 1 (PUSH 1 at 0x14e6ca),
+ *    where FUN_0014dce0 forwards its own param_3 into the same slot.
+ *  - The plane_negate call at 0x14e721 pushes the SAME pointer twice
+ *    (LEA EAX,[ESI+0x24] / PUSH EAX / PUSH EAX) - an in-place negate, not a
+ *    decompiler duplicate-argument artifact.
+ *  - ADD ESP,8 for the FUN_0014da80 call is deferred to 0x14e79d, interleaved
+ *    with the FPU tail; it is not the plane_negate cleanup.
+ *  - Ghidra's local_440/local_43c/local_438 labels for the scratch record are
+ *    each shifted one field low. The disassembly is authoritative:
+ *    [EBP-0x43c] = scratch+0x0c is the plane pointer, [EBP-0x438] =
+ *    scratch+0x10 goes to result+0x44, [EBP-0x434] = scratch+0x14 both
+ *    selects the negate and goes to result+0x48.
+ *
+ * Frame (SUB ESP,0x448 = 1096 bytes), in declaration order outward from EBP:
+ *   EBP-0x0c  (12)    sum_point, the far endpoint origin+delta
+ *   EBP-0x18  (12)    neg_delta, the backward direction
+ *   EBP-0x28  (16)    FUN_0014c8e0 context (+0x04 tag data, +0x0c surface base)
+ *   EBP-0x448 (1056)  FUN_0014cb00 output record; only the first 0x1c bytes
+ *                     are read back, the rest is callee-owned scratch.
+ *
+ * Uncertain: the 1056-byte size of the scratch record is inferred from the
+ * frame arithmetic (0x448 - 0x28), not from a decompiled FUN_0014cb00.
+ */
+char FUN_0014e640(void *test_record, float *origin, float *delta, void *result)
+{
+  float sum_point[3];
+  float neg_delta[3];
+  int32_t bsp_ctx[4];
+  int32_t bsp_result[264];
+  char *res;
+  char *bres;
+  int idx;
+  float t;
+
+  res = (char *)result;
+  bres = (char *)bsp_result;
+
+  *(int16_t *)res = -1;
+  *(int32_t *)(res + 0x14) = 0x7f7fffff; /* FLT_MAX bit pattern */
+
+  /* Branch polarity is fixed by the reference: CMP word [record],3 / JNE to
+   * the far exit, and JE to the far exit on each call result. Rewriting these
+   * as early `if (... != 3) return 0;` returns inverts both branches AND
+   * stops MSVC tail-merging the epilogues (132 insns vs 128, 86.9% vs 87.1%),
+   * so the nested form below is the one the original was built from. */
+  if (*(int16_t *)test_record == 3) {
+    sum_point[0] = origin[0] + delta[0];
+    sum_point[1] = delta[1] + origin[1];
+    sum_point[2] = delta[2] + origin[2];
+    neg_delta[0] = -delta[0];
+    neg_delta[1] = -delta[1];
+    neg_delta[2] = -delta[2];
+
+    if ((char)FUN_0014c8e0(bsp_ctx, *(int32_t *)((char *)test_record + 0x38)) !=
+          0 &&
+        FUN_0014cb00((int)bsp_ctx, (void *)1, (void *)sum_point,
+                     (void *)neg_delta, (int16_t *)bres) != 0) {
+      /* MOVSX at 0x14e6dd: the row selector is the signed short at +0x00. */
+      idx = *(int16_t *)bres;
+      *(float *)(res + 0x14) = 1.0f - *(float *)(bres + 8);
+      *(int16_t *)res = 3;
+      FUN_0010a1c0((float *)(bsp_ctx[3] + idx * 0x34), *(float **)(bres + 0xc),
+                   (float *)(res + 0x24));
+      if (*(int32_t *)(bres + 0x14) < 0)
+        plane_negate((float *)(res + 0x24), (float *)(res + 0x24));
+      *(int16_t *)(res + 0x34) =
+        (int16_t)FUN_0014da80(bsp_ctx[1], *(int16_t *)(bres + 0x1a));
+      *(int16_t *)(res + 0x3c) = *(int16_t *)(bres + 2);
+      *(int32_t *)(res + 0x38) = *(int32_t *)((char *)test_record + 0x38);
+      *(int16_t *)(res + 0x3e) = *(int16_t *)bres;
+      *(int32_t *)(res + 0x44) = *(int32_t *)(bres + 0x10);
+      *(int16_t *)(res + 0x40) = *(int16_t *)(bres + 4);
+      *(int32_t *)(res + 0x48) = *(int32_t *)(bres + 0x14);
+      res[0x4d] = bres[0x19];
+      res[0x4c] = bres[0x18];
+      *(int16_t *)(res + 0x4e) = *(int16_t *)(bres + 0x1a);
+
+      t = *(float *)(res + 0x14);
+      *(float *)(res + 0x18) = t * delta[0] + origin[0];
+      *(float *)(res + 0x1c) = t * delta[1] + origin[1];
+      *(float *)(res + 0x20) = t * delta[2] + origin[2];
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
 /* 0x14e7d0
  *
  * Casts one ray [point, point+offset_vec] against the STRUCTURE bsp only (the

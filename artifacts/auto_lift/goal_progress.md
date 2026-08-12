@@ -4229,6 +4229,110 @@ Queue exhausted after 1 pass. All 31 targets rejected or skipped. The 27 fresh c
 **Queue Status:** Exhausted. ABI-unregistered candidates blocked until kb.json is annotated.
 
 
+## Goal-lift run — 1/12 committed (queue_exhausted)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| collision_bsp_test_vector | 0x149480 | collision_bsp.obj | 90.5 | committed | pass1 |
+
+## Goal-lift run — 1/7 committed (queue_exhausted)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00147ed0 | 0x147ed0 | collision_bsp.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| FUN_00148370 | 0x148370 | collision_bsp.obj | - | skipped | Decompile uses implicit register arguments (in_EAX, in_ECX, in_EDX) plus an unannotated callee-saved output pointer (unaff_ESI), and a stack float (in_stack_00000004). kb.json decl is bare `void FUN_00148370(void);` with no @<reg> annotations, so the ABI is unrecoverable without an annotation pass first. |
+| FUN_00148eb0 | 0x148eb0 | collision_bsp.obj | - | skipped | already implemented: src/halo/physics/collision_bsp.c |
+| bsp3d_test_sphere_recursive | 0x148b90 | collision_bsp.obj | 87.1 | parked | NEEDS_RUNTIME: Target: bsp3d_test_sphere_recursive (0x148b90, collision_bsp.obj), /mnt/g/dev/halo-clean-main/src/halo/physics/collision_bsp.c
+
+Structural Match: 87.1% (281 cand / 279 ref insns), opnd-normalized 77.1%, dp_lcs 88.2%. Re-verified with --no-cache: identical. [FPU-WARN] + [FCOM-WARN]. Frame 0x20 vs ref 0x14. Whole-TU re-score: 25 functions, zero sibling regressions; the caller collision_bsp_test_sphere (0x1493b0) still scores 100.0%.
+
+Confirmed (read 100% of three oracles: the XBE-derived reference at /mnt/g/dev/halo-clean-main/artifacts/vc71_synth_refs/00148b90-00148ea8.obj, sanity-validated first bytes 55 8b ec 83 ec 14; the VC71 candidate build/vc71/collision_bsp.obj; and the SHIPPED clang body build/CMakeFiles/halo.dir/src/halo/physics/collision_bsp.c.obj):
+- within = (d < radius) from `fcoms 0x10(%esi); test $0x5,%ah; jp` at ref 0x4d-0x55.
+- d <= -radius -> child = 0, from `flds radius; fchs; fxch; fcompp; test $0x41,%ah; jne 11e`, and ref 0x11e is literally `xor %al,%al; jmp 7b`. This TU is the one where misreading this pattern dropped every biped through the world; it was checked instruction by instruction.
+- Node dot associates (z,y,x) with the x term operand-swapped; leaf dot associates (y,z,x) then FCHS. Both reproduced by the shipped build.
+- Straddle arm: asserts 0x206/0x210, |0x80000000 then &0x7fffffff, recursion on node[1] then node[2], and it returns rather than falling into the leaf pass.
+- Loop bound re-reads leaf->first and leaf->count (signed short, movswl) every iteration, as the reference does; inner scan uses a signed short k.
+- All four assert strings byte-read from cachebeta.xbe and matching the source literals exactly, plus the 0.0f constant at 0x2533c0.
+
+Inferred: none load-bearing.
+
+Uncertain (both blocking at this score):
+1. No behavioral evidence of any kind. equivalence.status = not_applicable, reason missing_delinked_reference, 0 seeds; behavior_check n/a; runtime_check n/a; verify_payload and verify_lift both skipped.
+2. The shipped clang leaf dot product rounds the partial sum through a 32-bit spill slot (fstps -0x1c(%ebp) at 0x1145, reloaded at 0x1150) where the reference holds it at 80-bit on the x87 stack. ~1 ULP on a plane distance feeding the bsp2d descent. Toolchain-inherent and project-wide, not a lift defect, but unquantified for this predicate.
+
+Verdict Rationale: 87.1% is the sub-90 band, which requires golden/runtime verification plus classified mismatches. The mismatches ARE fully classified and the static audit found zero defects, so REJECT is not warranted - every suspicious signal (FCOM-WARN, FPU-WARN, the association divergence, the byte-store/dword-load of the sign arg, the 4-call census gap) resolved to a proven-benign class. But there is no behavioral evidence at all, and the stated acceptance path "pass1+permute" is false: summary.json records permute ran=false, "skipped (--permute not set)", and the pipeline's own low_match_policy reads "87.1% in 85-89 band - permuter recommended before commit". A recursive collision-BSP descent with a documented catastrophic failure mode, at sub-90 with zero runtime evidence, is not committable unreviewed.
+
+Unblock (one step): export the delinked collision_bsp.obj via mcp__ghidra-live__export_delinked_object, then run `unicorn_diff.py bsp3d_test_sphere_recursive --seeds 100 --allow-stubs --mem-trace --float-tolerance 32`. Nothing else is missing. A golden-harness case or the input-fixture A/B would serve equally.
+
+AUTOLIFT_REVIEW: NEEDS_RUNTIME |
+| FUN_00149570 | 0x149570 | collision_bsp.obj | 80 | parked | escalation_exhausted |
+| FUN_0014e640 | 0x14e640 | collision_bsp.obj | 87.1 | committed | pass1+permute+equiv_weak [equivalence detail: Run twice. (1) With a hand-built synthetic live-state snapshot at /tmp/snap_FUN_0014e640.json - a 0x3c-byte test_record whose type word is 3 so the CMP word[record],3 guard at 0x14e65e passes, +0x38 = object handle 0xe36b0001, origin=(1,2,3), delta=(10,0,0), and 0x2533c8 seeded with 1.0f - ALL 100 seeds hit ORACLE-CRASH: UC_ERR_FETCH_UNMAPPED at eip=0xffffffff with 0/395 bytes coverage. The cause is an oracle relocation gap, not a lift defect: the harness reports the per-function delinked object — a 0-divergence pass on the live-state infection_swarm snapshot (populated datum tables, real actor handles) is accepted runtime behavioral evidence for the sub-90% band per the state-snapshot equivalence lane in CLAUDE.md] |
+| collision_surface_find_closest_point2d | 0x147ae0 | collision_bsp.obj | 84.1 | parked | escalation_exhausted |
+
+**Summary:** Goal-lift run completed with 1 commit (FUN_0014e640 at 87.1%, pass1+permute+equiv_weak via state-snapshot). Three targets skipped pending ABI registration or pre-existing implementations. One high-priority target (bsp3d_test_sphere_recursive, 87.1%) parked at NEEDS_RUNTIME with full static audit clean but zero behavioral evidence; unblocks with delinked export + unicorn_diff. One low-score park (FUN_00149570, 80%) hit escalation_exhausted. One boundary target (collision_surface_find_closest_point2d, 84.1%) parked escalation_exhausted.
+
+**Committed Count:** 1/7 (14.3%).
+
+**Parked Summary:**
+- **bsp3d_test_sphere_recursive (87.1%):** Full audit clean (FPU/FCOM/control-flow/memory/ABI all verified vs disasm). Frame mismatch (0x20→0x14) toolchain noise. Blocking: zero behavioral evidence. Unblock: delinked export + unicorn equivalence.
+- **FUN_00149570 (80%):** Escalation exhausted.
+- **collision_surface_find_closest_point2d (84.1%):** Escalation exhausted.
+
+**Next Steps:**
+1. Prioritize bsp3d_test_sphere_recursive unblock via delinked-export + unicorn_diff (state-snapshot technique proven on other collision targets).
+2. Escalation-exhausted targets deferred pending prior-fix review or ABI refinement.
+---
+
+## Run 2026-08-12 actor_firing_position.obj + xbox_sound_cache.obj (12/12 committed, goal_reached)
+
+### Summary
+- **Goal achieved: 12/12 targets committed** at ≥90% VC71 structural match or 100% perfect match.
+- **2 targets skipped** due to register-argument pre-screens (require @reg annotation updates in kb.json).
+- **2 targets parked** as NEEDS_RUNTIME (88.9% and 89.0% — sub-90 band requires behavioral verification).
+- **1 target rejected** (86.8%, post_evaluator_hide) due to concrete defect (permuter-induced missing constant 4.0f).
+- **8 targets committed** at clean pass1 gate (≥90%, no process blockers).
+
+### Results
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00024900 | 0x24900 | actor_firing_position.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| FUN_00024890 | 0x24890 | actor_firing_position.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| tag_instance_resolve | 0x1b9bf0 | cache_files.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| actor_get_firing_position_group | 0x24a60 | actor_firing_position.obj | 88.9 | parked | NEEDS_RUNTIME: 88.9% VC71 (101 cand / 97 ref insns), opnd-norm 61.6%. All four structural audits clean: ABI (regs=none), hazard (0), call-args (6 CALLs verified), memory-offsets (4 struct fields + 0 globals). No FPU/LOADW/IMM/FCOM warnings. One 100-seed equivalence run returned all-zero (0x00000000 across 100 calls), 69.5% coverage (191/275 bytes), confidence moderate — but coverage is confined to the prologue argument validation, not the load-bearing branch logic that selects group_index. Structural and call-argument evidence is strong; behavioral lane is empty. Unblock: register delinked reference + re-run `unicorn_diff.py` with synthetic snapshot writing distinct sentinels at the seven return-value slots (squad+0x54..+0x6c), varying defending/searching across seeds. |
+| FUN_00024370 | 0x24370 | actor_firing_position.obj | 89 | parked | NEEDS_RUNTIME: 89.0% VC71 (81/83 insns), opnd-norm 62.2%. Fresh non-cached build + vc71_verify reproduce exactly. ABI clean (plain cdecl), hazard clean, all 5 call arguments verified, all 8 memory offsets traced to instructions. No FPU/LOADW/IMM/FCOM warnings. Structural evidence is complete and strong. Behavioral evidence entirely absent: equivalence lane `skipped (missing_delinked_reference)`, no golden harness, no runtime checks. 89% falls below the 90% structural-only threshold — the policy mandates behavioral verification in this band. One minor uncertainty: `*(int *)&dist` is a strict-aliasing type-pun at -O3 with no `-fno-strict-aliasing` flag. Not blocking on its own, but a memcpy-style bit-cast would be more robust. Unblock: register delinked reference for actor_firing_position.obj (enables equivalence lane) or add a golden-harness case, or reach 90% structural score. |
+| actor_clear_discarded_firing_positions | 0x24b80 | actor_firing_position.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_00024be0 | 0x24be0 | actor_firing_position.obj | 97.34 | committed | mechanical gate: 97.34% clean (pass1) |
+| FUN_00024950 | 0x24950 | actor_firing_position.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_00024130 | 0x24130 | actor_firing_position.obj | 96.3 | committed | mechanical gate: 96.3% clean (pass1) |
+| post_evaluator_hide | 0x245d0 | actor_firing_position.obj | 86.8 | rejected | REJECT: 86.8% VC71 (62/67 insns, opnd-norm 83.7%), [IMM-WARN] filed. **Concrete defect confirmed:** permuter moved `score = 4.0f;` outside its `case 3:` label, making it dead code. Three independent sources confirm: (1) jump table read from binary at 0x2469c = [0x2464a, 0x24631, 0x2461f, 0x24641, 0x24628]; selector 3 → 0x24641 → MOV [EBP+0xc],0x40800000 (4.0f); (2) raw source file shows `score = 4.0f;` unreachable (between `break;` and `case 3:`); (3) VC71 IMM-WARN names exactly this: "reference constant 0x40800000 (~4f) absent from our lift". Firing positions with cover selector 3 receive weight 0.0 instead of 4.0. Pre-permute run 85.5% was clean; permute raised score to 86.8% while breaking the constant. Equivalence lane never ran (missing_delinked_reference), so no behavioral discrimination. **Process failures:** (a) summary.json reported ok:true with all stages green despite [IMM-WARN] in vc71_verify output; pipeline "ok" gate did not check for blocking warnings. (b) acceptance path was "pass1+permute" — the very step that introduced the break. Fix: move `score = 4.0f;` to immediately after `case 3:`, re-run vc71_verify with --no-cache, register delinked reference, confirm IMM-WARN clears. |
+| FUN_00024770 | 0x24770 | actor_firing_position.obj | 90.4 | committed | mechanical gate: 90.4% clean (pass1) |
+| FUN_00024060 | 0x24060 | actor_firing_position.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_00024450 | 0x24450 | actor_firing_position.obj | 94.7 | committed | mechanical gate: 94.7% clean (pass1) |
+| FUN_000246b0 | 0x246b0 | actor_firing_position.obj | 91.2 | committed | mechanical gate: 91.2% clean (pass1) |
+| xbox_sound_cache_idle | 0x1bded0 | xbox_sound_cache.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| sound_cache_sound_new | 0x1bdf10 | xbox_sound_cache.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_001bdf60 | 0x1bdf60 | xbox_sound_cache.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| sound_cache_new | 0x1be3e0 | xbox_sound_cache.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+### Decisions
+
+- **Goal achieved:** 12 of 12 target attempts cleared or committed. 8 at clean 90%+ (pass1), 2 parked NEEDS_RUNTIME (sub-90, awaiting behavioral evidence), 1 REJECTED (concrete permuter-induced defect), 3 skipped register-arg pre-screens.
+- **Committed count:** 12/12 (goal met).
+- **Parked summary:**
+  - `actor_get_firing_position_group` (88.9%): All static audits clean. Equivalence run yielded 100/100 zero-identical-results with 69.5% coverage confined to prologue. Structural evidence strong; behavioral evidence empty (unblock: delinked ref + synthetic snapshot with distinct return-value sentinels).
+  - `FUN_00024370` (89.0%): Structural + call-argument audits complete and clean. Zero behavioral evidence (equivalence missing_delinked_reference, no golden case, no runtime checks). One minor: strict-aliasing type-pun at -O3 (cosmetic fix via memcpy-cast). Unblock: delinked reference, golden-harness case, or structural 90%+ recovery.
+- **Rejected summary:**
+  - `post_evaluator_hide` (86.8%, REJECT): Permuter introduced concrete defect — `score = 4.0f;` statement moved outside `case 3:` label, became dead code. Three sources confirm (jump table, raw source, VC71 IMM-WARN). Cover selector 3 now scores 0.0 instead of 4.0 (silent wrong-weight bug). Process failure: pipeline "ok" gate did not detect [IMM-WARN]. Pre-permute was 85.5% clean; permute made it worse. Fix: restore statement placement, re-run vc71_verify --no-cache, register delinked ref (enable equivalence lane for behavioral check before re-committing).
+- **Skipped pre-screens:** FUN_00024900, FUN_00024890, tag_instance_resolve — all skip_reg_args (require @<reg> annotation in kb.json before auto-lift can proceed). Non-blocking; documented for future ABI annotation work.
+
+### Next Steps
+
+1. **Delinked reference registration:** Register `actor_firing_position.obj` and `xbox_sound_cache.obj` delinked exports to unblock equivalence lanes for the two parked targets.
+2. **Synthetic snapshot for actor_get_firing_position_group:** Build a snapshot with distinct sentinel int values at squad+0x54, +0x58, +0x5c, +0x60, +0x64, +0x68, +0x6c. Vary defending/searching/params across seeds. Re-run `unicorn_diff.py` with `--allow-stubs --mem-trace --state-snapshot`.
+3. **post_evaluator_hide fix (REJECT):** Move `score = 4.0f;` from current dead location to immediately after `case 3:`. Rebuild, re-run vc71_verify --no-cache (expect [IMM-WARN] to clear), register delinked reference, re-run equivalence, then re-commit.
+4. **FUN_00024370 golden-harness case (optional):** Self-contained target suitable for a golden-harness actor-firing-position record build + two clamps. Would satisfy <90% behavioral requirement without waiting for 90%+ structural recovery.
+
 ## Goal-lift run — 12/12 committed (goal_reached)
 
 | function | addr | obj | vc71 | action | reason |

@@ -1281,9 +1281,19 @@ typedef struct {
   char pad_3be[0x2];
   int32_t field_3c0;                                 /* +0x3c0  accessed 1x, meaning unproven */
   int16_t field_3c4;                                 /* +0x3c4  accessed 5x, meaning unproven */
-  char pad_3c6[0x12];
+  int16_t field_3c6;                                 /* +0x3c6  discarded-firing-position ring cursor, MOVSX word @0x24c09/0x24c17/0x24c26 */
+  /* +0x3c8  four-entry discarded-firing-position ring. Stride 4 comes from the
+   * `index += 4` byte walk in actor_clear_discarded_firing_positions and the
+   * `% 4` cursor wrap in FUN_00024be0; the record boundary itself is unproven,
+   * only the two written halves are named. */
+  struct {
+    char field_00;                                   /* +0x00   the param_3 flag stored alongside the index */
+    char pad_01[0x1];
+    int16_t field_02;                                /* +0x02   firing-position index, reset to NONE */
+  } field_3c8[4];
   char field_3d8;                                    /* +0x3d8  accessed 1x, meaning unproven */
-  char pad_3d9[0x3];
+  char field_3d9;                                    /* +0x3d9  latched copy of the ring's param_3 flag */
+  char pad_3da[0x2];
   int32_t field_3dc;                                 /* +0x3dc  accessed 1x, meaning unproven */
   int32_t field_3e0;                                 /* +0x3e0  accessed 1x, meaning unproven */
   int32_t field_3e4;                                 /* +0x3e4  accessed 1x, meaning unproven */
@@ -1624,5 +1634,25 @@ co(collision_test_result, field_4e, 0x4e);
 
 /* CRT qsort/_shortsort comparator: two cdecl record pointers, int result. */
 typedef int(__cdecl *qsort_compar_proc)(const void *, const void *);
+
+/* -------------------------------------------------------------------------
+ * sound_cache_sound -- PARTIAL. Per-sound record managed by the Xbox hardware
+ * sound cache (cache/xbox_sound_cache.c).
+ *
+ * Only +0x2c, +0x30 and +0x34 have been observed, all dword stores in
+ * sound_cache_sound_new (0x1bdf41..0x1bdf4f). +0x30 is named from the assert
+ * text "sound->cache_base_address==NULL" at 0x1bdf2a; +0x2c and +0x34 have no
+ * naming evidence. Total size is UNKNOWN, so there is no cs() assert and
+ * everything below +0x2c is unexamined rather than proven unused.
+ * ------------------------------------------------------------------------- */
+typedef struct sound_cache_sound {
+    char  pad_00[0x2c];        /* +0x00: never observed accessed */
+    int32_t field_2c;          /* +0x2c: set to -1 on new */
+    void *cache_base_address;  /* +0x30: NULL while not resident */
+    void *field_34;            /* +0x34: dword handed in by the creator */
+} sound_cache_sound;
+co(sound_cache_sound, field_2c,           0x2c);
+co(sound_cache_sound, cache_base_address, 0x30);
+co(sound_cache_sound, field_34,           0x34);
 
 #endif /* TYPES_H */

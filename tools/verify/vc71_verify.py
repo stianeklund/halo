@@ -428,6 +428,18 @@ def _kb_functions_for_source(source: Path) -> dict[str, dict]:
     return {}
 
 
+def _undecorate(sym: str) -> str:
+    """Strip MSVC's cdecl decoration -- exactly ONE leading underscore.
+
+    ``lstrip("_")`` strips every leading underscore, so a C function whose name
+    genuinely begins with one is over-stripped and can never be resolved: zlib's
+    ``_tr_tally`` compiles to ``__tr_tally``, which ``lstrip`` reduced to
+    ``tr_tally`` -- a name that exists in neither kb.json nor the source.  That
+    silently dropped all four ``_tr_*`` functions from every score run.
+    """
+    return sym[1:] if sym.startswith("_") else sym
+
+
 def _resolve_func_addr(fn: str, source: Path, tu_funcs: dict) -> int | None:
     """Address for a compiled symbol, most-specific evidence first.
 
@@ -440,7 +452,8 @@ def _resolve_func_addr(fn: str, source: Path, tu_funcs: dict) -> int | None:
     hit = _source_comment_addr(fn, source)
     if hit is not None:
         return hit[0]
-    rec = tu_funcs.get(fn) or tu_funcs.get(fn.lstrip("_"))
+    rec = (tu_funcs.get(fn) or tu_funcs.get(_undecorate(fn))
+           or tu_funcs.get(fn.lstrip("_")) or tu_funcs.get("_" + fn))
     if rec:
         return rec["addr"]
     return _func_addr(fn, source)
@@ -455,9 +468,10 @@ def _resolve_compiled_name(requested: str, compiled_funcs: dict,
     reference used to bridge that by carrying the pre-rename symbol; with the
     reference derived per address, the bridge has to be explicit.
     """
-    want = requested.lstrip("_")
-    if want in compiled_funcs:
-        return want
+    for want in (requested, _undecorate(requested), requested.lstrip("_")):
+        if want in compiled_funcs:
+            return want
+    want = _undecorate(requested)
     aliases = function_aliases(want, source) | {want}
     for name in compiled_funcs:
         if name in aliases or name.rsplit("::", 1)[-1] in aliases:
