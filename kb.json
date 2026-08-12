@@ -6252,7 +6252,7 @@
         },
         {
           "addr": "0x11ef50",
-          "decl": "int stack_memory_pool_valid_block(void *block_hdr@<eax>, void *pool@<ecx>);",
+    "decl": "bool stack_memory_pool_valid_block(void *block_hdr@<eax>, void *pool@<ecx>);",
           "ported": true
         },
         {
