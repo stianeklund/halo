@@ -4468,6 +4468,29 @@ void FUN_000c27d0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2880 — HS script function handler: scripted-sound time query.
+ * Evaluates the macro arguments; on success the result block holds a single
+ * handle at +0x0, read as a full dword (MOV EDX,[EAX]) — there is no narrow
+ * +0x4 field like the 0xc0c30/0xc0c70 twins have, so the block is one handle.
+ * Calls scripted_sound_time(handle) and commits its EAX return to the calling
+ * script thread via hs_return(thread_datum, value).
+ *
+ * The value is computed inline immediately before its PUSH in the original, so
+ * it is nested in the hs_return argument rather than spilled to a temporary.
+ * Note the original coalesces both callee cleanups into one `add esp,0xc` at
+ * 0xc28ab; a naive cdecl reading of that makes hs_return look like it takes 3
+ * stack args, but it takes 2. */
+void FUN_000c2880(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    hs_return(thread_datum, scripted_sound_time(result[0]));
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script

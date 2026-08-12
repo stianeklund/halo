@@ -9390,7 +9390,7 @@
     },
     {
      "addr": "0x1c7500",
-     "decl": "void scripted_sound_time(void);"
+     "decl": "int scripted_sound_time(int handle);"
     },
     {
      "addr": "0x1c7550",
@@ -10541,7 +10541,8 @@
     },
     {
      "addr": "0xc2880",
-     "decl": "void FUN_000c2880(void);"
+     "decl": "void FUN_000c2880(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc28c0",
