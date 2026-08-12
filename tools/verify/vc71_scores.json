@@ -1515,6 +1515,17 @@
       "score": 94.7,
       "source": "src/halo/ai/actor_firing_position.c"
     },
+    "FUN_000246b0": {
+      "addr": "0x246b0",
+      "end": "0x2476b",
+      "kind": "auto",
+      "n_r": 64,
+      "opnd_percent": 88.0,
+      "ref": "synth",
+      "ref_sha": "a0f2a4e850bacd49",
+      "score": 91.2,
+      "source": "src/halo/ai/actor_firing_position.c"
+    },
     "FUN_00024770": {
       "addr": "0x24770",
       "end": "0x24848",

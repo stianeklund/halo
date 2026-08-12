@@ -449,6 +449,120 @@ int FUN_00024450(int actor_handle, char *eval_state, char *firing_position)
   return *(unsigned char *)(firing_position + 0x30);
 }
 
+/* FUN_000246b0 (0x246b0) — score one candidate firing position by its
+ * "front"/kind classification, rejecting a rear position only once the actor
+ * has closed to within the position's own radius. Fourth member of the
+ * evaluator family: identical three-parameter shape, identical
+ * MOVZX EAX,BYTE PTR [ESI+0x30] tail at 0x24764, so the return is int-width
+ * and not char.
+ *
+ * The first parameter is DEAD here, exactly as in FUN_00024770: nothing in
+ * 0x246b0..0x2476a touches [EBP+0x8]. The name is carried over from the
+ * table's other entries, not proven from this listing.
+ *
+ * Confirmed from the listing at 0x246b0 (disassembled from the pristine XBE):
+ *   0x246b3  MOV ECX,[EBP+0xC]  — eval_state stays in ECX for the whole body
+ *            and is never re-read, which is why MSVC is free to reuse the
+ *            slot for `score` below.
+ *   0x246bf  MOV ESI,[EBP+0x10] — firing_position stays in ESI and is
+ *            re-tested at the shared tail 0x24758 to choose the return value.
+ *            0x246c2 JE jumps *to that tail*, so the gate-false path still
+ *            runs the return-value selection; it is not an early `return 0`.
+ *
+ *   0x246cc  FLD [ECX+0x660] / FADD [0x254CD0] / FSTP [ECX+0x660]. The field
+ *            is loaded FIRST, so this is the compound `+=` form, unlike
+ *            FUN_00024770's tail where the constant is FLD'd first. This path
+ *            RETURNS at 0x246e5 (POP ESI / POP EBP / RET) — it does not fall
+ *            through to the FUN_00024000 call.
+ *            [0x254CD0] == 0x41A00000 == 20.0f, a VC71 literal-pool slot in
+ *            this TU (its neighbours are 15.0f, 5.0f, 12.0f, 7.5f), not a
+ *            game global.
+ *
+ *   0x246ea  SUB EAX,0 / JE, then DEC EAX / JE — MSVC's switch decrement
+ *            chain, the same dispatch shape as the sibling at 0x247ce, so the
+ *            kind dispatch is a switch and not an if/else-if ladder. The
+ *            `score = 0.0f` seed is scheduled into the branch shadow at
+ *            0x246ed, ahead of the first JE, exactly as in the sibling.
+ *
+ *   `score` reuses the second parameter's home slot: [EBP+0xC] is rewritten
+ *   with float bit patterns at 0x246ed/0x24739/0x24742 long after ECX already
+ *   holds eval_state, then reloaded into EAX at 0x24749 and pushed. It is a
+ *   distinct float local — Ghidra's `in_stack_00000008 = (void *)0x41a00000`
+ *   is that slot reuse, and passing it as a pointer would convert the value
+ *   instead of reinterpreting it. Case 0 stores 0x41A00000 == 20.0f (JE at
+ *   0x246f4 -> 0x24742) and case 1 stores 0x41200000 == 10.0f (JE at 0x246f7
+ *   -> 0x24739).
+ *
+ *   Default arm, 0x246f9: FLD [ECX+0x600] / FSUB [0x254CCC] — the field MINUS
+ *   the constant, and [0x254CCC] == 0x40F00000 == 7.5f (literal pool again).
+ *   `dist` never reaches memory: the frame has no SUB ESP at all, and the
+ *   square is taken with FLD ST(0) / FMUL ST(1) straight off the x87 stack.
+ *
+ *   Two status-word compares decide the rejection, and BOTH invert if
+ *   transcribed as plain JZ/JNZ:
+ *     0x24705 FCOM [0x2533C0] / FNSTSW AX / TEST AH,5 / JNP 0x24726.
+ *       The mask covers C0|C2, so PF is clear only when C0 alone is set: the
+ *       jump is TAKEN when dist < [0x2533C0], and [0x2533C0] == 0.0f. That is
+ *       the short-circuiting first disjunct, jumping straight into the
+ *       flag-set block at 0x24728.
+ *     0x24716 FLD [ESI+0x2C] / FCOMPP / TEST AH,0x41 / JNE 0x24749.
+ *       FCOMPP compares the just-loaded [ESI+0x2C] against dist*dist, and the
+ *       mask covers C0|C3, so the JNE SKIPS the flag block whenever
+ *       [ESI+0x2C] <= dist*dist. Equality skips, so the surviving condition
+ *       is the strict `dist * dist < [ESI+0x2C]`.
+ *
+ *   0x2474c pushes 0x14, then score, then eval_state (ADD ESP,0xC pays for
+ *   exactly three) while firing_position is still live in ESI, matching
+ *   FUN_00024000's @<esi> fourth parameter.
+ *
+ * Offsets used (raw; struct identities not yet proven):
+ *   eval_state      +0x014 char   "keep rejected positions" gate (as the twins)
+ *                   +0x5fc char   master gate (as FUN_00024770)
+ *                   +0x600 float  actor's distance to the encounter
+ *                   +0x660 float  rejected-position accumulator
+ *   firing_position +0x006 int16  kind, dispatched 0 / 1 / default
+ *                   +0x02c float  squared acceptance radius
+ *                   +0x030 char   usable flag (also the return value)
+ *                   +0x031 char   rejected flag
+ */
+int FUN_000246b0(int actor_handle, char *eval_state, char *firing_position)
+{
+  float score;
+  float dist;
+
+  (void)actor_handle; /* DEAD: no [EBP+8] access in disasm */
+
+  if (*(char *)(eval_state + 0x5fc) != '\0') {
+    if (firing_position == (char *)0) {
+      *(float *)(eval_state + 0x660) += 20.0f;
+      return 1;
+    }
+
+    score = 0.0f;
+    switch (*(short *)(firing_position + 6)) {
+    case 0:
+      score = 20.0f;
+      break;
+    case 1:
+      score = 10.0f;
+      break;
+    default:
+      dist = *(float *)(eval_state + 0x600) - 7.5f;
+      if (dist < 0.0f || dist * dist < *(float *)(firing_position + 0x2c)) {
+        *(char *)(firing_position + 0x31) = 1;
+        if (*(char *)(eval_state + 0x14) == '\0')
+          *(char *)(firing_position + 0x30) = '\0';
+      }
+      break;
+    }
+    FUN_00024000(eval_state, score, 0x14, firing_position);
+  }
+
+  if (firing_position == (char *)0)
+    return 1;
+  return *(unsigned char *)(firing_position + 0x30);
+}
+
 /* FUN_00024770 (0x24770) — score one candidate firing position against the
  * actor's aiming state. Sibling of FUN_00024370: both addresses are stored as
  * function pointers eight bytes apart in the evaluator dispatch table

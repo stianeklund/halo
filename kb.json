@@ -36223,7 +36223,8 @@
     },
     {
      "addr": "0x246b0",
-     "decl": "void FUN_000246b0(void);"
+     "decl": "int FUN_000246b0(int actor_handle, char *eval_state, char *firing_position);",
+     "ported": true
     },
     {
      "addr": "0x24770",
