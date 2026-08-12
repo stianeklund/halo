@@ -5024,6 +5024,17 @@
       "score": 94.5,
       "source": "src/halo/bitmaps/libtiff/tif_flush.c"
     },
+    "FUN_0006a9a0": {
+      "addr": "0x6a9a0",
+      "end": "0x6aa35",
+      "kind": "auto",
+      "n_r": 63,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "c10105cdcd6b86f5",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_flush.c"
+    },
     "FUN_0006ac60": {
       "addr": "0x6ac60",
       "end": "0x6acb6",

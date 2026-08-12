@@ -1578,6 +1578,111 @@ void FUN_0006a910(unsigned long *cp, unsigned char *pp,
   }
 }
 
+/**
+ * Expand one 4-bit colormapped tile into the 32-bit RGBA raster.
+ *
+ * Transcribed from the vendored libtiff (tif_getimage.c `put4bitcmaptile`)
+ * rather than reshaped from the decompiler, which lost every parameter and
+ * reported the body as `void(void)`. One build-specific delta: the expansion
+ * table comes from the file-scope static at 0x3340c4 instead of an `img`
+ * struct field.
+ *
+ * Which writer this is, is proven by the dispatcher at 0x6b858 (FUN_0006b780
+ * in this file): the PHOTOMETRIC_PALETTE inner table selects this address for
+ * `bitspersample == 4`, alongside FUN_0006a910 for 8. So the table this
+ * function reads -- 0x3340c4, spelled `BWmap` above -- is upstream's PALmap,
+ * not upstream's BWmap; the grey writers (FUN_0006ac60 and the 4/2/1-bit
+ * MINISWHITE/MINISBLACK arms) read the OTHER static, 0x3340c8, spelled `Map`
+ * above. The two macro names in this TU are therefore swapped relative to
+ * upstream. Left alone here rather than renamed, to keep this lift to one
+ * function; the rename is codegen-neutral and belongs in its own pass.
+ *
+ * The seven cdecl stack slots match the sibling writers exactly; only the
+ * ORDER is INFERRED, from upstream's prototype collapsed onto this build's
+ * frame. Slot +0x10 is NEVER READ (upstream's discarded tile origin) and must
+ * stay, or w/h/fromskew/toskew all shift down one slot.
+ *   EBP+0x08 -> ecx  cp        the dword raster cursor
+ *   EBP+0x0c -> esi  pp        the byte source cursor
+ *   EBP+0x10         NEVER READ
+ *   EBP+0x14 -> edi  w         reloaded per row at 0x6aa02 for the next
+ *                              `cmp`, because the unrolled loop leaves its
+ *                              trip counter at zero
+ *   EBP+0x18         h         counted down in its own argument slot
+ *                              (`dec dword ptr [ebp+0x18]` at 0x6aa26)
+ *   EBP+0x1c         fromskew  halved in place at entry, see below
+ *   EBP+0x20         toskew    pre-scaled `<< 2` into the single EBP-4 local
+ *
+ * Two things the shape depends on, both read off the disassembly:
+ *
+ * 1. `fromskew /= 2` is SIGNED and happens at entry, BEFORE the h guard:
+ *    `cdq; sub eax,edx; sar eax,1` at 0x6a9a7-0x6a9ac, stored back to
+ *    [ebp+0x1c] at 0x6a9b1, with the `test ecx,ecx; jbe` row guard at
+ *    0x6a9ae/0x6a9b4 after it. Spelling it `>> 1` would drop the CDQ pair and
+ *    round the wrong way for a negative skew.
+ *
+ * 2. The loop is upstream's UNROLL2 in its op1/op2 form -- the table lookup is
+ *    op1 (once per source byte) and the pixel store is op2 (REPEAT2'd in the
+ *    body, emitted once in the tail). The binary settles this: 0x6a9e0-0x6aa00
+ *    loads [0x3340c4] exactly ONCE per iteration and keeps the resolved entry
+ *    pointer in EDX across the first store (`mov eax,[edx]` / `mov [ecx],eax`
+ *    / `mov edx,[edx+4]`), which the two-subscript form `PALmap[*pp][0]` /
+ *    `PALmap[*pp][1]` cannot produce -- the intervening store to *cp would
+ *    force MSVC to reload the global. The tail at 0x6aa0c-0x6aa1d writes ONE
+ *    dword and still advances pp, which is op1+op2 once, not the body again.
+ *
+ * The two guard mnemonics are load-bearing and differ from FUN_0006a910's:
+ * the tail here is `test ebx,ebx; jz` (0x6aa07), upstream UNROLL2's `if (_x)`,
+ * where UNROLL8 uses `if (_x > 0)` and gets a `jbe`. Writing `x > 0` here
+ * costs mnemonic-LCS points. All counters are unsigned.
+ */
+void FUN_0006a9a0(unsigned long *cp, unsigned char *pp,
+                  unsigned long unused_arg, unsigned long w, unsigned long h,
+                  long fromskew, long toskew)
+{
+  unsigned long *bw;
+  unsigned long x;
+
+  /* Upstream discards the tile-origin arguments the same way. */
+  (void)unused_arg;
+
+  /* 0x6a9a7: signed halve, see (1) above. Two source bytes per output pair, so
+   * the row skew is expressed in source bytes here. */
+  fromskew /= 2;
+
+  /* 0x6a9ae guard, 0x6aa26 decrement-and-branch. Note the guard sits ahead of
+   * the callee-saved pushes (0x6a9b9-0x6a9c1), so a zero-height tile leaves
+   * EBX/ESI/EDI untouched -- that is what the guard-first `while (h-- > 0)`
+   * form reproduces. */
+  while (h-- > 0) {
+    /* 0x6a9e0-0x6aa00. `x` is upstream's UNROLL2 `_x`; it stays live past the
+     * loop for the tail test, which is why the compiler keeps `sub ebx,2`
+     * alongside the separate `dec edi` w>>1 trip count. The table is re-read
+     * from the global every iteration (0x6a9e3) -- do NOT hoist it into a
+     * local the way FUN_0006a910 legitimately does, that moves the load out of
+     * the loop. */
+    for (x = w; x >= 2; x -= 2) {
+      bw = BWmap[*pp++];
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+    }
+
+    /* 0x6aa0c-0x6aa1d. One store, and pp still advances a whole byte: the odd
+     * final column consumes the high nibble's byte and discards the low
+     * nibble's pixel. */
+    if (x) {
+      bw = BWmap[*pp++];
+      *cp++ = *bw++;
+    }
+
+    /* 0x6aa20: `add ecx,[ebp-0x4]` with the local holding the pre-scaled
+     * toskew*4 -- keep this unscaled in C, cp is a dword cursor. */
+    cp += toskew;
+    /* 0x6aa23: `add esi,eax` with EAX still carrying the halved fromskew from
+     * the reload at 0x6aa02; unscaled, pp is a byte cursor. */
+    pp += fromskew;
+  }
+}
+
 /* The 8-bit colormap expansion table, the other static tif_open.c frees at
  * tif_getimage.c line 125 (which is what pins this TU's upstream source file
  * to tif_getimage.c, not tif_flush.c -- kb.json's object grouping is what puts
