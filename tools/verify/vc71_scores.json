@@ -5530,6 +5530,17 @@
       "score": 100.0,
       "source": "src/halo/networking/transport_address.c"
     },
+    "FUN_00081e00": {
+      "addr": "0x81e00",
+      "end": "0x81e7e",
+      "kind": "auto",
+      "n_r": 35,
+      "opnd_percent": 86.1,
+      "ref": "synth",
+      "ref_sha": "35aa4c9d6ca3213e",
+      "score": 94.4,
+      "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
+    },
     "FUN_00082b30": {
       "addr": "0x82b30",
       "end": "0x82bc5",

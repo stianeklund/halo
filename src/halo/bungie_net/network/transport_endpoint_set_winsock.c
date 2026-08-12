@@ -1,5 +1,50 @@
 /* Xbox network transport layer — Winsock/XNet wrapper. */
 
+/* Publish the global XNet key pair and register it on the first use.
+ *
+ * Copies the caller's 16-byte blob to the global at 0x5ab210 and the
+ * caller's 8-byte blob to the global at 0x5ab220, then — only while the
+ * reference count at 0x335094 is still zero — registers the pair via
+ * FUN_00222de0 and asserts the call succeeded.  The reference count is
+ * incremented unconditionally on every call, including the ones that skip
+ * the registration; FUN_00082b30 performs the matching decrement and calls
+ * FUN_00222df7 on the 0x5ab220 blob when it drops back to zero.
+ *
+ * Confirmed: FUN_00222de0 (0x222de0, __stdcall 2 args — CALL at 0x81e50 is
+ * followed directly by TEST EAX,EAX with no ADD ESP, so the callee cleans);
+ * push order at 0x81e46/0x81e4b puts 0x5ab220 in arg1 and 0x5ab210 in arg2;
+ * display_assert (0x8d9f0, cdecl 4 args) with message "0 == error" at
+ * 0x26649c, __FILE__ at 0x266458, line 0x5c = 92; system_exit (0x8e2f0).
+ *
+ * Inferred (not named for it): the 8-byte/16-byte pair and the sibling
+ * single-argument release FUN_00222df7 match the XNetRegisterKey /
+ * XNetUnregisterKey (XNKID, XNKEY) shape, but nothing in the binary names
+ * the import, so the thunks keep their FUN_ names.
+ *
+ * Uncertain: the two globals are untyped blobs here; no field of either is
+ * read by this function, so no struct is invented for them.
+ */
+void FUN_00081e00(const uint32_t *key, const uint32_t *id)
+{
+  int error;
+
+  *(uint32_t *)0x5ab210 = key[0];
+  *(uint32_t *)0x5ab214 = key[1];
+  *(uint32_t *)0x5ab218 = key[2];
+  *(uint32_t *)0x5ab21c = key[3];
+  *(uint32_t *)0x5ab220 = id[0];
+  *(uint32_t *)0x5ab224 = id[1];
+
+  if (*(int *)0x335094 == 0) {
+    error = FUN_00222de0((void *)0x5ab220, (void *)0x5ab210);
+    assert_halt_at(
+      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+      92, 0 == error);
+  }
+
+  *(int *)0x335094 += 1;
+}
+
 /* Initialize the Xbox network transport layer.
  *
  * Queries ethernet link status, optionally enables XNet security bypass
@@ -77,12 +122,12 @@ void transport_initialize(void)
   }
 
   /* Start XNet. */
-  xnet_result = ((int(__stdcall *)(uint8_t *))0x2231f8)(xnet_params);
+  xnet_result = ((int(__stdcall *)(uint8_t *))0x2231f8)(xnet_params); /* hazard-ok: fnptr-conv */
   if (xnet_result != 0)
     return;
 
   /* Start WinSock 2.2. */
-  wsa_result = ((int16_t(__stdcall *)(int16_t, uint8_t *))0x223206)(2, wsadata);
+  wsa_result = ((int16_t(__stdcall *)(int16_t, uint8_t *))0x223206)(2, wsadata); /* hazard-ok: fnptr-conv */
   if (wsa_result != 0) {
     /* Cleanup: WSACleanup then report error. */
     ((void (*)(void))0x2232ed)();
@@ -95,14 +140,14 @@ void transport_initialize(void)
   deadline = start_time + 10000;
 
   for (;;) {
-    link_result = ((int(__stdcall *)(void *))0x222ecf)((void *)0x5ab230);
+    link_result = ((int(__stdcall *)(void *))0x222ecf)((void *)0x5ab230); /* hazard-ok: fnptr-conv */
     if (system_milliseconds() > deadline)
       break;
     if (link_result == 0)
       continue;
     if (link_result != 1) {
       /* Link detected — configure socket options and mark initialized. */
-      ((int(__stdcall *)(void *, int))0x222e0e)((void *)0x5ab228, 8);
+      ((int(__stdcall *)(void *, int))0x222e0e)((void *)0x5ab228, 8); /* hazard-ok: fnptr-conv */
       *(uint8_t *)0x335090 = 1;
       return;
     }
