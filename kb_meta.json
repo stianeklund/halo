@@ -6481,6 +6481,16 @@
         "The HaloScript builtin name this evaluator is registered under is unproven; the function is unnamed (FUN_000c2660) because no string or function-table evidence was inspected, only that it forwards main_saving_map's bool to hs_return."
       ]
     },
+    "0xc2880": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The hs_macro_function_evaluate result block for 0xc2880 holds a single dword handle at +0x0; unlike the 0xc0c30/0xc0c70 siblings there is no narrow +0x4 field, so the block size beyond +0x4 is unknown."
+      ],
+      "uncertain": [
+        "The widened kb decl int scripted_sound_time(int handle) is proven by the disasm (one stack arg, EAX consumed as the return) but the param name handle is descriptive only; what kind of datum the handle refers to (sound, object, or scripted-sound-block index) is unproven."
+      ]
+    },
     "0xc3b60": {
       "kind": "function",
       "status": "ported",
