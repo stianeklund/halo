@@ -28683,6 +28683,11 @@
     "confidence": "none",
     "coverage_pct": 0.0
   },
+  "0x24a60": {
+    "class": "non_leaf",
+    "confidence": "moderate",
+    "coverage_pct": 69.5
+  },
   "0x24cf0": {
     "class": "non_leaf"
   },

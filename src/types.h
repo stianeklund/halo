@@ -1635,4 +1635,24 @@ co(collision_test_result, field_4e, 0x4e);
 /* CRT qsort/_shortsort comparator: two cdecl record pointers, int result. */
 typedef int(__cdecl *qsort_compar_proc)(const void *, const void *);
 
+/* -------------------------------------------------------------------------
+ * sound_cache_sound -- PARTIAL. Per-sound record managed by the Xbox hardware
+ * sound cache (cache/xbox_sound_cache.c).
+ *
+ * Only +0x2c, +0x30 and +0x34 have been observed, all dword stores in
+ * sound_cache_sound_new (0x1bdf41..0x1bdf4f). +0x30 is named from the assert
+ * text "sound->cache_base_address==NULL" at 0x1bdf2a; +0x2c and +0x34 have no
+ * naming evidence. Total size is UNKNOWN, so there is no cs() assert and
+ * everything below +0x2c is unexamined rather than proven unused.
+ * ------------------------------------------------------------------------- */
+typedef struct sound_cache_sound {
+    char  pad_00[0x2c];        /* +0x00: never observed accessed */
+    int32_t field_2c;          /* +0x2c: set to -1 on new */
+    void *cache_base_address;  /* +0x30: NULL while not resident */
+    void *field_34;            /* +0x34: dword handed in by the creator */
+} sound_cache_sound;
+co(sound_cache_sound, field_2c,           0x2c);
+co(sound_cache_sound, cache_base_address, 0x30);
+co(sound_cache_sound, field_34,           0x34);
+
 #endif /* TYPES_H */

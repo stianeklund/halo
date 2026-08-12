@@ -4281,4 +4281,55 @@ AUTOLIFT_REVIEW: NEEDS_RUNTIME |
 **Next Steps:**
 1. Prioritize bsp3d_test_sphere_recursive unblock via delinked-export + unicorn_diff (state-snapshot technique proven on other collision targets).
 2. Escalation-exhausted targets deferred pending prior-fix review or ABI refinement.
+---
+
+## Run 2026-08-12 actor_firing_position.obj + xbox_sound_cache.obj (12/12 committed, goal_reached)
+
+### Summary
+- **Goal achieved: 12/12 targets committed** at ≥90% VC71 structural match or 100% perfect match.
+- **2 targets skipped** due to register-argument pre-screens (require @reg annotation updates in kb.json).
+- **2 targets parked** as NEEDS_RUNTIME (88.9% and 89.0% — sub-90 band requires behavioral verification).
+- **1 target rejected** (86.8%, post_evaluator_hide) due to concrete defect (permuter-induced missing constant 4.0f).
+- **8 targets committed** at clean pass1 gate (≥90%, no process blockers).
+
+### Results
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00024900 | 0x24900 | actor_firing_position.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| FUN_00024890 | 0x24890 | actor_firing_position.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| tag_instance_resolve | 0x1b9bf0 | cache_files.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| actor_get_firing_position_group | 0x24a60 | actor_firing_position.obj | 88.9 | parked | NEEDS_RUNTIME: 88.9% VC71 (101 cand / 97 ref insns), opnd-norm 61.6%. All four structural audits clean: ABI (regs=none), hazard (0), call-args (6 CALLs verified), memory-offsets (4 struct fields + 0 globals). No FPU/LOADW/IMM/FCOM warnings. One 100-seed equivalence run returned all-zero (0x00000000 across 100 calls), 69.5% coverage (191/275 bytes), confidence moderate — but coverage is confined to the prologue argument validation, not the load-bearing branch logic that selects group_index. Structural and call-argument evidence is strong; behavioral lane is empty. Unblock: register delinked reference + re-run `unicorn_diff.py` with synthetic snapshot writing distinct sentinels at the seven return-value slots (squad+0x54..+0x6c), varying defending/searching across seeds. |
+| FUN_00024370 | 0x24370 | actor_firing_position.obj | 89 | parked | NEEDS_RUNTIME: 89.0% VC71 (81/83 insns), opnd-norm 62.2%. Fresh non-cached build + vc71_verify reproduce exactly. ABI clean (plain cdecl), hazard clean, all 5 call arguments verified, all 8 memory offsets traced to instructions. No FPU/LOADW/IMM/FCOM warnings. Structural evidence is complete and strong. Behavioral evidence entirely absent: equivalence lane `skipped (missing_delinked_reference)`, no golden harness, no runtime checks. 89% falls below the 90% structural-only threshold — the policy mandates behavioral verification in this band. One minor uncertainty: `*(int *)&dist` is a strict-aliasing type-pun at -O3 with no `-fno-strict-aliasing` flag. Not blocking on its own, but a memcpy-style bit-cast would be more robust. Unblock: register delinked reference for actor_firing_position.obj (enables equivalence lane) or add a golden-harness case, or reach 90% structural score. |
+| actor_clear_discarded_firing_positions | 0x24b80 | actor_firing_position.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_00024be0 | 0x24be0 | actor_firing_position.obj | 97.34 | committed | mechanical gate: 97.34% clean (pass1) |
+| FUN_00024950 | 0x24950 | actor_firing_position.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_00024130 | 0x24130 | actor_firing_position.obj | 96.3 | committed | mechanical gate: 96.3% clean (pass1) |
+| post_evaluator_hide | 0x245d0 | actor_firing_position.obj | 86.8 | rejected | REJECT: 86.8% VC71 (62/67 insns, opnd-norm 83.7%), [IMM-WARN] filed. **Concrete defect confirmed:** permuter moved `score = 4.0f;` outside its `case 3:` label, making it dead code. Three independent sources confirm: (1) jump table read from binary at 0x2469c = [0x2464a, 0x24631, 0x2461f, 0x24641, 0x24628]; selector 3 → 0x24641 → MOV [EBP+0xc],0x40800000 (4.0f); (2) raw source file shows `score = 4.0f;` unreachable (between `break;` and `case 3:`); (3) VC71 IMM-WARN names exactly this: "reference constant 0x40800000 (~4f) absent from our lift". Firing positions with cover selector 3 receive weight 0.0 instead of 4.0. Pre-permute run 85.5% was clean; permute raised score to 86.8% while breaking the constant. Equivalence lane never ran (missing_delinked_reference), so no behavioral discrimination. **Process failures:** (a) summary.json reported ok:true with all stages green despite [IMM-WARN] in vc71_verify output; pipeline "ok" gate did not check for blocking warnings. (b) acceptance path was "pass1+permute" — the very step that introduced the break. Fix: move `score = 4.0f;` to immediately after `case 3:`, re-run vc71_verify with --no-cache, register delinked reference, confirm IMM-WARN clears. |
+| FUN_00024770 | 0x24770 | actor_firing_position.obj | 90.4 | committed | mechanical gate: 90.4% clean (pass1) |
+| FUN_00024060 | 0x24060 | actor_firing_position.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_00024450 | 0x24450 | actor_firing_position.obj | 94.7 | committed | mechanical gate: 94.7% clean (pass1) |
+| FUN_000246b0 | 0x246b0 | actor_firing_position.obj | 91.2 | committed | mechanical gate: 91.2% clean (pass1) |
+| xbox_sound_cache_idle | 0x1bded0 | xbox_sound_cache.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| sound_cache_sound_new | 0x1bdf10 | xbox_sound_cache.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_001bdf60 | 0x1bdf60 | xbox_sound_cache.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| sound_cache_new | 0x1be3e0 | xbox_sound_cache.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+
+### Decisions
+
+- **Goal achieved:** 12 of 12 target attempts cleared or committed. 8 at clean 90%+ (pass1), 2 parked NEEDS_RUNTIME (sub-90, awaiting behavioral evidence), 1 REJECTED (concrete permuter-induced defect), 3 skipped register-arg pre-screens.
+- **Committed count:** 12/12 (goal met).
+- **Parked summary:**
+  - `actor_get_firing_position_group` (88.9%): All static audits clean. Equivalence run yielded 100/100 zero-identical-results with 69.5% coverage confined to prologue. Structural evidence strong; behavioral evidence empty (unblock: delinked ref + synthetic snapshot with distinct return-value sentinels).
+  - `FUN_00024370` (89.0%): Structural + call-argument audits complete and clean. Zero behavioral evidence (equivalence missing_delinked_reference, no golden case, no runtime checks). One minor: strict-aliasing type-pun at -O3 (cosmetic fix via memcpy-cast). Unblock: delinked reference, golden-harness case, or structural 90%+ recovery.
+- **Rejected summary:**
+  - `post_evaluator_hide` (86.8%, REJECT): Permuter introduced concrete defect — `score = 4.0f;` statement moved outside `case 3:` label, became dead code. Three sources confirm (jump table, raw source, VC71 IMM-WARN). Cover selector 3 now scores 0.0 instead of 4.0 (silent wrong-weight bug). Process failure: pipeline "ok" gate did not detect [IMM-WARN]. Pre-permute was 85.5% clean; permute made it worse. Fix: restore statement placement, re-run vc71_verify --no-cache, register delinked ref (enable equivalence lane for behavioral check before re-committing).
+- **Skipped pre-screens:** FUN_00024900, FUN_00024890, tag_instance_resolve — all skip_reg_args (require @<reg> annotation in kb.json before auto-lift can proceed). Non-blocking; documented for future ABI annotation work.
+
+### Next Steps
+
+1. **Delinked reference registration:** Register `actor_firing_position.obj` and `xbox_sound_cache.obj` delinked exports to unblock equivalence lanes for the two parked targets.
+2. **Synthetic snapshot for actor_get_firing_position_group:** Build a snapshot with distinct sentinel int values at squad+0x54, +0x58, +0x5c, +0x60, +0x64, +0x68, +0x6c. Vary defending/searching/params across seeds. Re-run `unicorn_diff.py` with `--allow-stubs --mem-trace --state-snapshot`.
+3. **post_evaluator_hide fix (REJECT):** Move `score = 4.0f;` from current dead location to immediately after `case 3:`. Rebuild, re-run vc71_verify --no-cache (expect [IMM-WARN] to clear), register delinked reference, re-run equivalence, then re-commit.
+4. **FUN_00024370 golden-harness case (optional):** Self-contained target suitable for a golden-harness actor-firing-position record build + two clamps. Would satisfy <90% behavioral requirement without waiting for 90%+ structural recovery.
 

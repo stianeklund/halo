@@ -489,6 +489,71 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x24060": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter 1 (EBP+0x08) is never read in the body; it is declared int actor_handle only because FUN_00024130 at 0x24130 \u2014 the twin evaluator reached from the same dispatch family \u2014 takes that value in the same slot.",
+        "Record offsets are stated relative to the true record base: ESI is loaded as firing_positions+8, so the listing displacements 0x00/0x28/0x30 correspond to record offsets 0x08 distance, 0x30 usable flag, and 0x38 score accumulator, matching the 0x3c-stride candidate record already used by FUN_00024130 and FUN_00024950."
+      ],
+      "uncertain": [
+        "The eval_state field at +0x18 is used both as the ramp cutoff and (halved) as the full-credit radius, but its own identity is unproven, so it stays a raw offset rather than a named field."
+      ]
+    },
+    "0x245d0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Return type is int, not void: both exits write the full EAX (MOV EAX,1 at 0x245f3 and 0x2468c, MOVZX EAX,byte [ESI+0x30] at 0x24694), and the signature matches sibling evaluator FUN_00024370 at 0x24370 exactly.",
+        "The first parameter (actor_handle) is never read; [EBP+8] is untouched. It is retained because this function shares the evaluator-callback signature with FUN_00024370, which does use it."
+      ],
+      "uncertain": [
+        "The meanings of the five selector values at firing_position+0x06 are unproven; only the weights they select are known (0 rejects, 1 gives 6.0f or rejects, 2 gives 12.0f, 3 gives 4.0f, 4 gives 10.0f), so the cases are left numeric.",
+        "VC71 is 85.5 percent; the residual is MSVC block layout, not semantics. The reference duplicates the three-pop epilogue at each return while VC71 tail-merges two of them, and the five switch blocks are scheduled in a different order. A 100-attempt permuter run reached only 86.8 percent."
+      ]
+    },
+    "0x246b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "First parameter is dead: nothing in 0x246b0..0x2476a reads [EBP+0x8]; the actor_handle name is carried over from the sibling evaluators FUN_00024370/FUN_00024450 that share the dispatch table, not proven from this listing."
+      ],
+      "uncertain": [
+        "The +0x600 float on eval_state is treated as a distance and +0x2c on the firing position as a squared acceptance radius purely from the dist-minus-7.5f / dist-squared comparison shape; neither field identity is otherwise proven."
+      ]
+    },
+    "0x24950": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Record field meanings at +0x30, +0x31 and +0x38 of the 0x3c-stride candidate array are unproven; +0x30 and +0x31 are only inferred to be the same usable/rejected flag pair that FUN_00024370 writes at the same offsets on a firing_position, and +0x38 is inferred to be the accumulated score because it is the sole float key in the ordering.",
+        "The C name is left as FUN_00024950 because no string in the XBE names the function; only the parameter names index1 and index2 are string-proven, from the two range assert predicates.",
+        "The two byte-flag branches materialize an explicit 1/-1 rank and compare it against zero (SETcc, LEA reg,[reg+reg-1], TEST, SETG), which suggests the original source shared a three-way ranking idiom across all branches; the float branches were constant-folded by MSVC so that shared form cannot be confirmed from this function alone."
+      ],
+      "uncertain": [
+        "The outer float guard is written as the negated greater-than rather than a less-than-or-equal because that is the only form reproducing the reference JE; the two differ solely for NaN, and no evidence shows whether the original source spelled it that way or reached the same codegen through a different construct."
+      ]
+    },
+    "0x24a60": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The two early returns in the binary (selector 1 loading squad+0x68, selector 5 loading squad+0x6c) are MSVC tail-duplication of the single indexed load at squad+0x54+group*4 with constant indices 5 and 6 folded in, not distinct source statements."
+      ],
+      "uncertain": [
+        "The selector parameter (param_2) values 1, 4 and 5 are dispatched explicitly and every other value falls through to the defending/searching default; whether the original source was an if/else chain or a sparse switch is not determinable from the compare-chain codegen."
+      ]
+    },
+    "0x24b80": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "param2 is declared int in kb.json but only its low byte is read (MOV CL,[EBP+0xc]); it is a boolean selector and both in-repo call sites pass 0 or 1."
+      ],
+      "uncertain": [
+        "The 4-entry stride-4 table walked from actor_t+0x3ca has an unproven record boundary: a 4-byte-record array based at +0x3ca would extend to +0x3d9 and collide with the proven chars at +0x3d8/+0x3d9, so the storage is declared as the exact 14-byte int16 region it is observed to occupy (field_3ca[7], elements 0/2/4/6 written) and walked by explicit byte stride."
+      ]
+    },
     "0x25a00": {
       "kind": "function",
       "status": "ported"
@@ -14034,9 +14099,45 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1bded0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The global at 0x4e9370 holds a pointer to the sound cache LRU-V structure rather than the structure itself, because the call site loads it with MOV EAX,[0x4e9370] and pushes the loaded value to lruv_idle.",
+        "The global at 0x5054ea is a 16-bit hardware sound reference count, because the guard is CMP word ptr [0x5054ea],0x0 and the assert message reads 'hardware sound reference count failure.'."
+      ],
+      "uncertain": [
+        "The signedness of the 16-bit counter at 0x5054ea is unproven because only a not-equal-to-zero test is observed; it is declared int16_t and uint16_t would produce identical codegen."
+      ]
+    },
+    "0x1bdf10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bdf60": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The parameter struct fields at +0x2c (cache handle, sentinel NONE) and +0x30 (cache_base_address) are reused from sound_cache_sound_new at 0x1bdf10, so the sound_cache_sound type applies here by construction rather than by direct proof.",
+        "The global at 0x4e9368 is named sound_cache_data from its role as the data_t the cache handle indexes; predicted_resources.c calls the same global a resource data table and sound_manager.c calls it a sound cache table, so the name is descriptive rather than recovered."
+      ],
+      "uncertain": [
+        "The cache datum pointer at +0x08 is passed directly to a %s conversion in both assert strings; this is read as the sound permutation block whose leading field is its name, and whose tag index sits at +0x3c, but neither the permutation type nor its layout is proven here."
+      ]
+    },
     "0x1be090": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1be3e0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The global at 0x4e936c is named base_address from the assert string \"xbox_sound_cache_globals.base_address\" and typed int because its producer FUN_001bdd70 returns EAX as an int; the only use observed in this function is the != 0 test, so a pointer type is possible but unproven."
+      ],
+      "uncertain": [
+        "lruv_new's first parameter is declared int in kb.json but the call site passes the address of the string literal \"xbox sound cache\" (0x2b9540), the same shape as data_new's char *name; the decl was left unchanged for this lift."
+      ]
     },
     "0x1bea30": {
       "kind": "function",

@@ -7242,7 +7242,12 @@ short FUN_00025c10(int actor_handle, void *eval_ctx, int *out_record,
     }
     *(short *)0x331f00 = (short)rec_count;
     *(int *)0x331f04 = (int)records;
-    FUN_00091ef0(order, (short)rec_count, FUN_00024950);
+    /* FUN_00024950 returns its verdict in AL only (see its comment in
+     * actor_firing_position.c), so kb.json declares it bool while the generic
+     * sort's comparator slot is int(*)(int,int). The cast reconciles the two
+     * declarations without changing either; no code is emitted for it. */
+    FUN_00091ef0(order, (short)rec_count,
+                 (int (*)(int, int))FUN_00024950);
     *(char *)(ctx + 0x65c) = FUN_00024900(actor_handle, ctx);
 
     i = 0;
