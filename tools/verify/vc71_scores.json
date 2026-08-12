@@ -47138,6 +47138,17 @@
       "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
+    "transport_address_equivalent": {
+      "addr": "0x81a90",
+      "end": "0x81b86",
+      "kind": "auto",
+      "n_r": 83,
+      "opnd_percent": 93.4,
+      "ref": "synth",
+      "ref_sha": "13aac97bb90e8e4d",
+      "score": 98.2,
+      "source": "src/halo/networking/transport_address.c"
+    },
     "transport_dispose": {
       "addr": "0x822d0",
       "end": "0x822f9",

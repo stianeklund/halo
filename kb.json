@@ -36882,7 +36882,8 @@
     },
     {
      "addr": "0x81a90",
-     "decl": "void transport_address_equivalent(void);"
+     "decl": "bool transport_address_equivalent(transport_address *a, transport_address *b);",
+     "ported": true
     },
     {
      "addr": "0x81c80",

@@ -1655,4 +1655,28 @@ co(sound_cache_sound, field_2c,           0x2c);
 co(sound_cache_sound, cache_base_address, 0x30);
 co(sound_cache_sound, field_34,           0x34);
 
+/* -------------------------------------------------------------------------
+ * transport_address -- PARTIAL. Bungie.net transport-layer network address
+ * (bungie_net/network/transport_address.c).
+ *
+ * Field names are taken verbatim from the assert text
+ * "IPV4_ADDRESS_LENGTH == a->address_length" at 0x266060 / 0x266034
+ * (transport_address_equivalent, 0x81a90).
+ *
+ * transport_address_equivalent compares the two records with
+ * csmemcmp(a, b, max(a->address_length, b->address_length)) starting at
+ * offset 0, so the address bytes occupy the front of the record; only the
+ * first IPV4_ADDRESS_LENGTH (4) of them are ever compared at runtime. The
+ * 16-byte span is inferred from address_length sitting at +0x10, not proven
+ * as the declared address width. Total size is UNKNOWN, so there is no cs()
+ * assert and everything past +0x14 is unexamined rather than proven unused.
+ * ------------------------------------------------------------------------- */
+typedef struct transport_address {
+    uint8_t  address[0x10];   /* +0x00: address bytes, compared as a block */
+    uint16_t address_length;  /* +0x10: asserted == IPV4_ADDRESS_LENGTH */
+    uint16_t port;            /* +0x12: compared as a 16-bit value */
+} transport_address;
+co(transport_address, address_length, 0x10);
+co(transport_address, port,           0x12);
+
 #endif /* TYPES_H */
