@@ -146,3 +146,29 @@ void sound_cache_flush(void)
     cache_datum = (char *)data_iterator_next(&iterator);
   }
 }
+
+/* Tear down the cache datum table. Same walk as sound_cache_flush but
+ * unconditional -- no reference-count test -- and the table itself is marked
+ * invalid afterwards. The deleted argument is the +0x08 pointer out of each
+ * cache datum, not the datum: the disassembly loads it explicitly
+ * (MOV EAX,[EAX+0x8]; PUSH EAX at 0x1be515) before the call, which the
+ * decompiler drops.
+ *
+ * UNRESOLVED: this TU's header block reads cache datum +0x08 as the sound
+ * permutation the block was filled from (a %s name string), yet both this
+ * function and sound_cache_flush hand it to sound_cache_sound_delete, which
+ * takes a sound_cache_sound *. One of the two readings is wrong, or the field
+ * is a union / back-pointer. The cast is kept local rather than resolved. */
+void sound_cache_close(void)
+{
+  data_iter_t iterator;
+  char *cache_datum;
+
+  data_iterator_new(&iterator, sound_cache_data);
+  cache_datum = (char *)data_iterator_next(&iterator);
+  while (cache_datum != NULL) {
+    sound_cache_sound_delete(*(sound_cache_sound **)(cache_datum + 8));
+    cache_datum = (char *)data_iterator_next(&iterator);
+  }
+  data_make_invalid(sound_cache_data);
+}
