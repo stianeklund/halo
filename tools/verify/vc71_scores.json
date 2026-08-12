@@ -24440,6 +24440,17 @@
       "score": 96.8,
       "source": "src/halo/units/vehicles.c"
     },
+    "FUN_001b9920": {
+      "addr": "0x1b9920",
+      "end": "0x1b9926",
+      "kind": "auto",
+      "n_r": 2,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "29694e7653878ceb",
+      "score": 100.0,
+      "source": "src/halo/cache/cache_files.c"
+    },
     "FUN_001b9b00": {
       "addr": "0x1b9b00",
       "end": "0x1b9b13",

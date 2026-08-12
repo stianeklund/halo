@@ -25,3 +25,17 @@ void scenario_tags_unload(void)
   cache_tags_available = 0;
   tag_instances = 0;
 }
+
+/* Dword stamp compared against cache header field +0x128 when deciding whether
+ * a saved game state still matches the loaded map (see the validity gate in
+ * cache/cache_files_windows.c, which checks it alongside the header magic, the
+ * build string, the scenario name and the difficulty). Whether the value is a
+ * checksum, a map id or something else is NOT established by the binary, so the
+ * name stays mechanical. No kb.json entry exists for this address. */
+#define global_4e4d68 (*(int *)0x4e4d68)
+
+/* Body is exactly `MOV EAX,[0x4e4d68]; RET` -- no frame, no callees. */
+int FUN_001b9920(void)
+{
+  return global_4e4d68;
+}

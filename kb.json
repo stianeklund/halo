@@ -36193,7 +36193,8 @@
    "functions": [
     {
      "addr": "0x1b9920",
-     "decl": "int FUN_001b9920(void);"
+     "decl": "int FUN_001b9920(void);",
+     "ported": true
     },
     {
      "addr": "0x1b9bf0",
