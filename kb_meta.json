@@ -2256,6 +2256,29 @@
         "The unrolled loop at 0x6a950 emits the copy body exactly ONCE while counting sub esi,8 and running w>>3 iterations, so a row of w pixels advances the cursors by only w/8 (+1) pixels instead of upstream's eight-per-iteration REPEAT8 expansion; whether Bungie reduced the REPEAT macros for code size or these paths are simply dead in this build is not recoverable from the binary."
       ]
     },
+    "0x6ac60": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter ORDER across the +0x10..+0x20 stack slots is inferred from upstream libtiff tif_getimage.c put8bitcmaptile's (img, cp, x, y, w, h, fromskew, toskew, pp) prototype collapsed onto this build's seven slots; only the ROLES are proven from disassembly (w=inner count at +0x14, h=outer count at +0x18, fromskew added to the byte cursor at 0x6acab, toskew scaled x4 and added to the dword cursor at 0x6aca8).",
+        "Upstream source file is tif_getimage.c, not tif_flush.c: the global this function reads (0x3340c8) is freed in tif_open.c through a debug_free stamped with the __FILE__ string c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_getimage.c at line 125. The body lives in tif_flush.c only because kb.json maps this address to tif_flush.obj."
+      ],
+      "uncertain": [
+        "Whether 0x3340c8 is upstream's Map (8-bit colormap table) rather than BWmap is unproven; tif_open.c only shows 0x3340c8 freed at tif_getimage.c line 125 and 0x3340c4 at line 127, and the Map/BWmap assignment follows upstream's free order rather than direct evidence. The pointee type unsigned long ** is proven by the three chained loads at 0x6ac6f/0x6ac97/0x6ac9a.",
+        "samplesperpixel is folded to a compile-time 1 here (the source cursor advances by a plain inc ecx at 0x6ac9f instead of upstream's pp += img->samplesperpixel); whether Bungie specialized the routine or the general path is simply unused in this build is not recoverable from the binary."
+      ]
+    },
+    "0x6b780": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The function-pointer signature (unsigned long *cp, unsigned char *pp, unsigned long tile_origin, unsigned long w, unsigned long h, long fromskew, long toskew) is inferred from the two dispatch targets already lifted in tif_flush.c, FUN_0006a910 and FUN_0006ac60; the other nine targets are still seeded void(void) in kb.json, so only the pointer-ness of the return is proven.",
+        "The switch selector values 0, 1, 2, 3 and 6 are proven by the seven-entry jump table at 0x6b83c, but the PHOTOMETRIC_MINISWHITE / MINISBLACK / RGB / PALETTE / YCBCR spellings come from the TIFF specification rather than from this binary; nothing here proves what the individual tile writers do with the samples."
+      ],
+      "uncertain": [
+        "The owning object file is unresolved: kb.json records obj=null for 0x6b780 and for all eleven dispatch targets, and the body is libtiff PickContigCase which upstream places in tif_getimage.c, but the implementation was written into src/halo/bitmaps/libtiff/tif_flush.c because every sibling put-routine and the error reporter FUN_00068a30 already live there."
+      ]
+    },
     "0x6c400": {
       "kind": "function",
       "status": "ported"
@@ -6373,6 +6396,13 @@
         "Handler identity 'debug_pvs' is inferred from the callee 0x1965d0 only; unlike the 0xc2080 sibling, the hs_function_definition record (name/return_type/param_types) for this handler was not read, so the builtin's script-level name and declared parameter type are unconfirmed."
       ]
     },
+    "0xc2140": {
+      "kind": "function",
+      "status": "unknown",
+      "uncertain": [
+        "Which HaloScript command's table record points at 0xc2140 is not established: the body has no side-effect CALL and no hs_macro_function_evaluate, so nothing in the function identifies the command name."
+      ]
+    },
     "0xc22a0": {
       "kind": "function",
       "status": "unknown",
@@ -6422,6 +6452,33 @@
       "status": "unknown",
       "inferred": [
         "Parameters function_index and init are unread by the body (only [EBP+0xc] is loaded); their presence in the signature is inferred from the shared hs-evaluator triple used by sibling handlers 0xc0cb0 and 0xc24e0, not from any instruction in this function."
+      ]
+    },
+    "0xc2600": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters function_index (int16_t) and init (char) are unused in this body; they are inferred from the uniform HaloScript evaluator signature shared by every sibling in hs.obj (e.g. 0xc0cb0, 0xc25e0), not from any read in 0xc2600 itself."
+      ]
+    },
+    "0xc2620": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The 3-parameter hs-evaluator signature (int16_t function_index, int thread_datum, char init) is inferred from the sibling handlers 0xc25b0/0xc25e0/0xc2600 in this TU, since only [EBP+0xc] (thread_datum) is read by this body."
+      ],
+      "uncertain": [
+        "function_index ([EBP+0x8]) and init ([EBP+0x10]) are never read by this body, so an ignored cdecl parameter emits no code and the disassembly alone cannot prove 3 parameters rather than 2; the shared HaloScript dispatch table arbitrates the count."
+      ]
+    },
+    "0xc2660": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters function_index (EBP+8) and init (EBP+0x10) are never read by the body; they are inferred from the shared hs-evaluator signature used by every sibling handler in hs.obj, not from binary reads in this function."
+      ],
+      "uncertain": [
+        "The HaloScript builtin name this evaluator is registered under is unproven; the function is unnamed (FUN_000c2660) because no string or function-table evidence was inspected, only that it forwards main_saving_map's bool to hs_return."
       ]
     },
     "0xc3b60": {
