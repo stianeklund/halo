@@ -36253,7 +36253,8 @@
     },
     {
      "addr": "0x24be0",
-     "decl": "void FUN_00024be0(int actor_handle, short param_2, char param_3);"
+     "decl": "void FUN_00024be0(int actor_handle, short param_2, char param_3);",
+     "ported": true
     }
    ],
    "name": "actor_firing_position.obj",

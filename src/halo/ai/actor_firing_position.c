@@ -13,6 +13,10 @@
  *     group-selector and a searching-state override onto one of the squad
  *     definition's firing-position group indices, returned as the int stored
  *     at squad + 0x54 + group*4.
+ *   actor_clear_discarded_firing_positions (0x24b80) — reset the discarded-
+ *     firing-position ring buffer at actor+0x3c8.
+ *   FUN_00024be0 (0x24be0) — push one discarded firing position onto that
+ *     ring buffer and cache the position's first 12 bytes at actor+0x3dc.
  *
  * Layout used here (all offsets read directly from the listing):
  *   actor_t  +0x034  uint32  encounter index, -1 == NONE (CMP dword,-1)
@@ -195,7 +199,7 @@ void actor_clear_discarded_firing_positions(int actor_handle, int param2)
 
   actor->field_3c6 = 0;
 
-  index = &actor->field_3ca[0];
+  index = &actor->field_3c8[0].field_02;
   count = 4;
   do {
     *index = (int16_t)NONE;
@@ -206,5 +210,67 @@ void actor_clear_discarded_firing_positions(int actor_handle, int param2)
   if (actor->field_3d8 != '\0' &&
       ((char)param2 == '\0' || actor->field_3d9 != '\0')) {
     actor->field_3d8 = 0;
+  }
+}
+
+/* FUN_00024be0 (0x24be0) — push one firing position onto the actor's
+ * discarded-position ring buffer and latch it as the actor's current
+ * "avoid this position" record, caching the position's first 12 bytes.
+ *
+ * Confirmed from the listing at 0x24be0 (0x24be0-0x24c9f, 4 CALLs, no FPU):
+ *   PUSH EBP / MOV EBP,ESP / PUSH EDI; DI = [EBP+0xc]; CMP DI,-1; JZ 0x24c9d.
+ *   EBX and ESI are pushed *inside* the taken branch, so the whole body is a
+ *   single `if (param_2 != NONE) { ... }` guard. An inverted early `return`
+ *   hoists those saves into the prologue and changes the frame shape.
+ *
+ *   MOV ECX,[0x6325a4]; PUSH EAX(handle); PUSH ECX -> the cdecl argument
+ *   order is datum_get(actor_data, actor_handle); ESI holds the actor datum.
+ *   BL = [EBP+0x10] is loaded *after* that call and reused at 0x24c75 —
+ *   MSVC parked param_3 in a callee-saved register, it is not a second read.
+ *
+ *   The ring cursor at +0x3c6 is re-loaded by a separate MOVSX at 0x24c09,
+ *   0x24c17 and 0x24c26 — three reads of the field, not one cached copy.
+ *   Hoisting it into a local collapses them and adds a frame slot.
+ *
+ *   The wrap is DEC / OR 0xfffffffc / INC guarded by the sign of
+ *   (cursor + 1) & 0x80000003 — MSVC's expansion of a *signed* `% 4`. It is
+ *   deliberately not written as `& 3`: the two differ for a negative cursor
+ *   and the original keeps the signed form.
+ *
+ *   The encounter index is a 32-bit load of [ESI+0x34] masked to 16 bits,
+ *   not a 16-bit load. PUSH 0xb0 and PUSH EDX(index) both precede
+ *   CALL global_scenario_get, so the block pointer is the last argument
+ *   evaluated — plain right-to-left C argument evaluation reproduces that.
+ *
+ *   The single ADD ESP,0x18 at 0x24c84 pays for BOTH tag_block_get_element
+ *   calls (2 x 3 dwords). It is not evidence of a 6-argument callee, and the
+ *   ARG_COUNT hazard raised against 0x24c70 is that mis-grouping.
+ *
+ *   Tail: ADD ESI,0x3dc then three dword MOVs from the firing-position
+ *   element's first 12 bytes (its position) into +0x3dc/+0x3e0/+0x3e4.
+ */
+void FUN_00024be0(int actor_handle, short param_2, char param_3)
+{
+  actor_t *actor;
+  encounter_definition *encounter;
+  int32_t *firing_position;
+
+  if (param_2 != (short)NONE) {
+    actor = (actor_t *)datum_get(actor_data, actor_handle);
+
+    actor->field_3c8[actor->field_3c6].field_00 = param_3;
+    actor->field_3c8[actor->field_3c6].field_02 = param_2;
+    actor->field_3c6 = (short)((actor->field_3c6 + 1) % 4);
+
+    encounter = (encounter_definition *)tag_block_get_element(
+      (char *)global_scenario_get() + 0x42c, actor->field_034 & 0xffff, 0xb0);
+    firing_position = (int32_t *)tag_block_get_element(
+      &encounter->firing_positions, param_2, 0x18);
+
+    actor->field_3d9 = param_3;
+    actor->field_3d8 = 1;
+    actor->field_3dc = firing_position[0];
+    actor->field_3e0 = firing_position[1];
+    actor->field_3e4 = firing_position[2];
   }
 }
