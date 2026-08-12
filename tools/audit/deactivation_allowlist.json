@@ -1503,5 +1503,12 @@
     "object": "real_math.obj",
     "reason": "re-parked 2026-08-10: activated by the real_math VC71 score campaign (4b686ba5d) without runtime evidence. VC71 85.3% (opnd 71.2), @<eax> reg-arg, no equivalence entry in leaf_cache. Dormant pending verification.",
     "since": "2026-08-10"
+  },
+  {
+    "addr": "0x137170",
+    "name": "FUN_00137170",
+    "object": "damage.obj",
+    "reason": "impl is #if 0 in src/halo/objects/damage.c: the sole caller FUN_001377d0 is unported and passes three register args (@<eax>, @<ecx>, @<esi>) that a cdecl C function cannot receive. Pre-existing state on main; re-parked 2026-08-12 after commit 72f0bf2cd collaterally flipped ported to true, which broke the patched_xbe link (symbol absent from EXE exports).",
+    "since": "2026-08-12"
   }
 ]
