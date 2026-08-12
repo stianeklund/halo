@@ -180,6 +180,7 @@ halo/rasterizer/rasterizer_text.c
 	halo/cache/predicted_resources.c
 	halo/cache/xbox_sound_cache.c
 	halo/cache/tags.c
+	halo/cache/cache_files.c
 	)
 
 	if(ENABLE_XDK_HYBRID AND DEFINED XDK_HYBRID_SOURCES)

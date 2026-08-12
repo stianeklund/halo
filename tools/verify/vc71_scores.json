@@ -44762,6 +44762,17 @@
       "score": 83.1,
       "source": "src/halo/scenario/scenario.c"
     },
+    "scenario_tags_unload": {
+      "addr": "0x1b9890",
+      "end": "0x1b98ba",
+      "kind": "auto",
+      "n_r": 11,
+      "opnd_percent": 90.9,
+      "ref": "synth",
+      "ref_sha": "fdf9839db2b759c4",
+      "score": 90.9,
+      "source": "src/halo/cache/cache_files.c"
+    },
     "scenario_test_pas": {
       "addr": "0x18c460",
       "end": "0x18c4c7",
