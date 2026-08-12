@@ -28874,6 +28874,17 @@
       "score": 93.5,
       "source": "src/halo/cache/cache_files_windows.c"
     },
+    "cache_files_give_time_to_precache": {
+      "addr": "0x1b9de0",
+      "end": "0x1b9e6c",
+      "kind": "auto",
+      "n_r": 60,
+      "opnd_percent": 90.4,
+      "ref": "synth",
+      "ref_sha": "fa9a9c9668982714",
+      "score": 92.2,
+      "source": "src/halo/cache/cache_files.c"
+    },
     "cache_files_io_request_enable": {
       "addr": "0x1bcb30",
       "end": "0x1bcb78",

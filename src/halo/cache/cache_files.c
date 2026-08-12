@@ -103,3 +103,48 @@ bool cache_file_header_verify(void *header, const char *path, int report_errors)
   }
   return false;
 }
+
+/* 0x1b9de0 -- advance the background map precache by one slice. Called from
+ * the main loop and from the network client while it waits for a map.
+ *
+ * Returns true only on the one early exit where the map is already precached
+ * (MOV AL,0x1 at 001b9df8). Every other tail returns the same zero flag
+ * register -- BL, zeroed by XOR BL,BL in the prologue and read back as
+ * MOV AL,BL at 001b9e42 and 001b9e65 -- hence the single `done` local rather
+ * than separate false literals.
+ *
+ * The stale-copy check runs first: if a copy is in progress for some OTHER
+ * map, end it before looking at any status. Then either poll the running copy
+ * or start a new one. A status of 2 and a map_begin that returns false share
+ * the single damaged-media tail at 001b9e5f. `progress` is an out-param for
+ * cache_files_precache_map_status and is never read here. */
+bool cache_files_give_time_to_precache(const char *name)
+{
+  bool done = false;
+  float progress;
+
+  if (cache_files_precache_map_loaded((char *)name))
+    return true;
+
+  if (cache_files_precache_in_progress() &&
+      !cache_files_precache_is_copying_map((char *)name))
+    cache_files_precache_map_end();
+
+  if (cache_files_precache_in_progress()) {
+    /* CMP AX,0x2 then CMP AX,0x1 -- a 16-bit compare on the declared
+     * __int16 return, so the status stays narrow. */
+    int16_t status = cache_files_precache_map_status(&progress);
+    if (status != 2) {
+      if (status != 1)
+        return done;
+      cache_files_precache_map_end();
+      return done;
+    }
+  } else {
+    cache_files_precache_set_priority(false);
+    if (cache_files_precache_map_begin((char *)name, false))
+      return done;
+  }
+  display_error_damaged_media();
+  return done;
+}
