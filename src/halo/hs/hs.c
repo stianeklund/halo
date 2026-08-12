@@ -3969,6 +3969,27 @@ void FUN_000c25e0(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc2600 — HaloScript evaluator that cancels an in-progress save, then
+ * commits a 0 result to the calling script thread (a void-returning script
+ * builtin).
+ *
+ * Callees (both cdecl, ported, no register args):
+ *   0x100320 = main_save_cancel(void) — no args pushed
+ *   0xcbf80  = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc2600-0xc2617, 24 bytes): cdecl, plain
+ * RET, frame is PUSH EBP / MOV EBP,ESP only (no SUB ESP, no FPU, no locals).
+ * The single argument read is `MOV EAX,[EBP+0xc]` = thread_datum (arg 2);
+ * Ghidra's `in_stack_00000008` label is a decompiler artifact and would
+ * wrongly pass function_index here. function_index and init are unused in
+ * this body but complete the uniform hs-evaluator signature (matches the
+ * sibling evaluators throughout this TU, e.g. 0xc0cb0 and 0xc25e0). */
+void FUN_000c2600(int16_t function_index, int thread_datum, char init)
+{
+  main_save_cancel();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
