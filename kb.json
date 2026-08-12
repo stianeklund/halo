@@ -34269,7 +34269,8 @@
     },
     {
      "addr": "0x6ab10",
-     "decl": "void FUN_0006ab10(void);"
+     "decl": "void FUN_0006ab10(unsigned long *cp, unsigned char *pp, unsigned long unused_arg, unsigned long w, unsigned long h, long fromskew, long toskew);",
+     "ported": true
     },
     {
      "addr": "0x6ac60",

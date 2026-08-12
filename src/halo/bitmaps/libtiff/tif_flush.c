@@ -1960,6 +1960,154 @@ void FUN_0006aa40(unsigned long *cp, unsigned char *pp,
   }
 }
 
+/*
+ * Expand one 1-bit colormapped tile into the 32-bit RGBA raster.
+ *
+ * Transcribed from the vendored libtiff (tif_getimage.c `put1bitcmaptile`)
+ * rather than reshaped from the decompiler, which lost every parameter and
+ * reported the body as `void(void)` with in_stack_* pseudo-args. Same
+ * build-specific delta as the three sibling writers above: the expansion table
+ * comes from the file-scope static at 0x3340c4 instead of an `img` struct
+ * field.
+ *
+ * Which writer this is, is proven by the dispatcher at 0x6b858 (FUN_0006b780
+ * in this file): the PHOTOMETRIC_PALETTE inner table selects this address for
+ * `bitspersample == 1`, the slot after FUN_0006a9a0 (4) and FUN_0006aa40 (2).
+ * So the table read here is upstream's PALmap -- spelled `BWmap` in this TU,
+ * see the note on that macro above -- and EIGHT pixels come out of every
+ * source byte, which is what makes this the UNROLL8 form.
+ *
+ * The seven cdecl stack slots are the same shape as every sibling writer; only
+ * the ORDER is INFERRED, from upstream's prototype collapsed onto this build's
+ * frame. Slot +0x10 is NEVER READ (upstream's discarded tile origin) and must
+ * stay, or w/h/fromskew/toskew all shift down one slot and every caller --
+ * including the cast at the dispatcher below -- mis-passes them.
+ *   EBP+0x08 -> ecx  cp        dword raster cursor
+ *   EBP+0x0c -> esi  pp        byte source cursor
+ *   EBP+0x10         NEVER READ
+ *   EBP+0x14 -> edi  w         reloaded per row at 0x6ab43 because the
+ *                              unrolled loop leaves its trip counter at zero
+ *   EBP+0x18         h         counted down in its own arg slot
+ *                              (`dec edx` / `mov [ebp+0x18],edx` 0x6ac26)
+ *   EBP+0x1c         fromskew  signed /8 in place at entry, see (1)
+ *   EBP+0x20         toskew    `shl edx,2` into the single EBP-4 local,
+ *                              0x6ab2e/0x6ab36/0x6ab40, see (3)
+ *
+ * Frame: `push ebp / mov ebp,esp / push ecx` (one dword local), with
+ * EBX/ESI/EDI pushed only AFTER the zero-row guard (0x6ab31/0x6ab32/0x6ab3f),
+ * and `mov esp,ebp / pop ebp / ret` with no `add esp` -- plain cdecl, void, no
+ * register arguments. No FPU instructions and no CALLs anywhere: a pure leaf.
+ *
+ * Four things the shape depends on, all read off the disassembly:
+ *
+ * 1. `fromskew /= 8` is a SIGNED DIVIDE, not a shift, and it is hoisted ahead
+ *    of the row loop: `cdq; and edx,7; add eax,edx; sar eax,3` at
+ *    0x6ab1a-0x6ab20 stored back to [ebp+0x1c] at 0x6ab25, AHEAD of the
+ *    `test ecx,ecx; jbe` row guard at 0x6ab23/0x6ab28. Spelling it `>> 3`
+ *    emits a bare SAR, drops the CDQ/AND/ADD triple, and rounds the wrong way
+ *    for a negative skew. It is reloaded at 0x6abb8 on the unrolled path only.
+ *
+ * 2. Like FUN_0006aa40 and unlike FUN_0006a910, the table is NOT hoisted into
+ *    one local: the global is re-read separately in each arm -- 0x6ab53 inside
+ *    the unrolled body (once per source byte, per iteration) and 0x6abc2 for
+ *    the tail. Using the macro inline in both arms is what reproduces that;
+ *    introducing a shared `bwmap` local would hoist the load out of the loop.
+ *
+ * 3. toskew is pre-scaled ONCE (`shl edx,2` -> [EBP-4]) because cp is a dword
+ *    cursor. Keep `cp += toskew` unscaled in C -- pre-scaling here would
+ *    advance the raster four times too far. pp's advance stays unscaled, it is
+ *    a byte cursor.
+ *
+ * 4. Every counter is UNSIGNED, off the mnemonics: row guard `test ecx,ecx;
+ *    jbe` (0x6ab23), unrolled entry `cmp edi,8; jc` (0x6ab46), remainder
+ *    `test edi,edi; jbe` (0x6abbb). Signed spellings would emit jle/jl/jl.
+ *    The `jbe` on the remainder is upstream UNROLL8's `if (_x > 0)`; the
+ *    UNROLL2 writer FUN_0006a9a0's `if (_x)` gets a `jz` instead, so the two
+ *    forms are NOT interchangeable for mnemonic-LCS purposes -- this one is
+ *    the `> 0` spelling.
+ *
+ * The tail at 0x6abbb-0x6ac19 is upstream 3.5.7's CASE8. Unlike the 2- and
+ * 4-bit siblings' short dec/jz chains, MSVC lowered this one to a GENUINE
+ * 7-way jump table: `inc esi` (pp always advances one whole byte), `dec edi`
+ * to base the switch at zero, then `cmp edi,6; ja 0x6ac1c; jmp [edi*4+0x6ac38]`
+ * -- so cases 7..1 fall through, each one dword store plus `add ecx,4`, and a
+ * width of 8 or more cannot reach it. The table itself lives in .rdata at
+ * 0x6ac38; per-function delink drops .rdata switch tables, so this function is
+ * not a candidate for the unicorn equivalence lane (eip=0x0) -- VC71 is the
+ * oracle here. The seven tail stores read CONSECUTIVE entries of the same
+ * resolved BWmap row, exactly as the unrolled body does.
+ */
+void FUN_0006ab10(unsigned long *cp, unsigned char *pp,
+                  unsigned long unused_arg, unsigned long w, unsigned long h,
+                  long fromskew, long toskew)
+{
+  unsigned long *bw;
+  unsigned long x;
+
+  /* Upstream discards the tile-origin arguments the same way. */
+  (void)unused_arg;
+
+  /* 0x6ab1a: signed eighth, see (1) above. Eight pixels per source byte, so
+   * the row skew is expressed in source bytes here. */
+  fromskew /= 8;
+
+  /* 0x6ab23 guard, 0x6ac26 store-back of the decremented count. The guard sits
+   * ahead of the callee-saved pushes, so a zero-height tile leaves EBX/ESI/EDI
+   * untouched -- that is what the guard-first `while (h-- > 0)` reproduces. */
+  while (h-- > 0) {
+    /* 0x6ab46-0x6abb6: upstream UNROLL8 in op1/op2 form. op1 is the table
+     * lookup (once per source byte), op2 is REPEAT8'd into eight stores off
+     * the one resolved row pointer. The disassembly interleaves the two
+     * `add edx,4`/`add ecx,4` streams for scheduling; that is MSVC's, not the
+     * source's. */
+    for (x = w; x >= 8; x -= 8) {
+      bw = BWmap[*pp++];
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+      *cp++ = *bw++;
+    }
+
+    /* 0x6abbb-0x6ac19: op1 once more, then CASE8 as a real jump table. The odd
+     * final byte is consumed whole and its unused low bits are discarded. */
+    if (x > 0) {
+      bw = BWmap[*pp++];
+      switch (x) {
+      case 7:
+        *cp++ = *bw++;
+        /* fall through */
+      case 6:
+        *cp++ = *bw++;
+        /* fall through */
+      case 5:
+        *cp++ = *bw++;
+        /* fall through */
+      case 4:
+        *cp++ = *bw++;
+        /* fall through */
+      case 3:
+        *cp++ = *bw++;
+        /* fall through */
+      case 2:
+        *cp++ = *bw++;
+        /* fall through */
+      case 1:
+        *cp++ = *bw++;
+      }
+    }
+
+    /* 0x6ac1c: `add ecx,[ebp-0x4]` with the local holding the pre-scaled
+     * toskew*4 -- keep this unscaled in C, cp is a dword cursor. */
+    cp += toskew;
+    /* 0x6ac1f: unscaled add of the eighthed fromskew; pp is a byte cursor. */
+    pp += fromskew;
+  }
+}
+
 /* The 8-bit colormap expansion table, the other static tif_open.c frees at
  * tif_getimage.c line 125 (which is what pins this TU's upstream source file
  * to tif_getimage.c, not tif_flush.c -- kb.json's object grouping is what puts
