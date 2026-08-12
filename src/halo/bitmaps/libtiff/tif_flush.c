@@ -2459,6 +2459,115 @@ void FUN_0006b190(unsigned long *cp, unsigned char *r, unsigned char *g,
 }
 
 /*
+ * FUN_0006b2d0 -- 0x6b2d0, the 16-bit-per-sample twin of FUN_0006b190 above:
+ * upstream libtiff's putRGBseparate16bittile, fused with a no-table arm the
+ * same way every other put-tile routine in this TU is fused.
+ *
+ * Ghidra had no prototype here either (the seeded kb.json decl was the
+ * placeholder `void FUN_0006b2d0(void)`), so every argument came back as an
+ * ESP-relative `in_stack_...` label. The nine cdecl slots are proven by their
+ * reads at EBP+8..EBP+0x28; only the ORDER is INFERRED, and it is inferred
+ * from the sibling at 0x6b190 having the identical nine-slot frame:
+ *   +0x08  cp        the dword raster cursor
+ *   +0x0c  r  -> eax the plane OR'd in at bits 0..7
+ *   +0x10  g  -> ecx the plane OR'd in at bits 8..15
+ *   +0x14  b  -> esi the plane OR'd in at bits 16..23
+ *   +0x18  map -> edi BOTH the branch selector (`test edi,edi; jz 0x6b376`)
+ *                 AND the lookup table itself.
+ *   +0x1c  w         inner count, re-loaded per row (0x6b394 on the plain arm)
+ *                    because the counter register was consumed -- register
+ *                    allocation, not a second semantic read.
+ *   +0x20  h         row count, copied into a reused arg slot at 0x6b309 and
+ *                    0x6b388.
+ *   +0x24  fromskew  in uint16 ELEMENTS: `add edx,edx` (0x6b2fb) / `add
+ *                    edi,edi` (0x6b383) doubles it once, ahead of both loops,
+ *                    which is exactly what `r += fromskew` emits for an
+ *                    `unsigned short *`.
+ *   +0x28  toskew    in uint32 elements: `shl ebx,2` (0x6b2fd / 0x6b385), i.e.
+ *                    what `cp += toskew` emits for an `unsigned long *`. Both
+ *                    scales are spelled as element-count pointer arithmetic
+ *                    below and never as `* 2` / `* 4`.
+ * Frame is `push ebp; mov ebp,esp` plus EBX/ESI/EDI and NO `sub esp` -- zero
+ * locals. Both pre-scaled skews are parked back into ARGUMENT slots
+ * ([EBP+0xc] and [EBP+0x10]) because all six usable GPRs are live, and
+ * [EBP+0x14]/[EBP+0x18] are reused as the two trip counters. That is register
+ * pressure, not extra state.
+ *
+ * The samples are 16-bit, and that is proven rather than assumed: every source
+ * load is `movzx r32, word ptr` (0x6b320, 0x6b328, 0x6b337 on the table arm;
+ * 0x6b3a0, 0x6b3a3, 0x6b3ab on the plain one) and every plane cursor advances
+ * by `add reg,2`. Typing the planes `unsigned char *` would halve all three
+ * strides and silently mis-sample the tile.
+ *
+ * `map` is indexed by the FULL zero-extended 16-bit sample -- `mov bh, byte
+ * ptr [edx+edi]` with EDX holding the movzx'd word -- so it is upstream's
+ * Bitdepth16To8: a >=64K BYTE table, not a 256-entry one. The byte-sized load
+ * is also what keeps it `unsigned char *` rather than the `unsigned long` the
+ * shared put-proc typedef declares for that slot.
+ *
+ * Two things here are NOT upstream and must not be "corrected" to it:
+ *
+ * 1. The plain arm does NOT narrow its samples. Upstream ships no no-table
+ *    16-bit separate writer at all, so the tempting repair is to shift each
+ *    sample down by 8 first. The binary does not: 0x6b3a0-0x6b3b3 is
+ *    `movzx; movzx; shl 8; or; movzx; shl 8; or` on the RAW words, so any
+ *    sample above 0xff overlaps into the next channel. Adding a `>> 8` would
+ *    be a behaviour change dressed as a cleanup.
+ *
+ * 2. No 0xff alpha term, same as every other pack in this TU (see PACK above).
+ *
+ * The pack ORDER is the one place a plausible-looking transcription silently
+ * swaps channels. Table arm, 0x6b320: `movzx edx,word[esi]` (the b cursor)
+ * then `xor ebx,ebx` / `mov bh,[edx+edi]` puts map[*b] at bits 8..15, `mov
+ * bl,[edx+edi]` with EDX = *g puts map[*g] at bits 0..7, then `shl ebx,8`
+ * lifts those to 16..23 and 8..15 and `or ebx,edx` folds map[*r] in at the
+ * bottom. Result map[*r] | map[*g]<<8 | map[*b]<<16, i.e. PACK(map[*r],
+ * map[*g], map[*b]) -- the same channel order as the 8-bit sibling. The plain
+ * arm is the identical shape on raw words (`((*b<<8)|*g)<<8|*r`); MSVC factors
+ * the common <<8 out of PACK's b<<16 and g<<8 exactly the way it uses BH/BL to
+ * do it for free in the byte-sample sibling. Ghidra's CONCAT21(CONCAT11(...))
+ * spelling of the table pack must not reach the source (lift-learnings 13).
+ *
+ * Every loop guard is `jbe` (0x6b2ef, 0x6b316, 0x6b37b, 0x6b399), so w and h
+ * are UNSIGNED; signed counters would emit jl/jle and invert the zero-trip
+ * behaviour for a w or h of 0. There are two separate epilogues (0x6b371 and
+ * 0x6b3df) and both h==0 early-outs jump to the second one.
+ */
+void FUN_0006b2d0(unsigned long *cp, unsigned short *r, unsigned short *g,
+                  unsigned short *b, unsigned char *map, unsigned long w,
+                  unsigned long h, long fromskew, long toskew)
+{
+  unsigned long x;
+
+  /* 0x6b2e1 `test edi,edi; jz 0x6b376` -- the table arm is the fall-through,
+   * so it is spelled first here as well. */
+  if (map != 0) {
+    while (h-- > 0) {
+      for (x = w; x-- > 0;)
+        *cp++ = PACK(map[*r++], map[*g++], map[*b++]);
+
+      /* Upstream's SKEW(r, g, b, fromskew) BEFORE the raster advance. The
+       * plain arm below does it the other way round -- see 0x6b35a-0x6b369
+       * versus 0x6b3cd, the same asymmetry the 8-bit sibling has. */
+      r += fromskew;
+      g += fromskew;
+      b += fromskew;
+      cp += toskew;
+    }
+  } else {
+    while (h-- > 0) {
+      for (x = w; x-- > 0;)
+        *cp++ = PACK(*r++, *g++, *b++);
+
+      cp += toskew; /* 0x6b3cd, ahead of the three plane advances */
+      r += fromskew;
+      g += fromskew;
+      b += fromskew;
+    }
+  }
+}
+
+/*
  * FUN_0006b780 -- 0x6b780, upstream libtiff's PickContigCase.
  *
  * Selects the packed-sample tile writer for the decoder state that
