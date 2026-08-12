@@ -13,6 +13,9 @@
  *     stale the encounter's record of examining it is (type 5) and by how few
  *     times it has been examined (type 6), after either marking it examined or
  *     querying the existing record.
+ *   post_evaluator_hide (0x245d0) — the hide evaluator: score a candidate by
+ *     its aiming kind through a 5-entry jump table, crediting the same
+ *     FUN_00024000 accumulator (credit type 0x12).
  *   FUN_00024770 (0x24770) — the twin evaluator from the same dispatch table:
  *     score a candidate by its aiming kind (0 / 1 / default) rather than by
  *     path availability, crediting the same FUN_00024000 accumulator.
@@ -446,6 +449,118 @@ int FUN_00024450(int actor_handle, char *eval_state, char *firing_position)
     FUN_00024000(eval_state, score, 6, firing_position);
   }
 
+  return *(unsigned char *)(firing_position + 0x30);
+}
+
+/* post_evaluator_hide (0x245d0) — the hide evaluator: score a candidate
+ * firing position by its aiming kind, crediting the same FUN_00024000
+ * accumulator as the rest of the family (credit type 0x12 here).
+ *
+ * Third member of the evaluator family, so it carries the same
+ * three-parameter shape and the same shared tail as FUN_00024450 /
+ * FUN_000246b0 / FUN_00024770: MOVZX EAX,BYTE PTR [ESI+0x30] at 0x24694,
+ * i.e. the return is int-width and not char.
+ *
+ * The first parameter is DEAD here, exactly as in FUN_000246b0 and
+ * FUN_00024770: nothing in 0x245d0..0x2469b touches [EBP+0x8].
+ *
+ * Confirmed from the listing at 0x245d0 (disassembled from the pristine XBE):
+ *   0x245d4  MOV EDI,[EBP+0xC]  — eval_state lives in EDI for the whole body,
+ *            which is why MSVC is free to reuse its home slot for `score`.
+ *   0x245da  MOV ESI,[EBP+0x10] — firing_position stays in ESI and is
+ *            re-tested at the shared tail 0x24687 to choose the return value.
+ *            The 0x5fc gate jumps *to that tail*, so a closed gate still runs
+ *            the return-value selection; it is not an early `return 0`.
+ *
+ *   0x245ec  FLD [EDI+0x660] / FADD [0x254CC8] / FSTP [EDI+0x660]. The field
+ *            is loaded FIRST, so this is the compound `+=` form, matching
+ *            FUN_000246b0 and unlike FUN_00024770's tail where the constant
+ *            is FLD'd first. This path RETURNS at 0x24606 — it does not fall
+ *            through to the FUN_00024000 call. MOV EAX,1 is scheduled between
+ *            the FLD and the FADD, which is where the `return 1` comes from.
+ *            [0x254CC8] == 0x41400000 == 12.0f, a VC71 literal-pool slot in
+ *            this TU (its neighbours are 15.0f, 5.0f, 7.5f), not a game
+ *            global.
+ *
+ *   0x24618  MOVSX EAX,WORD PTR [ESI+6] / CMP EAX,4 / JA default /
+ *            JMP [EAX*4 + 0x2469C] — a real 5-entry jump table, so this
+ *            dispatch is a dense switch rather than the decrement chains the
+ *            two-case siblings at 0x246ea / 0x247ce use. The load is MOVSX,
+ *            so the selector is int16 and must not be widened to int.
+ *            The `score = 0.0f` seed is a plain MOV DWORD [EBP+0xC],0 at
+ *            0x2460f, ahead of the table dispatch.
+ *
+ *   Jump table contents at 0x2469c, in case-value order 0..4:
+ *            0x2464A, 0x24631, 0x2461F, 0x24641, 0x24628.
+ *            Case 1 does not have its own rejection code: when the [+0x8]
+ *            gate is clear it branches to 0x2464A, the *shared* case-0 body.
+ *            That shared block is why case 1 is written as a goto into case 0
+ *            rather than a duplicated body — the binary has exactly one copy.
+ *
+ *   0x2467f  pushes 0x12, then score, then eval_state (ADD ESP,0xC pays for
+ *            exactly three) while firing_position is still live in ESI,
+ *            matching FUN_00024000's @<esi> fourth parameter.
+ *
+ *   The default arm is a hard assert: PUSH 1 / PUSH 0x45D / PUSH 0x254C8C /
+ *   PUSH 0 / CALL display_assert, then PUSH -1 / CALL system_exit. The
+ *   predicate pointer is NULL, not a string, so this cannot use assert_halt_at
+ *   (that macro stringifies its condition); it is spelled out instead.
+ *
+ * Offsets used (raw; struct identities not yet proven):
+ *   eval_state      +0x008 char   gate that lets aim kind 1 score instead of
+ *                                 being rejected
+ *                   +0x014 char   "keep rejected positions" gate (as the twins)
+ *                   +0x5fc char   master gate
+ *                   +0x660 float  rejected-position accumulator
+ *   firing_position +0x006 int16  aim kind, dispatched 0 / 1 / 2 / 3 / 4
+ *                   +0x030 char   usable flag (also the return value)
+ *                   +0x031 char   rejected flag
+ */
+int post_evaluator_hide(int actor_handle, char *eval_state,
+                        char *firing_position)
+{
+  float score;
+
+  (void)actor_handle; /* DEAD: no [EBP+8] access in disasm */
+
+  if (*(char *)(eval_state + 0x5fc) != '\0') {
+    if (firing_position == (char *)0) {
+      *(float *)(eval_state + 0x660) += 12.0f;
+      return 1;
+    }
+
+    score = 0.0f;
+    switch (*(short *)(firing_position + 6)) {
+    case 2:
+      score = 12.0f;
+      break;
+    case 4:
+      score = 10.0f;
+      break;
+    case 1:
+      if (*(char *)(eval_state + 8) == '\0')
+        goto reject_position;
+      score = 6.0f;
+      break;
+    case 3:
+      score = 4.0f;
+      break;
+    case 0:
+    reject_position:
+      *(char *)(firing_position + 0x31) = 1;
+      if (*(char *)(eval_state + 0x14) == '\0')
+        *(char *)(firing_position + 0x30) = '\0';
+      break;
+    default:
+      display_assert(0, "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x45d,
+                     1);
+      system_exit(-1);
+    }
+    FUN_00024000(eval_state, score, 0x12, firing_position);
+  }
+
+  if (firing_position == (char *)0)
+    return 1;
   return *(unsigned char *)(firing_position + 0x30);
 }
 

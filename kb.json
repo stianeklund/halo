@@ -36259,7 +36259,8 @@
     },
     {
      "addr": "0x245d0",
-     "decl": "void post_evaluator_hide(void);"
+     "decl": "int post_evaluator_hide(int actor_handle, char *eval_state, char *firing_position);",
+     "ported": true
     },
     {
      "addr": "0x246b0",

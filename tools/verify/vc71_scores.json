@@ -42287,6 +42287,17 @@
       "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
+    "post_evaluator_hide": {
+      "addr": "0x245d0",
+      "end": "0x2469c",
+      "kind": "auto",
+      "n_r": 67,
+      "opnd_percent": 87.0,
+      "ref": "synth",
+      "ref_sha": "2d39c69b3096b9f5",
+      "score": 94.7,
+      "source": "src/halo/ai/actor_firing_position.c"
+    },
     "predicted_resources_precache": {
       "addr": "0x1bde10",
       "end": "0x1bde82",
