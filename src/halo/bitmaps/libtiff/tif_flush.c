@@ -53,9 +53,10 @@ typedef int (*tiff_seek_method_t)(void *tif, unsigned long nrows);
 /* The setup/postencode and close/cleanup method shapes, repeated from
  * tif_open.c for the same file-scope-typedef reason. `tiff_bool_method_t` is
  * pinned for 0xf8 by FUN_00069520 in this TU (kb.json: `int (void *tif)`);
- * 0xf0 and 0xf4 take FUN_00068d80 / FUN_00069420. FUN_00068d80's int return
- * is proven below; FUN_00069420 remains unrecovered, so its int return is
- * still INFERRED from upstream's `tif_setupencode` shape.
+ * 0xf0 and 0xf4 take FUN_00068d80 / FUN_00069420. Both int returns are now
+ * proven below: each body reaches its epilogue through an explicit `mov eax,1`
+ * (0x694f7 and 0x6950a on the encode side) against a zero return on its
+ * state-allocation failure path.
  * `tiff_void_method_t` is pinned for 0x114 and 0x11c by FUN_00069590 and
  * FUN_000695c0, both already recovered in this TU as `void (void *tif)`. */
 typedef int (*tiff_bool_method_t)(void *tif);
@@ -95,6 +96,28 @@ typedef struct tiff_codec_bits_s {
   int field_10; /* 0x10 */
   const unsigned char *bitmap; /* 0x14 */
   unsigned char *fill_line; /* 0x18 */
+  /* 0x1c / 0x20 -- the two run-length scan tables, promoted by FUN_00069420,
+   * which stores 0x2ec3c8 and 0x2ec4c8 into them (`mov dword ptr [eax+0x1c]`
+   * / `[eax+0x20]` on both arms of the 0x69455 branch) and SWAPS the pair when
+   * `fill_white` is nonzero. The two globals are 0x100 bytes apart and their
+   * contents identify them outright against upstream tif_fax3.c: 0x2ec3c8
+   * begins `08 07 06 06 05 05 05 05 04 04 04 04 04 04 04 04`, upstream's
+   * `zeroruns[256]`, and 0x2ec4c8 begins with sixteen zero bytes, upstream's
+   * `oneruns[256]`. Which of the two members is the white scanner and which
+   * the black one is NOT proven -- no body observed here READS either slot --
+   * so they stay `field_`. */
+  const unsigned char *field_1c; /* 0x1c */
+  const unsigned char *field_20; /* 0x20 */
+  /* 0x24 / 0x26 -- 16-bit, written only by FUN_00069420 as the pair (n-1, n)
+   * with n in {2,4}, or as (0,0) when 2D encoding is off. Names are INFERRED
+   * from upstream tif_fax3.c's `Fax3PreEncode`, whose tail is
+   * `sp->maxk = (res > 150 ? 4 : 2); sp->k = sp->maxk-1;` for 2D and
+   * `sp->k = sp->maxk = 0;` otherwise -- the same values, the same store
+   * order, and the same declaration order (k below maxk). Upstream declares
+   * both `int`; this build stores them as WORDS (`mov word ptr [esi+0x26]`,
+   * `mov word ptr [esi+0x24]`), so the width here is 2, not 4. */
+  short k; /* 0x24 */
+  short maxk; /* 0x26 */
 } tiff_codec_bits_t;
 
 typedef struct tiff_s {
@@ -897,6 +920,136 @@ int FUN_00068d80(void *tif_)
       state->field_10 = (bit_result == 0);
     }
   }
+  return 1;
+}
+
+/* The two 256-byte run-scan tables the codec state caches at 0x1c/0x20. Their
+ * identity is proven by content, not by shape -- see the tiff_codec_bits_t
+ * comment above. */
+#define TIFF_FAX_ZERORUNS ((const unsigned char *)0x2ec3c8)
+#define TIFF_FAX_ONERUNS ((const unsigned char *)0x2ec4c8)
+
+/**
+ * Reset fax codec state for encoding and pick the 2D row budget.
+ *
+ * By shape this is upstream libtiff tif_fax3.c's `Fax3PreEncode`: the
+ * `sp->bit = 8; sp->data = 0; sp->tag = G3_1D;` triple, the reference-line
+ * fill, the `is2DEncoding` guard around a yresolution-derived
+ * `sp->maxk = (res > 150 ? 4 : 2); sp->k = sp->maxk-1;`, the `sp->k = sp->maxk
+ * = 0;` else arm and the unconditional `return 1` all line up member for
+ * member. The upstream identity is INFERRED from shape; kb.json maps the
+ * address into tif_flush.obj, which is why the body lives here rather than in
+ * a tif_fax3.c of its own. It is the `tif_setupencode` (0xf4) counterpart of
+ * FUN_00068d80 above, which is the `tif_setupdecode` (0xf0) side, and the two
+ * bodies differ in exactly four places: the extra_size handed to the state
+ * allocator (0x28 here against 0x1c), `bit` being primed to 8 rather than 0,
+ * the run-table pair cached on the fresh-allocation path, and this tail
+ * instead of the decoder's bit-reader priming.
+ *
+ * Two encode-side deviations from stock upstream are real, not translation
+ * artifacts. First, upstream clears the reference line to a literal 0x00;
+ * this build fills it with the same photometric mask the decoder uses
+ * (`fill_white ? 0xff : 0x00`). Second, upstream converts a
+ * RESUNIT_CENTIMETER resolution with a single `res *= 2.54f`; this build
+ * applies TWO double multiplies, 0.3937 then 1/2.54, in that order. Both
+ * multipliers are separate .rdata doubles (0x260140 = 0.3937 exactly,
+ * 0x260138 = 0x3fd93264c993264c, the double nearest 1/2.54) and MSVC cannot
+ * fold them into one, because `(res * A) * B` is not reassociable without
+ * /fp:fast -- so the pair of FMULs is what the source says, however odd the
+ * resulting scale factor (~0.155) looks against upstream's intent. The
+ * threshold at 0x260134 is a FLOAT 150.0, compared with `fcomp dword ptr`, so
+ * the widths are not interchangeable here.
+ *
+ * ABI recovered from the frame at 0x69420: `push ebp / mov ebp,esp / push ebx
+ * / push esi` with no `sub esp` (zero locals), so cdecl with a single stack
+ * argument at [EBP+8] -- loaded into EBX at 0x69424 and RELOADED at 0x694ad
+ * because BL/BH are borrowed to broadcast the fill byte in between. The EDI
+ * pushed at 0x6946d and popped at 0x694bd is a mid-body save around that same
+ * fill, not a prologue register. Ghidra reported `void(void)`: it saw neither
+ * the `[ebp+8]` load nor the return, which is where its phantom
+ * `in_stack_00000004` and `extraout_EAX` came from.
+ *
+ * The only call is FUN_00068c70 at 0x69436, which takes the handle in ESI
+ * (`mov esi,ebx` at 0x69434) and `extra_size` on the stack (`push 0x28`,
+ * `add esp,4` after). 0x28 is exactly sizeof(tiff_codec_bits_t), which
+ * corroborates the four members promoted above: the decoder asks for 0x1c and
+ * never touches 0x1c..0x27. A null result is returned to the caller
+ * unchanged, before any state store happens.
+ *
+ * The reference expands the reference-line fill inline (`shr ecx,2 / rep
+ * stosd`, then `and ecx,3 / rep stosb` at 0x694b0-0x694b7, with the count
+ * shifted LOGICALLY while its `test ecx,ecx / jle` entry guard is SIGNED).
+ * That is the compiler's fill substitution, not something the C says, and it
+ * is kept here as the same byte loop FUN_00068d80 uses: an inline memset
+ * expansion needs no entry guard at all, and `memset` is not linkable in this
+ * build (`-nostdlib -ffreestanding -fno-builtin`).
+ *
+ * @param tif_ TIFF handle (declared void* so the generated header needs no
+ *             libtiff types). Never null-checked.
+ * @return 1 on success, 0 when the codec state could not be allocated.
+ */
+int FUN_00069420(void *tif_)
+{
+  char *tif;
+  tiff_codec_bits_t *state;
+  unsigned char *fill_ptr;
+  unsigned char fill_byte;
+  int fill_count;
+  float res;
+  short maxk;
+
+  tif = (char *)tif_;
+  state = *(tiff_codec_bits_t **)(tif + 0x120);
+  if (state == 0) {
+    state = (tiff_codec_bits_t *)FUN_00068c70(tif_, 0x28);
+    if (state == 0)
+      return 0;
+    /* Only the freshly-allocated block gets the tables; a state the decoder
+     * side already built keeps whatever pair it was given. */
+    if (state->fill_white == 0) {
+      state->field_1c = TIFF_FAX_ZERORUNS;
+      state->field_20 = TIFF_FAX_ONERUNS;
+    } else {
+      state->field_1c = TIFF_FAX_ONERUNS;
+      state->field_20 = TIFF_FAX_ZERORUNS;
+    }
+  }
+
+  /* 0x2 is primed to a full byte so the first putbits sees an empty
+   * accumulator; the decode side primes it to 0 instead. */
+  state->bit = 8;
+  state->data = 0;
+  state->field_10 = 0;
+
+  fill_ptr = state->fill_line;
+  if (fill_ptr != 0) {
+    /* Paint the whole reference line white (0xff) for a photometrically
+     * inverted image, black (0x00) otherwise. The reference widens the flag to
+     * a full byte mask with neg/sbb rather than branching on it. */
+    fill_count = state->rowbytes;
+    fill_byte = (unsigned char)-(state->fill_white != 0);
+    while (fill_count > 0) {
+      *fill_ptr = fill_byte;
+      fill_ptr++;
+      fill_count--;
+    }
+  }
+
+  if ((*(unsigned char *)(tif + 0x68) & 1) != 0) {
+    res = *(float *)(tif + 0x58);
+    if (*(short *)(tif + 0x5c) == 3)
+      res = res * 0.3937 * 0.39370078740157477;
+    /* `fcomp dword ptr [0x260134] / fnstsw ax / test ah,0x41 / jz` -- the mask
+     * covers C0|C3, so BOTH clear means ST(0) is strictly GREATER than the
+     * threshold. This is a `>` test, not the equality the bare `jz` suggests.
+     */
+    maxk = (res > 150.0f) ? 4 : 2;
+    state->maxk = maxk;
+    state->k = (short)(maxk - 1);
+    return 1;
+  }
+  state->maxk = 0;
+  state->k = 0;
   return 1;
 }
 
