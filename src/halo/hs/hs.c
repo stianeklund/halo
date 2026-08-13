@@ -5464,6 +5464,64 @@ void FUN_000c2f10(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* HaloScript handler shim for the error-overflow-suppression macro function —
+ * the single-boolean-argument member of the hs-evaluator shim family.
+ * Evaluates the macro arguments; on a non-null result block the record is a
+ * lone { bool suppress } at offset +0x0, which is handed to
+ * errors_overflow_suppression_enable, then 0 is returned to the script thread.
+ *
+ * Verified against disassembly 0xc2f30-0xc2f63 (24 instructions, 0x34 bytes):
+ *   PUSH EBP; MOV EBP,ESP; PUSH ESI   ; bare frame — no SUB ESP, no _chkstk,
+ *                                     ; so NO locals; ESI is the one
+ *                                     ; callee-saved register
+ *   MOV ECX,[EBP+0x8]   ; function_index (int16_t per the evaluator's decl)
+ *   MOV ESI,[EBP+0xc]   ; thread_datum — cached in ESI precisely because it is
+ *                       ; re-read after the evaluator call for hs_return
+ *   MOV EAX,[EBP+0x10]  ; init
+ *   PUSH EAX; PUSH ESI; PUSH ECX; CALL 0xcc560
+ *   TEST EAX,EAX; JZ 0xc2f61          ; null-result guard, jumps to epilogue
+ *   XOR EDX,EDX; MOV DL,byte ptr [EAX]; PUSH EDX; CALL 0x8f210
+ *   PUSH 0x0; PUSH ESI; CALL 0xcbf80
+ *   ADD ESP,0xc; POP ESI; POP EBP; RET
+ *
+ * cdecl pushes right-to-left, so the last push is the first C argument: the
+ * evaluator call is (function_index, thread_datum, init), matching its kb decl
+ * with no operand swap.  Ghidra mis-prototypes this function as
+ * `void FUN_000c2f30(void)` and therefore reports the three parameters as
+ * phantom `in_stack_*` locals whose offsets are all 4 too low; the kb decl was
+ * widened from that void(void) form with this lift.  Taking Ghidra's offsets at
+ * face value would pass function_index as the thread handle.
+ *
+ * The dereference is a ZERO-extended single BYTE at offset +0x0
+ * (`xor edx,edx; mov dl,[eax]`) — not a dword and not a sign-extended byte.
+ * Reading it as `*(int *)result` would be a LOADW-class field-width bug, and
+ * the evaluator's `int` kb return type is really a record POINTER, so it is
+ * cast, never used as a value.  hs_return's second argument is the literal 0
+ * (PUSH 0x0), not a computed result.
+ *
+ * The single `add esp,0xc` in the epilogue is MSVC's merged cleanup for BOTH
+ * calls (0x4 for errors_overflow_suppression_enable + 0x8 for hs_return); a
+ * naive cdecl reading of that one cleanup makes hs_return look like it takes 3
+ * stack args, but it takes 2.  The call-site audit's ARG_COUNT warning here is
+ * that false positive (same as FUN_000c2a00 / FUN_000c2b10 above).
+ *
+ * Callees (all cdecl, ported, no register args):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0x8f210 = errors_overflow_suppression_enable(suppress)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c2f30(int16_t function_index, int thread_datum, char init)
+{
+  bool *result;
+
+  result =
+    (bool *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    errors_overflow_suppression_enable(*result);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
