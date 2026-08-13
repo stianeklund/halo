@@ -11310,7 +11310,8 @@
     },
     {
      "addr": "0xc3550",
-     "decl": "void FUN_000c3550(void);"
+     "decl": "void FUN_000c3550(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc3570",

@@ -6384,6 +6384,49 @@ void FUN_000c3510(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc3550 — HaloScript function handler: reset the scripted HUD time code.
+ *
+ * The last member of the scripted_hud handler run, and the only one that takes
+ * no HaloScript arguments: because there is nothing to evaluate it skips the
+ * 0xcc560 hs_macro_function_evaluate call entirely and unconditionally invokes
+ * the dispatch target, then completes the script thread.
+ *
+ * Ghidra mis-prototypes this as `void FUN_000c3550(void)` and surfaces the one
+ * stack argument it can see as `in_stack_00000008`; that label is misleading —
+ * the MOV reads [EBP+0x0C], i.e. the SECOND cdecl stack slot, which is
+ * thread_datum under the handler convention every sibling in this TU uses:
+ *   [EBP+0x08] arg1 int16_t function_index  (never read here)
+ *   [EBP+0x0C] -> EAX -> arg2 int thread_datum
+ *   [EBP+0x10] arg3 char init               (never read here)
+ * The kb decl was widened to that three-parameter shape rather than to the two
+ * slots the body happens to touch: the dispatcher calls every handler in the
+ * table uniformly, and unread trailing cdecl params emit no code, so the
+ * narrower decl would buy nothing and misstate the ABI.
+ *
+ * Full body, 24 bytes (0xc3550-0xc3567):
+ *   PUSH EBP / MOV EBP,ESP           ; bare frame, no locals, no _chkstk
+ *   CALL 0xd4a90                     ; scripted_hud_time_code_reset(), 0 args
+ *   MOV EAX, dword ptr [EBP+0xc]     ; thread_datum
+ *   PUSH 0x0 / PUSH EAX              ; cdecl: last arg pushed first
+ *   CALL 0xcbf80                     ; hs_return(thread_datum, 0)
+ *   ADD ESP,0x8 / POP EBP / RET
+ * Push order proves hs_return(thread_datum, 0), not the reverse; ADD ESP,0x8
+ * is the cleanup for that single 2-argument call, so unlike the siblings there
+ * is no merged-cleanup ARG_COUNT false positive here.
+ *
+ * No FPU ops, no narrow loads (so no signedness question), no struct access,
+ * no buffers, no branches.
+ *
+ * Callees (both cdecl, in kb.json, no register arguments):
+ *   0xd4a90 = scripted_hud_time_code_reset(void)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c3550(int16_t function_index, int thread_datum, char init)
+{
+  scripted_hud_time_code_reset();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
