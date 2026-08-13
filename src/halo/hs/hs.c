@@ -5041,6 +5041,44 @@ void FUN_000c2bd0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2c20 — HaloScript handler: evaluate the macro function's single argument
+ * block and forward its first byte to scripted_show_hud_help_text, returning
+ * that call's result to the calling script thread.  Structurally identical to
+ * the immediately preceding handler FUN_000c2bd0, differing only in the callee.
+ *
+ * Argument deref is a zero-extended BYTE load (`XOR EDX,EDX ; MOV DL,[EAX]`),
+ * so the argument block's first field is read as unsigned char, not a dword.
+ *
+ * The return value is staged through a 4-byte slot at EBP-4 that MSVC zeroes
+ * BEFORE the evaluate call (`MOV dword [EBP-4],0` at 0xc2c31, scheduled among
+ * that call's arg pushes), then overwrites only its low byte with AL
+ * (`MOV byte [EBP-4],AL`), then reloads in full (`MOV EAX,dword [EBP-4]`) to
+ * pass to hs_return.  The union models that byte-into-zeroed-dword shape; a
+ * plain `hs_return(thread_datum, scripted_show_hud_help_text(*result))` would
+ * drop the pre-call zeroing and change the extension width.
+ *
+ * ABI (verified against disassembly 0xc2c20-0xc2c62): cdecl, ESI holds
+ * thread_datum across the body, plain RET.  The trailing `ADD ESP,0xc` at
+ * 0xc2c5b is a merged cdecl cleanup covering the 1-arg
+ * scripted_show_hud_help_text call plus the 2-arg hs_return call (4+8) — do
+ * not read it as a 3-arg hs_return. */
+void FUN_000c2c20(int16_t function_index, int thread_datum, char init)
+{
+  union {
+    char boolean_value;
+    int long_value;
+  } value;
+  int *result;
+
+  value.long_value = 0;
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    value.boolean_value = scripted_show_hud_help_text(*(unsigned char *)result);
+    hs_return(thread_datum, value.long_value);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
