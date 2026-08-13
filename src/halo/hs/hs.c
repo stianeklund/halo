@@ -6244,6 +6244,50 @@ void FUN_000c3460(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc34a0 — HaloScript function handler: return the scripted HUD timer's
+ * remaining tick count to the calling script thread.
+ *
+ * Takes no script arguments (there is no hs_macro_function_evaluate call and
+ * no guard); it simply queries the timer and commits the result.
+ *
+ * Ghidra mis-prototypes this as `void FUN_000c34a0(void)` and surfaces the one
+ * stack argument it does read as `in_stack_00000008` ([EBP+0xc] = arg 2).  The
+ * kb decl was widened to the standard hs handler shape used by every sibling in
+ * this TU; function_index and init are unread here, exactly as in FUN_000c0cb0
+ * at 0xc0cb0.  The `in_stack_*` name is the tell for dropped cdecl stack
+ * params, NOT for register arguments — this function takes none.
+ *
+ * The 16-bit return is staged through a 4-byte slot at EBP-4 that MSVC zeroes
+ * BEFORE the call (`MOV dword [EBP-4],0` at 0xc34a4), then overwrites only its
+ * low word with AX (`MOV word [EBP-4],AX`), then reloads in full
+ * (`MOV EAX,dword [EBP-4]`) to pass to hs_return.  The union models that
+ * word-into-zeroed-dword shape; a plain
+ * `hs_return(thread_datum, scripted_hud_get_timer_ticks())` would drop the
+ * pre-call zeroing and promote with MOVSX/MOVZX instead.  Same idiom as
+ * FUN_000c2bd0 at 0xc2bd0, with a word member rather than a byte one.
+ *
+ * ABI (verified against disassembly 0xc34a0-0xc34c7): cdecl, plain RET.  Frame
+ * is `PUSH EBP / MOV EBP,ESP / PUSH ECX` — one 4-byte local, no _chkstk, no
+ * buffers.  `ADD ESP,0x8` after 0xcbf80 confirms hs_return takes exactly two
+ * cdecl arguments; the first PUSH (EAX = value) is therefore the LAST C
+ * argument, giving hs_return(thread_datum, value).
+ *
+ * Callees (both cdecl, in kb.json, no register arguments):
+ *   0xd49d0 = scripted_hud_get_timer_ticks(void) -> short
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c34a0(int16_t function_index, int thread_datum, char init)
+{
+  union {
+    short short_value;
+    int long_value;
+  } value;
+
+  value.long_value = 0;
+  value.short_value = scripted_hud_get_timer_ticks();
+  hs_return(thread_datum, value.long_value);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
