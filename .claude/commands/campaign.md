@@ -33,13 +33,28 @@ Parse from $ARGUMENTS (all optional):
 
 1. **Branch guard.** `rtk git branch --show-current`. If `main`, STOP — do not
    start. (auto-session guards this too, but failing here costs nothing.)
-2. **Reconcile the parked ledger.** `rtk python3 tools/lift/park.py reconcile`
+2. **Rebase against main before launching any run.** Divergence is the #1
+   cause of a run-1 park. `rtk git rev-list --left-right --count main...HEAD`
+   (`<main-only>\t<branch-only>`). If `<main-only>` is 0, skip. Otherwise:
+   `rtk git -c core.hooksPath=/dev/null -c rerere.enabled=false rebase main`.
+   - Clean rebase → continue.
+   - Conflict (almost always `kb.json` — git's line-merge conflicts on
+     disjoint-object array edits even when both sides touched *different*
+     kb.json objects) → `rtk git rebase --abort` immediately. **STOP before
+     launching run 1** and hand off to `/reintegrate-to-main` for the
+     object-index-aware merge. Do NOT launch a run against an unrebased
+     branch and let the land gate discover the conflict after burning a full
+     run's tokens — `auto_reintegrate.py`'s land step uses the same plain git
+     merge and parks identically after run 1, just later and far more
+     expensively (observed 2026-08-12: 7.3M subagent tokens, 891 tool calls,
+     ~3h wall for 12 landed functions before the park was even visible).
+3. **Reconcile the parked ledger.** `rtk python3 tools/lift/park.py reconcile`
    (dry run by default). If it reports stale records, re-run with `--apply`,
    then `rtk git add -- artifacts/parked` and commit as a standalone chore
    commit. `artifacts/` is gitignored but the parked records are force-tracked,
    so only already-tracked records stage — that is correct. Commit nothing if
    nothing stages.
-3. **Triage main-worktree dirt.** `rtk git -C <main worktree> status --short`
+4. **Triage main-worktree dirt.** `rtk git -C <main worktree> status --short`
    (tracked only). The land gate absorbs exactly this generated set
    (`_ABSORB_EXACT` / `_ABSORB_PREFIXES` in `auto_reintegrate.py`):
    `README.md` (stats block only), `tools/verify/vc71_scores.json`,
@@ -52,22 +67,22 @@ Parse from $ARGUMENTS (all optional):
 
 ## Run loop (repeat until a stop condition)
 
-4. **Launch a run.** `Workflow({ name: "auto-session", args: { batches: N,
+5. **Launch a run.** `Workflow({ name: "auto-session", args: { batches: N,
    batchGoal: M, noLand: <bool>, dryRun: <bool>, liftRegArgs: <bool>,
    objects: [...], criteria: "<text>" } })`. Omit `objects`/`criteria` when not
    given. It runs in the background.
-5. **Warm the next targets while it runs** (fire-and-forget, ignore failures):
+6. **Warm the next targets while it runs** (fire-and-forget, ignore failures):
    `rtk python3 tools/llm_auto_lift.py cache-context --batch 8`.
-6. **Triage the result** (`{branch, batches_landed, batches_unlanded,
+7. **Triage the result** (`{branch, batches_landed, batches_unlanded,
    functions_committed, stopped_reason, park_reason, conflicts, resumable}`):
 
    | `stopped_reason` | Action |
    |---|---|
    | `batches_exhausted` | Clean run. Continue. |
-   | `completed_with_unlanded` / any `batches_unlanded > 0` | Work is committed, landing was merely blocked. Rerun the gate once (step 7), then continue. |
+   | `completed_with_unlanded` / any `batches_unlanded > 0` | Work is committed, landing was merely blocked. Rerun the gate once (step 8), then continue. |
    | `queue_exhausted` | Read the run log line `goal-lift committed 0 (reason: …)`. Bare `empty_queue` → frontier dry, **STOP**. `empty_queue_after_filter` / `_after_prescreen` / `_after_liftability` → committable frontier stalled: rotate to the next `--objects` cluster and continue; **STOP** if no rotation list remains. |
-   | `infra_blocked` with `resumable: true` | Resume **once**: `Workflow({ scriptPath: ".claude/workflows/auto-session.js", resumeFromRunId: "<runId>" })`. Succeeded agents replay from cache. If it dies again, do **not** resume twice — salvage with step 7 and continue with a fresh run. |
-   | `land_agent_null` | Almost always the gate exceeding the agent's Bash timeout, not a real failure. Rerun the gate (step 7); if it lands, continue. |
+   | `infra_blocked` with `resumable: true` | Resume **once**: `Workflow({ scriptPath: ".claude/workflows/auto-session.js", resumeFromRunId: "<runId>" })`. Succeeded agents replay from cache. If it dies again, do **not** resume twice — salvage with step 8 and continue with a fresh run. |
+   | `land_agent_null` | Almost always the gate exceeding the agent's Bash timeout, not a real failure. Rerun the gate (step 8); if it lands, continue. |
    | `parked` | Real signal about this work — merge conflict, failed gate, non-FF. **STOP.** Report `park_reason` + `conflicts` and hand off to `/reintegrate-to-main`. |
    | `guard_failed` / `no_commit` | **STOP** (guard) or count as a zero-commit run (no_commit). |
 
@@ -92,13 +107,13 @@ Parse from $ARGUMENTS (all optional):
    Compare later with e.g.
    `rtk jq -s 'group_by(.campaign) | map({c: .[0].campaign, fns: map(.functions_committed) | add, tokens: map(.tokens_spent) | add})' artifacts/campaigns/campaigns.jsonl`.
 
-7. **Manual land-gate rerun** (used by the rows above, at most once per run):
+8. **Manual land-gate rerun** (used by the rows above, at most once per run):
    `rtk python3 tools/integrate/auto_reintegrate.py --branch <branch> --json`
    with an explicit `timeout: 600000`; if it still overruns, background it and
    poll for the JSON — never run two gates concurrently. `status: landed` →
    continue. `inconclusive` → main is still busy; continue with `noLand: true`.
    `parked` → STOP as above.
-8. **Between runs**, re-run `park.py reconcile` — in-run lifts often supersede
+9. **Between runs**, re-run `park.py reconcile` — in-run lifts often supersede
    parked records. Commit the `--apply` result as its own chore commit.
 
 ## Stop conditions
