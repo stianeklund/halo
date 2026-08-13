@@ -83,6 +83,19 @@ jobs:
       - name: Baseline-gate self-test
         run: python3 tools/audit/test_baseline_gates.py
 
+      # VC71 score persistence.  Neither suite ran anywhere in CI before, which
+      # is how the dashboard button ended up writing only the committed floor
+      # while the report generator read only the honest snapshot -- a score you
+      # could watch appear and then vanish at the next regeneration, with every
+      # gate green throughout.
+      - name: Score-persistence self-tests
+        if: always()
+        run: |
+          PY="${{ env.VENV_PYTHON }}"
+          [ -x "$PY" ] || PY=python3
+          "$PY" -m unittest discover -s tools/verify -p 'test_vc71_regression.py' -v
+          "$PY" -m unittest discover -s tools/report -p 'test_vc71_score_merge.py' -v
+
       # The equivalence harness's own self-tests, which until now ran nowhere:
       # they were invoked only by hand, so the soundness pins on the stub-arg
       # comparator (a wrong offset into the right global must still be

@@ -335,6 +335,146 @@ class TestBaselineDocument(unittest.TestCase):
             self.assertEqual(sorted(doc["scores"]), ["fn", "fn2"])
 
 
+class TestCurrentSnapshot(unittest.TestCase):
+    """The honest snapshot is what the dashboard renders; a scoped pass must
+    add to it, never replace it."""
+
+    def test_load_current_roundtrip(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "current.json"
+            with patch.object(vc71, "CURRENT_PATH", path):
+                self.assertEqual(vc71.load_current(), {})       # absent
+                vc71.save_current({"fn": vc71.make_score_entry(80.0, "src/x.c")})
+                self.assertEqual(vc71.load_current()["fn"]["score"], 80.0)
+                path.write_text("{ not json")                   # corrupt
+                self.assertEqual(vc71.load_current(), {})
+
+    def test_scoped_pass_merges_instead_of_truncating(self):
+        """A one-TU refresh (the dashboard button) must not delete the other
+        5,800 functions from the snapshot the report generator reads."""
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "current.json"
+            with patch.object(vc71, "CURRENT_PATH", path):
+                vc71.save_current({
+                    "other_tu_fn": vc71.make_score_entry(70.0, "src/other.c"),
+                    "shared_fn": vc71.make_score_entry(60.0, "src/x.c"),
+                })
+                merged = vc71._merged_current(
+                    {"shared_fn": vc71.make_score_entry(85.0, "src/x.c")})
+                vc71.save_current(merged)
+                after = vc71.load_current()
+            self.assertEqual(sorted(after), ["other_tu_fn", "shared_fn"])
+            self.assertEqual(after["other_tu_fn"]["score"], 70.0)  # untouched
+            self.assertEqual(after["shared_fn"]["score"], 85.0)    # refreshed
+
+
+class TestResultKeyJoin(unittest.TestCase):
+    """vc71_verify records a function under any of several keys.  Every
+    consumer must agree on what counts as 'already scored', or a per-function
+    retry fires for a function that scored perfectly well."""
+
+    def test_plain_name(self):
+        self.assertEqual(vc71._result_key({"main_loop": {}}, "main_loop"),
+                         "main_loop")
+
+    def test_address_alias(self):
+        results = {"FUN_00102e40": {}}
+        self.assertEqual(vc71._result_key(results, "main_loop", "0x102e40"),
+                         "FUN_00102e40")
+        self.assertEqual(vc71._result_key(results, "main_loop", 0x102e40),
+                         "FUN_00102e40")
+
+    def test_namespace_suffix(self):
+        self.assertEqual(vc71._result_key({"ns::main_loop": {}}, "main_loop"),
+                         "ns::main_loop")
+
+    def test_miss_returns_none(self):
+        self.assertIsNone(vc71._result_key({"other": {}}, "main_loop", "0x1"))
+        self.assertIsNone(vc71._result_key({}, "main_loop", "not-hex"))
+
+
+class TestPerFunctionFallback(unittest.TestCase):
+    """A function the whole-TU run drops is retried alone -- and if the retry
+    scores it, it must leave the re-delink queue."""
+
+    SRC = vc71.REPO_ROOT / "src" / "halo" / "fake" / "fallback.c"
+
+    def _run(self, *, enabled):
+        calls = []
+
+        def fake_verify(src, drops_out=None, meta_out=None, function=None,
+                        **kw):
+            calls.append(function)
+            if function is None:
+                if drops_out is not None:
+                    drops_out.append({"function": "dropped_fn",
+                                      "reason": "no reference",
+                                      "span_bytes": 40})
+                return {"scored_fn": {"score": 90.0}}
+            return {function: {"score": 77.0}}
+
+        with patch.object(vc71, "run_vc71_verify", fake_verify), \
+             patch.object(vc71, "_expected_ported_functions",
+                          lambda _rel: [{"name": "scored_fn", "addr": "0x1"},
+                                        {"name": "dropped_fn", "addr": "0x2"}]):
+            out = vc71._measure_source(self.SRC, enabled)
+        return out, calls
+
+    def test_disabled_leaves_the_drop_flagged(self):
+        (_rel, honest, flagged, _scored, _log), calls = self._run(enabled=False)
+        self.assertEqual(calls, [None])                    # no retry
+        self.assertEqual(sorted(honest), ["scored_fn"])
+        self.assertEqual([f["function"] for f in flagged], ["dropped_fn"])
+
+    def test_enabled_recovers_and_clears_the_queue_entry(self):
+        (_rel, honest, flagged, scored, _log), calls = self._run(enabled=True)
+        self.assertEqual(calls, [None, "dropped_fn"])       # retried once
+        self.assertEqual(sorted(honest), ["dropped_fn", "scored_fn"])
+        self.assertEqual(honest["dropped_fn"]["score"], 77.0)
+        self.assertEqual(flagged, [])                       # no longer pending
+        self.assertIn(("dropped_fn", 77.0), scored)         # reaches the floor
+
+    def test_already_scored_function_is_not_retried(self):
+        """The alias join is what prevents a pointless extra compile."""
+        def fake_verify(src, drops_out=None, meta_out=None, function=None, **kw):
+            self.assertIsNone(function, "retried an already-scored function")
+            return {"FUN_00000001": {"score": 90.0}}
+
+        with patch.object(vc71, "run_vc71_verify", fake_verify), \
+             patch.object(vc71, "_expected_ported_functions",
+                          lambda _rel: [{"name": "scored_fn", "addr": "0x1"}]):
+            vc71._measure_source(self.SRC, True)
+
+
+class TestDiscoveryBreadth(unittest.TestCase):
+    """Discovery breadth and floor semantics are separate knobs.  They used to
+    be the same flag, so the only way to SEE a kb-only TU was the mode that
+    REPLACES (and can lower) every floor it touches."""
+
+    def _discovery_arg_for(self, args):
+        seen = {}
+
+        def fake_discover(include_kb_only):
+            seen["kb"] = include_kb_only
+            return []          # empty -> cmd_populate returns 1 immediately
+
+        with patch.object(vc71, "_discover_scoreable_tus", fake_discover), \
+             patch.object(vc71, "regen_decl_header", lambda: None), \
+             contextlib.redirect_stdout(io.StringIO()):
+            vc71.cmd_populate(args)
+        return seen["kb"]
+
+    def test_routine_populate_includes_kb_only_tus(self):
+        self.assertTrue(self._discovery_arg_for(
+            SimpleNamespace(rebaseline=False, include_kb_only=True,
+                            source=None, skip_decl_regen=False)))
+
+    def test_rebaseline_does_not_by_itself_widen_discovery(self):
+        self.assertFalse(self._discovery_arg_for(
+            SimpleNamespace(rebaseline=True, include_kb_only=False,
+                            source=None, skip_decl_regen=False)))
+
+
 class CheckHarness(unittest.TestCase):
     """Run cmd_check against an in-memory baseline and a scripted scorer."""
 

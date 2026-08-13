@@ -151,9 +151,14 @@ def _load_equiv_verdicts(root_dir: str) -> dict:
         return {}
     verdicts = {}
     # Sort by mtime ascending so later (newer) results overwrite earlier ones.
-    paths = sorted(_glob.glob(os.path.join(base, '**', '*.json'), recursive=True),
-                   key=lambda p: os.path.getmtime(p))
-    for p in paths:
+    paths = []
+    for p in _glob.glob(os.path.join(base, '**', '*.json'), recursive=True):
+        try:
+            paths.append((os.path.getmtime(p), p))
+        except OSError:
+            continue
+    paths.sort()
+    for _, p in paths:
         if os.path.basename(p) in ('summary.json', 'results.csv'):
             continue
         try:
@@ -646,21 +651,72 @@ def compute_unit_stats(kb: KnowledgeBase, store: MetadataStore,
     return units, drift, overall_match, overall_equiv, overall_snapshot, overall_runtime_oracle
 
 
+def _load_vc71_doc(path: str) -> dict:
+    """Load a VC71 score document, or {} if absent/unreadable."""
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def merge_vc71_scores(floor_doc: dict, current_doc: dict,
+                      current_exists: bool = True) -> dict:
+    """Layer the honest current snapshot over the committed floor, PER FUNCTION.
+
+    The floor (vc71_scores.json) is raise-only and tracked in git, so it always
+    has an entry for every function ever measured.  The current snapshot
+    (vc71_current.json) is present truth but only ever covers what its last
+    `populate` pass measured -- one TU for a dashboard button, one shard for a
+    sharded re-baseline.
+
+    Picking one file wholesale, as this used to, means a partial current
+    snapshot blanks every function outside it.  Merging keeps current where it
+    measured and the floor everywhere else, which is the only combination that
+    is both present-truth and complete.
+    """
+    floor = floor_doc.get('scores') or {}
+    current = current_doc.get('scores') or {}
+    merged = dict(floor)
+    merged.update(current)
+    if current_exists and not current and merged:
+        print(
+            'WARNING: vc71_current.json has no scores; every match% comes from '
+            f'the committed floor vc71_scores.json ({len(merged)} scores)',
+            file=sys.stderr,
+        )
+    elif current and len(current) < len(merged):
+        # Normal after a scoped refresh; say so, so nobody reads a mixed
+        # dashboard as one coherent measurement.
+        print(f'VC71 scores: {len(current)} current + '
+              f'{len(merged) - len(current)} from the committed floor',
+              file=sys.stderr)
+    return {'version': current_doc.get('version') or floor_doc.get('version'),
+            'scores': merged}
+
+
 def generate_report(output_path: str) -> dict:
     """Generate full decomp.dev-compatible report."""
     
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
     cache_path = os.path.join(root_dir, 'build', 'function_sizes.json')
-    # Prefer honest current scores (vc71_current.json, gated on reference
-    # validity) so the dashboard shows present truth rather than the floored
-    # high-water-mark tripwire (vc71_scores.json).  Fall back to the floor when
-    # the honest snapshot has not been generated yet OR is empty: a failed or
-    # partial `populate` (e.g. a CI run where delinked/ was not linked) leaves a
-    # vc71_current.json with no `scores`, and blindly preferring it merely
-    # because the file exists shadows the committed floor and blanks EVERY
-    # match% on the published dashboard (gh-pages 2026-07-09 regression: all
-    # 3474 functions rendered a bare match while the tracked floor held 3689
-    # real scores).  The floor is tracked in git, so it is always available.
+    # VC71 scores come from two files, merged PER FUNCTION: the committed floor
+    # (vc71_scores.json, a raise-only high-water tripwire, always present in git)
+    # underneath, and the honest current snapshot (vc71_current.json, gated on
+    # reference validity, gitignored) layered on top.
+    #
+    # It used to be a whole-file pick: prefer current, fall back to floor only
+    # when current was entirely empty.  That makes a PARTIAL current snapshot
+    # shadow the entire floor -- any `populate --source X` (one TU) or a run that
+    # died after its first shard leaves a current file holding a handful of
+    # functions, and every other function on the dashboard renders a bare "—"
+    # despite a perfectly good floor score.  The empty-file case was already
+    # known (gh-pages 2026-07-09: all 3474 functions blank while the tracked
+    # floor held 3689 real scores); the partial case is the same bug one step
+    # short of total.  Merging per function removes the whole class: current wins
+    # where it measured, floor covers everything it did not.
     vc71_current = os.path.join(root_dir, 'tools', 'verify', 'vc71_current.json')
     vc71_floor = os.path.join(root_dir, 'tools', 'verify', 'vc71_scores.json')
     leaf_cache_path = os.path.join(root_dir, 'tools', 'equivalence', 'leaf_cache.json')
@@ -673,30 +729,11 @@ def generate_report(output_path: str) -> dict:
     # Load function sizes
     function_cache = load_function_sizes(cache_path)
     
-    # Load VC71 match scores.  Use the current snapshot only when it actually
-    # carries scores; otherwise fall back to the tracked floor (see above).
-    def _load_vc71(path):
-        if not os.path.exists(path):
-            return {}
-        try:
-            with open(path) as f:
-                return json.load(f)
-        except (OSError, ValueError):
-            return {}
+    # Load VC71 match scores: floor first, current layered over it (see above).
+    vc71_scores = merge_vc71_scores(
+        _load_vc71_doc(vc71_floor), _load_vc71_doc(vc71_current),
+        current_exists=os.path.exists(vc71_current))
 
-    vc71_scores = _load_vc71(vc71_current)
-    if not vc71_scores.get('scores'):
-        floor_scores = _load_vc71(vc71_floor)
-        if floor_scores.get('scores'):
-            if os.path.exists(vc71_current):
-                print(
-                    'WARNING: vc71_current.json has no scores; falling back to '
-                    'the committed floor vc71_scores.json '
-                    f'({len(floor_scores.get("scores", {}))} scores)',
-                    file=sys.stderr,
-                )
-            vc71_scores = floor_scores
-    
     # Load equivalence leaf cache
     leaf_cache = {}
     if os.path.exists(leaf_cache_path):

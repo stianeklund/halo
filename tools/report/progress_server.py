@@ -37,34 +37,6 @@ logging.basicConfig(
 
 
 
-def _is_synthesizable(addr) -> bool:
-    """True if vc71_verify could synthesize a reference for this address.
-
-    Lets `Score unit (VC71)` consider a function that no delinked reference
-    names, since vc71_verify now falls back to a reference built from the
-    pristine XBE.  Fails CLOSED: if capstone or the XBE is unavailable the
-    answer is False, which restores the previous (delinked-only) behaviour
-    rather than queueing per-function runs that cannot produce a score."""
-    if not isinstance(addr, str):
-        return False
-    try:
-        addr_int = int(addr, 16)
-    except ValueError:
-        return False
-    try:
-        import sys as _s
-        _vd = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                           '..', 'verify')
-        _vd = os.path.abspath(_vd)
-        if _vd not in _s.path:
-            _s.path.insert(0, _vd)
-        import xbe_reference as _xr
-        code, _err = _xr.function_bytes(addr_int)
-        return code is not None
-    except Exception:
-        return False
-
-
 def _recompute_unit_match(unit: dict) -> None:
     """Recompute unit['summary'] match_avg/match_weighted from its function scores in-place."""
     scores = []
@@ -233,33 +205,29 @@ class SSEHandler(SimpleHTTPRequestHandler):
             logging.warning('No source_path in objdiff.json metadata for unit %s', unit_name)
             return None
 
-        same_source_refs = [
-            entry for entry in objdiff_config.get('units', [])
-            if entry.get('metadata', {}).get('source_path') == source_path_rel
-            and entry.get('base_path')
-            and os.path.exists(entry.get('base_path'))
-        ]
-        has_report_ref = bool(report_unit.get('summary', {}).get('has_delinked_ref'))
-        if not base_path or not os.path.exists(base_path):
-            if same_source_refs:
-                logging.info('No TU delinked reference for unit %s; using per-function refs',
-                             unit_name)
-            elif has_report_ref:
-                logging.info('No objdiff unit for %s; using report/delinked manifest ref',
-                             unit_name)
-            else:
-                # No delinked reference of any kind.  This used to be fatal, and
-                # was correct while a delinked reference was the ONLY way to
-                # score.  vc71_verify now falls back to a reference synthesized
-                # from the pristine XBE (tools/verify/xbe_reference.py), so the
-                # unit is still scoreable -- bailing here would silently deny
-                # the button exactly the units that need it most.
-                logging.info('No delinked reference for unit %s (%s); relying on '
-                             'XBE-synthesized references', unit_name, base_path)
+        # Informational only.  Reference selection is vc71_verify's job (whole
+        # delinked object -> per-function chunk -> reference synthesized from the
+        # pristine XBE), resolved per function, so a missing delinked object here
+        # is not a reason to refuse to score.
+        if base_path and os.path.exists(base_path):
+            logging.info('Unit %s has a whole-TU delinked reference: %s', unit_name, base_path)
         else:
-            logging.info('Using whole-TU delinked reference for unit %s: %s', unit_name, base_path)
+            logging.info('Unit %s has no whole-TU delinked reference; vc71_verify '
+                         'will resolve one per function', unit_name)
 
-        # Import run_vc71_verify from tools/verify/vc71_regression.py
+        # Score through vc71_regression's `populate`, scoped to this one TU.
+        #
+        # This handler used to call run_vc71_verify itself and then hand-roll the
+        # raise-only floor merge.  Two problems that fix together:
+        #   1. It was a SECOND writer of the score files, carrying its own copy
+        #      of the floor policy.  The copies had already drifted once (see the
+        #      make_score_entry docstring: provenance fields were being stripped
+        #      on every dashboard refresh).
+        #   2. It wrote ONLY the floor, while generate_decomp_report reads the
+        #      honest current snapshot.  A button score was therefore erased by
+        #      the next five-minute background regeneration.
+        # `populate --source` writes floor + current + attention queue through
+        # the one set of writers, so there is no policy left here to keep in sync.
         import sys as _sys
         from pathlib import Path
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -268,12 +236,7 @@ class SSEHandler(SimpleHTTPRequestHandler):
         if verify_dir not in _sys.path:
             _sys.path.insert(0, verify_dir)
         try:
-            from vc71_regression import (
-                run_vc71_verify as _run_vc71_verify,
-                load_baseline as _load_baseline,
-                save_baseline as _save_baseline,
-                make_score_entry as _make_score_entry,
-            )
+            import vc71_regression as _vc71
         except ImportError as e:
             logging.error('Cannot import vc71_regression: %s', e)
             return None
@@ -283,120 +246,56 @@ class SSEHandler(SimpleHTTPRequestHandler):
             logging.warning('Source file not found for unit %s: %s', unit_name, source_path)
             return None
 
-        def _score_for_result(func, results):
-            addr = func.get('address')
-            addr_int = None
-            if isinstance(addr, str):
-                try:
-                    addr_int = int(addr, 16)
-                except ValueError:
-                    addr_int = None
-            candidates = [func.get('name')]
-            if addr_int is not None:
-                candidates += [f'FUN_{addr_int:08x}', f'FUN_{addr_int:08X}',
-                               f'thunk_FUN_{addr_int:08x}']
-            for key in candidates:
-                if key and key in results:
-                    return results[key]['score']
-            name = func.get('name')
-            for key, info in results.items():
-                if key.rsplit('::', 1)[-1] == name:
-                    return info['score']
-            return None
-
-        def _has_function_ref(func):
-            addr = func.get('address')
-            needles = []
-            name = func.get('name')
-            if name:
-                needles.append(str(name).lower())
-            if isinstance(addr, str):
-                try:
-                    addr_hex = f'{int(addr, 16):08x}'
-                    needles += [addr_hex, f'fun_{addr_hex}']
-                    if os.path.exists(os.path.join('delinked', 'functions', f'{addr_hex}.obj')):
-                        return True
-                except ValueError:
-                    pass
-            for entry in same_source_refs:
-                haystack = f"{entry.get('name', '')} {entry.get('base_path', '')}".lower()
-                if any(needle and needle in haystack for needle in needles):
-                    return True
-            # No delinked reference names this function -- but it is still
-            # scoreable if its address lies in a mapped XBE section, because
-            # vc71_verify can synthesize a reference for it.  Checked last so
-            # the cheap delinked paths short-circuit first.
-            return _is_synthesizable(addr)
-
-        logging.info('Running vc71_verify for %s ...', source_path_rel)
+        logging.info('Running vc71 populate --source %s ...', source_path_rel)
         t_start = time.time()
         try:
-            vc71_results = {}
-            fallback_funcs = []
-            # Unconditional: vc71_verify resolves its own reference per function
-            # (whole object -> per-function chunk -> XBE-synthesized), so gating
-            # the whole-unit run on a delinked reference existing here would skip
-            # units that are now perfectly scoreable.
-            vc71_results.update(_run_vc71_verify(source_path))
-
-            for func in report_unit.get('functions', []):
-                if not func.get('ported'):
-                    continue
-                if _score_for_result(func, vc71_results) is not None:
-                    continue
-                if not _has_function_ref(func):
-                    continue
-                fallback_funcs.append(func.get('name'))
-                vc71_results.update(_run_vc71_verify(source_path, function=func.get('name')))
+            rc = _vc71.cmd_populate(argparse.Namespace(
+                source=[str(source_path)],
+                # Raise-only floor plus a merged honest snapshot — the same
+                # policy the pre-commit gate applies.  NEVER --rebaseline from a
+                # web endpoint: that REPLACES floors and can lower them.
+                force=False, rebaseline=False, incremental=False,
+                include_kb_only=True,
+                # Costs one extra compile per function the whole-TU run missed.
+                # Affordable for a single interactive unit, and it preserves the
+                # per-function fallback this handler used to implement inline.
+                per_function_fallback=True,
+                workers=None, reset_journal=False, skip_decl_regen=False,
+            ))
         except Exception as e:
-            logging.error('vc71_verify failed for unit %s (%.1fs): %s',
-                           unit_name, time.time() - t_start, e)
+            logging.error('populate failed for unit %s (%.1fs): %s',
+                          unit_name, time.time() - t_start, e)
             return None
         verify_elapsed = time.time() - t_start
-
-        if fallback_funcs:
-            logging.info('Per-function fallback ran for %d function(s): %s',
-                         len(fallback_funcs), ', '.join(fallback_funcs))
-
-        if not vc71_results:
-            logging.warning('vc71_verify produced no results for unit %s (%.1fs)',
-                             unit_name, verify_elapsed)
+        if rc != 0:
+            logging.warning('populate returned %d for unit %s (%.1fs) — '
+                            'not a scoreable TU?', rc, unit_name, verify_elapsed)
             return None
 
-        logging.info('vc71_verify finished for %s in %.1fs: %d function(s) scored',
+        # Read back what populate persisted for THIS TU.  Mirroring from the
+        # honest snapshot (rather than from a private in-memory result) is what
+        # guarantees the numbers the button reports are the numbers the next
+        # regeneration will render.
+        def _same_source(value):
+            return str(value or '').replace('\\', '/') == source_path_rel.replace('\\', '/')
+
+        vc71_results = {fn: entry for fn, entry in _vc71.load_current().items()
+                        if _same_source(entry.get('source'))}
+
+        if not vc71_results:
+            logging.warning('populate scored nothing for unit %s (%.1fs)',
+                            unit_name, verify_elapsed)
+            return None
+
+        logging.info('populate finished for %s in %.1fs: %d function(s) scored',
                      source_path_rel, verify_elapsed, len(vc71_results))
 
-        # 1) Persist to vc71_scores.json — the SOURCE OF TRUTH the report generator
-        #    reads. Mirror the regression policy: raise an existing floor or add a new
-        #    entry, never silently lower (that would mask a regression). Without this
-        #    write the score is ephemeral: the next report regeneration would wipe it.
-        baseline = _load_baseline()
-        baseline_changed = False
-        for fn_name, info in vc71_results.items():
-            new_score = info['score']
-            old = baseline.get(fn_name)
-            if old is None or new_score > old.get('score', -1) + 0.1:
-                if old is None:
-                    logging.info('  %s: %.1f%% (new baseline)', fn_name, new_score)
-                else:
-                    logging.info('  %s: %.1f%% -> %.1f%% (baseline raised)',
-                                 fn_name, old.get('score', 0.0), new_score)
-                # Built by vc71_regression.make_score_entry -- the SAME helper
-                # the floor merge uses.  This writer used to assemble the dict
-                # by hand, which meant every field the other writer added
-                # (operand score, reference provenance, the addr/end/kind/n_r/
-                # ref_sha block) was silently dropped whenever a dashboard
-                # refresh happened to touch the entry.
-                baseline[fn_name] = _make_score_entry(
-                    new_score, source_path_rel, info, previous=old)
-                baseline_changed = True
-        if baseline_changed:
-            _save_baseline(baseline)
-
-        # 2) Mirror the now-persisted scores into the in-memory report. Join by name
-        #    first, then by the address-keyed FUN_<addr> alias (vc71_verify records
-        #    some functions under their delinked reference name) — identical to the
-        #    generator's join so a later regeneration produces the same numbers.
+        # Mirror the now-persisted scores into the live report.json so the open
+        # dashboard updates immediately instead of waiting for the next
+        # regeneration.  Join by name first, then by the address-keyed FUN_<addr>
+        # alias (vc71_verify records some functions under their delinked
+        # reference name) — identical to the generator's join, so the value shown
+        # now and the value rendered after a regeneration are the same number.
         def _result_for(func):
             """Return the vc71_results entry for a function, or None.
 
@@ -587,8 +486,12 @@ def main():
         help='Directory to serve (default: artifacts/progress)'
     )
     parser.add_argument(
-        '--host', default='0.0.0.0',
-        help='Host to bind to (default: 0.0.0.0)'
+        # Loopback by default.  /api/score is an unauthenticated endpoint that
+        # compiles source and rewrites tracked score files, so binding it to
+        # every interface hands that to anyone on the network.  Pass an explicit
+        # --host to expose it (and put access control in front of it first).
+        '--host', default='127.0.0.1',
+        help='Host to bind to (default: 127.0.0.1; /api/score is unauthenticated)'
     )
     args = parser.parse_args()
 
