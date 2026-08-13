@@ -51,6 +51,7 @@ Usage:
 import json
 import os
 import re
+import struct
 import subprocess
 import sys
 import tempfile
@@ -1291,6 +1292,89 @@ def check_addr_value_add(filepath, content, lines):
 
 
 # ---------------------------------------------------------------------------
+# §43: Literal dereference outside the image — float immediate read as an
+# address (ERROR)
+# ---------------------------------------------------------------------------
+# MSVC passes a float constant as a raw stack immediate: `push 0xbf000000;
+# fstp [esp]`.  Transcribing the immediate as an address produces
+# `*(float *)0xbf000000`, which faults: 0xbf000000 is the IEEE-754 encoding
+# of -0.5f, not a mapped address.
+_LITERAL_DEREF = re.compile(
+    r'\*\(\s*(?:const\s+|volatile\s+)*(\w+(?:\s+\w+)?)\s*\*+\s*\)\s*'
+    r'\(?\s*(0x[0-9a-fA-F]{6,})\s*\)?'
+)
+
+# The XBE image (base 0x10000, ~4.9 MB) plus generous headroom.  Every one of
+# the 1733 literal derefs in src/ as of 2026-08-13 lies inside
+# [0x1fb494, 0x632a0c], so the window costs no false positives.
+_IMAGE_LO = 0x10000
+_IMAGE_HI = 0x800000
+
+# Genuine non-image windows in the Xbox memory map.  Everything else above the
+# image is unmapped — and the whole 0xbe000000-0xc1000000 band that negative
+# float constants encode into (-0.25 .. -8.0) lands in one of those holes.
+_XBOX_MMIO_WINDOWS = (
+    (0x80000000, 0x84000000),   # kernel image + physical RAM window
+    (0xd0000000, 0xd1000000),   # GPU RAMIN / instance memory
+    (0xf0000000, 0xf4000000),   # framebuffer / AGP aperture
+    (0xfd000000, 0x100000000),  # NV2A MMIO, APU, SMC, flash
+)
+
+
+def _decode_float_bits(bits):
+    """Return the float a 32-bit pattern encodes, or None if not a tidy float."""
+    val = struct.unpack('<f', struct.pack('<I', bits))[0]
+    if val != val or val in (float('inf'), float('-inf')):
+        return None
+    if val == 0.0 or not (1e-8 < abs(val) < 1e8):
+        return None
+    return val
+
+
+def check_literal_deref_bounds(filepath, content, lines):
+    """Flag *(T*)0xLITERAL where the literal is outside the XBE image.
+
+    Such a literal is not an address at all.  The usual source is a float
+    constant that MSVC pushed as an immediate (`push 0xbf000000` for -0.5f)
+    and the lift rendered as a pointer dereference — an ACCESS_VIOLATION on
+    the first execution of that path (see lift-learnings §43).  Kernel and
+    NV2A register windows (0x8xxxxxxx, 0xfdxxxxxx) are real addresses and are
+    exempt.  Suppress with a hazard-ok comment on the same line.
+    """
+    errors = []
+    flat_lines = _blank_comments_and_literals(content).split('\n')
+    for i, flat in enumerate(flat_lines):
+        if '0x' not in flat:
+            continue
+        src_line = lines[i] if i < len(lines) else ''
+        if 'hazard-ok' in src_line:
+            continue
+        for m in _LITERAL_DEREF.finditer(flat):
+            cast_type, addr_str = m.group(1), m.group(2)
+            addr = int(addr_str, 16)
+            if _IMAGE_LO <= addr < _IMAGE_HI:
+                continue
+            # Kernel, RAM window and GPU/MMIO apertures are genuine addresses.
+            if any(lo <= addr < hi for lo, hi in _XBOX_MMIO_WINDOWS):
+                continue
+            fval = _decode_float_bits(addr)
+            hint = (
+                f'0x{addr:x} is the float bits of {fval:g} — MSVC pushed the '
+                f'constant as an immediate (push 0x{addr:x}); pass {fval:g}f '
+                f'instead of dereferencing it'
+                if fval is not None else
+                f'0x{addr:x} is outside the XBE image '
+                f'[0x{_IMAGE_LO:x}, 0x{_IMAGE_HI:x}) — not a valid address'
+            )
+            relpath = os.path.relpath(filepath, ROOT_DIR)
+            errors.append(
+                f'  {relpath}:{i + 1}: *({cast_type} *)0x{addr:x} — {hint} '
+                f'(see lift-learnings §43; suppress with hazard-ok comment)'
+            )
+    return errors
+
+
+# ---------------------------------------------------------------------------
 # §4: Parameter corruption by loop (WARN)
 # ---------------------------------------------------------------------------
 _FUNC_SIG_PAT = re.compile(
@@ -2049,6 +2133,7 @@ def main():
     all_concat_errors = []
     all_float_smuggle_errors = []
     all_addr_value_add_errors = []
+    all_literal_deref_errors = []
     all_param_loop_errors = []
     all_discard_result_errors = []
     all_inplace_mut_errors = []
@@ -2076,6 +2161,7 @@ def main():
         all_concat_errors.extend(check_concat_survival(fpath, content, lines))
         all_float_smuggle_errors.extend(check_float_int_bit_smuggling(fpath, content, lines))
         all_addr_value_add_errors.extend(check_addr_value_add(fpath, content, lines))
+        all_literal_deref_errors.extend(check_literal_deref_bounds(fpath, content, lines))
         all_param_loop_errors.extend(check_param_loop_corruption(fpath, content, lines))
         all_discard_result_errors.extend(check_discarded_result(fpath, content, lines))
         all_inplace_mut_errors.extend(check_inplace_mutator_misuse(fpath, content, lines))
@@ -2105,6 +2191,7 @@ def main():
             f'concat_survival: {len(all_concat_errors)}, '
             f'float_smuggling: {len(all_float_smuggle_errors)}, '
             f'addr_value_add: {len(all_addr_value_add_errors)}, '
+            f'literal_deref: {len(all_literal_deref_errors)}, '
             f'param_loop: {len(all_param_loop_errors)}, '
             f'discard_result: {len(all_discard_result_errors)}, '
             f'inplace_mutator: {len(all_inplace_mut_errors)}, '
@@ -2125,7 +2212,8 @@ def main():
                  len(all_packer_arity_errors) +
                  len(all_x87_math_errors) +
                  len(all_concat_errors) + len(all_float_smuggle_errors) +
-                 len(all_addr_value_add_errors) + len(all_param_loop_errors) +
+                 len(all_addr_value_add_errors) +
+                 len(all_literal_deref_errors) + len(all_param_loop_errors) +
                  len(all_discard_result_errors) + len(all_inplace_mut_errors) +
                  len(all_contiguity_errors) + len(all_nan_guard_errors) +
                  len(all_range_gate_errors) + len(all_fnptr_conv_errors) +
@@ -2424,6 +2512,21 @@ def main():
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 
+        if all_literal_deref_errors:
+            print(
+                'ERROR: dereference of a literal outside the XBE image.\n'
+                'MSVC passes float constants as raw stack immediates\n'
+                '(push 0xbf000000; fstp [esp] for -0.5f). Transcribing that\n'
+                'immediate as an address gives *(float *)0xbf000000, which\n'
+                'faults the first time the path runs (lift-learnings §43 —\n'
+                'FUN_001abd90 froze the game on melee lunge for 2 months).\n'
+                'Pass the decoded constant instead:\n',
+                file=sys.stderr,
+            )
+            for e in all_literal_deref_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
         if all_vendored_errors:
             print(
                 'NOTE: vendored open-source translation unit. The delinked\n'
@@ -2441,7 +2544,7 @@ def main():
     if all_void_eax_errors or all_noparam_decl_errors or all_intrinsic_errors \
             or all_buffer_errors \
             or all_output_size_errors or all_packer_arity_errors \
-            or all_concat_errors:
+            or all_concat_errors or all_literal_deref_errors:
         return 1
 
     return 0

@@ -1618,3 +1618,55 @@ operand order to chase the official metric.
 
 **Related:** §39 (byte-accuracy tuning playbook) and the `lift-score-improve`
 skill's recipe atlas.
+
+## 43. Float Constant Pushed as a Stack Immediate, Lifted as a Pointer Dereference
+
+**Automation:** YES — `check_lift_hazards.py::check_literal_deref_bounds`
+(ERROR-level, blocks): flags `*(T *)0xLITERAL` where the literal falls outside
+the XBE image `[0x10000, 0x800000)` and outside the genuine Xbox windows
+(kernel/RAM `0x80000000-0x84000000`, GPU RAMIN `0xd0000000-0xd1000000`,
+framebuffer/AGP `0xf0000000-0xf4000000`, NV2A/APU/SMC/flash `0xfd000000+`).
+When the literal decodes to a tidy float the message names the value. Suppress
+with a `hazard-ok` comment on the same line.
+
+MSVC does not always source a float constant from `.rdata`. For a stack
+argument it pushes the bit pattern as a raw immediate:
+
+```
+68 000000bf     push   0xbf000000    ; -0.5f
+d9 5d f4        fstp   dword [ebp-0xc]
+```
+
+The Ghidra decompiler renders this correctly as `-0.5`, but the *listing* shows
+only `push 0xbf000000`, and a lift written from the listing (or from a cached
+context that kept the immediate) transcribes the immediate as an address:
+
+```c
+/* wrong — 0xbf000000 is the encoding of -0.5f, not an address */
+vector3d_scale_add(point_out, direction, *(float *)0xbf000000, point_out);
+
+/* right */
+vector3d_scale_add(point_out, direction, -0.5f, point_out);
+```
+
+Two properties make this class expensive:
+
+- **It is latent.** The fault only happens when that code path executes.
+  `FUN_001abd90` (melee lunge collision, `units.obj` batch 25) shipped
+  2026-06-19 and did not fault until a unit actually entered melee lunge state
+  4 with a parent — two months later.
+- **It does not look like a crash.** The XBDM debugger halts the faulting
+  thread and leaves the other three in normal kernel waits, so the CPU sits in
+  `KiIdleLoop` at `0x8001e024` and the console presents as a frozen picture.
+  `isstopped thread=<id>` is what names it:
+  `exception code=0xc0000005 thread=28 address=0x006e8e37 read=0xbf000000`.
+
+The read address in the exception report *is* the constant, so decoding it
+(`struct.unpack('<f', struct.pack('<I', 0xbf000000))` → `-0.5`) identifies the
+bug before any source is opened. Negative float constants between -0.25 and
+-8.0 all encode into the `0xbe000000-0xc1000000` band, which is unmapped on
+Xbox — hence the bounds check rather than a float-shape heuristic.
+
+**Related:** §6 (float bits smuggled through pointer casts), §17 (address
+offset mis-rendered as value addition), and the `lift-silent-bugs` skill.
+

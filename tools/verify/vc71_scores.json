@@ -24577,10 +24577,10 @@
       "end": "0x1ac027",
       "kind": "auto",
       "n_r": 192,
-      "opnd_percent": 57.5,
+      "opnd_percent": 70.6,
       "ref": "synth",
       "ref_sha": "ef8a5bc124a577a4",
-      "score": 81.3,
+      "score": 91.4,
       "source": "src/halo/units/units.c"
     },
     "FUN_001ac680": {
@@ -41447,8 +41447,37 @@
       "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
+    "physical_memory_allocate": {
+      "addr": "0x1bdb70",
+      "end": "0x1bdc58",
+      "kind": "auto",
+      "n_r": 65,
+      "opnd_percent": 86.2,
+      "ref": "synth",
+      "ref_sha": "ce5f6f03a30e5dd3",
+      "score": 100.0,
+      "source": "src/halo/cache/physical_memory_map.c"
+    },
     "physical_memory_deallocate": {
-      "score": 83.3,
+      "addr": "0x1bdd00",
+      "end": "0x1bdd3d",
+      "kind": "auto",
+      "n_r": 21,
+      "opnd_percent": 82.6,
+      "ref": "synth",
+      "ref_sha": "e83607538961bb72",
+      "score": 91.3,
+      "source": "src/halo/cache/physical_memory_map.c"
+    },
+    "physical_memory_map_verify": {
+      "addr": "0x1bdc60",
+      "end": "0x1bdd00",
+      "kind": "auto",
+      "n_r": 46,
+      "opnd_percent": 59.6,
+      "ref": "synth",
+      "ref_sha": "bed0a15147bd62f7",
+      "score": 53.2,
       "source": "src/halo/cache/physical_memory_map.c"
     },
     "pill_intersects_rectangle2d": {
@@ -45746,10 +45775,10 @@
       "end": "0x1cc13a",
       "kind": "auto",
       "n_r": 74,
-      "opnd_percent": 70.7,
+      "opnd_percent": 72.0,
       "ref": "synth",
       "ref_sha": "2e644f52e2c12614",
-      "score": 92.0,
+      "score": 93.3,
       "source": "src/halo/sound/sound_manager.c"
     },
     "sound_check_promotion": {
@@ -46318,10 +46347,10 @@
       "end": "0x1cd18d",
       "kind": "auto",
       "n_r": 167,
-      "opnd_percent": 47.5,
+      "opnd_percent": 48.0,
       "ref": "synth",
       "ref_sha": "7e00aa181f36cf24",
-      "score": 81.4,
+      "score": 81.9,
       "source": "src/halo/sound/sound_manager.c"
     },
     "sound_update_channel_attenuation": {
@@ -46351,10 +46380,10 @@
       "end": "0x1ce17f",
       "kind": "auto",
       "n_r": 419,
-      "opnd_percent": 56.5,
+      "opnd_percent": 56.9,
       "ref": "synth",
       "ref_sha": "46f3ecf45211d830",
-      "score": 83.8,
+      "score": 84.2,
       "source": "src/halo/sound/sound_manager.c"
     },
     "sound_valid_for_channel": {
@@ -48705,10 +48734,10 @@
       "end": "0x1b24c9",
       "kind": "auto",
       "n_r": 196,
-      "opnd_percent": 69.1,
+      "opnd_percent": 68.2,
       "ref": "synth",
       "ref_sha": "47a4fa72f4923916",
-      "score": 90.0,
+      "score": 90.8,
       "source": "src/halo/units/units.c"
     },
     "unit_impulse": {
