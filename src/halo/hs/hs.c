@@ -6288,6 +6288,50 @@ void FUN_000c34a0(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, value.long_value);
 }
 
+/* 0xc34d0 — HaloScript function handler: show/hide the scripted HUD time code.
+ *
+ * Ghidra mis-prototypes this as `void FUN_000c34d0(void)` and surfaces the
+ * three stack arguments as `in_stack_00000004/8/c`; the kb decl was widened to
+ * the standard hs handler shape used by every sibling in this TU.  Those
+ * `in_stack_*` names are the tell for dropped cdecl stack params, NOT for
+ * register arguments — this function takes none.
+ *
+ * Evaluates the macro argument; on success the returned result block holds a
+ * single boolean in its first HS argument slot, which is handed to
+ * scripted_hud_time_code_show, then the script thread is completed with
+ * hs_return(thread_datum, 0).
+ *
+ * Narrow-load signedness is load-bearing (disassembly, not the decompiler, is
+ * the authority):
+ *   0xc34ec  XOR EDX,EDX / MOV DL, byte ptr [EAX]   ; ZERO-extended byte
+ * Reading the field through an `int *` or a signed `char *` would emit a dword
+ * load or MOVSX; both are silent LOADW-class bugs the hazard scanner would not
+ * flag, so the result pointer is typed `unsigned char *`.
+ *
+ * ADD ESP,0xc at 0xc34fe is a single merged cleanup for BOTH calls (1 push for
+ * scripted_hud_time_code_show + 2 for hs_return); the "hs_return ARG_COUNT
+ * cleanup=3, decl=2" finding is that cdecl merge, not a wider hs_return.
+ *
+ * Frame is EBP-based with no locals and no _chkstk (PUSH EBP / MOV EBP,ESP /
+ * PUSH ESI); ESI carries thread_datum across the body.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560 = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *   0xd4a20 = scripted_hud_time_code_show(bool)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c34d0(int16_t function_index, int thread_datum, char init)
+{
+  unsigned char *result;
+
+  result = (unsigned char *)hs_macro_function_evaluate(function_index,
+                                                       thread_datum, init);
+  if (result != 0) {
+    scripted_hud_time_code_show(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
