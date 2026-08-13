@@ -5522,6 +5522,38 @@ void FUN_000c2f30(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* Zero-argument HaloScript builtin handler.  Structural twin of
+ * FUN_000c2160 / FUN_000c2180 above: no hs_macro_function_evaluate call
+ * (the builtin takes no script arguments), so the handler just runs its
+ * side-effecting callee and completes the calling thread with the value 0.
+ *
+ *   PUSH EBP; MOV EBP,ESP        ; no locals, no `sub esp`
+ *   CALL 0x1954d0                ; no args, no cleanup
+ *   MOV EAX,[EBP+0xc]            ; thread_datum (SECOND stack param)
+ *   PUSH 0x0                     ; hs_return arg2 = value
+ *   PUSH EAX                     ; hs_return arg1 = thread_datum (cdecl:
+ *                                ; last PUSH is the first C argument)
+ *   CALL 0xcbf80                 ; hs_return
+ *   ADD ESP,0x8                  ; cdecl cleanup, 2 dwords
+ *   POP EBP; RET                 ; plain cdecl RET, no RET n
+ *
+ * Ghidra mis-prototypes this as `void FUN_000c2f70(void)` and reports the
+ * [EBP+0xc] read as the phantom local `in_stack_00000008`; that name says
+ * +8 but the MOV reads +0xc.  EBP+0x8 is function_index (never read),
+ * EBP+0xc is thread_datum.  The kb decl was widened from that void(void)
+ * form with this lift — leaving it would have passed function_index as the
+ * thread handle from the script dispatch table.
+ *
+ * Callees (both cdecl, ported, no register args):
+ *   0x1954d0 = FUN_001954d0(void)               (still unnamed in kb.json)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c2f70(int16_t function_index, int thread_datum, char init)
+{
+  FUN_001954d0();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
