@@ -5612,6 +5612,76 @@ void FUN_000c3030(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc3070 — HaloScript macro-function handler that forwards an evaluated
+ * argument record to the scripted-player-effect start routine.  Instruction
+ * for instruction this is the twin of 0xc3030 above; only the consumer call
+ * target differs (0xa2df0 here vs 0xa2920 there).  Ghidra models it as
+ * `void FUN_000c3070(void)` and reports the three cdecl stack parameters as
+ * phantom `in_stack_*` locals, so the kb decl was widened from that void(void)
+ * form with this lift.
+ *
+ * Disassembly (0xc3070..0xc30a8, 57 bytes):
+ *   PUSH EBP; MOV EBP,ESP            ; no `sub esp` — zero stack locals
+ *   MOV  EAX,[EBP+0x10]              ; init           (arg 3, char)
+ *   MOV  ECX,[EBP+0x8]               ; function_index (arg 1, int16)
+ *   PUSH ESI                         ; the only callee-saved register used
+ *   MOV  ESI,[EBP+0xc]               ; thread_datum   (arg 2), cached in ESI
+ *                                    ; because it is needed AGAIN after the
+ *                                    ; first call; fn_index and init are dead
+ *                                    ; from there on
+ *   PUSH EAX; PUSH ESI; PUSH ECX     ; cdecl: last PUSH is the first C arg,
+ *                                    ; i.e. (function_index, thread_datum,
+ *                                    ;       init)
+ *   CALL 0xcc560                     ; hs_macro_function_evaluate
+ *   ADD  ESP,0xc                     ; 3 args
+ *   TEST EAX,EAX; JZ 0xc30a6         ; plain early-out, no else branch; on a
+ *                                    ; NULL record NEITHER tail call runs —
+ *                                    ; in particular there is no hs_return
+ *   FLD  dword ptr [EAX+0x4]         ; record field at +4 is a FLOAT
+ *   MOV  EDX,dword ptr [EAX]         ; record field at +0 is an int
+ *   PUSH ECX                         ; dummy slot for the float argument
+ *   FSTP dword ptr [ESP]             ; push-then-fstp: float overwrites it
+ *   PUSH EDX                         ; int argument
+ *   CALL 0xa2df0                     ; scripted_player_effect_start
+ *   PUSH 0x0; PUSH ESI
+ *   CALL 0xcbf80                     ; hs_return(thread_datum, 0)
+ *   ADD  ESP,0x10                    ; COMBINED cleanup for BOTH calls
+ *                                    ; (start 8 + hs_return 8) — this is NOT
+ *                                    ; a four-argument hs_return, so the
+ *                                    ; call-site ARG_COUNT warning is a false
+ *                                    ; positive; hs_return's decl stays (2).
+ *   POP ESI; POP EBP; RET
+ *
+ * The `PUSH ECX; FSTP [ESP]` pair is the MSVC float-argument idiom, so Ghidra
+ * shows the start call as taking no arguments at all (its kb decl was
+ * `void scripted_player_effect_start(void)`, widened to (int, float) here from
+ * this call site).  ECX's value at the PUSH is irrelevant — the slot is only
+ * being reserved.  Reading the record's +4 field as an int instead of a float
+ * would leave the effect silently doing nothing: no assert, no crash, and no
+ * VC71 signal.  `result` is `int *`, so that field is reached through a
+ * (char *) byte offset, not `result[1]`.
+ *
+ * Only one local (`result`) is declared, matching the zero-`sub esp` frame;
+ * fn_index/init must not be spilled into extra locals or the frame diverges.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560 = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *             (declared `int`; EAX is dereferenced as a record pointer)
+ *   0xa2df0 = scripted_player_effect_start(int, float)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c3070(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    scripted_player_effect_start(result[0], *(float *)((char *)result + 4));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
