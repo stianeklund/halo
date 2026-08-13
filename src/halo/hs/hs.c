@@ -5079,6 +5079,31 @@ void FUN_000c2c20(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2c70 — HS script function handler: set the HUD's flashing state.
+ * Evaluates the macro arguments; on success the result block holds a byte
+ * value at +0x0.  Calls scripted_hud_set_flashing_state(value) then returns
+ * void to the HS thread via hs_return(thread_datum, 0).
+ *
+ * The +0x0 read is a ZERO-extended byte load (`XOR EDX,EDX ; MOV DL,[EAX]`
+ * at 0xc2c8c) — unsigned char, not a dword and not a sign-extended char.
+ *
+ * ABI (verified against disassembly 0xc2c70-0xc2ca3): cdecl, ESI holds
+ * thread_datum across the evaluate call and is reused for hs_return, plain
+ * RET, no locals/FPU/SEH.  The single `ADD ESP,0xc` at 0xc2c9e is a merged
+ * cdecl cleanup covering the 1-arg scripted_hud_set_flashing_state call plus
+ * the 2-arg hs_return call (4+8) — do not read it as a 3-arg hs_return. */
+void FUN_000c2c70(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    scripted_hud_set_flashing_state(*(unsigned char *)result);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
