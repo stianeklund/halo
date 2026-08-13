@@ -25872,10 +25872,10 @@
       "end": "0x2066f",
       "kind": "auto",
       "n_r": 73,
-      "opnd_percent": 62.1,
+      "opnd_percent": 71.7,
       "ref": "synth",
       "ref_sha": "5feb3142c4dbf087",
-      "score": 75.9,
+      "score": 85.5,
       "source": "src/halo/ai/actions.c"
     },
     "actor_action_handle_initial_action": {
@@ -25894,10 +25894,10 @@
       "end": "0x1f6d2",
       "kind": "auto",
       "n_r": 606,
-      "opnd_percent": 75.1,
+      "opnd_percent": 76.2,
       "ref": "synth",
       "ref_sha": "2a462a6a90ba5ee1",
-      "score": 83.4,
+      "score": 85.5,
       "source": "src/halo/ai/actions.c"
     },
     "actor_action_handle_panic_from_attached_melee_attackers": {
@@ -25960,10 +25960,10 @@
       "end": "0x1de92",
       "kind": "auto",
       "n_r": 109,
-      "opnd_percent": 66.0,
+      "opnd_percent": 69.8,
       "ref": "synth",
       "ref_sha": "fd4d2f8a2930d5ca",
-      "score": 86.4,
+      "score": 89.6,
       "source": "src/halo/ai/actions.c"
     },
     "actor_action_handle_pending_command_list": {
@@ -26070,10 +26070,10 @@
       "end": "0x20120",
       "kind": "auto",
       "n_r": 235,
-      "opnd_percent": 75.2,
+      "opnd_percent": 80.7,
       "ref": "synth",
       "ref_sha": "11ff16911f0784ab",
-      "score": 89.1,
+      "score": 89.5,
       "source": "src/halo/ai/actions.c"
     },
     "actor_action_try_to_enter_vehicle": {
@@ -26092,10 +26092,10 @@
       "end": "0x1fe6b",
       "kind": "auto",
       "n_r": 147,
-      "opnd_percent": 71.8,
+      "opnd_percent": 74.4,
       "ref": "synth",
       "ref_sha": "7aa450bfd4f87a4b",
-      "score": 88.0,
+      "score": 91.0,
       "source": "src/halo/ai/actions.c"
     },
     "actor_action_try_to_panic": {
@@ -41463,10 +41463,10 @@
       "end": "0x1bdd3d",
       "kind": "auto",
       "n_r": 21,
-      "opnd_percent": 82.6,
+      "opnd_percent": 100.0,
       "ref": "synth",
       "ref_sha": "e83607538961bb72",
-      "score": 91.3,
+      "score": 100.0,
       "source": "src/halo/cache/physical_memory_map.c"
     },
     "physical_memory_map_verify": {
@@ -41474,10 +41474,10 @@
       "end": "0x1bdd00",
       "kind": "auto",
       "n_r": 46,
-      "opnd_percent": 59.6,
+      "opnd_percent": 63.0,
       "ref": "synth",
       "ref_sha": "bed0a15147bd62f7",
-      "score": 53.2,
+      "score": 95.7,
       "source": "src/halo/cache/physical_memory_map.c"
     },
     "pill_intersects_rectangle2d": {

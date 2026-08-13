@@ -2054,50 +2054,49 @@ char actor_action_handle_surprise(int actor_handle, short type)
 char actor_action_handle_panic_transition(int actor_handle, short param_2,
                                           char param_3, short param_4)
 {
-  char *actor;
+  actor_t *actor = (actor_t *)datum_get(actor_data, actor_handle);
   short panic_level;
   short shield_value;
   int iVar5;
   char bVar3;
   volatile char result;
 
-  actor = (char *)datum_get(actor_data, actor_handle);
-  panic_level = ((actor_t *)actor)->stimuli_panic_type;
+  panic_level = actor->stimuli_panic_type;
   result = 0;
-  if (param_2 <= panic_level && ((actor_t *)actor)->field_160 == '\0') {
-    if (((actor_t *)actor)->state_action == _actor_action_flee &&
-        (shield_value = ((actor_t *)actor)->field_0a8, shield_value > 0)) {
+  if (param_2 <= panic_level && actor->field_160 == '\0') {
+    if (actor->state_action == _actor_action_flee &&
+        (shield_value = actor->field_0a8, shield_value > 0)) {
       if (panic_level < shield_value) {
-        ((actor_t *)actor)->field_0a8 = shield_value;
-        ((actor_t *)actor)->stimuli_panic_type = 0;
-        return result;
+        actor->field_0a8 = shield_value;
+        actor->stimuli_panic_type = 0;
+        return 0;
       }
-      ((actor_t *)actor)->field_0a8 = panic_level;
-      ((actor_t *)actor)->stimuli_panic_type = 0;
+      actor->field_0a8 = panic_level;
+      actor->stimuli_panic_type = 0;
       return result;
     }
-    if (((actor_t *)actor)->field_398 != -1) {
+    if (actor->field_398 != -1) {
       iVar5 = game_time_get();
-      if (iVar5 <= ((actor_t *)actor)->field_398 + 7) {
+      if (iVar5 <= actor->field_398 + 7) {
         goto done;
       }
     }
-    bVar3 = ((actor_t *)actor)->stimuli_panic_type >= param_4;
-    if (((actor_t *)actor)->stimuli_panic_prop_index == 0) {
+    bVar3 = actor->stimuli_panic_type >= param_4;
+    if (actor->stimuli_panic_prop_index == 0) {
       display_assert("actor->stimuli.panic_prop_index != 0x00000000",
                      "c:\\halo\\SOURCE\\ai\\actions.c", 0x295, 1);
       system_exit(-1);
     }
     if (param_3 != '\0' && !bVar3) {
-      FUN_00046f10(0x22, ((actor_t *)actor)->field_018, -1, -1, -1, -1, 0);
-      ((actor_t *)actor)->stimuli_panic_type = 0;
+      FUN_00046f10(0x22, actor->field_018, -1, -1, -1, -1, 0);
+      actor->stimuli_panic_type = 0;
       return result;
     }
-    result = FUN_0001d3c0(actor_handle, ((actor_t *)actor)->stimuli_panic_type,
-                          ((actor_t *)actor)->stimuli_panic_prop_index, bVar3);
+    result = FUN_0001d3c0(actor_handle, actor->stimuli_panic_type,
+                          actor->stimuli_panic_prop_index, bVar3);
   }
 done:
-  ((actor_t *)actor)->stimuli_panic_type = 0;
+  actor->stimuli_panic_type = 0;
   return result;
 }
 
@@ -2982,10 +2981,6 @@ char actor_action_handle_lost_contact(int actor_handle)
     ((actor_t *)actor)->field_3c4 += 1;
     return result;
 
-  pursuit_failed:
-    if (((actor_t *)actor)->field_3c4 > 0 &&
-        ((actor_t *)actor)->field_018 != -1)
-      FUN_00046f10(0x13, ((actor_t *)actor)->field_018, -1, -1, -1, -1, 0);
     if (*(char *)(actor + 6) == '\0' && can_search != '\0' &&
         FUN_0001c0e0(actor_handle, flag_e, (int)action_buf) != '\0') {
       actor_action_change(actor_handle, 8, (int)action_buf);
@@ -3004,6 +2999,10 @@ char actor_action_handle_lost_contact(int actor_handle)
     }
     if (can_search != '\0') {
       if (encounter == (char *)0) {
+      pursuit_failed:
+        if (((actor_t *)actor)->field_3c4 > 0 &&
+            ((actor_t *)actor)->field_018 != -1)
+          FUN_00046f10(0x13, ((actor_t *)actor)->field_018, -1, -1, -1, -1, 0);
         display_assert("encounter", "c:\\halo\\SOURCE\\ai\\actions.c", 0xa45,
                        1);
         system_exit(-1);
@@ -3394,7 +3393,7 @@ char actor_action_consider_grenade(int actor_handle)
  * line 0xce3, + system_exit(-1). Returns bool in AL. */
 char actor_action_try_to_evade(int actor_handle)
 {
-  char *actor;
+  actor_t *actor = (actor_t *)datum_get(actor_data, actor_handle);
   int *actr_tag;
   char *unit_tag;
   char *prop;
@@ -3404,49 +3403,32 @@ char actor_action_try_to_evade(int actor_handle)
   float dot;
   int evade_dir_ref;
   char out_flag;
-  char result;
   int impulse;
   char path_result[0x1c];
 
-  actor = (char *)datum_get(actor_data, actor_handle);
-  result = 0;
-  if (((actor_t *)actor)->field_158 != -1) {
-    return result;
-  }
-  if (FUN_0002a360(actor_handle) != 0) {
-    return result;
-  }
-  if (((actor_t *)actor)->field_504 != '\0') {
-    return result;
-  }
-  if (((actor_t *)actor)->target_target_prop_index == -1) {
-    return result;
-  }
+  if (actor->field_158 != -1) return 0;
+  if (FUN_0002a360(actor_handle) != 0) return 0;
+  if (actor->field_504 != '\0') return 0;
+  if (actor->target_target_prop_index == -1) return 0;
 
-  actr_tag = (int *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
-  unit_tag = (char *)tag_get(0x756e6974, *(int *)object_get_and_verify_type(
-                                           ((actor_t *)actor)->field_018, 3));
-  prop = (char *)datum_get(*(data_t **)0x5ab23c,
-                           ((actor_t *)actor)->target_target_prop_index);
-  if (*(float *)(unit_tag + 0x234) <= *(float *)0x2533c0) {
-    return result;
-  }
+  actr_tag = (int *)tag_get(0x61637472, actor->field_058);
+  unit_tag = (char *)tag_get(0x756e6974, *(int *)object_get_and_verify_type(actor->field_018, 3));
+  prop = (char *)datum_get(*(data_t **)0x5ab23c, actor->target_target_prop_index);
+  if (!(*(float *)(unit_tag + 0x234) > *(float *)0x2533c0)) return 0;
 
   attractor_vec = (float *)(prop + 0xe0);
   if ((*actr_tag & 0x200000) != 0) {
-    dot = FUN_00013070(attractor_vec, (float *)(actor + 0x174));
+    dot = FUN_00013070(attractor_vec, (float *)((char *)actor + 0x174));
   } else {
     scratch[0] = attractor_vec[0];
     scratch[1] = attractor_vec[1];
-    if (magnitude3d(scratch) <= *(float *)0x2533c0) {
+    if (!(magnitude3d(scratch) > *(float *)0x2533c0)) {
       goto do_evade;
     }
-    dot = scratch[1] * ((actor_t *)actor)->input_facing_vector[1] +
-          scratch[0] * ((actor_t *)actor)->input_facing_vector[0];
+    dot = scratch[1] * actor->input_facing_vector[1] +
+          scratch[0] * actor->input_facing_vector[0];
   }
-  if (dot <= *(float *)0x253524) {
-    return result;
-  }
+  if (!(dot > *(float *)0x253524)) return 0;
 
 do_evade:
   alignment_vec[0] = attractor_vec[0];
@@ -3466,13 +3448,12 @@ do_evade:
                      "c:\\halo\\SOURCE\\ai\\actions.c", 0xce3, 1);
       system_exit(-1);
     }
-    if (unit_test_animation_impulse(((actor_t *)actor)->field_018, impulse) !=
-        0) {
-      result = (char)actor_move_animation_impulse(
+    if (unit_test_animation_impulse(actor->field_018, impulse) != 0) {
+      return (char)actor_move_animation_impulse(
         actor_handle, (int16_t)impulse, (int *)alignment_vec);
     }
   }
-  return result;
+  return 0;
 }
 
 /* actor_action_try_to_dive (0x1fe70) - Attempt to start a dive/dodge action in
@@ -3511,25 +3492,24 @@ do_evade:
 char actor_action_try_to_dive(int actor_handle, short direction_ref,
                               float param_3, float *direction, float param_5)
 {
-  char *actor;
-  int record;
-  char out_flag;
+  actor_t *actor = (actor_t *)datum_get(actor_data, actor_handle);
+  int record = (actor_handle & 0xffff) * 0x657c + *(int *)0x331f58;
   char path_result[0x1c];
   float dive_x;
   float dive_y;
   float scores[4];
   short best_index;
+  short anim_dir;
   float best_score;
   float out_vec[2];
   unsigned short *poss;
+  char out_flag;
   char result;
 
-  actor = (char *)datum_get(actor_data, actor_handle);
-  record = (actor_handle & 0xffff) * 0x657c + *(int *)0x331f58;
-  out_flag = 0;
   *(int *)(record + 0x184) = game_time_get();
+  out_flag = 0;
 
-  if (((actor_t *)actor)->field_158 != -1 ||
+  if (actor->field_158 != -1 ||
       actor_move_try_evasion_direction(
         actor_handle, direction, param_3, (unsigned short *)&direction_ref,
         param_5, &out_flag, path_result) == '\0') {
@@ -3547,9 +3527,6 @@ char actor_action_try_to_dive(int actor_handle, short direction_ref,
     dive_x = -*direction;
     break;
   case 2:
-    dive_x = direction[1];
-    dive_y = *direction;
-    break;
   case 3:
     dive_x = direction[1];
     dive_y = *direction;
@@ -3559,32 +3536,28 @@ char actor_action_try_to_dive(int actor_handle, short direction_ref,
     system_exit(-1);
   }
 
-  /* The winning animation_direction shares out_vec[1]'s stack slot: it lives
-   * during the possibility scan, is read by the second switch's dispatch, then
-   * the slot is overwritten with the output vector's Y component. */
   best_index = -1;
-  *(int *)(out_vec + 1) = -1;
+  anim_dir = -1;
   best_score = -0.5f;
-  scores[2] = dive_y * ((actor_t *)actor)->input_facing_vector[0] +
-              dive_x * ((actor_t *)actor)->input_facing_vector[1];
-  scores[0] = ((actor_t *)actor)->input_facing_vector[0] * dive_x +
-              -((actor_t *)actor)->input_facing_vector[1] * dive_y;
+  scores[2] = dive_y * actor->input_facing_vector[0] +
+              dive_x * actor->input_facing_vector[1];
+  scores[0] = actor->input_facing_vector[0] * dive_x +
+              -actor->input_facing_vector[1] * dive_y;
   scores[3] = -scores[2];
   scores[1] = -scores[0];
 
   poss = (unsigned short *)0x2542b2;
   do {
-    if ((short)poss[0] < 0 || 3 < (short)poss[0]) {
+    if ((short)poss[0] < 0 || (short)poss[0] >= 4) {
       display_assert("(possibility->animation_direction >= 0) && "
                      "(possibility->animation_direction < 4)",
                      "c:\\halo\\SOURCE\\ai\\actions.c", 0xd3e, 1);
       system_exit(-1);
     }
     if (best_score < scores[(short)poss[0]] + *(float *)(poss + 1) &&
-        unit_test_animation_impulse(((actor_t *)actor)->field_018, poss[-1]) !=
-          0) {
+        unit_test_animation_impulse(actor->field_018, poss[-1]) != 0) {
       best_index = poss[-1];
-      *(int *)(out_vec + 1) = poss[0];
+      anim_dir = poss[0];
       best_score = scores[(short)poss[0]] + *(float *)(poss + 1);
     }
     poss = poss + 4;
@@ -3595,7 +3568,7 @@ char actor_action_try_to_dive(int actor_handle, short direction_ref,
     return '\0';
   }
 
-  switch (*(short *)(out_vec + 1)) {
+  switch (anim_dir) {
   case 0:
     out_vec[1] = -dive_y;
     out_vec[0] = dive_x;
@@ -3605,9 +3578,6 @@ char actor_action_try_to_dive(int actor_handle, short direction_ref,
     out_vec[1] = dive_y;
     break;
   case 2:
-    out_vec[0] = dive_y;
-    out_vec[1] = dive_x;
-    break;
   case 3:
     out_vec[0] = dive_y;
     out_vec[1] = dive_x;
@@ -3869,34 +3839,37 @@ char actor_action_handle_combat_transition(int actor_handle)
  * (0x6a0) is set, calls actor_action_try_to_throw_grenade. */
 char actor_action_handle_grenade_throwing(int actor_handle)
 {
-  char *actor;
-  char *actv_tag;
+  actor_t *actor = (actor_t *)datum_get(actor_data, actor_handle);
+  char *actv_tag = (char *)tag_get(0x61637476, actor->field_05c);
   char *prop;
+  short mode;
   char result;
 
-  actor = (char *)datum_get(actor_data, actor_handle);
-  actv_tag = (char *)tag_get(0x61637476, ((actor_t *)actor)->field_05c);
   result = 0;
-  if (((actor_t *)actor)->target_target_type < 5 ||
-      (((actor_t *)actor)->state_action == _actor_action_flee &&
-       ((actor_t *)actor)->field_0a8 > 0)) {
-    ((actor_t *)actor)->field_6a0 = 0;
+  if (actor->target_target_type < 5 ||
+      (actor->state_action == _actor_action_flee && actor->field_0a8 > 0)) {
+    actor->field_6a0 = 0;
     return 0;
   }
-  prop =
-    (char *)datum_get(prop_data, ((actor_t *)actor)->target_target_prop_index);
-  if (*(short *)(actv_tag + 0x184) == 1) {
-    if (((actor_t *)actor)->field_06e >= 5) {
+
+  prop = (char *)datum_get(prop_data, actor->target_target_prop_index);
+  mode = *(short *)(actv_tag + 0x184);
+
+  switch (mode) {
+  case 1:
+    if (actor->field_06e >= 5) {
       result = actor_action_consider_grenade(actor_handle);
     }
-  } else if (*(short *)(actv_tag + 0x184) == 2) {
+    break;
+  case 2:
     if (*(char *)(prop + 0x14) != '\0' ||
-        (((actor_t *)actor)->state_action == _actor_action_flee &&
-         ((actor_t *)actor)->field_0a8 != 0)) {
+        (actor->state_action == _actor_action_flee && actor->field_0a8 != 0)) {
       result = actor_action_consider_grenade(actor_handle);
     }
+    break;
   }
-  if (((actor_t *)actor)->field_6a0 != '\0') {
+
+  if (actor->field_6a0 != '\0') {
     actor_action_try_to_throw_grenade(actor_handle, 0);
   }
   return result;
