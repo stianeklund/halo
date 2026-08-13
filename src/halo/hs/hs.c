@@ -5554,6 +5554,64 @@ void FUN_000c2f70(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc3030 — HaloScript macro-function handler that forwards an evaluated
+ * argument record to the scripted-player-effect rumble routine.  Same three
+ * parameter dispatch shape as every other handler in this table; Ghidra
+ * models it as `void FUN_000c3030(void)` and reports the three cdecl stack
+ * parameters as phantom `in_stack_*` locals, so the kb decl was widened from
+ * that void(void) form with this lift.
+ *
+ * Disassembly (0xc3030..0xc3068):
+ *   PUSH EBP; MOV EBP,ESP; PUSH ESI  ; only the ESI save, no locals
+ *   [EBP+0x8]  = function_index (int16, loaded into ECX)
+ *   [EBP+0xc]  = thread_datum   (cached in ESI across both calls)
+ *   [EBP+0x10] = init           (loaded into EAX)
+ *   PUSH EAX; PUSH ESI; PUSH ECX     ; cdecl: last PUSH is the first C arg,
+ *                                    ; i.e. (function_index, thread_datum,
+ * init) CALL 0xcc560                     ; hs_macro_function_evaluate ADD
+ * ESP,0xc TEST EAX,EAX; JZ 0xc3066         ; plain early-out, no else branch
+ *   FLD  dword ptr [EAX+0x4]         ; record field at +4 is a FLOAT
+ *   MOV  EDX,dword ptr [EAX]         ; record field at +0 is an int
+ *   PUSH ECX                         ; dummy slot for the float argument
+ *   FSTP dword ptr [ESP]             ; push-then-fstp: float overwrites it
+ *   PUSH EDX                         ; int argument
+ *   CALL 0xa2920                     ; scripted_player_effect_set_rumble
+ *   PUSH 0x0; PUSH ESI
+ *   CALL 0xcbf80                     ; hs_return(thread_datum, 0)
+ *   ADD  ESP,0x10                    ; COMBINED cleanup for BOTH calls
+ *                                    ; (rumble 8 + hs_return 8) — this is NOT
+ *                                    ; a four-argument hs_return, so the
+ *                                    ; call-site ARG_COUNT warning is a false
+ *                                    ; positive; hs_return's decl stays (2).
+ *   POP ESI; POP EBP; RET
+ *
+ * The `PUSH ECX; FSTP [ESP]` pair is the MSVC float-argument idiom, so Ghidra
+ * shows the rumble call as taking no arguments at all (its kb decl was
+ * `void scripted_player_effect_set_rumble(void)`, widened to (int, float)
+ * here from this call site).  Reading the record's +4 field as an int instead
+ * of a float would leave the rumble silently doing nothing — no assert and no
+ * VC71 signal.  `result` is `int *`, so that field is reached through a
+ * (char *) byte offset, not `result[1]`.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560 = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *             (declared `int`; EAX is dereferenced as a record pointer)
+ *   0xa2920 = scripted_player_effect_set_rumble(int, float)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c3030(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    scripted_player_effect_set_rumble(result[0],
+                                      *(float *)((char *)result + 4));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script

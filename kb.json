@@ -11211,7 +11211,8 @@
     },
     {
      "addr": "0xc3030",
-     "decl": "void FUN_000c3030(void);"
+     "decl": "void FUN_000c3030(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc3070",
@@ -17487,7 +17488,7 @@
     },
     {
      "addr": "0xa2920",
-     "decl": "void scripted_player_effect_set_rumble(void);"
+     "decl": "void scripted_player_effect_set_rumble(int param_1, float param_2);"
     },
     {
      "addr": "0xa2930",
