@@ -5995,6 +5995,53 @@ void FUN_000c3310(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc3350 — HaloScript function handler: set the scripted HUD timer time.
+ *
+ * Ghidra mis-prototypes this as `void FUN_000c3350(void)` and surfaces the
+ * three stack arguments as `in_stack_00000004/8/c`; the kb decl was widened to
+ * the standard hs handler shape used by every sibling in this TU.
+ *
+ * Evaluates the macro arguments; on success the returned result block is read
+ * as two 16-bit fields and handed to scripted_hud_set_timer_time, then the
+ * script thread is completed with hs_return(thread_datum, 0).
+ *
+ * Narrow-load signedness is load-bearing and asymmetric here (disassembly, not
+ * the decompiler, is the authority):
+ *   0xc336c  XOR EDX,EDX / MOV DX, word ptr [EAX+0x4]   ; ZERO-extended -> arg2
+ *   0xc3372  MOVSX EAX, word ptr [EAX]                  ; SIGN-extended -> arg1
+ * So +0x0 is a signed short and +0x4 is an unsigned short.  Reading +0x4 as
+ * signed is a silent bug (a timer time above 0x7fff would go negative) that
+ * neither the hazard scanner nor VC71 would flag.
+ *
+ * The two 16-bit loads are emitted in right-to-left cdecl argument order
+ * (arg2's zero-extended load precedes arg1's sign-extended load), which the
+ * natural C expression order reproduces.
+ *
+ * ADD ESP,0x10 at 0xc3384 is a single merged cleanup for BOTH calls
+ * (2 pushes for scripted_hud_set_timer_time + 2 for hs_return); the
+ * "hs_return ARG_COUNT cleanup=4, decl=2" finding is that merge, not a
+ * wider hs_return.
+ *
+ * Frame is EBP-based with no locals and no _chkstk (PUSH EBP / MOV EBP,ESP /
+ * PUSH ESI); ESI carries thread_datum across the body.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560 = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *   0xd4860 = scripted_hud_set_timer_time(short, short)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c3350(int16_t function_index, int thread_datum, char init)
+{
+  short *result;
+
+  result =
+    (short *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    scripted_hud_set_timer_time(result[0], *(unsigned short *)(result + 2));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
