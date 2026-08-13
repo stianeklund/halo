@@ -6332,6 +6332,58 @@ void FUN_000c34d0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc3510 — HaloScript function handler: start the scripted HUD time code.
+ *
+ * Byte-for-byte the same shape as the preceding handler at 0xc34d0, differing
+ * only in the dispatch target (0xd4a50 scripted_hud_time_code_start instead of
+ * 0xd4a20 scripted_hud_time_code_show).
+ *
+ * Ghidra mis-prototypes this as `void FUN_000c3510(void)` and surfaces the
+ * three stack arguments as `in_stack_00000004/8/c`; the kb decl was widened to
+ * the standard hs handler shape used by every sibling in this TU.  Those
+ * `in_stack_*` names are the tell for dropped cdecl stack params, NOT for
+ * register arguments — this function takes none.
+ *   [EBP+0x08] -> ECX -> arg1 int16_t function_index
+ *   [EBP+0x0C] -> ESI -> arg2 int     thread_datum   (ESI across the body)
+ *   [EBP+0x10] -> EAX -> arg3 char    init
+ * Push order at the 0xcc560 call is PUSH EAX / PUSH ESI / PUSH ECX, i.e. the
+ * C argument order (function_index, thread_datum, init).
+ *
+ * hs_macro_function_evaluate's kb decl returns `int`, but the result is used
+ * here as a pointer to the evaluated HS argument block, so it is cast rather
+ * than truncated.
+ *
+ * Narrow-load signedness is load-bearing (disassembly, not the decompiler and
+ * not the callee prototype, is the authority):
+ *   0xc352c  XOR EDX,EDX / MOV DL, byte ptr [EAX]   ; ZERO-extended byte
+ * Reading the field through an `int *` or a signed `char *` would emit a dword
+ * load or MOVSX; both are silent LOADW-class bugs the hazard scanner would not
+ * flag, so the result pointer is typed `unsigned char *`.
+ *
+ * ADD ESP,0xc at 0xc353e is a single merged cleanup for BOTH calls (1 push for
+ * scripted_hud_time_code_start + 2 for hs_return); the "hs_return ARG_COUNT
+ * cleanup=3, decl=2" finding is that cdecl merge, not a wider hs_return.
+ *
+ * Frame is EBP-based with no locals and no _chkstk (PUSH EBP / MOV EBP,ESP /
+ * PUSH ESI); ESI carries thread_datum across the body.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560 = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *   0xd4a50 = scripted_hud_time_code_start(bool)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c3510(int16_t function_index, int thread_datum, char init)
+{
+  unsigned char *result;
+
+  result = (unsigned char *)hs_macro_function_evaluate(function_index,
+                                                       thread_datum, init);
+  if (result != 0) {
+    scripted_hud_time_code_start(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
