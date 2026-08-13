@@ -5199,6 +5199,81 @@ void FUN_000c2cd0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2d20 (hs.obj) — HaloScript function handler: set an ENEMY nav point for
+ * a unit's player.  The enemy-side counterpart of 0xc2cd0 immediately above,
+ * and its structural twin: evaluate the script arguments, and when the
+ * evaluator hands back a completed argument block, forward the four fields to
+ * FUN_000d64c0 (0xd64c0, "set enemy nav point for a unit's player") and return
+ * 0 to the calling script thread.  While arguments are still being evaluated
+ * the return is NULL and nothing is dispatched this tick.
+ *
+ * Argument-block layout, read directly off the disassembly (base EAX = the
+ * hs_macro_function_evaluate return value):
+ *   +0x00  uint16  (zero-extended: XOR EDX,EDX ; MOV DX,[EAX])
+ *   +0x04  int32
+ *   +0x08  int32   (full dword — this is the ONE shape difference from 0xc2cd0,
+ *                   which loads its third field as a zero-extended word)
+ *   +0x0c  float   (FLD dword [EAX+0xc] ... FSTP dword [ESP])
+ *
+ * Disassembly (0xc2d20-0xc2d64).  PUSH EBP ; MOV EBP,ESP ; PUSH ESI — no
+ * locals, no `sub esp`, no _chkstk, no SEH.  ESI = [EBP+0xC] = thread_datum,
+ * held live across both calls.
+ *
+ *   MOV EAX,[EBP+0x10]        ; init
+ *   MOV ECX,[EBP+0x8]         ; function_index
+ *   MOV ESI,[EBP+0xC]         ; thread_datum
+ *   PUSH EAX; PUSH ESI; PUSH ECX
+ *   CALL 0xcc560              ; hs_macro_function_evaluate(index, thread, init)
+ *   ADD ESP,0xC; TEST EAX,EAX; JZ end
+ *   FLD  dword [EAX+0xc]
+ *   PUSH ECX                  ; dummy slot for the float
+ *   FSTP dword [ESP]          ; -> arg 4 = *(float *)(result + 3)
+ *   MOV  EDX,[EAX+8]; PUSH EDX              ; -> arg 3 (full dword)
+ *   MOV  ECX,[EAX+4]; PUSH ECX              ; -> arg 2
+ *   XOR  EDX,EDX; MOV DX,[EAX];   PUSH EDX  ; -> arg 1 (zero-extended)
+ *   CALL 0xd64c0
+ *   PUSH 0x0; PUSH ESI        ; cdecl: last PUSH is the first C argument
+ *   CALL 0xcbf80              ; hs_return(thread_datum, 0)
+ *   ADD  ESP,0x18             ; one coalesced cleanup for BOTH calls (4 + 2)
+ *   POP ESI; POP EBP; RET
+ *
+ * The dword-vs-word third field is corroborated by the function's own extent:
+ * 0xc2d20-0xc2d64 is 68 bytes against 0xc2cd0's 71, and `MOV EDX,[EAX+8]` (3
+ * bytes) versus `XOR EDX,EDX ; MOV DX,[EAX+8]` (6 bytes) accounts for exactly
+ * that 3-byte difference.
+ *
+ * Decompiler traps corrected here:
+ *   - Ghidra prototypes this `void FUN_000c2d20(void)` and surfaces the three
+ *     frame reads as `in_stack_*` phantoms; kb.json inherited that wrong
+ *     `(void)` declaration.  The real prototype is the standard HS
+ *     script-function ABI shared by every sibling in this file
+ *     ([EBP+8]=function_index, [EBP+0xc]=thread_datum, [EBP+0x10]=init).
+ *   - Push-then-fstp: Ghidra renders arg 4 as `*(int *)(puVar1 + 6)`, i.e. the
+ *     dummy `PUSH ECX` value.  The real argument is the float that FSTP writes
+ *     over that slot, so 0xd64c0's fourth parameter is a `float`, not an
+ *     `int` — widened in kb.json to match, exactly as its sibling 0xd6490
+ *     already was for the 0xc2cd0 call site.
+ *   - The ARG_COUNT hazard on hs_return (cleanup=6 vs decl=2) is a false
+ *     positive from the single merged `ADD ESP,0x18`.
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0xd64c0 = FUN_000d64c0(nav_type_value, unit_handle, param_3, real)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c2d20(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_000d64c0(*(uint16_t *)result, result[1], result[2],
+                 *(float *)(result + 3));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
