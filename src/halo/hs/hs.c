@@ -5858,6 +5858,89 @@ void FUN_000c32b0(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* FUN_000c32d0 (0xc32d0) — HaloScript function handler: set the scripted HUD
+ * state message.
+ *
+ * Instruction-for-instruction the twin of FUN_000c30f0 at 0xc30f0 above: same
+ * evaluate / NULL-guard / forward-one-field / hs_return shape.  Only two things
+ * differ — the record field read at +0x0 is a WORD here (not a BYTE), and the
+ * consumer is scripted_hud_set_state_message (0xd46f0) instead of 0xd7440.
+ *
+ * Ghidra mis-prototypes this as `void FUN_000c32d0(void)` and surfaces the
+ * three cdecl stack parameters as phantom `in_stack_*` locals; the kb decl was
+ * widened from that void(void) form with this lift.
+ *
+ * Disassembly (0xc32d0..0xc3304, 0x35 bytes):
+ *   PUSH EBP; MOV EBP,ESP            ; no `sub esp` — zero stack locals
+ *   MOV  EAX,[EBP+0x10]              ; init           (arg 3, char)
+ *   MOV  ECX,[EBP+0x8]               ; function_index (arg 1, int16)
+ *   PUSH ESI                         ; the only callee-saved register used
+ *   MOV  ESI,[EBP+0xc]               ; thread_datum (arg 2), cached in ESI
+ *                                    ; because it is live ACROSS the first
+ *                                    ; call and reused for hs_return, while
+ *                                    ; function_index and init are dead after
+ *                                    ; it
+ *   PUSH EAX; PUSH ESI; PUSH ECX     ; cdecl: last PUSH is the first C arg,
+ *                                    ; i.e. (function_index, thread_datum,
+ *                                    ;       init)
+ *   CALL 0xcc560                     ; hs_macro_function_evaluate
+ *   ADD  ESP,0xc                     ; 3 args — cleanup belongs SOLELY to this
+ *                                    ; call
+ *   TEST EAX,EAX; JZ 0xc3302         ; plain early-out, no else branch.  On a
+ *                                    ; NULL record NEITHER tail call runs — in
+ *                                    ; particular there is no hs_return.  The
+ *                                    ; tested EAX is then DEREFERENCED, so this
+ *                                    ; is a NULL-pointer guard, not a boolean
+ *                                    ; test on a returned value.
+ *   XOR  EDX,EDX; MOV DX,word [EAX]  ; record field at +0 is a WORD and it is
+ *                                    ; ZERO-extended (movzx idiom), not
+ *                                    ; sign-extended — hence
+ *                                    ; `*(unsigned short *)result`.  A plain
+ *                                    ; `short` deref is signed here and would
+ *                                    ; emit MOVSX, diverging.  The callee's
+ *                                    ; `short` parameter type does NOT settle
+ *                                    ; the signedness; the XOR/MOV pair does.
+ *   PUSH EDX                         ; ...the set_state_message call's ONE arg
+ *   CALL 0xd46f0                     ; scripted_hud_set_state_message
+ *   PUSH 0x0; PUSH ESI
+ *   CALL 0xcbf80                     ; hs_return(thread_datum, 0)
+ *   ADD  ESP,0xc                     ; COMBINED cleanup for BOTH calls
+ *                                    ; (set_state_message 4 + hs_return 8).
+ *                                    ; There is NO `ADD ESP,4` after
+ *                                    ; CALL 0xd46f0 — do not misread the single
+ *                                    ; 0xc as a three-argument hs_return.  The
+ *                                    ; call-site audit's "hs_return cleanup=3,
+ *                                    ; decl=2" finding is this merged cleanup
+ *                                    ; and is a false positive; hs_return's
+ *                                    ; decl stays (2) and
+ *                                    ; scripted_hud_set_state_message's
+ *                                    ; stays (1).
+ *   POP ESI; POP EBP; RET            ; no `RET n` — cdecl, caller cleans
+ *
+ * Only one local (`result`) is declared, matching the zero-`sub esp` frame;
+ * function_index/init must not be spilled into extra locals or the frame
+ * diverges.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560 = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *             (declared `int`; EAX is dereferenced as a record pointer, so the
+ *             cast lives at the call site — the callee decl is left alone
+ *             because it is already ported and has other call sites)
+ *   0xd46f0 = scripted_hud_set_state_message(short)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c32d0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    scripted_hud_set_state_message(*(unsigned short *)result);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
