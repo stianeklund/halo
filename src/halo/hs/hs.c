@@ -6198,6 +6198,52 @@ void FUN_000c3420(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc3460 — HaloScript function handler: pause/resume the scripted HUD timer.
+ *
+ * Ghidra mis-prototypes this as `void FUN_000c3460(void)` and surfaces the
+ * three stack arguments as `in_stack_00000004/8/c`; the kb decl was widened to
+ * the standard hs handler shape used by every sibling in this TU.  Those
+ * `in_stack_*` names are the tell for dropped cdecl stack params, NOT for
+ * register arguments — this function takes none.
+ *
+ * Byte-shape twin of FUN_000c3420 (same frame, same three-callee shape); only
+ * the consumer differs (0xd4980 here rather than 0xd4960).
+ *
+ * Narrow-load signedness is load-bearing and comes from the disassembly, not
+ * the decompiler: the load is a single byte at offset 0, `XOR EDX,EDX /
+ * MOV DL, byte ptr [EAX]`, i.e. a ZERO-extending promotion, so the pointer
+ * must be `unsigned char *`.  Typing it `char *` would promote with MOVSX and
+ * diverge.  The callee's parameter type (`char`) does not settle the pointer's
+ * signedness — the load width and extension in the caller does.
+ *
+ * ADD ESP,0xc at 0xc348e is a single merged cleanup for BOTH calls (1 push for
+ * scripted_hud_pause_timer + 2 for hs_return); there is no `ADD ESP,4` after
+ * 0xd4980.  Do not read that merge as hs_return taking 3 arguments — the
+ * "ARG_COUNT cleanup=3, decl=2" hazard finding is that cdecl merge.
+ *
+ * Frame is EBP-based with no `sub esp` (PUSH EBP / MOV EBP,ESP / PUSH ESI), so
+ * exactly one local is declared; ESI carries thread_datum across the first
+ * call for reuse by hs_return.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560 = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *             (declared `int`; EAX is dereferenced as a record pointer, so it
+ *             is cast at the call site rather than retyping the callee)
+ *   0xd4980 = scripted_hud_pause_timer(char)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c3460(int16_t function_index, int thread_datum, char init)
+{
+  unsigned char *result;
+
+  result = (unsigned char *)hs_macro_function_evaluate(function_index,
+                                                       thread_datum, init);
+  if (result != 0) {
+    scripted_hud_pause_timer(*result);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script

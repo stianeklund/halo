@@ -11290,7 +11290,8 @@
     },
     {
      "addr": "0xc3460",
-     "decl": "void FUN_000c3460(void);"
+     "decl": "void FUN_000c3460(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc34a0",
