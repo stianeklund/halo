@@ -5308,6 +5308,41 @@ void FUN_000c2e10(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2e50 — HaloScript function handler: clear a unit's player enemy nav
+ * point.  Same skeleton as the rest of this family: evaluate the macro
+ * arguments, bail on a NULL result block, dispatch, then commit a void (0)
+ * return to the calling thread.
+ *
+ * Result-block layout (from disassembly at 000c2e6d..000c2e70):
+ *   +0x00  dword -> FUN_000d6520 arg 1  (MOV EAX, [EAX])
+ *   +0x04  dword -> FUN_000d6520 arg 2  (MOV EDX, [EAX+4])
+ * Both loads are full 32-bit dwords — unlike siblings 0xc0c30 (int16) and
+ * 0xc0c70 (char), there is no narrowing here.
+ *
+ * Callees (all cdecl, ported):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index,
+ *                                        int thread_datum, char init)
+ *   0xd6520 = FUN_000d6520(int, int)
+ *   0xcbf80 = hs_return(int thread_datum, int value)
+ *
+ * ABI (verified against disassembly 0xc2e50-0xc2e86): plain RET, no locals,
+ * no _chkstk; ESI caches thread_datum across the body.  `function_index` and
+ * `init` are only forwarded to hs_macro_function_evaluate.  The single
+ * `ADD ESP,0x10` at 000c2e80 is shared cleanup for BOTH 2-arg calls
+ * (FUN_000d6520 and hs_return) — hs_return really takes 2 args.
+ */
+void FUN_000c2e50(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_000d6520(result[0], result[1]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
