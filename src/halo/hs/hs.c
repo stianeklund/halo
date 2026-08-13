@@ -5941,6 +5941,60 @@ void FUN_000c32d0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* HaloScript function handler: set the scripted HUD objective.
+ *
+ * Structural twin of FUN_000c32d0 above; only the action callee differs
+ * (0xd47c0 scripted_hud_set_objective instead of 0xd46f0
+ * scripted_hud_set_state_message).  As there, the kb decl was a stale
+ * `void FUN_000c3310(void);` and Ghidra surfaces the three cdecl stack
+ * parameters as `in_stack_00000004/8/c`; they are plain stack args at
+ * ebp+8/+0xc/+0x10, NOT register arguments.
+ *
+ * Disassembly shape (PUSH EBP / MOV EBP,ESP / PUSH ESI — one callee-saved
+ * register, no _chkstk, no `sub esp`):
+ *   MOV ECX,[EBP+0x08]               ; function_index
+ *   MOV ESI,[EBP+0x0c]               ; thread_datum (held in ESI across the
+ *                                    ; evaluate call and reused below)
+ *   MOV EAX,[EBP+0x10]               ; init
+ *   PUSH EAX; PUSH ESI; PUSH ECX
+ *   CALL 0xcc560                     ; hs_macro_function_evaluate
+ *   ADD  ESP,0xc                     ; 3 args
+ *   TEST EAX,EAX; JZ end             ; NULL guard on the result record
+ *   XOR  EDX,EDX; MOV DX,word [EAX]  ; ZERO-extended 16-bit load from +0x0 —
+ *                                    ; must stay an unsigned 16-bit read; an
+ *                                    ; `int` read emits a full dword load and
+ *                                    ; a signed `short` read emits MOVSX.
+ *   PUSH EDX
+ *   CALL 0xd47c0                     ; scripted_hud_set_objective(objective)
+ *   PUSH 0x0; PUSH ESI
+ *   CALL 0xcbf80                     ; hs_return(thread_datum, 0)
+ *   ADD  ESP,0xc                     ; COMBINED cleanup for BOTH calls
+ *                                    ; (set_objective 4 + hs_return 8).  There
+ *                                    ; is no `ADD ESP,4` after CALL 0xd47c0 —
+ *                                    ; the call-site audit's "hs_return
+ *                                    ; cleanup=3, decl=2" finding is this
+ *                                    ; merged cleanup and is a false positive.
+ *   POP ESI; POP EBP; RET            ; cdecl, caller cleans
+ *
+ * Only one local (`result`) is declared, matching the zero-`sub esp` frame.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560 = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *   0xd47c0 = scripted_hud_set_objective(short)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c3310(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    scripted_hud_set_objective(*(unsigned short *)result);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
