@@ -1824,14 +1824,30 @@ void FUN_000d6470(int team_handle, int object_handle)
   FUN_000d63f0(object_handle, 1, team_handle);
 }
 
-/* FUN_000d6490 (0xd6490) — set object nav point for a unit's player. */
-void FUN_000d6490(int param_1, int unit_handle, short param_3, int param_4)
+/* FUN_000d6490 (0xd6490) — set object nav point for a unit's player.
+ *
+ * param_4 is a FLOAT, proven by the only XBE caller, the HaloScript handler
+ * 0xc2cd0: it materializes the argument with `FLD dword [EAX+0xc]` and passes
+ * it via the MSVC push-then-fstp idiom (`PUSH ECX ; FSTP dword [ESP]`), which
+ * only happens when the callee's parameter is float.  It was previously
+ * declared `int` here, which would have compiled that call site to an integer
+ * PUSH and silently changed the argument's codegen.
+ *
+ * The value is forwarded to FUN_000d6030's `extra` parameter, which is still
+ * declared `int` and stores it raw (`*(int *)(entry + 2) = extra`) into the
+ * nav-point record — so `extra` is really a float too, but retyping it would
+ * turn two bit-exact MOV stores in 0xd6030 into x87 FLD/FSTP pairs and touch
+ * its three other callers.  Forwarding through `*(int *)&param_4` reads this
+ * function's own incoming frame slot as a dword, which is bit-exact and emits
+ * the same `PUSH [EBP+0x14]` as before, leaving 0xd6030 untouched. */
+void FUN_000d6490(int param_1, int unit_handle, short param_3, float param_4)
 {
   int player_index;
 
   player_index = player_index_from_unit_index(unit_handle);
   if (player_index != -1) {
-    FUN_000d6030(player_index, (short)param_1, 0, (int)param_3, param_4);
+    FUN_000d6030(player_index, (short)param_1, 0, (int)param_3,
+                 *(int *)&param_4);
   }
 }
 

@@ -12042,6 +12042,28 @@
       "score": 100.0,
       "source": "src/halo/hs/hs.c"
     },
+    "FUN_000c2cb0": {
+      "addr": "0xc2cb0",
+      "end": "0xc2cc8",
+      "kind": "auto",
+      "n_r": 10,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "38d4aadc7c2e4926",
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c2cd0": {
+      "addr": "0xc2cd0",
+      "end": "0xc2d17",
+      "kind": "auto",
+      "n_r": 32,
+      "opnd_percent": 77.4,
+      "ref": "synth",
+      "ref_sha": "3f73b4e868d287c8",
+      "score": 90.3,
+      "source": "src/halo/hs/hs.c"
+    },
     "FUN_000c4b40": {
       "addr": "0xc4b40",
       "end": "0xc4b5a",
@@ -13312,10 +13334,10 @@
       "end": "0xd6cb2",
       "kind": "auto",
       "n_r": 499,
-      "opnd_percent": 51.4,
+      "opnd_percent": 51.8,
       "ref": "synth",
       "ref_sha": "10b9c152d59e121c",
-      "score": 76.6,
+      "score": 77.1,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d6cc0": {

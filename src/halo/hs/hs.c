@@ -5104,6 +5104,101 @@ void FUN_000c2c70(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2cb0 — HS script function handler: restart the HUD's flash cycle.
+ * This is a ZERO-ARGUMENT script function: unlike its neighbours it never
+ * calls hs_macro_function_evaluate and has no NULL-result guard — the body is
+ * an unconditional call to scripted_hud_restart_flashing() followed by
+ * hs_return(thread_datum, 0).
+ *
+ * ABI (verified against disassembly 0xc2cb0-0xc2cc8, 24 bytes / 10
+ * instructions, matching the committed bounds entry end=0xc2cc8): cdecl,
+ * `PUSH EBP ; MOV EBP,ESP` with no SUB ESP (no locals), no FPU, no SEH, plain
+ * `POP EBP ; RET`.  thread_datum is re-read from the frame (`MOV EAX,[EBP+0xc]`
+ * at 0xc2cba) rather than cached in ESI, and the trailing `ADD ESP,0x8` is the
+ * cleanup for the single 2-arg hs_return call — scripted_hud_restart_flashing
+ * takes no arguments and contributes nothing to it.
+ *
+ * Ghidra types this `void FUN_000c2cb0(void)` and surfaces the [EBP+0xc] read
+ * as a phantom `in_stack_00000008`; the real prototype is the standard HS
+ * script-function ABI shared by every sibling in this file
+ * ([EBP+8]=function_index, [EBP+0xc]=thread_datum, [EBP+0x10]=init), of which
+ * only thread_datum is used here. */
+void FUN_000c2cb0(int16_t function_index, int thread_datum, char init)
+{
+  scripted_hud_restart_flashing();
+  hs_return(thread_datum, 0);
+}
+
+/* 0xc2cd0 (hs.obj) — HaloScript function handler: set an object nav point for
+ * a unit's player.
+ *
+ * Structural twin of the other four-argument handlers in this file: evaluate
+ * the script arguments, and when the evaluator hands back a completed argument
+ * block, forward the four fields to FUN_000d6490 (0xd6490, "set object nav
+ * point for a unit's player") and return 0 to the calling script thread.
+ * While arguments are still being evaluated the return is NULL and nothing is
+ * dispatched this tick.
+ *
+ * Argument-block layout, read directly off the disassembly (base EAX = the
+ * hs_macro_function_evaluate return value):
+ *   +0x00  uint16  (zero-extended: XOR EDX,EDX ; MOV DX,[EAX])
+ *   +0x04  int32
+ *   +0x08  uint16  (zero-extended: XOR EDX,EDX ; MOV DX,[EAX+8])
+ *   +0x0c  float   (FLD dword [EAX+0xc] ... FSTP dword [ESP])
+ *
+ * Disassembly (0xc2cd0-0xc2d17).  PUSH EBP ; MOV EBP,ESP ; PUSH ESI — no
+ * locals, no `sub esp`.  ESI = [EBP+0xC] = thread_datum, held live across both
+ * calls.
+ *
+ *   MOV EAX,[EBP+0x10]        ; init
+ *   MOV ECX,[EBP+0x8]         ; function_index
+ *   MOV ESI,[EBP+0xC]         ; thread_datum
+ *   PUSH EAX; PUSH ESI; PUSH ECX
+ *   CALL 0xcc560              ; hs_macro_function_evaluate(index, thread, init)
+ *   ADD ESP,0xC; TEST EAX,EAX; JZ end
+ *   FLD  dword [EAX+0xc]
+ *   PUSH ECX                  ; dummy slot for the float
+ *   FSTP dword [ESP]          ; -> arg 4 = *(float *)(result + 3)
+ *   XOR  EDX,EDX; MOV DX,[EAX+8]; PUSH EDX  ; -> arg 3 (zero-extended)
+ *   MOV  ECX,[EAX+4]; PUSH ECX              ; -> arg 2
+ *   XOR  EDX,EDX; MOV DX,[EAX];   PUSH EDX  ; -> arg 1 (zero-extended)
+ *   CALL 0xd6490
+ *   PUSH 0x0; PUSH ESI        ; cdecl: last PUSH is the first C argument
+ *   CALL 0xcbf80              ; hs_return(thread_datum, 0)
+ *   ADD  ESP,0x18             ; one coalesced cleanup for BOTH calls (4 + 2)
+ *   POP ESI; POP EBP; RET
+ *
+ * Decompiler traps corrected here:
+ *   - Ghidra prototypes this `void FUN_000c2cd0(void)` and surfaces the three
+ *     frame reads as `in_stack_*` phantoms; the real prototype is the standard
+ *     HS script-function ABI shared by every sibling in this file.
+ *   - Push-then-fstp: Ghidra renders arg 4 as `*(int *)(puVar1 + 6)`, i.e. the
+ *     dummy `PUSH ECX` value.  The real argument is the float that FSTP writes
+ *     over that slot, so 0xd6490's fourth parameter is a `float`, not an
+ *     `int` — widened in kb.json accordingly (see the note there).
+ *   - Both 16-bit loads are ZERO-extended (XOR/MOV DX), not sign-extended, so
+ *     they are read through `uint16_t *`.
+ *   - The ARG_COUNT hazard on hs_return (cleanup=6 vs decl=2) is a false
+ *     positive from the single merged `ADD ESP,0x18`.
+ *
+ * Callees (all cdecl, no register args):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0xd6490 = FUN_000d6490(nav_type_value, unit_handle, object_handle, real)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c2cd0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_000d6490(*(uint16_t *)result, result[1], *(uint16_t *)(result + 2),
+                 *(float *)(result + 3));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
