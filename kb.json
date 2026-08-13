@@ -28127,7 +28127,7 @@
     },
     {
      "addr": "0x1ae840",
-     "decl": "void unit_cause_melee_damage(int unit_handle, char melee_hit, int target_handle, int param_4, int param_5, int param_6, int param_7);",
+     "decl": "void unit_cause_melee_damage(int unit_handle, char melee_hit, int target_handle, int param_4, int param_5, int param_6, float *impact_direction);",
      "name": "unit_cause_melee_damage",
      "ported": true
     },
@@ -37037,11 +37037,11 @@
     },
     {
      "addr": "0x1377d0",
-     "decl": "void FUN_001377d0(int object_handle, int region_index, int node_index, unsigned int param_4, void *collision_model, int material, void *damage_effect, void *damage_params, unsigned int *flags, float *body_damage, void **param_11, float scale);"
+     "decl": "void FUN_001377d0(int object_handle, int region_index, int node_index, float *impact_direction, void *collision_model, int material, void *damage_effect, void *damage_params, unsigned int *flags, float *body_damage, void **param_11, float scale);"
     },
     {
      "addr": "0x137d20",
-     "decl": "void object_cause_damage(void *damage_params, int object_handle, short node_index, short region_index, short permutation_index, unsigned int flags);",
+     "decl": "void object_cause_damage(void *damage_params, int object_handle, short node_index, short region_index, short permutation_index, float *impact_direction);",
      "ported": true
     },
     {

@@ -964,9 +964,17 @@ void FUN_00137690(int object_handle, short region_index)
  * BUG4-FIX: driver path passes *(unit+0x1c8) to FUN_000a3b80, not player_index.
  * BUG5-FIX: FUN_00136f40 last two args: (int)effect_ptr, material_index.
  */
+/* impact_direction is a POINTER, not a bitmask.  Callers pass either a surface
+ * plane's normal (FUN_001abd90 melee lunge, via FUN_0010a1c0 + plane_negate) or
+ * a normalized velocity (projectiles.c area damage, col_result+0x24), and NULL
+ * when there is no impact direction to report.  It is forwarded untouched to
+ * FUN_001377d0 and ends up as the damage effect's forward vector, which
+ * effects.c:0x461 validates with assert_valid_real_normal3d.  It was declared
+ * `unsigned int flags` until 2026-08-13; the name made the masking below read
+ * as "clear the flag bits" when it actually means "report no direction". */
 void object_cause_damage(void *damage_params, int object_handle,
                          short node_index, short region_index,
-                         short permutation_index, unsigned int flags)
+                         short permutation_index, float *impact_direction)
 {
   unsigned int *dp; /* damage_params as uint32 pointer */
   int jpt_tag;
@@ -1325,7 +1333,7 @@ after_modifier:
           (*(unsigned int *)(jpt_offset + 0x4) & 0x40) == 0) {
         int body_node;
         int body_region;
-        unsigned int body_flags_mask;
+        float *body_impact_direction;
 
         /* Check if shield-only damage should zero the scale */
         if ((*coll_data & 0x20) != 0 &&
@@ -1341,12 +1349,18 @@ after_modifier:
           body_region = -1;
         }
 
-        body_flags_mask = (count_short != 0) ? 0 : flags;
+        /* Only the first damaged object in the hierarchy reports an impact
+         * direction; the rest get NULL.  Ref 0x138365-0x138372:
+         * xorl %edx,%edx / cmpw %dx,-0x8(%ebp) / setne %dl / decl %edx /
+         * andl %ebx,%edx — a branchless select, not a flag mask. */
+        body_impact_direction =
+          (count_short != 0) ? (float *)0 : impact_direction;
 
         /* BUG2-FIX: arg10 = &body_damage (EBP-0x24), NOT &shield_damage.
          * Disasm at 0x138354: LEA EDX,[EBP-0x24]; PUSH EDX. */
         FUN_001377d0(current_object_handle, body_region, body_node,
-                     body_flags_mask, coll_data, (int)material_data, jpt_offset,
+                     body_impact_direction, coll_data, (int)material_data,
+                     jpt_offset,
                      damage_params, &damage_flags, &body_damage, &effect_ptr,
                      damage_scale);
         damaged_object_count = 0;

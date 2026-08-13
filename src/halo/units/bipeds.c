@@ -841,7 +841,7 @@ void FUN_001a0be0(float vertical_speed, int unit_handle /* @edi */)
     } else if (!(t <= *(float *)0x2533c8)) {
       t = 1.0f;
     }
-    object_cause_damage(damage_params, unit_handle, -1, -1, -1, 0);
+    object_cause_damage(damage_params, unit_handle, -1, -1, -1, (float *)0);
     return;
   }
 
@@ -854,7 +854,7 @@ void FUN_001a0be0(float vertical_speed, int unit_handle /* @edi */)
   }
   if (!is_protected && (*(uint8_t *)(obj + 0xb6) & 0x4) == 0) {
     damage_data_new(damage_params, *(int *)(physics + 0x38));
-    object_cause_damage(damage_params, unit_handle, -1, -1, -1, 0);
+    object_cause_damage(damage_params, unit_handle, -1, -1, -1, (float *)0);
   }
   if (game_engine_running() != 0) {
     return;

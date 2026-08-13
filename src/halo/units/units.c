@@ -4781,7 +4781,7 @@ void FUN_001a9f20(int unit_handle)
         damage_data_new(damage_params, damage_effect_index);
         *(int *)(damage_params + 0x0c) = unit_handle;
         object_cause_damage(damage_params, player_unit_handle, (short)-1,
-                            (short)-1, (short)-1, 0);
+                            (short)-1, (short)-1, (float *)0);
         did_damage = 1;
       }
     }
@@ -6681,10 +6681,10 @@ void FUN_001abd90(int unit_handle)
     object_cause_damage(
       damage_params, parent_handle, *(int16_t *)collision_result,
       *(int16_t *)(collision_result + 0x02),
-      *(int16_t *)(collision_result + 0x1a), (unsigned int)normal_out);
+      *(int16_t *)(collision_result + 0x1a), normal_out);
   } else {
     object_cause_damage(damage_params, parent_handle, (short)-1, (short)-1,
-                        (short)-1, 0);
+                        (short)-1, (float *)0);
   }
 
   /* Decrement attack timer */
@@ -6848,7 +6848,7 @@ void unit_flame_to_death(int unit_handle)
       *(int16_t *)(damage_params + 0x10) = *(int16_t *)(parent_obj + 0x68);
     }
 
-    object_cause_damage(damage_params, unit_handle, -1, -1, -1, 0);
+    object_cause_damage(damage_params, unit_handle, -1, -1, -1, (float *)0);
   }
 
   if ((*(uint8_t *)(unit + 0xb6) & 0x4) == 0) {
@@ -9074,7 +9074,8 @@ void unit_handle_deleted_object(int unit_handle, int deleted_handle)
  * If melee_hit is false and the collision result has a valid material type,
  * plays the melee clang sound via FUN_001abd10. */
 void unit_cause_melee_damage(int unit_handle, char melee_hit, int target_handle,
-                             int param_4, int param_5, int param_6, int param_7)
+                             int param_4, int param_5, int param_6,
+                             float *impact_direction)
 {
   char *unit;
   char *unit_tag;
@@ -9193,7 +9194,7 @@ void unit_cause_melee_damage(int unit_handle, char melee_hit, int target_handle,
     FUN_00138e30(damage_params, -1);
   } else {
     object_cause_damage(damage_params, target_handle, (short)param_4,
-                        (short)param_5, (short)param_6, (unsigned int)param_7);
+                        (short)param_5, (short)param_6, impact_direction);
   }
 
   if (melee_hit == 0 && *(int16_t *)(damage_params + 0x4c) != -1) {
@@ -9460,7 +9461,7 @@ got_damage_effect:
 
       hit_type_data = (char *)object_get_and_verify_type(best_object, -1);
       if (*(short *)(hit_type_data + 100) == 0) {
-        object_cause_damage(damage_data, best_object, -1, -1, -1, 0);
+        object_cause_damage(damage_data, best_object, -1, -1, -1, (float *)0);
       }
     }
   }
@@ -9479,7 +9480,7 @@ got_damage_effect:
       *(unsigned int *)(damage_data + 0x20) = unit[0x15];
       *(unsigned int *)(damage_data + 0x24) = unit[0x16];
       *(unsigned int *)(damage_data + 0x04) |= 8;
-      object_cause_damage(damage_data, unit_handle, -1, -1, -1, 0);
+      object_cause_damage(damage_data, unit_handle, -1, -1, -1, (float *)0);
     }
   }
 
@@ -10967,7 +10968,7 @@ short FUN_001b0d90(int unit_handle, char *anim_state)
         case 0x1e:
         case 0x1f:
         case 0x29:
-          unit_cause_melee_damage(unit_handle, 0, -1, -1, -1, -1, 0);
+          unit_cause_melee_damage(unit_handle, 0, -1, -1, -1, -1, (float *)0);
           break;
         case 0x21:
           FUN_001ab110(unit_handle, 0);
@@ -12211,7 +12212,7 @@ void unit_impact_melee_damage(int unit_handle, int param_2, int param_3,
     target_tag = (int)tag_get(0x756e6974, *(int *)target_data);
     if ((*(uint32_t *)(target_tag + 0x17c) & 0x400000) != 0) {
       unit_cause_melee_damage(unit_handle, 1, param_2, param_3, param_4,
-                              param_5, (int)param_7);
+                              param_5, param_7);
       object_deplete_body(unit_handle);
       object_delete(unit_handle);
       return;

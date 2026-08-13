@@ -1068,7 +1068,7 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
     object_cause_damage(
       damage_params, *(int *)(proj + 0xcc), (short)-1,
       (short)-1, /* dup-args-ok: verified 3x PUSH -1 at 0x000f8c5e/6c/7a */
-      (short)-1, 0u);
+      (short)-1, (float *)0);
   }
 
   /* --- Block 5: Secondary detonation effect by per-slot index. ---
@@ -1550,14 +1550,12 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
     vel_local[1] = in_velocity[1];
     vel_local[2] = in_velocity[2];
     normalize3d(vel_local);
-    /* Call area damage. */
-    /* object_cause_damage: last arg is the direction pointer (ESI+0x24) cast to
-     * uint.
-     */
+    /* Call area damage.  Last arg is the impact direction (ESI+0x24) — the
+     * normalized velocity computed just above. */
     object_cause_damage(damage_params, *(int *)((char *)col_result + 0x38),
                         (short)col_result[0x1f], (short)col_result[0x1e],
                         (short)col_result[0x27],
-                        (unsigned int)(uintptr_t)((char *)col_result + 0x24));
+                        (float *)((char *)col_result + 0x24));
     /* Update tag_idx from area-damage result material type.
      * object_cause_damage writes the resolved material type to
      * damage_params+0x4C and velocity scale to damage_params+0x48.  Original
