@@ -5384,6 +5384,48 @@ void FUN_000c2e90(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2ed0 — HS script function handler: evaluate the macro arguments and
+ * forward an (int16, int32) pair from the result block to FUN_000d6470.
+ *
+ * Same skeleton as immediate neighbours 0xc2e10 / 0xc2e50 / 0xc2e90:
+ * evaluate, bail on a NULL result block, dispatch, then commit a void (0)
+ * return to the calling thread.
+ *
+ * Result-block layout (from disassembly at 000c2eea..000c2ef3) — note the
+ * width asymmetry, which is what distinguishes this handler from 0xc2e90:
+ *   +0x00  int16 -> FUN_000d6470 arg 1  (MOVSX EAX, word ptr [EAX])
+ *   +0x04  int32 -> FUN_000d6470 arg 2  (MOV EDX, dword ptr [EAX + 0x4])
+ * +0x00 is SIGN-extended (MOVSX) so it must be read through a signed short.
+ * +0x04 is a FULL dword read here, not the zero-extended 16-bit read sibling
+ * 0xc2e90 performs; narrowing it to uint16_t would be wrong.  `result + 2` is
+ * short-pointer arithmetic = byte offset +0x4.
+ *
+ * Callees (all cdecl, ported):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index,
+ *                                        int thread_datum, char init)
+ *   0xd6470 = FUN_000d6470(int, int)
+ *   0xcbf80 = hs_return(int thread_datum, int value)
+ *
+ * ABI (verified against disassembly 0xc2ed0-0xc2f06): PUSH EBP / MOV EBP,ESP /
+ * PUSH ESI, no `sub esp` (zero locals), no _chkstk, no SEH; plain RET.  ESI
+ * caches thread_datum across the whole body.  `function_index` and `init` are
+ * only forwarded to hs_macro_function_evaluate.  The single `ADD ESP,0x10` at
+ * 000c2f01 is shared cleanup for BOTH 2-arg calls (FUN_000d6470 and hs_return)
+ * — hs_return really takes 2 args, and the second one is the literal 0, not a
+ * forwarded result (FUN_000d6470 returns void).
+ */
+void FUN_000c2ed0(int16_t function_index, int thread_datum, char init)
+{
+  short *result;
+
+  result =
+    (short *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_000d6470((int)*result, *(int *)(result + 2));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
