@@ -6094,6 +6094,64 @@ void FUN_000c3390(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc33d0 — HaloScript function handler: set the scripted HUD timer position.
+ *
+ * Ghidra mis-prototypes this as `void FUN_000c33d0(void)` and surfaces the
+ * three stack arguments as `in_stack_00000004/8/c`; the kb decl was widened to
+ * the standard hs handler shape used by every sibling in this TU.  Those
+ * `in_stack_*` names are the tell for dropped cdecl stack params, NOT for
+ * register arguments — this function takes none.
+ *
+ * Evaluates the macro arguments; on success the returned result block is read
+ * as three 16-bit fields (one per 4-byte HS argument slot) and handed to
+ * scripted_hud_set_timer_position, then the script thread is completed with
+ * hs_return(thread_datum, 0).
+ *
+ * Narrow-load signedness is load-bearing, and here it diverges from the two
+ * preceding siblings (disassembly, not the decompiler, is the authority):
+ *   0xc33ec  XOR EDX,EDX / MOV DX, word ptr [EAX+0x8]  ; ZERO-extended -> arg3
+ *   0xc33f2  XOR ECX,ECX / MOV CX, word ptr [EAX+0x4]  ; ZERO-extended -> arg2
+ *   0xc33f9  XOR EDX,EDX / MOV DX, word ptr [EAX]      ; ZERO-extended -> arg1
+ * All three are UNSIGNED, whereas FUN_000c3350/FUN_000c3390 sign-extend their
+ * +0x0 field with MOVSX.  Copying those siblings' `result[0]` for arg1 would
+ * emit MOVSX here and is a silent bug the hazard scanner would not flag.
+ *
+ * Ghidra renders the three loads as psVar1[0]/[2]/[4] on a short*, i.e. BYTE
+ * offsets 0/4/8 — reading them as element indices 0/1/2 on a short* would
+ * silently fetch +0/+2/+4.
+ *
+ * The loads are emitted in right-to-left cdecl argument order (+0x8 first,
+ * then +0x4, then +0x0), which the natural C expression order reproduces; EDX
+ * is reused for +0x8 and +0x0, but +0x8 is already pushed by then so there is
+ * no aliasing hazard.
+ *
+ * ADD ESP,0x14 at 0xc340d is a single merged cleanup for BOTH calls (3 pushes
+ * for scripted_hud_set_timer_position + 2 for hs_return); the "hs_return
+ * ARG_COUNT cleanup=5, decl=2" finding is that cdecl merge, not a wider
+ * hs_return.
+ *
+ * Frame is EBP-based with no locals and no _chkstk (PUSH EBP / MOV EBP,ESP /
+ * PUSH ESI); ESI carries thread_datum across the body.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560 = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *   0xd4900 = scripted_hud_set_timer_position(short, short, short)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c33d0(int16_t function_index, int thread_datum, char init)
+{
+  short *result;
+
+  result =
+    (short *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    scripted_hud_set_timer_position(*(unsigned short *)result,
+                                    *(unsigned short *)(result + 2),
+                                    *(unsigned short *)(result + 4));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
