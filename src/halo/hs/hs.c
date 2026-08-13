@@ -4981,6 +4981,30 @@ void FUN_000c2b50(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2b90 — HS script function handler: apply a byte-valued setting to a
+ * handle.  Evaluates the macro arguments; on success the result block holds a
+ * handle at +0x0 (int) and a byte value at +0x4.  Calls
+ * FUN_001b5610(handle, value) then returns void to the HS thread via
+ * hs_return(thread_datum, 0).  The +0x4 read is a ZERO-extended byte load
+ * (XOR EDX,EDX / MOV DL,[EAX+4]) — unsigned char, matching the callee's
+ * uint8_t param; the signed `char` used by sibling FUN_000c0c70 would
+ * sign-extend.  result is int*, so (result + 1) = +4 bytes.
+ *
+ * ABI (verified against disassembly 0xc2b90-0xc2bc8): cdecl, plain RET, no
+ * locals/FPU/SEH.  The single `ADD ESP,0x10` after the two 2-arg calls is a
+ * merged cdecl cleanup (8+8), not a 4-arg call — do not widen hs_return. */
+void FUN_000c2b90(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_001b5610(result[0], *(unsigned char *)(result + 1));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
