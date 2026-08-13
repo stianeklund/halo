@@ -310,8 +310,54 @@ and record `PATTERN_REGRESSED`.
 
 ### 3b. Apply the permuter candidate
 
+**Gate 0 — semantic audit (blocking, run this FIRST).** A higher LCS is not
+evidence of correctness. Measured 2026-08-13 on `units.c`: two of three
+best-ranked candidates changed behaviour while scoring higher, and both passed
+gate (a) and gate (b) below. `run.py` now audits every candidate automatically
+and records the verdict in `lcs_results.txt` as `audit=OK|REJECT|UNKNOWN`, plus
+a REJECT count in the run summary. Re-run it standalone on the winner:
+
+```bash
+rtk python3 tools/permuter/audit_candidate.py \
+  --base $CAMPAIGN_DIR/<funcname>/work/base.c \
+  --cand $CAMPAIGN_DIR/<funcname>/work/output-<penalty>/source.c \
+  --function <funcname>
+```
+
+Exit 1 (`REJECT`) or exit 2 (`UNKNOWN` — could not parse) both mean **do not
+apply**: drop to the next-ranked candidate whose `audit=OK`, or record
+`skip_reason: "semantic_change"`. The two detected classes are `LOST_DEF` (a
+local loses an assignment but keeps its later reads, so they read a stale value)
+and `UNDEF_PATH` (every assignment sits inside a branch that leaves the
+function, yet the local is read outside it). See `docs/lift-learnings.md` §44.
+
+`audit=OK` is **not** a correctness proof — it means the two measured silent-bug
+classes are absent. Still read the diff below. Also worth a pass, since it
+catches `UNDEF_PATH` in the merged TU:
+
+```bash
+clang -fsyntax-only -Wconditional-uninitialized \
+  -target i386-pc-win32 -march=pentium3 -mno-sse -nostdlib -ffreestanding \
+  -fno-builtin -Isrc -Ithird_party/xbox -Ibuild/generated -include src/common.h \
+  <source_file>
+```
+
+Record the pre-edit warning count for the TU and treat any **new** warning as a
+blocker (baseline 2026-08-13: `units.c` 7, `objects.c` 7, `glow.c` 2,
+`bipeds.c` 1).
+
 The permuter's best candidate is an isolated `source.c` that contains only the
 target function body. Merge it back into the live source file.
+
+**Review the body, not the file.** The AST round-trip reformats everything, so a
+raw `diff base.c source.c` is unreadable. Extract just the function:
+
+```bash
+awk -v fn=<funcname> '$0 ~ ("^[a-zA-Z_].*"fn"[ ]*\\("){g=1} g{print; if(/^}/) exit}' \
+  base.c > /tmp/body_base.c
+```
+
+Do the same for the candidate and `diff -w` the two.
 
 **Do NOT blindly overwrite the source file** — the permuter's `source.c` is the
 function body after AST round-tripping, which may have lost type aliases or
@@ -373,10 +419,20 @@ timeout 90 rtk python3 tools/equivalence/unicorn_diff.py <neighbor_name> \
 Read the JSON output. Key field is `status`: `"pass"` is acceptable;
 `"fail"` or `"error"` blocks the commit.
 
+**Read the coverage line, not just the status.** `unicorn_diff` prints
+`coverage: N/M bytes (P%) — confidence: <tier>`. A `pass` at sub-60% coverage on
+a guard-chain function means the seeds bounced off an early exit and the changed
+code never ran — a known-bad candidate was measured passing 60/60 seeds at 30.7%
+coverage. Treat `weak`/`moderate` confidence as "gate (b) did not run", not as
+evidence, and fall back to gate 0 plus the diff review.
+
 **Commit if and only if all of these hold:**
-1. Gate (a): target VC71 score strictly improved.
-2. Gate (b) target: equivalence status is `"pass"` (or `"z3_proven"`).
-3. Gate (b) neighbors: every byte-changed neighbor's equivalence status is
+1. Gate 0: `audit_candidate.py` reports `OK` for the applied candidate, and the
+   extracted body diff has been read.
+2. Gate (a): target VC71 score strictly improved.
+3. Gate (b) target: equivalence status is `"pass"` (or `"z3_proven"`) **and**
+   coverage/confidence is high enough for that pass to mean anything.
+4. Gate (b) neighbors: every byte-changed neighbor's equivalence status is
    `"pass"` or `"z3_proven"`.
 
 **Revert if any condition fails:**

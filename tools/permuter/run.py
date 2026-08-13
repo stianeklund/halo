@@ -809,6 +809,40 @@ def _resolve_ref_insns(co, func_name: str, ref_obj: Path, ref_kind: str,
     return ref_insns
 
 
+def _audit_candidate(base_c: Path, cand_c: Path, func_name: str) -> str:
+    """Semantic audit of one candidate.  Returns REJECT / OK / UNKNOWN.
+
+    The permuter's objective function knows nothing about meaning, so a
+    behaviour-changing candidate can and does outscore the faithful base.  This
+    calls tools/permuter/audit_candidate.py, which detects the two classes that
+    were actually measured on units.c (2026-08-13):
+
+      LOST_DEF    -- a local loses an assignment but keeps its later reads, so
+                     those reads observe a stale value
+      UNDEF_PATH  -- every assignment to a local sits inside a branch that
+                     leaves the function, yet it is read outside that branch
+
+    UNKNOWN means the audit could not parse the candidate; treat it exactly
+    like REJECT until a human has read the diff.
+    """
+    script = Path(__file__).resolve().parent / "audit_candidate.py"
+    if not script.exists() or not base_c.exists() or not cand_c.exists():
+        return "UNKNOWN"
+    try:
+        r = subprocess.run(
+            [sys.executable, str(script), "--base", str(base_c),
+             "--cand", str(cand_c), "--function", func_name, "--quiet"],
+            capture_output=True, text=True, timeout=60,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return "UNKNOWN"
+    if r.returncode == 1:
+        return "REJECT"
+    if r.returncode == 0:
+        return "OK"
+    return "UNKNOWN"
+
+
 def get_lcs_score(func_name: str, compiled_obj: Path, ref_obj: Path,
                   ref_kind: str = "synth", source: Path | None = None) -> float | None:
     """Get LCS match % for a function between compiled and reference objects."""
@@ -1193,6 +1227,28 @@ def main():
                     else:
                         print(f"[run.py] Result: REGRESSED by {abs(delta):.1f}pp — do not apply")
 
+                # Semantic audit of every candidate.  A higher LCS is NOT
+                # evidence of correctness: measured 2026-08-13 on units.c, two
+                # of three best-ranked candidates changed behaviour while
+                # scoring higher, and BOTH passed the campaign's VC71 and
+                # equivalence gates.  See tools/permuter/audit_candidate.py and
+                # docs/lift-learnings.md section 44.
+                audits = {}
+                for _, penalty, d, _obj in candidates:
+                    audits[d.name] = _audit_candidate(
+                        base_c=work_dir / "base.c",
+                        cand_c=d / "source.c",
+                        func_name=func_name,
+                    )
+
+                rejected = [n for n, a in audits.items() if a == "REJECT"]
+                if rejected:
+                    print(f"[run.py] AUDIT: {len(rejected)} of {len(audits)} "
+                          f"candidate(s) REJECTED for semantic change "
+                          f"({', '.join(sorted(rejected))})")
+                    print("[run.py] Run audit_candidate.py on the winner before "
+                          "applying it.")
+
                 # Write a summary file for downstream tooling
                 summary = work_dir / "lcs_results.txt"
                 with open(summary, "w") as sf:
@@ -1203,7 +1259,9 @@ def main():
                             "EQUAL" if init_pct and lcs == init_pct else (
                             "REGRESSED" if init_pct and lcs < init_pct else "UNKNOWN"))
                         sf.write(f"rank={rank} lcs={lcs:.1f} penalty={penalty} "
-                                 f"delta={delta_str} verdict={verdict} dir={d.name}\n")
+                                 f"delta={delta_str} verdict={verdict} "
+                                 f"audit={audits.get(d.name, 'UNKNOWN')} "
+                                 f"dir={d.name}\n")
                 _log(f"[run.py] Summary written to: {summary}")
 
         # ------------------------------------------------------------------

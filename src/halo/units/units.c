@@ -12244,15 +12244,16 @@ void unit_impact_melee_damage(int unit_handle, int param_2, int param_3,
     parent_handle = *(int *)(parent_obj + 0xcc);
   }
 
-  /* Copy global forward vector to unit position (obj+0x18) */
+  /* Copy global forward vector to unit position (obj+0x18) and unit up
+   * (obj+0x3c).  The reference loads the X component once and stores it to
+   * both fields before reloading the global pointer, so the assignment is
+   * chained rather than repeated. */
   fwd_ptr = *(char **)0x0031fc38;
-  *(float *)(unit + 0x18) = *(float *)fwd_ptr;
+  *(float *)(unit + 0x18) = (*(float *)(unit + 0x3c) = *(float *)fwd_ptr);
   *(float *)(unit + 0x1c) = *(float *)(fwd_ptr + 4);
   *(float *)(unit + 0x20) = *(float *)(fwd_ptr + 8);
 
-  /* Copy global forward vector to unit up (obj+0x3c) */
   fwd_ptr = *(char **)0x0031fc38;
-  *(float *)(unit + 0x3c) = *(float *)fwd_ptr;
   *(float *)(unit + 0x40) = *(float *)(fwd_ptr + 4);
   *(float *)(unit + 0x44) = *(float *)(fwd_ptr + 8);
 
