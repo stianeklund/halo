@@ -5274,6 +5274,40 @@ void FUN_000c2d20(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2e10 — HS script function handler: evaluate the macro arguments and
+ * forward a (dword, uint16) pair from the result block to FUN_000d64f0.
+ *
+ * Same skeleton as the rest of this family: evaluate, bail on NULL, dispatch,
+ * then commit a void (0) return to the calling thread.
+ *
+ * Result-block layout (from disassembly at 000c2e2c..000c2e34):
+ *   +0x00  dword   -> FUN_000d64f0 arg 1  (MOV EAX, [EAX])
+ *   +0x04  uint16  -> FUN_000d64f0 arg 2  (XOR EDX,EDX; MOV DX, [EAX+4])
+ * The +0x04 load is zero-extending, so the field is unsigned 16-bit even
+ * though the callee's parameter is declared `short`; read through uint16_t so
+ * the narrowing happens at the call rather than emitting a MOVSX.
+ *
+ * Callees (all ported):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index,
+ *                                        int thread_datum, char init)
+ *   0xd64f0 = FUN_000d64f0(int, short)
+ *   0xcbf80 = hs_return(int thread_datum, int value)
+ *
+ * Note: the single `ADD ESP,0x10` at 000c2e43 cleans up BOTH the 2 pushes for
+ * FUN_000d64f0 and the 2 pushes for hs_return — hs_return really takes 2 args.
+ */
+void FUN_000c2e10(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_000d64f0(result[0], *(uint16_t *)(result + 1));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
