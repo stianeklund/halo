@@ -4468,6 +4468,86 @@ void FUN_000c27d0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2810 — HS script function handler: query whether the game state was
+ * reverted (the player just triggered a saved-game revert), and commit that
+ * boolean back to the calling script thread.
+ *
+ * Callees (both cdecl, ported):
+ *   0x1bf9e0 = game_state_reverted(void) -> bool in AL, no arguments
+ *   0xcbf80  = hs_return(thread_handle, value)
+ *
+ * ABI (verified against disassembly 0xc2810-0xc2837, 15 instructions): cdecl,
+ * plain RET, frame is PUSH EBP; MOV EBP,ESP; PUSH ECX — exactly one 4-byte
+ * local, no `sub esp`, no buffers, no FPU, no _chkstk, no register args. The
+ * body reads only [EBP+0xc] = thread_datum (arg 2); function_index
+ * ([EBP+0x8]) and init ([EBP+0x10]) are never read but complete the uniform
+ * hs-evaluator dispatch signature shared with the ported neighbours at
+ * 0xc2400-0xc27d0.
+ *
+ * Match-sensitive shape: the local is zeroed as a full dword
+ * (MOV dword [EBP-4],0) BEFORE the call, and only its low byte receives AL
+ * (MOV byte [EBP-4],AL); it is then re-read as a full dword
+ * (MOV EAX,[EBP-4]).  The union below reproduces that narrow-store-over-
+ * zeroed-dword pair exactly — the same idiom already used at 0xc1420. A plain
+ * `bool` local would emit a MOVZX widening read and drop the zeroing store.
+ *
+ * Push order at the hs_return call (PUSH EAX = value, then PUSH ECX =
+ * [EBP+0xc], ADD ESP,0x8) confirms hs_return(thread_datum, value), not
+ * (value, thread_datum).
+ *
+ * kb note: the prior decl was the placeholder `void FUN_000c2810(void);`,
+ * which contradicts the MOV ECX,[EBP+0xc] at 0xc2820; it is corrected to the
+ * 3-argument evaluator signature with this lift. */
+void FUN_000c2810(int16_t function_index, int thread_datum, char init)
+{
+  union {
+    int i;
+    bool b;
+  } value;
+
+  value.i = 0;
+  value.b = game_state_reverted();
+  hs_return(thread_datum, value.i);
+}
+
+/* 0xc2840 — HS script function handler: start a scripted sound.
+ * Evaluates the macro arguments; on success the result block holds two full
+ * dwords at +0x0/+0x4 and a float at +0x8 (FLD dword [EAX+8]).  Calls
+ * scripted_sound_new(a, b, f) then returns void to the calling script thread
+ * via hs_return(thread_datum, 0).
+ *
+ * ABI (verified against disassembly 0xc2840-0xc287c, 29 instructions): cdecl,
+ * plain RET, frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no locals, no
+ * _chkstk, no SEH.  thread_datum ([EBP+0xc]) is held in ESI across both
+ * calls.
+ *
+ * Match-sensitive shape: the third argument to scripted_sound_new is a FLOAT,
+ * passed with the MSVC push-then-fstp idiom (PUSH ECX as a dummy slot, then
+ * FSTP dword [ESP]).  ECX at that point is scratch, not an argument — Ghidra
+ * dropped all three arguments because the kb decl for 0x1c7f80 claimed
+ * `void (void)`; that decl is widened to (int,int,float) with this lift.  A
+ * float declared as int there would emit FILD and truncate the value.
+ *
+ * Note the original coalesces both callee cleanups into one `add esp,0x14` at
+ * 0xc2877 (0xc for scripted_sound_new + 0x8 for hs_return); a naive cdecl
+ * reading of that single cleanup mis-sizes either call's argument list.
+ *
+ * kb note: the prior decl was the placeholder `void FUN_000c2840(void);`,
+ * which contradicts the reads of [EBP+0x8]/[EBP+0xc]/[EBP+0x10]; it is
+ * corrected to the 3-argument evaluator signature shared with the ported
+ * neighbours at 0xc2810/0xc2880. */
+void FUN_000c2840(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    scripted_sound_new(result[0], result[1], *(float *)(result + 2));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc2880 — HS script function handler: scripted-sound time query.
  * Evaluates the macro arguments; on success the result block holds a single
  * handle at +0x0, read as a full dword (MOV EDX,[EAX]) — there is no narrow
@@ -4488,6 +4568,416 @@ void FUN_000c2880(int16_t function_index, int thread_datum, char init)
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
     hs_return(thread_datum, scripted_sound_time(result[0]));
+  }
+}
+
+/* 0xc28c0 — HS script function handler: stop a scripted sound.
+ * Evaluates the macro arguments; on success the result block holds a single
+ * handle at +0x0, read as a full dword (MOV EDX,[EAX]) — the +0x4 type byte
+ * that the 0xc0ed0 twin reads is not touched here, so the block is one handle.
+ * Calls scripted_sound_stop(handle), then commits a zero return to the calling
+ * script thread.
+ *
+ * ABI (verified against disassembly 0xc28c0-0xc28f1, 50 bytes): cdecl, frame
+ * is PUSH EBP; MOV EBP,ESP; PUSH ESI with no locals and no `sub esp`.  ESI
+ * holds thread_datum ([EBP+0xc]) across both calls.  Ghidra's
+ * `void FUN_000c28c0(void)` prototype is wrong — the three `in_stack_*`
+ * phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], the standard hs-evaluator triple;
+ * the push order is PUSH EAX(init); PUSH ESI(thread_datum); PUSH ECX(index).
+ *
+ * Ghidra also printed `FUN_001c7550()` with no argument; the disassembly is
+ * `MOV EDX,[EAX]; PUSH EDX`, so the record's first dword is passed.  kb.json
+ * declared 0x1c7550 as `void scripted_sound_stop(void)`; the callee's own
+ * prologue reads [EBP+8] (it forwards that dword to 0x1c3bb0 twice), so the
+ * declaration is widened to take the handle — matching the sibling
+ * scripted_sound_time(int handle) at 0x1c7500.
+ *
+ * The single `add esp,0xc` at 0xc28ec is MSVC's merged cleanup for BOTH the
+ * 1-argument scripted_sound_stop call and the 2-argument hs_return call
+ * (1 + 2 = 3 dwords) — it is not evidence of a 3-argument hs_return.
+ *
+ * hs_macro_function_evaluate is declared returning `int` in kb.json but is
+ * used here as a pointer, so it is cast (same as FUN_000c2840/FUN_000c2880). */
+void FUN_000c28c0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    scripted_sound_stop(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc2900 — HS script function handler: predict (pre-roll) a scripted foley.
+ * Structurally identical to the 0xc28c0 twin above: evaluate the macro
+ * argument list, and on success read a single full dword from the result
+ * block (MOV EDX,[EAX]) and forward it to scripted_foley_predict, then commit
+ * a zero return to the calling script thread.  No +0x4 field is touched, so
+ * the argument block is one dword wide.
+ *
+ * ABI (verified against disassembly 0xc2900-0xc2931, 50 bytes): cdecl, plain
+ * RET, frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no locals, no `sub esp`, no
+ * _chkstk, no SEH.  ESI holds thread_datum ([EBP+0xc]) across both calls.
+ * Ghidra's `void FUN_000c2900(void)` prototype is wrong: the three
+ * `in_stack_*` phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], the standard
+ * hs-evaluator triple.  Push order at the evaluator call is
+ * PUSH EAX([EBP+0x10]=init); PUSH ESI([EBP+0xc]=thread_datum);
+ * PUSH ECX([EBP+8]=function_index) — cdecl right-to-left, so the C argument
+ * order is (function_index, thread_datum, init).
+ *
+ * Ghidra printed `FUN_001c75a0()` with no argument; the disassembly is
+ * `MOV EDX,[EAX]; PUSH EDX`, so the record's first dword is passed.  kb.json
+ * declared 0x1c75a0 as `void scripted_foley_predict(void)`; that decl is
+ * widened to take the dword with this lift, exactly as 0x1c7550
+ * (scripted_sound_stop) was widened for the 0xc28c0 twin.  Calling it as
+ * (void) with a stray PUSH would desync the stack shape.
+ *
+ * The single `add esp,0xc` at 0xc292c is MSVC's merged cleanup for BOTH the
+ * 1-argument scripted_foley_predict call and the 2-argument hs_return call
+ * (1 + 2 = 3 dwords) — it is not evidence of a 3-argument hs_return.
+ *
+ * hs_macro_function_evaluate is declared returning `int` in kb.json but its
+ * EAX result is dereferenced here, so it is cast to a pointer (same as
+ * FUN_000c2840/FUN_000c2880/FUN_000c28c0). */
+void FUN_000c2900(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    scripted_foley_predict(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc2940 — HS script function handler: start a looping sound.
+ * Evaluates the macro arguments; on success the result block holds two full
+ * dwords at +0x0/+0x4 and a float at +0x8 (FLD dword ptr [EAX+8]).  Calls
+ * sound_looping_start(a, b, f) then returns void to the calling script
+ * thread via hs_return(thread_datum, 0).  Direct twin of the 0xc2840
+ * scripted_sound_new handler — same block layout, same call shape.
+ *
+ * ABI (verified against disassembly 0xc2940-0xc297d, 29 instructions): cdecl,
+ * plain RET, frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no locals, no
+ * `sub esp`, no _chkstk, no SEH.  ESI holds thread_datum ([EBP+0xc]) across
+ * both calls.  Ghidra's `void FUN_000c2940(void)` prototype is wrong: its
+ * three `in_stack_*` phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], the standard
+ * hs-evaluator triple.  Push order at the evaluator call is
+ * PUSH EAX([EBP+0x10]=init); PUSH ESI([EBP+0xc]=thread_datum);
+ * PUSH ECX([EBP+8]=function_index) — cdecl right-to-left, so the C argument
+ * order is (function_index, thread_datum, init).
+ *
+ * Match-sensitive shape: the third argument to sound_looping_start is a
+ * FLOAT already stored as a float in the result block, passed with the MSVC
+ * push-then-fstp idiom (`PUSH ECX` reserves a dummy slot, then
+ * `FSTP dword ptr [ESP]` overwrites it).  ECX there is scratch, not an
+ * argument.  Ghidra rendered this as `(float)piVar1[2]`, an int-to-float
+ * conversion that would emit FILD and turn the raw IEEE bits into a garbage
+ * scale; the binary does FLD on a dword float, so it must be read as
+ * `*(float *)(result + 2)`.
+ *
+ * The single `add esp,0x14` in the epilogue is MSVC's merged cleanup for
+ * BOTH calls (0xc for sound_looping_start + 0x8 for hs_return); a naive cdecl
+ * reading of that one cleanup makes hs_return look like it takes 5 stack
+ * args, but it takes 2. */
+void FUN_000c2940(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    sound_looping_start(result[0], result[1], *(float *)(result + 2));
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc2980 — HS script function handler: stop a looping sound.
+ * Evaluates the macro arguments; on success the result block's first dword
+ * (+0x0) is the looping-sound tag index.  Calls sound_looping_stop(tag) then
+ * returns void to the calling script thread via hs_return(thread_datum, 0).
+ * Same single-dword-argument shape as the 0xc2900 scripted_foley_predict
+ * handler, and the natural counterpart of the 0xc2940 sound_looping_start
+ * handler directly above.
+ *
+ * ABI (verified against disassembly 0xc2980-0xc29b1, 50 bytes): cdecl, plain
+ * RET, frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no locals, no `sub esp`, no
+ * _chkstk, no SEH, no FPU.  ESI holds thread_datum ([EBP+0xc]) across both
+ * calls.  Ghidra's `void FUN_000c2980(void)` prototype is wrong: its three
+ * `in_stack_*` phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], the standard
+ * hs-evaluator triple.  Push order at the evaluator call is
+ * PUSH EAX([EBP+0x10]=init); PUSH ESI([EBP+0xc]=thread_datum);
+ * PUSH ECX([EBP+8]=function_index) — cdecl right-to-left, so the C argument
+ * order is (function_index, thread_datum, init), cleaned with `add esp,0xc`.
+ *
+ * Match-sensitive shape: the evaluator's return value is DEREFERENCED before
+ * the call — `MOV EDX,[EAX]; PUSH EDX` — so sound_looping_stop receives
+ * result[0], not result.  Passing the pointer itself would compile cleanly and
+ * silently stop a garbage tag index.
+ *
+ * The single `add esp,0xc` at 0xc29ac is MSVC's merged cleanup for BOTH calls
+ * (0x4 for sound_looping_stop + 0x8 for hs_return); a naive cdecl reading of
+ * that one cleanup makes hs_return look like it takes 3 stack args, but it
+ * takes 2.  The call-site audit's ARG_COUNT warning here is that false
+ * positive. */
+void FUN_000c2980(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    sound_looping_stop(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc29c0 — HS script function handler: set a scripted looping sound's scale.
+ * Third member of the looping-sound handler run (0xc2940 start, 0xc2980 stop,
+ * this one set-scale).  Evaluates the macro arguments; on success the result
+ * block is a {int handle; float scale} pair — verified against disassembly
+ * 0xc29c0-0xc29f8 (25 instructions): `FLD dword ptr [EAX+4]; MOV EDX,[EAX];
+ * PUSH ECX; FSTP dword ptr [ESP]; PUSH EDX; CALL 0x1c7650`.  The +0x4 read is
+ * a true float lvalue (FLD on a dword float), NOT an int->float numeric
+ * conversion; writing `(float)result[1]` would emit FILD and turn the raw
+ * IEEE-754 bits into a garbage scale.
+ *
+ * ABI (verified against the same disassembly): cdecl, plain RET, frame is
+ * PUSH EBP; MOV EBP,ESP; PUSH ESI — no locals, no `sub esp`, no _chkstk, no
+ * SEH.  ESI holds thread_datum ([EBP+0xc]) across both calls.  Ghidra's
+ * `void FUN_000c29c0(void)` prototype is wrong: its three `in_stack_*`
+ * phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], the standard hs-evaluator
+ * triple.  Push order at the evaluator call is PUSH EAX([EBP+0x10]=init);
+ * PUSH ESI([EBP+0xc]=thread_datum); PUSH ECX([EBP+8]=function_index) —
+ * cdecl right-to-left, so the C argument order is (function_index,
+ * thread_datum, init).
+ *
+ * Match-sensitive shape: the scale argument uses the MSVC push-then-fstp
+ * idiom (`PUSH ECX` reserves a dummy slot, then `FSTP dword ptr [ESP]`
+ * overwrites it).  ECX there is scratch, not an argument — Ghidra renders
+ * the call with ZERO arguments, and kb.json's old
+ * `void scripted_looping_sound_set_scale(void)` decl matched that mistake;
+ * the real callee is `void(int, float)`.
+ *
+ * The single `add esp,0x10` in the epilogue is MSVC's merged cleanup for BOTH
+ * calls (0x8 for scripted_looping_sound_set_scale + 0x8 for hs_return); a
+ * naive cdecl reading of that one cleanup makes hs_return look like it takes
+ * 4 stack args, but it takes 2.  The call-site audit's ARG_COUNT warning here
+ * is that false positive.
+ *
+ * Structural ~94% ceiling shared with the 0xc0d10/0xc2940 float twins: our
+ * VC71 /O2 build copies the untouched float argument via integer MOV/PUSH
+ * instead of the original's FLD/FSTP — bit-exact either way. */
+void FUN_000c29c0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    scripted_looping_sound_set_scale(result[0], *(float *)(result + 1));
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* HaloScript handler shim for the looping-sound "set alternate" macro
+ * function — the boolean twin of FUN_000c29c0 (set-scale) directly above.
+ * Evaluates the macro arguments; on a non-null result block the pair is
+ * {int looping_sound_handle; bool alternate}, then returns 0 to the script
+ * thread.
+ *
+ * Verified against disassembly 0xc2a00-0xc2a37 (22 instructions):
+ *   xor edx,edx ; mov dl, byte ptr [eax+4] ; mov eax, dword ptr [eax]
+ *   push edx ; push eax ; call 0x1c76c0
+ * The +0x4 field is a ZERO-extended BYTE (xor/mov dl), not a sign-extended
+ * byte and not a dword — reading it as `result[1]` would be a LOADW-class
+ * field-width bug.  arg2 (the byte) is materialized before arg1, matching
+ * MSVC's right-to-left cdecl evaluation.
+ *
+ * ABI: cdecl, plain RET, frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no
+ * locals, no `sub esp`, no _chkstk, no FPU.  ESI holds thread_datum
+ * ([EBP+0xc]) across both trailing calls.  Ghidra's `void FUN_000c2a00(void)`
+ * prototype is wrong: its three `in_stack_*` phantoms are [EBP+8] /
+ * [EBP+0xc] / [EBP+0x10], the standard hs-evaluator triple.  Push order at
+ * the evaluator is PUSH EAX([EBP+0x10]=init); PUSH ESI([EBP+0xc]=
+ * thread_datum); PUSH ECX([EBP+8]=function_index), so the C argument order
+ * is (function_index, thread_datum, init).
+ *
+ * kb.json's old `void scripted_looping_sound_set_alternate(void)` decl was
+ * wrong and had to be widened before this compiles: 0x1c76c0 reads
+ * [EBP+8] as a dword handle (compared against -1 = NONE) and [EBP+0xc] as a
+ * BYTE (`mov cl,byte ptr [ebp+0xc]; test cl,cl`), then sets or clears flag
+ * bit 0x8 on the resolved 'lsnd' (0x6c736e64) instance — hence `bool`.
+ *
+ * The single `add esp,0x10` in the epilogue is MSVC's merged cleanup for
+ * BOTH calls (0x8 for set_alternate + 0x8 for hs_return); a naive cdecl
+ * reading of that one cleanup makes hs_return look like it takes 4 stack
+ * args, but it takes 2.  The call-site audit's ARG_COUNT warning here is
+ * that false positive. */
+void FUN_000c2a00(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    scripted_looping_sound_set_alternate(result[0], *(bool *)(result + 1));
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* HaloScript handler shim for the "debug sound classes" macro function.
+ * Evaluates the macro arguments; on a non-null result block the pair is
+ * {char *pattern; char enable} — unlike the encounter/looping-sound
+ * siblings above, the +0x0 field is a STRING pointer, not an int handle
+ * (`mov eax, dword ptr [eax]` feeding the first push of a routine whose
+ * first parameter is a name-substring pattern).  Then returns 0 to the
+ * script thread.
+ *
+ * Verified against disassembly 0xc2a40-0xc2a77 (27 instructions):
+ *   xor edx,edx ; mov dl, byte ptr [eax+4] ; mov eax, dword ptr [eax]
+ *   push edx ; push eax ; call 0x1c8a40
+ * The +0x4 field is a ZERO-extended BYTE (xor/mov dl), not a dword —
+ * reading it as `result[1]` would be a LOADW-class field-width bug.  The
+ * sibling FUN_000c0c30 reads int16 at this same offset and FUN_000c0c70
+ * reads a byte; the width is per-handler and must come from this
+ * function's own disassembly.
+ *
+ * ABI: cdecl, plain RET, frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no
+ * locals, no `sub esp`, no _chkstk, no FPU.  ESI holds thread_datum
+ * ([EBP+0xc]) across both trailing calls.  Ghidra's `void FUN_000c2a40(void)`
+ * prototype is wrong: its three `in_stack_*` phantoms are [EBP+8] /
+ * [EBP+0xc] / [EBP+0x10], the standard hs-evaluator triple.  Push order at
+ * the evaluator is PUSH EAX([EBP+0x10]=init); PUSH ESI([EBP+0xc]=
+ * thread_datum); PUSH ECX([EBP+8]=function_index), so the C argument order
+ * is (function_index, thread_datum, init).
+ *
+ * The single `add esp,0x10` at 0xc2a72 is MSVC's merged cleanup for BOTH
+ * calls (0x8 for debug_sound_classes_enable + 0x8 for hs_return); a naive
+ * cdecl reading of that one cleanup makes hs_return look like it takes 4
+ * stack args, but it takes 2.  The call-site audit's ARG_COUNT warning
+ * here is that false positive. */
+void FUN_000c2a40(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    debug_sound_classes_enable((char *)result[0], *(char *)(result + 1));
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc2ad0 — HS script function handler: set the wet (reverb send) level for
+ * the sound classes matching a name pattern.  Evaluates the macro arguments;
+ * on success the result block holds a char* pattern string at +0x0 and a
+ * float wet level at +0x4.  Calls debug_sound_classes_set_wet(pattern, wet)
+ * then returns void to the HS thread via hs_return(thread_datum, 0).
+ *
+ * Verified against disassembly 0xc2ad0-0xc2b08 (0x39 bytes):
+ *   fld dword ptr [eax+4] ; mov edx, dword ptr [eax]
+ *   push ecx ; fstp dword ptr [esp] ; push edx ; call 0x1c8ae0
+ * The `push ecx` is a DUMMY slot reservation immediately overwritten by
+ * `fstp dword ptr [esp]` — this is MSVC's float-argument idiom.  Ghidra
+ * rendered it `FUN_001c8ae0((char *)*puVar1,(float)puVar1[1])`; writing
+ * `(float)result[1]` in C would emit FILD (integer->float conversion) and
+ * silently corrupt the value.  The correct form is the raw dword float load
+ * `*(float *)(result + 1)` (lift-learnings §6, float-smuggling).  The FPU_ARG
+ * hazard reported by the call-site audit is that real trap, handled here.
+ *
+ * ABI: cdecl, plain RET, frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no
+ * locals, no `sub esp`, no _chkstk, and the only x87 use is the FLD/FSTP
+ * argument pass (no arithmetic).  ESI holds thread_datum ([EBP+0xc]) across
+ * both trailing calls.  Ghidra's `void FUN_000c2ad0(void)` prototype is
+ * wrong: its three `in_stack_*` phantoms are [EBP+8] / [EBP+0xc] /
+ * [EBP+0x10], the standard hs-evaluator triple.  Push order at the evaluator
+ * is PUSH EAX([EBP+0x10]=init); PUSH ESI([EBP+0xc]=thread_datum); PUSH
+ * ECX([EBP+8]=function_index), so the C argument order is (function_index,
+ * thread_datum, init).
+ *
+ * The single `add esp,0x10` at 0xc2b03 is MSVC's merged cleanup for BOTH
+ * calls (0x8 for debug_sound_classes_set_wet + 0x8 for hs_return); a naive
+ * cdecl reading of that one cleanup makes hs_return look like it takes 4
+ * stack args, but it takes 2.  The call-site audit's ARG_COUNT warning here
+ * is that false positive (same as FUN_000c22a0 / FUN_000c2a40). */
+void FUN_000c2ad0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    debug_sound_classes_set_wet((char *)result[0], *(float *)(result + 1));
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* HaloScript handler shim for the "set music volume" macro function — the
+ * three-field cousin of FUN_000c2ad0 (debug_sound_classes_set_wet) directly
+ * above.  Evaluates the macro arguments; on a non-null result block the
+ * triple is {const char *sound_name; float volume; uint16 transition_ticks},
+ * then returns 0 to the script thread.
+ *
+ * Verified against disassembly 0xc2b10-0xc2b4f (32 instructions):
+ *   mov eax,[eax]                    ; +0x0 -> sound_name (char *)
+ *   fld  dword ptr [eax+4]           ; +0x4 -> volume, a FLOAT LOAD
+ *   xor edx,edx ; mov dx,[eax+8]     ; +0x8 -> ZERO-extended 16-bit ticks
+ *   push edx ; push ecx ; fstp dword ptr [esp] ; push eax ; call 0x1c8c80
+ * Two field-width traps here.  (1) Ghidra renders +0x4 as `(float)puVar1[1]`,
+ * an int-to-float CONVERSION; the instruction is `fld dword ptr`, a raw load,
+ * so the lift must bit-reinterpret (`*(float *)(result + 1)`).  Writing the
+ * cast literally would emit FILD and silently scale the music volume by
+ * ~2^23 — no assert, no VC71 delta, box-only oracle (lift-learnings §6).
+ * (2) +0x8 is zero-extended (xor/mov dx), so it is read through uint16_t;
+ * a MOVSX would be a LOADW-class field-width bug.  The `push ecx` before the
+ * FSTP is MSVC's push-then-fstp float idiom: ECX is a stale scratch dummy
+ * whose slot the FSTP overwrites, NOT a fourth argument.
+ *
+ * ABI: cdecl, plain RET, frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no
+ * locals, no `sub esp`, no _chkstk.  ESI holds thread_datum ([EBP+0xc])
+ * across both trailing calls.  Ghidra's `void FUN_000c2b10(void)` prototype
+ * is wrong: its three `in_stack_*` phantoms are [EBP+8] / [EBP+0xc] /
+ * [EBP+0x10], the standard hs-evaluator triple.  Push order at the evaluator
+ * is PUSH EAX([EBP+0x10]=init); PUSH ESI([EBP+0xc]=thread_datum); PUSH
+ * ECX([EBP+8]=function_index), so the C argument order is (function_index,
+ * thread_datum, init).
+ *
+ * The single `add esp,0x14` at 0xc2b4a is MSVC's merged cleanup for BOTH
+ * calls (0xc for game_sound_set_music_volume + 0x8 for hs_return); a naive
+ * cdecl reading of that one cleanup makes hs_return look like it takes 5
+ * stack args, but it takes 2.  The call-site audit's ARG_COUNT warning here
+ * is that false positive (same as FUN_000c2ad0 / FUN_000c29c0). */
+void FUN_000c2b10(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    game_sound_set_music_volume((const char *)result[0], *(float *)(result + 1),
+                                *(uint16_t *)(result + 2));
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc2b50 — HS script function handler: enable or disable sound output.
+ * Evaluates the macro arguments; on success the result block holds a boolean
+ * byte at +0x0.  Calls sound_enable(value) then returns void to the HS thread
+ * via hs_return(thread_datum, 0).  The +0x0 read is a zero-extended byte load
+ * (XOR EDX,EDX / MOV DL,[EAX] / PUSH EDX), hence the unsigned bool cast. */
+void FUN_000c2b50(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    sound_enable(*(bool *)result);
+    hs_return(thread_datum, 0);
   }
 }
 

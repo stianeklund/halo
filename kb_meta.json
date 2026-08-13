@@ -6588,6 +6588,13 @@
         "The HaloScript builtin name this evaluator is registered under is unproven; the function is unnamed (FUN_000c2660) because no string or function-table evidence was inspected, only that it forwards main_saving_map's bool to hs_return."
       ]
     },
+    "0xc2810": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters function_index ([EBP+0x8]) and init ([EBP+0x10]) are never read in this body; the 3-argument signature is inferred from the uniform hs-evaluator dispatch shape shared with the ported neighbours at 0xc2400-0xc27d0, not from a use inside 0xc2810 itself."
+      ]
+    },
     "0xc2880": {
       "kind": "function",
       "status": "unknown",
@@ -6596,6 +6603,23 @@
       ],
       "uncertain": [
         "The widened kb decl int scripted_sound_time(int handle) is proven by the disasm (one stack arg, EAX consumed as the return) but the param name handle is descriptive only; what kind of datum the handle refers to (sound, object, or scripted-sound-block index) is unproven."
+      ]
+    },
+    "0xc2900": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The parameter name 'handle' given to scripted_foley_predict (0x1c75a0) is inferred by analogy to the sibling game_sound.obj entries scripted_sound_stop (0x1c7550) and scripted_sound_time (0x1c7500), which take an int handle read from the same +0x0 slot of the evaluated hs argument block; the disassembly at 0xc291f proves only that one dword is pushed."
+      ],
+      "uncertain": [
+        "The 'predict/pre-roll a scripted foley' description comes from the pre-existing kb.json name scripted_foley_predict, not from any string, assert, or __FILE__ evidence inside this function, whose 50 bytes contain no literals."
+      ]
+    },
+    "0xc2940": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The result-block field at +0x8 is a genuine 32-bit float (FLD dword ptr [EAX+8]), so it is read as *(float *)(result + 2); Ghidra's (float)piVar1[2] would emit FILD and corrupt the scale."
       ]
     },
     "0xc3b60": {
@@ -9900,6 +9924,10 @@
       "inferred": [
         "The high bit of block_hdr[0] is treated as an in-use flag and cleared by masking with 0x7fffffff."
       ]
+    },
+    "0x11eac0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x11eb40": {
       "kind": "function",
