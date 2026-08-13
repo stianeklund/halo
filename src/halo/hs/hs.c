@@ -5823,6 +5823,41 @@ void FUN_000c30f0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc32b0 — HaloScript function evaluator that clears the scripted HUD message
+ * queue.  Runs scripted_hud_messages_clear() for its side effect, then commits
+ * a 0 result to the calling script thread (a void-returning script builtin).
+ * Structurally identical to FUN_000c0cb0 at 0xc0cb0 with the side-effect callee
+ * swapped from FUN_00057c60 to scripted_hud_messages_clear.
+ *
+ * Disassembly (0xc32b0-0xc32c7, 10 instructions):
+ *   PUSH EBP; MOV EBP,ESP            ; no `SUB ESP` — zero locals
+ *   CALL 0xd5120                     ; scripted_hud_messages_clear(); EAX is
+ *                                    ; immediately overwritten below, so the
+ *                                    ; `_BYTE *` result is genuinely discarded
+ *   MOV EAX,[EBP+0xc]                ; arg 2 = thread_datum (NOT [EBP+8])
+ *   PUSH 0x0                         ; hs_return arg 2 = value = 0
+ *   PUSH EAX                         ; hs_return arg 1 = thread_datum
+ *   CALL 0xcbf80                     ; hs_return
+ *   ADD ESP,0x8                      ; cdecl cleanup, exactly 2 args
+ *   POP EBP; RET                     ; plain RET — cdecl, caller cleans
+ *
+ * ABI: the kb decl was widened from `void FUN_000c32b0(void);`.  The body's
+ * only real read is [EBP+0xc], i.e. the SECOND stack argument — Ghidra
+ * surfaces that as the phantom local `in_stack_00000008` under the (void)
+ * prototype.  function_index and init complete the standard hs-evaluator
+ * triple (matching 0xc0c30/0xc0c70/0xc0cb0/0xc0cd0) but are unused here; they
+ * must still be declared or the frame and the [EBP+0xc] load diverge.
+ *
+ * Callees (both cdecl, in kb.json, no register arguments):
+ *   0xd5120 = scripted_hud_messages_clear(void)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c32b0(int16_t function_index, int thread_datum, char init)
+{
+  scripted_hud_messages_clear();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
