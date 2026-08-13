@@ -24968,14 +24968,6 @@
       "score": 100.0,
       "source": "src/halo/cache/cache_files_windows.c"
     },
-    "FUN_001bdb70": {
-      "score": 87.1,
-      "source": "src/halo/cache/physical_memory_map.c"
-    },
-    "FUN_001bdc60": {
-      "score": 87.5,
-      "source": "src/halo/cache/physical_memory_map.c"
-    },
     "FUN_001bdd40": {
       "addr": "0x1bdd40",
       "end": "0x1bdd46",
@@ -25058,10 +25050,10 @@
       "end": "0x1becb7",
       "kind": "auto",
       "n_r": 44,
-      "opnd_percent": 88.9,
+      "opnd_percent": 90.9,
       "ref": "synth",
       "ref_sha": "25d3a377eed434ce",
-      "score": 97.8,
+      "score": 100.0,
       "source": "src/halo/cache/xbox_texture_cache.c"
     },
     "FUN_001bf760": {
@@ -28824,10 +28816,10 @@
       "end": "0x1bec27",
       "kind": "auto",
       "n_r": 44,
-      "opnd_percent": 88.9,
+      "opnd_percent": 90.9,
       "ref": "synth",
       "ref_sha": "180cd0e8cb36bb80",
-      "score": 97.8,
+      "score": 100.0,
       "source": "src/halo/cache/xbox_texture_cache.c"
     },
     "bitmap_get_max_mipmap_count": {
@@ -50406,10 +50398,10 @@
       "end": "0x1bf75d",
       "kind": "auto",
       "n_r": 162,
-      "opnd_percent": 70.8,
+      "opnd_percent": 89.8,
       "ref": "synth",
       "ref_sha": "fbaae8f25ce472a1",
-      "score": 84.6,
+      "score": 92.3,
       "source": "src/halo/cache/xbox_texture_cache.c"
     },
     "xbox_texture_cache_request": {
@@ -50417,10 +50409,10 @@
       "end": "0x1bf260",
       "kind": "auto",
       "n_r": 85,
-      "opnd_percent": 76.0,
+      "opnd_percent": 85.4,
       "ref": "synth",
       "ref_sha": "1b08ec6e2f64962e",
-      "score": 91.2,
+      "score": 94.2,
       "source": "src/halo/cache/xbox_texture_cache.c"
     },
     "xbox_texture_cache_return_memory": {
@@ -50439,10 +50431,10 @@
       "end": "0x1bef7a",
       "kind": "auto",
       "n_r": 116,
-      "opnd_percent": 46.8,
+      "opnd_percent": 52.8,
       "ref": "synth",
       "ref_sha": "a37c6adff4a35033",
-      "score": 75.4,
+      "score": 80.5,
       "source": "src/halo/cache/xbox_texture_cache.c"
     },
     "xbox_texture_cache_steal_memory": {
@@ -50450,10 +50442,10 @@
       "end": "0x1beb01",
       "kind": "auto",
       "n_r": 69,
-      "opnd_percent": 73.5,
+      "opnd_percent": 85.5,
       "ref": "synth",
       "ref_sha": "ba779cbaf503edd1",
-      "score": 88.2,
+      "score": 98.6,
       "source": "src/halo/cache/xbox_texture_cache.c"
     },
     "zError": {

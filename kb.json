@@ -28952,17 +28952,17 @@
     {
      "addr": "0x1bea30",
      "decl": "void *xbox_texture_cache_steal_memory(unsigned int size);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x1beb10",
      "decl": "void xbox_texture_cache_return_memory(void);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x1beba0",
      "decl": "int bitmap_format_to_d3d_linear_format(int16_t format, uint16_t flags);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x1bec30",
@@ -28982,7 +28982,7 @@
     {
      "addr": "0x1bf570",
      "decl": "void *xbox_texture_cache_get_hardware_format(void *hardware_format, bool block, bool load);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x1be920",

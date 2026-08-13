@@ -18,16 +18,15 @@
 
 void *xbox_texture_cache_steal_memory(unsigned int size)
 {
-  int page_count =
-    ((int)(size + (((int)size >> 0x1f) & (HALO_TEXTURE_CACHE_PAGE_SIZE - 1))) >>
-     HALO_TEXTURE_CACHE_PAGE_BITS) +
-    1;
+  int page_count = ((int)size / HALO_TEXTURE_CACHE_PAGE_SIZE) + 1;
   int remaining_page_count = HALO_TEXTURE_CACHE_STEALABLE_PAGES - page_count;
   char *base = (char *)FUN_001bdd60() +
-               (remaining_page_count << HALO_TEXTURE_CACHE_PAGE_BITS);
-  int stolen_size = page_count << HALO_TEXTURE_CACHE_PAGE_BITS;
+               (remaining_page_count * HALO_TEXTURE_CACHE_PAGE_SIZE);
+  unsigned int stolen_size = page_count * HALO_TEXTURE_CACHE_PAGE_SIZE;
+  char *guard_end =
+    base + HALO_TEXTURE_CACHE_STEAL_GUARD_SIZE + stolen_size;
 
-  if (remaining_page_count < 1) {
+  if (remaining_page_count <= 0) {
     display_assert("remaining_page_count>0",
                    "c:\\halo\\SOURCE\\cache\\xbox_texture_cache.c", 0x13f,
                    true);
@@ -45,9 +44,7 @@ void *xbox_texture_cache_steal_memory(unsigned int size)
   physical_memory_protect(base + HALO_TEXTURE_CACHE_STEAL_GUARD_SIZE,
                           stolen_size, 4);
   physical_memory_protect(base, HALO_TEXTURE_CACHE_STEAL_GUARD_SIZE, 2);
-  physical_memory_protect(base + HALO_TEXTURE_CACHE_STEAL_GUARD_SIZE +
-                            stolen_size,
-                          HALO_TEXTURE_CACHE_STEAL_GUARD_SIZE, 2);
+  physical_memory_protect(guard_end, HALO_TEXTURE_CACHE_STEAL_GUARD_SIZE, 2);
   *(int8_t *)0x4ea984 = 1;
   return base + HALO_TEXTURE_CACHE_STEAL_GUARD_SIZE;
 }
@@ -73,7 +70,7 @@ void xbox_texture_cache_return_memory(void)
  * If flags bit 0x20 is set and format is 10 or 11 (DXT4/DXT5), returns 0x33. */
 int bitmap_format_to_d3d_linear_format(int16_t format, uint16_t flags)
 {
-  int *table = (int *)0x2b9618;
+  int table_base;
 
   if (format < 0 || format >= 0x12) {
     display_assert("format>=0 && format<NUMBER_OF_BITMAP_FORMATS",
@@ -81,16 +78,17 @@ int bitmap_format_to_d3d_linear_format(int16_t format, uint16_t flags)
     system_exit(-1);
   }
 
-  if (table[format] == -1) {
+  if (((int *)0x2b9618)[format] == -1) {
     display_assert("table[format]!=NONE",
                    "c:\\halo\\SOURCE\\cache\\xbox_texture_cache.c", 0x1e2, 1);
     system_exit(-1);
   }
 
+  table_base = 0x2b9618;
   if ((flags & 0x20) && (format == 10 || format == 11))
     return 0x33;
 
-  return table[format];
+  return ((int *)table_base)[format];
 }
 
 /* FUN_001bec30 (0x1bec30)
@@ -100,7 +98,7 @@ int bitmap_format_to_d3d_linear_format(int16_t format, uint16_t flags)
  * If flags bit 0x20 is set and format is 10 or 11 (DXT4/DXT5), returns 0x36. */
 int FUN_001bec30(int16_t format, uint16_t flags)
 {
-  int *table = (int *)0x2b9660;
+  int table_base;
 
   if (format < 0 || format >= 0x12) {
     display_assert("format>=0 && format<NUMBER_OF_BITMAP_FORMATS",
@@ -108,16 +106,17 @@ int FUN_001bec30(int16_t format, uint16_t flags)
     system_exit(-1);
   }
 
-  if (table[format] == -1) {
+  if (((int *)0x2b9660)[format] == -1) {
     display_assert("table[format]!=NONE",
                    "c:\\halo\\SOURCE\\cache\\xbox_texture_cache.c", 0x207, 1);
     system_exit(-1);
   }
 
+  table_base = 0x2b9660;
   if ((flags & 0x20) && (format == 10 || format == 11))
     return 0x36;
 
-  return table[format];
+  return ((int *)table_base)[format];
 }
 
 /* xbox_texture_cache_setup_d3d_texture (0x1bee30)
@@ -129,68 +128,88 @@ int FUN_001bec30(int16_t format, uint16_t flags)
  * Finishes by registering the resource with D3DResource_Register.
  *
  * bitmap  is passed in ESI (hardware_format pointer).
- * texture is passed in EDI (D3D texture header, 5 dwords / 20 bytes). */
+ * texture is passed in EDI (D3D texture header, 5 dwords / 20 bytes).
+ *
+ * The second read of bitmap+0xa is deliberately a fresh memory load rather
+ * than a reuse of t10: the original re-reads it (cmp word ptr [esi+0xa],2), and
+ * ending t10's live range at the first test is what frees the register.
+ *
+ * VC71 match ceiling ~80%, two causes, neither source-controllable:
+ *   1. Both params are @<reg>, so the original has NO EBP frame at all
+ *      (push ebx ... pop ebx; ret). The VC71 verify lane cannot pass args in
+ *      esi/edi, so our build emits a full frame plus [ebp+N] param reads, and
+ *      the extra pressure forces `texture` to be reloaded from [ebp+0xc] in
+ *      the else branch where the original just keeps it in EDI.
+ *   2. VC71 distributes shifts over the pack chains: ((p-1)<<12 | (h-1))<<12
+ *      becomes (p<<24 - 0x1000000) | (h<<12 - 0x1000) (the IMM-WARN), and the
+ *      else branch's two `desc <<= 4` steps merge into one `shl 8`. Both are
+ *      valid unconditionally and cost the same instruction count, so it is a
+ *      canonicalization coin flip driven by scheduling, not by source form:
+ *      the sequential chain, the flat absolute-shift form (<<24/<<12/<<0), and
+ *      pre-decremented h/w locals all compile to identical distributed code. */
 void xbox_texture_cache_setup_d3d_texture(void *bitmap /* @<esi> */,
-                                          void *texture /* @<edi> */)
+                                           void *texture /* @<edi> */)
 {
-  int *tex = (int *)texture;
-  char *bmp = (char *)bitmap;
-  int format_bits;
-  int pitch;
-  int height;
-  int width;
-
   assert_halt(bitmap);
   assert_halt(texture);
 
-  tex[1] = 0;
-  tex[2] = 0;
-  tex[0] = 0x40001;
+  ((int *)texture)[1] = 0;
+  ((int *)texture)[2] = 0;
+  ((int *)texture)[0] = 0x40001;
 
-  if (*(uint16_t *)(bmp + 0xe) & 0x10) {
+  if (*(uint16_t *)((char *)bitmap + 0xe) & 0x10) {
+    uint32_t format_bits;
+    int height, width, pitch;
+
     format_bits =
-      FUN_001bec30(*(int16_t *)(bmp + 0xc), *(uint16_t *)(bmp + 0xe));
-    tex[3] = (format_bits << 8) | 0x10029;
+      FUN_001bec30(*(int16_t *)((char *)bitmap + 0xc), *(uint16_t *)((char *)bitmap + 0xe));
+    ((int *)texture)[3] = (format_bits << 8) | 0x10029;
 
     pitch = bitmap_mipmap_get_row_pitch(bitmap, 0);
-    height = (int)*(int16_t *)(bmp + 0x6);
-    width = (int)*(int16_t *)(bmp + 0x4);
-    tex[4] =
-      ((((pitch + ((pitch >> 31) & 0x3f)) >> 6) - 1) << 12 | (height - 1))
-        << 12 |
-      (width - 1);
+    height = *(int16_t *)((char *)bitmap + 0x6);
+    width = *(int16_t *)((char *)bitmap + 0x4);
+
+    pitch = (pitch / 64) - 1;
+    pitch = (pitch << 12) | (height - 1);
+    pitch = (pitch << 12) | (width - 1);
+    ((int *)texture)[4] = pitch;
   } else {
-    int16_t log2_depth = FUN_00108db0((int)*(int16_t *)(bmp + 0x8));
-    int16_t log2_height = FUN_00108db0((int)*(int16_t *)(bmp + 0x6));
-    int16_t log2_width = FUN_00108db0((int)*(int16_t *)(bmp + 0x4));
-    int linear_fmt = bitmap_format_to_d3d_linear_format(
-      *(int16_t *)(bmp + 0xc), *(uint16_t *)(bmp + 0xe));
-    int16_t mipmap_count = *(int16_t *)(bmp + 0xa);
-    int16_t dim_level = FUN_00183120(bitmap);
-    int dim_type = (mipmap_count != 1) ? 2 : 3;
-    int cubemap_flag = (mipmap_count == 2) ? 4 : 0;
+    int16_t h, w, fmt, t10;
+    uint16_t flg;
+    uint32_t desc;
 
-    format_bits = (int)log2_depth;
-    format_bits = (format_bits << 4) | (int)log2_height;
-    format_bits = (format_bits << 4) | (int)log2_width;
-    format_bits = (format_bits << 12) | linear_fmt;
-    format_bits = (format_bits << 4) | dim_type;
-    format_bits = (format_bits << 4) | (((int)dim_level + 1) << 16);
-    format_bits |= cubemap_flag | 0x9;
+    desc = FUN_00108db0(*(int16_t *)((char *)bitmap + 0x8));
+    h = *(int16_t *)((char *)bitmap + 0x6);
+    desc <<= 4;
+    desc |= FUN_00108db0(h);
+    w = *(int16_t *)((char *)bitmap + 0x4);
+    desc <<= 4;
+    desc |= FUN_00108db0(w);
+    flg = *(uint16_t *)((char *)bitmap + 0xe);
+    fmt = *(int16_t *)((char *)bitmap + 0xc);
+    desc <<= 12;
+    desc |= bitmap_format_to_d3d_linear_format(fmt, flg);
+    t10 = *(int16_t *)((char *)bitmap + 0xa);
+    desc <<= 4;
+    desc |= (3 - (t10 != 1));
+    desc <<= 4;
+    desc |= ((FUN_00183120(bitmap) + 1) << 16);
 
-    tex[4] = 0;
-    tex[3] = format_bits;
+    ((int *)texture)[4] = 0;
+    ((int *)texture)[3] =
+      desc | (((*(int16_t *)((char *)bitmap + 0xa) != 2) - 1) & 4) | 9;
   }
 
-  D3DResource_Register(texture, *(void **)(bmp + 0x2c));
+  D3DResource_Register(texture, *(void **)((char *)bitmap + 0x2c));
 }
 
 bool xbox_texture_cache_request(void *hardware_format, bool block)
 {
+  int32_t min_block = *(int32_t *)((char *)hardware_format + 0x1c);
   int cache_block_index = FUN_00183290(hardware_format);
 
-  if (cache_block_index <= *(int32_t *)((char *)hardware_format + 0x1c)) {
-    cache_block_index = *(int32_t *)((char *)hardware_format + 0x1c);
+  if (cache_block_index <= min_block) {
+    cache_block_index = min_block;
   }
 
   cache_block_index = FUN_0011de10(*(void **)0x4ea980, cache_block_index);
@@ -216,7 +235,7 @@ bool xbox_texture_cache_request(void *hardware_format, bool block)
     *(int16_t *)(cache_entry + 2) =
       cache_file_read(*(int32_t *)((char *)hardware_format + 0x20),
                       *(int32_t *)((char *)hardware_format + 0x18),
-                      *(int32_t *)((char *)hardware_format + 0x1c),
+                      min_block,
                       cache_page_index, cache_entry + 4, block);
     return true;
   }
@@ -235,7 +254,7 @@ void *xbox_texture_cache_get_hardware_format(void *hardware_format, bool block,
     system_exit(-1);
   }
 
-  if (*(int8_t *)((char *)hardware_format + 0xe) < 0) {
+  if (*(char *)((char *)hardware_format + 0xe) < 0) {
     if (*(int32_t *)((char *)hardware_format + 0x24) == -1 && load) {
       xbox_texture_cache_request(hardware_format, block);
     }
@@ -245,35 +264,32 @@ void *xbox_texture_cache_get_hardware_format(void *hardware_format, bool block,
       lruv_debug_to_file(*(void **)0x4ea980,
                          *(int32_t *)((char *)hardware_format + 0x24));
       if (block) {
-        if (*(int8_t *)((char *)entry + 4) != 0)
+        if (*(char *)((char *)entry + 4) != 0)
           goto loaded;
         if (*(uint8_t *)0x4ea98a) {
           const char *name =
             tag_get_name(*(int32_t *)((char *)hardware_format + 0x20));
-          console_warning((const char *)0x257984, name);
+          console_warning("%s", name);
         }
         cache_files_io_request_enable(*(int16_t *)((char *)entry + 2));
       }
       do {
-        if (*(int8_t *)((char *)entry + 4) == 0) {
-          unsigned int t0 = sound_render_time();
-          unsigned int t1 = system_milliseconds();
-          if (t1 - t0 > 0x84u) {
-            sound_idle();
-          }
-          SwitchToThread();
-        } else {
+        if (*(char *)((char *)entry + 4) != 0) {
         loaded:
-          if (*(int8_t *)((char *)entry + 5) == 0) {
-            *(int8_t *)((char *)entry + 5) = 1;
+          if (*(char *)((char *)entry + 5) == 0) {
+            *(char *)((char *)entry + 5) = 1;
           }
           result = (char *)entry + 0xc;
           if (result)
             break;
+        } else {
+          unsigned int t0 = sound_render_time();
+          if (system_milliseconds() - t0 > 0x84u) {
+            sound_idle();
+          }
+          SwitchToThread();
         }
-        if (!block)
-          return result;
-      } while (true);
+      } while (block);
     }
   } else {
     result = *(void **)((char *)hardware_format + 0x28);
