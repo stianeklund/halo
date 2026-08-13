@@ -5682,6 +5682,74 @@ void FUN_000c3070(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc30b0 — HaloScript macro-function handler that forwards an evaluated
+ * argument record to the scripted-player-effect stop routine.  Same family as
+ * 0xc3030 and 0xc3070 above; only the consumer call target (0xa2e40) and its
+ * argument count differ — stop takes the record's +0 int and nothing else, so
+ * there is no float and therefore no push-then-fstp pair here.  Ghidra models
+ * this as `void FUN_000c30b0(void)` and reports the three cdecl stack
+ * parameters as phantom `in_stack_*` locals, so the kb decl was widened from
+ * that void(void) form with this lift.
+ *
+ * Disassembly (0xc30b0..0xc30e1, 0x32 bytes):
+ *   PUSH EBP; MOV EBP,ESP            ; no `sub esp` — zero stack locals
+ *   MOV  ECX,[EBP+0x8]               ; function_index (arg 1, int16)
+ *   MOV  EAX,[EBP+0x10]              ; init           (arg 3, char)
+ *   PUSH ESI                         ; the only callee-saved register used
+ *   MOV  ESI,[EBP+0xc]               ; thread_datum   (arg 2), cached in ESI
+ *                                    ; because it is
+ *                                    ; needed AGAIN at 0xc30d6 after the first
+ *                                    ; call, while fn_index and init are dead
+ *   PUSH EAX; PUSH ESI; PUSH ECX     ; cdecl: last PUSH is the first C arg,
+ *                                    ; i.e. (function_index, thread_datum,
+ *                                    ;       init)
+ *   CALL 0xcc560                     ; hs_macro_function_evaluate
+ *   ADD  ESP,0xc                     ; 3 args — cleanup belongs SOLELY to this
+ *                                    ; call
+ *   TEST EAX,EAX; JZ 0xc30df         ; plain early-out, no else branch; on a
+ *                                    ; NULL record NEITHER tail call runs —
+ *                                    ; in particular there is no hs_return.
+ *                                    ; The tested EAX is then DEREFERENCED, so
+ *                                    ; this is a NULL-pointer guard, not a
+ *                                    ; boolean test.
+ *   MOV  EDX,dword ptr [EAX]         ; record field at +0 is an int
+ *   PUSH EDX                         ; ...and it is the stop call's ONE
+ *                                    ; argument.  Ghidra drops this push and
+ *                                    ; shows 0xa2e40 as a no-arg call; the kb
+ *                                    ; decl was `void
+ *                                    ; scripted_player_effect_stop(void)` and
+ *                                    ; was widened to (int) from this site.
+ *   CALL 0xa2e40                     ; scripted_player_effect_stop
+ *   PUSH 0x0; PUSH ESI
+ *   CALL 0xcbf80                     ; hs_return(thread_datum, 0)
+ *   ADD  ESP,0xc                     ; COMBINED cleanup for BOTH calls
+ *                                    ; (stop 4 + hs_return 8) — this is NOT a
+ *                                    ; three-argument hs_return, so the
+ *                                    ; call-site ARG_COUNT warning is a false
+ *                                    ; positive; hs_return's decl stays (2).
+ *   POP ESI; POP EBP; RET            ; no `RET n` — cdecl, caller cleans
+ *
+ * Only one local (`result`) is declared, matching the zero-`sub esp` frame;
+ * fn_index/init must not be spilled into extra locals or the frame diverges.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560 = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *             (declared `int`; EAX is dereferenced as a record pointer)
+ *   0xa2e40 = scripted_player_effect_stop(int)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c30b0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    scripted_player_effect_stop(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script

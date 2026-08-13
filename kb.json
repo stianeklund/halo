@@ -11221,7 +11221,8 @@
     },
     {
      "addr": "0xc30b0",
-     "decl": "void FUN_000c30b0(void);"
+     "decl": "void FUN_000c30b0(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc30f0",
@@ -17537,7 +17538,7 @@
     },
     {
      "addr": "0xa2e40",
-     "decl": "void scripted_player_effect_stop(void);"
+     "decl": "void scripted_player_effect_stop(int param_1);"
     },
     {
      "addr": "0xa2ed0",
