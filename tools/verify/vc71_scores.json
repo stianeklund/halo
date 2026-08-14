@@ -12318,6 +12318,50 @@
    "score": 100.0,
    "source": "src/halo/hs/hs.c"
   },
+  "FUN_000c3130": {
+   "addr": "0xc3130",
+   "end": "0xc3164",
+   "kind": "auto",
+   "n_r": 24,
+   "opnd_percent": 100.0,
+   "ref": "synth",
+   "ref_sha": "ea2f2350b5ea081b",
+   "score": 100.0,
+   "source": "src/halo/hs/hs.c"
+  },
+  "FUN_000c3170": {
+   "addr": "0xc3170",
+   "end": "0xc31a4",
+   "kind": "auto",
+   "n_r": 24,
+   "opnd_percent": 100.0,
+   "ref": "synth",
+   "ref_sha": "136a354d54751fdb",
+   "score": 100.0,
+   "source": "src/halo/hs/hs.c"
+  },
+  "FUN_000c31b0": {
+   "addr": "0xc31b0",
+   "end": "0xc31e4",
+   "kind": "auto",
+   "n_r": 24,
+   "opnd_percent": 100.0,
+   "ref": "synth",
+   "ref_sha": "c2c9aa37d1025477",
+   "score": 100.0,
+   "source": "src/halo/hs/hs.c"
+  },
+  "FUN_000c31f0": {
+   "addr": "0xc31f0",
+   "end": "0xc3224",
+   "kind": "auto",
+   "n_r": 24,
+   "opnd_percent": 100.0,
+   "ref": "synth",
+   "ref_sha": "88f4d4276ca5eb55",
+   "score": 100.0,
+   "source": "src/halo/hs/hs.c"
+  },
   "FUN_000c32b0": {
    "addr": "0xc32b0",
    "end": "0xc32c8",
@@ -12447,6 +12491,116 @@
    "opnd_percent": 100.0,
    "ref": "synth",
    "ref_sha": "e96ffa147f70aca8",
+   "score": 100.0,
+   "source": "src/halo/hs/hs.c"
+  },
+  "FUN_000c3570": {
+   "addr": "0xc3570",
+   "end": "0xc3588",
+   "kind": "auto",
+   "n_r": 10,
+   "opnd_percent": 100.0,
+   "ref": "synth",
+   "ref_sha": "7bd418d762460d08",
+   "score": 100.0,
+   "source": "src/halo/hs/hs.c"
+  },
+  "FUN_000c3590": {
+   "addr": "0xc3590",
+   "end": "0xc35a8",
+   "kind": "auto",
+   "n_r": 10,
+   "opnd_percent": 100.0,
+   "ref": "synth",
+   "ref_sha": "9a8d37c087164e2c",
+   "score": 100.0,
+   "source": "src/halo/hs/hs.c"
+  },
+  "FUN_000c3600": {
+   "addr": "0xc3600",
+   "end": "0xc3618",
+   "kind": "auto",
+   "n_r": 10,
+   "opnd_percent": 100.0,
+   "ref": "synth",
+   "ref_sha": "664fd2edb616c736",
+   "score": 100.0,
+   "source": "src/halo/hs/hs.c"
+  },
+  "FUN_000c3660": {
+   "addr": "0xc3660",
+   "end": "0xc3694",
+   "kind": "auto",
+   "n_r": 24,
+   "opnd_percent": 100.0,
+   "ref": "synth",
+   "ref_sha": "a07ddd375223740f",
+   "score": 100.0,
+   "source": "src/halo/hs/hs.c"
+  },
+  "FUN_000c37f0": {
+   "addr": "0xc37f0",
+   "end": "0xc3808",
+   "kind": "auto",
+   "n_r": 10,
+   "opnd_percent": 100.0,
+   "ref": "synth",
+   "ref_sha": "fb75ebb4665ac342",
+   "score": 100.0,
+   "source": "src/halo/hs/hs.c"
+  },
+  "FUN_000c3810": {
+   "addr": "0xc3810",
+   "end": "0xc3842",
+   "kind": "auto",
+   "n_r": 23,
+   "opnd_percent": 100.0,
+   "ref": "synth",
+   "ref_sha": "a0c8dd9255a774b9",
+   "score": 100.0,
+   "source": "src/halo/hs/hs.c"
+  },
+  "FUN_000c3850": {
+   "addr": "0xc3850",
+   "end": "0xc3868",
+   "kind": "auto",
+   "n_r": 10,
+   "opnd_percent": 100.0,
+   "ref": "synth",
+   "ref_sha": "7dad9e7c272b0de6",
+   "score": 100.0,
+   "source": "src/halo/hs/hs.c"
+  },
+  "FUN_000c3870": {
+   "addr": "0xc3870",
+   "end": "0xc3888",
+   "kind": "auto",
+   "n_r": 10,
+   "opnd_percent": 100.0,
+   "ref": "synth",
+   "ref_sha": "0badfb3631a62362",
+   "score": 100.0,
+   "source": "src/halo/hs/hs.c"
+  },
+  "FUN_000c3890": {
+   "addr": "0xc3890",
+   "end": "0xc38a8",
+   "kind": "auto",
+   "n_r": 10,
+   "opnd_percent": 100.0,
+   "ref": "synth",
+   "ref_sha": "61b74f030639b479",
+   "score": 100.0,
+   "source": "src/halo/hs/hs.c"
+  },
+  "FUN_000c38b0": {
+   "addr": "0xc38b0",
+   "end": "0xc38c8",
+   "kind": "auto",
+   "n_r": 10,
+   "opnd_percent": 100.0,
+   "ref": "synth",
+   "ref_sha": "7b962702aa780010",
    "score": 100.0,
    "source": "src/halo/hs/hs.c"
   },
