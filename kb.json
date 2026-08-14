@@ -34527,7 +34527,8 @@
     },
     {
      "addr": "0x650a0",
-     "decl": "void FUN_000650a0(void);"
+     "decl": "int FUN_000650a0(void *tif, const char *method);",
+     "ported": true
     },
     {
      "addr": "0x650e0",

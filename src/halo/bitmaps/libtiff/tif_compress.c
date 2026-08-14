@@ -427,3 +427,102 @@ int FUN_00065060(void *tif_, char *pp, int cc, int s) {
   (void)s;
   return _TIFFNoEncode(tif, "tile");
 }
+
+/* -------------------------------------------------------------------------
+ * FUN_000650a0 -- upstream `_TIFFNoDecode`.
+ *
+ * Upstream body:
+ *
+ *     static int
+ *     _TIFFNoDecode(TIFF* tif, const char* method)
+ *     {
+ *         const TIFFCodec* c = TIFFFindCODEC(tif->tif_dir.td_compression);
+ *         TIFFError(tif->tif_name, "%s %s decoding is not implemented",
+ *                   c->name, method);
+ *         return (-1);
+ *     }
+ *
+ * This is the decode-side counterpart of `_TIFFNoEncode` above, and unlike the
+ * encode helper it survives as a real out-of-line function: the two stack
+ * parameters at [EBP+8] and [EBP+0xc] are exactly upstream's `tif` and
+ * `method`, so the decode stubs at 0x650e0/0x65120/0x65160 CALL this address
+ * instead of carrying an inlined copy. That is why the body below is written as
+ * the entry point itself rather than as a `static __inline` helper with a
+ * one-line wrapper -- an inline helper would emit no code at this address.
+ *
+ * Ghidra reports it as `void FUN_000650a0(void)` and hides `tif` behind an
+ * `in_stack_00000004` local while dropping `method` from the call entirely.
+ * All three halves of that are wrong; the disassembly below is the authority.
+ *
+ * Verbatim, from the pristine image (0x650a0..0x650dd, 23 instructions):
+ *
+ *   0650a0  push ebp
+ *   0650a1  mov  ebp, esp                   ; no `sub esp` -- zero locals
+ *   0650a3  mov  edx, dword ptr [ebp+8]     ; param1 tif, held in EDX across
+ *                                           ; the whole loop
+ *   0650a6  movzx ecx, word ptr [edx+0x3a]  ; tif->td_compression, a 16-bit
+ *                                           ; field zero-extended to 32 bits
+ *   0650aa  mov  eax, 0x2c9994              ; _TIFFBuiltinCODECS
+ *   0650af  nop                             ; alignment padding
+ *   0650b0  cmp  dword ptr [eax+4], ecx     ; c->scheme == scheme; the memory
+ *                                           ; operand is first, so spell the
+ *                                           ; comparison that way round
+ *   0650b3  je   0x650c1                    ; found
+ *   0650b5  add  eax, 0xc                   ; ++c (sizeof(TIFFCodec) == 0xc)
+ *   0650b8  cmp  eax, 0x2c99c4              ; &_TIFFBuiltinCODECS[4]; an
+ *                                           ; ADDRESS compare, which is what
+ *                                           ; proves the loop is count-bounded
+ *                                           ; and not a `while (c->name)` walk
+ *   0650bd  jb   0x650b0                    ; unsigned <, loop
+ *   0650bf  xor  eax, eax                   ; not found -> NULL, and falls
+ *                                           ; THROUGH into the shared tail
+ *   0650c1  mov  ecx, dword ptr [ebp+0xc]   ; param2 method, loaded late and
+ *                                           ; only for the call
+ *   0650c4  mov  eax, dword ptr [eax]       ; c->name -- at the merge of the
+ *                                           ; found and not-found paths, so on
+ *                                           ; an unknown scheme this faults.
+ *                                           ; UNGUARDED on purpose.
+ *   0650c6  push ecx                        ; arg4 method
+ *   0650c7  mov  ecx, dword ptr [edx]       ; tif->tif_name. Note ECX is reused
+ *                                           ; for two different values across
+ *                                           ; three instructions; EDX is what
+ *                                           ; carries `tif` this far.
+ *   0650c9  push eax                        ; arg3 c->name
+ *   0650ca  push 0x25f570                   ; arg2 "%s %s decoding is not
+ *                                           ; implemented" -- an immediate
+ *                                           ; push of the literal's address.
+ *                                           ; Distinct from the encode side's
+ *                                           ; 0x25f530. (0x25f578 is a pointer
+ *                                           ; INTO this string at offset 8,
+ *                                           ; not a separate literal.)
+ *   0650cf  push ecx                        ; arg1 module
+ *   0650d0  call 0x68a30                    ; TIFFError (varargs). The
+ *                                           ; ARG_COUNT hazard (cleanup 4 vs
+ *                                           ; decl 3) is the vararg, not an
+ *                                           ; ABI mismatch.
+ *   0650d5  add  esp, 0x10                  ; cdecl, 4 dword args
+ *   0650d8  or   eax, 0xffffffff            ; return -1, emitted AFTER the
+ *                                           ; call, so a separate statement
+ *   0650db  pop  ebp
+ *   0650dc  ret
+ * ------------------------------------------------------------------------ */
+
+/**
+ * Reports that the decoder for this TIFF's compression scheme is absent from
+ * this build, naming the scheme and the failed access method.
+ *
+ * Shared tail of the row/strip/tile decode stubs installed for schemes with no
+ * decoder present.
+ *
+ * @param tif_ TIFF handle.
+ * @param method Access method that was attempted -- "scanline", "strip" or
+ *        "tile".
+ * @return Always -1 (failure).
+ */
+int FUN_000650a0(void *tif_, const char *method) {
+  tiff_t *tif = (tiff_t *)tif_;
+
+  FUN_00068a30(tif->tif_name, "%s %s decoding is not implemented",
+               TIFFFindCODEC(tif->td_compression)->name, method);
+  return -1;
+}
