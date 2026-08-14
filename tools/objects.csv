@@ -88,7 +88,7 @@ render_cameras.obj,true,0x00185770-0x00188A80,25
 render_debug.obj,true,0x00188890-0x0018AE50,36
 saved_game_files.obj,true,0x001C1B00-0x001C4A50,55
 scenario.obj,true,0x0018E280-0x0018F710,20
-shaders.obj,true,0x00190240-0x00191010,25
+shaders.obj,true,0x00190240-0x00191010,24
 shell.obj,true,0x001910F0-0x00191440,9
 shell_xbox.obj,true,0x00191250-0x00191530,3
 scenario.obj,true,0x0018AEF0-0x001900F0,62
@@ -108,7 +108,7 @@ telnet_console.obj,true,0x00130980-0x00132660,27
 terminal.obj,true,0x000E3410-0x000E3C10,10
 tiff_file.obj,true,0x0007F570-0x0007FC00,3
 thread_win32.obj,true,0x00081170-0x00081C20,15
-transport_endpoint_set_winsock.obj,true,0x00081EC0-0x00084B70,52
+transport_endpoint_set_winsock.obj,true,0x00081E00-0x00084B70,53
 ui_widget.obj,true,0x000E3B80-0x000ED0B0,121
 ui_widget_event_handler_functions.obj,true,0x000E9810-0x000E9A10,1
 ui_widget_game_data_input_functions.obj,true,0x000EDCD0-0x000F48E0,73
@@ -151,9 +151,10 @@ ai_debug.obj,true,0x00048F50-0x00053CF0,73
 ai_profile.obj,true,0x000540B0-0x00055FD0,46
 ai_script.obj,true,0x00058CC0-0x00058F40,2
 encounters.obj,true,0x00053B80-0x0005E1B0,140
-props.obj,true,0x00063E30-0x000654F0,35
-tif_dir.obj,true,0x000659F0-0x00067070,26
-tif_flush.obj,true,0x00068780-0x0006BC70,57
+props.obj,true,0x00063E30-0x000653A0,31
+tif_dir.obj,true,0x00064CD0-0x00067070,30
+tif_error.obj,true,0x000689C0-0x00068C10,2
+tif_flush.obj,true,0x00068780-0x0006BC70,55
 tif_open.obj,true,0x0006C400-0x0006DFA0,41
 tif_write.obj,true,0x0006E740-0x00074C30,81
 bored_camera.obj,true,0x000849F0-0x00084BF0,1
@@ -171,7 +172,7 @@ geometry.obj,true,0x000994D0-0x00107150,8
 damage.obj,true,0x00136700-0x001392D0,34
 object_lights.obj,true,0x001391E0-0x00139680,9
 <xdk_stubs>,true,0x001CFA3F-0x002064D0,73
-transport_address.obj,true,0x00081A90-0x00082000,4
+transport_address.obj,true,0x00081A90-0x00081E80,3
 xbox_sound_cache.obj,true,0x001BDED0-0x001BE9B0,9
 message_header.obj,true,0x00080380-0x00081310,23
 data_packet_groups.obj,true,0x0011ABB0-0x0011B1A0,4
@@ -187,7 +188,7 @@ rasterizer_xbox_screen_effect.obj,true,0x001700D0-0x00171DC0,2
 rasterizer_xbox_shadows.obj,true,0x00172590-0x00173290,4
 rasterizer_xbox_profile.obj,true,0x0016F910-0x0016FC40,2
 <xdk_stubs>,true,0x001CFB73-0x0024D209,531
-wind.obj,true,0x0018FF00-0x001901E0,2
+wind.obj,true,0x0018FF00-0x00190700,3
 action_vehicle.obj,true,0x0001AEB0-0x0001BAA0,4
 glow.obj,true,0x001345B0-0x001347B0,1
 rasterizer_xbox_widgets.obj,true,0x0017ADC0-0x0017B9D0,8
