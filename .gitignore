@@ -126,6 +126,7 @@ opencode.json
 
 # Agent-memory notes and hook state (per-session, host-only, not source of truth)
 .claude/agent-memory/
+.opencode/agent-memory/
 .agents/skills/*
 .agents/*
 .agent/*
