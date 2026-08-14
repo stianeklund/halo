@@ -43905,6 +43905,17 @@
       "score": 93.3,
       "source": "src/halo/ai/props.c"
     },
+    "prop_new_unacknowledged": {
+      "addr": "0x645a0",
+      "end": "0x647c0",
+      "kind": "auto",
+      "n_r": 181,
+      "opnd_percent": 89.1,
+      "ref": "synth",
+      "ref_sha": "2adf98d094b1bf2f",
+      "score": 91.3,
+      "source": "src/halo/ai/props.c"
+    },
     "prop_orphan_from_friend": {
       "addr": "0x64970",
       "end": "0x64a5c",

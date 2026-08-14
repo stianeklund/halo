@@ -32588,7 +32588,7 @@
     },
     {
      "addr": "0x2f6e0",
-     "decl": "void actor_perception_desire_prop(void);"
+     "decl": "bool actor_perception_desire_prop(int actor_handle, int param_2, int param_3, int param_4, unsigned char param_5, unsigned char param_6, unsigned char param_7, unsigned char param_8, unsigned short param_9, int param_10, float distance_squared, unsigned short param_12, bool *out_flag);"
     },
     {
      "addr": "0x2f910",
@@ -34469,7 +34469,8 @@
     },
     {
      "addr": "0x645a0",
-     "decl": "void prop_new_unacknowledged(void);"
+     "decl": "int prop_new_unacknowledged(int actor_handle, int unit_handle, bool flag);",
+     "ported": true
     },
     {
      "addr": "0x647c0",

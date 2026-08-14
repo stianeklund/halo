@@ -2176,6 +2176,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x645a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x648a0": {
       "kind": "function",
       "status": "ported",
@@ -2217,6 +2221,75 @@
       ],
       "uncertain": [
         "The 0x24-byte local is treated as an MSVC 7.1 32-bit struct _stat because st_size lands at buffer+0x14 and the frame is exactly 0x24 bytes, but no struct _stat typedef exists in this project so the field layout beyond st_size at +0x14 is unverified."
+      ]
+    },
+    "0x64fe0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The upstream translation unit is proven to be libtiff v3.2-era tif_compress.c by the RCS id string at VA 0x2c9938, whose 0x5c bytes end exactly at the codec table base 0x2c9994, placing the RCS id and _TIFFBuiltinCODECS back to back as that file's first two data objects.",
+        "The two-helper decomposition into TIFFFindCODEC plus _TIFFNoEncode is inferred from upstream libtiff; a flat TIFFError call with the codec lookup inlined compiles to the same 0x3e bytes, so the binary cannot distinguish the two source forms.",
+        "The codec table is referenced at its original VA 0x2c9994 rather than redeclared as a local static const array, because the table is live data shared with the still-unported codec-registry entry points in this translation unit and a private copy would diverge from the one the rest of the image uses.",
+        "The scheme slot at TIFFCodec+0x04 is inferred to be 32-bit from the dword compare at 0x64ff0, which differs from upstream libtiff's uint16 declaration.",
+        "The kb.json placement of this address under props.obj (source ai/props.c) is a stale attribution artifact; the body was written to src/halo/bitmaps/libtiff/tif_compress.c on the RCS-string evidence, so maintain.py will try to relocate it into ai/props.c and must not be run against this address without first correcting the object membership."
+      ],
+      "uncertain": [
+        "The signature of the TIFFCodec init slot at +0x08 is unobserved by this translation unit (nothing here calls through it), so it is typed as a generic pointer rather than importing upstream's int (*)(TIFF*, int) prototype; the live values are 0x68970, 0x6d2d0, 0x6dd50 and 0x6c5d0.",
+        "The widths and names of TIFF handle bytes 0x04 through 0x39 are not observed here; the pad_004 run is a statement that this function never reads them, not that they are unused."
+      ]
+    },
+    "0x65020": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Identified as upstream libtiff v3.2 _TIFFNoStripEncode: the only difference from the already-ported sibling FUN_00064fe0 (_TIFFNoRowEncode) is the fourth pushed literal, 0x25f560 \"strip\" instead of 0x25f554 \"scanline\"."
+      ],
+      "uncertain": [
+        "The four trailing parameters are typed from upstream (TIFF*, tidata_t, tsize_t, tsample_t) and from the sibling decl; only param 1 is observed by the body, so the widths of pp/cc/s are unproven by this function alone."
+      ]
+    },
+    "0x65060": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "FUN_00065060 is upstream libtiff _TIFFNoTileEncode: the pushed literal at 0x25f568 reads \"tile\" in the pristine XBE and the format literal is the shared encode-side 0x25f530 \"%s %s encoding is not implemented\", so it is the tile ENCODE stub and not the tile decode sibling."
+      ],
+      "uncertain": [
+        "Only the first stack parameter (tif at [EBP+8]) is observed; the trailing three cdecl parameters (pp, cc, s) are taken from the sibling 0x64fe0/0x65020 signature and from upstream libtiff, because this stub is installed into the codec method table by pointer and no CALL to 0x65060 exists in the image to arbitrate its arity.",
+        "The body lives in src/halo/bitmaps/libtiff/tif_compress.c with its ported siblings, but kb.json still files 0x65060 under props.obj (ai/props.c); the object membership is stale for the whole 0x64fe0-0x651a0 cluster and maintain.py/lift_pipeline must be skipped for these addresses until a whole-object kb router change moves them."
+      ]
+    },
+    "0x650e0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Identity is upstream libtiff _TIFFNoRowDecode from tif_compress.c (v3.2 era, RCS rev 1.26), inferred from the pushed literals 0x25f554 \"scanline\" and 0x25f570 \"%s %s decoding is not implemented\" plus the inlined _TIFFBuiltinCODECS scan at 0x2c9994.",
+        "The trailing three parameters pp/cc/s in the widened decl are NOT observed in this body; they are taken from upstream's prototype and from the four-parameter codec-method signature the encode siblings 0x64fe0/0x65020/0x65060 already carry, and being trailing cdecl slots they do not affect emitted code."
+      ],
+      "uncertain": [
+        "Only tif+0x00 (tif_name) and tif+0x3a (td_compression, a 16-bit zero-extending load) are observed accessed; the rest of the TIFF handle is unproven by this function.",
+        "kb.json still maps this address to props.obj (ai/props.c) while the body lives in src/halo/bitmaps/libtiff/tif_compress.c, following the precedent of the four already-ported siblings; maintain.py and lift_pipeline must be skipped for this address until the object membership is fixed as a whole-object change."
+      ]
+    },
+    "0x65120": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters pp, cc and s are not read by this body; the four-parameter signature comes from upstream libtiff _TIFFNoStripDecode plus the shared codec method-table shape, and as trailing cdecl slots they do not affect emitted code."
+      ],
+      "uncertain": [
+        "The c->name load at 0x65141 is reached from the table-miss path (XOR EAX,EAX) with no null guard, so an unknown compression scheme null-derefs; this is faithful to the binary and adding the upstream guard lowers the match."
+      ]
+    },
+    "0x65160": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameters pp, cc and s are not read anywhere in the 23-instruction body; they are taken from upstream libtiff's _TIFFNoTileDecode prototype and the shared codec-method table signature already carried by siblings 0x64fe0/0x65020/0x65060/0x650e0/0x65120, and being trailing cdecl slots they do not affect emitted code.",
+        "Identified as upstream _TIFFNoTileDecode because the sole difference from 0x65120 (_TIFFNoStripDecode) across a full instruction-for-instruction capstone comparison of the pristine XBE is arg4's pushed literal, 0x25f568 which reads 'tile' versus 0x25f560 'strip'."
+      ],
+      "uncertain": [
+        "The unguarded c->name dereference on a TIFFFindCODEC miss (xor eax,eax followed by mov eax,[eax] at the merge of both paths) is reproduced faithfully and will fault on an unknown compression scheme; whether any live caller can reach that path was not established, since the stub is only installed into the codec method table by pointer and the image contains no direct CALL to 0x65160."
       ]
     },
     "0x68890": {
