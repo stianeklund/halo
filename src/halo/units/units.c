@@ -6611,9 +6611,17 @@ void FUN_001abd90(int unit_handle)
           {
             int surface_base;
             surface_base = *(int *)(collision_buf + 0x0c);
+            /* collision_result+0x0c holds a POINTER to the surface plane, not
+             * an inline plane: ref 0x1abee0 `MOV EDX,[EBP-0x4b0]` loads the
+             * slot's value and pushes it (0x1abef3), exactly as collision_bsp.c
+             * does with `*(float **)(bres + 0xc)`. Passing &slot fed the
+             * pointer bits to FUN_0010a1c0 as in_plane[0], producing a
+             * denormal normal and tripping assert_valid_real_normal3d in
+             * effects.c:0x461 downstream of object_cause_damage
+             * (lift-learnings §45). */
             FUN_0010a1c0(
               (float *)(surface_base + *(int16_t *)collision_result * 0x34),
-              (float *)(collision_result + 0x0c), (float *)normal_out);
+              *(float **)(collision_result + 0x0c), (float *)normal_out);
           }
 
           /* Negate normal if backfacing */
