@@ -4827,6 +4827,17 @@
       "score": 100.0,
       "source": "src/halo/ai/props.c"
     },
+    "FUN_00064fe0": {
+      "addr": "0x64fe0",
+      "end": "0x6501e",
+      "kind": "auto",
+      "n_r": 23,
+      "opnd_percent": 91.3,
+      "ref": "synth",
+      "ref_sha": "82b8530778f2239a",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
+    },
     "FUN_00068780": {
       "addr": "0x68780",
       "end": "0x68881",
