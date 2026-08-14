@@ -1851,14 +1851,21 @@ void FUN_000d6490(int param_1, int unit_handle, short param_3, float param_4)
   }
 }
 
-/* FUN_000d64c0 (0xd64c0) — set enemy nav point for a unit's player. */
-void FUN_000d64c0(int param_1, int unit_handle, int param_3, int param_4)
+/* FUN_000d64c0 (0xd64c0) — set enemy nav point for a unit's player.
+ *
+ * param_4 is a float for the same reason as its sibling 0xd6490 above: the
+ * 0xc2d20 call site materializes it with the MSVC push-then-fstp idiom, which
+ * only happens when the callee's parameter is float.  It is forwarded to
+ * FUN_000d6030's still-`int` `extra` parameter through `*(int *)&param_4`,
+ * reading this function's own incoming frame slot as a dword — bit-exact, and
+ * it emits the same `PUSH [EBP+0x14]` as the previous `int` declaration. */
+void FUN_000d64c0(int param_1, int unit_handle, int param_3, float param_4)
 {
   int player_index;
 
   player_index = player_index_from_unit_index(unit_handle);
   if (player_index != -1) {
-    FUN_000d6030(player_index, (short)param_1, 1, param_3, param_4);
+    FUN_000d6030(player_index, (short)param_1, 1, param_3, *(int *)&param_4);
   }
 }
 
