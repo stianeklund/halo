@@ -324,3 +324,106 @@ int FUN_00065020(void *tif_, char *pp, int cc, int s) {
   (void)s;
   return _TIFFNoEncode(tif, "strip");
 }
+
+/* -------------------------------------------------------------------------
+ * FUN_00065060 -- upstream `_TIFFNoTileEncode`.
+ *
+ * Upstream body:
+ *
+ *     static int
+ *     _TIFFNoTileEncode(TIFF* tif, tidata_t pp, tsize_t cc, tsample_t s)
+ *     {
+ *         (void) pp; (void) cc; (void) s;
+ *         return (_TIFFNoEncode(tif, "tile"));
+ *     }
+ *
+ * Third member of the encode-side triple, and byte-for-byte the same 0x3e-byte
+ * shape as FUN_00064fe0 and FUN_00065020 above: same frame, same hoisted
+ * `movzx`, same rotated table walk, same unguarded `->name` deref, same
+ * `or eax,-1`. The ONLY difference is the fourth argument's literal.
+ *
+ * The literal fixes WHICH sibling this is, and it was read out of the pristine
+ * image rather than inferred from the address ordering: 0x25f568 = "tile",
+ * which sits immediately after 0x25f554 = "scanline" and 0x25f560 = "strip" in
+ * the string pool, in upstream's declaration order. The format literal is the
+ * shared encode-side 0x25f530 = "%s %s encoding is not implemented"; the
+ * decode-side siblings at 0x650a0..0x651a0 use 0x25f570 = "%s %s decoding is
+ * not implemented" instead, so an `encoding` format proves this is the TILE
+ * ENCODE stub and not the tile DECODE one.
+ *
+ * Disassembly of 0x65060 (pristine cachebeta.xbe, capstone). Only the
+ * annotations that differ from 0x64fe0 are repeated; see that body above for
+ * the per-instruction reasoning behind the loop rotation, the 32-bit `scheme`
+ * compare, the NULL-deref merge and the varargs cleanup.
+ *
+ *   065060  push ebp
+ *   065061  mov  ebp, esp                  ; params only, no `sub esp`, so the
+ *                                          ; lift must declare no stack locals
+ *   065063  mov  edx, [ebp+8]              ; tif -- a stack parameter, so the
+ *                                          ; kb `void FUN_00065060(void)` decl
+ *                                          ; was wrong on both counts (Ghidra
+ *                                          ; hid it as `in_stack_00000004`)
+ *   065066  movzx ecx, word ptr [edx+0x3a] ; tif->td_compression, u16, hoisted
+ *                                          ; ONCE above the loop (loop-invariant)
+ *   06506a  mov  eax, 0x2c9994             ; _TIFFBuiltinCODECS
+ *   06506f  nop                            ; loop-head alignment padding --
+ *                                          ; not reproducible from C
+ *   065070  cmp  [eax+4], ecx              ; c->scheme == scheme (memory operand
+ *                                          ; first => spell it `c->scheme ==`)
+ *   065073  je   0x65081
+ *   065075  add  eax, 0xc                  ; stride 0xc == sizeof(TIFFCodec)
+ *   065078  cmp  eax, 0x2c99c4             ; &_TIFFBuiltinCODECS[4]; the bound
+ *                                          ; is an ADDRESS compare, which is
+ *                                          ; what proves the loop is
+ *                                          ; count-bounded and not a
+ *                                          ; `while (c->name)` sentinel walk --
+ *                                          ; a sentinel walk would emit
+ *                                          ; `cmp dword [eax],0` here. (The
+ *                                          ; dword at 0x2c99c4 does read 0 in
+ *                                          ; this image, but nothing loads it.)
+ *   06507d  jb   0x65070                   ; unsigned; test after the advance
+ *   06507f  xor  eax, eax                  ; not found -> NULL codec, then
+ *                                          ; FALLS THROUGH into the deref
+ *   065081  mov  eax, [eax]                ; c->name; NULL-derefs on the miss
+ *                                          ; path, deliberately unguarded
+ *   065083  mov  ecx, [edx]                ; tif->tif_name; EDX is preserved
+ *                                          ; across the whole loop (only EAX
+ *                                          ; and ECX are touched), so there is
+ *                                          ; no register-aliasing risk here
+ *   065085  push 0x25f568                  ; arg4 "tile"     <-- the only
+ *                                          ;                     difference
+ *   06508a  push eax                       ; arg3 c->name
+ *   06508b  push 0x25f530                  ; arg2 format
+ *   065090  push ecx                       ; arg1 module
+ *   065091  call 0x68a30                   ; TIFFError (varargs). The
+ *                                          ; ARG_COUNT hazard (cleanup 4 vs
+ *                                          ; decl 3) is the vararg, not an
+ *                                          ; ABI mismatch.
+ *   065096  add  esp, 0x10                 ; cdecl, 4 dword args
+ *   065099  or   eax, 0xffffffff           ; return -1 -- dropped entirely by
+ *                                          ; the Ghidra `void` decompile
+ *   06509c  pop  ebp
+ *   06509d  ret
+ * ------------------------------------------------------------------------ */
+
+/**
+ * Tile-encode entry point installed for compression schemes whose encoder is
+ * not present in this build: reports the scheme by name and fails.
+ *
+ * Installed into the codec method table by pointer rather than called
+ * directly, which is why the image contains no CALL to this address.
+ *
+ * @param tif_ TIFF handle.
+ * @param pp Tile data to encode. Unused -- the stub never encodes anything.
+ * @param cc Byte count of `pp`. Unused.
+ * @param s Sample number. Unused.
+ * @return Always -1 (failure).
+ */
+int FUN_00065060(void *tif_, char *pp, int cc, int s) {
+  tiff_t *tif = (tiff_t *)tif_;
+
+  (void)pp;
+  (void)cc;
+  (void)s;
+  return _TIFFNoEncode(tif, "tile");
+}
