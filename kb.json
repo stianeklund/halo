@@ -33241,7 +33241,7 @@
     },
     {
      "addr": "0x4b220",
-     "decl": "void FUN_0004b220(void);"
+     "decl": "void FUN_0004b220(float *position @<eax>);"
     },
     {
      "addr": "0x4b2b0",
@@ -33296,7 +33296,7 @@
     },
     {
      "addr": "0x4c560",
-     "decl": "void FUN_0004c560(void);"
+     "decl": "void FUN_0004c560(void *entry @<esi>);"
     },
     {
      "addr": "0x4c890",
@@ -33308,7 +33308,10 @@
     },
     {
      "addr": "0x52ab0",
-     "decl": "void FUN_00052ab0(void);"
+     "decl": "void FUN_00052ab0(void);",
+     "name": "FUN_00052ab0",
+     "ported": true,
+     "src": "src/halo/ai/ai_debug.c"
     },
     {
      "addr": "0x52b60",

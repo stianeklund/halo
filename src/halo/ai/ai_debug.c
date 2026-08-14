@@ -2801,6 +2801,83 @@ void ai_debug_change_selected_actor(int param)
     ai_debug_select_actor(*(int32_t *)0x5ac9f4, -1);
   }
 }
+/* FUN_00052ab0: debug-render one text label per active entry of the 32-entry
+ * table at [0x331f5c] (stride 0x1ca7c).  For each entry whose two enable bytes
+ * at +0x0c and +0x0d are both non-zero, it offsets the entry's world position
+ * by the global up vector, pushes that as the debug-text anchor
+ * (FUN_0004b220), formats the entry's actor description into a 256-byte stack
+ * buffer, draws it at the current text cursor, and runs the paired
+ * FUN_0004c560 pass for the entry.
+ *
+ * Confirmed (0x52ab0-0x52b50):
+ *   - Loop is `do { } while (--count)`: XOR EDI,EDI / MOV EBX,0x20 /
+ *     ... / ADD EDI,0x1ca7c / DEC EBX / JNE 0x52ac3.  The table base is
+ *     re-read from [0x331f5c] inside the loop (0x52ac3), not hoisted.
+ *   - Guard is two separate byte tests, not one int: MOV AL,[ESI+0xc] /
+ *     TEST AL,AL / JE, then MOV AL,[ESI+0xd] / TEST AL,AL / JE.  Ghidra's
+ *     `piVar1[3]` int load is wrong.
+ *   - The three position components are FLOAT fields at +0x28/+0x2c/+0x30
+ *     (FADD dword ptr), not ints -- Ghidra's `(float)piVar1[10]` cast would
+ *     emit an FILD and a wrong value.  Operand order per component is
+ *     FLD [EAX+n] (up vector) / FADD [ESI+0x28+n] / FSTP, i.e. `up[n] + pos`,
+ *     up first.  Three independent 2-term adds, no association ambiguity.
+ *   - 0x31fc44 holds a POINTER to the up vector; it is dereferenced once
+ *     (MOV EAX,[0x31fc44] at 0x52ad9) and indexed [EAX], [EAX+4], [EAX+8].
+ *   - CALL 0x4b220 at 0x52afb takes the local 3-float position in EAX
+ *     (LEA EAX,[EBP-0xc] at 0x52af2, scheduled between the FLD and FADD of
+ *     the third component).  All five XBE call sites of 0x4b220 set EAX to a
+ *     pointer, and the callee does MOV ESI,EAX then reads [ESI]/[+4]/[+8], so
+ *     the kb declaration is corrected to `float *position @<eax>`.
+ *   - CALL 0x4c560 at 0x52b38 takes the entry pointer in ESI: the callee
+ *     opens with TEST ESI,ESI / MOV AL,[ESI+0xc], and the other two XBE call
+ *     sites (0x4c914, 0x52748) both load ESI immediately before the call.
+ *     kb declaration corrected to `void *entry @<esi>`.
+ *   - ai_debug_describe_actor is called with 5 args (ADD ESP,0x14) and its
+ *     char* return is discarded; the stack buffer is what gets drawn.
+ *   - The color dword [0x2ee6d0] is loaded at 0x52b18, BEFORE the ADD ESP,0x14
+ *     and before the pushes for 0x189cb0, so it is the right-to-left-first
+ *     (last) argument.  FUN_0004b2b0's return (EAX) is the `position`
+ *     argument; Ghidra models it as `extraout_EAX` and reorders the call.
+ *   - Frame: SUB ESP,0x10c = 0xc (float[3] at EBP-0xc) + 0x100 (buf at
+ *     EBP-0x10c); epilogue is MOV ESP,EBP / POP EBP, no `leave`.
+ *
+ * Uncertain: no __FILE__ string and no assert anchor, so the original symbol
+ *   name is unknown; kept as FUN_00052ab0.
+ * Uncertain: the table at 0x331f5c is left as raw offsets.  Only +0x00 (int
+ *   actor handle), +0x0c and +0x0d (enable bytes) and +0x28/+0x2c/+0x30
+ *   (float position) are observed here, which is far too little to justify a
+ *   struct for a 0x1ca7c-byte record.
+ *
+ * Called from FUN_000534d0 (per-frame ai_debug render dispatch), gated on
+ * the byte at 0x5aca9b. */
+void FUN_00052ab0(void)
+{
+  float position[3];
+  char buf[256];
+  float *up;
+  char *entry;
+  int offset;
+  int count;
+
+  offset = 0;
+  count = 32;
+  do {
+    entry = (char *)(offset + *(int *)0x331f5c);
+    if (entry[0xc] != 0 && entry[0xd] != 0) {
+      up = *(float **)0x31fc44;
+      position[0] = up[0] + *(float *)(entry + 0x28);
+      position[1] = up[1] + *(float *)(entry + 0x2c);
+      position[2] = up[2] + *(float *)(entry + 0x30);
+      FUN_0004b220(position);
+      ai_debug_describe_actor(*(int *)entry, -1, 1, buf, 0x100);
+      FUN_00189cb0(1, FUN_0004b2b0(), buf, *(int *)0x2ee6d0);
+      FUN_0004c560(entry);
+    }
+    offset += 0x1ca7c;
+    count--;
+  } while (count != 0);
+}
+
 /* FUN_000534d0: per-frame ai_debug render dispatch.  Gated on a byte inside
  * the structure pointed to by the global at 0x632574; when set, refreshes two
  * scratch globals, re-derives the selected encounter index from the selected
