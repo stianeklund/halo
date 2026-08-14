@@ -2520,7 +2520,7 @@
     },
     {
      "addr": "0x1e65eb",
-     "decl": "void FUN_001e65eb(void);"
+     "decl": "int __fstat(int file, void *buf);"
     }
    ],
    "name": "LIBCMT:close.obj"
@@ -34503,7 +34503,8 @@
     },
     {
      "addr": "0x64f50",
-     "decl": "void FUN_00064f50(void);"
+     "decl": "int FUN_00064f50(int file);",
+     "ported": true
     },
     {
      "addr": "0x64fa0",

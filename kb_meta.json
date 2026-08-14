@@ -2153,6 +2153,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x643d0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The OR EAX,0xffffffff immediately before CALL 0x64170 is prop_add's @<eax> unit_handle argument set to NONE (-1), inferred from prop_add's registered register-argument declaration and from the identical idiom in sibling prop_orphan_transition at 0x648a0.",
+        "VC71 scores 94.1% with the single mismatching instruction being candidate pushl $-0x1 against reference orl $-0x1,%eax, which is the known @<reg> call-site thunking artifact because decl.h always presents prop_add as plain cdecl; this is a structural one-instruction ceiling rather than a lift defect."
+      ],
+      "uncertain": [
+        "No name is claimed for 0x643d0: the function contains no assert string, __FILE__ reference, or other symbol evidence, so the prop_new label suggested during analysis remains an unverified guess and the FUN_000643d0 symbol was retained."
+      ]
+    },
     "0x64400": {
       "kind": "function",
       "status": "ported"
@@ -2175,6 +2186,17 @@
         "No prop datum layout is recovered here, so accesses at offsets 0x04 and 0x0c remain raw pointer arithmetic."
       ]
     },
+    "0x64970": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Third cdecl parameter (friend_prop_handle, [ebp+0x10]) is the prop whose 16-bit state field at +0x24 is copied into the new orphan; it is also the @<eax> argument to FUN_000647c0, whereas the sibling prop_orphan_transition (0x648a0) passes its own prop_handle there."
+      ],
+      "uncertain": [
+        "The state values 4 and 5 that gate the copy of friend_prop+0x24 into orphan_prop+0x24 are unnamed enum members; only the signed range test (CMP AX,4/JL and CMP AX,5/JG) is confirmed, not their meaning.",
+        "Field names for prop record offsets +0x04 (owner actor index), +0x0c (orphan prop index) and +0x24 (state) come from the display_assert strings and the sibling lift only; no prop_datum struct exists in types.h so the lift uses raw char* offsets."
+      ]
+    },
     "0x64a80": {
       "kind": "function",
       "status": "ported"
@@ -2186,6 +2208,16 @@
     "0x64ee0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x64f50": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The body is the libtiff _tiffSizeProc idiom (fstat(fd,&sb) < 0 ? 0 : sb.st_size), so kb.json's props.obj attribution for 0x64f50 is likely wrong and the real TU is a libtiff/CRT file-IO source; it was hosted in ai/props.c only to follow the existing object mapping, matching FUN_00064ee0 (TIFFClose) which already lives there."
+      ],
+      "uncertain": [
+        "The 0x24-byte local is treated as an MSVC 7.1 32-bit struct _stat because st_size lands at buffer+0x14 and the frame is exactly 0x24 bytes, but no struct _stat typedef exists in this project so the field layout beyond st_size at +0x14 is unverified."
+      ]
     },
     "0x68890": {
       "kind": "function",

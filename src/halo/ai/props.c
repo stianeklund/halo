@@ -615,3 +615,56 @@ void FUN_00064ee0(int tif_)
   /* Free the TIFF object itself. */
   debug_free(tif, "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_close.c", 0x3d);
 }
+
+/* FUN_00064f50 (0x64f50) — return the size in bytes of an open file
+ * descriptor, or 0 if the stat call fails.
+ *
+ * NOTE ON OBJECT ATTRIBUTION: kb.json maps this address to props.obj
+ * (ai/props.c), but the body is CRT/libtiff file-IO logic, not AI prop
+ * logic — same situation as FUN_00064ee0 (TIFFClose) above, which is
+ * already hosted here. The shape is byte-for-byte the libtiff
+ * `_tiffSizeProc` idiom (`fstat(fd,&sb) < 0 ? 0 : sb.st_size`), so the
+ * real TU is most likely libtiff's tif_unix.c-equivalent. Left in
+ * props.c to follow the existing kb.json mapping; flagged for the
+ * operator rather than silently relocated.
+ *
+ * Disassembly (7 instructions, 1 CALL, no FPU):
+ *   PUSH EBP / MOV EBP,ESP / SUB ESP,0x24   ; one 0x24-byte struct _stat
+ *   LEA EAX,[EBP-0x24] / PUSH EAX           ; 2nd arg = &st
+ *   MOV ECX,[EBP+0x8]  / PUSH ECX           ; 1st arg = file
+ *   CALL 0x1e65eb (__fstat) / ADD ESP,0x8   ; cdecl, 2 args
+ *   XOR EDX,EDX / TEST EAX,EAX / MOV EAX,[EBP-0x10]
+ *   SETL DL / DEC EDX / AND EAX,EDX         ; st_size & -(rc >= 0)
+ *   MOV ESP,EBP / POP EBP / RET             ; plain cdecl, no RET n
+ *
+ * Call-site verification table (CALL 0x64f5e -> 0x1e65eb):
+ *   arg# | binary source        | C expression | match?
+ *   1    | PUSH ECX <- [EBP+8]  | file         | YES (pushed last => 1st arg)
+ *   2    | PUSH EAX <- LEA EBP-0x24 | stat_buf | YES
+ *   ADD ESP,0x8 confirms exactly 2 stack args; EAX is consumed => int return.
+ *
+ * Store-offset table (the 0x24-byte buffer is written only by the callee;
+ * this function performs one read out of it):
+ *   offset | source                        | notes
+ *   +0x14  | MOV EAX,[EBP-0x10]            | EBP-0x10 == (EBP-0x24)+0x14,
+ *          |                               | i.e. st_size in the MSVC 7.1
+ *          |                               | struct _stat layout, NOT an
+ *          |                               | independent local (buffer-alias
+ *          |                               | trap) => stat_buf[5]
+ *   MSVC 7.1 struct _stat: 0x00 st_dev, 0x04 st_ino, 0x06 st_mode,
+ *   0x08 st_nlink, 0x0a st_uid, 0x0c st_gid, 0x10 st_rdev, 0x14 st_size,
+ *   0x18 st_atime, 0x1c st_mtime, 0x20 st_ctime = 0x24 total (== SUB ESP,0x24).
+ *   No struct _stat typedef exists in this project, so the buffer is a
+ *   raw 9-dword array and the one live field is read by index.
+ *
+ * SETL (signed) means the success predicate is `rc >= 0`, matching CRT
+ * _fstat semantics (0 on success, -1 on failure). The branchless
+ * SETL/DEC/AND sequence is MSVC codegen for the ternary below. */
+int FUN_00064f50(int file)
+{
+  int stat_buf[9]; /* struct _stat, 0x24 bytes */
+  int rc;
+
+  rc = __fstat(file, stat_buf);
+  return (rc < 0) ? 0 : stat_buf[5]; /* stat_buf[5] == +0x14 == st_size */
+}
