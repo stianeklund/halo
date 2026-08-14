@@ -5325,3 +5325,59 @@ All committed without blockers. Queue fully exhausted.
 - **Blockers:** shader_environment_texture_animation_evaluate needs delinked shaders.obj export + equivalence run; FUN_00190380 needs binary TU confirmation (wind.obj vs shaders.obj); FUN_00190240 needs mismatch audit and recovery lever discovery.
 - **Next Step:** Land 8 committed functions to main per `reintegrate-to-main` skill protocol. Escalate 3 parked targets: export delinked shaders.obj for equivalence unblock, resolve FUN_00190380 object assignment ambiguity, and audit FUN_00190240 mismatch classes for recovery lever identification.
 
+
+---
+
+## Goal-lift run — 2026-08-14 (props.obj third frontier)
+
+**Objective:** Third frontier sample from props.obj; continue unlifted target exploration after second 2/12 batch.
+
+**Result:** 1/12 committed (queue_exhausted)
+
+### Run Summary Table
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| prop_add | 0x64170 | props.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| FUN_000647c0 | 0x647c0 | props.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| FUN_00064ec0 | 0x64ec0 | props.obj | - | skipped | Body is a single-call varargs forwarder: pushes LEA [EBP+0x10] (va_list), tag, tif and calls TIFFVGetFieldDefaulted (0x64cd0), ADD ESP,0xc, RET. Matches the "1-3 lines wrapping one FUN_ unchanged" pre-screen rule. This is upstream libtiff TIFFGetFieldDefaulted(TIFF*, ttag_t, ...) { va_start; TIFFVGetFieldDefaulted(tif, tag, ap); va_end; } — trivially portable if the batch wants it anyway, but it carries no lift signal. |
+| prop_orphan_update_information | 0x64a60 | props.obj | - | skipped | Body is a single unchanged forwarding call to FUN_000647c0 — 1-line wrapper. Also structurally hostile: the real function takes 3 stack params (kb decl `void (void)` is WRONG — disasm reads [EBP+0x8],[EBP+0xc],[EBP+0x10]) and forwards param_3 in EAX to a reg-arg callee (`FUN_000647c0(int parent_prop_handle@<eax>, int actor_handle, int orphan_prop_handle)`), which a plain C wrapper cannot reproduce as a 1:1 shape. Nothing to gain from a lift. |
+| FUN_00064fa0 | 0x64fa0 | props.obj | - | skipped | Register-argument function: reads its primary parameter from EDX (MOVZX ECX,[EDX+0x3a]; MOV ECX,[EDX] with no prior load of EDX) — Ghidra reports it as `undefined4 *in_EDX`. kb.json decl is `void FUN_00064fa0(void);` which is wrong on three counts: (1) missing the @edx register param, (2) missing the one stack param at [EBP+0x8], (3) it returns -1 in EAX (OR EAX,0xffffffff before RET) so it is not void. Lifting requires a kb.json ABI decision (@edx annotation + widened signature + non-void return), which is out of scope for a read-only context pass. |
+| FUN_00065250 | 0x65250 | props.obj (kb) — but the __FILE__ assert xref says the real TU is c:\halo\SOURCE\bitmaps\libtiff\tif_dir.c; the object assignment in kb.json is likely wrong and should be revisited (libtiff.obj / tif_dir.obj). | - | skipped | Decompile takes both of its inputs in registers with no defining assignment in-body: `char *unaff_EBX` (source string) and `undefined4 *unaff_EDI` (destination pointer slot). kb.json declares it `void FUN_00065250(void);` with no @<reg> annotations, so the real ABI is unknown and cannot be expressed from the current decl. This is the libtiff `_TIFFsetString`-style helper (TU: c:\halo\SOURCE\bitmaps\libtiff\tif_dir.c) and is very likely a shared tail/fragment reached by JMP from sibling setters rather than a normal CALL target — lifting it requires first recovering the register contract and the callers' entry shape. Not liftable as-is. |
+| FUN_000652a0 | 0x652a0 | props.obj (but decompile's __FILE__ xref says c:\halo\SOURCE\bitmaps\libtiff\tif_dir.c — kb object assignment is suspect) | - | skipped | Decompile relies on uninitialized incoming registers (unaff_EBX, unaff_ESI) plus a raw stack arg (in_stack_00000004); kb.json declares it as `void FUN_000652a0(void)` with no @<reg> annotations, so the real ABI is unrecovered. Ghidra has almost certainly mis-bounded this as a mid-function entry of a libtiff setter (setByteArray-style). Not liftable without first recovering the true signature/entry. |
+| FUN_000652f0 | 0x652f0 | kb.json files it under objects[181] = props.obj (source ai/props.c) — ALMOST CERTAINLY WRONG. The body is libtiff `_TIFFVSetField` from tif_dir.c; its neighbours (0x651a0 TIFFSetCompressionScheme, 0x66380 field-info lookup, 0x68a30 TIFFError) are all libtiff. Recommend the lift land in the existing libtiff TU and the kb object assignment be corrected to the tif_dir object before/with the port. | 91.2 | committed | pass1 |
+
+### Analysis
+
+**Committed (1 function):**
+1. **FUN_000652f0** (0x652f0) — 91.2% VC71 — Passes mechanical ≥90% gate; committed. [NOTE: Object assignment WRONG — body is vendored libtiff `_TIFFVSetField` (tif_dir.c); kb.json incorrectly assigns to props.obj. Recommend kb.json object correction before landing. Content mismatch between kb.json declaration (props.obj/ai context) and actual binary location (libtiff).]
+
+**Skipped (5 functions):**
+1. **prop_add** (0x64170) — Register-argument structural pre-screen trip (skip_reg_args); @<reg> prologue in decompile.
+2. **FUN_000647c0** (0x647c0) — Register-argument structural pre-screen trip (skip_reg_args); @<reg> prologue in decompile.
+3. **FUN_00064ec0** (0x64ec0) — Single-statement varargs forwarder wrapper to FUN_00064cd0 (TIFFVGetFieldDefaulted); nothing independent to recover. Pre-screen rule: "1-3 lines wrapping one FUN_ unchanged" = no lift signal.
+4. **prop_orphan_update_information** (0x64a60) — Single-line passthrough thunk to FUN_000647c0 (register/stack marshalling only). Also kb.json decl is wrong (declares 0 args; disasm reads 3 stack params) and structure is inherently un-expressible in plain C due to register-arg forwarding.
+5. **FUN_00064fa0** (0x64fa0) — Implicit @edx register parameter (struct pointer); kb.json declares as `void(void)` with no @edx annotation. Lift blocked on ABI widening decision.
+6. **FUN_00065250** (0x65250) — Inherited register args (unaff_EBX, unaff_EDI); kb.json has no @<reg> annotations. Likely libtiff `_TIFFsetString` tail/fragment, not standalone cdecl. Object mismatch: TU evidence (tif_dir.c) vs kb props.obj.
+7. **FUN_000652a0** (0x652a0) — Inherited register args (unaff_ESI, unaff_EBX); no @<reg> in kb.json. Object mismatch: TU evidence (tif_dir.c) vs kb props.obj.
+
+### Critical Findings (Object Attribution & Vendor Code Boundary)
+
+**Confirmed vendor code misattribution:** FUN_000652f0 (0x652f0) body is libtiff `_TIFFVSetField` (evidence: neighbours TIFFSetCompressionScheme 0x651a0, field-info 0x66380, TIFFError 0x68a30 all libtiff; __FILE__ xref c:\halo\SOURCE\bitmaps\libtiff\tif_dir.c); committed with 91.2% VC71 but kb.json object = props.obj (WRONG). Additionally FUN_00065250 and FUN_000652a0 (both skipped) also show libtiff TU evidence (tif_dir.c) but are filed under props.obj in kb.json.
+
+**Recommendations:**
+1. Before landing: audit kb.json object boundaries for props.obj range (0x64xxx–0x65xxx). Correct object assignments for FUN_000652f0, FUN_00065250, FUN_000652a0 to their true libtiff TU entries (likely tif_dir.obj or libtiff.obj).
+2. Ensure src/ placement matches corrected object assignment (move FUN_000652f0 from src/halo/ai/props.c to appropriate src/halo/bitmaps/libtiff/*.c).
+3. Do not land a misfiled function: VC71 pass guarantees structural correctness for the actual code being ported, but kb.json object mismatch can cause build/link misconfigurations or silent wrong-function redirects at patch time.
+
+**Queue Status:** Exhausted — 7 targets processed (1 committed, 6 skipped due to pre-screens, trivial structure, or object-attribution mismatches).
+
+### Summary
+
+**Campaign Status:** props.obj third frontier sample complete; queue_exhausted.
+- **Committed:** 1 function (91.2% VC71, passes mechanical ≥90% gate) [**ALERT: kb.json object assignment is WRONG — body is vendored libtiff, not props.obj**]
+- **Skipped:** 6 functions (register-arg pre-screens: 2; trivial wrappers: 2; inherited unannoted regs: 2)
+- **Critical Alert:** Committed function FUN_000652f0 has confirmed libtiff body but kb.json incorrectly assigns to props.obj. Recommend kb.json object correction + src/ relocation to matching libtiff TU BEFORE landing to prevent build/link misconfigurations.
+- **Vendor Boundary Audit Pending:** Three functions in this batch (FUN_000652f0 committed, FUN_00065250/FUN_000652a0 skipped) are evidence-confirmed libtiff (tif_dir.c) but kb.json boundary places them under props.obj. This suggests a systematic kb.json object-assignment error in the 0x64xxx–0x65xxx range; full audit recommended.
+- **Next Step:** (1) Correct FUN_000652f0 object assignment in kb.json (props.obj → tif_dir.obj); (2) Verify src/ placement and move implementation to matching libtiff TU; (3) Audit props.obj object boundary for other misfiled functions; (4) Revisit skipped targets after ABI widening.
+
