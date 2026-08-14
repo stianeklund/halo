@@ -526,3 +526,119 @@ int FUN_000650a0(void *tif_, const char *method) {
                TIFFFindCODEC(tif->td_compression)->name, method);
   return -1;
 }
+
+/* -------------------------------------------------------------------------
+ * `_TIFFNoDecode`, inline copy.
+ *
+ * The decode side needs the helper BOTH out-of-line (as FUN_000650a0 above,
+ * which is upstream's `_TIFFNoDecode` emitted as a real function) AND inlined
+ * into the row/strip/tile stubs below, which each carry their own copy of the
+ * codec-table scan and the TIFFError call rather than a CALL to 0x650a0.
+ * A single source function cannot produce both in this build -- a
+ * `static __inline` function that is never address-taken emits no out-of-line
+ * body, and a plain extern function is never inlined at /Ob1 -- so the body is
+ * written twice: once as the named entry point, once here as the inline the
+ * stubs expand. The duplication is a build artifact, not a claim that the
+ * original had two copies in its source.
+ *
+ * Declared here, above its first caller, because MSVC 7.1 is single-pass and
+ * will not inline a definition it has not seen yet.
+ *
+ * Identical in every respect to `_TIFFNoEncode` except the format literal
+ * (0x25f570 "%s %s decoding is not implemented" instead of 0x25f530). The
+ * `->name` dereference is UNGUARDED for the same reason it is there: the miss
+ * path zeroes EAX and falls through into the shared `mov eax,[eax]`.
+ * ------------------------------------------------------------------------ */
+static __inline int _TIFFNoDecode(tiff_t *tif, const char *method) {
+  FUN_00068a30(tif->tif_name, "%s %s decoding is not implemented",
+               TIFFFindCODEC(tif->td_compression)->name, method);
+  return -1;
+}
+
+/* -------------------------------------------------------------------------
+ * FUN_000650e0 -- upstream `_TIFFNoRowDecode`.
+ *
+ * Upstream body:
+ *
+ *     static int
+ *     _TIFFNoRowDecode(TIFF* tif, tidata_t pp, tsize_t cc, tsample_t s)
+ *     {
+ *         (void) pp; (void) cc; (void) s;
+ *         return (_TIFFNoDecode(tif, "scanline"));
+ *     }
+ *
+ * Verbatim, from the pristine image (0x650e0..0x6511d, 23 instructions).
+ * `_TIFFNoDecode` is INLINED here -- there is no CALL to 0x650a0, the only
+ * CALL in the body is TIFFError:
+ *
+ *   0650e0  push  ebp
+ *   0650e1  mov   ebp, esp                   ; no `sub esp` -- zero locals
+ *   0650e3  mov   edx, dword ptr [ebp+8]     ; param1 tif, kept in EDX across
+ *                                            ; the whole loop
+ *   0650e6  movzx ecx, word ptr [edx+0x3a]   ; tif->td_compression, a 16-bit
+ *                                            ; ZERO-extending load, which is
+ *                                            ; what types the field
+ *                                            ; `unsigned short`
+ *   0650ea  mov   eax, 0x2c9994              ; _TIFFBuiltinCODECS
+ *   0650ef  nop                              ; loop-head alignment padding
+ *   0650f0  cmp   dword ptr [eax+4], ecx     ; c->scheme == scheme; memory
+ *                                            ; operand first
+ *   0650f3  je    0x65101                    ; found
+ *   0650f5  add   eax, 0xc                   ; ++c
+ *   0650f8  cmp   eax, 0x2c99c4              ; &_TIFFBuiltinCODECS[4]; an
+ *                                            ; ADDRESS compare, proving the
+ *                                            ; loop is count-bounded
+ *   0650fd  jb    0x650f0                    ; unsigned <, loop
+ *   0650ff  xor   eax, eax                   ; miss -> NULL, falls THROUGH
+ *   065101  mov   eax, dword ptr [eax]       ; c->name, at the merge of both
+ *                                            ; paths -- faults on an unknown
+ *                                            ; scheme. UNGUARDED on purpose.
+ *   065103  mov   ecx, dword ptr [edx]       ; tif->tif_name, hoisted above
+ *                                            ; the argument pushes
+ *   065105  push  0x25f554                   ; arg4 "scanline"
+ *   06510a  push  eax                        ; arg3 c->name
+ *   06510b  push  0x25f570                   ; arg2 "%s %s decoding is not
+ *                                            ; implemented"
+ *   065110  push  ecx                        ; arg1 module (tif->tif_name)
+ *   065111  call  0x68a30                    ; TIFFError (varargs). The
+ *                                            ; ARG_COUNT hazard (cleanup 0x10
+ *                                            ; vs decl 3 fixed params) is the
+ *                                            ; vararg, not an ABI mismatch.
+ *   065116  add   esp, 0x10                  ; cdecl, 4 dword args
+ *   065119  or    eax, 0xffffffff            ; return -1, emitted after the
+ *                                            ; call, so a separate statement
+ *   06511c  pop   ebp
+ *   06511d  ret
+ *
+ * kb.json declares this `void FUN_000650e0(void)` and Ghidra hides `tif`
+ * behind an `in_stack_00000004` local. Both halves are wrong: `mov edx,[ebp+8]`
+ * proves a stack parameter and `or eax,-1` proves an `int` return. Widened to
+ * the four-parameter codec-method form the encode siblings at
+ * 0x64fe0/0x65020/0x65060 already carry -- `pp`, `cc` and `s` are NOT observed
+ * in this body (a stub reads none of them) and are taken from upstream's
+ * prototype plus the shared method-table signature; being trailing cdecl slots
+ * they have no effect on the emitted code either way.
+ * ------------------------------------------------------------------------ */
+
+/**
+ * Row-decode entry point installed for compression schemes whose decoder is
+ * not present in this build: reports the scheme by name and fails.
+ *
+ * Installed into the codec method table by pointer rather than called
+ * directly, which is why the image contains no CALL to this address.
+ *
+ * @param tif_ TIFF handle.
+ * @param pp Destination buffer for decoded samples. Unused -- the stub never
+ *        decodes anything.
+ * @param cc Byte count of `pp`. Unused.
+ * @param s Sample number. Unused.
+ * @return Always -1 (failure).
+ */
+int FUN_000650e0(void *tif_, char *pp, int cc, int s) {
+  tiff_t *tif = (tiff_t *)tif_;
+
+  (void)pp;
+  (void)cc;
+  (void)s;
+  return _TIFFNoDecode(tif, "scanline");
+}

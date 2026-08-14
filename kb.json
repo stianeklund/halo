@@ -34532,7 +34532,8 @@
     },
     {
      "addr": "0x650e0",
-     "decl": "void FUN_000650e0(void);"
+ "decl": "int FUN_000650e0(void *tif, char *pp, int cc, int s);",
+ "ported": true
     },
     {
      "addr": "0x65120",

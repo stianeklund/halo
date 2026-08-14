@@ -4871,6 +4871,17 @@
       "score": 100.0,
       "source": "src/halo/bitmaps/libtiff/tif_compress.c"
     },
+    "FUN_000650e0": {
+      "addr": "0x650e0",
+      "end": "0x6511e",
+      "kind": "auto",
+      "n_r": 23,
+      "opnd_percent": 91.3,
+      "ref": "synth",
+      "ref_sha": "529370f8e241e4bb",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
+    },
     "FUN_00068780": {
       "addr": "0x68780",
       "end": "0x68881",
