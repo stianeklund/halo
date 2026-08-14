@@ -2981,6 +2981,10 @@ char actor_action_handle_lost_contact(int actor_handle)
     ((actor_t *)actor)->field_3c4 += 1;
     return result;
 
+  pursuit_failed:
+    if (((actor_t *)actor)->field_3c4 > 0 &&
+        ((actor_t *)actor)->field_018 != -1)
+      FUN_00046f10(0x13, ((actor_t *)actor)->field_018, -1, -1, -1, -1, 0);
     if (*(char *)(actor + 6) == '\0' && can_search != '\0' &&
         FUN_0001c0e0(actor_handle, flag_e, (int)action_buf) != '\0') {
       actor_action_change(actor_handle, 8, (int)action_buf);
@@ -2999,10 +3003,6 @@ char actor_action_handle_lost_contact(int actor_handle)
     }
     if (can_search != '\0') {
       if (encounter == (char *)0) {
-      pursuit_failed:
-        if (((actor_t *)actor)->field_3c4 > 0 &&
-            ((actor_t *)actor)->field_018 != -1)
-          FUN_00046f10(0x13, ((actor_t *)actor)->field_018, -1, -1, -1, -1, 0);
         display_assert("encounter", "c:\\halo\\SOURCE\\ai\\actions.c", 0xa45,
                        1);
         system_exit(-1);
