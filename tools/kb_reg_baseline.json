@@ -495,6 +495,7 @@
   "0x68c70": "void *FUN_00068c70(void *tif @<esi>, int extra_size);",
   "0x6c5e0": "int FUN_0006c5e0(void *tif@<eax>, void *hordiff8, void *hordiff16);",
   "0x6c780": "int FUN_0006c780(void *tif@<ecx>);",
+  "0x6d500": "void FUN_0006d500(void *tif@<eax>, int magic@<edx>, int bigendian@<ecx>);",
   "0x73fd0": "int FUN_00073fd0(void *bitmap /* @<eax> */);",
   "0x75380": "short FUN_00075380(void *bitmap /* @<eax> */);",
   "0x75e70": "void FUN_00075e70(short *bounds /* @<eax> */);",

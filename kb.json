@@ -1880,7 +1880,7 @@
     },
     {
      "addr": "0x1df419",
-     "decl": "void __write(void);"
+     "decl": "int __write(int fd, const void *buf, unsigned int count);"
     },
     {
      "addr": "0x1df4a0",
@@ -2104,7 +2104,7 @@
     },
     {
      "addr": "0x1e209e",
-     "decl": "void __read(void);"
+     "decl": "int __read(int fd, void *buf, unsigned int count);"
     },
     {
      "addr": "0x1e2125",
@@ -34619,7 +34619,7 @@
     },
     {
      "addr": "0x66190",
-     "decl": "void FUN_00066190(void);"
+     "decl": "int FUN_00066190(void *tif);"
     },
     {
      "addr": "0x66200",
@@ -34691,7 +34691,7 @@
     },
     {
      "addr": "0x66e70",
-     "decl": "void FUN_00066e70(void);"
+     "decl": "int FUN_00066e70(void *tif);"
     }
    ],
    "name": "tif_dir.obj",
@@ -35095,11 +35095,12 @@
     },
     {
      "addr": "0x6d500",
-     "decl": "void FUN_0006d500(void);"
+     "decl": "void FUN_0006d500(void *tif@<eax>, int magic@<edx>, int bigendian@<ecx>);"
     },
     {
      "addr": "0x6d590",
-     "decl": "int TIFFFdOpen(int fd, const char *name, const char *mode);"
+     "decl": "int TIFFFdOpen(int fd, const char *name, const char *mode);",
+     "ported": true
     },
     {
      "addr": "0x6d820",
@@ -35262,11 +35263,11 @@
     },
     {
      "addr": "0x6f1b0",
-     "decl": "void FUN_0006f1b0(void);"
+     "decl": "void FUN_0006f1b0(unsigned short *wp);"
     },
     {
      "addr": "0x6f1d0",
-     "decl": "void FUN_0006f1d0(void);"
+     "decl": "void FUN_0006f1d0(unsigned long *lp);"
     },
     {
      "addr": "0x6f1f0",

@@ -26327,6 +26327,21 @@
       "score": 100.0,
       "source": "src/halo/bitmaps/libtiff/tif_open.c"
     },
+    "TIFFFdOpen": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 89.4,
+      "addr": "0x6d590",
+      "end": "0x6d81e",
+      "kind": "auto",
+      "n_r": 210,
+      "opnd_percent": 49.6,
+      "raw_mnemonic_pct": 89.4,
+      "ref": "synth",
+      "ref_sha": "653ce440b4c3a13b",
+      "score": 89.4,
+      "source": "src/halo/bitmaps/libtiff/tif_open.c"
+    },
     "TIFFFileName": {
       "addr": "0x6d850",
       "end": "0x6d85a",

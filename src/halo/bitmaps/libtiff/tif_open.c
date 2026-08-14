@@ -373,6 +373,22 @@ typedef int (*tiff_bool_method_t)(void *tif);
 typedef int (*tiff_code_method_t)(void *tif, char *buf, int cc, int s);
 typedef void (*tiff_void_method_t)(void *tif);
 
+/* On-disk TIFF file header, upstream libtiff's `TIFFHeader` (tiff.h), stored
+ * inline in the handle at 0x0c4 rather than in a nested `tif_header` member of
+ * its own type -- TIFFFdOpen (0x6d590) reads and writes all eight bytes in one
+ * `_read`/`_write` at 0x6d675/0x6d6bf (`push 8 / lea edi,[esi+0xc4]`), which
+ * only works if the three fields are contiguous in this order. Widths are
+ * proven individually: the magic is a 16-bit load (`mov di,[edi]` at 0x6d67d,
+ * `movzx eax,di` at 0x6d71e when it is passed to the %d/0x%x error), the
+ * version likewise (`mov ax,[esi+0xc6]` at 0x6d766), and the directory offset
+ * is a dword (`mov eax,[esi+0xc8]` at 0x6d7b4). Both 16-bit values widen with
+ * MOVZX, so they are unsigned, matching upstream's uint16 typing. */
+typedef struct tiff_header_s {
+  unsigned short tiff_magic; /* 0xc4 -- 0x4949 or 0x4d4d */
+  unsigned short tiff_version; /* 0xc6 -- always 42 */
+  unsigned long tiff_diroff; /* 0xc8 -- offset of the first directory */
+} tiff_header_t;
+
 typedef struct tiff_s {
   /* UNRESOLVED layout conflict in 0x00-0xef. The td_* fields below were split
    * out of this range on the inference that Bungie inlined the directory at
@@ -414,15 +430,31 @@ typedef struct tiff_s {
    * all. Either Bungie renumbered the flag word or 0x0a is a separate byte
    * field; nothing local proves which, so the field keeps a mechanical name
    * and the surrounding bytes stay padding. Do not import upstream's
-   * TIFF_ISTILED value. */
-  char field_0a; /* 0x0a */
-  char pad_00b[1];
+   * TIFF_ISTILED value.
+   *
+   * TWO access widths are proven at this offset, so the field carries both
+   * views rather than picking one and casting at the use sites -- the same
+   * shape tif_flush.c's copy of this struct already uses. BYTE: the reads
+   * above, plus TIFFFdOpen's `test byte ptr [esi+0xa],0x10` (0x6d745) and its
+   * `or byte ptr [esi+0xa],0x40 / 0x4` (0x6d78b, 0x6d7ca). WORD: TIFFFdOpen
+   * also loads the field 16 bits wide at 0x6d792 (`mov cx,word ptr
+   * [esi+0xa]`), which the byte view cannot spell. */
+  union {
+    char b; /* 0x0a -- byte view */
+    unsigned short w; /* 0x0a..0x0b -- word view */
+  } field_0a;
   /* Byte offset of this directory in the file. TIFFPrintDirectory prints it
    * in its header line -- `mov eax,[esi+0xc]` at 0x6dda8, a plain dword load
    * with no widening. Upstream libtiff names the member `toff_t tif_diroff`
    * on `struct tiff`; the OFFSET is Bungie's. */
   unsigned long tif_diroff; /* 0x0c */
-  char pad_010[4];
+  /* Byte offset of the NEXT directory. TIFFFdOpen seeds it from the file
+   * header before reading the first directory -- `mov eax,[esi+0xc8] / mov
+   * [esi+0x10],eax` at 0x6d7b4/0x6d7bb -- which is upstream libtiff's
+   * `tif->tif_nextdiroff = tif->tif_header.tiff_diroff`. A plain dword store,
+   * so the width is 32 bits; the OFFSET is Bungie's. This was inside
+   * pad_010[4] until 0x6d7bb proved it. */
+  unsigned long tif_nextdiroff; /* 0x10 */
   /* Two-word "which tags are present" bit array. TIFFPrintDirectory (0x6dda0)
    * tests both words ~40 times, from 0x6ddbb (word 0) and 0x6de50 (word 1).
    * Upstream libtiff spells this `unsigned long td_fieldsset[FIELD_SETLONGS]`
@@ -492,7 +524,10 @@ typedef struct tiff_s {
   unsigned long td_nstrips; /* 0xb8 */
   unsigned long *td_stripoffset; /* 0xbc */
   unsigned long *td_stripbytecount; /* 0xc0 */
-  char pad_0c4[0x10];
+  /* 0xc4..0xcb -- the on-disk file header, read whole at 0x6d675 and written
+   * whole at 0x6d6bf. Was inside pad_0c4[0x10] until TIFFFdOpen proved it. */
+  tiff_header_t tif_header;
+  char pad_0cc[8];
   /* Current scanline. TIFFCurrentRow (0x6d8a0) reads it with a plain dword
    * `mov eax,[eax+0xd4]` -- no MOVSX/MOVZX, so this is a full 32-bit field and
    * no narrower spelling is admissible. Upstream libtiff types the member
@@ -517,7 +552,14 @@ typedef struct tiff_s {
    * unobservable from a bare dword load; the field keeps upstream's unsigned
    * typing, matching tif_row and tif_curdir above. */
   unsigned long tif_curstrip; /* 0xdc */
-  char pad_0e0[8];
+  /* Byte offset of the current strip/tile in the file. TIFFFdOpen clears it
+   * with a dword store (`mov dword ptr [esi+0xe0],0` at 0x6d661) in the same
+   * run that seeds tif_curdir/tif_curstrip/tif_row, which is upstream
+   * libtiff's `tif->tif_curoff = 0`; the OFFSET is Bungie's. Signedness is
+   * unobservable from a store of zero, so the field keeps upstream's unsigned
+   * typing. This was inside pad_0e0[8] until 0x6d661 proved it. */
+  unsigned long tif_curoff; /* 0xe0 */
+  char pad_0e4[4];
   /* Current tile index. TIFFCurrentTile (0x6d8d0) reads it with a plain dword
    * `mov eax,[eax+0xe8]` -- no MOVSX/MOVZX, so this is a full 32-bit field and
    * no narrower spelling is admissible. Upstream libtiff types the member
@@ -1529,6 +1571,204 @@ int FUN_0006d4d0(void *tif_)
   return 1;
 }
 
+/* MSVC CRT open() oflag bits, named from the immediates the binary actually
+ * pushes/ORs at 0x6d910-0x6d962. _O_RDONLY is 0, so it never appears as an
+ * operand -- the 'r' arm materialises it with `xor eax,eax`. Guarded because
+ * the CRT's own fcntl.h may already be in scope under some toolchains. */
+#ifndef _O_RDONLY
+#define _O_RDONLY 0x0000
+#endif
+#ifndef _O_RDWR
+#define _O_RDWR 0x0002
+#endif
+#ifndef _O_CREAT
+#define _O_CREAT 0x0100
+#endif
+#ifndef _O_TRUNC
+#define _O_TRUNC 0x0200
+#endif
+#ifndef _O_BINARY
+#define _O_BINARY 0x8000
+#endif
+
+/* Byte-order marks and version stamp from upstream tiff.h, named from the
+ * immediates TIFFFdOpen compares and stores: 0x4d4d/0x4949 at 0x6d680/0x6d687
+ * and 0x2a at 0x6d76c. TIFF_VERSION is spelled 42 because that is upstream's
+ * spelling; it assembles to the same `0x2a` immediate. */
+#define TIFF_BIGENDIAN 0x4d4d
+#define TIFF_LITTLEENDIAN 0x4949
+#define TIFF_VERSION 42
+
+/* field_0a bits in this build's numbering (see the field comment on tiff_t;
+ * the numbering does NOT match stock libtiff, so only the upstream NAMES are
+ * transcribed, never their values). Each is named from the single site that
+ * proves it: 0x10 is tested before the two byte-swaps at 0x6d745 and again on
+ * the append path at 0x6d7e2, 0x40 is set once the header validates
+ * (0x6d78b), and 0x04 is set once the first directory is read (0x6d7ca). */
+#define TIFF_SWAB 0x10
+#define TIFF_BUFFERSETUP 0x04
+#define TIFF_MYBUFFER 0x40
+
+/**
+ * Wrap an already-open file descriptor in a TIFF handle: allocate, read (or
+ * write) the file header, and read the first directory.
+ *
+ * Transcribed from the vendored libtiff (tif_open.c TIFFFdOpen) rather than
+ * reshaped from the decompiler, which reports the body as `void(void)` with
+ * `in_stack_*` parameters and five `extraout_EAX` -- the void-EAX artifact
+ * (lift-learnings s16). The real ABI is the frame at 0x6d590: `push ebp / mov
+ * ebp,esp / push ebx / push esi / push edi` with NO `sub esp`, so there are no
+ * stack locals at all; three stack arguments at [ebp+8]..[ebp+0x10], cdecl,
+ * and an EAX return that is `mov eax,esi` (the handle) on the two success
+ * exits at 0x6d70c/0x6d7de and `xor eax,eax` on the two failure exits at
+ * 0x6d61e/0x6d81d.
+ *
+ * Deviations from stock libtiff, all forced by the binary:
+ *  - the mode decode is INLINE here, not a call to the `_TIFFgetMode` helper
+ *    that TIFFOpen below uses. Its error call is tail-merged with the
+ *    out-of-memory error into the single TIFFError at 0x6d5ff (the two paths
+ *    push different format strings and different `%s` arguments -- the MODE
+ *    pointer at 0x6d5a7 and the NAME pointer at 0x6d5f9 -- then share the
+ *    module push and the call), which is only possible if both calls were in
+ *    this function's body.
+ *  - `read`/`write` take the `fd` PARAMETER, not tif->tif_fd: EBX is reloaded
+ *    from [ebp+8] at 0x6d63b and pushed by both calls, so upstream's
+ *    ReadOK/WriteOK macros (which reach through the handle) are not what this
+ *    revision compiled.
+ *  - the append arm carries an extra byte-order check with its own error
+ *    message that stock libtiff does not have (0x6d7e2).
+ *  - the header magic written on the create path is the constant 0x4949, with
+ *    no `bigendian`/TIFF_SWAB ternary: 0x6d6b0 stores the immediate.
+ *
+ * The allocation is `strlen(name) + 0x13d` (0x6d5e2) while the memset clears
+ * only 0x13c (0x6d621): the extra byte is the NUL of the name string, which is
+ * copied into the tail at tif+0x13c and pointed at by tif_name.
+ *
+ * FUN_0006d500 (upstream's TIFFInitOrder) is a register-argument callee: both
+ * call sites, 0x6d6e9 and 0x6d740, set EAX=tif, ECX=0 and EDX=the header magic
+ * with no PUSH and no stack cleanup. Its kb.json prototype is corrected to
+ * carry @<eax>/@<edx>/@<ecx> alongside this port; the `0` is upstream's
+ * `bigendian` argument, constant on this target.
+ *
+ * @param fd descriptor of the already-opened file; closed by this function
+ *           only when the handle is never allocated.
+ * @param name file name, copied into the handle's tail and used as the
+ *             error-reporting module for every post-allocation failure.
+ * @param mode libtiff mode string; only mode[0] (and mode[1] for 'r') is read.
+ * @return the TIFF handle, or 0 on any failure. kb.json types the return
+ *         `int` because the caller in tiff_file.c holds handles as ints.
+ */
+int TIFFFdOpen(int fd, const char *name, const char *mode)
+{
+  static const char module[] = "TIFFFdOpen";
+  tiff_t *tif;
+  int m;
+
+  switch (mode[0]) {
+  case 'r':
+    m = _O_RDONLY;
+    if (mode[1] == '+') {
+      m = _O_RDWR;
+    }
+    break;
+  case 'w':
+  case 'a':
+    m = _O_RDWR | _O_CREAT;
+    if (mode[0] == 'w') {
+      m |= _O_TRUNC;
+    }
+    break;
+  default:
+    FUN_00068a30(module, "\"%s\": Bad mode", mode);
+    goto bad2;
+  }
+  tif = (tiff_t *)debug_malloc(sizeof(tiff_t) + csstrlen(name) + 1, 0,
+                               "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_open.c",
+                               0xab);
+  if (tif == 0) {
+    FUN_00068a30(module, "%s: Out of memory (TIFF structure)", name);
+    goto bad2;
+  }
+  csmemset(tif, 0, sizeof(tiff_t));
+  tif->tif_name = (char *)tif + sizeof(tiff_t);
+  csstrcpy(tif->tif_name, name);
+  tif->tif_mode = (short)(m & ~(_O_CREAT | _O_TRUNC));
+  tif->tif_fd = (short)fd;
+  tif->tif_curdir = (unsigned long)-1; /* non-existent directory */
+  tif->tif_curoff = 0;
+  tif->tif_curstrip = (unsigned long)-1; /* invalid strip */
+  tif->tif_row = (unsigned long)-1; /* read/write pre-increment */
+  if (__read(fd, &tif->tif_header, sizeof(tiff_header_t)) !=
+      sizeof(tiff_header_t)) {
+    if (tif->tif_mode == _O_RDONLY) {
+      FUN_00068a30(name, "Cannot read TIFF header");
+      goto bad;
+    }
+    tif->tif_header.tiff_magic = TIFF_LITTLEENDIAN;
+    tif->tif_header.tiff_version = TIFF_VERSION;
+    tif->tif_header.tiff_diroff = 0; /* filled in later */
+    if (__write(fd, &tif->tif_header, sizeof(tiff_header_t)) !=
+        sizeof(tiff_header_t)) {
+      FUN_00068a30(name, "Error writing TIFF header");
+      goto bad;
+    }
+    FUN_0006d500(tif, tif->tif_header.tiff_magic, 0);
+    if (!FUN_00066190(tif)) {
+      goto bad;
+    }
+    tif->tif_diroff = 0;
+    return (int)tif;
+  }
+  if (tif->tif_header.tiff_magic != TIFF_BIGENDIAN &&
+      tif->tif_header.tiff_magic != TIFF_LITTLEENDIAN) {
+    FUN_00068a30(name, "Not a TIFF file, bad magic number %d (0x%x)",
+                 tif->tif_header.tiff_magic, tif->tif_header.tiff_magic);
+    goto bad;
+  }
+  FUN_0006d500(tif, tif->tif_header.tiff_magic, 0);
+  if (tif->field_0a.w & TIFF_SWAB) {
+    FUN_0006f1b0(&tif->tif_header.tiff_version);
+    FUN_0006f1d0(&tif->tif_header.tiff_diroff);
+  }
+  if (tif->tif_header.tiff_version != TIFF_VERSION) {
+    FUN_00068a30(name, "Not a TIFF file, bad version number %d (0x%x)",
+                 tif->tif_header.tiff_version, tif->tif_header.tiff_version);
+    goto bad;
+  }
+  tif->field_0a.w |= TIFF_MYBUFFER;
+  tif->tif_rawcp = tif->tif_rawdata = 0;
+  tif->tif_rawdatasize = 0;
+  switch (mode[0]) {
+  case 'r':
+    tif->tif_nextdiroff = tif->tif_header.tiff_diroff;
+    if (FUN_00066e70(tif)) {
+      tif->field_0a.w |= TIFF_BUFFERSETUP;
+      tif->tif_rawcc = -1;
+      return (int)tif;
+    }
+    break;
+  case 'a':
+    /* New directories are automatically appended to the end of the directory
+     * chain when they are written out, so nothing is read here. */
+    if (tif->field_0a.w & TIFF_SWAB) {
+      FUN_00068a30(name,
+                   "Cannot append to file that has opposite byte ordering");
+      goto bad;
+    }
+    if (FUN_00066190(tif)) {
+      return (int)tif;
+    }
+    break;
+  }
+bad:
+  tif->tif_mode = _O_RDONLY; /* XXX avoid flush */
+  FUN_00064ee0((int)tif);
+  return 0;
+bad2:
+  __close(fd);
+  return 0;
+}
+
 /* Upstream libtiff spellings (tiff.h / tiffiop.h). TIFFhowmany casts to
  * unsigned before dividing, which is what makes the divide a plain `shr`
  * rather than the signed power-of-two sequence; the binary ends on
@@ -1721,7 +1961,7 @@ int TIFFGetMode(void *tif)
  */
 int TIFFIsTiled(void *tif)
 {
-  return (((tiff_t *)tif)->field_0a & 0x80u) >> 7;
+  return (((tiff_t *)tif)->field_0a.b & 0x80u) >> 7;
 }
 
 /**
@@ -1844,26 +2084,6 @@ unsigned long TIFFCurrentTile(void *tif)
 {
   return ((tiff_t *)tif)->tif_curtile;
 }
-
-/* MSVC CRT open() oflag bits, named from the immediates the binary actually
- * pushes/ORs at 0x6d910-0x6d962. _O_RDONLY is 0, so it never appears as an
- * operand -- the 'r' arm materialises it with `xor eax,eax`. Guarded because
- * the CRT's own fcntl.h may already be in scope under some toolchains. */
-#ifndef _O_RDONLY
-#define _O_RDONLY 0x0000
-#endif
-#ifndef _O_RDWR
-#define _O_RDWR 0x0002
-#endif
-#ifndef _O_CREAT
-#define _O_CREAT 0x0100
-#endif
-#ifndef _O_TRUNC
-#define _O_TRUNC 0x0200
-#endif
-#ifndef _O_BINARY
-#define _O_BINARY 0x8000
-#endif
 
 /* pmode passed as open()'s third argument: 0666, pushed literally as 0x1b6. */
 #define TIFF_OPEN_PMODE 0x01b6
@@ -2037,7 +2257,7 @@ int FUN_0006d8e0(const char *path, const char *mode)
  */
 int FUN_0006d980(void *tif)
 {
-  if (((tiff_t *)tif)->field_0a < 0) {
+  if (((tiff_t *)tif)->field_0a.b < 0) {
     *(int *)((char *)tif + 0x120) = FUN_0006f890(tif);
     return 1;
   }
@@ -2892,7 +3112,7 @@ void TIFFPrintDirectory(void *tif_, void *fd, long flags)
      * bare `TEST AL,AL / JS`, i.e. a sign test, the same shape TIFFIsTiled
      * (0x6d880) reads. */
     crt_fprintf(fd, "  %u %s:\n", tif->td_nstrips,
-                tif->field_0a < 0 ? "Tiles" : "Strips");
+                tif->field_0a.b < 0 ? "Tiles" : "Strips");
     for (s = 0; s < tif->td_nstrips; s++) {
       crt_fprintf(fd, "    %3d: [%8u, %8u]\n", s, tif->td_stripoffset[s],
                   tif->td_stripbytecount[s]);
