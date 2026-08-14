@@ -41,8 +41,9 @@ Reject (or keep unverified) regardless of match % when any are true:
 
 - `B = FAIL` (build or ABI gate fails)
 - FPU-sensitive function and `W > 0`
-- Unresolved `[IMM-WARN]` (`I > 0`): both objects are VC71 codegen, so a large
-  inline-constant divergence is a real source-literal mismatch — resolve it
+- Unresolved `[IMM-WARN]` (`I > 0`): the original XBE and VC71 candidate have a
+  large inline-constant divergence, a strong source-literal mismatch signal.
+  Resolve it
   (fix the literal or document why the constant legitimately differs) before
   accepting. Do not wave it off as scheduling noise.
 - Reference behavior test exists for the function and `G = FAIL`

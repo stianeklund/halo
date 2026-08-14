@@ -1170,7 +1170,7 @@ IEEE-754 comparisons involving NaN are **unordered**: `NaN < 1e-8f`, `NaN <= 1e-
 **Prevention / detection:**
 - The detector compares the SET of large constant immediates on each side (PRESENCE, not count — like §24, because CSE materializes the same constant a different number of times). Only immediates whose **signed-32 magnitude ≥ 0x01000000** are censused: this keeps single-precision float bit-patterns (positive `0x3f5db3d7` and negative `0xc0490fdb` = −π), FourCC tag magics (`'weap'`=0x77656170), and large integer magics, while excluding XBE addresses (all below the ceiling — and relocated to 0-placeholders on the candidate side anyway), small positive integers (loop bounds, masks, struct sizes), and small sign-extended negatives (`-1` = 0xffffffff, the MSVC SEH scope-index initializer `movl $-1, -0x4(%ebp)`; stack offsets).
 - A reference-only float whose nearest candidate-only float is within 5% relative error is reported as a **paired near-miss** (`reference X vs our lift Y`) — the transcription-error signature (right magnitude, wrong bits). Unpaired large constants are reported as absent/introduced.
-- **Very low false-positive rate:** both objects are the SAME MSVC 7.1 (`CL.Exe`) codegen — the delinked reference is the original binary, the candidate is our source recompiled by the same compiler — so identical source constants produce identical inline immediates. A censused divergence is therefore a real SOURCE-literal difference, not compiler noise. An `[IMM-WARN]` is still a **review item**: verify the flagged literal against the disassembly immediate before changing it (a legitimately different constant, e.g. a deliberately different tuning value, is possible but rare in a faithful lift).
+- **Low false-positive rate:** the reference is original XBE machine code and the candidate is VC71 codegen. For the large float/FourCC literals censused here, matching source is expected to materialize the same immediate, so a divergence is a strong source-literal signal. It remains a **review item**, not proof: verify the flagged value against the original disassembly before changing it.
 - Not added to `check_lift_hazards.py`: without the reference immediate, a source literal is just a number — a source-only heuristic cannot know it is wrong. The detector lives in the byte-diff lane for the same reason as §24. See also `feedback_check_disasm`, `[[reference_loadw_detector]]` (sibling immediate/width transcription traps).
 
 ## 26. VC71 Reference Truncated at Mid-Body `ret` (Multi-Return / Switch Understated Match)
@@ -1263,7 +1263,7 @@ Original call-site args (from the pristine body): case 0 pushes 0 (disable); cas
 
 ## 32. @reg-DEFINED Prologue Ceiling (Phantom-Slot Loads) — Modeled by the Comparator
 
-**Automation:** FULL — `compare_obj.py::strip_regparam_loads` + `parse_regdef_from_decl`, applied automatically by `vc71_verify.py` for every function whose own kb.json decl carries `@<reg>` params (`_regdef_params_for`); proven by `compare_obj.py --self-test` cases RP1–RP9. Output tags the modeling: `[REGPARM] <fn>: stripped N @<reg> phantom load(s); raw X% -> modeled Y%`.
+**Automation:** FULL — `compare_obj.py::strip_regparam_loads` + `parse_regdef_from_decl`, applied automatically by `vc71_verify.py` for every function whose own kb.json decl carries `@<reg>` params (`_regdef_params_for`); proven by `compare_obj.py --self-test` cases RP1–RP9. Output tags the modeling, and score artifacts preserve `raw_mnemonic_pct`, `abi_modeled_mnemonic_pct`, `abi_model`, and the adjustment count. A modeled 100% is not byte identity.
 
 **What happens:** cl.exe cannot express a function whose own params arrive in `@<eax>/@<ebx>/@<esi>/@<edi>/@<ax>` (only `@<ecx>[,@<edx>]`-only maps onto `__fastcall`, which `compile_vc71` already rewrites). The candidate compiles those params as stack args and must emit mov-family loads from the phantom caller-arg slot `disp(%ebp)`, `disp = 8 + 4*param_idx` — instructions the true reg-convention reference can never have. Each is an unmatched mnemonic in the LCS, capping a byte-faithful lift below the bar (the DEFINING-function analogue of the reg-arg caller ceiling; see §18 for the runtime mirror of the same `+4·N_regparams` slot arithmetic).
 
@@ -1318,7 +1318,7 @@ The same sweep found three more: `FUN_000acd00` (post-spawn invisibility clear o
 | `FUN_00115ba0` = `huft_build` (inftrees.c) | 69.4% → 73.2% after a day of shape levers | **97.1%** (398 vs 397 insns) |
 | `FUN_00114740` = `inflate_codes` (infcodes.c) | 76.9% → 82.4% | **97.8%** (699 vs 698 insns) |
 
-The delinked reference *is* that library compiled by VC71. Matching the source therefore matches the object, and every hour spent reshaping the decompiler's rendering is an hour spent re-deriving something already published.
+The XBE contains that public library's machine code, and compiling its matching upstream source with VC71 reproduces it closely. Every hour spent reshaping the decompiler's rendering is therefore an hour spent re-deriving something already published; this identifies a strong compiler-family match, not exact compiler provenance.
 
 **Lever 1 — parameter ORDER (the big one).** Ghidra lists register parameters **first**, regardless of where they sit in the real signature. kb.json had `huft_build(m@<eax>, b, n, s, d, e, t, hp, hn, v)`; upstream's order is `(b, n, s, d, e, t, m, hp, hn, v)`, with MSVC choosing EAX for `m` under its private register convention for a file-static helper. In the wrong order every stack parameter is +4 from the reference and *all nine* mismatch; in the right order `b, n, s, d, e, t` land on the reference's own `[ebp+8..0x1c]` and only the three after `m` shift. Moving the `@<reg>` annotation to its true index is **ABI-safe** — the relative order of the stack parameters is unchanged, and `thunks.c` already handles a mid-position register parameter correctly (it skips it in the push sequence and loads EAX). Confirm with `check_arg_counts.py --callee 0x<addr>` (expects the same `declared_stack` at every original call site) and by reading the generated thunk.
 
@@ -1448,9 +1448,9 @@ takes the fail branch on NaN, `x >= b` does not.
 
 **Automation:** `compare_fcom_guards` in `tools/verify/compare_obj.py`
 (`[FCOM-WARN]`, details via `--fcom-only` on `vc71_verify.py` /
-`compare_obj.py`). Both objects are VC71 codegen, so a `(mask, jcc)` guard
-shape present on exactly one side is a genuine source comparison-form
-mismatch — presence-censused like LOADW/IMM. Proven on the real bug
+`compare_obj.py`). A `(mask, jcc)` guard shape present on exactly one side is
+a strong source comparison-form mismatch signal and must be checked against
+the original disassembly — presence-censused like LOADW/IMM. Proven on the real bug
 (reintroducing the strict pitch bound flags `testb $0x5,%ah ; jp` as
 lift-only at an unchanged LCS score), and its first sweep surfaced and fixed
 three latent form divergences (`player_control_update_desired_angles`
@@ -1764,3 +1764,60 @@ safe coalesced store from the `unit_impact_melee_damage` candidate yielded
 
 **Related:** §43 (out-of-image literal deref), the `permuter-campaign` skill
 (Step 3b), and `hub_permuter`.
+
+## 45. A Pointer Slot Lifted as an Inline Struct — `(T *)(base + 0xNN)` vs `*(T **)(base + 0xNN)`
+
+`FUN_001abd90` (melee lunge, `units.obj`) transformed the hit surface's plane
+into world space:
+
+```c
+FUN_0010a1c0((float *)(surface_base + node_index * 0x34),
+             (float *)(collision_result + 0x0c),   /* WRONG */
+             normal_out);
+```
+
+The reference loads the slot before pushing it:
+
+```
+001abee0: MOV EDX,dword ptr [EBP + 0xfffffb50]   ; EBP-0x4b0 = collision_result+0x0c
+001abef3: PUSH EDX
+```
+
+`MOV reg,[base+off]` then `PUSH reg` means the slot **holds a pointer**. An
+inline struct member is pushed as `LEA reg,[base+off]` / `PUSH reg`. The two
+forms are one instruction apart in the listing and identical in the
+decompiler, which renders both as `local_4b0`.
+
+Passing `&slot` makes the callee read the pointer's own bits as payload. For a
+`float *` parameter on Xbox that is catastrophic in a specific, quiet way: a
+`0x80xxxxxx` heap pointer reinterpreted as a float is a **negative denormal**,
+so it prints as `-0.000000` and compares as ~0 — it does not look like garbage.
+The lift produced `assert_valid_real_normal3d(-0.000000, 0.000000, 0.000000)`
+at `effects.c:0x461`, seven frames below the actual bug, on every melee hit.
+
+Nothing upstream catches it: the types are legal C, the arity is right, VC71
+scored 91.4% (one missing `MOV` inside a 192-instruction function), and the
+equivalence lane was vacuous — 8.9% coverage, because zero-filled seeds never
+satisfy `unit+0x239 == 4`.
+
+**Signals.**
+- A callee parameter typed `T *` where another TU passes `*(T **)(base + 0xNN)`
+  for the same offset — one of the two is wrong.
+- A downstream `assert_valid_real_normal3d` / `assert_valid_real_vector3d`
+  printing `-0.000000` or values ~1e-38: that is a pointer read as a float, not
+  a normalization bug. Print the raw bits before blaming the math.
+
+**Rule.** For every pointer-typed argument sourced from a struct slot, check the
+reference for `MOV` (pointer slot, dereference it) versus `LEA` (inline member,
+take its address). Never infer it from the decompiler's local naming.
+
+**Automation.** `check_pointer_slot_arg_form` in `tools/audit/check_lift_hazards.py`
+(counter `slot_form`) indexes every call site in `src/` by
+`(callee, arg index, offset)` and warns when one site passes the address of a
+slot another site dereferences. Scoped to parameters declared `float *` in
+`decl.h`, since block/handle pointers legitimately take both forms. Tests:
+`tools/audit/tests/test_pointer_slot_arg_form.py`, which also pins the
+`FUN_001abd90` call site itself.
+
+**Related:** §43 (out-of-image literal deref — the *other* bug in this same
+function), and the buffer-alias entry in `lift-decompiler-traps`.

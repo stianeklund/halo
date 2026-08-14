@@ -54,6 +54,13 @@ What happens:
 In plain terms: this is a **sequence/structure similarity score**, not a strict
 byte-equality score.
 
+For functions with custom `@<reg>` parameters, the official score may remove
+narrowly identified candidate-only phantom stack-slot loads. Status output and
+score artifacts report both `raw_mnemonic_pct` and
+`abi_modeled_mnemonic_pct`, plus the applied `abi_model`. A modeled 100% means
+the mnemonic sequences match after the disclosed ABI adjustment; it does not
+mean byte identity or prove behavioral equivalence.
+
 ### Where the reference comes from
 
 There is **one** reference per function and it is derived, not chosen: the bytes
@@ -134,8 +141,8 @@ warnings when operand order looks suspicious. Two sibling presence-census
 detectors run in the same lane: `LOADW-WARN` (a field the original narrows to
 int16/int8 but our lift reads wider, or vice versa — lift-learnings §24) and
 `IMM-WARN` (a large inline constant — float bit-pattern or magic — present on
-exactly one side; since both objects are VC71 codegen this is a wrong numeric
-literal the LCS % aligns away — lift-learnings §25). Run `--fpu-only`,
+exactly one side; this is a strong wrong-numeric-literal signal for a value the
+LCS percentage aligns away — lift-learnings §25). Run `--fpu-only`,
 `--loadw-only`, or `--imm-only` for focused output.
 
 This matters because two code paths can look similar while still flipping math

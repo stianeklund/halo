@@ -14,10 +14,11 @@ goal-lift session in `/mnt/g/dev/halo-clean-main`.
 ## 1. What this project is
 
 Faithful, evidence-based decompilation of Halo CE Xbox (`cachebeta.xbe`) back
-to C89 that byte-matches the original MSVC 7.1 codegen. The unit of work is a
+to C89 that structurally matches the original x86 code using VC71 as the
+comparison toolchain; the original compiler version is unconfirmed. The unit of work is a
 **lift**: pick a function, reverse it in Ghidra, write C that reproduces the
 original ABI/layout/side-effects exactly, then verify with:
-- **VC71 verify** — recompile with the original compiler, instruction-diff
+- **VC71 verify** — recompile with the comparison compiler, instruction-diff
   against a delinked reference object (score = % insns matched; ≥90% is the
   commit bar, ≥99% is "done").
 - **Unicorn equivalence** — run oracle vs candidate object in an emulator over
