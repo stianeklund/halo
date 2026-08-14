@@ -642,3 +642,97 @@ int FUN_000650e0(void *tif_, char *pp, int cc, int s) {
   (void)s;
   return _TIFFNoDecode(tif, "scanline");
 }
+
+/* -------------------------------------------------------------------------
+ * FUN_00065120 -- upstream `_TIFFNoStripDecode`.
+ *
+ * Upstream body:
+ *
+ *     static int
+ *     _TIFFNoStripDecode(TIFF* tif, tidata_t pp, tsize_t cc, tsample_t s)
+ *     {
+ *         (void) pp; (void) cc; (void) s;
+ *         return (_TIFFNoDecode(tif, "strip"));
+ *     }
+ *
+ * Verbatim, from the pristine image (0x65120..0x6515d, 23 instructions). This
+ * body is byte-for-byte identical to FUN_000650e0 above -- same frame, same
+ * inlined table scan, same single CALL to TIFFError, same unguarded `c->name`
+ * deref -- with exactly ONE difference, the method literal pushed as arg4:
+ * `push 0x25f560` here versus `push 0x25f554` there. That literal is the whole
+ * discriminator, and reading it out of the pristine image gives 0x25f560 =
+ * "strip" (0x25f554 = "scanline"), which is what fixes this body as the STRIP
+ * decode stub rather than one of its seven siblings at 0x64fe0..0x651a0.
+ * `_TIFFNoDecode` is INLINED here as well -- there is no CALL to 0x650a0:
+ *
+ *   065120  push  ebp
+ *   065121  mov   ebp, esp                   ; no `sub esp` -- zero locals
+ *   065123  mov   edx, dword ptr [ebp+8]     ; param1 tif, kept in EDX across
+ *                                            ; the whole loop
+ *   065126  movzx ecx, word ptr [edx+0x3a]   ; tif->td_compression, a 16-bit
+ *                                            ; ZERO-extending load, which is
+ *                                            ; what types the field
+ *                                            ; `unsigned short`
+ *   06512a  mov   eax, 0x2c9994              ; _TIFFBuiltinCODECS
+ *   06512f  nop                              ; loop-head alignment padding
+ *   065130  cmp   dword ptr [eax+4], ecx     ; c->scheme == scheme; memory
+ *                                            ; operand first
+ *   065133  je    0x65141                    ; found
+ *   065135  add   eax, 0xc                   ; ++c
+ *   065138  cmp   eax, 0x2c99c4              ; &_TIFFBuiltinCODECS[4]; an
+ *                                            ; ADDRESS compare, proving the
+ *                                            ; loop is count-bounded
+ *   06513d  jb    0x65130                    ; unsigned <, loop
+ *   06513f  xor   eax, eax                   ; miss -> NULL, falls THROUGH
+ *   065141  mov   eax, dword ptr [eax]       ; c->name, at the merge of both
+ *                                            ; paths -- faults on an unknown
+ *                                            ; scheme. UNGUARDED on purpose.
+ *   065143  mov   ecx, dword ptr [edx]       ; tif->tif_name, hoisted above
+ *                                            ; the argument pushes
+ *   065145  push  0x25f560                   ; arg4 "strip"
+ *   06514a  push  eax                        ; arg3 c->name
+ *   06514b  push  0x25f570                   ; arg2 "%s %s decoding is not
+ *                                            ; implemented"
+ *   065150  push  ecx                        ; arg1 module (tif->tif_name)
+ *   065151  call  0x68a30                    ; TIFFError (varargs). The
+ *                                            ; ARG_COUNT hazard (cleanup 0x10
+ *                                            ; vs decl 3 fixed params) is the
+ *                                            ; vararg, not an ABI mismatch.
+ *   065156  add   esp, 0x10                  ; cdecl, 4 dword args
+ *   065159  or    eax, 0xffffffff            ; return -1, emitted after the
+ *                                            ; call, so a separate statement
+ *   06515c  pop   ebp
+ *   06515d  ret
+ *
+ * kb.json declares this `void FUN_00065120(void)` and Ghidra hides `tif`
+ * behind an `in_stack_00000004` local. Both halves are wrong: `mov edx,[ebp+8]`
+ * proves a stack parameter and `or eax,-1` proves an `int` return. Widened to
+ * the four-parameter codec-method form the siblings at
+ * 0x64fe0/0x65020/0x65060/0x650e0 already carry -- `pp`, `cc` and `s` are NOT
+ * observed in this body (a stub reads none of them) and are taken from
+ * upstream's prototype plus the shared method-table signature; being trailing
+ * cdecl slots they have no effect on the emitted code either way.
+ * ------------------------------------------------------------------------ */
+
+/**
+ * Strip-decode entry point installed for compression schemes whose decoder is
+ * not present in this build: reports the scheme by name and fails.
+ *
+ * Installed into the codec method table by pointer rather than called
+ * directly, which is why the image contains no CALL to this address.
+ *
+ * @param tif_ TIFF handle.
+ * @param pp Destination buffer for decoded samples. Unused -- the stub never
+ *        decodes anything.
+ * @param cc Byte count of `pp`. Unused.
+ * @param s Sample number. Unused.
+ * @return Always -1 (failure).
+ */
+int FUN_00065120(void *tif_, char *pp, int cc, int s) {
+  tiff_t *tif = (tiff_t *)tif_;
+
+  (void)pp;
+  (void)cc;
+  (void)s;
+  return _TIFFNoDecode(tif, "strip");
+}
