@@ -551,31 +551,27 @@ void collision_log_period_helper(int time_period /* @<esi> */, int begin_flag)
   *(int16_t *)0x325058 = period;
 }
 
-void collision_log_begin_period(__int16 time_period)
+void collision_log_begin_period(int time_period)
 {
-  collision_log_period_helper((int)time_period, 1);
+  collision_log_period_helper(time_period, 1);
 }
 
-void collision_log_continue_period(__int16 time_period)
+void collision_log_continue_period(int time_period)
 {
-  collision_log_period_helper((int)time_period, 0);
+  collision_log_period_helper(time_period, 0);
 }
 
 void collision_log_end_period(void)
 {
-  int16_t period;
-  int i;
-  int *src;
-  int *dst;
-
-  period = *(int16_t *)0x325058;
-  assert_halt(period >= 0 && period < 3);
-  *(char *)0x5a80e0 = 1;
-  src = (int *)0x5a80e0;
-  dst = (int *)(0x5a5e40 + (int)period * 0xb88);
-  for (i = 0x2e2; i != 0; i--) {
-    *dst++ = *src++;
+  int16_t period = *(int16_t *)0x325058;
+  if (period < 0 || period >= 3) {
+    display_assert(
+      "(collision_usage_current_period >= 0) && (collision_usage_current_period < NUMBER_OF_COLLISION_TIME_PERIODS)",
+      "c:\\halo\\SOURCE\\physics\\collision_usage.c", 0xc6, 1);
+    system_exit(-1);
   }
+  *(char *)0x5a80e0 = 1;
+  qmemcpy((void *)(0x5a5e40 + (int)period * 0xb88), (void *)0x5a80e0, 0xb88);
   *(int16_t *)0x325058 = -1;
 }
 
@@ -614,9 +610,192 @@ void collision_log_format_stat(char *buf /* @<edi> */, void *stat /* @<esi> */)
  * Confirmed: first check at 0x14d22a; FUN_001d90e0 (chkstk) at 0x14d228. */
 void collision_log_render(void)
 {
+  int y_pos;
+  short cat;
+  int cat_off;
+  int cat_user_off;
+  char **cat_name_ptr;
+
   if (*(char *)0x4761d0 == '\0')
     return;
-  /* Debug rendering body omitted — runs only in debug mode */
+
+  y_pos = *(int *)0x325660 - 0x1e;
+  cat = 0;
+  cat_off = 0;
+  cat_user_off = 0;
+  cat_name_ptr = (char **)0x324fd0;
+
+  do {
+    bool has_data = false;
+    if (cat < 3 || *(char *)0x4761d2 != '\0') {
+      int p_off = 0;
+      int p_count = 3;
+      do {
+        if (*(char *)(0x5a5e40 + p_off) != '\0' &&
+            *(int *)(0x5a5e48 + cat_off + p_off) > 0) {
+          has_data = true;
+        }
+        p_off += 0xb88;
+        p_count--;
+      } while (p_count != 0);
+
+      if (has_data) {
+        char total_stats[0x48];
+        char user_stats[0x630];
+        short user;
+        char line[2048];
+        int16_t bounds[4];
+        int16_t tab_info[4];
+
+        csmemset(total_stats, 0, 0x48);
+        csmemset(user_stats, 0, 0x630);
+
+        user = 0;
+        do {
+          short u = user;
+          *(int16_t *)(user_stats + (int)u * 0x48) = u;
+          if (u != 0x15 || *(char *)0x4761d2 != '\0') {
+            int p_off2 = 0;
+            int p_left = 3;
+            int *p_total_calls = (int *)(user_stats + (int)u * 0x48 + 8);
+            int64_t *p_total_time = (int64_t *)(user_stats + (int)u * 0x48 + 0x10);
+            int *p_period_calls = (int *)(user_stats + (int)u * 0x48 + 0x18);
+            int64_t *p_tot_period_time = (int64_t *)(total_stats + 0x20);
+
+            do {
+              if (*(char *)(0x5a5e40 + p_off2) != '\0') {
+                int src_idx = ((int)u + cat_user_off) * 0x10 + p_off2;
+                int calls = *(int *)(0x5a5e58 + src_idx);
+                int64_t time = *(int64_t *)(0x5a5e60 + src_idx);
+
+                *p_period_calls = calls;
+                *(int64_t *)(p_period_calls + 2) = time;
+
+                *p_total_calls += calls;
+                *p_total_time += time;
+
+                *(int *)(total_stats + 8) += calls;
+                *(int64_t *)(total_stats + 0x10) += time;
+
+                *(int *)((char *)p_tot_period_time - 8) += calls;
+                *p_tot_period_time += time;
+              }
+              p_off2 += 0xb88;
+              p_tot_period_time = (int64_t *)((char *)p_tot_period_time + 0x10);
+              p_period_calls += 4;
+              p_left--;
+            } while (p_left != 0);
+          }
+          user++;
+        } while (user < 0x16);
+
+        qsort(user_stats, 0x16, 0x48, (qsort_compar_proc)FUN_0014cfe0);
+        crt_sprintf(line, (char *)0x25a2b0, *cat_name_ptr);
+
+        if (*(char *)0x4761d3 == '\0') {
+          char *p_user_elem = user_stats;
+          int rank_left = 6;
+          do {
+            short u_idx = *(int16_t *)p_user_elem;
+            if (u_idx < 0 || u_idx > 0x15) {
+              display_assert(
+                "(user_index >= 0) && (user_index < NUMBER_OF_COLLISION_USER_TYPES)",
+                "c:\\halo\\SOURCE\\physics\\collision_usage.c", 0x156, 1);
+              system_exit(-1);
+            }
+            if (*(int *)(p_user_elem + 8) > 0) {
+              char user_buf[512];
+              snprintf(user_buf, 0x200, " %s", *(char **)(0x324ff8 + (int)u_idx * 4));
+              if (*(char *)0x4761d1 != '\0') {
+                short p = 0;
+                char *p_pstat = p_user_elem + 0x18;
+                do {
+                  char stat_buf[256];
+                  if (*(char *)0x4761d4 != '\0') {
+                    int64_t freq;
+                    QueryPerformanceFrequency(&freq);
+                    crt_sprintf(stat_buf, "%d/%.2f", *(int *)p_pstat,
+                                (double)((float)*(int64_t *)(p_pstat + 8) * *(float *)0x254cb8 / (float)freq));
+                  } else {
+                    crt_sprintf(stat_buf, "%d", *(int *)p_pstat);
+                  }
+                  snprintf(user_buf + csstrlen(user_buf), 0x200 - csstrlen(user_buf),
+                            "%c%s", (p != 0 ? '/' : ' '), stat_buf);
+                  p++;
+                  p_pstat += 0x10;
+                } while (p < 3);
+              } else {
+                char stat_buf[256];
+                if (*(char *)0x4761d4 != '\0') {
+                  int64_t freq;
+                  QueryPerformanceFrequency(&freq);
+                  crt_sprintf(stat_buf, "%d/%.2f", *(int *)(p_user_elem + 8),
+                              (double)((float)*(int64_t *)(p_user_elem + 0x10) * *(float *)0x254cb8 / (float)freq));
+                } else {
+                  crt_sprintf(stat_buf, "%d", *(int *)(p_user_elem + 8));
+                }
+                snprintf(user_buf + csstrlen(user_buf), 0x200 - csstrlen(user_buf),
+                          " %s", stat_buf);
+              }
+              FUN_0008dc30(line, user_buf);
+            }
+            p_user_elem += 0x48;
+            rank_left--;
+          } while (rank_left != 0);
+        } else {
+          char summary_buf[512];
+          csstrcpy(summary_buf, " ");
+          if (*(char *)0x4761d1 != '\0') {
+            short p = 0;
+            char *p_pstat = total_stats + 0x18;
+            do {
+              char stat_buf[256];
+              if (*(char *)0x4761d4 != '\0') {
+                int64_t freq;
+                QueryPerformanceFrequency(&freq);
+                crt_sprintf(stat_buf, "%d/%.2f", *(int *)p_pstat,
+                            (double)((float)*(int64_t *)(p_pstat + 8) * *(float *)0x254cb8 / (float)freq));
+              } else {
+                crt_sprintf(stat_buf, "%d", *(int *)p_pstat);
+              }
+              snprintf(summary_buf + csstrlen(summary_buf), 0x200 - csstrlen(summary_buf),
+                        "%c%s", (p != 0 ? '/' : ' '), stat_buf);
+              p++;
+              p_pstat += 0x10;
+            } while (p < 3);
+          } else {
+            char stat_buf[256];
+            if (*(char *)0x4761d4 != '\0') {
+              int64_t freq;
+              QueryPerformanceFrequency(&freq);
+              crt_sprintf(stat_buf, "%d/%.2f", *(int *)(total_stats + 8),
+                          (double)((float)*(int64_t *)(total_stats + 0x10) * *(float *)0x254cb8 / (float)freq));
+            } else {
+              crt_sprintf(stat_buf, "%d", *(int *)(total_stats + 8));
+            }
+            snprintf(summary_buf + csstrlen(summary_buf), 0x200 - csstrlen(summary_buf),
+                      " %s", stat_buf);
+          }
+          FUN_0008dc30(line, summary_buf);
+        }
+
+        bounds[0] = (int16_t)y_pos;
+        bounds[1] = *(int16_t *)0x32565e;
+        bounds[2] = 0x7fff;
+        bounds[3] = 0x7fff;
+
+        interface_draw_text(1, -1, 0, 0, 5, 0);
+        draw_string_set_color(*(const void **)0x2ee6c4);
+        draw_string_set_tab_stops(NULL, 0);
+        rasterizer_text_draw(NULL, bounds, tab_info, 0, line);
+        y_pos += (int)(*(int *)bounds - *(int *)((char *)tab_info + 2));
+      }
+    }
+    cat++;
+    cat_off += 0x170;
+    cat_user_off += 0x17;
+    cat_name_ptr++;
+  } while (cat < 8);
 }
 
 /* 0x14d840 — returns the current collision user if collision logging is
@@ -659,35 +838,18 @@ void collision_log_query_counter(void *counter)
 void collision_log_add_time(short collision_function, unsigned int start_lo,
                             int start_hi)
 {
-  unsigned int current[2];
+  int64_t current;
   short user;
-  unsigned int elapsed_lo;
-  int elapsed_hi;
-  int type_off;
-  int user_off;
-  unsigned int prev;
+  int64_t elapsed;
 
-  QueryPerformanceCounter(current);
+  QueryPerformanceCounter((void *)&current);
 
   user = FUN_0014d840(collision_function);
-  if (user == -1)
-    return;
-
-  elapsed_lo = current[0] - start_lo;
-  elapsed_hi =
-    ((int)current[1] - start_hi) - (unsigned int)(current[0] < start_lo);
-
-  type_off = (int)collision_function * 0x170;
-  prev = *(unsigned int *)(0x5a80f0 + type_off);
-  *(unsigned int *)(0x5a80f0 + type_off) = prev + elapsed_lo;
-  *(int *)(0x5a80f4 + type_off) +=
-    elapsed_hi + (unsigned int)((prev + elapsed_lo) < prev);
-
-  user_off = ((int)collision_function * 0x17 + (int)user) * 0x10;
-  prev = *(unsigned int *)(0x5a8100 + user_off);
-  *(unsigned int *)(0x5a8100 + user_off) = prev + elapsed_lo;
-  *(int *)(0x5a8104 + user_off) +=
-    elapsed_hi + (unsigned int)((prev + elapsed_lo) < prev);
+  if (user != -1) {
+    elapsed = current - *(int64_t *)&start_lo;
+    *(int64_t *)(0x5a80f0 + (int)collision_function * 0x170) += elapsed;
+    *(int64_t *)(0x5a8100 + ((int)collision_function * 0x17 + (int)user) * 0x10) += elapsed;
+  }
 }
 
 /* 0x14d9d0 — increments call count for a collision function type */
@@ -696,11 +858,10 @@ void collision_log_add_call(short collision_function)
   short user;
 
   user = FUN_0014d840(collision_function);
-  if (user == -1)
-    return;
-
-  *(int *)(0x5a80e8 + (int)collision_function * 0x170) += 1;
-  *(int *)(0x5a80f8 + ((int)collision_function * 0x17 + (int)user) * 0x10) += 1;
+  if (user != -1) {
+    *(int *)(0x5a80e8 + (int)collision_function * 0x170) += 1;
+    *(int *)(0x5a80f8 + ((int)collision_function * 0x17 + (int)user) * 0x10) += 1;
+  }
 }
 
 /*
@@ -717,14 +878,15 @@ void collision_log_add_call(short collision_function)
  */
 void FUN_0014da20(char *display_line)
 {
-  char *end;
-
-  if (!*(uint8_t *)0x5a5e40)
-    return;
-  end = display_line + csstrlen(display_line);
-  crt_sprintf(end, (char *)0x29d548, *(int *)0x5a6128,
-              *(int *)0x5a66e8 + *(int *)0x5a6858, *(int *)0x5a5e48,
-              *(int *)0x5a6578, *(int *)0x5a5fb8, *(int *)0x5a6408);
+  if (*(uint8_t *)0x5a5e40) {
+    crt_sprintf(display_line + csstrlen(display_line), (char *)0x29d548,
+                *(int *)0x5a6128,
+                *(int *)0x5a66e8 + *(int *)0x5a6858,
+                *(int *)0x5a5e48,
+                *(int *)0x5a6578,
+                *(int *)0x5a5fb8,
+                *(int *)0x5a6408);
+  }
 }
 
 /*
@@ -743,11 +905,12 @@ int FUN_0014da80(int tag_data, int16_t collision_fn_index)
 {
   void *elem;
 
-  if (collision_fn_index == (int16_t)-1)
-    return -1;
-  elem = tag_block_get_element((void *)(tag_data + 0x234),
-                               (int)collision_fn_index, 0x48);
-  return (int)*(int16_t *)((char *)elem + 0x24);
+  if (collision_fn_index != (int16_t)-1) {
+    elem = tag_block_get_element((void *)(tag_data + 0x234),
+                                 (int)collision_fn_index, 0x48);
+    return (int)*(int16_t *)((char *)elem + 0x24);
+  }
+  return -1;
 }
 
 /* 0x14dab0 — Tests whether a point (param_1) passes a sphere–BSP collision
@@ -1198,16 +1361,16 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
                                      (char *)collision_result + 0x18);
         if (*(int *)((char *)collision_result + 0xc) == -1) {
           float d;
-          float step;
+          double step;
           d =
             FUN_00013070(direction, (float *)((char *)collision_result + 0x24));
           if (d != 0.0f)
-            step = (float)(0.000244140625 / fabs((double)d));
+            step = 0.000244140625 / fabs((double)d);
           else
-            step = 0.03125f;
+            step = 0.03125;
           for (;;) {
             float frac;
-            frac = *(float *)((char *)collision_result + 0x14) - step;
+            frac = (float)(*(float *)((char *)collision_result + 0x14) - step);
             if (!(frac > 0.0f))
               frac = 0.0f;
             *(float *)((char *)collision_result + 0x14) = frac;

@@ -20286,25 +20286,33 @@
       "source": "src/halo/physics/collision_usage.c"
     },
     "FUN_0014da20": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 96.9,
       "addr": "0x14da20",
       "end": "0x14da7b",
       "kind": "auto",
       "n_r": 32,
-      "opnd_percent": 57.1,
+      "opnd_percent": 84.4,
+      "raw_mnemonic_pct": 96.9,
       "ref": "synth",
       "ref_sha": "76ed5c41a6d99a3e",
-      "score": 85.7,
+      "score": 96.9,
       "source": "src/halo/physics/collision_usage.c"
     },
     "FUN_0014da80": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
       "addr": "0x14da80",
       "end": "0x14dab0",
       "kind": "auto",
       "n_r": 19,
-      "opnd_percent": 68.4,
+      "opnd_percent": 89.5,
+      "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "3a8ccd0ab396f0f6",
-      "score": 78.9,
+      "score": 100.0,
       "source": "src/halo/physics/collision_usage.c"
     },
     "FUN_0014dab0": {
@@ -30687,14 +30695,18 @@
       "source": "src/halo/physics/collision_usage.c"
     },
     "collision_log_add_time": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 84.4,
       "addr": "0x14d950",
       "end": "0x14d9c7",
       "kind": "auto",
       "n_r": 45,
-      "opnd_percent": 41.2,
+      "opnd_percent": 53.3,
+      "raw_mnemonic_pct": 84.4,
       "ref": "synth",
       "ref_sha": "545e542b488d8d20",
-      "score": 70.6,
+      "score": 84.4,
       "source": "src/halo/physics/collision_usage.c"
     },
     "collision_log_begin_period": {
@@ -30731,14 +30743,18 @@
       "source": "src/halo/physics/collision_usage.c"
     },
     "collision_log_end_period": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 86.8,
       "addr": "0x14d140",
       "end": "0x14d1a7",
       "kind": "auto",
       "n_r": 27,
-      "opnd_percent": 50.9,
+      "opnd_percent": 60.4,
+      "raw_mnemonic_pct": 86.8,
       "ref": "synth",
       "ref_sha": "776941f8c59696cb",
-      "score": 72.7,
+      "score": 86.8,
       "source": "src/halo/physics/collision_usage.c"
     },
     "collision_log_end_time": {
@@ -30797,14 +30813,18 @@
       "source": "src/halo/physics/collision_usage.c"
     },
     "collision_log_render": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 80.8,
       "addr": "0x14d210",
       "end": "0x14d83e",
       "kind": "auto",
       "n_r": 465,
-      "opnd_percent": 0.4,
+      "opnd_percent": 36.2,
+      "raw_mnemonic_pct": 80.8,
       "ref": "synth",
       "ref_sha": "dc1a51bf4e60e1c8",
-      "score": 0.4,
+      "score": 80.8,
       "source": "src/halo/physics/collision_usage.c"
     },
     "collision_log_usage": {

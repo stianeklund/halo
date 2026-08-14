@@ -5584,12 +5584,12 @@
     },
     {
      "addr": "0x14d100",
-     "decl": "void collision_log_begin_period(__int16 time_period);",
+     "decl": "void collision_log_begin_period(int time_period);",
      "ported": true
     },
     {
      "addr": "0x14d120",
-     "decl": "void collision_log_continue_period(__int16 time_period);",
+     "decl": "void collision_log_continue_period(int time_period);",
      "ported": true
     },
     {
