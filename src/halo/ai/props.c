@@ -383,6 +383,73 @@ int prop_orphan_transition(int actor_handle, int prop_handle)
   return orphan_handle;
 }
 
+/* 0x64970 — prop_orphan_from_friend.
+ *
+ * Same allocate-and-link idiom as prop_orphan_transition (0x648a0), but the
+ * new orphan is initialized from a *friend* prop rather than from the parent:
+ * FUN_000647c0 receives friend_prop_handle in EAX, and the friend's 16-bit
+ * state field is copied into the new orphan when it falls in [4,5].
+ *
+ * Call-site verification (disasm 0x64970):
+ *   0x6497e data_new_at_index: PUSH [0x5ab23c] -> prop_data; result -> ESI
+ *   0x6498d prop_add:          OR EAX,-1 (@eax unit_handle = -1),
+ *                              PUSH EBX = [EBP+8]  -> actor_handle,
+ *                              PUSH ESI            -> orphan_handle
+ *   0x649aa datum_get:         PUSH EDX = prop_data, PUSH ECX = [EBP+0xc]
+ *                              -> EDI = parent_prop
+ *   0x649b8 datum_get:         PUSH EAX = prop_data, PUSH ESI
+ *                              -> [EBP-4] = orphan_prop
+ *   0x649cb datum_get:         PUSH EDX = prop_data, PUSH ECX = [EBP+0x10]
+ *                              -> [EBP-8] = friend_prop
+ *                              (one coalesced ADD ESP,0x18 covers all three)
+ *   0x64a28 FUN_000647c0:      MOV EAX,[EBP+0x10] (@eax friend_prop_handle),
+ *                              PUSH EBX -> actor_handle, PUSH ESI -> orphan
+ *
+ * Store offsets (from disasm, not the decompiler):
+ *   [EDI+0x0c]      = ESI          parent_prop+0x0c = orphan_handle
+ *   [[EBP-4]+0x0c]  = [EBP+0xc]    orphan_prop+0x0c = prop_handle
+ *   MOV AX,word [[EBP-8]+0x24]; CMP AX,4/JL; CMP AX,5/JG;
+ *   MOV word [[EBP-4]+0x24],AX     orphan_prop+0x24 = friend state (int16)
+ *
+ * Return: MOV EAX,ESI at 0x64a54 — the new orphan handle, shared by both the
+ * taken and the untaken (orphan_handle == -1) paths.
+ */
+int prop_orphan_from_friend(int actor_handle, int prop_handle,
+                            int friend_prop_handle)
+{
+  int orphan_handle;
+  char *parent_prop;
+  char *orphan_prop;
+  char *friend_prop;
+  short state;
+
+  orphan_handle = data_new_at_index(prop_data);
+  prop_add(-1, actor_handle, orphan_handle);
+  if (orphan_handle != -1) {
+    parent_prop = (char *)datum_get(prop_data, prop_handle);
+    orphan_prop = (char *)datum_get(prop_data, orphan_handle);
+    friend_prop = (char *)datum_get(prop_data, friend_prop_handle);
+    if (*(int *)(parent_prop + 4) != actor_handle) {
+      display_assert("parent_prop->owner_actor_index == actor_index",
+                     "c:\\halo\\SOURCE\\ai\\props.c", 0x16d, 1);
+      system_exit(-1);
+    }
+    if (*(int *)(parent_prop + 0xc) != -1) {
+      display_assert("parent_prop->orphan_prop_index == NONE",
+                     "c:\\halo\\SOURCE\\ai\\props.c", 0x16e, 1);
+      system_exit(-1);
+    }
+    FUN_000647c0(friend_prop_handle, actor_handle, orphan_handle);
+    *(int *)(parent_prop + 0xc) = orphan_handle;
+    *(int *)(orphan_prop + 0xc) = prop_handle;
+    state = *(short *)(friend_prop + 0x24);
+    if (state >= 4 && state <= 5) {
+      *(short *)(orphan_prop + 0x24) = state;
+    }
+  }
+  return orphan_handle;
+}
+
 /* 0x64a80 — prop_detach.
  * Removes the prop record identified by prop_handle from the actor's prop
  * chain and then frees it from prop_data.

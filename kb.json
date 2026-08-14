@@ -34482,7 +34482,8 @@
     },
     {
      "addr": "0x64970",
-     "decl": "void prop_orphan_from_friend(void);"
+     "decl": "int prop_orphan_from_friend(int actor_handle, int prop_handle, int friend_prop_handle);",
+     "ported": true
     },
     {
      "addr": "0x64a60",
