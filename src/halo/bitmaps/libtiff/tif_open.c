@@ -1305,6 +1305,103 @@ int FUN_0006d180(void *tif_, char *bp0, int cc0, int s)
   return FUN_0006cfa0(tif_, bp0, cc0, s);
 }
 
+/* Encoder-side reset interval, upstream libtiff tif_lzw.c's CHECK_GAP: the
+ * number of input bytes between two compression-ratio checks. Proven by the
+ * immediate at 0x6d27d (`mov dword ptr [esi+0x20],0x2710`). */
+#define CHECK_GAP 10000
+
+/**
+ * Allocate (on first use) and reset the LZW encoder state on a TIFF handle.
+ *
+ * Upstream libtiff's LZWPreEncode, and the exact encode-side mirror of
+ * FUN_0006ce60 (LZWPreDecode) above: same allocation site, same
+ * TIFFPredictorInit hand-off, same "install the predictor wrappers only if a
+ * differencing function was chosen" test, and the same nbits/maxcode/bitpos/
+ * bitlimit/oldcode reset tail. The TU is stamped by the allocation itself --
+ * 0x6d1fb pushes 0x2604d8, `c:\halo\SOURCE\bitmaps\libtiff\tif_lzw.c` -- and
+ * the line number 0x26b (619) sits well past the decoder's 0x134 (308),
+ * which is where upstream places the encoder half of the file.
+ *
+ * Upstream's prototype is `LZWPreEncode(TIFF* tif, tsample_t s)`. The second
+ * argument is never read here (upstream discards it with `(void) s`), and
+ * under cdecl an unread trailing stack slot is invisible, so the one-parameter
+ * kb.json declaration is ABI-identical. It is kept at one parameter rather
+ * than widened on the strength of the disassembly, which touches [ebp+8] only.
+ *
+ * Return value is EAX and has exactly two sites: `xor eax,eax` at 0x6d22b and
+ * `mov eax,1` at 0x6d2bd. Ghidra types the body `void(void)` -- it lost both
+ * the parameter and the return (void-EAX hazard) -- but the two failure paths
+ * (allocation failure at 0x6d216, predictor-init failure at 0x6d255) share one
+ * `return 0` epilogue at 0x6d22a, and the success path returns 1.
+ *
+ * State fields follow lzw_codec_state_t, which FUN_0006ce60 recovered. The
+ * checkpoint at +0x20 is the one field this function needs that the struct
+ * does not expose: the decoder's `prefix` table starts at that same offset, so
+ * the encoder's counters and its hash table are a second view over the block
+ * (the same overlay relationship tiff_predictor_state_t already has with
+ * lzw_codec_state_t). Rather than repad or re-lay-out a struct with a
+ * committed size assert, the single encoder-only store goes through a raw
+ * offset, as tif_flush.c already does for the fax state.
+ *
+ * @param tif_ TIFF handle (declared void* so the generated header needs no
+ *             libtiff types).
+ * @return 1 once the encoder state is allocated and reset; 0 if the state
+ *         block could not be allocated or the predictor refused the setup.
+ */
+int FUN_0006d1e0(void *tif_)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  lzw_codec_state_t *sp = (lzw_codec_state_t *)tif->tif_data;
+
+  if (sp == 0) {
+    /* Not a zeroed allocation (the flag argument is the same zero register the
+     * null test uses, 0x6d200), so the two fields the predictor setup depends
+     * on are cleared by hand -- exactly as the decoder does at 0x6cec2. */
+    tif->tif_data = (tiff_bitstate_t *)debug_malloc(
+      sizeof(lzw_codec_state_t), 0,
+      "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_lzw.c", 0x26b);
+    if (tif->tif_data == 0) {
+      FUN_00068a30("LZWPreEncode", "No space for LZW state block");
+      return 0;
+    }
+    sp = (lzw_codec_state_t *)tif->tif_data;
+    sp->flags = 0;
+    sp->pfunc = 0;
+    /* The two stack arguments are the horizontal DIFFERENCERS this time, not
+     * the accumulators: 0x6c860 for 8-bit samples and 0x6c8d0 for 16-bit ones,
+     * in that push order (0x6d237 then 0x6d232). The handle goes in EAX
+     * (0x6d23c `mov eax,edi`). */
+    if (!FUN_0006c5e0(tif_, (void *)FUN_0006c860, (void *)FUN_0006c8d0)) {
+      return 0;
+    }
+    /* A non-null differencer is this build's spelling of upstream's
+     * `predictor == 2`, the same test the decode path makes. */
+    if (sp->pfunc != 0) {
+      tif->tif_encoderow = FUN_0006d140;
+      tif->tif_encodestrip = FUN_0006d180;
+      tif->tif_encodetile = FUN_0006d180;
+    }
+  }
+  /* +0x20, the encoder's ratio checkpoint. See the overlay note above. */
+  *(int *)((char *)sp + 0x20) = CHECK_GAP;
+  sp->nbits = BITS_MIN;
+  /* The encode side biases maxcode the other way from the decode side: plain
+   * MAXCODE(BITS_MIN) normally (0x1ff at 0x6d28a) and one MORE for old-style
+   * streams (0x200 at 0x6d293), where the decoder used one less. */
+  sp->maxcode = MAXCODE(BITS_MIN);
+  if (sp->flags & LZW_FLAG_OLDSTYLE) {
+    sp->maxcode = MAXCODE(BITS_MIN) + 1;
+  }
+  /* Clear the hash table. Takes the state block in ESI and pushes nothing
+   * (0x6d29a is a bare `call`, and 0x6ca50 opens `lea eax,[esi+0x4e5c]`). */
+  FUN_0006ca50(sp);
+  sp->bitpos = 0;
+  sp->bitlimit = (tif->tif_rawdatasize << 3) - (BITS_MAX - 1);
+  /* -1 forces a CLEAR code to be emitted ahead of the first real code. */
+  sp->oldcode = -1;
+  return 1;
+}
+
 /**
  * Install the LZW codec method table into a TIFF handle.
  *

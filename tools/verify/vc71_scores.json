@@ -1,5 +1,4 @@
 {
-  "version": 2,
   "scores": {
     "D3DResource_BlockUntilNotBusy": {
       "addr": "0x1ed620",
@@ -2946,6 +2945,21 @@
       "score": 100.0,
       "source": "src/halo/ai/ai_debug.c"
     },
+    "FUN_00052ab0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 93.0,
+      "addr": "0x52ab0",
+      "end": "0x52b51",
+      "kind": "auto",
+      "n_r": 56,
+      "opnd_percent": 75.4,
+      "raw_mnemonic_pct": 93.0,
+      "ref": "synth",
+      "ref_sha": "4af14efa6759c453",
+      "score": 93.0,
+      "source": "src/halo/ai/ai_debug.c"
+    },
     "FUN_000534d0": {
       "addr": "0x534d0",
       "end": "0x5361e",
@@ -4717,6 +4731,17 @@
       "score": 96.6,
       "source": "src/halo/ai/path_smoothing.c"
     },
+    "FUN_00063e30": {
+      "addr": "0x63e30",
+      "end": "0x63e82",
+      "kind": "auto",
+      "n_r": 40,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "72a5408fe647322c",
+      "score": 100.0,
+      "source": "src/halo/ai/props.c"
+    },
     "FUN_00064100": {
       "addr": "0x64100",
       "end": "0x6413e",
@@ -4803,6 +4828,17 @@
       "ref": "synth",
       "ref_sha": "c33f35c900a04bdc",
       "score": 78.0,
+      "source": "src/halo/ai/props.c"
+    },
+    "FUN_00064b40": {
+      "addr": "0x64b40",
+      "end": "0x64ccb",
+      "kind": "auto",
+      "n_r": 139,
+      "opnd_percent": 47.7,
+      "ref": "synth",
+      "ref_sha": "b670b4cddac16692",
+      "score": 92.5,
       "source": "src/halo/ai/props.c"
     },
     "FUN_00064ee0": {
@@ -5419,6 +5455,21 @@
       "ref": "synth",
       "ref_sha": "9c8db08a03cb244f",
       "score": 97.4,
+      "source": "src/halo/bitmaps/libtiff/tif_open.c"
+    },
+    "FUN_0006d1e0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 95.1,
+      "addr": "0x6d1e0",
+      "end": "0x6d2c5",
+      "kind": "auto",
+      "n_r": 60,
+      "opnd_percent": 83.6,
+      "raw_mnemonic_pct": 95.1,
+      "ref": "synth",
+      "ref_sha": "e496696accb9a3e6",
+      "score": 95.1,
       "source": "src/halo/bitmaps/libtiff/tif_open.c"
     },
     "FUN_0006d2d0": {
@@ -6510,6 +6561,21 @@
       "score": 100.0,
       "source": "src/halo/cutscene/cinematics.c"
     },
+    "FUN_00093c20": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 91.6,
+      "addr": "0x93c20",
+      "end": "0x93e14",
+      "kind": "auto",
+      "n_r": 180,
+      "opnd_percent": 67.0,
+      "raw_mnemonic_pct": 91.6,
+      "ref": "synth",
+      "ref_sha": "a85a61b93628135e",
+      "score": 91.6,
+      "source": "src/halo/cutscene/cinematics.c"
+    },
     "FUN_00093e20": {
       "addr": "0x93e20",
       "end": "0x9401b",
@@ -6764,19 +6830,19 @@
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0009c700": {
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 80.7,
       "addr": "0x9c700",
       "end": "0x9c748",
       "kind": "auto",
       "n_r": 31,
       "opnd_percent": 73.7,
+      "raw_mnemonic_pct": 79.3,
       "ref": "synth",
       "ref_sha": "2b1d6f5b2b34d747",
       "score": 80.7,
-      "source": "src/halo/effects/effects.c",
-      "abi_model": "regparam_stripped",
-      "abi_model_items": 1,
-      "abi_modeled_mnemonic_pct": 80.7,
-      "raw_mnemonic_pct": 79.3
+      "source": "src/halo/effects/effects.c"
     },
     "FUN_0009c910": {
       "addr": "0x9c910",
@@ -6790,34 +6856,34 @@
       "source": "src/halo/effects/effects.c"
     },
     "FUN_0009c9a0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 97.0,
       "addr": "0x9c9a0",
       "end": "0x9c9c7",
       "kind": "auto",
       "n_r": 16,
       "opnd_percent": 84.8,
+      "raw_mnemonic_pct": 97.0,
       "ref": "synth",
       "ref_sha": "8af825177810b6c7",
       "score": 97.0,
-      "source": "src/halo/effects/effects.c",
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 97.0,
-      "raw_mnemonic_pct": 97.0
+      "source": "src/halo/effects/effects.c"
     },
     "FUN_0009c9f0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 88.7,
       "addr": "0x9c9f0",
       "end": "0x9ca63",
       "kind": "auto",
       "n_r": 45,
       "opnd_percent": 72.2,
+      "raw_mnemonic_pct": 88.7,
       "ref": "synth",
       "ref_sha": "202552f7b4a82693",
       "score": 88.7,
-      "source": "src/halo/effects/effects.c",
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 88.7,
-      "raw_mnemonic_pct": 88.7
+      "source": "src/halo/effects/effects.c"
     },
     "FUN_0009caf0": {
       "addr": "0x9caf0",
@@ -6842,34 +6908,34 @@
       "source": "src/halo/effects/effects.c"
     },
     "FUN_0009cc20": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 82.6,
       "addr": "0x9cc20",
       "end": "0x9cc9f",
       "kind": "auto",
       "n_r": 47,
       "opnd_percent": 73.9,
+      "raw_mnemonic_pct": 82.6,
       "ref": "synth",
       "ref_sha": "cb703b79a6bb591e",
       "score": 82.6,
-      "source": "src/halo/effects/effects.c",
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 82.6,
-      "raw_mnemonic_pct": 82.6
+      "source": "src/halo/effects/effects.c"
     },
     "FUN_0009cca0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 82.0,
       "addr": "0x9cca0",
       "end": "0x9cd80",
       "kind": "auto",
       "n_r": 88,
       "opnd_percent": 67.1,
+      "raw_mnemonic_pct": 82.0,
       "ref": "synth",
       "ref_sha": "2d3fe064ede31a1f",
       "score": 82.0,
-      "source": "src/halo/effects/effects.c",
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 82.0,
-      "raw_mnemonic_pct": 82.0
+      "source": "src/halo/effects/effects.c"
     },
     "FUN_0009cdd0": {
       "addr": "0x9cdd0",
@@ -6883,49 +6949,49 @@
       "source": "src/halo/effects/effects.c"
     },
     "FUN_0009d1f0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 78.6,
       "addr": "0x9d1f0",
       "end": "0x9d2c2",
       "kind": "auto",
       "n_r": 84,
       "opnd_percent": 61.9,
+      "raw_mnemonic_pct": 78.6,
       "ref": "synth",
       "ref_sha": "819ed7686a79d53f",
       "score": 78.6,
-      "source": "src/halo/effects/effects.c",
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 78.6,
-      "raw_mnemonic_pct": 78.6
+      "source": "src/halo/effects/effects.c"
     },
     "FUN_0009d2d0": {
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 80.0,
       "addr": "0x9d2d0",
       "end": "0x9d421",
       "kind": "auto",
       "n_r": 114,
       "opnd_percent": 66.4,
+      "raw_mnemonic_pct": 79.7,
       "ref": "synth",
       "ref_sha": "35bb014b3676785d",
       "score": 80.0,
-      "source": "src/halo/effects/effects.c",
-      "abi_model": "regparam_stripped",
-      "abi_model_items": 1,
-      "abi_modeled_mnemonic_pct": 80.0,
-      "raw_mnemonic_pct": 79.7
+      "source": "src/halo/effects/effects.c"
     },
     "FUN_0009d430": {
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 92.1,
       "addr": "0x9d430",
       "end": "0x9d4dd",
       "kind": "auto",
       "n_r": 64,
       "opnd_percent": 66.7,
+      "raw_mnemonic_pct": 91.3,
       "ref": "synth",
       "ref_sha": "8428e68d28bb732c",
       "score": 92.1,
-      "source": "src/halo/effects/effects.c",
-      "abi_model": "regparam_stripped",
-      "abi_model_items": 1,
-      "abi_modeled_mnemonic_pct": 92.1,
-      "raw_mnemonic_pct": 91.3
+      "source": "src/halo/effects/effects.c"
     },
     "FUN_0009d4e0": {
       "addr": "0x9d4e0",
@@ -6939,34 +7005,34 @@
       "source": "src/halo/effects/effects.c"
     },
     "FUN_0009d590": {
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 78.8,
       "addr": "0x9d590",
       "end": "0x9dcef",
       "kind": "auto",
       "n_r": 561,
       "opnd_percent": 63.6,
+      "raw_mnemonic_pct": 78.7,
       "ref": "synth",
       "ref_sha": "01ee176c6a47efe9",
       "score": 78.8,
-      "source": "src/halo/effects/effects.c",
-      "abi_model": "regparam_stripped",
-      "abi_model_items": 1,
-      "abi_modeled_mnemonic_pct": 78.8,
-      "raw_mnemonic_pct": 78.7
+      "source": "src/halo/effects/effects.c"
     },
     "FUN_0009dcf0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 87.2,
       "addr": "0x9dcf0",
       "end": "0x9e0cc",
       "kind": "auto",
       "n_r": 369,
       "opnd_percent": 43.7,
+      "raw_mnemonic_pct": 87.2,
       "ref": "synth",
       "ref_sha": "5d6d81ad0a3ca65d",
       "score": 87.2,
-      "source": "src/halo/effects/effects.c",
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 87.2,
-      "raw_mnemonic_pct": 87.2
+      "source": "src/halo/effects/effects.c"
     },
     "FUN_0009e180": {
       "addr": "0x9e180",
@@ -6980,34 +7046,34 @@
       "source": "src/halo/effects/effects.c"
     },
     "FUN_0009e310": {
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 75.8,
       "addr": "0x9e310",
       "end": "0x9e55b",
       "kind": "auto",
       "n_r": 200,
       "opnd_percent": 57.4,
+      "raw_mnemonic_pct": 75.6,
       "ref": "synth",
       "ref_sha": "d4e01f68e85fc428",
       "score": 75.8,
-      "source": "src/halo/effects/effects.c",
-      "abi_model": "regparam_stripped",
-      "abi_model_items": 1,
-      "abi_modeled_mnemonic_pct": 75.8,
-      "raw_mnemonic_pct": 75.6
+      "source": "src/halo/effects/effects.c"
     },
     "FUN_0009e560": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 82.1,
       "addr": "0x9e560",
       "end": "0x9e60b",
       "kind": "auto",
       "n_r": 67,
       "opnd_percent": 62.7,
+      "raw_mnemonic_pct": 82.1,
       "ref": "synth",
       "ref_sha": "a89a9a33d0f99397",
       "score": 82.1,
-      "source": "src/halo/effects/effects.c",
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 82.1,
-      "raw_mnemonic_pct": 82.1
+      "source": "src/halo/effects/effects.c"
     },
     "FUN_0009eb40": {
       "addr": "0x9eb40",
@@ -20397,34 +20463,34 @@
       "source": "src/halo/physics/collision_usage.c"
     },
     "FUN_0014da20": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 96.9,
       "addr": "0x14da20",
       "end": "0x14da7b",
       "kind": "auto",
       "n_r": 32,
       "opnd_percent": 84.4,
+      "raw_mnemonic_pct": 96.9,
       "ref": "synth",
       "ref_sha": "76ed5c41a6d99a3e",
       "score": 96.9,
-      "source": "src/halo/physics/collision_usage.c",
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 96.9,
-      "raw_mnemonic_pct": 96.9
+      "source": "src/halo/physics/collision_usage.c"
     },
     "FUN_0014da80": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
       "addr": "0x14da80",
       "end": "0x14dab0",
       "kind": "auto",
       "n_r": 19,
       "opnd_percent": 89.5,
+      "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "3a8ccd0ab396f0f6",
       "score": 100.0,
-      "source": "src/halo/physics/collision_usage.c",
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 100.0,
-      "raw_mnemonic_pct": 100.0
+      "source": "src/halo/physics/collision_usage.c"
     },
     "FUN_0014dab0": {
       "addr": "0x14dab0",
@@ -23657,6 +23723,50 @@
       "score": 89.1,
       "source": "src/halo/scenario/wind.c"
     },
+    "FUN_00190550": {
+      "addr": "0x190550",
+      "end": "0x190661",
+      "kind": "auto",
+      "n_r": 95,
+      "opnd_percent": 96.8,
+      "ref": "synth",
+      "ref_sha": "a3605d87038485e6",
+      "score": 100.0,
+      "source": "src/halo/shaders/shaders.c"
+    },
+    "FUN_00190670": {
+      "addr": "0x190670",
+      "end": "0x190690",
+      "kind": "auto",
+      "n_r": 15,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "cfba40847326c5b0",
+      "score": 100.0,
+      "source": "src/halo/shaders/shaders.c"
+    },
+    "FUN_00190690": {
+      "addr": "0x190690",
+      "end": "0x1906b0",
+      "kind": "auto",
+      "n_r": 15,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "6fc2ff799fe47cde",
+      "score": 100.0,
+      "source": "src/halo/shaders/shaders.c"
+    },
+    "FUN_001906b0": {
+      "addr": "0x1906b0",
+      "end": "0x19070a",
+      "kind": "auto",
+      "n_r": 29,
+      "opnd_percent": 77.2,
+      "ref": "synth",
+      "ref_sha": "3142704269f215c5",
+      "score": 91.2,
+      "source": "src/halo/shaders/shaders.c"
+    },
     "FUN_00191180": {
       "addr": "0x191180",
       "end": "0x19119e",
@@ -25378,19 +25488,19 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001abd90": {
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 91.9,
       "addr": "0x1abd90",
       "end": "0x1ac027",
       "kind": "auto",
       "n_r": 192,
       "opnd_percent": 71.7,
+      "raw_mnemonic_pct": 91.7,
       "ref": "synth",
       "ref_sha": "ef8a5bc124a577a4",
       "score": 91.9,
-      "source": "src/halo/units/units.c",
-      "abi_model": "regparam_stripped",
-      "abi_model_items": 1,
-      "abi_modeled_mnemonic_pct": 91.9,
-      "raw_mnemonic_pct": 91.7
+      "source": "src/halo/units/units.c"
     },
     "FUN_001ac680": {
       "addr": "0x1ac680",
@@ -26247,6 +26357,21 @@
       "score": 100.0,
       "source": "src/halo/bitmaps/libtiff/tif_open.c"
     },
+    "TIFFFdOpen": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 89.4,
+      "addr": "0x6d590",
+      "end": "0x6d81e",
+      "kind": "auto",
+      "n_r": 210,
+      "opnd_percent": 49.6,
+      "raw_mnemonic_pct": 89.4,
+      "ref": "synth",
+      "ref_sha": "653ce440b4c3a13b",
+      "score": 89.4,
+      "source": "src/halo/bitmaps/libtiff/tif_open.c"
+    },
     "TIFFFileName": {
       "addr": "0x6d850",
       "end": "0x6d85a",
@@ -26333,6 +26458,21 @@
       "ref": "synth",
       "ref_sha": "56ba07f9ed6f72dd",
       "score": 92.6,
+      "source": "src/halo/bitmaps/libtiff/tif_dir.c"
+    },
+    "TIFFVSetField": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 91.2,
+      "addr": "0x652f0",
+      "end": "0x658bb",
+      "kind": "auto",
+      "n_r": 454,
+      "opnd_percent": 42.3,
+      "raw_mnemonic_pct": 91.2,
+      "ref": "synth",
+      "ref_sha": "1877a8cb637f2388",
+      "score": 91.2,
       "source": "src/halo/bitmaps/libtiff/tif_dir.c"
     },
     "XAutoPowerDownResetTimer": {
@@ -30817,19 +30957,19 @@
       "source": "src/halo/physics/collision_usage.c"
     },
     "collision_log_add_time": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 84.4,
       "addr": "0x14d950",
       "end": "0x14d9c7",
       "kind": "auto",
       "n_r": 45,
       "opnd_percent": 53.3,
+      "raw_mnemonic_pct": 84.4,
       "ref": "synth",
       "ref_sha": "545e542b488d8d20",
       "score": 84.4,
-      "source": "src/halo/physics/collision_usage.c",
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 84.4,
-      "raw_mnemonic_pct": 84.4
+      "source": "src/halo/physics/collision_usage.c"
     },
     "collision_log_begin_period": {
       "addr": "0x14d100",
@@ -30865,19 +31005,19 @@
       "source": "src/halo/physics/collision_usage.c"
     },
     "collision_log_end_period": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 86.8,
       "addr": "0x14d140",
       "end": "0x14d1a7",
       "kind": "auto",
       "n_r": 27,
       "opnd_percent": 60.4,
+      "raw_mnemonic_pct": 86.8,
       "ref": "synth",
       "ref_sha": "776941f8c59696cb",
       "score": 86.8,
-      "source": "src/halo/physics/collision_usage.c",
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 86.8,
-      "raw_mnemonic_pct": 86.8
+      "source": "src/halo/physics/collision_usage.c"
     },
     "collision_log_end_time": {
       "addr": "0x14eeb0",
@@ -30935,19 +31075,19 @@
       "source": "src/halo/physics/collision_usage.c"
     },
     "collision_log_render": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 80.8,
       "addr": "0x14d210",
       "end": "0x14d83e",
       "kind": "auto",
       "n_r": 465,
       "opnd_percent": 36.2,
+      "raw_mnemonic_pct": 80.8,
       "ref": "synth",
       "ref_sha": "dc1a51bf4e60e1c8",
       "score": 80.8,
-      "source": "src/halo/physics/collision_usage.c",
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 80.8,
-      "raw_mnemonic_pct": 80.8
+      "source": "src/halo/physics/collision_usage.c"
     },
     "collision_log_usage": {
       "addr": "0x14ef30",
@@ -31742,19 +31882,19 @@
       "source": "src/halo/objects/damage.c"
     },
     "dangerous_effects_near_player": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 86.4,
       "addr": "0x9d000",
       "end": "0x9d1e2",
       "kind": "auto",
       "n_r": 173,
       "opnd_percent": 80.0,
+      "raw_mnemonic_pct": 86.4,
       "ref": "synth",
       "ref_sha": "0262cd654e104c75",
       "score": 86.4,
-      "source": "src/halo/effects/effects.c",
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 86.4,
-      "raw_mnemonic_pct": 86.4
+      "source": "src/halo/effects/effects.c"
     },
     "dangerous_items_near_player": {
       "addr": "0xf6970",
@@ -32780,34 +32920,34 @@
       "source": "src/halo/effects/effects.c"
     },
     "effect_new_attached_from_markers": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 82.8,
       "addr": "0x9ee40",
       "end": "0x9f0d1",
       "kind": "auto",
       "n_r": 207,
       "opnd_percent": 74.2,
+      "raw_mnemonic_pct": 82.8,
       "ref": "synth",
       "ref_sha": "fb04fc66e06f2c65",
       "score": 82.8,
-      "source": "src/halo/effects/effects.c",
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 82.8,
-      "raw_mnemonic_pct": 82.8
+      "source": "src/halo/effects/effects.c"
     },
     "effect_new_unattached_from_markers": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 93.5,
       "addr": "0x9f0e0",
       "end": "0x9f311",
       "kind": "auto",
       "n_r": 176,
       "opnd_percent": 76.5,
+      "raw_mnemonic_pct": 93.5,
       "ref": "synth",
       "ref_sha": "b736ac3ab1a2ea9c",
       "score": 93.5,
-      "source": "src/halo/effects/effects.c",
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 93.5,
-      "raw_mnemonic_pct": 93.5
+      "source": "src/halo/effects/effects.c"
     },
     "effect_stop": {
       "addr": "0x9ceb0",
@@ -32821,19 +32961,19 @@
       "source": "src/halo/effects/effects.c"
     },
     "effect_update": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 88.0,
       "addr": "0x9e610",
       "end": "0x9eb3c",
       "kind": "auto",
       "n_r": 439,
       "opnd_percent": 47.0,
+      "raw_mnemonic_pct": 88.0,
       "ref": "synth",
       "ref_sha": "e352ca196d0d4883",
       "score": 88.0,
-      "source": "src/halo/effects/effects.c",
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 88.0,
-      "raw_mnemonic_pct": 88.0
+      "source": "src/halo/effects/effects.c"
     },
     "effects_dispose": {
       "addr": "0x9c6e0",
@@ -32924,19 +33064,19 @@
       "source": "src/halo/effects/effects.c"
     },
     "effects_update": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 98.9,
       "addr": "0x9f320",
       "end": "0x9f3a1",
       "kind": "auto",
       "n_r": 47,
       "opnd_percent": 94.7,
+      "raw_mnemonic_pct": 98.9,
       "ref": "synth",
       "ref_sha": "2efa852f5517966f",
       "score": 98.9,
-      "source": "src/halo/effects/effects.c",
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 98.9,
-      "raw_mnemonic_pct": 98.9
+      "source": "src/halo/effects/effects.c"
     },
     "encode_network_game_message": {
       "addr": "0x12b700",
@@ -40561,6 +40701,50 @@
       "score": 79.1,
       "source": "src/halo/math/vector_math.c"
     },
+    "numeric_countdown_timer_get": {
+      "addr": "0x190c00",
+      "end": "0x190d67",
+      "kind": "auto",
+      "n_r": 131,
+      "opnd_percent": 77.2,
+      "ref": "synth",
+      "ref_sha": "520e8621f075b98f",
+      "score": 96.1,
+      "source": "src/halo/shaders/shaders.c"
+    },
+    "numeric_countdown_timer_restart": {
+      "addr": "0x190da0",
+      "end": "0x190da8",
+      "kind": "auto",
+      "n_r": 2,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "5cf51335fc7b940b",
+      "score": 100.0,
+      "source": "src/halo/shaders/shaders.c"
+    },
+    "numeric_countdown_timer_set": {
+      "addr": "0x190be0",
+      "end": "0x190bf6",
+      "kind": "auto",
+      "n_r": 8,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "12ef44315b7a47cc",
+      "score": 100.0,
+      "source": "src/halo/shaders/shaders.c"
+    },
+    "numeric_countdown_timer_stop": {
+      "addr": "0x190d90",
+      "end": "0x190d98",
+      "kind": "auto",
+      "n_r": 2,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "e46d6ff7e696b7de",
+      "score": 100.0,
+      "source": "src/halo/shaders/shaders.c"
+    },
     "numeric_countdown_timer_update": {
       "addr": "0x190db0",
       "end": "0x190e05",
@@ -46413,6 +46597,127 @@
       "score": 81.0,
       "source": "src/halo/main/main.c"
     },
+    "shader_get_vertex_shader_permutation": {
+      "addr": "0x190710",
+      "end": "0x190810",
+      "kind": "auto",
+      "n_r": 96,
+      "opnd_percent": 95.8,
+      "ref": "synth",
+      "ref_sha": "4b0967e28cb7d932",
+      "score": 95.8,
+      "source": "src/halo/shaders/shaders.c"
+    },
+    "shader_ignores_effect": {
+      "addr": "0x190980",
+      "end": "0x1909c2",
+      "kind": "auto",
+      "n_r": 29,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "63ee9ba8b5af7696",
+      "score": 100.0,
+      "source": "src/halo/shaders/shaders.c"
+    },
+    "shader_is_decal": {
+      "addr": "0x1908a0",
+      "end": "0x19090d",
+      "kind": "auto",
+      "n_r": 46,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "736244d3b55e5839",
+      "score": 100.0,
+      "source": "src/halo/shaders/shaders.c"
+    },
+    "shader_is_mirror": {
+      "addr": "0x190830",
+      "end": "0x190876",
+      "kind": "auto",
+      "n_r": 27,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "827a2007b6d62ab0",
+      "score": 100.0,
+      "source": "src/halo/shaders/shaders.c"
+    },
+    "shader_is_water_decal": {
+      "addr": "0x190930",
+      "end": "0x190972",
+      "kind": "auto",
+      "n_r": 29,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "53b2aafbf48e0381",
+      "score": 100.0,
+      "source": "src/halo/shaders/shaders.c"
+    },
+    "shader_type_is_lightmapped": {
+      "addr": "0x1909f0",
+      "end": "0x190a0c",
+      "kind": "auto",
+      "n_r": 13,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "65b1df96d1754e51",
+      "score": 100.0,
+      "source": "src/halo/shaders/shaders.c"
+    },
+    "shader_type_is_transparent": {
+      "addr": "0x1909d0",
+      "end": "0x1909ec",
+      "kind": "auto",
+      "n_r": 13,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "c23d0efe1462177d",
+      "score": 100.0,
+      "source": "src/halo/shaders/shaders.c"
+    },
+    "shader_type_is_valid_for_environment": {
+      "addr": "0x190a30",
+      "end": "0x190a4c",
+      "kind": "auto",
+      "n_r": 13,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "c47bb3ad498c4e9e",
+      "score": 100.0,
+      "source": "src/halo/shaders/shaders.c"
+    },
+    "shader_type_is_valid_for_model": {
+      "addr": "0x190a50",
+      "end": "0x190a67",
+      "kind": "auto",
+      "n_r": 11,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "a5aa9ccabf81ff4a",
+      "score": 100.0,
+      "source": "src/halo/shaders/shaders.c"
+    },
+    "shader_type_is_valid_for_modifier": {
+      "addr": "0x190a70",
+      "end": "0x190a8c",
+      "kind": "auto",
+      "n_r": 13,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "781e69a9a2f1300c",
+      "score": 100.0,
+      "source": "src/halo/shaders/shaders.c"
+    },
+    "shader_type_is_vertex_lit": {
+      "addr": "0x190a10",
+      "end": "0x190a27",
+      "kind": "auto",
+      "n_r": 11,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "9d6f0543eb6d790d",
+      "score": 100.0,
+      "source": "src/halo/shaders/shaders.c"
+    },
     "shell_application_is_paused": {
       "addr": "0x191170",
       "end": "0x191176",
@@ -51209,6 +51514,17 @@
       "score": 100.0,
       "source": "src/halo/objects/widgets/widgets.c"
     },
+    "wind_initialize_for_new_map": {
+      "addr": "0x190500",
+      "end": "0x19054b",
+      "kind": "auto",
+      "n_r": 19,
+      "opnd_percent": 89.5,
+      "ref": "synth",
+      "ref_sha": "94df6c88bf52865a",
+      "score": 100.0,
+      "source": "src/halo/scenario/wind.c"
+    },
     "wind_update": {
       "addr": "0x18ffe0",
       "end": "0x190231",
@@ -51362,308 +51678,7 @@
       "ref_sha": "617228161245735b",
       "score": 94.1,
       "source": "src/halo/memory/circular_queue.c"
-    },
-    "FUN_00063e30": {
-      "addr": "0x63e30",
-      "end": "0x63e82",
-      "kind": "auto",
-      "n_r": 40,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "72a5408fe647322c",
-      "score": 100.0,
-      "source": "src/halo/ai/props.c"
-    },
-    "FUN_00064b40": {
-      "addr": "0x64b40",
-      "end": "0x64ccb",
-      "kind": "auto",
-      "n_r": 139,
-      "opnd_percent": 47.7,
-      "ref": "synth",
-      "ref_sha": "b670b4cddac16692",
-      "score": 92.5,
-      "source": "src/halo/ai/props.c"
-    },
-    "TIFFVSetField": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 91.2,
-      "addr": "0x652f0",
-      "end": "0x658bb",
-      "kind": "auto",
-      "n_r": 454,
-      "opnd_percent": 42.3,
-      "raw_mnemonic_pct": 91.2,
-      "ref": "synth",
-      "ref_sha": "1877a8cb637f2388",
-      "score": 91.2,
-      "source": "src/halo/bitmaps/libtiff/tif_dir.c"
-    },
-    "FUN_00190550": {
-      "addr": "0x190550",
-      "end": "0x190661",
-      "kind": "auto",
-      "n_r": 95,
-      "opnd_percent": 96.8,
-      "ref": "synth",
-      "ref_sha": "a3605d87038485e6",
-      "score": 100.0,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "FUN_00190670": {
-      "addr": "0x190670",
-      "end": "0x190690",
-      "kind": "auto",
-      "n_r": 15,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "cfba40847326c5b0",
-      "score": 100.0,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "FUN_00190690": {
-      "addr": "0x190690",
-      "end": "0x1906b0",
-      "kind": "auto",
-      "n_r": 15,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "6fc2ff799fe47cde",
-      "score": 100.0,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "FUN_001906b0": {
-      "addr": "0x1906b0",
-      "end": "0x19070a",
-      "kind": "auto",
-      "n_r": 29,
-      "opnd_percent": 77.2,
-      "ref": "synth",
-      "ref_sha": "3142704269f215c5",
-      "score": 91.2,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "numeric_countdown_timer_get": {
-      "addr": "0x190c00",
-      "end": "0x190d67",
-      "kind": "auto",
-      "n_r": 131,
-      "opnd_percent": 77.2,
-      "ref": "synth",
-      "ref_sha": "520e8621f075b98f",
-      "score": 96.1,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "numeric_countdown_timer_restart": {
-      "addr": "0x190da0",
-      "end": "0x190da8",
-      "kind": "auto",
-      "n_r": 2,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "5cf51335fc7b940b",
-      "score": 100.0,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "numeric_countdown_timer_set": {
-      "addr": "0x190be0",
-      "end": "0x190bf6",
-      "kind": "auto",
-      "n_r": 8,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "12ef44315b7a47cc",
-      "score": 100.0,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "numeric_countdown_timer_stop": {
-      "addr": "0x190d90",
-      "end": "0x190d98",
-      "kind": "auto",
-      "n_r": 2,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "e46d6ff7e696b7de",
-      "score": 100.0,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "shader_get_vertex_shader_permutation": {
-      "addr": "0x190710",
-      "end": "0x190810",
-      "kind": "auto",
-      "n_r": 96,
-      "opnd_percent": 95.8,
-      "ref": "synth",
-      "ref_sha": "4b0967e28cb7d932",
-      "score": 95.8,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "shader_ignores_effect": {
-      "addr": "0x190980",
-      "end": "0x1909c2",
-      "kind": "auto",
-      "n_r": 29,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "63ee9ba8b5af7696",
-      "score": 100.0,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "shader_is_decal": {
-      "addr": "0x1908a0",
-      "end": "0x19090d",
-      "kind": "auto",
-      "n_r": 46,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "736244d3b55e5839",
-      "score": 100.0,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "shader_is_mirror": {
-      "addr": "0x190830",
-      "end": "0x190876",
-      "kind": "auto",
-      "n_r": 27,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "827a2007b6d62ab0",
-      "score": 100.0,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "shader_is_water_decal": {
-      "addr": "0x190930",
-      "end": "0x190972",
-      "kind": "auto",
-      "n_r": 29,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "53b2aafbf48e0381",
-      "score": 100.0,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "shader_type_is_lightmapped": {
-      "addr": "0x1909f0",
-      "end": "0x190a0c",
-      "kind": "auto",
-      "n_r": 13,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "65b1df96d1754e51",
-      "score": 100.0,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "shader_type_is_transparent": {
-      "addr": "0x1909d0",
-      "end": "0x1909ec",
-      "kind": "auto",
-      "n_r": 13,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "c23d0efe1462177d",
-      "score": 100.0,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "shader_type_is_valid_for_environment": {
-      "addr": "0x190a30",
-      "end": "0x190a4c",
-      "kind": "auto",
-      "n_r": 13,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "c47bb3ad498c4e9e",
-      "score": 100.0,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "shader_type_is_valid_for_model": {
-      "addr": "0x190a50",
-      "end": "0x190a67",
-      "kind": "auto",
-      "n_r": 11,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "a5aa9ccabf81ff4a",
-      "score": 100.0,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "shader_type_is_valid_for_modifier": {
-      "addr": "0x190a70",
-      "end": "0x190a8c",
-      "kind": "auto",
-      "n_r": 13,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "781e69a9a2f1300c",
-      "score": 100.0,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "shader_type_is_vertex_lit": {
-      "addr": "0x190a10",
-      "end": "0x190a27",
-      "kind": "auto",
-      "n_r": 11,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "9d6f0543eb6d790d",
-      "score": 100.0,
-      "source": "src/halo/shaders/shaders.c"
-    },
-    "wind_initialize_for_new_map": {
-      "addr": "0x190500",
-      "end": "0x19054b",
-      "kind": "auto",
-      "n_r": 19,
-      "opnd_percent": 89.5,
-      "ref": "synth",
-      "ref_sha": "94df6c88bf52865a",
-      "score": 100.0,
-      "source": "src/halo/scenario/wind.c"
-    },
-    "FUN_00052ab0": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 93.0,
-      "addr": "0x52ab0",
-      "end": "0x52b51",
-      "kind": "auto",
-      "n_r": 56,
-      "opnd_percent": 75.4,
-      "raw_mnemonic_pct": 93.0,
-      "ref": "synth",
-      "ref_sha": "4af14efa6759c453",
-      "score": 93.0,
-      "source": "src/halo/ai/ai_debug.c"
-    },
-    "FUN_00093c20": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 91.6,
-      "addr": "0x93c20",
-      "end": "0x93e14",
-      "kind": "auto",
-      "n_r": 180,
-      "opnd_percent": 67.0,
-      "raw_mnemonic_pct": 91.6,
-      "ref": "synth",
-      "ref_sha": "a85a61b93628135e",
-      "score": 91.6,
-      "source": "src/halo/cutscene/cinematics.c"
-    },
-    "TIFFFdOpen": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 89.4,
-      "addr": "0x6d590",
-      "end": "0x6d81e",
-      "kind": "auto",
-      "n_r": 210,
-      "opnd_percent": 49.6,
-      "raw_mnemonic_pct": 89.4,
-      "ref": "synth",
-      "ref_sha": "653ce440b4c3a13b",
-      "score": 89.4,
-      "source": "src/halo/bitmaps/libtiff/tif_open.c"
     }
-  }
+  },
+  "version": 2
 }

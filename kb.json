@@ -35027,7 +35027,7 @@
     },
     {
      "addr": "0x6ca50",
-     "decl": "void FUN_0006ca50(void);"
+     "decl": "void FUN_0006ca50(void *sp@<esi>);"
     },
     {
      "addr": "0x6cac0",
@@ -35079,7 +35079,8 @@
     },
     {
      "addr": "0x6d1e0",
-     "decl": "int FUN_0006d1e0(void *tif);"
+     "decl": "int FUN_0006d1e0(void *tif);",
+     "ported": true
     },
     {
      "addr": "0x6d2d0",
