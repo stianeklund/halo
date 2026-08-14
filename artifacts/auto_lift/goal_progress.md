@@ -5126,6 +5126,9 @@ Detailed notes saved to /mnt/g/dev/halo-clean-main/.claude/agent-memory/xbox-hal
 ## Goal-lift run — 2026-08-14 (props.obj)
 
 **Objective:** props.obj target selection from frontier queue
+## Goal-lift run — 2026-08-14 (shaders.obj + wind.obj)
+
+**Objective:** Mixed shaders.obj and wind.obj target selection from frontier queue
 
 **Result:** 12/12 committed (goal_reached)
 
@@ -5152,6 +5155,18 @@ Detailed notes saved to /mnt/g/dev/halo-clean-main/.claude/agent-memory/xbox-hal
 | FUN_00065160 | 0x65160 | props.obj (kb objects[181], source ai/props.c) — SUSPECT: content is vendored libtiff, see hazards | 100 | committed | mechanical gate: 100% clean (pass1) |
 | FUN_000651a0 | 0x651a0 | props.obj (kb entry has NO "obj" field; batch labels it props.obj). TRUE identity is vendored libtiff `tif_compress.c` — the address falls in the same folded libtiff run as FUN_00064ee0 (TIFFClose), which was already placed in src/halo/ai/props.c with an explicit comment that it "was incorrectly grouped under props.obj in kb.json". Follow that precedent. | 100 | committed | pass1 |
 | prop_new_unacknowledged | 0x645a0 | props.obj | 91.3 | committed | mechanical gate: 91.3% clean (pass1+permute) |
+| FUN_001906b0 | 0x1906b0 | shaders.obj (TU: c:\halo\SOURCE\shaders\shader_definitions.c — __FILE__ assert xref, confirmed) | 91.2 | committed | mechanical gate: 91.2% clean (pass1) |
+| shader_get_vertex_shader_permutation | 0x190710 | shaders.obj | 95.8 | committed | mechanical gate: 95.8% clean (pass1) |
+| shader_is_decal | 0x1908a0 | shaders.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| shader_is_water_decal | 0x190930 | shaders.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| shader_ignores_effect | 0x190980 | shaders.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| wind_initialize_for_new_map | 0x190500 | wind.obj (TU is c:\halo\SOURCE\scenario\wind.c per __FILE__ assert xref — NOT shaders.obj as the task brief stated; the existing source file is src/halo/scenario/wind.c) | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_00190550 | 0x190550 | shaders.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_00190670 | 0x190670 | shaders.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_00190690 | 0x190690 | shaders.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| shader_is_mirror | 0x190830 | shaders.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| shader_type_is_transparent | 0x1909d0 | shaders.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| shader_type_is_lightmapped | 0x1909f0 | shaders.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
 
 ### Analysis
 
@@ -5204,6 +5219,28 @@ Detailed notes saved to /mnt/g/dev/halo-clean-main/.claude/agent-memory/xbox-hal
 **Objective:** Second frontier sample from props.obj; focus on remaining unlifted targets after initial 12/12 batch.
 
 **Result:** 2/12 committed (queue_exhausted)
+All 12 targets passed the mechanical ≥90% VC71 scoring gate in pass1:
+- **shaders.obj (11 functions):** Scores 91.2% to 100% VC71; TU confirmed as c:\halo\SOURCE\shaders\shader_definitions.c
+- **wind.obj (1 function):** wind_initialize_for_new_map at 100% VC71; TU is c:\halo\SOURCE\scenario\wind.c (existing source: src/halo/scenario/wind.c)
+
+All committed without blockers. Queue fully exhausted.
+
+**Parked:** None
+
+**Queue Status:** Exhausted — 12/12 targets processed.
+
+### Summary
+
+**Campaign Status:** shaders.obj + wind.obj mixed frontier sample complete (goal reached).
+- **Committed:** 12 functions (11 from shaders.obj, 1 from wind.obj; mean score 98.5% VC71)
+- **Parked:** 0 functions
+- **Next Step:** Main-branch integration of all 12 committed functions. Reintegrate to main per `reintegrate-to-main` skill protocol.
+
+## Goal-lift run — 2026-08-14 shaders.obj (8/12 committed, queue_exhausted)
+
+**Objective:** Continued shaders.obj frontier frontier target processing
+
+**Result:** 8/12 committed (queue_exhausted)
 
 ### Run Summary Table
 
@@ -5252,4 +5289,39 @@ Detailed notes saved to /mnt/g/dev/halo-clean-main/.claude/agent-memory/xbox-hal
 - **Object Attribution Alert:** At least 3 committed/skipped functions are confirmed libtiff (TU evidence: tif_dir.c, tif_compress.c); kb.json object boundaries need audit before landing.
 - **ABI Recovery Opportunity:** Unblocking 5 register-arg pre-screens + widening 4 kb.json callees (TIFFDefaultDirectory, FUN_00065250, FUN_000652a0, FUN_000647c0) would enable ~5–8 additional lifts from this cluster. Root causes are all kb.json declaration gaps, not structural unsounders.
 - **Next Step:** (1) Audit and correct kb.json object assignments (props.obj → libtiff TUs); (2) Widen @<reg> annotations for register-arg functions; (3) Correct callee ABI declarations; (4) Revisit this queue after unblocking.
+| shader_type_is_vertex_lit | 0x190a10 | shaders.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| shader_type_is_valid_for_environment | 0x190a30 | shaders.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| shader_type_is_valid_for_model | 0x190a50 | shaders.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| shader_type_is_valid_for_modifier | 0x190a70 | shaders.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| numeric_countdown_timer_set | 0x190be0 | shaders.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| numeric_countdown_timer_stop | 0x190d90 | shaders.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| numeric_countdown_timer_restart | 0x190da0 | shaders.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| numeric_countdown_timer_get | 0x190c00 | shaders.obj | 96.1 | committed | mechanical gate: 96.1% clean (pass1) |
+| shader_environment_texture_animation_evaluate | 0x190a90 | shaders.obj (TU: c:\halo\SOURCE\shaders\shaders.c — __FILE__ assert xref, confirmed) | 86.2 | parked | NEEDS_RUNTIME: 86.2% below 90% floor; comprehensive binary audit passed (6 struct offsets verified, +0x6c rebase confirmed, divide direction proven, all assertions hardcoded line-number checked, call-argument audit closed with callee-side proof for FUN_0010a5e0, FCOM-WARN disproven via .rdata 0.0f constant read and TEST AH,0x44 parity decode). Equivalence lane blocked: delinked shaders.obj missing from artifacts/delinked/. Claimed permuter backing has no artifact (artifacts/permuter/ has only 2 other targets). Mismatch classes: assert bool materialization (+6 insns, source-form only), ordered/unordered FCOM (observable only with unmasked FPU #IA and NaN period, low risk), LCS pairing artifact on identical repeated assert tails (proven from macro expansion), ESP cleanup scheduling (traced balanced on both sides). Function has 8 live XBE call sites in environment-shader draw path (0x160b14, 0x1618dd, 0x1626f1, 0x162cd6, 0x163ac3, 0x164269, 0x164a96, 0x165145). To unblock: export delinked shaders.obj and run `unicorn_diff.py shader_environment_texture_animation_evaluate --seeds 100 --allow-stubs --mem-trace --float-tolerance 32`. Alternatively add golden-master harness case (small pure computation, well-suited). Note: source file has CRLF→LF conversion (~1560 line whole-file diff obscuring +62 real lines); should be split into separate commit. Undisclosed collateral: units.c call-site retyping of shader_type_is_valid_for_model (FUN_00123560 75.9→76.5%, +0.6pp gain, benign), must be disclosed separately. |
+| FUN_00190380 | 0x190380 | shaders.obj (per kb.json objects[104]) — but binary evidence says wind.obj | 74.4 | parked | escalation_exhausted: Register-parameter structural ceiling (@<reg> decl in kb.json but no forward-declaration prototype visible in source). Binary evidence for XBE turnaround on object boundaries suggests misclassified object assignment (TU is c:\halo\SOURCE\scenario\wind.c per __FILE__ xref, not shaders.c). 74.4% indicates sub-bar structural issue. Parked for resolution: confirm true object/TU assignment via binary DWARF or __FILE__ string analysis; if wind.obj, merge with wind.obj logical grouping. |
+| FUN_00190240 | 0x190240 | shaders.obj | 83 | parked | escalation_exhausted: 83% below 90% floor; no documented lever identified. Mismatch class unspecified in artifacts. Requires audit: (a) verify mismatch classification via score_context/, (b) trace call-argument frame shapes, (c) probe for x87 operand-order or struct-field-offset recovery opportunities, or (d) equivalence lane with live memory replay if structurally stuck. |
+
+### Analysis
+
+**Committed (8 functions):**
+- **7 functions at 100% VC71:** shader_type_is_vertex_lit, shader_type_is_valid_for_environment, shader_type_is_valid_for_model, shader_type_is_valid_for_modifier, numeric_countdown_timer_set, numeric_countdown_timer_stop, numeric_countdown_timer_restart. All pass mechanical gate trivially.
+- **1 function at 96.1% VC71:** numeric_countdown_timer_get. Passes mechanical ≥90% gate; committed.
+- **Mean VC71:** 98.6% (8/8 committed).
+
+**Parked (3 functions):**
+1. **shader_environment_texture_animation_evaluate (0x190a90) — 86.2% VC71** — NEEDS_RUNTIME class. Below 90% floor; structural match is sound (comprehensive binary audit: 6 struct offsets verified, rebase confirmed, divide direction proven, all call arguments audited with callee-side proof, all assertion line numbers and strings read from XBE and matched, assert bool materialization classified as source-form-only, FCOM warning disproven via .rdata constant read and parity decoding). Mismatch classes all enumerated and arithmetically reconciled (99 cand vs 96 ref insns, 3-insn gap fully accounted). Build passes, ABI audit clean, hazard scan clean, zero VC71 regressions across the 19 pre-existing shaders.c functions. Behavioral lane missing: equivalence lane blocked by absent delinked shaders.obj; no golden-master harness case; claimed "pass1+permute" permuter backing has no artifact trail. Function has 8 live XBE call sites in environment-shader draw path, so blast radius is significant and visual regressions (wrong selector, flipped divide, scaled incorrectly) would silently pass structure checks. Recovery path: export delinked shaders.obj and run equivalence with `--allow-stubs --mem-trace --float-tolerance 32`; or add golden-master harness case (function is small pure computation, well-suited to harness). Hygiene note: source file has CRLF→LF conversion obscuring the +62-line real delta in a 1560-line whole-file diff; should be split into separate commit. Collateral disclosure: units.c has undisclosed call-site retyping of shader_type_is_valid_for_model within FUN_00123560, producing +0.6pp VC71 gain (75.9→76.5%); is benign but must be disclosed in separate commit.
+
+2. **FUN_00190380 (0x190380) — 74.4% VC71** — Escalation exhausted. kb.json marks as shaders.obj, but binary evidence (XBE turnaround on object boundaries, __FILE__ string xref analysis) suggests TU is c:\halo\SOURCE\scenario\wind.c (wind.obj, not shaders.obj). Register-parameter structural ceiling indicated by @<reg> kb.json decl but no forward-declaration prototype found in source. Recovery path: (a) confirm true object/TU assignment via binary DWARF or __FILE__ xref; (b) if wind.obj, group logically with wind.obj targets; (c) audit for @<reg> parameter shaping and register-arg callee consistency.
+
+3. **FUN_00190240 (0x190240) — 83% VC71** — Escalation exhausted. Below 90% floor; no mismatch classification or recovery lever identified in artifacts. Recovery path: (a) audit via score_context/ to enumerate mismatch classes; (b) trace call-argument frame shapes against disassembly; (c) probe for x87 operand-order or struct-field-offset recovery opportunities; (d) equivalence lane with live memory replay if structurally stuck at <85%.
+
+**Queue Status:** Exhausted — 11 targets processed (8 committed, 3 parked). One additional target in briefing (shader_environment_texture_animation_evaluate + 2 others) was processed.
+
+### Summary
+
+**Campaign Status:** shaders.obj frontier sample partially committed (8/12 = 66.7% pass rate).
+- **Committed:** 8 functions (7 at 100%, 1 at 96.1%; mean 98.6% VC71)
+- **Parked:** 3 functions (86.2%, 74.4%, 83% VC71; all below 90% floor or with structural/object-assignment uncertainty)
+- **Blockers:** shader_environment_texture_animation_evaluate needs delinked shaders.obj export + equivalence run; FUN_00190380 needs binary TU confirmation (wind.obj vs shaders.obj); FUN_00190240 needs mismatch audit and recovery lever discovery.
+- **Next Step:** Land 8 committed functions to main per `reintegrate-to-main` skill protocol. Escalate 3 parked targets: export delinked shaders.obj for equivalence unblock, resolve FUN_00190380 object assignment ambiguity, and audit FUN_00190240 mismatch classes for recovery lever identification.
 

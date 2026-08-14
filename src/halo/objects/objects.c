@@ -105,7 +105,6 @@ double pow(double x, double y);
 #define CALL_FUN_00180660(a, b) XCALL(0x180660, void (*)(int, void *))(a, b)
 #define CALL_FUN_00189150(a, b, c, d) \
   XCALL(0x189150, void (*)(int, int, float, void *))(a, b, c, d)
-#define CALL_FUN_001906b0(a, b) XCALL(0x1906b0, int (*)(int, int))(a, b)
 #define CALL_FUN_007c490(a, b, c, d, e, f)                          \
   XCALL(0x7c490, void (*)(int, int, void *, void *, void *, float)) \
   (a, b, c, d, e, f)
@@ -4144,7 +4143,7 @@ char FUN_0013ab20(unsigned int param_1, int param_2, int *param_3)
     iVar6 = (int)tag_block_get_element(psVar3 + 10, (int)local_20[0], 0x100);
     iVar4 = (int)tag_get(0x73686472, *(int *)(iVar6 + 0xc));
     if (*(short *)(iVar4 + 0x24) == 3 &&
-        (local_14 = (int)CALL_FUN_001906b0(iVar4, 3),
+        (local_14 = (int)FUN_001906b0((void *)iVar4, 3),
          *(int *)(iVar2 + 0xc) != -1) &&
         *psVar3 != -1 && *(int *)(local_14 + 0x94) != -1) {
       puVar5 = (unsigned short *)tag_block_get_element((void *)(iVar2 + 0xf8),

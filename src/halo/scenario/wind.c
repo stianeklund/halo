@@ -67,9 +67,11 @@ void FUN_0018ff00(float *out, float *position, float scale, float magnitude)
   int bank;
   int count;
   int idx;
-  const float (*table)[3] = (const float (*)[3])0x5057c4;
+  const float(*table)[3] = (const float(*)[3])0x5057c4;
 
-  typedef struct { float v[3]; } vec3_t;
+  typedef struct {
+    float v[3];
+  } vec3_t;
   mag = magnitude * *(float *)0x259ec0;
   *(vec3_t *)out = *(const vec3_t *)*(const void **)0x31fc38;
   timescale[0] = 0.1f;
@@ -84,7 +86,8 @@ void FUN_0018ff00(float *out, float *position, float scale, float magnitude)
     *(volatile float *)&magnitude =
       ((float)*(int *)0x5064c8 * ts_val * scale + pos_val) * *(float *)0x253f78;
     *(volatile int *)&magnitude &= 0x7fffffff;
-    *(volatile float *)&magnitude = *(volatile float *)&magnitude + *(float *)0x2b229c;
+    *(volatile float *)&magnitude =
+      *(volatile float *)&magnitude + *(float *)0x2b229c;
     idx = (short)(*(char *)&magnitude & 0x3f) + bank;
     out[0] = out[0] + table[idx][0];
     out[1] = out[1] + table[idx][1];
@@ -133,8 +136,10 @@ void wind_update(void)
     {
       float val_t = rec->t + delta;
       rec->t = val_t;
-      if (val_t < 0.0f) val_t = 0.0f;
-      else if (val_t > 1.0f) val_t = 1.0f;
+      if (val_t < 0.0f)
+        val_t = 0.0f;
+      else if (val_t > 1.0f)
+        val_t = 1.0f;
       rec->t = val_t;
     }
 
@@ -143,8 +148,10 @@ void wind_update(void)
     {
       float val_yaw = rec->yaw_perturbation + delta;
       rec->yaw_perturbation = val_yaw;
-      if (val_yaw < -1.0f) val_yaw = -1.0f;
-      else if (val_yaw > 1.0f) val_yaw = 1.0f;
+      if (val_yaw < -1.0f)
+        val_yaw = -1.0f;
+      else if (val_yaw > 1.0f)
+        val_yaw = 1.0f;
       rec->yaw_perturbation = val_yaw;
     }
 
@@ -153,8 +160,10 @@ void wind_update(void)
     {
       float val_pitch = rec->pitch_perturbation + delta;
       rec->pitch_perturbation = val_pitch;
-      if (val_pitch < -1.0f) val_pitch = -1.0f;
-      else if (val_pitch > 1.0f) val_pitch = 1.0f;
+      if (val_pitch < -1.0f)
+        val_pitch = -1.0f;
+      else if (val_pitch > 1.0f)
+        val_pitch = 1.0f;
       rec->pitch_perturbation = val_pitch;
     }
 
@@ -172,4 +181,27 @@ void wind_update(void)
   }
 
   *(int16_t *)0x5060c4 = (int16_t)*block;
+}
+
+/* 0x190500 — wind_initialize_for_new_map
+ *
+ * Called once per map load. Touches the scenario (scenario_get() is invoked
+ * purely for its own asserts/side effects; the returned pointer is discarded
+ * at this call site), asserts that the wind globals are NOT yet initialized
+ * (!wind_globals.initialized @ 0x5057c0, wind.c:65), then zeroes the whole
+ * wind_globals block (0x5057c0, 0xd0c bytes) and sets the initialized byte
+ * afterwards -- the store order is load-bearing, since the byte lives inside
+ * the memset range. Tail-calls FUN_00190380 to build the derived state.
+ */
+void wind_initialize_for_new_map(void)
+{
+  scenario_get();
+  if (*(char *)0x5057c0 != 0) {
+    display_assert("!wind_globals.initialized",
+                   "c:\\halo\\SOURCE\\scenario\\wind.c", 0x41, 1);
+    system_exit(-1);
+  }
+  csmemset((void *)0x5057c0, 0, 0xd0c);
+  *(char *)0x5057c0 = 1;
+  FUN_00190380();
 }
