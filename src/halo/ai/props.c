@@ -116,6 +116,51 @@ void FUN_00064160(void)
   data_make_invalid(prop_data);
 }
 
+/* 0x643d0 — allocate a prop and attach it to an actor.
+ *
+ * Allocates a slot in prop_data, initialises it via prop_add with no unit
+ * handle (NONE), and returns the new prop handle.  Same head-of-function
+ * idiom as prop_orphan_transition (0x648a0), which does the identical
+ * data_new_at_index / prop_add(-1, actor_handle, new_handle) pair.
+ *
+ * No name is claimed: the binary carries no assert string or __FILE__ line
+ * for this function, so the FUN_ symbol is retained.
+ *
+ * Frame (from disasm 0x643d0-0x643f6, 15 instructions):
+ *   PUSH EBP / MOV EBP,ESP / PUSH ESI — no `sub esp`, so no locals; ESI is
+ *   the only callee-saved register and holds the new prop handle across the
+ *   second call.
+ *
+ * Ghidra's decompile is wrong in three ways and must not be transcribed:
+ * the stale `void FUN_000643d0(void)` kb prototype hid the single [EBP+8]
+ * parameter, the EAX return (via ESI) was dropped, and prop_add appeared
+ * argument-less.  `OR EAX,0xffffffff` before the CALL is prop_add's @<eax>
+ * register argument (unit_handle = NONE), not dead code.
+ *
+ * Call-site verification table:
+ *   CALL 0x119610 data_new_at_index (cdecl, 1 stack arg):
+ *     arg1 | MOV EAX,[0x5ab23c]; PUSH EAX | prop_data     | YES
+ *     ret  | MOV ESI,EAX                  | prop_handle   | YES
+ *   CALL 0x64170 prop_add (@<eax> + 2 stack args):
+ *     arg1 | OR EAX,0xffffffff (@<eax>)   | -1            | YES
+ *     arg2 | PUSH ECX (= MOV ECX,[EBP+8]) | actor_handle  | YES  (last push)
+ *     arg3 | PUSH ESI                     | prop_handle   | YES
+ *   The single `ADD ESP,0xc` after the second CALL is MSVC coalescing the
+ *   cleanup for both calls (1 push + 2 pushes); it is not a 3-stack-arg
+ *   prop_add, so the ARG_COUNT audit warning on 0x64170 is benign.
+ *   return | MOV EAX,ESI | prop_handle | YES
+ *
+ * Store-offset table: none — this function writes no struct or stack buffer.
+ */
+int FUN_000643d0(int actor_handle)
+{
+  int prop_handle;
+
+  prop_handle = data_new_at_index(prop_data);
+  prop_add(-1, actor_handle, prop_handle);
+  return prop_handle;
+}
+
 /* 0x64400 — prop_unlink_from_actor (@eax=actor_handle, @edi=prop_handle).
  *
  * Splices prop_handle out of the actor's singly-linked prop chain.  The chain

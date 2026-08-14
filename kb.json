@@ -34464,7 +34464,8 @@
     },
     {
      "addr": "0x643d0",
-     "decl": "void FUN_000643d0(void);"
+     "decl": "int FUN_000643d0(int actor_handle);",
+     "ported": true
     },
     {
      "addr": "0x645a0",
