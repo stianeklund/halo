@@ -134,19 +134,82 @@
  * typedef in each libtiff TU rather than a shared tiffiop.h. The pad_ run is
  * not a claim that those bytes are unused -- only that this function never
  * reads them. */
+/* Codec method-slot shapes, repeated from tif_open.c's fuller recovery at the
+ * same widths. All three are proven by the bodies installed into the slots:
+ * the codec `init` routines at 0x68970 / 0x6d2d0 / 0x6dd50 are all
+ * `int (void *tif)`, and the six code methods are the eight stubs in this file,
+ * all `int (void *tif, char *buf, int cc, int s)`. */
+typedef int (*tiff_bool_method_t)(void *tif);
+typedef int (*tiff_code_method_t)(void *tif, char *buf, int cc, int s);
+typedef void (*tiff_void_method_t)(void *tif);
+
 typedef struct tiff_s {
   /* 0x00 -- upstream's `char* tif_name`, the first member of `struct tiff`.
    * Pushed straight into the TIFFError module slot (`mov ecx,[edx]` at
    * 0x65003), the same use tif_open.c's TIFFFileName (0x6d850) and
    * tif_flush.c's FUN_00068890 make of it. */
   char *tif_name;
-  char pad_004[0x36];
+  char pad_004[5];
+  /* 0x09 -- written to zero by FUN_000651a0 (`mov byte ptr [eax+9],dl` at
+   * 0x65243) and by nothing else this project has recovered. A byte-wide
+   * store, so the field is byte-wide, but its MEANING is unproven: upstream
+   * libtiff has no member here that TIFFSetCompressionScheme clears, and the
+   * store sits after the whole codec vtable rather than with the flags
+   * clear at 0x651dc. Deliberately NOT folded into a `tif_flags` word --
+   * see field_0a. */
+  char field_09;
+  /* 0x0a -- flags byte. FUN_000651a0 clears bit 5 in place
+   * (`and byte ptr [eax+0xa],0xdf` at 0x651dc), tif_close.c's TIFFClose
+   * (0x64ee0) tests bit 6, and tif_open.c's TIFFIsTiled (0x6d880) tests
+   * bit 7 with a SIGNED byte load -- hence `char` and not `unsigned char`.
+   *
+   * Upstream libtiff has a single `uint32 tif_flags` covering this area, and
+   * upstream TIFFSetCompressionScheme ends with
+   * `tif->tif_flags &= ~TIFF_NOBITREV`. TIFF_NOBITREV is 0x0400 upstream,
+   * i.e. bit 10, which is NOT bit 5 of the byte at 0x0a (bit 21 of a dword at
+   * 0x08), so Bungie either renumbered the flag word or split it. Nothing
+   * local proves which, so the field keeps a mechanical name, the mask stays
+   * a raw literal, and no upstream flag constant is imported. */
+  char field_0a;
+  char pad_00b[0x2f];
   /* 0x3a -- upstream's `td_compression`, inside a nested `TIFFDirectory
    * tif_dir` upstream but flattened into TIFF in this build (the same
    * flattening tif_open.c recovers independently). Read with
    * `movzx ecx, word ptr [edx+0x3a]` at 0x64fe6, a 16-bit ZERO-extending
    * load, so the field is `unsigned short` and not upstream's plain int. */
   unsigned short td_compression;
+  char pad_03c[0xb4];
+  /* Codec vtable, 0xf0-0x11c. FUN_000651a0 writes all twelve dwords
+   * (0x651e3-0x65243), which is what proves the block is exactly twelve
+   * slots wide and contiguous; tif_open.c recovers the same block from the
+   * LZW/PackBits/NeXT installers, which overwrite subsets of it.
+   *
+   * Names are carried over from tif_open.c unchanged so the two file-scope
+   * views agree. The row/strip/tile suborder of the six code slots is
+   * INFERRED from upstream's declaration order (decoderow, encoderow,
+   * decodestrip, encodestrip, decodetile, encodetile) -- which the immediates
+   * stored here corroborate, since the three "decoding is not implemented"
+   * stubs land in 0xfc/0x104/0x10c and the three "encoding" stubs in
+   * 0x100/0x108/0x110 -- but locally only the decode-vs-encode split is
+   * proven, not which of the three is the row variant.
+   *
+   * 0x114/0x118 are `pad_114[8]` in tif_open.c because nothing there writes
+   * them; FUN_000651a0 does write them, so they cannot stay `pad_`. Upstream
+   * declares tif_close then tif_seek at exactly this point in the same run,
+   * so the names are INFERRED from that ordering; both are only ever zeroed
+   * here, so neither signature is observed. */
+  tiff_bool_method_t tif_setupdecode; /* 0xf0 */
+  tiff_bool_method_t tif_setupencode; /* 0xf4 */
+  tiff_bool_method_t tif_postencode;  /* 0xf8 */
+  tiff_code_method_t tif_decoderow;   /* 0xfc */
+  tiff_code_method_t tif_encoderow;   /* 0x100 */
+  tiff_code_method_t tif_decodestrip; /* 0x104 */
+  tiff_code_method_t tif_encodestrip; /* 0x108 */
+  tiff_code_method_t tif_decodetile;  /* 0x10c */
+  tiff_code_method_t tif_encodetile;  /* 0x110 */
+  tiff_void_method_t tif_close;       /* 0x114 */
+  tiff_bool_method_t tif_seek;        /* 0x118 */
+  tiff_void_method_t tif_cleanup;     /* 0x11c */
 } tiff_t;
 
 /* Upstream's `TIFFCodec`. Stride is PROVEN 0xc by the `add eax,0xc` at 0x64ff5
@@ -162,10 +225,17 @@ typedef struct tiff_codec_s {
   unsigned long scheme;
   /* 0x08 -- upstream's `TIFFInitMethod init`, the codec's setup routine. The
    * live values are 0x68970 (Null), 0x6d2d0 (LZW), 0x6dd50 (PackBits) and
-   * 0x6c5d0 (JPEG). Its signature is NOT observed by this TU -- nothing here
-   * calls through the slot -- so it is left as a generic pointer rather than
-   * importing upstream's `int (*)(TIFF*, int)` prototype on faith. */
-  void *init;
+   * 0x6c5d0 (JPEG).
+   *
+   * The signature IS observed, by the one call through this slot in the image:
+   * FUN_000651a0 does `push eax` (the TIFF handle) then `call dword ptr
+   * [ecx+8]` then `add esp,4` (0x651e2/0x65246/0x65249), so the method is
+   * cdecl and takes exactly ONE argument -- not upstream 3.4's
+   * `int (*)(TIFF*, int)`. Its result is the caller's result (nothing writes
+   * EAX between the CALL and the RET), so it returns int. The three ported
+   * targets agree: 0x68970, 0x6d2d0 and 0x6dd50 are all
+   * `int FUN_000xxxxx(void *tif)`. */
+  tiff_bool_method_t init;
 } tiff_codec_t;
 
 /* Upstream's `_TIFFBuiltinCODECS`. Addressed at its original VA rather than
@@ -194,7 +264,7 @@ typedef struct tiff_codec_s {
  * paths, so what crosses the merge is a pointer to TIFFCodec. A name-returning
  * helper would have to materialize a fallback string on the miss path instead
  * of zeroing the register. */
-static __inline const tiff_codec_t *TIFFFindCODEC(unsigned short scheme) {
+static __inline const tiff_codec_t *TIFFFindCODEC(unsigned long scheme) {
   const tiff_codec_t *c;
 
   for (c = tiff_builtin_codecs; c < tiff_builtin_codecs + TIFF_NCODECS; c++) {
@@ -835,4 +905,157 @@ int FUN_00065160(void *tif_, char *pp, int cc, int s) {
   (void)cc;
   (void)s;
   return _TIFFNoDecode(tif, "tile");
+}
+
+/* -------------------------------------------------------------------------
+ * FUN_000651a0 -- upstream `TIFFSetCompressionScheme`.
+ *
+ * Upstream libtiff v3.2 body (this build predates the 3.4 split of the
+ * defaults into a separate `_TIFFSetDefaultCompressionState`, and predates the
+ * 3.4 widening of TIFFInitMethod to `(TIFF*, int)`):
+ *
+ *     int
+ *     TIFFSetCompressionScheme(TIFF *tif, int scheme)
+ *     {
+ *         const TIFFCodec *c = TIFFFindCODEC(scheme);
+ *
+ *         if (c == 0) {
+ *             TIFFError(tif->tif_name,
+ *                 "Unknown data compression algorithm %u (0x%x)",
+ *                 scheme, scheme);
+ *             return (0);
+ *         }
+ *         tif->tif_flags &= ~TIFF_NOBITREV;
+ *         tif->tif_predecode = NULL;
+ *         ... twelve codec slots ...
+ *         return ((*c->init)(tif));
+ *     }
+ *
+ * Reference disassembly (pristine cachebeta.xbe, 0x651a0-0x6524d, 32 insns):
+ *
+ *   0651a0  push  ebp
+ *   0651a1  mov   ebp, esp                  ; no `sub esp`, no _chkstk: the
+ *                                           ; frame holds NO locals, so `c`
+ *                                           ; and the handle stay in ECX/EAX
+ *   0651a3  mov   eax, [ebp+0xc]            ; scheme -- a PLAIN DWORD load.
+ *                                           ; No movzx, so the parameter and
+ *                                           ; the compare below are 32-bit;
+ *                                           ; this is why TIFFFindCODEC takes
+ *                                           ; `unsigned long` and not
+ *                                           ; upstream's uint16 (a narrow
+ *                                           ; parameter would truncate here
+ *                                           ; and emit `movzx eax,word`)
+ *   0651a6  mov   ecx, 0x2c9994             ; _TIFFBuiltinCODECS
+ *   0651ab  jmp   0x651b0                   ; entry edge into the TOP test --
+ *                                           ; the loop is a `for`, not the
+ *                                           ; `do {} while` Ghidra renders
+ *   0651ad  lea   ecx, [ecx]                ; 3-byte alignment pad
+ *   0651b0  cmp   [ecx+4], eax              ; c->scheme == scheme; memory
+ *                                           ; operand first, so spell it in
+ *                                           ; that order
+ *   0651b3  je    0x651d9                   ; -> hit
+ *   0651b5  add   ecx, 0xc                  ; ++c (stride 0xc)
+ *   0651b8  cmp   ecx, 0x2c99c4             ; count-bounded, 4 entries
+ *   0651be  jb    0x651b0                   ; unsigned compare: pointers
+ *   ---- miss ----
+ *   0651c0  push  eax                       ; arg4  scheme, for "(0x%x)"
+ *   0651c1  push  eax                       ; arg3  scheme, for "%u"
+ *   0651c2  mov   eax, [ebp+8]              ; tif reloaded only NOW, after
+ *                                           ; both scheme pushes
+ *   0651c5  mov   ecx, [eax]                ; tif->tif_name
+ *   0651c7  push  0x25f594                  ; arg2  format string
+ *   0651cc  push  ecx                       ; arg1  module
+ *   0651cd  call  0x68a30                   ; TIFFError (cdecl varargs)
+ *   0651d2  add   esp, 0x10                 ; 4 dwords -- the ARG_COUNT
+ *                                           ; hazard (cleanup 4 vs decl 3) is
+ *                                           ; the varargs false positive
+ *   0651d5  xor   eax, eax                  ; return 0
+ *   0651d7  pop   ebp
+ *   0651d8  ret
+ *   ---- hit ----
+ *   0651d9  mov   eax, [ebp+8]              ; tif
+ *   0651dc  and   byte [eax+0xa], 0xdf      ; flags clear, FIRST statement of
+ *                                           ; the hit path
+ *   0651e0  xor   edx, edx                  ; the shared zero
+ *   0651e2  push  eax                       ; the pending `(*c->init)(tif)`
+ *                                           ; argument, hoisted above the
+ *                                           ; twelve stores by the scheduler
+ *   0651e3  mov   [eax+0xf0], edx
+ *   0651e9  mov   [eax+0xfc], 0x650e0       ; _TIFFNoRowDecode
+ *   0651f3  mov   [eax+0x104], 0x65120      ; _TIFFNoStripDecode
+ *   0651fd  mov   [eax+0x10c], 0x65160      ; _TIFFNoTileDecode
+ *   065207  mov   [eax+0xf4], edx
+ *   06520d  mov   [eax+0xf8], edx
+ *   065213  mov   [eax+0x100], 0x64fe0      ; _TIFFNoRowEncode
+ *   06521d  mov   [eax+0x108], 0x65020      ; _TIFFNoStripEncode
+ *   065227  mov   [eax+0x110], 0x65060      ; _TIFFNoTileEncode
+ *   065231  mov   [eax+0x114], edx
+ *   065237  mov   [eax+0x118], edx
+ *   06523d  mov   [eax+0x11c], edx
+ *   065243  mov   byte [eax+9], dl
+ *   065246  call  dword [ecx+8]             ; ECX still holds the matched
+ *                                           ; entry from the loop
+ *   065249  add   esp, 4                    ; cdecl, ONE argument -- NOT a
+ *                                           ; tail call, and NOT upstream
+ *                                           ; 3.4's two-argument init
+ *   06524c  pop   ebp
+ *   06524d  ret                             ; EAX is untouched after the CALL,
+ *                                           ; so the init method's result IS
+ *                                           ; this function's result
+ *
+ * The twelve stores are emitted 0xf0, 0xfc, 0x104, 0x10c, 0xf4, 0xf8, 0x100,
+ * 0x108, 0x110, 0x114, 0x118, 0x11c -- MSVC scheduling, not source order (it
+ * groups the three immediate-decode stores ahead of the remaining zeros).
+ * They are written below in ascending-offset order, which is also upstream's
+ * declaration order; instruction order is not source order.
+ *
+ * Ghidra reports this body as `void FUN_000651a0(void)` and hides both
+ * parameters behind `in_stack_00000004`/`in_stack_00000008`. Both halves of
+ * that signature are wrong: the two `mov` from [ebp+8]/[ebp+0xc] prove two
+ * cdecl stack parameters, and the `xor eax,eax` on the miss path proves an
+ * `int` return.
+ * ------------------------------------------------------------------------ */
+
+/**
+ * Selects the compression codec for an open TIFF and resets its codec method
+ * table to the "not implemented" stubs before handing control to the codec's
+ * own setup routine.
+ *
+ * An unrecognised scheme is reported and rejected rather than asserted, which
+ * is what lets the directory of a file using an unsupported compression still
+ * be read.
+ *
+ * @param tif_ TIFF handle.
+ * @param scheme Compression scheme id; one of the four built-in codec schemes
+ *     (1 Null, 5 LZW, 6 JPEG, 32773 PackBits).
+ * @return The codec setup routine's result on success, 0 if `scheme` names no
+ *     built-in codec.
+ */
+int FUN_000651a0(void *tif_, int scheme) {
+  tiff_t *tif = (tiff_t *)tif_;
+  const tiff_codec_t *c = TIFFFindCODEC(scheme);
+
+  if (c == 0) {
+    FUN_00068a30(tif->tif_name, "Unknown data compression algorithm %u (0x%x)",
+                 scheme, scheme);
+    return 0;
+  }
+  /* Upstream `tif->tif_flags &= ~TIFF_NOBITREV`. Kept as a raw byte mask: see
+   * field_0a -- bit 5 of this byte is not TIFF_NOBITREV's upstream bit, so
+   * importing the upstream constant would be a guess. */
+  tif->field_0a &= 0xdf;
+  tif->tif_setupdecode = 0;
+  tif->tif_setupencode = 0;
+  tif->tif_postencode = 0;
+  tif->tif_decoderow = FUN_000650e0;
+  tif->tif_encoderow = FUN_00064fe0;
+  tif->tif_decodestrip = FUN_00065120;
+  tif->tif_encodestrip = FUN_00065020;
+  tif->tif_decodetile = FUN_00065160;
+  tif->tif_encodetile = FUN_00065060;
+  tif->tif_close = 0;
+  tif->tif_seek = 0;
+  tif->tif_cleanup = 0;
+  tif->field_09 = 0;
+  return (*c->init)(tif);
 }
