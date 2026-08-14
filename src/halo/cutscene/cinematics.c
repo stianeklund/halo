@@ -1256,6 +1256,8 @@ void FUN_00093ac0(void *unused, unsigned char *control, unsigned char *header,
  * so no __LINE__ in the assert_halt calls above is shifted. */
 #define PLAYBACK_VECTOR_SHORT_DIFFERENCE_SET \
   0xf /* _playback_vector_short_difference_set */
+#define PLAYBACK_VECTOR_CHAR_DIFFERENCE_SET \
+  0x7 /* _playback_vector_char_difference_set */
 #define NUMBER_OF_CONTROL_VECTORS 3
 #define CONTROL_VECTOR_FLAG_LIMIT \
   (1 << NUMBER_OF_CONTROL_VECTORS) /* FLAG(NUMBER_OF_CONTROL_VECTORS) == 8 */
@@ -1265,6 +1267,155 @@ void FUN_00093ac0(void *unused, unsigned char *control, unsigned char *header,
 #define RECORDED_ANIMATION_ANGLE_SCALE 0.0031415927f
 /* Wrap bound in the same units (0x3e8). */
 #define RECORDED_ANIMATION_ANGLE_WRAP 1000
+
+/* recorded animation playback: control-vector char-difference stream event
+ * handler (0x00093c20,
+ * c:\halo\SOURCE\cutscene\recorded_animation_playback.c lines
+ * 0x64/0x66/0x67).
+ *
+ * Byte-delta twin of FUN_00093e20 (short deltas): identical
+ * control flow, identical control-vector layout, only the stream element
+ * width differs.  The cursor is a signed char pair per vector, so the
+ * per-vector accumulate helper is FUN_00093b60 (MOVSX byte) rather than
+ * FUN_00093ba0 (MOV word), and the cursor bump is 2 bytes rather than 4.
+ *
+ * [ebp+0x08] angles -> ESI (loaded at 0x93cb1, after the header asserts have
+ * finished using ESI), [ebp+0x0c] control -> EDI, [ebp+0x10] header,
+ * [ebp+0x14] stream; the cursor is hoisted from *stream into [ebp-0x04] at
+ * 0x93c29, above all three asserts.
+ *
+ * Event-type validation is the two-halves form the assert string spells out:
+ * the masked byte gives the lower bound (AND DL,0xfc; CMP DL,0x1c; JB) and the
+ * shifted field the upper bound (MOVZX; SHR 2; SUB 7; CMP 8; JL).  Keeping the
+ * first half a byte compare matters.
+ *
+ * The event type's low three bits (event_type - 7) form a mask over the
+ * NUMBER_OF_CONTROL_VECTORS control vectors.  It is computed 16-bit wide at
+ * 0x93cb8 (MOVZX BX,CL; SUB EBX,7) and the first two tests are 16-bit
+ * (TEST AX,AX at 0x93cc4, TEST CX,CX at 0x93d3f); only the last, whose operand
+ * is dead afterwards, narrows to TEST BL,4 - so `vector_flags` is a short.
+ *
+ * Vector 0 (flag 1) is the only branch where the original inlines the two
+ * per-vector helpers: the accumulate-and-wrap of FUN_00093b60 at
+ * 0x93ccc-0x93d02 and the short -> radians -> angles_to_vector of
+ * FUN_00093be0 at 0x93d06-0x93d2f.  Vectors 1 and 2 either copy an
+ * already-computed vector or call both helpers out of line; at 0x93d74 and
+ * 0x93dfb the original relies on FUN_00093b60 leaving its @<eax> argument
+ * intact instead of re-issuing the LEA.
+ *
+ * Wrap arithmetic is signed 16-bit throughout (CMP AX,0x3e8 / JLE,
+ * CMP AX,0xfc18 / JGE) with a 16-bit store-back, and neither branch stores
+ * when the value is already in range.
+ *
+ * The angle pair handed to angles_to_vector lives at [ebp-0x0c]/[ebp-0x08] and
+ * is passed by the address of its first element, so it is one two-float array,
+ * not two independent locals.  Push order at 0x93d1b/0x93d1f is PUSH EAX
+ * (&euler) then PUSH ECX (control+0x1c), so in cdecl the out vector is the
+ * FIRST argument - matching the kb decl angles_to_vector(out, angles).
+ *
+ * The three 12-byte control vectors live at control+0x1c, +0x28 and +0x34 and
+ * are copied through two computed base pointers (LEA + three dword moves), so
+ * the copies are written via local pointers rather than six absolute-offset
+ * stores.  The short pairs are copied a dword at a time ([ESI] -> [ESI+4],
+ * [ESI] -> [ESI+8], [ESI+4] -> [ESI+8]).
+ *
+ * The cursor bump is the reload-add-store form (MOV EAX,[EBP+0x14];
+ * MOV ECX,[EAX]; ADD ECX,2; MOV [EAX],ECX) and advances 2 BYTES; the original
+ * tail-duplicates it into all three exits. */
+void FUN_00093c20(short *angles, unsigned char *control, unsigned char *header,
+                  unsigned char **stream)
+{
+  signed char *cursor;
+  short vector_flags;
+  float euler[2];
+
+  cursor = (signed char *)*stream;
+
+  if (!control) {
+    display_assert("control",
+                   "c:\\halo\\SOURCE\\cutscene\\recorded_animation_playback.c",
+                   0x64, 1);
+    system_exit(-1);
+  }
+  if (!header) {
+    display_assert("header",
+                   "c:\\halo\\SOURCE\\cutscene\\recorded_animation_playback.c",
+                   0x66, 1);
+    system_exit(-1);
+  }
+  if ((*header & 0xfc) < (PLAYBACK_VECTOR_CHAR_DIFFERENCE_SET << 2) ||
+      (int)((*header >> 2) - PLAYBACK_VECTOR_CHAR_DIFFERENCE_SET) >=
+        CONTROL_VECTOR_FLAG_LIMIT) {
+    display_assert("header->event_type>=_playback_vector_char_difference_set&&"
+                   "header->event_type-_playback_vector_char_difference_set<"
+                   "FLAG(NUMBER_OF_CONTROL_VECTORS)",
+                   "c:\\halo\\SOURCE\\cutscene\\recorded_animation_playback.c",
+                   0x67, 1);
+    system_exit(-1);
+  }
+
+  vector_flags = (short)((*header >> 2) - PLAYBACK_VECTOR_CHAR_DIFFERENCE_SET);
+
+  if (vector_flags & 1) {
+    angles[0] = (short)(angles[0] + cursor[0]);
+    if (angles[0] > RECORDED_ANIMATION_ANGLE_WRAP) {
+      angles[0] = (short)(angles[0] - RECORDED_ANIMATION_ANGLE_WRAP);
+    } else if (angles[0] < -RECORDED_ANIMATION_ANGLE_WRAP) {
+      angles[0] = (short)(angles[0] + RECORDED_ANIMATION_ANGLE_WRAP);
+    }
+    angles[1] = (short)(angles[1] + cursor[1]);
+
+    euler[0] = (float)angles[0] * RECORDED_ANIMATION_ANGLE_SCALE;
+    euler[1] = (float)angles[1] * RECORDED_ANIMATION_ANGLE_SCALE;
+    angles_to_vector((float *)(control + 0x1c), euler);
+  }
+
+  if (vector_flags & 2) {
+    if (vector_flags & 1) {
+      unsigned long *source;
+      unsigned long *destination;
+
+      *(unsigned long *)(angles + 2) = *(unsigned long *)angles;
+      source = (unsigned long *)(control + 0x1c);
+      destination = (unsigned long *)(control + 0x28);
+      destination[0] = source[0];
+      destination[1] = source[1];
+      destination[2] = source[2];
+    } else {
+      FUN_00093b60(angles + 2, cursor);
+      FUN_00093be0(angles + 2, (float *)(control + 0x28));
+    }
+  }
+
+  if (vector_flags & 4) {
+    if (vector_flags & 1) {
+      unsigned long *source;
+      unsigned long *destination;
+
+      *(unsigned long *)(angles + 4) = *(unsigned long *)angles;
+      source = (unsigned long *)(control + 0x1c);
+      destination = (unsigned long *)(control + 0x34);
+      destination[0] = source[0];
+      destination[1] = source[1];
+      destination[2] = source[2];
+    } else if (vector_flags & 2) {
+      unsigned long *source;
+      unsigned long *destination;
+
+      *(unsigned long *)(angles + 4) = *(unsigned long *)(angles + 2);
+      source = (unsigned long *)(control + 0x28);
+      destination = (unsigned long *)(control + 0x34);
+      destination[0] = source[0];
+      destination[1] = source[1];
+      destination[2] = source[2];
+    } else {
+      FUN_00093b60(angles + 4, cursor);
+      FUN_00093be0(angles + 4, (float *)(control + 0x34));
+    }
+  }
+
+  *stream = *stream + 2;
+}
 
 /* recorded animation playback: control-vector short-difference stream event
  *

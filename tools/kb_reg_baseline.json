@@ -542,6 +542,7 @@
   "0x8e8e0": "void FUN_0008e8e0(void *ptr /* @<ebx> */, uint32_t size);",
   "0x8e950": "void FUN_0008e950(void *header /* @<esi> */);",
   "0x8e9f0": "void FUN_0008e9f0(void *header /* @<eax> */, const char *file, int line);",
+  "0x93b60": "void FUN_00093b60(short *angles @<eax>, signed char *cursor @<edx>);",
   "0x93ba0": "void FUN_00093ba0(short *angles @<eax>, short *cursor @<edx>);",
   "0x93be0": "void FUN_00093be0(short *angles @<eax>, float *out_vector);",
   "0x972b0": "void edit_text_clamp_cursor(void *edit_text @<edi>);",

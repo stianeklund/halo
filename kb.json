@@ -5490,7 +5490,7 @@
     },
     {
      "addr": "0x93b60",
-     "decl": "void FUN_00093b60(void);"
+     "decl": "void FUN_00093b60(short *angles @<eax>, signed char *cursor @<edx>);"
     },
     {
      "addr": "0x93ba0",
@@ -5502,7 +5502,8 @@
     },
     {
      "addr": "0x93c20",
-     "decl": "void FUN_00093c20(void);"
+     "decl": "void FUN_00093c20(short *angles, unsigned char *control, unsigned char *header, unsigned char **stream);",
+     "ported": true
     },
     {
      "addr": "0x93e20",
