@@ -488,6 +488,8 @@
   "0x64170": "void prop_add(int unit_handle@<eax>, int actor_handle, int prop_handle);",
   "0x64400": "void FUN_00064400(int actor_handle@<eax>, int prop_handle@<edi>);",
   "0x647c0": "void FUN_000647c0(int parent_prop_handle@<eax>, int actor_handle, int orphan_prop_handle);",
+  "0x65250": "void FUN_00065250(char **destination@<edi>, char *value@<ebx>);",
+  "0x652a0": "void FUN_000652a0(unsigned short **destination@<esi>, unsigned short *value@<ebx>, long count);",
   "0x68a70": "void FUN_00068a70(int bit_count @<eax>, void *tif @<edi>);",
   "0x68bd0": "int FUN_00068bd0(void *tif @<eax>);",
   "0x68c70": "void *FUN_00068c70(void *tif @<esi>, int extra_size);",

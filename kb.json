@@ -34562,18 +34562,6 @@
      "addr": "0x651a0",
      "decl": "int FUN_000651a0(void *tif, int scheme);",
      "ported": true
-    },
-    {
-     "addr": "0x65250",
-     "decl": "void FUN_00065250(void);"
-    },
-    {
-     "addr": "0x652a0",
-     "decl": "void FUN_000652a0(void);"
-    },
-    {
-     "addr": "0x652f0",
-     "decl": "void FUN_000652f0(void);"
     }
    ],
    "name": "props.obj",
@@ -34585,6 +34573,19 @@
     {
      "addr": "0x64cd0",
      "decl": "int TIFFVGetFieldDefaulted(void *tif, unsigned int tag, char *ap);",
+     "ported": true
+    },
+    {
+     "addr": "0x65250",
+     "decl": "void FUN_00065250(char **destination@<edi>, char *value@<ebx>);"
+    },
+    {
+     "addr": "0x652a0",
+     "decl": "void FUN_000652a0(unsigned short **destination@<esi>, unsigned short *value@<ebx>, long count);"
+    },
+    {
+     "addr": "0x652f0",
+     "decl": "int _TIFFVSetField(void *tif, int tag, char *ap);",
      "ported": true
     },
     {
@@ -34629,7 +34630,7 @@
     },
     {
      "addr": "0x66380",
-     "decl": "void TIFFDefaultDirectory(void);"
+     "decl": "void *FUN_00066380(int tag);"
     },
     {
      "addr": "0x663f0",

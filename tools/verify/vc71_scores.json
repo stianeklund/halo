@@ -4761,6 +4761,17 @@
       "score": 100.0,
       "source": "src/halo/ai/props.c"
     },
+    "FUN_000643d0": {
+      "addr": "0x643d0",
+      "end": "0x643f6",
+      "kind": "auto",
+      "n_r": 17,
+      "opnd_percent": 94.1,
+      "ref": "synth",
+      "ref_sha": "0fa7fd2b7fbe77c9",
+      "score": 94.1,
+      "source": "src/halo/ai/props.c"
+    },
     "FUN_00064400": {
       "addr": "0x64400",
       "end": "0x6453b",
@@ -4794,6 +4805,17 @@
       "score": 78.0,
       "source": "src/halo/ai/props.c"
     },
+    "FUN_00064b40": {
+      "addr": "0x64b40",
+      "end": "0x64ccb",
+      "kind": "auto",
+      "n_r": 139,
+      "opnd_percent": 47.7,
+      "ref": "synth",
+      "ref_sha": "b670b4cddac16692",
+      "score": 92.5,
+      "source": "src/halo/ai/props.c"
+    },
     "FUN_00064ee0": {
       "addr": "0x64ee0",
       "end": "0x64f4d",
@@ -4804,6 +4826,105 @@
       "ref_sha": "8d9bcfb5afbb2537",
       "score": 100.0,
       "source": "src/halo/ai/props.c"
+    },
+    "FUN_00064f50": {
+      "addr": "0x64f50",
+      "end": "0x64f77",
+      "kind": "auto",
+      "n_r": 18,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "007f5bc12b4bbdde",
+      "score": 100.0,
+      "source": "src/halo/ai/props.c"
+    },
+    "FUN_00064fe0": {
+      "addr": "0x64fe0",
+      "end": "0x6501e",
+      "kind": "auto",
+      "n_r": 23,
+      "opnd_percent": 91.3,
+      "ref": "synth",
+      "ref_sha": "82b8530778f2239a",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
+    },
+    "FUN_00065020": {
+      "addr": "0x65020",
+      "end": "0x6505e",
+      "kind": "auto",
+      "n_r": 23,
+      "opnd_percent": 91.3,
+      "ref": "synth",
+      "ref_sha": "36270cdec5b4901c",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
+    },
+    "FUN_00065060": {
+      "addr": "0x65060",
+      "end": "0x6509e",
+      "kind": "auto",
+      "n_r": 23,
+      "opnd_percent": 91.3,
+      "ref": "synth",
+      "ref_sha": "72552af50e8d4c1f",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
+    },
+    "FUN_000650a0": {
+      "addr": "0x650a0",
+      "end": "0x650dd",
+      "kind": "auto",
+      "n_r": 24,
+      "opnd_percent": 91.7,
+      "ref": "synth",
+      "ref_sha": "14fb8a5738102296",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
+    },
+    "FUN_000650e0": {
+      "addr": "0x650e0",
+      "end": "0x6511e",
+      "kind": "auto",
+      "n_r": 23,
+      "opnd_percent": 91.3,
+      "ref": "synth",
+      "ref_sha": "529370f8e241e4bb",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
+    },
+    "FUN_00065120": {
+      "addr": "0x65120",
+      "end": "0x6515e",
+      "kind": "auto",
+      "n_r": 23,
+      "opnd_percent": 91.3,
+      "ref": "synth",
+      "ref_sha": "801f800bd60fd8c0",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
+    },
+    "FUN_00065160": {
+      "addr": "0x65160",
+      "end": "0x6519e",
+      "kind": "auto",
+      "n_r": 23,
+      "opnd_percent": 91.3,
+      "ref": "synth",
+      "ref_sha": "80ef0e00131a5788",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
+    },
+    "FUN_000651a0": {
+      "addr": "0x651a0",
+      "end": "0x6524e",
+      "kind": "auto",
+      "n_r": 43,
+      "opnd_percent": 90.7,
+      "ref": "synth",
+      "ref_sha": "4ecd9f774b20eef7",
+      "score": 100.0,
+      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
     },
     "FUN_00068780": {
       "addr": "0x68780",
@@ -26214,6 +26335,17 @@
       "score": 100.0,
       "source": "src/halo/bitmaps/libtiff/tif_open.c"
     },
+    "TIFFVGetFieldDefaulted": {
+      "addr": "0x64cd0",
+      "end": "0x64e7e",
+      "kind": "auto",
+      "n_r": 189,
+      "opnd_percent": 78.8,
+      "ref": "synth",
+      "ref_sha": "56ba07f9ed6f72dd",
+      "score": 92.6,
+      "source": "src/halo/bitmaps/libtiff/tif_dir.c"
+    },
     "XAutoPowerDownResetTimer": {
       "addr": "0x1d771c",
       "end": "0x1d7737",
@@ -43795,6 +43927,28 @@
       "score": 93.3,
       "source": "src/halo/ai/props.c"
     },
+    "prop_new_unacknowledged": {
+      "addr": "0x645a0",
+      "end": "0x647c0",
+      "kind": "auto",
+      "n_r": 181,
+      "opnd_percent": 89.1,
+      "ref": "synth",
+      "ref_sha": "2adf98d094b1bf2f",
+      "score": 91.3,
+      "source": "src/halo/ai/props.c"
+    },
+    "prop_orphan_from_friend": {
+      "addr": "0x64970",
+      "end": "0x64a5c",
+      "kind": "auto",
+      "n_r": 80,
+      "opnd_percent": 90.7,
+      "ref": "synth",
+      "ref_sha": "be6be87572311ae3",
+      "score": 98.1,
+      "source": "src/halo/ai/props.c"
+    },
     "prop_orphan_transition": {
       "addr": "0x648a0",
       "end": "0x64962",
@@ -51220,6 +51374,32 @@
       "score": 94.1,
       "source": "src/halo/memory/circular_queue.c"
     },
+    "FUN_00063e30": {
+      "addr": "0x63e30",
+      "end": "0x63e82",
+      "kind": "auto",
+      "n_r": 40,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "72a5408fe647322c",
+      "score": 100.0,
+      "source": "src/halo/ai/props.c"
+    },
+    "TIFFVSetField": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 91.2,
+      "addr": "0x652f0",
+      "end": "0x658bb",
+      "kind": "auto",
+      "n_r": 454,
+      "opnd_percent": 42.3,
+      "raw_mnemonic_pct": 91.2,
+      "ref": "synth",
+      "ref_sha": "1877a8cb637f2388",
+      "score": 91.2,
+      "source": "src/halo/bitmaps/libtiff/tif_dir.c"
+    },
     "FUN_00190550": {
       "addr": "0x190550",
       "end": "0x190661",
@@ -51439,171 +51619,6 @@
       "ref_sha": "94df6c88bf52865a",
       "score": 100.0,
       "source": "src/halo/scenario/wind.c"
-    },
-    "FUN_000643d0": {
-      "addr": "0x643d0",
-      "end": "0x643f6",
-      "kind": "auto",
-      "n_r": 17,
-      "opnd_percent": 94.1,
-      "ref": "synth",
-      "ref_sha": "0fa7fd2b7fbe77c9",
-      "score": 94.1,
-      "source": "src/halo/ai/props.c"
-    },
-    "FUN_00064b40": {
-      "addr": "0x64b40",
-      "end": "0x64ccb",
-      "kind": "auto",
-      "n_r": 139,
-      "opnd_percent": 47.7,
-      "ref": "synth",
-      "ref_sha": "b670b4cddac16692",
-      "score": 92.5,
-      "source": "src/halo/ai/props.c"
-    },
-    "FUN_00064f50": {
-      "addr": "0x64f50",
-      "end": "0x64f77",
-      "kind": "auto",
-      "n_r": 18,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "007f5bc12b4bbdde",
-      "score": 100.0,
-      "source": "src/halo/ai/props.c"
-    },
-    "FUN_00064fe0": {
-      "addr": "0x64fe0",
-      "end": "0x6501e",
-      "kind": "auto",
-      "n_r": 23,
-      "opnd_percent": 91.3,
-      "ref": "synth",
-      "ref_sha": "82b8530778f2239a",
-      "score": 100.0,
-      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
-    },
-    "FUN_00065020": {
-      "addr": "0x65020",
-      "end": "0x6505e",
-      "kind": "auto",
-      "n_r": 23,
-      "opnd_percent": 91.3,
-      "ref": "synth",
-      "ref_sha": "36270cdec5b4901c",
-      "score": 100.0,
-      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
-    },
-    "FUN_00065060": {
-      "addr": "0x65060",
-      "end": "0x6509e",
-      "kind": "auto",
-      "n_r": 23,
-      "opnd_percent": 91.3,
-      "ref": "synth",
-      "ref_sha": "72552af50e8d4c1f",
-      "score": 100.0,
-      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
-    },
-    "FUN_000650a0": {
-      "addr": "0x650a0",
-      "end": "0x650dd",
-      "kind": "auto",
-      "n_r": 24,
-      "opnd_percent": 91.7,
-      "ref": "synth",
-      "ref_sha": "14fb8a5738102296",
-      "score": 100.0,
-      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
-    },
-    "FUN_000650e0": {
-      "addr": "0x650e0",
-      "end": "0x6511e",
-      "kind": "auto",
-      "n_r": 23,
-      "opnd_percent": 91.3,
-      "ref": "synth",
-      "ref_sha": "529370f8e241e4bb",
-      "score": 100.0,
-      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
-    },
-    "FUN_00065120": {
-      "addr": "0x65120",
-      "end": "0x6515e",
-      "kind": "auto",
-      "n_r": 23,
-      "opnd_percent": 91.3,
-      "ref": "synth",
-      "ref_sha": "801f800bd60fd8c0",
-      "score": 100.0,
-      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
-    },
-    "FUN_00065160": {
-      "addr": "0x65160",
-      "end": "0x6519e",
-      "kind": "auto",
-      "n_r": 23,
-      "opnd_percent": 91.3,
-      "ref": "synth",
-      "ref_sha": "80ef0e00131a5788",
-      "score": 100.0,
-      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
-    },
-    "FUN_000651a0": {
-      "addr": "0x651a0",
-      "end": "0x6524e",
-      "kind": "auto",
-      "n_r": 43,
-      "opnd_percent": 90.7,
-      "ref": "synth",
-      "ref_sha": "4ecd9f774b20eef7",
-      "score": 100.0,
-      "source": "src/halo/bitmaps/libtiff/tif_compress.c"
-    },
-    "TIFFVGetFieldDefaulted": {
-      "addr": "0x64cd0",
-      "end": "0x64e7e",
-      "kind": "auto",
-      "n_r": 189,
-      "opnd_percent": 78.8,
-      "ref": "synth",
-      "ref_sha": "56ba07f9ed6f72dd",
-      "score": 92.6,
-      "source": "src/halo/bitmaps/libtiff/tif_dir.c"
-    },
-    "prop_new_unacknowledged": {
-      "addr": "0x645a0",
-      "end": "0x647c0",
-      "kind": "auto",
-      "n_r": 181,
-      "opnd_percent": 89.1,
-      "ref": "synth",
-      "ref_sha": "2adf98d094b1bf2f",
-      "score": 91.3,
-      "source": "src/halo/ai/props.c"
-    },
-    "prop_orphan_from_friend": {
-      "addr": "0x64970",
-      "end": "0x64a5c",
-      "kind": "auto",
-      "n_r": 80,
-      "opnd_percent": 90.7,
-      "ref": "synth",
-      "ref_sha": "be6be87572311ae3",
-      "score": 98.1,
-      "source": "src/halo/ai/props.c"
-    },
-    "FUN_00063e30": {
-      "addr": "0x63e30",
-      "end": "0x63e82",
-      "kind": "auto",
-      "n_r": 40,
-      "opnd_percent": 100.0,
-      "ref": "synth",
-      "ref_sha": "72a5408fe647322c",
-      "score": 100.0,
-      "source": "src/halo/ai/props.c"
     }
   }
 }
