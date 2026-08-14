@@ -1540,17 +1540,6 @@
       "kind": "function",
       "status": "ported"
     },
-    "0x52ab0": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The 32-entry table at 0x331f5c (stride 0x1ca7c) is left as raw byte offsets: only +0x00 (int actor handle), +0x0c and +0x0d (enable bytes) and +0x28/+0x2c/+0x30 (float position) are observed, which is too little evidence to justify a struct for a 0x1ca7c-byte record.",
-        "The residual VC71 gap (58 candidate vs 56 reference instructions, 93.0%) is entirely the comment-form @<reg> thunk shape cost at the two register-argument call sites (0x4b220 @<eax>, 0x4c560 @<esi>), where our C emits PUSH plus stack cleanup and the original emits a bare register load."
-      ],
-      "uncertain": [
-        "No __FILE__ string and no assert anchor in 0x52ab0, so the original symbol name is unknown and the function is kept as FUN_00052ab0."
-      ]
-    },
     "0x534d0": {
       "kind": "function",
       "status": "unknown",
@@ -2220,29 +2209,6 @@
       "kind": "function",
       "status": "ported"
     },
-    "0x64b40": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "param_3 and param_4 are 1-byte flag types: both are only ever read with a byte load and TEST (MOV AL,[EBP+0x10] at 0x64c0f, MOV AL,[EBP+0x14] at 0x64c76), and param_4 is additionally forwarded as a whole dword to prop_position_refresh's char param at 0x64c63, so the kb decl was narrowed from int to bool.",
-        "actor_expected_acknowledgement (0x32940) really has the signature bool(int actor_handle, int prop_handle): the call site at 0x64ca4 pushes EBX and EDI and stores the AL result into the dead [EBP+0xc] param slot before forwarding it as actor_perception_acknowledge's last argument, so its kb prototype was corrected from void(void)."
-      ],
-      "uncertain": [
-        "The original frame reserves 0x4c bytes but only 0x48 are accounted for (a 0x38 out_data buffer at EBP-0x4c plus four dword locals at EBP-0x14/-0xc/-8/-4), leaving an unexplained 4-byte hole at EBP-0x10 that the function never touches; the lift therefore emits sub esp,0x48 and the residual VC71 gap at 92.5% is mostly this frame delta plus MSVC homing the two bool temps in the dead [EBP+0xc] parameter slot."
-      ]
-    },
-    "0x64cd0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Identified as upstream libtiff TIFFVGetFieldDefaulted from three converging signals: the leading delegate-then-default call to TIFFVGetField (0x65f00) at 0x64ce2, sixteen switch arms that are all plain standard-directory-tag reads, and the TIFFTAG_DATATYPE arm returning td_sampleformat minus one (DEC CX at 0x64e6f), which is unique to that upstream function.",
-        "Translation unit is a house grouping, not proven: kb.json places the function in tif_dir.obj, but upstream libtiff keeps TIFFVGetFieldDefaulted in tif_aux.c, and the binary carries no __FILE__ string or assert for this function to arbitrate."
-      ],
-      "uncertain": [
-        "TIFFTAG_SUBFILETYPE (+0x34) and TIFFTAG_IMAGEDEPTH (+0x24) are 16-bit both on the load and on the store in this build, where upstream libtiff declares td_subfiletype and td_imagedepth as uint32; the narrowing is taken from the binary but its cause is unexplained.",
-        "Switch case order is written tag-ascending; the original block layout for the 0x11c-0x13d compare chain comes out as 0x128, 0x125, 0x11c, 0x13d, which is not a simple reversal of tag order, so the true source order of those four arms is unproven."
-      ]
-    },
     "0x64ee0": {
       "kind": "function",
       "status": "ported"
@@ -2324,25 +2290,6 @@
       ],
       "uncertain": [
         "The unguarded c->name dereference on a TIFFFindCODEC miss (xor eax,eax followed by mov eax,[eax] at the merge of both paths) is reproduced faithfully and will fault on an unknown compression scheme; whether any live caller can reach that path was not established, since the stub is only installed into the codec method table by pointer and the image contains no direct CALL to 0x65160."
-      ]
-    },
-    "0x652f0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Identified as libtiff _TIFFVSetField and relocated in kb.json from props.obj (ai/props.c) to tif_dir.obj (bitmaps/libtiff/tif_dir.c); no __FILE__ string or assert stamps the translation unit, so the tif_dir grouping follows the sibling getter TIFFVGetFieldDefaulted at 0x64cd0 rather than direct binary evidence."
-      ],
-      "uncertain": [
-        "Field names for the directory members written by the switch arms (td_documentname, td_artist, td_datetime, td_hostcomputer, td_imagedescription, td_make, td_model, td_software, td_pagename and the numeric fields) are taken from upstream libtiff's case order matching the handler-block order in this binary; only the offsets and widths are proven from the disassembly, the names themselves are not.",
-        "FIELD_TILEDIMENSIONS=1 and FIELD_COMPRESSION=7 are the only two td_fieldsset bit indices this function proves (TEST byte ptr [EAX+0x14],0x2 at 0x65563 and the signed byte test at 0x6537e); the remaining FIELD_* numbering is unrecovered.",
-        "FUN_00066380 (0x66380) was renamed from the incorrect kb name TIFFDefaultDirectory and its prototype corrected to void *FUN_00066380(int tag); by behavior it is upstream _TIFFFieldWithTag returning a field-info record with a 16-bit bit index at +0x0c and a name pointer at +0x10, but it was deliberately left unnamed pending its own lift."
-      ]
-    },
-    "0x65f00": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Decl widened from void(void) to int TIFFVGetField(void *tif, unsigned int tag, char *ap) on the evidence of its only observed call site (0x64ce2): three pushes, ADD ESP,0xc, and TEST EAX,EAX on the result. The ap parameter is spelled char * because the generated decl.h has no stdarg.h in scope and va_list is exactly char * under both MSVC 7.1 and clang-i386."
       ]
     },
     "0x68890": {
@@ -2699,13 +2646,6 @@
       "uncertain": [
         "The row/strip/tile suborder of the six code-method slots (0xfc/0x104/0x10c decode, 0x100/0x108/0x110 encode) is inferred from upstream libtiff's tiffiop.h field order; the binary only proves which of the two shared stubs lands in each slot, since all three decode slots receive the same pointer and all three encode slots receive the same pointer.",
         "Upstream TIFFInitLZW also assigns tif_predecode and tif_preencode, and this function writes neither; offsets 0x114 and 0x118 (upstream close/seek) are likewise untouched, so they are recorded as pad_114[8] and their real meaning is unproven."
-      ]
-    },
-    "0x6d500": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Register-argument callee (upstream TIFFInitOrder): both call sites at 0x6d6e9 and 0x6d740 set EAX=tif, EDX=header magic, ECX=0 with no PUSH and no stack cleanup; kb decl carries @<eax>/@<edx>/@<ecx> and tools/kb_reg_baseline.json was updated to match."
       ]
     },
     "0x6d590": {
@@ -3853,17 +3793,6 @@
     "0x93140": {
       "kind": "function",
       "status": "ported"
-    },
-    "0x93c20": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "Param names and types (short *angles, unsigned char *control, unsigned char *header, unsigned char **stream) are inferred from the byte-delta twin FUN_00093e20 at 0x93e20, which shares the identical control flow and control-vector layout.",
-        "The control-vector layout (three consecutive float[3] at control+0x1c, +0x28 and +0x34) is inferred from the LEA base pointers and dword copy triples; the enclosing control structure is not yet typed, so raw offsets are used."
-      ],
-      "uncertain": [
-        "The event-type constant _playback_vector_char_difference_set == 7 is derived from the masked byte compare CMP DL,0x1c and the SUB EAX,7 in the range assert; the symbolic enumeration itself is not present in the binary."
-      ]
     },
     "0x94bb0": {
       "kind": "function",
@@ -13209,135 +13138,6 @@
         "VC71 reports 86.3% but true fidelity is higher: compare_obj resolves the reference's relocated FPU constant-loads (FLD [const];FSTP) to immediate-store form while the candidate's local const-pool loads stay unresolved, producing ~9 phantom clamp mismatches; direct objdump confirms both objs use the identical fadd;fcom;fst;fstp clamp idiom. Residual real diffs are only MSVC reg-alloc (counter eax vs ecx) and one nop-pad."
       ]
     },
-    "0x190240": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "The second stack parameter is a float[3] output vector, not the int32_t the pre-lift kb.json decl declared: the in-range path stores three FSTP results through it at [EAX], [EAX+4], [EAX+8] and both fallback paths copy three dwords into it, so the decl was widened to float *out.",
-        "The wind palette record at 0x5060c8 + sky_index * 0x20 is the same wind_record scenario/wind.c recovers; only the valid byte at +0x00, the velocity at +0x10 and the direction[3] at +0x14 are read here, and the type is redeclared function-locally because the canonical definition is file-local to the other TU.",
-        "Flags bit 0 forces the wind tag's amount field (+0x10) to 0.0f before the blend and flags bit 1 attenuates every output component by 1.0f minus the tag's +0x18 field; the attenuation difference is recomputed once per component at 0x190309, 0x190316 and 0x190325, so it is deliberately not hoisted into a temporary."
-      ],
-      "uncertain": [
-        "VC71 match is 83.0 percent with matching instruction counts (106 of 106) and a matching frame (SUB ESP,0xc), so the gap is mnemonic-and-scheduling only; roughly four instructions of it are the thunked @<reg> call to FUN_0018ff00, where VC71 pushes all four arguments while the reference sets EAX and EDX directly.",
-        "The remaining VC71 divergence is register allocation VC71 will not reproduce from equivalent C: the reference tests the record valid byte with CMP byte ptr [ESI],0 after materialising the record pointer while VC71 emits MOVB with a 0x5060c8 displacement plus TESTB, and the reference saves ESI and EDI in the prologue while VC71 sinks the pushes past the range check."
-      ]
-    },
-    "0x190500": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x190710": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x190830": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1908a0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x190930": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x190980": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1909d0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1909f0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "The binary only proves the accepted selector set {3, 4, 8}; that these three shader types are specifically the lightmapped classes is inferred from the kb.json name shader_type_is_lightmapped, not from any string or assert inside the function."
-      ],
-      "uncertain": [
-        "Nothing in this function names or dereferences a shader tag, so the int16_t parameter's width is proven only by MOVSX ECX, word ptr [EBP+8] plus the caller pattern *(short *)(shader_tag + 0x24) seen at units.c and game_engine.c; no caller of 0x1909f0 itself was located in the image."
-      ]
-    },
-    "0x190a10": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Return type is char (bool-in-AL): the prologue clears the flag with XOR AL,AL at 0x190a15 and the accepting arm materialises it with MOV AL,1, so the declared width is byte, not int."
-      ],
-      "uncertain": [
-        "The name shader_type_is_vertex_lit came from the pre-existing kb.json entry, not from a binary string; the binary only proves the predicate accepts shader types 4 and 8, both of which shader_type_is_lightmapped (0x1909f0) also accepts."
-      ]
-    },
-    "0x190a30": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Accepted shader-type set is {3, 5, 6, 7, 8, 9}; type 4 is explicitly rejected because the JLE following the CMP ECX,3 / JZ test skips it, so the band is not a contiguous 3..9 range."
-      ]
-    },
-    "0x190a50": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "The name shader_type_is_valid_for_model comes from kb.json and the surrounding predicate family, not from any string in the binary; what the disassembly proves is only that the accepted set is the closed signed interval [3, 10].",
-        "The 16-bit parameter is signed (int16_t): the single argument read is MOVSX ECX, word ptr [EBP+8] and both range checks use signed Jcc (JL / JG)."
-      ],
-      "uncertain": [
-        "The return type is spelled char to match the four sibling predicates: the original writes only AL (XOR AL,AL then MOV AL,1) and never zero-extends, so char vs bool vs a wider int is not arbitrated by the binary."
-      ]
-    },
-    "0x190a70": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "The 28-byte body at 0x190a70 is an exact byte-for-byte duplicate of shader_type_is_transparent at 0x1909d0 (558bec0fbf4d0832c083f901740a83f9047e0783f90a7f02b0015dc3), so the accepted shader-type set is identical: {1, 5, 6, 7, 8, 9, 10}."
-      ],
-      "uncertain": [
-        "The name shader_type_is_valid_for_modifier is inherited from kb.json and is not independently proven by this function's bytes; because the body is identical to shader_type_is_transparent, nothing in the code distinguishes a modifier-validity question from a transparency question, and only a caller or a __FILE__/assert string could settle which predicate this really is."
-      ]
-    },
-    "0x190a90": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "The intermediate pointer named diffuse in the assert strings is shader+0x6c: the disassembly rebases once with ADD ESI,0x6c after the FUN_001906b0(shader,3) downcast and reads every animation field off that pointer, so the lift keeps the same +0x6c base and +0xe4..+0xf8 offsets.",
-        "Only u_animation_period (+0xe8 from diffuse) and v_animation_period (+0xf4) have names proven by the assert strings; the int16 selectors at +0xe4/+0xf0 and the float scales at +0xec/+0xf8 are role-inferred from their use as FUN_0010a5e0's function_type argument and the final FMUL, so the offsets stay raw."
-      ],
-      "uncertain": [
-        "VC71 match is capped at 86.2 percent by an fucompp-versus-fcomps codegen difference: VC71 compiles the two float inequality asserts as flds constant plus fucompp and then materialises a bool with mov eax 1 / xor eax eax, while the reference uses fcomps against the 0.0f constant at 0x2533c0 and branches directly with test ah 0x44 / jp; rewriting the condition as !(period == 0.0f) produced byte-identical output and a 100-attempt permuter run found nothing above baseline."
-      ]
-    },
-    "0x190be0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Parameter names time/enabled are inferred from numeric_countdown_timer_update (0x190db0), which treats 0x4d8a78 as the remaining-time value and 0x4d8a7c as the enable predicate; the binary itself only proves a dword store and a byte store."
-      ],
-      "uncertain": [
-        "The units of the value stored at 0x4d8a78 are unverified; numeric_countdown_timer_update converts game_time_get()*1000/30 into the companion global 0x4d8a80, which suggests milliseconds, but no caller of the setter was examined to confirm."
-      ]
-    },
-    "0x190c00": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "The return type is 16-bit (int16_t), not int: every switch arm ends MOV AX,DX so only the low half of EAX is written, and the caller FUN_000be6a0's reference confirms it by storing MOV word ptr [EBP-4],AX into a zero-initialised int slot before reading the slot back. Declaring the return as int16_t instead of int raised the VC71 match from 89.0% to 96.1%."
-      ],
-      "uncertain": [
-        "The remaining 8-instruction gap to the reference is an MSVC magic-divide register-allocation difference, one instruction in each of the eight magic-multiply arms: the reference emits MOV EAX,EDX then SAR EAX,n then MOV EDX,EAX, while MSVC 7.1 compiling this C emits SAR EDX,n then MOV EAX,EDX. No source form was found that steers the allocation, so this is treated as a codegen ceiling rather than a lift defect.",
-        "The switch arms are written in case order 0 through 9 because the jump table at 0x190d68 is indexed in that order, but the original source block layout was not independently confirmed from the arm addresses."
-      ]
-    },
-    "0x190d90": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x190da0": {
-      "kind": "function",
-      "status": "ported"
-    },
     "0x190db0": {
       "kind": "function",
       "status": "ported"
@@ -16101,6 +15901,206 @@
     "0x5065a4": {
       "kind": "data",
       "status": "ported"
+    },
+    "0x64b40": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "param_3 and param_4 are 1-byte flag types: both are only ever read with a byte load and TEST (MOV AL,[EBP+0x10] at 0x64c0f, MOV AL,[EBP+0x14] at 0x64c76), and param_4 is additionally forwarded as a whole dword to prop_position_refresh's char param at 0x64c63, so the kb decl was narrowed from int to bool.",
+        "actor_expected_acknowledgement (0x32940) really has the signature bool(int actor_handle, int prop_handle): the call site at 0x64ca4 pushes EBX and EDI and stores the AL result into the dead [EBP+0xc] param slot before forwarding it as actor_perception_acknowledge's last argument, so its kb prototype was corrected from void(void)."
+      ],
+      "uncertain": [
+        "The original frame reserves 0x4c bytes but only 0x48 are accounted for (a 0x38 out_data buffer at EBP-0x4c plus four dword locals at EBP-0x14/-0xc/-8/-4), leaving an unexplained 4-byte hole at EBP-0x10 that the function never touches; the lift therefore emits sub esp,0x48 and the residual VC71 gap at 92.5% is mostly this frame delta plus MSVC homing the two bool temps in the dead [EBP+0xc] parameter slot."
+      ]
+    },
+    "0x64cd0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Identified as upstream libtiff TIFFVGetFieldDefaulted from three converging signals: the leading delegate-then-default call to TIFFVGetField (0x65f00) at 0x64ce2, sixteen switch arms that are all plain standard-directory-tag reads, and the TIFFTAG_DATATYPE arm returning td_sampleformat minus one (DEC CX at 0x64e6f), which is unique to that upstream function.",
+        "Translation unit is a house grouping, not proven: kb.json places the function in tif_dir.obj, but upstream libtiff keeps TIFFVGetFieldDefaulted in tif_aux.c, and the binary carries no __FILE__ string or assert for this function to arbitrate."
+      ],
+      "uncertain": [
+        "TIFFTAG_SUBFILETYPE (+0x34) and TIFFTAG_IMAGEDEPTH (+0x24) are 16-bit both on the load and on the store in this build, where upstream libtiff declares td_subfiletype and td_imagedepth as uint32; the narrowing is taken from the binary but its cause is unexplained.",
+        "Switch case order is written tag-ascending; the original block layout for the 0x11c-0x13d compare chain comes out as 0x128, 0x125, 0x11c, 0x13d, which is not a simple reversal of tag order, so the true source order of those four arms is unproven."
+      ]
+    },
+    "0x65f00": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Decl widened from void(void) to int TIFFVGetField(void *tif, unsigned int tag, char *ap) on the evidence of its only observed call site (0x64ce2): three pushes, ADD ESP,0xc, and TEST EAX,EAX on the result. The ap parameter is spelled char * because the generated decl.h has no stdarg.h in scope and va_list is exactly char * under both MSVC 7.1 and clang-i386."
+      ]
+    },
+    "0x652f0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Identified as libtiff _TIFFVSetField and relocated in kb.json from props.obj (ai/props.c) to tif_dir.obj (bitmaps/libtiff/tif_dir.c); no __FILE__ string or assert stamps the translation unit, so the tif_dir grouping follows the sibling getter TIFFVGetFieldDefaulted at 0x64cd0 rather than direct binary evidence."
+      ],
+      "uncertain": [
+        "Field names for the directory members written by the switch arms (td_documentname, td_artist, td_datetime, td_hostcomputer, td_imagedescription, td_make, td_model, td_software, td_pagename and the numeric fields) are taken from upstream libtiff's case order matching the handler-block order in this binary; only the offsets and widths are proven from the disassembly, the names themselves are not.",
+        "FIELD_TILEDIMENSIONS=1 and FIELD_COMPRESSION=7 are the only two td_fieldsset bit indices this function proves (TEST byte ptr [EAX+0x14],0x2 at 0x65563 and the signed byte test at 0x6537e); the remaining FIELD_* numbering is unrecovered.",
+        "FUN_00066380 (0x66380) was renamed from the incorrect kb name TIFFDefaultDirectory and its prototype corrected to void *FUN_00066380(int tag); by behavior it is upstream _TIFFFieldWithTag returning a field-info record with a 16-bit bit index at +0x0c and a name pointer at +0x10, but it was deliberately left unnamed pending its own lift."
+      ]
+    },
+    "0x190240": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The second stack parameter is a float[3] output vector, not the int32_t the pre-lift kb.json decl declared: the in-range path stores three FSTP results through it at [EAX], [EAX+4], [EAX+8] and both fallback paths copy three dwords into it, so the decl was widened to float *out.",
+        "The wind palette record at 0x5060c8 + sky_index * 0x20 is the same wind_record scenario/wind.c recovers; only the valid byte at +0x00, the velocity at +0x10 and the direction[3] at +0x14 are read here, and the type is redeclared function-locally because the canonical definition is file-local to the other TU.",
+        "Flags bit 0 forces the wind tag's amount field (+0x10) to 0.0f before the blend and flags bit 1 attenuates every output component by 1.0f minus the tag's +0x18 field; the attenuation difference is recomputed once per component at 0x190309, 0x190316 and 0x190325, so it is deliberately not hoisted into a temporary."
+      ],
+      "uncertain": [
+        "VC71 match is 83.0 percent with matching instruction counts (106 of 106) and a matching frame (SUB ESP,0xc), so the gap is mnemonic-and-scheduling only; roughly four instructions of it are the thunked @<reg> call to FUN_0018ff00, where VC71 pushes all four arguments while the reference sets EAX and EDX directly.",
+        "The remaining VC71 divergence is register allocation VC71 will not reproduce from equivalent C: the reference tests the record valid byte with CMP byte ptr [ESI],0 after materialising the record pointer while VC71 emits MOVB with a 0x5060c8 displacement plus TESTB, and the reference saves ESI and EDI in the prologue while VC71 sinks the pushes past the range check."
+      ]
+    },
+    "0x190500": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x190710": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x190830": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1908a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x190930": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x190980": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1909d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1909f0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The binary only proves the accepted selector set {3, 4, 8}; that these three shader types are specifically the lightmapped classes is inferred from the kb.json name shader_type_is_lightmapped, not from any string or assert inside the function."
+      ],
+      "uncertain": [
+        "Nothing in this function names or dereferences a shader tag, so the int16_t parameter's width is proven only by MOVSX ECX, word ptr [EBP+8] plus the caller pattern *(short *)(shader_tag + 0x24) seen at units.c and game_engine.c; no caller of 0x1909f0 itself was located in the image."
+      ]
+    },
+    "0x190a10": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Return type is char (bool-in-AL): the prologue clears the flag with XOR AL,AL at 0x190a15 and the accepting arm materialises it with MOV AL,1, so the declared width is byte, not int."
+      ],
+      "uncertain": [
+        "The name shader_type_is_vertex_lit came from the pre-existing kb.json entry, not from a binary string; the binary only proves the predicate accepts shader types 4 and 8, both of which shader_type_is_lightmapped (0x1909f0) also accepts."
+      ]
+    },
+    "0x190a30": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Accepted shader-type set is {3, 5, 6, 7, 8, 9}; type 4 is explicitly rejected because the JLE following the CMP ECX,3 / JZ test skips it, so the band is not a contiguous 3..9 range."
+      ]
+    },
+    "0x190a50": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The name shader_type_is_valid_for_model comes from kb.json and the surrounding predicate family, not from any string in the binary; what the disassembly proves is only that the accepted set is the closed signed interval [3, 10].",
+        "The 16-bit parameter is signed (int16_t): the single argument read is MOVSX ECX, word ptr [EBP+8] and both range checks use signed Jcc (JL / JG)."
+      ],
+      "uncertain": [
+        "The return type is spelled char to match the four sibling predicates: the original writes only AL (XOR AL,AL then MOV AL,1) and never zero-extends, so char vs bool vs a wider int is not arbitrated by the binary."
+      ]
+    },
+    "0x190a70": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The 28-byte body at 0x190a70 is an exact byte-for-byte duplicate of shader_type_is_transparent at 0x1909d0 (558bec0fbf4d0832c083f901740a83f9047e0783f90a7f02b0015dc3), so the accepted shader-type set is identical: {1, 5, 6, 7, 8, 9, 10}."
+      ],
+      "uncertain": [
+        "The name shader_type_is_valid_for_modifier is inherited from kb.json and is not independently proven by this function's bytes; because the body is identical to shader_type_is_transparent, nothing in the code distinguishes a modifier-validity question from a transparency question, and only a caller or a __FILE__/assert string could settle which predicate this really is."
+      ]
+    },
+    "0x190a90": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The intermediate pointer named diffuse in the assert strings is shader+0x6c: the disassembly rebases once with ADD ESI,0x6c after the FUN_001906b0(shader,3) downcast and reads every animation field off that pointer, so the lift keeps the same +0x6c base and +0xe4..+0xf8 offsets.",
+        "Only u_animation_period (+0xe8 from diffuse) and v_animation_period (+0xf4) have names proven by the assert strings; the int16 selectors at +0xe4/+0xf0 and the float scales at +0xec/+0xf8 are role-inferred from their use as FUN_0010a5e0's function_type argument and the final FMUL, so the offsets stay raw."
+      ],
+      "uncertain": [
+        "VC71 match is capped at 86.2 percent by an fucompp-versus-fcomps codegen difference: VC71 compiles the two float inequality asserts as flds constant plus fucompp and then materialises a bool with mov eax 1 / xor eax eax, while the reference uses fcomps against the 0.0f constant at 0x2533c0 and branches directly with test ah 0x44 / jp; rewriting the condition as !(period == 0.0f) produced byte-identical output and a 100-attempt permuter run found nothing above baseline."
+      ]
+    },
+    "0x190be0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Parameter names time/enabled are inferred from numeric_countdown_timer_update (0x190db0), which treats 0x4d8a78 as the remaining-time value and 0x4d8a7c as the enable predicate; the binary itself only proves a dword store and a byte store."
+      ],
+      "uncertain": [
+        "The units of the value stored at 0x4d8a78 are unverified; numeric_countdown_timer_update converts game_time_get()*1000/30 into the companion global 0x4d8a80, which suggests milliseconds, but no caller of the setter was examined to confirm."
+      ]
+    },
+    "0x190c00": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The return type is 16-bit (int16_t), not int: every switch arm ends MOV AX,DX so only the low half of EAX is written, and the caller FUN_000be6a0's reference confirms it by storing MOV word ptr [EBP-4],AX into a zero-initialised int slot before reading the slot back. Declaring the return as int16_t instead of int raised the VC71 match from 89.0% to 96.1%."
+      ],
+      "uncertain": [
+        "The remaining 8-instruction gap to the reference is an MSVC magic-divide register-allocation difference, one instruction in each of the eight magic-multiply arms: the reference emits MOV EAX,EDX then SAR EAX,n then MOV EDX,EAX, while MSVC 7.1 compiling this C emits SAR EDX,n then MOV EAX,EDX. No source form was found that steers the allocation, so this is treated as a codegen ceiling rather than a lift defect.",
+        "The switch arms are written in case order 0 through 9 because the jump table at 0x190d68 is indexed in that order, but the original source block layout was not independently confirmed from the arm addresses."
+      ]
+    },
+    "0x190d90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x190da0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x52ab0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The 32-entry table at 0x331f5c (stride 0x1ca7c) is left as raw byte offsets: only +0x00 (int actor handle), +0x0c and +0x0d (enable bytes) and +0x28/+0x2c/+0x30 (float position) are observed, which is too little evidence to justify a struct for a 0x1ca7c-byte record.",
+        "The residual VC71 gap (58 candidate vs 56 reference instructions, 93.0%) is entirely the comment-form @<reg> thunk shape cost at the two register-argument call sites (0x4b220 @<eax>, 0x4c560 @<esi>), where our C emits PUSH plus stack cleanup and the original emits a bare register load."
+      ],
+      "uncertain": [
+        "No __FILE__ string and no assert anchor in 0x52ab0, so the original symbol name is unknown and the function is kept as FUN_00052ab0."
+      ]
+    },
+    "0x6d500": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Register-argument callee (upstream TIFFInitOrder): both call sites at 0x6d6e9 and 0x6d740 set EAX=tif, EDX=header magic, ECX=0 with no PUSH and no stack cleanup; kb decl carries @<eax>/@<edx>/@<ecx> and tools/kb_reg_baseline.json was updated to match."
+      ]
+    },
+    "0x93c20": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Param names and types (short *angles, unsigned char *control, unsigned char *header, unsigned char **stream) are inferred from the byte-delta twin FUN_00093e20 at 0x93e20, which shares the identical control flow and control-vector layout.",
+        "The control-vector layout (three consecutive float[3] at control+0x1c, +0x28 and +0x34) is inferred from the LEA base pointers and dword copy triples; the enclosing control structure is not yet typed, so raw offsets are used."
+      ],
+      "uncertain": [
+        "The event-type constant _playback_vector_char_difference_set == 7 is derived from the masked byte compare CMP DL,0x1c and the SUB EAX,7 in the range assert; the symbolic enumeration itself is not present in the binary."
+      ]
     }
   }
 }
