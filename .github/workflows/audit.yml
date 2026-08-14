@@ -83,6 +83,27 @@ jobs:
       - name: Baseline-gate self-test
         run: python3 tools/audit/test_baseline_gates.py
 
+      # The hazard-lint self-tests, which ran nowhere before: every check in
+      # check_lift_hazards.py could be narrowed into silence with all gates
+      # green.  The minimum-count guard exists because `unittest discover`
+      # collects TestCase classes only -- a pytest-style file (bare test_
+      # functions) contributes zero tests and still exits 0, which is the same
+      # "green while running none of it" failure the equivalence step below
+      # was written to avoid.
+      - name: Hazard-lint self-tests
+        if: always()
+        run: |
+          set -e
+          PY="${{ env.VENV_PYTHON }}"
+          [ -x "$PY" ] || PY=python3
+          OUTPUT=$("$PY" -m unittest discover -s tools/audit/tests -p 'test_*.py' -v 2>&1)
+          echo "$OUTPUT"
+          RAN=$(echo "$OUTPUT" | sed -n 's/^Ran \([0-9]\+\) test.*/\1/p' | tail -1)
+          if [ -z "$RAN" ] || [ "$RAN" -lt 6 ]; then
+            echo "::error::expected at least 6 hazard-lint tests, discovery ran ${RAN:-0}"
+            exit 1
+          fi
+
       # VC71 score persistence.  Neither suite ran anywhere in CI before, which
       # is how the dashboard button ended up writing only the committed floor
       # while the report generator read only the honest snapshot -- a score you

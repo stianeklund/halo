@@ -2095,6 +2095,145 @@ def check_static_local_buffers(filepath, content, lines):
     return errors
 
 
+# ---------------------------------------------------------------------------
+# §45: Pointer slot passed by address (WARN)
+# ---------------------------------------------------------------------------
+# A struct slot that holds a POINTER reads as `*(T **)(base + 0xNN)`.  Lifting
+# the same slot as `(T *)(base + 0xNN)` passes the slot's ADDRESS instead, so
+# the callee reads the pointer's own bits as data.  For a float* that yields a
+# denormal (0x80xxxxxx prints as -0.000000), which survives every static gate
+# and only shows up as a downstream assert.  Cross-TU detection: when one call
+# site dereferences (callee, arg index, offset) and another passes the address
+# of the same offset, one of them is wrong.
+_PTR_SLOT_DEREF = re.compile(
+    r'^\*\s*\(\s*[A-Za-z_]\w*(?:\s+\w+)*\s*\*\s*\*\s*\)')
+_PTR_SLOT_ADDR = re.compile(
+    r'^\(\s*[A-Za-z_]\w*(?:\s+\w+)*\s*\*\s*\)\s*\(')
+_PTR_SLOT_OFFSET = re.compile(r'\+\s*(0x[0-9a-fA-F]+)\s*\)?\s*$')
+
+_PTR_SLOT_CORPUS = None
+_FLOAT_PTR_PARAMS = None
+
+
+def _parse_decl_float_ptr_params():
+    """Map function name -> set of arg indices declared `float *`.
+
+    Only float-payload parameters are checked.  Generic block/handle pointers
+    (tag_block_get_element and friends) legitimately take both an inline
+    struct's address and a stored pointer, so keying on them is pure noise.
+    """
+    global _FLOAT_PTR_PARAMS
+    if _FLOAT_PTR_PARAMS is not None:
+        return _FLOAT_PTR_PARAMS
+    result = {}
+    if os.path.isfile(DECL_H):
+        decl_re = re.compile(r'HFUNC\s+[\w\s\*]+?\s+(\w+)\s*\(([^)]*)\)\s*;')
+        with open(DECL_H, 'r') as f:
+            for line in f:
+                m = decl_re.search(line)
+                if not m:
+                    continue
+                raw = m.group(2).strip()
+                if raw == 'void':
+                    continue
+                indices = set()
+                for idx, p in enumerate(raw.split(',')):
+                    if 'float' in p and p.count('*') == 1:
+                        indices.add(idx)
+                if indices:
+                    result[m.group(1)] = indices
+    _FLOAT_PTR_PARAMS = result
+    return result
+
+
+def _classify_ptr_slot_arg(arg):
+    """Return ('deref'|'addr', offset) for a struct-slot argument, else None."""
+    arg = ' '.join(arg.split())
+    m_off = _PTR_SLOT_OFFSET.search(arg)
+    if not m_off:
+        return None
+    offset = int(m_off.group(1), 16)
+    if _PTR_SLOT_DEREF.match(arg):
+        return ('deref', offset)
+    if arg.startswith('*'):
+        return None
+    if _PTR_SLOT_ADDR.match(arg):
+        return ('addr', offset)
+    return None
+
+
+def _ptr_slot_sites(filepath, content):
+    """Yield (callee, arg_index, form, offset, lineno) for one file."""
+    flat = _blank_comments_and_literals(content)
+    for m in FUNC_CALL_PATTERN.finditer(flat):
+        callee = m.group(1)
+        args, end_pos = _extract_args(flat, m.end() - 1)
+        if not args:
+            continue
+        lineno = flat[:m.start()].count('\n') + 1
+        for idx, arg in enumerate(args):
+            hit = _classify_ptr_slot_arg(arg)
+            if hit:
+                yield callee, idx, hit[0], hit[1], lineno
+
+
+def _build_ptr_slot_corpus():
+    """Index every (callee, arg index, offset) slot form across src/."""
+    global _PTR_SLOT_CORPUS
+    if _PTR_SLOT_CORPUS is not None:
+        return _PTR_SLOT_CORPUS
+    corpus = {}
+    for dirpath, _dirs, files in os.walk(SRC_DIR):
+        for name in files:
+            if not name.endswith('.c'):
+                continue
+            fpath = os.path.join(dirpath, name)
+            try:
+                with open(fpath, 'r', errors='replace') as f:
+                    text = f.read()
+            except OSError:
+                continue
+            for callee, idx, form, off, lineno in _ptr_slot_sites(fpath, text):
+                key = (callee, idx, off)
+                corpus.setdefault(key, {}).setdefault(form, []).append(
+                    (os.path.relpath(fpath, ROOT_DIR), lineno))
+    _PTR_SLOT_CORPUS = corpus
+    return corpus
+
+
+def check_pointer_slot_arg_form(filepath, content, lines):
+    """Flag `(T *)(base + 0xNN)` where another TU passes `*(T **)(base + 0xNN)`.
+
+    Both forms of the same (callee, arg index, offset) cannot be right.  The
+    address form makes the callee read the pointer's bits as payload — for
+    float data a denormal that prints as -0.000000 (lift-learnings §45).
+    Suppress a verified site with a `hazard-ok: slot-form` comment.
+    """
+    errors = []
+    corpus = _build_ptr_slot_corpus()
+    float_params = _parse_decl_float_ptr_params()
+    for callee, idx, form, off, lineno in _ptr_slot_sites(filepath, content):
+        if form != 'addr':
+            continue
+        if idx not in float_params.get(callee, ()):
+            continue
+        src_line = lines[lineno - 1] if lineno - 1 < len(lines) else ''
+        if 'hazard-ok' in src_line:
+            continue
+        deref_sites = corpus.get((callee, idx, off), {}).get('deref')
+        if not deref_sites:
+            continue
+        where = ', '.join(f'{p}:{ln}' for p, ln in deref_sites[:2])
+        relpath = os.path.relpath(filepath, ROOT_DIR)
+        errors.append(
+            f'  {relpath}:{lineno}: {callee}() arg {idx + 1} passes the ADDRESS '
+            f'of slot +0x{off:x}, but {where} dereferences the same slot as a '
+            f'pointer — one of the two is wrong (see lift-learnings §45; '
+            f'suppress with hazard-ok: slot-form)'
+        )
+    return errors
+
+
 def main():
     frame_audit = '--frame-size-audit' in sys.argv
     quiet = '-q' in sys.argv or '--quiet' in sys.argv or os.environ.get('LOG_LEVEL') == 'WARNING'
@@ -2143,6 +2282,7 @@ def main():
     all_fnptr_conv_errors = []
     all_vendored_errors = []
     all_static_buf_errors = []
+    all_slot_form_errors = []
 
     for fpath in c_files:
         with open(fpath, 'r', errors='replace') as f:
@@ -2171,6 +2311,7 @@ def main():
         all_fnptr_conv_errors.extend(check_raw_fnptr_conv_cast(fpath, content, lines))
         all_vendored_errors.extend(check_vendored_source(fpath, content, lines))
         all_static_buf_errors.extend(check_static_local_buffers(fpath, content, lines))
+        all_slot_form_errors.extend(check_pointer_slot_arg_form(fpath, content, lines))
         if frame_audit:
             all_frame_errors.extend(check_frame_sizes(fpath, content, lines))
 
@@ -2199,7 +2340,8 @@ def main():
             f'nan_guard: {len(all_nan_guard_errors)}, '
             f'range_gate: {len(all_range_gate_errors)}, '
             f'fnptr_conv: {len(all_fnptr_conv_errors)}, '
-            f'vendored_src: {len(all_vendored_errors)}'
+            f'vendored_src: {len(all_vendored_errors)}, '
+            f'slot_form: {len(all_slot_form_errors)}'
         )
         if frame_audit:
             counts += f', frame_sizes: {len(all_frame_errors)}'
@@ -2217,7 +2359,7 @@ def main():
                  len(all_discard_result_errors) + len(all_inplace_mut_errors) +
                  len(all_contiguity_errors) + len(all_nan_guard_errors) +
                  len(all_range_gate_errors) + len(all_fnptr_conv_errors) +
-                 len(all_vendored_errors))
+                 len(all_vendored_errors) + len(all_slot_form_errors))
         if total:
             print(counts, file=sys.stderr)
     else:
@@ -2524,6 +2666,23 @@ def main():
                 file=sys.stderr,
             )
             for e in all_literal_deref_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_slot_form_errors:
+            print(
+                'WARNING: struct slot passed by address where another call\n'
+                'site dereferences it as a pointer. The callee then reads the\n'
+                'pointer bits as payload — a float* slot yields a denormal\n'
+                'that prints as -0.000000 and only surfaces as a downstream\n'
+                'assert (lift-learnings §45 — FUN_001abd90 melee lunge fed\n'
+                'FUN_0010a1c0 the address of collision_result+0x0c and tripped\n'
+                'assert_valid_real_normal3d in effects.c). Check the reference\n'
+                'disassembly: a pointer slot is loaded (MOV reg,[base+off])\n'
+                'before the PUSH, an inline struct is LEA-d:\n',
+                file=sys.stderr,
+            )
+            for e in all_slot_form_errors:
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 
