@@ -34495,10 +34495,6 @@
      "decl": "int FUN_00064b40(int param_1, int prop_handle, int param_3, int param_4);"
     },
     {
-     "addr": "0x64cd0",
-     "decl": "void FUN_00064cd0(void);"
-    },
-    {
      "addr": "0x64ec0",
      "decl": "int FUN_00064ec0(int file, int field, void *value);"
     },
@@ -34571,6 +34567,11 @@
    "data": [],
    "functions": [
     {
+     "addr": "0x64cd0",
+     "decl": "int TIFFVGetFieldDefaulted(void *tif, unsigned int tag, char *ap);",
+     "ported": true
+    },
+    {
      "addr": "0x659f0",
      "decl": "int TIFFSetField(int file, int field, ...);"
     },
@@ -34588,7 +34589,7 @@
     },
     {
      "addr": "0x65f00",
-     "decl": "void TIFFVGetField(void);"
+     "decl": "int TIFFVGetField(void *tif, unsigned int tag, char *ap);"
     },
     {
      "addr": "0x65f70",

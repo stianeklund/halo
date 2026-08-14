@@ -26324,6 +26324,17 @@
       "score": 100.0,
       "source": "src/halo/bitmaps/libtiff/tif_open.c"
     },
+    "TIFFVGetFieldDefaulted": {
+      "addr": "0x64cd0",
+      "end": "0x64e7e",
+      "kind": "auto",
+      "n_r": 189,
+      "opnd_percent": 78.8,
+      "ref": "synth",
+      "ref_sha": "56ba07f9ed6f72dd",
+      "score": 92.6,
+      "source": "src/halo/bitmaps/libtiff/tif_dir.c"
+    },
     "XAutoPowerDownResetTimer": {
       "addr": "0x1d771c",
       "end": "0x1d7737",

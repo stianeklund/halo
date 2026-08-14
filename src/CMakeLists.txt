@@ -22,6 +22,7 @@ halo/ai/actor_firing_position.c
 	halo/bitmaps/bitmap_utilities.c
 	halo/bitmaps/bitmaps.c
 	halo/bitmaps/libtiff/tif_compress.c
+	halo/bitmaps/libtiff/tif_dir.c
 	halo/bitmaps/libtiff/tif_error.c
 	halo/bitmaps/libtiff/tif_flush.c
 	halo/bitmaps/libtiff/tif_open.c
