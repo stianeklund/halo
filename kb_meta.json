@@ -2209,6 +2209,29 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x64b40": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "param_3 and param_4 are 1-byte flag types: both are only ever read with a byte load and TEST (MOV AL,[EBP+0x10] at 0x64c0f, MOV AL,[EBP+0x14] at 0x64c76), and param_4 is additionally forwarded as a whole dword to prop_position_refresh's char param at 0x64c63, so the kb decl was narrowed from int to bool.",
+        "actor_expected_acknowledgement (0x32940) really has the signature bool(int actor_handle, int prop_handle): the call site at 0x64ca4 pushes EBX and EDI and stores the AL result into the dead [EBP+0xc] param slot before forwarding it as actor_perception_acknowledge's last argument, so its kb prototype was corrected from void(void)."
+      ],
+      "uncertain": [
+        "The original frame reserves 0x4c bytes but only 0x48 are accounted for (a 0x38 out_data buffer at EBP-0x4c plus four dword locals at EBP-0x14/-0xc/-8/-4), leaving an unexplained 4-byte hole at EBP-0x10 that the function never touches; the lift therefore emits sub esp,0x48 and the residual VC71 gap at 92.5% is mostly this frame delta plus MSVC homing the two bool temps in the dead [EBP+0xc] parameter slot."
+      ]
+    },
+    "0x64cd0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Identified as upstream libtiff TIFFVGetFieldDefaulted from three converging signals: the leading delegate-then-default call to TIFFVGetField (0x65f00) at 0x64ce2, sixteen switch arms that are all plain standard-directory-tag reads, and the TIFFTAG_DATATYPE arm returning td_sampleformat minus one (DEC CX at 0x64e6f), which is unique to that upstream function.",
+        "Translation unit is a house grouping, not proven: kb.json places the function in tif_dir.obj, but upstream libtiff keeps TIFFVGetFieldDefaulted in tif_aux.c, and the binary carries no __FILE__ string or assert for this function to arbitrate."
+      ],
+      "uncertain": [
+        "TIFFTAG_SUBFILETYPE (+0x34) and TIFFTAG_IMAGEDEPTH (+0x24) are 16-bit both on the load and on the store in this build, where upstream libtiff declares td_subfiletype and td_imagedepth as uint32; the narrowing is taken from the binary but its cause is unexplained.",
+        "Switch case order is written tag-ascending; the original block layout for the 0x11c-0x13d compare chain comes out as 0x128, 0x125, 0x11c, 0x13d, which is not a simple reversal of tag order, so the true source order of those four arms is unproven."
+      ]
+    },
     "0x64ee0": {
       "kind": "function",
       "status": "ported"
@@ -2290,6 +2313,13 @@
       ],
       "uncertain": [
         "The unguarded c->name dereference on a TIFFFindCODEC miss (xor eax,eax followed by mov eax,[eax] at the merge of both paths) is reproduced faithfully and will fault on an unknown compression scheme; whether any live caller can reach that path was not established, since the stub is only installed into the codec method table by pointer and the image contains no direct CALL to 0x65160."
+      ]
+    },
+    "0x65f00": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Decl widened from void(void) to int TIFFVGetField(void *tif, unsigned int tag, char *ap) on the evidence of its only observed call site (0x64ce2): three pushes, ADD ESP,0xc, and TEST EAX,EAX on the result. The ap parameter is spelled char * because the generated decl.h has no stdarg.h in scope and va_list is exactly char * under both MSVC 7.1 and clang-i386."
       ]
     },
     "0x68890": {
