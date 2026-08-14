@@ -1,4 +1,5 @@
 {
+  "version": 2,
   "scores": {
     "D3DResource_BlockUntilNotBusy": {
       "addr": "0x1ed620",
@@ -6653,19 +6654,19 @@
       "source": "src/halo/effects/decals.c"
     },
     "FUN_0009c700": {
-      "abi_model": "regparam_stripped",
-      "abi_model_items": 1,
-      "abi_modeled_mnemonic_pct": 80.7,
       "addr": "0x9c700",
       "end": "0x9c748",
       "kind": "auto",
       "n_r": 31,
       "opnd_percent": 73.7,
-      "raw_mnemonic_pct": 79.3,
       "ref": "synth",
       "ref_sha": "2b1d6f5b2b34d747",
       "score": 80.7,
-      "source": "src/halo/effects/effects.c"
+      "source": "src/halo/effects/effects.c",
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 80.7,
+      "raw_mnemonic_pct": 79.3
     },
     "FUN_0009c910": {
       "addr": "0x9c910",
@@ -6679,34 +6680,34 @@
       "source": "src/halo/effects/effects.c"
     },
     "FUN_0009c9a0": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 97.0,
       "addr": "0x9c9a0",
       "end": "0x9c9c7",
       "kind": "auto",
       "n_r": 16,
       "opnd_percent": 84.8,
-      "raw_mnemonic_pct": 97.0,
       "ref": "synth",
       "ref_sha": "8af825177810b6c7",
       "score": 97.0,
-      "source": "src/halo/effects/effects.c"
-    },
-    "FUN_0009c9f0": {
+      "source": "src/halo/effects/effects.c",
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 88.7,
+      "abi_modeled_mnemonic_pct": 97.0,
+      "raw_mnemonic_pct": 97.0
+    },
+    "FUN_0009c9f0": {
       "addr": "0x9c9f0",
       "end": "0x9ca63",
       "kind": "auto",
       "n_r": 45,
       "opnd_percent": 72.2,
-      "raw_mnemonic_pct": 88.7,
       "ref": "synth",
       "ref_sha": "202552f7b4a82693",
       "score": 88.7,
-      "source": "src/halo/effects/effects.c"
+      "source": "src/halo/effects/effects.c",
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 88.7,
+      "raw_mnemonic_pct": 88.7
     },
     "FUN_0009caf0": {
       "addr": "0x9caf0",
@@ -6731,34 +6732,34 @@
       "source": "src/halo/effects/effects.c"
     },
     "FUN_0009cc20": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 82.6,
       "addr": "0x9cc20",
       "end": "0x9cc9f",
       "kind": "auto",
       "n_r": 47,
       "opnd_percent": 73.9,
-      "raw_mnemonic_pct": 82.6,
       "ref": "synth",
       "ref_sha": "cb703b79a6bb591e",
       "score": 82.6,
-      "source": "src/halo/effects/effects.c"
-    },
-    "FUN_0009cca0": {
+      "source": "src/halo/effects/effects.c",
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 82.0,
+      "abi_modeled_mnemonic_pct": 82.6,
+      "raw_mnemonic_pct": 82.6
+    },
+    "FUN_0009cca0": {
       "addr": "0x9cca0",
       "end": "0x9cd80",
       "kind": "auto",
       "n_r": 88,
       "opnd_percent": 67.1,
-      "raw_mnemonic_pct": 82.0,
       "ref": "synth",
       "ref_sha": "2d3fe064ede31a1f",
       "score": 82.0,
-      "source": "src/halo/effects/effects.c"
+      "source": "src/halo/effects/effects.c",
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 82.0,
+      "raw_mnemonic_pct": 82.0
     },
     "FUN_0009cdd0": {
       "addr": "0x9cdd0",
@@ -6772,49 +6773,49 @@
       "source": "src/halo/effects/effects.c"
     },
     "FUN_0009d1f0": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 78.6,
       "addr": "0x9d1f0",
       "end": "0x9d2c2",
       "kind": "auto",
       "n_r": 84,
       "opnd_percent": 61.9,
-      "raw_mnemonic_pct": 78.6,
       "ref": "synth",
       "ref_sha": "819ed7686a79d53f",
       "score": 78.6,
-      "source": "src/halo/effects/effects.c"
+      "source": "src/halo/effects/effects.c",
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 78.6,
+      "raw_mnemonic_pct": 78.6
     },
     "FUN_0009d2d0": {
-      "abi_model": "regparam_stripped",
-      "abi_model_items": 1,
-      "abi_modeled_mnemonic_pct": 80.0,
       "addr": "0x9d2d0",
       "end": "0x9d421",
       "kind": "auto",
       "n_r": 114,
       "opnd_percent": 66.4,
-      "raw_mnemonic_pct": 79.7,
       "ref": "synth",
       "ref_sha": "35bb014b3676785d",
       "score": 80.0,
-      "source": "src/halo/effects/effects.c"
-    },
-    "FUN_0009d430": {
+      "source": "src/halo/effects/effects.c",
       "abi_model": "regparam_stripped",
       "abi_model_items": 1,
-      "abi_modeled_mnemonic_pct": 92.1,
+      "abi_modeled_mnemonic_pct": 80.0,
+      "raw_mnemonic_pct": 79.7
+    },
+    "FUN_0009d430": {
       "addr": "0x9d430",
       "end": "0x9d4dd",
       "kind": "auto",
       "n_r": 64,
       "opnd_percent": 66.7,
-      "raw_mnemonic_pct": 91.3,
       "ref": "synth",
       "ref_sha": "8428e68d28bb732c",
       "score": 92.1,
-      "source": "src/halo/effects/effects.c"
+      "source": "src/halo/effects/effects.c",
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 92.1,
+      "raw_mnemonic_pct": 91.3
     },
     "FUN_0009d4e0": {
       "addr": "0x9d4e0",
@@ -6828,34 +6829,34 @@
       "source": "src/halo/effects/effects.c"
     },
     "FUN_0009d590": {
-      "abi_model": "regparam_stripped",
-      "abi_model_items": 1,
-      "abi_modeled_mnemonic_pct": 78.8,
       "addr": "0x9d590",
       "end": "0x9dcef",
       "kind": "auto",
       "n_r": 561,
       "opnd_percent": 63.6,
-      "raw_mnemonic_pct": 78.7,
       "ref": "synth",
       "ref_sha": "01ee176c6a47efe9",
       "score": 78.8,
-      "source": "src/halo/effects/effects.c"
+      "source": "src/halo/effects/effects.c",
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 78.8,
+      "raw_mnemonic_pct": 78.7
     },
     "FUN_0009dcf0": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 87.2,
       "addr": "0x9dcf0",
       "end": "0x9e0cc",
       "kind": "auto",
       "n_r": 369,
       "opnd_percent": 43.7,
-      "raw_mnemonic_pct": 87.2,
       "ref": "synth",
       "ref_sha": "5d6d81ad0a3ca65d",
       "score": 87.2,
-      "source": "src/halo/effects/effects.c"
+      "source": "src/halo/effects/effects.c",
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 87.2,
+      "raw_mnemonic_pct": 87.2
     },
     "FUN_0009e180": {
       "addr": "0x9e180",
@@ -6869,34 +6870,34 @@
       "source": "src/halo/effects/effects.c"
     },
     "FUN_0009e310": {
-      "abi_model": "regparam_stripped",
-      "abi_model_items": 1,
-      "abi_modeled_mnemonic_pct": 75.8,
       "addr": "0x9e310",
       "end": "0x9e55b",
       "kind": "auto",
       "n_r": 200,
       "opnd_percent": 57.4,
-      "raw_mnemonic_pct": 75.6,
       "ref": "synth",
       "ref_sha": "d4e01f68e85fc428",
       "score": 75.8,
-      "source": "src/halo/effects/effects.c"
+      "source": "src/halo/effects/effects.c",
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 75.8,
+      "raw_mnemonic_pct": 75.6
     },
     "FUN_0009e560": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 82.1,
       "addr": "0x9e560",
       "end": "0x9e60b",
       "kind": "auto",
       "n_r": 67,
       "opnd_percent": 62.7,
-      "raw_mnemonic_pct": 82.1,
       "ref": "synth",
       "ref_sha": "a89a9a33d0f99397",
       "score": 82.1,
-      "source": "src/halo/effects/effects.c"
+      "source": "src/halo/effects/effects.c",
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 82.1,
+      "raw_mnemonic_pct": 82.1
     },
     "FUN_0009eb40": {
       "addr": "0x9eb40",
@@ -20286,34 +20287,34 @@
       "source": "src/halo/physics/collision_usage.c"
     },
     "FUN_0014da20": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 96.9,
       "addr": "0x14da20",
       "end": "0x14da7b",
       "kind": "auto",
       "n_r": 32,
       "opnd_percent": 84.4,
-      "raw_mnemonic_pct": 96.9,
       "ref": "synth",
       "ref_sha": "76ed5c41a6d99a3e",
       "score": 96.9,
-      "source": "src/halo/physics/collision_usage.c"
-    },
-    "FUN_0014da80": {
+      "source": "src/halo/physics/collision_usage.c",
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 100.0,
+      "abi_modeled_mnemonic_pct": 96.9,
+      "raw_mnemonic_pct": 96.9
+    },
+    "FUN_0014da80": {
       "addr": "0x14da80",
       "end": "0x14dab0",
       "kind": "auto",
       "n_r": 19,
       "opnd_percent": 89.5,
-      "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "3a8ccd0ab396f0f6",
       "score": 100.0,
-      "source": "src/halo/physics/collision_usage.c"
+      "source": "src/halo/physics/collision_usage.c",
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "raw_mnemonic_pct": 100.0
     },
     "FUN_0014dab0": {
       "addr": "0x14dab0",
@@ -25267,19 +25268,19 @@
       "source": "src/halo/units/units.c"
     },
     "FUN_001abd90": {
-      "abi_model": "regparam_stripped",
-      "abi_model_items": 1,
-      "abi_modeled_mnemonic_pct": 91.9,
       "addr": "0x1abd90",
       "end": "0x1ac027",
       "kind": "auto",
       "n_r": 192,
       "opnd_percent": 71.7,
-      "raw_mnemonic_pct": 91.7,
       "ref": "synth",
       "ref_sha": "ef8a5bc124a577a4",
       "score": 91.9,
-      "source": "src/halo/units/units.c"
+      "source": "src/halo/units/units.c",
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 91.9,
+      "raw_mnemonic_pct": 91.7
     },
     "FUN_001ac680": {
       "addr": "0x1ac680",
@@ -30695,19 +30696,19 @@
       "source": "src/halo/physics/collision_usage.c"
     },
     "collision_log_add_time": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 84.4,
       "addr": "0x14d950",
       "end": "0x14d9c7",
       "kind": "auto",
       "n_r": 45,
       "opnd_percent": 53.3,
-      "raw_mnemonic_pct": 84.4,
       "ref": "synth",
       "ref_sha": "545e542b488d8d20",
       "score": 84.4,
-      "source": "src/halo/physics/collision_usage.c"
+      "source": "src/halo/physics/collision_usage.c",
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 84.4,
+      "raw_mnemonic_pct": 84.4
     },
     "collision_log_begin_period": {
       "addr": "0x14d100",
@@ -30743,19 +30744,19 @@
       "source": "src/halo/physics/collision_usage.c"
     },
     "collision_log_end_period": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 86.8,
       "addr": "0x14d140",
       "end": "0x14d1a7",
       "kind": "auto",
       "n_r": 27,
       "opnd_percent": 60.4,
-      "raw_mnemonic_pct": 86.8,
       "ref": "synth",
       "ref_sha": "776941f8c59696cb",
       "score": 86.8,
-      "source": "src/halo/physics/collision_usage.c"
+      "source": "src/halo/physics/collision_usage.c",
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 86.8,
+      "raw_mnemonic_pct": 86.8
     },
     "collision_log_end_time": {
       "addr": "0x14eeb0",
@@ -30813,19 +30814,19 @@
       "source": "src/halo/physics/collision_usage.c"
     },
     "collision_log_render": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 80.8,
       "addr": "0x14d210",
       "end": "0x14d83e",
       "kind": "auto",
       "n_r": 465,
       "opnd_percent": 36.2,
-      "raw_mnemonic_pct": 80.8,
       "ref": "synth",
       "ref_sha": "dc1a51bf4e60e1c8",
       "score": 80.8,
-      "source": "src/halo/physics/collision_usage.c"
+      "source": "src/halo/physics/collision_usage.c",
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 80.8,
+      "raw_mnemonic_pct": 80.8
     },
     "collision_log_usage": {
       "addr": "0x14ef30",
@@ -31620,19 +31621,19 @@
       "source": "src/halo/objects/damage.c"
     },
     "dangerous_effects_near_player": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 86.4,
       "addr": "0x9d000",
       "end": "0x9d1e2",
       "kind": "auto",
       "n_r": 173,
       "opnd_percent": 80.0,
-      "raw_mnemonic_pct": 86.4,
       "ref": "synth",
       "ref_sha": "0262cd654e104c75",
       "score": 86.4,
-      "source": "src/halo/effects/effects.c"
+      "source": "src/halo/effects/effects.c",
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 86.4,
+      "raw_mnemonic_pct": 86.4
     },
     "dangerous_items_near_player": {
       "addr": "0xf6970",
@@ -32658,34 +32659,34 @@
       "source": "src/halo/effects/effects.c"
     },
     "effect_new_attached_from_markers": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 82.8,
       "addr": "0x9ee40",
       "end": "0x9f0d1",
       "kind": "auto",
       "n_r": 207,
       "opnd_percent": 74.2,
-      "raw_mnemonic_pct": 82.8,
       "ref": "synth",
       "ref_sha": "fb04fc66e06f2c65",
       "score": 82.8,
-      "source": "src/halo/effects/effects.c"
-    },
-    "effect_new_unattached_from_markers": {
+      "source": "src/halo/effects/effects.c",
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 93.5,
+      "abi_modeled_mnemonic_pct": 82.8,
+      "raw_mnemonic_pct": 82.8
+    },
+    "effect_new_unattached_from_markers": {
       "addr": "0x9f0e0",
       "end": "0x9f311",
       "kind": "auto",
       "n_r": 176,
       "opnd_percent": 76.5,
-      "raw_mnemonic_pct": 93.5,
       "ref": "synth",
       "ref_sha": "b736ac3ab1a2ea9c",
       "score": 93.5,
-      "source": "src/halo/effects/effects.c"
+      "source": "src/halo/effects/effects.c",
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 93.5,
+      "raw_mnemonic_pct": 93.5
     },
     "effect_stop": {
       "addr": "0x9ceb0",
@@ -32699,19 +32700,19 @@
       "source": "src/halo/effects/effects.c"
     },
     "effect_update": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 88.0,
       "addr": "0x9e610",
       "end": "0x9eb3c",
       "kind": "auto",
       "n_r": 439,
       "opnd_percent": 47.0,
-      "raw_mnemonic_pct": 88.0,
       "ref": "synth",
       "ref_sha": "e352ca196d0d4883",
       "score": 88.0,
-      "source": "src/halo/effects/effects.c"
+      "source": "src/halo/effects/effects.c",
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 88.0,
+      "raw_mnemonic_pct": 88.0
     },
     "effects_dispose": {
       "addr": "0x9c6e0",
@@ -32802,19 +32803,19 @@
       "source": "src/halo/effects/effects.c"
     },
     "effects_update": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 98.9,
       "addr": "0x9f320",
       "end": "0x9f3a1",
       "kind": "auto",
       "n_r": 47,
       "opnd_percent": 94.7,
-      "raw_mnemonic_pct": 98.9,
       "ref": "synth",
       "ref_sha": "2efa852f5517966f",
       "score": 98.9,
-      "source": "src/halo/effects/effects.c"
+      "source": "src/halo/effects/effects.c",
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 98.9,
+      "raw_mnemonic_pct": 98.9
     },
     "encode_network_game_message": {
       "addr": "0x12b700",
@@ -51218,7 +51219,17 @@
       "ref_sha": "617228161245735b",
       "score": 94.1,
       "source": "src/halo/memory/circular_queue.c"
+    },
+    "FUN_00063e30": {
+      "addr": "0x63e30",
+      "end": "0x63e82",
+      "kind": "auto",
+      "n_r": 40,
+      "opnd_percent": 100.0,
+      "ref": "synth",
+      "ref_sha": "72a5408fe647322c",
+      "score": 100.0,
+      "source": "src/halo/ai/props.c"
     }
-  },
-  "version": 2
+  }
 }

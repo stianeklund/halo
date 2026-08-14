@@ -35,6 +35,53 @@
  * generated decl.h via the kb.json data entries and are visible here
  * through the common.h -> decl.h include chain. No re-declaration needed. */
 
+/* 0x63e30 — thin wrapper over FUN_000639e0 (same scenario/bsp/origin/node/
+ * target parameter family as sibling FUN_00063e90).
+ *
+ * Confirmed from disassembly (0x63e30-0x63e81):
+ *   frame  = PUSH EBP / MOV EBP,ESP / SUB ESP,0x1c -> one 0x1c-byte local
+ *            buffer at EBP-0x1c, passed to the callee as its result_buf.
+ *   guard  = MOV EDI,[EBP+0x14] / CMP EDI,-1 / JE 0x63e7a; the taken branch
+ *            does OR EAX,0xffffffff, i.e. `return -1`.
+ *   call   = single CALL 0x639e0, cdecl, ADD ESP,0x1c (7 dwords / 7 args).
+ *            Push order (last push = first C arg) is
+ *            [EBP+8], [EBP+0xc], [EBP+0x10], EDI, ESI, -1, LEA EBP-0x1c,
+ *            which matches FUN_000639e0's 7-arg kb prototype exactly.
+ *            Note EAX is reused: LEA EAX,[EBP-0x1c] at 0x63e49 is pushed at
+ *            0x63e4c BEFORE MOV EAX,[EBP+8] at 0x63e4d reloads it.
+ *   out    = the three post-call reads are callee outputs inside result_buf,
+ *            not independent locals (buffer-alias hazard):
+ *              [EBP-0x18] = result_buf+0x04 -> target[0]
+ *              [EBP-0x14] = result_buf+0x08 -> target[1]
+ *              [EBP-0x0c] = result_buf+0x10 -> status
+ *            Both target stores are plain 32-bit MOVs (MOV [ESI],ECX /
+ *            MOV [ESI+4],EDX) — no x87 anywhere in this function.
+ *   return = CMP EAX,-1 / JNE 0x63e7d returns EAX (status); the fall-through
+ *            does MOV EAX,EDI, i.e. returns node_handle.
+ *
+ * Ghidra's decompile of this function is misleading in three ways: the stale
+ * void(void) kb prototype turned all five parameters into in_stack_* pseudo-
+ * args, it dropped every return value, and it sized the buffer as char[4]. */
+int FUN_00063e30(int scenario, unsigned char bsp_idx, float *origin,
+                 int node_handle, float *target)
+{
+  char result_buf[0x1c];
+  int status;
+
+  if (node_handle != -1) {
+    FUN_000639e0(scenario, bsp_idx, origin, node_handle, target, -1,
+                 result_buf);
+    target[0] = *(float *)(result_buf + 0x04);
+    target[1] = *(float *)(result_buf + 0x08);
+    status = *(int *)(result_buf + 0x10);
+    if (status == -1) {
+      return node_handle;
+    }
+    return status;
+  }
+  return -1;
+}
+
 /* 0x64100 — props_initialize.
  * Allocates the prop data table. Called from ai_initialize.
  * Asserts (halt=true) if allocation fails, then calls system_exit(-1). */

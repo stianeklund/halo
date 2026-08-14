@@ -34451,7 +34451,8 @@
     },
     {
      "addr": "0x63e30",
-     "decl": "void FUN_00063e30(void);"
+     "decl": "int FUN_00063e30(int scenario, unsigned char bsp_idx, float *origin, int node_handle, float *target);",
+     "ported": true
     },
     {
      "addr": "0x63e90",
