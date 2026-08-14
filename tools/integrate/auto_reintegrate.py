@@ -5,13 +5,18 @@ This is the safety core of the `auto-session` pipeline. It encodes the
 `reintegrate-to-main` skill as executable code so the dangerous merge logic is
 testable and deterministic instead of living in agent prose.
 
-Landing policy: AUTO-FF, PARK-ON-CONFLICT.
+Landing policy: AUTO-FF, PARK-ON-CONFLICT, AUTO-MERGE-DERIVED-CACHES.
   - Advance `main` (fast-forward only) *only* when the merge is conflict-free
     AND every gate is green.
   - On any real merge conflict (kb.json object conflict, source conflict) or a
     dirty/locked main worktree, PARK and surface to a human. Never hand-resolve
     kb.json -- a hand-rolled per-function merge once silently dropped 92
     functions (feedback_kb_json_branch_integration_recipe).
+  - Generated per-key JSON caches (vc71_scores.json, kb_meta.json, ...) are the
+    ONE exception: both sides always append to them, so they conflicted on
+    every land. They are merged per key via merge_derived_json.py, and the
+    result is only accepted after a key-union proof shows neither side's
+    entries were dropped. kb.json is never in that set.
 
 Exit codes:
   0  landed            -- main fast-forwarded to the branch tip (or, with
@@ -116,6 +121,142 @@ def _matches_three_way(path: str, base: str, ours: str,
         if cp.returncode != 0:
             return False
         return cp.stdout == blobs["result"]
+
+
+# ---------------------------------------------------------------------------
+# Derived-JSON cache conflict resolution
+# ---------------------------------------------------------------------------
+#
+# Several tracked files are machine-generated dict caches keyed by function or
+# address. Every lane appends to them, so `main` and a session branch collide
+# on them on essentially EVERY land -- two consecutive props.obj sessions
+# (2026-08-14) each parked with `merge_conflict` whose only real path was
+# tools/verify/vc71_scores.json, after all the actual lift work had passed
+# every gate. The merge is well-defined per key and already implemented in
+# tools/integrate/merge_derived_json.py; this just calls it instead of parking.
+#
+# kb.json is deliberately NOT here and must never be added: it is integrated at
+# whole-object granularity by a human decision, because a per-function merge
+# once silently dropped 92 functions (feedback_kb_json_branch_integration_recipe).
+_DERIVED_JSON_CACHES = frozenset({
+    "kb_meta.json",
+    "tools/verify/vc71_scores.json",
+    "tools/equivalence/leaf_cache.json",
+    "tools/kb_reg_baseline.json",
+})
+assert "kb.json" not in _DERIVED_JSON_CACHES, "kb.json is never auto-merged"
+
+_MERGE_DERIVED = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              "merge_derived_json.py")
+
+# `git merge-tree --name-only` prints conflicting paths, but on conflict it can
+# also emit informational lines ("Auto-merging x", "CONFLICT (content): ...").
+# Those are messages, not paths, and treating them as paths makes every
+# conflict look unresolvable.
+_MERGE_TREE_NOISE = ("Auto-merging ", "CONFLICT ", "warning:", "error:",
+                     "Removing ", "Adding ")
+
+
+def _conflict_paths(lines: list[str]) -> list[str]:
+    """Filter merge-tree output down to actual conflicting paths."""
+    return [ln for ln in lines if not ln.startswith(_MERGE_TREE_NOISE)]
+
+
+def _json_key_paths(obj, prefix: tuple = ()) -> set:
+    """Every nested dict key path in `obj`, as tuples."""
+    out = set()
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            p = prefix + (k,)
+            out.add(p)
+            out |= _json_key_paths(v, p)
+    return out
+
+
+def _stage_json(stage: int, path: str):
+    """Load index stage 1/2/3 of `path` as JSON, or None."""
+    cp = git("show", f":{stage}:{path}")
+    if cp.returncode != 0:
+        return None
+    try:
+        return json.loads(cp.stdout)
+    except (ValueError, TypeError):
+        return None
+
+
+def _resolve_derived_conflict(path: str) -> tuple[bool, str]:
+    """Resolve one conflicted derived cache, PROVING no side was dropped.
+
+    Runs merge_derived_json.py (3-way, per key) and then verifies the result
+    mechanically rather than trusting it: every key present on either side must
+    survive unless that key was deleted relative to the merge base, and no key
+    may appear that neither side had. A silent drop here is exactly the failure
+    mode that resolving with --ours/--theirs produces, so the proof -- not the
+    tool's exit code -- is the gate.
+    """
+    base, ours, theirs = (_stage_json(n, path) for n in (1, 2, 3))
+    if ours is None or theirs is None:
+        return False, "unreadable_index_stages"
+    if base is None:
+        base = {}
+
+    cp = subprocess.run([sys.executable, _MERGE_DERIVED, path, "--indent", "2"],
+                        capture_output=True, text=True)
+    if cp.returncode != 0:
+        return False, f"merge_tool_failed:{cp.stdout.strip()[-120:]}"
+
+    try:
+        with open(path) as fh:
+            merged = json.load(fh)
+    except (OSError, ValueError):
+        return False, "merged_result_unreadable"
+
+    kb, ko, kt = (_json_key_paths(x) for x in (base, ours, theirs))
+    km = _json_key_paths(merged)
+    deleted = (kb - ko) | (kb - kt)
+    expected = (ko | kt) - deleted
+    missing = expected - km
+    invented = km - (ko | kt)
+    if missing:
+        return False, f"dropped_{len(missing)}_keys"
+    if invented:
+        return False, f"invented_{len(invented)}_keys"
+    return True, ""
+
+
+def _rebase_resolving_derived(branch: str) -> tuple[bool, set, str]:
+    """`git rebase main` (hooks off), auto-resolving derived-cache conflicts.
+
+    Returns (ok, resolved_paths, detail). Any conflict outside
+    _DERIVED_JSON_CACHES, any failed resolution, or any failed union proof
+    aborts the rebase and parks -- fail closed, main untouched.
+    """
+    resolved: set = set()
+    rb = git("-c", "core.hooksPath=/dev/null", "-c", "rerere.enabled=false",
+             "-c", "core.editor=true", "rebase", "main")
+    guard = 0
+    while rb.returncode != 0:
+        guard += 1
+        if guard > 50:
+            git("-c", "core.hooksPath=/dev/null", "rebase", "--abort")
+            return False, resolved, "too_many_conflict_stops"
+        unmerged = [p for p in git("diff", "--name-only", "--diff-filter=U")
+                    .stdout.splitlines() if p.strip()]
+        if not unmerged or any(p not in _DERIVED_JSON_CACHES for p in unmerged):
+            git("-c", "core.hooksPath=/dev/null", "rebase", "--abort")
+            other = [p for p in unmerged if p not in _DERIVED_JSON_CACHES]
+            return False, resolved, ("rebase_conflict:"
+                                     + ",".join(other or ["unknown"]))
+        for p in unmerged:
+            ok, why = _resolve_derived_conflict(p)
+            if not ok:
+                git("-c", "core.hooksPath=/dev/null", "rebase", "--abort")
+                return False, resolved, f"derived_merge_failed:{p}:{why}"
+            git("add", p)
+            resolved.add(p)
+        rb = git("-c", "core.hooksPath=/dev/null", "-c", "rerere.enabled=false",
+                 "-c", "core.editor=true", "rebase", "--continue")
+    return True, resolved, ""
 
 
 def resolve_main_worktree() -> tuple[str | None, bool]:
@@ -371,7 +512,8 @@ def _settle_readme_regen(main_wt: str) -> bool:
 
 
 def run_gates(main_wt: str, *, rebased: bool, backup: str | None,
-              branch: str) -> tuple[bool, str, dict]:
+              branch: str, derived_resolved: set | None = None,
+              ) -> tuple[bool, str, dict]:
     """Run the four reintegration gates. Return (ok, fail_reason, detail)."""
     detail: dict = {}
 
@@ -466,6 +608,14 @@ def run_gates(main_wt: str, *, rebased: bool, backup: str | None,
                    if not git_ok("diff", "--quiet", backup, branch, "--", f)]
         if drifted:
             exempt = [f for f in drifted if _merge_driver(f) == "ours"]
+            # Third exemption: a derived cache this run resolved per key. It
+            # will NOT match git's 3-way merge (it conflicted -- that is why
+            # the resolver ran), so the check above cannot clear it. It is not
+            # waived either: _resolve_derived_conflict already proved key-union
+            # survival at resolution time, which is a stronger claim than
+            # "differs from the pre-rebase branch" is a suspicion.
+            proven = [f for f in drifted
+                      if f not in exempt and f in (derived_resolved or set())]
             # Second, narrower exemption: a file both sides legitimately
             # changed. `main` is shared, so another lane can land while this
             # session lifts; the rebase then MUST rewrite every file touched on
@@ -474,12 +624,14 @@ def run_gates(main_wt: str, *, rebased: bool, backup: str | None,
             # git would compute -- proof the replay preserved both sides rather
             # than an assumption that it did.
             merged = [f for f in drifted
-                      if f not in exempt
+                      if f not in exempt and f not in proven
                       and _matches_three_way(f, base, backup, "main", branch)]
             real = [f for f in drifted
-                    if f not in exempt and f not in merged]
+                    if f not in exempt and f not in proven and f not in merged]
             if exempt:
                 detail["no_drop_exempt_merge_ours"] = exempt
+            if proven:
+                detail["no_drop_derived_cache_union_proven"] = proven
             if merged:
                 detail["no_drop_clean_three_way"] = merged
             if real:
@@ -571,26 +723,37 @@ def main() -> int:
     conflicts = merge_tree_conflicts("main", branch)
     if conflicts is None:
         return result(INCONCLUSIVE, "merge_tree_unsupported_git", as_json=J)
-    if conflicts:
-        return result(PARKED, "merge_conflict", as_json=J, conflicts=conflicts,
+    # Derived caches conflict on nearly every land and are resolvable per key
+    # during the rebase (_rebase_resolving_derived); only a conflict OUTSIDE
+    # that set means a human has to look.
+    conflict_paths = _conflict_paths(conflicts)
+    real_conflicts = [p for p in conflict_paths
+                      if p not in _DERIVED_JSON_CACHES]
+    if real_conflicts:
+        return result(PARKED, "merge_conflict", as_json=J,
+                      conflicts=real_conflicts,
+                      derived_conflicts=[p for p in conflict_paths
+                                         if p in _DERIVED_JSON_CACHES],
                       main_only=main_only, branch_only=branch_only)
 
-    # --- Step 3: rebase if diverged (conflict-free only) ---------------------
+    # --- Step 3: rebase if diverged -----------------------------------------
+    # A derived-cache-only conflict still needs the rebase to resolve it, so
+    # rebase whenever main moved -- not only when the preview was clean.
     need_rebase = main_only > 0 and not is_ancestor
     backup = f"backup/{branch}-pre-reintegrate"
+    derived_resolved: set = set()
     if need_rebase and not a.dry_run:
         git("branch", "-f", backup, branch)  # cheap undo point
-        rb = git("-c", "core.hooksPath=/dev/null", "rebase", "main")
-        if rb.returncode != 0:
-            git("-c", "core.hooksPath=/dev/null", "rebase", "--abort")
-            return result(PARKED, "rebase_conflict", as_json=J,
-                          detail=rb.stderr.strip().splitlines()[-5:])
+        ok_rb, derived_resolved, why = _rebase_resolving_derived(branch)
+        if not ok_rb:
+            return result(PARKED, "rebase_conflict", as_json=J, detail=why,
+                          derived_resolved=sorted(derived_resolved))
         is_ancestor = git_ok("merge-base", "--is-ancestor", "main", branch)
 
     # --- Step 4/5: gates -----------------------------------------------------
     ok, fail, detail = run_gates(
         main_wt, rebased=(need_rebase and not a.dry_run),
-        backup=backup, branch=branch)
+        backup=backup, branch=branch, derived_resolved=derived_resolved)
     if not ok:
         return result(PARKED, f"gate_failed:{fail}", as_json=J, gate=detail)
 
