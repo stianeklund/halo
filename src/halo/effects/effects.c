@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 void effects_initialize(void)
 {
   effect_data = game_state_data_new("effect", 0x100, 0xfc);
@@ -37,21 +39,17 @@ void effects_dispose(void)
 bool FUN_0009c700(int object_handle)
 {
   char *unit;
-  int last_violent_time;
-  int current_tick;
 
   unit = (char *)object_try_and_get_and_verify_type(object_handle, 1);
-  if (!unit)
-    return false;
-  if (!(*(uint8_t *)(unit + 0xb6) & 0x4))
-    return false;
-  last_violent_time = *(int *)(unit + 0x3cc);
-  if (last_violent_time == -1)
-    return false;
-  current_tick = game_time_get();
-  if (last_violent_time + 0x1e >= current_tick)
-    return false;
-  return true;
+  if (unit && (*(uint8_t *)(unit + 0xb6) & 4)) {
+    if (*(int *)(unit + 0x3cc) != -1) {
+      if (*(int *)(unit + 0x3cc) + 0x1e < game_time_get()) {
+        return true;
+      }
+      return false;
+    }
+  }
+  return false;
 }
 
 /* Delete an effect and all its per-event datum chains (0x9c750).
@@ -161,9 +159,9 @@ float FUN_0009c9a0(int unused, int effect_ptr, float base_val,
                    uint32_t flags_lo, uint32_t flags_hi, uint8_t bit_index)
 {
   float val;
-  uint32_t bit;
+  int bit;
 
-  bit = 1u << (bit_index & 0x1fu);
+  bit = 1 << bit_index;
   val = base_val;
   if (flags_lo & bit)
     val = base_val * *(float *)(effect_ptr + 0x44);
@@ -182,20 +180,17 @@ float FUN_0009c9f0(int bit_index, int effect_ptr, uint32_t flags_lo,
 {
   float base;
   float range;
-  uint32_t bit;
 
-  bit = 1u << ((uint8_t)bit_index & 0x1fu);
   base = min_val;
-  if (flags_lo & bit)
+  if (flags_lo & (1 << bit_index))
     base = min_val * *(float *)(effect_ptr + 0x44);
-  if (flags_hi & bit)
+  if (flags_hi & (1 << bit_index))
     base *= *(float *)(effect_ptr + 0x48);
 
   range = max_val - min_val;
-  bit = 1u << (((uint8_t)bit_index + 1u) & 0x1fu);
-  if (flags_lo & bit)
+  if (flags_lo & (1 << (bit_index + 1)))
     range *= *(float *)(effect_ptr + 0x44);
-  if (flags_hi & bit)
+  if (flags_hi & (1 << (bit_index + 1)))
     range *= *(float *)(effect_ptr + 0x48);
 
   return random_real_range((int *)seed, 0.0f, range) + base;
@@ -232,13 +227,11 @@ void effects_information_get(int effect_ptr, uint32_t flags_hi, uint32_t *seed,
  * type 0=always, 1=outside volume, 2=inside volume, 3=never. */
 bool FUN_0009caf0(int16_t part_type, void *position, void *effect_volumes)
 {
-  bool inside;
   switch (part_type) {
   case 0:
     return true;
   case 1:
-    inside = FUN_0018f3e0(effect_volumes, position, 0);
-    return !inside;
+    return !FUN_0018f3e0(effect_volumes, position, 0);
   case 2:
     return FUN_0018f3e0(effect_volumes, position, 0);
   case 3:
@@ -298,30 +291,29 @@ int FUN_0009cc20(int marker_data, int effect_datum, int event_index,
 {
   int new_index;
   char *loc;
-  uint16_t node_index;
+  int16_t node_index;
   int *head;
 
-  new_index = data_new_at_index(effect_location_data);
-  if (new_index == -1)
-    return new_index;
+  new_index = data_new_at_index(*(data_t **)0x5aa8ac);
+  if (new_index != -1) {
+    loc = (char *)(int)datum_absolute_index_to_index(*(data_t **)0x5aa8ac, new_index);
+    node_index = *(int16_t *)marker_data;
 
-  loc = (char *)datum_get(effect_location_data, new_index);
-  node_index = *(uint16_t *)marker_data;
+    if (node_index == (int16_t)-1) {
+      node_index = (int16_t)-1;
+    } else if ((char)is_particle) {
+      node_index = (int16_t)((uint16_t)node_index | 0x8000);
+    } else {
+      node_index = (int16_t)((uint16_t)node_index & 0x7fff);
+    }
 
-  if (node_index == 0xFFFF) {
-    node_index = 0xFFFF;
-  } else if (is_particle) {
-    node_index |= 0x8000;
-  } else {
-    node_index &= 0x7FFF;
+    *(int16_t *)(loc + 2) = node_index;
+    qmemcpy(loc + 8, (char *)marker_data + 4, 52);
+
+    head = (int *)(effect_datum + (int)(int16_t)event_index * 4 + 0x5c);
+    *(int *)(loc + 4) = *head;
+    *head = new_index;
   }
-
-  *(uint16_t *)(loc + 2) = node_index;
-  memcpy(loc + 8, (char *)marker_data + 4, 52);
-
-  head = (int *)(effect_datum + 0x5c + (int16_t)event_index * 4);
-  *(int *)(loc + 4) = *head;
-  *head = new_index;
 
   return new_index;
 }
@@ -334,7 +326,9 @@ int FUN_0009cc20(int marker_data, int effect_datum, int event_index,
 void *FUN_0009cca0(void *effect, int *location_handle, int part_type)
 {
   char *loc;
+  uint16_t node_idx;
 
+  loc = (char *)0;
   if (!effect) {
     display_assert("effect", "c:\\halo\\SOURCE\\effects\\effects.c", 0x6e6, 1);
     system_exit(-1);
@@ -344,20 +338,23 @@ void *FUN_0009cca0(void *effect, int *location_handle, int part_type)
                    "c:\\halo\\SOURCE\\effects\\effects.c", 0x6e7, 1);
     system_exit(-1);
   }
-  if (*location_handle == -1)
-    return 0;
+  if (*location_handle != -1) {
+    loc = (char *)datum_get(*(data_t **)0x5aa8ac, *location_handle);
+    *location_handle = *(int *)(loc + 4);
 
-  loc = (char *)datum_get(*(data_t **)0x5aa8ac, *location_handle);
-  *location_handle = *(int *)(loc + 4);
-
-  if ((int16_t)part_type == 1 ||
-      ((int16_t)part_type == 3 && *(int16_t *)((char *)effect + 0x4c) != -1 &&
-       local_player_count() == 1)) {
-    if (*(int16_t *)(loc + 2) == -1 || *(int16_t *)(loc + 2) >= 0)
-      return FUN_0009cca0(effect, location_handle, part_type);
-  } else {
-    if (*(int16_t *)(loc + 2) != -1 && *(int16_t *)(loc + 2) < 0)
-      return FUN_0009cca0(effect, location_handle, part_type);
+    if ((int16_t)part_type == 1 ||
+        ((int16_t)part_type == 3 && *(int16_t *)((char *)effect + 0x4c) != -1 &&
+         local_player_count() == 1)) {
+      node_idx = *(uint16_t *)(loc + 2);
+      if (node_idx == 0xffff)
+        return FUN_0009cca0(effect, location_handle, part_type);
+      if (!(node_idx & 0x8000))
+        return FUN_0009cca0(effect, location_handle, part_type);
+    } else {
+      node_idx = *(uint16_t *)(loc + 2);
+      if (node_idx != 0xffff && (node_idx & 0x8000))
+        return FUN_0009cca0(effect, location_handle, part_type);
+    }
   }
   return loc;
 }
@@ -414,7 +411,8 @@ void effect_stop(int effect_handle, char fade_out)
   unsigned short flags;
   short cur_loop;
 
-  effect = (char *)datum_absolute_index_to_index(effect_data, effect_handle);
+  effect = (char *)(int)datum_absolute_index_to_index(*(data_t **)0x5aa8b0,
+                                                      effect_handle);
   if (effect != 0) {
     tag_data = tag_get(0x65666665, *(int *)(effect + 4));
     flags = *(unsigned short *)(effect + 2);
@@ -525,40 +523,39 @@ bool dangerous_effects_near_player(void)
       /* walk the effect's location linked list */
       location_index = *(int *)((char *)effect + 0x5c);
       while (location_index != NONE) {
-        uint16_t node_index;
-        float radius_sum, dx, dy, dz, dist_sq;
+        short node_index;
+        float radius_sum, dx, dy, dz;
 
         location = datum_get(effect_location_data, location_index);
         location_index = *(int *)((char *)location + 4);
 
+        node_index = *(short *)((char *)location + 2);
         /* negative (but not -1) node index → resolve via helper */
-        if (*(int16_t *)((char *)location + 2) != -1 &&
-            *(int16_t *)((char *)location + 2) < 0) {
-          location = ((void *(*)(void *, int *, int))0x9cca0)(
-            effect, &location_index, 0);
+        if (node_index != -1 && node_index < 0) {
+          location = FUN_0009cca0(effect, &location_index, 0);
         }
         if (location == NULL)
           break;
 
         /* resolve world-space position from node or direct coords */
-        node_index = *(uint16_t *)((char *)location + 2);
-        if (node_index == 0xffff) {
+        node_index = *(short *)((char *)location + 2);
+        if (node_index == -1) {
           /* no node attachment — use position directly */
           position[0] = *(float *)((char *)location + 0x30);
           position[1] = *(float *)((char *)location + 0x34);
           position[2] = *(float *)((char *)location + 0x38);
         } else {
           void *matrix;
-          if ((int16_t)node_index < 0) {
+          if (node_index < 0) {
             matrix = first_person_weapon_get_node_matrix(
-              *(uint16_t *)((char *)effect + 0x4c), node_index & 0x7fff);
+              *(uint16_t *)((char *)effect + 0x4c), (uint16_t)node_index & 0x7fff);
           } else {
-            matrix = ((void *(*)(int, int))0x140eb0)(
-              *(int *)((char *)effect + 0x3c), node_index & 0x7fff);
+            matrix = object_get_node_matrix(
+              *(int *)((char *)effect + 0x3c), (uint16_t)node_index & 0x7fff);
           }
           /* transform local position to world space via node matrix */
-          ((void (*)(void *, void *, float *))0x109590)(
-            matrix, (char *)location + 0x30, position);
+          matrix_transform_point(
+            (float *)matrix, (float *)((char *)location + 0x30), position);
         }
 
         /* squared-distance check against player bounding sphere */
@@ -567,8 +564,7 @@ bool dangerous_effects_near_player(void)
         dx = position[0] - *(float *)((char *)player_object + 0x50);
         dy = position[1] - *(float *)((char *)player_object + 0x54);
         dz = position[2] - *(float *)((char *)player_object + 0x58);
-        dist_sq = dy * dy + dx * dx + dz * dz;
-        if (radius_sum * radius_sum >= dist_sq)
+        if ((dz * dz + dx * dx) + dy * dy <= radius_sum * radius_sum)
           return true;
       }
     }
@@ -586,57 +582,37 @@ void FUN_0009d1f0(void *effect, unsigned int *seed, float *direction_in,
                   float *direction_out, float *velocity_out, float min_speed,
                   float max_speed, float cone_angle, int flags_lo, int flags_hi)
 {
-  float scale_a = *(float *)((char *)effect + 0x44);
-  float scale_b = *(float *)((char *)effect + 0x48);
-  float base;
-  float range;
   float speed;
   float cone;
   float angle;
+  float axis[3];
+  float cos_a;
+  float sin_a;
 
-  /* compute speed: inline effect_compute_scale with bit_index=0 */
-  base = min_speed;
-  if (flags_lo & 1)
-    base *= scale_a;
-  if (flags_hi & 1)
-    base *= scale_b;
-  range = max_speed - min_speed;
-  if (flags_lo & 2)
-    range *= scale_a;
-  if (flags_hi & 2)
-    range *= scale_b;
-  speed = random_real_range((int *)seed, 0.0f, range) + base;
+  speed = FUN_0009c9f0(0, (int)effect, flags_lo, flags_hi, seed, min_speed, max_speed);
 
-  /* compute cone spread angle */
   cone = cone_angle;
-  if (flags_lo & 4)
-    cone *= scale_a;
-  if (flags_hi & 4)
-    cone *= scale_b;
+  if ((char)flags_lo & 4)
+    cone = cone_angle * *(float *)((char *)effect + 0x44);
+  if ((char)flags_hi & 4)
+    cone *= *(float *)((char *)effect + 0x48);
+
   angle = random_math_real(seed) * cone;
 
-  /* copy direction_in to direction_out */
   direction_out[0] = direction_in[0];
   direction_out[1] = direction_in[1];
   direction_out[2] = direction_in[2];
 
-  /* rotate by cone angle if nonzero */
-  if (angle != 0.0f) {
-    float cos_a, sin_a;
-    float axis[3];
-#ifdef XDK_BUILD
-    __asm fld angle __asm fsincos __asm fstp cos_a __asm fstp sin_a
-#else
-    __asm__ volatile("fsincos" : "=t"(cos_a), "=u"(sin_a) : "0"(angle));
-#endif
-      random_seed_get_direction3d(seed, axis);
+  if (angle != *(const float *)0x2533c0) {
+    cos_a = x87_fcos(angle);
+    sin_a = x87_fsin(angle);
+    random_seed_get_direction3d(seed, axis);
     rotate_vector3d_by_sincos(direction_out, axis, sin_a, cos_a);
   }
 
-  /* velocity = speed * direction */
-  velocity_out[0] = speed * direction_out[0];
-  velocity_out[1] = speed * direction_out[1];
-  velocity_out[2] = speed * direction_out[2];
+  velocity_out[0] = direction_out[0] * speed;
+  velocity_out[1] = direction_out[1] * speed;
+  velocity_out[2] = direction_out[2] * speed;
 }
 
 /* Allocate a new effect datum and begin its first event (0x9d2d0).
@@ -653,7 +629,7 @@ int FUN_0009d2d0(int tag_index, int object_index, int from_particle)
     return effect_index;
 
   tag = (char *)tag_get(0x65666665, tag_index);
-  if (!from_particle && (*(uint8_t *)tag & 2) != 0) {
+  if (!(char)from_particle && (*(uint8_t *)tag & 2) != 0) {
     error(2, "cannot create objects, lights, or damage from an effect "
              "created by particles.");
     return -1;
@@ -662,27 +638,28 @@ int FUN_0009d2d0(int tag_index, int object_index, int from_particle)
   if (*(int *)(tag + 0x34) <= 0)
     return effect_index;
 
-  effect_index = data_new_at_index(effect_data);
+  effect_index = data_new_at_index(*(data_t **)0x5aa8b0);
   if (effect_index == -1) {
     if ((*(uint8_t *)tag & 2) == 0)
       return -1;
 
-    effect_index = data_next_index(effect_data, -1);
+    effect_index = data_next_index(*(data_t **)0x5aa8b0, -1);
     if (effect_index == -1)
       return -1;
 
     for (;;) {
-      datum = (char *)datum_get(effect_data, effect_index);
+      datum = (char *)(int)datum_absolute_index_to_index(*(data_t **)0x5aa8b0,
+                                                          effect_index);
       tag = (char *)tag_get(0x65666665, *(int *)(datum + 4));
       if ((*(uint8_t *)tag & 2) == 0)
         break;
-      effect_index = data_next_index(effect_data, effect_index);
+      effect_index = data_next_index(*(data_t **)0x5aa8b0, effect_index);
       if (effect_index == -1)
         return -1;
     }
 
-    datum_delete(effect_data, effect_index);
-    effect_index = data_new_at_index(effect_data);
+    datum_delete(*(data_t **)0x5aa8b0, effect_index);
+    effect_index = data_new_at_index(*(data_t **)0x5aa8b0);
     if (effect_index == -1) {
       display_assert("effect_index!=NONE",
                      "c:\\halo\\SOURCE\\effects\\effects.c", 0x3ad, 1);
@@ -691,7 +668,8 @@ int FUN_0009d2d0(int tag_index, int object_index, int from_particle)
     }
   }
 
-  datum = (char *)datum_get(effect_data, effect_index);
+  datum = (char *)(int)datum_absolute_index_to_index(*(data_t **)0x5aa8b0,
+                                                      effect_index);
   *(int *)(datum + 4) = tag_index;
   *(int *)(datum + 0x40) = object_index;
   *(int16_t *)(datum + 0x4c) = -1;
@@ -725,18 +703,19 @@ void FUN_0009d430(int datum, int color_ptr, int velocity_ptr, float scale_a,
   d_color[2] = color[2];
 
   if (!valid_real_rgb_color(d_color)) {
-    csprintf((char *)0x5ab100, "%s: assert_valid_real_rgb_color(%f, %f, %f)",
-             "&effect->color", (double)d_color[0], (double)d_color[1],
-             (double)d_color[2]);
-    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
-                   0x3d4, 1);
+    display_assert(
+      csprintf((char *)0x5ab100, "%s: assert_valid_real_rgb_color(%f, %f, %f)",
+               "&effect->color", (double)d_color[0], (double)d_color[1],
+               (double)d_color[2]),
+      "c:\\halo\\SOURCE\\effects\\effects.c", 0x3d4, 1);
     system_exit(-1);
   }
 
   if (velocity) {
-    *(float *)(d + 0x30) = velocity[0];
-    *(float *)(d + 0x34) = velocity[1];
-    *(float *)(d + 0x38) = velocity[2];
+    d += 0x30;
+    *(float *)(d + 0x0) = velocity[0];
+    *(float *)(d + 0x4) = velocity[1];
+    *(float *)(d + 0x8) = velocity[2];
   } else {
     *(int *)(d + 0x34) = 0;
     *(int *)(d + 0x38) = 0;
@@ -749,32 +728,41 @@ void FUN_0009d430(int datum, int color_ptr, int velocity_ptr, float scale_a,
 void FUN_0009d4e0(int datum, void *callback)
 {
   typedef short (*marker_callback_fn)(int, void *, void *, int);
-  marker_callback_fn cb = (marker_callback_fn)callback;
-  char *ef = (char *)datum;
-  char *tag = (char *)tag_get(0x65666665, *(int *)(ef + 4));
-  int *events_block = (int *)(tag + 0x28);
-  int event_index = 0;
+  marker_callback_fn cb;
+  char *ef;
+  char *tag;
+  int *events_block;
+  short event_index;
   char marker_buf[1728];
+  short marker_count;
+  bool is_particle;
+  short j;
+  int result;
+
+  cb = (marker_callback_fn)callback;
+  ef = (char *)datum;
+  tag = (char *)tag_get(0x65666665, *(int *)(ef + 4));
+  events_block = (int *)(tag + 0x28);
+  event_index = 0;
 
   if (*events_block <= 0)
     return;
 
   do {
-    void *event_elem = tag_block_get_element(events_block, event_index, 0x20);
-    short marker_count = cb(*(int *)(ef + 0x3c), event_elem, marker_buf, 0x10);
-    short j = 0;
+    marker_count = cb(*(int *)(ef + 0x3c),
+                      tag_block_get_element(events_block, (int)event_index, 0x20),
+                      marker_buf, 0x10);
     if (marker_count > 0) {
-      int is_particle = (callback == (void *)0x000dd190);
-      do {
-        int result = FUN_0009cc20((int)(marker_buf + (int)j * 0x6c), datum,
-                                  event_index, is_particle);
+      is_particle = (callback == (void *)0x000dd190);
+      for (j = 0; j < marker_count; j++) {
+        result = FUN_0009cc20((int)(marker_buf + (int)j * 0x6c), datum,
+                              event_index, is_particle);
         if (result == -1)
           break;
-        j++;
-      } while (j < marker_count);
+      }
     }
     event_index++;
-  } while ((int)(int16_t)event_index < *events_block);
+  } while ((int)event_index < *events_block);
 }
 
 /* Effect parts spawner (0x9d590). For each part in the current event,
@@ -791,6 +779,7 @@ void FUN_0009d590(void *effect)
   float prev_t;
   float t;
   int *parts_block;
+  int location_handle;
   int part_counter;
   short part_index;
 
@@ -800,17 +789,17 @@ void FUN_0009d590(void *effect)
 
   prev_t = *(float *)(ef + 0x58);
 
-  if (*(float *)(ef + 0x54) <= 0.0f) {
-    t = 1.0f;
-  } else {
+  if (*(float *)(ef + 0x54) > 0.0f) {
     t = *(float *)(ef + 0x50) / *(float *)(ef + 0x54);
+  } else {
+    t = 1.0f;
   }
 
   parts_block = (int *)(event + 0x38);
   part_counter = 0;
   part_index = 0;
 
-  if (*parts_block < 1) {
+  if (*parts_block <= 0) {
     *(float *)(ef + 0x58) = t;
     return;
   }
@@ -851,114 +840,103 @@ void FUN_0009d590(void *effect)
         }
 
         if (count_delta > 0) {
-          int location_handle;
           char *location;
-          int part_type;
           uint32_t total_count;
 
           location_handle =
             *(int *)(ef + 0x5c + (int)*(int16_t *)(part + 8) * 4);
-          part_type = (int)*(uint16_t *)(part + 4);
-
-          location = (char *)FUN_0009cca0(effect, &location_handle, part_type);
+          location = (char *)FUN_0009cca0(
+            effect, &location_handle, (int)*(uint16_t *)(part + 4));
 
           if (location != NULL) {
             total_count = (uint32_t)(uint16_t)count_delta;
-
             do {
               uint32_t spawn_count = total_count;
 
               do {
                 float dist_lo, dist_hi, dist_base, dist_range;
-                uint32_t flags_lo, flags_hi;
-                float scale_a, scale_b;
                 float random_distance;
                 float random_dir[3];
                 float scaled_dir[3];
-                float position[3];
-                float direction_out[3];
-                float velocity_out[3];
                 float world_pos[3];
                 float dir_world[3];
                 float vel_world[3];
-                float up_vector[3];
-                char spawn_params[0x5c];
+                union {
+                  char bytes[0x5c];
+                  struct {
+                    char pad_00[0x10];
+                    float position[3];
+                    float direction[3];
+                    float velocity[3];
+                    float up_vector[3];
+                    char pad_40[0x1c];
+                  } fields;
+                } spawn_params;
 
-                flags_hi = *(uint32_t *)(part + 0xe4);
-                dist_hi = *(float *)(part + 0x74);
-                dist_lo = *(float *)(part + 0x70);
-                flags_lo = *(uint32_t *)(part + 0xe0);
-                scale_a = *(float *)(ef + 0x44);
-                scale_b = *(float *)(ef + 0x48);
+                {
+                  uint32_t flags_lo = *(uint32_t *)(part + 0xe0);
+                  uint32_t flags_hi = *(uint32_t *)(part + 0xe4);
 
-                seed = random_math_get_local_seed_address();
+                  dist_hi = *(float *)(part + 0x74);
+                  dist_lo = *(float *)(part + 0x70);
+                  seed = random_math_get_local_seed_address();
 
-                dist_base = dist_lo;
-                if ((int8_t)(flags_lo & 0xff) < 0)
-                  dist_base *= scale_a;
-                if ((int8_t)(flags_hi & 0xff) < 0)
-                  dist_base *= scale_b;
+                  dist_base = dist_lo;
+                  if ((int8_t)(flags_lo & 0xff) < 0)
+                    dist_base *= *(float *)(ef + 0x44);
+                  if ((int8_t)(flags_hi & 0xff) < 0)
+                    dist_base *= *(float *)(ef + 0x48);
 
-                dist_range = dist_hi - dist_lo;
-                if (flags_lo & 0x100)
-                  dist_range *= scale_a;
-                if (flags_hi & 0x100)
-                  dist_range *= scale_b;
+                  dist_range = dist_hi - dist_lo;
+                  if (flags_lo & 0x100)
+                    dist_range *= *(float *)(ef + 0x44);
+                  if (flags_hi & 0x100)
+                    dist_range *= *(float *)(ef + 0x48);
 
-                random_distance =
-                  random_real_range((int *)seed, 0.0f, dist_range) + dist_base;
+                  random_distance =
+                    random_real_range((int *)seed, 0.0f, dist_range) + dist_base;
 
-                seed = random_math_get_local_seed_address();
-                random_seed_get_direction3d(seed, random_dir);
+                  seed = random_math_get_local_seed_address();
+                  random_seed_get_direction3d(seed, random_dir);
 
-                matrix_scale_transform_vector(
-                  (float *)(location + 8), (float *)(part + 0x14), scaled_dir);
+                  matrix_scale_transform_vector(
+                    (float *)(location + 8), (float *)(part + 0x14), scaled_dir);
 
-                position[0] = random_dir[0] * random_distance +
-                              *(float *)(location + 0x30) + scaled_dir[0];
-                position[1] = random_dir[1] * random_distance +
-                              *(float *)(location + 0x34) + scaled_dir[1];
-                position[2] = random_dir[2] * random_distance +
-                              *(float *)(location + 0x38) + scaled_dir[2];
+                  spawn_params.fields.position[0] = random_dir[0] * random_distance +
+                                                     *(float *)(location + 0x30) + scaled_dir[0];
+                  spawn_params.fields.position[1] = random_dir[1] * random_distance +
+                                                     *(float *)(location + 0x34) + scaled_dir[1];
+                  spawn_params.fields.position[2] = random_dir[2] * random_distance +
+                                                     *(float *)(location + 0x38) + scaled_dir[2];
 
-                seed = random_math_get_local_seed_address();
-                FUN_0009d1f0(effect, seed, (float *)(part + 0x20),
-                             direction_out, velocity_out,
-                             *(float *)(part + 0x84), *(float *)(part + 0x88),
-                             *(float *)(part + 0x8c), (int)flags_lo,
-                             (int)flags_hi);
+                  seed = random_math_get_local_seed_address();
+                  FUN_0009d1f0(effect, seed, (float *)(part + 0x20),
+                               spawn_params.fields.direction,
+                               spawn_params.fields.velocity,
+                               *(float *)(part + 0x84), *(float *)(part + 0x88),
+                               *(float *)(part + 0x8c), (int)flags_lo,
+                               (int)flags_hi);
+                }
 
                 matrix_transform_vector(
-                  (float *)(location + 8), direction_out,
-                  direction_out); /* dup-args-ok: in-place transform */
+                  (float *)(location + 8), spawn_params.fields.direction,
+                  spawn_params.fields.direction); /* dup-args-ok: in-place transform */
                 matrix_scale_transform_vector(
-                  (float *)(location + 8), velocity_out,
-                  velocity_out); /* dup-args-ok: in-place transform */
-
-                /* store local-space values into spawn_params; the
-                 * non-attached branch overwrites with world-space later */
-                *(float *)(spawn_params + 0x10) = position[0];
-                *(float *)(spawn_params + 0x14) = position[1];
-                *(float *)(spawn_params + 0x18) = position[2];
-                *(float *)(spawn_params + 0x1c) = direction_out[0];
-                *(float *)(spawn_params + 0x20) = direction_out[1];
-                *(float *)(spawn_params + 0x24) = direction_out[2];
-                *(float *)(spawn_params + 0x28) = velocity_out[0];
-                *(float *)(spawn_params + 0x2c) = velocity_out[1];
-                *(float *)(spawn_params + 0x30) = velocity_out[2];
+                  (float *)(location + 8), spawn_params.fields.velocity,
+                  spawn_params.fields.velocity); /* dup-args-ok: in-place transform */
 
                 {
                   uint16_t node_idx = *(uint16_t *)(location + 2);
                   if (node_idx == 0xffff) {
-                    world_pos[0] = position[0];
-                    world_pos[1] = position[1];
-                    world_pos[2] = position[2];
-                    dir_world[0] = direction_out[0];
-                    dir_world[1] = direction_out[1];
-                    dir_world[2] = direction_out[2];
-                    vel_world[0] = velocity_out[0];
-                    vel_world[1] = velocity_out[1];
-                    vel_world[2] = velocity_out[2];
+                    world_pos[0] = spawn_params.fields.position[0];
+                    world_pos[1] = spawn_params.fields.position[1];
+                    world_pos[2] = spawn_params.fields.position[2];
+                    dir_world[0] = spawn_params.fields.direction[0];
+                    dir_world[1] = spawn_params.fields.direction[1];
+                    dir_world[2] = spawn_params.fields.direction[2];
+                    vel_world[0] = spawn_params.fields.velocity[0];
+                    vel_world[1] = spawn_params.fields.velocity[1];
+                    vel_world[2] = spawn_params.fields.velocity[2];
                   } else {
                     float *node_matrix;
                     if ((int16_t)node_idx < 0) {
@@ -970,10 +948,12 @@ void FUN_0009d590(void *effect)
                       node_matrix = (float *)object_get_node_matrix(
                         *(int *)(ef + 0x3c), (int16_t)(node_idx & 0x7fff));
                     }
-                    matrix_transform_point(node_matrix, position, world_pos);
-                    matrix_transform_vector(node_matrix, direction_out,
+                    matrix_transform_point(node_matrix, spawn_params.fields.position,
+                                           world_pos);
+                    matrix_transform_vector(node_matrix, spawn_params.fields.direction,
                                             dir_world);
-                    matrix_scale_transform_vector(node_matrix, velocity_out,
+                    matrix_scale_transform_vector(node_matrix,
+                                                  spawn_params.fields.velocity,
                                                   vel_world);
                   }
                 }
@@ -982,48 +962,49 @@ void FUN_0009d590(void *effect)
                                   (char *)effect + 0x10))
                   goto next_count;
 
-                *(int *)(spawn_params + 0x00) = *(int *)(part + 0x60);
+                *(int *)(spawn_params.bytes + 0x00) = *(int *)(part + 0x60);
 
                 if (*(uint8_t *)(part + 0x64) & 1) {
-                  *(int *)(spawn_params + 0x04) = *(int *)(ef + 0x3c);
+                  *(int *)(spawn_params.bytes + 0x04) = *(int *)(ef + 0x3c);
                   {
                     uint16_t loc_node = *(uint16_t *)(location + 2);
                     if (loc_node == 0xffff) {
-                      *(uint16_t *)(spawn_params + 0x08) = 0xffff;
+                      *(uint16_t *)(spawn_params.bytes + 0x08) = 0xffff;
                     } else {
-                      *(uint16_t *)(spawn_params + 0x08) = loc_node & 0x7fff;
+                      *(uint16_t *)(spawn_params.bytes + 0x08) = loc_node & 0x7fff;
                     }
                   }
                   {
                     float *zero_vec = *(float **)0x31fc38;
-                    up_vector[0] = zero_vec[0];
-                    up_vector[1] = zero_vec[1];
-                    up_vector[2] = zero_vec[2];
+                    spawn_params.fields.up_vector[0] = zero_vec[0];
+                    spawn_params.fields.up_vector[1] = zero_vec[1];
+                    spawn_params.fields.up_vector[2] = zero_vec[2];
                   }
                 } else {
                   if (*(void **)(ef + 0x34) != NULL) {
                     ((void (*)(float *, float *, int)) * (void **)(ef + 0x34))(
-                      up_vector, world_pos, *(int *)(ef + 0x30));
+                      spawn_params.fields.up_vector, world_pos,
+                      *(int *)(ef + 0x30));
                   } else {
                     float *zero_vec = *(float **)0x31fc38;
-                    up_vector[0] = zero_vec[0];
-                    up_vector[1] = zero_vec[1];
-                    up_vector[2] = zero_vec[2];
+                    spawn_params.fields.up_vector[0] = zero_vec[0];
+                    spawn_params.fields.up_vector[1] = zero_vec[1];
+                    spawn_params.fields.up_vector[2] = zero_vec[2];
                   }
 
-                  *(float *)(spawn_params + 0x10) = world_pos[0];
-                  *(float *)(spawn_params + 0x14) = world_pos[1];
-                  *(float *)(spawn_params + 0x18) = world_pos[2];
-                  *(float *)(spawn_params + 0x1c) = dir_world[0];
-                  *(float *)(spawn_params + 0x20) = dir_world[1];
-                  *(float *)(spawn_params + 0x24) = dir_world[2];
-                  *(float *)(spawn_params + 0x28) =
+                  spawn_params.fields.position[0] = world_pos[0];
+                  spawn_params.fields.position[1] = world_pos[1];
+                  spawn_params.fields.position[2] = world_pos[2];
+                  spawn_params.fields.direction[0] = dir_world[0];
+                  spawn_params.fields.direction[1] = dir_world[1];
+                  spawn_params.fields.direction[2] = dir_world[2];
+                  spawn_params.fields.velocity[0] =
                     *(float *)(ef + 0x24) * TICKS_PER_SECOND + vel_world[0];
-                  *(float *)(spawn_params + 0x2c) =
+                  spawn_params.fields.velocity[1] =
                     *(float *)(ef + 0x28) * TICKS_PER_SECOND + vel_world[1];
-                  *(float *)(spawn_params + 0x30) =
+                  spawn_params.fields.velocity[2] =
                     *(float *)(ef + 0x2c) * TICKS_PER_SECOND + vel_world[2];
-                  *(int *)(spawn_params + 0x04) = -1;
+                  *(int *)(spawn_params.bytes + 0x04) = -1;
                 }
 
                 {
@@ -1035,18 +1016,18 @@ void FUN_0009d590(void *effect)
                   seed = random_math_get_local_seed_address();
 
                   size_base = size_lo;
-                  if (flags_lo & 0x200)
-                    size_base *= scale_a;
-                  if (flags_hi & 0x200)
-                    size_base *= scale_b;
+                  if (*(uint32_t *)(part + 0xe0) & 0x200)
+                    size_base *= *(float *)(ef + 0x44);
+                  if (*(uint32_t *)(part + 0xe4) & 0x200)
+                    size_base *= *(float *)(ef + 0x48);
 
                   size_range = size_hi - size_lo;
-                  if (flags_lo & 0x400)
-                    size_range *= scale_a;
-                  if (flags_hi & 0x400)
-                    size_range *= scale_b;
+                  if (*(uint32_t *)(part + 0xe0) & 0x400)
+                    size_range *= *(float *)(ef + 0x44);
+                  if (*(uint32_t *)(part + 0xe4) & 0x400)
+                    size_range *= *(float *)(ef + 0x48);
 
-                  *(float *)(spawn_params + 0x48) =
+                  *(float *)(spawn_params.bytes + 0x48) =
                     random_real_range((int *)seed, 0.0f, size_range) +
                     size_base;
                 }
@@ -1060,27 +1041,27 @@ void FUN_0009d590(void *effect)
                   seed = random_math_get_local_seed_address();
 
                   scl_base = scl_lo;
-                  if (flags_lo & 0x8)
-                    scl_base *= scale_a;
-                  if (flags_hi & 0x8)
-                    scl_base *= scale_b;
+                  if (*(uint32_t *)(part + 0xe0) & 0x8)
+                    scl_base *= *(float *)(ef + 0x44);
+                  if (*(uint32_t *)(part + 0xe4) & 0x8)
+                    scl_base *= *(float *)(ef + 0x48);
 
                   scl_range = scl_hi - scl_lo;
-                  if (flags_lo & 0x10)
-                    scl_range *= scale_a;
-                  if (flags_hi & 0x10)
-                    scl_range *= scale_b;
+                  if (*(uint32_t *)(part + 0xe0) & 0x10)
+                    scl_range *= *(float *)(ef + 0x44);
+                  if (*(uint32_t *)(part + 0xe4) & 0x10)
+                    scl_range *= *(float *)(ef + 0x48);
 
-                  *(float *)(spawn_params + 0x44) =
+                  *(float *)(spawn_params.bytes + 0x44) =
                     random_real_range((int *)seed, 0.0f, scl_range) + scl_base;
                 }
 
                 if (*(uint8_t *)(part + 0x64) & 2) {
                   seed = random_math_get_local_seed_address();
-                  *(float *)(spawn_params + 0x40) =
+                  *(float *)(spawn_params.bytes + 0x40) =
                     random_real_range((int *)seed, 0.0f, 6.2831855f);
                 } else {
-                  *(float *)(spawn_params + 0x40) = 0.0f;
+                  *(float *)(spawn_params.bytes + 0x40) = 0.0f;
                 }
 
                 {
@@ -1100,49 +1081,45 @@ void FUN_0009d590(void *effect)
                   }
 
                   FUN_0007c270(
-                    (float *)(spawn_params + 0x50),
+                    (float *)(spawn_params.bytes + 0x50),
                     (uint32_t)((*(uint32_t *)(part + 0x64) >> 3) & 3),
                     (float *)(part + 0xb4), (float *)(part + 0xc4), blend);
 
-                  *(float *)(spawn_params + 0x4c) =
+                  *(float *)(spawn_params.bytes + 0x4c) =
                     (1.0f - blend) * *(float *)(part + 0xb0) +
                     blend * *(float *)(part + 0xc0);
 
                   if (*(uint8_t *)(part + 0x64) & 4) {
-                    *(float *)(spawn_params + 0x50) *= *(float *)(ef + 0x18);
-                    *(float *)(spawn_params + 0x54) *= *(float *)(ef + 0x1c);
-                    *(float *)(spawn_params + 0x58) *= *(float *)(ef + 0x20);
+                    *(float *)(spawn_params.bytes + 0x50) *= *(float *)(ef + 0x18);
+                    *(float *)(spawn_params.bytes + 0x54) *= *(float *)(ef + 0x1c);
+                    *(float *)(spawn_params.bytes + 0x58) *= *(float *)(ef + 0x20);
                   }
                 }
 
-                *(uint16_t *)(spawn_params + 0x0a) = *(uint16_t *)(ef + 0x4c);
+                *(uint16_t *)(spawn_params.bytes + 0x0a) = *(uint16_t *)(ef + 0x4c);
 
                 {
                   uint16_t loc_node = *(uint16_t *)(location + 2);
                   if (loc_node == 0xffff || (int16_t)loc_node >= 0) {
-                    *(uint8_t *)(spawn_params + 0x0c) = 0;
+                    *(uint8_t *)(spawn_params.bytes + 0x0c) = 0;
                   } else {
-                    *(uint8_t *)(spawn_params + 0x0c) = 1;
+                    *(uint8_t *)(spawn_params.bytes + 0x0c) = 1;
                   }
                 }
 
-                *(uint8_t *)(spawn_params + 0x0d) =
+                *(uint8_t *)(spawn_params.bytes + 0x0d) =
                   (*(int16_t *)(part + 4) == 2) ? 1 : 0;
-                *(uint8_t *)(spawn_params + 0x0e) =
+                *(uint8_t *)(spawn_params.bytes + 0x0e) =
                   (*(int16_t *)(part + 4) == 1) ? 1 : 0;
 
-                *(float *)(spawn_params + 0x34) = up_vector[0];
-                *(float *)(spawn_params + 0x38) = up_vector[1];
-                *(float *)(spawn_params + 0x3c) = up_vector[2];
-
-                particle_new(spawn_params);
+                particle_new(spawn_params.bytes);
 
               next_count:
                 spawn_count--;
               } while (spawn_count != 0);
 
-              location =
-                (char *)FUN_0009cca0(effect, &location_handle, part_type);
+              location = (char *)FUN_0009cca0(
+                effect, &location_handle, (int)*(uint16_t *)(part + 4));
             } while (location != NULL);
           }
         }
@@ -1171,7 +1148,8 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
   char *loc_entry = (char *)part;
   uint32_t tag_class = *(uint32_t *)(loc_entry + 0x14);
 
-  if (tag_class == 0x6f626a65) {
+  switch (tag_class) {
+  case 0x6f626a65: {
     char placement[0x88];
     float direction_scratch[3];
     unsigned int *seed;
@@ -1201,44 +1179,17 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
     *(float *)(placement + 0x30) += *(float *)(ef + 0x2c);
 
     seed = (unsigned int *)get_global_random_seed_address();
-    {
-      float sa = *(float *)(ef + 0x44);
-      float sb = *(float *)(ef + 0x48);
-      uint32_t fl = *(uint32_t *)(loc_entry + 0x60);
-      uint32_t fh = *(uint32_t *)(loc_entry + 0x64);
-      float lo = *(float *)(loc_entry + 0x4c);
-      float hi = *(float *)(loc_entry + 0x50);
-      float *vel = (float *)(placement + 0x4c);
-      float base, range, spd;
-
-      base = lo;
-      if (fl & 0x8)
-        base *= sa;
-      if (fh & 0x8)
-        base *= sb;
-      range = hi - lo;
-      if (fl & 0x10)
-        range *= sa;
-      if (fh & 0x10)
-        range *= sb;
-      spd = random_real_range((int *)seed, 0.0f, range) + base;
-
-      if (spd != 0.0f) {
-        random_seed_get_direction3d(seed, vel);
-        vel[0] *= spd;
-        vel[1] *= spd;
-        vel[2] *= spd;
-      } else {
-        float *zv = *(float **)0x31fc38;
-        vel[0] = zv[0];
-        vel[1] = zv[1];
-        vel[2] = zv[2];
-      }
-    }
+    effects_information_get((int)effect, *(uint32_t *)(loc_entry + 0x64), seed,
+                            (float *)(placement + 0x4c),
+                            *(float *)(loc_entry + 0x4c),
+                            *(float *)(loc_entry + 0x50),
+                            *(uint32_t *)(loc_entry + 0x60));
 
     object_new(placement);
+    break;
+  }
 
-  } else if (tag_class == 0x64656361) {
+  case 0x64656361: {
     float direction[3];
     float dir_scratch[3];
     unsigned int *seed;
@@ -1257,8 +1208,10 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
 
     FUN_0009c4b0(*(int *)(loc_entry + 0x24), position, direction, decal_scale,
                  false, -1, 0);
+    break;
+  }
 
-  } else if (tag_class == 0x6a707421) {
+  case 0x6a707421: {
     char damage_params[0x54]; /* damage_data_new clears through +0x53. */
     void *object;
 
@@ -1285,8 +1238,10 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
     *(float *)(damage_params + 0x40) = scale;
 
     FUN_00138e30(damage_params, -1);
+    break;
+  }
 
-  } else if (tag_class == 0x6c696768) {
+  case 0x6c696768: {
     char *loc = (char *)location;
     uint16_t loc_node = *(uint16_t *)(loc + 2);
     int marker;
@@ -1298,8 +1253,10 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
 
     FUN_0013b290(*(int *)(loc_entry + 0x24), *(int *)(ef + 0x3c), marker,
                  (float *)(loc + 0x30), (float *)(loc + 0xc), scale);
+    break;
+  }
 
-  } else if (tag_class == 0x7063746c) {
+  case 0x7063746c: {
     float velocity[3];
     float dir_scratch[3];
     unsigned int *seed;
@@ -1326,8 +1283,10 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
 
     FUN_000a1210(*(int *)(loc_entry + 0x24), position, velocity, &particle_data,
                  scale);
+    break;
+  }
 
-  } else if (tag_class == 0x736e6421) {
+  case 0x736e6421: {
     char *loc = (char *)location;
 
     if (*(int *)(ef + 0x3c) != -1) {
@@ -1367,14 +1326,16 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
       unattached_impulse_sound_new(*(int *)(loc_entry + 0x24), &sound_params,
                                    scale);
     }
+    break;
+  }
 
-  } else {
-    static char err_buf[256];
-    const char *effect_name = tag_get_name(*(int *)(ef + 4));
-    csprintf(err_buf, "effect %s has a bad part %s", effect_name,
-             *(const char **)(loc_entry + 0x1c));
-    display_assert(err_buf, "c:\\halo\\SOURCE\\effects\\effects.c", 0x6d9, 1);
+  default:
+    display_assert(csprintf((char *)0x5ab100, "effect %s has a bad part %s",
+                            tag_get_name(*(int *)(ef + 4)),
+                            *(const char **)(loc_entry + 0x1c)),
+                   "c:\\halo\\SOURCE\\effects\\effects.c", 0x6d9, 1);
     system_exit(-1);
+    break;
   }
 }
 
@@ -1579,15 +1540,6 @@ void FUN_0009e310(void *effect)
             if (*(uint8_t *)(loc_entry + 0x64) & 0x20)
               scale *= *(float *)(ef + 0x48);
 
-            if (scale < 0.0f || scale > 1.0f)
-              error(2,
-                    "DIAG effect scale OOB: %f (A=%f B=%f flags=%02x/%02x) "
-                    "effect_tag=0x%x",
-                    (double)scale, (double)*(float *)(ef + 0x44),
-                    (double)*(float *)(ef + 0x48),
-                    *(uint8_t *)(loc_entry + 0x60),
-                    *(uint8_t *)(loc_entry + 0x64), *(int *)(ef + 4));
-
             FUN_0009dcf0(position, effect, location, loc_entry, forward, up,
                          scale);
           }
@@ -1606,31 +1558,24 @@ short FUN_0009e560(int object_handle, void *event_elem, void *marker_buf,
   int16_t marker_count = 0;
   int16_t i;
 
-  if (*(int *)(creation_info + 0xc) == 0)
-    goto fallback;
-
-  if (!csstrlen((const char *)event_elem))
-    goto fallback;
-
-  i = 0;
-  do {
-    if (i >= *(int16_t *)(creation_info + 0x8))
-      break;
-
-    if (!csstrcmp((const char *)event_elem,
-                  *(char **)(*(int *)(creation_info + 0xc) + (int)i * 4))) {
-      FUN_0009e180((char *)marker_buf + (int)marker_count * 0x6c, i,
-                   creation_info);
-      marker_count++;
+  if (*(int *)(creation_info + 0xc) != 0 && csstrlen((const char *)event_elem) != 0) {
+    if (max_markers > 0) {
+      for (i = 0; i < *(int16_t *)(creation_info + 8); i++) {
+        if (csstrcmp((const char *)event_elem,
+                     *(char **)(*(int *)(creation_info + 0xc) + (int)i * 4)) == 0) {
+          FUN_0009e180((char *)marker_buf + (int)marker_count * 0x6c, i,
+                       creation_info);
+          marker_count++;
+          if (marker_count >= max_markers)
+            break;
+        }
+      }
     }
-    i++;
-  } while (marker_count < max_markers);
+    if (marker_count != 0)
+      return marker_count;
+  }
 
-  if (marker_count != 0)
-    return marker_count;
-
-fallback:
-  FUN_0009e180(marker_buf, 0, creation_info);
+  FUN_0009e180(marker_buf, 0, *(char **)0x4557e4);
   return 1;
 }
 
@@ -1665,7 +1610,7 @@ void effect_update(int effect_index, float elapsed)
     /* copy position/orientation from the root object's node matrices */
     {
       int parent_handle =
-        ((int (*)(int))0x13d7f0)(*(int *)((char *)effect + 0x3c));
+        object_get_root_parent(*(int *)((char *)effect + 0x3c));
       parent_obj = object_get_and_verify_type(parent_handle, NONE);
     }
     if ((*(uint32_t *)((char *)parent_obj + 4) & 0x800) == 0) {
@@ -1683,9 +1628,9 @@ void effect_update(int effect_index, float elapsed)
 
     /* resolve marker A on the attached object */
     {
-      char marker_found = ((char (*)(int, int, void *))0x1403a0)(
+      char marker_found = object_get_function_value(
         *(int *)((char *)effect + 0x3c),
-        (int)*(uint16_t *)((char *)effect + 0x8), (char *)effect + 0x44);
+        (short)*(uint16_t *)((char *)effect + 0x8), (char *)effect + 0x44);
 
       if (!marker_found) {
         if ((*(uint8_t *)effect_tag & 1) != 0) {
@@ -1708,7 +1653,7 @@ void effect_update(int effect_index, float elapsed)
         uint16_t ef = *(uint16_t *)((char *)effect + 2);
         if ((ef & 8) != 0) {
           if ((ef & 0x20) != 0) {
-            ((void (*)(int))0x9c750)(effect_index);
+            effect_delete(effect_index);
           } else {
             /* clear completed flag and restart from event 0 */
             *(uint16_t *)((char *)effect + 2) = ef & 0xfff7;
@@ -1718,9 +1663,9 @@ void effect_update(int effect_index, float elapsed)
       }
 
       /* resolve marker B */
-      ((void (*)(int, int, void *))0x1403a0)(
+      object_get_function_value(
         *(int *)((char *)effect + 0x3c),
-        (int)*(uint16_t *)((char *)effect + 0xa), (char *)effect + 0x48);
+        (short)*(uint16_t *)((char *)effect + 0xa), (char *)effect + 0x48);
 
       /* inherit color from object node */
       if (*(int16_t *)((char *)effect + 0xc) != NONE) {
@@ -1730,7 +1675,7 @@ void effect_update(int effect_index, float elapsed)
         color[0] = src[0];
         color[1] = src[1];
         color[2] = src[2];
-        if (!((bool (*)(float *))0x7b020)(color)) {
+        if (!valid_real_rgb_color(color)) {
           error(2, "%s: assert_valid_real_rgb_color(%f, %f, %f)",
                 "&effect->color", (double)color[0], (double)color[1],
                 (double)color[2], "c:\\halo\\SOURCE\\effects\\effects.c", 0x4cb,
@@ -1748,9 +1693,9 @@ check_location:
   {
     bool in_vol;
     if ((*(uint8_t *)effect_tag & 2) != 0)
-      in_vol = ((bool (*)(void *))0x18e9b0)((char *)effect + 0x10);
+      in_vol = scenario_location_potentially_visible((char *)effect + 0x10);
     else
-      in_vol = ((bool (*)(void *))0x18e910)((char *)effect + 0x10);
+      in_vol = scenario_location_potentially_visible_local((char *)effect + 0x10);
     if (!in_vol)
       goto check_flags;
     {
@@ -1789,16 +1734,16 @@ event_loop:
 
     time_remaining =
       *(float *)((char *)effect + 0x54) - *(float *)((char *)effect + 0x50);
-    if (time_remaining > elapsed) {
-      /* event continues — consume elapsed and stop */
-      transitioned = false;
-      *(float *)((char *)effect + 0x50) += elapsed;
-      elapsed = -1.0f;
-    } else {
+    if (time_remaining <= elapsed) {
       /* event completed — advance and keep remaining time */
       transitioned = true;
       elapsed = elapsed - time_remaining;
       *(float *)((char *)effect + 0x50) = *(float *)((char *)effect + 0x54);
+    } else {
+      /* event continues — consume elapsed and stop */
+      transitioned = false;
+      *(float *)((char *)effect + 0x50) += elapsed;
+      elapsed = -1.0f;
     }
 
     if (ef_flags & 1) {
@@ -1822,18 +1767,18 @@ event_loop:
 
         /* skip events whose random roll exceeds skip_fraction */
         while ((int)(int16_t)next_event < *(int *)((char *)effect_tag + 0x34)) {
-          int *seed;
+          unsigned int *seed;
           float rnd;
           void *evt;
           void *tag2 = tag_get(0x65666665, *(int *)((char *)effect + 4));
           if (*(uint8_t *)tag2 & 2)
-            seed = get_global_random_seed_address();
+            seed = (unsigned int *)get_global_random_seed_address();
           else
-            seed = ((int *(*)(void))0x10b120)();
-          rnd = ((float (*)(int *))0x10b240)(seed);
+            seed = (unsigned int *)random_math_get_local_seed_address();
+          rnd = random_math_real(seed);
           evt = tag_block_get_element((char *)effect_tag + 0x34,
                                       (int)(int16_t)next_event, 0x44);
-          if (rnd >= *(float *)((char *)evt + 4))
+          if (!(rnd < *(float *)((char *)evt + 4)))
             break;
           next_event++;
         }
@@ -1844,7 +1789,7 @@ event_loop:
             *(uint16_t *)((char *)effect + 2) |= 8;
             return;
           }
-          ((void (*)(int))0x9c750)(effect_index);
+          effect_delete(effect_index);
           return;
         }
 
@@ -1857,7 +1802,7 @@ event_loop:
       /* ---- no active event yet: initialize it ---- */
       if (transitioned) {
         void *event_elem;
-        int *seed;
+        unsigned int *seed;
         void *tag2;
         int parts_count;
         int *parts_block;
@@ -1873,15 +1818,14 @@ event_loop:
 
         tag2 = tag_get(0x65666665, *(int *)((char *)effect + 4));
         if (*(uint8_t *)tag2 & 2)
-          seed = get_global_random_seed_address();
+          seed = (unsigned int *)get_global_random_seed_address();
         else
-          seed = ((int *(*)(void))0x10b120)();
+          seed = (unsigned int *)random_math_get_local_seed_address();
 
         /* set event duration from random range */
         *(float *)((char *)effect + 0x54) =
-          ((float (*)(int *, float, float))0x10b270)(
-            seed, *(float *)((char *)event_elem + 0x10),
-            *(float *)((char *)event_elem + 0x14));
+          random_real_range((int *)seed, *(float *)((char *)event_elem + 0x10),
+                            *(float *)((char *)event_elem + 0x14));
 
         /* create particles/effects for each part in the event */
         parts_count = *(int *)((char *)event_elem + 0x38);
@@ -1889,8 +1833,8 @@ event_loop:
         for (part_i = 0, part_idx = 0; part_idx < parts_count;
              part_i++, part_idx = (int)(int16_t)part_i) {
           void *part;
-          float lo, hi, base, range, scale_a, scale_b;
-          int flags_a, flags_b, mask;
+          float lo, hi;
+          int flags_a, flags_b;
           int *seed2;
           float result;
           uint8_t byte_val;
@@ -1898,29 +1842,12 @@ event_loop:
           part = tag_block_get_element(parts_block, part_idx, 0xe8);
           lo = (float)(int)*(int16_t *)((char *)part + 0x6c);
           hi = (float)(int)*(int16_t *)((char *)part + 0x6e);
-          seed2 = ((int *(*)(void))0x10b120)();
+          seed2 = (int *)random_math_get_local_seed_address();
           flags_a = *(int *)((char *)part + 0xe0);
           flags_b = *(int *)((char *)part + 0xe4);
-          scale_a = *(float *)((char *)effect + 0x44);
-          scale_b = *(float *)((char *)effect + 0x48);
 
-          /* inline effect_compute_scale: scale lo/hi by effect
-           * A/B scale factors based on per-part flag bits */
-          base = lo;
-          mask = 1 << 5;
-          if (flags_a & mask)
-            base *= scale_a;
-          if (flags_b & mask)
-            base *= scale_b;
-          range = hi - lo;
-          mask = 1 << 6;
-          if (flags_a & mask)
-            range *= scale_a;
-          if (flags_b & mask)
-            range *= scale_b;
-          result =
-            ((float (*)(int *, float, float))0x10b270)(seed2, 0.0f, range) +
-            base;
+          result = FUN_0009c9f0(5, (int)effect, (uint32_t)flags_a,
+                                (uint32_t)flags_b, (uint32_t *)seed2, lo, hi);
 
           /* __ftol2: convert float to byte count */
           byte_val = (uint8_t)(int)result;
@@ -1949,7 +1876,7 @@ event_loop:
   }
 
 delete_effect:
-  ((void (*)(int))0x9c750)(effect_index);
+  effect_delete(effect_index);
 }
 
 /* Create a new effect attached to a specific object marker (0x9ee40).
@@ -2003,13 +1930,13 @@ int effect_new_attached_from_markers(
                    0x17c, 1);
     system_exit(-1);
   }
-  if (scale_a < *(float *)0x2533c0 || scale_a > *(float *)0x2533c8) {
+  if (!(scale_a >= 0.0f && scale_a <= 1.0f)) {
     csprintf((char *)0x5ab100, "scale_a %f not in [0,1]", (double)scale_a);
     display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
                    0x17d, 1);
     system_exit(-1);
   }
-  if (scale_b < *(float *)0x2533c0 || scale_b > *(float *)0x2533c8) {
+  if (!(scale_b >= 0.0f && scale_b <= 1.0f)) {
     csprintf((char *)0x5ab100, "scale_b %f not in [0,1]", (double)scale_b);
     display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
                    0x17e, 1);
@@ -2088,14 +2015,14 @@ int effect_new_unattached_from_markers(
   char creation_info[24];
 
   if (translational_velocity != NULL) {
-    if (!real_vector3d_valid(translational_velocity)) {
+    if (!(char)real_vector3d_valid(translational_velocity)) {
       display_assert("!translational_velocity || "
                      "valid_real_vector3d(translational_velocity)",
                      "c:\\halo\\SOURCE\\effects\\effects.c", 0x1c0, 1);
       system_exit(-1);
     }
   }
-  if (marker_count < 1) {
+  if (marker_count <= 0) {
     display_assert("marker_count>0", "c:\\halo\\SOURCE\\effects\\effects.c",
                    0x1c1, 1);
     system_exit(-1);
@@ -2110,16 +2037,16 @@ int effect_new_unattached_from_markers(
                    0x1c4, 1);
     system_exit(-1);
   }
-  if (scale_a < *(float *)0x2533c0 || scale_a > *(float *)0x2533c8) {
-    csprintf((char *)0x5ab100, "scale_a %f not in [0,1]", (double)scale_a);
-    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
-                   0x1c5, 1);
+  if (!(scale_a >= 0.0f && scale_a <= 1.0f)) {
+    display_assert(
+      csprintf((char *)0x5ab100, "scale_a %f not in [0,1]", (double)scale_a),
+      "c:\\halo\\SOURCE\\effects\\effects.c", 0x1c5, 1);
     system_exit(-1);
   }
-  if (scale_b < *(float *)0x2533c0 || scale_b > *(float *)0x2533c8) {
-    csprintf((char *)0x5ab100, "scale_b %f not in [0,1]", (double)scale_b);
-    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\effects\\effects.c",
-                   0x1c6, 1);
+  if (!(scale_b >= 0.0f && scale_b <= 1.0f)) {
+    display_assert(
+      csprintf((char *)0x5ab100, "scale_b %f not in [0,1]", (double)scale_b),
+      "c:\\halo\\SOURCE\\effects\\effects.c", 0x1c6, 1);
     system_exit(-1);
   }
 
@@ -2158,9 +2085,17 @@ bool effects_update(float elapsed)
 {
   int effect_index;
 
+  if (*(char *)0x449ef1 != 0 && *(char *)0x2eebf0 != 0) {
+    profile_enter_private((void *)0x2eebe8);
+  }
+
   for (effect_index = data_next_index(effect_data, NONE); effect_index != NONE;
        effect_index = data_next_index(effect_data, effect_index)) {
     effect_update(effect_index, elapsed);
+  }
+
+  if (*(char *)0x449ef1 != 0 && *(char *)0x2eebf0 != 0) {
+    profile_exit_private((void *)0x2eebe8);
   }
 
   return false;
@@ -2172,33 +2107,31 @@ bool effects_update(float elapsed)
  * at 0x253f00, or 0 otherwise. (0x9f3b0) */
 bool FUN_0009f3b0(void *param_1)
 {
-  float *position;
-  int i;
+  char result;
+  short i;
   int player_index;
   float *camera;
   float dx;
   float dy;
   float dz;
 
-  position = (float *)param_1;
+  result = 0;
   if (local_player_count() > 2) {
     return 1;
   }
-  i = 0;
-  do {
+  for (i = 0; i < 4; i++) {
     player_index = local_player_get_player_index(i);
     if (player_index != -1) {
       camera = (float *)observer_get_camera(i);
-      dx = position[0] - camera[0];
-      dy = position[1] - camera[1];
-      dz = position[2] - camera[2];
-      if (dx * dx + dz * dz + dy * dy < *(float *)0x253f00) {
+      dx = ((float *)param_1)[0] - camera[0];
+      dy = ((float *)param_1)[1] - camera[1];
+      dz = ((float *)param_1)[2] - camera[2];
+      if ((dx * dx + dz * dz) + dy * dy < *(float *)0x253f00) {
         return 1;
       }
     }
-    i++;
-  } while ((short)i < 4);
-  return 0;
+  }
+  return result;
 }
 
 /* Spawn a foot effect and/or impulse sound from a foot tag block (0x9f430).
@@ -2230,9 +2163,9 @@ void FUN_0009f430(int param_1, short param_2, short param_3, void *param_4,
   }
   event_elem = tag_block_get_element(block_elem, (int)param_3, 0x30);
 
-  pos_x = *(float *)0x25bb10 * ((float *)param_5)[0] + ((float *)param_4)[0];
-  pos_y = *(float *)0x25bb10 * ((float *)param_5)[1] + ((float *)param_4)[1];
-  pos_z = *(float *)0x25bb10 * ((float *)param_5)[2] + ((float *)param_4)[2];
+  pos_x = ((float *)param_5)[0] * *(float *)0x25bb10 + ((float *)param_4)[0];
+  pos_y = ((float *)param_5)[1] * *(float *)0x25bb10 + ((float *)param_4)[1];
+  pos_z = ((float *)param_5)[2] * *(float *)0x25bb10 + ((float *)param_4)[2];
 
   if (*(int *)(event_elem + 0xc) != -1) {
     effect_new_unattached_from_markers(*(int *)(event_elem + 0xc), -1, NULL, 1,
@@ -2257,6 +2190,6 @@ void FUN_0009f430(int param_1, short param_2, short param_3, void *param_4,
   }
 
   if (*(char *)0x4557e9 != '\0') {
-    FUN_00189540(0, param_4, 0.1f, *(void **)0x2ee6dc);
+    FUN_00189540(0, param_4, 0.05f, *(void **)0x2ee6dc);
   }
 }
