@@ -382,16 +382,16 @@ void obstacles_get_discs_in_sphere(int16_t *obstacle_set, float *center,
                                    uint32_t ignore_handle)
 {
   uint32_t handles[256]; /* EBP-0x464: object_find_in_radius scratch */
-  float matrix[13];      /* EBP-0x64 : object world matrix (scale + 3x4) */
-  float position[3];     /* EBP-0x2c : transformed disc centre */
-  volatile int i;        /* EBP-0x20 (original keeps the counter in memory) */
-  int *block;            /* EBP-0x1c : coll+0x280 tag block */
-  unsigned int remaining;/* EBP-0x18 */
-  float dx;              /* EBP-0x14 */
-  float dy;              /* EBP-0x10 */
-  float dz;              /* EBP-0x0c */
-  uint32_t *cursor;      /* EBP-0x08 */
-  float disc_radius;     /* EBP-0x04 */
+  float matrix[13]; /* EBP-0x64 : object world matrix (scale + 3x4) */
+  float position[3]; /* EBP-0x2c : transformed disc centre */
+  volatile int i; /* EBP-0x20 (original keeps the counter in memory) */
+  int *block; /* EBP-0x1c : coll+0x280 tag block */
+  unsigned int remaining; /* EBP-0x18 */
+  float dx; /* EBP-0x14 */
+  float dy; /* EBP-0x10 */
+  float dz; /* EBP-0x0c */
+  uint32_t *cursor; /* EBP-0x08 */
+  float disc_radius; /* EBP-0x04 */
   int16_t count;
   int index;
   int flags;
@@ -412,9 +412,8 @@ void obstacles_get_discs_in_sphere(int16_t *obstacle_set, float *center,
   }
 
   count = object_find_in_radius(
-    1, 0xc3,
-    (char *)object_get_and_verify_type((int)object_handle, -1) + 0x48, center,
-    radius, (int *)handles, 0x100);
+    1, 0xc3, (char *)object_get_and_verify_type((int)object_handle, -1) + 0x48,
+    center, radius, (int *)handles, 0x100);
   if (count > 0) {
     remaining = (uint16_t)count;
     cursor = handles;
@@ -483,8 +482,7 @@ void obstacles_get_discs_in_sphere(int16_t *obstacle_set, float *center,
             if (*(int16_t *)(object + 0x64) == 0 &&
                 dz * up_vector[2] + dy * up_vector[1] + dx * up_vector[0] >
                   0.0f &&
-                FUN_00013070((float *)(object + 0x18), up_vector) >
-                  0.06666667f)
+                FUN_00013070((float *)(object + 0x18), up_vector) > 0.06666667f)
               flags = 1;
             FUN_00062020(obstacle_set, handle, (uint16_t)flags, position,
                          *(uint32_t *)&disc_radius);
@@ -1294,6 +1292,136 @@ void FUN_00104fa0(int point_count, float *points, float radius, float *color)
       FUN_00104240(point_count, points, color);
     }
   }
+}
+
+/* FUN_00105160 (0x105160)  error_geometry.c:0x6b-0x6c
+ *
+ * Validate a real_matrix4x3 and latch it into the error-geometry world matrix
+ * global at 0x31fb08 (13 floats: scale, forward[3], left[3], up[3],
+ * position[3] at +0x00 / +0x04 / +0x10 / +0x1c / +0x28).
+ *
+ * cdecl, ONE stack param: [EBP+0x8] = matrix (kept in ESI throughout).  The
+ * kb.json decl was `void FUN_00105160(void)' — wrong; `MOV ESI,[EBP+0x8]' at
+ * 0x105164 proves the parameter.
+ *
+ * Confirmed at 0x105192: `TEST AL,AL; JNE 0x105540' — when
+ * valid_real_matrix4x3 returns TRUE the entire diagnosis block is SKIPPED and
+ * control drops straight to the copy.  The block therefore runs only for an
+ * INVALID matrix, and each sub-check names the offending component
+ * (validate-then-diagnose).  Every diagnosis assert reports source line 0x6c
+ * (one multi-check assert_valid_real_matrix4x3 macro); the null check is 0x6b.
+ *
+ * The three perpendicularity tests use the FCOMP / FNSTSW AX / TEST AH,0x5 /
+ * JNP parity idiom (0x105374, 0x105408, 0x10549e).  Per the FCOM-parity trap
+ * this is NOT a JZ: JNP is taken -- assert skipped -- only when
+ * fabs(dot) < *(double *)0x2549d8 (0.001).  Written here as a negated `<' to
+ * reproduce that form, matching the proven shape in math/vector_math.c:310.
+ * _DAT_002549d8 is a DOUBLE (0.0010000000474974513), hence the qword FCOMP.
+ *
+ * x87 accumulation order is load-bearing and NOT ascending; transcribed
+ * verbatim from the FLD/FMUL/FADDP sequences:
+ *   0x105341 dot(fwd,left) = (f[2]*l[2] + f[1]*l[1]) + f[0]*l[0]
+ *   0x1053d8 dot(up,left)  = (u[2]*l[2] + u[1]*l[1]) + l[0]*u[0]  (LEFT first)
+ *   0x10546b dot(fwd,up)   = (f[2]*u[2] + f[1]*u[1]) + u[0]*f[0]  (UP first)
+ * The third term of the last two loads the opposite operand first, so those
+ * products are written in that order and must not be normalised.
+ *
+ * `dot' is spilled by MSVC into the now-dead incoming parameter slot
+ * [EBP+0x8] (`FST dword ptr [EBP+8]' at 0x105356/0x1053ec/0x105480, FST not
+ * FSTP so the value stays in ST0 for the FABS/FCOMP).  That is why Ghidra's
+ * in_stack_00000004 aliases both the parameter and this scratch float; one
+ * local reused three times reproduces it.
+ *
+ * Tail at 0x105540: MOV ECX,0xd / MOV EDI,0x31fb08 / REP MOVSD = 52 bytes.
+ * Ghidra's thunk_FUN_001029a0 is `PUSH -1; CALL 0x8e2f0' = system_exit(-1).
+ * csprintf scratch buffer is the fixed global at 0x5ab100, passed by address.
+ */
+void FUN_00105160(float *matrix)
+{
+  float dot;
+
+  if (matrix == 0) {
+    display_assert("matrix", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x6b,
+                   true);
+    system_exit(-1);
+  }
+  if (!valid_real_matrix4x3(matrix)) {
+    if ((*(uint32_t *)&matrix[0] & 0x7f800000) == 0x7f800000) {
+      display_assert(csprintf((char *)0x5ab100, "%s had a bad scale %f",
+                              "matrix", matrix[0]),
+                     "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x6c, true);
+      system_exit(-1);
+    }
+    if (!valid_real_normal3d(&matrix[1])) {
+      display_assert(csprintf((char *)0x5ab100,
+                              "%s had a bad forward (%f,%f,%f)", "matrix",
+                              matrix[1], matrix[2], matrix[3]),
+                     "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x6c, true);
+      system_exit(-1);
+    }
+    if (!valid_real_normal3d(&matrix[4])) {
+      display_assert(csprintf((char *)0x5ab100, "%s had a bad left (%f,%f,%f)",
+                              "matrix", matrix[4], matrix[5], matrix[6]),
+                     "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x6c, true);
+      system_exit(-1);
+    }
+    if (!valid_real_normal3d(&matrix[7])) {
+      display_assert(csprintf((char *)0x5ab100, "%s had a bad up (%f,%f,%f)",
+                              "matrix", matrix[7], matrix[8], matrix[9]),
+                     "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x6c, true);
+      system_exit(-1);
+    }
+    if (!valid_real_point3d(&matrix[10])) {
+      display_assert(csprintf((char *)0x5ab100,
+                              "%s had a bad position (%f,%f,%f)", "matrix",
+                              matrix[10], matrix[11], matrix[12]),
+                     "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x6c, true);
+      system_exit(-1);
+    }
+    dot = matrix[3] * matrix[6] + matrix[2] * matrix[5] + matrix[1] * matrix[4];
+    if ((*(uint32_t *)&dot & 0x7f800000) == 0x7f800000 ||
+        !(fabsf(dot) < *(double *)0x2549d8)) {
+      display_assert(
+        csprintf((char *)0x5ab100,
+                 "%s had a forward (%f,%f,%f) not perpendicular to left "
+                 "(%f,%f,%f)",
+                 "matrix", matrix[1], matrix[2], matrix[3], matrix[4],
+                 matrix[5], matrix[6]),
+        "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x6c, true);
+      system_exit(-1);
+    }
+    dot = matrix[9] * matrix[6] + matrix[8] * matrix[5] + matrix[4] * matrix[7];
+    if ((*(uint32_t *)&dot & 0x7f800000) == 0x7f800000 ||
+        !(fabsf(dot) < *(double *)0x2549d8)) {
+      display_assert(
+        csprintf((char *)0x5ab100,
+                 "%s had a up (%f,%f,%f) not perpendicular to left "
+                 "(%f,%f,%f)",
+                 "matrix", matrix[7], matrix[8], matrix[9], matrix[4],
+                 matrix[5], matrix[6]),
+        "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x6c, true);
+      system_exit(-1);
+    }
+    dot = matrix[3] * matrix[9] + matrix[2] * matrix[8] + matrix[7] * matrix[1];
+    if ((*(uint32_t *)&dot & 0x7f800000) == 0x7f800000 ||
+        !(fabsf(dot) < *(double *)0x2549d8)) {
+      display_assert(
+        csprintf((char *)0x5ab100,
+                 "%s had a forward (%f,%f,%f) not perpendicular to up "
+                 "(%f,%f,%f)",
+                 "matrix", matrix[1], matrix[2], matrix[3], matrix[7],
+                 matrix[8], matrix[9]),
+        "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x6c, true);
+      system_exit(-1);
+    }
+    if (!valid_real_matrix4x3(matrix)) {
+      display_assert(
+        csprintf((char *)0x5ab100, "%s: assert_valid_real_matrix4x3", "matrix"),
+        "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x6c, true);
+      system_exit(-1);
+    }
+  }
+  memcpy((void *)0x31fb08, matrix, 13 * sizeof(float));
 }
 
 /* 0x105550 — error_geometry.c: draw a small fixed-size debug marker box at a
@@ -3028,6 +3156,198 @@ void FUN_00191ff0(int base, unsigned int index)
   }
 }
 
+/* 0x192390 - compute the bounding sphere of one structure-BSP leaf.
+ *
+ * Resolves the leaf at `leaf_index` from the BSP's leaf tag_block (bsp+4,
+ * 0x18-byte elements), accumulates an axis-aligned box into a 6-float
+ * scratch, then emits centre and radius.  The scratch is seeded by a
+ * REP MOVSD of 6 dwords (ref+0x20..+0x2e) from the "empty bounds" global
+ * behind 0x31fc6c; slot order is min_x,max_x,min_y,max_y,min_z,max_z,
+ * proven by the FCOMP memory operands at ref+0x98..+0xf4 ([ebp-0x30] is
+ * compared with TEST AH,5 and [ebp-0x2c] with TEST AH,0x41, and so on).
+ *
+ * Two mutually exclusive accumulation paths, keyed on the child count at
+ * leaf[3] (ref+0x3b CMP ECX,EDX / +0x40 JE):
+ *  - children present (fall-through, ref+0x46): each child index selects a
+ *    sub-leaf from a *second* 0x18-byte block at bsp+0x10 - not the bsp+4
+ *    block the leaf itself came from - whose vertex block (sub_leaf+3) holds
+ *    0xc-byte vec3s folded in directly.
+ *  - no children (ref+0x12b): walk the leaf's own surface list, resolve
+ *    surface -> plane through *bsp and *bsp+0xc, pick the plane normal's
+ *    dominant axis, and fold in each edge point only after project_point2d
+ *    maps it into that basis.
+ *
+ * Confirmed against the reference at 0x192390:
+ * - cdecl, 4 stack params, void return (MOV ESP,EBP / POP EBP / RET, no
+ *   RET n).  The kb declaration was `void FUN_00192390(void)` before this
+ *   lift and was widened here.
+ * - every min update compiles as FLD src / FCOMP dst / TEST AH,5 / JP and
+ *   every max update as FLD src / FCOMP dst / TEST AH,0x41 / JNE, with the
+ *   candidate value always the FLD'd (left) operand - hence `v < bounds[n]`
+ *   and `v > bounds[n]`, never the reversed spelling Ghidra prints.  The
+ *   write-back is a raw 32-bit integer MOV of the same 4 bytes, not an FSTP.
+ * - every loop bound is re-read from its block header each iteration
+ *   (MOV ECX,[ESI] / MOV ECX,[EDI] at ref+0x104, +0x115, +0x274, +0x292),
+ *   so the counts must not be cached in locals.
+ * - counters are 32-bit registers truncated at each use (INC EBX / MOVSX
+ *   EAX,BX), which is the `i = i + 1` plus `(short)i` spelling, not a
+ *   `short` variable.
+ * - *bsp is re-loaded between the surface and plane lookups (MOV EDX,[EBX]
+ *   at ref+0x151 and MOV ECX,[EBX] at ref+0x162) because the intervening
+ *   call clobbers it; two separate dereferences reproduce that.
+ * - the radius sum accumulates dx*dx + dz*dz + dy*dy in that order (FADDP
+ *   chain at ref+0x2eb..+0x2fb) - x, z, y, not x, y, z.
+ * - the deltas are fresh values, not in-place updates of bounds[]: dx is
+ *   spilled to [ebp-0x18] (a dead projected[] slot) at ref+0x2d9 rather
+ *   than written back to [ebp-0x2c].
+ */
+void FUN_00192390(void *bsp, unsigned int leaf_index, float *out_center,
+                  float *out_radius)
+{
+  float bounds[6]; /* min_x, max_x, min_y, max_y, min_z, max_z */
+  float projected[3];
+  unsigned char axis_sign;
+  int *leaf;
+  int *child_block;
+  int *vert_block;
+  int *edge_block;
+  int *sub_leaf;
+  int *entry;
+  int *surface;
+  unsigned int *child;
+  float *plane_data;
+  float *vertex;
+  int child_i;
+  int vert_i;
+  int surf_i;
+  int edge_i;
+  int axis;
+  float abs_x;
+  float abs_y;
+  float abs_z;
+  float cx;
+  float cy;
+  float cz;
+  float dx;
+  float dy;
+  float dz;
+
+  leaf = (int *)tag_block_get_element((char *)bsp + 4, leaf_index & 0x7fffffff,
+                                      0x18);
+  qmemcpy(bounds, *(void **)0x31fc6c, 0x18);
+
+  child_block = leaf + 3;
+  if (leaf[3] != 0) {
+    child_i = 0;
+    if (leaf[3] > 0) {
+      do {
+        child =
+          (unsigned int *)tag_block_get_element(child_block, (short)child_i, 4);
+        sub_leaf = (int *)tag_block_get_element((char *)bsp + 0x10,
+                                                *child & 0x7fffffff, 0x18);
+        vert_block = sub_leaf + 3;
+        vert_i = 0;
+        if (*vert_block > 0) {
+          do {
+            vertex =
+              (float *)tag_block_get_element(vert_block, (short)vert_i, 0xc);
+            if (vertex[0] < bounds[0]) {
+              bounds[0] = vertex[0];
+            }
+            if (vertex[0] > bounds[1]) {
+              bounds[1] = vertex[0];
+            }
+            if (vertex[1] < bounds[2]) {
+              bounds[2] = vertex[1];
+            }
+            if (vertex[1] > bounds[3]) {
+              bounds[3] = vertex[1];
+            }
+            if (vertex[2] < bounds[4]) {
+              bounds[4] = vertex[2];
+            }
+            if (vertex[2] > bounds[5]) {
+              bounds[5] = vertex[2];
+            }
+            vert_i = vert_i + 1;
+          } while ((short)vert_i < *vert_block);
+        }
+        child_i = child_i + 1;
+      } while ((short)child_i < *child_block);
+    }
+  } else if (leaf[0] != 0) {
+    surf_i = 0;
+    if (leaf[0] > 0) {
+      do {
+        entry = (int *)tag_block_get_element(leaf, (short)surf_i, 0x10);
+        surface = (int *)tag_block_get_element(*(char **)bsp, entry[0], 0xc);
+        plane_data =
+          (float *)tag_block_get_element(*(char **)bsp + 0xc, surface[0], 0x10);
+
+        /* dominant axis of the surface normal.  The three magnitudes are
+         * loaded eagerly and compared register-to-register (FCOM ST(1) /
+         * FCOMP ST(2) at ref+0x183..+0x1a2), so a lazily-evaluated
+         * expression tree -- or a double-typed fabs() result, which MSVC
+         * spills as an 8-byte FSTPL temp -- both diverge. */
+        abs_x = (float)fabs(plane_data[0]);
+        abs_y = (float)fabs(plane_data[1]);
+        abs_z = (float)fabs(plane_data[2]);
+        if (abs_z < abs_y || abs_z < abs_x) {
+          if (abs_y < abs_x) {
+            axis = 0;
+          } else {
+            axis = 1;
+          }
+        } else {
+          axis = 2;
+        }
+        axis_sign = FUN_00099270(plane_data, axis);
+
+        edge_block = entry + 1;
+        edge_i = 0;
+        if (*edge_block > 0) {
+          do {
+            project_point2d(
+              (float *)tag_block_get_element(edge_block, (short)edge_i, 8),
+              plane_data, axis, axis_sign, projected);
+            if (projected[0] < bounds[0]) {
+              bounds[0] = projected[0];
+            }
+            if (projected[0] > bounds[1]) {
+              bounds[1] = projected[0];
+            }
+            if (projected[1] < bounds[2]) {
+              bounds[2] = projected[1];
+            }
+            if (projected[1] > bounds[3]) {
+              bounds[3] = projected[1];
+            }
+            if (projected[2] < bounds[4]) {
+              bounds[4] = projected[2];
+            }
+            if (projected[2] > bounds[5]) {
+              bounds[5] = projected[2];
+            }
+            edge_i = edge_i + 1;
+          } while ((short)edge_i < *edge_block);
+        }
+        surf_i = surf_i + 1;
+      } while ((short)surf_i < *leaf);
+    }
+  }
+
+  cx = (bounds[1] + bounds[0]) * 0.5f;
+  out_center[0] = cx;
+  cy = (bounds[3] + bounds[2]) * 0.5f;
+  out_center[1] = cy;
+  cz = (bounds[5] + bounds[4]) * 0.5f;
+  out_center[2] = cz;
+  dx = bounds[1] - cx;
+  dy = bounds[3] - cy;
+  dz = bounds[5] - cz;
+  *out_radius = sqrtf(dx * dx + dz * dz + dy * dy);
+}
+
 /* FUN_001926a0 (0x1926a0)
  *
  * Copies a tag-block bitset from src to dst (word-granular), then for
@@ -3067,6 +3387,163 @@ unsigned char FUN_001926a0(int descriptor, int src, int dst)
   return 1;
 }
 
+/* FUN_00192710 (0x192710)
+ *
+ * Tests whether any surface edge reachable from one entry-block of `bsp`
+ * crosses the query plane at a point that falls inside the caller's 2D
+ * polygon.  Returns 1 on the first such crossing, 0 when both loops run out.
+ *
+ * Confirmed from disassembly at 0x192710-0x192992:
+ * - frame SUB ESP,0x50, pushes EBX/ESI/EDI; all seven args are cdecl stack
+ *   args (no register args).  Byte-bool return: XOR AL,AL at 0x192983 (loops
+ *   exhausted), MOV AL,1 at 0x19298c (early-out).
+ * - MOV EAX,[EBP+0xC] at 0x192716 is a full dword load with no MOVSX, so the
+ *   second parameter is 4 bytes wide; AND EAX,0x7fffffff at 0x192721 strips a
+ *   flag bit before it is used as a block index.
+ * - PARAM-SLOT REUSE: from 0x19279f on, MSVC reuses the (now dead) [EBP+0xC]
+ *   parameter slot as the dominant-axis scratch.  MOV DWORD [EBP+0xC],2 is a
+ *   dword store while MOVSX EAX,WORD [EBP+0xC] at 0x1927c5 is a word read, so
+ *   the variable is a 4-byte int that is subscripted as (short).  Reproduced
+ *   by assigning to `index`; safe because the incoming value is consumed by
+ *   the single tag_block_get_element call above, before either loop.
+ * - block strides are load-bearing: bsp+4 -> 0x18, entry block -> 0x10,
+ *   *bsp -> 0xc, *bsp+0xc -> 0x10 (a float[4] plane), edge block -> 8.
+ *   *(void **)bsp is re-read for each of its two uses (0x19275d, 0x19276a).
+ * - dominant axis (0x19277a-0x1927c5): three eager FLD/FABS on plane[0..2]
+ *   all held on the x87 stack with no spills, then FCOM/FCOMP ST(n) with
+ *   TEST AH,1 (C0 = "less").  MOV DWORD [EBP+0xC],1 is scheduled between
+ *   FCOMP and FNSTSW, i.e. the 1 is stored unconditionally then overwritten.
+ * - sign (0x1927c9-0x1927e1): FLD plane[axis] / FCOMP [0x2533c0] (= 0.0f) /
+ *   TEST AH,0x41 / JE.  JE is taken only when neither C0 nor C3 is set, i.e.
+ *   only when plane[axis] > 0, so the 0 is stored exactly on <= 0.
+ * - dot products (0x192854, 0x192872): ((x*p0 + y*p1) + z*p2) - p3.  dot0 is
+ *   left in ST(0) by FST [EBP-0xC], which is why the first straddle compare
+ *   is a non-popping FCOM.
+ * - straddle test (0x19288d-0x1928cf): TEST AH,5 + JP is the FCOM parity form
+ *   of "not less" (PF is set when AH&5 is 0 or 5); TEST AH,0x41 + JE/JNE is
+ *   "not <=".  The net condition is
+ *     (dot0 < -0.03 && dot1 > 0.03) || (dot0 > 0.03 && dot1 < -0.03)
+ *   with [0x2b2274] = -0.03f and [0x25bc08] = +0.03f (both verified in the
+ *   pristine XBE).
+ * - interpolation (0x1928d3-0x192930): d = b - a componentwise (FLD b /
+ *   FSUB a, so new-minus-old); the denominator accumulates x, then z, then y
+ *   as (dx*p0 + dz*p2) + dy*p1; FDIVR then FCHS gives t = -(dot0/denom); each
+ *   component is d*t + a.  Only dz is spilled (FSTP [EBP-0x48]).
+ * - wrap index (0x19282a-0x19283a): INC/SETE/DEC/AND is the branchless form
+ *   of (j+1 == edge_count) ? 0 : j+1, computed from the (short)-truncated j.
+ * - PUSH 0x3d4ccccd at 0x19293e is the float literal 0.05f (FUN_00106200's
+ *   `float epsilon`), not an integer.
+ * - both loop bounds are re-read every iteration (0x192958 from [EDI],
+ *   0x192979 from the saved block pointer) and must not be cached.
+ * - ADD ESP grouping: the ADD ESP,0xC at 0x192819 and 0x19284b belongs to the
+ *   inner tag_block_get_element; project_point2d's outer four args were
+ *   pushed before it and are cleaned by the later ADD ESP,0x14.
+ *
+ * Uncertain: the blocks themselves.  *bsp behaves like a collision-BSP base
+ * with surface (0xc) and plane (0x10) sub-blocks, but that is inferred from
+ * the strides alone, so all locals keep mechanical names.
+ */
+char FUN_00192710(void *bsp, int index, float *plane, int16_t projection,
+                  uint8_t sign, int16_t count, void *points)
+{
+  unsigned char axis_sign;
+  float dot1;
+  float dot0;
+  int j;
+  int i;
+  int *leaf_block;
+  float projected[2];
+  float a[3];
+  float b[3];
+  float isect[3];
+  float t;
+  float dx;
+  float dy;
+  float dz;
+  int *entry;
+  int *surface;
+  float *plane_data;
+  int *edge_block;
+  float abs_x;
+  float abs_y;
+  float abs_z;
+
+  leaf_block =
+    (int *)tag_block_get_element((char *)bsp + 4, index & 0x7fffffff, 0x18);
+  i = 0;
+  if (0 < *leaf_block) {
+    do {
+      entry = (int *)tag_block_get_element(leaf_block, (short)i, 0x10);
+      surface = (int *)tag_block_get_element(*(char **)bsp, entry[0], 0xc);
+      plane_data =
+        (float *)tag_block_get_element(*(char **)bsp + 0xc, surface[0], 0x10);
+
+      /* dominant axis of the surface normal; `index` is the reused param
+       * slot (see header note), read back as (short) at every use.
+       * The three magnitudes must be single precision and evaluated in
+       * plane[0], plane[1], plane[2] order: the reference loads all three
+       * eagerly and compares register-to-register (FCOM ST(1)/ST(2)), so a
+       * lazily-evaluated expression tree -- or a double-typed fabs() result,
+       * which MSVC spills as an 8-byte FSTPL temp -- both diverge. */
+      abs_x = (float)fabs(plane_data[0]);
+      abs_y = (float)fabs(plane_data[1]);
+      abs_z = (float)fabs(plane_data[2]);
+      if (abs_z < abs_y || abs_z < abs_x) {
+        index = 1;
+        if (abs_y < abs_x) {
+          index = 0;
+        }
+      } else {
+        index = 2;
+      }
+      /* TEST AH,0x41 + JE at 0x1927db is the "jump when strictly greater"
+       * form, so the guard is written as the negation of `> 0` rather than
+       * as `<= 0` (which MSVC renders with JP instead). */
+      axis_sign = 1;
+      if (!(plane_data[(short)index] > 0.0f)) {
+        axis_sign = 0;
+      }
+
+      edge_block = entry + 1;
+      j = 0;
+      if (*edge_block > 0) {
+        do {
+          project_point2d(
+            (float *)tag_block_get_element(edge_block, (short)j, 8), plane_data,
+            index, axis_sign, a);
+          project_point2d(
+            (float *)tag_block_get_element(
+              edge_block, ((short)j + 1 == *edge_block) ? 0 : (short)j + 1, 8),
+            plane_data, index, axis_sign, b);
+
+          dot0 =
+            (a[0] * plane[0] + a[1] * plane[1]) + a[2] * plane[2] - plane[3];
+          dot1 =
+            (b[0] * plane[0] + b[1] * plane[1]) + b[2] * plane[2] - plane[3];
+
+          if ((dot0 < -0.03f && dot1 > 0.03f) ||
+              (dot0 > 0.03f && dot1 < -0.03f)) {
+            dx = b[0] - a[0];
+            dy = b[1] - a[1];
+            dz = b[2] - a[2];
+            t = -(dot0 / ((dx * plane[0] + dz * plane[2]) + dy * plane[1]));
+            isect[0] = dx * t + a[0];
+            isect[1] = dy * t + a[1];
+            isect[2] = dz * t + a[2];
+            FUN_00061df0(isect, projection, sign, projected);
+            if (FUN_00106200(count, points, projected, 0.05f)) {
+              return 1;
+            }
+          }
+          j = j + 1;
+        } while ((short)j < *edge_block);
+      }
+      i = i + 1;
+    } while ((short)i < *leaf_block);
+  }
+  return 0;
+}
+
 void structure_detail_objects_initialize(void)
 {
   int base;
@@ -3098,6 +3575,161 @@ __declspec(noinline) void structure_detail_objects_initialize_for_new_map(void)
   }
   csmemset(*(void **)0x4d8ea0, 0, 0xa430);
   *(uint8_t *)(*(int *)0x4d8ea0 + 0x520e) = 0;
+}
+
+/* FUN_00194070 (0x194070) — structures.obj / structures.c (relocated here by
+ * maintain.py from the kb object mapping; the code is detail-object debug
+ * rendering and shares every global with structure_detail_objects.c)
+ *
+ * Debug overlay for the detail-object cell grid. For every cell of every
+ * populated row it (1) advances the cell transform's scroll offset when the
+ * one-shot flag at 0x4d8ea4 is set, (2) draws each of the cell's markers as a
+ * debug point, and (3) draws the cell's bounding box — a second, alpha-0.3
+ * box is layered on top when any marker's transformed Z escaped the cell's Z
+ * range. The one-shot flag is cleared and the scroll delta reloaded on exit.
+ *
+ * cdecl void(void). Frame: PUSH EBP; MOV EBP,ESP; SUB ESP,0x54. EBX/ESI/EDI
+ * are saved mid-function at 0x194103 (after the three-part guard) and popped
+ * at 0x19433a, so the callee-saved set is live only across the loops.
+ * Epilogue MOV ESP,EBP; POP EBP; RET. Called from render_debug.c:1630.
+ *
+ * Cell record (stride 0x18, from base = *0x4d8ea0 + 0x5100 row table):
+ *   +0x00 int    first marker index into the palette's marker block
+ *   +0x04 int    marker count            (dword: TEST EAX,EAX / CMP EDI,EAX)
+ *   +0x08 short  cell x                  (MOVSX word)
+ *   +0x0a short  cell y                  (MOVSX word)
+ *   +0x0c float  cell z base             (FADD/FLD dword — NOT an int; the
+ *                                         Ghidra `(float)piVar1[3]` cast is a
+ *                                         decompiler error)
+ *   +0x14 float* cell transform: [0..2] marker-to-world row, [3] offset that
+ *                the scroll accumulator bumps
+ * Row table entry (stride 8, at base+0x5100): { void **elements; short count; }
+ * with the count at +4; the row count itself is a short at base+0x5204. */
+void FUN_00194070(void)
+{
+  /* Four contiguous floats read from the debug colour pointer global at
+   * 0x2ee6c8. Component order is unproven, so the member stays mechanical.
+   * Modelled as a struct so the whole-record copy at 0x1942dd-0x194301 is
+   * emitted as four dword moves, exactly as the original does, before
+   * component [0] is overwritten with 0.3f at 0x194304. */
+  typedef struct {
+    float v[4];
+  } color4;
+
+  short player_count;
+  char *scn;
+  void *palette;
+  int base;
+  int row_index;
+  int cell_index;
+  int *cell;
+  float *xform;
+  unsigned char *marker;
+  int marker_index;
+  int extent;
+  char clipped;
+  float pos[3];
+  color4 color;
+  float bounds[6]; /* {x0, x1, y0, y1, z0, z1} — see fill order below */
+
+  player_count = local_player_count();
+  if ((player_count == 1) && (*(short *)0x506548 != -1) &&
+      (*(char *)0x4d8e9c != '\0')) {
+    scn = (char *)scenario_get();
+    if (*(int *)(scn + 0x24c) == 0) {
+      palette = 0;
+    } else {
+      palette = tag_block_get_element((char *)scenario_get() + 0x24c, 0, 0x40);
+    }
+
+    base = *(int *)0x4d8ea0;
+    /* 0x4d8e9c is re-read here (0x1940d2); on failure control still falls into
+     * the one-shot reset tail at 0x19433d, not to the epilogue. */
+    if (*(char *)0x4d8e9c != '\0') {
+      row_index = 0;
+      if (0 < *(short *)(base + 0x5204)) {
+        do {
+          /* Both stores happen before the JLE at 0x194130, so they run even
+           * when the row is empty. */
+          cell_index = 0;
+          if (0 < *(short *)(base + 0x5104 + (short)row_index * 8)) {
+            do {
+              cell = (int *)(*(int *)(base + 0x5100 + (short)row_index * 8) +
+                             (short)cell_index * 0x18);
+              clipped = '\0';
+              if (*(char *)0x4d8ea4 != '\0') {
+                xform = (float *)cell[5];
+                xform[3] = *(float *)0x4d8ea8 * *(float *)0x268ed0 + xform[3];
+              }
+
+              marker_index = 0;
+              if (0 < cell[1]) {
+                do {
+                  marker = (unsigned char *)tag_block_get_element(
+                    (char *)palette + 0xc, *cell + marker_index, 6);
+                  xform = (float *)cell[5];
+                  pos[0] = ((float)marker[0] * *(float *)0x261518 +
+                            (float)*(short *)((char *)cell + 8)) *
+                           *(float *)0x253f78;
+                  pos[1] = ((float)marker[1] * *(float *)0x261518 +
+                            (float)*(short *)((char *)cell + 0xa)) *
+                           *(float *)0x253f78;
+                  /* Addend order is the one the FADDPs at 0x1941fb/0x1941ff
+                   * impose: (b2*m2 + b1*m1) + b0*m0. */
+                  pos[2] = (((float)marker[2] * xform[2] +
+                             (float)marker[1] * xform[1] +
+                             (float)marker[0] * xform[0]) *
+                              *(float *)0x261518 +
+                            xform[3] + *(float *)((char *)cell + 0xc)) *
+                           *(float *)0x253f78;
+                  /* 0x19422a TEST AH,5 / JNP is the "ST0 < mem" form and
+                   * 0x19423d TEST AH,0x41 / JNE skips the store, so the flag
+                   * is set when the marker's Z leaves the cell's Z range. */
+                  if (((*(float *)((char *)cell + 0xc) + *(float *)0x2533c8) *
+                         *(float *)0x253f78 <
+                       pos[2]) ||
+                      (pos[2] <
+                       *(float *)((char *)cell + 0xc) * *(float *)0x253f78)) {
+                    clipped = '\1';
+                  }
+                  FUN_00189150(1, pos, 0.1f, *(void **)0x2ee6d0);
+                  marker_index = marker_index + 1;
+                } while (marker_index < cell[1]);
+              }
+
+              /* Fill order at 0x19426c-0x1942cb, in memory order: the two X
+               * extents land at bounds[0]/[1] and the two Y extents at
+               * bounds[2]/[3] (the FILD/FSTP pairs are interleaved). */
+              extent = (int)*(short *)((char *)cell + 8) * 8;
+              bounds[0] = (float)extent;
+              bounds[1] = (float)(extent + 8);
+              extent = (int)*(short *)((char *)cell + 0xa) * 8;
+              bounds[2] = (float)extent;
+              bounds[3] = (float)(extent + 8);
+              bounds[4] = *(float *)((char *)cell + 0xc) * *(float *)0x253f78;
+              bounds[5] =
+                (*(float *)((char *)cell + 0xc) + *(float *)0x2533c8) *
+                *(float *)0x253f78;
+              FUN_0018ab30(1, bounds, *(void **)0x2ee6d8);
+
+              if (clipped != '\0') {
+                color = *(const color4 *)*(void **)0x2ee6c8;
+                color.v[0] = 0.3f;
+                FUN_0018ab30(1, bounds, &color);
+              }
+
+              cell_index = cell_index + 1;
+            } while ((short)cell_index <
+                     *(short *)(base + 0x5104 + (short)row_index * 8));
+          }
+          row_index = row_index + 1;
+        } while ((short)row_index < *(short *)(base + 0x5204));
+      }
+    }
+
+    *(char *)0x4d8ea4 = '\0';
+    *(float *)0x4d8ea8 = *(float *)0x4d8eac;
+  }
 }
 
 /* FUN_00194360 (0x194360)
@@ -3411,19 +4043,22 @@ bool build_structure_lens_flares(void *structure_bsp)
                               geometry + 3, (int)(edge[0] & 0x7fffffff), 0x1c);
                             v0 = (float *)FUN_00117ee0(
                               geometry,
-                              ((int *)(vref + 0xc))[(edge[0] & 0x80000000) != 0],
+                              ((int *)(vref +
+                                       0xc))[(edge[0] & 0x80000000) != 0],
                               0xc);
                             vref = FUN_00117ee0(
                               geometry + 3, (int)(edge[1] & 0x7fffffff), 0x1c);
                             v1 = (float *)FUN_00117ee0(
                               geometry,
-                              ((int *)(vref + 0xc))[(edge[1] & 0x80000000) != 0],
+                              ((int *)(vref +
+                                       0xc))[(edge[1] & 0x80000000) != 0],
                               0xc);
                             vref = FUN_00117ee0(
                               geometry + 3, (int)(edge[2] & 0x7fffffff), 0x1c);
                             v2 = (float *)FUN_00117ee0(
                               geometry,
-                              ((int *)(vref + 0xc))[(edge[2] & 0x80000000) != 0],
+                              ((int *)(vref +
+                                       0xc))[(edge[2] & 0x80000000) != 0],
                               0xc);
                             if ((short)point_count == 0) {
                               /* First triangle of the group: plane normal,

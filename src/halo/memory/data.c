@@ -445,7 +445,7 @@ unsigned int FUN_00119bb0(unsigned int *buf, unsigned int size)
  * 0x119bf0 / data.obj (data_encoding.c)
  */
 bool FUN_00119bf0(unsigned int *param_1, unsigned int param_2, int param_3,
-                  unsigned int *param_4)
+                  unsigned int *param_4, unsigned int param_5)
 {
   unsigned char bVar1;
   unsigned int uVar1;

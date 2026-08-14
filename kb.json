@@ -831,7 +831,7 @@
     },
     {
      "addr": "0x7ece0",
-     "decl": "void bitmap_cube_map_face_insert(void);"
+     "decl": "void bitmap_cube_map_face_insert(void *source_bitmap, void *destination_bitmap, short mipmap_index, short face_index);"
     },
     {
      "addr": "0x7ef80",
@@ -1245,7 +1245,7 @@
     },
     {
      "addr": "0x1dbdec",
-     "comment": "LIBCMT _except_handler3 — VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
+     "comment": "LIBCMT _except_handler3 \u2014 VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
      "decl": "int __cdecl _except_handler3(void *ExceptionRecord, void *EstablisherFrame, void *ContextRecord, void *DispatcherContext);"
     },
     {
@@ -4841,7 +4841,7 @@
     },
     {
      "addr": "0x7e560",
-     "decl": "void bitmap_3d_slice_insert(void);"
+     "decl": "void bitmap_3d_slice_insert(void *source_bitmap, short mipmap_index, short slice_index, void *destination_bitmap);"
     },
     {
      "addr": "0x7e7e0",
@@ -4849,7 +4849,7 @@
     },
     {
      "addr": "0x7ea60",
-     "decl": "void FUN_0007ea60(void);"
+     "decl": "void FUN_0007ea60(void *source_bitmap, short mipmap_index, short face_index, void *destination_bitmap);"
     }
    ],
    "name": "bitmaps.obj",
@@ -6204,6 +6204,8 @@
    "source": "memory/memory_pool.c"
   },
   {
+   "name": "stack_memory_pool.obj",
+   "source": "memory/stack_memory_pool.c",
    "functions": [
     {
      "addr": "0x11e9c0",
@@ -6340,7 +6342,7 @@
     },
     {
      "addr": "0x11fd10",
-     "decl": "void FUN_0011fd10(void);"
+     "decl": "float FUN_0011fd10(void *page, int param_2);"
     },
     {
      "addr": "0x11fd50",
@@ -6352,7 +6354,7 @@
     },
     {
      "addr": "0x11fe80",
-     "decl": "void FUN_0011fe80(void);"
+     "decl": "void FUN_0011fe80(void *page);"
     },
     {
      "addr": "0x11feb0",
@@ -6360,7 +6362,7 @@
     },
     {
      "addr": "0x11fef0",
-     "decl": "void FUN_0011fef0(void);"
+     "decl": "void *FUN_0011fef0(void *page, int param_2);"
     },
     {
      "addr": "0x11ff10",
@@ -6370,9 +6372,7 @@
      "addr": "0x11ff70",
      "decl": "void FUN_0011ff70(void);"
     }
-   ],
-   "name": "stack_memory_pool.obj",
-   "source": "memory/stack_memory_pool.c"
+   ]
   },
   {
    "functions": [
@@ -6518,7 +6518,7 @@
     },
     {
      "addr": "0x119bf0",
-     "decl": "bool FUN_00119bf0(unsigned int *param_1, unsigned int param_2, int param_3, unsigned int *param_4);",
+     "decl": "bool FUN_00119bf0(unsigned int *param_1, unsigned int param_2, int param_3, unsigned int *param_4, unsigned int param_5);",
      "ported": true
     },
     {
@@ -7240,7 +7240,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -7301,7 +7301,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
@@ -24771,7 +24771,9 @@
     },
     {
      "addr": "0x105160",
-     "decl": "void FUN_00105160(void);"
+     "decl": "void FUN_00105160(float *matrix);",
+     "ported": true,
+     "source_path": "src/halo/structures/structures.c"
     },
     {
      "addr": "0x105550",
@@ -25027,7 +25029,9 @@
     },
     {
      "addr": "0x192390",
-     "decl": "void FUN_00192390(void);"
+     "decl": "void FUN_00192390(void *bsp, unsigned int leaf_index, float *out_center, float *out_radius);",
+     "ported": true,
+     "source_path": "src/halo/structures/structures.c"
     },
     {
      "addr": "0x1926a0",
@@ -25037,7 +25041,9 @@
     },
     {
      "addr": "0x192710",
-     "decl": "void FUN_00192710(void);"
+     "decl": "char FUN_00192710(void *bsp, int index, float *plane, int16_t projection, uint8_t sign, int16_t count, void *points);",
+     "ported": true,
+     "source_path": "src/halo/structures/structures.c"
     },
     {
      "addr": "0x193970",
@@ -25051,7 +25057,8 @@
     },
     {
      "addr": "0x194070",
-     "decl": "void FUN_00194070(void);"
+     "decl": "void FUN_00194070(void);",
+     "ported": true
     },
     {
      "addr": "0x194360",
@@ -30785,19 +30792,25 @@
     },
     {
      "addr": "0x75800",
-     "decl": "void FUN_00075800(void);"
+     "decl": "char FUN_00075800(void);"
     },
     {
      "addr": "0x75a20",
-     "decl": "void FUN_00075a20(void);"
+     "decl": "char FUN_00075a20(void);",
+     "ported": true
     },
     {
      "addr": "0x75e70",
-     "decl": "void FUN_00075e70(void);"
+     "decl": "void FUN_00075e70(short *bounds /* @<eax> */);",
+     "reg_args": {
+      "bounds": "eax"
+     }
     },
     {
      "addr": "0x76300",
-     "decl": "void FUN_00076300(void);"
+     "decl": "char FUN_00076300(void);",
+     "ported": true,
+     "source_path": "halo/bitmaps/bitmap_utilities.c"
     },
     {
      "addr": "0x76410",
@@ -30810,7 +30823,10 @@
     },
     {
      "addr": "0x76790",
-     "decl": "char FUN_00076790(void *group, int param_3);"
+     "decl": "char FUN_00076790(void *group, int param_3);",
+     "ported": true,
+     "source_path": "src/halo/bitmaps/bitmap_utilities.c",
+     "name": "FUN_00076790"
     },
     {
      "addr": "0x76a70",
@@ -30881,7 +30897,9 @@
     },
     {
      "addr": "0x77cd0",
-     "decl": "void *FUN_00077cd0(void *bitmap, short mipmap_count, int param_3, int param_4);"
+     "decl": "void *FUN_00077cd0(void *source_bitmap, short scale, int brightness_adjust, int alpha_weighted);",
+     "ported": true,
+     "source_path": "src/halo/bitmaps/bitmap_utilities.c"
     },
     {
      "addr": "0x77e60",
@@ -30906,7 +30924,7 @@
     },
     {
      "addr": "0x78c30",
-     "decl": "void bitmap_2d_sharpen(void);"
+     "decl": "void bitmap_2d_sharpen(void *bitmap, int amount_bits, int positive_table, int negative_table /* @<esi> */);"
     },
     {
      "addr": "0x790b0",
@@ -30932,7 +30950,8 @@
     },
     {
      "addr": "0x79480",
-     "decl": "void FUN_00079480(short passes, void *bitmap /* @<edi> */);"
+     "decl": "void FUN_00079480(short passes, void *bitmap /* @<edi> */);",
+     "ported": true
     },
     {
      "addr": "0x79590",
@@ -30946,27 +30965,33 @@
     },
     {
      "addr": "0x796e0",
-     "decl": "void FUN_000796e0(void);"
+     "decl": "void FUN_000796e0(void *source_bitmap @<edi>, void *destination_bitmap @<esi>, short destination_mipmap_index @<bx>, int param_4);",
+     "ported": true
     },
     {
      "addr": "0x798e0",
-     "decl": "void FUN_000798e0(void);"
+     "decl": "void FUN_000798e0(void *source_bitmap, void *destination_bitmap, short destination_mipmap_index, int param_4);",
+     "ported": true
     },
     {
      "addr": "0x79bb0",
-     "decl": "void FUN_00079bb0(void);"
+     "decl": "void FUN_00079bb0(void *source_bitmap, void *destination_bitmap, short destination_mipmap_index, int param_4);",
+     "ported": true
     },
     {
      "addr": "0x79e70",
-     "decl": "void FUN_00079e70(void);"
+     "decl": "void FUN_00079e70(void *source_bitmap, void *destination_bitmap, short source_mipmap_index);",
+     "ported": true
     },
     {
      "addr": "0x7a1e0",
-     "decl": "void FUN_0007a1e0(void);"
+     "decl": "void FUN_0007a1e0(void *source_bitmap, void *destination_bitmap, short source_mipmap_index);",
+     "ported": true
     },
     {
      "addr": "0x7a4a0",
-     "decl": "void bitmap_2d_uncompress_from_mipmap(void);"
+     "decl": "void bitmap_2d_uncompress_from_mipmap(void *source_bitmap, void *destination_bitmap, short source_mipmap_index);",
+     "ported": true
     },
     {
      "addr": "0x7a750",
@@ -30975,11 +31000,13 @@
     },
     {
      "addr": "0x7a780",
-     "decl": "void rgb_color_to_hsv_color(void);"
+     "decl": "short *rgb_color_to_hsv_color(unsigned short *rgb, short *hsv);",
+     "ported": true
     },
     {
      "addr": "0x7a970",
-     "decl": "void hsv_color_to_rgb_color(void);"
+     "decl": "unsigned short *hsv_color_to_rgb_color(unsigned short *hsv, unsigned short *rgb_out);",
+     "ported": true
     },
     {
      "addr": "0x7ab50",
@@ -31029,7 +31056,8 @@
     },
     {
      "addr": "0x7b310",
-     "decl": "void bitmap_sharpen(void);"
+     "decl": "void bitmap_sharpen(void *bitmap, float amount);",
+     "ported": true
     },
     {
      "addr": "0x7b470",
@@ -31042,7 +31070,8 @@
     },
     {
      "addr": "0x7b940",
-     "decl": "void FUN_0007b940(float bump_height, void *bitmap /* @<ebx> */);"
+     "decl": "void FUN_0007b940(float bump_height, void *bitmap /* @<ebx> */);",
+     "ported": true
     }
    ],
    "name": "bitmap_utilities.obj",
@@ -35335,7 +35364,7 @@
     },
     {
      "addr": "0x71400",
-     "decl": "void FUN_00071400(void);"
+     "decl": "void FUN_00071400(void *block, unsigned int *out_pixels);"
     },
     {
      "addr": "0x715c0",
@@ -35343,7 +35372,7 @@
     },
     {
      "addr": "0x717b0",
-     "decl": "void FUN_000717b0(void);"
+     "decl": "void FUN_000717b0(void *block, unsigned int *out_pixels);"
     },
     {
      "addr": "0x71840",
@@ -35351,7 +35380,7 @@
     },
     {
      "addr": "0x71890",
-     "decl": "void FUN_00071890(void);"
+     "decl": "void FUN_00071890(void *block, unsigned int *out_pixels);"
     },
     {
      "addr": "0x71af0",
@@ -35383,7 +35412,7 @@
     },
     {
      "addr": "0x72490",
-     "decl": "void FUN_00072490(void);"
+     "decl": "void FUN_00072490(void *destination_bitmap, short *destination_point, int param_3, void *source_bitmap, int param_5, int param_6, int param_7);"
     },
     {
      "addr": "0x72f70",
@@ -35434,7 +35463,7 @@
     },
     {
      "addr": "0x747d0",
-     "decl": "void FUN_000747d0(void);"
+     "decl": "void FUN_000747d0(int *out_pages, short *out_page_count, int page_dimension, int spacing);"
     },
     {
      "addr": "0x74a30",

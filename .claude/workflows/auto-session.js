@@ -40,6 +40,11 @@ const DRY_RUN    = !!(args && args.dryRun)
 const NO_LAND    = !!(args && args.noLand)
 const OBJECTS    = (args && args.objects) || undefined
 const CRITERIA   = (args && args.criteria) || undefined
+// Hard pin-list of target addresses, forwarded verbatim to goal-lift, which
+// parses and enforces it after selection (and bypasses its own pre-screens for
+// pinned addrs). Without this pass-through a caller can only steer selection by
+// object/criteria, and a specific low-scoring function never surfaces.
+const ADDRS      = (args && args.addrs) || undefined
 // Opt-in: let goal-lift lift register-argument targets instead of dropping them
 // at its two pre-screens. The remaining frontier is almost entirely @<reg>
 // fragments, so without this a run selects, decompiles, and then skips nearly
@@ -158,6 +163,7 @@ for (let i = 1; i <= BATCHES; i++) {
   const glArgs = { goal: BATCH_GOAL, dryRun: DRY_RUN }
   if (OBJECTS) glArgs.objects = OBJECTS
   if (CRITERIA) glArgs.criteria = CRITERIA
+  if (ADDRS) glArgs.addrs = ADDRS
   if (LIFT_REG_ARGS) glArgs.liftRegArgs = true
   const r = await workflow(GOAL_LIFT, glArgs)
 

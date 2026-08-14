@@ -242,6 +242,405 @@ char FUN_00075630(void)
 }
 
 /*
+ * FUN_00075800 -- cube map group extraction.
+ *
+ * Walks the same pending bitmap array as FUN_00075630 (base at
+ * *(char**)0x334134, count at *(short*)0x334138) accumulating six square,
+ * same-size faces from a single sequence into one temporary cube map created
+ * by bitmap_cube_map_new. On the sixth face the cube map is registered with
+ * FUN_00075380 and recorded in the group's sequence block; any mismatch
+ * (non-square face, incompatible size, sequence boundary) logs a warning and
+ * abandons the partial cube map. Every source bitmap is deleted as it is
+ * consumed.
+ *
+ * Returns 1 on success, 0 if a temporary bitmap allocation failed.
+ */
+char FUN_00075800(void)
+{
+  void *cube_map;
+  short face_count;
+  char success;
+  volatile char skip_group;
+  short i;
+  short sequence_index;
+  void *tag_element;
+  char *entry;
+
+  cube_map = 0;
+  face_count = 0;
+  success = 1;
+  i = 0;
+  sequence_index = 0;
+  do {
+    if (i >= *(short *)0x334138)
+      break;
+    entry = *(char **)0x334134 + i * 0x10;
+    skip_group = 0;
+
+    if (face_count == 0) {
+      if (cube_map) {
+        display_assert("!temporary_bitmap",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x798, 1);
+        system_exit(-1);
+      }
+      if (*(unsigned short *)(*(char **)entry + 4) ==
+          *(unsigned short *)(*(char **)entry + 6)) {
+        cube_map =
+          bitmap_cube_map_new(*(unsigned short *)(*(char **)entry + 4), 0, 0xb);
+        sequence_index = *(short *)(entry + 4);
+      } else {
+        crt_fprintf((void *)0x331050,
+                    "skipping cube map with non-square faces\r\n");
+        crt_fflush((void *)0x331050);
+        skip_group = 1;
+      }
+    }
+
+    if (!cube_map || *(int *)((char *)cube_map + 0x2c) == 0) {
+      if (!skip_group) {
+        error(2, "### ERROR extract: failed to create temporary bitmap");
+        success = 0;
+        goto next_entry;
+      }
+    } else {
+      if (*(short *)(entry + 4) == sequence_index) {
+        if (*(short *)(*(char **)entry + 4) ==
+              *(short *)((char *)cube_map + 4) &&
+            *(short *)(*(char **)entry + 6) ==
+              *(short *)((char *)cube_map + 6)) {
+          bitmap_cube_map_face_insert(*(void **)entry, cube_map, 0, face_count);
+          face_count++;
+          if (!skip_group)
+            goto check_complete;
+        } else {
+          crt_fprintf((void *)0x331050,
+                      "skipping cube map with incompatible-size faces\r\n");
+          crt_fflush((void *)0x331050);
+        }
+      } else {
+        crt_fprintf((void *)0x331050,
+                    "skipping cube map which spanned sequence\r\n");
+        crt_fflush((void *)0x331050);
+      }
+      bitmap_delete(cube_map);
+      face_count = 0;
+    }
+
+  check_complete:
+    if (success && face_count == 6) {
+      /* The original reuses the face-count register (EBX) to hold the new
+       * bitmap handle here; it is reset to 0 before leaving this block. */
+      face_count = FUN_00075380(cube_map);
+      if (face_count != (short)-1) {
+        tag_element = tag_block_get_element(*(char **)0x33414c + 0x54,
+                                            (int)sequence_index, 0x40);
+        if (*(short *)((char *)tag_element + 0x20) == (short)-1) {
+          *(short *)((char *)tag_element + 0x20) = face_count;
+          *(short *)((char *)tag_element + 0x22) = 0;
+        }
+        *(short *)((char *)tag_element + 0x22) =
+          *(short *)((char *)tag_element + 0x22) + 1;
+      }
+      bitmap_delete(cube_map);
+      cube_map = 0;
+      face_count = 0;
+    }
+
+  next_entry:
+    bitmap_delete(*(void **)entry);
+    i++;
+  } while (success);
+
+  if (cube_map) {
+    if (success) {
+      crt_fprintf((void *)0x331050,
+                  "skipping cube map with less than six faces\r\n");
+      crt_fflush((void *)0x331050);
+    }
+    bitmap_delete(cube_map);
+  }
+  return success;
+}
+
+/*
+ * FUN_00075a20 (0x75a20) -- bitmap extract: pack sprites into texture pages.
+ *
+ * Type-3 (sprite) counterpart of FUN_00075630/FUN_00075800.  Derives the page
+ * dimension and inter-sprite spacing from the bitmap group globals, verifies
+ * every extracted sprite fits inside one page, then asks FUN_000747d0 to lay
+ * the sprites out into pages.  For each page it allocates a texture page
+ * bitmap, fills it, blits every sprite assigned to that page, writes the
+ * normalised sprite rectangle and registration point back into the sequence's
+ * sprite block, registers the page with FUN_00075380, and finally reports
+ * per-page utilisation and the overall sprite budget.
+ *
+ * Returns 1 on success, 0 on any failure -- the flag is returned in AL at all
+ * five RET sites (0x75b25 MOV AL,DL / 0x75dae / 0x75dfa / 0x75e3c MOV
+ * AL,[EBP-1] / 0x75e5a XOR AL,AL), so the declaration is char, not void.
+ */
+char FUN_00075a20(void)
+{
+  int pages[32];
+  int fill_colors[3];
+  char *sprite_entry;
+  int spacing;
+  int budget_pixels;
+  void *sequence_element;
+  int sprite_spacing;
+  short destination_point[2];
+  short page_count;
+  int used_pixels;
+  short sprite_index;
+  void *page_bitmap;
+  short page_index;
+  char success;
+  /* Register-resident in the original; these need no frame slot. */
+  int page_dimension;
+  short max_sprite_dimension;
+  short sprite_offset;
+  char *page;
+  void *sprite_element;
+  char *sprite_rect;
+  void *sprite_bitmap;
+  float budget_total;
+  float budget_used;
+
+  success = 1;
+  used_pixels = 0;
+  /* DEC SI / NEG SI / SBB ESI,ESI / AND ESI,3 / INC ESI == (u != 1) ? 4 : 1 */
+  spacing = (*(short *)(*(char **)0x33414c + 0x4c) != 1) ? 4 : 1;
+  page_dimension = 0x20 << ((*(short *)(*(char **)0x33414c + 0x16) == 0) ?
+                              4 :
+                              *(short *)(*(char **)0x33414c + 0x14));
+  budget_pixels =
+    *(short *)(*(char **)0x33414c + 0x16) * page_dimension * page_dimension;
+  max_sprite_dimension = (short)(page_dimension - spacing * 2);
+  fill_colors[0] = 0;
+  fill_colors[1] = -1;
+  fill_colors[2] = 0x7f7f7f7f;
+
+  /* Pass 1: every sprite must fit inside a page once spacing is reserved. */
+  sprite_index = 0;
+  do {
+    if (sprite_index >= *(short *)0x334138) {
+      if (success) {
+        if (*(unsigned char *)(*(char **)0x33414c + 6) & 4)
+          error(0,
+                "### ERROR hey - don't even try it! (uniform sprite "
+                "sequences)\ndon't fucking swim in that septic tank with your "
+                "mouth open like that");
+        FUN_000747d0(pages, &page_count, page_dimension, spacing);
+        *(short *)(*(char **)0x33414c + 0x50) = (short)spacing;
+      }
+      break;
+    }
+    sprite_bitmap = *(void **)(*(char **)0x334134 + sprite_index * 0x10);
+    if (sprite_bitmap != 0 &&
+        (*(short *)((char *)sprite_bitmap + 4) > max_sprite_dimension ||
+         *(short *)((char *)sprite_bitmap + 6) > max_sprite_dimension)) {
+      error(0, "### ERROR one or more sprites do not fit in the requested page "
+               "size");
+      success = 0;
+    }
+    sprite_index++;
+  } while (success);
+
+  /* Pass 2: build one texture page bitmap per laid-out page. */
+  page_index = 0;
+  while (success && page_index < page_count) {
+    page = (char *)pages[page_index];
+    page_bitmap = bitmap_2d_new(*(unsigned short *)(page + 8),
+                                *(unsigned short *)(page + 0xa), 0, 0xb);
+    if (page_bitmap == 0 || *(int *)((char *)page_bitmap + 0x2c) == 0) {
+      error(2,
+            "### ERROR extract_sprite: failed to allocate texture page bitmap");
+      success = 0;
+    } else {
+      FUN_00077510(page_bitmap,
+                   fill_colors[*(short *)(*(char **)0x33414c + 0x4e)]);
+      for (sprite_index = 0; success && sprite_index < *(short *)0x334138;
+           sprite_index++) {
+        sprite_entry = *(char **)0x334134 + sprite_index * 0x10;
+        /* Two back-to-back calls share one ADD ESP,0x18 at 0x75bea; that is
+         * a merged cdecl cleanup, not a single six-argument call. */
+        sequence_element = tag_block_get_element(
+          *(char **)0x33414c + 0x54, (int)*(short *)(sprite_entry + 4), 0x40);
+        sprite_element =
+          tag_block_get_element((char *)sequence_element + 0x34,
+                                (int)*(short *)(sprite_entry + 6), 0x20);
+        if (*(short *)(sprite_entry + 8) == page_index) {
+          sprite_rect =
+            (char *)FUN_0011fef0(page, *(int *)(sprite_entry + 0xc));
+          /* MOVSX ECX,CX at 0x75c2e proves a short sits between the int
+           * spacing and the int the FILD at 0x75c37 reads. */
+          sprite_offset = (short)spacing;
+          if (!(*(unsigned char *)(*(char **)0x33414c + 6) & 8) &&
+              *(short *)(*(int *)(page + 0x18) + 0x30) == 1)
+            sprite_offset = 0;
+          *(short *)sprite_element = page_index;
+          sprite_spacing = sprite_offset;
+          /* Byte offsets are taken from the disassembly (FSTP float [ESI+N]);
+           * Ghidra types the element short* so its indices are halved.  The
+           * FILD/FIDIV idiom must survive: divide by an int, never by a
+           * precomputed float reciprocal. */
+          *(float *)((char *)sprite_element + 0x18) =
+            ((float)sprite_spacing +
+             *(float *)((char *)sprite_element + 0x18)) /
+            (float)(int)*(short *)(page + 8);
+          *(float *)((char *)sprite_element + 0x1c) =
+            ((float)sprite_spacing +
+             *(float *)((char *)sprite_element + 0x1c)) /
+            (float)(int)*(short *)(page + 0xa);
+          *(float *)((char *)sprite_element + 8) =
+            (float)(*(short *)(sprite_rect + 4) - sprite_spacing) /
+            (float)(int)*(short *)(page + 8);
+          *(float *)((char *)sprite_element + 0x10) =
+            (float)(*(short *)(sprite_rect + 6) - sprite_spacing) /
+            (float)(int)*(short *)(page + 0xa);
+          *(float *)((char *)sprite_element + 0xc) =
+            (float)((int)*(short *)(sprite_rect + 4) + sprite_spacing +
+                    *(short *)(sprite_rect + 8)) /
+            (float)(int)*(short *)(page + 8);
+          *(float *)((char *)sprite_element + 0x14) =
+            (float)((int)*(short *)(sprite_rect + 6) + sprite_spacing +
+                    *(short *)(sprite_rect + 0xa)) /
+            (float)(int)*(short *)(page + 0xa);
+          if (*(short *)((char *)sequence_element + 0x20) == (short)-1) {
+            *(short *)((char *)sequence_element + 0x20) = page_index;
+            *(short *)((char *)sequence_element + 0x22) = 1;
+          } else {
+            *(short *)((char *)sequence_element + 0x22) =
+              (short)(page_index - *(short *)((char *)sequence_element + 0x20));
+          }
+          destination_point[0] = *(short *)(sprite_rect + 4);
+          destination_point[1] = *(short *)(sprite_rect + 6);
+          FUN_00072490(page_bitmap, destination_point, 0,
+                       *(void **)sprite_entry, 0, -1, 0);
+          bitmap_delete(*(void **)sprite_entry);
+        }
+      }
+      if (FUN_00075380(page_bitmap) != (short)-1) {
+        used_pixels += *(short *)(page + 0xa) * *(short *)(page + 8);
+        bitmap_delete(page_bitmap);
+      }
+    }
+    crt_fprintf((void *)0x331050,
+                "texture page created #%dx#%d (%3.2f%% used)\r\n",
+                (int)*(short *)(page + 8), (int)*(short *)(page + 0xa),
+                (double)(FUN_0011fd10(page, 1) * 100.0f));
+    crt_fflush((void *)0x331050);
+    FUN_0011fe80(page);
+    page_index++;
+  }
+
+  if (success) {
+    /* FCOM/FNSTSW/TEST AH,0x44/JP at 0x75dda: JP is taken when the operands
+     * are not equal, so the fallthrough (this block) is the == case. */
+    /* Naming the converted budget keeps it as a single ST0 value, which is
+     * what lets the comparison use the memory-operand form (FCOM m32) the
+     * original emits instead of FLD/FLD/FUCOMPP. */
+    budget_total = (float)budget_pixels;
+    if (budget_total == 0.0f) {
+      crt_fprintf((void *)0x331050, "### WARNING no sprite budget set\r\n");
+      crt_fflush((void *)0x331050);
+      return success;
+    }
+    /* FIDIVR at 0x75e07 is a reverse divide: ST0 = used / budget. */
+    budget_used = used_pixels / budget_total;
+    /* TEST AH,0x41/JP at 0x75e1e: JP is taken when ST0 > 1.0f, so the
+     * fallthrough (this block) is the <= case. */
+    if (budget_used <= 1.0f) {
+      crt_fprintf((void *)0x331050, "sprite budget met (%3.0f%%)\r\n",
+                  (double)(budget_used * 100.0f));
+      crt_fflush((void *)0x331050);
+      return success;
+    }
+    error(2, "### ERROR sprite budget exceeded (%3.0f%%)",
+          (double)(budget_used * 100.0f));
+    return 0;
+  }
+  return success;
+}
+
+/*
+ * FUN_00076300 -- bitmap extract: the no-sequences path.
+ *
+ * Allocates a single bitmap element in the group's bitmaps block (+0x54) and
+ * extracts the whole colour plate into it, using a bounds rectangle that
+ * spans the entire plate.  Group types 1 (3D textures) and 3 (sprites) cannot
+ * be extracted without a real plate and report an error instead.
+ *
+ * Source TU: c:\halo\SOURCE\bitmaps\bitmap_extract.c (assert string, line 422).
+ * ABI: returns success in AL; the caller at FUN_00076790 branches on it.
+ *
+ * Globals: 0x33414c = bitmap group tag (+0x00 type, +0x02 plate/usage,
+ * +0x54 bitmaps tag_block); 0x334148 = extract-sequences flag;
+ * 0x334150 = source plate bitmap (+0x04 / +0x06 dimensions);
+ * 0x334158 = current bitmap element; 0x33415c = current bitmap index.
+ */
+char FUN_00076300(void)
+{
+  short bounds[4];
+  char *group;
+  char *bitmaps_block_owner;
+  char *plate;
+  short plate_field_04;
+  short plate_field_06;
+  short new_bitmap_index;
+
+  group = *(char **)0x33414c;
+
+  if (*(short *)(group + 2) == 0 && *(char *)0x334148 != 0) {
+    error(2, "### ERROR extract: compressed color-key transparency format "
+             "must use a valid plate");
+    return 0;
+  }
+
+  switch (*(short *)group) {
+  case 0:
+  case 2:
+  case 4:
+    plate = *(char **)0x334150;
+    bounds[0] = 0;
+    bounds[1] = 0;
+    /* Both plate fields are read before the first store into bounds: the
+       buffer's address is taken (it is passed to FUN_00075e70), so a store
+       through it between the two reads would force MSVC to reload the
+       global.  The original loads +0x04 and +0x06 back to back and stores
+       them crossed -- +0x04 lands in the HIGH element. */
+    plate_field_04 = *(short *)(plate + 4);
+    plate_field_06 = *(short *)(plate + 6);
+    bounds[3] = plate_field_04;
+    bounds[2] = plate_field_06;
+
+    new_bitmap_index = tag_block_add_element(group + 0x54);
+    /* The group pointer is re-read for the second block rather than reusing
+       the copy held across the add_element call, and the re-read is issued
+       before the index is published to 0x33415c. */
+    bitmaps_block_owner = *(char **)0x33414c;
+    *(short *)0x33415c = new_bitmap_index;
+    *(void **)0x334158 = tag_block_get_element(bitmaps_block_owner + 0x54,
+                                               (int)new_bitmap_index, 0x40);
+    *(short *)(*(char **)0x334158 + 0x20) = (short)0xffff;
+    FUN_00075e70(bounds);
+    return 1;
+
+  case 1:
+    error(2, "### ERROR can't extract 3D textures without a valid plate");
+    return 0;
+
+  case 3:
+    error(2, "### ERROR can't extract sprites without a valid plate");
+    return 0;
+
+  default:
+    display_assert("### ERROR unsupported bitmap group type",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x1a6, 1);
+    system_exit(-1);
+  }
+}
+
+/*
  * FUN_000766e0 -- bitmap extract: allocate and process all sequences.
  *
  * Iterates source bitmap rows (up to *(short*)(*(char**)0x334150+6) count),
@@ -278,6 +677,138 @@ char FUN_000766e0(void)
     if (!cVar1)
       return 0;
   }
+}
+
+/*
+ * FUN_00076790 (0x76790) -- bitmap extract: decompress the color plate and run
+ * the per-group-type extraction pass.
+ *
+ * Validates group->type/format/usage against their enum bounds, allocates the
+ * 0x4000-byte scratch bitmap array at 0x334134, resizes the group's two tag
+ * blocks (+0x60, +0x54) and its pixel tag_data (+0x30) to zero, allocates a
+ * 32-bit color plate of the group's import dimensions, decompresses the stored
+ * plate pixels into it, then dispatches on group->type. The scratch array is
+ * always released on the way out.
+ *
+ * Returns 1 on success, 0 on any failure. Source: bitmap_extract.c
+ */
+char FUN_00076790(void *group, int param_3)
+{
+  unsigned int decompressed_plate_size;
+  char extract_sequences;
+  char result;
+
+  if (group == 0) {
+    display_assert("group", "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0xb4,
+                   1);
+    system_exit(-1);
+  }
+  if (*(short *)group < 0 || *(short *)group >= 5) {
+    display_assert(
+      "group->type >=0 && group->type <NUMBER_OF_BITMAP_GROUP_TYPES",
+      "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0xb5, 1);
+    system_exit(-1);
+  }
+  if (*(short *)((char *)group + 2) < 0 || *(short *)((char *)group + 2) >= 6) {
+    display_assert(
+      "group->format>=0 && group->format<NUMBER_OF_BITMAP_GROUP_FORMATS",
+      "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0xb6, 1);
+    system_exit(-1);
+  }
+  if (*(short *)((char *)group + 4) < 0 || *(short *)((char *)group + 4) >= 6) {
+    display_assert(
+      "group->usage >=0 && group->usage <NUMBER_OF_BITMAP_GROUP_USAGES",
+      "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0xb7, 1);
+    system_exit(-1);
+  }
+
+  /* 16-bit store: 0x33413a is a separate datum. */
+  *(short *)0x334138 = 0;
+  *(void **)0x334134 = debug_malloc(
+    0x4000, 0, "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0xba);
+  if (*(void **)0x334134 == 0) {
+    error(2, "### ERROR extract: failed to allocate bitmap array");
+    /* Deliberate fallthrough: the original does not branch around the
+     * resize-failure error below, so this path prints both messages. */
+  } else if (tag_block_resize((char *)group + 0x60, 0) &&
+             tag_block_resize((char *)group + 0x54, 0) &&
+             tag_data_resize((char *)group + 0x30, 0)) {
+    *(void **)0x334158 = 0;
+    *(short *)0x33415c = (short)0xffff;
+    *(void **)0x33414c = group;
+    *(void **)0x334150 =
+      bitmap_2d_new(*(unsigned short *)((char *)group + 0x18),
+                    *(unsigned short *)((char *)group + 0x1a), 0, 0xb);
+    if (*(void **)0x334150 == 0) {
+      error(2, "### ERROR extract: failed to allocate color plate");
+      result = 0;
+    } else {
+      decompressed_plate_size =
+        FUN_00119bb0(*(unsigned int **)((char *)group + 0x28),
+                     *(unsigned int *)((char *)group + 0x1c));
+      if (decompressed_plate_size !=
+          (unsigned int)((int)*(short *)((char *)group + 0x1a) *
+                         (int)*(short *)((char *)group + 0x18) * 4)) {
+        display_assert("decompressed_plate_size==sizeof(pixel32)*group->import_"
+                       "width*group->import_height",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x104, 1);
+        system_exit(-1);
+      }
+      if (FUN_00119bf0(
+            *(unsigned int **)((char *)group + 0x28),
+            *(unsigned int *)((char *)group + 0x1c),
+            (int)bitmap_mipmap_address(*(void **)0x334150, 0),
+            &decompressed_plate_size,
+            /* dup-args-ok: the decompressed size is passed both by
+               reference (in/out) and by value (destination capacity). */
+            decompressed_plate_size)) {
+        FUN_00073830();
+        /* The flag is loaded and tested before the param_3 store in the
+           original; keeping it in a local reproduces that order. */
+        extract_sequences = *(char *)0x334148;
+        *(int *)0x334154 = param_3;
+        if (extract_sequences)
+          result = FUN_000766e0();
+        else
+          result = FUN_00076300();
+        bitmap_delete(*(void **)0x334150);
+        if (result) {
+          /* type is re-read through the global, not from the parameter. */
+          switch (*(short *)*(char **)0x33414c) {
+          case 0:
+          case 4:
+            break;
+          case 1:
+            result = FUN_00075630();
+            break;
+          case 2:
+            result = FUN_00075800();
+            break;
+          case 3:
+            result = FUN_00075a20();
+            break;
+          default:
+            display_assert("### ERROR unsupported bitmap group type",
+                           "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x137,
+                           1);
+            system_exit(-1);
+          }
+        }
+      } else {
+        error(2, "### ERROR extract: failed to decompress color plate");
+        result = 0;
+      }
+    }
+    goto cleanup;
+  }
+  error(2, "### ERROR extract: failed to resize bitmap group tags to zero");
+  result = 0;
+
+cleanup:
+  if (*(void **)0x334134 != 0)
+    debug_free(*(void **)0x334134,
+               "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x13d);
+  return result;
 }
 
 /* FUN_00076a70 (0x76a70) — bitmap extract: compress color plate pixel data into
@@ -843,6 +1374,13 @@ after_pow2_guard:
  * count, then fills that many dwords with the given color. The original uses
  * REP STOSD.
  */
+/* The original CALLs this from FUN_00075a20 (0x75b86) rather than inlining
+ * it; MSVC 7.1 otherwise expands the fill loop (merged ADD ESP,0x14 plus a
+ * REP STOSD) into its only in-TU caller. FUN_00075a20 is that sole caller,
+ * so suppressing auto-inlining here cannot affect any other function. */
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma auto_inline(off)
+#endif
 void FUN_00077510(void *bitmap, int fill_color)
 {
   int *pixels;
@@ -857,6 +1395,9 @@ void FUN_00077510(void *bitmap, int fill_color)
     }
   }
 }
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma auto_inline(on)
+#endif
 
 /*
  * FUN_00077540 -- bitmap_alpha_to_rgb: spread alpha byte to all 4 channels.
@@ -1277,6 +1818,84 @@ void *FUN_000779b0(short scale /* @<eax> */, void *source_bitmap,
         return dst_bitmap;
     } while (1);
   }
+  return dst_bitmap;
+}
+
+/*
+ * FUN_00077cd0 -- box-filter downscale for a cube-map bitmap.
+ *
+ * Allocates a new ARGB (format 0xb) cube map whose faces are
+ * (width / min(width, scale)) on a side, then walks the six faces: each source
+ * face is extracted into a temporary 2D bitmap (FUN_0007ea60), downscaled with
+ * the 2D box filter (FUN_00077720) and inserted into the new cube map. The
+ * per-face scaled bitmap is released every iteration; the temporary extraction
+ * bitmap is released after the loop.
+ *
+ * brightness_adjust / alpha_weighted are forwarded verbatim to the 2D
+ * downscaler. Returns the new cube map, which may be NULL or dataless when
+ * allocation failed.
+ */
+void *FUN_00077cd0(void *source_bitmap, short scale, int brightness_adjust,
+                   int alpha_weighted)
+{
+  short src_width;
+  short kernel;
+  void *dst_bitmap;
+  void *temp_2d;
+  void *scaled_face;
+  short face;
+
+  if (!bitmap_verify(source_bitmap, 1)) {
+    display_assert("bitmap_verify(source_bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x1bb, 1);
+    system_exit(-1);
+  }
+  if (*(short *)((char *)source_bitmap + 0xa) != 2) {
+    display_assert("source_bitmap->type==_bitmap_type_cube_map",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x1bc, 1);
+    system_exit(-1);
+  }
+  if (scale < 2) {
+    display_assert("scale>1", "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                   0x1bd, 1);
+    system_exit(-1);
+  }
+
+  /* Signed 16-bit clamp then a signed divide of the sign-extended shorts. */
+  src_width = *(short *)((char *)source_bitmap + 4);
+  kernel = src_width;
+  if (scale <= src_width)
+    kernel = scale;
+
+  dst_bitmap = bitmap_cube_map_new(src_width / kernel, 0, 0xb);
+
+  if (dst_bitmap == 0 || *(int *)((char *)dst_bitmap + 0x2c) == 0) {
+    error(2, "### ERROR failed to allocate temporary bitmap");
+    return dst_bitmap;
+  }
+
+  /* The extraction scratch is allocated from the zero-extended face size. */
+  temp_2d =
+    bitmap_2d_new(*(unsigned short *)((char *)source_bitmap + 4),
+                  *(unsigned short *)((char *)source_bitmap + 6), 0, 0xb);
+
+  if (temp_2d == 0 || *(int *)((char *)temp_2d + 0x2c) == 0) {
+    error(2, "### ERROR failed to allocate temporary bitmap");
+    bitmap_delete(temp_2d);
+    return dst_bitmap;
+  }
+
+  for (face = 0; face < 6; face++) {
+    FUN_0007ea60(source_bitmap, 0, face, temp_2d);
+    scaled_face =
+      FUN_00077720(scale, temp_2d, brightness_adjust, alpha_weighted);
+    if (scaled_face != 0 && *(int *)((char *)scaled_face + 0x2c) != 0) {
+      bitmap_cube_map_face_insert(scaled_face, dst_bitmap, 0, face);
+    }
+    bitmap_delete(scaled_face);
+  }
+
+  bitmap_delete(temp_2d);
   return dst_bitmap;
 }
 
@@ -1804,6 +2423,12 @@ void FUN_00078b80(int filter_radius, short *filter_coefficients,
  * ABI: bitmap passed in ESI (@ESI). Three stack params: unused, positive_table,
  * negative_table.
  */
+/* The original CALLs this from bitmap_sharpen (0x7b43b) rather than inlining
+ * it; MSVC 7.1 otherwise expands the whole assert/warning body into its only
+ * in-TU caller, bloating bitmap_sharpen by ~25 instructions. */
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma auto_inline(off)
+#endif
 void FUN_000790b0(int unused, int positive_table, int negative_table,
                   void *bitmap /* @<esi> */)
 {
@@ -1839,10 +2464,18 @@ void FUN_000790b0(int unused, int positive_table, int negative_table,
               (void *)0x261f2c);
   crt_fflush((void *)0x331050);
 }
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma auto_inline(on)
+#endif
 
 /* FUN_00079180 (0x79180) — cube map sharpen stub. Validates bitmap (@esi) is
  * cube type, checks positive/negative table pointers, then prints warning and
  * returns. */
+/* Same reason as FUN_000790b0 above: the original CALLs this from
+ * bitmap_sharpen (0x7b41e); MSVC 7.1 would otherwise inline it. */
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma auto_inline(off)
+#endif
 void FUN_00079180(int unused, int positive_table, int negative_table,
                   void *bitmap /* @<esi> */)
 {
@@ -1870,6 +2503,9 @@ void FUN_00079180(int unused, int positive_table, int negative_table,
               (void *)0x261f2c);
   crt_fflush((void *)0x331050);
 }
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma auto_inline(on)
+#endif
 
 /* FUN_00079250 (0x79250) — 2D bitmap alpha-bleed: for each transparent pixel
  * (alpha==0), copies RGB from the first non-transparent neighbor found in the
@@ -1977,6 +2613,59 @@ void FUN_00079250(short passes /* @<eax> */, void *bitmap)
 }
 
 /*
+ * FUN_00079480 -- 3D bitmap alpha_bleed.
+ *
+ * Allocates one temporary 2D bitmap matching the 3D bitmap's width/height and
+ * format, then walks every depth slice: read the slice into the temp
+ * (bitmap_3d_slice_insert), run the 2D alpha-bleed over it (FUN_00079250),
+ * write the temp back into the slice (bitmap_cube_map_face_extract).
+ *
+ * ABI: bitmap passed in EDI (@EDI). One stack param: passes (short).
+ */
+void FUN_00079480(short passes, void *bitmap /* @<edi> */)
+{
+  void *temp;
+  short slice;
+
+  /* bitmap_verify(bitmap, TRUE) */
+  if (!bitmap_verify(bitmap, 1)) {
+    display_assert("bitmap_verify(bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x472, 1);
+    system_exit(-1);
+  }
+
+  /* assert bitmap->type == _bitmap_type_3d */
+  if (*(short *)((char *)bitmap + 0xa) != 1) {
+    display_assert("bitmap->type==_bitmap_type_3d",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x473, 1);
+    system_exit(-1);
+  }
+
+  /* assert passes > 0 */
+  if (passes <= 0) {
+    display_assert("passes>0", "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                   0x474, 1);
+    system_exit(-1);
+  }
+
+  temp = bitmap_2d_new(*(unsigned short *)((char *)bitmap + 4),
+                       *(unsigned short *)((char *)bitmap + 6), 0,
+                       *(unsigned short *)((char *)bitmap + 0xc));
+
+  if (temp != 0 && *(int *)((char *)temp + 0x2c) != 0) {
+    for (slice = 0; slice < *(short *)((char *)bitmap + 8); slice++) {
+      bitmap_3d_slice_insert(bitmap, 0, slice, temp);
+      FUN_00079250(passes, temp);
+      bitmap_cube_map_face_extract(temp, bitmap, 0, slice);
+    }
+  } else {
+    error(2, "### ERROR failed to allocate temporary bitmap");
+  }
+
+  bitmap_delete(temp);
+}
+
+/*
  * FUN_00079590 -- cube_map alpha_bleed stub.
  *
  * Validates the bitmap (must be cube_map type) and that passes > 0,
@@ -2051,6 +2740,825 @@ void FUN_00079630(float bump_height, void *bitmap /* @<esi> */)
 }
 
 /*
+ * FUN_000796e0 -- unimplemented "compress source 2d bitmap into one mipmap
+ * level of a compressed 2d bitmap" path.
+ *
+ * The body is nothing but the argument-validation preamble (assert lines
+ * 0x63c-0x645) followed by an unconditional assert(FALSE) at line 0x69f and
+ * system_exit(-1); the function never returns.  Bungie left the compression
+ * path unwritten in this build.
+ *
+ * Source TU: c:\halo\SOURCE\bitmaps\bitmap_utilities.c (assert __FILE__ xref).
+ *
+ * ABI: no prologue at all -- the first instruction at 0x796e0 is `PUSH 0x1`.
+ * source_bitmap in EDI, destination_bitmap in ESI, destination_mipmap_index in
+ * BX (16-bit).  All three callees are plain cdecl.
+ *
+ * bitmap_data_t offsets used: +0x04 width (short), +0x06 height (short),
+ * +0x08 depth (short), +0x0a type (short; 0 == _bitmap_type_2d), +0x0e flags
+ * (byte; bit 1 == _bitmap_compressed_bit), +0x14 mipmap_count (short).
+ */
+void FUN_000796e0(void *source_bitmap /* @<edi> */,
+                  void *destination_bitmap /* @<esi> */,
+                  short destination_mipmap_index /* @<bx> */, int param_4)
+{
+  /* param_4 is the sole *stack* argument (one dword; the caller's shared
+   * `ADD ESP,0x24` accounts for it).  It is never read on this path -- the
+   * function asserts out before any use -- so it stays unnamed. */
+  (void)param_4;
+
+  /* bitmap_verify(source_bitmap, TRUE) */
+  if (!bitmap_verify(source_bitmap, 1)) {
+    display_assert("bitmap_verify(source_bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x63c, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)((char *)source_bitmap + 0xa) != 0) {
+    display_assert("source_bitmap->type==_bitmap_type_2d",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x63d, 1);
+    system_exit(-1);
+  }
+
+  /* bitmap_verify(destination_bitmap, FALSE) */
+  if (!bitmap_verify(destination_bitmap, 0)) {
+    display_assert("bitmap_verify(destination_bitmap, FALSE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x63f, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)((char *)destination_bitmap + 0xa) != 0) {
+    display_assert("destination_bitmap->type==_bitmap_type_2d",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x640, 1);
+    system_exit(-1);
+  }
+
+  if (destination_mipmap_index < 0 ||
+      destination_mipmap_index >
+        *(short *)((char *)destination_bitmap + 0x14)) {
+    display_assert("destination_mipmap_index>=0 && "
+                   "destination_mipmap_index<=destination_bitmap->mipmap_count",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x641, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, destination_bitmap->width >>destination_mipmap_index) */
+  if ((1 > (*(short *)((char *)destination_bitmap + 4) >>
+            destination_mipmap_index) ?
+         1 :
+         (*(short *)((char *)destination_bitmap + 4) >>
+          destination_mipmap_index)) != *(short *)((char *)source_bitmap + 4)) {
+    display_assert("MAX(1, destination_bitmap->width "
+                   ">>destination_mipmap_index)==source_bitmap->width",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x642, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, destination_bitmap->height>>destination_mipmap_index) */
+  if ((1 > (*(short *)((char *)destination_bitmap + 6) >>
+            destination_mipmap_index) ?
+         1 :
+         (*(short *)((char *)destination_bitmap + 6) >>
+          destination_mipmap_index)) != *(short *)((char *)source_bitmap + 6)) {
+    display_assert("MAX(1, destination_bitmap->height"
+                   ">>destination_mipmap_index)==source_bitmap->height",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x643, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, destination_bitmap->depth >>destination_mipmap_index) */
+  if ((1 > (*(short *)((char *)destination_bitmap + 8) >>
+            destination_mipmap_index) ?
+         1 :
+         (*(short *)((char *)destination_bitmap + 8) >>
+          destination_mipmap_index)) != *(short *)((char *)source_bitmap + 8)) {
+    display_assert("MAX(1, destination_bitmap->depth "
+                   ">>destination_mipmap_index)==source_bitmap->depth",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x644, 1);
+    system_exit(-1);
+  }
+
+  /* TEST_FLAG(destination_bitmap->flags, _bitmap_compressed_bit) */
+  if ((*(unsigned char *)((char *)destination_bitmap + 0xe) & 2) == 0) {
+    display_assert(
+      "TEST_FLAG(destination_bitmap->flags, _bitmap_compressed_bit)",
+      "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x645, 1);
+    system_exit(-1);
+  }
+
+  /* assert(FALSE) -- compression path never implemented in this build. */
+  display_assert(0, "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x69f, 1);
+  system_exit(-1);
+}
+
+/*
+ * FUN_000798e0 -- compress one mipmap level of an uncompressed 3D bitmap into
+ * a compressed 3D bitmap.
+ *
+ * Mirror image of FUN_0007a1e0 (3D uncompress).  Allocates two temporary 2D
+ * bitmaps sized from the *source* -- one in the source's format and one in the
+ * destination's -- then for each depth slice: extracts that slice into the
+ * first temp, compresses it into the second (FUN_000796e0, which asserts out
+ * in this build), and writes the result back into the requested mipmap level
+ * of the destination.
+ *
+ * The kb declaration was `void FUN_000798e0(void)`: Ghidra dropped all four
+ * cdecl stack arguments (EBP+8 / +0xc / +0x10 / +0x14).  The fourth is read
+ * exactly once (`MOV EDX,[EBP+0x14]; PUSH EDX`) and forwarded as
+ * FUN_000796e0's sole *stack* argument; no assert names it, so it keeps a
+ * mechanical name.  Arity of the three loop calls cannot be read off per-call
+ * cleanup -- they share one `ADD ESP,0x24` (9 dwords = 4 + 1 + 4).  The
+ * `XOR EBX,EBX` sitting between that PUSH and the CALL is FUN_000796e0's
+ * `@<bx>` argument, not dead scheduling; EDI/ESI carry the two temporaries.
+ *
+ * bitmap_data_t offsets used: +0x04 width (short), +0x06 height (short),
+ * +0x08 depth (short), +0x0a type (short; 1 == _bitmap_type_3d), +0x0c format
+ * (unsigned short), +0x0e flags (byte; bit 1 == _bitmap_compressed_bit),
+ * +0x14 mipmap_count (short), +0x2c pixel data.
+ */
+void FUN_000798e0(void *source_bitmap, void *destination_bitmap,
+                  short destination_mipmap_index, int param_4)
+{
+  void *temp_source;
+  void *temp_destination;
+  short slice;
+
+  /* bitmap_verify(source_bitmap, TRUE) */
+  if (!bitmap_verify(source_bitmap, 1)) {
+    display_assert("bitmap_verify(source_bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x6af, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)((char *)source_bitmap + 0xa) != 1) {
+    display_assert("source_bitmap->type==_bitmap_type_3d",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x6b0, 1);
+    system_exit(-1);
+  }
+
+  /* bitmap_verify(destination_bitmap, FALSE) */
+  if (!bitmap_verify(destination_bitmap, 0)) {
+    display_assert("bitmap_verify(destination_bitmap, FALSE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x6b2, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)((char *)destination_bitmap + 0xa) != 1) {
+    display_assert("destination_bitmap->type==_bitmap_type_3d",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x6b3, 1);
+    system_exit(-1);
+  }
+
+  if (destination_mipmap_index < 0 ||
+      destination_mipmap_index >
+        *(short *)((char *)destination_bitmap + 0x14)) {
+    display_assert("destination_mipmap_index>=0 && destination_mipmap_index<="
+                   "destination_bitmap->mipmap_count",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x6b4, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, destination_bitmap->width >>destination_mipmap_index) */
+  if ((1 > (*(short *)((char *)destination_bitmap + 4) >>
+            destination_mipmap_index) ?
+         1 :
+         (*(short *)((char *)destination_bitmap + 4) >>
+          destination_mipmap_index)) != *(short *)((char *)source_bitmap + 4)) {
+    display_assert("MAX(1, destination_bitmap->width "
+                   ">>destination_mipmap_index)==source_bitmap->width",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x6b5, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, destination_bitmap->height>>destination_mipmap_index) */
+  if ((1 > (*(short *)((char *)destination_bitmap + 6) >>
+            destination_mipmap_index) ?
+         1 :
+         (*(short *)((char *)destination_bitmap + 6) >>
+          destination_mipmap_index)) != *(short *)((char *)source_bitmap + 6)) {
+    display_assert("MAX(1, destination_bitmap->height"
+                   ">>destination_mipmap_index)==source_bitmap->height",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x6b6, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, destination_bitmap->depth >>destination_mipmap_index) */
+  if ((1 > (*(short *)((char *)destination_bitmap + 8) >>
+            destination_mipmap_index) ?
+         1 :
+         (*(short *)((char *)destination_bitmap + 8) >>
+          destination_mipmap_index)) != *(short *)((char *)source_bitmap + 8)) {
+    display_assert("MAX(1, destination_bitmap->depth "
+                   ">>destination_mipmap_index)==source_bitmap->depth",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x6b7, 1);
+    system_exit(-1);
+  }
+
+  /* TEST_FLAG(destination_bitmap->flags, _bitmap_compressed_bit) */
+  if ((*(unsigned char *)((char *)destination_bitmap + 0xe) & 2) == 0) {
+    display_assert(
+      "TEST_FLAG(destination_bitmap->flags, _bitmap_compressed_bit)",
+      "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x6b8, 1);
+    system_exit(-1);
+  }
+
+  /* Both temporaries are sized from the source; only the format differs. */
+  temp_source = bitmap_2d_new(*(unsigned short *)((char *)source_bitmap + 4),
+                              *(unsigned short *)((char *)source_bitmap + 6), 0,
+                              *(unsigned short *)((char *)source_bitmap + 0xc));
+  temp_destination =
+    bitmap_2d_new(*(unsigned short *)((char *)source_bitmap + 4),
+                  *(unsigned short *)((char *)source_bitmap + 6), 0,
+                  *(unsigned short *)((char *)destination_bitmap + 0xc));
+
+  if (temp_source != 0 && *(int *)((char *)temp_source + 0x2c) != 0 &&
+      temp_destination != 0 && *(int *)((char *)temp_destination + 0x2c) != 0) {
+    for (slice = 0; slice < *(short *)((char *)source_bitmap + 8); slice++) {
+      bitmap_3d_slice_insert(source_bitmap, 0, slice, temp_source);
+      FUN_000796e0(temp_source, temp_destination, 0, param_4);
+      bitmap_cube_map_face_extract(temp_destination, destination_bitmap,
+                                   destination_mipmap_index, slice);
+    }
+  } else {
+    error(2, "### ERROR failed to allocate temporary bitmap");
+  }
+
+  bitmap_delete(temp_source);
+  bitmap_delete(temp_destination);
+}
+
+/*
+ * FUN_00079bb0 -- compress one mipmap level of an uncompressed cube map into
+ * a compressed cube map.
+ *
+ * Cube-map twin of FUN_000798e0 (3D compress): identical nine-assert preamble
+ * and identical two-temporary allocation, but the per-slice loop becomes a
+ * fixed six-face loop and the extract/insert pair swaps to the cube-map
+ * helpers.  Both temporaries are sized from the *source*; only the format
+ * differs (source format for the first, destination format for the second).
+ *
+ * The kb declaration was `void FUN_00079bb0(void)`: Ghidra dropped all four
+ * cdecl stack arguments (EBP+8 / +0xc / +0x10 / +0x14).  The fourth appears
+ * only in the disassembly (`MOV EDX,[EBP+0x14]; PUSH EDX` at 0x79e10) and is
+ * forwarded as FUN_000796e0's sole *stack* argument; no assert names it, so it
+ * keeps a mechanical name.  Arity of the three loop calls cannot be read off
+ * per-call cleanup -- they share one `ADD ESP,0x24` (9 dwords = 4 + 1 + 4).
+ * The `XOR EBX,EBX` between that PUSH and the CALL is FUN_000796e0's `@<bx>`
+ * argument, not dead scheduling; EDI/ESI carry the two temporaries.
+ *
+ * The loop counter is compared 16-bit (`CMP BX,6`) against a literal 6, not
+ * against a depth field -- a cube map always has six faces.  Both
+ * bitmap_delete calls run on the allocation-failure path too: error() does not
+ * return early, it falls through.
+ *
+ * bitmap_data_t offsets used: +0x04 width (short), +0x06 height (short),
+ * +0x08 depth (short), +0x0a type (short; 2 == _bitmap_type_cube_map), +0x0c
+ * format (unsigned short), +0x0e flags (byte; bit 1 ==
+ * _bitmap_compressed_bit), +0x14 mipmap_count (short), +0x2c pixel data.
+ */
+void FUN_00079bb0(void *source_bitmap, void *destination_bitmap,
+                  short destination_mipmap_index, int param_4)
+{
+  void *temp_source;
+  void *temp_destination;
+  short face;
+
+  /* bitmap_verify(source_bitmap, TRUE) */
+  if (!bitmap_verify(source_bitmap, 1)) {
+    display_assert("bitmap_verify(source_bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x6fa, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)((char *)source_bitmap + 0xa) != 2) {
+    display_assert("source_bitmap->type==_bitmap_type_cube_map",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x6fb, 1);
+    system_exit(-1);
+  }
+
+  /* bitmap_verify(destination_bitmap, FALSE) */
+  if (!bitmap_verify(destination_bitmap, 0)) {
+    display_assert("bitmap_verify(destination_bitmap, FALSE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x6fd, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)((char *)destination_bitmap + 0xa) != 2) {
+    display_assert("destination_bitmap->type==_bitmap_type_cube_map",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x6fe, 1);
+    system_exit(-1);
+  }
+
+  if (destination_mipmap_index < 0 ||
+      destination_mipmap_index >
+        *(short *)((char *)destination_bitmap + 0x14)) {
+    display_assert("destination_mipmap_index>=0 && destination_mipmap_index<="
+                   "destination_bitmap->mipmap_count",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x6ff, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, destination_bitmap->width >>destination_mipmap_index) */
+  if ((1 > (*(short *)((char *)destination_bitmap + 4) >>
+            destination_mipmap_index) ?
+         1 :
+         (*(short *)((char *)destination_bitmap + 4) >>
+          destination_mipmap_index)) != *(short *)((char *)source_bitmap + 4)) {
+    display_assert("MAX(1, destination_bitmap->width "
+                   ">>destination_mipmap_index)==source_bitmap->width",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x700, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, destination_bitmap->height>>destination_mipmap_index) */
+  if ((1 > (*(short *)((char *)destination_bitmap + 6) >>
+            destination_mipmap_index) ?
+         1 :
+         (*(short *)((char *)destination_bitmap + 6) >>
+          destination_mipmap_index)) != *(short *)((char *)source_bitmap + 6)) {
+    display_assert("MAX(1, destination_bitmap->height"
+                   ">>destination_mipmap_index)==source_bitmap->height",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x701, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, destination_bitmap->depth >>destination_mipmap_index) */
+  if ((1 > (*(short *)((char *)destination_bitmap + 8) >>
+            destination_mipmap_index) ?
+         1 :
+         (*(short *)((char *)destination_bitmap + 8) >>
+          destination_mipmap_index)) != *(short *)((char *)source_bitmap + 8)) {
+    display_assert("MAX(1, destination_bitmap->depth "
+                   ">>destination_mipmap_index)==source_bitmap->depth",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x702, 1);
+    system_exit(-1);
+  }
+
+  /* TEST_FLAG(destination_bitmap->flags, _bitmap_compressed_bit) */
+  if ((*(unsigned char *)((char *)destination_bitmap + 0xe) & 2) == 0) {
+    display_assert(
+      "TEST_FLAG(destination_bitmap->flags, _bitmap_compressed_bit)",
+      "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x703, 1);
+    system_exit(-1);
+  }
+
+  /* Both temporaries are sized from the source; only the format differs. */
+  temp_source = bitmap_2d_new(*(unsigned short *)((char *)source_bitmap + 4),
+                              *(unsigned short *)((char *)source_bitmap + 6), 0,
+                              *(unsigned short *)((char *)source_bitmap + 0xc));
+  temp_destination =
+    bitmap_2d_new(*(unsigned short *)((char *)source_bitmap + 4),
+                  *(unsigned short *)((char *)source_bitmap + 6), 0,
+                  *(unsigned short *)((char *)destination_bitmap + 0xc));
+
+  if (temp_source != 0 && *(int *)((char *)temp_source + 0x2c) != 0 &&
+      temp_destination != 0 && *(int *)((char *)temp_destination + 0x2c) != 0) {
+    for (face = 0; face < 6; face++) {
+      FUN_0007ea60(source_bitmap, 0, face, temp_source);
+      FUN_000796e0(temp_source, temp_destination, 0, param_4);
+      bitmap_cube_map_face_insert(temp_destination, destination_bitmap,
+                                  destination_mipmap_index, face);
+    }
+  } else {
+    error(2, "### ERROR failed to allocate temporary bitmap");
+  }
+
+  bitmap_delete(temp_source);
+  bitmap_delete(temp_destination);
+}
+
+/*
+ * FUN_00079e70 -- uncompress one mipmap level of a compressed 2D bitmap into
+ * an uncompressed 2D bitmap.
+ *
+ * This is the worker under FUN_0007a1e0 (3D) and
+ * bitmap_2d_uncompress_from_mipmap (cube map): those wrappers loop slices or
+ * faces and call this once per 2D level.
+ *
+ * Walks the source mipmap's compressed block stream in raster order.  Each
+ * block decodes to a 4x4 tile of 32-bit pixels in a stack buffer, which is
+ * then scattered into the destination bitmap one pixel at a time.  Blocks on
+ * the right/bottom edge are clipped: pixels outside the destination extent are
+ * dropped and the tile index does NOT advance for them, so a clipped block
+ * consumes fewer than 16 entries.
+ *
+ * Source TU: c:\halo\SOURCE\bitmaps\bitmap_utilities.c (assert __FILE__ xref).
+ * Assert strings and line numbers confirmed from the XBE at 0x79e70-0x7a1d2.
+ * Note the verify polarity is the reverse of the compress siblings: source is
+ * verified with FALSE (0x766) and destination with TRUE (0x76e).  Line 0x76d
+ * is unused.
+ *
+ * source_mipmap_index is a short, not an int: the parameter slot is loaded as
+ * a dword but every use is 16-bit (`TEST BX,BX; JL` at 0x79ed5 and
+ * `CMP BX, word ptr [ESI+0x14]` at 0x79eda).  MSVC will not narrow an int
+ * parameter to a 16-bit test, so the declared type must be short.
+ *
+ * bitmap_data_t offsets used: +0x04 width (short), +0x06 height (short),
+ * +0x08 depth (short), +0x0a type (short; 0 == _bitmap_type_2d), +0x0c format
+ * (short), +0x0e flags (byte; bit 1 == _bitmap_compressed_bit), +0x14
+ * mipmap_count (short).
+ *
+ * Block formats (dispatch at 0x7a0a5 is a SUB 0xe / DEC / DEC compare chain):
+ * 0x0e consumes 8 bytes per block, 0x0f and 0x10 consume 16.
+ */
+void FUN_00079e70(void *source_bitmap, void *destination_bitmap,
+                  short source_mipmap_index)
+{
+  unsigned char *source_address;
+  unsigned int *destination_address;
+  unsigned int pixels[16];
+  short mipmap_width;
+  short mipmap_height;
+  short x;
+  short y;
+  short i;
+  short j;
+  short k;
+
+  /* bitmap_verify(source_bitmap, FALSE) */
+  if (!bitmap_verify(source_bitmap, 0)) {
+    display_assert("bitmap_verify(source_bitmap, FALSE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x766, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)((char *)source_bitmap + 0xa) != 0) {
+    display_assert("source_bitmap->type==_bitmap_type_2d",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x767, 1);
+    system_exit(-1);
+  }
+
+  if (source_mipmap_index < 0 ||
+      source_mipmap_index > *(short *)((char *)source_bitmap + 0x14)) {
+    display_assert("source_mipmap_index>=0 && "
+                   "source_mipmap_index<=source_bitmap->mipmap_count",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x768, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, source_bitmap->width >>source_mipmap_index) */
+  if ((1 > (*(short *)((char *)source_bitmap + 4) >> source_mipmap_index) ?
+         1 :
+         (*(short *)((char *)source_bitmap + 4) >> source_mipmap_index)) !=
+      *(short *)((char *)destination_bitmap + 4)) {
+    display_assert("MAX(1, source_bitmap->width "
+                   ">>source_mipmap_index)==destination_bitmap->width",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x769, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, source_bitmap->height>>source_mipmap_index) */
+  if ((1 > (*(short *)((char *)source_bitmap + 6) >> source_mipmap_index) ?
+         1 :
+         (*(short *)((char *)source_bitmap + 6) >> source_mipmap_index)) !=
+      *(short *)((char *)destination_bitmap + 6)) {
+    display_assert("MAX(1, source_bitmap->height"
+                   ">>source_mipmap_index)==destination_bitmap->height",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x76a, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, source_bitmap->depth >>source_mipmap_index) */
+  if ((1 > (*(short *)((char *)source_bitmap + 8) >> source_mipmap_index) ?
+         1 :
+         (*(short *)((char *)source_bitmap + 8) >> source_mipmap_index)) !=
+      *(short *)((char *)destination_bitmap + 8)) {
+    display_assert("MAX(1, source_bitmap->depth "
+                   ">>source_mipmap_index)==destination_bitmap->depth",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x76b, 1);
+    system_exit(-1);
+  }
+
+  /* TEST_FLAG(source_bitmap->flags, _bitmap_compressed_bit) */
+  if ((*(unsigned char *)((char *)source_bitmap + 0xe) & 2) == 0) {
+    display_assert("TEST_FLAG(source_bitmap->flags, _bitmap_compressed_bit)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x76c, 1);
+    system_exit(-1);
+  }
+
+  /* bitmap_verify(destination_bitmap, TRUE) */
+  if (!bitmap_verify(destination_bitmap, 1)) {
+    display_assert("bitmap_verify(destination_bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x76e, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)((char *)destination_bitmap + 0xa) != 0) {
+    display_assert("destination_bitmap->type==_bitmap_type_2d",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x76f, 1);
+    system_exit(-1);
+  }
+
+  source_address =
+    (unsigned char *)bitmap_mipmap_address(source_bitmap, source_mipmap_index);
+  mipmap_height = bitmap_mipmap_get_height(source_bitmap, source_mipmap_index);
+
+  for (y = 0; y < mipmap_height; y += 4) {
+    /* Recomputed every row of blocks, not hoisted (call at 0x7a089 is inside
+     * the outer loop body). */
+    mipmap_width = bitmap_mipmap_width(source_bitmap, source_mipmap_index);
+
+    for (x = 0; x < mipmap_width; x += 4) {
+      k = 0;
+
+      switch (*(short *)((char *)source_bitmap + 0xc)) {
+      case 0xe:
+        FUN_00071400(source_address, pixels);
+        source_address += 8;
+        break;
+      case 0xf:
+        FUN_000717b0(source_address, pixels);
+        source_address += 0x10;
+        break;
+      case 0x10:
+        FUN_00071890(source_address, pixels);
+        source_address += 0x10;
+        break;
+      default:
+        display_assert("### ERROR unsupported bitmap format",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x78c,
+                       1);
+        system_exit(-1);
+      }
+
+      for (j = 0; j < 4; j++) {
+        for (i = 0; i < 4; i++) {
+          /* Clipped edge blocks drop the out-of-range pixels; k advances only
+           * for pixels that are actually written (INC EDI at 0x7a16e is inside
+           * the guarded arm). */
+          if (x + i < *(short *)((char *)destination_bitmap + 4) &&
+              y + j < *(short *)((char *)destination_bitmap + 6)) {
+            destination_address = (unsigned int *)bitmap_2d_address(
+              destination_bitmap, x + i, y + j, 0);
+            *destination_address = pixels[k];
+            k++;
+          }
+        }
+      }
+    }
+  }
+}
+
+/*
+ * FUN_0007a1e0 -- uncompress one mipmap level of a compressed 3D bitmap into
+ * an uncompressed 3D bitmap.
+ *
+ * Same shape as bitmap_2d_uncompress_from_mipmap below, differing only in the
+ * bitmap type constant (1 == _bitmap_type_3d), the loop bound (the source
+ * bitmap's depth instead of the six cube faces), the assert line numbers
+ * (0x7b0-0x7b9; 0x7b7 unused), and the per-slice extract/insert helpers.
+ *
+ * Allocates two temporary 2D bitmaps sized to the destination -- one in the
+ * source bitmap's (compressed) format and one in the destination's format --
+ * then for each slice: extracts the requested mipmap level of that slice into
+ * the first temp, uncompresses it into the second, and writes the result back
+ * as the corresponding slice of the destination.
+ *
+ * Source TU: c:\halo\SOURCE\bitmaps\bitmap_utilities.c (assert __FILE__ xref).
+ * Assert strings and line numbers confirmed from the XBE at 0x7a1e0-0x7a498.
+ *
+ * bitmap_data_t offsets used: +0x04 width (short), +0x06 height (short),
+ * +0x08 depth (short), +0x0a type (short; 1 == _bitmap_type_3d), +0x0c format
+ * (unsigned short), +0x0e flags (byte; bit 1 == _bitmap_compressed_bit),
+ * +0x14 mipmap_count (short), +0x2c pixel data.
+ */
+void FUN_0007a1e0(void *source_bitmap, void *destination_bitmap,
+                  short source_mipmap_index)
+{
+  void *temp_source;
+  void *temp_destination;
+  short slice;
+
+  /* bitmap_verify(source_bitmap, FALSE) */
+  if (!bitmap_verify(source_bitmap, 0)) {
+    display_assert("bitmap_verify(source_bitmap, FALSE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x7b0, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)((char *)source_bitmap + 0xa) != 1) {
+    display_assert("source_bitmap->type==_bitmap_type_3d",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x7b1, 1);
+    system_exit(-1);
+  }
+
+  if (source_mipmap_index < 0 ||
+      source_mipmap_index > *(short *)((char *)source_bitmap + 0x14)) {
+    display_assert("source_mipmap_index>=0 && "
+                   "source_mipmap_index<=source_bitmap->mipmap_count",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x7b2, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, source_bitmap->width >>source_mipmap_index) */
+  if ((1 > (*(short *)((char *)source_bitmap + 4) >> source_mipmap_index) ?
+         1 :
+         (*(short *)((char *)source_bitmap + 4) >> source_mipmap_index)) !=
+      *(short *)((char *)destination_bitmap + 4)) {
+    display_assert("MAX(1, source_bitmap->width "
+                   ">>source_mipmap_index)==destination_bitmap->width",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x7b3, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, source_bitmap->height>>source_mipmap_index) */
+  if ((1 > (*(short *)((char *)source_bitmap + 6) >> source_mipmap_index) ?
+         1 :
+         (*(short *)((char *)source_bitmap + 6) >> source_mipmap_index)) !=
+      *(short *)((char *)destination_bitmap + 6)) {
+    display_assert("MAX(1, source_bitmap->height"
+                   ">>source_mipmap_index)==destination_bitmap->height",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x7b4, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, source_bitmap->depth >>source_mipmap_index) */
+  if ((1 > (*(short *)((char *)source_bitmap + 8) >> source_mipmap_index) ?
+         1 :
+         (*(short *)((char *)source_bitmap + 8) >> source_mipmap_index)) !=
+      *(short *)((char *)destination_bitmap + 8)) {
+    display_assert("MAX(1, source_bitmap->depth "
+                   ">>source_mipmap_index)==destination_bitmap->depth",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x7b5, 1);
+    system_exit(-1);
+  }
+
+  /* TEST_FLAG(source_bitmap->flags, _bitmap_compressed_bit) */
+  if ((*(unsigned char *)((char *)source_bitmap + 0xe) & 2) == 0) {
+    display_assert("TEST_FLAG(source_bitmap->flags, _bitmap_compressed_bit)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x7b6, 1);
+    system_exit(-1);
+  }
+
+  /* bitmap_verify(destination_bitmap, TRUE) */
+  if (!bitmap_verify(destination_bitmap, 1)) {
+    display_assert("bitmap_verify(destination_bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x7b8, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)((char *)destination_bitmap + 0xa) != 1) {
+    display_assert("destination_bitmap->type==_bitmap_type_3d",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x7b9, 1);
+    system_exit(-1);
+  }
+
+  /* Both temporaries are sized from the destination; only the format differs.
+   */
+  temp_source =
+    bitmap_2d_new(*(unsigned short *)((char *)destination_bitmap + 4),
+                  *(unsigned short *)((char *)destination_bitmap + 6), 0,
+                  *(unsigned short *)((char *)source_bitmap + 0xc));
+  temp_destination =
+    bitmap_2d_new(*(unsigned short *)((char *)destination_bitmap + 4),
+                  *(unsigned short *)((char *)destination_bitmap + 6), 0,
+                  *(unsigned short *)((char *)destination_bitmap + 0xc));
+
+  if (temp_source != 0 && *(int *)((char *)temp_source + 0x2c) != 0 &&
+      temp_destination != 0 && *(int *)((char *)temp_destination + 0x2c) != 0) {
+    for (slice = 0; slice < *(short *)((char *)source_bitmap + 8); slice++) {
+      bitmap_3d_slice_insert(source_bitmap, source_mipmap_index, slice,
+                             temp_source);
+      FUN_00079e70(temp_source, temp_destination, 0);
+      bitmap_cube_map_face_extract(temp_destination, destination_bitmap, 0,
+                                   slice);
+    }
+  } else {
+    error(2, "### ERROR failed to allocate temporary bitmap");
+  }
+
+  bitmap_delete(temp_source);
+  bitmap_delete(temp_destination);
+}
+
+/*
+ * bitmap_2d_uncompress_from_mipmap -- uncompress one mipmap level of a
+ * compressed cube map into an uncompressed cube map.
+ *
+ * Allocates two temporary 2D bitmaps sized to the destination -- one in the
+ * source bitmap's (compressed) format and one in the destination's format --
+ * then for each of the six cube faces: extracts the requested mipmap level of
+ * that face into the first temp, uncompresses it into the second, and inserts
+ * the result as the corresponding face of the destination cube map.
+ *
+ * Source TU: c:\halo\SOURCE\bitmaps\bitmap_utilities.c (assert __FILE__ xref).
+ * Assert lines 0x7f9-0x802 confirmed from the XBE.
+ *
+ * bitmap_data_t offsets used: +0x04 width (short), +0x06 height (short),
+ * +0x08 depth (short), +0x0a type (short; 2 == _bitmap_type_cube_map),
+ * +0x0c format (unsigned short), +0x0e flags (byte; bit 1 ==
+ * _bitmap_compressed_bit), +0x14 mipmap_count (short), +0x2c pixel data.
+ */
+void bitmap_2d_uncompress_from_mipmap(void *source_bitmap,
+                                      void *destination_bitmap,
+                                      short source_mipmap_index)
+{
+  void *temp_source;
+  void *temp_destination;
+  short face;
+
+  /* bitmap_verify(source_bitmap, FALSE) */
+  if (!bitmap_verify(source_bitmap, 0)) {
+    display_assert("bitmap_verify(source_bitmap, FALSE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x7f9, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)((char *)source_bitmap + 0xa) != 2) {
+    display_assert("source_bitmap->type==_bitmap_type_cube_map",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x7fa, 1);
+    system_exit(-1);
+  }
+
+  if (source_mipmap_index < 0 ||
+      source_mipmap_index > *(short *)((char *)source_bitmap + 0x14)) {
+    display_assert("source_mipmap_index>=0 && "
+                   "source_mipmap_index<=source_bitmap->mipmap_count",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x7fb, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, source_bitmap->width >>source_mipmap_index) */
+  if ((1 > (*(short *)((char *)source_bitmap + 4) >> source_mipmap_index) ?
+         1 :
+         (*(short *)((char *)source_bitmap + 4) >> source_mipmap_index)) !=
+      *(short *)((char *)destination_bitmap + 4)) {
+    display_assert("MAX(1, source_bitmap->width "
+                   ">>source_mipmap_index)==destination_bitmap->width",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x7fc, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, source_bitmap->height>>source_mipmap_index) */
+  if ((1 > (*(short *)((char *)source_bitmap + 6) >> source_mipmap_index) ?
+         1 :
+         (*(short *)((char *)source_bitmap + 6) >> source_mipmap_index)) !=
+      *(short *)((char *)destination_bitmap + 6)) {
+    display_assert("MAX(1, source_bitmap->height"
+                   ">>source_mipmap_index)==destination_bitmap->height",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x7fd, 1);
+    system_exit(-1);
+  }
+
+  /* MAX(1, source_bitmap->depth >>source_mipmap_index) */
+  if ((1 > (*(short *)((char *)source_bitmap + 8) >> source_mipmap_index) ?
+         1 :
+         (*(short *)((char *)source_bitmap + 8) >> source_mipmap_index)) !=
+      *(short *)((char *)destination_bitmap + 8)) {
+    display_assert("MAX(1, source_bitmap->depth "
+                   ">>source_mipmap_index)==destination_bitmap->depth",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x7fe, 1);
+    system_exit(-1);
+  }
+
+  /* TEST_FLAG(source_bitmap->flags, _bitmap_compressed_bit) */
+  if ((*(unsigned char *)((char *)source_bitmap + 0xe) & 2) == 0) {
+    display_assert("TEST_FLAG(source_bitmap->flags, _bitmap_compressed_bit)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x7ff, 1);
+    system_exit(-1);
+  }
+
+  /* bitmap_verify(destination_bitmap, TRUE) */
+  if (!bitmap_verify(destination_bitmap, 1)) {
+    display_assert("bitmap_verify(destination_bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x801, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)((char *)destination_bitmap + 0xa) != 2) {
+    display_assert("destination_bitmap->type==_bitmap_type_cube_map",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x802, 1);
+    system_exit(-1);
+  }
+
+  /* Both temporaries are sized from the destination; only the format differs.
+   */
+  temp_source =
+    bitmap_2d_new(*(unsigned short *)((char *)destination_bitmap + 4),
+                  *(unsigned short *)((char *)destination_bitmap + 6), 0,
+                  *(unsigned short *)((char *)source_bitmap + 0xc));
+  temp_destination =
+    bitmap_2d_new(*(unsigned short *)((char *)destination_bitmap + 4),
+                  *(unsigned short *)((char *)destination_bitmap + 6), 0,
+                  *(unsigned short *)((char *)destination_bitmap + 0xc));
+
+  if (temp_source != 0 && *(int *)((char *)temp_source + 0x2c) != 0 &&
+      temp_destination != 0 && *(int *)((char *)temp_destination + 0x2c) != 0) {
+    for (face = 0; face < 6; face++) {
+      FUN_0007ea60(source_bitmap, source_mipmap_index, face, temp_source);
+      FUN_00079e70(temp_source, temp_destination, 0);
+      bitmap_cube_map_face_insert(temp_destination, destination_bitmap, 0,
+                                  face);
+    }
+  } else {
+    error(2, "### ERROR failed to allocate temporary bitmap");
+  }
+
+  bitmap_delete(temp_source);
+  bitmap_delete(temp_destination);
+}
+
+/*
  * real_rgb_color_brightness -- real_rgb_color_brightness: compute luminance of
  * an RGB color.
  *
@@ -2061,6 +3569,249 @@ float real_rgb_color_brightness(float *color)
 {
   return color[0] * *(float *)0x2647c0 + color[1] * *(float *)0x2647c4 +
          color[2] * *(float *)0x2647c8;
+}
+
+/*
+ * rgb_color_to_hsv_color -- convert a 16-bit-per-channel rgb_color to an
+ * hsv_color.
+ *
+ * Integer sibling of the real_rgb_color -> real_hsv_color converter below
+ * (0x7ab50): identical max/min/delta/sector algebra, but the channels are
+ * loaded as unsigned 16-bit fixed point (MOVZX word + FILD, scaled by
+ * 1/65535) and the results are written back as 16-bit fixed point via
+ * _ftol2 (hue scaled by 65536, saturation/value by 65535).
+ *
+ * Layout evidence (rgb_color / hsv_color, three 16-bit fields each):
+ *   +0x00 red   / hue        +0x02 green / saturation   +0x04 blue / value
+ * Loads are MOVZX (zero-extending), so the source channels are UNSIGNED
+ * 16-bit; the stores are plain `mov word ptr`, which reveals no signedness.
+ *
+ * The max/min pairs keep the duplicated inner comparison of the original
+ * MAX()/MIN() macro expansion -- MSVC71 emits the g-vs-b test twice for each
+ * (0x7a7c3-0x7a809 and 0x7a809-0x7a846) and collapsing it in C loses the
+ * shape.  Delta is max - min: at 0x7a846 ST0=max, ST1=min and `fsub st(1)`
+ * makes max the minuend.
+ *
+ * The two asserts are emitted AFTER all of the min/max FPU work (the
+ * `test esi,esi` at 0x7a84c is scheduled into the delta store).  MSVC cannot
+ * sink FPU math past a call, so that ordering is the source ordering, and it
+ * matches the already-ported float sibling.
+ *
+ * Source TU: c:\halo\SOURCE\bitmaps\bitmap_utilities.c (assert __FILE__).
+ * Assert lines 0x852/0x853 confirmed from the XBE at 0x7a859/0x7a87d.
+ * Float constants are the same .rdata cells the reference addresses:
+ *   0x2647f4 = 1/65535   0x2647d4 = 1/6   0x2647d0 = 65536   0x2647cc = 65535
+ *   0x2533c0 = 0.0   0x2533c8 = 1.0   0x253f40 = 2.0   0x2533d8 = 4.0
+ */
+short *rgb_color_to_hsv_color(unsigned short *rgb, short *hsv)
+{
+  float r;
+  float g;
+  float b;
+  float max_component;
+  float min_component;
+  float delta;
+  float hue;
+  float saturation;
+
+  r = (float)rgb[0] * *(float *)0x2647f4;
+  g = (float)rgb[1] * *(float *)0x2647f4;
+  b = (float)rgb[2] * *(float *)0x2647f4;
+
+  if (g > b) {
+    max_component = g;
+  } else {
+    max_component = b;
+  }
+  if (r > max_component) {
+    max_component = r;
+  } else {
+    if (g > b) {
+      max_component = g;
+    } else {
+      max_component = b;
+    }
+  }
+
+  if (g > b) {
+    min_component = b;
+  } else {
+    min_component = g;
+  }
+  if (r > min_component) {
+    if (g > b) {
+      min_component = b;
+    } else {
+      min_component = g;
+    }
+  } else {
+    min_component = r;
+  }
+
+  delta = max_component - min_component;
+
+  if (hsv == (short *)0) {
+    display_assert("hsv", "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                   0x852, true);
+    system_exit(-1);
+  }
+  if (rgb == (unsigned short *)hsv) {
+    display_assert("rgb!=(rgb_color *)hsv",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x853,
+                   true);
+    system_exit(-1);
+  }
+
+  if (max_component == *(float *)0x2533c0) {
+    saturation = *(float *)0x2533c0;
+    hue = *(float *)0x2533c0;
+  } else {
+    saturation = delta / max_component;
+    if (saturation == *(float *)0x2533c0) {
+      hue = *(float *)0x2533c0;
+    } else {
+      if (r == max_component) {
+        hue = (g - b) / delta;
+      } else if (g == max_component) {
+        hue = (b - r) / delta + *(float *)0x253f40;
+      } else {
+        hue = (r - g) / delta + *(float *)0x2533d8;
+      }
+      hue = hue * *(float *)0x2647d4;
+      if (hue < *(float *)0x2533c0) {
+        hue = hue + *(float *)0x2533c8;
+      }
+    }
+  }
+
+  hsv[0] = (short)(hue * *(float *)0x2647d0);
+  hsv[1] = (short)(saturation * *(float *)0x2647cc);
+  hsv[2] = (short)(max_component * *(float *)0x2647cc);
+  return hsv;
+}
+
+/*
+ * hsv_color_to_rgb_color -- fixed-point (uint16) sibling of
+ * real_hsv_color_to_real_rgb_color at 0x7ace0.  Same floor()/p/q/t algebra,
+ * but the components arrive and leave as three uint16 at +0/+2/+4.
+ *
+ * Structural notes derived from the disassembly at 0x7a970, NOT from the
+ * float sibling (copying the sibling's shape here would be wrong):
+ *   - The three normalizations are issued in the prologue (0x7a97a-0x7a9bb),
+ *     ahead of both assert tests (TEST EDI,EDI at 0x7a98e).
+ *   - The saturation==0 arm does NOT return early; it falls through to the
+ *     shared 65535-scale/store epilogue at 0x7aaef.
+ *   - p/q/t are computed before the `cmp eax,5` dispatch at 0x7aa43, so they
+ *     are live on the default path too.
+ *   - Every switch arm reaches the same store epilogue rather than storing.
+ *
+ * Hue uses 2^-16 (0x2647fc) while saturation and value use 1/65535
+ * (0x2647f4).  These are DIFFERENT constants at adjacent addresses; the hue
+ * normalizer is deliberately not 1/65535 because the value is immediately
+ * multiplied by 6.0f (0x254640) to select a 60-degree sector.
+ *
+ * Branch senses confirmed from the flag idioms.  At 0x7aa0d the guard is
+ * `FCOMP 0.0f / FNSTSW / TEST AH,0x44 / JP`: TEST yields 0x40 when the values
+ * are equal, which is odd parity, so JP is taken only when saturation is
+ * non-zero.  The taken edge therefore reaches the chromatic block and the
+ * fallthrough is the achromatic one -- i.e. the achromatic case is the `then`
+ * arm, which is why this is written `== 0.0f` and not `!= 0.0f`.  Writing it
+ * the other way inverts the block order and costs an extra FLD because MSVC
+ * then compares two loaded values (FUCOMPP) instead of folding the constant
+ * into the FCOMP memory operand.
+ *
+ * At 0x7aa39 (TEST AH,0x41 / JZ after FILD sector; FCOMP scaled_hue) the test
+ * is the floor() correction `(float)sector > scaled_hue`.
+ */
+unsigned short *hsv_color_to_rgb_color(unsigned short *hsv,
+                                       unsigned short *rgb_out)
+{
+  float scaled_hue;
+  float saturation;
+  float value;
+  float f;
+  float p;
+  float q;
+  float t;
+  float r;
+  float g;
+  float b;
+  int sector;
+
+  scaled_hue = (float)hsv[0] * *(float *)0x2647fc * *(float *)0x254640;
+  saturation = (float)hsv[1] * *(float *)0x2647f4;
+  value = (float)hsv[2] * *(float *)0x2647f4;
+
+  if (rgb_out == (unsigned short *)0) {
+    display_assert("rgb", "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c",
+                   0x886, true);
+    system_exit(-1);
+  }
+
+  if (rgb_out == hsv) {
+    display_assert("rgb!=(rgb_color *)hsv",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x888,
+                   true);
+    system_exit(-1);
+  }
+
+  if (saturation == *(float *)0x2533c0) {
+    r = value;
+    g = value;
+    b = value;
+  } else {
+    sector = (int)scaled_hue;
+    if ((float)sector > scaled_hue)
+      sector--;
+
+    f = scaled_hue - (float)sector;
+    p = (*(float *)0x2533c8 - saturation) * value;
+    q = (*(float *)0x2533c8 - saturation * f) * value;
+    t = (*(float *)0x2533c8 - (*(float *)0x2533c8 - f) * saturation) * value;
+
+    switch (sector) {
+    case 0:
+      r = value;
+      g = t;
+      b = p;
+      break;
+    case 1:
+      r = q;
+      g = value;
+      b = p;
+      break;
+    case 2:
+      r = p;
+      g = value;
+      b = t;
+      break;
+    case 3:
+      r = p;
+      g = q;
+      b = value;
+      break;
+    case 4:
+      r = t;
+      g = p;
+      b = value;
+      break;
+    case 5:
+      r = value;
+      g = p;
+      b = q;
+      break;
+    default:
+      r = value;
+      g = value;
+      b = value;
+      break;
+    }
+  }
+
+  rgb_out[0] = (unsigned short)(int)(r * *(float *)0x2647cc);
+  rgb_out[1] = (unsigned short)(int)(g * *(float *)0x2647cc);
+  rgb_out[2] = (unsigned short)(int)(b * *(float *)0x2647cc);
+  return rgb_out;
 }
 
 float *bitmap_clone(float *rgb, float *hsv_out)
@@ -2424,6 +4175,89 @@ void bitmap_smooth(void *pixel_data, float smooth_factor)
 }
 
 /*
+ * bitmap_sharpen (0x7b310) -- dispatcher for bitmap sharpening by type.
+ *
+ * Builds the two 256-entry sharpen weight tables (positive at 0x334360,
+ * negative at 0x334160 -- adjacent, 0x200 bytes each) from `amount`, then
+ * dispatches on bitmap->type: 2D -> bitmap_2d_sharpen, 3D -> FUN_000790b0,
+ * cube_map -> FUN_00079180.
+ *
+ * Confirmed from disassembly at 0x7b310:
+ *   - Guard at 0x7b348 is FLD [ebp+0xc]; FCOMP [0x2533c0]; FNSTSW; TEST
+ * AH,0x41; JNZ -- the ordinary `amount > 0.0f` form, NOT an inverted parity
+ * branch.
+ *   - percent is compared 16-bit (TEST AX,AX / CMP AX,0x64) so it is a short,
+ *     and the divisor is re-narrowed through AX (MOVSX ESI,AX at 0x7b39c)
+ *     before every IDIV -- keep both shorts.
+ *   - The negative-table term is a plain 32-bit CDQ/IDIV at 0x7b3c5; Ghidra's
+ *     CONCAT44(...)/(longlong) rendering is a decompiler artifact, and the
+ *     `+ (x>>31 & 7)` / SAR 3 pair is the MSVC signed divide-by-8 idiom.
+ *   - The float argument is forwarded to the callees as a RAW DWORD (MOV
+ *     ECX/EDX/EAX, [ebp+0xc] at 0x7b410 / 0x7b42d / 0x7b44a) -- it is a bit
+ *     pattern, not a converted int, so it must be bit-punned and never cast.
+ *   - The 2D callee has a DIFFERENT register contract from its two siblings:
+ *     ESI carries the *negative table* (MOV ESI,0x334160 at 0x7b454, after the
+ *     three pushes), not the bitmap.
+ */
+void bitmap_sharpen(void *bitmap, float amount)
+{
+  short percent;
+  short divisor;
+  int positive_accumulator;
+  int negative_accumulator;
+  int i;
+
+  /* bitmap_verify(bitmap, TRUE) */
+  if (!bitmap_verify(bitmap, 1)) {
+    display_assert("bitmap_verify(bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x361, 1);
+    system_exit(-1);
+  }
+
+  /* Written as `> 0.0f` rather than an inverted early-return: the reference
+   * emits TEST AH,0x41 / JNZ at 0x7b354, and the `<=` form yields a JNP. */
+  if (amount > *(float *)0x2533c0) {
+    percent = (short)(amount * *(float *)0x253f00);
+    if (percent < 0) {
+      percent = 0;
+    } else if (percent > 100) {
+      percent = 100;
+    }
+
+    divisor = (short)(100 - percent);
+    if (divisor < 1) {
+      divisor = 1;
+    }
+
+    positive_accumulator = 0;
+    negative_accumulator = 0;
+    for (i = 0; i < 256; i++) {
+      ((short *)0x334360)[i] = (short)(positive_accumulator / divisor);
+      positive_accumulator = positive_accumulator + 100;
+      ((short *)0x334160)[i] = (short)((negative_accumulator / 8) / divisor);
+      negative_accumulator = negative_accumulator + percent;
+    }
+
+    switch (*(short *)((char *)bitmap + 0xa)) {
+    case 0:
+      bitmap_2d_sharpen(bitmap, *(int *)&amount, 0x334360, 0x334160);
+      break;
+    case 1:
+      FUN_000790b0(*(int *)&amount, 0x334360, 0x334160, bitmap);
+      break;
+    case 2:
+      FUN_00079180(*(int *)&amount, 0x334360, 0x334160, bitmap);
+      break;
+    default:
+      display_assert("### ERROR unsupported bitmap type",
+                     "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x37f, 1);
+      system_exit(-1);
+      break;
+    }
+  }
+}
+
+/*
  * bitmap_alpha_bleed -- bitmap_alpha_bleed: dispatcher for alpha bleed by
  * bitmap type.
  *
@@ -2461,4 +4295,81 @@ void bitmap_alpha_bleed(void *bitmap, short passes)
     system_exit(-1);
     break;
   }
+}
+
+/*
+ * FUN_0007b940 -- 3D bitmap height_map -> bump_map conversion.
+ *
+ * Allocates one temporary 2D bitmap matching the 3D bitmap's width/height and
+ * format, then walks every depth slice: read the slice into the temp
+ * (bitmap_3d_slice_insert), run the 2D height-to-bump conversion over it
+ * (FUN_0007b510), write the temp back into the slice
+ * (bitmap_cube_map_face_extract).  Structurally identical to the 3D
+ * alpha_bleed at FUN_00079480, which shares this alloc/loop/dispose shape.
+ *
+ * Confirmed from disassembly at 0x7b940:
+ *   - No `sub esp`; ESI/EDI are pushed late (0x7b9cf / 0x7b9d6), after the
+ *     three assert blocks -- MSVC hoisted the asserts above the register saves.
+ *   - The three loop calls share one `add esp,0x24` at 0x7b91d (9 dwords =
+ *     4 + 1 + 4 pushes), so per-call cleanup cannot be used to infer arity.
+ *   - The depth loop bound at +0x08 is compared SIGNED (`cmp word[ebx+8],di`
+ *     + jle, `cmp di,word[ebx+8]` + jl).
+ *   - The alloc-failure path falls through into bitmap_delete with a NULL
+ *     temp; the original does this, so no NULL guard is added here.
+ *
+ * ABI: bitmap passed in EBX (@EBX).  One stack param: bump_height (float),
+ * read by FLD at 0x7b999 and re-pushed as an opaque dword at 0x7b90a -- it is
+ * never converted to an integer.
+ */
+void FUN_0007b940(float bump_height, void *bitmap /* @<ebx> */)
+{
+  void *temp;
+  short slice;
+
+  /* bitmap_verify(bitmap, TRUE) */
+  if (!bitmap_verify(bitmap, 1)) {
+    display_assert("bitmap_verify(bitmap, TRUE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x52d, 1);
+    system_exit(-1);
+  }
+
+  /* assert bitmap->type == _bitmap_type_3d */
+  if (*(short *)((char *)bitmap + 0xa) != 1) {
+    display_assert("bitmap->type==_bitmap_type_3d",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x52e, 1);
+    system_exit(-1);
+  }
+
+  /* assert bump_height > 0.0f (DAT_002533c0 == 0.0f) */
+  if (!(bump_height > *(float *)0x2533c0)) {
+    display_assert("bump_height>0.0f",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x52f, 1);
+    system_exit(-1);
+  }
+
+  temp = bitmap_2d_new(*(unsigned short *)((char *)bitmap + 4),
+                       *(unsigned short *)((char *)bitmap + 6), 0,
+                       *(unsigned short *)((char *)bitmap + 0xc));
+
+  /* The reference emits TWO dispose+epilogue blocks (0x7ba27 loop-exit,
+   * 0x7ba43 shared tail).  Writing that split explicitly in C -- an inner
+   * `if (depth > 0) { do{}while; bitmap_delete; return; }` -- does NOT
+   * reproduce it: MSVC71 collapses the duplicated return back into the shared
+   * tail and the redundant pre-test costs 1.0pp (89.9% -> 88.9%, insn count
+   * unchanged at 91).  The single-dispose shape below is the better match and
+   * mirrors the structurally identical 3D alpha_bleed at FUN_00079480. */
+  if (temp != 0 && *(int *)((char *)temp + 0x2c) != 0) {
+    for (slice = 0; slice < *(short *)((char *)bitmap + 8); slice++) {
+      bitmap_3d_slice_insert(bitmap, 0, slice, temp);
+      /* bitmap passed in ESI (register arg); only bump_height is pushed. */
+      FUN_0007b510(bump_height, temp);
+      bitmap_cube_map_face_extract(temp, bitmap, 0, slice);
+    }
+  } else {
+    error(2, "### ERROR failed to allocate temporary bitmap");
+  }
+
+  /* temp is NULL on the alloc-failure path; the original calls
+   * bitmap_delete unconditionally here, so no guard is added. */
+  bitmap_delete(temp);
 }
