@@ -6,6 +6,28 @@ cross-referenced by function name against the 5,209 score-context packs in
 rows, including all 221 rows below 70%. Counts below are measured from that
 snapshot unless explicitly described as interpretation.
 
+Reproduce the aggregate evidence with:
+
+```bash
+rtk python3 tools/verify/vc71_low_score_census.py \
+  --output docs/vc71-low-score-census-data.json
+```
+
+CI-style drift check:
+
+```bash
+rtk python3 tools/verify/vc71_low_score_census.py --check \
+  --output docs/vc71-low-score-census-data.json
+```
+
+The generated manifest records input hashes, context-schema populations, join
+gaps, thresholds, overlapping rule counts, one-instruction rows, and `@<reg>`
+populations. Regenerating score contexts first may change results; hashes and
+schema counts make that input change explicit. The committed manifest reflects
+the current 4,642-row floor and 5,239 context files. Counts in the prose below
+remain the cited 2026-08-13 snapshot; stable low-score aggregates happen to
+remain unchanged except where newly regenerated schema-2 packs add diagnostics.
+
 The question this investigates: **of the functions that score badly, which are
 actually bad lifts?** Score data alone cannot answer that. It does show that low
 official score is weak evidence: some rows have reference-attribution problems,

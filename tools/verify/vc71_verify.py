@@ -255,6 +255,39 @@ def _func_addr(function: str, source: Path | None = None) -> int | None:
     return None
 
 
+def _decode_relative_jump_target(addr: int, code: bytes) -> int | None:
+    """Decode a direct x86 near/short JMP target, or return no opinion."""
+    if len(code) >= 5 and code[0] == 0xe9:
+        disp = int.from_bytes(code[1:5], "little", signed=True)
+        return addr + 5 + disp
+    if len(code) >= 2 and code[0] == 0xeb:
+        disp = int.from_bytes(code[1:2], "little", signed=True)
+        return addr + 2 + disp
+    return None
+
+
+def _forwarding_target_info(addr: int) -> dict | None:
+    """Describe a direct forwarding target without following or scoring it."""
+    target = _decode_relative_jump_target(addr, _xbe_read(addr, 5) or b"")
+    if target is None:
+        return None
+    name = None
+    try:
+        table = json.loads(
+            (REPO_ROOT / "tools/verify/function_bounds.json").read_text())
+        entry = table.get(f"0x{target:x}")
+        if entry:
+            name = entry.get("name")
+    except (OSError, ValueError, json.JSONDecodeError):
+        pass
+    return {
+        "addr": f"0x{target:08x}",
+        "name": name,
+        "body_score": None,
+        "body_score_reason": "target body is not compiled in this verification lane",
+    }
+
+
 def _true_end_offset(addr: int, limit: int) -> int | None:
     """Byte size of the function at `addr`, read from the pristine XBE.
 
@@ -1239,6 +1272,7 @@ def _build_score_context(
     fcom_warnings: list[str],
     source: Path,
     ref_info: dict,
+    regdef_params,
     co,
 ) -> dict:
     """Assemble the machine-readable score-context pack for one function.
@@ -1252,18 +1286,20 @@ def _build_score_context(
     official score itself).
     """
     n_c, n_r = len(compiled_insns), len(reference_insns)
+    scored_insns, n_stripped, preprocessing = co.select_regparam_candidate(
+        compiled_insns, reference_insns, regdef_params, reg_normalize=False)
 
     opnd_pct = co.compare_functions(
-        compiled_insns, reference_insns, reg_normalize=True)[0]
+        scored_insns, reference_insns, reg_normalize=True)[0]
 
-    c_seq = co.extract_mnemonic_sequence(compiled_insns)
+    c_seq = co.extract_mnemonic_sequence(scored_insns)
     r_seq = co.extract_mnemonic_sequence(reference_insns)
     dp_pct = co.dp_lcs_ratio(c_seq, r_seq)
     if dp_pct is not None:
         dp_pct *= 100.0
 
-    opcodes = co.mnemonic_diff_opcodes(compiled_insns, reference_insns)
-    diff_ops, truncated = _build_diff_ops(compiled_insns, reference_insns, opcodes)
+    opcodes = co.mnemonic_diff_opcodes(scored_insns, reference_insns)
+    diff_ops, truncated = _build_diff_ops(scored_insns, reference_insns, opcodes)
 
     frame = {
         "cand_frame_bytes": _first_frame_bytes(compiled_insns),
@@ -1277,7 +1313,10 @@ def _build_score_context(
         "operand_normalized_pct": opnd_pct,
         "dp_lcs_pct": dp_pct,
         "n_cand_insns": n_c,
+        "n_scored_cand_insns": len(scored_insns),
         "n_ref_insns": n_r,
+        "preprocessing": preprocessing,
+        "regparam_loads_stripped": n_stripped,
     }
 
     warnings = {
@@ -1288,6 +1327,13 @@ def _build_score_context(
     }
 
     classification = _classify_score_context(scores, warnings, diff_ops, frame)
+    if ref_info.get("kind") == "thunk" and ref_info.get("n_insns") == 1:
+        classification.insert(0, {
+            "rule": "forwarding_reference",
+            "evidence": "reference is a one-instruction forwarding entry",
+            "action": "Verify the jump target and score forwarding entry and "
+                      "target body separately before editing source.",
+        })
 
     addr = _func_addr(fn)
     try:
@@ -1296,6 +1342,7 @@ def _build_score_context(
         tu = str(source)
 
     return {
+        "schema": 2,
         "name": fn,
         "addr": f"0x{addr:08x}" if addr is not None else None,
         "tu": tu,
@@ -1703,9 +1750,11 @@ def run_compare_cached(
         # (lift_pipeline.parse_match_percent*) still see the primary score first.
         opnd_tag = ""
         if not only_mode and not reg_normalize:
+            metric_insns, _, _ = co.select_regparam_candidate(
+                compiled_funcs[fn], reference_funcs[fn], regdef,
+                reg_normalize=False)
             opnd_pct = co.compare_functions(
-                compiled_funcs[fn], reference_funcs[fn], reg_normalize=True,
-                regdef_params=regdef)[0]
+                metric_insns, reference_funcs[fn], reg_normalize=True)[0]
             opnd_tag = f" | opnd {opnd_pct:.1f}% (operand-normalized)"
 
         if not only_mode:
@@ -1772,11 +1821,13 @@ def run_compare_cached(
                 "kind": m["kind"], "bound_provenance": m["provenance"],
                 "n_insns": m["n_r"], "sha": m["sha"],
             }
+            if m["kind"] == "thunk":
+                ref_info["forwarding_target"] = _forwarding_target_info(m["addr"])
 
             pack = _build_score_context(
                 fn, compiled_funcs[fn], reference_funcs[fn], pct,
                 fpu_warnings, loadw_warnings, imm_warnings, fcom_warnings,
-                source, ref_info, co,
+                source, ref_info, regdef, co,
             )
             ctx_path = _write_score_context(pack)
             if not only_mode and not quiet and pct < 100.0:

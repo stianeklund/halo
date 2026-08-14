@@ -801,6 +801,40 @@ def extract_mnemonic_sequence(insns: list[str]) -> list[str]:
     return [mnemonic(i) for i in insns]
 
 
+def comparison_ratio(compiled: list[str], reference: list[str],
+                     reg_normalize: bool = False) -> float:
+    """Return the SequenceMatcher ratio used by one comparison lane."""
+    if reg_normalize:
+        canon = lcs_ratio(extract_normalized_sequence(compiled),
+                          extract_normalized_sequence(reference))
+        ident = lcs_ratio(extract_identity_sequence(compiled),
+                          extract_identity_sequence(reference))
+        return max(canon, ident)
+    return lcs_ratio(extract_mnemonic_sequence(compiled),
+                     extract_mnemonic_sequence(reference))
+
+
+def select_regparam_candidate(compiled: list[str], reference: list[str],
+                              regdef_params: list[tuple[int, str]] | None,
+                              reg_normalize: bool = False
+                              ) -> tuple[list[str], int, str]:
+    """Choose the raw or phantom-load-stripped candidate used for scoring.
+
+    The official score is monotonic: register-ABI modeling may remove a known
+    compiler artifact, but never lower the reported ratio. Other metrics must
+    use this same selected instruction list to remain directly comparable.
+    """
+    stripped, n_stripped = strip_regparam_loads(
+        compiled, reference, regdef_params)
+    if not n_stripped:
+        return compiled, 0, "raw"
+    raw_ratio = comparison_ratio(compiled, reference, reg_normalize)
+    modeled_ratio = comparison_ratio(stripped, reference, reg_normalize)
+    if modeled_ratio > raw_ratio:
+        return stripped, n_stripped, "regparam_stripped"
+    return compiled, 0, "raw"
+
+
 def lcs_ratio(a: list[str], b: list[str]) -> float:
     """Longest common subsequence ratio via SequenceMatcher."""
     if not a and not b:
@@ -1374,12 +1408,8 @@ def compare_functions(compiled: list[str], reference: list[str],
     shifts alignment down a fraction -- the model removes a known convention
     penalty and must never introduce one.
     """
-    if regdef_params:
-        stripped = strip_regparam_loads(compiled, reference, regdef_params)[0]
-        if len(stripped) != len(compiled):
-            raw = compare_functions(compiled, reference, reg_normalize)
-            modeled = compare_functions(stripped, reference, reg_normalize)
-            return modeled if modeled[0] >= raw[0] else raw
+    compiled, _, _ = select_regparam_candidate(
+        compiled, reference, regdef_params, reg_normalize)
     if reg_normalize:
         # Score BOTH register mappings and report the higher.
         #
@@ -1776,6 +1806,9 @@ def _self_test():
     check("RP1 @eax leaf load stripped", n == 1 and len(stripped) == 2)
     pct = compare_functions(cand, ref, regdef_params=[(0, 'eax')])[0]
     check("RP1 @eax leaf recovers to 100", pct == 100.0)
+    selected, n, mode = select_regparam_candidate(cand, ref, [(0, 'eax')])
+    check("RP1 shared metric input selects stripped candidate",
+          selected == stripped and n == 1 and mode == "regparam_stripped")
 
     # RP2. Cascade remains honest: an extra candidate spill is NOT stripped;
     #      modeled improves over raw but stays < 100.
@@ -1889,6 +1922,9 @@ def _self_test():
     modeled = compare_functions(cand, ref, regdef_params=[(0, 'eax')])[0]
     check("RP9 modeled never below raw (max fallback)",
           raw == 100.0 and modeled == raw)
+    selected, n, mode = select_regparam_candidate(cand, ref, [(0, 'eax')])
+    check("RP9 shared metric input preserves raw candidate",
+          selected == cand and n == 0 and mode == "raw")
 
     if failures:
         print(f"\nSELF-TEST FAILED: {len(failures)} case(s)")
