@@ -323,6 +323,7 @@ int FUN_0009cc20(int marker_data, int effect_datum, int event_index,
  * object), skips locations whose node_index is -1 or non-negative — i.e.
  * looks for negative marker-resolved indices. For other types, skips
  * locations with negative (non -1) node indices. Recursive. */
+__declspec(noinline)
 void *FUN_0009cca0(void *effect, int *location_handle, int part_type)
 {
   char *loc;
@@ -346,14 +347,16 @@ void *FUN_0009cca0(void *effect, int *location_handle, int part_type)
         ((int16_t)part_type == 3 && *(int16_t *)((char *)effect + 0x4c) != -1 &&
          local_player_count() == 1)) {
       node_idx = *(uint16_t *)(loc + 2);
-      if (node_idx == 0xffff)
-        return FUN_0009cca0(effect, location_handle, part_type);
-      if (!(node_idx & 0x8000))
-        return FUN_0009cca0(effect, location_handle, part_type);
+      if (node_idx == 0xffff || !(node_idx & 0x8000)) {
+        loc = (char *)FUN_0009cca0(effect, location_handle, part_type);
+        return loc;
+      }
     } else {
       node_idx = *(uint16_t *)(loc + 2);
-      if (node_idx != 0xffff && (node_idx & 0x8000))
-        return FUN_0009cca0(effect, location_handle, part_type);
+      if (node_idx != 0xffff && (node_idx & 0x8000)) {
+        loc = (char *)FUN_0009cca0(effect, location_handle, part_type);
+        return loc;
+      }
     }
   }
   return loc;
@@ -632,7 +635,7 @@ int FUN_0009d2d0(int tag_index, int object_index, int from_particle)
   if (!(char)from_particle && (*(uint8_t *)tag & 2) != 0) {
     error(2, "cannot create objects, lights, or damage from an effect "
              "created by particles.");
-    return -1;
+    return effect_index;
   }
 
   if (*(int *)(tag + 0x34) <= 0)
@@ -641,11 +644,11 @@ int FUN_0009d2d0(int tag_index, int object_index, int from_particle)
   effect_index = data_new_at_index(*(data_t **)0x5aa8b0);
   if (effect_index == -1) {
     if ((*(uint8_t *)tag & 2) == 0)
-      return -1;
+      return effect_index;
 
     effect_index = data_next_index(*(data_t **)0x5aa8b0, -1);
     if (effect_index == -1)
-      return -1;
+      return effect_index;
 
     for (;;) {
       datum = (char *)(int)datum_absolute_index_to_index(*(data_t **)0x5aa8b0,
@@ -655,7 +658,7 @@ int FUN_0009d2d0(int tag_index, int object_index, int from_particle)
         break;
       effect_index = data_next_index(*(data_t **)0x5aa8b0, effect_index);
       if (effect_index == -1)
-        return -1;
+        return effect_index;
     }
 
     datum_delete(*(data_t **)0x5aa8b0, effect_index);
