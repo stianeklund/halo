@@ -6,8 +6,9 @@ if _tools_dir not in sys.path:
 
 """Compile a source file with Visual C++ 7.1 and score it against the binary.
 
-Compiles the source with CL.Exe (MSVC 13.10.3077 — the same compiler that built
-cachebeta.xbe) and runs an instruction-level comparison against ONE canonical
+Compiles the source with CL.Exe (MSVC 13.10.3077, used as the closest available
+comparison toolchain; cachebeta.xbe's exact compiler is unconfirmed) and runs
+an instruction-level comparison against ONE canonical
 reference per function, derived from two committed inputs:
 
   * the pristine XBE (halo-patched/cachebeta.xbe), for the bytes;
@@ -1289,6 +1290,11 @@ def _build_score_context(
     scored_insns, n_stripped, preprocessing = co.select_regparam_candidate(
         compiled_insns, reference_insns, regdef_params, reg_normalize=False)
 
+    raw_mnemonic_pct = co.compare_functions(
+        compiled_insns, reference_insns, reg_normalize=False)[0]
+    abi_modeled_mnemonic_pct = co.compare_functions(
+        scored_insns, reference_insns, reg_normalize=False)[0]
+
     opnd_pct = co.compare_functions(
         scored_insns, reference_insns, reg_normalize=True)[0]
 
@@ -1310,6 +1316,9 @@ def _build_score_context(
 
     scores = {
         "official_pct": official_pct,
+        "raw_mnemonic_pct": raw_mnemonic_pct,
+        "abi_modeled_mnemonic_pct": abi_modeled_mnemonic_pct,
+        "abi_model": preprocessing,
         "operand_normalized_pct": opnd_pct,
         "dp_lcs_pct": dp_pct,
         "n_cand_insns": n_c,
@@ -1718,6 +1727,14 @@ def run_compare_cached(
 
         n_c = len(compiled_funcs[fn])
         n_r = len(reference_funcs[fn])
+        metric_insns, abi_model_items, abi_model = co.select_regparam_candidate(
+            compiled_funcs[fn], reference_funcs[fn], regdef,
+            reg_normalize=False)
+        raw_mnemonic_pct = co.compare_functions(
+            compiled_funcs[fn], reference_funcs[fn],
+            reg_normalize=False)[0]
+        abi_modeled_mnemonic_pct = co.compare_functions(
+            metric_insns, reference_funcs[fn], reg_normalize=False)[0]
         status = "PASS" if pct >= threshold else "FAIL"
         fpu_tag = " [FPU-WARN]" if fpu_warnings else ""
         loadw_tag = " [LOADW-WARN]" if loadw_warnings else ""
@@ -1750,18 +1767,23 @@ def run_compare_cached(
         # (lift_pipeline.parse_match_percent*) still see the primary score first.
         opnd_tag = ""
         if not only_mode and not reg_normalize:
-            metric_insns, _, _ = co.select_regparam_candidate(
-                compiled_funcs[fn], reference_funcs[fn], regdef,
-                reg_normalize=False)
             opnd_pct = co.compare_functions(
                 metric_insns, reference_funcs[fn], reg_normalize=True)[0]
             opnd_tag = f" | opnd {opnd_pct:.1f}% (operand-normalized)"
 
+        abi_model_tag = ""
+        if abi_model != "raw":
+            abi_model_tag = (
+                f" | raw {raw_mnemonic_pct:.1f}% | abi-modeled "
+                f"{abi_modeled_mnemonic_pct:.1f}% "
+                f"[{abi_model}:{abi_model_items}]"
+            )
+
         if not only_mode:
             if quiet:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{kind_tag}{opnd_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{kind_tag}{opnd_tag}{abi_model_tag}")
             else:
-                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{kind_tag}{opnd_tag}{cache_tag}")
+                print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{kind_tag}{opnd_tag}{abi_model_tag}{cache_tag}")
 
         if fpu_warnings:
             any_fpu_warn = True
@@ -1861,7 +1883,7 @@ def run_compare_cached(
     if any_imm_warn and not fpu_only and not loadw_only and not fcom_only:
         print("\nWARNING: immediate-constant differences detected.")
         print("A large inline constant (float bit-pattern or magic) differs between our lift and the")
-        print("original. Both sides are VC71 codegen, so this is a source-literal mismatch -- verify the")
+        print("original. This is a likely source-literal mismatch -- verify the")
         print("numeric literal against the disassembly immediate. See lift-learnings 'immediate-constant'.")
 
     if any_fcom_warn and not fpu_only and not loadw_only and not imm_only:

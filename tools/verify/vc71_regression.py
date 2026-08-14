@@ -172,6 +172,10 @@ _DROP_RE = re.compile(
 # primary score parse is unchanged and cached lines without the token still
 # parse.  Absent => opnd_percent is None everywhere downstream.
 _OPND_RE = re.compile(r"\|\s*opnd\s+([\d.]+)%")
+_ABI_MODEL_RE = re.compile(
+    r"\|\s*raw\s+([\d.]+)%\s*\|\s*abi-modeled\s+([\d.]+)%\s*"
+    r"\[([a-z_]+):(\d+)\]"
+)
 # Emitted once per function scored against a reference SYNTHESIZED from the
 # pristine XBE rather than delinked by Ghidra (see tools/verify/xbe_reference.py).
 # Provenance matters because the two are not identical: measured agreement across
@@ -201,7 +205,10 @@ _REFMETA_RE = re.compile(
 # reference move without recompiling anything.
 PROVENANCE_FIELDS = ("addr", "end", "kind", "n_r", "ref_sha")
 # Advisory fields that ride along when the scorer produced them.
-_OPTIONAL_FIELDS = ("opnd_percent", "ref")
+_OPTIONAL_FIELDS = (
+    "opnd_percent", "raw_mnemonic_pct", "abi_modeled_mnemonic_pct",
+    "abi_model", "abi_model_items", "ref",
+)
 # Fields this module owns and may overwrite when rebuilding an entry.  Anything
 # else found on an existing entry is copied forward untouched, so a key some
 # other consumer stamped into the baseline is not lost the next time a score is
@@ -237,6 +244,21 @@ def make_score_entry(score: float, source: str, info: dict | None = None,
         if info.get(k) is not None:
             entry[k] = info[k]
     return entry
+
+
+def backfill_optional_fields(baseline: dict, current: dict) -> int:
+    """Stamp fresh advisory/model fields without changing score floors."""
+    changed = set()
+    for fn_name, info in current.items():
+        entry = baseline.get(fn_name)
+        if entry is None:
+            continue
+        for field in _OPTIONAL_FIELDS:
+            value = info.get(field)
+            if value is not None and entry.get(field) != value:
+                entry[field] = value
+                changed.add(fn_name)
+    return len(changed)
 
 
 # ---------------------------------------------------------------------------
@@ -951,11 +973,17 @@ def run_vc71_verify(source: Path, no_cache: bool = True,
         m = _LINE_RE.search(line)
         if m:
             o = _OPND_RE.search(line)
+            a = _ABI_MODEL_RE.search(line)
+            official = float(m.group(2))
             out[m.group(1)] = {
-                "score": float(m.group(2)),
+                "score": official,
                 "n_c": int(m.group(3)),
                 "n_r": int(m.group(4)),
                 "opnd_percent": float(o.group(1)) if o else None,
+                "raw_mnemonic_pct": float(a.group(1)) if a else official,
+                "abi_modeled_mnemonic_pct": float(a.group(2)) if a else official,
+                "abi_model": a.group(3) if a else "raw",
+                "abi_model_items": int(a.group(4)) if a else 0,
             }
             continue
         r = _REFMETA_RE.match(line)
@@ -2005,29 +2033,18 @@ def cmd_populate(args) -> int:
         }
         n_verified += 1
 
-    # Backfill reference provenance onto floor entries whose score is unchanged.
-    # `_apply_floor` only stamps entries it rewrites, so a function scored from a
-    # synthesized reference before this field existed -- or one whose score has
-    # simply not moved since -- would sit in the COMMITTED floor with no way to
-    # tell it apart from a Ghidra-delinked score.  vc71_current.json is
-    # gitignored, so the floor is the only artifact a reviewer actually sees.
-    # Adds a key only; never touches `score`, so the raise-only guarantee holds.
-    n_prov = 0
-    for fn_name, cur in honest.items():
-        ref = cur.get("ref")
-        entry = baseline.get(fn_name)
-        if ref and entry is not None and entry.get("ref") != ref:
-            entry["ref"] = ref
-            n_prov += 1
+    # Backfill advisory/model fields onto unchanged floor entries. `_apply_floor`
+    # only stamps entries it rewrites; this adds metadata without touching
+    # `score`, so the raise-only guarantee holds.
+    n_optional = backfill_optional_fields(baseline, honest)
 
     save_baseline(baseline)
     if total_changed:
         print(f"\nBaseline updated: {total_changed} function(s) changed → {BASELINE_PATH.name}")
     else:
         print("\nBaseline unchanged.")
-    if n_prov:
-        print(f"Reference provenance stamped on {n_prov} floor entry(ies) "
-              f"(scored against an XBE-synthesized reference).")
+    if n_optional:
+        print(f"Advisory/model fields stamped on {n_optional} floor entry(ies).")
 
     if rebaseline:
         # Journal what THIS pass measured, merged across shards.  Two consumers:

@@ -1,6 +1,7 @@
 project(halo)
 cmake_minimum_required(VERSION 3.16)
-# Needed as Halo was likely compiled with MSVC 7.1
+# C90 matches recovered source style and the VC71 comparison toolchain.
+# cachebeta.xbe's exact compiler version remains unconfirmed.
 set(CMAKE_C_STANDARD 90)
 
 option(ENABLE_XDK_HYBRID "Compile select TUs with XDK MSVC 7.1 for matching FPU codegen" OFF)

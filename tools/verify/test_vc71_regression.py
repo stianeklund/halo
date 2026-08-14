@@ -225,7 +225,10 @@ class TestScoreEntrySchema(unittest.TestCase):
     INFO = {
         "score": 91.2, "n_c": 30, "n_r": 28,
         "addr": "0x100c10", "end": "0x100d54", "kind": "auto",
-        "ref_sha": "ab12cd34ef567890", "opnd_percent": 73.3, "ref": "synth",
+        "ref_sha": "ab12cd34ef567890", "opnd_percent": 73.3,
+        "raw_mnemonic_pct": 89.7, "abi_modeled_mnemonic_pct": 91.2,
+        "abi_model": "regparam_stripped", "abi_model_items": 1,
+        "ref": "synth",
     }
 
     def test_provenance_is_written(self):
@@ -235,6 +238,9 @@ class TestScoreEntrySchema(unittest.TestCase):
         self.assertEqual(e["addr"], "0x100c10")
         self.assertEqual(e["n_r"], 28)
         self.assertEqual(e["opnd_percent"], 73.3)
+        self.assertEqual(e["raw_mnemonic_pct"], 89.7)
+        self.assertEqual(e["abi_modeled_mnemonic_pct"], 91.2)
+        self.assertEqual(e["abi_model"], "regparam_stripped")
         # n_c describes the CANDIDATE, not the reference: it must not leak into
         # the committed floor's provenance block.
         self.assertNotIn("n_c", e)
@@ -251,6 +257,14 @@ class TestScoreEntrySchema(unittest.TestCase):
         self.assertEqual(e["score"], 91.2)
         self.assertEqual(e["source"], "src/x.c")
 
+    def test_optional_fields_backfill_without_moving_floor(self):
+        baseline = {"fn": {"score": 95.0, "source": "src/x.c"}}
+        current = {"fn": vc71.make_score_entry(91.2, "src/x.c", self.INFO)}
+        self.assertEqual(vc71.backfill_optional_fields(baseline, current), 1)
+        self.assertEqual(baseline["fn"]["score"], 95.0)
+        self.assertEqual(baseline["fn"]["raw_mnemonic_pct"], 89.7)
+        self.assertEqual(baseline["fn"]["abi_model"], "regparam_stripped")
+
 
 class TestRefmetaParsing(unittest.TestCase):
     """REFMETA lines must reach the entry; the shape is pinned in
@@ -260,7 +274,9 @@ class TestRefmetaParsing(unittest.TestCase):
         "  SYNTHREF main_loop\n"
         "  REFMETA main_loop addr=0x00102e40 end=0x001034aa kind=auto "
         "n_r=432 sha=7988df1cab63ec0e\n"
-        "  PASS main_loop: 97.8% match (430/432 insns) | opnd 90.3% (operand-normalized)\n"
+        "  PASS main_loop: 97.8% match (430/432 insns) | opnd 90.3% "
+        "(operand-normalized) | raw 96.4% | abi-modeled 97.8% "
+        "[regparam_stripped:2]\n"
     )
 
     def _run(self, stdout):
@@ -278,12 +294,18 @@ class TestRefmetaParsing(unittest.TestCase):
         self.assertEqual(entry["ref_sha"], "7988df1cab63ec0e")
         self.assertEqual(entry["n_r"], 432)
         self.assertEqual(entry["score"], 97.8)
+        self.assertEqual(entry["raw_mnemonic_pct"], 96.4)
+        self.assertEqual(entry["abi_modeled_mnemonic_pct"], 97.8)
+        self.assertEqual(entry["abi_model"], "regparam_stripped")
+        self.assertEqual(entry["abi_model_items"], 2)
 
     def test_score_without_refmeta_is_still_kept(self):
         """A scorer that stops printing REFMETA must not blank the baseline."""
         out = self._run(
             "  PASS main_loop: 97.8% match (430/432 insns)\n")
         self.assertEqual(out["main_loop"]["score"], 97.8)
+        self.assertEqual(out["main_loop"]["raw_mnemonic_pct"], 97.8)
+        self.assertEqual(out["main_loop"]["abi_model"], "raw")
         self.assertIsNone(out["main_loop"].get("ref_sha"))
 
 

@@ -35,6 +35,9 @@ class TestScoreContextInputs(unittest.TestCase):
             census.ROOT / "src/test.c",
             {"kind": "auto", "n_insns": 2}, [(0, "eax")], compare_obj)
         self.assertEqual(pack["scores"]["official_pct"], 100.0)
+        self.assertEqual(pack["scores"]["raw_mnemonic_pct"], 80.0)
+        self.assertEqual(pack["scores"]["abi_modeled_mnemonic_pct"], 100.0)
+        self.assertEqual(pack["scores"]["abi_model"], "regparam_stripped")
         self.assertEqual(pack["schema"], 2)
         self.assertEqual(pack["scores"]["dp_lcs_pct"], 100.0)
         self.assertEqual(pack["scores"]["preprocessing"], "regparam_stripped")

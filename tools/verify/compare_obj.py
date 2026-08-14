@@ -1136,11 +1136,11 @@ def compare_load_widths(compiled: list[str], reference: list[str]) -> list[str]:
 
 # --- Immediate-constant transcription detection (wrong float/magic literal) ---
 #
-# Both objects here are VC71 codegen (delinked reference = original MSVC 7.1;
-# candidate = our source recompiled by the SAME CL.exe). Identical source
-# constants therefore produce identical inline immediates, so a large inline
-# constant present on exactly one side is a genuine SOURCE difference -- almost
-# always a mistyped numeric literal, not compiler noise. The aggregate LCS score
+# The reference is original XBE machine code; the candidate is VC71 codegen.
+# For the large literal classes below, identical source constants are expected
+# to produce identical inline immediates. A large constant present on exactly
+# one side is therefore a strong SOURCE-difference signal. The aggregate LCS
+# score
 # hides these: a wrong `push $imm32` aligns against the correct `push $imm32`
 # (same opcode, so the operand delta is buried, never surfaced as actionable).
 # This is the mechanical detector for the actor_aim_grenade cos(30) bug
