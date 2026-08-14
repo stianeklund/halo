@@ -54,6 +54,20 @@ double __cdecl fabs(double);
         }                                                    \
     } while (0)
 
+/* assert_halt_msg_at(msg, file, line, cond) — assert_halt_at for the case where
+ * the original .rdata assert text cannot be produced by stringizing our C
+ * condition. The usual cause is spacing: Bungie wrote `a==b`, and clang-format
+ * rewrites that to `a == b` inside a macro argument, silently changing the
+ * emitted string literal. `msg` is the literal recovered from the XBE; `cond`
+ * is the recovered C condition. Keep the two in sync by hand. */
+#define assert_halt_msg_at(msg, file, line, cond)            \
+    do {                                                     \
+        if (!(cond)) {                                       \
+            display_assert(msg, file, line, true);           \
+            system_exit(-1);                                 \
+        }                                                    \
+    } while (0)
+
 #define assert_halt_msg(cond, msg)                         \
     do {                                                   \
         if (!(cond)) {                                     \

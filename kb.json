@@ -23175,75 +23175,86 @@
    "functions": [
     {
      "addr": "0x190240",
-     "decl": "void FUN_00190240(void);"
+     "decl": "void FUN_00190240(void *position, int32_t param_3, uint32_t flags, int16_t sky_index);"
     },
     {
      "addr": "0x190380",
      "decl": "void FUN_00190380(void);"
     },
     {
-     "addr": "0x190500",
-     "decl": "void wind_initialize_for_new_map(void);"
-    },
-    {
      "addr": "0x190550",
-     "decl": "void FUN_00190550(void);"
+     "decl": "bool FUN_00190550(void *location, void *position, int32_t param_3, uint32_t flags);",
+     "ported": true
     },
     {
      "addr": "0x190670",
-     "decl": "void FUN_00190670(void);"
+     "decl": "void FUN_00190670(void *location, void *position, int32_t param_3, uint32_t flags);",
+     "ported": true
     },
     {
      "addr": "0x190690",
-     "decl": "void FUN_00190690(void);"
+     "decl": "bool FUN_00190690(void *location, void *position, int32_t param_3, uint32_t flags);",
+     "ported": true
     },
     {
      "addr": "0x1906b0",
-     "decl": "void *FUN_001906b0(void *shader, int shader_type);"
+     "decl": "void *FUN_001906b0(void *shader_pointer, int16_t shader_type);",
+     "ported": true
     },
     {
      "addr": "0x190710",
-     "decl": "int shader_get_vertex_shader_permutation(void *shader);"
+     "decl": "int shader_get_vertex_shader_permutation(void *shader);",
+     "ported": true
     },
     {
      "addr": "0x190830",
-     "decl": "void shader_is_mirror(void);"
+     "decl": "char shader_is_mirror(void *shader);",
+     "ported": true
     },
     {
      "addr": "0x1908a0",
-     "decl": "char shader_is_decal(void *shader);"
+     "decl": "char shader_is_decal(void *shader);",
+     "ported": true
     },
     {
      "addr": "0x190930",
-     "decl": "char shader_is_water_decal(void *shader);"
+     "decl": "char shader_is_water_decal(void *shader);",
+     "ported": true
     },
     {
      "addr": "0x190980",
-     "decl": "char shader_ignores_effect(void *shader);"
+     "decl": "char shader_ignores_effect(void *shader);",
+     "ported": true
     },
     {
      "addr": "0x1909d0",
-     "decl": "char shader_type_is_transparent(int16_t shader_type);"
+     "decl": "char shader_type_is_transparent(int16_t shader_type);",
+     "ported": true
     },
     {
      "addr": "0x1909f0",
-     "decl": "void shader_type_is_lightmapped(void);"
+     "decl": "char shader_type_is_lightmapped(int16_t shader_type);",
+     "ported": true
     },
     {
      "addr": "0x190a10",
-     "decl": "void shader_type_is_vertex_lit(void);"
+     "decl": "char shader_type_is_vertex_lit(int16_t shader_type);",
+     "ported": true
     },
     {
      "addr": "0x190a30",
-     "decl": "void shader_type_is_valid_for_environment(void);"
+     "decl": "char shader_type_is_valid_for_environment(int16_t shader_type);",
+     "ported": true
     },
     {
      "addr": "0x190a50",
-     "decl": "void shader_type_is_valid_for_model(void);"
+     "decl": "char shader_type_is_valid_for_model(int16_t shader_type);",
+     "ported": true
     },
     {
      "addr": "0x190a70",
-     "decl": "char shader_type_is_valid_for_modifier(int16_t shader_type);"
+     "decl": "char shader_type_is_valid_for_modifier(int16_t shader_type);",
+     "ported": true
     },
     {
      "addr": "0x190a90",
@@ -23251,19 +23262,23 @@
     },
     {
      "addr": "0x190be0",
-     "decl": "void numeric_countdown_timer_set(void);"
+     "decl": "void numeric_countdown_timer_set(int time, char enabled);",
+     "ported": true
     },
     {
      "addr": "0x190c00",
-     "decl": "int numeric_countdown_timer_get(int a1);"
+     "decl": "int16_t numeric_countdown_timer_get(int a1);",
+     "ported": true
     },
     {
      "addr": "0x190d90",
-     "decl": "void numeric_countdown_timer_stop(void);"
+     "decl": "void numeric_countdown_timer_stop(void);",
+     "ported": true
     },
     {
      "addr": "0x190da0",
-     "decl": "void numeric_countdown_timer_restart(void);"
+     "decl": "void numeric_countdown_timer_restart(void);",
+     "ported": true
     },
     {
      "addr": "0x190db0",
@@ -40640,6 +40655,11 @@
     {
      "addr": "0x18ffe0",
      "decl": "void wind_update(void);",
+     "ported": true
+    },
+    {
+     "addr": "0x190500",
+     "decl": "void wind_initialize_for_new_map(void);",
      "ported": true
     }
    ],
