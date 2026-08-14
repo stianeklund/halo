@@ -4805,6 +4805,17 @@
       "score": 78.0,
       "source": "src/halo/ai/props.c"
     },
+    "FUN_00064b40": {
+      "addr": "0x64b40",
+      "end": "0x64ccb",
+      "kind": "auto",
+      "n_r": 139,
+      "opnd_percent": 47.7,
+      "ref": "synth",
+      "ref_sha": "b670b4cddac16692",
+      "score": 92.5,
+      "source": "src/halo/ai/props.c"
+    },
     "FUN_00064ee0": {
       "addr": "0x64ee0",
       "end": "0x64f4d",

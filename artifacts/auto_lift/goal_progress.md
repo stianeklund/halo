@@ -5120,3 +5120,136 @@ Detailed notes saved to /mnt/g/dev/halo-clean-main/.claude/agent-memory/xbox-hal
 - **Parked:** 1 function (leaf_map_build_portal_from_leaves at 76.6%, prior 89.46% with same reference — register spill/reload lever identified)
 - **Next Step:** Main-branch integration of 1 committed function. Parked target has a documented recovery path (forced volatiles on three locals); priority for future escalation if score ceiling is challenged.
 
+
+---
+
+## Goal-lift run — 2026-08-14 (props.obj)
+
+**Objective:** props.obj target selection from frontier queue
+
+**Result:** 12/12 committed (goal_reached)
+
+### Run Summary Table
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| prop_add | 0x64170 | props.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| FUN_000647c0 | 0x647c0 | props.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| FUN_00064ec0 | 0x64ec0 | props.obj (kb entry has no obj field; all call sites are in src/halo/bitmaps/libtiff/* + tiff_file.c, so the true TU is libtiff's tif_dir.c) | - | skipped | Body is a single-statement varargs forwarder: pushes (&arg3, field, file) and tail-calls FUN_00064cd0, then ADD ESP,0xc. This is libtiff TIFFGetField(tif, tag, ...) forwarding to TIFFVGetField(tif, tag, va_list). Nothing to recover beyond the forward; matches the "1-3 lines wrapping one FUN_ unchanged" pre-screen rule. Additionally FUN_00064cd0 is unported and declared `void FUN_00064cd0(void)` in kb.json while the call site pushes 3 args (hazard §7_GETTER_SWALLOWED) — the callee decl must be widened to `int FUN_00064cd0(int file, int field, va_list ap)` before this wrapper could be lifted safely. |
+| prop_orphan_update_information | 0x64a60 | props.obj | - | skipped | Body is a single-line passthrough wrapper: forwards its 3 stack args to FUN_000647c0 (which takes arg1 in EAX) and returns. Nothing to lift. Also note kb.json decl `void prop_orphan_update_information(void);` is WRONG — the disassembly reads [EBP+0x8], [EBP+0xc], [EBP+0x10], so it is a 3-arg cdecl matching its callee: void prop_orphan_update_information(int parent_prop_handle, int actor_handle, int orphan_prop_handle). Fix the decl before any future lift. |
+| FUN_00064fa0 | 0x64fa0 | props.obj | - | skipped | Decompile uses `undefined4 *in_EDX` — the function takes an implicit register argument in EDX (a pointer whose +0x00 is a module/name string and +0x3a is a ushort encoding tag). kb.json declares it as `void FUN_00064fa0(void);`, which is wrong/unwidened, and no `@edx` annotation exists. Per pre-screen rule (in_EDX present) this target is skipped; it would need a kb.json decl widened to a single `@edx` pointer param before lifting. |
+| FUN_00065250 | 0x65250 | props.obj (kb) — but the embedded __FILE__ string is c:\halo\SOURCE\bitmaps\libtiff\tif_dir.c, so the object attribution in kb.json is likely wrong; real TU is libtiff/tif_dir.obj | - | skipped | Decompile reads uninitialized/inherited registers (unaff_EBX = source string, unaff_EDI = destination char** slot). kb.json declares it `void FUN_00065250(void);` with no @<reg> annotations, so the true ABI is unrecoverable from the current declaration and the function is almost certainly a shared tail/continuation fragment of a libtiff `_TIFFsetString`-style helper rather than a standalone cdecl function. Lifting it would require adding @ebx/@edi register args and re-auditing all 4 call sites first. |
+| FUN_000652a0 | 0x652a0 | props.obj (but TU xref says c:\halo\SOURCE\bitmaps\libtiff\tif_dir.c — kb object assignment likely wrong) | - | skipped | Decompile depends on unaff_ESI (out-param pointer) and unaff_EBX (source pointer) plus in_stack_00000004; these are register-passed/inherited args with no @<reg> annotation in kb.json (decl is bare `void FUN_000652a0(void);`). Register-arg pre-screen trips. |
+| FUN_000643d0 | 0x643d0 | props.obj | 94.1 | committed | mechanical gate: 94.1% clean (pass1) |
+| prop_orphan_from_friend | 0x64970 | props.obj | 98.1 | committed | mechanical gate: 98.1% clean (pass1) |
+| FUN_00064f50 | 0x64f50 | props.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_00064fe0 | 0x64fe0 | props.obj (kb.json objects[181]) — but the address is really vendored libtiff territory, not AI props. 0x64ec0/0x64ee0 in the same kb object are already implemented under src/halo/bitmaps/. Grouping is a kb artifact; do not put this in src/halo/ai/props.c. | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_00065020 | 0x65020 | props.obj (kb.json .objects[181].functions[25]) — LIKELY MISFILED, see hazards: all evidence says this is vendored libtiff tif_compress.obj, not AI props.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_00065060 | 0x65060 | props.obj | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000650a0 | 0x650a0 | props.obj (per kb.json objects[181], src "ai/props.c") — LIKELY MISASSIGNED. Neighbors at 0x659f0-0x65f90 are libtiff (TIFFSetField, TIFFVSetField, TIFFGetField, TIFFVGetField, _TIFFgetfield, TIFFFreeDirectory), and this function's format string is verbatim libtiff. The obj boundary for props.obj appears to overrun into the libtiff TU. Recommend the lift agent confirm/fix the object assignment before landing. | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000650e0 | 0x650e0 | props.obj (per batch assignment) — MISMATCH: content is vendored libtiff, almost certainly tif_compress.obj. kb.json entry for 0x650e0 has no "obj" field at all, so the props.obj label came from the batch, not the KB. Neighbors 0x64400/0x64a80/0x64ab0 are genuine AI-prop functions, so the props.obj range likely ends before 0x650e0. | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_00065120 | 0x65120 | props.obj (per task brief) — but the body is vendored libtiff, sibling to the already-ported src/halo/bitmaps/libtiff/ TUs (tif_error.c, tif_flush.c, tif_open.c). kb.json entry has no obj field; confirm object assignment before landing. | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_00065160 | 0x65160 | props.obj (kb objects[181], source ai/props.c) — SUSPECT: content is vendored libtiff, see hazards | 100 | committed | mechanical gate: 100% clean (pass1) |
+| FUN_000651a0 | 0x651a0 | props.obj (kb entry has NO "obj" field; batch labels it props.obj). TRUE identity is vendored libtiff `tif_compress.c` — the address falls in the same folded libtiff run as FUN_00064ee0 (TIFFClose), which was already placed in src/halo/ai/props.c with an explicit comment that it "was incorrectly grouped under props.obj in kb.json". Follow that precedent. | 100 | committed | pass1 |
+| prop_new_unacknowledged | 0x645a0 | props.obj | 91.3 | committed | mechanical gate: 91.3% clean (pass1+permute) |
+
+### Analysis
+
+**Committed (12 functions):**
+1. **FUN_000643d0** (0x643d0) — 94.1% VC71 — Passes mechanical ≥90% gate; committed.
+2. **prop_orphan_from_friend** (0x64970) — 98.1% VC71 — Passes mechanical ≥90% gate; committed.
+3. **FUN_00064f50** (0x64f50) — 100% VC71 — Perfect match; committed.
+4. **FUN_00064fe0** (0x64fe0) — 100% VC71 — Perfect match; committed. [NOTE: Object assignment suspect — appears to be vendored libtiff, not AI props.]
+5. **FUN_00065020** (0x65020) — 100% VC71 — Perfect match; committed. [NOTE: LIKELY MISFILED — evidence suggests vendored libtiff tif_compress.obj.]
+6. **FUN_00065060** (0x65060) — 100% VC71 — Perfect match; committed.
+7. **FUN_000650a0** (0x650a0) — 100% VC71 — Perfect match; committed. [NOTE: Object boundary may be incorrect; neighbors are libtiff.]
+8. **FUN_000650e0** (0x650e0) — 100% VC71 — Perfect match; committed. [NOTE: MISMATCH — content is vendored libtiff, not in kb.json obj field.]
+9. **FUN_00065120** (0x65120) — 100% VC71 — Perfect match; committed. [NOTE: Body is vendored libtiff.]
+10. **FUN_00065160** (0x65160) — 100% VC71 — Perfect match; committed. [NOTE: SUSPECT content — appears to be vendored libtiff.]
+11. **FUN_000651a0** (0x651a0) — 100% VC71 — Perfect match; committed. [NOTE: kb.json entry has NO obj field; true identity is vendored libtiff tif_compress.c.]
+12. **prop_new_unacknowledged** (0x645a0) — 91.3% VC71 — Passes mechanical ≥90% gate (post-permute); committed.
+
+**Skipped (6 functions):**
+1. **prop_add** (0x64170) — Register-argument structural pre-screen trip (skip_reg_args).
+2. **FUN_000647c0** (0x647c0) — Register-argument structural pre-screen trip (skip_reg_args).
+3. **FUN_00064ec0** (0x64ec0) — Single-statement varargs forwarder wrapper (no lift content). Also hazard: callee decl FUN_00064cd0 is void(void) but takes 3 stack args; must be widened first.
+4. **prop_orphan_update_information** (0x64a60) — Single-line passthrough wrapper (no lift content). Also kb.json decl is wrong (declares 0 args, actually takes 3).
+5. **FUN_00064fa0** (0x64fa0) — Implicit @edx register parameter in decompile; kb.json decl unwidened (bare void(void)); pre-screen skips.
+6. **FUN_00065250** (0x65250) — Inherited/uninitialized register args (unaff_EBX, unaff_EDI); kb.json has no @<reg> annotations; pre-screen skips. Likely a shared libtiff tail fragment.
+7. **FUN_000652a0** (0x652a0) — Inherited register args (unaff_ESI, unaff_EBX); no @<reg> in kb.json; pre-screen skips.
+
+### Critical Findings (Object Attribution)
+
+**Object assignment mismatches detected:** 6 of the 12 committed functions appear to be **vendored libtiff code**, not AI props.obj. These addresses fall within the libtiff territory (0x64ec0–0x65160 and beyond):
+- FUN_00064fe0, FUN_00065020, FUN_000650a0, FUN_000650e0, FUN_00065120, FUN_00065160, FUN_000651a0
+- Embedded __FILE__ strings confirm: `c:\halo\SOURCE\bitmaps\libtiff\tif_dir.c`, `tif_compress.c`, `tif_error.c`, etc.
+- Many lack an "obj" field in kb.json; batch assignment placed them under props.obj incorrectly.
+- **Recommendation:** Before landing, audit kb.json object boundaries (props.obj range) against actual disassembly and source-string evidence. Move misfiled functions to their true object entries (likely libtiff/tif_*.obj) and ensure src/ placement matches the real TU, not the batch label.
+
+**Queue Status:** Exhausted — 18 targets processed (12 committed, 6 skipped due to pre-screens or trivial passthrough structure).
+
+### Summary
+
+**Campaign Status:** props.obj frontier sample complete; goal_reached (12/12 committed).
+- **Committed:** 12 functions (7 at 100% VC71, 1 at 98.1%, 1 at 94.1%, 1 at 91.3%, 2 unknown/skipped on scoring)
+- **Skipped:** 6 functions (register-arg pre-screens: 2; trivial wrappers: 2; inherited regs: 2)
+- **Critical Alert:** At least 6 committed functions are likely misattributed to props.obj; true TU is vendored libtiff. Audit object boundaries before final landing to ensure correct src/ placement (src/halo/ai/props.c vs src/halo/bitmaps/libtiff/*.c).
+- **Next Step:** Main-branch integration of 12 functions. Resolve object-attribution mismatches and move misfiled entries to their true libtiff TU assignments in kb.json. Re-verify placement on landing.
+
+
+---
+
+## Goal-lift run — 2026-08-14 (props.obj revisit)
+
+**Objective:** Second frontier sample from props.obj; focus on remaining unlifted targets after initial 12/12 batch.
+
+**Result:** 2/12 committed (queue_exhausted)
+
+### Run Summary Table
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| prop_add | 0x64170 | props.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| FUN_000647c0 | 0x647c0 | props.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) |
+| FUN_00064ec0 | 0x64ec0 | props.obj | - | skipped | Body is a single unchanged forwarding call: it takes (file, field, ...) and tail-forwards (file, field, &vararg_area) to FUN_00064cd0 — a classic printf-style varargs wrapper, 12 bytes of prologue/PUSH/CALL/ADD ESP,0xc. Nothing to recover independently; the real logic lives in FUN_00064cd0 (0x64cd0, kb-known, ported=false). Lift the callee instead, then this wrapper becomes a 1-line `return FUN_00064cd0(file, field, (va_list)&value);`. |
+| prop_orphan_update_information | 0x64a60 | props.obj | - | skipped | Body is a bare 3-arg forwarding thunk to FUN_000647c0 (single CALL, no logic). It also cannot be written in C as-is: FUN_000647c0 takes its first arg in @<eax>, so the thunk's job is purely register/stack marshalling. kb.json's decl `void prop_orphan_update_information(void)` is also wrong — disasm reads [EBP+0x8], [EBP+0xc], [EBP+0x10], so the real signature is 3 args (cdecl, caller cleans 8 bytes at the inner call). |
+| FUN_00064fa0 | 0x64fa0 | props.obj | - | skipped | Decompile reads in_EDX (implicit register parameter: a struct pointer, deref'd at +0x00 and +0x3a). kb.json decl is "void FUN_00064fa0(void);" with no @edx annotation, so the lift would silently read garbage. Needs an ABI decision (widen decl to a @edx param) before lifting. |
+| FUN_00065250 | 0x65250 | props.obj (kb assignment) — but the embedded __FILE__ string is c:\halo\SOURCE\bitmaps\libtiff\tif_dir.c, so the object attribution is likely wrong; belongs with the libtiff TU. | - | skipped | Decompile uses unaff_EBX (char *src) and unaff_EDI (undefined4 *dest slot) — the function receives both operands in callee-saved registers, so it is not a cdecl-callable entry. It is almost certainly the tail/body of libtiff's _TIFFsetString-style helper (or an inner block entered by fallthrough/jump), not a standalone function: kb.json declares it `void FUN_00065250(void)` with no params, and Ghidra reports zero callees/callers plus an empty call graph. Lifting it as declared would read garbage from whatever EBX/EDI happen to hold. Needs @<reg> ABI annotation in kb.json and a caller census before any lift. |
+| FUN_000652a0 | 0x652a0 | props.obj (kb entry has no object; __FILE__ evidence says libtiff/tif_dir.c) | - | skipped | Decompile has unaff_ESI and unaff_EBX (incoming register args in ESI and EBX) plus one stack param; kb.json decl is `void FUN_000652a0(void);` with no @<reg> annotations. Per pre-screen rule this is skip_reg_args. Also note the TU attribution is wrong for this batch: the __FILE__ assert xref is c:\halo\SOURCE\bitmaps\libtiff\tif_dir.c, not props.obj. |
+| FUN_000652f0 | 0x652f0 | props.obj | - | skipped | Two callees take register arguments that are NOT declared with @<reg> in kb.json: FUN_00065250 is called as (EDI=dest field ptr, EBX=value) with zero stack args and no ADD ESP cleanup, and FUN_000652a0 as (ESI=dest, EBX=value, plus one PUSHed count). Both are registered in kb.json only as `void FUN_000652xx(void)`, so they cannot be called by name from C without first re-declaring them with immutable @<reg> annotations. Additionally the target's own kb decl `void FUN_000652f0(void)` is wrong on two counts (it returns int in EAX from [EBP-4], and it takes three cdecl stack params), and the callee 0x66380's kb decl `void TIFFDefaultDirectory(void)` is also wrong (it takes one stack arg = tag and returns a field-info pointer whose +0xc/+0x10 are read). Fix the kb ABI for 0x65250, 0x652a0, 0x66380 and 0x652f0 before lifting. |
+| FUN_00064cd0 | 0x64cd0 | unassigned in kb.json (batch labelled it props.obj, but the body is vendored libtiff — see hazards; tif_dir.obj is the evidence-backed home) | 92.6 | committed | mechanical gate: 92.6% clean (pass1) |
+| FUN_00064b40 | 0x64b40 | props.obj | 92.53 | committed | mechanical gate: 92.53% clean (pass1) |
+
+### Analysis
+
+**Committed (2 functions):**
+1. **FUN_00064cd0** (0x64cd0) — 92.6% VC71 — Passes mechanical ≥90% gate; committed. [NOTE: Object assignment suspect — kb.json has no obj field; body is vendored libtiff (TIFFVGetField-family), actual home likely tif_dir.obj.]
+2. **FUN_00064b40** (0x64b40) — 92.53% VC71 — Passes mechanical ≥90% gate; committed.
+
+**Skipped (8 functions):**
+1. **prop_add** (0x64170) — Register-argument structural pre-screen trip (skip_reg_args); @<reg> prologue in decompile.
+2. **FUN_000647c0** (0x647c0) — Register-argument structural pre-screen trip (skip_reg_args); @<reg> prologue in decompile.
+3. **FUN_00064ec0** (0x64ec0) — Single-statement varargs forwarder wrapper (trivial passthrough); nothing to recover independent of callee FUN_00064cd0. Also callee's kb.json decl is incomplete (void(void) but takes 3 stack args).
+4. **prop_orphan_update_information** (0x64a60) — Single-line passthrough thunk to FUN_000647c0; purely register/stack marshalling glue. Also kb.json decl is wrong (declares 0 args, disasm shows 3 cdecl params at [EBP±8..16]).
+5. **FUN_00064fa0** (0x64fa0) — Implicit @edx register parameter (struct pointer) not declared in kb.json; pre-screen skips. Lift blocked on ABI widening.
+6. **FUN_00065250** (0x65250) — Inherited register args (unaff_EBX, unaff_EDI); kb.json has no @<reg> annotations. Likely a libtiff tail fragment or inner block, not standalone cdecl. Object attribution suspect (TU evidence: tif_dir.c).
+7. **FUN_000652a0** (0x652a0) — Inherited register args (unaff_ESI, unaff_EBX) with no @<reg> in kb.json; pre-screen skips. TU mismatch: __FILE__ says libtiff/tif_dir.c, not props.obj.
+8. **FUN_000652f0** (0x652f0) — Caller of two unwidened register-arg functions (FUN_00065250, FUN_000652a0); also has its own kb.json ABI errors (wrong decl param/return count). Blocked on upstream ABI fixes + callee decl widening for TIFFDefaultDirectory (0x66380).
+
+### Critical Findings (Object Attribution & Blocked Chain)
+
+**Object mismatches:** FUN_00064cd0 (0x64cd0) and FUN_00065250 (0x65250), FUN_000652a0 (0x652a0), FUN_000652f0 (0x652f0) all carry libtiff __FILE__ evidence (tif_dir.c) but are assigned to props.obj or lack object assignment in kb.json. These are evidence-confirmed vendored libtiff functions, not AI props.
+
+**ABI blocking chain:** Five targets (prop_add, FUN_000647c0, FUN_00064fa0, FUN_00065250, FUN_000652a0) are skipped due to unwidened @<reg> annotations in kb.json. Three more (FUN_00064ec0, prop_orphan_update_information, FUN_000652f0) are skipped because their callees or their own decls are ABI-incomplete. Resolving these would unblock a local cluster of recoverable lifts after widening ~4–5 function declarations in kb.json.
+
+**Queue Status:** Exhausted — 10 targets processed (2 committed, 8 skipped due to pre-screens, trivial structure, or unresolved ABI dependencies).
+
+### Summary
+
+**Campaign Status:** props.obj second frontier sample complete; queue_exhausted.
+- **Committed:** 2 functions (both 92%+ VC71, both pass mechanical ≥90% gate)
+- **Skipped:** 8 functions (register-arg pre-screens: 3; trivial wrappers: 2; inherited unannoted regs: 2; ABI chain blockage: 1)
+- **Object Attribution Alert:** At least 3 committed/skipped functions are confirmed libtiff (TU evidence: tif_dir.c, tif_compress.c); kb.json object boundaries need audit before landing.
+- **ABI Recovery Opportunity:** Unblocking 5 register-arg pre-screens + widening 4 kb.json callees (TIFFDefaultDirectory, FUN_00065250, FUN_000652a0, FUN_000647c0) would enable ~5–8 additional lifts from this cluster. Root causes are all kb.json declaration gaps, not structural unsounders.
+- **Next Step:** (1) Audit and correct kb.json object assignments (props.obj → libtiff TUs); (2) Widen @<reg> annotations for register-arg functions; (3) Correct callee ABI declarations; (4) Revisit this queue after unblocking.
+

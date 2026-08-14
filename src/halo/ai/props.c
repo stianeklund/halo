@@ -756,6 +756,175 @@ int prop_get_active_by_unit_index(int actor_handle, int object_handle)
   }
 }
 
+/* 0x64b40 — FUN_00064b40.
+ *
+ * "Find or create" companion to prop_get_active_by_unit_index (0x64ab0):
+ * searches actor actor_handle's prop chain for a prop referencing
+ * object_handle (directly via prop+0x18, or indirectly via prop+0x1c against
+ * the object's model target at object+0x1a8 / object+0x1a4), and, when the
+ * chain has no match, optionally creates a new unacknowledged prop for it.
+ *
+ * The traversal is the same idiom as 0x64ab0 but WITHOUT the state-[0,1] skip,
+ * and on a hit the prop's orphan index (prop+0x0c) supersedes the prop handle
+ * itself when it is not -1.
+ *
+ * param_2 is an OBJECT handle, not a prop handle: it is passed to
+ * object_get_and_verify_type(param_2, 3) and forwarded to
+ * prop_new_unacknowledged as unit_handle.  (The pre-lift kb prototype named it
+ * `prop_handle`.)  param_3 and param_4 are 1-byte flags (both only ever
+ * byte-tested at [EBP+0x10] / [EBP+0x14]); param_4 is additionally forwarded
+ * whole as arg5 of prop_position_refresh.
+ *
+ * Frame: PUSH EBP / MOV EBP,ESP / SUB ESP,0x4c, single epilogue at 0x64cc2
+ * (MOV ESP,EBP).  EDI is the return accumulator, initialized with
+ * `OR EDI,0xffffffff` before the object_handle == -1 test, so the early -1
+ * return shares the same `MOV EAX,EDI` exit (it merely skips POP EBX) —
+ * written here as one accumulator with a single return.
+ *
+ * Call-site verification table (disasm 0x64b40–0x64cca; first PUSH = last arg):
+ *   0x64b62 datum_get:      PUSH EAX=[0x6325a4] actor_data | actor_data | YES
+ *                           PUSH EBX=[EBP+8]              | actor_handle | YES
+ *                           (result -> [EBP-8] = actor)
+ *   0x64b6d object_get_and_verify_type:
+ *                           PUSH ESI=[EBP+0xc]            | object_handle | YES
+ *                           PUSH 3                         | 3            | YES
+ *                           (result ECX -> [EBP-0xc] = obj;
+ *                            one coalesced ADD ESP,0x10 at 0x64b7a covers
+ *                            both 2-arg calls — not a 4-arg call)
+ *   0x64bae datum_get:      PUSH EAX=[0x6325a4], PUSH EBX  | actor_data,
+ *                           actor_handle | YES  (only +0x50 is consumed)
+ *   0x64bd0 datum_get:      PUSH ECX=[0x5ab23c] prop_data, PUSH ECX=cur_handle
+ *                           | prop_data, cur_handle | YES
+ *   0x64c39 game_allegiance_get_team_is_friendly:
+ *                           PUSH EDX=(XOR EDX,EDX; MOV DX,word [actor+0x3e])
+ *                                                         | actor->field_03e |
+ * YES PUSH ECX=(XOR ECX,ECX; MOV CX,word [obj+0x68]) | obj+0x68 (int16) | YES
+ *   0x64c47 prop_new_unacknowledged:
+ *                           PUSH EBX  | actor_handle  | YES
+ *                           PUSH ESI  | object_handle | YES
+ *                           PUSH EAX  | friendly flag | YES
+ *                           (result EAX -> EDI, i.e. the return value;
+ *                            coalesced ADD ESP,0x14 at 0x64c4e covers the
+ *                            2-arg friendly test plus this 3-arg call)
+ *   0x64c5e datum_get:      PUSH ECX=[0x5ab23c], PUSH EDI | prop_data,
+ *                           new_prop_handle | YES  (result -> ESI = new_prop;
+ *                           ESI is repurposed from object_handle here)
+ *   0x64c71 prop_position_refresh:
+ *                           PUSH EBX | actor_handle    | YES
+ *                           PUSH EDI | new_prop_handle | YES
+ *                           PUSH EAX = LEA [EBP-0x4c] | position_data | YES
+ *                           PUSH 0   | 0               | YES
+ *                           PUSH EDX = [EBP+0x14]      | param_4       | YES
+ *                           (coalesced ADD ESP,0x1c at 0x64c79 covers the
+ *                            2-arg datum_get plus this 5-arg call)
+ *   0x64c93 prop_status_refresh:
+ *                           PUSH EBX, PUSH EDI, PUSH ECX = LEA [EBP-0x4c]
+ *                           | actor_handle, new_prop_handle, position_data |
+ * YES 0x64ca4 actor_expected_acknowledgement: PUSH EBX | actor_handle    | YES
+ *                           PUSH EDI | new_prop_handle | YES
+ *                           MOV byte [EBP+0xc],AL — the result is CONSUMED,
+ *                           so the kb prototype `void (void)` was wrong on
+ *                           both the arity and the return; widened to
+ *                           `bool (int, int)` on this evidence.
+ *   0x64cba actor_perception_acknowledge:
+ *                           PUSH EBX | actor_handle    | YES
+ *                           PUSH EDI | new_prop_handle | YES
+ *                           PUSH 0   | 0               | YES
+ *                           PUSH EDX | the AL result above | YES
+ *
+ * Store-offset table (all on ESI = new_prop, from raw disasm):
+ *   [ESI+0x6a]  = 0x1e  (MOV word,  0x64c7e)
+ *   [ESI+0x126] = 1     (MOV byte,  0x64c84)
+ *   [ESI+0x24]  = 3     (MOV word,  0x64cb4 — emitted after the
+ *                        actor_perception_acknowledge pushes, before the CALL)
+ * Scheduling note: the +0x6a and +0x126 stores sit between `TEST AL,AL`
+ * (0x64c7c) and its `JZ` (0x64c8b), so they are UNCONDITIONAL after
+ * prop_position_refresh — they are not inside the param_4 branch.
+ * Guard at 0x64c9b is `CMP word [ESI+0x30],2 / JL`: a signed int16 read.
+ *
+ * Buffer: LEA [EBP-0x4c] is shared by prop_position_refresh (0x31df0) and
+ * prop_status_refresh (0x33440).  Span EBP-0x4c..EBP-0x15 = 0x38 bytes, which
+ * agrees with the already-lifted callers in actor_perception.c
+ * (`char position_data_a[0x38]`).  The frame reserves 0x4c with a 4-byte hole
+ * at EBP-0x10 that this function never touches. */
+int FUN_00064b40(int actor_handle, int object_handle, bool create_if_missing,
+                 bool acknowledge)
+{
+  int target; /* [EBP-0x04] */
+  char *actor; /* [EBP-0x08] */
+  char *obj; /* [EBP-0x0c] */
+  int cur_handle; /* [EBP-0x14] */
+  char position_data[0x38]; /* [EBP-0x4c] */
+  int result;
+  int next_handle;
+  char *cur_prop;
+  char *new_prop;
+  bool friendly;
+  bool expected;
+
+  result = -1;
+  if (object_handle != -1) {
+    actor = (char *)datum_get(actor_data, actor_handle);
+    obj = (char *)object_get_and_verify_type(object_handle, 3);
+    target = *(int *)(obj + 0x1a8);
+    if (target == -1) {
+      target = *(int *)(obj + 0x1a4);
+    }
+
+    if ((*(short *)(obj + 0x64) == 0) && (target != actor_handle)) {
+      cur_handle = ((actor_t *)datum_get(actor_data, actor_handle))->field_050;
+
+      for (;;) {
+        if (cur_handle == -1) {
+          break; /* chain exhausted — fall through to the creation path */
+        }
+
+        cur_prop = (char *)datum_get(prop_data, cur_handle);
+        next_handle = *(int *)(cur_prop + 8);
+
+        if ((*(int *)(cur_prop + 0x18) == object_handle) ||
+            ((*(char *)(cur_prop + 0x14) != 0) &&
+             (*(int *)(cur_prop + 0x1c) != -1) &&
+             (*(int *)(cur_prop + 0x1c) == target))) {
+          result = cur_handle;
+          if (*(int *)(cur_prop + 0xc) != -1) {
+            result = *(int *)(cur_prop + 0xc); /* orphan prop supersedes */
+          }
+          break;
+        }
+
+        cur_handle = next_handle;
+      }
+
+      if (result == -1) {
+        if ((create_if_missing != 0) && (((actor_t *)actor)->field_008 != 0)) {
+          friendly = game_allegiance_get_team_is_friendly(
+            ((actor_t *)actor)->field_03e, *(short *)(obj + 0x68));
+          result =
+            prop_new_unacknowledged(actor_handle, object_handle, friendly);
+          if (result != -1) {
+            new_prop = (char *)datum_get(prop_data, result);
+            prop_position_refresh(actor_handle, result, position_data, 0,
+                                  acknowledge);
+            *(short *)(new_prop + 0x6a) = 0x1e;
+            *(char *)(new_prop + 0x126) = 1;
+            if (acknowledge != 0) {
+              prop_status_refresh(actor_handle, result, position_data);
+              if (*(short *)(new_prop + 0x30) >= 2) {
+                expected = actor_expected_acknowledgement(actor_handle, result);
+                *(short *)(new_prop + 0x24) = 3;
+                actor_perception_acknowledge(actor_handle, result, 0, expected);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
 /* 0x64ee0 — TIFFClose (libtiff 3.x).
  *
  * NOTE: This function is from c:\halo\SOURCE\bitmaps\libtiff\tif_close.c, NOT
