@@ -43,7 +43,7 @@
     }
   },
   "meta": {
-    "timestamp": "2026-08-09T10:46:58.497629+02:00",
+    "timestamp": "2026-08-14T13:55:31.201487+02:00",
     "commit": "6ae87ffd2c7",
     "branch": "main",
     "tool_version": "1.0.0"
@@ -39624,7 +39624,7 @@
           "ported": true,
           "match_percent": null,
           "opnd_percent": null,
-          "vc71_flagged": null,
+          "vc71_flagged": "compile_failed",
           "equiv_class": null,
           "equiv_coverage": null,
           "equiv_confidence": null,
@@ -39677,7 +39677,7 @@
         "bytes_percent": 100.0,
         "match_avg": 92.9,
         "match_weighted": 92.9,
-        "has_delinked_ref": false
+        "has_delinked_ref": true
       },
       "data_summary": {
         "total": 0
