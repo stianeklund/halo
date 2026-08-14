@@ -240,3 +240,87 @@ int FUN_00064fe0(void *tif_, char *pp, int cc, int s) {
   (void)s;
   return _TIFFNoEncode(tif, "scanline");
 }
+
+/* -------------------------------------------------------------------------
+ * FUN_00065020 -- upstream `_TIFFNoStripEncode`.
+ *
+ * Upstream body:
+ *
+ *     static int
+ *     _TIFFNoStripEncode(TIFF* tif, tidata_t pp, tsize_t cc, tsample_t s)
+ *     {
+ *         (void) pp; (void) cc; (void) s;
+ *         return (_TIFFNoEncode(tif, "strip"));
+ *     }
+ *
+ * Byte-for-byte the same 0x3e-byte shape as FUN_00064fe0 above -- same frame,
+ * same hoisted `movzx`, same rotated table walk, same unguarded `->name`
+ * deref, same `or eax,-1`. The ONLY difference is the fourth argument's
+ * literal, and that literal is the whole discriminator between the eight
+ * siblings at 0x64fe0..0x651a0. Read out of the pristine image:
+ * 0x25f560 = "strip" (0x25f554 = "scanline" is what fixes 0x64fe0 as the
+ * scanline stub), and the format literal is the shared encode-side
+ * 0x25f530 = "%s %s encoding is not implemented" -- an `encoding` string, so
+ * this is the STRIP ENCODE stub and not one of the decode variants.
+ *
+ * Disassembly of 0x65020 (pristine cachebeta.xbe, capstone). Only the
+ * annotations that differ from 0x64fe0 are repeated; see that body above for
+ * the per-instruction reasoning behind the loop rotation, the 32-bit `scheme`
+ * compare, the NULL-deref merge and the varargs cleanup.
+ *
+ *   065020  push ebp
+ *   065021  mov  ebp, esp                  ; params only, no `sub esp`
+ *   065023  mov  edx, [ebp+8]              ; tif -- a stack parameter, so the
+ *                                          ; kb `void FUN_00065020(void)`
+ *                                          ; decl was wrong on both counts
+ *   065026  movzx ecx, word ptr [edx+0x3a] ; tif->td_compression, u16
+ *   06502a  mov  eax, 0x2c9994             ; _TIFFBuiltinCODECS
+ *   06502f  nop                            ; loop-head alignment padding --
+ *                                          ; not reproducible from C, and not
+ *                                          ; something to chase
+ *   065030  cmp  [eax+4], ecx              ; c->scheme == scheme
+ *   065033  je   0x65041
+ *   065035  add  eax, 0xc
+ *   065038  cmp  eax, 0x2c99c4             ; &_TIFFBuiltinCODECS[4]
+ *   06503d  jb   0x65030                   ; unsigned; test after the advance
+ *   06503f  xor  eax, eax                  ; not found -> NULL codec
+ *   065041  mov  eax, [eax]                ; c->name; NULL-derefs on the miss
+ *                                          ; path, deliberately unguarded
+ *   065043  mov  ecx, [edx]                ; tif->tif_name, loaded second
+ *                                          ; (right-to-left argument order)
+ *   065045  push 0x25f560                  ; arg4 "strip"   <-- the only
+ *                                          ;                    difference
+ *   06504a  push eax                       ; arg3 c->name
+ *   06504b  push 0x25f530                  ; arg2 format
+ *   065050  push ecx                       ; arg1 module
+ *   065051  call 0x68a30                   ; TIFFError (varargs). The
+ *                                          ; ARG_COUNT hazard (cleanup 4 vs
+ *                                          ; decl 3) is the vararg, not an
+ *                                          ; ABI mismatch.
+ *   065056  add  esp, 0x10
+ *   065059  or   eax, 0xffffffff           ; return -1
+ *   06505c  pop  ebp
+ *   06505d  ret
+ * ------------------------------------------------------------------------ */
+
+/**
+ * Strip-encode entry point installed for compression schemes whose encoder is
+ * not present in this build: reports the scheme by name and fails.
+ *
+ * Installed into the codec method table by pointer rather than called
+ * directly, which is why the image contains no CALL to this address.
+ *
+ * @param tif_ TIFF handle.
+ * @param pp Strip data to encode. Unused -- the stub never encodes anything.
+ * @param cc Byte count of `pp`. Unused.
+ * @param s Sample number. Unused.
+ * @return Always -1 (failure).
+ */
+int FUN_00065020(void *tif_, char *pp, int cc, int s) {
+  tiff_t *tif = (tiff_t *)tif_;
+
+  (void)pp;
+  (void)cc;
+  (void)s;
+  return _TIFFNoEncode(tif, "strip");
+}
