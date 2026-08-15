@@ -3891,6 +3891,77 @@ void FUN_000be110(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xbe150 — HaloScript macro-function evaluate-then-finalize wrapper. Shape is
+ * byte-for-byte the twin of FUN_000be0d0 above: same prologue, same push order,
+ * same NULL guard, same 16-bit record deref, same coalesced cleanup — only the
+ * inner callee differs (0xca110 here vs 0xc9990 there). Evaluates a
+ * macro-function expression on a thread; when the evaluation yields a result
+ * record (non-NULL ptr in EAX), it forwards the record's leading WORD to
+ * FUN_000ca110 and commits a literal 0 back to the calling thread via
+ * hs_return(thread_datum, 0).
+ *
+ * players.obj groups this, but like its siblings it calls hs_runtime.obj's
+ * hs_macro_function_evaluate / hs_return, so it is co-located here.
+ *
+ * Plain cdecl (caller cleans, RET with no immediate at 0xbe184). Three stack
+ * params — Ghidra modelled this void(void), so they surfaced as
+ * in_stack_00000004/8/c pseudo-locals (lift-learnings 31, void-decl trap):
+ *   param1 @ EBP+0x8  = function_index (int16_t) -> ECX
+ *   param2 @ EBP+0xc  = thread_datum            -> ESI (held live across both
+ *                                                  calls, reused by hs_return)
+ *   param3 @ EBP+0x10 = init (char)             -> EAX
+ *
+ * Frame: PUSH EBP / MOV EBP,ESP / PUSH ESI only. No locals, no sub esp, no
+ * _chkstk, no FPU, no struct stores. 21 instructions, 0xbe150-0xbe184.
+ *
+ * CALL 0xcc560 @0xbe160 — PUSH EAX / PUSH ESI / PUSH ECX, reversed gives
+ * (function_index, thread_datum, init); self-contained ADD ESP,0xc at 0xbe165.
+ * TEST EAX,EAX / JZ 0xbe182 skips BOTH remaining calls, i.e. it is the NULL
+ * guard on the evaluation record — the record is only dereferenced inside the
+ * guard. hs_macro_function_evaluate is declared returning `int` in kb.json but
+ * the value is dereferenced here, so it is cast locally (do NOT change the kb
+ * decl), exactly as every twin in this family does.
+ *
+ * Record layout (EAX from call 1, only read when nonzero):
+ *   +0x0 WORD: XOR EDX,EDX / MOV DX,word ptr [EAX] at 0xbe16c-0xbe16e. A
+ *        zero-extended 16-bit read, matching the 0xbe0d0 twin exactly (contrast
+ *        the 0xbe110 twin's full-dword MOV EDX,[EAX]). Only field touched; one
+ *        deref, no buffer-alias risk.
+ *
+ * CALL 0xca110 @0xbe172 — PUSH EDX at 0xbe171 is the single argument. Ghidra
+ * printed a 0-argument call and left the push dangling (dropped-arg trap);
+ * kb.json's decl was `void FUN_000ca110(void)` and has been corrected to one
+ * cdecl arg. Width is int16_t, not int: the callee's own prologue is
+ * MOV ESI,[EBP+8] / CMP SI,-1 at 0xca114-0xca117 — a 16-BIT compare against the
+ * NONE sentinel (contrast FUN_000c99e0, whose CMP ESI,-1 proves int). It then
+ * forwards through 0x140720 and calls 0xc99e0 / 0xc9990, the latter itself
+ * already declared int16_t, corroborating the width.
+ *
+ * CALL 0xcbf80 @0xbe17a — PUSH 0x0 / PUSH ESI => hs_return(thread_datum, 0).
+ * hs_return's first argument is the PARAMETER thread_datum held in ESI, not
+ * any record field. ONE combined ADD ESP,0xc at 0xbe17f folds FUN_000ca110's
+ * single dword with hs_return's two; the ARG_COUNT warning on 0xcbf80
+ * ("cleanup=3 stack args vs decl=2") is that merge — hs_return really takes 2
+ * args, do NOT "fix" its decl.
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0xca110 = FUN_000ca110(int16_t index) — UNPORTED, semantics Uncertain;
+ *             return value (if any) discarded
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ */
+void FUN_000be150(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    FUN_000ca110(*(short *)record);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xbe1d0 — HaloScript macro-function evaluate-then-finalize wrapper.
  * Evaluates a macro-function expression on a thread; when the evaluation
  * yields a result node (non-NULL record ptr in EAX), it forwards the first

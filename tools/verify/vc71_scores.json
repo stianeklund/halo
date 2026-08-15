@@ -9342,6 +9342,21 @@
       "score": 100.0,
       "source": "src/halo/game/players.c"
     },
+    "FUN_000be150": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xbe150",
+      "end": "0xbe185",
+      "kind": "auto",
+      "n_r": 24,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "1d27405ccf80b583",
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
     "FUN_000be1d0": {
       "addr": "0xbe1d0",
       "end": "0xbe202",
