@@ -36509,6 +36509,21 @@
       "score": 100.0,
       "source": "src/halo/scenario/scenario.c"
     },
+    "global_random_get_direction3d": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xbb290",
+      "end": "0xbb2a7",
+      "kind": "auto",
+      "n_r": 10,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "4ce99e3d3dc2f0ce",
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
     "global_scenario_get": {
       "addr": "0x18e380",
       "end": "0x18e3af",

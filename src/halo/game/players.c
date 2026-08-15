@@ -1115,6 +1115,25 @@ void players_handle_deleted_object(int object_handle)
   }
 }
 
+/* 0xbb290 -- Draw a uniformly distributed unit direction from the global
+ * random seed.
+ *
+ * Out-of-line copy of a random_math header helper, emitted into players.obj
+ * (its neighbour at 0xbb2b0, valid_real_vector2d, is another such copy).
+ *
+ * The whole body is ten instructions: the single cdecl parameter is loaded
+ * from [EBP+8] and pushed first (rightmost argument), then
+ * get_global_random_seed_address() supplies the seed pointer in EAX, which is
+ * pushed as the leading argument.  Right-to-left MSVC evaluation of the nested
+ * call reproduces that order exactly.  The seed accessor is declared as
+ * `int *` in kb.json while the consumer takes `unsigned int *`, hence the
+ * cast; no value is transformed. */
+void global_random_get_direction3d(float *out)
+{
+  random_seed_get_direction3d((unsigned int *)get_global_random_seed_address(),
+                              out);
+}
+
 /* Allocate and initialise a new player datum.
  *
  * local_player_index  (a1) -- which local player slot to assign; NONE (-1) is

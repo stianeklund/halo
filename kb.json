@@ -18178,7 +18178,8 @@
     },
     {
      "addr": "0xbb290",
-     "decl": "void FUN_000BB290(void);"
+     "decl": "void global_random_get_direction3d(float *out);",
+     "ported": true
     },
     {
      "addr": "0xbb2b0",
