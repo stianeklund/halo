@@ -1245,7 +1245,7 @@
     },
     {
      "addr": "0x1dbdec",
-     "comment": "LIBCMT _except_handler3 \u2014 VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
+     "comment": "LIBCMT _except_handler3 — VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
      "decl": "int __cdecl _except_handler3(void *ExceptionRecord, void *EstablisherFrame, void *ContextRecord, void *DispatcherContext);"
     },
     {
@@ -7241,7 +7241,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -7302,7 +7302,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
@@ -11547,7 +11547,7 @@
     },
     {
      "addr": "0xc4770",
-     "decl": "int FUN_000c4770(const void *a, const void *b);",
+     "decl": "int FUN_000c4770(file_ref_t *a, file_ref_t *b);",
      "ported": true
     },
     {
@@ -34563,13 +34563,13 @@
     },
     {
      "addr": "0x650e0",
- "decl": "int FUN_000650e0(void *tif, char *pp, int cc, int s);",
- "ported": true
+     "decl": "int FUN_000650e0(void *tif, char *pp, int cc, int s);",
+     "ported": true
     },
     {
      "addr": "0x65120",
- "decl": "int FUN_00065120(void *tif, char *pp, int cc, int s);",
- "ported": true
+     "decl": "int FUN_00065120(void *tif, char *pp, int cc, int s);",
+     "ported": true
     },
     {
      "addr": "0x65160",
