@@ -3823,6 +3823,74 @@ void FUN_000be0d0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xbe110 — HaloScript macro-function evaluate-then-finalize wrapper, direct
+ * sibling of FUN_000be0d0 above and FUN_000be1d0 below. Evaluates a
+ * macro-function expression on a thread; when the evaluation yields a result
+ * record (non-NULL ptr in EAX), it forwards the record's leading dword to
+ * FUN_000c99e0 and then commits a literal 0 back to the calling thread via
+ * hs_return(thread_datum, 0).
+ *
+ * players.obj groups this, but like its siblings it calls hs_runtime.obj's
+ * hs_macro_function_evaluate / hs_return, so it is co-located here.
+ *
+ * Plain cdecl (caller cleans, RET with no immediate at 0xbe141). Three stack
+ * params — Ghidra modelled this void(void), so they surfaced as
+ * in_stack_00000004/8/c pseudo-locals (lift-learnings 31, void-decl trap):
+ *   param1 @ EBP+0x8  = function_index (int16_t) -> ECX
+ *   param2 @ EBP+0xc  = thread_datum            -> ESI (held live across both
+ *                                                  calls, reused by hs_return)
+ *   param3 @ EBP+0x10 = init (char)             -> EAX
+ *
+ * Frame: PUSH EBP / MOV EBP,ESP / PUSH ESI only. No locals, no sub esp, no
+ * _chkstk, no FPU, no struct stores. 22 instructions, 0xbe110-0xbe141.
+ *
+ * CALL 0xcc560 @0xbe120 — PUSH EAX / PUSH ESI / PUSH ECX, reversed gives
+ * (function_index, thread_datum, init); self-contained ADD ESP,0xc at 0xbe125.
+ * TEST EAX,EAX / JZ 0xbe13f skips BOTH remaining calls, i.e. it is the NULL
+ * guard on the evaluation record — the record is only dereferenced inside the
+ * guard. hs_macro_function_evaluate is declared returning `int` in kb.json but
+ * the value is dereferenced here, so it is cast locally (do NOT change the kb
+ * decl), exactly as every twin in this family does.
+ *
+ * Record layout (EAX from call 1, only read when nonzero):
+ *   +0x0 DWORD: MOV EDX,dword ptr [EAX] at 0xbe12c. This is a FULL dword read,
+ *        unlike the 0xbe0d0 twin's XOR EDX,EDX / MOV DX 16-bit pair, so the
+ *        record pointer is `int *` and the argument is a plain `*record`.
+ *        This is the only field touched; one deref, no buffer-alias risk.
+ *
+ * CALL 0xc99e0 @0xbe12f — PUSH EDX at 0xbe12e is the single argument. Ghidra
+ * printed a 0-argument call and left the push dangling (dropped-arg trap);
+ * kb.json's decl was `void FUN_000c99e0(void)` and has been corrected to one
+ * cdecl arg. Width is `int`, not int16_t: the callee's own prologue is
+ * MOV ESI,[EBP+8] / CMP ESI,-1 — a full 32-bit compare against the NONE
+ * sentinel (contrast FUN_000c9990 at 0xc9990, whose CMP SI,-1 proves int16_t).
+ * It then forwards the same dword to 0xc98e0 and 0x140cc0.
+ *
+ * CALL 0xcbf80 @0xbe137 — PUSH 0x0 / PUSH ESI => hs_return(thread_datum, 0).
+ * hs_return's first argument is the PARAMETER thread_datum held in ESI, not
+ * any record field. ONE combined ADD ESP,0xc at 0xbe13c folds FUN_000c99e0's
+ * single dword with hs_return's two; an ARG_COUNT warning on 0xcbf80
+ * ("cleanup=3 stack args vs decl=2") is that merge — hs_return really takes 2
+ * args, do NOT "fix" its decl.
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0xc99e0 = FUN_000c99e0(int datum) — UNPORTED, semantics Uncertain; return
+ *             value (if any) discarded
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ */
+void FUN_000be110(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    FUN_000c99e0(*record);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xbe1d0 — HaloScript macro-function evaluate-then-finalize wrapper.
  * Evaluates a macro-function expression on a thread; when the evaluation
  * yields a result node (non-NULL record ptr in EAX), it forwards the first
