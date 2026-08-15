@@ -18232,7 +18232,8 @@
     },
     {
      "addr": "0xbc320",
-     "decl": "void player_handle_powerup(void);"
+     "decl": "bool player_handle_powerup(int player_handle, int16_t powerup_type, int16_t ticks);",
+     "ported": true
     },
     {
      "addr": "0xbc410",

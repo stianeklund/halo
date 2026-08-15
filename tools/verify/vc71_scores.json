@@ -43599,6 +43599,21 @@
       "score": 100.0,
       "source": "src/halo/game/players.c"
     },
+    "player_handle_powerup": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 93.2,
+      "addr": "0xbc320",
+      "end": "0xbc410",
+      "kind": "auto",
+      "n_r": 84,
+      "opnd_percent": 56.8,
+      "raw_mnemonic_pct": 93.2,
+      "ref": "synth",
+      "ref_sha": "458fd9ea23e63e67",
+      "score": 93.2,
+      "source": "src/halo/game/players.c"
+    },
     "player_index_from_unit_index": {
       "addr": "0xba500",
       "end": "0xba550",
@@ -43699,14 +43714,18 @@
       "source": "src/halo/game/players.c"
     },
     "player_set_action_result_for_equipment": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 88.6,
       "addr": "0xbcfb0",
       "end": "0xbd0fe",
       "kind": "auto",
       "n_r": 113,
-      "opnd_percent": 69.9,
+      "opnd_percent": 69.3,
+      "raw_mnemonic_pct": 88.6,
       "ref": "synth",
       "ref_sha": "9eadc95d1de722cb",
-      "score": 88.2,
+      "score": 88.6,
       "source": "src/halo/game/players.c"
     },
     "player_set_respawn_timer": {

@@ -1813,6 +1813,91 @@ typedef struct {
 /* player_action_t now lives in src/types.h, where cs()/co() asserts lock the
  * layout above. */
 
+/* Grant a powerup to a player, accumulating its duration (0xbc320).
+ *
+ * powerup_type selects the slot in the two-entry int16_t timer array at
+ * player+0x68 (0 = active camo, 1 = full spectrum vision); the assert string
+ * in .rdata names the bound NUMBER_OF_PLAYER_POWERUPS (== 2).
+ *
+ * Returns false (and grants nothing) only when the active-camo slot is
+ * requested while the unit already carries the camo-active flag (bit 0x10 at
+ * unit+0x1b4) -- i.e. camo cannot be re-picked-up while it is running.
+ *
+ * When the requested slot is currently empty the unit is marked as newly
+ * activated (flag 0x10, and the powerup type recorded at unit+0x3d2); when the
+ * slot is already counting down, the "refresh" flag 0x20 is set instead, but
+ * only outside the game engine (game_engine_running() short-circuits straight
+ * to the timer accumulation).  Both flag updates converge on a single dword
+ * store at unit+0x1b4, matching the shared `mov [eax+0x1b4],ecx` at 0xbc3fa.
+ *
+ * Sibling of player_set_respawn_timer (0xbc410), which stores max(cur, ticks)
+ * where this one accumulates with +=.
+ *
+ * Offsets are unproven raw offsets: player+0x34 unit handle, player+0x68
+ * powerup timer array, unit+0x1b4 flags dword, unit+0x3d2 powerup type. */
+bool player_handle_powerup(int player_handle, int16_t powerup_type,
+                           int16_t ticks)
+{
+  char *player;
+  char *unit_obj;
+  unsigned int flags;
+  int powerup_idx;
+
+  player = (char *)datum_get(player_data, player_handle);
+
+  /* NUMBER_OF_PLAYER_POWERUPS == 2.  Written De Morgan'd rather than via
+   * assert_halt_msg_at: the macro's `!(a >= 0 && a < 2)` makes VC71
+   * materialize the condition as a 0/1 value in EAX instead of emitting the
+   * original's two-branch `test si,si / jl` + `cmp si,2 / jl` (measured). */
+  if (powerup_type < 0 || powerup_type >= 2) {
+    display_assert("powerup_type>=0 && powerup_type<NUMBER_OF_PLAYER_POWERUPS",
+                   "c:\\halo\\SOURCE\\game\\players.c", 0xaea, 1);
+    system_exit(-1);
+  }
+
+  if (powerup_type == 0) {
+    /* Active camo: refuse if the camo-active flag is already set.  The
+     * original reads only the low byte of the flags dword here. */
+    unit_obj = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+    if ((*(unsigned char *)(unit_obj + 0x1b4) & 0x10) != 0)
+      return false;
+  }
+
+  powerup_idx = (int)powerup_type;
+
+  if (*(int16_t *)(player + 0x68 + powerup_idx * 2) == 0) {
+    /* Slot empty -- activate.  The player datum is re-fetched into its own
+     * local; the original reloads the global each time.  Inlining this into
+     * the object_get_and_verify_type argument costs 2 insns (measured). */
+    char *player2 = (char *)datum_get(player_data, player_handle);
+    unit_obj = (char *)object_get_and_verify_type(*(int *)(player2 + 0x34), 3);
+    if (powerup_idx != 0)
+      goto accumulate;
+    flags = *(unsigned int *)(unit_obj + 0x1b4) | 0x10;
+    /* `mov word ptr [eax+0x3d2], si` -- provably 0 on this path (guarded by
+     * the powerup_idx != 0 test just above), but written as the variable to
+     * keep the register shape; a literal 0 does not match.  Sourcing it from
+     * powerup_idx instead drops a spilled frame slot but costs 1.1pp of
+     * mnemonic match to VC71 tail-duplicating the epilogue (measured). */
+    *(int16_t *)(unit_obj + 0x3d2) = powerup_type;
+  } else {
+    /* Slot already counting down -- refresh flag, engine-side only. */
+    char *player3;
+    if (game_engine_running())
+      goto accumulate;
+    player3 = (char *)datum_get(player_data, player_handle);
+    unit_obj = (char *)object_get_and_verify_type(*(int *)(player3 + 0x34), 3);
+    if (powerup_idx != 0)
+      goto accumulate;
+    flags = *(unsigned int *)(unit_obj + 0x1b4) | 0x20;
+  }
+  *(unsigned int *)(unit_obj + 0x1b4) = flags;
+
+accumulate:
+  *(int16_t *)(player + 0x68 + powerup_idx * 2) += ticks;
+  return true;
+}
+
 /* Apply a powerup timer to a player. Despite the kb.json name "respawn_timer",
  * the binary assert and source path show this sets the powerup countdown at
  * player+0x68 (indexed by powerup_type: 0=active_camo, 1=full_spectrum).
@@ -2630,8 +2715,7 @@ void player_set_action_result_for_equipment(int player_handle,
       system_exit(-1);
     }
     /* Try to apply the powerup. */
-    if (!((bool (*)(int, int, int16_t))0xbc320)(player_handle, powerup_index,
-                                                ticks))
+    if (!player_handle_powerup(player_handle, (int16_t)powerup_index, ticks))
       return;
     /* Active camo (index 0) triggers a location notification. */
     if ((int16_t)powerup_index == 0) {
