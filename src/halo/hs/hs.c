@@ -8108,6 +8108,26 @@ bool hs_load_source_file(void *file_ref)
   return 1;
 }
 
+/* 0xc4770 — qsort comparator over an array of file_ref_t elements (0x10c
+ * stride, as produced by find_files).  Each argument is a file_ref_t *; the
+ * entry's name is extracted with flags=4 into a 256-byte stack buffer and the
+ * two names are compared case-insensitively.
+ *
+ * Ghidra prototypes this as `void FUN_000c4770(void)`: it drops both cdecl
+ * stack parameters (reported as in_stack_00000004/8) and the implicit EAX
+ * return.  The disassembly reads [EBP+0x8] and [EBP+0xC], and nothing writes
+ * EAX between the crt_stricmp CALL and RET, so stricmp's result falls through
+ * as the return value. */
+int FUN_000c4770(const void *a, const void *b)
+{
+  char name_a[256]; /* EBP-0x200 */
+  char name_b[256]; /* EBP-0x100 */
+
+  file_reference_get_name((file_ref_t *)a, 4, name_a);
+  file_reference_get_name((file_ref_t *)b, 4, name_b);
+  return crt_stricmp(name_a, name_b);
+}
+
 /* Check whether the scenario's HaloScript source files have changed on
  * disk since they were last compiled.  Searches for "data\global_scripts.hsc"
  * and all .hsc files in the scenario's "data\<mapname>\scripts\" directory.
@@ -8158,8 +8178,7 @@ bool hs_needs_recompile(void)
   count = find_files(0, (file_ref_t *)dir_ref, 8, (file_ref_t *)results);
 
   /* Sort the results by name using the comparison callback at 0xc4770 */
-  qsort((void *)results, (size_t)(int16_t)count, 0x10c,
-        (int (*)(const void *, const void *))0xc4770);
+  qsort((void *)results, (size_t)(int16_t)count, 0x10c, FUN_000c4770);
 
   if ((int16_t)count > 0) {
     ebx_ptr = results;

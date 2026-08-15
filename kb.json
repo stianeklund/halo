@@ -11547,7 +11547,8 @@
     },
     {
      "addr": "0xc4770",
-     "decl": "void FUN_000c4770(void);"
+     "decl": "int FUN_000c4770(const void *a, const void *b);",
+     "ported": true
     },
     {
      "addr": "0xc47c0",
