@@ -8369,6 +8369,33 @@ void FUN_000c4b60(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc4bb0 — HS script function handler: random real in range.
+ * Evaluates the macro arguments to get (min, max) reals from the
+ * hs_macro_function_evaluate result block (two 4-byte cells: [EAX] = min,
+ * [EAX+4] = max).  Advances the global random seed and returns a random
+ * real in [min, max] to the HS thread.
+ *
+ * The result is committed to the thread as RAW 4-byte BITS, not as an
+ * integer conversion: the original does FSTP [EBP-8]; MOV EDX,[EBP-8];
+ * PUSH EDX.  There is no _ftol2 / truncation anywhere in the reference, so
+ * the value is staged through a union rather than cast. */
+void FUN_000c4bb0(int16_t function_index, int thread_datum, char init)
+{
+  float *result;
+  union {
+    float real;
+    int bits;
+  } value;
+
+  result =
+    (float *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    value.real =
+      random_real_range(get_global_random_seed_address(), result[0], result[1]);
+    hs_return(thread_datum, value.bits);
+  }
+}
+
 /* Load scenario scripts from the scenario tag.  Allocates a fresh syntax
  * data table via hs_scripts_initialize, then either validates existing
  * compiled scripts or recompiles from source.  If the scenario has no
