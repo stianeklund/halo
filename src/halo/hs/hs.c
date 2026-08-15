@@ -7209,6 +7209,60 @@ void FUN_000c3660(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc37b0 — HaloScript function handler: evaluate this call's script arguments,
+ * then forward the two evaluated values to rasterizer_screen_effect_set_video
+ * and commit a void result to the calling thread.
+ *
+ * Ghidra mis-prototypes this as `void FUN_000c37b0(void)` and surfaces the
+ * three cdecl stack slots as in_stack_00000004/8/c.  Those are ordinary stack
+ * parameters, not register arguments; the kb decl is widened to the uniform
+ * handler shape every sibling in this TU uses:
+ *   [EBP+0x08] arg1 int16_t function_index  -> ECX
+ *   [EBP+0x0C] arg2 int     thread_datum    -> ESI (live across the body)
+ *   [EBP+0x10] arg3 char    init            -> EAX
+ *
+ * hs_macro_function_evaluate's kb decl returns `int`, but the returned value is
+ * dereferenced here as a pointer to the evaluated-argument block, exactly as in
+ * the sibling handlers.  Block layout, read straight from the disassembly:
+ *   +0x00  uint16  ; XOR EDX,EDX / MOV DX,word ptr [EAX]  (zero-extended)
+ *   +0x04  float   ; FLD dword ptr [EAX+0x4]
+ * Nothing else in the block is touched.
+ *
+ * Argument order for the 0x17db40 call is proven by the pushes, not by Ghidra
+ * (which drops both arguments because of the dummy-slot float idiom):
+ *   FLD dword ptr [EAX+0x4]   ; float loaded first
+ *   PUSH ECX / FSTP dword ptr [ESP]   ; dummy slot overwritten by the float =>
+ * arg2 PUSH EDX                          ; zero-extended uint16 => arg1 cdecl
+ * pushes last argument first, so the call is
+ * rasterizer_screen_effect_set_video(uint16_field, float_field).  Its kb decl
+ * was `void (void)` and is widened to `(int mode, float value)` to match; the
+ * callee is unported, so no implementation churn follows.
+ *
+ * ADD ESP,0x10 at 0xc37e6 is a single merged cleanup for BOTH trailing calls
+ * (8 bytes each); the "hs_return ARG_COUNT cleanup=4, decl=2" finding is that
+ * cdecl merge, not a wider hs_return.
+ *
+ * Frame is EBP-based with no locals and no _chkstk.  No struct writes, no
+ * buffers, no loops, no branches beyond the single NULL test.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560  = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0x17db40 = rasterizer_screen_effect_set_video(int, float)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c37b0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    rasterizer_screen_effect_set_video(*(uint16_t *)result,
+                                       *(float *)(result + 1));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc37f0 — HaloScript function handler: invoke the 0x17dc60 thunk.
  *
  * Structurally identical to the 0xc3550/0xc3570 handlers above: it takes no

@@ -11367,7 +11367,8 @@
     },
     {
      "addr": "0xc37b0",
-     "decl": "void FUN_000c37b0(void);"
+     "decl": "void FUN_000c37b0(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc37f0",
@@ -29894,7 +29895,7 @@
     },
     {
      "addr": "0x17db40",
-     "decl": "void rasterizer_screen_effect_set_video(void);"
+     "decl": "void rasterizer_screen_effect_set_video(int mode, float value);"
     },
     {
      "addr": "0x17dc60",
