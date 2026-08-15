@@ -11575,7 +11575,8 @@
     },
     {
      "addr": "0xc4b00",
-     "decl": "void hs_evaluate_by_name(void);"
+     "decl": "bool hs_evaluate_by_name(const char *name);",
+     "ported": true
     },
     {
      "addr": "0xc4b40",
