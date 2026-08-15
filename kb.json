@@ -11402,7 +11402,8 @@
     },
     {
      "addr": "0xc38d0",
-     "decl": "void FUN_000c38d0(void);"
+     "decl": "void FUN_000c38d0(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc3910",
@@ -17937,7 +17938,7 @@
     },
     {
      "addr": "0xe1770",
-     "decl": "void FUN_000e1770(void);"
+     "decl": "void FUN_000e1770(char invert);"
     }
    ],
    "name": "player_ui.obj",

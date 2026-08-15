@@ -7524,6 +7524,64 @@ void FUN_000c38b0(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc38d0 (hs.obj) — HaloScript handler for the script command
+ * "player0_look_invert_pitch" (help text "invert player0's look").  Identified
+ * from the hs_function_definition record at 0x2726dc, whose evaluate slot
+ * (+0x0c) is the only reference to this address in the XBE: return_type = 4
+ * (void), num_params = 1, param_types[0] = 5 (boolean), parse = 0xc7e50 (the
+ * shared single-argument parser used by this whole wrapper family).
+ *
+ * Shape is the standard macro-function wrapper: evaluate the one script
+ * argument, and on a non-NULL result record forward its boolean byte to the
+ * player_ui setter, then return void to the script thread.
+ *
+ * ABI (cdecl): frame is `PUSH EBP / MOV EBP,ESP / PUSH ESI` — no SUB ESP, no
+ * locals, no _chkstk, no buffers.  ESI holds thread_datum ([EBP+0x0C]) across
+ * the evaluate call.  The evaluate call pushes EAX(init), ESI(thread_datum),
+ * ECX(function_index) and is cleaned with its own `ADD ESP,0xC`, giving the C
+ * order hs_macro_function_evaluate(function_index, thread_datum, init).
+ *
+ * The `int` return of hs_macro_function_evaluate is used as a POINTER here:
+ * `TEST EAX,EAX / JZ` is the NULL check, and `XOR EDX,EDX / MOV DL,byte ptr
+ * [EAX]` zero-extends the first byte of the result record, which is the
+ * boolean argument.  Hence `char *result` and `*result`, matching the
+ * byte-deref sibling at 0xc23c0.
+ *
+ * The single `ADD ESP,0xC` after the hs_return call is a MERGED cleanup for
+ * FUN_000e1770's one push plus hs_return's two.  check_lift_hazards.py reports
+ * ARG_COUNT "cleanup=3 vs decl=2" against hs_return (0xcbf80) for this — it is
+ * a false positive; hs_return really takes two arguments.  Do not widen it.
+ *
+ * FUN_000e1770's kb.json declaration was `void FUN_000e1770(void)`, which is
+ * an under-declaration: the caller does `PUSH EDX` before the CALL with no
+ * cleanup of its own, so the callee consumes one stack argument.  A cdecl
+ * parameter the callee ignores is byte-identical to no parameter at all, so
+ * the callee body is not evidence against it — only this PUSH is.  Widened to
+ * `void FUN_000e1770(char invert)` (the boolean from the table above); the
+ * symbol is deliberately NOT renamed, and it has no other callers in src/.
+ *
+ * function_index ([EBP+0x08]) and init ([EBP+0x10]) are forwarded to the
+ * evaluator only.  Side-effect order is load-bearing: FUN_000e1770 runs BEFORE
+ * hs_return.  No FPU ops, no narrow loads, no struct stores, no SEH.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0xe1770 = FUN_000e1770(invert)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c38d0(int16_t function_index, int thread_datum, char init)
+{
+  char *result;
+
+  result =
+    (char *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (char *)0) {
+    FUN_000e1770(*result);
+    hs_return(thread_datum, 0);
+  }
+  return;
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
