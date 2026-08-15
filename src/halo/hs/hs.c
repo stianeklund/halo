@@ -7582,6 +7582,61 @@ void FUN_000c38d0(int16_t function_index, int thread_datum, char init)
   return;
 }
 
+/* HaloScript function handler at 0xc3910: queries the zero-argument predicate
+ * player0_look_pitch_is_inverted (0xe1050) and completes the calling script
+ * thread with that boolean as the script-visible result.
+ *
+ * Ghidra mis-prototypes this as `void FUN_000c3910(void)` and surfaces the one
+ * stack slot it can see as `in_stack_00000008`; that label is misleading — the
+ * MOV at 0xc3920 reads [EBP+0x0C], i.e. the SECOND cdecl stack slot, which is
+ * thread_datum under the handler convention every sibling in this TU uses.
+ * The kb decl was widened to the standard three-parameter shape rather than to
+ * the slots the body happens to touch: the dispatcher calls every handler in
+ * the table uniformly, and unread trailing cdecl params emit no code.  The
+ * symbol is deliberately NOT renamed, matching its siblings.
+ *
+ * ABI (verified 0xc3910-0xc3936 against the pristine XBE, 15 instructions):
+ * cdecl, plain RET, `PUSH EBP / MOV EBP,ESP / PUSH ECX` — one 4-byte local at
+ * [EBP-4], no callee-saved registers, no _chkstk, no buffers.  The CALL at
+ * 0xc391b has no pushes before it and no cleanup after, confirming the
+ * predicate takes zero arguments.  The `ADD ESP,0x8` at 0xc3930 is the cleanup
+ * for the single two-argument hs_return call only — not a merged cleanup, so
+ * there is no ARG_COUNT ambiguity.  Push order at 0xc3929-0xc392a is PUSH EAX
+ * (the result) then PUSH ECX (thread_datum); the first push is the last C
+ * argument, giving hs_return(thread_datum, result), not the reverse.  Unlike
+ * FUN_000c38d0 there is no NULL check — hs_return is unconditional.
+ *
+ * The result slot is written at TWO widths and that is load-bearing:
+ *   0xc3914  MOV dword ptr [EBP-4],0   <- whole slot zeroed
+ *   0xc3923  MOV byte  ptr [EBP-4],AL  <- only the LOW BYTE overwritten
+ *   0xc3926  MOV EAX,dword ptr [EBP-4] <- read back as a full dword
+ * This is MSVC's zero-then-byte-store widening of a 1-byte return into a
+ * 4-byte slot, so the value reaching hs_return is zero-extended, never
+ * sign-extended.  Writing it as a plain `int result = predicate();` would
+ * instead emit a MOVZX into a register and drop the stack slot, so the byte
+ * store is expressed explicitly through the slot's address.
+ *
+ * kb.json declared 0xe1050 as `void player0_look_pitch_is_inverted(void)`,
+ * which is an under-declaration: the callee is `MOV AL,byte ptr [0x46bf0b] /
+ * RET`, and 0xc3923 consumes AL immediately.  Widened to `unsigned char
+ * player0_look_pitch_is_inverted(void)`; it has no other callers in src/.
+ *
+ * function_index ([EBP+0x08]) and init ([EBP+0x10]) are never read here.
+ * No FPU ops, no narrow loads, no struct stores, no branches, no SEH.
+ *
+ * Callees (both cdecl, in kb.json, no register arguments):
+ *   0xe1050 = player0_look_pitch_is_inverted(void) -> bool in AL
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c3910(int16_t function_index, int thread_datum, char init)
+{
+  int result;
+
+  result = 0;
+  *(unsigned char *)&result = player0_look_pitch_is_inverted();
+  hs_return(thread_datum, result);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script

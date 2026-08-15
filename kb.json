@@ -11407,7 +11407,8 @@
     },
     {
      "addr": "0xc3910",
-     "decl": "void FUN_000c3910(void);"
+     "decl": "void FUN_000c3910(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc3940",
@@ -17906,7 +17907,7 @@
     },
     {
      "addr": "0xe1050",
-     "decl": "void player0_look_pitch_is_inverted(void);"
+     "decl": "unsigned char player0_look_pitch_is_inverted(void);"
     },
     {
      "addr": "0xe1060",
