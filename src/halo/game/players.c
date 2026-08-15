@@ -555,6 +555,57 @@ int16_t player_get_starting_location_count(void)
   return count;
 }
 
+/* Resolve one starting-location block element for `index`.
+ *
+ * Two independent lookups, in the original's order:
+ *   1. The scenario's own player-starting-locations block (scenario+0x354,
+ *      stride 0x34).  Bounds-checked against that block's count; on success
+ *      the element pointer is stashed in the single stack local [EBP-4],
+ *      which is pre-zeroed at 0xbaaf5 so an out-of-range index yields NULL.
+ *   2. If the AI-debug encounter selector (0x5ac9f4) is not NONE, the
+ *      selected encounter (scenario+0x42c, stride 0xb0, index = selector &
+ *      0xffff) is fetched and its own starting-locations block (encounter
+ *      +0xa4, stride 0x34) is bounds-checked with the same index.  When that
+ *      succeeds the encounter's 16-bit field at +0x7e is written into the
+ *      element's +0x12, but ONLY when it is in [0, scenario+0x5a4).  The
+ *      encounter element is returned either way -- the failed range check at
+ *      0xbab71/0xbab7e jumps to 0xbab8e, which is the shared tail with EAX
+ *      already holding the element (it does NOT fall back to [EBP-4]).
+ *
+ * Confirmed: cdecl, one stack arg loaded 16 bits wide (`MOV DI,word [EBP+8]`
+ *   at 0xbaaec, MOVSX to 32 bits at each use) -- the parameter is a short,
+ *   not an int.  Returns a pointer in EAX on all three RET paths; Ghidra
+ *   types the function void and drops the return (see hazard sec.16).
+ * Uncertain: the meaning of encounter+0x7e and scenario+0x5a4 (a count used
+ *   as an exclusive upper bound); no string or assert evidence for either. */
+void *player_get_starting_location(int16_t index)
+{
+  char *scenario;
+  char *encounter;
+  void *result;
+  void *elem;
+  int16_t value;
+
+  scenario = (char *)global_scenario_get();
+  result = NULL;
+  if (index >= 0 && index < *(int *)(scenario + 0x354)) {
+    result = tag_block_get_element(scenario + 0x354, index, 0x34);
+  }
+  if (*(int *)0x5ac9f4 != NONE) {
+    encounter = (char *)tag_block_get_element(scenario + 0x42c,
+                                              *(int *)0x5ac9f4 & 0xffff, 0xb0);
+    if (index >= 0 && index < *(int *)(encounter + 0xa4)) {
+      elem = tag_block_get_element(encounter + 0xa4, index, 0x34);
+      value = *(int16_t *)(encounter + 0x7e);
+      if (value >= 0 && value < *(int *)(scenario + 0x5a4)) {
+        *(int16_t *)((char *)elem + 0x12) = value;
+      }
+      return elem;
+    }
+  }
+  return result;
+}
+
 /* Spawn an object from a small placement record and attach it to a parent.
  *
  * record         (EDI) -- pointer to a record whose tag_index lives at +0xC.
