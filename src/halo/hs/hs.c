@@ -8305,6 +8305,43 @@ cleanup:
   return (bool)ok;
 }
 
+/* 0xc4b00 — Look up a scenario script by name and start its thread.
+ * Resolves the name through hs_find_script_by_name, then fetches the script
+ * element from the scripts tag_block at scenario+0x49c (element size 0x5c) and
+ * hands the thread/script index at element+0x24 to hs_runtime_execute.
+ *
+ * Ghidra prototypes this `void FUN_000c4b00(void)` and drops both the stack
+ * parameter (MOV EAX,[EBP+8] at 000c4b03) and the bool return (MOV AL,1 on the
+ * found path at 000c4b37 vs XOR AL,AL at 000c4b3b).  hs_runtime_execute's own
+ * int return is discarded here — the returned flag is the found/not-found
+ * status.  The ADD ESP,0x10 at 000c4b34 is one combined cdecl cleanup for
+ * tag_block_get_element (0xc) plus hs_runtime_execute (0x4). */
+bool hs_evaluate_by_name(const char *name)
+{
+  int16_t script_index;
+  void *element;
+
+  script_index = hs_find_script_by_name(name);
+  if (script_index != -1) {
+    /* global_scenario_get() is evaluated *inside* the argument list on purpose:
+     * cdecl pushes right-to-left, so 0x5c and the index are pushed first and
+     * the scenario pointer is produced last (CALL / ADD EAX,0x49c / PUSH EAX),
+     * which is the original's instruction order.  Hoisting it into a local
+     * forces the index to be spilled into a callee-saved register across the
+     * call, which the original never does. */
+    element = tag_block_get_element(
+      (void *)((char *)global_scenario_get() + 0x49c), (int)script_index, 0x5c);
+    hs_runtime_execute(*(int *)((char *)element + 0x24));
+
+    return 1;
+  }
+
+  /* The not-found epilogue is the out-of-line tail block (XOR AL,AL at
+   * 000c4b3b) reached by the JZ at 000c4b12 — written as an if/return rather
+   * than an early `return 0` so the bail-out stays out of line. */
+  return 0;
+}
+
 /* 0xc4b40 — HS console command handler: set the recompile flag.
  * Sets the global recompile flag at 0x46b6d8 to 1, then returns void
  * to the HS thread via hs_return(thread_datum, 0). */
