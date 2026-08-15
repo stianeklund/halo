@@ -34527,10 +34527,6 @@
      "ported": true
     },
     {
-     "addr": "0x64ec0",
-     "decl": "int FUN_00064ec0(int file, int field, void *value);"
-    },
-    {
      "addr": "0x64f50",
      "decl": "int FUN_00064f50(int file);",
      "ported": true
@@ -34589,6 +34585,11 @@
     {
      "addr": "0x64cd0",
      "decl": "int TIFFVGetFieldDefaulted(void *tif, unsigned int tag, char *ap);",
+     "ported": true
+    },
+    {
+     "addr": "0x64ec0",
+     "decl": "int TIFFGetFieldDefaulted(void *tif, unsigned int tag, ...);",
      "ported": true
     },
     {

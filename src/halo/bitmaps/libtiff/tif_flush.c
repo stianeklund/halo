@@ -1591,7 +1591,7 @@ unsigned long FUN_0006a310(void *tif, unsigned long h)
    * genuinely discarded: the next instruction (0x6a326) reloads the global
    * into EAX, and upstream ignores TIFFGetFieldDefaulted's result here too,
    * because the tag is defaulted and cannot fail. */
-  FUN_00064ec0((int)tif, TIFFTAG_ORIENTATION, &orientation);
+  TIFFGetFieldDefaulted(tif, TIFFTAG_ORIENTATION, &orientation);
 
   /* 0x6a326-0x6a336: `movzx eax, word ptr [0x3340f0]` -- note the load is
    * scheduled BEFORE the `add esp,0xc` -- then `dec eax; cmp eax,7; ja
