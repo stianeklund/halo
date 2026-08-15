@@ -7711,6 +7711,28 @@ void FUN_000c3970(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* HS script function handler: display a scenario help message.
+ *
+ * Evaluates the macro arguments; on success the returned block holds the
+ * help/string index as an int16 at +0x0.  0xc39cc-0xc39d1 emit
+ * `XOR EDX,EDX / MOV DX,word ptr [EAX] / PUSH EDX`, a zero-extended 16-bit
+ * load — Ghidra drops this argument entirely and shows `FUN_000e8e20()`.
+ * The callee's kb declaration already takes one int16 parameter.
+ *
+ * The single `ADD ESP,0xc` at 0xc39df is MSVC coalescing the cleanup for the
+ * 0xe8e20 push and hs_return's two pushes; hs_return still takes 2 args. */
+void FUN_000c39b0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    ui_widget_display_scenario_help(*(short *)result);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
