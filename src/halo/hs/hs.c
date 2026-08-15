@@ -7670,6 +7670,47 @@ void FUN_000c3940(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, result);
 }
 
+/* 0xc3970 — HaloScript function handler: writes a single byte setting taken
+ * from the evaluated macro-argument block.  Standard hs evaluator shape:
+ * hs_macro_function_evaluate(function_index, thread_datum, init) returns the
+ * argument block (NULL on failure/deferral), and on success the FIRST BYTE of
+ * that block is passed to the byte setter at 0xe3ca0 before the script thread
+ * is completed with hs_return(thread_datum, 0).
+ *
+ * ABI (verified 0xc3970-0xc39a3 against the pristine XBE, 20 instructions):
+ * cdecl, plain RET, no return value.  ESI caches [EBP+0xc] (thread_datum)
+ * across both calls.  Push order at 0xc397d-0xc397f is EAX([EBP+0x10]),
+ * ESI([EBP+0xc]), ECX([EBP+0x8]) so the left-to-right argument order to
+ * 0xcc560 is (function_index, thread_datum, init) — same as every sibling.
+ *
+ * Two kb.json under-declarations had to be corrected for this site:
+ *   - 0xcc560 is declared `int`, but 0xc398e does `MOV DL,byte ptr [EAX]`,
+ *     i.e. the result is dereferenced.  Cast at the call site, matching the
+ *     `(int *)` casts used by the 0xc0c30 family above.
+ *   - 0xe3ca0 was declared `void (void)`, but 0xc398c-0xc3990 emit
+ *     `XOR EDX,EDX / MOV DL,[EAX] / PUSH EDX`, one zero-extended byte
+ *     argument.  The callee is 6 instructions:
+ *       PUSH EBP / MOV EBP,ESP / MOV AL,byte ptr [EBP+8] /
+ *       MOV byte ptr [0x46cc84],AL / POP EBP / RET
+ *     confirming cdecl with exactly one byte parameter.  Widened to
+ *     `void ui_widget_debug_show_path(unsigned char value);` (name kept as
+ *     stored in kb.json — it is unproven and looks unrelated to hs).
+ *
+ * The single `ADD ESP,0xc` at 0xc399e is MSVC coalescing the cleanup for the
+ * 0xe3ca0 push and hs_return's two pushes; hs_return still takes 2 args.
+ */
+void FUN_000c3970(int16_t function_index, int thread_datum, char init)
+{
+  unsigned char *result;
+
+  result = (unsigned char *)hs_macro_function_evaluate(function_index,
+                                                       thread_datum, init);
+  if (result != NULL) {
+    ui_widget_debug_show_path(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script

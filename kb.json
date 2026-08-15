@@ -11417,7 +11417,8 @@
     },
     {
      "addr": "0xc3970",
-     "decl": "void FUN_000c3970(void);"
+     "decl": "void FUN_000c3970(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc39b0",
@@ -26045,7 +26046,7 @@
     },
     {
      "addr": "0xe3ca0",
-     "decl": "void ui_widget_debug_show_path(void);"
+     "decl": "void ui_widget_debug_show_path(unsigned char value);"
     },
     {
      "addr": "0xe3cb0",
