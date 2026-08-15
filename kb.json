@@ -18183,7 +18183,8 @@
     },
     {
      "addr": "0xbb2b0",
-     "decl": "void valid_real_vector2d(void);"
+     "decl": "int valid_real_vector2d(float *v);",
+     "ported": true
     },
     {
      "addr": "0xbb2f0",

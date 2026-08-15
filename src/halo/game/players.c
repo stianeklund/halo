@@ -1134,6 +1134,50 @@ void global_random_get_direction3d(float *out)
                               out);
 }
 
+/* 0xbb2b0 -- Reject a 2D vector that contains a NaN or an infinity.
+ *
+ * Out-of-line copy of a math-header helper emitted into players.obj, like its
+ * neighbour at 0xbb290.  Returns 1 when both components are finite, 0 when
+ * either one is not.  An IEEE 754 single with an all-ones exponent field
+ * (0x7f800000) is a NaN or an infinity, which is the only test performed --
+ * the mantissa is never examined, so the two cases are not distinguished.
+ *
+ * The scratch copy is not redundant.  The original loads each component into
+ * a register, stores it back over the incoming parameter slot at [EBP+8], and
+ * only then masks and compares the register copy; the prologue is just
+ * `PUSH EBP / MOV EBP,ESP`, with no frame of its own.  That dead store is
+ * MSVC materialising an address-taken rvalue temporary in the parameter home
+ * slot, which goes dead as soon as the pointer is live in EAX.  Writing the
+ * test as a direct `((uint32_t *)v)[i]` reinterpret (as the 3D sibling
+ * valid_real_point3d at 0xa16b0 does) drops both the register copy and the
+ * store, losing four of the twenty instructions.
+ *
+ * Returns int rather than bool: the original returns through the five-byte
+ * `MOV EAX,1` / `XOR EAX,EAX` pair, i.e. a four-byte return value.  A
+ * byte-wide bool (typedef unsigned char) would return through `MOV AL,1`.
+ * This matches the declared return of the 2D normal sibling at 0x28610.
+ *
+ * The tests are nested rather than written as two guard clauses returning 0
+ * early.  The original branches with `JZ` to a single shared
+ * `XOR EAX,EAX / POP EBP / RET` tail at 0xbb2e8, letting the finite case fall
+ * through into the next component, so the accepting path is the fall-through
+ * arm and the rejecting path is the sunk one.  Two `if (bad) return 0;` guard
+ * clauses invert that, emitting `JNZ` around a return materialised inline at
+ * each test. */
+int valid_real_vector2d(float *v)
+{
+  float component;
+
+  component = v[0];
+  if ((*(uint32_t *)&component & 0x7f800000) != 0x7f800000) {
+    component = v[1];
+    if ((*(uint32_t *)&component & 0x7f800000) != 0x7f800000)
+      return 1;
+  }
+
+  return 0;
+}
+
 /* Allocate and initialise a new player datum.
  *
  * local_player_index  (a1) -- which local player slot to assign; NONE (-1) is

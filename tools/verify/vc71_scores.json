@@ -51362,6 +51362,21 @@
       "score": 90.7,
       "source": "src/halo/bitmaps/bitmap_utilities.c"
     },
+    "valid_real_vector2d": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xbb2b0",
+      "end": "0xbb2ec",
+      "kind": "auto",
+      "n_r": 21,
+      "opnd_percent": 81.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "77e08368c2d68623",
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
     "valid_real_vector3d_axes3": {
       "addr": "0xf6c40",
       "end": "0xf6cf7",
