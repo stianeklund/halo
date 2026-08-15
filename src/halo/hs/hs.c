@@ -7754,6 +7754,45 @@ void FUN_000c39f0(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc3a10 — HS built-in evaluator, sibling of FUN_000c39f0 above.  Evaluates a
+ * single macro-function argument via hs_macro_function_evaluate; while that
+ * returns NULL the evaluation is still pending and nothing is committed on this
+ * call.  Once it yields a non-NULL result record, the first dword of the record
+ * (a string pointer) is forwarded to xbox_set_machine_name and the calling
+ * thread is committed with hs_return(thread_datum, 0).
+ *
+ * Plain cdecl (caller cleans, RET with no immediate).  Three stack params, the
+ * standard hs builtin triple used by every sibling in this file:
+ *   param1 @ EBP+0x8  = function_index (int16_t), loaded into ECX
+ *   param2 @ EBP+0xc  = thread_datum, held in ESI across both calls
+ *   param3 @ EBP+0x10 = init (char), loaded into EAX
+ * Frame is PUSH EBP / MOV EBP,ESP / PUSH ESI — no locals, no `sub esp`.
+ *
+ * Ghidra mis-prototypes this as `void FUN_000c3a10(void)` and surfaces the
+ * three arguments as in_stack_00000004/8/c phantoms.
+ *
+ * Callees (all in kb.json):
+ *   0xcc560  = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *              -> result record ptr in EAX (NULL while evaluation pending)
+ *   0x12aa80 = xbox_set_machine_name(record[0]) — MOV EDX,[EAX]; PUSH EDX at
+ *              0xc3a2d before the CALL, so the record is dereferenced.
+ *   0xcbf80  = hs_return(thread_datum, 0)
+ *
+ * The single ADD ESP,0xc at 0xc3a3c coalesces the cleanup for both tail calls
+ * (1 dword + 2 dwords); the ARG_COUNT hazard this raises on hs_return is a
+ * false positive — the disassembly shows exactly two pushes for it. */
+void FUN_000c3a10(int16_t function_index, int thread_datum, char init)
+{
+  const char **record;
+
+  record = (const char **)hs_macro_function_evaluate(function_index,
+                                                     thread_datum, init);
+  if (record != 0) {
+    xbox_set_machine_name(*record);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
