@@ -7906,6 +7906,33 @@ int16_t hs_find_script_by_name(const char *name)
   return -1;
 }
 
+/* 0xc3db0 — Find a scenario tag reference by tag index. Iterates the references
+ * tag_block at scenario+0x4b4 (element size 0x28), comparing element+0x24.
+ * Returns the zero-based reference index, or -1 if not found. */
+int16_t hs_find_tag_reference_by_index(int tag_index)
+{
+  int16_t i;
+  char *scenario;
+  int *references;
+  void *element;
+
+  if (*(int *)0x326a08 != -1) {
+    scenario = (char *)global_scenario_get();
+    references = (int *)(scenario + 0x4b4);
+    i = 0;
+    if (*references > 0) {
+      do {
+        element = tag_block_get_element(references, (int)i, 0x28);
+        if (*(int *)((char *)element + 0x24) == tag_index)
+          return i;
+        i++;
+      } while ((int)i < *references);
+    }
+  }
+
+  return -1;
+}
+
 /* 0xc3e10 — Bounds-checked accessor for the external-global descriptor table.
  * Table at 0x2f3708, count at 0x27d504. */
 void *hs_external_global_get(int16_t global_index)

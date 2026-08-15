@@ -11471,7 +11471,8 @@
     },
     {
      "addr": "0xc3db0",
-     "decl": "void hs_find_tag_reference_by_index(void);"
+     "decl": "int16_t hs_find_tag_reference_by_index(int tag_index);",
+     "ported": true
     },
     {
      "addr": "0xc3e10",
