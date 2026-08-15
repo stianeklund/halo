@@ -18094,7 +18094,8 @@
     },
     {
      "addr": "0xbaa90",
-     "decl": "void player_get_starting_location_count(void);"
+     "decl": "int16_t player_get_starting_location_count(void);",
+     "ported": true
     },
     {
      "addr": "0xbaae0",

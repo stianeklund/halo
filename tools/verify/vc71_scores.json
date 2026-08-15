@@ -43539,6 +43539,21 @@
       "score": 79.3,
       "source": "src/halo/game/players.c"
     },
+    "player_get_starting_location_count": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xbaa90",
+      "end": "0xbaad6",
+      "kind": "auto",
+      "n_r": 22,
+      "opnd_percent": 90.9,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "cb16f5bcfa9e82ec",
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
     "player_index_from_unit_index": {
       "addr": "0xba500",
       "end": "0xba550",

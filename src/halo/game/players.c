@@ -522,6 +522,39 @@ void player_control_fix_for_loaded_game_state(void)
   }
 }
 
+/* Number of player starting locations available for the current spawn set.
+ *
+ * The default count is the scenario's 16-bit starting-location count at
+ * scenario+0x354 (`MOV SI,word ptr [EAX+0x354]` at 0xbaa9f -- a WORD load,
+ * cached in SI before the branch).  When the campaign encounter selector
+ * (DAT 0x5ac9f4) is not NONE, the selected encounter block element
+ * (block at scenario+0x42c, stride 0xb0, index = selector & 0xffff) can
+ * override it with its +0xa4 field, but only when that field is positive
+ * (`MOV ECX,[EAX+0xa4]` / TEST / JLE at 0xbaabf -- a 32-bit load, then
+ * `MOV AX,CX` truncates to 16 bits).
+ *
+ * Confirmed: cdecl, no args, no stack frame (PUSH ESI / POP ESI only);
+ *   returns int16_t in AX.  Ghidra types this void and drops the return.
+ * This is the exact idiom inlined at the head of
+ * find_best_starting_location_index (0xbbbe0). */
+int16_t player_get_starting_location_count(void)
+{
+  char *scenario;
+  char *elem;
+  int16_t count;
+
+  scenario = (char *)global_scenario_get();
+  count = *(int16_t *)(scenario + 0x354);
+  if (*(int *)0x5ac9f4 != NONE) {
+    elem = (char *)tag_block_get_element(scenario + 0x42c,
+                                         *(int *)0x5ac9f4 & 0xffff, 0xb0);
+    if (*(int *)(elem + 0xa4) > 0) {
+      count = (int16_t) * (int *)(elem + 0xa4);
+    }
+  }
+  return count;
+}
+
 /* Spawn an object from a small placement record and attach it to a parent.
  *
  * record         (EDI) -- pointer to a record whose tag_index lives at +0xC.

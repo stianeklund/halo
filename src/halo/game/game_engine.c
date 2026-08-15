@@ -5151,7 +5151,7 @@ void FUN_000ae400(int16_t param_1, int param_2, int16_t param_3, int param_4)
   int count;
   int i;
 
-  total_flags = ((int16_t(*)(void))player_get_starting_location_count)();
+  total_flags = player_get_starting_location_count();
   count = 0;
   i = 0;
   if (0 < total_flags) {
@@ -6890,7 +6890,7 @@ int FUN_000b05c0(void)
   }
   variant = (int)game_engine_get_variant();
   *(int *)0x456b8c = *(int *)(variant + 0x40);
-  loc_count = ((int16_t(*)(void))player_get_starting_location_count)();
+  loc_count = player_get_starting_location_count();
   loc_idx = 0;
   if (0 < loc_count) {
     team = 0;
