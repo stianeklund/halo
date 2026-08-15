@@ -43183,6 +43183,21 @@
       "score": 100.0,
       "source": "src/halo/game/player_control.c"
     },
+    "player_control_fix_for_loaded_game_state": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xba970",
+      "end": "0xbaa83",
+      "kind": "auto",
+      "n_r": 97,
+      "opnd_percent": 97.9,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "7ccbac51e53bf8c0",
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
     "player_control_get_aiming_unit_index": {
       "addr": "0xb65c0",
       "end": "0xb6613",

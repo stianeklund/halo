@@ -453,6 +453,75 @@ void FUN_000ba890(int player_index, int param_2)
   }
 }
 
+/* Repair player control after a saved game is restored.
+ *
+ * The single-player controller (player_ui_get_single_player_local_player_
+ * controller(0)) may come back with no player bound to it.  When that is the
+ * case, and the map was loaded with player_spawn_count == 1, scan the local
+ * player slots for the one that DOES own a player record and migrate that
+ * player onto the controller: clear the old slot, hand its unit
+ * (player+0x34) to the controller, then fix up the HUD (FUN_000d98c0, in
+ * interface/hud_weapon.c) and FUN_000d7780.
+ *
+ * Structure notes derived from the disassembly at 0xba970:
+ *  - the slot read inside the loop is the INLINED body of
+ *    local_player_get_player_index (assert + NONE guard + slot load); the
+ *    out-of-line call is not used here, so the idiom is written out.
+ *  - a single `ADD ESP,0x40` at 0xbaa4c is the MERGED cdecl cleanup for all
+ *    eight calls in the loop body.  Ghidra attributes it to the last call and
+ *    invents four varargs on the `error` call and none on FUN_000d98c0; the
+ *    disassembly (PUSH EDI / PUSH ESI at 0xbaa32) is authoritative.
+ *  - at 0xbaa1e EDI still holds player_index and is pushed as the second
+ *    argument, then reloaded from [EBP-4] at 0xbaa1f for the first argument;
+ *    the two pushes are NOT the same value.
+ * No FPU ops, no buffers, no struct stores. */
+void player_control_fix_for_loaded_game_state(void)
+{
+  int16_t local_player_index;
+  int16_t new_local_player;
+  int player_index;
+  char *player;
+
+  new_local_player = player_ui_get_single_player_local_player_controller(0);
+  if (new_local_player == NONE)
+    new_local_player = 0;
+
+  if (local_player_get_player_index(new_local_player) == NONE) {
+    if (player_spawn_count == 1) {
+      for (local_player_index = 0;
+           local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS;
+           local_player_index++) {
+        assert_halt(local_player_index >= NONE &&
+                    local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+        if (local_player_index != NONE) {
+          player_index =
+            *(int *)&players_globals->unk_0[4 + local_player_index * 4];
+          if (player_index != NONE) {
+            player = (char *)datum_get(player_data, player_index);
+            local_player_set_player_index(local_player_index, NONE);
+            player_control_new_unit(local_player_index, NONE);
+            local_player_set_player_index(new_local_player, player_index);
+            player_control_new_unit(new_local_player, *(int *)(player + 0x34));
+            FUN_000d98c0(local_player_index, new_local_player);
+            FUN_000d7780(local_player_index, new_local_player);
+            error(2, "corrected player control for restored saved game");
+            break;
+          }
+        }
+      }
+      if (local_player_index == MAXIMUM_NUMBER_OF_LOCAL_PLAYERS)
+        error(2, "failed to correct player control for restored saved "
+                 "game... probably won't be able to control the player");
+    } else {
+      error(2,
+            "tried to fix broken player control for a game w/ "
+            "player_spawn_count= %d... but we don't allow restored games for "
+            "anything other than player_spawn_count= 1",
+            player_spawn_count);
+    }
+  }
+}
+
 /* Spawn an object from a small placement record and attach it to a parent.
  *
  * record         (EDI) -- pointer to a record whose tag_index lives at +0xC.
