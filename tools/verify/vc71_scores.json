@@ -43657,14 +43657,18 @@
       "source": "src/halo/game/players.c"
     },
     "player_spawn": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 92.3,
       "addr": "0xbbcb0",
       "end": "0xbbfd4",
       "kind": "auto",
       "n_r": 255,
-      "opnd_percent": 62.8,
+      "opnd_percent": 66.9,
+      "raw_mnemonic_pct": 92.3,
       "ref": "synth",
       "ref_sha": "5e658738cc5e3f32",
-      "score": 92.0,
+      "score": 92.3,
       "source": "src/halo/game/players.c"
     },
     "player_teleport": {
@@ -43940,6 +43944,21 @@
       "ref": "synth",
       "ref_sha": "a588b8b67e385cd0",
       "score": 91.0,
+      "source": "src/halo/game/players.c"
+    },
+    "players_set_local_player_unit": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 93.4,
+      "addr": "0xba5f0",
+      "end": "0xba6a4",
+      "kind": "auto",
+      "n_r": 62,
+      "opnd_percent": 86.9,
+      "raw_mnemonic_pct": 93.4,
+      "ref": "synth",
+      "ref_sha": "b3c694366de7ceb7",
+      "score": 93.4,
       "source": "src/halo/game/players.c"
     },
     "players_unzoom_all": {

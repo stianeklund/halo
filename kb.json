@@ -18044,7 +18044,8 @@
     },
     {
      "addr": "0xba5f0",
-     "decl": "void players_set_local_player_unit(int player_index, int unit_handle);"
+     "decl": "void players_set_local_player_unit(int player_index, int unit_handle);",
+     "ported": true
     },
     {
      "addr": "0xba6b0",

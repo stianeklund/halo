@@ -243,6 +243,48 @@ bool players_are_all_dead(void)
   return *((char *)players_globals + 0x28);
 }
 
+/* Hand a local player a new controlled unit (or NONE to drop the current one).
+ *
+ * Despite the kb.json parameter name, the first argument is a LOCAL player
+ * index: every call site pushes it straight into player_control_* and
+ * local_player_get_player_index, all of which take a local-player index.
+ * The disassembly pushes the full dword (PUSH EDI) at each site, so the
+ * int16_t/uint16_t callee prototypes do the narrowing.
+ *
+ * Object field +0x1c8 is the unit's "controlling player index": cleared to
+ * NONE on the outgoing unit, set to this local player's player index on the
+ * incoming one.  Player fields +0x34 / +0x38 are the current and previous
+ * unit handles.
+ *
+ * local_player_get_player_index is deliberately called TWICE (0xba67f and
+ * 0xba689 in the original); do not CSE it into one call. */
+void players_set_local_player_unit(int local_player_index, int unit_handle)
+{
+  int old_unit;
+  char *unit;
+  char *player;
+
+  old_unit = player_control_get_unit_index(local_player_index);
+  assert_halt_msg_at("game_connection()==_game_connection_local",
+                     "c:\\halo\\SOURCE\\game\\players.c", 0x420,
+                     game_connection() == 0);
+  if (old_unit != NONE) {
+    unit = (char *)object_get_and_verify_type(old_unit, 3);
+    *(int *)(unit + 0x1c8) = NONE;
+    unit_set_actively_controlled(old_unit, 0);
+  }
+  if (unit_handle != NONE) {
+    unit = (char *)object_get_and_verify_type(unit_handle, 3);
+    unit_set_actively_controlled(unit_handle, 1);
+    *(int *)(unit + 0x1c8) = local_player_get_player_index(local_player_index);
+  }
+  player = (char *)datum_get(player_data,
+                             local_player_get_player_index(local_player_index));
+  *(int *)(player + 0x34) = unit_handle;
+  *(int *)(player + 0x38) = NONE;
+  player_control_new_unit(local_player_index, unit_handle);
+}
+
 void *players_get_combined_pvs_local(void)
 {
   return (char *)players_globals + 0x70;
@@ -1208,7 +1250,7 @@ int find_best_starting_location_index(int player_index)
  *      object_placement_data_new + object_new_from_placement_data.
  *
  * Structurally faithful lift of the original FUN_bbcb0.  Helper addresses
- * (0xbbbe0, 0xbaae0, 0xbaba0, 0xba5f0, 0x10cc70, 0x13fc20, 0x13fb30,
+ * (0xbbbe0, 0xbaae0, 0xbaba0, 0x10cc70, 0x13fc20, 0x13fb30,
  * 0x13ffc0, 0x140cc0, 0x143c80, 0x1adeb0, 0x1adf10, 0xbb410, 0xa99a0,
  * 0x8aa30) are not yet in kb.json; invoked by address to keep the lift
  * narrowly scoped.
@@ -1274,8 +1316,8 @@ void player_spawn(int player_handle)
     }
     ((void (*)(int))0x13fb30)(saved_unit);
     object_set_garbage(saved_unit, 1);
-    ((void (*)(uint16_t, int))0xba5f0)((uint16_t) * (int16_t *)(player + 2),
-                                       saved_unit);
+    players_set_local_player_unit((uint16_t) * (int16_t *)(player + 2),
+                                  saved_unit);
     if (prev_weapon != NONE) {
       object_set_garbage(prev_weapon, 1);
     }
