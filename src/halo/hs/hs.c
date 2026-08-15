@@ -7711,6 +7711,88 @@ void FUN_000c3970(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* HS script function handler: display a scenario help message.
+ *
+ * Evaluates the macro arguments; on success the returned block holds the
+ * help/string index as an int16 at +0x0.  0xc39cc-0xc39d1 emit
+ * `XOR EDX,EDX / MOV DX,word ptr [EAX] / PUSH EDX`, a zero-extended 16-bit
+ * load — Ghidra drops this argument entirely and shows `FUN_000e8e20()`.
+ * The callee's kb declaration already takes one int16 parameter.
+ *
+ * The single `ADD ESP,0xc` at 0xc39df is MSVC coalescing the cleanup for the
+ * 0xe8e20 push and hs_return's two pushes; hs_return still takes 2 args. */
+void FUN_000c39b0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    ui_widget_display_scenario_help(*(short *)result);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* HS script function handler: no-argument builtin that performs a single
+ * engine action and returns void to the calling script thread.
+ *
+ * Unlike its siblings this stub never calls hs_macro_function_evaluate — it
+ * takes no script arguments — so the whole body is:
+ *   CALL 0x0012a7a0            ; plain cdecl void(void), no arguments
+ *   MOV EAX,[EBP+0xc]          ; SECOND stack slot = thread_datum
+ *   PUSH 0x0 / PUSH EAX / CALL hs_return / ADD ESP,0x8
+ * Ghidra mis-prototypes it as `void FUN_000c39f0(void)` and reports the
+ * hs_return argument as `in_stack_00000008` ([EBP+8]); the disassembly loads
+ * from [EBP+0xc], so the value forwarded is the second cdecl argument.  The
+ * parameter list is the hs builtin triple used by every sibling in this file;
+ * `function_index` and `init` are unread here (this builtin ignores the init
+ * pass), which is why the frame is the bare PUSH EBP / MOV EBP,ESP with no
+ * locals and no `sub esp`. */
+void FUN_000c39f0(int16_t function_index, int thread_datum, char init)
+{
+  FUN_0012a7a0();
+  hs_return(thread_datum, 0);
+}
+
+/* 0xc3a10 — HS built-in evaluator, sibling of FUN_000c39f0 above.  Evaluates a
+ * single macro-function argument via hs_macro_function_evaluate; while that
+ * returns NULL the evaluation is still pending and nothing is committed on this
+ * call.  Once it yields a non-NULL result record, the first dword of the record
+ * (a string pointer) is forwarded to xbox_set_machine_name and the calling
+ * thread is committed with hs_return(thread_datum, 0).
+ *
+ * Plain cdecl (caller cleans, RET with no immediate).  Three stack params, the
+ * standard hs builtin triple used by every sibling in this file:
+ *   param1 @ EBP+0x8  = function_index (int16_t), loaded into ECX
+ *   param2 @ EBP+0xc  = thread_datum, held in ESI across both calls
+ *   param3 @ EBP+0x10 = init (char), loaded into EAX
+ * Frame is PUSH EBP / MOV EBP,ESP / PUSH ESI — no locals, no `sub esp`.
+ *
+ * Ghidra mis-prototypes this as `void FUN_000c3a10(void)` and surfaces the
+ * three arguments as in_stack_00000004/8/c phantoms.
+ *
+ * Callees (all in kb.json):
+ *   0xcc560  = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *              -> result record ptr in EAX (NULL while evaluation pending)
+ *   0x12aa80 = xbox_set_machine_name(record[0]) — MOV EDX,[EAX]; PUSH EDX at
+ *              0xc3a2d before the CALL, so the record is dereferenced.
+ *   0xcbf80  = hs_return(thread_datum, 0)
+ *
+ * The single ADD ESP,0xc at 0xc3a3c coalesces the cleanup for both tail calls
+ * (1 dword + 2 dwords); the ARG_COUNT hazard this raises on hs_return is a
+ * false positive — the disassembly shows exactly two pushes for it. */
+void FUN_000c3a10(int16_t function_index, int thread_datum, char init)
+{
+  const char **record;
+
+  record = (const char **)hs_macro_function_evaluate(function_index,
+                                                     thread_datum, init);
+  if (record != 0) {
+    xbox_set_machine_name(*record);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
@@ -7819,6 +7901,33 @@ int16_t hs_find_script_by_name(const char *name)
     element = tag_block_get_element((void *)(scenario + 0x49c), (int)i, 0x5c);
     if (csstrcmp(name, (const char *)element) == 0)
       return i;
+  }
+
+  return -1;
+}
+
+/* 0xc3db0 — Find a scenario tag reference by tag index. Iterates the references
+ * tag_block at scenario+0x4b4 (element size 0x28), comparing element+0x24.
+ * Returns the zero-based reference index, or -1 if not found. */
+int16_t hs_find_tag_reference_by_index(int tag_index)
+{
+  int16_t i;
+  char *scenario;
+  int *references;
+  void *element;
+
+  if (*(int *)0x326a08 != -1) {
+    scenario = (char *)global_scenario_get();
+    references = (int *)(scenario + 0x4b4);
+    i = 0;
+    if (*references > 0) {
+      do {
+        element = tag_block_get_element(references, (int)i, 0x28);
+        if (*(int *)((char *)element + 0x24) == tag_index)
+          return i;
+        i++;
+      } while ((int)i < *references);
+    }
   }
 
   return -1;

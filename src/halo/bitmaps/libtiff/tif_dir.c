@@ -108,8 +108,9 @@
 #define RESUNIT_NONE 1 /* CMP EDI,0x1 at 0x65641 */
 #define RESUNIT_CENTIMETER 3 /* CMP EDI,0x3 at 0x6564a */
 #define SAMPLEFORMAT_UINT 1 /* CMP EDI,0x1 at 0x65847 */
-#define SAMPLEFORMAT_VOID 4 /* MOV EDI,0x4 at 0x65840, CMP EDI,0x4 at 0x6584c \
-                             */
+#define SAMPLEFORMAT_VOID                             \
+  4 /* MOV EDI,0x4 at 0x65840, CMP EDI,0x4 at 0x6584c \
+     */
 #define EXTRASAMPLE_ASSOCALPHA 1 /* CMP EDI,0x1 at 0x6572b */
 
 /* Partial view of the TIFF handle. The fuller recovery of this struct lives in
@@ -353,6 +354,34 @@ int TIFFVGetFieldDefaulted(void *tif_, unsigned int tag, va_list ap)
 
   /* 0x64e3e. */
   return 0;
+}
+
+/* TIFFGetFieldDefaulted (0x64ec0) -- upstream libtiff tif_aux.c, transcribed
+ * verbatim rather than reshaped from the decompiler (Ghidra dropped the
+ * signature entirely and reported `void FUN_00064ec0(void)`).
+ *
+ * The whole body is 13 instructions with no `sub esp`:
+ *   0x64ec3 MOV ECX,[EBP+0xc]   ; tag
+ *   0x64ec6 MOV EDX,[EBP+0x8]   ; tif
+ *   0x64ec9 LEA EAX,[EBP+0x10]  ; &first vararg == va_start(ap, tag)
+ *   0x64ecc PUSH EAX / PUSH ECX / PUSH EDX
+ *   0x64ecf CALL 0x64cd0 / ADD ESP,0xc / POP EBP / RET
+ * The LEA is what proves the ABI is variadic: the third pushed dword is the
+ * ADDRESS of the first vararg slot, not the third parameter's value. kb.json
+ * previously declared this as a fixed `int FUN_00064ec0(int, int, void *)`,
+ * which would have passed the caller's out-pointer by value and left the
+ * callee one level of indirection short. EAX is untouched between the CALL
+ * and the RET, so the return is a straight passthrough. ECX/EDX are only
+ * scheduling scratch for the pushes -- this is not a register-arg function. */
+int TIFFGetFieldDefaulted(void *tif, unsigned int tag, ...)
+{
+  int ok;
+  va_list ap;
+
+  va_start(ap, tag);
+  ok = TIFFVGetFieldDefaulted(tif, tag, ap);
+  va_end(ap);
+  return (ok);
 }
 
 /* ---------------------------------------------------------------------------

@@ -218,9 +218,9 @@ const char *tiff_import(file_ref_t *info, void **bitmap_out,
     tiff = FUN_0006d8e0(file_reference_get_name(info, 0xd, path), "r");
     if (tiff != 0) {
       scanline_size = TIFFScanlineSize(tiff);
-      FUN_00064ec0(tiff, 0x102, &bits_per_sample);
-      FUN_00064ec0(tiff, 0x112, &orientation);
-      FUN_00064ec0(tiff, 0x115, &samples_per_pixel);
+      TIFFGetFieldDefaulted((void *)tiff, 0x102, &bits_per_sample);
+      TIFFGetFieldDefaulted((void *)tiff, 0x112, &orientation);
+      TIFFGetFieldDefaulted((void *)tiff, 0x115, &samples_per_pixel);
       TIFFGetField(tiff, 0x11c, &planar_config);
       TIFFGetField(tiff, 0x106, &photometric);
       TIFFGetField(tiff, 0x100, &width);

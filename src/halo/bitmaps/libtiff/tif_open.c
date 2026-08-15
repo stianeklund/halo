@@ -77,7 +77,7 @@ int TIFFReadRGBAImage(void *tif, unsigned long rwidth, unsigned long rheight,
   unsigned long width, height;
   const char *photoname;
 
-  FUN_00064ec0((int)tif, TIFFTAG_BITSPERSAMPLE, &bitspersample);
+  TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &bitspersample);
   switch (bitspersample) {
   case 1:
   case 2:
@@ -90,7 +90,7 @@ int TIFFReadRGBAImage(void *tif, unsigned long rwidth, unsigned long rheight,
                  bitspersample);
     return (0);
   }
-  FUN_00064ec0((int)tif, TIFFTAG_SAMPLESPERPIXEL, &samplesperpixel);
+  TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &samplesperpixel);
   switch (samplesperpixel) {
   case 1:
   case 3:
