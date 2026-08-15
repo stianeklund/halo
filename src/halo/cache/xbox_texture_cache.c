@@ -16,6 +16,16 @@
 #define HALO_TEXTURE_CACHE_STEALABLE_PAGES \
   (HALO_TEXTURE_CACHE_PAGE_COUNT - (HALO_TEXTURE_CACHE_STEAL_GUARD_PAGES * 2))
 
+/* texture_cache_delete (0x1be920)
+ *
+ * Teardown: dispose the bitmap-entry data array, then the LRU-vector cache.
+ * Order is load-bearing (the data array holds cache-block indices). */
+void texture_cache_delete(void)
+{
+  data_dispose(*(data_t **)0x4ea978);
+  lruv_cache_dispose(*(void **)0x4ea980);
+}
+
 void *xbox_texture_cache_steal_memory(unsigned int size)
 {
   int page_count = ((int)size / HALO_TEXTURE_CACHE_PAGE_SIZE) + 1;
@@ -23,8 +33,7 @@ void *xbox_texture_cache_steal_memory(unsigned int size)
   char *base = (char *)FUN_001bdd60() +
                (remaining_page_count * HALO_TEXTURE_CACHE_PAGE_SIZE);
   unsigned int stolen_size = page_count * HALO_TEXTURE_CACHE_PAGE_SIZE;
-  char *guard_end =
-    base + HALO_TEXTURE_CACHE_STEAL_GUARD_SIZE + stolen_size;
+  char *guard_end = base + HALO_TEXTURE_CACHE_STEAL_GUARD_SIZE + stolen_size;
 
   if (remaining_page_count <= 0) {
     display_assert("remaining_page_count>0",
@@ -148,7 +157,7 @@ int FUN_001bec30(int16_t format, uint16_t flags)
  *      the sequential chain, the flat absolute-shift form (<<24/<<12/<<0), and
  *      pre-decremented h/w locals all compile to identical distributed code. */
 void xbox_texture_cache_setup_d3d_texture(void *bitmap /* @<esi> */,
-                                           void *texture /* @<edi> */)
+                                          void *texture /* @<edi> */)
 {
   assert_halt(bitmap);
   assert_halt(texture);
@@ -161,8 +170,8 @@ void xbox_texture_cache_setup_d3d_texture(void *bitmap /* @<esi> */,
     uint32_t format_bits;
     int height, width, pitch;
 
-    format_bits =
-      FUN_001bec30(*(int16_t *)((char *)bitmap + 0xc), *(uint16_t *)((char *)bitmap + 0xe));
+    format_bits = FUN_001bec30(*(int16_t *)((char *)bitmap + 0xc),
+                               *(uint16_t *)((char *)bitmap + 0xe));
     ((int *)texture)[3] = (format_bits << 8) | 0x10029;
 
     pitch = bitmap_mipmap_get_row_pitch(bitmap, 0);
@@ -234,8 +243,7 @@ bool xbox_texture_cache_request(void *hardware_format, bool block)
     xbox_texture_cache_setup_d3d_texture(hardware_format, cache_entry + 0xc);
     *(int16_t *)(cache_entry + 2) =
       cache_file_read(*(int32_t *)((char *)hardware_format + 0x20),
-                      *(int32_t *)((char *)hardware_format + 0x18),
-                      min_block,
+                      *(int32_t *)((char *)hardware_format + 0x18), min_block,
                       cache_page_index, cache_entry + 4, block);
     return true;
   }

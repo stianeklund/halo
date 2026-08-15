@@ -49054,6 +49054,21 @@
       "score": 69.6,
       "source": "src/halo/interface/terminal.c"
     },
+    "texture_cache_delete": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x1be920",
+      "end": "0x1be93b",
+      "kind": "auto",
+      "n_r": 8,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "0ff1be152e90d803",
+      "score": 100.0,
+      "source": "src/halo/cache/xbox_texture_cache.c"
+    },
     "thread_close": {
       "addr": "0x81770",
       "end": "0x817d7",
