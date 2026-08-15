@@ -243,6 +243,48 @@ bool players_are_all_dead(void)
   return *((char *)players_globals + 0x28);
 }
 
+/* Hand a local player a new controlled unit (or NONE to drop the current one).
+ *
+ * Despite the kb.json parameter name, the first argument is a LOCAL player
+ * index: every call site pushes it straight into player_control_* and
+ * local_player_get_player_index, all of which take a local-player index.
+ * The disassembly pushes the full dword (PUSH EDI) at each site, so the
+ * int16_t/uint16_t callee prototypes do the narrowing.
+ *
+ * Object field +0x1c8 is the unit's "controlling player index": cleared to
+ * NONE on the outgoing unit, set to this local player's player index on the
+ * incoming one.  Player fields +0x34 / +0x38 are the current and previous
+ * unit handles.
+ *
+ * local_player_get_player_index is deliberately called TWICE (0xba67f and
+ * 0xba689 in the original); do not CSE it into one call. */
+void players_set_local_player_unit(int local_player_index, int unit_handle)
+{
+  int old_unit;
+  char *unit;
+  char *player;
+
+  old_unit = player_control_get_unit_index(local_player_index);
+  assert_halt_msg_at("game_connection()==_game_connection_local",
+                     "c:\\halo\\SOURCE\\game\\players.c", 0x420,
+                     game_connection() == 0);
+  if (old_unit != NONE) {
+    unit = (char *)object_get_and_verify_type(old_unit, 3);
+    *(int *)(unit + 0x1c8) = NONE;
+    unit_set_actively_controlled(old_unit, 0);
+  }
+  if (unit_handle != NONE) {
+    unit = (char *)object_get_and_verify_type(unit_handle, 3);
+    unit_set_actively_controlled(unit_handle, 1);
+    *(int *)(unit + 0x1c8) = local_player_get_player_index(local_player_index);
+  }
+  player = (char *)datum_get(player_data,
+                             local_player_get_player_index(local_player_index));
+  *(int *)(player + 0x34) = unit_handle;
+  *(int *)(player + 0x38) = NONE;
+  player_control_new_unit(local_player_index, unit_handle);
+}
+
 void *players_get_combined_pvs_local(void)
 {
   return (char *)players_globals + 0x70;
@@ -409,6 +451,182 @@ void FUN_000ba890(int player_index, int param_2)
       *(int *)(player + 0x38) = param_2;
     *((char *)players_globals + 0x28) = 0;
   }
+}
+
+/* Repair player control after a saved game is restored.
+ *
+ * The single-player controller (player_ui_get_single_player_local_player_
+ * controller(0)) may come back with no player bound to it.  When that is the
+ * case, and the map was loaded with player_spawn_count == 1, scan the local
+ * player slots for the one that DOES own a player record and migrate that
+ * player onto the controller: clear the old slot, hand its unit
+ * (player+0x34) to the controller, then fix up the HUD (FUN_000d98c0, in
+ * interface/hud_weapon.c) and FUN_000d7780.
+ *
+ * Structure notes derived from the disassembly at 0xba970:
+ *  - the slot read inside the loop is the INLINED body of
+ *    local_player_get_player_index (assert + NONE guard + slot load); the
+ *    out-of-line call is not used here, so the idiom is written out.
+ *  - a single `ADD ESP,0x40` at 0xbaa4c is the MERGED cdecl cleanup for all
+ *    eight calls in the loop body.  Ghidra attributes it to the last call and
+ *    invents four varargs on the `error` call and none on FUN_000d98c0; the
+ *    disassembly (PUSH EDI / PUSH ESI at 0xbaa32) is authoritative.
+ *  - at 0xbaa1e EDI still holds player_index and is pushed as the second
+ *    argument, then reloaded from [EBP-4] at 0xbaa1f for the first argument;
+ *    the two pushes are NOT the same value.
+ * No FPU ops, no buffers, no struct stores. */
+void player_control_fix_for_loaded_game_state(void)
+{
+  int16_t local_player_index;
+  int16_t new_local_player;
+  int player_index;
+  char *player;
+
+  new_local_player = player_ui_get_single_player_local_player_controller(0);
+  if (new_local_player == NONE)
+    new_local_player = 0;
+
+  if (local_player_get_player_index(new_local_player) == NONE) {
+    if (player_spawn_count == 1) {
+      for (local_player_index = 0;
+           local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS;
+           local_player_index++) {
+        assert_halt(local_player_index >= NONE &&
+                    local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+        if (local_player_index != NONE) {
+          player_index =
+            *(int *)&players_globals->unk_0[4 + local_player_index * 4];
+          if (player_index != NONE) {
+            player = (char *)datum_get(player_data, player_index);
+            local_player_set_player_index(local_player_index, NONE);
+            player_control_new_unit(local_player_index, NONE);
+            local_player_set_player_index(new_local_player, player_index);
+            player_control_new_unit(new_local_player, *(int *)(player + 0x34));
+            FUN_000d98c0(local_player_index, new_local_player);
+            FUN_000d7780(local_player_index, new_local_player);
+            error(2, "corrected player control for restored saved game");
+            break;
+          }
+        }
+      }
+      if (local_player_index == MAXIMUM_NUMBER_OF_LOCAL_PLAYERS)
+        error(2, "failed to correct player control for restored saved "
+                 "game... probably won't be able to control the player");
+    } else {
+      error(2,
+            "tried to fix broken player control for a game w/ "
+            "player_spawn_count= %d... but we don't allow restored games for "
+            "anything other than player_spawn_count= 1",
+            player_spawn_count);
+    }
+  }
+}
+
+/* Number of player starting locations available for the current spawn set.
+ *
+ * The default count is the scenario's 16-bit starting-location count at
+ * scenario+0x354 (`MOV SI,word ptr [EAX+0x354]` at 0xbaa9f -- a WORD load,
+ * cached in SI before the branch).  When the campaign encounter selector
+ * (DAT 0x5ac9f4) is not NONE, the selected encounter block element
+ * (block at scenario+0x42c, stride 0xb0, index = selector & 0xffff) can
+ * override it with its +0xa4 field, but only when that field is positive
+ * (`MOV ECX,[EAX+0xa4]` / TEST / JLE at 0xbaabf -- a 32-bit load, then
+ * `MOV AX,CX` truncates to 16 bits).
+ *
+ * Confirmed: cdecl, no args, no stack frame (PUSH ESI / POP ESI only);
+ *   returns int16_t in AX.  Ghidra types this void and drops the return.
+ * This is the exact idiom inlined at the head of
+ * find_best_starting_location_index (0xbbbe0). */
+int16_t player_get_starting_location_count(void)
+{
+  char *scenario;
+  char *elem;
+  int16_t count;
+
+  scenario = (char *)global_scenario_get();
+  count = *(int16_t *)(scenario + 0x354);
+  if (*(int *)0x5ac9f4 != NONE) {
+    elem = (char *)tag_block_get_element(scenario + 0x42c,
+                                         *(int *)0x5ac9f4 & 0xffff, 0xb0);
+    if (*(int *)(elem + 0xa4) > 0) {
+      count = (int16_t) * (int *)(elem + 0xa4);
+    }
+  }
+  return count;
+}
+
+/* Resolve one starting-location block element for `index`.
+ *
+ * Two independent lookups, in the original's order:
+ *   1. The scenario's own player-starting-locations block (scenario+0x354,
+ *      stride 0x34).  Bounds-checked against that block's count; on success
+ *      the element pointer is stashed in the single stack local [EBP-4],
+ *      which is pre-zeroed at 0xbaaf5 so an out-of-range index yields NULL.
+ *   2. If the AI-debug encounter selector (0x5ac9f4) is not NONE, the
+ *      selected encounter (scenario+0x42c, stride 0xb0, index = selector &
+ *      0xffff) is fetched and its own starting-locations block (encounter
+ *      +0xa4, stride 0x34) is bounds-checked with the same index.  When that
+ *      succeeds the encounter's 16-bit field at +0x7e is written into the
+ *      element's +0x12, but ONLY when it is in [0, scenario+0x5a4).  The
+ *      encounter element is returned either way -- the failed range check at
+ *      0xbab71/0xbab7e jumps to 0xbab8e, which is the shared tail with EAX
+ *      already holding the element (it does NOT fall back to [EBP-4]).
+ *
+ * Confirmed: cdecl, one stack arg loaded 16 bits wide (`MOV DI,word [EBP+8]`
+ *   at 0xbaaec, MOVSX to 32 bits at each use) -- the parameter is a short,
+ *   not an int.  Returns a pointer in EAX on all three RET paths; Ghidra
+ *   types the function void and drops the return (see hazard sec.16).
+ * Uncertain: the meaning of encounter+0x7e and scenario+0x5a4 (a count used
+ *   as an exclusive upper bound); no string or assert evidence for either. */
+void *player_get_starting_location(int16_t index)
+{
+  char *scenario;
+  char *encounter;
+  void *result;
+  void *elem;
+  int16_t value;
+
+  scenario = (char *)global_scenario_get();
+  result = NULL;
+  if (index >= 0 && index < *(int *)(scenario + 0x354)) {
+    result = tag_block_get_element(scenario + 0x354, index, 0x34);
+  }
+  if (*(int *)0x5ac9f4 != NONE) {
+    encounter = (char *)tag_block_get_element(scenario + 0x42c,
+                                              *(int *)0x5ac9f4 & 0xffff, 0xb0);
+    if (index >= 0 && index < *(int *)(encounter + 0xa4)) {
+      elem = tag_block_get_element(encounter + 0xa4, index, 0x34);
+      value = *(int16_t *)(encounter + 0x7e);
+      if (value >= 0 && value < *(int *)(scenario + 0x5a4)) {
+        *(int16_t *)((char *)elem + 0x12) = value;
+      }
+      return elem;
+    }
+  }
+  return result;
+}
+
+/* Broadcast one real_rgb_color into all four change-color slots of an
+ * object_placement_data record.
+ *
+ * placement_data ([EBP+0x8], held in ECX) -- 0x88-byte placement record.
+ * color          ([EBP+0xC], held in EAX) -- source real_rgb_color (3 floats).
+ *
+ * The four destinations 0x58 / 0x64 / 0x70 / 0x7c are 12 bytes apart with no
+ * gap, i.e. a contiguous real_rgb_color[4] spanning 0x58..0x87. The original
+ * copies each block with three integer MOV pairs (no FPU), which is what a
+ * 12-byte POD struct assignment compiles to -- hence the vector3_t cast rather
+ * than three float stores. Fully unrolled in the original (three distinct
+ * `LEA EDX,[ECX+off]` bases plus an `ADD ECX,0x7c` tail), so it is written as
+ * four separate assignments, not a loop. Leaf: no calls, no locals, no FPU. */
+void placement_data_set_change_color(void *placement_data, float *color)
+{
+  char *base = (char *)placement_data;
+
+  *(vector3_t *)(base + 0x58) = *(vector3_t *)color;
+  *(vector3_t *)(base + 0x64) = *(vector3_t *)color;
+  *(vector3_t *)(base + 0x70) = *(vector3_t *)color;
+  *(vector3_t *)(base + 0x7c) = *(vector3_t *)color;
 }
 
 /* Spawn an object from a small placement record and attach it to a parent.
@@ -897,6 +1115,69 @@ void players_handle_deleted_object(int object_handle)
   }
 }
 
+/* 0xbb290 -- Draw a uniformly distributed unit direction from the global
+ * random seed.
+ *
+ * Out-of-line copy of a random_math header helper, emitted into players.obj
+ * (its neighbour at 0xbb2b0, valid_real_vector2d, is another such copy).
+ *
+ * The whole body is ten instructions: the single cdecl parameter is loaded
+ * from [EBP+8] and pushed first (rightmost argument), then
+ * get_global_random_seed_address() supplies the seed pointer in EAX, which is
+ * pushed as the leading argument.  Right-to-left MSVC evaluation of the nested
+ * call reproduces that order exactly.  The seed accessor is declared as
+ * `int *` in kb.json while the consumer takes `unsigned int *`, hence the
+ * cast; no value is transformed. */
+void global_random_get_direction3d(float *out)
+{
+  random_seed_get_direction3d((unsigned int *)get_global_random_seed_address(),
+                              out);
+}
+
+/* 0xbb2b0 -- Reject a 2D vector that contains a NaN or an infinity.
+ *
+ * Out-of-line copy of a math-header helper emitted into players.obj, like its
+ * neighbour at 0xbb290.  Returns 1 when both components are finite, 0 when
+ * either one is not.  An IEEE 754 single with an all-ones exponent field
+ * (0x7f800000) is a NaN or an infinity, which is the only test performed --
+ * the mantissa is never examined, so the two cases are not distinguished.
+ *
+ * The scratch copy is not redundant.  The original loads each component into
+ * a register, stores it back over the incoming parameter slot at [EBP+8], and
+ * only then masks and compares the register copy; the prologue is just
+ * `PUSH EBP / MOV EBP,ESP`, with no frame of its own.  That dead store is
+ * MSVC materialising an address-taken rvalue temporary in the parameter home
+ * slot, which goes dead as soon as the pointer is live in EAX.  Writing the
+ * test as a direct `((uint32_t *)v)[i]` reinterpret (as the 3D sibling
+ * valid_real_point3d at 0xa16b0 does) drops both the register copy and the
+ * store, losing four of the twenty instructions.
+ *
+ * Returns int rather than bool: the original returns through the five-byte
+ * `MOV EAX,1` / `XOR EAX,EAX` pair, i.e. a four-byte return value.  A
+ * byte-wide bool (typedef unsigned char) would return through `MOV AL,1`.
+ * This matches the declared return of the 2D normal sibling at 0x28610.
+ *
+ * The tests are nested rather than written as two guard clauses returning 0
+ * early.  The original branches with `JZ` to a single shared
+ * `XOR EAX,EAX / POP EBP / RET` tail at 0xbb2e8, letting the finite case fall
+ * through into the next component, so the accepting path is the fall-through
+ * arm and the rejecting path is the sunk one.  Two `if (bad) return 0;` guard
+ * clauses invert that, emitting `JNZ` around a return materialised inline at
+ * each test. */
+int valid_real_vector2d(float *v)
+{
+  float component;
+
+  component = v[0];
+  if ((*(uint32_t *)&component & 0x7f800000) != 0x7f800000) {
+    component = v[1];
+    if ((*(uint32_t *)&component & 0x7f800000) != 0x7f800000)
+      return 1;
+  }
+
+  return 0;
+}
+
 /* Allocate and initialise a new player datum.
  *
  * local_player_index  (a1) -- which local player slot to assign; NONE (-1) is
@@ -1208,7 +1489,7 @@ int find_best_starting_location_index(int player_index)
  *      object_placement_data_new + object_new_from_placement_data.
  *
  * Structurally faithful lift of the original FUN_bbcb0.  Helper addresses
- * (0xbbbe0, 0xbaae0, 0xbaba0, 0xba5f0, 0x10cc70, 0x13fc20, 0x13fb30,
+ * (0xbbbe0, 0xbaae0, 0x10cc70, 0x13fc20, 0x13fb30,
  * 0x13ffc0, 0x140cc0, 0x143c80, 0x1adeb0, 0x1adf10, 0xbb410, 0xa99a0,
  * 0x8aa30) are not yet in kb.json; invoked by address to keep the lift
  * narrowly scoped.
@@ -1274,8 +1555,8 @@ void player_spawn(int player_handle)
     }
     ((void (*)(int))0x13fb30)(saved_unit);
     object_set_garbage(saved_unit, 1);
-    ((void (*)(uint16_t, int))0xba5f0)((uint16_t) * (int16_t *)(player + 2),
-                                       saved_unit);
+    players_set_local_player_unit((uint16_t) * (int16_t *)(player + 2),
+                                  saved_unit);
     if (prev_weapon != NONE) {
       object_set_garbage(prev_weapon, 1);
     }
@@ -1327,7 +1608,7 @@ void player_spawn(int player_handle)
       orient[1] = ret[1];
       orient[2] = ret[2];
     }
-    ((void (*)(char *, float *))0xbaba0)(placement, orient);
+    placement_data_set_change_color(placement, orient);
     new_unit = ((int (*)(char *))0x143c80)(placement);
     if (new_unit == NONE) {
       goto common_tail;
@@ -1531,6 +1812,91 @@ typedef struct {
  * Total: 0x20 bytes per action entry. */
 /* player_action_t now lives in src/types.h, where cs()/co() asserts lock the
  * layout above. */
+
+/* Grant a powerup to a player, accumulating its duration (0xbc320).
+ *
+ * powerup_type selects the slot in the two-entry int16_t timer array at
+ * player+0x68 (0 = active camo, 1 = full spectrum vision); the assert string
+ * in .rdata names the bound NUMBER_OF_PLAYER_POWERUPS (== 2).
+ *
+ * Returns false (and grants nothing) only when the active-camo slot is
+ * requested while the unit already carries the camo-active flag (bit 0x10 at
+ * unit+0x1b4) -- i.e. camo cannot be re-picked-up while it is running.
+ *
+ * When the requested slot is currently empty the unit is marked as newly
+ * activated (flag 0x10, and the powerup type recorded at unit+0x3d2); when the
+ * slot is already counting down, the "refresh" flag 0x20 is set instead, but
+ * only outside the game engine (game_engine_running() short-circuits straight
+ * to the timer accumulation).  Both flag updates converge on a single dword
+ * store at unit+0x1b4, matching the shared `mov [eax+0x1b4],ecx` at 0xbc3fa.
+ *
+ * Sibling of player_set_respawn_timer (0xbc410), which stores max(cur, ticks)
+ * where this one accumulates with +=.
+ *
+ * Offsets are unproven raw offsets: player+0x34 unit handle, player+0x68
+ * powerup timer array, unit+0x1b4 flags dword, unit+0x3d2 powerup type. */
+bool player_handle_powerup(int player_handle, int16_t powerup_type,
+                           int16_t ticks)
+{
+  char *player;
+  char *unit_obj;
+  unsigned int flags;
+  int powerup_idx;
+
+  player = (char *)datum_get(player_data, player_handle);
+
+  /* NUMBER_OF_PLAYER_POWERUPS == 2.  Written De Morgan'd rather than via
+   * assert_halt_msg_at: the macro's `!(a >= 0 && a < 2)` makes VC71
+   * materialize the condition as a 0/1 value in EAX instead of emitting the
+   * original's two-branch `test si,si / jl` + `cmp si,2 / jl` (measured). */
+  if (powerup_type < 0 || powerup_type >= 2) {
+    display_assert("powerup_type>=0 && powerup_type<NUMBER_OF_PLAYER_POWERUPS",
+                   "c:\\halo\\SOURCE\\game\\players.c", 0xaea, 1);
+    system_exit(-1);
+  }
+
+  if (powerup_type == 0) {
+    /* Active camo: refuse if the camo-active flag is already set.  The
+     * original reads only the low byte of the flags dword here. */
+    unit_obj = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+    if ((*(unsigned char *)(unit_obj + 0x1b4) & 0x10) != 0)
+      return false;
+  }
+
+  powerup_idx = (int)powerup_type;
+
+  if (*(int16_t *)(player + 0x68 + powerup_idx * 2) == 0) {
+    /* Slot empty -- activate.  The player datum is re-fetched into its own
+     * local; the original reloads the global each time.  Inlining this into
+     * the object_get_and_verify_type argument costs 2 insns (measured). */
+    char *player2 = (char *)datum_get(player_data, player_handle);
+    unit_obj = (char *)object_get_and_verify_type(*(int *)(player2 + 0x34), 3);
+    if (powerup_idx != 0)
+      goto accumulate;
+    flags = *(unsigned int *)(unit_obj + 0x1b4) | 0x10;
+    /* `mov word ptr [eax+0x3d2], si` -- provably 0 on this path (guarded by
+     * the powerup_idx != 0 test just above), but written as the variable to
+     * keep the register shape; a literal 0 does not match.  Sourcing it from
+     * powerup_idx instead drops a spilled frame slot but costs 1.1pp of
+     * mnemonic match to VC71 tail-duplicating the epilogue (measured). */
+    *(int16_t *)(unit_obj + 0x3d2) = powerup_type;
+  } else {
+    /* Slot already counting down -- refresh flag, engine-side only. */
+    char *player3;
+    if (game_engine_running())
+      goto accumulate;
+    player3 = (char *)datum_get(player_data, player_handle);
+    unit_obj = (char *)object_get_and_verify_type(*(int *)(player3 + 0x34), 3);
+    if (powerup_idx != 0)
+      goto accumulate;
+    flags = *(unsigned int *)(unit_obj + 0x1b4) | 0x20;
+  }
+  *(unsigned int *)(unit_obj + 0x1b4) = flags;
+
+accumulate:
+  *(int16_t *)(player + 0x68 + powerup_idx * 2) += ticks;
+  return true;
+}
 
 /* Apply a powerup timer to a player. Despite the kb.json name "respawn_timer",
  * the binary assert and source path show this sets the powerup countdown at
@@ -2349,8 +2715,7 @@ void player_set_action_result_for_equipment(int player_handle,
       system_exit(-1);
     }
     /* Try to apply the powerup. */
-    if (!((bool (*)(int, int, int16_t))0xbc320)(player_handle, powerup_index,
-                                                ticks))
+    if (!player_handle_powerup(player_handle, (int16_t)powerup_index, ticks))
       return;
     /* Active camo (index 0) triggers a location notification. */
     if ((int16_t)powerup_index == 0) {
@@ -3378,6 +3743,222 @@ void FUN_000be080(int16_t function_index, int thread_datum, char init)
   if (result != 0) {
     *(unsigned char *)&value = FUN_000ca050(*(int16_t *)result, result[1]);
     hs_return(thread_datum, value);
+  }
+}
+
+/* 0xbe0d0 — HaloScript macro-function evaluate-then-finalize wrapper, direct
+ * sibling of FUN_000be080 above and of the 0xbf1a0 "word field" twin below.
+ * Evaluates a macro-function expression on a thread; when the evaluation
+ * yields a result record (non-NULL ptr in EAX), it forwards the record's
+ * leading 16-bit field to FUN_000c9990 and then commits a literal 0 back to
+ * the calling thread via hs_return(thread_datum, 0).
+ *
+ * players.obj groups this, but like its siblings it calls hs_runtime.obj's
+ * hs_macro_function_evaluate / hs_return, so it is co-located here.
+ *
+ * Plain cdecl (caller cleans, RET no immediate). Three stack params — Ghidra
+ * modelled this void(void), so they surfaced as in_stack_00000004/8/c
+ * pseudo-locals (lift-learnings 31, void-decl trap):
+ *   param1 @ EBP+0x8  = function_index (int16_t) -> ECX
+ *   param2 @ EBP+0xc  = thread_datum            -> ESI (held live across both
+ *                                                  calls, reused by hs_return)
+ *   param3 @ EBP+0x10 = init (char)             -> EAX
+ *
+ * Frame: PUSH EBP / MOV EBP,ESP / PUSH ESI only. No locals, no sub esp, no
+ * _chkstk, no FPU, no struct stores.
+ *
+ * TEST EAX,EAX / JZ 0xbe102 skips BOTH remaining calls, i.e. it is the NULL
+ * guard on the evaluation record — the record is only dereferenced inside the
+ * guard. hs_macro_function_evaluate is declared returning `int` in kb.json but
+ * the value is dereferenced here, so it is cast locally (do NOT change the kb
+ * decl), exactly as every twin in this family does.
+ *
+ * Record layout (EAX from call 1, only read when nonzero):
+ *   +0x0 WORD: XOR EDX,EDX; MOV DX,word ptr [EAX]. Do NOT widen it to a dword
+ *        read (lift-learnings 24, LOADW). This is the only field touched; one
+ *        deref, no buffer-alias risk. That XOR/MOV-DX pair is NOT a movzx: it
+ *        is how MSVC fills a 32-bit outgoing cdecl slot for a 16-bit
+ *        parameter. The proven form for it — shared with the already-100%
+ *        siblings 0xc1d90 and 0xc1e10 — is `int *record` plus
+ *        `*(short *)record` at the call site, NOT `short *record` with a plain
+ *        `*record`, and NOT a widening `(int)*(unsigned short *)record`.
+ *        MEASURED: the `(int)*(unsigned short *)` form emits MOVZWL and caps
+ *        at 93.6% (23/24); staging it through a named `unsigned short` local
+ *        moved that 0.00pp. The `*(short *)` form is 100.0% (24/24).
+ *
+ * CALL 0xc9990 @0xbe0f2 — PUSH EDX is the single argument. Ghidra printed a
+ * 0-argument call and left the push dangling (dropped-arg trap); kb.json's
+ * decl was `void FUN_000c9990(void)` and has been corrected to one cdecl arg.
+ * check_arg_counts.py --callee 0xc9990 confirms it: sites=2, both push=1, and
+ * the 0xca135 site has a conclusive ADD ESP,4. The parameter is int16_t: the
+ * callee narrows to 16 bits immediately and exclusively (CMP SI,-1 / MOVSX
+ * EAX,SI — a NONE-sentinel datum-index check). Its opening
+ * MOV ESI,dword ptr [EBP+8] is NOT evidence of an `int` parameter; MSVC loads
+ * the whole slot and then operates on the SI subregister, so the
+ * absence-of-MOVSX width rule does not discriminate here. The caller's
+ * byte-exact 24/24 match is what settles the width.
+ *
+ * CALL 0xcbf80 @0xbe0fa — PUSH 0x0 / PUSH ESI => hs_return(thread_datum, 0).
+ * hs_return's first argument is the PARAMETER thread_datum held in ESI, not
+ * any record field. ONE combined ADD ESP,0xc at 0xbe0ff folds FUN_000c9990's
+ * single dword with hs_return's two; the ARG_COUNT warning on 0xcbf80
+ * ("cleanup=3 stack args vs decl=2") is that merge — hs_return really takes 2
+ * args, do NOT "fix" its decl.
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0xc9990 = FUN_000c9990(int index) — UNPORTED, semantics Uncertain; return
+ *             value (if any) discarded
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ */
+void FUN_000be0d0(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    FUN_000c9990(*(short *)record);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xbe110 — HaloScript macro-function evaluate-then-finalize wrapper, direct
+ * sibling of FUN_000be0d0 above and FUN_000be1d0 below. Evaluates a
+ * macro-function expression on a thread; when the evaluation yields a result
+ * record (non-NULL ptr in EAX), it forwards the record's leading dword to
+ * FUN_000c99e0 and then commits a literal 0 back to the calling thread via
+ * hs_return(thread_datum, 0).
+ *
+ * players.obj groups this, but like its siblings it calls hs_runtime.obj's
+ * hs_macro_function_evaluate / hs_return, so it is co-located here.
+ *
+ * Plain cdecl (caller cleans, RET with no immediate at 0xbe141). Three stack
+ * params — Ghidra modelled this void(void), so they surfaced as
+ * in_stack_00000004/8/c pseudo-locals (lift-learnings 31, void-decl trap):
+ *   param1 @ EBP+0x8  = function_index (int16_t) -> ECX
+ *   param2 @ EBP+0xc  = thread_datum            -> ESI (held live across both
+ *                                                  calls, reused by hs_return)
+ *   param3 @ EBP+0x10 = init (char)             -> EAX
+ *
+ * Frame: PUSH EBP / MOV EBP,ESP / PUSH ESI only. No locals, no sub esp, no
+ * _chkstk, no FPU, no struct stores. 22 instructions, 0xbe110-0xbe141.
+ *
+ * CALL 0xcc560 @0xbe120 — PUSH EAX / PUSH ESI / PUSH ECX, reversed gives
+ * (function_index, thread_datum, init); self-contained ADD ESP,0xc at 0xbe125.
+ * TEST EAX,EAX / JZ 0xbe13f skips BOTH remaining calls, i.e. it is the NULL
+ * guard on the evaluation record — the record is only dereferenced inside the
+ * guard. hs_macro_function_evaluate is declared returning `int` in kb.json but
+ * the value is dereferenced here, so it is cast locally (do NOT change the kb
+ * decl), exactly as every twin in this family does.
+ *
+ * Record layout (EAX from call 1, only read when nonzero):
+ *   +0x0 DWORD: MOV EDX,dword ptr [EAX] at 0xbe12c. This is a FULL dword read,
+ *        unlike the 0xbe0d0 twin's XOR EDX,EDX / MOV DX 16-bit pair, so the
+ *        record pointer is `int *` and the argument is a plain `*record`.
+ *        This is the only field touched; one deref, no buffer-alias risk.
+ *
+ * CALL 0xc99e0 @0xbe12f — PUSH EDX at 0xbe12e is the single argument. Ghidra
+ * printed a 0-argument call and left the push dangling (dropped-arg trap);
+ * kb.json's decl was `void FUN_000c99e0(void)` and has been corrected to one
+ * cdecl arg. Width is `int`, not int16_t: the callee's own prologue is
+ * MOV ESI,[EBP+8] / CMP ESI,-1 — a full 32-bit compare against the NONE
+ * sentinel (contrast FUN_000c9990 at 0xc9990, whose CMP SI,-1 proves int16_t).
+ * It then forwards the same dword to 0xc98e0 and 0x140cc0.
+ *
+ * CALL 0xcbf80 @0xbe137 — PUSH 0x0 / PUSH ESI => hs_return(thread_datum, 0).
+ * hs_return's first argument is the PARAMETER thread_datum held in ESI, not
+ * any record field. ONE combined ADD ESP,0xc at 0xbe13c folds FUN_000c99e0's
+ * single dword with hs_return's two; an ARG_COUNT warning on 0xcbf80
+ * ("cleanup=3 stack args vs decl=2") is that merge — hs_return really takes 2
+ * args, do NOT "fix" its decl.
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0xc99e0 = FUN_000c99e0(int datum) — UNPORTED, semantics Uncertain; return
+ *             value (if any) discarded
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ */
+void FUN_000be110(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    FUN_000c99e0(*record);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xbe150 — HaloScript macro-function evaluate-then-finalize wrapper. Shape is
+ * byte-for-byte the twin of FUN_000be0d0 above: same prologue, same push order,
+ * same NULL guard, same 16-bit record deref, same coalesced cleanup — only the
+ * inner callee differs (0xca110 here vs 0xc9990 there). Evaluates a
+ * macro-function expression on a thread; when the evaluation yields a result
+ * record (non-NULL ptr in EAX), it forwards the record's leading WORD to
+ * FUN_000ca110 and commits a literal 0 back to the calling thread via
+ * hs_return(thread_datum, 0).
+ *
+ * players.obj groups this, but like its siblings it calls hs_runtime.obj's
+ * hs_macro_function_evaluate / hs_return, so it is co-located here.
+ *
+ * Plain cdecl (caller cleans, RET with no immediate at 0xbe184). Three stack
+ * params — Ghidra modelled this void(void), so they surfaced as
+ * in_stack_00000004/8/c pseudo-locals (lift-learnings 31, void-decl trap):
+ *   param1 @ EBP+0x8  = function_index (int16_t) -> ECX
+ *   param2 @ EBP+0xc  = thread_datum            -> ESI (held live across both
+ *                                                  calls, reused by hs_return)
+ *   param3 @ EBP+0x10 = init (char)             -> EAX
+ *
+ * Frame: PUSH EBP / MOV EBP,ESP / PUSH ESI only. No locals, no sub esp, no
+ * _chkstk, no FPU, no struct stores. 21 instructions, 0xbe150-0xbe184.
+ *
+ * CALL 0xcc560 @0xbe160 — PUSH EAX / PUSH ESI / PUSH ECX, reversed gives
+ * (function_index, thread_datum, init); self-contained ADD ESP,0xc at 0xbe165.
+ * TEST EAX,EAX / JZ 0xbe182 skips BOTH remaining calls, i.e. it is the NULL
+ * guard on the evaluation record — the record is only dereferenced inside the
+ * guard. hs_macro_function_evaluate is declared returning `int` in kb.json but
+ * the value is dereferenced here, so it is cast locally (do NOT change the kb
+ * decl), exactly as every twin in this family does.
+ *
+ * Record layout (EAX from call 1, only read when nonzero):
+ *   +0x0 WORD: XOR EDX,EDX / MOV DX,word ptr [EAX] at 0xbe16c-0xbe16e. A
+ *        zero-extended 16-bit read, matching the 0xbe0d0 twin exactly (contrast
+ *        the 0xbe110 twin's full-dword MOV EDX,[EAX]). Only field touched; one
+ *        deref, no buffer-alias risk.
+ *
+ * CALL 0xca110 @0xbe172 — PUSH EDX at 0xbe171 is the single argument. Ghidra
+ * printed a 0-argument call and left the push dangling (dropped-arg trap);
+ * kb.json's decl was `void FUN_000ca110(void)` and has been corrected to one
+ * cdecl arg. Width is int16_t, not int: the callee's own prologue is
+ * MOV ESI,[EBP+8] / CMP SI,-1 at 0xca114-0xca117 — a 16-BIT compare against the
+ * NONE sentinel (contrast FUN_000c99e0, whose CMP ESI,-1 proves int). It then
+ * forwards through 0x140720 and calls 0xc99e0 / 0xc9990, the latter itself
+ * already declared int16_t, corroborating the width.
+ *
+ * CALL 0xcbf80 @0xbe17a — PUSH 0x0 / PUSH ESI => hs_return(thread_datum, 0).
+ * hs_return's first argument is the PARAMETER thread_datum held in ESI, not
+ * any record field. ONE combined ADD ESP,0xc at 0xbe17f folds FUN_000ca110's
+ * single dword with hs_return's two; the ARG_COUNT warning on 0xcbf80
+ * ("cleanup=3 stack args vs decl=2") is that merge — hs_return really takes 2
+ * args, do NOT "fix" its decl.
+ *
+ * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
+ *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
+ *   0xca110 = FUN_000ca110(int16_t index) — UNPORTED, semantics Uncertain;
+ *             return value (if any) discarded
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ */
+void FUN_000be150(int16_t function_index, int thread_datum, char init)
+{
+  int *record;
+
+  record =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (record != NULL) {
+    FUN_000ca110(*(short *)record);
+    hs_return(thread_datum, 0);
   }
 }
 
@@ -11667,6 +12248,52 @@ void FUN_000c0b70(int16_t function_index, int thread_datum, char init)
   if (record != NULL) {
     /* dword @ +0x0; zero-extended byte @ +0x4 */
     FUN_00057850(*(unsigned int *)record, record[4]);
+    hs_return(thread_datum, 0);
+  }
+}
+/* 0xbe190 — HS script function handler: evaluate a macro function and, on a
+ * non-null result record, forward the record's first dword to FUN_000c9b90,
+ * then commit a 0 result to the calling HS thread. No value is read back from
+ * FUN_000c9b90 (EAX is never consumed after the CALL) — hs_return always
+ * commits the literal 0. Same evaluator ABI (function_index, thread_datum,
+ * init) as the other hs_evaluate_* handlers.
+ *
+ * ABI (verified against disassembly 0xbe190-0xbe1c1, 20 instructions): cdecl,
+ * plain RET, frame is `PUSH EBP; MOV EBP,ESP; PUSH ESI` with zero stack
+ * locals. thread_datum (arg 2, cached in ESI) flows to both the evaluate call
+ * (arg 2) and the hs_return call (arg 1). The record read is
+ * `MOV EDX,[EAX]; PUSH EDX` — a FULL DWORD load (contrast the sibling at
+ * 0xbdef0, which does XOR EDX,EDX; MOV DL,[EAX] for a byte field).
+ *
+ * The single `ADD ESP,0xc` at 0xbe1bc is MSVC adjacent-call cleanup
+ * coalescing: it folds FUN_000c9b90's 1 pushed arg and hs_return's 2. It is
+ * NOT evidence that hs_return takes 3 args (call_site_audit ARG_COUNT warning
+ * on 0xcbf80 here is a false positive).
+ *
+ * NOTE: kb groups 0xbe190 under players.obj, so it lives here in players.c
+ * alongside its 25+ twins (0xbe0d0, 0xbe110, 0xbe150, 0xbe1d0, 0xbe210) even
+ * though it calls hs_runtime.obj's hs_macro_function_evaluate/hs_return.
+ * Several sibling comment blocks in this file claim players.c "does not
+ * compile under VC71" — that claim is FALSE and was measured false on
+ * 2026-07-25: vc71_verify.py scores 82 functions in this TU. Do not relocate
+ * this family into hs.c on that basis; maintain.py will move it back.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
+ *             char init) -> int* (result record, NULL on failure); declared
+ *             `int` in kb.json because that decl is shared with other ported
+ *             call sites, so the pointer cast lives here.
+ *   0xc9b90 = FUN_000c9b90(int) -> void (record first-dword consumer; Ghidra's
+ *             void(void) decl dropped the single stack arg — corrected in kb)
+ *   0xcbf80 = hs_return(int thread_handle, int value) */
+void FUN_000be190(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_000c9b90(result[0]);
     hs_return(thread_datum, 0);
   }
 }
