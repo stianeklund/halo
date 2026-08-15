@@ -20955,14 +20955,18 @@
       "source": "src/halo/physics/collision_usage.c"
     },
     "FUN_0014f2c0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 87.6,
       "addr": "0x14f2c0",
       "end": "0x150537",
       "kind": "auto",
       "n_r": 1409,
-      "opnd_percent": 49.6,
+      "opnd_percent": 56.1,
+      "raw_mnemonic_pct": 87.6,
       "ref": "synth",
       "ref_sha": "7bb10faa899f43f9",
-      "score": 61.8,
+      "score": 87.6,
       "source": "src/halo/physics/collision_usage.c"
     },
     "FUN_001544d0": {
