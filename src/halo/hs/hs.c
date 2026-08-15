@@ -7733,6 +7733,27 @@ void FUN_000c39b0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* HS script function handler: no-argument builtin that performs a single
+ * engine action and returns void to the calling script thread.
+ *
+ * Unlike its siblings this stub never calls hs_macro_function_evaluate — it
+ * takes no script arguments — so the whole body is:
+ *   CALL 0x0012a7a0            ; plain cdecl void(void), no arguments
+ *   MOV EAX,[EBP+0xc]          ; SECOND stack slot = thread_datum
+ *   PUSH 0x0 / PUSH EAX / CALL hs_return / ADD ESP,0x8
+ * Ghidra mis-prototypes it as `void FUN_000c39f0(void)` and reports the
+ * hs_return argument as `in_stack_00000008` ([EBP+8]); the disassembly loads
+ * from [EBP+0xc], so the value forwarded is the second cdecl argument.  The
+ * parameter list is the hs builtin triple used by every sibling in this file;
+ * `function_index` and `init` are unread here (this builtin ignores the init
+ * pass), which is why the frame is the bare PUSH EBP / MOV EBP,ESP with no
+ * locals and no `sub esp`. */
+void FUN_000c39f0(int16_t function_index, int thread_datum, char init)
+{
+  FUN_0012a7a0();
+  hs_return(thread_datum, 0);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
