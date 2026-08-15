@@ -29086,7 +29086,8 @@
     },
     {
      "addr": "0x1be920",
-     "decl": "void texture_cache_delete(void);"
+     "decl": "void texture_cache_delete(void);",
+     "ported": true
     },
     {
      "addr": "0x1be940",
