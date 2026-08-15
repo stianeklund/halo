@@ -933,7 +933,7 @@
  "0x64ab0": {"end": "0x64b40", "kind": "auto", "name": "prop_get_active_by_unit_index"},
  "0x64b40": {"end": "0x64ccb", "kind": "auto", "name": "FUN_00064b40"},
  "0x64cd0": {"end": "0x64e7e", "kind": "auto", "name": "FUN_00064cd0"},
- "0x64ec0": {"end": "0x64ed9", "kind": "auto", "name": "FUN_00064ec0"},
+ "0x64ec0": {"end": "0x64ed9", "kind": "auto", "name": "TIFFGetFieldDefaulted"},
  "0x64ee0": {"end": "0x64f4d", "kind": "auto", "name": "FUN_00064ee0"},
  "0x64f50": {"end": "0x64f77", "kind": "auto", "name": "FUN_00064f50"},
  "0x64fa0": {"end": "0x64fdd", "kind": "auto", "name": "FUN_00064fa0"},

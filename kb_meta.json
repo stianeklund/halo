@@ -1728,6 +1728,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x57380": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "TU is ai_script.c, not encounters.obj: both display_assert sites push the file string at VA 0x25c394 = c:\\halo\\SOURCE\\ai\\ai_script.c (lines 0xa80 and 0xa8d); the kb object membership for 0x57380 and its static helper 0x57330 was moved to ai_script.obj accordingly.",
+        "FUN_00057330 at 0x57330 is a custom-convention static of the same TU: its entry is MOVSX EAX,AX and it reads only [ESI] and [ESI+4], so it takes a short in EAX and a pointer in ESI; its kb decl was corrected from void FUN_00057330(void) to short FUN_00057330(short list_index@<eax>, char *component@<esi>, int, int, int)."
+      ],
+      "uncertain": [
+        "The three stack dwords the call site pushes for 0x57330 (object+0x1a8, the current object handle, and literal 0) are cleaned with ADD ESP,0xc but are never read by the callee, so their declared order and types are guesses; only the EAX and ESI register arguments are load-bearing for correctness.",
+        "The lift is structurally capped near 87 percent because the original spills object_handle to [EBP-0xc] only as a consequence of LEA ESI,[EAX+0x1c] destroying ESI for the 0x57330 register argument; VC71 compiles a plain five-push cdecl call, needs no spill, and emits SUB ESP,0x14 against the reference SUB ESP,0x18, shifting every later EBP displacement by 4."
+      ]
+    },
     "0x575d0": {
       "kind": "function",
       "status": "ported"
@@ -2241,6 +2253,16 @@
       "uncertain": [
         "TIFFTAG_SUBFILETYPE (+0x34) and TIFFTAG_IMAGEDEPTH (+0x24) are 16-bit both on the load and on the store in this build, where upstream libtiff declares td_subfiletype and td_imagedepth as uint32; the narrowing is taken from the binary but its cause is unexplained.",
         "Switch case order is written tag-ascending; the original block layout for the 0x11c-0x13d compare chain comes out as 0x128, 0x125, 0x11c, 0x13d, which is not a simple reversal of tag order, so the true source order of those four arms is unproven."
+      ]
+    },
+    "0x64ec0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Object membership was moved from props.obj (objects[181], ai/props.c) to tif_dir.obj (objects[182], bitmaps/libtiff/tif_dir.c) because the sole callee 0x64cd0 (TIFFVGetFieldDefaulted) and all six call sites are libtiff code, while props.obj is AI code; the props.obj attribution appears to be stale auto-grouping."
+      ],
+      "uncertain": [
+        "Upstream libtiff keeps TIFFGetFieldDefaulted in tif_aux.c rather than tif_dir.c, and the binary carries no __FILE__ string or assert for this function, so the exact original translation unit remains inferred; it is placed in tif_dir.c only to sit beside its already-ported sibling TIFFVGetFieldDefaulted."
       ]
     },
     "0x64ee0": {
@@ -7130,6 +7152,33 @@
         "The kb.json name ui_widget_debug_show_path for 0xe3ca0 is unproven and looks unrelated to the HaloScript path that calls it; the callee only stores one byte to global 0x46cc84, so the name was left unchanged rather than renamed on speculation."
       ]
     },
+    "0xc39b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The returned block from hs_macro_function_evaluate is treated as a pointer even though its kb declaration returns int; the +0x0 field is inferred to be the help/string index because XOR EDX,EDX / MOV DX,word ptr [EAX] is a zero-extending 16-bit load feeding ui_widget_display_scenario_help's single int16 parameter."
+      ],
+      "uncertain": [
+        "The behavioral description (display a scenario help message) rests entirely on the unproven kb.json name of callee 0xe8e20 (ui_widget_display_scenario_help); the binary only proves a single zero-extended int16 argument is forwarded."
+      ]
+    },
+    "0xc39f0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter list (int16_t function_index, int thread_datum, char init) is the uniform hs builtin triple shared by every sibling in hs.c; only [EBP+0xc] (thread_datum) is read by this body, so function_index and init are inferred from family convention rather than from this function's own code."
+      ]
+    },
+    "0xc3a10": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The result of hs_macro_function_evaluate is typed const char ** here because MOV EDX,[EAX]; PUSH EDX at 0xc3a2d forwards the first dword of the record to xbox_set_machine_name, whose kb decl takes a const char *."
+      ],
+      "uncertain": [
+        "The HaloScript builtin name for this evaluator is unknown, so the function keeps its FUN_000c3a10 placeholder name; only its behavior (set machine name from the evaluated string argument) is binary-backed."
+      ]
+    },
     "0xc3b60": {
       "kind": "function",
       "status": "ported",
@@ -7159,6 +7208,16 @@
     "0xc3d50": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xc3db0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Return type int16_t recovered from the epilogues (OR AX,0xffff for not-found and MOV AX,DI for found); Ghidra typed the function void and dropped the 16-bit return value."
+      ],
+      "uncertain": [
+        "The scenario tag_block at scenario+0x4b4 has no named struct in types.h, so the element stride 0x28 and the compared tag_index field at element+0x24 are carried as literals rather than named fields."
+      ]
     },
     "0xc3e10": {
       "kind": "function",
