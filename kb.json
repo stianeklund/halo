@@ -11981,7 +11981,7 @@
     },
     {
      "addr": "0xc9990",
-     "decl": "void FUN_000c9990(void);"
+     "decl": "void FUN_000c9990(int16_t index);"
     },
     {
      "addr": "0xc99e0",
@@ -18348,7 +18348,8 @@
     },
     {
      "addr": "0xbe0d0",
-     "decl": "void FUN_000be0d0(void);"
+     "decl": "void FUN_000be0d0(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbe110",
