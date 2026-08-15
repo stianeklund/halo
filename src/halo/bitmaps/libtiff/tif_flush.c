@@ -165,7 +165,16 @@ typedef struct tiff_s {
   } field_0a;
   char pad_00c[42];
   unsigned short td_bitspersample; /* 0x36 */
-  char pad_038[156];
+  char pad_038[48];
+  /* 0x68 -- a third flags byte, tested by FUN_0006a070 with
+   * `test byte ptr [esi+0x68],1` (0x6a0ce) to decide whether a per-row mode
+   * bit is consumed from the bit accumulator. BYTE width is proven by the
+   * `test byte ptr` form; nothing observed so far WRITES this offset, so the
+   * meaning of bit 0 is unproven and the name stays field_68 rather than
+   * borrowing an upstream TIFF_* / FAX_* label. It was inside pad_038[156]
+   * until 0x6a0ce proved the access. */
+  char field_68;
+  char pad_069[107];
   /* 0xd4 -- upstream's `uint32 tif_row`. Read as a full dword with no
    * MOVSX/MOVZX (`mov eax,[esi+0xd4]` at 0x688a5), matching the same field
    * recovered at the same offset in tif_open.c. */
@@ -1199,6 +1208,119 @@ void FUN_000695c0(void *tif_)
      * writes a dword immediate to the field rather than going through `sp`. */
     tif->tif_data = 0;
   }
+}
+
+/**
+ * Decode `occ` bytes of one CCITT Group 3/4 strip, one row at a time.
+ *
+ * This is the decode method FUN_0006a190 installs into tif_decoderow /
+ * tif_decodestrip / tif_decodetile, so its shape is pinned by
+ * `tiff_code_method_t`: (tif, buf, occ, s), returning a success flag. It is
+ * upstream libtiff tif_fax3.c's `Fax3Decode` -- zero the output, then per row
+ * dispatch to the 1D or 2D row decoder according to the codec state word at
+ * +0x10, optionally consume one mode bit for the next row, and advance the
+ * cursor by one row of bytes. That identification is INFERRED from shape (the
+ * TU stamps `c:\halo\SOURCE\bitmaps\libtiff\tif_fax3.c`, but this body carries
+ * no assert of its own).
+ *
+ * ABI recovered from the frame at 0x6a070: `push ebp / mov ebp,esp` with NO
+ * `sub esp` -- there are no stack locals at all -- then push ebx/esi/edi, four
+ * cdecl arguments at [ebp+8]/[ebp+0xc]/[ebp+0x10]/[ebp+0x14], and TWO epilogues
+ * that differ only in the returned value: `mov eax,1` at 0x6a173 for the normal
+ * loop exit and `xor eax,eax` at 0x6a17d for the decoder-failure break. So the
+ * return type is `int`, not the `void` kb.json carried; the decompiler dropped
+ * both returns and surfaced all four parameters as `in_stack_000000NN` purely
+ * because of that stale `(void)` prototype -- the same defect already recorded
+ * for FUN_00068940 above. The fourth argument is never read (upstream's
+ * `(void) s;`).
+ *
+ * `buf` and `occ` are the loop variables: they are updated in registers and
+ * written BACK to their own parameter slots at 0x6a165/0x6a168, then reloaded
+ * at the top of the next iteration, so they are mutated in place here rather
+ * than copied into locals.
+ *
+ * The two row decoders are called with DIFFERENT conventions and that asymmetry
+ * is real, not a decompiler artifact: FUN_00069020 takes the handle in EAX with
+ * two pushed arguments (`mov eax,esi` at 0x6a0ac, `add esp,8` at 0x6a0b3, and
+ * its own prologue does `mov edi,eax` at 0x69029), while FUN_000696d0 pushes
+ * the handle as a third stack argument (`add esp,0xc` at 0x6a0c3, and it reads
+ * [ebp+8] at 0x696d9).
+ */
+int FUN_0006a070(void *tif_, unsigned char *buf, int occ, int s)
+{
+  tiff_t *tif;
+  tiff_codec_bits_t *sp;
+  tiff_codec_bits_t *bits;
+  int ok;
+  int data;
+  short bit;
+  int result;
+  int flag;
+  int rowbytes;
+
+  tif = (tiff_t *)tif_;
+  sp = tif->tif_data;
+
+  (void)s;
+
+  /* 0x6a085-0x6a089. The whole output window is cleared up front; the row
+   * decoders only set the bits they produce. */
+  csmemset(buf, 0, occ);
+
+  /* 0x6a094/0x6a16b. Both the entry test and the back edge are JLE/JG on the
+   * full dword, so `occ` is SIGNED. */
+  while (occ > 0) {
+    /* 0x6a0a0-0x6a0c8. The fall-through arm of the selecting JNE is the
+     * +0x10 == 0 case, and both arms merge into one `test eax,eax` at 0x6a0c6,
+     * so the two calls share a single result variable rather than each testing
+     * its own return. */
+    if (sp->field_10 == 0)
+      ok = FUN_00069020(tif, buf, sp->rowpixels);
+    else
+      ok = FUN_000696d0(tif, buf, sp->rowpixels);
+    if (ok == 0)
+      return 0;
+
+    /* 0x6a0ce-0x6a156. Guarded by bit 0 of the +0x68 flag byte. The state
+     * pointer is re-derived from the handle here (`mov eax,[esi+0x120]` at
+     * 0x6a0d8) even though EDI already holds it, so the accumulator accesses
+     * below go through their own pointer. The block is the same bit fetch
+     * FUN_00068bd0 performs standalone, inlined. */
+    if ((tif->field_68 & 1) != 0) {
+      bits = tif->tif_data;
+      if (bits->bit == 0 && tif->tif_rawcc > 0) {
+        tif->tif_rawcc--;
+        bits->data = bits->bitmap[*tif->tif_rawcp];
+        /* 0x6a10a: the cursor is bumped by its own INC after the load at
+         * 0x6a0fc has already used the pre-increment value. */
+        tif->tif_rawcp++;
+      }
+      /* 0x6a110-0x6a11c. The accumulator is read SIGNED (`movsx ebx,word
+       * ptr [eax]`), and the table at 0x2ec370 is indexed by the BIT POSITION
+       * (`movsx ecx,dx` from +0x02), not by the data byte. */
+      data = (short)bits->data;
+      bit = (short)bits->bit;
+      result = *(const unsigned char *)(0x2ec370 + bit) & data;
+      /* 0x6a125-0x6a130. The wrap compares against 7, not 8. */
+      bit++;
+      bits->bit = (short)bit;
+      if (bit > 7)
+        bits->bit = 0;
+      /* 0x6a139-0x6a146. SETE materializes 0/1 into a value that is BOTH
+       * stored to +0x10 and compared against 1; the store and the gate share
+       * it rather than the gate re-reading the field. */
+      flag = (result == 0);
+      sp->field_10 = flag;
+      if (flag == 1)
+        csmemcpy(sp->fill_line, buf, sp->rowbytes);
+    }
+
+    /* 0x6a159-0x6a168. One load of the row size feeds both updates. */
+    rowbytes = sp->rowbytes;
+    occ -= rowbytes;
+    buf += rowbytes;
+  }
+  return 1;
 }
 
 /**

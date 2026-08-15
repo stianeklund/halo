@@ -34814,7 +34814,7 @@
     },
     {
      "addr": "0x69020",
-     "decl": "void FUN_00069020(void);"
+     "decl": "int FUN_00069020(void *tif @<eax>, unsigned char *buf, int npels);"
     },
     {
      "addr": "0x69180",
@@ -34864,7 +34864,7 @@
     },
     {
      "addr": "0x696d0",
-     "decl": "void FUN_000696d0(void);"
+     "decl": "int FUN_000696d0(void *tif, unsigned char *buf, int npels);"
     },
     {
      "addr": "0x69b90",
@@ -34880,7 +34880,8 @@
     },
     {
      "addr": "0x6a070",
-     "decl": "void FUN_0006a070(void);"
+     "decl": "int FUN_0006a070(void *tif, unsigned char *buf, int occ, int s);",
+     "ported": true
     },
     {
      "addr": "0x6a190",

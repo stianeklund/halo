@@ -13,6 +13,7 @@
   "esi": 1
  },
  "functions": {
+  "0x69020": "int FUN_00069020(void *tif @<eax>, unsigned char *buf, int npels);",
   "0x1008a0": "void compute_split_screen_grid(int num_players @<ebx>, int *out_horizontal_count, int *out_vertical_count);",
   "0x102510": "void screenshot_render(void *a1@<edi>);",
   "0x103600": "int FUN_00103600(float *point@<ebx>, int *block@<esi>);",
