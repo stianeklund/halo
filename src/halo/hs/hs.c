@@ -8035,6 +8035,17 @@ int16_t hs_find_function_by_name(const char *name)
   return -1;
 }
 
+/* 0xc4010 — Comparator over an array of `char *` (qsort/bsearch shape).
+ * Both arguments are pointers into that array, so each is dereferenced once
+ * before the case-insensitive compare.  Ghidra prototypes this as
+ * `void FUN_000c4010(void)` and drops the implicit EAX return: the function
+ * has no epilogue of its own beyond POP EBP/RET, so crt_stricmp's EAX falls
+ * through as the return value. */
+int FUN_000c4010(const char **a, const char **b)
+{
+  return crt_stricmp(*a, *b);
+}
+
 /* Load a single HaloScript source file into the scenario's source file list.
  * The file_ref is passed via EBX (register argument).
  *

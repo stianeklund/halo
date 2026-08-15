@@ -11501,7 +11501,8 @@
     },
     {
      "addr": "0xc4010",
-     "decl": "void FUN_000c4010(void);"
+     "decl": "int FUN_000c4010(const char **a, const char **b);",
+     "ported": true
     },
     {
      "addr": "0xc4030",
