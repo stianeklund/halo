@@ -5274,6 +5274,55 @@ void FUN_000c2d20(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2dc0 — HS script function handler: evaluate the macro arguments and
+ * forward the resulting nav-point record to FUN_000d6250 (set enemy nav point
+ * for all players on a team), then commit a void (0) return to the calling
+ * thread.
+ *
+ * Result-record layout (derived from the disassembly at 000c2dda..000c2df4,
+ * NOT from the decompiler's ushort* index arithmetic):
+ *   +0x00  uint16  XOR EDX,EDX; MOV DX,[EAX]      -> arg 1 (type_value)
+ *   +0x04  uint16  XOR ECX,ECX; MOV CX,[EAX+4]    -> arg 2 (team)
+ *   +0x08  int32   MOV EDX,[EAX+8]                -> arg 3 (object_handle)
+ *   +0x0c  dword   FLD [EAX+0xc]; PUSH ECX;
+ *                  FSTP [ESP]                     -> arg 4 (extra)
+ * Both 16-bit loads are zero-extending, so those fields are unsigned.
+ *
+ * The +0x0c slot is materialised through the FPU (FLD/FSTP [ESP]), i.e. the
+ * value is semantically a float.  It is nevertheless carried as an opaque
+ * dword the whole way down the chain (0xd6250 -> 0xd6180 -> 0xd6030, where
+ * FUN_000d6030's 5th parameter is `int` and existing callers bit-pun floats
+ * into it), so it is forwarded here as the raw dword.  A numeric
+ * `(int)*(float *)` cast would truncate the value instead of preserving the
+ * bit pattern the original pushes.  Declaring FUN_000d6250's 4th parameter
+ * `float` and passing `*(float *)(result + 3)` was measured: MSVC71 lowers a
+ * float lvalue copy to the same `MOV`/`PUSH` pair, so it is 0.00pp on both
+ * this function and 0xd6250 — the reference's FLD/FSTP form is not reachable
+ * from either spelling.
+ *
+ * Callees (all cdecl, all ported):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index,
+ *                                        int thread_datum, char init)
+ *   0xd6250 = FUN_000d6250(int type_value, int team, int object_handle,
+ *                          int extra)
+ *   0xcbf80 = hs_return(int thread_datum, int value)
+ *
+ * The single `ADD ESP,0x18` at 000c2e01 cleans up BOTH the 4 pushes for
+ * FUN_000d6250 and the 2 pushes for hs_return; hs_return still takes 2 args.
+ */
+void FUN_000c2dc0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_000d6250(*(uint16_t *)result, *(uint16_t *)(result + 1), result[2],
+                 result[3]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc2e10 — HS script function handler: evaluate the macro arguments and
  * forward a (dword, uint16) pair from the result block to FUN_000d64f0.
  *
