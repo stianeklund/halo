@@ -1692,6 +1692,11 @@ epilog:
  *   ebp-0x78 = clip_staging[0] (short)
  *   ebp-0x76 = saved clip_index (short)
  *   ebp-0x1c = collision_count */
+#define COLLISION_FINITE3(vector)                                           \
+  (((*(uint32_t *)&(vector)[0] & 0x7f800000) != 0x7f800000) &&             \
+   ((*(uint32_t *)&(vector)[1] & 0x7f800000) != 0x7f800000) &&             \
+   ((*(uint32_t *)&(vector)[2] & 0x7f800000) != 0x7f800000))
+
 short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
                    float *new_pos, float *new_vel, short max_clips,
                    int collisions)
@@ -1714,12 +1719,15 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
   float clip_result[3];
   /* [ebp-0x48..-0x44] clip_indices: collision record indices for each plane */
   short clip_indices[3];
-  /* [ebp-0x78..-0x74] clip_staging: staging area for new clip indices.
-   * clip_staging[0] = clip_staging[0] (current collision record index).
-   * clip_staging[1] = saved clip_indices[0] for multi-clip paths.
+  /* [ebp-0x78], [ebp-0x76], [ebp-0x74] clip_staging: staging area for new
+   * clip indices. Three entries, matching the maximum new_clip_count of 3:
+   *   clip_staging[0] = current collision record index (collision_count-1).
+   *   clip_staging[1] = saved clip_indices[0] (or [1]) for multi-clip paths.
+   *   clip_staging[2] = saved clip_indices[1] on the 3-clip "cornered" path
+   *                     (original store at 0x14fb7e, alongside esi=3).
    * Copied into clip_indices via csmemcpy(clip_indices, clip_staging,
-   * clip_count*2). */
-  short clip_staging[2];
+   * new_clip_count*2). */
+  short clip_staging[3];
   /* [ebp-0x1c] collision_count */
   short collision_count;
   /* EBX: clip_count — number of clip planes accumulated */
@@ -1751,8 +1759,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
   clip_count = 0;
 
   /* Assert valid initial position (0x3ad) */
-  cVar6 = (char)valid_real_point3d(old_pos);
-  if (cVar6 == '\0') {
+  if (!valid_real_point3d(old_pos)) {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_point3d(%f, %f, %f)",
              "old_position", (double)old_pos[0], (double)old_pos[1],
              (double)old_pos[2]);
@@ -1761,8 +1768,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
     system_exit(-1);
   }
   /* Assert valid initial velocity (0x3ae) */
-  cVar6 = (char)real_vector3d_valid(old_vel);
-  if (cVar6 == '\0') {
+  if (!real_vector3d_valid(old_vel)) {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
              "old_velocity", (double)old_vel[0], (double)old_vel[1],
              (double)old_vel[2]);
@@ -1813,8 +1819,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
       (float *)((char *)collisions + (int)collision_count * 0x2c);
 
     /* Assert valid clipped position before collision test (0x3c0) */
-    cVar6 = (char)valid_real_point3d(position);
-    if (cVar6 == '\0') {
+    if (!COLLISION_FINITE3(position)) {
       csprintf((char *)0x5ab100, "%s: assert_valid_real_point3d(%f, %f, %f)",
                "&clipped_position", (double)position[0], (double)position[1],
                (double)position[2]);
@@ -1823,8 +1828,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
       system_exit(-1);
     }
     /* Assert valid clipped velocity before collision test (0x3c1) */
-    cVar6 = (char)real_vector3d_valid(velocity);
-    if (cVar6 == '\0') {
+    if (!COLLISION_FINITE3(velocity)) {
       csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
                "&clipped_velocity", (double)velocity[0], (double)velocity[1],
                (double)velocity[2]);
@@ -1846,8 +1850,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
       position[2] = collision_record[3];
 
       /* Validate the updated position (0x418, "&clipped_position") */
-      cVar6 = (char)valid_real_point3d(position);
-      if (cVar6 == '\0') {
+      if (!valid_real_point3d(position)) {
         csprintf((char *)0x5ab100, "%s: assert_valid_real_point3d(%f, %f, %f)",
                  "&clipped_position", (double)position[0], (double)position[1],
                  (double)position[2]);
@@ -1878,8 +1881,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
     collision_position[2] = collision_record[3];
 
     /* Assert valid collision position (0x3cc, "&position") */
-    cVar6 = (char)valid_real_point3d(collision_position);
-    if (cVar6 == '\0') {
+    if (!COLLISION_FINITE3(collision_position)) {
       csprintf((char *)0x5ab100, "%s: assert_valid_real_point3d(%f, %f, %f)",
                "&position", (double)collision_position[0],
                (double)collision_position[1], (double)collision_position[2]);
@@ -1888,8 +1890,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
       system_exit(-1);
     }
     /* Assert valid old_vel_copy after scaling (0x3cd, "&velocity") */
-    cVar6 = (char)real_vector3d_valid(old_vel_copy);
-    if (cVar6 == '\0') {
+    if (!COLLISION_FINITE3(old_vel_copy)) {
       csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
                "&velocity", (double)old_vel_copy[0], (double)old_vel_copy[1],
                (double)old_vel_copy[2]);
@@ -1909,9 +1910,9 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
     {
       float dot_check;
       dot_check = dot - *(float *)0x2533c8; /* dot - 1.0f */
-      if (dot_check < 0.0f)
-        dot_check = -dot_check;
-      if (dot_check >= *(double *)0x2549d8) {
+      if ((*(uint32_t *)&dot_check & 0x7f800000) == 0x7f800000 ||
+          !(fabs((double)dot_check) < *(double *)0x2549d8) ||
+          ((*(uint32_t *)&plane_ptr[3] & 0x7f800000) == 0x7f800000)) {
         csprintf(
           (char *)0x5ab100, "%s: assert_valid_real_plane3d(%f, %f, %f / %f)",
           "&collision->plane", (double)plane_ptr[0], (double)plane_ptr[1],
@@ -1950,9 +1951,9 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
           collision_plane[2] * old_vel_copy[2];
     factor = -dot;
 
-    velocity[0] = old_vel_copy[0] + factor * collision_plane[0];
-    velocity[1] = old_vel_copy[1] + factor * collision_plane[1];
-    velocity[2] = old_vel_copy[2] + factor * collision_plane[2];
+    velocity[0] = factor * collision_plane[0] + old_vel_copy[0];
+    velocity[1] = factor * collision_plane[1] + old_vel_copy[1];
+    velocity[2] = factor * collision_plane[2] + old_vel_copy[2];
 
     /* Position: pos[i] = collision_position[i] + (-(plane.col_pos - plane_d)) *
      * plane[i] */
@@ -1961,9 +1962,9 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
               collision_plane[2] * collision_position[2] - collision_plane[3];
     factor = -pos_dot;
 
-    position[0] = collision_position[0] + factor * collision_plane[0];
-    position[1] = collision_position[1] + factor * collision_plane[1];
-    position[2] = collision_position[2] + factor * collision_plane[2];
+    position[0] = factor * collision_plane[0] + collision_position[0];
+    position[1] = factor * collision_plane[1] + collision_position[1];
+    position[2] = factor * collision_plane[2] + collision_position[2];
 
     if (clip_count > 0) {
       /* === Old clip_count > 0: check velocity against previous planes === */
@@ -1971,16 +1972,15 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
       /* Check velocity against previous plane (clip_indices[0]) */
       prev_plane_ptr = (float *)((char *)collisions +
                                  (int)(short)clip_indices[0] * 0x2c + 0x10);
-      dot = velocity[0] * prev_plane_ptr[0] + velocity[1] * prev_plane_ptr[1] +
-            velocity[2] * prev_plane_ptr[2];
+      dot = (velocity[2] * prev_plane_ptr[2] + velocity[1] * prev_plane_ptr[1]) +
+            velocity[0] * prev_plane_ptr[0];
 
       if (dot < *(float *)0x26a810) {
         /* Velocity violates previous plane: find intersection of two planes */
         cVar6 = FUN_0010f480(plane_ptr, prev_plane_ptr, clip_result, clip_line);
         if (cVar6) {
           /* Validate clip_result (0x3e1, "&clip_line_point") */
-          cVar6 = (char)valid_real_point3d(clip_result);
-          if (cVar6 == '\0') {
+          if (!COLLISION_FINITE3(clip_result)) {
             csprintf((char *)0x5ab100,
                      "%s: assert_valid_real_point3d(%f, %f, %f)",
                      "&clip_line_point", (double)clip_result[0],
@@ -1990,8 +1990,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
             system_exit(-1);
           }
           /* Validate clip_line (0x3e2, "&clip_line_vector") */
-          cVar6 = (char)real_vector3d_valid(clip_line);
-          if (cVar6 == '\0') {
+          if (!COLLISION_FINITE3(clip_line)) {
             csprintf((char *)0x5ab100,
                      "%s: assert_valid_real_vector2d(%f, %f, %f)",
                      "&clip_line_vector", (double)clip_line[0],
@@ -2029,125 +2028,49 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
             prev_plane_ptr =
               (float *)((char *)collisions +
                         (int)(short)clip_indices[1] * 0x2c + 0x10);
-            dot = velocity[0] * prev_plane_ptr[0] +
-                  velocity[1] * prev_plane_ptr[1] +
-                  velocity[2] * prev_plane_ptr[2];
+            dot = (velocity[2] * prev_plane_ptr[2] +
+                   velocity[1] * prev_plane_ptr[1]) +
+                  velocity[0] * prev_plane_ptr[0];
 
             if (dot < *(float *)0x26a810) {
-              /* Velocity violates second previous plane too.
-               * Try intersection with third plane. */
-              prev_plane_ptr = (float *)((char *)collisions +
-                                         (int)clip_staging[0] * 0x2c + 0x10);
-              cVar6 = FUN_0010f480(
-                prev_plane_ptr,
+              /* Velocity violates second previous plane too. */
+              cVar6 = FUN_0010f310(
+                (float *)((char *)collisions +
+                          (int)(short)clip_staging[0] * 0x2c + 0x10),
+                (float *)((char *)collisions +
+                          (int)(short)clip_indices[0] * 0x2c + 0x10),
                 (float *)((char *)collisions +
                           (int)(short)clip_indices[1] * 0x2c + 0x10),
-                clip_result, clip_line);
+                clip_point);
               if (cVar6) {
-                /* Validate clip_result (0x3fe, "&clip_line_point") */
-                cVar6 = (char)valid_real_point3d(clip_result);
-                if (cVar6 == '\0') {
+                /* Validate clip_point (0x3ee, "&clip_point") */
+                if (!valid_real_point3d(clip_point)) {
                   csprintf((char *)0x5ab100,
                            "%s: assert_valid_real_point3d(%f, %f, %f)",
-                           "&clip_line_point", (double)clip_result[0],
-                           (double)clip_result[1], (double)clip_result[2]);
+                           "&clip_point", (double)clip_point[0],
+                           (double)clip_point[1], (double)clip_point[2]);
                   display_assert((char *)0x5ab100,
                                  "c:\\halo\\SOURCE\\physics\\collisions.c",
-                                 0x3fe, 1);
+                                 0x3ee, 1);
                   system_exit(-1);
                 }
-                /* Validate clip_line (0x3ff, "&clip_line_vector") */
-                cVar6 = (char)real_vector3d_valid(clip_line);
-                if (cVar6 == '\0') {
-                  csprintf((char *)0x5ab100,
-                           "%s: assert_valid_real_vector2d(%f, %f, %f)",
-                           "&clip_line_vector", (double)clip_line[0],
-                           (double)clip_line[1], (double)clip_line[2]);
-                  display_assert((char *)0x5ab100,
-                                 "c:\\halo\\SOURCE\\physics\\collisions.c",
-                                 0x3ff, 1);
-                  system_exit(-1);
-                }
-
-                /* Project velocity onto new intersection line */
-                len_sq = clip_line[0] * clip_line[0] +
-                         clip_line[1] * clip_line[1] +
-                         clip_line[2] * clip_line[2];
-                dot2 = (clip_line[0] * old_vel_copy[0] +
-                        clip_line[1] * old_vel_copy[1] +
-                        clip_line[2] * old_vel_copy[2]) /
-                       len_sq;
-
-                velocity[0] = dot2 * clip_line[0];
-                velocity[1] = dot2 * clip_line[1];
-                velocity[2] = dot2 * clip_line[2];
-
-                /* Update position */
-                collision_log_end_time(collision_position, clip_result,
-                                       position, clip_line);
-
-                clip_staging[1] = clip_indices[1];
-                new_clip_count = 2;
-              } else {
-                /* Intersection failed — try 3-plane intersection */
-                cVar6 = FUN_0010f480(collision_plane, clip_line, clip_point,
-                                     clip_result);
-                if (cVar6) {
-                  /* Validate clip_point (0x3ee, "&clip_point") */
-                  cVar6 = (char)valid_real_point3d(clip_point);
-                  if (cVar6 == '\0') {
-                    csprintf((char *)0x5ab100,
-                             "%s: assert_valid_real_point3d(%f, %f, %f)",
-                             "&clip_point", (double)clip_point[0],
-                             (double)clip_point[1], (double)clip_point[2]);
-                    display_assert((char *)0x5ab100,
-                                   "c:\\halo\\SOURCE\\physics\\collisions.c",
-                                   0x3ee, 1);
-                    system_exit(-1);
-                  }
-                }
-
-                /* Cornered: zero velocity, snap to clip_point */
+                /* 0x14fb74: mov cx,[ebp-0x46] (clip_indices[1])
+                 * 0x14fb7e: mov [ebp-0x74],cx  -> clip_staging[2]
+                 * clip_staging[1] keeps clip_indices[0] stored above. */
+                clip_staging[2] = clip_indices[1];
+                new_clip_count = 3;
                 velocity[0] = 0.0f;
                 velocity[1] = 0.0f;
                 velocity[2] = 0.0f;
                 position[0] = clip_point[0];
                 position[1] = clip_point[1];
                 position[2] = clip_point[2];
-                new_clip_count = 3;
               }
             }
             /* else: velocity satisfies second previous plane, keep
              * new_clip_count=2 */
           }
           /* else: was 1 clip, now 2 — keep new_clip_count=2 */
-        } else {
-          /* FUN_0010f480 failed — try 3-plane intersection */
-          cVar6 =
-            FUN_0010f480(collision_plane, clip_line, clip_point, clip_result);
-          if (cVar6) {
-            /* Validate clip_point (0x3ee, "&clip_point") */
-            cVar6 = (char)valid_real_point3d(clip_point);
-            if (cVar6 == '\0') {
-              csprintf((char *)0x5ab100,
-                       "%s: assert_valid_real_point3d(%f, %f, %f)",
-                       "&clip_point", (double)clip_point[0],
-                       (double)clip_point[1], (double)clip_point[2]);
-              display_assert((char *)0x5ab100,
-                             "c:\\halo\\SOURCE\\physics\\collisions.c", 0x3ee,
-                             1);
-              system_exit(-1);
-            }
-          }
-
-          /* Cornered: zero velocity, snap to clip_point */
-          velocity[0] = 0.0f;
-          velocity[1] = 0.0f;
-          velocity[2] = 0.0f;
-          position[0] = clip_point[0];
-          position[1] = clip_point[1];
-          position[2] = clip_point[2];
-          new_clip_count = 3;
         }
       } else {
         /* Velocity satisfies previous plane: single-clip recovery.
@@ -2156,9 +2079,9 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
           /* Was 2+ clips: check velocity against clip_indices[1] plane */
           prev_plane_ptr = (float *)((char *)collisions +
                                      (int)(short)clip_indices[1] * 0x2c + 0x10);
-          dot = velocity[0] * prev_plane_ptr[0] +
-                velocity[1] * prev_plane_ptr[1] +
-                velocity[2] * prev_plane_ptr[2];
+          dot = (velocity[2] * prev_plane_ptr[2] +
+                 velocity[1] * prev_plane_ptr[1]) +
+                velocity[0] * prev_plane_ptr[0];
 
           if (dot < *(float *)0x26a810) {
             /* Velocity violates second previous plane.
@@ -2172,8 +2095,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
                            clip_result, clip_line);
             if (cVar6) {
               /* Validate clip_result (0x3fe, "&clip_line_point") */
-              cVar6 = (char)valid_real_point3d(clip_result);
-              if (cVar6 == '\0') {
+              if (!valid_real_point3d(clip_result)) {
                 csprintf((char *)0x5ab100,
                          "%s: assert_valid_real_point3d(%f, %f, %f)",
                          "&clip_line_point", (double)clip_result[0],
@@ -2184,8 +2106,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
                 system_exit(-1);
               }
               /* Validate clip_line (0x3ff, "&clip_line_vector") */
-              cVar6 = (char)real_vector3d_valid(clip_line);
-              if (cVar6 == '\0') {
+              if (!real_vector3d_valid(clip_line)) {
                 csprintf((char *)0x5ab100,
                          "%s: assert_valid_real_vector2d(%f, %f, %f)",
                          "&clip_line_vector", (double)clip_line[0],
@@ -2215,30 +2136,6 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
 
               clip_staging[1] = clip_indices[1];
               new_clip_count = 2;
-            } else {
-              /* Intersection failed — cornered */
-              cVar6 = FUN_0010f480(collision_plane, clip_line, clip_point,
-                                   clip_result);
-              if (cVar6) {
-                cVar6 = (char)valid_real_point3d(clip_point);
-                if (cVar6 == '\0') {
-                  csprintf((char *)0x5ab100,
-                           "%s: assert_valid_real_point3d(%f, %f, %f)",
-                           "&clip_point", (double)clip_point[0],
-                           (double)clip_point[1], (double)clip_point[2]);
-                  display_assert((char *)0x5ab100,
-                                 "c:\\halo\\SOURCE\\physics\\collisions.c",
-                                 0x3ee, 1);
-                  system_exit(-1);
-                }
-              }
-              velocity[0] = 0.0f;
-              velocity[1] = 0.0f;
-              velocity[2] = 0.0f;
-              position[0] = clip_point[0];
-              position[1] = clip_point[1];
-              position[2] = clip_point[2];
-              new_clip_count = 3;
             }
           }
           /* else: velocity satisfies second previous plane too, keep
@@ -2250,8 +2147,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
     /* else: old clip_count was 0, just first clip, new_clip_count=1 */
 
     /* Assert valid position after clipping (0x40a, "&clipped_position") */
-    cVar6 = (char)valid_real_point3d(position);
-    if (cVar6 == '\0') {
+    if (!COLLISION_FINITE3(position)) {
       csprintf((char *)0x5ab100, "%s: assert_valid_real_point3d(%f, %f, %f)",
                "&clipped_position", (double)position[0], (double)position[1],
                (double)position[2]);
@@ -2260,8 +2156,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
       system_exit(-1);
     }
     /* Assert valid velocity after clipping (0x40b, "&clipped_velocity") */
-    cVar6 = (char)real_vector3d_valid(velocity);
-    if (cVar6 == '\0') {
+    if (!COLLISION_FINITE3(velocity)) {
       csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
                "&clipped_velocity", (double)velocity[0], (double)velocity[1],
                (double)velocity[2]);
@@ -2308,9 +2203,9 @@ post_loop:
     dot = collision_plane[0] * old_vel[0] + collision_plane[1] * old_vel[1] +
           collision_plane[2] * old_vel[2];
     factor = -dot;
-    new_vel[0] = old_vel[0] + factor * collision_plane[0];
-    new_vel[1] = old_vel[1] + factor * collision_plane[1];
-    new_vel[2] = old_vel[2] + factor * collision_plane[2];
+    new_vel[0] = factor * collision_plane[0] + old_vel[0];
+    new_vel[1] = factor * collision_plane[1] + old_vel[1];
+    new_vel[2] = factor * collision_plane[2] + old_vel[2];
     break;
 
   case 2:
@@ -2408,7 +2303,6 @@ post_loop:
     float *edge; /* dst_record + 0x10 = &dst_record[4] */
     float *anchor;
     float best_time;
-    float edge_len;
 
     short best_idx;
     short idx;
@@ -2439,15 +2333,12 @@ post_loop:
      * seeded at 0.0. */
     best_time = *(float *)0x2533c0; /* 0.0f */
     best_idx = -1;
-    if (clip_count > 0) {
-      for (idx = 0; idx < clip_count; idx++) {
-        src_record =
-          (float *)((char *)collisions + (int)(short)clip_indices[idx] * 0x2c);
-        if (best_time >
-            src_record[6]) { /* record[6] = +0x18 = plane_normal[2] */
-          best_idx = idx;
-          best_time = src_record[6];
-        }
+    for (idx = 0; idx < clip_count; idx++) {
+      src_record =
+        (float *)((char *)collisions + (int)(short)clip_indices[idx] * 0x2c);
+      if (best_time > src_record[6]) {
+        best_idx = idx;
+        best_time = src_record[6];
       }
     }
 
@@ -2473,14 +2364,20 @@ post_loop:
         src_record = (float *)((char *)collisions +
                                (int)(short)clip_indices[best_idx] * 0x2c);
         if (best_idx == 0) {
-          edge[0] = clip_line[1] * src_record[6] - clip_line[2] * src_record[5];
-          edge[1] = clip_line[2] * src_record[4] - clip_line[0] * src_record[6];
           edge[2] = clip_line[0] * src_record[5] - clip_line[1] * src_record[4];
+          edge[1] = clip_line[2] * src_record[4] - clip_line[0] * src_record[6];
+          edge[0] = clip_line[1] * src_record[6] - clip_line[2] * src_record[5];
         } else {
-          edge[0] = clip_line[2] * src_record[5] - clip_line[1] * src_record[6];
-          edge[1] = clip_line[0] * src_record[6] - clip_line[2] * src_record[4];
           edge[2] = clip_line[1] * src_record[4] - clip_line[0] * src_record[5];
+          edge[1] = clip_line[0] * src_record[6] - clip_line[2] * src_record[4];
+          edge[0] = clip_line[2] * src_record[5] - clip_line[1] * src_record[6];
         }
+      }
+      if (normalize3d(edge) != *(float *)0x2533c0) {
+        *(float *)((char *)dst_record + 0x1c) =
+          (anchor[1] * edge[1] + anchor[2] * edge[2]) + anchor[0] * edge[0];
+      } else {
+        collision_count--;
       }
     } else {
       /* clip_count == 3 */
@@ -2490,30 +2387,42 @@ post_loop:
         edge[0] = up_vec[0];
         edge[1] = up_vec[1];
         edge[2] = up_vec[2];
-        /* d = dot(clip_point, edge); stored directly (skips normalize tail). */
         *(float *)((char *)dst_record + 0x1c) =
           (anchor[1] * edge[1] + anchor[2] * edge[2]) + anchor[0] * edge[0];
-        return collision_count;
+      } else {
+        /* edge = up - src_normal[2] * src_normal (src = clip_indices[best_idx]). */
+        src_record = (float *)((char *)collisions +
+                               (int)(short)clip_indices[best_idx] * 0x2c);
+        factor = -src_record[6]; /* -plane_normal[2] */
+        edge[0] = factor * src_record[4] + up_vec[0];
+        edge[1] = factor * src_record[5] + up_vec[1];
+        edge[2] = factor * src_record[6] + up_vec[2];
+        if (normalize3d(edge) != *(float *)0x2533c0) {
+          *(float *)((char *)dst_record + 0x1c) =
+            (anchor[1] * edge[1] + anchor[2] * edge[2]) + anchor[0] * edge[0];
+        } else {
+          collision_count--;
+        }
       }
-      /* edge = up - src_normal[2] * src_normal (src = clip_indices[best_idx]).
-       */
-      src_record = (float *)((char *)collisions +
-                             (int)(short)clip_indices[best_idx] * 0x2c);
-      factor = -src_record[6]; /* -plane_normal[2] */
-      edge[0] = factor * src_record[4] + up_vec[0];
-      edge[1] = factor * src_record[5] + up_vec[1];
-      edge[2] = factor * src_record[6] + up_vec[2];
     }
+  }
 
-    /* Shared normalize tail: normalize the edge; on zero length remove the
-     * synthesized record, otherwise store d = dot(anchor, edge). */
-    edge_len = normalize3d(edge);
-    if (edge_len == *(float *)0x2533c0) { /* length == 0.0 */
-      collision_count--;
-    } else {
-      *(float *)((char *)dst_record + 0x1c) =
-        (anchor[1] * edge[1] + anchor[2] * edge[2]) + anchor[0] * edge[0];
-    }
+  /* Final validation asserts before return (0x497, 0x498) */
+  if (!COLLISION_FINITE3(new_pos)) {
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_point3d(%f, %f, %f)",
+             "new_position", (double)new_pos[0], (double)new_pos[1],
+             (double)new_pos[2]);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\physics\\collisions.c",
+                   0x497, 1);
+    system_exit(-1);
+  }
+  if (!COLLISION_FINITE3(new_vel)) {
+    csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
+             "new_velocity", (double)new_vel[0], (double)new_vel[1],
+             (double)new_vel[2]);
+    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\physics\\collisions.c",
+                   0x498, 1);
+    system_exit(-1);
   }
 
   return collision_count;
