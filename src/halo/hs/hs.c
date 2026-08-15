@@ -6971,6 +6971,82 @@ void FUN_000c3600(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc3620 — HaloScript function handler: forward one evaluated (uint16, float)
+ * pair to the routine at 0x17d9a0.
+ *
+ * Same shape as the sibling handler at 0xc3660: it drives
+ * hs_macro_function_evaluate over its HaloScript argument expressions and, on
+ * a non-NULL evaluation record, dispatches to a single target before
+ * completing the script thread with a 0 result.  Only the target and the
+ * argument widths differ, so neither the target nor this handler gets a
+ * semantic name.
+ *
+ * Ghidra mis-prototypes this as `void FUN_000c3620(void)` and surfaces the
+ * three stack arguments as `in_stack_00000004/8/c` — the tell for dropped
+ * cdecl stack params, not for register arguments; this function takes none.
+ * Real frame offsets:
+ *   [EBP+0x08] -> ECX -> arg1 int16_t function_index
+ *   [EBP+0x0C] -> ESI -> arg2 int     thread_datum   (ESI across the body)
+ *   [EBP+0x10] -> EAX -> arg3 char    init
+ * Push order at the 0xcc560 call is PUSH EAX / PUSH ESI / PUSH ECX, i.e. the C
+ * argument order (function_index, thread_datum, init).
+ *
+ * hs_macro_function_evaluate's kb decl returns `int`, but the result is used
+ * here as a pointer to the evaluated HS argument block, so it is cast rather
+ * than truncated.  Two fields of that block are read, and both widths are
+ * load-bearing (taken from the disassembly, not the decompiler):
+ *   +0x00  XOR EDX,EDX / MOV DX, word ptr [EAX]  ; ZERO-extended uint16
+ *   +0x04  FLD dword ptr [EAX+4]                 ; true float lvalue
+ * Reading +0x00 through an `int *` would emit a dword load and reading it
+ * through a signed `short *` would emit MOVSX; both are silent LOADW-class
+ * bugs, so the result pointer is typed `unsigned short *`.  The float at +0x04
+ * is passed by its raw IEEE-754 bits — MSVC emits the push-then-FSTP idiom
+ * (PUSH ECX as a dummy slot, then FSTP dword ptr [ESP]), so an int-typed read
+ * would FILD-convert and silently change the value.
+ *
+ * Ghidra DROPPED both of those arguments, rendering the call as
+ * `FUN_0017d9a0()`, because kb declared the callee `void FUN_0017d9a0(void)`.
+ * The disassembly (PUSH dummy + FSTP [ESP] for the float, then PUSH EDX for
+ * the uint16, immediately before CALL 0x17d9a0) proves two cdecl stack
+ * arguments, so the kb decl is widened to
+ * `void FUN_0017d9a0(int16_t param_1, float param_2)`.  The callee is cdecl and
+ * this caller cleans, so widening cannot drift ESP.  Its param widths are read
+ * off the callee's own prologue in the pristine XBE (0x17d9a0):
+ *   mov ax, word ptr [ebp+8] / test ax,ax / jl / cmp ax,4 / jge  -> SIGNED
+ *     16-bit formal, range-checked to 0..3
+ *   fld dword ptr [ebp+0xc] / fstp dword ptr [ecx+eax*4+0x64]    -> float
+ *     formal, stored into a 4-entry float array hanging off the global at
+ *     0x47e4d4
+ * so `int16_t`/`float` is the binary-backed spelling, not `int`.
+ *
+ * ADD ESP,0x10 after the second call is a single merged cleanup for BOTH
+ * trailing calls (2 pushes for FUN_0017d9a0 + 2 for hs_return); the
+ * "hs_return ARG_COUNT cleanup=4, decl=2" finding is that cdecl merge, not a
+ * wider hs_return.
+ *
+ * Frame is EBP-based with no locals and no _chkstk (PUSH EBP / MOV EBP,ESP /
+ * PUSH ESI); ESI carries thread_datum across the body.
+ *
+ * No FPU arithmetic (the float is a pure load/store passthrough), no struct
+ * writes, no buffers.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560  = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *   0x17d9a0 = FUN_0017d9a0(int, float)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c3620(int16_t function_index, int thread_datum, char init)
+{
+  unsigned short *result;
+
+  result = (unsigned short *)hs_macro_function_evaluate(function_index,
+                                                        thread_datum, init);
+  if (result != 0) {
+    FUN_0017d9a0(result[0], ((float *)result)[1]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc3660 — HaloScript function handler: forward one evaluated boolean-ish
  * byte argument to the rasterizer-sprites routine at 0x17da00.
  *

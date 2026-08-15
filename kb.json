@@ -11342,7 +11342,8 @@
     },
     {
      "addr": "0xc3620",
-     "decl": "void FUN_000c3620(void);"
+     "decl": "void FUN_000c3620(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc3660",
@@ -29866,7 +29867,7 @@
     },
     {
      "addr": "0x17d9a0",
-     "decl": "void FUN_0017d9a0(void);"
+     "decl": "void FUN_0017d9a0(int16_t param_1, float param_2);"
     },
     {
      "addr": "0x17d9d0",
