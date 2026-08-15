@@ -1,3 +1,67 @@
+/* LARGE_INTEGER as the original source spelled it — the assert text at
+ * 0x1bc2a4 is literally "freq.u.HighPart==0", so the source used the
+ * .u.LowPart/.u.HighPart member form. */
+typedef union {
+  struct {
+    unsigned long LowPart;
+    long HighPart;
+  } u;
+  __int64 QuadPart;
+} CACHE_DECOMPRESS_LARGE_INTEGER;
+
+/* FUN_001bc280 — initialize the cache decompression system.
+ *
+ * Latches the low dword of the performance-counter frequency into the
+ * global at 0x32ea9c, creates the four decompression events, installs the
+ * two allocator callbacks, and starts the copy thread.
+ *
+ * The globals block is reached through the POINTER global at 0x32ea98
+ * (unlike the direct 0x4e92xx globals used by the rest of this file); the
+ * original reloads it after every call, which a plain re-read of the
+ * global reproduces.
+ *
+ * Touched offsets in that block:
+ *   +0x928  cache_copy_compressed_alloc  (0x1ba660)
+ *   +0x92c  FUN_001ba6c0                 (0x1ba6c0)
+ *   +0x94c  auto-reset event, initially non-signaled
+ *   +0x950  manual-reset event, initially non-signaled
+ *   +0x954  manual-reset event, initially SIGNALED
+ *   +0x958  manual-reset event, initially non-signaled
+ *   +0x95c  copy thread handle (simple_cache_copy_thread, 0x1bbea0)
+ *
+ * Source: c:\halo\SOURCE\cache\cache_files_decompress_windows.c line 0x1e7.
+ * Unlike FUN_001bda90 below, this function does NOT null-check any of the
+ * returned handles — do not add checks. */
+void FUN_001bc280(void)
+{
+  CACHE_DECOMPRESS_LARGE_INTEGER freq;
+
+  QueryPerformanceFrequency(&freq);
+  if (freq.u.HighPart != 0) {
+    display_assert("freq.u.HighPart==0",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_decompress_windows.c",
+                   0x1e7, 1);
+    system_exit(-1);
+  }
+  *(unsigned long *)0x32ea9c = freq.u.LowPart;
+
+  *(void **)(*(unsigned char **)0x32ea98 + 0x954) =
+    CreateEventA(NULL, 1, 1, NULL);
+  *(void **)(*(unsigned char **)0x32ea98 + 0x94c) =
+    CreateEventA(NULL, 0, 0, NULL);
+  *(void **)(*(unsigned char **)0x32ea98 + 0x950) =
+    CreateEventA(NULL, 1, 0, NULL);
+  *(void **)(*(unsigned char **)0x32ea98 + 0x958) =
+    CreateEventA(NULL, 1, 0, NULL);
+
+  *(void (**)(void))(*(unsigned char **)0x32ea98 + 0x928) =
+    cache_copy_compressed_alloc;
+  *(void (**)(void))(*(unsigned char **)0x32ea98 + 0x92c) = FUN_001ba6c0;
+
+  *(void **)(*(unsigned char **)0x32ea98 + 0x95c) =
+    CreateThread(NULL, 0x4000, simple_cache_copy_thread, NULL, 0, NULL);
+}
+
 /* Cache file precaching system for Xbox. Manages background copying of
  * map files from DVD to the hard drive cache partition. */
 

@@ -26063,6 +26063,21 @@
       "score": 93.6,
       "source": "src/halo/cache/cache_files.c"
     },
+    "FUN_001bc280": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 96.8,
+      "addr": "0x1bc280",
+      "end": "0x1bc35e",
+      "kind": "auto",
+      "n_r": 61,
+      "opnd_percent": 90.3,
+      "raw_mnemonic_pct": 96.8,
+      "ref": "synth",
+      "ref_sha": "c57562dba2dee7a0",
+      "score": 96.8,
+      "source": "src/halo/cache/cache_files_windows.c"
+    },
     "FUN_001bc720": {
       "addr": "0x1bc720",
       "end": "0x1bc75a",
