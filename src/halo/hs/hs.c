@@ -6154,6 +6154,79 @@ void FUN_000c3230(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc3270 — HaloScript function evaluator wrapper.  Evaluates the call's
+ * argument expressions via hs_macro_function_evaluate; when that returns a
+ * non-NULL record pointer, feeds the record's first BYTE to FUN_000d8b90 and
+ * commits a 0 result to the calling script thread.  Structural twin of
+ * FUN_000c30f0 at 0xc30f0 with the consumer swapped from 0xd7440 to 0xd8b90.
+ *
+ * Disassembly (0xc3270-0xc32a3, 24 instructions):
+ *   PUSH EBP; MOV EBP,ESP            ; no `SUB ESP` — zero stack locals
+ *   MOV  ECX,[EBP+0x8]               ; function_index (arg 1, int16)
+ *   MOV  EAX,[EBP+0x10]              ; init           (arg 3, char)
+ *   PUSH ESI                         ; the only callee-saved register used
+ *   MOV  ESI,[EBP+0xc]               ; thread_datum (arg 2), cached in ESI
+ *                                    ; because it is live again after the
+ *                                    ; first call while fn_index/init are dead
+ *   PUSH EAX; PUSH ESI; PUSH ECX     ; cdecl: last PUSH is the first C arg,
+ *                                    ; i.e. (function_index, thread_datum,
+ *                                    ;       init)
+ *   CALL 0xcc560                     ; hs_macro_function_evaluate
+ *   ADD  ESP,0xc                     ; 3 args — cleanup belongs SOLELY to this
+ *                                    ; call
+ *   TEST EAX,EAX; JZ 0xc32a1         ; plain early-out, no else branch; on a
+ *                                    ; NULL record NEITHER remaining call runs
+ *                                    ; — in particular there is no hs_return.
+ *                                    ; The tested EAX is then DEREFERENCED, so
+ *                                    ; this is a NULL-pointer guard, not a
+ *                                    ; boolean test.
+ *   XOR  EDX,EDX; MOV DL,byte [EAX]  ; record field at +0x0 is a BYTE and it is
+ *                                    ; ZERO-extended (movzx idiom), hence
+ *                                    ; `*(unsigned char *)result`; plain `char`
+ *                                    ; is signed here and would emit MOVSX.
+ *                                    ; The neighbouring FUN_000c32d0 reads a
+ *                                    ; WORD at this same +0x0 — do not copy
+ *                                    ; that variant here.
+ *   PUSH EDX                         ; ...the consumer call's ONE argument
+ *   CALL 0xd8b90                     ; FUN_000d8b90(char)
+ *   PUSH 0x0; PUSH ESI
+ *   CALL 0xcbf80                     ; hs_return(thread_datum, 0)
+ *   ADD  ESP,0xc                     ; COMBINED cleanup for BOTH calls
+ *                                    ; (FUN_000d8b90 4 + hs_return 8).  There
+ *                                    ; is NO `ADD ESP,4` after CALL 0xd8b90 —
+ *                                    ; do not misread the single 0xc as a
+ *                                    ; three-argument hs_return; hs_return's
+ *                                    ; decl stays (2) and FUN_000d8b90's
+ *                                    ; stays (1).  call_site_audit reports
+ *                                    ; "ARG_COUNT: hs_return cleanup=3 stack
+ *                                    ; args" here; that is a false positive.
+ *   POP ESI; POP EBP; RET            ; no `RET n` — cdecl, caller cleans
+ *
+ * ABI: the kb decl was widened from `void FUN_000c3270(void);`.  Ghidra
+ * surfaces the three cdecl stack parameters as phantom `in_stack_*` locals
+ * under that void(void) prototype; they must be declared or the frame and the
+ * [EBP+0x8]/[EBP+0xc]/[EBP+0x10] loads diverge.  Only one local (`result`) is
+ * declared, matching the zero-`SUB ESP` frame; function_index and init must not
+ * be spilled into extra locals.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560 = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *             (declared `int`; EAX is dereferenced as a record pointer)
+ *   0xd8b90 = FUN_000d8b90(char)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c3270(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    FUN_000d8b90(*(unsigned char *)result);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc32b0 — HaloScript function evaluator that clears the scripted HUD message
  * queue.  Runs scripted_hud_messages_clear() for its side effect, then commits
  * a 0 result to the calling script thread (a void-returning script builtin).
