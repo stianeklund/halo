@@ -2430,6 +2430,23 @@
         "The upstream libtiff identity of this entry point and the meaning of bit 0 of the byte at tif+0x9 are both UNKNOWN; in particular it is unproven whether that byte is byte 1 of an upstream uint32 tif_flags based at 0x08, so the bit is set with a literal 1 and cleared with 0xfe rather than a named TIFF_ macro."
       ]
     },
+    "0x69200": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "FUN_00069200 is upstream libtiff _PutBits as a real function: its own disassembly shows EAX as the bit count (mov ebx,eax at 0x6920b then cmp against sp->bit), the lone [ebp+8] stack argument as the code shifted into the accumulator, and the TIFF handle arriving in EDI (mov esi,[edi+0x120] at 0x69205 with EDI never initialized locally)."
+      ]
+    },
+    "0x693b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "FUN_000693b0 is upstream libtiff tif_fax3.c Fax3PutEOL by shape and constants only (12-bit code 0x001, the +4/-4 byte-alignment arithmetic around cmp eax,4, and one trailing tag bit); no __FILE__ string is stamped in this body, so the name is withheld."
+      ],
+      "uncertain": [
+        "tif+0x68 is kept as field_68: its two live bits (0x4 gating the byte-alignment fill, 0x1 gating the trailing tag bit) match upstream GROUP3OPT_FILLBITS and GROUP3OPT_2DENCODING exactly, but upstream reads those out of the codec state while this build reads them out of the TIFF handle, so the field identity as td_group3options is unproven."
+      ]
+    },
     "0x69420": {
       "kind": "function",
       "status": "unknown",
@@ -2475,6 +2492,17 @@
       ],
       "uncertain": [
         "The freed block at tif+0x120 is typed tiff_codec_bits_t* by reusing this translation unit's own private-state shape recovered from FUN_00069520; nothing in this body proves the fax3 codec's state has that layout, and debug_free takes void* so the type is never load-bearing here."
+      ]
+    },
+    "0x6a070": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Identified as upstream libtiff tif_fax3.c Fax3Decode by shape only: the TU stamps c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_fax3.c via FUN_000695c0, but this body carries no assert or __FILE__ string of its own."
+      ],
+      "uncertain": [
+        "tiff_t+0x68 is proven BYTE-wide and bit 0 is tested at 0x6a0ce, but nothing recovered so far writes the offset, so the field ships as field_68 with no semantic name.",
+        "The residual VC71 LOADW-WARN is a false positive: our movzbl 0x2ec370(%edx),%edx matches the reference movzx ecx,byte ptr [ecx+0x2ec370] at 0x6a11c in width and displacement and differs only in the allocated base register."
       ]
     },
     "0x6a190": {

@@ -151,8 +151,8 @@ ai_debug.obj,true,0x00048F50-0x00053CF0,73
 ai_profile.obj,true,0x000540B0-0x00055FD0,46
 ai_script.obj,true,0x00058CC0-0x00058F40,2
 encounters.obj,true,0x00053B80-0x0005E1B0,140
-props.obj,true,0x00063E30-0x000653A0,31
-tif_dir.obj,true,0x00064CD0-0x00067070,30
+props.obj,true,0x00063E30-0x000653A0,30
+tif_dir.obj,true,0x00064CD0-0x00067070,31
 tif_error.obj,true,0x000689C0-0x00068C10,2
 tif_flush.obj,true,0x00068780-0x0006BC70,55
 tif_open.obj,true,0x0006C400-0x0006DFA0,41
