@@ -11412,7 +11412,8 @@
     },
     {
      "addr": "0xc3940",
-     "decl": "void FUN_000c3940(void);"
+     "decl": "void FUN_000c3940(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc3970",
@@ -17911,7 +17912,7 @@
     },
     {
      "addr": "0xe1060",
-     "decl": "void FUN_000e1060(void);"
+     "decl": "unsigned char FUN_000e1060(void);"
     },
     {
      "addr": "0xe10c0",

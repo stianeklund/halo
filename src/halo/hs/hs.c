@@ -7637,6 +7637,39 @@ void FUN_000c3910(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, result);
 }
 
+/* 0xc3940 — HaloScript function evaluator that returns a player0 control
+ * setting as a boolean script result.  Direct sibling of 0xc3910 above: it
+ * calls the byte-returning accessor at 0xe1060 and commits the result to the
+ * calling script thread.
+ *
+ * kb.json declared 0xe1060 as `void FUN_000e1060(void);`, which is an
+ * under-declaration: the callee is
+ *   MOV AL,byte ptr [0x46bf09] / TEST AL,AL / JE .t / CMP AL,1 / JE .t /
+ *   XOR EAX,EAX / RET   .t: MOV EAX,1 / RET
+ * i.e. it yields 1 when the setting byte is 0 or 1, else 0, and 0xc3953
+ * consumes AL immediately.  Widened to `unsigned char FUN_000e1060(void)`,
+ * matching the 0xe1050 precedent in the same accessor cluster.
+ *
+ * The result local at [EBP-0x4] is zero-initialized as a dword
+ * (MOV dword [EBP-0x4],0) and then only its LOW BYTE is overwritten with AL
+ * (MOV byte [EBP-0x4],AL), so the committed value is a zero-extended byte.
+ *
+ * function_index ([EBP+0x08]) and init ([EBP+0x10]) are never read here.
+ * No FPU ops, no narrow loads, no struct stores, no branches, no SEH.
+ *
+ * Callees (both cdecl, in kb.json, no register arguments):
+ *   0xe1060 = FUN_000e1060(void) -> bool in AL
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c3940(int16_t function_index, int thread_datum, char init)
+{
+  int result;
+
+  result = 0;
+  *(unsigned char *)&result = FUN_000e1060();
+  hs_return(thread_datum, result);
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
