@@ -2888,6 +2888,46 @@ void FUN_000c20c0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2100 (hs.obj) — HaloScript function handler: "radiosity_start".
+ *
+ * The script-function record at 0x271990 names this handler: return_type 4
+ * (void), name "radiosity_start", help "starts radiosity computation.",
+ * parse 0xc7e50 (the shared no-argument parser for this family),
+ * evaluate 0xc2100 (this function), num_params 0.  The command therefore
+ * takes no script arguments, which is why there is no
+ * hs_macro_function_evaluate call and no result NULL check — identical in
+ * shape to FUN_000c2140 directly below.  In this build the handler body
+ * performs no side effect of its own: it only completes the calling script
+ * thread with the value 0.  The symbol keeps its address name because
+ * "radiosity_start" names the script command, not this wrapper.
+ *
+ * Disassembly (9 instructions).  Frame is PUSH EBP; MOV EBP,ESP only — no
+ * locals and no `sub esp`.  Body:
+ *
+ *   MOV EAX,[EBP+0xc]    ; thread_datum
+ *   PUSH 0x0             ; hs_return arg2 = value
+ *   PUSH EAX             ; hs_return arg1 = thread_datum (cdecl: the last
+ *                        ; PUSH is the first C argument)
+ *   CALL 0xcbf80         ; hs_return
+ *   ADD ESP,0x8          ; cdecl cleanup, 2 dwords
+ *   POP EBP; RET         ; plain RET => caller-cleanup cdecl, no register args
+ *
+ * [EBP+0x8] (function_index) and [EBP+0x10] (init) are never read by this
+ * body; they complete the standard hs-evaluator signature shared by every
+ * other handler in this TU.  Ghidra mis-prototypes this as void(void) and
+ * reports the [EBP+0xc] read as the phantom local `in_stack_00000008` —
+ * that phantom is ARG 2, not arg 1.  Binding it to function_index would pass
+ * a script-function index as the thread handle to hs_return, completing the
+ * wrong HS thread with no crash and no VC71 delta.
+ *
+ * Callees (cdecl, no register args, ported):
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c2100(int16_t function_index, int thread_datum, char init)
+{
+  hs_return(thread_datum, 0);
+}
+
 /* 0xc2140 (hs.obj) — HaloScript function handler, no-op body.
  *
  * The smallest handler shape in this TU: the command takes no script
@@ -5274,6 +5314,112 @@ void FUN_000c2d20(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2d70 — HS script function handler `activate_team_nav_point_flag`
+ * (script-function record at 0x2720c4: name="activate_team_nav_point_flag",
+ * return_type=4 (void), num_params=4, param_types=(21, 33, 12, 6)).
+ * Evaluate the macro arguments and forward the resulting nav-point record to
+ * FUN_000d6220, then commit a void (0) return to the calling thread.
+ *
+ * Exact twin of FUN_000c2dc0 (`activate_team_nav_point_object`) below; the
+ * only difference is the +0x08 field, which the flag variant reads as a
+ * zero-extended 16-bit cutscene-flag index instead of a full 32-bit object
+ * handle — matching FUN_000d6220's `short` 3rd parameter.
+ *
+ * Result-record layout (derived from the disassembly at 000c2d8c..000c2da7,
+ * NOT from the decompiler's ushort* index arithmetic):
+ *   +0x00  uint16  XOR EDX,EDX; MOV DX,[EAX]      -> arg 1 (type_value)
+ *   +0x04  uint16  XOR ECX,ECX; MOV CX,[EAX+4]    -> arg 2 (team)
+ *   +0x08  uint16  XOR EDX,EDX; MOV DX,[EAX+8]    -> arg 3 (flag index)
+ *   +0x0c  dword   FLD [EAX+0xc]; PUSH ECX;
+ *                  FSTP [ESP]                     -> arg 4 (extra)
+ * All three 16-bit loads are zero-extending, so those fields are unsigned.
+ *
+ * The +0x0c slot is materialised through the FPU (FLD/FSTP [ESP]) and the
+ * script table types param 4 as `real`, i.e. the value is semantically a
+ * float.  It is nevertheless carried as an opaque dword the whole way down
+ * the chain (0xd6220 -> 0xd6180 -> 0xd6030, whose 5th parameter is `int` and
+ * whose existing callers bit-pun floats into it), so it is forwarded here as
+ * the raw dword; a numeric `(int)*(float *)` cast would truncate the value
+ * instead of preserving the bit pattern the original pushes.  Retyping the
+ * callee's 4th parameter `float` was measured on the twin (0xc2dc0/0xd6250):
+ * MSVC71 lowers a float lvalue copy to the same `MOV`/`PUSH` pair, so it is
+ * 0.00pp — the reference's FLD/FSTP form is not reachable from either
+ * spelling.
+ *
+ * Callees (all cdecl, all ported):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index,
+ *                                        int thread_datum, char init)
+ *   0xd6220 = FUN_000d6220(int type_value, int team, short object_handle,
+ *                          int extra)
+ *   0xcbf80 = hs_return(int thread_datum, int value)
+ *
+ * The single `ADD ESP,0x18` at 000c2db4 cleans up BOTH the 4 pushes for
+ * FUN_000d6220 and the 2 pushes for hs_return; hs_return still takes 2 args
+ * (the ARG_COUNT "cleanup=6" hazard is that merged cleanup, a false
+ * positive).
+ */
+void FUN_000c2d70(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_000d6220(*(uint16_t *)result, *(uint16_t *)(result + 1),
+                 *(uint16_t *)(result + 2), result[3]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc2dc0 — HS script function handler: evaluate the macro arguments and
+ * forward the resulting nav-point record to FUN_000d6250 (set enemy nav point
+ * for all players on a team), then commit a void (0) return to the calling
+ * thread.
+ *
+ * Result-record layout (derived from the disassembly at 000c2dda..000c2df4,
+ * NOT from the decompiler's ushort* index arithmetic):
+ *   +0x00  uint16  XOR EDX,EDX; MOV DX,[EAX]      -> arg 1 (type_value)
+ *   +0x04  uint16  XOR ECX,ECX; MOV CX,[EAX+4]    -> arg 2 (team)
+ *   +0x08  int32   MOV EDX,[EAX+8]                -> arg 3 (object_handle)
+ *   +0x0c  dword   FLD [EAX+0xc]; PUSH ECX;
+ *                  FSTP [ESP]                     -> arg 4 (extra)
+ * Both 16-bit loads are zero-extending, so those fields are unsigned.
+ *
+ * The +0x0c slot is materialised through the FPU (FLD/FSTP [ESP]), i.e. the
+ * value is semantically a float.  It is nevertheless carried as an opaque
+ * dword the whole way down the chain (0xd6250 -> 0xd6180 -> 0xd6030, where
+ * FUN_000d6030's 5th parameter is `int` and existing callers bit-pun floats
+ * into it), so it is forwarded here as the raw dword.  A numeric
+ * `(int)*(float *)` cast would truncate the value instead of preserving the
+ * bit pattern the original pushes.  Declaring FUN_000d6250's 4th parameter
+ * `float` and passing `*(float *)(result + 3)` was measured: MSVC71 lowers a
+ * float lvalue copy to the same `MOV`/`PUSH` pair, so it is 0.00pp on both
+ * this function and 0xd6250 — the reference's FLD/FSTP form is not reachable
+ * from either spelling.
+ *
+ * Callees (all cdecl, all ported):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index,
+ *                                        int thread_datum, char init)
+ *   0xd6250 = FUN_000d6250(int type_value, int team, int object_handle,
+ *                          int extra)
+ *   0xcbf80 = hs_return(int thread_datum, int value)
+ *
+ * The single `ADD ESP,0x18` at 000c2e01 cleans up BOTH the 4 pushes for
+ * FUN_000d6250 and the 2 pushes for hs_return; hs_return still takes 2 args.
+ */
+void FUN_000c2dc0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_000d6250(*(uint16_t *)result, *(uint16_t *)(result + 1), result[2],
+                 result[3]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc2e10 — HS script function handler: evaluate the macro arguments and
  * forward a (dword, uint16) pair from the result block to FUN_000d64f0.
  *
@@ -6053,6 +6199,131 @@ void FUN_000c31f0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc3230 — HaloScript function handler: forward one byte-wide argument to
+ * FUN_000d7530 (hud_messaging.c).  Evaluates the macro-function arguments, and
+ * on success reads a single zero-extended BYTE from the result block at +0x0,
+ * hands it to FUN_000d7530, then commits a 0 result to the calling script
+ * thread.  Instruction-for-instruction the twin of FUN_000c3130 at 0xc3130
+ * above; only the side-effect callee differs (0xd7470 -> 0xd7530).
+ *
+ * Disassembly (0xc3230-0xc3263, 24 instructions):
+ *   PUSH EBP; MOV EBP,ESP; PUSH ESI  ; no `SUB ESP` — one register local only
+ *   MOV EAX,[EBP+0x10]               ; init            (arg 3)
+ *   MOV ESI,[EBP+0xc]                ; thread_datum    (arg 2)
+ *   MOV ECX,[EBP+0x8]                ; function_index  (arg 1, int16)
+ *   PUSH EAX; PUSH ESI; PUSH ECX     ; cdecl: last arg pushed first
+ *   CALL 0xcc560                     ; hs_macro_function_evaluate
+ *   ADD ESP,0xc
+ *   TEST EAX,EAX; JZ <epilogue>      ; NULL guard skips BOTH calls
+ *   XOR EDX,EDX; MOV DL,[EAX]        ; zero-extended BYTE at result+0x0 (NOT
+ *                                    ; +0x4 as in the neighbouring handlers,
+ *                                    ; and NOT a dword)
+ *   PUSH EDX; CALL 0xd7530           ; FUN_000d7530(byte)
+ *   PUSH 0x0; PUSH ESI               ; hs_return(thread_datum, 0)
+ *   CALL 0xcbf80
+ *   ADD ESP,0xc                      ; COMBINED cleanup for 0xd7530's 1 arg +
+ *                                    ; hs_return's 2 args (MSVC merged the two
+ *                                    ; cdecl cleanups); the hazard scanner's
+ *                                    ; ARG_COUNT cleanup=3 vs decl=2 warning on
+ *                                    ; hs_return is benign — it really takes 2.
+ *   POP ESI; POP EBP; RET            ; plain RET — cdecl, caller cleans
+ *
+ * ABI: the kb decl was widened from `void FUN_000c3230(void);`.  Ghidra's
+ * (void) prototype surfaces the three real cdecl stack arguments as the phantom
+ * locals in_stack_00000004/8/c.  ESI is properly saved and restored, so there
+ * is no callee-saved hazard.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560 = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *             (declared `int`; EAX is dereferenced as a record pointer)
+ *   0xd7530 = FUN_000d7530(char)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c3230(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    FUN_000d7530(*(unsigned char *)result);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc3270 — HaloScript function evaluator wrapper.  Evaluates the call's
+ * argument expressions via hs_macro_function_evaluate; when that returns a
+ * non-NULL record pointer, feeds the record's first BYTE to FUN_000d8b90 and
+ * commits a 0 result to the calling script thread.  Structural twin of
+ * FUN_000c30f0 at 0xc30f0 with the consumer swapped from 0xd7440 to 0xd8b90.
+ *
+ * Disassembly (0xc3270-0xc32a3, 24 instructions):
+ *   PUSH EBP; MOV EBP,ESP            ; no `SUB ESP` — zero stack locals
+ *   MOV  ECX,[EBP+0x8]               ; function_index (arg 1, int16)
+ *   MOV  EAX,[EBP+0x10]              ; init           (arg 3, char)
+ *   PUSH ESI                         ; the only callee-saved register used
+ *   MOV  ESI,[EBP+0xc]               ; thread_datum (arg 2), cached in ESI
+ *                                    ; because it is live again after the
+ *                                    ; first call while fn_index/init are dead
+ *   PUSH EAX; PUSH ESI; PUSH ECX     ; cdecl: last PUSH is the first C arg,
+ *                                    ; i.e. (function_index, thread_datum,
+ *                                    ;       init)
+ *   CALL 0xcc560                     ; hs_macro_function_evaluate
+ *   ADD  ESP,0xc                     ; 3 args — cleanup belongs SOLELY to this
+ *                                    ; call
+ *   TEST EAX,EAX; JZ 0xc32a1         ; plain early-out, no else branch; on a
+ *                                    ; NULL record NEITHER remaining call runs
+ *                                    ; — in particular there is no hs_return.
+ *                                    ; The tested EAX is then DEREFERENCED, so
+ *                                    ; this is a NULL-pointer guard, not a
+ *                                    ; boolean test.
+ *   XOR  EDX,EDX; MOV DL,byte [EAX]  ; record field at +0x0 is a BYTE and it is
+ *                                    ; ZERO-extended (movzx idiom), hence
+ *                                    ; `*(unsigned char *)result`; plain `char`
+ *                                    ; is signed here and would emit MOVSX.
+ *                                    ; The neighbouring FUN_000c32d0 reads a
+ *                                    ; WORD at this same +0x0 — do not copy
+ *                                    ; that variant here.
+ *   PUSH EDX                         ; ...the consumer call's ONE argument
+ *   CALL 0xd8b90                     ; FUN_000d8b90(char)
+ *   PUSH 0x0; PUSH ESI
+ *   CALL 0xcbf80                     ; hs_return(thread_datum, 0)
+ *   ADD  ESP,0xc                     ; COMBINED cleanup for BOTH calls
+ *                                    ; (FUN_000d8b90 4 + hs_return 8).  There
+ *                                    ; is NO `ADD ESP,4` after CALL 0xd8b90 —
+ *                                    ; do not misread the single 0xc as a
+ *                                    ; three-argument hs_return; hs_return's
+ *                                    ; decl stays (2) and FUN_000d8b90's
+ *                                    ; stays (1).  call_site_audit reports
+ *                                    ; "ARG_COUNT: hs_return cleanup=3 stack
+ *                                    ; args" here; that is a false positive.
+ *   POP ESI; POP EBP; RET            ; no `RET n` — cdecl, caller cleans
+ *
+ * ABI: the kb decl was widened from `void FUN_000c3270(void);`.  Ghidra
+ * surfaces the three cdecl stack parameters as phantom `in_stack_*` locals
+ * under that void(void) prototype; they must be declared or the frame and the
+ * [EBP+0x8]/[EBP+0xc]/[EBP+0x10] loads diverge.  Only one local (`result`) is
+ * declared, matching the zero-`SUB ESP` frame; function_index and init must not
+ * be spilled into extra locals.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560 = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *             (declared `int`; EAX is dereferenced as a record pointer)
+ *   0xd8b90 = FUN_000d8b90(char)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c3270(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    FUN_000d8b90(*(unsigned char *)result);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc32b0 — HaloScript function evaluator that clears the scripted HUD message
  * queue.  Runs scripted_hud_messages_clear() for its side effect, then commits
  * a 0 result to the calling script thread (a void-returning script builtin).
@@ -6797,6 +7068,82 @@ void FUN_000c3600(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc3620 — HaloScript function handler: forward one evaluated (uint16, float)
+ * pair to the routine at 0x17d9a0.
+ *
+ * Same shape as the sibling handler at 0xc3660: it drives
+ * hs_macro_function_evaluate over its HaloScript argument expressions and, on
+ * a non-NULL evaluation record, dispatches to a single target before
+ * completing the script thread with a 0 result.  Only the target and the
+ * argument widths differ, so neither the target nor this handler gets a
+ * semantic name.
+ *
+ * Ghidra mis-prototypes this as `void FUN_000c3620(void)` and surfaces the
+ * three stack arguments as `in_stack_00000004/8/c` — the tell for dropped
+ * cdecl stack params, not for register arguments; this function takes none.
+ * Real frame offsets:
+ *   [EBP+0x08] -> ECX -> arg1 int16_t function_index
+ *   [EBP+0x0C] -> ESI -> arg2 int     thread_datum   (ESI across the body)
+ *   [EBP+0x10] -> EAX -> arg3 char    init
+ * Push order at the 0xcc560 call is PUSH EAX / PUSH ESI / PUSH ECX, i.e. the C
+ * argument order (function_index, thread_datum, init).
+ *
+ * hs_macro_function_evaluate's kb decl returns `int`, but the result is used
+ * here as a pointer to the evaluated HS argument block, so it is cast rather
+ * than truncated.  Two fields of that block are read, and both widths are
+ * load-bearing (taken from the disassembly, not the decompiler):
+ *   +0x00  XOR EDX,EDX / MOV DX, word ptr [EAX]  ; ZERO-extended uint16
+ *   +0x04  FLD dword ptr [EAX+4]                 ; true float lvalue
+ * Reading +0x00 through an `int *` would emit a dword load and reading it
+ * through a signed `short *` would emit MOVSX; both are silent LOADW-class
+ * bugs, so the result pointer is typed `unsigned short *`.  The float at +0x04
+ * is passed by its raw IEEE-754 bits — MSVC emits the push-then-FSTP idiom
+ * (PUSH ECX as a dummy slot, then FSTP dword ptr [ESP]), so an int-typed read
+ * would FILD-convert and silently change the value.
+ *
+ * Ghidra DROPPED both of those arguments, rendering the call as
+ * `FUN_0017d9a0()`, because kb declared the callee `void FUN_0017d9a0(void)`.
+ * The disassembly (PUSH dummy + FSTP [ESP] for the float, then PUSH EDX for
+ * the uint16, immediately before CALL 0x17d9a0) proves two cdecl stack
+ * arguments, so the kb decl is widened to
+ * `void FUN_0017d9a0(int16_t param_1, float param_2)`.  The callee is cdecl and
+ * this caller cleans, so widening cannot drift ESP.  Its param widths are read
+ * off the callee's own prologue in the pristine XBE (0x17d9a0):
+ *   mov ax, word ptr [ebp+8] / test ax,ax / jl / cmp ax,4 / jge  -> SIGNED
+ *     16-bit formal, range-checked to 0..3
+ *   fld dword ptr [ebp+0xc] / fstp dword ptr [ecx+eax*4+0x64]    -> float
+ *     formal, stored into a 4-entry float array hanging off the global at
+ *     0x47e4d4
+ * so `int16_t`/`float` is the binary-backed spelling, not `int`.
+ *
+ * ADD ESP,0x10 after the second call is a single merged cleanup for BOTH
+ * trailing calls (2 pushes for FUN_0017d9a0 + 2 for hs_return); the
+ * "hs_return ARG_COUNT cleanup=4, decl=2" finding is that cdecl merge, not a
+ * wider hs_return.
+ *
+ * Frame is EBP-based with no locals and no _chkstk (PUSH EBP / MOV EBP,ESP /
+ * PUSH ESI); ESI carries thread_datum across the body.
+ *
+ * No FPU arithmetic (the float is a pure load/store passthrough), no struct
+ * writes, no buffers.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560  = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *   0x17d9a0 = FUN_0017d9a0(int, float)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c3620(int16_t function_index, int thread_datum, char init)
+{
+  unsigned short *result;
+
+  result = (unsigned short *)hs_macro_function_evaluate(function_index,
+                                                        thread_datum, init);
+  if (result != 0) {
+    FUN_0017d9a0(result[0], ((float *)result)[1]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc3660 — HaloScript function handler: forward one evaluated boolean-ish
  * byte argument to the rasterizer-sprites routine at 0x17da00.
  *
@@ -6858,6 +7205,60 @@ void FUN_000c3660(int16_t function_index, int thread_datum, char init)
                                                        thread_datum, init);
   if (result != 0) {
     FUN_0017da00(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc37b0 — HaloScript function handler: evaluate this call's script arguments,
+ * then forward the two evaluated values to rasterizer_screen_effect_set_video
+ * and commit a void result to the calling thread.
+ *
+ * Ghidra mis-prototypes this as `void FUN_000c37b0(void)` and surfaces the
+ * three cdecl stack slots as in_stack_00000004/8/c.  Those are ordinary stack
+ * parameters, not register arguments; the kb decl is widened to the uniform
+ * handler shape every sibling in this TU uses:
+ *   [EBP+0x08] arg1 int16_t function_index  -> ECX
+ *   [EBP+0x0C] arg2 int     thread_datum    -> ESI (live across the body)
+ *   [EBP+0x10] arg3 char    init            -> EAX
+ *
+ * hs_macro_function_evaluate's kb decl returns `int`, but the returned value is
+ * dereferenced here as a pointer to the evaluated-argument block, exactly as in
+ * the sibling handlers.  Block layout, read straight from the disassembly:
+ *   +0x00  uint16  ; XOR EDX,EDX / MOV DX,word ptr [EAX]  (zero-extended)
+ *   +0x04  float   ; FLD dword ptr [EAX+0x4]
+ * Nothing else in the block is touched.
+ *
+ * Argument order for the 0x17db40 call is proven by the pushes, not by Ghidra
+ * (which drops both arguments because of the dummy-slot float idiom):
+ *   FLD dword ptr [EAX+0x4]   ; float loaded first
+ *   PUSH ECX / FSTP dword ptr [ESP]   ; dummy slot overwritten by the float =>
+ * arg2 PUSH EDX                          ; zero-extended uint16 => arg1 cdecl
+ * pushes last argument first, so the call is
+ * rasterizer_screen_effect_set_video(uint16_field, float_field).  Its kb decl
+ * was `void (void)` and is widened to `(int mode, float value)` to match; the
+ * callee is unported, so no implementation churn follows.
+ *
+ * ADD ESP,0x10 at 0xc37e6 is a single merged cleanup for BOTH trailing calls
+ * (8 bytes each); the "hs_return ARG_COUNT cleanup=4, decl=2" finding is that
+ * cdecl merge, not a wider hs_return.
+ *
+ * Frame is EBP-based with no locals and no _chkstk.  No struct writes, no
+ * buffers, no loops, no branches beyond the single NULL test.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560  = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0x17db40 = rasterizer_screen_effect_set_video(int, float)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c37b0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    rasterizer_screen_effect_set_video(*(uint16_t *)result,
+                                       *(float *)(result + 1));
     hs_return(thread_datum, 0);
   }
 }
@@ -7121,6 +7522,193 @@ void FUN_000c38b0(int16_t function_index, int thread_datum, char init)
 {
   player_ui_activate_all_solo_levels();
   hs_return(thread_datum, 0);
+}
+
+/* 0xc38d0 (hs.obj) — HaloScript handler for the script command
+ * "player0_look_invert_pitch" (help text "invert player0's look").  Identified
+ * from the hs_function_definition record at 0x2726dc, whose evaluate slot
+ * (+0x0c) is the only reference to this address in the XBE: return_type = 4
+ * (void), num_params = 1, param_types[0] = 5 (boolean), parse = 0xc7e50 (the
+ * shared single-argument parser used by this whole wrapper family).
+ *
+ * Shape is the standard macro-function wrapper: evaluate the one script
+ * argument, and on a non-NULL result record forward its boolean byte to the
+ * player_ui setter, then return void to the script thread.
+ *
+ * ABI (cdecl): frame is `PUSH EBP / MOV EBP,ESP / PUSH ESI` — no SUB ESP, no
+ * locals, no _chkstk, no buffers.  ESI holds thread_datum ([EBP+0x0C]) across
+ * the evaluate call.  The evaluate call pushes EAX(init), ESI(thread_datum),
+ * ECX(function_index) and is cleaned with its own `ADD ESP,0xC`, giving the C
+ * order hs_macro_function_evaluate(function_index, thread_datum, init).
+ *
+ * The `int` return of hs_macro_function_evaluate is used as a POINTER here:
+ * `TEST EAX,EAX / JZ` is the NULL check, and `XOR EDX,EDX / MOV DL,byte ptr
+ * [EAX]` zero-extends the first byte of the result record, which is the
+ * boolean argument.  Hence `char *result` and `*result`, matching the
+ * byte-deref sibling at 0xc23c0.
+ *
+ * The single `ADD ESP,0xC` after the hs_return call is a MERGED cleanup for
+ * FUN_000e1770's one push plus hs_return's two.  check_lift_hazards.py reports
+ * ARG_COUNT "cleanup=3 vs decl=2" against hs_return (0xcbf80) for this — it is
+ * a false positive; hs_return really takes two arguments.  Do not widen it.
+ *
+ * FUN_000e1770's kb.json declaration was `void FUN_000e1770(void)`, which is
+ * an under-declaration: the caller does `PUSH EDX` before the CALL with no
+ * cleanup of its own, so the callee consumes one stack argument.  A cdecl
+ * parameter the callee ignores is byte-identical to no parameter at all, so
+ * the callee body is not evidence against it — only this PUSH is.  Widened to
+ * `void FUN_000e1770(char invert)` (the boolean from the table above); the
+ * symbol is deliberately NOT renamed, and it has no other callers in src/.
+ *
+ * function_index ([EBP+0x08]) and init ([EBP+0x10]) are forwarded to the
+ * evaluator only.  Side-effect order is load-bearing: FUN_000e1770 runs BEFORE
+ * hs_return.  No FPU ops, no narrow loads, no struct stores, no SEH.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
+ *   0xe1770 = FUN_000e1770(invert)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c38d0(int16_t function_index, int thread_datum, char init)
+{
+  char *result;
+
+  result =
+    (char *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != (char *)0) {
+    FUN_000e1770(*result);
+    hs_return(thread_datum, 0);
+  }
+  return;
+}
+
+/* HaloScript function handler at 0xc3910: queries the zero-argument predicate
+ * player0_look_pitch_is_inverted (0xe1050) and completes the calling script
+ * thread with that boolean as the script-visible result.
+ *
+ * Ghidra mis-prototypes this as `void FUN_000c3910(void)` and surfaces the one
+ * stack slot it can see as `in_stack_00000008`; that label is misleading — the
+ * MOV at 0xc3920 reads [EBP+0x0C], i.e. the SECOND cdecl stack slot, which is
+ * thread_datum under the handler convention every sibling in this TU uses.
+ * The kb decl was widened to the standard three-parameter shape rather than to
+ * the slots the body happens to touch: the dispatcher calls every handler in
+ * the table uniformly, and unread trailing cdecl params emit no code.  The
+ * symbol is deliberately NOT renamed, matching its siblings.
+ *
+ * ABI (verified 0xc3910-0xc3936 against the pristine XBE, 15 instructions):
+ * cdecl, plain RET, `PUSH EBP / MOV EBP,ESP / PUSH ECX` — one 4-byte local at
+ * [EBP-4], no callee-saved registers, no _chkstk, no buffers.  The CALL at
+ * 0xc391b has no pushes before it and no cleanup after, confirming the
+ * predicate takes zero arguments.  The `ADD ESP,0x8` at 0xc3930 is the cleanup
+ * for the single two-argument hs_return call only — not a merged cleanup, so
+ * there is no ARG_COUNT ambiguity.  Push order at 0xc3929-0xc392a is PUSH EAX
+ * (the result) then PUSH ECX (thread_datum); the first push is the last C
+ * argument, giving hs_return(thread_datum, result), not the reverse.  Unlike
+ * FUN_000c38d0 there is no NULL check — hs_return is unconditional.
+ *
+ * The result slot is written at TWO widths and that is load-bearing:
+ *   0xc3914  MOV dword ptr [EBP-4],0   <- whole slot zeroed
+ *   0xc3923  MOV byte  ptr [EBP-4],AL  <- only the LOW BYTE overwritten
+ *   0xc3926  MOV EAX,dword ptr [EBP-4] <- read back as a full dword
+ * This is MSVC's zero-then-byte-store widening of a 1-byte return into a
+ * 4-byte slot, so the value reaching hs_return is zero-extended, never
+ * sign-extended.  Writing it as a plain `int result = predicate();` would
+ * instead emit a MOVZX into a register and drop the stack slot, so the byte
+ * store is expressed explicitly through the slot's address.
+ *
+ * kb.json declared 0xe1050 as `void player0_look_pitch_is_inverted(void)`,
+ * which is an under-declaration: the callee is `MOV AL,byte ptr [0x46bf0b] /
+ * RET`, and 0xc3923 consumes AL immediately.  Widened to `unsigned char
+ * player0_look_pitch_is_inverted(void)`; it has no other callers in src/.
+ *
+ * function_index ([EBP+0x08]) and init ([EBP+0x10]) are never read here.
+ * No FPU ops, no narrow loads, no struct stores, no branches, no SEH.
+ *
+ * Callees (both cdecl, in kb.json, no register arguments):
+ *   0xe1050 = player0_look_pitch_is_inverted(void) -> bool in AL
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c3910(int16_t function_index, int thread_datum, char init)
+{
+  int result;
+
+  result = 0;
+  *(unsigned char *)&result = player0_look_pitch_is_inverted();
+  hs_return(thread_datum, result);
+}
+
+/* 0xc3940 — HaloScript function evaluator that returns a player0 control
+ * setting as a boolean script result.  Direct sibling of 0xc3910 above: it
+ * calls the byte-returning accessor at 0xe1060 and commits the result to the
+ * calling script thread.
+ *
+ * kb.json declared 0xe1060 as `void FUN_000e1060(void);`, which is an
+ * under-declaration: the callee is
+ *   MOV AL,byte ptr [0x46bf09] / TEST AL,AL / JE .t / CMP AL,1 / JE .t /
+ *   XOR EAX,EAX / RET   .t: MOV EAX,1 / RET
+ * i.e. it yields 1 when the setting byte is 0 or 1, else 0, and 0xc3953
+ * consumes AL immediately.  Widened to `unsigned char FUN_000e1060(void)`,
+ * matching the 0xe1050 precedent in the same accessor cluster.
+ *
+ * The result local at [EBP-0x4] is zero-initialized as a dword
+ * (MOV dword [EBP-0x4],0) and then only its LOW BYTE is overwritten with AL
+ * (MOV byte [EBP-0x4],AL), so the committed value is a zero-extended byte.
+ *
+ * function_index ([EBP+0x08]) and init ([EBP+0x10]) are never read here.
+ * No FPU ops, no narrow loads, no struct stores, no branches, no SEH.
+ *
+ * Callees (both cdecl, in kb.json, no register arguments):
+ *   0xe1060 = FUN_000e1060(void) -> bool in AL
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c3940(int16_t function_index, int thread_datum, char init)
+{
+  int result;
+
+  result = 0;
+  *(unsigned char *)&result = FUN_000e1060();
+  hs_return(thread_datum, result);
+}
+
+/* 0xc3970 — HaloScript function handler: writes a single byte setting taken
+ * from the evaluated macro-argument block.  Standard hs evaluator shape:
+ * hs_macro_function_evaluate(function_index, thread_datum, init) returns the
+ * argument block (NULL on failure/deferral), and on success the FIRST BYTE of
+ * that block is passed to the byte setter at 0xe3ca0 before the script thread
+ * is completed with hs_return(thread_datum, 0).
+ *
+ * ABI (verified 0xc3970-0xc39a3 against the pristine XBE, 20 instructions):
+ * cdecl, plain RET, no return value.  ESI caches [EBP+0xc] (thread_datum)
+ * across both calls.  Push order at 0xc397d-0xc397f is EAX([EBP+0x10]),
+ * ESI([EBP+0xc]), ECX([EBP+0x8]) so the left-to-right argument order to
+ * 0xcc560 is (function_index, thread_datum, init) — same as every sibling.
+ *
+ * Two kb.json under-declarations had to be corrected for this site:
+ *   - 0xcc560 is declared `int`, but 0xc398e does `MOV DL,byte ptr [EAX]`,
+ *     i.e. the result is dereferenced.  Cast at the call site, matching the
+ *     `(int *)` casts used by the 0xc0c30 family above.
+ *   - 0xe3ca0 was declared `void (void)`, but 0xc398c-0xc3990 emit
+ *     `XOR EDX,EDX / MOV DL,[EAX] / PUSH EDX`, one zero-extended byte
+ *     argument.  The callee is 6 instructions:
+ *       PUSH EBP / MOV EBP,ESP / MOV AL,byte ptr [EBP+8] /
+ *       MOV byte ptr [0x46cc84],AL / POP EBP / RET
+ *     confirming cdecl with exactly one byte parameter.  Widened to
+ *     `void ui_widget_debug_show_path(unsigned char value);` (name kept as
+ *     stored in kb.json — it is unproven and looks unrelated to hs).
+ *
+ * The single `ADD ESP,0xc` at 0xc399e is MSVC coalescing the cleanup for the
+ * 0xe3ca0 push and hs_return's two pushes; hs_return still takes 2 args.
+ */
+void FUN_000c3970(int16_t function_index, int thread_datum, char init)
+{
+  unsigned char *result;
+
+  result = (unsigned char *)hs_macro_function_evaluate(function_index,
+                                                       thread_datum, init);
+  if (result != NULL) {
+    ui_widget_debug_show_path(result[0]);
+    hs_return(thread_datum, 0);
+  }
 }
 
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
