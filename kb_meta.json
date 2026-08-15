@@ -7244,12 +7244,30 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xc4010": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "FUN_000c4010 is inferred to be a qsort/bsearch comparator over an array of char* because both stack parameters are dereferenced once before being passed to crt_stricmp; no call site was resolved to confirm the caller."
+      ]
+    },
     "0xc4660": {
       "kind": "function",
       "status": "ported",
       "inferred": [
         "file_read_into_buffer at 0x199540 takes (file_ref_t*, int* size_out) and returns allocated buffer pointer or NULL.",
         "tag_block_add_element at 0x1b9ad0 takes (void* tag_block) and returns int16_t index or -1 on failure."
+      ]
+    },
+    "0xc4770": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "FUN_000c4770 is inferred to be a qsort comparator over file_ref_t elements because its only known caller (hs_needs_recompile at 0xc47c0) passes its address to qsort over the 0x10c-stride find_files result array.",
+        "The int return is inferred from the absence of any write to EAX between the crt_stricmp CALL at 0xc47ab and the RET, so the stricmp result falls through as the return value even though Ghidra prototypes the function as void."
+      ],
+      "uncertain": [
+        "The meaning of the constant 4 passed as file_reference_get_name's flags argument is unconfirmed; the sole caller uses 8 for the same file_ref_t entries, so the two values select different name forms but neither has been decoded."
       ]
     },
     "0xc47c0": {
