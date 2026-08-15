@@ -5314,6 +5314,63 @@ void FUN_000c2d20(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2d70 — HS script function handler `activate_team_nav_point_flag`
+ * (script-function record at 0x2720c4: name="activate_team_nav_point_flag",
+ * return_type=4 (void), num_params=4, param_types=(21, 33, 12, 6)).
+ * Evaluate the macro arguments and forward the resulting nav-point record to
+ * FUN_000d6220, then commit a void (0) return to the calling thread.
+ *
+ * Exact twin of FUN_000c2dc0 (`activate_team_nav_point_object`) below; the
+ * only difference is the +0x08 field, which the flag variant reads as a
+ * zero-extended 16-bit cutscene-flag index instead of a full 32-bit object
+ * handle — matching FUN_000d6220's `short` 3rd parameter.
+ *
+ * Result-record layout (derived from the disassembly at 000c2d8c..000c2da7,
+ * NOT from the decompiler's ushort* index arithmetic):
+ *   +0x00  uint16  XOR EDX,EDX; MOV DX,[EAX]      -> arg 1 (type_value)
+ *   +0x04  uint16  XOR ECX,ECX; MOV CX,[EAX+4]    -> arg 2 (team)
+ *   +0x08  uint16  XOR EDX,EDX; MOV DX,[EAX+8]    -> arg 3 (flag index)
+ *   +0x0c  dword   FLD [EAX+0xc]; PUSH ECX;
+ *                  FSTP [ESP]                     -> arg 4 (extra)
+ * All three 16-bit loads are zero-extending, so those fields are unsigned.
+ *
+ * The +0x0c slot is materialised through the FPU (FLD/FSTP [ESP]) and the
+ * script table types param 4 as `real`, i.e. the value is semantically a
+ * float.  It is nevertheless carried as an opaque dword the whole way down
+ * the chain (0xd6220 -> 0xd6180 -> 0xd6030, whose 5th parameter is `int` and
+ * whose existing callers bit-pun floats into it), so it is forwarded here as
+ * the raw dword; a numeric `(int)*(float *)` cast would truncate the value
+ * instead of preserving the bit pattern the original pushes.  Retyping the
+ * callee's 4th parameter `float` was measured on the twin (0xc2dc0/0xd6250):
+ * MSVC71 lowers a float lvalue copy to the same `MOV`/`PUSH` pair, so it is
+ * 0.00pp — the reference's FLD/FSTP form is not reachable from either
+ * spelling.
+ *
+ * Callees (all cdecl, all ported):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index,
+ *                                        int thread_datum, char init)
+ *   0xd6220 = FUN_000d6220(int type_value, int team, short object_handle,
+ *                          int extra)
+ *   0xcbf80 = hs_return(int thread_datum, int value)
+ *
+ * The single `ADD ESP,0x18` at 000c2db4 cleans up BOTH the 4 pushes for
+ * FUN_000d6220 and the 2 pushes for hs_return; hs_return still takes 2 args
+ * (the ARG_COUNT "cleanup=6" hazard is that merged cleanup, a false
+ * positive).
+ */
+void FUN_000c2d70(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_000d6220(*(uint16_t *)result, *(uint16_t *)(result + 1),
+                 *(uint16_t *)(result + 2), result[3]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc2dc0 — HS script function handler: evaluate the macro arguments and
  * forward the resulting nav-point record to FUN_000d6250 (set enemy nav point
  * for all players on a team), then commit a void (0) return to the calling
