@@ -42919,6 +42919,21 @@
       "score": 100.0,
       "source": "src/halo/bitmaps/bitmap_utilities.c"
     },
+    "placement_data_set_change_color": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xbaba0",
+      "end": "0xbac01",
+      "kind": "auto",
+      "n_r": 41,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "ffd6e19cf7c2692a",
+      "score": 100.0,
+      "source": "src/halo/game/players.c"
+    },
     "plane2d_from_points": {
       "addr": "0x99400",
       "end": "0x99486",
@@ -43704,16 +43719,16 @@
     "player_spawn": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 92.3,
+      "abi_modeled_mnemonic_pct": 92.9,
       "addr": "0xbbcb0",
       "end": "0xbbfd4",
       "kind": "auto",
       "n_r": 255,
-      "opnd_percent": 66.9,
-      "raw_mnemonic_pct": 92.3,
+      "opnd_percent": 67.4,
+      "raw_mnemonic_pct": 92.9,
       "ref": "synth",
       "ref_sha": "5e658738cc5e3f32",
-      "score": 92.3,
+      "score": 92.9,
       "source": "src/halo/game/players.c"
     },
     "player_teleport": {

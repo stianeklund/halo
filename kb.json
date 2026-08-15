@@ -18104,7 +18104,8 @@
     },
     {
      "addr": "0xbaba0",
-     "decl": "void placement_data_set_change_color(void);"
+     "decl": "void placement_data_set_change_color(void *placement_data, float *color);",
+     "ported": true
     },
     {
      "addr": "0xbac10",

@@ -606,6 +606,29 @@ void *player_get_starting_location(int16_t index)
   return result;
 }
 
+/* Broadcast one real_rgb_color into all four change-color slots of an
+ * object_placement_data record.
+ *
+ * placement_data ([EBP+0x8], held in ECX) -- 0x88-byte placement record.
+ * color          ([EBP+0xC], held in EAX) -- source real_rgb_color (3 floats).
+ *
+ * The four destinations 0x58 / 0x64 / 0x70 / 0x7c are 12 bytes apart with no
+ * gap, i.e. a contiguous real_rgb_color[4] spanning 0x58..0x87. The original
+ * copies each block with three integer MOV pairs (no FPU), which is what a
+ * 12-byte POD struct assignment compiles to -- hence the vector3_t cast rather
+ * than three float stores. Fully unrolled in the original (three distinct
+ * `LEA EDX,[ECX+off]` bases plus an `ADD ECX,0x7c` tail), so it is written as
+ * four separate assignments, not a loop. Leaf: no calls, no locals, no FPU. */
+void placement_data_set_change_color(void *placement_data, float *color)
+{
+  char *base = (char *)placement_data;
+
+  *(vector3_t *)(base + 0x58) = *(vector3_t *)color;
+  *(vector3_t *)(base + 0x64) = *(vector3_t *)color;
+  *(vector3_t *)(base + 0x70) = *(vector3_t *)color;
+  *(vector3_t *)(base + 0x7c) = *(vector3_t *)color;
+}
+
 /* Spawn an object from a small placement record and attach it to a parent.
  *
  * record         (EDI) -- pointer to a record whose tag_index lives at +0xC.
@@ -1403,7 +1426,7 @@ int find_best_starting_location_index(int player_index)
  *      object_placement_data_new + object_new_from_placement_data.
  *
  * Structurally faithful lift of the original FUN_bbcb0.  Helper addresses
- * (0xbbbe0, 0xbaae0, 0xbaba0, 0x10cc70, 0x13fc20, 0x13fb30,
+ * (0xbbbe0, 0xbaae0, 0x10cc70, 0x13fc20, 0x13fb30,
  * 0x13ffc0, 0x140cc0, 0x143c80, 0x1adeb0, 0x1adf10, 0xbb410, 0xa99a0,
  * 0x8aa30) are not yet in kb.json; invoked by address to keep the lift
  * narrowly scoped.
@@ -1522,7 +1545,7 @@ void player_spawn(int player_handle)
       orient[1] = ret[1];
       orient[2] = ret[2];
     }
-    ((void (*)(char *, float *))0xbaba0)(placement, orient);
+    placement_data_set_change_color(placement, orient);
     new_unit = ((int (*)(char *))0x143c80)(placement);
     if (new_unit == NONE) {
       goto common_tail;
