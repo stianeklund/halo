@@ -6102,6 +6102,58 @@ void FUN_000c31f0(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc3230 — HaloScript function handler: forward one byte-wide argument to
+ * FUN_000d7530 (hud_messaging.c).  Evaluates the macro-function arguments, and
+ * on success reads a single zero-extended BYTE from the result block at +0x0,
+ * hands it to FUN_000d7530, then commits a 0 result to the calling script
+ * thread.  Instruction-for-instruction the twin of FUN_000c3130 at 0xc3130
+ * above; only the side-effect callee differs (0xd7470 -> 0xd7530).
+ *
+ * Disassembly (0xc3230-0xc3263, 24 instructions):
+ *   PUSH EBP; MOV EBP,ESP; PUSH ESI  ; no `SUB ESP` — one register local only
+ *   MOV EAX,[EBP+0x10]               ; init            (arg 3)
+ *   MOV ESI,[EBP+0xc]                ; thread_datum    (arg 2)
+ *   MOV ECX,[EBP+0x8]                ; function_index  (arg 1, int16)
+ *   PUSH EAX; PUSH ESI; PUSH ECX     ; cdecl: last arg pushed first
+ *   CALL 0xcc560                     ; hs_macro_function_evaluate
+ *   ADD ESP,0xc
+ *   TEST EAX,EAX; JZ <epilogue>      ; NULL guard skips BOTH calls
+ *   XOR EDX,EDX; MOV DL,[EAX]        ; zero-extended BYTE at result+0x0 (NOT
+ *                                    ; +0x4 as in the neighbouring handlers,
+ *                                    ; and NOT a dword)
+ *   PUSH EDX; CALL 0xd7530           ; FUN_000d7530(byte)
+ *   PUSH 0x0; PUSH ESI               ; hs_return(thread_datum, 0)
+ *   CALL 0xcbf80
+ *   ADD ESP,0xc                      ; COMBINED cleanup for 0xd7530's 1 arg +
+ *                                    ; hs_return's 2 args (MSVC merged the two
+ *                                    ; cdecl cleanups); the hazard scanner's
+ *                                    ; ARG_COUNT cleanup=3 vs decl=2 warning on
+ *                                    ; hs_return is benign — it really takes 2.
+ *   POP ESI; POP EBP; RET            ; plain RET — cdecl, caller cleans
+ *
+ * ABI: the kb decl was widened from `void FUN_000c3230(void);`.  Ghidra's
+ * (void) prototype surfaces the three real cdecl stack arguments as the phantom
+ * locals in_stack_00000004/8/c.  ESI is properly saved and restored, so there
+ * is no callee-saved hazard.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560 = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *             (declared `int`; EAX is dereferenced as a record pointer)
+ *   0xd7530 = FUN_000d7530(char)
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c3230(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != 0) {
+    FUN_000d7530(*(unsigned char *)result);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc32b0 — HaloScript function evaluator that clears the scripted HUD message
  * queue.  Runs scripted_hud_messages_clear() for its side effect, then commits
  * a 0 result to the calling script thread (a void-returning script builtin).
