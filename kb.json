@@ -11542,7 +11542,8 @@
     },
     {
      "addr": "0xc4580",
-     "decl": "int16_t hs_tokens_enumerate(const char *prefix, uint32_t type_mask, char **tokens, int16_t max_tokens);"
+     "decl": "int16_t hs_tokens_enumerate(const char *prefix, uint32_t type_mask, char **tokens, int16_t max_tokens);",
+     "ported": true
     },
     {
      "addr": "0xc4660",
