@@ -141,6 +141,30 @@ char network_game_client_address_matches_server(void *client,
   return connection_address[0] == *(int *)source_address;
 }
 
+/* network_game_client_game_out_of_sync (0x124e20)
+ *
+ * One-shot out-of-sync notification. The byte global at 0x46e8b8 gates the
+ * whole body: once it is set nothing happens at all. Otherwise the condition
+ * is logged, and the first time through (client flag byte at +0xcac still
+ * clear) UI error 8 is raised on every local player. The client flag is set
+ * on both paths inside the guard. */
+void network_game_client_game_out_of_sync(void *client)
+{
+  int16_t player_index;
+
+  if (*(char *)0x46e8b8 == '\0') {
+    network_game_log("local machine is out of sync with the server");
+    if (*((char *)client + 0xcac) == '\0') {
+      player_index = local_player_get_next(-1);
+      while (player_index != -1) {
+        ui_widget_display_error(8, player_index, 1, 0);
+        player_index = local_player_get_next(player_index);
+      }
+    }
+    *((char *)client + 0xcac) = 1;
+  }
+}
+
 /* network_client_switch_to_postgame (0x125610)
  *
  * Asserts client is non-null, then switches the game engine to the postgame

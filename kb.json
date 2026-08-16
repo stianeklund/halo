@@ -14665,7 +14665,8 @@
     },
     {
      "addr": "0x124e20",
-     "decl": "void network_game_client_game_out_of_sync(void *client);"
+     "decl": "void network_game_client_game_out_of_sync(void *client);",
+     "ported": true
     },
     {
      "addr": "0x124e90",
