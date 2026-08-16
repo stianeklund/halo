@@ -35100,7 +35100,8 @@
     },
     {
      "addr": "0x6cde0",
-     "decl": "void FUN_0006cde0(void);"
+     "decl": "void FUN_0006cde0(void *tif@<edi>);",
+     "ported": true
     },
     {
      "addr": "0x6ce60",

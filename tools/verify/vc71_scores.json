@@ -5439,6 +5439,21 @@
       "score": 100.0,
       "source": "src/halo/bitmaps/libtiff/tif_open.c"
     },
+    "FUN_0006cde0": {
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 90.2,
+      "addr": "0x6cde0",
+      "end": "0x6ce51",
+      "kind": "auto",
+      "n_r": 37,
+      "opnd_percent": 78.0,
+      "raw_mnemonic_pct": 89.2,
+      "ref": "synth",
+      "ref_sha": "4be6976983385be4",
+      "score": 90.2,
+      "source": "src/halo/bitmaps/libtiff/tif_open.c"
+    },
     "FUN_0006ce60": {
       "addr": "0x6ce60",
       "end": "0x6cf9e",
