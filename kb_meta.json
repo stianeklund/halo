@@ -7300,6 +7300,16 @@
         "FUN_0017da40 (0x17da40) is unported and its semantics are unknown, so neither it nor this handler is given a semantic name; its widened decl void(int,int,float,float,float) is derived solely from this call site's PUSH/SUB-ESP/FSTP sequence."
       ]
     },
+    "0xc3700": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The 0xcc560 result is treated as a pointer to an evaluated-argument block whose fields are forwarded verbatim; the block's semantic meaning (what the int handle at +0x00 and the five trailing values represent) is not established, so neither this handler nor FUN_0017dab0 is given a semantic name."
+      ],
+      "uncertain": [
+        "FUN_0017dab0's widened decl (int, float, float, float, int, float) is derived solely from this single call site's stack-slot layout; parameter 5 is proven only to be a zero-extended byte at +0x10 pushed as a dword, so its true declared width in the original source could be unsigned char or bool rather than int."
+      ]
+    },
     "0xc3760": {
       "kind": "function",
       "status": "unknown",
@@ -10855,6 +10865,20 @@
       "status": "ported"
     },
     "0x124d40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x124d50": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The 0x18-byte stack buffer filled by network_connection_get_address is inferred to be a network address record whose first dword is the IPv4 address; only that first dword is read back, so the remaining 0x14 bytes are unproven scratch."
+      ],
+      "uncertain": [
+        "The third argument to network_connection_get_address is a literal 0 in the binary and its meaning is unknown; it is transcribed as a bare 0 rather than a named flag."
+      ]
+    },
+    "0x124e20": {
       "kind": "function",
       "status": "ported"
     },

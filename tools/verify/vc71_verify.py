@@ -1349,12 +1349,19 @@ def _build_score_context(
         tu = str(source.relative_to(REPO_ROOT))
     except ValueError:
         tu = str(source)
+    try:
+        candidate_source_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
+    except OSError:
+        candidate_source_sha256 = None
 
     return {
         "schema": 2,
         "name": fn,
         "addr": f"0x{addr:08x}" if addr is not None else None,
         "tu": tu,
+        # A score context is reusable only for the exact candidate source that
+        # produced it. Packs without this field are legacy misses.
+        "candidate_source_sha256": candidate_source_sha256,
         "reference": ref_info,
         "generated_at": datetime.datetime.now(datetime.timezone.utc)
             .strftime("%Y-%m-%dT%H:%M:%SZ"),

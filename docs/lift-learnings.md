@@ -1827,11 +1827,15 @@ function), and the buffer-alias entry in `lift-decompiler-traps`.
 `FUN_000c2a80` (`hs.obj`, an HS macro-function handler forwarding two floats
 read from an evaluator result into `debug_sound_classes_set_distances`) was
 cold-lifted **9 separate times** across sessions (2026-08-15 → 2026-08-16, all
-opus/high), landing byte-for-byte the same 83.6% every time.
-`shader_environment_texture_animation_evaluate` (`shaders.obj`) shows the same
-pattern: 9 attempts, 86.2% every time. Each attempt independently re-derived
-the identical multi-paragraph diagnosis, then got parked and reverted —
-9 near-duplicate high-effort sessions per function for zero commits.
+opus/high), landing byte-for-byte the same 83.6% every time. Each attempt
+independently re-derived the identical multi-paragraph diagnosis, then got
+parked and reverted — 9 near-duplicate high-effort sessions for zero commits.
+
+`shader_environment_texture_animation_evaluate` (`shaders.obj`, 10 attempts,
+86.2%) was **misfiled as this family**. Its score-context has 10 non-equal
+ops, none of them the R4 GPR-vs-x87 substitution: it is the float-`!=`
+assert `fucompp` cap (R5, §47). Do not treat a parked 85–89% score as
+evidence of float-arg lowering.
 
 **The cap itself.** The reference (cl.exe 7.1) marshals a forwarded float
 lvalue argument with the x87 push-then-store idiom:
@@ -1915,3 +1919,40 @@ have to re-derive it either.
 **Related:** §41 (another "worktree saw a different reality than the writer"
 class of bug, there for `decl.h` staleness rather than a wrong shared-store
 path).
+
+## 47. Float-Equality Assert `fucompp` Is a Permanent VC71 Cap
+
+`assert_halt_msg_at(x != 0.0f)` (and `==`) does not reach 100% under
+`vc71_verify`. Measured on `shader_environment_texture_animation_evaluate`
+(0x190a90, shaders.obj): **86.2%**, two such asserts.
+
+| | reference (XBE) | VC71 candidate |
+|---|---|---|
+| compare | `flds field` ; `fcomps 0x2533c0` | `flds field` ; `flds <0.0f>` ; `fucompp` |
+| branch | `test ah,0x44` ; `jp <skip>` | `jnp` + `mov eax,1` / `xor eax,eax` materialize |
+
+VC71 picks unordered `fucompp` for `==`/`!=`, which has no memory-operand
+form — hence the extra `flds` of the constant — and then materialises the
+comparison into EAX. Relational operators (`>`, `<=`) in the same TU do get
+`fcomps <mem>` (`shader_get_vertex_shader_permutation` 95.8%).
+
+**FCOM-WARN / `fcom_bound_sense` and LOADW-WARN on this pattern are false
+leads.** The polarity is already `!= 0.0f` as the assert string spells it.
+The LOADW is `xor;movw` vs `movzx` on the int16 animation selectors — both
+cast spellings emit `movzx`. Re-spelling `!(x == 0.0f)` is byte-identical.
+Permuter 100 + 60 attempts: equal to baseline.
+
+A second leftover in the same function is `xor;movw` vs `movzx` (1 insn per
+u16). Together these two idioms are the entire 86.2% gap.
+
+**Automation.** `classify_cap.py` rule **R5** (`fucompp_assert_verdict`):
+given `--score-context`, returns `capped:true / high` when every non-equal
+op is this substitution (plus the companion xorl-eax / push-vs-addl-esp
+leftovers) and at least one `fcomps`↔`fucompp` replace is present.
+`goal-lift.js` now hard-skips `capped_confirmed` even in the 85–89 band
+(`skip_confirmed_cap`), because this family sits at 86.2% — above the
+`skip_parked_repeat` 85 wall — and was re-served 10 times.
+
+**Rule.** Do not atlas-chase `fcom_bound_sense` / `loadw_field_width` on a
+function whose only float compares are `!=`/`==` asserts against 0.0f.
+Mark `capped_confirmed` and land at the measured score.
