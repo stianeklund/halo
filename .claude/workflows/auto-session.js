@@ -144,6 +144,9 @@ let parkConflicts = null
 // Batches whose lift work is committed but whose land was blocked by something
 // environmental (dirty/locked main worktree). They remain landable.
 let unlandedBatches = 0
+const phaseTokenDeltas = { select: 0, research: 0, lift: 0, improve: 0, report: 0 }
+const evidenceCache = { hits: 0, misses: 0, ghidra_builds: 0 }
+const retrievalCohorts = {}
 // True when the run stopped on an API/infra failure rather than on anything
 // about the work, i.e. resuming this run recovers it. See the isInfra branch.
 let resumable = false
@@ -166,6 +169,16 @@ for (let i = 1; i <= BATCHES; i++) {
   if (ADDRS) glArgs.addrs = ADDRS
   if (LIFT_REG_ARGS) glArgs.liftRegArgs = true
   const r = await workflow(GOAL_LIFT, glArgs)
+
+  for (const [name, value] of Object.entries((r && r.phase_token_deltas) || {})) {
+    phaseTokenDeltas[name] = (phaseTokenDeltas[name] || 0) + (Number(value) || 0)
+  }
+  evidenceCache.hits += (r && r.cache && r.cache.hits) || 0
+  evidenceCache.misses += (r && r.cache && r.cache.misses) || 0
+  evidenceCache.ghidra_builds += (r && r.ghidra_builds) || 0
+  for (const [cohort, count] of Object.entries((r && r.retrieval_cohorts) || {})) {
+    retrievalCohorts[cohort] = (retrievalCohorts[cohort] || 0) + (Number(count) || 0)
+  }
 
   const committed = (r && r.committed) || 0
   functionsCommitted += committed
@@ -310,6 +323,12 @@ let improvePromoted = 0
 if (IMPROVE_GOAL > 0 && !resumable) {
   log(`\n── Improve pass — draining up to ${IMPROVE_GOAL} parked function(s) ─────`)
   const ir = await workflow(GOAL_LIFT, { improve: true, goal: IMPROVE_GOAL, dryRun: DRY_RUN })
+  for (const [name, value] of Object.entries((ir && ir.phase_token_deltas) || {})) {
+    phaseTokenDeltas[name] = (phaseTokenDeltas[name] || 0) + (Number(value) || 0)
+  }
+  evidenceCache.hits += (ir && ir.cache && ir.cache.hits) || 0
+  evidenceCache.misses += (ir && ir.cache && ir.cache.misses) || 0
+  evidenceCache.ghidra_builds += (ir && ir.ghidra_builds) || 0
   improvePromoted = (ir && ir.promoted) || 0
   functionsCommitted += improvePromoted
   log(`Improve pass: promoted ${improvePromoted} (stop reason: ${ir ? ir.stop_reason : 'null'})`)
@@ -324,6 +343,8 @@ log(`Functions committed: ${functionsCommitted}`)
 if (improvePromoted) log(`Improve promoted:    ${improvePromoted}`)
 log(`Stop reason:         ${stoppedReason}`)
 if (parkReason) log(`Park reason:         ${parkReason}`)
+log(`Evidence cache:      ${evidenceCache.hits} hit / ${evidenceCache.misses} miss / ${evidenceCache.ghidra_builds} Ghidra build(s)`)
+log(`Retrieval cohorts:   ${JSON.stringify(retrievalCohorts)}`)
 if (budget.total) log(`Budget remaining:    ~${Math.round(budget.remaining() / 1000)}k tokens`)
 
 return {
@@ -335,6 +356,11 @@ return {
   stopped_reason: stoppedReason,
   park_reason: parkReason,
   conflicts: parkConflicts,
+  phase_token_deltas: phaseTokenDeltas,
+  cache: evidenceCache,
+  ghidra_builds: evidenceCache.ghidra_builds,
+  retrieval_cohorts: retrievalCohorts,
+  final_outcome: stoppedReason,
   // Output tokens spent by this run (main-loop + all nested workflows share the
   // pool, so this is the run's share as observed at return time). Consumed by
   // /campaign's per-run ledger (artifacts/campaigns/campaigns.jsonl).
