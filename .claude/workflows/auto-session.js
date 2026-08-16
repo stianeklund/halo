@@ -182,7 +182,11 @@ for (let i = 1; i <= BATCHES; i++) {
     // zero-commit batch to 'agent_null' and misclassified it as infra_blocked
     // even when goal-lift completed cleanly (e.g. stop_on_fail_reached).
     const reason = (r && (r.stop_reason || r.reason)) || 'agent_null'
-    const isEmpty = /empty_queue/.test(reason)
+    // 'empty_queue*' is the early-exit spelling; 'queue_exhausted' is the
+    // main-loop spelling (goal-lift.js researchMore() returning nothing) —
+    // same condition, different string. Both must count as a real empty
+    // frontier, not a no_commit that the campaign supervisor keeps retrying.
+    const isEmpty = /empty_queue|queue_exhausted/.test(reason)
     const isInfra = !isEmpty &&
       (!r || /select_agent_null|infra_blocked|ghidra_unavailable|agent_null/.test(reason))
 
