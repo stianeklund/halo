@@ -1821,3 +1821,97 @@ slot another site dereferences. Scoped to parameters declared `float *` in
 
 **Related:** §43 (out-of-image literal deref — the *other* bug in this same
 function), and the buffer-alias entry in `lift-decompiler-traps`.
+
+## 46. Float-Arg Lowering Is a Permanent VC71 Cap, Not a Fixable Gap — and the Selector's "Already Tried This" Guard Was Silently Dead
+
+`FUN_000c2a80` (`hs.obj`, an HS macro-function handler forwarding two floats
+read from an evaluator result into `debug_sound_classes_set_distances`) was
+cold-lifted **9 separate times** across sessions (2026-08-15 → 2026-08-16, all
+opus/high), landing byte-for-byte the same 83.6% every time.
+`shader_environment_texture_animation_evaluate` (`shaders.obj`) shows the same
+pattern: 9 attempts, 86.2% every time. Each attempt independently re-derived
+the identical multi-paragraph diagnosis, then got parked and reverted —
+9 near-duplicate high-effort sessions per function for zero commits.
+
+**The cap itself.** The reference (cl.exe 7.1) marshals a forwarded float
+lvalue argument with the x87 push-then-store idiom:
+
+```
+subl   $0x8, %esp
+fstps  0x4(%esp)
+flds   0x4(%eax)
+fstps  (%esp)
+```
+
+Our clang build lowers the identical C expression as a plain GPR dword copy:
+
+```
+movl   0x4(%eax), %ecx
+pushl  %edx
+movl   (%eax), %edx
+pushl  %ecx
+```
+
+Both forms move the exact same 4 bytes — an IEEE-754 float bit-pattern
+survives a GPR round-trip unchanged — so this is **not a correctness bug**,
+just a toolchain codegen-lowering difference that VC71's LCS scorer still
+penalizes. Cost is one reference instruction per FSTP-slot float, giving a
+fixed, reproducible per-arity ceiling measured across this family: 0 floats =
+100%, 1 float ≈ 94.1%, 2–3 floats ≈ 83.6%. Re-spelling the load (struct field,
+`int *` pun, `volatile` local, `double` round-trip) has been measured at
+**zero movement** — don't re-attempt those; they were tried across multiple
+of the 9 sessions.
+
+**Why re-diagnosis kept happening (two independent, now-fixed bugs).**
+
+1. `tools/analysis/classify_cap.py`'s R2/R3 rules read the **parked ledger**
+   to recognize "we already reached this ceiling." But `load_ledger_record()`
+   opened `Store(ROOT / parked_dir)` — `ROOT` being the *current worktree's*
+   root — while `tools/lift/park.py` writes every record through its shared
+   `ledger_root()` (parent of `git rev-parse --git-common-dir`, i.e. the main
+   checkout, so every linked worktree sees the same history). Any goal-lift
+   run in a linked worktree (e.g. a `halo-bugs` session, not the main `halo`
+   checkout) therefore always read an **empty** ledger and reported
+   `inconclusive`, even on attempt 9. Fixed by routing through
+   `park.store_base()` instead of a raw path join.
+2. The exact same bug existed in `tools/llm_auto_lift.py`'s target-selection
+   pre-screen: `PARKED_DIR = ROOT / "artifacts" / "parked"`, also
+   worktree-local. This feeds `goal-lift.js`'s `skip_parked_repeat` guard
+   (`parked_attempts >= 2` and `parked_best_score < 85` → stop re-serving the
+   target), which — because `parked_attempts` was always read as `0` — never
+   fired for either function, across every worktree that wasn't the exact one
+   `park.py` happened to write to. Fixed by resolving `PARKED_DIR` through
+   `park.ledger_root()` (dynamically imported; note `park.py` uses
+   `@dataclass`, which requires the module be registered in `sys.modules`
+   *before* `exec_module` runs, or class-body processing raises).
+
+**Automation.** `classify_cap.py` gained rule **R4**
+(`float_arg_lowering_verdict`): given a `--score-context` path (a
+`lift_pipeline`/`vc71_verify` score-context JSON, `artifacts/score_context/
+<name>.json`), it parses the structured instruction-diff `ops` and returns
+`capped:true, cap_confidence:"high"` when *every* non-`equal` op is exactly
+this substitution (a lone `insert` of a `flds` line, or a `replace` whose
+reference side is entirely `subl $N,%esp` / `flds` / `fstps` and whose
+candidate side is entirely `movl`/`pushl`). This proves the cap from the
+**current attempt's own diff** — no prior ledger entry required, so it fires
+on a cold first attempt, not just on repeat. Swept against all 4704 on-disk
+`score_context` files in this worktree: fired on exactly 11, all in this same
+handler family (`hs.obj` 0xbf3d0/0xbf420/0xbf470/0xc2840/0xc2940/0xc2a80/
+0xc2f90/0xc2fe0/0xc35b0` plus two siblings elsewhere) — zero false positives
+in the sweep. `goal-lift.js`'s classify-cap step now passes `--score-context`
+when the file exists; `CAP_TABLE` (its agent-judgment fallback for when it
+doesn't) documents the pattern too. Tests: `classify_cap.py --self-test`
+(cases `R4 float-arg-lowering -> high cap`, `R4 fires without any ledger
+history`, `R4 does not misfire on an unrelated replace op`).
+
+**Rule.** A structural VC71 cap discovered once should never need
+re-discovering — either the ledger-based rules must actually see the shared
+ledger (check `PARKED_DIR`/`--parked-dir` resolution against
+`park.py:ledger_root()` whenever adding a new consumer of the parked ledger),
+or the cap should be provable from the current attempt's own evidence (a new
+`classify_cap.py` rule) so a cold first attempt on a sibling function doesn't
+have to re-derive it either.
+
+**Related:** §41 (another "worktree saw a different reality than the writer"
+class of bug, there for `decl.h` staleness rather than a wrong shared-store
+path).
