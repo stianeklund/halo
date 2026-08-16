@@ -14660,7 +14660,8 @@
     },
     {
      "addr": "0x124d50",
-     "decl": "char network_game_client_address_matches_server(void *client, void *source_address);"
+     "decl": "char network_game_client_address_matches_server(void *client, void *source_address);",
+     "ported": true
     },
     {
      "addr": "0x124e20",

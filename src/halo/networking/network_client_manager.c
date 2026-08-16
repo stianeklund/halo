@@ -97,6 +97,50 @@ bool FUN_00124d40(void *connection, void *message, unsigned short size,
                                   reliable);
 }
 
+/* network_game_client_address_matches_server (0x124d50)
+ *
+ * Asserts the client, its connection handle (+0x82c), the address pointer and
+ * that address' first dword are all non-null, then queries the connection's
+ * own address into a 0x18-byte stack buffer and reports whether its first
+ * dword (the IPv4 address) equals the caller-supplied one. Only the first
+ * dword of the filled buffer is read back; the remaining 0x14 bytes are
+ * written by network_connection_get_address and discarded.
+ */
+char network_game_client_address_matches_server(void *client,
+                                                void *source_address)
+{
+  int connection_address[6]; /* EBP-0x18, 0x18 bytes */
+
+  if (client == NULL) {
+    display_assert("client != NULL",
+                   "c:\\halo\\SOURCE\\networking\\network_client_manager.c",
+                   0x2d2, true);
+    system_exit(-1);
+  }
+  if (*(int *)((char *)client + 0x82c) == 0) {
+    display_assert("client->connection",
+                   "c:\\halo\\SOURCE\\networking\\network_client_manager.c",
+                   0x2d3, true);
+    system_exit(-1);
+  }
+  if (source_address == NULL) {
+    display_assert("address != NULL",
+                   "c:\\halo\\SOURCE\\networking\\network_client_manager.c",
+                   0x2d4, true);
+    system_exit(-1);
+  }
+  if (*(int *)source_address == 0) {
+    display_assert("address->address.ipv4_address",
+                   "c:\\halo\\SOURCE\\networking\\network_client_manager.c",
+                   0x2d5, true);
+    system_exit(-1);
+  }
+
+  network_connection_get_address(*(int *)((char *)client + 0x82c),
+                                 connection_address, 0);
+  return connection_address[0] == *(int *)source_address;
+}
+
 /* network_client_switch_to_postgame (0x125610)
  *
  * Asserts client is non-null, then switches the game engine to the postgame
