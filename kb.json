@@ -11440,7 +11440,8 @@
     },
     {
      "addr": "0xc3a50",
-     "decl": "void hs_scenario_merge(void);"
+     "decl": "bool hs_scenario_merge(void *destination_scenario, void *source_scenario);",
+     "ported": true
     },
     {
      "addr": "0xc3b60",

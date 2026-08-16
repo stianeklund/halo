@@ -7822,6 +7822,109 @@ void FUN_000c3a10(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc3a50 — merge the HaloScript source-file block of one scenario tag into
+ * another, de-duplicating by name, then clear the destination's block at
+ * +0x49C.
+ *
+ * ABI (verified 0xc3a50-0xc3b58 against the pristine XBE, 102 instructions).
+ * Ghidra prototypes this as `void FUN_000c3a50(void)` and surfaces the two
+ * cdecl stack arguments as `in_stack_00000004` / `in_stack_00000008`
+ * phantoms; kb.json carried that same `void (void)` declaration.  The
+ * disassembly disagrees on both count and return:
+ *   param1 @ EBP+0x8  = destination scenario (read at 0xc3a7b and again at
+ *                       0xc3b3e for the +0x49C cleanup, never written)
+ *   param2 @ EBP+0xc  = source scenario
+ *   return            = bool in AL — `MOV byte ptr [EBP-1],1` on entry,
+ *                       `MOV byte ptr [EBP-1],0` on each failure path,
+ *                       `MOV AL,byte ptr [EBP-1]` at 0xc3b4f before RET.
+ *
+ * 0xc3a5f/0xc3a70 rewrite the param2 slot in place with `source + 0x4C0`, so
+ * every later `[EBP+0xc]` read is the SOURCE tag_block, not the original
+ * argument.  That in-place reuse is why the frame is only `SUB ESP,0x8` —
+ * the two locals are the bool at EBP-1 and the outer index at EBP-8.  The
+ * source parameter is therefore advanced here rather than copied to a local.
+ *
+ * Ghidra's decompile reuses a single `iVar4` for BOTH loop indices (it emits
+ * `iVar4 = 0;` inside the inner loop, destroying the outer index).  In the
+ * binary they are distinct: the outer index lives at EBP-8, the inner index
+ * in EBX.  Both are 16-bit — every compare goes through `MOVSX EAX,AX` /
+ * `MOVSX EAX,BX` (0xc3ac2, 0xc3acb, 0xc3b30) — hence the `short` locals.
+ *
+ * Block element stride is 0x34 (pushed at 0xc3a90/0xc3aa8/0xc3ae4); the
+ * fields touched are the name at +0x00 (stricmp/strcpy), the tag_data header
+ * at +0x20 whose first dword is its size, and the tag_data payload pointer
+ * at +0x2C.
+ *
+ * Argument order at the crt_stricmp site is proven by push order: 0xc3ab1
+ * pushes EAX (the destination element just returned by tag_block_get_element)
+ * and 0xc3ab2 pushes EDI (the source element), so the left-to-right order is
+ * (source_element, destination_element).  Likewise 0xc3aef/0xc3af0 push EDI
+ * then EBX, giving csstrcpy(new_element, source_element).
+ *
+ * Two ARG_COUNT hazards on this function are false positives from MSVC
+ * coalescing cdecl cleanup across consecutive calls: `ADD ESP,0x14` at
+ * 0xc3ab8 covers tag_block_get_element (3 args) plus crt_stricmp (2), and
+ * `ADD ESP,0x1c` at 0xc3b03 covers tag_block_get_element (3) plus csstrcpy
+ * (2) plus tag_data_resize (2).  The push counts confirm every kb.json
+ * declaration involved.
+ *
+ * EBX/ESI/EDI are pushed at 0xc3a79-0xc3a7e, i.e. *after* the `count <= 0`
+ * early-out branch at 0xc3a73 — the natural shape of a for-loop whose entry
+ * test skips the whole body, not a hoisting decision to reproduce by hand. */
+bool hs_scenario_merge(void *destination_scenario, void *source_scenario)
+{
+  bool success;
+  short source_index;
+  short destination_index;
+  short new_index;
+  tag_block *destination_block;
+  char *source_element;
+  char *new_element;
+
+  success = true;
+
+  /* param2 slot is reused in place as the source tag_block pointer. */
+  source_scenario = (char *)source_scenario + 0x4C0;
+  destination_block = (tag_block *)((char *)destination_scenario + 0x4C0);
+
+  for (source_index = 0;
+       (int)source_index < ((tag_block *)source_scenario)->count;
+       source_index++) {
+    source_element =
+      (char *)tag_block_get_element(source_scenario, source_index, 0x34);
+
+    for (destination_index = 0;
+         (int)destination_index < destination_block->count;
+         destination_index++) {
+      if (crt_stricmp(source_element,
+                      (const char *)tag_block_get_element(
+                        destination_block, destination_index, 0x34)) == 0)
+        break;
+    }
+
+    if ((int)destination_index == destination_block->count) {
+      new_index = tag_block_add_element(destination_block);
+      if (new_index == -1) {
+        success = false;
+      } else {
+        new_element =
+          (char *)tag_block_get_element(destination_block, new_index, 0x34);
+        csstrcpy(new_element, source_element);
+        if (tag_data_resize(new_element + 0x20,
+                            *(int *)(source_element + 0x20)))
+          csmemcpy(*(void **)(new_element + 0x2C),
+                   *(void **)(source_element + 0x2C),
+                   *(int *)(source_element + 0x20));
+        else
+          success = false;
+      }
+    }
+  }
+
+  tag_block_resize((char *)destination_scenario + 0x49C, 0);
+  return success;
+}
+
 /* HaloScript (hs) subsystem — scripting engine init/dispose/update/evaluate. */
 
 /* Allocate and initialize the hs_syntax data table used to store script
