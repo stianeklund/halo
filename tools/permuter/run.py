@@ -523,6 +523,10 @@ def _generate_implicit_decls(func_body: str, file_statics: str) -> str:
 def build_base_c(func_name: str, func_body: str, file_statics: str = "") -> str:
     """Construct a minimal base.c suitable for pycparser + VC71 compilation."""
     statics = re.sub(r'__declspec\s*\([^)]*\)\s*', '', file_statics)
+    # pycparser cannot parse MSVC __cdecl calling convention specifier. Strip it
+    # so extern declarations like `extern void *__cdecl memcpy(...);` are
+    # converted to `extern void *memcpy(...);` for pycparser compatibility.
+    statics = re.sub(r'\b__cdecl\s+', '', statics)
 
     # Split statics into two buckets:
     #   type_statics  — typedef/struct/union/enum blocks that conflict with the

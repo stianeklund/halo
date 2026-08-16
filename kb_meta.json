@@ -4737,6 +4737,13 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa28e0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The signature void scripted_player_effect_set_rotation(int handle, float, float) is recovered from the single call site at 0xc300f (12 bytes of pushed arguments, one PUSH of an int plus two FSTP-filled float slots); the parameter names yaw and pitch are labels of convenience and are not proven by that call site."
+      ]
+    },
     "0xa2ca0": {
       "kind": "function",
       "status": "ported"
@@ -6155,6 +6162,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xba5f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xba6b0": {
       "kind": "function",
       "status": "ported"
@@ -6184,6 +6195,22 @@
       ]
     },
     "0xba800": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xba970": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbaa90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbaae0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbaba0": {
       "kind": "function",
       "status": "ported"
     },
@@ -6241,6 +6268,14 @@
         "The object type byte at +0x64 is tested byte-wide (TEST DL,0x3), so only types 0 and 1 pass; the semantic names for those two types (assumed biped/vehicle unit family) are inferred from sibling callers using type mask 3, not proven here."
       ]
     },
+    "0xbb290": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbb2b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xbb2f0": {
       "kind": "function",
       "status": "ported",
@@ -6280,6 +6315,10 @@
       "status": "ported"
     },
     "0xbc0d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbc320": {
       "kind": "function",
       "status": "ported"
     },
@@ -7125,6 +7164,63 @@
         "The result-block field at +0x8 is a genuine 32-bit float (FLD dword ptr [EAX+8]), so it is read as *(float *)(result + 2); Ghidra's (float)piVar1[2] would emit FILD and corrupt the scale."
       ]
     },
+    "0xc2a80": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The macro result block layout {char *pattern; float dist1; float dist2} at +0x0/+0x4/+0x8 is inferred from the callee decl debug_sound_classes_set_distances(char*, float, float) plus the MOV/FLD load widths at 0xc2a9a-0xc2aac; the block is never asserted, so only the three accessed offsets are proven.",
+        "VC71 caps this at 83.6% (27/28): cl.exe 7.1 lowers each FSTP-slot float-lvalue argument to an integer dword copy instead of the reference sub-esp/FLD/FSTP pair, the same one-instruction-per-float divergence measured on the 2-float FUN_000c2f90 and 3-float FUN_000c2fe0 siblings.",
+        "The result block returned by hs_macro_function_evaluate is inferred to be {char *pattern; float dist1; float dist2} at +0x0/+0x4/+0x8, from the MOV dword read at +0x0 and the FLD dword ptr loads at +0x4 and +0x8 combined with the declared signature of debug_sound_classes_set_distances.",
+        "The handler's semantic role (setting sound-class audible distances) is inferred solely from the callee name debug_sound_classes_set_distances; the HaloScript macro name string for this function index was not recovered.",
+        "The result block returned by hs_macro_function_evaluate is read as char* pattern at +0x00 and two floats at +0x04 and +0x08; the +0x04 float is the second call argument (dist1) and the +0x08 float is the third (dist2), inferred from which FSTP slot each FLD lands in.",
+        "The single ADD ESP,0x14 at 0xc2abc is MSVC merged cleanup for debug_sound_classes_set_distances (0xc) plus hs_return (0x8), so the call-site audit ARG_COUNT warning claiming hs_return takes five stack arguments is a false positive.",
+        "Result block layout is inferred from the three dword reads at +0x0/+0x4/+0x8 and the callee decl debug_sound_classes_set_distances(char*, float, float): +0x0 is a char* pattern string, +0x4 and +0x8 are floats."
+      ],
+      "uncertain": [
+        "The semantic roles of the two float fields are unproven: only their stack-slot order is confirmed (result+1 is the second C argument, result+2 the third), so calling them min/max distance rather than dist1/dist2 would exceed the binary evidence.",
+        "The 83.6 percent VC71 score is attributed to the documented float-argument lowering cap, where cl.exe 7.1 /O2 copies the two untouched float arguments through integer MOV/PUSH instead of the reference's FLD/FSTP pairs; the sole diff op is the missing flds 0x8(%eax), and this attribution has not been confirmed by runtime equivalence.",
+        "The 83.6 percent VC71 result is the known cl.exe 7.1 float-arg lowering cap for this hs.obj handler family (two forwarded float lvalues become integer dword GPR copies instead of the reference fld/fstp pair); it is bit-exact and not a correctness defect, but classify_cap.py has no rule for it and returns inconclusive.",
+        "The two forwarded floats are lowered by cl.exe 7.1 as integer dword GPR copies where the reference uses FLD/FSTP, capping VC71 at 83.6% (27/28); the divergence is bit-exact, but no C spelling has been found that reproduces the reference x87 marshalling."
+      ]
+    },
+    "0xc2f90": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Parameter names function_index/thread_datum/init are inferred from the shared hs.obj script-handler dispatch shape and the ported callee hs_macro_function_evaluate's kb declaration, not from any string or symbol in the binary.",
+        "The evaluated argument record is typed as int at +0x0 and float at +0x4 and +0x8 purely from the load widths and FPU usage at this one call site (MOV EDX,[EAX] versus FLD dword [EAX+4] / FLD dword [EAX+8]); the record's real struct type is unrecovered.",
+        "The evaluated-argument record layout is inferred from the consumer call at 0xa2dc0: +0x0 is an int handle (MOV EDX,[EAX]), +0x4 and +0x8 are 4-byte floats (FLD dword ptr); the record's total size and any further fields are unknown.",
+        "The widened signature void scripted_player_effect_set_translation(int object_handle, float x, float y) is inferred solely from this one call site (PUSH EDX plus SUB ESP,8 with FSTP into [ESP] and [ESP+4]); the parameter names object_handle/x/y are descriptive guesses from the routine's existing kb name, not string- or assert-proven.",
+        "The evaluated macro-argument record at the pointer returned by hs_macro_function_evaluate is 0x0c bytes laid out as int at +0x0, float at +0x4, float at +0x8; the two float widths are proven by FLD dword ptr [EAX+4] / FLD dword ptr [EAX+8] rather than GPR loads, so reading them as ints would FILD/truncate silently.",
+        "The kb.json declaration for callee 0xa2dc0 scripted_player_effect_set_translation was widened from void(void) to void(int, float, float) by this lift, because the call site marshals three cdecl stack arguments via the MSVC push-then-fstp idiom (SUB ESP,8 plus two FSTPs plus PUSH EDX, cleaned by the merged ADD ESP,0x14); it had no other call sites in src/."
+      ],
+      "uncertain": [
+        "The kb declaration for callee 0xa2dc0 scripted_player_effect_set_translation was widened from void(void) to (int, float, float) using only this single call site, so the first parameter's true type (handle versus index versus enum) remains unknown.",
+        "The VC71 match is capped at 83.6 percent by cl.exe 7.1 lowering the two forwarded float arguments as integer dword copies through GPRs where the reference uses FLD/FSTP; the substitution is bit-exact so it is a codegen cap rather than a defect, but that cap has not been independently proven by a compiler-flag experiment.",
+        "VC71 measures 83.6% (27/28) and the only non-equal diff ops are the known float-argument lowering substitution (cand MOV/PUSH versus reference SUB ESP/FLD/FSTP), which is bit-exact for IEEE-754 dwords, so this is treated as a toolchain lowering cap rather than a lift defect; classify_cap.py has no rule for this family and returns inconclusive.",
+        "The first and third parameters function_index and init are never read by this body, so the disassembly alone cannot distinguish a 2-parameter from a 3-parameter cdecl signature; the uniform hs-evaluator triple used by every sibling handler in this TU is what arbitrates the third parameter."
+      ]
+    },
+    "0xc2fe0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "VC71 caps at 83.6% (27/28) because cl.exe 7.1 lowers each float-lvalue argument to a plain integer dword copy (movl field,reg / pushl reg) where the reference build uses subl esp,8 + flds/fstps; this is a toolchain lowering difference shared by the whole scripted_player_effect / debug_sound_classes float-forwarding handler family, not a lift defect.",
+        "The single ADD ESP,0x14 at 0xc301c is combined cleanup for both the 0xa28e0 call (0xc bytes) and the hs_return call (8 bytes), so the call-site ARG_COUNT hazard reporting a five-argument hs_return is a false positive; hs_return remains a two-argument function.",
+        "The evaluated-argument record is {int handle at +0x0; float at +0x4; float at +0x8}; the disassembly proves the field types and their argument positions, but nothing in this function proves which float is a yaw and which is a pitch, so the struct fields stay field_04/field_08.",
+        "The evaluated-argument record returned by hs_macro_function_evaluate holds three consecutive floats at +0x00, +0x04 and +0x08; the reference marshals the +0x00 float with MOV EDX,[EAX]/PUSH EDX rather than FLD/FSTP only because a PUSH already creates its own argument slot, so that integer MOV is not evidence of an int field.",
+        "The kb declaration of callee 0xa28e0 scripted_player_effect_set_rotation was widened from void(void) to (float, float, float) in this lift, proven by its own prologue which FLDs [EBP+0x8], [EBP+0xc] and [EBP+0x10], scales each by the constant at 0x253d4c, and stores them to three adjacent globals at +0x3d0, +0x3d4 and +0x3d8.",
+        "The three cdecl parameters (int16_t function_index, int thread_datum, char init) are inferred from the prologue reads at EBP+0x8/+0xc/+0x10 plus the uniform HaloScript macro-function handler shape shared by the whole 0xc0c30-0xc30b0 dispatch table, not from any symbol.",
+        "The callee signature scripted_player_effect_set_rotation(int, float, float) at 0xa28e0 was widened from a stale void(void) kb decl using this single call site only (SUB ESP,0x8 plus two FSTP slots plus one PUSH EDX, cleaned by the 0xc of the combined ADD ESP,0x14); no other call site was examined, so the parameter names remain param_1..param_3."
+      ],
+      "uncertain": [
+        "VC71 is capped at 83.6% (27/28 insns) by the float-argument lowering gap: cl.exe 7.1 copies the two untouched float arguments through GPRs (movl 0x8(%eax),%edx / movl 0x4(%eax),%ecx / push) where the reference uses flds+fstps into explicit stack slots, which is bit-exact but costs one instruction per FSTP-slot float.",
+        "The VC71 match is capped at 83.6% (27 of 28 instructions) by a cl.exe 7.1 lowering difference in which a forwarded float lvalue becomes an integer dword copy through a GPR instead of the reference FLD/FSTP pair; the entire non-equal diff is one inserted FLDS and one four-instruction MOV/PUSH versus SUB-ESP/FSTP replacement, which is bit-identical at runtime.",
+        "The parameter names angle0, angle1 and angle2 given to scripted_player_effect_set_rotation are placeholders; the binary proves three floats scaled by a common constant into three adjacent globals but does not prove which of yaw, pitch or roll each slot carries.",
+        "The semantics of the evaluated-argument record are unproven beyond its layout: +0x0 is an int consumed as the first rotation argument and +0x4/+0x8 are floats, but which rotation quantity each float carries (for example yaw versus pitch) is not established by this function.",
+        "VC71 measures 83.6 percent (27 of 28 instructions) and this is a codegen-lowering cap, not a defect: the entire non-equal diff is one insert of flds 0x8(%eax) plus one four-instruction replace of MOV/PUSH against SUB ESP/FSTP/FLD/FSTP, which is bit-exact because an IEEE-754 dword moved through a GPR is the same four bytes; the one-float siblings 0xc3030 and 0xc3070 scored 94.1 percent in the same run."
+      ]
+    },
     "0xc3230": {
       "kind": "function",
       "status": "unknown",
@@ -7140,6 +7236,17 @@
       ],
       "uncertain": [
         "The semantic role of FUN_000d8b90 and of the record byte at offset +0x0 that is passed to it remains unnamed; only its width (BYTE, zero-extended via XOR EDX,EDX + MOV DL) is confirmed."
+      ]
+    },
+    "0xc35b0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Callee 0x16b270's signature (int, float, float, float) is binary-confirmed from its own prologue in the pristine XBE: mov ecx,[ebp+8]/mov [eax],ecx stores arg1 as a plain dword int, while [ebp+0xc], [ebp+0x10] and [ebp+0x14] are each FLD/FSTP'd into +0x4/+0x8/+0xc of the record hung off the global pointer at 0x47e4d0; the kb decl was widened from void(void) to match.",
+        "The 78.0% VC71 score is the hs.obj float-arg lowering cap, not a lift defect: the score-context diff has exactly two non-equal ops, an insert of the lone flds 0xc(%eax) and a six-instruction replace of our movl/pushl pairs against the reference's subl $0xc,%esp + three fstps, with all 29 other instructions equal."
+      ],
+      "uncertain": [
+        "No semantic name is assigned to this handler or to its consumer 0x16b270 because the consumer is unported and only writes an int plus three floats into an unnamed global record at 0x47e4d0, which does not identify the HaloScript builtin."
       ]
     },
     "0xc3620": {
@@ -7324,6 +7431,10 @@
       "inferred": [
         "FUN_0xc4900 is hs_report_compile_error taking @ESI=error_text, @EBX=element_ptr, @EDI=source_start, plus 1 stack arg for error_info."
       ]
+    },
+    "0xc4b00": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xc4b40": {
       "kind": "function",
@@ -8047,6 +8158,22 @@
     "0xd8b80": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xd98c0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Object membership corrected from event_manager.obj to hud_weapon.obj: the assert __FILE__ literal at 0x281eec is c:\\halo\\SOURCE\\interface\\hud_weapon.c and both data callees (0xd8bc0, 0xd8c30) are hud_weapon.c accessors.",
+        "Both block copies are written as memcpy with constant sizes so MSVC /Oi expands them to the inline REP MOVSD the reference emits; a csmemcpy CALL would not match.",
+        "Copy direction is OLD -> NEW: at 0xd9926 MOV ESI,EDI restores the first accessor result (old block) as the REP MOVSD source before EDI is loaded with the second accessor result (new block), so the old local player's HUD state overwrites the new slot."
+      ],
+      "uncertain": [
+        "Residual VC71 gap at 88.9 percent is caller-side @<reg> thunking: VC71 emits PUSH for FUN_000d8bc0 and FUN_000d8c30 at four call sites where the reference sets ESI directly, a known scorer ceiling rather than an ABI defect.",
+        "The assert_halt_msg_at macro does not expand in this TU because common.h is not in its include set; the explicit display_assert plus system_exit form used elsewhere in hud_weapon.c is required here.",
+        "Unicorn equivalence reports 100 of 100 seeds passing with 0 stub-arg mismatches but write-trace divergences on every seed; this is stub asymmetry, because FUN_000d8bc0 and FUN_000d8c30 are external relocs the oracle stubs out while the lifted object resolves them inside the same TU and performs the real REP MOVSD writes.",
+        "The function is left unnamed (FUN_000d98c0) because the only naming evidence is the two assert parameter strings old_local_player_index/new_local_player_index; the __FILE__ string proves the TU is interface/hud_weapon.c but no symbol or call-site string pins a Bungie name.",
+        "VC71 sits at 88.9 percent; the entire residual diff is the comment-form @<esi> thunk shape at the four FUN_000d8bc0/FUN_000d8c30 call sites (VC71 emits cdecl pushes plus ADD ESP where the reference does MOV ESI,EBX / MOV ESI,EDI), and the permuter cannot explore this TU because pycparser rejects its extern __cdecl memset/memcpy declarations (VACUOUS RUN)."
+      ]
     },
     "0xdb0f0": {
       "kind": "function",
@@ -13474,10 +13601,12 @@
       "status": "ported",
       "inferred": [
         "The intermediate pointer named diffuse in the assert strings is shader+0x6c: the disassembly rebases once with ADD ESI,0x6c after the FUN_001906b0(shader,3) downcast and reads every animation field off that pointer, so the lift keeps the same +0x6c base and +0xe4..+0xf8 offsets.",
-        "Only u_animation_period (+0xe8 from diffuse) and v_animation_period (+0xf4) have names proven by the assert strings; the int16 selectors at +0xe4/+0xf0 and the float scales at +0xec/+0xf8 are role-inferred from their use as FUN_0010a5e0's function_type argument and the final FMUL, so the offsets stay raw."
+        "Only u_animation_period (+0xe8 from diffuse) and v_animation_period (+0xf4) have names proven by the assert strings; the int16 selectors at +0xe4/+0xf0 and the float scales at +0xec/+0xf8 are role-inferred from their use as FUN_0010a5e0's function_type argument and the final FMUL, so the offsets stay raw.",
+        "Argument order for the two FUN_0010a5e0 calls is (int16 animation function selector, time/period) recovered from the push-then-fstp idiom (PUSH ECX dummy slot then FSTP [ESP]), not from the decompiler's rendering of the dummy push."
       ],
       "uncertain": [
-        "VC71 match is capped at 86.2 percent by an fucompp-versus-fcomps codegen difference: VC71 compiles the two float inequality asserts as flds constant plus fucompp and then materialises a bool with mov eax 1 / xor eax eax, while the reference uses fcomps against the 0.0f constant at 0x2533c0 and branches directly with test ah 0x44 / jp; rewriting the condition as !(period == 0.0f) produced byte-identical output and a 100-attempt permuter run found nothing above baseline."
+        "VC71 match is capped at 86.2 percent by an fucompp-versus-fcomps codegen difference: VC71 compiles the two float inequality asserts as flds constant plus fucompp and then materialises a bool with mov eax 1 / xor eax eax, while the reference uses fcomps against the 0.0f constant at 0x2533c0 and branches directly with test ah 0x44 / jp; rewriting the condition as !(period == 0.0f) produced byte-identical output and a 100-attempt permuter run found nothing above baseline.",
+        "The shader_environment definition layout behind the FUN_001906b0(shader,3) checked downcast is unrecovered, so the six animation fields at +0x150..+0x164 are read through raw casts and only their offsets and widths are proven; the u/v period field names come from the assert strings and the remaining four names are inferred by position."
       ]
     },
     "0x190be0": {
@@ -15275,6 +15404,14 @@
         "VC71 constant-folds the write-once result bool that the original keeps in the [EBP-1] slot (PUSH ECX plus MOV byte [EBP-1],0 at 0x1be55b), which tail-merges the two false exits into one XOR AL,AL epilogue and accounts for most of the 129-vs-122 insn gap; the remaining ~2 insns are the @<esi> call thunk for FUN_001be2b0.",
         "FUN_001be2b0 is called with no pushed arguments and kb declares it void(void), but a cache-fill helper that receives no sound is unexplained; it may consume ESI implicitly and would then need an @esi annotation.",
         "The byte flag at 0x5054ec that gates the error() request trace has no string evidence for its original name; the macro name sound_cache_debug_trace is mechanical."
+      ]
+    },
+    "0x1be920": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The two absolute globals are dereferenced handles, not addresses: 0x4ea978 holds the bitmap-entry data array pointer passed to data_dispose and 0x4ea980 holds the lruv cache pointer passed to lruv_cache_dispose, matching the rest of xbox_texture_cache.obj which reads both through *(void **) loads.",
+        "The context-pack ARG_COUNT hazard reporting cleanup=2 vs decl=1 stack args for lruv_cache_dispose is a false positive from MSVC coalescing two 4-byte cdecl cleanups into a single ADD ESP,0x8 after both CALLs; the disassembly shows exactly one PUSH per CALL, so both callees take one stack argument."
       ]
     },
     "0x1bea30": {
