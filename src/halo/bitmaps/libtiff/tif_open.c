@@ -1107,6 +1107,83 @@ int FUN_0006cda0(void *tif_)
 #define CODE_FIRST 258
 #define MAXCODE(n) ((1 << (n)) - 1)
 
+/* Encoder-side reset interval, upstream libtiff tif_lzw.c's CHECK_GAP: the
+ * number of input bytes between two compression-ratio checks. Proven twice by
+ * the same immediate -- `mov dword ptr [esi+0x20],0x2710` at 0x6d27d (the
+ * encoder reset) and `lea ecx,[eax+0x2710]` at 0x6cdef (the re-arm below). */
+#define CHECK_GAP 10000
+
+/**
+ * Re-arm the encoder checkpoint, and clear the LZW string table when the
+ * compression ratio has stopped improving.
+ *
+ * The ratio-check arm of upstream libtiff's LZWEncode (tif_lzw.c), which
+ * Bungie split into a function of its own. FUN_0006cfa0 -- the encoder, and
+ * the only xref (`call` at 0x6d11c) -- keeps upstream's `incount >=
+ * checkpoint` test and the counter resets that follow a clear; what landed
+ * here is the body upstream puts between them.
+ *
+ * The handle arrives in EDI and is never pushed by this function: 0x6cde1
+ * dereferences it as `[edi+0x120]`, the tif_data offset every other codec
+ * entry in this TU uses, and 0x6ce26 pushes it unchanged as the TIFF argument
+ * of FUN_0006c960, whose kb.json signature already types that slot `void *`.
+ * Ghidra's cached listing types the body `void(void)` and reports EDI as
+ * `unaff_EDI`, i.e. it lost the parameter, not that there is none.
+ *
+ * The four encoder counters at +0x20..+0x2c are the ENCODER's view of the
+ * block lzw_codec_state_t lays out for the decoder -- the decoder's `prefix`
+ * table starts at that same +0x20, so the two are overlaid the way
+ * tiff_predictor_state_t and lzw_codec_state_t already are. Upstream's
+ * LZWCodecState orders the encoder members enc_checkpoint, enc_ratio,
+ * enc_incount, enc_outcount, which is exactly the order the four offsets are
+ * used in here, so they go through raw offsets rather than a re-laid-out
+ * struct -- the same choice FUN_0006d1e0 makes for the checkpoint. +0x2c is
+ * additionally pinned by FUN_0006c960, which accumulates emitted bits into it
+ * (0x6ca25): upstream's enc_outcount is likewise a BIT count, which is what
+ * makes the `(incount << 8) / outcount` ratio meaningful.
+ *
+ * @param tif_ TIFF handle, passed in EDI. Never null-checked.
+ */
+void FUN_0006cde0(void *tif_)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  lzw_codec_state_t *sp = (lzw_codec_state_t *)tif->tif_data;
+  /* enc_incount, read once at 0x6cde7 and reused by the bound test, the
+   * checkpoint LEA and both division arms. */
+  long incount = *(long *)((char *)sp + 0x28);
+  long rat;
+
+  *(long *)((char *)sp + 0x20) = incount + CHECK_GAP; /* enc_checkpoint */
+  /* Upstream's own note: past this bound the `<< 8` would overflow, so the
+   * big-input arm scales the divisor down instead of the dividend up. The
+   * bound is a signed `cmp eax,0x7fffff / jle` at 0x6cdea, and both divides
+   * are CDQ/IDIV (0x6ce0b, 0x6ce13), so every value here is signed. */
+  if (incount > 0x007fffff) {
+    rat = *(long *)((char *)sp + 0x2c) >> 8; /* enc_outcount */
+    rat = (rat == 0 ? 0x7fffffff : incount / rat);
+  } else {
+    rat = (incount << 8) / *(long *)((char *)sp + 0x2c); /* enc_outcount */
+  }
+  if (rat <= *(long *)((char *)sp + 0x24)) { /* enc_ratio */
+    /* Clear the hash table, then tell the decoder about it. FUN_0006ca50
+     * takes the state block in ESI and pushes nothing (bare `call` at
+     * 0x6ce1c); the CODE_CLEAR emit is an ordinary cdecl pair, 0x100 pushed
+     * first at 0x6ce21 and the handle second at 0x6ce26. */
+    FUN_0006ca50(sp);
+    FUN_0006c960(tif_, 0x100); /* CODE_CLEAR */
+    sp->nbits = BITS_MIN;
+    /* Same encode-side bias FUN_0006d1e0 applies: plain MAXCODE(BITS_MIN)
+     * (0x1ff at 0x6ce3a) and one MORE for old-style streams (0x200 at
+     * 0x6ce43), where the decode side used one less. */
+    sp->maxcode = MAXCODE(BITS_MIN);
+    if (sp->flags & LZW_FLAG_OLDSTYLE) {
+      sp->maxcode = MAXCODE(BITS_MIN) + 1;
+    }
+  } else {
+    *(long *)((char *)sp + 0x24) = rat; /* enc_ratio */
+  }
+}
+
 /**
  * Prepare the LZW decoder for a new strip/tile: allocate the codec state on
  * first use, then reset the code width, the string table and the bit cursor.
@@ -1304,11 +1381,6 @@ int FUN_0006d180(void *tif_, char *bp0, int cc0, int s)
   }
   return FUN_0006cfa0(tif_, bp0, cc0, s);
 }
-
-/* Encoder-side reset interval, upstream libtiff tif_lzw.c's CHECK_GAP: the
- * number of input bytes between two compression-ratio checks. Proven by the
- * immediate at 0x6d27d (`mov dword ptr [esi+0x20],0x2710`). */
-#define CHECK_GAP 10000
 
 /**
  * Allocate (on first use) and reset the LZW encoder state on a TIFF handle.

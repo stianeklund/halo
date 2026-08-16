@@ -2957,6 +2957,43 @@ void FUN_000c2100(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc2120 (hs.obj) — HaloScript function handler, no-op body.
+ *
+ * Same minimal handler shape as FUN_000c2100 above and FUN_000c2140 below:
+ * the command takes no script arguments (no hs_macro_function_evaluate call,
+ * no result NULL check) and the body performs no side effect of its own — it
+ * only completes the calling script thread with the value 0.  Which script
+ * command's table record points here is not established from the binary in
+ * this bundle (the artifact reports no direct callers — the handler is reached
+ * through the script-function table), so the function keeps its address name.
+ *
+ * Disassembly (8 instructions).  Frame is PUSH EBP; MOV EBP,ESP only — no
+ * locals and no `sub esp`.  Body:
+ *
+ *   MOV EAX,[EBP+0xc]    ; thread_datum
+ *   PUSH 0x0             ; hs_return arg2 = value
+ *   PUSH EAX             ; hs_return arg1 = thread_datum (cdecl: the last
+ *                        ; PUSH is the first C argument)
+ *   CALL 0xcbf80         ; hs_return
+ *   ADD ESP,0x8          ; cdecl cleanup, 2 dwords
+ *   POP EBP; RET         ; plain RET => caller-cleanup cdecl, no register args
+ *
+ * [EBP+0x8] (function_index) and [EBP+0x10] (init) are never read by this
+ * body; they complete the standard hs-evaluator signature shared by every
+ * other handler in this TU.  Ghidra mis-prototypes this as void(void) and
+ * reports the [EBP+0xc] read as the phantom local `in_stack_00000008` —
+ * that phantom is ARG 2, not arg 1.  Binding it to function_index would pass
+ * a script-function index as the thread handle to hs_return, completing the
+ * wrong HS thread with no crash and no VC71 delta.
+ *
+ * Callees (cdecl, no register args, ported):
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c2120(int16_t function_index, int thread_datum, char init)
+{
+  hs_return(thread_datum, 0);
+}
+
 /* 0xc2140 (hs.obj) — HaloScript function handler, no-op body.
  *
  * The smallest handler shape in this TU: the command takes no script
@@ -8178,6 +8215,135 @@ int FUN_000c4010(const char **a, const char **b)
   return crt_stricmp(*a, *b);
 }
 
+/* 0xc4030 — Append one candidate token name to the enumeration results if it
+ * matches the active prefix.  Shared tail of every per-type enumerator: the
+ * candidate name arrives in ESI (call sites at 0xc40d2/0xc4115/0xc4166/0xc4170/
+ * 0xc4192/0xc41c2/0xc4221/0xc42b6/0xc42fe all do `MOV ESI,<name>` immediately
+ * before the CALL), and the rest of the state is read from the enumeration
+ * globals documented on hs_tokens_enumerate below.
+ *
+ * The prefix compare is `__strnicmp(name, prefix, csstrlen(prefix))`, i.e. only
+ * the first csstrlen(prefix) characters are compared, so the empty prefix
+ * matches everything.  MSVC folds csstrlen's cdecl cleanup into the
+ * `ADD ESP,0x10` after __strnicmp.
+ *
+ * Count and capacity are int16 (MOV AX / CMP AX / INC AX), and the array index
+ * is the sign-extended count (MOVSX ECX,AX). */
+void FUN_000c4030(const char *name)
+{
+  int16_t count;
+
+  if (*(const char ***)0x46b6d0 == NULL) {
+    display_assert("enumeration_results", "c:\\halo\\SOURCE\\hs\\hs.c", 0x29a,
+                   1);
+    system_exit(-1);
+  }
+
+  if (*(int16_t *)0x46b6c8 < *(int16_t *)0x46b6cc) {
+    if (__strnicmp(name, *(const char **)0x46b6d4,
+                   (unsigned int)csstrlen(*(const char **)0x46b6d4)) == 0) {
+      /* The count is loaded once (MOV AX) and kept live across the array
+       * store: the write through the char** would otherwise force a reload,
+       * since the compiler cannot prove it does not alias the counter. */
+      count = *(int16_t *)0x46b6c8;
+      (*(const char ***)0x46b6d0)[count] = name;
+      *(int16_t *)0x46b6c8 = (int16_t)(count + 1);
+    }
+  }
+}
+
+/* 0xc4130 — Enumerate one scenario-resident tag_block into the active token
+ * enumeration.  One of the per-type enumerator thunks in the table at
+ * 0x2f2208 (see hs_tokens_enumerate below); the concrete block is selected by
+ * the three parameters, which the thunk's caller supplies.
+ *
+ * `block_offset` is a byte offset from the scenario tag base to the tag_block
+ * header (MOVSX word ptr [EBP+8] then ADD to global_scenario_get()'s EAX, so
+ * it is a signed 16-bit value used in pointer arithmetic).  It is handed to
+ * FUN_000c40f0 in EBX (MOV EBX,EAX immediately before the CALL); the two
+ * stack arguments are pushed EDX-then-ECX, i.e. name_offset first and
+ * element_size second in source order.
+ *
+ * `name_offset` is only forwarded, never used in arithmetic here, so it is
+ * read as a plain dword (MOV ECX,[EBP+0xc]); FUN_000c40f0 is the one that
+ * narrows it (MOVSX word ptr [EBP+8]) before adding it to each element.
+ *
+ * Guarded by the scenario tag index at 0x326a08, exactly like the other
+ * scenario readers in this file. */
+void FUN_000c4130(int16_t block_offset, int16_t name_offset, int element_size)
+{
+  void *block;
+
+  if (*(int *)0x326a08 != NONE) {
+    /* The scenario fetch is sequenced before the argument pushes in the
+     * original (CALL at 0xc413d, then MOVSX/ADD, then PUSH EDX/PUSH ECX), so
+     * the block pointer is held in a local rather than written inline as the
+     * first argument, where MSVC's right-to-left argument evaluation would
+     * sink the call below the pushes. */
+    block = (char *)global_scenario_get() + block_offset;
+    FUN_000c40f0(block, name_offset, element_size);
+  }
+}
+
+/* 0xc41b0 — Enumerate a fixed 0x2d-entry table of `char *` names at 0x2f14b8
+ * into the active token enumeration.  One of the per-type enumerator thunks in
+ * the table at 0x2f2208 (see hs_tokens_enumerate below); it takes no arguments
+ * and reads the enumeration state through the globals FUN_000c4030 owns.
+ *
+ * The original is a countdown loop over a walking pointer: `MOV EDI,0x2f14b8`
+ * / `MOV EBX,0x2d`, then per iteration `MOV ESI,[EDI]` (the @<esi> argument to
+ * FUN_000c4030) / `CALL` / `ADD EDI,4` / `DEC EBX` / `JNZ`.  There is no
+ * bounds or NULL test on the table entries — every slot is passed through.
+ *
+ * What the 0x2d names are is unproven from this function alone; only their
+ * count, stride, and that FUN_000c4030 treats each as a NUL-terminated name
+ * are established here. */
+void FUN_000c41b0(void)
+{
+  const char **name;
+  int remaining;
+
+  name = (const char **)0x2f14b8;
+  remaining = 0x2d;
+  do {
+    FUN_000c4030(*name);
+    name++;
+    remaining--;
+  } while (remaining != 0);
+}
+
+/* 0xc41e0 — Enumerate the names of all 0x1a2 hs built-in functions into the
+ * active token enumeration.  One of the per-type enumerator thunks in the
+ * table at 0x2f2208 (see hs_tokens_enumerate below); like the others it takes
+ * no arguments and reads the enumeration state through the globals
+ * FUN_000c4030 owns.
+ *
+ * hs_function_table_get (0xc3d00) is inlined here: the body carries that
+ * function's own assert text, file and line (0x20a) verbatim, and its bounds
+ * test runs once per iteration at the top of the loop body (`TEST DI,DI` /
+ * `JL` / `CMP DI,0x1a2` / `JL`), with the loop's own exit test duplicated at
+ * the bottom (`INC EDI` / `ADD EBX,4` / `CMP DI,0x1a2` / `JL`).  The index is
+ * int16 throughout (DI, not EDI, is compared); MSVC strength-reduces the
+ * table indexing into the walking pointer in EBX.
+ *
+ * The name passed to FUN_000c4030 is descriptor+4 (`MOV EAX,[EBX]` /
+ * `MOV ESI,[EAX+4]`), the same field the by-name search at 0xc3fc0 compares
+ * against. */
+void FUN_000c41e0(void)
+{
+  int16_t i;
+
+  for (i = 0; i < 0x1a2; i++) {
+    if (i < 0 || i >= 0x1a2) {
+      display_assert(
+        "function_index>=0 && function_index<hs_function_table_count",
+        "c:\\halo\\SOURCE\\hs\\hs.c", 0x20a, 1);
+      system_exit(-1);
+    }
+    FUN_000c4030(*(const char **)((char *)((void **)0x2f1588)[i] + 4));
+  }
+}
+
 /* 0xc4580 — Collect every hs token name matching a prefix into `tokens`.
  *
  * Enumeration state lives in four globals rather than being threaded through
@@ -8488,6 +8654,80 @@ bool hs_mark_recompile(void)
 cleanup:
   hs_compile_cleanup();
   return (bool)ok;
+}
+
+/* 0xc4a40 — Format an hs function's calling signature into a text buffer.
+ *
+ * Both parameters arrive in registers: the function index in EAX (PUSH EAX at
+ * 000c4a41 feeds hs_function_table_get directly, with no MOVSX, so the value is
+ * already a short) and the destination buffer in ESI (never reloaded, used as
+ * the first stack argument of every call).
+ *
+ * Writes "(<name>" first, then one of two tails:
+ *   - descriptor+0x14 non-NULL: a pre-formatted usage string appended with
+ *     " %s" at buffer+csstrlen(buffer), then ")".
+ *   - otherwise: one " <type>" group per declared parameter, where the
+ *     parameter count is the int16 at descriptor+0x18 and the parameter type
+ *     indices are the int16 array at descriptor+0x1a; each index selects a
+ *     name from the hs type-name table at 0x2f14a8.  Then ")".
+ *
+ * The ADD ESP,0x10 at 000c4a5b is one combined cdecl cleanup for
+ * hs_function_table_get (0x4) plus crt_sprintf (0xc); the ADD ESP,0x18 at
+ * 000c4ac1 likewise covers all three string appends of one loop iteration.
+ *
+ * The loop counter is int16_t: INC EBX advances the full register but the
+ * bound test at 000c4ac5 is CMP BX, and the index is re-sign-extended
+ * (MOVSX EDX,BX) before scaling. */
+void FUN_000c4a40(int16_t function_index, char *buffer)
+{
+  char *desc;
+  const char *usage;
+  int16_t i;
+
+  desc = (char *)hs_function_table_get(function_index);
+  crt_sprintf(buffer, "(%s", *(const char **)(desc + 0x4));
+
+  usage = *(const char **)(desc + 0x14);
+  if (usage != NULL) {
+    crt_sprintf(buffer + csstrlen(buffer), " %s", usage);
+    FUN_0008dc30(buffer, ")");
+    return;
+  }
+
+  for (i = 0; i < *(int16_t *)(desc + 0x18); i++) {
+    FUN_0008dc30(buffer, " <");
+    FUN_0008dc30(
+      buffer,
+      ((const char **)0x2f14a8)[(int)*(int16_t *)(desc + (int)i * 2 + 0x1a)]);
+    FUN_0008dc30(buffer, ">");
+  }
+
+  FUN_0008dc30(buffer, ")");
+}
+
+/* 0xc4ae0 — Copy the string at a script-function descriptor's field_10 into a
+ * caller-supplied buffer.
+ *
+ * Companion to FUN_000c4a40 (which formats the usage signature): this one just
+ * hands back one already-formed string from the same descriptor.  What field_10
+ * holds is not proven here — the descriptor's name is at +0x4 and its usage
+ * string at +0x14, so +0x10 is a third, distinct char* — so it is left
+ * unnamed.
+ *
+ * ABI (000c4ae0..000c4afa): the function index arrives in EAX (PUSH EAX at
+ * 000c4ae3 forwards it as hs_function_table_get's single cdecl argument), while
+ * the destination buffer is a real stack parameter at [EBP+8].  Ghidra
+ * prototypes this `void FUN_000c4ae0(void)` and drops both.
+ *
+ * The ADD ESP,0xc at 000c4af6 is one combined cdecl cleanup for
+ * hs_function_table_get (0x4) plus csstrcpy (0x8) — not a 3-argument call.
+ * csstrcpy's char* return is discarded. */
+void FUN_000c4ae0(int16_t function_index, char *buffer)
+{
+  char *desc;
+
+  desc = (char *)hs_function_table_get(function_index);
+  csstrcpy(buffer, *(const char **)(desc + 0x10));
 }
 
 /* 0xc4b00 — Look up a scenario script by name and start its thread.
