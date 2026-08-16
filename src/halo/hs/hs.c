@@ -2957,6 +2957,43 @@ void FUN_000c2100(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc2120 (hs.obj) — HaloScript function handler, no-op body.
+ *
+ * Same minimal handler shape as FUN_000c2100 above and FUN_000c2140 below:
+ * the command takes no script arguments (no hs_macro_function_evaluate call,
+ * no result NULL check) and the body performs no side effect of its own — it
+ * only completes the calling script thread with the value 0.  Which script
+ * command's table record points here is not established from the binary in
+ * this bundle (the artifact reports no direct callers — the handler is reached
+ * through the script-function table), so the function keeps its address name.
+ *
+ * Disassembly (8 instructions).  Frame is PUSH EBP; MOV EBP,ESP only — no
+ * locals and no `sub esp`.  Body:
+ *
+ *   MOV EAX,[EBP+0xc]    ; thread_datum
+ *   PUSH 0x0             ; hs_return arg2 = value
+ *   PUSH EAX             ; hs_return arg1 = thread_datum (cdecl: the last
+ *                        ; PUSH is the first C argument)
+ *   CALL 0xcbf80         ; hs_return
+ *   ADD ESP,0x8          ; cdecl cleanup, 2 dwords
+ *   POP EBP; RET         ; plain RET => caller-cleanup cdecl, no register args
+ *
+ * [EBP+0x8] (function_index) and [EBP+0x10] (init) are never read by this
+ * body; they complete the standard hs-evaluator signature shared by every
+ * other handler in this TU.  Ghidra mis-prototypes this as void(void) and
+ * reports the [EBP+0xc] read as the phantom local `in_stack_00000008` —
+ * that phantom is ARG 2, not arg 1.  Binding it to function_index would pass
+ * a script-function index as the thread handle to hs_return, completing the
+ * wrong HS thread with no crash and no VC71 delta.
+ *
+ * Callees (cdecl, no register args, ported):
+ *   0xcbf80 = hs_return(thread_handle, value)
+ */
+void FUN_000c2120(int16_t function_index, int thread_datum, char init)
+{
+  hs_return(thread_datum, 0);
+}
+
 /* 0xc2140 (hs.obj) — HaloScript function handler, no-op body.
  *
  * The smallest handler shape in this TU: the command takes no script
