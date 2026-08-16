@@ -8916,6 +8916,132 @@ post_eval:
   return result;
 }
 
+/* Recursively expand one `cond` clause list into nested syntax nodes.
+ *
+ * source_node is the syntax node the expansion inherits its source offset
+ * from; arg_node is the current clause (a condition/result pair) or NONE to
+ * terminate the chain.  Returns the index of the newly allocated syntax node,
+ * or NONE on failure (with the compile error globals at 0x46b6fc/0x46b700
+ * filled in).
+ *
+ * Syntax-node field widths are taken from the disassembly: +0x2/+0x4/+0x6 are
+ * words (+0x6 bit 0 is tested as a byte), +0x8/+0xc/+0x10 are dwords.
+ *
+ * NOTE: the `result_is_empty != NONE` test below is dead in the original
+ * (SETZ CL; CMP ECX,-1; JZ 0xc553d can never be taken, so the "needs a
+ * result" diagnostic is unreachable).  Transcribed literally. */
+int FUN_000c5310(int source_node, int arg_node)
+{
+  char *new_datum;
+  char *arg_datum;
+  char *cond_datum;
+  char *node_a;
+  char *node_b;
+  int new_index;
+  int cond_index;
+  int index_a;
+  int index_b;
+  int result;
+  int result_is_empty;
+  int16_t value;
+
+  new_index = data_new_at_index(*(data_t *volatile *)0x5aa6c8);
+  if (new_index != NONE) {
+    new_datum = (char *)datum_get(*(data_t *volatile *)0x5aa6c8, new_index);
+    *(int *)(new_datum + 0xc) =
+      *((int *)((char *)datum_get(*(data_t *volatile *)0x5aa6c8, source_node) +
+                0xc));
+    *(int16_t *)(new_datum + 6) = 0;
+    *(int *)(new_datum + 8) = NONE;
+
+    if (arg_node == NONE) {
+      *(int16_t *)(new_datum + 6) = 1;
+      value = *((int16_t *)((char *)datum_get(*(data_t *volatile *)0x5aa6c8,
+                                              source_node) +
+                            4));
+      *(int16_t *)(new_datum + 2) = value;
+      *(int16_t *)(new_datum + 4) = value;
+      *(int *)(new_datum + 0x10) = 0;
+      return new_index;
+    }
+
+    if ((*((uint8_t *)datum_get(*(data_t *volatile *)0x5aa6c8, arg_node) + 6) &
+         1) == 0) {
+      cond_index =
+        *((int *)((char *)datum_get(*(data_t *volatile *)0x5aa6c8, arg_node) +
+                  0x10));
+      cond_datum = (char *)datum_get(*(data_t *volatile *)0x5aa6c8, cond_index);
+      result_is_empty = (*(int *)(cond_datum + 8) == 0);
+      if (result_is_empty != NONE) {
+        index_a = data_new_at_index(*(data_t *volatile *)0x5aa6c8);
+        index_b = data_new_at_index(*(data_t *volatile *)0x5aa6c8);
+        if (index_a != NONE && index_b != NONE) {
+          node_a = (char *)datum_get(*(data_t *volatile *)0x5aa6c8, index_a);
+          node_b = (char *)datum_get(*(data_t *volatile *)0x5aa6c8, index_b);
+          arg_datum =
+            (char *)datum_get(*(data_t *volatile *)0x5aa6c8, arg_node);
+          result = FUN_000c5310(
+            source_node, *((int *)((char *)datum_get(
+                                     *(data_t *volatile *)0x5aa6c8, arg_node) +
+                                   8)));
+          *(int *)(node_a + 8) = result;
+          if (result != NONE) {
+            *(int *)(new_datum + 0x10) = arg_node;
+            *(int16_t *)(new_datum + 2) = 2;
+            *(int16_t *)(arg_datum + 2) = 2;
+            *(int16_t *)(arg_datum + 6) = 1;
+            *(int *)(arg_datum + 8) = cond_index;
+            *(int *)(arg_datum + 0xc) = NONE;
+            *(int16_t *)(arg_datum + 4) = 2;
+            *(int *)(arg_datum + 0x10) = 0;
+            *(int *)(node_a + 0x10) = index_b;
+            *(int16_t *)(node_a + 6) = 0;
+            *(int *)(node_a + 0xc) = *(int *)(new_datum + 0xc);
+            *(int *)(node_b + 0x10) = 0;
+            *(int16_t *)(node_b + 2) = 0;
+            *(int16_t *)(node_b + 6) = 1;
+            *(int *)(node_b + 8) =
+              *((int *)((char *)datum_get(*(data_t *volatile *)0x5aa6c8,
+                                          cond_index) +
+                        8));
+            *(int *)(node_b + 0xc) = NONE;
+            *(int16_t *)(node_b + 4) = 2;
+            *(int *)(cond_datum + 8) = index_a;
+            return new_index;
+          }
+        } else {
+          *(const char **)0x46b6fc = "i couldn't allocate a syntax node.";
+          *(int *)0x46b700 =
+            *((int *)((char *)datum_get(*(data_t *volatile *)0x5aa6c8,
+                                        source_node) +
+                      0xc));
+          return NONE;
+        }
+      } else {
+        *(const char **)0x46b6fc = "this argument to cond needs a result.";
+        *(int *)0x46b700 = *(
+          (int *)((char *)datum_get(*(data_t *volatile *)0x5aa6c8, cond_index) +
+                  0xc));
+      }
+    } else {
+      *(const char **)0x46b6fc =
+        "this argument to cond should be a condition/result pair";
+      *(int *)0x46b700 =
+        *((int *)((char *)datum_get(*(data_t *volatile *)0x5aa6c8, arg_node) +
+                  0xc));
+      return NONE;
+    }
+  } else {
+    *(const char **)0x46b6fc = "i couldn't allocate a syntax node.";
+    *(int *)0x46b700 =
+      *((int *)((char *)datum_get(*(data_t *volatile *)0x5aa6c8, source_node) +
+                0xc));
+    return new_index;
+  }
+
+  return NONE;
+}
+
 /* Reset the HaloScript compile state.  Asserts that the compiler is not
  * already initialized (global at 0x46b6e0).  Zeroes compile globals and
  * stores the recompile flag (param_1) at 0x46b805.  If param_1 is non-zero,
