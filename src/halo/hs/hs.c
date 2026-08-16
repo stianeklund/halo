@@ -2657,6 +2657,35 @@ void FUN_000c1f40(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc1f80 — HaloScript script-function stub (no-argument, void-result form,
+ * empty body).  Byte-for-byte this is FUN_000c1fa0 below with its single
+ * helper call removed: the reference bytes are
+ *   55 8bec 8b450c 6a00 50 e8f29f0000 83c408 5d c3
+ * versus 0xc1fa0's
+ *   55 8bec e888d6fcff 8b450c 6a00 50 e8cd9f0000 83c408 5d c3
+ * i.e. identical apart from the missing `CALL FUN_0008f630`.  The handler
+ * therefore does nothing but commit a zero result to the calling thread.
+ *
+ * [EBP+0x8] (function_index) and [EBP+0x10] (init) are never read by this
+ * body; they complete the standard hs-evaluator signature shared by every
+ * other handler in this TU (proven by siblings such as FUN_000c1f40, which
+ * forwards all three to hs_macro_function_evaluate).  Ghidra mis-prototypes
+ * this as void(void) and reports the [EBP+0xc] read as the phantom local
+ * `in_stack_00000008` — that offset is frame-relative, not EBP+8.
+ *
+ * ABI (verified against the full 9-instruction body): cdecl, plain RET, no
+ * `SUB ESP` and no locals.  Push order for hs_return is `PUSH 0` then
+ * `PUSH EAX` where EAX was loaded from [EBP+0xc], so arg1 = thread_datum and
+ * arg2 = 0.  The `ADD ESP,8` belongs to hs_return alone.
+ *
+ * Callee (cdecl, no register args):
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+void FUN_000c1f80(int16_t function_index, int thread_datum, char init)
+{
+  hs_return(thread_datum, 0);
+}
+
 /* 0xc1fa0 — HaloScript script-function stub (no-argument, void-result form).
  * Same shape as FUN_000c1f00/FUN_000c1f20 above: it takes no script
  * arguments, so it never calls hs_macro_function_evaluate and has no
