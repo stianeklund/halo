@@ -8656,6 +8656,55 @@ cleanup:
   return (bool)ok;
 }
 
+/* 0xc4a40 — Format an hs function's calling signature into a text buffer.
+ *
+ * Both parameters arrive in registers: the function index in EAX (PUSH EAX at
+ * 000c4a41 feeds hs_function_table_get directly, with no MOVSX, so the value is
+ * already a short) and the destination buffer in ESI (never reloaded, used as
+ * the first stack argument of every call).
+ *
+ * Writes "(<name>" first, then one of two tails:
+ *   - descriptor+0x14 non-NULL: a pre-formatted usage string appended with
+ *     " %s" at buffer+csstrlen(buffer), then ")".
+ *   - otherwise: one " <type>" group per declared parameter, where the
+ *     parameter count is the int16 at descriptor+0x18 and the parameter type
+ *     indices are the int16 array at descriptor+0x1a; each index selects a
+ *     name from the hs type-name table at 0x2f14a8.  Then ")".
+ *
+ * The ADD ESP,0x10 at 000c4a5b is one combined cdecl cleanup for
+ * hs_function_table_get (0x4) plus crt_sprintf (0xc); the ADD ESP,0x18 at
+ * 000c4ac1 likewise covers all three string appends of one loop iteration.
+ *
+ * The loop counter is int16_t: INC EBX advances the full register but the
+ * bound test at 000c4ac5 is CMP BX, and the index is re-sign-extended
+ * (MOVSX EDX,BX) before scaling. */
+void FUN_000c4a40(int16_t function_index, char *buffer)
+{
+  char *desc;
+  const char *usage;
+  int16_t i;
+
+  desc = (char *)hs_function_table_get(function_index);
+  crt_sprintf(buffer, "(%s", *(const char **)(desc + 0x4));
+
+  usage = *(const char **)(desc + 0x14);
+  if (usage != NULL) {
+    crt_sprintf(buffer + csstrlen(buffer), " %s", usage);
+    FUN_0008dc30(buffer, ")");
+    return;
+  }
+
+  for (i = 0; i < *(int16_t *)(desc + 0x18); i++) {
+    FUN_0008dc30(buffer, " <");
+    FUN_0008dc30(
+      buffer,
+      ((const char **)0x2f14a8)[(int)*(int16_t *)(desc + (int)i * 2 + 0x1a)]);
+    FUN_0008dc30(buffer, ">");
+  }
+
+  FUN_0008dc30(buffer, ")");
+}
+
 /* 0xc4b00 — Look up a scenario script by name and start its thread.
  * Resolves the name through hs_find_script_by_name, then fetches the script
  * element from the scripts tag_block at scenario+0x49c (element size 0x5c) and
