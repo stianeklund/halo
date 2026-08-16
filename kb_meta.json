@@ -7289,6 +7289,28 @@
         "The evaluated-argument record's field names are unproven: +0x00 is read as a zero-extended uint16 and +0x04 as a float lvalue, but the record's struct identity is not established, so the fields are accessed through an unsigned short pointer rather than a named type."
       ]
     },
+    "0xc36a0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The three floats at record +0x08/+0x0c/+0x10 are contiguous and forwarded together, so they are most likely a real_point3d (position), but nothing in this function or in FUN_0017da40 proves it, so the block is left untyped.",
+        "VC71 match is capped at 75.0% (31/33) by the confirmed float-arg lowering cap: cl.exe 7.1 copies a loaded-and-forwarded float through a GPR (movl/pushl) where the reference uses SUB ESP + FLD/FSTP; the pushed bytes are IEEE-754 identical, so this is a lowering difference and not a correctness bug."
+      ],
+      "uncertain": [
+        "FUN_0017da40 (0x17da40) is unported and its semantics are unknown, so neither it nor this handler is given a semantic name; its widened decl void(int,int,float,float,float) is derived solely from this call site's PUSH/SUB-ESP/FSTP sequence."
+      ]
+    },
+    "0xc3760": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The 0x17db20 argument order is left-to-right block[+0x0] int, block[+0x4] float, block[+0x8] float, proven by the destination stack slots (FSTP [ESP+4] holds +0x8 => arg3, FSTP [ESP] holds +0x4 => arg2, PUSH EDX => arg1); the FLD emission order loads +0x8 before +0x4 only because MSVC fills the deeper argument slot first.",
+        "hs_macro_function_evaluate's kb return type is int but the value is an evaluated-argument block pointer; it is cast to int* here exactly as in the sibling handlers, and the +0x0 field is read as a full dword (MOV EDX,[EAX]) with no int16 narrowing."
+      ],
+      "uncertain": [
+        "The consumer at 0x17db20 is unported and unnamed; its widened decl (int, float, float) is derived solely from this single call site, so the int parameter's true width and the two floats' semantic roles are unproven."
+      ]
+    },
     "0xc3910": {
       "kind": "function",
       "status": "unknown",
@@ -7343,6 +7365,10 @@
       "uncertain": [
         "The HaloScript builtin name for this evaluator is unknown, so the function keeps its FUN_000c3a10 placeholder name; only its behavior (set machine name from the evaluated string argument) is binary-backed."
       ]
+    },
+    "0xc3a50": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xc3b60": {
       "kind": "function",
@@ -7415,6 +7441,10 @@
       "inferred": [
         "FUN_000c4010 is inferred to be a qsort/bsearch comparator over an array of char* because both stack parameters are dereferenced once before being passed to crt_stricmp; no call site was resolved to confirm the caller."
       ]
+    },
+    "0xc4580": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xc4660": {
       "kind": "function",
@@ -10808,6 +10838,13 @@
     "0x124a30": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x124c10": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The 0x44-byte stride and 4-entry unsigned bound imply an embedded array of 4 machine records at client+0x970; the record type itself is unidentified, so the return stays void *."
+      ]
     },
     "0x124c40": {
       "kind": "function",

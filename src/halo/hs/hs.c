@@ -8178,6 +8178,59 @@ int FUN_000c4010(const char **a, const char **b)
   return crt_stricmp(*a, *b);
 }
 
+/* 0xc4580 — Collect every hs token name matching a prefix into `tokens`.
+ *
+ * Enumeration state lives in four globals rather than being threaded through
+ * the per-type enumerator callbacks, which all take no arguments:
+ *   0x46b6c8  int16   number of tokens written so far
+ *   0x46b6cc  int16   capacity (max_tokens)
+ *   0x46b6d0  char**  output array; doubles as the re-entrancy guard and is
+ *                     asserted NULL on entry, then cleared again on exit
+ *   0x46b6d4  char*   prefix to match ("" when the caller passes NULL)
+ *
+ * `type_mask` selects which of the 18 token types to enumerate (bit N =
+ * hs_token_enumerators[N], the table of `void (*)(void)` thunks at 0x2f2208,
+ * whose entries are the functions at 0xc4030..0xc41e0).  The NULL check on
+ * each table slot runs for every index, independent of the mask test.
+ *
+ * The collected names are then sorted case-insensitively via qsort with the
+ * comparator at 0xc4010.  Returns the token count. */
+int16_t hs_tokens_enumerate(const char *prefix, uint32_t type_mask,
+                            char **tokens, int16_t max_tokens)
+{
+  int type_index;
+
+  if (*(char ***)0x46b6d0 != NULL) {
+    display_assert("!enumeration_results", "c:\\halo\\SOURCE\\hs\\hs.c", 0x398,
+                   1);
+    system_exit(-1);
+  }
+
+  *(int16_t *)0x46b6cc = max_tokens;
+  *(int16_t *)0x46b6c8 = 0;
+  *(char ***)0x46b6d0 = tokens;
+  *(const char **)0x46b6d4 = prefix;
+  if (prefix == NULL)
+    *(const char **)0x46b6d4 = "";
+
+  for (type_index = 0; type_index < 0x12; type_index++) {
+    if (((void (**)(void))0x2f2208)[type_index] == NULL) {
+      display_assert("hs_token_enumerators[type_index]",
+                     "c:\\halo\\SOURCE\\hs\\hs.c", 0x3a1, 1);
+      system_exit(-1);
+    }
+    if ((type_mask & (1u << type_index)) != 0)
+      ((void (**)(void))0x2f2208)[type_index]();
+  }
+
+  /* Count reaches qsort sign-extended (MOVSX) but is returned as a plain
+   * 16-bit load, so keep both reads narrow. */
+  qsort((void *)tokens, (size_t) * (int16_t *)0x46b6c8, 4,
+        (int (*)(const void *, const void *))FUN_000c4010);
+  *(char ***)0x46b6d0 = NULL;
+  return *(int16_t *)0x46b6c8;
+}
+
 /* Load a single HaloScript source file into the scenario's source file list.
  * The file_ref is passed via EBX (register argument).
  *
