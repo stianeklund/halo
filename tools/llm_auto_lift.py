@@ -162,7 +162,33 @@ def _prior_fail_attempts(fail_path) -> int:
 # 84.5 -> 88.0 -> 77.7 -> 84.7, i.e. getting worse after attempt 4) for ~$94.
 # At the time this was wired up the two stores held 91 records vs 9, overlapping
 # on 3 -- prior_fail was reading a near-empty legacy directory.
-PARKED_DIR = ROOT / "artifacts" / "parked"
+#
+# PARKED_DIR must resolve to the SAME shared location park.py writes to
+# (tools/lift/park.py:ledger_root() -- parent of `git rev-parse
+# --git-common-dir`, i.e. the main checkout, regardless of which worktree is
+# CWD). A plain ROOT/artifacts/parked looked worktree-local instead: every
+# goal-lift run in a linked worktree (e.g. halo-bugs) saw an empty directory,
+# so _parked_state() always returned {}, parked_attempts was always 0, and
+# skip_parked_repeat (goal-lift.js) never fired. Confirmed dead: FUN_000c2a80
+# was cold-lifted 9 times across sessions, byte-identical 83.6% every time
+# (a genuine cl.exe-7.1 float-arg-lowering structural cap, see
+# docs/lift-learnings.md), because the guard meant to stop this after attempt
+# 2 never saw the ledger.
+def _resolve_parked_dir() -> Path:
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "park", str(ROOT / "tools" / "lift" / "park.py"))
+        park = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = park  # park.py uses @dataclass, which needs
+        # its module registered in sys.modules before the class body runs.
+        spec.loader.exec_module(park)
+        return park.ledger_root()
+    except Exception:
+        return ROOT / "artifacts" / "parked"
+
+
+PARKED_DIR = _resolve_parked_dir()
 
 # The VC71 commit bar, mirrored from tools/lift/park.py.
 COMMIT_BAR = 90.0
