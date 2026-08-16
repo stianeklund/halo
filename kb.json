@@ -14644,7 +14644,8 @@
     {
      "addr": "0x124c10",
      "decl": "void *network_game_client_get_machine(void *client);",
-     "name": "network_game_client_get_machine"
+     "name": "network_game_client_get_machine",
+     "ported": true
     },
     {
      "addr": "0x124c80",

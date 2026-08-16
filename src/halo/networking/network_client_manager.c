@@ -36,6 +36,25 @@ int16_t network_game_client_get_state(void *server, void *out_param)
   return *(int16_t *)((char *)server + 0xca6);
 }
 
+/* network_game_client_get_machine (0x124c10)
+ *
+ * Returns a pointer to the machine record selected by the client's 16-bit
+ * index at offset 0. The machine array is embedded in the client structure at
+ * offset 0x970 with a stride of 0x44 and an unsigned bound of 4 entries.
+ * Returns NULL for a null client or an out-of-range index.
+ */
+void *network_game_client_get_machine(void *client)
+{
+  unsigned short machine_index;
+
+  if (client != NULL) {
+    machine_index = *(unsigned short *)client;
+    if (machine_index < 4)
+      return (void *)((uint8_t *)client + 0x970 + machine_index * 0x44);
+  }
+  return NULL;
+}
+
 /* FUN_00124c40 (0x124c40)
  *
  * Asserts client is non-null and returns the client's 16-bit value at +0.
