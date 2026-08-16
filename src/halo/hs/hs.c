@@ -8215,6 +8215,43 @@ int FUN_000c4010(const char **a, const char **b)
   return crt_stricmp(*a, *b);
 }
 
+/* 0xc4030 — Append one candidate token name to the enumeration results if it
+ * matches the active prefix.  Shared tail of every per-type enumerator: the
+ * candidate name arrives in ESI (call sites at 0xc40d2/0xc4115/0xc4166/0xc4170/
+ * 0xc4192/0xc41c2/0xc4221/0xc42b6/0xc42fe all do `MOV ESI,<name>` immediately
+ * before the CALL), and the rest of the state is read from the enumeration
+ * globals documented on hs_tokens_enumerate below.
+ *
+ * The prefix compare is `__strnicmp(name, prefix, csstrlen(prefix))`, i.e. only
+ * the first csstrlen(prefix) characters are compared, so the empty prefix
+ * matches everything.  MSVC folds csstrlen's cdecl cleanup into the
+ * `ADD ESP,0x10` after __strnicmp.
+ *
+ * Count and capacity are int16 (MOV AX / CMP AX / INC AX), and the array index
+ * is the sign-extended count (MOVSX ECX,AX). */
+void FUN_000c4030(const char *name)
+{
+  int16_t count;
+
+  if (*(const char ***)0x46b6d0 == NULL) {
+    display_assert("enumeration_results", "c:\\halo\\SOURCE\\hs\\hs.c", 0x29a,
+                   1);
+    system_exit(-1);
+  }
+
+  if (*(int16_t *)0x46b6c8 < *(int16_t *)0x46b6cc) {
+    if (__strnicmp(name, *(const char **)0x46b6d4,
+                   (unsigned int)csstrlen(*(const char **)0x46b6d4)) == 0) {
+      /* The count is loaded once (MOV AX) and kept live across the array
+       * store: the write through the char** would otherwise force a reload,
+       * since the compiler cannot prove it does not alias the counter. */
+      count = *(int16_t *)0x46b6c8;
+      (*(const char ***)0x46b6d0)[count] = name;
+      *(int16_t *)0x46b6c8 = (int16_t)(count + 1);
+    }
+  }
+}
+
 /* 0xc4580 — Collect every hs token name matching a prefix into `tokens`.
  *
  * Enumeration state lives in four globals rather than being threaded through
