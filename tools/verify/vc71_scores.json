@@ -40279,6 +40279,21 @@
       "score": 72.7,
       "source": "src/halo/networking/network_game_manager.c"
     },
+    "network_game_client_address_matches_server": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 99.2,
+      "addr": "0x124d50",
+      "end": "0x124e1a",
+      "kind": "auto",
+      "n_r": 64,
+      "opnd_percent": 89.9,
+      "raw_mnemonic_pct": 99.2,
+      "ref": "synth",
+      "ref_sha": "1e2849c3a02ecee4",
+      "score": 99.2,
+      "source": "src/halo/networking/network_client_manager.c"
+    },
     "network_game_client_all_local_players_have_quit": {
       "addr": "0x12a790",
       "end": "0x12a798",
