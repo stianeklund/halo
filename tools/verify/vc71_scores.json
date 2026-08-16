@@ -13220,16 +13220,16 @@
     "FUN_000c5310": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 88.6,
+      "abi_modeled_mnemonic_pct": 89.1,
       "addr": "0xc5310",
       "end": "0xc55c3",
       "kind": "auto",
       "n_r": 221,
-      "opnd_percent": 68.2,
-      "raw_mnemonic_pct": 88.6,
+      "opnd_percent": 86.0,
+      "raw_mnemonic_pct": 89.1,
       "ref": "synth",
       "ref_sha": "32f09b0892a1c1e0",
-      "score": 88.6,
+      "score": 89.1,
       "source": "src/halo/hs/hs.c"
     },
     "FUN_000c57d0": {
@@ -20987,16 +20987,16 @@
     "FUN_0014f2c0": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 87.6,
+      "abi_modeled_mnemonic_pct": 88.9,
       "addr": "0x14f2c0",
       "end": "0x150537",
       "kind": "auto",
       "n_r": 1409,
-      "opnd_percent": 56.1,
-      "raw_mnemonic_pct": 87.6,
+      "opnd_percent": 61.1,
+      "raw_mnemonic_pct": 88.9,
       "ref": "synth",
       "ref_sha": "7bb10faa899f43f9",
-      "score": 87.6,
+      "score": 88.9,
       "source": "src/halo/physics/collision_usage.c"
     },
     "FUN_001544d0": {
