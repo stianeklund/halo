@@ -8941,6 +8941,7 @@ int FUN_000c5310(int source_node, int arg_node)
   int cond_index;
   int index_a;
   int index_b;
+  data_t *volatile syntax_data;
   int result;
   int result_is_empty;
   int16_t value;
@@ -8967,9 +8968,8 @@ int FUN_000c5310(int source_node, int arg_node)
 
     if ((*((uint8_t *)datum_get(*(data_t *volatile *)0x5aa6c8, arg_node) + 6) &
          1) == 0) {
-      cond_index =
-        *((int *)((char *)datum_get(*(data_t *volatile *)0x5aa6c8, arg_node) +
-                  0x10));
+      arg_datum = (char *)datum_get(*(data_t *volatile *)0x5aa6c8, arg_node);
+      cond_index = *(int *)(arg_datum + 0x10);
       cond_datum = (char *)datum_get(*(data_t *volatile *)0x5aa6c8, cond_index);
       result_is_empty = (*(int *)(cond_datum + 8) == 0);
       if (result_is_empty != NONE) {
@@ -8991,6 +8991,7 @@ int FUN_000c5310(int source_node, int arg_node)
             *(int16_t *)(arg_datum + 2) = 2;
             *(int16_t *)(arg_datum + 6) = 1;
             *(int *)(arg_datum + 8) = cond_index;
+            syntax_data = *(data_t *volatile *)0x5aa6c8;
             *(int *)(arg_datum + 0xc) = NONE;
             *(int16_t *)(arg_datum + 4) = 2;
             *(int *)(arg_datum + 0x10) = 0;
@@ -9001,9 +9002,7 @@ int FUN_000c5310(int source_node, int arg_node)
             *(int16_t *)(node_b + 2) = 0;
             *(int16_t *)(node_b + 6) = 1;
             *(int *)(node_b + 8) =
-              *((int *)((char *)datum_get(*(data_t *volatile *)0x5aa6c8,
-                                          cond_index) +
-                        8));
+              *((int *)((char *)datum_get(syntax_data, cond_index) + 8));
             *(int *)(node_b + 0xc) = NONE;
             *(int16_t *)(node_b + 4) = 2;
             *(int *)(cond_datum + 8) = index_a;

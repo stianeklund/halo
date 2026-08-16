@@ -1731,13 +1731,12 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
   float clip_result[3];
   float old_vel_copy[3];
   float position[3];
-  int collision_count;
+  short collision_count;
   float velocity[3];
   float clip_line[3];
 
   short clip_count;
   short new_clip_count;
-  char collision_hit;
   float scale;
   float dot, dot2, factor, pos_dot, len_sq;
   float *collision_record;
@@ -1812,10 +1811,8 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
     CHECK_FINITE3_POINT(position, "&clipped_position", 0x3c0);
     CHECK_FINITE3_VEC(velocity, "&clipped_velocity", 0x3c1);
 
-    collision_hit =
-      FUN_0014c4b0((int)features, position, velocity, (void *)collision_record);
-
-    if (!collision_hit) {
+    if (!FUN_0014c4b0((int)features, position, velocity,
+                      (void *)collision_record)) {
       position[0] = collision_record[1];
       position[1] = collision_record[2];
       position[2] = collision_record[3];
