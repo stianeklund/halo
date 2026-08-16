@@ -169,14 +169,19 @@ for (let i = 1; i <= BATCHES; i++) {
 
   const committed = (r && r.committed) || 0
   functionsCommitted += committed
-  log(`Batch ${i}: goal-lift committed ${committed} (reason: ${r ? r.reason : 'null'})`)
+  log(`Batch ${i}: goal-lift committed ${committed} (reason: ${r ? (r.stop_reason || r.reason) : 'null'})`)
 
   // 2. Zero commits -> is this REAL (frontier empty) or INFRA (select agent died
   //    on an API 529, Ghidra bridge down)? These used to collapse into
   //    "queue_exhausted", so one transient error abandoned every remaining
   //    batch. Retry infra; only stop for a genuinely empty queue.
   if (committed === 0) {
-    const reason = (r && r.reason) || 'agent_null'
+    // goal-lift's early-exit returns (queue empty before the loop starts) key
+    // this `reason`; its post-loop returns (Phase 4 / improve mode) key it
+    // `stop_reason`. Reading only `reason` silently defaulted every full-run
+    // zero-commit batch to 'agent_null' and misclassified it as infra_blocked
+    // even when goal-lift completed cleanly (e.g. stop_on_fail_reached).
+    const reason = (r && (r.stop_reason || r.reason)) || 'agent_null'
     const isEmpty = /empty_queue/.test(reason)
     const isInfra = !isEmpty &&
       (!r || /select_agent_null|infra_blocked|ghidra_unavailable|agent_null/.test(reason))
