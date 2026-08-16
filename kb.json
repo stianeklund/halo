@@ -11643,7 +11643,8 @@
     },
     {
      "addr": "0xc5310",
-     "decl": "void FUN_000c5310(void);"
+     "decl": "int FUN_000c5310(int source_node, int arg_node);",
+     "ported": true
     },
     {
      "addr": "0xc55d0",
