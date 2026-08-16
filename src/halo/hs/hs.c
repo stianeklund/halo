@@ -8285,6 +8285,33 @@ void FUN_000c4130(int16_t block_offset, int16_t name_offset, int element_size)
   }
 }
 
+/* 0xc41b0 — Enumerate a fixed 0x2d-entry table of `char *` names at 0x2f14b8
+ * into the active token enumeration.  One of the per-type enumerator thunks in
+ * the table at 0x2f2208 (see hs_tokens_enumerate below); it takes no arguments
+ * and reads the enumeration state through the globals FUN_000c4030 owns.
+ *
+ * The original is a countdown loop over a walking pointer: `MOV EDI,0x2f14b8`
+ * / `MOV EBX,0x2d`, then per iteration `MOV ESI,[EDI]` (the @<esi> argument to
+ * FUN_000c4030) / `CALL` / `ADD EDI,4` / `DEC EBX` / `JNZ`.  There is no
+ * bounds or NULL test on the table entries — every slot is passed through.
+ *
+ * What the 0x2d names are is unproven from this function alone; only their
+ * count, stride, and that FUN_000c4030 treats each as a NUL-terminated name
+ * are established here. */
+void FUN_000c41b0(void)
+{
+  const char **name;
+  int remaining;
+
+  name = (const char **)0x2f14b8;
+  remaining = 0x2d;
+  do {
+    FUN_000c4030(*name);
+    name++;
+    remaining--;
+  } while (remaining != 0);
+}
+
 /* 0xc4580 — Collect every hs token name matching a prefix into `tokens`.
  *
  * Enumeration state lives in four globals rather than being threaded through
