@@ -33,6 +33,11 @@ High-confidence cap rules (each cites explicit evidence):
      different instruction sequence). Proven from THIS attempt's own diff, so
      it fires on a cold first attempt, not just on repeat. Evidence:
      --score-context JSON (artifacts/score_context/<name>.json).
+  R5 fucompp_assert_cap: every non-equal op is the float-==/!= assert lowering
+     (reference `fcomps [0.0]` + `jp` + `assert_halt` vs candidate `flds 0.0` +
+     `fucompp` + bool-materialize). Companion leftovers (xorl-eax scheduling,
+     push vs addl-esp cleanup) are part of the same shape. Proven from THIS
+     attempt's own diff. Evidence: --score-context JSON.
 
 Low-confidence hints (reported in cap_reason, but do NOT set capped/high — they
 are also produced by *fixable* bugs, so they must not block escalation):
@@ -78,8 +83,8 @@ _REG_PARAM_RE = re.compile(r"@<\s*[a-zA-Z]{2,3}\s*>")
 # lowering difference, not a correctness gap -- but VC71's LCS scorer still
 # penalizes it, at a fixed, family-wide, per-float cost. Confirmed
 # independently 9+ times on hs.obj forwarding handlers (FUN_000c2a80,
-# FUN_000c2f90, FUN_000c2fe0, shader_environment_texture_animation_evaluate,
-# ...) before this rule existed, each attempt re-deriving the same diagnosis
+# FUN_000c2f90, FUN_000c2fe0, ...) before this rule existed, each attempt
+# re-deriving the same diagnosis
 # from scratch because R3 (below) never saw the ledger it needed (fixed
 # alongside this rule) and no rule proved it from the CURRENT attempt's own
 # evidence, which this one does.
@@ -87,6 +92,15 @@ _FLDS_RE = re.compile(r"^\s*flds\s")
 _FSTPS_RE = re.compile(r"^\s*fstps\s")
 _SUBL_ESP_RE = re.compile(r"^\s*subl\s+\$0x[0-9a-fA-F]+,\s*%esp")
 _GPR_MOV_PUSH_RE = re.compile(r"^\s*(movl|pushl)\s")
+_FCOMPS_RE = re.compile(r"^\s*fcomps\s")
+_FUCOMPP_RE = re.compile(r"^\s*fucompp\b")
+_JP_RE = re.compile(r"^\s*jp\t")
+_JNP_RE = re.compile(r"^\s*jnp\t")
+_ASSERT_PUSH_RE = re.compile(r"^\s*pushl\s+\$-0x1")
+_XORL_EAX_RE = re.compile(r"^\s*xorl\s+%eax,\s*%eax")
+_ADDL_ESP_RE = re.compile(r"^\s*addl\s+\$0x[0-9a-fA-F]+,\s*%esp")
+_PUSHL_ONLY_RE = re.compile(r"^\s*pushl\s")
+_MOVL_ONE_RE = re.compile(r"^\s*movl\s+\$0x1,")
 
 
 def _is_float_arg_lowering_op(op: dict) -> bool:
@@ -135,6 +149,72 @@ def float_arg_lowering_verdict(score_context: str) -> Optional[dict]:
                       f"substitution op(s) covering {n_floats} forwarded float arg(s) -- cl.exe 7.1 "
                       "x87 push/fstp vs clang GPR mov/push, bit-identical values, permanent VC71 LCS "
                       "penalty, not a correctness defect (docs/lift-learnings.md)",
+    }
+
+
+def _is_fucompp_assert_op(op: dict) -> bool:
+    """True if a score-context diff op is the float-==/!= assert lowering."""
+    kind = op.get("kind")
+    ref = op.get("ref") or []
+    cand = op.get("cand") or []
+    if kind == "replace":
+        if (any(_FCOMPS_RE.match(l) for l in ref)
+                and any(_FUCOMPP_RE.match(l) for l in cand)):
+            return True
+        if (any(_JP_RE.match(l) for l in ref)
+                and any(_JNP_RE.match(l) for l in cand)
+                and any(_MOVL_ONE_RE.match(l) for l in cand)
+                and any(_XORL_EAX_RE.match(l) for l in cand)):
+            return True
+        if (bool(ref) and all(_PUSHL_ONLY_RE.match(l) for l in ref)
+                and bool(cand) and all(_ADDL_ESP_RE.match(l) for l in cand)):
+            return True
+        return False
+    if kind == "delete":
+        return (not ref and bool(cand)
+                and all(_FLDS_RE.match(l) or _XORL_EAX_RE.match(l) for l in cand))
+    if kind == "insert":
+        if any(_ASSERT_PUSH_RE.match(l) for l in ref):
+            return True
+        return bool(ref) and not cand and all(_XORL_EAX_RE.match(l) for l in ref)
+    return False
+
+
+def fucompp_assert_verdict(score_context: str) -> Optional[dict]:
+    """R5 verdict from a lift_pipeline/vc71_verify score-context JSON.
+
+    Proven from THIS attempt's own diff. Returns None when the file is
+    missing or any non-equal op is not the fucompp-assert substitution.
+    """
+    if not score_context:
+        return None
+    p = Path(score_context)
+    if not p.exists():
+        return None
+    try:
+        data = json.loads(p.read_text())
+    except Exception:
+        return None
+    ops = ((data.get("diff") or {}).get("ops")) or []
+    non_equal = [op for op in ops if op.get("kind") != "equal"]
+    if not non_equal or not all(_is_fucompp_assert_op(op) for op in non_equal):
+        return None
+    has_core = any(
+        op.get("kind") == "replace"
+        and any(_FCOMPS_RE.match(l) for l in (op.get("ref") or []))
+        and any(_FUCOMPP_RE.match(l) for l in (op.get("cand") or []))
+        for op in non_equal)
+    if not has_core:
+        return None
+    n_asserts = sum(1 for op in non_equal
+                    if op.get("kind") == "replace"
+                    and any(_FCOMPS_RE.match(l) for l in (op.get("ref") or [])))
+    return {
+        "capped": True, "cap_confidence": "high",
+        "cap_reason": f"fucompp_assert_cap: entire diff is {len(non_equal)} float-equality-assert "
+                      f"lowering op(s) covering {n_asserts} assert(s) -- reference fcomps[0.0]+jp "
+                      "vs candidate flds+fucompp+bool-materialize, permanent VC71 LCS penalty, "
+                      "not a correctness defect (docs/lift-learnings.md)",
     }
 
 
@@ -194,6 +274,11 @@ def classify(name: str, addr: str, score: float, decl: str = "",
     r4 = float_arg_lowering_verdict(score_context)
     if r4:
         return r4
+
+    # R5 — float-==/!= assert fucompp lowering (this attempt's own diff).
+    r5 = fucompp_assert_verdict(score_context)
+    if r5:
+        return r5
 
     # R2/R3 — parked-ledger evidence.
     rec = load_ledger_record(name, parked_dir)
@@ -299,6 +384,35 @@ def _self_test() -> int:
                    classify("FUN_unrelated", "0xc", 83.6, score_context=scp2)["capped"] is False))
     Path(scp).unlink(missing_ok=True)
     Path(scp2).unlink(missing_ok=True)
+
+    # R5: fucompp-assert, from the real shader_environment_texture_animation_evaluate
+    # shape (two != 0.0f asserts: fcomps+jp vs fucompp+bool-materialize).
+    fucompp_diff = {"diff": {"ops": [
+        {"kind": "equal", "cand": ["pushl\t%ebp"], "ref": ["pushl\t%ebp"]},
+        {"kind": "delete", "cand": ["flds\t0x0"], "ref": []},
+        {"kind": "replace",
+         "cand": ["fucompp"],
+         "ref": ["fcomps\t0x2533c0", "addl\t$0x8, %esp"]},
+        {"kind": "replace",
+         "cand": ["jnp\t0xa4", "movl\t$0x1, %eax", "jmp\t0xa6", "xorl\t%eax, %eax"],
+         "ref": ["jp\t0xbe"]},
+        {"kind": "insert",
+         "cand": [],
+         "ref": ["pushl\t$-0x1", "calll\t0xffefd860", "addl\t$0x14, %esp"]},
+        {"kind": "replace",
+         "cand": ["addl\t$0xc, %esp"],
+         "ref": ["pushl\t%ecx"]},
+    ]}}
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as tf:
+        json.dump(fucompp_diff, tf)
+        scp3 = tf.name
+    r5 = classify("FUN_cap5", "0xd", 86.2, score_context=scp3)
+    checks.append(("R5 fucompp-assert -> high cap",
+                   r5["capped"] is True and r5["cap_confidence"] == "high"
+                   and "fucompp_assert_cap" in r5["cap_reason"]))
+    checks.append(("R5 fires without any ledger history",
+                   classify("FUN_never_seen_fucompp", "0xe", 86.2, score_context=scp3)["capped"] is True))
+    Path(scp3).unlink(missing_ok=True)
 
     ok = True
     for nm, cond in checks:

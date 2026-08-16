@@ -481,10 +481,14 @@ gap matches one of these, rather than treating it as a fixable bug):
   float lvalue arg is marshalled by the reference via x87 push-then-store
   (subl esp,N / flds / fstps) but by our clang build via a plain GPR dword
   copy (movl / pushl) — bit-identical value, different instruction sequence.
-  Cost is ~1 ref instruction per FSTP-slot float: ~94% for 1 float, ~83.6%
-  for 2-3 floats (measured across the hs.obj forwarding-handler family).
-  Not reachable by re-spelling the load (struct field, int* pun, volatile,
-  double round-trip all measured zero movement) — do not re-attempt those.`
+   Cost is ~1 ref instruction per FSTP-slot float: ~94% for 1 float, ~83.6%
+   for 2-3 floats (measured across the hs.obj forwarding-handler family).
+   Not reachable by re-spelling the load (struct field, int* pun, volatile,
+   double round-trip all measured zero movement) — do not re-attempt those.
+- Float-equality assert (classify_cap.py R5): assert_halt_msg_at(x != 0.0f)
+   is reference fcomps[0.0]+jp vs candidate flds+fucompp+bool-materialize.
+   ~86% (shader_environment_texture_animation_evaluate). FCOM-WARN / loadw
+   on this shape are false leads. Permuter 0.00pp. Do not re-spell.`
 
 const liftPrompt = (brief, isEscalation, priorScore, warmStarted, priorNotes) =>
   `${AGENT_RULES}
@@ -1398,6 +1402,15 @@ targets = targets.filter(t => {
   // cross the bar, so only a target that has repeatedly failed to get CLOSE is
   // worth dropping. Pinned addrs always bypass -- an explicit --addrs is an
   // operator override.
+  // Confirmed structural cap: never re-serve to a cold lift, even in the
+  // 85-89 near-miss band. shader_environment_texture_animation_evaluate sat
+  // at 86.2% x10 because the 85 wall treated the fucompp-assert cap as
+  // recoverable. Improve-pass cannot move these either.
+  if (!pinnedAddr && !IMPROVE &&
+      (t.parked_status === 'capped_confirmed' || t.parked_status === 'confirmed_cap')) {
+    codeSkips.push({ ...t, status: 'skipped', reason: `skip_confirmed_cap (best ${t.parked_best_score}%)` })
+    return false
+  }
   if (!pinnedAddr && !IMPROVE && t.parked_status === 'parked' &&
       (t.parked_attempts || 0) >= PARKED_ATTEMPT_CAP &&
       Number.isFinite(t.parked_best_score) && t.parked_best_score < PARKED_WALL_PCT) {
@@ -1412,7 +1425,7 @@ targets = targets.filter(t => {
   if (!pinned && t.lane && t.lane !== 'auto-lift' && t.lane !== 'cache-context') { codeSkips.push({ ...t, status: 'skipped', reason: `lane=${t.lane} (not auto-liftable)` }); return false }
   return true
 })
-if (codeSkips.length) log(`Code pre-screen dropped ${codeSkips.length} before research (${codeSkips.filter(s => s.reason.startsWith('skip_prior_fail')).length} prior-fail, ${codeSkips.filter(s => s.reason.startsWith('skip_parked_repeat')).length} parked-repeat, ${codeSkips.filter(s => s.reason.startsWith('skip_reg_args')).length} reg-args, ${codeSkips.filter(s => s.reason.startsWith('skip_nt_import')).length} CRT/SEH, ${codeSkips.filter(s => s.reason.startsWith('lane=')).length} lane)`)
+if (codeSkips.length) log(`Code pre-screen dropped ${codeSkips.length} before research (${codeSkips.filter(s => s.reason.startsWith('skip_prior_fail')).length} prior-fail, ${codeSkips.filter(s => s.reason.startsWith('skip_parked_repeat')).length} parked-repeat, ${codeSkips.filter(s => s.reason.startsWith('skip_confirmed_cap')).length} confirmed-cap, ${codeSkips.filter(s => s.reason.startsWith('skip_reg_args')).length} reg-args, ${codeSkips.filter(s => s.reason.startsWith('skip_nt_import')).length} CRT/SEH, ${codeSkips.filter(s => s.reason.startsWith('lane=')).length} lane)`)
 if (targets.length === 0) {
   log('No viable targets after code pre-screen')
   return { committed: 0, goal: GOAL, reached_goal: false, skipped: codeSkips.length, reverted: 0, reason: 'empty_queue_after_prescreen' }

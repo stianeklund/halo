@@ -225,13 +225,16 @@ class Store:
 def record_attempt(rec: Optional[dict], *, name: str, addr: str, obj: str,
                    source_path: str, score: float, model: str, effort: str,
                    reason: str, cap_hypothesis: str, patch_rel: str,
-                   notes: str = "") -> dict:
+                   notes: str = "", outcome: str = "",
+                   fingerprint: str = "", evidence: Optional[list[str]] = None) -> dict:
     """Merge a new attempt into a record (creating it if absent). Pure function."""
     now = _now()
     attempt = {
         "ts": now, "model": model, "effort": effort, "score": score,
         "cap_hypothesis": cap_hypothesis or "", "reason": reason or "",
         "notes": notes or "", "patch": patch_rel,
+        "outcome": outcome or "", "fingerprint": fingerprint or "",
+        "evidence": list(evidence or []),
     }
     if rec is None:
         rec = {
@@ -242,9 +245,10 @@ def record_attempt(rec: Optional[dict], *, name: str, addr: str, obj: str,
         }
         return rec
 
+    old_best = rec.get("best_score", -1)
     rec.setdefault("attempts", []).append(attempt)
     # Keep the best-scoring attempt's patch as the resume point.
-    if score >= rec.get("best_score", -1):
+    if score >= old_best:
         rec["best_score"] = score
         rec["best_patch"] = patch_rel
     # Backfill any missing identity fields without clobbering existing ones.
@@ -253,8 +257,9 @@ def record_attempt(rec: Optional[dict], *, name: str, addr: str, obj: str,
             rec[k] = v
     # A new attempt un-confirms a previously "capped_confirmed" record only if it
     # improved on the best score (a genuinely new result); otherwise leave status.
-    if rec.get("status") == "capped_confirmed" and score > rec.get("best_score", -1):
-        rec["status"] = "parked"
+    if rec.get("status") == "capped_confirmed":
+        if score > old_best:
+            rec["status"] = "parked"
     elif rec.get("status") != "promoted":
         rec["status"] = "parked"
     rec["last_updated"] = now
@@ -335,7 +340,8 @@ def cmd_park(args: argparse.Namespace) -> int:
         source_path=args.source or (rec or {}).get("source_path", ""),
         score=args.score, model=args.model, effort=args.effort,
         reason=args.reason, cap_hypothesis=args.cap_hypothesis,
-        notes=args.notes, patch_rel=patch_rel,
+        notes=args.notes, patch_rel=patch_rel, outcome=args.outcome,
+        fingerprint=args.fingerprint, evidence=args.evidence,
     )
     if args.context:
         try:
@@ -822,6 +828,33 @@ def _self_test() -> int:
         store.save(rec)
         check(rec["best_score"] == 88.0 and rec["best_patch"] == "p2.patch", "worse attempt keeps best")
 
+        # Equal/lower attempts do not invalidate a confirmed cap. Only a
+        # strict improvement is new evidence strong enough to reopen it.
+        rec["status"] = "capped_confirmed"
+        rec = record_attempt(rec, name="FUN_0001b8a0", addr="0x1b8a0", obj="actions.obj",
+                             source_path="src/a.c", score=88.0, model="opus",
+                             effort="low", reason="equal", cap_hypothesis="",
+                             patch_rel="p4.patch", outcome="capped",
+                             fingerprint="attempt-fp", evidence=["sha256:e1"])
+        check(rec["status"] == "capped_confirmed",
+              "confirmed cap: equal attempt remains confirmed")
+        check(rec["attempts"][-1]["outcome"] == "capped"
+              and rec["attempts"][-1]["fingerprint"] == "attempt-fp"
+              and rec["attempts"][-1]["evidence"] == ["sha256:e1"],
+              "attempt stores outcome, fingerprint, and evidence refs")
+        rec = record_attempt(rec, name="FUN_0001b8a0", addr="0x1b8a0", obj="actions.obj",
+                             source_path="src/a.c", score=87.0, model="opus",
+                             effort="low", reason="lower", cap_hypothesis="",
+                             patch_rel="p5.patch")
+        check(rec["status"] == "capped_confirmed",
+              "confirmed cap: lower attempt remains confirmed")
+        rec = record_attempt(rec, name="FUN_0001b8a0", addr="0x1b8a0", obj="actions.obj",
+                             source_path="src/a.c", score=88.1, model="opus",
+                             effort="low", reason="improved", cap_hypothesis="",
+                             patch_rel="p6.patch")
+        check(rec["status"] == "parked" and rec["best_score"] == 88.1,
+              "confirmed cap: strict improvement reopens target")
+
         # A second, distinct function.
         r2 = record_attempt(None, name="FUN_0001beb0", addr="0x1beb0", obj="actions.obj",
                             source_path="src/a.c", score=68.3, model="opus", effort="high",
@@ -1020,6 +1053,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--notes", default="",
                    help="Freeform rationale / next-step hint for this attempt "
                         "(surfaced back via `next` as last_notes)")
+    p.add_argument("--outcome", default="",
+                   help="Typed final attempt outcome (diagnostic when empty)")
+    p.add_argument("--fingerprint", default="",
+                   help="Full mechanical attempt fingerprint")
+    p.add_argument("--evidence", action="append", default=[],
+                   help="Immutable evidence artifact id (repeatable)")
     p.add_argument("--context", default="",
                    help="Path to a JSON file with research-brief fields "
                         "(disasm_notes, hazards, callees, neighbors, review, ...) "
