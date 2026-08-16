@@ -13218,6 +13218,21 @@
       "score": 86.7,
       "source": "src/halo/hs/hs.c"
     },
+    "FUN_000c41e0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 93.1,
+      "addr": "0xc41e0",
+      "end": "0xc4235",
+      "kind": "auto",
+      "n_r": 29,
+      "opnd_percent": 55.2,
+      "raw_mnemonic_pct": 93.1,
+      "ref": "synth",
+      "ref_sha": "2c3cb0534c1c1458",
+      "score": 93.1,
+      "source": "src/halo/hs/hs.c"
+    },
     "FUN_000c4770": {
       "abi_model": "raw",
       "abi_model_items": 0,

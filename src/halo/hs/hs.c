@@ -8312,6 +8312,38 @@ void FUN_000c41b0(void)
   } while (remaining != 0);
 }
 
+/* 0xc41e0 — Enumerate the names of all 0x1a2 hs built-in functions into the
+ * active token enumeration.  One of the per-type enumerator thunks in the
+ * table at 0x2f2208 (see hs_tokens_enumerate below); like the others it takes
+ * no arguments and reads the enumeration state through the globals
+ * FUN_000c4030 owns.
+ *
+ * hs_function_table_get (0xc3d00) is inlined here: the body carries that
+ * function's own assert text, file and line (0x20a) verbatim, and its bounds
+ * test runs once per iteration at the top of the loop body (`TEST DI,DI` /
+ * `JL` / `CMP DI,0x1a2` / `JL`), with the loop's own exit test duplicated at
+ * the bottom (`INC EDI` / `ADD EBX,4` / `CMP DI,0x1a2` / `JL`).  The index is
+ * int16 throughout (DI, not EDI, is compared); MSVC strength-reduces the
+ * table indexing into the walking pointer in EBX.
+ *
+ * The name passed to FUN_000c4030 is descriptor+4 (`MOV EAX,[EBX]` /
+ * `MOV ESI,[EAX+4]`), the same field the by-name search at 0xc3fc0 compares
+ * against. */
+void FUN_000c41e0(void)
+{
+  int16_t i;
+
+  for (i = 0; i < 0x1a2; i++) {
+    if (i < 0 || i >= 0x1a2) {
+      display_assert(
+        "function_index>=0 && function_index<hs_function_table_count",
+        "c:\\halo\\SOURCE\\hs\\hs.c", 0x20a, 1);
+      system_exit(-1);
+    }
+    FUN_000c4030(*(const char **)((char *)((void **)0x2f1588)[i] + 4));
+  }
+}
+
 /* 0xc4580 — Collect every hs token name matching a prefix into `tokens`.
  *
  * Enumeration state lives in four globals rather than being threaded through
