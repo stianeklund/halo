@@ -475,7 +475,16 @@ gap matches one of these, rather than treating it as a fixable bug):
 - MSVC ternary/log scheduling difference: ~87% ceiling
 - MSVC loop-unroll vs rep stosd: ~65-70% ceiling
 - @<reg>-defining function's own prologue: permanent sub-bar (VC71 can't emit it)
-- fucompp vs fcomps / int16 movswl / fcos/fsin spill: permanent ~15pp gap, not a bug`
+- fucompp vs fcomps / int16 movswl / fcos/fsin spill: permanent ~15pp gap, not a bug
+- Float-arg lowering (classify_cap.py R4 proves this mechanically when
+  --score-context is available — prefer that over eyeballing): a forwarded
+  float lvalue arg is marshalled by the reference via x87 push-then-store
+  (subl esp,N / flds / fstps) but by our clang build via a plain GPR dword
+  copy (movl / pushl) — bit-identical value, different instruction sequence.
+  Cost is ~1 ref instruction per FSTP-slot float: ~94% for 1 float, ~83.6%
+  for 2-3 floats (measured across the hs.obj forwarding-handler family).
+  Not reachable by re-spelling the load (struct field, int* pun, volatile,
+  double round-trip all measured zero movement) — do not re-attempt those.`
 
 const liftPrompt = (brief, isEscalation, priorScore, warmStarted, priorNotes) =>
   `${AGENT_RULES}
@@ -618,9 +627,13 @@ STEPS:
 
 7. STRUCTURAL-CAP CLASSIFY (only if vc71_score is in [65,84]) — do NOT eyeball it;
    run the deterministic classifier (explicit rules: @reg-defining prologue,
-   parked-ledger confirmed/prior cap):
+   parked-ledger confirmed/prior cap, float-arg-lowering diff signature). Pass
+   --score-context if artifacts/score_context/${brief.name}.json exists (the
+   verify step writes it) — it lets the classifier prove a float-arg-lowering
+   cap from THIS attempt's own diff, not just from repeat history:
      rtk python3 tools/analysis/classify_cap.py --name ${brief.name} --addr ${brief.addr} \\
-       --score <vc71_score> --decl '<this function's kb declaration>'
+       --score <vc71_score> --decl '<this function's kb declaration>' \\
+       --score-context artifacts/score_context/${brief.name}.json
    - If it returns "cap_confidence":"high" → this is an AUTHORITATIVE cap: report
      capped=true, cap_reason=its cap_reason, cap_confidence="high". Do NOT escalate.
    - If it returns "cap_confidence":"inconclusive" → the script cannot prove a cap;
