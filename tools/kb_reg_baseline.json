@@ -7,6 +7,7 @@
   "0x77720": "void *FUN_00077720(short scale /* @<eax> */, void *source_bitmap, short brightness_adjust, char alpha_weighted);",
   "0xa1a90": "bool FUN_000a1a90(int datum_handle@<eax>);",
   "0xa1b60": "bool FUN_000a1b60(int datum_handle@<edi>, float delta_time);",
+  "0xc40f0": "void FUN_000c40f0(void *block@<ebx>, int16_t name_offset, int element_size);",
   "0xc6130": "bool FUN_000c6130(int datum_index @<eax>, void *tag_block @<ebx>, int element_size @<edi>, short offset);",
   "0xd44f0": {
     "ebx": 0,
@@ -265,6 +266,8 @@
     "0xbc920": "void players_update_before_game_client(int player_index @<ebx>, int object_handle, void *position);",
     "0xbcd40": "void player_update_nearby_biped(int datum_handle, int object_handle@<esi>);",
     "0xbdb00": "void player_update_spawn_state(int datum_handle@<ebx>);",
+    "0xc4030": "void FUN_000c4030(const char *name@<esi>);",
+    "0xc40f0": "void FUN_000c40f0(void *block@<ebx>, int16_t name_offset, int element_size);",
     "0xc4660": "bool hs_load_source_file(void *file_ref@<ebx>);",
     "0xc4900": "void hs_report_compile_error(void *error_info, char *error_text@<esi>, char *script_element@<ebx>, void *source_start@<edi>);",
     "0xc5730": "char *hs_compile_initialize(int source_file_size@<edi>, void *source_ptr);",
@@ -750,8 +753,7 @@
     "0x224904": "int __stdcall connect(void *xnet@<ecx>, unsigned int socket, const void *name, int namelen);",
     "0x225021": "int __stdcall socket(void *xnet@<ecx>, int af, int type, int protocol);",
     "0x2256bb": "int __stdcall recv(void *xnet@<ecx>, unsigned int socket, char *buf, int len, int flags);",
-    "0x2258a4": "int __stdcall send(void *xnet@<ecx>, unsigned int socket, const char *buf, int len, int flags);",
-    "0xc4030": "void FUN_000c4030(const char *name@<esi>);"
+    "0x2258a4": "int __stdcall send(void *xnet@<ecx>, unsigned int socket, const char *buf, int len, int flags);"
   },
   "0x6cde0": "void FUN_0006cde0(void *tif@<edi>);"
 }

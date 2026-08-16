@@ -8252,6 +8252,39 @@ void FUN_000c4030(const char *name)
   }
 }
 
+/* 0xc4130 — Enumerate one scenario-resident tag_block into the active token
+ * enumeration.  One of the per-type enumerator thunks in the table at
+ * 0x2f2208 (see hs_tokens_enumerate below); the concrete block is selected by
+ * the three parameters, which the thunk's caller supplies.
+ *
+ * `block_offset` is a byte offset from the scenario tag base to the tag_block
+ * header (MOVSX word ptr [EBP+8] then ADD to global_scenario_get()'s EAX, so
+ * it is a signed 16-bit value used in pointer arithmetic).  It is handed to
+ * FUN_000c40f0 in EBX (MOV EBX,EAX immediately before the CALL); the two
+ * stack arguments are pushed EDX-then-ECX, i.e. name_offset first and
+ * element_size second in source order.
+ *
+ * `name_offset` is only forwarded, never used in arithmetic here, so it is
+ * read as a plain dword (MOV ECX,[EBP+0xc]); FUN_000c40f0 is the one that
+ * narrows it (MOVSX word ptr [EBP+8]) before adding it to each element.
+ *
+ * Guarded by the scenario tag index at 0x326a08, exactly like the other
+ * scenario readers in this file. */
+void FUN_000c4130(int16_t block_offset, int16_t name_offset, int element_size)
+{
+  void *block;
+
+  if (*(int *)0x326a08 != NONE) {
+    /* The scenario fetch is sequenced before the argument pushes in the
+     * original (CALL at 0xc413d, then MOVSX/ADD, then PUSH EDX/PUSH ECX), so
+     * the block pointer is held in a local rather than written inline as the
+     * first argument, where MSVC's right-to-left argument evaluation would
+     * sink the call below the pushes. */
+    block = (char *)global_scenario_get() + block_offset;
+    FUN_000c40f0(block, name_offset, element_size);
+  }
+}
+
 /* 0xc4580 — Collect every hs token name matching a prefix into `tokens`.
  *
  * Enumeration state lives in four globals rather than being threaded through
