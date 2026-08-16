@@ -3,7 +3,7 @@ export const meta = {
   description: 'Goal-mode auto-lift: lift, verify, review-gate, and commit Halo CE Xbox functions until N are committed at >=90% VC71 or the queue is exhausted',
   phases: [
     { title: 'Select',   detail: 'Frontier scoring + liftability filtering' },
-    { title: 'Research', detail: 'Parallel Ghidra context gathering (read-only)' },
+    { title: 'Research', detail: 'Fingerprint validation + mechanical evidence prefetch' },
     { title: 'Lift',     detail: 'Serial: lift -> verify (goal90 bands) -> permute/escalate -> mechanical/review gate -> commit' },
     { title: 'Improve',  detail: 'Re-lift parked sub-bar functions with a different model, promote or re-park' },
     { title: 'Report',   detail: 'Summary: committed, skipped, parked, gate holds' },
@@ -12,8 +12,8 @@ export const meta = {
 
 // This workflow exists so that the two required subagents are GUARANTEED to
 // run: a prose-only slash command can't force tool calls, but agent() here is
-// real code. xbox-halo-re-analyst does Phase-1 RE + implementation;
-// xbox-halo-lift-reviewer is the fail-closed gate every commit must clear.
+// real code. The dedicated auto-lift profiles are memoryless; manual RE keeps
+// the existing project-memory-enabled profiles.
 
 const GOAL         = (args && args.goal) || 20
 const STOP_ON_FAIL = (args && args.stopOnFail) || 3
@@ -23,12 +23,6 @@ const DRY_RUN      = !!(args && args.dryRun)
 // improve model for perspective diversity. This is the payoff of never
 // discarding sub-bar work — see tools/lift/park.py.
 const IMPROVE      = !!(args && args.improve)
-// --cacheContext: also run llm_auto_lift.py cache-context per target so the
-// enrichment_hook injects callee/struct-offset tables during research decompiles.
-// Off by default — it is a per-target Ghidra sweep; the free decompile_hook
-// neighbor/hazard injection is the primary retrieval signal.
-const CACHE_CONTEXT = !!(args && args.cacheContext)
-
 // Model/effort policy (single point of control). Rationale:
 // - Opus-low costs ~the same as Sonnet-low but gives better results, so every
 //   structured-extraction/mechanical-but-consequential stage uses Opus-low
@@ -61,14 +55,9 @@ const ESCALATION_BUDGET_FLOOR = (args && args.escalationBudgetFloor) || 120000
 const MAX_ESCALATIONS = (args && args.maxEscalations != null) ? args.maxEscalations : 3
 const M = {
   mechanical: { model: 'haiku', effort: 'low'  },  // tool-run + parse
-  // select + research. Deliberately NOT downgraded to haiku, though research is
-  // schema-shaped and was the biggest single agent count: just-in-time research
-  // (see RESEARCH_LOOKAHEAD) already cut its volume ~80%, from ~30 briefs per
-  // batch to GOAL+2, so the model saving left on the table is small -- while the
-  // brief is the highest-leverage input the lifter gets, and its pre_screen
-  // verdict decides whether a target is lifted at all. Small saving, expensive
-  // failure mode. Revisit only with a measured A/B on pre_screen accuracy.
-  extract:    { model: 'opus',  effort: 'low'  },  // select, research (schema-shaped)
+  // Selection and one-shot score levers still need constrained judgment.
+  // Per-target research is mechanical and routes through M.mechanical below.
+  extract:    { model: 'opus',  effort: 'low'  },  // select + classified score lever
   // Commit runs a fixed 6-command script whose only judgement is "does the
   // build log contain an error: line" -- the same shape as the 19 sites already
   // on `mechanical`. Measured 31 agents / ~4% of session spend on opus for it.
@@ -125,6 +114,9 @@ const LIFT_REG_ARGS = !!(args && args.liftRegArgs)
 // in reviewThenCommit (default 85, the historical lane). Set 88 to enforce
 // "no sub-88 equiv-backed commits" policy.
 const MIN_COMMIT = Number((args && args.minCommitScore) || 85)
+const runTokenStart = budget.spent()
+const phaseTokens = { select: 0, research: 0, lift: 0, improve: 0, report: 0 }
+const cacheMetrics = { hits: 0, misses: 0, ghidra_builds: 0 }
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
@@ -190,25 +182,37 @@ const LIFTABILITY_SCHEMA = {
   required: ['classified'],
 }
 
-const BRIEF_SCHEMA = {
+const BUNDLE_SCHEMA = {
   type: 'object',
   properties: {
     addr:            { type: 'string' },
     name:            { type: 'string' },
     obj:             { type: 'string' },
     source_path:     { type: 'string' },
-    kb_entry:        { type: 'string' },
-    decompiled:      { type: 'string' },
-    disasm_notes:    { type: 'string' },
-    callees:         { type: 'string' },
-    hazards:         { type: 'string' },
-    // Worked examples captured from the decompile_hook retrieval injection:
-    // most-similar already-ported function(s) with their VC71 % + C source, and
-    // hazard briefs. Threaded into the lift prompt so the lifter matches the
-    // winning idiom instead of re-deriving. Empty if the server was cold.
-    neighbors:       { type: 'string' },
-    delinked_exists: { type: 'boolean' },
-    // ok | skip_reg_args | skip_trivial | skip_seh | skip_nt_import | skip_already_in_source | infra_blocked
+    fingerprint:     { type: 'string' },
+    attempt_fingerprint: { type: 'string' },
+    artifacts: {
+      type: 'object',
+      properties: { ghidra: { type: 'string' }, score_context: { type: 'string' } },
+    },
+    artifact_paths: {
+      type: 'object',
+      properties: { ghidra: { type: 'string' }, score_context: { type: 'string' } },
+    },
+    verdicts: { type: 'array', items: { type: 'object', properties: {
+      rule_id: { type: 'string' }, verdict: { type: 'string' },
+      confidence: { type: 'string' }, evidence: { type: 'array', items: { type: 'string' } },
+    } } },
+    cache: { type: 'object', properties: {
+      context: { type: 'string' }, ghidra_builds: { type: 'number' },
+    } },
+    retrieval: { type: 'object', properties: {
+      cohort: { type: 'string' }, neighbor_ids: { type: 'array', items: { type: 'string' } },
+      neighbor: { type: 'object', properties: {
+        addr: { type: 'string' }, name: { type: 'string' },
+        decl: { type: 'string' }, c_source: { type: 'string' },
+      } },
+    } },
     pre_screen:      { type: 'string' },
     skip_reason:     { type: 'string' },
   },
@@ -270,6 +274,7 @@ const MATCH_OPTIMIZER_SCHEMA = {
     improved:   { type: 'boolean' },
     capped:     { type: 'boolean' },
     cap_reason: { type: 'string' },
+    cap_confidence: { type: 'string' },
     reason:     { type: 'string' },
   },
   required: ['vc71_score'],
@@ -387,85 +392,15 @@ STEPS:
 5. Return classified = the script's JSON array verbatim (each element has addr,
    liftable_class, and class_reason). Do NOT invent classes — copy the script output.`
 
-const researchPrompt = (t) =>
-  `Gather Ghidra context for ${t.name} at ${t.addr} (${t.obj}). READ-ONLY — no edits.
+const bundlePrompt = (t, currentAttempt = false) =>
+  `Prepare the fingerprinted mechanical evidence bundle for ${t.name} at ${t.addr}.
+Run exactly this command and return its JSON object verbatim; do not summarize it:
+timeout 300 rtk python3 tools/lift/research_bundle.py prepare --target ${JSON.stringify(t.addr)} --json${LIFT_REG_ARGS ? ' --allow-reg-args' : ''}${currentAttempt ? ' --current-attempt' : ''}
 
-1. Ghidra MCP preflight already ran globally for this batch — do NOT re-run
-   check_ghidra_mcp.py.
-   TWO ways to reach Ghidra; the CLI pack (step 3a) is ALWAYS available because it
-   talks to the bridge over HTTP, independent of this session's MCP attachment:
-     (a) Ghidra MCP tools (mcp__ghidra__decompile_function etc.) — preferred when present.
-     (b) the cached context pack written by step 3a — the fallback.
-   A missing/erroring MCP tool is NOT infra_blocked on its own. Only return
-   pre_screen="infra_blocked", skip_reason="ghidra_unavailable" when step 3a ALSO
-   fails to produce a pack with a non-empty decompile_c or disassembly.
-
-2. KB LOOKUP: rtk jq '[.. | objects | select(.addr? == "${t.addr}")] | .[0]' kb.json
-
-2b. SOURCE CHECK (before Ghidra, to avoid wasted decompile tokens):
-    addr_no0x=$(printf '%08x' $((16#${t.addr.replace('0x', '')})))
-    rtk rg "^[a-zA-Z_][a-zA-Z0-9_*]+ FUN_\${addr_no0x}\\b" src/ --no-heading -l 2>/dev/null
-    Also check the real name if the kb entry has one:
-    rtk rg "^[a-zA-Z_][a-zA-Z0-9_*]+ ${t.name}\\b" src/ --no-heading -l 2>/dev/null
-    If either grep returns a .c file path, the function is already implemented:
-    → pre_screen="skip_already_in_source", skip_reason="already implemented: <file>"
-    Return immediately — no Ghidra call needed.
-
-3a. ENRICH + FALLBACK SOURCE (run BEFORE decompile so the enrichment hook can
-    inject callee/struct tables, and so a pack exists if MCP tools are absent):
-    timeout 240 rtk python3 tools/llm_auto_lift.py cache-context --target ${t.addr} --force 2>&1 || echo "[cache-context-skip]"
-    The pack lands at artifacts/auto_lift/context_cache/${t.name}.json with fields:
-    decompile_c, disassembly, callees, callers, callee_details, call_site_audit,
-    struct_offsets, buffer_alias, buffer_warnings. Read what you need with rtk jq, e.g.
-      rtk jq -r '.decompile_c' artifacts/auto_lift/context_cache/${t.name}.json
-    If the pack has a non-empty decompile_c or disassembly, you have Ghidra context —
-    proceed normally even if every MCP tool below is unavailable.
-
-3. DECOMPILE: Ghidra MCP decompile_function at ${t.addr}
-   If that tool is not exposed in your toolset or it errors, use the step-3a pack's
-   .decompile_c instead (and .disassembly for anything the decompile leaves unclear).
-   Note in disasm_notes which source you used.
-   This fires a PostToolUse retrieval hook that injects a system message with
-   similar ALREADY-PORTED functions (worked examples: decl + C source + their
-   VC71 %) and hazard warnings from similar functions that FAILED.
-   CAPTURE the 1-2 most-similar high-VC71 worked examples (decl + C body + VC71 %)
-   and any hazard briefs into the "neighbors" field, VERBATIM. This is the main
-   channel by which the lift agent learns the winning idiom, and it is LOST if you
-   do not copy it into the brief. If NO retrieval system message appeared, the
-   server was cold — you MAY run it once (wrapped; ~75s on a cold model load):
-     printf '%s' "<decompiled body>" > /tmp/${t.addr.replace('0x','')}.decomp.c
-     timeout 120 rtk python3 tools/retrieval/query.py --file /tmp/${t.addr.replace('0x','')}.decomp.c --obj-name ${t.obj} --min-vc71 85 --prompt 2>&1 || echo "[retrieval-timeout]"
-
-4. PRE-SCREEN (return immediately with pre_screen=<reason> if any match):
-${LIFT_REG_ARGS ? `   - (reg-arg lifting ENABLED for this run: do NOT skip on unaff_/in_EAX/in_ECX
-     or @<reg> callees. Instead, record in disasm_notes the EXACT register each
-     implicit input arrives in — verified against the disassembly prologue, not
-     just Ghidra's decompile — plus each @<reg> callee's register contract.)` : `   - Decompile has unaff_, in_EAX, in_ECX               → "skip_reg_args"
-   - Any callee has @<reg> and is NOT in kb.json          → "skip_reg_args"`}
-   - Body is 1-3 lines wrapping one FUN_ unchanged        → "skip_trivial"
-   - Contains __SEH_prolog / __SEH_epilog                 → "skip_seh"
-   - Calls xboxkrnl NT/kernel imports (Nt*/Ob*/Ke*/Rtl*/Ex*/Ps*/Io*/Hal*)
-     OR addr in 0x1d0000-0x1de000 CRT region              → "skip_nt_import"
-   Otherwise pre_screen="ok"
-
-5. CALLEES: Ghidra MCP get_function_callees at ${t.addr}.
-   If unavailable, use the step-3a pack: rtk jq '.callees, .callee_details' \\
-     artifacts/auto_lift/context_cache/${t.name}.json
-   Return JSON array: [{addr,name,has_reg_args,in_kb}]
-
-6. DELINKED CHECK (for the EQUIVALENCE lane only — VC71 scoring never reads
-   delinked/): objdump -t delinked/*.obj 2>/dev/null | grep -i "${t.name.replace('FUN_', '')}"
-   delinked_exists=true if found.
-
-7. HAZARD SCAN: rtk python3 tools/audit/check_lift_hazards.py 2>&1 | grep -A2 "${t.addr.replace('0x', '')}"
-
-8. DISASM NOTES (only if FPU ops, struct access, or >2 CALLs): Ghidra MCP disassemble_function.
-   If unavailable, use the step-3a pack's .disassembly (rtk jq -r '.disassembly' ...).
-   Return key observations only: push order per CALL, FPU subtraction direction, buffer sizes. Max 400 words.
-
-Return full brief. Use field name "source_path" for the intended source file path
-(create-target guess if the function has no source yet). Populate "neighbors" with
-the captured retrieval worked-examples + hazard briefs (empty string if none).`
+The tool performs the live source check, KB extraction, fingerprint validation,
+structural pre-screen, cap classification, and stale-only Ghidra build. A cache hit
+must not be supplemented with any Ghidra call. If the command fails, return
+pre_screen="infra_blocked" and its first error line as skip_reason.`
 
 const CAP_TABLE =
   `Known structural-cap patterns (report capped=true with cap_reason if the VC71
@@ -519,26 +454,26 @@ PRIOR ATTEMPT NOTES (from earlier attempts on this function — read before codi
 ${priorNotes.notes}
 Tried so far: ${priorNotes.tried || 'none'}
 ` : ''}
-CONTEXT — do NOT re-call Ghidra:
-  KB:       ${brief.kb_entry}
-  Decomp:   ${brief.decompiled}
-  Disasm:   ${brief.disasm_notes || 'none'}
-  Callees:  ${brief.callees}
-  Hazards:  ${brief.hazards}
+IMMUTABLE MECHANICAL EVIDENCE — read before editing:
+  Context fingerprint: ${brief.fingerprint || 'missing'}
+  Ghidra artifact:      ${(brief.artifact_paths && brief.artifact_paths.ghidra) || 'missing'}
+  Score artifact:       ${(brief.artifact_paths && brief.artifact_paths.score_context) || 'none for this exact attempt'}
+  Mechanical verdicts:  ${JSON.stringify(brief.verdicts || [])}
 
-SCORE CONTEXT (if a prior VC71 run scored this function, read it FIRST — it is
-already-computed diagnostic data, cheaper than re-deriving the same conclusion
-from the objdiff/disasm yourself):
-  rtk jq '{scores, frame, classification}' artifacts/score_context/${brief.name}.json 2>/dev/null || true
-  classification[].action names the specific fix for each detected pattern
-  (loadw_field_width, frame_mismatch, anchor_collapse, etc.) — apply those
-  actions before trying any other hypothesis. Missing file = no prior run
-  recorded yet; proceed normally.
+Read the Ghidra artifact with rtk jq. It contains the decompile, disassembly,
+callers/callees, call-site audit, struct offsets, and buffer evidence. Do NOT call
+Ghidra when those fields are present. Query Ghidra only when this fingerprinted
+artifact is invalid or evidence for a specific touched CALL is absent.
+
+SCORE CONTEXT: use only the score artifact named above. It is reusable only when
+the full source/KB/compiler/verifier/reference fingerprint matches. A missing
+artifact means no reusable score evidence. Do not route from a worktree-local
+legacy score file that lacks the current attempt fingerprint.
 
 WORKED EXAMPLES (similar functions already ported, with their VC71 %; match their
-idioms — casts, x87 order, struct-store shape — and expect a comparable score.
-A near-identical neighbor capped below 90% is evidence THIS one is capped too):
-${brief.neighbors || '  (none — retrieval server was cold)'}
+idioms — casts, x87 order, struct-store shape. A neighbor is a bounded style
+example, not binary evidence or a cap/acceptance verdict for this target):
+${brief.neighbors || '  (control cohort or no current-index neighbor)'}
 
 STEPS:
 1. REFERENCE — nothing to do. The VC71 reference is DERIVED: the pristine XBE's
@@ -555,9 +490,9 @@ STEPS:
    Rules: C89 only, no inline ASM, preserve control flow + side-effect order.
    MSVC intrinsics → C: _ftol2→(int)cast, _chkstk→normal locals, _allmul→(int64_t)a*b.
    Trace every CALL: first PUSH is last arg. Check FPU subtraction direction and cross-product order.
-   SKILLS (mandatory doctrine — read each SKILL.md and apply its checklist):
-   .claude/skills/lift-decompiler-traps, .claude/skills/lift-arg-hazards,
-   .claude/skills/lift-frame-hazards, .claude/skills/lift-silent-bugs.
+   CHECKLIST (mandatory): read .claude/skills/auto-lift-checklist/SKILL.md once.
+   Load detailed lift-decompiler-traps or lift-silent-bugs only when the compact
+   checklist routes you there.
 
 4. UPDATE kb.json — set ported=true; add @<reg> callees with binary evidence only.
    Update tools/kb_reg_baseline.json for any new @<reg>.
@@ -629,20 +564,16 @@ STEPS:
    equiv_confidence, and equiv_reason (state whether the live-state snapshot
    was used and which paths were exercised).
 
-7. STRUCTURAL-CAP CLASSIFY (only if vc71_score is in [65,84]) — do NOT eyeball it;
-   run the deterministic classifier (explicit rules: @reg-defining prologue,
-   parked-ledger confirmed/prior cap, float-arg-lowering diff signature). Pass
-   --score-context if artifacts/score_context/${brief.name}.json exists (the
-   verify step writes it) — it lets the classifier prove a float-arg-lowering
-   cap from THIS attempt's own diff, not just from repeat history:
-     rtk python3 tools/analysis/classify_cap.py --name ${brief.name} --addr ${brief.addr} \\
-       --score <vc71_score> --decl '<this function's kb declaration>' \\
-       --score-context artifacts/score_context/${brief.name}.json
-   - If it returns "cap_confidence":"high" → this is an AUTHORITATIVE cap: report
-     capped=true, cap_reason=its cap_reason, cap_confidence="high". Do NOT escalate.
-   - If it returns "cap_confidence":"inconclusive" → the script cannot prove a cap;
-     apply YOUR OWN judgment against the patterns below, set capped/cap_reason, and
-     report cap_confidence="inconclusive".
+6e. PUBLISH ATTEMPT EVIDENCE after VC71 writes its local score-context pointer:
+    rtk python3 tools/lift/research_bundle.py prepare --target ${brief.addr} --json --current-attempt${LIFT_REG_ARGS ? ' --allow-reg-args' : ''}
+    This is a fingerprinted context hit (zero Ghidra calls) and publishes the
+    score context only when its embedded candidate-source hash matches this tree.
+
+7. STRUCTURAL-CAP CLASSIFY (only if vc71_score is in [65,84]): use the JSON
+   returned by step 6e. Only a verdict with confidence="high" and an immutable
+   score evidence id may set capped=true/cap_confidence="high". Legacy ledger
+   prose, notes, failure files, and your own pattern judgment are hints only;
+   report them as inconclusive and do not use them to stop escalation.
 ${CAP_TABLE}
 
 8. RETURN (do NOT commit, do NOT run the review gate — that happens later):
@@ -702,7 +633,8 @@ reference. Follow your own protocol: fresh score-context pack first, then one
 lever per iteration from the lift-score-improve recipe atlas, re-measured via
 the fast single-function path, keeping only improvements.
   rtk python3 tools/verify/vc71_verify.py ${srcFile} -f ${name} --no-cache
-  rtk jq '{scores, frame, classification}' artifacts/score_context/${name}.json
+  rtk python3 tools/lift/research_bundle.py prepare --target ${addr} --json --current-attempt
+Read classification only from the returned artifact_paths.score_context.
 
 WORKED EXAMPLES (similar already-ported functions with their VC71 %; match
 their idioms — casts, x87 order, struct-store shape — if a lever here mirrors
@@ -733,9 +665,10 @@ const atlasLeverPrompt = (name, addr, obj, srcFile, priorScore) =>
 Apply the ALREADY-CLASSIFIED score-recovery lever(s) for ${name} at ${addr}
 (object: ${obj}). Source: ${srcFile} | Current score: ${priorScore}%.
 
-FIRST, run exactly one command — read the existing score-context pack:
-  rtk jq '{scores, frame, classification}' artifacts/score_context/${name}.json
-If that file is missing, or classification is empty/null, or every entry is a
+FIRST, publish/validate the current attempt and read only its returned
+artifact_paths.score_context:
+  rtk python3 tools/lift/research_bundle.py prepare --target ${addr} --json --current-attempt
+If score_context is empty, or classification is empty/null, or every entry is a
 documented ceiling (regarg_structural_ceiling, anchor_collapse), STOP
 IMMEDIATELY and return vc71_score ${priorScore}, improved false, reason
 "no_atlas_rule". Do NOT open the source, do NOT run any other command — the
@@ -795,12 +728,16 @@ const reviewPrompt = (brief, score, srcFile, path) =>
 Source: ${srcFile}
 Structural match (VC71/objdiff): ${score}%
 Acceptance path so far: ${path}
+Immutable context bundle: ${(brief.artifact_paths && brief.artifact_paths.ghidra) || 'missing'}
+Context fingerprint: ${brief.fingerprint || 'missing'}
 
 Gather your own evidence before deciding:
 - Source diff: rtk git diff -- ${srcFile} kb.json
 - ABI audit: rtk python3 tools/audit/audit_reg_abi.py (or reuse the pass already run by generate_lift_commit.py)
 - Hazard scan: rtk python3 tools/audit/check_lift_hazards.py --files ${srcFile}
-- Caller/callee/disassembly context around each CALL touched by this lift (Ghidra MCP)
+- Fresh Halo build and VC71 result for ${brief.name}
+- Caller/callee/disassembly context from the immutable bundle. Query Ghidra only
+  if the bundle is fingerprint-invalid or a touched CALL lacks required evidence.
 - Relevant kb.json declarations and register args for ${brief.name}
 
 Apply your decision policy and return your verdict.`
@@ -891,12 +828,12 @@ rtk git status --short
 // ledger (tools/lift/park.py), shared with manual /lift and the improve pass.
 // attemptME = the {model,effort} of the lift ATTEMPT (recorded for later
 // exclude-model selection), not the park agent's own model.
-const parkToolPrompt = (name, addr, obj, srcFile, score, attemptME, reason, capHyp, notes) =>
+const parkToolPrompt = (name, addr, obj, srcFile, score, attemptME, reason, capHyp, notes, fingerprint, artifacts) =>
   `${AGENT_RULES}
 
 Preserve the sub-bar lift of ${name} (${addr}, ${score}% VC71) for a later improve
 pass, then clean the tree. Run exactly this one command:
-rtk python3 tools/lift/park.py park --name ${JSON.stringify(name)} --addr ${JSON.stringify(addr || '')} --obj ${JSON.stringify(obj || '')} --source ${JSON.stringify(srcFile || '')} --score ${score} --model ${JSON.stringify(attemptME.model)} --effort ${JSON.stringify(attemptME.effort)} --reason ${JSON.stringify(reason || '')}${capHyp ? ' --cap-hypothesis ' + JSON.stringify(capHyp) : ''}${notes ? ' --notes ' + JSON.stringify(String(notes).slice(0, 2000)) : ''} --revert-tree
+rtk python3 tools/lift/park.py park --name ${JSON.stringify(name)} --addr ${JSON.stringify(addr || '')} --obj ${JSON.stringify(obj || '')} --source ${JSON.stringify(srcFile || '')} --score ${score} --model ${JSON.stringify(attemptME.model)} --effort ${JSON.stringify(attemptME.effort)} --reason ${JSON.stringify(reason || '')} --outcome parked${fingerprint ? ' --fingerprint ' + JSON.stringify(fingerprint) : ''}${Object.values(artifacts || {}).filter(Boolean).map(id => ' --evidence ' + JSON.stringify(id)).join('')}${capHyp ? ' --cap-hypothesis ' + JSON.stringify(capHyp) : ''}${notes ? ' --notes ' + JSON.stringify(String(notes).slice(0, 2000)) : ''} --revert-tree
 park.py saves the git diff to artifacts/parked/, records the attempt (with
 history), and reverts src/ kb.json tools/kb_reg_baseline.json to HEAD. Return the
 tool's "parked ..." stdout line.`
@@ -979,7 +916,7 @@ async function reviewThenCommit(brief, score, srcFile, path, phaseTitle, preEqui
   let review = await agent(reviewPrompt(brief, score, srcFile, path), {
     label: `review:${brief.name}`, phase: phaseTitle,
     // Model stays M.reason's; effort is the --reviewEffort A/B lever (see above).
-    agentType: 'xbox-halo-lift-reviewer', model: M.reason.model, effort: REVIEW_EFFORT, schema: REVIEW_SCHEMA,
+    agentType: 'auto-lift-reviewer', model: M.reason.model, effort: REVIEW_EFFORT, schema: REVIEW_SCHEMA,
   })
   if (!review) return { committed: false, verdict: 'infra_blocked', rationale: 'review_agent_returned_null' }
 
@@ -1053,7 +990,12 @@ async function gateThenCommit(brief, score, srcFile, path, phaseTitle, preEquiv)
 // diagnostic/rationale text for this attempt (capped 2000 chars in parkToolPrompt),
 // read back by the improve pass via park.py next's last_notes/attempt_history.
 async function parkBuilt(brief, srcFile, score, attemptME, reason, capHyp, phaseTitle, notes) {
-  await agent(parkToolPrompt(brief.name, brief.addr, brief.obj, srcFile, score, attemptME, reason, capHyp, notes),
+  const refreshed = await agent(bundlePrompt(brief, true), {
+    label: `publish-score:${brief.name}`, phase: phaseTitle || 'Lift', ...M.mechanical, schema: BUNDLE_SCHEMA,
+  })
+  const evidence = refreshed || brief
+  await agent(parkToolPrompt(brief.name, brief.addr, brief.obj, srcFile, score, attemptME, reason, capHyp, notes,
+    evidence.attempt_fingerprint || evidence.fingerprint, evidence.artifacts),
     { label: `park:${brief.name}`, phase: phaseTitle || 'Lift', ...M.mechanical })
 }
 
@@ -1097,8 +1039,12 @@ rtk python3 tools/lift/park.py migrate --apply 2>&1 || true`,
     const rec = { name: nx.name, addr: nx.addr || '', obj: nx.obj || '', source_path: nx.source_path || '', best_score: nx.best_score || 0 }
     log(`[improve ${promoted}/${GOAL}] ${rec.name} (${rec.addr}) parked at ${rec.best_score}% — tried by: ${nx.tried_models || '?'}`)
 
-    // 1. Fresh Ghidra context (the improve model starts cold).
-    const brief = await agent(researchPrompt(rec), { label: `research:${rec.name}`, phase: 'Improve', ...M.extract, schema: BRIEF_SCHEMA })
+    // 1. Fingerprint-validated mechanical bundle (no prose research phase).
+    const rawBrief = await agent(bundlePrompt(rec), { label: `bundle:${rec.name}`, phase: 'Improve', ...M.mechanical, schema: BUNDLE_SCHEMA })
+    const brief = rawBrief ? { ...rawBrief, neighbors: rawBrief.retrieval && rawBrief.retrieval.neighbor ? JSON.stringify(rawBrief.retrieval.neighbor) : '' } : null
+    if (brief && brief.cache && brief.cache.context === 'hit') cacheMetrics.hits++
+    if (brief && brief.cache && brief.cache.context === 'miss') cacheMetrics.misses++
+    cacheMetrics.ghidra_builds += (brief && brief.cache && brief.cache.ghidra_builds) || 0
     if (!brief || brief.pre_screen === 'infra_blocked') {
       istop = 'infra_blocked'; improved.push({ ...rec, status: 'infra_blocked', reason: 'ghidra_unavailable' }); break
     }
@@ -1155,7 +1101,7 @@ rtk python3 tools/verify/vc71_verify.py ${refreshSrc} -f ${rec.name} --no-cache 
     }
     if (!a) {
       a = await agent(liftPrompt(liftBrief, true, rec.best_score, warm, priorNotes), {
-        label: `improve-lift:${rec.name}`, phase: 'Improve', agentType: 'xbox-halo-re-analyst', ...M.improve, schema: LIFT_RESULT_SCHEMA,
+        label: `improve-lift:${rec.name}`, phase: 'Improve', agentType: 'auto-lift-analyst', ...M.improve, schema: LIFT_RESULT_SCHEMA,
       })
     }
     if (!a || a.status === 'infra_blocked') { istop = 'infra_blocked'; improved.push({ ...rec, status: 'infra_blocked', reason: 'agent_null' }); break }
@@ -1218,6 +1164,7 @@ rtk python3 tools/verify/vc71_verify.py ${refreshSrc} -f ${rec.name} --no-cache 
 ${improved.map(r => `| ${r.name} | ${r.addr || '-'} | ${r.best_score ?? '-'} | ${r.vc71_score ?? '-'} | ${r.status} | ${r.reason || ''} |`).join('\n')}`,
     { label: 'improve-log', phase: 'Report', ...M.mechanical })
 
+  phaseTokens.improve = Math.max(0, budget.spent() - runTokenStart)
   return {
     mode: 'improve',
     improve_model: XM,
@@ -1226,6 +1173,11 @@ ${improved.map(r => `| ${r.name} | ${r.addr || '-'} | ${r.best_score ?? '-'} | $
     would_promote: improved.filter(r => r.status === 'would_promote').length,
     re_parked: improved.filter(r => r.status === 're_parked').length,
     already_landed: improved.filter(r => r.status === 'already_landed').length,
+    phase_token_deltas: phaseTokens,
+    cache: cacheMetrics,
+    ghidra_builds: cacheMetrics.ghidra_builds,
+    final_outcome: istop,
+    tokens_spent: budget.spent() - runTokenStart,
     results: improved,
   }
 }
@@ -1369,13 +1321,6 @@ log(`Selected ${targets.length} candidates across ${new Set(targets.map(t => t.o
 // them in 6 Opus research agents that drift. Saves the research tokens entirely.
 const CRT_LO = 0x1d0000, CRT_HI = 0x1de000
 const codeSkips = []
-// Prior-failure de-duplication. A parked target stays at the head of the
-// selector's ranking forever (the score does not know it failed), so without
-// this every session re-researches the same already-parked functions and
-// commits nothing. Enforced in code, not in the select prompt, so it cannot
-// drift -- but only while enough fresh candidates remain, because a park is
-// often recoverable and we must not starve the queue.
-const PRIOR_FAIL_KEEP_FLOOR = 10
 // Attempts (from the park.py ledger) after which a walled target stops being
 // served to a cold lift. 2 = "tried twice, same wall both times".
 const PARKED_ATTEMPT_CAP = 2
@@ -1383,12 +1328,9 @@ const PARKED_ATTEMPT_CAP = 2
 // intuition: FUN_00173b40 landed at 90.3% on attempt 7 with a parked best of
 // 88.0, so a 90 floor would have suppressed a real success. See the pre-screen.
 const PARKED_WALL_PCT = 85
-const freshCount = targets.filter(t => t.prior_fail !== true).length
-const dropPriorFails = freshCount >= PRIOR_FAIL_KEEP_FLOOR
 targets = targets.filter(t => {
   const a = parseInt((t.addr || '0').replace(/^0x/i, ''), 16)
   const pinnedAddr = ADDRS && ADDRS.has(a)
-  if (t.prior_fail === true && dropPriorFails && !pinnedAddr) { codeSkips.push({ ...t, status: 'skipped', reason: `skip_prior_fail (parked before, ${freshCount} fresh candidates available)` }); return false }
   // Repeat-resistant target: several attempts already made and the best of
   // them is still FAR from the 90% bar -- a real wall, not a near miss.
   // parse_string has 7 attempts at best 50.7%; FUN_000f5660 has 4 at 74.4%.
@@ -1425,7 +1367,7 @@ targets = targets.filter(t => {
   if (!pinned && t.lane && t.lane !== 'auto-lift' && t.lane !== 'cache-context') { codeSkips.push({ ...t, status: 'skipped', reason: `lane=${t.lane} (not auto-liftable)` }); return false }
   return true
 })
-if (codeSkips.length) log(`Code pre-screen dropped ${codeSkips.length} before research (${codeSkips.filter(s => s.reason.startsWith('skip_prior_fail')).length} prior-fail, ${codeSkips.filter(s => s.reason.startsWith('skip_parked_repeat')).length} parked-repeat, ${codeSkips.filter(s => s.reason.startsWith('skip_confirmed_cap')).length} confirmed-cap, ${codeSkips.filter(s => s.reason.startsWith('skip_reg_args')).length} reg-args, ${codeSkips.filter(s => s.reason.startsWith('skip_nt_import')).length} CRT/SEH, ${codeSkips.filter(s => s.reason.startsWith('lane=')).length} lane)`)
+if (codeSkips.length) log(`Code pre-screen dropped ${codeSkips.length} before research (${codeSkips.filter(s => s.reason.startsWith('skip_parked_repeat')).length} parked-repeat, ${codeSkips.filter(s => s.reason.startsWith('skip_confirmed_cap')).length} confirmed-cap, ${codeSkips.filter(s => s.reason.startsWith('skip_reg_args')).length} reg-args, ${codeSkips.filter(s => s.reason.startsWith('skip_nt_import')).length} CRT/SEH, ${codeSkips.filter(s => s.reason.startsWith('lane=')).length} lane)`)
 if (targets.length === 0) {
   log('No viable targets after code pre-screen')
   return { committed: 0, goal: GOAL, reached_goal: false, skipped: codeSkips.length, reverted: 0, reason: 'empty_queue_after_prescreen' }
@@ -1439,56 +1381,12 @@ if (targets.length < GOAL) {
 
 // ── Phase 2: Parallel research (read-only, batched 6) ────────────────────────
 
+phaseTokens.select = Math.max(0, budget.spent() - runTokenStart)
 phase('Research')
 
-// Single global Ghidra preflight — short-circuit the whole run if MCP is down,
-// instead of discovering it in 6 parallel research agents (each of which used to
-// run check_ghidra_mcp.py redundantly).
-const preflight = await agent(
-  `Run: rtk python3 tools/audit/check_ghidra_mcp.py 2>&1
-Return ok=true if it passes, else ok=false with the first error line as reason.`,
-  { label: 'ghidra-preflight', phase: 'Research', ...M.mechanical,
-    schema: { type: 'object', properties: { ok: { type: 'boolean' }, reason: { type: 'string' } }, required: ['ok'] } })
-if (preflight && preflight.ok === false) {
-  log(`Ghidra MCP preflight FAILED (${preflight.reason || 'unavailable'}) — aborting before research`)
-  return { committed: 0, goal: GOAL, reached_goal: false, skipped: codeSkips.length, reverted: 0,
-           infra_blocked: targets.length, reason: 'ghidra_unavailable' }
-}
-
-// ── P2 liftability gate — drop switch-case fragments (non-callable → porting one
-// crashes on the parent's mid-flight stack) and confirmed structural caps BEFORE
-// any research/lift agent spawns. Runs post-preflight because fragment detection
-// needs live Ghidra xref shape. Fail-open: no classification → proceed unchanged.
-if (targets.length) {
-  const lc = await agent(liftabilityGatePrompt(targets), {
-    label: 'liftability-gate', phase: 'Research', ...M.mechanical, schema: LIFTABILITY_SCHEMA,
-  })
-  if (lc && Array.isArray(lc.classified) && lc.classified.length) {
-    const cls = new Map(lc.classified.map(r => [(r.addr || '').toLowerCase(), r]))
-    const kept = []
-    for (const t of targets) {
-      const r = cls.get((t.addr || '').toLowerCase())
-      if (r && (r.liftable_class === 'fragment' || r.liftable_class === 'known_cap')) {
-        codeSkips.push({ ...t, status: 'skipped', reason: `skip_${r.liftable_class} (${r.class_reason || ''})` })
-      } else {
-        kept.push(t)
-      }
-    }
-    const dropped = targets.length - kept.length
-    if (dropped) log(`Liftability gate dropped ${dropped} (${codeSkips.filter(s => s.reason.startsWith('skip_fragment')).length} fragment, ${codeSkips.filter(s => s.reason.startsWith('skip_known_cap')).length} known_cap) before research`)
-    targets = kept
-  } else {
-    log('Liftability gate: no classification returned — proceeding without it (fail-open)')
-  }
-  if (targets.length === 0) {
-    log('No viable targets after liftability gate')
-    return { committed: 0, goal: GOAL, reached_goal: false, skipped: codeSkips.length, reverted: 0, reason: 'empty_queue_after_liftability' }
-  }
-}
-
-// Warm the retrieval server before any research decompiles so the auto-firing
-// decompile_hook serves worked-example neighbors warm (not a cold 6-way race).
-await agent(warmRetrievalPrompt(), { label: 'retrieval-warm', phase: 'Research', ...M.mechanical })
+// Fingerprint validation now owns Ghidra preflight and fragment xrefs. A valid
+// bundle hit performs no Ghidra call; a stale/missing entry preflights, rebuilds,
+// and publishes the immutable artifact before any analyst starts.
 
 const RESEARCH_BATCH = 6
 
@@ -1509,6 +1407,7 @@ const RESEARCH_LOOKAHEAD = 2
 const briefs    = []
 const okBriefs  = []
 const results   = []
+const bundleByName = new Map()
 let   nextTarget = 0
 let   pendingInfra = 0
 
@@ -1542,16 +1441,26 @@ Return one line per function: <name> exported|failed <path-or-reason>.`,
 // Non-viable briefs are recorded into `results` as they are discovered, so the
 // final report is identical to the eager version's.
 async function researchMore(want) {
+  const tokenBefore = budget.spent()
   const fresh = []
   while (fresh.length < want && nextTarget < targets.length) {
     const take  = Math.min(RESEARCH_BATCH, Math.max(1, want - fresh.length))
     const batch = targets.slice(nextTarget, nextTarget + take)
     nextTarget += batch.length
     log(`Research: ${batch.length} target(s) [queue ${nextTarget}/${targets.length}]`)
-    const bb = await parallel(batch.map(t => () => agent(researchPrompt(t), {
-      label: `research:${t.name}`, phase: 'Research', ...M.extract, schema: BRIEF_SCHEMA,
+    const bb = await parallel(batch.map(t => () => agent(bundlePrompt(t), {
+      label: `bundle:${t.name}`, phase: 'Research', ...M.mechanical, schema: BUNDLE_SCHEMA,
     })))
-    for (const b of bb.filter(Boolean)) {
+    for (const raw of bb.filter(Boolean)) {
+      const b = {
+        ...raw,
+        neighbors: raw.retrieval && raw.retrieval.neighbor
+          ? JSON.stringify(raw.retrieval.neighbor) : '',
+      }
+      bundleByName.set(b.name, b)
+      if (b.cache && b.cache.context === 'hit') cacheMetrics.hits++
+      if (b.cache && b.cache.context === 'miss') cacheMetrics.misses++
+      cacheMetrics.ghidra_builds += (b.cache && b.cache.ghidra_builds) || 0
       briefs.push(b)
       if (b.pre_screen === 'ok') {
         okBriefs.push(b); fresh.push(b)
@@ -1564,6 +1473,7 @@ async function researchMore(want) {
     }
   }
   if (fresh.length) await delinkPrefetch(fresh)
+  phaseTokens.research += Math.max(0, budget.spent() - tokenBefore)
   return fresh
 }
 
@@ -1609,7 +1519,7 @@ while (true) {
 
   // ── Attempt 1: Opus lift (sonnet stall-loops under the workflow watchdog) ─
   const a1 = await agent(liftPrompt(brief, false, null), {
-    label: `lift1:${brief.name}`, phase: 'Lift', agentType: 'xbox-halo-re-analyst', ...M.reason, schema: LIFT_RESULT_SCHEMA,
+    label: `lift1:${brief.name}`, phase: 'Lift', agentType: 'auto-lift-analyst', ...M.reason, schema: LIFT_RESULT_SCHEMA,
   })
 
   if (!a1 || a1.status === 'infra_blocked') {
@@ -1666,7 +1576,9 @@ while (true) {
   // escalate. An "inconclusive" verdict falls back to the agent's own CAP_TABLE
   // judgment. Either way "capped" now decides escalation, but its provenance is
   // explicit and logged, not an opaque model boolean.
-  const treatAsCapped = a1.capped === true
+  // Agent prose is never a routing gate. Only a high-confidence verdict backed
+  // by the current immutable attempt evidence may stop escalation.
+  const treatAsCapped = a1.capped === true && a1.cap_confidence === 'high'
   const capProvenance = a1.cap_confidence === 'high' ? 'deterministic(classify_cap.py)' : 'agent-judgment'
 
   // ── Atlas-rule short-circuit (docs/plans/agent-model-routing-2026-08.md §5,
@@ -1744,7 +1656,9 @@ while (true) {
         path   = 'escalated+optimize'
         lastME = ME
         lift   = { ...lift, reason: mo.reason || lift.reason }
-        if (mo.capped === true) { rungCapped = true; capReason = mo.cap_reason || 'unclassified'; break }
+        if (mo.capped === true && mo.cap_confidence === 'high') {
+          rungCapped = true; capReason = mo.cap_reason || 'unclassified'; break
+        }
       } else {
         log(`  ${brief.name} ${score}% — match-optimizer (${eff}) returned no usable score`)
       }
@@ -1757,10 +1671,10 @@ while (true) {
     if (rungCapped) {
       // Optimizer hit a documented ceiling (its own classify_cap equivalent) —
       // treat exactly like the attempt-1 structural-cap path.
-      log(`  ${brief.name} ${score}% capped [agent-judgment:optimizer]: ${capReason} — parked, no further escalation`)
+      log(`  ${brief.name} ${score}% capped [fingerprinted-mechanical:optimizer]: ${capReason} — parked, no further escalation`)
       await parkBuilt(brief, srcFile, score, lastME, 'structural_cap', capReason, 'Lift', lift.reason || '')
       consecutiveFails++
-      results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, reason: `structural_cap[agent-judgment:optimizer]: ${capReason}` })
+      results.push({ addr: brief.addr, name: brief.name, obj: brief.obj, status: 'parked', vc71_score: score, reason: `structural_cap[fingerprinted-mechanical:optimizer]: ${capReason}` })
       continue
     }
   } else if (band === 'fail_check_cap' && treatAsCapped) {
@@ -1826,6 +1740,8 @@ while (true) {
 
 // ── Phase 4: Report ───────────────────────────────────────────────────────────
 
+const reportTokenStart = budget.spent()
+phaseTokens.lift = Math.max(0, reportTokenStart - runTokenStart - phaseTokens.select - phaseTokens.research - phaseTokens.improve)
 phase('Report')
 
 const committed      = results.filter(r => r.status === 'committed')
@@ -1835,6 +1751,18 @@ const revertedVerify = results.filter(r => r.status === 'reverted_verify')
 const revertedReview = results.filter(r => r.status === 'reverted_review')
 const parked         = results.filter(r => r.status === 'parked')
 const infra          = results.filter(r => r.status === 'infra_blocked')
+const measuredResults = results.map(r => {
+  const bundle = bundleByName.get(r.name) || {}
+  return {
+    ...r,
+    fingerprint: bundle.fingerprint || '',
+    retrieval_cohort: (bundle.retrieval && bundle.retrieval.cohort) || 'none',
+  }
+})
+const retrievalCohorts = measuredResults.reduce((acc, r) => {
+  acc[r.retrieval_cohort] = (acc[r.retrieval_cohort] || 0) + 1
+  return acc
+}, {})
 
 log(`\n── Run complete (${stopReason}) ─────────────────────`)
 log(`Committed:            ${committed.length}${DRY_RUN ? ` (dry-run: ${wouldCommit.length} would-commit)` : ''}`)
@@ -1843,6 +1771,8 @@ log(`Reverted (verify):    ${revertedVerify.length}`)
 log(`Reverted (review gate): ${revertedReview.length}`)
 log(`Parked (>=85%, needs runtime evidence): ${parked.length}${parked.length ? ' — ' + parked.map(p => `${p.name} ${p.vc71_score}%`).join(', ') : ''}`)
 log(`Infra-blocked:         ${infra.length}`)
+log(`Evidence cache:        ${cacheMetrics.hits} hit / ${cacheMetrics.misses} miss / ${cacheMetrics.ghidra_builds} Ghidra build(s)`)
+log(`Retrieval cohorts:     ${JSON.stringify(retrievalCohorts)}`)
 if (budget.total) log(`Budget remaining: ~${Math.round(budget.remaining() / 1000)}k tokens`)
 
 await agent(
@@ -1852,9 +1782,22 @@ await agent(
 
 | function | addr | obj | vc71 | action | reason |
 |---|---|---|---|---|---|
-${results.map(r => `| ${r.name} | ${r.addr} | ${r.obj || '-'} | ${r.vc71_score ?? '-'} | ${r.status} | ${r.reason || ''} |`).join('\n')}`,
+${measuredResults.map(r => `| ${r.name} | ${r.addr} | ${r.obj || '-'} | ${r.vc71_score ?? '-'} | ${r.status} | ${r.reason || ''} [cohort=${r.retrieval_cohort}] |`).join('\n')}`,
   { label: 'progress-log', phase: 'Report', ...M.mechanical }
 )
+
+const outcomeRows = measuredResults.filter(r => r.retrieval_cohort === 'retrieval' || r.retrieval_cohort === 'control')
+if (outcomeRows.length) {
+  const perTargetTokens = Math.round(Math.max(0, budget.spent() - runTokenStart) / outcomeRows.length)
+  await agent(
+    `Record retrieval experiment outcomes. Run each command exactly; these are metrics only:\n${outcomeRows.map(r => {
+      const outcome = (r.status === 'reverted_review' || String(r.reason || '').includes('REJECT'))
+        ? 'reviewer_rejected' : (String(r.reason || '').includes('runtime_failed') ? 'runtime_failed' : r.status)
+      return `rtk python3 tools/lift/research_bundle.py record-outcome --target ${JSON.stringify(r.addr)} --cohort ${r.retrieval_cohort} --outcome ${JSON.stringify(outcome)} --tokens ${perTargetTokens} --fingerprint ${JSON.stringify(r.fingerprint || '')} --json`
+    }).join('\n')}`,
+    { label: 'retrieval-outcomes', phase: 'Report', ...M.mechanical })
+}
+phaseTokens.report = Math.max(0, budget.spent() - reportTokenStart)
 
 return {
   goal: GOAL,
@@ -1867,5 +1810,11 @@ return {
   reverted_review: revertedReview.length,
   parked: parked.length,
   infra_blocked: infra.length,
-  results,
+  phase_token_deltas: phaseTokens,
+  cache: cacheMetrics,
+  ghidra_builds: cacheMetrics.ghidra_builds,
+  retrieval_cohorts: retrievalCohorts,
+  final_outcome: stopReason,
+  tokens_spent: budget.spent() - runTokenStart,
+  results: measuredResults,
 }
