@@ -8705,6 +8705,31 @@ void FUN_000c4a40(int16_t function_index, char *buffer)
   FUN_0008dc30(buffer, ")");
 }
 
+/* 0xc4ae0 — Copy the string at a script-function descriptor's field_10 into a
+ * caller-supplied buffer.
+ *
+ * Companion to FUN_000c4a40 (which formats the usage signature): this one just
+ * hands back one already-formed string from the same descriptor.  What field_10
+ * holds is not proven here — the descriptor's name is at +0x4 and its usage
+ * string at +0x14, so +0x10 is a third, distinct char* — so it is left
+ * unnamed.
+ *
+ * ABI (000c4ae0..000c4afa): the function index arrives in EAX (PUSH EAX at
+ * 000c4ae3 forwards it as hs_function_table_get's single cdecl argument), while
+ * the destination buffer is a real stack parameter at [EBP+8].  Ghidra
+ * prototypes this `void FUN_000c4ae0(void)` and drops both.
+ *
+ * The ADD ESP,0xc at 000c4af6 is one combined cdecl cleanup for
+ * hs_function_table_get (0x4) plus csstrcpy (0x8) — not a 3-argument call.
+ * csstrcpy's char* return is discarded. */
+void FUN_000c4ae0(int16_t function_index, char *buffer)
+{
+  char *desc;
+
+  desc = (char *)hs_function_table_get(function_index);
+  csstrcpy(buffer, *(const char **)(desc + 0x10));
+}
+
 /* 0xc4b00 — Look up a scenario script by name and start its thread.
  * Resolves the name through hs_find_script_by_name, then fetches the script
  * element from the scripts tag_block at scenario+0x49c (element size 0x5c) and

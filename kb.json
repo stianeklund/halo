@@ -11582,7 +11582,8 @@
     },
     {
      "addr": "0xc4ae0",
-     "decl": "void FUN_000c4ae0(void);"
+     "decl": "void FUN_000c4ae0(int16_t function_index@<eax>, char *buffer);",
+     "ported": true
     },
     {
      "addr": "0xc4b00",
