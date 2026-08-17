@@ -7561,6 +7561,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xc55d0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The function validates and collects an HS function call's linked argument-node chain into the caller-provided array."
+      ],
+      "uncertain": [
+        "The exact formal name and minimum capacity contract of the caller-provided argument_nodes buffer are inferred from the five callers rather than a recovered type definition."
+      ]
+    },
     "0xc5680": {
       "kind": "function",
       "status": "ported",

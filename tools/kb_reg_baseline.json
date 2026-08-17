@@ -275,6 +275,7 @@
     "0xc4900": "void hs_report_compile_error(void *error_info, char *error_text@<esi>, char *script_element@<ebx>, void *source_start@<edi>);",
     "0xc4a40": "void FUN_000c4a40(int16_t function_index@<eax>, char *buffer@<esi>);",
     "0xc4ae0": "void FUN_000c4ae0(int16_t function_index@<eax>, char *buffer);",
+    "0xc55d0": "bool FUN_000c55d0(const char *function_name, int *argument_nodes, int syntax_node@<edi>, int16_t expected_count@<bx>);",
     "0xc5730": "char *hs_compile_initialize(int source_file_size@<edi>, void *source_ptr);",
     "0xc57d0": "int FUN_000c57d0(char *str@<ebx>);",
     "0xc5840": "bool FUN_000c5840(int datum_index @<eax>);",

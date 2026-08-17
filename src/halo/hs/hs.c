@@ -9512,6 +9512,43 @@ int FUN_000c5310(int source_node, int arg_node)
   return NONE;
 }
 
+/* 0xc55d0 — Validate a function call's argument chain.
+ *
+ * ABI confirmed from all five callers: `function_name` and
+ * `argument_nodes` are stack arguments; `syntax_node` is EDI and
+ * `expected_count` is BX.  SI/BX are intentionally int16_t because the
+ * original uses `CMP SI,BX` and `MOVSX ECX,SI` for the output index.
+ */
+bool FUN_000c55d0(const char *function_name, int *argument_nodes,
+                  int syntax_node, int16_t expected_count)
+{
+  char *node;
+  int argument_node;
+  int16_t argument_count;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, syntax_node);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+  argument_node = *(int *)(node + 8);
+  argument_count = 0;
+
+  while (argument_node != NONE && argument_count < expected_count) {
+    argument_nodes[argument_count] = argument_node;
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, argument_node);
+    argument_node = *(int *)(node + 8);
+    argument_count++;
+  }
+
+  if (argument_count == expected_count && argument_node == NONE)
+    return true;
+
+  crt_sprintf((char *)0x46b704, "the %s call requires %d arguments.",
+              function_name, (int)expected_count);
+  *(const char **)0x46b6fc = (const char *)0x46b704;
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, syntax_node);
+  *(int *)0x46b700 = *(int *)(node + 0xc);
+  return false;
+}
+
 /* Reset the HaloScript compile state.  Asserts that the compiler is not
  * already initialized (global at 0x46b6e0).  Zeroes compile globals and
  * stores the recompile flag (param_1) at 0x46b805.  If param_1 is non-zero,

@@ -11666,7 +11666,8 @@
     },
     {
      "addr": "0xc55d0",
-     "decl": "void FUN_000c55d0(void);"
+     "decl": "bool FUN_000c55d0(const char *function_name, int *argument_nodes, int syntax_node@<edi>, int16_t expected_count@<bx>);",
+     "ported": true
     },
     {
      "addr": "0xc5680",
