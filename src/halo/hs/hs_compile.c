@@ -1821,6 +1821,93 @@ bool hs_macro_function_parse(int16_t function_index, int datum_index)
   return false;
 }
 
+/* 0xc8120 — Parse the (if <condition> <then> [<else>]) special form.
+ * Walks the call node's argument list: the head node (expression+0x10) links
+ * to the condition, whose sibling (+0x8) is the <then> form, whose sibling is
+ * the optional <else> form.  A missing condition or <then>, or a fourth
+ * argument after <else>, emits the syntax error into the compile-error
+ * globals (message at 0x46b6fc, source offset at 0x46b700) and returns false.
+ * The condition is type-checked as boolean (5); <then> is checked against the
+ * call node's own type (expression+0x4), and when the call is still untyped
+ * the resolved <then> type is propagated back into it before <else> is
+ * checked.  If <then> fails to type-check without setting an error and the
+ * call is untyped, the <else> form is typed first (unparsed, 0) and its
+ * resolved type is used to re-check <then>. */
+bool hs_parse_if(int16_t function_index, int datum_index)
+{
+  bool result;
+  char *expression;
+  char *node;
+  int condition_index;
+  int then_index;
+  int else_index;
+  int16_t type;
+
+  result = false;
+  expression = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+  condition_index = *(int *)(node + 0x8);
+
+  if (function_index != 2) {
+    display_assert("function_index==_hs_function_if",
+                   "c:\\halo\\source\\hs\\hs_library_internal_compile.h", 0x5b,
+                   1);
+    system_exit(-1);
+  }
+
+  if (condition_index != -1) {
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, condition_index);
+    then_index = *(int *)(node + 0x8);
+    if (then_index != -1) {
+      node = (char *)datum_get(*(data_t **)0x5aa6c8, then_index);
+      else_index = *(int *)(node + 0x8);
+      if (else_index == -1 ||
+          (node = (char *)datum_get(*(data_t **)0x5aa6c8, else_index),
+           *(int *)(node + 0x8) == -1)) {
+        if (!hs_type_check(condition_index, 5))
+          return result;
+
+        if (hs_type_check(then_index, *(int16_t *)(expression + 0x4))) {
+          if (*(int16_t *)(expression + 0x4) == 0) {
+            node = (char *)datum_get(*(data_t **)0x5aa6c8, then_index);
+            *(int16_t *)(expression + 0x4) = *(int16_t *)(node + 0x4);
+          }
+          if (else_index != -1) {
+            result = hs_type_check(else_index, *(int16_t *)(expression + 0x4));
+            if (!result)
+              return result;
+          }
+          result = true;
+          return result;
+        }
+
+        /* <then> did not type-check.  Only retry through <else> when no
+         * error message was produced and the call is still untyped. */
+        if (*(int *)0x46b6fc != 0)
+          return result;
+        if (*(int16_t *)(expression + 0x4) != 0)
+          return result;
+        if (else_index == -1)
+          return result;
+        if (!hs_type_check(else_index, 0))
+          return result;
+
+        node = (char *)datum_get(*(data_t **)0x5aa6c8, else_index);
+        type = *(int16_t *)(node + 0x4);
+        *(int16_t *)(expression + 0x4) = type;
+        result = hs_type_check(then_index, type);
+        return result;
+      }
+    }
+  }
+
+  *(const char **)0x46b6fc = "i expected (if <condition> <then> [<else>]).";
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  *(int *)0x46b700 = *(int *)(node + 0xc);
+  return result;
+}
+
 /* Recompile all HS scripts and globals in the current scenario (0xc93f0).
  * First resizes the scenario's HS string data block (scenario+0x488) to the
  * current source_size, then initialises the compile globals for a new pass.
