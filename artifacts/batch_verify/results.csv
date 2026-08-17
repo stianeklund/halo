@@ -99,7 +99,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x3ca40,actor_set_dormant,stubbable,actors.obj,pass,,20,50,0
 0x3cb50,FUN_0003cb50,stubbable,actors.obj,error,emulation_error,0,50,0
 0x3cbc0,actor_delete_props,stubbable,actors.obj,error,emulation_error,0,50,0
-0x3cc10,actor_delete,stubbable,actors.obj,pass,,1,50,0
+0x3cc10,actor_delete,stubbable,actors.obj,error,timeout,0,0,0
 0x3cd30,actor_swarm_cache_new,stubbable,actors.obj,pass,,50,50,0
 0x3ce40,actor_get_running_blind_vector,stubbable,actors.obj,pass,,50,50,0
 0x3cf10,actor_kill,stubbable,actors.obj,pass,,42,50,0
@@ -923,6 +923,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0xc1f00,FUN_000c1f00,stubbable,hs.obj,pass,,50,50,0
 0xc1f20,FUN_000c1f20,stubbable,hs.obj,pass,,50,50,0
 0xc1f40,FUN_000c1f40,stubbable,hs.obj,pass,,50,50,0
+0xc1f80,FUN_000c1f80,stubbable,hs.obj,pass,,50,50,0
 0xc1fa0,FUN_000c1fa0,stubbable,hs.obj,pass,,50,50,0
 0xc1fc0,FUN_000c1fc0,stubbable,hs.obj,pass,,50,50,0
 0xc2000,FUN_000c2000,stubbable,hs.obj,pass,,50,50,0
@@ -930,6 +931,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0xc2080,FUN_000c2080,stubbable,hs.obj,pass,,50,50,0
 0xc20c0,FUN_000c20c0,stubbable,hs.obj,pass,,50,50,0
 0xc2100,FUN_000c2100,stubbable,hs.obj,pass,,50,50,0
+0xc2120,FUN_000c2120,stubbable,hs.obj,not_applicable,lifted_extract_failed,0,0,0
 0xc2140,FUN_000c2140,stubbable,hs.obj,pass,,50,50,0
 0xc2160,FUN_000c2160,stubbable,hs.obj,pass,,50,50,0
 0xc2180,FUN_000c2180,stubbable,hs.obj,pass,,50,50,0
@@ -1035,9 +1037,17 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0xc39b0,FUN_000c39b0,stubbable,hs.obj,pass,,50,50,0
 0xc39f0,FUN_000c39f0,stubbable,hs.obj,pass,,50,50,0
 0xc3a10,FUN_000c3a10,stubbable,hs.obj,pass,,50,50,0
+0xc3a50,hs_scenario_merge,leaf,hs.obj,pass,,50,50,0
 0xc3db0,hs_find_tag_reference_by_index,stubbable,hs.obj,pass,,50,50,0
 0xc4010,FUN_000c4010,stubbable,hs.obj,pass,,50,50,0
+0xc4030,FUN_000c4030,stubbable,hs.obj,not_applicable,lifted_extract_failed,0,0,0
+0xc4130,FUN_000c4130,stubbable,hs.obj,not_applicable,lifted_extract_failed,0,0,0
+0xc41b0,FUN_000c41b0,data_only,hs.obj,not_applicable,lifted_extract_failed,0,0,0
+0xc41e0,FUN_000c41e0,data_only,hs.obj,not_applicable,lifted_extract_failed,0,0,0
+0xc4580,hs_tokens_enumerate,stubbable,hs.obj,pass,,50,50,0
 0xc4770,FUN_000c4770,stubbable,hs.obj,pass,,50,50,0
+0xc4a40,FUN_000c4a40,stubbable,hs.obj,not_applicable,lifted_extract_failed,0,0,0
+0xc4ae0,FUN_000c4ae0,stubbable,hs.obj,not_applicable,lifted_extract_failed,0,0,0
 0xc4b00,hs_evaluate_by_name,stubbable,hs.obj,fail,divergence,0,50,0
 0xc4b40,FUN_000c4b40,stubbable,hs.obj,pass,,50,50,0
 0xc4b60,FUN_000c4b60,stubbable,hs.obj,pass,,50,50,0
@@ -1387,6 +1397,9 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x126db0,FUN_00126db0,stubbable,network_client_manager.obj,pass,,50,50,0
 0x126f40,network_game_client_idle,stubbable,network_client_manager.obj,pass,,50,50,0
 0x127070,FUN_00127070,stubbable,network_client_manager.obj,error,emulation_error,0,50,0
+0x124c10,network_game_client_get_machine,leaf,network_client_manager.obj,pass,,50,50,1
+0x124d50,network_game_client_address_matches_server,stubbable,network_client_manager.obj,pass,,50,50,0
+0x124e20,network_game_client_game_out_of_sync,stubbable,network_client_manager.obj,pass,,50,50,0
 0x125610,network_client_switch_to_postgame,stubbable,network_client_manager.obj,pass,,50,50,0
 0x127ea0,FUN_00127ea0,leaf,network_client_message_handler.obj,pass,,50,50,0
 0x1277f0,FUN_001277f0,stubbable,network_client_message_handler.obj,pass,,88,90,0
@@ -1404,7 +1417,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x11a700,FUN_0011a700,stubbable,network_messages.obj,pass,,20,50,0
 0x11a8e0,FUN_0011a8e0,leaf,network_messages.obj,pass,,49,50,1
 0x11aa40,FUN_0011aa40,stubbable,network_messages.obj,pass,,90,90,0
-0x11b650,FUN_0011b650,stubbable,network_messages.obj,fail,divergence,53,90,0
+0x11b650,FUN_0011b650,stubbable,network_messages.obj,fail,divergence,54,90,0
 0x11b750,FUN_0011b750,stubbable,network_messages.obj,fail,divergence,27,50,0
 0x11b850,hashtable_new,stubbable,network_messages.obj,pass,,50,50,0
 0x11b950,hashtable_set_user_data,leaf,network_messages.obj,pass,,50,50,1
@@ -2520,7 +2533,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x1ab730,FUN_001ab730,leaf,units.obj,pass,,50,50,0
 0x1ab770,FUN_001ab770,data_only,units.obj,pass,,50,50,0
 0x1ab7c0,unit_set_animation,stubbable,units.obj,pass,,50,50,0
-0x1ab870,FUN_001ab870,stubbable,units.obj,pass,,21,50,0
+0x1ab870,FUN_001ab870,stubbable,units.obj,error,timeout,0,0,0
 0x1ab8c0,FUN_001ab8c0,stubbable,units.obj,pass,,50,50,0
 0x1ab940,FUN_001ab940,leaf,units.obj,pass,,50,50,0
 0x1ab990,unit_detach_weapon,stubbable,units.obj,pass,,50,50,0
@@ -3067,7 +3080,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x69520,FUN_00069520,stubbable,tif_flush.obj,pass,,50,50,0
 0x69590,FUN_00069590,leaf,tif_flush.obj,fail,divergence,14,50,0
 0x695c0,FUN_000695c0,stubbable,tif_flush.obj,pass,,50,50,0
-0x6a070,FUN_0006a070,stubbable,tif_flush.obj,error,mem-limit,0,0,0
+0x6a070,FUN_0006a070,stubbable,tif_flush.obj,error,exit=-9,0,0,0
 0x6a190,FUN_0006a190,leaf,tif_flush.obj,fail,divergence,0,50,0
 0x6a210,FUN_0006a210,leaf,tif_flush.obj,pass,,35,50,0
 0x6a260,FUN_0006a260,stubbable,tif_flush.obj,fail,divergence,24,50,0
@@ -3096,6 +3109,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x6ccf0,FUN_0006ccf0,leaf,tif_open.obj,error,emulation_error,0,50,1
 0x6cd40,FUN_0006cd40,leaf,tif_open.obj,fail,divergence,0,50,0
 0x6cda0,FUN_0006cda0,leaf,tif_open.obj,error,emulation_error,0,50,0
+0x6cde0,FUN_0006cde0,leaf,tif_open.obj,pass,,50,50,0
 0x6ce60,FUN_0006ce60,stubbable,tif_open.obj,pass,,50,50,0
 0x6d140,FUN_0006d140,leaf,tif_open.obj,pass,,50,50,0
 0x6d180,FUN_0006d180,leaf,tif_open.obj,pass,,50,50,0
@@ -3302,7 +3316,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x1479e0,collision_surface_test_point2d,stubbable,collision_bsp.obj,pass,,50,50,0
 0x147d10,collision_surface_test_line2d,stubbable,collision_bsp.obj,pass,,50,50,0
 0x1486e0,FUN_001486e0,leaf,collision_bsp.obj,pass,,24,50,0
-0x148b20,collision_bsp_test_pill_new,leaf,collision_bsp.obj,error,emulation_error,0,50,0
+0x148b20,collision_bsp_test_pill_new,leaf,collision_bsp.obj,error,timeout,0,0,0
 0x1493b0,collision_bsp_test_sphere,data_only,collision_bsp.obj,error,emulation_error,0,50,0
 0x14dc30,FUN_0014dc30,stubbable,collision_bsp.obj,pass,,50,50,0
 0x14dce0,FUN_0014dce0,leaf,collision_bsp.obj,error,timeout,0,0,0
@@ -3328,7 +3342,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x1d7cb4,FUN_001d7cb4,data_only,XAPILIB:xbox_crt.obj,not_applicable,lifted_extract_failed,0,0,0
 0x8d410,FUN_0008d410,data_only,static_camera.obj,not_applicable,oracle_truncated,0,0,0
 0x1700d0,FUN_001700d0,stubbable,rasterizer_xbox_screen_effect.obj,pass,,50,50,0
-0x171bc0,FUN_00171bc0,stubbable,rasterizer_xbox_screen_effect.obj,pass,,50,50,0
+0x171bc0,FUN_00171bc0,stubbable,rasterizer_xbox_screen_effect.obj,error,timeout,0,0,0
 0x172590,FUN_00172590,stubbable,rasterizer_xbox_shadows.obj,pass,,50,50,0
 0x173090,FUN_00173090,stubbable,rasterizer_xbox_shadows.obj,pass,,50,50,0
 0x16f910,FUN_0016f910,stubbable,rasterizer_xbox_profile.obj,pass,,50,50,0
