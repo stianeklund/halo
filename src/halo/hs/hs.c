@@ -8995,6 +8995,60 @@ void hs_dispose_from_old_map(void)
   hs_runtime_dispose();
 }
 
+/* 0xc4e90 — Dump every hs built-in function's signature and documentation
+ * text to "hs_doc.txt".
+ *
+ * Two records are written per table entry: the calling signature produced by
+ * FUN_000c4a40 (index in EAX, buffer in ESI — `MOV EAX,EDI` /
+ * `LEA ESI,[EBP-0x804]` at 000c4ef2/000c4eec), then the descriptor's
+ * field_10 string copied with csstrcpy.  Both go through the same 2048-byte
+ * stack buffer (frame is SUB ESP,0x804 = the buffer plus the 4-byte table
+ * cursor MSVC keeps at [EBP-4]).
+ *
+ * hs_function_table_get (0xc3d00) is inlined TWICE per iteration: its assert
+ * text, file and line (0x20a) appear verbatim at 000c4ecc and 000c4f1a.  The
+ * first inlined copy's table load is dead-code-eliminated — only its bounds
+ * test survives, ahead of the FUN_000c4a40 call; the second one's load feeds
+ * the csstrcpy source (`MOV ECX,[ESI]` / `MOV EDX,[ECX+0x10]`).  MSVC
+ * strength-reduces the indexing into the walking cursor (`ADD ESI,4`).
+ *
+ * The index is int16 throughout — `TEST DI,DI` / `CMP DI,0x1a2`, never the
+ * full EDI.  The ADD ESP,0x14 at 000c4f61 is one combined cdecl cleanup for
+ * csstrcpy (0x8) plus the second crt_fprintf (0xc), and csstrcpy's char*
+ * return is discarded.  crt_fopen's result is used unchecked. */
+void hs_doc(void)
+{
+  void *file;
+  int16_t function_index;
+  char buffer[2048];
+
+  file = crt_fopen("hs_doc.txt", "w");
+
+  for (function_index = 0; function_index < 0x1a2; function_index++) {
+    if (function_index < 0 || function_index >= 0x1a2) {
+      display_assert(
+        "function_index>=0 && function_index<hs_function_table_count",
+        "c:\\halo\\SOURCE\\hs\\hs.c", 0x20a, 1);
+      system_exit(-1);
+    }
+    FUN_000c4a40(function_index, buffer);
+    crt_fprintf(file, "%s\r\n", buffer);
+
+    if (function_index < 0 || function_index >= 0x1a2) {
+      display_assert(
+        "function_index>=0 && function_index<hs_function_table_count",
+        "c:\\halo\\SOURCE\\hs\\hs.c", 0x20a, 1);
+      system_exit(-1);
+    }
+    csstrcpy(
+      buffer,
+      *(const char **)((char *)((void **)0x2f1588)[function_index] + 0x10));
+    crt_fprintf(file, "%s\r\n\r\n", buffer);
+  }
+
+  crt_fclose(file);
+}
+
 /* 0xc4ff0 — HS console command handler: print documentation.
  * Calls hs_doc() to dump HaloScript documentation to the console,
  * then returns void to the HS thread. */
