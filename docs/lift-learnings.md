@@ -1956,3 +1956,51 @@ leftovers) and at least one `fcomps`↔`fucompp` replace is present.
 **Rule.** Do not atlas-chase `fcom_bound_sense` / `loadw_field_width` on a
 function whose only float compares are `!=`/`==` asserts against 0.0f.
 Mark `capped_confirmed` and land at the measured score.
+
+## 48. Effect `marker_count` vs Points/Forwards Buffer Length — Named Marker Reads Stack Garbage
+
+`effect_new_unattached_from_markers` / `effect_new_attached_from_markers`
+index `marker_points[i]` and `marker_forwards[i]` as `float[3]` slots for
+`i` in `[0, marker_count)`. The name table (`effect_definition`) maps event
+marker strings onto those slots. `"gravity"` is slot 1 in the projectile
+detonation table `{ "", "gravity" }` (`FUN_000f8920`, count=2).
+
+MSVC laid slot 1 over the next stack local. The original of `FUN_000f8920`
+makes that explicit:
+
+```
+; pos[0] at EBP-0x30; copy into the second marker point
+mov [ebp-0x24], edx   ; x
+mov [ebp-0x20], eax   ; y
+mov [ebp-0x1c], ecx   ; z
+```
+
+A clang lift that declared `float pos[3]` and passed `marker_count=2` left
+`positions[1]` as whatever followed on the stack — usually ~0. The explosion
+VFX (empty marker name, slot 0) stayed at the blast. The scorch event named
+`"gravity"` raycast from the map origin and stuck to the Derelict carousel
+floor (2026-08-17).
+
+The same hole exists for `marker_forwards` (the lift already widened `fwd` to
+`[6]` for this function) and for the 5-slot hit-effect table
+(`normal` / `incident` / `negative incident` / `reflection` / `gravity`).
+
+**Signals.**
+- `marker_count` is a literal `>= 2` and the points/forwards local is a
+  `float[N]` with `N < count * 3`.
+- A decal/particle appears at the map origin while the rest of the same
+  effect is at the blast.
+- The effect tag event's marker name is `"gravity"` (or any non-empty name
+  past slot 0).
+
+**Rule.** When the original passes `marker_count=N`, declare
+`float points[N * 3]` and `float forwards[N * 3]` and fill every slot the
+reference writes. Do not rely on clang stacking the next local where MSVC
+did. Copy `points[0..2]` into later slots when the binary does.
+
+**Automation.** `check_effect_marker_buffers` in
+`tools/audit/check_lift_hazards.py` (counter `marker_buf`, ERROR). Skips
+`marker_count < 2`, non-literal counts, and pointer parameters. Suppress a
+verified site with `/* hazard-ok: marker-buf */` on the call. Tests:
+`tools/audit/tests/test_effect_marker_buffers.py`, which also pins the
+`FUN_000f8920` `pos[6]` copy.
