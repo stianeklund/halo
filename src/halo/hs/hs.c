@@ -8337,6 +8337,31 @@ void FUN_000c4130(int16_t block_offset, int16_t name_offset, int element_size)
   }
 }
 
+/* 0xc4160 — Add the two fixed command names to the active token enumeration.
+ * Each literal is loaded directly into ESI before calling FUN_000c4030. */
+void FUN_000c4160(void)
+{
+  FUN_000c4030((const char *)0x25bb40);
+  FUN_000c4030((const char *)0x27b978);
+}
+
+/* 0xc4180 — Add all five name pointers in the fixed table at 0x2f156c.
+ * The original walks the table with EDI and counts down EBX; no slot is
+ * skipped or tested for NULL. */
+void FUN_000c4180(void)
+{
+  const char **name;
+  int remaining;
+
+  name = (const char **)0x2f156c;
+  remaining = 5;
+  do {
+    FUN_000c4030(*name);
+    name++;
+    remaining--;
+  } while (remaining != 0);
+}
+
 /* 0xc41b0 — Enumerate a fixed 0x2d-entry table of `char *` names at 0x2f14b8
  * into the active token enumeration.  One of the per-type enumerator thunks in
  * the table at 0x2f2208 (see hs_tokens_enumerate below); it takes no arguments
@@ -9007,6 +9032,24 @@ void hs_dispose_from_old_map(void)
   hs_runtime_dispose();
 }
 
+/* 0xc4e20 — Print a built-in function's usage and descriptor field_10 text.
+ * The 0x800-byte stack buffer is used for both console lines. */
+void hs_help(const char *name)
+{
+  int16_t function_index;
+  char *function;
+  char buffer[0x800];
+
+  function_index = hs_find_function_by_name(name);
+  if (function_index != -1) {
+    FUN_000c4a40(function_index, buffer);
+    console_printf(0, buffer);
+    function = (char *)hs_function_table_get(function_index);
+    csstrcpy(buffer, *(const char **)(function + 0x10));
+    console_printf(0, buffer);
+  }
+}
+
 /* 0xc4e90 — Dump every hs built-in function's signature and documentation
  * text to "hs_doc.txt".
  *
@@ -9081,7 +9124,7 @@ void FUN_000c5010(int16_t function_index, int thread_datum, char init)
 
   result = hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != 0) {
-    hs_help(*(int *)result);
+    hs_help((const char *)(uintptr_t)*(int *)result);
     hs_return(thread_datum, 0);
   }
 }

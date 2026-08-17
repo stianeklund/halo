@@ -7452,17 +7452,6 @@
         "FUN_000c4010 is inferred to be a qsort/bsearch comparator over an array of char* because both stack parameters are dereferenced once before being passed to crt_stricmp; no call site was resolved to confirm the caller."
       ]
     },
-    "0xc40f0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "VC71 match is capped at 78.0% by the regarg_structural_ceiling: the default verify lane cannot pass this function's block parameter in EBX nor the FUN_000c4030 argument in ESI, so it loads block from a stack home slot and pushes the callee argument, shifting every EBP operand by four bytes and coalescing the stack cleanup to add esp,0x10 where the reference uses add esp,0xc.",
-        "The loop counter is a 16-bit value that is sign-extended for the comparison (inc edi; movsx eax,di; cmp eax,ecx; jl), and the element count is re-read from the tag_block header on every iteration rather than cached."
-      ],
-      "uncertain": [
-        "The equivalence lane could not run because no delinked hs.obj reference exists, so behavioural confirmation rests on instruction-level review of the 28-instruction reference rather than on differential execution."
-      ]
-    },
     "0xc4580": {
       "kind": "function",
       "status": "ported"
@@ -7542,7 +7531,10 @@
     },
     "0xc4e20": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "Descriptor field +0x10 is a char pointer copied into the help buffer, but its semantic role is not established by this wrapper alone."
+      ]
     },
     "0xc4e90": {
       "kind": "function",
@@ -16512,6 +16504,28 @@
     "0x5065a4": {
       "kind": "data",
       "status": "ported"
+    },
+    "0xc4160": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The fixed literal at 0x25bb40 is the string \"script\" and the literal at 0x27b978 is the string \"global\"."
+      ]
+    },
+    "0xc4180": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc40f0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "VC71 match is capped at 78.0% by the regarg_structural_ceiling: the default verify lane cannot pass this function's block parameter in EBX nor the FUN_000c4030 argument in ESI, so it loads block from a stack home slot and pushes the callee argument, shifting every EBP operand by four bytes and coalescing the stack cleanup to add esp,0x10 where the reference uses add esp,0xc.",
+        "The loop counter is a 16-bit value that is sign-extended for the comparison (inc edi; movsx eax,di; cmp eax,ecx; jl), and the element count is re-read from the tag_block header on every iteration rather than cached."
+      ],
+      "uncertain": [
+        "The equivalence lane could not run because no delinked hs.obj reference exists, so behavioural confirmation rests on instruction-level review of the 28-instruction reference rather than on differential execution."
+      ]
     }
   }
 }

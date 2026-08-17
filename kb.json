@@ -11531,11 +11531,13 @@
     },
     {
      "addr": "0xc4160",
-     "decl": "void FUN_000c4160(void);"
+     "decl": "void FUN_000c4160(void);",
+     "ported": true
     },
     {
      "addr": "0xc4180",
-     "decl": "void FUN_000c4180(void);"
+     "decl": "void FUN_000c4180(void);",
+     "ported": true
     },
     {
      "addr": "0xc41b0",
@@ -11624,7 +11626,8 @@
     },
     {
      "addr": "0xc4e20",
-     "decl": "void hs_help(int param_1);"
+     "decl": "void hs_help(const char *name);",
+     "ported": true
     },
     {
      "addr": "0xc4e90",
