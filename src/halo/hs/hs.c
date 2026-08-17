@@ -8252,6 +8252,46 @@ void FUN_000c4030(const char *name)
   }
 }
 
+/* 0xc40b0 — Enumerate a half-open range of an array of `char *` names into the
+ * active token enumeration.  A shared inner helper: the bounds arrive in
+ * registers (`CMP CX,AX` before any stack access, so AX and CX are live on
+ * entry and never loaded from the frame) and only the array base is a stack
+ * argument (`MOV ESI,[EBP+8]`).  It has no direct xrefs in the binary — every
+ * reachable caller passes the bounds in EAX/ECX, which is why the two int16
+ * parameters carry @<eax>/@<ecx> in kb.json.
+ *
+ * The range is [CX, AX): `CMP CX,AX` / `JGE` skips the whole body when the
+ * start is not below the end, so an empty or inverted range performs no calls.
+ * The comparison is signed (JGE) but the trip count is taken unsigned:
+ * `SUB EAX,ECX` / `MOVZX EBX,AX` truncates the difference to 16 bits before
+ * widening, so the count is the low 16 bits of (end - start), not a sign-
+ * extended int.
+ *
+ * The walking pointer is built once from the sign-extended start index
+ * (`MOVSX EDX,CX` / `LEA EDI,[ESI+EDX*4]`), and the loop is the same
+ * countdown shape as FUN_000c41b0: `MOV ESI,[EDI]` (the @<esi> argument to
+ * FUN_000c4030) / `CALL` / `ADD EDI,4` / `DEC EBX` / `JNZ`.  There is no NULL
+ * test on the slots — every entry in the range is passed through.
+ *
+ * What the names are, and what the two indices select, is not established by
+ * this function alone; only the half-open range, the 4-byte stride, and that
+ * FUN_000c4030 treats each slot as a NUL-terminated name are proven here. */
+void FUN_000c40b0(int16_t end_index, int16_t start_index, const char **names)
+{
+  const char **name;
+  unsigned int remaining;
+
+  if (start_index < end_index) {
+    name = names + start_index;
+    remaining = (unsigned int)(uint16_t)(end_index - start_index);
+    do {
+      FUN_000c4030(*name);
+      name++;
+      remaining--;
+    } while (remaining != 0);
+  }
+}
+
 /* 0xc4130 — Enumerate one scenario-resident tag_block into the active token
  * enumeration.  One of the per-type enumerator thunks in the table at
  * 0x2f2208 (see hs_tokens_enumerate below); the concrete block is selected by

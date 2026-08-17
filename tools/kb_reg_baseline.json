@@ -267,6 +267,7 @@
     "0xbcd40": "void player_update_nearby_biped(int datum_handle, int object_handle@<esi>);",
     "0xbdb00": "void player_update_spawn_state(int datum_handle@<ebx>);",
     "0xc4030": "void FUN_000c4030(const char *name@<esi>);",
+    "0xc40b0": "void FUN_000c40b0(int16_t end_index@<eax>, int16_t start_index@<ecx>, const char **names);",
     "0xc40f0": "void FUN_000c40f0(void *block@<ebx>, int16_t name_offset, int element_size);",
     "0xc4660": "bool hs_load_source_file(void *file_ref@<ebx>);",
     "0xc4900": "void hs_report_compile_error(void *error_info, char *error_text@<esi>, char *script_element@<ebx>, void *source_start@<edi>);",
