@@ -12540,6 +12540,21 @@
       "score": 100.0,
       "source": "src/halo/hs/hs.c"
     },
+    "FUN_000c2a80": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 83.6,
+      "addr": "0xc2a80",
+      "end": "0xc2ac2",
+      "kind": "auto",
+      "n_r": 28,
+      "opnd_percent": 83.6,
+      "raw_mnemonic_pct": 83.6,
+      "ref": "synth",
+      "ref_sha": "719ea32f0b4a6e44",
+      "score": 83.6,
+      "source": "src/halo/hs/hs.c"
+    },
     "FUN_000c2ad0": {
       "addr": "0xc2ad0",
       "end": "0xc2b09",
@@ -12755,6 +12770,36 @@
       "ref": "synth",
       "ref_sha": "07f5994b60c5e9e1",
       "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c2f90": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 83.6,
+      "addr": "0xc2f90",
+      "end": "0xc2fd2",
+      "kind": "auto",
+      "n_r": 28,
+      "opnd_percent": 83.6,
+      "raw_mnemonic_pct": 83.6,
+      "ref": "synth",
+      "ref_sha": "f6f62e69e68cafd0",
+      "score": 83.6,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c2fe0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 83.6,
+      "addr": "0xc2fe0",
+      "end": "0xc3022",
+      "kind": "auto",
+      "n_r": 28,
+      "opnd_percent": 83.6,
+      "raw_mnemonic_pct": 83.6,
+      "ref": "synth",
+      "ref_sha": "2c8450d225fa0f1a",
+      "score": 83.6,
       "source": "src/halo/hs/hs.c"
     },
     "FUN_000c3030": {
@@ -13029,6 +13074,21 @@
       "score": 100.0,
       "source": "src/halo/hs/hs.c"
     },
+    "FUN_000c35b0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 78.0,
+      "addr": "0xc35b0",
+      "end": "0xc35f9",
+      "kind": "auto",
+      "n_r": 30,
+      "opnd_percent": 74.6,
+      "raw_mnemonic_pct": 78.0,
+      "ref": "synth",
+      "ref_sha": "72492b4da0e904f8",
+      "score": 78.0,
+      "source": "src/halo/hs/hs.c"
+    },
     "FUN_000c3600": {
       "addr": "0xc3600",
       "end": "0xc3618",
@@ -13064,6 +13124,21 @@
       "ref": "synth",
       "ref_sha": "a07ddd375223740f",
       "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c3760": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 83.6,
+      "addr": "0xc3760",
+      "end": "0xc37a2",
+      "kind": "auto",
+      "n_r": 28,
+      "opnd_percent": 83.6,
+      "raw_mnemonic_pct": 83.6,
+      "ref": "synth",
+      "ref_sha": "8d6bca5adc343d60",
+      "score": 83.6,
       "source": "src/halo/hs/hs.c"
     },
     "FUN_000c37b0": {

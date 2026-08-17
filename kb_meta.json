@@ -7187,7 +7187,8 @@
         "The single ADD ESP,0x14 at 0xc2abc is MSVC merged cleanup for debug_sound_classes_set_distances (0xc) plus hs_return (0x8), so the call-site audit ARG_COUNT warning claiming hs_return takes five stack arguments is a false positive.",
         "Result block layout is inferred from the three dword reads at +0x0/+0x4/+0x8 and the callee decl debug_sound_classes_set_distances(char*, float, float): +0x0 is a char* pattern string, +0x4 and +0x8 are floats.",
         "The three stack parameters at [EBP+8], [EBP+0xc] and [EBP+0x10] are the standard HaloScript evaluator triple (function_index, thread_datum, init), inferred from the push order PUSH EAX / PUSH ESI / PUSH ECX into hs_macro_function_evaluate and from the identical frame shape of the neighbouring handlers at 0xc2a40 and 0xc2ad0.",
-        "The evaluator result block is three dwords: a char* pattern at +0x0 pushed via PUSH EDX, and two raw 4-byte float loads at +0x4 and +0x8 marshalled with SUB ESP,8 plus FSTP, so both fields are floats rather than the integers Ghidra's (float)puVar1[N] cast would imply."
+        "The evaluator result block is three dwords: a char* pattern at +0x0 pushed via PUSH EDX, and two raw 4-byte float loads at +0x4 and +0x8 marshalled with SUB ESP,8 plus FSTP, so both fields are floats rather than the integers Ghidra's (float)puVar1[N] cast would imply.",
+        "The evaluated result record is treated as { char *pattern; float first_distance; float second_distance } based on the target's raw loads at offsets +0x0, +0x4, and +0x8."
       ],
       "uncertain": [
         "The semantic roles of the two float fields are unproven: only their stack-slot order is confirmed (result+1 is the second C argument, result+2 the third), so calling them min/max distance rather than dist1/dist2 would exceed the binary evidence.",
@@ -7199,7 +7200,7 @@
     },
     "0xc2f90": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Parameter names function_index/thread_datum/init are inferred from the shared hs.obj script-handler dispatch shape and the ported callee hs_macro_function_evaluate's kb declaration, not from any string or symbol in the binary.",
         "The evaluated argument record is typed as int at +0x0 and float at +0x4 and +0x8 purely from the load widths and FPU usage at this one call site (MOV EDX,[EAX] versus FLD dword [EAX+4] / FLD dword [EAX+8]); the record's real struct type is unrecovered.",
@@ -7211,7 +7212,8 @@
         "The kb.json decl for scripted_player_effect_set_translation (0xa2dc0) was widened from void(void) to (int, float, float) based solely on this call site's SUB ESP,8 / FSTP / PUSH EDX sequence; it had no other call sites in src/ so the widening was unambiguous but is unconfirmed by any second consumer.",
         "The evaluated-argument record returned by hs_macro_function_evaluate is laid out as an int handle at +0x0, a float at +0x4 and a float at +0x8, inferred from the MOV EDX,[EAX] and the two FLD dword ptr loads at [EAX+4] and [EAX+8].",
         "The consumer at 0xa2dc0 takes three cdecl stack arguments (int, float, float); its kb declaration was void(void) because the MSVC SUB ESP,8 plus paired FSTP float-argument idiom hides the arguments from Ghidra, and this lift widened it from that single call site.",
-        "The record field at +0x8 is the LAST C argument, not the second: it is FLD'ed first but FSTP'ed to the higher stack slot at [ESP+4], while the +0x4 field goes to [ESP]; swapping the two would translate the player by a transposed vector with no assert, no crash and no VC71 signal."
+        "The record field at +0x8 is the LAST C argument, not the second: it is FLD'ed first but FSTP'ed to the higher stack slot at [ESP+4], while the +0x4 field goes to [ESP]; swapping the two would translate the player by a transposed vector with no assert, no crash and no VC71 signal.",
+        "The evaluated result record is treated as { int value; float x; float y } based on the target's raw loads at offsets +0x0, +0x4, and +0x8."
       ],
       "uncertain": [
         "The kb declaration for callee 0xa2dc0 scripted_player_effect_set_translation was widened from void(void) to (int, float, float) using only this single call site, so the first parameter's true type (handle versus index versus enum) remains unknown.",
@@ -7226,7 +7228,7 @@
     },
     "0xc2fe0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "VC71 caps at 83.6% (27/28) because cl.exe 7.1 lowers each float-lvalue argument to a plain integer dword copy (movl field,reg / pushl reg) where the reference build uses subl esp,8 + flds/fstps; this is a toolchain lowering difference shared by the whole scripted_player_effect / debug_sound_classes float-forwarding handler family, not a lift defect.",
         "The single ADD ESP,0x14 at 0xc301c is combined cleanup for both the 0xa28e0 call (0xc bytes) and the hs_return call (8 bytes), so the call-site ARG_COUNT hazard reporting a five-argument hs_return is a false positive; hs_return remains a two-argument function.",
@@ -7236,7 +7238,8 @@
         "The three cdecl parameters (int16_t function_index, int thread_datum, char init) are inferred from the prologue reads at EBP+0x8/+0xc/+0x10 plus the uniform HaloScript macro-function handler shape shared by the whole 0xc0c30-0xc30b0 dispatch table, not from any symbol.",
         "The callee signature scripted_player_effect_set_rotation(int, float, float) at 0xa28e0 was widened from a stale void(void) kb decl using this single call site only (SUB ESP,0x8 plus two FSTP slots plus one PUSH EDX, cleaned by the 0xc of the combined ADD ESP,0x14); no other call site was examined, so the parameter names remain param_1..param_3.",
         "Callee 0xa28e0 scripted_player_effect_set_rotation was declared void(void) in kb.json; the call site at 0xc300f proves three cdecl args (int at record+0x0, float at record+0x4 via FSTP [ESP], float at record+0x8 via FSTP [ESP+4]), so the decl was widened to (int handle, float field_04, float field_08) with the parameter names left mechanical.",
-        "Consumer 0xa28e0 scripted_player_effect_set_rotation widened from Ghidra's void(void) to (int, float, float) on the evidence of THIS call site only: MOV EDX,[EAX] then SUB ESP,8 / FSTP [ESP+4] / FSTP [ESP] fixes the stack as int at +0, float at +4, float at +8."
+        "Consumer 0xa28e0 scripted_player_effect_set_rotation widened from Ghidra's void(void) to (int, float, float) on the evidence of THIS call site only: MOV EDX,[EAX] then SUB ESP,8 / FSTP [ESP+4] / FSTP [ESP] fixes the stack as int at +0, float at +4, float at +8.",
+        "The evaluated result record is treated as { int value; float x; float y } based on the target's raw loads at offsets +0x0, +0x4, and +0x8."
       ],
       "uncertain": [
         "VC71 is capped at 83.6% (27/28 insns) by the float-argument lowering gap: cl.exe 7.1 copies the two untouched float arguments through GPRs (movl 0x8(%eax),%edx / movl 0x4(%eax),%ecx / push) where the reference uses flds+fstps into explicit stack slots, which is bit-exact but costs one instruction per FSTP-slot float.",
@@ -7267,11 +7270,12 @@
     },
     "0xc35b0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Callee 0x16b270's signature (int, float, float, float) is binary-confirmed from its own prologue in the pristine XBE: mov ecx,[ebp+8]/mov [eax],ecx stores arg1 as a plain dword int, while [ebp+0xc], [ebp+0x10] and [ebp+0x14] are each FLD/FSTP'd into +0x4/+0x8/+0xc of the record hung off the global pointer at 0x47e4d0; the kb decl was widened from void(void) to match.",
         "The 78.0% VC71 score is the hs.obj float-arg lowering cap, not a lift defect: the score-context diff has exactly two non-equal ops, an insert of the lone flds 0xc(%eax) and a six-instruction replace of our movl/pushl pairs against the reference's subl $0xc,%esp + three fstps, with all 29 other instructions equal.",
-        "The evaluated-argument block returned by hs_macro_function_evaluate is read at four offsets (+0x00 dword int, +0x04/+0x08/+0x0c float) and forwarded verbatim to FUN_0016b270, whose own body stores them 1:1 into the record at global 0x47e4d0, so the block layout is int-then-three-floats."
+        "The evaluated-argument block returned by hs_macro_function_evaluate is read at four offsets (+0x00 dword int, +0x04/+0x08/+0x0c float) and forwarded verbatim to FUN_0016b270, whose own body stores them 1:1 into the record at global 0x47e4d0, so the block layout is int-then-three-floats.",
+        "The evaluated result record is treated as { int value; float x; float y; float z } based on the target's raw loads at offsets +0x0, +0x4, +0x8, and +0xc."
       ],
       "uncertain": [
         "No semantic name is assigned to this handler or to its consumer 0x16b270 because the consumer is unported and only writes an int plus three floats into an unnamed global record at 0x47e4d0, which does not identify the HaloScript builtin.",
@@ -7312,10 +7316,11 @@
     },
     "0xc3760": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The 0x17db20 argument order is left-to-right block[+0x0] int, block[+0x4] float, block[+0x8] float, proven by the destination stack slots (FSTP [ESP+4] holds +0x8 => arg3, FSTP [ESP] holds +0x4 => arg2, PUSH EDX => arg1); the FLD emission order loads +0x8 before +0x4 only because MSVC fills the deeper argument slot first.",
-        "hs_macro_function_evaluate's kb return type is int but the value is an evaluated-argument block pointer; it is cast to int* here exactly as in the sibling handlers, and the +0x0 field is read as a full dword (MOV EDX,[EAX]) with no int16 narrowing."
+        "hs_macro_function_evaluate's kb return type is int but the value is an evaluated-argument block pointer; it is cast to int* here exactly as in the sibling handlers, and the +0x0 field is read as a full dword (MOV EDX,[EAX]) with no int16 narrowing.",
+        "The evaluated result record is treated as { int value; float x; float y } based on the target's raw loads at offsets +0x0, +0x4, and +0x8."
       ],
       "uncertain": [
         "The consumer at 0x17db20 is unported and unnamed; its widened decl (int, float, float) is derived solely from this single call site, so the int parameter's true width and the two floats' semantic roles are unproven."

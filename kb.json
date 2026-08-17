@@ -11112,7 +11112,8 @@
     },
     {
      "addr": "0xc2a80",
-     "decl": "void FUN_000c2a80(void);"
+     "decl": "void FUN_000c2a80(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc2ad0",
@@ -11212,11 +11213,13 @@
     },
     {
      "addr": "0xc2f90",
-     "decl": "void FUN_000c2f90(void);"
+     "decl": "void FUN_000c2f90(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc2fe0",
-     "decl": "void FUN_000c2fe0(void);"
+     "decl": "void FUN_000c2fe0(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc3030",
@@ -11340,7 +11343,8 @@
     },
     {
      "addr": "0xc35b0",
-     "decl": "void FUN_000c35b0(void);"
+     "decl": "void FUN_000c35b0(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc3600",
@@ -11367,7 +11371,8 @@
     },
     {
      "addr": "0xc3760",
-     "decl": "void FUN_000c3760(void);"
+     "decl": "void FUN_000c3760(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xc37b0",
@@ -17556,7 +17561,7 @@
     },
     {
      "addr": "0xa28e0",
-     "decl": "void scripted_player_effect_set_rotation(void);"
+     "decl": "void scripted_player_effect_set_rotation(int param_1, float param_2, float param_3);"
     },
     {
      "addr": "0xa2920",
@@ -17600,7 +17605,7 @@
     },
     {
      "addr": "0xa2dc0",
-     "decl": "void scripted_player_effect_set_translation(void);"
+     "decl": "void scripted_player_effect_set_translation(int param_1, float param_2, float param_3);"
     },
     {
      "addr": "0xa2df0",
@@ -29938,7 +29943,7 @@
     },
     {
      "addr": "0x17db20",
-     "decl": "void FUN_0017db20(void);"
+     "decl": "void FUN_0017db20(int param_1, float param_2, float param_3);"
     },
     {
      "addr": "0x17db40",
@@ -36896,7 +36901,7 @@
     },
     {
      "addr": "0x16b270",
-     "decl": "void FUN_0016b270(void);"
+     "decl": "void FUN_0016b270(int param_1, float param_2, float param_3, float param_4);"
     },
     {
      "addr": "0x16b2b0",

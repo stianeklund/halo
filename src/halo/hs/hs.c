@@ -4978,6 +4978,23 @@ void FUN_000c2a40(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc2a80 — HS macro handler: forward a sound-class pattern and two raw
+ * float arguments. EAX result record layout is { char *pattern; float a;
+ * float b; }; the FLD/FSTP pairs at 0xc29c/0xc2a8 prove +4/+8 are floats. */
+void FUN_000c2a80(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    debug_sound_classes_set_distances((char *)result[0],
+                                      *(float *)((char *)result + 4),
+                                      *(float *)((char *)result + 8));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc2ad0 — HS script function handler: set the wet (reverb send) level for
  * the sound classes matching a name pattern.  Evaluates the macro arguments;
  * on success the result block holds a char* pattern string at +0x0 and a
@@ -5764,6 +5781,39 @@ void FUN_000c2f70(int16_t function_index, int thread_datum, char init)
 {
   FUN_001954d0();
   hs_return(thread_datum, 0);
+}
+
+/* 0xc2f90 — HS macro handler: forward { int, float, float } to the
+ * scripted-player translation consumer. The float values are raw record
+ * fields (+4 and +8), proven by the two push-then-FSTP argument slots. */
+void FUN_000c2f90(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    scripted_player_effect_set_translation(result[0],
+                                           *(float *)((char *)result + 4),
+                                           *(float *)((char *)result + 8));
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc2fe0 — HS macro handler: forward { int, float, float } to the
+ * scripted-player rotation consumer. */
+void FUN_000c2fe0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    scripted_player_effect_set_rotation(result[0],
+                                        *(float *)((char *)result + 4),
+                                        *(float *)((char *)result + 8));
+    hs_return(thread_datum, 0);
+  }
 }
 
 /* 0xc3030 — HaloScript macro-function handler that forwards an evaluated
@@ -7089,6 +7139,23 @@ void FUN_000c3590(int16_t function_index, int thread_datum, char init)
   hs_return(thread_datum, 0);
 }
 
+/* 0xc35b0 — HS macro handler: forward { int, float, float, float } to
+ * 0x16b270. Disassembly reads the three float dwords at +4/+8/+c with
+ * FLD/FSTP, so these must not be numerically converted from int. */
+void FUN_000c35b0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_0016b270(result[0], *(float *)((char *)result + 4),
+                 *(float *)((char *)result + 8),
+                 *(float *)((char *)result + 12));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc3600 — HaloScript function handler: invoke the 0x181150 dispatch target.
  *
  * Same one-shot handler shape as the 0xc3550/0xc3570/0xc3590 siblings above:
@@ -7271,6 +7338,21 @@ void FUN_000c3660(int16_t function_index, int thread_datum, char init)
                                                        thread_datum, init);
   if (result != 0) {
     FUN_0017da00(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc3760 — HS macro handler: forward { int, float, float } to 0x17db20.
+ * Both scalar fields are raw IEEE-754 record dwords (+4/+8). */
+void FUN_000c3760(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_0017db20(result[0], *(float *)((char *)result + 4),
+                 *(float *)((char *)result + 8));
     hs_return(thread_datum, 0);
   }
 }
