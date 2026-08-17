@@ -11976,7 +11976,8 @@
     },
     {
      "addr": "0xc95c0",
-     "decl": "unsigned char FUN_000c95c0(unsigned char value);"
+     "decl": "unsigned char FUN_000c95c0(unsigned char value);",
+     "ported": true
     },
     {
      "addr": "0xc95d0",

@@ -481,6 +481,23 @@ void hs_compile_cleanup(void)
   *(uint8_t *)0x46b6e0 = 0;
 }
 
+/* 0xc95c0 — Boolean-inverting accessor. Reads the caller's byte argument and
+ * returns 1 when it is zero, 0 otherwise.
+ *
+ * Binary evidence (0xc95c0..0xc95ce): the whole body is
+ *   MOV CL,byte ptr [EBP+8] / XOR EAX,EAX / TEST CL,CL / SETZ AL / POP EBP /
+ * RET so EAX is fully zeroed and only AL is set from the zero flag. Leaf: no
+ * callees, no globals, no memory writes. Ghidra's decompile for this address
+ * is stale (it models the function as void(void) with an empty body); the
+ * disassembly above is authoritative.
+ *
+ * The single caller is FUN_000bdef0 (CALL at 0xbdf19). Semantic role is
+ * unknown beyond the byte-inversion, so the name is left as FUN_000c95c0. */
+unsigned char FUN_000c95c0(unsigned char value)
+{
+  return (unsigned char)(value == 0);
+}
+
 /* HaloScript runtime — thread management and script execution. */
 
 /* Dispose runtime state from old map: invalidate thread data and
