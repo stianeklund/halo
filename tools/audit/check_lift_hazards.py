@@ -1062,6 +1062,119 @@ def check_packer_input_arity(filepath, content, lines):
     return errors
 
 
+# ---------------------------------------------------------------------------
+# §48: effect marker_count vs points/forwards buffer length (ERROR)
+# ---------------------------------------------------------------------------
+# effect_new_*_from_markers indexes marker_points[i] and marker_forwards[i]
+# as float[3] slots for i in [0, marker_count). MSVC often laid a second
+# (or 5th) slot over the next stack local. A clang lift that declares
+# float pos[3] and passes marker_count=2 leaves positions[1] as whatever
+# follows on the stack — usually ~0. Named events ("gravity") then spawn
+# at the map origin (grenade scorch, 2026-08-17).
+_EFFECT_MARKER_FNS = {
+    'effect_new_unattached_from_markers': (3, 5, 6),
+    'effect_new_attached_from_markers': (4, 6, 7),
+}
+_EFFECT_MARKER_CALL_RE = re.compile(
+    r'\b(' + '|'.join(re.escape(n) for n in _EFFECT_MARKER_FNS) + r')\s*\('
+)
+_FLOAT_DIM_DECL_RE = re.compile(
+    r'\bfloat\s+(\w+)\s*\[\s*([^]]+)\]'
+)
+_CAST_WORDS = frozenset((
+    'float', 'vector3_t', 'void', 'int', 'char', 'short', 'const',
+    'unsigned', 'signed', 'long', 'double',
+))
+
+
+def _eval_array_dim(expr):
+    expr = expr.strip()
+    if re.fullmatch(r'0x[0-9a-fA-F]+', expr):
+        return int(expr, 16)
+    if re.fullmatch(r'\d+', expr):
+        return int(expr)
+    m = re.fullmatch(r'(\d+)\s*\*\s*(\d+)', expr)
+    if m:
+        return int(m.group(1)) * int(m.group(2))
+    return None
+
+
+def _arg_base_ident(arg):
+    ids = [w for w in re.findall(r'[A-Za-z_]\w*', arg) if w not in _CAST_WORDS]
+    return ids[-1] if ids else None
+
+
+def check_effect_marker_buffers(filepath, content, lines):
+    """Flag effect_new_*_from_markers calls whose points/forwards array is
+    shorter than marker_count * 3 floats (lift-learnings §48)."""
+    errors = []
+    relpath = os.path.relpath(filepath, ROOT_DIR)
+    blanked = _blank_comments_and_literals(content)
+    line_starts = [0]
+    for ln in lines:
+        line_starts.append(line_starts[-1] + len(ln) + 1)
+
+    def offset_to_line(off):
+        lo, hi = 0, len(line_starts) - 1
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            if line_starts[mid] <= off:
+                lo = mid
+            else:
+                hi = mid - 1
+        return lo + 1
+
+    for start, end in _split_functions(lines):
+        decls = {}
+        for line in lines[start - 1:end]:
+            for m in _FLOAT_DIM_DECL_RE.finditer(line):
+                dim = _eval_array_dim(m.group(2))
+                if dim is not None:
+                    decls[m.group(1)] = dim
+        if not decls:
+            continue
+        chunk_start_off = line_starts[start - 1]
+        chunk_end_off = (line_starts[end] if end < len(line_starts)
+                         else len(blanked))
+        segment = blanked[chunk_start_off:chunk_end_off]
+        for cm in _EFFECT_MARKER_CALL_RE.finditer(segment):
+            name = cm.group(1)
+            args, end_pos = _extract_args(segment, cm.end() - 1)
+            if not args:
+                continue
+            count_i, pts_i, fwd_i = _EFFECT_MARKER_FNS[name]
+            if max(count_i, pts_i, fwd_i) >= len(args):
+                continue
+            count_s = args[count_i].strip()
+            if not re.fullmatch(r'\d+', count_s):
+                continue
+            count = int(count_s)
+            if count < 2:
+                continue
+            need = count * 3
+            lineno = offset_to_line(chunk_start_off + cm.start())
+            end_line = offset_to_line(
+                chunk_start_off + (end_pos if end_pos is not None else cm.start())
+            )
+            span = '\n'.join(lines[lineno - 1:end_line])
+            if 'hazard-ok' in span:
+                continue
+            for kind, idx in (('marker_points', pts_i),
+                              ('marker_forwards', fwd_i)):
+                ident = _arg_base_ident(args[idx])
+                if ident is None or ident not in decls:
+                    continue
+                have = decls[ident]
+                if have < need:
+                    errors.append(
+                        f'  {relpath}:{lineno}: {name} marker_count={count} '
+                        f'reads {need} floats from {kind} but {ident}[{have}] '
+                        f'is short — MSVC overlap / named marker sees stack '
+                        f'garbage (lift-learnings §48)'
+                    )
+    return errors
+
+
 X87_MATH_PATTERN = re.compile(
     r'\b((?:cos|sin|tan|fmod)f?)\s*\('
 )
@@ -2268,6 +2381,7 @@ def main():
     all_output_size_errors = []
     all_wide_out_errors = []
     all_packer_arity_errors = []
+    all_marker_buf_errors = []
     all_x87_math_errors = []
     all_concat_errors = []
     all_float_smuggle_errors = []
@@ -2297,6 +2411,7 @@ def main():
         all_output_size_errors.extend(check_callee_output_size(fpath, content, lines))
         all_wide_out_errors.extend(check_wide_out_params(fpath, content, lines))
         all_packer_arity_errors.extend(check_packer_input_arity(fpath, content, lines))
+        all_marker_buf_errors.extend(check_effect_marker_buffers(fpath, content, lines))
         all_x87_math_errors.extend(check_x87_math(fpath, content, lines))
         all_concat_errors.extend(check_concat_survival(fpath, content, lines))
         all_float_smuggle_errors.extend(check_float_int_bit_smuggling(fpath, content, lines))
@@ -2328,6 +2443,7 @@ def main():
             f'callee_output_size: {len(all_output_size_errors)}, '
             f'wide_out_params: {len(all_wide_out_errors)}, '
             f'packer_arity: {len(all_packer_arity_errors)}, '
+            f'marker_buf: {len(all_marker_buf_errors)}, '
             f'x87_math: {len(all_x87_math_errors)}, '
             f'concat_survival: {len(all_concat_errors)}, '
             f'float_smuggling: {len(all_float_smuggle_errors)}, '
@@ -2352,6 +2468,7 @@ def main():
                  len(all_alias_errors) + len(all_frame_errors) +
                  len(all_output_size_errors) + len(all_wide_out_errors) +
                  len(all_packer_arity_errors) +
+                 len(all_marker_buf_errors) +
                  len(all_x87_math_errors) +
                  len(all_concat_errors) + len(all_float_smuggle_errors) +
                  len(all_addr_value_add_errors) +
@@ -2445,6 +2562,20 @@ def main():
                 file=sys.stderr,
             )
             for e in all_packer_arity_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
+        if all_marker_buf_errors:
+            print(
+                'ERROR: effect_new_*_from_markers marker_count exceeds the\n'
+                'local points/forwards float[] length. The callee indexes\n'
+                'slot i as float[3] for i < count; a short array leaves\n'
+                'named markers ("gravity") reading stack garbage — usually\n'
+                '~0, so decals/particles spawn at the map origin\n'
+                '(lift-learnings §48 — grenade scorch on Derelict):\n',
+                file=sys.stderr,
+            )
+            for e in all_marker_buf_errors:
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 
@@ -2703,6 +2834,7 @@ def main():
     if all_void_eax_errors or all_noparam_decl_errors or all_intrinsic_errors \
             or all_buffer_errors \
             or all_output_size_errors or all_packer_arity_errors \
+            or all_marker_buf_errors \
             or all_concat_errors or all_literal_deref_errors:
         return 1
 

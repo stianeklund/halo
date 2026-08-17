@@ -1150,12 +1150,76 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
   char *ef = (char *)effect;
   char *loc_entry = (char *)part;
   uint32_t tag_class = *(uint32_t *)(loc_entry + 0x14);
+  float *vel = (float *)(ef + 0x24);
+  float dir_scratch[3];
+  float direction[3];
+  struct {
+    float scale_factor;
+    float trans_vel[3];
+  } particle_data;
+  unsigned int *seed;
 
   switch (tag_class) {
+  case 0x6c696768: {
+    char *loc = (char *)location;
+    uint16_t loc_node = *(uint16_t *)(loc + 2);
+    int marker = (loc_node == 0xffff) ? -1 : (int)(loc_node & 0x7fff);
+
+    FUN_0013b290(*(int *)(loc_entry + 0x24), *(int *)(ef + 0x3c), marker,
+                 (float *)(loc + 0x30), (float *)(loc + 0xc), scale);
+    break;
+  }
+
+  case 0x6a707421: {
+    char damage_params[0x54];
+    int object_index = *(int *)(ef + 0x40);
+    void *object = object_try_and_get_and_verify_type(object_index, -1);
+    damage_data_new(damage_params, *(int *)(loc_entry + 0x24));
+
+    if (object != NULL) {
+      *(int *)(damage_params + 0x08) = *(int *)((char *)object + 0x70);
+      *(int *)(damage_params + 0x0c) = object_index;
+      *(int16_t *)(damage_params + 0x10) = *(int16_t *)((char *)object + 0x68);
+    }
+
+    *(float *)(damage_params + 0x40) = scale;
+    *(int *)(damage_params + 0x14) = *(int *)(ef + 0x10);
+    *(int *)(damage_params + 0x18) = *(int *)(ef + 0x14);
+    *(float *)(damage_params + 0x1c) = position[0];
+    *(float *)(damage_params + 0x20) = position[1];
+    *(float *)(damage_params + 0x24) = position[2];
+    *(float *)(damage_params + 0x28) = position[0];
+    *(float *)(damage_params + 0x2c) = position[1];
+    *(float *)(damage_params + 0x30) = position[2];
+    *(float *)(damage_params + 0x34) = forward[0];
+    *(float *)(damage_params + 0x38) = forward[1];
+    *(float *)(damage_params + 0x3c) = forward[2];
+
+    FUN_00138e30(damage_params, -1);
+    break;
+  }
+
+  case 0x64656361: {
+    float decal_scale;
+
+    seed = (unsigned int *)random_math_get_local_seed_address();
+    FUN_0009d1f0(effect, seed, forward, dir_scratch, direction,
+                 *(float *)(loc_entry + 0x40), *(float *)(loc_entry + 0x44),
+                 *(float *)(loc_entry + 0x48),
+                 (int)*(uint32_t *)(loc_entry + 0x60),
+                 (int)*(uint32_t *)(loc_entry + 0x64));
+
+    seed = (unsigned int *)random_math_get_local_seed_address();
+    decal_scale = random_real_range((int *)seed, *(float *)(loc_entry + 0x54),
+                                    *(float *)(loc_entry + 0x58));
+
+    FUN_0009c4b0(*(int *)(loc_entry + 0x24), position, direction, decal_scale,
+                 false, -1, 0);
+    break;
+  }
+
   case 0x6f626a65: {
     char placement[0x88];
-    float direction_scratch[3];
-    unsigned int *seed;
 
     object_placement_data_new(placement, *(int *)(loc_entry + 0x24),
                               *(int *)(ef + 0x40));
@@ -1171,15 +1235,15 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
     *(float *)(placement + 0x48) = up[2];
 
     seed = (unsigned int *)get_global_random_seed_address();
-    FUN_0009d1f0(effect, seed, forward, direction_scratch,
+    FUN_0009d1f0(effect, seed, forward, dir_scratch,
                  (float *)(placement + 0x28), *(float *)(loc_entry + 0x40),
                  *(float *)(loc_entry + 0x44), *(float *)(loc_entry + 0x48),
                  (int)*(uint32_t *)(loc_entry + 0x60),
                  (int)*(uint32_t *)(loc_entry + 0x64));
 
-    *(float *)(placement + 0x28) += *(float *)(ef + 0x24);
-    *(float *)(placement + 0x2c) += *(float *)(ef + 0x28);
-    *(float *)(placement + 0x30) += *(float *)(ef + 0x2c);
+    *(float *)(placement + 0x28) += vel[0];
+    *(float *)(placement + 0x2c) += vel[1];
+    *(float *)(placement + 0x30) += vel[2];
 
     seed = (unsigned int *)get_global_random_seed_address();
     effects_information_get((int)effect, *(uint32_t *)(loc_entry + 0x64), seed,
@@ -1192,114 +1256,12 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
     break;
   }
 
-  case 0x64656361: {
-    float direction[3];
-    float dir_scratch[3];
-    unsigned int *seed;
-    float decal_scale;
-
-    seed = random_math_get_local_seed_address();
-    FUN_0009d1f0(effect, seed, forward, dir_scratch, direction,
-                 *(float *)(loc_entry + 0x40), *(float *)(loc_entry + 0x44),
-                 *(float *)(loc_entry + 0x48),
-                 (int)*(uint32_t *)(loc_entry + 0x60),
-                 (int)*(uint32_t *)(loc_entry + 0x64));
-
-    seed = random_math_get_local_seed_address();
-    decal_scale = random_real_range((int *)seed, *(float *)(loc_entry + 0x54),
-                                    *(float *)(loc_entry + 0x58));
-
-    FUN_0009c4b0(*(int *)(loc_entry + 0x24), position, direction, decal_scale,
-                 false, -1, 0);
-    break;
-  }
-
-  case 0x6a707421: {
-    char damage_params[0x54]; /* damage_data_new clears through +0x53. */
-    void *object;
-
-    object = object_try_and_get_and_verify_type(*(int *)(ef + 0x40), -1);
-    damage_data_new(damage_params, *(int *)(loc_entry + 0x24));
-
-    if (object != NULL) {
-      *(int *)(damage_params + 0x08) = *(int *)((char *)object + 0x70);
-      *(int *)(damage_params + 0x0c) = *(int *)(ef + 0x40);
-      *(int16_t *)(damage_params + 0x10) = *(int16_t *)((char *)object + 0x68);
-    }
-
-    *(int *)(damage_params + 0x14) = *(int *)(ef + 0x10);
-    *(int *)(damage_params + 0x18) = *(int *)(ef + 0x14);
-    *(float *)(damage_params + 0x1c) = position[0];
-    *(float *)(damage_params + 0x20) = position[1];
-    *(float *)(damage_params + 0x24) = position[2];
-    *(float *)(damage_params + 0x28) = position[0];
-    *(float *)(damage_params + 0x2c) = position[1];
-    *(float *)(damage_params + 0x30) = position[2];
-    *(float *)(damage_params + 0x34) = forward[0];
-    *(float *)(damage_params + 0x38) = forward[1];
-    *(float *)(damage_params + 0x3c) = forward[2];
-    *(float *)(damage_params + 0x40) = scale;
-
-    FUN_00138e30(damage_params, -1);
-    break;
-  }
-
-  case 0x6c696768: {
-    char *loc = (char *)location;
-    uint16_t loc_node = *(uint16_t *)(loc + 2);
-    int marker;
-
-    if (loc_node == 0xffff)
-      marker = -1;
-    else
-      marker = (int)(loc_node & 0x7fff);
-
-    FUN_0013b290(*(int *)(loc_entry + 0x24), *(int *)(ef + 0x3c), marker,
-                 (float *)(loc + 0x30), (float *)(loc + 0xc), scale);
-    break;
-  }
-
-  case 0x7063746c: {
-    float velocity[3];
-    float dir_scratch[3];
-    unsigned int *seed;
-    struct {
-      float scale_factor;
-      float trans_vel[3];
-    } particle_data;
-
-    particle_data.scale_factor = 1.0f;
-    particle_data.trans_vel[0] = *(float *)(ef + 0x18);
-    particle_data.trans_vel[1] = *(float *)(ef + 0x1c);
-    particle_data.trans_vel[2] = *(float *)(ef + 0x20);
-
-    seed = random_math_get_local_seed_address();
-    FUN_0009d1f0(effect, seed, forward, dir_scratch, velocity,
-                 *(float *)(loc_entry + 0x40), *(float *)(loc_entry + 0x44),
-                 *(float *)(loc_entry + 0x48),
-                 (int)*(uint32_t *)(loc_entry + 0x60),
-                 (int)*(uint32_t *)(loc_entry + 0x64));
-
-    velocity[0] += *(float *)(ef + 0x24);
-    velocity[1] += *(float *)(ef + 0x28);
-    velocity[2] += *(float *)(ef + 0x2c);
-
-    FUN_000a1210(*(int *)(loc_entry + 0x24), position, velocity, &particle_data,
-                 scale);
-    break;
-  }
-
   case 0x736e6421: {
     char *loc = (char *)location;
 
     if (*(int *)(ef + 0x3c) != -1) {
       uint16_t loc_node = *(uint16_t *)(loc + 2);
-      int marker;
-
-      if (loc_node == 0xffff)
-        marker = -1;
-      else
-        marker = (int)(loc_node & 0x7fff);
+      int marker = (loc_node == 0xffff) ? -1 : (int)(loc_node & 0x7fff);
 
       object_impulse_sound_new(*(int *)(ef + 0x3c), *(int *)(loc_entry + 0x24),
                                (int16_t)marker, (float *)(loc + 0x30),
@@ -1332,11 +1294,33 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
     break;
   }
 
+  case 0x7063746c: {
+    particle_data.trans_vel[0] = *(float *)(ef + 0x18);
+    particle_data.trans_vel[1] = *(float *)(ef + 0x1c);
+    particle_data.trans_vel[2] = *(float *)(ef + 0x20);
+    particle_data.scale_factor = 1.0f;
+
+    seed = (unsigned int *)random_math_get_local_seed_address();
+    FUN_0009d1f0(effect, seed, forward, dir_scratch, direction,
+                 *(float *)(loc_entry + 0x40), *(float *)(loc_entry + 0x44),
+                 *(float *)(loc_entry + 0x48),
+                 (int)*(uint32_t *)(loc_entry + 0x60),
+                 (int)*(uint32_t *)(loc_entry + 0x64));
+
+    direction[0] += vel[0];
+    direction[1] += vel[1];
+    direction[2] += vel[2];
+
+    FUN_000a1210(*(int *)(loc_entry + 0x24), position, direction, &particle_data,
+                 scale);
+    break;
+  }
+
   default:
     display_assert(csprintf((char *)0x5ab100, "effect %s has a bad part %s",
                             tag_get_name(*(int *)(ef + 4)),
                             *(const char **)(loc_entry + 0x1c)),
-                   "c:\\halo\\SOURCE\\effects\\effects.c", 0x6d9, 1);
+                    "c:\\halo\\SOURCE\\effects\\effects.c", 0x6d9, 1);
     system_exit(-1);
     break;
   }
@@ -1443,83 +1427,78 @@ void FUN_0009e310(void *effect)
 {
   char *ef = (char *)effect;
   char *tag_data;
-  char *event;
   int *locations_block;
+  int count;
   int loc_counter;
+  int16_t *loc_part;
+  char *loc_entry;
+  char *location;
+  int location_handle;
+  int16_t ref_index;
+  uint16_t node_designator;
+  float *node_matrix;
+  float position[3];
+  float forward[3];
+  float up[3];
+  float scale;
 
   tag_data = (char *)tag_get(0x65666665, *(int *)(ef + 4));
-  event = (char *)tag_block_get_element(tag_data + 0x34,
-                                        (int)*(int16_t *)(ef + 0x4e), 0x44);
-  locations_block = (int *)(event + 0x2c);
+  locations_block = (int *)((char *)tag_block_get_element(
+                              tag_data + 0x34, (int)*(int16_t *)(ef + 0x4e), 0x44) +
+                            0x2c);
   loc_counter = 0;
+  count = *locations_block;
 
-  if (*locations_block < 1)
-    return;
+  if (count > 0) {
+    do {
+      loc_entry = (char *)tag_block_get_element(locations_block,
+                                                (int)(int16_t)loc_counter, 0x68);
+      ref_index = *(int16_t *)(loc_entry + 4);
 
-  do {
-    char *loc_entry;
-    int16_t ref_index;
-
-    loc_entry = (char *)tag_block_get_element(locations_block,
-                                              (int)(int16_t)loc_counter, 0x68);
-    ref_index = *(int16_t *)(loc_entry + 4);
-
-    if (ref_index >= 0 && (int)ref_index < *(int *)(tag_data + 0x28) &&
-        *(int *)(loc_entry + 0x24) != -1) {
-      bool skip;
-      if ((*(uint8_t *)(ef + 2) >> 6) & 1)
-        skip = (*(int16_t *)(loc_entry + 2) == 1);
-      else
-        skip = (*(int16_t *)(loc_entry + 2) == 2);
-
-      if (!skip) {
-        int location_handle = *(int *)(ef + 0x5c + (int)ref_index * 4);
-
-        while (location_handle != -1) {
-          char *location;
-          float position[3];
-          float forward[3];
-          float up[3];
-
+      if (ref_index >= 0 && (int)ref_index < *(int *)(tag_data + 0x28) &&
+          *(int *)(loc_entry + 0x24) != -1 &&
+          (((*(uint8_t *)(ef + 2) >> 6) & 1) ? (*(int16_t *)(loc_entry + 2) != 1)
+                                             : (*(int16_t *)(loc_entry + 2) != 2))) {
+        for (location_handle = *(int *)(ef + 0x5c + (int)ref_index * 4);
+             location_handle != -1;) {
           location = (char *)datum_get(*(data_t **)0x5aa8ac, location_handle);
           location_handle = *(int *)(location + 4);
+          node_designator = *(uint16_t *)(location + 2);
 
-          if (*(int16_t *)(location + 2) != (int16_t)0xffff &&
-              *(int16_t *)(location + 2) < 0) {
+          if (node_designator != 0xffff && (node_designator & 0x8000)) {
             location = (char *)FUN_0009cca0(effect, &location_handle, 0);
           }
 
           if (location == NULL)
             break;
 
-          {
-            uint16_t node_idx = *(uint16_t *)(location + 2);
-            if (node_idx == 0xffff) {
-              position[0] = *(float *)(location + 0x30);
-              position[1] = *(float *)(location + 0x34);
-              position[2] = *(float *)(location + 0x38);
-              forward[0] = *(float *)(location + 0xc);
-              forward[1] = *(float *)(location + 0x10);
-              forward[2] = *(float *)(location + 0x14);
-              up[0] = *(float *)(location + 0x24);
-              up[1] = *(float *)(location + 0x28);
-              up[2] = *(float *)(location + 0x2c);
+          node_designator = *(uint16_t *)(location + 2);
+          if (node_designator != 0xffff) {
+            if (node_designator & 0x8000) {
+              node_matrix = (float *)first_person_weapon_get_node_matrix(
+                (int)(uint16_t)*(int16_t *)(ef + 0x4c),
+                (int)(node_designator & 0x7fff));
             } else {
-              float *node_matrix;
-              if ((int16_t)node_idx < 0) {
-                node_matrix = (float *)first_person_weapon_get_node_matrix(
-                  (int)*(uint16_t *)(ef + 0x4c), (int)(node_idx & 0x7fff));
-              } else {
-                node_matrix = (float *)object_get_node_matrix(
-                  *(int *)(ef + 0x3c), (int16_t)(node_idx & 0x7fff));
-              }
-              matrix_transform_point(node_matrix, (float *)(location + 0x30),
-                                     position);
-              matrix_transform_vector(node_matrix, (float *)(location + 0xc),
-                                      forward);
-              matrix_transform_vector(node_matrix, (float *)(location + 0x24),
-                                      up);
+              node_matrix = (float *)object_get_node_matrix(
+                *(int *)(ef + 0x3c),
+                (int16_t)(node_designator & 0x7fff));
             }
+            matrix_transform_point(node_matrix, (float *)(location + 0x30),
+                                   position);
+            matrix_transform_vector(node_matrix, (float *)(location + 0xc),
+                                    forward);
+            matrix_transform_vector(node_matrix, (float *)(location + 0x24),
+                                    up);
+          } else {
+            position[0] = *(float *)(location + 0x30);
+            position[1] = *(float *)(location + 0x34);
+            position[2] = *(float *)(location + 0x38);
+            forward[0] = *(float *)(location + 0xc);
+            forward[1] = *(float *)(location + 0x10);
+            forward[2] = *(float *)(location + 0x14);
+            up[0] = *(float *)(location + 0x24);
+            up[1] = *(float *)(location + 0x28);
+            up[2] = *(float *)(location + 0x2c);
           }
 
           if (*(uint8_t *)(loc_entry + 6) & 1) {
@@ -1533,11 +1512,9 @@ void FUN_0009e310(void *effect)
             up[2] = default_up[2];
           }
 
-          if (!FUN_0009caf0(*(int16_t *)loc_entry, position, ef + 0x10))
-            continue;
-
-          {
-            float scale = 1.0f;
+          loc_part = (int16_t *)loc_entry;
+          if (FUN_0009caf0(*loc_part, position, ef + 0x10) != 0) {
+            scale = 1.0f;
             if (*(uint8_t *)(loc_entry + 0x60) & 0x20)
               scale = *(float *)(ef + 0x44);
             if (*(uint8_t *)(loc_entry + 0x64) & 0x20)
@@ -1548,10 +1525,10 @@ void FUN_0009e310(void *effect)
           }
         }
       }
-    }
 
-    loc_counter++;
-  } while ((int)(int16_t)loc_counter < *locations_block);
+      loc_counter++;
+    } while ((int)(int16_t)loc_counter < count);
+  }
 }
 
 short FUN_0009e560(int object_handle, void *event_elem, void *marker_buf,

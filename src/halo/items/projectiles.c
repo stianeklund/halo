@@ -891,12 +891,9 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
   int count; /* count of active same-type siblings */
 
   /* world position and orientation buffers */
-  float pos[3]; /* projectile world position ([EBP-0x30]) */
-  /* MSVC stack overlap: fwd[0..2] at [EBP-0x54], up_buf at [EBP-0x48] are
-   * contiguous. Effects system indexes forwards[1] when marker_count=2 and
-   * the event matches "gravity", reading what MSVC laid out as up_buf. */
-  float fwd[6]; /* [0..2]=forward, [3..5]=up (second marker forward) */
-  float up_buf[3]; /* temp for *0x31fc50; copied into fwd[3..5] */
+  float pos[6];
+  float fwd[6];
+  float up_buf[3];
   float parent_pos[3]; /* parent world position (local_b8) */
   float saved_vel[3]; /* saved proj object position at 0xc..0x14 */
 
@@ -1023,8 +1020,9 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
   object_get_world_position(projectile_handle, (vector3_t *)pos);
   object_get_orientation(projectile_handle, fwd, up_buf);
 
-  /* MSVC stack overlap: up_buf at [EBP-0x48] is the second marker forward
-   * (forwards[1]) when the effects system indexes with marker_count=2. */
+  pos[3] = pos[0];
+  pos[4] = pos[1];
+  pos[5] = pos[2];
   up_buf[0] = (*(float **)0x31fc50u)[0];
   up_buf[1] = (*(float **)0x31fc50u)[1];
   up_buf[2] = (*(float **)0x31fc50u)[2];
