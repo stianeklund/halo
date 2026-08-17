@@ -932,6 +932,66 @@ int FUN_00068d80(void *tif_)
   return 1;
 }
 
+/*
+ * Decode one buffered fax byte and update the codec state machine.
+ *
+ * EDX carries the TIFF handle. The two lookup tables are the byte tables at
+ * 0x2ccf70 and 0x2ce370; their contents are binary globals, not local state.
+ */
+__declspec(noinline) int FUN_00069180(void *tif_ /* @<edx> */)
+{
+  tiff_t *tif;
+  tiff_codec_bits_t *sp;
+  int index;
+  unsigned char nonzero;
+
+  tif = (tiff_t *)tif_;
+  sp = tif->tif_data;
+  do {
+    if (sp->bit == 0 || sp->bit > 7) {
+      if (tif->tif_rawcc <= 0)
+        return 0xd;
+      tif->tif_rawcc--;
+      sp->data = sp->bitmap[*tif->tif_rawcp];
+      tif->tif_rawcp++;
+    }
+    index = (int)(short)sp->bit * 0x100 + (int)(short)sp->data;
+    nonzero = ((const unsigned char *)0x2ccf70)[index];
+    sp->bit = ((const unsigned char *)0x2ce370)[index];
+  } while (nonzero == 0);
+  return (int)nonzero;
+}
+
+/**
+ * Emit the fax codec's per-row terminator and update its state through the
+ * shared bit-output helper.
+ *
+ * The three calls all target 0x69200.  Its first argument is in EAX and its
+ * second is the sole cdecl stack argument: each call has one push followed by
+ * caller-side `add esp,4`.  The current tif_data is loaded before the first
+ * flag test even when bit 2 is clear, and is reused for the third-call test.
+ */
+__declspec(noinline) void FUN_000693b0(void *tif_)
+{
+  tiff_t *tif;
+  tiff_codec_bits_t *sp;
+  int value;
+
+  tif = (tiff_t *)tif_;
+  sp = tif->tif_data;
+  if ((tif->field_68 & 4) != 0 && sp->bit != 4) {
+    value = sp->bit;
+    if (value < 4)
+      value += 4;
+    else
+      value -= 4;
+    FUN_00069200(value, 0);
+  }
+  FUN_00069200(12, 1);
+  if ((tif->field_68 & 1) != 0)
+    FUN_00069200(1, sp->field_10 == 0);
+}
+
 /* The two 256-byte run-scan tables the codec state caches at 0x1c/0x20. Their
  * identity is proven by content, not by shape -- see the tiff_codec_bits_t
  * comment above. */

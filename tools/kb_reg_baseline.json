@@ -100,6 +100,8 @@
     "0x68bd0": "int FUN_00068bd0(void *tif @<eax>);",
     "0x68c70": "void *FUN_00068c70(void *tif @<esi>, int extra_size);",
     "0x69020": "int FUN_00069020(void *tif @<eax>, unsigned char *buf, int npels);",
+    "0x69180": "int FUN_00069180(void *tif @<edx>);",
+    "0x69200": "void FUN_00069200(int value @<eax>, int param_2);",
     "0x6c5e0": "int FUN_0006c5e0(void *tif@<eax>, void *hordiff8, void *hordiff16);",
     "0x6c780": "int FUN_0006c780(void *tif@<ecx>);",
     "0x6ca50": "void FUN_0006ca50(void *sp@<esi>);",
@@ -760,5 +762,6 @@
   },
   "0x6cde0": "void FUN_0006cde0(void *tif@<edi>);",
   "0xc4a40": "void FUN_000c4a40(int16_t function_index@<eax>, char *buffer@<esi>);",
-  "0xc4ae0": "void FUN_000c4ae0(int16_t function_index@<eax>, char *buffer);"
+  "0xc4ae0": "void FUN_000c4ae0(int16_t function_index@<eax>, char *buffer);",
+  "0x69180": "int FUN_00069180(void *tif @<edx>);"
 }
