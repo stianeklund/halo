@@ -7342,6 +7342,100 @@ void FUN_000c3660(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xc36a0 — HaloScript function handler for the script builtin
+ * "cinematic_screen_effect_set_convolution" ("sets the convolution effect").
+ * Same evaluate-then-dispatch skeleton as the 0xc3620/0xc3660 siblings above:
+ * drive hs_macro_function_evaluate over this call's argument expressions and,
+ * on a non-NULL evaluation record, forward five evaluated values to the
+ * rasterizer_sprites routine at 0x17da40 before completing the script thread
+ * with a 0 result.
+ *
+ * Builtin identity is binary-backed, not guessed: the HS function-descriptor
+ * table entry at 0x27259c holds return type 4 (void), name pointer 0x2725a0 ->
+ * "cinematic_screen_effect_set_convolution", evaluate pointer 0x2725a8 ->
+ * 0xc36a0 (the only reference to this function anywhere in the XBE — there is
+ * no direct CALL), doc pointer -> "sets the convolution effect", parameter
+ * count 5 and formal type list [7, 7, 6, 6, 6] = short, short, real, real,
+ * real.  That formal list is what proves the argument widths below; the
+ * dispatch target itself is left as FUN_0017da40 because nothing in the binary
+ * names it.
+ *
+ * Frame is EBP-based with no locals and no _chkstk (PUSH EBP / MOV EBP,ESP /
+ * PUSH ESI); ESI carries thread_datum across the body.  Real frame offsets:
+ *   [EBP+0x08] -> ECX -> arg1 int16_t function_index
+ *   [EBP+0x0C] -> ESI -> arg2 int     thread_datum
+ *   [EBP+0x10] -> EAX -> arg3 char    init
+ * Push order at the 0xcc560 call is PUSH EAX / PUSH ESI / PUSH ECX, i.e. the C
+ * argument order (function_index, thread_datum, init).
+ *
+ * Evaluation-record field widths, read off the disassembly (not the
+ * decompiler) at 0xc36bc-0xc36dd, each one load-bearing:
+ *   +0x00  MOVSX EAX, word ptr [EAX]          ; SIGN-extended int16
+ *   +0x04  XOR EDX,EDX / MOV DX, [EAX+4]      ; ZERO-extended uint16
+ *   +0x08  FLD dword ptr [EAX+8]  -> FSTP [ESP]
+ *   +0x0C  FLD dword ptr [EAX+0xC]-> FSTP [ESP+4]
+ *   +0x10  FLD dword ptr [EAX+0x10]-> FSTP [ESP+8]
+ * The three floats are passed by their raw IEEE-754 bits via MSVC's
+ * SUB ESP,0xc + FSTP [ESP+n] idiom (the reserved-slot form of push-then-fstp);
+ * reading them through an int would FILD-convert and silently change the
+ * value, and reading +0x00 unsigned or +0x04 signed would be silent
+ * LOADW-class bugs.
+ *
+ * Ghidra mis-prototypes the dispatch target as `void FUN_0017da40(void)` and
+ * therefore DROPS all five arguments at the call site.  The callee's own
+ * prologue in the pristine XBE (0x17da40) proves the five cdecl stack slots
+ * and their widths:
+ *   MOV CX, word ptr [EBP+0x08]  -> word  -> stored to global[0x00]
+ *   MOV DX, word ptr [EBP+0x0C]  -> word  -> stored to global[0x02]
+ *   MOV ECX,dword ptr [EBP+0x10] -> dword -> stored to global[0x3c]
+ *   MOV EDX,dword ptr [EBP+0x14] -> dword -> stored to global[0x40]
+ *   FADD dword ptr [EBP+0x18]    -> float -> combined into global[0x48]
+ * so the kb decl is widened to
+ * `void FUN_0017da40(int16_t, uint16_t, float, float, float)`.  Signedness of
+ * the first two comes from this caller (MOVSX vs XOR/MOV), the float-ness of
+ * the last three from both this caller's FLD/FSTP and the callee's FADD, and
+ * all five agree with the descriptor's [7,7,6,6,6] formal list.  The callee is
+ * cdecl with a plain RET and this caller cleans, so widening cannot drift ESP;
+ * 0xc36de is its ONLY caller in the XBE (verified by a whole-image E8/E9/abs
+ * reference sweep), so no other call site can be affected.
+ *
+ * The callee takes NO register arguments: ECX at 0x17da49 is XOR-zeroed before
+ * any read, EAX is loaded from the global at 0x47e4d4, EDX is first written
+ * from [EBP+0x0C], and EBX/ESI/EDI are untouched.  No @<reg> annotation is
+ * warranted or added.
+ *
+ * ADD ESP,0x1c at 0xc36eb is a single merged cleanup for the three reserved
+ * float slots (0xc) plus BOTH trailing calls (2 pushes for FUN_0017da40 + 2
+ * for hs_return); it is a cdecl merge, not a wider hs_return.
+ *
+ * Callees (all cdecl, in kb.json, no register arguments):
+ *   0xcc560  = hs_macro_function_evaluate(fn_index, thread_datum, init)
+ *   0x17da40 = FUN_0017da40(int16_t, uint16_t, float, float, float)
+ *   0xcbf80  = hs_return(thread_handle, value)
+ */
+struct hs_convolution_result {
+  int16_t field_00; /* +0x00 HS short, read MOVSX (signed) */
+  int16_t pad_02;   /* +0x02 upper half of the 4-byte HS value slot */
+  uint16_t field_04; /* +0x04 HS short, read XOR/MOV (zero-extended) */
+  uint16_t pad_06;  /* +0x06 upper half of the 4-byte HS value slot */
+  float field_08;   /* +0x08 HS real */
+  float field_0c;   /* +0x0c HS real */
+  float field_10;   /* +0x10 HS real */
+};
+
+void FUN_000c36a0(int16_t function_index, int thread_datum, char init)
+{
+  struct hs_convolution_result *result;
+
+  result = (struct hs_convolution_result *)hs_macro_function_evaluate(
+    function_index, thread_datum, init);
+  if (result != 0) {
+    FUN_0017da40(result->field_00, result->field_04, result->field_08,
+                 result->field_0c, result->field_10);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc3760 — HS macro handler: forward { int, float, float } to 0x17db20.
  * Both scalar fields are raw IEEE-754 record dwords (+4/+8). */
 void FUN_000c3760(int16_t function_index, int thread_datum, char init)

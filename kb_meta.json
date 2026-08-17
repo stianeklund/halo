@@ -7295,10 +7295,11 @@
     },
     "0xc36a0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The three floats at record +0x08/+0x0c/+0x10 are contiguous and forwarded together, so they are most likely a real_point3d (position), but nothing in this function or in FUN_0017da40 proves it, so the block is left untyped.",
-        "VC71 match is capped at 75.0% (31/33) by the confirmed float-arg lowering cap: cl.exe 7.1 copies a loaded-and-forwarded float through a GPR (movl/pushl) where the reference uses SUB ESP + FLD/FSTP; the pushed bytes are IEEE-754 identical, so this is a lowering difference and not a correctness bug."
+        "VC71 match is capped at 75.0% (31/33) by the confirmed float-arg lowering cap: cl.exe 7.1 copies a loaded-and-forwarded float through a GPR (movl/pushl) where the reference uses SUB ESP + FLD/FSTP; the pushed bytes are IEEE-754 identical, so this is a lowering difference and not a correctness bug.",
+        "The HS descriptor at 0x27259c identifies this evaluator as cinematic_screen_effect_set_convolution with formal HS types short, short, real, real, real."
       ],
       "uncertain": [
         "FUN_0017da40 (0x17da40) is unported and its semantics are unknown, so neither it nor this handler is given a semantic name; its widened decl void(int,int,float,float,float) is derived solely from this call site's PUSH/SUB-ESP/FSTP sequence."
@@ -7560,16 +7561,6 @@
     "0xc50c0": {
       "kind": "function",
       "status": "ported"
-    },
-    "0xc55d0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "The function validates and collects an HS function call's linked argument-node chain into the caller-provided array."
-      ],
-      "uncertain": [
-        "The exact formal name and minimum capacity contract of the caller-provided argument_nodes buffer are inferred from the five callers rather than a recovered type definition."
-      ]
     },
     "0xc5680": {
       "kind": "function",
@@ -16519,6 +16510,26 @@
     "0x5065a4": {
       "kind": "data",
       "status": "ported"
+    },
+    "0x17da40": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The five 32-bit caller slots at 0x000c36de are modeled as int16_t, uint16_t, float, float, float from MOVSX/XOR-MOV and FLD/FSTP provenance; the middle two floats are raw dword copies in the callee."
+      ],
+      "uncertain": [
+        "The semantic meanings of FUN_0017da40's five parameters and the 0x47e4d4 target structure remain unidentified."
+      ]
+    },
+    "0xc55d0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The function validates and collects an HS function call's linked argument-node chain into the caller-provided array."
+      ],
+      "uncertain": [
+        "The exact formal name and minimum capacity contract of the caller-provided argument_nodes buffer are inferred from the five callers rather than a recovered type definition."
+      ]
     },
     "0xc4160": {
       "kind": "function",
