@@ -7309,10 +7309,12 @@
       "kind": "function",
       "status": "unknown",
       "inferred": [
-        "The 0xcc560 result is treated as a pointer to an evaluated-argument block whose fields are forwarded verbatim; the block's semantic meaning (what the int handle at +0x00 and the five trailing values represent) is not established, so neither this handler nor FUN_0017dab0 is given a semantic name."
+        "The 0xcc560 result is treated as a pointer to an evaluated-argument block whose fields are forwarded verbatim; the block's semantic meaning (what the int handle at +0x00 and the five trailing values represent) is not established, so neither this handler nor FUN_0017dab0 is given a semantic name.",
+        "The script-function table at 0x2725c4 names this handler cinematic_screen_effect_set_filter, has six parameter types (real, real, real, real, boolean, real), and identifies it as a void handler."
       ],
       "uncertain": [
-        "FUN_0017dab0's widened decl (int, float, float, float, int, float) is derived solely from this single call site's stack-slot layout; parameter 5 is proven only to be a zero-extended byte at +0x10 pushed as a dword, so its true declared width in the original source could be unsigned char or bool rather than int."
+        "FUN_0017dab0's semantic parameter meanings are unresolved; its fifth parameter's one-byte width is confirmed by the callee's MOV CL,[EBP+0x18] load and MOV [EAX+0x20],CL store, while the table identifies the caller's corresponding argument as boolean.",
+        "FUN_0017dab0 remains semantically unnamed because only the HaloScript builtin name is evidenced, not the callee's original source symbol."
       ]
     },
     "0xc3760": {
