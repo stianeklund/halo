@@ -11521,7 +11521,8 @@
     },
     {
      "addr": "0xc40f0",
-     "decl": "void FUN_000c40f0(void *block@<ebx>, int16_t name_offset, int element_size);"
+     "decl": "void FUN_000c40f0(void *block@<ebx>, int16_t name_offset, int element_size);",
+     "ported": true
     },
     {
      "addr": "0xc4130",

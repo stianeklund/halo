@@ -8292,6 +8292,18 @@ void FUN_000c40b0(int16_t end_index, int16_t start_index, const char **names)
   }
 }
 
+/* 0xc40f0 — Enumerate names embedded in a tag block. */
+void FUN_000c40f0(void *block, int16_t name_offset, int element_size)
+{
+  int16_t index;
+  const char *name;
+
+  for (index = 0; (int)index < *(int *)block; index++) {
+    name = (const char *)tag_block_get_element(block, (int)index, element_size);
+    FUN_000c4030(name + name_offset);
+  }
+}
+
 /* 0xc4130 — Enumerate one scenario-resident tag_block into the active token
  * enumeration.  One of the per-type enumerator thunks in the table at
  * 0x2f2208 (see hs_tokens_enumerate below); the concrete block is selected by
