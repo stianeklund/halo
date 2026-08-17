@@ -11981,7 +11981,8 @@
     },
     {
      "addr": "0xc95d0",
-     "decl": "void FUN_000c95d0(int param_1);"
+     "decl": "void FUN_000c95d0(int param_1);",
+     "ported": true
     },
     {
      "addr": "0xc95f0",

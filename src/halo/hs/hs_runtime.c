@@ -498,6 +498,37 @@ unsigned char FUN_000c95c0(unsigned char value)
   return (unsigned char)(value == 0);
 }
 
+/* 0xc95d0 — forward one dword to the terminal overlay as a formatted line,
+ * using the color global at 0x2ee6d4.
+ *
+ * Binary evidence (0xc95d0..0xc95e7), whole body:
+ *   PUSH EBP / MOV EBP,ESP / MOV EAX,dword ptr [EBP+8] /
+ *   MOV ECX,dword ptr [0x002ee6d4] / PUSH EAX / PUSH ECX /
+ *   CALL 0x000e3a10 (terminal_output) / ADD ESP,0x8 / POP EBP / RET
+ *
+ * Exactly two stack args are pushed and cleaned (ADD ESP,0x8), so
+ * terminal_output is entered with (color, format) only; the third parameter
+ * in its kb.json declaration is the first formatting slot and is not
+ * supplied at this site. Reached through a 2-arg function-pointer cast, the
+ * same idiom already used for this callee in cheats.c
+ * (cheat_teleport_to_camera).
+ *
+ * cdecl: the first PUSH is the last argument, so ECX (= *(void **)0x2ee6d4)
+ * is the color and EAX (= param_1) is the format string.
+ *
+ * param_1 arrives from FUN_000bdf40 as the first dword of an HS macro
+ * function result record. Its pointee type is unproven beyond being the
+ * string terminal_output formats, so the kb.json declaration keeps int and
+ * the cast is local. Semantic role is otherwise unknown, so the name is left
+ * as FUN_000c95d0. */
+void FUN_000c95d0(int param_1)
+{
+  typedef void (*terminal_output_2_t)(void *, const char *);
+
+  ((terminal_output_2_t)terminal_output)(*(void **)0x2ee6d4,
+                                         (const char *)param_1);
+}
+
 /* HaloScript runtime — thread management and script execution. */
 
 /* Dispose runtime state from old map: invalidate thread data and
