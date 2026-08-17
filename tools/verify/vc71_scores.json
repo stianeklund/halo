@@ -37823,6 +37823,21 @@
       "score": 94.0,
       "source": "src/halo/hs/hs_compile.c"
     },
+    "hs_parse_set": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 93.6,
+      "addr": "0xc8380",
+      "end": "0xc85aa",
+      "kind": "auto",
+      "n_r": 187,
+      "opnd_percent": 81.9,
+      "raw_mnemonic_pct": 93.6,
+      "ref": "synth",
+      "ref_sha": "dab8f7606ab5e4ec",
+      "score": 93.6,
+      "source": "src/halo/hs/hs_compile.c"
+    },
     "hs_report_compile_error": {
       "addr": "0xc4900",
       "end": "0xc496c",

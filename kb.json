@@ -11899,7 +11899,8 @@
     },
     {
      "addr": "0xc8380",
-     "decl": "void hs_parse_set(void);"
+     "decl": "bool hs_parse_set(int16_t function_index, int datum_index);",
+     "ported": true
     },
     {
      "addr": "0xc85b0",

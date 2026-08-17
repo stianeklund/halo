@@ -1908,6 +1908,107 @@ bool hs_parse_if(int16_t function_index, int datum_index)
   return result;
 }
 
+/* 0xc8380 — Parse the (set <global> <value>) special form.
+ * The call node's head (expression+0x10) links to the variable-name node
+ * (+0x8 of the head), whose sibling (+0x8) is the value form.  A missing
+ * variable, a missing value, or a third argument after the value emits the
+ * syntax error into the compile-error globals (message at 0x46b6fc, source
+ * offset at 0x46b700) and returns false.
+ * The variable name is looked up in the global table by its source text
+ * (node+0xc is an offset into the source buffer at 0x46b6e8); an unknown name
+ * is reported against the variable node itself.  The global's type is written
+ * back into the variable node (+0x4) and, when the call node already carries a
+ * type, checked for compatibility with it; an incompatible pair formats the
+ * message into the compile-error buffer at 0x46b704.  Otherwise the variable
+ * node is re-parsed as a variable name (FUN_000c5840, asserted), the call
+ * node inherits the global's type when it is still untyped (0), and the value
+ * form is type-checked against the global's type. */
+bool hs_parse_set(int16_t function_index, int datum_index)
+{
+  char *expression;
+  char *node;
+  char *variable;
+  int variable_index;
+  int value_index;
+  uint16_t global_index;
+  uint16_t expression_type;
+  int16_t type;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+  variable_index = *(int *)(node + 0x8);
+  expression = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+
+  if (variable_index != -1) {
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, variable_index);
+    value_index = *(int *)(node + 0x8);
+
+    if (value_index != -1) {
+      node = (char *)datum_get(*(data_t **)0x5aa6c8, value_index);
+
+      if (*(int *)(node + 0x8) == -1) {
+        variable = (char *)datum_get(*(data_t **)0x5aa6c8, variable_index);
+        global_index = (uint16_t)hs_find_global_by_name(
+          (const char *)(*(int *)(variable + 0xc) + *(int *)0x46b6e8));
+
+        if (global_index != 0xffff) {
+          type = hs_global_get_type(global_index);
+          *(int16_t *)(variable + 0x4) = type;
+          expression_type = *(uint16_t *)(expression + 0x4);
+
+          if (expression_type != 0 &&
+              !hs_types_compatible(type, (int16_t)expression_type)) {
+            node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+            crt_sprintf((char *)0x46b704,
+                        "you cannot pass the result of this set (type %s) to a "
+                        "function that expects type %s.",
+                        (int)*(int16_t *)(variable + 0x4),
+                        (int)*(int16_t *)(node + 0x4));
+            *(const char **)0x46b6fc = (const char *)0x46b704;
+            node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+            *(int *)0x46b700 = *(int *)(node + 0xc);
+            return false;
+          }
+
+          if (!FUN_000c5840(variable_index)) {
+            display_assert("asserted",
+                           "c:\\halo\\source\\hs\\hs_library_internal_compile.h",
+                           0x126, 1);
+            system_exit(-1);
+          }
+
+          if (*(int16_t *)(expression + 0x4) == 0) {
+            *(int16_t *)(expression + 0x4) = *(int16_t *)(variable + 0x4);
+          }
+
+          if (hs_type_check(value_index,
+                            (int16_t) * (uint16_t *)(variable + 0x4))) {
+            return true;
+          }
+        } else {
+          *(const char **)0x46b6fc = "this is not a valid global variable.";
+          *(int *)0x46b700 = *(int *)(variable + 0xc);
+        }
+      } else {
+        *(const char **)0x46b6fc = "i didn't expect this argument.";
+        node = (char *)datum_get(*(data_t **)0x5aa6c8, value_index);
+        node = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x8));
+        *(int *)0x46b700 = *(int *)(node + 0xc);
+      }
+    } else {
+      *(const char **)0x46b6fc = "i expected an assignment value.";
+      node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+      *(int *)0x46b700 = *(int *)(node + 0xc);
+    }
+  } else {
+    *(const char **)0x46b6fc = "i expected a variable to set and a value.";
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+    *(int *)0x46b700 = *(int *)(node + 0xc);
+  }
+
+  return false;
+}
+
 /* Recompile all HS scripts and globals in the current scenario (0xc93f0).
  * First resizes the scenario's HS string data block (scenario+0x488) to the
  * current source_size, then initialises the compile globals for a new pass.
