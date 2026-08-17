@@ -13846,6 +13846,21 @@
       "score": 84.4,
       "source": "src/halo/hs/hs_compile.c"
     },
+    "FUN_000c66d0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 95.4,
+      "addr": "0xc66d0",
+      "end": "0xc6803",
+      "kind": "auto",
+      "n_r": 99,
+      "opnd_percent": 75.9,
+      "raw_mnemonic_pct": 95.4,
+      "ref": "synth",
+      "ref_sha": "22164736d66d7f66",
+      "score": 95.4,
+      "source": "src/halo/hs/hs_compile.c"
+    },
     "FUN_000c6810": {
       "addr": "0xc6810",
       "end": "0xc68a5",
@@ -13868,6 +13883,21 @@
       "score": 68.4,
       "source": "src/halo/hs/hs_compile.c"
     },
+    "FUN_000c6940": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 91.3,
+      "addr": "0xc6940",
+      "end": "0xc69c4",
+      "kind": "auto",
+      "n_r": 46,
+      "opnd_percent": 80.4,
+      "raw_mnemonic_pct": 91.3,
+      "ref": "synth",
+      "ref_sha": "5ebcfe244ebe8cf0",
+      "score": 91.3,
+      "source": "src/halo/hs/hs_compile.c"
+    },
     "FUN_000c69d0": {
       "addr": "0xc69d0",
       "end": "0xc6a30",
@@ -13877,6 +13907,21 @@
       "ref": "synth",
       "ref_sha": "d536259201e4cd7d",
       "score": 100.0,
+      "source": "src/halo/hs/hs_compile.c"
+    },
+    "FUN_000c6a30": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 82.0,
+      "addr": "0xc6a30",
+      "end": "0xc6a6a",
+      "kind": "auto",
+      "n_r": 28,
+      "opnd_percent": 65.6,
+      "raw_mnemonic_pct": 82.0,
+      "ref": "synth",
+      "ref_sha": "49ed34694c19f027",
+      "score": 82.0,
       "source": "src/halo/hs/hs_compile.c"
     },
     "FUN_000c6a70": {

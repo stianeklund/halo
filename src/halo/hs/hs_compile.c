@@ -712,6 +712,58 @@ bool FUN_000c6660(int datum_index)
   return FUN_000c6130(datum_index, (void *)(scenario + 0x468), 0x74, 0);
 }
 
+/* 0xc66d0 — Compile an object-name literal (types 0x2b-0x30).
+ * Resolves the node's source name in the scenario object-name block
+ * (scenario+0x204, element size 0x24) via FUN_0018ea50, then checks the
+ * entry's runtime object type (+0x20) against the per-expression-type bit
+ * mask table at 0x26f2ca (int16_t, indexed by expression type). On success
+ * the object index is stored as int16_t at node+0x10.
+ *
+ * Confirmed: two separate CALLs to global_scenario_get (the scenario pointer
+ * is not cached across the lookup); asserts at lines 0x771 and 0x77a; the
+ * single-exit `result` flag matches XORB BL,BL / MOVB BL,AL in the original,
+ * while the type-mask success path returns via MOVB $1,AL. */
+bool FUN_000c66d0(int datum_index)
+{
+  char *node;
+  char *object;
+  int16_t object_index;
+  bool result;
+
+  result = false;
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  if (*(int16_t *)(node + 0x4) < 0x2b || *(int16_t *)(node + 0x4) > 0x30) {
+    display_assert("HS_TYPE_IS_OBJECT_NAME(expression->type)",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x771, 1);
+    system_exit(-1);
+  }
+  object_index =
+    FUN_0018ea50((void *)global_scenario_get(),
+                 (const char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8));
+  if (object_index != -1) {
+    object = (char *)tag_block_get_element(
+      (char *)global_scenario_get() + 0x204, object_index, 0x24);
+    if (*(int16_t *)(object + 0x20) == -1) {
+      display_assert("object_name->runtime_object_type!=NONE",
+                     "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x77a, 1);
+      system_exit(-1);
+    }
+    if ((((int16_t *)0x26f2ca)[(int)*(int16_t *)(node + 0x4)] &
+         (1 << *(uint8_t *)(object + 0x20))) != 0) {
+      *(int16_t *)(node + 0x10) = object_index;
+      return true;
+    }
+    crt_sprintf((char *)0x46b704, "this is not an object of type %s.",
+                ((const char **)0x2f14a8)[(int)*(int16_t *)(node + 0x4)]);
+    *(const char **)0x46b6fc = (const char *)0x46b704;
+    *(int *)0x46b700 = *(int *)(node + 0xc);
+    return result;
+  }
+  *(const char **)0x46b6fc = "this is not a valid object name.";
+  *(int *)0x46b700 = *(int *)(node + 0xc);
+  return result;
+}
+
 /* 0xc6810 — Compile object name literal (types 0x25-0x2a).
  * "none" resolves to -1. Otherwise adds 6 to type (mapping object types to
  * enum range 0x2b-0x30), delegates to FUN_000c66d0, then restores type. */
@@ -761,6 +813,38 @@ bool FUN_000c68b0(int datum_index)
   return FUN_000c6130(datum_index, (void *)(hud_tag + 0x160), 0x68, 0);
 }
 
+/* 0xc6940 — Compile HUD-message literal (type 0x16).
+ * Looks up the message name in the 'hmt ' tag referenced by the scenario tag
+ * index at scenario+0x5a0 (block at tag+0x20, element size 0x40, name at
+ * offset 0). Returns false when the scenario carries no hud-message tag.
+ *
+ * Confirmed: PUSH 0x686d7420 before tag_get; two separate CALLs to
+ * global_scenario_get (the -1 test re-reads +0x5a0 after the second call);
+ * assert at line 0x7bf; the result flag matches XORB BL,BL / MOVB BL,AL. */
+bool FUN_000c6940(int datum_index)
+{
+  char *node;
+  bool result;
+
+  result = false;
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  if (*(int16_t *)(node + 0x4) != 0x16) {
+    display_assert(
+      "hs_syntax_get(expression_index)->type==_hs_type_hud_message",
+      "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x7bf, 1);
+    system_exit(-1);
+  }
+  if (*(int *)((char *)global_scenario_get() + 0x5a0) != -1) {
+    result = FUN_000c6130(
+      datum_index,
+      (char *)tag_get(0x686d7420,
+                      *(int *)((char *)global_scenario_get() + 0x5a0)) +
+        0x20,
+      0x40, 0);
+  }
+  return result;
+}
+
 /* 0xc69d0 — Compile object_list literal (type 0x17).
  * Temporarily sets type/constant_type to 0x2b (enum range for FUN_000c66d0),
  * delegates to FUN_000c66d0, then restores type to 0x17. */
@@ -780,6 +864,25 @@ bool FUN_000c69d0(int datum_index)
   result = FUN_000c66d0(datum_index);
   *(short *)(node + 0x4) = 0x17;
   return result;
+}
+
+/* 0xc6a30 — Search a bounded table of string pointers for `name`, returning
+ * the matching int16_t index or -1.
+ *
+ * Confirmed: the table pointer arrives in EBX and the element count in DI
+ * (both read before written), so the declaration carries @<ebx>/@<edi>;
+ * `name` is the only stack argument. The loop counter is SI, compared with
+ * CMP SI,DI and a signed JL, and exhaustion returns via OR AX,0xffff. */
+int16_t FUN_000c6a30(const char *name, const char **entries, int16_t count)
+{
+  int16_t i;
+
+  for (i = 0; i < count; i++) {
+    if (csstrcmp(name, entries[(int)i]) == 0) {
+      return i;
+    }
+  }
+  return -1;
 }
 
 /* Compile an HS function-call expression node (0xc73a0).
@@ -1971,9 +2074,9 @@ bool hs_parse_set(int16_t function_index, int datum_index)
           }
 
           if (!FUN_000c5840(variable_index)) {
-            display_assert("asserted",
-                           "c:\\halo\\source\\hs\\hs_library_internal_compile.h",
-                           0x126, 1);
+            display_assert(
+              "asserted", "c:\\halo\\source\\hs\\hs_library_internal_compile.h",
+              0x126, 1);
             system_exit(-1);
           }
 

@@ -11799,7 +11799,8 @@
     },
     {
      "addr": "0xc66d0",
-     "decl": "bool FUN_000c66d0(int datum_index);"
+     "decl": "bool FUN_000c66d0(int datum_index);",
+     "ported": true
     },
     {
      "addr": "0xc6810",
@@ -11813,7 +11814,8 @@
     },
     {
      "addr": "0xc6940",
-     "decl": "void FUN_000c6940(void);"
+     "decl": "bool FUN_000c6940(int datum_index);",
+     "ported": true
     },
     {
      "addr": "0xc69d0",
@@ -11822,7 +11824,8 @@
     },
     {
      "addr": "0xc6a30",
-     "decl": "void FUN_000c6a30(void);"
+     "decl": "int16_t FUN_000c6a30(const char *name, const char **entries@<ebx>, int16_t count@<edi>);",
+     "ported": true
     },
     {
      "addr": "0xc6a70",

@@ -7460,6 +7460,28 @@
         "FUN_000c4010 is inferred to be a qsort/bsearch comparator over an array of char* because both stack parameters are dereferenced once before being passed to crt_stricmp; no call site was resolved to confirm the caller."
       ]
     },
+    "0xc40f0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "VC71 match is capped at 78.0% by the regarg_structural_ceiling: the default verify lane cannot pass this function's block parameter in EBX nor the FUN_000c4030 argument in ESI, so it loads block from a stack home slot and pushes the callee argument, shifting every EBP operand by four bytes and coalescing the stack cleanup to add esp,0x10 where the reference uses add esp,0xc.",
+        "The loop counter is a 16-bit value that is sign-extended for the comparison (inc edi; movsx eax,di; cmp eax,ecx; jl), and the element count is re-read from the tag_block header on every iteration rather than cached."
+      ],
+      "uncertain": [
+        "The equivalence lane could not run because no delinked hs.obj reference exists, so behavioural confirmation rests on instruction-level review of the 28-instruction reference rather than on differential execution."
+      ]
+    },
+    "0xc4160": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The fixed literal at 0x25bb40 is the string \"script\" and the literal at 0x27b978 is the string \"global\"."
+      ]
+    },
+    "0xc4180": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc4580": {
       "kind": "function",
       "status": "ported"
@@ -7564,6 +7586,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xc55d0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The function validates and collects an HS function call's linked argument-node chain into the caller-provided array."
+      ],
+      "uncertain": [
+        "The exact formal name and minimum capacity contract of the caller-provided argument_nodes buffer are inferred from the five callers rather than a recovered type definition."
+      ]
+    },
     "0xc5680": {
       "kind": "function",
       "status": "ported",
@@ -7615,17 +7647,51 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xc5f60": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc64d0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xc66d0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The scenario object-name block at scenario+0x204 has 0x24-byte elements, and node+0x10 receives the resolved signed 16-bit object index."
+      ],
+      "uncertain": [
+        "Canonical struct types for the syntax node and scenario object-name entry remain unproven, so this lift retains raw offsets."
+      ]
     },
     "0xc6810": {
       "kind": "function",
       "status": "ported"
     },
+    "0xc6940": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Scenario+0x5a0 is a HUD-message tag index consumed by tag_get with group 0x686d7420."
+      ],
+      "uncertain": [
+        "The canonical semantic name of the scenario field at offset 0x5a0 remains unproven."
+      ]
+    },
     "0xc69d0": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xc6a30": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The function returns the signed 16-bit index of a matching string pointer or -1 after scanning a count passed in EDI."
+      ],
+      "uncertain": [
+        "The indirect caller and canonical semantic role of the string table remain unproven."
+      ]
     },
     "0xc6a70": {
       "kind": "function",
@@ -7687,6 +7753,18 @@
       "status": "ported"
     },
     "0xc7d80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc7e50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc8120": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc8380": {
       "kind": "function",
       "status": "ported"
     },
@@ -13202,6 +13280,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x17da40": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The five 32-bit caller slots at 0x000c36de are modeled as int16_t, uint16_t, float, float, float from MOVSX/XOR-MOV and FLD/FSTP provenance; the middle two floats are raw dword copies in the callee."
+      ],
+      "uncertain": [
+        "The semantic meanings of FUN_0017da40's five parameters and the 0x47e4d4 target structure remain unidentified."
+      ]
+    },
     "0x180820": {
       "kind": "function",
       "status": "ported"
@@ -16512,48 +16600,6 @@
     "0x5065a4": {
       "kind": "data",
       "status": "ported"
-    },
-    "0x17da40": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The five 32-bit caller slots at 0x000c36de are modeled as int16_t, uint16_t, float, float, float from MOVSX/XOR-MOV and FLD/FSTP provenance; the middle two floats are raw dword copies in the callee."
-      ],
-      "uncertain": [
-        "The semantic meanings of FUN_0017da40's five parameters and the 0x47e4d4 target structure remain unidentified."
-      ]
-    },
-    "0xc55d0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "The function validates and collects an HS function call's linked argument-node chain into the caller-provided array."
-      ],
-      "uncertain": [
-        "The exact formal name and minimum capacity contract of the caller-provided argument_nodes buffer are inferred from the five callers rather than a recovered type definition."
-      ]
-    },
-    "0xc4160": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "The fixed literal at 0x25bb40 is the string \"script\" and the literal at 0x27b978 is the string \"global\"."
-      ]
-    },
-    "0xc4180": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xc40f0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "VC71 match is capped at 78.0% by the regarg_structural_ceiling: the default verify lane cannot pass this function's block parameter in EBX nor the FUN_000c4030 argument in ESI, so it loads block from a stack home slot and pushes the callee argument, shifting every EBP operand by four bytes and coalescing the stack cleanup to add esp,0x10 where the reference uses add esp,0xc.",
-        "The loop counter is a 16-bit value that is sign-extended for the comparison (inc edi; movsx eax,di; cmp eax,ecx; jl), and the element count is re-read from the tag_block header on every iteration rather than cached."
-      ],
-      "uncertain": [
-        "The equivalence lane could not run because no delinked hs.obj reference exists, so behavioural confirmation rests on instruction-level review of the 28-instruction reference rather than on differential execution."
-      ]
     }
   }
 }
