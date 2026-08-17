@@ -405,6 +405,77 @@ bool FUN_000c5e90(int datum_index)
   return true;
 }
 
+/* 0xc5f60 — Compile an enum literal expression. Asserts the expression type is
+ * an enum type (0x20..0x24), then looks up the node's source string in that
+ * type's enum definition (0x2726b4 + type*8: short count at +0, char **names
+ * at +4) with a case-insensitive compare. On a hit, stores the matching index
+ * in the value field and returns true. On a miss, builds a
+ * "<type> must be "a", "b", or "c"." message in the compile error buffer at
+ * 0x46b704, points error_message/error_offset at it, stores the last index and
+ * returns false. */
+bool hs_parse_enum(int datum_index)
+{
+  char *node;
+  char *enum_definition;
+  int16_t i;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  enum_definition = (char *)(0x2726b4 + (int)*(int16_t *)(node + 0x4) * 8);
+
+  if (*(int16_t *)(node + 0x4) < 0x20 || *(int16_t *)(node + 0x4) > 0x24) {
+    display_assert("HS_TYPE_IS_ENUM(expression->type)",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x6bc, 1);
+    system_exit(-1);
+  }
+
+  if (*(int16_t *)(node + 0x2) != *(int16_t *)(node + 0x4)) {
+    display_assert("expression->constant_type==expression->type",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x6bd, 1);
+    system_exit(-1);
+  }
+
+  if (*(int16_t *)enum_definition == 0) {
+    display_assert("enum_definition->count",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x6be, 1);
+    system_exit(-1);
+  }
+
+  for (i = 0; i < *(int16_t *)enum_definition; i++) {
+    if (crt_stricmp((const char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8),
+                    (*(const char ***)(enum_definition + 0x4))[i]) == 0) {
+      break;
+    }
+  }
+
+  if (i != *(int16_t *)enum_definition) {
+    *(int16_t *)(node + 0x10) = i;
+    return true;
+  }
+
+  crt_sprintf((char *)0x46b704, "%s must be ",
+              ((const char **)0x2f14a8)[(int)*(int16_t *)(node + 0x4)]);
+
+  for (i = 0; i < *(int16_t *)enum_definition - 1; i++) {
+    FUN_0008dc30((char *)0x46b704, "\"");
+    FUN_0008dc30((char *)0x46b704,
+                 (*(const char ***)(enum_definition + 0x4))[i]);
+    FUN_0008dc30((char *)0x46b704, "\", ");
+  }
+
+  if (*(int16_t *)enum_definition > 1) {
+    FUN_0008dc30((char *)0x46b704, "or ");
+  }
+
+  FUN_0008dc30((char *)0x46b704, "\"");
+  FUN_0008dc30((char *)0x46b704, (*(const char ***)(enum_definition + 0x4))[i]);
+  FUN_0008dc30((char *)0x46b704, "\".");
+
+  *(const char **)0x46b6fc = (const char *)0x46b704;
+  *(int *)0x46b700 = *(int *)(node + 0xc);
+  *(int16_t *)(node + 0x10) = i;
+  return false;
+}
+
 /* 0xc6130 — Generic tag-block name lookup for HS literal compilation.
  * Iterates elements in tag_block (passed via EBX), comparing the string at
  * element+offset against the node's source string using case-insensitive match.
@@ -1725,10 +1796,9 @@ bool hs_macro_function_parse(int16_t function_index, int datum_index)
     if (argument_index >= *(int16_t *)(function + 0x18) || child_index == -1) {
       if (valid && (argument_index != *(int16_t *)(function + 0x18) ||
                     child_index != -1)) {
-        crt_sprintf((char *)0x46b704,
-                    "the \"%s\" call requires exactly %d arguments.",
-                    *(char **)(function + 0x4),
-                    (int)*(int16_t *)(function + 0x18));
+        crt_sprintf(
+          (char *)0x46b704, "the \"%s\" call requires exactly %d arguments.",
+          *(char **)(function + 0x4), (int)*(int16_t *)(function + 0x18));
         *(const char **)0x46b6fc = (const char *)0x46b704;
         node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
         *(int *)0x46b700 = *(int *)(node + 0xc);
@@ -1738,8 +1808,8 @@ bool hs_macro_function_parse(int16_t function_index, int datum_index)
     }
 
     if (hs_type_check(child_index,
-                      (int16_t) * (uint16_t *)(function + 0x1a +
-                                               argument_index * 2))) {
+                      (int16_t) *
+                        (uint16_t *)(function + 0x1a + argument_index * 2))) {
       node = (char *)datum_get(*(data_t **)0x5aa6c8, child_index);
       child_index = *(int *)(node + 0x8);
     } else {
