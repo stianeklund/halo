@@ -1688,6 +1688,69 @@ bool hs_type_check(int datum_index, int16_t check_type)
   return FUN_000c74c0(datum_index);
 }
 
+/* 0xc7e50 — Parse a macro (built-in) function call's argument list.
+ * Registered as the parse callback (descriptor+0x8) of the macro-function
+ * table entries; the function-descriptor layout used here is
+ *   +0x00 return_type (short), +0x04 name (char *),
+ *   +0x18 argument_count (short), +0x1a argument_types[] (short[]).
+ * Walks the sibling list starting at the call node's second child (the first
+ * child is the predicate) and type-checks each argument against the
+ * descriptor's declared type. A failed hs_type_check stops the walk and
+ * returns false without emitting a message (hs_type_check already set the
+ * compile error). If every checked argument passed but the argument count
+ * does not match exactly, formats the arity error into the compile-error
+ * buffer at 0x46b704 and returns false. */
+bool hs_macro_function_parse(int16_t function_index, int datum_index)
+{
+  bool valid;
+  char *function;
+  char *node;
+  int child_index;
+  int16_t argument_index;
+
+  valid = true;
+  function = (char *)hs_function_table_get(function_index);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+  child_index = *(int *)(node + 0x8);
+
+  if (*(int16_t *)function < 4 || *(int16_t *)function > 0x30) {
+    display_assert("hs_type_valid(definition->return_type)",
+                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x819, 1);
+    system_exit(-1);
+  }
+
+  argument_index = 0;
+  do {
+    if (argument_index >= *(int16_t *)(function + 0x18) || child_index == -1) {
+      if (valid && (argument_index != *(int16_t *)(function + 0x18) ||
+                    child_index != -1)) {
+        crt_sprintf((char *)0x46b704,
+                    "the \"%s\" call requires exactly %d arguments.",
+                    *(char **)(function + 0x4),
+                    (int)*(int16_t *)(function + 0x18));
+        *(const char **)0x46b6fc = (const char *)0x46b704;
+        node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+        *(int *)0x46b700 = *(int *)(node + 0xc);
+        return false;
+      }
+      return valid;
+    }
+
+    if (hs_type_check(child_index,
+                      (int16_t) * (uint16_t *)(function + 0x1a +
+                                               argument_index * 2))) {
+      node = (char *)datum_get(*(data_t **)0x5aa6c8, child_index);
+      child_index = *(int *)(node + 0x8);
+    } else {
+      valid = false;
+    }
+    argument_index++;
+  } while (valid);
+
+  return false;
+}
+
 /* Recompile all HS scripts and globals in the current scenario (0xc93f0).
  * First resizes the scenario's HS string data block (scenario+0x488) to the
  * current source_size, then initialises the compile globals for a new pass.

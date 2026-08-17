@@ -11880,7 +11880,8 @@
     },
     {
      "addr": "0xc7e50",
-     "decl": "void hs_macro_function_parse(void);"
+     "decl": "bool hs_macro_function_parse(int16_t function_index, int datum_index);",
+     "ported": true
     },
     {
      "addr": "0xc7f70",
