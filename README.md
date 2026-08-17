@@ -24,17 +24,17 @@ In practice, that means:
 Game Code Progress
 ------------------
 <!-- GAME_CODE_PROGRESS_START -->
-[![Decompilation Progress](https://img.shields.io/badge/decompilation-68.92%25-yellowgreen.svg)](https://stianeklund.github.io/halo/)
-[![Ported Functions](https://img.shields.io/badge/functions-4,693%2F6,809-blue.svg)](https://stianeklund.github.io/halo/)
+[![Decompilation Progress](https://img.shields.io/badge/decompilation-69.04%25-yellowgreen.svg)](https://stianeklund.github.io/halo/)
+[![Ported Functions](https://img.shields.io/badge/functions-4,701%2F6,809-blue.svg)](https://stianeklund.github.io/halo/)
 
 Progress breakdown from the [Decompilation Progress Dashboard](https://stianeklund.github.io/halo/):
 
-* **Ported Functions:** `4,693 / 6,809` (`68.92%`)
-  `[████████████████████████████░░░░░░░░░░░░] 68.92%`
-* **Ported Code Bytes:** `1,026,291 / 1,731,714` (`59.26%`)
-  `[████████████████████████░░░░░░░░░░░░░░░░] 59.26%`
-* **Average VC71 Match Accuracy:** `91.70%` (`4,653` scored functions, weighted: `86.80%`)
-* **Equivalence Verified:** `3,949` functions tested (`994` high confidence)
+* **Ported Functions:** `4,701 / 6,809` (`69.04%`)
+  `[████████████████████████████░░░░░░░░░░░░] 69.04%`
+* **Ported Code Bytes:** `1,026,885 / 1,731,714` (`59.30%`)
+  `[████████████████████████░░░░░░░░░░░░░░░░] 59.30%`
+* **Average VC71 Match Accuracy:** `91.70%` (`4,661` scored functions, weighted: `86.80%`)
+* **Equivalence Verified:** `3,952` functions tested (`996` high confidence)
 * **Translation Units:** `182` source units (`39` platform/SDK buckets tracked separately)
 
 > Explore the interactive call graph and unit breakdown: **[Decompilation Progress Dashboard](https://stianeklund.github.io/halo/)** (or locally at [`artifacts/progress/index.html`](artifacts/progress/index.html))
