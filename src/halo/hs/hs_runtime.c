@@ -300,6 +300,75 @@ bool hs_sleep_until_parse(int16_t function_index, int expression_index)
   return success;
 }
 
+/* 0xc8f40 — Type-check the arguments of a debug-string function call.
+ *
+ * The syntax node at expression_index is the function-call node; +0x10 is
+ * the index of its function-name node, whose +0x08 (next) is the first
+ * argument. Each untyped argument (+0x04 == 0) is assigned the
+ * debug-string type (9) and dispatched by its constant flag (+0x06 bit 0)
+ * to FUN_000c73a0 (@EDI) or FUN_000c74c0 (@EBX). The walk stops at the
+ * first failed check and returns false; the return value is BL, which the
+ * epilogue moves to AL (MOV AL,BL at 0xc903e).
+ *
+ * Both asserts are in binary order: the function_index range check
+ * (hs_library_internal_compile.h line 0x2ae) runs after the two
+ * datum_get calls, and the !hs_compile_globals.error check
+ * (hs_compile.c line 0x48e) runs inside the loop after the per-argument
+ * datum_get, matching the inlined hs_type_check body at 0xc7d80.
+ *
+ * Globals:
+ *   0x5aa6c8 = hs_syntax_data (data_t*)
+ *   0x46b6fc = hs_compile_globals.error_message
+ */
+bool FUN_000c8f40(int16_t function_index, int expression_index)
+{
+  bool valid;
+  int argument_index;
+  char *node;
+  char *node2;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, expression_index);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+  argument_index = *(int *)(node + 0x8);
+
+  if (function_index < 0x18 || function_index > 0x1a) {
+    display_assert("(function_index>=_hs_function_debug_string__first) && "
+                   "(function_index<=_hs_function_debug_string__last)",
+                   "c:\\halo\\source\\hs\\hs_library_internal_compile.h", 0x2ae,
+                   true);
+    system_exit(-1);
+  }
+
+  while (argument_index != -1) {
+    valid = true;
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, argument_index);
+
+    if (*(int *)0x46b6fc != 0) {
+      display_assert("!hs_compile_globals.error",
+                     "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x48e, true);
+      system_exit(-1);
+    }
+
+    if (*(int16_t *)(node + 0x4) == 0) {
+      *(int16_t *)(node + 0x4) = 9; /* _hs_type_string */
+      node2 = (char *)datum_get(*(data_t **)0x5aa6c8, argument_index);
+      if (*(uint8_t *)(node2 + 0x6) & 1) {
+        *(int16_t *)(node + 0x2) = 9;
+        valid = FUN_000c73a0(argument_index);
+      } else {
+        valid = FUN_000c74c0(argument_index);
+      }
+    }
+
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, argument_index);
+    argument_index = *(int *)(node + 0x8);
+    if (!valid)
+      return false;
+  }
+
+  return true;
+}
+
 /* Compile a HaloScript expression from source text. Allocates syntax nodes,
  * copies source into the compiled source buffer, parses one expression,
  * and wraps it in a begin/void node pair for execution. Returns the root
@@ -630,6 +699,92 @@ int FUN_000c95f0(void)
       FUN_000ce2b0(result, unit_handle);
   }
   return result;
+}
+
+/* 0xc98e0 — Report whether this object, any object in its child chain, or any
+ * object in its parent chain is a player-controlled unit; failing that, whether
+ * the object is one of the types in mask 0x1c and has flag bit 1 set.
+ *
+ * Binary evidence (0xc98e0..0xc998a, cdecl, one stack arg at [EBP+8] read into
+ * ESI at 0xc98e6):
+ *
+ *   PUSH -0x1 / PUSH ESI / CALL 0x13d680 => object_get_and_verify_type(handle,
+ *   -1); the result is parked in EBX (0xc98f3) and is the base for every later
+ *   field read.  PUSH ESI / CALL 0xba500 => player_index_from_unit_index(the
+ *   same handle, NOT the object pointer).  The single ADD ESP,0xc at 0xc98fa
+ *   folds both calls' pushes (2 + 1); the ARG_COUNT warning on 0xba500 is that
+ *   merge — its decl really takes one arg.
+ *
+ *   CMP EAX,-0x1 / SETNZ AL / MOV [EBP-1],AL stores the "is a player" result in
+ *   a stack byte, and JNZ 0xc9984 skips straight to the epilogue with AL still
+ *   set, so a player hit returns true without touching either chain or the
+ *   type/flag test.  The two loops and the type/flag test are therefore reached
+ *   only when that byte is 0, which is why falling out of them returns false
+ *   (MOV AL,[EBP-1] at 0xc9937/0xc9967 reloads the stored zero).
+ *
+ *   Child loop (0xc9915..0xc9935): starts at [EBX+0xc8] (unk_200), resolves the
+ *   handle, RECURSES on 0xc98e0 with the child HANDLE (PUSH ESI at 0xc991d, not
+ *   the resolved pointer in EDI), returns true on a nonzero AL, and advances
+ *   through [EDI+0xc4] (next_object_index) — the resolved child, not the base
+ *   object.
+ *
+ *   Parent loop (0xc9945..0xc9965): starts at [EBX+0xcc], calls
+ *   player_index_from_unit_index on the parent HANDLE, returns true when it is
+ *   not NONE, and advances through [EDI+0xcc].  CMP ESI,EAX at 0xc9963 compares
+ *   against EAX, which is -1 on that path, so it is the same NONE test.
+ *
+ *   Tail (0xc996a..0xc9982): MOV CL,byte ptr [EBX+0x64] is a BYTE read of the
+ *   object type, then MOV EDX,1 / SHL EDX,CL / TEST DL,0x1c — x86 masks the
+ *   shift count to 5 bits and only the low byte is tested, so the C form keeps
+ *   both the & 31 and the 0x1c mask.  TEST byte ptr [EBX+0x1a4],0x2 is one byte
+ *   past the end of object_data_t (size 0x1a4), so it stays an explicit offset
+ *   rather than a guessed field; the same raw form is already used for +0x1a4 in
+ *   items.c, weapons.c, and game_engine.c.
+ *
+ * Callees (both cdecl, both in kb.json, no @<reg> args):
+ *   0x13d680 = object_get_and_verify_type(int datum_handle, int type_mask)
+ *   0xba500  = player_index_from_unit_index(int unit_index)
+ *
+ * Callers (0xc99ed in FUN_000c99e0, 0xc9adc in FUN_000c9a50, plus the self
+ * recursion) each push a single dword handle, which is what fixes the kb.json
+ * decl from void(void) to bool(int); the recursive site's TEST AL,AL proves the
+ * bool return.  Whether the mask-0x1c/flag-bit-1 tail means "item is held or at
+ * rest" is unproven, so the name is left as FUN_000c98e0. */
+bool FUN_000c98e0(int object_handle)
+{
+  object_data_t *object;
+  object_data_t *linked_object;
+  int linked_handle;
+  bool is_player;
+
+  object = (object_data_t *)object_get_and_verify_type(object_handle, -1);
+  is_player = (bool)(player_index_from_unit_index(object_handle) != -1);
+  if (is_player)
+    return is_player;
+
+  linked_handle = object->unk_200.value;
+  while (linked_handle != -1) {
+    linked_object =
+      (object_data_t *)object_get_and_verify_type(linked_handle, -1);
+    if (FUN_000c98e0(linked_handle))
+      return true;
+    linked_handle = linked_object->next_object_index.value;
+  }
+
+  linked_handle = object->parent_object_index.value;
+  while (linked_handle != -1) {
+    linked_object =
+      (object_data_t *)object_get_and_verify_type(linked_handle, -1);
+    if (player_index_from_unit_index(linked_handle) != -1)
+      return true;
+    linked_handle = linked_object->parent_object_index.value;
+  }
+
+  if ((1U << (*(uint8_t *)((char *)object + 0x64) & 31) & 0x1c) != 0 &&
+      (*(uint8_t *)((char *)object + 0x1a4) & 2) != 0)
+    return true;
+
+  return is_player;
 }
 
 /* HaloScript runtime — thread management and script execution. */

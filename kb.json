@@ -11964,7 +11964,8 @@
     },
     {
      "addr": "0xc8f40",
-     "decl": "void FUN_000c8f40(void);"
+     "decl": "bool FUN_000c8f40(int16_t function_index, int expression_index);",
+     "ported": true
     },
     {
      "addr": "0xc9050",
@@ -12018,7 +12019,8 @@
     },
     {
      "addr": "0xc98e0",
-     "decl": "void FUN_000c98e0(void);"
+     "decl": "bool FUN_000c98e0(int object_handle);",
+     "ported": true
     },
     {
      "addr": "0xc9990",
