@@ -43,6 +43,23 @@ class TestScoreContextInputs(unittest.TestCase):
         self.assertEqual(pack["scores"]["preprocessing"], "regparam_stripped")
         self.assertEqual(pack["scores"]["regparam_loads_stripped"], 1)
 
+    def test_classifies_static_regarg_helper_ceiling(self):
+        scores = {"regparam_loads_stripped": 1}
+        diff_ops = [
+            {"kind": "delete", "cand": [
+                "pushl\t%ebp", "movl\t%esp, %ebp", "pushl\t%esi"]},
+            {"kind": "delete", "cand": ["popl\t%esi", "popl\t%ebp"]},
+        ]
+        rules = vc71_verify._classify_score_context(
+            scores, {}, diff_ops, {})
+        self.assertIn("regarg_static_helper_ceiling",
+                      [rule["rule"] for rule in rules])
+
+        rules = vc71_verify._classify_score_context(
+            scores, {}, [{"kind": "delete", "cand": ["pushl\t%esi"]}], {})
+        self.assertNotIn("regarg_static_helper_ceiling",
+                         [rule["rule"] for rule in rules])
+
     def test_forwarding_reference_is_explicit(self):
         pack = vc71_verify._build_score_context(
             "test_thunk", ["retl"], ["jmp 0x10"], 0.0,

@@ -1275,6 +1275,16 @@ Original call-site args (from the pristine body): case 0 pushes 0 (disable); cas
 
 **Calibration (2026-07-20):** the phantom load is worth ~0.2–1.6pp on real functions (unit_verify_vectors 95.1→96.1, object_postprocess_node_matrices 95.2→96.8, FUN_0013e1a0 89.3→90.9). A @reg function stuck at 60–75% is NOT capped by the prologue artifact — that gap is register-allocation cascade, a stale/bloated reference, or a genuinely divergent body. Check the delinked ref quality first, then permute; do not blame the convention.
 
+### 32a. File-Static Same-TU Helper Uses a Private Register ABI and No Frame
+
+**Automation:** FULL — `_classify_score_context()` emits `regarg_static_helper_ceiling` when an own-`@<reg>` phantom load is accompanied by candidate-only `PUSH EBP; MOV EBP,ESP` setup and `POP EBP` teardown. `test_vc71_low_score_census.py::test_classifies_static_regarg_helper_ceiling` pins both the positive shape and a negative register-save-only case. The rule routes the target to caller audit plus a static same-TU compiler probe instead of another permuter run.
+
+**What happened (FUN_00181020, 2026-08-18):** the XBE body is 18 instructions, opens `TEST SI,SI`, never reads a stack argument, and has no frame. Both callers (`0x1817bc`, `0x181b09`) write ESI immediately before the call and do not push an argument, proving `index@<si>`. Normal `vc71_verify` compiles the external C definition with `/Gd /O2 /Oy-`; cdecl therefore loads the stack parameter into SI and preserves ESI, while `/Oy-` adds the EBP frame. After the existing phantom-load model, those save/frame instructions cap the reported mnemonic score at 87.8%.
+
+The external-linkage explanation alone was wrong: recompiling the same external function with `/Oy` removed EBP but retained `PUSH ESI; MOV SI,[stack]; ... POP ESI` and scored 92.3%. The decisive experiment was the same body as a `static` noinline helper with two callers in one TU. VC71 selected SI as its private incoming register and emitted the exact 18-mnemonic reference shape under both `/Oy` and `/Oy-`, scoring 100.0%. Thus private same-TU register passing is compiler-reproduced; the original function's file-static linkage is strongly inferred, not directly encoded in the XBE.
+
+**Rule:** audit all binary callers before assigning `@<reg>`, then use a same-TU static probe to test a prologue-only ceiling. Do not permute that gap: AST permutations cannot turn an externally compiled cdecl parameter into MSVC's private SI/ESI convention. Do not blindly make the production lift `static`, either — the patcher still needs an externally resolvable implementation and unported callers reach the original address through the generated register thunk. Best long-term scoring fix is a verifier-only original-TU/static context that preserves the production patch ABI.
+
 ## 33. Undersized Float Buffer Into a Known float[N] Consumer — Channel Shift + Stack-Garbage Read
 
 **Automation:** FULL — `check_lift_hazards.py::check_packer_input_arity` (ERROR-level, blocks): resolves the argument of `FUN_000d1c90`/`FUN_000d1dd0` calls (incl. `buf + k` / `&buf[k]` forms) to the nearest preceding `float buf[N]` declaration and fails when fewer than the consumer's arity remains. A nearer `float *` pointer/param declaration shadows an earlier same-named array, so cross-function name collisions don't false-positive.

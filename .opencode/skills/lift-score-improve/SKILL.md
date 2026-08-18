@@ -346,6 +346,36 @@ throughout the body.
 
 ---
 
+### `regarg_static_helper_ceiling`
+
+**Signature:** the function's own `@<reg>` phantom load was modeled, but the
+remaining diff is candidate-only `PUSH EBP; MOV EBP,ESP` setup plus matching
+`POP EBP` teardown. The reference starts by consuming the annotated register
+and has no stack-parameter load.
+
+**Interpretation:** likely original file-static helper using MSVC's private
+same-TU register convention. This is stronger than a generic `@<reg>` ceiling:
+VC71 reproduced FUN_00181020's exact 18-mnemonic `@<si>` body when the same code
+was compiled as a static noinline helper with two same-TU callers. External
+`/Oy` removed EBP but retained ESI save/load/restore, proving external linkage
+and frame-pointer omission are separate effects.
+
+**Action:**
+1. Audit every original caller: each must write the annotated register before
+   `CALL` and must not push that parameter.
+2. Reproduce with a minimal static same-TU VC71 probe. Treat static linkage as
+   inferred until the compiler reproduction and TU evidence agree.
+3. Do not run the permuter on a prologue-only gap; AST permutations cannot turn
+   external cdecl into MSVC's private SI/ESI convention.
+4. Do not make the production lift static solely for score. The patcher needs
+   an external implementation symbol, and unported callers rely on the generated
+   register thunk. Prefer a verifier-only original-TU/static scoring context.
+
+**Observed:** FUN_00181020 normal lane 87.8%; external `/Oy` 92.3%; static
+same-TU probe 100.0% mnemonic match under both `/Oy` and `/Oy-`.
+
+---
+
 ### `anchor_collapse`
 
 **Signature:** `scores.dp_lcs_pct` sits well above `scores.official_pct` —

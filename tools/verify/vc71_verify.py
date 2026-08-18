@@ -1223,6 +1223,31 @@ def _classify_score_context(scores: dict, warnings: dict, diff_ops: list[dict],
                       "lift-score-improve Step 3d.",
         })
 
+    deleted_cand = [
+        insn.lower()
+        for op in diff_ops if op["kind"] == "delete"
+        for insn in op["cand"]
+    ]
+    has_deleted_ebp_setup = (
+        any(insn.startswith("push") and "%ebp" in insn for insn in deleted_cand)
+        and any(insn.startswith("mov") and "%esp, %ebp" in insn
+                for insn in deleted_cand)
+    )
+    has_deleted_ebp_teardown = any(
+        insn.startswith("pop") and "%ebp" in insn for insn in deleted_cand)
+    if (scores.get("regparam_loads_stripped", 0) > 0
+            and has_deleted_ebp_setup and has_deleted_ebp_teardown):
+        rules.append({
+            "rule": "regarg_static_helper_ceiling",
+            "evidence": "own @<reg> phantom load plus candidate-only EBP "
+                        "setup/teardown",
+            "action": "Likely file-static same-TU helper using MSVC's private "
+                      "register convention. Audit every caller's register setup, "
+                      "then reproduce with a static same-TU VC71 probe; do not "
+                      "send this prologue-only gap to the permuter. "
+                      "docs/lift-learnings.md section 32a.",
+        })
+
     pushl_movl = 0
     for op in diff_ops:
         if op["kind"] != "replace":
