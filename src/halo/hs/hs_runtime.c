@@ -529,6 +529,41 @@ void FUN_000c95d0(int param_1)
                                          (const char *)param_1);
 }
 
+/* 0xc95f0
+ *
+ * Confirmed from the disassembly at 0xc95f0: cdecl, no parameters. The
+ * FUN_000ce200 result is held in EDI across the loop and moved back into EAX
+ * at 0xc9649, so the function returns it (kb.json decl already says int).
+ *
+ * Iterates the player table (global at 0x5aa6d4) with
+ * data_next_index/datum_get. The original reloads [0x5aa6d4] before every
+ * call (0xc95f9, 0xc9610, 0xc9632), which the raw-address form preserves.
+ * For each player, the unit handle at +0x34 is loaded once into EAX
+ * (0xc961d), tested against NONE, and passed as the second argument to
+ * FUN_000ce2b0 together with the FUN_000ce200 result.
+ *
+ * player+0x34 as the controlled unit handle is corroborated by the same
+ * offset use in scenario.c/units.c. The roles of FUN_000ce200 and
+ * FUN_000ce2b0 are unproven, so both keep their FUN_ names and the local
+ * holding the FUN_000ce200 result stays mechanically named. */
+int FUN_000c95f0(void)
+{
+  int result;
+  int player_index;
+  int unit_handle;
+
+  result = FUN_000ce200();
+  for (player_index = data_next_index(*(data_t **)0x5aa6d4, -1);
+       player_index != -1;
+       player_index = data_next_index(*(data_t **)0x5aa6d4, player_index)) {
+    unit_handle =
+      *(int *)((char *)datum_get(*(data_t **)0x5aa6d4, player_index) + 0x34);
+    if (unit_handle != -1)
+      FUN_000ce2b0(result, unit_handle);
+  }
+  return result;
+}
+
 /* HaloScript runtime — thread management and script execution. */
 
 /* Dispose runtime state from old map: invalidate thread data and

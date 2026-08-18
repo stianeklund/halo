@@ -11986,7 +11986,8 @@
     },
     {
      "addr": "0xc95f0",
-     "decl": "int FUN_000c95f0(void);"
+     "decl": "int FUN_000c95f0(void);",
+     "ported": true
     },
     {
      "addr": "0xc9650",
