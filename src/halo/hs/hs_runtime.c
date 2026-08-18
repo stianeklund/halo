@@ -701,6 +701,24 @@ int FUN_000c95f0(void)
   return result;
 }
 
+/* 0xc9700 — Locate the object's head position when it is a unit; otherwise
+ * copy the position at +0x50, then test param_1 against that point and the
+ * supplied angle scaled by the global at 0x253d4c. The parameter roles beyond
+ * these mechanically observed uses are unproven. */
+void FUN_000c9700(int param_1, int param_2, float param_3)
+{
+  vector3_t position;
+
+  if (param_2 != -1) {
+    if (object_try_and_get_and_verify_type(param_2, 3) != NULL)
+      unit_get_head_position(param_2, (float *)&position);
+    else
+      position =
+        *(vector3_t *)((char *)object_get_and_verify_type(param_2, -1) + 0x50);
+    FUN_001aa430(param_1, (float *)&position, param_3 * *(float *)0x253d4c);
+  }
+}
+
 /* 0xc98e0 — Report whether this object, any object in its child chain, or any
  * object in its parent chain is a player-controlled unit; failing that, whether
  * the object is one of the types in mask 0x1c and has flag bit 1 set.
@@ -738,8 +756,8 @@ int FUN_000c95f0(void)
  *   shift count to 5 bits and only the low byte is tested, so the C form keeps
  *   both the & 31 and the 0x1c mask.  TEST byte ptr [EBX+0x1a4],0x2 is one byte
  *   past the end of object_data_t (size 0x1a4), so it stays an explicit offset
- *   rather than a guessed field; the same raw form is already used for +0x1a4 in
- *   items.c, weapons.c, and game_engine.c.
+ *   rather than a guessed field; the same raw form is already used for +0x1a4
+ * in items.c, weapons.c, and game_engine.c.
  *
  * Callees (both cdecl, both in kb.json, no @<reg> args):
  *   0x13d680 = object_get_and_verify_type(int datum_handle, int type_mask)
@@ -785,6 +803,19 @@ bool FUN_000c98e0(int object_handle)
     return true;
 
   return is_player;
+}
+
+/* Reject deletion of a player or its linked object; otherwise delete datum. */
+void FUN_000c99e0(int datum)
+{
+  if (datum != -1) {
+    if (!FUN_000c98e0(datum)) {
+      object_delete(datum);
+      return;
+    }
+    error(2, "### ERROR a script tried to delete the player (or the horse he "
+             "rode in on, or his six-shooter)");
+  }
 }
 
 /* HaloScript runtime — thread management and script execution. */

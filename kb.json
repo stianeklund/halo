@@ -12003,7 +12003,8 @@
     },
     {
      "addr": "0xc9700",
-     "decl": "void FUN_000c9700(void);"
+     "decl": "void FUN_000c9700(int param_1, int param_2, float param_3);",
+     "ported": true
     },
     {
      "addr": "0xc9770",
@@ -12028,7 +12029,8 @@
     },
     {
      "addr": "0xc99e0",
-     "decl": "void FUN_000c99e0(int datum);"
+     "decl": "void FUN_000c99e0(int datum);",
+     "ported": true
     },
     {
      "addr": "0xc9a20",
