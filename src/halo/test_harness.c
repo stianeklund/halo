@@ -112,6 +112,180 @@ static void dump_u32_case(const char *group, const char *name, uint32_t *values,
   debug_string_to_display(buf, 0);
 }
 
+/* --- HaloScript parser post-state cases ------------------------------------
+ * Drives the hs_compile.obj parse callbacks — hs_parse_begin (0xc7f70),
+ * hs_parse_cond (0xc82e0) and FUN_000c85b0 (and/or, 0xc85b0) — through the
+ * real compiler entry point and dumps the resulting syntax-node post-state,
+ * so run_golden_tests.py can diff the original (ported=false) against the
+ * lifted implementation (ported=true).
+ *
+ * Each node is dumped as its full 20-byte payload (dw0..dw4 = offsets
+ * 0x00-0x13), which is what makes the cond replacement checkable: dw0's low
+ * word (datum salt) and dw2 (+0x08, the sibling link) must survive the
+ * in-place overwrite of the call node.
+ *
+ * The compile-error MESSAGE POINTER is deliberately not dumped: a message set
+ * by lifted C points into our image while the original points into .rdata, so
+ * the two addresses legitimately differ. The message TEXT is dumped instead,
+ * along with the error offset, which is build-independent. */
+static void dump_hs_node(const char *label, int index, int handle, char *buf)
+{
+  char *node;
+
+  if (handle == -1) {
+    crt_sprintf(buf, "VALUE|%s.n%d|h=FFFFFFFF\n", label, index);
+    debug_string_to_display(buf, 0);
+    return;
+  }
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, handle);
+  if (node == 0) {
+    crt_sprintf(buf, "VALUE|%s.n%d|h=%08X|null\n", label, index,
+                (uint32_t)handle);
+    debug_string_to_display(buf, 0);
+    return;
+  }
+
+  crt_sprintf(buf,
+              "VALUE|%s.n%d|h=%08X|dw0=%08X|dw1=%08X|dw2=%08X|dw3=%08X|dw4=%08X\n",
+              label, index, (uint32_t)handle, *(uint32_t *)node,
+              *(uint32_t *)(node + 4), *(uint32_t *)(node + 8),
+              *(uint32_t *)(node + 0xc), *(uint32_t *)(node + 0x10));
+  debug_string_to_display(buf, 0);
+}
+
+static void run_hs_parse_case(const char *name, const char *source, char *buf)
+{
+  int error_info;
+  char *error_text;
+  int root;
+  int counter;
+
+  error_info = 0;
+  error_text = 0;
+  counter = 0;
+
+  crt_sprintf(buf, "CASE|BEGIN|hs_parse|%s\n", name);
+  debug_string_to_display(buf, 0);
+
+  /* Clear the pool between cases. With no scenario loaded hs_compile_cleanup()
+   * leaves the parsed nodes behind, so without this every later case dumps the
+   * first case's nodes and the per-case cap truncates before reaching the
+   * nodes that case actually produced. */
+  data_delete_all(*(data_t **)0x5aa6c8);
+
+  hs_syntax_reset(0);
+  root = hs_compile(csstrlen(source), source, &error_info, &error_text);
+
+  crt_sprintf(buf, "VALUE|%s.root|h=%08X\n", name, (uint32_t)root);
+  debug_string_to_display(buf, 0);
+
+  crt_sprintf(buf, "VALUE|%s.err_offset|value=%08X\n", name,
+              *(uint32_t *)0x46b700);
+  debug_string_to_display(buf, 0);
+
+  /* Structured parser records only permit key=value fields. Error text is
+   * emitted as hex bytes to preserve a literal oracle/candidate comparison
+   * without letting spaces or punctuation escape the wire format. */
+  if (error_info != 0) {
+    int error_length;
+    int error_i;
+
+    error_length = csstrlen((const char *)error_info);
+    if (error_length > 48)
+      error_length = 48;
+    crt_sprintf(buf, "VALUE|%s.err_len|value=%08X\n", name,
+                (uint32_t)error_length);
+    debug_string_to_display(buf, 0);
+    for (error_i = 0; error_i < error_length; error_i++) {
+      crt_sprintf(buf, "VALUE|%s.err%02d|value=%02X\n", name, error_i,
+                  (uint32_t)(uint8_t)((const char *)error_info)[error_i]);
+      debug_string_to_display(buf, 0);
+    }
+  } else {
+    crt_sprintf(buf, "VALUE|%s.err_len|value=FFFFFFFF\n", name);
+    debug_string_to_display(buf, 0);
+  }
+
+  /* Dump every LIVE node in the syntax pool, not just the tree reachable
+   * from a valid root. A failed compile still returns -1 while leaving the
+   * partially-parsed and partially-rewritten nodes behind, and those nodes
+   * are exactly the post-state the parse callbacks mutate — dumping only
+   * from a valid root makes an error-path run look identical no matter what
+   * the callback wrote. */
+  {
+    int datum_index;
+
+    datum_index = data_next_index(*(data_t **)0x5aa6c8, -1);
+    while (datum_index != -1 && counter < 64) {
+      dump_hs_node(name, counter, datum_index, buf);
+      counter++;
+      datum_index = data_next_index(*(data_t **)0x5aa6c8, datum_index);
+    }
+  }
+
+  hs_compile_cleanup();
+
+  crt_sprintf(buf, "CASE|END|hs_parse|%s|PASS\n", name);
+  debug_string_to_display(buf, 0);
+}
+
+static void run_hs_parser_cases(char *buf)
+{
+  /* The harness runs straight after shell_initialize(), before any map is
+   * loaded, so hs_initialize() has not run and the syntax-node pool at
+   * 0x5aa6c8 is still NULL (verified on the box: getmem 0x5aa6c8 = 0).
+   * hs_scripts_initialize() takes its no-scenario path (global scenario
+   * index at 0x326a08 is -1) and allocates the pool. */
+  if (*(void **)0x5aa6c8 == 0) {
+    hs_scripts_initialize();
+  }
+
+  if (*(void **)0x5aa6c8 == 0) {
+    debug_string_to_display("VALUE|hs_parse.pool|unavailable\n", 0);
+    return;
+  }
+
+  /* hs_parse_begin: empty block (error path), single statement (terminal
+   * argument adopts/uses the block type) and multi-statement (leading
+   * arguments are typed void), plus the begin_random variant.
+   *
+   * A top-level expression is type-checked in a void slot, so a bare literal
+   * argument dies in FUN_000c73a0 before the interesting paths run. The
+   * *_call cases wrap each statement in an (and ...) call, whose node is a
+   * function call rather than a constant, so the loop runs to completion and
+   * the type-propagation block at 0xc8044 is reached. */
+  run_hs_parse_case("begin_empty", "(begin)", buf);
+  run_hs_parse_case("begin_one", "(begin true)", buf);
+  run_hs_parse_case("begin_two", "(begin true true)", buf);
+  run_hs_parse_case("begin_random_one", "(begin_random true)", buf);
+  run_hs_parse_case("begin_one_call", "(begin (and true false))", buf);
+  run_hs_parse_case("begin_two_call",
+                    "(begin (and true false) (or true false))", buf);
+  run_hs_parse_case("begin_random_call",
+                    "(begin_random (and true false) (or true false))", buf);
+
+  /* FUN_000c85b0: below-arity error path, and the two-argument walk for both
+   * function indices (and = 5, or = 6). */
+  run_hs_parse_case("and_none", "(and)", buf);
+  run_hs_parse_case("and_one", "(and true)", buf);
+  run_hs_parse_case("and_two", "(and true false)", buf);
+  run_hs_parse_case("or_two", "(or true false)", buf);
+
+  /* hs_parse_cond: the in-place replacement (taken path), the empty clause
+   * list, and a malformed clause that makes FUN_000c5310 fail so the call
+   * node must be left completely untouched. */
+  run_hs_parse_case("cond_empty", "(cond)", buf);
+  run_hs_parse_case("cond_pair", "(cond (true false))", buf);
+  run_hs_parse_case("cond_bad", "(cond true)", buf);
+  run_hs_parse_case("cond_pair_call",
+                    "(cond ((and true false) (or true false)))", buf);
+  run_hs_parse_case("cond_two_pairs_call",
+                    "(cond ((and true false) (or true false)) "
+                    "((or false true) (and false true)))",
+                    buf);
+}
+
 #ifdef DUAL_ORACLE_HARNESS
 typedef float (*dual_normalize3d_fn)(float *v);
 typedef float *(*dual_vector3d_scale_add_fn)(float *base, float *direction,
@@ -229,6 +403,8 @@ void run_tests(void)
 #endif
 
   debug_string_to_display("RUN|BEGIN|suite=xbox_harness\n", 0);
+
+  run_hs_parser_cases(buf);
 
   /* normalize3d: magnitude and resulting unit vector */
   {
