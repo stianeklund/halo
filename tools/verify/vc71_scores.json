@@ -7654,14 +7654,18 @@
       "source": "src/halo/effects/particles.c"
     },
     "FUN_000a3b80": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 83.6,
       "addr": "0xa3b80",
       "end": "0xa3e5f",
       "kind": "auto",
       "n_r": 246,
-      "opnd_percent": 58.7,
+      "opnd_percent": 59.6,
+      "raw_mnemonic_pct": 83.6,
       "ref": "synth",
       "ref_sha": "e61f17a1ac9f1c3a",
-      "score": 82.5,
+      "score": 83.6,
       "source": "src/halo/effects/player_effects.c"
     },
     "FUN_000a54b0": {
@@ -45617,6 +45621,21 @@
       "score": 80.7,
       "source": "src/halo/effects/player_effects.c"
     },
+    "player_effect_clear_damage_indicators": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xa2a70",
+      "end": "0xa2a90",
+      "kind": "auto",
+      "n_r": 13,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "c3b14313f7173627",
+      "score": 100.0,
+      "source": "src/halo/effects/player_effects.c"
+    },
     "player_effect_dispose": {
       "addr": "0xa2740",
       "end": "0xa2741",
@@ -45648,6 +45667,21 @@
       "ref": "synth",
       "ref_sha": "66ef810526cb4304",
       "score": 100.0,
+      "source": "src/halo/effects/player_effects.c"
+    },
+    "player_effect_get_damage_indicators": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 94.7,
+      "addr": "0xa2a10",
+      "end": "0xa2a70",
+      "kind": "auto",
+      "n_r": 37,
+      "opnd_percent": 94.7,
+      "raw_mnemonic_pct": 94.7,
+      "ref": "synth",
+      "ref_sha": "8b1f7f7cc2fb9bd7",
+      "score": 94.7,
       "source": "src/halo/effects/player_effects.c"
     },
     "player_effect_initialize": {
@@ -49026,6 +49060,21 @@
       "ref_sha": "4ca34e64d8b0ed27",
       "score": 100.0,
       "source": "src/halo/game/player_control.c"
+    },
+    "scripted_player_effect_set_rumble": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xa2920",
+      "end": "0xa2929",
+      "kind": "auto",
+      "n_r": 4,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "581db72816031056",
+      "score": 100.0,
+      "source": "src/halo/effects/player_effects.c"
     },
     "scripted_show_hud": {
       "addr": "0xd0400",

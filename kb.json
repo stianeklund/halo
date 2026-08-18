@@ -17633,7 +17633,8 @@
     },
     {
      "addr": "0xa2920",
-     "decl": "void scripted_player_effect_set_rumble(int param_1, float param_2);"
+     "decl": "void scripted_player_effect_set_rumble(float left_motor, float right_motor);",
+     "ported": true
     },
     {
      "addr": "0xa2930",
@@ -17649,11 +17650,13 @@
     },
     {
      "addr": "0xa2a10",
-     "decl": "void player_effect_get_damage_indicators(int player_index, void *out);"
+     "decl": "void player_effect_get_damage_indicators(int player_index, void *out);",
+     "ported": true
     },
     {
      "addr": "0xa2a70",
-     "decl": "void player_effect_clear_damage_indicators(int player_index);"
+     "decl": "void player_effect_clear_damage_indicators(int player_index);",
+     "ported": true
     },
     {
      "addr": "0xa2a90",

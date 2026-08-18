@@ -28,6 +28,103 @@ void player_effect_dispose_from_old_map(void)
 {
 }
 
+/* Forward the two script-supplied motor values to the rumble system.
+ *
+ * Disassembly (0xa2920..0xa2929, 9 bytes):
+ *   55            PUSH EBP
+ *   8B EC         MOV  EBP,ESP
+ *   5D            POP  EBP
+ *   E9 57 72 01 00  JMP 0xb9b80   ; rumble_player_set_scripted_values
+ *
+ * A pure identical-forward tail call: no argument reload, no `add esp`, and
+ * — decisively — no FILD/FSTP conversion code.  MSVC only collapses a wrapper
+ * to that bare JMP when the parameter list matches the callee's exactly, so
+ * both parameters are `float`, like rumble_player_set_scripted_values(float,
+ * float) at 0xb9b80.  The kb decl previously read `(int param_1, float
+ * param_2)`, inferred from the HaloScript caller at 0xc3030 where argument 1
+ * is pushed with `MOV EDX,[EAX]; PUSH EDX` while argument 2 uses the
+ * `PUSH ECX; FSTP [ESP]` float idiom.  That mixed shape is MSVC scheduling,
+ * not a type signal — the callee proves it: 0xb9b80 stores BOTH parameters
+ * into float slots yet marshals the first with `FLD [EBP+8]; FSTP
+ * [EAX+0x820]` and the second with a plain dword `MOV ECX,[EBP+0xc];
+ * MOV [EAX+0x824],ECX`.  The 0xc3030 call site was corrected to read its
+ * first argument as a float lvalue so the dword is still forwarded verbatim
+ * instead of being run through an int-to-float conversion.
+ *
+ * 0xa2920 / player_effects.obj */
+void scripted_player_effect_set_rumble(float left_motor, float right_motor)
+{
+  rumble_player_set_scripted_values(left_motor, right_motor);
+}
+
+/* player_effect_get_damage_indicators -- copy the local player's four damage
+ * indicator bytes to `out`, then age each live indicator by the elapsed game
+ * time, saturating at 0xff.
+ *
+ * Confirmed (0xa2a10..0xa2a6f):
+ *   - PUSH [EBP+8] / CALL 0xa2690: the raw dword is forwarded to
+ *     player_effect_get(int16_t).
+ *   - LEA ESI,[EAX+0xe4]: the indicator array lives at effect+0xe4 and is
+ *     4 bytes wide (PUSH 0x4 / PUSH ESI / PUSH ECX / CALL csmemcpy, ADD
+ * ESP,0x10). The same +0xe4/4 window is cleared in player_effect_update.
+ *   - The copy happens BEFORE the aging pass, so `out` receives the previous
+ *     tick's values.
+ *   - Loop is a 4-iteration countdown (MOV EDI,4 / INC ESI / DEC EDI / JNZ)
+ *     that skips zero entries (CMP byte ptr [ESI],0x0 / JZ).
+ *   - Saturation test is signed on the widened sum: MOVSX EDX,AX (int16_t
+ *     game_time_get_elapsed) + MOVZX EAX,byte ptr [ESI], CMP EDX,0xff,
+ *     JGE -> 0xff.
+ *   - game_time_get_elapsed() is called a SECOND time on the non-saturating
+ *     path (CALL 0x000b5ae0 at 0xa2a3d and again at 0xa2a52); the sum is
+ *     recomputed rather than reused, so both calls are preserved here.
+ *
+ * 0xa2a10 / player_effects.obj */
+void player_effect_get_damage_indicators(int player_index, void *out)
+{
+  unsigned char *indicators;
+  int count;
+  int aged;
+
+  indicators =
+    (unsigned char *)(player_effect_get((int16_t)player_index) + 0xe4);
+  csmemcpy(out, indicators, 4);
+  count = 4;
+  do {
+    if (*indicators != 0) {
+      if ((int)game_time_get_elapsed() + (int)*indicators < 0xff) {
+        aged = game_time_get_elapsed() + *indicators;
+      } else {
+        aged = 0xff;
+      }
+      *indicators = (unsigned char)aged;
+    }
+    indicators++;
+    count--;
+  } while (count != 0);
+}
+
+/* player_effect_clear_damage_indicators -- zero the local player's four damage
+ * indicator bytes.
+ *
+ * Confirmed (0xa2a70..0xa2a8f):
+ *   - MOV EAX,[EBP+8] / PUSH EAX / CALL 0xa2690: the raw dword is forwarded to
+ *     player_effect_get(int16_t), same shape as 0xa2a10.
+ *   - ADD EAX,0xe4: the same 4-byte indicator array at effect+0xe4 that
+ *     player_effect_get_damage_indicators copies out of.
+ *   - PUSH 0x4 / PUSH 0x0 / PUSH EAX / CALL 0x8db80 -> csmemset(buf, 0, 4).
+ *   - The single ADD ESP,0x10 retires the callee argument of
+ *     player_effect_get together with csmemset's three; it is not a 4-argument
+ *     csmemset call.
+ *
+ * 0xa2a70 / player_effects.obj */
+void player_effect_clear_damage_indicators(int player_index)
+{
+  char *effect;
+
+  effect = player_effect_get((int16_t)player_index);
+  csmemset(effect + 0xe4, 0, 4);
+}
+
 void player_effect_update(void)
 {
   int16_t local_player_index;
