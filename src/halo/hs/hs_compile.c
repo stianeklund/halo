@@ -1924,6 +1924,108 @@ bool hs_macro_function_parse(int16_t function_index, int datum_index)
   return false;
 }
 
+/* 0xc7f70 — Parse the (begin ...) and (begin_random ...) statement blocks.
+ * Walks the sibling list starting at the call node's second child (the first
+ * child is the predicate).  For (begin ...) every argument except the last is
+ * type-checked as void (4) and only the last argument is checked against the
+ * call node's own type (expression+0x4); for (begin_random ...) every argument
+ * is checked against the call node's type.  When the checked argument was the
+ * one whose type may flow outward and the call node is still untyped (0), the
+ * argument's resolved type is propagated into the call node — for (begin ...)
+ * the JNZ at 0xc802b skips that propagation block for non-final arguments.
+ * An empty block, or a begin_random with more than 32 arguments, emits the
+ * syntax error into the compile-error globals (message at 0x46b6fc, source
+ * offset at 0x46b700) and returns false.
+ * The original reloads datum_index from [EBP+0xc] on the loop back edge
+ * because EDI carries the next-sibling index inside the body; using the
+ * parameter directly is equivalent because C never clobbers it. */
+bool hs_parse_begin(int16_t function_index, int datum_index)
+{
+  bool valid;
+  char *expression;
+  char *node;
+  int child_index;
+  int next_index;
+  int argument_count;
+  int16_t expected_type;
+
+  valid = true;
+  expression = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+  child_index = *(int *)(node + 0x8);
+
+  if (function_index != 0 && function_index != 1) {
+    display_assert("function_index==_hs_function_begin || "
+                   "function_index==_hs_function_begin_random",
+                   "c:\\halo\\source\\hs\\hs_library_internal_compile.h", 0x15,
+                   1);
+    system_exit(-1);
+  }
+
+  argument_count = 0;
+  for (;;) {
+    if (child_index == -1) {
+      if (!valid)
+        return valid;
+
+      if ((int16_t)argument_count < 1) {
+        node = (char *)hs_function_table_get(function_index);
+        crt_sprintf((char *)0x46b704,
+                    "a statement block must contain at least one argument.",
+                    *(char **)(node + 0x4));
+        *(const char **)0x46b6fc = (const char *)0x46b704;
+        node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+        *(int *)0x46b700 = *(int *)(node + 0xc);
+        return false;
+      }
+
+      if ((int16_t)argument_count <= 0x20)
+        return valid;
+      if (function_index != 1)
+        return valid;
+
+      *(const char **)0x46b6fc = "begin_random can take a maximum of 32 "
+                                 "arguments (matt can increase this.)";
+      node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+      *(int *)0x46b700 = *(int *)(node + 0xc);
+      return false;
+    }
+
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, child_index);
+    next_index = *(int *)(node + 0x8);
+
+    if (function_index == 0) {
+      /* (begin ...): a non-final statement is evaluated for effect only
+       * (void, 4) and never contributes its type to the call node; only the
+       * final statement is checked against the call node's own type. */
+      if (next_index == -1)
+        expected_type = *(int16_t *)(expression + 0x4);
+      else
+        expected_type = 4;
+
+      valid = hs_type_check(child_index, expected_type);
+
+      if (next_index != -1)
+        goto advance;
+    } else {
+      valid =
+        hs_type_check(child_index, (int16_t) * (uint16_t *)(expression + 0x4));
+    }
+
+    if (*(int16_t *)(expression + 0x4) == 0 && valid) {
+      node = (char *)datum_get(*(data_t **)0x5aa6c8, child_index);
+      *(int16_t *)(expression + 0x4) = *(int16_t *)(node + 0x4);
+    }
+
+  advance:
+    argument_count++;
+    child_index = next_index;
+    if (!valid)
+      return valid;
+  }
+}
+
 /* 0xc8120 — Parse the (if <condition> <then> [<else>]) special form.
  * Walks the call node's argument list: the head node (expression+0x10) links
  * to the condition, whose sibling (+0x8) is the <then> form, whose sibling is
@@ -2008,6 +2110,63 @@ bool hs_parse_if(int16_t function_index, int datum_index)
   *(const char **)0x46b6fc = "i expected (if <condition> <then> [<else>]).";
   node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
   *(int *)0x46b700 = *(int *)(node + 0xc);
+  return result;
+}
+
+/* 0xc82e0 — Parse the (cond (<condition> <result>) ...) special form.
+ * FUN_000c5310 rewrites the clause list into an equivalent nest of (if ...)
+ * expressions and returns the datum index of the replacement head, or -1 when
+ * a clause was malformed or a syntax node could not be allocated.  On success
+ * the replacement's 20-byte payload is copied over the original call node so
+ * that every reference to the original datum index now sees the expansion.
+ *
+ * Two fields of the original node must survive that overwrite and the binary
+ * handles each differently (both are load-bearing):
+ *   +0x00  the datum salt/low word — saved into DX before the copy (0xc833c)
+ *          and written back afterwards (0xc8357).
+ *   +0x08  the original node's sibling link — copied INTO the replacement
+ *          (0xc8343/0xc8346) before the block copy, so the copy carries it
+ *          back into the original slot.
+ * The saved type (+0x04, read before the copy) is what the rewritten node is
+ * then type-checked against, and hs_type_check's result is this function's
+ * return value; the -1 path returns the BL=0 initialised false. */
+bool hs_parse_cond(int16_t function_index, int datum_index)
+{
+  bool result;
+  char *expression;
+  char *node;
+  char *replacement;
+  int replacement_index;
+  int16_t saved_type;
+  uint16_t saved_salt;
+
+  /* The original copies the replacement over the call node as one 20-byte
+   * structure assignment (MOV ECX,5 / REP MOVSD at 0xc834e-0xc8355). */
+  struct hs_syntax_node_payload {
+    int data[5];
+  };
+
+  result = false;
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+  replacement_index = FUN_000c5310(datum_index, *(int *)(node + 0x8));
+
+  if (replacement_index != -1) {
+    expression = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+    replacement = (char *)datum_get(*(data_t **)0x5aa6c8, replacement_index);
+
+    saved_type = *(int16_t *)(expression + 0x4);
+    saved_salt = *(uint16_t *)expression;
+    *(int *)(replacement + 0x8) = *(int *)(expression + 0x8);
+
+    *(struct hs_syntax_node_payload *)expression =
+      *(struct hs_syntax_node_payload *)replacement;
+
+    *(uint16_t *)expression = saved_salt;
+
+    return hs_type_check(datum_index, saved_type);
+  }
+
   return result;
 }
 
@@ -2109,6 +2268,82 @@ bool hs_parse_set(int16_t function_index, int datum_index)
     *(int *)0x46b700 = *(int *)(node + 0xc);
   }
 
+  return false;
+}
+
+/* 0xc85b0 — Parse the (and ...) / (or ...) special forms.
+ * Walks the sibling list starting at the call node's second child and types
+ * every argument as boolean (5).  hs_type_check is INLINED here rather than
+ * called: the body carries its own copy of the !hs_compile_globals.error
+ * assert (hs_compile.c line 0x48e) and dispatches straight to FUN_000c73a0
+ * (@EDI, constant-flag nodes, which also get constant_type=5 at +0x2) or
+ * FUN_000c74c0 (@EBX).  Already-typed arguments (type != 0) are skipped and
+ * leave the running result untouched — note BL is re-seeded to true at the
+ * top of every iteration (0xc8625), so only the LAST argument's outcome can
+ * end the walk.
+ * Fewer than two arguments emits the arity error into the compile-error
+ * globals (message at 0x46b6fc, source offset at 0x46b700). */
+bool FUN_000c85b0(int16_t function_index, int datum_index)
+{
+  bool valid;
+  char *node;
+  char *argument;
+  int child_index;
+  int argument_count;
+
+  valid = true;
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+  child_index = *(int *)(node + 0x8);
+
+  if (function_index != 5 && function_index != 6) {
+    display_assert("function_index==_hs_function_and || "
+                   "function_index==_hs_function_or",
+                   "c:\\halo\\source\\hs\\hs_library_internal_compile.h", 0x15d,
+                   1);
+    system_exit(-1);
+  }
+
+  argument_count = 0;
+  while (child_index != -1) {
+    valid = true;
+    argument = (char *)datum_get(*(data_t **)0x5aa6c8, child_index);
+
+    if (*(int *)0x46b6fc != 0) {
+      display_assert("!hs_compile_globals.error",
+                     "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x48e, 1);
+      system_exit(-1);
+    }
+
+    if (*(int16_t *)(argument + 0x4) == 0) {
+      *(int16_t *)(argument + 0x4) = 5;
+      node = (char *)datum_get(*(data_t **)0x5aa6c8, child_index);
+      if (*(uint8_t *)(node + 0x6) & 1) {
+        *(int16_t *)(argument + 0x2) = 5;
+        valid = FUN_000c73a0(child_index);
+      } else {
+        valid = FUN_000c74c0(child_index);
+      }
+    }
+
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, child_index);
+    child_index = *(int *)(node + 0x8);
+    argument_count++;
+    if (!valid)
+      return valid;
+  }
+
+  if (!valid)
+    return valid;
+  if ((int16_t)argument_count >= 2)
+    return valid;
+
+  node = (char *)hs_function_table_get(function_index);
+  crt_sprintf((char *)0x46b704, "the %s call requires at least 2 arguments.",
+              *(char **)(node + 0x4));
+  *(const char **)0x46b6fc = (const char *)0x46b704;
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  *(int *)0x46b700 = *(int *)(node + 0xc);
   return false;
 }
 
