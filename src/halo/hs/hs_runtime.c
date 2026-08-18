@@ -1934,6 +1934,34 @@ void FUN_000ca110(int16_t index)
   }
 }
 
+/* 0xca3f0 — Two-argument forwarder onto 0xca160 with both trailing byte
+ * flags pinned to 1.
+ *
+ * Binary evidence (0xca3f0..0xca409, cdecl, EBP frame, EBX saved):
+ *
+ *   PUSH EBP / MOV EBP,ESP
+ *   MOV EAX,dword ptr [EBP+0xc]   ; second parameter, forwarded as a full
+ *                                 ;   dword (0xca160 narrows it itself with
+ *                                 ;   MOVSX EAX,word ptr [EBP+0x8])
+ *   PUSH EBX
+ *   MOV EBX,dword ptr [EBP+0x8]   ; first parameter -> EBX register argument;
+ *                                 ;   0xca160 opens with `CMP EBX,-0x1`
+ *                                 ;   before defining EBX (same ABI the
+ *                                 ;   0xca430 site below relies on)
+ *   PUSH 0x1 / PUSH 0x1 / PUSH EAX / CALL 0xca160 / ADD ESP,0xc
+ *                                 ; cdecl: first PUSH is the LAST argument,
+ *                                 ;   so the stack args are ([EBP+0xc], 1, 1)
+ *   POP EBX / POP EBP / RET
+ *
+ * There is no branch, no local, and no other side effect. The sibling
+ * forwarder at 0xca410 has the same shape with different constants. The
+ * meaning of both parameters and of 0xca160 is unproven, so the names stay
+ * mechanical. */
+void FUN_000ca3f0(int a, int b)
+{
+  FUN_000ca160(a, b, 1, 1);
+}
+
 /* 0xca430 — Walk every player datum; for each player whose unit handle at
  * +0x34 is valid but which FUN_0018ef00 says is NOT associated with
  * `cluster_index`, invoke 0xca160 on that unit.
@@ -2327,6 +2355,58 @@ void hs_runtime_dispose_from_old_map(void)
   *(uint8_t *)0x46b810 = 0;
 }
 
+/* 0xca890 — Resolve the printable name of the expression a thread is currently
+ * evaluating (used by the script error/report path).
+ *
+ * Register ABI (binary evidence): expression_index arrives in EAX (read at
+ * 000ca892 `MOV EDI,EAX` before any def) and thread_index in EBX (read at
+ * 000ca8a6 `PUSH EBX` before any def).
+ *
+ * hs syntax node fields touched here:
+ *   +0x02 (int16_t) : script index when flag bit 0x2 is set, otherwise the
+ *                     hs function-table index
+ *   +0x06 (uint8_t) : flag byte; bit 0x2 marks a script invocation
+ * hs thread fields: +0x10 = current stack frame. Frame +0x04 is the
+ * expression index that pushed the frame and frame +0x0e is the first dword
+ * of the frame's data area (data starts at +0xe, see hs_thread_stack_alloc).
+ *
+ * While the node is a bare node (function index 0) that owns the current
+ * frame, walk to the expression recorded in the frame data; NONE there means
+ * the thread has run off the end of the script.
+ */
+const char *FUN_000ca890(int expression_index, int thread_index)
+{
+  char *node;
+  char *thread;
+  char *frame;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, expression_index);
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_index);
+
+  while ((*(uint8_t *)(node + 0x6) & 2) == 0) {
+    if (*(int16_t *)(node + 0x2) != 0)
+      goto function_name;
+    frame = *(char **)(thread + 0x10);
+    if (expression_index != *(int32_t *)(frame + 0x4))
+      goto function_name;
+    expression_index = *(int32_t *)(frame + 0xe);
+    if (expression_index == -1)
+      return "(end of script)";
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, expression_index);
+    thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_index);
+  }
+
+  /* scenario scripts tag block at scenario+0x49c, 0x5c-byte elements; the
+   * element pointer is the name (name is the block element's first field). */
+  return (const char *)tag_block_get_element(
+    (char *)global_scenario_get() + 0x49c, (int)*(int16_t *)(node + 0x2), 0x5c);
+
+function_name:
+  return *(
+    const char **)((char *)hs_function_table_get(*(int16_t *)(node + 0x2)) +
+                   0x4);
+}
+
 int hs_thread_new(int script_index, int type)
 {
   int thread_index;
@@ -2452,6 +2532,27 @@ void hs_thread_push_frame(int thread_handle)
   *new_frame = *(uint32_t *)(thread + 0x10);
   *(uint32_t **)(thread + 0x10) = new_frame;
   *(int16_t *)(new_frame + 3) = 0;
+}
+
+/* 0xcab80 — Pop the current frame off the HaloScript thread's stack.
+ *
+ * The inverse of hs_thread_push_frame (0xcab00): restores thread->stack_ptr
+ * (thread+0x10) from the current frame's back-link, which push_frame stored
+ * at frame+0x00. No bounds check and no other side effects.
+ *
+ * Binary evidence (0xcab80..0xcab98):
+ *   MOV ECX,[0x5aa6c4] ; PUSH EAX ; PUSH ECX ; CALL datum_get
+ *   MOV EDX,[EAX+0x10] ; MOV ECX,[EDX] ; MOV [EAX+0x10],ECX ; RET
+ *
+ * ABI: thread_handle@<eax> (EAX is read before any definition and pushed as
+ * datum_get's second argument); no stack parameters, no return value.
+ */
+void hs_thread_pop_frame(int thread_handle)
+{
+  char *thread;
+
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_handle);
+  *(uint32_t *)(thread + 0x10) = **(uint32_t **)(thread + 0x10);
 }
 
 /* 0xcaba0 — Allocate `size` bytes from the current HaloScript thread stack
