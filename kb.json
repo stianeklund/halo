@@ -12439,7 +12439,7 @@
     },
     {
      "addr": "0xce110",
-     "decl": "void FUN_000ce110(void);"
+     "decl": "void FUN_000ce110(data_t *data, int first_reference);"
     },
     {
      "addr": "0xce150",
@@ -12457,15 +12457,18 @@
     },
     {
      "addr": "0xce200",
-     "decl": "int FUN_000ce200(void);"
+     "decl": "int FUN_000ce200(void);",
+     "ported": true
     },
     {
      "addr": "0xce240",
-     "decl": "void object_list_delete(void);"
+     "decl": "void object_list_delete(int list_handle);",
+     "ported": true
     },
     {
      "addr": "0xce2b0",
-     "decl": "void FUN_000ce2b0(int param_1, int param_2);"
+     "decl": "void FUN_000ce2b0(int param_1, int param_2);",
+     "ported": true
     },
     {
      "addr": "0xce320",
@@ -12484,20 +12487,18 @@
     },
     {
      "addr": "0xce3c0",
-     "decl": "void FUN_000ce3c0(void);"
+     "decl": "void FUN_000ce3c0(void);",
+     "ported": true
     },
     {
      "addr": "0xce420",
-     "decl": "int16_t FUN_000ce420(int param_1);"
+     "decl": "int16_t FUN_000ce420(int param_1);",
+     "ported": true
     },
     {
      "addr": "0xce450",
      "decl": "int FUN_000ce450(int parent_handle, int *iter_state);",
      "ported": true
-    },
-    {
-     "addr": "0xce4a0",
-     "decl": "void FUN_000ce4a0(void);"
     }
    ],
    "name": "hs_runtime.obj",
@@ -13362,6 +13363,11 @@
   },
   {
    "functions": [
+    {
+     "addr": "0xce4a0",
+     "decl": "void FUN_000ce4a0(void);",
+     "ported": true
+    },
     {
      "addr": "0xce4b0",
      "decl": "void input_check_state_mode(void);",

@@ -8016,6 +8016,30 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xce200": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The word written at header+0x6 is the object list's entry count: FUN_000ce200 zeroes it, FUN_000ce2b0 increments it on every add, and FUN_000ce420 reads it back."
+      ]
+    },
+    "0xce240": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "FUN_000ce110's prototype was corrected to (data_t *pool, int first_reference) from its call site and its own frame reads; the function itself is still unported, so the parameter names are inferred rather than source-confirmed."
+      ]
+    },
+    "0xce2b0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The reference pool at 0x5aa694 is passed to error() as its own name string because data_t begins with char name[32], so PUSH EBX is both the pool pointer and &pool->name."
+      ],
+      "uncertain": [
+        "The entry count at header+0x6 is incremented even when the reference allocation fails, so a full reference pool leaves the count larger than the number of linked references; whether that is intentional in the original source is unproven."
+      ]
+    },
     "0xce350": {
       "kind": "function",
       "status": "ported"
@@ -8023,6 +8047,27 @@
     "0xce370": {
       "kind": "function",
       "status": "ported"
+    },
+    "0xce3c0": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "The sweep advances with data_next_index using the same index it may have just deleted, which is preserved verbatim from the original; whether the allocator tolerates that by design was not verified."
+      ]
+    },
+    "0xce420": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Only AX carries the result: the original leaves datum_get's pointer in the upper half of EAX, and the sole caller at 0xbe3b0 narrows the value with a 16-bit store."
+      ]
+    },
+    "0xce4a0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "This function was moved from hs_runtime.obj to input_xbox.obj because its only caller is FUN_000cf490 and the global it closes (0x46b814) is the input-state file handle referenced exclusively by input_xbox functions."
+      ]
     },
     "0xce4b0": {
       "kind": "function",

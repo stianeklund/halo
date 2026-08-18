@@ -377,6 +377,29 @@ static int16_t input_normalize_stick(int16_t value)
 static int core_loop_enabled = 0;
 #endif
 
+/* 0x000ce4a0 — close the input-state recording/playback file.
+ *
+ * Confirmed (0xce4a0-0xce4af): loads the global at 0x46b814 once, and when
+ * it is non-zero passes it to CloseHandle (0x1cf900, __stdcall — the call is
+ * followed directly by RET with no stack cleanup). The handle is NOT zeroed
+ * afterwards. 0x46b814 is input_state_file_handle(), the same handle used by
+ * FUN_000ce500/FUN_000ce530 (ReadFile/SetFilePointer) and
+ * input_recording_write_packet (WriteFile), which is why this function is
+ * grouped with input_xbox.obj rather than hs_runtime.obj: its only caller is
+ * FUN_000cf490 (0xcf490) here, and the global is referenced exclusively by
+ * input_xbox functions (0xce500/0xce530/0xce590/0xce5c0/0xce620).
+ * noinline: the original keeps a real CALL here — FUN_000cf490 does not
+ * expand this body inline. */
+__declspec(noinline) void FUN_000ce4a0(void)
+{
+  int handle;
+
+  handle = *input_state_file_handle();
+  if (handle != 0) {
+    CloseHandle(handle);
+  }
+}
+
 /* input_check_state_mode (0xce4b0)
  * Probe for sentinel files on the D: drive to select input state recording
  * or playback mode.  Sets the global input_state_mode:

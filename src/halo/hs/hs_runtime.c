@@ -2394,6 +2394,105 @@ void hs_runtime_dispose(void)
   data_make_invalid(*(data_t **)0x5aa694);
 }
 
+/* 0x000ce200 — allocate a new object-list header.
+ *
+ * Confirmed (0xce200-0xce236): data_new_at_index(*(data_t **)0x5aa698); on
+ * success the header is re-fetched with datum_get (the original reloads
+ * [0x5aa698] at 0xce216) and two fields are initialised:
+ *   header+0x6 (word) = 0    ; entry count, read back by FUN_000ce420
+ *   header+0x8 (dword) = -1  ; head reference link, matches FUN_000ce450
+ * header+0x4 (reference count) is left as the allocator zeroed it.
+ * Returns the header datum index in EAX (ESI holds it across the call).
+ * The role beyond these mechanical observations is unproven, so the name
+ * stays FUN_000ce200 (its five call sites already use that name).
+ *
+ * noinline: the original build compiled the object-list family in a separate
+ * TU (the asserts name c:\halo\SOURCE\hs\object_lists.c), so FUN_000c95f0 in
+ * this file calls it instead of expanding it inline. */
+__declspec(noinline) int FUN_000ce200(void)
+{
+  int list_index;
+  char *list;
+
+  list_index = data_new_at_index(*(data_t **)0x5aa698);
+  if (list_index != -1) {
+    list = (char *)datum_get(*(data_t **)0x5aa698, list_index);
+    *(int16_t *)(list + 0x6) = 0;
+    *(int *)(list + 0x8) = -1;
+  }
+  return list_index;
+}
+
+/* 0x000ce240 — object_list_delete
+ *
+ * Confirmed (0xce240-0xce2a4): NONE handle is a no-op; otherwise the header
+ * is fetched from the header pool (0x5aa698) and its reference count
+ * (header+0x4, word) must be zero — the assert string at 0x280ef0 is
+ * "list->reference_count==0" with file 0x280f0c
+ * "c:\halo\SOURCE\hs\object_lists.c" line 0x64 and halt=1, followed by
+ * system_exit(-1). The reference chain starting at header+0x8 is released
+ * through FUN_000ce110(reference_pool, first_reference) — argument order
+ * confirmed by the pushes at 0xce28b/0xce28c (PUSH ECX = header+0x8,
+ * PUSH EDX = [0x5aa694]) and by FUN_000ce110's own frame reads
+ * ([EBP+0x8] = pool, [EBP+0xc] = index). The header datum is then deleted.
+ * The single ADD ESP,0x10 at 0xce29e is MSVC's deferred cleanup for both
+ * two-argument calls. */
+void object_list_delete(int list_handle)
+{
+  char *list;
+
+  if (list_handle != -1) {
+    list = (char *)datum_get(*(data_t **)0x5aa698, list_handle);
+    if (*(int16_t *)(list + 0x4) != 0) {
+      display_assert("list->reference_count==0",
+                     "c:\\halo\\SOURCE\\hs\\object_lists.c", 0x64, 1);
+      system_exit(-1);
+    }
+    FUN_000ce110(*(data_t **)0x5aa694, *(int *)(list + 0x8));
+    datum_delete(*(data_t **)0x5aa698, list_handle);
+  }
+}
+
+/* 0x000ce2b0 — push one object handle onto an object list.
+ *
+ * Confirmed (0xce2b0-0xce31d): the header is fetched first (ESI), then a
+ * reference datum is allocated from the reference pool 0x5aa694 (EBX holds
+ * the pool pointer across both later uses at 0xce2df and 0xce305).
+ * On success the new reference is linked at the head of the chain:
+ *   reference+0x4 = object handle ([EBP+0xc])
+ *   reference+0x8 = old header+0x8
+ *   header+0x8    = new reference index
+ * On allocation failure the original reports
+ *   error(2, "WARNING: maximum %ss per map (%d) exceeded.",
+ *         pool->name, pool->maximum_count)
+ * — PUSH EBX is the pool pointer, which is &pool->name (data_t starts with
+ * char name[32]), and MOVSX EDX,word [EBX+0x20] is pool->maximum_count.
+ * Both paths increment the entry count header+0x6 (0xce2f7 and 0xce315);
+ * the original tail-duplicated the increment, the single increment here is
+ * the equivalent source form. Header/reference offsets are unproven beyond
+ * these accesses, so the function keeps its FUN_ name. */
+void FUN_000ce2b0(int param_1, int param_2)
+{
+  char *list;
+  data_t *references;
+  int reference_index;
+  char *reference;
+
+  list = (char *)datum_get(*(data_t **)0x5aa698, param_1);
+  references = *(data_t **)0x5aa694;
+  reference_index = data_new_at_index(references);
+  if (reference_index != -1) {
+    reference = (char *)datum_get(references, reference_index);
+    *(int *)(reference + 0x4) = param_2;
+    *(int *)(reference + 0x8) = *(int *)(list + 0x8);
+    *(int *)(list + 0x8) = reference_index;
+  } else {
+    error(2, "WARNING: maximum %ss per map (%d) exceeded.", references->name,
+          references->maximum_count);
+  }
+  *(int16_t *)(list + 0x6) += 1;
+}
+
 /* 0x000ce320 — object_list_iterator_next
  * Advances an object-list iterator to the next entry.
  * Returns the object datum handle, or -1 if the list is exhausted.
@@ -2441,6 +2540,50 @@ void FUN_000ce370(int expression_datum)
     }
     *(int16_t *)(node + 0x4) -= 1;
   }
+}
+
+/* 0x000ce3c0 — delete every object list whose reference count is zero.
+ *
+ * Confirmed (0xce3c0-0xce410): walks the header pool 0x5aa698 with
+ * data_next_index starting from -1; for each header, datum_get is used to
+ * test header+0x4 (word reference count) against zero and object_list_delete
+ * is called on the index when it is zero. The original advances with
+ * data_next_index(pool, index) using the same index it just deleted — the
+ * iteration order is preserved here rather than "fixed".
+ * Its only caller is the still-unported runtime update routine at 0xcde00. */
+void FUN_000ce3c0(void)
+{
+  int list_index;
+  char *list;
+
+  for (list_index = data_next_index(*(data_t **)0x5aa698, -1); list_index != -1;
+       list_index = data_next_index(*(data_t **)0x5aa698, list_index)) {
+    list = (char *)datum_get(*(data_t **)0x5aa698, list_index);
+    if (*(int16_t *)(list + 0x4) == 0) {
+      object_list_delete(list_index);
+    }
+  }
+}
+
+/* 0x000ce420 — read an object list's entry count.
+ *
+ * Confirmed (0xce420-0xce441): XOR EAX,EAX seeds the result with 0, and for
+ * a non-NONE handle only AX is loaded from header+0x6 (MOV AX,word [EAX+6]),
+ * so the result is a 16-bit value — kb.json declares int16_t and the single
+ * caller (FUN_000be3b0 at 0xbe3b0) narrows it with (uint16_t). The upper
+ * half of EAX is left holding datum_get's pointer in the original; only AX
+ * is meaningful. */
+int16_t FUN_000ce420(int param_1)
+{
+  int16_t count;
+  char *list;
+
+  count = 0;
+  if (param_1 != -1) {
+    list = (char *)datum_get(*(data_t **)0x5aa698, param_1);
+    count = *(int16_t *)(list + 0x6);
+  }
+  return count;
 }
 
 /* 0x000ce450 — object_list_iterator_first
