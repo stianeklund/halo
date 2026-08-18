@@ -21353,7 +21353,8 @@
     },
     {
      "addr": "0x12090",
-     "decl": "void FUN_00012090(void);"
+     "decl": "void FUN_00012090(int actor_handle);",
+     "ported": true
     },
     {
      "addr": "0x120e0",
@@ -21379,11 +21380,13 @@
     },
     {
      "addr": "0x128c0",
-     "decl": "void action_avoid_setup(void);"
+     "decl": "char action_avoid_setup(int actor_handle, void *state_data);",
+     "ported": true
     },
     {
      "addr": "0x12920",
-     "decl": "void action_avoid_perform(void);"
+     "decl": "bool action_avoid_perform(int actor_handle);",
+     "ported": true
     },
     {
      "addr": "0x129f0",
@@ -21400,7 +21403,8 @@
     },
     {
      "addr": "0x12be0",
-     "decl": "void FUN_00012be0(void);"
+     "decl": "void FUN_00012be0(int actor_handle);",
+     "ported": true
     },
     {
      "addr": "0x12c30",

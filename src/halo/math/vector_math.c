@@ -1,5 +1,32 @@
 #include "x87_math.h"
 
+/* 0x12090 — action_alert: raise alert/engage flags on an actor.
+ *
+ * Confirmed: cdecl, one stack arg at [EBP+0x8] (Ghidra: in_stack_00000004).
+ *   The kb decl was `(void)`; the disassembly reads [EBP+0x8] and pushes it.
+ * Confirmed: PUSH EAX([EBP+8]) / PUSH ECX(*0x6325a4) / CALL 0x119320
+ *   -> datum_get(actors_data, actor_handle); result kept in ESI.
+ * Confirmed: PUSH EDX([ESI+0x58]) / PUSH 0x61637472 ('actr') / CALL 0x1ba140
+ *   -> tag_get(group_tag='actr', tag_index=*(int *)(actor + 0x58)).
+ *   ADD ESP,0x10 cleans both cdecl calls (2 + 2 dword args).
+ * Confirmed: MOV ECX,1 / MOV word ptr [ESI+0x3fc],CX — 16-bit store of 1.
+ * Confirmed: MOV DL,byte ptr [EAX] / TEST DL,0x40 — tests bit 6 of byte 0 of
+ *   the 'actr' tag definition; when set, MOV byte [ESI+0x426],CL and
+ *   MOV byte [ESI+0x427],CL — two 8-bit stores of 1. */
+void FUN_00012090(int actor_handle)
+{
+  int actor;
+  unsigned char *definition;
+
+  actor = (int)datum_get(*(data_t **)0x6325a4, actor_handle);
+  definition = (unsigned char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+  *(unsigned short *)(actor + 0x3fc) = 1;
+  if ((definition[0] & 0x40) != 0) {
+    *(unsigned char *)(actor + 0x426) = 1;
+    *(unsigned char *)(actor + 0x427) = 1;
+  }
+}
+
 /* 0x120e0 — action_alert: clear alert state on actor.
  * Sets actor->state_data1 (0xa2) and state_data2 (0xa4) to 0xffff. */
 void FUN_000120e0(int actor_handle)
@@ -72,6 +99,88 @@ float FUN_000121e0(float min, float max)
   return random_real_range(seed, min, max);
 }
 
+/* action_avoid_setup (0x128c0)
+ * Initialize action avoid state: asserts non-null state pointer, zeroes 4
+ * bytes, returns true.
+ *
+ * Confirmed: cdecl, two stack args. MOV ESI,[EBP+0xc] at 0x128c4 is the
+ *   asserted/zeroed pointer, so state_data is the SECOND arg; [EBP+0x8] is
+ *   never read by this function (unknown type; named actor_handle after the
+ *   identical action_fight_setup twin FUN_00014620 / 0x14620).
+ * Confirmed: TEST ESI,ESI / JNZ 0x128e8 at 0x128c7 — assert on NULL only.
+ * Confirmed assert args (pushed last-to-first): PUSH 1 (halt), PUSH 0x1e
+ *   (line 30), PUSH 0x25339c ("c:\halo\SOURCE\ai\action_avoid.c"),
+ *   PUSH 0x25334c ("state_data") / CALL display_assert; then PUSH -1 /
+ *   CALL system_exit (noreturn — no ADD ESP on that path).
+ * Confirmed: PUSH 4 / PUSH 0 / PUSH ESI / CALL csmemset / ADD ESP,0xc.
+ * Confirmed: MOV AL,0x1 at 0x128f5 — byte return, always true. */
+char action_avoid_setup(int actor_handle, void *state_data)
+{
+  if (state_data == NULL) {
+    display_assert("state_data", "c:\\halo\\SOURCE\\ai\\action_avoid.c", 0x1e,
+                   1);
+    system_exit(-1);
+  }
+  csmemset(state_data, 0, 4);
+  return 1;
+}
+
+/* action_avoid_perform (0x12920)
+ * Run one avoid-action tick: assert the actor is not a swarm actor, and when
+ * its timeslice byte is set, evaluate a look target (FUN_00027090) and hand
+ * the result to the firing-position selector (FUN_000272d0).  Returns true
+ * when actor+0x280 (short) is zero, on both paths.
+ *
+ * Confirmed: cdecl, one stack arg at [EBP+0x8] kept in EDI (0x12934); the kb
+ *   decl was `(void)` but the arg is pushed to all three callees.
+ * Confirmed: MOV EAX,0x14740 / CALL _chkstk at 0x12923 — 0x14740-byte frame.
+ *   Slots: big_buf 0x1408c @EBP-0x14740, state_buf 0x670 @EBP-0x6b4,
+ *   local_48 0x3c @EBP-0x44, local_8 @EBP-0x8, local_4 @EBP-0x4
+ *   (4+4+0x3c+0x670+0x1408c == 0x14740).
+ * Confirmed: PUSH EDI / PUSH EAX(=[0x6325a4]) / CALL 0x119320 -> datum_get;
+ *   result kept in ESI.
+ * Confirmed: MOV AL,byte ptr [ESI+0x6] / TEST AL,AL -> display_assert(
+ *   "!actor->meta.swarm" @0x253380, "c:\halo\SOURCE\ai\action_avoid.c"
+ *   @0x25339c, 0x37, 1) then PUSH -1 / CALL system_exit (noreturn).
+ * Confirmed: MOV AL,byte ptr [ESI+0x4c] / TEST AL,AL / JZ 0x129c7 guards the
+ *   body.
+ * Confirmed: PUSH 0x670 / PUSH 0 / PUSH ECX(EBP-0x6b4) / CALL csmemset, then
+ *   MOV word ptr [EBP-0x6b0],0x6 — a 16-bit 6 at state_buf+4.
+ * Confirmed FUN_00027090 pushes (last-to-first, 0x12981..0x1299b): &local_4,
+ *   big_buf, &local_8, local_48, state_buf, actor_handle.
+ * Confirmed FUN_000272d0 pushes (last-to-first, 0x129aa..0x129be): local_4,
+ *   big_buf, local_8, local_48, EAX (FUN_00027090 result), actor_handle.
+ *   ADD ESP,0x3c at 0x129c4 cleans csmemset (0xc) + both 6-arg calls (0x18
+ *   each); the FUN_000272d0 return value is discarded.
+ * Confirmed: XOR EAX,EAX / CMP word ptr [ESI+0x280],AX / SETZ AL — byte
+ *   return. */
+bool action_avoid_perform(int actor_handle)
+{
+  char *actor;
+  char state_buf[0x670];
+  char big_buf[0x1408c];
+  char local_48[0x3c];
+  int local_4;
+  int local_8;
+  short result;
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  if (*(char *)(actor + 6) != '\0') {
+    display_assert("!actor->meta.swarm", "c:\\halo\\SOURCE\\ai\\action_avoid.c",
+                   0x37, 1);
+    system_exit(-1);
+  }
+  if (*(char *)(actor + 0x4c) != '\0') {
+    csmemset(state_buf, 0, 0x670);
+    *(short *)(state_buf + 4) = 6;
+    result = FUN_00027090(actor_handle, state_buf, local_48, &local_8, big_buf,
+                          &local_4);
+    FUN_000272d0(actor_handle, result, local_48, local_8, (unsigned int)big_buf,
+                 (char)local_4);
+  }
+  return *(short *)(actor + 0x280) == 0;
+}
+
 /* 0x12a80 — action_alert: decrement squad-vehicle-passenger counter
  * if actor is in state 4 (vehicle) and target's state is 3. */
 void FUN_00012a80(int actor_handle)
@@ -85,6 +194,31 @@ void FUN_00012a80(int actor_handle)
     if (*(short *)(other_actor + 0x156) == 3 && 0 < *(short *)(actor + 0x5fe)) {
       *(short *)(actor + 0x5fe) = *(short *)(actor + 0x5fe) + -1;
     }
+  }
+}
+
+/* 0x12be0 — FUN_00012be0: bump the short counter at actor+0xaa when the actor
+ * is in state 3 (same state constant guarded by FUN_00012e50) and three gate
+ * bytes agree.
+ *
+ * Confirmed: cdecl, one stack arg at [EBP+0x8] (0x12be3 MOV EAX,[EBP+0x8]);
+ *   the kb decl was `(void)` but the dword is pushed to datum_get.
+ * Confirmed: MOV ECX,[0x6325a4] / PUSH EAX / PUSH ECX / CALL 0x119320 ->
+ *   datum_get(actor_data, actor_handle); ADD ESP,0x8 (cdecl, 2 args).
+ * Confirmed: guards are all against the datum_get result in EAX, no base bias:
+ *   CMP word ptr [EAX+0xa0],0x3 / JNZ; MOV CL,[EAX+0xa7] / TEST / JZ;
+ *   MOV CL,[EAX+0xa2] / TEST / JNZ; MOV CL,[EAX+0x15c] / TEST / JNZ.
+ * Confirmed: INC word ptr [EAX+0xaa] — 16-bit increment, no clamp, no return.
+ * Unknown: the meanings of the 0xa2, 0x15c gate bytes and the 0xaa counter;
+ *   no string or assert evidence in this function, so no semantic names. */
+void FUN_00012be0(int actor_handle)
+{
+  char *actor;
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  if (*(short *)(actor + 0xa0) == 3 && *(char *)(actor + 0xa7) != '\0' &&
+      *(char *)(actor + 0xa2) == '\0' && *(char *)(actor + 0x15c) == '\0') {
+    *(short *)(actor + 0xaa) = *(short *)(actor + 0xaa) + 1;
   }
 }
 

@@ -77,6 +77,21 @@
       "score": 75.0,
       "source": "src/halo/math/real_math.c"
     },
+    "FUN_00012090": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x12090",
+      "end": "0x120d9",
+      "kind": "auto",
+      "n_r": 24,
+      "opnd_percent": 95.8,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "5b2e9c0b93c6daaa",
+      "score": 100.0,
+      "source": "src/halo/math/vector_math.c"
+    },
     "FUN_000120e0": {
       "addr": "0x120e0",
       "end": "0x12108",
@@ -140,6 +155,21 @@
       "opnd_percent": 100.0,
       "ref": "synth",
       "ref_sha": "cd895627e423433e",
+      "score": 100.0,
+      "source": "src/halo/math/vector_math.c"
+    },
+    "FUN_00012be0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x12be0",
+      "end": "0x12c27",
+      "kind": "auto",
+      "n_r": 22,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "575318b6d7225b85",
       "score": 100.0,
       "source": "src/halo/math/vector_math.c"
     },
@@ -28430,6 +28460,36 @@
       "ref_sha": "35f3748f2a39e8c2",
       "score": 92.7,
       "source": "src/halo/math/real_math.c"
+    },
+    "action_avoid_perform": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x12920",
+      "end": "0x129d9",
+      "kind": "auto",
+      "n_r": 65,
+      "opnd_percent": 96.9,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "0b8e998908d17105",
+      "score": 100.0,
+      "source": "src/halo/math/vector_math.c"
+    },
+    "action_avoid_setup": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x128c0",
+      "end": "0x128fa",
+      "kind": "auto",
+      "n_r": 23,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "1324e63e152ad61c",
+      "score": 100.0,
+      "source": "src/halo/math/vector_math.c"
     },
     "action_vehicle_perform": {
       "addr": "0x1b8a0",
