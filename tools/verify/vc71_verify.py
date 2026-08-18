@@ -86,7 +86,11 @@ def wsl_to_win(path: Path) -> str:
         drive = s[5].upper()
         remainder = s[7:]  # skip "/mnt/X/"
         return f"{drive}:\\{remainder}".replace("/", "\\") if remainder else f"{drive}:\\"
-    return s
+    try:
+        res = subprocess.run(["wslpath", "-w", s], capture_output=True, text=True, check=True)
+        return res.stdout.strip()
+    except Exception:
+        return s
 
 
 def load_units() -> list[dict]:

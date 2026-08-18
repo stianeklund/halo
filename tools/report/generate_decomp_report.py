@@ -2894,6 +2894,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
 
         /* ===== SSE / LIVE UPDATES ===== */
         var pollTimer = null;
+        var lastReportRaw = null;
+        var lastHistoryRaw = null;
 
         function stopPolling() {
             if (pollTimer) {
@@ -2906,8 +2908,12 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             if (pollTimer) return;
             pollTimer = setInterval(function() {
                 fetchJsonFresh('report.json').then(function(data) {
-                    REPORT = data;
-                    router();
+                    var raw = JSON.stringify(data);
+                    if (raw !== lastReportRaw) {
+                        lastReportRaw = raw;
+                        REPORT = data;
+                        router();
+                    }
                 }).catch(function() {});
             }, 10000);
         }
@@ -2924,13 +2930,27 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             if (textDetail) textDetail.textContent = label;
         }
 
+        function isStaticDeployment() {
+            if (!window.EventSource) return true;
+            if (location.protocol.indexOf('http') !== 0) return true;
+            var host = (location.hostname || '').toLowerCase();
+            if (host.endsWith('github.io') || host === 'blam.info') return true;
+            return false;
+        }
+
         function connectSSE() {
-            if (!window.EventSource || location.protocol.indexOf('http') !== 0) {
+            if (isStaticDeployment()) {
                 setLiveStatus(false, 'Static');
                 return;
             }
 
-            var es = new EventSource('/events');
+            var es;
+            try {
+                es = new EventSource('/events');
+            } catch(e) {
+                setLiveStatus(false, 'Static');
+                return;
+            }
 
             es.onopen = function() {
                 stopPolling();
@@ -2940,24 +2960,32 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
             es.addEventListener('report', function(e) {
                 stopPolling();
                 setLiveStatus(true, 'Live');
-                try {
-                    REPORT = JSON.parse(e.data);
-                    router();
-                } catch(err) {}
+                if (e.data !== lastReportRaw) {
+                    lastReportRaw = e.data;
+                    try {
+                        REPORT = JSON.parse(e.data);
+                        router();
+                    } catch(err) {}
+                }
             });
 
             es.addEventListener('history', function(e) {
-                try {
-                    HISTORY = JSON.parse(e.data);
-                    router();
-                } catch(err) {}
+                if (e.data !== lastHistoryRaw) {
+                    lastHistoryRaw = e.data;
+                    try {
+                        HISTORY = JSON.parse(e.data);
+                        router();
+                    } catch(err) {}
+                }
             });
 
             es.onerror = function() {
-                if (es.readyState === EventSource.CLOSED) {
-                    setLiveStatus(false, 'Polling');
-                    startPolling();
-                }
+                // If the SSE endpoint is unavailable or errors (e.g. static hosting or 404),
+                // close immediately to prevent the browser from reconnecting every 3 seconds.
+                try {
+                    es.close();
+                } catch(e) {}
+                setLiveStatus(false, 'Static');
             };
         }
 
