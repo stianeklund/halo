@@ -1694,4 +1694,12 @@ typedef struct transport_address {
 co(transport_address, address_length, 0x10);
 co(transport_address, port,           0x12);
 
+/* Callback handed to hs_object_iterate_names_containing (0xc9b10).  The three
+ * call sites (0xc9b90 -> 0xc9990, 0xc9bb0 -> 0xc9a20, 0xca140 -> 0xca110) each
+ * PUSH the routine's address as the single stack argument, and 0xc9b10 invokes
+ * it with the 16-bit object-name index it just matched (PUSH EDI after
+ * MOVSWL EAX,DI).  Named type rather than an inline function-pointer parameter
+ * because the kb.json thunk generator cannot spell one. */
+typedef void (*hs_object_name_iterator_t)(int16_t index);
+
 #endif /* TYPES_H */

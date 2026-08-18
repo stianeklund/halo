@@ -12035,7 +12035,7 @@
     },
     {
      "addr": "0xc9a20",
-     "decl": "void FUN_000c9a20(void);"
+     "decl": "void FUN_000c9a20(int16_t index);"
     },
     {
      "addr": "0xc9a50",
@@ -12043,51 +12043,63 @@
     },
     {
      "addr": "0xc9b10",
-     "decl": "void hs_object_iterate_names_containing(void);"
+     "decl": "void hs_object_iterate_names_containing(hs_object_name_iterator_t iterator, const char *substring @<ebx>);",
+     "ported": true
     },
     {
      "addr": "0xc9b90",
-     "decl": "void FUN_000c9b90(int param_1);"
+     "decl": "void FUN_000c9b90(int substring);",
+     "ported": true
     },
     {
      "addr": "0xc9bb0",
-     "decl": "void FUN_000c9bb0(int param_1);"
+     "decl": "void FUN_000c9bb0(int substring);",
+     "ported": true
     },
     {
      "addr": "0xc9bd0",
-     "decl": "int FUN_000c9bd0(int value, int type);"
+     "decl": "int FUN_000c9bd0(int object_list, short index);",
+     "ported": true
     },
     {
      "addr": "0xc9c10",
-     "decl": "void FUN_000c9c10(int a, float b);"
+     "decl": "void FUN_000c9c10(int object_handle, float fraction);",
+     "ported": true
     },
     {
      "addr": "0xc9c80",
-     "decl": "void FUN_000c9c80(int arg0, int arg1, int arg2);"
+     "decl": "void FUN_000c9c80(int object_handle, int region_name, int permutation_name);",
+     "ported": true
     },
     {
      "addr": "0xc9d40",
-     "decl": "void FUN_000c9d40(int object_list);"
+     "decl": "void FUN_000c9d40(int object_list);",
+     "ported": true
     },
     {
      "addr": "0xc9d80",
-     "decl": "void FUN_000c9d80(int);"
+     "decl": "void FUN_000c9d80(int tag_index);",
+     "ported": true
     },
     {
      "addr": "0xc9de0",
-     "decl": "void FUN_000c9de0(int, uint16_t);"
+     "decl": "void FUN_000c9de0(int effect_tag_index, short flag_index);",
+     "ported": true
     },
     {
      "addr": "0xc9e50",
-     "decl": "void FUN_000c9e50(int, int, int);"
+     "decl": "void FUN_000c9e50(int effect_tag_index, int object_handle, int marker_name);",
+     "ported": true
     },
     {
      "addr": "0xc9ec0",
-     "decl": "void FUN_000c9ec0(int param_1, int param_2);"
+     "decl": "void FUN_000c9ec0(int damage_effect_tag_index, short flag_index);",
+     "ported": true
     },
     {
      "addr": "0xc9f30",
-     "decl": "void FUN_000c9f30(int param_1, int param_2);"
+     "decl": "void FUN_000c9f30(int damage_effect_tag_index, int object_handle);",
+     "ported": true
     },
     {
      "addr": "0xc9f90",
