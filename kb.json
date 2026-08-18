@@ -1245,7 +1245,7 @@
     },
     {
      "addr": "0x1dbdec",
-     "comment": "LIBCMT _except_handler3 — VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
+     "comment": "LIBCMT _except_handler3 \u2014 VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
      "decl": "int __cdecl _except_handler3(void *ExceptionRecord, void *EstablisherFrame, void *ContextRecord, void *DispatcherContext);"
     },
     {
@@ -7243,7 +7243,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -7304,7 +7304,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
@@ -7567,10 +7567,6 @@
   },
   {
    "functions": [
-    {
-     "addr": "0xd98c0",
-     "decl": "void FUN_000d98c0(short old_local_player_index, short new_local_player_index);"
-    },
     {
      "addr": "0xd9960",
      "decl": "void FUN_000d9960(void);"
@@ -13322,6 +13318,11 @@
      "addr": "0xd8ff0",
      "decl": "void FUN_000d8ff0(int whud_index@<eax>, int *player@<ecx>, int weapon_handle, int buf);",
      "ported": true
+    },
+    {
+     "addr": "0xd98c0",
+     "decl": "void FUN_000d98c0(short old_local_player_index, short new_local_player_index);",
+     "ported": true
     }
    ],
    "name": "hud_weapon.obj",
@@ -14134,7 +14135,8 @@
     },
     {
      "addr": "0x100b00",
-     "decl": "short main_get_window_count(void);"
+     "decl": "int main_get_window_count(void);",
+     "ported": true
     },
     {
      "addr": "0x100b40",
@@ -22449,7 +22451,7 @@
     },
     {
      "addr": "0x95330",
-     "decl": "void recorded_animation_play_internal(void);"
+     "decl": "char recorded_animation_play_internal(int actor@<eax>, short anim_idx, short flags);"
     },
     {
      "addr": "0x955b0",
@@ -22458,11 +22460,12 @@
     {
      "addr": "0x95640",
      "decl": "char recorded_animation_play(int actor, short anim_idx);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x95660",
-     "decl": "char recorded_animation_play_and_delete(int a1, short a2);"
+     "decl": "char recorded_animation_play_and_delete(int actor, short anim_idx);",
+     "ported": true
     },
     {
      "addr": "0x95680",
@@ -23275,7 +23278,8 @@
    "functions": [
     {
      "addr": "0x190240",
-     "decl": "void FUN_00190240(void *position, int32_t param_3, uint32_t flags, int16_t sky_index);"
+     "decl": "void FUN_00190240(float *position, float *out, uint32_t flags, int16_t sky_index);",
+     "ported": true
     },
     {
      "addr": "0x190380",
@@ -23995,7 +23999,8 @@
     },
     {
      "addr": "0x1caab0",
-     "decl": "void FUN_001caab0(void);"
+     "decl": "void FUN_001caab0(void);",
+     "ported": true
     },
     {
      "addr": "0x1cadd0",
@@ -34888,7 +34893,10 @@
     },
     {
      "addr": "0x68eb0",
-     "decl": "void FUN_00068eb0(void);"
+     "decl": "int FUN_00068eb0(void *tif @<edi>);",
+     "ported": true,
+     "source_path": "src/halo/bitmaps/libtiff/tif_flush.c",
+     "object": "tif_flush.obj"
     },
     {
      "addr": "0x68f60",

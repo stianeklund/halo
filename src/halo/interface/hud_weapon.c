@@ -739,3 +739,38 @@ LAB_corrupt:
     system_exit(-1);
   }
 }
+
+/* FUN_000d98c0 (0xd98c0) — transfer the whole weapon-HUD per-local-player
+ * state from one local-player slot to another (src = old slot, dst = new).
+ * Called from players.c:505 when a player is reassigned to a controller.
+ *
+ * Both copies are whole-struct: 0xa dwords (0x28 bytes) out of FUN_000d8bc0's
+ * region and 0x14 dwords (0x50 bytes) out of FUN_000d8c30's region.  MSVC 7.1
+ * /Oi lowers both memcpy() calls to the reference's `rep movsd`.  Direction is
+ * confirmed by the ESI/EDI shuffle at 0xd9926 (MOV ESI,EDI restores the OLD
+ * block as the source after the second accessor call).
+ *
+ * TU evidence: the assert __FILE__ here is
+ * "c:\halo\SOURCE\interface\hud_weapon.c" (lines 0x89/0x8a = 137/138) and both
+ * callees are this file's accessors -- even though kb.json historically listed
+ * this address as the first function of event_manager.obj.  Note the address
+ * is NON-MONOTONIC with source order: lines 137/138 sit at 0xd98c0, after the
+ * line-430/439 accessors at 0xd8bc0/0xd8c30. */
+void FUN_000d98c0(short old_local_player_index, short new_local_player_index)
+{
+  if (old_local_player_index == -1) {
+    display_assert("old_local_player_index!=NONE",
+                   "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x89, 1);
+    system_exit(-1);
+  }
+  if (new_local_player_index == -1) {
+    display_assert("new_local_player_index!=NONE",
+                   "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x8a, 1);
+    system_exit(-1);
+  }
+
+  qmemcpy(FUN_000d8bc0(new_local_player_index),
+          FUN_000d8bc0(old_local_player_index), 0x28);
+  qmemcpy(FUN_000d8c30(new_local_player_index),
+          FUN_000d8c30(old_local_player_index), 0x50);
+}

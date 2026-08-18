@@ -888,7 +888,8 @@ void FUN_001ca2b0(const float *params)
     listener.flReverbDelay = *(const float *)(environment + 0x28);
     listener.flDiffusion = *(const float *)(environment + 0x2c) * 100.0f;
     listener.flDensity = 100.0f;
-    listener.flDensity = *(const float *)(environment + 0x30) * listener.flDensity;
+    listener.flDensity =
+      *(const float *)(environment + 0x30) * listener.flDensity;
     listener.flHFReference = *(const float *)(environment + 0x34);
     IDirectSound_SetI3DL2Listener(*(void **)0x50545c, &listener, 1);
   }
@@ -1089,6 +1090,155 @@ void sound_dsound_set_channel_properties(int channel_index, float *properties,
   if (channel != -1) {
     sound_dsound_update_channel_properties(properties, channel, update_only);
   }
+}
+
+void FUN_001caab0(char paused)
+{
+  short channel_index;
+  void *channel;
+  void *stream;
+  void **vtable;
+  short flags;
+  float a;
+  float b;
+  int scale;
+  int cursor;
+  int active;
+  bool finished;
+
+  if (paused == *(char *)0x505484) {
+    display_assert("paused!=dsound_globals.paused",
+                   "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x2d8, 1);
+    system_exit(-1);
+  }
+
+  channel_index = 0;
+  if (paused != 0) {
+    /* pause: drain any channel that is still stopping */
+    if (0 < *(short *)0x4fdfc4) {
+      do {
+        if (channel_index < 0 || channel_index >= *(short *)0x4fdfc4) {
+          display_assert(
+            "index>=0 && index<dsound_globals.actual_channel_count",
+            "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x69, 1);
+          system_exit(-1);
+        }
+        if (channel_index >= 0x100) {
+          display_assert("index<MAXIMUM_SOUND_CHANNELS",
+                         "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x6a,
+                         1);
+          system_exit(-1);
+        }
+        channel = (void *)(0x4fdfc8 + (int)channel_index * 0x74);
+
+        if (*(char *)((char *)channel + 6) != 0) {
+          do {
+            if (channel_index < 0 || channel_index >= *(short *)0x4fdfc4) {
+              display_assert(
+                "index>=0 && index<dsound_globals.actual_channel_count",
+                "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x69, 1);
+              system_exit(-1);
+            }
+            if (channel_index >= 0x100) {
+              display_assert("index<MAXIMUM_SOUND_CHANNELS",
+                             "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c",
+                             0x6a, 1);
+              system_exit(-1);
+            }
+            channel = (void *)(0x4fdfc8 + (int)channel_index * 0x74);
+
+            if (*(char *)((char *)channel + 6) == 0) {
+              display_assert("channel->stopping",
+                             "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c",
+                             0x4b8, 1);
+              system_exit(-1);
+            }
+            active =
+              dsound_stream_is_active(*(void **)((char *)channel + 0x70));
+            finished = (active == 0);
+          } while (!finished);
+
+          stream = *(void **)((char *)channel + 0x70);
+          vtable = *(void ***)stream;
+          ((int(__stdcall *)(void *))vtable[6])(stream);
+          *(char *)((char *)channel + 6) = 0;
+        }
+        channel_index = (short)(channel_index + 1);
+      } while (channel_index < *(short *)0x4fdfc4);
+    }
+  } else {
+    /* pass 1: stop every live stream and rewind its cursor */
+    if (0 < *(short *)0x4fdfc4) {
+      do {
+        if (channel_index < 0 || channel_index >= *(short *)0x4fdfc4) {
+          display_assert(
+            "index>=0 && index<dsound_globals.actual_channel_count",
+            "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x69, 1);
+          system_exit(-1);
+        }
+        if (channel_index >= 0x100) {
+          display_assert("index<MAXIMUM_SOUND_CHANNELS",
+                         "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x6a,
+                         1);
+          system_exit(-1);
+        }
+        channel = (void *)(0x4fdfc8 + (int)channel_index * 0x74);
+
+        if (*(short *)channel != 0) {
+          stream = *(void **)((char *)channel + 0x70);
+          vtable = *(void ***)stream;
+          ((int(__stdcall *)(void *))vtable[6])(stream);
+
+          flags = *(short *)((char *)channel + 0x38);
+          a = (flags & 4) ? 2.0f : 1.0f;
+          b = (flags & 2) ? 2.0f : 1.0f;
+          scale = (flags & 8) ? 0x900 : 0x2000;
+          cursor = (int)((float)*(int *)((char *)channel + 0x64) -
+                         (float)scale * b * a * 4.0f);
+          *(int *)((char *)channel + 0x64) = cursor;
+          *(float *)((char *)channel + 0x3c) = 0.0f;
+          cursor = (cursor < 0) ? 0 : cursor;
+          *(int *)((char *)channel + 0x64) = cursor;
+        }
+        channel_index = (short)(channel_index + 1);
+      } while (channel_index < *(short *)0x4fdfc4);
+    }
+
+    /* pass 2 */
+    DirectSoundDoWork();
+
+    /* pass 3: flush the save-and-quit flag and re-kick live channels */
+    channel_index = 0;
+    if (0 < *(short *)0x4fdfc4) {
+      do {
+        if (channel_index < 0 || channel_index >= *(short *)0x4fdfc4) {
+          display_assert(
+            "index>=0 && index<dsound_globals.actual_channel_count",
+            "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x69, 1);
+          system_exit(-1);
+        }
+        if (channel_index >= 0x100) {
+          display_assert("index<MAXIMUM_SOUND_CHANNELS",
+                         "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x6a,
+                         1);
+          system_exit(-1);
+        }
+        channel = (void *)(0x4fdfc8 + (int)channel_index * 0x74);
+
+        if (*(short *)((char *)channel + 8) != 0) {
+          error(2, "DirectSound: you're screwed if you try to save and quit -- "
+                   "the devil.");
+          *(short *)((char *)channel + 8) = 0;
+        }
+        if (*(short *)channel != 0) {
+          FUN_001ca900(channel_index);
+        }
+        channel_index = (short)(channel_index + 1);
+      } while (channel_index < *(short *)0x4fdfc4);
+    }
+  }
+
+  *(char *)0x505484 = paused;
 }
 
 /* FUN_001cb0c0 (0x1cb0c0)

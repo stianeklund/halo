@@ -183,6 +183,105 @@ void wind_update(void)
   *(int16_t *)0x5060c4 = (int16_t)*block;
 }
 
+/* 0x190380 — build the wind noise table at 0x5057c4.
+ *
+ * The table is 3 banks x 64 float triplets (bank stride 0x300 = 64*0xc).
+ * Every 8th triplet of a bank is a "node" (node stride 0x60 = 8 triplets);
+ * the 7 triplets between two nodes are filled by interpolation.
+ *
+ * Phase 1 seeds the 8 nodes of each of the 3 banks with a random unit
+ * direction. The seed pointer is fetched between the two argument pushes
+ * (PUSH ESI; CALL 0x10b0d0; PUSH EAX; CALL 0x10b380), so the getter call
+ * must stay inside the argument list.
+ *
+ * Phase 2 walks node i (0..7) x sub-sample j (1..7) x bank (0..2) and calls
+ * FUN_00089a20 with the four wrapped ring neighbours (i-1, i, i+1, i+2 mod 8
+ * of the same bank), the abscissa of the first node ((float)(i-1)), the node
+ * spacing (1.0f, pushed as the raw immediate 0x3f800000) and the sample
+ * abscissa t = (float)j * K + (float)i, where K is the float at 0x268ed0.
+ * The multiply-then-add association is load-bearing for the x87 shape.
+ *
+ * The three wrapped indices are computed from a loop-carried byte (i+1) with
+ * 8-bit arithmetic in the original; the &7 wrap is the semantics, the byte
+ * width is MSVC's own lowering.
+ *
+ * Sole caller: wind_initialize_for_new_map (0x190500).
+ */
+void FUN_00190380(void)
+{
+  float *base;
+  float *row_ptr;
+  float *node_ptr;
+  float *entry_ptr;
+  float *out_ptr;
+  float *node_i_ptr;
+  float t;
+  float x_i;
+  float x_im1;
+  int im1;
+  int ip1;
+  int ip2;
+  int i;
+  int j;
+  int idx;
+  int outer_count;
+  int mid_count;
+  int inner_count;
+
+  base = (float *)0x5057c4;
+
+  row_ptr = base;
+  outer_count = 8;
+  do {
+    node_ptr = row_ptr;
+    inner_count = 3;
+    do {
+      random_seed_get_direction3d(
+        (unsigned int *)get_global_random_seed_address(), node_ptr);
+      node_ptr += 0xc0;
+      inner_count--;
+    } while (inner_count != 0);
+    row_ptr += 0x18;
+    outer_count--;
+  } while (outer_count != 0);
+
+  i = 0;
+  row_ptr = base + 3;
+  outer_count = 8;
+  do {
+    im1 = (i - 1) & 7;
+    ip1 = (i + 1) & 7;
+    ip2 = (i + 2) & 7;
+    x_i = (float)i;
+    x_im1 = (float)(i - 1);
+    entry_ptr = row_ptr;
+    j = 1;
+    mid_count = 7;
+    do {
+      t = (float)j * *(float *)0x268ed0 + x_i;
+      node_i_ptr = row_ptr - 3;
+      out_ptr = entry_ptr;
+      idx = 0;
+      inner_count = 3;
+      do {
+        FUN_00089a20(out_ptr, base + (idx + im1) * 0x18, node_i_ptr,
+                     base + (idx + ip1) * 0x18, base + (idx + ip2) * 0x18,
+                     x_im1, 1.0f, t);
+        idx += 8;
+        node_i_ptr += 0xc0;
+        out_ptr += 0xc0;
+        inner_count--;
+      } while (inner_count != 0);
+      entry_ptr += 3;
+      j++;
+      mid_count--;
+    } while (mid_count != 0);
+    row_ptr += 0x18;
+    i++;
+    outer_count--;
+  } while (outer_count != 0);
+}
+
 /* 0x190500 — wind_initialize_for_new_map
  *
  * Called once per map load. Touches the scenario (scenario_get() is invoked

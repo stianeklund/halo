@@ -21,6 +21,93 @@ typedef struct shader_definition {
 #define SHADER_DEFINITIONS_FILE \
   "c:\\halo\\SOURCE\\shaders\\shader_definitions.c"
 
+/* 0x190240 — resolve the wind vector for one sky index into out[3].
+ *
+ * The scenario wind palette record array lives at 0x5060c8 with stride 0x20
+ * (MOVSX EAX,AX / MOV ESI,EAX / SHL ESI,5 / ADD ESI,0x5060c8 at 0x190262).
+ * Its layout is recovered in scenario/wind.c (wind_record): +0x00 valid byte,
+ * +0x10 velocity, +0x14 direction[3]. The record type is file-local to that
+ * TU, so the reads here stay raw offsets rather than duplicating the struct.
+ * The palette count at 0x5060c4 is the int16 wind_globals.count wind_update
+ * publishes; both bounds tests are 16-bit in the binary (TEST AX,AX / JL and
+ * CMP AX,word ptr [0x5060c4] / JGE), so sky_index is compared as int16_t.
+ *
+ * Out of range, or a record whose valid byte is clear, copies the global
+ * fallback vector *(float **)0x31fc38 straight through (three raw dword
+ * moves at 0x19033a and 0x190358 — the binary emits both copies separately,
+ * so the shape is preserved rather than merged).
+ *
+ * Otherwise the sky's 'wind' tag is fetched through the scenario wind palette
+ * block (scenario + 0x1b4, element stride 0xf0, tag index at element+0x8c)
+ * and its three floats are used as: +0x10 amount, +0x14 scale, +0x18
+ * attenuation. FUN_0018ff00 samples direction+turbulence into a local
+ * float[3] with scale = tag+0x14 and magnitude = tag+0x10 * record velocity
+ * (the magnitude argument is the PUSH ECX / FSTP [ESP] slot at 0x1902c6, not
+ * the pushed ECX value). The result is blended with the record's own
+ * direction by t = 1.0f - amount, where amount is forced to 0.0f by flags
+ * bit 0. Flags bit 1 then attenuates every component by 1.0f - tag+0x18;
+ * that difference is recomputed for each component in the binary
+ * (0x190309/0x190316/0x190325), so it is not hoisted into a temp here.
+ *
+ * MSVC parks the `amount` temp in the sky_index parameter's home slot
+ * ([EBP+0x14]) once the index has been sign-extended; the frame reserves only
+ * the float[3] scratch (SUB ESP,0xc).
+ */
+void FUN_00190240(float *position, float *out, uint32_t flags,
+                  int16_t sky_index)
+{
+  typedef struct {
+    float v[3];
+  } vector3d_bits;
+
+  /* Canonical definition is `wind_record` in scenario/wind.c; only the three
+   * members this function reads are named here. Stride 0x20 is what the
+   * SHL ESI,5 at 0x190267 proves. */
+  typedef struct {
+    unsigned char valid;
+    float field_04;
+    float field_08;
+    float field_0c;
+    float velocity;
+    float direction[3];
+  } sky_wind_record;
+  sky_wind_record *record;
+  char *wind_tag;
+  int index;
+  float amount;
+  float t;
+  float turbulence[3];
+
+  if (sky_index >= 0 && sky_index < *(int16_t *)0x5060c4) {
+    index = sky_index;
+    record = &((sky_wind_record *)0x5060c8)[index];
+    if (record->valid != 0) {
+      wind_tag = (char *)tag_get(
+        0x77696e64, *(int *)((char *)tag_block_get_element(
+                               (char *)scenario_get() + 0x1b4, index, 0xf0) +
+                             0x8c));
+      if (flags & 1) {
+        amount = 0.0f;
+      } else {
+        amount = *(float *)(wind_tag + 0x10);
+      }
+      FUN_0018ff00(turbulence, position, *(float *)(wind_tag + 0x14),
+                   *(float *)(wind_tag + 0x10) * record->velocity);
+      t = *(float *)0x2533c8 - amount;
+      out[0] = t * record->direction[0] + turbulence[0];
+      out[1] = t * record->direction[1] + turbulence[1];
+      out[2] = t * record->direction[2] + turbulence[2];
+      if (flags & 2) {
+        out[0] = (*(float *)0x2533c8 - *(float *)(wind_tag + 0x18)) * out[0];
+        out[1] = (*(float *)0x2533c8 - *(float *)(wind_tag + 0x18)) * out[1];
+        out[2] = (*(float *)0x2533c8 - *(float *)(wind_tag + 0x18)) * out[2];
+      }
+      return;
+    }
+  }
+  *(vector3d_bits *)out = **(vector3d_bits **)0x31fc38;
+}
+
 /* 0x190550 — resolve the sky index (and the indoor-fog answer) for a BSP
  * location, then hand the result to FUN_00190240.
  *
@@ -90,7 +177,7 @@ bool FUN_00190550(void *location, void *position, int32_t param_3,
       }
     }
   }
-  FUN_00190240(position, param_3, flags, sky_index);
+  FUN_00190240((float *)position, (float *)param_3, flags, sky_index);
   return is_indoor;
 }
 

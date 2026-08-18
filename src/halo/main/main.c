@@ -1865,6 +1865,37 @@ void compute_window_bounds(int player_index, int num_players,
 }
 
 /*
+ * main_get_window_count - 0x100b00
+ *
+ * Returns the number of render windows (split-screen viewports) to use.
+ *
+ * Confirmed:
+ *  - Returns 1 when game_engine_force_single_screen (0xa8e60) or
+ *    cinematic_in_progress (0x930a0) is true, or when
+ *    local_player_count (0xba4b0) is < 1.
+ *  - Clamps the window count to 4.
+ *  - local_player_count is called three separate times (0x100b18,
+ *    0x100b23, 0x100b34) rather than cached in a local; the calls are
+ *    kept separate to match the original codegen.
+ *  - Return type is int, not short: the constant returns are 32-bit
+ *    MOV EAX,imm and the fall-through path is CALL + MOVSX EAX,AX + RET
+ *    (a short-returning function would tail-jmp without the widening).
+ */
+int main_get_window_count(void)
+{
+  if (game_engine_force_single_screen() || cinematic_in_progress()) {
+    return 1;
+  }
+  if (local_player_count() < 1) {
+    return 1;
+  }
+  if (local_player_count() > 4) {
+    return 4;
+  }
+  return local_player_count();
+}
+
+/*
  * main_new_map - 0x100b40
  *
  * Loads a new map from the given game_options. Flushes input, attempts a

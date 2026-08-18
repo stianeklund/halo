@@ -932,6 +932,85 @@ int FUN_00068d80(void *tif_)
   return 1;
 }
 
+/**
+ * Decode one complete fax run length out of the raw byte stream.
+ *
+ * EDI carries the TIFF handle (0x68eb0 opens with `mov edx,[edi+0x120]` before
+ * its two callee-saved pushes, so EDI is an incoming register argument, not a
+ * local). Called from 0x6904a (FUN_00069020) and twice from FUN_000696d0
+ * (0x69836, 0x6984b), the 1D and 2D row decoders.
+ *
+ * Shape: a byte-driven DFA, the same one FUN_00069180 runs a few hundred bytes
+ * later, over a DIFFERENT table pair. `sp->data` (0x00) holds the current
+ * translated input byte and `sp->bit` (0x02) the DFA state; the index is
+ * `state * 0x100 + data`, so both tables are <states> x 256 bytes:
+ *   0x2cf770  action code   (`movzx cx,byte ptr [esi+0x2cf770]`, 0x68ed2)
+ *   0x2ddd70  next state    (`movzx si,byte ptr [esi+0x2ddd70]`, 0x68edd)
+ * Action 0 means "state machine wants another byte"; the state entering that
+ * refill is the one just fetched from 0x2ddd70, held in SI, and is NOT written
+ * back to `sp->bit` -- only an accepting action stores it (0x68f2a). The
+ * `sp->bit == 0` test at the top of the outer loop re-reads memory (0x68ec0),
+ * which is why the state lives in both places.
+ *
+ * Accepting actions index a table of SIX-byte entries at 0x2ca254 whose first
+ * member is a signed 16-bit run length (`lea ecx,[ecx+ecx*2]` then
+ * `mov cx,word ptr [ecx*2+0x2ca254]`, 0x68f27/0x68f2e). The remaining four
+ * bytes of each entry are never touched here, so their meaning is unknown. Run
+ * lengths >= 64 keep the loop going and shorter ones terminate it -- the CCITT
+ * makeup/terminating-code split -- and the accumulated total is the return
+ * value.
+ *
+ * Error returns are the raw constants the original materialises: -1 for action
+ * 1 (0x68f51), -3 for action 0xd2 (0x68f57) and -4 when the raw buffer runs dry
+ * (0x68f49). Their upstream names are not proven by anything in this TU.
+ */
+int FUN_00068eb0(void *tif_ /* @<edi> */)
+{
+  tiff_t *tif;
+  tiff_codec_bits_t *sp;
+  int index;
+  int run;
+  unsigned short action;
+  unsigned short state;
+  short width;
+
+  tif = (tiff_t *)tif_;
+  sp = tif->tif_data;
+  state = (unsigned short)sp->bit;
+  run = 0;
+
+  for (;;) {
+    if (sp->bit == 0)
+      goto refill;
+    for (;;) {
+      index = (int)(short)state * 0x100 + (int)sp->data;
+      action = ((const unsigned char *)0x2cf770)[index];
+      state = ((const unsigned char *)0x2ddd70)[index];
+      if (action != 0)
+        break;
+    refill:
+      /* 0x68ee7-0x68f12. Byte is translated through the codec's bitmap table
+       * before it enters the DFA, exactly as in FUN_00068bd0/FUN_00069180. */
+      if (tif->tif_rawcc <= 0)
+        return -4;
+      tif->tif_rawcc--;
+      sp->data = (short)sp->bitmap[*tif->tif_rawcp];
+      tif->tif_rawcp++;
+    }
+    if (action == 1)
+      return -1;
+    if (action == 0xd2)
+      return -3;
+    /* 0x68f2a. The state store lands BEFORE the run-length load in the
+     * original; keep that order. */
+    sp->bit = (short)state;
+    width = ((const short *)0x2ca254)[((int)(short)action - 2) * 3];
+    run += (int)width;
+    if (width < 0x40)
+      return run;
+  }
+}
+
 /*
  * Decode one buffered fax byte and update the codec state machine.
  *

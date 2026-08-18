@@ -179,3 +179,17 @@ void recorded_animations_initialize_for_new_map(void)
   }
   csmemset(*(void **)0x44df0c, 0, 0x400);
 }
+
+/* Start a recorded animation on a unit. Thin forwarder to the shared worker
+ * with an empty flag set; the sibling at 0x95660
+ * (recorded_animation_play_and_delete) is the same body with flags = 8. The
+ * worker takes the unit handle in EAX and returns success in AL. */
+char recorded_animation_play(int actor, short anim_idx)
+{
+  return recorded_animation_play_internal(actor, anim_idx, 0);
+}
+
+char recorded_animation_play_and_delete(int actor, short anim_idx)
+{
+  return recorded_animation_play_internal(actor, anim_idx, 8);
+}

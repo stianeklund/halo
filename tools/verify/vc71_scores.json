@@ -5083,6 +5083,21 @@
       "score": 74.6,
       "source": "src/halo/bitmaps/libtiff/tif_flush.c"
     },
+    "FUN_00068eb0": {
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 86.0,
+      "addr": "0x68eb0",
+      "end": "0x68f5e",
+      "kind": "auto",
+      "n_r": 56,
+      "opnd_percent": 43.0,
+      "raw_mnemonic_pct": 85.2,
+      "ref": "synth",
+      "ref_sha": "133af2cf1946773e",
+      "score": 86.0,
+      "source": "src/halo/bitmaps/libtiff/tif_flush.c"
+    },
     "FUN_00069180": {
       "addr": "0x69180",
       "end": "0x691f2",
@@ -15608,6 +15623,21 @@
       "score": 59.0,
       "source": "src/halo/interface/hud_weapon.c"
     },
+    "FUN_000d98c0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 88.9,
+      "addr": "0xd98c0",
+      "end": "0xd9952",
+      "kind": "auto",
+      "n_r": 49,
+      "opnd_percent": 84.8,
+      "raw_mnemonic_pct": 88.9,
+      "ref": "synth",
+      "ref_sha": "545e8aef0c3d00d1",
+      "score": 88.9,
+      "source": "src/halo/interface/hud_weapon.c"
+    },
     "FUN_000db140": {
       "addr": "0xdb140",
       "end": "0xdb141",
@@ -25005,6 +25035,36 @@
       "score": 89.1,
       "source": "src/halo/scenario/wind.c"
     },
+    "FUN_00190240": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 88.6,
+      "addr": "0x190240",
+      "end": "0x190377",
+      "kind": "auto",
+      "n_r": 106,
+      "opnd_percent": 75.6,
+      "raw_mnemonic_pct": 88.6,
+      "ref": "synth",
+      "ref_sha": "8e1ea8fc15f677f3",
+      "score": 88.6,
+      "source": "src/halo/shaders/shaders.c"
+    },
+    "FUN_00190380": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 68.9,
+      "addr": "0x190380",
+      "end": "0x1904fc",
+      "kind": "auto",
+      "n_r": 126,
+      "opnd_percent": 51.6,
+      "raw_mnemonic_pct": 68.9,
+      "ref": "synth",
+      "ref_sha": "ed4d7d423534ef61",
+      "score": 68.9,
+      "source": "src/halo/scenario/wind.c"
+    },
     "FUN_00190550": {
       "addr": "0x190550",
       "end": "0x190661",
@@ -27443,6 +27503,21 @@
       "ref": "synth",
       "ref_sha": "ab045649978d6fc4",
       "score": 90.3,
+      "source": "src/halo/sound/sound_dsound_xbox.c"
+    },
+    "FUN_001caab0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 89.7,
+      "addr": "0x1caab0",
+      "end": "0x1cadcf",
+      "kind": "auto",
+      "n_r": 242,
+      "opnd_percent": 43.6,
+      "raw_mnemonic_pct": 89.7,
+      "ref": "synth",
+      "ref_sha": "1fec4f14198a9072",
+      "score": 89.7,
       "source": "src/halo/sound/sound_dsound_xbox.c"
     },
     "FUN_001cb0c0": {
@@ -37677,14 +37752,18 @@
       "source": "src/halo/objects/objects.c"
     },
     "halt_and_catch_fire": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 84.8,
       "addr": "0x1029a0",
       "end": "0x102c40",
       "kind": "no_terminator",
       "n_r": 180,
-      "opnd_percent": 66.5,
+      "opnd_percent": 67.2,
+      "raw_mnemonic_pct": 84.8,
       "ref": "synth",
       "ref_sha": "3d050b06e34cfd33",
-      "score": 81.3,
+      "score": 84.8,
       "source": "src/halo/main/main.c"
     },
     "hashtable_dispose": {
@@ -40255,6 +40334,21 @@
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
+    "main_get_window_count": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 84.2,
+      "addr": "0x100b00",
+      "end": "0x100b3d",
+      "kind": "auto",
+      "n_r": 19,
+      "opnd_percent": 84.2,
+      "raw_mnemonic_pct": 84.2,
+      "ref": "synth",
+      "ref_sha": "b76309187f68486e",
+      "score": 84.2,
+      "source": "src/halo/main/main.c"
+    },
     "main_goto_main_menu": {
       "addr": "0x100620",
       "end": "0x100638",
@@ -40454,14 +40548,18 @@
       "source": "src/halo/main/main.c"
     },
     "main_pregame_render": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 98.5,
       "addr": "0x102090",
       "end": "0x1021be",
       "kind": "auto",
       "n_r": 67,
-      "opnd_percent": 65.2,
+      "opnd_percent": 89.6,
+      "raw_mnemonic_pct": 98.5,
       "ref": "synth",
       "ref_sha": "324e5b7fcf16561a",
-      "score": 81.2,
+      "score": 98.5,
       "source": "src/halo/main/main.c"
     },
     "main_present_frame": {
@@ -47330,6 +47428,36 @@
       "score": 92.0,
       "source": "src/halo/cutscene/recorded_animations.c"
     },
+    "recorded_animation_play": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 85.7,
+      "addr": "0x95640",
+      "end": "0x95656",
+      "kind": "auto",
+      "n_r": 10,
+      "opnd_percent": 85.7,
+      "raw_mnemonic_pct": 85.7,
+      "ref": "synth",
+      "ref_sha": "f8463eb89351d370",
+      "score": 85.7,
+      "source": "src/halo/cutscene/recorded_animations.c"
+    },
+    "recorded_animation_play_and_delete": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 85.7,
+      "addr": "0x95660",
+      "end": "0x95676",
+      "kind": "auto",
+      "n_r": 10,
+      "opnd_percent": 85.7,
+      "raw_mnemonic_pct": 85.7,
+      "ref": "synth",
+      "ref_sha": "a0a6fd6d012c3139",
+      "score": 85.7,
+      "source": "src/halo/cutscene/recorded_animations.c"
+    },
     "recorded_animations_dispose": {
       "addr": "0x94c30",
       "end": "0x94c54",
@@ -48398,14 +48526,18 @@
       "source": "src/halo/ai/actions.c"
     },
     "set_window_camera_values": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 83.6,
       "addr": "0x1021c0",
       "end": "0x102362",
       "kind": "auto",
       "n_r": 139,
-      "opnd_percent": 31.1,
+      "opnd_percent": 33.4,
+      "raw_mnemonic_pct": 83.6,
       "ref": "synth",
       "ref_sha": "eaa77df402f672f2",
-      "score": 81.0,
+      "score": 83.6,
       "source": "src/halo/main/main.c"
     },
     "shader_get_vertex_shader_permutation": {
