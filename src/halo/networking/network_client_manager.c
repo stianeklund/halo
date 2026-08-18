@@ -165,6 +165,71 @@ void network_game_client_game_out_of_sync(void *client)
   }
 }
 
+/* network_game_client_add_player_to_game (0x125510)
+ *
+ * Asserts both the client and the incoming player message are non-null, then
+ * validates the player and hands it to network_game_add_player on the client's
+ * embedded game state (+0x85c). Once the player is accepted, and only while the
+ * client is in state 3 (in-game, field at +0xca6), the player record is
+ * re-fetched from the client's own player array: base +0xa62, stride 0x20,
+ * index from the int16 at +0xa80. That record is spawned, its byte at +0x1f is
+ * passed to unstrip_player_index (one stack arg, ADD ESP,4 at 0x1255ac) whose
+ * EAX return is the player handle used by every following call. When the
+ * record's machine index (+0x1c) equals the client's own machine index (the
+ * uint16 at +0x0), the local player index (+0x1d) is bound to the handle.
+ *
+ * Note the log at the bottom is reached both from the state-3 path (where the
+ * pointer has been re-pointed at the array slot) and from the non-state-3
+ * path (where it is still the message), matching ESI's reuse in the original.
+ */
+char network_game_client_add_player_to_game(void *client, void *message)
+{
+  char *player;
+  char added;
+  int player_handle;
+
+  added = 0;
+  player = (char *)message;
+  if (client == NULL || message == NULL) {
+    display_assert("client && player",
+                   "c:\\halo\\SOURCE\\networking\\network_client_manager.c",
+                   0x462, true);
+    system_exit(-1);
+  }
+
+  if (!network_player_is_valid(player)) {
+    return added;
+  }
+
+  added = network_game_add_player((char *)client + 0x85c, player);
+  if (!added) {
+    return added;
+  }
+
+  if (*(int16_t *)((char *)client + 0xca6) == 3) {
+    player =
+      (char *)client + 0xa62 + (*(int16_t *)((char *)client + 0xa80) << 5);
+    added = network_game_spawn_player(player);
+    if (!added) {
+      return added;
+    }
+    player_handle = unstrip_player_index((signed char)player[0x1f]);
+    if ((int)(signed char)player[0x1c] == (int)*(uint16_t *)client) {
+      local_player_set_player_index((unsigned short)(signed char)player[0x1d],
+                                    player_handle);
+    }
+    update_client_add_player(player_handle);
+    if (network_game_server_get() != NULL) {
+      update_server_add_player(player_handle);
+    }
+  }
+
+  network_game_log(
+    "added new player to the game (machine #%d / controller #%d)",
+    (int)(signed char)player[0x1c], (int)(signed char)player[0x1d]);
+  return added;
+}
+
 /* network_client_switch_to_postgame (0x125610)
  *
  * Asserts client is non-null, then switches the game engine to the postgame

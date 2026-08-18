@@ -14766,7 +14766,7 @@
     },
     {
      "addr": "0x125180",
-     "decl": "void unstrip_player_index(void);"
+     "decl": "int unstrip_player_index(int player_index);"
     },
     {
      "addr": "0x1251e0",
@@ -14778,7 +14778,9 @@
     },
     {
      "addr": "0x125510",
-     "decl": "char network_game_client_add_player_to_game(void *client, void *message);"
+     "decl": "char network_game_client_add_player_to_game(void *client, void *message);",
+     "name": "network_game_client_add_player_to_game",
+     "ported": true
     },
     {
      "addr": "0x125610",

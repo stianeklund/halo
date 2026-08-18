@@ -42122,6 +42122,21 @@
       "score": 72.7,
       "source": "src/halo/networking/network_game_manager.c"
     },
+    "network_game_client_add_player_to_game": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 89.8,
+      "addr": "0x125510",
+      "end": "0x125604",
+      "kind": "auto",
+      "n_r": 82,
+      "opnd_percent": 91.0,
+      "raw_mnemonic_pct": 89.8,
+      "ref": "synth",
+      "ref_sha": "d43a48080d078eec",
+      "score": 89.8,
+      "source": "src/halo/networking/network_client_manager.c"
+    },
     "network_game_client_address_matches_server": {
       "abi_model": "raw",
       "abi_model_items": 0,
