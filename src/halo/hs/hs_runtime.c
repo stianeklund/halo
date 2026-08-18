@@ -268,7 +268,6 @@ bool hs_validate_syntax(char **error_info, char **error_text)
  * 0x26f5bc and 0x26f5d8), not the callback's own symbol name. */
 bool FUN_000c88b0(int function_index, int expression_index)
 {
-  const char *function_name;
   char *node;
   int argument_nodes[2];
   /* The reference keeps the accept flag in the frame byte at [EBP-1] (0 stored
@@ -288,10 +287,8 @@ bool FUN_000c88b0(int function_index, int expression_index)
     system_exit(-1);
   }
 
-  function_name = *(
-    const char **)((char *)hs_function_table_get((int16_t)function_index) + 4);
-
-  if (FUN_000c55d0(function_name, argument_nodes, expression_index, 2)) {
+  if (FUN_000c55d0(*(const char **)((char *)hs_function_table_get((int16_t)function_index) + 4),
+                   argument_nodes, expression_index, 2)) {
     if (hs_type_check(argument_nodes[0], 0)) { /* _hs_type_unparsed */
       node = (char *)datum_get(*(data_t **)0x5aa6c8, argument_nodes[0]);
       if (hs_type_check(argument_nodes[1], *(int16_t *)(node + 4))) {
@@ -413,26 +410,25 @@ bool hs_sleep_until_parse(int16_t function_index, int expression_index)
  * that reaches this callback, not the callback's own symbol name. */
 bool FUN_000c8d30(int function_index, int script_node)
 {
-  const char *function_name;
   char *node;
   char *script;
   bool success;
+  int fn_idx;
 
+  fn_idx = function_index;
   success = false;
 
-  if ((int16_t)function_index != 0x15) { /* _hs_function_wake */
+  if ((int16_t)fn_idx != 0x15) { /* _hs_function_wake */
     display_assert("function_index==_hs_function_wake",
                    "c:\\halo\\source\\hs\\hs_library_internal_compile.h", 0x25d,
                    true);
     system_exit(-1);
   }
 
-  function_name = *(
-    const char **)((char *)hs_function_table_get((int16_t)function_index) + 4);
-
   /* &function_index is the one-element argument_nodes array: the callee
    * overwrites the incoming first parameter slot with the argument handle. */
-  if (FUN_000c55d0(function_name, &function_index, script_node, 1)) {
+  if (FUN_000c55d0(*(const char **)((char *)hs_function_table_get((int16_t)fn_idx) + 4),
+                   &function_index, script_node, 1)) {
     node = (char *)datum_get(*(data_t **)0x5aa6c8, function_index);
 
     if (hs_type_check(function_index, 10)) { /* _hs_type_script */
@@ -542,109 +538,87 @@ bool FUN_000c8f40(int16_t function_index, int expression_index)
 int hs_compile(int source_length, const char *source, int *error_info,
                char **error_text)
 {
-  int base_offset;
+  bool ok;
+  void *node1_ptr;
   int expr_datum;
-  char *src_cursor;
+  int node1;
+  int node2;
+  void *node2_ptr;
+  void *expr_ptr;
+  int base_offset;
+  char *cursor;
 
-  if (source_length >= 0x400)
-    return -1;
-
-  if (*(int *)0x326a08 == -1) {
-    /* No scenario loaded — allocate temporary buffer. */
-    base_offset = 0;
-    *(int *)0x46b6e8 = (int)debug_malloc(
-      source_length + 1, 0, "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0xaf);
-    *(uint8_t *)0x46b804 = 1;
-    if (*(int *)0x46b6e8 == 0) {
-      display_assert("hs_compile_globals.compiled_source",
-                     "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0xb2, true);
-      system_exit(-1);
-    }
-  } else {
-    /* Scenario loaded — use string constants area. */
-    char *scenario = (char *)global_scenario_get();
-    if (*(int *)(scenario + 0x488) < 0x400) {
-      display_assert("global_scenario_get()->hs_string_constants.size>="
-                     "HS_MAXIMUM_DYNAMIC_SOURCE_DATA_BYTES",
-                     "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0xa6, true);
-      system_exit(-1);
-    }
-    scenario = (char *)global_scenario_get();
-    base_offset = *(int *)(scenario + 0x488) - 0x400;
-    scenario = (char *)global_scenario_get();
-    *(int *)0x46b6e8 = *(int *)(scenario + 0x494);
-  }
-
-  /* Copy source into compiled source buffer at the base offset. */
-  csmemcpy((void *)(*(int *)0x46b6e8 + base_offset), (void *)source,
-           source_length);
-  *(int *)0x46b6e4 = base_offset + source_length;
-  *(uint8_t *)(*(int *)0x46b6e4 + *(int *)0x46b6e8) = 0;
-
-  /* Initialize parse state. */
-  src_cursor = (char *)(*(int *)0x46b6e8 + base_offset);
-  *(int *)0x46b6fc = 0;
-  *(int *)error_info = 0;
-  *(int *)error_text = 0;
-  *(int *)0x46b700 = -1;
-
-  FUN_000c72b0(&src_cursor);
-
-  if (*src_cursor == '\0')
-    return -1;
-
-  expr_datum = FUN_000c7be0(&src_cursor);
-
-  if (*(int *)0x46b6fc != 0)
-    goto compile_error;
-
-  /* Allocate two new syntax nodes to wrap the expression. */
-  {
-    int node1 = data_new_at_index(*(data_t **)0x5aa6c8);
-    int node2 = data_new_at_index(*(data_t **)0x5aa6c8);
-
-    if (node1 != -1 && node2 != -1) {
-      char *n1 = (char *)datum_get(*(data_t **)0x5aa6c8, node1);
-      char *n2 = (char *)datum_get(*(data_t **)0x5aa6c8, node2);
-
-      *(int *)(n1 + 0x10) = node2;
-      *(int *)(n1 + 0x8) = -1;
-
-      /* Copy source offset from the parsed expression node. */
-      {
-        char *expr_node = (char *)datum_get(*(data_t **)0x5aa6c8, expr_datum);
-        *(int *)(n1 + 0xc) = *(int *)(expr_node + 0xc);
+  if (source_length < 0x400) {
+    if (*(int *)0x326a08 == -1) {
+      base_offset = 0;
+      *(void **)0x46b6e8 = debug_malloc(source_length + 1, false,
+                                        "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0xaf);
+      *(uint8_t *)0x46b804 = 1;
+      if (*(void **)0x46b6e8 == NULL) {
+        display_assert("hs_compile_globals.compiled_source",
+                       "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0xb2, true);
+        system_exit(-1);
       }
-
-      *(int16_t *)(n1 + 0x6) = 0;
-      *(int *)(n2 + 0x8) = expr_datum;
-      *(int *)(n2 + 0xc) = -1;
-      *(int16_t *)(n2 + 0x2) = 0x16; /* hs_type_void */
-      *(int16_t *)(n2 + 0x6) = 1;
-      *(int16_t *)(n2 + 0x4) = 2; /* hs_node_type_function_call */
-
-      /* hs_type_check: 2 stack args (datum_index, check_type). */
-      {
-        bool ok = hs_type_check(node1, 4);
-        if (ok)
-          return node1;
+    } else {
+      void *scenario = global_scenario_get();
+      if (*(int *)((char *)scenario + 0x488) < 0x400) {
+        display_assert("global_scenario_get()->hs_string_constants.size>="
+                       "HS_MAXIMUM_DYNAMIC_SOURCE_DATA_BYTES",
+                       "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0xa6, true);
+        system_exit(-1);
+      }
+      scenario = global_scenario_get();
+      base_offset = *(int *)((char *)scenario + 0x488) - 0x400;
+      scenario = global_scenario_get();
+      *(void **)0x46b6e8 = *(void **)((char *)scenario + 0x494);
+    }
+    csmemcpy((void *)((int)*(void **)0x46b6e8 + base_offset), (void *)source, source_length);
+    *(int *)0x46b6e4 = base_offset + source_length;
+    *(uint8_t *)(*(int *)0x46b6e4 + (int)*(void **)0x46b6e8) = 0;
+    node1_ptr = *(void **)0x46b6e8;
+    *(int *)0x46b6fc = 0;
+    *error_info = 0;
+    *error_text = NULL;
+    cursor = (char *)((int)node1_ptr + base_offset);
+    *(int *)0x46b700 = -1;
+    FUN_000c72b0(&cursor);
+    if (*cursor != '\0') {
+      expr_datum = FUN_000c7be0(&cursor);
+      if (*(int *)0x46b6fc == 0) {
+        node1 = data_new_at_index(*(data_t **)0x5aa6c8);
+        node2 = data_new_at_index(*(data_t **)0x5aa6c8);
+        if (node1 != -1 && node2 != -1) {
+          node1_ptr = datum_get(*(data_t **)0x5aa6c8, node1);
+          node2_ptr = datum_get(*(data_t **)0x5aa6c8, node2);
+          *(int *)((char *)node1_ptr + 0x10) = node2;
+          *(int *)((char *)node1_ptr + 8) = -1;
+          expr_ptr = datum_get(*(data_t **)0x5aa6c8, expr_datum);
+          *(int *)((char *)node1_ptr + 0xc) = *(int *)((char *)expr_ptr + 0xc);
+          *(int16_t *)((char *)node1_ptr + 6) = 0;
+          *(int *)((char *)node2_ptr + 8) = expr_datum;
+          *(int *)((char *)node2_ptr + 0xc) = -1;
+          *(int16_t *)((char *)node2_ptr + 2) = 0x16;
+          *(int16_t *)((char *)node2_ptr + 6) = 1;
+          *(int16_t *)((char *)node2_ptr + 4) = 2;
+          ok = hs_type_check(node1, 4);
+          if (ok) {
+            return node1;
+          }
+        }
+      }
+      *error_info = *(int *)0x46b6fc;
+      if (*(int *)0x46b700 != -1) {
+        *(int *)0x46b700 = *(int *)0x46b700 - base_offset;
+        if (*(int *)0x46b700 < 0 || *(int *)0x46b700 >= source_length) {
+          display_assert("hs_compile_globals.error_offset>=0 && "
+                         "hs_compile_globals.error_offset<source_size",
+                         "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0xeb, true);
+          system_exit(-1);
+        }
+        *error_text = (char *)source + *(int *)0x46b700;
       }
     }
   }
-
-compile_error:
-  *(int *)error_info = *(int *)0x46b6fc;
-  if (*(int *)0x46b700 != -1) {
-    *(int *)0x46b700 = *(int *)0x46b700 - base_offset;
-    if (*(int *)0x46b700 < 0 || *(int *)0x46b700 >= source_length) {
-      display_assert("hs_compile_globals.error_offset>=0 && "
-                     "hs_compile_globals.error_offset<source_size",
-                     "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0xeb, true);
-      system_exit(-1);
-    }
-    *error_text = (char *)(*(int *)0x46b700 + (int)source);
-  }
-
   return -1;
 }
 
@@ -667,42 +641,38 @@ bool hs_compile_source(int source_file_size, void *source_ptr,
   cursor = hs_compile_initialize(source_file_size, source_ptr);
 
   if (cursor == NULL) {
-    *(int *)error_info = (int)"couldn't allocate memory for compiled source.";
+    *error_info = "couldn't allocate memory for compiled source.";
     return false;
   }
 
-  *(int *)0x46b6fc = 0;
-  *(int *)error_info = 0;
-  *(int *)error_text = 0;
-  ok = true;
+  *(char **)0x46b6fc = NULL;
+  *error_info = NULL;
+  *error_text = NULL;
   *(int *)0x46b700 = -1;
 
   FUN_000c72b0(&cursor);
 
-  while (*cursor != '\0') {
+  do {
+    if (*cursor == '\0')
+      return true;
+
     expr_datum = FUN_000c7be0(&cursor);
     FUN_000c72b0(&cursor);
 
-    if (*(int *)0x46b6fc != 0)
-      goto parse_error;
+    if (*(char **)0x46b6fc != NULL)
+      break;
 
     ok = hs_type_check(expr_datum, 1);
-    if (!ok)
-      goto parse_error;
-  }
+  } while (ok);
 
-  if (ok)
-    return true;
-
-parse_error:
-  if (*(int *)0x46b6fc == 0) {
+  if (*(char **)0x46b6fc == NULL) {
     display_assert("tell matt that somebody failed to correctly report a "
                    "parsing error.",
                    "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x131, true);
     system_exit(-1);
   }
 
-  *error_info = (char *)*(int *)0x46b6fc;
+  *error_info = *(char **)0x46b6fc;
   *(uint8_t *)0x46b6f8 = 1;
 
   if (*(int *)0x46b700 != -1) {
@@ -902,11 +872,14 @@ unsigned char FUN_000c9650(int16_t bit_index, int object_list, int state)
 {
   char flag;
   int object_index;
+  int shift;
+  int word_offset;
+  uint32_t *word_ptr;
 
   flag = (char)state;
   object_index = FUN_000ce450(object_list, &state);
   while (object_index != -1) {
-    if (FUN_0018ef00(bit_index, object_index) != 0) {
+    if (FUN_0018ef00(bit_index, object_index)) {
       if (flag == 0) {
         flag = 1;
         goto set_bit;
@@ -917,15 +890,21 @@ unsigned char FUN_000c9650(int16_t bit_index, int object_list, int state)
     }
     object_index = FUN_000ce320(object_list, &state);
   }
-  if (flag == 0)
-    goto clear_bit;
 
+  if (flag != 0) {
 set_bit:
-  ((uint32_t *)0x5aa6a0)[bit_index >> 5] |= 1u << (bit_index & 0x1f);
-  return (unsigned char)flag;
+    shift = (int)bit_index;
+    word_offset = shift >> 5;
+    word_ptr = (uint32_t *)((char *)0x5aa6a0 + word_offset * 4);
+    *word_ptr |= 1u << (shift & 0x1f);
+    return (unsigned char)flag;
+  }
 
 clear_bit:
-  ((uint32_t *)0x5aa6a0)[bit_index >> 5] &= ~(1u << (bit_index & 0x1f));
+  shift = (int)bit_index;
+  word_offset = shift >> 5;
+  word_ptr = (uint32_t *)((char *)0x5aa6a0 + word_offset * 4);
+  *word_ptr &= ~(1u << (shift & 0x1f));
   return (unsigned char)flag;
 }
 
@@ -1207,7 +1186,6 @@ void FUN_000c9990(int16_t index)
   }
 }
 
-/* Reject deletion of a player or its linked object; otherwise delete datum. */
 void FUN_000c99e0(int datum)
 {
   if (datum != -1) {
@@ -2331,63 +2309,63 @@ void FUN_000CA700(void)
 void hs_runtime_dispose_from_old_map(void)
 {
   int16_t idx;
-  char *data;
+  int datum;
 
   data_make_invalid(*(data_t **)0x5aa6c4);
 
   idx = *(int16_t *)0x27d504;
-  data = *(char **)0x5aa6c0;
-  while (idx < *(int16_t *)(data + 0x2e)) {
-    if (datum_absolute_index_to_index((data_t *)data, (int)idx) != 0)
-      datum_delete((data_t *)data, (int)idx);
-    idx++;
-    data = *(char **)0x5aa6c0;
+  if (idx < (*(data_t **)0x5aa6c0)->current_count) {
+    do {
+      datum = datum_absolute_index_to_index(*(data_t **)0x5aa6c0, (int)idx);
+      if (datum != 0) {
+        datum_delete(*(data_t **)0x5aa6c0, (int)idx);
+      }
+      idx++;
+    } while (idx < (*(data_t **)0x5aa6c0)->current_count);
   }
 
   *(uint8_t *)0x46b810 = 0;
 }
 
-/* 0xca940 */
-static int hs_thread_new(int script_index, int type)
+int hs_thread_new(int script_index, int type)
 {
   int thread_index;
   char *thread;
-  char *stack;
   char *script;
 
-  if (type < 0 || type >= 3) {
+  thread_index = data_new_at_index(*(data_t **)0x5aa6c4);
+
+  if ((int16_t)type < 0 || (int16_t)type > 2) {
     display_assert("type>=0 && type<NUMBER_OF_HS_THREAD_TYPES",
                    "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x26f, true);
     system_exit(-1);
   }
 
-  if (type == 0 && script_index == -1) {
+  if ((int16_t)type == 0 && script_index == -1) {
     display_assert("type!=_hs_thread_type_script || script_index!=NONE",
                    "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x270, true);
     system_exit(-1);
   }
 
-  thread_index = data_new_at_index(*(data_t **)0x5aa6c4);
   if (thread_index != -1) {
     thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_index);
-    stack = thread + 0x18;
-    *(char **)(thread + 0x10) = stack;
-    *(int32_t *)stack = 0;
+    *(char **)(thread + 0x10) = thread + 0x18;
+    *(uint32_t *)(thread + 0x18) = 0;
     *(int16_t *)(*(char **)(thread + 0x10) + 0xc) = 0;
-    *(int32_t *)(*(char **)(thread + 0x10) + 0x4) = -1;
-    *(uint8_t *)(thread + 0x2) = (uint8_t)type;
-    *(int32_t *)(thread + 0x4) = script_index;
-    *(uint8_t *)(thread + 0x3) = 0;
+    *(int *)(*(char **)(thread + 0x10) + 4) = -1;
+    *(uint8_t *)(thread + 2) = (uint8_t)type;
+    *(int *)(thread + 4) = script_index;
+    *(uint8_t *)(thread + 3) = 0;
 
     if (script_index != -1) {
       script = (char *)tag_block_get_element(
         (char *)global_scenario_get() + 0x49c, script_index, 0x5c);
       if (*(int16_t *)(script + 0x20) == 1) {
-        *(int32_t *)(thread + 0x8) = -2;
+        *(int *)(thread + 8) = -2;
         return thread_index;
       }
     }
-    *(int32_t *)(thread + 0x8) = 0;
+    *(int *)(thread + 8) = 0;
   }
   return thread_index;
 }
@@ -2396,7 +2374,7 @@ static int hs_thread_new(int script_index, int type)
  * not _hs_thread_type_script (type==0) before deleting. Called when a
  * console-command thread (type==2) finishes execution in FUN_000cd840.
  */
-static void FUN_000caa30(int thread_handle)
+void FUN_000caa30(int thread_handle)
 {
   char *thread;
 
@@ -2410,37 +2388,32 @@ static void FUN_000caa30(int thread_handle)
 }
 
 /* 0xcaa80 */
-static char *hs_get_thread_script_name(int thread_index)
+char *hs_get_thread_script_name(int thread_index)
 {
   char *thread;
   uint8_t type;
-  int script_index;
-  char *scenario;
-  char *script_entry;
 
   thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_index);
   type = *(uint8_t *)(thread + 0x2);
 
-  if (type == 0) {
-    thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_index);
-    script_index = *(int32_t *)(thread + 0x4);
-    scenario = (char *)global_scenario_get();
-    script_entry = (char *)tag_block_get_element((char *)scenario + 0x49c,
-                                                 script_index, 0x5c);
-    return script_entry;
-  }
+  switch (type) {
+  case 0:
+    return (char *)tag_block_get_element(
+      (char *)global_scenario_get() + 0x49c,
+      *(int32_t *)((char *)datum_get(*(data_t **)0x5aa6c4, thread_index) + 0x4),
+      0x5c);
 
-  if (type == 1) {
+  case 1:
     return "[global initialize]";
-  }
 
-  if (type == 2) {
+  case 2:
     return "[console command]";
-  }
 
-  display_assert(NULL, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x2a9, true);
-  system_exit(-1);
-  return NULL;
+  default:
+    display_assert(NULL, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x2a9, true);
+    system_exit(-1);
+    return NULL;
+  }
 }
 
 /* 0xcab00 — Push a new frame onto the HaloScript thread's stack.
@@ -2456,34 +2429,29 @@ static char *hs_get_thread_script_name(int thread_index)
  *
  * Stack overflow is fatal: formats a message and halts via display_assert.
  */
-static void hs_thread_push_frame(int thread_handle)
+void hs_thread_push_frame(int thread_handle)
 {
   char *thread;
-  char *cur_frame;
-  char *new_frame;
+  uint32_t *new_frame;
 
   thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_handle);
-  cur_frame = *(char **)(thread + 0x10);
+  new_frame = (uint32_t *)
+    (*(int *)(thread + 0x10) + *(int16_t *)(*(int *)(thread + 0x10) + 0xc) + 0x10);
 
-  /* new_frame = cur_frame + cur_frame->size + 0x10 */
-  new_frame = cur_frame + (int)*(int16_t *)(cur_frame + 0xc) + 0x10;
-
-  /* Overflow check: (new_frame + 0x10) must be below thread+0x218 */
-  if ((unsigned int)(new_frame + 0x10) >= (unsigned int)(thread + 0x218)) {
-    const char *script_name = hs_get_thread_script_name(thread_handle);
-    const char *msg = csprintf(
-      (char *)0x5ab100,
-      "a problem occurred while executing the script %s: %s (%s)", script_name,
-      "stack overflow.",
-      "(byte *) (new_frame+1)<thread->stack_data+HS_THREAD_STACK_SIZE");
-    display_assert(msg, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x35e, true);
+  if ((char *)new_frame + 0x10 >= thread + 0x218) {
+    display_assert(
+      csprintf((char *)0x5ab100,
+               "a problem occurred while executing the script %s: %s (%s)",
+               hs_get_thread_script_name(thread_handle),
+               "stack overflow.",
+               "(byte *) (new_frame+1)<thread->stack_data+HS_THREAD_STACK_SIZE"),
+      "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x35e, true);
     system_exit(-1);
   }
 
-  /* Link new frame and advance stack pointer */
-  *(char **)(new_frame + 0x0) = cur_frame;
-  *(char **)(thread + 0x10) = new_frame;
-  *(int16_t *)(new_frame + 0xc) = 0;
+  *new_frame = *(uint32_t *)(thread + 0x10);
+  *(uint32_t **)(thread + 0x10) = new_frame;
+  *(int16_t *)(new_frame + 3) = 0;
 }
 
 /* 0xcaba0 — Allocate `size` bytes from the current HaloScript thread stack
@@ -2512,8 +2480,6 @@ static void *hs_thread_stack_alloc(int thread_handle, int size)
   char *thread;
   char *frame;
   int16_t old_size;
-  const char *script_name;
-  const char *msg;
 
   hs_threads = *(data_t **)0x5aa6c4;
   thread = (char *)datum_get(hs_threads, thread_handle);
@@ -2531,34 +2497,36 @@ static void *hs_thread_stack_alloc(int thread_handle, int size)
       (unsigned int)frame >= (unsigned int)(thread + 0x218) ||
       (unsigned int)(frame + (int)*(int16_t *)(frame + 0xc) + 0xe) >
         (unsigned int)(thread + 0x218)) {
-    script_name = hs_get_thread_script_name(thread_handle);
-    msg = csprintf((char *)0x5ab100,
-                   "a problem occurred while executing the script %s: %s (%s)",
-                   script_name, "valid_thread(thread)", "corrupted stack.");
-    display_assert(msg, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x37d, true);
+    display_assert(
+      csprintf((char *)0x5ab100,
+               "a problem occurred while executing the script %s: %s (%s)",
+               hs_get_thread_script_name(thread_handle),
+               "corrupted stack.", "valid_thread(thread)"),
+      "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x37d, true);
     system_exit(-1);
   }
 
   if (size == 0) {
-    script_name = hs_get_thread_script_name(thread_handle);
-    msg = csprintf((char *)0x5ab100,
-                   "a problem occurred while executing the script %s: %s (%s)",
-                   script_name,
-                   "attempt to allocate zero space from the stack.", "size");
-    display_assert(msg, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x37e, true);
+    display_assert(
+      csprintf((char *)0x5ab100,
+               "a problem occurred while executing the script %s: %s (%s)",
+               hs_get_thread_script_name(thread_handle),
+               "attempt to allocate zero space from the stack.", ""),
+      "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x37e, true);
     system_exit(-1);
   }
 
   /* frame->data + frame->size + size <= thread + HS_THREAD_STACK_SIZE */
   if ((unsigned int)(frame + (int)*(int16_t *)(frame + 0xc) + 0xe + size) >
       (unsigned int)(thread + 0x218)) {
-    script_name = hs_get_thread_script_name(thread_handle);
-    msg = csprintf(
-      (char *)0x5ab100,
-      "a problem occurred while executing the script %s: %s (%s)", script_name,
-      "stack overflow.",
-      "frame->data+frame->size+size<=thread->stack_data+HS_THREAD_STACK_SIZE");
-    display_assert(msg, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x37f, true);
+    display_assert(
+      csprintf(
+        (char *)0x5ab100,
+        "a problem occurred while executing the script %s: %s (%s)",
+        hs_get_thread_script_name(thread_handle),
+        "stack overflow.",
+        "frame->data+frame->size+size<=thread->stack_data+HS_THREAD_STACK_SIZE"),
+      "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x37f, true);
     system_exit(-1);
   }
 
@@ -2572,13 +2540,16 @@ static void *hs_thread_stack_alloc(int thread_handle, int size)
 int FUN_000cada0(int16_t script_index)
 {
   int datum_index;
+  char *thread;
 
   datum_index = data_next_index(*(data_t **)0x5aa6c4, -1);
-  while (datum_index != -1) {
-    char *thread = (char *)datum_get(*(data_t **)0x5aa6c4, datum_index);
-    if (*(int *)(thread + 0x4) == (int)script_index)
-      return datum_index;
-    datum_index = data_next_index(*(data_t **)0x5aa6c4, datum_index);
+  if (datum_index != -1) {
+    do {
+      thread = (char *)datum_get(*(data_t **)0x5aa6c4, datum_index);
+      if (*(int *)(thread + 4) == (int)script_index)
+        return datum_index;
+      datum_index = data_next_index(*(data_t **)0x5aa6c4, datum_index);
+    } while (datum_index != -1);
   }
   return -1;
 }
@@ -2994,29 +2965,28 @@ static void FUN_000cb230(int loop_var)
  * Reverse of FUN_000cb230: datum_ptr+4 → *ext_ptr+8. Only writes if the
  * backing pointer (ext_ptr+8) is non-NULL.
  */
-static void FUN_000cb7b0(int loop_var)
+void FUN_000cb7b0(int loop_var)
 {
   char *datum_ptr;
   char *ext_ptr;
-  int16_t type;
+  void *dst;
 
-  if ((loop_var & 0x8000) == 0)
+  if ((int16_t)loop_var >= 0)
     return;
 
   datum_ptr = (char *)datum_get(*(data_t **)0x5aa6c0, loop_var & 0x7fff);
   ext_ptr = (char *)hs_external_global_get((int16_t)(loop_var & 0x7fff));
-  type = hs_global_get_type((uint16_t)loop_var);
 
-  switch (type) {
+  switch (hs_global_get_type((uint16_t)loop_var)) {
   case 5:
-    if (*(uint8_t **)(ext_ptr + 8) != NULL) {
-      **(uint8_t **)(ext_ptr + 8) = *(uint8_t *)(datum_ptr + 4);
-    }
+    dst = *(void **)(ext_ptr + 8);
+    if (dst != NULL)
+      *(uint8_t *)dst = *(uint8_t *)(datum_ptr + 4);
     return;
   case 6:
-    if (*(float **)(ext_ptr + 8) != NULL) {
-      **(float **)(ext_ptr + 8) = *(float *)(datum_ptr + 4);
-    }
+    dst = *(void **)(ext_ptr + 8);
+    if (dst != NULL)
+      *(float *)dst = *(float *)(datum_ptr + 4);
     return;
   case 7:
   case 10:
@@ -3026,9 +2996,9 @@ static void FUN_000cb7b0(int loop_var)
   case 0x16:
   case 0x22:
   case 0x2b:
-    if (*(int16_t **)(ext_ptr + 8) != NULL) {
-      **(int16_t **)(ext_ptr + 8) = *(int16_t *)(datum_ptr + 4);
-    }
+    dst = *(void **)(ext_ptr + 8);
+    if (dst != NULL)
+      *(int16_t *)dst = *(int16_t *)(datum_ptr + 4);
     return;
   case 8:
   case 0x11:
@@ -3037,9 +3007,9 @@ static void FUN_000cb7b0(int loop_var)
   case 0x1d:
   case 0x26:
   case 0x29:
-    if (*(int32_t **)(ext_ptr + 8) != NULL) {
-      **(int32_t **)(ext_ptr + 8) = *(int32_t *)(datum_ptr + 4);
-    }
+    dst = *(void **)(ext_ptr + 8);
+    if (dst != NULL)
+      *(int32_t *)dst = *(int32_t *)(datum_ptr + 4);
     return;
   case 9:
   case 0x18:
@@ -3047,18 +3017,18 @@ static void FUN_000cb7b0(int loop_var)
   case 0x1e:
   case 0x27:
   case 0x2a:
-    if (*(int32_t **)(ext_ptr + 8) != NULL) {
-      **(int32_t **)(ext_ptr + 8) = *(int32_t *)(datum_ptr + 4);
-    }
+    dst = *(void **)(ext_ptr + 8);
+    if (dst != NULL)
+      *(int32_t *)dst = *(int32_t *)(datum_ptr + 4);
     return;
   case 0xb:
   case 0xe:
   case 0x14:
   case 0x20:
   case 0x23:
-    if (*(int16_t **)(ext_ptr + 8) != NULL) {
-      **(int16_t **)(ext_ptr + 8) = *(int16_t *)(datum_ptr + 4);
-    }
+    dst = *(void **)(ext_ptr + 8);
+    if (dst != NULL)
+      *(int16_t *)dst = *(int16_t *)(datum_ptr + 4);
     return;
   case 0xc:
   case 0xf:
@@ -3066,21 +3036,21 @@ static void FUN_000cb7b0(int loop_var)
   case 0x15:
   case 0x21:
   case 0x24:
-    if (*(int16_t **)(ext_ptr + 8) != NULL) {
-      **(int16_t **)(ext_ptr + 8) = *(int16_t *)(datum_ptr + 4);
-    }
+    dst = *(void **)(ext_ptr + 8);
+    if (dst != NULL)
+      *(int16_t *)dst = *(int16_t *)(datum_ptr + 4);
     return;
   case 0x19:
   case 0x1c:
   case 0x1f:
   case 0x25:
   case 0x28:
-    if (*(int32_t **)(ext_ptr + 8) != NULL) {
-      **(int32_t **)(ext_ptr + 8) = *(int32_t *)(datum_ptr + 4);
-    }
+    dst = *(void **)(ext_ptr + 8);
+    if (dst != NULL)
+      *(int32_t *)dst = *(int32_t *)(datum_ptr + 4);
     return;
   default:
-    display_assert(NULL, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x671, true);
+    display_assert(0, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x671, true);
     system_exit(-1);
     return;
   }
@@ -3099,18 +3069,14 @@ static void FUN_000cb7b0(int loop_var)
  */
 const char *hs_runtime_get_executing_thread_name(void)
 {
-  int16_t current_thread;
   const char *name;
 
-  current_thread = *(int16_t *)0x46b812;
-  if (current_thread == -1) {
-    return "[unknown]";
+  if (*(int16_t *)0x46b812 != -1) {
+    name = (const char *)hs_get_thread_script_name((int)*(int16_t *)0x46b812);
+    if (name != NULL)
+      return name;
   }
-  name = (const char *)hs_get_thread_script_name((int)current_thread);
-  if (name == NULL) {
-    return "[unknown]";
-  }
-  return name;
+  return "[unknown]";
 }
 
 /* 0xcbf80 — Execute a pending script-call expression on an HS thread.
@@ -3210,10 +3176,10 @@ int FUN_000cc0a0(int16_t global_ref)
   char *datum_ptr;
 
   FUN_000cb230((int)global_ref);
-  if (global_ref & 0x8000) {
-    index = global_ref & 0x7fff;
-  } else {
+  if ((global_ref & 0x8000) == 0) {
     index = (global_ref & 0x7fff) + (int)*(int16_t *)0x27d504;
+  } else {
+    index = global_ref & 0x7fff;
   }
   datum_ptr = (char *)datum_get(*(data_t **)0x5aa6c0, index);
   return *(int *)(datum_ptr + 4);
@@ -3230,13 +3196,12 @@ int FUN_000cc0a0(int16_t global_ref)
  *
  * Validates thread integrity (stack bounds) and asserts dest_ptr != NULL.
  */
-static void FUN_000cc1d0(int thread_handle, int expression_index,
-                         void *dest_ptr)
+void FUN_000cc1d0(int thread_handle, int expression_index,
+                    void *dest_ptr)
 {
   char *thread;
   char *expr;
   char *expr2;
-  char *stack_ptr;
   data_t *thread_data;
 
   thread_data = *(data_t **)0x5aa6c4;
@@ -3256,12 +3221,12 @@ static void FUN_000cc1d0(int thread_handle, int expression_index,
 
     if (thr < pool_base || thr >= pool_end || sp < stack_base ||
         sp >= stack_end || sp + (int)*(int16_t *)(sp + 0xc) + 0xe > stack_end) {
-      char *script_name = hs_get_thread_script_name(thread_handle);
-      char *msg =
+      display_assert(
         csprintf((char *)0x5ab100,
                  "a problem occurred while executing the script %s: %s (%s)",
-                 script_name, "corrupted stack.", "valid_thread(thread)");
-      display_assert(msg, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x2ff, true);
+                 hs_get_thread_script_name(thread_handle),
+                 "corrupted stack.", "valid_thread(thread)"),
+        "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x2ff, true);
       system_exit(-1);
     }
   }
@@ -3292,11 +3257,10 @@ static void FUN_000cc1d0(int thread_handle, int expression_index,
   }
 
   /* Non-constant expression — set up stack frame for deferred evaluation */
-  stack_ptr = *(char **)(thread + 0x10);
-  *(void **)(stack_ptr + 0x8) = dest_ptr;
+  *(void **)(*(int *)(thread + 0x10) + 8) = dest_ptr;
   hs_thread_push_frame(thread_handle);
   *(uint8_t *)(thread + 0x3) |= 1;
-  *(int *)(*(char **)(thread + 0x10) + 0x4) = expression_index;
+  *(int *)(*(int *)(thread + 0x10) + 0x4) = expression_index;
 }
 
 /* 0xcc340 — Evaluate a script-reference call. Gets the script element from
@@ -3569,149 +3533,89 @@ done:
  *   0x5aa6c0 = hs_globals_data (data_t*)
  *   0x5aa6c8 = hs_syntax_data (data_t*)
  *   0x46b810 = hs_runtime_globals.executing (uint8_t)
- *   0x46b812 = hs_runtime_globals.current_thread (int16_t)
- *   0x27d504 = hs_globals_start_index (int16_t)
- *   0x326a08 = global_scenario_index (int)
- *   0x5aa6a0 = hs_runtime return values buffer (0x20 bytes)
  */
 void hs_runtime_initialize_for_new_map(void)
 {
+  short script_loop;
   int thread_index;
+  void *scenario;
   char *internal_thread;
-  char *scenario;
   char *script_element;
+  uint32_t datum_idx;
   char *datum_ptr;
-  char *stack_frame;
-  short loop_var;
-  int loop_idx;
+  uint32_t raw_idx;
+  uint32_t loop_var;
 
-  /* Phase 1: wipe all thread data, mark runtime as executing. */
   data_delete_all(*(data_t **)0x5aa6c4);
   *(uint8_t *)0x46b810 = 1;
   *(int16_t *)0x46b812 = -1;
 
-  /* Phase 2: allocate the internal initialization thread. */
   thread_index = data_new_at_index(*(data_t **)0x5aa6c4);
   if (thread_index != -1) {
     internal_thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_index);
-    *(int *)(internal_thread + 0x10) = (int)(internal_thread + 0x18);
+    *(void **)(internal_thread + 0x10) = (char *)internal_thread + 0x18;
     *(int *)(internal_thread + 0x18) = 0;
-    stack_frame = *(char **)(internal_thread + 0x10);
-    *(int16_t *)(stack_frame + 0xc) = 0;
-    *(int *)(stack_frame + 0x4) = -1;
-    *(uint8_t *)(internal_thread + 0x2) = 1;
-    *(int *)(internal_thread + 0x4) = -1;
-    *(uint8_t *)(internal_thread + 0x3) = 0;
-    *(int *)(internal_thread + 0x8) = 0;
+    *(int16_t *)(*(int *)(internal_thread + 0x10) + 0xc) = 0;
+    *(int *)(*(int *)(internal_thread + 0x10) + 4) = -1;
+    *(uint8_t *)(internal_thread + 2) = 1;
+    *(int *)(internal_thread + 4) = -1;
+    *(uint8_t *)(internal_thread + 3) = 0;
+    *(int *)(internal_thread + 8) = 0;
   }
 
-  /* Phase 3: run global initialization scripts if a scenario is loaded. */
   if (*(int *)0x326a08 != -1) {
-    scenario = (char *)global_scenario_get();
+    scenario = global_scenario_get();
     internal_thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_index);
-
     loop_var = 0;
-    if (*(int *)(scenario + 0x4a8) > 0) {
-      loop_idx = 0;
+    if (*(int *)((char *)scenario + 0x4a8) > 0) {
+      raw_idx = 0;
       do {
-        /* Get the current script element from the scripts block. */
-        {
-          char *block_base = (char *)global_scenario_get();
-          block_base += 0x4a8;
-          script_element =
-            (char *)tag_block_get_element(block_base, loop_idx, 0x5c);
+        script_element = (char *)tag_block_get_element(
+          (char *)global_scenario_get() + 0x4a8, raw_idx, 0x5c);
+        raw_idx = raw_idx & 0x7fff;
+        datum_idx = raw_idx;
+        if ((loop_var & 0x8000) == 0) {
+          datum_idx = (int)*(int16_t *)0x27d504 + raw_idx;
         }
-
-        /* Compute the global datum index: if bit 15 set on loop_var, use
-         * raw index; otherwise add hs_globals_start_index. */
-        {
-          int raw_idx = loop_idx & 0x7fff;
-          int datum_idx;
-          if (loop_var & (int16_t)0x8000)
-            datum_idx = raw_idx;
-          else
-            datum_idx = (int)*(int16_t *)0x27d504 + raw_idx;
-
-          data_new_datum(*(data_t **)0x5aa6c0, (int)(datum_idx | 0xaced0000));
-
-          /* Re-derive datum_idx (same logic, needed after the call). */
-          if (loop_var & (int16_t)0x8000)
-            datum_idx = raw_idx;
-          else
-            datum_idx = (int)*(int16_t *)0x27d504 + raw_idx;
-
-          datum_ptr = (char *)datum_get(*(data_t **)0x5aa6c0, datum_idx);
+        data_new_datum(*(data_t **)0x5aa6c0, (int)(datum_idx | 0xaced0000));
+        datum_idx = raw_idx;
+        if ((loop_var & 0x8000) == 0) {
+          datum_idx = (int)*(int16_t *)0x27d504 + raw_idx;
         }
-
-        /* Reset internal thread state and call hs_default_value.
-         * hs_default_value (0xcc1d0) takes EAX=thread_index,
-         * stack args: (hs_type, dest_ptr). */
-        *(int *)(internal_thread + 0x4) = -1;
-        {
-          char *sf = *(char **)(internal_thread + 0x10);
-          *(int16_t *)(sf + 0xc) = 0;
-        }
+        datum_ptr = (char *)datum_get(*(data_t **)0x5aa6c0, datum_idx);
+        *(int *)(internal_thread + 4) = -1;
+        *(int16_t *)(*(int *)(internal_thread + 0x10) + 0xc) = 0;
         FUN_000cc1d0(thread_index, *(int *)(script_element + 0x28),
                      (void *)(datum_ptr + 4));
-
-        /* If the script was successfully parsed (bit 0 of byte +3),
-         * execute it. */
-        if (*(uint8_t *)(internal_thread + 0x3) & 1) {
+        if (*(uint8_t *)(internal_thread + 3) & 1) {
           FUN_000cd840(thread_index);
-
-          /* If this is a global initialization script (type == 0x17),
-           * store the result back into the globals. */
           if (*(int16_t *)(script_element + 0x20) == 0x17) {
             FUN_000cb230((int)loop_var);
-
-            /* Re-derive datum pointer and evaluate the expression.
-             * The original code re-calls datum_get here because EDI
-             * (internal_thread) was clobbered by cb230. */
-            {
-              int raw_idx = loop_idx & 0x7fff;
-              int datum_idx;
-              if (loop_var & (int16_t)0x8000)
-                datum_idx = raw_idx;
-              else
-                datum_idx = (int)*(int16_t *)0x27d504 + raw_idx;
-
-              datum_ptr = (char *)datum_get(*(data_t **)0x5aa6c0, datum_idx);
-              FUN_000ce350(*(int *)(datum_ptr + 0x4));
+            if ((loop_var & 0x8000) == 0) {
+              raw_idx = (int)*(int16_t *)0x27d504 + raw_idx;
             }
-            /* Restore internal_thread (original saved in [EBP-0x10],
-             * we re-derive via datum_get). */
-            internal_thread =
-              (char *)datum_get(*(data_t **)0x5aa6c4, thread_index);
+            script_element = (char *)datum_get(*(data_t **)0x5aa6c0, raw_idx);
+            FUN_000ce350(*(int *)(script_element + 4));
           }
-
-          /* Assert: global init scripts must not sleep.
-           * hs_get_thread_script_name (0xcaa80) takes ESI=thread_index
-           * as register arg and returns the script name string. */
-          if (*(int *)(internal_thread + 0x8) != 0) {
-            char *script_name = hs_get_thread_script_name(thread_index);
+          if (*(int *)(internal_thread + 8) != 0) {
             display_assert(
-              csprintf(error_string_buffer,
-                       "a problem occurred while executing the script "
-                       "%s: %s (%s)",
-                       script_name,
+              csprintf((char *)0x5ab100,
+                       "a problem occurred while executing the script %s: %s (%s)",
+                       hs_get_thread_script_name(thread_index),
                        "a global initialization attempted to sleep.",
                        "internal_thread->sleep_until==0"),
               "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0xe7, true);
             system_exit(-1);
           }
         }
-
         FUN_000cb7b0((int)loop_var);
-
         loop_var++;
-        loop_idx = (int)(int16_t)loop_var;
-        scenario = (char *)global_scenario_get();
-      } while (loop_idx < *(int *)(scenario + 0x4a8));
+        raw_idx = (uint32_t)(short)loop_var;
+      } while ((int)raw_idx < *(int *)((char *)scenario + 0x4a8));
     }
 
-    /* Verify internal thread type and delete it. */
     internal_thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_index);
-    if (*(uint8_t *)(internal_thread + 0x2) == 0) {
+    if (*(uint8_t *)(internal_thread + 2) == 0) {
       display_assert(
         "hs_thread_get(thread_index)->type!=_hs_thread_type_script",
         "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x290, true);
@@ -3719,34 +3623,25 @@ void hs_runtime_initialize_for_new_map(void)
     }
     datum_delete(*(data_t **)0x5aa6c4, thread_index);
 
-    /* Phase 4: start script threads for non-static/startup scripts.
-     * Iterates the scenario globals block (offset 0x49c). Scripts with
-     * type 3 (static) or 4 (startup) are skipped; others get a new
-     * hs thread via ca940 which takes EBX=script_index as register arg
-     * and one stack arg (type=0). */
-    {
-      short script_loop = 0;
-      int script_idx = 0;
-      char *scripts_block = scenario + 0x49c;
-      if (*(int *)scripts_block > 0) {
-        do {
-          char *script =
-            (char *)tag_block_get_element(scripts_block, script_idx, 0x5c);
-          int16_t script_type = *(int16_t *)(script + 0x20);
-          if (script_type != 3 && script_type != 4) {
-            int result = hs_thread_new(script_idx, 0);
-            if (result == -1) {
-              error(0, "ran out of script threads.");
-            }
+    script_loop = 0;
+    if (*(int *)((char *)scenario + 0x49c) > 0) {
+      thread_index = 0;
+      do {
+        internal_thread = (char *)tag_block_get_element(
+          (char *)scenario + 0x49c, thread_index, 0x5c);
+        if (*(int16_t *)(internal_thread + 0x20) != 3 &&
+            *(int16_t *)(internal_thread + 0x20) != 4) {
+          thread_index = hs_thread_new(thread_index, 0);
+          if (thread_index == -1) {
+            error(0, "ran out of script threads.");
           }
-          script_loop++;
-          script_idx = (int)(int16_t)script_loop;
-        } while (script_idx < *(int *)scripts_block);
-      }
+        }
+        script_loop++;
+        thread_index = (int)script_loop;
+      } while (thread_index < *(int *)((char *)scenario + 0x49c));
     }
   }
 
-  /* Phase 5: clear the return values buffer. */
   csmemset((void *)0x5aa6a0, 0, 0x20);
 }
 
@@ -3769,44 +3664,29 @@ int hs_runtime_execute(int thread_index)
   int thread_handle;
   char *thread_ptr;
 
-  if (*(uint8_t *)0x46b810 == 0 || thread_index == -1)
-    return -1;
-
-  thread_handle = data_new_at_index(*(data_t *volatile *)0x5aa6c4);
-
-  if (thread_handle == -1) {
+  if (*(uint8_t *)0x46b810 != 0 && thread_index != -1) {
+    thread_handle = data_new_at_index(*(data_t **)0x5aa6c4);
+    if (thread_handle != -1) {
+      thread_ptr = (char *)datum_get(*(data_t **)0x5aa6c4, thread_handle);
+      *(char **)(thread_ptr + 0x10) = thread_ptr + 0x18;
+      *(int *)(thread_ptr + 0x18) = 0;
+      *(int16_t *)(*(char **)(thread_ptr + 0x10) + 0xc) = 0;
+      *(int *)(*(char **)(thread_ptr + 0x10) + 0x4) = -1;
+      *(uint8_t *)(thread_ptr + 0x2) = 2;
+      *(int *)(thread_ptr + 0x4) = -1;
+      *(uint8_t *)(thread_ptr + 0x3) = 0;
+      *(int *)(thread_ptr + 0x8) = 0;
+      thread_ptr = (char *)datum_get(*(data_t **)0x5aa6c4, thread_handle);
+      FUN_000cc1d0(thread_handle, thread_index, (int *)(thread_ptr + 0x14));
+      if (*(uint8_t *)(thread_ptr + 0x3) & 1) {
+        FUN_000cd840(thread_handle);
+        return -1;
+      }
+      return *(int *)(thread_ptr + 0x14);
+    }
     error(2, "there are not enough threads to execute that command.");
-    return -1;
   }
-
-  thread_ptr = (char *)datum_get(*(data_t *volatile *)0x5aa6c4, thread_handle);
-
-  /* Initialize thread structure. */
-  *(int *)(thread_ptr + 0x10) = (int)(thread_ptr + 0x18);
-  *(int *)(thread_ptr + 0x18) = 0;
-  {
-    char *sf = *(char **)(thread_ptr + 0x10);
-    *(int16_t *)(sf + 0xc) = 0;
-    *(int *)(sf + 0x4) = -1;
-  }
-  *(uint8_t *)(thread_ptr + 0x2) = 2; /* runtime thread */
-  *(int *)(thread_ptr + 0x4) = -1;
-  *(uint8_t *)(thread_ptr + 0x3) = 0;
-  *(int *)(thread_ptr + 0x8) = 0;
-
-  /* Re-derive thread pointer (original does a second datum_get). */
-  thread_ptr = (char *)datum_get(*(data_t *volatile *)0x5aa6c4, thread_handle);
-
-  FUN_000cc1d0(thread_handle, thread_index, (void *)(thread_ptr + 0x14));
-
-  if (*(uint8_t *)(thread_ptr + 0x3) & 1) {
-    /* Thread needs execution — run it. */
-    FUN_000cd840(thread_handle);
-    return -1;
-  }
-
-  /* Return the result value stored at thread+0x14. */
-  return *(int *)(thread_ptr + 0x14);
+  return -1;
 }
 
 /* Initialize HaloScript runtime data structures. Calls data_delete_all

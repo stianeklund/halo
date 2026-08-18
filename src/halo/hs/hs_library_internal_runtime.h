@@ -198,10 +198,12 @@ void hs_evaluate_begin_random(int16_t function_index, int thread_datum,
  * (if <condition> <then> [else]) */
 void hs_evaluate_if(int16_t function_index, int thread_datum, char init)
 {
+  int expr;
   char *thread;
   char *cond_result;
   int *branch_ptr;
   int *value_ptr;
+  void *node;
 
   thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
   cond_result = (char *)hs_thread_stack_alloc(thread_datum, 4);
@@ -215,15 +217,12 @@ void hs_evaluate_if(int16_t function_index, int thread_datum, char init)
     system_exit(-1);
   }
 
-  if (init) {
-    char *node;
-    char *child;
+  if (init != 0) {
     *(int *)cond_result = 0;
     *branch_ptr = -1;
-    node = (char *)datum_get(*(data_t **)0x5aa6c8,
-                             *(int *)(*(char **)(thread + 0x10) + 0x4));
-    child = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
-    FUN_000cc1d0(thread_datum, *(int *)(child + 0x8), cond_result);
+    node = datum_get(*(data_t **)0x5aa6c8, *(int *)(*(int *)(thread + 0x10) + 4));
+    node = datum_get(*(data_t **)0x5aa6c8, *(int *)((char *)node + 0x10));
+    FUN_000cc1d0(thread_datum, *(int *)((char *)node + 8), cond_result);
     return;
   }
 
@@ -232,30 +231,24 @@ void hs_evaluate_if(int16_t function_index, int thread_datum, char init)
     return;
   }
 
-  {
-    int frame_expr = *(int *)(*(char **)(thread + 0x10) + 0x4);
-    char *fn_name = (char *)datum_get(
-      *(data_t **)0x5aa6c8,
-      *(int *)((char *)datum_get(*(data_t **)0x5aa6c8, frame_expr) + 0x10));
-
-    if (*cond_result) {
-      char *cond =
-        (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(fn_name + 0x8));
-      *branch_ptr = *(int *)(cond + 0x8);
-    } else {
-      char *cond =
-        (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(fn_name + 0x8));
-      char *then_node =
-        (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(cond + 0x8));
-      *branch_ptr = *(int *)(then_node + 0x8);
-      if (*branch_ptr == -1) {
-        hs_return(thread_datum, 0);
-        return;
-      }
+  node = datum_get(*(data_t **)0x5aa6c8, *(int *)(*(int *)(thread + 0x10) + 4));
+  if (*cond_result == 0) {
+    node = datum_get(*(data_t **)0x5aa6c8, *(int *)((char *)node + 0x10));
+    node = datum_get(*(data_t **)0x5aa6c8, *(int *)((char *)node + 8));
+    node = datum_get(*(data_t **)0x5aa6c8, *(int *)((char *)node + 8));
+    expr = *(int *)((char *)node + 8);
+    *branch_ptr = expr;
+    if (expr == -1) {
+      hs_return(thread_datum, 0);
+      return;
     }
-
-    FUN_000cc1d0(thread_datum, *branch_ptr, value_ptr);
+  } else {
+    node = datum_get(*(data_t **)0x5aa6c8, *(int *)((char *)node + 0x10));
+    node = datum_get(*(data_t **)0x5aa6c8, *(int *)((char *)node + 8));
+    *branch_ptr = *(int *)((char *)node + 8);
   }
+
+  FUN_000cc1d0(thread_datum, *branch_ptr, (char *)value_ptr);
 }
 
 /* 0xcca00 — HS 'set' evaluator. Assigns a value to a global variable.
@@ -876,10 +869,13 @@ void hs_evaluate_inspect(int16_t function_index, int thread_datum, char init)
 void hs_evaluate_object_cast_up(int16_t function_index, int thread_datum,
                                 char init)
 {
-  char *thread;
+  void *thread;
   int *result_ptr;
+  int *obj;
+  const char *tag_name;
+  const char *type_name;
 
-  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+  thread = datum_get(*(data_t **)0x5aa6c4, thread_datum);
   result_ptr = (int *)hs_thread_stack_alloc(thread_datum, 4);
 
   if (function_index < 0x17 || function_index > 0x17) {
@@ -890,37 +886,29 @@ void hs_evaluate_object_cast_up(int16_t function_index, int thread_datum,
     system_exit(-1);
   }
 
-  if (init) {
-    char *node = (char *)datum_get(*(data_t **)0x5aa6c8,
-                                   *(int *)(*(char **)(thread + 0x10) + 0x4));
-    char *child =
-      (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
-    FUN_000cc1d0(thread_datum, *(int *)(child + 0x8), result_ptr);
+  if (init != 0) {
+    thread = datum_get(*(data_t **)0x5aa6c8, *(int *)(*(int *)((char *)thread + 0x10) + 4));
+    thread = datum_get(*(data_t **)0x5aa6c8, *(int *)((char *)thread + 0x10));
+    FUN_000cc1d0(thread_datum, *(int *)((char *)thread + 8), result_ptr);
     return;
   }
 
-  if (*result_ptr == -1) {
-    hs_return(thread_datum, -1);
-    return;
-  }
-
-  {
-    char *obj = (char *)object_get_and_verify_type(*result_ptr, -1);
-    int type_idx = (int)(int16_t)(function_index - 0x16);
-    int type_bit = 1 << (*(uint8_t *)(obj + 0x64) & 0x1f);
-    int type_mask = (int)*(int16_t *)(0x26f320 + type_idx * 2);
-
-    const char *tag_name;
-    if (type_mask & type_bit) {
+  if (*result_ptr != -1) {
+    obj = (int *)object_get_and_verify_type(*result_ptr, -1);
+    if (((int)*(int16_t *)(0x26f320 + (int16_t)(function_index - 0x16) * 2) &
+        (1 << (*(uint8_t *)((char *)obj + 0x64) & 0x1f))) != 0) {
       hs_return(thread_datum, *result_ptr);
       return;
     }
 
-    tag_name = tag_get_name(*(int *)obj);
-    error(2, "attempt to convert object %s to type %s", tag_name,
-          *(const char **)(0x2f153c + type_idx * 4));
+    type_name = ((const char **)0x2f153c)[(int16_t)(function_index - 0x16)];
+    tag_name = tag_get_name(*obj);
+    error(2, "attempt to convert object %s to type %s", tag_name, type_name);
     hs_return(thread_datum, -1);
+    return;
   }
+
+  hs_return(thread_datum, -1);
 }
 
 /* 0xcd6c0 — HS debug_string evaluator. Collects up to 32 evaluated arguments
