@@ -77,7 +77,7 @@ in that list before screening — this is a hard filter, not a preference.
 Preferred target areas (in order): `game_engine.obj`, `lruv_cache.obj`, `hud.obj`, `items.obj`, `input_xbox.obj`.
 If `--criteria` was given, weigh candidate choice by it ahead of this default order.
 
-Avoid: `hs_runtime.c` (C99/VC71 violations unfixed), `prior_fail` candidates unless queue is otherwise empty.
+Avoid: `prior_fail` candidates unless queue is otherwise empty.
 
 ## Pre-screen (skip immediately if any apply)
 

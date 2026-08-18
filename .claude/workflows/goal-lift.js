@@ -1243,7 +1243,7 @@ manual-lift and defer entries included, they are a deliberate operator choice:
   ${[...ADDRS].map(a => '0x' + a.toString(16)).join(', ')}
 Return nothing else. Do NOT apply any lane filter; the code-side pre-screen handles it.`
     : `Filter: keep lane=="auto-lift" (also allow "cache-context");`}
-skip hs_runtime.obj (C99/VC71 violations unfixed) and xbox_crt.obj (NT-import/CRT wrappers).
+skip xbox_crt.obj (NT-import/CRT wrappers).
 Do NOT drop prior_fail entries yourself — return them with the flag set and let
 the code-side pre-screen decide, so it can keep them when the queue would
 otherwise run dry.
