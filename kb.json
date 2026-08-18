@@ -12234,7 +12234,7 @@
     },
     {
      "addr": "0xcacf0",
-     "decl": "void FUN_000cacf0(void);"
+     "decl": "void FUN_000cacf0(int thread_handle@<edi>);"
     },
     {
      "addr": "0xcada0",
@@ -12287,7 +12287,8 @@
     },
     {
      "addr": "0xcafc0",
-     "decl": "void FUN_000cafc0(void);"
+     "decl": "int FUN_000cafc0(int object_handle);",
+     "ported": true
     },
     {
      "addr": "0xcaff0",
@@ -12348,7 +12349,8 @@
     },
     {
      "addr": "0xcc0e0",
-     "decl": "void hs_evaluate_wake(void);"
+     "decl": "void hs_evaluate_wake(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xcc1d0",
@@ -12447,7 +12449,8 @@
     },
     {
      "addr": "0xcde00",
-     "decl": "void hs_runtime_update(void);"
+     "decl": "void hs_runtime_update(void);",
+     "ported": true
     },
     {
      "addr": "0xcdeb0",
@@ -12456,7 +12459,8 @@
     },
     {
      "addr": "0xcdf70",
-     "decl": "void FUN_000cdf70(void);"
+     "decl": "void FUN_000cdf70(void *param_1, void *address, long size);",
+     "ported": true
     },
     {
      "addr": "0xce050",

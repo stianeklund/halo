@@ -294,6 +294,7 @@
     "0xcaa80": "char *hs_get_thread_script_name(int thread_index@<esi>);",
     "0xcab00": "void hs_thread_push_frame(int thread_handle@<eax>);",
     "0xcaba0": "void *hs_thread_stack_alloc(int thread_handle@<eax>, int size);",
+    "0xcacf0": "void FUN_000cacf0(int thread_handle@<edi>);",
     "0xcada0": "int FUN_000cada0(int16_t script_index@<edi>);",
     "0xcaff0": "bool hs_object_types_compatible(int16_t actual_offset@<ax>, int16_t desired_offset@<si>);",
     "0xcb230": "void FUN_000cb230(int loop_var@<edi>);",
@@ -775,8 +776,8 @@
     "0xdbcb0": "void FUN_000dbcb0(short *pt@<eax>, int local_player_index@<ecx>, int param_3);",
     "0x68eb0": "int FUN_00068eb0(void *tif @<edi>);",
     "0x148370": "char FUN_00148370(float *center@<ecx>, float *origin@<eax>, float *delta@<edx>, float *out_t@<esi>, float radius);",
-    "0x43ce0": "void FUN_00043ce0(int actor_handle@<eax>);",
-    "0xca890": "const char *FUN_000ca890(int expression_index@<eax>, int thread_index@<ebx>);"
+    "0xca890": "const char *FUN_000ca890(int expression_index@<eax>, int thread_index@<ebx>);",
+    "0x43ce0": "void FUN_00043ce0(int actor_handle@<eax>);"
   },
   "0x6cde0": "void FUN_0006cde0(void *tif@<edi>);",
   "0xc4a40": "void FUN_000c4a40(int16_t function_index@<eax>, char *buffer@<esi>);",

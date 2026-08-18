@@ -1,4 +1,3 @@
-
 /* Validate the syntax tree after loading a scenario. Iterates all syntax
  * nodes and checks for consistency: valid types, valid source offsets,
  * valid script indices, and correct function references. If any node fails
@@ -2655,6 +2654,43 @@ int FUN_000cada0(int16_t script_index)
   return -1;
 }
 
+/* 0xcafc0 — Register a single object handle with the FUN_000ce200 resource and
+ * return that resource handle, or -1 when the incoming handle is NONE.
+ *
+ * Binary evidence (0xcafc0..0xcafe6, cdecl, EBP frame, no `sub esp`, EDI/ESI
+ * saved):
+ *
+ *   MOV EDI,dword ptr [EBP+0x8]  ; one stack argument
+ *   OR  EAX,0xffffffff           ; EAX = -1 is the default return value
+ *   CMP EDI,-0x1 / JZ 0xcafe4    ; NONE handle -> fall straight to the epilog
+ *   CALL 0xce200 / MOV ESI,EAX
+ *   PUSH EDI / PUSH ESI / CALL 0xce2b0 / ADD ESP,0x8
+ *   MOV EAX,ESI                  ; return the FUN_000ce200 result
+ *
+ * The kb.json decl said `void FUN_000cafc0(void)` and Ghidra reported the
+ * argument as `in_stack_00000004` with no return; the disassembly above proves
+ * both the single dword parameter and the EAX return, so the decl is corrected
+ * to `int FUN_000cafc0(int)`. The push order at 0xcafd7/0xcafd8 puts the
+ * FUN_000ce200 result first and our own argument second, matching the
+ * FUN_000ce2b0(result, handle) shape already lifted at 0xc95f0 and 0x547c0.
+ *
+ * Only data references reach this address (0x2f50e4..0x2f50f4, five slots of an
+ * HS function table), so no ported caller constrains the signature. The roles
+ * of FUN_000ce200/FUN_000ce2b0 stay unproven and keep their FUN_ names; the
+ * parameter is named for the NONE test plus the two ported call sites that feed
+ * object handles into the same FUN_000ce2b0 slot. */
+int FUN_000cafc0(int object_handle)
+{
+  int result;
+
+  if (object_handle != -1) {
+    result = FUN_000ce200();
+    FUN_000ce2b0(result, object_handle);
+    return result;
+  }
+  return -1;
+}
+
 /* 0xcaff0 */
 static bool hs_object_types_compatible(int16_t actual_offset,
                                        int16_t desired_offset)
@@ -3286,6 +3322,69 @@ int FUN_000cc0a0(int16_t global_ref)
   return *(int *)(datum_ptr + 4);
 }
 
+/* 0xcc0e0 — HS 'wake' evaluator. Wakes the thread that is currently running
+ * the named script.
+ *
+ * Walks the current stack frame's expression down to the script-name argument
+ * node: thread->stack_frame (+0x10) -> frame+4 = expression index -> node+0x10
+ * = first child -> child+8 = next sibling. That node holds the script index at
+ * +0x10 (int16). FUN_000cada0 maps script index -> running thread handle; when
+ * a thread is found, FUN_000cacf0 wakes it (clears its sleep_until / restores
+ * the backed-up value). Always returns 0 to the calling thread.
+ *
+ * `init` is unreferenced: wake has no deferred-evaluation phase.
+ *
+ * Asserts (hs_library_internal_runtime.h lines 0x22c-0x22e):
+ *   function_index == 0x15 (_hs_function_wake)
+ *   script_name_node->flags & 1 (_hs_syntax_node_primitive_bit)
+ *   script_name_node->type == 10 (_hs_type_script)
+ *
+ * Globals: 0x5aa6c4 = hs_thread_data, 0x5aa6c8 = hs_syntax_data.
+ */
+void hs_evaluate_wake(int16_t function_index, int thread_datum, char init)
+{
+  char *thread;
+  char *node;
+  char *child;
+  char *script_name_node;
+  int target_thread;
+
+  thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_datum);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8,
+                           *(int *)(*(int *)(thread + 0x10) + 4));
+  child = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+  script_name_node =
+    (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(child + 8));
+
+  if (function_index != 0x15) {
+    display_assert("function_index==_hs_function_wake",
+                   "c:\\halo\\source\\hs\\hs_library_internal_runtime.h", 0x22c,
+                   1);
+    system_exit(-1);
+  }
+
+  if ((*(uint8_t *)(script_name_node + 6) & 1) == 0) {
+    display_assert(
+      "TEST_FLAG(script_name_node->flags, _hs_syntax_node_primitive_bit)",
+      "c:\\halo\\source\\hs\\hs_library_internal_runtime.h", 0x22d, 1);
+    system_exit(-1);
+  }
+
+  if (*(int16_t *)(script_name_node + 4) != 10) {
+    display_assert("script_name_node->type==_hs_type_script",
+                   "c:\\halo\\source\\hs\\hs_library_internal_runtime.h", 0x22e,
+                   1);
+    system_exit(-1);
+  }
+
+  target_thread = FUN_000cada0(*(int16_t *)(script_name_node + 0x10));
+  if (target_thread != -1) {
+    FUN_000cacf0(target_thread);
+  }
+
+  hs_return(thread_datum, 0);
+}
+
 /* 0xcc1d0 — Evaluate an HS expression and store the result at dest_ptr.
  * If the expression is a constant, evaluates immediately via hs_can_cast.
  * If the expression is a global reference (reparse bit), resolves the global
@@ -3746,6 +3845,68 @@ void hs_runtime_initialize_for_new_map(void)
   csmemset((void *)0x5aa6a0, 0, 0x20);
 }
 
+/* 0x000cde00 — hs_runtime_update
+ *
+ * Per-tick HaloScript thread service. Confirmed from 0xcde00-0xcdea4:
+ *   - early-out when hs_runtime_globals.executing (0x46b810) is clear
+ *     (MOV AL,[0x46b810]; TEST AL,AL; JZ 0xcdea4 — before the prologue push).
+ *   - game_time_get() is latched into EDI once (0xcde10) and used as the
+ *     wake-time deadline for the whole sweep.
+ *   - the thread pool (0x5aa6c4) is walked with data_next_index starting at
+ *     -1; the pool pointer is reloaded from the global before every call
+ *     (0xcde17, 0xcde39, 0xcde65), hence the volatile-qualified reads.
+ *   - loop condition is re-tested in this order every iteration: executing
+ *     flag first (0xcde28/0xcde74), then index != -1 (0xcde34).
+ *   - thread+0x2 == 2 (runtime/console thread type, same tag written by
+ *     hs_runtime_execute) latches BL; thread+0x8 is the wake time — when it
+ *     is non-negative and has not passed current time, the thread is run via
+ *     FUN_000cd840 (@EAX = thread index, MOV EAX,ESI at 0xcde5e).
+ *   - after the sweep FUN_000ce3c0() runs unconditionally (0xcde80).
+ *   - if no type-2 thread was seen, game_time_get() is sampled again and the
+ *     MSVC signed-modulo idiom AND 0x8000000f / JNS / DEC / OR 0xfffffff0 /
+ *     INC (0xcde91-0xcde9c) tests time % 16 == 0 before tail-calling
+ *     hs_scripts_dispose (JMP 0xc3ca0 at 0xcde9f).
+ *
+ * 0xcd840 = FUN_000cd840 (@EAX = thread_handle)
+ *
+ * Globals:
+ *   0x46b810 = hs_runtime_globals.executing (uint8_t)
+ *   0x5aa6c4 = hs_thread_data (data_t*)
+ */
+void hs_runtime_update(void)
+{
+  int current_time;
+  int thread_index;
+  char *thread;
+  int wake_time;
+  bool saw_runtime_thread;
+
+  if (*(uint8_t *)0x46b810 == 0)
+    return;
+
+  current_time = game_time_get();
+  saw_runtime_thread = false;
+
+  for (thread_index = data_next_index(*(data_t *volatile *)0x5aa6c4, -1);
+       *(uint8_t *)0x46b810 != 0 && thread_index != -1;
+       thread_index =
+         data_next_index(*(data_t *volatile *)0x5aa6c4, thread_index)) {
+    thread = (char *)datum_get(*(data_t *volatile *)0x5aa6c4, thread_index);
+
+    if (*(uint8_t *)(thread + 0x2) == 2)
+      saw_runtime_thread = true;
+
+    wake_time = *(int *)(thread + 0x8);
+    if (wake_time >= 0 && wake_time <= current_time)
+      FUN_000cd840(thread_index);
+  }
+
+  FUN_000ce3c0();
+
+  if (!saw_runtime_thread && game_time_get() % 16 == 0)
+    hs_scripts_dispose();
+}
+
 /* Execute a HaloScript expression at runtime. Allocates a new thread,
  * initializes it as a runtime thread (type 2), sets up the default value
  * for the expression type, and either executes it immediately or returns
@@ -3788,6 +3949,64 @@ int hs_runtime_execute(int thread_index)
     error(2, "there are not enough threads to execute that command.");
   }
   return -1;
+}
+
+/* 0x000cdf70 — byte-swap the scenario HS syntax-data block in place.
+ *
+ * TU per the assert __FILE__ string is
+ * c:\halo\SOURCE\hs\hs_scenario_definitions.c (kb.json maps the address to
+ * hs_runtime.obj).
+ *
+ * Confirmed from 0xcdf70-0xce047:
+ *   param_1 ([EBP+0x8]) is never read by this function — shape only.
+ *   address ([EBP+0xc] -> EDI), size ([EBP+0x10] -> ESI).
+ *   TEST ESI,ESI / JZ 0xce045 — a zero size does nothing at all.
+ *   CMP ESI,0x38 / JNC — UNSIGNED compare (the original compares against
+ *   sizeof(struct data_array), a size_t, which promotes the signed size).
+ *   The later data_size tests are signed (TEST/JL) plus unsigned DIV by 0x14,
+ *   which is why data_size is a signed long but both %/ are unsigned.
+ *
+ * The 12-byte constant at 0x280e38 is c,s,i,r,t,p,n,' ',0,e,d,o (verified in
+ * the pristine XBE .rdata) — the byte-swapped image of "script node", i.e.
+ * data that has ALREADY been swapped. Meaning of that early-out is unproven,
+ * so it is transcribed literally.
+ *
+ * 0x2f664c = data_array_header byte-swap definition
+ * 0x2f6688 = syntax_node byte-swap definition
+ * 0x38     = sizeof(struct data_array)
+ * 0x14     = sizeof(struct hs_syntax_node)
+ */
+void FUN_000cdf70(void *param_1, void *address, long size)
+{
+  long data_size;
+
+  (void)param_1;
+
+  if (size != 0) {
+    if ((unsigned long)size < 0x38u) {
+      display_assert("size>=sizeof(struct data_array)",
+                     "c:\\halo\\SOURCE\\hs\\hs_scenario_definitions.c", 0x6d,
+                     1);
+      system_exit(-1);
+    }
+    if (csmemcmp(address, "csirtpn \0edo", 0xc) == 0) {
+      FUN_00118be0((void *)0x2f664c, address, 1);
+      FUN_00118be0((void *)0x2f6688, address, 0x4000);
+      return;
+    }
+    data_size = size - 0x38;
+    if ((data_size < 0) || ((unsigned long)data_size % 0x14u != 0)) {
+      display_assert(
+        "data_size>=0 && (data_size%sizeof(struct hs_syntax_node))==0",
+        "c:\\halo\\SOURCE\\hs\\hs_scenario_definitions.c", 0x79, 1);
+      system_exit(-1);
+    }
+    if ((data_size >= 0) && ((unsigned long)data_size % 0x14u == 0)) {
+      FUN_00118be0((void *)0x2f664c, address, 1);
+      FUN_00118be0((void *)0x2f6688, (void *)((char *)address + 0x38),
+                   (int)((unsigned long)data_size / 0x14u));
+    }
+  }
 }
 
 /* Initialize HaloScript runtime data structures. Calls data_delete_all
