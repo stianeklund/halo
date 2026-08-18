@@ -1011,6 +1011,103 @@ int FUN_00068eb0(void *tif_ /* @<edi> */)
   }
 }
 
+/* The 1-D run-decode table pair, indexed by `state * 0x100 + data` exactly the
+ * way FUN_00069180 indexes its own pair at 0x2ccf70/0x2ce370. The first table
+ * yields a code byte (0 == "need another input byte"), the second the next
+ * state byte. Both are binary globals; their contents are not local state. */
+#define TIFF_FAX_RUN_CODES ((const unsigned char *)0x2cf770)
+#define TIFF_FAX_RUN_STATES ((const unsigned char *)0x2ddd70)
+
+/* Six bytes per entry, biased by 0x6a: the reference forms `(code - 0x6a) * 3`
+ * with `sub ecx,0x6a / lea ecx,[ecx+ecx*2]` and then indexes 16-bit
+ * (`mov cx, word ptr [ecx*2 + 0x2ca254]`), so only the SHORT at offset 0 of
+ * each entry is read here. Whether the remaining four bytes are further
+ * members of a wider entry is unproven from this function alone, so the table
+ * is typed as a short array with stride 3 rather than as a struct. */
+#define TIFF_FAX_RUN_LENGTHS ((const short *)0x2ca254)
+
+/**
+ * Accumulate one complete fax run length from the buffered input stream.
+ *
+ * ABI: the TIFF handle arrives in EDI (the prologue is `push ebx / push esi`
+ * with no frame and no stack argument; EDI is read at 0x68f62 before any
+ * write, and both call sites -- 0x69051 in FUN_00069020 and 0x6983d/0x69844 in
+ * FUN_000696d0 -- set it). The result is the EAX the three tails return.
+ *
+ * Structure recovered from the disassembly rather than the decompiler, which
+ * reported `void(void)` and dropped the EAX accumulator entirely:
+ *
+ *   - `bit` lives in DX as a SHORT throughout: `mov dx,[esi+2] / add dx,8` at
+ *     entry and `add edx,8` at 0x68ff3 are two distinct sources-level `+= 8`
+ *     statements, one before the loop and one on the back edge, which is why
+ *     the back edge lands at 0x68f72 (the `sp->bit == 0` test) and not on the
+ *     entry add.
+ *   - `code` and the next state are both `movzx cx/dx, byte ptr` into 16-bit
+ *     registers and are then sign-extended (`movsx ecx,cx` at 0x68fd3), so the
+ *     locals are shorts fed from unsigned char tables, matching FUN_00069180.
+ *   - The refill block at 0x68f99 is reached BOTH from the `sp->bit == 0` test
+ *     and from `code == 0`, and returns to 0x68f79 -- past the `+= 8` and past
+ *     the state test. That shared entry is the `need_byte` label below; it is
+ *     the same shape Ghidra emitted as a `goto` into the inner loop.
+ *   - `total += runlen` (0x68feb) precedes the terminating-code test
+ *     (`cmp cx,0x40 / jl` at 0x68fed), so a makeup code contributes to the
+ *     total before the loop continues.
+ *
+ * Return values are the three literal tails: -4 (0x68ffb) when the raw buffer
+ * is exhausted, -1 (0x69003, emitted as `or eax,-1`) for code 1, -3 (0x69009)
+ * for code 0xd2, and otherwise the accumulated run length.
+ *
+ * @param tif_ TIFF handle in EDI. Never null-checked.
+ * @return accumulated run length, or a negative status as described above.
+ */
+int FUN_00068f60(void *tif_ /* @<edi> */)
+{
+  tiff_t *tif;
+  tiff_codec_bits_t *sp;
+  int index;
+  int total;
+  short bit;
+  short code;
+  short runlen;
+
+  tif = (tiff_t *)tif_;
+  sp = tif->tif_data;
+  bit = sp->bit + 8;
+  total = 0;
+
+  for (;;) {
+    if (sp->bit == 0)
+      goto need_byte;
+
+    for (;;) {
+      index = (int)bit * 0x100 + (int)sp->data;
+      code = TIFF_FAX_RUN_CODES[index];
+      bit = TIFF_FAX_RUN_STATES[index];
+      if (code != 0)
+        break;
+
+    need_byte:
+      if (tif->tif_rawcc <= 0)
+        return -4;
+      tif->tif_rawcc--;
+      sp->data = sp->bitmap[*tif->tif_rawcp];
+      tif->tif_rawcp++;
+    }
+
+    if (code == 1)
+      return -1;
+    if (code == 0xd2)
+      return -3;
+
+    sp->bit = bit;
+    runlen = TIFF_FAX_RUN_LENGTHS[((int)code - 0x6a) * 3];
+    total += runlen;
+    if (runlen < 0x40)
+      return total;
+    bit = bit + 8;
+  }
+}
+
 /*
  * Decode one buffered fax byte and update the codec state machine.
  *
@@ -1347,6 +1444,113 @@ void FUN_000695c0(void *tif_)
      * writes a dword immediate to the field rather than going through `sp`. */
     tif->tif_data = 0;
   }
+}
+
+/**
+ * Measure the run of like-valued bits starting at bit `bs`, advancing the
+ * caller's byte cursor over the whole bytes consumed.
+ *
+ * This is upstream libtiff tif_fax3.c's `find0span`/`find1span`, which are
+ * character-for-character identical apart from the table they index
+ * (`zeroruns` vs `oneruns`). Bungie's build has ONE body for both: the table
+ * base arrives in EBX (`movzx eax,byte ptr [eax+ebx*1]` at 0x69626, and again
+ * at 0x69653 / 0x6966d -- EBX is read three times and never written or saved
+ * in this frame, so it is an incoming register argument, not a local). The two
+ * tables themselves are already identified in this TU: FUN_00069420 promotes
+ * 0x2ec3c8 (upstream `zeroruns`) and 0x2ec4c8 (upstream `oneruns`) into the
+ * codec state at +0x1c/+0x20 and swaps the pair for `fill_white`. WHICH of the
+ * two a given call passes is therefore a caller-side property, so the
+ * parameter is named for its shape (`runs`) and not for a polarity.
+ *
+ * Upstream returns the span and does its own `bp += bs>>3`. This body does
+ * neither: the byte cursor is passed BY REFERENCE (`mov edi,[ebp+8]` then
+ * `mov esi,[edi]` at 0x69605/0x69608, `mov [edi],esi` at 0x69679) and is
+ * already positioned by the caller, so the biased add is not present here.
+ *
+ * ABI recovered from the frame at 0x69600: `push ebp / mov ebp,esp / push esi /
+ * push edi` with no `sub esp` (zero stack locals), one cdecl stack argument at
+ * [ebp+8], and ECX/EDX/EBX live on entry -- `sub edx,ecx` at 0x6960a is
+ * upstream's `bits = be - bs`, which pins ECX=bs and EDX=be. Ghidra reported
+ * `void(void)` and surfaced all four as `in_ECX`/`in_EDX`/`unaff_EBX`/
+ * `in_stack_00000004` because kb.json carried a stale `(void)` prototype, the
+ * same defect already recorded for FUN_00068940 and FUN_0006a070 in this TU.
+ * The return type is `int`: EAX is the span accumulator on every path
+ * (`xor eax,eax` at 0x69645 for the no-partial-byte case) and is live at both
+ * RETs.
+ *
+ * There are TWO epilogues. 0x6967f is the `n+span < 8` early exit, which has to
+ * reload the cursor pointer into EDX (`mov edx,[ebp+8]`) because EDI was
+ * clobbered by the `mov edi,8` at 0x6961a; it writes the cursor back
+ * UNADVANCED. 0x69679 is the shared exit for the other three paths and writes
+ * back through the EDI copy. Both are written here as plain `return`
+ * statements preceded by the store, which is what produces that shape.
+ *
+ * @param bs   first bit index of the run, relative to `*pbp`; only its low
+ *             three bits are used, as the partial-byte offset.
+ * @param be   one past the last bit index available to scan.
+ * @param runs 256-entry run-length table, indexed by a byte of image data.
+ * @param pbp  in/out byte cursor; on return it points at the byte where the
+ *             scan stopped.
+ * @return the number of like-valued bits found, never more than `be - bs`.
+ */
+int FUN_00069600(int bs /* @<ecx> */, int be /* @<edx> */,
+                 const unsigned char *runs /* @<ebx> */, unsigned char **pbp)
+{
+  unsigned char *bp = *pbp;
+  int bits = be - bs;
+  int n;
+  int span;
+
+  /* 0x6960c-0x69613: the `and ecx,7` sits AFTER the `test edx,edx / jle`, so
+   * the bit-offset is only computed when there are bits left -- upstream's
+   * short-circuited `bits > 0 && (n = (bs & 7))`. */
+  if (bits > 0 && (n = (bs & 7)) != 0) {
+    /* 0x69615-0x69626: `movzx eax,byte ptr [esi]` / `shl eax,cl` /
+     * `and eax,0xff` / `movzx eax,byte ptr [eax+ebx]`. The mask is applied to
+     * the SHIFTED value, so bits shifted out of the byte are discarded before
+     * the table lookup. */
+    span = runs[(*bp << n) & 0xff];
+    /* Table value too generous for the remainder of this byte. */
+    if (span > 8 - n)
+      span = 8 - n;
+    /* Constrain the span to the caller's bit range. */
+    if (span > bits)
+      span = bits;
+    /* 0x69638: run does not reach the edge of the byte, so the cursor stays
+     * where it is -- this is the 0x6967f epilogue. */
+    if (n + span < 8) {
+      *pbp = bp;
+      return span;
+    }
+    bits -= span;
+    bp++;
+  } else {
+    span = 0;
+  }
+
+  /* 0x69647-0x69664: rotated while loop (guard at the top, `cmp edx,8 / jge`
+   * at the bottom) scanning whole bytes. */
+  while (bits >= 8) {
+    n = runs[*bp];
+    span += n;
+    bits -= n;
+    /* 0x6965b: a short run ends the scan; `inc esi` is below this test, so the
+     * cursor is NOT advanced past the byte that terminated the run. */
+    if (n < 8) {
+      *pbp = bp;
+      return span;
+    }
+    bp++;
+  }
+
+  /* 0x69666-0x69677: partial byte on the right-hand side. */
+  if (bits > 0) {
+    n = runs[*bp];
+    span += (n > bits ? bits : n);
+  }
+
+  *pbp = bp;
+  return span;
 }
 
 /**
@@ -1771,6 +1975,71 @@ int FUN_0006a260(void *tif_)
 #define orientation (*(unsigned short *)0x3340f0)
 #define filename (*(char **)0x3340dc)
 
+/**
+ * Decide whether a TIFF colormap is really 8 bit.
+ *
+ * Upstream libtiff tif_getimage.c:checkcmap, transcribed from the upstream
+ * source rather than reshaped from the decompiler -- which lost every
+ * parameter and the return value and reported the body as `void(void)`.
+ * The identification is not a guess: the only call in the body pushes the
+ * literal "Assuming 8-bit colormap" (0x2601f0, read out of the pristine XBE)
+ * into TIFFWarning, which is checkcmap's one and only string upstream, and
+ * the two exits return exactly upstream's 16 and 8.
+ *
+ * ABI recovered from the frame at 0x6a2a0: `push ebp / mov ebp,esp` with no
+ * `sub esp` (no locals -- the scanned halfword lives in DI), EDI and ESI
+ * saved, ONE stack argument at [ebp+8] (`mov esi,[ebp+8]` at 0x6a2a6), and
+ * an EAX return (`mov eax,8` at 0x6a2f0, `mov eax,0x10` at 0x6a2f9). The
+ * remaining three arguments arrive in registers: the count in EAX (tested
+ * `test eax,eax / jle` at 0x6a2a3 before any store to it) and two of the
+ * three colormap pointers in ECX and EDX.
+ *
+ * Which pointer is which is fixed by the short-circuit order, not assumed.
+ * Upstream evaluates `*r++ >= 256 || *g++ >= 256 || *b++ >= 256`, and `||`
+ * order is not reorderable, so the first halfword loaded is red, the second
+ * green, the third blue. The binary loads ECX first (0x6a2b0), then the
+ * stack argument in ESI (0x6a2be), then EDX (0x6a2cb) -- so red is the ECX
+ * argument, green is the stack argument, and blue is the EDX argument. The
+ * stack slot landing in the MIDDLE of the pointer triple is the whole reason
+ * to spell the order out here.
+ *
+ * The scan is halfword-wide and that width is PROVEN: every load is
+ * `mov di, word ptr [reg]` and every compare is `cmp di,0x100` (0x6a2b7,
+ * 0x6a2c4, 0x6a2d1), each advancing its pointer by 2 (`add reg,0x2`).
+ * Widening the element type to int would both read the wrong bytes and
+ * double the stride.
+ *
+ * `>= 256` is UNSIGNED: all three branches are `jnc` (0x6a2bc, 0x6a2c9,
+ * 0x6a2d6), not `jge`. That matches the uint16 element type -- a signed
+ * compare here would be a different test for values above 0x7fff.
+ *
+ * The post-decrement in the loop condition is real and load-bearing: the
+ * count is tested before the body (`test eax,eax / jle 0x6a2dc` at 0x6a2a3)
+ * and decremented once per iteration inside it (`dec eax` at 0x6a2b3, ahead
+ * of all three compares), with the same test repeated at the bottom
+ * (0x6a2d8). That is `while (n-- > 0)`, not `while (--n >= 0)` and not a
+ * for-loop over a fresh counter: the early `return 16` exits leave the
+ * already-decremented count behind, which only the post-decrement form
+ * reproduces.
+ *
+ * The warning is reached ONLY by falling out of the loop -- the `jnc` arms
+ * jump past it to 0x6a2f8 -- so an out-of-range entry returns 16 silently.
+ * This build takes the module string from the hoisted `filename` static
+ * rather than calling TIFFFileName, same as FUN_0006a310 below. */
+int FUN_0006a2a0(int n /* @<eax> */, unsigned short *r /* @<ecx> */,
+                 unsigned short *g, unsigned short *b /* @<edx> */)
+{
+  while (n-- > 0)
+    if (*r++ >= 256 || *g++ >= 256 || *b++ >= 256)
+      return (16);
+  /* 0x6a2dc-0x6a2ec: `mov eax,[0x3340dc]; push 0x2601f0; push eax;
+   * call 0x6f9d0; add esp,8` -- cdecl, first push is the last argument, so
+   * the format string is the second parameter and the cached file name is
+   * the first. */
+  FUN_0006f9d0(filename, "Assuming 8-bit colormap");
+  return (8);
+}
+
 /* The bilevel/greyscale expansion table, same static tif_open.c frees at
  * tif_getimage.c line 127. tif_open.c only ever assigns and frees it, so it is
  * declared `void *` there; FUN_0006a910 below is what proves the pointee type,
@@ -1888,6 +2157,136 @@ unsigned long FUN_0006a310(void *tif, unsigned long h)
     break;
   }
   return y;
+}
+
+/* The bits-per-sample tag. Re-read from memory on every use inside the loop
+ * below (`movzx edi, word ptr [0x3340fc]` at 0x6a405, INSIDE the 256-iteration
+ * body, not hoisted ahead of it), which is why this stays a macro here instead
+ * of the `int bitspersample = img->bitspersample;` local upstream uses.
+ * Identical redefinition of the one further down the file -- benign in C89, and
+ * kept local so this function does not depend on a later section. */
+#define bitspersample (*(unsigned short *)0x3340fc)
+
+/* The table this function allocates and fills. Same storage and same spelling
+ * as the definition further down the file; see the note there for the
+ * double-indirection evidence. NOTE the name is upstream's BWmap: this TU's
+ * `Map` / `BWmap` macro names are swapped relative to upstream libtiff (see
+ * FUN_0006a9a0's comment), and renaming them is its own codegen-neutral pass.
+ */
+#define Map (*(unsigned long ***)0x3340c8)
+
+/* No alpha byte is ORed in: 0x6a580-0x6a58c is `mov ebx,edi; shl ebx,8;
+ * or ebx,edi; shl ebx,8; or ebx,edi; mov [ecx],ebx` with no
+ * `or ...,0xff000000` anywhere in 0x6a3b0-0x6a5a6. Identical redefinition of
+ * the one further down the file. */
+#define PACK(r, g, b) \
+  ((unsigned long)(r) | ((unsigned long)(g) << 8) | ((unsigned long)(b) << 16))
+
+/**
+ * Allocate and fill the 256-entry black&white expansion table used by the
+ * 1/2/4/8-bit greyscale tile writers.
+ *
+ * Upstream libtiff tif_getimage.c `makebwmap`. The TU is proven, not inferred:
+ * the allocation at 0x6a3d0 carries the literal
+ * `c:\halo\SOURCE\bitmaps\libtiff\tif_getimage.c` (0x260264) with line 0x21a.
+ * kb.json groups it into tif_flush.obj like the rest of the tif_getimage
+ * family in this file.
+ *
+ * ABI -- this function takes ONE REGISTER ARGUMENT and no stack arguments.
+ * ESI is read at 0x6a422 (`movzx edi, byte ptr [edi+esi*1]`) without ever being
+ * written or pushed inside 0x6a3b0-0x6a5a6, and the single call site sets it
+ * up immediately before the CALL with no pushes at all:
+ *   0x6c1c7  mov esi, dword ptr [ebp-0x10]
+ *   0x6c1ca  call 0x6a3b0
+ * (FUN_0006c080, the only xref.) The `*1` scale makes it a byte pointer, i.e.
+ * upstream's `TIFFRGBValue *Map` -- the greyscale ramp, spelled `map` here to
+ * match FUN_0006af80's parameter and to stay clear of this TU's `Map` macro,
+ * which is a DIFFERENT object (0x3340c8, upstream's BWmap, the table this
+ * function writes).
+ *
+ * The int return is real: 0x6a3f5 `xor eax,eax; ret` on the allocation failure
+ * path, 0x6a59f `mov eax,1` on the success path. The lone caller discards it.
+ *
+ * Two deltas from upstream worth recording, both read off the binary:
+ *
+ * 1. There is NO `if (nsamples == 0) nsamples = 1;` guard. 0x6a3bd-0x6a3cb is
+ *    `idiv ecx; ... inc eax` with nothing between the divide and the increment,
+ *    so this build predates that upstream fix. Adding it would insert a test
+ *    and change behaviour for bitspersample > 8 (which the switch below then
+ *    skips anyway, leaving the row pointers aliased).
+ *
+ * 2. `case 16:` is absent. The dispatch is `movzx edi,word[0x3340fc];
+ *    dec edi; cmp edi,7; ja <skip>; jmp [edi*4+0x6a5a8]` (0x6a405-0x6a416):
+ *    an eight-entry table covering bitspersample 1..8 only. Upstream's
+ *    `case 8: case 16:` would have widened the range check to 15.
+ *
+ * The divide is SIGNED (`mov eax,8; cdq; idiv ecx`, 0x6a3b7-0x6a3bd), which is
+ * what `8 / bitspersample` gives once the unsigned short promotes to int.
+ * `i` is signed too -- the shifts are SAR (0x6a41f, 0x6a436, ...) and the loop
+ * guard is `cmp edx,0x100; jl` (0x6a592), not a jb.
+ */
+int FUN_0006a3b0(unsigned char *map /* @<esi> */)
+{
+  int nsamples;
+  int i;
+  unsigned long *p;
+  unsigned char c;
+
+  /* 0x6a3b7-0x6a3bd. */
+  nsamples = 8 / bitspersample;
+
+  /* 0x6a3cb-0x6a3cf: `inc eax; shl eax,0xa` -- one 1024-byte block of 256
+   * row pointers plus one 1024-byte block of 256 pixels per sample.
+   * 0x6a3c9 pushes 0 for debug_malloc's zero-fill flag. */
+  Map = (unsigned long **)debug_malloc(
+    (nsamples + 1) * (256 * sizeof(unsigned long)), false,
+    "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_getimage.c", 0x21a);
+  if (Map == 0) {
+    /* 0x6a3e1-0x6a3ed: `mov edx,[0x3340dc]; push 0x260244; push edx`. */
+    FUN_00068a30(filename, "No space for B&W mapping table");
+    return 0;
+  }
+
+  /* 0x6a3f9: `lea ecx,[eax+0x400]` -- past the 256 row pointers. */
+  p = (unsigned long *)(Map + 256);
+  for (i = 0; i < 256; i++) {
+    /* 0x6a402: `mov [eax+edx*4],ecx`, ahead of the switch. */
+    Map[i] = p;
+#define GREY(x) \
+  c = map[x];   \
+  *p++ = PACK(c, c, c);
+    switch (bitspersample) {
+    case 1:
+      /* 0x6a41d-0x6a4f2, then the shared tail at 0x6a580. */
+      GREY(i >> 7);
+      GREY((i >> 6) & 1);
+      GREY((i >> 5) & 1);
+      GREY((i >> 4) & 1);
+      GREY((i >> 3) & 1);
+      GREY((i >> 2) & 1);
+      GREY((i >> 1) & 1);
+      GREY(i & 1);
+      break;
+    case 2:
+      /* 0x6a4f7-0x6a555. */
+      GREY(i >> 6);
+      GREY((i >> 4) & 3);
+      GREY((i >> 2) & 3);
+      GREY(i & 3);
+      break;
+    case 4:
+      /* 0x6a557-0x6a57a. */
+      GREY(i >> 4);
+      GREY(i & 0xf);
+      break;
+    case 8:
+      /* 0x6a57c: straight into the shared tail. */
+      GREY(i);
+      break;
+    }
+#undef GREY
+  }
+  return 1;
 }
 
 /**
@@ -3286,7 +3685,14 @@ typedef void (*tiff_put_contig_proc)(unsigned long *cp, unsigned char *pp,
                                      unsigned long h, long fromskew,
                                      long toskew);
 
-void *FUN_0006b780(void)
+/* The single argument is PROVEN by the only call site, 0x6b8e6-0x6b8ef:
+ * `mov eax,[ebp+0x10]; push eax; call 0x6b780; add esp,4`. It is never read
+ * inside this function -- every selector comes from the file statics above --
+ * which is exactly upstream's `pickTileContigCase(TIFFRGBAImage* img)` after
+ * Bungie hoisted img's fields out to globals. Keeping the slot declared is
+ * what makes the caller emit its push; dropping it would silently delete two
+ * instructions from the caller's frame. */
+void *FUN_0006b780(void *img)
 {
   /* 0x6b78a: `xor esi,esi` ahead of the dispatch -- ESI is the result slot and
    * the only callee-saved register the function touches. */
@@ -3351,4 +3757,148 @@ void *FUN_0006b780(void)
     FUN_00068a30(filename, "Can not handle format");
 
   return (void *)put;
+}
+
+/* The abort-on-error flag, the same file static tif_open.c recovered from the
+ * dword store at 0x6c4f0. Read here as a full dword (`mov eax,[0x3340e0]` at
+ * 0x6b9da), so the `int` width is proven on both sides. Upstream keeps this in
+ * `img->stoponerr`. Identical redefinition of tif_open.c's macro -- the two
+ * TUs are separate translation units, and this file must not depend on it. */
+#define stoponerr (*(int *)0x3340e0)
+
+#define TIFFTAG_TILEWIDTH 322 /* 0x142, pushed at 0x6b946 */
+#define TIFFTAG_TILELENGTH 323 /* 0x143, pushed at 0x6b955 */
+
+/**
+ * Decode a tiled, packed-sample image into the 32-bit RGBA raster.
+ *
+ * Upstream libtiff tif_getimage.c:gtTileContig, transcribed from the upstream
+ * source rather than reshaped from the decompiler -- which lost all five
+ * parameters and the return value and reported the body as `void(void)`.
+ * The `__FILE__` strings this function hands debug_malloc/debug_free (VA
+ * 0x260264, pushed at 0x6b906 and 0x6ba54) name tif_getimage.c, which is what
+ * pins the upstream TU; kb.json maps the address into tif_flush.obj, which is
+ * why the body lives in this file next to its dispatcher and its writers.
+ *
+ * ABI, read off the frame at 0x6b8e0 (`push ebp / mov ebp,esp / sub esp,0x1c`,
+ * cdecl -- every callee argument block is cleaned by the caller):
+ *   EBP+0x08  tif     pushed straight through to the tile-size, TIFFGetField
+ *                     and tile-read calls with no dereference, so in this
+ *                     build the first parameter IS the TIFF handle, not
+ *                     upstream's img (same divergence setorientation shows)
+ *   EBP+0x0c  raster  scaled *4 by the `lea ecx,[eax+edx*4]` at 0x6ba16
+ *   EBP+0x10  img     never dereferenced here; forwarded to FUN_0006b780
+ *                     (0x6b8e6) and to every put call (0x6ba0f)
+ *   EBP+0x14  h       the outer loop bound
+ *   EDI       w       INCOMING REGISTER ARGUMENT. EDI is read at 0x6b97d,
+ *                     0x6b9b2, 0x6b9e9, 0x6b9f0, 0x6ba09 and 0x6ba23 and is
+ *                     never written, pushed or popped anywhere in the
+ *                     function. The sole caller sets it immediately before
+ *                     the call -- `mov edi,[ebp+0xc]` at 0x6c39a, one
+ *                     instruction ahead of `call 0x6b8e0` at 0x6c39d -- which
+ *                     is what proves the register carries the width and not
+ *                     stale caller state. Hence the @<edi> annotation in
+ *                     kb.json. The sibling dispatch arm at 0x6c3a4 passes the
+ *                     same value in EBX to 0x6bcb0, so this is a per-callee
+ *                     custom convention, not a global one.
+ * The return is EAX: `mov eax,1` at 0x6ba63 on the normal exit, `xor eax,eax`
+ * at 0x6b93a on the allocation failure, and the no-put exit at 0x6b8f9 falls
+ * out with EAX still holding FUN_0006b780's NULL -- so all three are the
+ * int 0/1 status upstream returns, and the no-put path must NOT be given an
+ * error report of its own (FUN_0006b780 already emitted one).
+ *
+ * Loop shape, all from the disassembly rather than from upstream:
+ *   - both loops are guarded then bottom-tested (`test ebx,ebx / jbe` at
+ *     0x6b990 for rows, `test edi,edi / jbe` at 0x6b9b2 for columns) and both
+ *     bottom compares are `jc` (0x6ba25, 0x6ba46), so every comparison here
+ *     is UNSIGNED. A signed spelling would change both guards.
+ *   - the read-error test is `test eax,eax / jge` at 0x6b9d6 -- SIGNED, which
+ *     is what makes the tile reader's return an `int` and not a size.
+ *   - the `jnz 0x6ba27` at 0x6b9e1 lands on the column loop's exit, so the
+ *     error breaks out of the inner loop only and the row still advances.
+ */
+int FUN_0006b8e0(void *tif, unsigned long *raster, void *img,
+                 unsigned long w /* @<edi> */, unsigned long h)
+{
+  tiff_put_contig_proc put;
+  unsigned char *buf;
+  unsigned long tw;
+  unsigned long th;
+  unsigned long col;
+  unsigned long row;
+  unsigned long y;
+  unsigned long nrow;
+  unsigned long npix;
+  long fromskew;
+  long toskew;
+
+  /* 0x6b8f2 `test eax,eax` on the returned routine, not on a 0/1 flag -- see
+   * FUN_0006b780's own note. */
+  put = (tiff_put_contig_proc)FUN_0006b780(img);
+  if (put == 0)
+    return (0);
+
+  /* 0x6b901-0x6b91c: the four debug_malloc slots are pushed first (line, file,
+   * zero-fill = 0), then the size call runs and its EAX is pushed last, so the
+   * tile-size call is nested inside the allocation call in the source. */
+  buf = (unsigned char *)debug_malloc(
+    FUN_0006f910(tif), 0, "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_getimage.c",
+    0x13c);
+  if (buf == 0) {
+    /* 0x6b926-0x6b937: `mov ecx,[0x3340dc]; push 0x2602e8; push ecx` --
+     * cdecl, so the cached file name is the first argument and the message is
+     * the second, and the `add esp,8` proves no variadic values follow. */
+    FUN_00068a30(filename, "No space for tile buffer");
+    return (0);
+  }
+
+  /* 0x6b942-0x6b96a: the three calls share one `add esp,0x20`, so all three
+   * argument blocks are pushed as a single run. */
+  TIFFGetField((int)tif, TIFFTAG_TILEWIDTH, &tw);
+  TIFFGetField((int)tif, TIFFTAG_TILELENGTH, &th);
+  y = FUN_0006a310(tif, h);
+
+  /* 0x6b96d-0x6b98b: `cmp word ptr [0x3340f0],1`, then `lea eax,[ecx+edi]`
+   * followed by `neg eax` on the equal arm and `mov eax,edi; sub eax,ecx` on
+   * the other. Both arms are the upstream expression below. */
+  toskew = (orientation == ORIENTATION_TOPLEFT ? -(long)tw + -(long)w :
+                                                 -(long)tw + (long)w);
+
+  for (row = 0; row < h; row += th) {
+    /* 0x6b9a3-0x6b9ae: `lea edx,[eax+ecx]; cmp edx,ebx; jbe` -- the clamp is
+     * on row + th, so the last band is short rather than overrunning. */
+    nrow = (row + th > h ? h - row : th);
+    for (col = 0; col < w; col += tw) {
+      /* 0x6b9c0-0x6b9d3: six pushes, `add esp,0x18`. First push is the last
+       * argument, giving (tif, buf, col, row, 0, 0) -- the two trailing zeros
+       * are upstream's z plane and sample index. */
+      if (FUN_0006eea0(tif, buf, col, row, 0, 0) < 0 && stoponerr)
+        break;
+      /* 0x6b9e3-0x6b9eb: `lea edx,[esi+ecx]; cmp edx,edi; jbe` on col + tw. */
+      if (col + tw > w) {
+        /*
+         * Tile is clipped horizontally. Calculate visible portion and
+         * skewing factors.  0x6b9f0-0x6b9f6: `mov eax,edi; sub eax,esi`
+         * then `sub ecx,eax` then `add edx,ecx`, i.e. npix, then
+         * fromskew from tw, then toskew + fromskew -- in that order.
+         */
+        npix = w - col;
+        fromskew = tw - npix;
+        (*put)(raster + y * w + col, buf, (unsigned long)img, npix, nrow,
+               fromskew, toskew + fromskew);
+      } else {
+        /* 0x6b9fe-0x6ba02: the same four slots with a literal 0 for
+         * fromskew and the unmodified toskew. */
+        (*put)(raster + y * w + col, buf, (unsigned long)img, tw, nrow, 0,
+               toskew);
+      }
+    }
+    /* 0x6ba2d-0x6ba39: `cmp word ptr [0x3340f0],1; jnz; neg ebx` then
+     * `add [ebp-8],ebx` -- the negation is applied to nrow, and y is the
+     * accumulator, so a top-left image walks the raster upward. */
+    y += (orientation == ORIENTATION_TOPLEFT ? -(long)nrow : (long)nrow);
+  }
+
+  debug_free(buf, "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_getimage.c", 0x15a);
+  return (1);
 }

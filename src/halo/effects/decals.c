@@ -2603,6 +2603,21 @@ void FUN_0017cc20(int param_1, int param_2, int param_3, int param_4,
   FUN_00160f50(param_1, param_2, param_3, param_4, param_5, param_6);
 }
 
+/* Tail-call thunk to rasterizer_xbox_environment gel-light setup
+ * (FUN_001621c0).
+ * 0x17cc60: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x1621c0 — ESP is unchanged
+ * at the JMP, so the caller's single pushed dword stays in place and becomes
+ * FUN_001621c0's first cdecl argument ([ESP+4] / in_stack_00000004). That
+ * callee asserts on it with
+ * "light_index>=0 && light_index<rasterizer_lights.light_count"
+ * (rasterizer_xbox_environment.c:0x2d9) and indexes rasterizer_lights with
+ * light_index*0x38, so the forwarded dword is a light index, not a handle.
+ * Sole XBE caller: FUN_00196060 @0x196117. */
+void FUN_0017cc60(int light_index)
+{
+  FUN_001621c0(light_index);
+}
+
 /* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00162560).
  */
 void FUN_0017cc70(int param_1, int param_2, int param_3, int param_4,
@@ -2645,8 +2660,8 @@ void FUN_0017ccd0(void *decal, int param_2, void *param_3, void *param_4)
 }
 
 /* Tail-call thunk to rasterizer decal rendering (FUN_00173090). */
-void FUN_0017ccf0(void *shader, int param_2, int vertices_per_primitive,
-                  int a2, int triangle_count, void *vertex_buffer)
+void FUN_0017ccf0(void *shader, int param_2, int vertices_per_primitive, int a2,
+                  int triangle_count, void *vertex_buffer)
 {
   FUN_00173090(shader, param_2, vertices_per_primitive, a2, triangle_count,
                vertex_buffer);

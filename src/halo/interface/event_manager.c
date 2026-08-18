@@ -1,3 +1,18 @@
+/* Per-local-player motion sensor state accessor (0xdb0b0).
+ * Takes local_player_index in @<si>; the state block allocated by
+ * motion_sensor_initialize holds 4 records of 0x568 bytes (0x15a8 total).
+ * Source: c:\halo\SOURCE\interface\motion_sensor.c line 0x11f. */
+void *FUN_000db0b0(short local_player_index)
+{
+  if (local_player_index < 0 || local_player_index >= 4) {
+    display_assert("local_player_index>=0 && "
+                   "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
+                   "c:\\halo\\SOURCE\\interface\\motion_sensor.c", 0x11f, 1);
+    system_exit(-1);
+  }
+  return (void *)((char *)*(void **)0x46bd2c + local_player_index * 0x568);
+}
+
 /* Allocate the motion sensor (radar) game state block (0xdb0f0). */
 void motion_sensor_initialize(void)
 {
@@ -50,6 +65,50 @@ void FUN_000db150(void)
 /* (0xdb1b0) */
 void FUN_000db1b0(void)
 {
+}
+
+/* Install a motion sensor reference point and overlay scale, then rebuild the
+ * radar overlay via the thunk at 0x17d050 (0xdb1e0).
+ * The assert text names the @<esi> parameter "reference"; the meaning of the
+ * remaining three stack parameters is unproven (param_2 is never read here,
+ * it exists only because the word at [EBP+0x10] is).
+ * Source: c:\halo\SOURCE\interface\motion_sensor.c line 0x349. */
+void FUN_000db1e0(int *reference, int param_2, bool param_3, short param_4)
+{
+  if (reference == NULL) {
+    display_assert("reference", "c:\\halo\\SOURCE\\interface\\motion_sensor.c",
+                   0x349, 1);
+    system_exit(-1);
+  }
+  *(short *)0x5aa676 = param_4;
+  *(float *)0x2f66f4 = 0.75f;
+  if (!param_3)
+    *(float *)0x2f66f4 = 1.0f;
+  *(int *)0x5aa680 = reference[0];
+  *(int *)0x5aa684 = reference[1];
+  FUN_0017d050();
+}
+
+/* Update and draw one local player's motion sensor (radar) for a screen point
+ * (0xdbfb0).
+ * param_1 is compared as an int16 against NONE (-1) but forwarded as the full
+ * dword: MOV ESI,[EBP+8] / CMP SI,-1 / PUSH ESI / MOV ECX,ESI.
+ * param_3 is the "pt" the assert names -- FUN_000dbcb0 reads it through
+ * @<eax> as two int16s, so it is a point2d; the meaning of param_2 is
+ * unproven, it is only forwarded on the stack and FUN_000dbcb0 never reads
+ * that slot.
+ * Source: c:\halo\SOURCE\interface\motion_sensor.c line 0x1dc. */
+void FUN_000dbfb0(int param_1, int param_2, int param_3)
+{
+  if (param_3 == 0) {
+    display_assert("pt", "c:\\halo\\SOURCE\\interface\\motion_sensor.c", 0x1dc,
+                   1);
+    system_exit(-1);
+  }
+  if ((short)param_1 != -1) {
+    update_motion_sensor(param_1);
+    FUN_000dbcb0((short *)param_3, param_1, param_2);
+  }
 }
 
 /**

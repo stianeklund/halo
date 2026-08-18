@@ -221,6 +221,15 @@ void FUN_000ffe90(char param_1)
   }
 }
 
+/* Guard wrapper: if param_1 is nonzero, call FUN_00054df0 (ai_erase_all). */
+void FUN_000ffeb0(char param_1)
+{
+  if (param_1 != '\0') {
+    FUN_00054df0();
+    return;
+  }
+}
+
 /* Set the game connection state (network connection type).
  * Stores the low 16 bits of param into the global word_46DA0C.
  * 0 = local/singleplayer, 2 = client, other values used for host/dedicated. */
