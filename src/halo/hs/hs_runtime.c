@@ -232,6 +232,74 @@ bool hs_validate_syntax(char **error_info, char **error_text)
   return ok;
 }
 
+/* Type-check the argument list of a `sleep_until' call.
+ *
+ * sleep_until takes a boolean condition and, optionally, a short tick
+ * period and a long timeout. The syntax node at expression_index is the
+ * function-call node; +0x10 is the index of its function-name node, whose
+ * +0x8 (next) is the first argument.
+ *
+ * Syntax node offsets (raw, matching the rest of this TU):
+ *   +0x08 = next node index (NONE == -1)
+ *   +0x0c = source offset
+ *   +0x10 = long value / first child node index
+ *
+ * Globals:
+ *   0x5aa6c8 = hs_syntax_data (data_t*)
+ *   0x46b6fc = hs_compile_globals.error_message
+ *   0x46b700 = hs_compile_globals.error_offset
+ */
+bool hs_sleep_until_parse(int16_t function_index, int expression_index)
+{
+  char *node;
+  int condition_index;
+  int period_index;
+  int timeout_index;
+  bool success;
+
+  success = false;
+
+  if (function_index != 0x14) { /* _hs_function_sleep_until */
+    display_assert("function_index==_hs_function_sleep_until",
+                   "c:\\halo\\source\\hs\\hs_library_internal_compile.h", 0x235,
+                   true);
+    system_exit(-1);
+  }
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, expression_index);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+  condition_index = *(int *)(node + 0x8);
+
+  if (condition_index != -1) {
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, condition_index);
+    period_index = *(int *)(node + 0x8);
+
+    if (hs_type_check(condition_index, 5)) { /* _hs_type_boolean */
+      if (period_index == -1) {
+        success = true;
+      } else {
+        node = (char *)datum_get(*(data_t **)0x5aa6c8, period_index);
+        timeout_index = *(int *)(node + 0x8);
+
+        if (hs_type_check(period_index, 7)) { /* _hs_type_short */
+          if (timeout_index == -1) {
+            success = true;
+          } else {
+            success = hs_type_check(timeout_index, 8); /* _hs_type_long */
+          }
+        }
+      }
+    }
+  } else {
+    *(const char **)0x46b6fc =
+      "the sleep_until call requires a condition and, optionally, a period.";
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, expression_index);
+    *(int *)0x46b700 = *(int *)(node + 0xc);
+  }
+
+  return success;
+}
+
 /* Compile a HaloScript expression from source text. Allocates syntax nodes,
  * copies source into the compiled source buffer, parses one expression,
  * and wraps it in a begin/void node pair for execution. Returns the root

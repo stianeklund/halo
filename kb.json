@@ -11941,7 +11941,8 @@
     },
     {
      "addr": "0xc8c50",
-     "decl": "void FUN_000c8c50(void);"
+     "decl": "bool hs_sleep_until_parse(int16_t function_index, int expression_index);",
+     "ported": true
     },
     {
      "addr": "0xc8d30",
