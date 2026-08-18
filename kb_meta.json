@@ -3959,6 +3959,10 @@
         "The VC71 match is capped at 85.7 percent because the @<eax> register argument is thunked at our call site, adding one push eax instruction the reference does not emit; the candidate has 11 instructions against the reference's 10 with an LCS of 9, and a 100-attempt permuter search found no candidate above baseline."
       ]
     },
+    "0x95660": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x960c0": {
       "kind": "function",
       "status": "ported"
@@ -7841,6 +7845,10 @@
       "status": "ported"
     },
     "0xc94f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9b10": {
       "kind": "function",
       "status": "ported"
     },
