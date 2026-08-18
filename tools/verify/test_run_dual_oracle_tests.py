@@ -57,5 +57,23 @@ class TestDualOracleDeploymentArguments(unittest.TestCase):
                 artifact_root / "argument-contract", True, False, "192.0.2.10")
 
 
+    def test_capture_output_uses_selected_host(self):
+        args = dual_oracle.build_parser().parse_args([
+            "--target", "scalars_interpolate",
+            "--xbox-host", "192.0.2.10",
+        ])
+        with tempfile.TemporaryDirectory() as temp_dir:
+            proc = type("Proc", (), {"returncode": 1, "stdout": ""})()
+            with patch.object(dual_oracle.subprocess, "run", return_value=proc) as run, \
+                 patch.object(dual_oracle.time, "time", side_effect=[0, 1, 100]):
+                with self.assertRaisesRegex(RuntimeError, "timeout waiting"):
+                    dual_oracle.capture_output(args, Path(temp_dir))
+
+        self.assertEqual(
+            run.call_args.args[0],
+            [sys.executable, "tools/xbox/xbdm_debug_txt.py", "--host", "192.0.2.10"],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

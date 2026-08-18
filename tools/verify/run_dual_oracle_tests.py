@@ -59,6 +59,9 @@ def build_dual_oracle(target: str, overlay: Path, artifact_dir: Path,
 
 def capture_output(args: argparse.Namespace, artifact_dir: Path) -> dict:
     fetch_cmd = [sys.executable, "tools/xbox/xbdm_debug_txt.py"]
+    host = target_host(args)
+    if host:
+        fetch_cmd.extend(["--host", host])
     deadline = time.time() + args.timeout
     last_output = ""
 
