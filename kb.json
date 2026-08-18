@@ -11952,7 +11952,8 @@
     },
     {
      "addr": "0xc8d30",
-     "decl": "void FUN_000c8d30(void);"
+     "decl": "bool FUN_000c8d30(int function_index, int script_node);",
+     "ported": true
     },
     {
      "addr": "0xc8e00",

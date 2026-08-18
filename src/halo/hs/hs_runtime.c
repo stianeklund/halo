@@ -300,6 +300,73 @@ bool hs_sleep_until_parse(int16_t function_index, int expression_index)
   return success;
 }
 
+/* 0xc8d30 — Compile-time checker for the HaloScript "wake" call.
+ *
+ * Binary evidence (0xc8d30..0xc8df8):
+ *   - CMP SI,0x15 guards an assert built from the literals at 0x27d1bc
+ *     ("function_index==_hs_function_wake") and 0x27cdc0
+ *     ("c:\halo\source\hs\hs_library_internal_compile.h", line 0x25d), so the
+ *     only legal function index is 0x15.
+ *   - LEA EAX,[EBP+8]; PUSH EAX at 0xc8d64 passes the address of the *first
+ *     stack parameter* as the argument_nodes array of FUN_000c55d0, with
+ *     EDI = [EBP+0xc] (the expression node) and EBX = 1 (one expected
+ *     argument).  FUN_000c55d0 writes the argument node handle over that
+ *     slot, which is why 0xc8d8a reloads [EBP+8] as the argument handle
+ *     rather than as the function index.  The full 32-bit datum handle
+ *     (salt<<16 | index) is what is stored and reloaded.
+ *   - The argument must pass hs_type_check(handle, 10); the node's int16 at
+ *     +0x10 indexes the scenario scripts tag_block (scenario+0x49c, element
+ *     size 0x5c), and the script's int16 at +0x20 is its script type.  Types
+ *     3 and 4 are rejected with the literal at 0x27d194.
+ *   - AL is loaded from the [EBP-1] flag byte (initialised to 0) on every
+ *     exit except the accept path at 0xc8dd5, which returns 1.
+ *
+ * Globals: 0x5aa6c8 = hs_syntax_data (data_t *), 0x46b6fc =
+ * hs_compile_globals.error_message, 0x46b700 = hs_compile_globals.error_offset.
+ *
+ * The name stays FUN_000c8d30: the assert string proves the function index
+ * that reaches this callback, not the callback's own symbol name. */
+bool FUN_000c8d30(int function_index, int script_node)
+{
+  const char *function_name;
+  char *node;
+  char *script;
+  bool success;
+
+  success = false;
+
+  if ((int16_t)function_index != 0x15) { /* _hs_function_wake */
+    display_assert("function_index==_hs_function_wake",
+                   "c:\\halo\\source\\hs\\hs_library_internal_compile.h", 0x25d,
+                   true);
+    system_exit(-1);
+  }
+
+  function_name = *(
+    const char **)((char *)hs_function_table_get((int16_t)function_index) + 4);
+
+  /* &function_index is the one-element argument_nodes array: the callee
+   * overwrites the incoming first parameter slot with the argument handle. */
+  if (FUN_000c55d0(function_name, &function_index, script_node, 1)) {
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, function_index);
+
+    if (hs_type_check(function_index, 10)) { /* _hs_type_script */
+      script = (char *)tag_block_get_element(
+        (char *)global_scenario_get() + 0x49c, *(int16_t *)(node + 0x10), 0x5c);
+
+      if (*(int16_t *)(script + 0x20) != 3 &&
+          *(int16_t *)(script + 0x20) != 4) {
+        return true;
+      }
+
+      *(const char **)0x46b6fc = "this static script cannot be awakened.";
+      *(int *)0x46b700 = *(int *)(node + 0xc);
+    }
+  }
+
+  return success;
+}
+
 /* 0xc8f40 — Type-check the arguments of a debug-string function call.
  *
  * The syntax node at expression_index is the function-call node; +0x10 is
