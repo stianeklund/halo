@@ -28868,14 +28868,18 @@
       "source": "src/halo/ai/actor_perception.c"
     },
     "actor_get_firing_position_group": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
       "addr": "0x24a60",
       "end": "0x24b73",
       "kind": "auto",
       "n_r": 97,
-      "opnd_percent": 61.6,
+      "opnd_percent": 96.9,
+      "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "f007013026c5c3c6",
-      "score": 88.9,
+      "score": 100.0,
       "source": "src/halo/ai/actor_firing_position.c"
     },
     "actor_get_perception_knowledge": {

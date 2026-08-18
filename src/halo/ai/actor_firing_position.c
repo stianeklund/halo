@@ -855,10 +855,11 @@ int actor_get_firing_position_group(int actor_handle, short param_2,
   char *squad;
   char searching;
   short group_index;
+  int result;
 
   actor = (actor_t *)datum_get(actor_data, actor_handle);
-  if (actor->field_034 == 0xffffffff)
-    return 0;
+  result = 0;
+  if (actor->field_034 != 0xffffffff) {
 
   encounter = (encounter_definition *)tag_block_get_element(
     (char *)global_scenario_get() + 0x42c, actor->field_034 & 0xffff, 0xb0);
@@ -868,10 +869,14 @@ int actor_get_firing_position_group(int actor_handle, short param_2,
   /* The override is compared 16 bits wide in the original (CMP with a word
    * operand); do not widen it to a full int compare. */
   searching = actor->field_098;
-  if ((short)param_3 == 1)
+  switch ((short)param_3) {
+  case 1:
     searching = 1;
-  else if ((short)param_3 == 2)
+    break;
+  case 2:
     searching = 0;
+    break;
+  }
 
   if (param_2 == 1) {
     group_index = 5;
@@ -896,7 +901,9 @@ int actor_get_firing_position_group(int actor_handle, short param_2,
     system_exit(-1);
   }
 
-  return *(int *)(squad + 0x54 + group_index * 4);
+    result = *(int *)(squad + 0x54 + group_index * 4);
+  }
+  return result;
 }
 
 /* actor_clear_discarded_firing_positions (0x24b80) — reset the actor's memory
