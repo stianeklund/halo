@@ -701,6 +701,148 @@ int collision_surface_test_line2d(int bsp, int surface_index, int param3,
   return 0;
 }
 
+/* 0x147ed0
+ *
+ * Leaf handler for the bsp3d sphere walk (reached from the bsp2d descent at
+ * 0x1486e0): decide whether one collision surface, its bounding edges, or its
+ * corner vertices are touched by the query sphere, and append whatever was hit
+ * to the caller's four parallel result lists.
+ */
+void FUN_00147ed0(void *state, int surface_index)
+{
+  unsigned char *surface;
+  unsigned char material;
+  int edge_index;
+  int *edge;
+  unsigned char side;
+  unsigned char side_b; /* sete to a byte slot in loops 2 and 3 */
+  int vertex_index;
+  float *vertex;
+  float *point;
+  float *v0;
+  float *v1;
+  int *results;
+  short i;
+  unsigned char hit;
+  float radius2;
+  float dist2;
+  float delta[3];
+  float pa[2];
+  float pb[2];
+
+  surface = (unsigned char *)tag_block_get_element(
+    (void *)(*(int *)state + 0x3c), surface_index, 0xc);
+
+  /* material is loaded lazily inside the || chain in the original; keeping the
+   * comma form preserves that evaluation order. */
+  if ((surface[8] & 8) == 0 ||
+      (material = surface[9], material >= *(short *)((char *)state + 4)) ||
+      ((*(unsigned int **)((char *)state + 8))[material >> 5] &
+       (1u << (material & 0x1f))) != 0) {
+    radius2 =
+      *(float *)((char *)state + 0x10) * *(float *)((char *)state + 0x10);
+    hit = 0;
+
+    /* Loop 1: corner vertices inside the sphere. */
+    edge_index = *(int *)(surface + 4);
+    do {
+      edge = (int *)tag_block_get_element((void *)(*(int *)state + 0x48),
+                                          edge_index, 0x18);
+      side = (edge[5] == surface_index);
+      vertex_index = edge[side];
+      vertex = (float *)tag_block_get_element((void *)(*(int *)state + 0x54),
+                                              vertex_index, 0x10);
+      point = *(float **)((char *)state + 0xc);
+      dist2 = distance_squared3d(vertex, point);
+      if (dist2 <= radius2) {
+        results = *(int **)((char *)state + 0x14);
+        for (i = 0; i < results[0x202]; i++) {
+          if (results[0x203 + i] == vertex_index) {
+            goto vertex_done;
+          }
+        }
+        if (results[0x202] < 0x100) {
+          results[0x203 + results[0x202]] = vertex_index;
+          results[0x202] = results[0x202] + 1;
+        }
+      vertex_done:
+        hit = 1;
+      }
+      edge_index = edge[side + 2];
+    } while (edge_index != *(int *)(surface + 4));
+
+    /* Loop 2: bounding edges whose segment intersects the sphere. */
+    edge_index = *(int *)(surface + 4);
+    do {
+      edge = (int *)tag_block_get_element((void *)(*(int *)state + 0x48),
+                                          edge_index, 0x18);
+      side_b = (unsigned char)(edge[5] == surface_index);
+      v0 = (float *)tag_block_get_element((void *)(*(int *)state + 0x54),
+                                          edge[side_b], 0x10);
+      v1 = (float *)tag_block_get_element((void *)(*(int *)state + 0x54),
+                                          edge[!side_b], 0x10);
+      delta[0] = v1[0] - v0[0];
+      delta[1] = v1[1] - v0[1];
+      delta[2] = v1[2] - v0[2];
+      if (fast_vector_intersects_sphere(v0, delta,
+                                        *(float **)((char *)state + 0xc),
+                                        *(float *)((char *)state + 0x10))) {
+        results = *(int **)((char *)state + 0x14);
+        for (i = 0; i < results[0x101]; i++) {
+          if (results[0x102 + i] == edge_index) {
+            goto edge_done;
+          }
+        }
+        if (results[0x101] < 0x100) {
+          results[0x102 + results[0x101]] = edge_index;
+          results[0x101] = results[0x101] + 1;
+        }
+      edge_done:
+        hit = 1;
+      }
+      edge_index = edge[side_b + 2];
+    } while (edge_index != *(int *)(surface + 4));
+
+    /* Loop 3: nothing on the boundary was hit. */
+    if (hit == 0) {
+      edge_index = *(int *)(surface + 4);
+      do {
+        edge = (int *)tag_block_get_element((void *)(*(int *)state + 0x48),
+                                            edge_index, 0x18);
+        side_b = (unsigned char)(edge[5] == surface_index);
+        v0 = (float *)tag_block_get_element((void *)(*(int *)state + 0x54),
+                                            edge[side_b], 0x10);
+        v1 = (float *)tag_block_get_element((void *)(*(int *)state + 0x54),
+                                            edge[!side_b], 0x10);
+        FUN_00061df0(v0, *(short *)((char *)state + 0x21c),
+                     *(unsigned char *)((char *)state + 0x21e), pa);
+        FUN_00061df0(v1, *(short *)((char *)state + 0x21c),
+                     *(unsigned char *)((char *)state + 0x21e), pb);
+        if ((pa[0] - *(float *)((char *)state + 0x220)) *
+                (pb[1] - *(float *)((char *)state + 0x224)) -
+              (pa[1] - *(float *)((char *)state + 0x224)) *
+                (pb[0] - *(float *)((char *)state + 0x220)) <
+            0.0f) {
+          return;
+        }
+        edge_index = edge[side_b + 2];
+      } while (edge_index != *(int *)(surface + 4));
+    }
+
+    /* Accept the surface itself. */
+    results = *(int **)((char *)state + 0x14);
+    for (i = 0; i < results[0]; i++) {
+      if (results[1 + i] == surface_index) {
+        return;
+      }
+    }
+    if (results[0] < 0x100) {
+      results[1 + results[0]] = surface_index;
+      results[0] = results[0] + 1;
+    }
+  }
+}
+
 /* 0x148240
  *
  * Walk the edge ring of one collision surface and test an already-projected 2D
@@ -776,6 +918,77 @@ char FUN_00148240(short param_1, unsigned int *bit_vector, int elem_index,
   } while (edge_index != surface[1]);
 
   return 1;
+}
+
+/* 0x148370
+ *
+ * Ray/segment versus sphere intersection. `t` is normalized to the length of
+ * the delta vector, so the hit is only accepted while it lands inside the
+ * segment (t <= 1).
+ *
+ * Every pointer arrives in a register -- EAX sphere centre, ECX ray origin,
+ * EDX ray delta, ESI the output `t` -- and only the radius travels the stack
+ * ([EBP+8]; the epilogue is a plain RET, so the caller cleans it). The result
+ * is written to AL alone (0x1483b6 / 0x14842c MOV AL,1 against 0x148436
+ * XOR AL,AL), hence char rather than int.
+ *
+ * The frame carries exactly one dword local (PUSH ECX at 0x148373) and that
+ * slot holds `q`; the dot product is stored back over the radius slot at
+ * 0x1483ce (FST [EBP+8]) and re-read from there twice at 0x1483fc. Assigning
+ * the dot product to `radius` below is therefore load-bearing for the frame
+ * layout, not a shorthand.
+ *
+ * The x87 addend association is load-order-faithful and deliberately
+ * inconsistent between the three sums: the centre offset accumulates z,x,y
+ * (0x148384-0x148392), the dot product x,z,y (0x1483be-0x1483cc) and the
+ * delta length squared x,y,z (0x1483e4-0x1483fa). Ghidra prints all three
+ * reversed.
+ *
+ * All four guards are FCOM/FNSTSW/TEST AH parity forms; senses taken from the
+ * jump targets rather than the decompiler:
+ *   0x14839f  q <= 0    -- origin already inside the sphere: *out_t = 0, true.
+ *   0x1483d1  b <= 0    -- the sphere lies behind the ray: false.
+ *   0x148409  disc < 0  -- no real root: false.
+ *   0x14841d  t > 1     -- root past the end of the segment: false.
+ * The two false exits at 0x148432/0x148434 are FSTP ST0 stack-cleanup
+ * fallthroughs into the shared XOR AL,AL tail.
+ */
+char FUN_00148370(float *center, float *origin, float *delta, float *out_t,
+                  float radius)
+{
+  float dx;
+  float dy;
+  float dz;
+  float q;
+  float a;
+  float disc;
+  float t;
+
+  dx = center[0] - origin[0];
+  dy = center[1] - origin[1];
+  dz = center[2] - origin[2];
+
+  q = (dz * dz + dx * dx) + (dy * dy - radius * radius);
+  if (q <= 0.0f) {
+    *out_t = 0.0f;
+    return 1;
+  }
+
+  /* The dot product lives in the radius slot -- see the frame note above. */
+  radius = dx * delta[0] + dz * delta[2] + dy * delta[1];
+  if (radius > 0.0f) {
+    a = (delta[0] * delta[0] + delta[2] * delta[2]) + delta[1] * delta[1];
+    disc = radius * radius - a * q;
+    if (disc >= 0.0f) {
+      t = (radius - sqrtf(disc)) / a;
+      if (t <= 1.0f) {
+        *out_t = t;
+        return 1;
+      }
+    }
+  }
+
+  return 0;
 }
 
 /* 0x1486e0
@@ -1056,6 +1269,153 @@ collision_bsp_test_pill_new(int bsp3d, short flags, int param3, float *origin,
   *out_distance = 3.4028235e+38f;
 
   return FUN_00148440(&data, 0, 0.0f, 1.0f);
+}
+
+/* 0x148b90 - bsp3d_test_sphere_recursive
+ *
+ * Recursive bsp3d descent for the sphere query built by
+ * collision_bsp_test_sphere (0x1493b0). Descends the node tree comparing the
+ * sphere centre against each splitting plane with the sphere radius as the
+ * two-sided tolerance; when the sphere straddles a plane BOTH halves are
+ * visited and the splitting plane is pushed on `data`'s plane stack so the leaf
+ * pass can tell which surfaces the sphere actually reaches.
+ */
+void bsp3d_test_sphere_recursive(void *data, int node_index)
+{
+  int *ref; /* EBP-0x04 */
+  void *leaf; /* EBP-0x08 */
+  float point[3]; /* EBP-0x14 */
+  int *node;
+  float *plane;
+  float *center;
+  int *results;
+  float d;
+  float t;
+  int leaf_index;
+  short k;
+  short projection;
+  /* CL at 0x148be7: the sphere reaches across the plane's front face. */
+  unsigned char within;
+  /* AL at 0x148c03: which single child to descend when it does not straddle. */
+  unsigned char child;
+  int positive;
+  int sign;
+
+  while (node_index >= 0) {
+    node = (int *)tag_block_get_element((void *)*(int *)data, node_index, 0xc);
+    plane = (float *)tag_block_get_element((void *)(*(int *)data + 0xc),
+                                           node[0], 0x10);
+    center = *(float **)((char *)data + 0xc);
+
+    /* Operand order is verbatim from 0x148bd4 `FLD [EAX]; FMUL [ECX]`. */
+    d = center[2] * plane[2] + center[1] * plane[1] + center[0] * plane[0] -
+        plane[3];
+
+    within = (unsigned char)(d < *(float *)((char *)data + 0x10));
+
+    if (d <= -*(float *)((char *)data + 0x10)) {
+      child = 0;
+    } else {
+      child = 1;
+      if (within) {
+        if (*(int *)((char *)data + 0x18) < 0 ||
+            *(int *)((char *)data + 0x18) >= 0x80) {
+          display_assert(
+            "data->stack_depth>=0 && data->stack_depth<MAXIMUM_BSP3D_DEPTH",
+            "c:\\halo\\SOURCE\\physics\\collision_bsp.c", 0x206, 1);
+          system_exit(-1);
+        }
+        *(int *)((char *)data + 0x1c + *(int *)((char *)data + 0x18) * 4) =
+          node[0] | 0x80000000;
+        *(int *)((char *)data + 0x18) += 1;
+
+        bsp3d_test_sphere_recursive(data, node[1]);
+
+        *(int *)((char *)data + 0x18) -= 1;
+        if (*(int *)((char *)data + 0x18) < 0 ||
+            *(int *)((char *)data + 0x18) >= 0x80) {
+          display_assert(
+            "data->stack_depth>=0 && data->stack_depth<MAXIMUM_BSP3D_DEPTH",
+            "c:\\halo\\SOURCE\\physics\\collision_bsp.c", 0x210, 1);
+          system_exit(-1);
+        }
+        *(int *)((char *)data + 0x1c + *(int *)((char *)data + 0x18) * 4) =
+          node[0] & 0x7fffffff;
+        *(int *)((char *)data + 0x18) += 1;
+
+        bsp3d_test_sphere_recursive(data, node[2]);
+
+        *(int *)((char *)data + 0x18) -= 1;
+        return;
+      }
+    }
+    node_index = node[child + 1];
+  }
+
+  if (node_index == -1) {
+    return;
+  }
+
+  leaf_index = node_index & 0x7fffffff;
+  leaf = tag_block_get_element((void *)(*(int *)data + 0x18), leaf_index, 8);
+
+  results = *(int **)((char *)data + 0x14);
+  if (results[0x303] < 0x100) {
+    results[0x304 + results[0x303]] = leaf_index;
+    results = *(int **)((char *)data + 0x14);
+    results[0x303] += 1;
+  }
+
+  for (node_index = *(int *)((char *)leaf + 4);
+       node_index < *(int *)((char *)leaf + 4) + *(short *)((char *)leaf + 2);
+       node_index++) {
+    ref = (int *)tag_block_get_element((void *)(*(int *)data + 0x24),
+                                       node_index, 8);
+    for (k = 0; k < *(int *)((char *)data + 0x18); k++) {
+      if (*(int *)((char *)data + 0x1c + k * 4) == ref[0]) {
+        plane = (float *)tag_block_get_element((void *)(*(int *)data + 0xc),
+                                               ref[0] & 0x7fffffff, 0x10);
+        center = *(float **)((char *)data + 0xc);
+
+        t = -(plane[1] * center[1] + plane[2] * center[2] +
+              plane[0] * center[0] - plane[3]);
+        point[0] = t * plane[0] + center[0];
+        point[1] = t * plane[1] + center[1];
+        point[2] = t * plane[2] + center[2];
+
+        {
+          float ax = (float)fabs((double)plane[0]);
+          float ay = (float)fabs((double)plane[1]);
+          float az = (float)fabs((double)plane[2]);
+
+          if (az < ay || az < ax) {
+            if (ay < ax)
+              projection = 0;
+            else
+              projection = 1;
+          } else {
+            projection = 2;
+          }
+        }
+        *(unsigned short *)((char *)data + 0x21c) = (unsigned short)projection;
+        if (projection < 0 || projection > 2) {
+          display_assert("projection>=_x && projection<=_z",
+                         "..\\math\\real_math.h", 0x350, 1);
+          system_exit(-1);
+        }
+
+        positive = (unsigned char)(plane[projection] > 0.0f);
+        sign = (unsigned char)(positive !=
+                               (unsigned char)((ref[0] & 0x80000000) != 0));
+        *(unsigned char *)((char *)data + 0x21e) = sign;
+
+        FUN_00061df0(point, *(unsigned short *)((char *)data + 0x21c), sign,
+                     (char *)data + 0x220);
+        FUN_001486e0(data, ref[1]);
+        break;
+      }
+    }
+  }
 }
 
 /* 0x1493b0 - collision_bsp_test_sphere

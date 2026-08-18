@@ -2338,7 +2338,7 @@ void FUN_000586a0(int param_1)
  * return is this wrapper's return. Disasm at the hs call site 0xc1574 (`xor
  * edx,edx; mov dx,[eax]; push edx; call 0x58700; mov [ebp-4],ax`) confirms one
  * zero-extended uint16 stack arg and a 16-bit AX return. */
-int FUN_00058700(int param_1)
+int16_t FUN_00058700(int16_t param_1)
 {
   return ai_conversation_line(param_1);
 }
@@ -4607,7 +4607,16 @@ void encounter_stand_down(int encounter_handle)
  *
  * Element stride is 0x10 (four dwords); the sort key lives at element+0x4.
  * On insertion at slot i the four dwords are written as:
- *   elem+0x0 = a, elem+0x4 = score (key), elem+0x8 = c, elem+0xc = d.
+ *   elem+0x0 = actor_index, elem+0x4 = score (key), elem+0x8 = prop_index,
+ *   elem+0xc = unit_index.
+ *
+ * The three non-key dwords are integer datum handles, not floats: the caller
+ * encounter_post_combat_assign_behaviors (0x5bbe0) pushes the actor index,
+ * prop_iterator[0] and *(int *)(prop+0x18) into them, and the delinked
+ * reference stores all four dwords with plain `mov` (only one `fld` exists in
+ * the whole function, for the FCOMP at 0x5ac71), so the parameter type is
+ * codegen-neutral here while `float` would have made the caller FILD/FSTP the
+ * handles into garbage.
  *
  * Confirmed (delinked 0005ac60.obj):
  *   - cdecl, five stack args at [EBP+8..+0x18]; no register args, no callees.
@@ -4638,7 +4647,8 @@ void encounter_stand_down(int encounter_handle)
  * diverges (79.2% -> 92.0% VC71). The 16-byte `struct entry` assignment
  * reproduces the original's interleaved four-dword integer copy (no FPU).
  */
-bool FUN_0005ac60(void *list, float a, float score, float c, float d)
+bool FUN_0005ac60(void *list, int actor_index, float score, int prop_index,
+                  int unit_index)
 {
   struct entry {
     int d0;
@@ -4667,9 +4677,9 @@ bool FUN_0005ac60(void *list, float a, float score, float c, float d)
         } while (--count != 0);
       }
       key[0] = score;
-      key[-1] = a;
-      key[2] = d;
-      key[1] = c;
+      ((int *)key)[-1] = actor_index;
+      ((int *)key)[2] = unit_index;
+      ((int *)key)[1] = prop_index;
       inserted = 1;
     }
     key += 4;
@@ -5696,6 +5706,478 @@ short encounter_post_combat_select_random_behavior(void *behaviors,
   return selected_behavior_index;
 }
 
+/* 0x5bbe0 — encounter_post_combat_assign_behaviors.
+ * Picks the post-combat behaviours the encounter's actors will adopt once the
+ * fight is over, and stamps them onto the chosen actors.
+ *
+ * Four weighted candidate categories are scored, each holding the best two
+ * entries (see FUN_0005ac60, stride 0x10, key at +0x4):
+ *   category 0 — a nearby prop the actor can reach on foot (base weight 0.7f)
+ *   category 1 — the fallback/long-range case (base weight 0.0f)
+ *   category 2 — props whose prop+0x60 flag is clear (base weight 0.4f)
+ *   category 3 — the actor's own unit, scored from its size at unit+0x3da
+ * Up to two primary behaviours are drawn from those categories by
+ * encounter_post_combat_select_random_behavior, de-duplicated by actor index
+ * and by the record's +0xc key, then written to
+ * primary_postcombat_behaviors[0..1].  A separate pass picks the
+ * highest-rated friendly actor as the leader and classifies it into one of
+ * five leader behaviours from the encounter's squad counts; when the leader is
+ * low on something at +0x1b8 it instead takes behaviour 3 and the nearest
+ * mountable companion is given behaviour 6.
+ *
+ * Confirmed:
+ *   - cdecl, one stack arg (encounter_handle); `SUB ESP,0xe4`, EBX/ESI/EDI
+ *     pushed after the SUB, epilogue `pop edi/esi/ebx; mov esp,ebp; pop ebp;
+ *     ret` with no RET imm.
+ *   - The candidate array is 4 * 0x20 bytes at EBP-0xe4; category selection is
+ *     `movsx edx,dx; shl edx,5; lea eax,[ebp+edx-0xe4]` at 0x5be1e, proving a
+ *     16-bit category index and a 0x20 row stride (two 0x10 records per row).
+ *   - The array is seeded by writing the four template dwords from
+ *     0x25d20c/0x25d210/0x25d214/0x25d218 ({-1, 0, -1, -1}) into record 0 and
+ *     then `mov ecx,0x1c; rep movsd` from EBP-0xe4 to EBP-0xd4 — a
+ *     self-overlapping forward broadcast of that 0x10 template across the
+ *     remaining seven records.
+ *   - The actor iterator is inlined three times (0x5bc6b, 0x5c01a, 0x5c199)
+ *     with an identical shape: read *(char **)0x632574, and only when
+ *     [globals+1] is set take *(int *)(globals+8) for encounter_handle == NONE
+ *     or datum_get(...)+0x14 otherwise.  The second and third expansions read
+ *     the stale EBP-0x34 slot in the [globals+1] == 0 case; that value is only
+ *     ever consumed by a loop head which re-tests [globals+1] and breaks, so
+ *     the copy is dead.  Each loop head re-reads 0x632574.
+ *   - Three-way category select at 0x5bd21: `test bl,bl; je` to the
+ *     out-of-line 9.0f/category-2 arm, so the source tests `prop[0x60] == 0`
+ *     first and MSVC placed that arm after both else arms (observed block
+ *     order 10.0f, 5.0f, 9.0f).  `threshold` stays in ST0 across the merge.
+ *   - `distance_scale` comes from an int temp: `movsx eax,word[prop+0x76];
+ *     mov [ebp-0x1c],eax; fild dword[ebp-0x1c]; fmul [0x25dc10]` where
+ *     0x25dc10 is 0x3b888889 = 1/240.
+ *   - Companion distance at 0x5c1fe..0x5c232 leaves dx/dy/dz on the FPU stack
+ *     and sums `dz*dz + dy*dy + dx*dx` in that order (fld st(0)/fmul st(1),
+ *     fld st(2)/fmul st(3), faddp, fld st(3)/fmul st(4), faddp), then discards
+ *     the three deltas with three `fstp st(0)`.
+ *   - Acceptance test at 0x5c23b: `fld [ebp-0xc]; fcomp [0x2548fc]; test
+ *     ah,0x44; jnp` takes the accept path on equality, i.e. `closest ==
+ *     FLT_MAX`; otherwise `fld [ebp-0xc]; fmul [ebp-0xc]; fcomp [ebp-0x1c];
+ *     test ah,0x41; jne` rejects unless `closest * closest > distance_squared`.
+ *     The stored value is the un-squared distance_squared, so the second
+ *     compare squares an already-squared quantity — reproduced verbatim.
+ *   - Leader classification at 0x5c0c3: `test ah,5; jp` leaves the
+ *     companion-search path only when NOT(field < 0.5f), so the companion arm
+ *     requires `*(float *)(best+0x1b8) < 0.5f`.  The redundant `cmp ax,2` at
+ *     0x5c161 proves the 4/5 arms are independent `else if`s that each re-test
+ *     `squad_size >= 2`, not a nested block.
+ *   - The behaviour-application tail at 0x5c296 walks two pointers (ESI over
+ *     primary_postcombat_behaviors, EBX over selected[0]) with a
+ *     `dec [ebp-0x14]` down-counter from 2, and re-reads *ESI for the range
+ *     assert after the datum_get.
+ *   - The leader/mounted stores at 0x5c319 are nested: the mounted actor is
+ *     only stamped inside the `leader_behavior != NONE && leader_index != NONE`
+ *     block.
+ *   - Post-combat behaviour type -> actor state comes from the int16 table at
+ *     0x25d21c = {9, 7, 8, 10}.
+ *
+ * Call-site verification (all traced from the raw disassembly):
+ *   0x5bbf5 datum_get          arg1 push [0x5ab270]        arg2 push [ebp+8]
+ * match 0x5bc12 csmemset           arg1 lea [ebp-0x24]  arg2 push -1  arg3 push
+ * 4       match 0x5bc7f datum_get          arg1 push [0x5ab270]        arg2
+ * push [ebp+8]        match 0x5bcaa datum_get          arg1 push [0x6325a4]
+ * arg2 push [ebp-0x34]     match 0x5bcc9 tag_get            arg1 push
+ * 0x61637472        arg2 push [esi+0x58]     match 0x5bce8 rating             4
+ * pushes ([esi+0x18],1,0,0); FSTP [ebp-8] -> ST0     match 0x5bcf6 FUN_00064540
+ * arg1 lea [ebp-0x44]  arg2 push edi (cur actor)       match 0x5bd05
+ * FUN_00064570       arg1 lea [ebp-0x44]                                  match
+ *   0x5be2b FUN_0005ac60       5 pushes: [prop+0x18], [ebp-0x44], score(FSTP
+ * [esp]), edi, lea [ebp+edx-0xe4]; ADD ESP,0x14               match 0x5be69
+ * object_get_..type  arg1 push [esi+0x18]        arg2 push 3              match
+ *   0x5be9a FUN_0005ac60       5 pushes: -1, -1, score(FSTP [esp]), edi,
+ *                              lea [ebp-0x84] (= &candidates[3]); ADD ESP,0x14
+ * match 0x5bec4 select_random      EBX = lea [ebp-0xe4] (@<ebx>), push lea
+ * [ebp-0x64]   match 0x5bfbe select_random      EBX = lea [ebp-0xe4] (@<ebx>),
+ * push lea [ebp-0x54]   match 0x5c055 rating             4 pushes
+ * ([esi+0x18],1,0,0); FSTP [ebp-8]            match 0x5c05e team 1 push EDI
+ * (cur actor); ADD ESP,0x14 merges the preceding 4-arg rating cleanup; TEST
+ * AX,AX           match 0x5c267 prop_get_active..  arg1 push esi (cur actor)
+ * arg2 push [best+0x18]    match 0x5c2b8 datum_get          arg1 push
+ * [0x6325a4]        arg2 push [ebx]          match 0x5c2d5 display_assert     4
+ * pushes: 1, 0xb6f, file, reason                     match 0x5c332 datum_get
+ * arg1 push [0x6325a4]        arg2 push [ebp-0x30]     match 0x5c35b datum_get
+ * arg1 push [0x6325a4]        arg2 push [ebp-0x2c]     match
+ *
+ * Store-offset table (candidate record, stride 0x10, from FUN_0005ac60's own
+ * disassembly plus this function's pushes — struct not modelled in types.h):
+ *   +0x00  actor index      (EDI at both call sites)
+ *   +0x04  score            (float, pushed via push-then-FSTP [esp])
+ *   +0x08  prop index       (prop_iterator[0], or -1 for category 3)
+ *   +0x0c  dedup key        (*(int *)(prop+0x18), or -1 for category 3)
+ * Actor stores in the tail:
+ *   actor+0x1e4  int16  post-combat state from the 0x25d21c table / leader
+ *                       behaviour / literal 6 for the mounted companion
+ *   actor+0x1e8  int    prop index from record+0x8, or NONE for the leader
+ * Encounter stores in the epilogue:
+ *   encounter+0x47  byte  1
+ *   encounter+0x48  byte  0
+ *   encounter+0x4a  int16 0x78
+ *   encounter+0x4c  int16 0
+ *
+ * Uncertain:
+ *   - The meaning of the leader fields at +0x1b8 and +0x3b4 (a ratio and its
+ *     ceiling, compared against 0.5f/0.3f/0.8f) and of prop+0x11c (a range,
+ *     divided into the category threshold) are not established.
+ *   - The `closest * closest` re-squaring above looks like an original bug but
+ *     is transcribed as written; behaviour depends on it.
+ *   - The rep-movsd template broadcast is written as an overlapping dword copy
+ *     loop; csmemcpy is not declared in kb.json and memcpy is not available in
+ *     this lane, and memcpy semantics would be undefined for the overlap.
+ */
+/* 0x5bbe0 */
+void encounter_post_combat_assign_behaviors(int encounter_handle)
+{
+  int candidates[4][8];
+  int selected[2][4];
+  int prop_iterator[4];
+  int actor_index;
+  int leader_actor_index;
+  int mounted_actor_index;
+  char *encounter;
+  int16_t primary_postcombat_behaviors[2];
+  int16_t leader_postcombat_behavior;
+  int prop_distance;
+  int unit_size;
+  int mounted_prop_index;
+  float distance_squared;
+  float score;
+  int best_actor_index;
+  char *actor_tag;
+  int closest_prop_index;
+  int behavior_slot_count;
+  char found_prop_of_interest;
+  float base_weight;
+  float best_rating;
+  float closest_distance;
+  float rating;
+  int16_t behavior_index;
+  char *best_actor;
+  char any_behavior_added;
+  int *template_record;
+  int copy_index;
+  int template_terminator;
+  char *ai_globals;
+  char *actor;
+  char *prop;
+  char *unit;
+  int current_actor_index;
+  int search_index;
+  int companion_actor_index;
+  int prop_index;
+  int16_t category;
+  int16_t squad_size;
+  float threshold;
+  float range_ratio;
+  float rating_clamped;
+  float distance_scale;
+  float delta_x;
+  float delta_y;
+  float delta_z;
+  int16_t *behavior_ptr;
+  int *record_ptr;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  csmemset(primary_postcombat_behaviors, -1, 4);
+
+  template_record = &candidates[0][0];
+  template_record[0] = *(int *)0x25d20c;
+  template_record[1] = *(int *)0x25d210;
+  template_record[2] = *(int *)0x25d214;
+  template_record[3] = *(int *)0x25d218;
+  for (copy_index = 4; copy_index < 32; copy_index++) {
+    template_record[copy_index] = template_record[copy_index - 4];
+  }
+
+  leader_postcombat_behavior = NONE;
+  leader_actor_index = NONE;
+  mounted_actor_index = NONE;
+  any_behavior_added = 0;
+
+  ai_globals = *(char **)0x632574;
+  if (*(char *)(ai_globals + 1) == '\0') {
+    actor_index = NONE;
+  } else if (encounter_handle == NONE) {
+    actor_index = *(int *)(ai_globals + 8);
+  } else {
+    actor_index = *(
+      int *)((char *)datum_get(*(data_t **)0x5ab270, encounter_handle) + 0x14);
+  }
+
+  while (1) {
+    ai_globals = *(char **)0x632574;
+    if (*(char *)(ai_globals + 1) == '\0') {
+      break;
+    }
+    if (actor_index == NONE) {
+      break;
+    }
+    current_actor_index = actor_index;
+    actor = (char *)datum_get(*(data_t **)0x6325a4, actor_index);
+    actor_index = *(int *)(actor + 0x2c);
+    actor_tag = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+    found_prop_of_interest = 0;
+    if (*(int *)(actor + 0x18) == NONE) {
+      continue;
+    }
+    rating = ((float (*)(int, int, int, int))ai_communication_get_player_rating)(
+      *(int *)(actor + 0x18), 1, 0, 0);
+    FUN_00064540(prop_iterator, current_actor_index);
+    prop = (char *)FUN_00064570(prop_iterator);
+    while (prop != NULL) {
+      if (*(char *)(prop + 0x127) != '\0') {
+        if (*(char *)(prop + 0x60) == '\0') {
+          threshold = 9.0f;
+          category = 2;
+          base_weight = 0.4f;
+        } else if ((*(char *)(actor_tag + 4) & 0x40) == 0 &&
+                   *(int16_t *)(prop + 0x76) < 0xd2) {
+          threshold = 10.0f;
+          category = 0;
+          base_weight = 0.7f;
+        } else {
+          threshold = 5.0f;
+          category = 1;
+          base_weight = 0.0f;
+        }
+        if (threshold > *(float *)(prop + 0x11c)) {
+          range_ratio = threshold / *(float *)(prop + 0x11c);
+          range_ratio = (2.0f > range_ratio) ? range_ratio : 2.0f;
+          rating_clamped = (rating > 1.5f) ? rating : 1.5f;
+          prop_distance = *(int16_t *)(prop + 0x76);
+          distance_scale = (float)prop_distance * 0.004166666883975267f;
+          distance_scale = (1.0f > distance_scale) ? distance_scale : 1.0f;
+          score = (2.0f - distance_scale) * rating_clamped * range_ratio +
+                  base_weight;
+          if (*(char *)(prop + 0x12e) != '\0') {
+            score = score + 2.0f;
+          }
+          if (*(char *)(prop + 0x60) != '\0') {
+            found_prop_of_interest = 1;
+          }
+          if (((bool (*)(void *, int, float, int, int))FUN_0005ac60)(
+                &candidates[category][0], current_actor_index, score,
+                prop_iterator[0], *(int *)(prop + 0x18))) {
+            any_behavior_added = 1;
+          }
+        }
+      }
+      prop = (char *)FUN_00064570(prop_iterator);
+    }
+    if (found_prop_of_interest != 0) {
+      unit = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+      unit_size = *(int16_t *)(unit + 0x3da);
+      if (((bool (*)(void *, int, float, int, int))FUN_0005ac60)(
+            &candidates[3][0], current_actor_index,
+            (float)unit_size * 0.7f + rating, -1, -1)) {
+        any_behavior_added = 1;
+      }
+    }
+  }
+
+  if (any_behavior_added != 0) {
+    primary_postcombat_behaviors[0] =
+      encounter_post_combat_select_random_behavior(&candidates[0][0],
+                                                   &selected[0][0]);
+    if (*(int16_t *)(encounter + 2) != 2 ||
+        *(int16_t *)(encounter + 0x4c) >= 8) {
+      template_terminator = *(int *)0x25d218;
+      any_behavior_added = 0;
+      for (behavior_index = 0; behavior_index < 4; behavior_index++) {
+        if (behavior_index == primary_postcombat_behaviors[0]) {
+          candidates[behavior_index][0] = *(int *)0x25d20c;
+          candidates[behavior_index][1] = *(int *)0x25d210;
+          candidates[behavior_index][2] = *(int *)0x25d214;
+          candidates[behavior_index][3] = template_terminator;
+          candidates[behavior_index][4] = candidates[behavior_index][0];
+          candidates[behavior_index][5] = candidates[behavior_index][1];
+          candidates[behavior_index][6] = candidates[behavior_index][2];
+          candidates[behavior_index][7] = candidates[behavior_index][3];
+        } else if (candidates[behavior_index][0] == selected[0][0] ||
+                   candidates[behavior_index][3] == selected[0][3]) {
+          candidates[behavior_index][0] = candidates[behavior_index][4];
+          candidates[behavior_index][1] = candidates[behavior_index][5];
+          candidates[behavior_index][2] = candidates[behavior_index][6];
+          candidates[behavior_index][3] = candidates[behavior_index][7];
+          candidates[behavior_index][4] = *(int *)0x25d20c;
+          candidates[behavior_index][5] = *(int *)0x25d210;
+          candidates[behavior_index][6] = *(int *)0x25d214;
+          candidates[behavior_index][7] = template_terminator;
+        }
+        if (candidates[behavior_index][0] != NONE) {
+          any_behavior_added = 1;
+        }
+      }
+      if (any_behavior_added != 0) {
+        primary_postcombat_behaviors[1] =
+          encounter_post_combat_select_random_behavior(&candidates[0][0],
+                                                       &selected[1][0]);
+      }
+    }
+  }
+
+  if (*(int16_t *)(encounter + 2) != 2 || *(int16_t *)(encounter + 0x4c) >= 4) {
+    best_actor_index = NONE;
+    best_rating = 0.0f;
+
+    ai_globals = *(char **)0x632574;
+    if (*(char *)(ai_globals + 1) == '\0') {
+      search_index = actor_index;
+    } else if (encounter_handle == NONE) {
+      search_index = *(int *)(ai_globals + 8);
+    } else {
+      search_index =
+        *(int *)((char *)datum_get(*(data_t **)0x5ab270, encounter_handle) +
+                 0x14);
+    }
+
+    while (1) {
+      ai_globals = *(char **)0x632574;
+      if (*(char *)(ai_globals + 1) == '\0') {
+        break;
+      }
+      if (search_index == NONE) {
+        break;
+      }
+      current_actor_index = search_index;
+      actor = (char *)datum_get(*(data_t **)0x6325a4, search_index);
+      search_index = *(int *)(actor + 0x2c);
+      if (*(int *)(actor + 0x18) == NONE) {
+        continue;
+      }
+      rating = ((float (*)(int, int, int, int))ai_communication_get_player_rating)(
+        *(int *)(actor + 0x18), 1, 0, 0);
+      if (((short (*)(int))actor_communication_team)(current_actor_index) != 0) {
+        continue;
+      }
+      if (rating > 2.0f && rating > best_rating) {
+        best_rating = rating;
+        best_actor_index = current_actor_index;
+      }
+    }
+
+    leader_actor_index = best_actor_index;
+    if (best_actor_index != NONE) {
+      best_actor = (char *)datum_get(*(data_t **)0x6325a4, best_actor_index);
+      if (*(float *)(best_actor + 0x1b8) < 0.5f &&
+          *(float *)(best_actor + 0x3b4) - *(float *)(best_actor + 0x1b8) >
+            0.3f) {
+        leader_postcombat_behavior = 3;
+        closest_prop_index = NONE;
+        closest_distance = 3.402823466e+38f;
+        companion_actor_index = NONE;
+
+        ai_globals = *(char **)0x632574;
+        if (*(char *)(ai_globals + 1) == '\0') {
+          search_index = actor_index;
+        } else if (encounter_handle == NONE) {
+          search_index = *(int *)(ai_globals + 8);
+        } else {
+          search_index =
+            *(int *)((char *)datum_get(*(data_t **)0x5ab270, encounter_handle) +
+                     0x14);
+        }
+
+        while (1) {
+          ai_globals = *(char **)0x632574;
+          if (*(char *)(ai_globals + 1) == '\0') {
+            break;
+          }
+          if (search_index == NONE) {
+            break;
+          }
+          current_actor_index = search_index;
+          actor = (char *)datum_get(*(data_t **)0x6325a4, search_index);
+          search_index = *(int *)(actor + 0x2c);
+          if (*(int *)(actor + 0x18) == NONE) {
+            continue;
+          }
+          if (current_actor_index == best_actor_index) {
+            continue;
+          }
+          delta_x = *(float *)(actor + 0x120) - *(float *)(best_actor + 0x120);
+          delta_y = *(float *)(actor + 0x124) - *(float *)(best_actor + 0x124);
+          delta_z = *(float *)(actor + 0x128) - *(float *)(best_actor + 0x128);
+          distance_squared =
+            delta_z * delta_z + delta_y * delta_y + delta_x * delta_x;
+          if (closest_distance == 3.402823466e+38f ||
+              closest_distance * closest_distance > distance_squared) {
+            prop_index = prop_get_active_by_unit_index(
+              current_actor_index, *(int *)(best_actor + 0x18));
+            if (prop_index != NONE) {
+              closest_distance = distance_squared;
+              companion_actor_index = current_actor_index;
+              closest_prop_index = prop_index;
+            }
+          }
+        }
+
+        if (companion_actor_index != NONE) {
+          mounted_actor_index = companion_actor_index;
+          mounted_prop_index = closest_prop_index;
+        }
+      } else {
+        squad_size = *(int16_t *)(encounter + 0x2a);
+        if (squad_size == 1 && *(int16_t *)(encounter + 0x1a) > 1) {
+          leader_postcombat_behavior = 1;
+        } else if (squad_size >= 2 &&
+                   (int)*(int16_t *)(encounter + 0x1a) >=
+                     (int)squad_size +
+                       ((squad_size > 2) ? 2 : (int)squad_size)) {
+          leader_postcombat_behavior = 4;
+        } else if (squad_size >= 2 &&
+                   (int)squad_size >= (int)*(int16_t *)(encounter + 0x1a) - 1) {
+          leader_postcombat_behavior = 5;
+        } else if (*(float *)(best_actor + 0x1b8) > 0.8f) {
+          leader_postcombat_behavior = 2;
+        }
+      }
+    }
+  }
+
+  behavior_ptr = primary_postcombat_behaviors;
+  record_ptr = &selected[0][0];
+  behavior_slot_count = 2;
+  do {
+    if (*behavior_ptr != NONE && record_ptr[0] != NONE) {
+      actor = (char *)datum_get(*(data_t **)0x6325a4, record_ptr[0]);
+      if (!(*behavior_ptr >= 0 && *behavior_ptr < 4)) {
+        display_assert(
+          "(primary_postcombat_behaviors[primary_behavior_index] >= 0) && "
+          "(primary_postcombat_behaviors[primary_behavior_index] < "
+          "NUMBER_OF_POST_COMBAT_BEHAVIOR_TYPES)",
+          "c:\\halo\\SOURCE\\ai\\encounters.c", 0xb6f, 1);
+        system_exit(-1);
+      }
+      *(int16_t *)(actor + 0x1e4) = ((int16_t *)0x25d21c)[*behavior_ptr];
+      *(int *)(actor + 0x1e8) = record_ptr[2];
+    }
+    behavior_ptr = behavior_ptr + 1;
+    record_ptr = record_ptr + 4;
+    behavior_slot_count = behavior_slot_count - 1;
+  } while (behavior_slot_count != 0);
+
+  if (leader_postcombat_behavior != NONE && leader_actor_index != NONE) {
+    actor = (char *)datum_get(*(data_t **)0x6325a4, leader_actor_index);
+    *(int16_t *)(actor + 0x1e4) = leader_postcombat_behavior;
+    *(int *)(actor + 0x1e8) = NONE;
+    if (mounted_actor_index != NONE) {
+      actor = (char *)datum_get(*(data_t **)0x6325a4, mounted_actor_index);
+      *(int16_t *)(actor + 0x1e4) = 6;
+      *(int *)(actor + 0x1e8) = mounted_prop_index;
+    }
+  }
+
+  *(char *)(encounter + 0x47) = 1;
+  *(char *)(encounter + 0x48) = 0;
+  *(int16_t *)(encounter + 0x4a) = 0x78;
+  *(int16_t *)(encounter + 0x4c) = 0;
+}
+
 /* encounter_set_respawn (0x5c630) — Set an encounter's respawn flag
  * (encounter+0x3c) and arm its 0x96-tick respawn timer (encounter+0xe), then
  * refresh the encounter's activation state. Guarded on ai_active
@@ -6015,7 +6497,7 @@ LAB_0005d365:
  * with the actor handle for dead/fleeing status. Sets encounter
  * enemy-visible/alive flags from unit state when actor+0x270 != -1.
  *   4. If no longer active (enemy gone), calls encounter_stand_down or
- * FUN_0005bbe0 depending on encounter state.
+ * encounter_post_combat_assign_behaviors depending on encounter state.
  *   5. Finalise: compute vitality ratio = sum_vitality / actor_count - 0.001f,
  *      clamped to 0.0f, for encounter and each squad/platoon.
  *   6. Clear encounter+0x28 (dirty flag).
@@ -6241,7 +6723,7 @@ void encounter_update_status(int encounter_handle)
           }
         } else {
           if (saw_enemy_primary && saw_enemy_secondary) {
-            FUN_0005bbe0(encounter_handle);
+            encounter_post_combat_assign_behaviors(encounter_handle);
             goto done;
           }
         }

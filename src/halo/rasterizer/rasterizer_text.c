@@ -680,6 +680,37 @@ void FUN_00180d10(short param_1, int param_2, int param_3, int param_4,
 
 /* rasterizer_lights.c */
 
+/* Address of a slot in this frame's lens flare queue (0x181020).
+ *
+ * The queue base is 0x4c6480 and the stride is 0x28 (40 bytes); 0x4d0480 is
+ * local_lens_flare_count, the number of slots filled so far this frame. Both
+ * globals and the stride are the same ones FUN_00181180 below walks.
+ *
+ * The index arrives in SI (kb.json: @<si>) — the original has no frame at all
+ * (0x181020 opens with TEST SI,SI) and never reads the stack. It is
+ * SIGN-extended (MOVSX EAX,SI at 0x18102b) before the count compare, and the
+ * negative test is a separate TEST SI,SI / JL that runs BEFORE the count is
+ * loaded, so the two bounds tests must stay short-circuited in that order.
+ *
+ * TU is rasterizer_lights.c (proven by the __FILE__ assert string at 0x2b01b4,
+ * referenced at 0x181036); it lives here only because of the kb.json object
+ * grouping, like FUN_00181150/FUN_00181180 below.
+ *
+ * kb.json declares the return as int *; callers cast it to the 0x28-byte
+ * submission struct (see FUN_00181670 in rasterizer_lights.c). Assert tail is
+ * display_assert + system_exit(-1) (PUSH -1; CALL 0x8e2f0 at 0x181047), NOT
+ * halt_and_catch_fire as Ghidra renders it. */
+int *FUN_00181020(short lens_flare_index)
+{
+  if (lens_flare_index < 0 || lens_flare_index >= *(int *)0x4d0480) {
+    display_assert(
+      "lens_flare_index>=0 && lens_flare_index<local_lens_flare_count",
+      "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c", 0x43, 1);
+    system_exit(-1);
+  }
+  return (int *)((char *)0x4c6480 + lens_flare_index * 0x28);
+}
+
 /* rasterizer_lights_initialize: clear lights buffers and counter (0x181150) */
 void FUN_00181150(void)
 {
