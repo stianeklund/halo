@@ -11935,7 +11935,8 @@
     },
     {
      "addr": "0xc88b0",
-     "decl": "void FUN_000c88b0(void);"
+     "decl": "bool FUN_000c88b0(int function_index, int expression_index);",
+     "ported": true
     },
     {
      "addr": "0xc89c0",
@@ -12000,16 +12001,18 @@
     },
     {
      "addr": "0xc9650",
-     "decl": "void FUN_000c9650(void);"
+     "decl": "unsigned char FUN_000c9650(int16_t bit_index, int object_list, int state);",
+     "ported": true
     },
     {
      "addr": "0xc9700",
-     "decl": "void FUN_000c9700(int param_1, int param_2, float param_3);",
+     "decl": "char FUN_000c9700(int param_1, int param_2, float param_3);",
      "ported": true
     },
     {
      "addr": "0xc9770",
-     "decl": "unsigned char FUN_000c9770(int arg0, int arg1, float arg2);"
+     "decl": "unsigned char FUN_000c9770(int arg0, int arg1, float arg2);",
+     "ported": true
     },
     {
      "addr": "0xc97f0",
@@ -12017,7 +12020,8 @@
     },
     {
      "addr": "0xc9840",
-     "decl": "void FUN_000c9840(void);"
+     "decl": "unsigned char FUN_000c9840(int arg0, short flag_index, float arg2);",
+     "ported": true
     },
     {
      "addr": "0xc98e0",
@@ -12026,7 +12030,8 @@
     },
     {
      "addr": "0xc9990",
-     "decl": "void FUN_000c9990(int16_t index);"
+     "decl": "void FUN_000c9990(int16_t index);",
+     "ported": true
     },
     {
      "addr": "0xc99e0",
@@ -12035,11 +12040,13 @@
     },
     {
      "addr": "0xc9a20",
-     "decl": "void FUN_000c9a20(int16_t index);"
+     "decl": "void FUN_000c9a20(int16_t index);",
+     "ported": true
     },
     {
      "addr": "0xc9a50",
-     "decl": "void FUN_000c9a50(void);"
+     "decl": "void FUN_000c9a50(void);",
+     "ported": true
     },
     {
      "addr": "0xc9b10",
@@ -12103,7 +12110,8 @@
     },
     {
      "addr": "0xc9f90",
-     "decl": "void FUN_000c9f90(void);"
+     "decl": "void *FUN_000c9f90(const char *sound_name @<esi>);",
+     "ported": true
     },
     {
      "addr": "0xca010",
@@ -12115,15 +12123,18 @@
     },
     {
      "addr": "0xca050",
-     "decl": "unsigned char FUN_000ca050(int16_t a, int b);"
+     "decl": "unsigned char FUN_000ca050(int16_t bit_index, int object_list);",
+     "ported": true
     },
     {
      "addr": "0xca0f0",
-     "decl": "unsigned char FUN_000ca0f0(int16_t, int);"
+     "decl": "unsigned char FUN_000ca0f0(int16_t, int);",
+     "ported": true
     },
     {
      "addr": "0xca110",
-     "decl": "void FUN_000ca110(int16_t index);"
+     "decl": "void FUN_000ca110(int16_t index);",
+     "ported": true
     },
     {
      "addr": "0xca140",
@@ -12131,7 +12142,7 @@
     },
     {
      "addr": "0xca160",
-     "decl": "void FUN_000ca160(void);"
+     "decl": "void FUN_000ca160(int object_handle@<ebx>, int param_2, char param_3, char param_4);"
     },
     {
      "addr": "0xca3f0",
@@ -12143,35 +12154,43 @@
     },
     {
      "addr": "0xca430",
-     "decl": "void FUN_000ca430(int, int);"
+     "decl": "void FUN_000ca430(int cluster_index, int param_2);",
+     "ported": true
     },
     {
      "addr": "0xca4e0",
-     "decl": "void FUN_000ca4e0(void);"
+     "decl": "void FUN_000ca4e0(int16_t type, bool value, char *buffer);",
+     "ported": true
     },
     {
      "addr": "0xca530",
-     "decl": "void FUN_000ca530(void);"
+     "decl": "void FUN_000ca530(int16_t type, float value, char *buffer);",
+     "ported": true
     },
     {
      "addr": "0xca580",
-     "decl": "void FUN_000ca580(void);"
+     "decl": "void FUN_000ca580(int16_t type, int16_t value, char *buffer);",
+     "ported": true
     },
     {
      "addr": "0xca5d0",
-     "decl": "void FUN_000ca5d0(void);"
+     "decl": "void FUN_000ca5d0(int16_t type, long value, char *buffer);",
+     "ported": true
     },
     {
      "addr": "0xca620",
-     "decl": "void FUN_000ca620(void);"
+     "decl": "void FUN_000ca620(int16_t type, const char *value, char *buffer);",
+     "ported": true
     },
     {
      "addr": "0xca670",
-     "decl": "void FUN_000ca670(void);"
+     "decl": "void FUN_000ca670(int16_t type, int16_t enum_value, char *buffer);",
+     "ported": true
     },
     {
      "addr": "0xca700",
-     "decl": "void FUN_000CA700(void);"
+     "decl": "void FUN_000CA700(void);",
+     "ported": true
     },
     {
      "addr": "0xca800",
