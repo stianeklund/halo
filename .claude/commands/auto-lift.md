@@ -1,6 +1,6 @@
 ---
 description: Target selection, Ghidra context caching, and lift delegation
-model: opus
+model: sonnet 
 subtask: false
 ---
 

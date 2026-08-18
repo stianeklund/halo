@@ -54,14 +54,14 @@ const ESCALATION_BUDGET_FLOOR = (args && args.escalationBudgetFloor) || 120000
 // Override with --maxEscalations.
 const MAX_ESCALATIONS = (args && args.maxEscalations != null) ? args.maxEscalations : 3
 const M = {
-  mechanical: { model: 'haiku', effort: 'low'  },  // tool-run + parse
+  mechanical: { model: 'haiku', effort: 'high'  },  // tool-run + parse
   // Selection and one-shot score levers still need constrained judgment.
   // Per-target research is mechanical and routes through M.mechanical below.
   extract:    { model: 'opus',  effort: 'low'  },  // select + classified score lever
   // Commit runs a fixed 6-command script whose only judgement is "does the
   // build log contain an error: line" -- the same shape as the 19 sites already
   // on `mechanical`. Measured 31 agents / ~4% of session spend on opus for it.
-  commit:     { model: 'haiku', effort: 'low'  },  // runs the clean-build gate
+  commit:     { model: 'haiku', effort: 'high'  },  // runs the clean-build gate
   reason:     { model: 'opus',  effort: 'high' },  // lift, review
   improve:    { model: IMPROVE_MODEL, effort: IMPROVE_EFFORTS[0] },  // improve-pass base rung
 }

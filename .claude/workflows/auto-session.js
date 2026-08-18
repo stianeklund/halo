@@ -67,7 +67,7 @@ const GOAL_LIFT = (args && args.goalLiftPath)
 
 // Deterministic tool-runs only -- all the reasoning cost is inside the nested
 // goal-lift workflow, which sets its own (Opus-high) model policy.
-const MECH = { model: 'haiku', effort: 'low' }
+const MECH = { model: 'haiku', effort: 'high' }
 
 const GUARD_SCHEMA = {
   type: 'object',

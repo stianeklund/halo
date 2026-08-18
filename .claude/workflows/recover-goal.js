@@ -42,7 +42,7 @@ const DRY_RUN      = !!(args && args.dryRun)
 // no reasoning budget. All the cost belongs to the category agents, which do the
 // actual source edits and must apply a skill's gate table; they get the same
 // model policy goal-lift.js gives its lift agents (M.reason = opus/high).
-const MECH    = { model: 'haiku', effort: 'low'  }
+const MECH    = { model: 'haiku', effort: 'high'  }
 const RECOVER = { model: 'opus',  effort: 'high' }
 
 // The ladder, in mandatory order, with each category's leaf skill. Order is NOT

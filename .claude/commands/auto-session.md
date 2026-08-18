@@ -1,6 +1,6 @@
 ---
 description: Fully-automated lift session — run goal-lift in batches and land each batch into main (auto FF, park-on-conflict)
-model: opus
+model: sonnet
 subtask: false
 ---
 

@@ -1,6 +1,6 @@
 ---
 description: Unattended lift campaign — supervise repeated /auto-session runs, resolve known parks, stop on a dry frontier or real conflict
-model: opus
+model: sonnet
 subtask: false
 ---
 
