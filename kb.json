@@ -12119,7 +12119,7 @@
     },
     {
      "addr": "0xca030",
-     "decl": "void FUN_000ca030(void);"
+     "decl": "void FUN_000ca030(int param_1, float param_2);"
     },
     {
      "addr": "0xca050",
@@ -18547,7 +18547,9 @@
     },
     {
      "addr": "0xbe550",
-     "decl": "void FUN_000be550(void);"
+     "decl": "void FUN_000be550(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbe5a0",
@@ -18557,7 +18559,8 @@
     },
     {
      "addr": "0xbe5e0",
-     "decl": "void FUN_000be5e0(void);"
+     "decl": "void FUN_000be5e0(int16_t function_index, int thread_handle, char init);",
+     "ported": true
     },
     {
      "addr": "0xbe620",
@@ -18566,7 +18569,8 @@
     },
     {
      "addr": "0xbe660",
-     "decl": "void FUN_000be660(void);"
+     "decl": "void FUN_000be660(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbe6a0",
@@ -18606,11 +18610,13 @@
     },
     {
      "addr": "0xbe860",
-     "decl": "void FUN_000be860(void);"
+     "decl": "void FUN_000be860(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbe8a0",
-     "decl": "void FUN_000be8a0(void);"
+     "decl": "void FUN_000be8a0(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbe8f0",
@@ -18629,7 +18635,8 @@
     },
     {
      "addr": "0xbe990",
-     "decl": "void FUN_000be990(void);"
+     "decl": "void FUN_000be990(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbe9d0",
@@ -22492,7 +22499,7 @@
     },
     {
      "addr": "0x952d0",
-     "decl": "void recorded_animation_kill(void);"
+     "decl": "void recorded_animation_kill(int unit_handle);"
     },
     {
      "addr": "0x95330",
@@ -22500,7 +22507,7 @@
     },
     {
      "addr": "0x955b0",
-     "decl": "void recorded_animation_get_time_left(void);"
+     "decl": "int16_t recorded_animation_get_time_left(int unit_handle);"
     },
     {
      "addr": "0x95640",
