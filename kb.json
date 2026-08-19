@@ -26076,7 +26076,8 @@
     },
     {
      "addr": "0x81ec0",
-     "decl": "void transport_get_nonce(void *dst, int bytes);"
+     "decl": "void transport_get_nonce(void *dst, int bytes);",
+     "ported": true
     },
     {
      "addr": "0x81f30",

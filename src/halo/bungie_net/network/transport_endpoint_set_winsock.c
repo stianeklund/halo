@@ -1,4 +1,5 @@
 /* Xbox network transport layer — Winsock/XNet wrapper. */
+#include "../../common.h"
 
 /* Publish the global XNet key pair and register it on the first use.
  *
@@ -43,6 +44,40 @@ void FUN_00081e00(const uint32_t *key, const uint32_t *id)
   }
 
   *(int *)0x335094 += 1;
+}
+
+/* The 8-byte transport nonce global at 0x5ab228, filled by
+ * transport_initialize.  Named from the assert text "bytes ==
+ * sizeof(global_nonce)" at 0x2664c0; the 8-byte size is proven by the
+ * literal 8 the assert compares against and by the csmemcpy length. */
+#define global_nonce (*(uint8_t(*)[8])0x5ab228)
+
+/* Copy the 8-byte global transport nonce to the caller's buffer.
+ *
+ * The nonce lives at 0x5ab228 and is filled during transport_initialize
+ * (the 0x222e0e call at 0x5ab228/8).  Both parameters are asserted before
+ * the copy; the size assert is an exact `== 8` compare against the nonce's
+ * size, so the function only ever copies the whole blob.
+ *
+ * Confirmed: display_assert (0x8d9f0, cdecl 4 args) with "dst != NULL" at
+ * 0x2664e0 line 0x97 = 151 and "bytes == sizeof(global_nonce)" at 0x2664c0
+ * line 0x98 = 152, __FILE__ at 0x266458; system_exit (0x8e2f0, PUSH -1);
+ * csmemcpy (0x8e0b0, cdecl 3 args — PUSH 8 / PUSH 0x5ab228 / PUSH ESI,
+ * ADD ESP,0xc at 0x81f1e).
+ *
+ * Uncertain: the nonce blob is untyped here; no field of it is read by this
+ * function, so no struct is invented for it.
+ */
+void transport_get_nonce(void *dst, int bytes)
+{
+  assert_halt_at(
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+    151, dst != NULL);
+  assert_halt_at(
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+    152, bytes == sizeof(global_nonce));
+
+  csmemcpy(dst, global_nonce, sizeof(global_nonce));
 }
 
 /* Initialize the Xbox network transport layer.
@@ -122,12 +157,14 @@ void transport_initialize(void)
   }
 
   /* Start XNet. */
-  xnet_result = ((int(__stdcall *)(uint8_t *))0x2231f8)(xnet_params); /* hazard-ok: fnptr-conv */
+  xnet_result = ((int(__stdcall *)(uint8_t *))0x2231f8)( /* hazard-ok: fnptr-conv */
+    xnet_params);
   if (xnet_result != 0)
     return;
 
   /* Start WinSock 2.2. */
-  wsa_result = ((int16_t(__stdcall *)(int16_t, uint8_t *))0x223206)(2, wsadata); /* hazard-ok: fnptr-conv */
+  wsa_result = ((int16_t(__stdcall *)(int16_t, uint8_t *))0x223206)( /* hazard-ok: fnptr-conv */
+    2, wsadata);
   if (wsa_result != 0) {
     /* Cleanup: WSACleanup then report error. */
     ((void (*)(void))0x2232ed)();
@@ -140,14 +177,16 @@ void transport_initialize(void)
   deadline = start_time + 10000;
 
   for (;;) {
-    link_result = ((int(__stdcall *)(void *))0x222ecf)((void *)0x5ab230); /* hazard-ok: fnptr-conv */
+    link_result = ((int(__stdcall *)(void *))0x222ecf)( /* hazard-ok: fnptr-conv */
+      (void *)0x5ab230);
     if (system_milliseconds() > deadline)
       break;
     if (link_result == 0)
       continue;
     if (link_result != 1) {
       /* Link detected — configure socket options and mark initialized. */
-      ((int(__stdcall *)(void *, int))0x222e0e)((void *)0x5ab228, 8); /* hazard-ok: fnptr-conv */
+      ((int(__stdcall *)(void *, int))0x222e0e)( /* hazard-ok: fnptr-conv */
+        (void *)0x5ab228, 8);
       *(uint8_t *)0x335090 = 1;
       return;
     }
