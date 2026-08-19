@@ -532,9 +532,23 @@ def _trim_trailing_thunks(insns: list) -> list:
     symbol when there is no next-symbol boundary.  These inflate the reference
     instruction count and cause false low-match scores.
 
-    Strategy: scan forward for the first RET that is followed by nothing but
-    [nop*] [push+call+ret]+ sequences consuming the entire remainder.  That RET
-    is the true function epilogue; everything after it is thunks.
+    Strategy: scan forward for the first RET that is followed by inter-function
+    PADDING and then nothing but [push+call+ret]+ sequences consuming the entire
+    remainder.  That RET is the true function epilogue; everything after it is
+    thunks.
+
+    The padding is REQUIRED, and that requirement is the whole soundness
+    argument: MSVC pads (nop/int3) only *between* functions, never mid-body (the
+    same invariant disassemble() relies on to decide whether to fold a FUN_
+    label).  Without it this trim eats MSVC's own out-of-line cold blocks, which
+    have exactly the thunk shape -- `push <str>; push <code>; call error;
+    add esp,8; ret` is what every outlined error/assert arm looks like.
+    Measured: `ai_debug_dispose_from_old_map` is byte-identical to its reference
+    and scored 88.4% because its 5-instruction csstrcpy arm, sitting directly
+    after the first RET with no padding, was silently trimmed off the candidate
+    (19 insns compared against the reference's 24).  The reference side does not
+    go through here at all -- `xbe_reference.objdump_insns` parses it -- so the
+    trim was also asymmetric.
     """
     if not insns:
         return insns
@@ -544,10 +558,14 @@ def _trim_trailing_thunks(insns: list) -> list:
         if mnemonic(insn).lower() not in _RET_MNEMS:
             continue
 
-        # Skip alignment NOPs following this ret
+        # Skip inter-function padding following this ret.  At least one pad
+        # instruction is required: no padding means the following block is
+        # mid-body cold code, not a neighbouring thunk.
         j = i + 1
-        while j < n and mnemonic(insns[j]).lower() == 'nop':
+        while j < n and mnemonic(insns[j]).lower() in _PAD_MNEMS:
             j += 1
+        if j == i + 1:
+            continue  # no padding — same function's out-of-line block
 
         if j >= n:
             continue  # nothing meaningful after this ret — not a thunk boundary
@@ -567,7 +585,7 @@ def _trim_trailing_thunks(insns: list) -> list:
                 elif sm in _RET_MNEMS and found_call:
                     found_ret = True
                     pos = sub + 1
-                    while pos < n and mnemonic(insns[pos]).lower() == 'nop':
+                    while pos < n and mnemonic(insns[pos]).lower() in _PAD_MNEMS:
                         pos += 1
                     break
                 elif sm not in _THUNK_BODY_MNEMS:
@@ -1186,6 +1204,119 @@ def compare_load_widths(compiled: list[str], reference: list[str]) -> list[str]:
     return warnings
 
 
+# --- Call-count and parameter-slot-store detection (missing/extra call, and
+# --- a parameter the original REASSIGNED) ---
+#
+# Two divergences the aggregate LCS is structurally blind to, both of which are
+# source-shape facts rather than codegen noise:
+#
+# 1. CALL COUNT.  A dropped call is a behavioural bug, and on a small function
+#    it reads as a plausible codegen story instead.  hs_dispose (0xc3c30) sat at
+#    66.7% and the ready explanation was "cl.exe /O2 tail-jumps a trailing void
+#    call while the reference does call; ret".  The reference was CALL 0xca800
+#    then JMP 0xce1b0 -- it already tail-jumped, and the lift had dropped one of
+#    the two calls entirely and aimed the other at the wrong function.  With
+#    n_ref in the single digits the Dice score IS the instruction count, and
+#    2*1/(1+2) = 66.7% is a number that invites a compiler explanation.  Targets
+#    cannot be compared (the candidate's are unrelocated), but the COUNT can.
+#
+# 2. PARAMETER-SLOT STORE.  A store to a positive disp(%ebp) is a write to an
+#    incoming argument slot, and a source-level assignment to a parameter is one
+#    reason for it.  hs_console_evaluate (0xc50c0) writes [EBP+8] exactly once,
+#    at 0xc51e7, re-pointing `command` at the wrap buffer -- proving that in the
+#    pass-through case hs_compile receives the CALLER's original string, not the
+#    sanitised local copy the lift was passing.  A silent behavioural
+#    divergence, invisible to every other metric.
+#
+#    It is NOT proof, though, and the census is deliberately one-directional
+#    because of it.  cl.exe also reuses a param slot as scratch: `arccosine`
+#    (0x2a530, actor_moving.obj) is `return acosf(x);` -- no assignment exists
+#    to make -- and the candidate still emits `movl %eax, 0x8(%ebp)` for the
+#    float->double conversion.  Measured over a 9-TU AI sample, the
+#    candidate-only direction fired 20 times against the reference-only
+#    direction's 15, so the candidate-only half is dropped: its actionable
+#    reading ("we assign to a parameter the original left alone") is weak and it
+#    is mostly compiler scratch.  Unaligned offsets (0xb, 0xf, 0x13 in that
+#    sample) are dropped for the same reason -- argument slots are 4-byte
+#    aligned, so an interior byte store is a by-value struct field or scratch,
+#    never a whole-parameter assignment.
+#
+# Both are advisory (a set/count census, like LOADW and IMM), because each has
+# known-legitimate causes listed in the warning text itself.
+
+_CALL_MNEMONICS = frozenset(['call', 'calll', 'callq'])
+
+
+def _is_call(insn: str) -> bool:
+    return insn.strip().split(None, 1)[0].lower() in _CALL_MNEMONICS \
+        if insn.strip() else False
+
+
+_PARAM_STORE_RE = re.compile(
+    r'^(?:%\w+|\$-?0x[0-9a-f]+|\$-?\d+),\s*(0x[0-9a-f]+|\d+)\((%ebp)\)$')
+
+
+def param_slot_stores(insns: list[str]) -> dict:
+    """{disp: example_insn} for mov-family stores into a positive disp(%ebp).
+
+    A positive %ebp displacement is an incoming-argument slot (disp = 8 + 4*i
+    for a standard frame; disp 4 is the return address and 0 is the saved EBP,
+    both excluded).  Negative displacements are locals and are ignored -- a
+    spill is reg-alloc noise, not a source fact.  SIB/indexed forms are
+    excluded by requiring ')' immediately after %ebp.
+    """
+    out = {}
+    for insn in insns:
+        parts = insn.strip().split(None, 1)
+        if len(parts) != 2 or parts[0].lower() not in _MOV_LOAD_MNEMONICS:
+            continue
+        m = _PARAM_STORE_RE.match(parts[1].strip())
+        if not m:
+            continue
+        disp = int(m.group(1), 16) if m.group(1).startswith('0x') \
+            else int(m.group(1))
+        if disp < 8:
+            continue
+        out.setdefault(disp, insn.strip())
+    return out
+
+
+def compare_shape(compiled: list[str], reference: list[str]) -> list[str]:
+    """Flag call-count and parameter-slot-store divergence."""
+    warnings = []
+
+    c_calls = sum(1 for i in compiled if _is_call(i))
+    r_calls = sum(1 for i in reference if _is_call(i))
+    if c_calls != r_calls:
+        direction = ("reference makes MORE calls -- a dropped call, or the "
+                     "reference calls a CRT helper we write as a C idiom "
+                     "(_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU "
+                     "helper the original called (/Ob2)"
+                     if r_calls > c_calls else
+                     "our lift makes MORE calls -- an extra call, or the "
+                     "original inlined a helper we call out to")
+        warnings.append(
+            f"    SHAPE: call count differs (ours {c_calls}, reference "
+            f"{r_calls}) -- {direction}")
+
+    # Reference-only direction ONLY, and only for 4-byte-aligned slots.  See
+    # the module comment above for why the candidate-only direction and the
+    # unaligned interior bytes are both dropped as noise.
+    c_st = param_slot_stores(compiled)
+    r_st = param_slot_stores(reference)
+    for disp in sorted(set(r_st) - set(c_st)):
+        if disp % 4:
+            continue
+        warnings.append(
+            f"    SHAPE: reference STORES to incoming param slot 0x{disp:x}(%ebp) "
+            f"(ref: `{r_st[disp]}`) and our lift never does -- CHECK whether the "
+            f"original ASSIGNS to that parameter (a lift that introduces a "
+            f"separate local instead silently passes the wrong object on the "
+            f"paths that skip the assignment); cl.exe also reuses a param slot "
+            f"as scratch, so confirm against the disassembly before acting")
+    return warnings
+
+
 # --- Immediate-constant transcription detection (wrong float/magic literal) ---
 #
 # The reference is original XBE machine code; the candidate is VC71 codegen.
@@ -1442,10 +1573,10 @@ def compare_fcom_guards(compiled: list[str], reference: list[str]) -> list[str]:
 def compare_functions(compiled: list[str], reference: list[str],
                       reg_normalize: bool = False,
                       regdef_params: list[tuple[int, str]] | None = None
-                      ) -> tuple[float, list[str], list[str], list[str], list[str], list[str]]:
+                      ) -> tuple[float, list[str], list[str], list[str], list[str], list[str], list[str]]:
     """Compare two functions.
     Returns (match_pct, diff_summary, fpu_warnings, loadw_warnings,
-    imm_warnings, fcom_warnings).
+    imm_warnings, fcom_warnings, shape_warnings).
 
     When reg_normalize=True, uses full normalized instructions with register
     canonicalization for LCS instead of mnemonic-only. This catches operand-level
@@ -1527,7 +1658,11 @@ def compare_functions(compiled: list[str], reference: list[str],
     # FPU-guard bound-sense comparison (inclusive vs strict float compare)
     fcom_warnings = compare_fcom_guards(compiled, reference)
 
-    return ratio * 100, diffs, fpu_warnings, loadw_warnings, imm_warnings, fcom_warnings
+    # Call-count / parameter-slot-store comparison (missing call, reassigned param)
+    shape_warnings = compare_shape(compiled, reference)
+
+    return (ratio * 100, diffs, fpu_warnings, loadw_warnings, imm_warnings,
+            fcom_warnings, shape_warnings)
 
 
 def _self_test():
@@ -2013,6 +2148,86 @@ def _self_test():
     check("RP13 saves pass never scores below raw",
           comparison_ratio(selected, ref, False) >= raw)
 
+    # --- SHAPE: call-count and parameter-slot-store census (sections 49, 50) ---
+
+    # SH1. The hs_dispose shape: one of two calls dropped and the survivor
+    #      lowered to a tail jmp, so the mnemonic LCS reads 66.7% and the
+    #      missing CALL prints as a lone insert.
+    cand = ["jmp\t0x5 <_hs_dispose+0x5>"]
+    ref = ["calll\t0x6bd0", "jmp\t0xa580"]
+    w = compare_shape(cand, ref)
+    check("SH1 dropped call flagged with both counts",
+          len(w) == 1 and "ours 0, reference 1" in w[0]
+          and "reference makes MORE calls" in w[0])
+    check("SH1 the score itself is 66.7% and says nothing about the cause",
+          abs(compare_functions(cand, ref)[0] - 200.0 / 3.0) < 0.05)
+
+    # SH2. Equal call counts are silent (the fixed hs_dispose).
+    check("SH2 equal call counts are silent",
+          compare_shape(["calll\t0x0", "jmp\t0x5"], ref) == [])
+
+    # SH3. Reversed direction gets the other diagnosis (cl.exe /Ob2 inlined a
+    #      same-TU helper whose body carries its own calls).
+    w = compare_shape(["calll\ta", "calll\tb", "calll\tc"], ["calll\ta"])
+    check("SH3 candidate-heavy call count gets the inlining diagnosis",
+          len(w) == 1 and "ours 3, reference 1" in w[0]
+          and "our lift makes MORE calls" in w[0])
+
+    # SH4. Reference-only store into an incoming arg slot: the original
+    #      assigns to the parameter (the hs_console_evaluate [EBP+8] shape).
+    cand = ["movl\t-0x10(%ebp), %eax", "retl"]
+    ref = ["movl\t%edx, 0x8(%ebp)", "movl\t0x8(%ebp), %eax", "retl"]
+    w = compare_shape(cand, ref)
+    check("SH4 reference-only param-slot store flagged",
+          len(w) == 1 and "0x8(%ebp)" in w[0] and "ASSIGNS to that parameter" in w[0])
+    check("SH4 unaligned interior byte store is not flagged",
+          compare_shape(["retl"], ["movb\t$0x0, 0xb(%ebp)", "retl"]) == [])
+
+    # SH5. Slot classification: 0x8 and up are args; 0x4 is the return
+    #      address, 0x0 the saved EBP, and negatives are locals (spill noise).
+    st = param_slot_stores([
+        "movl\t%edx, 0x8(%ebp)", "movl\t$0x0, 0x10(%ebp)",
+        "movl\t%eax, 0x4(%ebp)", "movl\t%eax, (%ebp)",
+        "movl\t%eax, -0xc(%ebp)", "movl\t%eax, 0x8(%ebp,%esi,4)",
+    ])
+    check("SH5 only positive arg slots counted, SIB and locals rejected",
+          sorted(st) == [8, 16])
+
+    # SH6. The candidate-only direction is deliberately NOT reported (cl.exe
+    #      reuses param slots as scratch -- `arccosine` proves it), and a store
+    #      both sides make is silent.
+    check("SH6 candidate-only param-slot store is not reported",
+          compare_shape(["movl\t%eax, 0xc(%ebp)", "retl"], ["retl"]) == [])
+    check("SH6 a store both sides make is silent",
+          compare_shape(["movl\t%eax, 0x8(%ebp)"], ["movl\t%ecx, 0x8(%ebp)"]) == [])
+
+    # --- Trailing-thunk trim: padding is required (section 51) ---
+
+    # TT1. MSVC's own out-of-line cold arm has the thunk shape but NO padding
+    #      before it, so it must survive.  This is the exact
+    #      ai_debug_dispose_from_old_map body, which is byte-identical to its
+    #      reference and scored 88.4% while the arm was being trimmed.
+    body = [
+        "calll\t0x5", "testl\t%eax, %eax", "je\t0x43",
+        "movl\t0x5ac9f4, %ecx", "cmpl\t$-0x1, %ecx", "je\t0x43",
+        "pushl\t$0xb0", "andl\t$0xffff, %ecx", "pushl\t%ecx",
+        "addl\t$0x42c, %eax", "pushl\t%eax", "calll\t0x2b",
+        "pushl\t$0x20", "pushl\t%eax", "pushl\t$0x5ac9d2", "calll\t0x38",
+        "addl\t$0x18, %esp", "movb\t$0x0, 0x5ac9f1", "retl",
+        "pushl\t$0x25386f", "pushl\t$0x5ac9d2", "calll\t0x4d",
+        "addl\t$0x8, %esp", "retl",
+    ]
+    check("TT1 unpadded post-RET cold arm is kept (24 insns, not 19)",
+          _trim_trailing_thunks(list(body)) == body)
+
+    # TT2. A genuine neighbouring thunk IS preceded by inter-function padding,
+    #      and is still trimmed.
+    padded = body[:19] + ["nop", "nop"] + body[19:]
+    check("TT2 padded neighbouring thunk is still trimmed",
+          _trim_trailing_thunks(list(padded)) == body[:19])
+    check("TT2 int3 padding counts as inter-function padding too",
+          _trim_trailing_thunks(body[:19] + ["int3"] + body[19:]) == body[:19])
+
     if failures:
         print(f"\nSELF-TEST FAILED: {len(failures)} case(s)")
         sys.exit(1)
@@ -2031,6 +2246,8 @@ def main():
                     help="Show instruction-level diffs")
     ap.add_argument("--fpu-only", action="store_true",
                     help="Only report FPU operand warnings")
+    ap.add_argument("--shape-only", action="store_true",
+                    help="Only show call-count / parameter-slot-store (SHAPE) warnings")
     ap.add_argument("--loadw-only", action="store_true",
                     help="Only report load-width (int vs int16/int8) warnings")
     ap.add_argument("--imm-only", action="store_true",
@@ -2156,9 +2373,11 @@ def main():
     any_loadw_warn = False
     any_imm_warn = False
     any_fcom_warn = False
+    any_shape_warn = False
 
     for fn in sorted(matched):
-        pct, diffs, fpu_warnings, loadw_warnings, imm_warnings, fcom_warnings = compare_functions(
+        (pct, diffs, fpu_warnings, loadw_warnings, imm_warnings, fcom_warnings,
+         shape_warnings) = compare_functions(
             compiled_funcs[fn], reference_funcs[fn], reg_normalize=args.reg_normalize,
             regdef_params=regdef_params)
         n_c = len(compiled_funcs[fn])
@@ -2168,6 +2387,7 @@ def main():
         loadw_tag = " [LOADW-WARN]" if loadw_warnings else ""
         imm_tag = " [IMM-WARN]" if imm_warnings else ""
         fcom_tag = " [FCOM-WARN]" if fcom_warnings else ""
+        shape_tag = " [SHAPE-WARN]" if shape_warnings else ""
         trunc_tag = " [REF-TRUNCATED?]" if n_r > 0 and n_c > n_r * 1.4 else ""
 
         # When reg-normalize is on, also compute mnemonic % to show the gap
@@ -2177,9 +2397,10 @@ def main():
                                          reg_normalize=False)[0]
             reg_tag = f" [struct:{mnem_pct:.1f}%]"
 
-        only_mode = args.fpu_only or args.loadw_only or args.imm_only or args.fcom_only
+        only_mode = (args.fpu_only or args.loadw_only or args.imm_only
+                     or args.fcom_only or args.shape_only)
         if not only_mode:
-            print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{trunc_tag}")
+            print(f"  {status} {fn}: {pct:.1f}% match ({n_c}/{n_r} insns){reg_tag}{fpu_tag}{loadw_tag}{imm_tag}{fcom_tag}{shape_tag}{trunc_tag}")
 
         if fpu_warnings:
             any_fpu_warn = True
@@ -2216,12 +2437,30 @@ def main():
                 for w in fcom_warnings:
                     print(w)
 
+        if shape_warnings:
+            any_shape_warn = True
+            # Call-count deltas have known-legitimate causes (/Ob2 inlining, CRT
+            # idioms), so -- like FCOM -- the compact tag is the hint on the
+            # status line and the detail lines expand only in --shape-only.
+            if args.shape_only:
+                print(f"  {fn}:{shape_tag}")
+                for w in shape_warnings:
+                    print(w)
+
         if status == "FAIL":
             any_fail = True
 
         if args.show_diffs and diffs and not only_mode:
             for d in diffs:
                 print(d)
+
+    if any_shape_warn and args.shape_only:
+        print("\nWARNING: call-count or parameter-slot-store differences detected.")
+        print("A call-count delta on a SMALL function is usually a dropped or wrongly")
+        print("aimed call, not a codegen artifact -- decode the reference's E8/E9 targets")
+        print("before accepting a compiler explanation. A reference-only store to a")
+        print("positive disp(%ebp) means the original ASSIGNS to that parameter.")
+        print("See docs/lift-learnings.md sections 49-50.")
 
     if any_fpu_warn and not args.loadw_only and not args.imm_only and not args.fcom_only:
         print("\nWARNING: FPU operand-order differences detected.")

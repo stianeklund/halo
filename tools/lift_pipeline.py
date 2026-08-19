@@ -838,6 +838,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
       output = (proc.stdout or "") + (proc.stderr or "")
       vc71_has_fpu_warn = "FPU-WARN" in output
       vc71_has_imm_warn = "IMM-WARN" in output
+      vc71_has_shape_warn = "SHAPE-WARN" in output
       # Score the TARGET's line, not the first function in the TU (see
       # parse_match_percent_for_function).  vc71_verify may print the kb name or
       # the FUN_<addr> spelling, so offer both.
@@ -868,6 +869,13 @@ def run_pipeline(args: argparse.Namespace) -> int:
         review_tags += " [REVIEW FPU-WARN]"
       if vc71_has_imm_warn:
         review_tags += " [REVIEW IMM-WARN]"
+      # SHAPE-WARN: a call-count delta or a reference-only store into an
+      # incoming param slot.  On a small function the call-count half is a
+      # dropped or wrongly aimed call, which is a correctness bug rather than a
+      # score artifact -- see docs/lift-learnings.md sections 49-50.  Advisory
+      # like the others; re-run with --shape-only for the detail lines.
+      if vc71_has_shape_warn:
+        review_tags += " [REVIEW SHAPE-WARN]"
       # Never let an unattributed number pass as the target's score in silence:
       # it gates the permuter band and low_match_policy.
       if vc71_match_pct is not None and not vc71_pct_exact:

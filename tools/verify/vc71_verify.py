@@ -32,12 +32,14 @@ Usage:
 """
 
 import argparse
+import atexit
 import bisect
 import datetime
 import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -871,9 +873,21 @@ def _make_fastcall_decl_shadow(names: set[str]) -> Path | None:
             changed = True
     if not changed:
         return None
-    shadow_dir = VC71_OUT_DIR / "fastcall_inc"
+    # This directory must be PRIVATE to the process, for two reasons:
+    #   1. `names` is per-TU, so the shadow's CONTENT differs per TU.  A shared
+    #      path lets one worker's compile pick up another TU's prototypes --
+    #      the residual nondeterminism left after build/generated/decl.h was
+    #      pinned (FUN_00171bc0 flipped 92.9% vs 80.3% between runs).
+    #   2. On /mnt/g (drvfs) os.replace() onto a path a sibling process holds
+    #      open raises PermissionError, so guarding (1) with a shared-path
+    #      atomic rename instead failed 16 TUs outright (174 functions unscored)
+    #      under a 16-worker populate.
+    # Each TU is verified in its own subprocess, so the pid is a per-worker key.
+    # See docs/lift-learnings.md 52.
+    shadow_dir = VC71_OUT_DIR / "fastcall_inc" / f"p{os.getpid()}"
     shadow_dir.mkdir(parents=True, exist_ok=True)
     (shadow_dir / "decl.h").write_text(text)
+    atexit.register(shutil.rmtree, shadow_dir, ignore_errors=True)
     return shadow_dir
 
 
@@ -1300,6 +1314,7 @@ def _build_score_context(
     loadw_warnings: list[str],
     imm_warnings: list[str],
     fcom_warnings: list[str],
+    shape_warnings: list[str],
     source: Path,
     ref_info: dict,
     regdef_params,
@@ -1362,6 +1377,7 @@ def _build_score_context(
         "loadw": list(loadw_warnings or []),
         "imm": list(imm_warnings or []),
         "fcom": list(fcom_warnings or []),
+        "shape": list(shape_warnings or []),
     }
 
     classification = _classify_score_context(scores, warnings, diff_ops, frame)
@@ -1547,6 +1563,7 @@ def run_compare_cached(
     loadw_only = False
     imm_only = False
     fcom_only = False
+    shape_only = False
     reg_normalize = False
     regdef_override_str = None
     i = 0
@@ -1566,6 +1583,8 @@ def run_compare_cached(
             imm_only = True; i += 1
         elif a == "--fcom-only":
             fcom_only = True; i += 1
+        elif a == "--shape-only":
+            shape_only = True; i += 1
         elif a in ("--reg-normalize", "-r"):
             reg_normalize = True; i += 1
         elif a == "--regdef-params" and i + 1 < len(extra_args):
@@ -1702,6 +1721,7 @@ def run_compare_cached(
     any_loadw_warn = False
     any_imm_warn = False
     any_fcom_warn = False
+    any_shape_warn = False
     hits = 0
     misses = 0
 
@@ -1735,12 +1755,13 @@ def run_compare_cached(
             loadw_warnings = cached_result.get("loadw_warnings") or []
             imm_warnings = cached_result.get("imm_warnings") or []
             fcom_warnings = cached_result.get("fcom_warnings") or []
+            shape_warnings = cached_result.get("shape_warnings") or []
             # diff_lines may be None if we didn't store diffs (e.g. not show_diffs)
             diffs = cached_result["diff_lines"] or []
             cache_tag = " [cache hit]"
         else:
             misses += 1
-            pct, diffs, fpu_warnings, loadw_warnings, imm_warnings, fcom_warnings = co.compare_functions(
+            pct, diffs, fpu_warnings, loadw_warnings, imm_warnings, fcom_warnings, shape_warnings = co.compare_functions(
                 compiled_funcs[fn], reference_funcs[fn],
                 reg_normalize=reg_normalize,
                 regdef_params=regdef,
@@ -1759,7 +1780,8 @@ def run_compare_cached(
             if cache is not None and not no_cache:
                 cache.put(fn, source, None, pct, fpu_warnings, diffs,
                           loadw_warnings=loadw_warnings, imm_warnings=imm_warnings,
-                          fcom_warnings=fcom_warnings, opt=cache_opt)
+                          fcom_warnings=fcom_warnings,
+                          shape_warnings=shape_warnings, opt=cache_opt)
 
         n_c = len(compiled_funcs[fn])
         n_r = len(reference_funcs[fn])
@@ -1776,6 +1798,7 @@ def run_compare_cached(
         loadw_tag = " [LOADW-WARN]" if loadw_warnings else ""
         imm_tag = " [IMM-WARN]" if imm_warnings else ""
         fcom_tag = " [FCOM-WARN]" if fcom_warnings else ""
+        shape_tag = " [SHAPE-WARN]" if shape_warnings else ""
         # A bound the generator could not close on a terminator: the reference
         # may run past the real body or stop short of it.  Tagged rather than
         # suppressed, so the score is still measured but is identifiable as
@@ -1790,7 +1813,8 @@ def run_compare_cached(
                 regdef_params=regdef)[0]
             reg_tag = f" [struct:{mnem_pct:.1f}%]"
 
-        only_mode = fpu_only or loadw_only or imm_only or fcom_only
+        only_mode = (fpu_only or loadw_only or imm_only or fcom_only
+                     or shape_only)
 
         # Advisory operand-normalized score.  The primary `pct` above is a
         # mnemonic-only LCS, which is blind to operand-level bugs (swapped
@@ -1862,6 +1886,16 @@ def run_compare_cached(
                 for w in fcom_warnings:
                     print(w)
 
+        if shape_warnings:
+            any_shape_warn = True
+            # Call-count deltas have known-legitimate causes (/Ob2 inlining of a
+            # same-TU helper, CRT idioms we write in C), so -- like FCOM -- the
+            # compact tag is the hint and details expand only in --shape-only.
+            if shape_only:
+                print(f"  {fn}:{shape_tag}" + ("" if quiet else cache_tag))
+                for w in shape_warnings:
+                    print(w)
+
         if status == "FAIL":
             any_fail = True
 
@@ -1885,6 +1919,7 @@ def run_compare_cached(
             pack = _build_score_context(
                 fn, compiled_funcs[fn], reference_funcs[fn], pct,
                 fpu_warnings, loadw_warnings, imm_warnings, fcom_warnings,
+                shape_warnings,
                 source, ref_info, regdef, co,
             )
             ctx_path = _write_score_context(pack)
@@ -1902,6 +1937,20 @@ def run_compare_cached(
     if (hits or misses) and not quiet:
         total = hits + misses
         print(f"\n  Cache: {hits}/{total} hits ({100*hits//total if total else 0}%)")
+
+    if any_shape_warn:
+        if shape_only:
+            print("\nWARNING: call-count or parameter-slot-store differences detected.")
+            print("A call-count delta on a SMALL function is usually a dropped or wrongly aimed")
+            print("call, not a codegen artifact -- decode the reference's E8/E9 targets before")
+            print("accepting a compiler explanation (hs_dispose sat at 66.7% with one of two")
+            print("calls missing). A reference-only store to a positive disp(%ebp) means the")
+            print("original ASSIGNS to that parameter, so later uses read the new value.")
+            print("See docs/lift-learnings.md sections 49 and 50.")
+        elif not quiet:
+            print("\n[SHAPE-WARN] call-count / param-slot-store differences found; re-run with "
+                  "--shape-only for details (dropped call, reassigned parameter; see "
+                  "lift-learnings sections 49-50).")
 
     if any_fpu_warn and not loadw_only and not imm_only and not fcom_only:
         print("\nWARNING: FPU operand-order differences detected.")
@@ -1960,6 +2009,9 @@ def main():
                     help="Only show load-width (int vs int16/int8) warnings")
     ap.add_argument("--imm-only", action="store_true",
                     help="Only show immediate-constant (wrong float/magic literal) warnings")
+    ap.add_argument("--shape-only", action="store_true",
+                    help="Only show call-count / parameter-slot-store (SHAPE) warnings "
+                         "-- dropped or wrongly aimed call, reassigned parameter")
     ap.add_argument("--fcom-only", action="store_true",
                     help="Only show FPU-guard bound-sense (<= vs <) warnings")
     ap.add_argument("--threshold", "-t", type=float, default=50.0)
@@ -2153,6 +2205,8 @@ def main():
         extra += ["--imm-only"]
     if args.fcom_only:
         extra += ["--fcom-only"]
+    if args.shape_only:
+        extra += ["--shape-only"]
     if args.reg_normalize:
         extra += ["--reg-normalize"]
     if args.regdef_params:

@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS fn_results (
     loadw_warnings TEXT DEFAULT '[]',  -- JSON array of strings (load-width diffs)
     imm_warnings TEXT DEFAULT '[]',    -- JSON array of strings (immediate-constant diffs)
     fcom_warnings TEXT DEFAULT '[]',   -- JSON array of strings (FPU-guard bound-sense diffs)
+    shape_warnings TEXT DEFAULT '[]',  -- JSON array of strings (call-count / param-slot-store diffs)
     created_utc TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_source ON fn_results(source_path);
@@ -207,6 +208,10 @@ class Vc71Cache:
                 conn.execute("ALTER TABLE fn_results ADD COLUMN fcom_warnings TEXT DEFAULT '[]'")
             except sqlite3.OperationalError:
                 pass  # column already exists
+            try:
+                conn.execute("ALTER TABLE fn_results ADD COLUMN shape_warnings TEXT DEFAULT '[]'")
+            except sqlite3.OperationalError:
+                pass  # column already exists
             conn.commit()
             self._conn = conn
         return self._conn
@@ -228,7 +233,7 @@ class Vc71Cache:
         conn = self._open()
         row = conn.execute(
             "SELECT match_pct, fpu_warnings, diff_lines, loadw_warnings, imm_warnings, "
-            "fcom_warnings, created_utc "
+            "fcom_warnings, shape_warnings, created_utc "
             "FROM fn_results WHERE cache_key = ?",
             (key,),
         ).fetchone()
@@ -241,6 +246,7 @@ class Vc71Cache:
             "loadw_warnings": json.loads(row["loadw_warnings"]) if row["loadw_warnings"] else [],
             "imm_warnings": json.loads(row["imm_warnings"]) if row["imm_warnings"] else [],
             "fcom_warnings": json.loads(row["fcom_warnings"]) if row["fcom_warnings"] else [],
+            "shape_warnings": json.loads(row["shape_warnings"]) if row["shape_warnings"] else [],
             "created_utc": row["created_utc"],
         }
 
@@ -255,6 +261,7 @@ class Vc71Cache:
         loadw_warnings: list[str] | None = None,
         imm_warnings: list[str] | None = None,
         fcom_warnings: list[str] | None = None,
+        shape_warnings: list[str] | None = None,
         opt: str = "/O2",
     ) -> None:
         """Insert or replace a cache entry."""
@@ -266,8 +273,8 @@ class Vc71Cache:
             INSERT OR REPLACE INTO fn_results
               (cache_key, fn_name, source_path, ref_path,
                match_pct, fpu_warnings, diff_lines, loadw_warnings, imm_warnings,
-               fcom_warnings, created_utc)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               fcom_warnings, shape_warnings, created_utc)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 key,
@@ -280,6 +287,7 @@ class Vc71Cache:
                 json.dumps(loadw_warnings if loadw_warnings is not None else []),
                 json.dumps(imm_warnings if imm_warnings is not None else []),
                 json.dumps(fcom_warnings if fcom_warnings is not None else []),
+                json.dumps(shape_warnings if shape_warnings is not None else []),
                 created,
             ),
         )

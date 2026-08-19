@@ -920,8 +920,47 @@ def compare_provenance(base_entry: dict, current: dict) -> tuple[str, str]:
 # vc71_verify runner
 # ---------------------------------------------------------------------------
 
+_DECL_PINNED: bool | None = None
+
+
+def _pin_decl_header() -> bool:
+    """Regenerate build/generated/decl.h ONCE in this process; True on success.
+
+    vc71_verify regenerates the header on every invocation (that is what keeps a
+    kb.json prototype edit from being compiled against a stale header -- see
+    docs/lift-learnings.md 41).  Harmless serially; **corrupting in parallel**.
+    The measure loops below fan out up to 8 vc71_verify subprocesses, so without
+    this every one of them rewrites the same header while its siblings are
+    compiling against it, and a worker that reads a half-written header produces
+    a wrong-but-plausible score.  Measured 2026-08-19: a full parallel `check`
+    reported 24 regressions across 8 TUs -- including local_random_range 100.0%
+    -> 83.3% and local_random_vector_in_cone3d 100.0% -> 72.7% -- every one of
+    which disappeared on a serial re-measure.  Worse, those scores were then
+    memoized under a key derived from the *intact* post-run header, so the
+    poisoned numbers were served back to later serial runs
+    (VC71_NO_MEASURE_MEMO=1 was the only way to see the truth).
+
+    Pin here in the parent, then pass --skip-decl-regen to every worker.  If the
+    pin fails we return False and the workers keep regenerating: slower and
+    racy, but never silently compiled against a header nobody refreshed.
+    """
+    global _DECL_PINNED
+    if _DECL_PINNED is not None:
+        return _DECL_PINNED
+    _DECL_PINNED = False
+    try:
+        sys.path.insert(0, str(REPO_ROOT / "tools" / "verify"))
+        from vc71_verify import regen_decl_header
+        regen_decl_header(quiet=True)
+        _DECL_PINNED = True
+    except Exception:
+        _DECL_PINNED = False
+    return _DECL_PINNED
+
+
 def run_vc71_verify(source: Path, no_cache: bool = True,
                     function: str | None = None,
+                    skip_decl_regen: bool = False,
                     drops_out: list | None = None,
                     meta_out: dict | None = None) -> dict[str, dict]:
     """Run vc71_verify on a source file; return {fn_name: {score, n_c, n_r}}.
@@ -961,6 +1000,8 @@ def run_vc71_verify(source: Path, no_cache: bool = True,
         cmd.extend(["--function", function])
     if no_cache:
         cmd.append("--no-cache")
+    if skip_decl_regen:
+        cmd.append("--skip-decl-regen")
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO_ROOT)
     if meta_out is not None:
         combined = (result.stderr or result.stdout or "")
@@ -1142,7 +1183,8 @@ def _measure_source(src: Path, per_function_fallback: bool = False):
     log: list = []
     drops: list = []
     meta: dict = {}
-    results = run_vc71_verify(src, drops_out=drops, meta_out=meta)
+    results = run_vc71_verify(src, drops_out=drops, meta_out=meta,
+                              skip_decl_regen=bool(_DECL_PINNED))
     src_rel = str(src.relative_to(REPO_ROOT))
 
     # Compile-failure gate: a TU that produced neither a score line nor a DROP
@@ -1178,7 +1220,8 @@ def _measure_source(src: Path, per_function_fallback: bool = False):
                          key=lambda x: x["name"]):
             if _result_key(results, fn["name"], fn.get("addr")) is not None:
                 continue
-            extra = run_vc71_verify(src, function=fn["name"])
+            extra = run_vc71_verify(src, function=fn["name"],
+                                    skip_decl_regen=bool(_DECL_PINNED))
             if extra:
                 results.update(extra)
                 recovered.append(fn["name"])
@@ -1396,13 +1439,18 @@ def cmd_check(args) -> int:
     if to_measure:
         # Pre-warm lazy module caches so worker threads never race on first init.
         _kb_maps(); _kb_source_funcs(); _decl_index()
+        # Pin decl.h here, ONCE, so the workers below do not each rewrite it
+        # while their siblings compile against it (see _pin_decl_header).
+        _decl_pinned = _pin_decl_header()
         n_workers = min(len(to_measure), max(1, (os.cpu_count() or 4) - 2), 8)
 
         def _measure(src_path):
             meta: dict = {}
             drops: list = []
             try:
-                return run_vc71_verify(src_path, drops_out=drops, meta_out=meta), drops, meta, None
+                return (run_vc71_verify(src_path, drops_out=drops, meta_out=meta,
+                                        skip_decl_regen=_decl_pinned),
+                        drops, meta, None)
             except Exception as exc:  # re-raised or recorded serially below
                 return None, drops, meta, exc
 
@@ -1993,6 +2041,9 @@ def cmd_populate(args) -> int:
     if to_verify:
         # Pre-warm lazy module caches so worker threads never race on first init.
         _kb_maps(); _kb_source_funcs(); _decl_index()
+        # Pin decl.h here, ONCE (see _pin_decl_header) -- the same torn-header
+        # race that poisons `check` would poison the floors this command writes.
+        _pin_decl_header()
         # --workers caps concurrency.  Each worker holds a compiler subprocess
         # and its parsed output; a whole-tree pass at the default width is what
         # OOM-kills this box, and a shard that dies mid-flight leaves the
