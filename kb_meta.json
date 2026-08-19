@@ -29,6 +29,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x128c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x12920": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12f10": {
       "kind": "function",
       "status": "ported"
@@ -1353,6 +1361,10 @@
       ]
     },
     "0x43520": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x43db0": {
       "kind": "function",
       "status": "ported"
     },
@@ -4759,7 +4771,23 @@
         "The signature void scripted_player_effect_set_rotation(int handle, float, float) is recovered from the single call site at 0xc300f (12 bytes of pushed arguments, one PUSH of an int plus two FSTP-filled float slots); the parameter names yaw and pitch are labels of convenience and are not proven by that call site."
       ]
     },
+    "0xa2920": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa2a10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa2a70": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa2ca0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa2dc0": {
       "kind": "function",
       "status": "ported"
     },
@@ -11067,7 +11095,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x125180": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x125510": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x125610": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x125660": {
       "kind": "function",
       "status": "ported"
     },

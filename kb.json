@@ -17680,7 +17680,8 @@
     },
     {
      "addr": "0xa2dc0",
-     "decl": "void scripted_player_effect_set_translation(int param_1, float param_2, float param_3);"
+     "decl": "void scripted_player_effect_set_translation(int param_1, float param_2, float param_3);",
+     "ported": true
     },
     {
      "addr": "0xa2df0",

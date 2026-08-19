@@ -49136,6 +49136,21 @@
       "score": 100.0,
       "source": "src/halo/effects/player_effects.c"
     },
+    "scripted_player_effect_set_translation": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xa2dc0",
+      "end": "0xa2de5",
+      "kind": "auto",
+      "n_r": 11,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "17d8ac9c24f2df62",
+      "score": 100.0,
+      "source": "src/halo/effects/player_effects.c"
+    },
     "scripted_show_hud": {
       "addr": "0xd0400",
       "end": "0xd0417",

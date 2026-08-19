@@ -151,6 +151,35 @@ void player_effect_update(void)
   }
 }
 
+/* scripted_player_effect_set_translation -- store the three script-supplied
+ * translation components into the shared player-effect globals.
+ *
+ * Confirmed (0xa2dc0..0xa2de4, 37 bytes): the globals pointer at 0x4557ec
+ * (player_effect_globals, the 0x3ec-byte block allocated at 0xa2700) is loaded
+ * once into EAX, then the three incoming stack dwords [EBP+8], [EBP+0xc] and
+ * [EBP+0x10] are written verbatim to +0x3c4, +0x3c8 and +0x3cc.  There is no
+ * FILD/FSTP conversion and no arithmetic on any of them, so each argument slot
+ * is forwarded bit-exact; the dword MOV shape is MSVC scheduling and carries no
+ * type signal either way (same caveat as 0xa2920).
+ *
+ * Unknown: the globals' field types at +0x3c4..+0x3cc.  The kb decl's
+ * int/float/float split is inherited from the HaloScript call site at 0xc2f90
+ * and is preserved here, so each parameter is stored through a pointer of its
+ * own declared type; MSVC copies the float parameters with plain dword MOVs
+ * (no FLD/FSTP), reproducing the reference exactly.
+ *
+ * 0xa2dc0 / player_effects.obj */
+void scripted_player_effect_set_translation(int param_1, float param_2,
+                                            float param_3)
+{
+  char *globals;
+
+  globals = player_effect_globals;
+  *(int *)(globals + 0x3c4) = param_1;
+  *(float *)(globals + 0x3c8) = param_2;
+  *(float *)(globals + 0x3cc) = param_3;
+}
+
 /* player_effect_set_from_descriptor -- apply an effect descriptor to a player's
  * effect state. Internal helper at 0xa2ab0.
  *
