@@ -97,6 +97,43 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
     (int)camera->viewport_bounds.y1 - (int)camera->viewport_bounds.y0;
   float width_f = (float)width_px;
   float height_f = (float)height_px;
+  float half_w_range;
+  float half_h_range;
+  float center_x;
+  float center_y;
+  float tan_half_fov;
+  float inv_tan_x;
+  float inv_tan_y;
+  float right[3], up2[3], neg_fwd[3];
+  float *view_to_world;
+  float *world_to_view;
+  float *global_fwd;
+  float plane_vs[4]; /* view-space plane: (x, y, z, d) */
+  float saved_cx_plus_1;
+  float saved_cy_plus_1;
+  float scale_x;
+  float scale_y;
+  float half_z;
+  float corner_lx;
+  float corner_rx;
+  float corner_by;
+  float corner_ty;
+  float corner_vs[3];
+  float proj_center_vs[3];
+  float *corner0;
+  float *left_p;
+  float *right_p;
+  float *bottom_p;
+  float *top_p;
+  float *near_p;
+  float *far_p;
+  float *c0;
+  float *c1;
+  float *c2;
+  float *c3;
+  float *cam_pos;
+  float *proj_ctr;
+  float d;
 
   /* Copy or default the viewport bounds (frustum[0..3]). */
   if (bounds == 0) {
@@ -112,14 +149,13 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   }
 
   /* Compute half-ranges and viewport centers. */
-  float half_w_range = (frustum[1] - frustum[0]) * 0.5f;
-  float half_h_range = (frustum[3] - frustum[2]) * 0.5f;
-  float center_x = (frustum[0] + frustum[1]) / half_w_range * -0.5f;
-  float center_y = (frustum[2] + frustum[3]) / half_h_range * -0.5f;
+  half_w_range = (frustum[1] - frustum[0]) * 0.5f;
+  half_h_range = (frustum[3] - frustum[2]) * 0.5f;
+  center_x = (frustum[0] + frustum[1]) / half_w_range * -0.5f;
+  center_y = (frustum[2] + frustum[3]) / half_h_range * -0.5f;
 
   /* Compute tan(vfov/2) and inverse tangent scale factors.
    * inv_tan_x accounts for the aspect ratio correction. */
-  float tan_half_fov;
 #if defined(_MSC_VER) && !defined(__clang__)
   {
     float vfov = camera->vertical_field_of_view;
@@ -141,8 +177,8 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
                : "memory");
 #endif
 
-  float inv_tan_x = 1.0f / (half_w_range / height_f * width_f * tan_half_fov);
-  float inv_tan_y = 1.0f / (tan_half_fov * half_h_range);
+  inv_tan_x = 1.0f / (half_w_range / height_f * width_f * tan_half_fov);
+  inv_tan_y = 1.0f / (tan_half_fov * half_h_range);
 
   /* Assertions. */
   assert_halt(camera->vertical_field_of_view <
@@ -164,7 +200,6 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   /* Build the view-to-world matrix (frustum[0x11..0x1d]).
    * Columns are: right (cross product), up (double cross), -forward,
    * then the camera position as the translation row. */
-  float right[3], up2[3], neg_fwd[3];
 
   /* right = up x forward */
   right[0] = up[2] * forward[1] - up[1] * forward[2];
@@ -203,8 +238,8 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
 
   /* Compute world_to_view = inverse(view_to_world).
    * frustum[4..0x10] = world_to_view matrix. */
-  float *view_to_world = &frustum[0x11];
-  float *world_to_view = &frustum[4];
+  view_to_world = &frustum[0x11];
+  world_to_view = &frustum[4];
   matrix4x3_inverse(view_to_world, world_to_view);
 
   assert_halt(valid_real_matrix4x3(world_to_view));
@@ -214,14 +249,13 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
    * Plane normals are constructed in view space, normalized, then
    * the distance d is computed as dot(normal, global_forward) where
    * global_forward is the vector at **(float**)0x31fc1c. */
-  float *global_fwd = *(float **)0x31fc1c;
-  float plane_vs[4]; /* view-space plane: (x, y, z, d) */
+  global_fwd = *(float **)0x31fc1c;
 
   /* Left plane (frustum[0x1e..0x21]) */
   plane_vs[0] = -inv_tan_x;
   plane_vs[1] = 0.0f;
   plane_vs[2] = center_x + 1.0f;
-  float saved_cx_plus_1 = plane_vs[2];
+  saved_cx_plus_1 = plane_vs[2];
   normalize_vector3(plane_vs);
   plane_vs[3] = plane_vs[0] * global_fwd[0] + plane_vs[1] * global_fwd[1] +
                 plane_vs[2] * global_fwd[2];
@@ -240,7 +274,7 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   plane_vs[0] = 0.0f;
   plane_vs[1] = -inv_tan_y;
   plane_vs[2] = center_y + 1.0f;
-  float saved_cy_plus_1 = plane_vs[2];
+  saved_cy_plus_1 = plane_vs[2];
   normalize_vector3(plane_vs);
   plane_vs[3] = plane_vs[0] * global_fwd[0] + plane_vs[1] * global_fwd[1] +
                 plane_vs[2] * global_fwd[2];
@@ -274,20 +308,19 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   frustum[0x37] = camera->z_far;
 
   /* Compute scale factors for projection. */
-  float scale_x = 1.0f / inv_tan_x;
-  float scale_y = 1.0f / inv_tan_y;
+  scale_x = 1.0f / inv_tan_x;
+  scale_y = 1.0f / inv_tan_y;
 
-  float half_z = (camera->z_far + camera->z_near) * 0.5f;
+  half_z = (camera->z_far + camera->z_near) * 0.5f;
 
   /* Compute 4 far-plane frustum corners in world space.
    * Each corner is a view-space direction scaled by -z_far, then
    * transformed by view_to_world into world space. */
-  float corner_lx = saved_cx_plus_1 * -(scale_x * camera->z_far);
-  float corner_rx = (center_x - 1.0f) * -(scale_x * camera->z_far);
-  float corner_by = saved_cy_plus_1 * -(scale_y * camera->z_far);
-  float corner_ty = (center_y - 1.0f) * -(scale_y * camera->z_far);
+  corner_lx = saved_cx_plus_1 * -(scale_x * camera->z_far);
+  corner_rx = (center_x - 1.0f) * -(scale_x * camera->z_far);
+  corner_by = saved_cy_plus_1 * -(scale_y * camera->z_far);
+  corner_ty = (center_y - 1.0f) * -(scale_y * camera->z_far);
 
-  float corner_vs[3];
 
   /* Corner 0: left-bottom-far => frustum[0x38..0x3a] */
   corner_vs[0] = corner_lx;
@@ -319,7 +352,6 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   frustum[0x46] = pos[2];
 
   /* Projection center => frustum[0x47..0x49] */
-  float proj_center_vs[3];
   proj_center_vs[0] = -(scale_x * half_z * center_x);
   proj_center_vs[1] = -(scale_y * half_z * center_y);
   proj_center_vs[2] = -half_z;
@@ -327,7 +359,7 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
 
   /* Compute AABB of frustum corners (frustum[0x4a..0x4f]).
    * Initialize from corner 0, then expand with corners 1-3. */
-  float *corner0 = &frustum[0x38];
+  corner0 = &frustum[0x38];
   frustum[0x4b] = corner0[0]; /* max_x = corner0.x */
   frustum[0x4a] = corner0[0]; /* min_x = corner0.x */
   frustum[0x4d] = corner0[1]; /* max_y */
@@ -384,6 +416,13 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
     csmemset(&frustum[0x61], 0, 0x8);
     *(unsigned char *)&frustum[0x50] = 0;
   } else {
+    float inv_z;
+    float neg_proj_d;
+    float abs_x;
+    float abs_y;
+    float denom;
+    float proj_scale;
+
     /* Build the projection matrix from the camera's projection
      * data at camera->unk_68 (+0x44, 4 floats). */
     if (camera->z_near == 0.0f) {
@@ -400,17 +439,17 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
     }
 
     /* Compute adjusted projection parameters. */
-    float inv_z = 1.0f / plane_vs[2];
-    float neg_proj_d = -(plane_vs[3] * inv_z);
-    float abs_x = inv_z * plane_vs[0];
-    float abs_y = inv_z * plane_vs[1];
+    inv_z = 1.0f / plane_vs[2];
+    neg_proj_d = -(plane_vs[3] * inv_z);
+    abs_x = inv_z * plane_vs[0];
+    abs_y = inv_z * plane_vs[1];
     if (abs_x < 0.0f)
       abs_x = -abs_x;
     if (abs_y < 0.0f)
       abs_y = -abs_y;
-    float denom =
+    denom =
       (camera->z_far - neg_proj_d) * (abs_x + abs_y + *(double *)0x2573d8);
-    float proj_scale = camera->z_far / denom;
+    proj_scale = camera->z_far / denom;
 
     plane_vs[0] = inv_z * proj_scale * plane_vs[0];
     plane_vs[1] = inv_z * proj_scale * plane_vs[1];
@@ -445,19 +484,18 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
    * points (corners, camera position, projection center) to each
    * clip plane.  The absolute distance is passed to the warning
    * function along with a condition ID (0..0x15). */
-  float *left_p = &frustum[0x1e];
-  float *right_p = &frustum[0x22];
-  float *bottom_p = &frustum[0x26];
-  float *top_p = &frustum[0x2a];
-  float *near_p = &frustum[0x2e];
-  float *far_p = &frustum[0x32];
-  float *c0 = &frustum[0x38];
-  float *c1 = &frustum[0x3b];
-  float *c2 = &frustum[0x3e];
-  float *c3 = &frustum[0x41];
-  float *cam_pos = &frustum[0x44];
-  float *proj_ctr = &frustum[0x47];
-  float d;
+  left_p = &frustum[0x1e];
+  right_p = &frustum[0x22];
+  bottom_p = &frustum[0x26];
+  top_p = &frustum[0x2a];
+  near_p = &frustum[0x2e];
+  far_p = &frustum[0x32];
+  c0 = &frustum[0x38];
+  c1 = &frustum[0x3b];
+  c2 = &frustum[0x3e];
+  c3 = &frustum[0x41];
+  cam_pos = &frustum[0x44];
+  proj_ctr = &frustum[0x47];
 
   /* Corners vs left plane */
   d = c0[0] * left_p[0] + c0[1] * left_p[1] + c0[2] * left_p[2] - left_p[3];

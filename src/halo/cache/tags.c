@@ -49,14 +49,9 @@ int tag_loaded(int group_tag, const char *name, ...)
  * or if the data pointer is NULL. */
 void *tag_get(int group_tag, int tag_index)
 {
-  int _edi = tag_index;
   int *entry;
 
-  asm volatile("movl $0x1b9bf0, %%ecx\n\t"
-               "call *%%ecx"
-               : "+D"(_edi), "=a"(entry)
-               :
-               : "ecx", "edx", "memory", "cc");
+  entry = tag_instance_resolve(tag_index);
 
   if (entry[0] != group_tag && entry[1] != group_tag && entry[2] != group_tag) {
     error(2, "expected tag group %08x but got %08x for datum %08x", group_tag,
@@ -78,15 +73,9 @@ void *tag_get(int group_tag, int tag_index)
  * then reads the name pointer at offset +0x10 of the tag instance record. */
 const char *tag_get_name(int tag_index)
 {
-  int _edi = tag_index;
   int *entry;
 
-  asm volatile("movl $0x1b9bf0, %%ecx\n\t"
-               "call *%%ecx"
-               : "+D"(_edi), "=a"(entry)
-               :
-               : "ecx", "edx", "memory", "cc");
-
+  entry = tag_instance_resolve(tag_index);
   return (const char *)entry[4];
 }
 

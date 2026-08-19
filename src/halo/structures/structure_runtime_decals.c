@@ -5,6 +5,7 @@ void FUN_001963c0(uint32_t *old_cluster_visibility,
   uint8_t *runtime_decal_globals = *(uint8_t **)0x4d8ec8;
   char *structure_runtime_decals = scenario + 0x258;
   char *clusters = scenario + 0x134;
+  int cluster_index;
 
   if (runtime_decal_globals == NULL) {
     display_assert("structure_decals_globals",
@@ -18,7 +19,6 @@ void FUN_001963c0(uint32_t *old_cluster_visibility,
     return;
   }
 
-  int cluster_index;
   for (cluster_index = 0; cluster_index < cluster_count; ++cluster_index) {
     bool should_render_cluster_decals;
     bool should_delete_cluster_decals;

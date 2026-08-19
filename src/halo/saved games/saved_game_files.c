@@ -1,15 +1,11 @@
 /* Saved game file management — create directories and manage file handles. */
 
-/* Helper: call ensure_directory at 0x1c31f0 which takes EAX as the path. */
-static char ensure_dir(const char *path)
+/* Helper: call ensure_directory at 0x1c31f0, which takes the path in EAX and
+ * returns its result in AL.  kb.json carries that as `const char *path@<eax>`,
+ * so the build system generates the thunk and this is a plain call. */
+static __inline char ensure_dir(const char *path)
 {
-  int _eax = (int)path;
-  asm volatile("movl $0x1c31f0, %%edx\n\t"
-               "call *%%edx"
-               : "+a"(_eax)
-               :
-               : "ecx", "edx", "memory", "cc");
-  return (char)_eax;
+  return FUN_001c31f0(path);
 }
 
 /* Dispose saved game file handles and clean up. */

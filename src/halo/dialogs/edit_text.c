@@ -27,10 +27,15 @@ bool FUN_000971a0(int object_handle, float *position, float *aim_position)
 void edit_text_clamp_cursor(void *edit_text)
 {
   int *et = (int *)edit_text;
-  int16_t len = (int16_t)csstrlen((const char *)et[0]);
-
-  int16_t cursor = *(int16_t *)((int)et + 6);
+  int16_t len;
+  int16_t cursor;
   int16_t clamped_cursor;
+  int16_t sel;
+  int16_t clamped_sel;
+
+  len = (int16_t)csstrlen((const char *)et[0]);
+
+  cursor = *(int16_t *)((int)et + 6);
   if (cursor < 0) {
     clamped_cursor = 0;
   } else if (cursor > len) {
@@ -39,9 +44,8 @@ void edit_text_clamp_cursor(void *edit_text)
     clamped_cursor = cursor;
   }
 
-  int16_t sel = *(int16_t *)((int)et + 8);
+  sel = *(int16_t *)((int)et + 8);
   *(int16_t *)((int)et + 6) = clamped_cursor;
-  int16_t clamped_sel;
   if (sel < -1) {
     clamped_sel = -1;
   } else if (sel > len) {
@@ -67,6 +71,7 @@ void edit_text_clamp_cursor(void *edit_text)
 void edit_text_set_cursor_to_end(void *edit_text)
 {
   int *et = (int *)edit_text;
+  int16_t len;
 
   if (et == NULL || et[0] == 0 || *(int16_t *)((int)et + 4) <= 0 ||
       (unsigned int)csstrlen((const char *)et[0]) >
@@ -78,7 +83,7 @@ void edit_text_set_cursor_to_end(void *edit_text)
 
   edit_text_clamp_cursor(edit_text);
 
-  int16_t len = (int16_t)csstrlen((const char *)et[0]);
+  len = (int16_t)csstrlen((const char *)et[0]);
   *(int16_t *)((int)et + 6) = len;
   *(int16_t *)((int)et + 8) = -1;
 }
@@ -89,6 +94,8 @@ bool edit_text_get_selection_range(void *edit_text, int16_t *out_start,
                                    int16_t *out_end)
 {
   int *et = (int *)edit_text;
+  int16_t sel;
+  int16_t cursor;
 
   if (et == NULL || et[0] == 0 || *(int16_t *)((int)et + 4) <= 0 ||
       (unsigned int)csstrlen((const char *)et[0]) >
@@ -100,11 +107,11 @@ bool edit_text_get_selection_range(void *edit_text, int16_t *out_start,
 
   edit_text_clamp_cursor(edit_text);
 
-  int16_t sel = *(int16_t *)((int)et + 8);
+  sel = *(int16_t *)((int)et + 8);
   if (sel == -1)
     return false;
 
-  int16_t cursor = *(int16_t *)((int)et + 6);
+  cursor = *(int16_t *)((int)et + 6);
   *out_start = (sel > cursor) ? cursor : sel;
 
   sel = *(int16_t *)((int)et + 8);
@@ -161,6 +168,7 @@ void edit_text_process_key(void *edit_text, void *keystroke)
   int text;
   int len;
   int cursor_pos;
+  int16_t key_code;
 
   if (et == NULL || et[0] == 0 || *(int16_t *)((int)et + 4) <= 0 ||
       (unsigned int)csstrlen((const char *)et[0]) >
@@ -172,7 +180,7 @@ void edit_text_process_key(void *edit_text, void *keystroke)
 
   edit_text_clamp_cursor(edit_text);
 
-  int16_t key_code = *(int16_t *)(key + 2);
+  key_code = *(int16_t *)(key + 2);
 
   /* --- Backspace / Delete --- */
   if (key_code == 0x1d || key_code == 0x54) {
@@ -202,10 +210,12 @@ void edit_text_process_key(void *edit_text, void *keystroke)
     } else {
       /* Delete: delete character at cursor */
       int16_t cur = *(int16_t *)((int)et + 6);
+      int16_t temp_cursor;
+
       if ((unsigned int)(int)cur >= (unsigned int)csstrlen((const char *)et[0]))
         goto snap_and_return;
 
-      int16_t temp_cursor = cur;
+      temp_cursor = cur;
       unicode_cursor_forward((const char *)et[0], &temp_cursor);
       text = et[0];
       len = csstrlen((const char *)(text + (int)temp_cursor));

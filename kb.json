@@ -7025,7 +7025,7 @@
     },
     {
      "addr": "0x86670",
-     "decl": "void FUN_00086670(void);"
+     "decl": "void FUN_00086670(int16_t local_player_index@<ax>, int mode_flags, float fwd);"
     },
     {
      "addr": "0x86890",
@@ -7038,7 +7038,7 @@
     },
     {
      "addr": "0x86a50",
-     "decl": "void FUN_00086a50(void);"
+     "decl": "void FUN_00086a50(int local_player_index@<eax>, int16_t *mode_table@<ebx>, int16_t count);"
     },
     {
      "addr": "0x86b80",
@@ -7046,7 +7046,7 @@
     },
     {
      "addr": "0x86be0",
-     "decl": "void FUN_00086be0(void);"
+     "decl": "void FUN_00086be0(int local_player_index@<eax>, char force_flag@<bl>);"
     },
     {
      "addr": "0x86cb0",
@@ -13404,7 +13404,7 @@
     },
     {
      "addr": "0xce8c0",
-     "decl": "void input_abstraction_print_config_control(void);"
+     "decl": "char input_abstraction_print_config_control(int local_player_index@<eax>);"
     }
    ],
    "name": "input_abstraction.obj",
@@ -15876,8 +15876,7 @@
     {
      "addr": "0x135420",
      "decl": "void lightning_offset_marker_position(int matrix_ptr@<ebx>, float *position_out@<esi>, float *random_bounds@<edi>);",
-     "ported": true,
-     "source_path": "objects/widgets/lightning.c"
+     "ported": true
     },
     {
      "addr": "0x135510",
@@ -23143,7 +23142,7 @@
     },
     {
      "addr": "0x1c31f0",
-     "decl": "void FUN_001c31f0(void);"
+     "decl": "char FUN_001c31f0(const char *path@<eax>);"
     },
     {
      "addr": "0x1c3250",

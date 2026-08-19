@@ -135,10 +135,10 @@ void telnet_console_dispose(void)
  *    On recv error or handler failure, log and close the client.
  *
  * Note: FUN_00130b70 (0x130b70) reads ESI as an implicit register argument
- * pointing to the client slot struct at 0x46eee4.  It cannot be expressed
- * as a plain C function pointer.  The call uses inline asm to load ESI
- * before the call and pass the two stack arguments via "r" constraints
- * (safe — no "m" constraints with pushl, per project convention).
+ * pointing to the client slot struct at 0x46eee4.  kb.json declares that as
+ * `void *client@<esi>`, so the build system generates the thunk and the call
+ * site is plain C — no inline asm, which also lets this TU compile under
+ * VC71 and be byte-scored.
  */
 void telnet_console_process(void)
 {
@@ -205,20 +205,11 @@ void telnet_console_process(void)
 
   recv_result = ((int (*)(int *, char *, int))0x82e50)(slot_ep, recv_buf, 0x20);
   if (recv_result > 0) {
-    /* Dispatch received bytes to the telnet input handler.
-     * FUN_00130b70 reads ESI as a pointer to the client slot struct
-     * (0x46eee4).  Use inline asm to set ESI before the call. */
-    int _buf = (int)recv_buf;
-    int _len = recv_result;
-    int _esi = 0x46eee4;
-    asm volatile("pushl %[len]\n\t"
-                 "pushl %[buf]\n\t"
-                 "call *%[fn]\n\t"
-                 "addl $8, %%esp"
-                 : "=a"(input_ok)
-                 : [fn] "r"((void *)0x130b70), [buf] "r"(_buf), [len] "r"(_len),
-                   [esi] "S"(_esi)
-                 : "ecx", "edx", "memory", "cc");
+    /* Dispatch received bytes to the telnet input handler.  FUN_00130b70
+     * reads ESI as a pointer to the client slot struct (0x46eee4); kb.json
+     * carries that as `void *client@<esi>`, so the build system emits the
+     * thunk and this is a plain call. */
+    input_ok = FUN_00130b70((void *)0x46eee4, recv_buf, recv_result);
     if (input_ok) {
       return;
     }

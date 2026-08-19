@@ -264,9 +264,7 @@ void input_abstraction_update(void)
       /* inversion flags */
       cVar6 = ((char *)0x46b836)[iVar13];
       if (cVar6 == '\0' && ((char *)0x46b837)[iVar13] != '\0') {
-        int _player = local_18;
-        asm volatile("" : "+a"(_player));
-        cVar6 = ((char (*)(void))0xce8c0)();
+        cVar6 = input_abstraction_print_config_control(local_18);
       }
 
       /* output axes per joystick preset */

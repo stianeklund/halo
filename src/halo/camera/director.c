@@ -189,7 +189,7 @@ void director_set_player_camera_normal(int16_t local_player_index,
   }
 
   if (mode_flags != 0)
-    CAMERA_INTERNAL_CYCLE_MODE(local_player_index, 0x266f68, 3);
+    camera_internal_cycle_mode(local_player_index, (int16_t *)0x266f68, 3);
 
   /* If a scripted camera is active (script_state[0] != 0), nothing else. */
   if (**(char **)0x5ab200 != 0)
@@ -308,7 +308,7 @@ void director_apply_replay_mode_for_player(char reset_flag,
   }
 
   if (mode_flags != 0)
-    CAMERA_INTERNAL_CYCLE_MODE(local_player_index, 0x266f70, 4);
+    camera_internal_cycle_mode(local_player_index, (int16_t *)0x266f70, 4);
 }
 
 /* Build per-player camera input snapshot for one tick (0x87110).

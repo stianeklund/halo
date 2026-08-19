@@ -778,7 +778,12 @@
     "0x148370": "char FUN_00148370(float *center@<ecx>, float *origin@<eax>, float *delta@<edx>, float *out_t@<esi>, float radius);",
     "0xca890": "const char *FUN_000ca890(int expression_index@<eax>, int thread_index@<ebx>);",
     "0x43ce0": "void FUN_00043ce0(int actor_handle@<eax>);",
-    "0xcae00": "int FUN_000cae00(const char *script_name@<edi>);"
+    "0xcae00": "int FUN_000cae00(const char *script_name@<edi>);",
+    "0xce8c0": "char input_abstraction_print_config_control(int local_player_index@<eax>);",
+    "0x86a50": "void FUN_00086a50(int local_player_index@<eax>, int16_t *mode_table@<ebx>, int16_t count);",
+    "0x86be0": "void FUN_00086be0(int local_player_index@<eax>, char force_flag@<bl>);",
+    "0x86670": "void FUN_00086670(int16_t local_player_index@<ax>, int mode_flags, float fwd);",
+    "0x1c31f0": "char FUN_001c31f0(const char *path@<eax>);"
   },
   "0x6cde0": "void FUN_0006cde0(void *tif@<edi>);",
   "0xc4a40": "void FUN_000c4a40(int16_t function_index@<eax>, char *buffer@<esi>);",

@@ -710,6 +710,9 @@ void progress_bar_render(float normalized_progress)
 
   /* Per-channel fade ranges: (start, end) pairs for 4 sound channels */
   float ranges[8];
+  /* Max volume levels per sound channel */
+  float volumes[4];
+
   ranges[0] = 0.0f;
   ranges[1] = 1.0f;
   ranges[2] = 0.4f;
@@ -719,8 +722,6 @@ void progress_bar_render(float normalized_progress)
   ranges[6] = 0.55f;
   ranges[7] = 1.0f;
 
-  /* Max volume levels per sound channel */
-  float volumes[4];
   volumes[0] = 3500.0f;
   volumes[1] = 4500.0f;
   volumes[2] = 3500.0f;
