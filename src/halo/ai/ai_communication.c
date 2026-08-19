@@ -289,3 +289,87 @@ void ai_conversation_advance(short param_1)
     conversation = (char *)data_iterator_next(&iter);
   } while (conversation != 0);
 }
+
+/* actor_communication_update (0x43db0) — per-tick idle/ambient speech tick for
+ * one actor.  While the actor is at least state 2 and the AI globals' speech
+ * enable byte is set, it (re)arms the countdown whenever the actor's cached
+ * "fighting" flag went stale, decrements the countdown, and on the tick it
+ * reaches zero asks the unit for a matching communication and dispatches it.
+ *
+ * Confirmed (disasm 0x43db0-0x43e9d):
+ *   - Frame PUSH EBP; MOV EBP,ESP; SUB ESP,0x38 — 0x30-byte communication
+ *     record at EBP-0x38..EBP-0x09, int at EBP-0x8, int at EBP-0x4.  ESI/EDI
+ *     are pushed at entry, EBX only on the non-early-exit path (0x43de8),
+ *     which is why the body is nested ifs rather than early returns.
+ *   - datum_get(actor_data, handle): MOV EAX,[0x6325a4]; PUSH EDI(handle);
+ *     PUSH EAX; ADD ESP,8 at 0x43dc9 — so the pool is the first argument.
+ *   - CMP word ptr [ESI+0x6a],0x2 / JL — signed 16-bit `>= 2`.
+ *   - MOV ECX,[0x632574]; MOV AL,byte ptr [ECX+0x10]; TEST AL,AL — the AI
+ *     globals block is loaded by value, the gate is its byte at +0x10.
+ *   - FUN_00043ce0 is called with MOV EAX,EDI at 0x43e06, i.e. the actor
+ *     handle in EAX; 0x43ce9 (MOV EDI,EAX) proves the callee consumes it, so
+ *     the kb.json decl carries `@<eax>`.  It is the routine that writes both
+ *     +0x6cc (the cached fighting flag) and +0x6ce (the countdown).
+ *   - The countdown is read once into EAX (XOR EAX,EAX; MOV AX,[ESI+0x6ce]),
+ *     tested `> 0` (TEST AX,AX / JLE), decremented, stored back and tested
+ *     `== 0` (DEC EAX; TEST AX,AX; MOV [ESI+0x6ce],AX; JNZ) — one load, hence
+ *     the `> 0 && --field == 0` form rather than three separate reads.
+ *   - EBP-0x4 is written with a full dword (MOV dword ptr [EBP-0x4],EDX after
+ *     XOR EDX,EDX / SETNZ DL), so the vocalization-type local is int-width and
+ *     is passed to FUN_001a68d0 through a `short *` cast; EBP-0x8 is likewise
+ *     a dword -1.
+ *   - FUN_001a68d0's pushes at 0x43e2d..0x43e45 are EAX(=&[EBP-0x8]),
+ *     ECX(=&[EBP-0x4]), 0, 0, 1, 1, EDX(=[ESI+0x18]); cdecl, so left-to-right
+ *     the arguments are (unit handle, 1, 1, 0, NULL, &type, &sound index) and
+ *     ADD ESP,0x1c confirms 7 stack dwords.
+ *   - Ghidra's `local_2c[32]` at EBP-0x28 is NOT an independent local: it is
+ *     record + 0x10, so ai_communication_packet_new receives an interior
+ *     pointer into the same 0x30-byte record (same shape as
+ *     ai_debug_vocalize).
+ *   - The record stores are word [EBP-0x38]=1, word [EBP-0x36]=CX and dword
+ *     [EBP-0x34]=EDX, i.e. record+0x00/+0x02/+0x04; MSVC sank the constant
+ *     +0x00 store below the other two, the source order is ascending.
+ *   - The single ADD ESP,0x1c at 0x43e94 cleans FUN_001a6ef0's three pushes
+ *     plus csmemset's three and ai_communication_packet_new's one — MSVC
+ *     coalesced the cleanups, so the ARG_COUNT hazard on FUN_001a6ef0
+ *     (cleanup=7 vs decl=3) is a false positive.
+ *   - MOV EDI,EAX; TEST DI,DI; JLE — the communication count is a signed
+ *     16-bit `> 0` test.
+ * Inferred: FUN_0003b120 (returns char, +0x6cc is a byte) is the actor
+ *   "is fighting" predicate; the vocalization type passed to FUN_001a68d0 is
+ *   just that flag widened, and vocalization index 1 is a literal at this
+ *   call site.
+ * Uncertain: the meaning of the `1`/`0` byte-width literals in arguments 3
+ *   and 4 of FUN_001a68d0 is not recoverable from this call site. */
+void actor_communication_update(int actor_handle)
+{
+  char communication[0x30];
+  int sound_definition_index;
+  int vocalization_type;
+  actor_t *actor;
+  char fighting;
+  short communication_count;
+
+  actor = (actor_t *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  if (actor->field_06a >= 2 && *(char *)(*(char **)0x632574 + 0x10) != '\0') {
+    fighting = FUN_0003b120(actor_handle);
+    if (actor->field_6ce == 0 || actor->field_6cc != fighting) {
+      FUN_00043ce0(actor_handle);
+    }
+    if (actor->field_6ce > 0 && --actor->field_6ce == 0) {
+      vocalization_type = (fighting != '\0');
+      sound_definition_index = -1;
+      communication_count =
+        FUN_001a68d0(actor->field_018, 1, 1, 0, NULL,
+                     (short *)&vocalization_type, &sound_definition_index);
+      if (communication_count > 0) {
+        csmemset(communication, 0, 0x30);
+        *(short *)(communication + 0x00) = 1;
+        *(short *)(communication + 0x02) = (short)vocalization_type;
+        *(int32_t *)(communication + 0x04) = sound_definition_index;
+        ai_communication_packet_new(communication + 0x10);
+        FUN_001a6ef0(actor->field_018, communication_count, communication);
+      }
+    }
+  }
+}

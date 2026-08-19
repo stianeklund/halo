@@ -33041,11 +33041,13 @@
     },
     {
      "addr": "0x43ce0",
-     "decl": "void FUN_00043ce0(void);"
+     "decl": "void FUN_00043ce0(int actor_handle@<eax>);"
     },
     {
      "addr": "0x43db0",
-     "decl": "void actor_communication_update(int actor_handle);"
+     "decl": "void actor_communication_update(int actor_handle);",
+     "name": "actor_communication_update",
+     "ported": true
     },
     {
      "addr": "0x43ea0",
