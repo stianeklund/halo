@@ -7941,11 +7941,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xcb9a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xcbf80": {
       "kind": "function",
       "status": "ported"
     },
     "0xcc0a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcc0e0": {
       "kind": "function",
       "status": "ported"
     },
@@ -8030,6 +8038,10 @@
         "cc1d0 (hs_default_value) takes EAX=thread_index as register arg plus two stack args (type, dest).",
         "cb230 (hs_global_value_store) takes EDI=loop_var as register arg, only active when bit 15 set."
       ]
+    },
+    "0xcde00": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xcdeb0": {
       "kind": "function",
