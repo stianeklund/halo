@@ -3962,6 +3962,53 @@ void FUN_000be150(int16_t function_index, int thread_datum, char init)
   }
 }
 
+/* 0xbe190 — HS script function handler: evaluate a macro function and, on a
+ * non-null result record, forward the record's first dword to FUN_000c9b90,
+ * then commit a 0 result to the calling HS thread. No value is read back from
+ * FUN_000c9b90 (EAX is never consumed after the CALL) — hs_return always
+ * commits the literal 0. Same evaluator ABI (function_index, thread_datum,
+ * init) as the other hs_evaluate_* handlers.
+ *
+ * ABI (verified against disassembly 0xbe190-0xbe1c1, 20 instructions): cdecl,
+ * plain RET, frame is `PUSH EBP; MOV EBP,ESP; PUSH ESI` with zero stack
+ * locals. thread_datum (arg 2, cached in ESI) flows to both the evaluate call
+ * (arg 2) and the hs_return call (arg 1). The record read is
+ * `MOV EDX,[EAX]; PUSH EDX` — a FULL DWORD load (contrast the sibling at
+ * 0xbdef0, which does XOR EDX,EDX; MOV DL,[EAX] for a byte field).
+ *
+ * The single `ADD ESP,0xc` at 0xbe1bc is MSVC adjacent-call cleanup
+ * coalescing: it folds FUN_000c9b90's 1 pushed arg and hs_return's 2. It is
+ * NOT evidence that hs_return takes 3 args (call_site_audit ARG_COUNT warning
+ * on 0xcbf80 here is a false positive).
+ *
+ * NOTE: kb groups 0xbe190 under players.obj, so it lives here in players.c
+ * alongside its 25+ twins (0xbe0d0, 0xbe110, 0xbe150, 0xbe1d0, 0xbe210) even
+ * though it calls hs_runtime.obj's hs_macro_function_evaluate/hs_return.
+ * Several sibling comment blocks in this file claim players.c "does not
+ * compile under VC71" — that claim is FALSE and was measured false on
+ * 2026-07-25: vc71_verify.py scores 82 functions in this TU. Do not relocate
+ * this family into hs.c on that basis; maintain.py will move it back.
+ *
+ * Callees (all cdecl, in kb.json):
+ *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
+ *             char init) -> int* (result record, NULL on failure); declared
+ *             `int` in kb.json because that decl is shared with other ported
+ *             call sites, so the pointer cast lives here.
+ *   0xc9b90 = FUN_000c9b90(int) -> void (record first-dword consumer; Ghidra's
+ *             void(void) decl dropped the single stack arg — corrected in kb)
+ *   0xcbf80 = hs_return(int thread_handle, int value) */
+void FUN_000be190(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_000c9b90(result[0]);
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xbe1d0 — HaloScript macro-function evaluate-then-finalize wrapper.
  * Evaluates a macro-function expression on a thread; when the evaluation
  * yields a result node (non-NULL record ptr in EAX), it forwards the first
@@ -4018,6 +4065,38 @@ void FUN_000be210(int16_t function_index, int thread_datum, char init)
     FUN_000c9bb0(*(int *)record);
     hs_return(thread_datum, 0);
   }
+}
+
+/* 0xbe250 — HS built-in evaluator, zero-argument variant. Unlike its
+ * FUN_000be210 / FUN_000be270 siblings it never calls
+ * hs_macro_function_evaluate: there is no argument to evaluate, so the
+ * side-effect runs unconditionally and the thread is committed immediately.
+ *
+ * Disasm evidence (0xbe250..0xbe267), whole function:
+ *   PUSH EBP; MOV EBP,ESP            -- no SUB ESP, no locals
+ *   CALL 0xc9a50                     -- void(void), no args, no ADD ESP
+ *   MOV EAX,[EBP+0xc]; PUSH 0x0; PUSH EAX; CALL 0xcbf80; ADD ESP,0x8
+ *   POP EBP; RET
+ * So the only parameter read is [EBP+0xc] = thread_datum (2nd stack arg);
+ * function_index ([EBP+8]) and init ([EBP+0x10]) are unread but must stay in
+ * the decl so the HS table dispatch ABI matches its siblings.
+ *
+ * Ghidra modelled this void(void), so the cdecl param surfaced as
+ * in_stack_00000008 (entry-relative, i.e. [EBP+0xc]); it is a STACK arg, not
+ * @<reg> (lift-learnings 31 / void-decl trap). kb.json's decl is corrected
+ * from `void(void)` to the 3-arg cdecl form as part of this lift.
+ *
+ * Callees (both cdecl, in kb.json, no @<reg> args):
+ *   0xc9a50 = FUN_000c9a50(void)
+ *   0xcbf80 = hs_return(int thread_handle, int value)
+ */
+void FUN_000be250(int16_t function_index, int thread_datum, char init)
+{
+  (void)function_index;
+  (void)init;
+
+  FUN_000c9a50();
+  hs_return(thread_datum, 0);
 }
 
 /* 0xbe270 — HS built-in evaluator, sibling of FUN_000be1d0 / FUN_000be210.
@@ -12248,52 +12327,6 @@ void FUN_000c0b70(int16_t function_index, int thread_datum, char init)
   if (record != NULL) {
     /* dword @ +0x0; zero-extended byte @ +0x4 */
     FUN_00057850(*(unsigned int *)record, record[4]);
-    hs_return(thread_datum, 0);
-  }
-}
-/* 0xbe190 — HS script function handler: evaluate a macro function and, on a
- * non-null result record, forward the record's first dword to FUN_000c9b90,
- * then commit a 0 result to the calling HS thread. No value is read back from
- * FUN_000c9b90 (EAX is never consumed after the CALL) — hs_return always
- * commits the literal 0. Same evaluator ABI (function_index, thread_datum,
- * init) as the other hs_evaluate_* handlers.
- *
- * ABI (verified against disassembly 0xbe190-0xbe1c1, 20 instructions): cdecl,
- * plain RET, frame is `PUSH EBP; MOV EBP,ESP; PUSH ESI` with zero stack
- * locals. thread_datum (arg 2, cached in ESI) flows to both the evaluate call
- * (arg 2) and the hs_return call (arg 1). The record read is
- * `MOV EDX,[EAX]; PUSH EDX` — a FULL DWORD load (contrast the sibling at
- * 0xbdef0, which does XOR EDX,EDX; MOV DL,[EAX] for a byte field).
- *
- * The single `ADD ESP,0xc` at 0xbe1bc is MSVC adjacent-call cleanup
- * coalescing: it folds FUN_000c9b90's 1 pushed arg and hs_return's 2. It is
- * NOT evidence that hs_return takes 3 args (call_site_audit ARG_COUNT warning
- * on 0xcbf80 here is a false positive).
- *
- * NOTE: kb groups 0xbe190 under players.obj, so it lives here in players.c
- * alongside its 25+ twins (0xbe0d0, 0xbe110, 0xbe150, 0xbe1d0, 0xbe210) even
- * though it calls hs_runtime.obj's hs_macro_function_evaluate/hs_return.
- * Several sibling comment blocks in this file claim players.c "does not
- * compile under VC71" — that claim is FALSE and was measured false on
- * 2026-07-25: vc71_verify.py scores 82 functions in this TU. Do not relocate
- * this family into hs.c on that basis; maintain.py will move it back.
- *
- * Callees (all cdecl, in kb.json):
- *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
- *             char init) -> int* (result record, NULL on failure); declared
- *             `int` in kb.json because that decl is shared with other ported
- *             call sites, so the pointer cast lives here.
- *   0xc9b90 = FUN_000c9b90(int) -> void (record first-dword consumer; Ghidra's
- *             void(void) decl dropped the single stack arg — corrected in kb)
- *   0xcbf80 = hs_return(int thread_handle, int value) */
-void FUN_000be190(int16_t function_index, int thread_datum, char init)
-{
-  int *result;
-
-  result =
-    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
-  if (result != NULL) {
-    FUN_000c9b90(result[0]);
     hs_return(thread_datum, 0);
   }
 }
