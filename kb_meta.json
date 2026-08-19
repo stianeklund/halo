@@ -7842,6 +7842,19 @@
         "hs type constant 10 is commented as _hs_type_script on the strength of the hs_compile.c assert literal expression->type==_hs_type_script and existing uses at hs_runtime.c lines 433 and 3340, and constant 7 as _hs_type_short from the sibling; the underlying hs type enum itself has not been recovered from the binary."
       ]
     },
+    "0xc8720": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "The kb.json placeholder decl void FUN_000c8720(void) was wrong: [EBP+0x8] is read at 0xc8748 and compared as SI (CMP SI,0x7 / CMP SI,0xc), [EBP+0xc] is read at 0xc8724 and 0xc887c and passed to datum_get, and both exits return a byte in AL (MOV AL,BL at 0xc8846, XOR AL,AL at 0xc88a3), giving bool FUN_000c8720(int16_t function_index, int expression_index) as a plain cdecl with no register arguments.",
+        "The two arity tests are one if with a || rather than an if/else-if chain: the reference emits the accept tail (POP EDI/POP ESI/MOV AL,BL at 0xc8844) physically between the too-many test at 0xc883d and the qualifier selection at 0xc884d, which only the short-circuit layout reproduces, and rewriting the if/else-if chain into that single || form raised the VC71 match from 82.6 to 85.8 percent with no regression elsewhere in the TU.",
+        "Function index 0xa is the divide call: it is the only one of the six indices 7..0xc that also rejects more than two arguments (CMP word [EBP-0x4],0x2 / JG at 0xc883d) and the only one whose error message drops the at-least qualifier, matching an exactly-two-argument arithmetic operator."
+      ],
+      "uncertain": [
+        "The argument counter is lifted as an int with int16_t casts at the two compares because the slot is initialised and incremented 32-bit (MOV dword [EBP-0x4],0x0 at 0xc877d, MOV ECX/INC ECX/MOV at 0xc8812..0xc8821) while every compare against it is 16-bit (CMP word [EBP-0x4],0x2); whether the original declared a short and MSVC widened the arithmetic, or declared a long and narrowed the compares, is not decidable from this function alone.",
+        "The residual 14 percent VC71 gap is accounted for entirely by known clang-versus-MSVC ceilings rather than logic differences: clang sinks the accept epilogue to the function end instead of inlining it after the too-many test, rotates the argument walk so it duplicates the CMP EDI,-1 test where the reference duplicates TEST BL,BL, and pays the usual three-instruction thunk cost at the two @<reg> calls to FUN_000c73a0 and FUN_000c74c0; the instruction count is 132 against 129."
+      ]
+    },
     "0xc8c50": {
       "kind": "function",
       "status": "ported",
