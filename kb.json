@@ -18640,7 +18640,8 @@
     },
     {
      "addr": "0xbe9d0",
-     "decl": "void FUN_000be9d0(void);"
+     "decl": "void FUN_000be9d0(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbea10",
@@ -18649,7 +18650,8 @@
     },
     {
      "addr": "0xbea50",
-     "decl": "void FUN_000bea50(void);"
+     "decl": "void FUN_000bea50(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbea90",
@@ -18758,7 +18760,9 @@
     },
     {
      "addr": "0xbef00",
-     "decl": "void FUN_000bef00(void);"
+     "decl": "void FUN_000bef00(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbef40",
@@ -18981,7 +18985,9 @@
     },
     {
      "addr": "0xbf9f0",
-     "decl": "void FUN_000bf9f0(void);"
+     "decl": "void FUN_000bf9f0(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "source_path": "src/halo/game/players.c"
     },
     {
      "addr": "0xbfa30",
@@ -19057,7 +19063,8 @@
     },
     {
      "addr": "0xbfd30",
-     "decl": "void FUN_000bfd30(void);"
+     "decl": "void FUN_000bfd30(int16_t function_index, int thread_datum, char init);",
+     "ported": true
     },
     {
      "addr": "0xbfd50",
