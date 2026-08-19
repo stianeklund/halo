@@ -7830,6 +7830,18 @@
         "The canonical semantic function name remains unconfirmed; FUN_000c85b0 is retained conservatively despite assert evidence for and/or."
       ]
     },
+    "0xc89c0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Real signature is bool FUN_000c89c0(int function_index, int expression_index); the prior kb.json decl void FUN_000c89c0(void) was a placeholder and was wrong on the return type and on both parameters.",
+        "Installed as a parse callback in four hs function-table slots (DATA xrefs 0x26f5f4, 0x26f610, 0x26f62c, 0x26f648, stride 0x1c), which span function indices 0xf..0x12 and independently corroborate the assert range at 0xc89dc."
+      ],
+      "uncertain": [
+        "The accepted donor-type range [0x20,0x24] is unidentified; only the second range [6,8] is known to be real/short/long from sibling FUN_000c88b0, so the macro name HS_TYPE_IS_COMPARABLE is behaviour-derived rather than proven.",
+        "The official VC71 score of 54.6 percent is a greedy-anchor collapse artifact from eight look-alike datum_get guard blocks; score-context reports dp_lcs 91.4 percent with an exact 12-byte frame and no FPU, load-width, immediate, or FCOM warnings, and structural sibling FUN_000c88b0 scores 92.1 percent."
+      ]
+    },
     "0xc8b90": {
       "kind": "function",
       "status": "ported",
