@@ -22441,15 +22441,18 @@
    "functions": [
     {
      "addr": "0x94020",
-     "decl": "void FUN_00094020(void);"
+     "decl": "void FUN_00094020(void *out_vec, void *record, int *cursor, unsigned char count);",
+     "ported": true
     },
     {
      "addr": "0x94060",
-     "decl": "void FUN_00094060(void);"
+     "decl": "void FUN_00094060(void *out_vec, void *record, int *cursor);",
+     "ported": true
     },
     {
      "addr": "0x940a0",
-     "decl": "void FUN_000940a0(void);"
+     "decl": "char FUN_000940a0(void *unused, char *control, int *ticks, int *playback_stream);",
+     "ported": true
     },
     {
      "addr": "0x94290",
@@ -22457,51 +22460,63 @@
     },
     {
      "addr": "0x942a0",
-     "decl": "void FUN_000942a0(void);"
+     "decl": "void FUN_000942a0(char *control, short *anim_event_v1, int *playback_stream);",
+     "ported": true
     },
     {
      "addr": "0x94350",
-     "decl": "void FUN_00094350(void);"
+     "decl": "void FUN_00094350(char *control, short *anim_event_v1, int *playback_stream);",
+     "ported": true
     },
     {
      "addr": "0x94400",
-     "decl": "void FUN_00094400(void);"
+     "decl": "void FUN_00094400(char *control, short *anim_event_v1, int *playback_stream);",
+     "ported": true
     },
     {
      "addr": "0x944b0",
-     "decl": "void FUN_000944b0(void);"
+     "decl": "void FUN_000944b0(char *control, short *anim_event_v1, int *playback_stream);",
+     "ported": true
     },
     {
      "addr": "0x94560",
-     "decl": "void FUN_00094560(void);"
+     "decl": "void FUN_00094560(char *control, short *anim_event_v1, int *playback_stream);",
+     "ported": true
     },
     {
      "addr": "0x94620",
-     "decl": "void apply_facing_vector(void);"
+     "decl": "void apply_facing_vector(char *control, short *anim_event_v1, int *playback_stream);",
+     "ported": true
     },
     {
      "addr": "0x946e0",
-     "decl": "void apply_aiming_vector(void);"
+     "decl": "void apply_aiming_vector(char *control, short *anim_event_v1, int *playback_stream);",
+     "ported": true
     },
     {
      "addr": "0x947a0",
-     "decl": "void apply_looking_vector(void);"
+     "decl": "void apply_looking_vector(char *control, short *anim_event_v1, int *playback_stream);",
+     "ported": true
     },
     {
      "addr": "0x94860",
-     "decl": "void apply_angle_vector(void);"
+     "decl": "void apply_angle_vector(char *control, short *anim_event_v1, int *playback_stream);",
+     "ported": true
     },
     {
      "addr": "0x94970",
-     "decl": "void apply_multi_vector(void);"
+     "decl": "void apply_multi_vector(char *control, short *anim_event_v1, int *playback_stream);",
+     "ported": true
     },
     {
      "addr": "0x94a70",
-     "decl": "void FUN_00094a70(void);"
+     "decl": "void FUN_00094a70(void *out_vec, void *record, int *cursor, unsigned char count);",
+     "ported": true
     },
     {
      "addr": "0x94a90",
-     "decl": "void recorded_animation_apply_event_stream_v1(void);"
+     "decl": "char recorded_animation_apply_event_stream_v1(void *unused, char *control, int *ticks, int *playback_stream);",
+     "ported": true
     },
     {
      "addr": "0x94ba0",
@@ -22524,7 +22539,8 @@
     },
     {
      "addr": "0x94c70",
-     "decl": "void recorded_animations_clear_debug_storage(void);"
+     "decl": "void recorded_animations_clear_debug_storage(void);",
+     "ported": true
     },
     {
      "addr": "0x94cb0",
@@ -22545,7 +22561,8 @@
     },
     {
      "addr": "0x950b0",
-     "decl": "void render_debug_recording(void);"
+     "decl": "void render_debug_recording(void);",
+     "ported": true
     },
     {
      "addr": "0x95280",
@@ -22580,15 +22597,18 @@
     },
     {
      "addr": "0x956e0",
-     "decl": "void FUN_000956e0(void);"
+     "decl": "void FUN_000956e0(int object_handle, char *event);",
+     "ported": true
     },
     {
      "addr": "0x95750",
-     "decl": "void FUN_00095750(void);"
+     "decl": "char FUN_00095750(int object_handle);",
+     "ported": true
     },
     {
      "addr": "0x95790",
-     "decl": "void FUN_00095790(void);"
+     "decl": "char FUN_00095790(int object_handle);",
+     "ported": true
     },
     {
      "addr": "0x957c0",
@@ -22604,31 +22624,38 @@
     },
     {
      "addr": "0x959b0",
-     "decl": "void FUN_000959b0(void);"
+     "decl": "void FUN_000959b0(int object_handle, char *event);",
+     "ported": true
     },
     {
      "addr": "0x95a20",
-     "decl": "void FUN_00095a20(void);"
+     "decl": "char FUN_00095a20(int object_handle);",
+     "ported": true
     },
     {
      "addr": "0x95a60",
-     "decl": "void FUN_00095a60(void);"
+     "decl": "char FUN_00095a60(int object_handle);",
+     "ported": true
     },
     {
      "addr": "0x95ad0",
-     "decl": "void FUN_00095ad0(void);"
+     "decl": "void FUN_00095ad0(int object_handle, char *event);",
+     "ported": true
     },
     {
      "addr": "0x95b50",
-     "decl": "void FUN_00095b50(void);"
+     "decl": "char FUN_00095b50(int object_handle);",
+     "ported": true
     },
     {
      "addr": "0x95be0",
-     "decl": "void FUN_00095be0(int device_group_handle, int unit_handle);"
+     "decl": "void FUN_00095be0(int object_handle, int unit_handle);",
+     "ported": true
     },
     {
      "addr": "0x95c10",
-     "decl": "void FUN_00095c10(void);"
+     "decl": "void FUN_00095c10(int object_handle);",
+     "ported": true
     },
     {
      "addr": "0x95c60",
@@ -32092,7 +32119,7 @@
     },
     {
      "addr": "0x97080",
-     "decl": "void FUN_00097080(void);"
+     "decl": "void FUN_00097080(int object_handle, void *a2);"
     },
     {
      "addr": "0x97220",
