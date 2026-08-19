@@ -1245,7 +1245,7 @@
     },
     {
      "addr": "0x1dbdec",
-     "comment": "LIBCMT _except_handler3 — VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
+     "comment": "LIBCMT _except_handler3 \u2014 VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
      "decl": "int __cdecl _except_handler3(void *ExceptionRecord, void *EstablisherFrame, void *ContextRecord, void *DispatcherContext);"
     },
     {
@@ -7244,7 +7244,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -7305,7 +7305,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
@@ -14728,19 +14728,24 @@
     },
     {
      "addr": "0x124900",
-     "decl": "void FUN_00124900(void);"
+     "decl": "void FUN_00124900(void *definition);",
+     "ported": true
     },
     {
      "addr": "0x124a10",
-     "decl": "void network_game_client_keep_alive(void);"
+     "decl": "void network_game_client_keep_alive(void *client);",
+     "ported": true
     },
     {
      "addr": "0x124aa0",
-     "decl": "void network_game_client_initiate_join_game(void);"
+     "decl": "bool network_game_client_initiate_join_game(void *client, void *game, void *join_parameters, void *address);",
+     "ported": true
     },
     {
      "addr": "0x124ba0",
-     "decl": "void network_game_client_set_machine(void);"
+     "decl": "bool network_game_client_set_machine(void *client, void *machine);",
+     "name": "network_game_client_set_machine",
+     "ported": true
     },
     {
      "addr": "0x124c10",
@@ -14750,11 +14755,13 @@
     },
     {
      "addr": "0x124c80",
-     "decl": "void FUN_00124C80(void);"
+     "decl": "void *FUN_00124C80(void *client);",
+     "ported": true
     },
     {
      "addr": "0x124d00",
-     "decl": "void FUN_00124D00(void);"
+     "decl": "int16_t FUN_00124D00(void *client);",
+     "ported": true
     },
     {
      "addr": "0x124d50",
@@ -14772,15 +14779,18 @@
     },
     {
      "addr": "0x124f40",
-     "decl": "void network_game_client_accepted_into_game(void);"
+     "decl": "void network_game_client_accepted_into_game(void *client, void *source_address, void *message_packet);",
+     "ported": true
     },
     {
      "addr": "0x125050",
-     "decl": "void network_game_client_game_settings_updated(void);"
+     "decl": "bool network_game_client_game_settings_updated(void *client, void *message_packet);",
+     "ported": true
     },
     {
      "addr": "0x125180",
-     "decl": "int unstrip_player_index(int player_index);"
+     "decl": "int unstrip_player_index(int player_index);",
+     "ported": true
     },
     {
      "addr": "0x1251e0",
@@ -14814,7 +14824,8 @@
     },
     {
      "addr": "0x125a90",
-     "decl": "void network_game_client_update_local_player_data(void);"
+     "decl": "bool network_game_client_update_local_player_data(void *client, void *player);",
+     "ported": true
     },
     {
      "addr": "0x125b90",
@@ -14823,19 +14834,23 @@
     },
     {
      "addr": "0x125c60",
-     "decl": "void network_game_client_countdown_timer_update(void);"
+     "decl": "void network_game_client_countdown_timer_update(void *client, short value);",
+     "ported": true
     },
     {
      "addr": "0x125cb0",
-     "decl": "void network_game_client_advertised_game_is_valid(void);"
+     "decl": "bool network_game_client_advertised_game_is_valid(void *advertised_game);",
+     "ported": true
     },
     {
      "addr": "0x125ce0",
-     "decl": "void FUN_00125ce0(void);"
+     "decl": "void FUN_00125ce0(void *param_1);"
     },
     {
      "addr": "0x125fb0",
-     "decl": "void FUN_00125fb0(void);"
+     "decl": "void FUN_00125fb0(unsigned short reason@<eax>, void *client@<esi>);",
+     "name": "FUN_00125fb0",
+     "ported": true
     },
     {
      "addr": "0x126140",
@@ -14851,7 +14866,8 @@
     },
     {
      "addr": "0x126700",
-     "decl": "void network_game_client_new_advertised_game(void);"
+     "decl": "void network_game_client_new_advertised_game(void *client, void *message_packet);",
+     "ported": true
     },
     {
      "addr": "0x126750",
@@ -14861,11 +14877,13 @@
     },
     {
      "addr": "0x1267c0",
-     "decl": "void network_game_client_reset(void);"
+     "decl": "void network_game_client_reset(void *client, bool reinitialize);",
+     "ported": true
     },
     {
      "addr": "0x126fe0",
-     "decl": "void *FUN_00126fe0(void);"
+     "decl": "void *FUN_00126fe0(void);",
+     "ported": true
     },
     {
      "addr": "0x1271a0",
@@ -34530,7 +34548,8 @@
     },
     {
      "addr": "0x5c510",
-     "decl": "void encounter_spawn_actor(int profile_index, int squad_index);"
+     "decl": "void encounter_spawn_actor(int profile_index, int squad_index);",
+     "ported": true
     },
     {
      "addr": "0x5c630",

@@ -1858,7 +1858,7 @@
     },
     "0x58cc0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Only the low 16 bits of vehicle_handle are logged (MOV ECX,EBX; AND ECX,0xffff at 0x58cff), while the full 32-bit handle is forwarded to FUN_00058af0 via EBX which stays live from the prologue through the tail call at 0x58d24."
       ],
@@ -2025,6 +2025,14 @@
       "status": "ported"
     },
     "0x5bbe0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5c3a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x5c510": {
       "kind": "function",
       "status": "ported"
     },
@@ -11115,7 +11123,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x124a10": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x124a30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x124aa0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x124ba0": {
       "kind": "function",
       "status": "ported"
     },
@@ -11799,6 +11819,10 @@
       "status": "ported"
     },
     "0x1365d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x136700": {
       "kind": "function",
       "status": "ported"
     },
@@ -16079,6 +16103,10 @@
         "The 64-byte local buffer at EBP-0x40 is a sound source descriptor struct with fields: offset 0x00 int16_t spatialization_mode, offset 0x04 float scale, offset 0x08 float gain.",
         "sound_start at 0x1ce180 belongs to sound_manager.obj based on assertion path string c:\\halo\\SOURCE\\sound\\sound_manager.c."
       ]
+    },
+    "0x1c7500": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1c7a10": {
       "kind": "function",

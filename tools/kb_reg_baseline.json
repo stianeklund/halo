@@ -1,5 +1,6 @@
 {
   "0x1194a0": "void datum_initialize(data_t *data@<esi>, void *datum@<edi>);",
+  "0x125fb0": "void FUN_00125fb0(unsigned short reason@<eax>, void *client@<esi>);",
   "0x139e50": "void FUN_00139e50(unsigned int param_1, float *param_2, float *param_3, float param_4, float *color_ptr@<ebx>, float *output_ptr@<esi>, float *intensity_ptr@<edi>);",
   "0x27a10": {
     "actor_handle": "eax"
@@ -438,6 +439,7 @@
     "0x11f750": "void *stack_memory_pool_alloc_or_resize(int new_size@<eax>, void *pool@<ecx>, void *block_hdr, const char *file, unsigned int line);",
     "0x120620": "char FUN_00120620(int animation@<esi>);",
     "0x120d10": "short FUN_00120d10(unsigned short *keyframe_frame_indices, short target_frame_index, short keyframe_count@<edi>);",
+    "0x125fb0": "void FUN_00125fb0(unsigned short reason@<eax>, void *client@<esi>);",
     "0x126000": "void FUN_00126000(void *server /* @<ebx> */);",
     "0x1260c0": "bool FUN_001260c0(void *server /* @<esi> */);",
     "0x1268a0": "bool FUN_001268a0(void *server /* @<eax> */);",
