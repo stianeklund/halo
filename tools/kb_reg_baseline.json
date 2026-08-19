@@ -777,7 +777,8 @@
     "0x68eb0": "int FUN_00068eb0(void *tif @<edi>);",
     "0x148370": "char FUN_00148370(float *center@<ecx>, float *origin@<eax>, float *delta@<edx>, float *out_t@<esi>, float radius);",
     "0xca890": "const char *FUN_000ca890(int expression_index@<eax>, int thread_index@<ebx>);",
-    "0x43ce0": "void FUN_00043ce0(int actor_handle@<eax>);"
+    "0x43ce0": "void FUN_00043ce0(int actor_handle@<eax>);",
+    "0xcae00": "int FUN_000cae00(const char *script_name@<edi>);"
   },
   "0x6cde0": "void FUN_0006cde0(void *tif@<edi>);",
   "0xc4a40": "void FUN_000c4a40(int16_t function_index@<eax>, char *buffer@<esi>);",

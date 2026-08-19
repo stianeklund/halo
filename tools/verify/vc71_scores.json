@@ -39623,6 +39623,21 @@
       "score": 76.7,
       "source": "src/halo/hs/hs_runtime.c"
     },
+    "hs_wake_by_name": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 75.0,
+      "addr": "0xcb9a0",
+      "end": "0xcb9bf",
+      "kind": "auto",
+      "n_r": 14,
+      "opnd_percent": 62.5,
+      "raw_mnemonic_pct": 75.0,
+      "ref": "synth",
+      "ref_sha": "98e62f2200a6ec60",
+      "score": 75.0,
+      "source": "src/halo/hs/hs_runtime.c"
+    },
     "hud_autosave": {
       "addr": "0xd0db0",
       "end": "0xd0e85",

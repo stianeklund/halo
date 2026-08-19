@@ -12246,7 +12246,7 @@
     },
     {
      "addr": "0xcae00",
-     "decl": "void FUN_000cae00(void);"
+     "decl": "int FUN_000cae00(const char *script_name@<edi>);"
     },
     {
      "addr": "0xcae80",
@@ -12329,8 +12329,8 @@
     },
     {
      "addr": "0xcb9a0",
-     "decl": "char hs_wake_by_name(void *block_entry);",
-     "ported": false
+     "decl": "char hs_wake_by_name(const char *script_name);",
+     "ported": true
     },
     {
      "addr": "0xcb9c0",

@@ -3533,6 +3533,41 @@ const char *hs_runtime_get_executing_thread_name(void)
   return "[unknown]";
 }
 
+/* 0xcb9a0 — Wake the running HS thread whose script matches `script_name`.
+ *
+ * The by-name counterpart of hs_evaluate_wake (0xcc0e0), which resolves its
+ * target by script *index* via FUN_000cada0.  Here FUN_000cae00 walks the
+ * hs_thread datum pool, and for every thread with a valid script index
+ * (thread+4 != -1) resolves that script's name from the scenario scripts
+ * block (scenario+0x49c, stride 0x5c, name at +0) and _stricmp's it against
+ * `script_name`, returning the matching thread handle or -1.  On a hit,
+ * FUN_000cacf0 wakes the thread; the return value reports whether one was
+ * found.
+ *
+ * `script_name` is a plain string pointer, not a block-element handle: the
+ * sole caller (actor_looking.c, HS atom 0xc) passes a scenario tag-block
+ * element (scenario+0x450, stride 0x28) whose first field is the name, and
+ * FUN_000cae00 consumes the pointer directly as _stricmp's second argument.
+ *
+ * ABI: FUN_000cae00 takes its argument in EDI (MOV EDI,[EBP+8] before the
+ * CALL) and returns the handle in EAX; FUN_000cacf0 likewise reads EDI, which
+ * still holds that handle at its call site.  Only AL is set on return
+ * (XOR AL,AL / MOV AL,0x1), hence the char result.
+ */
+char hs_wake_by_name(const char *script_name)
+{
+  int target_thread;
+  char result;
+
+  target_thread = FUN_000cae00(script_name);
+  result = 0;
+  if (target_thread != -1) {
+    FUN_000cacf0(target_thread);
+    result = 1;
+  }
+  return result;
+}
+
 /* 0xcbf80 — Execute a pending script-call expression on an HS thread.
  * Resolves the return type of the callee (either a built-in function or a
  * scenario script), casts the supplied value to that type via hs_can_cast,
