@@ -12486,6 +12486,10 @@
      "decl": "void FUN_000ce150(void);"
     },
     {
+     "addr": "0xce1b0",
+     "decl": "void FUN_000ce1b0(void);"
+    },
+    {
      "addr": "0xce1c0",
      "decl": "void hs_runtime_initialize(void);",
      "ported": true

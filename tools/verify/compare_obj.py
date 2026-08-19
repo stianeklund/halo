@@ -728,8 +728,27 @@ def _phantom_load_key(insn: str, slot_map: dict):
     return (disp, family)
 
 
+def _pushpop_key(insn: str, families: set):
+    """('push'|'pop', family) if insn is a callee-saved save/restore of a
+    register in `families`; else None."""
+    parts = insn.strip().split(None, 1)
+    if len(parts) != 2:
+        return None
+    mn = parts[0].lower().rstrip('l')
+    if mn not in ('push', 'pop'):
+        return None
+    op = parts[1].strip()
+    if not op.startswith('%'):
+        return None
+    fam = _REG_TO_FAMILY.get(op[1:].lower())
+    if fam not in families:
+        return None
+    return (mn, fam)
+
+
 def strip_regparam_loads(insns: list[str], reference: list[str],
-                         regdef_params: list[tuple[int, str]] | None
+                         regdef_params: list[tuple[int, str]] | None,
+                         strip_saves: bool = False
                          ) -> tuple[list[str], int]:
     """Remove candidate-only phantom reg-param slot loads (see module comment).
 
@@ -763,6 +782,36 @@ def strip_regparam_loads(insns: list[str], reference: list[str],
             n_stripped += 1
             continue
         out.append(insn)
+
+    # Second modeling pass (opt-in via strip_saves, tried as its own candidate
+    # by select_regparam_candidate): a register that ARRIVES as a parameter is
+    # the caller's to preserve, so the reg-convention reference never saves it.
+    # cl.exe models the param as a stack arg, treats the register as scratch,
+    # and emits a callee-saved PUSH/POP pair per exit -- pure convention
+    # artifact, and on a multi-epilogue function it is one surplus POP per
+    # return.  Same guards as the load pass: candidate-surplus only,
+    # count-aware against the reference (an argument `push %ebx` the reference
+    # also makes is never stripped), and only for ebx/esi/edi (eax/ecx/edx are
+    # caller-saved, so there is no pair to remove).
+    save_families = set()
+    for idx, reg in (regdef_params if strip_saves else []):
+        fam = _REG_TO_FAMILY.get(reg.lower())
+        if fam in ('ebx', 'esi', 'edi'):
+            save_families.add(fam)
+    if save_families:
+        ref_pp = Counter(k for k in (_pushpop_key(i, save_families)
+                                     for i in reference) if k is not None)
+        cand_pp_keys = [_pushpop_key(i, save_families) for i in out]
+        excess_pp = Counter(k for k in cand_pp_keys if k is not None)
+        excess_pp.subtract(ref_pp)
+        out2 = []
+        for insn, key in zip(out, cand_pp_keys):
+            if key is not None and excess_pp[key] > 0:
+                excess_pp[key] -= 1
+                n_stripped += 1
+                continue
+            out2.append(insn)
+        out = out2
     return out, n_stripped
 
 
@@ -824,15 +873,18 @@ def select_regparam_candidate(compiled: list[str], reference: list[str],
     compiler artifact, but never lower the reported ratio. Other metrics must
     use this same selected instruction list to remain directly comparable.
     """
-    stripped, n_stripped = strip_regparam_loads(
-        compiled, reference, regdef_params)
-    if not n_stripped:
-        return compiled, 0, "raw"
-    raw_ratio = comparison_ratio(compiled, reference, reg_normalize)
-    modeled_ratio = comparison_ratio(stripped, reference, reg_normalize)
-    if modeled_ratio > raw_ratio:
-        return stripped, n_stripped, "regparam_stripped"
-    return compiled, 0, "raw"
+    best = (comparison_ratio(compiled, reference, reg_normalize),
+            compiled, 0, "raw")
+    for strip_saves, label in ((False, "regparam_stripped"),
+                               (True, "regparam_stripped_saves")):
+        stripped, n_stripped = strip_regparam_loads(
+            compiled, reference, regdef_params, strip_saves=strip_saves)
+        if not n_stripped:
+            continue
+        ratio = comparison_ratio(stripped, reference, reg_normalize)
+        if ratio > best[0]:
+            best = (ratio, stripped, n_stripped, label)
+    return best[1], best[2], best[3]
 
 
 def lcs_ratio(a: list[str], b: list[str]) -> float:
@@ -1925,6 +1977,41 @@ def _self_test():
     selected, n, mode = select_regparam_candidate(cand, ref, [(0, 'eax')])
     check("RP9 shared metric input preserves raw candidate",
           selected == cand and n == 0 and mode == "raw")
+
+    # RP10. @<ebx> param: cl.exe treats EBX as scratch and emits a
+    #       callee-saved pair per exit; the reg-convention reference has none.
+    cand = ["pushl %ebp", "movl %esp, %ebp", "pushl %ebx",
+            "movl 0x8(%ebp), %ebx", "movl (%ebx), %eax",
+            "popl %ebx", "popl %ebp", "retl"]
+    ref = ["pushl %ebp", "movl %esp, %ebp", "movl (%ebx), %eax",
+           "popl %ebp", "retl"]
+    stripped, n = strip_regparam_loads(cand, ref, [(0, 'ebx')],
+                                       strip_saves=True)
+    check("RP10 @ebx save/restore pair stripped alongside the slot load",
+          n == 3 and stripped == ref)
+
+    # RP11. Count-aware: an argument `push %ebx` the reference ALSO makes is
+    #       never stripped.
+    cand = ["pushl %ebx", "calll f", "addl $0x4, %esp", "retl"]
+    ref = ["pushl %ebx", "calll f", "addl $0x4, %esp", "retl"]
+    stripped, n = strip_regparam_loads(cand, ref, [(0, 'ebx')],
+                                       strip_saves=True)
+    check("RP11 reference-matched push not stripped", n == 0)
+
+    # RP12. Caller-saved reg params have no pair to remove.
+    cand = ["pushl %eax", "popl %eax", "retl"]
+    stripped, n = strip_regparam_loads(cand, ["retl"], [(0, 'eax')],
+                                       strip_saves=True)
+    check("RP12 eax param leaves push/pop alone", n == 0)
+
+    # RP13. The saves pass is opt-in and monotonic: selection never returns a
+    #       candidate that scores below raw.
+    cand = ["pushl %ebx", "movl %esi, %eax", "popl %ebx", "retl"]
+    ref = ["pushl %esi", "movl %esi, %eax", "popl %esi", "retl"]
+    raw = comparison_ratio(cand, ref, False)
+    selected, n, mode = select_regparam_candidate(cand, ref, [(0, 'ebx')])
+    check("RP13 saves pass never scores below raw",
+          comparison_ratio(selected, ref, False) >= raw)
 
     if failures:
         print(f"\nSELF-TEST FAILED: {len(failures)} case(s)")

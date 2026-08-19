@@ -4981,16 +4981,17 @@ void FUN_000c2a40(int16_t function_index, int thread_datum, char init)
 /* 0xc2a80 — HS macro handler: forward a sound-class pattern and two raw
  * float arguments. EAX result record layout is { char *pattern; float a;
  * float b; }; the FLD/FSTP pairs at 0xc29c/0xc2a8 prove +4/+8 are floats. */
+void debug_sound_classes_set_distances(char *pattern, float dist1, float dist2);
+
 void FUN_000c2a80(int16_t function_index, int thread_datum, char init)
 {
-  int *result;
+  float *result;
 
   result =
-    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+    (float *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    debug_sound_classes_set_distances((char *)result[0],
-                                      *(float *)((char *)result + 4),
-                                      *(float *)((char *)result + 8));
+    debug_sound_classes_set_distances((char *)*(int *)result, result[1],
+                                      result[2]);
     hs_return(thread_datum, 0);
   }
 }
@@ -7423,6 +7424,9 @@ struct hs_convolution_result {
   float field_10;   /* +0x10 HS real */
 };
 
+void FUN_0017da40(int16_t field_00, uint16_t field_04, float field_08,
+                  float field_0c, float field_10);
+
 void FUN_000c36a0(int16_t function_index, int thread_datum, char init)
 {
   struct hs_convolution_result *result;
@@ -8273,40 +8277,55 @@ void hs_scripts_initialize(void)
 {
   char *scenario_tag;
 
-  if (*(int *)0x326a08 == -1)
-    scenario_tag = 0;
-  else {
+  if (*(int *)0x326a08 != -1) {
     scenario_tag = (char *)global_scenario_get();
     if (scenario_tag != 0 && *(int *)(scenario_tag + 0x474) == 0x5ccac) {
       return;
     }
+  } else {
+    scenario_tag = 0;
   }
 
-  *(void **)0x5aa6c8 = (void *)data_new("script node", 0x4a39, 0x14);
-  if (*(void **)0x5aa6c8 == 0) {
-    error(0, "couldn't allocate script syntax data");
-    return;
-  }
+  *(data_t **)0x5aa6c8 = (data_t *)data_new("script node", 0x4a39, 0x14);
+  if (*(data_t **)0x5aa6c8 != NULL) {
+    data_delete_all(*(data_t **)0x5aa6c8);
 
-  data_delete_all(*(data_t *volatile *)0x5aa6c8);
+    if (scenario_tag != 0) {
+      debug_free(*(void **)(scenario_tag + 0x480), "c:\\halo\\SOURCE\\hs\\hs.c",
+                 0x150);
+      *(data_t **)(scenario_tag + 0x480) = *(data_t **)0x5aa6c8;
+      *(int *)(scenario_tag + 0x474) = 0x5ccac;
+      tag_data_resize((void *)(scenario_tag + 0x488), 0x400);
+      tag_block_resize((void *)(scenario_tag + 0x49c), 0);
+      return;
+    }
 
-  if (scenario_tag == 0) {
     *(uint8_t *)0x46b6d9 = 1;
     return;
   }
 
-  debug_free(*(void **)(scenario_tag + 0x480), "c:\\halo\\SOURCE\\hs\\hs.c",
-             0x150);
-  *(int *)(scenario_tag + 0x480) = *(int *)0x5aa6c8;
-  *(int *)(scenario_tag + 0x474) = 0x5ccac;
-  tag_data_resize((void *)(scenario_tag + 0x488), 0x400);
-  tag_block_resize((void *)(scenario_tag + 0x49c), 0);
+  error(0, "couldn't allocate script syntax data");
 }
 
-/* Dispose: clean up runtime state. */
+/* 0xc3c30 — Dispose: clean up runtime state.  The body is exactly two calls,
+ * `CALL 0xca800` then `JMP 0xce1b0` (10 bytes, 0xc3c30-0xc3c3a), so the second
+ * is a tail call.  0xce1b0 is a real 16-byte-aligned function in hs_runtime.obj
+ * whose entire body is a single RET, and hs_dispose at 0xc3c35 is its ONLY
+ * caller in the XBE (whole-image E8/E9 scan) — it is an empty teardown hook,
+ * not a stub we failed to lift.
+ *
+ * NOTE the pairing: hs_dispose_from_old_map (0xc4dd0) ends with the same
+ * `CALL 0xca800` followed by `JMP 0xce1e0`.  Both wrappers call 0xca800 and
+ * then differ only in the trailing hs_runtime entry point, which makes the
+ * current kb names for 0xca800 (hs_runtime_dispose_from_old_map) and 0xce1e0
+ * (hs_runtime_dispose) suspect — the coherent reading is that 0xca800 is a
+ * shared helper, 0xce1b0 is hs_runtime_dispose, and 0xce1e0 is
+ * hs_runtime_dispose_from_old_map.  Left unrenamed: nothing in the binary
+ * names any of the three, so the call targets below are stated by address. */
 void hs_dispose(void)
 {
-  hs_runtime_dispose_from_old_map();
+  hs_runtime_dispose_from_old_map();   /* 0xca800 */
+  FUN_000ce1b0();                      /* 0xce1b0 (empty) */
 }
 
 /* Per-tick script update with optional profiling. */
@@ -8418,18 +8437,12 @@ void *hs_external_global_get(int16_t global_index)
  * Bit 15 clear: scenario global (element+0x20, block at scenario+0x4a8). */
 int16_t hs_global_get_type(uint16_t script_ref)
 {
-  char *scenario;
-  void *element;
-  void *desc;
-
-  if (script_ref & 0x8000) {
-    desc = hs_external_global_get((int16_t)(script_ref & 0x7fff));
-    return *(int16_t *)((char *)desc + 0x4);
+  if ((int16_t)script_ref < 0) {
+    return *(int16_t *)((char *)hs_external_global_get((int16_t)(script_ref & 0x7fff)) + 0x4);
   }
-  scenario = (char *)global_scenario_get();
-  element = tag_block_get_element((void *)(scenario + 0x4a8),
-                                  (int)(script_ref & 0x7fff), 0x5c);
-  return *(int16_t *)((char *)element + 0x20);
+  return *(int16_t *)((char *)tag_block_get_element(
+    (void *)((char *)global_scenario_get() + 0x4a8),
+    (int)(script_ref & 0x7fff), 0x5c) + 0x20);
 }
 
 /* 0xc3ea0 — Return the name string of a global variable by ref.
@@ -8438,16 +8451,12 @@ int16_t hs_global_get_type(uint16_t script_ref)
  * tag_block at scenario+0x4a8. */
 const char *hs_global_get_name(uint16_t global_ref)
 {
-  void *desc;
-  char *scenario;
-
-  if (global_ref & 0x8000) {
-    desc = hs_external_global_get((int16_t)(global_ref & 0x7fff));
-    return *(const char **)desc;
+  if ((int16_t)global_ref < 0) {
+    return *(const char **)hs_external_global_get((int16_t)(global_ref & 0x7fff));
   }
-  scenario = (char *)global_scenario_get();
-  return (const char *)tag_block_get_element((void *)(scenario + 0x4a8),
-                                             (int)(global_ref & 0x7fff), 0x5c);
+  return (const char *)tag_block_get_element(
+    (void *)((char *)global_scenario_get() + 0x4a8),
+    (int)(global_ref & 0x7fff), 0x5c);
 }
 
 /* Find a HaloScript global variable by name.  Searches external globals
@@ -8478,7 +8487,7 @@ int16_t hs_find_global_by_name(const char *name)
     scenario_tag = (char *)global_scenario_get();
     for (i = 0; (int)i < *(int *)(scenario_tag + 0x4a8); i++) {
       const char *global_name = (const char *)tag_block_get_element(
-        (void *)(scenario_tag + 0x4a8), (int)i, 0x5c);
+        (void *)((char *)global_scenario_get() + 0x4a8), (int)i, 0x5c);
       if (crt_stricmp(name, global_name) == 0) {
         return (int16_t)((uint16_t)i & 0x7FFF);
       }
@@ -8527,7 +8536,7 @@ int FUN_000c4010(const char **a, const char **b)
  *
  * Count and capacity are int16 (MOV AX / CMP AX / INC AX), and the array index
  * is the sign-extended count (MOVSX ECX,AX). */
-void FUN_000c4030(const char *name)
+static void FUN_000c4030(const char *name)
 {
   int16_t count;
 
@@ -8788,7 +8797,6 @@ int16_t hs_tokens_enumerate(const char *prefix, uint32_t type_mask,
 bool hs_load_source_file(void *file_ref)
 {
   char *scenario_tag;
-  void *scripts_block;
   int16_t element_index;
   char *element;
   void *buffer;
@@ -8799,39 +8807,36 @@ bool hs_load_source_file(void *file_ref)
 
   scenario_tag = (char *)global_scenario_get();
 
-  if (!file_exists((file_ref_t *)file_ref))
-    return 0;
+  if (file_exists((file_ref_t *)file_ref)) {
+    element_index = tag_block_add_element((void *)(scenario_tag + 0x4c0));
+    if (element_index != -1) {
+      element = (char *)tag_block_get_element((void *)(scenario_tag + 0x4c0),
+                                              (int)element_index, 0x34);
+      buffer = file_read_into_buffer((file_ref_t *)file_ref, &file_size);
+      if (buffer != NULL) {
+        tag_data_ptr = (void *)(element + 0x20);
+        if (tag_data_resize(tag_data_ptr, file_size)) {
+          file_reference_get_name((file_ref_t *)file_ref, 4, name_buf);
+          csstrncpy(element, name_buf, 0x1f);
+          *(uint8_t *)(element + 0x1f) = '\0';
 
-  scripts_block = (void *)(scenario_tag + 0x4c0);
-  element_index = tag_block_add_element(scripts_block);
-  if (element_index == -1) {
+          dest = tag_data_get_pointer(tag_data_ptr, 0, file_size);
+          csmemcpy(dest, buffer, file_size);
+          return true;
+        }
+
+        error(2, "maximum source file size exceeded.");
+        return false;
+      }
+
+      error(2, "couldn't read source file into memory.");
+      return false;
+    }
+
     error(2, "maximum source files per scenario exceeded.");
-    return 0;
   }
 
-  element =
-    (char *)tag_block_get_element(scripts_block, (int)element_index, 0x34);
-
-  buffer = file_read_into_buffer((file_ref_t *)file_ref, &file_size);
-  if (buffer == NULL) {
-    error(2, "couldn't read source file into memory.");
-    return 0;
-  }
-
-  tag_data_ptr = (void *)(element + 0x20);
-  if (!tag_data_resize(tag_data_ptr, file_size)) {
-    error(2, "maximum source file size exceeded.");
-    return 0;
-  }
-
-  file_reference_get_name((file_ref_t *)file_ref, 4, name_buf);
-  csstrncpy(element, name_buf, 0x1f);
-  *(uint8_t *)(element + 0x1f) = 0;
-
-  dest = tag_data_get_pointer(tag_data_ptr, 0, file_size);
-  csmemcpy(dest, buffer, file_size);
-
-  return 1;
+  return false;
 }
 
 /* 0xc4770 — qsort comparator over an array of file_ref_t (stride 0x10c), used
@@ -8867,16 +8872,22 @@ int FUN_000c4770(file_ref_t *a, file_ref_t *b)
  * "hsc" at 0x27ba34 is compared with csstrcmp to filter results. */
 bool hs_needs_recompile(void)
 {
+  /* Frame layout read off the reference (SUB ESP,0xc7c), highest local first:
+   * result at EBP-0x1, path at EBP-0x104 (0x100 bytes -- the gap to the byte
+   * at EBP-0x1 leaves room for 0x100 plus 3 bytes of padding, not 0x104),
+   * global_ref at EBP-0x210, name_buf at EBP-0x310 (0x100), dir_ref at
+   * EBP-0x41c, results at EBP-0xc7c (8 * 0x10c).  MSVC assigns descending
+   * addresses in declaration order, so the declaration order below IS the
+   * frame layout -- name_buf must sit between global_ref and dir_ref. */
   uint8_t result;
   char *scenario_tag;
-  char path[260]; /* EBP+0xfffffef8 => EBP-0x108, size 0x104 */
-  char global_ref[268]; /* EBP+0xfffffdf0 => EBP-0x210, file_ref_t */
-  char dir_ref[268]; /* EBP+0xfffffbe4 => EBP-0x41c, file_ref_t */
-  char results[2144]; /* EBP+0xfffff384 => EBP-0xc7c, 8*0x10c */
-  char name_buf[256]; /* EBP+0xfffffcf0 => EBP-0x310 */
+  char path[256]; /* EBP-0x104 */
+  char global_ref[268]; /* EBP-0x210, file_ref_t */
+  char name_buf[256]; /* EBP-0x310 */
+  char dir_ref[268]; /* EBP-0x41c, file_ref_t */
+  char results[2144]; /* EBP-0xc7c, 8*0x10c */
   int16_t count;
   int16_t i;
-  const char *name_result;
   char *ebx_ptr;
 
   result = 1;
@@ -8886,8 +8897,7 @@ bool hs_needs_recompile(void)
   tag_block_resize((void *)(scenario_tag + 0x4c0), 0);
 
   /* Get the tag name for the current scenario and build the scripts path */
-  name_result = tag_get_name(*(int *)0x326a08);
-  crt_sprintf(path, "data\\%s", name_result);
+  crt_sprintf(path, "data\\%s", tag_get_name(*(int *)0x326a08));
   {
     char *last_sep = strrchr(path, 0x5c);
     crt_sprintf(last_sep + 1, "scripts");
@@ -8897,7 +8907,7 @@ bool hs_needs_recompile(void)
   file_reference_create_from_path((file_ref_t *)global_ref,
                                   "data\\global_scripts.hsc", 0);
   if (file_exists((file_ref_t *)global_ref)) {
-    result = (uint8_t)hs_load_source_file((void *)global_ref);
+    result = hs_load_source_file((file_ref_t *)global_ref);
   }
 
   /* Find all .hsc files in the scripts directory */
@@ -8905,7 +8915,7 @@ bool hs_needs_recompile(void)
   count = find_files(0, (file_ref_t *)dir_ref, 8, (file_ref_t *)results);
 
   /* Sort the results by name using the comparison callback at 0xc4770 */
-  qsort((void *)results, (size_t)(int16_t)count, 0x10c,
+  qsort((void *)results, (int)(int16_t)count, 0x10c,
         (int (*)(const void *, const void *))FUN_000c4770);
 
   if ((int16_t)count > 0) {
@@ -8913,7 +8923,7 @@ bool hs_needs_recompile(void)
     for (i = (uint16_t)count; i != 0; i--) {
       file_reference_get_name((file_ref_t *)ebx_ptr, 8, name_buf);
       if (csstrcmp(name_buf, (const char *)0x27ba34) == 0) {
-        if (!hs_load_source_file((void *)ebx_ptr))
+        if (!hs_load_source_file((file_ref_t *)ebx_ptr))
           result = 0;
       }
       ebx_ptr += 0x10c;
@@ -9300,10 +9310,10 @@ void hs_initialize_for_new_map(void)
 {
   char *scenario_tag;
 
-  if (*(int *)0x326a08 == -1)
-    scenario_tag = 0;
-  else
+  if (*(int *)0x326a08 != -1)
     scenario_tag = (char *)global_scenario_get();
+  else
+    scenario_tag = 0;
 
   hs_scripts_initialize();
 
@@ -9431,29 +9441,15 @@ void FUN_000c5010(int16_t function_index, int thread_datum, char init)
  * runtime tables, and initialize for the current map. */
 void hs_initialize(void)
 {
-  char *scenario_tag;
-
   if (*(void **)0x2f1568 == 0) {
     display_assert("you can't add an hs type without defining its name.",
                    "c:\\halo\\SOURCE\\hs\\hs.c", 0xf5, 1);
     system_exit(-1);
   }
 
-  ((void (*)(void))0xce150)();
-  ((void (*)(void))0xca700)();
-
-  if (*(int *)0x326a08 == -1)
-    scenario_tag = 0;
-  else
-    scenario_tag = (char *)global_scenario_get();
-
-  hs_scripts_initialize();
-
-  if (scenario_tag != 0 && *(int *)(scenario_tag + 0x474) != 0)
-    hs_load_scenario_scripts(0);
-
-  hs_runtime_initialize();
-  hs_runtime_initialize_for_new_map();
+  FUN_000ce150();
+  FUN_000CA700();
+  hs_initialize_for_new_map();
 }
 
 /*
@@ -9489,10 +9485,9 @@ bool hs_console_evaluate(const char *command)
   int error_info;
   char *error_text;
   bool result;
-  const char *source;
+  const char *scan;
   char *space;
   int16_t mode;
-  int compiled;
   int executed;
   char *scenario_tag;
 
@@ -9505,15 +9500,21 @@ bool hs_console_evaluate(const char *command)
     copy[0] = 0;
   }
 
-  /* skip leading whitespace */
-  source = copy;
-  while (*source != 0) {
-    if (crt_isspace((int)(unsigned char)*source) == 0)
-      break;
-    source++;
-  }
-  if (*source == 0)
+  /* Skip leading whitespace.  `scan` is a walker over `copy` and is dead
+   * after this loop -- it is NOT the string handed to hs_compile.  The
+   * original's loop tests the terminator at the BOTTOM (0xc5115-0xc512d:
+   * MOVSX EAX,byte [ESI] / isspace / JE out, then MOV AL,[ESI+1] / INC ESI /
+   * CMP AL,BL / JNE top), with a separate `copy[0] == 0` pre-test at 0xc5103.
+   * The isspace argument is SIGN-extended (MOVSX, not MOVZX), so the char is
+   * read signed -- transcribed literally. */
+  scan = copy;
+  if (*scan == 0)
     goto post_eval;
+  while (crt_isspace((int)*scan) != 0) {
+    scan++;
+    if (*scan == 0)
+      goto post_eval;
+  }
 
   mode = 0;
   hs_syntax_reset(0);
@@ -9536,20 +9537,38 @@ bool hs_console_evaluate(const char *command)
   }
 
 skip_wrap:
-  if (mode != 0) {
-    if (mode == 1) {
-      crt_sprintf(wrapped, (const char *)0x27bb64, copy);
-    } else if (mode == 2) {
-      crt_sprintf(wrapped, (const char *)0x27bb6c, copy);
-    } else {
-      display_assert(NULL, "c:\\halo\\SOURCE\\hs\\hs.c", 0x507, 1);
-      system_exit(-1);
-    }
-    source = wrapped;
+  /* The original dispatches on `mode` with a switch: MOVSX EAX,DI / SUB
+   * EAX,EBX / JE (case 0) / DEC EAX / JE (case 1) / DEC EAX / JE (case 2) /
+   * fall through to the assert (0xc518d-0xc51a1).  Each wrapping case pushes
+   * its format literal directly (0x27bb64 "(%s)" at 0xc51cd, 0x27bb6c
+   * "(set %s)" at 0xc51bf) and MSVC tail-merges the two csnzprintf calls at
+   * 0xc51d2 -- so there are two calls in the source, not one call through a
+   * `fmt` variable. */
+  switch (mode) {
+  case 0:
+    break;
+  case 1:
+    crt_sprintf(wrapped, "(%s)", copy);
+    command = wrapped;
+    break;
+  case 2:
+    crt_sprintf(wrapped, "(set %s)", copy);
+    command = wrapped;
+    break;
+  default:
+    display_assert(NULL, "c:\\halo\\SOURCE\\hs\\hs.c", 0x507, 1);
+    system_exit(-1);
+    break;
   }
 
-  compiled = csstrlen(source);
-  executed = hs_compile(compiled, source, &error_info, &error_text);
+  /* The compile input is the PARAMETER, re-pointed at `wrapped` by the
+   * wrapping cases above (MOV [EBP+8],EDX at 0xc51e7, reloaded as MOV
+   * EAX,[EBP+8] at 0xc51ee).  In the mode==0 pass-through case [EBP+8] still
+   * holds the caller's original string -- NOT `copy`, and not the
+   * whitespace-skipped walker -- so a command with leading whitespace or more
+   * than 0x3ff characters is compiled unsanitized.  Verified: [EBP+8] is
+   * written exactly once in the whole function, at 0xc51e7. */
+  executed = hs_compile(csstrlen(command), command, &error_info, &error_text);
 
   if (executed != -1) {
     result = 1;
@@ -9583,10 +9602,10 @@ post_eval:
       hs_runtime_dispose_from_old_map();
       hs_runtime_dispose();
 
-      if (*(int *)0x326a08 == -1) {
-        scenario_tag = 0;
-      } else {
+      if (*(int *)0x326a08 != -1) {
         scenario_tag = (char *)global_scenario_get();
+      } else {
+        scenario_tag = 0;
       }
 
       hs_scripts_initialize();
@@ -9754,15 +9773,16 @@ bool FUN_000c55d0(const char *function_name, int *argument_nodes,
     argument_count++;
   }
 
-  if (argument_count == expected_count && argument_node == NONE)
-    return true;
+  if (argument_count != expected_count || argument_node != NONE) {
+    crt_sprintf((char *)0x46b704, "the %s call requires %d arguments.",
+                function_name, (int)expected_count);
+    *(const char **)0x46b6fc = (const char *)0x46b704;
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, syntax_node);
+    *(int *)0x46b700 = *(int *)(node + 0xc);
+    return false;
+  }
 
-  crt_sprintf((char *)0x46b704, "the %s call requires %d arguments.",
-              function_name, (int)expected_count);
-  *(const char **)0x46b6fc = (const char *)0x46b704;
-  node = (char *)datum_get(*(data_t **)0x5aa6c8, syntax_node);
-  *(int *)0x46b700 = *(int *)(node + 0xc);
-  return false;
+  return true;
 }
 
 /* Reset the HaloScript compile state.  Asserts that the compiler is not
@@ -9801,9 +9821,11 @@ void hs_syntax_reset(int param_1)
  * [0, hs_compile_globals.source_size). Sets error message on failure. */
 bool hs_source_offset_valid(int offset)
 {
+  bool result = true;
+
   if (offset < 0 || offset >= *(int *)0x46b6e4) {
     *(const char **)0x46b6fc = "bad source offset (you need to recompile.)";
-    return false;
+    result = false;
   }
-  return true;
+  return result;
 }
