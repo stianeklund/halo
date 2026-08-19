@@ -1711,7 +1711,10 @@ bool fast_vector_intersects_sphere(float *line_start, float *line_end,
                                    float *sphere_center, float sphere_radius)
 {
   float dx, dy, dz, c;
-  float dir_x, dir_y, dir_z, b;
+  float dir_x;
+  volatile float dir_y;
+  volatile float dir_z;
+  volatile float b;
   float a, disc, t_check;
 
   dx = line_start[0] - sphere_center[0];
@@ -1721,31 +1724,31 @@ bool fast_vector_intersects_sphere(float *line_start, float *line_end,
    * reassociates FP adds — z-first in the binary proves z-first source) */
   c = dz * dz + dy * dy + dx * dx - sphere_radius * sphere_radius;
 
-  if (c < 0.0f)
-    return true;
+  if (!(c < *(float *)0x2533c0)) {
+    dir_x = line_end[0];
+    dir_y = line_end[1];
+    dir_z = line_end[2];
+    b = dir_z * dz + dir_y * dy + dir_x * dx;
 
-  dir_x = line_end[0];
-  dir_y = line_end[1];
-  dir_z = line_end[2];
-  b = dir_z * dz + dir_y * dy + dir_x * dx;
+    if (!(b >= *(float *)0x2533c0)) {
+      a = dir_z * dir_z + dir_y * dir_y + dir_x * dir_x;
+      disc = b * b - a * c;
 
-  if (b >= 0.0f)
+      if (disc <= 0.0f)
+        return false;
+
+      t_check = -a - b;
+      if (t_check < 0.0f)
+        return true;
+
+      if (t_check * t_check < disc)
+        return true;
+    }
+
     return false;
+  }
 
-  a = dir_z * dir_z + dir_y * dir_y + dir_x * dir_x;
-  disc = b * b - a * c;
-
-  if (disc <= 0.0f)
-    return false;
-
-  t_check = -a - b;
-  if (t_check < 0.0f)
-    return true;
-
-  if (t_check * t_check < disc)
-    return true;
-
-  return false;
+  return true;
 }
 
 /* 0x10bd70 — Point-in-rectangle test (2D, fully inclusive). */
@@ -3559,26 +3562,27 @@ char FUN_0010f310(float *p1, float *p2, float *p3, float *out)
  * param_4 receives the cross of the input planes. */
 char FUN_0010f480(float *p1, float *p2, float *out, float *cross_out)
 {
-  float cy, cz;
+  float cy, cz, z;
   /* The reference spills det and reloads it for the fabs guard
    * (`fstps 0x8(%ebp)` ; `flds 0x8(%ebp)` ; `fabs` ; `fcompl 0x2533d0`). */
   volatile float det;
   float inv_det;
   float d;
 
-  cross_out[2] = p1[0] * p2[1] - p1[1] * p2[0];
+  z = p1[0] * p2[1] - p1[1] * p2[0];
   cy = p2[0] * p1[2] - p1[0] * p2[2];
   cz = p1[1] * p2[2] - p1[2] * p2[1];
+  cross_out[2] = z;
   cross_out[0] = cz;
   cross_out[1] = cy;
-  det = cross_out[2] * cross_out[2] + cy * cy + cz * cz;
+  det = cross_out[0] * cross_out[0] + cross_out[1] * cross_out[1] + z * z;
   /* Negated guard: the reference's `fabs ; fcompl 0x2533d0 ; testb $0x5,%ah ;
    * jnp` sinks the degenerate `return 0` past the solve.  `!(x < eps)` keeps
    * the original's NaN path (NaN -> solve). */
   if (!(fabsf(det) < *(double *)0x2533d0)) {
     d = p1[3];
-    out[0] = (cross_out[2] * p2[1] - cy * p2[2]) * d;
-    out[1] = (p2[2] * cross_out[0] - cross_out[2] * p2[0]) * d;
+    out[0] = (z * p2[1] - cy * p2[2]) * d;
+    out[1] = (p2[2] * cross_out[0] - z * p2[0]) * d;
     out[2] = (cy * p2[0] - cross_out[0] * p2[1]) * d;
 
     d = p2[3];

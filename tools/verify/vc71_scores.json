@@ -23896,16 +23896,16 @@
     "FUN_0010f480": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 57.5,
+      "abi_modeled_mnemonic_pct": 60.9,
       "addr": "0x10f480",
       "end": "0x10f5a9",
       "kind": "auto",
       "n_r": 116,
-      "opnd_percent": 35.2,
-      "raw_mnemonic_pct": 57.5,
+      "opnd_percent": 48.1,
+      "raw_mnemonic_pct": 60.9,
       "ref": "synth",
       "ref_sha": "a028f9116b7ada4e",
-      "score": 57.5,
+      "score": 60.9,
       "source": "src/halo/math/real_math.c"
     },
     "FUN_0010f9b0": {
@@ -48466,16 +48466,16 @@
     "fast_vector_intersects_sphere": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 42.4,
+      "abi_modeled_mnemonic_pct": 69.0,
       "addr": "0x10bc70",
       "end": "0x10bd70",
       "kind": "auto",
       "n_r": 102,
-      "opnd_percent": 40.4,
-      "raw_mnemonic_pct": 42.4,
+      "opnd_percent": 64.0,
+      "raw_mnemonic_pct": 69.0,
       "ref": "synth",
       "ref_sha": "3a9b07ed028d982a",
-      "score": 42.4,
+      "score": 69.0,
       "source": "src/halo/math/real_math.c"
     },
     "file_close": {
@@ -68416,16 +68416,16 @@
     "sphere_intersects_triangle3d": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 76.7,
+      "abi_modeled_mnemonic_pct": 80.1,
       "addr": "0x10eb10",
       "end": "0x10ed6f",
       "kind": "auto",
       "n_r": 243,
-      "opnd_percent": 55.7,
-      "raw_mnemonic_pct": 76.7,
+      "opnd_percent": 73.9,
+      "raw_mnemonic_pct": 80.1,
       "ref": "synth",
       "ref_sha": "342f655c7a38fecd",
-      "score": 76.7,
+      "score": 80.1,
       "source": "src/halo/math/real_math.c"
     },
     "stack_memory_pool_alloc_internal": {
@@ -73186,16 +73186,16 @@
     "vector_intersects_pill3d": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 80.2,
+      "abi_modeled_mnemonic_pct": 80.5,
       "addr": "0x10e040",
       "end": "0x10e4ca",
       "kind": "auto",
       "n_r": 413,
-      "opnd_percent": 65.4,
-      "raw_mnemonic_pct": 80.2,
+      "opnd_percent": 73.8,
+      "raw_mnemonic_pct": 80.5,
       "ref": "synth",
       "ref_sha": "133adc3964ab624f",
-      "score": 80.2,
+      "score": 80.5,
       "source": "src/halo/math/real_math.c"
     },
     "vector_to_angles": {
