@@ -1,6 +1,5 @@
 ---
 description: Guarded OpenCode lift loop with automatic target selection
-agent: build
 subtask: false
 ---
 
