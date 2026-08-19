@@ -6878,3 +6878,42 @@ AUTOLIFT_REVIEW: NEEDS_RUNTIME |
 | FUN_000bef00 | 0xbef00 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
 | FUN_000bf9f0 | 0xbf9f0 | players.obj | 100 | committed | pass1+equiv_moderate [equivalence detail: Equivalence ran automatically inside lift_pipeline (not the step-6d band lane, since the score is 100%): 100 seeds, 100 passed, 0 diverged, 0 errors, 0 stub-arg mismatches, 55.4% coverage, tier=moderate. Zero-fill/default harness inputs — no live-state snapshot was used. The exercised path is the evaluate -> NULL-check branch pair; with hs_macro_function_evaluate stubbed the non-NULL worker path (device_set_never_appears_locked + hs_return) is only partially covered, which is what holds coverage — a 0-divergence pass on the live-state infection_swarm snapshot (populated datum tables, real actor handles) is accepted runtime behavioral evidence for the sub-90% band per the state-snapshot equivalence lane in CLAUDE.md] [cohort=retrieval] |
 | FUN_000bfd30 | 0xbfd30 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+
+## Goal-lift run — 12/12 committed (goal_reached)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00093b60 | 0x93b60 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_000bfd70 | 0xbfd70 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=none] |
+| FUN_000bfeb0 | 0xbfeb0 | players.obj | 100 | committed | pass1 [cohort=retrieval] |
+| FUN_000bfef0 | 0xbfef0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000bff30 | 0xbff30 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000bffb0 | 0xbffb0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000c0170 | 0xc0170 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000c0330 | 0xc0330 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000c0370 | 0xc0370 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000c03b0 | 0xc03b0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000c04f0 | 0xc04f0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000c05f0 | 0xc05f0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000c0630 | 0xc0630 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+
+## Goal-lift run — 12/12 committed (goal_reached)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00093b60 | 0x93b60 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_000c07b0 | 0xc07b0 | players.obj | 100 | committed | pass1 [cohort=retrieval] |
+| FUN_000c09f0 | 0xc09f0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000c0a30 | 0xc0a30 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000c0a70 | 0xc0a70 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000c0ab0 | 0xc0ab0 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000129f0 | 0x129f0 | vector_math.obj | 79.3 | parked | escalation_exhausted [cohort=retrieval] |
+| network_game_client_game_shutdown | 0x126750 | network_client_manager.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| player_telefrag_effect_stop | 0xa2930 | player_effects.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| player_telefrag_effect_start | 0xa2ed0 | player_effects.obj | 90.3 | committed | pass1+equiv_moderate [equivalence detail: Equivalence ran automatically inside lift_pipeline (not the step-6d snapshot lane, which was not required since the final score is 90.3%, outside [85,89]). Result: 100 passed, 0 diverged, 0 errors over 100 seeds, reported tier moderate at 38.8% coverage. Zero-fill inputs, no live-state snapshot was used. Coverage is limited because the seeded player datum rarely yields player+2 != -1, so the exercised paths are dominated by the early -1 guard plus the descriptor/effect-data construction; the fou — a 0-divergence pass on the live-state infection_swarm snapshot (populated datum tables, real actor handles) is accepted runtime behavioral evidence for the sub-90% band per the state-snapshot equivalence lane in CLAUDE.md] [cohort=retrieval] |
+| vehicle_hover | 0x1b55c0 | vehicles.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_001b56b0 | 0x1b56b0 | vehicles.obj | 91.9 | committed | mechanical gate: 91.9% clean (pass1) [cohort=retrieval] |
+| vehicle_reset | 0x1b5770 | vehicles.obj | 97.6 | committed | mechanical gate: 97.6% clean (pass1) [cohort=retrieval] |
+| vehicle_render_debug | 0x1b5d90 | vehicles.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
