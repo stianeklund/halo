@@ -1,4 +1,41 @@
 
+/* object_get_maximum_shield_vitality (0x136700) — Return the object's maximum
+ * shield vitality, optionally scaled by the value_type-2 modifier for the
+ * object's team.
+ *
+ * When param_2 is non-zero the raw float at object+0x8c is returned unscaled;
+ * when it is zero the value is multiplied by FUN_000b55b0(2, team).
+ *
+ * Object offsets (unproven names, offsets are binary-confirmed):
+ *   +0x68: team index (uint16_t), zero-extended to int for FUN_000b55b0
+ *   +0x8c: maximum shield vitality (float)
+ *
+ * Confirmed: PUSH -0x1; PUSH EAX; CALL 0x13d680 => object_get_and_verify_type.
+ * Confirmed: MOV ECX,[EAX+0x8c]; MOV [EBP-4],ECX copies the float to a local
+ *            BEFORE the branch and before the FUN_000b55b0 call.
+ * Confirmed: MOV CL,[EBP+0xc]; TEST CL,CL; JNZ 0x13673a => non-zero returns
+ *            the unscaled local via FLD [EBP-4].
+ * Confirmed: XOR EDX,EDX; MOV DX,[EAX+0x68] zero-extends team to int.
+ * Confirmed: PUSH EDX; PUSH 0x2; CALL 0xb55b0 => FUN_000b55b0(2, team).
+ * Confirmed: FMUL [EBP-4] multiplies the call result (ST0) by the local.
+ * Confirmed: single caller at 0x521e7 in FUN_0004c920.
+ */
+float object_get_maximum_shield_vitality(int object_handle, char param_2)
+{
+  char *obj;
+  float maximum_shield_vitality;
+
+  obj = (char *)object_get_and_verify_type(object_handle, -1);
+  maximum_shield_vitality = *(float *)(obj + 0x8c);
+  if (param_2 == 0) {
+    /* Scaled path is the fall-through block in the reference; the unscaled
+     * return is the JNZ target that follows it. */
+    return FUN_000b55b0(2, (int)*(unsigned short *)(obj + 0x68)) *
+           maximum_shield_vitality;
+  }
+  return maximum_shield_vitality;
+}
+
 /* Initialize a damage_params struct with a damage effect tag index (0x136750).
  * Zeroes 0x54 bytes, sets tag_index at +0x00, and initializes sentinel/default
  * fields to -1 and scale fields at +0x40/+0x44 to 1.0f. */
@@ -1360,9 +1397,8 @@ after_modifier:
          * Disasm at 0x138354: LEA EDX,[EBP-0x24]; PUSH EDX. */
         FUN_001377d0(current_object_handle, body_region, body_node,
                      body_impact_direction, coll_data, (int)material_data,
-                     jpt_offset,
-                     damage_params, &damage_flags, &body_damage, &effect_ptr,
-                     damage_scale);
+                     jpt_offset, damage_params, &damage_flags, &body_damage,
+                     &effect_ptr, damage_scale);
         damaged_object_count = 0;
       }
 

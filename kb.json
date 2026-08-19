@@ -37396,7 +37396,8 @@
     },
     {
      "addr": "0x136700",
-     "decl": "void object_get_maximum_shield_vitality(void);"
+     "decl": "float object_get_maximum_shield_vitality(int object_handle, char param_2);",
+     "ported": true
     },
     {
      "addr": "0x138f10",
