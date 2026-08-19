@@ -757,7 +757,8 @@ void network_game_client_all_local_players_have_quit(void)
 void FUN_0012a7a0(void)
 {
   if (*(void **)0x0046e8c0 != NULL) {
-    if (!FUN_00125b90(*(void **)0x0046e8c0, 3)) {
+    if (!network_game_client_request_start_time_change(*(void **)0x0046e8c0,
+                                                       3)) {
       error(2, "network_game_client_request_start() failed");
     }
   }

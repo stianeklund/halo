@@ -14810,7 +14810,8 @@
     },
     {
      "addr": "0x125b90",
-     "decl": "int FUN_00125b90(void *client, short request_type);"
+     "decl": "bool network_game_client_request_start_time_change(void *client, short request_type);",
+     "ported": true
     },
     {
      "addr": "0x125c60",

@@ -349,6 +349,58 @@ bool network_client_get_oos(void *server)
   return *(char *)((char *)server + 0xcac);
 }
 
+/* 0x125b90 — network_game_client_request_start_time_change
+ *
+ * Name comes from the failure log string emitted by this function itself.
+ * Asserts client non-null (line 0x5a5) and 0 <= request_type < 4 (line 0x5a6,
+ * "NUMBER_OF_GAME_START_REQUESTS"). Only sends while the client state word at
+ * +0xca6 equals 2 (pregame); otherwise it just logs. Encodes a 2-byte
+ * message_client_game_start_request (type 0x11) holding request_type and
+ * writes it to the connection handle at +0x82c. The size argument is the
+ * encoded header word >> 4 (MOV CX,[EAX]; SHR CX,4 at 0x125c15). Always
+ * returns 1 — every reachable exit is MOV AL,1 (0x125c3d / 0x125c50), and
+ * only AL is set, so the return is a bool.
+ *
+ * The original builds the 2-byte message in the dead incoming parameter slot
+ * (MOV word ptr [EBP+0xe],DI) rather than allocating a frame; that is MSVC
+ * stack packing of a local, not a parameter.
+ */
+bool network_game_client_request_start_time_change(void *client,
+                                                   short request_type)
+{
+  short message;
+  unsigned short *encoded;
+
+  if (client == NULL) {
+    display_assert("client",
+                   "c:\\halo\\SOURCE\\networking\\network_client_manager.c",
+                   0x5a5, true);
+    system_exit(-1);
+  }
+  if (request_type < 0 || request_type >= 4) {
+    display_assert(
+      "(request_type>=0) && (request_type<NUMBER_OF_GAME_START_REQUESTS)",
+      "c:\\halo\\SOURCE\\networking\\network_client_manager.c", 0x5a6, true);
+    system_exit(-1);
+  }
+  if (*(int16_t *)((char *)client + 0xca6) == 2) {
+    message = request_type;
+    encoded = (unsigned short *)encode_network_game_message(0x11, &message, 2);
+    if (encoded != NULL) {
+      if (!network_connection_write(*(void **)((char *)client + 0x82c), encoded,
+                                    (unsigned short)(*encoded >> 4), 0, true)) {
+        network_game_log("network_game_client_request_start_time_change() "
+                         "failed to send a message_client_game_start_request "
+                         "message");
+      }
+    }
+  } else {
+    network_game_log("failed to send a message_client_game_start_request "
+                     "because we are not in the pregame state");
+  }
+  return 1;
+}
+
 /* FUN_00126000 (0x126000) — network_game_client_send_graceful_exit_pregame
  *
  * Periodically (every 1000ms) encodes and sends a
