@@ -1689,7 +1689,54 @@ def cmd_check(args) -> int:
     note = (", " + ", ".join(notes)) if notes else ""
     print(f"OK — no regressions ({checked} of {expected} functions measured in "
           f"{len(by_source)} source file(s){note}).")
+    _report_unbaselined_ported(baseline)
     return 0
+
+
+def _report_unbaselined_ported(baseline: dict) -> None:
+    """Name kb.json ported functions that have NO baseline row at all.
+
+    `check`'s denominator is the baseline, so a function that has never been
+    scored is not a failure here -- it is invisible.  That is how 51 ported
+    functions across 10 TUs went four months with no byte-match evidence: their
+    translation units could not compile under VC71 (GCC-style `asm volatile`,
+    C99 mixed declarations, `static inline`) and every gate still printed OK.
+    The gate cannot fail on this without blocking every in-progress lift, so it
+    reports instead -- but it must report, because silence read as coverage.
+    See docs/lift-learnings.md 53.
+    """
+    try:
+        expected_by_tu = _kb_source_funcs()
+    except Exception:
+        return
+    have = set(baseline)
+    missing: dict[str, list[str]] = {}
+    for tu, fns in expected_by_tu.items():
+        absent = []
+        for f in fns:
+            name = f.get("name")
+            if not name:
+                continue
+            # The ledger keys off the name vc71_verify prints, which comes from
+            # the COFF symbol with its leading underscore(s) stripped -- kb.json
+            # declares `_tr_align`, the baseline row is `tr_align`.  Accept
+            # either spelling, or this report is 11 false positives on the
+            # underscore-prefixed CRT/zlib functions.
+            if name in have or name.lstrip("_") in have or ("_" + name) in have:
+                continue
+            absent.append(name)
+        if absent:
+            missing[tu] = absent
+    if not missing:
+        return
+    total = sum(len(v) for v in missing.values())
+    print(f"\nNOTE: {total} ported function(s) in {len(missing)} TU(s) have NO "
+          f"baseline row — never scored, so no gate covers them:", file=sys.stderr)
+    for tu in sorted(missing, key=lambda k: -len(missing[k])):
+        print(f"  {len(missing[tu]):3d}  {tu}", file=sys.stderr)
+    print("  (a TU that cannot compile under VC71 scores nothing and fails "
+          "silently; try `vc71_verify.py <tu> --no-cache` and read the first "
+          "cl.exe diagnostic)", file=sys.stderr)
 
 
 # ---------------------------------------------------------------------------
@@ -1971,7 +2018,17 @@ def cmd_populate(args) -> int:
         tus = [t for t in tus if str(t[0].resolve()) in wanted]
         missing = wanted - {str(t[0].resolve()) for t in tus}
         for m in sorted(missing):
-            print(f"  SKIP {m} (not a scoreable TU)", file=sys.stderr)
+            # Distinguish "exists but is not scoreable" from "no such path".
+            # The latter is almost always an unquoted shell expansion of a path
+            # containing a space -- `--source $(...)` word-splits
+            # `src/halo/saved games/saved_game_files.c` into two nonexistent
+            # paths, and reporting both as "not a scoreable TU" hid a real
+            # never-scored TU for months.
+            if not Path(m).exists():
+                print(f"  SKIP {m} (NO SUCH PATH -- quote paths containing "
+                      f"spaces)", file=sys.stderr)
+            else:
+                print(f"  SKIP {m} (not a scoreable TU)", file=sys.stderr)
 
     if not tus:
         print("No scoreable source files found.")

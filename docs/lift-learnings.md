@@ -1884,13 +1884,21 @@ scratch file (pointer deref, struct field, plain local, `volatile` local,
 | flags | float-arg lowering |
 |---|---|
 | `/O2`, `/O2 /Ot`, `/O2 /Ob1`, `/O2 /Gs`, `/O2 /Op` | `mov r,m32` / `push r` |
-| `/O2 /Os`, `/Og /Os`, `/O1` | `flds` / `sub esp,N` / `fstps [esp+k]` — byte-for-byte the reference |
+| `/O2 /Os`, `/Og /Os`, `/O1` | `flds` / `sub esp,N` / `fstps [esp+k]` — the reference's *idiom* |
 
 So it is the size-vs-speed heuristic (`/O2` implies `/Ot`), *not* "MSVC avoids
 the x87 unless the argument involves active computation" — the form is
 identical for a deref, a struct field, and a local, which is why re-spelling
-the load measures zero movement. `/Os` reproduces the reference idiom exactly,
-including `sub esp,0xc` + three `fstps` slots for the 3-float arity.
+the load measures zero movement.
+
+> **Correction (2026-08-19).** An earlier revision said `/Os` reproduces the
+> reference "byte-for-byte … including `sub esp,0xc` + three `fstps` slots". It
+> does not, and two independent audits caught it. The reference at `0xc2a9c`
+> reserves with `sub esp,8` and pushes an int arg with `mov edx,[eax]` + `push
+> edx`; `/Os` reserves with `push ecx; push ecx` and pushes with `push [eax]`.
+> Consequence: `/Os` *lowers* the very functions the cap was diagnosed on —
+> `FUN_000c2a80` 83.6 → **82.4**, `FUN_000c2940` 94.5 → **85.7**. The
+> flag-attribution above survives; the "byte-for-byte" proof did not.
 
 **But `/Os` cannot be adopted, TU-wide or per-function.** `hs.c` at `/O2`
 scores mean **97.17** (187 of 255 at 100%); at `/O2 /Os` and at `/O1` it scores
@@ -1903,7 +1911,23 @@ that lane is closed — confirmed by the project owner, VC6 was never used for
 Halo CE. A `/mnt/c/MSVC600` install exists on the dev box and is a leftover.)
 Per-function `#pragma optimize("s", on)` is expressible but would be fitting
 the metric rather than recovering the source, so treat the cap as permanent
-and let R4 park it. Cost is one reference instruction per FSTP-slot float, giving a
+and let R4 park it.
+
+> **Scope correction (2026-08-19).** Do not read the 97.17-vs-78.55 pair as "the
+> size of this ceiling". It is what the TU would *lose* by switching flags, and it
+> is dominated by the 249 functions `/Os` makes worse, not by the float sites. An
+> audit censused `hs.c` at `/O2` by reference-vs-candidate `fstp` count and found
+> the genuine float divergence in **24 functions** (75.8–94.5%); closing all 24 to
+> 100% would move the TU mean by ≈ **+1.2pp**. Two further cautions from the same
+> audit: (a) the largest `/Os` beneficiary, `FUN_000c4160`, is not a float case at
+> all — its reference passes `@<esi>` to `FUN_000c4030`, so its 61.5% is the
+> separate `@<esi>`-inexpressible ceiling, and `/Os` helps only by accidentally
+> hoisting immediates into a register; (b) at `/O2 /Os`, `FUN_000c35b0` gains the
+> reference's `sub esp` + `flds`/`fstps` lowering but **loses the EBP frame**
+> (24 of 30 insns, no `push %ebp` / `mov %esp,%ebp` / `pop %ebp`). Since neither
+> flag setting reproduces the original, "permanent, not a fixable lift defect" is
+> **not** established for this family — a source-level cause remains unexcluded.
+> Park it as an unexplained cap, not a proven ceiling. Cost is one reference instruction per FSTP-slot float, giving a
 fixed, reproducible per-arity ceiling measured across this family: 0 floats =
 100%, 1 float ≈ 94.1%, 2–3 floats ≈ 83.6%. Re-spelling the load (struct field,
 `int *` pun, `volatile` local, `double` round-trip) has been measured at
@@ -2062,12 +2086,24 @@ bytes:
 0xc3c35: e9 76a50000   jmp  0xce1b0
 ```
 
-It *already* tail-jumps. The real defect: the lift made **one** call, aimed at
-`0xce1e0` (which frees two globals through `0x119550`) instead of `0xca800`,
-and dropped the second call entirely. `0xce1b0` had no kb.json entry at all —
-a real 16-byte-aligned function, padded with `nop` on both sides, whose whole
-body is a single `RET`, reached only by this tail `JMP` (whole-image E8/E9
-scan). Declaring it and restoring both calls took the function to **100.0%**.
+It *already* tail-jumps. The real defect: the lift emitted **one** call where
+the reference has two. Its single call was `hs_runtime_dispose_from_old_map()`,
+which kb.json maps to `0xca800` — the *correct* first callee. What was missing
+was the tail `JMP 0xce1b0`, and the reason it was missing is that `0xce1b0` had
+no kb.json entry at all: a real 16-byte-aligned function, padded with `nop` on
+both sides, whose whole body is a single `RET`, reached only by this tail `JMP`
+(found by a whole-image E8/E9 scan). Declaring it and restoring the second call
+took the function to **100.0%**.
+
+> **Correction (2026-08-19).** An earlier revision of this section, and the
+> commit message for `a8e2c2908`, claimed the lift's one call was "aimed at
+> `0xce1e0` … instead of `0xca800`". That is wrong: `a8e2c2908^` shows
+> `hs_dispose` calling `hs_runtime_dispose_from_old_map`, and `a8e2c2908^`'s
+> kb.json maps that name to `0xca800`. Only the *count* was wrong, never the
+> aim. Caught by an independent audit — the lesson holds (count the E8/E9
+> targets), but "the callee is also wrong" was an unchecked embellishment on
+> top of a correct diagnosis, which is exactly the kind of detail a later
+> reader would take as established fact.
 
 **Why the score invites a compiler story.** The official metric is
 `2*LCS/(n_cand + n_ref)`. With `n_ref` in the single digits the score *is* the
@@ -2219,12 +2255,32 @@ Two things made it invisible:
    docstring described the *delinked reference* problem it was written for; it
    was silently doing something else to the candidate.
 
-**The fix is one invariant, already asserted elsewhere in the same file.** MSVC
-pads (`nop`/`int3`) only *between* functions, never mid-body —
-`disassemble()` already relies on this to decide whether to fold a `FUN_` label
-into the current function. So require padding between the RET and the first
-trailing "thunk": no padding means the block is the same function's out-of-line
-code. `ai_debug_dispose_from_old_map` goes 88.4% → **100.0%**.
+**The fix.** Require padding (`nop`/`int3`) between the RET and the first trailing
+"thunk": no padding means the block is the same function's out-of-line code.
+`ai_debug_dispose_from_old_map` goes 88.4% → **100.0%**.
+
+> **Correction (2026-08-19).** This fix was originally justified by "MSVC pads
+> (`nop`/`int3`) only *between* functions, never mid-body", said to be an
+> invariant `disassemble()` already relies on for `FUN_`-label folding. **The
+> invariant is false in the target binary.** `csstr_tolower` (`0x8d9a0`) has a
+> `nop` at offset `0xf`, mid-body, aligning the loop top onto `0x8d9b0`:
+>
+> ```
+>    d: je     0x26
+>    f: nop                  <-- mid-body alignment pad
+>   10: movzbl (%esi), %eax  <-- loop top, 16-byte aligned
+> ```
+>
+> The *rule as implemented* is narrower than the justification — it requires the
+> padding to follow a `RET` — and that narrower form still holds up here. But a
+> mid-body `RET` followed by an alignment `nop` before an outlined arm would
+> defeat it, and `disassemble()`'s `had_padding` label-folding leans on the same
+> bad invariant. An audit measured that the new trim now removes **zero**
+> instructions across all 214 built objects, i.e. it is currently dead code whose
+> docstring still justifies itself by a reference-side problem that no longer
+> routes through it. Two related asymmetries remain open: the candidate is also
+> put through `_trim_unlabeled_bleed` (RET+3-NOP and RET+2-NOP/>40% rules) with no
+> reference-side counterpart, so one of three trims was fixed, not all three.
 
 **Rule.** When a candidate's instruction count is *lower* than the reference's
 and the diff shows a contiguous ref-only block at the end, suspect the parser
@@ -2241,14 +2297,24 @@ More generally: every heuristic that *removes* instructions to fix one object
 class must state which class it applies to and be gated on evidence that the
 object is in it. This one had no gate, so it applied to everything.
 
-**It removes free credit too — re-baseline in both directions.** Repo-wide over
-169 TUs the fix produced 209 improvements and **2 drops**, both of them functions
-whose candidate-only cold arm had been hidden: `ui_widget_set_focus` 87.3% → 82.0%
-(candidate 24 → 30 instructions; 24 of 24 matched against a 31-instruction
-reference before, 25 of 30 now) and `actor_action_handle_combat_status` 86.9% →
-84.1% (115 → 123). Those are truer numbers, not regressions — but they trip the
-`vc71_scores.json` floor gate, so a scorer change of this kind needs the ledger
-re-baselined in both directions, not just where it went up.
+**The bug is bidirectional, and mostly it DEFLATED.** It is tempting to file this
+as "the scorer was handing out free credit", and the headline example refutes that:
+`ai_debug_dispose_from_old_map` was *robbed* of 11.6pp. Truncating `k` matching
+tail instructions off an otherwise byte-identical candidate gives
+`2(n−k)/(2n−k) < 1` — a deflation. Inflation happens only when the cut block
+matched *worse* than the rest, i.e. when `m/k` is below the overall match rate.
+Measured over all 214 built objects with the old trim re-injected: **45 functions
+change length, 35 score higher after the fix, 8 lower.** So re-baseline in both
+directions — the drops are truer numbers, not regressions, but they trip the
+`vc71_scores.json` floor gate. `ui_widget_set_focus` 87.3% → 82.0% (candidate
+24 → 30 instructions) is the clearest inflation case.
+
+Do not attribute a whole re-baseline to this change without checking. The same
+commit also added the `regparam_stripped_saves` candidate, and **265 of the 344
+score increases carry that tag** versus 35 functions the trim touched at all — the
+regparam pass, not the trim, is what moved the ledger. `FUN_0013ab20` 86.1 → 82.3
+was attributed to the trim in the commit message and is not: its trimmed length is
+348 both before and after, so its old 86.1 was a *header-race* corruption.
 
 **Attributing a drop to a scorer change, without swapping files.** Load the
 pre-change and post-change `compare_obj` side by side under different module
@@ -2349,22 +2415,39 @@ whole TUs compiling two different ways. That residual was first blamed on anothe
 agent session in the same checkout, and written up as an irreducible ~1% flip
 floor. It was not irreducible. The second shared header is the **fastcall
 shadow** `build/vc71/fastcall_inc/decl.h`, written by
-`_make_fastcall_decl_shadow` — and unlike the pinned header its content is
-**per-TU** (it is `decl.h` with `__fastcall` spliced onto only *this* TU's
-mappable prototypes). A shared path therefore does not just risk a torn read, it
-lets one worker's compile pick up **another TU's prototypes**, which is a wrong
-measurement even when every write completes. Two shared writes, one visible
-symptom: fixing only the first one dropped the flip rate to a single function and
-made the remainder look like ambient flake.
+`_make_fastcall_decl_shadow` with a plain `Path.write_text()` — truncate, then
+write — on a path all 8 workers share. A sibling `cl.exe` opening it mid-write
+sees a truncated or zero-length header. Two shared writes, one visible symptom:
+fixing only the first one dropped the flip rate to a single function and made the
+remainder look like ambient flake.
+
+> **Correction (2026-08-19).** An earlier revision of this section claimed the
+> shadow's content is **per-TU** ("`decl.h` with `__fastcall` spliced onto only
+> *this* TU's mappable prototypes"), and therefore that a shared path lets one
+> worker pick up another TU's prototypes even when every write completes. That is
+> **false**, and two independent audits refuted it the same way:
+> `_get_fastcall_mappable()` takes no source argument (`() -> set[str]`) and
+> derives its 22 names from `kb.json` alone, and `_make_fastcall_decl_shadow`
+> reads only `decl.h`. Both inputs are TU-independent, so there is exactly one
+> canonical shadow text per tree state (sha `87cb9cdc9c057bb3`, stable across four
+> `PYTHONHASHSEED` values — set-iteration order does not leak either). The
+> per-process fix is still right; the hazard it removes is the torn read and the
+> `PermissionError` below, **not** cross-TU prototype leakage.
 
 **Do not "fix" a shared path with an atomic rename on `/mnt/g`.** The obvious
 patch — write a `pid`-suffixed temp file and `os.replace` it onto the shared
 name — is correct on ext4 and fails on drvfs: `os.replace` onto a path another
 process holds open raises `PermissionError: [Errno 13]`. Under a 16-worker
-`populate --rebaseline` that killed **16 TUs / 174 functions** outright (`vc71
+`populate --rebaseline` that killed TUs outright (`vc71
 compile/score failed (rc=1)`), and because a rebaseline preserves unmeasured
-rows, the run reported success with a quarter of its work silently missing. The
-fix for a per-TU artifact is not atomicity, it is **not sharing the path**:
+rows, the run reported success with part of its work silently missing. Scope,
+re-measured: of that run's 15 `✗` TUs, **7 TUs / 124 functions** carry an
+`os.replace` traceback, and only **6 TUs / 123 functions** are attributable to it
+*uniquely* (`structure_runtime_decals.c` fails to compile for its own reasons).
+The other 8 TUs / 48 functions are the pre-existing never-compiling set. The
+"16 TUs / 174 functions" first written here was the run's *whole* attention queue,
+which conflates the two populations — and the log's own summary (174/16) does not
+reconcile with its own per-TU lines (172/15). The fix is **not sharing the path**:
 `fastcall_inc/p<pid>/decl.h`, removed by `atexit`. Each TU is verified in its own
 subprocess, so the pid is a per-worker key. After that, two consecutive full
 gates agreed exactly (`4892 of 4892`, 0 regressions, byte-identical output).
@@ -2382,7 +2465,8 @@ measurement is wrong" from "the memo is serving an old wrong measurement".
 **Signals.**
 - A regression list dominated by double-digit drops in TUs you did not touch.
 - Two runs disagreeing on *which* functions regressed.
-- A whole TU moving at once (the header is per-TU, so the blast radius is a TU).
+- A whole TU moving at once (a header is consumed per-TU, so the blast radius
+  of one torn read is a whole TU).
 - Serial and parallel disagreeing — with the memo on, they will agree, wrongly.
 - A *reduced but nonzero* flip rate after a race fix: that is a second shared
   write, not the acceptable floor. Enumerate every generated path the compile
@@ -2404,3 +2488,97 @@ fix), §51 (the other measurement bug found in the same session; that one was
 deterministic, which is exactly why it had gone unnoticed for so long instead of
 being dismissed as flake).
 
+
+## 53. 51 Ported Functions Had NEVER Been Byte-Scored — the Gate Cannot Fail On What It Never Measured
+
+`vc71_regression.py check` printed `OK — no regressions (4892 of 4892 functions
+measured)` for months while **51 `ported: true` functions across 10 TUs had zero
+rows in `vc71_scores.json` and had never had any** — no byte-match evidence at
+all, in lifts dating to April 2026. The denominator is the baseline, so a function
+that was never scored is not a failure; it is absent. Silence read as coverage.
+
+Every one of the 10 TUs failed to **compile under VC71**, for three causes:
+
+**1. GCC-style `asm volatile` (cl.exe 13.10 cannot parse it).** `error C2065:
+'asm' : undeclared identifier`. Each case was a register-arg callee reached by
+hand-rolled asm, when kb.json's `@<reg>` annotation is the sanctioned mechanism
+and `build/generated/thunks.c` already emits the marshalling thunk. `tags.c` had
+*both* forms in one TU: two asm blocks, and one plain
+`tag_instance_resolve(tag_index)` call three functions later. Affected:
+`tags.c`, `telnet_console.c`, `input_abstraction.c`, `saved games/saved_game_files.c`,
+and `director.c` — the last one via `camera_internal.h`, which matters: grepping
+`director.c` itself for `asm` returns nothing, and an auditor used exactly that to
+wrongly clear it. **Grep the includes.**
+
+Two of these were also *unsound*, not merely unportable. `input_abstraction.c` did
+
+```c
+int _player = local_18;
+asm volatile("" : "+a"(_player));      /* "pin it in EAX" */
+cVar6 = ((char (*)(void))0xce8c0)();   /* ...separate statement */
+```
+
+An empty `asm` with an `"+a"` constraint does not keep the value in EAX *across* to
+a later call instruction — nothing stops the compiler emitting anything in between.
+And `camera_internal.h`'s comment claimed EBX could not be an input constraint
+("Clang reserves it for PIC"), which is why the mode table and count were baked in
+as string-pasted immediates — a macro, not a function.
+
+Recovering a `void FUN_x(void)` callee's real signature from the reference:
+
+| disassembly at entry | means |
+|---|---|
+| `movl %eax, %esi` then `testw %si,%si` / `cmpw $4,%si` | param 0 in `@<eax>`, used as a 16-bit index |
+| `movw %ax, %si` | `@<ax>` (sub-register — audit warns it shares scratch parent) |
+| `testb %bl,%bl` with no prior write to BL | param in `@<bl>` |
+| `movswl (%ebx,%edx,2), %eax` | `@<ebx>` is an `int16_t *` table |
+| `movswl 0x8(%ebp), %ecx` | one 16-bit-signed **stack** param |
+| `movb %bl,%al` / `movb $1,%al` before `ret` | returns `char`, not `void` |
+
+Adding any new `@<reg>` decl also needs an entry in `tools/kb_reg_baseline.json`
+or `patch.py` refuses the whole build (`is missing N current @<reg> function(s)`).
+
+**2. C99 mixed declarations** — the project is C89-only, and this is not caught by
+the clang build (`-std=gnu90` permits them). `edit_text.c`, `render_cameras.c`,
+`structure_runtime_decals.c`, `progress_bar.c`. Also `static inline`: cl.exe 13.10
+wants `static __inline`, the form the rest of the repo already uses. Watch the
+error text — `C2275: 'int16_t' : illegal use of this type as an expression` and
+`C2143: syntax error : missing ';' before 'type'` are both "declaration after a
+statement", not a type problem.
+
+**3. A stale per-function `source_path`.** `lightning_offset_marker_position`
+(`0x135420`) carried `"source_path": "objects/widgets/lightning.c"` — a **0-byte
+placeholder file** — while the implementation was still in `objects.c`. The scorer
+compiled the empty file, found nothing, and reported "No functions could be scored
+in this translation unit". Deleting the override scored it at **96.1%**. An
+auditor called this a phantom row on an empty file and missed the override
+entirely: check per-*function* `source_path`, not only the object's `source`.
+
+**Result:** 178 TUs scored (was 169), 4942 baselined functions (was 4892), gate
+green. Several newly visible scores are genuinely bad and were simply never
+measurable: `render_camera_build_frustum` **43.5%** (1742 candidate vs 1074
+reference instructions), `input_abstraction_update` **15.2%**,
+`telnet_console_initialize` **49.6%**, `progress_bar_set_quad_texcoords` **53.5%**.
+
+**A `--source` list with a space in a path silently vanishes.** The retry pass was
+invoked as `--source $(jq -r ... | tr '\n' ' ')`, and unquoted expansion split
+`src/halo/saved games/saved_game_files.c` into two nonexistent paths — both printed
+as `SKIP … (not a scoreable TU)`, which reads like a deliberate exclusion. That
+alone hid one TU. The message now distinguishes `NO SUCH PATH` from
+`not a scoreable TU`.
+
+**Automation.** `cmd_check` now ends with `_report_unbaselined_ported()`, which
+diffs kb.json's `ported: true` function names against the baseline keys and names
+every TU with a gap. It cannot *fail* the gate — that would block every
+in-progress lift — but it must report, because the absence of a report is what the
+last four months of `OK` lines actually meant. Match names on both spellings: the
+ledger keys off the COFF symbol with leading underscores stripped, so kb.json's
+`_tr_align` is stored as `tr_align`, and a naive comparison reports 11 false
+positives on the underscore-prefixed CRT/zlib functions (see
+`reference_vc71_underscore_names_never_scored`).
+
+**Related:** §41 (`decl.h` staleness — the *other* way a whole TU scores zero),
+§52 (a torn `decl.h` produces the same "TU scored nothing" symptom from a race,
+not from source), and the rule "a verify run that scores ZERO functions in a TU is
+a compile failure until proven otherwise" in `CLAUDE.md` — which was already
+written down, and which nothing was checking across the whole repo at once.

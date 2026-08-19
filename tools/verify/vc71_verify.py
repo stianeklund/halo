@@ -884,11 +884,42 @@ def _make_fastcall_decl_shadow(names: set[str]) -> Path | None:
     #      under a 16-worker populate.
     # Each TU is verified in its own subprocess, so the pid is a per-worker key.
     # See docs/lift-learnings.md 52.
-    shadow_dir = VC71_OUT_DIR / "fastcall_inc" / f"p{os.getpid()}"
+    shadow_root = VC71_OUT_DIR / "fastcall_inc"
+    shadow_dir = shadow_root / f"p{os.getpid()}"
     shadow_dir.mkdir(parents=True, exist_ok=True)
     (shadow_dir / "decl.h").write_text(text)
     atexit.register(shutil.rmtree, shadow_dir, ignore_errors=True)
+    _sweep_dead_shadow_dirs(shadow_root)
     return shadow_dir
+
+
+def _sweep_dead_shadow_dirs(root: Path) -> None:
+    """Remove p<pid> shadow dirs whose owner is gone.
+
+    The atexit hook above does not run when a worker is killed (SIGKILL, a
+    cancelled gate, an OOM), so these accumulate -- 18 were on disk after one
+    afternoon of gate runs.  Best-effort and never fatal: a live sibling's dir
+    must survive, so only reap a pid that no longer exists.
+    """
+    try:
+        entries = list(root.iterdir())
+    except OSError:
+        return
+    for entry in entries:
+        if not entry.is_dir() or not entry.name.startswith("p"):
+            continue
+        try:
+            pid = int(entry.name[1:])
+        except ValueError:
+            continue
+        if pid == os.getpid():
+            continue
+        try:
+            os.kill(pid, 0)          # signal 0: existence check only
+        except ProcessLookupError:
+            shutil.rmtree(entry, ignore_errors=True)
+        except OSError:
+            pass                     # EPERM => alive but not ours; leave it
 
 
 def obj_stamp_path(obj: Path) -> Path:

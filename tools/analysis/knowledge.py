@@ -13,6 +13,7 @@ from collections import defaultdict
 from typing import Sequence, Union, Optional
 import logging
 import os.path
+import io
 import re
 import argparse
 
@@ -352,7 +353,21 @@ __attribute__((naked)) { decl.replace(name, 'THUNK('+name+')') }
 					_skip_names.add(_pm.group(1))
 		except OSError:
 			pass
-		with open(path, 'w') as f:
+		# Build the whole header in memory and write it in ONE call, and only
+		# when the content actually changed.  This file is read concurrently by
+		# every cl.exe / clang in a parallel verify or build, and the previous
+		# form -- `open(path, 'w')` plus ~50 incremental `f.write()` calls --
+		# left a wide window in which a reader saw a truncated header.  That
+		# produced nondeterministic VC71 scores (whole TUs failing with
+		# `error C2065: '<global>' : undeclared identifier`, or worse, silently
+		# compiling a data symbol as implicit-int and scoring anyway).  Skipping
+		# an unchanged write closes the window in the common case, where every
+		# worker regenerates byte-identical content.  See docs/lift-learnings.md
+		# 52 -- note an `os.replace` onto a shared path is NOT the fix here: on
+		# drvfs (/mnt/g) it raises PermissionError when a reader holds the
+		# target open.
+		f = io.StringIO()
+		if True:
 			f.write('//\n'
 					'// AUTOMATICALLY GENERATED. DO NOT EDIT.\n'
 					'//\n\n'
@@ -404,6 +419,16 @@ __attribute__((naked)) { decl.replace(name, 'THUNK('+name+')') }
 					'//\n'
 					'// AUTOMATICALLY GENERATED. DO NOT EDIT.\n'
 					'//\n')
+
+		text = f.getvalue()
+		try:
+			if open(path).read() == text:
+				log.info('Header unchanged; not rewriting %s', path)
+				return
+		except OSError:
+			pass
+		with open(path, 'w') as out:
+			out.write(text)
 
 	def build_thunks(self, path: str):
 		log.info('Generating thunks...')
