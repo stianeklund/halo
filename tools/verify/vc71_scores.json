@@ -20596,16 +20596,16 @@
     "FUN_000d5350": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 68.9,
+      "abi_modeled_mnemonic_pct": 69.5,
       "addr": "0xd5350",
       "end": "0xd5ebb",
       "kind": "auto",
       "n_r": 872,
-      "opnd_percent": 44.5,
-      "raw_mnemonic_pct": 68.9,
+      "opnd_percent": 44.0,
+      "raw_mnemonic_pct": 69.5,
       "ref": "synth",
       "ref_sha": "fae45288ad8231d8",
-      "score": 68.9,
+      "score": 69.5,
       "source": "src/halo/interface/hud_messaging.c"
     },
     "FUN_000d6030": {

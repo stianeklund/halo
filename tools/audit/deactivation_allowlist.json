@@ -126,13 +126,6 @@
     "since": "2026-06-10"
   },
   {
-    "addr": "0xd5350",
-    "name": "FUN_000d5350",
-    "object": "hud_messaging.obj",
-    "reason": "pre-gate baseline 2026-06-10",
-    "since": "2026-06-10"
-  },
-  {
     "addr": "0x84a10",
     "name": "real_vector3d_valid",
     "object": "objects.obj",

@@ -1031,8 +1031,10 @@ void FUN_000d5350(int param_1)
   int max_slots;
   int font_index;
   short sVar15;
+  short position_out[2];
   short local_64;
-  int local_62_dw;
+  int y_raw;
+  int y_cur;
   float color[4];
   uint32_t packed_color;
   int local_30_dw;
@@ -1075,23 +1077,29 @@ void FUN_000d5350(int param_1)
   {
     short sVar3;
     sVar3 = local_player_count();
-    FUN_000d1f40((short)param_1, (unsigned short *)(*(int *)0x5aa68c + 0x24),
-                 (short *)*(int *)0x5aa68c, 0, 1 < sVar3, 0,
-                 (short *)&local_64);
+    FUN_000d1f40((short)param_1, (unsigned short *)*(int *)0x5aa68c,
+                 (short *)(*(int *)0x5aa68c + 0x24), 0, 1 < sVar3, 0,
+                 position_out);
   }
-  local_62_dw = *(int *)((char *)&local_64 + 2);
+  local_64 = position_out[0];
+  /* position_out[1] is read once into EDI (the running y cursor) and
+   * afterwards only ever re-read as a *short* from its untouched stack slot:
+   * the split-screen adjustment below applies to the register copy only.
+   * (The original loads a dword at out+2 but never uses above bit 15.) */
+  y_raw = (int)position_out[1];
+  y_cur = y_raw;
 
   font_tag_data = (int)tag_get(0x666f6e74, font_index);
   if (is_splitscreen) {
     font_height = (unsigned int)(unsigned short)(*(short *)(font_tag_data + 8) +
                                                  *(short *)(font_tag_data + 4));
-    local_62_dw = local_62_dw - *(int *)0x2f66ec;
+    y_cur = y_cur - *(int *)0x2f66ec;
   } else {
     font_height = (unsigned int)(unsigned short)(*(short *)(font_tag_data + 8) +
                                                  *(short *)(font_tag_data + 6) +
                                                  *(short *)(font_tag_data + 4));
   }
-  sVar15 = (short)local_62_dw;
+  sVar15 = (short)y_cur;
 
   slot_base = (int)(short)*(int *)0x506548 * 0x460 + *(int *)0x46bd18;
   {
@@ -1168,9 +1176,10 @@ void FUN_000d5350(int param_1)
     rect_a[1] = local_64;
     rect_a[0] = sVar15;
     if (*(char *)(*(int *)0x46bd10 + 1) != '\0') {
-      rect_a[0] = sVar15 + (short)font_height * 4;
+      rect_a[2] = (short)font_height + (sVar15 + (short)font_height * 4);
+    } else {
+      rect_a[2] = (short)font_height + sVar15;
     }
-    rect_a[2] = (short)font_height + rect_a[0];
     *(int *)&rect_b[0] = *(int *)&rect_a[0];
     *(int *)&rect_b[2] = *(int *)&rect_a[2];
 
@@ -1248,7 +1257,7 @@ void FUN_000d5350(int param_1)
             draw_string_set_indents(
               *(int *)((char *)rect_b + 2) - *(int *)((char *)rect_a + 2), 0);
             FUN_0019cdb0(rect_a, (void *)uVar7, bounds_a, rect_b);
-            rect_b[3] = rect_b[3] - 3;
+            rect_b[1] = rect_b[1] - 3;
             bounds_a[1] = rect_a[1];
             rasterizer_draw_string(bounds_a, 0, 0, 0, (unsigned short *)uVar7);
             rect_a[0] = rect_b[0];
@@ -1301,12 +1310,12 @@ void FUN_000d5350(int param_1)
                   wchar_t *icon_text;
                   icon_ref = *(short *)((char *)psVar13 + ci * 4 + 0x204);
                   if (icon_ref == -1) {
-                    icon_text = 0;
+                    icon_text = L"<unknown>";
                   } else if (*(char *)((char *)psVar13 + ci * 4 + 0x206) ==
                              '\0') {
-                    icon_text = 0;
-                    FUN_0019d420(*(int *)(*(int *)0x46bd0c + 0xc0),
-                                 (int)(unsigned short)icon_ref);
+                    icon_text =
+                      (wchar_t *)FUN_0019d420(*(int *)(*(int *)0x46bd0c + 0xc0),
+                                              (int)(unsigned short)icon_ref);
                   } else {
                     int scenario;
                     scenario = (int)global_scenario_get();
@@ -1318,13 +1327,12 @@ void FUN_000d5350(int param_1)
                         1);
                       system_exit(-1);
                     }
-                    icon_text = 0;
                     scenario = (int)global_scenario_get();
-                    FUN_0019d420(*(int *)(scenario + 0x580),
-                                 (int)(unsigned short)icon_ref);
+                    icon_text =
+                      (wchar_t *)FUN_0019d420(*(int *)(scenario + 0x580),
+                                              (int)(unsigned short)icon_ref);
                   }
-                  FUN_000d4470((char)(int)(void *)icon_text, rect_b, rect_a,
-                               (void *)psVar13);
+                  FUN_000d4470(0, rect_b, rect_a, (void *)icon_text);
                   psVar13 = local_38_p;
                 }
                 goto LAB_000d5b78;
@@ -1353,7 +1361,7 @@ void FUN_000d5350(int param_1)
                                           *(int *)((char *)rect_a + 2),
                                         0);
                 FUN_0019cdb0(rect_a, (void *)uVar7, bounds_b, rect_b);
-                rect_b[3] = rect_b[3] - 3;
+                rect_b[1] = rect_b[1] - 3;
                 bounds_b[1] = rect_a[1];
                 rasterizer_draw_string(bounds_b, 0, 0, 0,
                                        (unsigned short *)uVar7);
@@ -1365,7 +1373,7 @@ void FUN_000d5350(int param_1)
                 *(int *)((char *)rect_b + 2) - *(int *)((char *)rect_a + 2), 0);
               FUN_0019cdb0(rect_a, (void *)L"<no button icon>", bounds_c,
                            rect_b);
-              rect_b[3] = rect_b[3] - 3;
+              rect_b[1] = rect_b[1] - 3;
               bounds_c[1] = rect_a[1];
               rasterizer_draw_string(bounds_c, 0, 0, 0,
                                      (unsigned short *)L"<no button icon>");
@@ -1388,32 +1396,26 @@ void FUN_000d5350(int param_1)
       }
     }
     draw_string_set_indents(0, 0);
-    iVar16 = *(int *)&rect_b[2];
-    if (show_objective != '\0' ||
-        (cVar1 = is_splitscreen, show_state != '\0')) {
+    y_cur = *(int *)&rect_b[2];
+    if (show_objective != '\0' || show_state != '\0') {
       goto LAB_000d5c20;
     }
   }
 
   if (*(char *)(slot_base + 0x458) != '\0' ||
       *(char *)(slot_base + 0x45e) != '\0') {
-    if (cVar1 != '\0') {
-      local_62_dw = (int)(short)font_height;
+    float ftmp;
+    if (is_splitscreen) {
+      int split_y;
+      split_y = (int)(short)y_raw - *(int *)0x2f66ec;
+      ftmp = (float)split_y + (float)(int)(short)font_height *
+                                *(float *)(*(int *)0x5aa68c + 0x90);
+    } else {
+      ftmp =
+        (float)(int)(short)font_height * *(float *)(*(int *)0x5aa68c + 0x90) +
+        (float)(int)(short)y_raw;
     }
-    {
-      float ftmp;
-      if (is_splitscreen) {
-        int split_y;
-        split_y = (int)(short)local_62_dw - *(int *)0x2f66ec;
-        ftmp = (float)split_y + (float)(int)(short)font_height *
-                                  *(float *)(*(int *)0x5aa68c + 0x90);
-      } else {
-        ftmp =
-          (float)(int)(short)font_height * *(float *)(*(int *)0x5aa68c + 0x90) +
-          (float)(int)(short)local_62_dw;
-      }
-      iVar16 = (int)ftmp;
-    }
+    y_cur = (int)ftmp;
     max_slots = max_slots - 1;
   }
 
@@ -1448,16 +1450,18 @@ LAB_000d5c20:
         }
         color[0] = (float)pow((double)fade_alpha, 1.9) * color[0];
       }
+      *(int *)&rect_b[0] = *(int *)0x506584;
+      *(int *)&rect_b[2] = *(int *)0x506588;
       rect_b[3] = *(short *)0x50658a - *(short *)0x50657e;
       rect_b[1] = local_64;
-      rect_b[0] = (short)iVar16;
+      rect_b[0] = (short)y_cur;
       rect_b[2] = (short)font_height + rect_b[0];
       {
         float ftmp2;
         ftmp2 =
           (float)(int)(short)font_height * *(float *)(*(int *)0x5aa68c + 0x90) +
-          (float)(int)(short)iVar16;
-        iVar16 = (int)ftmp2;
+          (float)(int)(short)y_cur;
+        y_cur = (int)ftmp2;
       }
       draw_string_set_font(font_index, -1, 0, 0, color);
       if (piVar14[0x21] == -1) {

@@ -13023,7 +13023,7 @@
     {
      "addr": "0xd5350",
      "decl": "void FUN_000d5350(int param_1);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0xd5ec0",
