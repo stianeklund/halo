@@ -134,16 +134,35 @@ int scripted_sound_time(int handle)
   int remaining;
   remaining = 0;
   remaining = handle;
-  if (handle != NONE)
-  {
-    sound_tag = (char *) tag_get(0x736e6421, remaining);
-    if ((*((int *) (sound_tag + 0x90))) != NONE)
-    {
-      remaining = (*((int *) (sound_tag + 0x90))) - game_time_get();
+  if (handle != NONE) {
+    sound_tag = (char *)tag_get(0x736e6421, remaining);
+    if ((*((int *)(sound_tag + 0x90))) != NONE) {
+      remaining = (*((int *)(sound_tag + 0x90))) - game_time_get();
       return (remaining > 0) ? (remaining) : (0);
     }
   }
   return remaining;
+}
+
+/* Stop the impulse sound a scripted sound is currently playing.
+ * `handle` is a 'snd!' tag index (NONE => nothing to do).  Field +0x94 of
+ * the sound tag holds the playing impulse's sound datum handle (NONE when
+ * idle); +0x90 is the scheduled game time read by scripted_sound_time.
+ * Both are reset to NONE after the stop. */
+void scripted_sound_stop(int handle)
+{
+  char *sound_tag;
+  int sound_index;
+
+  if (handle != NONE) {
+    sound_tag = (char *)tag_get(0x736e6421, handle);
+    sound_index = *((int *)(sound_tag + 0x94));
+    if (sound_index != NONE) {
+      sound_stop_impulse(sound_index);
+      *((int *)(sound_tag + 0x94)) = NONE;
+      *((int *)(sound_tag + 0x90)) = NONE;
+    }
+  }
 }
 
 bool FUN_001c7a10(int object_handle, void *attachment_data, void *source)

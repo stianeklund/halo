@@ -67378,6 +67378,21 @@
       "score": 100.0,
       "source": "src/halo/interface/hud.c"
     },
+    "scripted_sound_stop": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x1c7550",
+      "end": "0x1c7597",
+      "kind": "auto",
+      "n_r": 22,
+      "opnd_percent": 86.4,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "feef404346d342f6",
+      "score": 100.0,
+      "source": "src/halo/sound/game_sound.c"
+    },
     "scripted_sound_time": {
       "abi_model": "raw",
       "abi_model_items": 0,

@@ -9920,7 +9920,8 @@
     },
     {
      "addr": "0x1c7550",
-     "decl": "void scripted_sound_stop(int handle);"
+     "decl": "void scripted_sound_stop(int handle);",
+     "ported": true
     },
     {
      "addr": "0x1c75a0",
