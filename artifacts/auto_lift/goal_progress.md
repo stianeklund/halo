@@ -6917,3 +6917,67 @@ AUTOLIFT_REVIEW: NEEDS_RUNTIME |
 | FUN_001b56b0 | 0x1b56b0 | vehicles.obj | 91.9 | committed | mechanical gate: 91.9% clean (pass1) [cohort=retrieval] |
 | vehicle_reset | 0x1b5770 | vehicles.obj | 97.6 | committed | mechanical gate: 97.6% clean (pass1) [cohort=retrieval] |
 | vehicle_render_debug | 0x1b5d90 | vehicles.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+
+---
+
+## Goal-lift run — 8/12 committed (queue_exhausted)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00093b60 | 0x93b60 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_000bfd70 | 0xbfd70 | players.obj | - | skipped | already implemented: src/halo/game/players.c:9803 [cohort=retrieval] |
+| FUN_000bfeb0 | 0xbfeb0 | players.obj | - | skipped | already implemented: src/halo/game/players.c:10353 [cohort=retrieval] |
+| FUN_000bfef0 | 0xbfef0 | players.obj | - | skipped | already implemented: src/halo/game/players.c:10433 [cohort=retrieval] |
+| FUN_000bff30 | 0xbff30 | players.obj | - | skipped | already implemented: src/halo/game/players.c:10513 [cohort=retrieval] |
+| FUN_000bffb0 | 0xbffb0 | players.obj | - | skipped | already implemented: src/halo/game/players.c:10656 [cohort=retrieval] |
+| FUN_000c0170 | 0xc0170 | players.obj | - | skipped | already implemented: src/halo/game/players.c:11190 [cohort=retrieval] |
+| FUN_000c0330 | 0xc0330 | players.obj | - | skipped | already implemented: src/halo/game/players.c:11800 [cohort=retrieval] |
+| FUN_000c0370 | 0xc0370 | players.obj | - | skipped | already implemented: src/halo/game/players.c:11842 [cohort=retrieval] |
+| FUN_000c03b0 | 0xc03b0 | players.obj | - | skipped | already implemented: src/halo/game/players.c:11918 [cohort=none] |
+| FUN_000c04f0 | 0xc04f0 | players.obj | - | skipped | already implemented: src/halo/game/players.c:12319 [cohort=retrieval] |
+| FUN_000c05f0 | 0xc05f0 | players.obj | - | skipped | already implemented: src/halo/game/players.c:12642 [cohort=none] |
+| FUN_000c0630 | 0xc0630 | players.obj | - | skipped | already implemented: src/halo/game/players.c:12714 [cohort=retrieval] |
+| FUN_000c07b0 | 0xc07b0 | players.obj | - | skipped | already implemented: src/halo/game/players.c:13093 [cohort=none] |
+| FUN_000c09f0 | 0xc09f0 | players.obj | - | skipped | already implemented: src/halo/game/players.c:13651 [cohort=none] |
+| FUN_000c0a30 | 0xc0a30 | players.obj | - | skipped | already implemented: src/halo/game/players.c:13717 [cohort=retrieval] |
+| FUN_000c0a70 | 0xc0a70 | players.obj | - | skipped | already implemented: src/halo/game/players.c:13783 [cohort=none] |
+| FUN_000c0ab0 | 0xc0ab0 | players.obj | - | skipped | already implemented: src/halo/game/players.c:13837 [cohort=none] |
+| network_game_client_game_shutdown | 0x126750 | network_client_manager.obj | - | skipped | already implemented: src/halo/networking/network_client_manager.c:479 [cohort=retrieval] |
+| player_telefrag_effect_stop | 0xa2930 | player_effects.obj | - | skipped | already implemented: src/halo/effects/player_effects.c:85 [cohort=retrieval] |
+| player_telefrag_effect_start | 0xa2ed0 | player_effects.obj | - | skipped | already implemented: src/halo/effects/player_effects.c:359 [cohort=none] |
+| vehicle_hover | 0x1b55c0 | vehicles.obj | - | skipped | already implemented: src/halo/units/vehicles.c:78 [cohort=retrieval] |
+| FUN_001b56b0 | 0x1b56b0 | vehicles.obj | - | skipped | already implemented: src/halo/units/vehicles.c:128 [cohort=retrieval] |
+| vehicle_reset | 0x1b5770 | vehicles.obj | - | skipped | already implemented: src/halo/units/vehicles.c:185 [cohort=retrieval] |
+| vehicle_render_debug | 0x1b5d90 | vehicles.obj | - | skipped | already implemented: src/halo/units/vehicles.c:233 [cohort=retrieval] |
+| FUN_000129f0 | 0x129f0 | vector_math.obj | 74.19 | parked | escalation_exhausted [cohort=retrieval] |
+| object_get_maximum_shield_vitality | 0x136700 | damage.obj | 90.6 | committed | mechanical gate: 90.6% clean (pass1) [cohort=retrieval] |
+| scripted_sound_time | 0x1c7500 | game_sound.obj | 95.4 | committed | mechanical gate: 95.4% clean (pass1+permute) [cohort=retrieval] |
+| FUN_00124900 | 0x124900 | network_client_manager.obj | 92.8 | committed | mechanical gate: 92.8% clean (pass1) [cohort=retrieval] |
+| network_game_client_keep_alive | 0x124a10 | network_client_manager.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| network_game_client_initiate_join_game | 0x124aa0 | network_client_manager.obj | 97.5 | committed | mechanical gate: 97.5% clean (pass1) [cohort=retrieval] |
+| network_game_client_set_machine | 0x124ba0 | network_client_manager.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_00124C80 | 0x124c80 | network_client_manager.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_00124D00 | 0x124d00 | network_client_manager.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+
+---
+
+## Goal-lift run — 12/12 committed (goal_reached)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00093b60 | 0x93b60 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| encounter_spawn_actor | 0x5c510 | encounters.obj | 97.8 | committed | mechanical gate: 97.8% clean (pass1) [cohort=retrieval] |
+| FUN_00126fe0 | 0x126fe0 | network_client_manager.obj | 94.7 | committed | mechanical gate: 94.7% clean (pass1) [cohort=retrieval] |
+| network_game_client_ponged | 0x124e90 | network_client_manager.obj | 77.1 | parked | escalation_exhausted [cohort=retrieval] |
+| network_game_client_accepted_into_game | 0x124f40 | network_client_manager.obj | 90.2 | committed | mechanical gate: 90.2% clean (pass1) [cohort=retrieval] |
+| network_game_client_game_settings_updated | 0x125050 | network_client_manager.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| unstrip_player_index | 0x125180 | network_client_manager.obj | 91.4 | committed | mechanical gate: 91.4% clean (pass1) [cohort=retrieval] |
+| network_game_client_update_local_player_data | 0x125a90 | network_client_manager.obj | 95.7 | committed | mechanical gate: 95.7% clean (pass1) [cohort=retrieval] |
+| network_game_client_countdown_timer_update | 0x125c60 | network_client_manager.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| network_game_client_advertised_game_is_valid | 0x125cb0 | network_client_manager.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_00125fb0 | 0x125fb0 | network_client_manager.obj | 90.5 | committed | mechanical gate: 90.5% clean (pass1) [cohort=retrieval] |
+| network_game_client_new_advertised_game | 0x126700 | network_client_manager.obj | 92 | committed | mechanical gate: 92% clean (pass1) [cohort=retrieval] |
+| network_game_client_reset | 0x1267c0 | network_client_manager.obj | 95.9 | committed | mechanical gate: 95.9% clean (pass1) [cohort=retrieval] |
+| FUN_001271a0 | 0x1271a0 | network_client_manager.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |

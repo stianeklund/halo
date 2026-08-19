@@ -11172,6 +11172,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x124e90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x124f40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x125050": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x125180": {
       "kind": "function",
       "status": "ported"
@@ -11212,11 +11224,31 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x125a90": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x125b90": {
       "kind": "function",
       "status": "ported"
     },
+    "0x125c60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x125cb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x126700": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x126750": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1267c0": {
       "kind": "function",
       "status": "ported"
     },
