@@ -27058,6 +27058,21 @@
       "abi_modeled_mnemonic_pct": 87.6,
       "raw_mnemonic_pct": 87.6
     },
+    "FUN_001271a0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x1271a0",
+      "end": "0x12723b",
+      "kind": "auto",
+      "n_r": 49,
+      "opnd_percent": 98.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "ea4cf3898f9c069e",
+      "score": 100.0,
+      "source": "src/halo/networking/network_client_manager.c"
+    },
     "FUN_001277f0": {
       "addr": "0x1277f0",
       "end": "0x1278cd",
@@ -57431,6 +57446,21 @@
       "ref": "synth",
       "ref_sha": "79496c3994d7fff5",
       "score": 95.6,
+      "source": "src/halo/networking/network_client_manager.c"
+    },
+    "network_game_client_reset": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 95.9,
+      "addr": "0x1267c0",
+      "end": "0x12689d",
+      "kind": "auto",
+      "n_r": 59,
+      "opnd_percent": 89.3,
+      "raw_mnemonic_pct": 95.9,
+      "ref": "synth",
+      "ref_sha": "60489db8f1bedaac",
+      "score": 95.9,
       "source": "src/halo/networking/network_client_manager.c"
     },
     "network_game_client_set_machine": {

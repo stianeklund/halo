@@ -1079,7 +1079,8 @@ void network_game_client_game_shutdown(void *client)
  * +0xc98 / +0xc9c, MOV byte at +0xcad then +0xcac (that store order is the
  * reference order, 0x126884 before 0x12688a). The meanings of the individual
  * fields are unproven; only their widths and reset values are. */
-void network_game_client_reset(void *client, bool reinitialize)
+__declspec(noinline) void network_game_client_reset(void *client,
+                                                    bool reinitialize)
 {
   if (client == NULL) {
     display_assert("client",
@@ -1455,4 +1456,58 @@ bool FUN_00127070(void *server)
     assert_halt(!"unknown client state");
   }
   return result;
+}
+
+/* 0x1271a0 — Handles a server rejection message: resets the connection state
+ * field (int16 at +0xca6) back to searching (0), maps the 16-bit rejection code
+ * to its diagnostic string, logs it, and tears the client connection down.
+ *
+ * The rejection code is read zero-extended (MOVZX EAX,word ptr [EBP+0x10] at
+ * 0x1271d8) and pushed as the %d argument, so the parameter is a 16-bit
+ * unsigned value in a dword stack slot. Codes above 6 fall through the jump
+ * table's bounds check (CMP EAX,6 / JA) and keep the "<unknown>" default that
+ * ESI is preloaded with at 0x1271aa.
+ *
+ * source_address is asserted but never dereferenced here, so its pointee type
+ * is unknown. kb.json declared this function void(void), contradicting the
+ * three stack slots it reads; the decl is corrected here.
+ *
+ * network_game_client_reset is called with (client, 1) — PUSH 0x1 at 0x12722c
+ * then PUSH EDI at 0x12722e; the combined ADD ESP,0x14 at 0x127234 cleans both
+ * this 2-arg call and the preceding 3-arg log call. */
+void FUN_001271a0(void *client, void *source_address, uint16_t rejection_code)
+{
+  const char *reason;
+
+  reason = "<unknown>";
+  assert_halt_at("c:\\halo\\SOURCE\\networking\\network_client_manager.c",
+                 0x35a, client && source_address);
+
+  *(int16_t *)((char *)client + 0xca6) = 0;
+  switch (rejection_code) {
+  case 0:
+    reason = "_rejection_code_version_too_old";
+    break;
+  case 1:
+    reason = "_rejection_code_version_too_new";
+    break;
+  case 2:
+    reason = "_rejection_code_bad_join_token";
+    break;
+  case 3:
+    reason = "_rejection_code_bad_password";
+    break;
+  case 4:
+    reason = "_rejection_code_game_is_full";
+    break;
+  case 5:
+    reason = "_rejection_code_game_is_closed";
+    break;
+  case 6:
+    reason = "_rejection_code_blacklisted_machine";
+    break;
+  }
+  network_game_log("unable to join game: reason= #%d/%s", rejection_code,
+                   reason);
+  network_game_client_reset(client, 1);
 }
