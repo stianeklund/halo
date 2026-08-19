@@ -248,6 +248,41 @@ void network_client_switch_to_postgame(void *client)
   network_game_log("switching to postgame");
 }
 
+/* network_game_client_switch_to_pregame (0x125660)
+ *
+ * Asserts client is non-null, then — only when the client is not already in
+ * state 2 (pregame, int16 at +0xca6) — resets the embedded game state at
+ * +0x85c for the next round, pings the connection at +0x82c to keep it alive,
+ * clears the pregame bookkeeping fields, marks the state as 2, logs, resets
+ * the pregame UI, and pings the connection a second time. The stores at
+ * +0xc98/+0xc9c/+0xcad/+0xcac all come from the zeroed EBX in the original
+ * (XOR EBX,EBX at 0x125668); +0xc90 is the immediate 1. Always returns 1,
+ * including on the already-in-pregame path (MOV AL,1 after the join).
+ */
+char network_game_client_switch_to_pregame(void *client)
+{
+  if (client == NULL) {
+    display_assert("client",
+                   "c:\\halo\\SOURCE\\networking\\network_client_manager.c",
+                   0x499, true);
+    system_exit(-1);
+  }
+  if (*(int16_t *)((char *)client + 0xca6) != 2) {
+    network_game_reset_for_next_round((char *)client + 0x85c, true);
+    network_connection_keep_alive(*(int *)((char *)client + 0x82c));
+    *(int *)((char *)client + 0xc98) = 0;
+    *(int *)((char *)client + 0xc90) = 1;
+    *(int *)((char *)client + 0xc9c) = 0;
+    *((char *)client + 0xcad) = 0;
+    *(int16_t *)((char *)client + 0xca6) = 2;
+    *((char *)client + 0xcac) = 0;
+    network_game_log("switching to pregame");
+    network_game_reset_to_pregame_ui();
+    network_connection_keep_alive(*(int *)((char *)client + 0x82c));
+  }
+  return 1;
+}
+
 /* 0x125710 — Asserts client is non-null and returns the connection handle
  * (int) stored at offset 0x82c in the client structure. The returned handle
  * is used by the caller (network_game_client_end_frame) as the first argument

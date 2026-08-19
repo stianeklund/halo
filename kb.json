@@ -14792,7 +14792,9 @@
     },
     {
      "addr": "0x125660",
-     "decl": "char network_game_client_switch_to_pregame(void *client);"
+     "decl": "char network_game_client_switch_to_pregame(void *client);",
+     "name": "network_game_client_switch_to_pregame",
+     "ported": true
     },
     {
      "addr": "0x1258a0",
