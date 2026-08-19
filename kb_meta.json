@@ -15878,6 +15878,22 @@
         "The context-pack ARG_COUNT hazard reporting cleanup=2 vs decl=1 stack args for lruv_cache_dispose is a false positive from MSVC coalescing two 4-byte cdecl cleanups into a single ADD ESP,0x8 after both CALLs; the disassembly shows exactly one PUSH per CALL, so both callees take one stack argument."
       ]
     },
+    "0x1be940": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1be950": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1be960": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1be9f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1bea30": {
       "kind": "function",
       "status": "ported"
@@ -15891,6 +15907,10 @@
       "status": "ported"
     },
     "0x1bec30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bed30": {
       "kind": "function",
       "status": "ported"
     },

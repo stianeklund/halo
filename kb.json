@@ -29275,39 +29275,48 @@
     },
     {
      "addr": "0x1be940",
-     "decl": "void texture_cache_open(void);"
+     "decl": "void texture_cache_open(void);",
+     "ported": true
     },
     {
      "addr": "0x1be950",
-     "decl": "void texture_cache_idle(void);"
+     "decl": "void texture_cache_idle(void);",
+     "ported": true
     },
     {
      "addr": "0x1be960",
-     "decl": "void texture_cache_bitmap_new(int tag_index, void *bitmap);"
+     "decl": "void texture_cache_bitmap_new(int tag_index, void *bitmap);",
+     "ported": true
     },
     {
      "addr": "0x1be9f0",
-     "decl": "void texture_cache_bitmap_delete(void);"
+     "decl": "void texture_cache_bitmap_delete(void *bitmap);",
+     "ported": true
     },
     {
      "addr": "0x1beb70",
-     "decl": "void FUN_001beb70(void);"
+     "decl": "const char *FUN_001beb70(int cache_block_index);",
+     "ported": true
     },
     {
      "addr": "0x1becc0",
-     "decl": "void FUN_001becc0(void);"
+     "decl": "bool FUN_001becc0(void *bitmap_a, void *bitmap_b);",
+     "ported": true
     },
     {
      "addr": "0x1bed30",
-     "decl": "void texture_cache_flush(void);"
+     "decl": "void texture_cache_flush(void);",
+     "ported": true
     },
     {
      "addr": "0x1bed50",
-     "decl": "void FUN_001bed50(void);"
+     "decl": "int FUN_001bed50(int cache_block_index);",
+     "ported": true
     },
     {
      "addr": "0x1bed90",
-     "decl": "void FUN_001bed90(void);"
+     "decl": "void FUN_001bed90(int block_index);",
+     "ported": true
     },
     {
      "addr": "0x1bef80",
