@@ -6843,3 +6843,38 @@ AUTOLIFT_REVIEW: NEEDS_RUNTIME |
 | hs_evaluate_wake | 0xcc0e0 | hs_runtime.obj | 91.9 | committed | mechanical gate: 91.9% clean (pass1) [cohort=retrieval] |
 | hs_runtime_update | 0xcde00 | hs_runtime.obj | 97.5 | committed | mechanical gate: 97.5% clean (pass1) [cohort=retrieval] |
 | FUN_000cdf70 | 0xcdf70 | hs_runtime.obj | 98.1 | committed | mechanical gate: 98.1% clean (pass1) [cohort=retrieval] |
+| FUN_00093b60 | 0x93b60 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| scripted_player_effect_set_rumble | 0xa2920 | player_effects.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=none] |
+| player_effect_get_damage_indicators | 0xa2a10 | player_effects.obj | 94.7 | committed | mechanical gate: 94.7% clean (pass1) [cohort=retrieval] |
+| network_game_client_add_player_to_game | 0x125510 | network_client_manager.obj | 89.82 | committed | pass1+permute [cohort=retrieval] |
+| FUN_00068c40 | 0x68c40 | tif_flush.obj | 57.6 | parked | below_65pct [cohort=retrieval] |
+| player_effect_clear_damage_indicators | 0xa2a70 | player_effects.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_00012090 | 0x12090 | vector_math.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| action_avoid_setup | 0x128c0 | vector_math.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| action_avoid_perform | 0x12920 | vector_math.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000129f0 | 0x129f0 | vector_math.obj | 79.3 | parked | escalation_exhausted [cohort=retrieval] |
+| FUN_00012be0 | 0x12be0 | vector_math.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| actor_communication_update | 0x43db0 | ai_communication.obj | 94.6 | committed | mechanical gate: 94.6% clean (pass1) [cohort=retrieval] |
+| network_game_client_switch_to_pregame | 0x125660 | network_client_manager.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| scripted_player_effect_set_translation | 0xa2dc0 | player_effects.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000be250 | 0xbe250 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+
+## Goal-lift run — 12/12 committed (goal_reached)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00093b60 | 0x93b60 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_00125b90 | 0x125b90 | network_client_manager.obj | 95.6 | committed | mechanical gate: 95.6% clean (pass1) [cohort=retrieval] |
+| FUN_000be550 | 0xbe550 | players.obj | 92.5 | committed | pass1 [cohort=retrieval] |
+| FUN_000be5e0 | 0xbe5e0 | players.obj | 94.1 | committed | pass1 [cohort=retrieval] |
+| FUN_000be660 | 0xbe660 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000be860 | 0xbe860 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000be8a0 | 0xbe8a0 | players.obj | 100 | committed | pass1 [cohort=retrieval] |
+| FUN_000be990 | 0xbe990 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000be9d0 | 0xbe9d0 | players.obj | 91.2 | committed | pass1 [cohort=retrieval] |
+| FUN_000bea50 | 0xbea50 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000bef00 | 0xbef00 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000bf9f0 | 0xbf9f0 | players.obj | 100 | committed | pass1+equiv_moderate [equivalence detail: Equivalence ran automatically inside lift_pipeline (not the step-6d band lane, since the score is 100%): 100 seeds, 100 passed, 0 diverged, 0 errors, 0 stub-arg mismatches, 55.4% coverage, tier=moderate. Zero-fill/default harness inputs — no live-state snapshot was used. The exercised path is the evaluate -> NULL-check branch pair; with hs_macro_function_evaluate stubbed the non-NULL worker path (device_set_never_appears_locked + hs_return) is only partially covered, which is what holds coverage — a 0-divergence pass on the live-state infection_swarm snapshot (populated datum tables, real actor handles) is accepted runtime behavioral evidence for the sub-90% band per the state-snapshot equivalence lane in CLAUDE.md] [cohort=retrieval] |
+| FUN_000bfd30 | 0xbfd30 | players.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
