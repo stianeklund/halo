@@ -26,12 +26,45 @@ cleanups are out of scope for this skill — see the `source-recovery` family in
 
 ## Step -2 — Delegate to Subagent (Recommended)
 
-Once you have identified a specific function to try to improve, delegate the optimization to the `vc71-match-optimizer` subagent. The subagent should inherit the current parent model unless a different model is explicitly requested.
+Once you have identified a specific function, **prefilter then spawn**.
+The subagent inherits the current parent model unless a different model
+is explicitly requested.
+
+### Prefilter — do not spawn when
+
+- no `classification[]` **and** `|n_cand − n_ref| / max(n_ref, 1) > 0.20`
+- `frame` cand/ref ratio ≥ 3 with no `&param` / pointer-alias tell
+- ledger already has 3 failed tries (`artifacts/score_improve/<func>-ledger.json`)
+- caller marked the hunk regressing / already reverted it
+
+### Prompt — 5 lines, no manifesto
+
+Do **not** restate C89, rtk, kb.json, neighbor-touch, or "don't rename"
+rules. The agent file already has them. Do **not** paste a
+`score_improve.py` every-edit loop into the prompt (that overrides the
+agent's cheap path and burns a whole-TU compile per 0pp revert).
+
+```
+Optimize <func> in <file.c>.
+Current score: <official> / dp_lcs <dp>.
+Pack: artifacts/score_context/<func>.json
+Ledger: artifacts/score_improve/<func>-ledger.json
+WARN: <classification[].evidence one-liners only>
+```
 
 Call the `task` tool:
 - **`subagent_type`**: `"vc71-match-optimizer"`
 - **`description`**: `"Optimize <func_name> score"`
-- **`prompt`**: `"Optimize the function <func_name> in <file.c> to improve its VC71 score. Current score: <score>."`
+- **`prompt`**: the 5-line block above
+
+### Hybrid gate (parent doctrine)
+
+- Per lever: `compile_and_view` (~1s). Revert 0pp immediately.
+- On a **kept gain only**: `score_improve.py check` (whole-TU neighbor gate).
+- Never whole-TU check a 0pp revert.
+- Same-rule cap: one 0pp on a rule → switch rule or stop.
+- Warning+1 with ≥5pp gain: inspect (`--fcom-only` / `--shape-only`), do not auto-revert.
+- Do not spawn a second optimizer on the same live `.c` at the same time.
 
 ---
 
@@ -85,17 +118,20 @@ the manual recipes below (the atlas entries work without a pack too).
 
 - **Triage near-zero scores (<5%) first**: If `scores.official_pct` is <5% and `n_cand_insns` is 1–5 vs hundreds of `n_ref_insns` (e.g. `collision_log_render` at 0.4%), check if the function was originally stubbed or had its body omitted (`/* Debug body omitted */`). Lift the full decompilation first before trying shape levers.
 
-### Preserve only measured gains
+### Preserve only measured gains (hybrid gate)
 
-Before changing an existing lift specifically to improve its score, record a
-whole-TU baseline. Then make exactly one evidence-backed source change and
-gate it before trying another lever:
+Record a whole-TU baseline **once** at session start. Iterate with the
+fast single-function path. Neighbor-check **only a kept gain**.
 
 ```bash
+# once, before the first keep (session start is fine)
 rtk python3 tools/verify/score_improve.py baseline \
   --source <file.c> --output artifacts/score_improve/<func>-baseline.json
 
-# Apply one candidate change, then:
+# every lever (~1s) — this is the iteration gate
+rtk python3 tools/mizuchi/compile_and_view.py <func>
+
+# only after compile_and_view shows a gain you intend to keep
 rtk python3 tools/verify/score_improve.py check \
   --baseline artifacts/score_improve/<func>-baseline.json \
   --source <file.c> --target <func> \
@@ -104,10 +140,17 @@ rtk python3 tools/verify/score_improve.py check \
 
 `check` passes only when the target improves by at least 0.01pp, every scored
 function remains present, no score falls, and the warning count does not grow.
-On failure, restore only the candidate change; never accumulate neutral or
-regressive experiments. For an isolated candidate worktree, `score_improve.py
-trial --worktree <path> --candidate-cmd <command> ...` runs the command before
-the same gate.
+On a 0pp / lower fast-path score: revert immediately, **skip** `check`.
+On `check` failure: restore only the candidate change. Never accumulate
+neutral or regressive experiments.
+
+Append every try to `artifacts/score_improve/<func>-ledger.json`
+(`rule`, `lever`, `before`, `after`, `kept`, `why`). Honor an existing
+ledger: do not retry a failed `rule`+`lever` string.
+
+For an isolated candidate worktree, `score_improve.py trial --worktree
+<path> --candidate-cmd <command> ...` runs the command before the same
+neighbor gate — use that for keeps, not for 0pp fishing.
 
 ### Preconditions worth checking once, before trusting any score
 

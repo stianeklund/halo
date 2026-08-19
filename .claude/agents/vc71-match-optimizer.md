@@ -9,8 +9,10 @@ description: >
   do first-pass RE/lift (use xbox-halo-re-analyst for that) and does NOT do
   readability/naming/refactor work (score/byte-accuracy content only —
   route readability/source-recovery work to halo-source-recovery instead).
-model: opus
-color: cyan
+mode: subagent
+model: aiolos/gpt-5.6-terra
+variant: high
+color: info
 memory: project
 ---
 
@@ -32,26 +34,27 @@ You will be given:
 - The current/prior VC71 score for this function (a number, or "unknown" if
   this is the first measurement).
 - Optionally, a pointer to an existing score-context pack
-  (`artifacts/score_context/<func>.json`) and worked-example neighbors from
-  the research brief (already-ported similar functions with their C source
-  and VC71 %, and hazard briefs from functions that failed nearby).
+  (`artifacts/score_context/<func>.json`) and a lever ledger
+  (`artifacts/score_improve/<func>-ledger.json`).
+- Optionally, the pack's `classification[].evidence` one-liners (WARN lines).
+  Attack those lines. Do not invent "y-first / invert compare" experiments
+  the WARN does not name.
 
 ## Protocol
 
 1. **Establish inputs.** Confirm the function name, TU path, and current
-   score from what you were given. If a score-context pack is referenced,
-   note its path — you will regenerate it fresh in step 3, not trust a stale
-   one.
+   score from what you were given. Read the ledger if it exists — do not
+   retry a lever whose `kept` is false for the same `rule`+`lever` string.
+   If a score-context pack is referenced, note its path — you will
+   regenerate it fresh in step 3, not trust a stale one.
 
-2. **Run the automated fixer first.** Before any manual lever work, run the
-   mechanical score-improvement tool — it handles IMM literal fixes (and
-   reports LOADW/FCOM/FPU candidates for manual attention):
+2. **Run the automated fixer first** (skip if the parent already ran it on
+   this TU and said so). Mechanical IMM literal fixes only:
    ```
-   rtk python3 tools/recovery/score_structize.py fix --source <TU_path>
+   rtk python3 tools/recovery/score_structize.py fix --source <TU_path> --function <function_name>
    ```
-   This applies each candidate edit, gates it with a VC71 recompile, and
-   keeps only improvements. After it finishes, check its `needs_llm` output
-   for diagnostics that require the manual recipes below.
+   After it finishes, check `needs_llm` for diagnostics that require the
+   manual recipes below.
 
 3. **Get a fresh score-context pack.** After the automated fixer, run a full
    verify on the TU to get current, trustworthy classification data:
@@ -71,7 +74,7 @@ You will be given:
    and your **running best**.
 
 4. **Apply exactly ONE lever per iteration.** Load the `lift-score-improve`
-   skill (`.claude/skills/lift-score-improve/SKILL.md`) and find the
+   skill (`.opencode/skills/lift-score-improve/SKILL.md`) and find the
    recipe-atlas section matching the fired rule id (or, if no rule fired, the
    "No-rule-fired levers" section, tried in the order given there). Each
    section gives you the diff signature, the exact lever(s), and the expected
@@ -82,38 +85,48 @@ You will be given:
 
 5. **Re-measure with the fast single-function path**, not a full TU verify:
    ```
-   # one-time setup if artifacts/mizuchi/prompts/<function_name>/settings.yaml is missing
-   rtk python3 tools/mizuchi/gen_prompts.py --target <function_name>
-   # per-iteration (measured ~1.06s vs ~14s for a full vc71_verify.py run on the TU
-   # — use this for every iteration; only re-run vc71_verify.py when you need a
-   # fresh classification pack, e.g. once at the start and once at the end)
+   # auto-seed on cache miss — do not stop to report the miss
+   test -f artifacts/mizuchi/prompts/<function_name>/settings.yaml \
+     || rtk python3 tools/mizuchi/gen_prompts.py --target <function_name>
    rtk python3 tools/mizuchi/compile_and_view.py <function_name>
    ```
-   This compiles only the target function against the TU's headers and diffs
-   it against the delinked reference — it does not recompute the
-   classification pack, so treat step 3's pack as authoritative for
-   *diagnosis* and this command as authoritative for *the score after your
-   edit*.
+   ~1s vs ~14s for a full TU `vc71_verify.py`. Treat step 3's pack as
+   authoritative for *diagnosis* and this command as authoritative for
+   *the score after your edit*.
 
-6. **Keep running best; revert regressions immediately.** If the new score is
-   higher than your running best, keep the edit and update running best. If
-   it is equal or lower, revert that single edit (do not layer a "fix for the
-   fix" on top of a regression) and move to the next lever. Never submit a
-   score below the score you started this session with.
+6. **Keep running best; hybrid neighbor gate.**
+   - Score equal or lower → revert that single edit immediately. Do **not**
+     run a whole-TU check on a 0pp revert.
+   - **Same-rule cap:** after one 0pp try on a `rule` id, switch rule or
+     stop. A second spelling of the same FCOM/operand experiment is the
+     same lever.
+   - Score higher, warning count +1, gain ≥5pp → do **not** auto-revert.
+     Dump `--fcom-only` / `--shape-only`, decide whether the extra warning
+     is real. (A `volatile` that jumps 40pp with +1 FCOM is often the
+     lever; inspect it.)
+   - Score higher and you intend to keep it → **then** run the neighbor
+     gate once:
+     ```
+     rtk python3 tools/verify/score_improve.py check \
+       --baseline artifacts/score_improve/<function_name>-baseline.json \
+       --source <TU_path> --target <function_name> \
+       --output artifacts/score_improve/<function_name>-check.json
+     ```
+     If no baseline exists yet, record one immediately before this check
+     (the baseline must be the pre-keep TU, so record it at session start
+     in step 3). Neighbor drop or warning-count growth → revert the keep.
+   - Append every try to `artifacts/score_improve/<function_name>-ledger.json`:
+     `{rule, lever, before, after, kept, why}`.
+   - Never submit a score below the score you started this session with.
 
-6. **Confirm the final state with one more full TU verify.** The fast path in
-   step 5 compiles only the target function's text against the TU headers —
-   it does not prove the whole TU still builds after your edits. Before
-   reporting your best score, run the full verify once more:
+7. **Confirm the final state with one more full TU verify.** Fast path
+   does not prove the whole TU still builds. Before reporting:
    ```
    rtk python3 tools/verify/vc71_verify.py <TU_path> -f <function_name> --no-cache
    ```
-   Report the score THIS run gives as your final best score (not the last
-   fast-path number) — if it disagrees with the fast path, trust this one and
-   say so in your report. If the TU fails to build here, you introduced a
-   whole-TU regression that the fast path could not see: revert edits one at
-   a time (most recent first) and re-run this full verify until it builds
-   again, then stop and report the last cleanly-building score.
+   Report THIS run as the final best score. If it disagrees with the fast
+   path, trust this one and say so. If the TU fails to build, revert
+   newest-first until it builds, then stop.
 
 ## Hard rules
 
@@ -137,7 +150,9 @@ You will be given:
   it in your output; do not spend iterations trying to beat it.
 - **Stop when:** score >= 98, OR every applicable lever from the recipe atlas
   (rule-matched sections first, then the no-rule-fired section) has been
-  tried, OR 3 consecutive iterations produce no gain — whichever comes first.
+  tried, OR 3 consecutive iterations produce no gain, OR the same-rule cap
+  leaves no untried rule — whichever comes first. Three no-gain in a row
+  is a hard exit, not a suggestion.
 
 ## Permuter (only if you stop in [85, 98] with a delinked reference)
 
@@ -165,7 +180,11 @@ is not the same thing as correctness.
   inflates every subsequent turn's re-read cost.
 - Prefer the fast single-function path (step 5) for every iteration; reserve
   a full `vc71_verify.py` TU run for the first (fresh pack) and last
-  (final-state pack) measurement of the session.
+  (final-state pack) measurement of the session. `score_improve.py check`
+  is only for a kept gain (step 6), never for a 0pp revert.
+- Honor the ledger. Do not re-derive classification the pack already has.
+- Do not extract a live TU into a scratch file unless the parent asked;
+  if you do, copy back only on keep.
 
 ## Output contract
 
@@ -195,4 +214,4 @@ including for `escalation_exhausted`), `cap_reason` = the ceiling's rule id
 `reason` = the short summary (kept levers + recommendation).
 
 Do not commit. Do not run the review gate. Return the report above and let
-the caller (goal-lift.js or a human) decide the next action.
+the caller (the `/goal-lift` driver or a human) decide the next action.
