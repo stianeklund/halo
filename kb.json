@@ -33899,7 +33899,7 @@
     {
      "addr": "0x58cc0",
      "decl": "void ai_scripting_follow_distance(unsigned int ai_index, int vehicle_handle, const char *seat_substring);",
-     "ported": true
+     "ported": false
     },
     {
      "addr": "0x58d40",
