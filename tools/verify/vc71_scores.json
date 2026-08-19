@@ -68341,16 +68341,16 @@
     "sound_update_music": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 78.5,
+      "abi_modeled_mnemonic_pct": 88.7,
       "addr": "0x1ceda0",
       "end": "0x1cf0f4",
       "kind": "auto",
       "n_r": 274,
-      "opnd_percent": 58.3,
-      "raw_mnemonic_pct": 78.5,
+      "opnd_percent": 61.9,
+      "raw_mnemonic_pct": 88.7,
       "ref": "synth",
       "ref_sha": "4163122800bcda6d",
-      "score": 78.5,
+      "score": 88.7,
       "source": "src/halo/sound/sound_manager.c"
     },
     "sound_update_music_channel": {

@@ -40,26 +40,19 @@ void sound_cache_sound_finished(int permutation_ptr)
   char *cache_sound;
   int cache_handle;
 
-  /* When the sound cache is blown the allocation in xbox_sound_cache.c never
-   * writes back to perm+0x2c, leaving it at NONE.  datum_get halts on NONE,
-   * so guard here — nothing to decrement if no cache entry was ever assigned.
-   */
   cache_handle = *(int *)(permutation_ptr + 0x2c);
-  if (cache_handle == NONE) {
-    display_assert(
-      "cache_sound_handle!=NONE (sound cache blown, no entry to finish)",
-      __FILE__, __LINE__, false);
-    return;
-  }
-
   cache_sound = (char *)datum_get(*(data_t **)0x4e9368, cache_handle);
 
   if (*(uint8_t *)0x5054ec != 0) {
-    error(2, "--- finish %d %s", *(uint8_t *)(cache_sound + 4),
+    error(2, "--- finish %d %s", (int)*(uint8_t *)(cache_sound + 4),
           *(char **)(cache_sound + 8));
   }
 
-  assert_halt(*(uint8_t *)(cache_sound + 4));
+  if (*(uint8_t *)(cache_sound + 4) == 0) {
+    display_assert("cache_sound->software_reference_count > 0",
+                   "c:\\halo\\SOURCE\\cache\\xbox_sound_cache.c", 0x107, 1);
+    system_exit(-1);
+  }
 
   *(uint8_t *)(cache_sound + 4) -= 1;
 }
@@ -70,8 +63,12 @@ void sound_cache_sound_finished(int permutation_ptr)
  * Only runs if the object looping sounds table (0x5054e4) is initialized
  * (byte +0x24 != 0).  Validates the object handle as type 3 (biped|vehicle)
  * via object_try_and_get_and_verify_type before forwarding to
- * sound_object_apply_pitch_delta (0x1ac2f0). */
-void sound_pitch_push_sample(int object_handle, float pitch)
+ * sound_object_apply_pitch_delta (0x1ac2f0).
+ *
+ * noinline: the original is a real out-of-line call from sound_update_music
+ * (direct CALL 0x1c7b00 at 0x1cf0d3).  Without this the optimizer inlines the
+ * body into that caller and the call shape diverges. */
+__declspec(noinline) void sound_pitch_push_sample(int object_handle, float pitch)
 {
   if (*(uint8_t *)(*(int *)0x5054e4 + 0x24) != 0) {
     if (object_try_and_get_and_verify_type(object_handle, 3) != 0) {
@@ -106,10 +103,9 @@ float sound_get_default_priority(int sound_tag_index)
   void *sound_tag = tag_get(0x736e6421, sound_tag_index);
   float priority = *(float *)((char *)sound_tag + 0xc);
 
-  if (priority == 0.0f) {
-    short class_index = *(short *)((char *)sound_tag + 0x4);
-    void *class_def = sound_class_get_definition(class_index);
-    priority = *(float *)((char *)class_def + 0x1c);
+  if (priority == *(float *)0x2533c0) {
+    void *class_def = sound_class_get_definition(*(short *)((char *)sound_tag + 0x4));
+    return *(float *)((char *)class_def + 0x1c);
   }
 
   return priority;
@@ -125,10 +121,9 @@ float sound_class_get_min_distance(int sound_tag_index)
   void *sound_tag = tag_get(0x736e6421, sound_tag_index);
   float min_distance = *(float *)((char *)sound_tag + 0x8);
 
-  if (min_distance == 0.0f) {
-    short class_index = *(short *)((char *)sound_tag + 0x4);
-    void *class_def = sound_class_get_definition(class_index);
-    min_distance = *(float *)((char *)class_def + 0x18);
+  if (min_distance == *(float *)0x2533c0) {
+    void *class_def = sound_class_get_definition(*(short *)((char *)sound_tag + 0x4));
+    return *(float *)((char *)class_def + 0x18);
   }
 
   return min_distance;
@@ -159,10 +154,9 @@ short sound_select_pitch_range(void *sound_tag, float random_scale,
   }
 
   {
-    int count = *(int *)(tag + 0x98);
     float best_distance = 3.4028235e+38f;
     short i;
-    for (i = 0; (int)i < count; i++) {
+    for (i = 0; (int)i < *(int *)(tag + 0x98); i++) {
       char *pitch_range;
       float min_bend;
       float max_bend;
@@ -476,47 +470,36 @@ void *sound_listener_get(short listener_index /* @<si> */)
  * Returns 0 if no promotion is needed. */
 int16_t sound_check_promotion(int sound_tag_index /* @<eax> */)
 {
+  int16_t result = 0;
   char *sound_tag;
-  short promotion_count;
+  int16_t count;
   int delta;
   int accumulator;
   int interval;
-  int total;
 
   sound_tag = (char *)tag_get(0x736e6421, sound_tag_index);
-  promotion_count = *(short *)(sound_tag + 0x80);
-  if (promotion_count == 0)
-    return 0;
-
-  /* Update accumulator: add elapsed time delta. */
-  delta = *(int *)(sound_tag + 0x8c) - *(int *)0x4eaf4c;
-  accumulator = *(int *)(sound_tag + 0x88) + delta;
-  *(int *)(sound_tag + 0x88) = accumulator;
-
-  /* Clamp negative accumulator to zero. */
-  if (accumulator < 0)
-    accumulator = 0;
-  *(int *)(sound_tag + 0x88) = accumulator;
-
-  /* Record current timestamp. */
-  *(int *)(sound_tag + 0x8c) = *(int *)0x4eaf4c;
-
-  /* Add promotion interval. */
-  interval = *(int *)(sound_tag + 0x84);
-  total = accumulator + interval;
-  *(int *)(sound_tag + 0x88) = total;
-
-  /* Check if accumulated time exceeds promotion threshold. */
-  if (total > (int)promotion_count * interval) {
-    if (*(int *)(sound_tag + 0x7c) != -1) {
-      *(int *)(sound_tag + 0x88) = 0;
-      return 1;
+  count = *(int16_t *)(sound_tag + 0x80);
+  if (count != result) {
+    delta = *(int *)(sound_tag + 0x8c) - *(int *)0x4eaf4c;
+    accumulator = *(int *)(sound_tag + 0x88) + delta;
+    *(int *)(sound_tag + 0x88) = accumulator;
+    accumulator = (accumulator < 0) ? 0 : accumulator;
+    interval = *(int *)(sound_tag + 0x84);
+    *(int *)(sound_tag + 0x88) = accumulator;
+    *(int *)(sound_tag + 0x8c) = *(int *)0x4eaf4c;
+    accumulator += interval;
+    *(int *)(sound_tag + 0x88) = accumulator;
+    if (accumulator > count * interval) {
+      if (*(int *)(sound_tag + 0x7c) != -1) {
+        *(int *)(sound_tag + 0x88) = result;
+        return 1;
+      }
+      *(int *)(sound_tag + 0x88) = accumulator - interval;
+      return 2;
     }
-    *(int *)(sound_tag + 0x88) = total - interval;
-    return 2;
   }
 
-  return 0;
+  return result;
 }
 
 /* sound_collect_like_sounds (0x1cbd30)
@@ -695,7 +678,7 @@ void sound_channel_start_new(short channel_index, int permutation)
 void sound_channel_set_properties(short channel_index, int update_only,
                                   void *properties)
 {
-  int ch;
+  char *channel_base;
 
   if (channel_index < 0 || channel_index >= *(short *)0x4eb0b4) {
     display_assert("index>=0 && index<sound_manager_globals.channel_count",
@@ -703,15 +686,15 @@ void sound_channel_set_properties(short channel_index, int update_only,
     system_exit(-1);
   }
 
-  ch = (int)channel_index;
+  channel_base = (char *)(0x4fc3a0 + (int)channel_index * 0x18);
 
   if (!update_only) {
-    if (*(float *)((char *)properties + 8) <= 0.0f) {
+    if (!(*(float *)((char *)properties + 8) > 0.0f)) {
       display_assert("properties->pitch>0.f",
                      "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x848, 1);
       system_exit(-1);
     }
-    *(int *)(0x4fc3a0 + ch * 0x18 + 0x0c) = *(int *)((char *)properties + 8);
+    *(int *)(channel_base + 0x0c) = *(int *)((char *)properties + 8);
   }
 
   /* Call the sound driver's set-properties entry (vtable offset 0x34). */
@@ -868,12 +851,11 @@ float sound_update_channel_attenuation(int sound_handle)
   start_tick = *(int *)(sound_entry + 0xa4);
   end_tick = *(int *)(sound_entry + 0xa8);
 
-  if (start_tick == end_tick) {
+  if (start_tick == end_tick)
     return 1.0f;
-  }
 
   /* Compute t = (current_tick - start) / (end - start), clamped to [0, 1]. */
-  t = (float)(*(int *)0x4eaf4c - start_tick) / (float)(end_tick - start_tick);
+  t = ((float)*(int *)0x4eaf4c - start_tick) / (end_tick - start_tick);
   if (t < 0.0f) {
     t = 0.0f;
   } else if (t > 1.0f) {
@@ -888,9 +870,9 @@ float sound_update_channel_attenuation(int sound_handle)
   case 1:
     /* Power curve: ease-in or ease-out depending on direction. */
     if (*(float *)(sound_entry + 0xa0) > *(float *)(sound_entry + 0x9c)) {
-      t = (float)pow((double)t, (double)(1.0f / 2.5f));
+      t = (float)pow(t, 1.0f / 2.5f);
     } else {
-      t = (float)(1.0 - pow((double)(1.0f - t), (double)(1.0f / 2.5f)));
+      t = (float)(1.0 - pow(1.0f - t, 1.0f / 2.5f));
     }
     break;
   default:
@@ -924,22 +906,22 @@ float sound_update_channel_attenuation(int sound_handle)
  * current to avoid overshoot. */
 float sound_volume_crossfade(float current, float target, float rate)
 {
-  if (rate == 0.0f || current == target)
-    return current;
-
-  if (current > target) {
-    /* Fading down: multiply target by rate. */
-    float result = target * rate;
-    if (current > result)
-      return result;
-    return current;
-  } else {
-    /* Fading up: divide target by rate. */
-    float result = target / rate;
-    if (current <= result)
-      return result;
-    return current;
+  if (rate != 0.0f && current != target) {
+    if (current > target) {
+      /* Fading down: multiply target by rate. */
+      float result = target * rate;
+      if (current > result)
+        return result;
+      return current;
+    } else {
+      /* Fading up: divide target by rate. */
+      float result = target / rate;
+      if (current <= result)
+        return result;
+    }
   }
+
+  return current;
 }
 
 /* sound_compute_random_scale (0x1cc8c0)
@@ -1002,7 +984,7 @@ void sound_start_fade(short mode, float seconds, int fade_in_sound_index,
       "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x43f, 1);
     system_exit(-1);
   }
-  if (seconds < *(float *)0x2533c0) {
+  if (!(seconds >= 0.0f)) {
     display_assert("seconds>=0.f", "c:\\halo\\SOURCE\\sound\\sound_manager.c",
                    0x440, 1);
     system_exit(-1);
@@ -1081,23 +1063,14 @@ void sound_stop_channel(int sound_handle /* @<ebx> */)
 
   playing_channel_index = *(short *)(sound_entry + 0x8c);
 
-  if (playing_channel_index == -1) {
-    /* No active channel -- release cache sound if flags bit 1 set. */
-    if ((*(uint8_t *)(sound_entry + 0x4) & 2) != 0) {
-      void *pitch_range;
-      void *permutation;
-
-      pitch_range = tag_block_get_element(
-        (char *)tag_get(0x736e6421, *(int *)(sound_entry + 0x8)) + 0x98,
-        (int)*(short *)(sound_entry + 0x8e), 0x48);
-      permutation = tag_block_get_element(
-        (char *)pitch_range + 0x3c, (int)*(short *)(sound_entry + 0x90), 0x7c);
-      sound_cache_sound_finished((int)permutation);
-    }
-  } else {
+  if (playing_channel_index != -1) {
     /* Active channel -- stop it. */
-    assert_halt(playing_channel_index >= 0 &&
-                playing_channel_index < *(short *)0x4eb0b4);
+    if (playing_channel_index < 0 ||
+        playing_channel_index >= *(short *)0x4eb0b4) {
+      display_assert("index>=0 && index<sound_manager_globals.channel_count",
+                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
+      system_exit(-1);
+    }
 
     /* Clear the channel's sound_handle to NONE. */
     *(int *)(0x4fc3a0 + (int)playing_channel_index * 0x18) = -1;
@@ -1108,6 +1081,14 @@ void sound_stop_channel(int sound_handle /* @<ebx> */)
 
     /* Clear the sound's playing_channel_index. */
     *(short *)(sound_entry + 0x8c) = -1;
+  } else if ((*(uint8_t *)(sound_entry + 0x4) & 2) != 0) {
+    /* No active channel -- release cache sound if flags bit 1 set. */
+    sound_cache_sound_finished(
+      (int)tag_block_get_element(
+        (char *)tag_block_get_element(
+          (char *)tag_get(0x736e6421, *(int *)(sound_entry + 0x8)) + 0x98,
+          (int)*(short *)(sound_entry + 0x8e), 0x48) + 0x3c,
+        (int)*(short *)(sound_entry + 0x90), 0x7c));
   }
 
   /* If this is a looping sound (type != 0), update the looping-sound entry. */
@@ -1137,7 +1118,11 @@ void sound_stop_channel(int sound_handle /* @<ebx> */)
   /* Assert the sound's playing_channel_index is now NONE. */
   {
     char *verify = (char *)datum_get(*(data_t **)0x4fdba4, sound_handle);
-    assert_halt(*(short *)(verify + 0x8c) == -1);
+    if (*(short *)(verify + 0x8c) != -1) {
+      display_assert("sound->playing_channel_index==NONE",
+                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x4cf, 1);
+      system_exit(-1);
+    }
   }
 
   /* Delete the sound datum. */
@@ -1187,7 +1172,11 @@ short sound_find_oldest_channel(int sound_handle, short *channels, short count)
   for (i = 0; i < count; i++) {
     index = channels[i];
 
-    assert_halt(index >= 0 && index < *(short *)0x4eb0b4);
+    if (index < 0 || index >= *(short *)0x4eb0b4) {
+      display_assert("index>=0 && index<sound_manager_globals.channel_count",
+                     "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
+      system_exit(-1);
+    }
 
     /* Get the sound datum currently playing on this channel. */
     other_entry = (char *)datum_get(*(data_t **)0x4fdba4,
@@ -1304,8 +1293,15 @@ void sound_update_channel(int channel_index, float attenuation)
     properties[2] =
       *(float *)(sound_entry + 0x88) * *(float *)(pitch_range + 0x30);
 
-    /* Pitch: min-distance from sound class. */
-    properties[0] = sound_class_get_min_distance(*(int *)(sound_entry + 0x8));
+    /* Pitch/min-distance from tag or class definition. */
+    {
+      float min_dist = *(float *)(tag_ptr + 8);
+      if (min_dist == *(float *)0x2533c0) {
+        void *cls = sound_class_get_definition(*(short *)(tag_ptr + 4));
+        min_dist = *(float *)((char *)cls + 0x18);
+      }
+      properties[0] = min_dist;
+    }
 
     /* Direction from tag+0x1c..0x24. */
     *(int *)&properties[4] = *(int *)(tag_ptr + 0x1c);
@@ -1382,60 +1378,42 @@ void sound_start_next_looping_permutation(int sound_handle /* @<eax> */)
 {
   char *sound_entry;
   void *sound_tag;
-  int looping_tag_index;
-  float random_scale;
-  int hint_index;
   short pitch_range_index;
-  short permutation_index;
   char summary[0x48];
-  short like_source_count;
-  short max_source_instance_count;
-  short like_definition_count;
-  short max_instance_count;
-  short *channels_ptr;
-  short count_val;
   short oldest_channel;
+  short *channels_ptr;
+  int count_val;
 
   sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, sound_handle);
   sound_tag = tag_get(0x736e6421, *(int *)(sound_entry + 0x98));
 
   *(uint8_t *)(sound_entry + 0x4) |= 8;
-
-  looping_tag_index = *(int *)(sound_entry + 0x98);
-  *(int *)(sound_entry + 0x8) = looping_tag_index;
+  *(int *)(sound_entry + 0x8) = *(int *)(sound_entry + 0x98);
   *(int *)(sound_entry + 0x98) = -1;
 
-  random_scale = *(float *)(sound_entry + 0x88);
-  hint_index = (int)(unsigned short)*(short *)(sound_entry + 0x8e);
-
   pitch_range_index =
-    sound_select_pitch_range(sound_tag, random_scale, hint_index);
+    sound_select_pitch_range(sound_tag, *(float *)(sound_entry + 0x88),
+                             (uint16_t)*(short *)(sound_entry + 0x8e));
   *(short *)(sound_entry + 0x8e) = pitch_range_index;
 
-  permutation_index =
+  *(short *)(sound_entry + 0x90) =
     sound_select_permutation(sound_tag, pitch_range_index, -1);
-  *(short *)(sound_entry + 0x90) = permutation_index;
 
   if (*(short *)(sound_entry + 0x8c) != -1) {
     sound_collect_like_sounds(sound_handle, summary);
 
-    like_source_count = *(short *)(summary + 0x24);
-    max_source_instance_count = *(short *)(summary + 0x46);
-    like_definition_count = *(short *)(summary + 0x00);
-    max_instance_count = *(short *)(summary + 0x22);
-
-    if (like_source_count >= max_source_instance_count) {
+    if (*(short *)(summary + 0x24) >= *(short *)(summary + 0x46)) {
       channels_ptr = (short *)(summary + 0x26);
-      count_val = like_source_count;
-    } else if (like_definition_count >= max_instance_count) {
+      count_val = *(int *)(summary + 0x24);
+    } else if (*(short *)(summary + 0x00) >= *(short *)(summary + 0x22)) {
       channels_ptr = (short *)(summary + 0x02);
-      count_val = like_definition_count;
+      count_val = *(int *)(summary + 0x00);
     } else {
       return;
     }
 
     oldest_channel =
-      sound_find_oldest_channel(sound_handle, channels_ptr, count_val);
+      sound_find_oldest_channel(sound_handle, channels_ptr, (short)count_val);
 
     if (oldest_channel != -1) {
       sound_handle = *(int *)sound_channel_get(oldest_channel);
@@ -1580,8 +1558,6 @@ int sound_create_looping_entry(int sound_tag_handle /* @<eax> */,
   float random_gain;
   short pitch_range_index;
   short permutation_index;
-  void *pitch_range_element;
-  void *permutation_element;
 
   looping_source = (char *)datum_get(*(data_t **)0x4fdba0, looping_handle);
   source_gain = *(float *)(looping_source + 0x10);
@@ -1617,16 +1593,7 @@ int sound_create_looping_entry(int sound_tag_handle /* @<eax> */,
   *(float *)(sound_entry + 0x88) = random_gain;
   *(int *)(sound_entry + 0xc) = looping_handle;
 
-  {
-    unsigned int *dst = (unsigned int *)(sound_entry + 0x14);
-    unsigned int *src = (unsigned int *)(looping_source + 0xc);
-    int i;
-    for (i = 0x10; i != 0; i--) {
-      *dst = *src;
-      dst++;
-      src++;
-    }
-  }
+  qmemcpy(sound_entry + 0x14, looping_source + 0xc, 0x40);
 
   *(short *)(sound_entry + 0x2) = (short)type;
   *(unsigned int *)(sound_entry + 0x84) = *(unsigned int *)0x4eaf4c;
@@ -1652,16 +1619,15 @@ int sound_create_looping_entry(int sound_tag_handle /* @<eax> */,
 
   *(short *)(sound_entry + 0x90) = permutation_index;
 
-  pitch_range_element = tag_block_get_element(
-    (char *)tag_get(0x736e6421, *(int *)(sound_entry + 0x8)) + 0x98,
-    (int)*(short *)(sound_entry + 0x8e), 0x48);
+  sound_cache_request_sound(
+    tag_block_get_element(
+      (char *)tag_block_get_element(
+        (char *)tag_get(0x736e6421, *(int *)(sound_entry + 0x8)) + 0x98,
+        (int)*(short *)(sound_entry + 0x8e), 0x48) + 0x3c,
+      (int)permutation_index, 0x7c),
+    0, 1, 0);
 
-  permutation_element = tag_block_get_element(
-    (char *)pitch_range_element + 0x3c, (int)permutation_index, 0x7c);
-
-  sound_cache_request_sound(permutation_element, 0, 1, 0);
-
-  *(short *)(looping_source + 0x50) += 1;
+  (*(short *)(looping_source + 0x50))++;
 
   return new_handle;
 }
@@ -1751,7 +1717,14 @@ void sound_update_music_channel(int channel_index, float attenuation)
   }
 
   /* Pitch: min-distance from sound class. */
-  properties[0] = sound_class_get_min_distance(*(int *)(sound_entry + 0x8));
+  {
+    float min_dist = *(float *)(tag_ptr + 8);
+    if (min_dist == *(float *)0x2533c0) {
+      void *cls = sound_class_get_definition(*(short *)(tag_ptr + 4));
+      min_dist = *(float *)((char *)cls + 0x18);
+    }
+    properties[0] = min_dist;
+  }
 
   /* Max distance: FLT_MAX. */
   *(int *)&properties[1] = 0x7f7fffff;
@@ -1985,14 +1958,10 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
   int fade_deadline;
   short channel_index;
   short promotion_result;
-  int sound_handle;
   char *sound_entry;
   int ftol_result;
   short pitch_range_index;
   short permutation_index;
-  void *pitch_range_element;
-  void *perm_block;
-  void *perm_element;
 
   sound_tag = tag_get(0x736e6421, sound_tag_index);
   source_scale = *(float *)((char *)source + 4);
@@ -2033,161 +2002,135 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
   if (*(uint8_t *)0x4eaf40 != 0 && *(uint8_t *)0x4eaf41 != 0) {
     /* Check encoding compatibility: must be 1 pitch range, and either
      * (0 channels + 0 compression) or (1 channel). */
-    if (*(short *)((char *)sound_tag + 0x6e) != 1 ||
-        !((*(short *)((char *)sound_tag + 0x6c) == 0 &&
-           *(short *)((char *)sound_tag + 6) == 0) ||
-          *(short *)((char *)sound_tag + 0x6c) == 1)) {
-      error(2, "attempt to play a sound that was not a mono 22k compressed "
-               "sound or a stereo 22k or 44k compressed sound.");
-      goto done;
-    }
-
-    /* Volume/distance culling: skip if both source scale and sound
-     * skip_fraction are zero (always audible). */
-    if (*(float *)((char *)source + 4) != 0.0f ||
-        *(float *)((char *)sound_tag + 0x40) != 0.0f) {
-      float random_val;
-      {
+    if (*(short *)((char *)sound_tag + 0x6e) == 1 &&
+        ((*(short *)((char *)sound_tag + 0x6c) == 0 &&
+          *(short *)((char *)sound_tag + 6) == 0) ||
+         *(short *)((char *)sound_tag + 0x6c) == 1)) {
+      /* Volume/distance culling: skip if both source scale and sound
+       * skip_fraction are zero (always audible). */
+      if (*(float *)((char *)source + 4) != 0.0f ||
+          *(float *)((char *)sound_tag + 0x40) != 0.0f) {
         unsigned int *seed = random_math_get_local_seed_address();
-        random_val = random_math_real(seed);
-      }
-      /* Compute audible distance threshold:
-       * (skip_fraction_max - skip_fraction_min) * source_scale
-       *   + skip_fraction_min) * sound_tag->max_distance
-       * If random_val exceeds this, sound is culled. */
-      {
+        float random_val = random_math_real(seed);
         float skip_min = *(float *)((char *)sound_tag + 0x3c);
         float skip_max = *(float *)((char *)sound_tag + 0x54);
         float max_dist = *(float *)((char *)sound_tag + 0x10);
-        float threshold =
-          ((skip_max - skip_min) * source_scale + skip_min) * max_dist;
-        if (random_val <= threshold)
-          goto done;
-      }
+        if (((skip_max - skip_min) * source_scale + skip_min) * max_dist < random_val) {
+          float priority = sound_get_default_priority(sound_tag_index);
+          if (*(int *)((char *)sound_tag + 0x98) > 0) {
+            void *pr0 = tag_block_get_element((char *)sound_tag + 0x98, 0, 0x48);
+            if (*(int *)((char *)pr0 + 0x3c) > 0) {
+              void *cls = sound_class_get_definition(*(short *)((char *)sound_tag + 4));
+              if (*(char *)((char *)cls + 0x28) == '\0') {
+                channel_index = sound_allocate_channel(source, priority);
+                if (channel_index != -1) {
+                  promotion_result = sound_check_promotion(sound_tag_index);
+                  if (promotion_result != 0) {
+                    if (promotion_result == 1) {
+                      /* Promote: recurse with the promotion sound tag. */
+                      return sound_start(*(int *)((char *)sound_tag + 0x7c),
+                                         source, object_handle, track_data,
+                                         track_data_ptr, track_data_size);
+                    }
+                    /* Reject (promotion_result >= 2). */
+                    return -1;
+                  }
 
-      /* Compute sound priority. */
-      {
-        float priority;
-        int can_play;
-        {
-          /* 0x1c8d10: sound_get_default_priority(sound_tag_index) */
-          priority = sound_get_default_priority(sound_tag_index);
-        }
+                  /* Allocate a new sound datum. */
+                  result = data_new_at_index(*(data_t **)0x4fdba4);
+                  if (result != -1) {
+                    sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, result);
 
-        can_play = sound_can_play(sound_tag_index);
-        if (!can_play)
-          goto done;
+                    /* 0x1ccca0: compute distance (EAX = channel_index,
+                     * EDI = source). Returns float distance in ST(0). Then
+                     * multiply by constant 8.9647 and convert to int. */
+                    {
+                      float dist = FUN_001ccca0(channel_index, source);
+                      ftol_result = (int)(*(float *)0x2c1288 * dist);
+                    }
 
-        channel_index = sound_allocate_channel(source, priority);
-        if (channel_index == -1)
-          goto done;
+                    /* Fill in sound entry fields. */
+                    *(int *)(sound_entry + 0x8) = sound_tag_index;
+                    *(short *)(sound_entry + 0x8c) = (short)-1;
+                    *(short *)(sound_entry + 0x6) = channel_index;
+                    *(short *)(sound_entry + 0x2) = 0;
 
-        promotion_result = sound_check_promotion(sound_tag_index);
+                    /* Compute random scale for this sound instance. */
+                    {
+                      float rscale =
+                        sound_compute_random_scale(*(float *)((char *)sound_tag + 0x14),
+                                                   *(float *)((char *)sound_tag + 0x18),
+                                                   *(float *)((char *)sound_tag + 0x44),
+                                                   *(float *)((char *)sound_tag + 0x5c),
+                                                   *(float *)((char *)source + 4));
+                      *(float *)(sound_entry + 0x88) = rscale;
+                    }
 
-        if (promotion_result != 0) {
-          if (promotion_result == 1) {
-            /* Promote: recurse with the promotion sound tag. */
-            result = sound_start(*(int *)((char *)sound_tag + 0x7c), source,
-                                 object_handle, track_data, track_data_ptr,
-                                 track_data_size);
-            return result;
+                    /* Copy source struct (0x40 bytes = 16 dwords) into sound
+                     * entry at offset 0x14. */
+                    *(short *)(sound_entry + 0x4) = 0;
+                    *(int *)(sound_entry + 0xc) = object_handle;
+                    qmemcpy(sound_entry + 0x14, source, 0x40);
+
+                    /* Store track_data flag and copy track data if present. */
+                    *(int *)(sound_entry + 0x10) = track_data;
+                    if (track_data != 0) {
+                      if (sound_entry + 0x54 == 0) {
+                        display_assert("sound->track_data",
+                                       "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x28e,
+                                       1);
+                        system_exit(-1);
+                      }
+                      csmemcpy(sound_entry + 0x54, track_data_ptr,
+                               (int)(short)track_data_size);
+                    }
+
+                    /* Select pitch range and permutation. */
+                    pitch_range_index = sound_select_pitch_range(
+                      sound_tag, *(float *)(sound_entry + 0x88), -1);
+                    *(short *)(sound_entry + 0x8e) = pitch_range_index;
+
+                    permutation_index =
+                      sound_select_permutation(sound_tag, pitch_range_index, -1);
+                    *(short *)(sound_entry + 0x90) = permutation_index;
+
+                    *(int *)(sound_entry + 0xa8) = 0;
+                    *(int *)(sound_entry + 0xa4) = 0;
+                    *(short *)(sound_entry + 0x94) = (short)-1;
+
+                    /* Look up the permutation element in the sound tag and
+                     * request it from the sound cache. */
+                    sound_cache_request_sound(
+                      tag_block_get_element(
+                        (char *)tag_block_get_element(
+                          (char *)tag_get(0x736e6421, *(int *)(sound_entry + 0x8)) + 0x98,
+                          (int)pitch_range_index, 0x48) + 0x3c,
+                        (int)permutation_index, 0x7c),
+                      0, 1, 0);
+
+                    /* Set timing: if ftol_result > 250, delay start by that
+                     * amount relative to current timestamp, and set bit 0 of
+                     * flags. */
+                    if (ftol_result > 250) {
+                      *(uint8_t *)(sound_entry + 4) = *(uint8_t *)(sound_entry + 4) | 1;
+                      *(int *)(sound_entry + 0x84) = *(int *)0x4eaf4c + ftol_result;
+                      return result;
+                    }
+                    *(int *)(sound_entry + 0x84) = *(int *)0x4eaf4c;
+                    return result;
+                  }
+                }
+              }
+            }
           }
-          /* Reject (promotion_result >= 2). */
-          return -1;
         }
-
-        /* Allocate a new sound datum. */
-        sound_handle = data_new_at_index(*(data_t **)0x4fdba4);
-        result = sound_handle;
-        if (sound_handle == -1)
-          goto done;
-
-        sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, sound_handle);
-
-        /* 0x1ccca0: compute distance (EAX = channel_index,
-         * EDI = source). Returns float distance in ST(0). Then
-         * multiply by constant 8.9647 and convert to int. */
-        {
-          float dist = FUN_001ccca0(channel_index, source);
-          ftol_result = (int)(*(float *)0x2c1288 * dist);
-        }
-
-        /* Fill in sound entry fields. */
-        *(int *)(sound_entry + 0x8) = sound_tag_index;
-        *(short *)(sound_entry + 0x8c) = (short)-1;
-        *(short *)(sound_entry + 0x6) = channel_index;
-        *(short *)(sound_entry + 0x2) = 0;
-
-        /* Compute random scale for this sound instance. */
-        {
-          float rscale =
-            sound_compute_random_scale(*(float *)((char *)sound_tag + 0x14),
-                                       *(float *)((char *)sound_tag + 0x18),
-                                       *(float *)((char *)sound_tag + 0x44),
-                                       *(float *)((char *)sound_tag + 0x5c),
-                                       *(float *)((char *)source + 4));
-          *(float *)(sound_entry + 0x88) = rscale;
-        }
-
-        /* Copy source struct (0x40 bytes = 16 dwords) into sound
-         * entry at offset 0x14. */
-        *(short *)(sound_entry + 0x4) = 0;
-        *(int *)(sound_entry + 0xc) = object_handle;
-        csmemcpy(sound_entry + 0x14, source, 0x40);
-
-        /* Store track_data flag and copy track data if present. */
-        *(int *)(sound_entry + 0x10) = track_data;
-        if (track_data != 0) {
-          if (sound_entry + 0x54 == 0) {
-            display_assert("sound->track_data",
-                           "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x28e,
-                           1);
-            system_exit(-1);
-          }
-          csmemcpy(sound_entry + 0x54, track_data_ptr,
-                   (int)(short)track_data_size);
-        }
-
-        /* Select pitch range and permutation. */
-        pitch_range_index = sound_select_pitch_range(
-          sound_tag, *(float *)(sound_entry + 0x88), -1);
-        *(short *)(sound_entry + 0x8e) = pitch_range_index;
-
-        permutation_index =
-          sound_select_permutation(sound_tag, pitch_range_index, -1);
-        *(short *)(sound_entry + 0x90) = permutation_index;
-
-        *(int *)(sound_entry + 0xa8) = 0;
-        *(int *)(sound_entry + 0xa4) = 0;
-        *(short *)(sound_entry + 0x94) = (short)-1;
-
-        /* Look up the permutation element in the sound tag and
-         * request it from the sound cache. */
-        {
-          void *tag_data = tag_get(0x736e6421, *(int *)(sound_entry + 0x8));
-          pitch_range_element = tag_block_get_element(
-            (char *)tag_data + 0x98, (int)pitch_range_index, 0x48);
-          perm_block = (char *)pitch_range_element + 0x3c;
-          perm_element =
-            tag_block_get_element(perm_block, (int)permutation_index, 0x7c);
-          sound_cache_request_sound(perm_element, 0, 1, 0);
-        }
-
-        /* Set timing: if ftol_result > 250, delay start by that
-         * amount relative to current timestamp, and set bit 0 of
-         * flags. */
-        if (ftol_result > 250) {
-          *(uint8_t *)(sound_entry + 4) = *(uint8_t *)(sound_entry + 4) | 1;
-          *(int *)(sound_entry + 0x84) = *(int *)0x4eaf4c + ftol_result;
-          return result;
-        }
-        *(int *)(sound_entry + 0x84) = *(int *)0x4eaf4c;
-        return result;
       }
+    } else {
+      error(2, "attempt to play a sound that was not a mono 22k compressed "
+               "sound or a stereo 22k or 44k compressed sound.");
     }
   }
 
-done:
   return result;
 }
 
@@ -2235,53 +2178,40 @@ done:
  *      sound_entry+0xc. */
 void sound_update_music(void)
 {
-  short channel_count;
-  int i;
+  short i;
+  int channel_count;
   int *channel;
   char *sound_entry;
   void *tag_ptr;
-  int tag_handle;
   float attenuation;
-  float audible_scale;
-  /* Must be contiguous: dsound reads this as location_t (pos/fwd/up). */
+  float pos[3];
   struct {
     float position[3];
     float forward[3];
     float up[3];
   } location;
   char *listener;
-  void *class_def;
 
-  channel_count = *(short *)0x4eb0b4;
-  if (channel_count <= 0)
+  channel_count = *(int *)0x4eb0b4;
+  if ((short)channel_count <= 0)
     return;
 
-  for (i = 0; (short)i < channel_count; i++) {
-    if ((short)i < 0 || (short)i >= *(short *)0x4eb0b4) {
+  for (i = 0; i < (short)channel_count; i++, channel_count = *(int *)0x4eb0b4) {
+    if (i < 0 || i >= (short)channel_count) {
       display_assert("index>=0 && index<sound_manager_globals.channel_count",
                      "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, 1);
       system_exit(-1);
     }
 
-    /* Channel struct: stride 0x18 bytes starting at 0x4fc3a0.
-     *   +0x00 int sound_handle (-1 if free)
-     *   +0x04 uint32 flags (bit 0: active playback path)
-     *   +0x08 float phase_accumulator
-     *   +0x10 int pitch_param */
-    channel = (int *)(0x4fc3a0 + (short)i * 0x18);
+    channel = (int *)(0x4fc3a0 + (int)i * 0x18);
     if (channel[0] == -1)
       continue;
 
     sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, channel[0]);
-    tag_handle = *(int *)(sound_entry + 0x8);
-    tag_ptr = tag_get(0x736e6421, tag_handle);
+    tag_ptr = tag_get(0x736e6421, *(int *)(sound_entry + 0x8));
 
-    /* Update attenuation curve for this channel. EAX arg is the
-     * channel's sound_handle (register-passed). */
     attenuation = sound_update_channel_attenuation(channel[0]);
-    audible_scale = attenuation;
 
-    /* Faded out: both current and target reached 0.0f. */
     if (attenuation == *(float *)0x2533c0 &&
         *(float *)(sound_entry + 0xa0) == *(float *)0x2533c0) {
       sound_stop_channel(channel[0]);
@@ -2289,14 +2219,16 @@ void sound_update_music(void)
       continue;
     }
 
-    if ((*(uint8_t *)((char *)channel + 0x4) & 1) != 0) {
-      /* Active playback path: drive sound driver. */
+    if ((*(uint8_t *)((char *)channel + 4) & 1) != 0) {
       short mode = *(short *)(sound_entry + 0x14);
-      if (mode == 0) {
+      void *matrix;
+
+      switch (mode) {
+      case 0:
         display_assert(0, "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x7d4, 1);
         system_exit(-1);
-      } else if (mode == 1) {
-        /* Listener-relative spatialization. */
+        break;
+      case 1:
         listener = (char *)sound_listener_get(*(short *)(sound_entry + 0x6));
         if (*listener == '\0') {
           display_assert("listener->valid",
@@ -2304,95 +2236,88 @@ void sound_update_music(void)
           system_exit(-1);
         }
 
+        matrix = listener + 4;
         real_matrix3x3_transform_point(
-          listener + 4, (float *)(sound_entry + 0x20), location.position);
-        real_matrix4x3_transform_point(listener + 4, sound_entry + 0x2c,
-                                       location.forward);
-        real_matrix3x3_transform_vector(listener + 4,
-                                        (vector3_t *)(sound_entry + 0x38),
-                                        (vector3_t *)location.up);
+          matrix, (float *)(sound_entry + 0x20), location.position);
+        real_matrix4x3_transform_point(
+          matrix, sound_entry + 0x2c, location.forward);
+        real_matrix3x3_transform_vector(
+          matrix, (vector3_t *)(sound_entry + 0x38), (vector3_t *)location.up);
 
-        /* Scale up-vector by 30.0 and subtract listener velocity
-         * (listener+0x38..0x40). */
         location.up[0] =
-          location.up[0] * TICKS_PER_SECOND - *(float *)(listener + 0x38);
+          location.up[0] * 30.0f - *(float *)(listener + 0x38);
         location.up[1] =
-          location.up[1] * TICKS_PER_SECOND - *(float *)(listener + 0x3c);
+          location.up[1] * 30.0f - *(float *)(listener + 0x3c);
         location.up[2] =
-          location.up[2] * TICKS_PER_SECOND - *(float *)(listener + 0x40);
+          location.up[2] * 30.0f - *(float *)(listener + 0x40);
 
-        (*(void (**)(int, int, void *, int, int, int))(*(int *)0x4eaf48 +
-                                                       0x30))(
-          i, 1, location.position, *(int *)(sound_entry + 0x4c),
-          *(int *)(sound_entry + 0x50), (int)listener[1]);
-      } else if (mode == 2) {
-        (*(void (**)(int, int, void *, int, int, int))(
-          *(int *)0x4eaf48 + 0x30))(i, 1, (void *)(sound_entry + 0x20), 0, 0,
-                                    0);
-      } else {
+        (*(void (**)(int, int, void *, int, int, int))(*(int *)0x4eaf48 + 0x30))(
+          (int)i, 1, location.position, *(int *)(sound_entry + 0x4c),
+          *(int *)(sound_entry + 0x50), (int)*(uint8_t *)(listener + 1));
+        break;
+      case 2:
+        (*(void (**)(int, int, void *, int, int, int))(*(int *)0x4eaf48 + 0x30))(
+          (int)i, 1, (void *)(sound_entry + 0x20), 0, 0, 0);
+        break;
+      default:
         display_assert(0, "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x7ec, 1);
         system_exit(-1);
+        break;
       }
     } else {
-      /* Inactive/culled path: compute audible_scale from attenuation. */
       short mode;
-      location.position[0] = *(float *)(sound_entry + 0x20);
-      location.position[1] = *(float *)(sound_entry + 0x24);
-      location.position[2] = *(float *)(sound_entry + 0x28);
+      pos[0] = *(float *)(sound_entry + 0x20);
+      pos[1] = *(float *)(sound_entry + 0x24);
+      pos[2] = *(float *)(sound_entry + 0x28);
       mode = *(short *)(sound_entry + 0x14);
-      if (mode != 0) {
-        if (mode == 1) {
-          listener = (char *)sound_listener_get(*(short *)(sound_entry + 0x6));
-          if (*listener == '\0') {
-            display_assert("listener->valid",
-                           "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x7fa,
-                           1);
-            system_exit(-1);
-          }
-          real_matrix3x3_transform_point(
-            listener + 4, (float *)(sound_entry + 0x20), location.position);
-        } else if (mode != 2) {
-          display_assert(0, "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x80a,
-                         1);
+      switch (mode) {
+      case 0:
+        break;
+      case 1:
+        listener = (char *)sound_listener_get(*(short *)(sound_entry + 0x6));
+        if (*listener == '\0') {
+          display_assert("listener->valid",
+                         "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x7fa, 1);
           system_exit(-1);
         }
+        real_matrix3x3_transform_point(
+          listener + 4, (float *)(sound_entry + 0x20), pos);
+        break;
+      case 2:
+        break;
+      default:
+        display_assert(0, "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x80a, 1);
+        system_exit(-1);
+        break;
+      }
 
-        /* Audible falloff: 1 - (sqrt(dist^2) - min) / (max - min),
-         * clamped to [0, 1]. min/max come from the sound's class
-         * definition (tag+class_index). */
-        {
-          float min_dist = sound_class_get_min_distance(tag_handle);
-          float max_dist = sound_get_default_priority(tag_handle);
-          float sq = location.position[0] * location.position[0] +
-                     location.position[1] * location.position[1] +
-                     location.position[2] * location.position[2];
-          float falloff = *(float *)0x2533c8 -
-                          (xbox_sqrtf(sq) - min_dist) / (max_dist - min_dist);
-          if (falloff < *(float *)0x2533c0)
-            falloff = *(float *)0x2533c0;
-          else if (falloff > *(float *)0x2533c8)
-            falloff = *(float *)0x2533c8;
-          audible_scale = falloff * audible_scale;
-        }
+      if (mode != 0) {
+        float min_dist = sound_class_get_min_distance(*(int *)(sound_entry + 0x8));
+        float max_dist = sound_get_default_priority(*(int *)(sound_entry + 0x8));
+        float dist = xbox_sqrtf(pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]);
+        float falloff = 1.0f - (dist - min_dist) / (max_dist - min_dist);
+        if (falloff < 0.0f)
+          falloff = 0.0f;
+        else if (falloff > 1.0f)
+          falloff = 1.0f;
+        attenuation = falloff * attenuation;
       }
     }
 
-    /* Push updated volume/pan/pitch (music vs regular channel). */
-    if (*(short *)(sound_entry + 2) == 0)
-      sound_update_channel(i, audible_scale);
-    else
-      sound_update_music_channel(i, audible_scale);
+    if (*(short *)(sound_entry + 2) == 0) {
+      sound_update_channel(i, attenuation);
+    } else {
+      sound_update_music_channel(i, attenuation);
+    }
 
-    /* Pitch-track hook: if class_def says pitch-track and this
-     * sound's update callback is FUN_001c7a10, push the next pitch
-     * sample computed from channel+0x8 (phase, truncated to int) and
-     * channel+0x10. */
-    class_def = sound_class_get_definition(*(short *)((char *)tag_ptr + 4));
-    if (*(char *)((char *)class_def + 8) != '\0' &&
-        *(void **)(sound_entry + 0x10) == (void *)&FUN_001c7a10) {
-      int phase_int = (int)*(float *)((char *)channel + 0x8);
-      float pitch_value = sound_get_permutation_pitch(channel[4], phase_int);
-      sound_pitch_push_sample(*(int *)(sound_entry + 0xc), pitch_value);
+    {
+      void *class_def = sound_class_get_definition(*(short *)((char *)tag_ptr + 4));
+      if (*(char *)((char *)class_def + 8) != '\0' &&
+          *(int *)(sound_entry + 0x10) == 0x1c7a10) {
+        float sample = sound_get_permutation_pitch(
+          *(int *)((char *)channel + 0x10), (short)(int)*(float *)((char *)channel + 8));
+        sound_pitch_push_sample(*(int *)(sound_entry + 0xc), sample);
+      }
     }
   }
 }
@@ -2411,7 +2336,7 @@ void sound_idle(void)
     (*(void (**)(void))(*(int *)0x4eaf48 + 0x10))();
     if (*(uint8_t *)0x4eaf42 == 0) {
       current_ms = system_milliseconds();
-      *(float *)0x4eaf50 = (float)(current_ms - *(int *)0x4eaf4c) * 0.03f;
+      *(float *)0x4eaf50 = ((float)current_ms - *(int *)0x4eaf4c) * 0.03f;
       *(int *)0x4eaf4c = current_ms;
       sound_update_music();
     }
@@ -2423,11 +2348,9 @@ void sound_idle(void)
 
 void sound_dispose_from_old_map(void)
 {
-  unsigned int start_ms;
+  int start_ms;
   int sound_index;
   float fade_end_ms;
-  unsigned int now_ms;
-  float now_ms_f;
 
   if (*(uint8_t *)0x4eaf42 == 0) {
     /* Only attempt fade if both initialized and hardware_present. */
@@ -2435,30 +2358,22 @@ void sound_dispose_from_old_map(void)
       goto skip_fade;
 
     /* Record start time and iterate all active sounds, triggering fade-out. */
-    start_ms = ((unsigned int (*)(void))0x8e370)();
-    sound_index = ((int (*)(void *, int))0x1198f0)(*(void **)0x4fdba4, -1);
+    start_ms = system_milliseconds();
+    sound_index = data_next_index(*(data_t **)0x4fdba4, -1);
     if (sound_index != -1) {
       do {
         /* sound_manager_fade: mode=0 (linear), seconds=0.3f,
          * fade_in_sound_index=NONE (-1), fade_out_sound_index=sound_index */
-        ((void (*)(short, float, int, int))0x1cc8f0)(0, 0.3f, -1, sound_index);
-        sound_index =
-          ((int (*)(void *, int))0x1198f0)(*(void **)0x4fdba4, sound_index);
+        sound_start_fade(0, 0.3f, -1, sound_index);
+        sound_index = data_next_index(*(data_t **)0x4fdba4, sound_index);
       } while (sound_index != -1);
 
       /* Compute deadline: start_ms + 300.0f ms (constant at 0x2c1a60). */
       fade_end_ms = (float)start_ms + 300.0f;
 
-      /* Spin until current time >= fade_end_ms, pumping sound each iteration.
-       * Unsigned→float: if MSB set, add 2^32 to correct the signed cast. */
-      while (1) {
-        now_ms = ((unsigned int (*)(void))0x8e370)();
-        now_ms_f = (float)(int)now_ms;
-        if ((int)now_ms < 0)
-          now_ms_f = now_ms_f + 4294967296.0f;
-        if (fade_end_ms <= now_ms_f)
-          break;
-        ((void (*)(void))0x1cf2f0)();
+      /* Spin until current time >= fade_end_ms, pumping sound each iteration. */
+      while ((float)system_milliseconds() < fade_end_ms) {
+        sound_idle();
       }
     }
 
@@ -2469,15 +2384,15 @@ void sound_dispose_from_old_map(void)
   /* Clear the fading flag, stop hardware output, record current timestamp. */
   *(uint8_t *)0x4eaf42 = 0;
   (*(void (**)(int))((*(uint8_t **)0x4eaf48) + 0x28))(0);
-  *(unsigned int *)0x4eaf4c = ((unsigned int (*)(void))0x8e370)();
+  *(unsigned int *)0x4eaf4c = system_milliseconds();
 
 skip_fade:
   /* Stop all active sound channels and reset channel count. */
   ((void (*)(void))0x1cd540)();
 
   /* Re-validate the looping-sounds table for the next map if present. */
-  if (*(void **)0x4fdba0 != 0)
-    ((void (*)(void *))0x119720)(*(void **)0x4fdba0);
+  if (*(data_t **)0x4fdba0 != 0)
+    data_make_valid(*(data_t **)0x4fdba0);
 }
 
 /* Per-frame sound rendering tick.
@@ -2513,19 +2428,19 @@ void sound_render(void)
     if (*(uint8_t *)0x4eaf42 == 0) {
       /* Compute time delta in sound-system units (ms * 0.03). */
       current_ms = system_milliseconds();
-      delta = (float)(current_ms - *(int *)0x4eaf4c) * 0.03f;
+      delta = ((float)current_ms - *(int *)0x4eaf4c) * 0.03f;
       *(int *)0x4eaf4c = current_ms;
       *(float *)0x4eaf50 = delta;
 
       /* Update sound subsystems. The truncated delta is passed to the
        * cache/listener update chain. Original calls __ftol2 (0x1d9068) to
        * truncate the float delta; we use a plain C cast. */
-      ((void (*)(int))0x1c8c00)((int)*(float *)0x4eaf50);
-      ((void (*)(void))0x1ce9c0)();
-      ((void (*)(void))0x1cf100)();
-      ((void (*)(void))0x1cd690)();
-      ((void (*)(void))0x1cf360)();
-      ((void (*)(void))0x1ceda0)();
+      sound_classes_update((int)*(float *)0x4eaf50);
+      FUN_001ce9c0();
+      FUN_001cf100();
+      FUN_001cd690();
+      FUN_001cf360();
+      sound_update_music();
 
       /* Toggle per-frame flip flag. */
       *(uint8_t *)0x4eaf54 = *(uint8_t *)0x4eaf54 == 0;
@@ -2537,7 +2452,7 @@ void sound_render(void)
 
   /* Update game sound (ambient/scripted) when not fading. */
   if (*(uint8_t *)0x4eaf42 == 0)
-    ((void (*)(void))0x1bded0)();
+    xbox_sound_cache_idle();
 
   /* Profiling: exit "sound_render" section. */
   if (*(uint8_t *)0x449ef1 != 0 && *(uint8_t *)0x32f6f0 != 0)
