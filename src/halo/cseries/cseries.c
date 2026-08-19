@@ -104,7 +104,7 @@ char *strupr(char *s)
   p = s;
   c = *p;
   while (c != '\0') {
-    c = crt_toupper(*p);
+    c = crt_toupper((unsigned char)*p);
     *p = c;
     p++;
     c = *p;
@@ -114,14 +114,27 @@ char *strupr(char *s)
 
 #include <stdarg.h>
 
-/* Convert a string to lowercase in place and return it. */
+/* csstr_tolower (0x8d9a0) — convert entire string s to lowercase in place
+ * using the CRT tolower function. Returns s.
+ *
+ * Structurally identical to strupr (0x8d970) above, callee aside: the two
+ * references differ only in the CALL target (0x1da1d8 crt_tolower vs 0x1da19f
+ * crt_toupper).  The previous lift hand-rolled an ASCII `>= 'A' && <= 'Z'`
+ * range test, which emits no CALL at all -- a SHAPE-WARN call-count delta of
+ * ours 0 vs reference 1 -- and is not the same function for bytes outside
+ * ASCII, where crt_tolower consults the locale table. */
 char *csstr_tolower(char *s)
 {
-  char *p = s;
-  while (*p != '\0') {
-    if (*p >= 'A' && *p <= 'Z')
-      *p = *p + ('a' - 'A');
+  char *p;
+  char c;
+
+  p = s;
+  c = *p;
+  while (c != '\0') {
+    c = crt_tolower((unsigned char)*p);
+    *p = c;
     p++;
+    c = *p;
   }
   return s;
 }

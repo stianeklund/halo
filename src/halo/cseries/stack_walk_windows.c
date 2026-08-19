@@ -73,14 +73,22 @@ void __fastcall FUN_00092370(int skip, int32_t *frames, uint32_t max,
 
 /* -----------------------------------------------------------------------
  * stack_walk_dispose (0x92440) — reset the symbol table to "not loaded" state.
+ *
+ * The reference is 29 bytes and CALLs symbol_table_dispose (0x92090) with
+ * &symtab; MSVC hoists the `PUSH 0x2ee788` above the two global stores and
+ * cleans with `POP ECX`.  The previous lift open-coded the three zero stores
+ * that symbol_table_dispose ends with and dropped the call, which LEAKED both
+ * of the symbol table's heap allocations: 0x92090 debug_free()s symtab[1]
+ * (line 0x227) and symtab[2] (line 0x228) when non-NULL before zeroing.
+ * stack_walk_initialize calls this first, so every re-initialize leaked the
+ * symbol table and its string pool.  Found by the SHAPE-WARN call-count
+ * census (ours 0 vs reference 1) -- see docs/lift-learnings.md section 49.
  * ----------------------------------------------------------------------- */
 void stack_walk_dispose(void)
 {
   *(int32_t *)0x2ee780 = -1;
   *(uint8_t *)0x2ee784 = 0;
-  ((int32_t *)0x2ee788)[0] = 0;
-  ((int32_t *)0x2ee788)[1] = 0;
-  ((int32_t *)0x2ee788)[2] = 0;
+  symbol_table_dispose((int32_t *)0x2ee788);
 }
 
 /* -----------------------------------------------------------------------
