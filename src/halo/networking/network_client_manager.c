@@ -461,6 +461,39 @@ bool FUN_001260c0(void *server)
   return result;
 }
 
+/* network_game_client_game_shutdown (0x126750)
+ *
+ * Asserts client is non-null, then — only when the int16 at +0xca8 is still 0 —
+ * records shutdown reason 8 there (the field is left alone if a reason was
+ * already set). Logs the host-shutdown message and tail-calls
+ * network_game_client_all_local_players_have_quit (JMP at 0x1267ba).
+ *
+ * The cold path contains TWO assert blocks that share one test and one
+ * combined `add esp,0x28` cleanup (0x12675b-0x00126747): line 0x3fc and then
+ * line 0x662, both with reason "client" and the same __FILE__ pointer
+ * (0x2917a8 / 0x291774). The second block is unreachable — system_exit()
+ * never returns — so it is an artifact of a second same-condition assert
+ * (source line 1634) whose redundant test MSVC folded into the first. It is
+ * reproduced here because the reference bytes contain it; under clang the
+ * __noreturn attribute deletes it again, which is behaviourally identical. */
+void network_game_client_game_shutdown(void *client)
+{
+  if (client == NULL) {
+    display_assert("client",
+                   "c:\\halo\\SOURCE\\networking\\network_client_manager.c",
+                   0x3fc, true);
+    system_exit(-1);
+    display_assert("client",
+                   "c:\\halo\\SOURCE\\networking\\network_client_manager.c",
+                   0x662, true);
+    system_exit(-1);
+  }
+  if (*(int16_t *)((char *)client + 0xca8) == 0)
+    *(int16_t *)((char *)client + 0xca8) = 8;
+  network_game_log("the game host is shutting down");
+  network_game_client_all_local_players_have_quit();
+}
+
 /* FUN_00126b60 (0x126b60) — network_game_client_idle_joining
  *
  * Called from the client idle dispatch (FUN_00127070) when state == 1

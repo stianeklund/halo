@@ -778,6 +778,7 @@
     "0x148370": "char FUN_00148370(float *center@<ecx>, float *origin@<eax>, float *delta@<edx>, float *out_t@<esi>, float radius);",
     "0xca890": "const char *FUN_000ca890(int expression_index@<eax>, int thread_index@<ebx>);",
     "0x43ce0": "void FUN_00043ce0(int actor_handle@<eax>);",
+    "0x1b56b0": "void FUN_001b56b0(int vehicle_handle@<eax>, void *state_array@<edi>);",
     "0xcae00": "int FUN_000cae00(const char *script_name@<edi>);",
     "0xce8c0": "char input_abstraction_print_config_control(int local_player_index@<eax>);",
     "0x86a50": "void FUN_00086a50(int local_player_index@<eax>, int16_t *mode_table@<ebx>, int16_t count);",
@@ -794,5 +795,6 @@
   "0x6b8e0": "int FUN_0006b8e0(void *tif, unsigned long *raster, void *img, unsigned long w @<edi>, unsigned long h);",
   "0xdb1e0": "void FUN_000db1e0(int *reference@<esi>, int param_2, bool param_3, short param_4);",
   "0xdbcb0": "void FUN_000dbcb0(short *pt@<eax>, int local_player_index@<ecx>, int param_3);",
-  "0xca890": "const char *FUN_000ca890(int expression_index@<eax>, int thread_index@<ebx>);"
+  "0xca890": "const char *FUN_000ca890(int expression_index@<eax>, int thread_index@<ebx>);",
+  "0x1b56b0": "void FUN_001b56b0(int vehicle_handle@<eax>, void *state_array@<edi>);"
 }

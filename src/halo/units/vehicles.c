@@ -60,6 +60,31 @@ void vehicle_causes_collision_damage(int param_1, void *param_2)
   FUN_0013d870(param_1, (char *)param_2 + 0x28);
 }
 
+/* vehicle_hover (0x1b55c0) — does this vehicle's definition mark it as a
+ * hovering vehicle?
+ *
+ * Confirmed: MOV EAX,[EBP+0x8]; PUSH 0x2; PUSH EAX ->
+ * object_get_and_verify_type(vehicle_handle, 2) (type mask 2 = vehicle).
+ * Confirmed: MOV ECX,[EAX] -> obj->tag_index (uint32 at object offset 0).
+ * Confirmed: PUSH ECX; PUSH 0x76656869 -> tag_get('vehi', tag_index).
+ * Confirmed: MOV EAX,[EAX+0x2f0]; SHR EAX,0x7; AND EAX,0x1 -> bit 7 of the
+ * 'vehi' tag flags dword at +0x2f0 (the same dword actor_combat.c tests with
+ * & 0x100).
+ * Confirmed: ADD ESP,0x10 -> both cdecl cleanups (2 calls x 2 args) coalesced.
+ * Confirmed: plain RET (cdecl, caller cleans); result returned in EAX.
+ * Inferred: name "vehicle_hover" from kb.json; the specific flag bit meaning
+ * is unproven beyond "bit 7 of the vehi definition flags".
+ */
+bool vehicle_hover(int vehicle_handle)
+{
+  void *vehicle;
+  void *vehicle_tag;
+
+  vehicle = object_get_and_verify_type(vehicle_handle, 2);
+  vehicle_tag = tag_get(0x76656869, *(uint32_t *)vehicle);
+  return (bool)((*(uint32_t *)((char *)vehicle_tag + 0x2f0) >> 7) & 1);
+}
+
 /* FUN_001b5610 (0x1b5610) */
 void FUN_001b5610(int vehicle_handle, uint8_t param_2)
 {
@@ -73,6 +98,154 @@ void FUN_001b5610(int vehicle_handle, uint8_t param_2)
       return;
     }
     *(uint8_t *)(vehicle + 0x424) &= 0xfd;
+  }
+}
+
+/* FUN_001b56b0 (0x1b56b0) — per-tick contact bookkeeping for a vehicle,
+ * driven by the caller's mass-point state array (passed in EDI).
+ *
+ * Confirmed: PUSH 0x2; PUSH EAX -> object_get_and_verify_type(handle@<eax>, 2)
+ * (type mask 2 = vehicle, the same mask vehicle_hover uses).
+ * Confirmed: MOV ECX,[ESI]; PUSH ECX; PUSH 0x76656869 ->
+ * tag_get('vehi', obj->tag_index).
+ * Confirmed: MOV EDX,[EAX+0x8c]; PUSH EDX; PUSH 0x70687973 ->
+ * tag_get('phys', vehi_tag->+0x8c).
+ * Confirmed: ADD ESP,0x18 -> the three cdecl cleanups (3 calls x 2 args)
+ * coalesced into one 24-byte adjust; this is NOT a 6-argument call.
+ * Confirmed: MOV CL,[ESI+0x428]; CMP CL,0xff; JNC -> unsigned saturating
+ * increment of the byte counter at obj+0x428.
+ * Confirmed: loop counter is 16-bit (INC EDX; MOVSX ECX,DX), element stride is
+ * 0x130 (IMUL ECX,ECX,0x130) over the incoming EDI base, and the bound is
+ * re-read from phys_tag+0x74 on every iteration (CMP ECX,[EAX+0x74]; JL).
+ * Confirmed: TEST CL,0x2 / TEST CL,0x10 -> bits 1 and 4 of the element's first
+ * dword; bit 1 clears obj+0x428, saturating-increments obj+0x42b and returns;
+ * bit 4 only clears obj+0x428.
+ * Confirmed: falling out of the loop stores 0 to obj+0x42b.
+ * Unknown: the element type behind EDI (stride 0x130, only its first dword is
+ * read here), which 'phys' tag_block owns the count at +0x74, and the meaning
+ * of the two saturating byte counters at obj+0x428 / obj+0x42b.
+ */
+void FUN_001b56b0(int vehicle_handle, void *state_array)
+{
+  char *vehicle;
+  void *vehicle_tag;
+  char *physics_tag;
+  uint32_t flags;
+  int16_t i;
+
+  vehicle = (char *)object_get_and_verify_type(vehicle_handle, 2);
+  vehicle_tag = tag_get(0x76656869, *(int32_t *)vehicle);
+  physics_tag =
+    (char *)tag_get(0x70687973, *(int32_t *)((char *)vehicle_tag + 0x8c));
+
+  if (*(uint8_t *)(vehicle + 0x428) < 0xff) {
+    (*(uint8_t *)(vehicle + 0x428))++;
+  }
+
+  for (i = 0; i < *(int32_t *)(physics_tag + 0x74); i++) {
+    flags = *(uint32_t *)((char *)state_array + i * 0x130);
+    if ((flags & 2) != 0) {
+      *(uint8_t *)(vehicle + 0x428) = 0;
+      if (*(uint8_t *)(vehicle + 0x42b) < 0xff) {
+        (*(uint8_t *)(vehicle + 0x42b))++;
+      }
+      return;
+    }
+    if ((flags & 0x10) != 0) {
+      *(uint8_t *)(vehicle + 0x428) = 0;
+    }
+  }
+
+  *(uint8_t *)(vehicle + 0x42b) = 0;
+}
+
+/*
+ * vehicle_reset (0x1b5770) — clear the vehicle-specific state block that
+ * lives at object +0x424 .. +0x47b.
+ *
+ * Confirmed: MOV EAX,[EBP+0x8]; PUSH 0x2; PUSH EAX -> the kb.json decl
+ * "void vehicle_reset(void)" was wrong; the function takes one cdecl dword
+ * argument, the vehicle handle, and calls
+ * object_get_and_verify_type(vehicle_handle, 2) (mask 2 = vehicle, the same
+ * mask vehicle_hover and FUN_001b56b0 use). ADD ESP,0x14 covers only the two
+ * calls (2 + 3 dwords), so the parameter is caller-cleaned cdecl.
+ * Confirmed: XOR EBX,EBX then every store below writes BX/BL/EBX, i.e. the
+ * whole block is zeroed with integer zero.
+ * Confirmed store widths from the disassembly: word at +0x424 and +0x426,
+ * bytes at +0x428..+0x42b, dwords at +0x42c..+0x440, then +0x448 BEFORE
+ * +0x444 (MOV [ESI+0x448] at 0x1b57d8 precedes MOV [ESI+0x444] at 0x1b57de);
+ * that inverted pair is preserved here.
+ * Confirmed: PUSH 0x8; LEA ECX,[ESI+0x44c]; PUSH EBX; PUSH ECX; CALL 0x8db80
+ * -> csmemset(vehicle + 0x44c, 0, 8). Only 8 bytes, so +0x454..+0x45f are
+ * deliberately left alone (FUN_001b5610 writes a world position at +0x454).
+ * Confirmed: dwords +0x460..+0x478 zeroed after the csmemset call.
+ * Unknown: the meaning of every field here except +0x428 / +0x42b, which
+ * FUN_001b56b0 uses as saturating contact counters.
+ */
+void vehicle_reset(int vehicle_handle)
+{
+  char *vehicle;
+
+  vehicle = (char *)object_get_and_verify_type(vehicle_handle, 2);
+
+  *(uint16_t *)(vehicle + 0x424) = 0;
+  *(uint16_t *)(vehicle + 0x426) = 0;
+  *(uint8_t *)(vehicle + 0x428) = 0;
+  *(uint8_t *)(vehicle + 0x429) = 0;
+  *(uint8_t *)(vehicle + 0x42a) = 0;
+  *(uint8_t *)(vehicle + 0x42b) = 0;
+  *(uint32_t *)(vehicle + 0x42c) = 0;
+  *(uint32_t *)(vehicle + 0x430) = 0;
+  *(uint32_t *)(vehicle + 0x434) = 0;
+  *(uint32_t *)(vehicle + 0x438) = 0;
+  *(uint32_t *)(vehicle + 0x43c) = 0;
+  *(uint32_t *)(vehicle + 0x440) = 0;
+  *(uint32_t *)(vehicle + 0x448) = 0;
+  *(uint32_t *)(vehicle + 0x444) = 0;
+
+  csmemset(vehicle + 0x44c, 0, 8);
+
+  *(uint32_t *)(vehicle + 0x460) = 0;
+  *(uint32_t *)(vehicle + 0x464) = 0;
+  *(uint32_t *)(vehicle + 0x468) = 0;
+  *(uint32_t *)(vehicle + 0x46c) = 0;
+  *(uint32_t *)(vehicle + 0x470) = 0;
+  *(uint32_t *)(vehicle + 0x474) = 0;
+  *(uint32_t *)(vehicle + 0x478) = 0;
+}
+
+/*
+ * vehicle_render_debug (0x1b5d90) — debug walk over a vehicle's physics
+ * powered-mass-point block.
+ *
+ * Confirmed from disassembly at 0x1b5d90:
+ *   MOV EAX,[EBP+8]; PUSH 0x2; PUSH EAX -> object_get_and_verify_type(handle,
+ * 2) (the kb decl said (void); the binary reads one stack parameter). MOV
+ * ECX,[EAX]; PUSH ECX; PUSH 0x76656869 -> tag_get('vehi', obj->tag_index). MOV
+ * EAX,[EAX+0x8c]; CMP EAX,-1; JZ exit -> 'vehi' tag physics tag index. PUSH
+ * EAX; PUSH 0x70687973 -> tag_get('phys', physics_index). MOV CL,[0x005054f4];
+ * TEST CL,CL; JZ exit -> unnamed debug byte gate. MOV EAX,[EAX+0x74]; XOR
+ * ECX,ECX; INC ECX; MOVSX EDX,CX; CMP EDX,EAX; JL
+ *     -> signed short counter over the dword count at phys+0x74.
+ * The loop body is empty in this build: nothing is emitted between INC ECX and
+ * the compare, so whatever debug drawing it contained produced no code here.
+ */
+void vehicle_render_debug(int vehicle_handle)
+{
+  char *vehicle_tag;
+  char *physics_tag;
+  int physics_index;
+  short i;
+
+  vehicle_tag = (char *)tag_get(
+    0x76656869, *(int *)object_get_and_verify_type(vehicle_handle, 2));
+  physics_index = *(int *)(vehicle_tag + 0x8c);
+  if (physics_index != -1) {
+    physics_tag = (char *)tag_get(0x70687973, physics_index);
+    if (*(char *)0x5054f4 != 0) {
+      for (i = 0; (int)i < *(int *)(physics_tag + 0x74); i++) {
+      }
+    }
   }
 }
 
