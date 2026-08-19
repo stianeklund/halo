@@ -124,6 +124,28 @@ int sound_impulse_start(int sound_tag_index, float scale)
   return sound_start(sound_tag_index, source, NONE, 0, 0, 0);
 }
 
+/* Remaining game-time ticks for a scripted sound, clamped at zero.
+ * `handle` is a 'snd!' tag index (NONE => 0).  Field +0x90 of the sound
+ * tag holds an absolute game time (NONE when nothing is scheduled); its
+ * meaning beyond "compared against game_time_get()" is unproven. */
+int scripted_sound_time(int handle)
+{
+  char *sound_tag;
+  int remaining;
+  remaining = 0;
+  remaining = handle;
+  if (handle != NONE)
+  {
+    sound_tag = (char *) tag_get(0x736e6421, remaining);
+    if ((*((int *) (sound_tag + 0x90))) != NONE)
+    {
+      remaining = (*((int *) (sound_tag + 0x90))) - game_time_get();
+      return (remaining > 0) ? (remaining) : (0);
+    }
+  }
+  return remaining;
+}
+
 bool FUN_001c7a10(int object_handle, void *attachment_data, void *source)
 {
   void *object;

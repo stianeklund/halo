@@ -65788,6 +65788,21 @@
       "abi_modeled_mnemonic_pct": 100.0,
       "raw_mnemonic_pct": 100.0
     },
+    "scripted_sound_time": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 95.4,
+      "addr": "0x1c7500",
+      "end": "0x1c754b",
+      "kind": "auto",
+      "n_r": 33,
+      "opnd_percent": 86.2,
+      "raw_mnemonic_pct": 95.4,
+      "ref": "synth",
+      "ref_sha": "238c7ebd13e135a9",
+      "score": 95.4,
+      "source": "src/halo/sound/game_sound.c"
+    },
     "scripting_magic_melee_attack": {
       "addr": "0x1b2260",
       "end": "0x1b2281",

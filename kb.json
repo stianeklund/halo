@@ -9915,7 +9915,8 @@
     },
     {
      "addr": "0x1c7500",
-     "decl": "int scripted_sound_time(int handle);"
+     "decl": "int scripted_sound_time(int handle);",
+     "ported": true
     },
     {
      "addr": "0x1c7550",
