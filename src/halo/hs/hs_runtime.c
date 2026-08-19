@@ -231,6 +231,127 @@ bool hs_validate_syntax(char **error_info, char **error_text)
   return ok;
 }
 
+/* 0xc8720 — Compile-time argument type-checker for the HaloScript arithmetic
+ * calls (`+', `-', `*', `/', min, max).
+ *
+ * ABI — the kb.json placeholder `void FUN_000c8720(void)' was WRONG; both
+ * stack slots are read and a byte is returned:
+ *   - [EBP+0x8] is loaded at 0xc8748 and compared as SI (CMP SI,0x7 at
+ *     0xc8751, CMP SI,0xc at 0xc8757), so argument 1 is the 16-bit
+ *     function_index.  It is reloaded from [EBP+0x8] at 0xc8818 on every
+ *     iteration and pushed to hs_function_table_get at 0xc8860.
+ *   - [EBP+0xc] is loaded at 0xc8724 and again at 0xc887c, both times handed
+ *     to datum_get, so argument 2 is the expression datum index.
+ *   - Both exits return a byte in AL (MOV AL,BL at 0xc8846 for the accept
+ *     tail, XOR AL,AL at 0xc88a3 for the arity-error tail), so the return
+ *     type is bool.  Plain RET with the caller doing the cleanup => __cdecl.
+ *   - Installed six times in the function-definition table (data xrefs at
+ *     0x26f514/0x26f530/0x26f54c/0x26f568/0x26f584/0x26f5a0, stride 0x1c),
+ *     exactly the six indices 7..0xc that the assert admits.
+ *
+ * hs_type_check is INLINED here rather than called (as in FUN_000c85b0 and
+ * FUN_000c8f40): the body carries its own copy of the
+ * !hs_compile_globals.error assert (hs_compile.c line 0x48e) and dispatches
+ * straight to FUN_000c73a0 (@EDI, constant-flag nodes, which also get
+ * constant_type=6 at +0x2) or FUN_000c74c0 (@EBX).  Note EBX is loaded with
+ * the literal 6 at 0xc87d1 purely to feed the two word stores — the MOV
+ * EBX,EDI at 0xc87fd is what supplies FUN_000c74c0's register argument, and
+ * FUN_000c73a0 needs no move because EDI already holds the argument index.
+ * Arguments that already carry a type (+0x4 != 0) are skipped and leave the
+ * running result untouched; BL is re-seeded to true at the top of every
+ * iteration (0xc8795), so only the LAST argument's outcome can end the walk.
+ *
+ * Arity: all six calls need at least two arguments (CMP word [EBP-0x4],0x2 /
+ * JL at 0xc8830); `/' (index 0xa) needs exactly two, so it additionally
+ * rejects more than two (CMP word [EBP-0x4],0x2 / JG at 0xc883d).  The
+ * qualifier spliced into "the %s call requires %s2 arguments." (0x27cfac) is
+ * the pooled empty literal at 0x25386f for `/' and "at least " (0x27cfd0,
+ * trailing space) for the other five.
+ *
+ * Globals:
+ *   0x5aa6c8 = hs_syntax_data (data_t *)
+ *   0x46b6fc = hs_compile_globals.error_message
+ *   0x46b700 = hs_compile_globals.error_offset
+ *   0x46b704 = hs_compile_globals.error_message buffer
+ *
+ * The name stays FUN_000c8720: the assert string proves which function
+ * indices reach this callback, not the callback's own symbol name. */
+bool FUN_000c8720(int16_t function_index, int expression_index)
+{
+  bool valid;
+  char *node;
+  char *argument;
+  int argument_index;
+  /* Held in a dword slot and incremented 32-bit (MOV ECX,[EBP-0x4] / INC ECX
+   * at 0xc8812/0xc881e) but every compare against it is 16-bit, hence the
+   * int16_t casts below rather than an int16_t local. */
+  int argument_count;
+  const char *qualifier;
+
+  valid = true;
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, expression_index);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+  argument_index = *(int *)(node + 0x8);
+
+  if (function_index < 7 || function_index > 0xc) {
+    display_assert("function_index>=_hs_function_plus && "
+                   "function_index<=_hs_function_max",
+                   "c:\\halo\\source\\hs\\hs_library_internal_compile.h", 0x17d,
+                   true);
+    system_exit(-1);
+  }
+
+  argument_count = 0;
+  while (argument_index != -1) {
+    valid = true;
+    argument = (char *)datum_get(*(data_t **)0x5aa6c8, argument_index);
+
+    if (*(int *)0x46b6fc != 0) {
+      display_assert("!hs_compile_globals.error",
+                     "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x48e, true);
+      system_exit(-1);
+    }
+
+    if (*(int16_t *)(argument + 0x4) == 0) {
+      *(int16_t *)(argument + 0x4) = 6; /* _hs_type_real */
+      node = (char *)datum_get(*(data_t **)0x5aa6c8, argument_index);
+      if (*(uint8_t *)(node + 0x6) & 1) {
+        *(int16_t *)(argument + 0x2) = 6;
+        valid = FUN_000c73a0(argument_index);
+      } else {
+        valid = FUN_000c74c0(argument_index);
+      }
+    }
+
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, argument_index);
+    argument_index = *(int *)(node + 0x8);
+    argument_count++;
+    if (!valid)
+      break;
+  }
+
+  /* One `||' test, not an if/else-if chain: the reference emits the accept
+   * tail (POP EDI/POP ESI/MOV AL,BL at 0xc8844) BETWEEN the too-many test at
+   * 0xc883d and the qualifier selection at 0xc884d, which is exactly the
+   * short-circuit layout.  The !valid loop exit at 0xc8824 jumps past the
+   * too-few test straight to the 0xc8837 too-many test, reproduced by the
+   * inner && short-circuit; and JG 0xc8853 skipping the CMP SI,0xa is the
+   * compiler threading the ternary on the path where SI is already 0xa. */
+  if ((valid && (int16_t)argument_count < 2) ||
+      (function_index == 0xa && (int16_t)argument_count > 2)) {
+    qualifier = (function_index == 0xa) ? "" : "at least ";
+    node = (char *)hs_function_table_get(function_index);
+    crt_sprintf((char *)0x46b704, "the %s call requires %s2 arguments.",
+                *(char **)(node + 0x4), qualifier);
+    *(const char **)0x46b6fc = (const char *)0x46b704;
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, expression_index);
+    *(int *)0x46b700 = *(int *)(node + 0xc);
+    return false;
+  }
+
+  return valid;
+}
+
 /* 0xc88b0 — Compile-time argument type-checker for the HaloScript comparison
  * calls `=' and `!='.
  *
@@ -308,6 +429,202 @@ bool FUN_000c88b0(int function_index, int expression_index)
         }
       }
     }
+  }
+
+  return success;
+}
+
+/* Type-check the argument list of an ordered-comparison call (`>', `<', `>=',
+ * `<=').  This is the ordered sibling of FUN_000c88b0 above (equal/not_equal,
+ * indices 0xd/0xe): both collect exactly two arguments and unify the operand
+ * types, but this one additionally requires the donor type to fall inside one
+ * of two accepted ranges before it is propagated to the partner operand.
+ *
+ * ABI recovered from the disassembly.  The kb.json placeholder was
+ * `void FUN_000c89c0(void)', which was wrong on every count:
+ *   - Two cdecl stack arguments, matching every other parse callback in the
+ *     table: [EBP+0x8] function_index (loaded as a dword at 0xc89c8, then
+ *     compared as SI at 0xc89cb/0xc89d6) and [EBP+0xc] expression_index
+ *     (0xc8a09).  The RET at 0xc8b85 carries no immediate.
+ *   - Returns bool in AL: the accept flag byte at [EBP-1] is zeroed at
+ *     0xc89d0, set to 1 at 0xc8b78, and reloaded into AL at 0xc8b7c.
+ *
+ * Argument collection: FUN_000c55d0 takes the callee name and the output
+ * array on the stack, the expression index in EDI, and the expected count in
+ * BX (2, set at 0xc8a10).  The two stack pushes straddle the
+ * hs_function_table_get call — the output pointer is pushed at 0xc89ff and
+ * only the name push is reclaimed by the ADD ESP,0x4 at 0xc8a0c — so the
+ * output is one contiguous int[2] based at [EBP-0xc], not two separate
+ * locals.  FUN_000c55d0 indexes it as argument_nodes[0..1].
+ *
+ * Type unification: whichever operand is already typed donates its type to
+ * the other, but only when that type is in an accepted range.  Each retry
+ * runs only while hs_compile_globals.error is still clear (TEST of
+ * [0x46b6fc] at 0xc8abf and 0xc8b56).  If neither operand donates, both
+ * operands must be reals.
+ *
+ * Globals: 0x5aa6c8 = hs_syntax_data (data_t *), 0x46b6fc =
+ * hs_compile_globals.error_message.
+ *
+ * The name stays FUN_000c89c0: the assert string proves which function
+ * indices reach this callback, not the callback's own symbol name. */
+
+/* The reference re-calls datum_get for every single comparison of the node
+ * type — four times per operand (0xc8a44/0xc8a59/0xc8a70/0xc8a87 for the left
+ * operand, 0xc8ae0/0xc8af6/0xc8b0d/0xc8b23 for the right) — which is what an
+ * accessor macro in hs_library_internal_compile.h expands to.  Macros rather
+ * than a static helper so the expansion does not depend on an inlining
+ * decision. */
+#define HS_SYNTAX_NODE_TYPE(node_index) \
+  (*(int16_t *)((char *)datum_get(*(data_t **)0x5aa6c8, (node_index)) + 4))
+
+/* The range comparisons above read the type field signed (`cmpw'/`jl'/`jle'
+ * against a 16-bit memory operand), but where the donor type is handed to
+ * hs_type_check the reference widens it *unsigned* -- XOR EDX,EDX / MOV DX,
+ * word [EAX+4] at 0xc8aa5 and 0xc8b3f -- so that argument is read through an
+ * unsigned alias.  All hs type values are small and positive, so the two
+ * reads cannot disagree at runtime. */
+#define HS_SYNTAX_NODE_TYPE_UNSIGNED(node_index) \
+  (*(uint16_t *)((char *)datum_get(*(data_t **)0x5aa6c8, (node_index)) + 4))
+
+/* "Comparable" is behaviour-derived, not proven: these are simply the two
+ * contiguous type ranges this callback accepts as a donor type.  [6,8] is
+ * real/short/long (6 sits between boolean 5 and short 7 in the hs type enum).
+ * The [0x20,0x24] range is unidentified. */
+#define HS_TYPE_IS_COMPARABLE(node_index)              \
+  ((HS_SYNTAX_NODE_TYPE(node_index) >= 0x20 &&         \
+    HS_SYNTAX_NODE_TYPE(node_index) <= 0x24) ||        \
+   (HS_SYNTAX_NODE_TYPE(node_index) >= 6 &&            \
+    HS_SYNTAX_NODE_TYPE(node_index) <= 8))
+
+bool FUN_000c89c0(int function_index, int expression_index)
+{
+  int argument_nodes[2];
+  /* As in FUN_000c88b0, the reference keeps the accept flag in the frame byte
+   * at [EBP-1] rather than in a register, which is what makes the frame 0xc
+   * bytes (int[2] plus the flag) rather than 8; volatile pins it there. */
+  volatile bool success;
+
+  success = false;
+
+  if ((int16_t)function_index < 0xf ||     /* _hs_function_gt */
+      (int16_t)function_index > 0x12) {    /* _hs_function_lte */
+    display_assert("function_index>=_hs_function_gt && "
+                   "function_index<=_hs_function_lte",
+                   "c:\\halo\\source\\hs\\hs_library_internal_compile.h", 0x1e3,
+                   true);
+    system_exit(-1);
+  }
+
+  if (FUN_000c55d0(*(const char **)((char *)hs_function_table_get((int16_t)function_index) + 4),
+                   argument_nodes, expression_index, 2)) {
+    if (hs_type_check(argument_nodes[0], 0) &&      /* _hs_type_unparsed */
+        HS_TYPE_IS_COMPARABLE(argument_nodes[0])) {
+      if (hs_type_check(argument_nodes[1],
+                        HS_SYNTAX_NODE_TYPE_UNSIGNED(argument_nodes[0]))) {
+        success = true;
+      }
+    } else if (*(int *)0x46b6fc == 0) {
+      if (hs_type_check(argument_nodes[1], 0) &&    /* _hs_type_unparsed */
+          HS_TYPE_IS_COMPARABLE(argument_nodes[1])) {
+        if (hs_type_check(argument_nodes[0],
+                          HS_SYNTAX_NODE_TYPE_UNSIGNED(argument_nodes[1]))) {
+          success = true;
+        }
+      } else if (*(int *)0x46b6fc == 0) {
+        if (hs_type_check(argument_nodes[0], 6)) {  /* _hs_type_real */
+          if (hs_type_check(argument_nodes[1], 6)) {
+            success = true;
+          }
+        }
+      }
+    }
+  }
+
+  return success;
+}
+
+#undef HS_TYPE_IS_COMPARABLE
+#undef HS_SYNTAX_NODE_TYPE_UNSIGNED
+#undef HS_SYNTAX_NODE_TYPE
+
+/* 0xc8b90 — Type-check the argument list of a `sleep' call.
+ *
+ * sleep takes a short tick count and, optionally, a script name to run when
+ * the sleep expires.  The syntax node at expression_index is the function-call
+ * node; +0x10 is the index of its function-name node, whose +0x8 (next) is the
+ * first argument.
+ *
+ * Binary evidence (0xc8b90..0xc8c4e):
+ *   - Two stack parameters, so the generic parameterless placeholder shape this
+ *     entry carried in kb.json was wrong -- it was never proven, just
+ *     unanalysed: CMP word ptr [EBP+8],0x13 reads a 16-bit function index, and
+ *     MOV EDI,[EBP+0xc] is the expression node index.  Return is AL
+ *     (MOV AL,1 / MOV AL,BL with BL zeroed by XOR BL,BL at 0xc8ba0), and the
+ *     RET takes no immediate, so plain cdecl.  This matches the sibling
+ *     hs_parse_* family exactly (hs_sleep_until_parse at 0xc8c50).
+ *   - CMP word ptr [EBP+8],0x13 guards an assert built from the literals at
+ *     0x27d0fc ("function_index==_hs_function_sleep") and 0x27cdc0
+ *     ("c:\halo\source\hs\hs_library_internal_compile.h", line 0x20e), so the
+ *     only legal function index is 0x13.
+ *   - The two datum_get calls at 0xc8ba2/0xc8bb2 are emitted *before* the
+ *     assert compare at 0xc8bbd, and MSVC does not hoist calls across a
+ *     branch, so the source really evaluates the nodes first.  This differs
+ *     from hs_sleep_until_parse below, which asserts first; the order is
+ *     preserved here rather than normalised.
+ *   - The second datum_get at 0xc8bff happens only after
+ *     hs_type_check(time_index, 7) passes (TEST AL,AL; JZ at 0xc8bf4), again
+ *     unlike the sibling, which fetches the next node before checking.
+ *
+ * Syntax node offsets (raw, matching the rest of this TU):
+ *   +0x08 = next node index (NONE == -1)
+ *   +0x0c = source offset
+ *   +0x10 = long value / first child node index
+ *
+ * Globals:
+ *   0x5aa6c8 = hs_syntax_data (data_t*)
+ *   0x46b6fc = hs_compile_globals.error_message
+ *   0x46b700 = hs_compile_globals.error_offset
+ */
+bool hs_sleep_parse(int16_t function_index, int expression_index)
+{
+  char *node;
+  int time_index;
+  int script_index;
+  bool success;
+
+  success = false;
+
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, expression_index);
+  node = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
+  time_index = *(int *)(node + 0x8);
+
+  if (function_index != 0x13) { /* _hs_function_sleep */
+    display_assert("function_index==_hs_function_sleep",
+                   "c:\\halo\\source\\hs\\hs_library_internal_compile.h", 0x20e,
+                   true);
+    system_exit(-1);
+  }
+
+  if (time_index != -1) {
+    if (hs_type_check(time_index, 7)) { /* _hs_type_short */
+      node = (char *)datum_get(*(data_t **)0x5aa6c8, time_index);
+      script_index = *(int *)(node + 0x8);
+
+      /* The reference branches on the type-check result (TEST AL,AL; JZ; then
+       * a shared MOV AL,1 at 0xc8c1e) rather than returning it directly, so
+       * this is an `else if' setting the flag, not `success = hs_type_check'. */
+      if (script_index == -1) {
+        success = true;
+      } else if (hs_type_check(script_index, 10)) { /* _hs_type_script */
+        success = true;
+      }
+    }
+  } else {
+    *(const char **)0x46b6fc =
+      "the sleep call requires a time and, optionally, a script name.";
+    node = (char *)datum_get(*(data_t **)0x5aa6c8, expression_index);
+    *(int *)0x46b700 = *(int *)(node + 0xc);
   }
 
   return success;

@@ -11931,7 +11931,8 @@
     },
     {
      "addr": "0xc8720",
-     "decl": "void FUN_000c8720(void);"
+     "decl": "bool FUN_000c8720(int16_t function_index, int expression_index);",
+     "ported": true
     },
     {
      "addr": "0xc88b0",
@@ -11940,11 +11941,13 @@
     },
     {
      "addr": "0xc89c0",
-     "decl": "void FUN_000c89c0(void);"
+     "decl": "bool FUN_000c89c0(int function_index, int expression_index);",
+     "ported": true
     },
     {
      "addr": "0xc8b90",
-     "decl": "void FUN_000c8b90(void);"
+     "decl": "bool hs_sleep_parse(int16_t function_index, int expression_index);",
+     "ported": true
     },
     {
      "addr": "0xc8c50",

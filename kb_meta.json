@@ -7830,6 +7830,18 @@
         "The canonical semantic function name remains unconfirmed; FUN_000c85b0 is retained conservatively despite assert evidence for and/or."
       ]
     },
+    "0xc8b90": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "Signature recovered as bool hs_sleep_parse(int16_t function_index, int expression_index): the kb.json void(void) placeholder was wrong, proven by CMP word ptr [EBP+8],0x13 (16-bit param 1) and MOV EDI,[EBP+0xc] (param 2), with the bool return in AL via MOV AL,1 / MOV AL,BL and a cdecl RET taking no immediate.",
+        "The name hs_sleep_parse follows the proven sibling family at 0xc7e50/0xc7f70/0xc8120/0xc82e0/0xc8380/0xc8c50 (hs_macro_function_parse, hs_parse_begin/if/cond/set, hs_sleep_until_parse) combined with the assert literal function_index==_hs_function_sleep at 0x27d0fc; the exact Bungie spelling of the sleep variant is not string-proven."
+      ],
+      "uncertain": [
+        "The two datum_get calls are emitted before the assert compare at 0xc8bbd, unlike the sibling hs_sleep_until_parse which asserts first; MSVC does not hoist calls across a branch so the source order is preserved as written, but whether the original macro genuinely ordered it this way or the difference comes from a distinct macro expansion in hs_library_internal_compile.h is unproven.",
+        "hs type constant 10 is commented as _hs_type_script on the strength of the hs_compile.c assert literal expression->type==_hs_type_script and existing uses at hs_runtime.c lines 433 and 3340, and constant 7 as _hs_type_short from the sibling; the underlying hs type enum itself has not been recovered from the binary."
+      ]
+    },
     "0xc8c50": {
       "kind": "function",
       "status": "ported",
