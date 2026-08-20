@@ -3341,6 +3341,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x82060": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x82130": {
       "kind": "function",
       "status": "ported",
@@ -3939,6 +3943,30 @@
         "The event-type constant _playback_vector_char_difference_set == 7 is derived from the masked byte compare CMP DL,0x1c and the SUB EAX,7 in the range assert; the symbolic enumeration itself is not present in the binary."
       ]
     },
+    "0x94620": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x946e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x947a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x94860": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x94970": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x94a90": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x94bb0": {
       "kind": "function",
       "status": "ported"
@@ -3948,6 +3976,10 @@
       "status": "ported"
     },
     "0x94c60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x94c70": {
       "kind": "function",
       "status": "ported"
     },
@@ -3968,7 +4000,19 @@
         "The semantic name and full layout of the 0x40-byte recorded-animation datum remain unproven; only its unit handle and tested flag bit are established here."
       ]
     },
+    "0x950b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x95280": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x952d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x955b0": {
       "kind": "function",
       "status": "ported"
     },
@@ -15918,6 +15962,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1bf080": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bf130": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1bf180": {
       "kind": "function",
       "status": "ported"
@@ -16165,6 +16217,14 @@
       "status": "ported"
     },
     "0x1c7550": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c75a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c7710": {
       "kind": "function",
       "status": "ported"
     },

@@ -22600,7 +22600,8 @@
     },
     {
      "addr": "0x95680",
-     "decl": "char FUN_00095680(int a1, short a2);"
+     "decl": "char FUN_00095680(int actor, short anim_idx);",
+     "ported": true
     },
     {
      "addr": "0x956e0",

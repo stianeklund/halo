@@ -957,6 +957,20 @@ char recorded_animation_play_and_delete(int actor, short anim_idx)
   return recorded_animation_play_internal(actor, anim_idx, 8);
 }
 
+/* FUN_00095680 @ 0x00095680
+ *
+ * Third member of the recorded_animation_play forwarder family: identical body
+ * to 0x95640 / 0x95660 with flags = 0x10. Disassembly at 0x95683-0x9568c loads
+ * the animation index from [ebp+0xc], pushes 0x10 then the index (so the
+ * worker's stack args are anim_idx, flags), loads the unit handle from [ebp+8]
+ * into EAX, and calls the worker at 0x95330. Nothing touches EAX afterwards,
+ * so the worker's AL result is the return value. What flag 0x10 selects is
+ * unknown. */
+char FUN_00095680(int actor, short anim_idx)
+{
+  return recorded_animation_play_internal(actor, anim_idx, 0x10);
+}
+
 /* FUN_000956e0 @ 0x000956e0
  *
  * Load unit object (type mask 0x100 / 'unit'), look up its 'ctrl' tag,
