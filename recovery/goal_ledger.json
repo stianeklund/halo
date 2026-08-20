@@ -210,6 +210,21 @@
       "started": "2026-08-20",
       "status": "done"
     },
+    "tag_groups.obj": {
+      "categories_done": [
+        "local-renames",
+        "symbol-names"
+      ],
+      "commits": [
+        "7f80c2bd0c7a03debc9d18f15b1b7787f7e88f0d",
+        "e7ad5dc7dd0dc96aa069d62e7c71b046b794c7a0",
+        "eaf8ab73d8a724c2c720e124c0964e1062a27129"
+      ],
+      "finished": "2026-08-20",
+      "reason": null,
+      "started": "2026-08-20",
+      "status": "done"
+    },
     "units.obj": {
       "categories_done": [
         "local-renames",

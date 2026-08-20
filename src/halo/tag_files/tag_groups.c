@@ -71,24 +71,24 @@ const char *tag_name_strip_path(const char *tag_name)
  *   [3] int  expected datum index */
 int verify_tag_reference(int *tag_ref)
 {
-  int iVar1;
+  int cur;
 
   if (tag_ref == NULL) {
     display_assert("reference", "c:\\halo\\SOURCE\\tag_files\\tag_groups.c",
                    0xbef, 1);
     system_exit(-1);
   }
-  iVar1 = tag_loaded(tag_ref[0], (const char *)tag_ref[1]);
-  if (tag_ref[3] != iVar1) {
+  cur = tag_loaded(tag_ref[0], (const char *)tag_ref[1]);
+  if (tag_ref[3] != cur) {
     display_assert(
       csprintf((char *)0x5ab100,
                "tag reference \"%s\" and actual index do not match:"
                " is %08lX but should be %08lX",
-               (const char *)tag_ref[1], tag_ref[3], iVar1),
+               (const char *)tag_ref[1], tag_ref[3], cur),
       "c:\\halo\\SOURCE\\tag_files\\tag_groups.c", 0xbf5, 1);
     system_exit(-1);
   }
-  return iVar1;
+  return cur;
 }
 
 /* Returns a pointer into the raw data buffer of a tag_data at the given
@@ -259,7 +259,7 @@ int FUN_001b9b00(int tag_class, const char *name, int flags)
 
 /* Stub: tag_file_get_path is not supported when running from a cache file.
  * Logs an error and writes a NUL byte to the output path buffer. */
-void FUN_001b9b30(int tag_class, int param_2, char *out_path)
+void tag_file_get_path(int tag_class, int param_2, char *out_path)
 {
   (void)tag_class;
   (void)param_2;
@@ -296,26 +296,26 @@ void FUN_001b9b60(int state, int tag_class)
  * 0x4e5504: ptr to globals (count at +0xc); 0x5054f0: tag group table base */
 int FUN_001b9b80(int state)
 {
-  int iVar1;
-  int iVar2;
-  int *piVar3;
+  int cur;
+  int result;
+  int *entry;
 
-  iVar2 = -1;
+  result = -1;
   if ((int)*(short *)(state + 4) < *(int *)(*(int *)0x4e5504 + 0xc)) {
     while (1) {
-      piVar3 = (int *)(*(short *)(state + 4) * 0x20 + *(int *)0x5054f0);
+      entry = (int *)(*(short *)(state + 4) * 0x20 + *(int *)0x5054f0);
       *(short *)(state + 4) = *(short *)(state + 4) + 1;
-      if ((piVar3 != (int *)0) &&
-          (iVar1 = *(int *)(state + 0x10), iVar1 == -1 || iVar1 == piVar3[0] ||
-                                             iVar1 == piVar3[1] ||
-                                             iVar1 == piVar3[2])) {
+      if ((entry != (int *)0) &&
+          (cur = *(int *)(state + 0x10), cur == -1 || cur == entry[0] ||
+                                             cur == entry[1] ||
+                                             cur == entry[2])) {
         break;
       }
       if (*(int *)(*(int *)0x4e5504 + 0xc) <= (int)*(short *)(state + 4)) {
-        return iVar2;
+        return result;
       }
     }
-    iVar2 = piVar3[3];
+    result = entry[3];
   }
-  return iVar2;
+  return result;
 }

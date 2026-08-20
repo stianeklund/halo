@@ -1,0 +1,1794 @@
+{
+  "allow_risky": false,
+  "baseline": {
+    "assertion_snapshot": {
+      "assertions": [],
+      "kind": "assert-metadata",
+      "schema": 1
+    },
+    "captured": true,
+    "coff_snapshot": {
+      "assertion_metadata": [],
+      "kind": "coff-candidate-neutrality",
+      "schema": 1,
+      "sections": [
+        {
+          "characteristics": 1615855648,
+          "executable": true,
+          "id": ".text#0",
+          "name": ".text",
+          "raw_bytes_hex": "5589e5568b750885f674186a5c56e80000000083c4088d480185c00f44ce89c85e5dc36a01685e05000068000000006800000000e80000000083c4106affe800000000662e0f1f8400000000000f1f005589e5568b750885f67417ff7604ff36e80000000083c4088b4e0c39c175235e5dc36a0168ef0b000068000000006800000000e80000000083c4106affe8000000005051ff760468000000006800b15a00e80000000083c4146a0168f50b0000680000000050e80000000083c4106affe800000000662e0f1f840000000000905589e58b4d1085c978358b450c85c0780e8b550801c13b0a7f0503420c5dc36a0168020c000068000000006800000000e80000000083c4106affe8000000006a0168010c000068000000006800000000e80000000083c4106affe800000000905589e557568b550885d274458b0285c0785f8b75108b4d0c8b7a0885ff741539770c0f85be00000085c9780439c877118b3feb5d85c9bf24b72500785439c876508b420485c0747e0faff101f05e5f5dc36a01680c0c000068000000006800000000e80000000083c4106affe8000000006a01680d0c000068000000006800000000e80000000083c4106affe80000000050575168000000006800b15a00e80000000083c4146a0168110c000068000000006800b15a00e80000000083c4106affe8000000006a0168120c000068000000006800000000e80000000083c4106affe8000000006a01680e0c000068000000006800000000e80000000083c4106affe800000000662e0f1f8400000000005589e55dc3662e0f1f840000000000905589e56a0ae80000000083c404a3089b4d0083f8ff74586a0050e80000000083c40850e80000000083c4049850e80000000083c40466c705289b4d000000c705109b4d000000000066c705169b4d00000066c7054e9b4d00000066c705509b4d000000c7050c9b4d00ffffffff5dc368000000006a00e80000000083c4085dc35589e5c705089b4d00ffffffff5dc3905589e55dc3662e0f1f840000000000905589e568000000006a02e80000000083c40831c05dc3662e0f1f8400000000005589e568000000006a02e80000000083c40831c05dc3662e0f1f8400000000005589e568000000006a02e80000000083c40866b8ffff5dc30f1f8400000000005589e568000000006a02e80000000083c408b8ffffffff5dc30f1f80000000005589e5568b751068000000006a02e80000000083c408c606005e5dc30f1f40005589e568000000006a02e80000000083c4085dc3662e0f1f84000000000066905589e58b450c8b4d0866c7410400008941105dc3662e0f1f84000000000066905589e55357568b450889c30fbf50048b0d04554e008b710cb8ffffffff39d67e4a8b3df054500089d8eb0d0f1f440000420fbfca39ce7e2a0fbfdac1e30501fb74ee8b481083f9ff740e3b0b740a3b4b0474053b4b0875d842668950048b430ceb0966895004b8ffffffff5e5f5b5dc3",
+          "raw_size": 1088,
+          "relocations": [
+            {
+              "offset": 15,
+              "target": {
+                "name": "_strrchr",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 43,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c7461675f66696c65735c7461675f66696c65732e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CF@HPPLDJIF@c?3?2halo?2SOURCE?2tag_files?2tag_fil@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 48,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e616d6500",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_04MEMAJGDJ@name?$AA@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 53,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 63,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 97,
+              "target": {
+                "name": "_tag_loaded",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 122,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c7461675f66696c65735c7461675f67726f7570732e6300",
+                  "section": ".rdata#2",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@NBGMCGPG@c?3?2halo?2SOURCE?2tag_files?2tag_gro@",
+                "section": ".rdata#2",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 127,
+              "target": {
+                "data": {
+                  "bytes_hex": "7265666572656e636500",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_09KJONPCOF@reference?$AA@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 132,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 142,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 152,
+              "target": {
+                "data": {
+                  "bytes_hex": "746167207265666572656e6365202225732220616e642061637475616c20696e64657820646f206e6f74206d617463683a206973202530386c58206275742073686f756c64206265202530386c5800",
+                  "section": ".rdata#4",
+                  "value": 0
+                },
+                "name": "??_C@_0EP@BABKPBBN@tag?5reference?5?$CC?$CFs?$CC?5and?5actual?5in@",
+                "section": ".rdata#4",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 162,
+              "target": {
+                "name": "_csprintf",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 177,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c7461675f66696c65735c7461675f67726f7570732e6300",
+                  "section": ".rdata#2",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@NBGMCGPG@c?3?2halo?2SOURCE?2tag_files?2tag_gro@",
+                "section": ".rdata#2",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 183,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 193,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 247,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c7461675f66696c65735c7461675f67726f7570732e6300",
+                  "section": ".rdata#2",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@NBGMCGPG@c?3?2halo?2SOURCE?2tag_files?2tag_gro@",
+                "section": ".rdata#2",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 252,
+              "target": {
+                "data": {
+                  "bytes_hex": "6f66667365743e3d30202626206f66667365742b73697a653c3d646174612d3e73697a6500",
+                  "section": ".rdata#6",
+                  "value": 0
+                },
+                "name": "??_C@_0CF@MEMCPCNI@offset?$DO?$DN0?5?$CG?$CG?5offset?$CLsize?$DM?$DNdata?9?$DO@",
+                "section": ".rdata#6",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 257,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 267,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 279,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c7461675f66696c65735c7461675f67726f7570732e6300",
+                  "section": ".rdata#2",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@NBGMCGPG@c?3?2halo?2SOURCE?2tag_files?2tag_gro@",
+                "section": ".rdata#2",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 284,
+              "target": {
+                "data": {
+                  "bytes_hex": "73697a653e3d3000",
+                  "section": ".rdata#5",
+                  "value": 0
+                },
+                "name": "??_C@_07LOEGKGOL@size?$DO?$DN0?$AA@",
+                "section": ".rdata#5",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 289,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 299,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 393,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c7461675f66696c65735c7461675f67726f7570732e6300",
+                  "section": ".rdata#2",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@NBGMCGPG@c?3?2halo?2SOURCE?2tag_files?2tag_gro@",
+                "section": ".rdata#2",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 398,
+              "target": {
+                "data": {
+                  "bytes_hex": "626c6f636b00",
+                  "section": ".rdata#7",
+                  "value": 0
+                },
+                "name": "??_C@_05PIBOEKAB@block?$AA@",
+                "section": ".rdata#7",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 403,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 413,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 425,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c7461675f66696c65735c7461675f67726f7570732e6300",
+                  "section": ".rdata#2",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@NBGMCGPG@c?3?2halo?2SOURCE?2tag_files?2tag_gro@",
+                "section": ".rdata#2",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 430,
+              "target": {
+                "data": {
+                  "bytes_hex": "626c6f636b2d3e636f756e743e3d3000",
+                  "section": ".rdata#8",
+                  "value": 0
+                },
+                "name": "??_C@_0BA@KODENCCG@block?9?$DOcount?$DO?$DN0?$AA@",
+                "section": ".rdata#8",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 435,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 445,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 453,
+              "target": {
+                "data": {
+                  "bytes_hex": "232564206973206e6f7420612076616c696420257320696e64657820696e205b23302c2325642900",
+                  "section": ".rdata#10",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@GFFJLLNP@?$CD?$CFd?5is?5not?5a?5valid?5?$CFs?5index?5in?5?$FL@",
+                "section": ".rdata#10",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 463,
+              "target": {
+                "name": "_csprintf",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 478,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c7461675f66696c65735c7461675f67726f7570732e6300",
+                  "section": ".rdata#2",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@NBGMCGPG@c?3?2halo?2SOURCE?2tag_files?2tag_gro@",
+                "section": ".rdata#2",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 488,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 498,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 510,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c7461675f66696c65735c7461675f67726f7570732e6300",
+                  "section": ".rdata#2",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@NBGMCGPG@c?3?2halo?2SOURCE?2tag_files?2tag_gro@",
+                "section": ".rdata#2",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 515,
+              "target": {
+                "data": {
+                  "bytes_hex": "626c6f636b2d3e6164647265737300",
+                  "section": ".rdata#11",
+                  "value": 0
+                },
+                "name": "??_C@_0P@BAMEOIJM@block?9?$DOaddress?$AA@",
+                "section": ".rdata#11",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 520,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 530,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 542,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c7461675f66696c65735c7461675f67726f7570732e6300",
+                  "section": ".rdata#2",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@NBGMCGPG@c?3?2halo?2SOURCE?2tag_files?2tag_gro@",
+                "section": ".rdata#2",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 547,
+              "target": {
+                "data": {
+                  "bytes_hex": "21626c6f636b2d3e646566696e6974696f6e207c7c20626c6f636b2d3e646566696e6974696f6e2d3e656c656d656e745f73697a653d3d656c656d656e745f73697a6500",
+                  "section": ".rdata#9",
+                  "value": 0
+                },
+                "name": "??_C@_0EE@FPBMLNMK@?$CBblock?9?$DOdefinition?5?$HM?$HM?5block?9?$DOdef@",
+                "section": ".rdata#9",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 552,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 562,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 598,
+              "target": {
+                "name": "_interface_get_tag_index",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 619,
+              "target": {
+                "name": "_FUN_0019d3c0",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 628,
+              "target": {
+                "name": "_atol",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 638,
+              "target": {
+                "name": "_set_language_code",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 704,
+              "target": {
+                "data": {
+                  "bytes_hex": "696e7465726e616c20737472696e67206c6f63616c697a6174696f6e20746167206973206d697373696e672e00",
+                  "section": ".rdata#12",
+                  "value": 0
+                },
+                "name": "??_C@_0CN@NJAONNEI@internal?5string?5localization?5tag@",
+                "section": ".rdata#12",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 711,
+              "target": {
+                "name": "_error",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 756,
+              "target": {
+                "data": {
+                  "bytes_hex": "7461675f626c6f636b5f726573697a652829206973206e6f7420737570706f72746564207769746820612063616368652066696c652061637469766500",
+                  "section": ".rdata#13",
+                  "value": 0
+                },
+                "name": "??_C@_0DN@EPHHKDMF@tag_block_resize?$CI?$CJ?5is?5not?5suppor@",
+                "section": ".rdata#13",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 763,
+              "target": {
+                "name": "_error",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 788,
+              "target": {
+                "data": {
+                  "bytes_hex": "7461675f646174615f726573697a652829206973206e6f7420737570706f72746564207769746820612063616368652066696c652061637469766500",
+                  "section": ".rdata#14",
+                  "value": 0
+                },
+                "name": "??_C@_0DM@FNPDMPEA@tag_data_resize?$CI?$CJ?5is?5not?5support@",
+                "section": ".rdata#14",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 795,
+              "target": {
+                "name": "_error",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 820,
+              "target": {
+                "data": {
+                  "bytes_hex": "7461675f626c6f636b5f6164645f656c656d656e742829206973206e6f7420737570706f72746564207769746820612063616368652066696c652061637469766500",
+                  "section": ".rdata#15",
+                  "value": 0
+                },
+                "name": "??_C@_0EC@MOKCAFPK@tag_block_add_element?$CI?$CJ?5is?5not?5s@",
+                "section": ".rdata#15",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 827,
+              "target": {
+                "name": "_error",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 852,
+              "target": {
+                "data": {
+                  "bytes_hex": "7461675f6c6f61642829206973206e6f7420737570706f72746564207769746820612063616368652066696c652061637469766500",
+                  "section": ".rdata#16",
+                  "value": 0
+                },
+                "name": "??_C@_0DF@IIJGOBIP@tag_load?$CI?$CJ?5is?5not?5supported?5with@",
+                "section": ".rdata#16",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 859,
+              "target": {
+                "name": "_error",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 888,
+              "target": {
+                "data": {
+                  "bytes_hex": "7461675f66696c655f6765745f706174682829206973206e6f7420737570706f72746564207769746820612063616368652066696c652061637469766500",
+                  "section": ".rdata#17",
+                  "value": 0
+                },
+                "name": "??_C@_0DO@CMGIBDCM@tag_file_get_path?$CI?$CJ?5is?5not?5suppo@",
+                "section": ".rdata#17",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 895,
+              "target": {
+                "name": "_error",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 916,
+              "target": {
+                "data": {
+                  "bytes_hex": "7461675f7265666572656e63655f7365742829206973206e6f7420737570706f72746564207769746820612063616368652066696c652061637469766500",
+                  "section": ".rdata#18",
+                  "value": 0
+                },
+                "name": "??_C@_0DO@PNBFAACM@tag_reference_set?$CI?$CJ?5is?5not?5suppo@",
+                "section": ".rdata#18",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 923,
+              "target": {
+                "name": "_error",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            }
+          ]
+        },
+        {
+          "characteristics": 3224371264,
+          "executable": false,
+          "id": ".data#0",
+          "name": ".data",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        },
+        {
+          "characteristics": 3224371328,
+          "executable": false,
+          "id": ".bss#0",
+          "name": ".bss",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#0",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 37,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#1",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 5,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#2",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 38,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#3",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 10,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#4",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 79,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#5",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 8,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#6",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 37,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#7",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 6,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#8",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 16,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#9",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 68,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#10",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 40,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#11",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 15,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#12",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 45,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#13",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 61,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#14",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 60,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#15",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 66,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#16",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 53,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#17",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 62,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#18",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 62,
+          "relocations": []
+        },
+        {
+          "characteristics": 1051136,
+          "executable": false,
+          "id": ".drectve#0",
+          "name": ".drectve",
+          "raw_bytes_hex": null,
+          "raw_size": 400,
+          "relocations": []
+        },
+        {
+          "characteristics": 1050624,
+          "executable": false,
+          "id": ".llvm_addrsig#0",
+          "name": ".llvm_addrsig",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        }
+      ]
+    },
+    "object_relative_path": "build/CMakeFiles/halo.dir/src/halo/tag_files/tag_groups.c.obj",
+    "object_sha256": "4c7fcead9a7c425bd0aae0e515b4780f69a93260519df458831ff7ea796b7a17"
+  },
+  "checks": [
+    {
+      "baseline_object_sha256": "4c7fcead9a7c425bd0aae0e515b4780f69a93260519df458831ff7ea796b7a17",
+      "current_git_head": "4129ba299c975211c83c5ac4eeb849b8eea539a4",
+      "current_object_sha256": "f02f702ac00cc390d617a690f1c379d3a8b2391aa380e5602f8266db5fec1cf6",
+      "current_source_sha256": "dc12dc0fedbe8742ed8deb0479ba35a7f155b5a692310860c31ef0cab798c57f",
+      "failures": [],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": true,
+      "rename_map_applied": [
+        "iVar1",
+        "iVar2",
+        "piVar3"
+      ],
+      "skipped": [],
+      "source": "src/halo/tag_files/tag_groups.c",
+      "vc71_passed": true,
+      "warnings": []
+    },
+    {
+      "baseline_object_sha256": "4c7fcead9a7c425bd0aae0e515b4780f69a93260519df458831ff7ea796b7a17",
+      "current_git_head": "7f80c2bd0c7a03debc9d18f15b1b7787f7e88f0d",
+      "current_object_sha256": "f02f702ac00cc390d617a690f1c379d3a8b2391aa380e5602f8266db5fec1cf6",
+      "current_source_sha256": "7ffeba1d359c0086f834baff74e8fe745721550b82c3e21a0fb4621cc1c0df66",
+      "failures": [
+        "strict VC71 regression check failed"
+      ],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": false,
+      "rename_map_applied": [
+        "FUN_001b9b30"
+      ],
+      "skipped": [],
+      "source": "src/halo/tag_files/tag_groups.c",
+      "vc71_passed": false,
+      "warnings": []
+    },
+    {
+      "baseline_object_sha256": "4c7fcead9a7c425bd0aae0e515b4780f69a93260519df458831ff7ea796b7a17",
+      "current_git_head": "7f80c2bd0c7a03debc9d18f15b1b7787f7e88f0d",
+      "current_object_sha256": "f02f702ac00cc390d617a690f1c379d3a8b2391aa380e5602f8266db5fec1cf6",
+      "current_source_sha256": "7ffeba1d359c0086f834baff74e8fe745721550b82c3e21a0fb4621cc1c0df66",
+      "failures": [],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": true,
+      "rename_map_applied": [
+        "FUN_001b9b30"
+      ],
+      "skipped": [],
+      "source": "src/halo/tag_files/tag_groups.c",
+      "vc71_passed": true,
+      "warnings": []
+    }
+  ],
+  "created_tool_version": "source-recovery/1",
+  "git_head": "4129ba299c975211c83c5ac4eeb849b8eea539a4",
+  "inventory": {
+    "absolute_address_dereferences": [
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "absolute_address_dereferences:192:1",
+        "line": 192,
+        "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4d9b08 localization-table handle; T2 role from draw_string.c FUN_0019d3c0 first arg, no T1 assert naming the global)",
+        "status": "parked",
+        "text": "*(int *)0x4d9b08 = tag_index;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "absolute_address_dereferences:196:1",
+        "line": 196,
+        "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4d9b28 draw-string tab-stop count; T2 from draw_string_set_tab_stops stores, no T1 global name)",
+        "status": "parked",
+        "text": "*(int16_t *)0x4d9b28 = 0;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "absolute_address_dereferences:197:1",
+        "line": 197,
+        "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4d9b10 draw-string flags; T2 from draw_string_set_style_justify_flags stores, no T1 global name)",
+        "status": "parked",
+        "text": "*(int *)0x4d9b10 = 0;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "absolute_address_dereferences:198:1",
+        "line": 198,
+        "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4d9b16 draw-string justify; T2 from draw_string_set_style_justify_flags stores, no T1 global name)",
+        "status": "parked",
+        "text": "*(int16_t *)0x4d9b16 = 0;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "absolute_address_dereferences:199:1",
+        "line": 199,
+        "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4d9b4e initial_indent; T1 param assert initial_indent>=0 then store, but edit shape is not symbol-names)",
+        "status": "parked",
+        "text": "*(int16_t *)0x4d9b4e = 0;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "absolute_address_dereferences:200:1",
+        "line": 200,
+        "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4d9b50 paragraph_indent; T1 param assert paragraph_indent>=0 then store, but edit shape is not symbol-names)",
+        "status": "parked",
+        "text": "*(int16_t *)0x4d9b50 = 0;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "absolute_address_dereferences:201:1",
+        "line": 201,
+        "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4d9b0c font tag index; T2 from draw_string_set_font_tag stores, no T1 global name)",
+        "status": "parked",
+        "text": "*(int *)0x4d9b0c = -1;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "absolute_address_dereferences:211:1",
+        "line": 211,
+        "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4d9b08 same localization-table handle as :192:1)",
+        "status": "parked",
+        "text": "*(int *)0x4d9b08 = -1;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 45,
+        "id": "absolute_address_dereferences:304:1",
+        "line": 304,
+        "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4e5504 T2 tags_header \u2014 already a #define in cache_files.c; T1 would be reuse of that name, but not identifier\u2192identifier here)",
+        "status": "parked",
+        "text": "if ((int)*(short *)(state + 4) < *(int *)(*(int *)0x4e5504 + 0xc)) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 55,
+        "id": "absolute_address_dereferences:306:1",
+        "line": 306,
+        "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x5054f0 T1 assert global_tag_instances in tags.c; T1 name exists but edit shape is not identifier\u2192identifier)",
+        "status": "parked",
+        "text": "piVar3 = (int *)(*(short *)(state + 4) * 0x20 + *(int *)0x5054f0);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 20,
+        "id": "absolute_address_dereferences:314:1",
+        "line": 314,
+        "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4e5504 same tags_header as :304:1)",
+        "status": "parked",
+        "text": "if (*(int *)(*(int *)0x4e5504 + 0xc) <= (int)*(short *)(state + 4)) {"
+      }
+    ],
+    "decompiler_style_locals": [
+      {
+        "category": "local-renames",
+        "column": 7,
+        "id": "decompiler_style_locals:74:1",
+        "line": 74,
+        "status": "applied",
+        "text": "int iVar1;"
+      },
+      {
+        "category": "local-renames",
+        "column": 3,
+        "id": "decompiler_style_locals:81:1",
+        "line": 81,
+        "status": "applied",
+        "text": "iVar1 = tag_loaded(tag_ref[0], (const char *)tag_ref[1]);"
+      },
+      {
+        "category": "local-renames",
+        "column": 21,
+        "id": "decompiler_style_locals:82:1",
+        "line": 82,
+        "status": "applied",
+        "text": "if (tag_ref[3] != iVar1) {"
+      },
+      {
+        "category": "local-renames",
+        "column": 54,
+        "id": "decompiler_style_locals:87:1",
+        "line": 87,
+        "status": "applied",
+        "text": "(const char *)tag_ref[1], tag_ref[3], iVar1),"
+      },
+      {
+        "category": "local-renames",
+        "column": 10,
+        "id": "decompiler_style_locals:91:1",
+        "line": 91,
+        "status": "applied",
+        "text": "return iVar1;"
+      },
+      {
+        "category": "local-renames",
+        "column": 7,
+        "id": "decompiler_style_locals:299:1",
+        "line": 299,
+        "status": "applied",
+        "text": "int iVar1;"
+      },
+      {
+        "category": "local-renames",
+        "column": 7,
+        "id": "decompiler_style_locals:300:1",
+        "line": 300,
+        "status": "applied",
+        "text": "int iVar2;"
+      },
+      {
+        "category": "local-renames",
+        "column": 8,
+        "id": "decompiler_style_locals:301:1",
+        "line": 301,
+        "status": "applied",
+        "text": "int *piVar3;"
+      },
+      {
+        "category": "local-renames",
+        "column": 3,
+        "id": "decompiler_style_locals:303:1",
+        "line": 303,
+        "status": "applied",
+        "text": "iVar2 = -1;"
+      },
+      {
+        "category": "local-renames",
+        "column": 7,
+        "id": "decompiler_style_locals:306:1",
+        "line": 306,
+        "status": "applied",
+        "text": "piVar3 = (int *)(*(short *)(state + 4) * 0x20 + *(int *)0x5054f0);"
+      },
+      {
+        "category": "local-renames",
+        "column": 12,
+        "id": "decompiler_style_locals:308:1",
+        "line": 308,
+        "status": "applied",
+        "text": "if ((piVar3 != (int *)0) &&"
+      },
+      {
+        "category": "local-renames",
+        "column": 12,
+        "id": "decompiler_style_locals:309:1",
+        "line": 309,
+        "status": "applied",
+        "text": "(iVar1 = *(int *)(state + 0x10), iVar1 == -1 || iVar1 == piVar3[0] ||"
+      },
+      {
+        "category": "local-renames",
+        "column": 44,
+        "id": "decompiler_style_locals:309:2",
+        "line": 309,
+        "status": "applied",
+        "text": "(iVar1 = *(int *)(state + 0x10), iVar1 == -1 || iVar1 == piVar3[0] ||"
+      },
+      {
+        "category": "local-renames",
+        "column": 59,
+        "id": "decompiler_style_locals:309:3",
+        "line": 309,
+        "status": "applied",
+        "text": "(iVar1 = *(int *)(state + 0x10), iVar1 == -1 || iVar1 == piVar3[0] ||"
+      },
+      {
+        "category": "local-renames",
+        "column": 68,
+        "id": "decompiler_style_locals:309:4",
+        "line": 309,
+        "status": "applied",
+        "text": "(iVar1 = *(int *)(state + 0x10), iVar1 == -1 || iVar1 == piVar3[0] ||"
+      },
+      {
+        "category": "local-renames",
+        "column": 46,
+        "id": "decompiler_style_locals:310:1",
+        "line": 310,
+        "status": "applied",
+        "text": "iVar1 == piVar3[1] ||"
+      },
+      {
+        "category": "local-renames",
+        "column": 55,
+        "id": "decompiler_style_locals:310:2",
+        "line": 310,
+        "status": "applied",
+        "text": "iVar1 == piVar3[1] ||"
+      },
+      {
+        "category": "local-renames",
+        "column": 46,
+        "id": "decompiler_style_locals:311:1",
+        "line": 311,
+        "status": "applied",
+        "text": "iVar1 == piVar3[2])) {"
+      },
+      {
+        "category": "local-renames",
+        "column": 55,
+        "id": "decompiler_style_locals:311:2",
+        "line": 311,
+        "status": "applied",
+        "text": "iVar1 == piVar3[2])) {"
+      },
+      {
+        "category": "local-renames",
+        "column": 16,
+        "id": "decompiler_style_locals:315:1",
+        "line": 315,
+        "status": "applied",
+        "text": "return iVar2;"
+      },
+      {
+        "category": "local-renames",
+        "column": 5,
+        "id": "decompiler_style_locals:318:1",
+        "line": 318,
+        "status": "applied",
+        "text": "iVar2 = piVar3[3];"
+      },
+      {
+        "category": "local-renames",
+        "column": 13,
+        "id": "decompiler_style_locals:318:2",
+        "line": 318,
+        "status": "applied",
+        "text": "iVar2 = piVar3[3];"
+      },
+      {
+        "category": "local-renames",
+        "column": 10,
+        "id": "decompiler_style_locals:320:1",
+        "line": 320,
+        "status": "applied",
+        "text": "return iVar2;"
+      }
+    ],
+    "fun_calls": [
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:177:1",
+        "line": 177,
+        "reason": "no_name_evidence: empty no-op at 0x19b320; no assert/format string names the function; T4 stays FUN_",
+        "status": "parked",
+        "text": "void FUN_0019b320(void)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:186:1",
+        "line": 186,
+        "reason": "no_name_evidence: error string \"internal string localization tag is missing.\" does not name the function; no in-tree PC/CE mirror; T4 stays FUN_0019B330",
+        "status": "parked",
+        "text": "void FUN_0019B330(void)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 11,
+        "id": "fun_calls:194:1",
+        "line": 194,
+        "reason": "no_name_evidence: FUN_0019d3c0 is a callee not defined in this TU; no assert/format string names it; HEK unicode_string_list_get_string is not in-tree T1/T2; rename would also require draw_string.c + kb.json",
+        "status": "parked",
+        "text": "str = FUN_0019d3c0(tag_index, 0);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:209:1",
+        "line": 209,
+        "reason": "no_name_evidence: 0x19b3a0 stores -1 to 0x4d9b08; no assert/format string names the function; T4 stays FUN_",
+        "status": "parked",
+        "text": "void FUN_0019b3a0(void)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:216:1",
+        "line": 216,
+        "reason": "no_name_evidence: empty no-op at 0x19b3b0; no assert/format string names the function; T4 stays FUN_",
+        "status": "parked",
+        "text": "void FUN_0019b3b0(void)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:251:1",
+        "line": 251,
+        "reason": "T1 name tag_load from error string \"tag_load() is not supported with a cache file active\"; rename needs kb.json decl plus items.c call-site updates outside this TU (worker file scope)",
+        "status": "parked",
+        "text": "int FUN_001b9b00(int tag_class, const char *name, int flags)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:262:1",
+        "line": 262,
+        "status": "applied",
+        "text": "void FUN_001b9b30(int tag_class, int param_2, char *out_path)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:275:1",
+        "line": 275,
+        "reason": "T1 name tag_reference_set from error string \"tag_reference_set() is not supported with a cache file active\"; rename needs kb.json decl plus structures.c call-site updates outside this TU (worker file scope)",
+        "status": "parked",
+        "text": "void FUN_001b9b50(void *reference, int group_tag, int name)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:286:1",
+        "line": 286,
+        "reason": "no_name_evidence: iterator init at 0x1b9b60; HEK tag_iterator_new is not in-tree T1/T2; T4 stays FUN_; also has game.c callers outside this TU",
+        "status": "parked",
+        "text": "void FUN_001b9b60(int state, int tag_class)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:297:1",
+        "line": 297,
+        "reason": "no_name_evidence: iterator step at 0x1b9b80; HEK tag_iterator_next is not in-tree T1/T2; T4 stays FUN_; also has game.c callers outside this TU",
+        "status": "parked",
+        "text": "int FUN_001b9b80(int state)"
+      }
+    ],
+    "inline_asm": [],
+    "raw_base_offset_dereferences": [
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:289:1",
+        "line": 289,
+        "reason": "no_asserted_struct: state+0x10 has no co() for int; no tag-iterator struct (local tag_block_t/tag_data_t/tag_block_definition_t do not cover 0x10; object_iter_t is a different type; bindings.json has only actor_t)",
+        "status": "parked",
+        "text": "*(int *)(state + 0x10) = tag_class;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 20,
+        "id": "raw_base_offset_dereferences:309:1",
+        "line": 309,
+        "reason": "no_asserted_struct: state+0x10 has no co() for int; no tag-iterator struct (local tag_block_t/tag_data_t/tag_block_definition_t do not cover 0x10; object_iter_t is a different type; bindings.json has only actor_t)",
+        "status": "parked",
+        "text": "(iVar1 = *(int *)(state + 0x10), iVar1 == -1 || iVar1 == piVar3[0] ||"
+      }
+    ],
+    "raw_function_pointer_address_casts": [],
+    "xcall_uses": []
+  },
+  "items": [
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "absolute_address_dereferences:192:1",
+      "line": 192,
+      "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4d9b08 localization-table handle; T2 role from draw_string.c FUN_0019d3c0 first arg, no T1 assert naming the global)",
+      "status": "parked",
+      "text": "*(int *)0x4d9b08 = tag_index;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "absolute_address_dereferences:196:1",
+      "line": 196,
+      "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4d9b28 draw-string tab-stop count; T2 from draw_string_set_tab_stops stores, no T1 global name)",
+      "status": "parked",
+      "text": "*(int16_t *)0x4d9b28 = 0;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "absolute_address_dereferences:197:1",
+      "line": 197,
+      "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4d9b10 draw-string flags; T2 from draw_string_set_style_justify_flags stores, no T1 global name)",
+      "status": "parked",
+      "text": "*(int *)0x4d9b10 = 0;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "absolute_address_dereferences:198:1",
+      "line": 198,
+      "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4d9b16 draw-string justify; T2 from draw_string_set_style_justify_flags stores, no T1 global name)",
+      "status": "parked",
+      "text": "*(int16_t *)0x4d9b16 = 0;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "absolute_address_dereferences:199:1",
+      "line": 199,
+      "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4d9b4e initial_indent; T1 param assert initial_indent>=0 then store, but edit shape is not symbol-names)",
+      "status": "parked",
+      "text": "*(int16_t *)0x4d9b4e = 0;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "absolute_address_dereferences:200:1",
+      "line": 200,
+      "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4d9b50 paragraph_indent; T1 param assert paragraph_indent>=0 then store, but edit shape is not symbol-names)",
+      "status": "parked",
+      "text": "*(int16_t *)0x4d9b50 = 0;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "absolute_address_dereferences:201:1",
+      "line": 201,
+      "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4d9b0c font tag index; T2 from draw_string_set_font_tag stores, no T1 global name)",
+      "status": "parked",
+      "text": "*(int *)0x4d9b0c = -1;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "absolute_address_dereferences:211:1",
+      "line": 211,
+      "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4d9b08 same localization-table handle as :192:1)",
+      "status": "parked",
+      "text": "*(int *)0x4d9b08 = -1;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 45,
+      "id": "absolute_address_dereferences:304:1",
+      "line": 304,
+      "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4e5504 T2 tags_header \u2014 already a #define in cache_files.c; T1 would be reuse of that name, but not identifier\u2192identifier here)",
+      "status": "parked",
+      "text": "if ((int)*(short *)(state + 4) < *(int *)(*(int *)0x4e5504 + 0xc)) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 55,
+      "id": "absolute_address_dereferences:306:1",
+      "line": 306,
+      "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x5054f0 T1 assert global_tag_instances in tags.c; T1 name exists but edit shape is not identifier\u2192identifier)",
+      "status": "parked",
+      "text": "piVar3 = (int *)(*(short *)(state + 4) * 0x20 + *(int *)0x5054f0);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 20,
+      "id": "absolute_address_dereferences:314:1",
+      "line": 314,
+      "reason": "absolute-address deref is not identifier\u2192identifier (symbol-names purity); a #define is const-enum shape; an extern emits a DIR32 reloc where the current code embeds the VA as an immediate, so the COFF neutral gate fails. No kb.json data entry at this VA. (0x4e5504 same tags_header as :304:1)",
+      "status": "parked",
+      "text": "if (*(int *)(*(int *)0x4e5504 + 0xc) <= (int)*(short *)(state + 4)) {"
+    },
+    {
+      "category": "local-renames",
+      "column": 7,
+      "id": "decompiler_style_locals:74:1",
+      "line": 74,
+      "status": "applied",
+      "text": "int iVar1;"
+    },
+    {
+      "category": "local-renames",
+      "column": 3,
+      "id": "decompiler_style_locals:81:1",
+      "line": 81,
+      "status": "applied",
+      "text": "iVar1 = tag_loaded(tag_ref[0], (const char *)tag_ref[1]);"
+    },
+    {
+      "category": "local-renames",
+      "column": 21,
+      "id": "decompiler_style_locals:82:1",
+      "line": 82,
+      "status": "applied",
+      "text": "if (tag_ref[3] != iVar1) {"
+    },
+    {
+      "category": "local-renames",
+      "column": 54,
+      "id": "decompiler_style_locals:87:1",
+      "line": 87,
+      "status": "applied",
+      "text": "(const char *)tag_ref[1], tag_ref[3], iVar1),"
+    },
+    {
+      "category": "local-renames",
+      "column": 10,
+      "id": "decompiler_style_locals:91:1",
+      "line": 91,
+      "status": "applied",
+      "text": "return iVar1;"
+    },
+    {
+      "category": "local-renames",
+      "column": 7,
+      "id": "decompiler_style_locals:299:1",
+      "line": 299,
+      "status": "applied",
+      "text": "int iVar1;"
+    },
+    {
+      "category": "local-renames",
+      "column": 7,
+      "id": "decompiler_style_locals:300:1",
+      "line": 300,
+      "status": "applied",
+      "text": "int iVar2;"
+    },
+    {
+      "category": "local-renames",
+      "column": 8,
+      "id": "decompiler_style_locals:301:1",
+      "line": 301,
+      "status": "applied",
+      "text": "int *piVar3;"
+    },
+    {
+      "category": "local-renames",
+      "column": 3,
+      "id": "decompiler_style_locals:303:1",
+      "line": 303,
+      "status": "applied",
+      "text": "iVar2 = -1;"
+    },
+    {
+      "category": "local-renames",
+      "column": 7,
+      "id": "decompiler_style_locals:306:1",
+      "line": 306,
+      "status": "applied",
+      "text": "piVar3 = (int *)(*(short *)(state + 4) * 0x20 + *(int *)0x5054f0);"
+    },
+    {
+      "category": "local-renames",
+      "column": 12,
+      "id": "decompiler_style_locals:308:1",
+      "line": 308,
+      "status": "applied",
+      "text": "if ((piVar3 != (int *)0) &&"
+    },
+    {
+      "category": "local-renames",
+      "column": 12,
+      "id": "decompiler_style_locals:309:1",
+      "line": 309,
+      "status": "applied",
+      "text": "(iVar1 = *(int *)(state + 0x10), iVar1 == -1 || iVar1 == piVar3[0] ||"
+    },
+    {
+      "category": "local-renames",
+      "column": 44,
+      "id": "decompiler_style_locals:309:2",
+      "line": 309,
+      "status": "applied",
+      "text": "(iVar1 = *(int *)(state + 0x10), iVar1 == -1 || iVar1 == piVar3[0] ||"
+    },
+    {
+      "category": "local-renames",
+      "column": 59,
+      "id": "decompiler_style_locals:309:3",
+      "line": 309,
+      "status": "applied",
+      "text": "(iVar1 = *(int *)(state + 0x10), iVar1 == -1 || iVar1 == piVar3[0] ||"
+    },
+    {
+      "category": "local-renames",
+      "column": 68,
+      "id": "decompiler_style_locals:309:4",
+      "line": 309,
+      "status": "applied",
+      "text": "(iVar1 = *(int *)(state + 0x10), iVar1 == -1 || iVar1 == piVar3[0] ||"
+    },
+    {
+      "category": "local-renames",
+      "column": 46,
+      "id": "decompiler_style_locals:310:1",
+      "line": 310,
+      "status": "applied",
+      "text": "iVar1 == piVar3[1] ||"
+    },
+    {
+      "category": "local-renames",
+      "column": 55,
+      "id": "decompiler_style_locals:310:2",
+      "line": 310,
+      "status": "applied",
+      "text": "iVar1 == piVar3[1] ||"
+    },
+    {
+      "category": "local-renames",
+      "column": 46,
+      "id": "decompiler_style_locals:311:1",
+      "line": 311,
+      "status": "applied",
+      "text": "iVar1 == piVar3[2])) {"
+    },
+    {
+      "category": "local-renames",
+      "column": 55,
+      "id": "decompiler_style_locals:311:2",
+      "line": 311,
+      "status": "applied",
+      "text": "iVar1 == piVar3[2])) {"
+    },
+    {
+      "category": "local-renames",
+      "column": 16,
+      "id": "decompiler_style_locals:315:1",
+      "line": 315,
+      "status": "applied",
+      "text": "return iVar2;"
+    },
+    {
+      "category": "local-renames",
+      "column": 5,
+      "id": "decompiler_style_locals:318:1",
+      "line": 318,
+      "status": "applied",
+      "text": "iVar2 = piVar3[3];"
+    },
+    {
+      "category": "local-renames",
+      "column": 13,
+      "id": "decompiler_style_locals:318:2",
+      "line": 318,
+      "status": "applied",
+      "text": "iVar2 = piVar3[3];"
+    },
+    {
+      "category": "local-renames",
+      "column": 10,
+      "id": "decompiler_style_locals:320:1",
+      "line": 320,
+      "status": "applied",
+      "text": "return iVar2;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:177:1",
+      "line": 177,
+      "reason": "no_name_evidence: empty no-op at 0x19b320; no assert/format string names the function; T4 stays FUN_",
+      "status": "parked",
+      "text": "void FUN_0019b320(void)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:186:1",
+      "line": 186,
+      "reason": "no_name_evidence: error string \"internal string localization tag is missing.\" does not name the function; no in-tree PC/CE mirror; T4 stays FUN_0019B330",
+      "status": "parked",
+      "text": "void FUN_0019B330(void)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 11,
+      "id": "fun_calls:194:1",
+      "line": 194,
+      "reason": "no_name_evidence: FUN_0019d3c0 is a callee not defined in this TU; no assert/format string names it; HEK unicode_string_list_get_string is not in-tree T1/T2; rename would also require draw_string.c + kb.json",
+      "status": "parked",
+      "text": "str = FUN_0019d3c0(tag_index, 0);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:209:1",
+      "line": 209,
+      "reason": "no_name_evidence: 0x19b3a0 stores -1 to 0x4d9b08; no assert/format string names the function; T4 stays FUN_",
+      "status": "parked",
+      "text": "void FUN_0019b3a0(void)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:216:1",
+      "line": 216,
+      "reason": "no_name_evidence: empty no-op at 0x19b3b0; no assert/format string names the function; T4 stays FUN_",
+      "status": "parked",
+      "text": "void FUN_0019b3b0(void)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:251:1",
+      "line": 251,
+      "reason": "T1 name tag_load from error string \"tag_load() is not supported with a cache file active\"; rename needs kb.json decl plus items.c call-site updates outside this TU (worker file scope)",
+      "status": "parked",
+      "text": "int FUN_001b9b00(int tag_class, const char *name, int flags)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:262:1",
+      "line": 262,
+      "status": "applied",
+      "text": "void FUN_001b9b30(int tag_class, int param_2, char *out_path)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:275:1",
+      "line": 275,
+      "reason": "T1 name tag_reference_set from error string \"tag_reference_set() is not supported with a cache file active\"; rename needs kb.json decl plus structures.c call-site updates outside this TU (worker file scope)",
+      "status": "parked",
+      "text": "void FUN_001b9b50(void *reference, int group_tag, int name)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:286:1",
+      "line": 286,
+      "reason": "no_name_evidence: iterator init at 0x1b9b60; HEK tag_iterator_new is not in-tree T1/T2; T4 stays FUN_; also has game.c callers outside this TU",
+      "status": "parked",
+      "text": "void FUN_001b9b60(int state, int tag_class)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:297:1",
+      "line": 297,
+      "reason": "no_name_evidence: iterator step at 0x1b9b80; HEK tag_iterator_next is not in-tree T1/T2; T4 stays FUN_; also has game.c callers outside this TU",
+      "status": "parked",
+      "text": "int FUN_001b9b80(int state)"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:289:1",
+      "line": 289,
+      "reason": "no_asserted_struct: state+0x10 has no co() for int; no tag-iterator struct (local tag_block_t/tag_data_t/tag_block_definition_t do not cover 0x10; object_iter_t is a different type; bindings.json has only actor_t)",
+      "status": "parked",
+      "text": "*(int *)(state + 0x10) = tag_class;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 20,
+      "id": "raw_base_offset_dereferences:309:1",
+      "line": 309,
+      "reason": "no_asserted_struct: state+0x10 has no co() for int; no tag-iterator struct (local tag_block_t/tag_data_t/tag_block_definition_t do not cover 0x10; object_iter_t is a different type; bindings.json has only actor_t)",
+      "status": "parked",
+      "text": "(iVar1 = *(int *)(state + 0x10), iVar1 == -1 || iVar1 == piVar3[0] ||"
+    }
+  ],
+  "kind": "source-recovery-manifest",
+  "repo_relative_source": "src/halo/tag_files/tag_groups.c",
+  "schema": 1,
+  "source_sha256": "337491938afe2874ae5f4afa60b968a16abcc6f92e4e868523452e11b4e71e54"
+}

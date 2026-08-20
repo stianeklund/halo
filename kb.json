@@ -24711,7 +24711,7 @@
     },
     {
      "addr": "0x1b9b30",
-     "decl": "void FUN_001b9b30(int tag_class, int param_2, char *out_path);",
+     "decl": "void tag_file_get_path(int tag_class, int param_2, char *out_path);",
      "ported": true
     },
     {
