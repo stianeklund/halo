@@ -21,6 +21,7 @@ enum {
   _connection_create_server_bit = 0,
   _connection_create_clientside_client_bit = 1,
   _connection_create_serverside_client_bit = 2,
+  _connection_unknown_bit_3 = 3, /* no observed use in network_connection.obj */
   _connection_closed_bit = 4, /* unverified name */
   _connection_going_stale_bit = 5 /* unverified name */
 };
@@ -65,7 +66,7 @@ typedef struct network_connection {
   unsigned int flags; /* 0x30 FLAG(_connection_*) bits; byte-tested at several
                          sites (keep access width) */
   unsigned short well_known_port; /* 0x34 */
-  unsigned short field_36; /* 0x36 never accessed; alignment/unknown */
+  uint8_t pad_36[2]; /* 0x36 never observed accessed */
 } network_connection;
 
 cs(network_connection, 0x38);
@@ -96,14 +97,14 @@ typedef struct network_server_connection {
   network_connection connection; /* 0x00 */
   int endpoint_set; /* 0x38 endpoint-set handle (capacity 5: listen + 4 clients)
                      */
-  network_connection *client_connections[4]; /* 0x3c */
+  network_connection *client_list[4]; /* 0x3c; named by binary assert */
   bool allow_client_connections; /* 0x4c */
   uint8_t pad_4d[3]; /* 0x4d */
 } network_server_connection;
 
 cs(network_server_connection, 0x50);
 co(network_server_connection, endpoint_set, 0x38);
-co(network_server_connection, client_connections, 0x3c);
+co(network_server_connection, client_list, 0x3c);
 co(network_server_connection, allow_client_connections, 0x4c);
 
 #endif /* NETWORK_CONNECTION_H */

@@ -514,7 +514,7 @@ void network_connection_delete(int connection)
     circular_queue_delete(conn->unreliable_incoming_queue);
   }
   if ((*(uint8_t *)&conn->flags & FLAG(_connection_create_server_bit)) != 0) {
-    children = server->client_connections;
+    children = server->client_list;
     if (children != (network_connection **)0) {
       i = 4;
       do {
@@ -899,9 +899,6 @@ int network_connection_new(unsigned int flags, unsigned short well_known_port)
                   "(flags&FLAG(_connection_create_clientside_client_bit))");
 
   if ((flags & FLAG(_connection_create_server_bit)) == 0) {
-    if ((flags & FLAG(_connection_create_clientside_client_bit)) == 0) {
-      return 0;
-    }
     connection = (int)debug_malloc(
       0x38, 1, "c:\\halo\\SOURCE\\networking\\network_connection.c", 0xb6);
     if (connection == 0) {
@@ -1059,12 +1056,12 @@ bool network_connection_idle(int connection, int *output)
                    accepted)) == 0) {
               error(2, "accept_endpoint() returned NULL");
             } else {
-              slot = server->client_connections;
+              slot = server->client_list;
               i = 0;
               do {
                 if (*slot == 0) {
                   *output = new_conn;
-                  server->client_connections[i] =
+                  server->client_list[i] =
                     (network_connection *)new_conn;
                   if (i >= 4) {
                     error(2, "error adding new client");
@@ -1091,10 +1088,10 @@ bool network_connection_idle(int connection, int *output)
         } else {
           /* activity on an existing client endpoint */
           i = 0;
-          slot = server->client_connections;
+          slot = server->client_list;
           do {
             if (*slot != 0 && (*slot)->reliable_endpoint == endpoint) {
-              child = server->client_connections[i];
+              child = server->client_list[i];
               ok = network_connection_idle_client_reliable_endpoint((int)child);
               if (!ok) {
                 if ((short)remove_endpoint_from_set(

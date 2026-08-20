@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "struct": "network_connection",
+  "size": {
+    "value": "0x38",
+    "evidence": "FUN_001296b0 allocates 0x38 for clientside connections and FUN_00129270 allocates 0x38 for serverside clients."
+  },
+  "sources": [
+    "FUN_001296b0 @0x1296b0: 0x38/0x50 allocation split; stores +0x30 flags and +0x34 port",
+    "FUN_001288e0 @0x1288e0: traffic counter and file-stream accesses",
+    "FUN_00129a30 @0x129a30: assert string \"connection->connection.reliable_endpoint\""
+  ],
+  "notes": [
+    "The server extension remains in network_connection.h because the evidence-table schema cannot render an embedded 0x38-byte struct member.",
+    "The gap at +0x36 is explicit because no access was observed in network_connection.obj."
+  ],
+  "fields": [
+    { "offset": "0x00", "width": 4, "kind": "pointer", "points_to": "transport_endpoint", "name": "reliable_endpoint", "confidence": "named", "evidence": "assert string \"connection->connection.reliable_endpoint\" in FUN_00129a30 @0x129a30" },
+    { "offset": "0x04", "width": 4, "kind": "pointer", "points_to": "transport_endpoint", "name": "unreliable_endpoint", "confidence": "typed", "evidence": "passed as an endpoint pointer to transport calls in FUN_00129cf0 @0x129cf0" },
+    { "offset": "0x08", "width": 4, "signed": false, "name": "last_keep_alive_milliseconds", "confidence": "typed", "evidence": "written from system milliseconds and compared as a timeout base in FUN_00129cf0 @0x129cf0" },
+    { "offset": "0x0c", "width": 4, "kind": "pointer", "points_to": "connection_rejection_procedure", "name": "rejection_procedure", "confidence": "typed", "evidence": "called indirectly from +0x0c in FUN_00129a30 @0x129a30" },
+    { "offset": "0x10", "width": 4, "kind": "pointer", "points_to": "circular_queue", "name": "reliable_incoming_queue", "confidence": "typed", "evidence": "queue constructor result stored at +0x10 in FUN_001296b0 @0x1296b0" },
+    { "offset": "0x14", "width": 4, "kind": "pointer", "points_to": "circular_queue", "name": "unreliable_incoming_queue", "confidence": "typed", "evidence": "queue constructor result stored at +0x14 in FUN_001296b0 @0x1296b0" },
+    { "offset": "0x18", "width": 4, "kind": "pointer", "points_to": "FILE", "name": "traffic_log_file", "confidence": "typed", "evidence": "fopen-shaped FUN_001d9e59 result, then fprintf/fflush/fclose arguments in FUN_001288e0 @0x1288e0" },
+    { "offset": "0x1c", "width": 4, "signed": true, "name": "traffic_log_start_milliseconds", "confidence": "typed", "evidence": "tick delta from +0x1c is sign-tested in FUN_001288e0 @0x1288e0" },
+    { "offset": "0x20", "width": 4, "signed": true, "name": "datagrams_sent", "confidence": "named", "evidence": "traffic-log string \"datagrams sent\\t%ld\" read from +0x20 in FUN_001288e0 @0x1288e0" },
+    { "offset": "0x24", "width": 4, "signed": true, "name": "datagrams_received", "confidence": "named", "evidence": "traffic-log string \"datagrams received\\t%ld\" read from +0x24 in FUN_001288e0 @0x1288e0" },
+    { "offset": "0x28", "width": 4, "signed": true, "name": "stream_messages_sent", "confidence": "named", "evidence": "traffic-log string \"stream messages sent\\t%ld\" read from +0x28 in FUN_001288e0 @0x1288e0" },
+    { "offset": "0x2c", "width": 4, "signed": true, "name": "stream_messages_received", "confidence": "named", "evidence": "traffic-log string \"stream messages received\\t%ld\" read from +0x2c in FUN_001288e0 @0x1288e0" },
+    { "offset": "0x30", "width": 4, "signed": false, "name": "flags", "confidence": "named", "evidence": "assert strings name connection flags; byte tests use masks 1, 4, and 6 in network_connection.obj" },
+    { "offset": "0x34", "width": 2, "signed": false, "name": "well_known_port", "confidence": "named", "evidence": "assert string \"well_known_port > MAXIMUM_RESERVED_NETWORK_PORT\" and word store in FUN_001296b0 @0x1296b0" },
+    { "offset": "0x36", "width": 2, "confidence": "gap" }
+  ]
+}

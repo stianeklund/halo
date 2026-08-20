@@ -184,6 +184,8 @@ tools/verify/vc71_cache.db
 
 .serena
 recovery/*
+!recovery/evidence/
+!recovery/evidence/*.json
 scratch/*
 
 # Claude Code plugin skill lockfile (local tooling, not project source)
