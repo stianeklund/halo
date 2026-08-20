@@ -530,6 +530,94 @@ void xbox_texture_cache_setup_d3d_texture(void *bitmap /* @<esi> */,
   D3DResource_Register(texture, *(void **)((char *)bitmap + 0x2c));
 }
 
+/* texture_cache_new (0x1bf080)
+ *
+ * Bring up the Xbox texture cache: the datum table that tracks per-cache-block
+ * texture records (0x580 entries of 0x20 bytes), the LRU-V cache itself
+ * (0x580 pages of 2^0xe bytes, up to 0x580 blocks, with this TU's own
+ * block-delete/block-query callbacks), then the base address of the backing
+ * store in hardware texture memory. Every step is fatal on failure.
+ *
+ * 001bf080  PUSH 0x20 / PUSH 0x580 / PUSH "xbox texture" ; data_new args
+ * 001bf0ba  PUSH 0x1bed50 / PUSH 0x1bed90 / PUSH 0x580 /
+ *           PUSH 0xe / PUSH 0x580 / PUSH "xbox texture cache"
+ *                                 ; lruv_new args, last push is arg1
+ * 001bf103  CALL 0x001bdd60       ; base address, no args
+ *
+ * The repeated PAGE_COUNT (arg2 page_count, arg4 maximum_block_count) is not
+ * decompiler register aliasing: 001bf0c4 and 001bf0cb are two independent
+ * PUSH 0x580 immediates.
+ *
+ * The disassembly does TEST EAX,EAX before storing EAX to the global at each
+ * step; that is MSVC scheduling of `globals.x = f(); if (!globals.x)`, not a
+ * separate source temporary. */
+void texture_cache_new(void)
+{
+  *(data_t **)0x4ea978 =
+    data_new("xbox texture", HALO_TEXTURE_CACHE_PAGE_COUNT, 0x20);
+  if (*(data_t **)0x4ea978 == NULL) {
+    display_assert("xbox_texture_cache_globals.textures",
+                   "c:\\halo\\SOURCE\\cache\\xbox_texture_cache.c", 0x62, true);
+    system_exit(-1);
+  }
+
+  *(void **)0x4ea980 =
+    lruv_new((int)"xbox texture cache", HALO_TEXTURE_CACHE_PAGE_COUNT,
+             HALO_TEXTURE_CACHE_PAGE_BITS, HALO_TEXTURE_CACHE_PAGE_COUNT,
+             FUN_001bed90, FUN_001bed50);
+  if (*(void **)0x4ea980 == NULL) {
+    display_assert("xbox_texture_cache_globals.cache",
+                   "c:\\halo\\SOURCE\\cache\\xbox_texture_cache.c", 0x66, true);
+    system_exit(-1);
+  }
+
+  *(void **)0x4ea97c = FUN_001bdd60();
+  if (*(void **)0x4ea97c == NULL) {
+    display_assert("xbox_texture_cache_globals.base_address",
+                   "c:\\halo\\SOURCE\\cache\\xbox_texture_cache.c", 0x69, true);
+    system_exit(-1);
+  }
+}
+
+/* texture_cache_close (0x1bf130)
+ *
+ * Teardown counterpart to texture_cache_new. Asserts the stolen-memory flag is
+ * clear, drains the GPU of pending work, releases every cached page, then marks
+ * the bitmap-entry data array invalid.
+ *
+ * 001bf130  MOV AL,[0x004ea984]            ; stolen_memory flag (int8)
+ * 001bf137  JZ 0x001bf159                  ; skip assert when clear
+ * 001bf14a  CALL display_assert             ; line 0x85, halt=true
+ * 001bf151  CALL system_exit(-1)
+ * 001bf159  CALL D3DDevice_KickPushBuffer  ; submit pending pushbuffer work
+ * 001bf15e  CALL D3DDevice_IsBusy          ; return value discarded
+ * 001bf163  MOV EAX,[0x004ea980]           ; the lruv cache pointer
+ * 001bf169  CALL lruv_cache_dispose_all
+ * 001bf16e  MOV ECX,[0x004ea978]           ; bitmap-entry data array
+ * 001bf175  CALL data_make_invalid
+ * 001bf17a  ADD ESP,0x8                    ; one coalesced cdecl cleanup for
+ *                                          ; the two 1-arg calls above
+ *
+ * The single ADD ESP,0x8 is MSVC merging the cleanup of both preceding cdecl
+ * calls; each callee takes exactly one stack argument (the ARG_COUNT hazard
+ * reported against data_make_invalid is that coalescing, not a second arg).
+ * As in texture_cache_flush, the D3DDevice_IsBusy result is genuinely unused --
+ * no TEST/branch follows it; the call is there to stall until the GPU drains.
+ */
+void texture_cache_close(void)
+{
+  if (*(int8_t *)0x4ea984 != 0) {
+    display_assert("!xbox_texture_cache_globals.stolen_memory",
+                   "c:\\halo\\SOURCE\\cache\\xbox_texture_cache.c", 0x85, true);
+    system_exit(-1);
+  }
+
+  D3DDevice_KickPushBuffer();
+  D3DDevice_IsBusy();
+  lruv_cache_dispose_all(*(void **)0x4ea980);
+  data_make_invalid(*(data_t **)0x4ea978);
+}
+
 bool xbox_texture_cache_request(void *hardware_format, bool block)
 {
   int32_t min_block = *(int32_t *)((char *)hardware_format + 0x1c);
