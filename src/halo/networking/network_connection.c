@@ -335,7 +335,7 @@ void network_connection_notify_traffic_event(int event, int enable,
     if (FUN_00083a60((int *)conn->reliable_endpoint, addr_buf) != 0 &&
         FUN_00083a60((int *)conn->unreliable_endpoint, addr_buf) != 0) {
       csmemset(addr_buf, 0, 0x18);
-      *(unsigned short *)(addr_buf + 0x10) = 4;
+      ((struct transport_address *)addr_buf)->address_length = 4;
     }
     csmemset(name_buf, 0, sizeof(name_buf));
     addr_str = transport_address_to_string(addr_buf);
@@ -361,7 +361,7 @@ void network_connection_notify_traffic_event(int event, int enable,
     }
     if (FUN_00083a60((int *)conn->reliable_endpoint, addr_buf) != 0) {
       csmemset(addr_buf, 0, 0x18);
-      *(unsigned short *)(addr_buf + 0x10) = 4;
+      ((struct transport_address *)addr_buf)->address_length = 4;
     }
     crt_fprintf(conn->traffic_log_file, (const char *)0x294d08);
     crt_fprintf(conn->traffic_log_file, (const char *)0x294cf4,

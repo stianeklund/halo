@@ -1139,17 +1139,17 @@ char *FUN_001a67b0(short param_1, unsigned char param_2)
  */
 short FUN_001a67e0(const char *param_1)
 {
-  short sVar2;
-  int iVar1;
+  short s2;
+  int i1;
 
-  sVar2 = 0;
+  s2 = 0;
   do {
-    iVar1 = csstrcmp(((const char **)0x32d7c8)[(int)sVar2 * 2], param_1);
-    if (iVar1 == 0) {
-      return sVar2;
+    i1 = csstrcmp(((const char **)0x32d7c8)[(int)s2 * 2], param_1);
+    if (i1 == 0) {
+      return s2;
     }
-    sVar2 = sVar2 + 1;
-  } while (sVar2 < 0xd1);
+    s2 = s2 + 1;
+  } while (s2 < 0xd1);
   return -1;
 }
 
@@ -1165,21 +1165,21 @@ short FUN_001a67e0(const char *param_1)
  */
 int FUN_001a6820(int param_1, char param_2)
 {
-  int iVar1;
+  int i1;
   int *block;
   int bVal;
 
   bVal = (int)(short)(unsigned short)(param_2 != '\0');
-  iVar1 = *(int *)(param_1 + 0x2a8) - 1;
+  i1 = *(int *)(param_1 + 0x2a8) - 1;
   block = (int *)(param_1 + 0x2a8);
-  if (bVal <= iVar1) {
-    iVar1 = bVal;
+  if (bVal <= i1) {
+    i1 = bVal;
   }
-  if ((short)iVar1 < 0) {
+  if ((short)i1 < 0) {
     return -1;
   }
   return (int)verify_tag_reference(
-    (int *)tag_block_get_element(block, (int)(short)iVar1, 0x30));
+    (int *)tag_block_get_element(block, (int)(short)i1, 0x30));
 }
 
 /* FUN_001a6870 (0x1a6870)
@@ -1195,24 +1195,24 @@ int FUN_001a6820(int param_1, char param_2)
  */
 int FUN_001a6870(int param_1, short param_2, char param_3)
 {
-  int iVar1;
-  int iVar2;
+  int i1;
+  int i2;
   int *block;
   int bVal;
 
-  iVar1 =
+  i1 =
     (int)tag_block_get_element((void *)(param_1 + 0x2e4), (int)param_2, 0x11c);
   bVal = (int)(short)(unsigned short)(param_3 != '\0');
-  iVar2 = *(int *)(iVar1 + 0xdc) - 1;
-  block = (int *)(iVar1 + 0xdc);
-  if (bVal <= iVar2) {
-    iVar2 = bVal;
+  i2 = *(int *)(i1 + 0xdc) - 1;
+  block = (int *)(i1 + 0xdc);
+  if (bVal <= i2) {
+    i2 = bVal;
   }
-  if ((short)iVar2 < 0) {
+  if ((short)i2 < 0) {
     return -1;
   }
   return (int)verify_tag_reference(
-    (int *)tag_block_get_element(block, (int)(short)iVar2, 0x30));
+    (int *)tag_block_get_element(block, (int)(short)i2, 0x30));
 }
 
 /* FUN_001a68d0 (0x1a68d0) — unit dialogue speech slot allocation.
@@ -1711,11 +1711,11 @@ void FUN_001a70d0(int unit_handle, int sound_tag, int sound_handle)
   char *unit;
   int result;
   char speech_buf[0x30];
-  int local_8;
+  int l_8;
 
   unit = (char *)object_get_and_verify_type(unit_handle, 3);
-  local_8 = -1;
-  result = FUN_001a68d0(unit_handle, 6, 0, 0, 0, (int16_t *)&local_8, &result);
+  l_8 = -1;
+  result = FUN_001a68d0(unit_handle, 6, 0, 0, 0, (int16_t *)&l_8, &result);
   if ((int16_t)result < 3) {
     result = 2;
   }
@@ -2268,17 +2268,17 @@ void FUN_001a7ad0(int parent_handle, float param_2, float param_3)
   int iter_state;
   int child;
   char *obj;
-  float local_c;
-  float local_8;
+  float l_c;
+  float l_8;
 
   child = FUN_000ce450(parent_handle, &iter_state);
   while (child != -1) {
-    local_8 = param_3;
-    local_c = param_2;
+    l_8 = param_3;
+    l_c = param_2;
     if (child != -1) {
       obj = (char *)object_get_and_verify_type(child, -1);
       if ((*(uint8_t *)(obj + 0xb6) & 4) == 0) {
-        FUN_001365d0(child, &local_c, &local_8);
+        FUN_001365d0(child, &l_c, &l_8);
       }
     }
     child = FUN_000ce320(parent_handle, &iter_state);
@@ -2560,41 +2560,41 @@ void unit_export_function_values(int unit_handle)
 {
   uint32_t *unit;
   char *unit_tag;
-  float fVar1;
-  float *pfVar4;
+  float f1;
+  float *pf4;
   int16_t *psVar5;
   char *anim_tag;
   char *anim_entry;
-  int local_8;
+  int l_8;
 
   unit = (uint32_t *)object_get_and_verify_type(unit_handle, 3);
   unit_tag = (char *)tag_get(0x756e6974, *unit);
-  pfVar4 = (float *)(unit + 0x35);
+  pf4 = (float *)(unit + 0x35);
   psVar5 = (int16_t *)(unit_tag + 0x198);
-  local_8 = 4;
+  l_8 = 4;
   do {
     if (*psVar5 != 0) {
-      fVar1 = 0.0f;
+      f1 = 0.0f;
       switch (*psVar5) {
       case 1:
-        fVar1 = *(float *)(unit + 0xba);
+        f1 = *(float *)(unit + 0xba);
         break;
       case 2:
-        fVar1 = *(float *)(unit + 0xbb);
+        f1 = *(float *)(unit + 0xbb);
         break;
       case 3:
-        fVar1 = (float)*(uint8_t *)((char *)unit + 0x2d3) * *(float *)0x261518;
+        f1 = (float)*(uint8_t *)((char *)unit + 0x2d3) * *(float *)0x261518;
         break;
       case 4:
-        fVar1 = *(float *)(unit + 0xa6);
+        f1 = *(float *)(unit + 0xa6);
         break;
       case 5:
-        fVar1 = *(float *)(unit + 0xbc);
+        f1 = *(float *)(unit + 0xbc);
         break;
       case 6:
         if ((*(uint8_t *)((char *)unit + 0xb6) & 4) == 0 &&
             (unit[0x6d] & 0x400000) == 0) {
-          fVar1 = *(float *)0x2533c8;
+          f1 = *(float *)0x2533c8;
         }
         break;
       case 7:
@@ -2602,21 +2602,21 @@ void unit_export_function_values(int unit_handle)
         anim_entry = (char *)tag_block_get_element(
           (int *)(anim_tag + 0x74), (int)*(int16_t *)(unit + 0x20), 0xb4);
         if (*(int16_t *)(unit + 0x20) < *(int16_t *)(anim_entry + 0x2e)) {
-          fVar1 = (float)(int)*(int16_t *)(unit + 0x20) /
+          f1 = (float)(int)*(int16_t *)(unit + 0x20) /
                   (float)(int)*(int16_t *)(anim_entry + 0x2e);
         } else {
-          fVar1 =
+          f1 =
             *(float *)0x2533c8 -
             (float)(int)*(int8_t *)((char *)unit + 0x1be) * *(float *)0x26f2e0;
         }
         break;
       }
-      *pfVar4 = fVar1;
+      *pf4 = f1;
     }
     psVar5++;
-    pfVar4++;
-    local_8--;
-  } while (local_8 != 0);
+    pf4++;
+    l_8--;
+  } while (l_8 != 0);
 }
 
 /* unit_persistent_control (0x1a8190)
@@ -4800,43 +4800,43 @@ void FUN_001a9f20(int unit_handle)
 int units_debug_get_next_unit(int current_unit)
 {
   int result;
-  char *iVar1;
-  char local_14[8];
-  int local_c = 0;
+  char *i1;
+  char l_14[8];
+  int l_c = 0;
 
   result = -1;
   if (current_unit != -1) {
-    object_iterator_new(local_14, 3, 0);
-    iVar1 = (char *)object_iterator_next(local_14);
-    while (iVar1 != NULL && local_c != current_unit) {
-      iVar1 = (char *)object_iterator_next(local_14);
+    object_iterator_new(l_14, 3, 0);
+    i1 = (char *)object_iterator_next(l_14);
+    while (i1 != NULL && l_c != current_unit) {
+      i1 = (char *)object_iterator_next(l_14);
     }
-    iVar1 = (char *)object_iterator_next(local_14);
-    while (iVar1 != NULL) {
-      if (*(int *)(iVar1 + 0x1a4) == -1 && *(int *)(iVar1 + 0x1a8) == -1 &&
-          (*(uint8_t *)(iVar1 + 0xb6) & 4) == 0) {
-        result = local_c;
-        if (local_c != -1) {
-          return local_c;
+    i1 = (char *)object_iterator_next(l_14);
+    while (i1 != NULL) {
+      if (*(int *)(i1 + 0x1a4) == -1 && *(int *)(i1 + 0x1a8) == -1 &&
+          (*(uint8_t *)(i1 + 0xb6) & 4) == 0) {
+        result = l_c;
+        if (l_c != -1) {
+          return l_c;
         }
         break;
       }
-      iVar1 = (char *)object_iterator_next(local_14);
+      i1 = (char *)object_iterator_next(l_14);
     }
   }
-  object_iterator_new(local_14, 3, 0);
-  iVar1 = (char *)object_iterator_next(local_14);
+  object_iterator_new(l_14, 3, 0);
+  i1 = (char *)object_iterator_next(l_14);
   while (1) {
-    if (iVar1 == NULL) {
+    if (i1 == NULL) {
       return result;
     }
-    if (*(int *)(iVar1 + 0x1a4) == -1 && *(int *)(iVar1 + 0x1a8) == -1 &&
-        (*(uint8_t *)(iVar1 + 0xb6) & 4) == 0) {
+    if (*(int *)(i1 + 0x1a4) == -1 && *(int *)(i1 + 0x1a8) == -1 &&
+        (*(uint8_t *)(i1 + 0xb6) & 4) == 0) {
       break;
     }
-    iVar1 = (char *)object_iterator_next(local_14);
+    i1 = (char *)object_iterator_next(l_14);
   }
-  return local_c;
+  return l_c;
 }
 
 /* FUN_001AA170 (0x1aa170) — find nearest biped
@@ -5194,20 +5194,20 @@ void unit_detach_from_parent(int object_handle)
  * Returns true if any unit is sitting in the specified seat. */
 char unit_seat_filled(int unit_handle, int16_t seat_index)
 {
-  char *iVar1;
-  char local_14[16];
+  char *i1;
+  char l_14[16];
 
-  object_iterator_new(local_14, 3, 0);
-  iVar1 = (char *)object_iterator_next(local_14);
+  object_iterator_new(l_14, 3, 0);
+  i1 = (char *)object_iterator_next(l_14);
   while (1) {
-    if (iVar1 == NULL) {
+    if (i1 == NULL) {
       return 0;
     }
-    if (*(int *)(iVar1 + 0xcc) == unit_handle &&
-        *(int16_t *)(iVar1 + 0x2a0) == seat_index) {
+    if (*(int *)(i1 + 0xcc) == unit_handle &&
+        *(int16_t *)(i1 + 0x2a0) == seat_index) {
       break;
     }
-    iVar1 = (char *)object_iterator_next(local_14);
+    i1 = (char *)object_iterator_next(l_14);
   }
   return 1;
 }
@@ -6904,11 +6904,11 @@ void FUN_001ac680(float initial_p, float initial_v, float max_v, float max_a,
                   int plan)
 {
   int at_rest;
-  volatile float fVar1; /* |initial_v| / max_a, later the coasting velocity.
+  volatile float f1; /* |initial_v| / max_a, later the coasting velocity.
                          * volatile forces the store-once/reload-each-use
                          * pattern of the original (fstps [EBP+0x18] + FLDS),
                          * which is also the faithful x87 float narrowing. */
-  float fVar4; /* discriminated stop distance — FPU-stack resident in
+  float f4; /* discriminated stop distance — FPU-stack resident in
                 * the original (FCOMS keeps it live into both time
                 * branches), never stored to memory */
   float sq; /* sqrt(disc) — FPU-stack resident */
@@ -6939,11 +6939,11 @@ void FUN_001ac680(float initial_p, float initial_v, float max_v, float max_a,
     return;
   }
 
-  fVar1 = (float)(fabs(initial_v) / max_a);
+  f1 = (float)(fabs(initial_v) / max_a);
   bVar = (initial_v > 0.0f) ? 1 : 0;
 
   /* Check if we're moving in the wrong direction (need to reverse) */
-  if (fVar1 * 0.5f * initial_v * 0.5f + initial_p < 0.0f) {
+  if (f1 * 0.5f * initial_v * 0.5f + initial_p < 0.0f) {
     /* Recursive case: negate and re-plan */
     FUN_001ac680(-initial_p, -initial_v, max_v, max_a, plan);
     *(float *)(plan + 0x04) = *(float *)(plan + 0x04) * -1.0f;
@@ -6953,13 +6953,13 @@ void FUN_001ac680(float initial_p, float initial_v, float max_v, float max_a,
     goto validate;
   }
 
-  /* fVar4 stays on the FPU stack across this branch in the original
+  /* f4 stays on the FPU stack across this branch in the original
    * (non-popping FCOMS at 0x1ac7ab). VC71 sinks the large else block past
    * the validate join, reproducing the original layout where the main
    * time computation sits after the epilogue (0x1ac90c..0x1acbea) and
    * jumps back to validate. */
-  fVar4 = initial_v * 0.5f * fVar1 + initial_p;
-  if (fVar4 < 0.0f) {
+  f4 = initial_v * 0.5f * f1 + initial_p;
+  if (f4 < 0.0f) {
     /* Overshoot case: initial_p near zero, velocity away from target.
      * All asserts use the !(cond) macro form so the unordered (NaN) path
      * faithfully falls into the assert, matching the original masks. */
@@ -6990,13 +6990,13 @@ void FUN_001ac680(float initial_p, float initial_v, float max_v, float max_a,
      *   initial_p -> discriminant, then the first quadratic root, then
      *                the velocity-clamped time (actual_t) */
     if (bVar) {
-      /* Accelerating (initial_v > 0): direct sqrt on the live fVar4 */
-      initial_v = sqrtf(fVar4 / max_a);
+      /* Accelerating (initial_v > 0): direct sqrt on the live f4 */
+      initial_v = sqrtf(f4 / max_a);
     } else {
       /* Decelerating (initial_v <= 0): quadratic formula */
       scratch = -max_a;
       initial_v = initial_v + initial_v; /* doubled_v */
-      initial_p = initial_v * initial_v - scratch * fVar4 * 4.0f; /* disc */
+      initial_p = initial_v * initial_v - scratch * f4 * 4.0f; /* disc */
       if (!(initial_p >= 0.0f)) {
         display_assert("disc >= 0", "c:\\halo\\SOURCE\\units\\units.c", 0x7eb,
                        1);
@@ -7047,35 +7047,35 @@ void FUN_001ac680(float initial_p, float initial_v, float max_v, float max_a,
     *(float *)(plan + 0x0c) = -max_a;
     *(float *)(plan + 0x18) = max_a;
     if (bVar) {
-      /* initial_v > 0: accel_t = actual_t + fVar1, decel_t = actual_t */
-      *(float *)(plan + 0x10) = initial_p + fVar1;
+      /* initial_v > 0: accel_t = actual_t + f1, decel_t = actual_t */
+      *(float *)(plan + 0x10) = initial_p + f1;
       *(float *)(plan + 0x1c) = initial_p;
     } else {
-      /* initial_v <= 0: accel_t = actual_t, decel_t = actual_t + fVar1 */
-      *(float *)(plan + 0x1c) = initial_p + fVar1;
+      /* initial_v <= 0: accel_t = actual_t, decel_t = actual_t + f1 */
+      *(float *)(plan + 0x1c) = initial_p + f1;
       *(float *)(plan + 0x10) = initial_p;
     }
 
-    /* Check if we need a coasting phase (actual_t < t). fVar1 is dead
+    /* Check if we need a coasting phase (actual_t < t). f1 is dead
      * here; the original reuses its slot for the coasting velocity, and
      * the coast difference (t - actual_t) lives only on the FPU stack. */
     if (initial_p < initial_v) {
       /* Original reuses the -max_a still on the FPU stack from the
        * accel_a store; reading accel_a back expresses that reuse. */
-      fVar1 = *(float *)(plan + 0x0c) * *(float *)(plan + 0x10) +
+      f1 = *(float *)(plan + 0x0c) * *(float *)(plan + 0x10) +
               *(float *)(plan + 8);
       /* sq holds (diff * coasting_vel) so the volatile coasting
        * velocity is loaded once, doubled on the FPU stack (FADD ST,ST0)
        * as in the original. */
-      sq = (initial_v - initial_p) * fVar1;
+      sq = (initial_v - initial_p) * f1;
       scratch =
         (sq + sq) - (initial_v - initial_p) * (initial_v - initial_p) * max_a;
-      if (!(fVar1 < 0.0f)) {
+      if (!(f1 < 0.0f)) {
         display_assert("coasting_vel < 0", "c:\\halo\\SOURCE\\units\\units.c",
                        0x850, 1);
         system_exit(-1);
       }
-      *(float *)(plan + 0x14) = scratch / fVar1;
+      *(float *)(plan + 0x14) = scratch / f1;
       if (!(*(float *)(plan + 0x14) >= 0.0f)) {
         display_assert("plan->coast_t >= 0", "c:\\halo\\SOURCE\\units\\units.c",
                        0x852, 1);
@@ -13423,18 +13423,18 @@ char FUN_001b3690(int unit_handle)
   /* --- All variable declarations (C89) --- */
   int *unit;
   int tag_data;
-  char local_7;
-  char local_5;
-  char local_8;
-  char local_9;
-  char local_6;
-  char cVar6;
-  int iVar10;
-  uint32_t uVar15;
+  char l_7;
+  char l_5;
+  char l_8;
+  char l_9;
+  char l_6;
+  char c6;
+  int i10;
+  uint32_t u15;
   uint32_t unit_flags;
-  float fVar1;
-  float fVar20;
-  float local_14;
+  float f1;
+  float f20;
+  float l_14;
   float aim_vel_limit;
   float aim_accel_limit;
   float *aim_vec;
@@ -13481,10 +13481,10 @@ char FUN_001b3690(int unit_handle)
   /* === Entry === */
   unit = (int *)object_get_and_verify_type(unit_handle, 3);
   tag_data = (int)tag_get(0x756e6974, *unit);
-  local_7 = 0;
-  local_5 = 0;
-  local_8 = 0;
-  local_9 = FUN_000ab9e0();
+  l_7 = 0;
+  l_5 = 0;
+  l_8 = 0;
+  l_9 = FUN_000ab9e0();
 
   /* [1] Debug trace enter */
   if (*(char *)0x449ef1 != 0 && *(char *)0x32de90 != 0) {
@@ -13499,7 +13499,7 @@ char FUN_001b3690(int unit_handle)
 
   if (*(char *)((char *)anim_ptr + 4) == 0 && *anim_ptr < anim_counter) {
     *(char *)((char *)anim_ptr + 4) = 1;
-    local_7 = 1;
+    l_7 = 1;
     *(short *)((char *)unit + 0x1bc) = 0;
   } else {
     if (anim_ptr[1] > anim_counter) {
@@ -13552,21 +13552,21 @@ char FUN_001b3690(int unit_handle)
   /* [4-7] Main update block (unless tag has interlocked flag 0x800) */
   if ((*(uint32_t *)(tag_data + 0x17c) & 0x800) == 0) {
     eff_timer_val = unit[0x70];
-    local_6 = 0;
+    l_6 = 0;
 
     /* [4] Effect timer countdown */
     if (eff_timer_val > 0) {
-      uVar15 = (uint32_t)unit[0x6e] | (uint32_t)unit[0x71];
-      unit[0x6e] = (int)uVar15;
+      u15 = (uint32_t)unit[0x6e] | (uint32_t)unit[0x71];
+      unit[0x6e] = (int)u15;
       if ((unit[0x71] & 0x800) == 0) {
         unit[0x8d] = 0;
       } else {
         if (eff_timer_val % 7 == 0) {
-          uVar15 = uVar15 | 0x800;
+          u15 = u15 | 0x800;
         } else {
-          uVar15 = uVar15 & 0xfffff7ff;
+          u15 = u15 & 0xfffff7ff;
         }
-        unit[0x6e] = (int)uVar15;
+        unit[0x6e] = (int)u15;
         unit[0x8d] = 0x3f800000;
       }
       unit[0x70] = eff_timer_val - 1;
@@ -13582,7 +13582,7 @@ char FUN_001b3690(int unit_handle)
           (*(unsigned char *)((char *)unit + 0xb6) & 4) == 0) {
         holder = (int)object_get_and_verify_type(unit[0xb5], 3);
         *(short *)((char *)unit + 0x68) = *(short *)(holder + 0x68);
-        local_6 = 1;
+        l_6 = 1;
 
         if (*(int *)(holder + 0x1c8) != -1 ||
             (*(char *)(holder + 0x253) != 0x1b &&
@@ -13602,7 +13602,7 @@ char FUN_001b3690(int unit_handle)
       if (unit[0xb6] != -1 &&
           (*(unsigned char *)((char *)unit + 0xb6) & 4) == 0) {
         holder = (int)object_get_and_verify_type(unit[0xb6], 3);
-        if (local_6 == 0) {
+        if (l_6 == 0) {
           *(short *)((char *)unit + 0x68) = *(short *)(holder + 0x68);
         }
         if (*(int *)(holder + 0x1c8) != -1 ||
@@ -13633,36 +13633,36 @@ char FUN_001b3690(int unit_handle)
     /* Flashlight + firing combined check */
     if (*(char *)0x5aa891 != 0 && ((uint32_t)unit[0x6e] & 0x800) != 0 &&
         ((uint32_t)unit[0x6e] & 0x2000) != 0) {
-      local_5 = 1;
+      l_5 = 1;
     }
 
     /* [6a] Melee timer (+0x32C) */
     if ((*(unsigned char *)((char *)unit + 0x1b4) & 0x10) == 0) {
-      fVar20 = *(float *)((char *)unit + 0x32c) - *(float *)0x28ac20;
-      *(float *)((char *)unit + 0x32c) = fVar20;
-      if (fVar20 < 0.0f) {
+      f20 = *(float *)((char *)unit + 0x32c) - *(float *)0x28ac20;
+      *(float *)((char *)unit + 0x32c) = f20;
+      if (f20 < 0.0f) {
         *(float *)((char *)unit + 0x32c) = 0.0f;
       }
     } else {
-      cVar6 = game_engine_running();
-      fVar20 = *(float *)0x28ac20;
-      if (cVar6 != 0 && *(short *)((char *)unit + 0x3d2) != 0 &&
+      c6 = game_engine_running();
+      f20 = *(float *)0x28ac20;
+      if (c6 != 0 && *(short *)((char *)unit + 0x3d2) != 0 &&
           *(short *)((char *)unit + 0x3d2) == 1) {
-        iVar10 = (int)object_get_and_verify_type(unit_handle, 3);
-        iVar10 = unit_get_weapon(unit_handle, *(int16_t *)(iVar10 + 0x2a2));
-        fVar20 = *(float *)0x28ac20;
-        if (iVar10 != -1) {
-          int *wo = (int *)object_get_and_verify_type(iVar10, 4);
-          iVar10 = (int)tag_get(0x77656170, *wo);
-          fVar20 = *(float *)0x28ac20;
-          if (*(float *)(iVar10 + 0x4d0) != 0.0f) {
-            fVar20 = *(float *)(iVar10 + 0x4d0);
+        i10 = (int)object_get_and_verify_type(unit_handle, 3);
+        i10 = unit_get_weapon(unit_handle, *(int16_t *)(i10 + 0x2a2));
+        f20 = *(float *)0x28ac20;
+        if (i10 != -1) {
+          int *wo = (int *)object_get_and_verify_type(i10, 4);
+          i10 = (int)tag_get(0x77656170, *wo);
+          f20 = *(float *)0x28ac20;
+          if (*(float *)(i10 + 0x4d0) != 0.0f) {
+            f20 = *(float *)(i10 + 0x4d0);
           }
         }
       }
-      fVar1 = *(float *)((char *)unit + 0x32c);
-      *(float *)((char *)unit + 0x32c) = fVar20 + fVar1;
-      if (fVar20 + fVar1 > 1.0f) {
+      f1 = *(float *)((char *)unit + 0x32c);
+      *(float *)((char *)unit + 0x32c) = f20 + f1;
+      if (f20 + f1 > 1.0f) {
         *(float *)((char *)unit + 0x32c) = 1.0f;
         *(short *)((char *)unit + 0x3d2) = 0;
       }
@@ -13670,15 +13670,15 @@ char FUN_001b3690(int unit_handle)
 
     /* [6b] Firing timer (+0x330) */
     if ((*(unsigned char *)((char *)unit + 0x1b4) & 0x20) == 0) {
-      fVar20 = *(float *)((char *)unit + 0x330) - *(float *)0x26f2e0;
-      *(float *)((char *)unit + 0x330) = fVar20;
-      if (fVar20 < 0.0f) {
+      f20 = *(float *)((char *)unit + 0x330) - *(float *)0x26f2e0;
+      *(float *)((char *)unit + 0x330) = f20;
+      if (f20 < 0.0f) {
         *(float *)((char *)unit + 0x330) = 0.0f;
       }
     } else {
-      fVar20 = *(float *)((char *)unit + 0x330) + *(float *)0x26f2e0;
-      *(float *)((char *)unit + 0x330) = fVar20;
-      if (fVar20 > 1.0f) {
+      f20 = *(float *)((char *)unit + 0x330) + *(float *)0x26f2e0;
+      *(float *)((char *)unit + 0x330) = f20;
+      if (f20 > 1.0f) {
         *(float *)((char *)unit + 0x330) = 1.0f;
       }
     }
@@ -13746,13 +13746,13 @@ char FUN_001b3690(int unit_handle)
       if ((*(unsigned short *)((char *)unit + 0xb6) & 0x400) == 0) {
         if (*(short *)((char *)unit + 0x2a4) !=
             *(short *)((char *)unit + 0x2a2)) {
-          cVar6 = FUN_001a8730((void *)((char *)unit + 0x248));
-          if (cVar6 == 0) {
-            iVar10 = (int)object_get_and_verify_type(unit_handle, 3);
-            iVar10 = unit_get_weapon(unit_handle, *(int16_t *)(iVar10 + 0x2a4));
-            if (iVar10 != -1) {
-              cVar6 = unit_can_enter_seat(unit_handle, iVar10);
-              if (cVar6 != 0) {
+          c6 = FUN_001a8730((void *)((char *)unit + 0x248));
+          if (c6 == 0) {
+            i10 = (int)object_get_and_verify_type(unit_handle, 3);
+            i10 = unit_get_weapon(unit_handle, *(int16_t *)(i10 + 0x2a4));
+            if (i10 != -1) {
+              c6 = unit_can_enter_seat(unit_handle, i10);
+              if (c6 != 0) {
                 unit_update_weapon_readiness(unit_handle, 1);
               }
             }
@@ -13764,8 +13764,8 @@ char FUN_001b3690(int unit_handle)
 
       /* [8b] Grenade type switch */
       if (*(char *)((char *)unit + 0x2cd) != *(char *)((char *)unit + 0x2cc)) {
-        cVar6 = FUN_001a8730((void *)((char *)unit + 0x248));
-        if (cVar6 == 0) {
+        c6 = FUN_001a8730((void *)((char *)unit + 0x248));
+        if (c6 == 0) {
           grenade_idx = unit_inventory_next_grenade(
             unit_handle, (short)(signed char)*(char *)((char *)unit + 0x2cd),
             0);
@@ -13799,15 +13799,15 @@ char FUN_001b3690(int unit_handle)
         if (zoom_level_new == (char)-1) {
           unit[0xbe] = 0;
         }
-        iVar10 = player_index_from_unit_index(unit_handle);
-        if (iVar10 != -1) {
+        i10 = player_index_from_unit_index(unit_handle);
+        if (i10 != -1) {
           int pi = player_index_from_unit_index(unit_handle);
           int pd = (int)datum_get(*(void **)0x5aa6d4, pi);
           if (*(short *)(pd + 2) != -1) {
-            iVar10 = (int)object_get_and_verify_type(unit_handle, 3);
-            iVar10 = unit_get_weapon(unit_handle, *(int16_t *)(iVar10 + 0x2a2));
-            if (iVar10 != -1) {
-              int *wo = (int *)object_get_and_verify_type(iVar10, 4);
+            i10 = (int)object_get_and_verify_type(unit_handle, 3);
+            i10 = unit_get_weapon(unit_handle, *(int16_t *)(i10 + 0x2a2));
+            if (i10 != -1) {
+              int *wo = (int *)object_get_and_verify_type(i10, 4);
               wpn_tag = (int)tag_get(0x77656170, *wo);
               zoom_level_new = *(char *)((char *)unit + 0x2d0);
               if (zoom_level_new == (char)-1) {
@@ -13835,19 +13835,19 @@ char FUN_001b3690(int unit_handle)
     unit_control_trace(unit_handle, (const char *)0x2b7c28);
 
     if (*(char *)((char *)unit + 0x238) == 1) {
-      local_14 = *(float *)(tag_data + 0x26c);
+      l_14 = *(float *)(tag_data + 0x26c);
     } else {
-      local_14 = 1.0f;
+      l_14 = 1.0f;
     }
 
     aim_vec = (float *)((char *)unit + 0x1ec);
     aim_vel_limit =
-      local_14 * *(float *)(tag_data + 0x264) * *(float *)0x2546a4;
+      l_14 * *(float *)(tag_data + 0x264) * *(float *)0x2546a4;
     saved_aim[0] = aim_vec[0];
     saved_aim[1] = aim_vec[1];
     saved_aim[2] = aim_vec[2];
     aim_accel_limit =
-      local_14 * *(float *)(tag_data + 0x268) * *(float *)0x25620c;
+      l_14 * *(float *)(tag_data + 0x268) * *(float *)0x25620c;
 
     /* [9a] Aiming: 3 paths */
     if (aim_vel_limit == 0.0f && aim_accel_limit == 0.0f) {
@@ -13892,9 +13892,9 @@ char FUN_001b3690(int unit_handle)
 
     /* Delta angle + steering byte */
     FUN_0010c510(aim_vec, saved_aim);
-    iVar10 = tag_data;
+    i10 = tag_data;
     delta_angle = FUN_0010c510(aim_vec, saved_aim);
-    ratio = delta_angle / (*(float *)(iVar10 + 0x264) * *(float *)0x2546a4);
+    ratio = delta_angle / (*(float *)(i10 + 0x264) * *(float *)0x2546a4);
     if (ratio < 0.0f) {
       ratio = 0.0f;
     } else if (ratio > 1.0f) {
@@ -13907,9 +13907,9 @@ char FUN_001b3690(int unit_handle)
     assert_halt(valid_real_normal3d(aim_vec));
 
     /* [9c] Looking direction */
-    aim_vel_limit = local_14 * *(float *)(iVar10 + 0x270) * *(float *)0x2546a4;
+    aim_vel_limit = l_14 * *(float *)(i10 + 0x270) * *(float *)0x2546a4;
     aim_accel_limit =
-      local_14 * *(float *)(iVar10 + 0x274) * *(float *)0x25620c;
+      l_14 * *(float *)(i10 + 0x274) * *(float *)0x25620c;
 
     if (aim_vel_limit == 0.0f && aim_accel_limit == 0.0f) {
       float *des = (float *)((char *)unit + 0x204);
@@ -13955,7 +13955,7 @@ char FUN_001b3690(int unit_handle)
     unit_control_trace(unit_handle, (const char *)0x2b7b4c);
 
     /* [10] Combat state switch */
-    if (local_5 == 0) {
+    if (l_5 == 0) {
       uint32_t ff = (uint32_t)unit[0x6e] >> 0xd;
       switch (*(signed char *)((char *)unit + 0x23d)) {
       case 0:
@@ -13985,26 +13985,26 @@ char FUN_001b3690(int unit_handle)
     /* [11] Weapon firing effects */
     if (*(short *)((char *)unit + 0x2a2) != -1) {
       flash_mod = *(float *)((char *)unit + 0x234);
-      uVar15 = 0;
+      u15 = 0;
 
       if (*(short *)((char *)unit + 0x2a2) ==
           *(short *)((char *)unit + 0x2a4)) {
         /* Current = desired weapon */
         if (unit[0x70] > 0 && (unit[0x71] & 0x800) != 0) {
-          local_6 = 1;
+          l_6 = 1;
         } else {
-          local_6 = 0;
+          l_6 = 0;
         }
-        if (local_5 == 0) {
-          if (local_9 != 0 &&
+        if (l_5 == 0) {
+          if (l_9 != 0 &&
               (*(unsigned char *)((char *)unit + 0x1b8) & 0x10) != 0) {
-            uVar15 = 1;
+            u15 = 1;
           }
           if (((uint32_t)unit[0x6e] & 0x800) != 0) {
-            uVar15 |= 2;
+            u15 |= 2;
           }
           if (((uint32_t)unit[0x6e] & 0x1000) != 0) {
-            uVar15 |= 4;
+            u15 |= 4;
           }
         }
         {
@@ -14025,27 +14025,27 @@ char FUN_001b3690(int unit_handle)
           }
         }
         if (((uint32_t)unit[0x6e] & 0x400) != 0) {
-          uVar15 |= 8;
+          u15 |= 8;
         }
-        cVar6 = FUN_001a8730((void *)((char *)unit + 0x248));
-        if (cVar6 != 0 && local_6 == 0) {
-          uVar15 |= 0x10;
+        c6 = FUN_001a8730((void *)((char *)unit + 0x248));
+        if (c6 != 0 && l_6 == 0) {
+          u15 |= 0x10;
         }
         if (*(short *)((char *)unit + 0x64) == 0 &&
             *(char *)((char *)unit + 0x45d) > 0) {
-          uVar15 |= 0x10;
+          u15 |= 0x10;
         }
         if (*(char *)((char *)unit + 0x2d0) != (char)-1) {
-          uVar15 |= 0x40;
+          u15 |= 0x40;
         }
       } else {
-        uVar15 = 0x20;
+        u15 = 0x20;
       }
 
       {
         int ud3 = (int)object_get_and_verify_type(unit_handle, 3);
         int w2 = unit_get_weapon(unit_handle, *(int16_t *)(ud3 + 0x2a2));
-        weapon_owner_update(w2, (int)uVar15, flash_mod);
+        weapon_owner_update(w2, (int)u15, flash_mod);
       }
     }
   } /* end tag 0x400 check */
@@ -14054,8 +14054,8 @@ char FUN_001b3690(int unit_handle)
   {
     float *obj_fwd = (float *)((char *)unit + 0x24);
     float *obj_up = (float *)((char *)unit + 0x30);
-    cVar6 = (char)valid_real_normal3d_perpendicular(obj_fwd, obj_up);
-    if (cVar6 == 0) {
+    c6 = (char)valid_real_normal3d_perpendicular(obj_fwd, obj_up);
+    if (c6 == 0) {
       char *msg = csprintf(
         *(char **)0x5ab100,
         "%s, %s: assert_valid_real_vector3d_axes2(%f, %f, %f / %f, %f, %f)",
@@ -14108,19 +14108,19 @@ char FUN_001b3690(int unit_handle)
           }
           if ((*(unsigned char *)((char *)unit + 0xb6) & 4) == 0 && is_held) {
             if (*(int *)((char *)unit + seat_off * 4 + 0x2e8) != 0x3f800000) {
-              fVar20 = 1.0f / (*(float *)(elem + 4) * TICKS_PER_SECOND) +
+              f20 = 1.0f / (*(float *)(elem + 4) * TICKS_PER_SECOND) +
                        *(float *)((char *)unit + seat_off * 4 + 0x2e8);
-              *(float *)((char *)unit + seat_off * 4 + 0x2e8) = fVar20;
-              if (fVar20 > 1.0f) {
+              *(float *)((char *)unit + seat_off * 4 + 0x2e8) = f20;
+              if (f20 > 1.0f) {
                 *(float *)((char *)unit + seat_off * 4 + 0x2e8) = 1.0f;
               }
             }
           } else {
             if (*(float *)((char *)unit + seat_off * 4 + 0x2e8) != 0.0f) {
-              fVar20 = *(float *)((char *)unit + seat_off * 4 + 0x2e8) -
+              f20 = *(float *)((char *)unit + seat_off * 4 + 0x2e8) -
                        1.0f / (*(float *)(elem + 8) * TICKS_PER_SECOND);
-              *(float *)((char *)unit + seat_off * 4 + 0x2e8) = fVar20;
-              if (fVar20 < 0.0f) {
+              *(float *)((char *)unit + seat_off * 4 + 0x2e8) = f20;
+              if (f20 < 0.0f) {
                 *(float *)((char *)unit + seat_off * 4 + 0x2e8) = 0.0f;
               }
             }
@@ -14156,14 +14156,14 @@ char FUN_001b3690(int unit_handle)
   FUN_001a7790(unit_handle);
 
   /* Weapon alert sound */
-  if ((local_7 != 0 || unit[0x72] != -1) &&
+  if ((l_7 != 0 || unit[0x72] != -1) &&
       (FUN_001ab8c0(unit_handle), *(char *)0x5054fa != 0) && unit[0x72] != -1) {
-    iVar10 = game_time_get();
-    if (iVar10 >= *(int *)0x32e480 + 0x1e) {
+    i10 = game_time_get();
+    if (i10 >= *(int *)0x32e480 + 0x1e) {
       ((void (*)(int, const char *, ...))0x8f390)(
         2, (const char *)0x2b7b20, (double)*(float *)((char *)unit + 0x290),
         (double)*(float *)((char *)unit + 0x294));
-      *(int *)0x32e480 = iVar10;
+      *(int *)0x32e480 = i10;
     }
   }
 
@@ -14196,32 +14196,32 @@ char FUN_001b3690(int unit_handle)
 
   /* Integrated light toggle flags */
   unit_flags = (uint32_t)unit[0x6d];
-  cVar6 = local_8;
+  c6 = l_8;
   if ((unit_flags & 0x10000000) != 0) {
-    cVar6 = 1;
+    c6 = 1;
     if ((unit_flags & 0x80000) != 0) {
-      cVar6 = local_8;
+      c6 = l_8;
     }
     unit[0x6d] = (int)(unit_flags & 0xefffffff);
   }
   unit_flags = (uint32_t)unit[0x6d];
   if ((unit_flags & 0x20000000) != 0) {
     if ((unit_flags & 0x80000) != 0) {
-      cVar6 = 1;
+      c6 = 1;
     }
     unit[0x6d] = (int)(unit_flags & 0xdfffffff);
   }
 
   /* [17] Weapon flash/camo effect */
-  if ((local_9 != 0 &&
+  if ((l_9 != 0 &&
        (*(unsigned char *)((char *)unit + 0x1b8) & 0x10) != 0) ||
-      *(float *)((char *)unit + 0x2f4) < 0.0f || cVar6 != 0) {
-    iVar10 = (int)object_get_and_verify_type(unit_handle, 3);
-    if (*(char *)(iVar10 + 0x2d0) != (char)-1) {
-      iVar10 = (int)object_get_and_verify_type(unit_handle, 3);
-      iVar10 = unit_get_weapon(unit_handle, *(int16_t *)(iVar10 + 0x2a2));
-      if (iVar10 != -1) {
-        int *wo = (int *)object_get_and_verify_type(iVar10, 4);
+      *(float *)((char *)unit + 0x2f4) < 0.0f || c6 != 0) {
+    i10 = (int)object_get_and_verify_type(unit_handle, 3);
+    if (*(char *)(i10 + 0x2d0) != (char)-1) {
+      i10 = (int)object_get_and_verify_type(unit_handle, 3);
+      i10 = unit_get_weapon(unit_handle, *(int16_t *)(i10 + 0x2a2));
+      if (i10 != -1) {
+        int *wo = (int *)object_get_and_verify_type(i10, 4);
         wpn_tag = (int)tag_get(0x77656170, *wo);
         if ((*(uint32_t *)(wpn_tag + 0x308) & 0x4000) != 0 &&
             (*(unsigned char *)((char *)unit + 0x1b8) & 0x10) != 0) {
@@ -14231,12 +14231,12 @@ char FUN_001b3690(int unit_handle)
             (int)tag_block_get_element((void *)(game_glob + 0x17c), 0, 0xc0);
           assert_halt_msg(fp_iface != 0, "game_globals_first_person_interface");
           if ((unit[0x6d] & 0x4000000) == 0) {
-            iVar10 = *(int *)(fp_iface + 0x54);
+            i10 = *(int *)(fp_iface + 0x54);
           } else {
-            iVar10 = *(int *)(fp_iface + 0x64);
+            i10 = *(int *)(fp_iface + 0x64);
           }
-          if (iVar10 != -1) {
-            FUN_0009ec30(iVar10, unit_handle, unit_handle, -1, 0.0f, 0.0f, 0,
+          if (i10 != -1) {
+            FUN_0009ec30(i10, unit_handle, unit_handle, -1, 0.0f, 0.0f, 0,
                          0);
           }
           unit[0x6d] = unit[0x6d] ^ 0x4000000;
@@ -14264,9 +14264,9 @@ label_flashlight_done:
         *(float *)((char *)unit + 0x2f4) + *(float *)0x25620c;
     }
     if (*(float *)((char *)unit + 0x2f0) != 0.0f) {
-      fVar20 = *(float *)((char *)unit + 0x2f0) - *(float *)0x28af18;
-      *(float *)((char *)unit + 0x2f0) = fVar20;
-      if (fVar20 < 0.0f) {
+      f20 = *(float *)((char *)unit + 0x2f0) - *(float *)0x28af18;
+      *(float *)((char *)unit + 0x2f0) = f20;
+      if (f20 < 0.0f) {
         *(float *)((char *)unit + 0x2f0) = 0.0f;
       }
     }
@@ -14280,17 +14280,17 @@ label_flashlight_done:
       unit[0x6d] = unit[0x6d] & (int)0xfff7ffff;
     }
     if (*(int *)((char *)unit + 0x2f0) != 0x3f800000) {
-      fVar20 = *(float *)((char *)unit + 0x2f0) + *(float *)0x2647d4;
-      *(float *)((char *)unit + 0x2f0) = fVar20;
-      if (fVar20 > 1.0f) {
+      f20 = *(float *)((char *)unit + 0x2f0) + *(float *)0x2647d4;
+      *(float *)((char *)unit + 0x2f0) = f20;
+      if (f20 > 1.0f) {
         *(float *)((char *)unit + 0x2f0) = 1.0f;
       }
     }
   }
 
   /* [19] Per-weapon integrated light power */
-  iVar10 = (int)object_get_and_verify_type(unit_handle, 3);
-  if (*(char *)(iVar10 + 0x2d0) != (char)-1) {
+  i10 = (int)object_get_and_verify_type(unit_handle, 3);
+  if (*(char *)(i10 + 0x2d0) != (char)-1) {
     unit_data_tmp = (int)object_get_and_verify_type(unit_handle, 3);
     wpn_idx = *(int16_t *)(unit_data_tmp + 0x2a2);
     unit_data_tmp = (int)object_get_and_verify_type(unit_handle, 3);
@@ -14300,24 +14300,24 @@ label_flashlight_done:
                        "c:\\halo\\SOURCE\\units\\units.c", 0x20ac, 1);
         system_exit(-1);
       }
-      iVar10 = *(int *)(unit_data_tmp + 0x2a8 + wpn_idx * 4);
-      if (iVar10 != -1) {
-        int *wo = (int *)object_get_and_verify_type(iVar10, 4);
+      i10 = *(int *)(unit_data_tmp + 0x2a8 + wpn_idx * 4);
+      if (i10 != -1) {
+        int *wo = (int *)object_get_and_verify_type(i10, 4);
         wpn_tag = (int)tag_get(0x77656170, *wo);
         if ((*(uint32_t *)(wpn_tag + 0x308) & 0x4000) != 0) {
           if ((unit[0x6d] & 0x4000000) == 0) {
             if (*(float *)((char *)unit + 0x2f8) != 0.0f) {
-              fVar20 = *(float *)((char *)unit + 0x2f8) - *(float *)0x28af18;
-              *(float *)((char *)unit + 0x2f8) = fVar20;
-              if (fVar20 < 0.0f) {
+              f20 = *(float *)((char *)unit + 0x2f8) - *(float *)0x28af18;
+              *(float *)((char *)unit + 0x2f8) = f20;
+              if (f20 < 0.0f) {
                 *(float *)((char *)unit + 0x2f8) = 0.0f;
               }
             }
           } else {
             if (*(int *)((char *)unit + 0x2f8) != 0x3f800000) {
-              fVar20 = *(float *)((char *)unit + 0x2f8) + *(float *)0x255960;
-              *(float *)((char *)unit + 0x2f8) = fVar20;
-              if (fVar20 > 1.0f) {
+              f20 = *(float *)((char *)unit + 0x2f8) + *(float *)0x255960;
+              *(float *)((char *)unit + 0x2f8) = f20;
+              if (f20 > 1.0f) {
                 *(float *)((char *)unit + 0x2f8) = 1.0f;
               }
             }

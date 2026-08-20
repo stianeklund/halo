@@ -41,6 +41,14 @@
       "started": "2026-08-03",
       "status": "done"
     },
+    "devices.obj": {
+      "categories_done": [],
+      "commits": [],
+      "finished": "2026-08-20",
+      "reason": "no_applicable_items: every ladder category was skipped or fully parked (symbol-names 33 FUN_ unnamed/abs-addr non-neutral; offset-to-field 85 no co() for device/devi/unit)",
+      "started": "2026-08-20",
+      "status": "parked"
+    },
     "effects.obj": {
       "categories_done": [
         "local-renames"
@@ -91,6 +99,22 @@
       "started": "2026-08-20",
       "status": "done"
     },
+    "hud_messaging.obj": {
+      "categories_done": [
+        "local-renames",
+        "symbol-names",
+        "offset-to-field"
+      ],
+      "commits": [
+        "06988b5f89c61de9a8561c872025df056be28362",
+        "445bc87b1f00596331a14a6dbebeaca9c3207336",
+        "bb9430a5fbc131e07d0e46afe5dd6731c8fe0bba"
+      ],
+      "finished": "2026-08-20",
+      "reason": null,
+      "started": "2026-08-20",
+      "status": "done"
+    },
     "hud_weapon.obj": {
       "categories_done": [
         "symbol-names"
@@ -119,6 +143,20 @@
       "started": "2026-08-20",
       "status": "parked"
     },
+    "network_connection.obj": {
+      "categories_done": [
+        "symbol-names",
+        "offset-to-field"
+      ],
+      "commits": [
+        "f90868ccae497a4093ee1b52a472e7202a9822d1",
+        "9f5a214601e78d1a96004ddf4a40549e9b896475"
+      ],
+      "finished": "2026-08-20",
+      "reason": null,
+      "started": "2026-08-20",
+      "status": "done"
+    },
     "network_game_globals.obj": {
       "categories_done": [
         "local-renames",
@@ -142,6 +180,14 @@
       "started": "2026-08-20",
       "status": "parked"
     },
+    "player_rumble.obj": {
+      "categories_done": [],
+      "commits": [],
+      "finished": "2026-08-20",
+      "reason": "no_applicable_items: every ladder category was skipped or fully parked (symbol-names 19 abs-addr float-pool non-neutral; offset-to-field 34 no co() for rumble_globals/slot)",
+      "started": "2026-08-20",
+      "status": "parked"
+    },
     "projectiles.obj": {
       "categories_done": [
         "local-renames"
@@ -150,6 +196,22 @@
         "620fdad4e",
         "7895f5e4e",
         "6febc883f"
+      ],
+      "finished": "2026-08-20",
+      "reason": null,
+      "started": "2026-08-20",
+      "status": "done"
+    },
+    "units.obj": {
+      "categories_done": [
+        "local-renames",
+        "symbol-names",
+        "offset-to-field"
+      ],
+      "commits": [
+        "291fa4a87b02af31b5046eb69fd9ce55189f7c88",
+        "b841f75b76367b1c2b0a9e5c413c731a58e45290",
+        "2f6c6286d4e0ef5f7fff6a1f6a14b9ca64bb5bae"
       ],
       "finished": "2026-08-20",
       "reason": null,

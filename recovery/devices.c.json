@@ -1,0 +1,3391 @@
+{
+  "allow_risky": false,
+  "baseline": {
+    "assertion_snapshot": {
+      "assertions": [],
+      "kind": "assert-metadata",
+      "schema": 1
+    },
+    "captured": true,
+    "coff_snapshot": {
+      "assertion_metadata": [],
+      "kind": "coff-candidate-neutrality",
+      "schema": 1,
+      "sections": [
+        {
+          "characteristics": 1615855648,
+          "executable": true,
+          "id": ".text#0",
+          "name": ".text",
+          "raw_bytes_hex": "5589e5566880030000ff7508e80000000083c40889c6ff306869766564e80000000083c40866c786b4010000ffff66c786a8010000ffff804e0604b0015e5dc35589e553575683ec348b5d08891c24c744240480030000e80000000089c68b0089442404c7042469766564e80000000089c70fb7809801000083f806d9eed9eed9ee0f8756010000ddd9ddd8ddd8ff248500000000d986ac010000e93a010000d986bc010000d9eed9c9dbe9d9ee75060f8b28010000ddd8ddd9dd1c24e800000000d8b788020000d95dc8d945c8e907010000d986b0010000d9eed9c9dbe9d9ee75060f8bf5000000ddd8ddd9dd1c24e800000000d8b778020000d95dccd945cce9d4000000d986b8010000e9c9000000d986ac010000d9eedbe9ddd9d9e8dbc9dad9ddd966837e64070f85aa0000006683beb4010000ff0f849c000000891c24c744240480000000d95df0e80000000089c30fbf80b40100008b0dc8a85a0089442404890c24e8000000008b8bc4010000f6c103d9e8d9c0d945f0d9c9dac9ddd90fb74002f7d0a803dac9ddd9f6c104d9eed9c0dacaddda81bbb80100000000803f8b5d08dbc9ddd9eb2ed9878c020000d9eed9c9dbe9761e0fb786c0010000668945e8df45e8d9c9dbe9d9c975027b0cdddadef9eb02ddd8d9eed9eeddd9ddd8d99ed40000000fb7879a01000083f806d9eed9eed9ee0f8756010000ddd9ddd8ddd8ff24851c000000d986ac010000e93a010000d986bc010000d9eed9c9dbe9d9ee75060f8b28010000ddd8ddd9dd1c24e800000000d8b788020000d95dd0d945d0e907010000d986b0010000d9eed9c9dbe9d9ee75060f8bf5000000ddd8ddd9dd1c24e800000000d8b778020000d95dd4d945d4e9d4000000d986b8010000e9c9000000d986ac010000d9eedbe9ddd9d9e8dbc9dad9ddd966837e64070f85aa0000006683beb4010000ff0f849c000000891c24c744240480000000d95df0e80000000089c30fbf80b40100008b0dc8a85a0089442404890c24e8000000008b8bc4010000f6c103d9e8d9c0d945f0d9c9dac9ddd90fb74002f7d0a803dac9ddd9f6c104d9eed9c0dacaddda81bbb80100000000803f8b5d08dbc9ddd9eb2ed9878c020000d9eed9c9dbe9761e0fb786c0010000668945eadf45ead9c9dbe9d9c975027b0cdddadef9eb02ddd8d9eed9eeddd9ddd8d99ed80000000fb7879c01000083f806d9eed9eed9ee0f8756010000ddd9ddd8ddd8ff248538000000d986ac010000e93a010000d986bc010000d9eed9c9dbe9d9ee75060f8b28010000ddd8ddd9dd1c24e800000000d8b788020000d95dd8d945d8e907010000d986b0010000d9eed9c9dbe9d9ee75060f8bf5000000ddd8ddd9dd1c24e800000000d8b778020000d95ddcd945dce9d4000000d986b8010000e9c9000000d986ac010000d9eedbe9ddd9d9e8dbc9dad9ddd966837e64070f85aa0000006683beb4010000ff0f849c000000891c24c744240480000000d95df0e80000000089c30fbf80b40100008b0dc8a85a0089442404890c24e8000000008b8bc4010000f6c103d9e8d9c0d945f0d9c9dac9ddd90fb74002f7d0a803dac9ddd9f6c104d9eed9c0dacaddda81bbb80100000000803f8b5d08dbc9ddd9eb2ed9878c020000d9eed9c9dbe9761e0fb786c0010000668945ecdf45ecd9c9dbe9d9c975027b0cdddadef9eb02ddd8d9eed9eeddd9ddd8d99edc0000000fb7879e01000083f806d9eed9eed9ee0f8753010000ddd9ddd8ddd8ff248554000000d986ac010000e937010000d986bc010000d9eed9c9dbe9d9ee75060f8b25010000ddd8ddd9dd1c24e800000000d8b788020000d95de0d945e0e904010000d986b0010000d9eed9c9dbe9d9ee75060f8bf2000000ddd8ddd9dd1c24e800000000d8b778020000d95de4d945e4e9d1000000d986b8010000e9c6000000d986ac010000d9eedbe9ddd9d9e8dbc9dad9ddd966837e64070f85a70000006683beb4010000ff0f8499000000891c24c744240480000000d95df0e80000000089c70fbf80b40100008b0dc8a85a0089442404890c24e8000000008b8fc4010000f6c103d9e8d9c0d945f0d9c9dac9ddd90fb74002f7d0a803dac9ddd9f6c104d9eed9c0dacaddda81bfb80100000000803fdbc9ddd9eb2ed9878c020000d9eed9c9dbe9761e0fb786c0010000668945eedf45eed9c9dbe9d9c975027b0cdddadef9eb02ddd8d9eed9eeddd9ddd8d99ee000000083c4345e5f5b5dc3905589e553575683ec146880030000ff7508e80000000083c40889c6ff306869766564e80000000083c40889c3ff70446872746e61e80000000083c408837830000f840f01000089c783c0306a606a0050e80000000083c40c85c00f84f5000000837854000f8eeb0000008b48580fbf0983f9ff0f848c0000008945e88d477468b40000005150e80000000083c40cf686a401000001d986b8010000d9e8d8e1dac9ddd98b8b7c01000089ca83e2010fbf58228d541aff8955e0da4de0f6c102751883ec0c8b4d0c894c2408d95c2404890424e800000000eb26d97df20fb74df281c9000c000066894df0d96df0db5de4d96df2ff750cff75e450e80000000083c40c8b45e8837854027c4a8b40580fbf400283f8ff743e83c77468b40000005057e80000000083c40c0fb7482266894deed986ac010000de4dee83ec0c8b4d0c894c2408d95c2404890424e80000000083c420eb0383c4145e5f5b5dc30f1f005589e58b450883f8ff7417688003000050e80000000083c40805b8010000d9005dc3b8c0332500d9005dc30f1f4400005589e58b450883f8ff7417688003000050e80000000083c40805ac010000d9005dc3b8c0332500d9005dc30f1f4400005589e58b450883f8ff742d688000000050e80000000083c40885c0741b31c9807d0c000f95c18b90c401000083e2fb8d0c8a8988c40100005dc3660f1f4400005589e5575683ec14d9450c8b4508d905c0332500d9eed9c9dfea771eddd8d905c8332500d9c9dbe9ddd9d9eed9c9760addd9ddd8d9e8d9eed9c9ddd9d95df40fbff056ff35c8a85a00e80000000083c408d945f4d958048d7de46a00688003000057e80000000083c40ceb060f1f4000ddd857e80000000083c40485c0744b0fbf88a801000039ced945f475178088a401000004d990ac010000c780b0010000000000000fbf88b401000039ce75c18088a401000004d998b8010000c780bc01000000000000d9eeeba683c4145e5f5dc3662e0f1f8400000000000f1f4400005589e56880000000ff7508e80000000083c40885c0741b8b88c401000031d2807d0c000f95c283e1fd8d0c518988c40100005dc3662e0f1f84000000000066905589e56880000000ff7508e80000000083c40885c0741a8b90c401000031c9807d0c000f94c183e2fe09d18988c40100005dc3662e0f1f8400000000000f1f005589e5538b450883f8ff74240fb65d0c50ff35c8a85a00e80000000083c40884db0f95c10fb6500280e2fc08ca8850025b5dc3662e0f1f8400000000000f1f005589e50fbf450850ff35c8a85a00e80000000083c408d940045dc30f1f4400005589e557568b7d0c8b7508688003000056e80000000083c4080fb7406483f808741383f807750a5756e80000000083c4085e5f5dc35e5f5de9000000000f1f005589e557566880030000ff7508e80000000083c40889c60fbf80b401000083f8ff744f50ff35c8a85a00e80000000083c40889c70fbf86a801000050ff35c8a85a00e80000000083c4080fb74f02f7d1f6c1030f95c1f686a4010000020f94c28178040000803f0f94c020d020c85e5f5dc331c05e5f5dc30f1f8400000000005589e55357568b7d0c83ffff0f848e0000008b5d08688003000053e80000000083c40889c657e80000000083c4043d6566666574273d21646e737569a100000000680000803fff30ff351cfc31006aff5753e80000000083c418eb44d986ac010000d986b801000083ec20d9c9d95c2414d95c2410895c2408895c2404893c24c744241c00000000c744241800000000c744240cffffffffe80000000083c4205e5f5b5dc36a0168f902000068000000006a00e80000000083c4106affe800000000662e0f1f8400000000000f1f40005589e5575650d94508d95df4ff35c8a85a00e80000000083c40489c6c1e0103d0000ffff74290fb77d0cc1f81050ff35c8a85a00e80000000083c408d945f4d958046689780289f083c4045e5f5dc36a01681103000068000000006800000000e80000000083c4106affe800000000905589e553575683ec0ce80000000083b888020000000f8e81000000058802000066bb01008945f0660f1f8400000000008d4bff0fbfc96a34894de85150e80000000083c40c0fb670248b40208945ecff35c8a85a00e80000000083c40489c7c1e71081ff0000ffff743ac1ff100fb7f683e60157ff35c8a85a00e80000000083c4088b4dec894804668970023b7de875330fbfcb438b45f039087f9483c40c5e5f5b5dc36a01681103000068000000006800000000e80000000083c4106affe8000000006a01683903000068000000006800000000e80000000083c4106affe800000000662e0f1f84000000000066905589e557566880030000ff7508e80000000083c40889c60fbfb8a801000083ffff742457ff35c8a85a00e80000000083c408f6400204740f57ff35c8a85a00e80000000083c4080fbfb6b401000083feff742456ff35c8a85a00e80000000083c408f6400204740f56ff35c8a85a00e80000000083c4085e5f5dc30f1f4400005589e553575683ec286880030000ff7508e80000000083c40889c789c3ff306869766564e80000000083c40889c60fbf87a801000083f8ff0f84b700000050ff35c8a85a00e80000000083c408d94004d983ac010000d9c9dbe975187a16d983b0010000d9eed9c9dfe9ddd875060f8b2b0200008d87ac010000d98678020000d986740200008d8fb001000083ec20d9c9d95c2410d95c240cd95c2408894c2404890424c744241c00000000c74424180000803fc744241400000000d95df0e80000000083c42084c00f94c0d983ac010000d945f0dfe9ddd875027b1a808ba4010000040fbf8bb401000083f9ff7517e92c02000031c00fbf8bb401000083f9ff0f841a0200008945f051ff35c8a85a00e80000000083c408d94004d983b8010000d9c9dbe9d983bc01000075227a20d9eed9c9dbe9ddd975167a14ddd9ddd9ddd866c783c00100000000e9ce010000d983ac010000d9e8d8e1d9c1d88e84020000d9c1d88e7c020000dec1d9cad88e88020000d9c9d88e80020000dec10fb793c0010000668955eedf45eed9868c020000d9cedbeddddd774fd9eed9cddbeddddd75457a43dfeddddcd9eed9eed9cdd9c97335ddd8dddcddd8dddaddd8ddd88d4a0166898bc00100006685d20f854b010000ffb618020000ff7508e80000000083c408e935010000ddd8dddcd95de48945e0d9c9d95ddc8d87b80100008945e881c7bc01000083ec08dd55d4dd1c24dd5dcce800000000dd45cc83c408d9c9dfe97615d9eedd45d4dfe9ddd8d9c0d9e0d9c1dad1ddd9d91f0fb6867c0100008b4de0d9410483ec2083e0018944241cd9c9d95c2410d945e4d95c240cd95c2408897c24048b45e8890424c74424180000803fc744241400000000e80000000083c42084c07430d9ee31c0dd45d4dfe9ddd80f96c0c1e0040dcc010000eb52ddd8ddd831c00fbf8bb401000083f9ff0f8552feffffeb6ad907d9eed9c9dbe9dd45d4d9c0d8cab0018945f075027b5ad9cbdfebdddad9c9722a31c0d9c9dfe9ddd80f96c0c1e0040dac010000b101894df0ff3406ff7508e80000000083c408d9eed9eeddd9ddd88b45e8d900d945dcdfe9ddd875027b07808ba4010000048b45f083c4285e5f5b5dc3dddadddaddd8ddd8ebcc",
+          "raw_size": 4275,
+          "relocations": [
+            {
+              "offset": 13,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 30,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 88,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 108,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 145,
+              "target": {
+                "data": {
+                  "bytes_hex": "e801000095000000d300000006010000a000000011010000ac0100005e0300000b020000490200007c020000160200008702000022030000d404000081030000bf030000f20300008c030000fd0300009804000047060000f7040000350500006805000002050000730500000b060000",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": ".rdata",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 190,
+              "target": {
+                "name": "_fabs",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 241,
+              "target": {
+                "name": "_fabs",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 333,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 360,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 519,
+              "target": {
+                "data": {
+                  "bytes_hex": "e801000095000000d300000006010000a000000011010000ac0100005e0300000b020000490200007c020000160200008702000022030000d404000081030000bf030000f20300008c030000fd0300009804000047060000f7040000350500006805000002050000730500000b060000",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": ".rdata",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 564,
+              "target": {
+                "name": "_fabs",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 615,
+              "target": {
+                "name": "_fabs",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 707,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 734,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 893,
+              "target": {
+                "data": {
+                  "bytes_hex": "e801000095000000d300000006010000a000000011010000ac0100005e0300000b020000490200007c020000160200008702000022030000d404000081030000bf030000f20300008c030000fd0300009804000047060000f7040000350500006805000002050000730500000b060000",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": ".rdata",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 938,
+              "target": {
+                "name": "_fabs",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 989,
+              "target": {
+                "name": "_fabs",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1081,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1108,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1267,
+              "target": {
+                "data": {
+                  "bytes_hex": "e801000095000000d300000006010000a000000011010000ac0100005e0300000b020000490200007c020000160200008702000022030000d404000081030000bf030000f20300008c030000fd0300009804000047060000f7040000350500006805000002050000730500000b060000",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": ".rdata",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1312,
+              "target": {
+                "name": "_fabs",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1363,
+              "target": {
+                "name": "_fabs",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1455,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1482,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1634,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1651,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1669,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1697,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1751,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1827,
+              "target": {
+                "name": "_FUN_00122690",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1867,
+              "target": {
+                "name": "_overlay_animation_apply",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1906,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1948,
+              "target": {
+                "name": "_FUN_00122690",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1986,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2034,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2082,
+              "target": {
+                "name": "_object_try_and_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2202,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2227,
+              "target": {
+                "name": "_object_iterator_new",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2244,
+              "target": {
+                "name": "_object_iterator_next",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2364,
+              "target": {
+                "name": "_object_try_and_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2428,
+              "target": {
+                "name": "_object_try_and_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2504,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2559,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2594,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2618,
+              "target": {
+                "name": "_FUN_00095be0",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2633,
+              "target": {
+                "name": "_FUN_000958f0",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2654,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2683,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2707,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2796,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2807,
+              "target": {
+                "name": "_tag_get_group_tag",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2829,
+              "target": {
+                "name": "__imp__global_forward_vector_ptr",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2851,
+              "target": {
+                "name": "_object_impulse_sound_new",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2921,
+              "target": {
+                "name": "_FUN_0009ec30",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2941,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c646576696365735c646576696365732e6300",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0CB@OENHPILN@c?3?2halo?2SOURCE?2devices?2devices?4c@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2948,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2958,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2995,
+              "target": {
+                "name": "_data_new_at_index",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3029,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3063,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c646576696365735c646576696365732e6300",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0CB@OENHPILN@c?3?2halo?2SOURCE?2devices?2devices?4c@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3068,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6f206d6f72652066726565206465766963652067726f75707300",
+                  "section": ".rdata#2",
+                  "value": 0
+                },
+                "name": "??_C@_0BL@ILKEPPAG@no?5more?5free?5device?5groups?$AA@",
+                "section": ".rdata#2",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3073,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3083,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3098,
+              "target": {
+                "name": "_global_scenario_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3150,
+              "target": {
+                "name": "_tag_block_get_element",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3174,
+              "target": {
+                "name": "_data_new_at_index",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3211,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3260,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c646576696365735c646576696365732e6300",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0CB@OENHPILN@c?3?2halo?2SOURCE?2devices?2devices?4c@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3265,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6f206d6f72652066726565206465766963652067726f75707300",
+                  "section": ".rdata#2",
+                  "value": 0
+                },
+                "name": "??_C@_0BL@ILKEPPAG@no?5more?5free?5device?5groups?$AA@",
+                "section": ".rdata#2",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3270,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3280,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3292,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c646576696365735c646576696365732e6300",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0CB@OENHPILN@c?3?2halo?2SOURCE?2devices?2devices?4c@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3297,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e65775f67726f75705f696e6465783d3d67726f75705f696e64657800",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0BN@DNCPCHGG@new_group_index?$DN?$DNgroup_index?$AA@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3302,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3312,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3342,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3371,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3392,
+              "target": {
+                "name": "_datum_delete",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3419,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3440,
+              "target": {
+                "name": "_datum_delete",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3474,
+              "target": {
+                "name": "_object_get_and_verify_type",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3493,
+              "target": {
+                "name": "_tag_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3526,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3648,
+              "target": {
+                "name": "_accelerate_to_position",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3730,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3933,
+              "target": {
+                "name": "_FUN_000967a0",
+                "section": ".text#0",
+                "value": 2768
+              },
+              "type": 20
+            },
+            {
+              "offset": 3988,
+              "target": {
+                "name": "_fabs",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4092,
+              "target": {
+                "name": "_accelerate_to_position",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 4216,
+              "target": {
+                "name": "_FUN_000967a0",
+                "section": ".text#0",
+                "value": 2768
+              },
+              "type": 20
+            }
+          ]
+        },
+        {
+          "characteristics": 3224371264,
+          "executable": false,
+          "id": ".data#0",
+          "name": ".data",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        },
+        {
+          "characteristics": 3224371328,
+          "executable": false,
+          "id": ".bss#0",
+          "name": ".bss",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        },
+        {
+          "characteristics": 1076887616,
+          "executable": false,
+          "id": ".rdata#0",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 112,
+          "relocations": [
+            {
+              "offset": 0,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 8,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 12,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 16,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 20,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 24,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 28,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 32,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 36,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 40,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 44,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 48,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 52,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 56,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 60,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 64,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 68,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 72,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 76,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 80,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 84,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 88,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 92,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 96,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 100,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 104,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 108,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            }
+          ]
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#1",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 33,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#2",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 27,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#3",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 29,
+          "relocations": []
+        },
+        {
+          "characteristics": 1051136,
+          "executable": false,
+          "id": ".drectve#0",
+          "name": ".drectve",
+          "raw_bytes_hex": null,
+          "raw_size": 592,
+          "relocations": []
+        },
+        {
+          "characteristics": 1050624,
+          "executable": false,
+          "id": ".llvm_addrsig#0",
+          "name": ".llvm_addrsig",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        }
+      ]
+    },
+    "object_relative_path": "build/CMakeFiles/halo.dir/src/halo/devices/devices.c.obj",
+    "object_sha256": "49e57f7eab78177ab0ed65c79e6553f39936f287d81f4b5e45a5c84f8a776571"
+  },
+  "checks": [
+    {
+      "baseline_object_sha256": "49e57f7eab78177ab0ed65c79e6553f39936f287d81f4b5e45a5c84f8a776571",
+      "current_git_head": "2f6c6286d4e0ef5f7fff6a1f6a14b9ca64bb5bae",
+      "current_object_sha256": "49e57f7eab78177ab0ed65c79e6553f39936f287d81f4b5e45a5c84f8a776571",
+      "current_source_sha256": "f18487e41383cd67c824512de602b9478235035fe5242849caa0d5f67396b291",
+      "failures": [],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": true,
+      "rename_map_applied": [],
+      "skipped": [],
+      "source": "src/halo/devices/devices.c",
+      "vc71_passed": true,
+      "warnings": []
+    },
+    {
+      "baseline_object_sha256": "49e57f7eab78177ab0ed65c79e6553f39936f287d81f4b5e45a5c84f8a776571",
+      "current_git_head": "cfb261f24f749c5c876e83c1bc89ace2ea00237f",
+      "current_object_sha256": "49e57f7eab78177ab0ed65c79e6553f39936f287d81f4b5e45a5c84f8a776571",
+      "current_source_sha256": "f18487e41383cd67c824512de602b9478235035fe5242849caa0d5f67396b291",
+      "failures": [],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": true,
+      "rename_map_applied": [],
+      "skipped": [],
+      "source": "src/halo/devices/devices.c",
+      "vc71_passed": true,
+      "warnings": []
+    }
+  ],
+  "created_tool_version": "source-recovery/1",
+  "git_head": "2f6c6286d4e0ef5f7fff6a1f6a14b9ca64bb5bae",
+  "inventory": {
+    "absolute_address_dereferences": [
+      {
+        "category": "symbol-names",
+        "column": 13,
+        "id": "absolute_address_dereferences:102:1",
+        "line": 102,
+        "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+        "status": "parked",
+        "text": "*(data_t **)0x5aa8c8, (int)*(short *)(unit + 0x1b4));"
+      },
+      {
+        "category": "symbol-names",
+        "column": 10,
+        "id": "absolute_address_dereferences:231:1",
+        "line": 231,
+        "reason": "0x2533c0 is the 0.0f float pool constant; no kb.json objects.data name. Cast-deref -> identifier is not identifier->identifier (purity reject) and would change relocations. Literal 0.0f is const-enum, not this category.",
+        "status": "parked",
+        "text": "return *(float *)0x2533c0;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 10,
+        "id": "absolute_address_dereferences:249:1",
+        "line": 249,
+        "reason": "0x2533c0 is the 0.0f float pool constant; no kb.json objects.data name. Cast-deref -> identifier is not identifier->identifier (purity reject) and would change relocations. Literal 0.0f is const-enum, not this category.",
+        "status": "parked",
+        "text": "return *(float *)0x2533c0;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 15,
+        "id": "absolute_address_dereferences:320:1",
+        "line": 320,
+        "reason": "0x2533c0 is the 0.0f float pool constant; no kb.json objects.data name. Cast-deref -> identifier is not identifier->identifier (purity reject) and would change relocations. Literal 0.0f is const-enum, not this category.",
+        "status": "parked",
+        "text": "if (value < *(float *)0x2533c0) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 22,
+        "id": "absolute_address_dereferences:322:1",
+        "line": 322,
+        "reason": "0x2533c8 is the 1.0f float pool constant; no kb.json objects.data name. Cast-deref -> identifier is not identifier->identifier (purity reject) and would change relocations. Literal 1.0f is const-enum, not this category.",
+        "status": "parked",
+        "text": "} else if (value > *(float *)0x2533c8) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 36,
+        "id": "absolute_address_dereferences:326:1",
+        "line": 326,
+        "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+        "status": "parked",
+        "text": "device_group = (char *)datum_get(*(data_t **)0x5aa8c8, index);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 32,
+        "id": "absolute_address_dereferences:448:1",
+        "line": 448,
+        "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+        "status": "parked",
+        "text": "(unsigned char *)datum_get(*(data_t **)0x5aa8c8, device_group_index);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 23,
+        "id": "absolute_address_dereferences:477:1",
+        "line": 477,
+        "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+        "status": "parked",
+        "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)(short)device_group_index);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 38,
+        "id": "absolute_address_dereferences:567:1",
+        "line": 567,
+        "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+        "status": "parked",
+        "text": "device_group = (char *)datum_get(*(data_t **)0x5aa8c8, group_index);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 25,
+        "id": "absolute_address_dereferences:569:1",
+        "line": 569,
+        "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+        "status": "parked",
+        "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)*(short *)(device + 0x1a8));"
+      },
+      {
+        "category": "symbol-names",
+        "column": 32,
+        "id": "absolute_address_dereferences:636:1",
+        "line": 636,
+        "reason": "0x31fc1c has no kb.json objects.data name (sibling 0x31fc3c is already global_forward_vector_ptr at this call). Cast-deref -> identifier is not identifier->identifier (purity reject) and would change DIR32/import relocations vs an immediate (neutral gate fail).",
+        "status": "parked",
+        "text": "*(float **)0x31fc1c, global_forward_vector_ptr,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 49,
+        "id": "absolute_address_dereferences:687:1",
+        "line": 687,
+        "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+        "status": "parked",
+        "text": "device_group_index = (short)data_new_at_index(*(data_t **)0x5aa8c8);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 25,
+        "id": "absolute_address_dereferences:691:1",
+        "line": 691,
+        "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+        "status": "parked",
+        "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)device_group_index);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 50,
+        "id": "absolute_address_dereferences:765:1",
+        "line": 765,
+        "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+        "status": "parked",
+        "text": "new_group_index = (short)data_new_at_index(*(data_t **)0x5aa8c8);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 29,
+        "id": "absolute_address_dereferences:769:1",
+        "line": 769,
+        "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+        "status": "parked",
+        "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)new_group_index);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 25,
+        "id": "absolute_address_dereferences:825:1",
+        "line": 825,
+        "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+        "status": "parked",
+        "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)device_group_index);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 20,
+        "id": "absolute_address_dereferences:827:1",
+        "line": 827,
+        "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+        "status": "parked",
+        "text": "datum_delete(*(data_t **)0x5aa8c8, (int)device_group_index);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 25,
+        "id": "absolute_address_dereferences:834:1",
+        "line": 834,
+        "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+        "status": "parked",
+        "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)device_group_index);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 20,
+        "id": "absolute_address_dereferences:836:1",
+        "line": 836,
+        "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+        "status": "parked",
+        "text": "datum_delete(*(data_t **)0x5aa8c8, (int)device_group_index);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 35,
+        "id": "absolute_address_dereferences:853:1",
+        "line": 853,
+        "reason": "Comment-only 0x5aa8c8 breadcrumb; same VA has no kb.json objects.data name. Comment edits are not identifier->identifier.",
+        "status": "parked",
+        "text": "* the device-group data array at *(data_t **)0x5aa8c8:"
+      },
+      {
+        "category": "symbol-names",
+        "column": 25,
+        "id": "absolute_address_dereferences:903:1",
+        "line": 903,
+        "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+        "status": "parked",
+        "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)device_group_index);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 25,
+        "id": "absolute_address_dereferences:924:1",
+        "line": 924,
+        "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+        "status": "parked",
+        "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)device_group_index);"
+      }
+    ],
+    "decompiler_style_locals": [],
+    "fun_calls": [
+      {
+        "category": "symbol-names",
+        "column": 11,
+        "id": "fun_calls:198:1",
+        "line": 198,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "FUN_00122690(anim, frame, node_data);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 9,
+        "id": "fun_calls:205:1",
+        "line": 205,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "FUN_00122690(anim,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:518:1",
+        "line": 518,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "FUN_00095be0(device_group_handle, unit_handle);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:521:1",
+        "line": 521,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "FUN_000958f0(device_group_handle, unit_handle);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:620:1",
+        "line": 620,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "void FUN_000967a0(int object_handle, int tag_index)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:645:1",
+        "line": 645,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "FUN_0009ec30(tag_index, object_handle, object_handle, -1,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 10,
+        "id": "fun_calls:845:1",
+        "line": 845,
+        "reason": "Comment-only FUN_00096a90 breadcrumb at L845; kb.json already names 0x96a90 device_update and the C definition at L876 uses that name. Comment edits are not identifier->identifier (purity reject).",
+        "status": "parked",
+        "text": "* `void FUN_00096a90(void)`; the disassembly shows a single cdecl stack"
+      },
+      {
+        "category": "symbol-names",
+        "column": 11,
+        "id": "fun_calls:959:1",
+        "line": 959,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "FUN_000967a0(object_index, *(int *)(definition + 0x1cc));"
+      },
+      {
+        "category": "symbol-names",
+        "column": 11,
+        "id": "fun_calls:961:1",
+        "line": 961,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "FUN_000967a0(object_index, *(int *)(definition + 0x1dc));"
+      },
+      {
+        "category": "symbol-names",
+        "column": 11,
+        "id": "fun_calls:965:1",
+        "line": 965,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "FUN_000967a0(object_index, *position_rate > previous_rate ?"
+      },
+      {
+        "category": "symbol-names",
+        "column": 9,
+        "id": "fun_calls:979:1",
+        "line": 979,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "FUN_000967a0(object_index, *(int *)(definition + 0x218));"
+      }
+    ],
+    "inline_asm": [],
+    "raw_base_offset_dereferences": [
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:20:1",
+        "line": 20,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(short *)(device + 0x1b4) = none;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:21:1",
+        "line": 21,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(short *)(device + 0x1a8) = none;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:23:1",
+        "line": 23,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(int *)(device + 0x04) |= 0x40000;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 17,
+        "id": "raw_base_offset_dereferences:73:1",
+        "line": 73,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "value = *(float *)(device + 0x1ac);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:77:1",
+        "line": 77,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "if (*(float *)(device + 0x1b0) != 0.0f) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 18,
+        "id": "raw_base_offset_dereferences:79:1",
+        "line": 79,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "fabs(*(float *)(device + 0x1b0)) / *(float *)(definition + 0x278);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 48,
+        "id": "raw_base_offset_dereferences:79:2",
+        "line": 79,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "fabs(*(float *)(device + 0x1b0)) / *(float *)(definition + 0x278);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 17,
+        "id": "raw_base_offset_dereferences:84:1",
+        "line": 84,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "value = *(float *)(device + 0x1b8);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:88:1",
+        "line": 88,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "if (*(float *)(device + 0x1bc) != 0.0f) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 18,
+        "id": "raw_base_offset_dereferences:90:1",
+        "line": 90,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "fabs(*(float *)(device + 0x1bc)) / *(float *)(definition + 0x288);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 48,
+        "id": "raw_base_offset_dereferences:90:2",
+        "line": 90,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "fabs(*(float *)(device + 0x1bc)) / *(float *)(definition + 0x288);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:95:1",
+        "line": 95,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "if (*(float *)(device + 0x1ac) == 0.0f) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:98:1",
+        "line": 98,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "if (*(short *)(device + 0x64) == 7 &&"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:99:1",
+        "line": 99,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(short *)(device + 0x1b4) != -1) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 40,
+        "id": "raw_base_offset_dereferences:102:1",
+        "line": 102,
+        "reason": "unit_data_t exists (types.h) but has 0 co() asserts covering unit+0x1b4,0x1b8,0x1c4 (and this 'unit' pointer is the same device datum; unit_data_t field widths would not match the short/uint accesses); recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(data_t **)0x5aa8c8, (int)*(short *)(unit + 0x1b4));"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 16,
+        "id": "raw_base_offset_dereferences:104:1",
+        "line": 104,
+        "reason": "unit_data_t exists (types.h) but has 0 co() asserts covering unit+0x1b4,0x1b8,0x1c4 (and this 'unit' pointer is the same device datum; unit_data_t field widths would not match the short/uint accesses); recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "if ((*(unsigned int *)(unit + 0x1c4) & 3) != 0) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 15,
+        "id": "raw_base_offset_dereferences:111:1",
+        "line": 111,
+        "reason": "unit_data_t exists (types.h) but has 0 co() asserts covering unit+0x1b4,0x1b8,0x1c4 (and this 'unit' pointer is the same device datum; unit_data_t field widths would not match the short/uint accesses); recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "if (*(int *)(unit + 0x1b8) == 0x3f800000 ||"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 16,
+        "id": "raw_base_offset_dereferences:112:1",
+        "line": 112,
+        "reason": "unit_data_t exists (types.h) but has 0 co() asserts covering unit+0x1b4,0x1b8,0x1c4 (and this 'unit' pointer is the same device datum; unit_data_t field widths would not match the short/uint accesses); recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "(*(unsigned int *)(unit + 0x1c4) & 4) != 0) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:119:1",
+        "line": 119,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "if (*(float *)(definition + 0x28c) > 0.0f &&"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 20,
+        "id": "raw_base_offset_dereferences:120:1",
+        "line": 120,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "(float)*(short *)(device + 0x1c0) !="
+      },
+      {
+        "category": "offset-to-field",
+        "column": 15,
+        "id": "raw_base_offset_dereferences:121:1",
+        "line": 121,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(float *)(definition + 0x28c)) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 20,
+        "id": "raw_base_offset_dereferences:123:1",
+        "line": 123,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "(float)*(short *)(device + 0x1c0) / *(float *)(definition + 0x28c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 49,
+        "id": "raw_base_offset_dereferences:123:2",
+        "line": 123,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "(float)*(short *)(device + 0x1c0) / *(float *)(definition + 0x28c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 51,
+        "id": "raw_base_offset_dereferences:171:1",
+        "line": 171,
+        "reason": "no asserted struct with co() covering 'devi' tag+0x44,0x17c; collision_test_result co() at +0x44 is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "antr = (char *)tag_get(0x616e7472 /* 'antr' */, *(int *)(devi + 0x44));"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:173:1",
+        "line": 173,
+        "reason": "no asserted struct with co() covering antr (model animation graph) +0x30; sound_cache_sound/network_connection co() at +0x30 are different types; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "if (*(int *)(antr + 0x30) != 0) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 11,
+        "id": "raw_base_offset_dereferences:176:1",
+        "line": 176,
+        "reason": "no asserted struct with co() covering animation-graph element +0x54,+0x58; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "if (*(int *)(elem + 0x54) > 0 && **(short **)(elem + 0x58) != -1) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 14,
+        "id": "raw_base_offset_dereferences:180:1",
+        "line": 180,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "if ((*(unsigned char *)(device + 0x1a4) & 1) != 0) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 29,
+        "id": "raw_base_offset_dereferences:181:1",
+        "line": 181,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "position = 1.0f - *(float *)(device + 0x1b8);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 22,
+        "id": "raw_base_offset_dereferences:183:1",
+        "line": 183,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "position = *(float *)(device + 0x1b8);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 17,
+        "id": "raw_base_offset_dereferences:186:1",
+        "line": 186,
+        "reason": "no asserted struct with co() covering 'devi' tag+0x44,0x17c; collision_test_result co() at +0x44 is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "flags = *(unsigned int *)(devi + 0x17c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 25,
+        "id": "raw_base_offset_dereferences:188:1",
+        "line": 188,
+        "reason": "no asserted struct with co() covering animation element +0x22; player_control_t co() at +0x22 is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "frame_count = *(short *)(anim + 0x22);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 25,
+        "id": "raw_base_offset_dereferences:190:1",
+        "line": 190,
+        "reason": "no asserted struct with co() covering animation element +0x22; player_control_t co() at +0x22 is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "frame_count = *(short *)(anim + 0x22) - 1;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 11,
+        "id": "raw_base_offset_dereferences:202:1",
+        "line": 202,
+        "reason": "no asserted struct with co() covering animation-graph element +0x54,+0x58; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "if (*(int *)(elem + 0x54) > 1 && (*(short **)(elem + 0x58))[1] != -1) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 34,
+        "id": "raw_base_offset_dereferences:206:1",
+        "line": 206,
+        "reason": "no asserted struct with co() covering animation element +0x22; player_control_t co() at +0x22 is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "(float)(int)*(short *)(anim + 0x22) *"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 24,
+        "id": "raw_base_offset_dereferences:207:1",
+        "line": 207,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(float *)(device + 0x1ac),"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:279:1",
+        "line": 279,
+        "reason": "machine_data_t exists (objects.h) but has 0 co() asserts covering machine+0x1c4; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(unsigned int *)(machine + 0x1c4) |= 4;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:283:1",
+        "line": 283,
+        "reason": "machine_data_t exists (objects.h) but has 0 co() asserts covering machine+0x1c4; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(unsigned int *)(machine + 0x1c4) &= 0xfffffffb;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 9,
+        "id": "raw_base_offset_dereferences:332:1",
+        "line": 332,
+        "reason": "object is a device datum here; device_data_t exists (objects.h) but has 0 co() asserts covering object+0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc; object_data_t has 0 co(); recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "if (*(short *)(object + 0x1a8) == index) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:333:1",
+        "line": 333,
+        "reason": "object is a device datum here; device_data_t exists (objects.h) but has 0 co() asserts covering object+0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc; object_data_t has 0 co(); recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(unsigned int *)(object + 0x1a4) |= 4;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:334:1",
+        "line": 334,
+        "reason": "object is a device datum here; device_data_t exists (objects.h) but has 0 co() asserts covering object+0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc; object_data_t has 0 co(); recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(float *)(object + 0x1ac) = value;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:335:1",
+        "line": 335,
+        "reason": "object is a device datum here; device_data_t exists (objects.h) but has 0 co() asserts covering object+0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc; object_data_t has 0 co(); recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(unsigned int *)(object + 0x1b0) = 0;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 9,
+        "id": "raw_base_offset_dereferences:338:1",
+        "line": 338,
+        "reason": "object is a device datum here; device_data_t exists (objects.h) but has 0 co() asserts covering object+0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc; object_data_t has 0 co(); recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "if (*(short *)(object + 0x1b4) == index) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:339:1",
+        "line": 339,
+        "reason": "object is a device datum here; device_data_t exists (objects.h) but has 0 co() asserts covering object+0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc; object_data_t has 0 co(); recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(unsigned int *)(object + 0x1a4) |= 4;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:340:1",
+        "line": 340,
+        "reason": "object is a device datum here; device_data_t exists (objects.h) but has 0 co() asserts covering object+0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc; object_data_t has 0 co(); recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(float *)(object + 0x1b8) = value;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:341:1",
+        "line": 341,
+        "reason": "object is a device datum here; device_data_t exists (objects.h) but has 0 co() asserts covering object+0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc; object_data_t has 0 co(); recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(unsigned int *)(object + 0x1bc) = 0;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 11,
+        "id": "raw_base_offset_dereferences:375:1",
+        "line": 375,
+        "reason": "machine_data_t exists (objects.h) but has 0 co() asserts covering machine+0x1c4; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "flags = *(unsigned int *)(machine + 0x1c4);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:378:1",
+        "line": 378,
+        "reason": "machine_data_t exists (objects.h) but has 0 co() asserts covering machine+0x1c4; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(unsigned int *)(machine + 0x1c4) = flags | 2;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:382:1",
+        "line": 382,
+        "reason": "machine_data_t exists (objects.h) but has 0 co() asserts covering machine+0x1c4; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(unsigned int *)(machine + 0x1c4) = flags & 0xfffffffd;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 11,
+        "id": "raw_base_offset_dereferences:412:1",
+        "line": 412,
+        "reason": "machine_data_t exists (objects.h) but has 0 co() asserts covering machine+0x1c4; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "flags = *(unsigned int *)(machine + 0x1c4);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:415:1",
+        "line": 415,
+        "reason": "machine_data_t exists (objects.h) but has 0 co() asserts covering machine+0x1c4; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(unsigned int *)(machine + 0x1c4) = flags | 1;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:419:1",
+        "line": 419,
+        "reason": "machine_data_t exists (objects.h) but has 0 co() asserts covering machine+0x1c4; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(unsigned int *)(machine + 0x1c4) = flags & 0xfffffffe;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 17,
+        "id": "raw_base_offset_dereferences:563:1",
+        "line": 563,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "group_index = *(short *)(device + 0x1b4);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 52,
+        "id": "raw_base_offset_dereferences:569:1",
+        "line": 569,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)*(short *)(device + 0x1a8));"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 10,
+        "id": "raw_base_offset_dereferences:577:1",
+        "line": 577,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "if ((*(unsigned char *)(device + 0x1a4) & 2) != 0) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 18,
+        "id": "raw_base_offset_dereferences:646:1",
+        "line": 646,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(float *)(device + 0x1b8), *(float *)(device + 0x1ac), 0, 0);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 46,
+        "id": "raw_base_offset_dereferences:646:2",
+        "line": 646,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(float *)(device + 0x1b8), *(float *)(device + 0x1ac), 0, 0);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 15,
+        "id": "raw_base_offset_dereferences:763:1",
+        "line": 763,
+        "reason": "no asserted struct with co() covering scenario device-group block element+0x20; player_control_t/encounter_definition co() at +0x20 are different types; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "value = *(long *)(element + 0x20);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 24,
+        "id": "raw_base_offset_dereferences:822:1",
+        "line": 822,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "device_group_index = *(short *)(device + 0x1a8);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 24,
+        "id": "raw_base_offset_dereferences:831:1",
+        "line": 831,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "device_group_index = *(short *)(device + 0x1b4);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 24,
+        "id": "raw_base_offset_dereferences:900:1",
+        "line": 900,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "device_group_index = *(short *)(device + 0x1a8);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 9,
+        "id": "raw_base_offset_dereferences:907:1",
+        "line": 907,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(float *)(device + 0x1b0) != 0.0f) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 13,
+        "id": "raw_base_offset_dereferences:911:1",
+        "line": 911,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(float *)(definition + 0x274), *(float *)(definition + 0x278),"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 45,
+        "id": "raw_base_offset_dereferences:911:2",
+        "line": 911,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(float *)(definition + 0x274), *(float *)(definition + 0x278),"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 9,
+        "id": "raw_base_offset_dereferences:916:1",
+        "line": 916,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(int *)(device + 0x1a4) |= 4;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 24,
+        "id": "raw_base_offset_dereferences:921:1",
+        "line": 921,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "device_group_index = *(short *)(device + 0x1b4);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 9,
+        "id": "raw_base_offset_dereferences:928:1",
+        "line": 928,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(float *)(device + 0x1bc) == 0.0f) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:929:1",
+        "line": 929,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(short *)(device + 0x1c0) = 0;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 28,
+        "id": "raw_base_offset_dereferences:934:1",
+        "line": 934,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "inverse_power = 1.0f - *(float *)(device + 0x1ac);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 36,
+        "id": "raw_base_offset_dereferences:936:1",
+        "line": 936,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "acceleration = inverse_power * *(float *)(definition + 0x27c) +"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 20,
+        "id": "raw_base_offset_dereferences:937:1",
+        "line": 937,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(float *)(definition + 0x284) * *(float *)(device + 0x1ac);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 53,
+        "id": "raw_base_offset_dereferences:937:2",
+        "line": 937,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(float *)(definition + 0x284) * *(float *)(device + 0x1ac);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 37,
+        "id": "raw_base_offset_dereferences:938:1",
+        "line": 938,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "maximum_speed = inverse_power * *(float *)(definition + 0x280) +"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 21,
+        "id": "raw_base_offset_dereferences:939:1",
+        "line": 939,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(float *)(definition + 0x288) * *(float *)(device + 0x1ac);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 54,
+        "id": "raw_base_offset_dereferences:939:2",
+        "line": 939,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(float *)(definition + 0x288) * *(float *)(device + 0x1ac);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 19,
+        "id": "raw_base_offset_dereferences:944:1",
+        "line": 944,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "stall_ticks = *(short *)(device + 0x1c0);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 31,
+        "id": "raw_base_offset_dereferences:945:1",
+        "line": 945,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "if ((float)stall_ticks >= *(float *)(definition + 0x28c) ||"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 41,
+        "id": "raw_base_offset_dereferences:957:1",
+        "line": 957,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "(char)(*(char *)(definition + 0x17c) & 1))) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 38,
+        "id": "raw_base_offset_dereferences:959:1",
+        "line": 959,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "FUN_000967a0(object_index, *(int *)(definition + 0x1cc));"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 38,
+        "id": "raw_base_offset_dereferences:961:1",
+        "line": 961,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "FUN_000967a0(object_index, *(int *)(definition + 0x1dc));"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 40,
+        "id": "raw_base_offset_dereferences:966:1",
+        "line": 966,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(int *)(definition + 0x1ac) :"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 40,
+        "id": "raw_base_offset_dereferences:967:1",
+        "line": 967,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(int *)(definition + 0x1bc));"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 32,
+        "id": "raw_base_offset_dereferences:972:1",
+        "line": 972,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "if (previous_position != *(float *)(device + 0x1b8)) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 9,
+        "id": "raw_base_offset_dereferences:973:1",
+        "line": 973,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(int *)(device + 0x1a4) |= 4;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:977:1",
+        "line": 977,
+        "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "*(short *)(device + 0x1c0) = stall_ticks;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 36,
+        "id": "raw_base_offset_dereferences:979:1",
+        "line": 979,
+        "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+        "status": "parked",
+        "text": "FUN_000967a0(object_index, *(int *)(definition + 0x218));"
+      }
+    ],
+    "raw_function_pointer_address_casts": [],
+    "xcall_uses": []
+  },
+  "items": [
+    {
+      "category": "symbol-names",
+      "column": 13,
+      "id": "absolute_address_dereferences:102:1",
+      "line": 102,
+      "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+      "status": "parked",
+      "text": "*(data_t **)0x5aa8c8, (int)*(short *)(unit + 0x1b4));"
+    },
+    {
+      "category": "symbol-names",
+      "column": 10,
+      "id": "absolute_address_dereferences:231:1",
+      "line": 231,
+      "reason": "0x2533c0 is the 0.0f float pool constant; no kb.json objects.data name. Cast-deref -> identifier is not identifier->identifier (purity reject) and would change relocations. Literal 0.0f is const-enum, not this category.",
+      "status": "parked",
+      "text": "return *(float *)0x2533c0;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 10,
+      "id": "absolute_address_dereferences:249:1",
+      "line": 249,
+      "reason": "0x2533c0 is the 0.0f float pool constant; no kb.json objects.data name. Cast-deref -> identifier is not identifier->identifier (purity reject) and would change relocations. Literal 0.0f is const-enum, not this category.",
+      "status": "parked",
+      "text": "return *(float *)0x2533c0;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 15,
+      "id": "absolute_address_dereferences:320:1",
+      "line": 320,
+      "reason": "0x2533c0 is the 0.0f float pool constant; no kb.json objects.data name. Cast-deref -> identifier is not identifier->identifier (purity reject) and would change relocations. Literal 0.0f is const-enum, not this category.",
+      "status": "parked",
+      "text": "if (value < *(float *)0x2533c0) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 22,
+      "id": "absolute_address_dereferences:322:1",
+      "line": 322,
+      "reason": "0x2533c8 is the 1.0f float pool constant; no kb.json objects.data name. Cast-deref -> identifier is not identifier->identifier (purity reject) and would change relocations. Literal 1.0f is const-enum, not this category.",
+      "status": "parked",
+      "text": "} else if (value > *(float *)0x2533c8) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 36,
+      "id": "absolute_address_dereferences:326:1",
+      "line": 326,
+      "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+      "status": "parked",
+      "text": "device_group = (char *)datum_get(*(data_t **)0x5aa8c8, index);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 32,
+      "id": "absolute_address_dereferences:448:1",
+      "line": 448,
+      "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+      "status": "parked",
+      "text": "(unsigned char *)datum_get(*(data_t **)0x5aa8c8, device_group_index);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 23,
+      "id": "absolute_address_dereferences:477:1",
+      "line": 477,
+      "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+      "status": "parked",
+      "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)(short)device_group_index);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 38,
+      "id": "absolute_address_dereferences:567:1",
+      "line": 567,
+      "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+      "status": "parked",
+      "text": "device_group = (char *)datum_get(*(data_t **)0x5aa8c8, group_index);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 25,
+      "id": "absolute_address_dereferences:569:1",
+      "line": 569,
+      "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+      "status": "parked",
+      "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)*(short *)(device + 0x1a8));"
+    },
+    {
+      "category": "symbol-names",
+      "column": 32,
+      "id": "absolute_address_dereferences:636:1",
+      "line": 636,
+      "reason": "0x31fc1c has no kb.json objects.data name (sibling 0x31fc3c is already global_forward_vector_ptr at this call). Cast-deref -> identifier is not identifier->identifier (purity reject) and would change DIR32/import relocations vs an immediate (neutral gate fail).",
+      "status": "parked",
+      "text": "*(float **)0x31fc1c, global_forward_vector_ptr,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 49,
+      "id": "absolute_address_dereferences:687:1",
+      "line": 687,
+      "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+      "status": "parked",
+      "text": "device_group_index = (short)data_new_at_index(*(data_t **)0x5aa8c8);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 25,
+      "id": "absolute_address_dereferences:691:1",
+      "line": 691,
+      "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+      "status": "parked",
+      "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)device_group_index);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 50,
+      "id": "absolute_address_dereferences:765:1",
+      "line": 765,
+      "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+      "status": "parked",
+      "text": "new_group_index = (short)data_new_at_index(*(data_t **)0x5aa8c8);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 29,
+      "id": "absolute_address_dereferences:769:1",
+      "line": 769,
+      "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+      "status": "parked",
+      "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)new_group_index);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 25,
+      "id": "absolute_address_dereferences:825:1",
+      "line": 825,
+      "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+      "status": "parked",
+      "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)device_group_index);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 20,
+      "id": "absolute_address_dereferences:827:1",
+      "line": 827,
+      "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+      "status": "parked",
+      "text": "datum_delete(*(data_t **)0x5aa8c8, (int)device_group_index);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 25,
+      "id": "absolute_address_dereferences:834:1",
+      "line": 834,
+      "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+      "status": "parked",
+      "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)device_group_index);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 20,
+      "id": "absolute_address_dereferences:836:1",
+      "line": 836,
+      "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+      "status": "parked",
+      "text": "datum_delete(*(data_t **)0x5aa8c8, (int)device_group_index);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 35,
+      "id": "absolute_address_dereferences:853:1",
+      "line": 853,
+      "reason": "Comment-only 0x5aa8c8 breadcrumb; same VA has no kb.json objects.data name. Comment edits are not identifier->identifier.",
+      "status": "parked",
+      "text": "* the device-group data array at *(data_t **)0x5aa8c8:"
+    },
+    {
+      "category": "symbol-names",
+      "column": 25,
+      "id": "absolute_address_dereferences:903:1",
+      "line": 903,
+      "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+      "status": "parked",
+      "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)device_group_index);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 25,
+      "id": "absolute_address_dereferences:924:1",
+      "line": 924,
+      "reason": "0x5aa8c8 has no kb.json objects.data name (T4). Substituting a symbol for a cast-deref is not identifier->identifier (purity reject) and would change DIR32 relocations vs an immediate (neutral gate fail).",
+      "status": "parked",
+      "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)device_group_index);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 11,
+      "id": "fun_calls:198:1",
+      "line": 198,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "FUN_00122690(anim, frame, node_data);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 9,
+      "id": "fun_calls:205:1",
+      "line": 205,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "FUN_00122690(anim,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:518:1",
+      "line": 518,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "FUN_00095be0(device_group_handle, unit_handle);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:521:1",
+      "line": 521,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "FUN_000958f0(device_group_handle, unit_handle);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:620:1",
+      "line": 620,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "void FUN_000967a0(int object_handle, int tag_index)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:645:1",
+      "line": 645,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "FUN_0009ec30(tag_index, object_handle, object_handle, -1,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 10,
+      "id": "fun_calls:845:1",
+      "line": 845,
+      "reason": "Comment-only FUN_00096a90 breadcrumb at L845; kb.json already names 0x96a90 device_update and the C definition at L876 uses that name. Comment edits are not identifier->identifier (purity reject).",
+      "status": "parked",
+      "text": "* `void FUN_00096a90(void)`; the disassembly shows a single cdecl stack"
+    },
+    {
+      "category": "symbol-names",
+      "column": 11,
+      "id": "fun_calls:959:1",
+      "line": 959,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "FUN_000967a0(object_index, *(int *)(definition + 0x1cc));"
+    },
+    {
+      "category": "symbol-names",
+      "column": 11,
+      "id": "fun_calls:961:1",
+      "line": 961,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "FUN_000967a0(object_index, *(int *)(definition + 0x1dc));"
+    },
+    {
+      "category": "symbol-names",
+      "column": 11,
+      "id": "fun_calls:965:1",
+      "line": 965,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "FUN_000967a0(object_index, *position_rate > previous_rate ?"
+    },
+    {
+      "category": "symbol-names",
+      "column": 9,
+      "id": "fun_calls:979:1",
+      "line": 979,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "FUN_000967a0(object_index, *(int *)(definition + 0x218));"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:20:1",
+      "line": 20,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(short *)(device + 0x1b4) = none;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:21:1",
+      "line": 21,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(short *)(device + 0x1a8) = none;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:23:1",
+      "line": 23,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(int *)(device + 0x04) |= 0x40000;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 17,
+      "id": "raw_base_offset_dereferences:73:1",
+      "line": 73,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "value = *(float *)(device + 0x1ac);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:77:1",
+      "line": 77,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "if (*(float *)(device + 0x1b0) != 0.0f) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 18,
+      "id": "raw_base_offset_dereferences:79:1",
+      "line": 79,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "fabs(*(float *)(device + 0x1b0)) / *(float *)(definition + 0x278);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 48,
+      "id": "raw_base_offset_dereferences:79:2",
+      "line": 79,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "fabs(*(float *)(device + 0x1b0)) / *(float *)(definition + 0x278);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 17,
+      "id": "raw_base_offset_dereferences:84:1",
+      "line": 84,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "value = *(float *)(device + 0x1b8);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:88:1",
+      "line": 88,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "if (*(float *)(device + 0x1bc) != 0.0f) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 18,
+      "id": "raw_base_offset_dereferences:90:1",
+      "line": 90,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "fabs(*(float *)(device + 0x1bc)) / *(float *)(definition + 0x288);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 48,
+      "id": "raw_base_offset_dereferences:90:2",
+      "line": 90,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "fabs(*(float *)(device + 0x1bc)) / *(float *)(definition + 0x288);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:95:1",
+      "line": 95,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "if (*(float *)(device + 0x1ac) == 0.0f) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:98:1",
+      "line": 98,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "if (*(short *)(device + 0x64) == 7 &&"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:99:1",
+      "line": 99,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(short *)(device + 0x1b4) != -1) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 40,
+      "id": "raw_base_offset_dereferences:102:1",
+      "line": 102,
+      "reason": "unit_data_t exists (types.h) but has 0 co() asserts covering unit+0x1b4,0x1b8,0x1c4 (and this 'unit' pointer is the same device datum; unit_data_t field widths would not match the short/uint accesses); recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(data_t **)0x5aa8c8, (int)*(short *)(unit + 0x1b4));"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 16,
+      "id": "raw_base_offset_dereferences:104:1",
+      "line": 104,
+      "reason": "unit_data_t exists (types.h) but has 0 co() asserts covering unit+0x1b4,0x1b8,0x1c4 (and this 'unit' pointer is the same device datum; unit_data_t field widths would not match the short/uint accesses); recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "if ((*(unsigned int *)(unit + 0x1c4) & 3) != 0) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 15,
+      "id": "raw_base_offset_dereferences:111:1",
+      "line": 111,
+      "reason": "unit_data_t exists (types.h) but has 0 co() asserts covering unit+0x1b4,0x1b8,0x1c4 (and this 'unit' pointer is the same device datum; unit_data_t field widths would not match the short/uint accesses); recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "if (*(int *)(unit + 0x1b8) == 0x3f800000 ||"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 16,
+      "id": "raw_base_offset_dereferences:112:1",
+      "line": 112,
+      "reason": "unit_data_t exists (types.h) but has 0 co() asserts covering unit+0x1b4,0x1b8,0x1c4 (and this 'unit' pointer is the same device datum; unit_data_t field widths would not match the short/uint accesses); recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "(*(unsigned int *)(unit + 0x1c4) & 4) != 0) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:119:1",
+      "line": 119,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "if (*(float *)(definition + 0x28c) > 0.0f &&"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 20,
+      "id": "raw_base_offset_dereferences:120:1",
+      "line": 120,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "(float)*(short *)(device + 0x1c0) !="
+    },
+    {
+      "category": "offset-to-field",
+      "column": 15,
+      "id": "raw_base_offset_dereferences:121:1",
+      "line": 121,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(float *)(definition + 0x28c)) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 20,
+      "id": "raw_base_offset_dereferences:123:1",
+      "line": 123,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "(float)*(short *)(device + 0x1c0) / *(float *)(definition + 0x28c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 49,
+      "id": "raw_base_offset_dereferences:123:2",
+      "line": 123,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "(float)*(short *)(device + 0x1c0) / *(float *)(definition + 0x28c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 51,
+      "id": "raw_base_offset_dereferences:171:1",
+      "line": 171,
+      "reason": "no asserted struct with co() covering 'devi' tag+0x44,0x17c; collision_test_result co() at +0x44 is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "antr = (char *)tag_get(0x616e7472 /* 'antr' */, *(int *)(devi + 0x44));"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:173:1",
+      "line": 173,
+      "reason": "no asserted struct with co() covering antr (model animation graph) +0x30; sound_cache_sound/network_connection co() at +0x30 are different types; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "if (*(int *)(antr + 0x30) != 0) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 11,
+      "id": "raw_base_offset_dereferences:176:1",
+      "line": 176,
+      "reason": "no asserted struct with co() covering animation-graph element +0x54,+0x58; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "if (*(int *)(elem + 0x54) > 0 && **(short **)(elem + 0x58) != -1) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 14,
+      "id": "raw_base_offset_dereferences:180:1",
+      "line": 180,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "if ((*(unsigned char *)(device + 0x1a4) & 1) != 0) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 29,
+      "id": "raw_base_offset_dereferences:181:1",
+      "line": 181,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "position = 1.0f - *(float *)(device + 0x1b8);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 22,
+      "id": "raw_base_offset_dereferences:183:1",
+      "line": 183,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "position = *(float *)(device + 0x1b8);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 17,
+      "id": "raw_base_offset_dereferences:186:1",
+      "line": 186,
+      "reason": "no asserted struct with co() covering 'devi' tag+0x44,0x17c; collision_test_result co() at +0x44 is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "flags = *(unsigned int *)(devi + 0x17c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 25,
+      "id": "raw_base_offset_dereferences:188:1",
+      "line": 188,
+      "reason": "no asserted struct with co() covering animation element +0x22; player_control_t co() at +0x22 is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "frame_count = *(short *)(anim + 0x22);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 25,
+      "id": "raw_base_offset_dereferences:190:1",
+      "line": 190,
+      "reason": "no asserted struct with co() covering animation element +0x22; player_control_t co() at +0x22 is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "frame_count = *(short *)(anim + 0x22) - 1;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 11,
+      "id": "raw_base_offset_dereferences:202:1",
+      "line": 202,
+      "reason": "no asserted struct with co() covering animation-graph element +0x54,+0x58; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "if (*(int *)(elem + 0x54) > 1 && (*(short **)(elem + 0x58))[1] != -1) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 34,
+      "id": "raw_base_offset_dereferences:206:1",
+      "line": 206,
+      "reason": "no asserted struct with co() covering animation element +0x22; player_control_t co() at +0x22 is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "(float)(int)*(short *)(anim + 0x22) *"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 24,
+      "id": "raw_base_offset_dereferences:207:1",
+      "line": 207,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(float *)(device + 0x1ac),"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:279:1",
+      "line": 279,
+      "reason": "machine_data_t exists (objects.h) but has 0 co() asserts covering machine+0x1c4; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(unsigned int *)(machine + 0x1c4) |= 4;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:283:1",
+      "line": 283,
+      "reason": "machine_data_t exists (objects.h) but has 0 co() asserts covering machine+0x1c4; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(unsigned int *)(machine + 0x1c4) &= 0xfffffffb;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 9,
+      "id": "raw_base_offset_dereferences:332:1",
+      "line": 332,
+      "reason": "object is a device datum here; device_data_t exists (objects.h) but has 0 co() asserts covering object+0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc; object_data_t has 0 co(); recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "if (*(short *)(object + 0x1a8) == index) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:333:1",
+      "line": 333,
+      "reason": "object is a device datum here; device_data_t exists (objects.h) but has 0 co() asserts covering object+0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc; object_data_t has 0 co(); recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(unsigned int *)(object + 0x1a4) |= 4;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:334:1",
+      "line": 334,
+      "reason": "object is a device datum here; device_data_t exists (objects.h) but has 0 co() asserts covering object+0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc; object_data_t has 0 co(); recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(float *)(object + 0x1ac) = value;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:335:1",
+      "line": 335,
+      "reason": "object is a device datum here; device_data_t exists (objects.h) but has 0 co() asserts covering object+0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc; object_data_t has 0 co(); recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(unsigned int *)(object + 0x1b0) = 0;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 9,
+      "id": "raw_base_offset_dereferences:338:1",
+      "line": 338,
+      "reason": "object is a device datum here; device_data_t exists (objects.h) but has 0 co() asserts covering object+0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc; object_data_t has 0 co(); recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "if (*(short *)(object + 0x1b4) == index) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:339:1",
+      "line": 339,
+      "reason": "object is a device datum here; device_data_t exists (objects.h) but has 0 co() asserts covering object+0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc; object_data_t has 0 co(); recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(unsigned int *)(object + 0x1a4) |= 4;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:340:1",
+      "line": 340,
+      "reason": "object is a device datum here; device_data_t exists (objects.h) but has 0 co() asserts covering object+0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc; object_data_t has 0 co(); recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(float *)(object + 0x1b8) = value;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:341:1",
+      "line": 341,
+      "reason": "object is a device datum here; device_data_t exists (objects.h) but has 0 co() asserts covering object+0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc; object_data_t has 0 co(); recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(unsigned int *)(object + 0x1bc) = 0;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 11,
+      "id": "raw_base_offset_dereferences:375:1",
+      "line": 375,
+      "reason": "machine_data_t exists (objects.h) but has 0 co() asserts covering machine+0x1c4; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "flags = *(unsigned int *)(machine + 0x1c4);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:378:1",
+      "line": 378,
+      "reason": "machine_data_t exists (objects.h) but has 0 co() asserts covering machine+0x1c4; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(unsigned int *)(machine + 0x1c4) = flags | 2;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:382:1",
+      "line": 382,
+      "reason": "machine_data_t exists (objects.h) but has 0 co() asserts covering machine+0x1c4; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(unsigned int *)(machine + 0x1c4) = flags & 0xfffffffd;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 11,
+      "id": "raw_base_offset_dereferences:412:1",
+      "line": 412,
+      "reason": "machine_data_t exists (objects.h) but has 0 co() asserts covering machine+0x1c4; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "flags = *(unsigned int *)(machine + 0x1c4);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:415:1",
+      "line": 415,
+      "reason": "machine_data_t exists (objects.h) but has 0 co() asserts covering machine+0x1c4; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(unsigned int *)(machine + 0x1c4) = flags | 1;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:419:1",
+      "line": 419,
+      "reason": "machine_data_t exists (objects.h) but has 0 co() asserts covering machine+0x1c4; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(unsigned int *)(machine + 0x1c4) = flags & 0xfffffffe;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 17,
+      "id": "raw_base_offset_dereferences:563:1",
+      "line": 563,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "group_index = *(short *)(device + 0x1b4);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 52,
+      "id": "raw_base_offset_dereferences:569:1",
+      "line": 569,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "(char *)datum_get(*(data_t **)0x5aa8c8, (int)*(short *)(device + 0x1a8));"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 10,
+      "id": "raw_base_offset_dereferences:577:1",
+      "line": 577,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "if ((*(unsigned char *)(device + 0x1a4) & 2) != 0) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 18,
+      "id": "raw_base_offset_dereferences:646:1",
+      "line": 646,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(float *)(device + 0x1b8), *(float *)(device + 0x1ac), 0, 0);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 46,
+      "id": "raw_base_offset_dereferences:646:2",
+      "line": 646,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(float *)(device + 0x1b8), *(float *)(device + 0x1ac), 0, 0);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 15,
+      "id": "raw_base_offset_dereferences:763:1",
+      "line": 763,
+      "reason": "no asserted struct with co() covering scenario device-group block element+0x20; player_control_t/encounter_definition co() at +0x20 are different types; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "value = *(long *)(element + 0x20);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 24,
+      "id": "raw_base_offset_dereferences:822:1",
+      "line": 822,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "device_group_index = *(short *)(device + 0x1a8);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 24,
+      "id": "raw_base_offset_dereferences:831:1",
+      "line": 831,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "device_group_index = *(short *)(device + 0x1b4);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 24,
+      "id": "raw_base_offset_dereferences:900:1",
+      "line": 900,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "device_group_index = *(short *)(device + 0x1a8);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 9,
+      "id": "raw_base_offset_dereferences:907:1",
+      "line": 907,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(float *)(device + 0x1b0) != 0.0f) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 13,
+      "id": "raw_base_offset_dereferences:911:1",
+      "line": 911,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(float *)(definition + 0x274), *(float *)(definition + 0x278),"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 45,
+      "id": "raw_base_offset_dereferences:911:2",
+      "line": 911,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(float *)(definition + 0x274), *(float *)(definition + 0x278),"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 9,
+      "id": "raw_base_offset_dereferences:916:1",
+      "line": 916,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(int *)(device + 0x1a4) |= 4;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 24,
+      "id": "raw_base_offset_dereferences:921:1",
+      "line": 921,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "device_group_index = *(short *)(device + 0x1b4);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 9,
+      "id": "raw_base_offset_dereferences:928:1",
+      "line": 928,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(float *)(device + 0x1bc) == 0.0f) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:929:1",
+      "line": 929,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(short *)(device + 0x1c0) = 0;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 28,
+      "id": "raw_base_offset_dereferences:934:1",
+      "line": 934,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "inverse_power = 1.0f - *(float *)(device + 0x1ac);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 36,
+      "id": "raw_base_offset_dereferences:936:1",
+      "line": 936,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "acceleration = inverse_power * *(float *)(definition + 0x27c) +"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 20,
+      "id": "raw_base_offset_dereferences:937:1",
+      "line": 937,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(float *)(definition + 0x284) * *(float *)(device + 0x1ac);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 53,
+      "id": "raw_base_offset_dereferences:937:2",
+      "line": 937,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(float *)(definition + 0x284) * *(float *)(device + 0x1ac);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 37,
+      "id": "raw_base_offset_dereferences:938:1",
+      "line": 938,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "maximum_speed = inverse_power * *(float *)(definition + 0x280) +"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 21,
+      "id": "raw_base_offset_dereferences:939:1",
+      "line": 939,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(float *)(definition + 0x288) * *(float *)(device + 0x1ac);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 54,
+      "id": "raw_base_offset_dereferences:939:2",
+      "line": 939,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(float *)(definition + 0x288) * *(float *)(device + 0x1ac);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 19,
+      "id": "raw_base_offset_dereferences:944:1",
+      "line": 944,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "stall_ticks = *(short *)(device + 0x1c0);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 31,
+      "id": "raw_base_offset_dereferences:945:1",
+      "line": 945,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "if ((float)stall_ticks >= *(float *)(definition + 0x28c) ||"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 41,
+      "id": "raw_base_offset_dereferences:957:1",
+      "line": 957,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "(char)(*(char *)(definition + 0x17c) & 1))) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 38,
+      "id": "raw_base_offset_dereferences:959:1",
+      "line": 959,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "FUN_000967a0(object_index, *(int *)(definition + 0x1cc));"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 38,
+      "id": "raw_base_offset_dereferences:961:1",
+      "line": 961,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "FUN_000967a0(object_index, *(int *)(definition + 0x1dc));"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 40,
+      "id": "raw_base_offset_dereferences:966:1",
+      "line": 966,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(int *)(definition + 0x1ac) :"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 40,
+      "id": "raw_base_offset_dereferences:967:1",
+      "line": 967,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(int *)(definition + 0x1bc));"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 32,
+      "id": "raw_base_offset_dereferences:972:1",
+      "line": 972,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "if (previous_position != *(float *)(device + 0x1b8)) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 9,
+      "id": "raw_base_offset_dereferences:973:1",
+      "line": 973,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(int *)(device + 0x1a4) |= 4;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:977:1",
+      "line": 977,
+      "reason": "device_data_t exists (objects.h) and object_data_t exists (types.h) but both have 0 co() asserts covering device+0x04,0x64,0x1a4,0x1a8,0x1ac,0x1b0,0x1b4,0x1b8,0x1bc,0x1c0; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "*(short *)(device + 0x1c0) = stall_ticks;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 36,
+      "id": "raw_base_offset_dereferences:979:1",
+      "line": 979,
+      "reason": "no asserted struct with co() covering 'devi' definition+0x17c,0x1ac,0x1bc,0x1cc,0x1dc,0x218,0x274,0x278,0x27c,0x280,0x284,0x288,0x28c; actor_t co() at +0x280/+0x28c is a different type; recovery/bindings.json has no devices binding; struct-define pending was 0",
+      "status": "parked",
+      "text": "FUN_000967a0(object_index, *(int *)(definition + 0x218));"
+    }
+  ],
+  "kind": "source-recovery-manifest",
+  "repo_relative_source": "src/halo/devices/devices.c",
+  "schema": 1,
+  "source_sha256": "f18487e41383cd67c824512de602b9478235035fe5242849caa0d5f67396b291"
+}
