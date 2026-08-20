@@ -16,6 +16,176 @@ static double breakable_ceil(double x)
   return (double)((x > (double)i) ? (i + 1) : i);
 }
 
+/* FUN_00145560 (0x145560)
+ *
+ * Two-argument forwarding wrapper: passes arg1 through unchanged and arg2
+ * advanced by 0x28 to FUN_0013d870. Referenced only from data at 0x3241d0
+ * (a function table slot), so no direct code callers exist.
+ *
+ * Confirmed: MOV EAX,[EBP+0xc]; ADD EAX,0x28; PUSH EAX -> second argument is
+ *   arg2 + 0x28.
+ * Confirmed: MOV ECX,[EBP+0x8]; PUSH ECX -> first argument is arg1 unchanged.
+ * Confirmed: CALL 0x13d870; ADD ESP,0x8 -> cdecl, two stack args.
+ * Unknown: the concrete meaning of both parameters; names follow the existing
+ *   kb.json decl of the callee (FUN_0013d870(int unit_handle, void *data)).
+ *   Same shape as biped_place/vehicle_causes_collision_damage, which forward
+ *   placement data at +0x28 to this same callee.
+ */
+void FUN_00145560(int unit_handle, void *data)
+{
+  FUN_0013d870(unit_handle, (char *)data + 0x28);
+}
+
+/* FUN_00145580 (0x145580)
+ *
+ * Object-type table entry (referenced only from data at 0x3241cc, the slot
+ * immediately below FUN_00145560's 0x3241d0 — so there are no direct code
+ * callers). Given an object handle it picks a random animation out of the
+ * object definition's animation graph and installs it on the object, then
+ * unconditionally sets object flag 0x40000.
+ *
+ * Confirmed: MOV EAX,[EBP+0x8]; PUSH 0x40; PUSH EAX ->
+ *   object_get_and_verify_type(object_handle, 0x40); result kept in ESI.
+ * Confirmed: MOV ECX,[ESI]; PUSH ECX; PUSH 0x6f626a65 -> tag_get('obje',
+ *   obj[0]); result kept in EDI. ADD ESP,0x10 cleans both cdecl calls at once
+ *   (2 + 2 stack args), it is not a 4-argument call.
+ * Confirmed: MOV EAX,[EDI+0x44]; CMP EAX,-0x1 -> obje+0x44 is the animation
+ *   graph ('antr') tag index; -1 means none.
+ * Confirmed: PUSH EAX; PUSH 0x616e7472; CALL tag_get; MOV ECX,[EAX+0x74];
+ *   TEST ECX,ECX; JLE -> signed "> 0" test on antr+0x74.
+ * Confirmed: PUSH 0x0; PUSH [EDI+0x44]; PUSH 0x1 ->
+ *   model_animation_choose_random(1, antr_index, 0) (first PUSH is the last
+ *   argument). [EDI+0x44] is re-loaded here and again for the store, so the
+ *   field is re-read rather than cached.
+ * Confirmed: CMP AX,0xffff -> 16-bit compare against -1.
+ * Confirmed store order: MOV word [ESI+0x80],AX; MOV dword [ESI+0x7c],EDX;
+ *   MOV dword [ESI+0x4],EAX (flags |= 0x80). obj+0x7c/+0x80 are the same
+ *   animation-graph-index / animation-index pair object_new writes.
+ * Confirmed: OR dword [ESI+0x4],0x40000 runs on every path.
+ * Confirmed: MOV AL,0x1 -> 1-byte return, always 1.
+ * Unknown: the concrete meaning of the type-0x40 mask and of antr+0x74; no
+ *   string or assert evidence in this function.
+ */
+bool FUN_00145580(int object_handle)
+{
+  char *obj;
+  char *obje_tag;
+  char *antr_tag;
+  int16_t chosen;
+
+  obj = (char *)object_get_and_verify_type(object_handle, 0x40);
+  obje_tag = (char *)tag_get(0x6f626a65, *(int *)obj);
+  if (*(int *)(obje_tag + 0x44) != -1) {
+    antr_tag = (char *)tag_get(0x616e7472, *(int *)(obje_tag + 0x44));
+    if (*(int *)(antr_tag + 0x74) > 0) {
+      chosen =
+        (int16_t)model_animation_choose_random(1, *(int *)(obje_tag + 0x44), 0);
+      if (chosen != -1) {
+        *(int16_t *)(obj + 0x80) = chosen;
+        *(int *)(obj + 0x7c) = *(int *)(obje_tag + 0x44);
+        *(uint32_t *)(obj + 0x4) |= 0x80;
+      }
+    }
+  }
+  *(uint32_t *)(obj + 0x4) |= 0x40000;
+  return 1;
+}
+
+/* FUN_00145610 (0x145610)
+ *
+ * Object-type table entry (referenced only from data at 0x3241d8, the slot
+ * immediately above FUN_00145560's 0x3241d0 — so there are no direct code
+ * callers). Advances the animation installed by FUN_00145580 and, when the
+ * animation update reports state 2, decrements the 16-bit counter at obj+0x82.
+ *
+ * Confirmed: MOV EAX,[EBP+0x8]; PUSH 0x40; PUSH EAX ->
+ *   object_get_and_verify_type(object_handle, 0x40); result kept in ESI.
+ *   ADD ESP,0x8 -> cdecl, two stack args. Same 0x40 type mask as
+ *   FUN_00145580, which installs obj+0x7c/+0x80 for this function to advance.
+ * Confirmed: MOV AL,byte [ESI+0x1a4]; TEST AL,0x1; JZ -> single-byte read,
+ *   bit 0 only.
+ * Confirmed argument order: PUSH 0x0; LEA ECX,[ESI+0x80]; PUSH ECX;
+ *   PUSH EAX(=[ESI+0x7c]); PUSH 0x1 -> first PUSH is the last argument, so
+ *   animation_update_internal(1, *(obj+0x7c), (short *)(obj+0x80), NULL).
+ *   ADD ESP,0x10 -> one cdecl call with four stack args.
+ * Confirmed: MOVSX EAX,AX; SUB EAX,0x2 -> the return value is compared as a
+ *   sign-extended 16-bit quantity against 2, not as a full int.
+ * Confirmed: DEC word ptr [ESI+0x82] -> 16-bit decrement, and obj+0x80 /
+ *   obj+0x82 are the adjacent short pair the callee receives as `state`.
+ * Confirmed: MOV AL,0x1 on both exit paths -> 1-byte return, always 1.
+ * Unknown: the meaning of the type-0x40 mask, of obj+0x1a4 bit 0, and of the
+ *   obj+0x82 counter; no string or assert evidence in this function.
+ * Unknown: the meaning of animation_update_internal's state-2 result; names
+ *   follow the existing kb.json decl of the callee.
+ */
+bool FUN_00145610(int object_handle)
+{
+  char *obj;
+
+  obj = (char *)object_get_and_verify_type(object_handle, 0x40);
+  if ((obj[0x1a4] & 1) != 0) {
+    if ((int16_t)animation_update_internal(
+          1, *(int *)(obj + 0x7c), (short *)(obj + 0x80), (int *)0) == 2) {
+      *(int16_t *)(obj + 0x82) = *(int16_t *)(obj + 0x82) - 1;
+    }
+  }
+  return 1;
+}
+
+/* FUN_00145740 (0x145740)
+ *
+ * Third member of the same object-type table family as FUN_00145580 /
+ * FUN_00145610 (no direct code callers in the artifact's caller list). Returns
+ * how many animation frames are still left on the animation FUN_00145580
+ * installed at obj+0x7c/+0x80, given the frame counter FUN_00145610
+ * decrements at obj+0x82, clamped at 0. Returns 0 when the object has no
+ * animation installed.
+ *
+ * Confirmed: MOV EAX,[EBP+0x8]; PUSH 0x40; PUSH EAX ->
+ *   object_get_and_verify_type(object_handle, 0x40); result kept in ESI.
+ *   ADD ESP,0x8 -> cdecl, two stack args. Same 0x40 type mask as the two
+ *   neighbours.
+ * Confirmed: MOV AL,byte [ESI+0x1a4]; TEST AL,0x1; JZ 0x1457a2 -> single-byte
+ *   read, bit 0 only; the taken branch is XOR AX,AX (16-bit zero return),
+ *   which is why the kb.json decl returns int16_t rather than int.
+ * Confirmed: MOV ECX,[ESI+0x7c]; PUSH ECX; PUSH 0x616e7472 ->
+ *   tag_get('antr', *(int *)(obj + 0x7c)) — the same antr tag index
+ *   FUN_00145580 stores at obj+0x7c.
+ * Confirmed argument order: MOVSX EDX,word [ESI+0x80]; PUSH 0xb4; PUSH EDX;
+ *   ADD EAX,0x74; PUSH EAX -> first PUSH is the last argument, so
+ *   tag_block_get_element(antr + 0x74, (int)*(short *)(obj + 0x80), 0xb4).
+ *   The index is MOVSX-extended, i.e. a signed 16-bit animation index.
+ *   ADD ESP,0x14 (5 dwords) cleans tag_get's 2 and this call's 3 stack args
+ *   at once — it is not a 5-argument call.
+ * Confirmed: MOVSX EAX,word [EAX+0x22]; MOVSX ECX,word [ESI+0x82];
+ *   SUB EAX,ECX; ADD EAX,-0x2 -> (animation+0x22) - (obj+0x82) - 2, both
+ *   operands sign-extended 16-bit. Read order is animation+0x22 first.
+ * Confirmed: XOR EDX,EDX; TEST EAX,EAX; SETLE DL; DEC EDX; AND EAX,EDX ->
+ *   branchless (value > 0 ? value : 0); result returned in AX.
+ * Unknown: the meaning of the type-0x40 mask, of obj+0x1a4 bit 0, and of the
+ *   obj+0x82 counter. antr+0x74 is the animation tag_block FUN_00145580 also
+ *   size-checks; element stride 0xb4 and element field +0x22 have no string or
+ *   assert evidence here, so no semantic names are claimed for them.
+ */
+int16_t FUN_00145740(int object_handle)
+{
+  char *obj;
+  char *antr_tag;
+  char *animation;
+  int remaining;
+
+  obj = (char *)object_get_and_verify_type(object_handle, 0x40);
+  if ((obj[0x1a4] & 1) != 0) {
+    antr_tag = (char *)tag_get(0x616e7472, *(int *)(obj + 0x7c));
+    animation = (char *)tag_block_get_element(
+      antr_tag + 0x74, (int)*(int16_t *)(obj + 0x80), 0xb4);
+    remaining =
+      (int)*(int16_t *)(animation + 0x22) - (int)*(int16_t *)(obj + 0x82) - 2;
+    return (int16_t)(remaining > 0 ? remaining : 0);
+  }
+  return 0;
+}
+
 /* 0x1457f0 — Returns a pointer to the health float for a breakable surface,
  * indexed by global_structure_bsp_index and surface_index within the globals
  * buffer starting at offset 0x204. */
