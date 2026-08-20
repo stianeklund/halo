@@ -4907,15 +4907,18 @@
     },
     {
      "addr": "0x145560",
-     "decl": "void FUN_00145560(void);"
+     "decl": "void FUN_00145560(int unit_handle, void *data);",
+     "ported": true
     },
     {
      "addr": "0x145580",
-     "decl": "void FUN_00145580(void);"
+     "decl": "bool FUN_00145580(int object_handle);",
+     "ported": true
     },
     {
      "addr": "0x145610",
-     "decl": "void FUN_00145610(void);"
+     "decl": "bool FUN_00145610(int object_handle);",
+     "ported": true
     },
     {
      "addr": "0x145660",
@@ -4923,7 +4926,8 @@
     },
     {
      "addr": "0x145740",
-     "decl": "int16_t FUN_00145740(int param_1);"
+     "decl": "int16_t FUN_00145740(int object_handle);",
+     "ported": true
     },
     {
      "addr": "0x1457b0",
@@ -8192,8 +8196,8 @@
     },
     {
      "addr": "0xa7470",
-     "decl": "int16_t FUN_000A7470(void);",
-     "ported": false
+     "decl": "int game_difficulty_level_get_ignore_easy(void);",
+     "ported": true
     },
     {
      "addr": "0xa7490",
@@ -8305,7 +8309,8 @@
     },
     {
      "addr": "0xb4b10",
-     "decl": "void FUN_000b4b10(void);"
+     "decl": "void FUN_000b4b10(unsigned int player_handle);",
+     "ported": true
     },
     {
      "addr": "0xb4bf0",
@@ -9925,7 +9930,8 @@
     },
     {
      "addr": "0x1c75a0",
-     "decl": "void scripted_foley_predict(int handle);"
+     "decl": "void scripted_foley_predict(int handle);",
+     "ported": true
     },
     {
      "addr": "0x1c7650",
@@ -9937,7 +9943,8 @@
     },
     {
      "addr": "0x1c7710",
-     "decl": "int unattached_looping_sound_start(int sound_tag, int param_2, int param_3);"
+     "decl": "int unattached_looping_sound_start(int sound_tag, int param_2, int param_3);",
+     "ported": true
     },
     {
      "addr": "0x1c7770",
@@ -26117,7 +26124,8 @@
     },
     {
      "addr": "0x82060",
-     "decl": "void *transport_get_xnaddr(void *dst);"
+     "decl": "void *transport_get_xnaddr(void *dst);",
+     "ported": true
     },
     {
      "addr": "0x82090",
@@ -29355,7 +29363,8 @@
     },
     {
      "addr": "0x1bf130",
-     "decl": "void texture_cache_close(void);"
+     "decl": "void texture_cache_close(void);",
+     "ported": true
     },
     {
      "addr": "0x1bf260",

@@ -8790,6 +8790,14 @@
       "metadata": {
         "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
       }
+    },
+    {
+      "name": "halo/FUN_001457b0",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/breakable_surfaces.c.obj",
+      "base_path": "delinked/functions/001457b0.obj",
+      "metadata": {
+        "source_path": "src/halo/physics/breakable_surfaces.c"
+      }
     }
   ]
 }
