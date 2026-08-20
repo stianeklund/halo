@@ -437,14 +437,27 @@ int16_t game_difficulty_level_get(void)
   return game_globals->game_options.difficulty;
 }
 
+/* 0xa7470 — difficulty level with "easy" folded up to "normal".
+ *
+ * Reference (0xa7470-0xa7487, 7 instructions, single exit):
+ *   MOV EAX,[0x004566ec]      game_globals
+ *   MOV AX,word ptr [EAX+0xe] game_options.difficulty (0x8 + 0x6), int16
+ *   CMP AX,0x1                16-bit SIGNED compare against 1
+ *   MOVSX EAX,AX              widen the field for the taken path (flags kept)
+ *   JG  0x000a7487            difficulty > 1 -> return it as-is
+ *   MOV EAX,0x1               else clamp to 1; full 32-bit write => int return
+ *   RET
+ *
+ * The MOVSX/MOV EAX,0x1 pair is why the return type is int, not int16_t: the
+ * value is materialised at full width in EAX on both paths.
+ */
 int game_difficulty_level_get_ignore_easy(void)
 {
-  int16_t difficulty = game_globals->game_options.difficulty;
+  int16_t difficulty;
 
-  if (difficulty <= 1)
-    return 1;
+  difficulty = game_globals->game_options.difficulty;
 
-  return difficulty;
+  return difficulty > 1 ? difficulty : 1;
 }
 
 void game_set_game_variant(game_variant_t *variant)
@@ -866,6 +879,24 @@ int FUN_000b4960(void)
     piVar5 = piVar5 + 1;
   }
   return 1;
+}
+
+/* FUN_000b4b10 (0xb4b10) — invalidate a player's race timestamp
+ *
+ * Looks up the player record for the given handle and stores -1 into the
+ * dword at player+0x88. Neighboring race-engine code treats that dword as a
+ * game_time stamp (game_engine.c writes game_time_get() there and subtracts
+ * it to get an elapsed time), so -1 marks it invalid/unset.
+ *
+ * Disassembly (0xb4b10): MOV EAX,[EBP+8]; MOV ECX,[0x5aa6d4];
+ * PUSH EAX; PUSH ECX; CALL datum_get (0x119320); ADD ESP,8;
+ * MOV dword ptr [EAX+0x88],0xffffffff. */
+void FUN_000b4b10(unsigned int player_handle)
+{
+  char *player;
+
+  player = (char *)datum_get(player_data, player_handle);
+  *(int *)(player + 0x88) = -1;
 }
 
 /* FUN_000b4d50 (0xb4d50) — race score lookup
