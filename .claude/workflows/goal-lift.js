@@ -1423,7 +1423,7 @@ if (ADDRS) {
     return { committed: 0, goal: GOAL, reached_goal: false, skipped: 0, reverted: 0, reason: 'empty_queue_after_filter' }
   }
 }
-log(`Selected ${targets.length} candidates across ${new Set(targets.map(t => t.obj)).size} objects`)
+log(`Selected ${targets.length} candidates across ${new Set(targets.map(t => t.obj)).size} objects: ${[...new Set(targets.map(t => t.obj))].join(', ')}`)
 
 // ── Code-side pre-screen — drop targets the SELECTOR already proved unsuitable,
 // using authoritative facts (has_reg_args / lane / addr) rather than re-deriving
