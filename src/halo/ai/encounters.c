@@ -2743,44 +2743,6 @@ void FUN_00058c40(unsigned int ai_index, int vehicle_handle,
   FUN_00058af0(ai_index, vehicle_handle, (int)seat_substring, 0);
 }
 
-/* 0x00058cc0 — exact twin of FUN_00058c40 above, differing only in the trace
- * format string and in allow_type9 = 1 instead of 0.  Emits a trace line when
- * the AI script-trace flag at 0x5aca59 is set, then forwards the request to the
- * vehicle-entry order builder FUN_00058af0.
- *
- * NAME CAVEAT: the format string at 0x25d1d0 reads
- * "%s: ai_go_to_vehicle_override %s 0x%04X %s", so the original Bungie name is
- * almost certainly ai_go_to_vehicle_override.  The kb.json name
- * ai_scripting_follow_distance is unrelated to the observed behavior but is
- * retained here because the build resolves the patch redirect by kb name;
- * renaming requires kb.json + tools/verify/function_bounds.json to move
- * together.
- *
- * Parameters come off the stack and are cached in callee-saved registers by the
- * prologue (0x58cd1-0x58cd9): EDI = [EBP+8] = ai_index,
- * EBX = [EBP+0xC] = vehicle_handle, ESI = [EBP+0x10] = seat_substring.  Ghidra
- * typed this function `(void)` and reported bogus in_stack_* slots.
- *
- * The error() call pushes SIX stack args (ADD ESP,0x18 at 0x58d1c); Ghidra
- * dropped the trailing seat_substring vararg.  Only the low 16 bits of the
- * vehicle handle are logged (MOV ECX,EBX; AND ECX,0xffff at 0x58cff/0x58d01),
- * while the FULL 32-bit handle is forwarded to FUN_00058af0 (EBX still live and
- * unclobbered at the tail call, 0x58d24). */
-void ai_scripting_follow_distance(unsigned int ai_index, int vehicle_handle,
-                                  const char *seat_substring)
-{
-  char local_104[256];
-
-  if (*(char *)0x5aca59 != '\0') {
-    ai_index_to_string(ai_index, (void *)global_scenario_get(), local_104,
-                       0x100);
-    error(2, "%s: ai_go_to_vehicle_override %s 0x%04X %s",
-          hs_runtime_get_executing_thread_name(), local_104,
-          vehicle_handle & 0xffff, seat_substring);
-  }
-  FUN_00058af0(ai_index, vehicle_handle, (int)seat_substring, 1);
-}
-
 /* 0x00058eb0 — encounters_initialize.
  *
  * Allocates the four encounter-system game-state blocks and halts if any
@@ -5924,8 +5886,9 @@ void encounter_post_combat_assign_behaviors(int encounter_handle)
     if (*(int *)(actor + 0x18) == NONE) {
       continue;
     }
-    rating = ((float (*)(int, int, int, int))ai_communication_get_player_rating)(
-      *(int *)(actor + 0x18), 1, 0, 0);
+    rating =
+      ((float (*)(int, int, int, int))ai_communication_get_player_rating)(
+        *(int *)(actor + 0x18), 1, 0, 0);
     FUN_00064540(prop_iterator, current_actor_index);
     prop = (char *)FUN_00064570(prop_iterator);
     while (prop != NULL) {
@@ -6049,9 +6012,11 @@ void encounter_post_combat_assign_behaviors(int encounter_handle)
       if (*(int *)(actor + 0x18) == NONE) {
         continue;
       }
-      rating = ((float (*)(int, int, int, int))ai_communication_get_player_rating)(
-        *(int *)(actor + 0x18), 1, 0, 0);
-      if (((short (*)(int))actor_communication_team)(current_actor_index) != 0) {
+      rating =
+        ((float (*)(int, int, int, int))ai_communication_get_player_rating)(
+          *(int *)(actor + 0x18), 1, 0, 0);
+      if (((short (*)(int))actor_communication_team)(current_actor_index) !=
+          0) {
         continue;
       }
       if (rating > 2.0f && rating > best_rating) {
@@ -6176,6 +6141,108 @@ void encounter_post_combat_assign_behaviors(int encounter_handle)
   *(char *)(encounter + 0x48) = 0;
   *(int16_t *)(encounter + 0x4a) = 0x78;
   *(int16_t *)(encounter + 0x4c) = 0;
+}
+
+/* encounter_spawn_actor (0x5c510) — reserve a starting location for one actor
+ * of an encounter's squad and re-arm the two respawn delay timers.
+ *
+ * Confirmed (0x112 bytes, EBP frame, SUB ESP,0xc = 3 dword locals, no
+ * _chkstk):
+ *   - Guarded on ai_globals+1 (MOV EAX,[0x632574]; MOV CL,[EAX+1]; TEST CL,CL;
+ *     JZ epilogue) — the same ai_active gate used by the rest of this TU.
+ *   - profile_index arrives in [EBP+8] and is loaded into EBX at 0x5c52a
+ *     *before* the CALL 0x5c3a0, i.e. it is that callee's @<ebx> register
+ *     argument; the three stack pushes are 1, 0, squad_index (ADD ESP,0xc).
+ *   - The same EBX is reused as the datum_get handle (0x5c54a) and, after
+ *     AND EBX,0xffff (0x5c559), as the scenario encounters-block index.
+ *   - Both tag_block_get_element index arguments differ: the encounter block
+ *     uses the masked handle (AND EBX,0xffff), the squads sub-block uses a
+ *     sign-extended 16-bit squad index (MOVSX ECX,word ptr [EBP+0xc]).
+ *   - ADD ESP,0x20 at 0x5c596 cleans up the encounter_get_squad (2 args) and
+ *     both tag_block_get_element calls (3 + 3 args) together; an arg-count
+ *     audit reading it as a single 8-arg call is a false positive.
+ *   - The epilogue is shared with the guard-fail path and does XOR AL,AL;
+ *     kb declares this function void, so the dead EAX residue stays unmodelled.
+ *
+ * Call-site verification (first PUSH is the last argument):
+ *   0x5c532 encounter_get_actor_starting_location | PUSH 1 ; PUSH 0 ;
+ *     PUSH ECX=[EBP+0xc] ; EBX=[EBP+8] -> (squad_index, 0, 1,
+ *     profile_index @<ebx>) | match
+ *   0x5c54c datum_get | PUSH EBX ; PUSH EDX=[0x5ab270]
+ *     -> datum_get(encounter_data, profile_index) | match
+ *   0x5c56d tag_block_get_element | PUSH 0xb0 ; PUSH EBX&0xffff ; PUSH
+ *     EAX=global_scenario_get()+0x42c | match (the two immediates are pushed
+ *     before the scenario call, i.e. right-to-left evaluation)
+ *   0x5c579 encounter_get_squad | PUSH EAX=[EBP+0xc] ; PUSH ESI=encounter
+ *     | match
+ *   0x5c591 tag_block_get_element | PUSH 0xe8 ; PUSH ECX=(int16_t)squad_index
+ *     ; PUSH EDX=encounter_def+0x80 (squads) | match
+ *   0x5c5c4/0x5c5fc get_global_random_seed_address | no args | match
+ *   0x5c5ca/0x5c602 random_real_range | PUSH max ; PUSH min ; PUSH seed
+ *     -> random_real_range(seed, min, max) | match; the FMUL [0x253394]
+ *     (TICKS_PER_SECOND = 30.0f) applies to the *result*, then CALL _ftol2
+ *     -> (int) cast, and only AX is stored.
+ *
+ * Store-offset table:
+ *   encounter (runtime, datum_get) +0x2a | int16 | ++ (squad population tally)
+ *   encounter                      +0x3e | int16 | (int16_t)(int)(rand *
+ *                                                   TICKS_PER_SECOND)
+ *   squad record (encounter_get_squad) +0x18 | int16 | ++
+ *   squad record                       +0x0c | int16 | -- only when
+ *                                        squad_def+0x88 (int16) > 0
+ *   squad record                       +0x0e | int16 | (int16_t)(int)(rand *
+ *                                                       TICKS_PER_SECOND)
+ *
+ * Tag-definition offsets (unknown meaning beyond the read width):
+ *   encounter_definition +0x2c / +0x30 | float | min/max fed to
+ *     random_real_range (inside pad_26 today, so they are read as raw floats)
+ *   squad definition (stride 0xe8) +0x88 | int16 | tested > 0
+ *   squad definition +0x8c / +0x90 | float | min/max fed to random_real_range
+ *
+ * 0x5c510 / encounters.obj
+ */
+void encounter_spawn_actor(int profile_index, int squad_index)
+{
+  char *encounter;
+  char *encounter_def;
+  char *squad;
+  char *squad_def;
+  float delay_min;
+  float delay_max;
+
+  if (*(char *)(*(char **)0x632574 + 1) != '\0') {
+    if (encounter_get_actor_starting_location(squad_index, 0, 1,
+                                              profile_index /* @<ebx> */)) {
+      encounter = (char *)datum_get(*(data_t **)0x5ab270, profile_index);
+      encounter_def = (char *)tag_block_get_element(
+        (char *)global_scenario_get() + 0x42c,
+        (int)((unsigned int)profile_index & 0xffff), 0xb0);
+      squad = encounter_get_squad(encounter, (int16_t)squad_index);
+      squad_def = (char *)tag_block_get_element(
+        &((encounter_definition *)encounter_def)->squads,
+        (int)(int16_t)squad_index, 0xe8);
+
+      *(int16_t *)(encounter + 0x2a) = *(int16_t *)(encounter + 0x2a) + 1;
+      *(int16_t *)(squad + 0x18) = *(int16_t *)(squad + 0x18) + 1;
+      if (*(int16_t *)(squad_def + 0x88) > 0) {
+        *(int16_t *)(squad + 0xc) = *(int16_t *)(squad + 0xc) - 1;
+      }
+
+      delay_max = *(float *)(encounter_def + 0x30);
+      delay_min = *(float *)(encounter_def + 0x2c);
+      *(int16_t *)(encounter + 0x3e) =
+        (int16_t)(int)(random_real_range(get_global_random_seed_address(),
+                                         delay_min, delay_max) *
+                       TICKS_PER_SECOND);
+
+      delay_max = *(float *)(squad_def + 0x90);
+      delay_min = *(float *)(squad_def + 0x8c);
+      *(int16_t *)(squad + 0xe) =
+        (int16_t)(int)(random_real_range(get_global_random_seed_address(),
+                                         delay_min, delay_max) *
+                       TICKS_PER_SECOND);
+    }
+  }
 }
 
 /* encounter_set_respawn (0x5c630) — Set an encounter's respawn flag
