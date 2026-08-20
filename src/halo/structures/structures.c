@@ -3156,6 +3156,201 @@ void FUN_00191ff0(int base, unsigned int index)
   }
 }
 
+/* leaf_map_build_portal_from_leaves (FUN_00192050, 0x192050)
+ *
+ * structures.obj / c:\halo\SOURCE\structures\leaf_map.c
+ *
+ * Builds a new portal record connecting leaf_index0 and leaf_index1 across
+ * BSP node `node_index`: finds the node's shared-boundary link within each
+ * leaf (FUN_00191c70), intersects them into a 2D polygon (FUN_00108060),
+ * unprojects each vertex back onto the node's plane (project_point2d) into
+ * the new portal's vertex list, then rejects degenerate slivers by area and
+ * by area/perimeter ratio.
+ *
+ * `structure` (leaf_map_globals-equivalent, register arg @<edi>) layout,
+ * cross-confirmed against leaf_map_mark_portal_designators's documented
+ * +0x4/+0x10 fields:
+ *   +0x0  : int *nodes      - indirect pointer; nodes[node_index]'s first
+ *           field is a plane index into a planes tag_block embedded at
+ *           nodes+0xc (stride 0x10, plane equation abcd as 4 floats).
+ *   +0x4  : tag_block<0x18> - leaf clusters (inline header). Each leaf
+ *           cluster's +0x4/+0x8 fields are a node-search tag_block (short
+ *           count, void *records) consumed by FUN_00191c70; its +0xc field
+ *           is the portal_designators sub-block (stride 4), same as in
+ *           leaf_map_mark_portal_designators.
+ *   +0x10 : tag_block<0x18> - portals (inline header). Each portal record:
+ *           +0x0 node plane index (copied from nodes[node_index][0]), +0x4
+ *           leaf_index0 (masked, sign bit dropped), +0x8 leaf_index1
+ *           (masked), +0xc vertices tag_block<0xc>.
+ *
+ * Confirmed from disassembly at 0x192050:
+ *   - three cdecl stack args (node_index, leaf_index0, leaf_index1) plus the
+ *     structure pointer arriving live in EDI (no entry MOV; the caller at
+ *     0x192f47 sets EDI immediately before CALL, same convention as the
+ *     sibling leaf_map_* helpers above) -> registered @<edi>.
+ *   - the "leaf_index0!=leaf_index1" assert compares the RAW (unmasked)
+ *     parameters, not the masked copies used for tag_block indexing.
+ *   - FUN_00191c70 is called twice with ESI/EBX register args (block, node
+ *     index); the two PUSH EDI immediately before each CALL are dead stack
+ *     reservation cleaned up by the single trailing `ADD ESP,0x20` together
+ *     with the two preceding tag_block_get_element pushes - not an argument
+ *     to FUN_00191c70 (its kb.json signature is register-only).
+ *   - local_18's upper 3 bytes (uStack_17 in the decompile) are never
+ *     written by the original; only the low byte (the FUN_00099270 sign
+ *     result) is stored and read back, modeled here as a plain uint8_t.
+ *   - the node-record fetch (tag_block_get_element(nodes, node_index, 0xc))
+ *     is issued twice by the original (0x1921d7 and 0x1921f7) with identical
+ *     arguments; preserved as two separate calls for VC71 call-count
+ *     fidelity instead of caching the first result.
+ *   - the "too many vertices in portal" (0xffff) recheck after the three
+ *     tag_block_add_element calls is dead code (the vertex_count<1 branch
+ *     above it already routes the signed -1/0xffff case to the same assert)
+ *     but is reproduced as-is per Preserve Shape.
+ *   - both FCOM/FNSTSW/TEST AH,0x5 branches were hand-verified against the
+ *     parity-flag truth table; both read the same sense as the decompile
+ *     (reject when area < 0.0025f, and when sqrt(area)/perimeter < 0.01f).
+ *
+ * Inferred: FUN_00108060's `out_list` parameter is typed uint16_t* in its
+ * (unported) kb.json declaration, but the loop below reads it back as
+ * sequential float x/y pairs (advancing 2 floats/iteration) that are never
+ * otherwise initialized - the buffer most likely holds a computed 2D
+ * polygon (float pairs), not indices. Left as uint16_t* here to match the
+ * existing unported declaration; flagged for whoever lifts FUN_00108060.
+ */
+void leaf_map_build_portal_from_leaves(void *structure /* @<edi> */,
+                                       int node_index, uint32_t leaf_index0,
+                                       uint32_t leaf_index1)
+{
+  void *leaf0_cluster;
+  void *leaf1_cluster;
+  short node_slot0;
+  short node_slot1;
+  void *leaf0_link;
+  void *leaf1_link;
+  int16_t vertex_count;
+  float coord_buffer[128];
+  void *leaf0_designators;
+  void *leaf1_designators;
+  int16_t designator_index0;
+  int16_t designator_index1;
+  int16_t portal_index;
+  uint32_t *node_record;
+  int32_t plane_index;
+  float *plane;
+  uint32_t *portal;
+  uint32_t projection;
+  uint8_t sign;
+  float area;
+  float perimeter;
+  int16_t i;
+  float *dst;
+  void *vertices_block;
+  uint32_t *designator_slot;
+  void *vertex;
+
+  leaf0_cluster = tag_block_get_element((char *)structure + 4,
+                                        leaf_index0 & 0x7fffffff, 0x18);
+  leaf1_cluster = tag_block_get_element((char *)structure + 4,
+                                        leaf_index1 & 0x7fffffff, 0x18);
+  node_slot0 = FUN_00191c70(leaf0_cluster, node_index);
+  node_slot1 = FUN_00191c70(leaf1_cluster, node_index);
+  if (node_slot0 == -1 || node_slot1 == -1) {
+    return;
+  }
+
+  leaf0_link = tag_block_get_element(leaf0_cluster, node_slot0, 0x10);
+  leaf1_link = tag_block_get_element(leaf1_cluster, node_slot1, 0x10);
+
+  if (leaf_index0 == leaf_index1) {
+    display_assert("leaf_index0!=leaf_index1",
+                   "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x1de, true);
+    system_exit(-1);
+  }
+
+  vertex_count = FUN_00108060(
+    *(int16_t *)((char *)leaf0_link + 4), *(void **)((char *)leaf0_link + 8),
+    *(int16_t *)((char *)leaf1_link + 4), *(void **)((char *)leaf1_link + 8),
+    0x40, (uint16_t *)coord_buffer, 0x3a000000);
+
+  if (vertex_count < 1) {
+    if ((uint16_t)vertex_count == 0xffff) {
+      display_assert(0, "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x21d,
+                     true);
+      system_exit(-1);
+    }
+    return;
+  }
+
+  portal_index = tag_block_add_element((char *)structure + 0x10);
+  leaf0_designators = (char *)leaf0_cluster + 0xc;
+  designator_index0 = tag_block_add_element(leaf0_designators);
+  leaf1_designators = (char *)leaf1_cluster + 0xc;
+  designator_index1 = tag_block_add_element(leaf1_designators);
+
+  if ((uint16_t)vertex_count == 0xffff) {
+    display_assert("too many vertices in portal",
+                   "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x1e7, true);
+    system_exit(-1);
+  }
+
+  if (portal_index == -1 || designator_index0 == -1 ||
+      designator_index1 == -1) {
+    if (*(char **)0x4d8e94 == 0) {
+      if (portal_index == -1) {
+        *(char **)0x4d8e94 = "couldn't allocate leaf map portal";
+        return;
+      }
+      *(char **)0x4d8e94 = "couldn't allocate leaf map portal designator.";
+      return;
+    }
+    return;
+  }
+
+  portal = (uint32_t *)tag_block_get_element((char *)structure + 0x10,
+                                             portal_index, 0x18);
+  node_record =
+    (uint32_t *)tag_block_get_element(*(void **)structure, node_index, 0xc);
+  plane_index = (int32_t)*node_record;
+  plane = (float *)tag_block_get_element((char *)*(void **)structure + 0xc,
+                                         plane_index, 0x10);
+  node_record =
+    (uint32_t *)tag_block_get_element(*(void **)structure, node_index, 0xc);
+  portal[0] = *node_record;
+
+  projection = FUN_00099220(plane);
+  sign = FUN_00099270(plane, projection);
+  portal[1] = leaf_index0 & 0x7fffffff;
+  portal[2] = leaf_index1 & 0x7fffffff;
+
+  designator_slot =
+    (uint32_t *)tag_block_get_element(leaf0_designators, designator_index0, 4);
+  *designator_slot = (uint32_t)portal_index;
+  designator_slot =
+    (uint32_t *)tag_block_get_element(leaf1_designators, designator_index1, 4);
+  *designator_slot = (uint32_t)portal_index;
+
+  vertices_block = (void *)(portal + 3);
+  if (tag_block_resize(vertices_block, vertex_count) && vertex_count > 0) {
+    dst = coord_buffer;
+    for (i = 0; i < vertex_count; ++i) {
+      vertex = tag_block_get_element(vertices_block, i, 0xc);
+      project_point2d(dst, plane, (int16_t)projection, sign, (float *)vertex);
+      dst += 2;
+    }
+  }
+
+  area = FUN_00106330(vertex_count, coord_buffer);
+  if (area < 0.0025f) {
+    leaf_map_mark_portal_designators(structure, (uint32_t)portal_index);
+    return;
+  }
+  perimeter = convex_hull2d_perimeter(vertex_count, coord_buffer);
+  if (sqrtf(area) / perimeter < 0.01f) {
+    leaf_map_mark_portal_designators(structure, (uint32_t)portal_index);
+    return;
+  }
+}
+
 /* 0x192390 - compute the bounding sphere of one structure-BSP leaf.
  *
  * Resolves the leaf at `leaf_index` from the BSP's leaf tag_block (bsp+4,

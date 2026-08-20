@@ -786,7 +786,8 @@
     "0x86a50": "void FUN_00086a50(int local_player_index@<eax>, int16_t *mode_table@<ebx>, int16_t count);",
     "0x86be0": "void FUN_00086be0(int local_player_index@<eax>, char force_flag@<bl>);",
     "0x86670": "void FUN_00086670(int16_t local_player_index@<ax>, int mode_flags, float fwd);",
-    "0x1c31f0": "char FUN_001c31f0(const char *path@<eax>);"
+    "0x1c31f0": "char FUN_001c31f0(const char *path@<eax>);",
+    "0x192050": "void leaf_map_build_portal_from_leaves(void *structure@<edi>, int node_index, unsigned int leaf_index0, unsigned int leaf_index1);"
   },
   "0x6cde0": "void FUN_0006cde0(void *tif@<edi>);",
   "0xc4a40": "void FUN_000c4a40(int16_t function_index@<eax>, char *buffer@<esi>);",

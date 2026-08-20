@@ -55573,6 +55573,21 @@
       "score": 95.7,
       "source": "src/halo/networking/message_header.c"
     },
+    "leaf_map_build_portal_from_leaves": {
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 69.9,
+      "addr": "0x192050",
+      "end": "0x192382",
+      "kind": "auto",
+      "n_r": 292,
+      "opnd_percent": 42.8,
+      "raw_mnemonic_pct": 69.8,
+      "ref": "synth",
+      "ref_sha": "0a8f867177e3293d",
+      "score": 69.9,
+      "source": "src/halo/structures/structures.c"
+    },
     "leaf_map_mark_portal_designators": {
       "abi_model": "raw",
       "abi_model_items": 0,

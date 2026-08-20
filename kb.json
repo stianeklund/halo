@@ -25301,7 +25301,8 @@
     },
     {
      "addr": "0x192050",
-     "decl": "void leaf_map_build_portal_from_leaves(void);"
+     "decl": "void leaf_map_build_portal_from_leaves(void *structure@<edi>, int node_index, unsigned int leaf_index0, unsigned int leaf_index1);",
+     "ported": true
     },
     {
      "addr": "0x192390",
