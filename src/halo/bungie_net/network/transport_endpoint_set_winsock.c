@@ -80,6 +80,29 @@ void transport_get_nonce(void *dst, int bytes)
   csmemcpy(dst, global_nonce, sizeof(global_nonce));
 }
 
+/* Copy the local transport address blob to the caller's buffer and return it.
+ *
+ * Confirmed (0x82060-0x82083): three dword loads from 0x5ab230, 0x5ab234 and
+ * 0x5ab238 stored to [dst+0], [dst+4] and [dst+8]; the parameter is returned
+ * unchanged in EAX (MOV EAX,[EBP+8] at 0x82069, never reloaded).  Exactly 12
+ * bytes are copied — no loop, no csmemcpy, no assert, no stack frame beyond
+ * PUSH EBP.  The lone caller (network_server_manager advertise builder) reads
+ * back only dword 0..2 from its scratch buffer, matching the 12-byte size.
+ *
+ * Uncertain: the blob at 0x5ab230 is an untyped 12-byte global here.  Only
+ * whole dwords are moved, so no field layout is proven and no struct is
+ * invented; the "xnaddr" in the kb.json name is not corroborated by any
+ * string or field access inside this function.
+ */
+void *transport_get_xnaddr(void *dst)
+{
+  ((uint32_t *)dst)[0] = *(uint32_t *)0x5ab230;
+  ((uint32_t *)dst)[1] = *(uint32_t *)0x5ab234;
+  ((uint32_t *)dst)[2] = *(uint32_t *)0x5ab238;
+
+  return dst;
+}
+
 /* Initialize the Xbox network transport layer.
  *
  * Queries ethernet link status, optionally enables XNet security bypass
@@ -157,14 +180,17 @@ void transport_initialize(void)
   }
 
   /* Start XNet. */
-  xnet_result = ((int(__stdcall *)(uint8_t *))0x2231f8)( /* hazard-ok: fnptr-conv */
-    xnet_params);
+  xnet_result =
+    ((int(__stdcall *)(uint8_t *))0x2231f8)(/* hazard-ok: fnptr-conv */
+                                            xnet_params);
   if (xnet_result != 0)
     return;
 
   /* Start WinSock 2.2. */
-  wsa_result = ((int16_t(__stdcall *)(int16_t, uint8_t *))0x223206)( /* hazard-ok: fnptr-conv */
-    2, wsadata);
+  /* hazard-ok: fnptr-conv */
+  wsa_result = ((int16_t(__stdcall *)(
+    int16_t, uint8_t *))0x223206)(
+                                  2, wsadata);
   if (wsa_result != 0) {
     /* Cleanup: WSACleanup then report error. */
     ((void (*)(void))0x2232ed)();
@@ -177,16 +203,17 @@ void transport_initialize(void)
   deadline = start_time + 10000;
 
   for (;;) {
-    link_result = ((int(__stdcall *)(void *))0x222ecf)( /* hazard-ok: fnptr-conv */
-      (void *)0x5ab230);
+    link_result =
+      ((int(__stdcall *)(void *))0x222ecf)(/* hazard-ok: fnptr-conv */
+                                           (void *)0x5ab230);
     if (system_milliseconds() > deadline)
       break;
     if (link_result == 0)
       continue;
     if (link_result != 1) {
       /* Link detected — configure socket options and mark initialized. */
-      ((int(__stdcall *)(void *, int))0x222e0e)( /* hazard-ok: fnptr-conv */
-        (void *)0x5ab228, 8);
+      ((int(__stdcall *)(void *, int))0x222e0e)(/* hazard-ok: fnptr-conv */
+                                                (void *)0x5ab228, 8);
       *(uint8_t *)0x335090 = 1;
       return;
     }
