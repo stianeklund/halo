@@ -1433,9 +1433,9 @@ void FUN_000c18b0(int16_t function_index, int thread_datum, char init)
  * other handler in this TU (same shape as FUN_000c18b0 at 0xc18b0).
  *
  * Callees (both cdecl, no register args):
- *   0xa7470 = FUN_000A7470(void) — returns a 16-bit value in AX (unported;
- *             its kb decl was widened from void to int16_t so the result is
- *             not silently discarded)
+ *   0xa7470 = game_difficulty_level_get_ignore_easy(void) — difficulty clamped
+ *             up to at least 1; materialises its result at full width in EAX,
+ *             only the low word of which is stored here
  *   0xcbf80 = hs_return(thread_handle, value)
  */
 void FUN_000c18d0(int16_t function_index, int thread_datum, char init)
@@ -1443,7 +1443,7 @@ void FUN_000c18d0(int16_t function_index, int thread_datum, char init)
   int32_t value;
 
   value = 0;
-  *(int16_t *)&value = FUN_000A7470();
+  *(int16_t *)&value = (int16_t)game_difficulty_level_get_ignore_easy();
   hs_return(thread_datum, value);
 }
 
