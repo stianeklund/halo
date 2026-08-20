@@ -165,6 +165,87 @@ void scripted_sound_stop(int handle)
   }
 }
 
+/* Pre-load ('predict') every sound referenced by a looping-sound (lsnd) tag so
+ * the scripted foley plays without a cache stall (0x1c75a0).
+ *
+ * Walks the lsnd playlist block at lsnd+0x3c (0xa0-byte elements, same block
+ * and element size as game_sound_music_has_vehicle_sound).  For each entry
+ * whose snd! reference at +0x4c is valid, the snd! tag's block at +0x98 is
+ * examined; only a single-element block (count == 1) is considered.  Element
+ * size 0x48 there and 0x7c for the nested block at +0x3c identify these as the
+ * snd! pitch-ranges and per-pitch-range permutations blocks.  The first
+ * permutation is handed to sound_cache_request_sound(ptr, false, true, false)
+ * — a non-blocking load request whose result the original discards
+ * (0x1c762d: no test of EAX after the CALL). */
+void scripted_foley_predict(int handle)
+{
+  void *lsnd_tag;
+  int *playlist; /* pointer to the block at lsnd+0x3c (count, ptr) */
+  int16_t i;
+  void *element;
+  int sound_handle;
+  void *snd_tag;
+  int *pitch_ranges;
+  void *pitch_range;
+  int *permutations;
+  void *permutation;
+
+  if (handle == NONE) {
+    return;
+  }
+
+  lsnd_tag = tag_get(0x6c736e64, handle);
+  playlist = (int *)((char *)lsnd_tag + 0x3c);
+
+  i = 0;
+  while ((int)i < *playlist) {
+    element = tag_block_get_element(playlist, (int)i, 0xa0);
+    sound_handle = *(int *)((char *)element + 0x4c);
+    if (sound_handle != NONE) {
+      snd_tag = tag_get(0x736e6421, sound_handle);
+      pitch_ranges = (int *)((char *)snd_tag + 0x98);
+      if (*pitch_ranges == 1) {
+        pitch_range = tag_block_get_element(pitch_ranges, 0, 0x48);
+        permutations = (int *)((char *)pitch_range + 0x3c);
+        if (*permutations != 0) {
+          permutation = tag_block_get_element(permutations, 0, 0x7c);
+          sound_cache_request_sound(permutation, false, true, false);
+        }
+      }
+    }
+    i = i + 1;
+  }
+}
+
+/* Start a looping sound that is not attached to an object (0x1c7710).
+ * tag_get() is called for its validation side effect only (the result is
+ * discarded in the original). game_looping_sound_new() is given object
+ * index NONE-or-caller-supplied, an empty marker name, and scale_index NONE.
+ * On success the datum's flag bit 0 is set and param_3 is stored raw at +0x8.
+ * param_3 is forwarded as an untyped dword: callers pass float scale bits
+ * (sound_looping_start @0x1c8510 casts to float; hud_messaging passes the
+ * raw int of a float tag field), so the store must not convert. */
+int unattached_looping_sound_start(int sound_tag, int param_2, int param_3)
+{
+  int looping_sound_index;
+  void *entry;
+
+  tag_get(0x6c736e64, sound_tag);
+
+  /* (void *)0x25386f is an unrecovered .rdata string constant (marker name). */
+  looping_sound_index =
+    game_looping_sound_new(param_2, sound_tag, (void *)0x25386f, -1);
+
+  if (looping_sound_index != NONE) {
+    entry = datum_get(*(data_t **)0x5054e4, looping_sound_index);
+    *(unsigned int *)((char *)entry + 0x4) =
+      *(unsigned int *)((char *)entry + 0x4) | 1;
+    *(int *)((char *)entry + 0x8) = param_3;
+  }
+
+  return looping_sound_index;
+}
+
 bool FUN_001c7a10(int object_handle, void *attachment_data, void *source)
 {
   void *object;
