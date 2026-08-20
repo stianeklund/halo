@@ -1,0 +1,4260 @@
+{
+  "allow_risky": false,
+  "baseline": {
+    "assertion_snapshot": {
+      "assertions": [],
+      "kind": "assert-metadata",
+      "schema": 1
+    },
+    "captured": true,
+    "coff_snapshot": {
+      "assertion_metadata": [
+        {
+          "offset": 2929,
+          "section": ".text#0",
+          "target": {
+            "data": {
+              "bytes_hex": "25733a206173736572745f76616c69645f7265616c283078253038582025662900",
+              "section": ".rdata#18",
+              "value": 0
+            },
+            "name": "??_C@_0CB@CJEIPHLL@?$CFs?3?5assert_valid_real?$CI0x?$CF08X?5?$CFf?$CJ@",
+            "section": ".rdata#18",
+            "value": 0
+          },
+          "text": "%s: assert_valid_real(0x%08X %f)",
+          "type": 6
+        },
+        {
+          "offset": 2986,
+          "section": ".text#0",
+          "target": {
+            "data": {
+              "bytes_hex": "25733a206173736572745f76616c69645f7265616c283078253038582025662900",
+              "section": ".rdata#18",
+              "value": 0
+            },
+            "name": "??_C@_0CB@CJEIPHLL@?$CFs?3?5assert_valid_real?$CI0x?$CF08X?5?$CFf?$CJ@",
+            "section": ".rdata#18",
+            "value": 0
+          },
+          "text": "%s: assert_valid_real(0x%08X %f)",
+          "type": 6
+        }
+      ],
+      "kind": "coff-candidate-neutrality",
+      "schema": 1,
+      "sections": [
+        {
+          "characteristics": 1615855648,
+          "executable": true,
+          "id": ".text#0",
+          "name": ".text",
+          "raw_bytes_hex": "5589e5ff7508ff35c8704500e80000000083c40883f8ff74025dc36a0168eb00000068000000006800000000e80000000083c4106affe8000000000f1f4400005589e5803dd0b1450000756d68940401006a0068d0b14500e80000000083c40c6a286a106800000000e80000000083c40ca360b2450085c07436680004010068ff0000006864b24500e80000000083c40cc705d8b14500ffffffffc705d4b1450000000000c605d0b1450001b0015dc30fb605d0b145005dc36a01684601000068000000006800000000e80000000083c4106affe8000000000f1f80000000005589e55683ec10803dd0b14500007479ff3560b24500e80000000083c404ff3560b24500e80000000083c404a1000000008d75ecff3056e80000000083c4089056e80000000083c40485c07436ff75f4ff3560b24500e80000000083c40883f8ff75dd6a01687601000068000000006800000000e80000000083c4106affe80000000083c4105e5dc36a01686801000068000000006800000000e80000000083c4106affe8000000000f1f80000000005589e5ff7508ff3560b24500e80000000083c40883f8ff74025dc36a01688201000068000000006800000000e80000000083c4106affe8000000000f1f4400005589e58b45088b0d5cb24500c1e1058b108991dcb145008b50048991e0b145008b50088991e4b145008b500c8991e8b145008b50108991ecb145008b50148991f0b145008b50188991f4b145008b401c8981f8b14500ff055cb245005dc366905589e5c7055cb245000000000068800000006a0068dcb14500e80000000083c40c5dc3662e0f1f8400000000000f1f005589e5a1d8b145002b05d4b14500405dc3662e0f1f8400000000000f1f4400005589e58b450885c0741e803dd0b14500007415688000000068dcb1450050e80000000083c40c5dc36a01684402000068000000006800000000e80000000083c4106affe8000000000f1f8400000000005589e5ff7508ff35c8704500e80000000083c40883f8ff74025dc36a01689202000068000000006800000000e80000000083c4106affe8000000000f1f4400005589e5535756803dc070450000742e8b4d088b15c47045008d42e089ce83e61f89f7c1e70931db39c88d84f7cc7045000f4fc339ca0f4ec35e5f5b5dc36a01689e02000068000000006800000000e80000000083c4106affe8000000000f1f005589e5803dc0704500000f85db000000680c4100006a0068c0704500e80000000083c40c6a286a106800000000e80000000083c40ca3c870450085c00f84a000000068004100006a0068cc704500e80000000083c40c803dd0b14500000f85a800000068940401006a0068d0b14500e80000000083c40c6a286a106800000000e80000000083c40ca360b2450085c0743d680004010068ff0000006864b24500e80000000083c40cc705d8b14500ffffffffc705d4b1450000000000c605d0b1450001c605c070450001b0015dc3803dd0b1450000740bc605c070450001b0015dc30fb605c07045005dc36a0168ac00000068000000006800000000e80000000083c4106affe8000000006a01684601000068000000006800000000e80000000083c4106affe8000000000f1f4400005589e5a1c870450085c0741350e80000000083c404c705c870450000000000c605c070450000c705c470450000000000a160b2450085c0741350e80000000083c404c70560b2450000000000c705d4b1450000000000c605d0b1450000c705d8b14500ffffffff5dc30f1f80000000005589e55683ec10803dc070450000747eff35c8704500e80000000083c404ff35c8704500e80000000083c404a1000000008d75ecff3056e80000000083c4089056e80000000083c40485c07436ff75f4ff35c8704500e80000000083c40883f8ff75dd6a0168dd00000068000000006800000000e80000000083c4106affe800000000e80000000083c4105e5dc36a0168cf00000068000000006800000000e80000000083c4106affe80000000066905589e557568b750ce80000000085f60f84ac0000008b7d1085ff0f84a1000000803dc0704500000f84940000008b450883f8ff742e83f8040f8da300000050ff35c8704500e80000000083c4088b48043b0dc47045007d5f890f83f9ff750d5e5f5dc38b0f31c083f9ff74f3803dc0704500000f84880000008b15c470450039ca7e2983c2e039ca7f2283e11f89cac1e2098d8ccad07045006804020000515689c6e80000000089f083c40c85c074afff40045e5f5dc3c707ffffffff5e5f5dc36a01681a01000068000000006800000000e80000000083c4106affe8000000006a01681e01000068000000006800000000e80000000083c4106affe8000000006a01689e02000068000000006800000000e80000000083c4106affe800000000662e0f1f8400000000000f1f4400005589e553575683ec10803dd0b14500000f8452020000a1d4b145003b05d8b145007f1d83e07f89c1c1e1098d04c18945e88b8068b2450083c0ef6683f8f0730731c0e9b9010000a160b245008945f00fb7402e6685c00f8e9c0100008b4d088b55f08b72348b55e88dba6cb2450083c62431dbeb1d662e0f1f84000000000090430fbfd083c72083c62839d30f8da40000008b55e80fb79268b2450039d373e08b078946e08b47048946e88b47088946ec8b470c8946f08b47108946f48b47148946f80fb7471883f8048945e4668946fc0fb7471a668946fe0fb7571c668955ee668916732783f802720b3dffff00000f859201000066837deeff0f8c270100008b45f00fb7402ee973ffffff817de4ffff000074d06a0168c901000068000000006800000000e80000000083c4106affe8000000006685c00f8eb90000008b45f08b503483c20883c11c31f60f1f008b02f7d02342fc8941e48b42fcbfd004000021f889028b42048941e88b42088941ec8b420c8941f08b42108941f48b42148941f80fb77a1883ff04668979fc0fb75a1a668959fe0fb7421c668901733083fb02720c81fbffff00000f85970000006683f8fe7e514683c2288b45f00fbf402e83c12039c67c87eb2d0f1f44000081ffffff000074c86a0168e601000068000000006800000000e80000000083c4106affe800000000ff05d4b14500b00183c4105e5f5b5dc36a0168e801000068000000006800000000e80000000083c4106affe8000000006a0168cb01000068000000006800000000e80000000083c4106affe8000000006a0168e701000068000000006800000000e80000000083c4106affe8000000006a0168af01000068000000006800000000e80000000083c4106affe8000000006a0168ca01000068000000006800000000e80000000083c4106affe8000000000f1f8400000000005589e55756a1d4b145008b0dd8b1450039c87f318d9080000000410f1f44000039d07d2189c683e67f89f7c1e7098bb4f768b2450083c6ef6683fef072074039c175dd89c85e5f5dc30f1f80000000005589e553575683ec080fbf450850e80000000083c404803dc0704500000f84c601000089c68b5d0c8b0083f8ff744950ff35c8704500e80000000083c40889c783c0086a205350e80000000083c40c8b471089c1f7d1f7c10000807f0f84020100008b470c89c1f7d1f7c10000807f0f842801000083c3208b460483f8ff744950ff35c8704500e80000000083c40889c783c0086a205350e80000000083c40c8b471089c1f7d1f7c10000807f0f84b10000008b470c89c1f7d1f7c10000807f0f84d700000083c3208b460883f8ff744550ff35c8704500e80000000083c40889c783c0086a205350e80000000083c40c8b471089c1f7d1f7c10000807f74648b470c89c1f7d1f7c10000807f0f848a00000083c3208b460c83f8ff743e50ff35c8704500e80000000083c40889c683c0086a205350e80000000083c40c8b461089c1f7d1f7c10000807f74178b460c89c1f7d1f7c10000807f744183c4085e5f5b5dc38945f0d945f083ec188944240cdd5c2410c744240800000000c744240400000000c7042400b15a00e80000000083c4186a016838020000eb378945ecd945ec83ec188944240cdd5c2410c744240800000000c744240400000000c7042400b15a00e80000000083c4186a016839020000680000000050e80000000083c4106affe8000000006a01682a02000068000000006800000000e80000000083c4106affe8000000000f1f80000000005589e557568b750ca1d4b1450039f07f5783e88039f07e508b450889f183e17f89cac1e20989b4ca64b245008dbcca68b2450068040200005057e80000000083c40ca1d8b1450039f07d384039f07d0566c707ffff8935d8b14500e8000000006683f8027628eb6de80000000085c07409e80000000085c07509e80000000084c07413e8000000006683f80277475e5f5de900000000e800000000505668000000006a02e80000000083c41068000000006a02e80000000083c40868000000006a02e80000000083c408e8000000006683f80276b95e5f5dc30f1f80000000005589e553575683ec08803dc0704500000f84a30000008b15c47045008d4201a3c4704500803dc0704500000f849100000089d083e01f89c1c1e1098955ec8994c1cc7045008d94c1d07045008955f066c784c1d070450000008b15c870450066837a2e007e408d9cc1cc7045008b723483c60883c30831ff0f1f8400000000006a205653e80000000083c40c8b45f066ff004783c628a1c87045000fbf402e83c32039c77cdaff75ecff75f0e80000000083c4105e5f5b5dc36a0168fa000000eb076a01689e02000068000000006800000000e80000000083c4106affe800000000662e0f1f8400000000000f1f40005589e553575681ec84020000e8000000006685c07569803dd0b14500000f847c0000008db574ffffff688000000068dcb1450056e80000000083c40c566a00e80000000083c4080fb775086685f67e248d7d088d9d70fdffff0f1f8000000000e80000000057536a00e80000000083c40c4e75ec81c4840200005e5f5b5dc36a01680b02000068000000006800000000e80000000083c4106affe8000000006a01684402000068000000006800000000e80000000083c4106affe800000000",
+          "raw_size": 3727,
+          "relocations": [
+            {
+              "offset": 13,
+              "target": {
+                "name": "_data_new_datum",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 35,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 40,
+              "target": {
+                "data": {
+                  "bytes_hex": "71756575655f696e646578213d4e4f4e4500",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0BC@HKAHJFKD@queue_index?$CB?$DNNONE?$AA@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 45,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 55,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 89,
+              "target": {
+                "name": "_csmemset",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 101,
+              "target": {
+                "data": {
+                  "bytes_hex": "75706461746520636c69656e742071756575657300",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0BF@LPJMFPAI@update?5client?5queues?$AA@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 106,
+              "target": {
+                "name": "_data_new",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 138,
+              "target": {
+                "name": "_csmemset",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 193,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 198,
+              "target": {
+                "data": {
+                  "bytes_hex": "217570646174655f636c69656e745f676c6f62616c732e696e697469616c697a656400",
+                  "section": ".rdata#2",
+                  "value": 0
+                },
+                "name": "??_C@_0CD@GPGLDMIM@?$CBupdate_client_globals?4initializ@",
+                "section": ".rdata#2",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 203,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 213,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 247,
+              "target": {
+                "name": "_data_delete_all",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 261,
+              "target": {
+                "name": "_data_make_valid",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 269,
+              "target": {
+                "name": "__imp__player_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 280,
+              "target": {
+                "name": "_data_iterator_new",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 290,
+              "target": {
+                "name": "_data_iterator_next",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 311,
+              "target": {
+                "name": "_data_new_datum",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 331,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 336,
+              "target": {
+                "data": {
+                  "bytes_hex": "71756575655f696e646578213d4e4f4e4500",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0BC@HKAHJFKD@queue_index?$CB?$DNNONE?$AA@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 341,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 351,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 369,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 374,
+              "target": {
+                "data": {
+                  "bytes_hex": "7570646174655f636c69656e745f676c6f62616c732e696e697469616c697a656400",
+                  "section": ".rdata#4",
+                  "value": 0
+                },
+                "name": "??_C@_0CC@HHIIJIMP@update_client_globals?4initialize@",
+                "section": ".rdata#4",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 379,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 389,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 413,
+              "target": {
+                "name": "_data_new_datum",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 435,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 440,
+              "target": {
+                "data": {
+                  "bytes_hex": "71756575655f696e646578213d4e4f4e4500",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0BC@HKAHJFKD@queue_index?$CB?$DNNONE?$AA@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 445,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 455,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 586,
+              "target": {
+                "name": "_csmemset",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 671,
+              "target": {
+                "name": "_csmemcpy",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 688,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 693,
+              "target": {
+                "data": {
+                  "bytes_hex": "616374696f6e5f636f6c6c656374696f6e202626207570646174655f636c69656e745f676c6f62616c732e696e697469616c697a656400",
+                  "section": ".rdata#5",
+                  "value": 0
+                },
+                "name": "??_C@_0DH@JINOOJDL@action_collection?5?$CG?$CG?5update_clie@",
+                "section": ".rdata#5",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 698,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 708,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 733,
+              "target": {
+                "name": "_data_new_datum",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 755,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 760,
+              "target": {
+                "data": {
+                  "bytes_hex": "71756575655f696e646578213d4e4f4e4500",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0BC@HKAHJFKD@queue_index?$CB?$DNNONE?$AA@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 765,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 775,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 853,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 858,
+              "target": {
+                "data": {
+                  "bytes_hex": "7570646174655f7365727665725f676c6f62616c732e696e697469616c697a656400",
+                  "section": ".rdata#6",
+                  "value": 0
+                },
+                "name": "??_C@_0CC@PJOBEMLF@update_server_globals?4initialize@",
+                "section": ".rdata#6",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 863,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 873,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 909,
+              "target": {
+                "name": "_csmemset",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 921,
+              "target": {
+                "data": {
+                  "bytes_hex": "757064617465207365727665722071756575657300",
+                  "section": ".rdata#8",
+                  "value": 0
+                },
+                "name": "??_C@_0BF@JPNPAAMJ@update?5server?5queues?$AA@",
+                "section": ".rdata#8",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 926,
+              "target": {
+                "name": "_data_new",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 959,
+              "target": {
+                "name": "_csmemset",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 992,
+              "target": {
+                "name": "_csmemset",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1004,
+              "target": {
+                "data": {
+                  "bytes_hex": "75706461746520636c69656e742071756575657300",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0BF@LPJMFPAI@update?5client?5queues?$AA@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1009,
+              "target": {
+                "name": "_data_new",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1041,
+              "target": {
+                "name": "_csmemset",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1123,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1128,
+              "target": {
+                "data": {
+                  "bytes_hex": "217570646174655f7365727665725f676c6f62616c732e696e697469616c697a656400",
+                  "section": ".rdata#7",
+                  "value": 0
+                },
+                "name": "??_C@_0CD@OBACOIPG@?$CBupdate_server_globals?4initializ@",
+                "section": ".rdata#7",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1133,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1143,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1155,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1160,
+              "target": {
+                "data": {
+                  "bytes_hex": "217570646174655f636c69656e745f676c6f62616c732e696e697469616c697a656400",
+                  "section": ".rdata#2",
+                  "value": 0
+                },
+                "name": "??_C@_0CD@GPGLDMIM@?$CBupdate_client_globals?4initializ@",
+                "section": ".rdata#2",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1165,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1175,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1198,
+              "target": {
+                "name": "_data_dispose",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1243,
+              "target": {
+                "name": "_data_dispose",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1319,
+              "target": {
+                "name": "_data_delete_all",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1333,
+              "target": {
+                "name": "_data_make_valid",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1341,
+              "target": {
+                "name": "__imp__player_data",
+                "section": 0,
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1352,
+              "target": {
+                "name": "_data_iterator_new",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1362,
+              "target": {
+                "name": "_data_iterator_next",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1383,
+              "target": {
+                "name": "_data_new_datum",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1403,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1408,
+              "target": {
+                "data": {
+                  "bytes_hex": "71756575655f696e646578213d4e4f4e4500",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0BC@HKAHJFKD@queue_index?$CB?$DNNONE?$AA@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1413,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1423,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1428,
+              "target": {
+                "name": "_update_client_start",
+                "section": ".text#0",
+                "value": 224
+              },
+              "type": 20
+            },
+            {
+              "offset": 1446,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1451,
+              "target": {
+                "data": {
+                  "bytes_hex": "7570646174655f7365727665725f676c6f62616c732e696e697469616c697a656400",
+                  "section": ".rdata#6",
+                  "value": 0
+                },
+                "name": "??_C@_0CC@PJOBEMLF@update_server_globals?4initialize@",
+                "section": ".rdata#6",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1456,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1466,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1481,
+              "target": {
+                "name": "_system_milliseconds",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1542,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1635,
+              "target": {
+                "name": "_csmemcpy",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1673,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1678,
+              "target": {
+                "data": {
+                  "bytes_hex": "757064617465202626207570646174655f6e756d626572202626207570646174655f7365727665725f676c6f62616c732e696e697469616c697a656400",
+                  "section": ".rdata#9",
+                  "value": 0
+                },
+                "name": "??_C@_0DN@MONJPEIP@update?5?$CG?$CG?5update_number?5?$CG?$CG?5updat@",
+                "section": ".rdata#9",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1683,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1693,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1705,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1710,
+              "target": {
+                "data": {
+                  "bytes_hex": "6d616368696e655f696e6465783c4d4158494d554d5f4e4554574f524b5f4d414348494e455f434f554e5400",
+                  "section": ".rdata#10",
+                  "value": 0
+                },
+                "name": "??_C@_0CM@MEBNPPKK@machine_index?$DMMAXIMUM_NETWORK_MA@",
+                "section": ".rdata#10",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1715,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1725,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1737,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1742,
+              "target": {
+                "data": {
+                  "bytes_hex": "7570646174655f7365727665725f676c6f62616c732e696e697469616c697a656400",
+                  "section": ".rdata#6",
+                  "value": 0
+                },
+                "name": "??_C@_0CC@PJOBEMLF@update_server_globals?4initialize@",
+                "section": ".rdata#6",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1747,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1757,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2062,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2067,
+              "target": {
+                "data": {
+                  "bytes_hex": "284e4f4e45203d3d2071756575652d3e646573697265645f776561706f6e5f696e64657829207c7c202871756575652d3e646573697265645f776561706f6e5f696e6465783e3d302026262071756575652d3e646573697265645f776561706f6e5f696e6465783c4d4158494d554d5f574541504f4e535f5045525f554e49542900",
+                  "section": ".rdata#11",
+                  "value": 0
+                },
+                "name": "??_C@_0IC@PGBPIKNJ@?$CINONE?5?$DN?$DN?5queue?9?$DOdesired_weapon_i@",
+                "section": ".rdata#11",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2072,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2082,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2256,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2261,
+              "target": {
+                "data": {
+                  "bytes_hex": "284e4f4e45203d3d20616374696f6e735b71756575655f696e6465785d2e646573697265645f776561706f6e5f696e64657829207c7c2028616374696f6e735b71756575655f696e6465785d2e646573697265645f776561706f6e5f696e6465783e3d3020262620616374696f6e735b71756575655f696e6465785d2e646573697265645f776561706f6e5f696e6465783c4d4158494d554d5f574541504f4e535f5045525f554e49542900",
+                  "section": ".rdata#14",
+                  "value": 0
+                },
+                "name": "??_C@_0KM@CAKKNBBN@?$CINONE?5?$DN?$DN?5actions?$FLqueue_index?$FN?4de@",
+                "section": ".rdata#14",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2266,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2276,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2304,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2309,
+              "target": {
+                "data": {
+                  "bytes_hex": "284e4f4e45203d3d20616374696f6e735b71756575655f696e6465785d2e646573697265645f7a6f6f6d5f6c6576656c29207c7c2028616374696f6e735b71756575655f696e6465785d2e646573697265645f7a6f6f6d5f6c6576656c3e3d302900",
+                  "section": ".rdata#16",
+                  "value": 0
+                },
+                "name": "??_C@_0GC@JKNAOGKH@?$CINONE?5?$DN?$DN?5actions?$FLqueue_index?$FN?4de@",
+                "section": ".rdata#16",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2314,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2324,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2336,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2341,
+              "target": {
+                "data": {
+                  "bytes_hex": "284e4f4e45203d3d2071756575652d3e646573697265645f7a6f6f6d5f6c6576656c29207c7c202871756575652d3e646573697265645f7a6f6f6d5f6c6576656c3e3d302900",
+                  "section": ".rdata#13",
+                  "value": 0
+                },
+                "name": "??_C@_0EG@JJEOPHKN@?$CINONE?5?$DN?$DN?5queue?9?$DOdesired_zoom_lev@",
+                "section": ".rdata#13",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2346,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2356,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2368,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2373,
+              "target": {
+                "data": {
+                  "bytes_hex": "284e4f4e45203d3d20616374696f6e735b71756575655f696e6465785d2e646573697265645f6772656e6164655f696e64657829207c7c2028616374696f6e735b71756575655f696e6465785d2e646573697265645f6772656e6164655f696e6465783e3d3020262620616374696f6e735b71756575655f696e6465785d2e646573697265645f6772656e6164655f696e6465783c4e554d4245525f4f465f554e49545f4752454e4144455f54595045532900",
+                  "section": ".rdata#15",
+                  "value": 0
+                },
+                "name": "??_C@_0LD@JLDAFPEL@?$CINONE?5?$DN?$DN?5actions?$FLqueue_index?$FN?4de@",
+                "section": ".rdata#15",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2378,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2388,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2400,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2405,
+              "target": {
+                "data": {
+                  "bytes_hex": "7570646174655f636c69656e745f676c6f62616c732e696e697469616c697a656400",
+                  "section": ".rdata#4",
+                  "value": 0
+                },
+                "name": "??_C@_0CC@HHIIJIMP@update_client_globals?4initialize@",
+                "section": ".rdata#4",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2410,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2420,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2432,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2437,
+              "target": {
+                "data": {
+                  "bytes_hex": "284e4f4e45203d3d2071756575652d3e646573697265645f6772656e6164655f696e64657829207c7c202871756575652d3e646573697265645f6772656e6164655f696e6465783e3d302026262071756575652d3e646573697265645f6772656e6164655f696e6465783c4e554d4245525f4f465f554e49545f4752454e4144455f54595045532900",
+                  "section": ".rdata#12",
+                  "value": 0
+                },
+                "name": "??_C@_0IJ@ENHLLOPB@?$CINONE?5?$DN?$DN?5queue?9?$DOdesired_grenade_@",
+                "section": ".rdata#12",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2442,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2452,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2559,
+              "target": {
+                "name": "_machine_get_player_list",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2599,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2616,
+              "target": {
+                "name": "_csmemcpy",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2680,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2697,
+              "target": {
+                "name": "_csmemcpy",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2761,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2778,
+              "target": {
+                "name": "_csmemcpy",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2838,
+              "target": {
+                "name": "_datum_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2855,
+              "target": {
+                "name": "_csmemcpy",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2921,
+              "target": {
+                "data": {
+                  "bytes_hex": "71756575652d3e63757272656e745f616374696f6e2e646573697265645f666163696e672e706974636800",
+                  "section": ".rdata#17",
+                  "value": 0
+                },
+                "name": "??_C@_0CL@PLNKAOG@queue?9?$DOcurrent_action?4desired_fa@",
+                "section": ".rdata#17",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2929,
+              "target": {
+                "data": {
+                  "bytes_hex": "25733a206173736572745f76616c69645f7265616c283078253038582025662900",
+                  "section": ".rdata#18",
+                  "value": 0
+                },
+                "name": "??_C@_0CB@CJEIPHLL@?$CFs?3?5assert_valid_real?$CI0x?$CF08X?5?$CFf?$CJ@",
+                "section": ".rdata#18",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2941,
+              "target": {
+                "name": "_csprintf",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2978,
+              "target": {
+                "data": {
+                  "bytes_hex": "71756575652d3e63757272656e745f616374696f6e2e646573697265645f666163696e672e79617700",
+                  "section": ".rdata#19",
+                  "value": 0
+                },
+                "name": "??_C@_0CJ@GIKNCIIL@queue?9?$DOcurrent_action?4desired_fa@",
+                "section": ".rdata#19",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2986,
+              "target": {
+                "data": {
+                  "bytes_hex": "25733a206173736572745f76616c69645f7265616c283078253038582025662900",
+                  "section": ".rdata#18",
+                  "value": 0
+                },
+                "name": "??_C@_0CB@CJEIPHLL@?$CFs?3?5assert_valid_real?$CI0x?$CF08X?5?$CFf?$CJ@",
+                "section": ".rdata#18",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2998,
+              "target": {
+                "name": "_csprintf",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3013,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3019,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3029,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3041,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3046,
+              "target": {
+                "data": {
+                  "bytes_hex": "7570646174655f7365727665725f676c6f62616c732e696e697469616c697a656400",
+                  "section": ".rdata#6",
+                  "value": 0
+                },
+                "name": "??_C@_0CC@PJOBEMLF@update_server_globals?4initialize@",
+                "section": ".rdata#6",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3051,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3061,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3131,
+              "target": {
+                "name": "_csmemcpy",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3164,
+              "target": {
+                "name": "_game_connection",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3177,
+              "target": {
+                "name": "_network_game_client_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3186,
+              "target": {
+                "name": "_network_game_server_get",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3195,
+              "target": {
+                "name": "_main_menu_is_active",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3204,
+              "target": {
+                "name": "_game_connection",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3218,
+              "target": {
+                "name": "_main_menu_is_active",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3223,
+              "target": {
+                "name": "_main_get_map_name",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3230,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f2067657420616e207570646174652028232564293b207370207363656e6172696f3d202725732700",
+                  "section": ".rdata#20",
+                  "value": 0
+                },
+                "name": "??_C@_0DB@BKCMOFLJ@failed?5to?5get?5an?5update?5?$CI?$CD?$CFd?$CJ?$DL?5s@",
+                "section": ".rdata#20",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3237,
+              "target": {
+                "name": "_error",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3245,
+              "target": {
+                "data": {
+                  "bytes_hex": "696620796f7527726520696e2061206d756c7469706c617965722067616d652c20796f75206d69676874206265206f7574206f662073796e63206e6f7700",
+                  "section": ".rdata#21",
+                  "value": 0
+                },
+                "name": "??_C@_0DO@EODINBPH@if?5you?8re?5in?5a?5multiplayer?5game?0@",
+                "section": ".rdata#21",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3252,
+              "target": {
+                "name": "_error",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3260,
+              "target": {
+                "data": {
+                  "bytes_hex": "696620796f7527726520706c6179696e672073696e676c6520706c617965722f636f6f702c20796f752063616e2070726f6261626c792069676e6f7265207468697300",
+                  "section": ".rdata#22",
+                  "value": 0
+                },
+                "name": "??_C@_0ED@GEKLIPAE@if?5you?8re?5playing?5single?5player?1@",
+                "section": ".rdata#22",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3267,
+              "target": {
+                "name": "_error",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3275,
+              "target": {
+                "name": "_game_connection",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3429,
+              "target": {
+                "name": "_csmemcpy",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3469,
+              "target": {
+                "name": "_FUN_000b97b0",
+                "section": ".text#0",
+                "value": 3072
+              },
+              "type": 20
+            },
+            {
+              "offset": 3498,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3503,
+              "target": {
+                "data": {
+                  "bytes_hex": "7570646174655f7365727665725f676c6f62616c732e696e697469616c697a656400",
+                  "section": ".rdata#6",
+                  "value": 0
+                },
+                "name": "??_C@_0CC@PJOBEMLF@update_server_globals?4initialize@",
+                "section": ".rdata#6",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3508,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3518,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3549,
+              "target": {
+                "name": "_game_connection",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3589,
+              "target": {
+                "name": "_csmemcpy",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3600,
+              "target": {
+                "name": "_update_server_apply_actions",
+                "section": ".text#0",
+                "value": 2544
+              },
+              "type": 20
+            },
+            {
+              "offset": 3633,
+              "target": {
+                "name": "_update_server_create_snapshot",
+                "section": ".text#0",
+                "value": 3296
+              },
+              "type": 20
+            },
+            {
+              "offset": 3642,
+              "target": {
+                "name": "_update_server_get_update",
+                "section": ".text#0",
+                "value": 1472
+              },
+              "type": 20
+            },
+            {
+              "offset": 3671,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3676,
+              "target": {
+                "data": {
+                  "bytes_hex": "67616d655f636f6e6e656374696f6e28293d3d5f67616d655f636f6e6e656374696f6e5f6c6f63616c00",
+                  "section": ".rdata#23",
+                  "value": 0
+                },
+                "name": "??_C@_0CK@MPOAFLDM@game_connection?$CI?$CJ?$DN?$DN_game_connect@",
+                "section": ".rdata#23",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3681,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3691,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3703,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c67616d655c706c617965725f7175657565735f6e65772e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CI@PBIGBCAB@c?3?2halo?2SOURCE?2game?2player_queue@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3708,
+              "target": {
+                "data": {
+                  "bytes_hex": "616374696f6e5f636f6c6c656374696f6e202626207570646174655f636c69656e745f676c6f62616c732e696e697469616c697a656400",
+                  "section": ".rdata#5",
+                  "value": 0
+                },
+                "name": "??_C@_0DH@JINOOJDL@action_collection?5?$CG?$CG?5update_clie@",
+                "section": ".rdata#5",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 3713,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 3723,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            }
+          ]
+        },
+        {
+          "characteristics": 3224371264,
+          "executable": false,
+          "id": ".data#0",
+          "name": ".data",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        },
+        {
+          "characteristics": 3224371328,
+          "executable": false,
+          "id": ".bss#0",
+          "name": ".bss",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#0",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 40,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#1",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 18,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#2",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 35,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#3",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 21,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#4",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 34,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#5",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 55,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#6",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 34,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#7",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 35,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#8",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 21,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#9",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 61,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#10",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 44,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#11",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 130,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#12",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 137,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#13",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 70,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#14",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 172,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#15",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 179,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#16",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 98,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#17",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 43,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#18",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 33,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#19",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 41,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#20",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 49,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#21",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 62,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#22",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 67,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#23",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 42,
+          "relocations": []
+        },
+        {
+          "characteristics": 1051136,
+          "executable": false,
+          "id": ".drectve#0",
+          "name": ".drectve",
+          "raw_bytes_hex": null,
+          "raw_size": 654,
+          "relocations": []
+        },
+        {
+          "characteristics": 1050624,
+          "executable": false,
+          "id": ".llvm_addrsig#0",
+          "name": ".llvm_addrsig",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        }
+      ]
+    },
+    "object_relative_path": "build/CMakeFiles/halo.dir/src/halo/game/player_queues_new.c.obj",
+    "object_sha256": "14579339683e7d37378ba2c8a009821c38cd15322c8675ddabb3f18653275849"
+  },
+  "checks": [],
+  "created_tool_version": "source-recovery/1",
+  "git_head": "f6804d1c4a7a3c96b8eb5330e185b17689538a3a",
+  "inventory": {
+    "absolute_address_dereferences": [
+      {
+        "category": "symbol-names",
+        "column": 32,
+        "id": "absolute_address_dereferences:16:1",
+        "line": 16,
+        "reason": "no_existing_named_global: 0x4570c8",
+        "status": "parked",
+        "text": "queue_index = data_new_datum(*(data_t **)0x4570c8, handle);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "absolute_address_dereferences:35:1",
+        "line": 35,
+        "reason": "no_existing_named_global: 0x45b1d0",
+        "status": "parked",
+        "text": "if (*(uint8_t *)0x45b1d0 != 0) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "absolute_address_dereferences:41:1",
+        "line": 41,
+        "reason": "no_existing_named_global: 0x45b260",
+        "status": "parked",
+        "text": "*(data_t **)0x45b260 = data_new(\"update client queues\", 0x10, 0x28);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "absolute_address_dereferences:42:1",
+        "line": 42,
+        "reason": "no_existing_named_global: 0x45b260",
+        "status": "parked",
+        "text": "if (*(data_t **)0x45b260 != NULL) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "absolute_address_dereferences:44:1",
+        "line": 44,
+        "reason": "no_existing_named_global: 0x45b1d8",
+        "status": "parked",
+        "text": "*(int *)0x45b1d8 = -1;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "absolute_address_dereferences:45:1",
+        "line": 45,
+        "reason": "no_existing_named_global: 0x45b1d4",
+        "status": "parked",
+        "text": "*(int *)0x45b1d4 = 0;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "absolute_address_dereferences:46:1",
+        "line": 46,
+        "reason": "no_existing_named_global: 0x45b1d0",
+        "status": "parked",
+        "text": "*(uint8_t *)0x45b1d0 = 1;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 10,
+        "id": "absolute_address_dereferences:49:1",
+        "line": 49,
+        "reason": "no_existing_named_global: 0x45b1d0",
+        "status": "parked",
+        "text": "return *(uint8_t *)0x45b1d0;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "absolute_address_dereferences:68:1",
+        "line": 68,
+        "reason": "no_existing_named_global: 0x45b1d0",
+        "status": "parked",
+        "text": "if (*(uint8_t *)0x45b1d0 == 0) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 19,
+        "id": "absolute_address_dereferences:73:1",
+        "line": 73,
+        "reason": "no_existing_named_global: 0x45b260",
+        "status": "parked",
+        "text": "data_delete_all(*(data_t **)0x45b260);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 19,
+        "id": "absolute_address_dereferences:74:1",
+        "line": 74,
+        "reason": "no_existing_named_global: 0x45b260",
+        "status": "parked",
+        "text": "data_make_valid(*(data_t **)0x45b260);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 34,
+        "id": "absolute_address_dereferences:77:1",
+        "line": 77,
+        "reason": "no_existing_named_global: 0x45b260",
+        "status": "parked",
+        "text": "queue_index = data_new_datum(*(data_t **)0x45b260, (int)iter.datum_handle);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 32,
+        "id": "absolute_address_dereferences:89:1",
+        "line": 89,
+        "reason": "no_existing_named_global: 0x45b260",
+        "status": "parked",
+        "text": "queue_index = data_new_datum(*(data_t **)0x45b260, handle);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 28,
+        "id": "absolute_address_dereferences:102:1",
+        "line": 102,
+        "reason": "no_existing_named_global: 0x45b1dc",
+        "status": "parked",
+        "text": "dst = (int *)(0x45b1dc + *(int *)0x45b25c * 0x20);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "absolute_address_dereferences:109:1",
+        "line": 109,
+        "reason": "no_existing_named_global: 0x45b25c",
+        "status": "parked",
+        "text": "*(int *)0x45b25c = *(int *)0x45b25c + 1;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 22,
+        "id": "absolute_address_dereferences:109:2",
+        "line": 109,
+        "reason": "no_existing_named_global: 0x45b25c",
+        "status": "parked",
+        "text": "*(int *)0x45b25c = *(int *)0x45b25c + 1;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "absolute_address_dereferences:114:1",
+        "line": 114,
+        "reason": "no_existing_named_global: 0x45b25c",
+        "status": "parked",
+        "text": "*(int *)0x45b25c = 0;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 10,
+        "id": "absolute_address_dereferences:122:1",
+        "line": 122,
+        "reason": "no_existing_named_global: 0x45b1d8",
+        "status": "parked",
+        "text": "return *(int *)0x45b1d8 - *(int *)0x45b1d4 +"
+      },
+      {
+        "category": "symbol-names",
+        "column": 29,
+        "id": "absolute_address_dereferences:122:2",
+        "line": 122,
+        "reason": "no_existing_named_global: 0x45b1d8",
+        "status": "parked",
+        "text": "return *(int *)0x45b1d8 - *(int *)0x45b1d4 +"
+      },
+      {
+        "category": "symbol-names",
+        "column": 29,
+        "id": "absolute_address_dereferences:132:1",
+        "line": 132,
+        "reason": "no_existing_named_global: 0x45b1d0",
+        "status": "parked",
+        "text": "if (!action_collection || *(uint8_t *)0x45b1d0 == 0) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 32,
+        "id": "absolute_address_dereferences:143:1",
+        "line": 143,
+        "reason": "no_existing_named_global: 0x4570c8",
+        "status": "parked",
+        "text": "queue_index = data_new_datum(*(data_t **)0x4570c8, handle);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "absolute_address_dereferences:158:1",
+        "line": 158,
+        "reason": "no_existing_named_global: 0x4570c0",
+        "status": "parked",
+        "text": "if (*(uint8_t *)0x4570c0 == 0) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 24,
+        "id": "absolute_address_dereferences:164:1",
+        "line": 164,
+        "reason": "no_existing_named_global: 0x4570c4",
+        "status": "parked",
+        "text": "if (snapshot_index < *(int *)0x4570c4 &&"
+      },
+      {
+        "category": "symbol-names",
+        "column": 25,
+        "id": "absolute_address_dereferences:165:1",
+        "line": 165,
+        "reason": "no_existing_named_global: 0x4570c4",
+        "status": "parked",
+        "text": "snapshot_index >= *(int *)0x4570c4 - 0x20) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "absolute_address_dereferences:182:1",
+        "line": 182,
+        "reason": "no_existing_named_global: 0x4570c0",
+        "status": "parked",
+        "text": "if (*(uint8_t *)0x4570c0 != 0) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "absolute_address_dereferences:188:1",
+        "line": 188,
+        "reason": "no_existing_named_global: 0x4570c8",
+        "status": "parked",
+        "text": "*(data_t **)0x4570c8 = data_new(\"update server queues\", 0x10, 0x28);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "absolute_address_dereferences:189:1",
+        "line": 189,
+        "reason": "no_existing_named_global: 0x4570c8",
+        "status": "parked",
+        "text": "if (*(data_t **)0x4570c8 != NULL) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "absolute_address_dereferences:192:1",
+        "line": 192,
+        "reason": "no_existing_named_global: 0x4570c0",
+        "status": "parked",
+        "text": "*(uint8_t *)0x4570c0 = 1;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 10,
+        "id": "absolute_address_dereferences:196:1",
+        "line": 196,
+        "reason": "no_existing_named_global: 0x4570c0",
+        "status": "parked",
+        "text": "return *(uint8_t *)0x4570c0;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "absolute_address_dereferences:207:1",
+        "line": 207,
+        "reason": "no_existing_named_global: 0x4570c8",
+        "status": "parked",
+        "text": "if (*(data_t **)0x4570c8 != NULL) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 18,
+        "id": "absolute_address_dereferences:208:1",
+        "line": 208,
+        "reason": "no_existing_named_global: 0x4570c8",
+        "status": "parked",
+        "text": "data_dispose(*(data_t **)0x4570c8);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "absolute_address_dereferences:209:1",
+        "line": 209,
+        "reason": "no_existing_named_global: 0x4570c8",
+        "status": "parked",
+        "text": "*(data_t **)0x4570c8 = NULL;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "absolute_address_dereferences:211:1",
+        "line": 211,
+        "reason": "no_existing_named_global: 0x4570c0",
+        "status": "parked",
+        "text": "*(uint8_t *)0x4570c0 = 0;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "absolute_address_dereferences:212:1",
+        "line": 212,
+        "reason": "no_existing_named_global: 0x4570c4",
+        "status": "parked",
+        "text": "*(int *)0x4570c4 = 0;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "absolute_address_dereferences:213:1",
+        "line": 213,
+        "reason": "no_existing_named_global: 0x45b260",
+        "status": "parked",
+        "text": "if (*(data_t **)0x45b260 != NULL) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 18,
+        "id": "absolute_address_dereferences:214:1",
+        "line": 214,
+        "reason": "no_existing_named_global: 0x45b260",
+        "status": "parked",
+        "text": "data_dispose(*(data_t **)0x45b260);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "absolute_address_dereferences:215:1",
+        "line": 215,
+        "reason": "no_existing_named_global: 0x45b260",
+        "status": "parked",
+        "text": "*(data_t **)0x45b260 = NULL;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "absolute_address_dereferences:217:1",
+        "line": 217,
+        "reason": "no_existing_named_global: 0x45b1d4",
+        "status": "parked",
+        "text": "*(int *)0x45b1d4 = 0;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "absolute_address_dereferences:218:1",
+        "line": 218,
+        "reason": "no_existing_named_global: 0x45b1d0",
+        "status": "parked",
+        "text": "*(uint8_t *)0x45b1d0 = 0;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "absolute_address_dereferences:219:1",
+        "line": 219,
+        "reason": "no_existing_named_global: 0x45b1d8",
+        "status": "parked",
+        "text": "*(int *)0x45b1d8 = -1;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "absolute_address_dereferences:234:1",
+        "line": 234,
+        "reason": "no_existing_named_global: 0x4570c0",
+        "status": "parked",
+        "text": "if (*(uint8_t *)0x4570c0 == 0) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 19,
+        "id": "absolute_address_dereferences:239:1",
+        "line": 239,
+        "reason": "no_existing_named_global: 0x4570c8",
+        "status": "parked",
+        "text": "data_delete_all(*(data_t **)0x4570c8);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 19,
+        "id": "absolute_address_dereferences:240:1",
+        "line": 240,
+        "reason": "no_existing_named_global: 0x4570c8",
+        "status": "parked",
+        "text": "data_make_valid(*(data_t **)0x4570c8);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 34,
+        "id": "absolute_address_dereferences:243:1",
+        "line": 243,
+        "reason": "no_existing_named_global: 0x4570c8",
+        "status": "parked",
+        "text": "queue_index = data_new_datum(*(data_t **)0x4570c8, (int)iter.datum_handle);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "absolute_address_dereferences:278:1",
+        "line": 278,
+        "reason": "no_existing_named_global: 0x4570c0",
+        "status": "parked",
+        "text": "*(uint8_t *)0x4570c0 == 0) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 27,
+        "id": "absolute_address_dereferences:291:1",
+        "line": 291,
+        "reason": "no_existing_named_global: 0x4570c8",
+        "status": "parked",
+        "text": "datum_ptr = datum_get(*(data_t **)0x4570c8, machine_index);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 44,
+        "id": "absolute_address_dereferences:292:1",
+        "line": 292,
+        "reason": "no_existing_named_global: 0x4570c4",
+        "status": "parked",
+        "text": "if (*(int *)((char *)datum_ptr + 4) >= *(int *)0x4570c4) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "absolute_address_dereferences:348:1",
+        "line": 348,
+        "reason": "no_existing_named_global: 0x45b1d0",
+        "status": "parked",
+        "text": "if (*(uint8_t *)0x45b1d0 == 0) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 11,
+        "id": "absolute_address_dereferences:354:1",
+        "line": 354,
+        "reason": "no_existing_named_global: 0x45b1d4",
+        "status": "parked",
+        "text": "first = *(int *)0x45b1d4;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 15,
+        "id": "absolute_address_dereferences:362:1",
+        "line": 362,
+        "reason": "no_existing_named_global: 0x45b1d8",
+        "status": "parked",
+        "text": "if (first > *(int *)0x45b1d8)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 11,
+        "id": "absolute_address_dereferences:370:1",
+        "line": 370,
+        "reason": "no_existing_named_global: 0x45b260",
+        "status": "parked",
+        "text": "queue = *(data_t **)0x45b260;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 17,
+        "id": "absolute_address_dereferences:408:1",
+        "line": 408,
+        "reason": "no_existing_named_global: 0x45b260",
+        "status": "parked",
+        "text": "queue = *(data_t **)0x45b260;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 19,
+        "id": "absolute_address_dereferences:416:1",
+        "line": 416,
+        "reason": "no_existing_named_global: 0x45b260",
+        "status": "parked",
+        "text": "queue = *(data_t **)0x45b260;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 19,
+        "id": "absolute_address_dereferences:472:1",
+        "line": 472,
+        "reason": "no_existing_named_global: 0x45b260",
+        "status": "parked",
+        "text": "} while (i < (*(data_t **)0x45b260)->current_count);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "absolute_address_dereferences:475:1",
+        "line": 475,
+        "reason": "no_existing_named_global: 0x45b1d4",
+        "status": "parked",
+        "text": "*(int *)0x45b1d4 = *(int *)0x45b1d4 + 1;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 22,
+        "id": "absolute_address_dereferences:475:2",
+        "line": 475,
+        "reason": "no_existing_named_global: 0x45b1d4",
+        "status": "parked",
+        "text": "*(int *)0x45b1d4 = *(int *)0x45b1d4 + 1;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 11,
+        "id": "absolute_address_dereferences:498:1",
+        "line": 498,
+        "reason": "no_existing_named_global: 0x45b1d4",
+        "status": "parked",
+        "text": "first = *(int *)0x45b1d4;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 10,
+        "id": "absolute_address_dereferences:499:1",
+        "line": 499,
+        "reason": "no_existing_named_global: 0x45b1d8",
+        "status": "parked",
+        "text": "last = *(int *)0x45b1d8;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "absolute_address_dereferences:557:1",
+        "line": 557,
+        "reason": "no_existing_named_global: 0x4570c0",
+        "status": "parked",
+        "text": "if (*(uint8_t *)0x4570c0 == 0) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 37,
+        "id": "absolute_address_dereferences:568:1",
+        "line": 568,
+        "reason": "no_existing_named_global: 0x4570c8",
+        "status": "parked",
+        "text": "datum_ptr = (char *)datum_get(*(data_t **)0x4570c8, player_handle);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 15,
+        "id": "absolute_address_dereferences:629:1",
+        "line": 629,
+        "reason": "no_existing_named_global: 0x45b1d4",
+        "status": "parked",
+        "text": "first_idx = *(int *)0x45b1d4;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 18,
+        "id": "absolute_address_dereferences:636:1",
+        "line": 636,
+        "reason": "no_existing_named_global: 0x45b1d8",
+        "status": "parked",
+        "text": "last_idx = *(int *)0x45b1d8;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 9,
+        "id": "absolute_address_dereferences:642:1",
+        "line": 642,
+        "reason": "no_existing_named_global: 0x45b1d8",
+        "status": "parked",
+        "text": "*(int *)0x45b1d8 = sequence_index;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "absolute_address_dereferences:694:1",
+        "line": 694,
+        "reason": "no_existing_named_global: 0x4570c0",
+        "status": "parked",
+        "text": "if (*(uint8_t *)0x4570c0 == 0) {"
+      },
+      {
+        "category": "symbol-names",
+        "column": 15,
+        "id": "absolute_address_dereferences:700:1",
+        "line": 700,
+        "reason": "no_existing_named_global: 0x4570c4",
+        "status": "parked",
+        "text": "old_index = *(int *)0x4570c4;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "absolute_address_dereferences:701:1",
+        "line": 701,
+        "reason": "no_existing_named_global: 0x4570c4",
+        "status": "parked",
+        "text": "*(int *)0x4570c4 = *(int *)0x4570c4 + 1;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 22,
+        "id": "absolute_address_dereferences:701:2",
+        "line": 701,
+        "reason": "no_existing_named_global: 0x4570c4",
+        "status": "parked",
+        "text": "*(int *)0x4570c4 = *(int *)0x4570c4 + 1;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 11,
+        "id": "absolute_address_dereferences:715:1",
+        "line": 715,
+        "reason": "no_existing_named_global: 0x4570c8",
+        "status": "parked",
+        "text": "queue = *(data_t **)0x4570c8;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 19,
+        "id": "absolute_address_dereferences:724:1",
+        "line": 724,
+        "reason": "no_existing_named_global: 0x4570c8",
+        "status": "parked",
+        "text": "} while (i < (*(data_t **)0x4570c8)->current_count);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "absolute_address_dereferences:757:1",
+        "line": 757,
+        "reason": "no_existing_named_global: 0x45b1d0",
+        "status": "parked",
+        "text": "if (*(uint8_t *)0x45b1d0 == 0) {"
+      }
+    ],
+    "decompiler_style_locals": [],
+    "fun_calls": [
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:620:1",
+        "line": 620,
+        "reason": "no_name_evidence",
+        "status": "parked",
+        "text": "void FUN_000b97b0(void *data, int sequence_index)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "fun_calls:729:1",
+        "line": 729,
+        "reason": "no_name_evidence",
+        "status": "parked",
+        "text": "FUN_000b97b0(action_count_ptr, old_index);"
+      }
+    ],
+    "inline_asm": [],
+    "raw_base_offset_dereferences": [
+      {
+        "category": "offset-to-field",
+        "column": 43,
+        "id": "raw_base_offset_dereferences:378:1",
+        "line": 378,
+        "reason": "no_asserted_struct: datum_ptr-0x1c..-0x04 is header-relative on queue->data+0x20; no co()/cs() queue-datum struct (player_action_t is 0x20 and does not document negative layout); bindings.json has only actor_t",
+        "status": "parked",
+        "text": "*(uint32_t *)(datum_ptr - 0x1c) = *(uint32_t *)(src + 0x00);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 43,
+        "id": "raw_base_offset_dereferences:379:1",
+        "line": 379,
+        "reason": "no_asserted_struct: datum_ptr-0x1c..-0x04 is header-relative on queue->data+0x20; no co()/cs() queue-datum struct (player_action_t is 0x20 and does not document negative layout); bindings.json has only actor_t",
+        "status": "parked",
+        "text": "*(uint32_t *)(datum_ptr - 0x14) = *(uint32_t *)(src + 0x04);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 43,
+        "id": "raw_base_offset_dereferences:380:1",
+        "line": 380,
+        "reason": "no_asserted_struct: datum_ptr-0x1c..-0x04 is header-relative on queue->data+0x20; no co()/cs() queue-datum struct (player_action_t is 0x20 and does not document negative layout); bindings.json has only actor_t",
+        "status": "parked",
+        "text": "*(uint32_t *)(datum_ptr - 0x10) = *(uint32_t *)(src + 0x08);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 43,
+        "id": "raw_base_offset_dereferences:381:1",
+        "line": 381,
+        "reason": "no_asserted_struct: datum_ptr-0x1c..-0x04 is header-relative on queue->data+0x20; no co()/cs() queue-datum struct (player_action_t is 0x20 and does not document negative layout); bindings.json has only actor_t",
+        "status": "parked",
+        "text": "*(uint32_t *)(datum_ptr - 0x0c) = *(uint32_t *)(src + 0x0c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 43,
+        "id": "raw_base_offset_dereferences:382:1",
+        "line": 382,
+        "reason": "no_asserted_struct: datum_ptr-0x1c..-0x04 is header-relative on queue->data+0x20; no co()/cs() queue-datum struct (player_action_t is 0x20 and does not document negative layout); bindings.json has only actor_t",
+        "status": "parked",
+        "text": "*(uint32_t *)(datum_ptr - 0x08) = *(uint32_t *)(src + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 43,
+        "id": "raw_base_offset_dereferences:383:1",
+        "line": 383,
+        "reason": "no_asserted_struct: datum_ptr-0x1c..-0x04 is header-relative on queue->data+0x20; no co()/cs() queue-datum struct (player_action_t is 0x20 and does not document negative layout); bindings.json has only actor_t",
+        "status": "parked",
+        "text": "*(uint32_t *)(datum_ptr - 0x04) = *(uint32_t *)(src + 0x14);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 9,
+        "id": "raw_base_offset_dereferences:384:1",
+        "line": 384,
+        "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+        "status": "parked",
+        "text": "*(int16_t *)(datum_ptr + 0x00) = *(int16_t *)(src + 0x18);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 42,
+        "id": "raw_base_offset_dereferences:384:2",
+        "line": 384,
+        "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+        "status": "parked",
+        "text": "*(int16_t *)(datum_ptr + 0x00) = *(int16_t *)(src + 0x18);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 9,
+        "id": "raw_base_offset_dereferences:385:1",
+        "line": 385,
+        "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+        "status": "parked",
+        "text": "*(int16_t *)(datum_ptr + 0x02) = *(int16_t *)(src + 0x1a);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 42,
+        "id": "raw_base_offset_dereferences:385:2",
+        "line": 385,
+        "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+        "status": "parked",
+        "text": "*(int16_t *)(datum_ptr + 0x02) = *(int16_t *)(src + 0x1a);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 9,
+        "id": "raw_base_offset_dereferences:386:1",
+        "line": 386,
+        "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+        "status": "parked",
+        "text": "*(int16_t *)(datum_ptr + 0x04) = *(int16_t *)(src + 0x1c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 42,
+        "id": "raw_base_offset_dereferences:386:2",
+        "line": 386,
+        "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+        "status": "parked",
+        "text": "*(int16_t *)(datum_ptr + 0x04) = *(int16_t *)(src + 0x1c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 26,
+        "id": "raw_base_offset_dereferences:388:1",
+        "line": 388,
+        "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+        "status": "parked",
+        "text": "desired_weapon = *(int16_t *)(datum_ptr + 0x00);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 27,
+        "id": "raw_base_offset_dereferences:398:1",
+        "line": 398,
+        "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+        "status": "parked",
+        "text": "desired_grenade = *(int16_t *)(datum_ptr + 0x02);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 24,
+        "id": "raw_base_offset_dereferences:409:1",
+        "line": 409,
+        "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+        "status": "parked",
+        "text": "desired_zoom = *(int16_t *)(datum_ptr + 0x04);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:431:1",
+        "line": 431,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "*(uint32_t *)(out + 0x00) = ~(*(uint32_t *)di) & *(uint32_t *)(di - 0x04);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:433:1",
+        "line": 433,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "*(uint32_t *)(out + 0x04) = *(uint32_t *)(di + 0x04);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 35,
+        "id": "raw_base_offset_dereferences:433:2",
+        "line": 433,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "*(uint32_t *)(out + 0x04) = *(uint32_t *)(di + 0x04);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:434:1",
+        "line": 434,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "*(uint32_t *)(out + 0x08) = *(uint32_t *)(di + 0x08);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 35,
+        "id": "raw_base_offset_dereferences:434:2",
+        "line": 434,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "*(uint32_t *)(out + 0x08) = *(uint32_t *)(di + 0x08);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:435:1",
+        "line": 435,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "*(uint32_t *)(out + 0x0c) = *(uint32_t *)(di + 0x0c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 35,
+        "id": "raw_base_offset_dereferences:435:2",
+        "line": 435,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "*(uint32_t *)(out + 0x0c) = *(uint32_t *)(di + 0x0c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:436:1",
+        "line": 436,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "*(uint32_t *)(out + 0x10) = *(uint32_t *)(di + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 35,
+        "id": "raw_base_offset_dereferences:436:2",
+        "line": 436,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "*(uint32_t *)(out + 0x10) = *(uint32_t *)(di + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:437:1",
+        "line": 437,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "*(uint32_t *)(out + 0x14) = *(uint32_t *)(di + 0x14);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 35,
+        "id": "raw_base_offset_dereferences:437:2",
+        "line": 437,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "*(uint32_t *)(out + 0x14) = *(uint32_t *)(di + 0x14);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:438:1",
+        "line": 438,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "*(int16_t *)(out + 0x18) = *(int16_t *)(di + 0x18);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 34,
+        "id": "raw_base_offset_dereferences:438:2",
+        "line": 438,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "*(int16_t *)(out + 0x18) = *(int16_t *)(di + 0x18);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:439:1",
+        "line": 439,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "*(int16_t *)(out + 0x1a) = *(int16_t *)(di + 0x1a);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 34,
+        "id": "raw_base_offset_dereferences:439:2",
+        "line": 439,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "*(int16_t *)(out + 0x1a) = *(int16_t *)(di + 0x1a);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:440:1",
+        "line": 440,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "*(int16_t *)(out + 0x1c) = *(int16_t *)(di + 0x1c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 34,
+        "id": "raw_base_offset_dereferences:440:2",
+        "line": 440,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "*(int16_t *)(out + 0x1c) = *(int16_t *)(di + 0x1c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 24,
+        "id": "raw_base_offset_dereferences:442:1",
+        "line": 442,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "desired_weapon = *(int16_t *)(out + 0x18);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 25,
+        "id": "raw_base_offset_dereferences:452:1",
+        "line": 452,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "desired_grenade = *(int16_t *)(out + 0x1a);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 22,
+        "id": "raw_base_offset_dereferences:463:1",
+        "line": 463,
+        "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+        "status": "parked",
+        "text": "desired_zoom = *(int16_t *)(out + 0x1c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 20,
+        "id": "raw_base_offset_dereferences:576:1",
+        "line": 576,
+        "reason": "width_mismatch: datum_ptr+0x10 is both uint32 (assert_valid_real bitcast) and float (desired_facing.pitch); player_action_t.desired_facing_pitch is real at +0x08 of current_action (datum+8), so the float view matches a nested field but the uint32 view cannot; field type cannot satisfy both; no queue-datum union at +0x10",
+        "status": "parked",
+        "text": "pitch_bits = *(uint32_t *)(datum_ptr + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 28,
+        "id": "raw_base_offset_dereferences:581:1",
+        "line": 581,
+        "reason": "width_mismatch: datum_ptr+0x10 is both uint32 (assert_valid_real bitcast) and float (desired_facing.pitch); player_action_t.desired_facing_pitch is real at +0x08 of current_action (datum+8), so the float view matches a nested field but the uint32 view cannot; field type cannot satisfy both; no queue-datum union at +0x10",
+        "status": "parked",
+        "text": "(double)*(float *)(datum_ptr + 0x10));"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 18,
+        "id": "raw_base_offset_dereferences:588:1",
+        "line": 588,
+        "reason": "width_mismatch: datum_ptr+0x0c is both uint32 (assert_valid_real bitcast) and float (desired_facing.yaw); player_action_t.desired_facing_yaw is real at +0x04 of current_action (datum+8); field type cannot satisfy both; no queue-datum union at +0x0c",
+        "status": "parked",
+        "text": "yaw_bits = *(uint32_t *)(datum_ptr + 0x0c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 28,
+        "id": "raw_base_offset_dereferences:593:1",
+        "line": 593,
+        "reason": "width_mismatch: datum_ptr+0x0c is both uint32 (assert_valid_real bitcast) and float (desired_facing.yaw); player_action_t.desired_facing_yaw is real at +0x04 of current_action (datum+8); field type cannot satisfy both; no queue-datum union at +0x0c",
+        "status": "parked",
+        "text": "(double)*(float *)(datum_ptr + 0x0c));"
+      }
+    ],
+    "raw_function_pointer_address_casts": [],
+    "xcall_uses": []
+  },
+  "items": [
+    {
+      "category": "symbol-names",
+      "column": 32,
+      "id": "absolute_address_dereferences:16:1",
+      "line": 16,
+      "reason": "no_existing_named_global: 0x4570c8",
+      "status": "parked",
+      "text": "queue_index = data_new_datum(*(data_t **)0x4570c8, handle);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "absolute_address_dereferences:35:1",
+      "line": 35,
+      "reason": "no_existing_named_global: 0x45b1d0",
+      "status": "parked",
+      "text": "if (*(uint8_t *)0x45b1d0 != 0) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "absolute_address_dereferences:41:1",
+      "line": 41,
+      "reason": "no_existing_named_global: 0x45b260",
+      "status": "parked",
+      "text": "*(data_t **)0x45b260 = data_new(\"update client queues\", 0x10, 0x28);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "absolute_address_dereferences:42:1",
+      "line": 42,
+      "reason": "no_existing_named_global: 0x45b260",
+      "status": "parked",
+      "text": "if (*(data_t **)0x45b260 != NULL) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "absolute_address_dereferences:44:1",
+      "line": 44,
+      "reason": "no_existing_named_global: 0x45b1d8",
+      "status": "parked",
+      "text": "*(int *)0x45b1d8 = -1;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "absolute_address_dereferences:45:1",
+      "line": 45,
+      "reason": "no_existing_named_global: 0x45b1d4",
+      "status": "parked",
+      "text": "*(int *)0x45b1d4 = 0;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "absolute_address_dereferences:46:1",
+      "line": 46,
+      "reason": "no_existing_named_global: 0x45b1d0",
+      "status": "parked",
+      "text": "*(uint8_t *)0x45b1d0 = 1;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 10,
+      "id": "absolute_address_dereferences:49:1",
+      "line": 49,
+      "reason": "no_existing_named_global: 0x45b1d0",
+      "status": "parked",
+      "text": "return *(uint8_t *)0x45b1d0;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "absolute_address_dereferences:68:1",
+      "line": 68,
+      "reason": "no_existing_named_global: 0x45b1d0",
+      "status": "parked",
+      "text": "if (*(uint8_t *)0x45b1d0 == 0) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 19,
+      "id": "absolute_address_dereferences:73:1",
+      "line": 73,
+      "reason": "no_existing_named_global: 0x45b260",
+      "status": "parked",
+      "text": "data_delete_all(*(data_t **)0x45b260);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 19,
+      "id": "absolute_address_dereferences:74:1",
+      "line": 74,
+      "reason": "no_existing_named_global: 0x45b260",
+      "status": "parked",
+      "text": "data_make_valid(*(data_t **)0x45b260);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 34,
+      "id": "absolute_address_dereferences:77:1",
+      "line": 77,
+      "reason": "no_existing_named_global: 0x45b260",
+      "status": "parked",
+      "text": "queue_index = data_new_datum(*(data_t **)0x45b260, (int)iter.datum_handle);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 32,
+      "id": "absolute_address_dereferences:89:1",
+      "line": 89,
+      "reason": "no_existing_named_global: 0x45b260",
+      "status": "parked",
+      "text": "queue_index = data_new_datum(*(data_t **)0x45b260, handle);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 28,
+      "id": "absolute_address_dereferences:102:1",
+      "line": 102,
+      "reason": "no_existing_named_global: 0x45b1dc",
+      "status": "parked",
+      "text": "dst = (int *)(0x45b1dc + *(int *)0x45b25c * 0x20);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "absolute_address_dereferences:109:1",
+      "line": 109,
+      "reason": "no_existing_named_global: 0x45b25c",
+      "status": "parked",
+      "text": "*(int *)0x45b25c = *(int *)0x45b25c + 1;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 22,
+      "id": "absolute_address_dereferences:109:2",
+      "line": 109,
+      "reason": "no_existing_named_global: 0x45b25c",
+      "status": "parked",
+      "text": "*(int *)0x45b25c = *(int *)0x45b25c + 1;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "absolute_address_dereferences:114:1",
+      "line": 114,
+      "reason": "no_existing_named_global: 0x45b25c",
+      "status": "parked",
+      "text": "*(int *)0x45b25c = 0;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 10,
+      "id": "absolute_address_dereferences:122:1",
+      "line": 122,
+      "reason": "no_existing_named_global: 0x45b1d8",
+      "status": "parked",
+      "text": "return *(int *)0x45b1d8 - *(int *)0x45b1d4 +"
+    },
+    {
+      "category": "symbol-names",
+      "column": 29,
+      "id": "absolute_address_dereferences:122:2",
+      "line": 122,
+      "reason": "no_existing_named_global: 0x45b1d8",
+      "status": "parked",
+      "text": "return *(int *)0x45b1d8 - *(int *)0x45b1d4 +"
+    },
+    {
+      "category": "symbol-names",
+      "column": 29,
+      "id": "absolute_address_dereferences:132:1",
+      "line": 132,
+      "reason": "no_existing_named_global: 0x45b1d0",
+      "status": "parked",
+      "text": "if (!action_collection || *(uint8_t *)0x45b1d0 == 0) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 32,
+      "id": "absolute_address_dereferences:143:1",
+      "line": 143,
+      "reason": "no_existing_named_global: 0x4570c8",
+      "status": "parked",
+      "text": "queue_index = data_new_datum(*(data_t **)0x4570c8, handle);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "absolute_address_dereferences:158:1",
+      "line": 158,
+      "reason": "no_existing_named_global: 0x4570c0",
+      "status": "parked",
+      "text": "if (*(uint8_t *)0x4570c0 == 0) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 24,
+      "id": "absolute_address_dereferences:164:1",
+      "line": 164,
+      "reason": "no_existing_named_global: 0x4570c4",
+      "status": "parked",
+      "text": "if (snapshot_index < *(int *)0x4570c4 &&"
+    },
+    {
+      "category": "symbol-names",
+      "column": 25,
+      "id": "absolute_address_dereferences:165:1",
+      "line": 165,
+      "reason": "no_existing_named_global: 0x4570c4",
+      "status": "parked",
+      "text": "snapshot_index >= *(int *)0x4570c4 - 0x20) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "absolute_address_dereferences:182:1",
+      "line": 182,
+      "reason": "no_existing_named_global: 0x4570c0",
+      "status": "parked",
+      "text": "if (*(uint8_t *)0x4570c0 != 0) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "absolute_address_dereferences:188:1",
+      "line": 188,
+      "reason": "no_existing_named_global: 0x4570c8",
+      "status": "parked",
+      "text": "*(data_t **)0x4570c8 = data_new(\"update server queues\", 0x10, 0x28);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "absolute_address_dereferences:189:1",
+      "line": 189,
+      "reason": "no_existing_named_global: 0x4570c8",
+      "status": "parked",
+      "text": "if (*(data_t **)0x4570c8 != NULL) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "absolute_address_dereferences:192:1",
+      "line": 192,
+      "reason": "no_existing_named_global: 0x4570c0",
+      "status": "parked",
+      "text": "*(uint8_t *)0x4570c0 = 1;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 10,
+      "id": "absolute_address_dereferences:196:1",
+      "line": 196,
+      "reason": "no_existing_named_global: 0x4570c0",
+      "status": "parked",
+      "text": "return *(uint8_t *)0x4570c0;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "absolute_address_dereferences:207:1",
+      "line": 207,
+      "reason": "no_existing_named_global: 0x4570c8",
+      "status": "parked",
+      "text": "if (*(data_t **)0x4570c8 != NULL) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 18,
+      "id": "absolute_address_dereferences:208:1",
+      "line": 208,
+      "reason": "no_existing_named_global: 0x4570c8",
+      "status": "parked",
+      "text": "data_dispose(*(data_t **)0x4570c8);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "absolute_address_dereferences:209:1",
+      "line": 209,
+      "reason": "no_existing_named_global: 0x4570c8",
+      "status": "parked",
+      "text": "*(data_t **)0x4570c8 = NULL;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "absolute_address_dereferences:211:1",
+      "line": 211,
+      "reason": "no_existing_named_global: 0x4570c0",
+      "status": "parked",
+      "text": "*(uint8_t *)0x4570c0 = 0;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "absolute_address_dereferences:212:1",
+      "line": 212,
+      "reason": "no_existing_named_global: 0x4570c4",
+      "status": "parked",
+      "text": "*(int *)0x4570c4 = 0;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "absolute_address_dereferences:213:1",
+      "line": 213,
+      "reason": "no_existing_named_global: 0x45b260",
+      "status": "parked",
+      "text": "if (*(data_t **)0x45b260 != NULL) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 18,
+      "id": "absolute_address_dereferences:214:1",
+      "line": 214,
+      "reason": "no_existing_named_global: 0x45b260",
+      "status": "parked",
+      "text": "data_dispose(*(data_t **)0x45b260);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "absolute_address_dereferences:215:1",
+      "line": 215,
+      "reason": "no_existing_named_global: 0x45b260",
+      "status": "parked",
+      "text": "*(data_t **)0x45b260 = NULL;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "absolute_address_dereferences:217:1",
+      "line": 217,
+      "reason": "no_existing_named_global: 0x45b1d4",
+      "status": "parked",
+      "text": "*(int *)0x45b1d4 = 0;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "absolute_address_dereferences:218:1",
+      "line": 218,
+      "reason": "no_existing_named_global: 0x45b1d0",
+      "status": "parked",
+      "text": "*(uint8_t *)0x45b1d0 = 0;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "absolute_address_dereferences:219:1",
+      "line": 219,
+      "reason": "no_existing_named_global: 0x45b1d8",
+      "status": "parked",
+      "text": "*(int *)0x45b1d8 = -1;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "absolute_address_dereferences:234:1",
+      "line": 234,
+      "reason": "no_existing_named_global: 0x4570c0",
+      "status": "parked",
+      "text": "if (*(uint8_t *)0x4570c0 == 0) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 19,
+      "id": "absolute_address_dereferences:239:1",
+      "line": 239,
+      "reason": "no_existing_named_global: 0x4570c8",
+      "status": "parked",
+      "text": "data_delete_all(*(data_t **)0x4570c8);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 19,
+      "id": "absolute_address_dereferences:240:1",
+      "line": 240,
+      "reason": "no_existing_named_global: 0x4570c8",
+      "status": "parked",
+      "text": "data_make_valid(*(data_t **)0x4570c8);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 34,
+      "id": "absolute_address_dereferences:243:1",
+      "line": 243,
+      "reason": "no_existing_named_global: 0x4570c8",
+      "status": "parked",
+      "text": "queue_index = data_new_datum(*(data_t **)0x4570c8, (int)iter.datum_handle);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "absolute_address_dereferences:278:1",
+      "line": 278,
+      "reason": "no_existing_named_global: 0x4570c0",
+      "status": "parked",
+      "text": "*(uint8_t *)0x4570c0 == 0) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 27,
+      "id": "absolute_address_dereferences:291:1",
+      "line": 291,
+      "reason": "no_existing_named_global: 0x4570c8",
+      "status": "parked",
+      "text": "datum_ptr = datum_get(*(data_t **)0x4570c8, machine_index);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 44,
+      "id": "absolute_address_dereferences:292:1",
+      "line": 292,
+      "reason": "no_existing_named_global: 0x4570c4",
+      "status": "parked",
+      "text": "if (*(int *)((char *)datum_ptr + 4) >= *(int *)0x4570c4) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "absolute_address_dereferences:348:1",
+      "line": 348,
+      "reason": "no_existing_named_global: 0x45b1d0",
+      "status": "parked",
+      "text": "if (*(uint8_t *)0x45b1d0 == 0) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 11,
+      "id": "absolute_address_dereferences:354:1",
+      "line": 354,
+      "reason": "no_existing_named_global: 0x45b1d4",
+      "status": "parked",
+      "text": "first = *(int *)0x45b1d4;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 15,
+      "id": "absolute_address_dereferences:362:1",
+      "line": 362,
+      "reason": "no_existing_named_global: 0x45b1d8",
+      "status": "parked",
+      "text": "if (first > *(int *)0x45b1d8)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 11,
+      "id": "absolute_address_dereferences:370:1",
+      "line": 370,
+      "reason": "no_existing_named_global: 0x45b260",
+      "status": "parked",
+      "text": "queue = *(data_t **)0x45b260;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 17,
+      "id": "absolute_address_dereferences:408:1",
+      "line": 408,
+      "reason": "no_existing_named_global: 0x45b260",
+      "status": "parked",
+      "text": "queue = *(data_t **)0x45b260;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 19,
+      "id": "absolute_address_dereferences:416:1",
+      "line": 416,
+      "reason": "no_existing_named_global: 0x45b260",
+      "status": "parked",
+      "text": "queue = *(data_t **)0x45b260;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 19,
+      "id": "absolute_address_dereferences:472:1",
+      "line": 472,
+      "reason": "no_existing_named_global: 0x45b260",
+      "status": "parked",
+      "text": "} while (i < (*(data_t **)0x45b260)->current_count);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "absolute_address_dereferences:475:1",
+      "line": 475,
+      "reason": "no_existing_named_global: 0x45b1d4",
+      "status": "parked",
+      "text": "*(int *)0x45b1d4 = *(int *)0x45b1d4 + 1;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 22,
+      "id": "absolute_address_dereferences:475:2",
+      "line": 475,
+      "reason": "no_existing_named_global: 0x45b1d4",
+      "status": "parked",
+      "text": "*(int *)0x45b1d4 = *(int *)0x45b1d4 + 1;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 11,
+      "id": "absolute_address_dereferences:498:1",
+      "line": 498,
+      "reason": "no_existing_named_global: 0x45b1d4",
+      "status": "parked",
+      "text": "first = *(int *)0x45b1d4;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 10,
+      "id": "absolute_address_dereferences:499:1",
+      "line": 499,
+      "reason": "no_existing_named_global: 0x45b1d8",
+      "status": "parked",
+      "text": "last = *(int *)0x45b1d8;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "absolute_address_dereferences:557:1",
+      "line": 557,
+      "reason": "no_existing_named_global: 0x4570c0",
+      "status": "parked",
+      "text": "if (*(uint8_t *)0x4570c0 == 0) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 37,
+      "id": "absolute_address_dereferences:568:1",
+      "line": 568,
+      "reason": "no_existing_named_global: 0x4570c8",
+      "status": "parked",
+      "text": "datum_ptr = (char *)datum_get(*(data_t **)0x4570c8, player_handle);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 15,
+      "id": "absolute_address_dereferences:629:1",
+      "line": 629,
+      "reason": "no_existing_named_global: 0x45b1d4",
+      "status": "parked",
+      "text": "first_idx = *(int *)0x45b1d4;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 18,
+      "id": "absolute_address_dereferences:636:1",
+      "line": 636,
+      "reason": "no_existing_named_global: 0x45b1d8",
+      "status": "parked",
+      "text": "last_idx = *(int *)0x45b1d8;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 9,
+      "id": "absolute_address_dereferences:642:1",
+      "line": 642,
+      "reason": "no_existing_named_global: 0x45b1d8",
+      "status": "parked",
+      "text": "*(int *)0x45b1d8 = sequence_index;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "absolute_address_dereferences:694:1",
+      "line": 694,
+      "reason": "no_existing_named_global: 0x4570c0",
+      "status": "parked",
+      "text": "if (*(uint8_t *)0x4570c0 == 0) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 15,
+      "id": "absolute_address_dereferences:700:1",
+      "line": 700,
+      "reason": "no_existing_named_global: 0x4570c4",
+      "status": "parked",
+      "text": "old_index = *(int *)0x4570c4;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "absolute_address_dereferences:701:1",
+      "line": 701,
+      "reason": "no_existing_named_global: 0x4570c4",
+      "status": "parked",
+      "text": "*(int *)0x4570c4 = *(int *)0x4570c4 + 1;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 22,
+      "id": "absolute_address_dereferences:701:2",
+      "line": 701,
+      "reason": "no_existing_named_global: 0x4570c4",
+      "status": "parked",
+      "text": "*(int *)0x4570c4 = *(int *)0x4570c4 + 1;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 11,
+      "id": "absolute_address_dereferences:715:1",
+      "line": 715,
+      "reason": "no_existing_named_global: 0x4570c8",
+      "status": "parked",
+      "text": "queue = *(data_t **)0x4570c8;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 19,
+      "id": "absolute_address_dereferences:724:1",
+      "line": 724,
+      "reason": "no_existing_named_global: 0x4570c8",
+      "status": "parked",
+      "text": "} while (i < (*(data_t **)0x4570c8)->current_count);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "absolute_address_dereferences:757:1",
+      "line": 757,
+      "reason": "no_existing_named_global: 0x45b1d0",
+      "status": "parked",
+      "text": "if (*(uint8_t *)0x45b1d0 == 0) {"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:620:1",
+      "line": 620,
+      "reason": "no_name_evidence",
+      "status": "parked",
+      "text": "void FUN_000b97b0(void *data, int sequence_index)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "fun_calls:729:1",
+      "line": 729,
+      "reason": "no_name_evidence",
+      "status": "parked",
+      "text": "FUN_000b97b0(action_count_ptr, old_index);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 43,
+      "id": "raw_base_offset_dereferences:378:1",
+      "line": 378,
+      "reason": "no_asserted_struct: datum_ptr-0x1c..-0x04 is header-relative on queue->data+0x20; no co()/cs() queue-datum struct (player_action_t is 0x20 and does not document negative layout); bindings.json has only actor_t",
+      "status": "parked",
+      "text": "*(uint32_t *)(datum_ptr - 0x1c) = *(uint32_t *)(src + 0x00);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 43,
+      "id": "raw_base_offset_dereferences:379:1",
+      "line": 379,
+      "reason": "no_asserted_struct: datum_ptr-0x1c..-0x04 is header-relative on queue->data+0x20; no co()/cs() queue-datum struct (player_action_t is 0x20 and does not document negative layout); bindings.json has only actor_t",
+      "status": "parked",
+      "text": "*(uint32_t *)(datum_ptr - 0x14) = *(uint32_t *)(src + 0x04);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 43,
+      "id": "raw_base_offset_dereferences:380:1",
+      "line": 380,
+      "reason": "no_asserted_struct: datum_ptr-0x1c..-0x04 is header-relative on queue->data+0x20; no co()/cs() queue-datum struct (player_action_t is 0x20 and does not document negative layout); bindings.json has only actor_t",
+      "status": "parked",
+      "text": "*(uint32_t *)(datum_ptr - 0x10) = *(uint32_t *)(src + 0x08);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 43,
+      "id": "raw_base_offset_dereferences:381:1",
+      "line": 381,
+      "reason": "no_asserted_struct: datum_ptr-0x1c..-0x04 is header-relative on queue->data+0x20; no co()/cs() queue-datum struct (player_action_t is 0x20 and does not document negative layout); bindings.json has only actor_t",
+      "status": "parked",
+      "text": "*(uint32_t *)(datum_ptr - 0x0c) = *(uint32_t *)(src + 0x0c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 43,
+      "id": "raw_base_offset_dereferences:382:1",
+      "line": 382,
+      "reason": "no_asserted_struct: datum_ptr-0x1c..-0x04 is header-relative on queue->data+0x20; no co()/cs() queue-datum struct (player_action_t is 0x20 and does not document negative layout); bindings.json has only actor_t",
+      "status": "parked",
+      "text": "*(uint32_t *)(datum_ptr - 0x08) = *(uint32_t *)(src + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 43,
+      "id": "raw_base_offset_dereferences:383:1",
+      "line": 383,
+      "reason": "no_asserted_struct: datum_ptr-0x1c..-0x04 is header-relative on queue->data+0x20; no co()/cs() queue-datum struct (player_action_t is 0x20 and does not document negative layout); bindings.json has only actor_t",
+      "status": "parked",
+      "text": "*(uint32_t *)(datum_ptr - 0x04) = *(uint32_t *)(src + 0x14);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 9,
+      "id": "raw_base_offset_dereferences:384:1",
+      "line": 384,
+      "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+      "status": "parked",
+      "text": "*(int16_t *)(datum_ptr + 0x00) = *(int16_t *)(src + 0x18);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 42,
+      "id": "raw_base_offset_dereferences:384:2",
+      "line": 384,
+      "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+      "status": "parked",
+      "text": "*(int16_t *)(datum_ptr + 0x00) = *(int16_t *)(src + 0x18);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 9,
+      "id": "raw_base_offset_dereferences:385:1",
+      "line": 385,
+      "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+      "status": "parked",
+      "text": "*(int16_t *)(datum_ptr + 0x02) = *(int16_t *)(src + 0x1a);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 42,
+      "id": "raw_base_offset_dereferences:385:2",
+      "line": 385,
+      "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+      "status": "parked",
+      "text": "*(int16_t *)(datum_ptr + 0x02) = *(int16_t *)(src + 0x1a);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 9,
+      "id": "raw_base_offset_dereferences:386:1",
+      "line": 386,
+      "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+      "status": "parked",
+      "text": "*(int16_t *)(datum_ptr + 0x04) = *(int16_t *)(src + 0x1c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 42,
+      "id": "raw_base_offset_dereferences:386:2",
+      "line": 386,
+      "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+      "status": "parked",
+      "text": "*(int16_t *)(datum_ptr + 0x04) = *(int16_t *)(src + 0x1c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 26,
+      "id": "raw_base_offset_dereferences:388:1",
+      "line": 388,
+      "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+      "status": "parked",
+      "text": "desired_weapon = *(int16_t *)(datum_ptr + 0x00);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 27,
+      "id": "raw_base_offset_dereferences:398:1",
+      "line": 398,
+      "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+      "status": "parked",
+      "text": "desired_grenade = *(int16_t *)(datum_ptr + 0x02);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 24,
+      "id": "raw_base_offset_dereferences:409:1",
+      "line": 409,
+      "reason": "no_asserted_struct: datum_ptr+0x00/0x02/0x04 int16 (desired_weapon/grenade/zoom) \u2014 player_action_t puts those at +0x18/0x1a/0x1c; recasting (player_action_t*)(datum_ptr-8) would change the base (offset-to-struct: keep base untouched); src+0x18/0x1a/0x1c match player_action_t int16s but the paired dest does not; no queue-datum struct; bindings.json has only actor_t",
+      "status": "parked",
+      "text": "desired_zoom = *(int16_t *)(datum_ptr + 0x04);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:431:1",
+      "line": 431,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "*(uint32_t *)(out + 0x00) = ~(*(uint32_t *)di) & *(uint32_t *)(di - 0x04);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:433:1",
+      "line": 433,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "*(uint32_t *)(out + 0x04) = *(uint32_t *)(di + 0x04);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 35,
+      "id": "raw_base_offset_dereferences:433:2",
+      "line": 433,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "*(uint32_t *)(out + 0x04) = *(uint32_t *)(di + 0x04);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:434:1",
+      "line": 434,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "*(uint32_t *)(out + 0x08) = *(uint32_t *)(di + 0x08);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 35,
+      "id": "raw_base_offset_dereferences:434:2",
+      "line": 434,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "*(uint32_t *)(out + 0x08) = *(uint32_t *)(di + 0x08);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:435:1",
+      "line": 435,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "*(uint32_t *)(out + 0x0c) = *(uint32_t *)(di + 0x0c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 35,
+      "id": "raw_base_offset_dereferences:435:2",
+      "line": 435,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "*(uint32_t *)(out + 0x0c) = *(uint32_t *)(di + 0x0c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:436:1",
+      "line": 436,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "*(uint32_t *)(out + 0x10) = *(uint32_t *)(di + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 35,
+      "id": "raw_base_offset_dereferences:436:2",
+      "line": 436,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "*(uint32_t *)(out + 0x10) = *(uint32_t *)(di + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:437:1",
+      "line": 437,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "*(uint32_t *)(out + 0x14) = *(uint32_t *)(di + 0x14);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 35,
+      "id": "raw_base_offset_dereferences:437:2",
+      "line": 437,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "*(uint32_t *)(out + 0x14) = *(uint32_t *)(di + 0x14);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:438:1",
+      "line": 438,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "*(int16_t *)(out + 0x18) = *(int16_t *)(di + 0x18);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 34,
+      "id": "raw_base_offset_dereferences:438:2",
+      "line": 438,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "*(int16_t *)(out + 0x18) = *(int16_t *)(di + 0x18);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:439:1",
+      "line": 439,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "*(int16_t *)(out + 0x1a) = *(int16_t *)(di + 0x1a);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 34,
+      "id": "raw_base_offset_dereferences:439:2",
+      "line": 439,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "*(int16_t *)(out + 0x1a) = *(int16_t *)(di + 0x1a);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:440:1",
+      "line": 440,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "*(int16_t *)(out + 0x1c) = *(int16_t *)(di + 0x1c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 34,
+      "id": "raw_base_offset_dereferences:440:2",
+      "line": 440,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "*(int16_t *)(out + 0x1c) = *(int16_t *)(di + 0x1c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 24,
+      "id": "raw_base_offset_dereferences:442:1",
+      "line": 442,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "desired_weapon = *(int16_t *)(out + 0x18);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 25,
+      "id": "raw_base_offset_dereferences:452:1",
+      "line": 452,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "desired_grenade = *(int16_t *)(out + 0x1a);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 22,
+      "id": "raw_base_offset_dereferences:463:1",
+      "line": 463,
+      "reason": "no_asserted_struct: out/di 0x20 action blob \u2014 player_action_t exists (cs 0x20) and matches buttons uint32 at +0x00 and int16s at +0x18/0x1a/0x1c, but di-0x04 is negative (no struct) and uint32 copies at +0x04..+0x14 WIDTH MISMATCH vs player_action_t float fields (desired_facing_yaw/pitch, throttle_x/y, primary_trigger); integer MOV vs FLD/FSTP is codegen-sensitive; bindings.json has only actor_t so structize cannot run",
+      "status": "parked",
+      "text": "desired_zoom = *(int16_t *)(out + 0x1c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 20,
+      "id": "raw_base_offset_dereferences:576:1",
+      "line": 576,
+      "reason": "width_mismatch: datum_ptr+0x10 is both uint32 (assert_valid_real bitcast) and float (desired_facing.pitch); player_action_t.desired_facing_pitch is real at +0x08 of current_action (datum+8), so the float view matches a nested field but the uint32 view cannot; field type cannot satisfy both; no queue-datum union at +0x10",
+      "status": "parked",
+      "text": "pitch_bits = *(uint32_t *)(datum_ptr + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 28,
+      "id": "raw_base_offset_dereferences:581:1",
+      "line": 581,
+      "reason": "width_mismatch: datum_ptr+0x10 is both uint32 (assert_valid_real bitcast) and float (desired_facing.pitch); player_action_t.desired_facing_pitch is real at +0x08 of current_action (datum+8), so the float view matches a nested field but the uint32 view cannot; field type cannot satisfy both; no queue-datum union at +0x10",
+      "status": "parked",
+      "text": "(double)*(float *)(datum_ptr + 0x10));"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 18,
+      "id": "raw_base_offset_dereferences:588:1",
+      "line": 588,
+      "reason": "width_mismatch: datum_ptr+0x0c is both uint32 (assert_valid_real bitcast) and float (desired_facing.yaw); player_action_t.desired_facing_yaw is real at +0x04 of current_action (datum+8); field type cannot satisfy both; no queue-datum union at +0x0c",
+      "status": "parked",
+      "text": "yaw_bits = *(uint32_t *)(datum_ptr + 0x0c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 28,
+      "id": "raw_base_offset_dereferences:593:1",
+      "line": 593,
+      "reason": "width_mismatch: datum_ptr+0x0c is both uint32 (assert_valid_real bitcast) and float (desired_facing.yaw); player_action_t.desired_facing_yaw is real at +0x04 of current_action (datum+8); field type cannot satisfy both; no queue-datum union at +0x0c",
+      "status": "parked",
+      "text": "(double)*(float *)(datum_ptr + 0x0c));"
+    }
+  ],
+  "kind": "source-recovery-manifest",
+  "repo_relative_source": "src/halo/game/player_queues_new.c",
+  "schema": 1,
+  "source_sha256": "464acfe70dd1366111472d9fb38c4ee5f104d76f3237e67f4e185d16acd9dc12"
+}

@@ -28,6 +28,9 @@ from tools.equivalence.coff_loader import (  # noqa: E402
 )
 
 
+IMAGE_SCN_CNT_UNINITIALIZED_DATA = 0x00000080
+
+
 class GuardError(Exception):
     """An object or baseline cannot be trusted."""
 
@@ -62,7 +65,13 @@ def _strict_object(path):
             off = section_start + index * SECTION_HEADER_SIZE
             raw_name, _vs, _va, raw_size, raw_off, reloc_off, _lo, reloc_count, _ln, _ch = \
                 struct.unpack_from(SECTION_HEADER_FMT, data, off)
-            if raw_size and (raw_off == 0 or raw_off + raw_size > len(data)):
+            # Uninitialized data (.bss) carries a non-zero SizeOfRawData with
+            # PointerToRawData == 0: the size is the allocation, not a file
+            # extent.  Only a section that claims file-backed bytes can be
+            # truncated.
+            uninitialized = bool(_ch & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
+            if raw_size and not (uninitialized and raw_off == 0) and (
+                    raw_off == 0 or raw_off + raw_size > len(data)):
                 raise GuardError("truncated raw data for section %d" % (index + 1))
             if reloc_count and (reloc_off == 0 or reloc_off + reloc_count * RELOC_SIZE > len(data)):
                 raise GuardError("truncated relocations for section %d" % (index + 1))
@@ -117,6 +126,10 @@ def _defined_symbol_data(symbols, sections, section_ids, index):
     section = sections[section_index]
     executable = bool(section.characteristics & 0x20) or section.name.startswith(".text")
     if executable:
+        return None
+    if section.characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA and not section.data:
+        # .bss has no file-backed bytes to snapshot; the relocation target
+        # identity (name/section/value) still compares exactly.
         return None
     if symbol.value < 0 or symbol.value >= len(section.data):
         raise GuardError("defined symbol %s has invalid data offset %d" %

@@ -36,7 +36,7 @@ Parse from $ARGUMENTS (all optional):
 - `--min-score X` — refuse objects scored below X on the recovery frontier.
 - `--object <name>.obj` — explicit first target, bypassing selection for that one
   iteration only; later iterations fall back to the frontier queue.
-- `--allow-risky` — pass `--allow-risky` to `plan`, opening ladder categories 7–8
+- `--allow-risky` — pass `--allow-risky` to `plan`, opening ladder categories 8–9
   (`expr-simplify`, `control-flow`). Without it the manifest refuses those items;
   that is the safe default.
 - `--dry-run` — baseline each object and report the per-category debt and what

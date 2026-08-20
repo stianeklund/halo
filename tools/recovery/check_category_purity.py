@@ -72,6 +72,7 @@ CATEGORIES = (
     "comments",
     "local-renames",
     "symbol-names",
+    "global-names",
     "const-enum",
     "struct-define",
     "offset-to-field",
@@ -103,6 +104,7 @@ RULES = {
     "comments": "token streams (comments stripped) must be IDENTICAL; whitespace/blank lines free",
     "local-renames": "token streams identical except identifier->identifier substitution, consistent and injective per file",
     "symbol-names": "same shape as local-renames (rename scope is a review matter, not a lexical one)",
+    "global-names": "added '#define NAME (*(T *)0xADDR)' plus substitutions of exactly that token run by NAME",
     "const-enum": "added #define/enum/int-typedef only, plus numeric-literal -> identifier substitutions",
     "struct-define": "additions only at file scope: typedef/struct/union blocks, cs()/co() asserts, #include, include guards",
     "offset-to-field": "raw-deref (cast + '+ literal') -> member access substitutions, plus added typed-pointer locals and #include",
@@ -635,6 +637,234 @@ def _check_renames(old: Sequence[Token], new: Sequence[Token]) -> PairResult:
 
 
 # --------------------------------------------------------------------------
+# Category: global-names
+# --------------------------------------------------------------------------
+#
+# Naming an absolute-address dereference is the single largest source of
+# recovery debt, and none of the other categories can express it:
+#
+#   * `symbol-names` is identifier -> identifier; `*(uint8_t *)0x45b1d0` -> a
+#     name replaces a multi-token cast-deref, so its checker rejects it.
+#   * `const-enum` allows only 1-for-1 `numeric literal -> identifier`.
+#   * a kb.json `objects.data` extern is emitted `HDATA` =
+#     `__declspec(dllimport)` (tools/analysis/knowledge.py), so the reference
+#     becomes a load through `[__imp__X]` -- genuinely different codegen, not
+#     a gate that is merely too strict.
+#
+# What IS neutral is the convention the tree already uses in 82 places
+# (`src/common.h`: `#define TICKS_PER_SECOND (*(float *)0x253394)`): a macro
+# whose body is EXACTLY the token run it replaces.  That is what this category
+# checks, and it is why the check is sound -- the preprocessor puts the same
+# tokens back, so the compiler sees the file it saw before.  The COFF
+# neutrality gate confirms it independently.
+
+_HEX_LITERAL = re.compile(r"0[xX][0-9a-fA-F]+")
+
+
+def _strip_outer_parens(tokens: Sequence[Token]) -> list[Token]:
+    """Drop redundant enclosing parentheses: `((x))` -> `x`.
+
+    Only a `(` whose match is the LAST token is removed, so `(a) + (b)` keeps
+    both pairs and can never be mistaken for one parenthesised expression."""
+    run = list(tokens)
+    while len(run) >= 2 and _is_punct(run[0], "(") and _is_punct(run[-1], ")"):
+        depth = 0
+        close = -1
+        for index, tok in enumerate(run):
+            if _is_punct(tok, "("):
+                depth += 1
+            elif _is_punct(tok, ")"):
+                depth -= 1
+                if depth == 0:
+                    close = index
+                    break
+        if close != len(run) - 1:
+            break
+        run = run[1:-1]
+    return run
+
+
+def _address_deref_tokens(tokens: Sequence[Token]) -> list[Token] | None:
+    """Return the canonical `*(T *)0xADDR` run, or None.
+
+    Canonical = outer and address parentheses stripped, so the two spellings
+    `*(int *)0x1234` and `(*(int *)(0x1234))` normalise to one key sequence."""
+    run = _strip_outer_parens(tokens)
+    if len(run) < 5 or not _is_punct(run[0], "*") or not _is_punct(run[1], "("):
+        return None
+    cursor = 2
+    saw_type = False
+    while cursor < len(run) and (run[cursor].kind == "id" or _is_punct(run[cursor], "*")):
+        saw_type = saw_type or run[cursor].kind == "id"
+        cursor += 1
+    # The cast must name a type and must end in `*`: `(int)0x1234` is an
+    # integer cast, not a dereference of a pointer to storage.
+    if not saw_type or cursor >= len(run) or not _is_punct(run[cursor - 1], "*"):
+        return None
+    if not _is_punct(run[cursor], ")"):
+        return None
+    cast = run[:cursor + 1]
+    address = _strip_outer_parens(run[cursor + 1:])
+    if len(address) != 1 or address[0].kind != "num" \
+            or not _HEX_LITERAL.fullmatch(address[0].text):
+        return None
+    return cast + address
+
+
+def _address_macro_definition(chunk: Sequence[Token]) -> tuple[str, list[Token]] | None:
+    """`#define NAME (*(T *)0xADDR)` -> (NAME, canonical body), else None.
+
+    A function-like macro (`#define NAME(x) ...`) is rejected here for free:
+    its body does not normalise to the dereference shape, because the
+    parameter list's `)` is not the last token."""
+    if _directive_name(chunk) != "define":
+        return None
+    if len(chunk) < 4 or chunk[2].kind != "id" or chunk[2].text in KEYWORDS:
+        return None
+    body = _address_deref_tokens(chunk[3:])
+    if body is None:
+        return None
+    return chunk[2].text, body
+
+
+def collect_address_macros(texts: Iterable[str]) -> dict[str, tuple[tuple[str, str], ...]]:
+    """Map macro name -> canonical body key sequence, over a set of files.
+
+    A name defined twice with DIFFERENT bodies is dropped, not merged: the
+    substitution that relies on it then fails, which is the fail-closed
+    direction."""
+    bodies: dict[str, tuple[tuple[str, str], ...] | None] = {}
+    for text in texts:
+        for unit in _split_top_level(strip_comments(tokenize(text))):
+            found = _address_macro_definition(unit.tokens)
+            if found is None:
+                continue
+            name, body = found
+            key = tuple(tok.key for tok in body)
+            if bodies.setdefault(name, key) != key:
+                bodies[name] = None
+    return {name: key for name, key in bodies.items() if key is not None}
+
+
+def _validate_global_names_insert(chunk: Sequence[Token]) -> str | None:
+    directive = _directive_name(chunk)
+    if directive is None:
+        return (f"added code is not an address '#define' or an '#include': "
+                f"{_show(chunk)!r}")
+    if directive == "include":
+        return None
+    if directive in _PP_CONDITIONALS:
+        return None  # include guard around a newly added header
+    if directive != "define":
+        return f"added '#{directive}' directive is not global-names work"
+    if len(chunk) == 3 and chunk[2].kind == "id":
+        return None  # `#define HEADER_H` -- the include guard's own define
+    if _address_macro_definition(chunk) is None:
+        return (f"'#define' body is not an absolute-address dereference "
+                f"'(*(T *)0xADDR)': {_show(chunk)!r}")
+    return None
+
+
+def _check_global_name_hunks(old_unit: Unit, new_unit: Unit,
+                             macros: dict[str, tuple[tuple[str, str], ...]],
+                             violations: list[Violation], counters: dict) -> None:
+    # max_gap=0: two adjacent substitutions in one statement must stay two
+    # hunks.  Coalescing them would pair a two-deref old run against a
+    # two-identifier new run, which no single macro can justify.
+    for i1, i2, j1, j2 in _hunks(old_unit.tokens, new_unit.tokens, max_gap=0):
+        old_run = old_unit.tokens[i1:i2]
+        new_run = new_unit.tokens[j1:j2]
+        line = new_unit.tokens[j1].line if j1 < len(new_unit.tokens) else new_unit.line
+        if not old_run:
+            violations.append(Violation(
+                line, f"code added inside a body in a 'global-names' commit: "
+                      f"{_show(new_run)!r}"))
+            continue
+        if not new_run:
+            violations.append(Violation(
+                line, f"code removed without a replacement name: {_show(old_run)!r}"))
+            continue
+        replacement = _strip_outer_parens(new_run)
+        if len(replacement) != 1 or replacement[0].kind != "id" \
+                or replacement[0].text in KEYWORDS:
+            violations.append(Violation(
+                line, f"replacement is not a single name: {_show(old_run)!r} -> "
+                      f"{_show(new_run)!r}"))
+            continue
+        name = replacement[0].text
+        body = macros.get(name)
+        if body is None:
+            violations.append(Violation(
+                line, f"{name!r} is not defined in this change set as "
+                      f"'#define {name} (*(T *)0xADDR)'; the definition must "
+                      f"land in the same commit as its uses"))
+            continue
+        canonical = _address_deref_tokens(old_run)
+        if canonical is None:
+            violations.append(Violation(
+                line, f"replaced code is not an absolute-address dereference: "
+                      f"{_show(old_run)!r} -> {name}"))
+            continue
+        if tuple(tok.key for tok in canonical) != body:
+            violations.append(Violation(
+                line, f"{name!r} does not expand to the code it replaced: "
+                      f"{_show(canonical)!r} vs macro body "
+                      f"{' '.join(text for _kind, text in body)!r}"))
+            continue
+        counters["substitutions"] += 1
+
+
+def _check_global_names(old: Sequence[Token], new: Sequence[Token],
+                        macros: dict[str, tuple[tuple[str, str], ...]] | None = None
+                        ) -> PairResult:
+    macros = macros or {}
+    old_units = _split_top_level(strip_comments(old))
+    new_units = _split_top_level(strip_comments(new))
+    violations: list[Violation] = []
+    counters = {"substitutions": 0, "definitions": 0}
+    for tag, i1, i2, j1, j2 in _unit_opcodes(old_units, new_units):
+        if tag == "equal":
+            continue
+        old_run = old_units[i1:i2]
+        new_run = new_units[j1:j2]
+        if tag == "delete":
+            violations.append(Violation(
+                old_run[0].line,
+                f"code removed in a 'global-names' commit: "
+                f"{_show(_flat(old_run))!r}"))
+            continue
+        if tag == "insert":
+            for unit in new_run:
+                error = _validate_global_names_insert(unit.tokens)
+                if error:
+                    violations.append(Violation(unit.line, error))
+                else:
+                    counters["definitions"] += 1
+            continue
+        aligned = _align_replace(old_run, new_run)
+        if aligned is None:
+            violations.append(Violation(
+                new_run[0].line,
+                f"{len(old_run)} construct(s) became {len(new_run)}; a "
+                f"global-names commit names derefs in place: "
+                f"{_first_token_change(old_run, new_run)}"))
+            continue
+        pairs, extra = aligned
+        for unit in extra:
+            error = _validate_global_names_insert(unit.tokens)
+            if error:
+                violations.append(Violation(unit.line, error))
+            else:
+                counters["definitions"] += 1
+        for old_unit, new_unit in pairs:
+            _check_global_name_hunks(old_unit, new_unit, macros, violations, counters)
+    if violations:
+        return _bad(violations)
+    return _pure([f"{counters['substitutions']} address deref(s) named, "
+                  f"{counters['definitions']} definition(s)/include(s) added"])
+
+
+# --------------------------------------------------------------------------
 # Category: const-enum
 # --------------------------------------------------------------------------
 
@@ -1132,7 +1362,7 @@ _CAST_BASE_HINT = (
     "reached through a cast base, e.g. '((tag_block *)(p + 0x1a))->count'). No "
     "spelling of this passes: the '+ literal' only disappears once a struct with "
     "cs()/co() asserts covers the BASE, making the offset a named member. That is "
-    "struct-recovery/struct-assert (ladder 5) work, not this category."
+    "struct-recovery/struct-assert (ladder rung 6) work, not this category."
 )
 
 
@@ -1196,16 +1426,24 @@ _CHECKERS = {
     "comments": _check_comments,
     "local-renames": _check_renames,
     "symbol-names": _check_renames,
+    "global-names": _check_global_names,
     "const-enum": _check_const_enum,
     "struct-define": _check_struct_define,
     "offset-to-field": _check_offset_to_field,
 }
 
 
-def check_pair(category: str, old_text: str, new_text: str) -> PairResult:
+def check_pair(category: str, old_text: str, new_text: str,
+               macros: dict[str, tuple[tuple[str, str], ...]] | None = None
+               ) -> PairResult:
     """Compare one file's before/after content against a ladder category.
 
-    Git-free, so self-tests and unit tests need no scratch repository."""
+    Git-free, so self-tests and unit tests need no scratch repository.
+
+    `macros` is the address-macro table for 'global-names' only, built by
+    collect_address_macros() over the WHOLE change set: the `#define` normally
+    lands in a header while the substitutions land in the .c, and a per-file
+    check cannot see across that boundary."""
     if category in UNCHECKABLE:
         return PairResult("unchecked", [], [
             f"'{category}' is not mechanically checkable: {UNCHECKABLE[category]}"])
@@ -1213,6 +1451,12 @@ def check_pair(category: str, old_text: str, new_text: str) -> PairResult:
     if checker is None:
         raise ValueError(f"unknown category {category!r}; expected one of "
                          f"{', '.join(CATEGORIES)}")
+    if category == "global-names":
+        if macros is None:
+            # Single-file convenience (tests, one-file diffs).  `_run` always
+            # passes an explicit table built over the whole change set.
+            macros = collect_address_macros([new_text, old_text])
+        return checker(tokenize(old_text), tokenize(new_text), macros)
     return checker(tokenize(old_text), tokenize(new_text))
 
 
@@ -1294,7 +1538,7 @@ def _explain(category: str | None) -> None:
 
 
 def _run(category: str, files: Sequence[ChangedFile], source_label: str,
-         explain: bool) -> int:
+         explain: bool, extra_macro_texts: Sequence[str] = ()) -> int:
     if explain:
         _explain(category)
     if category in UNCHECKABLE:
@@ -1317,9 +1561,18 @@ def _run(category: str, files: Sequence[ChangedFile], source_label: str,
         print("[purity] PASS -- no source files in the diff, nothing to check")
         return 0
 
+    macros: dict[str, tuple[tuple[str, str], ...]] = {}
+    if category == "global-names":
+        # Both sides: the `#define` may be added by this commit (new side) or
+        # may already exist in a header this commit only edits (old side).
+        macros = collect_address_macros(
+            [f.new_text for f in sources] + [f.old_text for f in sources]
+            + list(extra_macro_texts))
+        print(f"[purity] address macros in scope: {len(macros)}")
+
     failures = 0
     for changed in sources:
-        result = check_pair(category, changed.old_text, changed.new_text)
+        result = check_pair(category, changed.old_text, changed.new_text, macros)
         if result.ok:
             note = f" -- {result.notes[0]}" if result.notes else ""
             print(f"[purity] PURE {changed.path}{note}")
@@ -1359,6 +1612,18 @@ void update(float *up, actor_t *actor) {
   if (local_8 == 3) {
     up[1] = fVar1;
   }
+}
+"""
+
+
+GLOBAL_C = """\
+#include "types.h"
+
+int queues_update(int count) {
+  if (*(uint8_t *)0x45b1d0 == 0) {
+    return 0;
+  }
+  return count + 1;
 }
 """
 
@@ -1449,6 +1714,49 @@ def _cases() -> list[tuple[str, str, str, str, str]]:
         "const-enum", BASE_C,
         BASE_C.replace('#include "types.h"',
                        '#include "types.h"\ntypedef struct { int a; } thing_t;'),
+        "violation"))
+
+    # ---- global-names ---------------------------------------------------
+    cases.append((
+        "global-names: address deref named by a macro added in the same diff",
+        "global-names", GLOBAL_C,
+        '#define queues_active (*(uint8_t *)0x45b1d0)\n'
+        + GLOBAL_C.replace("*(uint8_t *)0x45b1d0", "queues_active"),
+        "pure"))
+    cases.append((
+        "global-names: parenthesised spelling normalises to the same body",
+        "global-names", GLOBAL_C,
+        '#define queues_active (*(uint8_t *)(0x45b1d0))\n'
+        + GLOBAL_C.replace("*(uint8_t *)0x45b1d0", "queues_active"),
+        "pure"))
+    cases.append((
+        "global-names: name used with no macro in the change set",
+        "global-names", GLOBAL_C,
+        GLOBAL_C.replace("*(uint8_t *)0x45b1d0", "queues_active"),
+        "violation"))
+    cases.append((
+        "global-names: macro names a different address than it replaces",
+        "global-names", GLOBAL_C,
+        '#define queues_active (*(uint8_t *)0x45b1d4)\n'
+        + GLOBAL_C.replace("*(uint8_t *)0x45b1d0", "queues_active"),
+        "violation"))
+    cases.append((
+        "global-names: macro widens the access type",
+        "global-names", GLOBAL_C,
+        '#define queues_active (*(int *)0x45b1d0)\n'
+        + GLOBAL_C.replace("*(uint8_t *)0x45b1d0", "queues_active"),
+        "violation"))
+    cases.append((
+        "global-names: a literal changed under cover of the naming",
+        "global-names", GLOBAL_C,
+        '#define queues_active (*(uint8_t *)0x45b1d0)\n'
+        + GLOBAL_C.replace("*(uint8_t *)0x45b1d0", "queues_active").replace(
+            "count + 1", "count + 2"),
+        "violation"))
+    cases.append((
+        "global-names: an ordinary constant is not an address deref",
+        "global-names", GLOBAL_C,
+        '#define MAX_QUEUES 16\n' + GLOBAL_C,
         "violation"))
 
     # ---- struct-define --------------------------------------------------
@@ -1595,6 +1903,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                         help="limit the check to these paths (repeatable)")
     parser.add_argument("--explain", action="store_true",
                         help="print the allowed edit shape before checking")
+    parser.add_argument("--macro-source", action="append", default=[], metavar="PATH",
+                        help="extra header(s) whose address '#define's are in "
+                             "scope for 'global-names' but which this diff does "
+                             "not touch (repeatable)")
     parser.add_argument("--self-test", action="store_true",
                         help="run built-in synthetic cases; no git needed")
     args = parser.parse_args(argv)
@@ -1618,7 +1930,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"[purity] NOT CHECKABLE: {exc}")
         return 2
 
-    return _run(args.category, files, label, args.explain)
+    extra_macro_texts = []
+    for name in args.macro_source:
+        try:
+            extra_macro_texts.append(Path(name).read_text(encoding="utf-8", errors="replace"))
+        except OSError as exc:
+            raise SystemExit(f"[purity] error: cannot read --macro-source {name}: {exc}")
+
+    return _run(args.category, files, label, args.explain, extra_macro_texts)
 
 
 if __name__ == "__main__":

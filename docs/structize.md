@@ -1,11 +1,11 @@
-# structize — mechanised struct recovery (ladder rungs 5 and 6)
+# structize — mechanised struct recovery (ladder rungs 6 and 7)
 
 `tools/recovery/structize.py` turns two source-recovery steps into transcription
 instead of judgement:
 
-- **rung 5, `struct-define`** — subdivide `pad_` runs into `field_XX` at the
+- **rung 6, `struct-define`** — subdivide `pad_` runs into `field_XX` at the
   offsets a source file actually dereferences.
-- **rung 6, `offset-to-field`** — rewrite `*(int *)(actor + 0x1c)` into
+- **rung 7, `offset-to-field`** — rewrite `*(int *)(actor + 0x1c)` into
   `((actor_t *)actor)->field_01c`.
 
 Hand-editing hundreds of offsets is how wrong-offset bugs get in. The tool
@@ -50,7 +50,7 @@ Every one of these is a refusal in the census, never a guess:
 |---|---|
 | cast kind ≠ field kind | `*(float*)` over an `int32_t` field is a pun |
 | width or signedness mismatch | MOVSX and MOVZX are different instructions |
-| offset lands in a `pad_` run | rung 5 must split it first |
+| offset lands in a `pad_` run | rung 6 must split it first |
 | offset ≥ `sizeof(struct)` | the binding is **wrong** — stop |
 | `volatile` access | the qualifier must survive |
 | whole-struct cast | a multi-field copy, not a field access |

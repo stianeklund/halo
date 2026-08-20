@@ -53,8 +53,13 @@ const LADDER = [
   { id: 'comments',        skill: 're-comment-capture' },
   { id: 'local-renames',   skill: 'local-var-cleanup' },
   { id: 'symbol-names',    skill: 'naming-confidence' },
+  // Naming an absolute-address deref is NOT a symbol-names edit: it replaces a
+  // multi-token cast-deref, and a kb.json HDATA extern would compile to a load
+  // through [__imp__X]. The neutral form is the tree's existing convention,
+  // `#define NAME (*(T *)0xADDR)`, checked by the global-names purity checker.
+  { id: 'global-names',    skill: 'naming-confidence' },
   { id: 'const-enum',      skill: 'const-enum-recovery' },
-  // Rungs 5/6 have a deterministic path: tools/recovery/structize.py does the
+  // Rungs 6/7 have a deterministic path: tools/recovery/structize.py does the
   // transcription and refuses where a human would guess. The leaf skill stays
   // listed because the tool's REFUSALS are that skill's actual work.
   { id: 'struct-define',   skill: 'struct-recovery + struct-assert', mech: 'split' },
@@ -66,6 +71,56 @@ const LADDER = [
   { id: 'control-flow',    skill: 'control-flow-cleanup', risky: true },
 ]
 const CATEGORIES = LADDER.filter(c => ALLOW_RISKY || !c.risky)
+
+// Per-category levers. Each exists in the tools but is not obvious from the
+// leaf skill, and its absence showed up as a recurring hand-written park.
+const LEVERS = {
+  'symbol-names': `
+
+LEVER — renaming a symbol that .text relocations point at.
+A rename changes the COFF symbol NAME, so a plain \`check\` reports "relocations
+changed". That is what \`--rename-map\` is for:
+  \`source_recovery.py check <manifest> --object <obj> --rename-map '{"FUN_00123456":"new_name"}'\`
+It excuses the symbol NAME only — offset, type, target section, target value, the
+.text bytes and the assertion metadata must still match exactly, so a relocation
+aimed at a genuinely different symbol still fails. Supply the map you verified
+against the staged diff, never a whole-file map. "Renaming it changes the
+relocation" is NOT a valid park reason; a missing kb.json name or absent T1/T2
+evidence is.
+A rename that also lands in kb.json needs the vc71_scores.json floor key re-keyed
+from the old name to the new one, in the same commit.`,
+
+  'global-names': `
+
+LEVER — the only neutral way to name an absolute-address dereference.
+Use the convention already in the tree (\`src/common.h\`, 82 sites):
+  \`#define update_client_globals_initialized (*(uint8_t *)0x45b1d0)\`
+then substitute the identifier at every site. The macro body must be EXACTLY the
+token run it replaces — same cast type, same address — because that is what makes
+it codegen-neutral, and \`check_category_purity.py global-names --staged\` verifies
+precisely that.
+
+Do NOT reach for a kb.json \`objects.data\` extern: those are emitted \`HDATA\` =
+\`__declspec(dllimport)\`, so the reference compiles to a load through
+\`[__imp__X]\`. That is real codegen movement, not a too-strict gate, and it fails
+the COFF check for a good reason.
+
+Evidence still governs the NAME (\`naming-confidence\` tiers): a \`data_new()\` tag
+string, an assert string, or an existing kb.json \`objects.data\` entry at that
+address is T1/T2. With no evidence, park the item — do not invent a name. Putting
+the defines in a recovered header is fine; if the header already exists and this
+diff does not touch it, pass it with \`--macro-source <header>\`.`,
+
+  'struct-define': `
+
+LEVER — \`struct_bases:<name>\` items are CLUSTERS, not sites.
+Each one names a base variable, every offset the file reads off it, and the
+widths used. That set is the evidence for one struct. Bind it in
+recovery/bindings.json and let \`structize.py\` do the transcription; a cluster
+whose widths disagree is a \`verify_conflict.py\` question, not a guess.
+This rung exists so \`offset-to-field\` has a co()/cs()-asserted struct to bind to.
+"No asserted struct" is the *reason this category runs*, not a park reason for it.`,
+}
 
 // Infra failures (API 529 killing an agent, a broken build we did not cause) are
 // transient and must not read as "no work left". Bounded retries across the whole
@@ -324,8 +379,9 @@ look like \` 1 comments  re-comment-capture  pending=12 applied=0 parked=0\`. Su
 \`pending=\` per category ACROSS all manifests.
 
 Return {ok:true, manifest:"<first manifest>", manifests:["recovery/<stem>.c.json", ...],
-        categories:{comments:<n>, "local-renames":<n>, "symbol-names":<n>, "const-enum":<n>,
-                    "struct-define":<n>, "offset-to-field":<n>, "expr-simplify":<n>,
+        categories:{comments:<n>, "local-renames":<n>, "symbol-names":<n>,
+                    "global-names":<n>, "const-enum":<n>, "struct-define":<n>,
+                    "offset-to-field":<n>, "expr-simplify":<n>,
                     "control-flow":<n>}}  (omit or 0 when a category has no pending items).`,
     { label: `baseline:${stem}`, phase: 'Recover', ...MECH, schema: BASELINE_SCHEMA })
 
@@ -386,7 +442,7 @@ Return {ok:true, manifest:"<first manifest>", manifests:["recovery/<stem>.c.json
       continue
     }
 
-    // Rungs 5/6: put the deterministic path in front of the agent, so it spends
+    // Rungs 6/7: put the deterministic path in front of the agent, so it spends
     // its reasoning on the tool's refusals rather than on retyping offsets.
     const mechBlock = !cat.mech ? '' : `
 
@@ -436,10 +492,15 @@ reason and move on — do not chase them, and never relax the gate.`}
 After resolving conflicts, re-run \`structize.py run\` — resolved offsets
 convert automatically, and a stale census hides them.`
 
+    // Category levers that exist in the tools but were being re-derived (and
+    // usually mis-derived) by every agent. Each answers a park reason that
+    // recurred across many objects in recovery/goal_ledger.json.
+    const leverBlock = LEVERS[cat.id] || ''
+
     const res = await agent(
       `${AGENT_RULES}
 
-You are the \`${cat.id}\` category agent for source recovery of ${object}.${mechBlock}
+You are the \`${cat.id}\` category agent for source recovery of ${object}.${mechBlock}${leverBlock}
 
 READ FIRST, before touching anything:
   1. \`.claude/skills/source-recovery/SKILL.md\` — the ladder, gate table, measurement

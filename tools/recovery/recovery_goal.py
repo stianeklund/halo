@@ -48,7 +48,9 @@ FRONTIER = ROOT / "tools" / "recovery" / "recovery_frontier.py"
 # Statuses that take an object out of the queue. A parked object stays out
 # until a human clears it (or `start --force` re-attempts it deliberately).
 TAKEN = ("done", "parked", "in_progress")
-STATUSES = TAKEN
+# `untaken` is a REOPENED park: a valid ledger status that deliberately is not
+# "taken", so `next` offers the object again while its park history survives.
+STATUSES = TAKEN + ("untaken",)
 NOISY_PARTS = {"build", "build_debug", "node_modules", ".git", "halo-patched",
                "__pycache__", "dist"}
 
@@ -61,6 +63,7 @@ LADDER = (
     "comments",
     "local-renames",
     "symbol-names",
+    "global-names",
     "const-enum",
     "struct-define",
     "offset-to-field",
@@ -255,6 +258,44 @@ def transition_park(ledger: dict[str, Any], name: str, reason: str,
     return entry
 
 
+def transition_reopen(ledger: dict[str, Any], name: str, reason: str) -> dict[str, Any]:
+    """parked -> untaken, so `next` offers the object again.
+
+    A park is a finding, and most recorded parks were infrastructure rather
+    than a limit of the evidence: a detector that filed items into a category
+    whose checker could never accept them, a guard that rejected a legal COFF,
+    a lever the agent did not know existed.  When the cause is fixed the object
+    has to return to the queue, and re-running `start` would not do it -- that
+    marks the object in_progress and a run that never happens leaves it wedged.
+
+    The audit trail is kept: previous commits, categories, and the park reason
+    move into `reopened`, so a second park for the SAME cause is still visible
+    as a repeat rather than looking like a first sighting.
+    """
+    reason = (reason or "").strip()
+    if not reason:
+        raise GoalError("cannot reopen %s: --reason is required (why the park "
+                        "no longer applies)" % name)
+    status = _status_of(ledger, name)
+    if status != "parked":
+        raise GoalError("cannot reopen %s: not parked (status: %s)" % (name, status))
+    entry = ledger["objects"][name]
+    history = list(entry.get("reopened") or [])
+    history.append({
+        "parked_reason": entry.get("reason"),
+        "parked_on": entry.get("finished"),
+        "reopened_on": _today(),
+        "reopened_because": reason,
+    })
+    entry["status"] = "untaken"
+    entry["reason"] = None
+    entry["finished"] = None
+    entry["reopened"] = history
+    entry.setdefault("commits", [])
+    entry.setdefault("categories_done", [])
+    return entry
+
+
 # --- frontier --------------------------------------------------------------
 
 def _frontier_payload(min_funcs: int) -> dict[str, Any]:
@@ -436,6 +477,15 @@ def _cmd_park(args: argparse.Namespace, path: Path, ledger: dict[str, Any]) -> i
     return EXIT_OK
 
 
+def _cmd_reopen(args: argparse.Namespace, path: Path, ledger: dict[str, Any]) -> int:
+    name = _object_name(args.object)
+    entry = transition_reopen(ledger, name, args.reason)
+    _write_atomic(path, ledger)
+    print("%s: reopened after %d park(s) — %s"
+          % (name, len(entry["reopened"]), args.reason))
+    return EXIT_OK
+
+
 def _cmd_status(args: argparse.Namespace, path: Path, ledger: dict[str, Any]) -> int:
     if args.json:
         print(json.dumps(ledger, indent=2, sort_keys=True))
@@ -524,6 +574,19 @@ def _self_test() -> int:
                    lambda: _raises(lambda: transition_park(ledger, "a.obj", "oops")))
             _check("park requires a non-empty reason",
                    lambda: _raises(lambda: transition_park(ledger, "e.obj", "   ")))
+            _check("reopen returns a parked object to the queue with its history",
+                   lambda: (transition_park(ledger, "f.obj", "no_applicable_items"),
+                            transition_reopen(ledger, "f.obj", "detector fixed"))
+                   and ledger["objects"]["f.obj"]["status"] == "untaken"
+                   and ledger["objects"]["f.obj"]["reason"] is None
+                   and ledger["objects"]["f.obj"]["reopened"][0]["parked_reason"]
+                   == "no_applicable_items")
+            _check("a reopened object is offered by next again",
+                   lambda: _status_of(ledger, "f.obj") not in TAKEN)
+            _check("cannot reopen an object that is not parked",
+                   lambda: _raises(lambda: transition_reopen(ledger, "a.obj", "why")))
+            _check("reopen requires a reason",
+                   lambda: _raises(lambda: transition_reopen(ledger, "f.obj", " ")))
             _check("object names must look like <name>.obj",
                    lambda: _raises(lambda: _object_name("src/halo/hud.c")))
 
@@ -640,12 +703,19 @@ def main(argv: list[str] | None = None) -> int:
     park.add_argument("--force", action="store_true",
                       help="park an object already recorded as done")
 
+    reopen = sub.add_parser("reopen",
+                            help="return a parked object to the queue (park cause fixed)")
+    reopen.add_argument("object")
+    reopen.add_argument("--reason", required=True,
+                        help="why the park no longer applies (e.g. the tooling gap "
+                             "that caused it was fixed, with the commit)")
+
     status = sub.add_parser("status", help="ledger summary")
     status.add_argument("--json", action="store_true", help="machine-readable output")
 
     args = parser.parse_args(argv)
     handlers = {"next": _cmd_next, "start": _cmd_start, "finish": _cmd_finish,
-                "park": _cmd_park, "status": _cmd_status}
+                "park": _cmd_park, "reopen": _cmd_reopen, "status": _cmd_status}
     try:
         if args.self_test:
             return _self_test()
