@@ -172,6 +172,14 @@
       "started": "2026-08-20",
       "status": "done"
     },
+    "network_messages.obj": {
+      "categories_done": [],
+      "commits": [],
+      "finished": "2026-08-20",
+      "reason": "capture: coff_candidate_guard rejected clang object (.bss section 3 SizeOfRawData=1540 PointerToRawData=0)",
+      "started": "2026-08-20",
+      "status": "parked"
+    },
     "particle_systems.obj": {
       "categories_done": [],
       "commits": [],

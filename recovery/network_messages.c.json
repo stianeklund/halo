@@ -1,0 +1,2253 @@
+{
+  "allow_risky": false,
+  "baseline": {
+    "captured": false
+  },
+  "checks": [],
+  "created_tool_version": "source-recovery/1",
+  "git_head": "21b66524060a4d615554dbc3f11e6df7169b77d4",
+  "inventory": {
+    "absolute_address_dereferences": [
+      {
+        "category": "symbol-names",
+        "column": 30,
+        "id": "absolute_address_dereferences:41:1",
+        "line": 41,
+        "status": "pending",
+        "text": "#define s_last_decode_error (*(char **)0x46e804)"
+      }
+    ],
+    "decompiler_style_locals": [
+      {
+        "category": "local-renames",
+        "column": 9,
+        "id": "decompiler_style_locals:480:1",
+        "line": 480,
+        "status": "pending",
+        "text": "short local_c[2];"
+      },
+      {
+        "category": "local-renames",
+        "column": 9,
+        "id": "decompiler_style_locals:481:1",
+        "line": 481,
+        "status": "pending",
+        "text": "short local_8[2];"
+      },
+      {
+        "category": "local-renames",
+        "column": 51,
+        "id": "decompiler_style_locals:538:1",
+        "line": 538,
+        "status": "pending",
+        "text": "cur_field + 5, local_c);"
+      },
+      {
+        "category": "local-renames",
+        "column": 26,
+        "id": "decompiler_style_locals:548:1",
+        "line": 548,
+        "status": "pending",
+        "text": "local_8, cur_field + 5, 0);"
+      },
+      {
+        "category": "local-renames",
+        "column": 60,
+        "id": "decompiler_style_locals:550:1",
+        "line": 550,
+        "status": "pending",
+        "text": "(unsigned short *)((int)nested_output + (int)local_8[0]);"
+      },
+      {
+        "category": "local-renames",
+        "column": 38,
+        "id": "decompiler_style_locals:554:1",
+        "line": 554,
+        "status": "pending",
+        "text": "cur_field = cur_field + (int)local_c[0] * 5;"
+      }
+    ],
+    "fun_calls": [
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:45:1",
+        "line": 45,
+        "status": "pending",
+        "text": "bool FUN_0011a230(int *state, const char *source, short max_length)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:70:1",
+        "line": 70,
+        "status": "pending",
+        "text": "void FUN_0011a2d0(int *state, void *buffer, int buffer_size)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:89:1",
+        "line": 89,
+        "status": "pending",
+        "text": "int FUN_0011a340(int *state, short count, void *bs_definition)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 26,
+        "id": "fun_calls:126:1",
+        "line": 126,
+        "status": "pending",
+        "text": "__declspec(noinline) int FUN_0011a430(int *state, short count, int element_size)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 36,
+        "id": "fun_calls:176:1",
+        "line": 176,
+        "status": "pending",
+        "text": "__declspec(noinline) unsigned char FUN_0011a560(int *state)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "fun_calls:203:1",
+        "line": 203,
+        "status": "pending",
+        "text": "short FUN_0011a5d0(int *state)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:229:1",
+        "line": 229,
+        "status": "pending",
+        "text": "int FUN_0011a650(int *state)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 9,
+        "id": "fun_calls:255:1",
+        "line": 255,
+        "status": "pending",
+        "text": "int64_t FUN_0011a6d0(int *state)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 20,
+        "id": "fun_calls:259:1",
+        "line": 259,
+        "status": "pending",
+        "text": "ptr = (int64_t *)FUN_0011a430(state, 1, -8);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 35,
+        "id": "fun_calls:268:1",
+        "line": 268,
+        "status": "pending",
+        "text": "__declspec(noinline) unsigned int FUN_0011a700(int *state, int maximum_value)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 26,
+        "id": "fun_calls:276:1",
+        "line": 276,
+        "status": "pending",
+        "text": "return (unsigned int)FUN_0011a560(state) & 0xff;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 42,
+        "id": "fun_calls:279:1",
+        "line": 279,
+        "status": "pending",
+        "text": "return (unsigned int)(unsigned short)FUN_0011a5d0(state);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 24,
+        "id": "fun_calls:281:1",
+        "line": 281,
+        "status": "pending",
+        "text": "return (unsigned int)FUN_0011a650(state);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "fun_calls:286:1",
+        "line": 286,
+        "status": "pending",
+        "text": "void *FUN_0011a770(int *state, int element_size_type,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 13,
+        "id": "fun_calls:318:1",
+        "line": 318,
+        "status": "pending",
+        "text": "count = FUN_0011a560(state) & 0xff;"
+      },
+      {
+        "category": "symbol-names",
+        "column": 13,
+        "id": "fun_calls:321:1",
+        "line": 321,
+        "status": "pending",
+        "text": "sVar1 = FUN_0011a5d0(state);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 27,
+        "id": "fun_calls:325:1",
+        "line": 325,
+        "status": "pending",
+        "text": "count = (unsigned int)FUN_0011a650(state);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 32,
+        "id": "fun_calls:328:1",
+        "line": 328,
+        "status": "pending",
+        "text": "count = (unsigned int)(int)FUN_0011a6d0(state);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 22,
+        "id": "fun_calls:339:1",
+        "line": 339,
+        "status": "pending",
+        "text": "result = (void *)FUN_0011a340(state, (short)count, bs_definition);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 28,
+        "id": "fun_calls:347:1",
+        "line": 347,
+        "status": "pending",
+        "text": "__declspec(noinline) char *FUN_0011a8e0(int *state, unsigned short max_length)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:399:1",
+        "line": 399,
+        "status": "pending",
+        "text": "bool FUN_0011aa40(int group, void *decoded_packet, char *encoded_packet,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 16,
+        "id": "fun_calls:448:1",
+        "line": 448,
+        "status": "pending",
+        "text": "if (!FUN_0011b750(definition, (int)encoded_packet,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:472:1",
+        "line": 472,
+        "status": "pending",
+        "text": "void FUN_0011b2a0(int definition, int *decode_state, unsigned short version,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 19,
+        "id": "fun_calls:493:1",
+        "line": 493,
+        "status": "pending",
+        "text": "raw_ptr = FUN_0011a430(decode_state, cur_field[1], 1);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 19,
+        "id": "fun_calls:499:1",
+        "line": 499,
+        "status": "pending",
+        "text": "raw_ptr = FUN_0011a430(decode_state, cur_field[1], -2);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 19,
+        "id": "fun_calls:505:1",
+        "line": 505,
+        "status": "pending",
+        "text": "raw_ptr = FUN_0011a430(decode_state, cur_field[1], -4);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 19,
+        "id": "fun_calls:511:1",
+        "line": 511,
+        "status": "pending",
+        "text": "raw_ptr = FUN_0011a430(decode_state, cur_field[1], -8);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 24,
+        "id": "fun_calls:517:1",
+        "line": 517,
+        "status": "pending",
+        "text": "raw_ptr = (int)FUN_0011a8e0(decode_state, cur_field[1]);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 21,
+        "id": "fun_calls:523:1",
+        "line": 523,
+        "status": "pending",
+        "text": "var_count = FUN_0011a700(decode_state, (int)cur_field[1]);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 19,
+        "id": "fun_calls:525:1",
+        "line": 525,
+        "status": "pending",
+        "text": "raw_ptr = FUN_0011a430(decode_state, (short)var_count, 1);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 27,
+        "id": "fun_calls:536:1",
+        "line": 536,
+        "status": "pending",
+        "text": "(unsigned short)FUN_0011a700(decode_state, (int)cur_field[1]);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 13,
+        "id": "fun_calls:547:1",
+        "line": 547,
+        "status": "pending",
+        "text": "FUN_0011b2a0(definition, decode_state, version, nested_output,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 19,
+        "id": "fun_calls:558:1",
+        "line": 558,
+        "status": "pending",
+        "text": "raw_ptr = FUN_0011a430(decode_state, cur_field[1], 1);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:644:1",
+        "line": 644,
+        "status": "pending",
+        "text": "bool FUN_0011b650(int definition, short version, void *data, char *buffer,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:682:1",
+        "line": 682,
+        "status": "pending",
+        "text": "bool FUN_0011b750(int definition, int encoded_packet, short encoded_packet_size,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "fun_calls:708:1",
+        "line": 708,
+        "status": "pending",
+        "text": "FUN_0011a2d0(decode_state, (void *)encoded_packet, (int)encoded_packet_size);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 20,
+        "id": "fun_calls:712:1",
+        "line": 712,
+        "status": "pending",
+        "text": "version_byte = FUN_0011a560(decode_state);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:716:1",
+        "line": 716,
+        "status": "pending",
+        "text": "FUN_0011b2a0(definition, decode_state, version,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "fun_calls:843:1",
+        "line": 843,
+        "status": "pending",
+        "text": "FUN_00117cf0((int *)(t + 0x1c));"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:852:1",
+        "line": 852,
+        "status": "pending",
+        "text": "int FUN_0011ba00(unsigned char *key, unsigned int key_size)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:875:1",
+        "line": 875,
+        "status": "pending",
+        "text": "int FUN_0011ba50(short *table, void *key, unsigned short *slot_index_out)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 23,
+        "id": "fun_calls:890:1",
+        "line": 890,
+        "status": "pending",
+        "text": "(unsigned short)FUN_0011ba00((unsigned char *)key, (unsigned int)*table);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:925:1",
+        "line": 925,
+        "status": "pending",
+        "text": "int FUN_0011bb70(short *table, void *key)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 19,
+        "id": "fun_calls:942:1",
+        "line": 942,
+        "status": "pending",
+        "text": "found = (char)FUN_0011ba50(psVar1, key, (unsigned short *)&slot);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:954:1",
+        "line": 954,
+        "status": "pending",
+        "text": "void FUN_0011bc20(short *table, void *key)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 17,
+        "id": "fun_calls:979:1",
+        "line": 979,
+        "status": "pending",
+        "text": "found = (char)FUN_0011ba50(psVar3, key, (unsigned short *)&removed_slot);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 34,
+        "id": "fun_calls:995:1",
+        "line": 995,
+        "status": "pending",
+        "text": "key_hash = (unsigned short)FUN_0011ba00((unsigned char *)next_element,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:1043:1",
+        "line": 1043,
+        "status": "pending",
+        "text": "int FUN_0011be10(short *table, void *key)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 17,
+        "id": "fun_calls:1050:1",
+        "line": 1050,
+        "status": "pending",
+        "text": "found = (char)FUN_0011ba50(table, key, (unsigned short *)&slot);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:1068:1",
+        "line": 1068,
+        "status": "pending",
+        "text": "int FUN_0011beb0(short *table, short growth_bits)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 24,
+        "id": "fun_calls:1129:1",
+        "line": 1129,
+        "status": "pending",
+        "text": "dest_ptr = FUN_0011be10(table, (void *)element_ptr);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:1158:1",
+        "line": 1158,
+        "status": "pending",
+        "text": "int FUN_0011c0f0(short *table, void *key)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 18,
+        "id": "fun_calls:1174:1",
+        "line": 1174,
+        "status": "pending",
+        "text": "grew = (char)FUN_0011beb0(table, (short)((table[3] == -1) + 1));"
+      },
+      {
+        "category": "symbol-names",
+        "column": 12,
+        "id": "fun_calls:1179:1",
+        "line": 1179,
+        "status": "pending",
+        "text": "result = FUN_0011be10(table, key);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:1205:1",
+        "line": 1205,
+        "status": "pending",
+        "text": "int FUN_0011c1b0(int cache)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:1215:1",
+        "line": 1215,
+        "status": "pending",
+        "text": "void FUN_0011c1d0(int *ptr, int user_data)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:1221:1",
+        "line": 1221,
+        "status": "pending",
+        "text": "void FUN_0011c1e0(int *ptr)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:1228:1",
+        "line": 1228,
+        "status": "pending",
+        "text": "void FUN_0011c210(int cache, int block)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:1263:1",
+        "line": 1263,
+        "status": "pending",
+        "text": "void FUN_0011c290(int cache)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:1279:1",
+        "line": 1279,
+        "status": "pending",
+        "text": "FUN_0011c210(cache, *(int *)(cache + 0x2c));"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:1285:1",
+        "line": 1285,
+        "status": "pending",
+        "text": "int FUN_0011c310(const char *name, int size, void (*lock_proc)(void *, int),"
+      },
+      {
+        "category": "symbol-names",
+        "column": 5,
+        "id": "fun_calls:1328:1",
+        "line": 1328,
+        "status": "pending",
+        "text": "FUN_0011c290(cache);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:1335:1",
+        "line": 1335,
+        "status": "pending",
+        "text": "void FUN_0011c430(int cache)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "fun_calls:1337:1",
+        "line": 1337,
+        "status": "pending",
+        "text": "FUN_0011c290(cache);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:1347:1",
+        "line": 1347,
+        "status": "pending",
+        "text": "void FUN_0011c480(int cache)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "fun_calls:1351:1",
+        "line": 1351,
+        "status": "pending",
+        "text": "FUN_0011c290(cache);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:1369:1",
+        "line": 1369,
+        "status": "pending",
+        "text": "void FUN_0011c4d0(int cache, void *pointer)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "fun_calls:1379:1",
+        "line": 1379,
+        "status": "pending",
+        "text": "FUN_0011c290(cache);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "fun_calls:1380:1",
+        "line": 1380,
+        "status": "pending",
+        "text": "FUN_0011c210(cache, block_header);"
+      }
+    ],
+    "inline_asm": [],
+    "raw_base_offset_dereferences": [
+      {
+        "category": "offset-to-field",
+        "column": 23,
+        "id": "raw_base_offset_dereferences:442:1",
+        "line": 442,
+        "status": "pending",
+        "text": "packets_array = *(int *)(group + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 24,
+        "id": "raw_base_offset_dereferences:675:1",
+        "line": 675,
+        "status": "pending",
+        "text": "*(int *)(definition + 0xc), 0);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:777:1",
+        "line": 777,
+        "status": "pending",
+        "text": "*(float *)(t + 0x08) = load_factor;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:778:1",
+        "line": 778,
+        "status": "pending",
+        "text": "*(int *)(t + 0x10) = param_5;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:779:1",
+        "line": 779,
+        "status": "pending",
+        "text": "*(int *)(t + 0x14) = param_6;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:780:1",
+        "line": 780,
+        "status": "pending",
+        "text": "*(short *)(t + 0x00) = key_size;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:781:1",
+        "line": 781,
+        "status": "pending",
+        "text": "*(short *)(t + 0x02) = element_size;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:782:1",
+        "line": 782,
+        "status": "pending",
+        "text": "*(short *)(t + 0x04) = 0;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:783:1",
+        "line": 783,
+        "status": "pending",
+        "text": "*(short *)(t + 0x06) = (short)-1;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:785:1",
+        "line": 785,
+        "status": "pending",
+        "text": "*(int *)(t + 0x18) = 0;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:799:1",
+        "line": 799,
+        "status": "pending",
+        "text": "*(int *)(t + 0x0c) = user_data;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:844:1",
+        "line": 844,
+        "status": "pending",
+        "text": "if (*(int *)(t + 0x18) != 0) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 28,
+        "id": "raw_base_offset_dereferences:894:1",
+        "line": 894,
+        "status": "pending",
+        "text": "if ((*(unsigned int *)(*(int *)(table + 0xc) + ((int)slot >> 5) * 4) &"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 29,
+        "id": "raw_base_offset_dereferences:936:1",
+        "line": 936,
+        "status": "pending",
+        "text": "*(int *)(table + 0x10)))))) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 28,
+        "id": "raw_base_offset_dereferences:970:1",
+        "line": 970,
+        "status": "pending",
+        "text": "*(int *)(table + 0x10))))) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 32,
+        "id": "raw_base_offset_dereferences:989:1",
+        "line": 989,
+        "status": "pending",
+        "text": "bit_mask = *(unsigned int *)(*(int *)(psVar3 + 0xc) + (cur_pos >> 5) * 4) &"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 56,
+        "id": "raw_base_offset_dereferences:1025:1",
+        "line": 1025,
+        "status": "pending",
+        "text": "csmemcpy((void *)dst_element, (void *)src_element, *(int *)(psVar3 + 0xe));"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 34,
+        "id": "raw_base_offset_dereferences:1033:1",
+        "line": 1033,
+        "status": "pending",
+        "text": "bit_mask = *(unsigned int *)(*(int *)(psVar3 + 0xc) + (cur_pos >> 5) * 4) &"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 22,
+        "id": "raw_base_offset_dereferences:1037:1",
+        "line": 1037,
+        "status": "pending",
+        "text": "(unsigned int *)(*(int *)(psVar3 + 0xc) + ((int)removed_slot >> 5) * 4);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 34,
+        "id": "raw_base_offset_dereferences:1060:1",
+        "line": 1060,
+        "status": "pending",
+        "text": "bitmap_word = (unsigned int *)(*(int *)(table + 0xc) + ((int)slot >> 5) * 4);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 16,
+        "id": "raw_base_offset_dereferences:1086:1",
+        "line": 1086,
+        "status": "pending",
+        "text": "old_bitmap = *(int *)(table + 0xc);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 24,
+        "id": "raw_base_offset_dereferences:1090:1",
+        "line": 1090,
+        "status": "pending",
+        "text": "old_array_capacity = *(int *)(table + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 18,
+        "id": "raw_base_offset_dereferences:1091:1",
+        "line": 1091,
+        "status": "pending",
+        "text": "old_array_p2 = *(int *)(table + 0x12);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 11,
+        "id": "raw_base_offset_dereferences:1096:1",
+        "line": 1096,
+        "status": "pending",
+        "text": "*(int *)(table + 0x10)))))) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:1117:1",
+        "line": 1117,
+        "status": "pending",
+        "text": "*(int *)(table + 0xc) = new_bitmap;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 24,
+        "id": "raw_base_offset_dereferences:1121:1",
+        "line": 1121,
+        "status": "pending",
+        "text": "csmemset((void *)*(int *)(table + 0xc), 0, bitmap_bytes);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 24,
+        "id": "raw_base_offset_dereferences:1144:1",
+        "line": 1144,
+        "status": "pending",
+        "text": "debug_free((void *)*(int *)(table + 0xc),"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:1149:1",
+        "line": 1149,
+        "status": "pending",
+        "text": "*(int *)(table + 0xc) = old_bitmap;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:1151:1",
+        "line": 1151,
+        "status": "pending",
+        "text": "*(int *)(table + 0x10) = old_array_capacity;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:1152:1",
+        "line": 1152,
+        "status": "pending",
+        "text": "*(int *)(table + 0x12) = old_array_p2;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 53,
+        "id": "raw_base_offset_dereferences:1166:1",
+        "line": 1166,
+        "status": "pending",
+        "text": "((1 << ((unsigned char)table[3] & 0x1f)) != *(int *)(table + 0x10))))) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 15,
+        "id": "raw_base_offset_dereferences:1172:1",
+        "line": 1172,
+        "status": "pending",
+        "text": "((float)*(int *)(table + 0x10) * *(float *)(table + 4) <="
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:1207:1",
+        "line": 1207,
+        "status": "pending",
+        "text": "if (*(int *)(cache + 0x2c) != 0 &&"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 16,
+        "id": "raw_base_offset_dereferences:1208:1",
+        "line": 1208,
+        "status": "pending",
+        "text": "*(int *)(*(int *)(cache + 0x2c) + 0xc) != 0) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 21,
+        "id": "raw_base_offset_dereferences:1237:1",
+        "line": 1237,
+        "status": "pending",
+        "text": "(cache_size = *(unsigned int *)(cache + 0x20),"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 28,
+        "id": "raw_base_offset_dereferences:1239:1",
+        "line": 1239,
+        "status": "pending",
+        "text": "block_offset = block - *(int *)(cache + 0x24);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 11,
+        "id": "raw_base_offset_dereferences:1241:1",
+        "line": 1241,
+        "status": "pending",
+        "text": "if (*(int *)(block + 0xc) == 0) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 23,
+        "id": "raw_base_offset_dereferences:1244:1",
+        "line": 1244,
+        "status": "pending",
+        "text": "next_offset = *(int *)(block + 0xc) - *(int *)(cache + 0x24);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 47,
+        "id": "raw_base_offset_dereferences:1244:2",
+        "line": 1244,
+        "status": "pending",
+        "text": "next_offset = *(int *)(block + 0xc) - *(int *)(cache + 0x24);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 9,
+        "id": "raw_base_offset_dereferences:1269:1",
+        "line": 1269,
+        "status": "pending",
+        "text": "if (((*(int *)(cache + 0x38) != 0x6c726163) ||"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 9,
+        "id": "raw_base_offset_dereferences:1270:1",
+        "line": 1270,
+        "status": "pending",
+        "text": "(*(int *)(cache + 0x24) == 0)) ||"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 8,
+        "id": "raw_base_offset_dereferences:1271:1",
+        "line": 1271,
+        "status": "pending",
+        "text": "(*(int *)(cache + 0x20) < 0)) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:1278:1",
+        "line": 1278,
+        "status": "pending",
+        "text": "if (*(int *)(cache + 0x2c) != 0) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 25,
+        "id": "raw_base_offset_dereferences:1279:1",
+        "line": 1279,
+        "status": "pending",
+        "text": "FUN_0011c210(cache, *(int *)(cache + 0x2c));"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:1320:1",
+        "line": 1320,
+        "status": "pending",
+        "text": "*(char *)(cache + 0x1f) = 0;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:1321:1",
+        "line": 1321,
+        "status": "pending",
+        "text": "*(int *)(cache + 0x20) = size;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:1323:1",
+        "line": 1323,
+        "status": "pending",
+        "text": "*(int *)(cache + 0x2c) = 0;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:1324:1",
+        "line": 1324,
+        "status": "pending",
+        "text": "*(int *)(cache + 0x38) = 0x6c726163;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:1325:1",
+        "line": 1325,
+        "status": "pending",
+        "text": "*(char *)(cache + 0x28) = owns_buffer;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:1338:1",
+        "line": 1338,
+        "status": "pending",
+        "text": "if (*(char *)(cache + 0x28) != '\\0') {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:1352:1",
+        "line": 1352,
+        "status": "pending",
+        "text": "if (*(int *)(cache + 0x2c) != 0 &&"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:1361:1",
+        "line": 1361,
+        "status": "pending",
+        "text": "*(int *)(cache + 0x2c) = 0;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:1364:1",
+        "line": 1364,
+        "status": "pending",
+        "text": "*(int *)(cache + 0x2c) = 0;"
+      }
+    ],
+    "raw_function_pointer_address_casts": [
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "raw_function_pointer_address_casts:2:1",
+        "line": 2,
+        "status": "pending",
+        "text": "((void (*)(packet_definition *, short *, short *, short *))0x11add0)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 23,
+        "id": "raw_function_pointer_address_casts:15:1",
+        "line": 15,
+        "status": "pending",
+        "text": "#define byte_swap_raw ((void (*)(void *, int, int))0x118620)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 30,
+        "id": "raw_function_pointer_address_casts:17:1",
+        "line": 17,
+        "status": "pending",
+        "text": "#define byte_swap_structures ((void (*)(void *, void *, int))0x118be0)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 26,
+        "id": "raw_function_pointer_address_casts:19:1",
+        "line": 19,
+        "status": "pending",
+        "text": "#define encode_state_new ((void (*)(int *, int, int))0x119c50)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 25,
+        "id": "raw_function_pointer_address_casts:21:1",
+        "line": 21,
+        "status": "pending",
+        "text": "#define encode_raw_data ((int (*)(int *, int, short, int))0x119cc0)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "raw_function_pointer_address_casts:24:1",
+        "line": 24,
+        "status": "pending",
+        "text": "((void (*)(int, int *, short, void *, short, int, short *))0x11afa0)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 18,
+        "id": "raw_function_pointer_address_casts:26:1",
+        "line": 26,
+        "status": "pending",
+        "text": "#define csstrcpy ((char *(*)(char *, const char *))0x8dff0)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 27,
+        "id": "raw_function_pointer_address_casts:28:1",
+        "line": 28,
+        "status": "pending",
+        "text": "#define array_get_element ((int (*)(int *, int, int))0x117ee0)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 21,
+        "id": "raw_function_pointer_address_casts:30:1",
+        "line": 30,
+        "status": "pending",
+        "text": "#define array_reset ((void (*)(int *, int))0x117b20)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 23,
+        "id": "raw_function_pointer_address_casts:32:1",
+        "line": 32,
+        "status": "pending",
+        "text": "#define array_dispose ((void (*)(int *))0x117cf0)"
+      }
+    ],
+    "xcall_uses": []
+  },
+  "items": [
+    {
+      "category": "symbol-names",
+      "column": 30,
+      "id": "absolute_address_dereferences:41:1",
+      "line": 41,
+      "status": "pending",
+      "text": "#define s_last_decode_error (*(char **)0x46e804)"
+    },
+    {
+      "category": "local-renames",
+      "column": 9,
+      "id": "decompiler_style_locals:480:1",
+      "line": 480,
+      "status": "pending",
+      "text": "short local_c[2];"
+    },
+    {
+      "category": "local-renames",
+      "column": 9,
+      "id": "decompiler_style_locals:481:1",
+      "line": 481,
+      "status": "pending",
+      "text": "short local_8[2];"
+    },
+    {
+      "category": "local-renames",
+      "column": 51,
+      "id": "decompiler_style_locals:538:1",
+      "line": 538,
+      "status": "pending",
+      "text": "cur_field + 5, local_c);"
+    },
+    {
+      "category": "local-renames",
+      "column": 26,
+      "id": "decompiler_style_locals:548:1",
+      "line": 548,
+      "status": "pending",
+      "text": "local_8, cur_field + 5, 0);"
+    },
+    {
+      "category": "local-renames",
+      "column": 60,
+      "id": "decompiler_style_locals:550:1",
+      "line": 550,
+      "status": "pending",
+      "text": "(unsigned short *)((int)nested_output + (int)local_8[0]);"
+    },
+    {
+      "category": "local-renames",
+      "column": 38,
+      "id": "decompiler_style_locals:554:1",
+      "line": 554,
+      "status": "pending",
+      "text": "cur_field = cur_field + (int)local_c[0] * 5;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:45:1",
+      "line": 45,
+      "status": "pending",
+      "text": "bool FUN_0011a230(int *state, const char *source, short max_length)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:70:1",
+      "line": 70,
+      "status": "pending",
+      "text": "void FUN_0011a2d0(int *state, void *buffer, int buffer_size)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:89:1",
+      "line": 89,
+      "status": "pending",
+      "text": "int FUN_0011a340(int *state, short count, void *bs_definition)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 26,
+      "id": "fun_calls:126:1",
+      "line": 126,
+      "status": "pending",
+      "text": "__declspec(noinline) int FUN_0011a430(int *state, short count, int element_size)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 36,
+      "id": "fun_calls:176:1",
+      "line": 176,
+      "status": "pending",
+      "text": "__declspec(noinline) unsigned char FUN_0011a560(int *state)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "fun_calls:203:1",
+      "line": 203,
+      "status": "pending",
+      "text": "short FUN_0011a5d0(int *state)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:229:1",
+      "line": 229,
+      "status": "pending",
+      "text": "int FUN_0011a650(int *state)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 9,
+      "id": "fun_calls:255:1",
+      "line": 255,
+      "status": "pending",
+      "text": "int64_t FUN_0011a6d0(int *state)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 20,
+      "id": "fun_calls:259:1",
+      "line": 259,
+      "status": "pending",
+      "text": "ptr = (int64_t *)FUN_0011a430(state, 1, -8);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 35,
+      "id": "fun_calls:268:1",
+      "line": 268,
+      "status": "pending",
+      "text": "__declspec(noinline) unsigned int FUN_0011a700(int *state, int maximum_value)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 26,
+      "id": "fun_calls:276:1",
+      "line": 276,
+      "status": "pending",
+      "text": "return (unsigned int)FUN_0011a560(state) & 0xff;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 42,
+      "id": "fun_calls:279:1",
+      "line": 279,
+      "status": "pending",
+      "text": "return (unsigned int)(unsigned short)FUN_0011a5d0(state);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 24,
+      "id": "fun_calls:281:1",
+      "line": 281,
+      "status": "pending",
+      "text": "return (unsigned int)FUN_0011a650(state);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "fun_calls:286:1",
+      "line": 286,
+      "status": "pending",
+      "text": "void *FUN_0011a770(int *state, int element_size_type,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 13,
+      "id": "fun_calls:318:1",
+      "line": 318,
+      "status": "pending",
+      "text": "count = FUN_0011a560(state) & 0xff;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 13,
+      "id": "fun_calls:321:1",
+      "line": 321,
+      "status": "pending",
+      "text": "sVar1 = FUN_0011a5d0(state);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 27,
+      "id": "fun_calls:325:1",
+      "line": 325,
+      "status": "pending",
+      "text": "count = (unsigned int)FUN_0011a650(state);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 32,
+      "id": "fun_calls:328:1",
+      "line": 328,
+      "status": "pending",
+      "text": "count = (unsigned int)(int)FUN_0011a6d0(state);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 22,
+      "id": "fun_calls:339:1",
+      "line": 339,
+      "status": "pending",
+      "text": "result = (void *)FUN_0011a340(state, (short)count, bs_definition);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 28,
+      "id": "fun_calls:347:1",
+      "line": 347,
+      "status": "pending",
+      "text": "__declspec(noinline) char *FUN_0011a8e0(int *state, unsigned short max_length)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:399:1",
+      "line": 399,
+      "status": "pending",
+      "text": "bool FUN_0011aa40(int group, void *decoded_packet, char *encoded_packet,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 16,
+      "id": "fun_calls:448:1",
+      "line": 448,
+      "status": "pending",
+      "text": "if (!FUN_0011b750(definition, (int)encoded_packet,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:472:1",
+      "line": 472,
+      "status": "pending",
+      "text": "void FUN_0011b2a0(int definition, int *decode_state, unsigned short version,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 19,
+      "id": "fun_calls:493:1",
+      "line": 493,
+      "status": "pending",
+      "text": "raw_ptr = FUN_0011a430(decode_state, cur_field[1], 1);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 19,
+      "id": "fun_calls:499:1",
+      "line": 499,
+      "status": "pending",
+      "text": "raw_ptr = FUN_0011a430(decode_state, cur_field[1], -2);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 19,
+      "id": "fun_calls:505:1",
+      "line": 505,
+      "status": "pending",
+      "text": "raw_ptr = FUN_0011a430(decode_state, cur_field[1], -4);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 19,
+      "id": "fun_calls:511:1",
+      "line": 511,
+      "status": "pending",
+      "text": "raw_ptr = FUN_0011a430(decode_state, cur_field[1], -8);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 24,
+      "id": "fun_calls:517:1",
+      "line": 517,
+      "status": "pending",
+      "text": "raw_ptr = (int)FUN_0011a8e0(decode_state, cur_field[1]);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 21,
+      "id": "fun_calls:523:1",
+      "line": 523,
+      "status": "pending",
+      "text": "var_count = FUN_0011a700(decode_state, (int)cur_field[1]);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 19,
+      "id": "fun_calls:525:1",
+      "line": 525,
+      "status": "pending",
+      "text": "raw_ptr = FUN_0011a430(decode_state, (short)var_count, 1);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 27,
+      "id": "fun_calls:536:1",
+      "line": 536,
+      "status": "pending",
+      "text": "(unsigned short)FUN_0011a700(decode_state, (int)cur_field[1]);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 13,
+      "id": "fun_calls:547:1",
+      "line": 547,
+      "status": "pending",
+      "text": "FUN_0011b2a0(definition, decode_state, version, nested_output,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 19,
+      "id": "fun_calls:558:1",
+      "line": 558,
+      "status": "pending",
+      "text": "raw_ptr = FUN_0011a430(decode_state, cur_field[1], 1);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:644:1",
+      "line": 644,
+      "status": "pending",
+      "text": "bool FUN_0011b650(int definition, short version, void *data, char *buffer,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:682:1",
+      "line": 682,
+      "status": "pending",
+      "text": "bool FUN_0011b750(int definition, int encoded_packet, short encoded_packet_size,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "fun_calls:708:1",
+      "line": 708,
+      "status": "pending",
+      "text": "FUN_0011a2d0(decode_state, (void *)encoded_packet, (int)encoded_packet_size);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 20,
+      "id": "fun_calls:712:1",
+      "line": 712,
+      "status": "pending",
+      "text": "version_byte = FUN_0011a560(decode_state);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:716:1",
+      "line": 716,
+      "status": "pending",
+      "text": "FUN_0011b2a0(definition, decode_state, version,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "fun_calls:843:1",
+      "line": 843,
+      "status": "pending",
+      "text": "FUN_00117cf0((int *)(t + 0x1c));"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:852:1",
+      "line": 852,
+      "status": "pending",
+      "text": "int FUN_0011ba00(unsigned char *key, unsigned int key_size)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:875:1",
+      "line": 875,
+      "status": "pending",
+      "text": "int FUN_0011ba50(short *table, void *key, unsigned short *slot_index_out)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 23,
+      "id": "fun_calls:890:1",
+      "line": 890,
+      "status": "pending",
+      "text": "(unsigned short)FUN_0011ba00((unsigned char *)key, (unsigned int)*table);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:925:1",
+      "line": 925,
+      "status": "pending",
+      "text": "int FUN_0011bb70(short *table, void *key)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 19,
+      "id": "fun_calls:942:1",
+      "line": 942,
+      "status": "pending",
+      "text": "found = (char)FUN_0011ba50(psVar1, key, (unsigned short *)&slot);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:954:1",
+      "line": 954,
+      "status": "pending",
+      "text": "void FUN_0011bc20(short *table, void *key)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 17,
+      "id": "fun_calls:979:1",
+      "line": 979,
+      "status": "pending",
+      "text": "found = (char)FUN_0011ba50(psVar3, key, (unsigned short *)&removed_slot);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 34,
+      "id": "fun_calls:995:1",
+      "line": 995,
+      "status": "pending",
+      "text": "key_hash = (unsigned short)FUN_0011ba00((unsigned char *)next_element,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:1043:1",
+      "line": 1043,
+      "status": "pending",
+      "text": "int FUN_0011be10(short *table, void *key)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 17,
+      "id": "fun_calls:1050:1",
+      "line": 1050,
+      "status": "pending",
+      "text": "found = (char)FUN_0011ba50(table, key, (unsigned short *)&slot);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:1068:1",
+      "line": 1068,
+      "status": "pending",
+      "text": "int FUN_0011beb0(short *table, short growth_bits)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 24,
+      "id": "fun_calls:1129:1",
+      "line": 1129,
+      "status": "pending",
+      "text": "dest_ptr = FUN_0011be10(table, (void *)element_ptr);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:1158:1",
+      "line": 1158,
+      "status": "pending",
+      "text": "int FUN_0011c0f0(short *table, void *key)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 18,
+      "id": "fun_calls:1174:1",
+      "line": 1174,
+      "status": "pending",
+      "text": "grew = (char)FUN_0011beb0(table, (short)((table[3] == -1) + 1));"
+    },
+    {
+      "category": "symbol-names",
+      "column": 12,
+      "id": "fun_calls:1179:1",
+      "line": 1179,
+      "status": "pending",
+      "text": "result = FUN_0011be10(table, key);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:1205:1",
+      "line": 1205,
+      "status": "pending",
+      "text": "int FUN_0011c1b0(int cache)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:1215:1",
+      "line": 1215,
+      "status": "pending",
+      "text": "void FUN_0011c1d0(int *ptr, int user_data)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:1221:1",
+      "line": 1221,
+      "status": "pending",
+      "text": "void FUN_0011c1e0(int *ptr)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:1228:1",
+      "line": 1228,
+      "status": "pending",
+      "text": "void FUN_0011c210(int cache, int block)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:1263:1",
+      "line": 1263,
+      "status": "pending",
+      "text": "void FUN_0011c290(int cache)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:1279:1",
+      "line": 1279,
+      "status": "pending",
+      "text": "FUN_0011c210(cache, *(int *)(cache + 0x2c));"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:1285:1",
+      "line": 1285,
+      "status": "pending",
+      "text": "int FUN_0011c310(const char *name, int size, void (*lock_proc)(void *, int),"
+    },
+    {
+      "category": "symbol-names",
+      "column": 5,
+      "id": "fun_calls:1328:1",
+      "line": 1328,
+      "status": "pending",
+      "text": "FUN_0011c290(cache);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:1335:1",
+      "line": 1335,
+      "status": "pending",
+      "text": "void FUN_0011c430(int cache)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "fun_calls:1337:1",
+      "line": 1337,
+      "status": "pending",
+      "text": "FUN_0011c290(cache);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:1347:1",
+      "line": 1347,
+      "status": "pending",
+      "text": "void FUN_0011c480(int cache)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "fun_calls:1351:1",
+      "line": 1351,
+      "status": "pending",
+      "text": "FUN_0011c290(cache);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:1369:1",
+      "line": 1369,
+      "status": "pending",
+      "text": "void FUN_0011c4d0(int cache, void *pointer)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "fun_calls:1379:1",
+      "line": 1379,
+      "status": "pending",
+      "text": "FUN_0011c290(cache);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "fun_calls:1380:1",
+      "line": 1380,
+      "status": "pending",
+      "text": "FUN_0011c210(cache, block_header);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 23,
+      "id": "raw_base_offset_dereferences:442:1",
+      "line": 442,
+      "status": "pending",
+      "text": "packets_array = *(int *)(group + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 24,
+      "id": "raw_base_offset_dereferences:675:1",
+      "line": 675,
+      "status": "pending",
+      "text": "*(int *)(definition + 0xc), 0);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:777:1",
+      "line": 777,
+      "status": "pending",
+      "text": "*(float *)(t + 0x08) = load_factor;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:778:1",
+      "line": 778,
+      "status": "pending",
+      "text": "*(int *)(t + 0x10) = param_5;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:779:1",
+      "line": 779,
+      "status": "pending",
+      "text": "*(int *)(t + 0x14) = param_6;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:780:1",
+      "line": 780,
+      "status": "pending",
+      "text": "*(short *)(t + 0x00) = key_size;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:781:1",
+      "line": 781,
+      "status": "pending",
+      "text": "*(short *)(t + 0x02) = element_size;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:782:1",
+      "line": 782,
+      "status": "pending",
+      "text": "*(short *)(t + 0x04) = 0;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:783:1",
+      "line": 783,
+      "status": "pending",
+      "text": "*(short *)(t + 0x06) = (short)-1;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:785:1",
+      "line": 785,
+      "status": "pending",
+      "text": "*(int *)(t + 0x18) = 0;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:799:1",
+      "line": 799,
+      "status": "pending",
+      "text": "*(int *)(t + 0x0c) = user_data;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:844:1",
+      "line": 844,
+      "status": "pending",
+      "text": "if (*(int *)(t + 0x18) != 0) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 28,
+      "id": "raw_base_offset_dereferences:894:1",
+      "line": 894,
+      "status": "pending",
+      "text": "if ((*(unsigned int *)(*(int *)(table + 0xc) + ((int)slot >> 5) * 4) &"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 29,
+      "id": "raw_base_offset_dereferences:936:1",
+      "line": 936,
+      "status": "pending",
+      "text": "*(int *)(table + 0x10)))))) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 28,
+      "id": "raw_base_offset_dereferences:970:1",
+      "line": 970,
+      "status": "pending",
+      "text": "*(int *)(table + 0x10))))) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 32,
+      "id": "raw_base_offset_dereferences:989:1",
+      "line": 989,
+      "status": "pending",
+      "text": "bit_mask = *(unsigned int *)(*(int *)(psVar3 + 0xc) + (cur_pos >> 5) * 4) &"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 56,
+      "id": "raw_base_offset_dereferences:1025:1",
+      "line": 1025,
+      "status": "pending",
+      "text": "csmemcpy((void *)dst_element, (void *)src_element, *(int *)(psVar3 + 0xe));"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 34,
+      "id": "raw_base_offset_dereferences:1033:1",
+      "line": 1033,
+      "status": "pending",
+      "text": "bit_mask = *(unsigned int *)(*(int *)(psVar3 + 0xc) + (cur_pos >> 5) * 4) &"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 22,
+      "id": "raw_base_offset_dereferences:1037:1",
+      "line": 1037,
+      "status": "pending",
+      "text": "(unsigned int *)(*(int *)(psVar3 + 0xc) + ((int)removed_slot >> 5) * 4);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 34,
+      "id": "raw_base_offset_dereferences:1060:1",
+      "line": 1060,
+      "status": "pending",
+      "text": "bitmap_word = (unsigned int *)(*(int *)(table + 0xc) + ((int)slot >> 5) * 4);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 16,
+      "id": "raw_base_offset_dereferences:1086:1",
+      "line": 1086,
+      "status": "pending",
+      "text": "old_bitmap = *(int *)(table + 0xc);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 24,
+      "id": "raw_base_offset_dereferences:1090:1",
+      "line": 1090,
+      "status": "pending",
+      "text": "old_array_capacity = *(int *)(table + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 18,
+      "id": "raw_base_offset_dereferences:1091:1",
+      "line": 1091,
+      "status": "pending",
+      "text": "old_array_p2 = *(int *)(table + 0x12);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 11,
+      "id": "raw_base_offset_dereferences:1096:1",
+      "line": 1096,
+      "status": "pending",
+      "text": "*(int *)(table + 0x10)))))) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:1117:1",
+      "line": 1117,
+      "status": "pending",
+      "text": "*(int *)(table + 0xc) = new_bitmap;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 24,
+      "id": "raw_base_offset_dereferences:1121:1",
+      "line": 1121,
+      "status": "pending",
+      "text": "csmemset((void *)*(int *)(table + 0xc), 0, bitmap_bytes);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 24,
+      "id": "raw_base_offset_dereferences:1144:1",
+      "line": 1144,
+      "status": "pending",
+      "text": "debug_free((void *)*(int *)(table + 0xc),"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:1149:1",
+      "line": 1149,
+      "status": "pending",
+      "text": "*(int *)(table + 0xc) = old_bitmap;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:1151:1",
+      "line": 1151,
+      "status": "pending",
+      "text": "*(int *)(table + 0x10) = old_array_capacity;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:1152:1",
+      "line": 1152,
+      "status": "pending",
+      "text": "*(int *)(table + 0x12) = old_array_p2;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 53,
+      "id": "raw_base_offset_dereferences:1166:1",
+      "line": 1166,
+      "status": "pending",
+      "text": "((1 << ((unsigned char)table[3] & 0x1f)) != *(int *)(table + 0x10))))) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 15,
+      "id": "raw_base_offset_dereferences:1172:1",
+      "line": 1172,
+      "status": "pending",
+      "text": "((float)*(int *)(table + 0x10) * *(float *)(table + 4) <="
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:1207:1",
+      "line": 1207,
+      "status": "pending",
+      "text": "if (*(int *)(cache + 0x2c) != 0 &&"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 16,
+      "id": "raw_base_offset_dereferences:1208:1",
+      "line": 1208,
+      "status": "pending",
+      "text": "*(int *)(*(int *)(cache + 0x2c) + 0xc) != 0) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 21,
+      "id": "raw_base_offset_dereferences:1237:1",
+      "line": 1237,
+      "status": "pending",
+      "text": "(cache_size = *(unsigned int *)(cache + 0x20),"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 28,
+      "id": "raw_base_offset_dereferences:1239:1",
+      "line": 1239,
+      "status": "pending",
+      "text": "block_offset = block - *(int *)(cache + 0x24);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 11,
+      "id": "raw_base_offset_dereferences:1241:1",
+      "line": 1241,
+      "status": "pending",
+      "text": "if (*(int *)(block + 0xc) == 0) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 23,
+      "id": "raw_base_offset_dereferences:1244:1",
+      "line": 1244,
+      "status": "pending",
+      "text": "next_offset = *(int *)(block + 0xc) - *(int *)(cache + 0x24);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 47,
+      "id": "raw_base_offset_dereferences:1244:2",
+      "line": 1244,
+      "status": "pending",
+      "text": "next_offset = *(int *)(block + 0xc) - *(int *)(cache + 0x24);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 9,
+      "id": "raw_base_offset_dereferences:1269:1",
+      "line": 1269,
+      "status": "pending",
+      "text": "if (((*(int *)(cache + 0x38) != 0x6c726163) ||"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 9,
+      "id": "raw_base_offset_dereferences:1270:1",
+      "line": 1270,
+      "status": "pending",
+      "text": "(*(int *)(cache + 0x24) == 0)) ||"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 8,
+      "id": "raw_base_offset_dereferences:1271:1",
+      "line": 1271,
+      "status": "pending",
+      "text": "(*(int *)(cache + 0x20) < 0)) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:1278:1",
+      "line": 1278,
+      "status": "pending",
+      "text": "if (*(int *)(cache + 0x2c) != 0) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 25,
+      "id": "raw_base_offset_dereferences:1279:1",
+      "line": 1279,
+      "status": "pending",
+      "text": "FUN_0011c210(cache, *(int *)(cache + 0x2c));"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:1320:1",
+      "line": 1320,
+      "status": "pending",
+      "text": "*(char *)(cache + 0x1f) = 0;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:1321:1",
+      "line": 1321,
+      "status": "pending",
+      "text": "*(int *)(cache + 0x20) = size;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:1323:1",
+      "line": 1323,
+      "status": "pending",
+      "text": "*(int *)(cache + 0x2c) = 0;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:1324:1",
+      "line": 1324,
+      "status": "pending",
+      "text": "*(int *)(cache + 0x38) = 0x6c726163;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:1325:1",
+      "line": 1325,
+      "status": "pending",
+      "text": "*(char *)(cache + 0x28) = owns_buffer;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:1338:1",
+      "line": 1338,
+      "status": "pending",
+      "text": "if (*(char *)(cache + 0x28) != '\\0') {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:1352:1",
+      "line": 1352,
+      "status": "pending",
+      "text": "if (*(int *)(cache + 0x2c) != 0 &&"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:1361:1",
+      "line": 1361,
+      "status": "pending",
+      "text": "*(int *)(cache + 0x2c) = 0;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:1364:1",
+      "line": 1364,
+      "status": "pending",
+      "text": "*(int *)(cache + 0x2c) = 0;"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "raw_function_pointer_address_casts:2:1",
+      "line": 2,
+      "status": "pending",
+      "text": "((void (*)(packet_definition *, short *, short *, short *))0x11add0)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 23,
+      "id": "raw_function_pointer_address_casts:15:1",
+      "line": 15,
+      "status": "pending",
+      "text": "#define byte_swap_raw ((void (*)(void *, int, int))0x118620)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 30,
+      "id": "raw_function_pointer_address_casts:17:1",
+      "line": 17,
+      "status": "pending",
+      "text": "#define byte_swap_structures ((void (*)(void *, void *, int))0x118be0)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 26,
+      "id": "raw_function_pointer_address_casts:19:1",
+      "line": 19,
+      "status": "pending",
+      "text": "#define encode_state_new ((void (*)(int *, int, int))0x119c50)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 25,
+      "id": "raw_function_pointer_address_casts:21:1",
+      "line": 21,
+      "status": "pending",
+      "text": "#define encode_raw_data ((int (*)(int *, int, short, int))0x119cc0)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "raw_function_pointer_address_casts:24:1",
+      "line": 24,
+      "status": "pending",
+      "text": "((void (*)(int, int *, short, void *, short, int, short *))0x11afa0)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 18,
+      "id": "raw_function_pointer_address_casts:26:1",
+      "line": 26,
+      "status": "pending",
+      "text": "#define csstrcpy ((char *(*)(char *, const char *))0x8dff0)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 27,
+      "id": "raw_function_pointer_address_casts:28:1",
+      "line": 28,
+      "status": "pending",
+      "text": "#define array_get_element ((int (*)(int *, int, int))0x117ee0)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 21,
+      "id": "raw_function_pointer_address_casts:30:1",
+      "line": 30,
+      "status": "pending",
+      "text": "#define array_reset ((void (*)(int *, int))0x117b20)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 23,
+      "id": "raw_function_pointer_address_casts:32:1",
+      "line": 32,
+      "status": "pending",
+      "text": "#define array_dispose ((void (*)(int *))0x117cf0)"
+    }
+  ],
+  "kind": "source-recovery-manifest",
+  "repo_relative_source": "src/halo/networking/network_messages.c",
+  "schema": 1,
+  "source_sha256": "24b6610c79bb5cd77cc65c2e215db603ae82799c8622f3d7253c16a0dd9b7464"
+}
