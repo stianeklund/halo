@@ -89,11 +89,11 @@ void FUN_0008e6d0(void *ptr /* @<eax> */, const char *file, int line)
  * element with size 0x1c. */
 int FUN_0008e720(int param_1)
 {
-  int local_8;
+  int crc; /* local_8 */
 
-  crc_new((uint32_t *)&local_8);
-  crc_checksum_buffer((uint32_t *)&local_8, (void *)param_1, 0x1c);
-  return local_8;
+  crc_new((uint32_t *)&crc);
+  crc_checksum_buffer((uint32_t *)&crc, (void *)param_1, 0x1c);
+  return crc;
 }
 
 /* FUN_0008e750 (0x8e750) — Comparison function for qsort. Compares two error

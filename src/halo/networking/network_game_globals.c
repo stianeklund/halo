@@ -1,5 +1,5 @@
+#include "network_connection.h"
 /* FUN_00129130 (0x129130)
- *
  * Disconnect a client connection from a server connection's client list.
  * Removes the client's endpoint from the server's endpoint set, disposes the
  * client connection, and clears the slot.
@@ -57,11 +57,11 @@ bool FUN_001298f0(int connection, void *buffer, int *size, void *addr)
 {
   bool result;
 
-  if ((*(uint32_t *)(connection + 0x30) & 1) != 0) {
+  if ((((network_connection *)connection)->flags & 1) != 0) {
     return network_connection_read_unreliable(connection, buffer, size, addr);
   }
 
-  if ((*(uint32_t *)(connection + 0x30) & 6) == 0) {
+  if ((((network_connection *)connection)->flags & 6) == 0) {
     assert_halt_msg(
       0, "connection->flags&FLAG(_connection_create_clientside_client_bit) || "
          "connection->flags&FLAG(_connection_create_serverside_client_bit)");
@@ -155,13 +155,13 @@ bool FUN_00129cf0(int connection, int timeout, int *output)
 
   assert_halt(connection);
 
-  raw_flags = *(uint32_t *)(connection + 0x30);
+  raw_flags = ((network_connection *)connection)->flags;
   flags = raw_flags & ~0x20u;
-  *(uint32_t *)(connection + 0x30) = flags;
+  ((network_connection *)connection)->flags = flags;
 
   if (timeout != 0) {
     if (now > (unsigned int)(*(int *)(connection + 0x8) + 5000)) {
-      *(uint32_t *)(connection + 0x30) = flags | 0x20;
+      ((network_connection *)connection)->flags = flags | 0x20;
     }
     if (now > (unsigned int)(*(int *)(connection + 0x8) + timeout)) {
       if (*(uint8_t *)0x46e8ba == 0) {
@@ -175,13 +175,13 @@ bool FUN_00129cf0(int connection, int timeout, int *output)
     *(unsigned int *)(connection + 0x8) = now;
   }
 
-  if ((*(uint32_t *)(connection + 0x30) & 1) != 0) {
+  if ((((network_connection *)connection)->flags & 1) != 0) {
     ok = network_connection_idle(connection, output);
     if (!ok) {
       error(2, "network_connection_idle_server_reliable_endpoint failed");
       return false;
     }
-  } else if ((*(uint32_t *)(connection + 0x30) & 6) != 0) {
+  } else if ((((network_connection *)connection)->flags & 6) != 0) {
     ok = network_connection_idle_client_reliable_endpoint(connection);
     if (!ok) {
       error(2, "network_connection_idle_client_reliable_endpoint failed");
@@ -189,23 +189,23 @@ bool FUN_00129cf0(int connection, int timeout, int *output)
     }
   }
 
-  if (*(int *)(connection + 0x4) == 0)
+  if (((network_connection *)connection)->unreliable_endpoint == 0)
     return ok;
 
-  queue_space = circular_queue_free_space(*(int *)(connection + 0x14));
+  queue_space = circular_queue_free_space(((network_connection *)connection)->unreliable_incoming_queue);
 
   while (ok && queue_space > 0x193) {
     bytes_read = 0;
-    is_connected = FUN_000831a0(*(int *)(connection + 0x4));
+    is_connected = FUN_000831a0(((network_connection *)connection)->unreliable_endpoint);
 
     if (is_connected) {
       bytes_read =
-        recv_endpoint((int *)*(int *)(connection + 0x4), recv_buf, 400);
+        recv_endpoint((int *)((network_connection *)connection)->unreliable_endpoint, recv_buf, 400);
       if (bytes_read > 0) {
-        addr_result = FUN_00083a60((int *)*(int *)(connection + 0x4), addr_buf);
+        addr_result = FUN_00083a60((int *)((network_connection *)connection)->unreliable_endpoint, addr_buf);
         if (addr_result != 0) {
           csmemset(addr_buf, 0, 0x18);
-          *(uint16_t *)(addr_buf + 0x10) = 4;
+          ((transport_address *)addr_buf)->address_length = 4;
         }
 
         if (*(int *)(connection + 0x18) != 0) {
@@ -219,10 +219,10 @@ bool FUN_00129cf0(int connection, int timeout, int *output)
                       dval, 0, bytes_read, 0, 0);
           crt_fflush(*(void **)(connection + 0x18));
         }
-        *(int *)(connection + 0x24) = *(int *)(connection + 0x24) + 1;
+        ((network_connection *)connection)->datagrams_received = ((network_connection *)connection)->datagrams_received + 1;
       }
     } else {
-      bytes_read = FUN_00084520((int *)*(int *)(connection + 0x4), recv_buf,
+      bytes_read = FUN_00084520((int *)((network_connection *)connection)->unreliable_endpoint, recv_buf,
                                 400, addr_buf);
       if (bytes_read > 0) {
         if (*(int *)(connection + 0x18) != 0) {
@@ -236,7 +236,7 @@ bool FUN_00129cf0(int connection, int timeout, int *output)
                       dval, 0, bytes_read, 0, 0);
           crt_fflush(*(void **)(connection + 0x18));
         }
-        *(int *)(connection + 0x24) = *(int *)(connection + 0x24) + 1;
+        ((network_connection *)connection)->datagrams_received = ((network_connection *)connection)->datagrams_received + 1;
       }
     }
 
@@ -251,7 +251,7 @@ bool FUN_00129cf0(int connection, int timeout, int *output)
       error(2, "datagram received from unknown address");
     } else {
       csmemcpy(recv_buf + bytes_read, addr_buf, 4);
-      ok = FUN_00118ec0(*(int *)(connection + 0x14), recv_buf, bytes_read + 4);
+      ok = FUN_00118ec0(((network_connection *)connection)->unreliable_incoming_queue, recv_buf, bytes_read + 4);
       if (!ok) {
         assert_halt_msg(
           0, "circular_queue_queue_data() failed though it should have had "
@@ -259,7 +259,7 @@ bool FUN_00129cf0(int connection, int timeout, int *output)
       }
     }
 
-    queue_space = circular_queue_free_space(*(int *)(connection + 0x14));
+    queue_space = circular_queue_free_space(((network_connection *)connection)->unreliable_incoming_queue);
   }
 
   return ok;
@@ -319,15 +319,15 @@ void network_game_set_random_seed(int seed)
  * 0x12a0a0 / network_game_globals.obj */
 int FUN_0012a0a0(void)
 {
-  int uVar1;
+  int result;
 
   if (*(void **)0x0046e8bc != NULL) {
-    uVar1 = network_game_server_get_game(*(void **)0x0046e8bc);
-    return uVar1;
+    result = network_game_server_get_game(*(void **)0x0046e8bc);
+    return result;
   }
   if (*(void **)0x0046e8c0 != NULL) {
-    uVar1 = (int)network_game_client_get_machine_index(*(void **)0x0046e8c0);
-    return uVar1;
+    result = (int)network_game_client_get_machine_index(*(void **)0x0046e8c0);
+    return result;
   }
   return 0;
 }
@@ -510,7 +510,7 @@ void dispose_global_network_game_server(void)
 bool network_game_client_start_frame(void)
 {
   int16_t state;
-  int local_4;
+  int out; /* local_4, EBP-0x4 */
   int reason;
   bool result;
 
@@ -553,7 +553,7 @@ bool network_game_client_start_frame(void)
     return false;
   }
 
-  state = network_game_client_get_state(*(void **)0x46e8c0, &local_4);
+  state = network_game_client_get_state(*(void **)0x46e8c0, &out);
 
   switch (state) {
   case 0:
@@ -601,9 +601,9 @@ bool network_game_client_end_frame(void)
   bool result;
   uint32_t flags;
   uint16_t *msg;
-  uint8_t local_124[128];
+  uint8_t out_buf[128]; /* local_124, EBP-0x124 */
   uint32_t msg_buf[34];
-  uint8_t local_1c[24];
+  uint8_t addr_buf[24]; /* local_1c, EBP-0x1c */
 
   result = true;
 
@@ -624,7 +624,7 @@ bool network_game_client_end_frame(void)
         network_game_client_get_available_games(*(void **)0x46e8c0)) {
       network_game_client_get_error(*(void **)0x46e8c0);
       network_game_client_get_machine_index(*(void **)0x46e8c0);
-      update_client_build_client_update(local_124);
+      update_client_build_client_update(out_buf);
 
       if (network_client_get_oos(*(void **)0x46e8c0)) {
         flags = network_game_client_get_error(*(void **)0x46e8c0);
@@ -635,7 +635,7 @@ bool network_game_client_end_frame(void)
       }
 
       msg_buf[0] = flags;
-      csmemcpy((char *)msg_buf + 8, local_124, 0x80);
+      csmemcpy((char *)msg_buf + 8, out_buf, 0x80);
       *(uint16_t *)((char *)msg_buf + 6) = (uint16_t)local_player_count();
 
       msg = (uint16_t *)encode_network_game_message(0x19, msg_buf, 0x88);
@@ -646,7 +646,7 @@ bool network_game_client_end_frame(void)
           "failed to create a _message_type_client_game_update message");
         result = false;
       } else {
-        network_game_client_switch_to_postgame(*(void **)0x46e8c0, local_1c);
+        network_game_client_switch_to_postgame(*(void **)0x46e8c0, addr_buf);
         /* arg1 is the client's connection handle at +0x82c, fetched via the
          * 0x125710 getter (its kb name is a misnomer; it returns
          * *(client+0x82c), the same send channel FUN_001263a0 passes to
@@ -655,7 +655,7 @@ bool network_game_client_end_frame(void)
         result =
           FUN_00124d40((void *)network_game_client_get_seconds_to_game_start(
                          *(void **)0x46e8c0),
-                       msg, *msg >> 4, (int)local_1c, 0);
+                       msg, *msg >> 4, (int)addr_buf, 0);
         if (!result) {
           network_game_log("failed to send a game update to the server");
           *(int *)0x46e8c8 = now;

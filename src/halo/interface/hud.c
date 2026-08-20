@@ -934,15 +934,15 @@ __attribute__((naked)) int FUN_000d1540(void)
  * Loop counter is short (16-bit); OR AX,0xffff sign-extends -1 to int. */
 int FUN_000d1550(int param_1)
 {
-  short iVar1;
+  short i;
 
-  iVar1 = 0x7f;
+  i = 0x7f;
   do {
-    if (*(int *)(param_1 + (int)iVar1 * 4) != 0x62626262)
-      return (int)iVar1;
-    iVar1--;
-  } while (iVar1 >= 0);
-  return iVar1;
+    if (*(int *)(param_1 + (int)i * 4) != 0x62626262)
+      return (int)i;
+    i--;
+  } while (i >= 0);
+  return i;
 }
 
 /* Looks up a HUD bitmap-widget element: indexes the 'bitm' tag's widget block
@@ -1397,7 +1397,7 @@ void FUN_000d1f40(short local_player, unsigned short *absolute_placement,
   float scale;
   float coord_x;
   float coord_y;
-  int iVar3;
+  int half;
   short corrupt_index;
 
   return_address = FUN_000d1540();
@@ -1476,11 +1476,11 @@ void FUN_000d1f40(short local_player, unsigned short *absolute_placement,
                 coord_y;
       break;
     case 4:
-      iVar3 = (int)*(short *)(offset_struct + 4) / 2;
+      half = (int)*(short *)(offset_struct + 4) / 2;
       coord_x =
-        (float)(*(short *)(offset_struct + 0x10) + iVar3) * scale + coord_x;
+        (float)(*(short *)(offset_struct + 0x10) + half) * scale + coord_x;
       coord_y =
-        (float)(*(short *)(offset_struct + 0x12) + iVar3) * scale + coord_y;
+        (float)(*(short *)(offset_struct + 0x12) + half) * scale + coord_y;
       break;
     default:
       display_assert("!\"unreachable\"",

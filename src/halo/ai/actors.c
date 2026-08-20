@@ -218,16 +218,16 @@ void FUN_00036b10(int actor_handle, int prop_handle)
  */
 void FUN_00036b50(int param_1, int param_2)
 {
-  char *iVar1;
-  char *iVar2;
+  char *elem;
+  char *entry;
 
-  iVar1 = (char *)datum_get(*(data_t **)0x5ab23c, param_2);
-  FUN_00036890(param_1, NULL, 1, (int *)(iVar1 + 0xe0), -1, 0, 0x5a, param_2,
+  elem = (char *)datum_get(*(data_t **)0x5ab23c, param_2);
+  FUN_00036890(param_1, NULL, 1, (int *)(elem + 0xe0), -1, 0, 0x5a, param_2,
                0x96, 0);
-  if (*(int *)(iVar1 + 0x1c) != -1) {
-    iVar2 = (char *)datum_get(actor_data, *(int *)(iVar1 + 0x1c));
-    if (*(short *)(iVar2 + 0x74) > 0) {
-      FUN_000369c0(param_1, *(short *)(iVar2 + 0x74), 0x1c2);
+  if (*(int *)(elem + 0x1c) != -1) {
+    entry = (char *)datum_get(actor_data, *(int *)(elem + 0x1c));
+    if (((actor_t *)entry)->field_074 > 0) {
+      FUN_000369c0(param_1, ((actor_t *)entry)->field_074, 0x1c2);
     }
   }
 }
@@ -329,7 +329,7 @@ void FUN_00036c50(int actor_handle, int prop_handle)
   if (*(int *)(obj + 0x1a4) == -1)
     goto exit_look;
   actor_2 = (char *)datum_get(actor_data, *(int *)(obj + 0x1a4));
-  if (*(short *)(actor_2 + 0x6e) < 4)
+  if (((actor_t *)actor_2)->field_06e < 4)
     goto exit_look;
   actor_derive_target_information(actor_handle, *(int *)(obj + 0x1a4));
 exit_look:
@@ -460,15 +460,15 @@ void FUN_00036f20(int actor_handle, int prop_handle, int param_3, char param_4)
   char *prop;
   const char *names[8];
   short look_buf[4];
-  unsigned short uVar11;
-  unsigned short uVar1;
-  char bVar2;
-  const char *pcVar7;
-  const char *pcVar10;
-  const char *puVar9;
-  const char *local_14;
-  const char *local_10;
-  int local_c;
+  unsigned short idx;
+  unsigned short val;
+  char flag2;
+  const char *s1;
+  const char *s3;
+  const char *s2;
+  const char *v14; /* local_14 */
+  const char *v10; /* local_10 */
+  int vc; /* local_c */
 
   (void)param_3;
 
@@ -483,25 +483,25 @@ void FUN_00036f20(int actor_handle, int prop_handle, int param_3, char param_4)
   if (*(char *)(prop + 0x60) == '\0')
     goto exit_fun;
 
-  bVar2 =
+  flag2 =
     *(float *)(prop + 0xe0) * ((actor_t *)actor)->input_facing_vector[0] +
       *(float *)(prop + 0xe4) * ((actor_t *)actor)->input_facing_vector[1] +
       *(float *)(prop + 0xe8) * ((actor_t *)actor)->input_facing_vector[2] <
     *(float *)0x253398;
-  uVar11 = 0;
-  uVar1 = *(unsigned short *)(actor + 0x6e);
+  idx = 0;
+  val = *(unsigned short *)(actor + 0x6e);
 
-  if (uVar1 == 0) {
+  if (val == 0) {
     param_4 = 0;
     if (((actor_t *)actor)->field_06a < 3) {
-      uVar11 = 0;
+      idx = 0;
       if (*(char *)(prop + 0x12f) != '\0')
-        uVar11 = 1;
+        idx = 1;
       if (*(float *)(prop + 0x11c) < *(float *)(tag + 0x2b0) &&
-          (short)uVar11 <= 3)
-        uVar11 = 3;
+          (short)idx <= 3)
+        idx = 3;
     }
-  } else if ((short)uVar1 >= 5 && !bVar2) {
+  } else if ((short)val >= 5 && !flag2) {
     param_4 = 1;
     goto after_surprise;
   } else if (param_4 != '\0') {
@@ -510,11 +510,11 @@ void FUN_00036f20(int actor_handle, int prop_handle, int param_3, char param_4)
 
   if (*(char *)(prop + 0x12f) != '\0' &&
       *(float *)(prop + 0x11c) < *(float *)(tag + 0x2b0)) {
-    if (bVar2) {
-      if ((short)uVar11 <= 7)
-        uVar11 = 7;
-    } else if ((short)uVar11 <= 6) {
-      uVar11 = 6;
+    if (flag2) {
+      if ((short)idx <= 7)
+        idx = 7;
+    } else if ((short)idx <= 6) {
+      idx = 6;
     }
   }
 
@@ -528,33 +528,33 @@ after_surprise:
     names[5] = "damage";
     names[6] = "unexp-close-shoot";
     names[7] = "unexp-behind-shoot";
-    local_c = 0x3c;
+    vc = 0x3c;
     if (*(float *)(tag + 0x2b0) <= *(float *)(prop + 0x11c))
-      local_c = 0x3e;
-    local_10 = "close";
+      vc = 0x3e;
+    v10 = "close";
     if (*(float *)(tag + 0x2b0) <= *(float *)(prop + 0x11c))
-      local_10 = "far";
-    local_14 = (const char *)0x25386f;
+      v10 = "far";
+    v14 = (const char *)0x25386f;
     if (*(char *)(prop + 0x12f) == '\0')
-      local_14 = (const char *)0x256784;
-    pcVar10 = (const char *)0x25677c;
-    if (!bVar2)
-      pcVar10 = (const char *)0x256774;
-    puVar9 = (const char *)0x25386f;
+      v14 = (const char *)0x256784;
+    s3 = (const char *)0x25677c;
+    if (!flag2)
+      s3 = (const char *)0x256774;
+    s2 = (const char *)0x25386f;
     if (param_4 == '\0')
-      puVar9 = (const char *)0x253e94;
-    pcVar7 = (const char *)0x25676c;
-    if (uVar1 != 0)
-      pcVar7 = (const char *)0x253b24;
+      s2 = (const char *)0x253e94;
+    s1 = (const char *)0x25676c;
+    if (val != 0)
+      s1 = (const char *)0x253b24;
     console_printf(0, "%s %d: surprise %s: %s %sexp %s %sshoot %s (%.1f%c%.1f)",
                    FUN_0003a760(*(short *)(actor + 4)), actor_handle & 0xffff,
-                   names[(short)uVar11], pcVar7, puVar9, pcVar10, local_14,
-                   local_10, (double)*(float *)(prop + 0x11c), local_c,
+                   names[(short)idx], s1, s2, s3, v14,
+                   v10, (double)*(float *)(prop + 0x11c), vc,
                    (double)*(float *)(tag + 0x2b0));
   }
 
-  if (uVar11 != 0)
-    FUN_00036960(actor_handle, (short)uVar11, prop_handle,
+  if (idx != 0)
+    FUN_00036960(actor_handle, (short)idx, prop_handle,
                  (int *)(prop + 0xe0));
   if (((actor_t *)actor)->field_06e < 3 && param_4 == '\0' &&
       *(short *)(prop + 0x32) < 2 && ((actor_t *)actor)->field_018 != -1)
@@ -959,9 +959,9 @@ void FUN_000377d0(int actor_handle, int prop_handle)
     return;
 
   other_actor = (char *)datum_get(actor_data, other_actor_handle);
-  if (*(int16_t *)(other_actor + 0x6c) == 4 &&
-      *(int *)(other_actor + 0xb8) != -1) {
-    other_prop = (char *)datum_get(prop_data, *(int *)(other_actor + 0xb8));
+  if (((actor_t *)other_actor)->state_action == 4 &&
+      ((actor_t *)other_actor)->field_0b8 != -1) {
+    other_prop = (char *)datum_get(prop_data, ((actor_t *)other_actor)->field_0b8);
     new_payload =
       prop_get_active_by_unit_index(actor_handle, *(int *)(other_prop + 0x18));
   }
@@ -1116,9 +1116,9 @@ void FUN_00037b50(int actor_handle)
 {
   char *actor;
   char cVar1;
-  int uVar3;
-  unsigned char bVar1;
-  unsigned char bVar2;
+  int tmp;
+  unsigned char flag1;
+  unsigned char flag2;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   actor_action_handle_initial_action(actor_handle);
@@ -1177,19 +1177,19 @@ void FUN_00037b50(int actor_handle)
     actor_action_handle_combat_status(actor_handle, 1, 1);
     return;
   case 0xb:
-    bVar2 = ((actor_t *)actor)->field_09e;
-    bVar1 = ((actor_t *)actor)->field_0a1;
-    actor_action_handle_combat_status(actor_handle, bVar2, bVar1);
+    flag2 = ((actor_t *)actor)->field_09e;
+    flag1 = ((actor_t *)actor)->field_0a1;
+    actor_action_handle_combat_status(actor_handle, flag2, flag1);
     return;
   case 0xc:
     if (((actor_t *)actor)->field_0a0 == '\0' &&
         ((actor_t *)actor)->field_1dc != -1) {
-      uVar3 = actor_action_can_stop_conversing(actor_handle, 0);
-      actor_action_handle_combat_status(actor_handle, uVar3, 0);
+      tmp = actor_action_can_stop_conversing(actor_handle, 0);
+      actor_action_handle_combat_status(actor_handle, tmp, 0);
       return;
     }
-    uVar3 = actor_action_can_stop_conversing(actor_handle, 1);
-    actor_action_handle_combat_status(actor_handle, uVar3, 1);
+    tmp = actor_action_can_stop_conversing(actor_handle, 1);
+    actor_action_handle_combat_status(actor_handle, tmp, 1);
     return;
   case 0xd:
     if (((actor_t *)actor)->danger_zone_danger_type != 0) {
@@ -1221,10 +1221,10 @@ void FUN_00037d50(int actor_handle)
   char *actor;
   char *tag;
   char cVar1;
-  int uVar3;
-  unsigned char bVar1;
-  unsigned char bVar2;
-  float fVar4;
+  int tmp;
+  unsigned char flag1;
+  unsigned char flag2;
+  float tmp_f;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   tag = (char *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
@@ -1264,19 +1264,19 @@ void FUN_00037d50(int actor_handle)
     actor_action_handle_evasion(actor_handle);
     return;
   case 6:
-    if (*(char *)(actor + 0xa4) != '\0' &&
+    if (((actor_t *)actor)->field_0a4 != '\0' &&
         ((actor_t *)actor)->field_0a5 == '\0' &&
         ((actor_t *)actor)->field_0a6 == '\0') {
       if (((actor_t *)actor)->field_06e < 4) {
-        fVar4 = *(float *)(tag + 0x2e4);
+        tmp_f = *(float *)(tag + 0x2e4);
       } else {
-        fVar4 = *(float *)(tag + 0x2e0);
+        tmp_f = *(float *)(tag + 0x2e0);
       }
-      if (fVar4 <= *(float *)(actor + 0x1bc)) {
-        *(char *)(actor + 0xa4) = 0;
+      if (tmp_f <= *(float *)(actor + 0x1bc)) {
+        ((actor_t *)actor)->field_0a4 = 0;
         ((actor_t *)actor)->field_0a8 = 0;
       } else {
-        *(char *)(actor + 0xa4) = 1;
+        ((actor_t *)actor)->field_0a4 = 1;
         ((actor_t *)actor)->field_0a8 = 0x1e;
       }
     }
@@ -1308,19 +1308,19 @@ void FUN_00037d50(int actor_handle)
     actor_action_handle_combat_status(actor_handle, 1, 1);
     return;
   case 0xb:
-    bVar2 = ((actor_t *)actor)->field_09e;
-    bVar1 = ((actor_t *)actor)->field_0a1;
-    actor_action_handle_combat_status(actor_handle, bVar2, bVar1);
+    flag2 = ((actor_t *)actor)->field_09e;
+    flag1 = ((actor_t *)actor)->field_0a1;
+    actor_action_handle_combat_status(actor_handle, flag2, flag1);
     return;
   case 0xc:
     if (((actor_t *)actor)->field_0a0 == '\0' &&
         ((actor_t *)actor)->field_1dc != -1) {
-      uVar3 = actor_action_can_stop_conversing(actor_handle, 0);
-      actor_action_handle_combat_status(actor_handle, uVar3, 0);
+      tmp = actor_action_can_stop_conversing(actor_handle, 0);
+      actor_action_handle_combat_status(actor_handle, tmp, 0);
       return;
     }
-    uVar3 = actor_action_can_stop_conversing(actor_handle, 1);
-    actor_action_handle_combat_status(actor_handle, uVar3, 1);
+    tmp = actor_action_can_stop_conversing(actor_handle, 1);
+    actor_action_handle_combat_status(actor_handle, tmp, 1);
     return;
   case 0xd:
     if (((actor_t *)actor)->danger_zone_danger_type != 0) {
@@ -1362,9 +1362,9 @@ void FUN_00038000(int actor_handle)
 {
   char *actor;
   char cVar1;
-  int uVar3;
-  unsigned char bVar1;
-  unsigned char bVar2;
+  int tmp;
+  unsigned char flag1;
+  unsigned char flag2;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   actor_action_handle_initial_action(actor_handle);
@@ -1425,19 +1425,19 @@ void FUN_00038000(int actor_handle)
     actor_action_handle_combat_status(actor_handle, 1, 1);
     return;
   case 0xb:
-    bVar2 = ((actor_t *)actor)->field_09e;
-    bVar1 = ((actor_t *)actor)->field_0a1;
-    actor_action_handle_combat_status(actor_handle, bVar2, bVar1);
+    flag2 = ((actor_t *)actor)->field_09e;
+    flag1 = ((actor_t *)actor)->field_0a1;
+    actor_action_handle_combat_status(actor_handle, flag2, flag1);
     return;
   case 0xc:
     if (((actor_t *)actor)->field_0a0 == '\0' &&
         ((actor_t *)actor)->field_1dc != -1) {
-      uVar3 = actor_action_can_stop_conversing(actor_handle, 0);
-      actor_action_handle_combat_status(actor_handle, uVar3, 0);
+      tmp = actor_action_can_stop_conversing(actor_handle, 0);
+      actor_action_handle_combat_status(actor_handle, tmp, 0);
       return;
     }
-    uVar3 = actor_action_can_stop_conversing(actor_handle, 1);
-    actor_action_handle_combat_status(actor_handle, uVar3, 1);
+    tmp = actor_action_can_stop_conversing(actor_handle, 1);
+    actor_action_handle_combat_status(actor_handle, tmp, 1);
     return;
   case 0xd:
     if (((actor_t *)actor)->danger_zone_danger_type != 0) {
@@ -1475,8 +1475,8 @@ void FUN_00038200(int actor_handle)
 {
   char *actor;
   char cVar1;
-  unsigned char bVar1;
-  unsigned char bVar2;
+  unsigned char flag1;
+  unsigned char flag2;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   (void)tag_get(0x61637472, ((actor_t *)actor)->field_058);
@@ -1524,9 +1524,9 @@ void FUN_00038200(int actor_handle)
     }
     break;
   case 0xb:
-    bVar2 = ((actor_t *)actor)->field_09e;
-    bVar1 = ((actor_t *)actor)->field_0a1;
-    actor_action_handle_combat_status(actor_handle, bVar2, bVar1);
+    flag2 = ((actor_t *)actor)->field_09e;
+    flag1 = ((actor_t *)actor)->field_0a1;
+    actor_action_handle_combat_status(actor_handle, flag2, flag1);
     return;
   case 0xd:
     if (((actor_t *)actor)->danger_zone_danger_type != 0) {
@@ -1589,7 +1589,7 @@ char FUN_00038370(int actor_handle)
   int stand_count;
   int crouching_count;
   int ally;
-  char bVar10;
+  char flag3;
   float fmin;
   float fmax;
   float rval;
@@ -1602,14 +1602,14 @@ char FUN_00038370(int actor_handle)
   if (unit_is_busy(((actor_t *)actor)->field_018) ||
       FUN_0002a3d0(actor_handle) || ((actor_t *)actor)->field_06a < 3) {
   exit_1:
-    *(char *)(actor + 0x362) = 0;
+    ((actor_t *)actor)->field_362 = 0;
     return 1;
   }
 
   /* Early exit: not enough ammo */
   if (((actor_t *)actor)->field_06e < 5) {
   exit_0:
-    *(char *)(actor + 0x362) = 0;
+    ((actor_t *)actor)->field_362 = 0;
     return 0;
   }
 
@@ -1673,7 +1673,7 @@ char FUN_00038370(int actor_handle)
   /* ------------------------------------------------------------------ */
   /* State branch: not yet evaluated vs. already evaluated               */
   /* ------------------------------------------------------------------ */
-  bVar10 = 0;
+  flag3 = 0;
   if (((actor_t *)actor)->field_362 == 0) {
     /* First evaluation: compute probability-adjusted base_prob */
     base_prob = *(float *)(actv_tag + 0x50);
@@ -1692,8 +1692,8 @@ char FUN_00038370(int actor_handle)
           ally_actor = (char *)datum_get(actor_data, *(int *)(ally + 0x1c));
           /* Same team (short at +0x4 matches) and sufficient ammo */
           if (*(short *)(ally_actor + 4) == *(short *)(actor + 4) &&
-              *(short *)(ally_actor + 0x6e) > 4) {
-            if (*(char *)(ally_actor + 0x358) == 0) {
+              ((actor_t *)ally_actor)->field_06e > 4) {
+            if (((actor_t *)ally_actor)->field_358 == 0) {
               stand_count++;
             } else {
               crouching_count++;
@@ -1716,7 +1716,7 @@ char FUN_00038370(int actor_handle)
      * → should_crouch=1 when random roll < adjusted probability           */
     seed = get_global_random_seed_address();
     rval = random_math_real((unsigned int *)seed);
-    bVar10 = (rval < base_prob) ? 1 : 0;
+    flag3 = (rval < base_prob) ? 1 : 0;
     ((actor_t *)actor)->field_362 = 1;
 
   } else {
@@ -1754,7 +1754,7 @@ char FUN_00038370(int actor_handle)
             *(float *)(ally + 0x11c) < *(float *)0x00254cc0 &&
             *(int *)(ally + 0x1c) != -1) {
           ally_actor = (char *)datum_get(actor_data, *(int *)(ally + 0x1c));
-          if (*(char *)(ally_actor + 0x362) != 0) {
+          if (((actor_t *)ally_actor)->field_362 != 0) {
             FUN_00012140((float *)(actor + 0x12c),
                          (float *)(ally_actor + 0x12c), vec_result);
             dot = vec_result[0] * *(float *)(prop + 0xe0) +
@@ -1777,7 +1777,7 @@ char FUN_00038370(int actor_handle)
         /* Currently crouching: stop if no lateral allies and
          * more ahead than behind                                 */
         if (lateral_count == 0 && ahead_count > behind_count) {
-          bVar10 = 0;
+          flag3 = 0;
           goto update_state;
         }
         /* else fall through to keep_timer */
@@ -1785,7 +1785,7 @@ char FUN_00038370(int actor_handle)
         /* Currently standing: start crouching if all allies are
          * behind/lateral but not ahead                           */
         if (ahead_count == 0 && lateral_count > behind_count) {
-          bVar10 = 1;
+          flag3 = 1;
           goto update_state;
         }
         /* else fall through to keep_timer */
@@ -1803,14 +1803,14 @@ char FUN_00038370(int actor_handle)
       goto return_current;
     }
     /* change_timer expired: toggle crouch state */
-    bVar10 = (((actor_t *)actor)->field_363 == 0) ? 1 : 0;
+    flag3 = (((actor_t *)actor)->field_363 == 0) ? 1 : 0;
   }
 
 update_state:
-  ((actor_t *)actor)->field_363 = bVar10;
+  ((actor_t *)actor)->field_363 = flag3;
 
   /* Select timer range from actv tag based on new crouch state */
-  if (bVar10 != 0) {
+  if (flag3 != 0) {
     /* stand->crouch: use tag+0x54/0x58 range */
     fmin = *(float *)(actv_tag + 0x54);
     fmax = *(float *)(actv_tag + 0x58);
@@ -1849,11 +1849,11 @@ void FUN_00038880(int actor_handle)
 {
   char *actor;
   char cVar1;
-  int uVar3;
+  int tmp;
   char cVar_203;
   char bVar_247;
-  unsigned char bVar1;
-  unsigned char bVar2;
+  unsigned char flag1;
+  unsigned char flag2;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   cVar_203 = (signed char)actor[0x203] > 0 ? 1 : 0;
@@ -1894,9 +1894,9 @@ void FUN_00038880(int actor_handle)
     return;
   case 4:
     if (bVar_247 != '\0') {
-      uVar3 = (int)(short)((actor_t *)actor)->field_0a8;
-      if (uVar3 > 0) {
-        cVar1 = FUN_00015020(uVar3);
+      tmp = (int)(short)((actor_t *)actor)->field_0a8;
+      if (tmp > 0) {
+        cVar1 = FUN_00015020(tmp);
         if (cVar1 == '\0') {
           actor[0xab] = 1;
         }
@@ -1938,19 +1938,19 @@ void FUN_00038880(int actor_handle)
     actor_action_handle_combat_status(actor_handle, 1, 1);
     return;
   case 11:
-    bVar2 = ((actor_t *)actor)->field_0a1;
-    bVar1 = ((actor_t *)actor)->field_09e;
-    actor_action_handle_combat_status(actor_handle, bVar1, bVar2);
+    flag2 = ((actor_t *)actor)->field_0a1;
+    flag1 = ((actor_t *)actor)->field_09e;
+    actor_action_handle_combat_status(actor_handle, flag1, flag2);
     return;
   case 12:
     if (((actor_t *)actor)->field_0a0 == '\0' &&
         ((actor_t *)actor)->field_1dc != -1) {
-      uVar3 = actor_action_can_stop_conversing(actor_handle, 0);
-      actor_action_handle_combat_status(actor_handle, uVar3, 0);
+      tmp = actor_action_can_stop_conversing(actor_handle, 0);
+      actor_action_handle_combat_status(actor_handle, tmp, 0);
       return;
     }
-    uVar3 = actor_action_can_stop_conversing(actor_handle, 1);
-    actor_action_handle_combat_status(actor_handle, uVar3, 1);
+    tmp = actor_action_can_stop_conversing(actor_handle, 1);
+    actor_action_handle_combat_status(actor_handle, tmp, 1);
     return;
   case 13:
     if (((actor_t *)actor)->danger_zone_danger_type != 0) {
@@ -1975,9 +1975,9 @@ void FUN_00038b10(int actor_handle)
 {
   char *actor;
   char cVar1;
-  int uVar3;
-  unsigned char bVar1;
-  unsigned char bVar2;
+  int tmp;
+  unsigned char flag1;
+  unsigned char flag2;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   actor_action_handle_initial_action(actor_handle);
@@ -2011,19 +2011,19 @@ void FUN_00038b10(int actor_handle)
     }
     break;
   case 0xb:
-    bVar1 = ((actor_t *)actor)->field_09e;
-    bVar2 = ((actor_t *)actor)->field_0a1;
-    actor_action_handle_combat_status(actor_handle, bVar1, bVar2);
+    flag1 = ((actor_t *)actor)->field_09e;
+    flag2 = ((actor_t *)actor)->field_0a1;
+    actor_action_handle_combat_status(actor_handle, flag1, flag2);
     return;
   case 0xc:
     if (((actor_t *)actor)->field_0a0 == '\0' &&
         ((actor_t *)actor)->field_1dc != -1) {
-      uVar3 = actor_action_can_stop_conversing(actor_handle, 0);
-      actor_action_handle_combat_status(actor_handle, uVar3, 0);
+      tmp = actor_action_can_stop_conversing(actor_handle, 0);
+      actor_action_handle_combat_status(actor_handle, tmp, 0);
       return;
     }
-    uVar3 = actor_action_can_stop_conversing(actor_handle, 1);
-    actor_action_handle_combat_status(actor_handle, uVar3, 1);
+    tmp = actor_action_can_stop_conversing(actor_handle, 1);
+    actor_action_handle_combat_status(actor_handle, tmp, 1);
     return;
   case 0xd:
     if (((actor_t *)actor)->danger_zone_danger_type == 0) {
@@ -2046,8 +2046,8 @@ void FUN_00038c70(int actor_handle)
 {
   char *actor;
   char cVar1;
-  unsigned char bVar1;
-  unsigned char bVar2;
+  unsigned char flag1;
+  unsigned char flag2;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   (void)tag_get(0x61637472, ((actor_t *)actor)->field_058);
@@ -2087,9 +2087,9 @@ void FUN_00038c70(int actor_handle)
     actor_action_handle_exit_pursuit(actor_handle);
     return;
   case 11:
-    bVar2 = ((actor_t *)actor)->field_0a1;
-    bVar1 = ((actor_t *)actor)->field_09e;
-    actor_action_handle_combat_status(actor_handle, bVar1, bVar2);
+    flag2 = ((actor_t *)actor)->field_0a1;
+    flag1 = ((actor_t *)actor)->field_09e;
+    actor_action_handle_combat_status(actor_handle, flag1, flag2);
     return;
   default:
     return;
@@ -2868,9 +2868,9 @@ void FUN_00039f30(int actor_handle)
   char *actor;
   char *actor_tag;
   char cVar1;
-  int uVar3;
-  unsigned char bVar1;
-  unsigned char bVar2;
+  int tmp;
+  unsigned char flag1;
+  unsigned char flag2;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   actor_tag = (char *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
@@ -2905,16 +2905,16 @@ void FUN_00039f30(int actor_handle)
     actor_action_handle_evasion(actor_handle);
     return;
   case 6:
-    if (*(char *)(actor + 0xa4) != '\0' &&
+    if (((actor_t *)actor)->field_0a4 != '\0' &&
         ((actor_t *)actor)->field_0a5 == '\0' &&
         ((actor_t *)actor)->field_0a6 == '\0') {
       if (*(float *)((char *)actor_tag +
                      (((actor_t *)actor)->field_06e >= 4 ? 0x2e0 : 0x2e4)) >
           *(float *)(actor + 0x1bc)) {
-        *(char *)(actor + 0xa4) = 1;
+        ((actor_t *)actor)->field_0a4 = 1;
         ((actor_t *)actor)->field_0a8 = 0x1e;
       } else {
-        *(char *)(actor + 0xa4) = 0;
+        ((actor_t *)actor)->field_0a4 = 0;
         ((actor_t *)actor)->field_0a8 = 0;
       }
     }
@@ -2938,18 +2938,18 @@ void FUN_00039f30(int actor_handle)
     actor_action_handle_exit_pursuit(actor_handle);
     return;
   case 11:
-    bVar2 = ((actor_t *)actor)->field_0a1;
-    bVar1 = ((actor_t *)actor)->field_09e;
-    actor_action_handle_combat_status(actor_handle, bVar1, bVar2);
+    flag2 = ((actor_t *)actor)->field_0a1;
+    flag1 = ((actor_t *)actor)->field_09e;
+    actor_action_handle_combat_status(actor_handle, flag1, flag2);
     return;
   case 12:
     if (((actor_t *)actor)->field_0a0 == '\0' &&
         ((actor_t *)actor)->field_1dc != -1) {
-      uVar3 = actor_action_can_stop_conversing(actor_handle, 0);
-      actor_action_handle_combat_status(actor_handle, uVar3, 0);
+      tmp = actor_action_can_stop_conversing(actor_handle, 0);
+      actor_action_handle_combat_status(actor_handle, tmp, 0);
     } else {
-      uVar3 = actor_action_can_stop_conversing(actor_handle, 1);
-      actor_action_handle_combat_status(actor_handle, uVar3, 1);
+      tmp = actor_action_can_stop_conversing(actor_handle, 1);
+      actor_action_handle_combat_status(actor_handle, tmp, 1);
     }
     return;
   case 13:
@@ -2977,9 +2977,9 @@ void FUN_0003a190(int actor_handle)
 {
   char *actor;
   char cVar1;
-  int uVar3;
-  unsigned char bVar1;
-  unsigned char bVar2;
+  int tmp;
+  unsigned char flag1;
+  unsigned char flag2;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   actor_action_handle_initial_action(actor_handle);
@@ -3045,18 +3045,18 @@ void FUN_0003a190(int actor_handle)
     actor_action_handle_combat_status(actor_handle, 1, 1);
     return;
   case 11:
-    bVar2 = ((actor_t *)actor)->field_0a1;
-    bVar1 = ((actor_t *)actor)->field_09e;
-    actor_action_handle_combat_status(actor_handle, bVar1, bVar2);
+    flag2 = ((actor_t *)actor)->field_0a1;
+    flag1 = ((actor_t *)actor)->field_09e;
+    actor_action_handle_combat_status(actor_handle, flag1, flag2);
     return;
   case 12:
     if (((actor_t *)actor)->field_0a0 == '\0' &&
         ((actor_t *)actor)->field_1dc != -1) {
-      uVar3 = actor_action_can_stop_conversing(actor_handle, 0);
-      actor_action_handle_combat_status(actor_handle, uVar3, 0);
+      tmp = actor_action_can_stop_conversing(actor_handle, 0);
+      actor_action_handle_combat_status(actor_handle, tmp, 0);
     } else {
-      uVar3 = actor_action_can_stop_conversing(actor_handle, 1);
-      actor_action_handle_combat_status(actor_handle, uVar3, 1);
+      tmp = actor_action_can_stop_conversing(actor_handle, 1);
+      actor_action_handle_combat_status(actor_handle, tmp, 1);
     }
     return;
   case 13:
@@ -3132,10 +3132,10 @@ void FUN_0003a480(int actor_handle)
 {
   char *actor;
   char cVar1;
-  int uVar2;
-  int uVar3;
-  unsigned char bVar1;
-  unsigned char bVar2;
+  int ok;
+  int tmp;
+  unsigned char flag1;
+  unsigned char flag2;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   actor_action_handle_initial_action(actor_handle);
@@ -3180,9 +3180,9 @@ void FUN_0003a480(int actor_handle)
     actor_action_handle_exit_pursuit(actor_handle);
     return;
   case 11:
-    bVar2 = ((actor_t *)actor)->field_0a1;
-    bVar1 = ((actor_t *)actor)->field_09e;
-    actor_action_handle_combat_status(actor_handle, bVar1, bVar2);
+    flag2 = ((actor_t *)actor)->field_0a1;
+    flag1 = ((actor_t *)actor)->field_09e;
+    actor_action_handle_combat_status(actor_handle, flag1, flag2);
     return;
   case 13:
     if (((actor_t *)actor)->danger_zone_danger_type != 0) {
@@ -3191,12 +3191,12 @@ void FUN_0003a480(int actor_handle)
     actor_action_handle_combat_status(actor_handle, 1, 1);
     return;
   case 12:
-    uVar3 = (((actor_t *)actor)->field_0a0 != '\0' ||
+    tmp = (((actor_t *)actor)->field_0a0 != '\0' ||
              ((actor_t *)actor)->field_1dc == -1) ?
               1 :
               0;
-    uVar2 = actor_action_can_stop_conversing(actor_handle, uVar3);
-    actor_action_handle_combat_status(actor_handle, uVar2, uVar3);
+    ok = actor_action_can_stop_conversing(actor_handle, tmp);
+    actor_action_handle_combat_status(actor_handle, ok, tmp);
     return;
   default:
     return;
@@ -5026,10 +5026,10 @@ void FUN_0003bde0(int actor_handle, int unit_handle, char *input_block)
 void FUN_0003be90(int actor_handle)
 {
   char *actor;
-  short local_14[5]; /* ring buffer of last 5 action indices */
-  int local_8; /* loop counter */
-  char local_114[256]; /* encounter name buffer */
-  char local_514[1024]; /* error message buffer */
+  short v14[5]; /* local_14, EBP-0x10; last 5 action indices */
+  int count; /* local_8, EBP-0x4; loop counter */
+  char name_buf[256]; /* local_114, EBP-0x110; encounter name */
+  char out_buf[1024]; /* local_514, EBP-0x510; error message */
   int edi; /* ring buffer index (mod 5) */
   char bl; /* result of actor_action_perform */
   int encounter_idx;
@@ -5042,13 +5042,13 @@ void FUN_0003be90(int actor_handle)
   actor = (char *)datum_get(actor_data, actor_handle);
   edi = 0;
   bl = 0;
-  local_8 = 0;
-  csmemset(local_14, 0xff, 10);
+  count = 0;
+  csmemset(v14, 0xff, 10);
 
   /* Decision loop: run until action settles or limit hit */
   for (;;) {
-    local_14[edi] = ((actor_t *)actor)->state_action;
-    local_8++;
+    v14[edi] = ((actor_t *)actor)->state_action;
+    count++;
     edi = (edi + 1) % 5;
     ((actor_t *)actor)->field_070 = 0;
     FUN_0003a840(actor_handle);
@@ -5059,7 +5059,7 @@ void FUN_0003be90(int actor_handle)
       break;
     }
     /* (b) Hard iteration limit */
-    if (local_8 >= 10) {
+    if (count >= 10) {
       break;
     }
     /* Execute current action; check if it changed state */
@@ -5072,7 +5072,7 @@ void FUN_0003be90(int actor_handle)
 
   /* --- Error reporting: build encounter/squad path string --- */
   if (*(int *)(actor + 0x34) == -1) {
-    csstrcpy(local_114, "<no encounter>");
+    csstrcpy(name_buf, "<no encounter>");
   } else {
     encounter_idx = (int)(((actor_t *)actor)->field_034 & 0xffff);
     encounter_elem = tag_block_get_element(
@@ -5080,34 +5080,34 @@ void FUN_0003be90(int actor_handle)
     squad_elem = tag_block_get_element(
       (char *)&((encounter_definition *)encounter_elem)->squads,
       (int)((actor_t *)actor)->field_03a, 0xe8);
-    crt_sprintf(local_114, "%s/%s", encounter_elem, squad_elem);
+    crt_sprintf(name_buf, "%s/%s", encounter_elem, squad_elem);
   }
 
-  if (local_8 < 10) {
+  if (count < 10) {
     /* Logic error: action did not converge */
     action_name =
       (const char *)actor_action_name(((actor_t *)actor)->state_action);
     actor_type_name = (const char *)FUN_0003a760(((actor_t *)actor)->field_004);
-    crt_sprintf(local_514, "actor-type %s %s internal logic error (%s)",
-                actor_type_name, action_name, local_114);
+    crt_sprintf(out_buf, "actor-type %s %s internal logic error (%s)",
+                actor_type_name, action_name, name_buf);
   } else {
     /* Infinite decision loop: dump ring buffer */
     actor_type_name = (const char *)FUN_0003a760(((actor_t *)actor)->field_004);
-    crt_sprintf(local_514, "actor-type %s ", actor_type_name);
+    crt_sprintf(out_buf, "actor-type %s ", actor_type_name);
     i = edi;
     do {
-      if (local_14[i] != (short)-1) {
-        action_name = (const char *)actor_action_name(local_14[i]);
-        FUN_0008dc30(local_514, action_name);
-        FUN_0008dc30(local_514, (const char *)0x256ec8);
+      if (v14[i] != (short)-1) {
+        action_name = (const char *)actor_action_name(v14[i]);
+        FUN_0008dc30(out_buf, action_name);
+        FUN_0008dc30(out_buf, (const char *)0x256ec8);
       }
       i = (i + 1) % 5;
     } while (i != edi);
-    crt_sprintf((char *)0x5ab100, " infinite decision loop (%s)", local_114);
-    FUN_0008dc30(local_514, (const char *)0x5ab100);
+    crt_sprintf((char *)0x5ab100, " infinite decision loop (%s)", name_buf);
+    FUN_0008dc30(out_buf, (const char *)0x5ab100);
   }
 
-  display_assert(local_514, "c:\\halo\\SOURCE\\ai\\actors.c", 0xd6c, 0);
+  display_assert(out_buf, "c:\\halo\\SOURCE\\ai\\actors.c", 0xd6c, 0);
   error(2, "AI error condition detected, attempting to recover (please tell "
            "butcher)...");
   actor_action_change(actor_handle, 0, 0);
@@ -5156,7 +5156,7 @@ void actors_handle_spatial_effect(int object_handle, short effect_type,
   actor_record = (char *)FUN_00059b50(iter);
   while (actor_record != NULL) {
     actor_handle = *(int *)(iter + 0x14);
-    if (*(short *)(actor_record + 0x6e) < 7) {
+    if (((actor_t *)actor_record)->field_06e < 7) {
       actor_perception_find_sense_position(actor_handle, position, -1,
                                            input_block);
       audibility = (short)actor_audibility_at_point(
@@ -5200,8 +5200,8 @@ void actors_handle_spatial_effect(int object_handle, short effect_type,
  */
 void FUN_0003c1c0(int param_1, int param_2, int param_3)
 {
-  char *iVar2;
-  char *iVar3;
+  char *entry;
+  char *cur;
 
   if (param_3 == 0)
     return;
@@ -5211,13 +5211,13 @@ void FUN_0003c1c0(int param_1, int param_2, int param_3)
     FUN_00036b50(param_1, param_2);
     break;
   case 3:
-    iVar2 = (char *)datum_get(*(data_t **)0x5ab23c, param_2);
-    if (*(int *)(iVar2 + 0x1c) != -1) {
-      iVar3 = (char *)(int)datum_absolute_index_to_index(
+    entry = (char *)datum_get(*(data_t **)0x5ab23c, param_2);
+    if (*(int *)(entry + 0x1c) != -1) {
+      cur = (char *)(int)datum_absolute_index_to_index(
         *(data_t **)0x5ab23c, *(int *)(param_3 + 0x18));
-      if (iVar3 != 0) {
+      if (cur != 0) {
         actor_perception_create_orphan_from_friend(
-          param_1, *(int *)(iVar3 + 0x18), *(int *)(iVar2 + 0x1c),
+          param_1, *(int *)(cur + 0x18), *(int *)(entry + 0x1c),
           *(int *)(param_3 + 0x18));
         return;
       }
@@ -5378,7 +5378,7 @@ int FUN_0003c410(int actv_tag_index)
   ((actor_t *)actor)->field_05c = actv_tag_index;
   ((actor_t *)actor)->field_006 = (char)((actr_flags >> 0x1a) & 1);
   ((actor_t *)actor)->field_058 = actr_tag_index;
-  ((actor_t *)actor)->field_004 = *(short *)(actr_data + 0x14);
+  ((actor_t *)actor)->field_004 = ((actor_t *)actr_data)->field_014;
 
   /* Initialize handle/index sentinels and zero-fields. */
   ((actor_t *)actor)->field_018 = -1;
@@ -6043,7 +6043,7 @@ void actor_kill(int actor_handle, char by_player, char no_delete)
   }
 
   /* Swarm: iterate unit chain */
-  unit_handle = *(int *)(actor + 0x24);
+  unit_handle = ((actor_t *)actor)->field_024;
   while (unit_handle != -1) {
     unit = (char *)object_get_and_verify_type(unit_handle, 3);
     if (by_player != 0) {
@@ -6062,7 +6062,7 @@ void actor_kill(int actor_handle, char by_player, char no_delete)
   goto delete_actor;
 
 non_swarm:
-  unit = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+  unit = (char *)object_get_and_verify_type(((actor_t *)actor)->field_018, 3);
   if (by_player != 0) {
     *(char *)(unit + 0xb6) |= 0x40;
   } else {
@@ -6377,21 +6377,21 @@ void actor_handle_unit_effect(int actor_handle, int prop_handle,
 {
   char *actor;
   char *prop;
-  char local_1;
+  char flag; /* local_1 */
 
   actor = (char *)datum_get(actor_data, actor_handle);
   prop = (char *)datum_get(prop_data, prop_handle);
 
   if (*(int *)(actor + 0x34) != -1) {
-    local_1 = *(
+    flag = *(
       char *)((char *)datum_get(*(data_t **)0x5ab270, *(int *)(actor + 0x34)) +
               0x41);
   } else {
-    local_1 = 0;
+    flag = 0;
   }
 
   if (game_connection() == 0 && *(char *)0x5ac9cc != 0) {
-    local_1 = 1;
+    flag = 1;
   }
 
   if (*(int16_t *)(prop + 0x66) == (int16_t)-1 ||
@@ -6403,7 +6403,7 @@ void actor_handle_unit_effect(int actor_handle, int prop_handle,
 
   switch (unit_effect) {
   case 1:
-    if (local_1 != 0)
+    if (flag != 0)
       return;
     if (*(char *)(prop + 0x133) != 0)
       return;
@@ -6417,7 +6417,7 @@ void actor_handle_unit_effect(int actor_handle, int prop_handle,
     FUN_00036c50(actor_handle, prop_handle);
     return;
   case 2:
-    if (local_1 != 0)
+    if (flag != 0)
       return;
     if (*(char *)(prop + 0x133) != 0)
       return;
@@ -7493,9 +7493,9 @@ void actors_handle_unit_effect(int unit_handle, short unit_effect, int param_3)
   int encounter_iter[8];
   unsigned int cluster_bits[16];
   int encounter_actor;
-  int local_c;
-  short sVar2;
-  int iVar3;
+  int vc; /* local_c */
+  short result;
+  int cur;
   int i;
 
   unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
@@ -7505,49 +7505,49 @@ void actors_handle_unit_effect(int unit_handle, short unit_effect, int param_3)
     encounter_handle = *(int *)(unit_obj + 0x1a4);
   }
   if (*(int *)(unit_obj + 0xcc) != -1) {
-    iVar3 = object_get_root_parent(unit_handle);
-    node = (char *)object_get_and_verify_type(iVar3, -1) + 0x48;
+    cur = object_get_root_parent(unit_handle);
+    node = (char *)object_get_and_verify_type(cur, -1) + 0x48;
   }
   scenario = (char *)scenario_get();
   csmemset(cluster_bits, 0, ((*(int *)(scenario + 0x134) + 0x1f) >> 5) << 2);
   if (*(short *)(node + 4) != -1 && *(int *)(scenario + 0x134) > 0) {
     i = 0;
     do {
-      iVar3 = (int)(short)i;
-      sVar2 = structure_bsp_cluster_sound_encoding(scenario,
-                                                   *(short *)(node + 4), iVar3);
-      if ((char)sVar2 >= 0) {
-        local_c = (int)(sVar2 & 0x7f);
-        if ((float)local_c * *(float *)0x256148 < *(float *)0x257350) {
-          cluster_bits[iVar3 >> 5] =
-            cluster_bits[iVar3 >> 5] | (1 << (iVar3 & 0x1f));
+      cur = (int)(short)i;
+      result = structure_bsp_cluster_sound_encoding(scenario,
+                                                   *(short *)(node + 4), cur);
+      if ((char)result >= 0) {
+        vc = (int)(result & 0x7f);
+        if ((float)vc * *(float *)0x256148 < *(float *)0x257350) {
+          cluster_bits[cur >> 5] =
+            cluster_bits[cur >> 5] | (1 << (cur & 0x1f));
         }
       }
       i = i + 1;
-      iVar3 = (int)(short)i;
-    } while (iVar3 < *(int *)(scenario + 0x134));
+      cur = (int)(short)i;
+    } while (cur < *(int *)(scenario + 0x134));
   }
   object_get_world_position(unit_handle, (vector3_t *)position);
   encounter_iterator_next(encounter_iter, 1);
-  iVar3 = FUN_00059b50(encounter_iter);
-  while (iVar3 != 0) {
+  cur = FUN_00059b50(encounter_iter);
+  while (cur != 0) {
     encounter_actor = *(int *)((char *)encounter_iter + 0x14);
     if (encounter_actor != encounter_handle) {
-      sVar2 = *(short *)(iVar3 + 0x148);
-      if (sVar2 != -1 &&
-          (cluster_bits[(int)sVar2 >> 5] & (1 << ((int)sVar2 & 0x1f))) != 0) {
+      result = *(short *)(cur + 0x148);
+      if (result != -1 &&
+          (cluster_bits[(int)result >> 5] & (1 << ((int)result & 0x1f))) != 0) {
         actor_perception_find_sense_position(encounter_actor, position, -1,
                                              sense_block);
-        sVar2 = actor_audibility_at_point(encounter_actor, sense_block,
+        result = actor_audibility_at_point(encounter_actor, sense_block,
                                           position, node, param_3, 1.0f, 0);
-        if (sVar2 >= 2) {
+        if (result >= 2) {
           prop_handle = FUN_00064b40(encounter_actor, unit_handle, 1, 1);
           if (prop_handle != -1) {
             prop = (char *)datum_get(prop_data, prop_handle);
-            sVar2 = actor_audibility_at_point(
+            result = actor_audibility_at_point(
               encounter_actor, sense_block, (float *)(prop + 0xbc), prop + 0xfc,
               param_3, 1.0f, *(short *)(prop + 0x38));
-            if (sVar2 >= 2) {
+            if (result >= 2) {
               actor_handle_unit_effect(encounter_actor, prop_handle,
                                        unit_effect);
             }
@@ -7555,7 +7555,7 @@ void actors_handle_unit_effect(int unit_handle, short unit_effect, int param_3)
         }
       }
     }
-    iVar3 = FUN_00059b50(encounter_iter);
+    cur = FUN_00059b50(encounter_iter);
   }
 }
 
@@ -7953,9 +7953,9 @@ void FUN_0003ec80(int actor_handle /* @<esi> */)
   csmemset(actor2 + 0x3e8, 0, 0x84);
 
   /* Initialize handle sentinel fields to 0xffff */
-  *(short *)(actor2 + 0x418) = (short)0xffff;
-  *(short *)(actor2 + 0x42c) = (short)0xffff;
-  *(short *)(actor2 + 0x42e) = (short)0xffff;
+  ((actor_t *)actor2)->field_418 = (short)0xffff;
+  ((actor_t *)actor2)->field_42c = (short)0xffff;
+  ((actor_t *)actor2)->field_42e = (short)0xffff;
 
   /* More subsystem init */
   FUN_0003be90(actor_handle);

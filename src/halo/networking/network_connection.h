@@ -6,7 +6,8 @@
 #define NETWORK_CONNECTION_H
 
 /* Mirrors the original source's FLAG(bit) macro, quoted verbatim by binary
- * assert strings ("server_connection->flags&FLAG(_connection_create_server_bit)"). */
+ * assert strings
+ * ("server_connection->flags&FLAG(_connection_create_server_bit)"). */
 #ifndef FLAG
 #define FLAG(b) (1 << (b))
 #endif
@@ -20,7 +21,7 @@ enum {
   _connection_create_server_bit = 0,
   _connection_create_clientside_client_bit = 1,
   _connection_create_serverside_client_bit = 2,
-  _connection_closed_bit = 4,     /* unverified name */
+  _connection_closed_bit = 4, /* unverified name */
   _connection_going_stale_bit = 5 /* unverified name */
 };
 
@@ -38,28 +39,33 @@ typedef void (*connection_rejection_procedure)(int endpoint);
 /* The transport connection block.  Layout recovered from access sites in
  * network_connection.c; field names at +0x00/+0x10/+0x14/+0x30 are quoted
  * verbatim by binary assert strings ("connection->reliable_endpoint",
- * "connection->reliable_incoming_queue", "connection->unreliable_incoming_queue",
- * "connection->flags&FLAG(...)"); the four counters at +0x20..+0x2c are named
- * by the traffic-log rodata strings ("datagrams sent\t%ld", "datagrams
- * received\t%ld", "stream messages sent\t%ld", "stream messages received\t%ld").
- * sizeof == 0x38 == the clientside-client debug_malloc size in
- * network_connection_new / network_connection_new_serverside_client. */
+ * "connection->reliable_incoming_queue",
+ * "connection->unreliable_incoming_queue", "connection->flags&FLAG(...)"); the
+ * four counters at +0x20..+0x2c are named by the traffic-log rodata strings
+ * ("datagrams sent\t%ld", "datagrams received\t%ld", "stream messages
+ * sent\t%ld", "stream messages received\t%ld"). sizeof == 0x38 == the
+ * clientside-client debug_malloc size in network_connection_new /
+ * network_connection_new_serverside_client. */
 typedef struct network_connection {
-  int reliable_endpoint;                 /* 0x00 transport endpoint handle */
-  int unreliable_endpoint;               /* 0x04 transport endpoint handle */
-  unsigned int last_keep_alive_milliseconds; /* 0x08 stamped by network_connection_keep_alive; creation time at new() */
+  int reliable_endpoint; /* 0x00 transport endpoint handle */
+  int unreliable_endpoint; /* 0x04 transport endpoint handle */
+  unsigned int last_keep_alive_milliseconds; /* 0x08 stamped by
+                                                network_connection_keep_alive;
+                                                creation time at new() */
   connection_rejection_procedure rejection_procedure; /* 0x0c */
-  int reliable_incoming_queue;           /* 0x10 circular queue handle */
-  int unreliable_incoming_queue;         /* 0x14 circular queue handle */
-  void *traffic_log_file;                /* 0x18 crt FILE*; never opens in shipping */
-  int traffic_log_start_milliseconds;    /* 0x1c signed: tick delta is sign-tested */
-  int datagrams_sent;                    /* 0x20 */
-  int datagrams_received;                /* 0x24 */
-  int stream_messages_sent;              /* 0x28 */
-  int stream_messages_received;          /* 0x2c */
-  unsigned int flags;                    /* 0x30 FLAG(_connection_*) bits; byte-tested at several sites (keep access width) */
-  unsigned short well_known_port;        /* 0x34 */
-  unsigned short field_36;               /* 0x36 never accessed; alignment/unknown */
+  int reliable_incoming_queue; /* 0x10 circular queue handle */
+  int unreliable_incoming_queue; /* 0x14 circular queue handle */
+  void *traffic_log_file; /* 0x18 crt FILE*; never opens in shipping */
+  int
+    traffic_log_start_milliseconds; /* 0x1c signed: tick delta is sign-tested */
+  long datagrams_sent; /* 0x20 */
+  long datagrams_received; /* 0x24 */
+  long stream_messages_sent; /* 0x28 */
+  long stream_messages_received; /* 0x2c */
+  unsigned int flags; /* 0x30 FLAG(_connection_*) bits; byte-tested at several
+                         sites (keep access width) */
+  unsigned short well_known_port; /* 0x34 */
+  unsigned short field_36; /* 0x36 never accessed; alignment/unknown */
 } network_connection;
 
 cs(network_connection, 0x38);
@@ -87,11 +93,12 @@ co(network_connection, well_known_port, 0x34);
  * network_server_allow_client_connections.
  * sizeof == 0x50 == the server debug_malloc size in network_connection_new. */
 typedef struct network_server_connection {
-  network_connection connection;         /* 0x00 */
-  int endpoint_set;                      /* 0x38 endpoint-set handle (capacity 5: listen + 4 clients) */
+  network_connection connection; /* 0x00 */
+  int endpoint_set; /* 0x38 endpoint-set handle (capacity 5: listen + 4 clients)
+                     */
   network_connection *client_connections[4]; /* 0x3c */
-  bool allow_client_connections;         /* 0x4c */
-  uint8_t pad_4d[3];                     /* 0x4d */
+  bool allow_client_connections; /* 0x4c */
+  uint8_t pad_4d[3]; /* 0x4d */
 } network_server_connection;
 
 cs(network_server_connection, 0x50);

@@ -1,0 +1,3105 @@
+{
+  "allow_risky": false,
+  "baseline": {
+    "assertion_snapshot": {
+      "assertions": [
+        {
+          "condition": "client != (void *)0",
+          "flavor": "assert_halt_msg",
+          "line": 18,
+          "path": "src/halo/networking/network_client_message_handler.c"
+        },
+        {
+          "condition": "source_address != (void *)0",
+          "flavor": "assert_halt_msg",
+          "line": 19,
+          "path": "src/halo/networking/network_client_message_handler.c"
+        },
+        {
+          "condition": "client != (void *)0 && message != (void *)0 && (short)message_size == (*(unsigned short *)message >> 4) && source_address != (void *)0",
+          "flavor": "assert_halt_msg",
+          "line": 427,
+          "path": "src/halo/networking/network_client_message_handler.c"
+        }
+      ],
+      "kind": "assert-metadata",
+      "schema": 1
+    },
+    "captured": true,
+    "coff_snapshot": {
+      "assertion_metadata": [],
+      "kind": "coff-candidate-neutrality",
+      "schema": 1,
+      "sections": [
+        {
+          "characteristics": 1615855648,
+          "executable": true,
+          "id": ".text#0",
+          "name": ".text",
+          "raw_bytes_hex": "5589e5575683ec108b750885f60f848a0000008b450c85c00f849c0000005056e80000000083c40884c074546a0056e80000000083c4086683f804754a8b4d148b451083c1fe894decc745f40b000000c745f00100000083c0028d4df08d55f48d75ec8d7de86a065152565057e80000000083c41884c0751b6800000000eb0c6800000000eb056800000000e80000000083c404b00183c4105e5f5dc36a016a1268000000006800000000e80000000083c4106affe8000000006a016a1368000000006800000000e80000000083c4106affe800000000660f1f8400000000005589e553575683ec108b7508ff750c56e80000000083c40884c074616a0056e80000000083c4086683f80275618b4d148b451083c1fe894de8c745ec08000000c745f00100000083c0028d4df08d55ec8d7de88d5de46a025152575053e80000000083c41884c0742c56e80000000083c40484c0752e6800000000eb1d6800000000e80000000083c404b001eb166800000000eb056800000000e80000000083c40431c083c4105e5f5b5dc30f1f40005589e553575683ec108b7508ff750c56e80000000083c40884c074556a0056e80000000083c4086683f802754b8b4d148b451083c1fe894de8c745ec09000000c745f00100000083c0028d4df08d55ec8d7de88d5de46a025152575053e80000000083c41884c0741656e800000000eb186800000000eb0c6800000000eb056800000000e80000000083c404b00183c4105e5f5b5dc3662e0f1f8400000000005589e553575681ec1c0200008b7508ff750c56e80000000083c40884c074656a0056e80000000083c4086683f80375658b4d148b451083c1fe894de8c745ec14000000c745f00100000083c0028d4df08d55ec8d5de88dbdd8fdffff6a045152535057e80000000083c41884c0742d5756e80000000083c40884c075376800000000eb1d6800000000e80000000083c404b001eb1f6800000000eb056800000000e80000000083c40456e80000000083c40431c081c41c0200005e5f5b5dc3905589e553575683ec2c8b7508ff750c56e80000000083c40884c074626a0056e80000000083c4086683f80375628b4d148b451083c1fe894de8c745ec15000000c745f00100000083c0028d4df08d55ec8d5de88d7dc86a045152535057e80000000083c41884c0742d5756e80000000083c40884c075376800000000eb1d6800000000e80000000083c404b001eb1f6800000000eb056800000000e80000000083c40456e80000000083c40431c083c42c5e5f5b5dc3662e0f1f8400000000005589e553575683ec308b7508ff750c56e80000000083c40884c074656a0056e80000000083c4086683f80375658b4d148b451083c1fe894de8c745ec16000000c745f00100000083c0028d4df08d55ec8d5de88d7dc46a045152535057e80000000083c41884c07430ff75e45756e80000000083c40c84c075376800000000eb1d6800000000e80000000083c404b001eb1f6800000000eb056800000000e80000000083c40456e80000000083c40431c083c4305e5f5b5dc30f1f80000000005589e553575683ec108b7508ff750c56e80000000083c40884c074626a0056e80000000083c4086683f80375588b4d148b451083c1fe894de8c745ec17000000c745f00100000083c0028d4df08d55ec8d7de88d5de46a045152575053e80000000083c41884c0750d6800000000e80000000083c40456e800000000eb116800000000eb056800000000e80000000083c404b00183c4105e5f5b5dc30f1f40005589e553575683ec108b7508ff750c56e80000000083c40884c0746e6a0056e80000000083c4086683f804756e8b4d148b451083c1fe894de8c745ec1e000000c745f00100000083c0028d4df08d55ec8d7de88d5de46a065152575053e80000000083c41884c0750d6800000000e80000000083c40456e80000000083c40484c075276800000000eb166800000000e80000000083c404b001eb0f6800000000e80000000083c40431c083c4105e5f5b5dc3662e0f1f8400000000000f1f40005589e553575683ec108b7508ff750c56e80000000083c40884c074626a0056e80000000083c4086683f80475628b4d148b451083c1fe894de8c745ec1f000000c745f00100000083c0028d4df08d55ec8d7de88d5de46a065152575053e80000000083c41884c0750d6800000000e80000000083c40456e800000000eb1b6800000000e80000000083c404b001eb0f6800000000e80000000083c40431c083c4105e5f5b5dc3662e0f1f8400000000005589e5535756837d08000f84a80200008b4d0c85c90f849d0200008b551485d20f84920200008b75100fbffe0fb70189c3c1eb0439df0f857c020000a80374146800000000e80000000083c404b0015e5f5b5dc3c1e80283e0036683f803743683f802742a83f80175600fb7c63d8300000072600fb6818200000083c10251506800000000e80000000083c40cebbe6800000000ebaf0fb67c39ff83c7fe83ff1d0f87f5010000ff24bd00000000525651ff7508e80000000083c41084c0758f6800000000e9c30100006800000000e971ffffff6800000000e967ffffff565152ff7508e80000000083c410e95cffffff565152ff7508e80000000083c41084c00f8548ffffff6800000000e97c010000565152ff7508e80000000083c41084c00f8528ffffff6800000000e95c010000565152ff7508e80000000083c41084c00f8508ffffff6800000000e93c010000565152ff7508e80000000083c41084c00f85e8feffff6800000000e91c010000565152ff7508e80000000083c41084c00f85c8feffff6800000000e9fc000000525651ff7508e80000000083c41084c00f85a8feffff6800000000e9dc000000565152ff7508e80000000083c41084c00f8588feffff6800000000e9bc000000565152ff7508e80000000083c410e969feffff565152ff7508e80000000083c41084c00f8555feffff6800000000e989000000565152ff7508e80000000083c41089c1b00184c90f8531feffff6800000000eb68565152ff7508e80000000083c41084c00f8514feffff6800000000eb4b565152ff7508e80000000083c41084c00f85f7fdffff6800000000eb2e565152ff7508e80000000083c410e9dbfdffff565152ff7508e80000000083c41084c00f85c7fdffff6800000000e80000000083c40431c0e9b3fdffff52e80000000083c404506800000000e80000000083c408e995fdffff6a0168b001000068000000006800000000e80000000083c4106affe800000000",
+          "raw_size": 2392,
+          "relocations": [
+            {
+              "offset": 33,
+              "target": {
+                "name": "_network_game_client_address_matches_server",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 48,
+              "target": {
+                "name": "_network_game_client_get_state",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 110,
+              "target": {
+                "name": "_FUN_0012bce0",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 122,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f206465636f64652061206d6573736167655f7365727665725f706f737467616d655f6b6565705f616c697665207061636b657400",
+                  "section": ".rdata#4",
+                  "value": 0
+                },
+                "name": "??_C@_0DN@BIGGNOLB@failed?5to?5decode?5a?5message_serve@",
+                "section": ".rdata#4",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 129,
+              "target": {
+                "data": {
+                  "bytes_hex": "69676e6f72696e672061206d6573736167655f7365727665725f706f737467616d655f6b6565705f616c6976653b2063616d652066726f6d206120626164206d616368696e6500",
+                  "section": ".rdata#6",
+                  "value": 0
+                },
+                "name": "??_C@_0EH@IABGEGJI@ignoring?5a?5message_server_postga@",
+                "section": ".rdata#6",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 136,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f2068616e646c652061206d6573736167655f7365727665725f706f737467616d655f6b6565705f616c697665206d6573736167653b206e6f7420696e20706f737467616d6520737461746500",
+                  "section": ".rdata#5",
+                  "value": 0
+                },
+                "name": "??_C@_0FF@PKNMLFIC@failed?5to?5handle?5a?5message_serve@",
+                "section": ".rdata#5",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 141,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 162,
+              "target": {
+                "data": {
+                  "bytes_hex": "2f6d6e742f672f6465762f68616c6f2d627567732f7372632f68616c6f2f6e6574776f726b696e672f6e6574776f726b5f636c69656e745f6d6573736167655f68616e646c65722e6300",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0EK@NILGHAGC@?1mnt?1g?1dev?1halo?9bugs?1src?1halo?1ne@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 167,
+              "target": {
+                "data": {
+                  "bytes_hex": "636c69656e7420213d204e554c4c00",
+                  "section": ".rdata#2",
+                  "value": 0
+                },
+                "name": "??_C@_0P@FOLJNCCO@client?5?$CB?$DN?5NULL?$AA@",
+                "section": ".rdata#2",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 172,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 182,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 191,
+              "target": {
+                "data": {
+                  "bytes_hex": "2f6d6e742f672f6465762f68616c6f2d627567732f7372632f68616c6f2f6e6574776f726b696e672f6e6574776f726b5f636c69656e745f6d6573736167655f68616e646c65722e6300",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0EK@NILGHAGC@?1mnt?1g?1dev?1halo?9bugs?1src?1halo?1ne@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 196,
+              "target": {
+                "data": {
+                  "bytes_hex": "736f757263655f6164647265737320213d204e554c4c00",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0BH@BJKENKMM@source_address?5?$CB?$DN?5NULL?$AA@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 201,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 211,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 241,
+              "target": {
+                "name": "_network_game_client_address_matches_server",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 256,
+              "target": {
+                "name": "_network_game_client_get_state",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 318,
+              "target": {
+                "name": "_FUN_0012bce0",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 331,
+              "target": {
+                "name": "_network_game_client_game_has_started",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 343,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f67616d655f6861735f737461727465642829206661696c656400",
+                  "section": ".rdata#7",
+                  "value": 0
+                },
+                "name": "??_C@_0CO@IDLMDGAP@network_game_client_game_has_sta@",
+                "section": ".rdata#7",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 350,
+              "target": {
+                "data": {
+                  "bytes_hex": "69676e6f72696e672061206d6573736167655f7365727665725f626567696e5f67616d65206d6573736167653b2063616d652066726f6d206120626164206d616368696e6500",
+                  "section": ".rdata#10",
+                  "value": 0
+                },
+                "name": "??_C@_0EG@KGCDAEPA@ignoring?5a?5message_server_begin_@",
+                "section": ".rdata#10",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 355,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 367,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f2068616e646c652061206d6573736167655f7365727665725f626567696e5f67616d65206d6573736167653b20776520617265206e6f7420696e2070726567616d6500",
+                  "section": ".rdata#9",
+                  "value": 0
+                },
+                "name": "??_C@_0EM@LHDJIHFO@failed?5to?5handle?5a?5message_serve@",
+                "section": ".rdata#9",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 374,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f206465636f64652061206d6573736167655f7365727665725f626567696e5f67616d65207061636b657400",
+                  "section": ".rdata#8",
+                  "value": 0
+                },
+                "name": "??_C@_0DE@OPOJGBIB@failed?5to?5decode?5a?5message_serve@",
+                "section": ".rdata#8",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 379,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 417,
+              "target": {
+                "name": "_network_game_client_address_matches_server",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 432,
+              "target": {
+                "name": "_network_game_client_get_state",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 494,
+              "target": {
+                "name": "_FUN_0012bce0",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 507,
+              "target": {
+                "name": "_network_game_client_game_shutdown",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 514,
+              "target": {
+                "data": {
+                  "bytes_hex": "69676e6f72696e672061206d6573736167655f7365727665725f677261636566756c5f67616d655f657869745f70726567616d65206d6573736167653b2063616d652066726f6d206120626164206d616368696e6500",
+                  "section": ".rdata#13",
+                  "value": 0
+                },
+                "name": "??_C@_0FG@NGBIOKLC@ignoring?5a?5message_server_gracef@",
+                "section": ".rdata#13",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 521,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f2068616e646c652061206d6573736167655f7365727665725f677261636566756c5f67616d655f657869745f70726567616d65206d6573736167653b20776520617265206e6f7420696e2070726567616d6500",
+                  "section": ".rdata#12",
+                  "value": 0
+                },
+                "name": "??_C@_0FM@DIGPPEBG@failed?5to?5handle?5a?5message_serve@",
+                "section": ".rdata#12",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 528,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f206465636f64652061206d6573736167655f7365727665725f677261636566756c5f67616d655f657869745f70726567616d65207061636b657400",
+                  "section": ".rdata#11",
+                  "value": 0
+                },
+                "name": "??_C@_0EE@ECCKOGDL@failed?5to?5decode?5a?5message_serve@",
+                "section": ".rdata#11",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 533,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 580,
+              "target": {
+                "name": "_network_game_client_address_matches_server",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 595,
+              "target": {
+                "name": "_network_game_client_get_state",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 660,
+              "target": {
+                "name": "_FUN_0012bce0",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 674,
+              "target": {
+                "name": "_network_game_client_handle_game_update",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 686,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f68616e646c655f67616d655f7570646174652829206661696c656400",
+                  "section": ".rdata#14",
+                  "value": 0
+                },
+                "name": "??_C@_0DA@NKCCMGPH@network_game_client_handle_game_@",
+                "section": ".rdata#14",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 693,
+              "target": {
+                "data": {
+                  "bytes_hex": "69676e6f72696e672061206d6573736167655f7365727665725f67616d655f757064617465206d6573736167653b2063616d652066726f6d206120626164206d616368696e6500",
+                  "section": ".rdata#17",
+                  "value": 0
+                },
+                "name": "??_C@_0EH@MEBMJMKF@ignoring?5a?5message_server_game_u@",
+                "section": ".rdata#17",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 698,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 710,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f2068616e646c652061206d6573736167655f7365727665725f67616d655f757064617465206d6573736167653b20776520617265206e6f7420696e2067616d6500",
+                  "section": ".rdata#16",
+                  "value": 0
+                },
+                "name": "??_C@_0EK@HLKFMGH@failed?5to?5handle?5a?5message_serve@",
+                "section": ".rdata#16",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 717,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f206465636f64652061206d6573736167655f7365727665725f67616d655f757064617465207061636b657400",
+                  "section": ".rdata#15",
+                  "value": 0
+                },
+                "name": "??_C@_0DF@IIILBLL@failed?5to?5decode?5a?5message_serve@",
+                "section": ".rdata#15",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 722,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 731,
+              "target": {
+                "name": "_network_game_client_game_out_of_sync",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 769,
+              "target": {
+                "name": "_network_game_client_address_matches_server",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 784,
+              "target": {
+                "name": "_network_game_client_get_state",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 846,
+              "target": {
+                "name": "_FUN_0012bce0",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 860,
+              "target": {
+                "name": "_network_game_client_add_player_to_game",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 872,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f6164645f706c617965725f746f5f67616d652829206661696c656400",
+                  "section": ".rdata#18",
+                  "value": 0
+                },
+                "name": "??_C@_0DA@ICGCINCO@network_game_client_add_player_t@",
+                "section": ".rdata#18",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 879,
+              "target": {
+                "data": {
+                  "bytes_hex": "69676e6f72696e672061206d6573736167655f7365727665725f6164645f706c617965725f696e67616d65206d6573736167653b2063616d652066726f6d206120626164206d616368696e6500",
+                  "section": ".rdata#21",
+                  "value": 0
+                },
+                "name": "??_C@_0EN@FKBHABAC@ignoring?5a?5message_server_add_pl@",
+                "section": ".rdata#21",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 884,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 896,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f2068616e646c652061206d6573736167655f7365727665725f6164645f706c617965725f696e67616d65206d6573736167653b20776520617265206e6f7420696e2067616d6500",
+                  "section": ".rdata#20",
+                  "value": 0
+                },
+                "name": "??_C@_0FA@NACEIJGI@failed?5to?5handle?5a?5message_serve@",
+                "section": ".rdata#20",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 903,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f206465636f64652061206d6573736167655f7365727665725f6164645f706c617965725f696e67616d65207061636b657400",
+                  "section": ".rdata#19",
+                  "value": 0
+                },
+                "name": "??_C@_0DL@FGDEKFMJ@failed?5to?5decode?5a?5message_serve@",
+                "section": ".rdata#19",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 908,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 917,
+              "target": {
+                "name": "_network_game_client_game_out_of_sync",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 961,
+              "target": {
+                "name": "_network_game_client_address_matches_server",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 976,
+              "target": {
+                "name": "_network_game_client_get_state",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1038,
+              "target": {
+                "name": "_FUN_0012bce0",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1055,
+              "target": {
+                "name": "_network_game_client_remove_player",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1067,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f72656d6f76655f706c617965722829206661696c656400",
+                  "section": ".rdata#22",
+                  "value": 0
+                },
+                "name": "??_C@_0CL@NBDIBGCC@network_game_client_remove_playe@",
+                "section": ".rdata#22",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1074,
+              "target": {
+                "data": {
+                  "bytes_hex": "69676e6f72696e672061206d6573736167655f7365727665725f72656d6f76655f706c617965725f696e67616d65206d6573736167653b2063616d652066726f6d206120626164206d616368696e6500",
+                  "section": ".rdata#25",
+                  "value": 0
+                },
+                "name": "??_C@_0FA@IBHOBKAI@ignoring?5a?5message_server_remove@",
+                "section": ".rdata#25",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1079,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1091,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f2068616e646c652061206d6573736167655f7365727665725f72656d6f76655f706c617965725f696e67616d65206d6573736167653b20776520617265206e6f7420696e2067616d6500",
+                  "section": ".rdata#24",
+                  "value": 0
+                },
+                "name": "??_C@_0FD@OLBMGIKB@failed?5to?5handle?5a?5message_serve@",
+                "section": ".rdata#24",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1098,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f206465636f64652061206d6573736167655f7365727665725f72656d6f76655f706c617965725f696e67616d65207061636b657400",
+                  "section": ".rdata#23",
+                  "value": 0
+                },
+                "name": "??_C@_0DO@GODOOHMN@failed?5to?5decode?5a?5message_serve@",
+                "section": ".rdata#23",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1103,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1112,
+              "target": {
+                "name": "_network_game_client_game_out_of_sync",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1153,
+              "target": {
+                "name": "_network_game_client_address_matches_server",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1168,
+              "target": {
+                "name": "_network_game_client_get_state",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1230,
+              "target": {
+                "name": "_FUN_0012bce0",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1242,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f206465636f64652061206d6573736167655f7365727665725f67616d655f6f766572206d65737361676520286e6f7420637269746963616c2900",
+                  "section": ".rdata#26",
+                  "value": 0
+                },
+                "name": "??_C@_0ED@LKOOJPFP@failed?5to?5decode?5a?5message_serve@",
+                "section": ".rdata#26",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1247,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1256,
+              "target": {
+                "name": "_network_client_switch_to_postgame",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1263,
+              "target": {
+                "data": {
+                  "bytes_hex": "69676e6f72696e672061206d6573736167655f7365727665725f67616d655f6f766572206d6573736167653b2063616d652066726f6d206120626164206d616368696e6500",
+                  "section": ".rdata#28",
+                  "value": 0
+                },
+                "name": "??_C@_0EF@DDKCBEG@ignoring?5a?5message_server_game_o@",
+                "section": ".rdata#28",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1270,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f2068616e646c652061206d6573736167655f7365727665725f67616d655f6f766572206d6573736167653b20776520617265206e6f7420696e2067616d6500",
+                  "section": ".rdata#27",
+                  "value": 0
+                },
+                "name": "??_C@_0EI@BGOBBEDF@failed?5to?5handle?5a?5message_serve@",
+                "section": ".rdata#27",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1275,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1313,
+              "target": {
+                "name": "_network_game_client_address_matches_server",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1328,
+              "target": {
+                "name": "_network_game_client_get_state",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1390,
+              "target": {
+                "name": "_FUN_0012bce0",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1402,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f206465636f64652061206d6573736167655f7365727665725f7377697463685f746f5f70726567616d65207061636b657400",
+                  "section": ".rdata#29",
+                  "value": 0
+                },
+                "name": "??_C@_0DL@DIFCCPGE@failed?5to?5decode?5a?5message_serve@",
+                "section": ".rdata#29",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1407,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1416,
+              "target": {
+                "name": "_network_game_client_switch_to_pregame",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1428,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f7377697463685f746f5f70726567616d652829206661696c656400",
+                  "section": ".rdata#30",
+                  "value": 0
+                },
+                "name": "??_C@_0CP@KPJNEAOB@network_game_client_switch_to_pr@",
+                "section": ".rdata#30",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1435,
+              "target": {
+                "data": {
+                  "bytes_hex": "69676e6f72696e672061206d6573736167655f7365727665725f7377697463685f746f5f70726567616d65206d6573736167653b2063616d652066726f6d206120626164206d616368696e6500",
+                  "section": ".rdata#32",
+                  "value": 0
+                },
+                "name": "??_C@_0EN@IMILJCHD@ignoring?5a?5message_server_switch@",
+                "section": ".rdata#32",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1440,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1452,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f2068616e646c652061206d6573736167655f7365727665725f7377697463685f746f5f70726567616d65206d6573736167653b20776520617265206e6f7420696e20706f73742d67616d6500",
+                  "section": ".rdata#31",
+                  "value": 0
+                },
+                "name": "??_C@_0FF@LPOEGCEN@failed?5to?5handle?5a?5message_serve@",
+                "section": ".rdata#31",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1457,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1505,
+              "target": {
+                "name": "_network_game_client_address_matches_server",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1520,
+              "target": {
+                "name": "_network_game_client_get_state",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1582,
+              "target": {
+                "name": "_FUN_0012bce0",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1594,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f206465636f64652061206d6573736167655f7365727665725f677261636566756c5f67616d655f657869745f706f737467616d65207061636b657420286e6f7420637269746963616c2900",
+                  "section": ".rdata#33",
+                  "value": 0
+                },
+                "name": "??_C@_0FE@LHBDFEJN@failed?5to?5decode?5a?5message_serve@",
+                "section": ".rdata#33",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1599,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1608,
+              "target": {
+                "name": "_network_game_client_game_shutdown",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1615,
+              "target": {
+                "data": {
+                  "bytes_hex": "69676e6f72696e672061206d6573736167655f7365727665725f677261636566756c5f67616d655f657869745f706f737467616d65206d6573736167653b2063616d652066726f6d206120626164206d616368696e6500",
+                  "section": ".rdata#35",
+                  "value": 0
+                },
+                "name": "??_C@_0FH@MFCGNFNN@ignoring?5a?5message_server_gracef@",
+                "section": ".rdata#35",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1620,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1632,
+              "target": {
+                "data": {
+                  "bytes_hex": "6661696c656420746f2068616e646c652061206d6573736167655f7365727665725f677261636566756c5f67616d655f657869745f706f737467616d65206d6573736167653b20776520617265206e6f7420696e20706f73742d67616d6500",
+                  "section": ".rdata#34",
+                  "value": 0
+                },
+                "name": "??_C@_0FP@KCFNLJEN@failed?5to?5handle?5a?5message_serve@",
+                "section": ".rdata#34",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1637,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1729,
+              "target": {
+                "data": {
+                  "bytes_hex": "636c69656e7420726563656976656420636c69656e74206d657373616765207769746820696e76616c696420666c61677300",
+                  "section": ".rdata#37",
+                  "value": 0
+                },
+                "name": "??_C@_0DC@OIBJKL@client?5received?5client?5message?5w@",
+                "section": ".rdata#37",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1734,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1793,
+              "target": {
+                "data": {
+                  "bytes_hex": "636c69656e74207265636569766564206c6f772d6c6576656c206572726f72206d6573736167653a206572726f723d20232564202825732900",
+                  "section": ".rdata#38",
+                  "value": 0
+                },
+                "name": "??_C@_0DJ@ILEOJBLB@client?5received?5low?9level?5error?5@",
+                "section": ".rdata#38",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1798,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1808,
+              "target": {
+                "data": {
+                  "bytes_hex": "636c69656e74207265636569766564206120626164206d657373616765207479706520285f6d6573736167655f747970655f646174612900",
+                  "section": ".rdata#40",
+                  "value": 0
+                },
+                "name": "??_C@_0DI@MKDILEED@client?5received?5a?5bad?5message?5ty@",
+                "section": ".rdata#40",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1834,
+              "target": {
+                "data": {
+                  "bytes_hex": "2e07000011080000b1070000a5080000c2080000d10700003108000051080000f2080000df0800001c0900001c0900001c0900001c0900001c0900001c0900001c0900001c09000071070000f1070000910700005e0700001c0900001c0900001c0900001c0900001c0900001c0900006408000084080000",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": ".rdata",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1845,
+              "target": {
+                "name": "_FUN_00127260",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1857,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f68616e646c655f6d6573736167655f7365727665725f67616d655f6164766572746973652829206661696c656400",
+                  "section": ".rdata#41",
+                  "value": 0
+                },
+                "name": "??_C@_0EC@DCBNODDF@network_game_client_handle_messa@",
+                "section": ".rdata#41",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1867,
+              "target": {
+                "data": {
+                  "bytes_hex": "636c69656e742072656365697665642061206d657373616765207769746820616e20756e6b6e6f776e206d657373616765207479706500",
+                  "section": ".rdata#55",
+                  "value": 0
+                },
+                "name": "??_C@_0DH@OBKILCJH@client?5received?5a?5message?5with?5a@",
+                "section": ".rdata#55",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1877,
+              "target": {
+                "data": {
+                  "bytes_hex": "636c69656e742072656365697665642061206d616c666f726d65642f64616d61676564206d6573736167652066726f6d20612073657276657200",
+                  "section": ".rdata#39",
+                  "value": 0
+                },
+                "name": "??_C@_0DK@BPCDJE@client?5received?5a?5malformed?1dama@",
+                "section": ".rdata#39",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1893,
+              "target": {
+                "name": "_FUN_00127c90",
+                "section": ".text#0",
+                "value": 1136
+              },
+              "type": 20
+            },
+            {
+              "offset": 1912,
+              "target": {
+                "name": "_FUN_00127a50",
+                "section": ".text#0",
+                "value": 560
+              },
+              "type": 20
+            },
+            {
+              "offset": 1928,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f68616e646c655f6d6573736167655f7365727665725f67616d655f7570646174652829206661696c656400",
+                  "section": ".rdata#49",
+                  "value": 0
+                },
+                "name": "??_C@_0DP@KPKJEOKA@network_game_client_handle_messa@",
+                "section": ".rdata#49",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1944,
+              "target": {
+                "name": "_FUN_00127bd0",
+                "section": ".text#0",
+                "value": 944
+              },
+              "type": 20
+            },
+            {
+              "offset": 1960,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f68616e646c655f6d6573736167655f7365727665725f72656d6f76655f706c617965725f696e67616d652829206661696c656400",
+                  "section": ".rdata#51",
+                  "value": 0
+                },
+                "name": "??_C@_0EI@EDFDAGJM@network_game_client_handle_messa@",
+                "section": ".rdata#51",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1976,
+              "target": {
+                "name": "_FUN_001273a0",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1992,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f68616e646c655f6d6573736167655f7365727665725f6d616368696e655f61636365707465642829206661696c656400",
+                  "section": ".rdata#43",
+                  "value": 0
+                },
+                "name": "??_C@_0EE@DBJLIDDD@network_game_client_handle_messa@",
+                "section": ".rdata#43",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2008,
+              "target": {
+                "name": "_FUN_00127610",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2024,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f68616e646c655f6d6573736167655f7365727665725f70726567616d655f636f756e74646f776e2829206661696c656400",
+                  "section": ".rdata#46",
+                  "value": 0
+                },
+                "name": "??_C@_0EF@OEBFMPPP@network_game_client_handle_messa@",
+                "section": ".rdata#46",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2040,
+              "target": {
+                "name": "_FUN_00127b10",
+                "section": ".text#0",
+                "value": 752
+              },
+              "type": 20
+            },
+            {
+              "offset": 2056,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f68616e646c655f6d6573736167655f7365727665725f6164645f706c617965725f696e67616d652829206661696c656400",
+                  "section": ".rdata#50",
+                  "value": 0
+                },
+                "name": "??_C@_0EF@HHBDNBDF@network_game_client_handle_messa@",
+                "section": ".rdata#50",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2072,
+              "target": {
+                "name": "_FUN_00127310",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2088,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f68616e646c655f6d6573736167655f7365727665725f706f6e672829206661696c656400",
+                  "section": ".rdata#42",
+                  "value": 0
+                },
+                "name": "??_C@_0DI@MEGCHKLI@network_game_client_handle_messa@",
+                "section": ".rdata#42",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2104,
+              "target": {
+                "name": "_FUN_001278d0",
+                "section": ".text#0",
+                "value": 224
+              },
+              "type": 20
+            },
+            {
+              "offset": 2120,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f68616e646c655f6d6573736167655f7365727665725f626567696e5f67616d652829206661696c656400",
+                  "section": ".rdata#47",
+                  "value": 0
+                },
+                "name": "??_C@_0DO@CAKHJPLK@network_game_client_handle_messa@",
+                "section": ".rdata#47",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2136,
+              "target": {
+                "name": "_FUN_001279a0",
+                "section": ".text#0",
+                "value": 400
+              },
+              "type": 20
+            },
+            {
+              "offset": 2155,
+              "target": {
+                "name": "_FUN_00127d30",
+                "section": ".text#0",
+                "value": 1296
+              },
+              "type": 20
+            },
+            {
+              "offset": 2171,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f68616e646c655f6d6573736167655f7365727665725f7377697463685f746f5f70726567616d652829206661696c656400",
+                  "section": ".rdata#52",
+                  "value": 0
+                },
+                "name": "??_C@_0EF@GBNHBHMJ@network_game_client_handle_messa@",
+                "section": ".rdata#52",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2187,
+              "target": {
+                "name": "_FUN_00127df0",
+                "section": ".text#0",
+                "value": 1488
+              },
+              "type": 20
+            },
+            {
+              "offset": 2207,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f68616e646c655f6d6573736167655f7365727665725f677261636566756c5f67616d655f657869745f706f737467616d652829206661696c656400",
+                  "section": ".rdata#53",
+                  "value": 0
+                },
+                "name": "??_C@_0EP@PCPAJAJP@network_game_client_handle_messa@",
+                "section": ".rdata#53",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2220,
+              "target": {
+                "name": "_FUN_00127440",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2236,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f68616e646c655f6d6573736167655f7365727665725f6d616368696e655f72656a65637465642829206661696c656400",
+                  "section": ".rdata#44",
+                  "value": 0
+                },
+                "name": "??_C@_0EE@JFCCKCCI@network_game_client_handle_messa@",
+                "section": ".rdata#44",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2249,
+              "target": {
+                "name": "_FUN_001274E0",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2265,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f68616e646c655f6d6573736167655f7365727665725f67616d655f73657474696e67735f7570646174652829206661696c656400",
+                  "section": ".rdata#45",
+                  "value": 0
+                },
+                "name": "??_C@_0EI@JILEDHBD@network_game_client_handle_messa@",
+                "section": ".rdata#45",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2278,
+              "target": {
+                "name": "_FUN_001277f0",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2297,
+              "target": {
+                "name": "_FUN_00127710",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2313,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e6574776f726b5f67616d655f636c69656e745f68616e646c655f6d6573736167655f7365727665725f70726567616d655f6b6565705f616c6976652829206661696c656400",
+                  "section": ".rdata#48",
+                  "value": 0
+                },
+                "name": "??_C@_0EG@NOAJAKOF@network_game_client_handle_messa@",
+                "section": ".rdata#48",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2318,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2334,
+              "target": {
+                "name": "_transport_address_to_string",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2343,
+              "target": {
+                "data": {
+                  "bytes_hex": "756e6b6e6f776e207061636b657420747970652072656365697665642066726f6d2073797374656d204020616464726573733a20257300",
+                  "section": ".rdata#54",
+                  "value": 0
+                },
+                "name": "??_C@_0DH@DOCAAFEI@unknown?5packet?5type?5received?5fro@",
+                "section": ".rdata#54",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2348,
+              "target": {
+                "name": "_network_game_log",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2368,
+              "target": {
+                "data": {
+                  "bytes_hex": "2f6d6e742f672f6465762f68616c6f2d627567732f7372632f68616c6f2f6e6574776f726b696e672f6e6574776f726b5f636c69656e745f6d6573736167655f68616e646c65722e6300",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0EK@NILGHAGC@?1mnt?1g?1dev?1halo?9bugs?1src?1halo?1ne@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2373,
+              "target": {
+                "data": {
+                  "bytes_hex": "636c69656e74202626206d65737361676520262620286d6573736167655f73697a65203d3d204745545f4d4553534147455f53495a45282a6d657373616765292920262620736f757263655f6164647265737300",
+                  "section": ".rdata#36",
+                  "value": 0
+                },
+                "name": "??_C@_0FE@FDBDJMOG@client?5?$CG?$CG?5message?5?$CG?$CG?5?$CImessage_si@",
+                "section": ".rdata#36",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 2378,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 2388,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            }
+          ]
+        },
+        {
+          "characteristics": 3224371264,
+          "executable": false,
+          "id": ".data#0",
+          "name": ".data",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        },
+        {
+          "characteristics": 3224371328,
+          "executable": false,
+          "id": ".bss#0",
+          "name": ".bss",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        },
+        {
+          "characteristics": 1076887616,
+          "executable": false,
+          "id": ".rdata#0",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 120,
+          "relocations": [
+            {
+              "offset": 0,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 4,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 8,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 12,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 16,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 20,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 24,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 28,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 32,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 36,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 40,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 44,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 48,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 52,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 56,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 60,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 64,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 68,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 72,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 76,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 80,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 84,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 88,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 92,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 96,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 100,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 104,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 108,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 112,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 116,
+              "target": {
+                "name": ".text",
+                "section": ".text#0",
+                "value": 0
+              },
+              "type": 6
+            }
+          ]
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#1",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 74,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#2",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 15,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#3",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 23,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#4",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 61,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#5",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 85,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#6",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 71,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#7",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 46,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#8",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 52,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#9",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 76,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#10",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 70,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#11",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 68,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#12",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 92,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#13",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 86,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#14",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 48,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#15",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 53,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#16",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 74,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#17",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 71,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#18",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 48,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#19",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 59,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#20",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 80,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#21",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 77,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#22",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 43,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#23",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 62,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#24",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 83,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#25",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 80,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#26",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 67,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#27",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 72,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#28",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 69,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#29",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 59,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#30",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 47,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#31",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 85,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#32",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 77,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#33",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 84,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#34",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 95,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#35",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 87,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#36",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 84,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#37",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 50,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#38",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 57,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#39",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 58,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#40",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 56,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#41",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 66,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#42",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 56,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#43",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 68,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#44",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 68,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#45",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 72,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#46",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 69,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#47",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 62,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#48",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 70,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#49",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 63,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#50",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 69,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#51",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 72,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#52",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 69,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#53",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 79,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#54",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 55,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#55",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 55,
+          "relocations": []
+        },
+        {
+          "characteristics": 1051136,
+          "executable": false,
+          "id": ".drectve#0",
+          "name": ".drectve",
+          "raw_bytes_hex": null,
+          "raw_size": 220,
+          "relocations": []
+        },
+        {
+          "characteristics": 1050624,
+          "executable": false,
+          "id": ".llvm_addrsig#0",
+          "name": ".llvm_addrsig",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        }
+      ]
+    },
+    "object_relative_path": "build/CMakeFiles/halo.dir/src/halo/networking/network_client_message_handler.c.obj",
+    "object_sha256": "2257ffb52b25753c30cdbc6b7e87814da682b598584e0cf5dff5860d6a078aa4"
+  },
+  "checks": [
+    {
+      "baseline_object_sha256": "2257ffb52b25753c30cdbc6b7e87814da682b598584e0cf5dff5860d6a078aa4",
+      "current_git_head": "eb26aa973bf3a9b939c1b7ab89ee37c307376ab0",
+      "current_object_sha256": "2257ffb52b25753c30cdbc6b7e87814da682b598584e0cf5dff5860d6a078aa4",
+      "current_source_sha256": "3905465f206b1add43b0de7611fc8128bd340e5edd96e021bacbbd5dd3164129",
+      "failures": [],
+      "mode": "neutral",
+      "observations": {
+        "changes": []
+      },
+      "ok": true,
+      "rename_map_applied": [],
+      "skipped": [],
+      "source": "src/halo/networking/network_client_message_handler.c",
+      "vc71_passed": true,
+      "warnings": []
+    }
+  ],
+  "created_tool_version": "source-recovery/1",
+  "git_head": "eb26aa973bf3a9b939c1b7ab89ee37c307376ab0",
+  "inventory": {
+    "absolute_address_dereferences": [],
+    "decompiler_style_locals": [],
+    "fun_calls": [
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:11:1",
+        "line": 11,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "char FUN_001277f0(void *client, void *source_address, void *message,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 12,
+        "id": "fun_calls:26:1",
+        "line": 26,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "if (!FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:49:1",
+        "line": 49,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "char FUN_001278d0(void *client, void *source_address, void *message,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 11,
+        "id": "fun_calls:63:1",
+        "line": 63,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "if (FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:90:1",
+        "line": 90,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "char FUN_001279a0(void *client, void *source_address, void *message,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 11,
+        "id": "fun_calls:102:1",
+        "line": 102,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "if (FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:129:1",
+        "line": 129,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "char FUN_00127a50(void *client, void *source_address, void *message,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 11,
+        "id": "fun_calls:143:1",
+        "line": 143,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "if (FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:175:1",
+        "line": 175,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "char FUN_00127b10(void *client, void *source_address, void *message,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 11,
+        "id": "fun_calls:189:1",
+        "line": 189,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "if (FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:224:1",
+        "line": 224,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "char FUN_00127bd0(void *client, void *source_address, void *message,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 11,
+        "id": "fun_calls:238:1",
+        "line": 238,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "if (FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:270:1",
+        "line": 270,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "char FUN_00127c90(void *client, void *source_address, void *message,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 12,
+        "id": "fun_calls:282:1",
+        "line": 282,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "if (!FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:306:1",
+        "line": 306,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "char FUN_00127d30(void *client, void *source_address, void *message,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 12,
+        "id": "fun_calls:320:1",
+        "line": 320,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "if (!FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:349:1",
+        "line": 349,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "char FUN_00127df0(void *client, void *source_address, void *message,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 12,
+        "id": "fun_calls:363:1",
+        "line": 363,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "if (!FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:416:1",
+        "line": 416,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "bool FUN_00127ea0(void *client, void *message, int message_size,"
+      },
+      {
+        "category": "symbol-names",
+        "column": 16,
+        "id": "fun_calls:464:1",
+        "line": 464,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "result = FUN_00127260(client, message, message_size, source_address);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 16,
+        "id": "fun_calls:471:1",
+        "line": 471,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "result = FUN_00127310(client, message, message_size, source_address);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 16,
+        "id": "fun_calls:478:1",
+        "line": 478,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "result = FUN_001273a0(client, source_address, message, message_size);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 16,
+        "id": "fun_calls:485:1",
+        "line": 485,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "result = FUN_00127440(client, source_address, message, message_size);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 16,
+        "id": "fun_calls:492:1",
+        "line": 492,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "result = FUN_001274E0(client, source_address, message, message_size);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 16,
+        "id": "fun_calls:500:1",
+        "line": 500,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "result = FUN_00127610(client, source_address, message, message_size);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 16,
+        "id": "fun_calls:507:1",
+        "line": 507,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "result = FUN_001278d0(client, source_address, message, message_size);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 16,
+        "id": "fun_calls:514:1",
+        "line": 514,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "result = FUN_001279a0(client, source_address, message, message_size);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 16,
+        "id": "fun_calls:521:1",
+        "line": 521,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "result = FUN_00127710(client, source_address, message, message_size);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 16,
+        "id": "fun_calls:529:1",
+        "line": 529,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "result = FUN_001277f0(client, source_address, message, message_size);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 16,
+        "id": "fun_calls:537:1",
+        "line": 537,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "result = FUN_00127a50(client, source_address, message, message_size);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 16,
+        "id": "fun_calls:544:1",
+        "line": 544,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "result = FUN_00127b10(client, source_address, message, message_size);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 16,
+        "id": "fun_calls:552:1",
+        "line": 552,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "result = FUN_00127bd0(client, source_address, message, message_size);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 16,
+        "id": "fun_calls:560:1",
+        "line": 560,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "result = FUN_00127c90(client, source_address, message, message_size);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 16,
+        "id": "fun_calls:567:1",
+        "line": 567,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "result = FUN_00127d30(client, source_address, message, message_size);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 16,
+        "id": "fun_calls:575:1",
+        "line": 575,
+        "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+        "status": "parked",
+        "text": "result = FUN_00127df0(client, source_address, message, message_size);"
+      }
+    ],
+    "inline_asm": [],
+    "raw_base_offset_dereferences": [
+      {
+        "category": "offset-to-field",
+        "column": 52,
+        "id": "raw_base_offset_dereferences:241:1",
+        "line": 241,
+        "reason": "no C89 struct with co()/cs() covers decoded+0x20. decoded is a 36-byte stack decode of message_server_remove_player_ingame (T1 sizeof==0x24 in network_messages.c case 22), but that struct is undefined; struct-define produced 0 items and this category must not invent one. Width is *(int*) at +0x20. Unrelated 0x20 fields (network_connection.datagrams_sent, player_control_t.desired_weapon_index, weapon_trigger_data_t.unk_560) bind other types/bases.",
+        "status": "parked",
+        "text": "*(int *)(decoded + 0x20));"
+      }
+    ],
+    "raw_function_pointer_address_casts": [],
+    "xcall_uses": []
+  },
+  "items": [
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:11:1",
+      "line": 11,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "char FUN_001277f0(void *client, void *source_address, void *message,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 12,
+      "id": "fun_calls:26:1",
+      "line": 26,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "if (!FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:49:1",
+      "line": 49,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "char FUN_001278d0(void *client, void *source_address, void *message,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 11,
+      "id": "fun_calls:63:1",
+      "line": 63,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "if (FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:90:1",
+      "line": 90,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "char FUN_001279a0(void *client, void *source_address, void *message,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 11,
+      "id": "fun_calls:102:1",
+      "line": 102,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "if (FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:129:1",
+      "line": 129,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "char FUN_00127a50(void *client, void *source_address, void *message,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 11,
+      "id": "fun_calls:143:1",
+      "line": 143,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "if (FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:175:1",
+      "line": 175,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "char FUN_00127b10(void *client, void *source_address, void *message,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 11,
+      "id": "fun_calls:189:1",
+      "line": 189,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "if (FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:224:1",
+      "line": 224,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "char FUN_00127bd0(void *client, void *source_address, void *message,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 11,
+      "id": "fun_calls:238:1",
+      "line": 238,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "if (FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:270:1",
+      "line": 270,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "char FUN_00127c90(void *client, void *source_address, void *message,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 12,
+      "id": "fun_calls:282:1",
+      "line": 282,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "if (!FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:306:1",
+      "line": 306,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "char FUN_00127d30(void *client, void *source_address, void *message,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 12,
+      "id": "fun_calls:320:1",
+      "line": 320,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "if (!FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:349:1",
+      "line": 349,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "char FUN_00127df0(void *client, void *source_address, void *message,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 12,
+      "id": "fun_calls:363:1",
+      "line": 363,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "if (!FUN_0012bce0((int)decoded, (int)message + 2, (short *)&message_size,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:416:1",
+      "line": 416,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "bool FUN_00127ea0(void *client, void *message, int message_size,"
+    },
+    {
+      "category": "symbol-names",
+      "column": 16,
+      "id": "fun_calls:464:1",
+      "line": 464,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "result = FUN_00127260(client, message, message_size, source_address);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 16,
+      "id": "fun_calls:471:1",
+      "line": 471,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "result = FUN_00127310(client, message, message_size, source_address);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 16,
+      "id": "fun_calls:478:1",
+      "line": 478,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "result = FUN_001273a0(client, source_address, message, message_size);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 16,
+      "id": "fun_calls:485:1",
+      "line": 485,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "result = FUN_00127440(client, source_address, message, message_size);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 16,
+      "id": "fun_calls:492:1",
+      "line": 492,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "result = FUN_001274E0(client, source_address, message, message_size);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 16,
+      "id": "fun_calls:500:1",
+      "line": 500,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "result = FUN_00127610(client, source_address, message, message_size);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 16,
+      "id": "fun_calls:507:1",
+      "line": 507,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "result = FUN_001278d0(client, source_address, message, message_size);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 16,
+      "id": "fun_calls:514:1",
+      "line": 514,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "result = FUN_001279a0(client, source_address, message, message_size);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 16,
+      "id": "fun_calls:521:1",
+      "line": 521,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "result = FUN_00127710(client, source_address, message, message_size);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 16,
+      "id": "fun_calls:529:1",
+      "line": 529,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "result = FUN_001277f0(client, source_address, message, message_size);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 16,
+      "id": "fun_calls:537:1",
+      "line": 537,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "result = FUN_00127a50(client, source_address, message, message_size);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 16,
+      "id": "fun_calls:544:1",
+      "line": 544,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "result = FUN_00127b10(client, source_address, message, message_size);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 16,
+      "id": "fun_calls:552:1",
+      "line": 552,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "result = FUN_00127bd0(client, source_address, message, message_size);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 16,
+      "id": "fun_calls:560:1",
+      "line": 560,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "result = FUN_00127c90(client, source_address, message, message_size);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 16,
+      "id": "fun_calls:567:1",
+      "line": 567,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "result = FUN_00127d30(client, source_address, message, message_size);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 16,
+      "id": "fun_calls:575:1",
+      "line": 575,
+      "reason": "kb.json still declares FUN_<addr> (T4). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json (and other TUs: network_client_manager.c, network_server_manager.c, network_server_message_handler.c), out of this category staging set. T1 log-string names exist (network_game_client_handle_message / decode_network_game_message / per-type handle_message_server_*) but are not in kb.json.",
+      "status": "parked",
+      "text": "result = FUN_00127df0(client, source_address, message, message_size);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 52,
+      "id": "raw_base_offset_dereferences:241:1",
+      "line": 241,
+      "reason": "no C89 struct with co()/cs() covers decoded+0x20. decoded is a 36-byte stack decode of message_server_remove_player_ingame (T1 sizeof==0x24 in network_messages.c case 22), but that struct is undefined; struct-define produced 0 items and this category must not invent one. Width is *(int*) at +0x20. Unrelated 0x20 fields (network_connection.datagrams_sent, player_control_t.desired_weapon_index, weapon_trigger_data_t.unk_560) bind other types/bases.",
+      "status": "parked",
+      "text": "*(int *)(decoded + 0x20));"
+    }
+  ],
+  "kind": "source-recovery-manifest",
+  "repo_relative_source": "src/halo/networking/network_client_message_handler.c",
+  "schema": 1,
+  "source_sha256": "3905465f206b1add43b0de7611fc8128bd340e5edd96e021bacbbd5dd3164129"
+}

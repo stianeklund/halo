@@ -136,15 +136,15 @@ void effects_stop_on_first_person_weapon(int local_player_index)
  * 0x9c910 / effects.obj */
 void FUN_0009c910(short *out)
 {
-  int iVar1;
+  int elem_index;
   char *effect;
 
   out[0] = (*(data_t **)0x5aa8b0)->unk_48;
   out[1] = (*(data_t **)0x5aa8ac)->unk_48;
   out[2] = 0;
-  for (iVar1 = data_next_index(*(data_t **)0x5aa8b0, -1); iVar1 != -1;
-       iVar1 = data_next_index(*(data_t **)0x5aa8b0, iVar1)) {
-    effect = (char *)datum_get(*(data_t **)0x5aa8b0, iVar1);
+  for (elem_index = data_next_index(*(data_t **)0x5aa8b0, -1); elem_index != -1;
+       elem_index = data_next_index(*(data_t **)0x5aa8b0, elem_index)) {
+    effect = (char *)datum_get(*(data_t **)0x5aa8b0, elem_index);
     if ((*(unsigned char *)(effect + 2) & 0x18) == 0) {
       out[2]++;
     }

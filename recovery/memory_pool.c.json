@@ -1,0 +1,2337 @@
+{
+  "allow_risky": false,
+  "baseline": {
+    "assertion_snapshot": {
+      "assertions": [],
+      "kind": "assert-metadata",
+      "schema": 1
+    },
+    "captured": true,
+    "coff_snapshot": {
+      "assertion_metadata": [],
+      "kind": "coff-candidate-neutrality",
+      "schema": 1,
+      "sections": [
+        {
+          "characteristics": 1615855648,
+          "executable": true,
+          "id": ".text#0",
+          "name": ".text",
+          "raw_bytes_hex": "5589e58b450883c0385dc30f1f4400005589e55357568b75108b5d0c8b7d086a386a0057e80000000083c40cc7076c6f6f708d47046a1f5350e80000000083c40c8d473889472489772889772cc7473000000000c74734000000005e5f5b5dc35589e58b45088b402c5dc30f1f4400005589e58b4d088b413485c074080340042b41245dc331c05dc30f1f80000000005589e58b4d088b513485d2740d8b412403520429d00341285dc331c00341285dc3662e0f1f8400000000000f1f4400005589e5568b4d0c8b45088b503485d274080352048b7024eb058b702489f203702801d131c039ce0f43c25e5dc30f1f005589e55357568b450881386c6f6f700f85240100008b482885c90f8e390100008b703031ff662e0f1f8400000000009085f6746089f2397e10755e8b720c85f675093950340f85ce000000813a646165680f85a2000000817a146c69617475798b782439d777528b5a0401d301cf39fb89d776bc6a01686701000068000000006800000000e80000000083c4106affe8000000005e5f5b5dc36a01686001000068000000006800000000e80000000083c4106affe8000000006a01686601000068000000006800000000e80000000083c4106affe8000000006a01686401000068000000006800000000e80000000083c4106affe8000000006a01686301000068000000006800000000e80000000083c4106affe8000000006a01686101000068000000006800000000e80000000083c4106affe8000000006a01685401000068000000006800000000e80000000083c4106affe8000000006a01685501000068000000006800000000e80000000083c4106affe8000000000f1f80000000005589e557568b750c85f67453833e00744e8b7d0857e80000000083c4048b068b48f039f175598b4f3085c9740e83c0e839c874278b490c85c975f56a01688401000068000000006800000000e80000000083c4106affe8000000005e5f5dc36a01687401000068000000006800000000e80000000083c4106affe800000000565168000000006800b15a00e80000000083c4106a01687b010000680000000050e80000000083c4106affe800000000905589e55357568b750c8d46386a4668000000006a0050e80000000083c41085c074458b5d086a386a005089c7e80000000083c40cc7076c6f6f708d47046a1f5350e80000000089f883c40c89f983c138894f2489772889772cc7473000000000c74734000000005e5f5b5dc30f1f40005589e5568b750856e80000000083c4046a386a0056e80000000083c40c6a55680000000056e80000000083c40c5e5dc35589e55357568b75088b5d108d431889c783cf0347f6c3030f44f856e80000000083c40485db78778b563485d274100352048b5e2489d131c085d2750feb5b8b562489d389d131c085d2744e01fa035e2839da77458b450cc70164616568897904894108c7410c000000008b5634895110c741146c696174837e30007503894e308b563485d27403894a0c894e34297e2c782983c1188908b0015e5f5b5dc36a016a7c68000000006800000000e80000000083c4106affe8000000006a01689c00000068000000006800000000e80000000083c4106affe8000000000f1f40005589e5568b7508ff750c56e80000000083c4088b4804034e2c894e2c3b4e287f348b48108d510c85c98d4e300f44d18b480c890a83c63485c98d49100f44ce8b50108911ff70046a0050e80000000083c40c5e5dc36a0168e600000068000000006800000000e80000000083c4106affe800000000662e0f1f840000000000905589e5535756508b4d088b413085c074568d7930894df08b592431f6eb346690ff70045053e80000000083c40c8d43188b4b08890189d98971108d460c85f60f44c789088b590401cb8b410c85c089ce740839d877ca89c1ebddc7410c000000008b45f089483483c4045e5f5b5de900000000662e0f1f8400000000000f1f005589e5535756508b75108b7d08ff750c57e80000000089f283c40889c68d421889c383cb0343f6c2030f44d885d20f88ec0000008b460c85c00f84ac00000089f101d939c10f86b2000000c745f0000000008d45f0525057e80000000083c40c84c00f84b40000008b460439c30f8eed00000083c0e8508b750cff36ff75f0e80000000083c40c5657e80000000083c4088b4804034f2c894f2c3b4f280f8fdd0000008b48108d510c85c98d4f300f44d18b480c890a8d573485c98d49100f44ca8b50108911ff70046a0050e80000000083c40c8d45f05057e80000000083c4088970088b45f08906eb278b472403472889f101d939c10f874effffff8b460429d803472c89472c78363947287c31895e04b00183c4045e5f5b5dc331c0ebf46a0168ae00000068000000006800000000e80000000083c4106affe8000000006a0168b800000068000000006800000000e80000000083c4106affe8000000006a0168c800000068000000006800000000e80000000083c4106affe8000000006a0168e600000068000000006800000000e80000000083c4106affe800000000",
+          "raw_size": 1856,
+          "relocations": [
+            {
+              "offset": 37,
+              "target": {
+                "name": "_csmemset",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 58,
+              "target": {
+                "name": "_csstrncpy",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 364,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 369,
+              "target": {
+                "data": {
+                  "bytes_hex": "2862797465202a29626c6f636b2b626c6f636b2d3e73697a653c3d2862797465202a29706f6f6c2d3e626173655f616464726573732b706f6f6c2d3e73697a6500",
+                  "section": ".rdata#8",
+                  "value": 0
+                },
+                "name": "??_C@_0EB@NADHALE@?$CIbyte?5?$CK?$CJblock?$CLblock?9?$DOsize?$DM?$DN?$CIbyte@",
+                "section": ".rdata#8",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 374,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 384,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 401,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 406,
+              "target": {
+                "data": {
+                  "bytes_hex": "626c6f636b2d3e70726576696f75735f626c6f636b3d3d70726576696f75735f626c6f636b00",
+                  "section": ".rdata#3",
+                  "value": 0
+                },
+                "name": "??_C@_0CG@CJPANJAP@block?9?$DOprevious_block?$DN?$DNprevious_@",
+                "section": ".rdata#3",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 411,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 421,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 433,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 438,
+              "target": {
+                "data": {
+                  "bytes_hex": "2862797465202a29626c6f636b3e3d2862797465202a29706f6f6c2d3e626173655f6164647265737300",
+                  "section": ".rdata#7",
+                  "value": 0
+                },
+                "name": "??_C@_0CK@LLMKELFI@?$CIbyte?5?$CK?$CJblock?$DO?$DN?$CIbyte?5?$CK?$CJpool?9?$DObas@",
+                "section": ".rdata#7",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 443,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 453,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 465,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 470,
+              "target": {
+                "data": {
+                  "bytes_hex": "626c6f636b2d3e747261696c65725f7369676e61747572653d3d424c4f434b5f545241494c45525f5349474e415455524500",
+                  "section": ".rdata#6",
+                  "value": 0
+                },
+                "name": "??_C@_0DC@HIOFDAGC@block?9?$DOtrailer_signature?$DN?$DNBLOCK_@",
+                "section": ".rdata#6",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 475,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 485,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 497,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 502,
+              "target": {
+                "data": {
+                  "bytes_hex": "626c6f636b2d3e6865616465725f7369676e61747572653d3d424c4f434b5f4845414445525f5349474e415455524500",
+                  "section": ".rdata#5",
+                  "value": 0
+                },
+                "name": "??_C@_0DA@IHOELNEF@block?9?$DOheader_signature?$DN?$DNBLOCK_H@",
+                "section": ".rdata#5",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 507,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 517,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 529,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 534,
+              "target": {
+                "data": {
+                  "bytes_hex": "626c6f636b2d3e6e6578745f626c6f636b207c7c20706f6f6c2d3e6c6173745f626c6f636b3d3d626c6f636b00",
+                  "section": ".rdata#4",
+                  "value": 0
+                },
+                "name": "??_C@_0CN@BLDKBJCH@block?9?$DOnext_block?5?$HM?$HM?5pool?9?$DOlast_@",
+                "section": ".rdata#4",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 539,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 549,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 561,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 566,
+              "target": {
+                "data": {
+                  "bytes_hex": "706f6f6c2d3e7369676e61747572653d3d504f4f4c5f5349474e415455524500",
+                  "section": ".rdata#1",
+                  "value": 0
+                },
+                "name": "??_C@_0CA@HGIACAOK@pool?9?$DOsignature?$DN?$DNPOOL_SIGNATURE?$AA@",
+                "section": ".rdata#1",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 571,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 581,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 593,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 598,
+              "target": {
+                "data": {
+                  "bytes_hex": "706f6f6c2d3e73697a653e3000",
+                  "section": ".rdata#2",
+                  "value": 0
+                },
+                "name": "??_C@_0N@EHOFABCJ@pool?9?$DOsize?$DO0?$AA@",
+                "section": ".rdata#2",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 603,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 613,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 646,
+              "target": {
+                "name": "_FUN_0011e430",
+                "section": ".text#0",
+                "value": 240
+              },
+              "type": 20
+            },
+            {
+              "offset": 691,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 696,
+              "target": {
+                "data": {
+                  "bytes_hex": "6f746865725f626c6f636b00",
+                  "section": ".rdata#11",
+                  "value": 0
+                },
+                "name": "??_C@_0M@MJBIHABJ@other_block?$AA@",
+                "section": ".rdata#11",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 701,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 711,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 727,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 732,
+              "target": {
+                "data": {
+                  "bytes_hex": "7265666572656e636520262620282a7265666572656e63652900",
+                  "section": ".rdata#9",
+                  "value": 0
+                },
+                "name": "??_C@_0BK@MFLHGBFC@reference?5?$CG?$CG?5?$CI?$CKreference?$CJ?$AA@",
+                "section": ".rdata#9",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 737,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 747,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 754,
+              "target": {
+                "data": {
+                  "bytes_hex": "6578706563746564207265666572656e636520253038782062757420676f74202530387800",
+                  "section": ".rdata#10",
+                  "value": 0
+                },
+                "name": "??_C@_0CF@IJNEMAOG@expected?5reference?5?$CF08x?5but?5got?5@",
+                "section": ".rdata#10",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 764,
+              "target": {
+                "name": "_csprintf",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 779,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 785,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 795,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 815,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 823,
+              "target": {
+                "name": "_debug_malloc",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 845,
+              "target": {
+                "name": "_csmemset",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 866,
+              "target": {
+                "name": "_csstrncpy",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 921,
+              "target": {
+                "name": "_FUN_0011e430",
+                "section": ".text#0",
+                "value": 240
+              },
+              "type": 20
+            },
+            {
+              "offset": 934,
+              "target": {
+                "name": "_csmemset",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 944,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 950,
+              "target": {
+                "name": "_debug_free",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 989,
+              "target": {
+                "name": "_FUN_0011e430",
+                "section": ".text#0",
+                "value": 240
+              },
+              "type": 20
+            },
+            {
+              "offset": 1124,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1129,
+              "target": {
+                "data": {
+                  "bytes_hex": "73697a653e3d3000",
+                  "section": ".rdata#12",
+                  "value": 0
+                },
+                "name": "??_C@_07LOEGKGOL@size?$DO?$DN0?$AA@",
+                "section": ".rdata#12",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1134,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1144,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1156,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1161,
+              "target": {
+                "data": {
+                  "bytes_hex": "706f6f6c2d3e667265655f73697a653e3d3000",
+                  "section": ".rdata#13",
+                  "value": 0
+                },
+                "name": "??_C@_0BD@IKFFHLNA@pool?9?$DOfree_size?$DO?$DN0?$AA@",
+                "section": ".rdata#13",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1166,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1176,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1196,
+              "target": {
+                "name": "_FUN_0011e5a0",
+                "section": ".text#0",
+                "value": 624
+              },
+              "type": 20
+            },
+            {
+              "offset": 1259,
+              "target": {
+                "name": "_csmemset",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1277,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1282,
+              "target": {
+                "data": {
+                  "bytes_hex": "706f6f6c2d3e667265655f73697a653c3d706f6f6c2d3e73697a6500",
+                  "section": ".rdata#14",
+                  "value": 0
+                },
+                "name": "??_C@_0BM@JADHFLPK@pool?9?$DOfree_size?$DM?$DNpool?9?$DOsize?$AA@",
+                "section": ".rdata#14",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1287,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1297,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1350,
+              "target": {
+                "name": "_csmemmove",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1423,
+              "target": {
+                "name": "_FUN_0011e430",
+                "section": ".text#0",
+                "value": 240
+              },
+              "type": 20
+            },
+            {
+              "offset": 1458,
+              "target": {
+                "name": "_FUN_0011e5a0",
+                "section": ".text#0",
+                "value": 624
+              },
+              "type": 20
+            },
+            {
+              "offset": 1529,
+              "target": {
+                "name": "_memory_pool_block_new",
+                "section": ".text#0",
+                "value": 960
+              },
+              "type": 20
+            },
+            {
+              "offset": 1568,
+              "target": {
+                "name": "_csmemcpy",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1578,
+              "target": {
+                "name": "_FUN_0011e5a0",
+                "section": ".text#0",
+                "value": 624
+              },
+              "type": 20
+            },
+            {
+              "offset": 1645,
+              "target": {
+                "name": "_csmemset",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1658,
+              "target": {
+                "name": "_FUN_0011e5a0",
+                "section": ".text#0",
+                "value": 624
+              },
+              "type": 20
+            },
+            {
+              "offset": 1736,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1741,
+              "target": {
+                "data": {
+                  "bytes_hex": "6e65775f73697a653e3d3000",
+                  "section": ".rdata#15",
+                  "value": 0
+                },
+                "name": "??_C@_0M@PJCPCKMH@new_size?$DO?$DN0?$AA@",
+                "section": ".rdata#15",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1746,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1756,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1768,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1773,
+              "target": {
+                "data": {
+                  "bytes_hex": "706f6f6c2d3e667265655f73697a653e3d3020262620706f6f6c2d3e667265655f73697a653c3d706f6f6c2d3e73697a6500",
+                  "section": ".rdata#16",
+                  "value": 0
+                },
+                "name": "??_C@_0DC@FAPCJHLD@pool?9?$DOfree_size?$DO?$DN0?5?$CG?$CG?5pool?9?$DOfree@",
+                "section": ".rdata#16",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1778,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1788,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1800,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1805,
+              "target": {
+                "data": {
+                  "bytes_hex": "61637475616c5f6e65775f73697a653e626c6f636b2d3e73697a6500",
+                  "section": ".rdata#17",
+                  "value": 0
+                },
+                "name": "??_C@_0BM@HDOIAFHN@actual_new_size?$DOblock?9?$DOsize?$AA@",
+                "section": ".rdata#17",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1810,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1820,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1832,
+              "target": {
+                "data": {
+                  "bytes_hex": "633a5c68616c6f5c534f555243455c6d656d6f72795c6d656d6f72795f706f6f6c2e6300",
+                  "section": ".rdata#0",
+                  "value": 0
+                },
+                "name": "??_C@_0CE@POLAKNJH@c?3?2halo?2SOURCE?2memory?2memory_poo@",
+                "section": ".rdata#0",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1837,
+              "target": {
+                "data": {
+                  "bytes_hex": "706f6f6c2d3e667265655f73697a653c3d706f6f6c2d3e73697a6500",
+                  "section": ".rdata#14",
+                  "value": 0
+                },
+                "name": "??_C@_0BM@JADHFLPK@pool?9?$DOfree_size?$DM?$DNpool?9?$DOsize?$AA@",
+                "section": ".rdata#14",
+                "value": 0
+              },
+              "type": 6
+            },
+            {
+              "offset": 1842,
+              "target": {
+                "name": "_display_assert",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            },
+            {
+              "offset": 1852,
+              "target": {
+                "name": "_system_exit",
+                "section": 0,
+                "value": 0
+              },
+              "type": 20
+            }
+          ]
+        },
+        {
+          "characteristics": 3224371264,
+          "executable": false,
+          "id": ".data#0",
+          "name": ".data",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        },
+        {
+          "characteristics": 3224371328,
+          "executable": false,
+          "id": ".bss#0",
+          "name": ".bss",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#0",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 36,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#1",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 32,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#2",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 13,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#3",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 38,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#4",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 45,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#5",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 48,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#6",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 50,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#7",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 42,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#8",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 65,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#9",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 26,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#10",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 37,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#11",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 12,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#12",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 8,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#13",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 19,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#14",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 28,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#15",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 12,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#16",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 50,
+          "relocations": []
+        },
+        {
+          "characteristics": 1074794560,
+          "executable": false,
+          "id": ".rdata#17",
+          "name": ".rdata",
+          "raw_bytes_hex": null,
+          "raw_size": 28,
+          "relocations": []
+        },
+        {
+          "characteristics": 1051136,
+          "executable": false,
+          "id": ".drectve#0",
+          "name": ".drectve",
+          "raw_bytes_hex": null,
+          "raw_size": 430,
+          "relocations": []
+        },
+        {
+          "characteristics": 1050624,
+          "executable": false,
+          "id": ".llvm_addrsig#0",
+          "name": ".llvm_addrsig",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        }
+      ]
+    },
+    "object_relative_path": "build/CMakeFiles/halo.dir/src/halo/memory/memory_pool.c.obj",
+    "object_sha256": "93e40a63dcc08230d486ba9b82220e3ef4dc6f299b0000d2f488d65cbf1841f9"
+  },
+  "checks": [],
+  "created_tool_version": "source-recovery/1",
+  "git_head": "ef359042ae904fdfa922e0d46ae5d5912ec54d38",
+  "inventory": {
+    "absolute_address_dereferences": [],
+    "decompiler_style_locals": [],
+    "fun_calls": [
+      {
+        "category": "symbol-names",
+        "column": 14,
+        "id": "fun_calls:58:1",
+        "line": 58,
+        "reason": "kb.json still declares unsigned int FUN_0011e400(void *pool @<eax>, int size) (T4). No T1 assert/format-string names this function (__FILE__ names the TU only; the body has no display_assert). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "unsigned int FUN_0011e400(void *pool, int size)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:78:1",
+        "line": 78,
+        "reason": "kb.json still declares void FUN_0011e430(void *pool @<edi>) (T4). Asserts name fields/constants (POOL_SIGNATURE, BLOCK_HEADER_SIGNATURE, ...) and __FILE__ names the TU, not this function. Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "void FUN_0011e430(void *pool)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "fun_calls:146:1",
+        "line": 146,
+        "reason": "kb.json still declares void *FUN_0011e5a0(void *pool @<eax>, void **block_reference @<esi>) (T4). Asserts name the reference-null check and other_block; format string 'expected reference %08x but got %08x' is not a function name. Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "void *FUN_0011e5a0(void *pool, void **block_reference)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "fun_calls:159:1",
+        "line": 159,
+        "reason": "Call site of FUN_0011e430; kb.json decl is still FUN_0011e430 (T4). No T1 function-name evidence (asserts name fields/constants; __FILE__ names the TU). Rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "FUN_0011e430(pool);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "fun_calls:202:1",
+        "line": 202,
+        "reason": "Call site of FUN_0011e430; kb.json decl is still FUN_0011e430 (T4). No T1 function-name evidence (asserts name fields/constants; __FILE__ names the TU). Rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "FUN_0011e430(pool);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "fun_calls:221:1",
+        "line": 221,
+        "reason": "Call site of FUN_0011e430; kb.json decl is still FUN_0011e430 (T4). No T1 function-name evidence (asserts name fields/constants; __FILE__ names the TU). Rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "FUN_0011e430(pool);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 25,
+        "id": "fun_calls:277:1",
+        "line": 277,
+        "reason": "Call site of FUN_0011e5a0; kb.json decl is still FUN_0011e5a0 (T4). No T1 function-name evidence (asserts name reference/other_block; format string is not a function name). Rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "char *block = (char *)FUN_0011e5a0(pool, block_reference);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 3,
+        "id": "fun_calls:336:1",
+        "line": 336,
+        "reason": "Call site of FUN_0011e430; kb.json decl is still FUN_0011e430 (T4). No T1 function-name evidence (asserts name fields/constants; __FILE__ names the TU). Rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "FUN_0011e430(pool);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 19,
+        "id": "fun_calls:357:1",
+        "line": 357,
+        "reason": "Call site of FUN_0011e5a0; kb.json decl is still FUN_0011e5a0 (T4). No T1 function-name evidence (asserts name reference/other_block; format string is not a function name). Rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "block = (char *)FUN_0011e5a0(pool, block_reference);"
+      },
+      {
+        "category": "symbol-names",
+        "column": 32,
+        "id": "fun_calls:392:1",
+        "line": 392,
+        "reason": "Call site of FUN_0011e5a0; kb.json decl is still FUN_0011e5a0 (T4). No T1 function-name evidence (asserts name reference/other_block; format string is not a function name). Rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+        "status": "parked",
+        "text": "new_block_header = (char *)FUN_0011e5a0(pool, (void **)&new_block);"
+      }
+    ],
+    "inline_asm": [],
+    "raw_base_offset_dereferences": [
+      {
+        "category": "offset-to-field",
+        "column": 20,
+        "id": "raw_base_offset_dereferences:45:1",
+        "line": 45,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "int last_block = *(int *)(p + 0x34);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 40,
+        "id": "raw_base_offset_dereferences:51:1",
+        "line": 51,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "used = (*(int *)(last_block + 4) - *(int *)(p + 0x24)) + last_block;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 10,
+        "id": "raw_base_offset_dereferences:53:1",
+        "line": 53,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "return *(int *)(p + 0x28) - used;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 16,
+        "id": "raw_base_offset_dereferences:64:1",
+        "line": 64,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "last_block = *(int *)(p + 0x34);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 19,
+        "id": "raw_base_offset_dereferences:68:1",
+        "line": 68,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "alloc_point = *(unsigned int *)(p + 0x24);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 27,
+        "id": "raw_base_offset_dereferences:70:1",
+        "line": 70,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "return ~-(unsigned int)(*(unsigned int *)(p + 0x28) +"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 29,
+        "id": "raw_base_offset_dereferences:71:1",
+        "line": 71,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(unsigned int *)(p + 0x24) <"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:90:1",
+        "line": 90,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "if (*(int *)(p + 0x28) <= 0) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 9,
+        "id": "raw_base_offset_dereferences:106:1",
+        "line": 106,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "if (*(int *)(block + 0x0c) == 0 && *(char **)(p + 0x34) != block) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 9,
+        "id": "raw_base_offset_dereferences:118:1",
+        "line": 118,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "if (*(int *)(block + 0x14) != 0x7461696c) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 45,
+        "id": "raw_base_offset_dereferences:124:1",
+        "line": 124,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "if ((unsigned int)block < (unsigned int)*(int *)(p + 0x24)) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 24,
+        "id": "raw_base_offset_dereferences:130:1",
+        "line": 130,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "if ((unsigned int)(*(int *)(block + 0x04) + (int)block) >"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 24,
+        "id": "raw_base_offset_dereferences:131:1",
+        "line": 131,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "(unsigned int)(*(int *)(p + 0x28) + *(int *)(p + 0x24))) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 45,
+        "id": "raw_base_offset_dereferences:131:2",
+        "line": 131,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "(unsigned int)(*(int *)(p + 0x28) + *(int *)(p + 0x24))) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:229:1",
+        "line": 229,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "if (*(int *)(p + 0x34) != 0) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 24,
+        "id": "raw_base_offset_dereferences:237:1",
+        "line": 237,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "(unsigned int)(*(int *)(p + 0x28) + *(int *)(p + 0x24)) ||"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 45,
+        "id": "raw_base_offset_dereferences:237:2",
+        "line": 237,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "(unsigned int)(*(int *)(p + 0x28) + *(int *)(p + 0x24)) ||"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:242:1",
+        "line": 242,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(int *)(alloc_point + 0x00) = 0x68656164;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:243:1",
+        "line": 243,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(unsigned int *)(alloc_point + 0x04) = total_size;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:245:1",
+        "line": 245,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(int *)(alloc_point + 0x0c) = 0;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:246:1",
+        "line": 246,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(int *)(alloc_point + 0x10) = *(int *)(p + 0x34);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 34,
+        "id": "raw_base_offset_dereferences:246:2",
+        "line": 246,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(int *)(alloc_point + 0x10) = *(int *)(p + 0x34);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:247:1",
+        "line": 247,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(int *)(alloc_point + 0x14) = 0x7461696c;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:249:1",
+        "line": 249,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "if (*(int *)(p + 0x30) == 0)"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:252:1",
+        "line": 252,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "if (*(int *)(p + 0x34) != 0)"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 21,
+        "id": "raw_base_offset_dereferences:258:1",
+        "line": 258,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "int free_size = *(int *)(p + 0x2c) - (int)total_size;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:259:1",
+        "line": 259,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(int *)(p + 0x2c) = free_size;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 15,
+        "id": "raw_base_offset_dereferences:280:1",
+        "line": 280,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "free_size = *(int *)(p + 0x2c) + *(int *)(block + 4);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 3,
+        "id": "raw_base_offset_dereferences:281:1",
+        "line": 281,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(int *)(p + 0x2c) = free_size;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 19,
+        "id": "raw_base_offset_dereferences:283:1",
+        "line": 283,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "if (free_size > *(int *)(p + 0x28)) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:289:1",
+        "line": 289,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "if (*(int *)(block + 0x10) == 0) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:290:1",
+        "line": 290,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(int *)(p + 0x30) = *(int *)(block + 0x0c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 26,
+        "id": "raw_base_offset_dereferences:290:2",
+        "line": 290,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(int *)(p + 0x30) = *(int *)(block + 0x0c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 14,
+        "id": "raw_base_offset_dereferences:292:1",
+        "line": 292,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(int *)(*(int *)(block + 0x10) + 0x0c) = *(int *)(block + 0x0c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 47,
+        "id": "raw_base_offset_dereferences:292:2",
+        "line": 292,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(int *)(*(int *)(block + 0x10) + 0x0c) = *(int *)(block + 0x0c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:295:1",
+        "line": 295,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "if (*(int *)(block + 0x0c) != 0) {"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 14,
+        "id": "raw_base_offset_dereferences:296:1",
+        "line": 296,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(int *)(*(int *)(block + 0x0c) + 0x10) = *(int *)(block + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 47,
+        "id": "raw_base_offset_dereferences:296:2",
+        "line": 296,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(int *)(*(int *)(block + 0x0c) + 0x10) = *(int *)(block + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:298:1",
+        "line": 298,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(int *)(p + 0x34) = *(int *)(block + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 26,
+        "id": "raw_base_offset_dereferences:298:2",
+        "line": 298,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(int *)(p + 0x34) = *(int *)(block + 0x10);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 7,
+        "id": "raw_base_offset_dereferences:323:1",
+        "line": 323,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(unsigned int *)(block + 0x10) = prev;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 9,
+        "id": "raw_base_offset_dereferences:325:1",
+        "line": 325,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(unsigned int *)(prev + 0x0c) = block;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 15,
+        "id": "raw_base_offset_dereferences:331:1",
+        "line": 331,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "block = *(unsigned int *)(block + 0x0c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 5,
+        "id": "raw_base_offset_dereferences:333:1",
+        "line": 333,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "*(unsigned int *)(prev + 0x0c) = 0;"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 17,
+        "id": "raw_base_offset_dereferences:367:1",
+        "line": 367,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "next_or_end = *(unsigned int *)(block + 0x0c);"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 34,
+        "id": "raw_base_offset_dereferences:370:1",
+        "line": 370,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "next_or_end = (unsigned int)(*(int *)(p + 0x28) + *(int *)(p + 0x24));"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 55,
+        "id": "raw_base_offset_dereferences:370:2",
+        "line": 370,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "next_or_end = (unsigned int)(*(int *)(p + 0x28) + *(int *)(p + 0x24));"
+      },
+      {
+        "category": "offset-to-field",
+        "column": 29,
+        "id": "raw_base_offset_dereferences:375:1",
+        "line": 375,
+        "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+        "status": "parked",
+        "text": "if ((free_size < 0) || (*(int *)(p + 0x28) < free_size)) {"
+      }
+    ],
+    "raw_function_pointer_address_casts": [],
+    "xcall_uses": []
+  },
+  "items": [
+    {
+      "category": "symbol-names",
+      "column": 14,
+      "id": "fun_calls:58:1",
+      "line": 58,
+      "reason": "kb.json still declares unsigned int FUN_0011e400(void *pool @<eax>, int size) (T4). No T1 assert/format-string names this function (__FILE__ names the TU only; the body has no display_assert). Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "unsigned int FUN_0011e400(void *pool, int size)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:78:1",
+      "line": 78,
+      "reason": "kb.json still declares void FUN_0011e430(void *pool @<edi>) (T4). Asserts name fields/constants (POOL_SIGNATURE, BLOCK_HEADER_SIGNATURE, ...) and __FILE__ names the TU, not this function. Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "void FUN_0011e430(void *pool)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "fun_calls:146:1",
+      "line": 146,
+      "reason": "kb.json still declares void *FUN_0011e5a0(void *pool @<eax>, void **block_reference @<esi>) (T4). Asserts name the reference-null check and other_block; format string 'expected reference %08x but got %08x' is not a function name. Call-site replacement requires an already-named kb.json symbol; a rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "void *FUN_0011e5a0(void *pool, void **block_reference)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "fun_calls:159:1",
+      "line": 159,
+      "reason": "Call site of FUN_0011e430; kb.json decl is still FUN_0011e430 (T4). No T1 function-name evidence (asserts name fields/constants; __FILE__ names the TU). Rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "FUN_0011e430(pool);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "fun_calls:202:1",
+      "line": 202,
+      "reason": "Call site of FUN_0011e430; kb.json decl is still FUN_0011e430 (T4). No T1 function-name evidence (asserts name fields/constants; __FILE__ names the TU). Rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "FUN_0011e430(pool);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "fun_calls:221:1",
+      "line": 221,
+      "reason": "Call site of FUN_0011e430; kb.json decl is still FUN_0011e430 (T4). No T1 function-name evidence (asserts name fields/constants; __FILE__ names the TU). Rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "FUN_0011e430(pool);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 25,
+      "id": "fun_calls:277:1",
+      "line": 277,
+      "reason": "Call site of FUN_0011e5a0; kb.json decl is still FUN_0011e5a0 (T4). No T1 function-name evidence (asserts name reference/other_block; format string is not a function name). Rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "char *block = (char *)FUN_0011e5a0(pool, block_reference);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 3,
+      "id": "fun_calls:336:1",
+      "line": 336,
+      "reason": "Call site of FUN_0011e430; kb.json decl is still FUN_0011e430 (T4). No T1 function-name evidence (asserts name fields/constants; __FILE__ names the TU). Rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "FUN_0011e430(pool);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 19,
+      "id": "fun_calls:357:1",
+      "line": 357,
+      "reason": "Call site of FUN_0011e5a0; kb.json decl is still FUN_0011e5a0 (T4). No T1 function-name evidence (asserts name reference/other_block; format string is not a function name). Rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "block = (char *)FUN_0011e5a0(pool, block_reference);"
+    },
+    {
+      "category": "symbol-names",
+      "column": 32,
+      "id": "fun_calls:392:1",
+      "line": 392,
+      "reason": "Call site of FUN_0011e5a0; kb.json decl is still FUN_0011e5a0 (T4). No T1 function-name evidence (asserts name reference/other_block; format string is not a function name). Rename would need fun_pipeline.py + kb.json, out of this category staging set.",
+      "status": "parked",
+      "text": "new_block_header = (char *)FUN_0011e5a0(pool, (void **)&new_block);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 20,
+      "id": "raw_base_offset_dereferences:45:1",
+      "line": 45,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "int last_block = *(int *)(p + 0x34);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 40,
+      "id": "raw_base_offset_dereferences:51:1",
+      "line": 51,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "used = (*(int *)(last_block + 4) - *(int *)(p + 0x24)) + last_block;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 10,
+      "id": "raw_base_offset_dereferences:53:1",
+      "line": 53,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "return *(int *)(p + 0x28) - used;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 16,
+      "id": "raw_base_offset_dereferences:64:1",
+      "line": 64,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "last_block = *(int *)(p + 0x34);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 19,
+      "id": "raw_base_offset_dereferences:68:1",
+      "line": 68,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "alloc_point = *(unsigned int *)(p + 0x24);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 27,
+      "id": "raw_base_offset_dereferences:70:1",
+      "line": 70,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "return ~-(unsigned int)(*(unsigned int *)(p + 0x28) +"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 29,
+      "id": "raw_base_offset_dereferences:71:1",
+      "line": 71,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(unsigned int *)(p + 0x24) <"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:90:1",
+      "line": 90,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "if (*(int *)(p + 0x28) <= 0) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 9,
+      "id": "raw_base_offset_dereferences:106:1",
+      "line": 106,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "if (*(int *)(block + 0x0c) == 0 && *(char **)(p + 0x34) != block) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 9,
+      "id": "raw_base_offset_dereferences:118:1",
+      "line": 118,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "if (*(int *)(block + 0x14) != 0x7461696c) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 45,
+      "id": "raw_base_offset_dereferences:124:1",
+      "line": 124,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "if ((unsigned int)block < (unsigned int)*(int *)(p + 0x24)) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 24,
+      "id": "raw_base_offset_dereferences:130:1",
+      "line": 130,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "if ((unsigned int)(*(int *)(block + 0x04) + (int)block) >"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 24,
+      "id": "raw_base_offset_dereferences:131:1",
+      "line": 131,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "(unsigned int)(*(int *)(p + 0x28) + *(int *)(p + 0x24))) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 45,
+      "id": "raw_base_offset_dereferences:131:2",
+      "line": 131,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "(unsigned int)(*(int *)(p + 0x28) + *(int *)(p + 0x24))) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:229:1",
+      "line": 229,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "if (*(int *)(p + 0x34) != 0) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 24,
+      "id": "raw_base_offset_dereferences:237:1",
+      "line": 237,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "(unsigned int)(*(int *)(p + 0x28) + *(int *)(p + 0x24)) ||"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 45,
+      "id": "raw_base_offset_dereferences:237:2",
+      "line": 237,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "(unsigned int)(*(int *)(p + 0x28) + *(int *)(p + 0x24)) ||"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:242:1",
+      "line": 242,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(int *)(alloc_point + 0x00) = 0x68656164;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:243:1",
+      "line": 243,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(unsigned int *)(alloc_point + 0x04) = total_size;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:245:1",
+      "line": 245,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(int *)(alloc_point + 0x0c) = 0;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:246:1",
+      "line": 246,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(int *)(alloc_point + 0x10) = *(int *)(p + 0x34);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 34,
+      "id": "raw_base_offset_dereferences:246:2",
+      "line": 246,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(int *)(alloc_point + 0x10) = *(int *)(p + 0x34);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:247:1",
+      "line": 247,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(int *)(alloc_point + 0x14) = 0x7461696c;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:249:1",
+      "line": 249,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "if (*(int *)(p + 0x30) == 0)"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:252:1",
+      "line": 252,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "if (*(int *)(p + 0x34) != 0)"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 21,
+      "id": "raw_base_offset_dereferences:258:1",
+      "line": 258,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "int free_size = *(int *)(p + 0x2c) - (int)total_size;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:259:1",
+      "line": 259,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(int *)(p + 0x2c) = free_size;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 15,
+      "id": "raw_base_offset_dereferences:280:1",
+      "line": 280,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "free_size = *(int *)(p + 0x2c) + *(int *)(block + 4);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 3,
+      "id": "raw_base_offset_dereferences:281:1",
+      "line": 281,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(int *)(p + 0x2c) = free_size;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 19,
+      "id": "raw_base_offset_dereferences:283:1",
+      "line": 283,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "if (free_size > *(int *)(p + 0x28)) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:289:1",
+      "line": 289,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "if (*(int *)(block + 0x10) == 0) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:290:1",
+      "line": 290,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(int *)(p + 0x30) = *(int *)(block + 0x0c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 26,
+      "id": "raw_base_offset_dereferences:290:2",
+      "line": 290,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(int *)(p + 0x30) = *(int *)(block + 0x0c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 14,
+      "id": "raw_base_offset_dereferences:292:1",
+      "line": 292,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(int *)(*(int *)(block + 0x10) + 0x0c) = *(int *)(block + 0x0c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 47,
+      "id": "raw_base_offset_dereferences:292:2",
+      "line": 292,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(int *)(*(int *)(block + 0x10) + 0x0c) = *(int *)(block + 0x0c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:295:1",
+      "line": 295,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "if (*(int *)(block + 0x0c) != 0) {"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 14,
+      "id": "raw_base_offset_dereferences:296:1",
+      "line": 296,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(int *)(*(int *)(block + 0x0c) + 0x10) = *(int *)(block + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 47,
+      "id": "raw_base_offset_dereferences:296:2",
+      "line": 296,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(int *)(*(int *)(block + 0x0c) + 0x10) = *(int *)(block + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:298:1",
+      "line": 298,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(int *)(p + 0x34) = *(int *)(block + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 26,
+      "id": "raw_base_offset_dereferences:298:2",
+      "line": 298,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(int *)(p + 0x34) = *(int *)(block + 0x10);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 7,
+      "id": "raw_base_offset_dereferences:323:1",
+      "line": 323,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(unsigned int *)(block + 0x10) = prev;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 9,
+      "id": "raw_base_offset_dereferences:325:1",
+      "line": 325,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(unsigned int *)(prev + 0x0c) = block;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 15,
+      "id": "raw_base_offset_dereferences:331:1",
+      "line": 331,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "block = *(unsigned int *)(block + 0x0c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 5,
+      "id": "raw_base_offset_dereferences:333:1",
+      "line": 333,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "*(unsigned int *)(prev + 0x0c) = 0;"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 17,
+      "id": "raw_base_offset_dereferences:367:1",
+      "line": 367,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "next_or_end = *(unsigned int *)(block + 0x0c);"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 34,
+      "id": "raw_base_offset_dereferences:370:1",
+      "line": 370,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "next_or_end = (unsigned int)(*(int *)(p + 0x28) + *(int *)(p + 0x24));"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 55,
+      "id": "raw_base_offset_dereferences:370:2",
+      "line": 370,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "next_or_end = (unsigned int)(*(int *)(p + 0x28) + *(int *)(p + 0x24));"
+    },
+    {
+      "category": "offset-to-field",
+      "column": 29,
+      "id": "raw_base_offset_dereferences:375:1",
+      "line": 375,
+      "reason": "No existing C89 memory_pool or block-header struct with co()/cs() covering the replaced offsets. Confirmed: src/types.h has no memory_pool type (the size=0x38 data_t header is a different layout: name[32] at +0, not 'pool' signature); src/halo/memory/ has no headers; memory_pool.c has only void* plus raw *(int*)(p+0x24/0x28/0x34) and block+4/0x0c/0x14; stack_memory_pool is a 0x34-byte layout and is not bound. Offset-to-field cannot invent structs; struct-define had no items.",
+      "status": "parked",
+      "text": "if ((free_size < 0) || (*(int *)(p + 0x28) < free_size)) {"
+    }
+  ],
+  "kind": "source-recovery-manifest",
+  "repo_relative_source": "src/halo/memory/memory_pool.c",
+  "schema": 1,
+  "source_sha256": "fe2af93f0826adfc731191dafa6ba1140a83d0cd9746e8b0d121a2b707ca3ddb"
+}

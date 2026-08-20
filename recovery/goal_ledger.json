@@ -1,5 +1,20 @@
 {
   "objects": {
+    "actors.obj": {
+      "categories_done": [
+        "local-renames",
+        "offset-to-field"
+      ],
+      "commits": [
+        "7ca6b3b5f69d1d8d301d8f65ef7b6a1d35009d35",
+        "dc39c2a247bfb2f37c51d526945258cdd37e6d78",
+        "d6a1b3958bc20723ad80caa8857de72d59f1e194"
+      ],
+      "finished": "2026-08-20",
+      "reason": null,
+      "started": "2026-08-20",
+      "status": "done"
+    },
     "circular_queue.obj": {
       "categories_done": [
         "local-renames",
@@ -26,6 +41,56 @@
       "started": "2026-08-03",
       "status": "done"
     },
+    "effects.obj": {
+      "categories_done": [
+        "local-renames"
+      ],
+      "commits": [
+        "d6f4d69aec5be37acbb077847edad31e2ee897f5",
+        "78b6e0c917f25a3ebfbfc61e2529e33b387c9246",
+        "57ebc446efdad30f8a58e797179c0864456521f8"
+      ],
+      "finished": "2026-08-20",
+      "reason": null,
+      "started": "2026-08-20",
+      "status": "done"
+    },
+    "errors.obj": {
+      "categories_done": [
+        "local-renames"
+      ],
+      "commits": [
+        "93fad61cfc0d5e4b55cb83cc00f4f8f8bfb8f04a",
+        "8e696dbc01e7c341d7ac84247add9cc3dc161590",
+        "a3aa53eee87b3cc829934f1d77b5b924dcc58f77"
+      ],
+      "finished": "2026-08-20",
+      "reason": null,
+      "started": "2026-08-20",
+      "status": "done"
+    },
+    "hs.obj": {
+      "categories_done": [],
+      "commits": [],
+      "finished": "2026-08-20",
+      "reason": "no_applicable_items: every ladder category was skipped or fully parked (local-renames 12 comment-only breadcrumbs; symbol-names 672 FUN_ unnamed/abs-addr/fnptr; offset-to-field 29 no asserted hs_syntax_node/scenario/element structs)",
+      "started": "2026-08-20",
+      "status": "parked"
+    },
+    "hud.obj": {
+      "categories_done": [
+        "local-renames"
+      ],
+      "commits": [
+        "9cb5c3699994c67188467b9386c10e1906862fa5",
+        "4d4ff40ab1596b47fc94532a9fa1694bcd573222",
+        "f436eb9489545be86b8645e9056329f29c5a715d"
+      ],
+      "finished": "2026-08-20",
+      "reason": null,
+      "started": "2026-08-20",
+      "status": "done"
+    },
     "hud_weapon.obj": {
       "categories_done": [
         "symbol-names"
@@ -36,6 +101,59 @@
       "finished": "2026-08-01",
       "reason": null,
       "started": "2026-08-01",
+      "status": "done"
+    },
+    "memory_pool.obj": {
+      "categories_done": [],
+      "commits": [],
+      "finished": "2026-08-20",
+      "reason": "no_applicable_items: every ladder category was skipped or fully parked (symbol-names 10 FUN_ still unnamed; offset-to-field 48 no asserted memory_pool/block-header struct)",
+      "started": "2026-08-20",
+      "status": "parked"
+    },
+    "network_client_message_handler.obj": {
+      "categories_done": [],
+      "commits": [],
+      "finished": "2026-08-20",
+      "reason": "no_applicable_items: every ladder category was skipped or fully parked (symbol-names 35 FUN_ still unnamed; offset-to-field 1 no asserted struct for decoded+0x20)",
+      "started": "2026-08-20",
+      "status": "parked"
+    },
+    "network_game_globals.obj": {
+      "categories_done": [
+        "local-renames",
+        "offset-to-field"
+      ],
+      "commits": [
+        "06e23507566422f84402f6f4c7d05a7d8fc32f20",
+        "c3d78195e49f152fc597e58e4f237a55a313151a",
+        "bd1ed1440a00904409ccc85a214730b433121344"
+      ],
+      "finished": "2026-08-20",
+      "reason": null,
+      "started": "2026-08-20",
+      "status": "done"
+    },
+    "particle_systems.obj": {
+      "categories_done": [],
+      "commits": [],
+      "finished": "2026-08-20",
+      "reason": "no_applicable_items: every ladder category was skipped or fully parked (symbol-names 47 FUN_ unnamed/abs-addr non-neutral; offset-to-field 340 no asserted structs)",
+      "started": "2026-08-20",
+      "status": "parked"
+    },
+    "projectiles.obj": {
+      "categories_done": [
+        "local-renames"
+      ],
+      "commits": [
+        "620fdad4e",
+        "7895f5e4e",
+        "6febc883f"
+      ],
+      "finished": "2026-08-20",
+      "reason": null,
+      "started": "2026-08-20",
       "status": "done"
     }
   },

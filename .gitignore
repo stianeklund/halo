@@ -188,3 +188,4 @@ scratch/*
 
 # Claude Code plugin skill lockfile (local tooling, not project source)
 skills-lock.json
+.grok/*
