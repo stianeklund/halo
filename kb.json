@@ -22556,7 +22556,8 @@
     },
     {
      "addr": "0x94ee0",
-     "decl": "void recorded_animation_verify(void);"
+     "decl": "void recorded_animation_verify(char *animation);",
+     "ported": true
     },
     {
      "addr": "0x94ff0",
@@ -22564,7 +22565,8 @@
     },
     {
      "addr": "0x95050",
-     "decl": "void FUN_00095050(void);"
+     "decl": "void *FUN_00095050(int unit_handle@<edi>, int32_t *out_datum_handle@<ebx>);",
+     "ported": true
     },
     {
      "addr": "0x950b0",
@@ -22578,7 +22580,8 @@
     },
     {
      "addr": "0x952d0",
-     "decl": "void recorded_animation_kill(int unit_handle);"
+     "decl": "void recorded_animation_kill(int unit_handle);",
+     "ported": true
     },
     {
      "addr": "0x95330",
@@ -22620,11 +22623,13 @@
     },
     {
      "addr": "0x957c0",
-     "decl": "void control_toggle(void);"
+     "decl": "void control_toggle(int object_handle@<ebx>);",
+     "ported": true
     },
     {
      "addr": "0x958f0",
-     "decl": "void FUN_000958f0(int device_group_handle, int unit_handle);"
+     "decl": "void FUN_000958f0(int device_group_handle, int unit_handle);",
+     "ported": true
     },
     {
      "addr": "0x95930",
@@ -24711,7 +24716,7 @@
     },
     {
      "addr": "0x1b9b30",
-     "decl": "void tag_file_get_path(int tag_class, int param_2, char *out_path);",
+     "decl": "void FUN_001b9b30(int tag_class, int param_2, char *out_path);",
      "ported": true
     },
     {
@@ -25301,8 +25306,7 @@
     },
     {
      "addr": "0x192050",
-     "decl": "void leaf_map_build_portal_from_leaves(void *structure@<edi>, int node_index, unsigned int leaf_index0, unsigned int leaf_index1);",
-     "ported": true
+     "decl": "void leaf_map_build_portal_from_leaves(void);"
     },
     {
      "addr": "0x192390",
