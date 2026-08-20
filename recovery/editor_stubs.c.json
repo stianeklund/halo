@@ -1,0 +1,138 @@
+{
+  "allow_risky": false,
+  "baseline": {
+    "assertion_snapshot": {
+      "assertions": [],
+      "kind": "assert-metadata",
+      "schema": 1
+    },
+    "captured": true,
+    "coff_snapshot": {
+      "assertion_metadata": [],
+      "kind": "coff-candidate-neutrality",
+      "schema": 1,
+      "sections": [
+        {
+          "characteristics": 1615855648,
+          "executable": true,
+          "id": ".text#0",
+          "name": ".text",
+          "raw_bytes_hex": "5589e55dc3662e0f1f840000000000905589e531c05dc3660f1f8400000000005589e5b0015dc3660f1f8400000000005589e531c05dc3660f1f8400000000005589e55dc3662e0f1f840000000000905589e55dc3662e0f1f840000000000905589e55dc3662e0f1f840000000000905589e55dc3662e0f1f840000000000905589e55dc3662e0f1f840000000000905589e5d945088b45108b4d140fa3c8d9e8d9c9dbc1ddd9d84d0c5dc3",
+          "raw_size": 172,
+          "relocations": []
+        },
+        {
+          "characteristics": 3224371264,
+          "executable": false,
+          "id": ".data#0",
+          "name": ".data",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        },
+        {
+          "characteristics": 3224371328,
+          "executable": false,
+          "id": ".bss#0",
+          "name": ".bss",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        },
+        {
+          "characteristics": 1051136,
+          "executable": false,
+          "id": ".drectve#0",
+          "name": ".drectve",
+          "raw_bytes_hex": null,
+          "raw_size": 268,
+          "relocations": []
+        },
+        {
+          "characteristics": 1050624,
+          "executable": false,
+          "id": ".llvm_addrsig#0",
+          "name": ".llvm_addrsig",
+          "raw_bytes_hex": null,
+          "raw_size": 0,
+          "relocations": []
+        }
+      ]
+    },
+    "object_relative_path": "build/CMakeFiles/halo.dir/src/halo/game/editor_stubs.c.obj",
+    "object_sha256": "b9f00e4ea843f3bbbf1b8fc6c0e46222a5a9906f706c861b6e9d5341dd569d97"
+  },
+  "checks": [],
+  "created_tool_version": "source-recovery/1",
+  "git_head": "ccaa7bd17aee9e52ad155633c024e1d13e103300",
+  "inventory": {
+    "absolute_address_dereferences": [],
+    "decompiler_style_locals": [],
+    "fun_calls": [
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:2:1",
+        "line": 2,
+        "reason": "no_name_evidence: empty no-op at 0x977e0; no assert/format string; sole xref is unconditional CALL from render_scene (0x184ea0) before rasterizer_window_end; no in-tree PC/CE mirror (editor_render would be T3 from call-site position); T4 stays FUN_",
+        "status": "parked",
+        "text": "void FUN_000977e0(void)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 6,
+        "id": "fun_calls:15:1",
+        "line": 15,
+        "reason": "no_name_evidence: always-1 stub at 0x97800; no assert/format string; sole caller FUN_0018c100 gates object submit with (object_handle, lighting); no in-tree PC/CE mirror for the predicate; T4 stays FUN_",
+        "status": "parked",
+        "text": "bool FUN_00097800(int object_handle, void *lighting)"
+      },
+      {
+        "category": "symbol-names",
+        "column": 7,
+        "id": "fun_calls:54:1",
+        "line": 54,
+        "reason": "no_name_evidence: scale-if-bit at 0x97870; Ghidra reports no xrefs; no assert/format string; no in-tree PC/CE mirror; T4 stays FUN_",
+        "status": "parked",
+        "text": "float FUN_00097870(float param_1, float param_2, uint32_t param_3,"
+      }
+    ],
+    "inline_asm": [],
+    "raw_base_offset_dereferences": [],
+    "raw_function_pointer_address_casts": [],
+    "xcall_uses": []
+  },
+  "items": [
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:2:1",
+      "line": 2,
+      "reason": "no_name_evidence: empty no-op at 0x977e0; no assert/format string; sole xref is unconditional CALL from render_scene (0x184ea0) before rasterizer_window_end; no in-tree PC/CE mirror (editor_render would be T3 from call-site position); T4 stays FUN_",
+      "status": "parked",
+      "text": "void FUN_000977e0(void)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 6,
+      "id": "fun_calls:15:1",
+      "line": 15,
+      "reason": "no_name_evidence: always-1 stub at 0x97800; no assert/format string; sole caller FUN_0018c100 gates object submit with (object_handle, lighting); no in-tree PC/CE mirror for the predicate; T4 stays FUN_",
+      "status": "parked",
+      "text": "bool FUN_00097800(int object_handle, void *lighting)"
+    },
+    {
+      "category": "symbol-names",
+      "column": 7,
+      "id": "fun_calls:54:1",
+      "line": 54,
+      "reason": "no_name_evidence: scale-if-bit at 0x97870; Ghidra reports no xrefs; no assert/format string; no in-tree PC/CE mirror; T4 stays FUN_",
+      "status": "parked",
+      "text": "float FUN_00097870(float param_1, float param_2, uint32_t param_3,"
+    }
+  ],
+  "kind": "source-recovery-manifest",
+  "repo_relative_source": "src/halo/game/editor_stubs.c",
+  "schema": 1,
+  "source_sha256": "70598f7b9dec05181f8c077602da2fc2b6c18d9039eb146398b37fd166c9133e"
+}

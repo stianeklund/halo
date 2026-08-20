@@ -49,6 +49,14 @@
       "started": "2026-08-20",
       "status": "parked"
     },
+    "editor_stubs.obj": {
+      "categories_done": [],
+      "commits": [],
+      "finished": "2026-08-20",
+      "reason": "no_applicable_items: every ladder category was skipped or fully parked (symbol-names 3 FUN_ T4 no_name_evidence)",
+      "started": "2026-08-20",
+      "status": "parked"
+    },
     "effects.obj": {
       "categories_done": [
         "local-renames"
