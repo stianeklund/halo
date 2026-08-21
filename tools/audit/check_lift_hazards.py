@@ -1488,6 +1488,138 @@ def check_literal_deref_bounds(filepath, content, lines):
 
 
 # ---------------------------------------------------------------------------
+# §54: Identity comparison against a ported function's original VA (ERROR)
+# ---------------------------------------------------------------------------
+_PORTED_ADDR_CMP = re.compile(
+    r'(?:(==|!=)\s*(?:\(\s*[A-Za-z_][\w\s\*]*\)\s*)*0x([0-9a-fA-F]{5,8})'
+    r'|0x([0-9a-fA-F]{5,8})\s*(==|!=))')
+
+
+def _ported_function_addrs():
+    """Map original VA -> name for every kb.json function with ported: true."""
+    kb_path = os.path.join(ROOT_DIR, 'kb.json')
+    if not os.path.isfile(kb_path):
+        return {}
+    try:
+        with open(kb_path, 'r', errors='replace') as f:
+            kb = json.load(f)
+    except Exception:
+        return {}
+    decl_re = re.compile(r'([A-Za-z_][A-Za-z0-9_]*)\s*\(')
+    out = {}
+    for obj in kb.get('objects', []):
+        for fn in obj.get('functions', []):
+            if fn.get('ported') is not True:
+                continue
+            try:
+                addr = int(fn['addr'], 16)
+            except Exception:
+                continue
+            m = decl_re.search((fn.get('decl') or '').strip())
+            out[addr] = (m.group(1) if m else fn.get('name') or '?',
+                         obj.get('name', '?'))
+    return out
+
+
+_SYMBOL_ADDR_TAKEN_CACHE = {}
+
+
+def _symbol_referenced_ported_addrs(ported):
+    """Addresses of ported functions whose SYMBOL address is taken in src/.
+
+    Returns {addr: name}.  A `&FUN_00xxxxxx` anywhere in the tree means some
+    ported store site writes our implementation's address into that slot, so
+    any bare-literal comparison against the same original VA is a mismatch.
+    """
+    if _SYMBOL_ADDR_TAKEN_CACHE:
+        return _SYMBOL_ADDR_TAKEN_CACHE
+    by_name = {}
+    for addr, (name, _obj) in ported.items():
+        by_name.setdefault(name, addr)
+    if not by_name:
+        return _SYMBOL_ADDR_TAKEN_CACHE
+    src_root = os.path.join(ROOT_DIR, 'src')
+    pat = re.compile(r'&\s*([A-Za-z_][A-Za-z0-9_]*)')
+    for dirpath, _dirs, files in os.walk(src_root):
+        for fname in files:
+            if not fname.endswith(('.c', '.h')):
+                continue
+            try:
+                with open(os.path.join(dirpath, fname), 'r',
+                          errors='replace') as f:
+                    body = f.read()
+            except OSError:
+                continue
+            if '&' not in body:
+                continue
+            for m in pat.finditer(body):
+                addr = by_name.get(m.group(1))
+                if addr is not None:
+                    _SYMBOL_ADDR_TAKEN_CACHE[addr] = m.group(1)
+    return _SYMBOL_ADDR_TAKEN_CACHE
+
+
+def check_ported_addr_compare(filepath, content, lines,
+                             ported=None, symbolic=None):
+    """Flag `x == 0xVA` where 0xVA is a ported function whose symbol is used.
+
+    A callback slot filled in by ported code holds the address of OUR
+    implementation (in the appended section), not the original VA -- the
+    original VA only holds the redirect JMP.  So when one site stores
+    `&FUN_00xxxxxx` and another tests against the literal `0xxxxxxx`, the
+    test can never match and the feature behind it dies silently: no assert,
+    no crash, no VC71 delta.  Both sides must use the same form.
+
+    A literal on BOTH sides is fine and is not flagged (that is the correct
+    shape when the store lives in unported original code, e.g. the debug
+    camera slot compared in director.c).  The flagged case is the mixed one.
+
+    Observed twice on the same line: sound_update_music's lip-sync hook
+    (`sound_entry+0x10 == 0x1c7a10` against game_sound.c's
+    `(int)&FUN_001c7a10`).  Fixed 2026-05-03, reintroduced by a score pass
+    2026-08-19, which silently stopped every talking unit's mouth from
+    animating.  Suppress with a hazard-ok comment on the line.
+    """
+    errors = []
+    if '0x' not in content:
+        return errors
+    if ported is None:
+        ported = _ported_function_addrs()
+    if not ported:
+        return errors
+    if symbolic is None:
+        symbolic = _symbol_referenced_ported_addrs(ported)
+    if not symbolic:
+        return errors
+    flat_lines = _blank_comments_and_literals(content).split('\n')
+    for i, flat in enumerate(flat_lines):
+        if '0x' not in flat:
+            continue
+        src_line = lines[i] if i < len(lines) else ''
+        if 'hazard-ok' in src_line:
+            continue
+        for m in _PORTED_ADDR_CMP.finditer(flat):
+            addr_str = m.group(2) or m.group(3)
+            try:
+                addr = int(addr_str, 16)
+            except Exception:
+                continue
+            name = symbolic.get(addr)
+            if name is None:
+                continue
+            relpath = os.path.relpath(filepath, ROOT_DIR)
+            errors.append(
+                f'  {relpath}:{i + 1}: compares against literal 0x{addr:x} '
+                f'but another site takes &{name} — ported code stores our '
+                f'impl address, never the original VA, so this test can '
+                f'never match and the guarded behaviour dies silently; use '
+                f'(void *)&{name} on both sides (see lift-learnings '
+                f'\u00a754; suppress with hazard-ok comment)'
+            )
+    return errors
+
+
+# ---------------------------------------------------------------------------
 # §4: Parameter corruption by loop (WARN)
 # ---------------------------------------------------------------------------
 _FUNC_SIG_PAT = re.compile(
@@ -2387,6 +2519,7 @@ def main():
     all_float_smuggle_errors = []
     all_addr_value_add_errors = []
     all_literal_deref_errors = []
+    all_ported_cmp_errors = []
     all_param_loop_errors = []
     all_discard_result_errors = []
     all_inplace_mut_errors = []
@@ -2417,6 +2550,7 @@ def main():
         all_float_smuggle_errors.extend(check_float_int_bit_smuggling(fpath, content, lines))
         all_addr_value_add_errors.extend(check_addr_value_add(fpath, content, lines))
         all_literal_deref_errors.extend(check_literal_deref_bounds(fpath, content, lines))
+        all_ported_cmp_errors.extend(check_ported_addr_compare(fpath, content, lines))
         all_param_loop_errors.extend(check_param_loop_corruption(fpath, content, lines))
         all_discard_result_errors.extend(check_discarded_result(fpath, content, lines))
         all_inplace_mut_errors.extend(check_inplace_mutator_misuse(fpath, content, lines))
@@ -2449,6 +2583,7 @@ def main():
             f'float_smuggling: {len(all_float_smuggle_errors)}, '
             f'addr_value_add: {len(all_addr_value_add_errors)}, '
             f'literal_deref: {len(all_literal_deref_errors)}, '
+            f'ported_addr_cmp: {len(all_ported_cmp_errors)}, '
             f'param_loop: {len(all_param_loop_errors)}, '
             f'discard_result: {len(all_discard_result_errors)}, '
             f'inplace_mutator: {len(all_inplace_mut_errors)}, '
@@ -2472,7 +2607,8 @@ def main():
                  len(all_x87_math_errors) +
                  len(all_concat_errors) + len(all_float_smuggle_errors) +
                  len(all_addr_value_add_errors) +
-                 len(all_literal_deref_errors) + len(all_param_loop_errors) +
+                 len(all_literal_deref_errors) + len(all_ported_cmp_errors) +
+                 len(all_param_loop_errors) +
                  len(all_discard_result_errors) + len(all_inplace_mut_errors) +
                  len(all_contiguity_errors) + len(all_nan_guard_errors) +
                  len(all_range_gate_errors) + len(all_fnptr_conv_errors) +
@@ -2785,6 +2921,22 @@ def main():
                 print(e, file=sys.stderr)
             print(file=sys.stderr)
 
+        if all_ported_cmp_errors:
+            print(
+                'ERROR: identity comparison against a PORTED function\'s\n'
+                'original VA. That VA holds only the redirect JMP; ported\n'
+                'code stores the address of our implementation, so the\n'
+                'comparison never matches and the guarded behaviour dies\n'
+                'with no assert, no crash and no VC71 delta. Compare against\n'
+                'the symbol on both the store and the test side\n'
+                '(lift-learnings \u00a754 - sound_update_music\'s lip-sync hook\n'
+                'silenced every talking unit\'s mouth animation twice):\n',
+                file=sys.stderr,
+            )
+            for e in all_ported_cmp_errors:
+                print(e, file=sys.stderr)
+            print(file=sys.stderr)
+
         if all_literal_deref_errors:
             print(
                 'ERROR: dereference of a literal outside the XBE image.\n'
@@ -2835,7 +2987,8 @@ def main():
             or all_buffer_errors \
             or all_output_size_errors or all_packer_arity_errors \
             or all_marker_buf_errors \
-            or all_concat_errors or all_literal_deref_errors:
+            or all_concat_errors or all_literal_deref_errors \
+            or all_ported_cmp_errors:
         return 1
 
     return 0

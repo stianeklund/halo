@@ -2582,3 +2582,108 @@ positives on the underscore-prefixed CRT/zlib functions (see
 not from source), and the rule "a verify run that scores ZERO functions in a TU is
 a compile failure until proven otherwise" in `CLAUDE.md` — which was already
 written down, and which nothing was checking across the whole repo at once.
+
+## 54. A Literal Function VA Compared Against a Ported Callback Never Matches — the Captain's Mouth Stopped Moving
+
+**Symptom.** On the Pillar of Autumn, Captain Keyes hands Master Chief the
+pistol and says "I don't keep it loaded so you'll have to find ammo as you
+go" — with a completely still mouth. No assert, no crash, no VC71 delta, and
+every other sound still plays correctly. Only the lip-sync is gone.
+
+**Mechanism.** Lip-sync runs through a callback-identity test in
+`sound_update_music` (0x1ceda0). Halo tags certain sound classes as
+"pitch-track"; for those, the mixer samples the permutation's mouth-data byte
+each tick and pushes it onto the unit:
+
+```
+sound_update_music (0x1ceda0)
+  -> sound_get_permutation_pitch (0x1c8f20)    mouth byte / 255 -> [0,1]
+  -> sound_pitch_push_sample     (0x1c7b00)
+  -> sound_object_apply_pitch_delta (0x1ac2f0) unit + 0x298, delta clamped +-0.3
+```
+
+The gate is `class_def+0x8 != 0 && sound_entry+0x10 == <the dialogue update
+callback>`, where the callback is `FUN_001c7a10` (original VA 0x1c7a10). The
+slot is written by `object_impulse_sound_new` (0x1c7e70), which passes the
+callback to `sound_start`.
+
+Both of those functions are ported. **A ported store site writes the address
+of our implementation** — which lives in the appended section, not at
+0x1c7a10. The original VA holds only the redirect JMP. So:
+
+| store side | test side | result |
+|---|---|---|
+| `(int)&FUN_001c7a10` | `== (void *)&FUN_001c7a10` | matches (correct) |
+| `(int)(void *)0x1c7a10` | `== 0x1c7a10` | matches (correct — store is unported) |
+| `(int)&FUN_001c7a10` | `== 0x1c7a10` | **never matches** |
+
+The third row is what shipped. `sound_pitch_push_sample` was never reached,
+`unit+0x298` stayed at whatever the per-tick decay in `FUN_001b3690` left it
+(zero), and the seat/overlay animation driven by that field never ran.
+
+**History — this regressed twice on the same line.** Commit `72865055c`
+(2026-05-03) moved both sides to the symbol and said so in the message.
+Commit `817384410` (2026-08-19), a VC71 score pass on sound_manager.c that
+raised `sound_update_music` 78.5% -> 88.5%, rewrote the whole function body
+and put the literal back. The gate saw no regression because the score went
+*up*, the hazard scan saw nothing, and the build was clean. Only gameplay
+shows it.
+
+**Rule.** When both the store and the test for a callback slot are in ported
+code, use the **symbol** on both sides. A bare literal VA is correct only
+when the store lives in unported original code -- verify with
+`get_xrefs_to <addr>` that every DATA xref is unported before relying on it.
+`director.c:611`'s `camera_fn != (void *)0x853c0` is the legitimate case: the
+only store site is original code, so the literal is right there.
+
+**Status of the mechanism: NOT proven.** The symptom and the fix are real --
+the user confirmed on the box that the mouth animates again after restoring
+the symbol form -- but the causal chain above did not survive its negative
+control. A build with the literal deliberately restored (md5 `34d5effd...`,
+distinct from the fixed `805eb929...`, uploaded and booted) still showed
+`object+0x298` moving: peak 1.0000 over 36 talking samples. So either an
+unported path also writes `+0x298`, or `+0x298` is not what drives the
+visible facial animation. Do not cite this section as proof that a literal
+comparison silences lip-sync; cite it for the *form* rule, which stands on
+its own (a ported store site provably writes our impl address, and
+`&FUN_001c7a10` is a `__declspec(dllexport)` definition in our section, not
+0x1c7a10).
+
+**Automation.** `check_ported_addr_compare` in `check_lift_hazards.py`
+(counter `ported_addr_cmp`, ERROR). It flags `x == 0xVA` / `x != 0xVA` where
+0xVA is the address of a `ported: true` kb.json function **and** some other
+site in `src/` takes that function's symbol address (`&FUN_00xxxxxx`). The
+literal-on-both-sides case is deliberately not flagged, so `director.c:611`
+stays quiet. Suppress with a `hazard-ok` comment on the line. It runs in the
+build, so the mixed form now fails the build outright. Unit tests:
+`tools/audit/test_check_ported_addr_compare.py` (11 cases, pure Python).
+
+**A live golden-master lane exists but does NOT gate this bug.**
+`tools/verify/check_lipsync_live.py` (golden on pristine `cachebeta.xbe`,
+check on patched `default.xbe`, same core fixture) plus
+`tools/xbox/probe_mouth_aperture.py` measure `object+0x298` off the live
+object table. They work -- 477-sample reference, header type byte
+cross-checked against `object+0x64` on every unit -- but per the negative
+control above they pass on both forms, so treat them as an aperture-activity
+probe, not as a regression gate for the identity test. Harness lessons worth
+keeping from building them:
+
+- **A live harness must upload the binary it claims to test.** The first
+  negative control "passed" because the runner only pushed the core and
+  magicbooted whatever XBE was already installed -- the good build from an
+  earlier deploy. `upload_xbe()` now pushes and md5-reports the XBE, and
+  refuses to record a golden from a non-pristine `cachebeta.xbe`.
+- **Do not gate on the peak of a fast waveform.** The aperture tracks a
+  per-tick mouth-data byte. At 0.3 Hz (one `memsave` per unit, ~85 reads a
+  sample) the peak is a random point on the curve: golden 0.8471 vs patched
+  0.1608 with both builds working. Clustered bulk reads took it to ~7 Hz
+  (~500 samples/minute) and the peak converged to 1.0000 on both.
+- **Normalise a frequency metric by coverage, or do not gate on it.**
+  `talking_fraction` is a ratio over *usable* samples, and skips are not
+  uniform in time -- host memory pressure starves the probe right after
+  `magicboot`, exactly when the dialogue plays. A thin run (136 usable vs
+  477) read as a 0.037-vs-0.128 regression on a working build. The gate now
+  enforces frequency only above 60% coverage and reports it below that.
+- **A probe that dies is worse than one that skips.** A transient host
+  `ENOMEM` propagated out of `Path.read_bytes()` and killed a whole run;
+  reads now retry with backoff and a failed sample is a skipped sample.

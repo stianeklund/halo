@@ -2312,8 +2312,12 @@ void sound_update_music(void)
 
     {
       void *class_def = sound_class_get_definition(*(short *)((char *)tag_ptr + 4));
+      /* Compare against the SYMBOL, not the literal 0x1c7a10.  The only
+       * store site (object_impulse_sound_new, 0x1c7f48) is ported, so the
+       * stored callback is our impl's address, never the original VA; a
+       * literal compare never matches and lip-sync silently dies. */
       if (*(char *)((char *)class_def + 8) != '\0' &&
-          *(int *)(sound_entry + 0x10) == 0x1c7a10) {
+          *(void **)(sound_entry + 0x10) == (void *)&FUN_001c7a10) {
         float sample = sound_get_permutation_pitch(
           *(int *)((char *)channel + 0x10), (short)(int)*(float *)((char *)channel + 8));
         sound_pitch_push_sample(*(int *)(sound_entry + 0xc), sample);

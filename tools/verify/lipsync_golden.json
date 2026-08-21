@@ -1,0 +1,11 @@
+{
+  "ok_samples": 477,
+  "talking_samples": 61,
+  "talking_fraction": 0.1278825995807128,
+  "peak_aperture": 1.0,
+  "median_talking_aperture": 0.349,
+  "distinct_talkers": 1,
+  "xbe": "cachebeta.xbe",
+  "fixture": "a10-keyes-pistol",
+  "window_seconds": 60.0
+}
