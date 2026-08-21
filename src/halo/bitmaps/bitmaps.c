@@ -785,3 +785,47 @@ int bitmap_mipmap_get_row_pitch(void *bitmap, int mipmap_index)
   total_bits = (int)bpp * (int)width;
   return total_bits / 8;
 }
+
+/*
+ * bitmap_get_pixel_data_size — total byte size of a bitmap's pixel data,
+ * across every mipmap level (bitmap_get_pixel_count counts all texels).
+ *
+ * Evidence is read directly from the pristine XBE at 0x7e040..0x7e0a1; the
+ * fingerprinted Ghidra bundle for this target contained only connection
+ * errors, so every fact below is cited to a raw instruction address.
+ *
+ * Confirmed 0x7e048..0x7e04b: bitmap_verify(bitmap_data, FALSE) — `push 0;
+ * push esi; call 0x7d470`, first push is the last arg.
+ * Confirmed 0x7e057..0x7e06f: on AL==0, display_assert("bitmap_verify(bitmap,
+ * FALSE)", "c:\halo\SOURCE\bitmaps\bitmaps.c", 0x38a, 1) then system_exit(-1).
+ * Both strings read out of .rdata at 0x264da0 / 0x264a74; the line number is
+ * the literal 0x38a, NOT this file's __LINE__.
+ * Confirmed call order 0x7e078 then 0x7e086: bitmap_get_pixel_count first,
+ * bitmap_format_bits_per_pixel second. The single `add esp,8` at 0x7e092
+ * cleans BOTH one-arg cdecl pushes; it is not a two-arg call.
+ * Confirmed 0x7e07f..0x7e081: `xor eax,eax; mov ax,[esi+0xc]` — the format
+ * field is loaded 16-bit and ZERO-extended here (other call sites of 0x7c840
+ * in this TU use the partial-register `mov cx,[..]; push ecx` form instead).
+ * Confirmed 0x7e08b..0x7e08e: `movsx eax,ax; imul eax,edi` — bpp is a signed
+ * short return, multiplied by the pixel count.
+ * Confirmed 0x7e091..0x7e09b: `cdq; and edx,7; add eax,edx; sar eax,3` — the
+ * MSVC signed divide-by-8 sequence, i.e. total_bits / 8 with round-toward-zero.
+ * Frame has no `sub esp`, so the original keeps every temporary in a register.
+ */
+int bitmap_get_pixel_data_size(void *bitmap_data)
+{
+  int pixel_count;
+  short bpp;
+  int total_bits;
+
+  if (!bitmap_verify(bitmap_data, 0)) {
+    display_assert("bitmap_verify(bitmap, FALSE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x38a, 1);
+    system_exit(-1);
+  }
+
+  pixel_count = bitmap_get_pixel_count(bitmap_data);
+  bpp = bitmap_format_bits_per_pixel(*(uint16_t *)((char *)bitmap_data + 0xc));
+  total_bits = (int)bpp * pixel_count;
+  return total_bits / 8;
+}

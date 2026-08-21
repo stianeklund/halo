@@ -806,6 +806,54 @@ int FUN_000b45c0(int param_1)
   return local_8;
 }
 
+/* FUN_000B4800 (0xb4800) — race engine: per-player race update.
+ *
+ * Reached through the game-engine variant function table (data xref from
+ * 0x2f00a4), so the single stack parameter is a player handle.
+ *
+ * Announces state message 0x16 for the player, then — if the player has a
+ * unit (player+0x34 != NONE) and scoring is enabled — tests the unit
+ * against the race netgame flags. If the unit is riding something
+ * (unit+0xcc != NONE) the parent object's position is used with a wider
+ * radius (2.5) and zero height; otherwise the unit's own position is used
+ * with radius 1.5 / height 0.6. Both probes ask for netgame flag type 3
+ * (race) with index -1 (any).
+ *
+ * A hit (flag index != NONE) forwards to race_update_team_score, which
+ * takes the player handle in EAX and the flag index on the stack
+ * (000b488c PUSH EAX / 000b488d MOV EAX,EDI / 000b488f CALL 0xb46b0 /
+ * ADD ESP,4).
+ *
+ * Position is read at object+0x50 (physics position), not +0x0c.
+ *
+ * Source: c:\halo\SOURCE\game\game_engine_race.c */
+void FUN_000B4800(int player_handle)
+{
+  char *player;
+  char *unit;
+  char *parent;
+  int flag_index;
+
+  player = (char *)datum_get(player_data, player_handle);
+  game_engine_state_message(player_handle, 0x16, player_handle);
+  if (*(int *)(player + 0x34) != -1) {
+    if (game_engine_can_score()) {
+      unit = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
+      if (*(int *)(unit + 0xcc) == -1) {
+        flag_index =
+          find_netgame_flag((float *)(unit + 0x50), 1.5f, 0.6f, 3, -1);
+      } else {
+        parent = (char *)object_get_and_verify_type(*(int *)(unit + 0xcc), 3);
+        flag_index =
+          find_netgame_flag((float *)(parent + 0x50), 2.5f, 0.0f, 3, -1);
+      }
+      if (flag_index != -1) {
+        race_update_team_score(player_handle, flag_index);
+      }
+    }
+  }
+}
+
 /* FUN_000b4960 (0xb4960) — race engine: initialize for new map.
  *
  * Sets up race-mode state for a new map. Clears the race globals region

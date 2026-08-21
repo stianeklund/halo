@@ -836,6 +836,73 @@ void recorded_animations_update(void)
   }
 }
 
+/* recorded_animation_verify @ 0x00094ee0
+ *
+ * Debug-only dry run of a recorded-animation definition: prime the per-type
+ * decoder, then tick its whole event stream, asserting after every tick that
+ * the header tick count, the relative tick counter, and the consumed stream
+ * length all stay in range. One cdecl stack arg ([ebp+8] = a 0x40-byte
+ * scenario recorded-animation element); the reference reuses the dead
+ * parameter slot for relative_ticks, so our frame is 4 bytes larger. No
+ * @<reg>. No callers in the binary (debug entry point).
+ *
+ * Definition offsets: +0x20 byte = dispatch-table index, +0x22 byte = count
+ * passed to the primer, +0x24 word = tick count, +0x2c = stream size,
+ * +0x38 = stream base. Table at 0x2eebac holds one pointer per type to a
+ * two-slot handler array: slot 0 primes, slot 1 ticks (nonzero = events
+ * remain, zero = stream exhausted).
+ */
+void recorded_animation_verify(char *animation)
+{
+  char vector[12];
+  char control[64];
+  int size;
+  int stream;
+  int playback_stream;
+  int relative_ticks;
+  int ticks_left;
+  char finished;
+  void **vtable;
+
+  stream = *(int *)(animation + 0x38);
+  playback_stream = stream;
+  size = *(int *)(animation + 0x2c);
+  ticks_left = *(uint16_t *)(animation + 0x24);
+  relative_ticks = 0;
+  vtable = (void **)((void **)0x2eebac)[*(uint8_t *)(animation + 0x20)];
+  ((void (*)(void *, char *, int *, unsigned char))vtable[0])(
+    vector, control, &playback_stream, *(uint8_t *)(animation + 0x22));
+  do {
+    ticks_left--;
+    vtable = (void **)((void **)0x2eebac)[*(uint8_t *)(animation + 0x20)];
+    finished = (char)(!((char (*)(void *, char *, int *, int *))vtable[1])(
+      vector, control, &relative_ticks, &playback_stream));
+    if (ticks_left < 0) {
+      display_assert("ticks_left>=0",
+                     "c:\\halo\\SOURCE\\cutscene\\recorded_animations.c", 0x1ac,
+                     1);
+      system_exit(-1);
+    }
+    if (relative_ticks < 0) {
+      display_assert("relative_ticks>=0",
+                     "c:\\halo\\SOURCE\\cutscene\\recorded_animations.c", 0x1ad,
+                     1);
+      system_exit(-1);
+    }
+    /* Assert holds while the consumed stream is short of the recorded size,
+     * or exactly at the end on the tick the stream reports exhaustion. */
+    if (!(playback_stream - stream < size ||
+          (playback_stream - stream == size && finished != 0))) {
+      display_assert("playback_stream-stream<size||(playback_stream-stream=="
+                     "size&&finished)",
+                     "c:\\halo\\SOURCE\\cutscene\\recorded_animations.c", 0x1ae,
+                     1);
+      system_exit(-1);
+    }
+    relative_ticks++;
+  } while (finished == 0);
+}
+
 /* Return nonzero while an active recorded animation controls this unit. */
 char recorded_animation_controlling_unit(int unit_handle)
 {
@@ -855,6 +922,45 @@ char recorded_animation_controlling_unit(int unit_handle)
     thread = (char *)data_iterator_next(&iter);
   }
   return result;
+}
+
+/* FUN_00095050 (0x95050)
+ *
+ * Scans the recorded-animation thread pool for the first record whose
+ * +0x04 field equals the incoming unit handle. Returns the record pointer
+ * in EAX (NULL when no record matches) and, when the out pointer is
+ * non-NULL, stores the iterator's datum handle (NONE = -1 on no match).
+ *
+ * ABI (no stack args, from 0x95050 disassembly and the 0x9537f call site
+ * in recorded_animation_play_internal):
+ *   EDI = unit handle compared against record+0x04 (forwarded from that
+ *         caller's own EAX actor argument).
+ *   EBX = out datum-handle pointer (LEA EBX,[EBP-0xc] at 0x9537c);
+ *         guarded by TEST EBX,EBX at 0x9509a.
+ *   EAX = returned record pointer; the caller consumes it at 0x95387
+ *         (MOV EBX,EAX) and branches on it at 0x953af.
+ * ESI holds the handle result, initialised by OR ESI,0xffffffff at
+ * 0x95061 and only reassigned on the match path (0x95097). */
+void *FUN_00095050(int unit_handle, int32_t *out_datum_handle)
+{
+  data_iter_t iter;
+  char *thread;
+  int32_t datum_handle;
+
+  datum_handle = -1;
+  data_iterator_new(&iter, *(data_t **)0x44df04);
+  thread = (char *)data_iterator_next(&iter);
+  while (thread != NULL) {
+    if (*(int *)(thread + 4) == unit_handle) {
+      datum_handle = (int32_t)iter.datum_handle;
+      break;
+    }
+    thread = (char *)data_iterator_next(&iter);
+  }
+  if (out_datum_handle != NULL) {
+    *out_datum_handle = datum_handle;
+  }
+  return thread;
 }
 
 /* render_debug_recording @ 0x000950b0
@@ -943,6 +1049,32 @@ void recorded_animations_initialize_for_new_map(void)
   csmemset(*(void **)0x44df0c, 0, 0x400);
 }
 
+/* recorded_animation_kill (0x952d0)
+ *
+ * Finds the first animation thread whose +0x04 unit handle matches the
+ * incoming handle and sets bits 0|1 of the flag byte at +0x0a (OR byte ptr
+ * [EAX+0xa],0x3 at 0x9531e). Bit 0 is the same bit
+ * recorded_animation_controlling_unit tests to decide a thread no longer
+ * controls its unit. Single stack arg at [EBP+8], cached in ESI across the
+ * scan loop (MOV ESI,[EBP+8] at 0x952f6). No match = no side effect. */
+void recorded_animation_kill(int unit_handle)
+{
+  data_iter_t iter;
+  char *thread;
+
+  data_iterator_new(&iter, *(data_t **)0x44df04);
+  thread = (char *)data_iterator_next(&iter);
+  while (thread != NULL) {
+    if (*(int *)(thread + 4) == unit_handle) {
+      break;
+    }
+    thread = (char *)data_iterator_next(&iter);
+  }
+  if (thread != NULL) {
+    *(uint8_t *)(thread + 0xa) |= 3;
+  }
+}
+
 /* Start a recorded animation on a unit. Thin forwarder to the shared worker
  * with an empty flag set; the sibling at 0x95660
  * (recorded_animation_play_and_delete) is the same body with flags = 8. The
@@ -1019,6 +1151,150 @@ char FUN_00095790(int object_handle)
   object = (int *)object_get_and_verify_type(object_handle, 0x100);
   tag_get(0x6374726c, *object);
   return 1;
+}
+
+/* control_toggle @ 0x000957c0
+ *
+ * TU string evidence: the default-case assert at 0x95849 pushes
+ * "c:\halo\SOURCE\devices\device_controls.c" line 0x8a, so this function was
+ * compiled from device_controls.c even though kb.json maps 0x957c0 to
+ * recorded_animations.obj.
+ *
+ * ABI: EBX is read at 0x957cb (pushed as the object handle to
+ * object_get_and_verify_type) and again at 0x95897/0x958ad/0x958c3, but the
+ * function never writes EBX and never saves/restores it — so EBX is an
+ * incoming register argument (@<ebx>), not a callee-saved scratch register.
+ *
+ * Loads the unit object (type mask 0x100), looks up its 'ctrl' tag definition,
+ * and bails out when the object's device-group index at +0x1b4 is -1. The
+ * definition's toggle mode at +0x290 selects the target power:
+ *   0 = invert the device group's current power at +0x04 (<= 0.5f -> 1.0f)
+ *   1 = 1.0f, 2 = 0.0f, 3 = the definition constant at +0x294
+ *   default = assert(device_controls.c:0x8a) and halt.
+ * FUN_00096f20 is then called with the ZERO-extended device-group index
+ * (0x95869-0x9586b: XOR EDX,EDX / MOV DX,[EDI+0x1b4]) and the target power;
+ * note datum_get above receives the SIGN-extended index (MOVSX at 0x957fc).
+ * Its AL result plus the sign of the target power picks which of three
+ * definition-supplied values (+0x2f4, +0x304, +0x314) is handed to
+ * FUN_000967a0.
+ *
+ * Constant: 0x253398 = 0.5f (confirmed in units.c / real_math.c), reproduced
+ * here as the literal 0.5f.
+ *
+ * Callees (all cdecl, stack args): object_get_and_verify_type, tag_get,
+ * datum_get, display_assert, system_exit, FUN_00096f20, FUN_000967a0.
+ */
+void control_toggle(int object_handle)
+{
+  int *object;
+  char *definition;
+  char *device_group;
+  float target;
+
+  object = (int *)object_get_and_verify_type(object_handle, 0x100);
+  definition = (char *)tag_get(0x6374726c, *object);
+  if (*(short *)((char *)object + 0x1b4) == -1) {
+    return;
+  }
+  device_group = (char *)datum_get(*(data_t **)0x5aa8c8,
+                                   (int)*(short *)((char *)object + 0x1b4));
+
+  switch ((int)*(short *)(definition + 0x290)) {
+  case 0:
+    /* Written in the reference's branch polarity: 0x9581f-0x9582a is
+     * FCOMP 0.5f / TEST AH,0x41 / JNZ 0x95835, i.e. the 1.0f store is the
+     * jump target and the 0.0f store is the fallthrough. Spelling this as
+     * `<= 0.5f -> 1.0f` instead makes VC71 emit the inverted `jp` guard. */
+    if (*(float *)(device_group + 4) > 0.5f) {
+      target = 0.0f;
+    } else {
+      target = 1.0f;
+    }
+    break;
+  case 1:
+    target = 1.0f;
+    break;
+  case 2:
+    target = 0.0f;
+    break;
+  case 3:
+    target = *(float *)(definition + 0x294);
+    break;
+  default:
+    display_assert(NULL, "c:\\halo\\SOURCE\\devices\\device_controls.c", 0x8a,
+                   1);
+    system_exit(-1);
+    break;
+  }
+
+  if (FUN_00096f20((int)*(unsigned short *)((char *)object + 0x1b4), target)) {
+    if (target > 0.5f) {
+      FUN_000967a0(object_handle, *(int *)(definition + 0x2f4));
+    } else {
+      FUN_000967a0(object_handle, *(int *)(definition + 0x304));
+    }
+  } else {
+    FUN_000967a0(object_handle, *(int *)(definition + 0x314));
+  }
+}
+
+/* FUN_000958f0 @ 0x000958f0
+ *
+ * Control-device "set real value" handler, reached from device_group_set_real
+ * (0x966d0) when the device type at +0x64 is 8. Two cdecl args; only the first
+ * is read ([ebp+8] -> EBX at 0x958f4), matching the machine twin FUN_00095be0.
+ *
+ * Resolves the handle as a control object (type mask 0x100), loads its 'ctrl'
+ * definition tag, and toggles the control when the definition's 16-bit field
+ * at +0x292 is zero (CMP word ptr [EAX+0x292],0x0 / JNZ at 0x95912-0x9591a).
+ *
+ * control_toggle (0x957c0) takes its object handle in EBX: the reference
+ * simply falls into CALL 0x957c0 at 0x9591c with EBX still holding [ebp+8],
+ * which is why the argument is never pushed. Both stack calls are cleaned by
+ * a single ADD ESP,0x10 at 0x9590f (2 pushes each x 2 calls).
+ */
+void FUN_000958f0(int device_group_handle, int unit_handle)
+{
+  int *object;
+  char *definition;
+
+  object = (int *)object_get_and_verify_type(device_group_handle, 0x100);
+  definition = (char *)tag_get(0x6374726c, *object);
+  if (*(short *)(definition + 0x292) == 0) {
+    control_toggle(device_group_handle);
+  }
+}
+
+/* FUN_00095930 @ 0x00095930
+ *
+ * Sibling of FUN_000958f0 with the inverted definition test: resolve the
+ * handle as a control object (type mask 0x100), look up its 'ctrl' definition
+ * tag, and toggle the control when the definition's 16-bit field at +0x292 is
+ * ONE (CMP word ptr [EAX+0x292],0x1 / JNZ at 0x95952-0x9595a), where
+ * FUN_000958f0 toggles when that field is zero.
+ *
+ * Arity: only [ebp+8] is read (MOV EBX,[EBP+0x8] at 0x95934) and the function
+ * ends in a plain RET, so it is cdecl. Ghidra reports no xrefs (reached
+ * through a device dispatch table), so no caller evidence exists for a second
+ * unread argument — declared with the one proven stack parameter.
+ *
+ * control_toggle (0x957c0) takes its object handle in EBX@<ebx>: EBX is loaded
+ * once at 0x95934 and is preserved across both cdecl calls, so CALL 0x957c0 at
+ * 0x9595c passes nothing on the stack. Both stack calls are cleaned by the
+ * single ADD ESP,0x10 at 0x9594f (2 pushes each x 2 calls), which is why the
+ * artifact's cleanup=4 vs decl=2 note is a coalesced cleanup, not a missing
+ * argument.
+ */
+void FUN_00095930(int object_handle)
+{
+  int *object;
+  char *definition;
+
+  object = (int *)object_get_and_verify_type(object_handle, 0x100);
+  definition = (char *)tag_get(0x6374726c, *object);
+  if (*(short *)(definition + 0x292) == 1) {
+    control_toggle(object_handle);
+  }
 }
 
 /* FUN_000959b0 @ 0x000959b0

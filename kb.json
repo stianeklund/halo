@@ -4652,11 +4652,11 @@
     },
     {
      "addr": "0x1c6b20",
-     "decl": "void FUN_001c6b20(void);"
+     "decl": "bool FUN_001c6b20(file_ref_t *info, void *param_2, void *param_3);"
     },
     {
      "addr": "0x1c6bf0",
-     "decl": "void FUN_001c6bf0(void);"
+     "decl": "void FUN_001c6bf0(void *param_1, void *param_2, void *param_3);"
     },
     {
      "addr": "0x1c6c00",
@@ -4825,7 +4825,8 @@
     },
     {
      "addr": "0x7e040",
-     "decl": "int bitmap_get_pixel_data_size(void *bitmap_data);"
+     "decl": "int bitmap_get_pixel_data_size(void *bitmap_data);",
+     "ported": true
     },
     {
      "addr": "0x7e0b0",
@@ -4922,7 +4923,7 @@
     },
     {
      "addr": "0x145660",
-     "decl": "void FUN_00145660(void);"
+     "decl": "void FUN_00145660(int object_handle@<eax>, int animation_graph_tag, char *animation_name, int arg4);"
     },
     {
      "addr": "0x145740",
@@ -4931,7 +4932,8 @@
     },
     {
      "addr": "0x1457b0",
-     "decl": "void FUN_001457b0(int object_handle, int animation_graph_tag, char *animation_name);"
+     "decl": "void FUN_001457b0(int object_handle, int animation_graph_tag, char *animation_name);",
+     "ported": true
     },
     {
      "addr": "0x1457d0",
@@ -8292,11 +8294,12 @@
     },
     {
      "addr": "0xb46b0",
-     "decl": "void race_update_team_score(void);"
+     "decl": "void race_update_team_score(int player_handle@<eax>, int flag_index);"
     },
     {
      "addr": "0xb4800",
-     "decl": "void FUN_000B4800(void);"
+     "decl": "void FUN_000B4800(int player_handle);",
+     "ported": true
     },
     {
      "addr": "0xb4960",
@@ -9888,11 +9891,13 @@
     },
     {
      "addr": "0x1c6ca0",
-     "decl": "void FUN_001c6ca0(void);"
+     "decl": "bool FUN_001c6ca0(file_ref_t *info, void *param_2, void *param_3, void *param_4);",
+     "ported": true
     },
     {
      "addr": "0x1c6d20",
-     "decl": "void FUN_001c6d20(void);"
+     "decl": "bool FUN_001c6d20(file_ref_t *info);",
+     "ported": true
     },
     {
      "addr": "0x1c6d90",
@@ -9900,19 +9905,22 @@
     },
     {
      "addr": "0x1c6ed0",
-     "decl": "void FUN_001c6ed0(void);"
+     "decl": "bool FUN_001c6ed0(file_ref_t *info, void *param_2, void *param_3);",
+     "ported": true
     },
     {
      "addr": "0x1c6fb0",
-     "decl": "void FUN_001c6fb0(void);"
+     "decl": "void FUN_001c6fb0(void *param_1, void *param_2, void *param_3);"
     },
     {
      "addr": "0x1c70b0",
-     "decl": "void game_sound_clear(void);"
+     "decl": "void game_sound_clear(void);",
+     "ported": true
     },
     {
      "addr": "0x1c7160",
-     "decl": "void game_sound_restore(void);"
+     "decl": "void game_sound_restore(void);",
+     "ported": true
     },
     {
      "addr": "0x1c7230",
@@ -9939,7 +9947,8 @@
     },
     {
      "addr": "0x1c76c0",
-     "decl": "void scripted_looping_sound_set_alternate(int handle, bool alternate);"
+     "decl": "void scripted_looping_sound_set_alternate(int handle, bool alternate);",
+     "ported": true
     },
     {
      "addr": "0x1c7710",
@@ -9948,7 +9957,8 @@
     },
     {
      "addr": "0x1c7770",
-     "decl": "void unattached_looping_sound_stop(int sound_index);"
+     "decl": "void unattached_looping_sound_stop(int sound_index);",
+     "ported": true
     },
     {
      "addr": "0x1c77a0",
@@ -9956,7 +9966,8 @@
     },
     {
      "addr": "0x1c7ca0",
-     "decl": "void FUN_001c7ca0(void);"
+     "decl": "void FUN_001c7ca0(int in_EAX /* @<eax> */, bool param_2);",
+     "ported": true
     },
     {
      "addr": "0x1c7d10",
@@ -13397,19 +13408,23 @@
     },
     {
      "addr": "0xce6c0",
-     "decl": "void input_abstraction_get_local_player_preferences(short local_player_index, void *preferences_out);"
+     "decl": "void input_abstraction_get_local_player_preferences(short local_player_index, void *preferences_out);",
+     "ported": true
     },
     {
      "addr": "0xce740",
-     "decl": "void input_abstraction_update_local_player_preferences(void);"
+     "decl": "void input_abstraction_update_local_player_preferences(short controller_index, void *preferences);",
+     "ported": true
     },
     {
      "addr": "0xce7f0",
-     "decl": "void input_abstraction_get_input_state(void);"
+     "decl": "void *input_abstraction_get_input_state(short local_player_index);",
+     "ported": true
     },
     {
      "addr": "0xce840",
-     "decl": "void input_abstraction_update_device_changes(void);"
+     "decl": "void input_abstraction_update_device_changes(unsigned int device_change_flags);",
+     "ported": true
     },
     {
      "addr": "0xce8c0",
@@ -17955,7 +17970,8 @@
     },
     {
      "addr": "0xe0620",
-     "decl": "void FUN_000e0620(void);"
+     "decl": "void FUN_000e0620(int unknown0, int unknown1, float *position);",
+     "ported": true
     },
     {
      "addr": "0xe0720",
@@ -22633,7 +22649,8 @@
     },
     {
      "addr": "0x95930",
-     "decl": "void FUN_00095930(void);"
+     "decl": "void FUN_00095930(int object_handle);",
+     "ported": true
     },
     {
      "addr": "0x959b0",
@@ -26139,7 +26156,8 @@
     },
     {
      "addr": "0x820d0",
-     "decl": "void *transport_get_key(void *dst);"
+     "decl": "void *transport_get_key(void *dst);",
+     "ported": true
     },
     {
      "addr": "0x82310",
@@ -26147,7 +26165,8 @@
     },
     {
      "addr": "0x82410",
-     "decl": "void delete_endpoint_set(int set);"
+     "decl": "void delete_endpoint_set(int set);",
+     "ported": true
     },
     {
      "addr": "0x824a0",

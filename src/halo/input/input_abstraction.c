@@ -12,6 +12,78 @@ void input_abstraction_mark_time(void)
   *(unsigned int *)0x46b8f0 = system_milliseconds();
 }
 
+/* Store a controller's preference block into the per-controller preferences
+   array at 0x46b820 (4 entries of 0x18 bytes; entry layout matches the block
+   built by input_abstraction_initialize).  Bytes +0x10/+0x11 of the incoming
+   block are the start/back button slots and must still hold their identity
+   values (0x0c/0x0d) -- the engine refuses remapped start/back. */
+void input_abstraction_update_local_player_preferences(short controller_index,
+                                                       void *preferences)
+{
+  if (controller_index < 0 || controller_index >= MAXIMUM_GAMEPADS) {
+    display_assert(
+      "(controller_index>=0) && (controller_index<MAXIMUM_GAMEPADS)",
+      "c:\\halo\\SOURCE\\input\\input_abstraction.c", 0x1fb, 1);
+    system_exit(-1);
+  }
+  if (preferences == 0) {
+    display_assert("preferences",
+                   "c:\\halo\\SOURCE\\input\\input_abstraction.c", 0x1fc, 1);
+    system_exit(-1);
+  }
+  if (((char *)preferences)[0x10] != '\x0c' ||
+      ((char *)preferences)[0x11] != '\x0d') {
+    display_assert(
+      "invalid controller preferences; can't remap start & back buttons",
+      "c:\\halo\\SOURCE\\input\\input_abstraction.c", 0x1ff, 1);
+    system_exit(-1);
+  }
+  csmemcpy((char *)0x46b820 + controller_index * 0x18, preferences, 0x18);
+}
+
+/* Return the per-local-player input state slot.  The array lives at 0x46b880
+   with a 0x1c-byte stride; element contents are not yet recovered, so the
+   return type stays an opaque pointer. */
+void *input_abstraction_get_input_state(short local_player_index)
+{
+  if (local_player_index < 0 || local_player_index >= MAXIMUM_GAMEPADS) {
+    display_assert(
+      "(local_player_index>=0) && (local_player_index<MAXIMUM_GAMEPADS)",
+      "c:\\halo\\SOURCE\\input\\input_abstraction.c", 0x209, 1);
+    system_exit(-1);
+  }
+  return (char *)0x46b880 + local_player_index * 0x1c;
+}
+
+/* React to a controller hot-plug/removal event reported by
+   input_get_device_states (0xcf830), which passes a bit field of the devices
+   that changed.  Does nothing until input_abstraction_initialize has set the
+   ready flag at 0x46b8f8.
+
+   Any change stops bink playback, but only once the input system has been
+   settled for 2 seconds: 0x46b8f0 is the last mark_time/initialize timestamp,
+   and 0x46b8fc is the timestamp of the first change in the 0xfff000 class
+   (0 until one is seen).  Bits 0xfff000 additionally arm 0x46b8fc.  The
+   message text (including its "to due" typo) is verbatim from 0x281094. */
+void input_abstraction_update_device_changes(unsigned int device_change_flags)
+{
+  if (*(char *)0x46b8f8 == '\0') {
+    return;
+  }
+  if (device_change_flags != 0 &&
+      ((unsigned int)(system_milliseconds() - *(unsigned int *)0x46b8f0) >=
+         2000 ||
+       (*(unsigned int *)0x46b8fc != 0 &&
+        (unsigned int)(system_milliseconds() - *(unsigned int *)0x46b8fc) >=
+          2000))) {
+    error(2, "stopping bink playback to due to change in input devices");
+    bink_playback_stop();
+  }
+  if ((device_change_flags & 0xfff000) != 0 && *(unsigned int *)0x46b8fc == 0) {
+    *(unsigned int *)0x46b8fc = system_milliseconds();
+  }
+}
+
 void input_abstraction_initialize(void)
 {
   int i;

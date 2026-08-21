@@ -1,5 +1,119 @@
 /* Game sound subsystem — manages looping sounds attached to objects. */
 
+/* Sound-file container dispatch (0x1c6ca0).
+ * Tries the AIFF/AIFC container first: FUN_001c6880 sniffs the FORM/AIFF
+ * header, FUN_001c6b20 parses it, and FUN_001c6bf0 consumes the parsed
+ * result. If either step fails, falls back to the second container family
+ * (FUN_001c6d20 sniff / FUN_001c6ed0 parse / FUN_001c6fb0 consume).
+ * Returns true when one of the two chains completed.
+ * The meaning of param_2..param_4 is unproven; the binary shows only that
+ * param_3/param_4 are forwarded to the parse call and
+ * param_2/param_3/param_4 to the consume call, and that the consume call's
+ * return value is discarded (MOV AL,0x1 follows unconditionally). */
+bool FUN_001c6ca0(file_ref_t *info, void *param_2, void *param_3, void *param_4)
+{
+  if (FUN_001c6880(info)) {
+    if (FUN_001c6b20(info, param_3, param_4)) {
+      FUN_001c6bf0(param_2, param_3, param_4);
+      return 1;
+    }
+  }
+  if (FUN_001c6d20(info)) {
+    if (FUN_001c6ed0(info, param_3, param_4)) {
+      FUN_001c6fb0(param_2, param_3, param_4);
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/* Check if a file is a RIFF/WAVE audio container (0x1c6d20).
+ * Opens the file, reads the first 12-byte RIFF header chunk (id + size +
+ * form type), byte-swaps it via the riff_container_chunk definition at
+ * 0x32ec44, then checks that the chunk id is 0x52494646 ('RIFF') and the
+ * form type is 0x57415645 ('WAVE'). Closes the file before returning.
+ * Mirrors the AIFF sniff FUN_001c6880. */
+bool FUN_001c6d20(file_ref_t *info)
+{
+  int header[3];
+  char result;
+  char ok;
+
+  result = 0;
+  ok = file_open(info, 1);
+  if (ok != '\0') {
+    ok = file_read_from_position(info, 0, 0xc, header);
+    if (ok != '\0') {
+      FUN_00118be0((void *)0x32ec44, header, 1);
+      if ((header[0] == 0x52494646) && (header[2] == 0x57415645)) {
+        result = 1;
+      }
+    }
+    file_close(info);
+  }
+  return result;
+}
+
+/* Parse a RIFF/WAVE container and read out its 'data' chunk (0x1c6ed0).
+ * Walks the chunk list starting at file offset 0xc (just past the 12-byte
+ * RIFF header): reads a 4-byte chunk id, then the 4-byte chunk size, then
+ * byte-swaps the id in place via the riff_chunk_type definition at 0x32ec68.
+ * On 'data' (0x64617461) it stores the chunk size through param_2 and reads
+ * that many bytes into param_3; otherwise it skips the chunk payload,
+ * rounding an odd size up to the next even boundary (RIFF word padding).
+ * Returns true only when the data payload was read successfully; the file is
+ * closed on every path that opened it.
+ * The binary shows param_2 as a dword out-parameter (MOV [ECX],EAX) and
+ * param_3 as a raw destination buffer; their callee-side meaning beyond that
+ * is unproven. Mirrors the AIFF parse FUN_001c6b20. */
+bool FUN_001c6ed0(file_ref_t *info, void *param_2, void *param_3)
+{
+  int chunk_id;
+  unsigned int chunk_size;
+  unsigned int padded_size;
+  int offset;
+  char result;
+  char ok;
+
+  result = 0;
+  offset = 0xc;
+  ok = file_open(info, 1);
+  if (ok != '\0') {
+    ok = file_read_from_position(info, offset, 4, &chunk_id);
+    if (ok != '\0') {
+      for (;;) {
+        offset += 4;
+        ok = file_read_from_position(info, offset, 4, &chunk_size);
+        if (ok != '\0') {
+          FUN_00118be0((void *)0x32ec68, &chunk_id, 1);
+          if (chunk_id == 0x64617461) {
+            *(unsigned int *)param_2 = chunk_size;
+            offset += 4;
+            ok =
+              file_read_from_position(info, offset, (int)chunk_size, param_3);
+            if (ok != '\0') {
+              result = 1;
+            }
+            break;
+          }
+          padded_size = chunk_size;
+          if ((padded_size & 1) != 0) {
+            padded_size++;
+          }
+          offset += (int)padded_size + 4;
+        }
+        ok = file_read_from_position(info, offset, 4, &chunk_id);
+        if (ok == '\0') {
+          file_close(info);
+          return result;
+        }
+      }
+    }
+    file_close(info);
+  }
+  return result;
+}
+
 void game_sound_initialize(void)
 {
   *(void **)0x5054e4 =
@@ -19,6 +133,91 @@ void game_sound_initialize_for_new_map(void)
     ((void (*)(void *))0x119b20)(*(void **)0x5054e4);
     *(int *)(*(char **)0x5054e0 + 4) = -1;
     *(int *)(*(char **)0x5054e0) = 0;
+  }
+}
+
+/* Drop scripted looping-sound back-references held by lsnd tags (0x1c70b0).
+ *
+ * Walks every live datum of the object-looping-sounds table (0x5054e4).
+ * When the datum's lsnd definition points back at this datum
+ * (definition+0x1c == looping_sound_index), the datum must carry the
+ * scripted flag (bit 0x10 of entry+0x4) and the back-reference is reset to
+ * NONE. Otherwise, when the back-reference is set to some other datum, that
+ * datum is fetched and the result discarded — the binary has no compare or
+ * branch after the call at 0x1c7134 (only ADD ESP,0x8), so the original
+ * source's use of the result left no code in this build. */
+void game_sound_clear(void)
+{
+  int looping_sound_index;
+  void *entry;
+  void *definition;
+  int scripting_index;
+
+  for (looping_sound_index = data_next_index(*(data_t **)0x5054e4, -1);
+       looping_sound_index != -1;
+       looping_sound_index =
+         data_next_index(*(data_t **)0x5054e4, looping_sound_index)) {
+    entry = datum_get(*(data_t **)0x5054e4, looping_sound_index);
+    definition = tag_get(0x6c736e64, *(int *)((char *)entry + 0xc));
+
+    scripting_index = *(int *)((char *)definition + 0x1c);
+    if (scripting_index == looping_sound_index) {
+      if ((*(uint8_t *)((char *)entry + 4) & 0x10) == 0) {
+        display_assert(
+          "TEST_FLAG(sound->flags, _game_looping_sound_scripted_bit)",
+          "c:\\halo\\SOURCE\\sound\\game_sound.c", 0xaf, 1);
+        system_exit(-1);
+      }
+      *(int *)((char *)definition + 0x1c) = -1;
+    } else if (scripting_index != -1) {
+      datum_get(*(data_t **)0x5054e4, scripting_index);
+    }
+  }
+}
+
+/* Re-establish scripted looping-sound back-references after a game-state
+ * restore (0x1c7160).
+ *
+ * Pass 1 walks every live datum of the object-looping-sounds table
+ * (0x5054e4). Only scripted data participate (bit 0x10 of entry+0x4); the
+ * datum's 'lsnd' definition is resolved from entry+0xc. When bit 0x2 of the
+ * definition's first flags byte is set the datum is dropped
+ * (datum_delete); otherwise the definition's runtime_scripting_sound_index
+ * (+0x1c) is re-pointed at this datum. This is the inverse of
+ * game_sound_clear(), which tears those back-references down.
+ *
+ * Pass 2 iterates every loaded 'snd!' tag through the tag-group iterator
+ * (20-byte state at EBP-0x14) and resets each tag's field at +0x90 to NONE.
+ */
+void game_sound_restore(void)
+{
+  char iterator[20];
+  int looping_sound_index;
+  void *entry;
+  unsigned char *definition;
+  int tag_index;
+
+  for (looping_sound_index = data_next_index(*(data_t **)0x5054e4, -1);
+       looping_sound_index != -1;
+       looping_sound_index =
+         data_next_index(*(data_t **)0x5054e4, looping_sound_index)) {
+    entry = datum_get(*(data_t **)0x5054e4, looping_sound_index);
+    if ((*(uint8_t *)((char *)entry + 4) & 0x10) != 0) {
+      definition =
+        (unsigned char *)tag_get(0x6c736e64, *(int *)((char *)entry + 0xc));
+      if ((*definition & 2) == 0) {
+        *(int *)(definition + 0x1c) = looping_sound_index;
+      } else {
+        datum_delete(*(data_t **)0x5054e4, looping_sound_index);
+      }
+    }
+  }
+
+  FUN_001b9b60((int)iterator, 0x736e6421);
+  tag_index = FUN_001b9b80((int)iterator);
+  while (tag_index != -1) {
+    *(int *)((char *)tag_get(0x736e6421, tag_index) + 0x90) = -1;
+    tag_index = FUN_001b9b80((int)iterator);
   }
 }
 
@@ -217,6 +416,39 @@ void scripted_foley_predict(int handle)
   }
 }
 
+/* Set or clear the 'alternate' flag (bit 0x8) of the scripted looping sound
+ * owned by an lsnd tag (0x1c76c0).
+ *
+ * handle is an lsnd tag index; the tag's runtime scripting-sound index at
+ * lsnd+0x1c indexes the object-looping-sound table (0x5054e4) — the same field
+ * and table game_looping_sound_delete uses.  Both the tag index and the stored
+ * sound index are checked against NONE before use; there is no datum_get NULL
+ * check in the original.  Flag word is entry+0x4, the same word carrying
+ * _game_looping_sound_scripted_bit (0x10). */
+void scripted_looping_sound_set_alternate(int handle, bool alternate)
+{
+  void *lsnd_tag;
+  void *entry;
+  int looping_sound_index;
+
+  if (handle == NONE) {
+    return;
+  }
+
+  lsnd_tag = tag_get(0x6c736e64, handle);
+  looping_sound_index = *(int *)((char *)lsnd_tag + 0x1c);
+  if (looping_sound_index == NONE) {
+    return;
+  }
+
+  entry = datum_get(*(data_t **)0x5054e4, looping_sound_index);
+  if (alternate) {
+    *(uint32_t *)((char *)entry + 4) |= 0x8;
+  } else {
+    *(uint32_t *)((char *)entry + 4) &= ~0x8u;
+  }
+}
+
 /* Start a looping sound that is not attached to an object (0x1c7710).
  * tag_get() is called for its validation side effect only (the result is
  * discarded in the original). game_looping_sound_new() is given object
@@ -244,6 +476,19 @@ int unattached_looping_sound_start(int sound_tag, int param_2, int param_3)
   }
 
   return looping_sound_index;
+}
+
+/* Stop an unattached looping sound (0x1c7770). Sets flag bit 1 on the
+ * looping-sound datum, which unattached_looping_sound_start (0x1c7710)
+ * marks with bit 0. The original does NOT null-check the datum_get()
+ * result - it dereferences unconditionally; preserved here. */
+void unattached_looping_sound_stop(int sound_index)
+{
+  void *entry;
+
+  entry = datum_get(*(data_t **)0x5054e4, sound_index);
+  *(unsigned int *)((char *)entry + 0x4) =
+    *(unsigned int *)((char *)entry + 0x4) | 2;
 }
 
 bool FUN_001c7a10(int object_handle, void *attachment_data, void *source)
@@ -311,6 +556,53 @@ bool sound_cluster_is_audible(void *location)
     "location->cluster_index<global_structure_bsp_get()->clusters.count",
     "c:\\halo\\SOURCE\\sound\\game_sound.c", 0x364, 1);
   system_exit(-1);
+}
+
+/* Detach a scripted looping sound from its lsnd tag (0x1c7ca0).
+ *
+ * The lsnd tag index arrives in EAX (0x1c7cab: PUSH EAX; PUSH 'lsnd'); the
+ * second parameter is a byte read from [EBP+0x8].  The tag's runtime
+ * scripting-sound index at lsnd+0x1c indexes the object-looping-sound table
+ * (0x5054e4) — the same field and table game_looping_sound_delete and
+ * scripted_looping_sound_set_alternate use.
+ *
+ * Flag word is entry+0x4: bit 0x10 (_game_looping_sound_scripted_bit) is
+ * cleared, bit 0x2 is set, and bit 0x4 is set only when param_2 is non-zero.
+ * The original resolves the datum TWICE with two separate datum_get calls,
+ * re-loading lsnd+0x1c for the second one (0x1c7cd4), so both calls are
+ * preserved here.  The lsnd+0x1c store of NONE happens between the second
+ * datum_get and the conditional bit-0x4 store (0x1c7cf0 precedes 0x1c7cf9).
+ * There is no datum_get NULL check in the original. */
+void FUN_001c7ca0(int in_EAX, bool param_2)
+{
+  void *lsnd_tag;
+  void *entry;
+  void *entry_again;
+  int looping_sound_index;
+
+  if (in_EAX == NONE) {
+    return;
+  }
+
+  lsnd_tag = tag_get(0x6c736e64, in_EAX);
+  looping_sound_index = *(int *)((char *)lsnd_tag + 0x1c);
+  if (looping_sound_index == NONE) {
+    return;
+  }
+
+  entry = datum_get(*(data_t **)0x5054e4, looping_sound_index);
+  *(uint32_t *)((char *)entry + 4) = *(uint32_t *)((char *)entry + 4) & ~0x10u;
+
+  entry_again =
+    datum_get(*(data_t **)0x5054e4, *(int *)((char *)lsnd_tag + 0x1c));
+  *(uint32_t *)((char *)entry_again + 4) =
+    *(uint32_t *)((char *)entry_again + 4) | 2;
+
+  *(int *)((char *)lsnd_tag + 0x1c) = NONE;
+
+  if (param_2) {
+    *(uint32_t *)((char *)entry + 4) = *(uint32_t *)((char *)entry + 4) | 4;
+  }
 }
 
 /* Check whether the lsnd tag (index passed in EAX) has a playlist

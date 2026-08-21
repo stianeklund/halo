@@ -248,6 +248,60 @@ bool transport_network_available(void)
   return XNetGetEthernetLinkStatus() & 1;
 }
 
+/* Destroy an endpoint set: free its endpoint array, then the set itself.
+ *
+ * Asserts the set and its endpoint-array pointer are both non-NULL (one
+ * short-circuited && producing a single shared failure block in the
+ * reference), then asserts the transport is initialized, then releases the
+ * array at set+0x104 followed by the set allocation itself.  Both releases
+ * go through debug_free with the original source path and line, so the
+ * allocator's leak bookkeeping blames the original Bungie call sites.
+ *
+ * Confirmed: display_assert (0x8d9f0, cdecl 4 args) with message
+ * "set && set->ep_array" at 0x2665d4 line 0x1bb and "transport_initialized"
+ * at 0x265fe4 line 0x1bc, __FILE__ at 0x266458; system_exit (0x8e2f0,
+ * PUSH -1); debug_free (0x8ef70, cdecl 3 args) at lines 0x1be and 0x1bf.
+ * Offset 0x104 is the same endpoint-array pointer remove_endpoint_from_set
+ * reads as endpoint_set[0x41].  The array pointer is re-loaded from the set
+ * at 0x8246e after the second assert, not kept live from the first test.
+ *
+ * Uncertain: the reference tail is XOR AX,AX before the epilogue, which is
+ * the MSVC shape for a 16-bit return value, but kb.json declares this void
+ * and no caller evidence names a returned value, so the void decl is kept
+ * and the zeroing is left unmodelled. */
+void delete_endpoint_set(int set)
+{
+  /* Both asserts are written De Morgan'd rather than via assert_halt_msg_at:
+   * the macro's `!(a && b)` makes VC71 materialize the condition as a 0/1
+   * value in EAX instead of emitting the original's two-branch
+   * `test esi,esi / jz` + `test eax,eax / jnz` (measured; same effect
+   * documented at players.c set_player_powerup). */
+  if (set == 0 || *(int *)(set + 0x104) == 0) {
+    display_assert(
+      "set && set->ep_array",
+      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+      0x1bb, 1);
+    system_exit(-1);
+  }
+
+  if (*(uint8_t *)0x335090 == 0) {
+    display_assert(
+      "transport_initialized",
+      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+      0x1bc, 1);
+    system_exit(-1);
+  }
+
+  debug_free(
+    *(void **)(set + 0x104),
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+    0x1be);
+  debug_free(
+    (void *)set,
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+    0x1bf);
+}
+
 /* Remove an endpoint from an endpoint set.
  * Searches the set's endpoint_array for the matching pointer, then finds and
  * removes the endpoint's socket from the fd_array by shifting. Clears the

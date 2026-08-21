@@ -3155,6 +3155,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x7dfe0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7e040": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x7f3a0": {
       "kind": "function",
       "status": "ported"
@@ -3361,6 +3369,10 @@
       "status": "ported"
     },
     "0x82300": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x82410": {
       "kind": "function",
       "status": "ported"
     },
@@ -3990,6 +4002,10 @@
         "summary": "Advance all active recorded animation threads by one tick: tick per-type event stream via vtable, sanity-check against debug state, apply frame to unit; finished threads restore unit flags and are deleted."
       }
     },
+    "0x94ee0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x94ff0": {
       "kind": "function",
       "status": "ported",
@@ -4028,6 +4044,10 @@
       ]
     },
     "0x95660": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x957c0": {
       "kind": "function",
       "status": "ported"
     },
@@ -5632,6 +5652,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb40f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xb4170": {
       "kind": "function",
       "status": "ported"
@@ -5641,6 +5665,10 @@
       "status": "ported"
     },
     "0xb4290": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb4300": {
       "kind": "function",
       "status": "ported"
     },
@@ -8239,6 +8267,18 @@
       "status": "ported"
     },
     "0xce6b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xce740": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xce7f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xce840": {
       "kind": "function",
       "status": "ported"
     },
@@ -16225,6 +16265,10 @@
       "status": "ported"
     },
     "0x1c7710": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c7770": {
       "kind": "function",
       "status": "ported"
     },

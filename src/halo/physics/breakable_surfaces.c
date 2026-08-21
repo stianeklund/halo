@@ -186,6 +186,42 @@ int16_t FUN_00145740(int object_handle)
   return 0;
 }
 
+/* 0x1457b0 — Thin cdecl forwarder onto the animation-state setter at
+ * 0x00145660; the 3-argument (frame-index-zero) variant of the 4-argument
+ * sibling FUN_001457d0.
+ *
+ * Confirmed frame (PUSH EBP; MOV EBP,ESP; no callee-saved pushes):
+ *   object_handle        [EBP+0x08]
+ *   animation_graph_tag  [EBP+0x0c]
+ *   animation_name       [EBP+0x10]
+ * Confirmed argument lowering — the original interleaves the register argument
+ * with the stack pushes:
+ *   MOV EAX,[EBP+0x10]; MOV ECX,[EBP+0x0c]
+ *   PUSH 0x0     -> callee [EBP+0x10]  (4th arg, literal 0)
+ *   PUSH EAX     -> callee [EBP+0x0c]  (animation_name)
+ *   MOV EAX,[EBP+0x08]                  (register argument, reloaded AFTER the
+ *                                        EAX push so it is live at the CALL)
+ *   PUSH ECX     -> callee [EBP+0x08]  (animation_graph_tag)
+ *   CALL 0x00145660; ADD ESP,0xc       (3 stack dwords => cdecl)
+ * Confirmed @<eax> at the callee: FUN_00145660 opens with
+ *   CMP EAX,-0x1; JZ <epilogue>
+ * before touching any stack slot, so its first argument arrives in EAX and is a
+ * NONE-checked handle. Its stack args are then CMP EDI,-1 on [EBP+0x08] and
+ * a tag_get with group 0x616e7472 (the 'antr' animation-graph group) on that
+ * same value, which is what fixes [EBP+0x0c] as the animation-name string and
+ * [EBP+0x08] as the antr tag index.
+ * index. The callee reads its 4th slot as `MOV CX, word ptr [EBP+0x10]`, i.e.
+ * only the low 16 bits of the pushed dword are used.
+ * Unknown: the semantic role of the 4th argument (it is clamped against a
+ * 16-bit field and stored at obj+0x82); no string or assert evidence names it,
+ * so it stays arg4 here and in the FUN_001457d0 decl.
+ */
+void FUN_001457b0(int object_handle, int animation_graph_tag,
+                  char *animation_name)
+{
+  FUN_00145660(object_handle, animation_graph_tag, animation_name, 0);
+}
+
 /* 0x1457f0 — Returns a pointer to the health float for a breakable surface,
  * indexed by global_structure_bsp_index and surface_index within the globals
  * buffer starting at offset 0x204. */
