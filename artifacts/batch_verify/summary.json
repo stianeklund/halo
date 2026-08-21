@@ -1,11 +1,11 @@
 {
   "results": {
-    "pass": 2907,
-    "fail": 198,
-    "error": 278,
-    "not_applicable": 107,
-    "z3_proven": 84,
-    "total": 3490
+    "pass": 2960,
+    "fail": 202,
+    "error": 297,
+    "not_applicable": 84,
+    "z3_proven": 82,
+    "total": 3543
   },
   "failures": [
     [
@@ -217,6 +217,14 @@
       "divergence"
     ],
     [
+      "scripted_sound_time",
+      "divergence"
+    ],
+    [
+      "unattached_looping_sound_start",
+      "divergence"
+    ],
+    [
       "game_state_read_header_from_persistent_storage",
       "divergence"
     ],
@@ -302,6 +310,18 @@
     ],
     [
       "FUN_00129cf0",
+      "divergence"
+    ],
+    [
+      "network_game_client_initiate_join_game",
+      "divergence"
+    ],
+    [
+      "network_game_client_new_advertised_game",
+      "divergence"
+    ],
+    [
+      "FUN_001271a0",
       "divergence"
     ],
     [
@@ -526,6 +546,10 @@
     ],
     [
       "vector_intersects_pill3d",
+      "divergence"
+    ],
+    [
+      "render_debug_recording",
       "divergence"
     ],
     [
@@ -790,14 +814,6 @@
     ],
     [
       "create_message",
-      "divergence"
-    ],
-    [
-      "path_3d_build_path",
-      "divergence"
-    ],
-    [
-      "FUN_000638f0",
       "divergence"
     ]
   ],
@@ -1543,6 +1559,14 @@
       "emulation_error"
     ],
     [
+      "FUN_00094020",
+      "mem-limit"
+    ],
+    [
+      "FUN_00094a70",
+      "mem-limit"
+    ],
+    [
       "FUN_001893e0",
       "emulation_error"
     ],
@@ -1597,6 +1621,10 @@
     [
       "reference_list_remove",
       "timeout"
+    ],
+    [
+      "FUN_00192710",
+      "mem-limit"
     ],
     [
       "FUN_00194380",
@@ -1655,10 +1683,6 @@
       "timeout"
     ],
     [
-      "FUN_001ab870",
-      "exit=1"
-    ],
-    [
       "unit_abort_animation",
       "emulation_error"
     ],
@@ -1688,6 +1712,10 @@
     ],
     [
       "widgets_render_object_widgets",
+      "timeout"
+    ],
+    [
+      "FUN_001bed90",
       "timeout"
     ],
     [
@@ -1811,6 +1839,10 @@
       "mem-limit"
     ],
     [
+      "FUN_0006aee0",
+      "timeout"
+    ],
+    [
       "FUN_0006af80",
       "timeout"
     ],
@@ -1845,6 +1877,10 @@
     [
       "uncompress",
       "emulation_error"
+    ],
+    [
+      "FUN_00117ff0",
+      "exit=1"
     ],
     [
       "FUN_00118ba0",
@@ -1884,7 +1920,7 @@
     ],
     [
       "collision_bsp_test_pill_new",
-      "emulation_error"
+      "timeout"
     ],
     [
       "collision_bsp_test_sphere",
@@ -1895,15 +1931,59 @@
       "timeout"
     ],
     [
+      "FUN_0014e7d0",
+      "exit=1"
+    ],
+    [
       "FUN_0014ea10",
       "timeout"
     ],
     [
+      "path_input_new",
+      "timeout"
+    ],
+    [
+      "path_input_set_search_bounds",
+      "exit=1"
+    ],
+    [
       "path_state_new",
-      "emulation_error"
+      "exit=1"
+    ],
+    [
+      "FUN_0005e0d0",
+      "exit=1"
+    ],
+    [
+      "path_get_node",
+      "exit=1"
     ],
     [
       "path_3d_available",
+      "exit=1"
+    ],
+    [
+      "path_3d_build_path",
+      "exit=1"
+    ],
+    [
+      "path_obstacles_debug_render",
+      "exit=1"
+    ],
+    [
+      "structure_test_ray2d",
+      "exit=1"
+    ],
+    [
+      "FUN_000638f0",
+      "exit=1"
+    ],
+    [
+      "FUN_00063970",
+      "exit=1"
+    ],
+    [
+      "FUN_001d7b37",
       "timeout"
     ],
     [
@@ -1911,7 +1991,19 @@
       "timeout"
     ],
     [
+      "FUN_00172590",
+      "exit=1"
+    ],
+    [
       "FUN_00173090",
+      "timeout"
+    ],
+    [
+      "FUN_0017b000",
+      "timeout"
+    ],
+    [
+      "FUN_0017b5c0",
       "timeout"
     ]
   ],
@@ -1997,9 +2089,7 @@
     "tea_decrypt",
     "paths_dispose",
     "path_input_set_start",
-    "path_input_set_attractor",
-    "path_input_set_search_bounds",
-    "FUN_0005e0d0"
+    "path_input_set_attractor"
   ],
   "rows": [
     {
@@ -4569,8 +4659,8 @@
       "status": "pass",
       "reason": null,
       "error_details": [],
-      "seeds_passed": 65,
-      "seeds_total": 65,
+      "seeds_passed": 70,
+      "seeds_total": 70,
       "z3_proven": "0"
     },
     {
@@ -7106,6 +7196,54 @@
     {
       "addr": "0x146a90",
       "name": "FUN_00146a90",
+      "class": "stubbable",
+      "obj": "breakable_surfaces.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x145560",
+      "name": "FUN_00145560",
+      "class": "leaf",
+      "obj": "breakable_surfaces.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x145580",
+      "name": "FUN_00145580",
+      "class": "stubbable",
+      "obj": "breakable_surfaces.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x145610",
+      "name": "FUN_00145610",
+      "class": "stubbable",
+      "obj": "breakable_surfaces.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x145740",
+      "name": "FUN_00145740",
       "class": "stubbable",
       "obj": "breakable_surfaces.obj",
       "status": "pass",
@@ -12423,6 +12561,18 @@
       "z3_proven": "0"
     },
     {
+      "addr": "0xa7470",
+      "name": "game_difficulty_level_get_ignore_easy",
+      "class": "data_only",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
       "addr": "0xa7490",
       "name": "game_set_game_variant",
       "class": "data_only",
@@ -12557,6 +12707,18 @@
     {
       "addr": "0xb42d0",
       "name": "FUN_000b42d0",
+      "class": "stubbable",
+      "obj": "game.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0xb4b10",
+      "name": "FUN_000b4b10",
       "class": "stubbable",
       "obj": "game.obj",
       "status": "pass",
@@ -16785,11 +16947,47 @@
       "name": "scripted_sound_time",
       "class": "stubbable",
       "obj": "game_sound.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "fail",
+      "reason": "divergence",
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 47,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1c7550",
+      "name": "scripted_sound_stop",
+      "class": "leaf",
+      "obj": "game_sound.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1c75a0",
+      "name": "scripted_foley_predict",
+      "class": "leaf",
+      "obj": "game_sound.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1c7710",
+      "name": "unattached_looping_sound_start",
+      "class": "stubbable",
+      "obj": "game_sound.obj",
+      "status": "fail",
+      "reason": "divergence",
+      "error_details": [],
+      "seeds_passed": 2,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -27484,11 +27682,36 @@
       "name": "FUN_00124900",
       "class": "leaf",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
-      "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "status": "pass",
+      "reason": null,
+      "error_details": [
+        "seed[  0] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[  3] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[  5] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[  7] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[  9] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 11] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 13] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 15] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 17] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 18] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 20] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 23] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 24] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 25] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 27] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 28] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 29] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 31] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 34] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 36] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 37] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 40] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 42] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 46] INSN-LIMIT: oracle=1000001 lifted=1000001"
+      ],
+      "seeds_passed": 26,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -27496,11 +27719,11 @@
       "name": "network_game_client_keep_alive",
       "class": "leaf",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -27508,11 +27731,11 @@
       "name": "network_game_client_initiate_join_game",
       "class": "leaf",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "fail",
+      "reason": "divergence",
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 47,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -27520,11 +27743,11 @@
       "name": "network_game_client_set_machine",
       "class": "leaf",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -27544,11 +27767,11 @@
       "name": "FUN_00124C80",
       "class": "stubbable",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -27556,11 +27779,11 @@
       "name": "FUN_00124D00",
       "class": "stubbable",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -27592,11 +27815,11 @@
       "name": "network_game_client_accepted_into_game",
       "class": "leaf",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -27604,11 +27827,11 @@
       "name": "network_game_client_game_settings_updated",
       "class": "leaf",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -27616,11 +27839,11 @@
       "name": "unstrip_player_index",
       "class": "stubbable",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 90,
+      "seeds_total": 90,
       "z3_proven": "0"
     },
     {
@@ -27664,11 +27887,17 @@
       "name": "network_game_client_update_local_player_data",
       "class": "leaf",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
-      "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "status": "pass",
+      "reason": null,
+      "error_details": [
+        "seed[  0] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1000ff34]",
+        "seed[  8] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1000ff21]",
+        "seed[ 15] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1000ff12]",
+        "seed[ 16] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1000ff0e]",
+        "seed[ 17] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1000ff0a]"
+      ],
+      "seeds_passed": 45,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -27688,11 +27917,11 @@
       "name": "network_game_client_countdown_timer_update",
       "class": "stubbable",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -27700,11 +27929,11 @@
       "name": "network_game_client_advertised_game_is_valid",
       "class": "stubbable",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -27712,11 +27941,11 @@
       "name": "FUN_00125fb0",
       "class": "stubbable",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -27724,11 +27953,11 @@
       "name": "network_game_client_new_advertised_game",
       "class": "leaf",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "fail",
+      "reason": "divergence",
       "error_details": [],
       "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -27736,11 +27965,11 @@
       "name": "network_game_client_game_shutdown",
       "class": "stubbable",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -27748,11 +27977,11 @@
       "name": "network_game_client_reset",
       "class": "stubbable",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -27760,11 +27989,11 @@
       "name": "FUN_00126fe0",
       "class": "stubbable",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -27772,11 +28001,18 @@
       "name": "FUN_001271a0",
       "class": "data_only",
       "obj": "network_client_manager.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
-      "error_details": [],
+      "status": "fail",
+      "reason": "divergence",
+      "error_details": [
+        "seed[  1] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xcccccccc]",
+        "seed[  2] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xcccccccc]",
+        "seed[  3] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xcccccccc]",
+        "seed[  8] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xcccccccc]",
+        "seed[ 18] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xcccccccc]",
+        "seed[ 19] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xcccccccc]"
+      ],
       "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -31987,11 +32223,11 @@
       "name": "player_telefrag_effect_stop",
       "class": "stubbable",
       "obj": "player_effects.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -32035,11 +32271,11 @@
       "name": "player_telefrag_effect_start",
       "class": "stubbable",
       "obj": "player_effects.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -38973,6 +39209,271 @@
       "z3_proven": "0"
     },
     {
+      "addr": "0x94020",
+      "name": "FUN_00094020",
+      "class": "leaf",
+      "obj": "recorded_animations.obj",
+      "status": "error",
+      "reason": "mem-limit",
+      "error_details": [],
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x94060",
+      "name": "FUN_00094060",
+      "class": "leaf",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [
+        "seed[ 17] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1000ffc6]"
+      ],
+      "seeds_passed": 49,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x940a0",
+      "name": "FUN_000940a0",
+      "class": "data_only",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [
+        "seed[  0] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[  2] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[  5] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[  7] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[  8] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 10] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 13] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 15] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 17] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 18] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 19] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 20] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 21] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 22] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 23] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 24] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 25] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 26] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 27] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 28] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 29] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 30] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 31] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 32] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 33] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 34] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 35] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 36] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 37] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 38] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 39] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 40] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 41] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 42] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 43] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 44] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 45] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 46] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 47] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 48] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]",
+        "seed[ 49] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1ffffc]"
+      ],
+      "seeds_passed": 9,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x942a0",
+      "name": "FUN_000942a0",
+      "class": "data_only",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x94350",
+      "name": "FUN_00094350",
+      "class": "data_only",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x94400",
+      "name": "FUN_00094400",
+      "class": "data_only",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x944b0",
+      "name": "FUN_000944b0",
+      "class": "data_only",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x94560",
+      "name": "FUN_00094560",
+      "class": "data_only",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x94620",
+      "name": "apply_facing_vector",
+      "class": "data_only",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x946e0",
+      "name": "apply_aiming_vector",
+      "class": "data_only",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x947a0",
+      "name": "apply_looking_vector",
+      "class": "data_only",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x94860",
+      "name": "apply_angle_vector",
+      "class": "data_only",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x94970",
+      "name": "apply_multi_vector",
+      "class": "data_only",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x94a70",
+      "name": "FUN_00094a70",
+      "class": "leaf",
+      "obj": "recorded_animations.obj",
+      "status": "error",
+      "reason": "mem-limit",
+      "error_details": [],
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x94a90",
+      "name": "recorded_animation_apply_event_stream_v1",
+      "class": "data_only",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [
+        "seed[  0] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[  2] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[  5] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[  7] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[  9] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 13] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 15] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 17] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 19] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 21] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 22] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 23] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1000ff76]",
+        "seed[ 27] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 28] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 29] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 32] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 33] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 38] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 39] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 40] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 41] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 42] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 43] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 49] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "conc[0: 2] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "conc[0: 4] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "conc[1: 7] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "conc[1: 9] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "conc[2:12] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "conc[2:14] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "conc[3:17] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "conc[3:19] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "conc[4:22] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "conc[4:24] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "conc[5:27] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "conc[5:29] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "conc[6:32] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "conc[6:34] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "conc[7:37] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "conc[7:39] INSN-LIMIT: oracle=1000001 lifted=1000001"
+      ],
+      "seeds_passed": 50,
+      "seeds_total": 90,
+      "z3_proven": "0"
+    },
+    {
       "addr": "0x94bb0",
       "name": "recorded_animations_initialize",
       "class": "stubbable",
@@ -39009,6 +39510,18 @@
       "z3_proven": "0"
     },
     {
+      "addr": "0x94c70",
+      "name": "recorded_animations_clear_debug_storage",
+      "class": "data_only",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
       "addr": "0x94cb0",
       "name": "recorded_animations_update",
       "class": "stubbable",
@@ -39017,6 +39530,42 @@
       "reason": null,
       "error_details": [],
       "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x94ee0",
+      "name": "recorded_animation_verify",
+      "class": "data_only",
+      "obj": "recorded_animations.obj",
+      "status": "not_applicable",
+      "reason": "lifted_extract_failed",
+      "error_details": [],
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x95050",
+      "name": "FUN_00095050",
+      "class": "stubbable",
+      "obj": "recorded_animations.obj",
+      "status": "not_applicable",
+      "reason": "lifted_extract_failed",
+      "error_details": [],
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x950b0",
+      "name": "render_debug_recording",
+      "class": "stubbable",
+      "obj": "recorded_animations.obj",
+      "status": "fail",
+      "reason": "divergence",
+      "error_details": [],
+      "seeds_passed": 0,
       "seeds_total": 50,
       "z3_proven": "0"
     },
@@ -39030,6 +39579,18 @@
       "error_details": [],
       "seeds_passed": 50,
       "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x952d0",
+      "name": "recorded_animation_kill",
+      "class": "stubbable",
+      "obj": "recorded_animations.obj",
+      "status": "not_applicable",
+      "reason": "lifted_extract_failed",
+      "error_details": [],
+      "seeds_passed": 0,
+      "seeds_total": 0,
       "z3_proven": "0"
     },
     {
@@ -39054,6 +39615,175 @@
         "seed[ 47] INSN-LIMIT: oracle=1000001 lifted=265"
       ],
       "seeds_passed": 38,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x95680",
+      "name": "FUN_00095680",
+      "class": "leaf",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [
+        "seed[  9] INSN-LIMIT: oracle=1000001 lifted=265",
+        "seed[ 14] INSN-LIMIT: oracle=1000001 lifted=265",
+        "seed[ 22] INSN-LIMIT: oracle=1000001 lifted=265",
+        "seed[ 25] INSN-LIMIT: oracle=1000001 lifted=265",
+        "seed[ 28] INSN-LIMIT: oracle=1000001 lifted=265",
+        "seed[ 31] INSN-LIMIT: oracle=1000001 lifted=265",
+        "seed[ 33] INSN-LIMIT: oracle=1000001 lifted=265",
+        "seed[ 36] INSN-LIMIT: oracle=1000001 lifted=265",
+        "seed[ 40] INSN-LIMIT: oracle=1000001 lifted=265",
+        "seed[ 44] INSN-LIMIT: oracle=1000001 lifted=265",
+        "seed[ 46] INSN-LIMIT: oracle=1000001 lifted=265",
+        "seed[ 47] INSN-LIMIT: oracle=1000001 lifted=265"
+      ],
+      "seeds_passed": 38,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x956e0",
+      "name": "FUN_000956e0",
+      "class": "stubbable",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x95750",
+      "name": "FUN_00095750",
+      "class": "stubbable",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x95790",
+      "name": "FUN_00095790",
+      "class": "stubbable",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x957c0",
+      "name": "control_toggle",
+      "class": "stubbable",
+      "obj": "recorded_animations.obj",
+      "status": "not_applicable",
+      "reason": "lifted_extract_failed",
+      "error_details": [],
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x958f0",
+      "name": "FUN_000958f0",
+      "class": "stubbable",
+      "obj": "recorded_animations.obj",
+      "status": "not_applicable",
+      "reason": "lifted_extract_failed",
+      "error_details": [],
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x959b0",
+      "name": "FUN_000959b0",
+      "class": "stubbable",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x95a20",
+      "name": "FUN_00095a20",
+      "class": "stubbable",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x95a60",
+      "name": "FUN_00095a60",
+      "class": "stubbable",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x95ad0",
+      "name": "FUN_00095ad0",
+      "class": "stubbable",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x95b50",
+      "name": "FUN_00095b50",
+      "class": "stubbable",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x95be0",
+      "name": "FUN_00095be0",
+      "class": "stubbable",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x95c10",
+      "name": "FUN_00095c10",
+      "class": "stubbable",
+      "obj": "recorded_animations.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
       "seeds_total": 50,
       "z3_proven": "0"
     },
@@ -43063,11 +43793,11 @@
       "name": "FUN_00192710",
       "class": "stubbable",
       "obj": "structures.obj",
-      "status": "pass",
-      "reason": null,
+      "status": "error",
+      "reason": "mem-limit",
       "error_details": [],
-      "seeds_passed": 85,
-      "seeds_total": 85,
+      "seeds_passed": 0,
+      "seeds_total": 0,
       "z3_proven": "0"
     },
     {
@@ -44151,6 +44881,30 @@
       "addr": "0x831a0",
       "name": "FUN_000831a0",
       "class": "stubbable",
+      "obj": "transport_endpoint_set_winsock.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x81ec0",
+      "name": "transport_get_nonce",
+      "class": "stubbable",
+      "obj": "transport_endpoint_set_winsock.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x82060",
+      "name": "transport_get_xnaddr",
+      "class": "data_only",
       "obj": "transport_endpoint_set_winsock.obj",
       "status": "pass",
       "reason": null,
@@ -46301,11 +47055,41 @@
       "name": "FUN_001ab870",
       "class": "stubbable",
       "obj": "units.obj",
-      "status": "error",
-      "reason": "exit=1",
-      "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "status": "pass",
+      "reason": null,
+      "error_details": [
+        "seed[  0] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[  1] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[  2] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[  3] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[  5] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[  7] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[  9] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 11] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 13] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 15] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 16] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 17] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 18] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 19] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 20] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 23] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 24] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 25] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 27] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 28] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 29] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 34] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 35] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 36] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 37] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 38] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 39] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 45] INSN-LIMIT: oracle=1000001 lifted=1000001",
+        "seed[ 46] INSN-LIMIT: oracle=1000001 lifted=1000001"
+      ],
+      "seeds_passed": 21,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -47502,11 +48286,11 @@
       "name": "vehicle_hover",
       "class": "stubbable",
       "obj": "vehicles.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -47526,11 +48310,11 @@
       "name": "FUN_001b56b0",
       "class": "stubbable",
       "obj": "vehicles.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -47538,11 +48322,11 @@
       "name": "vehicle_reset",
       "class": "stubbable",
       "obj": "vehicles.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -47550,11 +48334,11 @@
       "name": "vehicle_render_debug",
       "class": "stubbable",
       "obj": "vehicles.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -47855,6 +48639,126 @@
     {
       "addr": "0x1be920",
       "name": "texture_cache_delete",
+      "class": "stubbable",
+      "obj": "xbox_texture_cache.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1be940",
+      "name": "texture_cache_open",
+      "class": "stubbable",
+      "obj": "xbox_texture_cache.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1be950",
+      "name": "texture_cache_idle",
+      "class": "stubbable",
+      "obj": "xbox_texture_cache.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1be960",
+      "name": "texture_cache_bitmap_new",
+      "class": "stubbable",
+      "obj": "xbox_texture_cache.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1be9f0",
+      "name": "texture_cache_bitmap_delete",
+      "class": "stubbable",
+      "obj": "xbox_texture_cache.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1beb70",
+      "name": "FUN_001beb70",
+      "class": "stubbable",
+      "obj": "xbox_texture_cache.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1becc0",
+      "name": "FUN_001becc0",
+      "class": "stubbable",
+      "obj": "xbox_texture_cache.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1bed30",
+      "name": "texture_cache_flush",
+      "class": "stubbable",
+      "obj": "xbox_texture_cache.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1bed50",
+      "name": "FUN_001bed50",
+      "class": "stubbable",
+      "obj": "xbox_texture_cache.obj",
+      "status": "pass",
+      "reason": null,
+      "error_details": [],
+      "seeds_passed": 50,
+      "seeds_total": 50,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1bed90",
+      "name": "FUN_001bed90",
+      "class": "stubbable",
+      "obj": "xbox_texture_cache.obj",
+      "status": "error",
+      "reason": "timeout",
+      "error_details": [],
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
+    },
+    {
+      "addr": "0x1bf130",
+      "name": "texture_cache_close",
       "class": "stubbable",
       "obj": "xbox_texture_cache.obj",
       "status": "pass",
@@ -54270,11 +55174,11 @@
       "name": "encounter_spawn_actor",
       "class": "stubbable",
       "obj": "encounters.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -55793,52 +56697,11 @@
       "name": "FUN_0006aee0",
       "class": "leaf",
       "obj": "tif_flush.obj",
-      "status": "pass",
-      "reason": null,
-      "error_details": [
-        "seed[  4] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[  6] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[  7] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[  8] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[  9] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 10] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 11] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 15] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 16] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 17] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 20] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 21] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 22] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 23] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 24] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 25] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 26] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 27] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 28] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 29] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 30] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 31] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 32] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 33] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 34] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 35] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 36] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 37] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 38] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 39] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 40] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 41] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 42] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 43] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 44] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 45] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 46] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 47] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 48] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 49] INSN-LIMIT: oracle=1000001 lifted=1000001"
-      ],
-      "seeds_passed": 10,
-      "seeds_total": 50,
+      "status": "error",
+      "reason": "timeout",
+      "error_details": [],
+      "seeds_passed": 0,
+      "seeds_total": 0,
       "z3_proven": "0"
     },
     {
@@ -57461,11 +58324,11 @@
       "name": "FUN_00117ff0",
       "class": "stubbable",
       "obj": "circular_queue.obj",
-      "status": "pass",
-      "reason": null,
+      "status": "error",
+      "reason": "exit=1",
       "error_details": [],
-      "seeds_passed": 50,
-      "seeds_total": 50,
+      "seeds_passed": 0,
+      "seeds_total": 0,
       "z3_proven": "0"
     },
     {
@@ -58017,18 +58880,6 @@
     {
       "addr": "0x129270",
       "name": "network_connection_new_serverside_client",
-      "class": "stubbable",
-      "obj": "network_connection.obj",
-      "status": "pass",
-      "reason": null,
-      "error_details": [],
-      "seeds_passed": 50,
-      "seeds_total": 50,
-      "z3_proven": "0"
-    },
-    {
-      "addr": "0x1296b0",
-      "name": "network_connection_new",
       "class": "stubbable",
       "obj": "network_connection.obj",
       "status": "pass",
@@ -58944,11 +59795,11 @@
       "name": "object_get_maximum_shield_vitality",
       "class": "stubbable",
       "obj": "damage.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "pass",
+      "reason": null,
       "error_details": [],
-      "seeds_passed": 0,
-      "seeds_total": 0,
+      "seeds_passed": 50,
+      "seeds_total": 50,
       "z3_proven": "0"
     },
     {
@@ -59671,61 +60522,10 @@
       "class": "leaf",
       "obj": "collision_bsp.obj",
       "status": "error",
-      "reason": "emulation_error",
-      "error_details": [
-        "seed[  0] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[  1] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[  2] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[  3] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[  4] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[  5] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[  6] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[  7] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[  8] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[  9] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 10] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 11] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 12] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 13] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 14] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 15] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 16] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 17] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 18] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 19] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 20] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 21] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 22] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 23] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 24] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 25] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 26] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 27] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 28] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 29] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 30] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 31] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 32] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 33] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 34] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 35] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 36] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 37] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 38] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 39] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 40] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 41] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 42] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 43] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 44] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 45] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 46] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 47] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 48] INSN-LIMIT: oracle=1000001 lifted=1000001",
-        "seed[ 49] INSN-LIMIT: oracle=1000001 lifted=1000001"
-      ],
+      "reason": "timeout",
+      "error_details": [],
       "seeds_passed": 0,
-      "seeds_total": 50,
+      "seeds_total": 0,
       "z3_proven": "0"
     },
     {
@@ -59820,11 +60620,11 @@
       "name": "FUN_0014e7d0",
       "class": "stubbable",
       "obj": "collision_bsp.obj",
-      "status": "pass",
-      "reason": null,
+      "status": "error",
+      "reason": "exit=1",
       "error_details": [],
-      "seeds_passed": 50,
-      "seeds_total": 50,
+      "seeds_passed": 0,
+      "seeds_total": 0,
       "z3_proven": "0"
     },
     {
@@ -59856,11 +60656,11 @@
       "name": "path_input_new",
       "class": "stubbable",
       "obj": "path.obj",
-      "status": "pass",
-      "reason": null,
+      "status": "error",
+      "reason": "timeout",
       "error_details": [],
-      "seeds_passed": 50,
-      "seeds_total": 50,
+      "seeds_passed": 0,
+      "seeds_total": 0,
       "z3_proven": "0"
     },
     {
@@ -59904,12 +60704,12 @@
       "name": "path_input_set_search_bounds",
       "class": "leaf",
       "obj": "path.obj",
-      "status": "pass",
-      "reason": null,
+      "status": "error",
+      "reason": "exit=1",
       "error_details": [],
-      "seeds_passed": 50,
-      "seeds_total": 50,
-      "z3_proven": "1"
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
     },
     {
       "addr": "0x5e090",
@@ -59917,61 +60717,10 @@
       "class": "stubbable",
       "obj": "path.obj",
       "status": "error",
-      "reason": "emulation_error",
-      "error_details": [
-        "seed[  0] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[  1] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[  2] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[  3] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[  4] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[  5] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[  6] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[  7] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[  8] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[  9] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 10] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 11] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 12] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 13] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 14] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 15] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 16] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 17] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 18] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 19] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 20] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 21] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 22] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 23] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 24] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 25] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 26] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 27] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 28] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 29] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 30] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 31] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 32] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 33] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 34] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 35] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 36] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 37] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 38] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 39] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 40] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 41] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 42] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 43] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 44] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 45] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 46] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 47] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 48] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-        "seed[ 49] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)"
-      ],
+      "reason": "exit=1",
+      "error_details": [],
       "seeds_passed": 0,
-      "seeds_total": 50,
+      "seeds_total": 0,
       "z3_proven": "0"
     },
     {
@@ -59979,23 +60728,23 @@
       "name": "FUN_0005e0d0",
       "class": "leaf",
       "obj": "path.obj",
-      "status": "pass",
-      "reason": null,
+      "status": "error",
+      "reason": "exit=1",
       "error_details": [],
-      "seeds_passed": 50,
-      "seeds_total": 50,
-      "z3_proven": "1"
+      "seeds_passed": 0,
+      "seeds_total": 0,
+      "z3_proven": "0"
     },
     {
       "addr": "0x5e760",
       "name": "path_get_node",
       "class": "stubbable",
       "obj": "path.obj",
-      "status": "pass",
-      "reason": null,
+      "status": "error",
+      "reason": "exit=1",
       "error_details": [],
-      "seeds_passed": 50,
-      "seeds_total": 50,
+      "seeds_passed": 0,
+      "seeds_total": 0,
       "z3_proven": "0"
     },
     {
@@ -60004,7 +60753,7 @@
       "class": "stubbable",
       "obj": "path.obj",
       "status": "error",
-      "reason": "timeout",
+      "reason": "exit=1",
       "error_details": [],
       "seeds_passed": 0,
       "seeds_total": 0,
@@ -60015,11 +60764,11 @@
       "name": "path_3d_build_path",
       "class": "stubbable",
       "obj": "path.obj",
-      "status": "fail",
-      "reason": "divergence",
+      "status": "error",
+      "reason": "exit=1",
       "error_details": [],
       "seeds_passed": 0,
-      "seeds_total": 50,
+      "seeds_total": 0,
       "z3_proven": "0"
     },
     {
@@ -60027,11 +60776,11 @@
       "name": "path_obstacles_debug_render",
       "class": "leaf",
       "obj": "path_smoothing.obj",
-      "status": "pass",
-      "reason": null,
+      "status": "error",
+      "reason": "exit=1",
       "error_details": [],
-      "seeds_passed": 50,
-      "seeds_total": 50,
+      "seeds_passed": 0,
+      "seeds_total": 0,
       "z3_proven": "0"
     },
     {
@@ -60039,11 +60788,11 @@
       "name": "structure_test_ray2d",
       "class": "stubbable",
       "obj": "path_smoothing.obj",
-      "status": "pass",
-      "reason": null,
+      "status": "error",
+      "reason": "exit=1",
       "error_details": [],
-      "seeds_passed": 50,
-      "seeds_total": 50,
+      "seeds_passed": 0,
+      "seeds_total": 0,
       "z3_proven": "0"
     },
     {
@@ -60051,11 +60800,11 @@
       "name": "FUN_000638f0",
       "class": "stubbable",
       "obj": "path_smoothing.obj",
-      "status": "fail",
-      "reason": "divergence",
+      "status": "error",
+      "reason": "exit=1",
       "error_details": [],
-      "seeds_passed": 3,
-      "seeds_total": 50,
+      "seeds_passed": 0,
+      "seeds_total": 0,
       "z3_proven": "0"
     },
     {
@@ -60063,11 +60812,11 @@
       "name": "FUN_00063970",
       "class": "leaf",
       "obj": "path_smoothing.obj",
-      "status": "pass",
-      "reason": null,
+      "status": "error",
+      "reason": "exit=1",
       "error_details": [],
-      "seeds_passed": 50,
-      "seeds_total": 50,
+      "seeds_passed": 0,
+      "seeds_total": 0,
       "z3_proven": "0"
     },
     {
@@ -60087,8 +60836,8 @@
       "name": "FUN_001d7b37",
       "class": "leaf",
       "obj": "XAPILIB:xbox_crt.obj",
-      "status": "not_applicable",
-      "reason": "lifted_extract_failed",
+      "status": "error",
+      "reason": "timeout",
       "error_details": [],
       "seeds_passed": 0,
       "seeds_total": 0,
@@ -60147,11 +60896,11 @@
       "name": "FUN_00172590",
       "class": "stubbable",
       "obj": "rasterizer_xbox_shadows.obj",
-      "status": "pass",
-      "reason": null,
+      "status": "error",
+      "reason": "exit=1",
       "error_details": [],
-      "seeds_passed": 50,
-      "seeds_total": 50,
+      "seeds_passed": 0,
+      "seeds_total": 0,
       "z3_proven": "0"
     },
     {
@@ -60255,11 +61004,11 @@
       "name": "FUN_0017b000",
       "class": "stubbable",
       "obj": "rasterizer_xbox_widgets.obj",
-      "status": "pass",
-      "reason": null,
+      "status": "error",
+      "reason": "timeout",
       "error_details": [],
-      "seeds_passed": 50,
-      "seeds_total": 50,
+      "seeds_passed": 0,
+      "seeds_total": 0,
       "z3_proven": "0"
     },
     {
@@ -60303,11 +61052,11 @@
       "name": "FUN_0017b5c0",
       "class": "stubbable",
       "obj": "rasterizer_xbox_widgets.obj",
-      "status": "pass",
-      "reason": null,
+      "status": "error",
+      "reason": "timeout",
       "error_details": [],
-      "seeds_passed": 50,
-      "seeds_total": 50,
+      "seeds_passed": 0,
+      "seeds_total": 0,
       "z3_proven": "0"
     },
     {
@@ -60341,8 +61090,9 @@
       "total": 1
     },
     "XAPILIB:xbox_crt.obj": {
-      "not_applicable": 2,
-      "total": 2
+      "error": 1,
+      "total": 2,
+      "not_applicable": 1
     },
     "action_vehicle.obj": {
       "pass": 1,
@@ -60447,8 +61197,8 @@
       "total": 1
     },
     "breakable_surfaces.obj": {
-      "pass": 9,
-      "total": 9
+      "pass": 13,
+      "total": 13
     },
     "bsp3d.obj": {
       "error": 2,
@@ -60477,15 +61227,15 @@
       "fail": 1
     },
     "circular_queue.obj": {
-      "pass": 36,
+      "pass": 35,
       "total": 45,
-      "error": 6,
+      "error": 7,
       "fail": 3
     },
     "collision_bsp.obj": {
-      "pass": 17,
+      "pass": 16,
       "total": 21,
-      "error": 4
+      "error": 5
     },
     "collision_features.obj": {
       "pass": 5,
@@ -60521,10 +61271,9 @@
       "not_applicable": 1
     },
     "damage.obj": {
-      "pass": 20,
+      "pass": 21,
       "total": 25,
-      "error": 4,
-      "not_applicable": 1
+      "error": 4
     },
     "data.obj": {
       "pass": 10,
@@ -60573,10 +61322,10 @@
       "fail": 2
     },
     "encounters.obj": {
-      "pass": 98,
+      "pass": 99,
       "total": 116,
       "fail": 4,
-      "not_applicable": 5,
+      "not_applicable": 4,
       "error": 9
     },
     "errors.obj": {
@@ -60603,8 +61352,8 @@
       "error": 1
     },
     "game.obj": {
-      "pass": 31,
-      "total": 32,
+      "pass": 33,
+      "total": 34,
       "error": 1
     },
     "game_allegiance.obj": {
@@ -60618,9 +61367,9 @@
       "fail": 6
     },
     "game_sound.obj": {
-      "pass": 14,
-      "total": 15,
-      "not_applicable": 1
+      "pass": 16,
+      "total": 18,
+      "fail": 2
     },
     "game_state.obj": {
       "pass": 2,
@@ -60738,10 +61487,10 @@
       "total": 8
     },
     "network_client_manager.obj": {
-      "pass": 21,
+      "pass": 36,
       "total": 40,
       "error": 1,
-      "not_applicable": 18
+      "fail": 3
     },
     "network_client_message_handler.obj": {
       "pass": 7,
@@ -60749,8 +61498,8 @@
       "fail": 3
     },
     "network_connection.obj": {
-      "pass": 18,
-      "total": 18
+      "pass": 17,
+      "total": 17
     },
     "network_game_globals.obj": {
       "pass": 22,
@@ -60797,19 +61546,17 @@
       "error": 2
     },
     "path.obj": {
-      "pass": 7,
+      "error": 7,
       "total": 10,
-      "error": 2,
-      "fail": 1
+      "pass": 3
     },
     "path_obstacle_avoidance.obj": {
       "pass": 1,
       "total": 1
     },
     "path_smoothing.obj": {
-      "pass": 3,
-      "total": 4,
-      "fail": 1
+      "error": 4,
+      "total": 4
     },
     "physical_memory_map.obj": {
       "pass": 2,
@@ -60820,9 +61567,8 @@
       "total": 35
     },
     "player_effects.obj": {
-      "pass": 10,
-      "total": 12,
-      "not_applicable": 2
+      "pass": 12,
+      "total": 12
     },
     "player_queues_new.obj": {
       "pass": 17,
@@ -60924,9 +61670,8 @@
       "error": 1
     },
     "rasterizer_xbox_shadows.obj": {
-      "pass": 1,
-      "total": 2,
-      "error": 1
+      "error": 2,
+      "total": 2
     },
     "rasterizer_xbox_vertex_shaders_initialize.obj": {
       "error": 1,
@@ -60937,8 +61682,9 @@
       "total": 1
     },
     "rasterizer_xbox_widgets.obj": {
-      "pass": 7,
-      "total": 7
+      "pass": 5,
+      "total": 7,
+      "error": 2
     },
     "real_math.obj": {
       "pass": 58,
@@ -60946,8 +61692,11 @@
       "fail": 11
     },
     "recorded_animations.obj": {
-      "pass": 6,
-      "total": 6
+      "error": 2,
+      "total": 39,
+      "pass": 31,
+      "not_applicable": 5,
+      "fail": 1
     },
     "rectangles.obj": {
       "pass": 1,
@@ -61044,10 +61793,10 @@
       "not_applicable": 1
     },
     "structures.obj": {
-      "pass": 57,
+      "pass": 56,
       "total": 66,
       "fail": 6,
-      "error": 3
+      "error": 4
     },
     "tag_groups.obj": {
       "pass": 15,
@@ -61085,9 +61834,9 @@
       "total": 2
     },
     "tif_flush.obj": {
-      "pass": 29,
+      "pass": 28,
       "total": 40,
-      "error": 5,
+      "error": 6,
       "fail": 6
     },
     "tif_open.obj": {
@@ -61107,8 +61856,8 @@
     },
     "transport_endpoint_set_winsock.obj": {
       "not_applicable": 1,
-      "total": 4,
-      "pass": 3
+      "total": 6,
+      "pass": 5
     },
     "ui_widget.obj": {
       "pass": 19,
@@ -61128,9 +61877,9 @@
       "total": 1
     },
     "units.obj": {
-      "pass": 151,
+      "pass": 152,
       "total": 169,
-      "error": 12,
+      "error": 11,
       "not_applicable": 1,
       "fail": 5
     },
@@ -61140,9 +61889,9 @@
       "fail": 2
     },
     "vehicles.obj": {
-      "pass": 4,
+      "pass": 8,
       "total": 10,
-      "not_applicable": 5,
+      "not_applicable": 1,
       "error": 1
     },
     "weapons.obj": {
@@ -61169,19 +61918,159 @@
       "error": 1
     },
     "xbox_texture_cache.obj": {
-      "pass": 6,
-      "total": 7,
-      "fail": 1
+      "pass": 15,
+      "total": 17,
+      "fail": 1,
+      "error": 1
     }
   },
   "comparison": {
     "baseline": "artifacts/batch_verify/summary.json",
     "new_failures": [
       {
-        "addr": "0x1ab870",
-        "name": "FUN_001ab870",
+        "addr": "0x1c7500",
+        "name": "scripted_sound_time",
         "class": "stubbable",
-        "obj": "units.obj",
+        "obj": "game_sound.obj",
+        "status": "fail",
+        "reason": "divergence",
+        "error_details": [],
+        "seeds_passed": 47,
+        "seeds_total": 50,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x1c7710",
+        "name": "unattached_looping_sound_start",
+        "class": "stubbable",
+        "obj": "game_sound.obj",
+        "status": "fail",
+        "reason": "divergence",
+        "error_details": [],
+        "seeds_passed": 2,
+        "seeds_total": 50,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x124aa0",
+        "name": "network_game_client_initiate_join_game",
+        "class": "leaf",
+        "obj": "network_client_manager.obj",
+        "status": "fail",
+        "reason": "divergence",
+        "error_details": [],
+        "seeds_passed": 47,
+        "seeds_total": 50,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x126700",
+        "name": "network_game_client_new_advertised_game",
+        "class": "leaf",
+        "obj": "network_client_manager.obj",
+        "status": "fail",
+        "reason": "divergence",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 50,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x1271a0",
+        "name": "FUN_001271a0",
+        "class": "data_only",
+        "obj": "network_client_manager.obj",
+        "status": "fail",
+        "reason": "divergence",
+        "error_details": [
+          "seed[  1] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xcccccccc]",
+          "seed[  2] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xcccccccc]",
+          "seed[  3] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xcccccccc]",
+          "seed[  8] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xcccccccc]",
+          "seed[ 18] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xcccccccc]",
+          "seed[ 19] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xcccccccc]"
+        ],
+        "seeds_passed": 0,
+        "seeds_total": 50,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x94020",
+        "name": "FUN_00094020",
+        "class": "leaf",
+        "obj": "recorded_animations.obj",
+        "status": "error",
+        "reason": "mem-limit",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x94a70",
+        "name": "FUN_00094a70",
+        "class": "leaf",
+        "obj": "recorded_animations.obj",
+        "status": "error",
+        "reason": "mem-limit",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x950b0",
+        "name": "render_debug_recording",
+        "class": "stubbable",
+        "obj": "recorded_animations.obj",
+        "status": "fail",
+        "reason": "divergence",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 50,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x192710",
+        "name": "FUN_00192710",
+        "class": "stubbable",
+        "obj": "structures.obj",
+        "status": "error",
+        "reason": "mem-limit",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x1bed90",
+        "name": "FUN_001bed90",
+        "class": "stubbable",
+        "obj": "xbox_texture_cache.obj",
+        "status": "error",
+        "reason": "timeout",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x6aee0",
+        "name": "FUN_0006aee0",
+        "class": "leaf",
+        "obj": "tif_flush.obj",
+        "status": "error",
+        "reason": "timeout",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x117ff0",
+        "name": "FUN_00117ff0",
+        "class": "stubbable",
+        "obj": "circular_queue.obj",
         "status": "error",
         "reason": "exit=1",
         "error_details": [],
@@ -61190,54 +62079,195 @@
         "z3_proven": "0"
       },
       {
-        "addr": "0x6ab10",
-        "name": "FUN_0006ab10",
+        "addr": "0x148b20",
+        "name": "collision_bsp_test_pill_new",
         "class": "leaf",
-        "obj": "tif_flush.obj",
-        "status": "fail",
-        "reason": "divergence",
-        "error_details": [
-          "seed[  6] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[  8] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[  9] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 10] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 11] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x3fffc]",
-          "seed[ 12] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1fffc]",
-          "seed[ 13] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 17] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 18] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 19] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 22] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 23] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xfffff2bc]",
-          "seed[ 24] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xffffffa0]",
-          "seed[ 25] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 26] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 27] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 28] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 29] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 30] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xf8de54b4]",
-          "seed[ 31] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 32] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 33] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 34] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x3b949b8]",
-          "seed[ 35] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 36] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 37] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 38] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 39] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 40] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 41] INSN-LIMIT: oracle=38748 lifted=1000001",
-          "seed[ 42] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xea0eb690]",
-          "seed[ 43] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 44] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 45] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 46] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 47] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x2a05354c]",
-          "seed[ 48] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1417d3d8]",
-          "seed[ 49] INSN-LIMIT: oracle=1000001 lifted=1000001"
-        ],
-        "seeds_passed": 7,
-        "seeds_total": 50,
+        "obj": "collision_bsp.obj",
+        "status": "error",
+        "reason": "timeout",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x14e7d0",
+        "name": "FUN_0014e7d0",
+        "class": "stubbable",
+        "obj": "collision_bsp.obj",
+        "status": "error",
+        "reason": "exit=1",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x5dfc0",
+        "name": "path_input_new",
+        "class": "stubbable",
+        "obj": "path.obj",
+        "status": "error",
+        "reason": "timeout",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x5e070",
+        "name": "path_input_set_search_bounds",
+        "class": "leaf",
+        "obj": "path.obj",
+        "status": "error",
+        "reason": "exit=1",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x5e0d0",
+        "name": "FUN_0005e0d0",
+        "class": "leaf",
+        "obj": "path.obj",
+        "status": "error",
+        "reason": "exit=1",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x5e760",
+        "name": "path_get_node",
+        "class": "stubbable",
+        "obj": "path.obj",
+        "status": "error",
+        "reason": "exit=1",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x5e830",
+        "name": "path_3d_available",
+        "class": "stubbable",
+        "obj": "path.obj",
+        "status": "error",
+        "reason": "exit=1",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x5e920",
+        "name": "path_3d_build_path",
+        "class": "stubbable",
+        "obj": "path.obj",
+        "status": "error",
+        "reason": "exit=1",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x62960",
+        "name": "path_obstacles_debug_render",
+        "class": "leaf",
+        "obj": "path_smoothing.obj",
+        "status": "error",
+        "reason": "exit=1",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x63710",
+        "name": "structure_test_ray2d",
+        "class": "stubbable",
+        "obj": "path_smoothing.obj",
+        "status": "error",
+        "reason": "exit=1",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x638f0",
+        "name": "FUN_000638f0",
+        "class": "stubbable",
+        "obj": "path_smoothing.obj",
+        "status": "error",
+        "reason": "exit=1",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x63970",
+        "name": "FUN_00063970",
+        "class": "leaf",
+        "obj": "path_smoothing.obj",
+        "status": "error",
+        "reason": "exit=1",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x1d7b37",
+        "name": "FUN_001d7b37",
+        "class": "leaf",
+        "obj": "XAPILIB:xbox_crt.obj",
+        "status": "error",
+        "reason": "timeout",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x172590",
+        "name": "FUN_00172590",
+        "class": "stubbable",
+        "obj": "rasterizer_xbox_shadows.obj",
+        "status": "error",
+        "reason": "exit=1",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x17b000",
+        "name": "FUN_0017b000",
+        "class": "stubbable",
+        "obj": "rasterizer_xbox_widgets.obj",
+        "status": "error",
+        "reason": "timeout",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
+        "z3_proven": "0"
+      },
+      {
+        "addr": "0x17b5c0",
+        "name": "FUN_0017b5c0",
+        "class": "stubbable",
+        "obj": "rasterizer_xbox_widgets.obj",
+        "status": "error",
+        "reason": "timeout",
+        "error_details": [],
+        "seeds_passed": 0,
+        "seeds_total": 0,
         "z3_proven": "0"
       }
     ],
@@ -69879,6 +70909,57 @@
         "z3_proven": "0"
       },
       {
+        "addr": "0x6ab10",
+        "name": "FUN_0006ab10",
+        "class": "leaf",
+        "obj": "tif_flush.obj",
+        "status": "fail",
+        "reason": "divergence",
+        "error_details": [
+          "seed[  6] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[  8] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[  9] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 10] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 11] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x3fffc]",
+          "seed[ 12] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1fffc]",
+          "seed[ 13] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 17] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 18] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 19] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 22] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 23] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xfffff2bc]",
+          "seed[ 24] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xffffffa0]",
+          "seed[ 25] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 26] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 27] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 28] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 29] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 30] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xf8de54b4]",
+          "seed[ 31] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 32] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 33] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 34] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x3b949b8]",
+          "seed[ 35] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 36] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 37] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 38] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 39] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 40] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 41] INSN-LIMIT: oracle=38748 lifted=1000001",
+          "seed[ 42] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0xea0eb690]",
+          "seed[ 43] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 44] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 45] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 46] INSN-LIMIT: oracle=1000001 lifted=1000001",
+          "seed[ 47] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x2a05354c]",
+          "seed[ 48] ORACLE-CRASH: Invalid memory fetch (UC_ERR_FETCH_UNMAPPED) [eip=0x1417d3d8]",
+          "seed[ 49] INSN-LIMIT: oracle=1000001 lifted=1000001"
+        ],
+        "seeds_passed": 7,
+        "seeds_total": 50,
+        "z3_proven": "0"
+      },
+      {
         "addr": "0x6acc0",
         "name": "FUN_0006acc0",
         "class": "leaf",
@@ -70585,69 +71666,6 @@
         "z3_proven": "0"
       },
       {
-        "addr": "0x148b20",
-        "name": "collision_bsp_test_pill_new",
-        "class": "leaf",
-        "obj": "collision_bsp.obj",
-        "status": "error",
-        "reason": "emulation_error",
-        "error_details": [
-          "seed[  0] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[  1] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[  2] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[  3] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[  4] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[  5] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[  6] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[  7] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[  8] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[  9] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 10] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 11] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 12] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 13] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 14] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 15] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 16] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 17] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 18] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 19] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 20] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 21] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 22] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 23] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 24] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 25] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 26] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 27] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 28] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 29] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 30] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 31] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 32] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 33] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 34] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 35] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 36] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 37] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 38] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 39] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 40] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 41] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 42] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 43] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 44] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 45] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 46] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 47] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 48] INSN-LIMIT: oracle=1000001 lifted=1000001",
-          "seed[ 49] INSN-LIMIT: oracle=1000001 lifted=1000001"
-        ],
-        "seeds_passed": 0,
-        "seeds_total": 50,
-        "z3_proven": "0"
-      },
-      {
         "addr": "0x1493b0",
         "name": "collision_bsp_test_sphere",
         "class": "data_only",
@@ -70732,42 +71750,6 @@
         "error_details": [],
         "seeds_passed": 0,
         "seeds_total": 0,
-        "z3_proven": "0"
-      },
-      {
-        "addr": "0x5e830",
-        "name": "path_3d_available",
-        "class": "stubbable",
-        "obj": "path.obj",
-        "status": "error",
-        "reason": "timeout",
-        "error_details": [],
-        "seeds_passed": 0,
-        "seeds_total": 0,
-        "z3_proven": "0"
-      },
-      {
-        "addr": "0x5e920",
-        "name": "path_3d_build_path",
-        "class": "stubbable",
-        "obj": "path.obj",
-        "status": "fail",
-        "reason": "divergence",
-        "error_details": [],
-        "seeds_passed": 0,
-        "seeds_total": 50,
-        "z3_proven": "0"
-      },
-      {
-        "addr": "0x638f0",
-        "name": "FUN_000638f0",
-        "class": "stubbable",
-        "obj": "path_smoothing.obj",
-        "status": "fail",
-        "reason": "divergence",
-        "error_details": [],
-        "seeds_passed": 3,
-        "seeds_total": 50,
         "z3_proven": "0"
       },
       {
@@ -82431,61 +83413,10 @@
         "class": "stubbable",
         "obj": "path.obj",
         "status": "error",
-        "reason": "emulation_error",
-        "error_details": [
-          "seed[  0] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[  1] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[  2] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[  3] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[  4] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[  5] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[  6] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[  7] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[  8] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[  9] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 10] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 11] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 12] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 13] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 14] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 15] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 16] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 17] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 18] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 19] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 20] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 21] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 22] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 23] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 24] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 25] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 26] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 27] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 28] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 29] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 30] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 31] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 32] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 33] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 34] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 35] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 36] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 37] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 38] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 39] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 40] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 41] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 42] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 43] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 44] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 45] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 46] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 47] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 48] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)",
-          "seed[ 49] ORACLE-CRASH: Invalid memory mapping (UC_ERR_MAP)"
-        ],
+        "reason": "exit=1",
+        "error_details": [],
         "seeds_passed": 0,
-        "seeds_total": 50,
+        "seeds_total": 0,
         "z3_proven": "0"
       },
       {
@@ -82502,12 +83433,12 @@
       }
     ]
   },
-  "elapsed_seconds": 30977.1487262249,
+  "elapsed_seconds": 31493.36014151573,
   "interrupted": false,
   "skipped": 0,
-  "fresh_executions": 3490,
+  "fresh_executions": 3543,
   "reused_results": 0,
-  "stale_or_invalidated_results": 3382,
+  "stale_or_invalidated_results": 3427,
   "discovered_candidates": 0,
-  "input_fingerprint": "ecf66d4f4d1ec468e21fbf1cc175eb3b822ec2ea9a7cb4b437d6de1ad4fb0a5e"
+  "input_fingerprint": "17b9ae705024e0cdbc9a9b1f9c152f2f965ef16d679cad507c7bad384703ec8a"
 }
