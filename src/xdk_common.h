@@ -79,6 +79,17 @@ static const int _scenario_type_main_menu = 2;
         }                                                    \
     } while (0)
 
+/* assert_halt_msg_at(msg, file, line, cond) — see common.h. Mirrored here so
+ * the VC71 lane (which force-includes this header, not common.h, and compiles
+ * at /W0) does not silently turn the macro into an implicit function call. */
+#define assert_halt_msg_at(msg, file, line, cond)            \
+    do {                                                     \
+        if (!(cond)) {                                       \
+            display_assert(msg, file, line, true);           \
+            system_exit(-1);                                 \
+        }                                                    \
+    } while (0)
+
 #define assert_halt(cond)                                    \
     do {                                                     \
         if (!(cond)) {                                       \

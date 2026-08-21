@@ -8803,7 +8803,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xe0720": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0740": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe07c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0810": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0840": {
       "kind": "function",
       "status": "ported"
     },

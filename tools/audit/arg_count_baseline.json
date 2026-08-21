@@ -1,54 +1,6 @@
 {
   "_comment": "Pre-existing arg-count mismatches (kb.json declared stack args vs ADD ESP,N cleanup at original call sites) accepted as latent. --check gates only HIGH findings absent from this file or whose declared_stack/verdict/observed changed -- a finding that CHANGES re-fires rather than staying forgiven. Do NOT baseline a function called from lifted C: fix its kb.json decl instead. Regenerate: check_arg_counts.py --update-baseline",
   "entries": {
-    "0x100390": {
-      "name": "main_respawn",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x100500": {
-      "name": "main_switch_structure_bsp",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x1006f0": {
-      "name": "main_get_solo_level_from_name",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 4
-      }
-    },
-    "0x1034b0": {
-      "name": "FUN_001034b0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x1036c0": {
-      "name": "FUN_001036c0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x103c00": {
-      "name": "FUN_00103c00",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
     "0x107520": {
       "name": "FUN_00107520",
       "declared_stack": 0,
@@ -88,15 +40,6 @@
       "verdict": "UNDER-DECLARED",
       "observed": {
         "3": 1
-      }
-    },
-    "0x108a10": {
-      "name": "FUN_00108a10",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 4,
-        "9": 1
       }
     },
     "0x108bc0": {
@@ -179,14 +122,6 @@
         "1": 2
       }
     },
-    "0x11fef0": {
-      "name": "FUN_0011fef0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 2
-      }
-    },
     "0x11ff70": {
       "name": "FUN_0011ff70",
       "declared_stack": 0,
@@ -237,29 +172,12 @@
         "6": 1
       }
     },
-    "0x122240": {
-      "name": "overlay_animation_apply",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 4,
-        "6": 1
-      }
-    },
     "0x12350": {
       "name": "action_alert_next_position",
       "declared_stack": 0,
       "verdict": "UNDER-DECLARED",
       "observed": {
         "4": 1
-      }
-    },
-    "0x124d00": {
-      "name": "FUN_00124D00",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 2
       }
     },
     "0x124e90": {
@@ -270,93 +188,12 @@
         "3": 1
       }
     },
-    "0x124f40": {
-      "name": "network_game_client_accepted_into_game",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x125050": {
-      "name": "network_game_client_game_settings_updated",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 1
-      }
-    },
-    "0x125180": {
-      "name": "unstrip_player_index",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
     "0x1258a0": {
       "name": "network_game_client_add_player",
       "declared_stack": 0,
       "verdict": "UNDER-DECLARED",
       "observed": {
         "2": 2
-      }
-    },
-    "0x125c60": {
-      "name": "network_game_client_countdown_timer_update",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 1
-      }
-    },
-    "0x125cb0": {
-      "name": "network_game_client_advertised_game_is_valid",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 2
-      }
-    },
-    "0x125ce0": {
-      "name": "FUN_00125ce0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x126700": {
-      "name": "network_game_client_new_advertised_game",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 1
-      }
-    },
-    "0x1267c0": {
-      "name": "network_game_client_reset",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 1,
-        "5": 1
-      }
-    },
-    "0x1271a0": {
-      "name": "FUN_001271a0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x128c0": {
-      "name": "action_avoid_setup",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 1
       }
     },
     "0x131280": {
@@ -436,64 +273,6 @@
         "20": 1
       }
     },
-    "0x148240": {
-      "name": "FUN_00148240",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "6": 1,
-        "13": 1
-      }
-    },
-    "0x148370": {
-      "name": "FUN_00148370",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 2
-      }
-    },
-    "0x148440": {
-      "name": "FUN_00148440",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 3
-      }
-    },
-    "0x1486e0": {
-      "name": "FUN_001486e0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 1,
-        "6": 1
-      }
-    },
-    "0x148780": {
-      "name": "FUN_00148780",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "8": 1
-      }
-    },
-    "0x148b90": {
-      "name": "bsp3d_test_sphere_recursive",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 2
-      }
-    },
-    "0x148eb0": {
-      "name": "FUN_00148eb0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 2
-      }
-    },
     "0x149570": {
       "name": "FUN_00149570",
       "declared_stack": 0,
@@ -568,14 +347,6 @@
         "3": 4
       }
     },
-    "0x150b60": {
-      "name": "FUN_00150b60",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 1
-      }
-    },
     "0x150dd0": {
       "name": "friction_evaluate",
       "declared_stack": 0,
@@ -625,14 +396,6 @@
         "8": 2
       }
     },
-    "0x154540": {
-      "name": "FUN_00154540",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 2
-      }
-    },
     "0x154630": {
       "name": "FUN_00154630",
       "declared_stack": 0,
@@ -648,82 +411,6 @@
       "verdict": "UNDER-DECLARED",
       "observed": {
         "5": 1
-      }
-    },
-    "0x1559b0": {
-      "name": "rasterizer_spin_begin",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x155da0": {
-      "name": "rasterizer_set_texture_direct_non_blocking",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x1560a0": {
-      "name": "rasterizer_set_texture_non_blocking",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "5": 1
-      }
-    },
-    "0x156850": {
-      "name": "rasterizer_set_model_lighting_point_light",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x1569f0": {
-      "name": "FUN_001569f0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x15d8b0": {
-      "name": "FUN_0015d8b0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 2
-      }
-    },
-    "0x15dc10": {
-      "name": "FUN_0015dc10",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 3,
-        "5": 3,
-        "8": 2,
-        "9": 1
-      }
-    },
-    "0x15de60": {
-      "name": "FUN_0015de60",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "5": 3,
-        "6": 3
-      }
-    },
-    "0x15e0f0": {
-      "name": "FUN_0015e0f0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 2
       }
     },
     "0x15e650": {
@@ -783,46 +470,6 @@
         "7": 1
       }
     },
-    "0x16c090": {
-      "name": "FUN_0016c090",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "9": 1
-      }
-    },
-    "0x16fbd0": {
-      "name": "FUN_0016fbd0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x16fcf0": {
-      "name": "FUN_0016fcf0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 2
-      }
-    },
-    "0x1792a0": {
-      "name": "FUN_001792a0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x1795c0": {
-      "name": "FUN_001795c0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
     "0x17d060": {
       "name": "FUN_0017d060",
       "declared_stack": 0,
@@ -847,93 +494,12 @@
         "1": 6
       }
     },
-    "0x17dec0": {
-      "name": "FUN_0017dec0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
     "0x17df10": {
       "name": "FUN_0017df10",
       "declared_stack": 0,
       "verdict": "UNDER-DECLARED",
       "observed": {
         "1": 2
-      }
-    },
-    "0x17edd0": {
-      "name": "rasterizer_frame_statistics_count_static_vertices",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 13
-      }
-    },
-    "0x1812c0": {
-      "name": "FUN_001812c0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x182610": {
-      "name": "FUN_00182610",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 6,
-        "3": 1
-      }
-    },
-    "0x182840": {
-      "name": "rasterizer_xbox_bitmap_swizzle2d_byte",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 4
-      }
-    },
-    "0x182910": {
-      "name": "rasterizer_xbox_bitmap_swizzle2d_word",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 2
-      }
-    },
-    "0x1829f0": {
-      "name": "rasterizer_xbox_bitmap_swizzle2d_long",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 2
-      }
-    },
-    "0x182ac0": {
-      "name": "rasterizer_xbox_bitmap_swizzle3d_byte",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "5": 2
-      }
-    },
-    "0x182bd0": {
-      "name": "rasterizer_xbox_bitmap_swizzle3d_word",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "5": 2
-      }
-    },
-    "0x182cf0": {
-      "name": "rasterizer_xbox_bitmap_swizzle3d_long",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "5": 2
       }
     },
     "0x185950": {
@@ -984,39 +550,6 @@
         "3": 2
       }
     },
-    "0x190240": {
-      "name": "FUN_00190240",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 1
-      }
-    },
-    "0x190550": {
-      "name": "FUN_00190550",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 3
-      }
-    },
-    "0x190a30": {
-      "name": "shader_type_is_valid_for_environment",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x190a50": {
-      "name": "shader_type_is_valid_for_model",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1,
-        "9": 1
-      }
-    },
     "0x190a90": {
       "name": "shader_environment_texture_animation_evaluate",
       "declared_stack": 0,
@@ -1024,14 +557,6 @@
       "observed": {
         "4": 5,
         "7": 3
-      }
-    },
-    "0x192050": {
-      "name": "leaf_map_build_portal_from_leaves",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
       }
     },
     "0x192c30": {
@@ -1075,22 +600,6 @@
         "2": 1
       }
     },
-    "0x1975e0": {
-      "name": "FUN_001975e0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x199a60": {
-      "name": "directory_create_or_delete_contents",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
     "0x19aad0": {
       "name": "file_set_eof",
       "declared_stack": 0,
@@ -1098,16 +607,6 @@
       "observed": {
         "2": 1,
         "6": 1
-      }
-    },
-    "0x19ac00": {
-      "name": "file_write",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 13,
-        "6": 1,
-        "9": 1
       }
     },
     "0x19acf0": {
@@ -1124,64 +623,6 @@
       "verdict": "UNDER-DECLARED",
       "observed": {
         "2": 2
-      }
-    },
-    "0x19b790": {
-      "name": "draw_string_get_color",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x19b7e0": {
-      "name": "FUN_0019B7E0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1,
-        "8": 1
-      }
-    },
-    "0x19bd30": {
-      "name": "FUN_0019bd30",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 4
-      }
-    },
-    "0x19be30": {
-      "name": "parse_string",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x19c1b0": {
-      "name": "FUN_0019c1b0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "7": 1
-      }
-    },
-    "0x19c3c0": {
-      "name": "FUN_0019c3c0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "7": 1
-      }
-    },
-    "0x19cff0": {
-      "name": "FUN_0019cff0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 6,
-        "3": 1
       }
     },
     "0x19d380": {
@@ -1239,22 +680,6 @@
       "verdict": "UNDER-DECLARED",
       "observed": {
         "6": 1
-      }
-    },
-    "0x1b55c0": {
-      "name": "vehicle_hover",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x1b5610": {
-      "name": "FUN_001b5610",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 1
       }
     },
     "0x1b56b0": {
@@ -1402,14 +827,6 @@
         "5": 5
       }
     },
-    "0x1bdf60": {
-      "name": "FUN_001bdf60",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
     "0x1be100": {
       "name": "FUN_001be100",
       "declared_stack": 0,
@@ -1495,22 +912,6 @@
         "2": 4
       }
     },
-    "0x1c1c00": {
-      "name": "FUN_001c1c00",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x1c1cc0": {
-      "name": "FUN_001c1cc0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
     "0x1c1e20": {
       "name": "FUN_001c1e20",
       "declared_stack": 0,
@@ -1565,14 +966,6 @@
       "verdict": "UNDER-DECLARED",
       "observed": {
         "1": 2
-      }
-    },
-    "0x1c2bf0": {
-      "name": "saved_game_file_name_unique",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
       }
     },
     "0x1c2c50": {
@@ -1696,60 +1089,12 @@
         "2": 1
       }
     },
-    "0x1c6b20": {
-      "name": "FUN_001c6b20",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x1c6bf0": {
-      "name": "FUN_001c6bf0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x1c6d20": {
-      "name": "FUN_001c6d20",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 2
-      }
-    },
     "0x1c6d90": {
       "name": "FUN_001c6d90",
       "declared_stack": 0,
       "verdict": "UNDER-DECLARED",
       "observed": {
         "2": 1
-      }
-    },
-    "0x1c6ed0": {
-      "name": "FUN_001c6ed0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x1c6fb0": {
-      "name": "FUN_001c6fb0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x1c7500": {
-      "name": "scripted_sound_time",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
       }
     },
     "0x1c77a0": {
@@ -1760,26 +1105,10 @@
         "2": 1
       }
     },
-    "0x1c7f80": {
-      "name": "scripted_sound_new",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
     "0x1c8f20": {
       "name": "sound_get_permutation_pitch",
       "declared_stack": 2,
       "verdict": "OVER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x1ca2b0": {
-      "name": "FUN_001ca2b0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
       "observed": {
         "1": 1
       }
@@ -1865,14 +1194,6 @@
         "6": 2
       }
     },
-    "0x1d91f0": {
-      "name": "_shortsort",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
     "0x1d9dfd": {
       "name": "__fsopen",
       "declared_stack": 0,
@@ -1947,44 +1268,12 @@
         "4": 1
       }
     },
-    "0x1db443": {
-      "name": "_wprintf",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x1db4a9": {
-      "name": "FUN_001db4a9",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
     "0x1db7fc": {
       "name": "__fseek_lk",
       "declared_stack": 0,
       "verdict": "UNDER-DECLARED",
       "observed": {
         "3": 1
-      }
-    },
-    "0x1dbabf": {
-      "name": "_ftell",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x1dbb00": {
-      "name": "FUN_001dbb00",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 1
       }
     },
     "0x1dbcf4": {
@@ -2301,14 +1590,6 @@
         "1": 1
       }
     },
-    "0x1dd6f5": {
-      "name": "FUN_001dd6f5",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "8": 1
-      }
-    },
     "0x1dde12": {
       "name": "_malloc",
       "declared_stack": 0,
@@ -2366,15 +1647,6 @@
       "observed": {
         "3": 2,
         "6": 2
-      }
-    },
-    "0x1df419": {
-      "name": "__write",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 9,
-        "6": 3
       }
     },
     "0x1df57e": {
@@ -2455,16 +1727,6 @@
       "verdict": "UNDER-DECLARED",
       "observed": {
         "3": 3
-      }
-    },
-    "0x1e209e": {
-      "name": "__read",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 11,
-        "6": 2,
-        "8": 1
       }
     },
     "0x1e2460": {
@@ -2699,24 +1961,6 @@
         "4": 2
       }
     },
-    "0x2f6e0": {
-      "name": "actor_perception_desire_prop",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "13": 1
-      }
-    },
-    "0x30b80": {
-      "name": "actor_perception_aiming_vector_test_blockage",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 3,
-        "6": 1,
-        "8": 1
-      }
-    },
     "0x30e60": {
       "name": "FUN_00030e60",
       "declared_stack": 0,
@@ -2751,33 +1995,8 @@
         "3": 2
       }
     },
-    "0x31df0": {
-      "name": "prop_position_refresh",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "5": 4,
-        "7": 1
-      }
-    },
     "0x32170": {
       "name": "FUN_00032170",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 2
-      }
-    },
-    "0x32380": {
-      "name": "actor_perception_refresh_danger_zone",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x33440": {
-      "name": "prop_status_refresh",
       "declared_stack": 0,
       "verdict": "UNDER-DECLARED",
       "observed": {
@@ -2790,14 +2009,6 @@
       "verdict": "UNDER-DECLARED",
       "observed": {
         "4": 1
-      }
-    },
-    "0x34c80": {
-      "name": "actor_perception_refresh",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
       }
     },
     "0x3b6f0": {
@@ -2979,22 +2190,6 @@
         "3": 1
       }
     },
-    "0x4c920": {
-      "name": "FUN_0004c920",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 2
-      }
-    },
-    "0x52bb0": {
-      "name": "FUN_00052bb0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
     "0x53f40": {
       "name": "FUN_00053f40",
       "declared_stack": 0,
@@ -3018,38 +2213,6 @@
       "verdict": "UNDER-DECLARED",
       "observed": {
         "3": 1
-      }
-    },
-    "0x58af0": {
-      "name": "FUN_00058af0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 2
-      }
-    },
-    "0x5ac60": {
-      "name": "FUN_0005ac60",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "5": 2
-      }
-    },
-    "0x5b6e0": {
-      "name": "encounter_pursuit_position_already_examined",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "6": 2
-      }
-    },
-    "0x5bad0": {
-      "name": "encounter_post_combat_select_random_behavior",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 2
       }
     },
     "0x5e330": {
@@ -3141,103 +2304,12 @@
         "6": 1
       }
     },
-    "0x64170": {
-      "name": "prop_add",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 1,
-        "3": 3
-      }
-    },
-    "0x645a0": {
-      "name": "prop_new_unacknowledged",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 3,
-        "5": 1
-      }
-    },
-    "0x647c0": {
-      "name": "FUN_000647c0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 3
-      }
-    },
-    "0x64970": {
-      "name": "prop_orphan_from_friend",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
     "0x64a60": {
       "name": "prop_orphan_update_information",
       "declared_stack": 0,
       "verdict": "UNDER-DECLARED",
       "observed": {
         "3": 1
-      }
-    },
-    "0x64ec0": {
-      "name": "FUN_00064ec0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 3,
-        "6": 1,
-        "10": 1
-      }
-    },
-    "0x64f50": {
-      "name": "FUN_00064f50",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x651a0": {
-      "name": "FUN_000651a0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 1
-      }
-    },
-    "0x652f0": {
-      "name": "FUN_000652f0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 2
-      }
-    },
-    "0x659f0": {
-      "name": "TIFFSetField",
-      "declared_stack": 3,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 7,
-        "4": 2,
-        "5": 1,
-        "6": 3,
-        "18": 1
-      }
-    },
-    "0x65e90": {
-      "name": "TIFFGetField",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 2,
-        "5": 1,
-        "6": 1,
-        "16": 1
       }
     },
     "0x65f70": {
@@ -3249,30 +2321,12 @@
         "4": 5
       }
     },
-    "0x66190": {
-      "name": "FUN_00066190",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 2,
-        "5": 1
-      }
-    },
     "0x66320": {
       "name": "FUN_00066320",
       "declared_stack": 0,
       "verdict": "UNDER-DECLARED",
       "observed": {
         "2": 7
-      }
-    },
-    "0x66380": {
-      "name": "TIFFDefaultDirectory",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 2,
-        "2": 1
       }
     },
     "0x663f0": {
@@ -3321,14 +2375,6 @@
       "verdict": "UNDER-DECLARED",
       "observed": {
         "2": 2
-      }
-    },
-    "0x66e70": {
-      "name": "FUN_00066e70",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 2
       }
     },
     "0x67760": {
@@ -3396,63 +2442,6 @@
         "2": 1
       }
     },
-    "0x680a0": {
-      "name": "FUN_000680a0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x68c70": {
-      "name": "FUN_00068c70",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 2
-      }
-    },
-    "0x69020": {
-      "name": "FUN_00069020",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 1
-      }
-    },
-    "0x69200": {
-      "name": "FUN_00069200",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 10,
-        "2": 1
-      }
-    },
-    "0x69520": {
-      "name": "FUN_00069520",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x69600": {
-      "name": "FUN_00069600",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 8
-      }
-    },
-    "0x696d0": {
-      "name": "FUN_000696d0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
     "0x69b90": {
       "name": "FUN_00069b90",
       "declared_stack": 0,
@@ -3467,31 +2456,6 @@
       "verdict": "UNDER-DECLARED",
       "observed": {
         "4": 1
-      }
-    },
-    "0x6a210": {
-      "name": "FUN_0006a210",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 2
-      }
-    },
-    "0x6a2a0": {
-      "name": "FUN_0006a2a0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x6a310": {
-      "name": "FUN_0006a310",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 2,
-        "8": 2
       }
     },
     "0x6a5d0": {
@@ -3524,65 +2488,6 @@
       "verdict": "UNDER-DECLARED",
       "observed": {
         "5": 1
-      }
-    },
-    "0x6c5e0": {
-      "name": "FUN_0006c5e0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 2
-      }
-    },
-    "0x6c960": {
-      "name": "FUN_0006c960",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 6
-      }
-    },
-    "0x6cfa0": {
-      "name": "FUN_0006cfa0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 1,
-        "7": 1
-      }
-    },
-    "0x6d590": {
-      "name": "TIFFFdOpen",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x6d820": {
-      "name": "TIFFScanlineSize",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 6,
-        "2": 1,
-        "7": 2
-      }
-    },
-    "0x6d880": {
-      "name": "TIFFIsTiled",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 2
-      }
-    },
-    "0x6d9c0": {
-      "name": "FUN_0006d9c0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 1
       }
     },
     "0x6e740": {
@@ -3625,56 +2530,6 @@
         "2": 2
       }
     },
-    "0x6eea0": {
-      "name": "FUN_0006eea0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "6": 4
-      }
-    },
-    "0x6f040": {
-      "name": "FUN_0006f040",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 1
-      }
-    },
-    "0x6f1b0": {
-      "name": "FUN_0006f1b0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 3
-      }
-    },
-    "0x6f1d0": {
-      "name": "FUN_0006f1d0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 4,
-        "2": 1
-      }
-    },
-    "0x6f1f0": {
-      "name": "FUN_0006f1f0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 3
-      }
-    },
-    "0x6f220": {
-      "name": "FUN_0006f220",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 2,
-        "4": 1
-      }
-    },
     "0x6f260": {
       "name": "FUN_0006f260",
       "declared_stack": 0,
@@ -3715,25 +2570,6 @@
         "1": 2
       }
     },
-    "0x6f890": {
-      "name": "FUN_0006f890",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 4
-      }
-    },
-    "0x6f9d0": {
-      "name": "FUN_0006f9d0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 5,
-        "3": 1,
-        "4": 1,
-        "5": 4
-      }
-    },
     "0x6fbd0": {
       "name": "FUN_0006fbd0",
       "declared_stack": 0,
@@ -3758,14 +2594,6 @@
         "1": 5
       }
     },
-    "0x6fe10": {
-      "name": "TIFFFlushData1",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 10
-      }
-    },
     "0x706b0": {
       "name": "FUN_000706b0",
       "declared_stack": 0,
@@ -3782,14 +2610,6 @@
         "3": 3
       }
     },
-    "0x71400": {
-      "name": "FUN_00071400",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 3
-      }
-    },
     "0x715c0": {
       "name": "DecodeBlockRGB__single_pixel",
       "declared_stack": 0,
@@ -3798,28 +2618,12 @@
         "4": 3
       }
     },
-    "0x717b0": {
-      "name": "FUN_000717b0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 1
-      }
-    },
     "0x71840": {
       "name": "FUN_00071840",
       "declared_stack": 0,
       "verdict": "UNDER-DECLARED",
       "observed": {
         "4": 1
-      }
-    },
-    "0x71890": {
-      "name": "FUN_00071890",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 1
       }
     },
     "0x71af0": {
@@ -3862,78 +2666,6 @@
         "1": 1
       }
     },
-    "0x747d0": {
-      "name": "FUN_000747d0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 1
-      }
-    },
-    "0x78c30": {
-      "name": "bitmap_2d_sharpen",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x796e0": {
-      "name": "FUN_000796e0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x798e0": {
-      "name": "FUN_000798e0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 1
-      }
-    },
-    "0x79bb0": {
-      "name": "FUN_00079bb0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 1
-      }
-    },
-    "0x79e70": {
-      "name": "FUN_00079e70",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x7a1e0": {
-      "name": "FUN_0007a1e0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x7a4a0": {
-      "name": "bitmap_2d_uncompress_from_mipmap",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x7b310": {
-      "name": "bitmap_sharpen",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 1
-      }
-    },
     "0x7be60": {
       "name": "bitmap_compress_to_mipmap",
       "declared_stack": 0,
@@ -3974,39 +2706,12 @@
         "3": 2
       }
     },
-    "0x7ece0": {
-      "name": "bitmap_cube_map_face_insert",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 2,
-        "8": 1,
-        "9": 1,
-        "11": 1
-      }
-    },
     "0x7f150": {
       "name": "FUN_0007f150",
       "declared_stack": 0,
       "verdict": "UNDER-DECLARED",
       "observed": {
         "2": 1
-      }
-    },
-    "0x7ff40": {
-      "name": "FUN_0007ff40",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 4
-      }
-    },
-    "0x800d0": {
-      "name": "FUN_000800d0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
       }
     },
     "0x81300": {
@@ -4034,14 +2739,6 @@
         "1": 2,
         "2": 1,
         "5": 1
-      }
-    },
-    "0x81e00": {
-      "name": "FUN_00081e00",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 2
       }
     },
     "0x81f30": {
@@ -4100,14 +2797,6 @@
         "3": 1
       }
     },
-    "0x86a50": {
-      "name": "FUN_00086a50",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 2
-      }
-    },
     "0x86fa0": {
       "name": "director_set_player_camera_scripted",
       "declared_stack": 1,
@@ -4156,14 +2845,6 @@
         "2": 1
       }
     },
-    "0x89a20": {
-      "name": "FUN_00089a20",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "8": 2
-      }
-    },
     "0x89ab0": {
       "name": "camera_track_splut",
       "declared_stack": 0,
@@ -4196,14 +2877,6 @@
         "2": 1
       }
     },
-    "0x8f810": {
-      "name": "FUN_0008f810",
-      "declared_stack": 2,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
     "0x8f870": {
       "name": "profile_seconds_elapsed",
       "declared_stack": 0,
@@ -4226,14 +2899,6 @@
       "verdict": "UNDER-DECLARED",
       "observed": {
         "1": 1
-      }
-    },
-    "0x8f8e0": {
-      "name": "find_profile_section",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 2
       }
     },
     "0x908a0": {
@@ -4296,70 +2961,6 @@
         "3": 1
       }
     },
-    "0x93be0": {
-      "name": "FUN_00093be0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 4
-      }
-    },
-    "0x94290": {
-      "name": "FUN_00094290",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x94ba0": {
-      "name": "FUN_00094ba0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0x958f0": {
-      "name": "FUN_000958f0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 1
-      }
-    },
-    "0x95be0": {
-      "name": "FUN_00095be0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 1
-      }
-    },
-    "0x95c10": {
-      "name": "FUN_00095c10",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0x967a0": {
-      "name": "FUN_000967a0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 8
-      }
-    },
-    "0x96850": {
-      "name": "device_effect_new",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 2
-      }
-    },
     "0x9dcf0": {
       "name": "FUN_0009dcf0",
       "declared_stack": 7,
@@ -4376,45 +2977,12 @@
         "2": 1
       }
     },
-    "0xa2ed0": {
-      "name": "player_telefrag_effect_start",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 1
-      }
-    },
-    "0xa40a0": {
-      "name": "weather_particle_system_new",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0xa4200": {
-      "name": "weather_particle_system_delete",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
     "0xa4ab0": {
       "name": "FUN_000a4ab0",
       "declared_stack": 0,
       "verdict": "UNDER-DECLARED",
       "observed": {
         "2": 1
-      }
-    },
-    "0xa5830": {
-      "name": "FUN_000a5830",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "4": 1,
-        "5": 1
       }
     },
     "0xa5ac0": {
@@ -4441,14 +3009,6 @@
         "11": 2
       }
     },
-    "0xa5f00": {
-      "name": "FUN_000a5f00",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "7": 1
-      }
-    },
     "0xa6470": {
       "name": "FUN_000a6470",
       "declared_stack": 0,
@@ -4473,14 +3033,6 @@
         "2": 1
       }
     },
-    "0xb46b0": {
-      "name": "race_update_team_score",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
     "0xb4bf0": {
       "name": "FUN_000b4bf0",
       "declared_stack": 0,
@@ -4497,136 +3049,12 @@
         "1": 1
       }
     },
-    "0xb6620": {
-      "name": "player_control_get_target_object_index",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0xb7e30": {
-      "name": "player_control_get_facing_angles",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 3
-      }
-    },
-    "0xbb670": {
-      "name": "FUN_000bb670",
-      "declared_stack": 2,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 3
-      }
-    },
-    "0xbbb80": {
-      "name": "player_teleport",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1,
-        "5": 1
-      }
-    },
     "0xbbfe0": {
       "name": "FUN_000bbfe0",
       "declared_stack": 0,
       "verdict": "UNDER-DECLARED",
       "observed": {
         "3": 7
-      }
-    },
-    "0xbc320": {
-      "name": "player_handle_powerup",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0xc40f0": {
-      "name": "FUN_000c40f0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 12,
-        "4": 1,
-        "5": 1
-      }
-    },
-    "0xc4b00": {
-      "name": "hs_evaluate_by_name",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0xc9700": {
-      "name": "FUN_000c9700",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
-      }
-    },
-    "0xc98e0": {
-      "name": "FUN_000c98e0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 2,
-        "3": 1
-      }
-    },
-    "0xc9990": {
-      "name": "FUN_000c9990",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0xc99e0": {
-      "name": "FUN_000c99e0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 3
-      }
-    },
-    "0xca160": {
-      "name": "FUN_000ca160",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 3
-      }
-    },
-    "0xce240": {
-      "name": "object_list_delete",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0xce740": {
-      "name": "input_abstraction_update_local_player_preferences",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 2
-      }
-    },
-    "0xce840": {
-      "name": "input_abstraction_update_device_changes",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
       }
     },
     "0xd9960": {
@@ -4643,14 +3071,6 @@
       "verdict": "UNDER-DECLARED",
       "observed": {
         "7": 1
-      }
-    },
-    "0xdb1e0": {
-      "name": "FUN_000db1e0",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
       }
     },
     "0xdb330": {
@@ -4701,78 +3121,6 @@
         "2": 2
       }
     },
-    "0xe0740": {
-      "name": "player_ui_set_single_player_local_player_controller",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 2
-      }
-    },
-    "0xe0840": {
-      "name": "player_ui_local_player_joined_multiplayer_game",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0xe0890": {
-      "name": "player_ui_local_player_wants_to_play_multiplayer",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 3
-      }
-    },
-    "0xe08e0": {
-      "name": "player_ui_clear_multiplayer_autojoin_for_local_player",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0xe0980": {
-      "name": "player_ui_get_active_player_profile",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 2
-      }
-    },
-    "0xe09e0": {
-      "name": "player_ui_get_active_player_profile_index",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 3
-      }
-    },
-    "0xe0a10": {
-      "name": "player_ui_get_last_single_player_level_played",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 6
-      }
-    },
-    "0xe0a60": {
-      "name": "player_ui_set_game_variant",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
-    "0xe0ab0": {
-      "name": "player_ui_game_variant_specified",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
     "0xe0bf0": {
       "name": "player_ui_get_path_to_local_player_profile_directory",
       "declared_stack": 0,
@@ -4811,15 +3159,6 @@
         "6": 3
       }
     },
-    "0xe3c90": {
-      "name": "ui_widgets_set_fade_value",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1,
-        "3": 1
-      }
-    },
     "0xe3cd0": {
       "name": "widget_instance_get_nth_child",
       "declared_stack": 0,
@@ -4842,23 +3181,6 @@
       "verdict": "UNDER-DECLARED",
       "observed": {
         "2": 3
-      }
-    },
-    "0xe43d0": {
-      "name": "main_menu_active",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1,
-        "13": 1
-      }
-    },
-    "0xe4420": {
-      "name": "ui_set_next_level",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
       }
     },
     "0xe4500": {
@@ -4958,14 +3280,6 @@
         "3": 1
       }
     },
-    "0xf3740": {
-      "name": "multiplayer_game_set_text_box_for_game_ruleset",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "2": 2
-      }
-    },
     "0xf3850": {
       "name": "multiplayer_game_set_text_box_for_teams_noteams",
       "declared_stack": 0,
@@ -4974,28 +3288,12 @@
         "2": 1
       }
     },
-    "0xf7110": {
-      "name": "FUN_000f7110",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 1
-      }
-    },
     "0xfb910": {
       "name": "FUN_000fb910",
       "declared_stack": 0,
       "verdict": "UNDER-DECLARED",
       "observed": {
         "1": 1
-      }
-    },
-    "0xfc8e0": {
-      "name": "weapon_get_field_of_view",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "3": 1
       }
     },
     "0xfcbd0": {
@@ -5044,15 +3342,6 @@
       "verdict": "UNDER-DECLARED",
       "observed": {
         "3": 4
-      }
-    },
-    "0xfffa0": {
-      "name": "main_set_map_name",
-      "declared_stack": 0,
-      "verdict": "UNDER-DECLARED",
-      "observed": {
-        "1": 3,
-        "2": 1
       }
     }
   }

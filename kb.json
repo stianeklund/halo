@@ -10196,7 +10196,7 @@
     },
     {
      "addr": "0x1c1280",
-     "decl": "void FUN_001c1280(void);"
+     "decl": "bool FUN_001c1280(int, char *);"
     },
     {
      "addr": "0x1c1290",
@@ -17975,11 +17975,13 @@
     },
     {
      "addr": "0xe0720",
-     "decl": "void player_ui_reset_single_player_local_player_controllers(void);"
+     "decl": "void player_ui_reset_single_player_local_player_controllers(void);",
+     "ported": true
     },
     {
      "addr": "0xe0740",
-     "decl": "void player_ui_set_single_player_local_player_controller(void);"
+     "decl": "void player_ui_set_single_player_local_player_controller(__int16 local_player_index, __int16 controller_index);",
+     "ported": true
     },
     {
      "addr": "0xe0810",
@@ -17987,63 +17989,78 @@
     },
     {
      "addr": "0xe0840",
-     "decl": "void player_ui_local_player_joined_multiplayer_game(void);"
+     "decl": "void player_ui_local_player_joined_multiplayer_game(short local_player_index);",
+     "ported": true
     },
     {
      "addr": "0xe0890",
-     "decl": "bool player_ui_local_player_wants_to_play_multiplayer(int controller);"
+     "decl": "bool player_ui_local_player_wants_to_play_multiplayer(short local_player_index);",
+     "ported": true
     },
     {
      "addr": "0xe08e0",
-     "decl": "void player_ui_clear_multiplayer_autojoin_for_local_player(void);"
+     "decl": "void player_ui_clear_multiplayer_autojoin_for_local_player(short local_player_index);",
+     "ported": true
     },
     {
      "addr": "0xe0930",
-     "decl": "void player_ui_autojoin_players_to_next_multiplayer_game(void);"
+     "decl": "void player_ui_autojoin_players_to_next_multiplayer_game(void);",
+     "ported": true
     },
     {
      "addr": "0xe0960",
-     "decl": "void player_ui_clear_multiplayer_variant(void);"
+     "decl": "void player_ui_clear_multiplayer_variant(void);",
+     "ported": true
     },
     {
      "addr": "0xe0980",
-     "decl": "void player_ui_get_active_player_profile(void);"
+     "decl": "void player_ui_get_active_player_profile(short local_player_index, void *profile);",
+     "ported": true
     },
     {
      "addr": "0xe09e0",
-     "decl": "void player_ui_get_active_player_profile_index(void);"
+     "decl": "int player_ui_get_active_player_profile_index(short local_player_index);",
+     "ported": true
     },
     {
      "addr": "0xe0a10",
-     "decl": "void player_ui_get_last_single_player_level_played(void);"
+     "decl": "short player_ui_get_last_single_player_level_played(short local_player_index);",
+     "ported": true
     },
     {
      "addr": "0xe0a60",
-     "decl": "void player_ui_set_game_variant(void);"
+     "decl": "void player_ui_set_game_variant(game_variant_t *variant);",
+     "ported": true
     },
     {
      "addr": "0xe0ab0",
-     "decl": "void player_ui_game_variant_specified(void);"
+     "decl": "bool player_ui_game_variant_specified(game_variant_t *variant);",
+     "ported": true
     },
     {
      "addr": "0xe0b00",
-     "decl": "bool player_ui_rumble_disabled(int controller_index);"
+     "decl": "bool player_ui_rumble_disabled(short local_player_index);",
+     "ported": true
     },
     {
      "addr": "0xe0b50",
-     "decl": "bool player_ui_autolevel_enabled(short local_player_index);"
+     "decl": "bool player_ui_autolevel_enabled(short controller_index);",
+     "ported": true
     },
     {
      "addr": "0xe0bf0",
-     "decl": "void player_ui_get_path_to_local_player_profile_directory(void);"
+     "decl": "bool player_ui_get_path_to_local_player_profile_directory(short, char *);",
+     "ported": true
     },
     {
      "addr": "0xe0c90",
-     "decl": "void player_ui_get_player1_last_used_profile_index(void);"
+     "decl": "int player_ui_get_player1_last_used_profile_index(void);",
+     "ported": true
     },
     {
      "addr": "0xe0cd0",
-     "decl": "void player_ui_fast_setup_network_server(void);"
+     "decl": "void player_ui_fast_setup_network_server(void);",
+     "ported": true
     },
     {
      "addr": "0xe0d80",
@@ -18051,19 +18068,23 @@
     },
     {
      "addr": "0xe0dd0",
-     "decl": "void player_ui_edit_profile_name_is_dirty(void);"
+     "decl": "bool player_ui_edit_profile_name_is_dirty(void);",
+     "ported": true
     },
     {
      "addr": "0xe0e40",
-     "decl": "void player_ui_prompt_user_to_rename_edit_profile(void);"
+     "decl": "bool player_ui_prompt_user_to_rename_edit_profile(void);",
+     "ported": true
     },
     {
      "addr": "0xe0ea0",
-     "decl": "void player_ui_get_edit_player_profile(void);"
+     "decl": "void *player_ui_get_edit_player_profile(void);",
+     "ported": true
     },
     {
      "addr": "0xe0ec0",
-     "decl": "void player_ui_get_edit_playlist_profile(void);"
+     "decl": "void *player_ui_get_edit_playlist_profile(void);",
+     "ported": true
     },
     {
      "addr": "0xe0ee0",
@@ -18071,15 +18092,18 @@
     },
     {
      "addr": "0xe0fd0",
-     "decl": "void player_ui_activate_all_solo_levels(void);"
+     "decl": "void player_ui_activate_all_solo_levels(void);",
+     "ported": true
     },
     {
      "addr": "0xe1000",
-     "decl": "void FUN_000e1000(void);"
+     "decl": "void FUN_000e1000(wchar_t *message@<esi>);",
+     "ported": true
     },
     {
      "addr": "0xe1050",
-     "decl": "unsigned char player0_look_pitch_is_inverted(void);"
+     "decl": "unsigned char player0_look_pitch_is_inverted(void);",
+     "ported": true
     },
     {
      "addr": "0xe1060",
@@ -23108,7 +23132,7 @@
     },
     {
      "addr": "0x1c1bc0",
-     "decl": "void player_profile_get_from_path(void);"
+     "decl": "void player_profile_get_from_path(int profile_index, void *profile);"
     },
     {
      "addr": "0x1c1c00",
@@ -23185,7 +23209,7 @@
     },
     {
      "addr": "0x1c29a0",
-     "decl": "void saved_game_file_get_type(void);"
+     "decl": "unsigned short saved_game_file_get_type(int saved_game_file_index);"
     },
     {
      "addr": "0x1c29b0",
@@ -23217,7 +23241,7 @@
     },
     {
      "addr": "0x1c2d20",
-     "decl": "void saved_game_file_retrieve_player1_last_used_profile_directory(void);"
+     "decl": "bool saved_game_file_retrieve_player1_last_used_profile_directory(char *directory_path);"
     },
     {
      "addr": "0x1c2e00",
@@ -23282,7 +23306,7 @@
     },
     {
      "addr": "0x1c38d0",
-     "decl": "void saved_game_file_find_profile_index_for_directory_path(void);"
+     "decl": "int saved_game_file_find_profile_index_for_directory_path(char *directory_path, int unknown);"
     },
     {
      "addr": "0x1c3a30",
@@ -27190,7 +27214,7 @@
     },
     {
      "addr": "0x19dc20",
-     "decl": "void ustrncmp(void);"
+     "decl": "int ustrncmp(const wchar_t *s1, const wchar_t *s2, size_t count);"
     },
     {
      "addr": "0x19dd00",
