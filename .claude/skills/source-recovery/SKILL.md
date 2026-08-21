@@ -90,6 +90,41 @@ Evidence still governs the NAME per `naming-confidence`: a `data_new()` tag
 string, an assert string, or an existing kb.json `objects.data` entry at that
 address is T1/T2. No evidence → park. Never invent a name to clear an item.
 
+### Adding a line to a `.c` is not free
+
+Asserts expand `__FILE__` and `__LINE__`, so **any** line added above an assert
+changes `.text` and fails the byte-identical gate. This bites `global-names` and
+`const-enum`, whose definitions have to appear before their first use.
+
+Measured on `particle_systems.c` (2026-08-21): two `#define` lines at the top of
+the file moved every assert below them (1572 → 1574) and the COFF check reported
+`code bytes changed in .text#0`. The same 15 substitutions, with the defines
+appended to an already-included header instead, came out byte-identical.
+
+So put definitions in a header the TU **already includes**, below that header's
+last assert-bearing inline function. Adding a fresh `#include` line to the `.c`
+has the same problem as adding the defines directly. The exception is a TU whose
+asserts carry hardcoded line numbers rather than `__LINE__` — several lifted TUs
+do, and those tolerate added lines. Check before assuming; the gate will tell you
+either way, but knowing which case you are in saves a revert.
+
+### `const-enum` names exactly one kind of literal
+
+`plan` emits `magic_fourcc:<literal>` items: 32-bit hex whose four bytes are all
+printable ASCII, so the literal carries its own name evidence (`0x61637472` spells
+`'actr'`). 48 distinct codes across 326 sites in the current recovery TUs.
+
+Nothing else is proposed, and that is deliberate. Two alternatives were measured
+and rejected:
+
+- **Matching literals against existing `#define`s in `src/**.h`.** Small integers
+  collide with everything: `6` matched `_actor_action_guard` at 192 sites.
+- **Frequency.** The most repeated literals in a TU are `0.0f`, `1.0f`, and
+  struct offsets, which belong to `offset-to-field`.
+
+Do not name a literal the detector did not propose. An unnamed magic number is
+honest; a wrongly named one is a false claim in the source.
+
 ### Renaming a symbol that relocations point at
 
 A rename changes the COFF symbol NAME, so a plain `check` reports "relocations

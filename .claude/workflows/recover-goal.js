@@ -72,6 +72,19 @@ const LADDER = [
 ]
 const CATEGORIES = LADDER.filter(c => ALLOW_RISKY || !c.risky)
 
+// Adding a LINE to a .c is not free. Measured 2026-08-21 on
+// particle_systems.c: two `#define` lines at the top of the file moved every
+// assert below them (line 1572 -> 1574), and the COFF gate correctly reported
+// "code bytes changed". The same 15 substitutions with the defines in an
+// already-included header came out byte-identical.
+const LINE_SHIFT_WARNING = `Asserts expand \`__FILE__\` and \`__LINE__\`, so ANY line added to the .c above an
+assert changes .text and fails the COFF gate. It is not the substitution that
+breaks — it is the line. Put the definitions in a header the TU ALREADY
+includes, below that header's last assert-bearing inline function. Adding a
+fresh \`#include\` line to the .c has exactly the same problem as adding the
+defines directly, unless the file's asserts carry hardcoded line numbers rather
+than \`__LINE__\` (some lifted TUs do — check before assuming).`
+
 // Per-category levers. Each exists in the tools but is not obvious from the
 // leaf skill, and its absence showed up as a recurring hand-written park.
 const LEVERS = {
@@ -92,6 +105,9 @@ from the old name to the new one, in the same commit.`,
 
   'global-names': `
 
+PLACEMENT — read this before you add a single line.
+${LINE_SHIFT_WARNING}
+
 LEVER — the only neutral way to name an absolute-address dereference.
 Use the convention already in the tree (\`src/common.h\`, 82 sites):
   \`#define update_client_globals_initialized (*(uint8_t *)0x45b1d0)\`
@@ -110,6 +126,19 @@ string, an assert string, or an existing kb.json \`objects.data\` entry at that
 address is T1/T2. With no evidence, park the item — do not invent a name. Putting
 the defines in a recovered header is fine; if the header already exists and this
 diff does not touch it, pass it with \`--macro-source <header>\`.`,
+
+  'const-enum': `
+
+LEVER — \`magic_fourcc:<literal>\` items are the only literals this rung
+proposes, and the evidence is inside the value: \`0x61637472\` spells 'actr'.
+Name it, define it once, substitute every site. Matching literals against the
+\`#define\`s already in \`src/**.h\` was measured and is useless (\`6\` matches
+\`_actor_action_guard\` at 192 sites), and frequency is no better — the most
+repeated literals in a TU are \`0.0f\`, \`1.0f\`, and struct offsets that belong
+to \`offset-to-field\`. Do not name a literal this detector did not propose.
+
+PLACEMENT — read this before you add a single line.
+${LINE_SHIFT_WARNING}`,
 
   'struct-define': `
 

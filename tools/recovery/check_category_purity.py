@@ -886,8 +886,18 @@ def _validate_const_enum_insert(chunk: Sequence[Token]) -> str | None:
     """Return an error message, or None when the inserted chunk is allowed."""
     name = _directive_name(chunk)
     if name is not None:
+        if name == "include":
+            # The constants usually land in a header, so the TU has to include
+            # it. Whether that added line is SAFE is not a lexical question --
+            # it shifts __LINE__ for every assert below it -- so the COFF gate
+            # arbitrates, not this checker.
+            return None
+        if name in _PP_CONDITIONALS:
+            return None  # include guard around a newly added header
         if name != "define":
             return f"added '#{name}' directive is not const/enum work"
+        if len(chunk) == 3 and chunk[2].kind == "id":
+            return None  # `#define HEADER_H` -- the include guard's own define
         if len(chunk) < 3 or chunk[2].kind != "id":
             return "malformed '#define' (expected '#define NAME <literal-expr>')"
         if not _const_expr_ok(chunk[3:]):
@@ -1757,6 +1767,17 @@ def _cases() -> list[tuple[str, str, str, str, str]]:
         "global-names: an ordinary constant is not an address deref",
         "global-names", GLOBAL_C,
         '#define MAX_QUEUES 16\n' + GLOBAL_C,
+        "violation"))
+
+    cases.append((
+        "const-enum: header include added alongside the constant",
+        "const-enum", GLOBAL_C,
+        '#include "particle_constants.h"\n'
+        + GLOBAL_C.replace("count + 1", "count + MAXIMUM_QUEUES"),
+        "pure"))
+    cases.append((
+        "const-enum: an unrelated directive is not const/enum work",
+        "const-enum", GLOBAL_C, '#pragma pack(1)\n' + GLOBAL_C,
         "violation"))
 
     # ---- struct-define --------------------------------------------------

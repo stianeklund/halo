@@ -64,6 +64,7 @@ DETECTOR_CATEGORY = {
     "absolute_address_dereferences": "global-names",
     "raw_base_offset_dereferences": "offset-to-field",
     "struct_bases": "struct-define",
+    "magic_fourcc": "const-enum",
     "decompiler_style_locals": "local-renames",
     "inline_asm": UNCATEGORIZED,
 }
@@ -76,7 +77,7 @@ COMMENT_DEBT_DETECTORS = frozenset({"fun_calls", "decompiler_style_locals"})
 
 # Detectors that are NOT a line regex in PATTERNS: they are derived from a
 # whole-file pass because the debt is a cluster, not an occurrence.
-DERIVED_DETECTORS = frozenset({"struct_bases"})
+DERIVED_DETECTORS = frozenset({"struct_bases", "magic_fourcc"})
 
 PATTERNS = {
     "raw_function_pointer_address_casts": re.compile(r"\(\(.*\(\*\).*\)0x[0-9a-fA-F]+"),
@@ -263,6 +264,72 @@ def _comment_mask(text: str) -> list[bool]:
     return mask
 
 
+_FOURCC = re.compile(r"(?<![\w.])0[xX]([0-9a-fA-F]{8})(?![\w.])")
+
+
+def _fourcc_text(digits: str) -> str | None:
+    """Decode a 32-bit hex literal as four printable ASCII bytes, or None.
+
+    A tag group, a signature, or a fill pattern is written in the binary as
+    its characters (`0x61637472` is 'actr'), so the literal carries its own
+    name evidence -- T1 under naming-confidence, with nothing to infer.  A
+    Halo virtual address cannot collide: they live below 0x00600000, so the
+    high byte is 0x00 and fails the printable test.
+    """
+    try:
+        raw = bytes.fromhex(digits)
+    except ValueError:
+        return None
+    if len(raw) != 4 or any(byte < 0x20 or byte > 0x7e for byte in raw):
+        return None
+    return raw.decode("ascii")
+
+
+def _magic_fourcc_items(lines: list[str], masks: list[list[bool]]) -> list[dict[str, Any]]:
+    """One `const-enum` item per distinct four-character-code literal.
+
+    This is the ONLY numeric literal the ladder proposes naming, and the
+    restriction is deliberate.  Matching literals against the `#define`s
+    already in `src/**.h` was measured and is worthless: small integers
+    collide with everything (`6` matched `_actor_action_guard` at 192 sites).
+    Frequency alone is no better -- the most repeated literals in a TU are
+    `0.0f`, `1.0f`, and struct offsets that belong to `offset-to-field`.  A
+    fourcc is different because the evidence is inside the value.
+
+    Clustered like `struct_bases`: one `#define` plus N substitutions is one
+    edit, so it is one item.
+    """
+    clusters: dict[str, dict[str, Any]] = {}
+    for line_number, line in enumerate(lines, 1):
+        mask = masks[line_number - 1]
+        for match in _FOURCC.finditer(line):
+            if mask[match.start()]:
+                continue
+            decoded = _fourcc_text(match.group(1))
+            if decoded is None:
+                continue
+            literal = "0x%s" % match.group(1).lower()
+            cluster = clusters.setdefault(literal, {
+                "line": line_number,
+                "decoded": decoded,
+                "sites": 0,
+            })
+            cluster["sites"] += 1
+    items = []
+    for literal in sorted(clusters):
+        cluster = clusters[literal]
+        items.append({
+            "id": "magic_fourcc:%s" % literal,
+            "line": cluster["line"],
+            "column": 1,
+            "text": "%s spells %r at %d site(s)"
+                    % (literal, cluster["decoded"], cluster["sites"]),
+            "status": "pending",
+            "category": DETECTOR_CATEGORY["magic_fourcc"],
+        })
+    return items
+
+
 def _struct_base_items(lines: list[str], masks: list[list[bool]]) -> list[dict[str, Any]]:
     """One `struct-define` item per (base identifier, observed offset set).
 
@@ -324,6 +391,7 @@ def _inventory(source: Path) -> tuple[dict[str, list[dict[str, Any]]], dict[str,
     lines = [raw.rstrip("\r") for raw in raw_lines]
     inventory: dict[str, list[dict[str, Any]]] = {name: [] for name in PATTERNS}
     inventory["struct_bases"] = _struct_base_items(lines, masks)
+    inventory["magic_fourcc"] = _magic_fourcc_items(lines, masks)
     skipped: dict[str, int] = {}
     for line_number, line in enumerate(lines, 1):
         mask = masks[line_number - 1]
@@ -685,6 +753,27 @@ def _selftest_comment_routing() -> bool:
             and [item["category"] for item in live] == ["global-names"])
 
 
+def _selftest_magic_fourcc() -> bool:
+    """A printable 4-byte literal is proposed; a plain magic number is not."""
+    source = (
+        "int f(void) {\n"
+        "  tag_get(0x61637472, 0);\n"
+        "  tag_get(0x61637472, 1);\n"
+        "  return 0x0045b1d0 + 4096;\n"   # an address and a round number
+        "}\n"
+    )
+    with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+        path = Path(directory) / "sample.c"
+        path.write_text(source, encoding="ascii")
+        inventory, _dropped = _inventory(path)
+    items = inventory["magic_fourcc"]
+    return (len(items) == 1
+            and items[0]["id"] == "magic_fourcc:0x61637472"
+            and items[0]["category"] == "const-enum"
+            and "'actr'" in items[0]["text"]
+            and "2 site(s)" in items[0]["text"])
+
+
 def _selftest_struct_bases() -> bool:
     """Two offsets off one base make ONE struct-define item, not two."""
     source = (
@@ -731,6 +820,7 @@ def _self_test() -> int:
         (_selftest_comment_routing(), "comment-only FUN_ is comments work, "
                                       "prose addresses are not debt"),
         (_selftest_struct_bases(), "struct-define items cluster by base"),
+        (_selftest_magic_fourcc(), "const-enum proposes fourcc literals only"),
         (RISKY_CATEGORIES <= set(LADDER) and set(LADDER_SKILLS) == set(CATEGORIES),
          "ladder vocabulary is consistent"),
         (not _ladder_warnings(legacy) and not _risky_failures(legacy),
