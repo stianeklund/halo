@@ -3752,6 +3752,39 @@ void FUN_000ac3e0(int player_handle)
  *
  * Register args: buffer in EDI, buffer_capacity in ESI.
  */
+
+/* main_switch format strings (VAs into .rdata, original XBE literals).
+ * Verbatim text confirmed via Ghidra memory read of cachebeta.xbe. Kept as
+ * address casts, not re-embedded literals, so the compiler emits the same
+ * immediate-address push the VC71 reference has. */
+#define MSG_WELCOME             ((const wchar_t *)0x26c63c) /* "Welcome %s" */
+#define MSG_PLAYER_DIED         ((const wchar_t *)0x26c62c) /* "%s died" */
+#define MSG_KILLED_BY_GUARDIANS ((const wchar_t *)0x26c5ec) /* "%s was killed by the guardians" */
+#define MSG_KILLED_BY_VEHICLE   ((const wchar_t *)0x26c5b4) /* "%s was killed by a vehicle" */
+#define MSG_KILLED_BY           ((const wchar_t *)0x26c58c) /* "%s was killed by %s" */
+#define MSG_BETRAYED_BY         ((const wchar_t *)0x26c560) /* "%s was betrayed by %s" */
+#define MSG_SUICIDE             ((const wchar_t *)0x26c524) /* "%s committed suicide" */
+#define MSG_DOUBLE_KILL         ((const wchar_t *)0x26c4b0) /* "Double Kill!" */
+#define MSG_YOU_KILLED          ((const wchar_t *)0x26c440) /* "You killed %s" */
+#define MSG_TRIPLE_KILL         ((const wchar_t *)0x26c4cc) /* "Triple Kill!" */
+#define MSG_KILLTACULAR         ((const wchar_t *)0x26c4e8) /* "Killtacular!" */
+#define MSG_KILLING_SPREE       ((const wchar_t *)0x26c45c) /* "You are on a killing spree!" */
+#define MSG_RUNNING_RIOT        ((const wchar_t *)0x26c494) /* "Running Riot!" */
+#define MSG_YOU_BETRAYED        ((const wchar_t *)0x26c504) /* "You betrayed %s" */
+#define MSG_KILLTACULAR_SCORE   ((const wchar_t *)0x26c41c) /* "Killtacular! (%d)" */
+#define MSG_TRIPLE_KILL_SCORE   ((const wchar_t *)0x26c3f8) /* "Triple Kill! (%d)" */
+#define MSG_DOUBLE_KILL_SCORE   ((const wchar_t *)0x26c3d4) /* "Double Kill! (%d)" */
+#define MSG_RUNNING_RIOT_SCORE  ((const wchar_t *)0x26c3ac) /* "Running Riot! (%d)" */
+#define MSG_KILLING_SPREE_SCORE ((const wchar_t *)0x26c368) /* "You are on a killing spree! (%d)" */
+#define MSG_YOU_KILLED_SCORE    ((const wchar_t *)0x26c33c) /* "You killed %s (%d)" */
+#define MSG_ODD_MAN_OUT         ((const wchar_t *)0x26c30c) /* "You are the odd man out" */
+#define MSG_OUT_OF_LIVES        ((const wchar_t *)0x26c2e0) /* "You are out of lives" */
+#define MSG_REJOIN_IN           ((const wchar_t *)0x26c2c4) /* "Rejoin in %d" */
+#define MSG_WAITING_FOR_SPACE   ((const wchar_t *)0x26c28c) /* "Waiting for space to clear" */
+#define MSG_YOU_QUIT            ((const wchar_t *)0x26c258) /* "You quit out of the game" */
+#define MSG_PLAYER_QUIT         ((const wchar_t *)0x26c550) /* "%s quit" */
+#define MSG_HOLD_BACK_FOR_SCORE ((const wchar_t *)0x26c230) /* "Hold BACK for score" */
+
 bool game_engine_get_score_hud_text(int player_handle, int param_2,
                                     int hud_player, wchar_t *buffer,
                                     int buffer_capacity)
@@ -3801,114 +3834,114 @@ bool game_engine_get_score_hud_text(int player_handle, int param_2,
 main_switch:
   switch (param_2) {
   case 0:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c63c,
+    unicode_sprintf(buffer, buffer_capacity, MSG_WELCOME,
                     player_datum + 4);
     break;
   case 1:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c62c,
+    unicode_sprintf(buffer, buffer_capacity, MSG_PLAYER_DIED,
                     player_datum + 4);
     break;
   case 2:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c5ec,
+    unicode_sprintf(buffer, buffer_capacity, MSG_KILLED_BY_GUARDIANS,
                     player_datum + 4);
     break;
   case 3:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c5b4,
+    unicode_sprintf(buffer, buffer_capacity, MSG_KILLED_BY_VEHICLE,
                     player_datum + 4);
     break;
   case 4:
     other = (char *)datum_get(player_data, hud_player);
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c58c,
+    unicode_sprintf(buffer, buffer_capacity, MSG_KILLED_BY,
                     player_datum + 4, other + 4);
     break;
   case 5:
     other = (char *)datum_get(player_data, hud_player);
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c560,
+    unicode_sprintf(buffer, buffer_capacity, MSG_BETRAYED_BY,
                     player_datum + 4, other + 4);
     break;
   case 6:
     datum_get(player_data, hud_player);
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c524,
+    unicode_sprintf(buffer, buffer_capacity, MSG_SUICIDE,
                     player_datum + 4);
     break;
   case 7:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c4b0);
+    unicode_sprintf(buffer, buffer_capacity, MSG_DOUBLE_KILL);
     game_engine_post_event(0xe);
     break;
   case 8:
     other = (char *)datum_get(player_data, hud_player);
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c440,
+    unicode_sprintf(buffer, buffer_capacity, MSG_YOU_KILLED,
                     other + 4);
     break;
   case 9:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c4cc);
+    unicode_sprintf(buffer, buffer_capacity, MSG_TRIPLE_KILL);
     game_engine_post_event(0xf);
     break;
   case 10:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c4e8);
+    unicode_sprintf(buffer, buffer_capacity, MSG_KILLTACULAR);
     game_engine_post_event(0x10);
     break;
   case 11:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c45c);
+    unicode_sprintf(buffer, buffer_capacity, MSG_KILLING_SPREE);
     game_engine_post_event(0x12);
     break;
   case 12:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c494);
+    unicode_sprintf(buffer, buffer_capacity, MSG_RUNNING_RIOT);
     game_engine_post_event(0x11);
     break;
   case 13:
     other = (char *)datum_get(player_data, hud_player);
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c504,
+    unicode_sprintf(buffer, buffer_capacity, MSG_YOU_BETRAYED,
                     other + 4);
     break;
   case 14:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c41c, score);
+    unicode_sprintf(buffer, buffer_capacity, MSG_KILLTACULAR_SCORE, score);
     game_engine_post_event(0x10);
     break;
   case 15:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c3f8, score);
+    unicode_sprintf(buffer, buffer_capacity, MSG_TRIPLE_KILL_SCORE, score);
     game_engine_post_event(0xf);
     break;
   case 16:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c3d4, score);
+    unicode_sprintf(buffer, buffer_capacity, MSG_DOUBLE_KILL_SCORE, score);
     game_engine_post_event(0xe);
     break;
   case 17:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c3ac, score);
+    unicode_sprintf(buffer, buffer_capacity, MSG_RUNNING_RIOT_SCORE, score);
     game_engine_post_event(0x11);
     break;
   case 18:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c368, score);
+    unicode_sprintf(buffer, buffer_capacity, MSG_KILLING_SPREE_SCORE, score);
     game_engine_post_event(0x12);
     break;
   case 19:
     other = (char *)datum_get(player_data, hud_player);
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c33c,
+    unicode_sprintf(buffer, buffer_capacity, MSG_YOU_KILLED_SCORE,
                     other + 4, score);
     break;
   case 23:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c30c);
+    unicode_sprintf(buffer, buffer_capacity, MSG_ODD_MAN_OUT);
     break;
   case 24:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c2e0);
+    unicode_sprintf(buffer, buffer_capacity, MSG_OUT_OF_LIVES);
     break;
   case 25:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c2c4,
+    unicode_sprintf(buffer, buffer_capacity, MSG_REJOIN_IN,
                     hud_player);
     break;
   case 26:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c28c);
+    unicode_sprintf(buffer, buffer_capacity, MSG_WAITING_FOR_SPACE);
     break;
   case 27:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c258);
+    unicode_sprintf(buffer, buffer_capacity, MSG_YOU_QUIT);
     break;
   case 28:
     other = (char *)datum_get(player_data, hud_player);
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c550,
+    unicode_sprintf(buffer, buffer_capacity, MSG_PLAYER_QUIT,
                     other + 4);
     break;
   case 29:
-    unicode_sprintf(buffer, buffer_capacity, (const wchar_t *)0x26c230);
+    unicode_sprintf(buffer, buffer_capacity, MSG_HOLD_BACK_FOR_SCORE);
     break;
   default:
     result = false;
@@ -6017,6 +6050,12 @@ void game_engine_update(void)
 #define HUD_EVENT_QUIT_NOTIFY 0x1c
 #define HUD_EVENT_BETRAYAL 0xd
 
+/* object_data_t.type values for an unattributed kill_object_handle's killer
+ * object, distinguishing the map's invisible out-of-bounds "guardian" biped
+ * from a vehicle splatter; pairs 1:1 with KILL_EVENT_GUARDIANS/VEHICLE below. */
+#define OBJECT_TYPE_BIPED 0
+#define OBJECT_TYPE_VEHICLE 1
+
 /* game_engine_player_killed (0xaf660)
  *
  * Called when a player dies in multiplayer. Records time of death, notifies
@@ -6036,7 +6075,7 @@ void game_engine_player_killed(int killer_handle, int kill_object_handle,
   int respawn_ticks;
   int kill_event_type;
   data_iter_t iter;
-  void *obj_data;
+  object_data_t *obj_data;
   short multi_kill;
   short kill_streak;
 
@@ -6122,13 +6161,14 @@ apply_clamp:
     if (kill_object_handle == NONE) {
       kill_event_type = KILL_EVENT_ENVIRONMENT;
     } else {
-      obj_data = object_get_and_verify_type(kill_object_handle, 0xffffffff);
+      obj_data = (object_data_t *)object_get_and_verify_type(kill_object_handle,
+                                                             0xffffffff);
       object_try_and_get_and_verify_type(kill_object_handle, 3);
-      switch (*(short *)((char *)obj_data + 0x64)) {
-      case 0:
+      switch (obj_data->type) {
+      case OBJECT_TYPE_BIPED:
         kill_event_type = KILL_EVENT_GUARDIANS;
         break;
-      case 1:
+      case OBJECT_TYPE_VEHICLE:
         kill_event_type = KILL_EVENT_VEHICLE;
         break;
       default:
