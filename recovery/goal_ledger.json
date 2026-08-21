@@ -93,6 +93,30 @@
       "started": "2026-08-20",
       "status": "done"
     },
+    "game_engine.obj": {
+      "categories_done": [
+        "comments",
+        "local-renames",
+        "symbol-names",
+        "global-names",
+        "const-enum",
+        "struct-define",
+        "offset-to-field"
+      ],
+      "commits": [
+        "a621fa00a",
+        "81258b35c",
+        "9e2cf04d3",
+        "5633420be",
+        "5f3b4149e",
+        "35254b8a6",
+        "5d3d535cd"
+      ],
+      "finished": "2026-08-21",
+      "reason": null,
+      "started": "2026-08-21",
+      "status": "done"
+    },
     "hs.obj": {
       "categories_done": [],
       "commits": [],
