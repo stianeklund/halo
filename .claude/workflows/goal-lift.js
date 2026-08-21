@@ -373,10 +373,20 @@ mutations (stash/checkout/commit/reset) against any repo but this one.
 mcp__ghidra-live__export_delinked_object writes its .obj to the MAIN repo
 delinked/ (path like G:\\dev\\halo\\delinked\\...); if you are in a worktree,
 COPY the exported file into THIS worktree instead of cd-ing to main.
-[STALL] Any single shell command that can run >2 min (permuter, unicorn
-equivalence, a full clean build) MUST be wrapped so it cannot run silently
-past 180s and trip the harness stall detector that kills the whole run:
+[STALL] Any single RE-RUNNABLE long command (permuter, unicorn equivalence, a
+full clean build) MUST be wrapped so it cannot run silently past 180s and trip
+the harness stall detector that kills the whole run:
   timeout 150 <cmd> 2>&1 || echo "[timed-out]"
+[STALL EXCEPTION — \`git commit\`] NEVER wrap \`git commit\` in \`timeout 150\` and
+never leave it on the default 120s Bash timeout. The pre-commit chain costs ~270s
+on a large TU (measured 2026-08-21: regression-test 159s + lift-audit 63s +
+vc71-regression 44s + 12 smaller hooks ~22s). Any ceiling under that kills the
+commit mid-hook every time, and retrying at the same ceiling cannot succeed.
+Pass the Bash tool's \`timeout: 600000\` and run it in the FOREGROUND — do not
+background it. \`pre-commit-vc71-regression.sh\` auto-stages a refreshed
+vc71_scores.json partway through, so a killed commit can leave the index mutated
+with no commit: after any commit that times out, check \`git log --oneline -1\`
+then \`git status --short\` and re-stage from that state rather than blind-retrying.
 [TOKENS] Your ENTIRE context is re-read on every turn, so token cost grows with
 turn count (a long agent costs quadratically; a short one is linear). Minimize
 turns and quoted volume: do NOT re-read a file after a successful edit (the Edit

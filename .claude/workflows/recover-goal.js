@@ -187,12 +187,25 @@ const AGENT_RULES =
   `OPERATING RULES (read first):
 [WORKTREE] Do ALL work in your CWD with RELATIVE paths. NEVER \`cd\` to another
 checkout; never run git mutations against any repo but this one.
-[STALL] Any single shell command that can run >2 min (full build, vc71 verify)
+[STALL] Any single RE-RUNNABLE long command (full build, vc71 verify, equivalence)
 MUST be wrapped so it cannot run silently past 180s and trip the harness stall
 detector that kills the whole run:
   timeout 150 <cmd> 2>&1 || echo "[timed-out]"
 A timeout is NOT a verdict — re-run the wrapped command; never record it as a
 failure while the work may still have completed.
+[STALL EXCEPTION — \`git commit\`] NEVER wrap \`git commit\` in \`timeout 150\`, and
+never leave it on the default 120s Bash timeout. The pre-commit chain on a large
+TU costs ~270s (measured 2026-08-21 on game_engine.c, 237 fns): regression-test
+159s + lift-audit 63s + vc71-regression 44s + 12 smaller hooks ~22s. Any ceiling
+under that kills the commit mid-hook, every time, forever — it is not a hang and
+retrying at the same ceiling cannot succeed. Instead pass the Bash tool's own
+\`timeout: 600000\` on the commit call and let it run in the FOREGROUND.
+A killed commit is NOT harmless: \`pre-commit-vc71-regression.sh\` auto-stages a
+refreshed vc71_scores.json partway through, so a mid-chain kill can leave the
+index mutated with no commit. After ANY commit that times out or reports nothing,
+read real state before touching anything: \`git log --oneline -1\` (did HEAD move?)
+then \`git status --short\` (what is staged now?). Re-stage from that state; never
+blind-retry.
 [SERIAL] Work in the FOREGROUND, one command at a time. Never drive commits from
 background scripts, chained Monitors, or parallel "group drivers", and never run
 two git-index-mutating commands at once. Concurrent git add/commit race for
@@ -204,6 +217,10 @@ minutes polling for events from Monitors it had killed itself. Per unit:
 stage -> gate -> commit -> confirm HEAD moved -> next. If you are ever waiting on
 a Monitor or a background task, stop waiting and check real state directly
 (git log --oneline -1, git status --short, pgrep).
+The answer to a SLOW commit is a longer tool timeout (see [STALL EXCEPTION]), not
+backgrounding it. \`setsid nohup git commit &\` + a poll loop does eventually land
+the commit, but it violates this rule, races the index, and cost one agent 13
+minutes on 2026-08-21 before it worked.
 [TOKENS] Never re-read a file after a successful edit (Edit confirms it); never
 paste large tool output back into your reasoning — extract the one number you need.
 `
@@ -559,6 +576,9 @@ COMMIT — exactly one, for this category only:
     staged diff contains changes outside this category's edit shape → split the commit
     or revert the stray change. NEVER bypass it and never \`--no-verify\`.
   \`rtk git commit -m "recover(${stem}): ${cat.id} — <short summary>"\` → report the short sha.
+    Pass \`timeout: 600000\` on this Bash call — the hook chain costs ~270s on a large
+    TU and the 120s default kills it mid-hook. See [STALL EXCEPTION] above; do NOT
+    wrap it in \`timeout 150\` and do NOT background it.
 
 HARD BANS — these are *lift* work, not recovery. If one is needed, park and say so:
 \`@<reg>\` annotations, \`ported\` flags, kb.json signatures, build config, \`--no-verify\`,
