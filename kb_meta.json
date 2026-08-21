@@ -16236,6 +16236,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c70b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c7160": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1c7330": {
       "kind": "function",
       "status": "ported"
@@ -16261,6 +16269,10 @@
       "status": "ported"
     },
     "0x1c75a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c76c0": {
       "kind": "function",
       "status": "ported"
     },
@@ -17004,243 +17016,6 @@
     },
     "0x5065a4": {
       "kind": "data",
-      "status": "ported"
-    },
-    "0x128c0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x12920": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x43db0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x5c3a0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x5c510": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x7dfe0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x81ec0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x82060": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xa2920": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xa2930": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xa2a10": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xa2a70": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xa2dc0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xa2ed0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb40f0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb4300": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xc8720": {
-      "kind": "function",
-      "status": "unknown",
-      "inferred": [
-        "The kb.json placeholder decl void FUN_000c8720(void) was wrong: [EBP+0x8] is read at 0xc8748 and compared as SI (CMP SI,0x7 / CMP SI,0xc), [EBP+0xc] is read at 0xc8724 and 0xc887c and passed to datum_get, and both exits return a byte in AL (MOV AL,BL at 0xc8846, XOR AL,AL at 0xc88a3), giving bool FUN_000c8720(int16_t function_index, int expression_index) as a plain cdecl with no register arguments.",
-        "The two arity tests are one if with a || rather than an if/else-if chain: the reference emits the accept tail (POP EDI/POP ESI/MOV AL,BL at 0xc8844) physically between the too-many test at 0xc883d and the qualifier selection at 0xc884d, which only the short-circuit layout reproduces, and rewriting the if/else-if chain into that single || form raised the VC71 match from 82.6 to 85.8 percent with no regression elsewhere in the TU.",
-        "Function index 0xa is the divide call: it is the only one of the six indices 7..0xc that also rejects more than two arguments (CMP word [EBP-0x4],0x2 / JG at 0xc883d) and the only one whose error message drops the at-least qualifier, matching an exactly-two-argument arithmetic operator."
-      ],
-      "uncertain": [
-        "The argument counter is lifted as an int with int16_t casts at the two compares because the slot is initialised and incremented 32-bit (MOV dword [EBP-0x4],0x0 at 0xc877d, MOV ECX/INC ECX/MOV at 0xc8812..0xc8821) while every compare against it is 16-bit (CMP word [EBP-0x4],0x2); whether the original declared a short and MSVC widened the arithmetic, or declared a long and narrowed the compares, is not decidable from this function alone.",
-        "The residual 14 percent VC71 gap is accounted for entirely by known clang-versus-MSVC ceilings rather than logic differences: clang sinks the accept epilogue to the function end instead of inlining it after the too-many test, rotates the argument walk so it duplicates the CMP EDI,-1 test where the reference duplicates TEST BL,BL, and pays the usual three-instruction thunk cost at the two @<reg> calls to FUN_000c73a0 and FUN_000c74c0; the instruction count is 132 against 129."
-      ]
-    },
-    "0xc89c0": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Real signature is bool FUN_000c89c0(int function_index, int expression_index); the prior kb.json decl void FUN_000c89c0(void) was a placeholder and was wrong on the return type and on both parameters.",
-        "Installed as a parse callback in four hs function-table slots (DATA xrefs 0x26f5f4, 0x26f610, 0x26f62c, 0x26f648, stride 0x1c), which span function indices 0xf..0x12 and independently corroborate the assert range at 0xc89dc."
-      ],
-      "uncertain": [
-        "The accepted donor-type range [0x20,0x24] is unidentified; only the second range [6,8] is known to be real/short/long from sibling FUN_000c88b0, so the macro name HS_TYPE_IS_COMPARABLE is behaviour-derived rather than proven.",
-        "The official VC71 score of 54.6 percent is a greedy-anchor collapse artifact from eight look-alike datum_get guard blocks; score-context reports dp_lcs 91.4 percent with an exact 12-byte frame and no FPU, load-width, immediate, or FCOM warnings, and structural sibling FUN_000c88b0 scores 92.1 percent."
-      ]
-    },
-    "0xc8b90": {
-      "kind": "function",
-      "status": "ported",
-      "inferred": [
-        "Signature recovered as bool hs_sleep_parse(int16_t function_index, int expression_index): the kb.json void(void) placeholder was wrong, proven by CMP word ptr [EBP+8],0x13 (16-bit param 1) and MOV EDI,[EBP+0xc] (param 2), with the bool return in AL via MOV AL,1 / MOV AL,BL and a cdecl RET taking no immediate.",
-        "The name hs_sleep_parse follows the proven sibling family at 0xc7e50/0xc7f70/0xc8120/0xc82e0/0xc8380/0xc8c50 (hs_macro_function_parse, hs_parse_begin/if/cond/set, hs_sleep_until_parse) combined with the assert literal function_index==_hs_function_sleep at 0x27d0fc; the exact Bungie spelling of the sleep variant is not string-proven."
-      ],
-      "uncertain": [
-        "The two datum_get calls are emitted before the assert compare at 0xc8bbd, unlike the sibling hs_sleep_until_parse which asserts first; MSVC does not hoist calls across a branch so the source order is preserved as written, but whether the original macro genuinely ordered it this way or the difference comes from a distinct macro expansion in hs_library_internal_compile.h is unproven.",
-        "hs type constant 10 is commented as _hs_type_script on the strength of the hs_compile.c assert literal expression->type==_hs_type_script and existing uses at hs_runtime.c lines 433 and 3340, and constant 7 as _hs_type_short from the sibling; the underlying hs type enum itself has not been recovered from the binary."
-      ]
-    },
-    "0xcb9a0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xcc0e0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xcde00": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x124a10": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x124aa0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x124ba0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x124e90": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x124f40": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x125050": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x125180": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x125510": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x125660": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x125a90": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x125b90": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x125c60": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x125cb0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x126700": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x126750": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1267c0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x136700": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1b55c0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1b5770": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1b5d90": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1be940": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1be950": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1be960": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1be9f0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1bed30": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1bf080": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1bf130": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1c7500": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1c7550": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1c75a0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1c7710": {
-      "kind": "function",
       "status": "ported"
     }
   }
