@@ -54931,16 +54931,16 @@
     "input_abstraction_update": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 15.2,
+      "abi_modeled_mnemonic_pct": 90.8,
       "addr": "0xcea90",
       "end": "0xcf3cf",
       "kind": "auto",
       "n_r": 735,
-      "opnd_percent": 27.5,
-      "raw_mnemonic_pct": 15.2,
+      "opnd_percent": 70.0,
+      "raw_mnemonic_pct": 90.8,
       "ref": "synth",
       "ref_sha": "60cd94c6947068b6",
-      "score": 15.2,
+      "score": 90.8,
       "source": "src/halo/input/input_abstraction.c"
     },
     "input_abstraction_update_device_changes": {

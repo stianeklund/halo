@@ -137,308 +137,370 @@ void input_abstraction_initialize(void)
 
 void input_abstraction_update(void)
 {
-  float lx, ly, rx, ry;
-  float lmag, rmag;
-  float lang, rang;
-  float ldom, rdom;
-  float fVar1, fVar2;
-  int iVar10, iVar13, iVar14;
-  int uVar15;
-  bool bVar16;
-  char cVar6;
-  int16_t sVar9;
-  uint16_t uVar7, uVar8;
-  int local_18;
+  float fVar1;
+  float fVar2;
+  float fVar4;
+  float fVar5;
+  char cVar7;
+  uint16_t uVar9;
+  uint16_t uVar10;
+  int16_t sVar11;
+  void *pvVar12;
+  uint8_t *pbVar13;
+  uint8_t *puVar14;
+  int iVar17;
+  int iVar18;
+  float rx;
+  float ry;
+  float lx;
+  float ly;
   int local_20;
-  uint8_t *pbVar11;
-  uint8_t *puVar12;
+  int local_18;
+  double lang_d;
+  double rang_d;
+  float lang, rang;
+  float sin_abs, cos_val;
+  double dominant;
+  float left_diff, right_diff;
+  char *state;
+  int error_controller;
+  int error_code;
+  int display_error_flag;
+  int i, connected_count;
 
-  iVar10 = ((int (*)(void))0x18e450)();
-  tag_block_get_element((void *)(iVar10 + 0x110), 0, 0x80);
+  tag_block_get_element((char *)game_globals_get() + 0x110, 0, 0x80);
 
-  for (local_18 = 0; local_18 <= 3; local_18++) {
-    iVar10 = (int)input_get_gamepad_state(local_18);
-    if (iVar10 == 0) {
-      if (((char *)0x46b8f4)[local_18] != '\0') {
-        cVar6 = ((char (*)(void))0xe43e0)();
-        iVar10 = local_18;
-        if (cVar6 == '\0') {
-          iVar13 = ((int (*)(void))0x12a240)();
-          bVar16 = iVar13 == 0;
-          uVar15 = bVar16 ? 0xc : 0xd;
-          cVar6 = (char)local_player_exists(local_18);
-          if (cVar6 != '\x01')
-            goto skip_disconnect_ui;
-        } else {
-          iVar14 = 0;
-          for (iVar13 = 0; iVar13 < 4; iVar13++) {
-            if (((char *)0x46b8f4)[iVar13] != '\0')
-              iVar14++;
-          }
-          bVar16 = false;
-          uVar15 = 0xd;
-          if (iVar14 < 2) {
-            sVar9 = player_ui_get_single_player_local_player_controller(0);
-            if (sVar9 != local_18) {
-              sVar9 = player_ui_get_single_player_local_player_controller(1);
-              if (sVar9 != local_18) {
-                sVar9 = player_ui_get_single_player_local_player_controller(2);
-                if (sVar9 != local_18) {
-                  sVar9 =
-                    player_ui_get_single_player_local_player_controller(3);
-                  if (sVar9 != local_18) {
-                    cVar6 = ((char (*)(int))0xe0890)(local_18);
-                    if (cVar6 == '\0')
-                      iVar10 = -1;
-                  }
-                }
-              }
-            }
-          } else {
-            sVar9 = player_ui_get_single_player_local_player_controller(0);
-            if (sVar9 != local_18) {
-              sVar9 = player_ui_get_single_player_local_player_controller(1);
-              if (sVar9 != local_18) {
-                sVar9 = player_ui_get_single_player_local_player_controller(2);
-                if (sVar9 != local_18) {
-                  sVar9 =
-                    player_ui_get_single_player_local_player_controller(3);
-                  if (sVar9 != local_18) {
-                    cVar6 = ((char (*)(int))0xe0890)(local_18);
-                    if (cVar6 == '\0')
-                      goto skip_disconnect_ui;
-                  }
-                }
-              }
-            }
-          }
-        }
-        cVar6 = ((char (*)(void))0xf5640)();
-        if (cVar6 != '\0')
-          ((void (*)(void))0xf5f90)();
-        ((void (*)(int, int, bool, bool))0xe4500)(uVar15, iVar10, bVar16,
-                                                  bVar16);
+  for (local_18 = 0; local_18 < 4; local_18++) {
+    pvVar12 = input_get_gamepad_state(local_18);
+    if (pvVar12 != NULL) {
+      iVar17 = local_18 * 0x18;
+      state = (char *)0x46b880 + local_18 * 0x1c;
+
+      flt_457098[local_18] = *(float *)((char *)0x46b820 + iVar17);
+      flt_4570A8[local_18] = *(float *)((char *)0x46b824 + iVar17);
+
+      /* Left stick normalization */
+      fVar2 = (float)*(int16_t *)((char *)pvVar12 + 0x22);
+      fVar1 = (float)*(int16_t *)((char *)pvVar12 + 0x20);
+
+      lang = (float)x87_atan2((double)fVar2, (double)fVar1);
+      lang_d = (double)lang;
+      sin_abs = x87_fabs(x87_fsin(lang));
+      cos_val = x87_fabs(x87_fcos(lang));
+      if (sin_abs <= cos_val)
+        dominant = (double)cos_val;
+      else
+        dominant = (double)sin_abs;
+      dominant = *(double *)0x2573d8 / dominant;
+
+      fVar1 = (float)((double)(fVar1 * *(float *)0x280f80) * dominant);
+      if (fVar1 < -1.0f) {
+        lx = -1.0f;
+      } else if (fVar1 > 1.0f) {
+        lx = 1.0f;
+      } else {
+        lx = fVar1;
       }
-    skip_disconnect_ui:
-      ((char *)0x46b8f4)[local_18] = 0;
-    } else {
-      iVar13 = local_18 * 0x18;
 
-      /* copy per-player look sensitivity and vehicle look speed to output.
-       * Which of the two destinations is which is not proven -- no string or
-       * PDB evidence names them -- so they keep the address in their name.
-       * Both are integer moves of the float bits, not float copies. */
-      uVar15 = *(int32_t *)((char *)0x46b824 + iVar13);
-      *(int32_t *)&flt_457098[local_18] =
-        *(int32_t *)((char *)0x46b820 + iVar13);
-      *(int32_t *)&flt_4570A8[local_18] = uVar15;
+      fVar2 = (float)((double)(fVar2 * *(float *)0x280f80) * dominant);
+      if (fVar2 < -1.0f) {
+        ly = -1.0f;
+      } else if (fVar2 > 1.0f) {
+        ly = 1.0f;
+      } else {
+        ly = fVar2;
+      }
 
-      /* normalize left stick via dominant-axis scaling */
-      lang = (float)atan2((double)(int)*(int16_t *)(iVar10 + 0x22),
-                          (double)(int)*(int16_t *)(iVar10 + 0x20));
-      fVar1 = lang;
-      ldom = fabsf(x87_fsin(lang));
-      fVar2 = fabsf(x87_fcos(fVar1));
-      if (ldom <= fVar2)
-        ldom = fVar2;
-      lx = (float)(int)*(int16_t *)(iVar10 + 0x20) * *(float *)0x280f80 *
-           (*(double *)0x2573d8 / ldom);
-      lx = lx < *(float *)0x255e94 ? -1.0f :
-           lx > *(float *)0x2533c8 ? 1.0f :
-                                     lx;
-      ly = (float)(int)*(int16_t *)(iVar10 + 0x22) * *(float *)0x280f80 *
-           (*(double *)0x2573d8 / ldom);
-      ly = ly < *(float *)0x255e94 ? -1.0f :
-           ly > *(float *)0x2533c8 ? 1.0f :
-                                     ly;
+      /* Right stick normalization */
+      fVar2 = (float)*(int16_t *)((char *)pvVar12 + 0x26);
+      fVar1 = (float)*(int16_t *)((char *)pvVar12 + 0x24);
 
-      /* normalize right stick */
-      rang = (float)atan2((double)(int)*(int16_t *)(iVar10 + 0x26),
-                          (double)(int)*(int16_t *)(iVar10 + 0x24));
-      fVar2 = rang;
-      rdom = fabsf(x87_fsin(rang));
-      fVar1 = fabsf(x87_fcos(fVar2));
-      if (rdom <= fVar1)
-        rdom = fVar1;
-      rx = (float)(int)*(int16_t *)(iVar10 + 0x24) * *(float *)0x280f80 *
-           (*(double *)0x2573d8 / rdom);
-      rx = rx < *(float *)0x255e94 ? -1.0f :
-           rx > *(float *)0x2533c8 ? 1.0f :
-                                     rx;
-      ry = (float)(int)*(int16_t *)(iVar10 + 0x26) * *(float *)0x280f80 *
-           (*(double *)0x2573d8 / rdom);
-      ry = ry < *(float *)0x255e94 ? -1.0f :
-           ry > *(float *)0x2533c8 ? 1.0f :
-                                     ry;
+      rang = (float)x87_atan2((double)fVar2, (double)fVar1);
+      rang_d = (double)rang;
+      sin_abs = x87_fabs(x87_fsin(rang));
+      cos_val = x87_fabs(x87_fcos(rang));
+      if (sin_abs <= cos_val)
+        dominant = (double)cos_val;
+      else
+        dominant = (double)sin_abs;
+      dominant = *(double *)0x2573d8 / dominant;
 
-      /* copy button state with remapping */
-      pbVar11 = (uint8_t *)((char *)0x46b829 + iVar13);
-      puVar12 = (uint8_t *)((char *)0x46b881 + local_18 * 0x1c);
-      puVar12[-1] = *(uint8_t *)(pbVar11[-1] + 0x10 + iVar10);
-      puVar12[0] = *(uint8_t *)(pbVar11[0] + 0x10 + iVar10);
-      puVar12[1] = *(uint8_t *)(pbVar11[1] + 0x10 + iVar10);
-      puVar12[2] = *(uint8_t *)(pbVar11[2] + 0x10 + iVar10);
-      puVar12[3] = *(uint8_t *)(pbVar11[3] + 0x10 + iVar10);
-      puVar12[4] = *(uint8_t *)(pbVar11[4] + 0x10 + iVar10);
-      pbVar11 += 6;
-      puVar12 += 6;
-      puVar12[-1] = *(uint8_t *)(pbVar11[-1] + 0x10 + iVar10);
-      puVar12[0] = *(uint8_t *)(pbVar11[0] + 0x10 + iVar10);
-      puVar12[1] = *(uint8_t *)(pbVar11[1] + 0x10 + iVar10);
-      puVar12[2] = *(uint8_t *)(pbVar11[2] + 0x10 + iVar10);
-      puVar12[3] = *(uint8_t *)(pbVar11[3] + 0x10 + iVar10);
-      puVar12[4] = *(uint8_t *)(pbVar11[4] + 0x10 + iVar10);
+      fVar1 = (float)((double)(fVar1 * *(float *)0x280f80) * dominant);
+      if (fVar1 < -1.0f) {
+        rx = -1.0f;
+      } else if (fVar1 > 1.0f) {
+        rx = 1.0f;
+      } else {
+        rx = fVar1;
+      }
 
-      /* axis snapping for presets 2 and 3 */
-      if (*(int16_t *)((char *)0x46b834 + iVar13) == 2 ||
-          *(int16_t *)((char *)0x46b834 + iVar13) == 3) {
-        uVar7 = (uint16_t)(*(float *)0x2533c0 <= ly ? 0 : 2);
-        uVar8 = (uint16_t)(*(float *)0x2533c0 <= ry ? 0 : 2);
-        lmag = sqrtf(lx * lx + ly * ly);
-        rmag = sqrtf(rx * rx + ry * ry);
-        fVar1 = fabsf(
-          lang - *(float *)((char *)0x280f84 +
-                            (int16_t)((lx < *(float *)0x2533c0) | uVar7) * 4));
-        if (*(double *)0x281148 <= fVar1) {
-          if (fabsf(lx) <= fabsf(ly)) {
-            local_20 = *(float *)0x2533c0 <= ly ? 1 : -1;
-            lx = 0.0f;
-            ly = (float)local_20 * lmag;
+      fVar2 = (float)((double)(fVar2 * *(float *)0x280f80) * dominant);
+      if (fVar2 < -1.0f) {
+        ry = -1.0f;
+      } else if (fVar2 > 1.0f) {
+        ry = 1.0f;
+      } else {
+        ry = fVar2;
+      }
+
+      /* Remap buttons */
+      pbVar13 = (uint8_t *)((char *)0x46b829 + iVar17);
+      puVar14 = (uint8_t *)state + 1;
+      for (iVar18 = 2; iVar18 != 0; iVar18--) {
+        puVar14[-1] = *(uint8_t *)(pbVar13[-1] + 0x10 + (int)pvVar12);
+        puVar14[0] = *(uint8_t *)(pbVar13[0] + 0x10 + (int)pvVar12);
+        puVar14[1] = *(uint8_t *)(pbVar13[1] + 0x10 + (int)pvVar12);
+        puVar14[2] = *(uint8_t *)(pbVar13[2] + 0x10 + (int)pvVar12);
+        puVar14[3] = *(uint8_t *)(pbVar13[3] + 0x10 + (int)pvVar12);
+        puVar14[4] = *(uint8_t *)(pbVar13[4] + 0x10 + (int)pvVar12);
+        pbVar13 += 6;
+        puVar14 += 6;
+      }
+
+      sVar11 = *(int16_t *)((char *)0x46b834 + iVar17);
+      if (sVar11 == 2 || sVar11 == 3) {
+        uVar9 = (short)((lx < 0.0f ? 1 : 0) | (ly < 0.0f ? 2 : 0));
+        uVar10 = (short)((rx < 0.0f ? 1 : 0) | (ry < 0.0f ? 2 : 0));
+
+        left_diff = lang - *(float *)((char *)0x280f84 + (int16_t)uVar9 * 4);
+        right_diff = rang - *(float *)((char *)0x280f84 + (int16_t)uVar10 * 4);
+
+        fVar4 = x87_sqrt(ly * ly + lx * lx);
+        fVar5 = x87_sqrt(ry * ry + rx * rx);
+
+        if ((double)x87_fabs(left_diff) < *(double *)0x281148) {
+          if (fabs(lang_d) < *(float *)0x254a58 ||
+              fabs(lang_d) > *(float *)0x26af48) {
+            local_20 = (lx < 0.0f) ? -1 : 1;
+            lx = (float)local_20 * fVar4;
+            local_20 = (ly < 0.0f) ? -1 : 1;
+            ly = (float)local_20 * fVar4 * (*(double *)0x2573d8 - (double)left_diff * *(double *)0x281140);
           } else {
-            local_20 = *(float *)0x2533c0 <= lx ? 1 : -1;
+            local_20 = (ly < 0.0f) ? -1 : 1;
+            ly = (float)local_20 * fVar4;
+            local_20 = (lx < 0.0f) ? -1 : 1;
+            lx = (float)local_20 * fVar4 * (*(double *)0x2573d8 - (double)left_diff * *(double *)0x281140);
+          }
+        } else {
+          if (fabs((double)ly) < fabs((double)lx)) {
+            local_20 = (lx < 0.0f) ? -1 : 1;
             ly = 0.0f;
-            lx = (float)local_20 * lmag;
-          }
-        } else if (fabsf(lang) < *(float *)0x254a58 ||
-                   *(float *)0x26af48 < fabsf(lang)) {
-          local_20 = *(float *)0x2533c0 <= lx ? 1 : -1;
-          lx = (float)local_20 * lmag;
-          local_20 = *(float *)0x2533c0 <= ly ? 1 : -1;
-          ly = (float)local_20 * lmag *
-               (*(double *)0x2573d8 - fVar1 * *(double *)0x281140);
-        } else {
-          local_20 = *(float *)0x2533c0 <= ly ? 1 : -1;
-          ly = (float)local_20 * lmag;
-          local_20 = *(float *)0x2533c0 <= lx ? 1 : -1;
-          lx = (float)local_20 * lmag *
-               (*(double *)0x2573d8 - fVar1 * *(double *)0x281140);
-        }
-        fVar2 = fabsf(
-          rang - *(float *)((char *)0x280f84 +
-                            (int16_t)((rx < *(float *)0x2533c0) | uVar8) * 4));
-        if (*(double *)0x281138 <= fVar2) {
-          if (fabsf(ry) < fabsf(rx)) {
-            local_20 = *(float *)0x2533c0 <= rx ? 1 : -1;
-            ry = 0.0f;
-            rx = (float)local_20 * rmag;
+            lx = (float)local_20 * fVar4;
           } else {
-            local_20 = *(float *)0x2533c0 <= ry ? 1 : -1;
-            rx = 0.0f;
-            ry = (float)local_20 * rmag;
+            local_20 = (ly < 0.0f) ? -1 : 1;
+            lx = 0.0f;
+            ly = (float)local_20 * fVar4;
           }
-        } else if (fabsf(rang) < *(float *)0x254a58 ||
-                   *(float *)0x26af48 < fabsf(rang)) {
-          local_20 = *(float *)0x2533c0 <= rx ? 1 : -1;
-          rx = (float)local_20 * rmag;
-          local_20 = *(float *)0x2533c0 <= ry ? 1 : -1;
-          ry = (float)local_20 * rmag *
-               (*(double *)0x2573d8 - fVar2 * *(double *)0x281140);
+        }
+
+        if ((double)x87_fabs(right_diff) < *(double *)0x281138) {
+          if (fabs(rang_d) < *(float *)0x254a58 ||
+              fabs(rang_d) > *(float *)0x26af48) {
+            local_20 = (rx < 0.0f) ? -1 : 1;
+            rx = (float)local_20 * fVar5;
+            local_20 = (ry < 0.0f) ? -1 : 1;
+            ry = (float)local_20 * fVar5 * (*(double *)0x2573d8 - (double)right_diff * *(double *)0x281140);
+          } else {
+            local_20 = (ry < 0.0f) ? -1 : 1;
+            ry = (float)local_20 * fVar5;
+            local_20 = (rx < 0.0f) ? -1 : 1;
+            rx = (float)local_20 * fVar5 * (*(double *)0x2573d8 - (double)right_diff * *(double *)0x281140);
+          }
         } else {
-          local_20 = *(float *)0x2533c0 <= ry ? 1 : -1;
-          ry = (float)local_20 * rmag;
-          local_20 = *(float *)0x2533c0 <= rx ? 1 : -1;
-          rx = (float)local_20 * rmag *
-               (*(double *)0x2573d8 - fVar2 * *(double *)0x281140);
+          if (fabs((double)ry) < fabs((double)rx)) {
+            local_20 = (rx < 0.0f) ? -1 : 1;
+            ry = 0.0f;
+            rx = (float)local_20 * fVar5;
+          } else {
+            local_20 = (ry < 0.0f) ? -1 : 1;
+            rx = 0.0f;
+            ry = (float)local_20 * fVar5;
+          }
         }
       }
 
-      /* inversion flags */
-      cVar6 = ((char *)0x46b836)[iVar13];
-      if (cVar6 == '\0' && ((char *)0x46b837)[iVar13] != '\0') {
-        cVar6 = input_abstraction_print_config_control(local_18);
+      cVar7 = *(char *)((char *)0x46b836 + iVar17);
+      if (cVar7 == '\0' && *(char *)((char *)0x46b837 + iVar17) != '\0') {
+        cVar7 = input_abstraction_print_config_control(local_18);
       }
 
-      /* output axes per joystick preset */
-      switch (*(int16_t *)((char *)0x46b834 + iVar13)) {
+      switch (*(int16_t *)((char *)0x46b834 + iVar17)) {
       case 0:
-        ((float *)0x46b890)[local_18 * 7] =
-          *(char *)(iVar10 + 0x1a) != '\0' ? 1.0f :
-          *(char *)(iVar10 + 0x1b) != '\0' ? -1.0f :
-                                             -lx;
-        ((float *)0x46b88c)[local_18 * 7] =
-          *(char *)(iVar10 + 0x18) != '\0' ? 1.0f :
-          *(char *)(iVar10 + 0x19) != '\0' ? -1.0f :
-                                             ly;
-        ((float *)0x46b894)[local_18 * 7] = -rx;
-        ((float *)0x46b898)[local_18 * 7] =
-          cVar6 == '\0' ? *(float *)0x2533c8 * ry : *(float *)0x255e94 * ry;
-        ((char *)0x46b8f4)[local_18] = 1;
+        if (*(char *)((char *)pvVar12 + 0x1a) != '\0') {
+          *(float *)(state + 0x10) = 1.0f;
+        } else if (*(char *)((char *)pvVar12 + 0x1b) != '\0') {
+          *(float *)(state + 0x10) = -1.0f;
+        } else {
+          *(float *)(state + 0x10) = -lx;
+        }
+        if (*(char *)((char *)pvVar12 + 0x18) != '\0') {
+          *(float *)(state + 0xc) = 1.0f;
+        } else if (*(char *)((char *)pvVar12 + 0x19) != '\0') {
+          *(float *)(state + 0xc) = -1.0f;
+        } else {
+          *(float *)(state + 0xc) = ly;
+        }
+        *(float *)(state + 0x14) = -rx;
+        if (cVar7 == '\0') {
+          *(float *)(state + 0x18) = *(float *)0x2533c8 * ry;
+        } else {
+          *(float *)(state + 0x18) = *(float *)0x255e94 * ry;
+        }
+        *(char *)((char *)0x46b8f4 + local_18) = 1;
         break;
+
       case 1:
-        ((float *)0x46b894)[local_18 * 7] =
-          *(char *)(iVar10 + 0x1a) != '\0' ? 1.0f :
-          *(char *)(iVar10 + 0x1b) != '\0' ? -1.0f :
-                                             -lx;
-        {
-          float fv = *(float *)0x2533c8;
-          if (*(char *)(iVar10 + 0x18) == '\0') {
-            if (*(char *)(iVar10 + 0x19) == '\0') {
-              fv = cVar6 != '\0' ? *(float *)0x255e94 * ly :
-                                   *(float *)0x2533c8 * ly;
-            } else if (cVar6 == '\0') {
-              fv = *(float *)0x255e94;
-            }
-          } else if (cVar6 != '\0') {
-            fv = *(float *)0x255e94;
-          }
-          ((float *)0x46b898)[local_18 * 7] = fv;
+        if (*(char *)((char *)pvVar12 + 0x1a) != '\0') {
+          *(float *)(state + 0x14) = 1.0f;
+        } else if (*(char *)((char *)pvVar12 + 0x1b) != '\0') {
+          *(float *)(state + 0x14) = -1.0f;
+        } else {
+          *(float *)(state + 0x14) = -lx;
         }
-        ((float *)0x46b88c)[local_18 * 7] = ry;
-        ((float *)0x46b890)[local_18 * 7] = -rx;
-        ((char *)0x46b8f4)[local_18] = 1;
+        if (*(char *)((char *)pvVar12 + 0x18) != '\0') {
+          if (cVar7 != '\0') {
+            fVar1 = *(float *)0x255e94;
+          } else {
+            fVar1 = *(float *)0x2533c8;
+          }
+        } else {
+          sVar11 = (cVar7 == '\0');
+          if (*(char *)((char *)pvVar12 + 0x19) != '\0') {
+            if (sVar11) {
+              fVar1 = *(float *)0x255e94;
+            } else {
+              fVar1 = *(float *)0x2533c8;
+            }
+          } else {
+            if (cVar7 != '\0') {
+              fVar1 = *(float *)0x255e94;
+            } else {
+              fVar1 = *(float *)0x2533c8;
+            }
+            fVar1 *= ly;
+          }
+        }
+        *(float *)(state + 0x18) = fVar1;
+        *(float *)(state + 0xc) = ry;
+        *(float *)(state + 0x10) = -rx;
+        *(char *)((char *)0x46b8f4 + local_18) = 1;
         break;
+
       case 2:
-        ((float *)0x46b894)[local_18 * 7] =
-          *(char *)(iVar10 + 0x1a) != '\0' ? 1.0f :
-          *(char *)(iVar10 + 0x1b) != '\0' ? -1.0f :
-                                             -lx;
-        ((float *)0x46b88c)[local_18 * 7] =
-          *(char *)(iVar10 + 0x18) != '\0' ? 1.0f :
-          *(char *)(iVar10 + 0x19) != '\0' ? -1.0f :
-                                             ly;
-        ((float *)0x46b890)[local_18 * 7] = -rx;
-        ((float *)0x46b898)[local_18 * 7] =
-          cVar6 == '\0' ? *(float *)0x2533c8 * ry : *(float *)0x255e94 * ry;
-        ((char *)0x46b8f4)[local_18] = 1;
-        break;
-      case 3:
-        ((float *)0x46b890)[local_18 * 7] =
-          *(char *)(iVar10 + 0x1a) != '\0' ? 1.0f :
-          *(char *)(iVar10 + 0x1b) != '\0' ? -1.0f :
-                                             -lx;
-        {
-          float fv = *(float *)0x2533c8;
-          if (*(char *)(iVar10 + 0x18) == '\0') {
-            if (*(char *)(iVar10 + 0x19) == '\0') {
-              fv = cVar6 != '\0' ? *(float *)0x255e94 * ly :
-                                   *(float *)0x2533c8 * ly;
-            } else if (cVar6 == '\0') {
-              fv = *(float *)0x255e94;
-            }
-          } else if (cVar6 != '\0') {
-            fv = *(float *)0x255e94;
-          }
-          ((float *)0x46b898)[local_18 * 7] = fv;
+        if (*(char *)((char *)pvVar12 + 0x1a) != '\0') {
+          *(float *)(state + 0x14) = 1.0f;
+        } else if (*(char *)((char *)pvVar12 + 0x1b) != '\0') {
+          *(float *)(state + 0x14) = -1.0f;
+        } else {
+          *(float *)(state + 0x14) = -lx;
         }
-        ((float *)0x46b88c)[local_18 * 7] = ry;
-        ((float *)0x46b894)[local_18 * 7] = -rx;
-        ((char *)0x46b8f4)[local_18] = 1;
+        if (*(char *)((char *)pvVar12 + 0x18) != '\0') {
+          *(float *)(state + 0xc) = 1.0f;
+        } else if (*(char *)((char *)pvVar12 + 0x19) != '\0') {
+          *(float *)(state + 0xc) = -1.0f;
+        } else {
+          *(float *)(state + 0xc) = ly;
+        }
+        *(float *)(state + 0x10) = -rx;
+        if (cVar7 == '\0') {
+          *(float *)(state + 0x18) = *(float *)0x2533c8 * ry;
+        } else {
+          *(float *)(state + 0x18) = *(float *)0x255e94 * ry;
+        }
+        *(char *)((char *)0x46b8f4 + local_18) = 1;
         break;
+
+      case 3:
+        if (*(char *)((char *)pvVar12 + 0x1a) != '\0') {
+          *(float *)(state + 0x10) = 1.0f;
+        } else if (*(char *)((char *)pvVar12 + 0x1b) != '\0') {
+          *(float *)(state + 0x10) = -1.0f;
+        } else {
+          *(float *)(state + 0x10) = -lx;
+        }
+        if (*(char *)((char *)pvVar12 + 0x18) != '\0') {
+          if (cVar7 != '\0') {
+            fVar1 = *(float *)0x255e94;
+          } else {
+            fVar1 = *(float *)0x2533c8;
+          }
+        } else {
+          sVar11 = (cVar7 == '\0');
+          if (*(char *)((char *)pvVar12 + 0x19) != '\0') {
+            if (sVar11) {
+              fVar1 = *(float *)0x255e94;
+            } else {
+              fVar1 = *(float *)0x2533c8;
+            }
+          } else {
+            if (cVar7 != '\0') {
+              fVar1 = *(float *)0x255e94;
+            } else {
+              fVar1 = *(float *)0x2533c8;
+            }
+            fVar1 *= ly;
+          }
+        }
+        *(float *)(state + 0x18) = fVar1;
+        *(float *)(state + 0xc) = ry;
+        *(float *)(state + 0x14) = -rx;
+        *(char *)((char *)0x46b8f4 + local_18) = 1;
+        break;
+
       default:
         error(2, "unknown joystick preset");
-        ((char *)0x46b8f4)[local_18] = 1;
+        *(char *)((char *)0x46b8f4 + local_18) = 1;
         break;
       }
+    } else {
+      if (*(char *)((char *)0x46b8f4 + local_18) != '\0') {
+        error_controller = local_18;
+        if (main_menu_is_active()) {
+          connected_count = 0;
+          i = 0;
+          do {
+            if (*(char *)((char *)0x46b8f4 + i) != '\0')
+              connected_count++;
+            i++;
+          } while (i < 4);
+
+          display_error_flag = 0;
+          error_code = 0xd;
+          if (connected_count < 2) {
+            if (player_ui_get_single_player_local_player_controller(0) != local_18 &&
+                player_ui_get_single_player_local_player_controller(1) != local_18 &&
+                player_ui_get_single_player_local_player_controller(2) != local_18 &&
+                player_ui_get_single_player_local_player_controller(3) != local_18 &&
+                !player_ui_local_player_wants_to_play_multiplayer(local_18)) {
+              error_controller = -1;
+            }
+          } else {
+            if (player_ui_get_single_player_local_player_controller(0) != local_18 &&
+                player_ui_get_single_player_local_player_controller(1) != local_18 &&
+                player_ui_get_single_player_local_player_controller(2) != local_18 &&
+                player_ui_get_single_player_local_player_controller(3) != local_18 &&
+                !player_ui_local_player_wants_to_play_multiplayer(local_18)) {
+              goto skip_disconnect_ui;
+            }
+          }
+        } else {
+          if (network_game_client_get() == NULL) {
+            display_error_flag = 1;
+            error_code = 0xc;
+          } else {
+            display_error_flag = 0;
+            error_code = 0xd;
+          }
+          if (local_player_exists((int16_t)local_18) != 1)
+            goto skip_disconnect_ui;
+        }
+
+        if (FUN_000f5640())
+          items_initialize();
+        display_error_deferred(error_code, error_controller, display_error_flag, display_error_flag); /* dup-args-ok: display_error_flag pushed twice in pristine at 0x000cf3a8 */
+      }
+    skip_disconnect_ui:
+      *(char *)((char *)0x46b8f4 + local_18) = 0;
     }
   }
 }

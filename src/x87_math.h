@@ -18,8 +18,19 @@ double __cdecl cos(double);
 double __cdecl sin(double);
 double __cdecl sqrt(double);
 double __cdecl atan2(double, double);
-#pragma intrinsic(cos, sin, sqrt, atan2)
+double __cdecl fabs(double);
+#pragma intrinsic(cos, sin, sqrt, atan2, fabs)
 #endif
+
+static __inline float x87_fabs(float val) {
+#if defined(_MSC_VER) && !defined(__clang__)
+  return (float)fabs((double)val); /* VC71 intrinsic: FLD dword; FABS */
+#else
+  float r;
+  __asm__ __volatile__("fabs" : "=t"(r) : "0"(val));
+  return r;
+#endif
+}
 
 static __inline float x87_fcos(float val) {
 #if defined(_MSC_VER) && !defined(__clang__)
@@ -220,6 +231,16 @@ static __inline float x87_fatan2f(float a, float b) {
   __asm__ __volatile__("fpatan" : "=t"(r) : "0"(b), "u"(a) : "st(1)");
 #endif
   return r;
+}
+
+static __inline double x87_atan2(double y, double x) {
+#if defined(_MSC_VER) && !defined(__clang__)
+  return atan2(y, x);
+#else
+  double r;
+  __asm__ __volatile__("fpatan" : "=t"(r) : "0"(x), "u"(y) : "st(1)");
+  return r;
+#endif
 }
 
 static __inline float x87_sqrt(float val) {

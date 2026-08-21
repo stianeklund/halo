@@ -96,4 +96,14 @@ static const int _scenario_type_main_menu = 2;
 #define strlen csstrlen
 #endif
 
+/* Screen-bounds rect at 0x50657c — four int16 in the engine's standard 2D
+ * rect order {top, left, bottom, right}.  Names and spellings are taken
+ * verbatim from src/halo/cutscene/cinematics.c:401-404, which recovered them;
+ * the two entries below are the ones referenced outside that TU, so they live
+ * here (common.h is force-included) rather than being re-coined per file.
+ * Body must stay token-identical to the code it replaces — that is what makes
+ * the substitution codegen-neutral. */
+#define screen_bounds_top (*(int16_t *)0x50657c)
+#define screen_bounds_left (*(int16_t *)0x50657e)
+
 #endif

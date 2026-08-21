@@ -527,6 +527,9 @@ def build_base_c(func_name: str, func_body: str, file_statics: str = "") -> str:
     # so extern declarations like `extern void *__cdecl memcpy(...);` are
     # converted to `extern void *memcpy(...);` for pycparser compatibility.
     statics = re.sub(r'\b__cdecl\s+', '', statics)
+    # pycparser cannot parse MSVC __asm { ... } blocks or GCC __asm__ blocks in inline helpers.
+    statics = re.sub(r'\b__asm\s*\{[^}]*\}', '{ /* asm */ }', statics)
+    statics = re.sub(r'\b__asm__\s*__volatile__\s*\([^;]*\);', '/* asm */;', statics)
 
     # Split statics into two buckets:
     #   type_statics  — typedef/struct/union/enum blocks that conflict with the

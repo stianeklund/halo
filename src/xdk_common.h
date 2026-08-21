@@ -51,6 +51,12 @@ extern "C" {
 
 static const int _scenario_type_main_menu = 2;
 
+/* Screen-bounds rect at 0x50657c — four int16 in the engine's standard 2D
+ * rect order {top, left, bottom, right}.  Kept in sync with src/common.h;
+ * this header is the one the VC71 compare lane force-includes. */
+#define screen_bounds_top (*(int16_t *)0x50657c)
+#define screen_bounds_left (*(int16_t *)0x50657e)
+
 /* assert_halt_at(file, line, cond) — byte-match-faithful assert (see common.h). */
 #define assert_halt_at(file, line, cond)                       \
     do {                                                     \

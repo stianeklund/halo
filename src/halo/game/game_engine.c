@@ -217,8 +217,8 @@ void FUN_000a84f0(int text, int color, int16_t row_index)
 
   rect[0] = *(int *)0x506584;
   rect[1] = *(int *)0x506588;
-  rect2d_offset((int16_t *)rect, -(*(int16_t *)0x50657e),
-                -(*(int16_t *)0x50657c));
+  rect2d_offset((int16_t *)rect, -(screen_bounds_left),
+                -(screen_bounds_top));
   *(int16_t *)rect = row_index * 0x12;
   *(int16_t *)((char *)rect + 4) = row_index * 0x12 + 0x1a;
   draw_string_set_style_justify_flags(-1, (short)color, 0);
@@ -794,7 +794,7 @@ void game_engine_rasterize_message(int text, float alpha)
   color[1] = 0.459f;
   color[2] = 0.729f;
   color[3] = 1.0f;
-  rect2d_offset((int16_t *)rect, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+  rect2d_offset((int16_t *)rect, -screen_bounds_left, -screen_bounds_top);
   {
     long long product =
       (long long)((int16_t)rect[0] * 5 + (int)(int16_t)rect[1]) * 0x2aaaaaab;
@@ -2731,7 +2731,7 @@ void FUN_000ab090(int text, char highlight, int row, int state)
   } else {
     draw_string_set_tab_stops(tabs, 3);
   }
-  rect2d_offset((int16_t *)rect, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+  rect2d_offset((int16_t *)rect, -screen_bounds_left, -screen_bounds_top);
   if (font_tag != -1) {
     tag_data = (int)tag_get(0x666f6e74, font_tag);
     char_height = *(int16_t *)(tag_data + 8);
@@ -5766,7 +5766,7 @@ void game_engine_post_rasterize_post_game(void)
         rect2[1] = *(int16_t *)0x506586;
         rect2[2] = *(int16_t *)0x506588;
         rect2[3] = *(int16_t *)0x50658a;
-        rect2d_offset(rect2, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+        rect2d_offset(rect2, -screen_bounds_left, -screen_bounds_top);
         rect2[0] = sy;
         rect2[2] = ey;
         draw_string_set_style_justify_flags(-1, 0, 0);
@@ -5794,7 +5794,7 @@ void game_engine_post_rasterize_post_game(void)
         rect2[1] = *(int16_t *)0x506586;
         rect2[2] = *(int16_t *)0x506588;
         rect2[3] = *(int16_t *)0x50658a;
-        rect2d_offset(rect2, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+        rect2d_offset(rect2, -screen_bounds_left, -screen_bounds_top);
         rect2[0] = sy;
         rect2[2] = ey;
         draw_string_set_style_justify_flags(-1, 0, 0);
@@ -5811,7 +5811,7 @@ void game_engine_post_rasterize_post_game(void)
         rect2[1] = *(int16_t *)0x506586;
         rect2[2] = *(int16_t *)0x506588;
         rect2[3] = *(int16_t *)0x50658a;
-        rect2d_offset(rect2, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+        rect2d_offset(rect2, -screen_bounds_left, -screen_bounds_top);
         rect2[0] = sy;
         rect2[2] = ey;
         draw_string_set_style_justify_flags(-1, 0, 0);
@@ -5827,7 +5827,7 @@ void game_engine_post_rasterize_post_game(void)
         rect2[1] = *(int16_t *)0x506586;
         rect2[2] = *(int16_t *)0x506588;
         rect2[3] = *(int16_t *)0x50658a;
-        rect2d_offset(rect2, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+        rect2d_offset(rect2, -screen_bounds_left, -screen_bounds_top);
         rect2[0] = sy;
         rect2[2] = ey;
         draw_string_set_style_justify_flags(-1, 0, 0);
@@ -5843,7 +5843,7 @@ void game_engine_post_rasterize_post_game(void)
         rect2[1] = *(int16_t *)0x506586;
         rect2[2] = *(int16_t *)0x506588;
         rect2[3] = *(int16_t *)0x50658a;
-        rect2d_offset(rect2, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+        rect2d_offset(rect2, -screen_bounds_left, -screen_bounds_top);
         rect2[0] = sy;
         rect2[2] = ey;
         draw_string_set_style_justify_flags(-1, 0, 0);
@@ -5859,7 +5859,7 @@ void game_engine_post_rasterize_post_game(void)
         rect2[1] = *(int16_t *)0x506586;
         rect2[2] = *(int16_t *)0x506588;
         rect2[3] = *(int16_t *)0x50658a;
-        rect2d_offset(rect2, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+        rect2d_offset(rect2, -screen_bounds_left, -screen_bounds_top);
         rect2[0] = sy;
         rect2[2] = ey;
         draw_string_set_style_justify_flags(-1, 0, 0);
@@ -5881,7 +5881,7 @@ void game_engine_post_rasterize_post_game(void)
     rect2[1] = 0x46; /* y = 70 */
     rect2[2] = 0x1e0; /* clip bottom = 480 */
     rect2[3] = 0x280; /* clip right = 640 */
-    rect2d_offset(rect2, -*(int16_t *)0x50657e, -*(int16_t *)0x50657c);
+    rect2d_offset(rect2, -screen_bounds_left, -screen_bounds_top);
     draw_string_set_tab_stops(0, 0);
     draw_string_set_color(bottom_color);
     tmp = (int)network_game_server_get();

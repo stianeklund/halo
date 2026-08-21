@@ -97,7 +97,7 @@ COFF_TMP="${VC71_STAGE}/${BASENAME}_${UNIQUE}.obj"
 COMPILE_C="$C_FILE"
 STRIPPED_C=""
 if [[ "$(basename "$C_FILE")" == permuter* ]] || [[ "$C_FILE" == */output-*/source.c ]]; then
-    STRIPPED_C="${C_FILE%.c}.stripped.c"
+    STRIPPED_C="${VC71_STAGE}/$(basename "${C_FILE%.c}").stripped.c"
     TYPES_H_SRC="${SRC_INC_OVERRIDE:-$REPO_ROOT/src}/types.h"
     if python3 "${SCRIPT_DIR}/strip_dup_typedefs.py" "$C_FILE" "$TYPES_H_SRC" "$STRIPPED_C" 2>/dev/null; then
         COMPILE_C="$STRIPPED_C"
@@ -106,7 +106,13 @@ if [[ "$(basename "$C_FILE")" == permuter* ]] || [[ "$C_FILE" == */output-*/sour
     fi
 fi
 
-cleanup() { rm -f "$COFF_TMP" ${STRIPPED_C:+"$STRIPPED_C"}; }
+if [[ "$COMPILE_C" != /mnt/* ]]; then
+    STAGED_C="${VC71_STAGE}/$(basename "$COMPILE_C")"
+    cp "$COMPILE_C" "$STAGED_C"
+    COMPILE_C="$STAGED_C"
+fi
+
+cleanup() { rm -f "$COFF_TMP" ${STRIPPED_C:+"$STRIPPED_C"} ${STAGED_C:+"$STAGED_C"}; }
 trap cleanup EXIT
 
 C_WIN="$(wsl_to_win "$COMPILE_C")"
@@ -125,7 +131,7 @@ TP_XBOX_INC="$(wsl_to_win "${TP_XBOX_INC_OVERRIDE:-$REPO_ROOT/third_party/xbox}"
     /nologo /c /TC \
     "${VC71_OPT:-/O2}" "${VC71_FP:-/Oy-}" /GF /Gy /Gd \
     /W0 /Zl /X \
-    /DMSVC /DXDK_BUILD /DHDATA= \
+    /DMSVC /DXDK_BUILD /DHDATA= /Dinline=__inline \
     "/FI${FI_WIN}" \
     "/I${GEN_INC}" \
     "/I${SRC_INC}" \
