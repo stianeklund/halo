@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-TOOL_VERSION = "source-recovery/1"
+TOOL_VERSION = "source-recovery/2"
 SCHEMA = 1
 NOISY_PARTS = {"build", "build_debug", "node_modules", ".git", "halo-patched", "__pycache__", "dist"}
 
@@ -98,6 +98,53 @@ PATTERNS = {
 
 class RecoveryError(Exception):
     """Expected, fail-closed workflow error."""
+
+
+# A rename is one decision per SYMBOL, not per occurrence.  `plan` used to file
+# one item per regex hit, so an address used 19 times became 19 items and the
+# category agent re-ran the same evidence hunt 19 times to reach the same
+# verdict.  Measured on game_engine.c (2026-08-21): global-names 547 items over
+# 154 distinct addresses, of which 527 parks covered 152 addresses -- 84
+# addresses parked more than once, 67 of those with byte-identical reasons, 375
+# redundant decisions.  offset-to-field was 529 items over 169 (base, offset)
+# pairs, with `(player, 0x20)` alone appearing 46 times.
+#
+# Grouping is per DECISION TARGET, so it is only correct where the edit is
+# inherently file-wide: you cannot rename one occurrence of a global and leave
+# the other 18.  `decompiler_style_locals` is deliberately NOT grouped -- Ghidra
+# reuses `local_c` for unrelated variables in different functions (5 distinct
+# roles in game_engine.c), so one name is several independent decisions and
+# check_category_purity requires a single injective map per file.
+_ADDR_RE = re.compile(r"0x[0-9A-Fa-f]+")
+_FUN_RE = re.compile(r"FUN_[0-9A-Fa-f]{4,}")
+_BASE_OFFSET_RE = re.compile(
+    r"\*\(\s*[A-Za-z_][\w ]*\*\)\(\s*([A-Za-z_]\w*)\s*\+\s*(0x[0-9A-Fa-f]+)\)")
+
+
+def _key_address(text: str) -> str | None:
+    found = _ADDR_RE.search(text)
+    return found.group(0).lower() if found else None
+
+
+def _key_fun(text: str) -> str | None:
+    found = _FUN_RE.search(text)
+    return ("FUN_" + found.group(0)[4:].lower()) if found else None
+
+
+def _key_base_offset(text: str) -> str | None:
+    found = _BASE_OFFSET_RE.search(text)
+    return "%s+%s" % (found.group(1), found.group(2).lower()) if found else None
+
+
+# detector -> key extractor over the MATCHED TEXT.  A detector absent here, or an
+# extractor returning None, keeps the per-occurrence item: a decision target we
+# cannot name reliably must not be silently merged with a different one.
+GROUP_KEY = {
+    "absolute_address_dereferences": _key_address,
+    "raw_function_pointer_address_casts": _key_address,
+    "fun_calls": _key_fun,
+    "raw_base_offset_dereferences": _key_base_offset,
+}
 
 
 def _category_of(item: dict[str, Any]) -> str:
@@ -393,11 +440,12 @@ def _inventory(source: Path) -> tuple[dict[str, list[dict[str, Any]]], dict[str,
     inventory["struct_bases"] = _struct_base_items(lines, masks)
     inventory["magic_fourcc"] = _magic_fourcc_items(lines, masks)
     skipped: dict[str, int] = {}
+    # (detector, ladder, key) -> item, for the grouped detectors only.
+    grouped: dict[tuple[str, str, str], dict[str, Any]] = {}
     for line_number, line in enumerate(lines, 1):
         mask = masks[line_number - 1]
         for category, pattern in PATTERNS.items():
             for occurrence, match in enumerate(pattern.finditer(line), 1):
-                item_id = "%s:%d:%d" % (category, line_number, occurrence)
                 in_comment = mask[match.start()]
                 if in_comment and category not in COMMENT_DEBT_DETECTORS:
                     # Prose is not code debt.  An address or an offset written
@@ -412,14 +460,44 @@ def _inventory(source: Path) -> tuple[dict[str, list[dict[str, Any]]], dict[str,
                 # proposes.
                 ladder = ("comments" if in_comment
                           else DETECTOR_CATEGORY.get(category, UNCATEGORIZED))
-                item = {
-                    "id": item_id,
+                site = {
                     "line": line_number,
                     "column": match.start() + 1,
                     "text": line.strip(),
-                    "status": "pending",
-                    "category": ladder,
                 }
+                # A comment hit and a code hit on the same address are different
+                # edits in different ladder categories, so `ladder` is part of
+                # the grouping key and never folds them together.
+                key = GROUP_KEY.get(category, lambda _text: None)(match.group(0))
+                if key is not None:
+                    existing = grouped.get((category, ladder, key))
+                    if existing is not None:
+                        existing["occurrences"].append(site)
+                        existing["occurrence_count"] = len(existing["occurrences"])
+                        continue
+                    # The ladder is part of the id, not just the grouping key: a
+                    # FUN_ named in BOTH a comment and live code is two items in
+                    # two categories, and without the suffix both claimed
+                    # `<detector>:<key>` and _validate_manifest rejected the
+                    # manifest as having a duplicate item id.
+                    item = {
+                        "id": "%s:%s%s" % (category, key,
+                                           "@comment" if in_comment else ""),
+                        "key": key,
+                        "status": "pending",
+                        "category": ladder,
+                        "occurrences": [site],
+                        "occurrence_count": 1,
+                        **site,
+                    }
+                    grouped[(category, ladder, key)] = item
+                else:
+                    item = {
+                        "id": "%s:%d:%d" % (category, line_number, occurrence),
+                        "status": "pending",
+                        "category": ladder,
+                        **site,
+                    }
                 if in_comment:
                     item["in_comment"] = True
                 inventory[category].append(item)
@@ -485,6 +563,19 @@ def _validate_manifest(manifest: Any) -> dict[str, Any]:
             raise RecoveryError("malformed manifest: invalid item line")
         if "category" in item and item["category"] not in CATEGORIES:
             raise RecoveryError("malformed manifest: invalid item category")
+        # Grouped items are optional: a manifest planned before decision-target
+        # grouping has neither key, and must still load.
+        if "occurrences" in item:
+            sites = item["occurrences"]
+            if not isinstance(sites, list) or not sites:
+                raise RecoveryError("malformed manifest: invalid item occurrences")
+            for site in sites:
+                if not isinstance(site, dict) or not isinstance(site.get("line"), int) or site["line"] < 1:
+                    raise RecoveryError("malformed manifest: invalid occurrence line")
+            if item.get("occurrence_count") != len(sites):
+                raise RecoveryError("malformed manifest: occurrence_count disagrees with occurrences")
+            if not isinstance(item.get("key"), str) or not item["key"]:
+                raise RecoveryError("malformed manifest: grouped item needs a key")
     inventory_by_id = {item.get("id"): item for item in inventory_items}
     if set(inventory_by_id) != seen:
         raise RecoveryError("malformed manifest: inventory/items ids differ")

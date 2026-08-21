@@ -561,6 +561,19 @@ Items in OTHER categories belong to other agents: do not touch them, do not "fix
 them while you're here". Enumerate yours with \`source_recovery.py ladder <manifest>\`
 plus the manifest JSON (per-item ids and line numbers).
 
+ONE ITEM IS ONE DECISION, NOT ONE LINE. An item carrying \`occurrences\` (with
+\`occurrence_count\` > 1) and a \`key\` covers EVERY site listed in it: a global
+address, a FUN_ symbol, or a (base, offset) pair used in 19 places is one naming
+decision applied to all 19. Rewrite every occurrence in that item, then set its
+status ONCE. Applying only the first site leaves the file half-renamed and the
+purity checker will reject the split; deciding the same key twice is the waste
+grouping exists to remove. Items without \`occurrences\` are per-site as before
+(decompiler locals are deliberately ungrouped: Ghidra reuses \`local_c\` for
+unrelated variables, so one name is several independent decisions).
+Prefer \`key\` over \`line\` when locating work — earlier categories in this same
+ladder shift line numbers under the manifest (the 2026-08-21 comments commit
+moved them by up to +66), but a key stays valid.
+
 PROCEDURE — small units, gate after EACH, per source-recovery:
   • one small change → that category's gate at the level the gate table specifies
     (\`source_recovery.py check <manifest> --object <built .obj>\` plus whatever extra

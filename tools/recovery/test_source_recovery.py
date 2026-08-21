@@ -360,5 +360,103 @@ class SourceRecoveryTests(unittest.TestCase):
         self.assertIn("- Skipped gates: vc71_regression.py check --strict", report)
 
 
+
+class GroupedItemTests(unittest.TestCase):
+    """Items are one per decision target, not one per occurrence.
+
+    Grouping is what stops a category agent re-running the same evidence hunt
+    for every textual hit on one address; the regression it guards is measured
+    in the GROUP_KEY comment in source_recovery.py.
+    """
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(dir=recovery.ROOT)
+        self.root = Path(self.temp.name)
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def _items(self, text):
+        source = self.root / "sample.c"
+        source.write_text(text, encoding="utf-8")
+        inventory, _ = recovery._inventory(source)
+        return [item for category in sorted(inventory) for item in inventory[category]]
+
+    def _by_id(self, text):
+        return {item["id"]: item for item in self._items(text)}
+
+    def test_repeated_address_is_one_item_with_every_occurrence(self):
+        items = self._by_id(
+            "int f(void) { return *(int *)0x5AA730; }\n"
+            "int g(void) { return *(int *)0x5aa730 + 1; }\n"
+            "int h(void) { return *(int *)0x5aa730 + 2; }\n")
+        grouped = items["absolute_address_dereferences:0x5aa730"]
+        self.assertEqual(grouped["occurrence_count"], 3)
+        self.assertEqual([site["line"] for site in grouped["occurrences"]], [1, 2, 3])
+        # The flattened fields keep pointing at the first site, so consumers that
+        # only read `line` behave exactly as before grouping.
+        self.assertEqual(grouped["line"], 1)
+        self.assertEqual(
+            [i for i in items if i.startswith("absolute_address_dereferences")],
+            ["absolute_address_dereferences:0x5aa730"])
+
+    def test_base_offset_groups_on_base_and_offset_not_offset_alone(self):
+        items = self._by_id(
+            "int f(void) { return *(int *)(player + 0x20); }\n"
+            "int g(void) { return *(int *)(player + 0x20); }\n"
+            "int h(void) { return *(int *)(entry + 0x20); }\n")
+        self.assertEqual(items["raw_base_offset_dereferences:player+0x20"]["occurrence_count"], 2)
+        self.assertEqual(items["raw_base_offset_dereferences:entry+0x20"]["occurrence_count"], 1)
+
+    def test_decompiler_locals_are_never_grouped(self):
+        # Ghidra reuses `local_c` for unrelated variables in different functions,
+        # so one name is several independent decisions.
+        items = self._items(
+            "int f(void) { int local_c; return local_c; }\n"
+            "int g(void) { int local_c; return local_c; }\n")
+        locals_ = [i for i in items if i["id"].startswith("decompiler_style_locals")]
+        self.assertEqual(len(locals_), 4)
+        self.assertTrue(all("occurrences" not in item for item in locals_))
+
+    def test_comment_and_code_hits_on_one_address_stay_separate(self):
+        items = self._by_id(
+            "/* calls FUN_00123456() on entry */\n"
+            "int f(void) { FUN_00123456(); return 0; }\n")
+        self.assertEqual(items["fun_calls:FUN_00123456@comment"]["category"], "comments")
+        self.assertEqual(items["fun_calls:FUN_00123456"]["category"], "symbol-names")
+        # Both must survive as distinct ids, or the manifest fails validation.
+        self.assertEqual(len([i for i in items if i.startswith("fun_calls:")]), 2)
+
+    def test_grouped_manifest_round_trips_validation(self):
+        source = self.root / "sample.c"
+        source.write_text(
+            "int f(void) { return *(int *)0x5aa730 + *(int *)0x5aa730; }\n", encoding="utf-8")
+        with mock.patch.object(recovery, "_git_head", return_value="deadbeef"):
+            manifest = recovery._plan(str(source))
+        self.assertEqual(recovery._validate_manifest(manifest), manifest)
+
+    def test_pre_grouping_manifest_still_validates(self):
+        # Manifests planned before grouping have no key/occurrences and are
+        # mid-ladder on disk; dropping them would strand real work.
+        source = self.root / "sample.c"
+        source.write_text("int f(void) { return *(int *)0x5aa730; }\n", encoding="utf-8")
+        with mock.patch.object(recovery, "_git_head", return_value="deadbeef"):
+            manifest = recovery._plan(str(source))
+        for item in manifest["items"]:
+            for field in ("key", "occurrences", "occurrence_count"):
+                item.pop(field, None)
+        self.assertEqual(recovery._validate_manifest(manifest), manifest)
+
+    def test_occurrence_count_disagreement_is_rejected(self):
+        source = self.root / "sample.c"
+        source.write_text(
+            "int f(void) { return *(int *)0x5aa730 + *(int *)0x5aa730; }\n", encoding="utf-8")
+        with mock.patch.object(recovery, "_git_head", return_value="deadbeef"):
+            manifest = recovery._plan(str(source))
+        grouped = next(i for i in manifest["items"] if i.get("occurrence_count") == 2)
+        grouped["occurrence_count"] = 99
+        with self.assertRaises(recovery.RecoveryError):
+            recovery._validate_manifest(manifest)
+
 if __name__ == "__main__":
     unittest.main()
