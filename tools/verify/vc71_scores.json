@@ -55093,6 +55093,21 @@
       "score": 100.0,
       "source": "src/halo/input/input_abstraction.c"
     },
+    "input_abstraction_get_input_state": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xce7f0",
+      "end": "0xce831",
+      "kind": "auto",
+      "n_r": 22,
+      "opnd_percent": 90.9,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "e2c9dd0ffd840cc1",
+      "score": 100.0,
+      "source": "src/halo/input/input_abstraction.c"
+    },
     "input_abstraction_get_local_player_preferences": {
       "abi_model": "raw",
       "abi_model_items": 0,
@@ -55151,6 +55166,36 @@
       "ref": "synth",
       "ref_sha": "60cd94c6947068b6",
       "score": 15.2,
+      "source": "src/halo/input/input_abstraction.c"
+    },
+    "input_abstraction_update_device_changes": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xce840",
+      "end": "0xce8b3",
+      "kind": "auto",
+      "n_r": 35,
+      "opnd_percent": 91.4,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "62f01b1ff62c8966",
+      "score": 100.0,
+      "source": "src/halo/input/input_abstraction.c"
+    },
+    "input_abstraction_update_local_player_preferences": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xce740",
+      "end": "0xce7e4",
+      "kind": "auto",
+      "n_r": 52,
+      "opnd_percent": 92.3,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "f1a28111b46343a7",
+      "score": 100.0,
       "source": "src/halo/input/input_abstraction.c"
     },
     "input_check_state_mode": {
