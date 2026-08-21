@@ -1577,6 +1577,109 @@ co(tag_block, count,   0x00);
 co(tag_block, address, 0x04);
 
 /* -------------------------------------------------------------------------
+ * tag_reference -- 0x10-byte element of a tag-reference tag block.
+ *
+ * Name: the engine's own diagnostic string names the accessor,
+ * "tag_reference_set() is not supported with a cache file active"
+ * (read out of cachebeta.xbe).
+ * Size: 0x10 is the element-size argument at every tag_block_get_element call
+ * over such a block in game_engine.c (12 sites, e.g. :1249, :1251, :1253).
+ * ------------------------------------------------------------------------- */
+typedef struct {
+  char    pad_00[0xc];  /* +0x00  group tag / name / name length: never observed accessed here */
+  int32_t tag_index;    /* +0x0c  datum index handed to the tag-load helper at
+                         *        .text:0013DDA0 (game_engine.c:1178-1183) and
+                         *        compared against tag indices (:1255, :9175) */
+} tag_reference;
+cs(tag_reference, 0x10);
+co(tag_reference, tag_index, 0x0c);
+
+/* -------------------------------------------------------------------------
+ * netgame_flag -- 0x94-byte element of the scenario netgame-flags tag block
+ * at scenario + 0x378.
+ *
+ * Name: kb.json already names the readers of this block
+ * (find_netgame_flag / find_netgame_flags / game_engine_validate_map_netgame_flags).
+ * Size: 0x94 is the element-size argument at every tag_block_get_element call
+ * over scenario+0x378 (game_engine.c:66, :1821, :1827, :1859, :4759, :4773).
+ * ------------------------------------------------------------------------- */
+typedef struct {
+  float   position_x;   /* +0x00  world point fed to the LOS/collision test as a
+                         *        candidate position (game_engine.c:4789-4791) */
+  float   position_y;   /* +0x04 */
+  float   position_z;   /* +0x08 */
+  float   facing;       /* +0x0c  yaw: added to a camera angle and differenced
+                         *        against another flag's (game_engine.c:4849) */
+  int16_t type;         /* +0x10  flag type, compared against the game-type code
+                         *        (0=ctf, 2, 3, 7, 8=hill; :1822, :7974, :8740) */
+  int16_t team_index;   /* +0x12  named by the engine's own error strings --
+                         *        "NETGAME MAP FAILURE: duplicate ctf flag
+                         *        [team %d]" formats exactly this field
+                         *        (game_engine.c:1830 via :5271) */
+  char    pad_14[0x80]; /* +0x14  never observed accessed */
+} netgame_flag;
+cs(netgame_flag, 0x94);
+co(netgame_flag, position_x, 0x00);
+co(netgame_flag, position_y, 0x04);
+co(netgame_flag, position_z, 0x08);
+co(netgame_flag, facing,     0x0c);
+co(netgame_flag, type,       0x10);
+co(netgame_flag, team_index, 0x12);
+
+/* -------------------------------------------------------------------------
+ * object_placement_data -- descriptor filled by object_placement_data_new and
+ * consumed by object_new.
+ *
+ * Name: from the engine's own constructor, object_placement_data_new.
+ * Size: 0x88 -- the initializer at .text:0013FC20 writes 0x88 bytes, and every
+ * caller in this TU declares the buffer as [0x88].
+ * ------------------------------------------------------------------------- */
+typedef struct {
+  char  pad_00[0x18];   /* +0x00  never observed accessed */
+  float position_x;     /* +0x18  object_new copies this to object_data+0x0C
+                         *        (MOV ECX,[ESI+0x18] in the object_new
+                         *        disassembly), i.e. the spawn position. Some
+                         *        callers copy the three words with int casts
+                         *        (bit copies), which is why the float type is
+                         *        taken from object_new, not from the casts. */
+  float position_y;     /* +0x1c */
+  float position_z;     /* +0x20 */
+  char  pad_24[0x64];   /* +0x24  never observed accessed */
+} object_placement_data;
+cs(object_placement_data, 0x88);
+co(object_placement_data, position_x, 0x18);
+co(object_placement_data, position_y, 0x1c);
+co(object_placement_data, position_z, 0x20);
+/* -------------------------------------------------------------------------
+ * game_globals_multiplayer_element -- 0xa0-byte element of the tag block at
+ * game_globals + 0x164 (the multiplayer information block).
+ *
+ * The name is locational, not from a string: the binary has no symbol naming
+ * this element type, so it describes where the block lives rather than
+ * claiming what the element means.
+ * Size: 0xa0 is the element-size argument at every tag_block_get_element call
+ * over game_globals+0x164 (game_engine.c:953, :969, :1245, :3034, :8049).
+ * ------------------------------------------------------------------------- */
+typedef struct {
+  char    pad_00[0xc];          /* +0x00  never observed accessed */
+  int32_t flag_definition_index; /* +0x0c  the value kb.json's
+                                  *        get_flag_definition_index returns
+                                  *        (game_engine.c:954) */
+  char    pad_10[0x28];         /* +0x10  never observed accessed */
+  int32_t field_38;             /* +0x38  read as a shader tag index
+                                 *        (game_engine.c:8052) */
+  char    pad_3c[0x1c];         /* +0x3c  never observed accessed */
+  int32_t ball_definition_index; /* +0x58  the value kb.json's
+                                  *        get_ball_definition_index returns
+                                  *        (game_engine.c:970) */
+  char    pad_5c[0x44];         /* +0x5c  never observed accessed */
+} game_globals_multiplayer_element;
+cs(game_globals_multiplayer_element, 0xa0);
+co(game_globals_multiplayer_element, flag_definition_index, 0x0c);
+co(game_globals_multiplayer_element, field_38,              0x38);
+co(game_globals_multiplayer_element, ball_definition_index, 0x58);
+
+/* -------------------------------------------------------------------------
  * draw_string_emit_proc — per-glyph blitter passed into the draw-string
  * clipping loop (FUN_0019c1b0, text/draw_string.c).
  *

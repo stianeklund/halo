@@ -63,7 +63,7 @@ void game_engine_evaluate_game_complexity(void)
         i = 0;
         do {
           seat_elem = (int)tag_block_get_element(seat_block, i, 0x94);
-          if (*(int16_t *)(seat_elem + 0x10) == 4)
+          if (((netgame_flag *)seat_elem)->type == 4)
             seat_count++;
           si++;
           i = (int)si;
@@ -373,7 +373,7 @@ void game_engine_spawn_equipment(void)
     obj = (char *)object_get_and_verify_type(handle, 0x1c);
 
     if ((*(uint8_t *)(obj + 0x1a4) & 1) == 0) {
-      tag_data = (char *)tag_get(0x6974656d, *(int *)obj);
+      tag_data = (char *)tag_get(TAG_GROUP_ITEM, *(int *)obj);
       scale = *(float *)(tag_data + 0x184);
       if (scale == 0.0f)
         scale = *(float *)0x2533c8;
@@ -951,7 +951,7 @@ int get_flag_definition_index(void)
   global_scenario_get();
   block = (char *)game_globals_get() + 0x164;
   element = (char *)tag_block_get_element(block, 0, 0xa0);
-  return *(int *)(element + 0xc);
+  return ((game_globals_multiplayer_element *)element)->flag_definition_index;
 }
 
 /* get_ball_definition_index (0xa92e0)
@@ -967,7 +967,7 @@ int get_ball_definition_index(void)
   global_scenario_get();
   block = (char *)game_globals_get() + 0x164;
   element = (char *)tag_block_get_element(block, 0, 0xa0);
-  return *(int *)(element + 0x58);
+  return ((game_globals_multiplayer_element *)element)->ball_definition_index;
 }
 
 /* game_engine_switch_to_postgame (0xa9310)
@@ -1252,11 +1252,11 @@ int game_engine_remap_vehicle(int param_1)
 
   elem2 = (int)tag_block_get_element((int *)block, 2, 0x10);
 
-  if (param_1 != *(int *)(elem0 + 0xc) &&
+  if (param_1 != ((tag_reference *)elem0)->tag_index &&
 
-      param_1 != *(int *)(elem1 + 0xc) &&
+      param_1 != ((tag_reference *)elem1)->tag_index &&
 
-      param_1 != *(int *)(elem2 + 0xc))
+      param_1 != ((tag_reference *)elem2)->tag_index)
 
     param_1 = -1;
 
@@ -1273,7 +1273,7 @@ int game_engine_remap_vehicle(int param_1)
 
     elem0 = (int)tag_block_get_element((int *)block, 0, 0x10);
 
-    if (*(int *)(elem0 + 0xc) != param_1)
+    if (((tag_reference *)elem0)->tag_index != param_1)
 
       param_1 = -1;
 
@@ -1283,7 +1283,7 @@ int game_engine_remap_vehicle(int param_1)
 
     elem0 = (int)tag_block_get_element((int *)block, 1, 0x10);
 
-    if (*(int *)(elem0 + 0xc) != param_1)
+    if (((tag_reference *)elem0)->tag_index != param_1)
 
       param_1 = -1;
 
@@ -1293,7 +1293,7 @@ int game_engine_remap_vehicle(int param_1)
 
     elem0 = (int)tag_block_get_element((int *)block, 2, 0x10);
 
-    if (*(int *)(elem0 + 0xc) != param_1)
+    if (((tag_reference *)elem0)->tag_index != param_1)
 
       param_1 = -1;
 
@@ -1819,15 +1819,15 @@ void FUN_000aa010(short param_1, const char *param_2)
     outer_next = 1;
     do {
       elem_i = (char *)tag_block_get_element(flags_block, i, 0x94);
-      if (param_1 == *(short *)(elem_i + 0x10)) {
+      if (param_1 == ((netgame_flag *)elem_i)->type) {
         j = (int)outer_next;
         inner_idx = outer_next;
         if (j < *flags_block) {
           do {
             elem_j = (char *)tag_block_get_element(flags_block, j, 0x94);
-            if (param_1 == *(short *)(elem_j + 0x10) &&
-                *(short *)(elem_j + 0x12) == *(short *)(elem_i + 0x12)) {
-              error(2, param_2, (int)*(short *)(elem_j + 0x12));
+            if (param_1 == ((netgame_flag *)elem_j)->type &&
+                ((netgame_flag *)elem_j)->team_index == ((netgame_flag *)elem_i)->team_index) {
+              error(2, param_2, (int)((netgame_flag *)elem_j)->team_index);
             }
             inner_idx = inner_idx + 1;
             j = (int)inner_idx;
@@ -1857,8 +1857,8 @@ void FUN_000aa0b0(int16_t param_1, int16_t param_2, int param_3,
   if (0 < *flag_block) {
     do {
       elem = (int)tag_block_get_element(flag_block, (int)i, 0x94);
-      if (game_type == *(int16_t *)(elem + 0x10)) {
-        seq = *(int16_t *)(elem + 0x12);
+      if (game_type == ((netgame_flag *)elem)->type) {
+        seq = ((netgame_flag *)elem)->team_index;
         if (seq < param_1 || param_2 < seq)
           error(2, (char *)param_3, (int)seq);
       }
@@ -2733,7 +2733,7 @@ void FUN_000ab090(int text, char highlight, int row, int state)
   }
   rect2d_offset((int16_t *)rect, -screen_bounds_left, -screen_bounds_top);
   if (font_tag != -1) {
-    tag_data = (int)tag_get(0x666f6e74, font_tag);
+    tag_data = (int)tag_get(TAG_GROUP_FONT, font_tag);
     char_height = *(int16_t *)(tag_data + 8);
     if (split < 2)
       char_height = char_height + *(int16_t *)(tag_data + 6);
@@ -2798,7 +2798,7 @@ int FUN_000ab290(int param_1)
   weapon_obj = (int)object_get_and_verify_type(weapon_handle, 4);
   if (*(int *)weapon_obj == -1)
     return 0;
-  weapon_tag = (int)tag_get(0x77656170, *(int *)weapon_obj);
+  weapon_tag = (int)tag_get(TAG_GROUP_WEAP, *(int *)weapon_obj);
   return (*(uint32_t *)(weapon_tag + 0x308) >> 13) & 1;
 }
 
@@ -2828,7 +2828,7 @@ void game_engine_weapon_fired(int param_1)
   if (!FUN_000ab290(param_1)) {
     if (weapon_handle != -1) {
       weapon = (int)object_get_and_verify_type(weapon_handle, 4);
-      weapon_tag = (int)tag_get(0x77656170, *(int *)weapon);
+      weapon_tag = (int)tag_get(TAG_GROUP_WEAP, *(int *)weapon);
       if (0.0f != *(float *)(weapon_tag + 0x4cc)) {
         decay = *(float *)(weapon_tag + 0x4cc);
         goto apply;
@@ -3968,7 +3968,7 @@ int FUN_000aca70(int item_collection_tag)
    * then subtract each entry's weight (float at +0x20); the first entry that
    * drives the accumulator negative is chosen, returning its item tag at +0x30.
    * Returns -1 if the collection is empty. */
-  tag = (int *)tag_get(0x69746d63, item_collection_tag);
+  tag = (int *)tag_get(TAG_GROUP_ITMC, item_collection_tag);
   count = *tag;
   seed = (unsigned int *)get_global_random_seed_address();
   accum = random_range(seed, 0, FUN_000a8970(tag));
@@ -4063,7 +4063,7 @@ void game_engine_periodic_equipment_spawn(void)
       if (period_seconds == 0) {
         int collection_tag = *(int *)(entry + 0x5c);
         if (collection_tag != -1) {
-          char *collection_data = (char *)tag_get(0x69746d63, collection_tag);
+          char *collection_data = (char *)tag_get(TAG_GROUP_ITMC, collection_tag);
           period_seconds = *(int16_t *)(collection_data + 0xc);
           if (period_seconds != 0) {
             spawn_period = (int)period_seconds * 30;
@@ -4761,12 +4761,12 @@ void game_engine_player_update_netgame_flag(int player_handle)
 
   next_goal_index = -1;
   /* netgame_flag_find_nearest: find paired type-7 flag by team index */
-  find_netgame_flags(0, 0.0f, 0.0f, 7, *(short *)(goal_entry + 0x12), 1,
+  find_netgame_flags(0, 0.0f, 0.0f, 7, ((netgame_flag *)goal_entry)->team_index, 1,
                      &next_goal_index);
 
   if (next_goal_index == -1) {
     console_printf(0, (const char *)0x26c66c,
-                   (int)*(short *)(goal_entry + 0x12));
+                   (int)((netgame_flag *)goal_entry)->team_index);
     return;
   }
 
@@ -4786,9 +4786,9 @@ void game_engine_player_update_netgame_flag(int player_handle)
 
   {
     float candidate_pos[3];
-    candidate_pos[0] = *(float *)(next_goal_entry + 0x0);
-    candidate_pos[1] = *(float *)(next_goal_entry + 0x4);
-    candidate_pos[2] = *(float *)(next_goal_entry + 0x8);
+    candidate_pos[0] = ((netgame_flag *)next_goal_entry)->position_x;
+    candidate_pos[1] = ((netgame_flag *)next_goal_entry)->position_y;
+    candidate_pos[2] = ((netgame_flag *)next_goal_entry)->position_z;
 
     if (FUN_0014ec30(0x200380, candidate_pos, distance_a * 2.0f + distance_b,
                      distance_b, distance_a, -1, los_scratch) &&
@@ -4846,8 +4846,8 @@ void game_engine_player_update_netgame_flag(int player_handle)
 
   {
     float angle = (float)atan2(unit_pos[1], unit_pos[0]);
-    float adjusted = angle + *(float *)(next_goal_entry + 0x0c) -
-                     *(float *)(goal_entry + 0x0c);
+    float adjusted = angle + ((netgame_flag *)next_goal_entry)->facing -
+                     ((netgame_flag *)goal_entry)->facing;
     unit_pos[0] = x87_fcos(adjusted);
     unit_pos[1] = x87_fsin(adjusted);
     normalize3d(unit_pos);
@@ -5701,7 +5701,7 @@ void game_engine_post_rasterize_post_game(void)
   draw_string_set_color(color);
   draw_string_set_style_justify_flags(-1, 0, 0);
   tmp = interface_get_tag_index(6);
-  hud_globals = (int)tag_get(0x68756467, tmp);
+  hud_globals = (int)tag_get(TAG_GROUP_HUDG, tmp);
   rect[0] = 0;
   rect[1] = 0;
   rect[2] = 0x1e0; /* 480 */
@@ -6459,9 +6459,9 @@ int FUN_000afe50(float *position)
 
   tag_idx = get_flag_definition_index();
   object_placement_data_new(placement, tag_idx, -1);
-  *(float *)(placement + 0x18) = position[0];
-  *(float *)(placement + 0x1c) = position[1];
-  *(float *)(placement + 0x20) = position[2];
+  ((object_placement_data *)placement)->position_x = position[0];
+  ((object_placement_data *)placement)->position_y = position[1];
+  ((object_placement_data *)placement)->position_z = position[2];
   handle = object_new(placement);
   object_set_automatic_deactivation(handle, 0);
   /* OutputDebugStringA("created a flag"); — debug only */
@@ -7818,7 +7818,7 @@ void FUN_000b1b30(float *param_1, int param_2, void *param_3, void *param_4,
   ppoint_count[5] = 0;
   rasterizer_widget_set_texture(widget_a);
   rasterizer_widget_end(local_8);
-  shader = (int)tag_get(0x73686472, param_2);
+  shader = (int)tag_get(TAG_GROUP_SHDR, param_2);
   centroid[0] = (param_1[0x33] + param_1[0x22] + param_1[0x11] + param_1[0]) *
                 *(float *)0x25337c;
   centroid[1] = (param_1[0x34] + param_1[0x23] + param_1[0x12] + param_1[1]) *
@@ -7971,11 +7971,11 @@ int king_initialize_for_new_map(void)
     do {
       elem =
         (int)tag_block_get_element((int *)(scenario + 0x378), (int)i, 0x94);
-      if (*(int16_t *)(elem + 0x10) == 8) {
+      if (((netgame_flag *)elem)->type == 8) {
         j = 0;
         if (0 < *(int16_t *)0x456d54) {
           do {
-            if (*(int16_t *)(0x456d58 + j * 2) == *(int16_t *)(elem + 0x12))
+            if (*(int16_t *)(0x456d58 + j * 2) == ((netgame_flag *)elem)->team_index)
               goto next_flag;
             j++;
           } while (j < *(int16_t *)0x456d54);
@@ -7983,7 +7983,7 @@ int king_initialize_for_new_map(void)
         {
           int idx = (int)*(int16_t *)0x456d54;
           *(int16_t *)0x456d54 = *(int16_t *)0x456d54 + 1;
-          *(int16_t *)(0x456d58 + idx * 2) = *(int16_t *)(elem + 0x12);
+          *(int16_t *)(0x456d58 + idx * 2) = ((netgame_flag *)elem)->team_index;
         }
       }
     next_flag:
@@ -8049,7 +8049,7 @@ void FUN_000b2010(void)
   iVar4 = (int)tag_block_get_element((int *)(iVar4 + 0x164), 0, 0xa0);
   point_count = *(uint32_t *)0x456c38;
   total_distance = *(float *)0x2533c0;
-  shader_tag = *(int *)(iVar4 + 0x38);
+  shader_tag = ((game_globals_multiplayer_element *)iVar4)->field_38;
   if (0 < (int)point_count) {
     next_index = 1;
     point = (float *)0x456c44;
@@ -8281,7 +8281,7 @@ int game_engine_get_score_sound_duration(int event_index /* @<esi> */)
     if (entry != NULL) {
       tag_index = *(int *)((char *)entry + 0xc);
       if (tag_index != -1) {
-        tag_data = tag_get(0x736e6421, tag_index);
+        tag_data = tag_get(TAG_GROUP_SND, tag_index);
         return (*(int *)((char *)tag_data + 0x84) * 30) / 1000;
       }
     }
@@ -8737,7 +8737,7 @@ void FUN_000b2d30(int *param_1, int param_2)
   if (0 < *flag_block) {
     do {
       elem = (int)tag_block_get_element(flag_block, (int)i, 0x94);
-      if (*(int16_t *)(elem + 0x10) == 2)
+      if (((netgame_flag *)elem)->type == 2)
         flag_count++;
       i++;
     } while ((int)i < *flag_block);
@@ -8750,7 +8750,7 @@ void FUN_000b2d30(int *param_1, int param_2)
       if (0 < *flag_block) {
         do {
           elem = (int)tag_block_get_element(flag_block, (int)i, 0x94);
-          if (*(int16_t *)(elem + 0x10) == 2) {
+          if (((netgame_flag *)elem)->type == 2) {
             if (rng_pick == 0) {
               flag_elem = (int *)tag_block_get_element(
                 (int *)(scenario + 0x378), (int)i, 0x94);
@@ -9172,15 +9172,15 @@ int FUN_000b3770(int param_1)
 
     if (param_1 == 0)
 
-      return *(int *)(elem0 + 0xc);
+      return ((tag_reference *)elem0)->tag_index;
 
     if (param_1 == 1)
 
-      return *(int *)(elem2 + 0xc);
+      return ((tag_reference *)elem2)->tag_index;
 
     if (param_1 < 6)
 
-      return *(int *)(elem1 + 0xc);
+      return ((tag_reference *)elem1)->tag_index;
 
     break;
 
@@ -9188,7 +9188,7 @@ int FUN_000b3770(int param_1)
 
     if (param_1 < 4)
 
-      return *(int *)(elem0 + 0xc);
+      return ((tag_reference *)elem0)->tag_index;
 
     break;
 
@@ -9196,7 +9196,7 @@ int FUN_000b3770(int param_1)
 
     if (param_1 < 8)
 
-      return *(int *)(elem1 + 0xc);
+      return ((tag_reference *)elem1)->tag_index;
 
     break;
 
@@ -9204,7 +9204,7 @@ int FUN_000b3770(int param_1)
 
     if (param_1 < 4)
 
-      return *(int *)(elem2 + 0xc);
+      return ((tag_reference *)elem2)->tag_index;
 
     break;
   }
@@ -9244,12 +9244,12 @@ void FUN_000b3860(void)
     do {
       elem = (int)tag_block_get_element(flag_block, (int)i, 0x94);
 
-      if (*(int16_t *)(elem + 0x10) == 3 &&
+      if (((netgame_flag *)elem)->type == 3 &&
 
-          *(int16_t *)(elem + 0x12) >= 0 &&
+          ((netgame_flag *)elem)->team_index >= 0 &&
 
-          *(int16_t *)(elem + 0x12) < 0x20) {
-        seq = *(int16_t *)(elem + 0x12);
+          ((netgame_flag *)elem)->team_index < 0x20) {
+        seq = ((netgame_flag *)elem)->team_index;
 
         if ((used_mask & (1u << ((uint8_t)seq & 0x1f))) == 0) {
           used_mask |= (1u << ((uint8_t)seq & 0x1f));
@@ -9259,7 +9259,7 @@ void FUN_000b3860(void)
             if ((used_mask & (1u << ((uint8_t)j & 0x1f))) == 0) {
               used_mask |= (1u << ((uint8_t)seq & 0x1f));
 
-              *(int16_t *)(elem + 0x12) = (int16_t)j;
+              ((netgame_flag *)elem)->team_index = (int16_t)j;
 
               break;
             }
@@ -9267,7 +9267,7 @@ void FUN_000b3860(void)
 
           if (j >= 0x20)
 
-            *(int16_t *)(elem + 0x12) = (int16_t)j;
+            ((netgame_flag *)elem)->team_index = (int16_t)j;
         }
       }
 

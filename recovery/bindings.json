@@ -4,8 +4,50 @@
   {
    "id": "actor_t",
    "struct": "actor_t",
-   "bases": ["actor"],
+   "bases": [
+    "actor"
+   ],
    "sources_glob": "src/halo/ai/*.c"
+  },
+  {
+   "id": "tag_reference",
+   "struct": "tag_reference",
+   "bases": [
+    "elem0",
+    "elem1",
+    "elem2"
+   ],
+   "sources_glob": "src/halo/game/game_engine.c"
+  },
+  {
+   "id": "netgame_flag",
+   "struct": "netgame_flag",
+   "bases": [
+    "seat_elem",
+    "elem",
+    "elem_i",
+    "elem_j",
+    "goal_entry",
+    "next_goal_entry"
+   ],
+   "sources_glob": "src/halo/game/game_engine.c"
+  },
+  {
+   "id": "object_placement_data",
+   "struct": "object_placement_data",
+   "bases": [
+    "placement"
+   ],
+   "sources_glob": "src/halo/game/game_engine.c"
+  },
+  {
+   "id": "game_globals_multiplayer_element",
+   "struct": "game_globals_multiplayer_element",
+   "bases": [
+    "element",
+    "iVar4"
+   ],
+   "sources_glob": "src/halo/game/game_engine.c"
   }
  ]
 }
