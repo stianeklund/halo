@@ -47578,6 +47578,21 @@
       "score": 84.5,
       "source": "src/halo/effects/decals.c"
     },
+    "delete_endpoint_set": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 98.8,
+      "addr": "0x82410",
+      "end": "0x8249d",
+      "kind": "auto",
+      "n_r": 42,
+      "opnd_percent": 89.2,
+      "raw_mnemonic_pct": 98.8,
+      "ref": "synth",
+      "ref_sha": "88a43d97c900e8b8",
+      "score": 98.8,
+      "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
+    },
     "destroy_endpoint": {
       "abi_model": "raw",
       "abi_model_items": 0,
@@ -71726,6 +71741,21 @@
       "ref": "synth",
       "ref_sha": "e47b7f51a033449e",
       "score": 98.0,
+      "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
+    },
+    "transport_get_key_id": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x82090",
+      "end": "0x820c5",
+      "kind": "auto",
+      "n_r": 14,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "b8f2a2dc82d2c05f",
+      "score": 100.0,
       "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
     },
     "transport_get_nonce": {

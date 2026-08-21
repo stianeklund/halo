@@ -103,6 +103,42 @@ void *transport_get_xnaddr(void *dst)
   return dst;
 }
 
+/* Return the 64-bit transport key ID from the global at 0x5ab220. */
+int64_t transport_get_key_id(void)
+{
+  if (*(int *)0x335094 <= 0) {
+    display_assert(
+      "global_key_depth > 0",
+      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+      0xe0, 1);
+    system_exit(-1);
+  }
+
+  return *(int64_t *)0x5ab220;
+}
+
+/* Copy the 16-byte transport key from the global at 0x5ab210 into the
+   destination buffer and return it. */
+void *transport_get_key(void *dst)
+{
+  uint32_t *out = (uint32_t *)dst;
+
+  if (*(int *)0x335094 <= 0) {
+    display_assert(
+      "global_key_depth > 0",
+      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+      0xe7, 1);
+    system_exit(-1);
+  }
+
+  out[0] = *(uint32_t *)0x5ab210;
+  out[1] = *(uint32_t *)0x5ab214;
+  out[2] = *(uint32_t *)0x5ab218;
+  out[3] = *(uint32_t *)0x5ab21c;
+
+  return dst;
+}
+
 /* Initialize the Xbox network transport layer.
  *
  * Queries ethernet link status, optionally enables XNet security bypass

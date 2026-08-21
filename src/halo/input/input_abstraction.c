@@ -12,6 +12,25 @@ void input_abstraction_mark_time(void)
   *(unsigned int *)0x46b8f0 = system_milliseconds();
 }
 
+/* Copy a controller's preference block from the per-controller preferences
+   array at 0x46b820 (4 entries of 0x18 bytes). */
+void input_abstraction_get_local_player_preferences(short local_player_index,
+                                                    void *preferences_out)
+{
+  if (local_player_index < 0 || local_player_index >= MAXIMUM_GAMEPADS) {
+    display_assert(
+      "(local_player_index>=0) && (local_player_index<MAXIMUM_GAMEPADS)",
+      "c:\\halo\\SOURCE\\input\\input_abstraction.c", 0x1ef, 1);
+    system_exit(-1);
+  }
+  if (preferences_out == NULL) {
+    display_assert("preferences",
+                   "c:\\halo\\SOURCE\\input\\input_abstraction.c", 0x1f0, 1);
+    system_exit(-1);
+  }
+  csmemcpy(preferences_out, (char *)0x46b820 + local_player_index * 0x18, 0x18);
+}
+
 /* Store a controller's preference block into the per-controller preferences
    array at 0x46b820 (4 entries of 0x18 bytes; entry layout matches the block
    built by input_abstraction_initialize).  Bytes +0x10/+0x11 of the incoming
