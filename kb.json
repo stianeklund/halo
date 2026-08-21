@@ -9401,7 +9401,7 @@
     },
     {
      "addr": "0xaff70",
-     "decl": "void FUN_000aff70(int param_1);",
+     "decl": "void ctf_player_added(int param_1);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -9425,13 +9425,13 @@
     },
     {
      "addr": "0xb0170",
-     "decl": "int FUN_000b0170(int param_1, int param_2);",
+     "decl": "int ctf_allow_weapon_pick_up(int param_1, int param_2);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xb0210",
-     "decl": "int FUN_000b0210(int param_1, int param_2, int param_3, wchar_t *param_4, int param_5);",
+     "decl": "int ctf_get_score_hud_text(int param_1, int param_2, int param_3, wchar_t *param_4, int param_5);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -9442,7 +9442,7 @@
     },
     {
      "addr": "0xb04e0",
-     "decl": "int FUN_000b04e0(int player_handle, int param_2);",
+     "decl": "int ctf_get_player_score(int player_handle, int param_2);",
      "ported": true
     },
     {
@@ -9452,22 +9452,22 @@
     },
     {
      "addr": "0xb0530",
-     "decl": "wchar_t *FUN_000b0530(int player_handle, wchar_t *dst);",
+     "decl": "wchar_t *ctf_get_player_score_string(int player_handle, wchar_t *dst);",
      "ported": true
     },
     {
      "addr": "0xb0570",
-     "decl": "wchar_t *FUN_000b0570(wchar_t *dst);",
+     "decl": "wchar_t *ctf_get_score_header_string(wchar_t *dst);",
      "ported": true
     },
     {
      "addr": "0xb0590",
-     "decl": "wchar_t *FUN_000b0590(int param_1, wchar_t *dst);",
+     "decl": "wchar_t *ctf_get_team_score_string(int param_1, wchar_t *dst);",
      "ported": true
     },
     {
      "addr": "0xb05c0",
-     "decl": "int FUN_000b05c0(void);",
+     "decl": "int ctf_initialize_for_new_map(void);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -9497,19 +9497,19 @@
     },
     {
      "addr": "0xb0c10",
-     "decl": "void FUN_000b0c10(int weapon_handle, int weapon_obj);",
+     "decl": "void ctf_spawn_equipment(int weapon_handle, int weapon_obj);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xb0ed0",
-     "decl": "int FUN_000b0ed0(int weapon_handle, int player_handle);",
+     "decl": "int ctf_unit_can_enter_seat(int weapon_handle, int player_handle);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xb1030",
-     "decl": "float FUN_000b1030(int param_1, float *param_2);",
+     "decl": "float ctf_get_starting_location_rating(int param_1, float *param_2);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -9521,7 +9521,7 @@
     },
     {
      "addr": "0xb14e0",
-     "decl": "void FUN_000b14e0(int param_1);",
+     "decl": "void king_player_added(int param_1);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -9545,13 +9545,13 @@
     },
     {
      "addr": "0xb1940",
-     "decl": "int FUN_000b1940(int param_1, int param_2, int param_3, wchar_t *param_4, int param_5);",
+     "decl": "int king_get_score_hud_text(int param_1, int param_2, int param_3, wchar_t *param_4, int param_5);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xb1a60",
-     "decl": "int FUN_000b1a60(int player_handle, int param_2);",
+     "decl": "int king_get_player_score(int player_handle, int param_2);",
      "ported": true
     },
     {
@@ -9567,17 +9567,17 @@
     },
     {
      "addr": "0xb1de0",
-     "decl": "wchar_t *FUN_000b1de0(int player_handle, wchar_t *dst);",
+     "decl": "wchar_t *king_get_player_score_string(int player_handle, wchar_t *dst);",
      "ported": true
     },
     {
      "addr": "0xb1e20",
-     "decl": "wchar_t *FUN_000b1e20(wchar_t *dst);",
+     "decl": "wchar_t *king_get_score_header_string(wchar_t *dst);",
      "ported": true
     },
     {
      "addr": "0xb1e40",
-     "decl": "wchar_t *FUN_000b1e40(int team_index, wchar_t *dst);",
+     "decl": "wchar_t *king_get_team_score_string(int team_index, wchar_t *dst);",
      "ported": true
     },
     {
@@ -9594,7 +9594,7 @@
     },
     {
      "addr": "0xb1f00",
-     "decl": "int FUN_000b1f00(void);",
+     "decl": "int king_initialize_for_new_map(void);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -9636,7 +9636,7 @@
     },
     {
      "addr": "0xb26b0",
-     "decl": "void FUN_000b26b0(int param_1);",
+     "decl": "void oddball_player_added(int param_1);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -9660,7 +9660,7 @@
     },
     {
      "addr": "0xb2900",
-     "decl": "char FUN_000b2900(int param_1, int param_2, int param_3, wchar_t *param_4, int param_5);",
+     "decl": "char oddball_get_score_hud_text(int param_1, int param_2, int param_3, wchar_t *param_4, int param_5);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -9672,7 +9672,7 @@
     },
     {
      "addr": "0xb2b40",
-     "decl": "int FUN_000b2b40(int param_1, int param_2);",
+     "decl": "int oddball_get_player_score(int param_1, int param_2);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -9696,19 +9696,19 @@
     },
     {
      "addr": "0xb2c50",
-     "decl": "wchar_t *FUN_000b2c50(int param_1, wchar_t *param_2);",
+     "decl": "wchar_t *oddball_get_player_score_string(int param_1, wchar_t *param_2);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xb2ca0",
-     "decl": "wchar_t *FUN_000b2ca0(wchar_t *param_1);",
+     "decl": "wchar_t *oddball_get_score_header_string(wchar_t *param_1);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xb2ce0",
-     "decl": "wchar_t *FUN_000b2ce0(int param_1, wchar_t *param_2);",
+     "decl": "wchar_t *oddball_get_team_score_string(int param_1, wchar_t *param_2);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -9744,7 +9744,7 @@
     },
     {
      "addr": "0xb32e0",
-     "decl": "void FUN_000b32e0(int weapon_handle, int weapon_obj);",
+     "decl": "void oddball_spawn_equipment(int weapon_handle, int weapon_obj);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -9756,7 +9756,7 @@
     },
     {
      "addr": "0xb3630",
-     "decl": "char FUN_000b3630(int weapon_handle, int player_handle);",
+     "decl": "char oddball_unit_can_enter_seat(int weapon_handle, int player_handle);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -9780,7 +9780,7 @@
     },
     {
      "addr": "0xb3900",
-     "decl": "void FUN_000b3900(int param_1);",
+     "decl": "void race_player_added(int param_1);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
