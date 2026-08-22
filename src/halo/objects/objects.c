@@ -7143,15 +7143,15 @@ void *object_header_block_reference_get(int object_handle, void *reference)
   char *object = (char *)object_get_and_verify_type(object_handle, -1);
   short *ref = (short *)reference;
 
-  /* reference layout: [+0] = size, [+2] = offset (both signed 16-bit). The
-   * fields are re-read inline (not cached) to match the original's codegen. */
+  /* reference layout: [+0] = size, [+2] = offset (both signed 16-bit); re-read
+   * inline (not cached), and the sum is the LEFT cmp operand, to match codegen. */
   if (ref[1] <= 0) {
     display_assert("reference->offset>0",
                    "c:\\halo\\SOURCE\\objects\\objects.c", 0x98b, 1);
     system_exit(-1);
   }
 
-  if ((int)(short)header->data_size < (int)ref[0] + (int)ref[1]) {
+  if ((int)ref[0] + (int)ref[1] > (int)(short)header->data_size) {
     display_assert(
       "reference->offset+reference->size<=object_header->data_size",
       "c:\\halo\\SOURCE\\objects\\objects.c", 0x98c, 1);
