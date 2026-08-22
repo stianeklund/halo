@@ -122,7 +122,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1aeb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1b280": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1b750": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1b8a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bba0": {
       "kind": "function",
       "status": "ported"
     },
@@ -132,7 +148,7 @@
     },
     "0x1beb0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Return type char (actor+0x9c) inferred from every return path loading AL from [ESI+0x9c] at 0x1bf65 and 0x1c025; kb.json previously declared void(void) and no direct CALL site exists in the XBE, so the function is dispatched indirectly and the consumer of the flag is unverified.",
         "FUN_0001beb0 returns char: every exit path loads AL from actor+0x9c (0x1bf65, 0x1c025), including the failed actor_move_to_prop path; kb decl updated from void(void) to char(int actor_handle) with the stack arg read at [EBP+8].",
@@ -147,6 +163,18 @@
         "The residual VC71 gap at 84.3 percent is VC71 hoisting a zero into EBX for the seven byte-flag tests (PUSH EBX / XOR EBX,EBX / CMP field,BL) where the original emits MOV AL,field / TEST AL,AL with an ESI+EDI-only frame; staging the char loads through a local does not suppress the hoist and rewriting the two FCOMPs distance-first duplicates the set_pursue store, costing 8 further points.",
         "Semantic meaning of actor+0x9c/0x9e/0x9f/0xa0 and prop+0x32/prop+0x11c is unproven; names in the block comment are behavioural descriptions only, and the .rdata float constants at 0x253f78 and 0x253f30 are referenced by raw address because no symbol exists for them."
       ]
+    },
+    "0x1c030": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c0e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c190": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1c270": {
       "kind": "function",
@@ -209,6 +237,10 @@
       "status": "ported"
     },
     "0x1ca90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1cb30": {
       "kind": "function",
       "status": "ported"
     },
