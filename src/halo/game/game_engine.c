@@ -356,7 +356,7 @@ void game_engine_update_flag_state(int weapon_index /* @<esi> */)
 void game_engine_spawn_equipment(void)
 {
   int iter_buf[4];
-  volatile long handle;
+  int handle;
   char *obj;
   char *tag_data;
   float scale;
@@ -372,20 +372,22 @@ void game_engine_spawn_equipment(void)
     handle = iter_buf[2];
     obj = (char *)object_get_and_verify_type(handle, 0x1c);
 
-    if ((*(uint8_t *)(obj + 0x1a4) & 1) == 0) {
+    if ((*(uint8_t *)(obj + 0x1a4) & 1) != 0) {
+      *(float *)(obj + 0x60) = 1.0f;
+    } else {
       tag_data = (char *)tag_get(TAG_GROUP_ITEM, *(int *)obj);
-      scale = *(float *)(tag_data + 0x184);
-      if (scale == 0.0f)
+      if (*(float *)(tag_data + 0x184) != 0.0f)
+        scale = *(float *)(tag_data + 0x184);
+      else
         scale = *(float *)0x2533c8;
       *(float *)(obj + 0x60) = scale;
-      if (scale < *(float *)0x253398 || scale > *(float *)0x254644) {
+      if (scale >= *(float *)0x253398 && scale <= *(float *)0x254644) {
+      } else {
         display_assert(
           "(item->object.scale >= 0.5f) && (item->object.scale <= 3.f)",
           "c:\\halo\\SOURCE\\game\\game_engine.c", 0x7c0, 1);
         system_exit(-1);
       }
-    } else {
-      *(float *)(obj + 0x60) = 1.0f;
     }
 
     {
@@ -791,8 +793,8 @@ void game_engine_rasterize_message(int text, float alpha)
     draw_string_set_font(hud_font, -1, 0, 0, *(const void **)0x2ee6c4);
   }
   color[0] = alpha;
-  color[1] = 0.459f;
-  color[2] = 0.729f;
+  color[1] = 0.45882353f;
+  color[2] = 0.7294118f;
   color[3] = 1.0f;
   rect2d_offset((int16_t *)rect, -screen_bounds_left, -screen_bounds_top);
   {
@@ -2824,19 +2826,16 @@ void game_engine_weapon_fired(int param_1)
   biped = (int)object_get_and_verify_type(player, 3);
   biped2 = (int)object_get_and_verify_type(player, 3);
   weapon_handle = (int)unit_get_weapon(player, *(int16_t *)(biped2 + 0x2a2));
-  decay = 0.0f;
-  if (!FUN_000ab290(param_1)) {
-    if (weapon_handle != -1) {
-      weapon = (int)object_get_and_verify_type(weapon_handle, 4);
-      weapon_tag = (int)tag_get(TAG_GROUP_WEAP, *(int *)weapon);
-      if (0.0f != *(float *)(weapon_tag + 0x4cc)) {
-        decay = *(float *)(weapon_tag + 0x4cc);
-        goto apply;
-      }
+  decay = 0.1f;
+  if (FUN_000ab290(param_1)) {
+    decay = 0.0f;
+  } else if (weapon_handle != -1) {
+    weapon = (int)object_get_and_verify_type(weapon_handle, 4);
+    weapon_tag = (int)tag_get(TAG_GROUP_WEAP, *(int *)weapon);
+    if (*(float *)(weapon_tag + 0x4cc) != 0.0f) {
+      decay = *(float *)(weapon_tag + 0x4cc);
     }
-    decay = 0.1f;
   }
-apply:
   if (*(float *)(biped + 0x32c) < *(float *)0x2533e8)
     return;
   *(float *)(biped + 0x32c) = *(float *)(biped + 0x32c) - decay;
@@ -2938,63 +2937,63 @@ void FUN_000ab510(int param_1, int param_2)
 void game_engine_variant_cleanup(game_variant_t *variant)
 {
   char saved[0x68];
-  int *v = (int *)variant;
+  char *v = (char *)variant;
   int game_type;
 
-  csmemcpy(saved, variant, 0x68);
+  qmemcpy(saved, variant, 0x68);
 
-  *(int16_t *)((char *)v + 0x16) = 0;
+  *(int16_t *)(v + 0x16) = 0;
 
-  game_type = v[6];
+  game_type = *(int *)(v + 0x18);
   if (game_type < 1)
     game_type = 1;
   else if (game_type > 5)
     game_type = 5;
-  v[6] = game_type;
+  *(int *)(v + 0x18) = game_type;
 
-  *(uint8_t *)((char *)v + 0x1c) = (*(uint8_t *)((char *)v + 0x1c) != 0);
-  *(uint8_t *)((char *)v + 0x28) = (*(uint8_t *)((char *)v + 0x28) != 0);
+  *(uint8_t *)(v + 0x1c) = (*(uint8_t *)(v + 0x1c) != 0);
+  *(uint8_t *)(v + 0x28) = (*(uint8_t *)(v + 0x28) != 0);
 
-  if (v[0xb] <= 0)
-    v[0xb] = 0;
-  if (v[0xc] <= 0)
-    v[0xc] = 0;
-  if (v[0xd] <= 0)
-    v[0xd] = 0;
-  if (v[0xe] <= 0)
-    v[0xe] = 0;
+  if (*(int *)(v + 0x2c) <= 0)
+    *(int *)(v + 0x2c) = 0;
+  if (*(int *)(v + 0x30) <= 0)
+    *(int *)(v + 0x30) = 0;
+  if (*(int *)(v + 0x34) <= 0)
+    *(int *)(v + 0x34) = 0;
+  if (*(int *)(v + 0x38) <= 0)
+    *(int *)(v + 0x38) = 0;
 
-  {
-    float scale = *(float *)((char *)v + 0x3c);
-    if (scale < *(float *)0x25337c)
-      scale = *(float *)0x25337c;
-    else if (scale > *(float *)0x2533d8)
-      scale = *(float *)0x2533d8;
-    *(float *)((char *)v + 0x3c) = scale;
-  }
+  if (!(*(float *)0x25337c < *(float *)(v + 0x3c)))
+    *(float *)(v + 0x3c) = *(float *)0x25337c;
+  else if (*(float *)(v + 0x3c) > *(float *)0x2533d8)
+    *(float *)(v + 0x3c) = *(float *)0x2533d8;
 
-  if (v[0x11] < 0)
-    v[0x11] = 0;
-  else if (v[0x11] > 10)
-    v[0x11] = 10;
+  if (*(int *)(v + 0x44) < 0)
+    *(int *)(v + 0x44) = 0;
+  else if (*(int *)(v + 0x44) > 10)
+    *(int *)(v + 0x44) = 10;
 
-  if (v[0x12] < 0)
-    v[0x12] = 0;
-  else if (v[0x12] > 4)
-    v[0x12] = 4;
+  if (*(int *)(v + 0x48) < 0)
+    *(int *)(v + 0x48) = 0;
+  else if (*(int *)(v + 0x48) > 4)
+    *(int *)(v + 0x48) = 4;
 
-  if (game_type == 1) {
-    *(uint8_t *)((char *)v + 0x4c) = (*(uint8_t *)((char *)v + 0x4c) != 0);
-    *(uint8_t *)((char *)v + 0x4d) = (*(uint8_t *)((char *)v + 0x4d) != 0);
-    *(uint8_t *)((char *)v + 0x4e) = (*(uint8_t *)((char *)v + 0x4e) != 0);
-    *(uint8_t *)((char *)v + 0x1c) = 1;
-    *(uint8_t *)((char *)v + 0x4f) = (*(uint8_t *)((char *)v + 0x4f) != 0);
-    if (v[0x14] < 0)
-      v[0x14] = 0;
-  } else if (game_type == 2) {
-    *(uint8_t *)((char *)v + 0x4c) = (*(uint8_t *)((char *)v + 0x4c) != 0);
-    *(uint8_t *)((char *)v + 0x4d) = (*(uint8_t *)((char *)v + 0x4d) != 0);
-    *(uint8_t *)((char *)v + 0x4e) = (*(uint8_t *)((char *)v + 0x4e) != 0);
+  switch (game_type) {
+  case 1:
+    *(uint8_t *)(v + 0x4c) = (*(uint8_t *)(v + 0x4c) != 0);
+    *(uint8_t *)(v + 0x4d) = (*(uint8_t *)(v + 0x4d) != 0);
+    *(uint8_t *)(v + 0x4e) = (*(uint8_t *)(v + 0x4e) != 0);
+    *(uint8_t *)(v + 0x1c) = 1;
+    *(uint8_t *)(v + 0x4f) = (*(uint8_t *)(v + 0x4f) != 0);
+    if (*(int *)(v + 0x50) < 0)
+      *(int *)(v + 0x50) = 0;
+    break;
+
+  case 2:
+    *(uint8_t *)(v + 0x4c) = (*(uint8_t *)(v + 0x4c) != 0);
+    *(uint8_t *)(v + 0x4d) = (*(uint8_t *)(v + 0x4d) != 0);
+    *(uint8_t *)(v + 0x4e) = (*(uint8_t *)(v + 0x4e) != 0);
+    break;
   }
 
   if (csmemcmp(saved, variant, 0x68) != 0) {
@@ -4161,57 +4160,32 @@ void game_engine_update_player_always_invis(int param_1)
  */
 void game_engine_update_non_deterministic(float dt)
 {
-  int phase;
-
   if (!current_game_engine)
     return;
 
-  phase = *(int32_t *)0x5aa730;
-
-  if (phase == 2) {
-    float t;
-    /* Phase 2: run input reset, subtract dt from countdown timer */
+  switch (*(int32_t *)0x5aa730) {
+  case 2:
     rumble_clear_all_players();
     *(float *)0x5aa728 -= dt;
-    /* Transition to phase 3 when timer reaches 0 */
-    t = *(float *)0x5aa728;
-    if (!(t < 0.0f) && !(t == 0.0f)) {
-      /* still > 0, stay in phase 2 */
-    } else {
+    if (*(float *)0x5aa728 <= 0.0f)
       *(int32_t *)0x5aa730 = 3;
-    }
-  } else if (phase == 3) {
-    bool ok0, ok1, ok2, ok3;
-    /* Phase 3: run input reset, advance progress counter */
+    break;
+
+  case 3:
     rumble_clear_all_players();
     *(float *)0x5aa72c += dt;
     if (*(float *)0x5aa72c > 1.0f)
       *(float *)0x5aa72c = 1.0f;
 
-    /* Poll four "done" conditions via @edi-indexed
-     * game_engine_check_input_button. EDI indices: 0, 0xc, 1, 0xd (matching
-     * disassembly order). */
-
-    ok0 = game_engine_check_input_button(0);
-    ok1 = game_engine_check_input_button(0xc);
-
-    if (ok0 || ok1) {
-      void *server = network_game_server_get();
-      /* At least one input is "done": check for network server to reset */
-      if (server) {
-        network_server_manager_pregame_start(server);
-        return;
-      }
+    if (game_engine_check_input_button(0) || game_engine_check_input_button(0xc)) {
+      if (network_game_server_get())
+        network_server_manager_pregame_start(network_game_server_get());
       return;
     }
 
-    ok2 = game_engine_check_input_button(1);
-    ok3 = game_engine_check_input_button(0xd);
-
-    if (!ok2 && !ok3)
-      return;
-
-    network_game_abort();
+    if (game_engine_check_input_button(1) || game_engine_check_input_button(0xd))
+      network_game_abort();
+    break;
   }
 }
 
@@ -5685,8 +5659,8 @@ void game_engine_post_rasterize_post_game(void)
   tab_stops[3] = 0x15e;
   tab_stops[4] = 0x19a;
   tab_stops[5] = 500;
-  color[1] = 0.459f;
-  color[2] = 0.729f;
+  color[1] = 0.45882353f;
+  color[2] = 0.7294118f;
   color[3] = 1.0f;
   color[0] = 1.0f;
   color_table[9] = 1.0f;
@@ -7008,9 +6982,9 @@ int ctf_initialize_for_new_map(void)
             own_team = (own_team - 1 | 0xfffffffe) + 1;
           flag_pos = (float *)*(int *)(0x456b74 + own_team * 4);
           enemy_team = (own_team + 1) & 0x80000001;
-          dist_own = (loc_pos[2] - flag_pos[2]) * (loc_pos[2] - flag_pos[2]) +
-                     (loc_pos[0] - flag_pos[0]) * (loc_pos[0] - flag_pos[0]) +
-                     (loc_pos[1] - flag_pos[1]) * (loc_pos[1] - flag_pos[1]);
+          dist_own = (loc_pos[0] - flag_pos[0]) * (loc_pos[0] - flag_pos[0]) +
+                     (loc_pos[1] - flag_pos[1]) * (loc_pos[1] - flag_pos[1]) +
+                     (loc_pos[2] - flag_pos[2]) * (loc_pos[2] - flag_pos[2]);
           if ((int)enemy_team < 0)
             enemy_team = (enemy_team - 1 | 0xfffffffe) + 1;
           other_pos = (float *)*(int *)(0x456b74 + enemy_team * 4);
@@ -7019,7 +6993,7 @@ int ctf_initialize_for_new_map(void)
             (loc_pos[1] - other_pos[1]) * (loc_pos[1] - other_pos[1]) +
             (loc_pos[2] - other_pos[2]) * (loc_pos[2] - other_pos[2]);
           if (*(char *)(variant + 0x4c) == 0) {
-            if (dist_own >= dist_enemy && dist_own != dist_enemy) {
+            if (dist_own > dist_enemy) {
               error(2,
                     "NETGAME_FLAG_WARNING starting location %d team %d, too "
                     "close to enemy flag",
@@ -7031,7 +7005,7 @@ int ctf_initialize_for_new_map(void)
                   "NETGAME_FLAG_WARNING starting location %d team %d, too "
                   "close to enemy flag",
                   team, (int)loc_team);
-            *(int16_t *)(loc_pos + 4) = 3;
+              *(int16_t *)(loc_pos + 4) = 3;
           }
         }
       } else {
@@ -7317,37 +7291,39 @@ int ctf_unit_can_enter_seat(int weapon_handle, int player_handle)
 /* CTF: compute spawn rating based on distance to enemy flag (b1030). */
 float ctf_get_starting_location_rating(int param_1, float *param_2)
 {
-  float *flag_pos;
-  int variant;
-  int player;
-  uint32_t other_team;
-  float dist_sq;
   float rating;
-  int tick;
+  float dist_sq;
+  float dx;
+  float dy;
+  float dz;
+  float *flag_pos;
+  int player;
+  int other_team;
 
   rating = 1.0f;
-  variant = (int)game_engine_get_variant();
-  if (*(char *)(variant + 0x4c) != 0) {
+  if (*(char *)((char *)game_engine_get_variant() + 0x4c) != 0) {
     player = (int)datum_get(player_data, param_1);
-    other_team = (*(int *)(player + 0x20) + 1) & 0x80000001;
-    if ((int)other_team < 0)
-      other_team = (other_team - 1 | 0xfffffffe) + 1;
+    other_team = (*(int *)(player + 0x20) + 1) % 2;
     flag_pos = (float *)*(int *)(0x456b74 + other_team * 4);
-    dist_sq = (flag_pos[2] - param_2[2]) * (flag_pos[2] - param_2[2]) +
-              (flag_pos[1] - param_2[1]) * (flag_pos[1] - param_2[1]) +
-              (flag_pos[0] - param_2[0]) * (flag_pos[0] - param_2[0]);
-    if (*(float *)0x253398 <= dist_sq) {
-      if (*(float *)0x253f34 < dist_sq)
-        dist_sq = 10.0f;
-    } else {
+    dx = flag_pos[0] - param_2[0];
+    dy = flag_pos[1] - param_2[1];
+    dz = flag_pos[2] - param_2[2];
+    dist_sq = dx * dx + dy * dy + dz * dz;
+    if (dist_sq <= *(float *)0x253398) {
       dist_sq = 0.5f;
+    } else if (*(float *)0x253f34 < dist_sq) {
+      dist_sq = 10.0f;
     }
-    rating = 1.0f / dist_sq;
-    tick = game_time_get();
-    if (30 < tick) {
-      if (1.0f < dist_sq)
-        rating = (float)x87_fmod((double)rating, *(double *)0x26b678);
-      if (rating < *(float *)0x253398)
+    rating = *(float *)0x2533c8 / dist_sq;
+    if (game_time_get() > 30) {
+      if (dist_sq > *(float *)0x2533c8) {
+#if defined(_MSC_VER) && !defined(__clang__)
+        rating = (float)fmod((double)rating, *(double *)0x26d4d0);
+#else
+        rating = (float)x87_fmod((double)rating, *(double *)0x26d4d0);
+#endif
+      }
+      if (rating <= *(float *)0x253398)
         return *(float *)0x253398;
       if (*(float *)0x253f40 < rating)
         return *(float *)0x253f40;

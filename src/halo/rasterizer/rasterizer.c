@@ -5103,9 +5103,8 @@ void FUN_0017ad90(void)
  *     local first, so the residual FPU-WARN operand-order lines here are not
  *     source-addressable (they cost operand-normalised score only, not the
  *     mnemonic score).
- *   - Mirroring the original's `bool visible = 0; return visible;` flag on
- *     the first guard (XOR CL,CL / MOV AL,CL) is score-neutral, so the plain
- *     `return 0;` is kept. */
+ *   - The original shares both false guards with a tail `MOV AL,CL`, so the
+ *     body is nested under the guards and returns `visible` once. */
 bool FUN_0017a8a0(float *point, float radius, float *out_extent,
                   float *out_screen)
 {
@@ -5118,10 +5117,10 @@ bool FUN_0017a8a0(float *point, float radius, float *out_extent,
   float depth;
   short viewport_width;
   int viewport_extent; /* packed (bottom,right)-(top,left); low word = height */
+  bool visible;
 
-  if (!(radius > 0.0f)) {
-    return 0;
-  }
+  visible = 0;
+  if (radius > 0.0f) {
 
   /* Width via word ops (MOV SI,[0x5a5bfa]; SUB SI,[0x5a5bf6]); height via one
    * 32-bit subtraction of the packed (top,left)/(bottom,right) dwords whose
@@ -5141,9 +5140,7 @@ bool FUN_0017a8a0(float *point, float radius, float *out_extent,
   radius_x = PROJECTION_MATRIX(0, 0) * radius;
   radius_y = PROJECTION_MATRIX(1, 1) * radius;
 
-  if (!(proj_z > 0.0f)) {
-    return 0;
-  }
+  if (proj_z > 0.0f) {
 
   inv_w = 1.0f / (PROJECTION_MATRIX(0, 3) * view_point[0] +
                   PROJECTION_MATRIX(1, 3) * view_point[1] +
@@ -5172,7 +5169,10 @@ bool FUN_0017a8a0(float *point, float radius, float *out_extent,
 
   out_extent[0] = (float)viewport_width * inv_w * radius_x * 0.5f;
   out_extent[1] = (float)(short)viewport_extent * inv_w * radius_y * 0.5f;
-  return 1;
+  visible = 1;
+  }
+  }
+  return visible;
 }
 
 /* rasterizer_widget_submit_occlusion_test (0x17ba10): submit one screen-space

@@ -19,8 +19,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 _SCORE_RE = re.compile(
     r"(?:PASS|FAIL)\s+(\S+):\s+([\d.]+)%\s+match\s+"
-    r"\((\d+)/(\d+)\s+insns\)(?:\s+\[[^]]+\])?"
-    r"(?:\s+\|\s+opnd\s+([\d.]+)%\s+\(operand-normalized\))?"
+    r"\((\d+)/(\d+)\s+insns\)"
+    r"(?:.*?\|\s+opnd\s+([\d.]+)%\s+\(operand-normalized\))?"
 )
 _REGPARM_RE = re.compile(r"\[REGPARM\]\s+(\S+):")
 _WARNING_CATEGORIES = {

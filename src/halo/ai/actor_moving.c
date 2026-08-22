@@ -1557,9 +1557,10 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
   *(float *)((char *)state + 0x2c) = up[0] * fwd[1] - fwd[0] * up[1];
 
   /* Original MSVC stack layout overlaps these scale locals with the tail of
-   * avoidance_state: [EBP-0xa0]/[EBP-0x9c] == state+0x6040/+0x6044. */
-  *(float *)((char *)state + 0x6040) = *(float *)0x2533c8;
-  *(float *)((char *)state + 0x6044) = *(float *)0x253f78;
+   * avoidance_state: [EBP-0xa0]/[EBP-0x9c] == state+0x6040/+0x6044.
+   * Immediate stores 0x3f800000 / 0x41400000 at 0x2bee1 / 0x2bed5. */
+  *(float *)((char *)state + 0x6040) = 1.0f;
+  *(float *)((char *)state + 0x6044) = 12.0f;
 
   FUN_0002ade0((int)state);
 
@@ -1638,20 +1639,21 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
 
   /* Second pass: for each of 8 directions, sample 2 short avoidance probes,
    * classify them, accumulate a per-direction score, and redistribute it into
-   * the weight array with the same neighbor-falloff used for seeding.  Probe
-   * records: hit-count shorts at avd+0x6418 (stride 2), origin/direction floats
-   * at avd+0x62f8/avd+0x6318 (stride 3). */
+   * the weight array with the same neighbor-falloff used for seeding.
+   * Layout (disasm 0x2c11f-0x2c1c7): hit-count shorts at avd+0x62f8 (stride 2),
+   * collision times at avd+0x6318 (stride 4), origins at avd+0x6358 (stride 3),
+   * directions at avd+0x6418 (stride 3). */
   {
-    short *probe_count = (short *)(avd + 0x6418);
-    float *probe_origin = (float *)(avd + 0x62f8);
-    float *probe_dir = (float *)(avd + 0x6318);
+    short *probe_count = (short *)(avd + 0x62f8);
+    float *probe_t_rec = (float *)(avd + 0x6318);
+    float *probe_origin = (float *)(avd + 0x6358);
+    float *probe_dir = (float *)(avd + 0x6418);
     int *probe_table = (int *)0x6325c0;
     pb = (unsigned char *)(actor + 0x5c9);
     idx = 2; /* current direction index (local_70) */
     for (n = 8; n != 0; n--) {
       short probe_hits[2];
       float probe_t[2];
-      float probe_buf[2 * 3];
       float score;
       int k;
       unsigned char *pbi = pb;
@@ -1668,50 +1670,49 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
         probe_dir[k * 3 + 1] = pd[1];
         probe_dir[k * 3 + 2] = pd[2];
         probe_count[k] = probe_hits[k];
-        probe_buf[k * 3 + 0] = pd[0];
-        probe_buf[k * 3 + 1] = pd[1];
-        probe_buf[k * 3 + 2] = pd[2];
+        probe_t_rec[k] = pt;
         probe_t[k] = pt;
         probe_table = probe_table + 7;
         pbi = pbi + 1;
       }
 
-      /* classify the two probes back-to-front and accumulate score. */
+      /* classify the two probes back-to-front and accumulate score.
+       * Weight table index is ECX starting at 0 then SUB 4: 0x25594c, 0x255948.
+       * Status byte is [EDX] with EDX = pb then DEC: pb[0], pb[-1]. */
       {
         int blocked = 0;
         score = *(float *)0x2533c0;
         for (k = 1; k >= 0; k--) {
+          float *wtab = (float *)(0x25594c + (k - 1) * 4);
           if (probe_hits[k] == 0) {
             float v;
             if (blocked) {
               v = *(float *)0x2533c8;
-              score = v * *(float *)(0x25594c + k * 4) + score;
+              score = v * *wtab + score;
             } else {
-              unsigned char b = pb[k];
+              unsigned char b = pb[k - 1];
               if (b < 0x4b) {
-                score =
-                  *(float *)0x2533c0 * *(float *)(0x25594c + k * 4) + score;
+                score = *(float *)0x2533c0 * *wtab + score;
               } else {
                 v = *(float *)0x2533c8 - *(float *)0x255ca4 / (float)b;
                 if (*(float *)0x2533c0 <= v) {
                   if (*(float *)0x2533c8 < v) {
                     v = *(float *)0x2533c8;
                   }
-                  score = v * *(float *)(0x25594c + k * 4) + score;
+                  score = v * *wtab + score;
                 } else {
-                  score =
-                    *(float *)0x2533c0 * *(float *)(0x25594c + k * 4) + score;
+                  score = *(float *)0x2533c0 * *wtab + score;
                 }
               }
             }
           } else {
-            float v = *(float *)0x2533c8 - probe_buf[k * 3 + 1];
+            float v = *(float *)0x2533c8 - probe_t[k];
             v = v + v;
             if (*(float *)0x2533c8 < v) {
               v = *(float *)0x2533c8;
             }
             blocked = 1;
-            score = score - v * *(float *)(0x25594c + k * 4);
+            score = score - v * *wtab;
           }
         }
       }
@@ -1728,6 +1729,10 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
 
       pb = pb + 2;
       idx = idx + 1;
+      probe_count = probe_count + 2;
+      probe_t_rec = probe_t_rec + 2;
+      probe_origin = probe_origin + 6;
+      probe_dir = probe_dir + 6;
     }
   }
 
@@ -1769,7 +1774,7 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
           float *w = weights;
           float *p = (float *)0x632784;
           for (j2 = 8; j2 != 0; j2--) {
-            float d = work[2] * p[0] + work[0] * p[-1] + work[1] * p[1];
+            float d = work[0] * p[-1] + work[1] * p[0] + work[2] * p[1];
             if (d < *(float *)0x2533c0) {
               *w = d * em_push + *w;
             }
@@ -1922,13 +1927,13 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
         neg_z = bz;
         axis_x = *(float *)(0x632784 + best_dir * 0xc);
         bx = axis_x * *(float *)((char *)state + 0x30) +
-             *(float *)((char *)state + 0x2c) * neg_z +
+             *(float *)((char *)state + 0x24) * neg_z +
              (*(float **)0x31fc38)[0];
         by = *(float *)((char *)state + 0x34) * axis_x +
              *(float *)((char *)state + 0x28) * neg_z +
              (*(float **)0x31fc38)[1];
         bz = *(float *)((char *)state + 0x38) * axis_x +
-             *(float *)((char *)state + 0x24) * neg_z +
+             *(float *)((char *)state + 0x2c) * neg_z +
              (*(float **)0x31fc38)[2];
         out[0] = bx;
         out[1] = by;
@@ -1980,8 +1985,8 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
           move_amt = emergency;
         }
         emergency = *(float *)0x255b94 * move_amt;
-        lat = work[1] * *(float *)(0x632784 + bd * 0xc) -
-              work[0] * *(float *)(0x632788 + bd * 0xc);
+        lat = work[2] * *(float *)(0x632784 + bd * 0xc) -
+              work[1] * *(float *)(0x632788 + bd * 0xc);
         if (*(float *)0x2533c0 < lat) {
           emergency = -emergency;
         }

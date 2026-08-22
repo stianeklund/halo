@@ -660,6 +660,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x2bd80": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Actor handle arrives in ECX; the sole caller actor_move_update at 0x2e70e does MOV ECX,EDI and the callee prologue copies ECX into ESI before datum_get.",
+        "Null checks are on stack args EBP+0xC and EBP+0x10 (vel_out and speed_out), not on facing at EBP+0x8, despite the assert string avoidance_rotation && emergency_amount.",
+        "Frame is _chkstk EAX=0x60e0; the 0x6048-byte avoidance_state starts at EBP-0x60e0 with scale floats 1.0 and 12.0 overlapping EBP-0xa0 and EBP-0x9c."
+      ],
+      "uncertain": [
+        "Second-pass avoidance records at avd+0x62f8/+0x6318/+0x6358/+0x6418 are written but not re-read by this function; later consumers of those offsets were not checked."
+      ]
+    },
     "0x2cdb0": {
       "kind": "function",
       "status": "ported"

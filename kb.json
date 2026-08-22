@@ -32768,8 +32768,9 @@
     },
     {
      "addr": "0x2bd80",
-     "decl": "void FUN_0002bd80(int actor_handle , float *facing, float *vel_out, float *speed_out);",
-     "name": "FUN_0002bd80"
+     "decl": "void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out, float *speed_out);",
+     "name": "FUN_0002bd80",
+     "ported": true
     },
     {
      "addr": "0x2a530",
