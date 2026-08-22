@@ -24684,7 +24684,7 @@
     },
     {
      "addr": "0x92710",
-     "decl": "int load_symbol_table(const char *map_path, int32_t *symtab_out);",
+     "decl": "int load_symbol_table(const char *map_path, int32_t *symtab_out, const char *build_timestamp);",
      "ported": true,
      "source_path": "src/halo/cseries/stack_walk_windows.c"
     },
@@ -24696,7 +24696,24 @@
     }
    ],
    "name": "stack_walk_windows.obj",
-   "source": "cseries/stack_walk_windows.c"
+   "source": "cseries/stack_walk_windows.c",
+   "data": [
+    {
+     "addr": "0x2ee780",
+     "decl": "int32_t stack_walk_bias;",
+     "note": "bias from linker-map RVA to runtime VA; -1 = symbol table not loaded"
+    },
+    {
+     "addr": "0x2ee784",
+     "decl": "uint8_t stack_walk_load_failed;",
+     "note": "non-zero once a map load has failed; suppresses symbol lookup"
+    },
+    {
+     "addr": "0x2ee788",
+     "decl": "int32_t stack_walk_symbols[3];",
+     "note": "{count, name_pool_ptr, entries_ptr}"
+    }
+   ]
   },
   {
    "functions": [

@@ -7,13 +7,19 @@
  * The map file path is hardcoded in stack_walk_initialize() — change it there
  * to control which .map file is loaded (e.g. when running off HDD). */
 
-/* Globals in the stack-walk/profiler data region */
-/* 0x2ee780: int32_t  g_sw_offset   — bias from map RVA to runtime VA; -1 = not
- * loaded */
-/* 0x2ee784: uint8_t  g_sw_failed   — 1 if map load failed */
-/* 0x2ee788: int32_t[3] g_sw_symtab — {count, name_pool_ptr, entries_ptr} */
-/* 0x449ef8: uint32_t * g_sw_frame  — current frame ptr during walk */
-/* 0x449efc: uint32_t * g_sw_base   — stack base (floor) during walk */
+/* Globals in the stack-walk/profiler data region.  The first three are real
+ * data symbols in kb.json (stack_walk_windows.obj) rather than absolute pointer
+ * casts: MSVC models a store through a constant-address cast as a store through
+ * an unknown pointer that may alias the stack, so it will not schedule an
+ * argument PUSH across one.  With declared globals it hoists the PUSH the way
+ * the reference does -- +16.7pp on stack_walk_dispose, and +10pp operand-level
+ * on stack_walk_initialize.
+ *
+ *   0x2ee780: int32_t    stack_walk_bias        — map RVA -> runtime VA bias
+ *   0x2ee784: uint8_t    stack_walk_load_failed — 1 if map load failed
+ *   0x2ee788: int32_t[3] stack_walk_symbols     — {count, names, entries}
+ *   0x449ef8: uint32_t * g_sw_frame             — current frame ptr in walk
+ *   0x449efc: uint32_t * g_sw_base              — stack base (floor) in walk */
 
 /* Cross-TU helpers in profile.obj (called by name; kb.json decls drive
  * the halo.xbe.def export names that the linker resolves against). */
@@ -80,15 +86,23 @@ void __fastcall FUN_00092370(int skip, int32_t *frames, uint32_t max,
  * that symbol_table_dispose ends with and dropped the call, which LEAKED both
  * of the symbol table's heap allocations: 0x92090 debug_free()s symtab[1]
  * (line 0x227) and symtab[2] (line 0x228) when non-NULL before zeroing.
- * stack_walk_initialize calls this first, so every re-initialize leaked the
- * symbol table and its string pool.  Found by the SHAPE-WARN call-count
- * census (ours 0 vs reference 1) -- see docs/lift-learnings.md section 49.
+ * Found by the SHAPE-WARN call-count census (ours 0 vs reference 1) -- see
+ * docs/lift-learnings.md section 49.
+ *
+ * Reference instruction order is `push 0x2ee788` FIRST, then the two global
+ * stores, then the call.  Reaching the globals through absolute pointer casts
+ * blocked that hoist and cost 1 of 6 LCS positions (83.3%); the real data
+ * symbols restore it (100.0%).
+ *
+ * Reference instruction order is `push 0x2ee788` FIRST, then the two global
+ * stores, then the call; VC71 emits the push after the stores from this
+ * source form, which costs 1 of 6 LCS positions (83.3%).
  * ----------------------------------------------------------------------- */
 void stack_walk_dispose(void)
 {
-  *(int32_t *)0x2ee780 = -1;
-  *(uint8_t *)0x2ee784 = 0;
-  symbol_table_dispose((int32_t *)0x2ee788);
+  stack_walk_bias = -1;
+  stack_walk_load_failed = 0;
+  symbol_table_dispose(stack_walk_symbols);
 }
 
 /* -----------------------------------------------------------------------
@@ -110,8 +124,8 @@ char stack_walk_with_context(int a1, int16_t depth, int a3)
   count = 0;
   FUN_00092370((int)depth, frames, 0x40, &count);
 
-  symtab = (int32_t *)0x2ee788;
-  offset = *(int32_t *)0x2ee780;
+  symtab = stack_walk_symbols;
+  offset = stack_walk_bias;
 
   for (i = 0; i < count; i++) {
     sym = NULL;
@@ -138,15 +152,17 @@ char stack_walk_with_context(int a1, int16_t depth, int a3)
  * Returns 1 on success, 0 on failure. Static buffers are safe because
  * this function is called once at startup on single-threaded Xbox.
  *
- * Intentional divergence from original: the original 0x92710 takes a 3rd
- * parameter `const void *ref_symbol` which the caller passes as the runtime
- * address of a known symbol to compute the load bias as
- * (runtime_addr - link_VA).  This implementation derives the reference
- * symbol internally by scanning the map file for "_load_symbol_table" —
- * functionally equivalent because the sole original C caller (ported) only
- * ever passes 2 args and our internal derivation reaches the same bias value.
+ * KNOWN INCOMPLETE (n_r=468 vs our 243 insns, 29.8% VC71): the third
+ * parameter `build_timestamp` is declared to match the reference call site at
+ * 0x92d30 (which pushes 0x268e30 = "Thu Aug 23 16:11:48 2001") but is not yet
+ * consumed here.  The original almost certainly validates the .map file's
+ * "Timestamp is ..." header line against it and bails on a mismatch; this
+ * implementation instead derives the RVA->VA bias by scanning the map for
+ * "_load_symbol_table".  Recovering the real body needs a first-pass RE pass
+ * on 0x92710, not byte-accuracy levers.
  * ----------------------------------------------------------------------- */
-int load_symbol_table(const char *map_path, int32_t *symtab_out)
+int load_symbol_table(const char *map_path, int32_t *symtab_out,
+                      const char *build_timestamp)
 {
   void *f;
   char line[0x100];
@@ -278,26 +294,30 @@ int load_symbol_table(const char *map_path, int32_t *symtab_out)
   symtab_out[2] = (int32_t)entries;
   symbol_table_dispose(symtab_out);
 
-  *(int32_t *)0x2ee780 = bias;
+  stack_walk_bias = bias;
   return 1;
 }
 
 /* -----------------------------------------------------------------------
  * stack_walk_initialize (0x92d30) — initialize the stack walker.
  *
- * Resets state and loads the linker map from the hardcoded path.
+ * Loads the linker map from the hardcoded path, then normalizes the "not
+ * loaded" sentinel: if the bias global is still -1 after the load attempt it
+ * is forced to 0 (symbol resolution disabled but not treated as an error).
+ *
+ * The reference discards load_symbol_table's return value and never calls
+ * stack_walk_dispose or sets g_sw_failed -- an earlier lift did both, which
+ * cost 4 of 10 LCS positions.  Verified against the 10-insn reference at
+ * 0x92d30..0x92d5c; the three pushes are "d:\\cachebeta.map" (0x268e1c),
+ * &g_sw_symtab (0x2ee788) and the build timestamp (0x268e30).
  * Change "d:\\cachebeta.map" to load from HDD or a custom location.
  * ----------------------------------------------------------------------- */
 void stack_walk_initialize(void)
 {
-  int32_t *symtab;
-
-  stack_walk_dispose();
-
-  symtab = (int32_t *)0x2ee788;
-  if (!load_symbol_table("d:\\cachebeta.map", symtab)) {
-    *(uint8_t *)0x2ee784 = 1;
-  }
+  load_symbol_table("d:\\cachebeta.map", stack_walk_symbols,
+                    "Thu Aug 23 16:11:48 2001");
+  if (stack_walk_bias == -1)
+    stack_walk_bias = 0;
 }
 
 /* Invoke the stack trace logger. The depth parameter is incremented
