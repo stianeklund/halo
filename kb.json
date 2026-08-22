@@ -754,10 +754,6 @@
    ],
    "functions": [
     {
-     "addr": "0x1a4a70",
-     "decl": "void FUN_001a4a70(int handle, float *velocity);"
-    },
-    {
      "addr": "0x67710",
      "decl": "void FUN_00067710(void);"
     },
@@ -828,362 +824,6 @@
     {
      "addr": "0x74fb0",
      "decl": "void FUN_00074fb0(void *pixel_data, void *bitmap_data);"
-    },
-    {
-     "addr": "0x7ece0",
-     "decl": "void bitmap_cube_map_face_insert(void *source_bitmap, void *destination_bitmap, short mipmap_index, short face_index);"
-    },
-    {
-     "addr": "0x7ef80",
-     "decl": "void FUN_0007ef80(void);"
-    },
-    {
-     "addr": "0x7f150",
-     "decl": "void FUN_0007f150(void);"
-    },
-    {
-     "addr": "0x887e0",
-     "decl": "void FUN_000887e0(void);"
-    },
-    {
-     "addr": "0x88c40",
-     "decl": "void first_person_camera_new(void);"
-    },
-    {
-     "addr": "0x88c80",
-     "decl": "void FUN_00088c80(void);"
-    },
-    {
-     "addr": "0x88d50",
-     "decl": "void first_person_camera_for_unit_and_vector(void);"
-    },
-    {
-     "addr": "0xb3df0",
-     "decl": "void FUN_000b3df0(void);"
-    },
-    {
-     "addr": "0xc0bb0",
-     "decl": "void FUN_000c0bb0(void);"
-    },
-    {
-     "addr": "0xc0bf0",
-     "decl": "void FUN_000c0bf0(void);"
-    },
-    {
-     "addr": "0xed240",
-     "decl": "void playlist_profile_change_slayer_rules(void);"
-    },
-    {
-     "addr": "0xed470",
-     "decl": "void FUN_000ed470(void);"
-    },
-    {
-     "addr": "0xed7c0",
-     "decl": "void FUN_000ed7c0(void);"
-    },
-    {
-     "addr": "0xf3c80",
-     "decl": "void FUN_000f3c80(void);"
-    },
-    {
-     "addr": "0xfdc90",
-     "decl": "void FUN_000fdc90(void);"
-    },
-    {
-     "addr": "0xfe450",
-     "decl": "void FUN_000fe450(void);"
-    },
-    {
-     "addr": "0xfe6c0",
-     "decl": "void FUN_000fe6c0(void);"
-    },
-    {
-     "addr": "0xfe790",
-     "decl": "void FUN_000fe790(void);"
-    },
-    {
-     "addr": "0xfe890",
-     "decl": "void FUN_000fe890(void);"
-    },
-    {
-     "addr": "0xfe910",
-     "decl": "void FUN_000fe910(void);"
-    },
-    {
-     "addr": "0x104710",
-     "decl": "void FUN_00104710(void);"
-    },
-    {
-     "addr": "0x104950",
-     "decl": "void FUN_00104950(void);"
-    },
-    {
-     "addr": "0x1049d0",
-     "decl": "void FUN_001049d0(float *bounds, float *color);"
-    },
-    {
-     "addr": "0x107520",
-     "decl": "void FUN_00107520(void);"
-    },
-    {
-     "addr": "0x132ca0",
-     "decl": "void FUN_00132ca0(void);"
-    },
-    {
-     "addr": "0x132e20",
-     "decl": "void FUN_00132e20(void);"
-    },
-    {
-     "addr": "0x132ea0",
-     "decl": "void FUN_00132ea0(void);"
-    },
-    {
-     "addr": "0x132fb0",
-     "decl": "void FUN_00132fb0(void);"
-    },
-    {
-     "addr": "0x1330a0",
-     "decl": "void FUN_001330a0(void);"
-    },
-    {
-     "addr": "0x1330f0",
-     "decl": "void FUN_001330f0(int glow_widget@<eax>, int particle_ptr@<esi>);"
-    },
-    {
-     "addr": "0x133170",
-     "decl": "void FUN_00133170(void);"
-    },
-    {
-     "addr": "0x1331d0",
-     "decl": "void FUN_001331d0(int glow_widget@<eax>, int particle_ptr@<ecx>);"
-    },
-    {
-     "addr": "0x133260",
-     "decl": "void FUN_00133260(void);"
-    },
-    {
-     "addr": "0x133300",
-     "decl": "void FUN_00133300(int particle_ptr@<edi>, int object_handle, int glow_widget@<ebx>);"
-    },
-    {
-     "addr": "0x1334f0",
-     "decl": "void FUN_001334f0(void);"
-    },
-    {
-     "addr": "0x133520",
-     "decl": "void FUN_00133520(int object_handle, int widget_datum);"
-    },
-    {
-     "addr": "0x1335e0",
-     "decl": "void FUN_001335e0(void);"
-    },
-    {
-     "addr": "0x1336a0",
-     "decl": "void FUN_001336a0(void);"
-    },
-    {
-     "addr": "0x1337c0",
-     "decl": "int glow_normal_particle_new(int glow_widget_ptr, short index, short count);"
-    },
-    {
-     "addr": "0x1339a0",
-     "decl": "void get_particle_world_position(int glow_widget@<eax>, int particle_ptr, float param_3);"
-    },
-    {
-     "addr": "0x149c60",
-     "decl": "char FUN_00149c60(int *block_ptr, void *transformed_2c, void *transformed_20, float scale, float best_dist, float *result);"
-    },
-    {
-     "addr": "0x149ce0",
-     "decl": "void FUN_00149ce0(void);"
-    },
-    {
-     "addr": "0x150550",
-     "decl": "int FUN_00150550(void *out_point, float *direction, float *origin, int arg4, int arg5, int arg6, float *out_point2, void *out_arg8, int max_results, void *results);"
-    },
-    {
-     "addr": "0x1506d0",
-     "decl": "void FUN_001506d0(void);"
-    },
-    {
-     "addr": "0x150710",
-     "decl": "void FUN_00150710(void);"
-    },
-    {
-     "addr": "0x150790",
-     "decl": "void FUN_00150790(int param_1, int param_2, float param_3, int param_4, int param_5, int param_6);"
-    },
-    {
-     "addr": "0x150840",
-     "decl": "void FUN_00150840(void);"
-    },
-    {
-     "addr": "0x1508b0",
-     "decl": "void FUN_001508b0(int *state);"
-    },
-    {
-     "addr": "0x1509c0",
-     "decl": "char FUN_001509c0(int *out, int obj_idx);"
-    },
-    {
-     "addr": "0x150ac0",
-     "decl": "char FUN_00150ac0(int *data, int *point);"
-    },
-    {
-     "addr": "0x150b60",
-     "decl": "char FUN_00150b60(void *ctx, void *origin, void *direction, void *out);"
-    },
-    {
-     "addr": "0x150c80",
-     "decl": "void compute_ground_plane(void);"
-    },
-    {
-     "addr": "0x150dd0",
-     "decl": "void friction_evaluate(void);"
-    },
-    {
-     "addr": "0x150ed0",
-     "decl": "void FUN_00150ed0(void);"
-    },
-    {
-     "addr": "0x151a50",
-     "decl": "void physics_compute_biped_collision(void);"
-    },
-    {
-     "addr": "0x151ec0",
-     "decl": "void FUN_00151ec0(void);"
-    },
-    {
-     "addr": "0x152350",
-     "decl": "void physics_compute_unit_collisions(void);"
-    },
-    {
-     "addr": "0x1524d0",
-     "decl": "void physics_compute_vehicle_collision(void);"
-    },
-    {
-     "addr": "0x152680",
-     "decl": "void FUN_00152680(void);"
-    },
-    {
-     "addr": "0x152e40",
-     "decl": "void FUN_00152e40(void);"
-    },
-    {
-     "addr": "0x157940",
-     "decl": "void FUN_00157940(void);"
-    },
-    {
-     "addr": "0x1579d0",
-     "decl": "void FUN_001579d0(void *screen_fog);"
-    },
-    {
-     "addr": "0x15d8b0",
-     "decl": "void FUN_0015d8b0(int vertices_per_primitive, int a2, int triangle_count, int dynamic_vertex_buffer_index);"
-    },
-    {
-     "addr": "0x16de60",
-     "decl": "void FUN_0016de60(void);"
-    },
-    {
-     "addr": "0x16de80",
-     "decl": "void FUN_0016de80(void);"
-    },
-    {
-     "addr": "0x16dee0",
-     "decl": "void FUN_0016dee0(void);"
-    },
-    {
-     "addr": "0x16e160",
-     "decl": "void FUN_0016e160(void);"
-    },
-    {
-     "addr": "0x16e2e0",
-     "decl": "void FUN_0016e2e0(void);"
-    },
-    {
-     "addr": "0x196c90",
-     "decl": "short FUN_00196c90(int out_handles, short max_count, void *iter_first, void *iter_next, void *get_bounds, void *needs_update, void *mark);"
-    },
-    {
-     "addr": "0x196d60",
-     "decl": "void FUN_00196d60(float *rect@<esi>, int16_t *hull@<edi>);"
-    },
-    {
-     "addr": "0x196e10",
-     "decl": "void FUN_00196e10(uint16_t *sound_list @<edi>, void *env @<ebx>, float distance);"
-    },
-    {
-     "addr": "0x196eb0",
-     "decl": "float *FUN_00196eb0(float *parent_bounds, unsigned char *fractions, float *out_bounds);"
-    },
-    {
-     "addr": "0x1a4440",
-     "decl": "void FUN_001a4440(int unit_handle);"
-    },
-    {
-     "addr": "0x1a4990",
-     "decl": "void FUN_001a4990(void);"
-    },
-    {
-     "addr": "0x1a4a50",
-     "decl": "void FUN_001a4a50(void);"
-    },
-    {
-     "addr": "0x1a4c50",
-     "decl": "void FUN_001a4c50(int unit_handle, unsigned char *state);"
-    },
-    {
-     "addr": "0x1a5300",
-     "decl": "void FUN_001a5300(int unit_handle, unsigned char *state);"
-    },
-    {
-     "addr": "0x1b8f10",
-     "decl": "void FUN_001b8f10(void);"
-    },
-    {
-     "addr": "0x1b8f80",
-     "decl": "void FUN_001b8f80(void);"
-    },
-    {
-     "addr": "0x1bb430",
-     "decl": "void FUN_001bb430(void);"
-    },
-    {
-     "addr": "0x1bb5a0",
-     "decl": "void acquire_read_request(void);"
-    },
-    {
-     "addr": "0x1bb640",
-     "decl": "void FUN_001bb640(void);"
-    },
-    {
-     "addr": "0x1c4990",
-     "decl": "void FUN_001c4990(void);"
-    },
-    {
-     "addr": "0x1d5c66",
-     "decl": "void * __stdcall FUN_001d5c66(void *heap, unsigned int flags, unsigned int size);"
-    },
-    {
-     "addr": "0x1e67e7",
-     "decl": "void FUN_001e67e7(void);"
-    },
-    {
-     "addr": "0x1e6805",
-     "decl": "void FUN_001e6805(void);"
-    },
-    {
-     "addr": "0x1e6831",
-     "decl": "void FUN_001e6831(void);"
-    },
-    {
-     "addr": "0x1e6860",
-     "decl": "void FUN_001e6860(void);"
-    },
-    {
-     "addr": "0x1e68bb",
-     "decl": "void ___loctotime_t(void);"
     }
    ],
    "name": "<common>"
@@ -1245,7 +885,7 @@
     },
     {
      "addr": "0x1dbdec",
-     "comment": "LIBCMT _except_handler3 — VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
+     "comment": "LIBCMT _except_handler3 \u2014 VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
      "decl": "int __cdecl _except_handler3(void *ExceptionRecord, void *EstablisherFrame, void *ContextRecord, void *DispatcherContext);"
     },
     {
@@ -2521,6 +2161,26 @@
     {
      "addr": "0x1e65eb",
      "decl": "int __fstat(int file, void *buf);"
+    },
+    {
+     "addr": "0x1e67e7",
+     "decl": "void FUN_001e67e7(void);"
+    },
+    {
+     "addr": "0x1e6805",
+     "decl": "void __wcslwr(void);"
+    },
+    {
+     "addr": "0x1e6831",
+     "decl": "void __wcsupr(void);"
+    },
+    {
+     "addr": "0x1e6860",
+     "decl": "void FUN_001e6860(void);"
+    },
+    {
+     "addr": "0x1e68bb",
+     "decl": "void ___loctotime_t(void);"
     }
    ],
    "name": "LIBCMT:close.obj"
@@ -4851,6 +4511,18 @@
     {
      "addr": "0x7ea60",
      "decl": "void FUN_0007ea60(void *source_bitmap, short mipmap_index, short face_index, void *destination_bitmap);"
+    },
+    {
+     "addr": "0x7ece0",
+     "decl": "void bitmap_cube_map_face_insert(void *source_bitmap, void *destination_bitmap, short mipmap_index, short face_index);"
+    },
+    {
+     "addr": "0x7ef80",
+     "decl": "void FUN_0007ef80(void);"
+    },
+    {
+     "addr": "0x7f150",
+     "decl": "void FUN_0007f150(void);"
     }
    ],
    "name": "bitmaps.obj",
@@ -4962,6 +4634,18 @@
   },
   {
    "functions": [
+    {
+     "addr": "0x1bb430",
+     "decl": "void FUN_001bb430(void);"
+    },
+    {
+     "addr": "0x1bb5a0",
+     "decl": "void acquire_read_request(void);"
+    },
+    {
+     "addr": "0x1bb640",
+     "decl": "void FUN_001bb640(void);"
+    },
     {
      "addr": "0x1bb7d0",
      "decl": "void cache_copy_initialize_read_data(void);"
@@ -5690,6 +5374,18 @@
      "addr": "0x14f2c0",
      "decl": "short FUN_0014f2c0(float *old_pos, float *old_vel, short *features, float *new_pos, float *new_vel, short max_clips, int collisions);",
      "ported": true
+    },
+    {
+     "addr": "0x150550",
+     "decl": "int FUN_00150550(void *out_point, float *direction, float *origin, int arg4, int arg5, int arg6, float *out_point2, void *out_arg8, int max_results, void *results);"
+    },
+    {
+     "addr": "0x1506d0",
+     "decl": "void FUN_001506d0(void);"
+    },
+    {
+     "addr": "0x150ac0",
+     "decl": "char FUN_00150ac0(int *data, int *point);"
     }
    ],
    "name": "collision_usage.obj",
@@ -7148,6 +6844,18 @@
     {
      "addr": "0x88260",
      "decl": "void editor_camera_flying_update(void);"
+    },
+    {
+     "addr": "0x887e0",
+     "decl": "void FUN_000887e0(void);"
+    },
+    {
+     "addr": "0x88c40",
+     "decl": "void first_person_camera_new(void);"
+    },
+    {
+     "addr": "0x88c80",
+     "decl": "void FUN_00088c80(void);"
     }
    ],
    "name": "director.obj",
@@ -7250,7 +6958,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -7311,7 +7019,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
@@ -9807,6 +9515,10 @@
      "decl": "void FUN_000b3cf0(void);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
+    },
+    {
+     "addr": "0xb3df0",
+     "decl": "void FUN_000b3df0(void);"
     }
    ],
    "name": "game_engine.obj",
@@ -10372,6 +10084,14 @@
   },
   {
    "functions": [
+    {
+     "addr": "0xc0bb0",
+     "decl": "void FUN_000c0bb0(void);"
+    },
+    {
+     "addr": "0xc0bf0",
+     "decl": "void FUN_000c0bf0(void);"
+    },
     {
      "addr": "0xc0c30",
      "decl": "void FUN_000c0c30(int16_t function_index, int thread_datum, char init);",
@@ -14446,6 +14166,14 @@
      "decl": "void FUN_00104430(int polygon_count, short *point_counts, float *points, float *color);",
      "ported": true,
      "source_path": "src/halo/main/main.c"
+    },
+    {
+     "addr": "0x104710",
+     "decl": "void FUN_00104710(void);"
+    },
+    {
+     "addr": "0x104950",
+     "decl": "void FUN_00104950(void);"
     }
    ],
    "name": "main.obj",
@@ -15854,6 +15582,58 @@
      "source_path": "objects/objects.c"
     },
     {
+     "addr": "0x132fb0",
+     "decl": "void FUN_00132fb0(void);"
+    },
+    {
+     "addr": "0x1330a0",
+     "decl": "void FUN_001330a0(void);"
+    },
+    {
+     "addr": "0x1330f0",
+     "decl": "void FUN_001330f0(int glow_widget@<eax>, int particle_ptr@<esi>);"
+    },
+    {
+     "addr": "0x133170",
+     "decl": "void FUN_00133170(void);"
+    },
+    {
+     "addr": "0x1331d0",
+     "decl": "void FUN_001331d0(int glow_widget@<eax>, int particle_ptr@<ecx>);"
+    },
+    {
+     "addr": "0x133260",
+     "decl": "void FUN_00133260(void);"
+    },
+    {
+     "addr": "0x133300",
+     "decl": "void FUN_00133300(int particle_ptr@<edi>, int object_handle, int glow_widget@<ebx>);"
+    },
+    {
+     "addr": "0x1334f0",
+     "decl": "void FUN_001334f0(void);"
+    },
+    {
+     "addr": "0x133520",
+     "decl": "void FUN_00133520(int object_handle, int widget_datum);"
+    },
+    {
+     "addr": "0x1335e0",
+     "decl": "void FUN_001335e0(void);"
+    },
+    {
+     "addr": "0x1336a0",
+     "decl": "void FUN_001336a0(void);"
+    },
+    {
+     "addr": "0x1337c0",
+     "decl": "int glow_normal_particle_new(int glow_widget_ptr, short index, short count);"
+    },
+    {
+     "addr": "0x1339a0",
+     "decl": "void get_particle_world_position(int glow_widget@<eax>, int particle_ptr, float param_3);"
+    },
+    {
      "addr": "0x134070",
      "decl": "void FUN_00134070(int particle_ptr@<esi>, int glow_widget_ptr@<edi>, int object_handle, float delta, float ratio);",
      "ported": true,
@@ -16944,6 +16724,10 @@
   },
   {
    "functions": [
+    {
+     "addr": "0x88d50",
+     "decl": "void first_person_camera_for_unit_and_vector(void);"
+    },
     {
      "addr": "0x89240",
      "decl": "void FUN_00089240(void);"
@@ -19474,6 +19258,66 @@
   {
    "functions": [
     {
+     "addr": "0x150710",
+     "decl": "void FUN_00150710(void);"
+    },
+    {
+     "addr": "0x150790",
+     "decl": "void FUN_00150790(int param_1, int param_2, float param_3, int param_4, int param_5, int param_6);"
+    },
+    {
+     "addr": "0x150840",
+     "decl": "void FUN_00150840(void);"
+    },
+    {
+     "addr": "0x1508b0",
+     "decl": "void FUN_001508b0(int *state);"
+    },
+    {
+     "addr": "0x1509c0",
+     "decl": "char FUN_001509c0(int *out, int obj_idx);"
+    },
+    {
+     "addr": "0x150b60",
+     "decl": "char FUN_00150b60(void *ctx, void *origin, void *direction, void *out);"
+    },
+    {
+     "addr": "0x150c80",
+     "decl": "void compute_ground_plane(void);"
+    },
+    {
+     "addr": "0x150dd0",
+     "decl": "void friction_evaluate(void);"
+    },
+    {
+     "addr": "0x150ed0",
+     "decl": "void FUN_00150ed0(void);"
+    },
+    {
+     "addr": "0x151a50",
+     "decl": "void physics_compute_biped_collision(void);"
+    },
+    {
+     "addr": "0x151ec0",
+     "decl": "void FUN_00151ec0(void);"
+    },
+    {
+     "addr": "0x152350",
+     "decl": "void physics_compute_unit_collisions(void);"
+    },
+    {
+     "addr": "0x1524d0",
+     "decl": "void physics_compute_vehicle_collision(void);"
+    },
+    {
+     "addr": "0x152680",
+     "decl": "void FUN_00152680(void);"
+    },
+    {
+     "addr": "0x152e40",
+     "decl": "void FUN_00152e40(void);"
+    },
+    {
      "addr": "0x154270",
      "decl": "void FUN_00154270(void);"
     },
@@ -20329,6 +20173,26 @@
   },
   {
    "functions": [
+    {
+     "addr": "0x16de60",
+     "decl": "void FUN_0016de60(void);"
+    },
+    {
+     "addr": "0x16de80",
+     "decl": "void FUN_0016de80(void);"
+    },
+    {
+     "addr": "0x16dee0",
+     "decl": "void FUN_0016dee0(void);"
+    },
+    {
+     "addr": "0x16e160",
+     "decl": "void FUN_0016e160(void);"
+    },
+    {
+     "addr": "0x16e2e0",
+     "decl": "void FUN_0016e2e0(void);"
+    },
     {
      "addr": "0x16eef0",
      "decl": "void FUN_0016eef0(void *group);",
@@ -21403,6 +21267,14 @@
      "addr": "0x157010",
      "decl": "char FUN_00157010(void);",
      "ported": true
+    },
+    {
+     "addr": "0x157940",
+     "decl": "void FUN_00157940(void);"
+    },
+    {
+     "addr": "0x1579d0",
+     "decl": "void FUN_001579d0(void *screen_fog);"
     }
    ],
    "name": "rasterizer_xbox.obj",
@@ -23348,6 +23220,10 @@
     {
      "addr": "0x1c4850",
      "decl": "void FUN_001c4850(void);"
+    },
+    {
+     "addr": "0x1c4990",
+     "decl": "void FUN_001c4990(void);"
     }
    ],
    "name": "saved_game_files.obj",
@@ -25096,6 +24972,10 @@
      "ported": true
     },
     {
+     "addr": "0x1049d0",
+     "decl": "void FUN_001049d0(float *bounds, float *color);"
+    },
+    {
      "addr": "0x104bd0",
      "decl": "void FUN_00104bd0(float *p0, float *p1, float radius, float *color);",
      "ported": true,
@@ -25557,6 +25437,10 @@
      "ported": true
     },
     {
+     "addr": "0x196eb0",
+     "decl": "float *FUN_00196eb0(float *parent_bounds, unsigned char *fractions, float *out_bounds);"
+    },
+    {
      "addr": "0x196fd0",
      "decl": "int16_t FUN_00196fd0(int *out_buf, int16_t max_count, int unused_10, int unused_14, float *bounds, int arg_1c, int arg_20, uint32_t *seen_mask, int16_t cluster_count, int16_t *cluster_indices);",
      "ported": true
@@ -25814,6 +25698,18 @@
      "decl": "int FUN_00196b10(float *bounds @<eax>, int param_2, int param_3);"
     },
     {
+     "addr": "0x196c90",
+     "decl": "short FUN_00196c90(int out_handles, short max_count, void *iter_first, void *iter_next, void *get_bounds, void *needs_update, void *mark);"
+    },
+    {
+     "addr": "0x196d60",
+     "decl": "void FUN_00196d60(float *rect@<esi>, int16_t *hull@<edi>);"
+    },
+    {
+     "addr": "0x196e10",
+     "decl": "void FUN_00196e10(uint16_t *sound_list @<edi>, void *env @<ebx>, float distance);"
+    },
+    {
      "addr": "0x197b00",
      "decl": "void FUN_00197b00(int16_t cluster_index, uint16_t *sound_list);",
      "ported": true
@@ -25934,6 +25830,18 @@
     {
      "addr": "0x132460",
      "decl": "void flag_render_proper(void);"
+    },
+    {
+     "addr": "0x132ca0",
+     "decl": "void FUN_00132ca0(void);"
+    },
+    {
+     "addr": "0x132e20",
+     "decl": "void FUN_00132e20(void);"
+    },
+    {
+     "addr": "0x132ea0",
+     "decl": "void FUN_00132ea0(void);"
     }
    ],
    "name": "telnet_console.obj",
@@ -26877,6 +26785,18 @@
   {
    "functions": [
     {
+     "addr": "0xed240",
+     "decl": "void playlist_profile_change_slayer_rules(void);"
+    },
+    {
+     "addr": "0xed470",
+     "decl": "void FUN_000ed470(void);"
+    },
+    {
+     "addr": "0xed7c0",
+     "decl": "void FUN_000ed7c0(void);"
+    },
+    {
      "addr": "0xedcd0",
      "decl": "void FUN_000edcd0(void);"
     },
@@ -27165,6 +27085,10 @@
     {
      "addr": "0xf39c0",
      "decl": "void FUN_000f39c0(void);"
+    },
+    {
+     "addr": "0xf3c80",
+     "decl": "void FUN_000f3c80(void);"
     },
     {
      "addr": "0xf46e0",
@@ -27670,6 +27594,30 @@
      "addr": "0x1a2f40",
      "decl": "void FUN_001a2f40(void *physics@<esi>);",
      "ported": true
+    },
+    {
+     "addr": "0x1a4440",
+     "decl": "void FUN_001a4440(int unit_handle);"
+    },
+    {
+     "addr": "0x1a4990",
+     "decl": "void FUN_001a4990(void);"
+    },
+    {
+     "addr": "0x1a4a50",
+     "decl": "void FUN_001a4a50(void);"
+    },
+    {
+     "addr": "0x1a4a70",
+     "decl": "void FUN_001a4a70(int handle, float *velocity);"
+    },
+    {
+     "addr": "0x1a4c50",
+     "decl": "void FUN_001a4c50(int unit_handle, unsigned char *state);"
+    },
+    {
+     "addr": "0x1a5300",
+     "decl": "void FUN_001a5300(int unit_handle, unsigned char *state);"
     }
    ],
    "name": "bipeds.obj",
@@ -28913,6 +28861,14 @@
     {
      "addr": "0x1b8570",
      "decl": "void FUN_001b8570(void);"
+    },
+    {
+     "addr": "0x1b8f10",
+     "decl": "void FUN_001b8f10(void);"
+    },
+    {
+     "addr": "0x1b8f80",
+     "decl": "void FUN_001b8f80(void);"
     }
    ],
    "name": "vehicles.obj",
@@ -30326,6 +30282,10 @@
   },
   {
    "functions": [
+    {
+     "addr": "0x107520",
+     "decl": "void FUN_00107520(void);"
+    },
     {
      "addr": "0x107c30",
      "decl": "void FUN_00107c30(void);"
@@ -32597,6 +32557,30 @@
     {
      "addr": "0xfd570",
      "decl": "void FUN_000fd570(void);"
+    },
+    {
+     "addr": "0xfdc90",
+     "decl": "void FUN_000fdc90(void);"
+    },
+    {
+     "addr": "0xfe450",
+     "decl": "void FUN_000fe450(void);"
+    },
+    {
+     "addr": "0xfe6c0",
+     "decl": "void FUN_000fe6c0(void);"
+    },
+    {
+     "addr": "0xfe790",
+     "decl": "void FUN_000fe790(void);"
+    },
+    {
+     "addr": "0xfe890",
+     "decl": "void FUN_000fe890(void);"
+    },
+    {
+     "addr": "0xfe910",
+     "decl": "void FUN_000fe910(void);"
     }
    ],
    "name": "weapons.obj",
@@ -36773,6 +36757,10 @@
    "data": [],
    "functions": [
     {
+     "addr": "0x15d8b0",
+     "decl": "void FUN_0015d8b0(int vertices_per_primitive, int a2, int triangle_count, int dynamic_vertex_buffer_index);"
+    },
+    {
      "addr": "0x15dc10",
      "decl": "void FUN_0015dc10(int vertices_per_primitive, int a2, int triangle_count, void *vertex_buffer);"
     },
@@ -38400,6 +38388,14 @@
      "decl": "void FUN_00149680(void);"
     },
     {
+     "addr": "0x149c60",
+     "decl": "char FUN_00149c60(int *block_ptr, void *transformed_2c, void *transformed_20, float scale, float best_dist, float *result);"
+    },
+    {
+     "addr": "0x149ce0",
+     "decl": "void FUN_00149ce0(void);"
+    },
+    {
      "addr": "0x14dc30",
      "decl": "char FUN_0014dc30(int param_1, float *pos, int param_3);",
      "ported": true
@@ -38714,6 +38710,10 @@
   },
   {
    "functions": [
+    {
+     "addr": "0x1d5c66",
+     "decl": "void * __stdcall FUN_001d5c66(void *heap, unsigned int flags, unsigned int size);"
+    },
     {
      "addr": "0x1d63d5",
      "decl": "void FUN_001d63d5(void);",

@@ -486,19 +486,25 @@ void scripted_hud_pause_timer(char param_1)
  * Returns remaining timer ticks, or 0 if hidden. */
 short scripted_hud_get_timer_ticks(void)
 {
-  int base;
+  char *timer;
+  char visible;
   short result;
+  int now;
+  unsigned int total;
 
-  base = *(int *)0x46bd18;
+  timer = *(char **)0x46bd18;
+  visible = timer[0x11a7];
+  timer += 0x1198;
   result = 0;
-  if (*(char *)(base + 0x11a7) != '\0') {
-    result = *(short *)(base + 0x119c);
-    if (result == -1) {
+  if (visible != '\0') {
+    if (*(uint16_t *)(timer + 0x4) == 0xffff) {
       return -1;
     }
-    if (*(char *)(base + 0x11a6) == '\0') {
-      result = (short)game_time_get();
-      result = (*(short *)(base + 0x119c) + *(short *)(base + 0x1198)) - result;
+    result = *(short *)(timer + 0x4);
+    if (timer[0xe] == '\0') {
+      now = game_time_get();
+      total = (unsigned short)(*(unsigned short *)(timer + 0x4) + *(unsigned short *)timer);
+      result = (short)(total - now);
     }
   }
   return result;
@@ -538,8 +544,10 @@ void scripted_hud_time_code_reset(void)
   int tick;
 
   tick = game_time_get();
-  *(int *)0x2f66e4 = tick;
-  if (*(int *)0x2f66e8 != -1) {
+  if (*(int *)0x2f66e8 == -1) {
+    *(int *)0x2f66e4 = tick;
+  } else {
+    *(int *)0x2f66e4 = tick;
     *(int *)0x2f66e8 = tick;
   }
 }
@@ -551,8 +559,6 @@ void hud_render_timer(void)
   int *pi7;
   int i6;
   int i8;
-  int *pu9;
-  int *pu11;
   short u1;
   short s2;
   short l_90;
@@ -617,13 +623,7 @@ void hud_render_timer(void)
     i6 = 8;
     if ((short)l_10 > 0) {
       u1 = (short)l_10;
-      pu9 = (int *)(*(int *)0x46bd0c + 0x360);
-      pu11 = l_48;
-      for (; i6 != 0; i6 = i6 - 1) {
-        *pu11 = *pu9;
-        pu9 = pu9 + 1;
-        pu11 = pu11 + 1;
-      }
+      qmemcpy(l_48, (void *)(*(int *)0x46bd0c + 0x360), 32);
       s2 = *(short *)(i10 + 0x119e);
       i6 = l_c;
       if ((short)u1 <= s2) {
@@ -636,13 +636,7 @@ void hud_render_timer(void)
     } else {
       i8 = *pi7;
       *(short *)(i10 + 0x119c) = (short)-1;
-      pu9 = (int *)(*(int *)0x46bd0c + 0x380);
-      pu11 = l_48;
-      for (; i6 != 0; i6 = i6 - 1) {
-        *pu11 = *pu9;
-        pu9 = pu9 + 1;
-        pu11 = pu11 + 1;
-      }
+      qmemcpy(l_48, (void *)(*(int *)0x46bd0c + 0x380), 32);
       l_c = 1;
       if (i8 == -1) {
         *pi7 = game_time_get();
@@ -821,18 +815,17 @@ void *hud_find_message_slot(int base, int param2, int tag_handle /* @<esi> */)
   do {
     entry = (char *)(base + (int)i * 0x8c);
 
-    if ((tag_handle == -1 || tag_handle != *(int *)(entry + 0x84) ||
-         (char)param2 != *(char *)(entry + 0x8a)) &&
-        *(char *)(entry + 0x82) != 0) {
-      int time_val = *(int *)entry;
-      if (time_val < best_time) {
-        best_time = time_val;
-        best_index = i;
-      }
-    } else {
+    if ((tag_handle != -1 && tag_handle == *(int *)(entry + 0x84) &&
+         (char)param2 == *(char *)(entry + 0x8a)) ||
+        *(char *)(entry + 0x82) == 0) {
       result = (void *)entry;
       if (tag_handle == -1 || tag_handle == *(int *)(entry + 0x84))
         break;
+    } else {
+      if (*(int *)entry < best_time) {
+        best_time = *(int *)entry;
+        best_index = i;
+      }
     }
 
     i++;
@@ -904,13 +897,11 @@ int hud_get_font_index(void)
  */
 int *hud_get_text_color(int *param_1)
 {
-  int *src;
+  struct s_hud_text_color {
+    int dwords[4];
+  };
 
-  src = (int *)(*(int *)0x5aa68c + 0x70);
-  param_1[0] = src[0];
-  param_1[1] = src[1];
-  param_1[2] = src[2];
-  param_1[3] = src[3];
+  *(struct s_hud_text_color *)param_1 = *(struct s_hud_text_color *)(*(char **)0x5aa68c + 0x70);
   return param_1;
 }
 
@@ -1525,27 +1516,21 @@ short hud_find_nav_point_by_name(const char *param_1)
   short found;
   short i;
   int element;
-  int result;
 
   found = -1;
   if (*(int *)0x46bd0c != 0) {
-    i = 0;
-    if (*(int *)(*(int *)0x46bd0c + 0x160) > 0) {
-      do {
-        element = (int)tag_block_get_element((void *)(*(int *)0x46bd0c + 0x160),
-                                             (int)i, 0x68);
-        result = csstricmp(param_1, (const char *)element);
-        if (result == 0) {
-          found = i;
-          if (i != -1)
-            return i;
-          break;
-        }
-        i = i + 1;
-      } while ((int)i < *(int *)(*(int *)0x46bd0c + 0x160));
+    for (i = 0; (int)i < *(int *)(*(int *)0x46bd0c + 0x160); i++) {
+      element = (int)tag_block_get_element((void *)(*(int *)0x46bd0c + 0x160),
+                                           (int)i, 0x68);
+      if (csstricmp(param_1, (const char *)element) == 0) {
+        found = i;
+        break;
+      }
     }
   }
-  error(2, "could not find nav point");
+  if (found == -1) {
+    error(2, "could not find nav point");
+  }
   return found;
 }
 
@@ -2751,13 +2736,10 @@ void FUN_000d7800(int player_handle)
 {
   char c1;
   int i2;
-  int i6;
   short s7;
   float *pf4;
-  float f5;
   int l_20c[128];
   int l_c;
-  int l_8;
 
   l_c = FUN_000d1540();
   csmemset(l_20c, 0x62, 0x200);
@@ -2776,37 +2758,29 @@ void FUN_000d7800(int player_handle)
   if (*pf4 == -1.0f) {
     *pf4 = *(float *)(i2 + 0x94);
   }
-  f5 = *(float *)0x2533c0;
-  if (*pf4 <= *(float *)(i2 + 0x94)) {
-    if (*(float *)(i2 + 0x94) <= *pf4) {
-      *pf4 = *(float *)(i2 + 0x94);
-      if (f5 < pf4[2]) {
-        l_8 = game_time_get();
-        l_8 = l_8 - (int)pf4[3];
-        goto LAB_000d7939;
-      }
+  if (*pf4 > *(float *)(i2 + 0x94)) {
+    if (pf4[2] < 0.0f || pf4[2] > 1.0f) {
+      pf4[3] = (float)game_time_get();
+    }
+    if (game_time_get() - (int)pf4[3] < 15) {
+      pf4[2] = 0.0f;
     } else {
       *pf4 = *(float *)(i2 + 0x94);
-      pf4[2] = -1.0f;
+      pf4[2] += (float)(game_time_get() - (int)pf4[3]) * *(float *)0x2546a4;
+      pf4[3] = (float)game_time_get();
     }
   } else {
-    if (pf4[2] < *(float *)0x2533c0 || *(float *)0x2533c8 < pf4[2]) {
-      f5 = (float)game_time_get();
-      pf4[3] = f5;
+    if (*pf4 < *(float *)(i2 + 0x94)) {
+      *pf4 = *(float *)(i2 + 0x94);
+      pf4[2] = -1.0f;
+    } else {
+      *pf4 = *(float *)(i2 + 0x94);
+      if (pf4[2] > 0.0f) {
+        pf4[2] += (float)(game_time_get() - (int)pf4[3]) * *(float *)0x2546a4;
+      }
     }
-    i6 = game_time_get();
-    if (i6 - (int)pf4[3] < 0xf) {
-      pf4[2] = 0.0f;
-      goto LAB_000d794f;
-    }
-    *pf4 = *(float *)(i2 + 0x94);
-    l_8 = game_time_get();
-    l_8 = l_8 - (int)pf4[3];
-  LAB_000d7939:
-    pf4[2] = (float)l_8 * *(float *)0x2546a4 + pf4[2];
+    pf4[3] = (float)game_time_get();
   }
-  f5 = (float)game_time_get();
-  pf4[3] = f5;
 LAB_000d794f:
   c1 = cinematic_in_progress();
   if (c1 != '\0') {
