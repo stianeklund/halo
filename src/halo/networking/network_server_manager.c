@@ -3178,7 +3178,9 @@ char FUN_0012f990(int server, void *machine, void *message, int message_size)
   char addr_buf[16];
   char host_line[0x20];
   int conn;
-  int in_hosts;
+  /* Reference keeps this flag in a 1-byte slot (`movb $0x1, -0x1(%ebp)`;
+   * `movb -0x1(%ebp),%al`; `testb %al,%al`), not a dword. */
+  bool in_hosts;
   short machine_idx_out;
   void *msg;
   void *stream;
