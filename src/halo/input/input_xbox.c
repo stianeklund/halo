@@ -669,11 +669,11 @@ bool input_has_gamepad(int16_t gamepad_index)
   return input_gamepad_handles()[gamepad_index] != 0;
 }
 
-void *input_get_gamepad_state(int gamepad_index)
+void *input_get_gamepad_state(int16_t gamepad_index)
 {
   int16_t index;
 
-  index = (int16_t)gamepad_index;
+  index = gamepad_index;
   assert_halt(index >= 0 && index < MAXIMUM_GAMEPADS);
   if (input_gamepad_handles()[index] != 0) {
     if (*input_suppressed())

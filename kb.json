@@ -4179,42 +4179,18 @@
   {
    "functions": [
     {
-     "addr": "0x1c4da0",
-     "decl": "void FUN_001c4da0(void);"
-    },
-    {
-     "addr": "0x1c4f30",
-     "decl": "void FUN_001c4f30(void);"
-    },
-    {
-     "addr": "0x1c5010",
-     "decl": "void FUN_001c5010(void);"
-    },
-    {
-     "addr": "0x1c53f0",
-     "decl": "void FUN_001c53f0(void);"
-    },
-    {
-     "addr": "0x1c5560",
-     "decl": "void FUN_001c5560(void);"
-    },
-    {
-     "addr": "0x1c58f0",
-     "decl": "void FUN_001c58f0(void);"
-    },
-    {
      "addr": "0x1c5900",
      "decl": "void bink_playback_trace(const char *msg);",
      "ported": true
     },
     {
      "addr": "0x1c5940",
-     "decl": "bool bink_playback_active(void);",
+     "decl": "int bink_playback_active(void);",
      "ported": true
     },
     {
      "addr": "0x1c5960",
-     "decl": "bool bink_playback_suppress_ui(void);",
+     "decl": "int bink_playback_suppress_ui(void);",
      "ported": true
     },
     {
@@ -4234,7 +4210,8 @@
     },
     {
      "addr": "0x1c5ab0",
-     "decl": "void FUN_001c5ab0(void);"
+     "decl": "void *__stdcall bink_memory_callback_alloc(unsigned int size);",
+     "ported": true
     },
     {
      "addr": "0x1c5ca0",
@@ -4308,19 +4285,23 @@
     },
     {
      "addr": "0x1c6900",
-     "decl": "void FUN_001c6900(void);"
+     "decl": "bool FUN_001c6900(file_ref_t *file, void *format_out);",
+     "ported": true
     },
     {
      "addr": "0x1c6b20",
-     "decl": "bool FUN_001c6b20(file_ref_t *info, void *param_2, void *param_3);"
+     "decl": "bool FUN_001c6b20(file_ref_t *file, int *size_out, void *buffer);",
+     "ported": true
     },
     {
      "addr": "0x1c6bf0",
-     "decl": "void FUN_001c6bf0(void *param_1, void *param_2, void *param_3);"
+     "decl": "void FUN_001c6bf0(void *param_1, void *param_2, void *param_3);",
+     "ported": true
     },
     {
      "addr": "0x1c6c00",
-     "decl": "void FUN_001c6c00(void);"
+     "decl": "bool FUN_001c6c00(void *info, file_ref_t *file);",
+     "ported": true
     }
    ],
    "name": "bink_playback.obj",
@@ -9613,7 +9594,7 @@
     },
     {
      "addr": "0x1c6d90",
-     "decl": "void FUN_001c6d90(void);"
+     "decl": "bool FUN_001c6d90(file_ref_t *file, void *format_out);"
     },
     {
      "addr": "0x1c6ed0",
@@ -13193,7 +13174,7 @@
     },
     {
      "addr": "0xcf710",
-     "decl": "void *input_get_gamepad_state(int gamepad_index);",
+     "decl": "void *input_get_gamepad_state(int16_t gamepad_index);",
      "ported": true
     },
     {
@@ -23225,6 +23206,30 @@
     {
      "addr": "0x1c4990",
      "decl": "void FUN_001c4990(void);"
+    },
+    {
+     "addr": "0x1c4da0",
+     "decl": "void FUN_001c4da0(void);"
+    },
+    {
+     "addr": "0x1c4f30",
+     "decl": "void FUN_001c4f30(void);"
+    },
+    {
+     "addr": "0x1c5010",
+     "decl": "void FUN_001c5010(void);"
+    },
+    {
+     "addr": "0x1c53f0",
+     "decl": "void FUN_001c53f0(void);"
+    },
+    {
+     "addr": "0x1c5560",
+     "decl": "void FUN_001c5560(void);"
+    },
+    {
+     "addr": "0x1c58f0",
+     "decl": "void FUN_001c58f0(void);"
     }
    ],
    "name": "saved_game_files.obj",

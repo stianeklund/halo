@@ -16499,6 +16499,48 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c4da0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "TU is saved_game_files.c: pushes __FILE__ 0x2ba8e8 (c:\\halo\\SOURCE\\saved games\\saved_game_files.c) into display_assert. Moved from bink_playback.obj to saved_game_files.obj in kb.json (2026-08-22)."
+      ]
+    },
+    "0x1c4f30": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Grouped with saved_game_files.obj: no own __FILE__ push, but contiguous with the 0x1c4da0-0x1c5560 saved-game block and called only from it (0x1c5010 called by 0x1c53f0/0x1c5560). Moved out of bink_playback.obj (2026-08-22)."
+      ]
+    },
+    "0x1c5010": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "Grouped with saved_game_files.obj: no own __FILE__ push, but contiguous with the 0x1c4da0-0x1c5560 saved-game block and called only from it (0x1c5010 called by 0x1c53f0/0x1c5560). Moved out of bink_playback.obj (2026-08-22)."
+      ]
+    },
+    "0x1c53f0": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "TU is saved_game_files.c: pushes __FILE__ 0x2ba8e8 (c:\\halo\\SOURCE\\saved games\\saved_game_files.c) into display_assert. Moved from bink_playback.obj to saved_game_files.obj in kb.json (2026-08-22)."
+      ]
+    },
+    "0x1c5560": {
+      "kind": "function",
+      "status": "unknown",
+      "inferred": [
+        "TU is saved_game_files.c: pushes __FILE__ 0x2ba8e8 (c:\\halo\\SOURCE\\saved games\\saved_game_files.c) into display_assert. Moved from bink_playback.obj to saved_game_files.obj in kb.json (2026-08-22)."
+      ]
+    },
+    "0x1c58f0": {
+      "kind": "function",
+      "status": "unknown",
+      "uncertain": [
+        "Not source code: bytes are E9 1B F7 FF FF (JMP 0x1c5010) + 0x90 padding, an MSVC incremental-link thunk. Sole caller FUN_000c3850. Filed under saved_game_files.obj because that is its jump target; a link thunk has no provable TU."
+      ]
+    },
     "0x1c5900": {
       "kind": "function",
       "status": "ported"
@@ -16532,6 +16574,17 @@
     "0x1c5a80": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1c5ab0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "0x1c5ab0 is the RAD/Bink new_malloc callback: bink_playback_initialize pushes 0x1c5ab0 then 0x1c5ca0 into CALL 0x231490 at 0x1c61b4, and RET 0x4 plus the EAX=ESI epilogue give the __stdcall U32->void* shape that pairs with bink_memory_pool_free.",
+        "The 0x4eae30 global is the count of live entries in the 16-slot pointer table at 0x4eacd0; its wider meaning in bink_globals is unproven, only the index arithmetic at 0x1c5c0c and the 0x10 bound at 0x1c5b4e/0x1c5bde are confirmed."
+      ],
+      "uncertain": [
+        "The 0x3000-byte advance applied to memory_pool_offset at 0x1c5c7f has no assert or string naming it, so whether it is an inter-block guard gap or a Bink-specific alignment requirement is unresolved."
+      ]
     },
     "0x1c5ca0": {
       "kind": "function",
@@ -16594,6 +16647,43 @@
     "0x1c6880": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x1c6900": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The format-out struct written through param 2 has a dword sample rate at +0, a 16-bit channel count at +4 and a 16-bit sample size at +8; the layout is pinned by the RIFF/WAVE counterpart FUN_001c6d90 writing the same three slots at 0x1c6e8d-0x1c6e9e, but the struct has no asserted name so it stays raw pointer arithmetic.",
+        "The three 10-byte stack constants at EBP-0x18/-0x24/-0x30 are 80-bit IEEE-754 extended encodings of 11025, 22050 and 44100 Hz, matching the 0x2b11/0x5622/0xac44 values stored on each arm; the byte-swap definitions at 0x32ebe4 and 0x32ec18 carry the Ghidra data labels aiff_chunk and aiff_format_info_p1."
+      ],
+      "uncertain": [
+        "This function scores 77.0 percent because the reference duplicates the shared channel/sample-size store plus the size-or-NONE test plus the file_close epilogue into two of the three rate arms while our single shared tail is emitted once; the 44100 arm jumping into the 11025 arm tail at 0x1c6ae8 proves the source had one shared continuation, so the gap is MSVC tail duplication rather than a structural lift error.",
+        "The translation unit of this function is c:\\halo\\SOURCE\\sound\\sound_import\\sound_import.c per the asserts in FUN_001c6c00, not bink_playback.c; it lives in bink_playback.c only because kb.json assigns the whole 0x1c6880-0x1c6c00 cluster to bink_playback.obj and FUN_001c6880 was already placed there."
+      ]
+    },
+    "0x1c6b20": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The SSND payload starts 0x10 bytes past the chunk header start because AIFF SSND prefixes its sample data with its own offset and blockSize dwords; the length written through param 2 is chunk_size minus 8, and the SAR at 0x1c6bd6 proves param 2 is a signed int pointer."
+      ],
+      "uncertain": [
+        "The 92.0 percent score is a clang loop-rotation artifact: clang peels the FUN_00118be0 byte-swap plus the SSND compare into the loop back-edge, producing nine extra instructions and one extra call versus the reference, with no semantic difference."
+      ]
+    },
+    "0x1c6bf0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The entire body is a single RET byte (0xc3 at 0x1c6bf0, NOP padding through 0x1c6bff), so this AIFF post-parse hook is genuinely empty in the binary; the three-argument cdecl shape is caller-side evidence only, from the pushes and ADD ESP 0xc at 0x1c6cce-0x1c6cd6 in FUN_001c6ca0."
+      ]
+    },
+    "0x1c6c00": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The parameter order is info first then file: the assert at 0x1c6c0f names EBP+0x8 as info and the assert at 0x1c6c33 names EBP+0xc as file, and file is the value handed to FUN_001c6880 and file_open while info is the format-out destination.",
+        "FUN_001c6d90 is the RIFF/WAVE fmt-chunk parser and the mirror of FUN_001c6900; its kb.json prototype was widened from void(void) to bool(file_ref_t *, void *) on the strength of the two pushes plus TEST AL,AL at 0x1c6c78-0x1c6c84 and its own file_open and +0/+4/+8 stores."
+      ]
     },
     "0x1c7030": {
       "kind": "function",

@@ -12,23 +12,23 @@ void bink_playback_trace(const char *msg)
 
 /* Bink video playback system for cinematics and loading screens. */
 
-/* Returns true if a bink video is currently open and the subsystem
+/* Returns non-zero if a bink video is currently open and the subsystem
  * is initialized. Used by callers to gate rendering and input. */
-bool bink_playback_active(void)
+int bink_playback_active(void)
 {
   if (*(int *)0x4ead60 != 0 && *(uint8_t *)0x4ead58 != 0)
-    return true;
-  return false;
+    return 1;
+  return 0;
 }
 
-/* Returns true if bink is initialized and was started with flag 0x8
+/* Returns non-zero if bink is initialized and was started with flag 0x8
  * (suppress-UI mode). Callers use this to skip rendering UI widgets
  * during attract-mode or other fullscreen bink playback. */
-bool bink_playback_suppress_ui(void)
+int bink_playback_suppress_ui(void)
 {
   if (*(uint8_t *)0x4ead58 != 0 && (*(uint8_t *)0x4ead5c & 8) != 0)
-    return true;
-  return false;
+    return 1;
+  return 0;
 }
 
 /* Returns true if a bink video handle is open (regardless of whether
@@ -97,17 +97,112 @@ bool bink_memory_pool_is_empty(void)
 
   i = 0;
   empty = true;
-  if (0 < *(int *)0x4eae30) {
-    int idx = 0;
+  if (*(int *)0x4eae30 > 0) {
     do {
-      if (*(int *)(idx * 4 + 0x4eacd0) != 0) {
+      if (*(int *)(0x4eacd0 + (int)i * 4) != 0) {
         empty = false;
       }
-      i = i + 1;
-      idx = (int)i;
-    } while (idx < *(int *)0x4eae30);
+      i++;
+    } while ((int)i < *(int *)0x4eae30);
   }
   return empty;
+}
+
+/* Bink/RAD memory-allocation callback (0x1c5ab0).
+ *
+ * Registered together with bink_memory_pool_free by bink_playback_initialize
+ * (`PUSH 0x1c5ca0; PUSH 0x1c5ab0; CALL 0x231490` at 0x1c61b4).  The `RET 0x4`
+ * at 0x1c5c9b makes it __stdcall with a single dword argument, and the block
+ * pointer is returned in EAX (`MOV EAX,ESI` at 0x1c5c95) — i.e. the RAD
+ * `new_malloc` shape, with bink_memory_pool_free as the matching `new_free`.
+ *
+ * Bump-allocates `size` bytes at memory_pool_base + memory_pool_offset, marks
+ * the block via physical_memory_protect(..., 4), appends the pointer to the
+ * 16-entry block table at 0x4eacd0, then advances the offset by a 0x3000-byte
+ * gap clamped to the pool size.
+ *
+ * Global names come verbatim from the assert text pushed at 0x1c5c60:
+ * 0x4eae28 = bink_globals.memory_pool_offset, 0x4eae2c =
+ * bink_globals.memory_pool_size.  0x4eae24 = bink_globals.memory_pool_base
+ * (named by the assert in bink_memory_pool_alloc above).  0x4eae30 is the
+ * block-table count; its meaning beyond "index into 0x4eacd0" is unproven. */
+void *__stdcall bink_memory_callback_alloc(unsigned int size)
+{
+  uint32_t mem_status[8];
+  unsigned int offset;
+  void *ptr;
+
+  /* Inlined bink_playback_trace memory checkpoint (0x1c5ab8-0x1c5ae6). */
+  csmemset(mem_status, 0, 0x20);
+  mem_status[0] = 0x20;
+  xbox_query_global_memory_status(mem_status);
+  *(uint32_t *)0x32eb9c = mem_status[3] >> 10;
+
+  if (*(int *)0x4eae30 > 0 && *(int *)0x4eacd0 == 0) {
+    if (!bink_memory_pool_is_empty()) {
+      display_assert(
+        "### FATAL_ERROR bink just confused the hell out of me (1)",
+        "c:\\halo\\SOURCE\\bink\\bink_playback.c", 0x2df, 1);
+      system_exit(-1);
+    }
+    if (bink_memory_pool_is_empty()) {
+      *(int *)0x4eae30 = 0;
+      *(uint32_t *)0x4eae28 = 0;
+    }
+  }
+
+  offset = *(unsigned int *)0x4eae28;
+
+  /* CMP/JA at 0x1c5b4a is unsigned; the block-count and base tests at
+   * 0x1c5b4e/0x1c5b5d are signed and pointer-null respectively. */
+  if (offset + size > *(unsigned int *)0x4eae2c || *(int *)0x4eae30 >= 0x10 ||
+      *(uint32_t *)0x4eae24 == 0) {
+    display_assert("!\"bink memory allocation should not fail\"",
+                   "c:\\halo\\SOURCE\\bink\\bink_playback.c", 0x2f7, 1);
+    system_exit(-1);
+  }
+
+  ptr = (void *)(*(uint32_t *)0x4eae24 + offset);
+  *(unsigned int *)0x4eae28 = offset + size;
+  physical_memory_protect(ptr, size, 4);
+
+  if (*(int *)0x4eae28 > *(int *)0x4eae2c) {
+    display_assert(
+      csprintf((char *)0x5ab100,
+               "### FATAL_ERROR bink needs more memory (requested %d bytes "
+               "over the %d-byte limit)",
+               *(int *)0x4eae28 - *(int *)0x4eae2c, *(int *)0x4eae2c),
+      "c:\\halo\\SOURCE\\bink\\bink_playback.c", 0x312, 1);
+    system_exit(-1);
+  }
+
+  if (*(int *)0x4eae30 >= 0x10) {
+    display_assert("### FATAL_ERROR bink needs more pointer blocks",
+                   "c:\\halo\\SOURCE\\bink\\bink_playback.c", 0x313, 1);
+    system_exit(-1);
+  }
+
+  *(uint32_t *)(*(int *)0x4eae30 * 4 + 0x4eacd0) = (uint32_t)ptr;
+  *(int *)0x4eae30 = *(int *)0x4eae30 + 1;
+
+  /* Inlined bink_playback_trace memory checkpoint (0x1c5c14-0x1c5c4c). */
+  csmemset(mem_status, 0, 0x20);
+  mem_status[0] = 0x20;
+  xbox_query_global_memory_status(mem_status);
+  *(uint32_t *)0x32eb9c = mem_status[3] >> 10;
+
+  if (*(int *)0x4eae28 >= *(int *)0x4eae2c) {
+    display_assert(
+      "bink_globals.memory_pool_offset < bink_globals.memory_pool_size",
+      "c:\\halo\\SOURCE\\bink\\bink_playback.c", 0x31f, 1);
+    system_exit(-1);
+  }
+
+  *(int *)0x4eae28 = *(int *)0x4eae28 + 0x3000;
+  if (*(int *)0x4eae28 > *(int *)0x4eae2c)
+    *(int *)0x4eae28 = *(int *)0x4eae2c;
+
+  return ptr;
 }
 
 /* Release a bink memory pool allocation. Searches the allocation table at
@@ -163,8 +258,8 @@ found:
  * a text overlay with Bink frame timing statistics. */
 void bink_playback_render_frame(void)
 {
-  char text_buf[1024];
-  char summary_buf[256];
+  char text_buf[4096];
+  char summary_buf[40];
   short screen_pos[4];
   float vertices[20]; /* 4 verts x 5 floats (x, y, u, v, color) */
   short top_y, left_x, right_x, bottom_y;
@@ -248,8 +343,10 @@ void bink_playback_render_frame(void)
   if (*(uint8_t *)0x4ead54 != 0) {
     /* Debug overlay: gather Bink timing stats and draw on screen. */
     int bink_handle = *(int *)0x4ead60;
-    int16_t frame_info[14];
+    int16_t frame_info[20];
     float scale;
+    unsigned int *fi;
+    unsigned int total_time;
 
     frame_info[0] = 0xfa; /* max frame count for averaging */
     frame_info[1] = 0;
@@ -262,52 +359,25 @@ void bink_playback_render_frame(void)
 
     BinkGetFrameBuffersInfo((void *)bink_handle, frame_info, 0);
 
-    /* Compute scale factor: 1.0 / total_time. The decompiler shows
-     * complex unsigned-to-float conversions for each timing field,
-     * then multiplication by scale. Faithfully reproduce this. */
-    {
-      float total_f = (float)(int)frame_info[8]; /* FIXME: uint32 at offset */
-      /* The original reads dword-sized fields from the frame_info struct
-       * at offsets that alias over the short array. These are actually
-       * dword timing fields from BinkGetFrameBuffersInfo. Use hardcoded
-       * pointer arithmetic to match the original exactly. */
-      int *fi = (int *)frame_info;
-      int total_time = fi[8]; /* offset 0x10 from frame_info base */
+    fi = (unsigned int *)frame_info;
+    total_time = fi[8];
+    scale = 1.0f / (float)total_time;
 
-      if (total_time < 0)
-        total_f = total_f + *(float *)0x25fb8c;
-      scale = 1.0f / total_f;
-
-      /* Format timing stats into text buffer. */
-      crt_sprintf(
-        text_buf,
-        "FramesTime=|t%.02f|nFrameVideoDecompTime=|t%.02f|n"
-        "FrameAudioDecompTime=|t%.02f|nFrameReadTime=|t%.02f|n"
-        "FrameIdleReadTime=|t%.02f|nFrameThreadReadTime=|t%.02f|n"
-        "FramesBlitTime=|t%.02f|n|nFrames=|t%d",
-        (double)((float)fi[7] < 0 ? (float)fi[7] + *(float *)0x25fb8c :
-                                    (float)fi[7]) *
-          scale,
-        (double)((float)fi[6] < 0 ? (float)fi[6] + *(float *)0x25fb8c :
-                                    (float)fi[6]) *
-          scale,
-        (double)((float)fi[5] < 0 ? (float)fi[5] + *(float *)0x25fb8c :
-                                    (float)fi[5]) *
-          scale,
-        (double)((float)fi[4] < 0 ? (float)fi[4] + *(float *)0x25fb8c :
-                                    (float)fi[4]) *
-          scale,
-        (double)((float)fi[3] < 0 ? (float)fi[3] + *(float *)0x25fb8c :
-                                    (float)fi[3]) *
-          scale,
-        (double)((float)fi[2] < 0 ? (float)fi[2] + *(float *)0x25fb8c :
-                                    (float)fi[2]) *
-          scale,
-        (double)((float)fi[1] < 0 ? (float)fi[1] + *(float *)0x25fb8c :
-                                    (float)fi[1]) *
-          scale,
-        total_time);
-    }
+    /* Format timing stats into text buffer. */
+    crt_sprintf(
+      text_buf,
+      "FramesTime=|t%.02f|nFrameVideoDecompTime=|t%.02f|n"
+      "FrameAudioDecompTime=|t%.02f|nFrameReadTime=|t%.02f|n"
+      "FrameIdleReadTime=|t%.02f|nFrameThreadReadTime=|t%.02f|n"
+      "FramesBlitTime=|t%.02f|n|nFrames=|t%d",
+      (double)((float)fi[7] * scale),
+      (double)((float)fi[6] * scale),
+      (double)((float)fi[5] * scale),
+      (double)((float)fi[4] * scale),
+      (double)((float)fi[3] * scale),
+      (double)((float)fi[2] * scale),
+      (double)((float)fi[1] * scale),
+      total_time);
 
     /* Offset screen position by display origin. */
     {
@@ -321,7 +391,7 @@ void bink_playback_render_frame(void)
     rect2d_offset(screen_pos, 0, 0x20);
 
     /* Set up text rendering. */
-    interface_draw_text(1, 5, 0, 0, -1, 1);
+    interface_draw_text(1, -1, 0, 0, 5, 0);
     draw_string_set_color(*(const void **)0x2ee6d4);
     draw_string_set_tab_stops(&frame_info[0], 1);
     rasterizer_text_draw(screen_pos, NULL, (void *)&frame_info[8], -4,
@@ -365,34 +435,33 @@ void bink_playback_render_frame(void)
  * button bytes starting at offset 0x10 in the gamepad state struct. */
 bool bink_playback_check_any_button(void)
 {
-  short pad;
   bool pressed;
+  short pad;
+  short btn;
+  char *state;
 
   pressed = false;
   pad = 0;
   do {
     if (pressed) {
-      return pressed;
+      break;
     }
-    {
-      void *state = input_get_gamepad_state((int)pad);
-      if (state != NULL) {
-        if (*(char *)((int)state + 0x1c) == 1 ||
-            *(char *)((int)state + 0x1d) == 1) {
-          pressed = true;
-        } else {
-          short btn = 0;
-          do {
-            if (*(char *)((int)btn + 0x10 + (int)state) == 1) {
-              pressed = true;
-              break;
-            }
-            btn = btn + 1;
-          } while (btn < 8);
-        }
+    state = (char *)input_get_gamepad_state(pad);
+    if (state != NULL) {
+      if (state[0x1c] == 1 || state[0x1d] == 1) {
+        pressed = true;
+      } else {
+        btn = 0;
+        do {
+          if (state[btn + 0x10] == 1) {
+            pressed = true;
+            break;
+          }
+          btn++;
+        } while (btn < 8);
       }
     }
-    pad = pad + 1;
+    pad++;
   } while (pad < 4);
   return pressed;
 }
@@ -850,4 +919,194 @@ bool FUN_001c6880(file_ref_t *info)
     file_close(info);
   }
   return result;
+}
+
+/* Parse the COMM chunk of an AIFF/AIFC container (0x1c6900).
+ *
+ * Walks the chunk list from file offset 0xc in 8-byte {id, size} steps,
+ * byte-swapping each header via the "aiff_chunk" definition at 0x32ebe4,
+ * skipping payloads (odd sizes rounded up — AIFF word padding) until 'COMM'
+ * is found.  Reads the 22-byte COMM payload, byte-swaps it via the
+ * "aiff_format_info_p1" definition at 0x32ec18, then matches the 10-byte
+ * 80-bit extended sampleRate against the three rates the engine supports.
+ *
+ * `format_out` receives the sample rate as a dword at +0, numChannels as a
+ * word at +4 and sampleSize as a word at +8 (0x1c6a37-0x1c6a4c); the same
+ * three slots are written by the RIFF/WAVE counterpart at 0x1c6d90
+ * (0x1c6e8d-0x1c6e9e), which is what pins the layout.  An unrecognised rate
+ * stores -1 and fails.  Success additionally requires either an 18-byte COMM
+ * (plain AIFF, no compressionType field) or a compressionType of 'NONE'.
+ *
+ * TU note: the assert in FUN_001c6c00 below names this cluster's source file
+ * as "c:\halo\SOURCE\sound\sound_import\sound_import.c", not bink_playback.c;
+ * it lives here only because FUN_001c6880 already did. */
+bool FUN_001c6900(file_ref_t *file, void *format_out)
+{
+  bool result;
+  uint32_t chunk[2]; /* [0] = chunk id, [1] = chunk size */
+  char comm[22];
+  int offset;
+  unsigned int skip;
+
+  result = false;
+  offset = 0xc;
+
+  if (file_open(file, 1)) {
+    if (file_read_from_position(file, 0xc, 8, chunk)) {
+      for (;;) {
+        FUN_00118be0((void *)0x32ebe4, chunk, 1);
+        if (chunk[0] == 0x434f4d4d) /* 'COMM' */
+          break;
+        skip = chunk[1];
+        if ((chunk[1] & 1) != 0)
+          skip = chunk[1] + 1;
+        offset = offset + 8 + (int)skip;
+        if (!file_read_from_position(file, offset, 8, chunk)) {
+          file_close(file);
+          return false;
+        }
+      }
+
+      if (file_read_from_position(file, offset + 8, 0x16, comm)) {
+        /* 80-bit IEEE-754 extended encodings of 11025/22050/44100 Hz, stored
+         * byte-by-byte at 0x1c69ae-0x1c6a19 (EBP-0x18/-0x24/-0x30). */
+        unsigned char rate_11025[10];
+        unsigned char rate_22050[10];
+        unsigned char rate_44100[10];
+
+        rate_11025[0] = 0x40; rate_11025[1] = 0x0c; rate_11025[2] = 0xac; rate_11025[3] = 0x44;
+        rate_11025[4] = 0; rate_11025[5] = 0; rate_11025[6] = 0; rate_11025[7] = 0;
+        rate_11025[8] = 0; rate_11025[9] = 0;
+
+        rate_22050[0] = 0x40; rate_22050[1] = 0x0d; rate_22050[2] = 0xac; rate_22050[3] = 0x44;
+        rate_22050[4] = 0; rate_22050[5] = 0; rate_22050[6] = 0; rate_22050[7] = 0;
+        rate_22050[8] = 0; rate_22050[9] = 0;
+
+        rate_44100[0] = 0x40; rate_44100[1] = 0x0e; rate_44100[2] = 0xac; rate_44100[3] = 0x44;
+        rate_44100[4] = 0; rate_44100[5] = 0; rate_44100[6] = 0; rate_44100[7] = 0;
+        rate_44100[8] = 0; rate_44100[9] = 0;
+
+        FUN_00118be0((void *)0x32ec18, comm, 1);
+
+        if (csmemcmp(rate_11025, &comm[8], 10) == 0) {
+          *(uint32_t *)format_out = 0x2b11; /* 11025 */
+        } else if (csmemcmp(rate_22050, &comm[8], 10) == 0) {
+          *(uint32_t *)format_out = 0x5622; /* 22050 */
+          *(uint16_t *)((char *)format_out + 8) = *(uint16_t *)&comm[6];
+          *(uint16_t *)((char *)format_out + 4) = *(uint16_t *)&comm[0];
+          if (chunk[1] == 0x12 || *(uint32_t *)&comm[18] == 0x4e4f4e45) {
+            file_close(file);
+            return true;
+          }
+          file_close(file);
+          return false;
+        } else if (csmemcmp(rate_44100, &comm[8], 10) == 0) {
+          *(uint32_t *)format_out = 0xac44; /* 44100 */
+        } else {
+          *(uint32_t *)format_out = 0xffffffff;
+          file_close(file);
+          return false;
+        }
+
+        *(uint16_t *)((char *)format_out + 8) = *(uint16_t *)&comm[6];
+        *(uint16_t *)((char *)format_out + 4) = *(uint16_t *)&comm[0];
+
+        if (chunk[1] == 0x12 || *(uint32_t *)&comm[18] == 0x4e4f4e45)
+          result = true;
+      }
+    }
+    file_close(file);
+  }
+  return result;
+}
+
+/* Read the sample payload out of an AIFF/AIFC 'SSND' chunk (0x1c6b20).
+ *
+ * Same chunk walk as FUN_001c6900 but looking for 'SSND'.  The payload read
+ * starts 0x10 bytes past the chunk header start (8-byte header plus SSND's
+ * own offset/blockSize dwords) and is chunk_size - 8 bytes long; that length
+ * is also stored through `size_out`.  On success the samples are byte-swapped
+ * in place as 16-bit elements via FUN_00118620(buffer, *size_out >> 1, -2) —
+ * SAR at 0x1c6bd6 makes the shift arithmetic, hence the signed `int *`.
+ *
+ * Mirrors the RIFF/WAVE 'data' reader FUN_001c6ed0 in game_sound.c. */
+bool FUN_001c6b20(file_ref_t *file, int *size_out, void *buffer)
+{
+  bool result;
+  uint32_t chunk[2]; /* [0] = chunk id, [1] = chunk size */
+  int offset;
+  int data_size;
+  unsigned int skip;
+
+  result = false;
+  offset = 0xc;
+
+  if (file_open(file, 1)) {
+    if (file_read_from_position(file, offset, 8, chunk)) {
+      for (;;) {
+        FUN_00118be0((void *)0x32ebe4, chunk, 1);
+        if (chunk[0] == 0x53534e44) { /* 'SSND' */
+          data_size = (int)chunk[1] - 8;
+          offset += 0x10;
+          *size_out = data_size;
+          if (file_read_from_position(file, offset, data_size, buffer))
+            result = true;
+          break;
+        }
+        skip = chunk[1];
+        if ((skip & 1) != 0)
+          skip = skip + 1;
+        offset += (int)skip + 8;
+        if (!file_read_from_position(file, offset, 8, chunk))
+          break;
+      }
+    }
+    file_close(file);
+    if (result)
+      FUN_00118620(buffer, *size_out >> 1, -2);
+  }
+  return result;
+}
+
+/* Post-parse hook for the AIFF branch of the sound-file import dispatch
+ * (0x1c6bf0).  The whole function body is a single `RET` (byte C3 at
+ * 0x1c6bf0, NOP padding to 0x1c6c00) — it is genuinely empty in the binary,
+ * unlike its RIFF/WAVE counterpart FUN_001c6fb0 which is a real function.
+ * FUN_001c6ca0 (game_sound.c) calls it with three stack arguments and cleans
+ * up with ADD ESP,0xc at 0x1c6cd6, so the cdecl 3-arg shape is caller-side
+ * evidence only; nothing here reads the arguments. */
+void FUN_001c6bf0(void *param_1, void *param_2, void *param_3)
+{
+}
+
+/* Sniff a sound file's container and fill in its format description
+ * (0x1c6c00).  Tries AIFF/AIFC first (FUN_001c6880 sniff + FUN_001c6900 COMM
+ * parse), then RIFF/WAVE (FUN_001c6d20 sniff + FUN_001c6d90 'fmt ' parse).
+ *
+ * The two asserts name the parameters verbatim — "info" (line 0x12) and
+ * "file" (line 0x13) — and name the translation unit
+ * "c:\halo\SOURCE\sound\sound_import\sound_import.c".  `info` is [EBP+0x8]
+ * and is forwarded as the format-out argument; `file` is [EBP+0xc] and is
+ * the file reference. */
+bool FUN_001c6c00(void *info, file_ref_t *file)
+{
+  if (info == NULL) {
+    display_assert(
+      "info", "c:\\halo\\SOURCE\\sound\\sound_import\\sound_import.c", 0x12, 1);
+    system_exit(-1);
+  }
+  if (file == NULL) {
+    display_assert(
+      "file", "c:\\halo\\SOURCE\\sound\\sound_import\\sound_import.c", 0x13, 1);
+    system_exit(-1);
+  }
+
+  if (FUN_001c6880(file) && FUN_001c6900(file, info))
+    goto valid;
+  if (FUN_001c6d20(file) && FUN_001c6d90(file, info))
+    goto valid;
+  return false;
+
+valid:
+  return true;
 }
