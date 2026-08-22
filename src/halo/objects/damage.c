@@ -1841,17 +1841,17 @@ void FUN_00138e30(void *damage_params, int target_index)
   char *tag;
   int16_t count;
   int results[64];
-  uint16_t i;
+  int16_t i;
 
   (void)target_index;
   tag = (char *)tag_get(0x6a707421, *(int *)damage_params);
   count = object_find_in_radius(0, 0, (char *)damage_params + 0x14,
                                 (float *)((char *)damage_params + 0x1c),
                                 *(float *)(tag + 4), results, 0x40);
-  if (count > 0) {
-    for (i = 0; i < (uint16_t)count; i++)
-      FUN_00138900(damage_params, results[i], 0);
-  }
+  /* The reference has ONE signed guard (`test ax,ax; jle`) into a down-counting
+   * do-while; a separate `if (count > 0)` plus an unsigned index adds a `jbe`. */
+  for (i = 0; i < count; i++)
+    FUN_00138900(damage_params, results[i], 0);
   FUN_00146be0(damage_params);
 }
 

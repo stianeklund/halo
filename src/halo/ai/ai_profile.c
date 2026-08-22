@@ -195,7 +195,6 @@ void ai_index_to_string(unsigned int combined_index, void *scenario,
 {
   void *element;
   unsigned int selector;
-  unsigned char sub_index;
 
   if (combined_index == 0xffffffff) {
     csstrncpy(buffer, (const char *)0x254384, buffer_size);
@@ -205,7 +204,10 @@ void ai_index_to_string(unsigned int combined_index, void *scenario,
   element = tag_block_get_element((char *)scenario + 0x42c,
                                   combined_index & 0xffff, 0xb0);
   selector = combined_index >> 0x1e;
-  sub_index = (unsigned char)(combined_index >> 16);
+  /* The sub-index is NOT hoisted into a local: the reference re-reads byte 2 of
+   * the parameter slot inside each case (`movzbl 0xa(%ebp)`). Hoisting it forces
+   * cl.exe to rescue combined_index out of ESI before the shift, costing 2 insns;
+   * spelling it as an inline shift instead pins it in EDI, which is worse still. */
 
   /* NOTE: a switch (not an if-else-if cascade) is required to match MSVC's
    * CMP-chain selector dispatch; clang lowers the equivalent if-else-if to a
@@ -218,14 +220,16 @@ void ai_index_to_string(unsigned int combined_index, void *scenario,
   case 1: {
     /* profile + element+0x8c sub-block (stride 0xac) */
     void *sub = tag_block_get_element(
-      (char *)&((encounter_definition *)element)->platoons, sub_index, 0xac);
+      (char *)&((encounter_definition *)element)->platoons,
+      ((const unsigned char *)&combined_index)[2], 0xac);
     snprintf(buffer, buffer_size, (const char *)0x253d30, element, sub);
     return;
   }
   case 2: {
     /* profile + element+0x80 sub-block (stride 0xe8) */
     void *sub = tag_block_get_element(
-      (char *)&((encounter_definition *)element)->squads, sub_index, 0xe8);
+      (char *)&((encounter_definition *)element)->squads,
+      ((const unsigned char *)&combined_index)[2], 0xe8);
     snprintf(buffer, buffer_size, (const char *)0x253d30, element, sub);
     return;
   }

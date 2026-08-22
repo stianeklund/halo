@@ -1831,12 +1831,12 @@ char FUN_0010be20(float *ray_origin, float *ray_dir, float *aabb)
   }
 
   /* ref: fcomp 0x2533c0/test ah,1/jne then fcomp 0x2533c8/test ah,0x41/jp —
-   * two separate guards, tmax/tmin on the left, NaN returns 0 on both */
-  if (!(tmax >= 0.0f))
-    return 0;
-  if (!(tmin <= 1.0f))
-    return 0;
-  return 1;
+   * two separate guards, tmax/tmin on the left, NaN returns 0 on both.
+   * Spelled as ONE returned && expression, not two `return 0;` statements: the
+   * original's tail is `movl $0x1,%eax` / `xorl %eax,%eax` with its OWN epilogue
+   * (0x1bc/0x1c6), i.e. int-typed expression materialization.  The statement
+   * form narrows to AL and tail-merges both zero exits, costing 5 insns. */
+  return tmax >= 0.0f && tmin <= 1.0f;
 }
 
 /* 0x10bff0 — 3D ray vs AABB intersection (slab method).

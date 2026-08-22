@@ -2462,10 +2462,10 @@ int FUN_0018e140(short *out_short)
     }
     count = *(int *)((char *)tag + 4);
     *out_short = *(short *)tag;
-    return count;
+    goto done; /* merged epilog: ref reuses AX from the EAX return value */
   }
-  *out_short = 0;
-  return 0;
+  count = 0; *out_short = (short)count;
+done: return count;
 }
 
 /* 0x18e1d0 — scenario_debug_to_file: split a scenario's name (at scenario+0x20)
