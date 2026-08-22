@@ -75,18 +75,21 @@ typedef struct {
  * Globals (hardcoded, not in kb.json):
  *   0x476ab0  void *   – global_d3d_device
  *   0x325654  short[2] – capture rect left|top (packed dword)
- *   0x325658  short[2] – capture rect right|bottom (packed dword)
- *   0x505728  void *   – window_globals.hWndPresentTarget
  *   0x325668  uint64   – 64-bit frame/present counter (ADD/ADC pair)
  */
+typedef struct s_rectangle2d {
+  int16_t top;
+  int16_t left;
+  int16_t bottom;
+  int16_t right;
+} s_rectangle2d;
+
 void rasterizer_present(void *screenshot_bitmap, short *point)
 {
-  const char *msg;
   bool ok;
-  short rect_x0; /* lo(0x325654) = left chain   ([EBP-0xc], Ghidra local_10) */
-  short rect_y0; /* hi(0x325654) = top chain    ([EBP-0xa], Ghidra sStack_e) */
-  short rect_x1; /* lo(0x325658) = right chain  ([EBP-0x8], Ghidra local_c) */
-  short rect_y1; /* hi(0x325658) = bottom chain ([EBP-0x6], Ghidra sStack_a) */
+  s_rectangle2d rect;
+  int16_t dy;
+  int16_t dx;
 
   if (*(void **)0x476ab0 == 0) {
     display_assert("global_d3d_device",
@@ -100,25 +103,22 @@ void rasterizer_present(void *screenshot_bitmap, short *point)
   if (screenshot_bitmap != 0 &&
       *(int *)((char *)screenshot_bitmap + 0x2c) != 0) {
     /* Seed rect from the two packed-short globals. */
-    rect_x0 = *(short *)0x325654;
-    rect_y0 = *(short *)0x325656;
-    rect_x1 = *(short *)0x325658;
-    rect_y1 = *(short *)0x32565a;
+    rect = *(s_rectangle2d *)0x325654;
 
     if (point != 0) {
-      rect_y1 = rect_y1 - rect_y0;
-      rect_x1 = rect_x1 - rect_x0;
-      rect_y0 = point[0] * rect_y1;
-      rect_x0 = point[1] * rect_x1;
-      rect_y1 = rect_y1 + rect_y0;
-      rect_x1 = rect_x0 + rect_x1;
+      dy = *(int16_t *)0x32565a - *(int16_t *)0x325656;
+      dx = *(int16_t *)0x325658 - *(int16_t *)0x325654;
+      rect.top = point[0] * dy;
+      rect.bottom = dy + rect.top;
+      rect.left = point[1] * dx;
+      rect.right = dx + rect.left;
     }
 
     if ((*(short *)((char *)screenshot_bitmap + 0xc) == 0xb ||
          *(short *)((char *)screenshot_bitmap + 0xc) == 10) &&
-        *(short *)((char *)screenshot_bitmap + 0x14) == 0 && rect_y0 >= 0 &&
-        rect_x0 >= 0 && rect_y1 <= *(short *)((char *)screenshot_bitmap + 4) &&
-        rect_x1 <= *(short *)((char *)screenshot_bitmap + 6)) {
+        *(short *)((char *)screenshot_bitmap + 0x14) == 0 && rect.top >= 0 &&
+        rect.left >= 0 && rect.bottom <= *(short *)((char *)screenshot_bitmap + 4) &&
+        rect.right <= *(short *)((char *)screenshot_bitmap + 6)) {
       void *surface;
       d3d_surface_desc_t desc;
 
@@ -156,8 +156,8 @@ void rasterizer_present(void *screenshot_bitmap, short *point)
           }
 
           for (row = 0; row < w; row = (short)(row + 1)) {
-            void *dst = bitmap_2d_address(screenshot_bitmap, rect_y0,
-                                          (short)(row + rect_x0), 0);
+            void *dst = bitmap_2d_address(screenshot_bitmap, rect.top,
+                                          (short)(row + rect.left), 0);
             csmemcpy(dst, (char *)locked.pBits + (int)row * locked.Pitch,
                      locked.Pitch);
           }
@@ -165,18 +165,17 @@ void rasterizer_present(void *screenshot_bitmap, short *point)
           ok = true;
           goto present;
         } else {
-          msg = "### ERROR rasterizer_present: failed to lock backbuffer "
-                "surface";
+          error(2, "### ERROR rasterizer_present: failed to lock backbuffer surface");
+          ok = false;
         }
       } else {
-        msg = "### ERROR rasterizer_present: failed to get backbuffer surface";
+        error(2, "### ERROR rasterizer_present: failed to get backbuffer surface");
+        ok = false;
       }
     } else {
-      msg = "### ERROR rasterizer_present: invalid bitmap";
+      error(2, "### ERROR rasterizer_present: invalid bitmap");
+      ok = false;
     }
-
-    error(2, msg);
-    ok = false;
   }
 
 present:
@@ -1419,6 +1418,8 @@ void FUN_00159900(void *group)
   char *cam; /* *(char **)0x476204: active camera / view-parameters block */
   int cull; /* computed CullMode select */
   float fv; /* 1.0f - group->effect fade (+0x1c) */
+  float t9;
+  float t10;
 
   /* Slow-path contiguous descriptor (ebp-0x108 block in the original). */
   s_camo_geometry_pass desc;
@@ -1640,10 +1641,10 @@ void FUN_00159900(void *group)
           *(float *)(cam + 0x18c) * *(float *)(grp + 0x1c);
   vs[8] = fv * *(float *)(cam + 0x17c) +
           *(float *)(cam + 0x190) * *(float *)(grp + 0x1c);
-  vs[9] = fv * *(float *)(cam + 0x180) +
-          *(float *)(cam + 0x194) * *(float *)(grp + 0x1c);
-  vs[10] = fv * *(float *)(cam + 0x184) +
-           *(float *)(cam + 0x198) * *(float *)(grp + 0x1c);
+  t9 = fv * *(float *)(cam + 0x180) +
+       *(float *)(cam + 0x194) * *(float *)(grp + 0x1c);
+  t10 = fv * *(float *)(cam + 0x184) +
+        *(float *)(cam + 0x198) * *(float *)(grp + 0x1c);
   vs[2] = 320.0f;
   vs[3] = 240.0f;
   vs[4] = 0.0f;
@@ -1653,6 +1654,8 @@ void FUN_00159900(void *group)
   vs[0] = (fv * *(float *)(cam + 0x174) +
            *(float *)(cam + 0x188) * *(float *)(grp + 0x1c)) *
           *(float *)(grp + 0x18);
+  vs[9] = t9;
+  vs[10] = t10;
   vs[11] = 0.0f;
   D3DDevice_SetVertexShaderConstant(-0x54, vs, 3);
 
@@ -2164,10 +2167,7 @@ void FUN_0015acc0(short *points, int16_t point_count, float *color)
   unsigned int packed;
   unsigned int remaining;
   short *p;
-  /* volatile: the D3D result-check macro's test/branch on the flag is live
-   * in the binary (TEST BL,BL at 0x15ad64/0x15ad8a); a plain local folds to
-   * constant 1 and VC71 dead-codes both report branches (-18 insns). */
-  volatile int success;
+  volatile bool success;
 
   /* Fall-through assert blocks, matching the original layout (asserts first,
    * body unconditional after them). */
@@ -3095,11 +3095,13 @@ void FUN_0015c190(int count, void *base, void *out, void *entries)
   void *elem;
   uint16_t packed;
   uint8_t staging[8];
+  void *type_block;
 
   if (count <= 0) {
     return;
   }
 
+  type_block = (uint8_t *)base + 0x44;
   /* The original biases the entry cursor by +2 (EDI = entries + 2) and
    * addresses fields at EDI-2..EDI+3; mirror that shape. */
   src = (uint8_t *)entries + 2;
@@ -3122,8 +3124,8 @@ void FUN_0015c190(int count, void *base, void *out, void *entries)
                 (uint8_t)((uint32_t)w >> 3));
     staging[5] = (uint8_t)(((lo >> 2) & 7) | (uint8_t)(lo << 3));
 
-    slot = (int)(uint32_t)(src[1] >> 4) % *(int *)((uint8_t *)base + 0x44);
-    elem = tag_block_get_element((uint8_t *)base + 0x44, (int16_t)slot, 0x60);
+    slot = (int)(uint32_t)(src[1] >> 4) % *(int *)type_block;
+    elem = tag_block_get_element(type_block, (int16_t)slot, 0x60);
     packed =
       (uint16_t)((((src[1] & 0xf) % (int)*(uint8_t *)((uint8_t *)elem + 0x23) +
                    (int)*(uint8_t *)((uint8_t *)elem + 0x22))
@@ -4172,7 +4174,7 @@ int FUN_0015d310(short type, int count)
  */
 short FUN_0015d480(int dynamic_vertex_buffer_index)
 {
-  short none_result = -1;
+  short result = -1;
 
   if (*(void **)0x476ab0 == 0) {
     display_assert("global_d3d_device",
@@ -4200,7 +4202,7 @@ short FUN_0015d480(int dynamic_vertex_buffer_index)
     return *(short *)((dynamic_vertex_buffer_index << 4) + 0x476bd8);
   }
   error(2, "### WARNING tried to query dynamic vertices with index=NONE");
-  return none_result;
+  return result;
 }
 
 /* 0x15d5b0
@@ -4310,8 +4312,8 @@ void rasterizer_draw_dynamic_vertices(int first_primitive_index,
       }
 
       record = 0x476bd8 + dynamic_vertex_buffer_index * 0x10;
-      vertex_size = FUN_00180050(*(short *)record);
-      group = 0x476ae8 + *(short *)record * 0x14;
+      vertex_size = FUN_00180050(*(uint16_t *)record);
+      group = 0x476ae8 + (int16_t)*(short *)record * 0x14;
       if (group == 0) {
         display_assert("group", kDrawPrimitivesFile, 0x1f8, 1);
         system_exit(-1);

@@ -1635,7 +1635,7 @@ int rasterizer_memory_pool_new(void)
   *(void **)0x4d0488 = pool;
   if (pool == 0) {
     error(2, "### ERROR rasterizer failed to allocate global memory pool");
-    return 0;
+    result = 0;
   }
   return result;
 }

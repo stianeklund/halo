@@ -31111,16 +31111,16 @@
     "FUN_0015acc0": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 84.8,
+      "abi_modeled_mnemonic_pct": 89.3,
       "addr": "0x15acc0",
       "end": "0x15ada0",
       "kind": "auto",
       "n_r": 80,
-      "opnd_percent": 75.9,
-      "raw_mnemonic_pct": 84.8,
+      "opnd_percent": 76.7,
+      "raw_mnemonic_pct": 89.3,
       "ref": "synth",
       "ref_sha": "24cba5f3441e087e",
-      "score": 84.8,
+      "score": 89.3,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "FUN_0015afa0": {
@@ -66076,16 +66076,16 @@
     "rasterizer_memory_pool_new": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 78.9,
+      "abi_modeled_mnemonic_pct": 93.0,
       "addr": "0x1824e0",
       "end": "0x182519",
       "kind": "auto",
       "n_r": 21,
-      "opnd_percent": 73.7,
-      "raw_mnemonic_pct": 78.9,
+      "opnd_percent": 88.4,
+      "raw_mnemonic_pct": 93.0,
       "ref": "synth",
       "ref_sha": "f3709cdfe49fbd1f",
-      "score": 78.9,
+      "score": 93.0,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
     "rasterizer_memory_pool_reset": {
@@ -66121,16 +66121,16 @@
     "rasterizer_present": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 86.2,
+      "abi_modeled_mnemonic_pct": 92.1,
       "addr": "0x157e40",
       "end": "0x1580ab",
       "kind": "auto",
       "n_r": 192,
-      "opnd_percent": 62.4,
-      "raw_mnemonic_pct": 86.2,
+      "opnd_percent": 70.2,
+      "raw_mnemonic_pct": 92.1,
       "ref": "synth",
       "ref_sha": "81ade064d5c97a96",
-      "score": 86.2,
+      "score": 92.1,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
     "rasterizer_psuedo_dynamic_screen_quad_draw": {
@@ -66449,18 +66449,18 @@
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
     "rasterizer_text_cache_character": {
-      "abi_model": "regparam_stripped_saves",
-      "abi_model_items": 2,
-      "abi_modeled_mnemonic_pct": 17.7,
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 49.6,
       "addr": "0x183880",
       "end": "0x183bfc",
       "kind": "auto",
       "n_r": 236,
-      "opnd_percent": 25.7,
-      "raw_mnemonic_pct": 17.6,
+      "opnd_percent": 28.6,
+      "raw_mnemonic_pct": 49.6,
       "ref": "synth",
       "ref_sha": "d6610e565ad2dfef",
-      "score": 17.7,
+      "score": 49.6,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
     "rasterizer_text_cache_dispose": {
