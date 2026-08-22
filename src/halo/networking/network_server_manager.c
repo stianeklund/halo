@@ -253,13 +253,22 @@ __declspec(noinline) void network_game_server_close_game(void *server)
  */
 bool network_game_server_game_is_open(void *server)
 {
+  bool game_is_open;
+
   if (!server) {
     display_assert("server",
                    "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
                    0x214, 1);
     system_exit(-1);
   }
-  return *(uint8_t *)((char *)server + 6) & 1;
+  game_is_open = *(uint8_t *)((char *)server + 6) & 1;
+  if (!((1 == game_is_open) || (0 == game_is_open))) {
+    display_assert("(TRUE == game_is_open) || (FALSE == game_is_open)",
+                   "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
+                   0x217, 1);
+    system_exit(-1);
+  }
+  return game_is_open;
 }
 
 /* Check if the server's game is valid (0x12c160).
@@ -1664,7 +1673,6 @@ bool FUN_0012dbb0(int server)
 bool FUN_0012dc20(int server)
 {
   char *s = (char *)server;
-  char name_buf[0x40];
 
   if (!server) {
     display_assert("server",
@@ -1675,25 +1683,39 @@ bool FUN_0012dc20(int server)
 
   network_game_log("setting up a net game");
 
-  if (!game_engine_get_current_stage(s + 0xac, s + 0x2c)) {
-    error(2, "network game setup failed; probably due to a missing playlist");
-    return false;
+  /* Reference sinks the failure block to the tail (`test al,al; je <end>`),
+   * and initializes the 64-byte buffer inline in the success path
+   * (`rep movsl` of 5 dwords from the L"<unknown>" const at 0x281c38, then
+   * `rep stosl` of 11 zero dwords) -- a wide-string aggregate initializer
+   * on a block-scoped local, not two library calls. */
+  if (game_engine_get_current_stage(s + 0xac, s + 0x2c)) {
+#if defined(_MSC_VER) && !defined(__clang__)
+    wchar_t name_buf[0x20] = L"<unknown>";
+#else
+    /* clang lowers the aggregate initializer to a memcpy call, and this
+     * target has no linkable memcpy; the explicit copy is byte-identical. */
+    wchar_t name_buf[0x20];
+
+    csmemcpy(name_buf, (void *)0x281c38, 20);
+    csmemset((char *)name_buf + 20, 0, 44);
+#endif
+
+    network_game_generate_local_machine_name(name_buf);
+    ustrncpy((wchar_t *)(s + 8), name_buf, 0xf);
+
+    *(short *)(s + 0x26) = 0;
+    *(int *)(s + 0x28) = 0;
+    *(char *)(s + 0x115) = 2;
+    *(char *)(s + 0x116) = 0x10;
+    *(char *)(s + 0x117) = (*(char *)(s + 0xc8) != 0) + 1;
+
+    network_game_server_open_game((void *)server);
+
+    return true;
   }
 
-  csmemcpy(name_buf, (void *)0x281c38, 20);
-  csmemset(name_buf + 20, 0, 44);
-  network_game_generate_local_machine_name(name_buf);
-  ustrncpy((wchar_t *)(s + 8), (wchar_t *)name_buf, 0xf);
-
-  *(short *)(s + 0x26) = 0;
-  *(int *)(s + 0x28) = 0;
-  *(char *)(s + 0x115) = 2;
-  *(char *)(s + 0x116) = 0x10;
-  *(char *)(s + 0x117) = (*(char *)(s + 0xc8) != 0) + 1;
-
-  network_game_server_open_game((void *)server);
-
-  return true;
+  error(2, "network game setup failed; probably due to a missing playlist");
+  return false;
 }
 
 /* Dump network game data fields to the log with a prefix (0x12dd20).
@@ -2415,69 +2437,88 @@ skip_message:
  * Verifies network connectivity, validates the game, accepts new client
  * connections, handles the public endpoint, processes client machines,
  * and dispatches based on server state (pregame/ingame/postgame). */
+#if defined(_MSC_VER) && !defined(__clang__)
+/* The reference CALLs network_game_server_game_is_valid (`push esi; call`);
+ * cl.exe /Ob2 inlines it here instead (`testb $0x2, 0x6(%esi)`). */
+#pragma inline_depth(0)
+#endif
 bool network_game_server_start(void *server)
 {
   char *s;
   bool result;
   int new_conn;
-  int16_t state;
+  uint16_t state;
   char addr_buf[24];
   const char *addr_str;
 
+  /* Every failure path in the reference logs and then falls into ONE shared
+   * epilogue (`pop esi; mov al,bl; pop ebx; mov esp,ebp; pop ebp; ret`), with
+   * all four log blocks sunk past the join (0x125/0x13a/0x14f/0x164). That is
+   * the codegen for nested if/else with a single trailing `return result`,
+   * not for early `return false` statements. */
   result = true;
-  if (!transport_network_available()) {
-    if (!network_game_is_splitscreen_local()) {
-      display_error_when_main_menu_loaded(6);
-      error(2, "network connection went down!");
-      return false;
-    }
-  }
-
-  s = (char *)server;
-  if (!network_game_server_game_is_valid(server)) {
-    network_game_log("the server's game is invalid");
+  if (!transport_network_available() && !network_game_is_splitscreen_local()) {
+    display_error_when_main_menu_loaded(6);
+    error(2, "network connection went down!");
+    result = false;
   } else {
-    new_conn = 0;
-    result = FUN_00129cf0(*(int *)s, 0, &new_conn);
-    if (result != 1) {
-      network_game_log("network_connection_idle() failed");
-      return result;
-    }
-    if (new_conn != 0) {
-      if (FUN_0012d880((int)server, new_conn)) {
-        network_connection_get_address(new_conn, addr_buf, 0);
-        addr_str = transport_address_to_string(addr_buf);
-        network_game_log("new client connected from ip %s (validation pending)",
-                         addr_str);
+    s = (char *)server;
+    if (!network_game_server_game_is_valid(server)) {
+      network_game_log("the server's game is invalid");
+    } else {
+      new_conn = 0;
+      result = FUN_00129cf0(*(int *)s, 0, &new_conn);
+      if (result != 1) {
+        network_game_log("network_connection_idle() failed");
       } else {
-        network_game_log("failed to add new client connection to the game");
-        FUN_00129130(*(int *)s, new_conn);
+        if (new_conn != 0) {
+          /* Reference compares against the live `result` register
+           * (`cmp al,bl`, bl==1 here), not `test al,al`. */
+          if (FUN_0012d880((int)server, new_conn) == 1) {
+            network_connection_get_address(new_conn, addr_buf, 0);
+            addr_str = transport_address_to_string(addr_buf);
+            network_game_log(
+              "new client connected from ip %s (validation pending)", addr_str);
+          } else {
+            network_game_log("failed to add new client connection to the game");
+            FUN_00129130(*(int *)s, new_conn);
+          }
+        }
+        result = FUN_0012d9f0((int)server);
+        if (!result) {
+          network_game_log(
+            "network_game_server_handle_public_endpoint() failed");
+        } else {
+          result = FUN_0012e580((int)server);
+          if (!result) {
+            network_game_log(
+              "network_game_server_handle_client_machines() failed");
+          } else {
+            /* Reference dispatches with `movzx eax,WORD [esi+4]` then a
+             * sub/dec/je chain -- an MSVC switch over an unsigned short. */
+            state = *(uint16_t *)(s + 4);
+            switch (state) {
+            case 0:
+              return FUN_0012e750((int)server);
+            case 1:
+              break;
+            case 2:
+              return FUN_0012db60((int)server);
+            default:
+              network_game_log("unknown server state");
+              result = false;
+              break;
+            }
+          }
+        }
       }
-    }
-    result = FUN_0012d9f0((int)server);
-    if (!result) {
-      network_game_log("network_game_server_handle_public_endpoint() failed");
-      return false;
-    }
-    result = FUN_0012e580((int)server);
-    if (!result) {
-      network_game_log("network_game_server_handle_client_machines() failed");
-      return false;
-    }
-    state = *(int16_t *)(s + 4);
-    if (state == 0) {
-      return FUN_0012e750((int)server);
-    }
-    if (state != 1) {
-      if (state != 2) {
-        network_game_log("unknown server state");
-        return false;
-      }
-      return FUN_0012db60((int)server);
     }
   }
   return result;
 }
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma inline_depth()
+#endif
 
 /* Reset server to pregame state (0x12eca0).
  * If already in postgame, sends pregame reset message, toggles client
@@ -2671,32 +2712,46 @@ bool FUN_0012f040(int server, int machine, void *message_data, int message_size)
 }
 
 /* Handle map-precached notification from client (0x12f0d0). */
+#if defined(_MSC_VER) && !defined(__clang__)
+/* The reference makes real CALLs to network_game_server_get_state and
+ * network_game_server_client_machine_is_precached; cl.exe /Ob2 inlines both
+ * here (16 surplus instructions). Scoped inline_depth(0) matches the
+ * original's call shape. */
+#pragma inline_depth(0)
+#endif
 bool FUN_0012f0d0(int server, int machine, void *message_data, int message_size)
 {
+  /* The reference stores both packet header fields as DWORDs
+   * (`mov DWORD PTR [ebp-0x4],0x13`), and its frame is 0x108 bytes
+   * (256 buffer + 2 * 4), so these two locals are int-width. */
+  int packet_type;
+  int packet_version;
   char decoded_buf[256];
-  short packet_type;
-  short packet_version;
 
-  if (network_game_server_get_state(server, (short *)0) != 0) {
+  if (network_game_server_get_state(server, (short *)0) == 0) {
+    message_size -= 2;
+    packet_type = 0x13;
+    packet_version = 1;
+    if (FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
+                     (short *)&message_size, (short *)&packet_type,
+                     (short *)&packet_version, 3)) {
+      network_game_server_client_machine_is_precached((int)server, machine,
+                                                      (int)decoded_buf);
+      return true;
+    }
     network_game_log(
-      "failed to handle a message_type_client_map_is_precached_pregame "
-      "because the server is not in pregame");
-    return true;
-  }
-  message_size -= 2;
-  packet_type = 0x13;
-  packet_version = 1;
-  if (FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
-                   (short *)&message_size, &packet_type, &packet_version, 3)) {
-    network_game_server_client_machine_is_precached((int)server, machine,
-                                                    (int)decoded_buf);
+      "server failed to decode a message_type_client_map_is_precached_pregame "
+      "packet");
     return true;
   }
   network_game_log(
-    "server failed to decode a message_type_client_map_is_precached_pregame "
-    "packet");
+    "failed to handle a message_type_client_map_is_precached_pregame "
+    "because the server is not in pregame");
   return true;
 }
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma inline_depth()
+#endif
 
 /* Handle client-loaded notification from client (0x12f170). */
 bool FUN_0012f170(int server, int machine, void *message_data, int message_size)
@@ -3110,6 +3165,12 @@ char FUN_0012f8d0(int server, void *decoded_msg, void *client_message)
 
 /* Handle client join-game request (0x12f990).
  * server=stack, machine=ESI(thunk-provided), message/size=stack. */
+#if defined(_MSC_VER) && !defined(__clang__)
+/* The reference CALLs network_game_server_get_state and two other same-TU
+ * helpers (call count 46 vs our 43); cl.exe /Ob2 inlines them here
+ * (`cmpw $0x0, 0x4(%edi)`). */
+#pragma inline_depth(0)
+#endif
 char FUN_0012f990(int server, void *machine, void *message, int message_size)
 {
   char decode_buf[0x50]; /* [0x40]=name(wchar), [0x40..0x4f]=client_token */
@@ -3254,3 +3315,6 @@ char FUN_0012f990(int server, void *machine, void *message, int message_size)
       "network_game_server_write() failed while sending a rejection reply");
   return false;
 }
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma inline_depth()
+#endif
