@@ -990,22 +990,20 @@ void FUN_00099070(void)
   }
 }
 
-/* FUN_00099220 (0x99220)
- *
- * Determine the dominant axis of a plane normal.  Returns the index
- * (0=x, 1=y, 2=z) of the component with the largest absolute value.
- */
-uint32_t FUN_00099220(float *plane)
+/* FUN_00099220 (0x99220) */
+short FUN_00099220(float *plane)
 {
-  float ax = plane[0] < 0.0f ? -plane[0] : plane[0];
-  float ay = plane[1] < 0.0f ? -plane[1] : plane[1];
-  float az = plane[2] < 0.0f ? -plane[2] : plane[2];
+  float ax = (float)fabs(plane[0]);
+  float ay = (float)fabs(plane[1]);
+  float az = (float)fabs(plane[2]);
 
-  if (ay <= az && ax <= az)
+  if (az >= ay && az >= ax) {
     return 2;
-  if (ay < ax)
-    return 0;
-  return 1;
+  }
+  if (ay >= ax) {
+    return 1;
+  }
+  return 0;
 }
 
 /* FUN_00099270 (0x99270)
@@ -1013,9 +1011,13 @@ uint32_t FUN_00099220(float *plane)
  * Return 1 if the plane normal component at the given projection axis
  * is positive, 0 otherwise.
  */
-uint8_t FUN_00099270(float *plane, uint32_t basis)
+int FUN_00099270(float *plane, short basis)
 {
-  assert_halt((int16_t)basis >= 0 && (int16_t)basis <= 2);
+  if (basis < 0 || basis > 2) {
+    display_assert("basis>=0 && basis<=2",
+                   "c:\\halo\\SOURCE\\structures\\structures.c", 0x350, true);
+    system_exit(-1);
+  }
   if (plane[basis] > 0.0f)
     return 1;
   return 0;
@@ -1109,7 +1111,6 @@ void FUN_00104d40(float *p0, float *p1, float *p2, float radius, float *color)
 {
   float box[6];
   float col[4];
-  float m;
 
   if (p0 == 0) {
     display_assert("p0", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x255,
@@ -1133,81 +1134,21 @@ void FUN_00104d40(float *p0, float *p1, float *p2, float radius, float *color)
   }
   if (FUN_00103d30()) {
     /* X */
-    if (p1[0] <= p2[0])
-      m = p1[0];
-    else
-      m = p2[0];
-    if (p0[0] <= m)
-      box[0] = p0[0];
-    else if (p1[0] <= p2[0])
-      box[0] = p1[0];
-    else
-      box[0] = p2[0];
-    box[0] = box[0] - radius;
-    if (p1[0] <= p2[0])
-      m = p2[0];
-    else
-      m = p1[0];
-    if (p0[0] <= m) {
-      if (p1[0] <= p2[0])
-        box[1] = p2[0];
-      else
-        box[1] = p1[0];
-    } else
-      box[1] = p0[0];
-    box[1] = box[1] + radius;
+    box[0] = ((p1[0] <= p2[0] ? p1[0] : p2[0]) <= p0[0] ? (p1[0] <= p2[0] ? p1[0] : p2[0]) : p0[0]) - radius;
+    box[1] = ((p1[0] <= p2[0] ? p2[0] : p1[0]) <= p0[0] ? p0[0] : (p1[0] <= p2[0] ? p2[0] : p1[0])) + radius;
+
     /* Y */
-    if (p1[1] <= p2[1])
-      m = p1[1];
-    else
-      m = p2[1];
-    if (p0[1] <= m)
-      box[2] = p0[1];
-    else if (p1[1] <= p2[1])
-      box[2] = p1[1];
-    else
-      box[2] = p2[1];
-    box[2] = box[2] - radius;
-    if (p1[1] <= p2[1])
-      m = p2[1];
-    else
-      m = p1[1];
-    if (p0[1] <= m) {
-      if (p1[1] <= p2[1])
-        box[3] = p2[1];
-      else
-        box[3] = p1[1];
-    } else
-      box[3] = p0[1];
-    box[3] = box[3] + radius;
+    box[2] = ((p1[1] <= p2[1] ? p1[1] : p2[1]) <= p0[1] ? (p1[1] <= p2[1] ? p1[1] : p2[1]) : p0[1]) - radius;
+    box[3] = ((p1[1] <= p2[1] ? p2[1] : p1[1]) <= p0[1] ? p0[1] : (p1[1] <= p2[1] ? p2[1] : p1[1])) + radius;
+
     /* Z */
-    if (p1[2] <= p2[2])
-      m = p1[2];
-    else
-      m = p2[2];
-    if (p0[2] <= m)
-      box[4] = p0[2];
-    else if (p1[2] <= p2[2])
-      box[4] = p1[2];
-    else
-      box[4] = p2[2];
-    box[4] = box[4] - radius;
-    if (p1[2] <= p2[2])
-      m = p2[2];
-    else
-      m = p1[2];
-    if (p0[2] <= m) {
-      if (p1[2] <= p2[2])
-        box[5] = p2[2];
-      else
-        box[5] = p1[2];
-    } else
-      box[5] = p0[2];
-    box[5] = box[5] + radius;
+    box[4] = ((p1[2] <= p2[2] ? p1[2] : p2[2]) <= p0[2] ? (p1[2] <= p2[2] ? p1[2] : p2[2]) : p0[2]) - radius;
+    box[5] = ((p1[2] <= p2[2] ? p2[2] : p1[2]) <= p0[2] ? p0[2] : (p1[2] <= p2[2] ? p2[2] : p1[2])) + radius;
+
     col[1] = color[1];
     col[2] = color[2];
-    col[0] = color[0] * 0.5f;
     col[3] = color[3];
+    col[0] = color[0] * 0.5f;
     FUN_001049d0(box, col);
     FUN_00104040(p0, p1, p2, color);
   }
@@ -1262,17 +1203,17 @@ void FUN_00104fa0(int point_count, float *points, float radius, float *color)
         p = points + 2;
         i = (unsigned int)point_count & 0xffff;
         do {
-          if (p[-2] < box[0])
+          if (box[0] > p[-2])
             box[0] = p[-2];
-          if (box[1] <= p[-2])
+          if (box[1] < p[-2])
             box[1] = p[-2];
-          if (p[-1] < box[2])
+          if (box[2] > p[-1])
             box[2] = p[-1];
-          if (box[3] <= p[-1])
+          if (box[3] < p[-1])
             box[3] = p[-1];
-          if (p[0] < box[4])
+          if (box[4] > p[0])
             box[4] = p[0];
-          if (box[5] <= p[0])
+          if (box[5] < p[0])
             box[5] = p[0];
           p = p + 3;
           i = i - 1;
@@ -1476,10 +1417,12 @@ void FUN_00105610(float *point, float radius, float *color)
     system_exit(-1);
   }
   if (FUN_00103d30()) {
+    float *c;
     box[0] = point[0] - radius;
-    col[1] = color[1];
-    col[2] = color[2];
-    col[3] = color[3];
+    c = color + 1;
+    col[1] = c[0];
+    col[2] = c[1];
+    col[3] = c[2];
     box[1] = radius + point[0];
     box[2] = point[1] - radius;
     box[3] = radius + point[1];
@@ -1805,33 +1748,36 @@ void FUN_00105980(float *matrix, short *out_vertex_count,
 short shell_update(short vertex_count, float *vertices /* @<ebx> */)
 {
   float line[3]; /* [EBP-0x14]=nx, [EBP-0x10]=ny, [EBP-0xc]=d */
-  float p0[2]; /* [EBP-0x8], [EBP-0x4] */
+  float p0[2];   /* [EBP-0x8], [EBP-0x4] */
   short state;
   short i;
-  float eval;
 
   state = -1;
-  for (i = 0; i < vertex_count; i++) {
-    int s = (int)state;
-    if (s == -1) {
+  i = 0;
+  do {
+    if (i >= vertex_count) {
+      break;
+    }
+    switch (state) {
+    case -1:
       p0[0] = vertices[i * 2];
       p0[1] = vertices[i * 2 + 1];
       state = 0;
-    } else if (s == 0) {
+      break;
+    case 0:
       if (plane2d_from_points(line, &vertices[i * 2], p0) != (float *)0) {
         state = 1;
       }
-    } else if (s == 1) {
-      eval =
-        line[0] * vertices[i * 2] + line[1] * vertices[i * 2 + 1] - line[2];
-      if (fabs(eval) >= *(double *)0x002533d0) {
+      break;
+    case 1:
+      if (!(fabs(line[1] * vertices[i * 2 + 1] + line[0] * vertices[i * 2] - line[2]) <
+            *(double *)0x002533d0)) {
         state = 2;
       }
-    }
-    if (state >= 2) {
       break;
     }
-  }
+    i++;
+  } while (state < 2);
   return state;
 }
 
@@ -1867,7 +1813,7 @@ int16_t convex_hull2d_reduce(int16_t vertex_count, float *vertices,
     int16_t current_index;
     int16_t next_index;
     float min_angle;
-    int16_t collinear_flag;
+    char collinear_flag;
     int16_t i;
     int16_t first;
     float *p;
@@ -1912,8 +1858,14 @@ int16_t convex_hull2d_reduce(int16_t vertex_count, float *vertices,
         for (i = 0; i < vertex_count; i = i + 1) {
           if ((p[0] != ref[0]) || (p[1] != ref[1])) {
             float angle;
+            float dy = p[1] - ref[1];
+            float dx = p[0] - ref[0];
 
-            angle = x87_fatan2f(p[1] - ref[1], p[0] - ref[0]) - base_angle;
+#if defined(_MSC_VER) && !defined(__clang__)
+            angle = (float)atan2((double)dy, (double)dx) - base_angle;
+#else
+            angle = x87_fatan2f(dy, dx) - base_angle;
+#endif
             if (angle < -1e-4f) {
               do {
                 angle = angle + 6.2831855f; /* 2*pi wrap */
@@ -2106,32 +2058,29 @@ bool FUN_00106130(uint16_t point_count, void *points, void *query_point,
   int16_t i;
   float radius_sq = radius * radius;
 
-  if ((int16_t)point_count <= 0)
-    return true;
-
   for (i = 0; i < (int16_t)point_count; i++) {
     int idx = (int)i;
-    int next = (idx + 1 < (int)(int16_t)point_count) ? idx + 1 : 0;
-    float ex, ey, edge_len_sq, dx, dy, cross;
+    int next = idx + 1;
+    float ex, ey, dx, dy, edge_len_sq, cross;
+
+    if (next >= (int)(int16_t)point_count) {
+      next = 0;
+    }
 
     ex = pts[next * 2] - pts[idx * 2];
     ey = pts[next * 2 + 1] - pts[idx * 2 + 1];
-    edge_len_sq = ex * ex + ey * ey;
-
-    if (edge_len_sq == 0.0f)
-      continue;
-
     dx = qp[0] - pts[idx * 2];
     dy = qp[1] - pts[idx * 2 + 1];
-    cross = dx * ey - dy * ex;
+    edge_len_sq = ex * ex + ey * ey;
 
-    if (cross <= 0.0f)
-      continue;
-
-    if (cross * cross < edge_len_sq * radius_sq)
-      continue;
-
-    return false;
+    if (edge_len_sq != 0.0f) {
+      cross = dx * ey - dy * ex;
+      if (cross > 0.0f) {
+        if (!(cross * cross <= edge_len_sq * radius_sq)) {
+          return false;
+        }
+      }
+    }
   }
   return true;
 }
@@ -2261,23 +2210,17 @@ float FUN_00106330(int16_t count, float *points)
 {
   float area;
   float *p;
-  unsigned int n;
+  uint32_t n;
 
   area = 0.0f; /* FLOAT_002533c0 seed */
   if (count > 2) {
-    n = (unsigned int)(unsigned short)(count - 2);
+    n = (uint16_t)(count - 2);
     p = points + 2;
     do {
-      n = n - 1;
-      /* Signed area of triangle (anchor, cur, next), doubled; scaled by 0.5.
-       * Reference computes (next.x-x0)*(cur.y-y0) - (next.y-y0)*(cur.x-x0);
-       * result is negated vs the standard fan cross but fabs() absorbs the
-       * sign. MSVC schedules this as a pairwise x87 multiply. */
-      area = ((p[2] - points[0]) * (p[1] - points[1]) -
-              (p[3] - points[1]) * (p[0] - points[0])) *
-               0.5f /* _DAT_00253398 */
-             + area;
-      p = p + 2;
+      area += ((p[2] - points[0]) * (p[1] - points[1]) -
+               (p[3] - points[1]) * (p[0] - points[0])) * 0.5f;
+      p += 2;
+      n--;
     } while (n != 0);
   }
   return (float)fabs(area); /* FABS */
@@ -3739,7 +3682,7 @@ char FUN_00192710(void *bsp, int index, float *plane, int16_t projection,
   return 0;
 }
 
-void structure_detail_objects_initialize(void)
+__declspec(noinline) void structure_detail_objects_initialize(void)
 {
   int base;
 
@@ -4974,15 +4917,13 @@ void FUN_001959f0(void)
 {
   int scenario;
   int index;
-  char *fwd;
+  int *fwd;
 
   scenario = (int)scenario_get();
 
   if (*(char *)0x449ef1 != 0 && *(char *)0x3275c8 != 0) {
     profile_enter_private((void *)0x3275c0);
   }
-  /* 0x195a18: MOV ESI,[0x5937d0] before the call — count is an implicit
-   * @<esi> arg (callee tests SI). */
   *(int *)0x4d8eb4 =
     FUN_001956d0((void *)0x5937d4, (void *)0x5137d0, *(int16_t *)0x5937d0);
   if (*(char *)0x449ef1 != 0 && *(char *)0x3275c8 != 0) {
@@ -4990,29 +4931,29 @@ void FUN_001959f0(void)
   }
   *(char *)0x4d8eb0 = (char)(*(int *)0x4d8eb4 != -1);
 
-  if (-1 < *(int *)0x3275b8 && *(int *)0x3275b8 < *(int *)(scenario + 0x270)) {
+  if (*(int *)0x3275b8 >= 0 && *(int *)0x3275b8 < *(int *)(scenario + 0x270)) {
     FUN_00191ff0(scenario + 0x26c, *(int *)0x3275b8);
   }
-  if (-1 < *(int *)0x3275bc && *(int *)0x3275bc < *(int *)(scenario + 0x27c)) {
+  if (*(int *)0x3275bc >= 0 && *(int *)0x3275bc < *(int *)(scenario + 0x27c)) {
     FUN_00191e90(scenario + 0x26c, *(int *)0x3275bc);
   }
 
   if (*(char *)0x505703 != 0) {
-    index = 0;
-    if (0 < *(int *)(scenario + 0x27c)) {
+    if (*(int *)(scenario + 0x27c) > 0) {
+      index = 0;
       do {
         tag_block_get_element((void *)(scenario + 0x27c), index, 0x18);
         FUN_00191e90(scenario + 0x26c, index);
-        index = index + 1;
+        index++;
       } while (index < *(int *)(scenario + 0x27c));
     }
   }
 
-  *(int *)0x4d8eb8 = 0;
-  fwd = *(char **)0x31fc38;
-  *(int *)0x4d8ebc = *(int *)fwd;
-  *(int *)0x4d8ec0 = *(int *)(fwd + 4);
-  *(int *)0x4d8ec4 = *(int *)(fwd + 8);
+  fwd = *(int **)0x31fc38;
+  *(char *)0x4d8eb8 = 0;
+  *(int *)0x4d8ebc = fwd[0];
+  *(int *)0x4d8ec0 = fwd[1];
+  *(int *)0x4d8ec4 = fwd[2];
 }
 
 /* FUN_00195b10 (0x195b10)
@@ -5585,7 +5526,7 @@ void FUN_00196190(float *center, float radius_x4, float *bounds6, int count,
   }
 }
 
-void structure_runtime_decals_initialize(void)
+__declspec(noinline) void structure_runtime_decals_initialize(void)
 {
   *(void **)0x4d8ec8 = game_state_malloc("structure decals", 0, 4);
   if (*(void **)0x4d8ec8 == NULL) {
@@ -5601,16 +5542,14 @@ void structure_runtime_decals_initialize(void)
  * keep that shape under VC71 /O2. */
 __declspec(noinline) void structure_runtime_decals_initialize_for_new_map(void)
 {
-  uint8_t *runtime_decal_globals = *(uint8_t **)0x4d8ec8;
-
-  if (runtime_decal_globals == NULL) {
+  if (*(uint8_t **)0x4d8ec8 == NULL) {
     display_assert("structure_decals_globals",
                    "c:\\halo\\SOURCE\\structures\\structure_runtime_decals.c",
                    0x24, true);
     system_exit(-1);
   }
 
-  *runtime_decal_globals = 0;
+  **(uint8_t **)0x4d8ec8 = 0;
 }
 
 /*
@@ -5666,7 +5605,7 @@ void FUN_00196330(void)
  *
  * Empty no-op in this build: the disassembly is a single RET (C3). Preserved
  * as an empty body to keep the address populated and the ABI intact. */
-void structure_runtime_decals_dispose_from_old_map(void)
+__declspec(noinline) void structure_runtime_decals_dispose_from_old_map(void)
 {
 }
 
@@ -5675,7 +5614,7 @@ void structure_runtime_decals_dispose_from_old_map(void)
  * Empty no-op in this build: the disassembly is a single RET (C3) with no
  * prologue, stack frame, FPU, memory access, or calls. Preserved as an
  * empty body to keep the address populated and the ABI intact. */
-void structure_runtime_decals_dispose(void)
+__declspec(noinline) void structure_runtime_decals_dispose(void)
 {
 }
 
@@ -6046,9 +5985,9 @@ char FUN_00197570(float *records, int16_t count, float threshold)
   if (0 < count) {
     do {
       rec = records + i * 3;
-      d = *(float *)0x50655c * (rec[0] - *(float *)0x506550) +
+      d = *(float *)0x506564 * (rec[2] - *(float *)0x506558) +
           *(float *)0x506560 * (rec[1] - *(float *)0x506554) +
-          *(float *)0x506564 * (rec[2] - *(float *)0x506558);
+          *(float *)0x50655c * (rec[0] - *(float *)0x506550);
       if (d <= threshold) {
         return 1;
       }
@@ -6969,20 +6908,20 @@ bool structure_get_planar_fog(void *scenario, int16_t portal_index,
   char *structure_bsp = tag_block_get_element((char *)scenario + 0xb0, 0, 0x60);
   float *portal_plane = tag_block_get_element((int *)(structure_bsp + 0xc),
                                               *(int *)(portal + 4), 0x10);
-  float plane_distance = position[0] * portal_plane[0] +
-                         position[1] * portal_plane[1] +
-                         position[2] * portal_plane[2] - portal_plane[3];
+  float plane_distance = portal_plane[1] * position[1] +
+                         portal_plane[2] * position[2] +
+                         position[0] * portal_plane[0] - portal_plane[3];
 
-  if (fabsf(plane_distance) < radius) {
+  if (fabs(plane_distance) < radius) {
     float dx = *(float *)(portal + 8) - position[0];
     float dy = *(float *)(portal + 0xc) - position[1];
     float dz = *(float *)(portal + 0x10) - position[2];
     float expanded_radius = radius + *(float *)(portal + 0x14);
 
-    if (dx * dx + dy * dy + dz * dz < expanded_radius * expanded_radius) {
+    if (dz * dz + dx * dx + dy * dy < expanded_radius * expanded_radius) {
       int portal_plane_index = *(int *)(portal + 4);
       char *bsp3d = FUN_0018e420();
-      uint32_t plane_basis;
+      short plane_basis;
       uint8_t plane_axis;
       int *portal_vertices = (int *)(portal + 0x34);
       int16_t vertex = 0;
@@ -7020,48 +6959,45 @@ bool structure_get_planar_fog(void *scenario, int16_t portal_index,
 int16_t FUN_001989b0(uint16_t cluster_count, float *position, float radius,
                      int max_count, int16_t *out_indices)
 {
-  void *scenario = scenario_get();
-  int16_t current_cluster = (int16_t)cluster_count;
-  char *cluster =
-    tag_block_get_element((char *)scenario + 0x134, (int)current_cluster, 0x68);
-  int remaining_count = max_count - 1;
-  int visited_count = 1;
+  void *scenario;
+  char *cluster;
+  int visited_count;
+  short portal_iter;
+  int *portal_block;
+  short *portal_elem;
+  short *portal;
+  short adjacent_cluster;
+  short portal_index;
+  short recurse_count;
 
-  if ((int16_t)max_count > 0) {
-    *out_indices = current_cluster;
-    out_indices += 1;
+  scenario = scenario_get();
+  cluster = (char *)tag_block_get_element((char *)scenario + 0x134, (int)(short)cluster_count, 0x68);
+  if ((short)max_count-- > 0) {
+    *out_indices++ = (short)cluster_count;
   }
-
   structure_cluster_mark(cluster_count);
-
-  if (*(int *)(cluster + 0x5c) > 0) {
-    int16_t portal_iter = 0;
-
+  portal_block = (int *)(cluster + 0x5c);
+  visited_count = 1;
+  if (*portal_block > 0) {
+    portal_iter = 0;
     do {
-      int16_t *portal_index_ptr =
-        tag_block_get_element((int *)(cluster + 0x5c), portal_iter, 2);
-      int16_t portal_index = *portal_index_ptr;
-      int16_t *portal = tag_block_get_element((char *)scenario + 0x154,
-                                              (int)portal_index, 0x40);
-      int16_t adjacent_cluster = portal[0];
-
-      if (adjacent_cluster == current_cluster) {
+      portal_elem = (short *)tag_block_get_element(portal_block, (int)portal_iter, 2);
+      portal_index = *portal_elem;
+      portal = (short *)tag_block_get_element((char *)scenario + 0x154, (int)portal_index, 0x40);
+      adjacent_cluster = portal[0];
+      if (adjacent_cluster == (short)cluster_count) {
         adjacent_cluster = portal[1];
       }
-
       if (structure_cluster_unmarked(adjacent_cluster) &&
           structure_get_planar_fog(scenario, portal_index, position, radius)) {
-        int recurse_count = FUN_001989b0((uint16_t)adjacent_cluster, position,
-                                         radius, remaining_count, out_indices);
+        recurse_count = FUN_001989b0(adjacent_cluster, position, radius, max_count, out_indices);
         visited_count += recurse_count;
-        remaining_count -= recurse_count;
-        out_indices += (int16_t)recurse_count;
+        max_count -= recurse_count;
+        out_indices += recurse_count;
       }
-
-      portal_iter += 1;
-    } while ((int)portal_iter < *(int *)(cluster + 0x5c));
+      portal_iter++;
+    } while ((int)portal_iter < *portal_block);
   }
-
   return (int16_t)visited_count;
 }
 
@@ -7476,14 +7412,11 @@ void render_debug_fog_planes(void)
         pfVar5 =
           (float *)tag_block_get_element((void *)(iVar2 + 0x14), next, 0xc);
         fVar1 = -*(float *)0x506770;
-        /* Interleaved by component: the original reuses each
-         * (fVar1 * normal_component) product for both endpoints, so the
-         * six independent stores are grouped in component order. */
         vert_a[0] = fVar1 * *(float *)(iVar2 + 4) + pfVar4[0];
-        vert_b[0] = fVar1 * *(float *)(iVar2 + 4) + pfVar5[0];
         vert_a[1] = fVar1 * *(float *)(iVar2 + 8) + pfVar4[1];
-        vert_b[1] = fVar1 * *(float *)(iVar2 + 8) + pfVar5[1];
         vert_a[2] = fVar1 * *(float *)(iVar2 + 0xc) + pfVar4[2];
+        vert_b[0] = fVar1 * *(float *)(iVar2 + 4) + pfVar5[0];
+        vert_b[1] = fVar1 * *(float *)(iVar2 + 8) + pfVar5[1];
         vert_b[2] = fVar1 * *(float *)(iVar2 + 0xc) + pfVar5[2];
         FUN_0017eb10(pfVar4, pfVar5, *(int *)0x2ee6c4);
         FUN_0017eb10(vert_a, vert_b, *(int *)0x2ee6cc);
