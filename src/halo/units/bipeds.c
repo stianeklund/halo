@@ -3538,7 +3538,19 @@ LAB_001a36a4:
         loop_metric = metric;
       }
       if ((*(unsigned char *)((char *)physics + 0xa0) & 0x10) == 0) {
-        if ((e->flags & 8) == 0 && e->object_handle != -1) {
+        if ((e->flags & 8) == 0) {
+          /* 0x1a3e8a-0x1a3e8d: `mov eax,[edi+0xc]; cmp eax,-1; je 0x1a3eb5` --
+           * a BSP-surface contact (object_handle == NONE) leaves the
+           * cannot-come-to-rest bit CLEAR and continues the loop.  Only an
+           * object contact whose type is NOT 6 (scenery) sets the bit.
+           * Folding this into the outer condition (as the prior lift did) set
+           * the bit on every BSP contact, so object+0x4 bit 0x20 (at-rest)
+           * was never set for a biped lying on world geometry, and
+           * biped_start_limp_body_physics always early-outed -- dead bipeds
+           * never entered limp/ragdoll and lingered in MP. */
+          if (e->object_handle == -1) {
+            goto loopA_nomark;
+          }
           /* DEVIATION: hardened datum_get -> object_try_and_get_and_verify_type
            * to survive stale handles; original calls raw datum_get @0x1a3e97
            * then tests (1 << (od[3] & 0x1f)) & 0x40 (type-6 mask). The
