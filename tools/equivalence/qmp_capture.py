@@ -43,6 +43,17 @@ HANDLE_NONE = 0xFFFFFFFF
 # index/frame, position, ... all live in the body). Follow the pointers.
 OBJECT_BODY_PTR_OFF = 0x08
 DEFAULT_OBJECT_BODY_SIZE = 0x100   # covers +0x7c 'antr' / +0x80 anim / +0x82 frame
+# Recovered object layouts used by Full Fidelity capture. The object-table
+# entry's type byte is the object type index, so item bodies can be sized
+# without an extra body probe. Unknown types retain the legacy default window.
+OBJECT_BODY_SIZE_BY_TYPE = {
+    0: 0x480,  # biped
+    1: 0x47C,  # vehicle
+    2: 0x27C,  # weapon
+    3: 0x1F4,  # equipment
+    4: 0x1F4,  # garbage
+    5: 0x228,  # projectile
+}
 # Bodies are densely packed in one heap arena (observed a10: 460 bodies, median
 # gap 0x28c, total span ~0x83000), and a memsave costs ~13ms of round-trip
 # REGARDLESS of size (4B: 13.6ms, 576KB: 17.3ms) -- so the only thing that makes
@@ -255,18 +266,39 @@ def object_body_ptrs(pool_data, es, count=None, ptr_off=OBJECT_BODY_PTR_OFF):
     return out
 
 
-def merge_body_specs(ptrs, size=DEFAULT_OBJECT_BODY_SIZE,
-                     merge_gap=DEFAULT_BODY_MERGE_GAP,
-                     max_region=DEFAULT_BODY_MAX_REGION):
-    """Coalesce [ptr, ptr+size) windows into as few (va, size) reads as possible.
+def object_body_specs_from_entries(pool_data, es, count=None,
+                                   size=DEFAULT_OBJECT_BODY_SIZE):
+    """Return live (body pointer, window size) pairs from object entries.
 
-    Two windows merge when the hole between them is <= `merge_gap` (the wasted
-    bytes are bounded by that, and they compress away in the gzip container);
-    a merged run is split once it would exceed `max_region`. Pure function.
+    The recovered type-specific sizes are used for the default body window;
+    an explicit non-default size remains a fixed-size caller override.
     """
-    if not ptrs or size <= 0:
+    if es <= 0 or OBJECT_BODY_PTR_OFF + 4 > es:
         return []
-    spans = sorted((p, p + size) for p in set(ptrs))
+    n = len(pool_data) // es if count is None else min(count, len(pool_data) // es)
+    out = []
+    for i in range(n):
+        base = i * es
+        if struct.unpack_from("<H", pool_data, base)[0] == 0:
+            continue
+        p = struct.unpack_from("<I", pool_data, base + OBJECT_BODY_PTR_OFF)[0]
+        if not (HEAP_LO <= p < HEAP_HI):
+            continue
+        body_size = size
+        if size == DEFAULT_OBJECT_BODY_SIZE and base + 4 <= len(pool_data):
+            body_size = OBJECT_BODY_SIZE_BY_TYPE.get(pool_data[base + 3], size)
+        out.append((p, body_size))
+    return out
+
+
+def merge_body_spans(spans, merge_gap=DEFAULT_BODY_MERGE_GAP,
+                     max_region=DEFAULT_BODY_MAX_REGION):
+    """Coalesce variable-size body windows into bounded transport regions."""
+    if not spans:
+        return []
+    spans = sorted((p, p + size) for p, size in spans if size > 0)
+    if not spans:
+        return []
     out = []
     lo, hi = spans[0]
     for s, e in spans[1:]:
@@ -277,6 +309,18 @@ def merge_body_specs(ptrs, size=DEFAULT_OBJECT_BODY_SIZE,
             lo, hi = s, e
     out.append((lo, hi - lo))
     return out
+
+
+def merge_body_specs(ptrs, size=DEFAULT_OBJECT_BODY_SIZE,
+                     merge_gap=DEFAULT_BODY_MERGE_GAP,
+                     max_region=DEFAULT_BODY_MAX_REGION):
+    """Coalesce [ptr, ptr+size) windows into as few (va, size) reads as possible.
+
+    Two windows merge when the hole between them is <= `merge_gap` (the wasted
+    bytes are bounded by that, and they compress away in the gzip container);
+    a merged run is split once it would exceed `max_region`. Pure function.
+    """
+    return merge_body_spans(((p, size) for p in set(ptrs)), merge_gap, max_region)
 
 
 def object_body_specs(cap, ptr=OBJECT_TABLE_PTR, size=DEFAULT_OBJECT_BODY_SIZE,
@@ -290,8 +334,9 @@ def object_body_specs(cap, ptr=OBJECT_TABLE_PTR, size=DEFAULT_OBJECT_BODY_SIZE,
     if not (0 < n <= 5000 and HEAP_LO <= hd["data"] < HEAP_HI):
         return []
     data = cap.read_mem(hd["data"], n * hd["es"])
-    return merge_body_specs(object_body_ptrs(data, hd["es"], n),
-                            size, merge_gap, max_region)
+    return merge_body_spans(
+        object_body_specs_from_entries(data, hd["es"], n, size),
+        merge_gap, max_region)
 
 
 def gametime_region_specs(cap):
@@ -358,9 +403,9 @@ def capture_full_frame(cap, pools=("objects", "players", "actors", "props"),
                 blob = cap.read_mem(data, n * es)
                 regions[data] = blob
                 if object_bodies and name == "objects":
-                    specs = merge_body_specs(
-                        object_body_ptrs(blob, es, n),
-                        body_size, body_merge_gap, body_max_region)
+                    specs = merge_body_spans(
+                        object_body_specs_from_entries(blob, es, n, body_size),
+                        body_merge_gap, body_max_region)
                     for bva, bsz in specs:
                         regions[bva] = cap.read_mem(bva, bsz)
     finally:

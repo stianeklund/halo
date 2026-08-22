@@ -47,8 +47,10 @@ Exit codes (keep these distinct — a CI tripwire must tell "harness broke" from
 comparable frames — the run proves nothing, fix the harness/build and retry).
 """
 import argparse
+import json
 import shlex
 import shutil
+import struct
 import subprocess
 import sys
 from pathlib import Path
@@ -61,6 +63,8 @@ import halorec_to_snapshot as h2s   # noqa: E402
 import behavior_diff as bd          # noqa: E402
 import trajectory_diff as td        # noqa: E402
 from aa_check import capture_run     # noqa: E402  (replay + capture_trajectory)
+from capture_profile import PROFILES, normalize_profile  # noqa: E402
+from case_manifest import write_case  # noqa: E402
 
 
 def deploy_candidate(host, build_args):
@@ -103,6 +107,128 @@ def _diff_behavior(golden, candidate, cfg):
     return bd.diff_behavior(fa, fb, cfg)
 
 
+def _recording_has_pool(frames, ptr, min_record_size=0):
+    """Return true only when a valid used pool span is present in a recording."""
+    for frame in frames:
+        reader = h2s._reader(frame.regions)
+        header = h2s._pool_header(reader, ptr)
+        if header is None or header["magic"] != h2s.DATA_T_MAGIC:
+            continue
+        if header["es"] < min_record_size or header["es"] <= 0:
+            continue
+        count = header["cur"] if 0 < header["cur"] <= header["max"] else header["max"]
+        if 0 < count <= 5000 and reader(header["data"], count * header["es"]) is not None:
+            return True
+    return False
+
+
+def _coverage(frames_a, frames_b, cfg, profile):
+    """Describe required pool/field coverage across both recordings."""
+    profile = normalize_profile(profile)
+    required_pools = ["ticks", "object_index", "players", "actors"]
+    if profile != "ai-core":
+        required_pools.append("props")
+    pool_ptrs = {
+        "object_index": td.POOLS["objects"],
+        "players": td.POOLS["players"],
+        "actors": td.POOLS["actors"],
+        "props": td.POOLS["props"],
+    }
+    result = {
+        "required_pools": required_pools,
+        "required_fields": {},
+        "ticks": bool(any(td.frame_tick(h2s._reader(f.regions)) is not None
+                           for f in frames_a) and
+                      any(td.frame_tick(h2s._reader(f.regions)) is not None
+                          for f in frames_b)),
+        "object_index": False,
+        "object_bodies": False,
+        "players": False,
+        "actors": False,
+        "props": False,
+        "effects": False,
+        "camera": False,
+        "missing_required": [],
+        "missing_fields": {},
+    }
+    for name, ptr in pool_ptrs.items():
+        result[name] = bool(_recording_has_pool(frames_a, ptr) and
+                            _recording_has_pool(frames_b, ptr))
+    if not result["ticks"]:
+        result["missing_required"].append("ticks")
+    for name in required_pools:
+        if name != "ticks" and not result[name]:
+            result["missing_required"].append(name)
+    for pool_name, pool_cfg in cfg.get("pools", {}).items():
+        fields = pool_cfg.get("fields", [])
+        labels = [field.get("label", "field") for field in fields]
+        result["required_fields"][pool_name] = labels
+        if not fields or pool_name not in td.POOLS:
+            continue
+        try:
+            required_size = max(
+                int(field["off"]) + struct.calcsize(field["fmt"])
+                for field in fields)
+        except (KeyError, TypeError, ValueError, struct.error):
+            required_size = 1
+        if not (_recording_has_pool(frames_a, td.POOLS[pool_name], required_size) and
+                _recording_has_pool(frames_b, td.POOLS[pool_name], required_size)):
+            result["missing_fields"][pool_name] = labels
+    return result
+
+
+def _empty_coverage(profile):
+    profile = normalize_profile(profile)
+    required = ["ticks", "object_index", "players", "actors"]
+    if profile != "ai-core":
+        required.append("props")
+    return {
+        "required_pools": required,
+        "required_fields": {},
+        "ticks": False,
+        "object_index": False,
+        "object_bodies": False,
+        "players": False,
+        "actors": False,
+        "props": False,
+        "effects": False,
+        "camera": False,
+        "missing_required": list(required),
+        "missing_fields": {},
+    }
+
+
+def _write_case(a, tag, golden, candidate, report, verdict, coverage,
+                candidate_verification, diagnostics=(), result=None):
+    metrics = {"profile": a.profile}
+    if result is not None:
+        metrics["frames"] = result.get("framesA", 0) + result.get("framesB", 0)
+    path = a.out_dir / f"{tag}.halocase.json"
+    write_case(
+        path,
+        level=a.level,
+        scenario=a.scenario,
+        profile=a.profile,
+        backend="xemu-qmp",
+        ticks=a.ticks,
+        quantum=a.quantum,
+        alignment_window=(result or {}).get("window", 0),
+        minimum_sustained_run=(result or {}).get("min_run", a.min_run or 0),
+        faithful=golden,
+        candidate=candidate,
+        behavior_report=report,
+        faithful_build=a.golden_xbe,
+        candidate_build=a.candidate_xbe,
+        candidate_verification=candidate_verification,
+        verdict=verdict,
+        coverage=coverage,
+        metrics=metrics,
+        diagnostics=diagnostics,
+    )
+    print(f"  [case] -> {path}")
+    return path
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -136,6 +262,8 @@ def main(argv=None):
                     help="xemu QMP port for the liveness gate (verify_toggles_live default if unset)")
     ap.add_argument("--ticks", type=int, default=200)
     ap.add_argument("--quantum", type=int, default=1)
+    ap.add_argument("--profile", choices=PROFILES, default="ai-core",
+                    help="capture profile for both recordings (default: ai-core)")
     ap.add_argument("--window", type=int, default=None, help="behavior_diff +/- tick tolerance")
     ap.add_argument("--min-run", type=int, default=None, help="behavior_diff sustained-onset run")
     ap.add_argument("--config", type=Path, default=None, help="watch-list JSON (default: a10 AI)")
@@ -149,15 +277,25 @@ def main(argv=None):
     ap.add_argument("--reuse", action="store_true",
                     help="skip captures; diff existing golden/candidate in --out-dir")
     a = ap.parse_args(argv)
+    a.profile = normalize_profile(a.profile)
 
     a.out_dir.mkdir(parents=True, exist_ok=True)
     tag = f"{a.level}_{a.scenario}"
     golden = a.out_dir / f"{tag}_golden.halorec"
     candidate = a.out_dir / f"{tag}_candidate.halorec"
+    report = a.report or a.out_dir / f"{tag}_behavior.json"
+    candidate_verification = "unverified"
+
+    def abort(reason):
+        print(f"VERDICT: INCONCLUSIVE — {reason}")
+        _write_case(a, tag, golden, candidate, report, "INCONCLUSIVE",
+                    _empty_coverage(a.profile), candidate_verification,
+                    diagnostics=(reason,))
+        return 2
 
     def cap(xbe, out):
         capture_run(a.level, a.scenario, xbe, a.host, out, a.ticks, a.quantum,
-                    a.no_wait_spawn)
+                    a.no_wait_spawn, a.profile)
 
     unverified = False  # did the candidate capture run an unproven build?
 
@@ -167,10 +305,9 @@ def main(argv=None):
         deployed = False
         if a.deploy and a.candidate_xbe == "default.xbe":
             if deploy_candidate(a.host, a.build_args) != 0:
-                print("VERDICT: INCONCLUSIVE — deploy/build-verify FAILED; the box is NOT "
-                      "running your local build. Fix build/deploy and retry. (no diff run)")
-                return 2
+                return abort("deploy/build-verify FAILED; the box is NOT running the local build")
             deployed = True
+            candidate_verification = "verified"
         elif a.deploy:
             print(f"  [deploy] WARNING candidate-xbe={a.candidate_xbe!r} is not default.xbe; "
                   "deploy_xbox only writes default.xbe, so auto-deploy is SKIPPED.")
@@ -178,9 +315,8 @@ def main(argv=None):
         run_gate = (deployed and a.verify_live_after_deploy) or a.verify_live
         if run_gate:
             if liveness_gate(a.host, a.port) != 0:
-                print("VERDICT: INCONCLUSIVE — liveness gate FAILED (verify_toggles_live): the "
-                      "running image is stale/unpatched or a toggle did not take. (no diff run)")
-                return 2
+                return abort("liveness gate FAILED; the running image is stale/unpatched or a toggle did not take")
+            candidate_verification = "verified"
 
         unverified = not deployed and not run_gate
 
@@ -190,7 +326,10 @@ def main(argv=None):
             golden = a.golden
         else:
             print(f"== capture golden ({a.golden_xbe}) ==")
-            cap(a.golden_xbe, golden)
+            try:
+                cap(a.golden_xbe, golden)
+            except (Exception, SystemExit) as exc:
+                return abort(f"golden capture failed: {exc}")
             if a.freeze and a.golden:
                 a.golden.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy(golden, a.golden)
@@ -200,24 +339,27 @@ def main(argv=None):
         if a.aa_first:
             aa_run2 = a.out_dir / f"{tag}_aa_run2.halorec"
             print(f"== A/A check: second {a.golden_xbe} capture ==")
-            cap(a.golden_xbe, aa_run2)
-            _, _, fa = h2s.parse_halorec(str(golden))
-            _, _, fb = h2s.parse_halorec(str(aa_run2))
-            aa = td.diff_trajectories(fa, fb)
+            try:
+                cap(a.golden_xbe, aa_run2)
+                _, _, fa = h2s.parse_halorec(str(golden))
+                _, _, fb = h2s.parse_halorec(str(aa_run2))
+                aa = td.diff_trajectories(fa, fb)
+            except (Exception, SystemExit) as exc:
+                return abort(f"A/A validation failed: {exc}")
             if aa.get("error") or aa["matched"] == 0:
-                print("VERDICT: INCONCLUSIVE — A/A had no comparable frames; "
-                      "fix capture before trusting A/B.")
-                return 2
+                return abort("A/A had no comparable frames; fix capture before trusting A/B")
             if aa["divergent_matched"] != 0:
                 e = aa["first_divergence"]
-                print(f"VERDICT: A/A DIRTY — faithful build is non-deterministic "
-                      f"(first at rel={e['rel']} {e['pool']}). Harness unsound; A/B aborted.")
-                return 2
+                return abort("A/A is dirty; first divergence at rel=%s %s" %
+                             (e["rel"], e["pool"]))
             print(f"  [A/A] CLEAN ({aa['clean_matched']}/{aa['matched']} frames)")
 
         # 2. candidate (patched)
         print(f"== capture candidate ({a.candidate_xbe}) ==")
-        cap(a.candidate_xbe, candidate)
+        try:
+            cap(a.candidate_xbe, candidate)
+        except (Exception, SystemExit) as exc:
+            return abort(f"candidate capture failed: {exc}")
     else:
         # --reuse diffs existing captures; build freshness is not (re)checked.
         unverified = True
@@ -227,8 +369,10 @@ def main(argv=None):
     # 3. tolerant behavioral diff
     cfg = None
     if a.config:
-        import json
-        cfg = json.loads(a.config.read_text())
+        try:
+            cfg = json.loads(a.config.read_text())
+        except (Exception, SystemExit) as exc:
+            return abort(f"watch-list config failed: {exc}")
     else:
         cfg = dict(bd.DEFAULT_CONFIG)
     if a.window is not None:
@@ -236,12 +380,27 @@ def main(argv=None):
     if a.min_run is not None:
         cfg["min_run"] = a.min_run
 
-    res = _diff_behavior(golden, candidate, cfg)
-    if a.report is not None:
-        import json
-        a.report.parent.mkdir(parents=True, exist_ok=True)
-        a.report.write_text(json.dumps(res, indent=2) + "\n")
-        print(f"  [report] -> {a.report}  (load in halo-memory-viewer Compare tab)")
+    try:
+        res = _diff_behavior(golden, candidate, cfg)
+        _, _, frames_a = h2s.parse_halorec(str(golden))
+        _, _, frames_b = h2s.parse_halorec(str(candidate))
+        coverage = _coverage(frames_a, frames_b, cfg, a.profile)
+    except (Exception, SystemExit) as exc:
+        return abort(f"comparison failed: {exc}")
+
+    res["coverage"] = coverage
+    try:
+        report.parent.mkdir(parents=True, exist_ok=True)
+        report.write_text(json.dumps(res, indent=2) + "\n")
+    except (Exception, SystemExit) as exc:
+        return abort(f"behavior report write failed: {exc}")
+    print(f"  [report] -> {report}  (load in halo-memory-viewer Compare tab)")
+
+    covered = not coverage["missing_required"] and not coverage["missing_fields"]
+    verdict = ("INCONCLUSIVE" if not covered else
+               ("CLEAN" if res["onset_count"] == 0 else "DIVERGENT"))
+    _write_case(a, tag, golden, candidate, report, verdict, coverage,
+                candidate_verification, result=res)
     print()
     print("=" * 78)
     print(f"A/B CHECK: {a.level}/{a.scenario}  golden={a.golden_xbe}  candidate={a.candidate_xbe}")
@@ -252,6 +411,11 @@ def main(argv=None):
         print("  [!] BUILD IDENTITY UNVERIFIED — the candidate capture ran whatever was on the "
               "box, not necessarily your local source. Re-run without --no-deploy, or add "
               "--verify-live, to gate it. This verdict may not reflect your build.")
+    if not covered:
+        print("VERDICT: INCONCLUSIVE — required capture coverage is missing: "
+              + ", ".join(coverage["missing_required"] or
+                            coverage["missing_fields"].keys()))
+        return 2
     if res["onset_count"] == 0:
         print("VERDICT: CLEAN — patched build behaviorally matches faithful on the watch-list.")
         return 0

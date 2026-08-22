@@ -27,6 +27,7 @@ CAPTURE = ROOT / "tools" / "xbox" / "capture_trajectory.py"
 sys.path.insert(0, str(ROOT / "tools" / "equivalence"))
 import halorec_to_snapshot as h2s   # noqa: E402
 import trajectory_diff as td        # noqa: E402
+from capture_profile import PROFILES  # noqa: E402
 
 
 def run(cmd):
@@ -36,14 +37,16 @@ def run(cmd):
         sys.exit(f"error: command failed ({cp.returncode}): {cmd[1]} {cmd[2] if len(cmd) > 2 else ''}")
 
 
-def capture_run(level, scenario, xbe, host, out, ticks, quantum, no_wait_spawn):
+def capture_run(level, scenario, xbe, host, out, ticks, quantum, no_wait_spawn,
+                profile="full-fidelity"):
     replay_cmd = ["python3", str(REPLAY), "replay", "--level", level,
                   "--scenario", scenario, "--xbe", xbe]
     if host:
         replay_cmd += ["--host", host]
     run(replay_cmd)
     cap_cmd = ["python3", str(CAPTURE), "-o", str(out), "--name", out.stem,
-               "--ticks", str(ticks), "--quantum", str(quantum)]
+               "--ticks", str(ticks), "--quantum", str(quantum),
+               "--profile", profile]
     if no_wait_spawn:
         cap_cmd.append("--no-wait-spawn")
     run(cap_cmd)
@@ -58,6 +61,7 @@ def main(argv=None):
                     help="build to run BOTH times (default cachebeta.xbe = faithful)")
     ap.add_argument("--ticks", type=int, default=200)
     ap.add_argument("--quantum", type=int, default=1)
+    ap.add_argument("--profile", choices=PROFILES, default="full-fidelity")
     ap.add_argument("--host", default="")
     ap.add_argument("--no-wait-spawn", action="store_true")
     ap.add_argument("--out-dir", type=Path,
@@ -73,10 +77,10 @@ def main(argv=None):
     if not a.reuse:
         print("== A/A run 1 ==")
         capture_run(a.level, a.scenario, a.xbe, a.host, run1, a.ticks, a.quantum,
-                    a.no_wait_spawn)
+                    a.no_wait_spawn, a.profile)
         print("== A/A run 2 ==")
         capture_run(a.level, a.scenario, a.xbe, a.host, run2, a.ticks, a.quantum,
-                    a.no_wait_spawn)
+                    a.no_wait_spawn, a.profile)
 
     _, _, framesA = h2s.parse_halorec(str(run1))
     _, _, framesB = h2s.parse_halorec(str(run2))

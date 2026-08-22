@@ -45,6 +45,19 @@ class TestObjectBodyPtrs(unittest.TestCase):
         self.assertEqual(qc.object_body_ptrs(b"\x00" * 32, 0), [])
         self.assertEqual(qc.object_body_ptrs(b"\x00" * 32, 8), [])   # ptr_off+4 > es
 
+    def test_full_fidelity_sizes_item_objects_from_type_byte(self):
+        rows = []
+        for slot, (kind, size) in enumerate(((2, 0x27C), (3, 0x1F4),
+                                               (4, 0x1F4), (5, 0x228))):
+            rows.append(entry(0x1000 + slot, 0x80001000 + slot * 0x1000))
+            row = bytearray(rows[-1])
+            row[3] = kind
+            rows[-1] = bytes(row)
+        self.assertEqual(
+            qc.object_body_specs_from_entries(b"".join(rows), 12),
+            [(0x80001000, 0x27C), (0x80002000, 0x1F4),
+             (0x80003000, 0x1F4), (0x80004000, 0x228)])
+
 
 class TestMergeBodySpecs(unittest.TestCase):
     def test_empty(self):

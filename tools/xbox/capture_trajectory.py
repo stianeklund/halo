@@ -26,6 +26,7 @@ sys.path.insert(0, str(ROOT / "tools" / "equivalence"))
 
 import qmp_capture as qc       # noqa: E402
 import hmrc                    # noqa: E402
+import capture_profile as cp   # noqa: E402
 
 
 def wait_for_gameplay(cap, require_spawn=True, timeout=90.0, poll=0.25):
@@ -48,7 +49,7 @@ def capture_trajectory(cap, name, ticks, quantum, require_spawn=True,
                        stall_timeout=4.0, max_frames=4000, log=print,
                        object_bodies=False,
                        body_size=qc.DEFAULT_OBJECT_BODY_SIZE,
-                       pools=("objects", "players", "actors", "props")):
+                       pools=None, profile="full-fidelity"):
     """Capture one frame per relative-tick bucket (rel // quantum) up to `ticks`.
 
     Buckets are a FIXED grid {0, K, 2K, ...} relative to the gameplay-ready
@@ -59,6 +60,8 @@ def capture_trajectory(cap, name, ticks, quantum, require_spawn=True,
     Returns (frames, anchor, last_rel). frames = [(t_elapsed, [(addr,bytes),...])].
     Stops at the tick span, a playback stall, or max_frames.
     """
+    profile = cp.normalize_profile(profile)
+    pools = cp.pools_for_profile(profile, pools)
     anchor = wait_for_gameplay(cap, require_spawn=require_spawn)
     if anchor is None:
         raise qc.QMPError("gameplay never became ready (magic/player-spawn timeout)")
@@ -127,7 +130,9 @@ def main(argv=None):
     ap.add_argument("--object-body-size", type=lambda x: int(x, 0),
                     default=qc.DEFAULT_OBJECT_BODY_SIZE,
                     help="bytes to capture per object body (default 0x100)")
-    ap.add_argument("--pools", default="objects,players,actors,props",
+    ap.add_argument("--profile", choices=cp.PROFILES, default="full-fidelity",
+                    help="capture profile (default: full-fidelity)")
+    ap.add_argument("--pools", default=None,
                     help="comma-separated pools to capture; dropping unused pools "
                          "buys tick density (each memsave costs ~13ms round-trip)")
     ap.add_argument("--stall-timeout", type=float, default=4.0,
@@ -143,7 +148,9 @@ def main(argv=None):
             cap, name, a.ticks, a.quantum,
             require_spawn=not a.no_wait_spawn, stall_timeout=a.stall_timeout,
             object_bodies=a.include_object_bodies, body_size=a.object_body_size,
-            pools=tuple(p.strip() for p in a.pools.split(",") if p.strip()))
+            profile=a.profile,
+            pools=None if a.pools is None else tuple(
+                p.strip() for p in a.pools.split(",") if p.strip()))
     finally:
         cap.close()
 
