@@ -2256,6 +2256,10 @@
         "Field names for prop record offsets +0x04 (owner actor index), +0x0c (orphan prop index) and +0x24 (state) come from the display_assert strings and the sibling lift only; no prop_datum struct exists in types.h so the lift uses raw char* offsets."
       ]
     },
+    "0x64a60": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x64a80": {
       "kind": "function",
       "status": "ported"
@@ -3361,7 +3365,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x81f30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x81fa0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x82060": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x82090": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x820d0": {
       "kind": "function",
       "status": "ported"
     },
@@ -3389,6 +3409,10 @@
       "status": "ported"
     },
     "0x82850": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x82940": {
       "kind": "function",
       "status": "ported"
     },
@@ -5604,6 +5628,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xaff70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb0170": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb0210": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xb04a0": {
       "kind": "function",
       "status": "ported"
@@ -5624,7 +5660,31 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xb05c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xb0990": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb0c10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb0ed0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb1030": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb14e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb1940": {
       "kind": "function",
       "status": "ported"
     },
@@ -5641,6 +5701,10 @@
       "status": "ported"
     },
     "0xb1e40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb1f00": {
       "kind": "function",
       "status": "ported"
     },
@@ -5661,6 +5725,42 @@
       "status": "ported"
     },
     "0xb2660": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb26b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb2900": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb2b40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb2c50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb2ca0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb2ce0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb32e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb3630": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb3900": {
       "kind": "function",
       "status": "ported"
     },
@@ -8282,6 +8382,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xce6c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xce740": {
       "kind": "function",
       "status": "ported"
@@ -8815,7 +8919,71 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xe0720": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0740": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe07c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0810": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0840": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0890": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe08e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0930": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0960": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0980": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe09e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0a10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0a60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0ab0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0b00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0b50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0bf0": {
       "kind": "function",
       "status": "ported"
     },
@@ -8823,7 +8991,63 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xe0c90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0cd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0d80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0dd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0e40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0ea0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0ec0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0ee0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe0fd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe1050": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe1350": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe13f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe1490": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe1500": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe1760": {
       "kind": "function",
       "status": "ported"
     },
@@ -15684,6 +15908,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1b9b30": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1b9ce0": {
       "kind": "function",
       "status": "ported",
@@ -17028,218 +17256,6 @@
     },
     "0x5065a4": {
       "kind": "data",
-      "status": "ported"
-    },
-    "0x82090": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x820d0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xaff70": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb0170": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb0210": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb05c0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb0c10": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb0ed0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb1030": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb14e0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb1940": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb1f00": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb26b0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb2900": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb2b40": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb2c50": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb2ca0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb2ce0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb32e0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb3630": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb3900": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xce6c0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0720": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0740": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0810": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0840": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0890": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe08e0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0930": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0960": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0980": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe09e0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0a10": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0a60": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0ab0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0b00": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0b50": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0bf0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0c90": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0cd0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0d80": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0dd0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0e40": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0ea0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0ec0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0ee0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe0fd0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe1050": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe13f0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe1490": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe1500": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe1760": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1b9b30": {
-      "kind": "function",
       "status": "ported"
     }
   }

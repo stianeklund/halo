@@ -113,7 +113,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x3d9f0,FUN_0003d9f0,stubbable,actors.obj,fail,divergence,0,50,0
 0x3dc20,FUN_0003dc20,stubbable,actors.obj,error,emulation_error,0,50,0
 0x3e570,actors_handle_unit_effect,stubbable,actors.obj,error,timeout,0,0,0
-0x3e7a0,FUN_0003e7a0,stubbable,actors.obj,pass,,70,70,0
+0x3e7a0,FUN_0003e7a0,stubbable,actors.obj,pass,,65,65,0
 0x3eab0,actor_attach_unit,stubbable,actors.obj,error,emulation_error,0,50,0
 0x3ec80,FUN_0003ec80,stubbable,actors.obj,fail,divergence,0,50,0
 0x3edc0,actor_create_for_unit,stubbable,actors.obj,pass,,19,50,0
@@ -280,6 +280,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x7d8b0,bitmap_mipmap_get_pixel_count,data_only,bitmaps.obj,fail,divergence,0,50,0
 0x7d960,bitmap_mipmap_get_pixel_data_size,data_only,bitmaps.obj,fail,divergence,0,50,0
 0x7d9f0,bitmap_mipmap_get_row_pitch,data_only,bitmaps.obj,fail,divergence,0,50,0
+0x7e040,bitmap_get_pixel_data_size,data_only,bitmaps.obj,fail,divergence,0,50,0
 0x1457f0,breakable_surface_get,stubbable,breakable_surfaces.obj,pass,,50,50,0
 0x1458a0,breakable_surfaces_initialize,stubbable,breakable_surfaces.obj,pass,,50,50,0
 0x1458e0,breakable_surfaces_dispose,leaf,breakable_surfaces.obj,pass,,50,50,0
@@ -620,6 +621,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0xb4250,FUN_000b4250,stubbable,game.obj,pass,,50,50,0
 0xb4290,FUN_000b4290,stubbable,game.obj,pass,,50,50,0
 0xb42d0,FUN_000b42d0,stubbable,game.obj,pass,,50,50,0
+0xb4800,FUN_000B4800,stubbable,game.obj,fail,divergence,0,50,0
 0xb4b10,FUN_000b4b10,stubbable,game.obj,pass,,50,50,0
 0xb4d50,FUN_000b4d50,stubbable,game.obj,pass,,50,50,0
 0xb4d90,FUN_000b4d90,leaf,game.obj,pass,,50,50,0
@@ -764,31 +766,31 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0xafdf0,FUN_000afdf0,data_only,game_engine.obj,error,emulation_error,0,50,0
 0xafe50,FUN_000afe50,stubbable,game_engine.obj,pass,,50,50,0
 0xaff20,FUN_000aff20,leaf,game_engine.obj,error,emulation_error,0,50,0
-0xaff70,FUN_000aff70,stubbable,game_engine.obj,pass,,50,50,0
+0xaff70,ctf_player_added,stubbable,game_engine.obj,pass,,50,50,0
 0xb0000,FUN_000b0000,stubbable,game_engine.obj,pass,,50,50,0
 0xb00c0,FUN_000b00c0,stubbable,game_engine.obj,pass,,50,50,0
 0xb0100,FUN_000b0100,stubbable,game_engine.obj,pass,,90,90,0
-0xb0170,FUN_000b0170,stubbable,game_engine.obj,fail,divergence,0,50,0
-0xb0210,FUN_000b0210,stubbable,game_engine.obj,pass,,49,50,0
-0xb04e0,FUN_000b04e0,stubbable,game_engine.obj,pass,,50,50,0
+0xb0170,ctf_allow_weapon_pick_up,stubbable,game_engine.obj,fail,divergence,0,50,0
+0xb0210,ctf_get_score_hud_text,stubbable,game_engine.obj,pass,,49,50,0
+0xb04e0,ctf_get_player_score,stubbable,game_engine.obj,pass,,50,50,0
 0xb0520,FUN_000b0520,leaf,game_engine.obj,pass,,50,50,0
-0xb0530,FUN_000b0530,stubbable,game_engine.obj,pass,,50,50,0
-0xb0570,FUN_000b0570,stubbable,game_engine.obj,pass,,50,50,0
-0xb0590,FUN_000b0590,stubbable,game_engine.obj,pass,,50,50,0
+0xb0530,ctf_get_player_score_string,stubbable,game_engine.obj,pass,,50,50,0
+0xb0570,ctf_get_score_header_string,stubbable,game_engine.obj,pass,,50,50,0
+0xb0590,ctf_get_team_score_string,stubbable,game_engine.obj,pass,,50,50,0
 0xb09e0,FUN_000b09e0,stubbable,game_engine.obj,pass,,50,50,0
 0xb0a70,FUN_000b0a70,data_only,game_engine.obj,pass,,90,90,0
 0xb0ac0,FUN_000b0ac0,stubbable,game_engine.obj,fail,divergence,3,50,0
-0xb1030,FUN_000b1030,stubbable,game_engine.obj,pass,,50,50,0
-0xb14e0,FUN_000b14e0,stubbable,game_engine.obj,pass,,50,50,0
+0xb1030,ctf_get_starting_location_rating,stubbable,game_engine.obj,pass,,50,50,0
+0xb14e0,king_player_added,stubbable,game_engine.obj,pass,,50,50,0
 0xb1570,FUN_000b1570,stubbable,game_engine.obj,fail,divergence,3,50,0
 0xb1760,FUN_000b1760,stubbable,game_engine.obj,pass,,90,90,0
-0xb1940,FUN_000b1940,stubbable,game_engine.obj,pass,,49,50,0
-0xb1a60,FUN_000b1a60,stubbable,game_engine.obj,pass,,50,50,0
+0xb1940,king_get_score_hud_text,stubbable,game_engine.obj,pass,,49,50,0
+0xb1a60,king_get_player_score,stubbable,game_engine.obj,pass,,50,50,0
 0xb1aa0,FUN_000b1aa0,data_only,game_engine.obj,pass,,50,50,0
 0xb1b30,FUN_000b1b30,stubbable,game_engine.obj,pass,,50,50,0
-0xb1de0,FUN_000b1de0,stubbable,game_engine.obj,pass,,50,50,0
-0xb1e20,FUN_000b1e20,stubbable,game_engine.obj,pass,,50,50,0
-0xb1e40,FUN_000b1e40,data_only,game_engine.obj,pass,,50,50,0
+0xb1de0,king_get_player_score_string,stubbable,game_engine.obj,pass,,50,50,0
+0xb1e20,king_get_score_header_string,stubbable,game_engine.obj,pass,,50,50,0
+0xb1e40,king_get_team_score_string,data_only,game_engine.obj,pass,,50,50,0
 0xb1e90,FUN_000b1e90,stubbable,game_engine.obj,pass,,50,50,0
 0xb2010,FUN_000b2010,stubbable,game_engine.obj,pass,,50,50,0
 0xb23b0,FUN_000b23b0,data_only,game_engine.obj,error,emulation_error,0,50,0
@@ -796,15 +798,15 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0xb2540,game_engine_score_tick,data_only,game_engine.obj,pass,,50,50,0
 0xb2590,game_engine_get_score_sound_duration,stubbable,game_engine.obj,pass,,50,50,0
 0xb2610,game_engine_post_event,data_only,game_engine.obj,pass,,47,50,0
-0xb26b0,FUN_000b26b0,stubbable,game_engine.obj,pass,,50,50,0
+0xb26b0,oddball_player_added,stubbable,game_engine.obj,pass,,50,50,0
 0xb2740,FUN_000b2740,stubbable,game_engine.obj,pass,,55,55,0
-0xb2900,FUN_000b2900,stubbable,game_engine.obj,pass,,47,50,0
-0xb2b40,FUN_000b2b40,stubbable,game_engine.obj,pass,,50,50,0
+0xb2900,oddball_get_score_hud_text,stubbable,game_engine.obj,pass,,47,50,0
+0xb2b40,oddball_get_player_score,stubbable,game_engine.obj,pass,,50,50,0
 0xb2bc0,FUN_000b2bc0,leaf,game_engine.obj,pass,,50,50,0
 0xb2be0,FUN_000b2be0,leaf,game_engine.obj,pass,,50,50,0
-0xb2c50,FUN_000b2c50,stubbable,game_engine.obj,pass,,50,50,0
-0xb2ca0,FUN_000b2ca0,stubbable,game_engine.obj,pass,,50,50,0
-0xb2ce0,FUN_000b2ce0,stubbable,game_engine.obj,pass,,50,50,0
+0xb2c50,oddball_get_player_score_string,stubbable,game_engine.obj,pass,,50,50,0
+0xb2ca0,oddball_get_score_header_string,stubbable,game_engine.obj,pass,,50,50,0
+0xb2ce0,oddball_get_team_score_string,stubbable,game_engine.obj,pass,,50,50,0
 0xb3020,FUN_000b3020,stubbable,game_engine.obj,error,emulation_error,0,50,0
 0xb3090,FUN_000b3090,stubbable,game_engine.obj,pass,,50,50,0
 0xb3120,FUN_000b3120,stubbable,game_engine.obj,fail,divergence,0,50,0
@@ -812,7 +814,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0xb36f0,FUN_000b36f0,stubbable,game_engine.obj,pass,,50,50,0
 0xb3770,FUN_000b3770,stubbable,game_engine.obj,pass,,50,50,0
 0xb3860,FUN_000b3860,stubbable,game_engine.obj,pass,,50,50,0
-0xb3900,FUN_000b3900,stubbable,game_engine.obj,pass,,50,50,0
+0xb3900,race_player_added,stubbable,game_engine.obj,pass,,50,50,0
 0xb39a0,FUN_000b39a0,stubbable,game_engine.obj,pass,,55,55,0
 0xb3c60,FUN_000b3c60,stubbable,game_engine.obj,pass,,90,90,0
 0xb3cf0,FUN_000b3cf0,stubbable,game_engine.obj,pass,,90,90,0
@@ -829,10 +831,18 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x1c8140,game_sound_update,stubbable,game_sound.obj,pass,,50,50,0
 0x1c8310,sound_compute_source_obstruction,stubbable,game_sound.obj,pass,,50,50,0
 0x1c8c80,game_sound_set_music_volume,data_only,game_sound.obj,pass,,50,50,0
+0x1c6ca0,FUN_001c6ca0,leaf,game_sound.obj,pass,,50,50,0
+0x1c6d20,FUN_001c6d20,stubbable,game_sound.obj,pass,,50,50,0
+0x1c6ed0,FUN_001c6ed0,stubbable,game_sound.obj,pass,,50,50,0
+0x1c70b0,game_sound_clear,stubbable,game_sound.obj,pass,,50,50,0
+0x1c7160,game_sound_restore,stubbable,game_sound.obj,pass,,50,50,0
 0x1c7500,scripted_sound_time,stubbable,game_sound.obj,fail,divergence,47,50,0
 0x1c7550,scripted_sound_stop,leaf,game_sound.obj,pass,,50,50,0
 0x1c75a0,scripted_foley_predict,leaf,game_sound.obj,pass,,50,50,0
+0x1c76c0,scripted_looping_sound_set_alternate,stubbable,game_sound.obj,pass,,50,50,0
 0x1c7710,unattached_looping_sound_start,stubbable,game_sound.obj,fail,divergence,2,50,0
+0x1c7770,unattached_looping_sound_stop,stubbable,game_sound.obj,pass,,50,50,0
+0x1c7ca0,FUN_001c7ca0,stubbable,game_sound.obj,pass,,50,50,0
 0x1c7d70,game_sound_music_stop_for_vehicle,stubbable,game_sound.obj,pass,,50,50,0
 0x1bf870,game_state_dispose_from_old_map,leaf,game_state.obj,pass,,50,50,0
 0x1bf760,FUN_001bf760,leaf,game_state.obj,pass,,50,50,0
@@ -1335,6 +1345,10 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0xce6b0,input_abstraction_mark_time,stubbable,input_abstraction.obj,pass,,50,50,0
 0xce9f0,input_abstraction_initialize,stubbable,input_abstraction.obj,error,timeout,0,0,0
 0xcea90,input_abstraction_update,stubbable,input_abstraction.obj,pass,,50,50,0
+0xce6c0,input_abstraction_get_local_player_preferences,leaf,input_abstraction.obj,pass,,50,50,0
+0xce740,input_abstraction_update_local_player_preferences,leaf,input_abstraction.obj,pass,,50,50,0
+0xce7f0,input_abstraction_get_input_state,leaf,input_abstraction.obj,pass,,50,50,0
+0xce840,input_abstraction_update_device_changes,stubbable,input_abstraction.obj,pass,,50,50,0
 0xce4a0,FUN_000ce4a0,stubbable,input_xbox.obj,pass,,50,50,0
 0xce4b0,input_check_state_mode,stubbable,input_xbox.obj,error,emulation_error,0,50,0
 0xce5c0,input_open_state_file,stubbable,input_xbox.obj,error,emulation_error,0,50,0
@@ -1824,6 +1838,31 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0xb9ba0,rumble_player_set_scale,data_only,player_rumble.obj,pass,,50,50,0
 0xb9da0,rumble_set_direct_motors,data_only,player_rumble.obj,pass,,50,50,0
 0xe0c30,player_ui_remember_player1_profile,stubbable,player_ui.obj,pass,,50,50,0
+0xe0620,FUN_000e0620,stubbable,player_ui.obj,pass,,50,50,0
+0xe0720,player_ui_reset_single_player_local_player_controllers,stubbable,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0740,player_ui_set_single_player_local_player_controller,leaf,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0840,player_ui_local_player_joined_multiplayer_game,leaf,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0890,player_ui_local_player_wants_to_play_multiplayer,leaf,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe08e0,player_ui_clear_multiplayer_autojoin_for_local_player,leaf,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0930,player_ui_autojoin_players_to_next_multiplayer_game,data_only,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0960,player_ui_clear_multiplayer_variant,stubbable,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0980,player_ui_get_active_player_profile,leaf,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe09e0,player_ui_get_active_player_profile_index,data_only,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0a10,player_ui_get_last_single_player_level_played,leaf,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0a60,player_ui_set_game_variant,stubbable,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0ab0,player_ui_game_variant_specified,stubbable,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0b00,player_ui_rumble_disabled,leaf,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0b50,player_ui_autolevel_enabled,leaf,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0bf0,player_ui_get_path_to_local_player_profile_directory,stubbable,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0c90,player_ui_get_player1_last_used_profile_index,stubbable,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0cd0,player_ui_fast_setup_network_server,stubbable,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0dd0,player_ui_edit_profile_name_is_dirty,stubbable,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0e40,player_ui_prompt_user_to_rename_edit_profile,stubbable,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0ea0,player_ui_get_edit_player_profile,stubbable,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0ec0,player_ui_get_edit_playlist_profile,stubbable,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe0fd0,player_ui_activate_all_solo_levels,leaf,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe1000,FUN_000e1000,stubbable,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
+0xe1050,player0_look_pitch_is_inverted,data_only,player_ui.obj,not_applicable,lifted_extract_failed,0,0,0
 0xba100,players_initialize,stubbable,players.obj,pass,,50,50,0
 0xba220,players_dispose_from_old_map,stubbable,players.obj,pass,,50,50,0
 0xba240,players_dispose,data_only,players.obj,pass,,50,50,0
@@ -2215,18 +2254,19 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x94c60,recorded_animations_dispose_from_old_map,stubbable,recorded_animations.obj,pass,,50,50,0
 0x94c70,recorded_animations_clear_debug_storage,data_only,recorded_animations.obj,pass,,50,50,0
 0x94cb0,recorded_animations_update,stubbable,recorded_animations.obj,pass,,50,50,0
-0x94ee0,recorded_animation_verify,data_only,recorded_animations.obj,not_applicable,lifted_extract_failed,0,0,0
-0x95050,FUN_00095050,stubbable,recorded_animations.obj,not_applicable,lifted_extract_failed,0,0,0
+0x94ee0,recorded_animation_verify,data_only,recorded_animations.obj,pass,,47,50,0
+0x95050,FUN_00095050,stubbable,recorded_animations.obj,pass,,50,50,0
 0x950b0,render_debug_recording,stubbable,recorded_animations.obj,fail,divergence,0,50,0
 0x95280,recorded_animations_initialize_for_new_map,stubbable,recorded_animations.obj,pass,,50,50,0
-0x952d0,recorded_animation_kill,stubbable,recorded_animations.obj,not_applicable,lifted_extract_failed,0,0,0
+0x952d0,recorded_animation_kill,stubbable,recorded_animations.obj,pass,,50,50,0
 0x95660,recorded_animation_play_and_delete,leaf,recorded_animations.obj,pass,,38,50,0
 0x95680,FUN_00095680,leaf,recorded_animations.obj,pass,,38,50,0
 0x956e0,FUN_000956e0,stubbable,recorded_animations.obj,pass,,50,50,0
 0x95750,FUN_00095750,stubbable,recorded_animations.obj,pass,,50,50,0
 0x95790,FUN_00095790,stubbable,recorded_animations.obj,pass,,50,50,0
-0x957c0,control_toggle,stubbable,recorded_animations.obj,not_applicable,lifted_extract_failed,0,0,0
-0x958f0,FUN_000958f0,stubbable,recorded_animations.obj,not_applicable,lifted_extract_failed,0,0,0
+0x957c0,control_toggle,stubbable,recorded_animations.obj,error,emulation_error,0,50,0
+0x958f0,FUN_000958f0,stubbable,recorded_animations.obj,error,emulation_error,0,50,0
+0x95930,FUN_00095930,stubbable,recorded_animations.obj,pass,,50,50,0
 0x959b0,FUN_000959b0,stubbable,recorded_animations.obj,pass,,50,50,0
 0x95a20,FUN_00095a20,stubbable,recorded_animations.obj,pass,,50,50,0
 0x95a60,FUN_00095a60,stubbable,recorded_animations.obj,pass,,50,50,0
@@ -2275,8 +2315,8 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x18aa00,FUN_0018aa00,stubbable,render_debug.obj,pass,,5,50,0
 0x18ab30,FUN_0018ab30,stubbable,render_debug.obj,error,emulation_error,0,50,0
 0x18ac50,FUN_0018ac50,stubbable,render_debug.obj,pass,,50,50,0
-0x1c2840,saved_game_files_dispose,stubbable,saved_game_files.obj,not_applicable,missing_build_object,0,0,0
-0x1c3750,saved_game_files_initialize,stubbable,saved_game_files.obj,not_applicable,missing_build_object,0,0,0
+0x1c2840,saved_game_files_dispose,stubbable,saved_game_files.obj,pass,,50,50,0
+0x1c3750,saved_game_files_initialize,stubbable,saved_game_files.obj,error,emulation_error,0,50,0
 0x18e280,scenario_initialize,stubbable,scenario.obj,pass,,50,50,0
 0x18e310,scenario_unload,stubbable,scenario.obj,pass,,50,50,0
 0x18e3f0,global_collision_bsp_get,stubbable,scenario.obj,pass,,50,50,0
@@ -2431,7 +2471,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x19b3a0,FUN_0019b3a0,data_only,tag_groups.obj,pass,,50,50,0
 0x19b3b0,FUN_0019b3b0,leaf,tag_groups.obj,pass,,50,50,0
 0x1b9b00,FUN_001b9b00,stubbable,tag_groups.obj,pass,,50,50,0
-0x1b9b30,FUN_001b9b30,stubbable,tag_groups.obj,pass,,50,50,0
+0x1b9b30,tag_file_get_path,stubbable,tag_groups.obj,pass,,50,50,0
 0x1b9b50,FUN_001b9b50,stubbable,tag_groups.obj,pass,,50,50,0
 0x1b9b60,FUN_001b9b60,leaf,tag_groups.obj,pass,,50,50,0
 0x1b9b80,FUN_001b9b80,data_only,tag_groups.obj,pass,,90,90,0
@@ -2475,6 +2515,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x191de0,FUN_00191de0,stubbable,structures.obj,pass,,50,50,0
 0x191e90,FUN_00191e90,stubbable,structures.obj,pass,,50,50,0
 0x191ff0,FUN_00191ff0,stubbable,structures.obj,pass,,50,50,0
+0x192050,leaf_map_build_portal_from_leaves,stubbable,structures.obj,pass,,90,90,0
 0x192390,FUN_00192390,stubbable,structures.obj,pass,,50,50,0
 0x1926a0,FUN_001926a0,stubbable,structures.obj,pass,,90,90,0
 0x192710,FUN_00192710,stubbable,structures.obj,error,mem-limit,0,0,0
@@ -2541,6 +2582,9 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x831a0,FUN_000831a0,stubbable,transport_endpoint_set_winsock.obj,pass,,50,50,0
 0x81ec0,transport_get_nonce,stubbable,transport_endpoint_set_winsock.obj,pass,,50,50,0
 0x82060,transport_get_xnaddr,data_only,transport_endpoint_set_winsock.obj,pass,,50,50,0
+0x82090,transport_get_key_id,stubbable,transport_endpoint_set_winsock.obj,pass,,50,50,0
+0x820d0,transport_get_key,stubbable,transport_endpoint_set_winsock.obj,pass,,50,50,0
+0x82410,delete_endpoint_set,leaf,transport_endpoint_set_winsock.obj,pass,,90,90,0
 0xe3c80,ui_widgets_safe_to_load,leaf,ui_widget.obj,pass,,50,50,0
 0xe3d20,ui_widget_realloc,stubbable,ui_widget.obj,pass,,50,50,0
 0xe3e10,ui_widget_set_events_suppressed,stubbable,ui_widget.obj,pass,,50,50,0
@@ -2755,7 +2799,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x1b2dd0,unit_exit_seat_end,stubbable,units.obj,pass,,50,50,0
 0x1b3060,unit_died,stubbable,units.obj,pass,,50,50,0
 0x1b32d0,unit_scripting_enter_vehicle,stubbable,units.obj,pass,,50,50,0
-0x1b3400,vehicle_scripting_load_magic,stubbable,units.obj,pass,,38,65,0
+0x1b3400,vehicle_scripting_load_magic,stubbable,units.obj,error,timeout,0,0,0
 0x1b3580,unit_try_and_exit_seat,stubbable,units.obj,pass,,50,50,0
 0x1b5400,FUN_001b5400,stubbable,vehicles.obj,pass,,50,50,0
 0x1b5500,FUN_001b5500,stubbable,vehicles.obj,pass,,50,50,0
@@ -2817,25 +2861,25 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x1825e0,rasterizer_memory_pool_delete,stubbable,rasterizer_text.obj,pass,,50,50,0
 0x182840,rasterizer_xbox_bitmap_swizzle2d_byte,stubbable,rasterizer_text.obj,fail,divergence,32,50,0
 0x182910,rasterizer_xbox_bitmap_swizzle2d_word,stubbable,rasterizer_text.obj,fail,divergence,32,50,0
-0x1829f0,rasterizer_xbox_bitmap_swizzle2d_long,stubbable,rasterizer_text.obj,fail,divergence,32,50,0
+0x1829f0,rasterizer_xbox_bitmap_swizzle2d_long,stubbable,rasterizer_text.obj,error,Unterminated string starting at: line 242861 column 7 (char 4323790),0,0,0
 0x182ac0,rasterizer_xbox_bitmap_swizzle3d_byte,stubbable,rasterizer_text.obj,pass,,32,50,0
-0x182bd0,rasterizer_xbox_bitmap_swizzle3d_word,stubbable,rasterizer_text.obj,pass,,32,50,0
-0x182cf0,rasterizer_xbox_bitmap_swizzle3d_long,stubbable,rasterizer_text.obj,pass,,32,50,0
-0x182e00,FUN_00182e00,stubbable,rasterizer_text.obj,pass,,90,90,0
-0x183120,FUN_00183120,stubbable,rasterizer_text.obj,pass,,50,50,0
-0x183650,rasterizer_text_cache_initialize,stubbable,rasterizer_text.obj,pass,,50,50,0
-0x1836e0,rasterizer_text_set_shadow_color,data_only,rasterizer_text.obj,pass,,50,50,0
-0x1836f0,rasterizer_text_cache_flush,data_only,rasterizer_text.obj,pass,,50,50,0
-0x183720,rasterizer_text_cache_dispose,stubbable,rasterizer_text.obj,pass,,50,50,0
-0x183770,rasterizer_text_get_character_position,stubbable,rasterizer_text.obj,pass,,50,50,0
-0x183820,rasterizer_text_evict_character,stubbable,rasterizer_text.obj,pass,,89,90,0
-0x183880,rasterizer_text_cache_character,stubbable,rasterizer_text.obj,pass,,50,50,0
-0x183c00,rasterizer_text_draw_cached_char,stubbable,rasterizer_text.obj,pass,,49,50,0
-0x183cf0,rasterizer_text_draw_cached_chars,data_only,rasterizer_text.obj,pass,,32,50,0
-0x184330,rasterizer_transparent_geometry_group_new,data_only,rasterizer_text.obj,pass,,50,50,0
-0x184360,rasterizer_secondary_geometry_group_new,data_only,rasterizer_text.obj,pass,,50,50,0
-0x184390,rasterizer_secondary_geometry_groups_get,data_only,rasterizer_text.obj,pass,,50,50,0
-0x1843b0,rasterizer_transparent_geometry_next_group,data_only,rasterizer_text.obj,pass,,50,50,0
+0x182bd0,rasterizer_xbox_bitmap_swizzle3d_word,stubbable,rasterizer_text.obj,error,Expecting value: line 1 column 1 (char 0),0,0,0
+0x182cf0,rasterizer_xbox_bitmap_swizzle3d_long,stubbable,rasterizer_text.obj,error,Expecting value: line 1 column 1 (char 0),0,0,0
+0x182e00,FUN_00182e00,stubbable,rasterizer_text.obj,error,Expecting value: line 1 column 1 (char 0),0,0,0
+0x183120,FUN_00183120,stubbable,rasterizer_text.obj,error,Expecting value: line 1 column 1 (char 0),0,0,0
+0x183650,rasterizer_text_cache_initialize,stubbable,rasterizer_text.obj,error,Expecting value: line 1 column 1 (char 0),0,0,0
+0x1836e0,rasterizer_text_set_shadow_color,data_only,rasterizer_text.obj,error,Expecting value: line 1 column 1 (char 0),0,0,0
+0x1836f0,rasterizer_text_cache_flush,data_only,rasterizer_text.obj,error,[Errno 5] Input/output error,0,0,0
+0x183720,rasterizer_text_cache_dispose,stubbable,rasterizer_text.obj,error,[Errno 5] Input/output error,0,0,0
+0x183770,rasterizer_text_get_character_position,stubbable,rasterizer_text.obj,error,Expecting value: line 1 column 1 (char 0),0,0,0
+0x183820,rasterizer_text_evict_character,stubbable,rasterizer_text.obj,error,Expecting value: line 1 column 1 (char 0),0,0,0
+0x183880,rasterizer_text_cache_character,stubbable,rasterizer_text.obj,error,Expecting value: line 1 column 1 (char 0),0,0,0
+0x183c00,rasterizer_text_draw_cached_char,stubbable,rasterizer_text.obj,error,Expecting value: line 1 column 1 (char 0),0,0,0
+0x183cf0,rasterizer_text_draw_cached_chars,data_only,rasterizer_text.obj,error,Expecting value: line 1 column 1 (char 0),0,0,0
+0x184330,rasterizer_transparent_geometry_group_new,data_only,rasterizer_text.obj,error,Expecting value: line 1 column 1 (char 0),0,0,0
+0x184360,rasterizer_secondary_geometry_group_new,data_only,rasterizer_text.obj,error,Expecting value: line 1 column 1 (char 0),0,0,0
+0x184390,rasterizer_secondary_geometry_groups_get,data_only,rasterizer_text.obj,error,Expecting value: line 1 column 1 (char 0),0,0,0
+0x1843b0,rasterizer_transparent_geometry_next_group,data_only,rasterizer_text.obj,error,Expecting value: line 1 column 1 (char 0),0,0,0
 0x184460,rasterizer_transparent_geometry_group_get,data_only,rasterizer_text.obj,pass,,50,50,0
 0x130ab0,terminal_string_process_tabs,stubbable,draw_string.obj,pass,,50,50,0
 0x130b70,FUN_00130b70,leaf,draw_string.obj,pass,,28,50,0
@@ -2889,13 +2933,13 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x11d9d0,lruv_debug_to_file,stubbable,lruv_cache.obj,error,emulation_error,0,50,0
 0x11da60,lruv_cache_get_page_usage,stubbable,lruv_cache.obj,pass,,50,50,0
 0x11db00,lruv_resize,stubbable,lruv_cache.obj,not_applicable,lifted_extract_failed,0,0,0
-0x11db90,FUN_0011db90,stubbable,lruv_cache.obj,pass,,1,50,0
+0x11db90,FUN_0011db90,stubbable,lruv_cache.obj,error,timeout,0,0,0
 0x11dd60,lruv_new,stubbable,lruv_cache.obj,pass,,50,50,0
 0x11ddc0,lruv_cache_dispose_all,stubbable,lruv_cache.obj,error,emulation_error,0,50,0
 0x11de10,FUN_0011de10,stubbable,lruv_cache.obj,pass,,36,50,0
 0x1bfe90,lruv_cache_new,stubbable,lruv_cache.obj,pass,,50,50,0
 0x75380,FUN_00075380,data_only,bitmap_utilities.obj,pass,,50,50,0
-0x75630,FUN_00075630,leaf,bitmap_utilities.obj,pass,,65,90,0
+0x75630,FUN_00075630,leaf,bitmap_utilities.obj,error,timeout,0,0,0
 0x75a20,FUN_00075a20,data_only,bitmap_utilities.obj,not_applicable,oracle_extract_failed,0,0,0
 0x76300,FUN_00076300,data_only,bitmap_utilities.obj,not_applicable,oracle_extract_failed,0,0,0
 0x76790,FUN_00076790,data_only,bitmap_utilities.obj,not_applicable,oracle_extract_failed,0,0,0
@@ -3061,12 +3105,12 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x54310,ai_index_platoon_iterator_new,stubbable,ai_profile.obj,pass,,50,50,0
 0x54430,ai_index_platoon_iterator_next,stubbable,ai_profile.obj,pass,,50,50,0
 0x544a0,ai_index_squad_iterator_new,stubbable,ai_profile.obj,pass,,50,50,0
-0x545a0,ai_index_squad_iterator_next,stubbable,ai_profile.obj,pass,,23,50,0
+0x545a0,ai_index_squad_iterator_next,stubbable,ai_profile.obj,error,timeout,0,0,0
 0x54680,ai_index_actor_iterator_new,stubbable,ai_profile.obj,pass,,50,50,0
 0x54750,ai_index_actor_iterator_next,stubbable,ai_profile.obj,pass,,50,50,0
 0x547c0,FUN_000547c0,stubbable,ai_profile.obj,pass,,50,50,0
 0x54860,FUN_00054860,stubbable,ai_profile.obj,pass,,50,50,0
-0x54a80,FUN_00054a80,stubbable,ai_profile.obj,pass,,3,50,0
+0x54a80,FUN_00054a80,stubbable,ai_profile.obj,error,timeout,0,0,0
 0x54ac0,FUN_00054ac0,stubbable,ai_profile.obj,pass,,50,50,0
 0x54b20,FUN_00054b20,stubbable,ai_profile.obj,pass,,50,50,0
 0x54bb0,FUN_00054bb0,stubbable,ai_profile.obj,pass,,50,50,0
@@ -3267,10 +3311,10 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x6a310,FUN_0006a310,stubbable,tif_flush.obj,pass,,50,50,0
 0x6a3b0,FUN_0006a3b0,stubbable,tif_flush.obj,pass,,50,50,0
 0x6a910,FUN_0006a910,data_only,tif_flush.obj,pass,,11,50,0
-0x6a9a0,FUN_0006a9a0,leaf,tif_flush.obj,pass,,10,50,0
-0x6aa40,FUN_0006aa40,leaf,tif_flush.obj,pass,,10,50,0
-0x6ab10,FUN_0006ab10,leaf,tif_flush.obj,fail,divergence,7,50,0
-0x6ac60,FUN_0006ac60,data_only,tif_flush.obj,pass,,8,50,0
+0x6a9a0,FUN_0006a9a0,leaf,tif_flush.obj,error,timeout,0,0,0
+0x6aa40,FUN_0006aa40,leaf,tif_flush.obj,error,timeout,0,0,0
+0x6ab10,FUN_0006ab10,leaf,tif_flush.obj,error,timeout,0,0,0
+0x6ac60,FUN_0006ac60,data_only,tif_flush.obj,error,timeout,0,0,0
 0x6acc0,FUN_0006acc0,leaf,tif_flush.obj,fail,divergence,7,50,0
 0x6ae10,FUN_0006ae10,leaf,tif_flush.obj,pass,,10,50,0
 0x6aee0,FUN_0006aee0,leaf,tif_flush.obj,error,timeout,0,0,0
@@ -3348,7 +3392,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x117cf0,FUN_00117cf0,stubbable,circular_queue.obj,pass,,50,50,0
 0x117da0,FUN_00117da0,stubbable,circular_queue.obj,pass,,50,50,0
 0x117ee0,FUN_00117ee0,stubbable,circular_queue.obj,pass,,50,50,0
-0x117ff0,FUN_00117ff0,stubbable,circular_queue.obj,error,exit=1,0,0,0
+0x117ff0,FUN_00117ff0,stubbable,circular_queue.obj,pass,,50,50,0
 0x118190,FUN_00118190,stubbable,circular_queue.obj,pass,,43,50,0
 0x118260,FUN_00118260,stubbable,circular_queue.obj,fail,divergence,34,50,0
 0x118370,FUN_00118370,stubbable,circular_queue.obj,pass,,50,50,0
@@ -3503,30 +3547,30 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x1493b0,collision_bsp_test_sphere,data_only,collision_bsp.obj,error,emulation_error,0,50,0
 0x14dc30,FUN_0014dc30,stubbable,collision_bsp.obj,pass,,50,50,0
 0x14dce0,FUN_0014dce0,leaf,collision_bsp.obj,error,timeout,0,0,0
-0x14e7d0,FUN_0014e7d0,stubbable,collision_bsp.obj,error,exit=1,0,0,0
+0x14e7d0,FUN_0014e7d0,stubbable,collision_bsp.obj,pass,,50,50,0
 0x14e940,FUN_0014e940,stubbable,collision_bsp.obj,pass,,50,50,0
 0x14ea10,FUN_0014ea10,leaf,collision_bsp.obj,error,timeout,0,0,0
-0x5dfc0,path_input_new,stubbable,path.obj,error,timeout,0,0,0
+0x5dfc0,path_input_new,stubbable,path.obj,pass,,50,50,0
 0x5dff0,paths_dispose,leaf,path.obj,pass,,50,50,1
 0x5e000,path_input_set_start,leaf,path.obj,pass,,50,50,1
 0x5e030,path_input_set_attractor,leaf,path.obj,pass,,50,50,1
-0x5e070,path_input_set_search_bounds,leaf,path.obj,error,exit=1,0,0,0
-0x5e090,path_state_new,stubbable,path.obj,error,exit=1,0,0,0
-0x5e0d0,FUN_0005e0d0,leaf,path.obj,error,exit=1,0,0,0
-0x5e760,path_get_node,stubbable,path.obj,error,exit=1,0,0,0
-0x5e830,path_3d_available,stubbable,path.obj,error,exit=1,0,0,0
-0x5e920,path_3d_build_path,stubbable,path.obj,error,exit=1,0,0,0
-0x62960,path_obstacles_debug_render,leaf,path_smoothing.obj,error,exit=1,0,0,0
-0x63710,structure_test_ray2d,stubbable,path_smoothing.obj,error,exit=1,0,0,0
-0x638f0,FUN_000638f0,stubbable,path_smoothing.obj,error,exit=1,0,0,0
-0x63970,FUN_00063970,leaf,path_smoothing.obj,error,exit=1,0,0,0
+0x5e070,path_input_set_search_bounds,leaf,path.obj,pass,,50,50,1
+0x5e090,path_state_new,stubbable,path.obj,error,emulation_error,0,50,0
+0x5e0d0,FUN_0005e0d0,leaf,path.obj,pass,,50,50,1
+0x5e760,path_get_node,stubbable,path.obj,pass,,50,50,0
+0x5e830,path_3d_available,stubbable,path.obj,error,timeout,0,0,0
+0x5e920,path_3d_build_path,stubbable,path.obj,fail,divergence,0,50,0
+0x62960,path_obstacles_debug_render,leaf,path_smoothing.obj,pass,,50,50,0
+0x63710,structure_test_ray2d,stubbable,path_smoothing.obj,pass,,50,50,0
+0x638f0,FUN_000638f0,stubbable,path_smoothing.obj,fail,divergence,3,50,0
+0x63970,FUN_00063970,leaf,path_smoothing.obj,pass,,50,50,0
 0x60c40,valid_real_point2d,leaf,path_obstacle_avoidance.obj,pass,,50,50,0
-0x1d7b37,FUN_001d7b37,leaf,XAPILIB:xbox_crt.obj,error,timeout,0,0,0
+0x1d7b37,FUN_001d7b37,leaf,XAPILIB:xbox_crt.obj,not_applicable,lifted_extract_failed,0,0,0
 0x1d7cb4,FUN_001d7cb4,data_only,XAPILIB:xbox_crt.obj,not_applicable,lifted_extract_failed,0,0,0
 0x8d410,FUN_0008d410,data_only,static_camera.obj,not_applicable,oracle_truncated,0,0,0
 0x1700d0,FUN_001700d0,stubbable,rasterizer_xbox_screen_effect.obj,pass,,50,50,0
 0x171bc0,FUN_00171bc0,stubbable,rasterizer_xbox_screen_effect.obj,error,timeout,0,0,0
-0x172590,FUN_00172590,stubbable,rasterizer_xbox_shadows.obj,error,exit=1,0,0,0
+0x172590,FUN_00172590,stubbable,rasterizer_xbox_shadows.obj,pass,,50,50,0
 0x173090,FUN_00173090,stubbable,rasterizer_xbox_shadows.obj,error,timeout,0,0,0
 0x16f910,FUN_0016f910,stubbable,rasterizer_xbox_profile.obj,pass,,50,50,0
 0x16fa40,FUN_0016fa40,stubbable,rasterizer_xbox_profile.obj,pass,,50,50,0
