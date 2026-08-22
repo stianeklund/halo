@@ -2082,8 +2082,8 @@ def generate_html(report: dict, output_path: str, history_path: str = None):
         }
 
         var EVIDENCE_COLORS = {
-            none: '#21262d',
-            ported: '#3d444d',
+            none: '#6e7681',
+            ported: '#f0883e',
             matched: '#388bfd',
             verified: '#3fb950'
         };
