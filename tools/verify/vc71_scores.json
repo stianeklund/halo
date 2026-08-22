@@ -28066,16 +28066,16 @@
     "FUN_0012f990": {
       "abi_model": "regparam_stripped_saves",
       "abi_model_items": 7,
-      "abi_modeled_mnemonic_pct": 72.1,
+      "abi_modeled_mnemonic_pct": 79.1,
       "addr": "0x12f990",
       "end": "0x12fd75",
       "kind": "auto",
       "n_r": 343,
-      "opnd_percent": 56.4,
-      "raw_mnemonic_pct": 71.6,
+      "opnd_percent": 60.3,
+      "raw_mnemonic_pct": 78.6,
       "ref": "synth",
       "ref_sha": "14c3822060651157",
-      "score": 72.1,
+      "score": 79.1,
       "source": "src/halo/networking/network_server_manager.c"
     },
     "FUN_0012fd80": {
@@ -44461,16 +44461,16 @@
     "cheats_load_from_file": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 97.9,
+      "abi_modeled_mnemonic_pct": 100.0,
       "addr": "0xa66d0",
       "end": "0xa6757",
       "kind": "auto",
       "n_r": 47,
-      "opnd_percent": 97.9,
-      "raw_mnemonic_pct": 97.9,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "b17081f5212200db",
-      "score": 97.9,
+      "score": 100.0,
       "source": "src/halo/game/cheats.c"
     },
     "cheats_update": {
@@ -50026,16 +50026,16 @@
     "game_allegiance_provoke": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 97.9,
+      "abi_modeled_mnemonic_pct": 100.0,
       "addr": "0xa7bc0",
       "end": "0xa7c2f",
       "kind": "auto",
       "n_r": 47,
-      "opnd_percent": 95.7,
-      "raw_mnemonic_pct": 97.9,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "99a7d9997b84cd45",
-      "score": 97.9,
+      "score": 100.0,
       "source": "src/halo/game/game_allegiance.c"
     },
     "game_allegiance_remove": {
@@ -60631,16 +60631,16 @@
     "object_header_block_reference_get": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 97.9,
+      "abi_modeled_mnemonic_pct": 100.0,
       "addr": "0x13dfc0",
       "end": "0x13e04a",
       "kind": "auto",
       "n_r": 48,
-      "opnd_percent": 87.5,
-      "raw_mnemonic_pct": 97.9,
+      "opnd_percent": 91.7,
+      "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "f7982cb3e8c8f59e",
-      "score": 97.9,
+      "score": 100.0,
       "source": "src/halo/objects/objects.c"
     },
     "object_header_new": {
