@@ -9843,6 +9843,7 @@ char object_visible_to_any_player(int object_handle)
   float magnitude;
   float half_angle;
   float dot;
+  double radius_d;
   char *unit_obj;
   int unit_handle;
   /* ref keeps the result bool in a stack slot (-0x1(%ebp)); volatile forces
@@ -9859,32 +9860,20 @@ char object_visible_to_any_player(int object_handle)
     /* Get combined PVS and iterate object clusters */
     pvs = (int *)players_get_combined_pvs();
     cluster_index = object_get_first_cluster(iter_state, object_handle);
-    if (cluster_index == (int16_t)0xFFFF)
-      return result;
+    if (cluster_index != (int16_t)0xFFFF) {
+      while (!(pvs[(int)cluster_index >> 5] & (1 << ((int)cluster_index & 0x1f)))) {
+        cluster_index = FUN_0013d5f0(iter_state, object_handle);
+        if (cluster_index == (int16_t)0xFFFF)
+          return result;
+      }
 
-    /* Check each cluster against PVS */
-    for (;;) {
-      int edx = (int)cluster_index;
-      int bit_index = edx & 0x1f;
-      int dword_index = edx >> 5;
-      int bit_mask = 1 << bit_index;
+      if (cluster_index != (int16_t)0xFFFF) {
+        /* Object is in a visible cluster — check per-player visibility */
+        radius_sq = obj->unk_92 * obj->unk_92;
 
-      if (pvs[dword_index] & bit_mask)
-        break;
-
-      cluster_index = FUN_0013d5f0(iter_state, object_handle);
-      if (cluster_index == (int16_t)0xFFFF)
-        return result;
-    }
-
-    /* Object is in a visible cluster — check per-player visibility */
-    radius_sq = obj->unk_92 * obj->unk_92;
-
-    player_index = data_next_index(*(data_t **)0x5aa6d4, -1);
-    if (player_index == -1)
-      return result;
-
-    while (player_index != -1) {
+        player_index = data_next_index(*(data_t **)0x5aa6d4, -1);
+        if (player_index != -1) {
+          while (player_index != -1) {
       player = (char *)datum_get(*(data_t **)0x5aa6d4, player_index);
       unit_handle = *(int *)(player + 0x34);
 
@@ -9912,24 +9901,33 @@ char object_visible_to_any_player(int object_handle)
       delta[0] = obj->unk_80 - head_pos[0];
       delta[1] = obj->unk_84 - head_pos[1];
       delta[2] = obj->unk_88 - head_pos[2];
+      radius_d = (double)obj->unk_92;
       magnitude = normalize3d(delta);
 
-      /* half_angle = atan2(radius, magnitude) + PI/4 */
-      half_angle = (float)(xbox_atan2((double)obj->unk_92, (double)magnitude) +
-                           (double)*(float *)0x254a58);
-
       /* dot product of normalized delta with unit forward vector */
-      if (xbox_cosf(half_angle) < delta[2] * *(float *)(unit_obj + 0x1E8) +
-                                    delta[1] * *(float *)(unit_obj + 0x1E4) +
-                                    delta[0] * *(float *)(unit_obj + 0x1E0)) {
+#if defined(_MSC_VER) && !defined(__clang__)
+      if ((float)cos(atan2(radius_d, (double)magnitude) + (double)*(float *)0x254a58) <
+          delta[2] * *(float *)(unit_obj + 0x1E8) +
+            delta[1] * *(float *)(unit_obj + 0x1E4) +
+            delta[0] * *(float *)(unit_obj + 0x1E0)) {
+#else
+      half_angle = (float)(atan2(radius_d, (double)magnitude) +
+                           (double)*(float *)0x254a58);
+      if (x87_fcos(half_angle) < delta[2] * *(float *)(unit_obj + 0x1E8) +
+                                   delta[1] * *(float *)(unit_obj + 0x1E4) +
+                                   delta[0] * *(float *)(unit_obj + 0x1E0)) {
+#endif
         result = 1;
         return result;
       }
 
     next_player:
       player_index = data_next_index(*(data_t **)0x5aa6d4, player_index);
+        }
+      }
     }
   }
+}
 
   return result;
 }
@@ -13556,6 +13554,7 @@ void objects_garbage_collect_tick(void)
   int garbage_object_count;
   int contiguous_free;
   int free_size;
+  float mem_pct;
   int handle;
   int slots_free;
   object_header_data_t *hdr;
@@ -13643,7 +13642,7 @@ delete_loop:
     should_delete = 0;
     goto pop_next;
   case 1:
-    should_delete = *(int16_t *)((char *)object_globals + 4) <= 0x1e;
+    should_delete = *(int16_t *)((char *)object_globals + 4) < 0x1f;
     if (should_delete)
       goto compact_and_callbacks;
     goto pop_next;
@@ -13755,9 +13754,10 @@ compact_and_callbacks:
     crit_mem:
       is_critical = 1;
     sprintf_mem:
+      mem_pct = (float)contiguous_free * *(float *)0x253f00;
       crt_sprintf(
         status_buf, "%4.2f%% memory free",
-        (double)((float)contiguous_free * 100.0f * (1.0f / 1048576.0f)));
+        (double)(mem_pct * *(float *)0x29ba04));
     after_status:
       if (should_delete == 0)
         goto not_critical;

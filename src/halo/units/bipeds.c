@@ -228,12 +228,12 @@ void FUN_001a03c0(int unit_handle, int node_count, float *positions,
         /* dot(A,B) — FPU order: A[2]*B[2] + A[1]*B[1] + A[0]*B[0] */
         dot_val = A[2] * B[2] + A[1] * B[1] + A[0] * B[0];
 
-        /* if |dot - 1.0f| >= epsilon */
-        if (*(double *)0x2533d0 <= fabs(dot_val - *(float *)0x2533c8)) {
+        /* if !(fabs(dot - 1.0f) < epsilon) */
+        if (!(fabs(dot_val - *(float *)0x2533c8) < *(double *)0x2533d0)) {
           angle = acosf(dot_val);
 
-          /* if epsilon <= |angle| < max_angle */
-          if (*(double *)0x2533d0 <= fabs(angle) &&
+          /* if !(fabs(angle) < epsilon) && fabs(angle) < max_angle */
+          if (!(fabs(angle) < *(double *)0x2533d0) &&
               fabs(angle) < *(double *)0x25b3f0) {
             /* Original re-reads *(short*)(elem+0x24) and recomputes
              * parent_idx*0x34 + nodes + offset at EVERY call site.
@@ -800,7 +800,7 @@ void FUN_001a0be0(float vertical_speed, int unit_handle /* @edi */)
   char *obj;
   char *biped_tag;
   char *physics;
-  char damage_params[0x54]; /* damage_data_new clears through +0x53. */
+  char damage_params[0x58];
   float t;
   int actor_handle;
   int player_idx;
@@ -836,10 +836,11 @@ void FUN_001a0be0(float vertical_speed, int unit_handle /* @edi */)
     /* Compute lerp t = clamp01((speed - low) / (high - low)) */
     t = (vertical_speed - *(float *)(physics + 0x90)) /
         (*(float *)(physics + 0x94) - *(float *)(physics + 0x90));
-    if (t < *(float *)0x2533c0) {
-      t = 0.0f;
-    } else if (!(t <= *(float *)0x2533c8)) {
-      t = 1.0f;
+    *(float *)(damage_params + 0x40) = t;
+    if (t < 0.0f) {
+      *(float *)(damage_params + 0x40) = 0.0f;
+    } else if (t > 1.0f) {
+      *(float *)(damage_params + 0x40) = 1.0f;
     }
     object_cause_damage(damage_params, unit_handle, -1, -1, -1, (float *)0);
     return;
@@ -942,13 +943,10 @@ void FUN_001a0e00(float threshold, int unit_handle)
   fVar1 = *(float *)(biped_tag + 0x3dc) * *(float *)0x2546a4;
   fVar2 = *(float *)(biped_tag + 0x3e0) * *(float *)0x2546a4;
 
-  /* Branch primitives transcribed from the disassembly: the original tests with
-   * `<` (FCOMP; TEST AH,0x5) and inverts the jump, so mirror those `<` forms
-   * and the early-exit shape rather than the algebraically-equivalent `<=`
-   * nesting. */
   if (threshold < fVar1) {
     return;
   }
+
   if (threshold < fVar2) {
     offset = threshold - fVar1;
     range = fVar2 - fVar1;
@@ -960,19 +958,18 @@ void FUN_001a0e00(float threshold, int unit_handle)
     base = *(float *)(biped_tag + 0x3d8);
     flag = 1;
   }
-  scaled = base * TICKS_PER_SECOND;
-  if (range <= 0.0f) {
-    return;
+  scaled = base * *(float *)0x253394;
+  if (range > *(float *)0x2533c0) {
+    t = offset / range;
+    if (t < *(float *)0x2533c0) {
+      t = *(float *)0x2533c0;
+    } else if (t > *(float *)0x2533c8) {
+      t = *(float *)0x2533c8;
+    }
+    *(uint16_t *)(unit_obj + 0x460) = (uint16_t)flag;
+    *(unsigned char *)(unit_obj + 0x428) = 0;
+    *(unsigned char *)(unit_obj + 0x429) = (unsigned char)(int)(scaled * t);
   }
-  t = offset / range;
-  if (t < 0.0f) {
-    t = 0.0f;
-  } else if (1.0f < t) {
-    t = 1.0f;
-  }
-  *(uint16_t *)(unit_obj + 0x460) = (uint16_t)flag;
-  *(unsigned char *)(unit_obj + 0x428) = 0;
-  *(unsigned char *)(unit_obj + 0x429) = (unsigned char)(int)(scaled * t);
 }
 
 /* FUN_001a0f10 (0x1a0f10)
@@ -1064,13 +1061,14 @@ void biped_adjust_placement(int unit_handle, char *placement)
 {
   char *unit_obj;
   char *biped_tag;
+  unsigned int flags;
   float camera_height;
 
   unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
   biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
 
-  if ((*(unsigned int *)(biped_tag + 0x2f4) & 8) != 0 &&
-      (*(unsigned int *)(biped_tag + 0x2f4) & 4) == 0) {
+  flags = *(unsigned int *)(biped_tag + 0x2f4);
+  if ((flags & 8) != 0 && (flags & 4) == 0) {
     camera_height = *(float *)(biped_tag + 0x42c);
     *(float *)(placement + 0x18) =
       camera_height * *(float *)(placement + 0x40) +
@@ -1104,7 +1102,6 @@ void biped_export_function_values(int unit_handle)
   short *type_ptr;
   float *out_ptr;
   float *vel;
-  float ratio;
   float val;
   int count;
 
@@ -1117,16 +1114,17 @@ void biped_export_function_values(int unit_handle)
   do {
     if (*type_ptr != 0) {
       val = 0.0f;
-      if (*type_ptr == 1) {
+      switch (*type_ptr) {
+      case 1:
         vel = (float *)(unit_obj + 0x18);
-        ratio = sqrtf(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]) /
-                (*(float *)(biped_tag + 0x334) * *(float *)0x2546a4);
-        if (0.0f <= ratio) {
-          val = ratio;
-          if (1.0f < ratio) {
-            val = 1.0f;
-          }
+        val = sqrtf(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]) /
+              (*(float *)(biped_tag + 0x334) * *(float *)0x2546a4);
+        if (val < 0.0f) {
+          val = 0.0f;
+        } else if (val > 1.0f) {
+          val = 1.0f;
         }
+        break;
       }
       *out_ptr = val;
     }
@@ -1577,7 +1575,7 @@ void biped_render_debug(int unit_handle)
   if (*(char *)0x5054fe != '\0') {
     biped_get_camera_height_and_offset(unit_handle, &out_pos, &height_offset,
                                        &camera_height);
-    if (*(float *)0x2533c0 < height_offset) {
+    if (height_offset > *(float *)0x2533c0) {
       scaled[0] = height_offset * global_up_vector_ptr[0];
       scaled[1] = height_offset * global_up_vector_ptr[1];
       scaled[2] = height_offset * global_up_vector_ptr[2];
@@ -1589,8 +1587,8 @@ void biped_render_debug(int unit_handle)
   if (*(char *)0x5054fd != '\0') {
     biped_get_autoaim_pill(unit_handle, (float *)&out_pos, scaled,
                            (int *)&camera_height);
-    if (*(float *)0x2533c0 <
-        scaled[2] * scaled[2] + scaled[1] * scaled[1] + scaled[0] * scaled[0]) {
+    if (scaled[2] * scaled[2] + scaled[1] * scaled[1] + scaled[0] * scaled[0] >
+        *(float *)0x2533c0) {
       FUN_00189860(1, &out_pos, scaled, camera_height, *(void **)0x2ee6d0);
       return;
     }
@@ -2497,7 +2495,7 @@ void FUN_001a2900(int unit_handle, char *state)
     if ((move_state != 0x1f) && (move_state != 0x29)) {
       pitch = random_real_range(get_global_random_seed_address(), 0.05235988f,
                                 0.08726646f);
-      if (*(float *)(object + 0xe) /* +0x38 */ >= *(float *)0x2533f0) {
+      if (*(float *)(object + 0xe) /* +0x38 */ < *(float *)0x2533f0) {
         cross_product3d((float *)(object + 0xc) /* +0x30 */,
                         *(float **)0x31fc44 /* world up */, facing);
         if (normalize3d(facing) > *(float *)0x2533c0) {
@@ -2757,7 +2755,7 @@ void biped_build_flying_axes(float *forward, float *left, float *up)
   left[0] = lc0;
   left[1] = lc1;
   left[2] = lc2;
-  if (normalize3d(left) == 0.0f) {
+  if (normalize3d(left) == *(float *)0x2533c0) {
     up[0] = global_forward_vector_ptr[0];
     up[1] = global_forward_vector_ptr[1];
     up[2] = global_forward_vector_ptr[2];

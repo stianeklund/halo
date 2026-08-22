@@ -943,7 +943,8 @@ char FUN_001a6350(int unit_handle)
         unit_try_and_exit_seat(unit_handle);
       }
 
-      if (*(char *)0x0032d1c8 != 0 && *(float *)(vehicle + 0x38) < 0.0f &&
+      if (*(char *)0x0032d1c8 != 0 &&
+          *(float *)(vehicle + 0x38) < *(const float *)0x002533c0 &&
           (*(unsigned char *)(vehicle + 0x4) & 0x2) != 0) {
         unit_exit_seat_end(unit_handle);
       }
@@ -999,19 +1000,23 @@ char FUN_001a6350(int unit_handle)
     }
 
     /* Melee counter at +0x459 (primary) */
-    if ((*(int *)((char *)biped + 0x424) & 1) == 0) {
+    if ((*(int *)((char *)biped + 0x424) & 1) != 0) {
+      if (*(signed char *)((char *)biped + 0x459) < 0x7f) {
+        *(unsigned char *)((char *)biped + 0x459) =
+          *(unsigned char *)((char *)biped + 0x459) + 1;
+      }
+    } else {
       *(unsigned char *)((char *)biped + 0x459) = 0;
-    } else if (*(signed char *)((char *)biped + 0x459) < 0x7f) {
-      *(unsigned char *)((char *)biped + 0x459) =
-        *(unsigned char *)((char *)biped + 0x459) + 1;
     }
 
     /* Melee counter at +0x45a (secondary) */
-    if ((*(int *)((char *)biped + 0x424) & 2) == 0) {
+    if ((*(int *)((char *)biped + 0x424) & 2) != 0) {
+      if (*(signed char *)((char *)biped + 0x45a) < 0x7f) {
+        *(unsigned char *)((char *)biped + 0x45a) =
+          *(unsigned char *)((char *)biped + 0x45a) + 1;
+      }
+    } else {
       *(unsigned char *)((char *)biped + 0x45a) = 0;
-    } else if (*(signed char *)((char *)biped + 0x45a) < 0x7f) {
-      *(unsigned char *)((char *)biped + 0x45a) =
-        *(unsigned char *)((char *)biped + 0x45a) + 1;
     }
 
     state_pair[0] = 0;
