@@ -854,6 +854,58 @@ void player_ui_clear_multiplayer_joins(void)
   }
 }
 
+/* 0xe1490. The exact writer half of player_ui_get_active_player_profile
+ * (0xe0980): same 0x30-byte profile at the front of the 0x38-stride
+ * per-local-player record at player_ui_globals (0x46bee0), same assert reason
+ * string, copied in the opposite direction.
+ *
+ * Three stack arguments, and kb.json's `(void)` declaration was wrong -- the
+ * reference reads all three slots:
+ *   MOV ESI,dword ptr [EBP+0x10]   the source profile pointer
+ *   MOV EDI,dword ptr [EBP+0x8]    the local player index
+ *   MOV ECX,dword ptr [EBP+0xc]    the active-profile index dword
+ * The index is a 16-bit stack slot -- both bounds tests are on DI
+ * (TEST DI,DI / JL and CMP DI,0x4 / JGE) and the scale is MOVSX EAX,DI /
+ * IMUL EAX,EAX,0x38 -- so it is a signed short, matching every other
+ * per-local-player accessor in this TU. [EBP+0xc] is loaded and stored as a
+ * full dword into record+0x30, which is exactly the dword
+ * player_ui_get_active_player_profile_index (0xe09e0) reads back and that
+ * player_ui_initialize seeds to -1, so it is the profile index, an int.
+ *
+ * The assert reason string and line number 0xe2 are the reference's own PUSH
+ * immediates at 0xe14b6/0xe14b1/0xe14ac. Note the reason string only names
+ * local_player_index and profile; the index dword is unasserted.
+ *
+ * Store-before-copy is the reference order: MOV [EAX+0x46bf10],ECX at 0xe14dd
+ * sits between the csmemcpy argument pushes and the CALL at 0xe14e3. The store
+ * is spelled through player_ui_globals rather than off a record pointer to
+ * keep the reference's 0x46bf10(%eax) absolute-base addressing, the same way
+ * player_ui_clear_multiplayer_joins does it.
+ *
+ * csmemcpy pushes are PUSH 0x30 / PUSH ESI / PUSH EDX, i.e. last push first:
+ * csmemcpy(record, profile, 0x30) -- destination is the record, source is the
+ * caller's profile, the inverse of the getter.
+ *
+ * CALL 0x000e10c0 at 0xe14eb takes no stack arguments; EDI still holds the
+ * local player index (nothing writes EDI after 0xe1498), so this is
+ * FUN_000e10c0's `short local_player_index@<edi>` register argument. The
+ * POP EDI that follows is the epilogue restore, not an argument. */
+void player_ui_set_active_player_profile(short local_player_index,
+                                         int profile_index, void *profile)
+{
+  assert_halt_msg_at("(local_player_index>=0) && "
+                     "(local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS) && "
+                     "(profile != NULL)",
+                     "c:\\halo\\SOURCE\\interface\\player_ui.c", 0xe2,
+                     local_player_index >= 0 &&
+                       local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS &&
+                       profile != NULL);
+  *(int *)(player_ui_globals + local_player_index * 0x38 + 0x30) =
+    profile_index;
+  csmemcpy(player_ui_globals + local_player_index * 0x38, profile, 0x30);
+  FUN_000e10c0(local_player_index);
+}
+
 /* player_ui_end_editing_profile (0xe1760)
  *
  * Reference is two instructions:

@@ -3408,6 +3408,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x824d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x82850": {
       "kind": "function",
       "status": "ported"
@@ -3424,6 +3428,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x82d70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x82df0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x82e50": {
       "kind": "function",
       "status": "ported"
@@ -3435,6 +3447,10 @@
         "xnet_send thunk at 0x225c20 uses __stdcall convention with RET 0x10 (4 dwords) confirmed from 0x2258a4 epilogue; ep flags byte at offset 4 (bit 0=connected) and ep status int16_t at offset 6 derived from MOV/AND disassembly.",
         "Switch jump table at 0x83010 with byte-redirect table at 0x8301c maps WSAECONNRESET (0x2733) to -4, abort-class errors (0x2744/0x2745/0x2746/0x2749/0x274a/0x274c) to -3, all others to -2."
       ]
+    },
+    "0x83100": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x83310": {
       "kind": "function",

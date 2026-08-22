@@ -885,7 +885,7 @@
     },
     {
      "addr": "0x1dbdec",
-     "comment": "LIBCMT _except_handler3 \u2014 VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
+     "comment": "LIBCMT _except_handler3 — VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
      "decl": "int __cdecl _except_handler3(void *ExceptionRecord, void *EstablisherFrame, void *ContextRecord, void *DispatcherContext);"
     },
     {
@@ -6958,7 +6958,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -7019,7 +7019,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
@@ -17906,7 +17906,8 @@
     },
     {
      "addr": "0xe1490",
-     "decl": "void player_ui_set_active_player_profile(void);"
+     "decl": "void player_ui_set_active_player_profile(short local_player_index, int profile_index, void *profile);",
+     "ported": true
     },
     {
      "addr": "0xe1500",
@@ -25981,7 +25982,7 @@
     },
     {
      "addr": "0x81910",
-     "decl": "void FUN_00081910(void);"
+     "decl": "void FUN_00081910(int *mutex_reference);"
     },
     {
      "addr": "0x81980",
@@ -26128,7 +26129,8 @@
     },
     {
      "addr": "0x824a0",
-     "decl": "void FUN_000824a0(void);"
+     "decl": "int FUN_000824a0(const int *a, const int *b);",
+     "ported": true
     },
     {
      "addr": "0x824d0",
@@ -26145,19 +26147,23 @@
     },
     {
      "addr": "0x829b0",
-     "decl": "int FUN_000829b0(int endpoint_set);"
+     "decl": "int FUN_000829b0(int endpoint_set);",
+     "ported": true
     },
     {
      "addr": "0x82a30",
-     "decl": "int FUN_00082a30(int endpoint_set);"
+     "decl": "int FUN_00082a30(int endpoint_set);",
+     "ported": true
     },
     {
      "addr": "0x82a90",
-     "decl": "void FUN_00082a90(void);"
+     "decl": "void FUN_00082a90(void);",
+     "ported": true
     },
     {
      "addr": "0x82bd0",
-     "decl": "void FUN_00082bd0(void);"
+     "decl": "void FUN_00082bd0(void *param_1, const uint32_t *key, const uint32_t *id, uint16_t param_4, uint32_t *out);",
+     "ported": true
     },
     {
      "addr": "0x82c90",
@@ -26173,7 +26179,8 @@
     },
     {
      "addr": "0x82df0",
-     "decl": "void count_endpoints_in_set(void);"
+     "decl": "int count_endpoints_in_set(int *ep);",
+     "ported": true
     },
     {
      "addr": "0x83040",
@@ -26181,23 +26188,28 @@
     },
     {
      "addr": "0x83100",
-     "decl": "void transport_server_initialize(void);"
+     "decl": "bool transport_server_initialize(int *ep, unsigned short timeout_msec);",
+     "ported": true
     },
     {
      "addr": "0x831e0",
-     "decl": "void FUN_000831e0(void);"
+     "decl": "bool FUN_000831e0(int *ep);",
+     "ported": true
     },
     {
      "addr": "0x83220",
-     "decl": "void FUN_00083220(void);"
+     "decl": "bool FUN_00083220(int *ep);",
+     "ported": true
     },
     {
      "addr": "0x83260",
-     "decl": "void FUN_00083260(void);"
+     "decl": "unsigned short FUN_00083260(int *ep);",
+     "ported": true
     },
     {
      "addr": "0x832a0",
-     "decl": "void FUN_000832a0(void);"
+     "decl": "bool FUN_000832a0(int *a, int *b);",
+     "ported": true
     },
     {
      "addr": "0x83bd0",
@@ -26209,7 +26221,8 @@
     },
     {
      "addr": "0x84080",
-     "decl": "void FUN_00084080(void);"
+     "decl": "int __stdcall FUN_00084080(int *input);",
+     "ported": true
     },
     {
      "addr": "0x841b0",
@@ -26221,7 +26234,8 @@
     },
     {
      "addr": "0x84450",
-     "decl": "int FUN_00084450(int listening_endpoint);"
+     "decl": "int FUN_00084450(int listening_endpoint);",
+     "ported": true
     },
     {
      "addr": "0x84740",
@@ -26229,7 +26243,8 @@
     },
     {
      "addr": "0x84940",
-     "decl": "int FUN_00084940(int listening_endpoint);"
+     "decl": "short FUN_00084940(int listening_endpoint);",
+     "ported": true
     },
     {
      "addr": "0x84970",
@@ -32080,12 +32095,20 @@
   {
    "functions": [
     {
+     "addr": "0x222da0",
+     "decl": "void __stdcall FUN_00222da0(void *id, void *key);"
+    },
+    {
      "addr": "0x222de0",
      "decl": "int __stdcall FUN_00222de0(void *id, void *key);"
     },
     {
      "addr": "0x222df7",
      "decl": "int __stdcall FUN_00222df7(void *key);"
+    },
+    {
+     "addr": "0x222e31",
+     "decl": "void __stdcall FUN_00222e31(const void *param_1, const void *id, uint32_t *address);"
     },
     {
      "addr": "0x224876",
@@ -32098,6 +32121,10 @@
     {
      "addr": "0x225197",
      "decl": "int __stdcall xnet_bind(int socket, void *name, int namelen);"
+    },
+    {
+     "addr": "0x2251ad",
+     "decl": "int __stdcall xnet_accept(int socket, void *addr, int *addrlen);"
     },
     {
      "addr": "0x225bb6",
@@ -32114,6 +32141,14 @@
     {
      "addr": "0x225cd1",
      "decl": "int __stdcall xnet_recvfrom(int socket, void *buf, int len, int flags, void *from, int *fromlen);"
+    },
+    {
+     "addr": "0x2251b8",
+     "decl": "int __stdcall xnet_select(int nfds, uint32_t *readfds, uint32_t *writefds, uint32_t *exceptfds, const int32_t *timeout);"
+    },
+    {
+     "addr": "0x2235f3",
+     "decl": "int __stdcall xnet_wsafdisset(int socket, uint32_t *fds);"
     }
    ],
    "name": "XNET:wsock.obj"

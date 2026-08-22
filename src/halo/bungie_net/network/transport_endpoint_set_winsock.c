@@ -405,6 +405,52 @@ void delete_endpoint_set(int set)
     0x1bf);
 }
 
+/* Three-way comparison of two dwords by NULL-ness only, used as a sort
+ * predicate: a zero slot orders after a non-zero slot, and two slots that are
+ * both zero or both non-zero compare equal.  Sorting an array with this
+ * compacts the live entries to the front while leaving their relative order
+ * otherwise undecided.
+ *
+ * Confirmed from disassembly at 0x824a0: a plain `push ebp / mov ebp,esp`
+ * frame with no locals and no calls; both arguments arrive on the stack
+ * (EBP+0x8, EBP+0xc) and are dereferenced as dwords into EAX and ECX before
+ * any branch.  `test eax,eax / jnz` selects the *a != 0 arm, each arm then
+ * tests ECX; the three exits are `mov eax,1` (0x824b5), `or eax,-1` (0x824c0)
+ * and `xor eax,eax` (0x824c5, shared by both arms), so the return value is a
+ * full 32-bit int of 1 / -1 / 0.
+ *
+ * Uncertain: the only reference is a DATA xref from 0x8255b inside
+ * poll_endpoint_set (0x824d0), i.e. the address is taken and handed to
+ * something else rather than called directly, so the original parameter types
+ * are unproven.  The dereferences are dword-wide, and nothing here reveals
+ * whether the compared dwords are pointers, handles or counts, so the
+ * parameters stay `const int *`.  No name evidence exists for this function
+ * (no assert string, no __FILE__ line of its own), so it keeps FUN_ naming. */
+int FUN_000824a0(const int *a, const int *b)
+{
+  /* Both dwords are loaded before the first branch, not re-read per arm: the
+   * reference does MOV EAX,[EAX] / TEST EAX,EAX / MOV ECX,[EBP+0xc] /
+   * MOV ECX,[ECX] ahead of the JNZ at 0x824af, and both arms then reuse ECX
+   * with a bare TEST (0x824b1, 0x824bc).  Reading through the parameters
+   * inside the branches instead makes VC71 reload EBP+0xc twice and emit
+   * CMP [reg],0 in place of the MOV/TEST pair (measured: 73.2%). */
+  int a_value;
+  int b_value;
+
+  a_value = *a;
+  b_value = *b;
+
+  if (a_value == 0) {
+    if (b_value != 0) {
+      return 1;
+    }
+  } else if (b_value == 0) {
+    return -1;
+  }
+
+  return 0;
+}
+
 /* Remove an endpoint from an endpoint set.
  * Searches the set's endpoint_array for the matching pointer, then finds and
  * removes the endpoint's socket from the fd_array by shifting. Clears the
@@ -490,6 +536,144 @@ void rewind_endpoint_set(int endpoint_set)
   *(uint32_t *)(endpoint_set + 0x110) = 0;
 }
 
+/* Fetch the next entry from an endpoint set's iteration walk.
+ *
+ * This is the "next" half of the pair whose "rewind" half is 0x82940: it
+ * reads the cursor dword at set+0x110, and while the cursor is <= the count
+ * dword at set+0x10c (signed compare, CMP/JG at 0x82a0d) it loads element
+ * [cursor] from the dword array whose base pointer lives at set+0x104,
+ * post-increments the cursor, and returns the element.  Once the cursor
+ * passes the count it returns 0 without touching the cursor.
+ *
+ * Confirmed: display_assert (0x8d9f0, cdecl 4 args) with message "set" at
+ * 0x266450 line 0x27a and "transport_initialized" at 0x265fe4 line 0x27b,
+ * __FILE__ string at 0x266458; system_exit (0x8e2f0, PUSH -1) after each.
+ * Both asserts are single-condition two-branch tests in the reference
+ * (TEST ESI,ESI / JNZ at 0x829ba; MOV AL,[0x335090] / TEST AL,AL / JNZ at
+ * 0x829de), so each maps to one assert macro.  The zero return is
+ * materialized from a pre-zeroed EDI (XOR EDI,EDI at 0x829b8; MOV EAX,EDI
+ * at 0x82a29).
+ *
+ * Uncertain: the element type behind set+0x104 is only ever read as a dword
+ * here, and the field at 0x10c is proven to be an inclusive bound but is not
+ * named by anything in this function.  The base pointer at 0x104 is the same
+ * array delete_endpoint_set indexes as endpoint_set[0x41]. */
+int FUN_000829b0(int endpoint_set)
+{
+  int cursor;
+  int entry;
+
+  assert_halt_msg_at(
+    "set",
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+    0x27a, endpoint_set);
+  assert_halt_msg_at(
+    "transport_initialized",
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+    0x27b, *(uint8_t *)0x335090);
+
+  cursor = *(int *)(endpoint_set + 0x110);
+  if (cursor <= *(int *)(endpoint_set + 0x10c)) {
+    entry = *(int *)(*(int *)(endpoint_set + 0x104) + cursor * 4);
+    *(int *)(endpoint_set + 0x110) = cursor + 1;
+    return entry;
+  }
+
+  return 0;
+}
+
+/* Report the number of entries an endpoint set holds.
+ *
+ * Asserts the set pointer is non-NULL and that the transport is initialized,
+ * then returns the dword at set+0x10c plus one.  Nothing is written; the
+ * cursor at set+0x110 is not touched.  The +1 is consistent with 0x10c being
+ * the inclusive high index the iteration walk in FUN_000829b0 compares the
+ * cursor against (CMP/JG at 0x82a0d), so the returned value is a count rather
+ * than the stored bound.
+ *
+ * Confirmed: display_assert (0x8d9f0, cdecl 4 args) with message "set" at
+ * 0x266450 line 0x289 and "transport_initialized" at 0x265fe4 line 0x28a,
+ * __FILE__ string at 0x266458; system_exit (0x8e2f0, PUSH -1) after each.
+ * Both asserts are single-condition two-branch tests in the reference
+ * (TEST ESI,ESI / JNZ at 0x82a39; MOV AL,[0x335090] / TEST AL,AL / JNZ at
+ * 0x82a62), so each maps to one assert macro.  The return is
+ * MOV EAX,dword ptr [ESI + 0x10c] / INC EAX at 0x82a84.
+ *
+ * Uncertain: whether 0x10c is stored as a count-minus-one or as a last-index
+ * is not decidable from this function; only the +1 relation is proven. */
+int FUN_00082a30(int endpoint_set)
+{
+  assert_halt_msg_at(
+    "set",
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+    0x289, endpoint_set);
+  assert_halt_msg_at(
+    "transport_initialized",
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+    0x28a, *(uint8_t *)0x335090);
+
+  return *(int *)(endpoint_set + 0x10c) + 1;
+}
+
+/* Drop any owned global XNet key, then mint and publish a fresh one.
+ *
+ * If the "key owned" flag (0x335091) is set, releases that reference:
+ * decrements global_key_depth (0x335094) and, when it reaches zero, calls
+ * FUN_00222df7 on the key-id blob at 0x5ab220; the owned flag is then
+ * cleared.  global_key_depth must be zero at that point (second assert), so
+ * this runs only when no other holder remains.  The byte at 0x5ab204 is set
+ * to 1, a new (id, key) pair is generated into locals by FUN_00222da0, and
+ * FUN_00081e00 publishes the pair into the 0x5ab210/0x5ab220 globals and
+ * re-registers it.  FUN_00082b30 is the matching teardown, which clears
+ * 0x5ab204 again.
+ *
+ * Confirmed: display_assert (0x8d9f0, cdecl 4 args) with "global_key_depth
+ * > 0" at 0x2664a8 line 0x66 and "0 == global_key_depth" at 0x2665f8 line
+ * 0x79, __FILE__ string at 0x266458; system_exit (0x8e2f0, PUSH -1) after
+ * each.  DEC dword ptr [0x335094] / JNZ at 0x82ac5 is a decrement-then-test.
+ * MOV byte ptr [0x5ab204],0x1 at 0x82b0c is a one-byte store, not a word.
+ * FUN_00222da0 (0x222da0) is __stdcall with 2 args: the CALL at 0x82b13 is
+ * followed directly by LEA with no ADD ESP, and the pushes at 0x82b07/0x82b0b
+ * put the 8-byte local (EBP-0x8) in arg1 and the 16-byte local (EBP-0x18) in
+ * arg2.  FUN_00081e00 (0x81e00) is cdecl 2 args (ADD ESP,0x8 at 0x82b25) and
+ * the pushes at 0x82b1b/0x82b1f pass the two locals in the OPPOSITE order:
+ * the 16-byte blob is arg1 (key) and the 8-byte blob is arg2 (id), which
+ * agrees with FUN_00081e00's own 4-dword/2-dword copies.
+ *
+ * Uncertain: the reference ends with XOR AX,AX before the epilogue, i.e. it
+ * materializes a 16-bit zero in the return register.  The single caller
+ * (0x12ef51 in FUN_0012eef0) ignores it and no other evidence types the
+ * result, so the kb.json declaration is left as void and that one instruction
+ * is not reproduced.  The two locals are untyped blobs; no field of either is
+ * read here, so no struct is invented for them.
+ */
+void FUN_00082a90(void)
+{
+  uint32_t id[2];
+  uint32_t key[4];
+
+  if (*(uint8_t *)0x335091 != 0) {
+    assert_halt_msg_at(
+      "global_key_depth > 0",
+      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+      0x66, *(int *)0x335094 > 0);
+    *(int *)0x335094 -= 1;
+    if (*(int *)0x335094 == 0) {
+      FUN_00222df7((void *)0x5ab220);
+    }
+    *(uint8_t *)0x335091 = 0;
+  }
+
+  assert_halt_msg_at(
+    "0 == global_key_depth",
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+    0x79, 0 == *(int *)0x335094);
+
+  *(uint8_t *)0x5ab204 = 1;
+  FUN_00222da0(id, key);
+  FUN_00081e00(key, id);
+}
+
 /* Release the global XNet key and clear associated state.
  *
  * If the "key owned" flag (0x335091) is set, decrements global_key_depth
@@ -524,6 +708,62 @@ void FUN_00082b30(void)
   csmemset((void *)0x5ab204, 0, 1);
 }
 
+/* Register a key/id pair and fill in an address record from an XNet address.
+ *
+ * First runs the inlined release-global-key helper (source line 0x66, the same
+ * block that opens FUN_00082a90 and FUN_00082b30): if the owned flag at
+ * 0x335091 is set, decrement global_key_depth (0x335094) and release the key
+ * object at 0x5ab220 when it reaches zero, then clear the flag.  Registers the
+ * caller's key/id with FUN_00081e00, translates param_1 plus the id into a
+ * 32-bit address with FUN_00222e31, byte-reverses that value into out[0], and
+ * writes a type tag, the caller's 16-bit field, and a zero.  Finally re-arms
+ * the owned flag at 0x335091.
+ *
+ * Confirmed (0x82bd0-0x82c87): display_assert (0x8d9f0, cdecl 4 args, msg
+ * 0x2664a8, __FILE__ 0x266458, line 0x66); system_exit (0x8e2f0);
+ * FUN_00222df7 (0x222df7, __stdcall 1 arg);
+ * FUN_00081e00 (0x81e00, cdecl 2 args, ADD ESP,8 at 0x82c2d) -- pushes are
+ * ESI=[EBP+0x10] then EAX=[EBP+0xc], so args are (key=[EBP+0xc],
+ * id=[EBP+0x10]), matching that callee's own kb.json declaration;
+ * FUN_00222e31 (0x222e31, __stdcall 3 args, no ADD ESP after the CALL) --
+ * pushes are ECX=&local, ESI, EDX=[EBP+0x8], so args are ([EBP+0x8],
+ * [EBP+0x10], &local); ESI is callee-saved and still holds [EBP+0x10].
+ * Stores: dword [out+0x00] = byte-reverse(local), word [out+0x10] = 4,
+ * word [out+0x12] = [EBP+0x14] (MOV CX, so 16-bit), dword [out+0x14] = 0.
+ *
+ * Uncertain: the meaning of param_1 and of the constant 4 stored at out+0x10
+ * are not evidenced by any string, so both stay mechanical.  Bytes 0x04-0x0f
+ * of the output record are never accessed here, so no struct is invented for
+ * it and the caller is assumed to own those bytes.
+ */
+void FUN_00082bd0(void *param_1, const uint32_t *key, const uint32_t *id,
+                  uint16_t param_4, uint32_t *out)
+{
+  uint32_t address;
+
+  if (*(uint8_t *)0x335091 != 0) {
+    assert_halt_msg_at(
+      "global_key_depth > 0",
+      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+      0x66, *(int *)0x335094 > 0);
+    *(int *)0x335094 -= 1;
+    if (*(int *)0x335094 == 0) {
+      FUN_00222df7((void *)0x5ab220);
+    }
+    *(uint8_t *)0x335091 = 0;
+  }
+
+  FUN_00081e00(key, id);
+  FUN_00222e31(param_1, id, &address);
+
+  out[0] = (((address & 0xff0000) | (address >> 16)) >> 8) |
+           (((address & 0xff00) | (address << 16)) << 8);
+  *(uint16_t *)(out + 4) = 4;
+  *(uint16_t *)((char *)out + 0x12) = param_4;
+  out[5] = 0;
+  *(uint8_t *)0x335091 = 1;
+}
+
 /* Clean up the endpoint pool. Iterates 64 entries (8 bytes each) at
  * 0x3350a0. For each entry with a non-zero thread handle and cleanup
  * flag set, closes the thread and clears the entry. */
@@ -539,6 +779,46 @@ void endpoint_pool_cleanup(void)
     }
     entry += 2;
   } while ((int)entry < 0x3352a0);
+}
+
+/* Return the signed byte stored at endpoint offset 5.
+ *
+ * Guards on a non-NULL endpoint and on the transport_initialized flag, then
+ * sign-extends the byte at ep+5 into the 32-bit return register.
+ *
+ * Confirmed (0x82df0-0x82e4a): the incoming pointer is loaded once
+ * (MOV ESI,dword ptr [EBP+0x8] at 0x82df4) and both the NULL guard
+ * (TEST ESI,ESI / JNZ at 0x82df7) and the returned load use it.
+ * display_assert (0x8d9f0, cdecl 4 args) is called with msg "ep" at 0x266658
+ * line 0x12c and msg "transport_initialized" at 0x265fe4 line 0x12d; both
+ * pushes of the __FILE__ argument are 0x266618, which is
+ * "c:\halo\SOURCE\bungie_net\network\transport_endpoint_winsock.c" -- NOT the
+ * _set_ file string at 0x266458 used by the endpoint-set functions above.
+ * Each assert is followed by PUSH -1 / CALL system_exit (0x8e2f0) with no
+ * stack cleanup, so each maps to one assert macro.  The return is
+ * MOVSX EAX,byte ptr [ESI + 0x5] at 0x82e44: a sign-extending byte load into
+ * a 32-bit result, so the field is a signed byte and the return type is int.
+ *
+ * Uncertain: the kb.json name count_endpoints_in_set is not supported by this
+ * function's own evidence -- the asserted parameter is spelled "ep" and the
+ * __FILE__ string is the per-endpoint TU, not the endpoint-set TU, and no
+ * iteration or accumulation occurs.  The name is left unchanged because it is
+ * pre-existing kb.json state, not because it is proven.  There are no xrefs to
+ * 0x82df0 in the binary, so no caller constrains the parameter type; it is
+ * declared int * to match the ep parameter of the other endpoint functions in
+ * this TU.  The meaning of the byte at ep+5 is unknown (recv_endpoint documents
+ * ep+4 as a flags byte and ep+6 as a 16-bit status, leaving ep+5 unclaimed). */
+int count_endpoints_in_set(int *ep)
+{
+  assert_halt_at(
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+    0x12c, ep);
+  assert_halt_msg_at(
+    "transport_initialized",
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+    0x12d, *(uint8_t *)0x335090);
+
+  return *(signed char *)((char *)ep + 5);
 }
 
 /* Receive data from a transport endpoint.
@@ -658,6 +938,69 @@ int send_endpoint(int *ep, const char *buf, int len)
   }
 }
 
+/* Wait until a Winsock endpoint's socket becomes writable, up to a timeout.
+ *
+ * Builds a single-entry fd_set holding ep->socket and passes it as select()'s
+ * WRITE set (arg 3) with a timeval of {0 sec, timeout_msec * 1000 usec}.
+ * Returns true only when select() reports at least one ready descriptor AND
+ * __WSAFDIsSet confirms our socket is the one that became ready; otherwise
+ * false (timeout, select error, or a set that does not contain the socket).
+ *
+ * The kb.json name transport_server_initialize is retained (it is the name in
+ * tools/verify/function_bounds.json and the pipeline target), but nothing in
+ * this function initializes a server: the only observable behavior is the
+ * writability poll described above.  Treat the name as unproven.
+ *
+ * Local layout (from the disassembly's SUB ESP,0x10c):
+ *   [EBP-0x10c] 0x104-byte fd_set   — dword 0 = fd_count, dwords 1.. = fd_array
+ *                                     (0x104 = 4 + 64*4, i.e. FD_SETSIZE 64)
+ *   [EBP-0x008] 8-byte timeval      — dword 0 = tv_sec, dword 1 = tv_usec
+ * fd_count and fd_array[0] are stored directly; there is no FD_ZERO/memset.
+ *
+ * Confirmed: assert message "ep && (ep->socket != INVALID_SOCKET)" at
+ * 0x26667c, __FILE__ at 0x266618, line 0x417; display_assert (0x8d9f0,
+ * cdecl 4 args) + system_exit (0x8e2f0) at 0x83127/0x8312e.
+ * Confirmed: both calls are __stdcall — CALL 0x2251b8 at 0x8316d and
+ * CALL 0x2235f3 at 0x83180 are each followed directly by TEST EAX,EAX with
+ * no ADD ESP, so the callee cleans up its 5 / 2 dword arguments.
+ * Confirmed argument order at 0x83145..0x83156 (first PUSH is the last arg):
+ * (1, NULL, &fd_set, NULL, &timeval) and (*ep, &fd_set).
+ * Confirmed: MOVZX EAX,word [EBP+0xc] then IMUL EAX,EAX,0x3e8 — the second
+ * parameter is a 16-bit unsigned millisecond count scaled to microseconds.
+ * Confirmed: MOV AL,1 / XOR AL,AL exits, so the return is a bool in AL.
+ *
+ * Inferred (from the argument shape only, no string or import names the
+ * callees): 0x2251b8 has select()'s exact 5-argument Winsock ABI over an
+ * FD_SETSIZE-64 fd_set and a timeval, and 0x2235f3 has __WSAFDIsSet's
+ * (SOCKET, fd_set *) shape; they are registered as xnet_select /
+ * xnet_wsafdisset alongside the other xnet_* wsock.obj thunks.
+ *
+ * Uncertain: whether select's nfds argument of 1 is meaningful here (Winsock
+ * ignores nfds); it is reproduced verbatim.
+ */
+bool transport_server_initialize(int *ep, unsigned short timeout_msec)
+{
+  uint32_t write_set[65];
+  int32_t timeout[2];
+
+  assert_halt_msg_at(
+    "ep && (ep->socket != INVALID_SOCKET)",
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+    0x417, ep && (*ep != -1));
+
+  write_set[0] = 1;
+  write_set[1] = (uint32_t)*ep;
+  timeout[0] = 0;
+  timeout[1] = timeout_msec * 1000;
+
+  if (xnet_select(1, NULL, write_set, NULL, timeout) > 0) {
+    if (xnet_wsafdisset(*ep, write_set) != 0)
+      return true;
+  }
+
+  return false;
+}
+
 /* Test whether a Winsock endpoint is currently connected.
  *
  * Asserts that endpoint is non-null, then returns the state of the
@@ -671,6 +1014,159 @@ bool FUN_000831a0(int endpoint)
 {
   assert_halt(endpoint);
   return *(uint8_t *)(endpoint + 4) & 1;
+}
+
+/* Report bit 1 of a Winsock endpoint's flag byte at ep+4.
+ *
+ * Asserts that ep is non-null, then returns bit 1 of the byte at ep+4 —
+ * the same flag byte whose bit 0 FUN_000831a0 reports.
+ *
+ * Confirmed: PUSH EBP / MOV EBP,ESP / MOV ESI,[EBP+8] / TEST ESI,ESI /
+ * JNZ — a single pointer parameter and a null-check assert.
+ * Confirmed: display_assert (0x8d9f0, cdecl 4 args) with message "ep" at
+ * 0x266658, __FILE__ at 0x266618, line 0x42e = 1070; system_exit (0x8e2f0)
+ * with -1 at 0x83201/0x83203.
+ * Confirmed return shape at 0x8320b..0x83214: XOR EAX,EAX / MOV AL,
+ * byte ptr [ESI+4] / AND EAX,0x2 / SHR EAX,0x1 — a zero-extended byte load
+ * from offset 4, masked to bit 1 and normalized to 0/1, i.e. a bool in AL.
+ *
+ * Uncertain: what bit 1 means.  Nothing in this function or its assert
+ * string names the flag, and the binary has no xrefs to 0x831e0 (the
+ * callers are through data/vtable or were inlined away), so no semantic
+ * name is invented for either the function or the bit.  The sibling
+ * getters at 0x83220/0x83260/0x832a0 are the remaining unlifted bits of
+ * the same byte.
+ */
+bool FUN_000831e0(int *ep)
+{
+  assert_halt_at(
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+    0x42e, ep);
+
+  return (*((const uint8_t *)ep + 4) & 2) >> 1;
+}
+
+/* Report the COMPLEMENT of bit 4 of a Winsock endpoint's flag byte at ep+4.
+ *
+ * Asserts that ep is non-null, then returns the inverse of bit 4 of the byte
+ * at ep+4 — the same flag byte whose bit 0 FUN_000831a0 and whose bit 1
+ * FUN_000831e0 report.
+ *
+ * Confirmed frame/param at 0x83220..0x83229: PUSH EBP / MOV EBP,ESP /
+ * PUSH ESI / MOV ESI,[EBP+8] / TEST ESI,ESI / JNZ — a single pointer
+ * parameter and a null-check assert.
+ * Confirmed assert at 0x8322b..0x83243 (first PUSH is the last arg):
+ * display_assert("ep" @0x266658, __FILE__ @0x266618, 0x436, true) — cdecl,
+ * 4 args — followed by system_exit(-1) (PUSH -0x1 / CALL 0x8e2f0).
+ * 0x436 = line 1078.
+ * Confirmed return shape at 0x8324b..0x83256: XOR EAX,EAX / MOV AL,
+ * byte ptr [ESI+4] / SHR EAX,0x4 / NOT EAX / AND EAX,0x1 — zero-extended
+ * byte load from offset 4, shifted down by 4, complemented, masked to bit 0.
+ * The shift-then-NOT-then-AND order (vs. the sibling's AND-then-SHR at
+ * 0x831e0) is preserved verbatim in the expression below.
+ *
+ * Uncertain: what bit 4 means, and whether the original source spelled this
+ * as a negated bitfield read.  Nothing here or in the assert string names
+ * the flag, and the artifact records no xrefs to 0x83220 (callers are
+ * through data/vtable or were inlined away), so no semantic name is
+ * invented for the function or the bit.  The sibling getters at 0x83260 and
+ * 0x832a0 are the remaining unlifted bits of the same byte.
+ */
+bool FUN_00083220(int *ep)
+{
+  assert_halt_at(
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+    0x436, ep);
+
+  return ~(*((const uint8_t *)ep + 4) >> 4) & 1;
+}
+
+/* Report the 16-bit field at ep+6 of a Winsock endpoint.
+ *
+ * Asserts that ep is non-null, then returns the halfword at ep+6.  This is
+ * NOT another bit of the flag byte at ep+4 that the 0x831a0/0x831e0/0x83220
+ * siblings read: the load here is a full word from a different offset.
+ *
+ * Confirmed frame/param at 0x83260..0x83269: PUSH EBP / MOV EBP,ESP /
+ * PUSH ESI / MOV ESI,dword ptr [EBP+8] / TEST ESI,ESI / JNZ 0x8328b — a
+ * single pointer parameter and a null-check assert.
+ * Confirmed assert at 0x8326b..0x83283 (first PUSH is the last arg):
+ * display_assert("ep" @0x266658, __FILE__ @0x266618, 0x43e, true) — cdecl,
+ * 4 args — followed by system_exit(-1) (PUSH -0x1 / CALL 0x8e2f0).
+ * 0x43e = line 1086.
+ * Confirmed return shape at 0x8328b: MOV AX,word ptr [ESI + 0x6] — a
+ * 16-bit load into AX only; the upper half of EAX is never written, so the
+ * return type is 16-bit wide, not int.
+ *
+ * Uncertain: the meaning of the field at ep+6, and its signedness.  A bare
+ * MOV AX carries no sign information and the artifact records no xrefs to
+ * 0x83260 (callers are through data/vtable or were inlined away), so the
+ * only proven fact is the 16-bit width; unsigned is the conservative
+ * spelling for a raw field read and produces the same load.  Ghidra's
+ * decompile of this function shows `void (void)` and drops the return
+ * entirely — that is an artifact of the stale kb.json prototype, not
+ * evidence that the value is unused.
+ */
+unsigned short FUN_00083260(int *ep)
+{
+  assert_halt_at(
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+    0x43e, ep);
+
+  return *(const uint16_t *)((const uint8_t *)ep + 6);
+}
+
+/* Report whether two Winsock endpoints hold the same live socket handle.
+ *
+ * Asserts that both pointers are non-null, then returns true only when the
+ * dword at offset 0 of `a` is not -1 AND equals the dword at offset 0 of `b`.
+ * A pair of endpoints that both hold -1 therefore compares UNEQUAL — the
+ * -1 check is not redundant with the equality test.
+ *
+ * Confirmed frame/params at 0x832a0..0x832aa: PUSH EBP / MOV EBP,ESP /
+ * PUSH ESI / MOV ESI,dword ptr [EBP+8] / TEST ESI,ESI / PUSH EDI / JNZ
+ * 0x832cc, then MOV EDI,dword ptr [EBP+0xc] / TEST EDI,EDI / JNZ 0x832f3 —
+ * two pointer parameters, each with its own null-check assert.  (Ghidra's
+ * decompile reports `void (void)` with `in_stack_00000004`/`in_stack_00000008`
+ * and drops the return value entirely; that is an artifact of the stale
+ * kb.json `void FUN_000832a0(void)` prototype, not evidence about the
+ * signature.)
+ * Confirmed asserts (first PUSH is the last arg, cdecl 4 args):
+ *   0x832ac..0x832bd display_assert("a" @0x266090, __FILE__ @0x266618,
+ *     0x447, true) then system_exit(-1) (PUSH -0x1 / CALL 0x8e2f0);
+ *   0x832d3..0x832e4 display_assert("b" @0x26608c, __FILE__ @0x266618,
+ *     0x448, true) then system_exit(-1).
+ * 0x447 = line 1095, 0x448 = line 1096 — consecutive lines, i.e. two
+ * separate one-argument asserts, and the messages are the bare parameter
+ * names, so the original parameters were spelled `a` and `b`.
+ * Confirmed compare/return shape at 0x832f3..0x8330c: MOV EAX,dword ptr
+ * [ESI] / CMP EAX,-0x1 / JZ false / CMP EAX,dword ptr [EDI] / JNZ false /
+ * MOV EAX,0x1 / RET; false: XOR EAX,EAX / RET — a bool in AL/EAX, with the
+ * short-circuit order (-1 test first, then the equality test) preserved
+ * below.  Only offset 0 of either endpoint is read.
+ *
+ * Confirmed by the assert string at 0x83200's sibling in this same TU
+ * ("ep && (ep->socket != INVALID_SOCKET)", used at line 989 for the same
+ * dword at offset 0): offset 0 is the socket handle and -1 is
+ * INVALID_SOCKET.  The literal is spelled -1 here to match the rest of the
+ * TU and the CMP immediate.
+ *
+ * Uncertain: what the caller does with the result, and whether `a`/`b` are
+ * ordered (e.g. incoming vs. stored).  The artifact records no xrefs to
+ * 0x832a0 — callers are through data/vtable or were inlined away — so no
+ * semantic name is invented for the function or its parameters beyond the
+ * two the assert strings prove.
+ */
+bool FUN_000832a0(int *a, int *b)
+{
+  assert_halt_at(
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+    0x447, a);
+  assert_halt_at(
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+    0x448, b);
+
+  return *a != -1 && *a == *b;
 }
 
 /* Map a WinSock error code to its symbolic name string and report it.
@@ -1158,6 +1654,117 @@ void close_endpoint(int *ep)
   *(uint8_t *)((char *)ep + 4) &= 0xfe;
 }
 
+/* Worker-thread body for one asynchronous endpoint connect request.
+ *
+ * The address of this function is taken as data at 0x84261 inside
+ * connect_endpoint_async (FUN_000841b0), so it is the thread routine that
+ * services a pending connect; the request block arrives as the single
+ * thread parameter and is freed here.  It performs the blocking connect via
+ * FUN_00083e20, then acquires the request mutex with a 1000 ms timeout.
+ * With the mutex held: if the cancel flag (byte at +0x24) is set the socket
+ * is closed via close_endpoint, and the mutex/thread references are latched
+ * for the teardown below.  If the mutex cannot be acquired the reported
+ * status becomes -1 and nothing is torn down.  The status is always written
+ * to the endpoint's status word at ep+6 and returned.
+ *
+ * request block layout (int[] offsets):
+ *   [0]    int *  endpoint (socket handle at ep[0], status word at ep+6)
+ *   [1..6] —      address blob, passed by pointer to FUN_00083e20
+ *   [7]    int    thread reference (asserted non-zero)
+ *   [8]    int *  mutex reference
+ *   [9]    char   cancel flag (byte at +0x24)
+ *
+ * Confirmed: __stdcall with one stack arg (RET 4 at 0x841a3); the result is
+ * the status sign-extended from BX (MOVSX EAX,BX at 0x8419e);
+ * FUN_00083e20 (0x83e20, cdecl 2 args — PUSH LEA[EDI+4] then PUSH [EDI], so
+ * arg1 = input->ep and arg2 = &input[1]);
+ * take_mutex (0x81870, cdecl 2 args, timeout 0x3e8);
+ * close_endpoint (0x84000, cdecl 1 arg);
+ * debug_free (0x8ef70, cdecl 3 args, line 0x252);
+ * release_mutex (0x818d0, cdecl 1 arg);
+ * FUN_00081910 (0x81910, cdecl 1 arg — the PUSH ESI at 0x84187 is covered by
+ * the ADD ESP,0x14 at 0x8418d that also cleans the debug_free and
+ * release_mutex pushes, so the callee does not pop its argument);
+ * FUN_00082cf0 (0x82cf0, no arguments, no stack cleanup);
+ * assert strings at 0x266c9c/0x266c90/0x266c80/0x265fe4 with source lines
+ * 0x239-0x23c; transport_initialized flag at 0x335090.
+ *
+ * Uncertain: MSVC reuses the parameter home slot [EBP+8] for the latched
+ * thread reference while the request pointer itself stays in EDI for the
+ * rest of the function (MOV [EBP+8],ECX at 0x8415f, PUSH EDI at 0x8417b).
+ * On the mutex-failure path that slot therefore still holds the incoming
+ * request pointer, which is non-NULL, so FUN_00082cf0 still runs.  Modelled
+ * here by reassigning the parameter and keeping the request pointer in a
+ * separate local, which reproduces that behaviour exactly.
+ */
+int __stdcall FUN_00084080(int *input)
+{
+  int *request;
+  int *mutex;
+  short status;
+
+  request = input;
+  mutex = NULL;
+
+  if (request == NULL) {
+    display_assert(
+      "input",
+      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+      0x239, 1);
+    system_exit(-1);
+  }
+  if (request[0] == 0) {
+    display_assert(
+      "input->ep",
+      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+      0x23a, 1);
+    system_exit(-1);
+  }
+  if (request[7] == 0) {
+    display_assert(
+      "input->thread",
+      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+      0x23b, 1);
+    system_exit(-1);
+  }
+  if (*(uint8_t *)0x335090 == 0) {
+    display_assert(
+      "transport_initialized",
+      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+      0x23c, 1);
+    system_exit(-1);
+  }
+
+  status = FUN_00083e20(request[0], (int)(request + 1));
+
+  if (take_mutex((int *)request[8], 1000)) {
+    if (*(uint8_t *)((char *)request + 0x24) != 0) {
+      close_endpoint((int *)request[0]);
+    }
+    mutex = (int *)request[8];
+    input = (int *)request[7];
+  } else {
+    status = -1;
+  }
+
+  *(short *)((char *)(int *)request[0] + 6) = status;
+
+  if (mutex != NULL) {
+    debug_free(
+      request,
+      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+      0x252);
+    release_mutex(mutex);
+    FUN_00081910(mutex);
+  }
+
+  if (input != NULL) {
+    FUN_00082cf0();
+  }
+
+  return status;
+}
+
 /* Cancel an in-progress connection attempt.
  *
  * Validates the connect_handle struct (non-null, has ep, has thread), then
@@ -1208,6 +1815,92 @@ void transport_server_terminate(int *connect_handle)
     "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
     0x2a5, 1);
   system_exit(-1);
+}
+
+/* Accept a pending connection on a listening endpoint.
+ *
+ * Calls xnet_accept (0x2251ad, stdcall 3 args) on the listening endpoint's
+ * socket (field +0x0) with a 16-byte sockaddr scratch buffer and a length
+ * in/out of 0x10.  The accepted address is written into that stack buffer
+ * and never read again — only the returned socket is used.
+ *
+ * On accept failure (-1) the Winsock error is fetched and reported via
+ * winsock_error_report, the endpoint's status word at +6 is set to 0xffff,
+ * and 0 is returned.  On success a fresh endpoint is obtained from
+ * get_next_endpoint_from_set (0x82d70, cdecl 1 arg) keyed on the listening
+ * endpoint's protocol byte at +5 (read sign-extended, MOVSX at 0x844c9); if
+ * the pool is exhausted the status word at +6 is set to 0xfff7 and 0 is
+ * returned.  Otherwise the accepted socket is stored at the new endpoint's
+ * +0x0, bit 0 of the flag byte at +0x4 is set, and the new endpoint is
+ * returned.
+ *
+ * Confirmed: xnet_accept (0x2251ad, stdcall — PUSH EAX/ECX/EDX at
+ * 0x844b7-0x844bc then CALL with no ADD ESP); xapi_GetLastError (0x2235c4
+ * thunk -> 0x1d2240) whose EAX is pushed straight into winsock_error_report
+ * (0x83310, cdecl 1 arg, ADD ESP,4 at 0x84504); get_next_endpoint_from_set
+ * (0x82d70, cdecl 1 arg, ADD ESP,4 at 0x844d3); display_assert (0x8d9f0,
+ * cdecl 4 args) with message "listening_endpoint && (listening_endpoint->
+ * socket >= 0)" at 0x266d20 line 0x2d1 and "transport_initialized" at
+ * 0x265fe4 line 0x2d2, __FILE__ string 0x266618 =
+ * transport_endpoint_winsock.c; system_exit (0x8e2f0, PUSH -1) after each.
+ * transport_initialized at 0x335090.  Frame: SUB ESP,0x14 = the 16-byte
+ * sockaddr at EBP-0x14 plus the length dword at EBP-0x4, which is
+ * initialized to 0x10 at 0x84460 BEFORE the first assert branch.
+ *
+ * Uncertain: only the null half of the first assert's condition is compiled
+ * (TEST ESI,ESI / JNZ at 0x8445d-0x84467); the "socket >= 0" half of the
+ * recovered message string is not emitted, so assert_halt_msg_at carries the
+ * original text with the condition the binary actually tests.
+ *
+ * Shape: the result is a single NULL-initialized local returned once at the
+ * end (XOR EBX,EBX at 0x8445b with EBX callee-saved across both calls, and
+ * MOV EAX,EBX at 0x8450f on the accept-failure exit; the pool-exhausted exit
+ * at 0x844ec returns the already-zero EAX from the allocator).  Both failure
+ * blocks are out-of-line after the success epilogue (JZ at 0x844c7/0x844d8),
+ * so the tests are written positively here.
+ *
+ * Inferred: 0x2251ad is named xnet_accept from its call shape
+ * (listening socket, sockaddr out, addrlen in/out, returns a new socket or
+ * -1) and its adjacency to the xnet_bind thunk at 0x225197; nothing in the
+ * binary names the import.
+ */
+int FUN_00084450(int listening_endpoint)
+{
+  int addr_len;
+  uint8_t remote_addr[16];
+  int accepted_socket;
+  int *endpoint;
+
+  endpoint = NULL;
+  addr_len = 0x10;
+
+  assert_halt_msg_at(
+    "listening_endpoint && (listening_endpoint->socket >= 0)",
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+    0x2d1, listening_endpoint);
+  assert_halt_msg_at(
+    "transport_initialized",
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+    0x2d2, *(uint8_t *)0x335090);
+
+  accepted_socket =
+    xnet_accept(*(int *)listening_endpoint, remote_addr, &addr_len);
+  if (accepted_socket != -1) {
+    /* Protocol byte at +5 selects the endpoint flavour to allocate. */
+    endpoint = (int *)get_next_endpoint_from_set(
+      (int)*(signed char *)(listening_endpoint + 5));
+    if (endpoint != NULL) {
+      endpoint[0] = accepted_socket;
+      *(uint8_t *)((char *)endpoint + 4) |= 1;
+    } else {
+      *(uint16_t *)(listening_endpoint + 6) = 0xfff7;
+    }
+  } else {
+    winsock_error_report(xapi_GetLastError());
+    *(uint16_t *)(listening_endpoint + 6) = 0xffff;
+  }
+
+  return (int)endpoint;
 }
 
 /* Receive a UDP datagram and return the sender's address.
@@ -1329,4 +2022,34 @@ void destroy_endpoint(int *ep)
 
   /* Remove from active endpoint pool. */
   endpoint_pool_cleanup();
+}
+
+/* Reject a pending connection on a listening endpoint.
+ *
+ * Accepts the queued connection via FUN_00084450 (0x84450) and, when one was
+ * produced, immediately destroys it with destroy_endpoint (0x848c0).  The net
+ * effect is to drain and silently drop one pending connection.
+ *
+ * Confirmed: cdecl, one stack arg at [EBP+8] forwarded as the sole argument to
+ * both calls (PUSH EAX / ADD ESP,4 at 0x84947 and 0x84954); the accepted
+ * handle is tested with TEST EAX,EAX / JZ, so the destroy call is skipped on
+ * a NULL result.  Return is 16-bit: the single exit does XOR AX,AX (operand
+ * size 16 at 0x8495c), i.e. the function always returns 0 in AX and leaves the
+ * upper half of EAX undefined -- the caller at 0x129c18 (network_connection.c)
+ * stores the result into a short.
+ *
+ * Unknown: whether the original spelled the return type short or another
+ * 16-bit type; nothing in the binary names it.  No asserts are present in this
+ * function, unlike its two callees.
+ */
+short FUN_00084940(int listening_endpoint)
+{
+  int *endpoint;
+
+  endpoint = (int *)FUN_00084450(listening_endpoint);
+  if (endpoint != NULL) {
+    destroy_endpoint(endpoint);
+  }
+
+  return 0;
 }
