@@ -26206,7 +26206,8 @@
     },
     {
      "addr": "0x83040",
-     "decl": "char FUN_00083040(int endpoint, unsigned short timeout);"
+     "decl": "char FUN_00083040(int endpoint, unsigned short timeout);",
+     "ported": true
     },
     {
      "addr": "0x83100",

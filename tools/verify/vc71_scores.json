@@ -8413,6 +8413,21 @@
       "score": 98.3,
       "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
     },
+    "FUN_00083040": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 88.7,
+      "addr": "0x83040",
+      "end": "0x830f2",
+      "kind": "auto",
+      "n_r": 72,
+      "opnd_percent": 75.2,
+      "raw_mnemonic_pct": 88.7,
+      "ref": "synth",
+      "ref_sha": "da4158de5271498c",
+      "score": 88.7,
+      "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
+    },
     "FUN_000831a0": {
       "abi_model": "raw",
       "abi_model_items": 0,

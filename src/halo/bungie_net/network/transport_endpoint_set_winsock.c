@@ -938,6 +938,84 @@ int send_endpoint(int *ep, const char *buf, int len)
   }
 }
 
+/* Wait until a Winsock endpoint's socket becomes readable, up to a timeout.
+ *
+ * Asserts endpoint is non-NULL (unconditional halt, unlike the combined
+ * "ep && socket != INVALID_SOCKET" assert in the sibling 0x83127 function);
+ * if the socket is INVALID_SOCKET (-1) it just returns false instead of
+ * asserting.  If flags bit 3 (mask 0x8) of the byte at endpoint+4 is already
+ * set, returns bit 2 of that byte immediately without polling — a cached
+ * readiness/error state.  Otherwise builds a single-entry fd_set holding the
+ * socket and passes it as select()'s READ set (arg 2) with a timeval of
+ * {0 sec, timeout_msec * 1000 usec}.
+ * Returns true only when select() reports at least one ready descriptor AND
+ * __WSAFDIsSet confirms our socket is the one that became ready; otherwise
+ * false (timeout, select error, or a set that does not contain the socket).
+ *
+ * Local layout (from the disassembly's SUB ESP,0x10c), identical shape to
+ * the sibling write-poll at 0x83127:
+ *   [EBP-0x10c] 0x104-byte fd_set   — dword 0 = fd_count, dwords 1.. = fd_array
+ *   [EBP-0x008] 8-byte timeval      — dword 0 = tv_sec, dword 1 = tv_usec
+ *
+ * Confirmed: display_assert (0x8d9f0, cdecl 4 args) with message "ep" at
+ * 0x266658, __FILE__ at 0x266618 ("...transport_endpoint_winsock.c", not the
+ * _set_ file), line 0x3f3; system_exit (0x8e2f0, PUSH -1) at 0x8306a/0x8306c,
+ * gated by JNZ at 0x83052 (so the assert fires only when endpoint == 0).
+ * Confirmed: CMP ECX,-1 / JZ at 0x83076/0x83079 returns false without any
+ * assert when the socket field is INVALID_SOCKET.
+ * Confirmed: TEST AL,0x8 / JZ at 0x83080/0x83082 is the flags-byte fast path;
+ * SHR EAX,0x2 then AND AL,0x1 at 0x83084/0x83088 extracts bit 2.
+ * Confirmed: both calls are __stdcall — CALL 0x2251b8 at 0x830be and
+ * CALL 0x2235f3 at 0x830d1 are each followed directly by TEST EAX,EAX with
+ * no ADD ESP, so the callee cleans up its 5 / 2 dword arguments.
+ * Confirmed argument order at 0x830a2..0x830ac (first PUSH is the last arg):
+ * (1, &fd_set, NULL, NULL, &timeval).  The fd_array[0] store at 0x83093
+ * (MOV [EBP-0x108],ECX) reuses the socket value already loaded into ECX by
+ * the earlier CMP at 0x83074/0x83076, while the wsafdisset call at 0x830c7
+ * (MOV ECX,[ESI]) re-reads endpoint's socket field fresh after the select()
+ * call — reproduced here as two separate `*(int *)endpoint` reads rather
+ * than one cached local, matching the sibling function's style.
+ * Confirmed: MOVZX EAX,word [EBP+0xc] then IMUL EAX,EAX,0x3e8 — the second
+ * parameter is a 16-bit unsigned millisecond count scaled to microseconds.
+ * Confirmed: MOV AL,1 / XOR AL,AL exits, so the return is a bool-ish value
+ * in AL, but the kb.json return type stays `char` (not `bool`) to match its
+ * existing prototype and this function's own two extra early-return values
+ * (the flags-bit-2 extraction and the plain 0) that are not strictly 0/1.
+ *
+ * Uncertain: the meaning of flags-byte bit 3 (the fast-path gate) and bit 2
+ * (the value it returns) beyond "some cached readiness/error state" — no
+ * other function in this TU documents those bits.  The name FUN_00083040 is
+ * left unchanged (kb.json prototype, existing callers in network_connection.c
+ * already reference it by this name).
+ */
+char FUN_00083040(int endpoint, unsigned short timeout_msec)
+{
+  uint32_t read_set[65];
+  int32_t timeval[2];
+
+  assert_halt_msg_at(
+    "ep", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+    0x3f3, endpoint != 0);
+
+  if (*(int *)endpoint == -1)
+    return 0;
+
+  if (*(uint8_t *)(endpoint + 4) & 8)
+    return (*(uint8_t *)(endpoint + 4) >> 2) & 1;
+
+  read_set[0] = 1;
+  read_set[1] = (uint32_t) * (int *)endpoint;
+  timeval[0] = 0;
+  timeval[1] = timeout_msec * 1000;
+
+  if (xnet_select(1, read_set, NULL, NULL, timeval) > 0) {
+    if (xnet_wsafdisset(*(int *)endpoint, read_set) != 0)
+      return 1;
+  }
+
+  return 0;
+}
+
 /* Wait until a Winsock endpoint's socket becomes writable, up to a timeout.
  *
  * Builds a single-entry fd_set holding ep->socket and passes it as select()'s
