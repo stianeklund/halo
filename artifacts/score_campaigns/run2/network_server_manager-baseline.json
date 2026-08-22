@@ -1,0 +1,1475 @@
+{
+  "schema": 1,
+  "scores": {
+    "FUN_0012bce0": {
+      "candidate_instructions": 58,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 93.1,
+      "reference_instructions": 58,
+      "score": 96.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012c1c0": {
+      "candidate_instructions": 67,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 75.6,
+      "reference_instructions": 68,
+      "score": 90.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 9, reference 8) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "FUN_0012c290": {
+      "candidate_instructions": 72,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 78.9,
+      "reference_instructions": 75,
+      "score": 89.8,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012c690": {
+      "candidate_instructions": 36,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 78.7,
+      "reference_instructions": 29,
+      "score": 88.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012c6d0": {
+      "candidate_instructions": 45,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 87.9,
+      "reference_instructions": 46,
+      "score": 96.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012c750": {
+      "candidate_instructions": 51,
+      "categories": [
+        "frame_layout"
+      ],
+      "operand_score": 90.2,
+      "reference_instructions": 51,
+      "score": 96.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012ca00": {
+      "candidate_instructions": 62,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 87.3,
+      "reference_instructions": 64,
+      "score": 90.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012d5b0": {
+      "candidate_instructions": 42,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 97.6,
+      "reference_instructions": 42,
+      "score": 97.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012d880": {
+      "candidate_instructions": 124,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "load_width"
+      ],
+      "operand_score": 50.4,
+      "reference_instructions": 118,
+      "score": 74.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: our lift reads a narrow field [n8 disp:0x6] the reference does not (ours: `testb\t$0x1, 0x6(%edi)`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": [
+          "    SHAPE: call count differs (ours 16, reference 14) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "FUN_0012d9f0": {
+      "candidate_instructions": 62,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 84.4,
+      "reference_instructions": 51,
+      "score": 91.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012da90": {
+      "candidate_instructions": 60,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 73.2,
+      "reference_instructions": 57,
+      "score": 76.8,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012db30": {
+      "candidate_instructions": 7,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 63.2,
+      "reference_instructions": 12,
+      "score": 63.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 1, reference 2) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "FUN_0012db60": {
+      "candidate_instructions": 29,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 65.5,
+      "reference_instructions": 26,
+      "score": 90.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012dbb0": {
+      "candidate_instructions": 37,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 73.0,
+      "reference_instructions": 38,
+      "score": 94.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012dc20": {
+      "candidate_instructions": 70,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 41.7,
+      "reference_instructions": 69,
+      "score": 70.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 10, reference 8) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "FUN_0012dd20": {
+      "candidate_instructions": 84,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 94.5,
+      "reference_instructions": 82,
+      "score": 94.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012de20": {
+      "candidate_instructions": 90,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 92.2,
+      "reference_instructions": 90,
+      "score": 97.8,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012df50": {
+      "candidate_instructions": 104,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 94.2,
+      "reference_instructions": 104,
+      "score": 97.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012e090": {
+      "candidate_instructions": 102,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 86.8,
+      "reference_instructions": 103,
+      "score": 91.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012e580": {
+      "candidate_instructions": 141,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 45.0,
+      "reference_instructions": 149,
+      "score": 76.8,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 15, reference 17) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "FUN_0012e750": {
+      "candidate_instructions": 236,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 75.6,
+      "reference_instructions": 223,
+      "score": 79.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012eef0": {
+      "candidate_instructions": 93,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 64.5,
+      "reference_instructions": 90,
+      "score": 80.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012f040": {
+      "candidate_instructions": 62,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "load_width",
+        "register_abi"
+      ],
+      "operand_score": 71.6,
+      "reference_instructions": 51,
+      "score": 77.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: our lift reads a narrow field [n16 disp:0x4] the reference does not (ours: `cmpw\t$0x0, 0x4(%esi)`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": [
+          "    SHAPE: call count differs (ours 6, reference 5) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "FUN_0012f0d0": {
+      "candidate_instructions": 69,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "load_width",
+        "register_abi"
+      ],
+      "operand_score": 62.7,
+      "reference_instructions": 53,
+      "score": 69.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: our lift reads a narrow field [n16 disp:0x4] the reference does not (ours: `cmpw\t$0x0, 0x4(%esi)`) -- possible over-narrowed field (reading only the low bits of a wider value)",
+          "    LOADW: our lift reads a narrow field [n8 disp:0xe] the reference does not (ours: `orb\t$0x8, 0xe(%eax)`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": [
+          "    SHAPE: call count differs (ours 7, reference 5) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "FUN_0012f170": {
+      "candidate_instructions": 62,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "load_width",
+        "register_abi"
+      ],
+      "operand_score": 65.0,
+      "reference_instructions": 56,
+      "score": 76.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: our lift reads a narrow field [n16 disp:0x4] the reference does not (ours: `cmpw\t$0x0, 0x4(%esi)`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": [
+          "    SHAPE: call count differs (ours 6, reference 5) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "FUN_0012f200": {
+      "candidate_instructions": 62,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "load_width",
+        "register_abi"
+      ],
+      "operand_score": 71.6,
+      "reference_instructions": 51,
+      "score": 78.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: our lift reads a narrow field [n16 disp:0x4] the reference does not (ours: `cmpw\t$0x1, 0x4(%esi)`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": [
+          "    SHAPE: call count differs (ours 6, reference 5) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "FUN_0012f290": {
+      "candidate_instructions": 72,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "load_width",
+        "register_abi"
+      ],
+      "operand_score": 71.4,
+      "reference_instructions": 58,
+      "score": 79.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: our lift reads a narrow field [n16 disp:0x4] the reference does not (ours: `cmpw\t%ax, 0x4(%esi)`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": [
+          "    SHAPE: call count differs (ours 7, reference 6) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "FUN_0012f330": {
+      "candidate_instructions": 76,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "load_width",
+        "register_abi"
+      ],
+      "operand_score": 83.6,
+      "reference_instructions": 62,
+      "score": 89.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: our lift reads a narrow field [n16 disp:0x4] the reference does not (ours: `cmpw\t%ax, 0x4(%esi)`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": [
+          "    SHAPE: call count differs (ours 7, reference 6) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "FUN_0012f3d0": {
+      "candidate_instructions": 16,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 96.3,
+      "reference_instructions": 13,
+      "score": 96.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012f3f0": {
+      "candidate_instructions": 27,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 87.7,
+      "reference_instructions": 30,
+      "score": 87.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012f430": {
+      "candidate_instructions": 114,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "load_width"
+      ],
+      "operand_score": 58.8,
+      "reference_instructions": 90,
+      "score": 79.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: our lift reads a narrow field [n8 disp:0xe] the reference does not (ours: `testb\t$0x2, 0xe(%ebx)`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": [
+          "    SHAPE: call count differs (ours 14, reference 11) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "FUN_0012f540": {
+      "candidate_instructions": 57,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 80.7,
+      "reference_instructions": 57,
+      "score": 82.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_0012f5d0": {
+      "candidate_instructions": 74,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 61.5,
+      "reference_instructions": 69,
+      "score": 67.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 10, reference 9) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "FUN_0012f8d0": {
+      "candidate_instructions": 85,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 50.6,
+      "reference_instructions": 75,
+      "score": 73.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 8, reference 7) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "FUN_0012f990": {
+      "candidate_instructions": 355,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "load_width"
+      ],
+      "operand_score": 56.4,
+      "reference_instructions": 343,
+      "score": 72.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: our lift reads a narrow field [n16 disp:0x4] the reference does not (ours: `cmpw\t$0x0, 0x4(%edi)`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": [
+          "    SHAPE: call count differs (ours 43, reference 46) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)",
+          "    SHAPE: reference STORES to incoming param slot 0x10(%ebp) (ref: `movl\t%edx, 0x10(%ebp)`) and our lift never does -- CHECK whether the original ASSIGNS to that parameter (a lift that introduces a separate local instead silently passes the wrong object on the paths that skip the assignment); cl.exe also reuses a param slot as scratch, so confirm against the disassembly before acting"
+        ]
+      }
+    },
+    "countdown_timer_decrement": {
+      "candidate_instructions": 53,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 89.7,
+      "reference_instructions": 54,
+      "score": 91.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "countdown_timer_get_time_remaining": {
+      "candidate_instructions": 33,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 33,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "countdown_timer_increment": {
+      "candidate_instructions": 56,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 91.1,
+      "reference_instructions": 56,
+      "score": 91.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "countdown_timer_set_time_remaining": {
+      "candidate_instructions": 19,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 19,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "countdown_timer_update": {
+      "candidate_instructions": 19,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 76.2,
+      "reference_instructions": 23,
+      "score": 90.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "get_unique_random_color": {
+      "candidate_instructions": 60,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 90.0,
+      "reference_instructions": 60,
+      "score": 98.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "get_unique_random_name": {
+      "candidate_instructions": 44,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 88.2,
+      "reference_instructions": 49,
+      "score": 94.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_client_dispose": {
+      "candidate_instructions": 97,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 79.1,
+      "reference_instructions": 90,
+      "score": 87.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_generate_join_game_token": {
+      "candidate_instructions": 53,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 98.1,
+      "reference_instructions": 53,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_accept_client_machine_into_game": {
+      "candidate_instructions": 114,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "load_width"
+      ],
+      "operand_score": 69.8,
+      "reference_instructions": 101,
+      "score": 80.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: our lift reads a narrow field [n8 disp:0x15c] the reference does not (ours: `movb\t0x15c(%esi), %al`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": [
+          "    SHAPE: call count differs (ours 13, reference 11) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "network_game_server_add_player_to_game": {
+      "candidate_instructions": 114,
+      "categories": [
+        "instruction_count",
+        "load_width"
+      ],
+      "operand_score": 75.9,
+      "reference_instructions": 110,
+      "score": 91.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: reference reads a narrow field [n8 disp:0x1c] that our lift does not (ref: `movsbl\t0x1c(%esi), %edx`) -- likely a narrow field read as a wider type (int vs int16_t/int8_t)"
+        ],
+        "shape": []
+      }
+    },
+    "network_game_server_adjust_machine_settings": {
+      "candidate_instructions": 11,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 11,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_all_machines_have_loaded": {
+      "candidate_instructions": 33,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 90.9,
+      "reference_instructions": 33,
+      "score": 93.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_begin_game_start_countdown": {
+      "candidate_instructions": 33,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 97.0,
+      "reference_instructions": 33,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_change_game_variant": {
+      "candidate_instructions": 45,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 95.6,
+      "reference_instructions": 45,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_change_map_name": {
+      "candidate_instructions": 73,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 95.9,
+      "reference_instructions": 73,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_client_machine_game_loading_completed": {
+      "candidate_instructions": 63,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 87.3,
+      "reference_instructions": 63,
+      "score": 96.8,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_client_machine_is_joined_to_game": {
+      "candidate_instructions": 32,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 93.8,
+      "reference_instructions": 32,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_client_machine_is_precached": {
+      "candidate_instructions": 14,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 14,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_close_game": {
+      "candidate_instructions": 27,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 88.5,
+      "reference_instructions": 25,
+      "score": 96.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_game_can_start": {
+      "candidate_instructions": 27,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 81.5,
+      "reference_instructions": 27,
+      "score": 96.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_game_is_open": {
+      "candidate_instructions": 20,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 60.4,
+      "reference_instructions": 33,
+      "score": 67.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 2, reference 4) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "network_game_server_game_is_valid": {
+      "candidate_instructions": 21,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 58.2,
+      "reference_instructions": 34,
+      "score": 65.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 2, reference 4) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "network_game_server_get_client_machine": {
+      "candidate_instructions": 43,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 90.7,
+      "reference_instructions": 43,
+      "score": 97.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_get_client_machine_at_address": {
+      "candidate_instructions": 71,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 90.1,
+      "reference_instructions": 71,
+      "score": 93.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_get_client_machine_at_index": {
+      "candidate_instructions": 24,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 95.8,
+      "reference_instructions": 24,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_get_connection": {
+      "candidate_instructions": 18,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 83.3,
+      "reference_instructions": 18,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_get_game": {
+      "candidate_instructions": 18,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 94.4,
+      "reference_instructions": 18,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_get_game_name": {
+      "candidate_instructions": 18,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 94.4,
+      "reference_instructions": 18,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_get_machine_connection": {
+      "candidate_instructions": 45,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 88.2,
+      "reference_instructions": 48,
+      "score": 86.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_get_state": {
+      "candidate_instructions": 22,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 95.5,
+      "reference_instructions": 22,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_graceful_shutdown": {
+      "candidate_instructions": 81,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 79.5,
+      "reference_instructions": 85,
+      "score": 84.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_handle_client_update_packet": {
+      "candidate_instructions": 118,
+      "categories": [
+        "immediate_constant",
+        "instruction_count"
+      ],
+      "operand_score": 74.5,
+      "reference_instructions": 113,
+      "score": 88.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [
+          "    IMM: reference constant 0x07ffffff (~3.85186e-34f) absent from our lift (ref: `andl\t$0x7ffffff, %ecx`) -- missing or altered constant."
+        ],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 13, reference 12) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "network_game_server_invalidate_network_machine": {
+      "candidate_instructions": 23,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 87.0,
+      "reference_instructions": 23,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_open_game": {
+      "candidate_instructions": 27,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 88.5,
+      "reference_instructions": 25,
+      "score": 96.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_pause_countdown": {
+      "candidate_instructions": 29,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 89.7,
+      "reference_instructions": 29,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_queue_player_for_addition": {
+      "candidate_instructions": 37,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 97.3,
+      "reference_instructions": 37,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_remove_player_from_game": {
+      "candidate_instructions": 80,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 96.2,
+      "reference_instructions": 80,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_reset_to_pregame": {
+      "candidate_instructions": 181,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "load_width",
+        "register_abi"
+      ],
+      "operand_score": 61.0,
+      "reference_instructions": 171,
+      "score": 79.8,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: our lift reads a narrow field [n8 disp:0x6] the reference does not (ours: `testb\t$0x1, 0x6(%ebx)`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": [
+          "    SHAPE: call count differs (ours 20, reference 17) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "network_game_server_set_game_name": {
+      "candidate_instructions": 38,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 94.7,
+      "reference_instructions": 38,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_stalled_on_client": {
+      "candidate_instructions": 142,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 73.3,
+      "reference_instructions": 139,
+      "score": 91.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_start": {
+      "candidate_instructions": 157,
+      "categories": [
+        "instruction_count",
+        "load_width"
+      ],
+      "operand_score": 63.0,
+      "reference_instructions": 148,
+      "score": 61.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: our lift reads a narrow field [n8 disp:0x6] the reference does not (ours: `testb\t$0x2, 0x6(%esi)`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": [
+          "    SHAPE: call count differs (ours 22, reference 21) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "network_game_server_switch_machine_from_postgame_to_pregame": {
+      "candidate_instructions": 29,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 85.7,
+      "reference_instructions": 27,
+      "score": 96.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_update_countdown": {
+      "candidate_instructions": 135,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 87.4,
+      "reference_instructions": 135,
+      "score": 95.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_game_server_update_ticks": {
+      "candidate_instructions": 121,
+      "categories": [
+        "instruction_count",
+        "load_width"
+      ],
+      "operand_score": 77.7,
+      "reference_instructions": 126,
+      "score": 81.8,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: our lift reads a narrow field [n16 disp:0x4b4] the reference does not (ours: `movw\t0x4b4(%esi), %dx`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": [
+          "    SHAPE: call count differs (ours 14, reference 16) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "network_server_manager_game_over": {
+      "candidate_instructions": 50,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 98.0,
+      "reference_instructions": 50,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "network_server_manager_pregame_start": {
+      "candidate_instructions": 202,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 62.9,
+      "reference_instructions": 205,
+      "score": 75.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "server_has_enough_machines": {
+      "candidate_instructions": 40,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 98.7,
+      "reference_instructions": 39,
+      "score": 98.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "server_ok_to_countdown": {
+      "candidate_instructions": 30,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 93.3,
+      "reference_instructions": 30,
+      "score": 93.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    }
+  },
+  "source": "src/halo/networking/network_server_manager.c",
+  "source_sha256": "06bf583df874e5674010e1dc59537a88322f8e60bff43a6c02a3b2140aa5e612"
+}

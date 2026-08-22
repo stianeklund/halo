@@ -141,9 +141,7 @@ void game_allegiance_provoke(int16_t team_a, int16_t team_b)
       (entry[1] != team_a || entry[0] != team_b || *((char *)entry + 8) == 0)) {
       i++;
       entry += 9;
-      /* induction variable on the left: the reference loop tail is
-       * `cmp dx, si` + `jl`, i.e. the source wrote `i >= count`. */
-      if (i >= *(int16_t *)game_allegiance_globals) {
+      if (*(int16_t *)game_allegiance_globals <= i) {
         return;
       }
     }

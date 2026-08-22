@@ -176,10 +176,7 @@ void cheats_load_from_file(void)
       break;
     csstrtok(entry, "\r\n\t;");
     if ((slot == 12 || slot == 13) && *entry != '\0') {
-      /* Second textual use of the address expression: with only one use cl.exe
-       * sinks the add into the scaled-index register (`add esi,0`); a second use
-       * makes it CSE the value and emit the reference's `lea esi,(esi)`. */
-      *(cheats_globals + (int)slot * 200) = '\0';
+      *entry = '\0';
       error(2, "Cannot execute cheats attached to the back or start button");
     }
   }

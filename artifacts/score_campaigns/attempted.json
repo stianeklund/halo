@@ -22,5 +22,35 @@
     "result": "no_improvement",
     "score_before": 29.8,
     "score_after": 29.8
+  },
+  "network_game_server_game_is_open": {
+    "last_run_ts": "2026-08-22T14:15:17+02:00",
+    "result": "improved",
+    "score_before": 67.9,
+    "score_after": 100.0
+  },
+  "FUN_0012f0d0": {
+    "last_run_ts": "2026-08-22T14:15:17+02:00",
+    "result": "improved",
+    "score_before": 69.5,
+    "score_after": 100.0
+  },
+  "FUN_0012dc20": {
+    "last_run_ts": "2026-08-22T14:15:17+02:00",
+    "result": "improved",
+    "score_before": 70.5,
+    "score_after": 84.1
+  },
+  "network_game_server_start": {
+    "last_run_ts": "2026-08-22T14:15:17+02:00",
+    "result": "improved",
+    "score_before": 61.6,
+    "score_after": 70.2
+  },
+  "FUN_0012f990": {
+    "last_run_ts": "2026-08-22T14:15:17+02:00",
+    "result": "improved",
+    "score_before": 72.1,
+    "score_after": 79.1
   }
 }
