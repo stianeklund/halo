@@ -103,8 +103,8 @@ void transport_get_nonce(void *dst, int bytes)
  * line — its sole in-TU caller, transport_nonce_is_equal_to_global (0x81fa0),
  * reaches it through a real CALL at 0x81ff7.  /O2's implied /Ob2 otherwise
  * inlines the body into that caller and scrambles both functions' shape. */
-__declspec(noinline)
-bool transport_nonce_is_equal(const void *src, const void *dst)
+__declspec(noinline) bool transport_nonce_is_equal(const void *src,
+                                                   const void *dst)
 {
   assert_halt_at(
     "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
@@ -1544,6 +1544,91 @@ short FUN_00083a60(int *ep, void *addr)
   return (short)0xfff1;
 }
 
+/* Set or clear non-blocking mode on a Winsock endpoint's socket.
+ *
+ * Reads the endpoint's current state from bit 4 of the flag byte at
+ * endpoint+4 — the same bit whose complement FUN_00083220 reports.  The
+ * `(~(*(byte*)(endpoint+4) >> 4) & 1) == 0` test below is FUN_00083220's
+ * own return expression compared against zero: the compiler inlined that
+ * getter's body here verbatim, carrying over its assert's original source
+ * line (0x436) into this function too.
+ *
+ * If bit 4 is set and `flag` is nonzero, calls ioctlsocket(FIONBIO, 0) to
+ * put the socket back into blocking mode and clears bit 4 on success.  If
+ * bit 4 is clear and `flag` is zero, calls ioctlsocket(FIONBIO, 1) to put
+ * the socket into non-blocking mode and sets bit 4 on success.  If `flag`
+ * already matches the bit-4 state, no ioctlsocket call is made and the
+ * function returns 0 unchanged. On ioctlsocket failure, reports the
+ * Winsock error via xapi_GetLastError()/winsock_error_report() and
+ * returns -0x12.  The 16-bit result is always stored at endpoint+6.
+ *
+ * Confirmed: assert_halt_msg_at "ep" at line 0x139, "transport_initialized"
+ * at line 0x13a, "ep" again at line 0x436 (file
+ * c:\halo\SOURCE\bungie_net\network\transport_endpoint_winsock.c).
+ * FIONBIO == 0x8004667e is the standard Winsock ioctl code for
+ * non-blocking mode. Call-site audit confirms FUN_00224633 is a plain
+ * cdecl-shaped 3-arg call (no register args) with no ESP cleanup after
+ * either call site (0x83c73/0x83ca5), i.e. __stdcall — matching the
+ * xnet_bind/xnet_getsockname/xnet_closesocket wrapper family already
+ * registered in the same object (XNET:wsock.obj, 0x224633 falls inside
+ * that object's address range). Registered here as xnet_ioctlsocket.
+ *
+ * Uncertain: no source-level name is recovered for bit 4 of the flag
+ * byte; kept as the same raw offset the sibling getters use.
+ */
+short FUN_00083bd0(int endpoint, int flag)
+{
+  short status;
+  int sock;
+  uint32_t mode;
+  int error_code;
+
+  status = 0;
+
+  assert_halt_msg_at(
+    "ep", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+    0x139, endpoint != 0);
+  assert_halt_msg_at(
+    "transport_initialized",
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+    0x13a, *(uint8_t *)0x335090 != 0);
+  assert_halt_msg_at(
+    "ep", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c",
+    0x436, endpoint != 0);
+
+  if ((~(*((uint8_t *)endpoint + 4) >> 4) & 1) == 0) {
+    if (flag == 0)
+      goto store_status;
+    sock = *(int *)endpoint;
+    mode = 0;
+    status = xnet_ioctlsocket(sock, 0x8004667e, &mode);
+    if (status == 0) {
+      *((uint8_t *)endpoint + 4) &= 0xef;
+      *(int16_t *)((char *)endpoint + 6) = 0;
+      return 0;
+    }
+  } else {
+    if (flag != 0)
+      goto store_status;
+    sock = *(int *)endpoint;
+    mode = 1;
+    status = xnet_ioctlsocket(sock, 0x8004667e, &mode);
+    if (status == 0) {
+      *((uint8_t *)endpoint + 4) |= 0x10;
+      *(int16_t *)((char *)endpoint + 6) = 0;
+      return 0;
+    }
+  }
+
+  error_code = xapi_GetLastError();
+  winsock_error_report(error_code);
+  status = -0x12;
+
+store_status:
+  *(int16_t *)((char *)endpoint + 6) = status;
+  return status;
+}
+
 /* Bind a transport endpoint to an address.
  *
  * If the socket is not yet created (== -1), creates one via FUN_00083930
@@ -2052,4 +2137,26 @@ short FUN_00084940(int listening_endpoint)
   }
 
   return 0;
+}
+
+/* Initialize a transport endpoint record: stamp offset+0 with the current
+ * time and zero offsets+4 and +8.
+ *
+ * Confirmed (0x84970-0x8498e): cdecl, one stack arg (int *ep, [EBP+8]).
+ * Store order in the binary is offset+8 first, then the call, then
+ * offset+0, then offset+4 (MOV [ESI+8],0 / CALL system_milliseconds /
+ * MOV [ESI],EAX / MOV [ESI+4],0); reproduced here in the same order.
+ * system_milliseconds is 0x8e370 (confirmed by call_site_audit), matching
+ * the disassembly's direct CALL target -- the cached decompile text names
+ * an unrelated "thunk_FUN_001d0581" and is not trusted here.
+ *
+ * Unknown: semantic names of ep[1]/ep[2] (offsets+4/+8); no caller is
+ * present in this binary (xrefs_to reports none), so field roles beyond
+ * "zeroed by this initializer" are unproven. No return value.
+ */
+void FUN_00084970(int *ep)
+{
+  ep[2] = 0;
+  ep[0] = (int)system_milliseconds();
+  ep[1] = 0;
 }

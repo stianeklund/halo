@@ -8503,6 +8503,21 @@
       "score": 92.6,
       "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
     },
+    "FUN_00083bd0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 93.5,
+      "addr": "0x83bd0",
+      "end": "0x83cde",
+      "kind": "auto",
+      "n_r": 93,
+      "opnd_percent": 69.6,
+      "raw_mnemonic_pct": 93.5,
+      "ref": "synth",
+      "ref_sha": "f74e8ed23e97d339",
+      "score": 93.5,
+      "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
+    },
     "FUN_00083ce0": {
       "abi_model": "raw",
       "abi_model_items": 0,
@@ -8575,6 +8590,21 @@
       "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "6eb199e4c4d8741b",
+      "score": 100.0,
+      "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
+    },
+    "FUN_00084970": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x84970",
+      "end": "0x8498f",
+      "kind": "auto",
+      "n_r": 11,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "18dbeaf85ad80434",
       "score": 100.0,
       "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
     },

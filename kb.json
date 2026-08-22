@@ -26227,7 +26227,8 @@
     },
     {
      "addr": "0x83bd0",
-     "decl": "short FUN_00083bd0(int endpoint, int flag);"
+     "decl": "short FUN_00083bd0(int endpoint, int flag);",
+     "ported": true
     },
     {
      "addr": "0x83e20",
@@ -26262,7 +26263,8 @@
     },
     {
      "addr": "0x84970",
-     "decl": "void FUN_00084970(void);"
+     "decl": "void FUN_00084970(int *ep);",
+     "ported": true
     }
    ],
    "name": "transport_endpoint_set_winsock.obj",
@@ -32123,6 +32125,10 @@
     {
      "addr": "0x222e31",
      "decl": "void __stdcall FUN_00222e31(const void *param_1, const void *id, uint32_t *address);"
+    },
+    {
+     "addr": "0x224633",
+     "decl": "int __stdcall xnet_ioctlsocket(int socket, int cmd, uint32_t *argp);"
     },
     {
      "addr": "0x224876",
