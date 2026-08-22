@@ -330,6 +330,30 @@ bool virtual_keyboard_set_validation(wchar_t *text_buffer,
   return true;
 }
 
+/* Virtual keyboard active predicate (0xf5640, virtual_keyboard.obj TU).
+ *
+ * Two instructions in the binary:
+ *     000f5640: MOV AL,[0x0046cef0]
+ *     000f5645: RET
+ *
+ * 0x46cef0 is the byte-wide "active" flag at offset 0 of the
+ * virtual_keyboard_globals block already used elsewhere in this file
+ * (virtual_keyboard_initialize clears it, virtual_keyboard_set_validation
+ * refuses when it is already set, virtual_keyboard_process_input gates on
+ * it).  The flag byte is returned raw in AL -- there is no TEST/SETNE
+ * normalization, so the C form must be a direct byte load into the
+ * unsigned-char `bool`, not a `!= 0` comparison.
+ *
+ * No callees.  Callers (all UNCONDITIONAL_CALL, from xrefs): FUN_000e9450
+ * @0xe952a, FUN_000e78e0 @0xe7934, FUN_000cea90 @0xcf397, FUN_000e7760
+ * @0xe77f3 -- shell/UI paths that suppress their own input handling while
+ * the virtual keyboard owns the controller.  Name kept mechanical: the
+ * behaviour is clear but there is no string/PDB evidence for a symbol. */
+bool FUN_000f5640(void)
+{
+  return *(uint8_t *)0x46cef0;
+}
+
 /* Virtual keyboard cursor move handler: advance the keymap column cursor
  * rightward (0xf56b0, virtual_keyboard.obj TU).
  *

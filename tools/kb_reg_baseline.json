@@ -360,7 +360,6 @@
     "0xdcd60": "int16_t FUN_000dcd60(int object_handle@<edi>);",
     "0xdce00": "void FUN_000dce00(int16_t local_player_index@<ax>);",
     "0xdd4d0": "void FUN_000dd4d0(int16_t local_player_index@<ax>, int16_t blend_ticks@<di>);",
-    "0xe1000": "void FUN_000e1000(wchar_t *message@<esi>);",
     "0xe24e0": "void progress_bar_decode_texture(int height@<eax>, int width@<ecx>, void *out_texture@<edx>, void *data, int data_size);",
     "0xe26c0": "void progress_bar_draw_loading_bar(float *rect@<eax>, float *color@<ecx>, float alpha, float progress);",
     "0xe3410": "void terminal_remove_line(int line_handle@<edi>);",
@@ -792,7 +791,10 @@
     "0x224904": "int __stdcall connect(void *xnet@<ecx>, unsigned int socket, const void *name, int namelen);",
     "0x225021": "int __stdcall socket(void *xnet@<ecx>, int af, int type, int protocol);",
     "0x2256bb": "int __stdcall recv(void *xnet@<ecx>, unsigned int socket, char *buf, int len, int flags);",
-    "0x2258a4": "int __stdcall send(void *xnet@<ecx>, unsigned int socket, const char *buf, int len, int flags);"
+    "0x2258a4": "int __stdcall send(void *xnet@<ecx>, unsigned int socket, const char *buf, int len, int flags);",
+    "0x64fa0": "int FUN_00064fa0(void *tif@<edx>, const char *method);",
+    "0xe1000": "void FUN_000e1000(wchar_t *message@<esi>);",
+    "0xe10c0": "void FUN_000e10c0(short local_player_index@<edi>);"
   },
   "0x6cde0": "void FUN_0006cde0(void *tif@<edi>);",
   "0xc4a40": "void FUN_000c4a40(int16_t function_index@<eax>, char *buffer@<esi>);",
@@ -807,5 +809,7 @@
   "0xca890": "const char *FUN_000ca890(int expression_index@<eax>, int thread_index@<ebx>);",
   "0x1b56b0": "void FUN_001b56b0(int vehicle_handle@<eax>, void *state_array@<edi>);",
   "0x95050": "void *FUN_00095050(int unit_handle@<edi>, int32_t *out_datum_handle@<ebx>);",
-  "0x145660": "void FUN_00145660(int object_handle@<eax>, int animation_graph_tag, char *animation_name, int arg4);"
+  "0x145660": "void FUN_00145660(int object_handle@<eax>, int animation_graph_tag, char *animation_name, int arg4);",
+  "0xe10c0": "void FUN_000e10c0(short local_player_index@<edi>);",
+  "0x64fa0": "int FUN_00064fa0(void *tif@<edx>, const char *method);"
 }

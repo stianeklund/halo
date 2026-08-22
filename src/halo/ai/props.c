@@ -660,6 +660,33 @@ int prop_orphan_from_friend(int actor_handle, int prop_handle,
   return orphan_handle;
 }
 
+/* 0x64a60 — prop_orphan_update_information.
+ *
+ * Thin cdecl forwarder onto FUN_000647c0 (the orphan-information copy shared
+ * with prop_orphan_transition at 0x648a0 and prop_orphan_from_friend at
+ * 0x64970).  The wrapper exists only to re-order the three handles into that
+ * callee's mixed register/stack ABI.
+ *
+ * The kb.json declaration for this address was `void (void)`; the disassembly
+ * proves three cdecl stack parameters (caller-cleanup ADD ESP,0x8 after the
+ * inner call, plain RET here), so the prototype is widened to match.
+ *
+ * Call-site verification (disasm 0x64a60):
+ *   0x64a63 MOV EAX,[EBP+0xc]  -> param 2
+ *   0x64a66 MOV ECX,[EBP+0x8]  -> param 1
+ *   0x64a69 PUSH EAX           -> 2nd stack arg = orphan_prop_handle   YES
+ *   0x64a6a MOV EAX,[EBP+0x10] -> @eax parent_prop_handle              YES
+ *   0x64a6d PUSH ECX           -> 1st stack arg = actor_handle         YES
+ *   0x64a6e CALL 0x647c0
+ *   0x64a73 ADD ESP,0x8        -> 2-arg cdecl cleanup                  YES
+ *
+ * Store-offset table: none; no memory is written by this function. */
+void prop_orphan_update_information(int actor_handle, int orphan_prop_handle,
+                                    int parent_prop_handle)
+{
+  FUN_000647c0(parent_prop_handle, actor_handle, orphan_prop_handle);
+}
+
 /* 0x64a80 — prop_detach.
  * Removes the prop record identified by prop_handle from the actor's prop
  * chain and then frees it from prop_data.

@@ -741,6 +741,37 @@ unsigned char player0_look_pitch_is_inverted(void)
   return (unsigned char)player_ui_globals[0x2b];
 }
 
+/* 0xe1060. Same per-local-player record as 0xe1050, two bytes lower:
+ * 0x46bf09 = player_ui_globals (0x46bee0) + 0x29, i.e. byte 0x29 of local
+ * player 0's 0x38-stride record -- the field player_ui_initialize clears with
+ * `*(char *)(profile + 0x29) = 0`.
+ * Unlike 0xe1050 this one normalizes the setting byte to a boolean:
+ *   MOV AL,byte ptr [0x46bf09] / TEST AL,AL / JZ .t / CMP AL,1 / JZ .t /
+ *   XOR EAX,EAX / RET   .t: MOV EAX,1 / RET
+ * so it yields 1 for the two values 0 and 1 and 0 for anything else. The
+ * reference uses two separate equality compares, NOT an unsigned range test
+ * (which would be `CMP AL,1 / JBE`), so the source form is `== 0 || == 1` and
+ * is kept verbatim. The byte is loaded once into AL and reused across both
+ * compares, hence the single local here.
+ * What the setting selects is unknown -- no string, assert or PDB evidence
+ * reaches offset 0x29 -- so the name stays FUN_000e1060.
+ * The sole caller is the HaloScript evaluator FUN_000c3940 (call at 0xc394b),
+ * which consumes AL immediately into a zeroed dword result slot. No callees.
+ * The return is int-width, not byte-width: both exit arms write the whole
+ * register (MOV EAX,0x1 / XOR EAX,EAX), where a byte-typed return would emit
+ * MOV AL,0x1 / XOR AL,AL -- which is exactly how the byte-returning sibling
+ * 0xe1050 ends. Declaring this one `unsigned char` cost the two return
+ * instructions (77.8% VC71); `int` matches. */
+int FUN_000e1060(void)
+{
+  unsigned char setting;
+
+  setting = (unsigned char)player_ui_globals[0x29];
+  if (setting == 0 || setting == 1)
+    return 1;
+  return 0;
+}
+
 void player_ui_initialize(void)
 {
   int i;
@@ -759,4 +790,125 @@ void player_ui_initialize(void)
   }
   *(int *)0x46c038 = -1;
   *(char *)0x46c10c = 1;
+}
+
+/* 0xe13f0. The multiplayer-join reset half of player_ui_initialize (0xe1350):
+ * the same four-entry 0x38-stride record array at player_ui_globals (0x46bee0)
+ * is re-cleared, but the two globals 0xe1350 sets outside the loop (0x46c038,
+ * 0x46c10c) are left alone, and two extra per-entry fields are cleared -- the
+ * join flag at record+0x34 (MOV byte ptr [EBX],0x0, EBX walking 0x46bf14 by
+ * 0x38) and the parallel byte array at player_ui_globals+0xe0 (0x46bfc0).
+ * Those are exactly the two bytes
+ * player_ui_local_player_joined_multiplayer_game (0xe0840) sets to 1, so this
+ * clears every local player's joined state. Loop control is the
+ * strength-reduced record+0x34 pointer (CMP EBX,0x46bff4 after ADD EBX,0x38 --
+ * four iterations, 0x46bf14/0x4c/0x84/0xbc), while the counter lives in the
+ * dword stack slot [EBP-4]. The counter is a dword (MOV EAX,[EBP-4] / INC EAX /
+ * MOV [EBP-4],EAX) but two of its three uses re-read it sign-extended from 16
+ * bits (MOVSX EDI,word ptr [EBP-4] for the record base, MOVSX EAX,word ptr
+ * [EBP-4] for the 0x46bfc4 index) while the 0x46bfc0 index is the plain dword
+ * -- hence the explicit (short) casts on exactly those two, which are
+ * load-bearing for codegen. Store order follows the disassembly (0x18, 0x28,
+ * 0x29, then word_46BFC4, then 0x30, 0x34, 0x46bfc0), which differs from
+ * 0xe1350's ordering: the -1 word store into word_46BFC4 is scheduled before
+ * the -1 dword store into record+0x30, both reusing the ECX register set by OR
+ * ECX,0xffffffff. Offsets 0x18/0x28/0x29 sit inside the 0x30 bytes csmemset
+ * already zeroed and offset 0x18 is then set to -1, so the redundant byte
+ * clears are kept verbatim
+ * -- they are separate stores in the reference.
+ * The assert reason string "profile" and line 0x365 are the reference's own
+ * PUSH immediates at 0xe141b/0xe1416; the tested condition is TEST ESI,ESI on
+ * the record base, which can never be NULL here.
+ * `joined` is written as an explicit walking pointer rather than
+ * profile+0x34 because that is what the reference's EBX is, and because the
+ * extra loop-carried value is what pushes the counter out of a register and
+ * into the [EBP-4] slot: with profile+0x34 the whole function fits in
+ * EBX/ESI/EDI, cl.exe drops the EBP frame entirely and the loop terminates on
+ * CMP $4 rather than on the pointer (measured 76.2%, 37 of 47 reference
+ * instructions, the deficit being exactly the frame setup/teardown and the
+ * five stack-slot accesses). The record+0x30 store is spelled through
+ * player_ui_globals rather than profile to keep the reference's
+ * 0x46bf10(%edi) absolute-base addressing instead of 0x30(%esi). */
+void player_ui_clear_multiplayer_joins(void)
+{
+  int local_player_index;
+  char *profile;
+  char *joined;
+
+  joined = player_ui_globals + 0x34;
+  for (local_player_index = 0;
+       local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS;
+       local_player_index++) {
+    profile = player_ui_globals + (short)local_player_index * 0x38;
+    assert_halt_msg_at("profile", "c:\\halo\\SOURCE\\interface\\player_ui.c",
+                       0x365, profile != NULL);
+    csmemset(profile, 0, 0x30);
+    *(int16_t *)(profile + 0x18) = -1;
+    *(char *)(profile + 0x28) = 0;
+    *(char *)(profile + 0x29) = 0;
+    word_46BFC4[(short)local_player_index] = -1;
+    *(int *)(player_ui_globals + (short)local_player_index * 0x38 + 0x30) = -1;
+    *joined = 0;
+    player_ui_globals[0xe0 + local_player_index] = 0;
+    joined += 0x38;
+  }
+}
+
+/* player_ui_end_editing_profile (0xe1760)
+ *
+ * Reference is two instructions:
+ *   000e1760: MOV dword ptr [0x0046c038],0xffffffff
+ *   000e176a: RET
+ *
+ * 0x46c038 is the "saved game file currently being edited" index that
+ * player_ui_initialize (0xe1350) also clears to -1, and that
+ * player_ui_edit_profile_name_is_dirty / player_ui_get_edit_player_profile
+ * read back. Storing -1 marks "no profile is being edited". Spelled as the
+ * absolute-address store the other functions in this TU use, since no named
+ * global covers this offset yet. */
+void player_ui_end_editing_profile(void)
+{
+  *(int *)0x46c038 = -1;
+}
+
+/* 0xe1770. Commits local player 0's look-pitch-invert setting: store the new
+ * value, flush the profile to disk if one is active, then re-run the settings
+ * apply pass.
+ *
+ * The single argument arrives as a byte, not a dword: MOV AL,byte ptr [EBP+8]
+ * / MOV [0x0046bf0b],AL, with no zero/sign extension and no test. 0x46bf0b is
+ * player_ui_globals (0x46bee0) + 0x2b -- exactly the byte
+ * player0_look_pitch_is_inverted (0xe1050) reads back, so this is that
+ * setting's writer.
+ *
+ * CMP dword ptr [0x0046bf10],-0x1 / JZ tests the global in memory and the
+ * body then RELOADS it (MOV ECX,dword ptr [0x0046bf10]) for the call, so the
+ * source reads player_ui_globals + 0x30 twice rather than caching it in a
+ * local -- unlike player_ui_activate_all_solo_levels (0xe0fd0), whose
+ * reference loads it once into EAX. Spelled that way here.
+ *
+ * MOV ESI,0x282b78 / CALL 0x000e1000: 0x282b78 in .rdata is the UTF-16
+ * literal L"Saving..." (verified from the XBE image, not from the decompiler),
+ * passed in ESI as FUN_000e1000's register argument.
+ *
+ * PUSH 0x46bee0 / PUSH ECX / CALL 0x001c1bc0 / ADD ESP,0x8 -- cdecl, last push
+ * first, so (profile index, player_ui_globals), the same pair 0xe0fd0 passes.
+ *
+ * XOR EDI,EDI / CALL 0x000e10c0 is a register argument, not dead code:
+ * FUN_000e10c0 never writes EDI (its prologue pushes EBP/EBX/ESI only) and
+ * reads it at 0xe10d4 as `CMP DI,BX` and at 0xe1199 as `MOVSX ESI,DI` before
+ * indexing player_ui_globals + DI*0x38 + 0x8, and pushes it at 0xe12ae. So it
+ * takes a signed 16-bit local-player index in EDI, and this call site passes
+ * local player 0. kb.json's `(void)` declaration was wrong; widened to
+ * `short local_player_index@<edi>`. The PUSH EDI/POP EDI around the call is
+ * the caller preserving the register, not an argument push. */
+void FUN_000e1770(char invert)
+{
+  player_ui_globals[0x2b] = invert;
+  if (*(int *)(player_ui_globals + 0x30) != -1) {
+    FUN_000e1000(L"Saving...");
+    player_profile_get_from_path(*(int *)(player_ui_globals + 0x30),
+                                 player_ui_globals);
+  }
+  FUN_000e10c0(0);
 }

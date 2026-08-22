@@ -1245,7 +1245,7 @@
     },
     {
      "addr": "0x1dbdec",
-     "comment": "LIBCMT _except_handler3 \u2014 VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
+     "comment": "LIBCMT _except_handler3 — VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
      "decl": "int __cdecl _except_handler3(void *ExceptionRecord, void *EstablisherFrame, void *ContextRecord, void *DispatcherContext);"
     },
     {
@@ -7250,7 +7250,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -7311,7 +7311,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
@@ -13727,7 +13727,8 @@
     },
     {
      "addr": "0xf5640",
-     "decl": "bool FUN_000f5640(void);"
+     "decl": "bool FUN_000f5640(void);",
+     "ported": true
     },
     {
      "addr": "0xf5650",
@@ -18107,15 +18108,17 @@
     },
     {
      "addr": "0xe1060",
-     "decl": "unsigned char FUN_000e1060(void);"
+     "decl": "int FUN_000e1060(void);",
+     "ported": true
     },
     {
      "addr": "0xe10c0",
-     "decl": "void FUN_000e10c0(void);"
+     "decl": "void FUN_000e10c0(short local_player_index@<edi>);"
     },
     {
      "addr": "0xe13f0",
-     "decl": "void player_ui_clear_multiplayer_joins(void);"
+     "decl": "void player_ui_clear_multiplayer_joins(void);",
+     "ported": true
     },
     {
      "addr": "0xe1490",
@@ -18131,11 +18134,13 @@
     },
     {
      "addr": "0xe1760",
-     "decl": "void player_ui_end_editing_profile(void);"
+     "decl": "void player_ui_end_editing_profile(void);",
+     "ported": true
     },
     {
      "addr": "0xe1770",
-     "decl": "void FUN_000e1770(char invert);"
+     "decl": "void FUN_000e1770(char invert);",
+     "ported": true
     }
    ],
    "name": "player_ui.obj",
@@ -26164,11 +26169,13 @@
     },
     {
      "addr": "0x81f30",
-     "decl": "void transport_nonce_is_equal(void);"
+     "decl": "bool transport_nonce_is_equal(const void *src, const void *dst);",
+     "ported": true
     },
     {
      "addr": "0x81fa0",
-     "decl": "void FUN_00081fa0(void);"
+     "decl": "bool transport_nonce_is_equal_to_global(const void *src, int bytes);",
+     "ported": true
     },
     {
      "addr": "0x82060",
@@ -26208,7 +26215,8 @@
     },
     {
      "addr": "0x82940",
-     "decl": "void rewind_endpoint_set(int endpoint_set);"
+     "decl": "void rewind_endpoint_set(int endpoint_set);",
+     "ported": true
     },
     {
      "addr": "0x829b0",
@@ -34826,7 +34834,8 @@
     },
     {
      "addr": "0x64a60",
-     "decl": "void prop_orphan_update_information(void);"
+     "decl": "void prop_orphan_update_information(int actor_handle, int orphan_prop_handle, int parent_prop_handle);",
+     "ported": true
     },
     {
      "addr": "0x64b40",
@@ -34840,7 +34849,8 @@
     },
     {
      "addr": "0x64fa0",
-     "decl": "void FUN_00064fa0(void);"
+     "decl": "int FUN_00064fa0(void *tif@<edx>, const char *method);",
+     "ported": true
     },
     {
      "addr": "0x64fe0",

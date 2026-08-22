@@ -289,6 +289,115 @@ static __inline int _TIFFNoEncode(tiff_t *tif, const char *method) {
   return -1;
 }
 
+/* -------------------------------------------------------------------------
+ * FUN_00064fa0 -- upstream `_TIFFNoEncode`, emitted OUT OF LINE.
+ *
+ * Upstream body (identical to the `static __inline` copy above; this address
+ * is the same function, emitted as a real body rather than inlined):
+ *
+ *     static int
+ *     _TIFFNoEncode(TIFF* tif, const char* method)
+ *     {
+ *         const TIFFCodec* c = TIFFFindCODEC(tif->tif_dir.td_compression);
+ *         TIFFError(tif->tif_name, "%s %s encoding is not implemented",
+ *                   c->name, method);
+ *         return (-1);
+ *     }
+ *
+ * The image contains NO reference to this address (Ghidra: "No references
+ * found to address: 0x64fa0"): every call site inlined the helper, and this
+ * standalone copy is the one MSVC emitted for the static function anyway.
+ *
+ * ABI -- this is the one place the encode and decode out-of-line copies
+ * differ. 0x650a0 (`_TIFFNoDecode`) loads BOTH parameters off the stack
+ * (`mov edx,[ebp+8]` / `mov ecx,[ebp+0xc]`). This one never writes EDX before
+ * reading it: the first instruction after the frame setup is
+ * `movzx ecx, word ptr [edx+0x3a]`, and the later `mov ecx,[edx]` reads the
+ * same live EDX. Only ONE dword is taken off the stack, at [EBP+8], and it is
+ * pushed as the LAST vararg -- i.e. `method`. So `tif` arrives in EDX and
+ * `method` on the stack, and the kb.json decl carries `@<edx>`. Reading EDX
+ * as a stack slot instead would silently swap the two parameters.
+ *
+ * Verbatim, from the pristine image (0x64fa0..0x64fdc, 24 instructions):
+ *
+ *   064fa0  push ebp
+ *   064fa1  mov  ebp, esp                   ; no `sub esp` -- zero locals
+ *   064fa3  movzx ecx, word ptr [edx+0x3a]  ; tif->td_compression, zero-extended
+ *                                           ; from 16 bits. EDX is LIVE ON
+ *                                           ; ENTRY -- the register parameter.
+ *   064fa7  mov  eax, 0x2c9994              ; _TIFFBuiltinCODECS
+ *   064fac  lea  esp, [esp]                 ; 4-byte alignment padding for the
+ *                                           ; loop head at 0x64fb0
+ *   064fb0  cmp  dword ptr [eax+4], ecx     ; c->scheme == scheme; memory
+ *                                           ; operand first, so spell it that
+ *                                           ; way round
+ *   064fb3  je   0x64fc1                    ; found
+ *   064fb5  add  eax, 0xc                   ; ++c (sizeof(TIFFCodec) == 0xc)
+ *   064fb8  cmp  eax, 0x2c99c4              ; &_TIFFBuiltinCODECS[4] -- an
+ *                                           ; ADDRESS compare, which proves the
+ *                                           ; loop is count-bounded and not a
+ *                                           ; `while (c->name)` walk
+ *   064fbd  jb   0x64fb0                    ; unsigned <, loop
+ *   064fbf  xor  eax, eax                   ; not found -> NULL, falling THROUGH
+ *                                           ; into the shared tail
+ *   064fc1  mov  ecx, dword ptr [ebp+8]     ; method, loaded late and only for
+ *                                           ; the call
+ *   064fc4  mov  eax, dword ptr [eax]       ; c->name -- at the merge of the
+ *                                           ; found and not-found paths, so an
+ *                                           ; unknown scheme faults here.
+ *                                           ; UNGUARDED on purpose.
+ *   064fc6  push ecx                        ; arg4 method
+ *   064fc7  mov  ecx, dword ptr [edx]       ; tif->tif_name (offset 0x00). ECX
+ *                                           ; is reused for two different
+ *                                           ; values three instructions apart;
+ *                                           ; EDX is what carries `tif`.
+ *   064fc9  push eax                        ; arg3 c->name
+ *   064fca  push 0x25f530                   ; arg2 "%s %s encoding is not
+ *                                           ; implemented" -- the shared
+ *                                           ; encode-side literal, distinct
+ *                                           ; from the decode side's 0x25f570
+ *   064fcf  push ecx                        ; arg1 module = tif->tif_name
+ *   064fd0  call 0x68a30                    ; TIFFError (varargs). The
+ *                                           ; ARG_COUNT hazard (cleanup 4 vs
+ *                                           ; decl 3) is the vararg, not an
+ *                                           ; ABI mismatch.
+ *   064fd5  add  esp, 0x10                  ; cdecl, 4 dword args
+ *   064fd8  or   eax, 0xffffffff            ; return -1, emitted AFTER the
+ *                                           ; call, so a separate statement
+ *   064fdb  pop  ebp
+ *   064fdc  ret
+ *
+ * Call-site verification table (CALL 0x64fd0 -> 0x68a30, cdecl, ADD ESP,0x10):
+ *   arg# | binary source                  | C expression                | ok?
+ *   1    | PUSH ECX <- MOV ECX,[EDX]      | tif->tif_name               | YES
+ *   2    | PUSH 0x25f530                  | "%s %s encoding is not ..." | YES
+ *   3    | PUSH EAX <- MOV EAX,[EAX]      | TIFFFindCODEC(...)->name    | YES
+ *   4    | PUSH ECX <- MOV ECX,[EBP+8]    | method                      | YES
+ *   Pushed in reverse order, so the last PUSH (0x64fcf) is arg1.
+ *
+ * Written as the entry point body rather than as `return _TIFFNoEncode(...)`
+ * to match how the decode-side out-of-line copy at 0x650a0 is spelled in this
+ * file; both forms inline to the same code, this one keeps the two out-of-line
+ * copies textually parallel.
+ * ------------------------------------------------------------------------ */
+
+/**
+ * Reports that the encoder for this TIFF's compression scheme is absent from
+ * this build, naming the scheme and the failed access method.
+ *
+ * @param tif_ TIFF handle. Arrives in EDX, not on the stack.
+ * @param method Name of the access method that failed ("scanline", "strip",
+ *        "tile"). The only stack parameter.
+ * @return Always -1 (failure).
+ */
+int FUN_00064fa0(void *tif_ /* @<edx> */, const char *method) {
+  tiff_t *tif = (tiff_t *)tif_;
+
+  FUN_00068a30(tif->tif_name, "%s %s encoding is not implemented",
+               TIFFFindCODEC(tif->td_compression)->name, method);
+  return -1;
+}
+
 /**
  * Row-encode entry point installed for compression schemes whose encoder is
  * not present in this build: reports the scheme by name and fails.

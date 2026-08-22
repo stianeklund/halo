@@ -1,5 +1,5 @@
 /* Xbox network transport layer — Winsock/XNet wrapper. */
-#include "../../common.h"
+#include "../../../common.h"
 
 /* Publish the global XNet key pair and register it on the first use.
  *
@@ -78,6 +78,75 @@ void transport_get_nonce(void *dst, int bytes)
     152, bytes == sizeof(global_nonce));
 
   csmemcpy(dst, global_nonce, sizeof(global_nonce));
+}
+
+/* Compare two 8-byte transport nonces for equality.
+ *
+ * Both pointers are asserted non-NULL, then the two blobs are compared with
+ * csmemcmp over the nonce size; the function returns true only when they are
+ * byte-identical.
+ *
+ * Confirmed (0x81f30-0x81f98): src is [EBP+8] (ESI), dst is [EBP+0xc] (EDI);
+ * display_assert (0x8d9f0, cdecl 4 args) with "src != NULL" at 0x2664ec line
+ * 0xa3 = 163 and "dst != NULL" at 0x2664e0 line 0xa4 = 164, __FILE__ at
+ * 0x266458; system_exit (0x8e2f0, PUSH -1); csmemcmp (0x8da40, cdecl 3 args —
+ * PUSH 8 / PUSH EDI / PUSH ESI, ADD ESP,0xc at 0x81f8c).  The tail
+ * NEG EAX / SBB AL,AL / INC AL at 0x81f8f-0x81f94 is the MSVC lowering of a
+ * boolean `csmemcmp(...) == 0`, so the result is a bool in AL, not the raw
+ * memcmp value.
+ *
+ * Uncertain: the nonce blobs are untyped here; no field of either is read by
+ * this function, so no struct is invented for them.  The 8 is the literal
+ * pushed at 0x81f83 and equals sizeof(global_nonce).
+ */
+/* noinline (VC71 verification only): the original build emits this out of
+ * line — its sole in-TU caller, transport_nonce_is_equal_to_global (0x81fa0),
+ * reaches it through a real CALL at 0x81ff7.  /O2's implied /Ob2 otherwise
+ * inlines the body into that caller and scrambles both functions' shape. */
+__declspec(noinline)
+bool transport_nonce_is_equal(const void *src, const void *dst)
+{
+  assert_halt_at(
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+    163, src != NULL);
+  assert_halt_at(
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+    164, dst != NULL);
+
+  return csmemcmp(src, dst, sizeof(global_nonce)) == 0;
+}
+
+/* Test whether the caller's nonce matches this machine's global nonce.
+ *
+ * Both parameters are asserted first, then the whole comparison is delegated
+ * to transport_nonce_is_equal with the global nonce as the second operand.
+ *
+ * Confirmed (0x81fa0-0x82001): src is [EBP+8] (loaded into ESI at 0x81fa4),
+ * bytes is [EBP+0xc] (compared against the literal 8 at 0x81fcb);
+ * display_assert (0x8d9f0, cdecl 4 args) with "src != NULL" at 0x2664ec line
+ * 0xaf = 175 and "bytes == sizeof(global_nonce)" at 0x2664c0 line 0xb0 = 176,
+ * __FILE__ at 0x266458; system_exit (0x8e2f0, PUSH -1).  The tail call is
+ * transport_nonce_is_equal (0x81f30, cdecl 2 args — PUSH 0x5ab228 at 0x81ff1
+ * then PUSH ESI at 0x81ff6, so src is arg1 and global_nonce is arg2, ADD
+ * ESP,8 at 0x81ffc).
+ *
+ * The result is RETURNED, not discarded: nothing between the CALL and the RET
+ * touches EAX, and the sole caller (0x1272c1 in FUN_00127260) does TEST AL,AL
+ * / JE at 0x1272c9 on the value, so this is a bool-in-AL return.
+ *
+ * Uncertain: the name is behavioural only — no string or symbol in the binary
+ * names this function; the nonce blobs stay untyped 8-byte globals.
+ */
+bool transport_nonce_is_equal_to_global(const void *src, int bytes)
+{
+  assert_halt_at(
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+    175, src != NULL);
+  assert_halt_at(
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+    176, bytes == sizeof(global_nonce));
+
+  return transport_nonce_is_equal(src, global_nonce);
 }
 
 /* Copy the local transport address blob to the caller's buffer and return it.
@@ -224,9 +293,7 @@ void transport_initialize(void)
 
   /* Start WinSock 2.2. */
   /* hazard-ok: fnptr-conv */
-  wsa_result = ((int16_t(__stdcall *)(
-    int16_t, uint8_t *))0x223206)(
-                                  2, wsadata);
+  wsa_result = ((int16_t(__stdcall *)(int16_t, uint8_t *))0x223206)(2, wsadata);
   if (wsa_result != 0) {
     /* Cleanup: WSACleanup then report error. */
     ((void (*)(void))0x2232ed)();
@@ -390,6 +457,37 @@ clear_entry:
   *(uint32_t *)(endpoint_set[0x41] + i * 4) = 0;
   endpoint_set[0x45] = 1;
   return 0;
+}
+
+/* Reset an endpoint set's iteration cursor.
+ *
+ * Asserts the set pointer is non-NULL and that the transport is initialized,
+ * then stores 0 to the dword at set+0x110.  That dword is the only field
+ * touched; it is the cursor the get-next-endpoint walk advances (0x82940 is
+ * the "rewind" half of that pair).  No other state is read or written.
+ *
+ * Confirmed: display_assert (0x8d9f0, cdecl 4 args) with message "set" at
+ * 0x266450 line 0x26d and "transport_initialized" at 0x265fe4 line 0x26e,
+ * __FILE__ string at 0x266458; system_exit (0x8e2f0, PUSH -1) after each.
+ * Both asserts are single-condition two-branch tests in the reference
+ * (TEST ESI,ESI / JNZ at 0x82949; MOV AL,[0x335090] / TEST AL,AL / JNZ at
+ * 0x8296b), so each maps to one assert macro.  The store is
+ * MOV dword ptr [ESI + 0x110],0x0 at 0x82994.
+ *
+ * Uncertain: the meaning of the field at 0x110 beyond "cursor reset to 0" is
+ * not proven by this function alone; nothing here names it. */
+void rewind_endpoint_set(int endpoint_set)
+{
+  assert_halt_msg_at(
+    "set",
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+    0x26d, endpoint_set);
+  assert_halt_msg_at(
+    "transport_initialized",
+    "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
+    0x26e, *(uint8_t *)0x335090);
+
+  *(uint32_t *)(endpoint_set + 0x110) = 0;
 }
 
 /* Release the global XNet key and clear associated state.
