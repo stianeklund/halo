@@ -7994,6 +7994,9 @@ resolve_weapon_idle: {
                       unit_mode, mode_block, wn);
     }
 
+    /* XBE 0x1ad66e: force speed 6 on weapon-idle class change, before was_none. */
+    transition_speed = 6;
+
     if (was_none) {
       /* Resolve base weapon overlay (index 9) */
       if (*(int *)(unit_mode + 0x40) > 9) {
@@ -8012,8 +8015,6 @@ resolve_weapon_idle: {
                         tag_name_strip_path(*(const char **)(unit_tag + 0x3c)),
                         unit_mode, oln);
       }
-
-      transition_speed = 6;
     }
   } else if (did_change == 0) {
     goto skip_transition;
@@ -10945,7 +10946,7 @@ short FUN_001b0d90(int unit_handle, char *anim_state)
       base_seat = 5;
     }
 
-    if (*(char *)((int)unit + 599) != (char)base_seat) {
+    if ((int16_t) *(int8_t *)((int)unit + 0x257) != base_seat) {
       char can_change;
       can_change = FUN_001a86b0((void *)((int)unit + 0x248), desired_state);
       if (can_change != 0) {
