@@ -1,0 +1,26 @@
+{
+  "stack_walk_initialize": {
+    "last_run_ts": "2026-08-22T12:25:03+02:00",
+    "result": "improved",
+    "score_before": 63.6,
+    "score_after": 100.0
+  },
+  "stack_walk_dispose": {
+    "last_run_ts": "2026-08-22T13:24:02+02:00",
+    "result": "improved",
+    "score_before": 83.3,
+    "score_after": 100.0
+  },
+  "stack_walk_with_context": {
+    "last_run_ts": "2026-08-22T13:24:02+02:00",
+    "result": "no_improvement",
+    "score_before": 26.3,
+    "score_after": 26.3
+  },
+  "load_symbol_table": {
+    "last_run_ts": "2026-08-22T13:24:02+02:00",
+    "result": "no_improvement",
+    "score_before": 29.8,
+    "score_after": 29.8
+  }
+}

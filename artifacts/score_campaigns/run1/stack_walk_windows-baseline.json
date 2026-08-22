@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "scores": {
+    "FUN_00092370": {
+      "candidate_instructions": 25,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 19.8,
+      "reference_instructions": 86,
+      "score": 30.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 2, reference 0) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "load_symbol_table": {
+      "candidate_instructions": 243,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 12.7,
+      "reference_instructions": 468,
+      "score": 29.8,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 21, reference 61) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)",
+          "    SHAPE: reference STORES to incoming param slot 0xc(%ebp) (ref: `movl\t%edi, 0xc(%ebp)`) and our lift never does -- CHECK whether the original ASSIGNS to that parameter (a lift that introduces a separate local instead silently passes the wrong object on the paths that skip the assignment); cl.exe also reuses a param slot as scratch, so confirm against the disassembly before acting"
+        ]
+      }
+    },
+    "stack_walk": {
+      "candidate_instructions": 11,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 11,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "stack_walk_dispose": {
+      "candidate_instructions": 6,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 66.7,
+      "reference_instructions": 6,
+      "score": 83.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "stack_walk_initialize": {
+      "candidate_instructions": 12,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 45.5,
+      "reference_instructions": 10,
+      "score": 63.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 2, reference 1) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "stack_walk_with_context": {
+      "candidate_instructions": 60,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 25.6,
+      "reference_instructions": 206,
+      "score": 26.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 5, reference 19) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    }
+  },
+  "source": "src/halo/cseries/stack_walk_windows.c",
+  "source_sha256": "b61a8fd55b434a01da0c5d046445b481ff1f6c304908b7e187ab6b4eff9474da"
+}
