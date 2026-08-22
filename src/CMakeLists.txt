@@ -92,6 +92,7 @@ halo/ai/actor_firing_position.c
 	halo/units/bipeds.c
 	halo/units/units.c
 	halo/units/vehicles.c
+	halo/networking/data_packet_groups.c
 	halo/networking/network_client_manager.c
 	halo/networking/network_client_message_handler.c
 	halo/networking/network_connection.c

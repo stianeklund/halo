@@ -1,5 +1,7 @@
-#define compute_packet_field_sizes \
-  ((void (*)(packet_definition *, short *, short *, short *))0x11add0)
+/* compute_packet_field_sizes (0x11add0) and _data_packet_encode (0x11afa0) are
+ * now ported in networking/data_packet_groups.c; their declarations come from
+ * kb.json via decl.h.  The raw-address XCALL macros that used to stand in for
+ * them were removed so the calls below reach the lifted C. */
 
 /* ========================================================================
  * data_encoding.c — Decode-side encoding state helpers
@@ -19,9 +21,6 @@
 #define encode_state_new ((void (*)(int *, int, int))0x119c50)
 
 #define encode_raw_data ((int (*)(int *, int, short, int))0x119cc0)
-
-#define encode_packet_fields \
-  ((void (*)(int, int *, short, void *, short, int, short *))0x11afa0)
 
 #define csstrcpy ((char *(*)(char *, const char *))0x8dff0)
 
@@ -599,7 +598,6 @@ loop_done:
  * 0x20-0x2b
  */
 
-/* compute_packet_field_sizes at 0x11add0 — not yet ported (data_packets.c) */
 void verify_packet_definition(packet_definition *def)
 {
   short computed_size;
@@ -671,8 +669,8 @@ bool FUN_0011b650(int definition, short version, void *data, char *buffer,
     version_byte = (char)version;
     encode_raw_data(encode_state, (int)&version_byte, 1, 1);
   }
-  encode_packet_fields(definition, encode_state, version, data, 0,
-                       *(int *)(definition + 0xc), 0);
+  _data_packet_encode((packet_definition *)definition, encode_state, version,
+                      data, NULL, (short *)*(int *)(definition + 0xc), NULL);
   *buffer_size_out = (short)encode_state[1];
   return (char)encode_state[3] == '\0';
 }
@@ -1665,8 +1663,11 @@ size_ok:
     system_exit(-1);
   }
 
+  /* encode_packet_group's size parameter is short * (16-bit accesses at
+   * 0x11abbc/0x11ac67); `encoded_size` is a dword slot here, matching the
+   * original's own dword store/load of the same variable. */
   if (!encode_packet_group(&s_network_game_messages_group, data, encoded_buf,
-                           &encoded_size, type, 1)) {
+                           (short *)&encoded_size, type, 1)) {
     network_game_log("encode_network_game_message() failed");
     return NULL;
   }

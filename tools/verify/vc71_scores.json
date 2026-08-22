@@ -26221,16 +26221,16 @@
     "FUN_0011b650": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 98.4,
+      "abi_modeled_mnemonic_pct": 98.9,
       "addr": "0x11b650",
       "end": "0x11b745",
       "kind": "auto",
       "n_r": 91,
-      "opnd_percent": 85.4,
-      "raw_mnemonic_pct": 98.4,
+      "opnd_percent": 83.7,
+      "raw_mnemonic_pct": 98.9,
       "ref": "synth",
       "ref_sha": "324a41d642c1a3ec",
-      "score": 98.4,
+      "score": 98.9,
       "source": "src/halo/networking/network_messages.c"
     },
     "FUN_0011b750": {
@@ -45763,6 +45763,21 @@
       "score": 94.1,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
+    "compute_packet_field_sizes": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 97.0,
+      "addr": "0x11add0",
+      "end": "0x11af70",
+      "kind": "auto",
+      "n_r": 134,
+      "opnd_percent": 95.5,
+      "raw_mnemonic_pct": 97.0,
+      "ref": "synth",
+      "ref_sha": "084ed60a59003318",
+      "score": 97.0,
+      "source": "src/halo/networking/data_packet_groups.c"
+    },
     "compute_split_screen_grid": {
       "abi_model": "regparam_stripped_saves",
       "abi_model_items": 4,
@@ -47112,6 +47127,36 @@
       "ref_sha": "5da3fe1288120f99",
       "score": 88.5,
       "source": "src/halo/memory/data.c"
+    },
+    "data_packet_encode": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 98.8,
+      "addr": "0x11afa0",
+      "end": "0x11b250",
+      "kind": "auto",
+      "n_r": 242,
+      "opnd_percent": 94.2,
+      "raw_mnemonic_pct": 98.8,
+      "ref": "synth",
+      "ref_sha": "c319c032ef194ae5",
+      "score": 98.8,
+      "source": "src/halo/networking/data_packet_groups.c"
+    },
+    "data_packet_group_append_packet_header": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x11abb0",
+      "end": "0x11ac95",
+      "kind": "auto",
+      "n_r": 79,
+      "opnd_percent": 98.7,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "983d127ba25ed99e",
+      "score": 100.0,
+      "source": "src/halo/networking/data_packet_groups.c"
     },
     "data_prev_index": {
       "abi_model": "raw",
@@ -48747,6 +48792,21 @@
       "ref_sha": "63269248dc173c84",
       "score": 58.9,
       "source": "src/halo/networking/network_messages.c"
+    },
+    "encode_packet_group": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x11aca0",
+      "end": "0x11adc1",
+      "kind": "auto",
+      "n_r": 100,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "c47d7914ccecb604",
+      "score": 100.0,
+      "source": "src/halo/networking/data_packet_groups.c"
     },
     "encounter_actor_iterator_new": {
       "abi_model": "raw",
@@ -75991,16 +76051,16 @@
     "verify_packet_definition": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 98.3,
+      "abi_modeled_mnemonic_pct": 100.0,
       "addr": "0x11b540",
       "end": "0x11b642",
       "kind": "auto",
       "n_r": 87,
-      "opnd_percent": 92.6,
-      "raw_mnemonic_pct": 98.3,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "9a401468cea04189",
-      "score": 98.3,
+      "score": 100.0,
       "source": "src/halo/networking/network_messages.c"
     },
     "verify_packet_group_definitions": {

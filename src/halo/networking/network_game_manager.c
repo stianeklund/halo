@@ -628,6 +628,6 @@ bool network_game_message_encode(void *message_struct, char *encoded_message,
   }
 
   return encode_packet_group(&s_network_game_messages_group, message_struct,
-                             encoded_message, (int32_t *)encoded_message_size,
-                             type, one);
+                             encoded_message, encoded_message_size, type,
+                             (short)one);
 }

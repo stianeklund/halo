@@ -23,8 +23,12 @@ unsigned short *key_agreement_build_message(short type, void *data, int buffer,
   }
   encoded_size = 0x80;
 
+  /* encode_packet_group's size parameter is short * (binary-proven);
+   * `encoded_size` stays a dword local because 0x803d0 stores/loads it with
+   * dword ops (MOV dword [EBP-4],0x80 at 0x80410). */
   if (encode_packet_group((group_definition *)key_agreement_group, data,
-                          (char *)encoded_buf, &encoded_size, type, 1)) {
+                          (char *)encoded_buf, (short *)&encoded_size, type,
+                          1)) {
     msg = (unsigned short *)create_message(
       3, (int)encoded_buf, (unsigned int)encoded_size, buffer, buffer_size);
     if (msg != (unsigned short *)0) {

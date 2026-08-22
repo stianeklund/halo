@@ -11157,6 +11157,41 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x11abb0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The assert strings at lines 0xac/0xae name the group_definition member at +0x4 as packet_type_count, whereas src/types.h currently calls it packet_count; the field was not renamed by this lift.",
+        "Returns bool in AL (XOR ECX,ECX / SETZ CL / MOV AL,CL at both exits 0x11ac6a and 0x11ac82); kb.json previously declared this void(void) with no parameters, and the real signature is (group_definition *, char *encoded_packet, short *encoded_packet_size, short packet_type)."
+      ],
+      "uncertain": [
+        "The line-0xac assert string is 'encoded_packet && encoded_packet_size' but the binary emits only one test (TEST EAX,EAX at 0x11abc1, on encoded_packet); the encoded_packet_size half has no compare, so only the tested half is reproduced in C."
+      ]
+    },
+    "0x11aca0": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "Parameter 6 is typed short version because it is forwarded verbatim to FUN_0011b650's short version parameter; the binary loads the whole dword slot (MOV EDX,[EBP+0x1c] at 0x11ad6e) so an int declaration is equally consistent and the width is not proven."
+      ]
+    },
+    "0x11add0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "compute_packet_field_sizes (0x11add0) and _data_packet_encode (0x11afa0) assert with the __FILE__ literal at 0x28f498 = c:\\halo\\SOURCE\\memory\\data_packets.c, not data_packet_groups.c (0x28f1f0) which only 0x11abb0 and 0x11aca0 cite; kb.json groups all four into data_packet_groups.obj, so the object membership of these two is unproven by string evidence."
+      ],
+      "uncertain": [
+        "The version-range skip path (JL at 0x11ae74, JNZ at 0x11ae86) jumps straight to the common tail at 0x11af20, which stores field_size into field[4] unconditionally, so a skipped field reuses the previous field's size; MSVC seeds that register with a dead load of the fields parameter (MOV EDI,[EBP+0x10] at 0x11adf2), meaning the first iteration reads an uninitialised value. The lift initialises field_size to 0 instead - the only deliberate deviation, observable only when the very first field is version-skipped."
+      ]
+    },
+    "0x11afa0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "In the version-skipped switch (jump table at 0x11b274) field types 1, 2, 3, 4 and 8 all reach one merged block at 0x11b1a8 that calls FUN_00119cc0(state, NULL, field->count, 1), so the zero-fill is field->count BYTES even for the 2/4/8-byte element types - it is not scaled by element size the way the in-range arms are."
+      ]
+    },
     "0x11b540": {
       "kind": "function",
       "status": "ported"

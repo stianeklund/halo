@@ -38158,19 +38158,23 @@
    "functions": [
     {
      "addr": "0x11aca0",
-     "decl": "bool encode_packet_group(group_definition *group, void *data, char *encoded_buf, int32_t *encoded_size, int16_t type, int one);"
+     "decl": "bool encode_packet_group(group_definition *group, void *data, char *encoded_packet, short *encoded_packet_size, short packet_type, short version);",
+     "ported": true
     },
     {
      "addr": "0x11abb0",
-     "decl": "void data_packet_group_append_packet_header(void);"
+     "decl": "bool data_packet_group_append_packet_header(group_definition *group, char *encoded_packet, short *encoded_packet_size, short packet_type);",
+     "ported": true
     },
     {
      "addr": "0x11add0",
-     "decl": "void compute_packet_field_sizes(packet_definition *def, short *param_2, short *param_3, short *param_4);"
+     "decl": "void compute_packet_field_sizes(packet_definition *definition, short *packet_size_out, short *fields, short *field_count_out);",
+     "ported": true
     },
     {
      "addr": "0x11afa0",
-     "decl": "void _data_packet_encode(int param_1, int *param_2, short param_3, void *param_4, short param_5, int param_6, short *param_7);"
+     "decl": "void _data_packet_encode(packet_definition *definition, int *encode_state, short version, void *data, short *encoded_size_out, short *fields, short *field_count_out);",
+     "ported": true
     }
    ],
    "name": "data_packet_groups.obj",
