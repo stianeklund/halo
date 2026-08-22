@@ -15508,6 +15508,36 @@
       "score": 100.0,
       "source": "src/halo/game/players.c"
     },
+    "FUN_000c0bb0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xc0bb0",
+      "end": "0xc0be8",
+      "kind": "auto",
+      "n_r": 26,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "03ff1094fe4e32d7",
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
+    "FUN_000c0bf0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xc0bf0",
+      "end": "0xc0c29",
+      "kind": "auto",
+      "n_r": 26,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "c8de338ccf820957",
+      "score": 100.0,
+      "source": "src/halo/hs/hs.c"
+    },
     "FUN_000c0c30": {
       "abi_model": "raw",
       "abi_model_items": 0,

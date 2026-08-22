@@ -1,3 +1,61 @@
+/* 0xc0bb0 — HS script function handler: apply a change via FUN_00057900.
+ * Same family as 0xc0c70 (identical codegen; differs only in the dispatch
+ * callee). Evaluates the macro arguments; on success the result block holds
+ * a value at +0x0 (int) and a byte at +0x4 (verified against disassembly
+ * 0xc0bb0-0xc0be7: XOR EDX,EDX; MOV DL,[EAX+0x4] — a narrow byte load,
+ * matching FUN_00057900's `char` second parameter). Calls
+ * FUN_00057900(result[0], *(char *)(result + 1)) then returns void to the
+ * HS thread via hs_return(thread_datum, 0).
+ *
+ * Callees (all ported):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index,
+ *                                        int thread_datum, char init)
+ *               -> result record* or NULL
+ *   0x57900 = FUN_00057900(int param_1, char param_2) -> void
+ *   0xcbf80 = hs_return(int thread_handle, int value) -> void
+ *
+ * ABI note: the single ADD ESP,0x10 at 0xc0be2 covers both the
+ * FUN_00057900 call's 2 pushed args and hs_return's 2 pushed args
+ * (cdecl caller-side cleanup deferred across consecutive calls) — not a
+ * mismatch against hs_return's 2-parameter declaration. */
+void FUN_000c0bb0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_00057900(result[0], *(char *)(result + 1));
+    hs_return(thread_datum, 0);
+  }
+}
+
+/* 0xc0bf0 — HS script function handler: apply an encounter state change.
+ * Same family as 0xc0c30 (identical shape). Evaluates the macro arguments;
+ * on success the result block holds an encounter handle at +0x0 (int) and
+ * a state value at +0x4 (int16, verified against disassembly 0xc0c0c-0xc0c12:
+ * XOR EDX,EDX; MOV DX,[EAX+0x4] — a zero-extended word load). Calls
+ * FUN_000579d0(encounter_handle, state) then returns void to the HS thread
+ * via hs_return(thread_datum, 0).
+ *
+ * Callees (all ported):
+ *   0xcc560 = hs_macro_function_evaluate(int16 function_index,
+ *                                        int thread_datum, char init)
+ *               -> result record* or NULL
+ *   0x579d0 = FUN_000579d0(int encounter_handle, short return_state) -> void
+ *   0xcbf80 = hs_return(int thread_handle, int value) -> void */
+void FUN_000c0bf0(int16_t function_index, int thread_datum, char init)
+{
+  int *result;
+
+  result =
+    (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
+  if (result != NULL) {
+    FUN_000579d0(result[0], *(short *)(result + 1));
+    hs_return(thread_datum, 0);
+  }
+}
+
 /* 0xc0c30 — HS script function handler: apply an encounter state change.
  * Evaluates the macro arguments; on success the result block holds an
  * encounter handle at +0x0 (int) and a state value at +0x4 (int16). Calls
@@ -7416,12 +7474,12 @@ void FUN_000c3660(int16_t function_index, int thread_datum, char init)
  */
 struct hs_convolution_result {
   int16_t field_00; /* +0x00 HS short, read MOVSX (signed) */
-  int16_t pad_02;   /* +0x02 upper half of the 4-byte HS value slot */
+  int16_t pad_02; /* +0x02 upper half of the 4-byte HS value slot */
   uint16_t field_04; /* +0x04 HS short, read XOR/MOV (zero-extended) */
-  uint16_t pad_06;  /* +0x06 upper half of the 4-byte HS value slot */
-  float field_08;   /* +0x08 HS real */
-  float field_0c;   /* +0x0c HS real */
-  float field_10;   /* +0x10 HS real */
+  uint16_t pad_06; /* +0x06 upper half of the 4-byte HS value slot */
+  float field_08; /* +0x08 HS real */
+  float field_0c; /* +0x0c HS real */
+  float field_10; /* +0x10 HS real */
 };
 
 void FUN_0017da40(int16_t field_00, uint16_t field_04, float field_08,
@@ -8324,8 +8382,8 @@ void hs_scripts_initialize(void)
  * names any of the three, so the call targets below are stated by address. */
 void hs_dispose(void)
 {
-  hs_runtime_dispose_from_old_map();   /* 0xca800 */
-  FUN_000ce1b0();                      /* 0xce1b0 (empty) */
+  hs_runtime_dispose_from_old_map(); /* 0xca800 */
+  FUN_000ce1b0(); /* 0xce1b0 (empty) */
 }
 
 /* Per-tick script update with optional profiling. */
@@ -8438,11 +8496,14 @@ void *hs_external_global_get(int16_t global_index)
 int16_t hs_global_get_type(uint16_t script_ref)
 {
   if ((int16_t)script_ref < 0) {
-    return *(int16_t *)((char *)hs_external_global_get((int16_t)(script_ref & 0x7fff)) + 0x4);
+    return *(int16_t *)((char *)hs_external_global_get(
+                          (int16_t)(script_ref & 0x7fff)) +
+                        0x4);
   }
   return *(int16_t *)((char *)tag_block_get_element(
-    (void *)((char *)global_scenario_get() + 0x4a8),
-    (int)(script_ref & 0x7fff), 0x5c) + 0x20);
+                        (void *)((char *)global_scenario_get() + 0x4a8),
+                        (int)(script_ref & 0x7fff), 0x5c) +
+                      0x20);
 }
 
 /* 0xc3ea0 — Return the name string of a global variable by ref.
@@ -8452,11 +8513,12 @@ int16_t hs_global_get_type(uint16_t script_ref)
 const char *hs_global_get_name(uint16_t global_ref)
 {
   if ((int16_t)global_ref < 0) {
-    return *(const char **)hs_external_global_get((int16_t)(global_ref & 0x7fff));
+    return *(const char **)hs_external_global_get(
+      (int16_t)(global_ref & 0x7fff));
   }
   return (const char *)tag_block_get_element(
-    (void *)((char *)global_scenario_get() + 0x4a8),
-    (int)(global_ref & 0x7fff), 0x5c);
+    (void *)((char *)global_scenario_get() + 0x4a8), (int)(global_ref & 0x7fff),
+    0x5c);
 }
 
 /* Find a HaloScript global variable by name.  Searches external globals
@@ -9432,7 +9494,7 @@ void FUN_000c5010(int16_t function_index, int thread_datum, char init)
 
   result = hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != 0) {
-    hs_help((const char *)(uintptr_t)*(int *)result);
+    hs_help((const char *)(uintptr_t) * (int *)result);
     hs_return(thread_datum, 0);
   }
 }
