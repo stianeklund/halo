@@ -12329,6 +12329,54 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1391e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1392a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1392b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1392e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x139300": {
+      "kind": "function",
+      "status": "ported",
+      "uncertain": [
+        "lights_enable (0x139300) returns the byte it just stored: MOV AL,[EBP+8]; MOV ECX,[0x46f074]; MOV byte ptr [ECX],AL; RET leaves AL holding the argument, so the return could equally be an unintended side effect of the store; the ported caller FUN_000becd0 does consume AL, but whether the original source declared a return type is unproven."
+      ]
+    },
+    "0x139310": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x139350": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1393b0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "object_get_self_illumination (0x1393b0) recurses through the two object handles at object+0xc8 then object+0xc4 (both -1 = none); the field meanings (child list head vs next sibling) are not proven by any string or assert in this TU, only the -1 sentinel and the recursion order are binary-confirmed."
+      ]
+    },
+    "0x139480": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "FUN_00139480 (0x139480) traces the constant vector at 0x29b204 = { 0.0f, 0.0f, -10.0f } from the supplied position, so it samples the structure lightmap straight down; the tint clamp is min(component + 0.1f [0x25496c], 1.0f [0x2533c8]) derived from FADD/FCOM with TEST AH,0x41 + JNZ keeping the sum."
+      ],
+      "uncertain": [
+        "FUN_00139480 (0x139480) stack slot EBP-0xc holds two different pointers with disjoint lifetimes (first the scenario collection element from tag_block_get_element, then the gel bitmap from FUN_00076ff0); the lift uses two separate locals, which is semantically equivalent but may not reproduce MSVC's slot colouring."
+      ]
+    },
     "0x1396e0": {
       "kind": "function",
       "status": "ported",

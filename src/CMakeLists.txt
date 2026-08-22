@@ -167,6 +167,7 @@ halo/rasterizer/rasterizer_text.c
 	halo/sound/sound_manager.c
 	halo/objects/damage.c
 	halo/objects/objects.c
+	halo/objects/object_lights.c
 	halo/objects/widgets/widgets.c
 	halo/objects/widgets/glow.c
 	halo/objects/widgets/lightning.c

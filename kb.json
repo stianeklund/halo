@@ -37597,35 +37597,47 @@
    "src": "src/halo/objects/damage.c"
   },
   {
-   "data": [],
+   "data": [
+    {
+     "addr": "0x46f074",
+     "decl": "lights_game_globals_t * lights_game_globals;"
+    }
+   ],
    "functions": [
     {
      "addr": "0x139310",
-     "decl": "void light_delete(int light_handle);"
+     "decl": "void light_delete(int light_handle);",
+     "ported": true
     },
     {
      "addr": "0x139480",
-     "decl": "void FUN_00139480(void *position, void *tint_color, void *out_color, char use_lightmap);"
+     "decl": "void FUN_00139480(void *position, void *tint_color, void *out_color, char use_lightmap);",
+     "ported": true
     },
     {
      "addr": "0x1391e0",
-     "decl": "void lights_initialize(void);"
+     "decl": "void lights_initialize(void);",
+     "ported": true
     },
     {
      "addr": "0x1392a0",
-     "decl": "void lights_dispose(void);"
+     "decl": "void lights_dispose(void);",
+     "ported": true
     },
     {
      "addr": "0x1392b0",
-     "decl": "void lights_initialize_for_new_map(void);"
+     "decl": "void lights_initialize_for_new_map(void);",
+     "ported": true
     },
     {
      "addr": "0x1392e0",
-     "decl": "void lights_dispose_from_old_map(void);"
+     "decl": "void lights_dispose_from_old_map(void);",
+     "ported": true
     },
     {
      "addr": "0x139300",
-     "decl": "unsigned char lights_enable(unsigned char value);"
+     "decl": "unsigned char lights_enable(unsigned char value);",
+     "ported": true
     },
     {
      "addr": "0x139350",
@@ -37634,11 +37646,13 @@
       "light_handle": "eax",
       "max_count": "di",
       "out_buffer": "ebx"
-     }
+     },
+     "ported": true
     },
     {
      "addr": "0x1393b0",
-     "decl": "float object_get_self_illumination(int object_handle);"
+     "decl": "float object_get_self_illumination(int object_handle);",
+     "ported": true
     }
    ],
    "name": "object_lights.obj",

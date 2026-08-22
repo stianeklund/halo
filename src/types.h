@@ -181,6 +181,14 @@ typedef struct {
   datum_handle_t pvs_activator_object_index;  ///< offset=0x94    see .text:0013DBE0 _object_pvs_set_object & .text:0013DCE4 mov     ecx, [ecx+94h]
 } object_globals_t;
 
+/// size=0x04
+typedef struct {
+  bool enabled;                               ///< offset=0x00
+  uint8_t pad_01[3];
+} lights_game_globals_t;
+cs(lights_game_globals_t, 0x04);
+co(lights_game_globals_t, enabled, 0x00);
+
 #define NUMBER_OF_OUTGOING_OBJECT_FUNCTIONS 4
 #define MAXIMUM_REGIONS_PER_OBJECT 8
 
