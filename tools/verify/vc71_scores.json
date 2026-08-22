@@ -23128,6 +23128,21 @@
       "score": 100.0,
       "source": "src/halo/main/main.c"
     },
+    "FUN_001049d0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x1049d0",
+      "end": "0x104bc1",
+      "kind": "auto",
+      "n_r": 174,
+      "opnd_percent": 98.9,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "54bc46ff7cdaedf7",
+      "score": 100.0,
+      "source": "src/halo/structures/structures.c"
+    },
     "FUN_00104bd0": {
       "abi_model": "raw",
       "abi_model_items": 0,
@@ -53307,6 +53322,21 @@
       "ref_sha": "e93f8f9e6e92b797",
       "score": 100.0,
       "source": "src/halo/scenario/scenario.c"
+    },
+    "glow_normal_particle_new": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 82.1,
+      "addr": "0x1337c0",
+      "end": "0x133993",
+      "kind": "auto",
+      "n_r": 146,
+      "opnd_percent": 78.6,
+      "raw_mnemonic_pct": 82.1,
+      "ref": "synth",
+      "ref_sha": "5479f9445cb565c1",
+      "score": 82.1,
+      "source": "src/halo/objects/objects.c"
     },
     "glow_trailing_particle_new": {
       "abi_model": "regparam_stripped_saves",

@@ -24994,7 +24994,9 @@
     },
     {
      "addr": "0x1049d0",
-     "decl": "void FUN_001049d0(float *bounds, float *color);"
+     "decl": "void FUN_001049d0(float *bounds, float *color);",
+     "ported": true,
+     "source_path": "src/halo/structures/structures.c"
     },
     {
      "addr": "0x104bd0",

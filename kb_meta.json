@@ -12194,6 +12194,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1337c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x134350": {
       "kind": "function",
       "status": "ported",

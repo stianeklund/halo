@@ -1235,6 +1235,124 @@ void FUN_00133520(int object_handle, int widget_datum)
 /* Object glow widgets — animated glow effects attached to game objects.
  * TU: c:\halo\SOURCE\objects\widgets\glow.c (confirmed via __FILE__ assert). */
 
+/* data_t* pool for glow particles ("normal" and "trailing" share it). */
+#define GLOW_PARTICLE_DATA (*(data_t **)0x005a90cc)
+
+/* glow_normal_particle_new (0x1337c0 / objects.obj / glow.c)
+ *
+ * Allocates a new "normal" glow particle datum from GLOW_PARTICLE_DATA and
+ * seeds the fields FUN_00134070 doesn't recompute every frame: an initial
+ * scale/size sampled from the glowdef's random ranges when no object function
+ * drives that channel, an initial color lerp between the glowdef's min/max
+ * color when no color function is bound and the glowdef isn't flagged
+ * solid-color, and an initial phase either uniformly random over [0, period)
+ * or spread evenly across the `count` particles being created by the caller
+ * (FUN_001342a0). Returns 0 (particle stays NULL) if the pool is exhausted.
+ *
+ * Confirmed against 001337c0-00133992:
+ *   glow_tag = tag_get(0x676c7721, *(glow_widget_ptr+0x224)).
+ *   idx = data_new_at_index(GLOW_PARTICLE_DATA); returns 0 if idx == -1.
+ *   particle = datum_get(GLOW_PARTICLE_DATA, idx); particle+4 = idx.
+ *   scale (+0x1c): if glow_tag+0x80 (function index, see the glowdef layout
+ *     comment below for FUN_00134070) == -1, random_real_range over
+ *     [glow_tag+0x84, glow_tag+0x88) (scale_lower/upper) assigned directly --
+ *     no extra lerp math, matching the disassembly (FSTP straight from the
+ *     call's ST0 result).
+ *   size (+0x20): if glow_tag+0x9c (a second, distinct function index) == -1,
+ *     random_real_range over [glow_tag+0xa0, glow_tag+0xa4) -- the same
+ *     radius range glow_trailing_particle_new samples -- divided by the
+ *     widget's glow_widget_ptr+0x228 int16 divisor (the same divisor
+ *     glow_trailing_particle_new applies to its own size field). The FST
+ *     (not FSTP) at 0x133870 plus the later FILD/FDIVR at
+ *     0x133883-0x133888 divide the live FPU value in place; written here as
+ *     two sequential C stores to the same slot to preserve that shape.
+ *   color (+0xc/+0x10/+0x14/+0x18): if glow_tag+0xb0 (a third function index)
+ *     == -1 AND glow_tag+0x28 bit0 is clear, alpha (+0xc) = 1.0f and RGB is
+ *     lerped between glow_tag+0xb8/0xbc/0xc0 (min) and glow_tag+0xc8/0xcc/0xd0
+ *     (max) by one shared random t in [0,1) -- the identical lerp
+ *     glow_trailing_particle_new performs, minus its particle+0x54 |= 2 flag
+ *     set (disassembly here has no such OR).
+ *   phase (+0x28): glow_tag+0x24 selects the distribution: 0 =
+ *     random_real_range(0, glow_widget_ptr+0x234 [period]); 1 = (index/count)
+ *     * period; any other value asserts and exits (reason string is NULL in
+ *     the binary -- PUSH 0x0 at 0x13391d -- filepath
+ *     "c:\\halo\\SOURCE\\objects\\widgets\\glow.c", line 0x3b1).
+ *   +0x8: random_real_range(0, 2*pi) -- written unconditionally at the end;
+ *     no consumer lifted yet, so it stays a raw offset store (field_08,
+ *     offset accessed only, semantics unproven).
+ *
+ * Every random draw refetches random_math_get_local_seed_address()
+ * immediately before its matching random_real_range() call, matching
+ * disassembly -- the seed pointer is never cached across draws.
+ */
+int glow_normal_particle_new(int glow_widget_ptr, short index, short count)
+{
+  int glow_tag;
+  int idx;
+  int particle;
+  float fmin;
+  float fmax;
+  float t;
+
+  glow_tag = (int)tag_get(0x676c7721, *(int *)(glow_widget_ptr + 0x224));
+  particle = 0;
+  idx = data_new_at_index(GLOW_PARTICLE_DATA);
+  if (idx != -1) {
+    particle = (int)datum_get(GLOW_PARTICLE_DATA, idx);
+    *(int *)(particle + 4) = idx;
+
+    if (*(int16_t *)(glow_tag + 0x80) == -1) {
+      fmax = *(float *)(glow_tag + 0x88);
+      fmin = *(float *)(glow_tag + 0x84);
+      *(float *)(particle + 0x1c) = random_real_range(
+        (int *)random_math_get_local_seed_address(), fmin, fmax);
+    }
+
+    if (*(int16_t *)(glow_tag + 0x9c) == -1) {
+      fmax = *(float *)(glow_tag + 0xa4);
+      fmin = *(float *)(glow_tag + 0xa0);
+      *(float *)(particle + 0x20) = random_real_range(
+        (int *)random_math_get_local_seed_address(), fmin, fmax);
+      *(float *)(particle + 0x20) =
+        *(float *)(particle + 0x20) /
+        (float)*(int16_t *)(glow_widget_ptr + 0x228);
+    }
+
+    if ((*(int16_t *)(glow_tag + 0xb0) == -1) &&
+        ((*(unsigned char *)(glow_tag + 0x28) & 1) == 0)) {
+      t = random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
+                            1.0f);
+      *(float *)(particle + 0xc) = 1.0f;
+      *(float *)(particle + 0x10) =
+        (*(float *)(glow_tag + 0xc8) - *(float *)(glow_tag + 0xb8)) * t +
+        *(float *)(glow_tag + 0xb8);
+      *(float *)(particle + 0x14) =
+        (*(float *)(glow_tag + 0xcc) - *(float *)(glow_tag + 0xbc)) * t +
+        *(float *)(glow_tag + 0xbc);
+      *(float *)(particle + 0x18) =
+        (*(float *)(glow_tag + 0xd0) - *(float *)(glow_tag + 0xc0)) * t +
+        *(float *)(glow_tag + 0xc0);
+    }
+
+    if (*(int16_t *)(glow_tag + 0x24) == 0) {
+      *(float *)(particle + 0x28) =
+        random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
+                          *(float *)(glow_widget_ptr + 0x234));
+    } else if (*(int16_t *)(glow_tag + 0x24) == 1) {
+      *(float *)(particle + 0x28) =
+        ((float)index / (float)count) * *(float *)(glow_widget_ptr + 0x234);
+    } else {
+      display_assert(0, "c:\\halo\\SOURCE\\objects\\widgets\\glow.c", 0x3b1, 1);
+      system_exit(-1);
+    }
+
+    *(float *)(particle + 8) = random_real_range(
+      (int *)random_math_get_local_seed_address(), 0.0f, 6.2831855f);
+  }
+
+  return particle;
+}
+
 /* glow_widget definition (glowdef) tag layout, group 'glw!' (0x676c7721):
  *   +0x22  int16_t boundary_effect          // 0 = reflect/ping-pong, 1 = wrap
  *   +0x80  int16_t function                 // object function index (-1 =
@@ -1478,8 +1596,8 @@ void FUN_001342a0(int glow_widget_ptr)
  * block, resolved through object handle at glow_widget+0x224.
  */
 
-/* data_t* pool for glow trailing particles. */
-#define GLOW_PARTICLE_DATA (*(data_t **)0x005a90cc)
+/* GLOW_PARTICLE_DATA (data_t* pool, shared with glow_normal_particle_new) is
+ * defined above, before glow_normal_particle_new. */
 
 /* glow_trailing_particle_new (0x134350 / objects.obj / glow.c)
  *

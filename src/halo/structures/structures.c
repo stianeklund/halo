@@ -1023,6 +1023,132 @@ int FUN_00099270(float *plane, short basis)
   return 0;
 }
 
+/* FUN_001049d0 (0x1049d0)  error_geometry.c:0x1eb-0x1ec
+ *
+ * Draws the 6 faces of an axis-aligned bounding box as quads.  'bounds' is a
+ * packed 6-float box {x_min,x_max,y_min,y_max,z_min,z_max} (same layout as
+ * the 'box[6]' scratch buffers built by FUN_00104bd0/FUN_00104d40/FUN_00104fa0,
+ * which all call this function).  Gated on the debug-geometry-enabled
+ * predicate FUN_00103d30(); each face is 4 points (12 floats) passed to
+ * FUN_00104240(4, points, color).
+ *
+ * cdecl, verified from disassembly at 0x1049d0: [EBP+0x8]=bounds (ESI),
+ * [EBP+0xc]=color (EDI, pushed unchanged as arg3 of every FUN_00104240
+ * call).  The 12-float point buffer is rebuilt in EBP-0x30..-0x4 before each
+ * of the 6 calls (store order in the buffer does not match Ghidra's
+ * decompiled assignment order -- traced per-instruction from disassembly).
+ * There is no per-call stack cleanup; a single ADD ESP,0x48 after the sixth
+ * CALL batches the cdecl cleanup for all 6 calls (6 * 3 args = 18 dwords),
+ * which is not a hazard despite the call-site audit's per-call cleanup_args=18
+ * flag on the last call only.
+ */
+void FUN_001049d0(float *bounds, float *color)
+{
+  float pts[12];
+
+  if (bounds == 0) {
+    display_assert("bounds", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x1eb,
+                   true);
+    system_exit(-1);
+  }
+  if (color == 0) {
+    display_assert("color", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x1ec,
+                   true);
+    system_exit(-1);
+  }
+  if (FUN_00103d30()) {
+    /* -X face */
+    pts[0] = bounds[0];
+    pts[1] = bounds[2];
+    pts[2] = bounds[4];
+    pts[3] = bounds[0];
+    pts[4] = bounds[3];
+    pts[5] = bounds[4];
+    pts[6] = bounds[0];
+    pts[7] = bounds[3];
+    pts[8] = bounds[5];
+    pts[9] = bounds[0];
+    pts[10] = bounds[2];
+    pts[11] = bounds[5];
+    FUN_00104240(4, pts, color);
+
+    /* +X face */
+    pts[0] = bounds[1];
+    pts[1] = bounds[2];
+    pts[2] = bounds[4];
+    pts[3] = bounds[1];
+    pts[4] = bounds[3];
+    pts[5] = bounds[4];
+    pts[6] = bounds[1];
+    pts[7] = bounds[3];
+    pts[8] = bounds[5];
+    pts[9] = bounds[1];
+    pts[10] = bounds[2];
+    pts[11] = bounds[5];
+    FUN_00104240(4, pts, color);
+
+    /* -Y face */
+    pts[0] = bounds[0];
+    pts[1] = bounds[2];
+    pts[2] = bounds[4];
+    pts[3] = bounds[1];
+    pts[4] = bounds[2];
+    pts[5] = bounds[4];
+    pts[6] = bounds[1];
+    pts[7] = bounds[2];
+    pts[8] = bounds[5];
+    pts[9] = bounds[0];
+    pts[10] = bounds[2];
+    pts[11] = bounds[5];
+    FUN_00104240(4, pts, color);
+
+    /* +Y face */
+    pts[0] = bounds[0];
+    pts[1] = bounds[3];
+    pts[2] = bounds[4];
+    pts[3] = bounds[1];
+    pts[4] = bounds[3];
+    pts[5] = bounds[4];
+    pts[6] = bounds[1];
+    pts[7] = bounds[3];
+    pts[8] = bounds[5];
+    pts[9] = bounds[0];
+    pts[10] = bounds[3];
+    pts[11] = bounds[5];
+    FUN_00104240(4, pts, color);
+
+    /* -Z face */
+    pts[0] = bounds[0];
+    pts[1] = bounds[2];
+    pts[2] = bounds[4];
+    pts[3] = bounds[0];
+    pts[4] = bounds[3];
+    pts[5] = bounds[4];
+    pts[6] = bounds[1];
+    pts[7] = bounds[3];
+    pts[8] = bounds[4];
+    pts[9] = bounds[1];
+    pts[10] = bounds[2];
+    pts[11] = bounds[4];
+    FUN_00104240(4, pts, color);
+
+    /* +Z face */
+    pts[0] = bounds[0];
+    pts[1] = bounds[2];
+    pts[2] = bounds[5];
+    pts[3] = bounds[0];
+    pts[4] = bounds[3];
+    pts[5] = bounds[5];
+    pts[6] = bounds[1];
+    pts[7] = bounds[3];
+    pts[8] = bounds[5];
+    pts[9] = bounds[1];
+    pts[10] = bounds[2];
+    pts[11] = bounds[5];
+    FUN_00104240(4, pts, color);
+  }
+}
+
 /* FUN_00104bd0 (0x104bd0)  error_geometry.c:0x237-0x239
  *
  * Debug two-point (line segment) axis-aligned bounding box.  Expands the
@@ -1134,16 +1260,34 @@ void FUN_00104d40(float *p0, float *p1, float *p2, float radius, float *color)
   }
   if (FUN_00103d30()) {
     /* X */
-    box[0] = ((p1[0] <= p2[0] ? p1[0] : p2[0]) <= p0[0] ? (p1[0] <= p2[0] ? p1[0] : p2[0]) : p0[0]) - radius;
-    box[1] = ((p1[0] <= p2[0] ? p2[0] : p1[0]) <= p0[0] ? p0[0] : (p1[0] <= p2[0] ? p2[0] : p1[0])) + radius;
+    box[0] = ((p1[0] <= p2[0] ? p1[0] : p2[0]) <= p0[0] ?
+                (p1[0] <= p2[0] ? p1[0] : p2[0]) :
+                p0[0]) -
+             radius;
+    box[1] = ((p1[0] <= p2[0] ? p2[0] : p1[0]) <= p0[0] ?
+                p0[0] :
+                (p1[0] <= p2[0] ? p2[0] : p1[0])) +
+             radius;
 
     /* Y */
-    box[2] = ((p1[1] <= p2[1] ? p1[1] : p2[1]) <= p0[1] ? (p1[1] <= p2[1] ? p1[1] : p2[1]) : p0[1]) - radius;
-    box[3] = ((p1[1] <= p2[1] ? p2[1] : p1[1]) <= p0[1] ? p0[1] : (p1[1] <= p2[1] ? p2[1] : p1[1])) + radius;
+    box[2] = ((p1[1] <= p2[1] ? p1[1] : p2[1]) <= p0[1] ?
+                (p1[1] <= p2[1] ? p1[1] : p2[1]) :
+                p0[1]) -
+             radius;
+    box[3] = ((p1[1] <= p2[1] ? p2[1] : p1[1]) <= p0[1] ?
+                p0[1] :
+                (p1[1] <= p2[1] ? p2[1] : p1[1])) +
+             radius;
 
     /* Z */
-    box[4] = ((p1[2] <= p2[2] ? p1[2] : p2[2]) <= p0[2] ? (p1[2] <= p2[2] ? p1[2] : p2[2]) : p0[2]) - radius;
-    box[5] = ((p1[2] <= p2[2] ? p2[2] : p1[2]) <= p0[2] ? p0[2] : (p1[2] <= p2[2] ? p2[2] : p1[2])) + radius;
+    box[4] = ((p1[2] <= p2[2] ? p1[2] : p2[2]) <= p0[2] ?
+                (p1[2] <= p2[2] ? p1[2] : p2[2]) :
+                p0[2]) -
+             radius;
+    box[5] = ((p1[2] <= p2[2] ? p2[2] : p1[2]) <= p0[2] ?
+                p0[2] :
+                (p1[2] <= p2[2] ? p2[2] : p1[2])) +
+             radius;
 
     col[1] = color[1];
     col[2] = color[2];
@@ -1748,7 +1892,7 @@ void FUN_00105980(float *matrix, short *out_vertex_count,
 short shell_update(short vertex_count, float *vertices /* @<ebx> */)
 {
   float line[3]; /* [EBP-0x14]=nx, [EBP-0x10]=ny, [EBP-0xc]=d */
-  float p0[2];   /* [EBP-0x8], [EBP-0x4] */
+  float p0[2]; /* [EBP-0x8], [EBP-0x4] */
   short state;
   short i;
 
@@ -1770,8 +1914,8 @@ short shell_update(short vertex_count, float *vertices /* @<ebx> */)
       }
       break;
     case 1:
-      if (!(fabs(line[1] * vertices[i * 2 + 1] + line[0] * vertices[i * 2] - line[2]) <
-            *(double *)0x002533d0)) {
+      if (!(fabs(line[1] * vertices[i * 2 + 1] + line[0] * vertices[i * 2] -
+                 line[2]) < *(double *)0x002533d0)) {
         state = 2;
       }
       break;
@@ -2218,7 +2362,8 @@ float FUN_00106330(int16_t count, float *points)
     p = points + 2;
     do {
       area += ((p[2] - points[0]) * (p[1] - points[1]) -
-               (p[3] - points[1]) * (p[0] - points[0])) * 0.5f;
+               (p[3] - points[1]) * (p[0] - points[0])) *
+              0.5f;
       p += 2;
       n--;
     } while (n != 0);
@@ -5981,8 +6126,7 @@ char FUN_00197570(float *records, int16_t count, float threshold)
       delta[0] = rec[0] - *(float *)0x506550;
       delta[1] = rec[1] - *(float *)0x506554;
       delta[2] = rec[2] - *(float *)0x506558;
-      d = *(float *)0x50655c * delta[0] +
-          *(float *)0x506560 * delta[1] +
+      d = *(float *)0x50655c * delta[0] + *(float *)0x506560 * delta[1] +
           *(float *)0x506564 * delta[2];
       if (d <= threshold) {
         return 1;
@@ -6967,7 +7111,8 @@ int16_t FUN_001989b0(uint16_t cluster_count, float *position, float radius,
   short recurse_count;
 
   scenario = scenario_get();
-  cluster = (char *)tag_block_get_element((char *)scenario + 0x134, (int)(short)cluster_count, 0x68);
+  cluster = (char *)tag_block_get_element((char *)scenario + 0x134,
+                                          (int)(short)cluster_count, 0x68);
   if ((short)max_count-- > 0) {
     *out_indices++ = (short)cluster_count;
   }
@@ -6977,16 +7122,19 @@ int16_t FUN_001989b0(uint16_t cluster_count, float *position, float radius,
   if (*portal_block > 0) {
     portal_iter = 0;
     do {
-      portal_elem = (short *)tag_block_get_element(portal_block, (int)portal_iter, 2);
+      portal_elem =
+        (short *)tag_block_get_element(portal_block, (int)portal_iter, 2);
       portal_index = *portal_elem;
-      portal = (short *)tag_block_get_element((char *)scenario + 0x154, (int)portal_index, 0x40);
+      portal = (short *)tag_block_get_element((char *)scenario + 0x154,
+                                              (int)portal_index, 0x40);
       adjacent_cluster = portal[0];
       if (adjacent_cluster == (short)cluster_count) {
         adjacent_cluster = portal[1];
       }
       if (structure_cluster_unmarked(adjacent_cluster) &&
           structure_get_planar_fog(scenario, portal_index, position, radius)) {
-        recurse_count = FUN_001989b0(adjacent_cluster, position, radius, max_count, out_indices);
+        recurse_count = FUN_001989b0(adjacent_cluster, position, radius,
+                                     max_count, out_indices);
         visited_count += recurse_count;
         max_count -= recurse_count;
         out_indices += recurse_count;
