@@ -15596,7 +15596,8 @@
     },
     {
      "addr": "0x133520",
-     "decl": "void FUN_00133520(int object_handle, int widget_datum);"
+     "decl": "void FUN_00133520(int object_handle, int widget_datum);",
+     "ported": true
     },
     {
      "addr": "0x1335e0",

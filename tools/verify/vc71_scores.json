@@ -28393,6 +28393,21 @@
       "score": 99.0,
       "source": "src/halo/text/draw_string.c"
     },
+    "FUN_00133520": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x133520",
+      "end": "0x1335d1",
+      "kind": "auto",
+      "n_r": 63,
+      "opnd_percent": 96.8,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "683d7f92f829d342",
+      "score": 100.0,
+      "source": "src/halo/objects/objects.c"
+    },
     "FUN_00134070": {
       "abi_model": "regparam_stripped_saves",
       "abi_model_items": 23,
