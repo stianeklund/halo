@@ -6089,10 +6089,10 @@ void FUN_0017C7D0(void)
 
 void rasterizer_frame_begin(float *elapsed)
 {
-  char val;
+  unsigned char val;
 
   val = *(char *)0x3256c8;
-  if (val < 2) {
+  if (val <= 1) {
     *(char *)0x3256d4 = val;
     *(char *)0x3256d3 = val;
     *(char *)0x3256d2 = val;

@@ -3007,8 +3007,6 @@ void rasterizer_text_evict_character(int **slot)
 void rasterizer_text_cache_character(void *font_character, void *font)
 {
   int character = (int)font_character;
-  short char_width;
-  short char_height;
   int **character_slot;
   short hw_index;
   short y;
@@ -3030,16 +3028,13 @@ void rasterizer_text_cache_character(void *font_character, void *font)
   hw_index = *(short *)(character + 0xc);
 
   if (hw_index == -1) {
-    char_width = *(short *)(character + 4);
-    char_height = *(short *)(character + 6);
-
-    if (char_width > 128) {
+    if (*(short *)(character + 4) > 128) {
       display_assert(
         "font_character->bitmap_width<=HARDWARE_CHARACTER_CACHE_BITMAP_WIDTH",
         "c:\\halo\\SOURCE\\rasterizer\\rasterizer_text.c", 0x285, 1);
       system_exit(-1);
     }
-    if (char_height > 128) {
+    if (*(short *)(character + 6) > 128) {
       display_assert(
         "font_character->bitmap_height<=HARDWARE_CHARACTER_CACHE_BITMAP_HEIGHT",
         "c:\\halo\\SOURCE\\rasterizer\\rasterizer_text.c", 0x286, 1);
@@ -3051,7 +3046,7 @@ void rasterizer_text_cache_character(void *font_character, void *font)
     /* Advance to next row if needed. Original writes _DAT_004d04a8 =
        (uint)cursor_y as a single 32-bit store, which zero-extends cursor_y
        into the high half — i.e. max_char_height (0x4d04aa) is reset to 0. */
-    if (128 < (int)*(short *)0x4d04a6 + (int)char_width) {
+    if (128 < (int)*(short *)0x4d04a6 + (int)*(short *)(character + 4)) {
       *(short *)0x4d04a8 += *(short *)0x4d04aa;
       *(short *)0x4d04a6 = 0;
       *(short *)0x4d04aa = 0;
@@ -3060,7 +3055,7 @@ void rasterizer_text_cache_character(void *font_character, void *font)
     /* Wrap back to top if needed, evicting characters. Original writes
        _DAT_004d04a8 = 0 as a single 32-bit store, clearing both cursor_y
        (0x4d04a8) and max_char_height (0x4d04aa). */
-    if (128 < (int)*(short *)0x4d04a8 + (int)char_height) {
+    if (128 < (int)*(short *)0x4d04a8 + (int)*(short *)(character + 6)) {
       *(short *)0x4d04a6 = 0;
       *(short *)0x4d04a8 = 0;
       *(short *)0x4d04aa = 0;
@@ -3082,9 +3077,9 @@ void rasterizer_text_cache_character(void *font_character, void *font)
     }
 
     /* Evict characters that overlap */
-    if (*(short *)0x4d04aa < char_height) {
+    if (*(short *)0x4d04aa < *(short *)(character + 6)) {
       cache_top = *(short *)0x4d04a8 + *(short *)0x4d04aa;
-      cache_bottom = char_height + (int)*(short *)0x4d04a8;
+      cache_bottom = *(short *)(character + 6) + (int)*(short *)0x4d04a8;
 
       read_index = *(unsigned short *)0x4d04a2;
       write_index = *(unsigned short *)0x4d04a4;
@@ -3115,7 +3110,7 @@ void rasterizer_text_cache_character(void *font_character, void *font)
          which advanced the pen down a full row each character until a
          glyph was placed at cursor_y=128, overflowing the 128-tall cache
          texture (bitmaps.c:421 "y>=0 && y<bitmap->height"). */
-      *(short *)0x4d04aa = char_height;
+      *(short *)0x4d04aa = *(short *)(character + 6);
     }
 
     /* Handle full cache: evict oldest character. Original compares
@@ -3140,11 +3135,11 @@ void rasterizer_text_cache_character(void *font_character, void *font)
     pixel_data = (unsigned char *)(*(int *)((int)font + 0x94) +
                                    *(int *)(character + 0x10));
 
-    for (y = 0; y < char_height; y++) {
+    for (y = 0; y < *(short *)(character + 6); y++) {
       pixel_out = (short *)bitmap_2d_address(
         *(void **)0x4d04ac, *(short *)(0x4d04b4 + i * 8),
         *(short *)(0x4d04b6 + i * 8) + y, 0);
-      for (x = 0; x < char_width; x++) {
+      for (x = 0; x < *(short *)(character + 4); x++) {
         *pixel_out = (short)((*pixel_data << 8) | 0xfff);
         pixel_data++;
         pixel_out++;
@@ -3153,7 +3148,7 @@ void rasterizer_text_cache_character(void *font_character, void *font)
 
     FUN_00168b10(*(void **)0x4d04ac);
 
-    *(short *)0x4d04a6 += char_width;
+    *(short *)0x4d04a6 += *(short *)(character + 4);
     *(unsigned short *)0x4d04a4 =
       (unsigned short)(unsigned char)(*(unsigned char *)0x4d04a4 + 1);
   } else {

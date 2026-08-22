@@ -17399,7 +17399,7 @@
     },
     {
      "addr": "0xb6fc0",
-     "decl": "void player_control_new_unit(uint16_t local_player_index, int player_index);",
+     "decl": "void player_control_new_unit(int16_t local_player_index, int player_index);",
      "ported": true
     },
     {
@@ -17414,7 +17414,7 @@
     },
     {
      "addr": "0xb8c70",
-     "decl": "void player_control_update(float);",
+     "decl": "bool player_control_update(float delta_time);",
      "ported": true
     },
     {
@@ -17434,7 +17434,7 @@
     },
     {
      "addr": "0xb6ea0",
-     "decl": "void player_control_set_facing(uint16_t local_player_index, float *direction);",
+     "decl": "void player_control_set_facing(int16_t local_player_index, float *direction);",
      "ported": true
     },
     {

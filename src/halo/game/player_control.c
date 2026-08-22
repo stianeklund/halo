@@ -139,12 +139,12 @@ void player_control_set_action_flags(int16_t local_player_index, uint16_t flags,
  * _ftol2 result is consumed 16-bit (TEST AX,AX). The assert runs after the
  * clamping, so it can only fire on count <= 0 or function == NULL. */
 float evaluate_piecewise_linear_function(int16_t count, float *function,
-                                         float input)
+                                          float input)
 {
-  bool negate;
   int32_t count_minus_1;
   int16_t low_index;
   int16_t high_index;
+  bool negate;
   float result;
 
   negate = input < 0.0f;
@@ -155,8 +155,8 @@ float evaluate_piecewise_linear_function(int16_t count, float *function,
    * single shared store into the `input` slot (0x64f6..0x6529). */
   input = (float)(fabs(input) * count_minus_1 < 0.0 ?
                     0.0 :
-                    (fabs(input) * count_minus_1 > count - 1.0f ?
-                       count - 1.0f :
+                    (fabs(input) * count_minus_1 > (float)count - 1.0f ?
+                       (float)count - 1.0f :
                        fabs(input) * count_minus_1));
 
   low_index = (int16_t)input;
@@ -300,6 +300,7 @@ void player_control_get_unit_camera_info(int16_t local_player_index,
   char *unit_obj;
   char *vehicle_obj;
   char *seat;
+  void *vehi_tag;
   int handle;
 
   info = (char *)camera_info;
@@ -322,8 +323,9 @@ void player_control_get_unit_camera_info(int16_t local_player_index,
       vehicle_obj = (char *)object_try_and_get_and_verify_type(
         *(int *)(unit_obj + 0xcc), 2);
       if (vehicle_obj != NULL) {
+        vehi_tag = tag_get(0x76656869 /* 'vehi' */, *(int *)vehicle_obj);
         seat = (char *)tag_block_get_element(
-          (char *)tag_get(0x76656869 /* 'vehi' */, *(int *)vehicle_obj) + 0x2e4,
+          (char *)vehi_tag + 0x2e4,
           *(int16_t *)(unit_obj + 0x2a0), 0x11c);
         handle = *(int *)(unit_obj + 0xcc);
         *(int *)info = handle;
@@ -1243,7 +1245,7 @@ void interpolate_scalar(float *value, float target, float max_delta)
  * Converts the direction vector to yaw+pitch via vector_to_angles (atan2-based
  * vector_to_angles), validates both angles for NaN/Inf, and normalizes yaw
  * to [0, 2*pi) by adding 2*pi if negative. */
-void player_control_set_facing(uint16_t local_player_index, float *direction)
+void player_control_set_facing(int16_t local_player_index, float *direction)
 {
   player_control_t *pc;
   float *desired_yaw;
@@ -1252,7 +1254,7 @@ void player_control_set_facing(uint16_t local_player_index, float *direction)
               local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
   pc = (player_control_t *)((char *)player_control_globals +
-                            (int)(int16_t)local_player_index * 0x40 + 0x10);
+                            (int)local_player_index * 0x40 + 0x10);
   desired_yaw = &pc->desired_angles_yaw;
 
   /* Convert direction vector to yaw/pitch angles */
@@ -1260,21 +1262,22 @@ void player_control_set_facing(uint16_t local_player_index, float *direction)
 
   /* assert_valid_real on desired_angles.pitch (slot+0x10) */
   if ((*(uint32_t *)&pc->desired_angles_pitch & 0x7f800000u) == 0x7f800000u) {
-    char *msg = csprintf(
-      error_string_buffer, "%s: assert_valid_real(0x%08X %f)",
-      "player_control->desired_angles.pitch",
-      *(uint32_t *)&pc->desired_angles_pitch, (double)pc->desired_angles_pitch);
-    display_assert(msg, "c:\\halo\\SOURCE\\game\\player_control.c", 0xbb, 1);
+    display_assert(
+      csprintf(error_string_buffer, "%s: assert_valid_real(0x%08X %f)",
+               "player_control->desired_angles.pitch",
+               *(uint32_t *)&pc->desired_angles_pitch,
+               (double)pc->desired_angles_pitch),
+      "c:\\halo\\SOURCE\\game\\player_control.c", 0xbb, 1);
     system_exit(NONE);
   }
 
   /* assert_valid_real on desired_angles.yaw (slot+0xc) */
   if ((*(uint32_t *)desired_yaw & 0x7f800000u) == 0x7f800000u) {
-    char *msg =
+    display_assert(
       csprintf(error_string_buffer, "%s: assert_valid_real(0x%08X %f)",
                "player_control->desired_angles.yaw", *(uint32_t *)desired_yaw,
-               (double)*desired_yaw);
-    display_assert(msg, "c:\\halo\\SOURCE\\game\\player_control.c", 0xbc, 1);
+               (double)*desired_yaw),
+      "c:\\halo\\SOURCE\\game\\player_control.c", 0xbc, 1);
     system_exit(NONE);
   }
 
@@ -1283,38 +1286,7 @@ void player_control_set_facing(uint16_t local_player_index, float *direction)
     *desired_yaw += REAL_TWO_PI_POOL;
 }
 
-void player_control_new_unit(uint16_t local_player_index, int player_index)
-{
-  player_control_t *pc;
-  float *facing;
-  int unit;
 
-  assert_halt(local_player_index >= 0 &&
-              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
-  pc = (player_control_t *)((char *)player_control_globals +
-                            local_player_index * 0x40 + 0x10);
-  csmemset(pc, 0, 0x40);
-  pc->unit_index = player_index;
-  pc->desired_weapon_index = -1;
-  pc->desired_grenade_index = -1;
-  pc->desired_zoom_level = -1;
-  pc->field_0x26 = 0;
-  pc->target_object_index = -1;
-  pc->pitch_maximum = MAXIMUM_DESIRED_PITCH; /* +85.5 degrees in radians */
-  pc->pitch_minimum = MINIMUM_DESIRED_PITCH; /* -85.5 degrees in radians */
-  pc->action_flags = 0;
-  pc->persistent_action_flags = 0;
-  if (player_index != -1) {
-    unit = (int)object_get_and_verify_type(player_index, 3);
-    facing = &pc->desired_angles_yaw;
-    vector_to_angles(facing, (float *)(unit + 0x1d4));
-    if (*facing < REAL_ZERO_POOL)
-      *facing += REAL_TWO_PI_POOL;
-    pc->desired_weapon_index = *(int16_t *)(unit + 0x2a4);
-    pc->desired_grenade_index = (int16_t) * (char *)(unit + 0x2cd);
-    pc->desired_zoom_level = (int16_t) * (char *)(unit + 0x2d1);
-  }
-}
 
 /* Return a pointer to a local player's desired facing angles (the 2-float
  * euler_angles2d {yaw, pitch} at player_control_t+0x0c).
@@ -1682,25 +1654,57 @@ void player_control_update_desired_angles(int16_t local_player_index,
 
 void player_control_initialize_for_new_map(void)
 {
-  int i;
-  int iVar;
-  int scenario;
+  int *globals;
+  int16_t i;
+  void *element;
 
-  *(int *)player_control_globals = 0;
-  *((int *)player_control_globals + 1) = 0;
-  *((int *)player_control_globals + 2) = 0;
-  *((int *)player_control_globals + 3) = 0;
-  for (i = 0; (int16_t)i < 4; i++) {
-    scenario = (int)game_globals_get();
-    iVar = (int)tag_block_get_element((void *)(scenario + 0x110), 0, 0x80);
+  globals = (int *)player_control_globals;
+  globals[1] = 0;
+  globals[0] = 0;
+  globals[2] = 0;
+  globals[3] = 0;
+
+  for (i = 0; i < 4; i++) {
+    element = tag_block_get_element((void *)((char *)game_globals_get() + 0x110), 0, 0x80);
     player_control_new_unit(i, -1);
-    /* Both stores are integer moves of the float bits (MOV EAX,[EBX+0x4C] /
-     * MOV [ESI+0x4570A8],EAX at 0xb8617), not float copies -- keep the
-     * `*(int *)&` form or VC71 emits FLD/FSTP instead. */
-    if (flt_4570A8[i] == REAL_ZERO_POOL)
-      *(int *)&flt_4570A8[i] = *(int *)(iVar + 0x4c);
-    if (flt_457098[i] == REAL_ZERO_POOL)
-      *(int *)&flt_457098[i] = *(int *)(iVar + 0x50);
+    if (flt_4570A8[i] == 0.0f)
+      flt_4570A8[i] = *(float *)((char *)element + 0x4c);
+    if (flt_457098[i] == 0.0f)
+      flt_457098[i] = *(float *)((char *)element + 0x50);
+  }
+}
+
+__declspec(noinline) void player_control_new_unit(int16_t local_player_index,
+                                             int player_index)
+{
+  player_control_t *pc;
+  float *facing;
+  int unit;
+
+  assert_halt(local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+  pc = (player_control_t *)((char *)player_control_globals +
+                            local_player_index * 0x40 + 0x10);
+  csmemset(pc, 0, 0x40);
+  pc->unit_index = player_index;
+  pc->desired_weapon_index = -1;
+  pc->desired_grenade_index = -1;
+  pc->desired_zoom_level = -1;
+  pc->field_0x26 = 0;
+  pc->target_object_index = -1;
+  pc->pitch_maximum = MAXIMUM_DESIRED_PITCH; /* +85.5 degrees in radians */
+  pc->pitch_minimum = MINIMUM_DESIRED_PITCH; /* -85.5 degrees in radians */
+  pc->action_flags = 0;
+  pc->persistent_action_flags = 0;
+  if (player_index != -1) {
+    unit = (int)object_get_and_verify_type(player_index, 3);
+    facing = &pc->desired_angles_yaw;
+    vector_to_angles(facing, (float *)(unit + 0x1d4));
+    if (*facing < REAL_ZERO_POOL)
+      *facing += REAL_TWO_PI_POOL;
+    pc->desired_weapon_index = *(int16_t *)(unit + 0x2a4);
+    pc->desired_grenade_index = (int16_t) * (char *)(unit + 0x2cd);
+    pc->desired_zoom_level = (int16_t) * (char *)(unit + 0x2d1);
   }
 }
 
@@ -1955,7 +1959,7 @@ final_copy:
   }
 }
 
-void player_control_update(float delta_time)
+bool player_control_update(float delta_time)
 {
   int16_t i;
 
@@ -1968,6 +1972,8 @@ void player_control_update(float delta_time)
   collision_log_end_period();
   if (profile_global_enable && *(char *)0x2f02a0)
     profile_exit_private((void *)0x2f0298);
+
+  return false;
 }
 
 /* Forward a packed look-delta pair to a local player's desired-angle update.

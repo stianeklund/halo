@@ -2797,23 +2797,15 @@ char FUN_00191bd0(int search_value /* @<ebx> */, void **param_1, char *out)
  * whose first field equals search_value, or -1 if none match. */
 short FUN_00191c70(void *block /* @<esi> */, int search_value /* @<ebx> */)
 {
-  int count;
   short i;
   int *element;
 
-  count = *(int *)block;
-  if (count <= 0) {
-    return -1;
-  }
-  i = 0;
-  do {
+  for (i = 0; (int)i < *(int *)block; i = (short)(i + 1)) {
     element = (int *)tag_block_get_element(block, i, 0x10);
     if (*element == search_value) {
       return i;
     }
-    count = *(int *)block;
-    i = (short)(i + 1);
-  } while ((int)i < count);
+  }
   return -1;
 }
 
@@ -5979,15 +5971,19 @@ char FUN_00197570(float *records, int16_t count, float threshold)
 {
   int16_t i;
   float *rec;
+  float delta[3];
   float d;
 
   i = 0;
   if (0 < count) {
     do {
       rec = records + i * 3;
-      d = *(float *)0x506564 * (rec[2] - *(float *)0x506558) +
-          *(float *)0x506560 * (rec[1] - *(float *)0x506554) +
-          *(float *)0x50655c * (rec[0] - *(float *)0x506550);
+      delta[0] = rec[0] - *(float *)0x506550;
+      delta[1] = rec[1] - *(float *)0x506554;
+      delta[2] = rec[2] - *(float *)0x506558;
+      d = *(float *)0x50655c * delta[0] +
+          *(float *)0x506560 * delta[1] +
+          *(float *)0x506564 * delta[2];
       if (d <= threshold) {
         return 1;
       }
