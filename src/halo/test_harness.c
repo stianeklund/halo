@@ -1071,6 +1071,66 @@ void run_tests(void)
     passed += check("a2f40 clamp vy", *(uint32_t *)&dump_values[1], 0x3D23D70B,
                     buf); /* ~0.04f (x87) */
 
+    /* ---- at-rest blocker bit (physics+0xa0 bit 0x10) regression lock ----
+     *
+     * Locks the BSP-contact fix in loop A of FUN_001a2f40 (XBE
+     * 0x1a3e78..0x1a3eae).  The original tests three things in sequence, each
+     * with its own branch:
+     *
+     *   test byte [esi+0xa0], 0x10 ; jne next    (already set)
+     *   test byte [edi+0x14], 8    ; jne set     (contact flags bit 3)
+     *   mov  eax, [edi+0xc]        ; object_handle
+     *   cmp  eax, -1               ; je  next    <-- BSP contact: NOT set
+     *   datum_get; test dl, 0x40   ; jne next    (type-6 scenery)
+     *   or   byte [esi+0xa0], 0x10
+     *
+     * A lift that folds the flags test and the handle test into one `&&`
+     * condition sets the bit on every BSP contact.  physics+0xa0 is
+     * FUN_001a5300's [ebp-0x44]; with bit 0x10 set, 0x1a6216 always branches
+     * to 0x1a6251 (and eax,0xffffffdf), so object+0x4 bit 0x20 (at-rest) is
+     * never set for a biped resting on world geometry.
+     * biped_start_limp_body_physics then early-outs at 0x1a09ab and
+     * biped+0x424 bit 0x20 (limp/ragdoll) never gets ORed -- dead MP bipeds
+     * linger instead of coming to rest.
+     *
+     * The debug-synth gate (0x4e4cf2) makes this observable with no map
+     * loaded: no BSP query runs, result_count is 1, and results[0] is built
+     * from physics with object_handle = physics[0] and flags = 0xffff0000
+     * (flags & 8 == 0).  Setting physics[0] = -1 therefore drives loop A into
+     * exactly the BSP-contact arm.  physics+4 keeps bit 0x10 clear so loop A
+     * runs at all (0x1a3d69), and bit 0 set so the ground-mode arm is taken.
+     *
+     * Expected: bit 0x10 CLEAR.  The pre-fix lift leaves it SET, as does a
+     * regression that writes results[0].flags = -1 instead of 0xffff0000
+     * (which turns flags & 8 on and takes the unconditional set arm). */
+    {
+      uint32_t mark_dump[1];
+      unsigned char mark;
+
+      for (i = 0; i < 80; i++) {
+        physics[i] = 0.0f;
+      }
+      *(int *)&physics[0] = -1; /* +0x00 object handle = none -> BSP contact */
+      *(unsigned short *)((char *)physics + 4) = 0x0001; /* ground mode */
+      physics[2] = 1.0f; /* +0x08 position.x */
+      physics[3] = 2.0f; /* +0x0c position.y */
+      physics[4] = 3.0f; /* +0x10 position.z */
+      physics[5] = 0.06f; /* +0x14 forward.x */
+      physics[6] = 0.08f; /* +0x18 forward.y */
+      physics[0xf] = 1.0f; /* +0x3c control.x */
+      physics[0x14] = 10.0f; /* +0x50 clamp (no clamp) */
+
+      FUN_001a2f40(physics);
+
+      mark = (unsigned char)(*(unsigned char *)((char *)physics + 0xa0) & 0x10);
+      mark_dump[0] = (uint32_t)mark;
+      dump_u32_case("a2f40", "at_rest_blocker", mark_dump, 1, buf);
+
+      total += 1;
+      passed += check("a2f40 bsp contact leaves at-rest blocker clear",
+                      (uint32_t)mark, 0u, buf);
+    }
+
     *dbg_synth = saved_synth;
     *dbg_stub = saved_stub;
   }

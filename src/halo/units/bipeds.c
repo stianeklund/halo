@@ -3246,7 +3246,14 @@ LAB_001a36a4:
     results[0].plane_d = -physics[4];
     los_dir[0] = new_pos[0];
     results[0].surface_handle = -1;
-    results[0].flags = -1; /* word 0xffff into +0x2a */
+    /* flags is 0xffff0000, NOT -1.  The original writes the field in three
+     * pieces: `mov word [ebp-0x34e], cx` (0x1a3796, cx = 0xffff -> +0x2a, the
+     * HIGH half) and two explicit byte zeroes, `mov byte [ebp-0x350], 0`
+     * (0x1a37b4 -> +0x28) and `mov byte [ebp-0x34f], 0` (0x1a37bb -> +0x29).
+     * Writing -1 sets the low half too, which flips `flags & 4` (loop A's
+     * `want`) and `flags & 8` (the cannot-come-to-rest mark).  The synthetic
+     * edge contact further down uses this same 0xffff0000 value. */
+    results[0].flags = (int)0xffff0000;
     los_dir[1] = new_pos[1];
     *(int *)&results[0].object_handle = *(int *)&physics[0];
     los_dir2[0] = pos_world[0] + new_pos[0];
