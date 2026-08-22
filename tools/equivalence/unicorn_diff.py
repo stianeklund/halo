@@ -1790,6 +1790,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
     snapshot_overrides = None
     snapshot_arg_overrides = {}
     snapshot_stub_returns = {}
+    snapshot_stub_writes = {}
 
     def log(msg: str = ""):
         print(msg)
@@ -2102,9 +2103,12 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         # addresses and (b) _build_globals_seeds can seed the remaining slots
         # from real game-state data.  Snapshot regions are {addr: bytes}.
         if state_snapshot:
-            from state_snapshot import load_snapshot
+            from state_snapshot import load_snapshot, load_stub_writes
             snapshot_overrides, snapshot_arg_overrides, snapshot_stub_returns = \
                 load_snapshot(str(state_snapshot))
+            snapshot_stub_writes = load_stub_writes(str(state_snapshot))
+            if snapshot_stub_writes:
+                info(f"  stub writes: {list(snapshot_stub_writes.keys())}")
             info(f"  snapshot: {len(snapshot_overrides)} region(s) from {state_snapshot.name}")
             if snapshot_arg_overrides:
                 info(f"  arg overrides: {list(snapshot_arg_overrides.keys())}")
@@ -2311,6 +2315,7 @@ def run_diff(func_name: str, num_seeds: int = 100, base_seed: int = 0,
         if combined_stub_map:
             stub_mgr = StubManager(KB_JSON, DELINKED_DIR)
             stub_mgr.stub_return_overrides = snapshot_stub_returns
+            stub_mgr.stub_write_overrides = snapshot_stub_writes
             # Allocate callee globals slots past the caller's own oracle+lifted
             # slots so they never overlap.
             callee_globals_base = lft_globals_base + len(lft_data_slots) * 256

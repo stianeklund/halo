@@ -28479,10 +28479,25 @@
     "confidence": "moderate",
     "coverage_pct": 61.6
   },
+  "0x1c5ab0": {
+    "class": "non_leaf",
+    "confidence": "moderate",
+    "coverage_pct": 58.5
+  },
   "0x1c6100": {
     "class": "non_leaf",
     "confidence": "weak",
     "coverage_pct": 35.4
+  },
+  "0x1c6900": {
+    "class": "non_leaf",
+    "confidence": "high",
+    "coverage_pct": 76.2
+  },
+  "0x1c6c00": {
+    "class": "non_leaf",
+    "confidence": "moderate",
+    "coverage_pct": 46.6
   },
   "0x1c7d10": {
     "class": "non_leaf",

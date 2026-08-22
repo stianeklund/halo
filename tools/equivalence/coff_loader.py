@@ -9,6 +9,7 @@ underscore).
 Only the IMAGE_FILE_MACHINE_I386 (0x014c) variant is handled.
 """
 
+import re
 import struct
 import sys
 from dataclasses import dataclass, field
@@ -223,6 +224,19 @@ def extract_function(obj_path: str, func_name: str) -> FunctionSlice:
     for sym in symbols:
         if sym.name in candidates or _canonical(sym.name) in candidates:
             if sym.section_num > 0:  # defined in a section
+                target_sym = sym
+                break
+
+    if target_sym is None:
+        # Second pass: MSVC/clang decorate __stdcall as `_name@N` and
+        # __fastcall as `@name@N`, where N is the argument byte count.  The
+        # caller only knows the undecorated name, so match any decorated form
+        # of it.  This runs ONLY after the exact-name pass above found
+        # nothing, so cdecl resolution (`name` / `_name`) is unchanged.
+        bare = func_name.lstrip("_@")
+        decorated = re.compile(r"^[_@]?" + re.escape(bare) + r"@\d+$")
+        for sym in symbols:
+            if sym.section_num > 0 and decorated.match(sym.name):
                 target_sym = sym
                 break
 

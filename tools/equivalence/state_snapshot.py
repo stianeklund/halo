@@ -80,6 +80,42 @@ def load_snapshot(path: str) -> tuple[dict, dict, dict]:
     return mem, arg_overrides, stub_returns
 
 
+def load_stub_writes(path: str) -> dict:
+    """Load the optional "stub_writes" section of a snapshot JSON.
+
+    Separate from load_snapshot() so the 3-tuple contract of that function
+    (and every existing caller) is untouched.
+
+    Shape:
+        "stub_writes": {
+          "file_read_from_position": [
+            {"arg": 3, "data": "464f524d..."},   <- call #0 fills param 3
+            null,                                 <- call #1 writes nothing
+            [{"arg": 3, "data": ".."}, ...]       <- several buffers at once
+          ]
+        }
+
+    "arg" is the 0-based STACK parameter index (register args are not
+    supported), "data" raw hex, optional "offset" a byte offset added to the
+    pointer.  The last list entry repeats past the end of the sequence.
+
+    A spec may instead be POSITIONAL, serving the callee's own offset/size
+    arguments out of a synthetic byte image:
+
+        {"image": "<hex>", "offset_arg": 1, "size_arg": 2, "arg": 3}
+
+    which is call-order independent and therefore safe when oracle and
+    candidate call the read a different number of times (a same-TU sibling
+    the candidate runs for real while the oracle stubs it).
+    The writes are applied identically to oracle and candidate at the same
+    call index, so they cannot mask a divergence between the two sides.
+    """
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    return {str(k).lstrip("_").lower(): v
+            for k, v in data.get("stub_writes", {}).items()}
+
+
 def save_snapshot(regions: dict, path: str, description: str = "",
                   build_label: str = "", verified: bool = False):
     """Save memory regions to a snapshot JSON file.

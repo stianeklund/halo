@@ -940,6 +940,11 @@ class StubManager:
         # returns).  Reset via reset_stub_sequences() before each run so
         # oracle and candidate see the identical sequence.
         self._seq_counters: dict[str, int] = {}
+        # Per-name call counters for snapshot stub_writes (buffer writes a
+        # stubbed callee performs for its caller).  Kept separate from
+        # _seq_counters so a callee that has BOTH a sequenced return and a
+        # write sequence does not advance one counter twice per call.
+        self._write_counters: dict[str, int] = {}
         # Stub-convention verification (lift-learnings §30): every registered
         # stub's declared convention is checked against the real callee's RET
         # immediate in the pristine XBE.  A mismatch means BOTH oracle and
@@ -964,6 +969,7 @@ class StubManager:
         so both sides replay the identical return sequence.
         """
         self._seq_counters.clear()
+        self._write_counters.clear()
 
     def _lookup_return_override(self, address: int):
         """Resolve the snapshot stub_returns entry for a sentinel.
@@ -1089,6 +1095,34 @@ class StubManager:
     # undecorated symbol name (snapshot "stub_returns"). Applied identically
     # to oracle and candidate, so gated paths open without --real-callees.
     stub_return_overrides = {}
+
+    # Buffer writes a stubbed callee performs on behalf of its caller
+    # (snapshot "stub_writes"), keyed by lowercase undecorated symbol name.
+    # Value: a list with one entry per call, {"arg": <0-based stack param
+    # index>, "data": "<hex>"} (or null for "this call writes nothing"); the
+    # last entry repeats past the end.  Needed for read-into-buffer callees --
+    # file_read_from_position, tag/name lookups -- whose OUTPUT, not their
+    # return value, gates the caller's real body.  A scalar stub_returns can
+    # only open the `if (read(...))` guard; the parser behind it still sees an
+    # untouched (and frame-layout-dependent) buffer.  Applied identically to
+    # oracle and candidate at the same call index, so the differential stays
+    # symmetric; a call-count divergence between the two sides desynchronises
+    # the sequence and shows up in the stub-arg call-sequence compare.
+    stub_write_overrides = {}
+
+    def _lookup_write_override(self, address: int):
+        """Resolve the snapshot stub_writes entry for a sentinel.
+
+        Returns (key, list) or (None, None) when no override matches.
+        """
+        if not self.stub_write_overrides:
+            return None, None
+        canon = self._canonical_names.get(address, "").lower()
+        raw = self._stub_names.get(address, "").lstrip("_").lower()
+        for key in (canon, raw):
+            if key and key in self.stub_write_overrides:
+                return key, self.stub_write_overrides[key]
+        return None, None
 
     def _register_stub(self, sentinel_addr: int, symbol_name: str):
         """Create a trampoline CalleeStub (+ canonical name) for a sentinel.
@@ -1295,6 +1329,16 @@ class StubManager:
                 if (_c in self.stub_return_overrides
                         or _r in self.stub_return_overrides):
                     continue
+            # Same for a snapshot stub_writes entry: the author is supplying
+            # the callee's OUTPUT by hand precisely because its real body
+            # cannot produce it here (file I/O, tag data), so keep the
+            # trampoline rather than loading the real code.
+            if self.stub_write_overrides:
+                _c = self._canonical_names.get(sentinel_addr, "").lower()
+                _r = self._stub_names.get(sentinel_addr, "").lstrip("_").lower()
+                if (_c in self.stub_write_overrides
+                        or _r in self.stub_write_overrides):
+                    continue
             stub = self._stubs.get(sentinel_addr)
             if stub is None:
                 continue  # no decl/abi -> synthetic ret-stub
@@ -1429,7 +1473,8 @@ class StubManager:
         return set(self._stub_names.keys())
 
     _INTERCEPT_NAMES = frozenset((
-        "csmemcpy", "memcpy", "csstrncpy", "csmemset", "memset",
+        "csmemcpy", "memcpy", "csmemcmp", "memcmp", "csstrncpy",
+        "csmemset", "memset",
         "crt_sprintf", "debug_string_to_display",
         "system_exit", "display_assert", "halt_and_catch_fire",
         "_chkstk", "__chkstk", "chkstk", "fun_001d90e0",
@@ -1469,6 +1514,13 @@ class StubManager:
         # loaded code.
         _k, _v = self._lookup_return_override(address)
         if isinstance(_v, list):
+            return True
+        # Snapshot stub_writes are applied in execute_stub too, so a callee
+        # with a write sequence must be served dynamically even when its
+        # return value is a plain scalar (which get_stub_code would otherwise
+        # bake into a static MOV EAX,imm32 trampoline).
+        _wk, _wv = self._lookup_write_override(address)
+        if _wv:
             return True
         # Named intercepts always take priority — even if oracle code was loaded.
         name = self._resolve_name(address)
@@ -1651,6 +1703,47 @@ class StubManager:
                 ))
             # --- end arg capture ---
 
+            # --- Snapshot stub_writes: the callee's buffer output ---------
+            # One entry per call, advanced by a counter that is reset per run
+            # (reset_stub_sequences), so oracle and candidate replay the same
+            # writes at the same call index.  The pointer is read out of the
+            # caller's own stack frame, so the data lands wherever THAT side
+            # put its buffer -- which is the point: frame layouts differ.
+            _w_key, _w_seq = self._lookup_write_override(address)
+            if _w_seq:
+                _w_idx = self._write_counters.get(_w_key, 0)
+                self._write_counters[_w_key] = _w_idx + 1
+                _w = _w_seq[_w_idx] if _w_idx < len(_w_seq) else _w_seq[-1]
+                for _spec in (_w if isinstance(_w, list) else [_w]):
+                    if not _spec:
+                        continue
+                    _argn = int(_spec.get("arg", 0))
+                    _ptr = int.from_bytes(
+                        _safe_read(caller_esp + 4 + 4 * _argn, 4), "little")
+                    if not _ptr:
+                        continue
+                    if "image" in _spec:
+                        # Positional form: serve the callee's OWN offset/size
+                        # arguments out of a synthetic byte image.  Unlike the
+                        # sequenced form this does not care how many times the
+                        # callee is called or in what order, so it survives
+                        # oracle/candidate call-count asymmetry (an inlined or
+                        # intra-object sibling that reads the same file on one
+                        # side only).
+                        _img = bytes.fromhex(_spec["image"])
+                        _o = int.from_bytes(_safe_read(
+                            caller_esp + 4 + 4 * int(_spec["offset_arg"]), 4),
+                            "little")
+                        _n = int.from_bytes(_safe_read(
+                            caller_esp + 4 + 4 * int(_spec["size_arg"]), 4),
+                            "little")
+                        if 0 < _n <= 0x10000 and _o < len(_img):
+                            _safe_write(_ptr, _img[_o:_o + _n].ljust(_n, b"\x00"))
+                        continue
+                    _data = bytes.fromhex(_spec["data"])
+                    _off = int(_spec.get("offset", 0))
+                    _safe_write(_ptr + _off, _data)
+
             # --- Sequenced stub returns (list-valued snapshot stub_returns) ---
             # The per-name counter advances on every call and is reset via
             # reset_stub_sequences() before each oracle/candidate run, so both
@@ -1718,6 +1811,25 @@ class StubManager:
                     data = _safe_read(src, size)
                     _safe_write(dst, data)
                 uc.reg_write(UC_X86_REG_EAX, dst)
+                return True
+
+            # csmemcmp(a, b, size) -> <0 / 0 / >0, cdecl.  Modelled rather
+            # than left as a return-0 stub: 0 means "equal", so a chain of
+            # csmemcmp tests (e.g. the AIFF sample-rate table in FUN_001c6900)
+            # always took its FIRST arm on both sides, the remaining arms were
+            # never executed, and a wrong compare constant could not surface
+            # as a divergence.
+            if symbol_name in ("csmemcmp", "memcmp"):
+                _a = int.from_bytes(bytes(uc.mem_read(caller_esp + 4, 4)), "little")
+                _b = int.from_bytes(bytes(uc.mem_read(caller_esp + 8, 4)), "little")
+                _n = int.from_bytes(bytes(uc.mem_read(caller_esp + 12, 4)), "little")
+                _res = 0
+                if _n > 0 and _a and _b:
+                    for _x, _y in zip(_safe_read(_a, _n), _safe_read(_b, _n)):
+                        if _x != _y:
+                            _res = 1 if _x > _y else -1
+                            break
+                uc.reg_write(UC_X86_REG_EAX, _res & 0xFFFFFFFF)
                 return True
 
             if symbol_name == "csstrncpy":
