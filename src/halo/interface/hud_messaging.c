@@ -385,10 +385,10 @@ void scripted_hud_set_objective(short param_1)
       (int)tag_block_get_element((void *)(hmt + 0x20), (int)param_1, 0x40);
     pcVar = (char *)tag_block_get_element(
       (void *)(hmt + 0x14), *(unsigned short *)(element + 0x22), 2);
-    base = *(int *)0x46bd18;
-    globals = *(int *)0x46bd0c;
     if (*(char *)(element + 0x24) == 1 && *pcVar == '\0') {
-      *(int *)(*(int *)0x46bd18 + 0x1190) = element;
+      globals = *(int *)0x46bd0c;
+      base = *(int *)0x46bd18;
+      *(int *)(base + 0x1190) = element;
       *(short *)(base + 0x1194) =
         *(short *)(globals + 0x11e) + *(short *)(globals + 0x11c);
       return;
@@ -555,8 +555,7 @@ void scripted_hud_time_code_reset(void)
 /* hud_render_timer (0xd4ab0) */
 void hud_render_timer(void)
 {
-  int i10;
-  int *pi7;
+  char *timer;
   int i6;
   int i8;
   short u1;
@@ -578,17 +577,17 @@ void hud_render_timer(void)
   int l_8;
   int l_4;
   int loading_time;
+  float font_height;
 
-  i10 = *(int *)0x46bd18;
-  pi7 = (int *)(i10 + 0x1198);
-  if (*(char *)(i10 + 0x11a7) != '\0') {
-    l_90 = *(short *)(i10 + 0x11a4);
+  if (*(char *)(*(char **)0x46bd18 + 0x11a7) != '\0') {
+    timer = *(char **)0x46bd18 + 0x1198;
+    l_90 = *(short *)(timer + 0xc);
     csmemset(l_8e, 0, 34);
     l_8 = game_time_get();
     i8 = 0;
     l_c = 0;
     l_10 = (int)scripted_hud_get_timer_ticks();
-    l_68 = *(int *)(i10 + 0x11a0);
+    l_68 = *(int *)(timer + 0x8);
     *(volatile char *)&l_28 = 2;
     *(volatile char *)&l_26 = 4;
     *(volatile char *)&l_27 = 1;
@@ -600,10 +599,11 @@ void hud_render_timer(void)
     if (i6 != -1) {
       i6 = (int)tag_get(0x68756423, i6);
       l_c = (int)*(char *)(i6 + 0x11);
-      i8 = (int)((double)l_c * 2.0);
+      font_height = (float)l_c;
+      i8 = (int)(font_height + font_height);
       l_c = i8;
     }
-    switch (*(short *)(i10 + 0x11a4)) {
+    switch (*(short *)(timer + 0xc)) {
     case 0:
     case 2:
       break;
@@ -624,44 +624,44 @@ void hud_render_timer(void)
     if ((short)l_10 > 0) {
       u1 = (short)l_10;
       qmemcpy(l_48, (void *)(*(int *)0x46bd0c + 0x360), 32);
-      s2 = *(short *)(i10 + 0x119e);
+      s2 = *(short *)(timer + 0x6);
       i6 = l_c;
       if ((short)u1 <= s2) {
         i6 = 1;
-        if (s2 < *(short *)(i10 + 0x119c)) {
-          *(short *)(i10 + 0x119c) = s2;
-          *pi7 = ((int)s2 - (int)(short)u1) + l_8;
+        if (s2 < *(short *)(timer + 0x4)) {
+          *(short *)(timer + 0x4) = s2;
+          *(int *)timer = ((int)s2 - (int)(short)u1) + l_8;
         }
       }
     } else {
-      i8 = *pi7;
-      *(short *)(i10 + 0x119c) = (short)-1;
+      i8 = *(int *)timer;
+      *(short *)(timer + 0x4) = (short)-1;
       qmemcpy(l_48, (void *)(*(int *)0x46bd0c + 0x380), 32);
       l_c = 1;
       if (i8 == -1) {
-        *pi7 = game_time_get();
+        *(int *)timer = game_time_get();
       }
       u1 = (short)l_10;
       i6 = l_c;
     }
-    i10 = (int)(short)(u1 & ((short)u1 < 1) - 1);
-    l_8 = i10;
-    l_4 = i10;
+    i8 = (int)(short)(u1 & ((short)u1 < 1) - 1);
+    l_8 = i8;
+    l_4 = i8;
     i8 = (int)((float)l_4 * *(float *)0x2546a4 * *(float *)0x25634c);
     FUN_000d3860((short)*(int *)0x506548, &l_90, &l_68, i8, -1,
-                 i6, *pi7, 2.0f);
+                 i6, *(int *)timer, 2.0f);
     l_4 = (int)(short)l_c;
     l_14 = (double)l_4 * *(double *)0x281b40;
     l_4 = (int)*(short *)&l_68;
     *(short *)&l_68 = (short)(int)((double)l_4 + l_14);
-    i8 = (i10 / 30) % 60;
+    i8 = (l_8 / 30) % 60;
     FUN_000d3860((short)*(int *)0x506548, &l_90, &l_68, i8, -1,
-                 i6, *pi7, 2.0f);
+                 i6, *(int *)timer, 2.0f);
     l_4 = (int)*(short *)&l_68;
     *(short *)&l_68 = (short)(int)((double)l_4 + l_14);
-    i8 = ((i10 % 1800) * 100) / 30;
+    i8 = ((l_8 % 1800) * 100) / 30;
     FUN_000d3860((short)*(int *)0x506548, &l_90, &l_68, i8, -1,
-                 i6, *pi7, 2.0f);
+                 i6, *(int *)timer, 2.0f);
   }
   if (*(int *)0x2f66e4 != -1) {
     loading_time = *(int *)0x2f66e8;
@@ -945,6 +945,7 @@ void hud_messaging_set_vehicle_notification(int16_t local_player_index,
 {
   int base;
   char *slot;
+  char *globals;
 
   if (local_player_index == -1)
     return;
@@ -959,9 +960,10 @@ void hud_messaging_set_vehicle_notification(int16_t local_player_index,
   *(int *)(slot + 0x84) = vehicle_tag_handle;
   *(uint8_t *)(slot + 0x8a) = (uint8_t)param_4;
   *(int *)slot = game_time_get();
+  globals = *(char **)0x46bd18;
   *(uint8_t *)(slot + 0x82) = 1;
-  *(uint8_t *)(slot + 0x83) = *(uint8_t *)(*(char **)0x46bd18 + 0x1185);
-  *(uint8_t *)(*(char **)0x46bd18 + 0x1185) += 1;
+  *(uint8_t *)(slot + 0x83) = *(uint8_t *)(globals + 0x1185);
+  *(uint8_t *)(globals + 0x1185) += 1;
   *(uint8_t *)(base + 0x45e) = 0;
 }
 
@@ -2397,64 +2399,62 @@ void FUN_000d7080(void)
 void FUN_000d70b0(short param_1, unsigned int param_2, int *param_3,
                   int param_4, unsigned short *param_5)
 {
-  float new_var;
   int i1;
   short s2;
   int *pi3;
   int i6;
-  unsigned char b5;
 
   i6 = 0;
   s2 = 0;
   if (0 < *param_3) {
     do {
       pi3 = (int *)tag_block_get_element((void *)param_3, i6, 0x38);
-      b5 = (unsigned char)i6;
-      new_var = *(float *)(pi3 + 5);
       if ((param_2 & pi3[4]) != 0) {
-        if (*pi3 == 0x6c736e64) {
+        switch (*pi3) {
+        case 0x6c736e64:
           if (*(int *)(param_4 + i6 * 4) == -1) {
-            *(int *)(param_4 + i6 * 4) =
-              unattached_looping_sound_start(pi3[3], -1, pi3[5]);
+            i1 = unattached_looping_sound_start(pi3[3], -1, pi3[5]);
+            goto store_sound;
           }
-        } else if (*pi3 == 0x736e6421) {
+          break;
+        case 0x736e6421:
           i1 = *(int *)(param_4 + i6 * 4);
-          if (i1 != -1) {
-            if (((unsigned int)*param_5 & (1 << (b5 & 0x1f))) != 0)
-              goto set_bit;
+          if (i1 == -1 || !((unsigned int)*param_5 & (1 << i6))) {
             if (i1 != -1) {
               sound_stop_impulse(i1);
             }
+            i1 = sound_impulse_start(pi3[3], *(float *)(pi3 + 5));
+          store_sound:
+            *(int *)(param_4 + i6 * 4) = i1;
           }
-          /* store the RETURNED sound datum handle (not the tag index
-           * pi3[3]); this slot is consumed later by sound_stop_impulse. */
-          *(int *)(param_4 + i6 * 4) =
-            sound_impulse_start(pi3[3], new_var);
-        } else {
+          break;
+        default:
           display_assert("!\"unreachable\"",
                          "c:\\halo\\SOURCE\\interface\\hud_sounds.c", 0x2f, 1);
           system_exit(-1);
-          *param_5 = *param_5 | (unsigned short)(1 << (b5 & 0x1f));
-          goto next;
+          break;
         }
-      set_bit:
-        *param_5 = *param_5 | (unsigned short)(1 << (b5 & 0x1f));
+        *param_5 = *param_5 | (unsigned short)(1 << i6);
       } else {
         i1 = *(int *)(param_4 + i6 * 4);
         if (i1 != -1) {
-          if (*pi3 == 0x6c736e64) {
+          switch (*pi3) {
+          case 0x6c736e64:
             unattached_looping_sound_stop(i1);
-          } else if (*pi3 != 0x736e6421) {
+            break;
+          case 0x736e6421:
+            break;
+          default:
             display_assert("!\"unreachable\"",
                            "c:\\halo\\SOURCE\\interface\\hud_sounds.c", 0x40,
                            1);
             system_exit(-1);
+            break;
           }
           *(int *)(param_4 + i6 * 4) = -1;
-          *param_5 = *param_5 & ~(unsigned short)(1 << (b5 & 0x1f));
+          *param_5 = *param_5 & ~(unsigned short)(1 << i6);
         }
       }
-    next:
       s2 = s2 + 1;
       i6 = (int)s2;
     } while (i6 < *param_3);
@@ -2661,7 +2661,7 @@ void FUN_000d7560(int param_1, char param_2)
       i7 = (int)tag_get(0x756e6869, i7);
       u8 = 0;
       if ((*(unsigned char *)((int)pu5 + 4) & 4) != 0 ||
-          *(float *)((int)pu5 + 0x90) <= *(float *)0x2533c0) {
+          !(*(float *)((int)pu5 + 0x90) > *(float *)0x2533c0)) {
         pf3[7] = -1;
       } else if (param_2 != '\0' &&
                  (c1 = cinematic_in_progress(), c1 == '\0')) {
@@ -2670,34 +2670,48 @@ void FUN_000d7560(int param_1, char param_2)
           c1 = game_engine_has_shield(i4);
           if (c1 != '\0' &&
               (*(unsigned int *)(*(int *)0x46bd20 + 0x160) & 4) == 0) {
-            u8 = (*(unsigned short *)((int)pu5 + 0xb6) & 0x1000) >> 0xc;
-            if (*(float *)pf3 < *(float *)((int)pu5 + 0x94)) {
+            u8 = (*(unsigned short *)((int)pu5 + 0xb6) >> 0xc) & 1;
+            if (*(float *)pf3 > *(float *)((int)pu5 + 0x94)) {
               u8 = u8 | 2;
+            } else {
+              u8 = u8 & ~2;
             }
             if (*(float *)((int)pu5 + 0x94) < *(float *)0x25337c &&
-                *(float *)0x2533c0 < *(float *)((int)pu5 + 0x94)) {
+                *(float *)((int)pu5 + 0x94) > *(float *)0x2533c0) {
               u8 = u8 | 4;
+            } else {
+              u8 = u8 & ~4;
             }
-            if (*(float *)((int)pu5 + 0x94) == *(float *)0x2533c0) {
+            if (*(float *)((int)pu5 + 0x94) <= *(float *)0x2533c0) {
               u8 = u8 | 8;
+            } else {
+              u8 = u8 & ~8;
             }
           }
         }
         if ((*(unsigned int *)(*(int *)0x46bd20 + 0x160) & 1) == 0) {
           if (*(float *)((int)pu5 + 0x90) < *(float *)0x25337c) {
             u8 = u8 | 0x10;
+          } else {
+            u8 = u8 & ~0x10;
           }
           if ((*(unsigned char *)((int)pu5 + 0xb6) & 4) != 0) {
             u8 = u8 | 0x20;
+          } else {
+            u8 = u8 & ~0x20;
           }
-          if (*(float *)((int)pu5 + 0x90) < *(float *)(pf3 + 1) &&
+          if (*(float *)(pf3 + 1) > *(float *)((int)pu5 + 0x90) &&
               *(float *)(pf3 + 1) - *(float *)((int)pu5 + 0x90) <
                 *(float *)0x281e94) {
             u8 = u8 | 0x40;
+          } else {
+            u8 = u8 & ~0x40;
           }
-          if (*(float *)0x281e94 <=
-              *(float *)(pf3 + 1) - *(float *)((int)pu5 + 0x90)) {
+          if (*(float *)(pf3 + 1) - *(float *)((int)pu5 + 0x90) >=
+              *(float *)0x281e94) {
             u8 = u8 | 0x80;
+          } else {
+            u8 = u8 & ~0x80;
           }
         }
       }
@@ -2890,12 +2904,12 @@ void FUN_000d7a20(int param_1)
       pos_x = pos_x - (float)(int)*(short *)0x50657e;
       pos_y = pos_y - (float)(int)*(short *)0x50657c;
 
-      i6 = *(int *)(i3 + 0x344);
+      i6 = *(int *)((char *)pESI + 0x34);
       s2 = local_player_count();
       if (s2 < 2) {
-        s2 = *(short *)(i3 + 0x348);
+        s2 = *(short *)((char *)pESI + 0x38);
       } else {
-        s2 = *(short *)(i3 + 0x34a);
+        s2 = *(short *)((char *)pESI + 0x3a);
       }
       l_8 = 0;
       l_c = 0;
@@ -2905,7 +2919,7 @@ void FUN_000d7a20(int param_1)
         l_10[0] = (short)pos_x;
         l_10[1] = (short)pos_y;
         FUN_000d3200(l_8, 4, l_10, l_c, f7, *(float *)&param_1,
-                     *(int *)(i3 + 0x34c), 0);
+                     *(int *)((char *)pESI + 0x3c), 0);
       }
     }
     i5 = i5 + 1;
