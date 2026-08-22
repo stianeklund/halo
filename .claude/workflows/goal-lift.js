@@ -24,20 +24,24 @@ const DRY_RUN      = !!(args && args.dryRun)
 // discarding sub-bar work — see tools/lift/park.py.
 const IMPROVE      = !!(args && args.improve)
 // Model/effort policy (single point of control). Rationale:
-// - Opus-low costs ~the same as Sonnet-low but gives better results, so every
-//   structured-extraction/mechanical-but-consequential stage uses Opus-low
-//   rather than Sonnet at any effort (Sonnet-high costs MORE than Opus-high).
-// - Reasoning stages (lift, review) use Opus-high.
+// - Policy 2026-08-22: default to Sonnet everywhere reasoning is needed. Opus
+//   costs more per token; escalate to it only when Sonnet demonstrably can't
+//   close a target (--improveModel opus, or hand-edit M below for a session).
+//   Re-measure tokens/promote-rate against the opus-default era before
+//   reverting this.
+// - Reasoning stages (select, lift, review) use Sonnet-high/low as before.
 // - Cheap deterministic tool-runs (revert, permute-run, equiv-run, redelink,
 //   park, report) use Haiku-low.
-// - The escalation / improve tune defaults to Opus, climbing reasoning EFFORT
-//   (ladder medium -> xhigh -> max; most targets stop at the first rung).
-//   Fable is opt-in only (--improveModel fable), per user policy 2026-08-10:
-//   never route to fable unless explicitly requested. For reference,
-//   routing_stats.py measured fable-high at an 80% promote rate with a +14.7pp
-//   mean score gain over 16 improve handoffs, vs 52% for opus-high
-//   (2026-08-07) — so it is worth requesting for the hardest parked targets.
-const IMPROVE_MODEL = (args && args.improveModel) || 'opus'
+// - The escalation / improve tune defaults to Sonnet, climbing reasoning
+//   EFFORT (ladder medium -> xhigh -> max only kicks in for --improveModel
+//   opus; Sonnet/other models use a single 'high' rung — see IMPROVE_EFFORTS
+//   below). Fable is opt-in only (--improveModel fable), per user policy
+//   2026-08-10: never route to fable unless explicitly requested. For
+//   reference, routing_stats.py measured fable-high at an 80% promote rate
+//   with a +14.7pp mean score gain over 16 improve handoffs, vs 52% for
+//   opus-high (2026-08-07) — so opus/fable are worth requesting for the
+//   hardest parked targets that stall on Sonnet.
+const IMPROVE_MODEL = (args && args.improveModel) || 'sonnet'
 // Effort ladder for the in-place score tune. Each rung re-runs the optimizer at
 // a higher effort, but only for a target still below the pass bar, not capped,
 // and while budget remains. Override as a comma list, e.g. --improveEfforts
@@ -57,12 +61,12 @@ const M = {
   mechanical: { model: 'haiku', effort: 'high'  },  // tool-run + parse
   // Selection and one-shot score levers still need constrained judgment.
   // Per-target research is mechanical and routes through M.mechanical below.
-  extract:    { model: 'opus',  effort: 'low'  },  // select + classified score lever
+  extract:    { model: 'sonnet', effort: 'low'  },  // select + classified score lever
   // Commit runs a fixed 6-command script whose only judgement is "does the
   // build log contain an error: line" -- the same shape as the 19 sites already
   // on `mechanical`. Measured 31 agents / ~4% of session spend on opus for it.
   commit:     { model: 'haiku', effort: 'high'  },  // runs the clean-build gate
-  reason:     { model: 'opus',  effort: 'high' },  // lift, review
+  reason:     { model: 'sonnet', effort: 'high' },  // lift, review
   improve:    { model: IMPROVE_MODEL, effort: IMPROVE_EFFORTS[0] },  // improve-pass base rung
 }
 // --reviewEffort: A/B lever for reviewer cost (docs/plans/agent-model-routing-2026-08.md

@@ -1,10 +1,10 @@
 export const meta = {
   name: 'recover-goal',
-  description: 'Goal-mode source recovery: pick the next object off the recovery frontier, work the source-recovery ladder one category per sequential Opus agent (one commit each), ratchet the VC71 floors, record the outcome in the ledger, repeat until N objects are recovered or the queue is exhausted.',
+  description: 'Goal-mode source recovery: pick the next object off the recovery frontier, work the source-recovery ladder one category per sequential Sonnet agent (one commit each), ratchet the VC71 floors, record the outcome in the ledger, repeat until N objects are recovered or the queue is exhausted.',
   phases: [
     { title: 'Guard',   detail: 'Working tree must be clean under src/, kb.json, tools/, .claude/, recovery/' },
     { title: 'Select',  detail: 'recovery_goal.py next -> start; baseline the object (build + plan + capture + ladder)' },
-    { title: 'Recover', detail: 'Per object: one sequential Opus agent per ladder category, purity-gated commit each; then finalize (floors + report + finish)' },
+    { title: 'Recover', detail: 'Per object: one sequential Sonnet agent per ladder category, purity-gated commit each; then finalize (floors + report + finish)' },
     { title: 'Report',  detail: 'Summary: per-object category outcomes, commits, floors raised, stop reason, ledger status' },
   ],
 }
@@ -41,9 +41,11 @@ const DRY_RUN      = !!(args && args.dryRun)
 // Mechanical agents run fixed commands and parse their output — no judgement, so
 // no reasoning budget. All the cost belongs to the category agents, which do the
 // actual source edits and must apply a skill's gate table; they get the same
-// model policy goal-lift.js gives its lift agents (M.reason = opus/high).
+// model policy goal-lift.js gives its lift agents (M.reason = sonnet/high,
+// policy 2026-08-22 — escalate to opus by hand only if sonnet demonstrably
+// stalls on a category).
 const MECH    = { model: 'haiku', effort: 'high'  }
-const RECOVER = { model: 'opus',  effort: 'high' }
+const RECOVER = { model: 'sonnet', effort: 'high' }
 
 // The ladder, in mandatory order, with each category's leaf skill. Order is NOT
 // a preference: offset rewrites need the cs()/co() asserts that struct-define
