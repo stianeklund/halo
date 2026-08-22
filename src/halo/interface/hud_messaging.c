@@ -466,16 +466,19 @@ void scripted_hud_pause_timer(char param_1)
   int base;
   short now;
 
-  base = *(int *)0x46bd18;
-  *(char *)(base + 0x11a6) = param_1;
-  if (*(short *)(base + 0x119c) > 0) {
+  /* The original holds a pointer to the HUD-timer sub-struct at globals+0x1198
+   * and addresses its members with small displacements (0x0, 0x4, 0xe); folding
+   * 0x1198 into every displacement instead costs one `add esi, 0x1198`. */
+  base = *(int *)0x46bd18 + 0x1198;
+  *(char *)(base + 0xe) = param_1;
+  if (*(short *)(base + 0x4) > 0) {
     if (param_1 != '\0') {
       now = (short)game_time_get();
-      *(short *)(base + 0x119c) += *(short *)(base + 0x1198) - now;
+      *(short *)(base + 0x4) += *(short *)base - now;
       return;
     }
     now = (short)game_time_get();
-    *(short *)(base + 0x119c) += now - *(short *)(base + 0x1198);
+    *(short *)(base + 0x4) += now - *(short *)base;
   }
 }
 
