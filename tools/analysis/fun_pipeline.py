@@ -37,7 +37,7 @@ def load_kb():
 
 def save_kb(kb):
     with open(KB_PATH, "w") as f:
-        json.dump(kb, f, indent=2)
+        json.dump(kb, f, indent=1)
         f.write("\n")
 
 

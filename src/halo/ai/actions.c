@@ -7,13 +7,13 @@
  */
 
 
-/* FUN_0001bba0 (0x1bba0) — Scan a vehicle unit's seats and select the seat
+/* action_vehicle_find_best_seat (0x1bba0) — Scan a vehicle unit's seats and select the seat
  * whose attach transform yields the greatest score for an actor.
  *
  * Resolves the vehicle object (object_get_and_verify_type(vehicle_handle, 3)),
  * reads its unit definition tag (tag_get('unit', object[0])), then iterates
  * seat indices in [0, unit_def->seat_count @ +0x2e4). For each seat, calls
- * FUN_0001aeb0 to compute three attach vec3s plus a scalar score into scratch
+ * action_vehicle_evaluate_seat to compute three attach vec3s plus a scalar score into scratch
  * buffers; tracks the seat with the maximum score (update only when the new
  * score exceeds the running best). For each non-NULL output pointer, the best
  * seat's corresponding attach vec3 is written on exit. Returns the winning
@@ -28,7 +28,7 @@
  * Confirmed: object_get_and_verify_type(vehicle_handle, 3) at 0x1bba0+0xe.
  * Confirmed: tag_get('unit', object[0]) at 0x1bba0+0x17.
  * Confirmed: seat count at unit_def+0x2e4; FCOMP greater-than update. */
-int FUN_0001bba0(int actor_handle, int vehicle_handle, float *out_attach0,
+int action_vehicle_find_best_seat(int actor_handle, int vehicle_handle, float *out_attach0,
                  float *out_attach1, float *out_attach2)
 {
   int *object;
@@ -49,7 +49,7 @@ int FUN_0001bba0(int actor_handle, int vehicle_handle, float *out_attach0,
   best_index = -1;
   best_score = 0.0f;
   for (i = 0; (short)i < *(int *)(unit_def + 0x2e4); i++) {
-    if (FUN_0001aeb0(actor_handle, vehicle_handle, (short)i, 0, &cand0[0],
+    if (action_vehicle_evaluate_seat(actor_handle, vehicle_handle, (short)i, 0, &cand0[0],
                      &cand1[0], &cand2[0], (int)&score, 0, 0, 0) != '\0') {
       if (best_score < score) {
         best_score = score;
@@ -91,7 +91,7 @@ int FUN_0001bba0(int actor_handle, int vehicle_handle, float *out_attach0,
  * The caller-supplied state block is 0x4c bytes (csmemset 0x4c) and is filled
  * as: +0x00 vehicle handle (int), +0x04 chosen seat index (int16), +0x06 flag
  * byte, +0x20/+0x24 the two radii passed in, +0x30 destination vec3 and +0x48
- * an opaque handle (both written by FUN_0001b280).
+ * an opaque handle (both written by action_vehicle_compute_entry_point).
  *
  * Early rejections, in binary order: actor+0x158 must be -1 (no pending
  * vehicle), actor+0x6 must be clear (actor not suppressed), and actor+0x6c
@@ -104,9 +104,9 @@ int FUN_0001bba0(int actor_handle, int vehicle_handle, float *out_attach0,
  * (a magnitude/dot over the object's orientation vector) is at or below
  * *0x253f2c. Independently, object+0x38 must be at or above *0x253398.
  *
- * When qualified, FUN_0001bba0 picks the best seat (truncated to int16). A
+ * When qualified, action_vehicle_find_best_seat picks the best seat (truncated to int16). A
  * valid seat sets the +0x06 flag, then the actor's unit must have an entry
- * animation for that seat, FUN_0001b280 must produce a destination, and
+ * animation for that seat, action_vehicle_compute_entry_point must produce a destination, and
  * actor_move_to_point must accept it — only then is 1 returned.
  *
  * Confirmed: cdecl, five stack args; ESI holds the state block (advanced by
@@ -185,14 +185,14 @@ qualified_resolved:
   if (*(float *)(object + 0x38) >= *(const float *)0x253398 &&
       qualified != '\0') {
     *(int *)state = vehicle_handle;
-    seat = (short)FUN_0001bba0(actor_handle, vehicle_handle, &attach0[0],
+    seat = (short)action_vehicle_find_best_seat(actor_handle, vehicle_handle, &attach0[0],
                                &attach1[0], delta);
     *(short *)(state + 0x4) = seat;
     if (seat != -1) {
       *(unsigned char *)(state + 0x6) = 1;
       if (unit_has_animation_to_enter_seat(((actor_t *)actor)->field_018,
                                            vehicle_handle, seat) != '\0') {
-        if (FUN_0001b280(actor_handle, vehicle_handle, &attach0[0], &attach1[0],
+        if (action_vehicle_compute_entry_point(actor_handle, vehicle_handle, &attach0[0], &attach1[0],
                          delta, NULL, (float *)(state + 0x30),
                          (int *)(state + 0x48)) != '\0') {
           if (actor_move_to_point(actor_handle, (float *)(state + 0x30),
@@ -207,7 +207,7 @@ qualified_resolved:
   return result;
 }
 
-/* FUN_0001beb0 (0x1beb0) — Update an actor's pursuit/follow state and, when the
+/* action_wait_perform (0x1beb0) — Update an actor's pursuit/follow state and, when the
  * actor is not suppressed (actor+0x6 clear), either drive it toward its pursuit
  * prop or run the no-pursuit path.
  *
@@ -238,7 +238,7 @@ qualified_resolved:
  * 0x41000000 = 8.0f. Confirmed FPU directions: FCOMPS [0x253f78] + TEST AH,5 /
  * JP takes the branch when prop+0x11c >= the constant; FCOMPS [0x253f30] +
  * TEST AH,0x41 / JNE takes the else when prop+0x11c <= the constant. */
-char FUN_0001beb0(int actor_handle)
+char action_wait_perform(int actor_handle)
 {
   int actor;
   int prop;
@@ -302,12 +302,12 @@ LAB_0001bf35:
   return *(char *)(actor + 0x9c);
 }
 
-/* FUN_0001c030 (0x1c030) — Initialize actor guard state based on combat status.
+/* action_wait_control (0x1c030) — Initialize actor guard state based on combat status.
  * Sets guard mode (0x3e8) to 3/5/1 depending on whether the actor is a
  * designated combatant, has a valid encounter with positive attack count,
  * or is in a default state. Also sets 0x3fc=3 and clears flags at
  * 0x424-0x428, 0x454. */
-void FUN_0001c030(int actor_handle)
+void action_wait_control(int actor_handle)
 {
   char *actor;
 
@@ -333,10 +333,10 @@ void FUN_0001c030(int actor_handle)
   ((actor_t *)actor)->field_425 = 0;
 }
 
-/* FUN_0001c0e0 (0x1c0e0) — Initialize a wait action state buffer.
+/* action_wait_setup (0x1c0e0) — Initialize a wait action state buffer.
  * Clears 0x18 bytes at state_data, fills timing/mode fields, and returns 1
  * unless the actor is in a vehicle (actor+0x160 != 0). */
-char FUN_0001c0e0(int actor_handle, char param_2, int state_data)
+char action_wait_setup(int actor_handle, char param_2, int state_data)
 {
   char *actor;
 
@@ -357,10 +357,10 @@ char FUN_0001c0e0(int actor_handle, char param_2, int state_data)
   return 1;
 }
 
-/* FUN_0001c190 (0x1c190) — Tick down actor wait/guard timers.
+/* action_wait_update (0x1c190) — Tick down actor wait/guard timers.
  * Decrements actor+0xac, 0xaa, and 0xa8 counters, triggering sound events and
  * state changes when they reach zero. */
-void FUN_0001c190(int actor_handle)
+void action_wait_update(int actor_handle)
 {
   char *actor;
   int16_t sVar1;
@@ -1005,7 +1005,7 @@ char actor_action_deny_transition(int actor_handle)
   return result;
 }
 
-/* FUN_0001cb30 (0x1cb30) — Per-record action cooldown / dedup gate.
+/* actor_action_vehicle_entry_allowed (0x1cb30) — Per-record action cooldown / dedup gate.
  * Returns 0 (deny) only when record_index equals the record's stored id at
  * +0x390 AND the game clock has not yet reached the deadline at +0x394;
  * otherwise returns 1 (allow). The record is fetched via
@@ -1013,7 +1013,7 @@ char actor_action_deny_transition(int actor_handle)
  * Confirmed: PUSH EAX (@eax) then PUSH actor_data before CALL datum_get at
  * 0x1cb3d; game_time_get() at 0x1cb52; fields +0x390 (int, equality via JNZ)
  * and +0x394 (int, game-time deadline via JGE). Return is a bool in AL. */
-char FUN_0001cb30(int record_index, int datum_handle /* @<eax> */)
+char actor_action_vehicle_entry_allowed(int record_index, int datum_handle /* @<eax> */)
 {
   char *record;
 
@@ -1456,7 +1456,7 @@ char FUN_0001d3c0(int actor_handle, short param_2, int param_3, char param_4)
  * enter a vehicle. Iterates seat indices (from param_6 array, or discovered
  * via vehicle_scripting_find_available_seats if param_6 is NULL). For each
  * valid seat index, checks unit_has_animation_to_enter_seat then
- * FUN_0001b750, and on success calls actor_action_change with action type 9.
+ * action_vehicle_setup, and on success calls actor_action_change with action type 9.
  * Marks the consumed seat as -1 in the seat array.
  *
  * Confirmed: datum_get(actor_data, actor_handle) at 0x1d437.
@@ -1484,7 +1484,7 @@ char actor_action_try_to_enter_vehicle(int actor_handle, int param_2,
     if (seat_index != -1 &&
         unit_has_animation_to_enter_seat(((actor_t *)actor)->field_018, param_2,
                                          seat_index) != '\0' &&
-        FUN_0001b750(actor_handle, param_2, seat_index, action_buf) != '\0') {
+        action_vehicle_setup(actor_handle, param_2, seat_index, action_buf) != '\0') {
       actor_action_change(actor_handle, 9, (int)action_buf);
       param_6[i] = (int16_t)0xffff;
       return 1;
@@ -2156,14 +2156,14 @@ char actor_action_handle_combat_targeting(int actor_handle)
  * 1. Allies — only when the 'actr' definition flag 0x1000 is set. Walks the
  *    clump-actor iterator (FUN_00064540/FUN_00064570) and accepts an ally
  *    record of type 2..3 with +0x12e set, +0x60 clear, a valid handle at
- *    +0x110 that passes FUN_0001cb30, resolves as an object of type mask 2,
+ *    +0x110 that passes actor_action_vehicle_entry_allowed, resolves as an object of type mask 2,
  *    and whose object+0x2d4 equals ally+0x18. The candidate must be within
  *    100.0 squared units of actor+0x12c and closer than the best so far; the
  *    recorded distance becomes (ally+0x11c)^2 and the two radii 8.0 / 10.0.
  * 2. The AI-globals impromptu-vehicle table (*(char **)0x632574 + 0x3b8,
  *    int16 count at +0x3b6, stride 0x28) — only when actor+0x84 >= 0x3c and
  *    no ally candidate was found. Entries are filtered by object type mask 2,
- *    FUN_0001cb30, distance against the entry+0x4 radius (skipped when that
+ *    actor_action_vehicle_entry_allowed, distance against the entry+0x4 radius (skipped when that
  *    radius is the FLT_MAX sentinel), an int16 bitmask at entry+0x8 tested
  *    against actor+0x3e, an int16 bitmask at entry+0xa tested against
  *    actor+0x4, and an optional array of entry+0xc identifiers at entry+0x10
@@ -2239,7 +2239,7 @@ char actor_action_handle_vehicle_entry(int actor_handle)
         if (*(short *)(ally + 0x24) >= 2 && *(short *)(ally + 0x24) <= 3 &&
             *(char *)(ally + 0x12e) != '\0' && *(char *)(ally + 0x60) == '\0' &&
             *(int *)(ally + 0x110) != -1 &&
-            FUN_0001cb30(*(int *)(ally + 0x110), actor_handle) != '\0') {
+            actor_action_vehicle_entry_allowed(*(int *)(ally + 0x110), actor_handle) != '\0') {
           object =
             object_try_and_get_and_verify_type(*(int *)(ally + 0x110), 2);
           if (object != NULL &&
@@ -2274,7 +2274,7 @@ char actor_action_handle_vehicle_entry(int actor_handle)
   do {
     entry = ai_globals + 0x3b8 + (short)index * 0x28;
     object = object_try_and_get_and_verify_type(*(int *)entry, 2);
-    if (object != NULL && FUN_0001cb30(*(int *)entry, actor_handle) != '\0') {
+    if (object != NULL && actor_action_vehicle_entry_allowed(*(int *)entry, actor_handle) != '\0') {
       object_get_world_position(*(int *)entry, &pos);
       dist2 = distance_squared3d((float *)&pos, (float *)(actor + 0x12c));
       if (dist2 < best_dist2 &&
@@ -2732,7 +2732,7 @@ verify_action_state:
  *    (TEST AL,AL at 0x1f4dd); kb.json previously declared it void.
  *  - encounter_modify_pursuit_desires takes 8 stack args (ADD ESP,0x20 at
  *    0x1f163), encounter_determine_pursuit_availability 12 (ADD ESP,0x30),
- *    FUN_0001cda0 11 stack args plus EAX/ECX/EDX register args (the three
+ *    actor_action_determine_pursuit_availability 11 stack args plus EAX/ECX/EDX register args (the three
  *    loads at 0x1f1e2/0x1f1e6/0x1f1dc are consumed by no PUSH). All three
  *    were declared (void) in kb.json before this lift.
  *  - The pursuit-eligibility threshold read from the 'actr' tag (+0x354 /
@@ -2862,7 +2862,7 @@ char actor_action_handle_lost_contact(int actor_handle)
           flag_e = 1;
         }
       }
-      FUN_0001cda0(have_pos, val_24, val_30, actor_handle, val_34, flag_2c, 0,
+      actor_action_determine_pursuit_availability(have_pos, val_24, val_30, actor_handle, val_34, flag_2c, 0,
                    *(unsigned char *)(actor + 0x375), &flag_6, &flag_a,
                    &flag_a2, &flag_e, &flag_b, &can_search);
     }
@@ -2986,7 +2986,7 @@ char actor_action_handle_lost_contact(int actor_handle)
         ((actor_t *)actor)->field_018 != -1)
       FUN_00046f10(0x13, ((actor_t *)actor)->field_018, -1, -1, -1, -1, 0);
     if (*(char *)(actor + 6) == '\0' && can_search != '\0' &&
-        FUN_0001c0e0(actor_handle, flag_e, (int)action_buf) != '\0') {
+        action_wait_setup(actor_handle, flag_e, (int)action_buf) != '\0') {
       actor_action_change(actor_handle, 8, (int)action_buf);
       result = 1;
       return result;
