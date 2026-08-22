@@ -31963,6 +31963,36 @@
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
+    "FUN_0016de60": {
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x16de60",
+      "end": "0x16de77",
+      "kind": "auto",
+      "n_r": 11,
+      "opnd_percent": 90.9,
+      "raw_mnemonic_pct": 95.7,
+      "ref": "synth",
+      "ref_sha": "193d2b3d30841d07",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
+    "FUN_0016de80": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x16de80",
+      "end": "0x16dea2",
+      "kind": "auto",
+      "n_r": 16,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "5661b5418370f2ff",
+      "score": 100.0,
+      "source": "src/halo/rasterizer/rasterizer.c"
+    },
     "FUN_0016eef0": {
       "abi_model": "raw",
       "abi_model_items": 0,

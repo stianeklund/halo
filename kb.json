@@ -15612,7 +15612,9 @@
     },
     {
      "addr": "0x1337c0",
-     "decl": "int glow_normal_particle_new(int glow_widget_ptr, short index, short count);"
+     "decl": "int glow_normal_particle_new(int glow_widget_ptr, short index, short count);",
+     "ported": true,
+     "source_path": "objects/objects.c"
     },
     {
      "addr": "0x1339a0",
@@ -20161,11 +20163,15 @@
    "functions": [
     {
      "addr": "0x16de60",
-     "decl": "void FUN_0016de60(void);"
+     "decl": "int __stdcall FUN_0016de60(void *device, uint32_t reg@<edx>, float a, float b);",
+     "ported": true,
+     "source_path": "src/halo/rasterizer/rasterizer.c"
     },
     {
      "addr": "0x16de80",
-     "decl": "void FUN_0016de80(void);"
+     "decl": "int __stdcall FUN_0016de80(void *device, uint32_t reg, float a, float b, float c, float d);",
+     "ported": true,
+     "source_path": "src/halo/rasterizer/rasterizer.c"
     },
     {
      "addr": "0x16dee0",

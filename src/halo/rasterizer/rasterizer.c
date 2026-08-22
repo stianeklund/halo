@@ -1,3 +1,80 @@
+/* 0x16de60 -- a fourth byte-identical instantiation of the D3D8
+ * __forceinline wrapper around D3DDevice_SetVertexData2f, matching
+ * FUN_001703f0 (0x1703f0), 0x172650, FUN_00179570 (0x179570), and
+ * FUN_0017ad20 (0x17ad20) instruction for instruction. No xrefs (Ghidra
+ * reports none), a dead instantiation like its siblings.
+ *
+ * Disassembly at 0016de60 (11 instructions):
+ *   push ebp / mov ebp,esp
+ *   mov eax,[ebp+0x10] ; mov ecx,[ebp+0xc]
+ *   push eax ; push ecx ; push edx
+ *   call 0x1ed280                  ; D3DDevice_SetVertexData2f, __stdcall
+ *   xor eax,eax / pop ebp / ret 0xc
+ *
+ * ABI evidence (Ghidra decompile reports the wrong `void __cdecl
+ * FUN_0016de60(void)`, same misread as every prior instantiation):
+ *  - RET 0xc => __stdcall with THREE stack args at +8/+0xc/+0x10. The first
+ *    (+8, the device pointer of the inline member instantiation) is never
+ *    read; it stays in the signature so the callee-cleans immediate is
+ *    correct (lift-learnings §30 ESP-drift class).
+ *  - PUSH EDX @0016de6b with no prior write to EDX anywhere in the function
+ *    => the D3D register index is an implicit register input, @<edx> in
+ *    kb.json, not a stack slot.
+ *  - XOR EAX,EAX @0016de71 => returns S_OK.
+ *  - Both floats are forwarded as raw dwords through EAX/ECX with no
+ *    FLD/FSTP, a pure bit passthrough, so they are typed `float` here,
+ *    matching the callee's kb.json declaration.
+ *
+ * Argument order into the callee is from the push sequence -- last push is
+ * the first argument -- so SetVertexData2f(edx, [EBP+0xc], [EBP+0x10]).
+ *
+ * The C impl is cdecl, not __stdcall, even though kb.json records the
+ * original as __stdcall: knowledge.py strips the convention from any @<reg>
+ * declaration when generating decl.h, because the generated thunk presents a
+ * cdecl interface to C, and patch.py's reverse thunk restores the original
+ * RET 0xc contract for the original callers.
+ */
+int FUN_0016de60(void *device, uint32_t reg, float a, float b)
+{
+  (void)device;
+  D3DDevice_SetVertexData2f(reg, a, b);
+  return 0;
+}
+
+/* 0x16de80 -- another dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8::SetVertexData4f, byte-identical in shape to the already
+ * ported FUN_0017ad40 (0x17ad40) and FUN_0015a4f0 (rasterizer_xbox_decals.c).
+ *
+ * Disassembly at 0016de80 (16 instructions):
+ *   push ebp / mov ebp,esp
+ *   mov eax,[ebp+0x1c] ; mov ecx,[ebp+0x18] ; mov edx,[ebp+0x14]
+ *   push eax ; mov eax,[ebp+0x10] ; push ecx ; mov ecx,[ebp+0xc]
+ *   push edx ; push eax ; push ecx
+ *   call 0x1ed2c0                  ; D3DDevice_SetVertexData4f, __stdcall
+ *   xor eax,eax / pop ebp / ret 0x18
+ *
+ * ABI evidence:
+ *  - RET 0x18 = 24 bytes = six caller-pushed dwords ([ebp+0x8]..[ebp+0x1c]),
+ *    so this is __stdcall with six stack args, not the cdecl void(void)
+ *    kb.json previously declared.
+ *  - [ebp+0x8] is never read: the discarded `this`/device argument of the
+ *    inline member instantiation, kept only because it sizes the frame.
+ *  - Push order (last PUSH is the first C argument): ecx=[ebp+0xc] -> reg,
+ *    eax=[ebp+0x10] -> a, edx=[ebp+0x14] -> b, ecx=[ebp+0x18] -> c,
+ *    eax=[ebp+0x1c] -> d.
+ *  - All four float arguments are forwarded as raw dwords via plain GPR
+ *    pushes (no FLD/FSTP anywhere), a pure bit passthrough, so `float` here
+ *    matches the callee's kb.json declaration.
+ *  - XOR EAX,EAX is a real `return 0` (S_OK), not a dead write.
+ */
+int __stdcall FUN_0016de80(void *device, uint32_t reg, float a, float b,
+                           float c, float d)
+{
+  (void)device;
+  D3DDevice_SetVertexData4f(reg, a, b, c, d);
+  return 0;
+}
+
 #include "x87_math.h"
 
 /* MSVC CRT pow(): compiles to the _CIpow intrinsic (0x1d9e70 dispatcher,
@@ -4969,6 +5046,123 @@ void FUN_00179de0(void *group)
   D3DDevice_SetTextureStageState(0, 0x10, 0);
 }
 
+/* Render-target-0 viewport rectangle at 0x5a5bf4, in Bungie's rectangle2d
+ * field order (top, left, bottom, right) — the same block
+ * rasterizer_xbox_decals.c reads for D3DVIEWPORT8.Y/.Height. The order is
+ * proven by which extent scales which screen axis in FUN_0017a8a0: the
+ * right/left difference multiplies screen X, the bottom/top difference
+ * multiplies screen Y. (Two older comments in this tree call the bottom/top
+ * difference "width"; they are wrong and are not relied on here.) */
+#define VIEWPORT_LEFT (*(short *)0x5a5bf6)
+#define VIEWPORT_RIGHT (*(short *)0x5a5bfa)
+
+/* Active 4x4 projection matrix, rows at 0x5a5d60/0x5a5d70/0x5a5d80/0x5a5d90;
+ * rasterizer_xbox.c reaches the same block as +0x144 of the render globals.
+ * Indexed [row][col]. */
+#define PROJECTION_MATRIX(row, col) \
+  (*(const float *)(0x5a5d60 + (row) * 0x10 + (col) * 4))
+
+/* World-to-view matrix handed to matrix_transform_point (PUSH 0x5a5c2c
+ * @0x17a8e0). */
+#define WORLD_TO_VIEW_MATRIX ((float *)0x5a5c2c)
+
+/* 0x17a8a0 — project a world-space point plus a radius into screen space,
+ * returning whether it landed in front of the eye.
+ *
+ * out_screen receives (x, y, depth); out_extent receives the projected
+ * half-width and half-height of the radius. out_screen arrives in EBX
+ * (no store to it from any parameter slot, and FSTP float ptr [EBX] at
+ * 0x17a9dd is the first write), so it is annotated @<ebx> in kb.json;
+ * Ghidra's `void FUN_0017a8a0(void)` misses both that and the AL return
+ * (MOV AL,1 @0x17aa44 versus XOR AL,AL @0x17aa4d and MOV AL,CL @0x17aa55).
+ *
+ * Both guards are FCOMP against 0.0f with TEST AH,0x41: the guard is taken
+ * when C0 (less) or C3 (equal) is set, and unordered sets both, so each one
+ * is exactly C's `<= 0.0f` including the NaN case.
+ *
+ * The dot products are written in index order (row 0, 1, 2, then the
+ * translation row) even though the reference EMITS them row-2-first: VC71
+ * evaluates a left-associative x87 sum from the innermost term outwards, so
+ * `r0*v0 + r1*v1 + r2*v2 + r3` compiles to FLD [row2]; FMUL v2; FLD [row1];
+ * FMUL v1; FADDP; ... — writing the terms in the emitted order produces the
+ * mirror image and scores worse.
+ *
+ * Measured VC71 notes:
+ *   - Swapping each product to `v[k] * MATRIX[r][c]` is codegen-identical;
+ *     VC71 canonicalises FMUL operands for local*global and always loads the
+ *     local first, so the residual FPU-WARN operand-order lines here are not
+ *     source-addressable (they cost operand-normalised score only, not the
+ *     mnemonic score).
+ *   - The original shares both false guards with a tail `MOV AL,CL`, so the
+ *     body is nested under the guards and returns `visible` once. */
+bool FUN_0017a8a0(float *point, float radius, float *out_extent,
+                  float *out_screen)
+{
+  float view_point[3]; /* [EBP-0x1c..-0x14] matrix_transform_point output */
+  float radius_y; /* [EBP-0x10] */
+  float radius_x; /* [EBP-0xc]  */
+  float proj_z; /* [EBP-8]  FST (not FSTP) -- stays live in ST0 */
+  float proj_y; /* [EBP-4]  */
+  float inv_w;
+  float depth;
+  short viewport_width;
+  int viewport_extent; /* packed (bottom,right)-(top,left); low word = height */
+  bool visible;
+
+  visible = 0;
+  if (radius > 0.0f) {
+    /* Width via word ops (MOV SI,[0x5a5bfa]; SUB SI,[0x5a5bf6]); height via one
+     * 32-bit subtraction of the packed (top,left)/(bottom,right) dwords whose
+     * low word is then sign-extended (MOV EDI,[0x5a5bf8]; SUB EDI,EDX;
+     * MOVSX EAX,DI) -- the same idiom already used at 0x17bb2b in this TU. */
+    viewport_width = VIEWPORT_RIGHT - VIEWPORT_LEFT;
+    viewport_extent = *(int *)0x5a5bf8 - *(int *)0x5a5bf4;
+
+    matrix_transform_point(WORLD_TO_VIEW_MATRIX, point, view_point);
+
+    proj_y = PROJECTION_MATRIX(0, 1) * view_point[0] +
+             PROJECTION_MATRIX(1, 1) * view_point[1] +
+             PROJECTION_MATRIX(2, 1) * view_point[2] + PROJECTION_MATRIX(3, 1);
+    proj_z = PROJECTION_MATRIX(0, 2) * view_point[0] +
+             PROJECTION_MATRIX(1, 2) * view_point[1] +
+             PROJECTION_MATRIX(2, 2) * view_point[2] + PROJECTION_MATRIX(3, 2);
+    radius_x = PROJECTION_MATRIX(0, 0) * radius;
+    radius_y = PROJECTION_MATRIX(1, 1) * radius;
+
+    if (proj_z > 0.0f) {
+      inv_w = 1.0f / (PROJECTION_MATRIX(0, 3) * view_point[0] +
+                      PROJECTION_MATRIX(1, 3) * view_point[1] +
+                      PROJECTION_MATRIX(2, 3) * view_point[2] +
+                      PROJECTION_MATRIX(3, 3));
+
+      out_screen[0] =
+        (((PROJECTION_MATRIX(0, 0) * view_point[0] +
+           PROJECTION_MATRIX(1, 0) * view_point[1] +
+           PROJECTION_MATRIX(2, 0) * view_point[2] + PROJECTION_MATRIX(3, 0)) *
+            inv_w +
+          1.0f) *
+           (float)viewport_width -
+         1.0f) *
+        0.5f;
+      out_screen[1] =
+        ((1.0f - inv_w * proj_y) * (float)(short)viewport_extent - 1.0f) * 0.5f;
+
+      /* FLD 1.0f ; FCOMP -- the constant is the left operand, so the clamp is
+       * written 1.0f <= depth rather than depth >= 1.0f. */
+      depth = inv_w * proj_z;
+      if (!(1.0f > depth)) {
+        depth = 1.0f;
+      }
+      out_screen[2] = depth;
+
+      out_extent[0] = (float)viewport_width * inv_w * radius_x * 0.5f;
+      out_extent[1] = (float)(short)viewport_extent * inv_w * radius_y * 0.5f;
+      visible = 1;
+    }
+  }
+  return visible;
+}
+
 /* 0x17ad20 — a second, byte-identical instantiation of the same
  * IDirect3DDevice8::SetVertexData2f inline member wrapper already ported at
  * FUN_00179570 above. MSVC emitted the inline body once per translation unit
@@ -5054,125 +5248,6 @@ int __stdcall FUN_0017ad40(void *device, uint32_t reg, float a, float b,
 
 void FUN_0017ad90(void)
 {
-}
-
-/* Render-target-0 viewport rectangle at 0x5a5bf4, in Bungie's rectangle2d
- * field order (top, left, bottom, right) — the same block
- * rasterizer_xbox_decals.c reads for D3DVIEWPORT8.Y/.Height. The order is
- * proven by which extent scales which screen axis in FUN_0017a8a0: the
- * right/left difference multiplies screen X, the bottom/top difference
- * multiplies screen Y. (Two older comments in this tree call the bottom/top
- * difference "width"; they are wrong and are not relied on here.) */
-#define VIEWPORT_LEFT (*(short *)0x5a5bf6)
-#define VIEWPORT_RIGHT (*(short *)0x5a5bfa)
-
-/* Active 4x4 projection matrix, rows at 0x5a5d60/0x5a5d70/0x5a5d80/0x5a5d90;
- * rasterizer_xbox.c reaches the same block as +0x144 of the render globals.
- * Indexed [row][col]. */
-#define PROJECTION_MATRIX(row, col) \
-  (*(const float *)(0x5a5d60 + (row) * 0x10 + (col) * 4))
-
-/* World-to-view matrix handed to matrix_transform_point (PUSH 0x5a5c2c
- * @0x17a8e0). */
-#define WORLD_TO_VIEW_MATRIX ((float *)0x5a5c2c)
-
-/* 0x17a8a0 — project a world-space point plus a radius into screen space,
- * returning whether it landed in front of the eye.
- *
- * out_screen receives (x, y, depth); out_extent receives the projected
- * half-width and half-height of the radius. out_screen arrives in EBX
- * (no store to it from any parameter slot, and FSTP float ptr [EBX] at
- * 0x17a9dd is the first write), so it is annotated @<ebx> in kb.json;
- * Ghidra's `void FUN_0017a8a0(void)` misses both that and the AL return
- * (MOV AL,1 @0x17aa44 versus XOR AL,AL @0x17aa4d and MOV AL,CL @0x17aa55).
- *
- * Both guards are FCOMP against 0.0f with TEST AH,0x41: the guard is taken
- * when C0 (less) or C3 (equal) is set, and unordered sets both, so each one
- * is exactly C's `<= 0.0f` including the NaN case.
- *
- * The dot products are written in index order (row 0, 1, 2, then the
- * translation row) even though the reference EMITS them row-2-first: VC71
- * evaluates a left-associative x87 sum from the innermost term outwards, so
- * `r0*v0 + r1*v1 + r2*v2 + r3` compiles to FLD [row2]; FMUL v2; FLD [row1];
- * FMUL v1; FADDP; ... — writing the terms in the emitted order produces the
- * mirror image and scores worse.
- *
- * Measured VC71 notes:
- *   - Swapping each product to `v[k] * MATRIX[r][c]` is codegen-identical;
- *     VC71 canonicalises FMUL operands for local*global and always loads the
- *     local first, so the residual FPU-WARN operand-order lines here are not
- *     source-addressable (they cost operand-normalised score only, not the
- *     mnemonic score).
- *   - The original shares both false guards with a tail `MOV AL,CL`, so the
- *     body is nested under the guards and returns `visible` once. */
-bool FUN_0017a8a0(float *point, float radius, float *out_extent,
-                  float *out_screen)
-{
-  float view_point[3]; /* [EBP-0x1c..-0x14] matrix_transform_point output */
-  float radius_y;      /* [EBP-0x10] */
-  float radius_x;      /* [EBP-0xc]  */
-  float proj_z;        /* [EBP-8]  FST (not FSTP) -- stays live in ST0 */
-  float proj_y;        /* [EBP-4]  */
-  float inv_w;
-  float depth;
-  short viewport_width;
-  int viewport_extent; /* packed (bottom,right)-(top,left); low word = height */
-  bool visible;
-
-  visible = 0;
-  if (radius > 0.0f) {
-
-  /* Width via word ops (MOV SI,[0x5a5bfa]; SUB SI,[0x5a5bf6]); height via one
-   * 32-bit subtraction of the packed (top,left)/(bottom,right) dwords whose
-   * low word is then sign-extended (MOV EDI,[0x5a5bf8]; SUB EDI,EDX;
-   * MOVSX EAX,DI) -- the same idiom already used at 0x17bb2b in this TU. */
-  viewport_width = VIEWPORT_RIGHT - VIEWPORT_LEFT;
-  viewport_extent = *(int *)0x5a5bf8 - *(int *)0x5a5bf4;
-
-  matrix_transform_point(WORLD_TO_VIEW_MATRIX, point, view_point);
-
-  proj_y = PROJECTION_MATRIX(0, 1) * view_point[0] +
-           PROJECTION_MATRIX(1, 1) * view_point[1] +
-           PROJECTION_MATRIX(2, 1) * view_point[2] + PROJECTION_MATRIX(3, 1);
-  proj_z = PROJECTION_MATRIX(0, 2) * view_point[0] +
-           PROJECTION_MATRIX(1, 2) * view_point[1] +
-           PROJECTION_MATRIX(2, 2) * view_point[2] + PROJECTION_MATRIX(3, 2);
-  radius_x = PROJECTION_MATRIX(0, 0) * radius;
-  radius_y = PROJECTION_MATRIX(1, 1) * radius;
-
-  if (proj_z > 0.0f) {
-
-  inv_w = 1.0f / (PROJECTION_MATRIX(0, 3) * view_point[0] +
-                  PROJECTION_MATRIX(1, 3) * view_point[1] +
-                  PROJECTION_MATRIX(2, 3) * view_point[2] +
-                  PROJECTION_MATRIX(3, 3));
-
-  out_screen[0] = (((PROJECTION_MATRIX(0, 0) * view_point[0] +
-                     PROJECTION_MATRIX(1, 0) * view_point[1] +
-                     PROJECTION_MATRIX(2, 0) * view_point[2] +
-                     PROJECTION_MATRIX(3, 0)) *
-                        inv_w +
-                    1.0f) *
-                       (float)viewport_width -
-                   1.0f) *
-                  0.5f;
-  out_screen[1] =
-    ((1.0f - inv_w * proj_y) * (float)(short)viewport_extent - 1.0f) * 0.5f;
-
-  /* FLD 1.0f ; FCOMP -- the constant is the left operand, so the clamp is
-   * written 1.0f <= depth rather than depth >= 1.0f. */
-  depth = inv_w * proj_z;
-  if (!(1.0f > depth)) {
-    depth = 1.0f;
-  }
-  out_screen[2] = depth;
-
-  out_extent[0] = (float)viewport_width * inv_w * radius_x * 0.5f;
-  out_extent[1] = (float)(short)viewport_extent * inv_w * radius_y * 0.5f;
-  visible = 1;
-  }
-  }
-  return visible;
 }
 
 /* rasterizer_widget_submit_occlusion_test (0x17ba10): submit one screen-space
@@ -5833,16 +5908,16 @@ bool FUN_0017c1b0(void *stage, short stage_index)
  * values the original's inline accessors were defined at. */
 char FUN_0017c2f0(void *shader, void *pixel_shader)
 {
-  char valid;                  /* [EBP-1] */
-  void *generic;               /* FUN_001906b0 result, [EBP+8] after reuse */
-  int *maps;                   /* &generic->maps.count   (EBX @0x17c368) */
-  int *stages;                 /* &generic->stages.count ([EBP-0xc]) */
-  unsigned char *stage;        /* EBX inside the stage loop */
+  char valid; /* [EBP-1] */
+  void *generic; /* FUN_001906b0 result, [EBP+8] after reuse */
+  int *maps; /* &generic->maps.count   (EBX @0x17c368) */
+  int *stages; /* &generic->stages.count ([EBP-0xc]) */
+  unsigned char *stage; /* EBX inside the stage loop */
   void *map;
   int map_count;
   int stage_count;
   int texture_bits;
-  int index;                   /* [EBP+8] reused as the loop element index */
+  int index; /* [EBP+8] reused as the loop element index */
   short i;
   int color_in0, color_in1, color_in2, color_in3;
   int color_out_a, color_out_b, color_out_c, color_function;
@@ -5926,17 +6001,18 @@ char FUN_0017c2f0(void *shader, void *pixel_shader)
       *(unsigned int *)((char *)pixel_shader + index * 4 + 0x48) =
         FUN_000d1c90((float *)(stage + 0x2c));
 
-      color_in0 = FUN_0017be50(*(short *)(stage + 0x3c),
-                               *(short *)(stage + 0x3e));
-      color_in1 = FUN_0017be50(*(short *)(stage + 0x40),
-                               *(short *)(stage + 0x42));
-      color_in2 = FUN_0017be50(*(short *)(stage + 0x44),
-                               *(short *)(stage + 0x46));
-      color_in3 = FUN_0017be50(*(short *)(stage + 0x48),
-                               *(short *)(stage + 0x4a));
+      color_in0 =
+        FUN_0017be50(*(short *)(stage + 0x3c), *(short *)(stage + 0x3e));
+      color_in1 =
+        FUN_0017be50(*(short *)(stage + 0x40), *(short *)(stage + 0x42));
+      color_in2 =
+        FUN_0017be50(*(short *)(stage + 0x44), *(short *)(stage + 0x46));
+      color_in3 =
+        FUN_0017be50(*(short *)(stage + 0x48), *(short *)(stage + 0x4a));
 
       reg = *(short *)(stage + 0x4c);
-      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+      if (reg < 0 ||
+          reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
         display_assert("register_index>=0 && "
                        "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
                        "STAGE_OUTPUTS",
@@ -5948,7 +6024,8 @@ char FUN_0017c2f0(void *shader, void *pixel_shader)
       color_out_a = SHADER_TRANSPARENT_GENERIC_COLOR_OUTPUT_TABLE[reg];
 
       reg = *(short *)(stage + 0x50);
-      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+      if (reg < 0 ||
+          reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
         display_assert("register_index>=0 && "
                        "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
                        "STAGE_OUTPUTS",
@@ -5960,7 +6037,8 @@ char FUN_0017c2f0(void *shader, void *pixel_shader)
       color_out_b = SHADER_TRANSPARENT_GENERIC_COLOR_OUTPUT_TABLE[reg];
 
       reg = *(short *)(stage + 0x54);
-      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+      if (reg < 0 ||
+          reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
         display_assert("register_index>=0 && "
                        "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
                        "STAGE_OUTPUTS",
@@ -5982,17 +6060,18 @@ char FUN_0017c2f0(void *shader, void *pixel_shader)
                          << 4 |
                        (color_out_b & 0xf));
 
-      alpha_in0 = FUN_0017c000(*(short *)(stage + 0x58),
-                               *(short *)(stage + 0x5a));
-      alpha_in1 = FUN_0017c000(*(short *)(stage + 0x5c),
-                               *(short *)(stage + 0x5e));
-      alpha_in2 = FUN_0017c000(*(short *)(stage + 0x60),
-                               *(short *)(stage + 0x62));
-      alpha_in3 = FUN_0017c000(*(short *)(stage + 0x64),
-                               *(short *)(stage + 0x66));
+      alpha_in0 =
+        FUN_0017c000(*(short *)(stage + 0x58), *(short *)(stage + 0x5a));
+      alpha_in1 =
+        FUN_0017c000(*(short *)(stage + 0x5c), *(short *)(stage + 0x5e));
+      alpha_in2 =
+        FUN_0017c000(*(short *)(stage + 0x60), *(short *)(stage + 0x62));
+      alpha_in3 =
+        FUN_0017c000(*(short *)(stage + 0x64), *(short *)(stage + 0x66));
 
       reg = *(short *)(stage + 0x68);
-      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+      if (reg < 0 ||
+          reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
         display_assert("register_index>=0 && "
                        "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
                        "STAGE_OUTPUTS",
@@ -6004,7 +6083,8 @@ char FUN_0017c2f0(void *shader, void *pixel_shader)
       alpha_out_a = SHADER_TRANSPARENT_GENERIC_ALPHA_OUTPUT_TABLE[reg];
 
       reg = *(short *)(stage + 0x6a);
-      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+      if (reg < 0 ||
+          reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
         display_assert("register_index>=0 && "
                        "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
                        "STAGE_OUTPUTS",
@@ -6016,7 +6096,8 @@ char FUN_0017c2f0(void *shader, void *pixel_shader)
       alpha_out_b = SHADER_TRANSPARENT_GENERIC_ALPHA_OUTPUT_TABLE[reg];
 
       reg = *(short *)(stage + 0x6c);
-      if (reg < 0 || reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
+      if (reg < 0 ||
+          reg >= NUMBER_OF_SHADER_TRANSPARENT_GENERIC_STAGE_OUTPUTS) {
         display_assert("register_index>=0 && "
                        "register_index<NUMBER_OF_SHADER_TRANSPARENT_GENERIC_"
                        "STAGE_OUTPUTS",
@@ -6038,8 +6119,9 @@ char FUN_0017c2f0(void *shader, void *pixel_shader)
                        0x12d, 1);
         system_exit(-1);
       }
-      alpha_out_mapping = SHADER_TRANSPARENT_GENERIC_ALPHA_OUTPUT_MAPPING_TABLE
-        [*(short *)(stage + 0x6e)];
+      alpha_out_mapping =
+        SHADER_TRANSPARENT_GENERIC_ALPHA_OUTPUT_MAPPING_TABLE[*(short *)(stage +
+                                                                         0x6e)];
       if ((*stage & STAGE_FLAG_02) != 0) {
         alpha_out_mapping = alpha_out_mapping | 4;
       }
