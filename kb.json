@@ -14156,7 +14156,8 @@
     },
     {
      "addr": "0x104950",
-     "decl": "void FUN_00104950(void);"
+     "decl": "void FUN_00104950(const char *format, ...);",
+     "ported": true
     }
    ],
    "name": "main.obj",
@@ -20837,6 +20838,10 @@
      "ported": true
     },
     {
+     "addr": "0x15b450",
+     "decl": "void FUN_0015b450(void);"
+    },
+    {
      "addr": "0x15b460",
      "decl": "int FUN_0015b460(uint32_t cache_size);",
      "ported": true
@@ -21255,7 +21260,8 @@
     },
     {
      "addr": "0x157940",
-     "decl": "void FUN_00157940(void);"
+     "decl": "void FUN_00157940(float *elapsed);",
+     "ported": true
     },
     {
      "addr": "0x1579d0",
@@ -30221,7 +30227,7 @@
     },
     {
      "addr": "0x17dee0",
-     "decl": "void FUN_0017dee0(void);"
+     "decl": "float FUN_0017dee0(void);"
     },
     {
      "addr": "0x17df10",

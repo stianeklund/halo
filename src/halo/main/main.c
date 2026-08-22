@@ -1,6 +1,8 @@
 #include "../../common.h"
 #include "common.h"
 
+#include <stdarg.h>
+
 /* x87 FABS as an instruction rather than a call. `fabsf` is a real function in
  * xdk_rt.c, so VC71 emits CALL _fabsf for it; the double `fabs` is a compiler
  * intrinsic and lowers to the single FABS opcode the original uses. Same
@@ -5727,5 +5729,36 @@ void FUN_00104430(int polygon_count, short *point_counts, float *points,
       crt_fprintf(*(void **)0x46e394, "\t\t]\n\t}\n}\n");
       crt_fflush(*(void **)0x46e394);
     }
+  }
+}
+
+/* FUN_00104950 (0x104950)  error_geometry.c:0x29d
+ *
+ * printf-style line writer for the debug VRML ("error geometry") stream.
+ * Asserts 'format' is non-NULL (reason string "format",
+ * error_geometry.c:0x29d), then, gated on the debug-geometry-enabled predicate
+ * FUN_00103d30, writes a leading "#" comment marker, the vfprintf-formatted
+ * message body via the CRT helper FUN_001d9850 (stream, fmt, va_list-as-char*),
+ * a trailing "\n", and flushes. Every access to the cached stream handle
+ * (*(void**)0x46e394) is a fresh global read in the disassembly (no
+ * caching across the CALLs at 0x10498e/0x1049a1/0x1049b2/0x1049be),
+ * matching the reread idiom used by every other helper in this TU.
+ */
+void FUN_00104950(const char *format, ...)
+{
+  va_list args;
+
+  if (format == NULL) {
+    display_assert("format", "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x29d,
+                   true);
+    system_exit(-1);
+  }
+  if (FUN_00103d30()) {
+    crt_fprintf(*(void **)0x46e394, "#");
+    va_start(args, format);
+    FUN_001d9850(*(void **)0x46e394, format, (char *)args);
+    va_end(args);
+    crt_fprintf(*(void **)0x46e394, "\n");
+    crt_fflush(*(void **)0x46e394);
   }
 }
