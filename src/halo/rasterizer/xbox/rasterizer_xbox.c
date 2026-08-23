@@ -130,8 +130,6 @@ char rasterizer_preinitialize(void)
   if (*(void **)0x476a50 == 0) {
     error(2, "### ERROR failed to create D3D object");
     success = 0;
-    error(2, "### ERROR rasterizer_preinitialize failed");
-    return success;
   } else {
     /* Zero-fill D3DPRESENT_PARAMETERS (0x34 bytes) then set used fields */
     csmemset(&d3dpp, 0, 0x34);
@@ -146,9 +144,6 @@ char rasterizer_preinitialize(void)
     d3dpp.FullScreen_PresentationInterval = 0;
 
     hr = Direct3D_CreateDevice(0, 1, 0, 0x40, &d3dpp, (void **)0x476ab0);
-    /* The original clears the accumulator BEFORE the reporter call
-     * (PUSH msg / PUSH hr / XOR BL,BL / CALL), which keeps `success` live
-     * across the call and forces it into a callee-saved register. */
     if (hr >= 0) {
       success = 1;
     } else {
@@ -159,14 +154,10 @@ char rasterizer_preinitialize(void)
                        "&d3d_present_parameters, &global_d3d_device)");
     }
 
-    /* Separate early exit rather than a merged `if (!success)`: the original
-     * emits CMP/JNE/XOR BL,BL/JMP here, i.e. the null-device test jumps to the
-     * failure body on its own instead of being folded into the flag test. */
     if (*(void **)0x476ab0 == 0) {
-      success = 0;
-      goto device_failed;
-    }
-    if (success != 0) {
+      *(void **)0x476ab0 = 0;
+      error(2, "### ERROR failed to create D3D device");
+    } else if (success != 0) {
       D3DDevice_GetDeviceCaps((void *)0x5a59e0);
       D3DDevice_Present(0, 0, 0, 0);
       success = 1;
@@ -181,9 +172,6 @@ char rasterizer_preinitialize(void)
       }
       return success;
     }
-  device_failed:
-    *(void **)0x476ab0 = 0;
-    error(2, "### ERROR failed to create D3D device");
   }
   error(2, "### ERROR rasterizer_preinitialize failed");
   return success;
@@ -1560,10 +1548,7 @@ void rasterizer_set_model_skinning(void *skinning)
                                     *(short *)((char *)skinning + 4) * 3);
 
   if (*(short *)0x3256ba != 0) {
-    /* Accumulator-first (not `+=`) to match MOV ECX,[0x5a5550] /
-     * LEA EAX,[EAX+EAX*2] / SHL EAX,4 / ADD ECX,EAX at 0x156834. */
-    *(int *)0x5a5550 =
-      *(int *)0x5a5550 + *(short *)((char *)skinning + 4) * 0x30;
+    *(int *)0x5a5550 = *(short *)((char *)skinning + 4) * 0x30 + *(int *)0x5a5550;
   }
 }
 
@@ -1609,12 +1594,18 @@ void rasterizer_set_model_lighting_point_light(int light_index,
                                                short light_slot,
                                                void *lighting_constants)
 {
-  const char *light;
+  struct point_light_t {
+    const char *owner;
+    float position[3];
+    float color[3];
+    float unk[3];
+    float radius;
+  };
+  const struct point_light_t *light;
   const char *owner;
-  const char *vsrc;
-  char *vdst;
   char *dst;
   float attenuation;
+  int light_count;
 
   if (lighting_constants == 0) {
     display_assert("lighting_constants",
@@ -1627,18 +1618,19 @@ void rasterizer_set_model_lighting_point_light(int light_index,
    * out of line at the tail (the original's `JZ LAB_00156997`, past the main
    * path's RET) instead of as the fall-through. */
   if (light_index != -1) {
-    if (light_index < 0 || light_index >= *(int *)0x5a37e0) {
+    light_count = *(int *)0x5a37e0;
+    if (light_index < 0 || light_index >= light_count) {
       display_assert(csprintf((char *)0x5ab100,
                               "### ERROR invalid light index #%d (count=#%d)",
-                              light_index, *(int *)0x5a37e0),
+                              light_index, light_count),
                      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
                      0xb13, true);
       system_exit(-1);
     }
 
-    light = (const char *)(0x5a37e4 + light_index * 0x38);
+    light = (const struct point_light_t *)0x5a37e4 + light_index;
 
-    if (!(*(const float *)(light + 0x34) > 0.0f)) {
+    if (!(light->radius > *(const float *)0x2533c0)) {
       display_assert("light->radius>0.0f",
                      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
                      0xb15, true);
@@ -1647,32 +1639,16 @@ void rasterizer_set_model_lighting_point_light(int light_index,
 
     dst = (char *)lighting_constants + light_slot * 0x30;
 
-    /* Each 12-byte vector goes through its own source/destination base
-     * pointer to reproduce the original's LEA ECX,[ESI+0x4] / LEA EDX,[ESI+
-     * 0x10] / LEA ECX,[ESI+0x28] group bases rather than folding the offsets
-     * into every MOV. */
-    vsrc = light + 0x04;
-    vdst = dst;
-    *(uint32_t *)(vdst + 0) = *(const uint32_t *)(vsrc + 0);
-    *(uint32_t *)(vdst + 4) = *(const uint32_t *)(vsrc + 4);
-    *(uint32_t *)(vdst + 8) = *(const uint32_t *)(vsrc + 8);
+    {
+      struct vec3 { float x, y, z; };
+      *(struct vec3 *)dst = *(const struct vec3 *)light->position;
+      *(float *)(dst + 0x0c) = *(const float *)0x2533c8 /
+        (light->radius * light->radius);
+      *(struct vec3 *)(dst + 0x10) = *(const struct vec3 *)light->color;
+      *(struct vec3 *)(dst + 0x20) = *(const struct vec3 *)light->unk;
+    }
 
-    *(float *)(dst + 0x0c) =
-      1.0f / (*(const float *)(light + 0x34) * *(const float *)(light + 0x34));
-
-    vsrc = light + 0x10;
-    vdst = dst + 0x10;
-    *(uint32_t *)(vdst + 0) = *(const uint32_t *)(vsrc + 0);
-    *(uint32_t *)(vdst + 4) = *(const uint32_t *)(vsrc + 4);
-    *(uint32_t *)(vdst + 8) = *(const uint32_t *)(vsrc + 8);
-
-    vsrc = light + 0x28;
-    vdst = dst + 0x20;
-    *(uint32_t *)(vdst + 0) = *(const uint32_t *)(vsrc + 0);
-    *(uint32_t *)(vdst + 4) = *(const uint32_t *)(vsrc + 4);
-    *(uint32_t *)(vdst + 8) = *(const uint32_t *)(vsrc + 8);
-
-    owner = *(const char *const *)light;
+    owner = light->owner;
 
     if (*(const uint32_t *)(owner + 0x1c) != 0xbf800000) {
       attenuation = 1.0f / (*(const float *)(owner + 0x1c) -
@@ -1685,10 +1661,9 @@ void rasterizer_set_model_lighting_point_light(int light_index,
       *(float *)(dst + 0x2c) = 1.0f;
     }
   } else {
-    dst = (char *)lighting_constants + light_slot * 0x30;
-    csmemset(dst, 0, 0x30);
-    *(uint32_t *)(dst + 0x1c) = 0;
-    *(float *)(dst + 0x2c) = 1.0f;
+    csmemset((char *)lighting_constants + light_slot * 0x30, 0, 0x30);
+    *(uint32_t *)((char *)lighting_constants + light_slot * 0x30 + 0x1c) = 0;
+    *(float *)((char *)lighting_constants + light_slot * 0x30 + 0x2c) = 1.0f;
   }
 }
 
@@ -1941,20 +1916,20 @@ void rasterizer_set_frustum_z(float near_z, float far_z)
    * MOV ESI,4 ... DEC ESI / JNZ).  Written as plain indexed `for` loops VC71
    * constant-folds every source address and fully unrolls the inner loop. */
   acc = constants + 3;
-  proj_col = (const float *)0x5a5d70;
+  proj_col = (const float *)0x5a5d60;
   i = 4;
   do {
     dst = acc - 3;
-    view_row = (const float *)0x5a5c34;
+    view_row = (const float *)0x5a5c30;
     j = 4;
     do {
-      *dst = view_row[-1] * proj_col[-4] + view_row[1] * proj_col[4] +
-             proj_col[0] * view_row[0];
+      *dst = (view_row[0] * proj_col[0] + view_row[2] * proj_col[8]) +
+             proj_col[4] * view_row[1];
       view_row = view_row + 3;
       dst = dst + 1;
       j = j - 1;
     } while (j != 0);
-    *acc = proj_col[8] + *acc;
+    *acc = proj_col[12] + *acc;
     proj_col = proj_col + 1;
     acc = acc + 4;
     i = i - 1;
@@ -1963,18 +1938,18 @@ void rasterizer_set_frustum_z(float near_z, float far_z)
   constants[16] = *(const float *)0x5a5bc8;
   constants[17] = *(const float *)0x5a5bcc;
   constants[18] = *(const float *)0x5a5bd0;
-  constants[19] = 2.0f;
   constants[20] = *(const float *)0x5a5bd4;
   constants[21] = *(const float *)0x5a5bd8;
   constants[22] = *(const float *)0x5a5bdc;
-  constants[23] = 0.5f;
   constants[24] = *(const float *)0x5a5c64;
   constants[25] = *(const float *)0x5a5c68;
   constants[26] = *(const float *)0x5a5c6c;
-  constants[27] = 1.0f;
   constants[28] = *(const float *)0x5a5c70;
   constants[29] = *(const float *)0x5a5c74;
   constants[30] = *(const float *)0x5a5c78;
+  constants[19] = 2.0f;
+  constants[23] = 0.5f;
+  constants[27] = 1.0f;
   constants[31] = 255.9375f;
 
   D3DDevice_SetVertexShaderConstant(-0x60, constants, 8);
