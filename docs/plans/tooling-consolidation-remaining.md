@@ -55,7 +55,8 @@ The audit had several inaccurate "0 refs / dead" claims — verified false durin
    - `tools/report/matching.py` — self-documents as "retained for standalone analysis only;
      Score button no longer uses it." Misleading name but harmless; keep (optional: rename).
    - `tools/patches/patch_respawn_time.py` — keep (owner: "a fun thing to keep").
-   - mizuchi loop — still owner-decision; untouched.
+   - mizuchi loop — RESOLVED 2026-08-23: runner retired; the fast compile+diff
+     loop survives as `tools/verify/fast_diff/`. See `tooling-audit-2026-07-07.md`.
 
 ---
 

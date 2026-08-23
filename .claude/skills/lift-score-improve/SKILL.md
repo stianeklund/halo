@@ -475,11 +475,11 @@ TU's headers instead of the whole translation unit (measured ~13x faster on
 a 5800-line TU: 1.06s vs 14.0s for the same function).
 
 ```bash
-# one-time, only if artifacts/mizuchi/prompts/<func>/settings.yaml is missing
-rtk python3 tools/mizuchi/gen_prompts.py --target <func_name>
+# one-time, only if artifacts/fast_diff/prompts/<func>/settings.yaml is missing
+rtk python3 tools/verify/fast_diff/gen_prompts.py --target <func_name>
 
 # per-iteration
-rtk python3 tools/mizuchi/compile_and_view.py <func_name> --c-file <candidate_fn.c>
+rtk python3 tools/verify/fast_diff/compile_and_view.py <func_name> --c-file <candidate_fn.c>
 ```
 `<candidate_fn.c>` is just the one function's current text, not the whole
 TU. Re-run a full `vc71_verify.py --function <func>` only when you need a

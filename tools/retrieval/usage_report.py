@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Report retrieval and Mizuchi adoption signals from local artifacts.
+"""Report retrieval adoption signals from local artifacts.
 
 This is a lightweight telemetry view over existing artifact files. It does not
 call MCP or external APIs.
@@ -17,7 +17,6 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 CONTEXT_CACHE_DIR = REPO_ROOT / "artifacts" / "auto_lift" / "context_cache"
 AUTO_LIFT_FAILURES_DIR = REPO_ROOT / "artifacts" / "auto_lift" / "failures"
-MIZUCHI_DIR = REPO_ROOT / "artifacts" / "mizuchi"
 LIFT_RUNS_DIR = REPO_ROOT / "artifacts" / "lift_runs"
 
 
@@ -45,7 +44,6 @@ def _summarize_context_cache() -> dict:
     with_decompile = 0
     with_neighbor_key = 0
     with_neighbors = 0
-    with_mizuchi_result = 0
     neighbor_counts = []
     top_sims = []
     all_sims = []
@@ -66,15 +64,11 @@ def _summarize_context_cache() -> dict:
                     top_sims.append(max(sims))
                     all_sims.extend(sims)
 
-        if pack.get("mizuchi_result"):
-            with_mizuchi_result += 1
-
     out = {
         "total_packs": len(packs),
         "with_decompile": with_decompile,
         "with_similar_neighbors_key": with_neighbor_key,
         "with_nonempty_similar_neighbors": with_neighbors,
-        "with_mizuchi_result": with_mizuchi_result,
         "avg_neighbors_per_injected_pack": (
             statistics.mean(neighbor_counts) if neighbor_counts else None
         ),
@@ -108,34 +102,6 @@ def _summarize_retrieval_index() -> dict:
     stats["index_path"] = str(_db.DB_PATH)
     stats["exists"] = True
     return stats
-
-
-def _summarize_mizuchi() -> dict:
-    files = sorted(MIZUCHI_DIR.glob("*run-results-*.json")) if MIZUCHI_DIR.exists() else []
-    total_results = 0
-    total_success = 0
-    per_file = []
-
-    for path in files:
-        data = _read_json(path)
-        if not isinstance(data, dict):
-            continue
-        results = data.get("results", [])
-        if not isinstance(results, list):
-            continue
-        n_results = len(results)
-        n_success = sum(1 for r in results if isinstance(r, dict) and r.get("success"))
-        total_results += n_results
-        total_success += n_success
-        per_file.append({"file": path.name, "results": n_results, "success": n_success})
-
-    return {
-        "run_result_files": len(files),
-        "total_results": total_results,
-        "total_success": total_success,
-        "success_rate": (float(total_success) / float(total_results) if total_results else None),
-        "files": per_file,
-    }
 
 
 def _load_pack_meta() -> dict:
@@ -328,7 +294,6 @@ def _fmt_float(value: float | None) -> str:
 def print_human(report: dict) -> None:
     idx = report["retrieval_index"]
     ctx = report["context_cache"]
-    miz = report["mizuchi"]
     out = report["lift_outcomes"]
     fail = report["auto_lift_failures"]
 
@@ -346,17 +311,11 @@ def print_human(report: dict) -> None:
     print(f"  with decompile: {ctx.get('with_decompile', 0)}")
     print(f"  with neighbors key: {ctx.get('with_similar_neighbors_key', 0)}")
     print(f"  with non-empty neighbors: {ctx.get('with_nonempty_similar_neighbors', 0)}")
-    print(f"  with mizuchi_result: {ctx.get('with_mizuchi_result', 0)}")
     print(f"  avg neighbors/injected pack: {_fmt_float(ctx.get('avg_neighbors_per_injected_pack'))}")
     print(f"  avg neighbor similarity: {_fmt_float(ctx.get('avg_neighbor_similarity'))}")
     print(f"  median neighbor similarity: {_fmt_float(ctx.get('median_neighbor_similarity'))}")
     print(f"  avg top-neighbor similarity: {_fmt_float(ctx.get('avg_top_neighbor_similarity'))}")
 
-    print("\nmizuchi")
-    print(f"  run result files: {miz.get('run_result_files', 0)}")
-    print(f"  total results: {miz.get('total_results', 0)}")
-    print(f"  total success: {miz.get('total_success', 0)}")
-    print(f"  success rate: {_fmt_float(miz.get('success_rate'))}")
 
     print("\nlift outcomes")
     print(f"  summaries found: {out.get('lift_run_summaries_found', 0)}")
@@ -396,7 +355,7 @@ def print_human(report: dict) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Report embeddings retrieval usage and Mizuchi adoption signals"
+        description="Report embeddings retrieval usage signals"
     )
     ap.add_argument("--json", action="store_true", help="Emit JSON instead of human-readable text")
     args = ap.parse_args()
@@ -406,7 +365,6 @@ def main() -> int:
     report = {
         "retrieval_index": _summarize_retrieval_index(),
         "context_cache": context_summary,
-        "mizuchi": _summarize_mizuchi(),
         "lift_outcomes": _summarize_lift_outcomes(context_summary, pack_meta),
         "auto_lift_failures": _summarize_failures_with_neighbors(),
     }

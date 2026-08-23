@@ -40,7 +40,6 @@ DELINKED_DIR = ROOT / "delinked"
 OBJDIFF_JSON = ROOT / "objdiff.json"
 KB_JSON = ROOT / "kb.json"
 SRC_DIR = ROOT / "src"
-MIZUCHI_DIR = ROOT / "artifacts" / "mizuchi"
 
 MSVC_INTRINSIC_ADDRS = {
     "1d90e0", "1d9068", "1dd5c8", "1dd601",
@@ -928,7 +927,7 @@ def _load_shape_atlas() -> dict[str, dict]:
 
 
 # ---------------------------------------------------------------------------
-# Semantic retrieval helpers (Mizuchi-style neighbor injection)
+# Semantic retrieval helpers (ported-neighbor injection)
 # ---------------------------------------------------------------------------
 
 def _check_retrieval_index() -> bool:
@@ -2382,12 +2381,11 @@ def cmd_select(args: argparse.Namespace):
         return
 
     if not args.quiet:
-        print(f"{'Total':>5}  {'Lift':>4}  {'Fr':>3}  {'Lane':<13}  {'Oracle':<7}  {'Miz':>3}  {'Address':>10}  {'Object':<35}  {'Name':<35}  {'Reasons'}")
-        print("-" * 155)
+        print(f"{'Total':>5}  {'Lift':>4}  {'Fr':>3}  {'Lane':<13}  {'Oracle':<7}  {'Address':>10}  {'Object':<35}  {'Name':<35}  {'Reasons'}")
+        print("-" * 150)
     for item in selected:
         target = item.target
         reasons = ", ".join(item.reasons)
-        miz = "Y" if _find_mizuchi_result(target.name) else "-"
         has_failure = (FAILURES_DIR / f"{target.name}.json").exists()
         skip_marker = " [skip:prior_fail]" if has_failure else ""
         _pv = _prior_vc71_score(target.name)
@@ -2395,7 +2393,7 @@ def cmd_select(args: argparse.Namespace):
             skip_marker += f" [vc71:{_pv:.1f}]"
         print(
             f"{item.total_score:>5}  {item.liftability_score:>4}  {item.frontier_score:>3}  "
-            f"{item.lane:<13}  {item.oracle_strength:<7}  {miz:>3}  {target.addr:>10}  {target.object_name:<35}  {target.name:<35}  {reasons}{skip_marker}"
+            f"{item.lane:<13}  {item.oracle_strength:<7}  {target.addr:>10}  {target.object_name:<35}  {target.name:<35}  {reasons}{skip_marker}"
         )
 
     if not args.quiet:
@@ -2432,38 +2430,6 @@ def cmd_select(args: argparse.Namespace):
             print("  " + "-" * 80)
             for name, branch, stage, addr, obj in rejected_entries:
                 print(f"  {name:<35}  {stage:<20}  {branch}")
-
-
-def _find_mizuchi_result(func_name: str) -> str | None:
-    """Return the best generated C code from the latest successful mizuchi run, or None."""
-    run_files = sorted(MIZUCHI_DIR.glob("run-results-*.json"), reverse=True)
-    for run_file in run_files:
-        try:
-            data = json.loads(run_file.read_text())
-        except Exception:
-            continue
-        for result in data.get("results", []):
-            if result.get("functionName") != func_name:
-                continue
-            if not result.get("success"):
-                continue
-            # Find the attempt with the best (lowest) diff count that has code
-            best_code = ""
-            best_diff = float("inf")
-            for attempt in result.get("attempts", []):
-                for plugin in attempt.get("pluginResults", []):
-                    if plugin.get("pluginId") != "claude-runner":
-                        continue
-                    code = plugin.get("data", {}).get("generatedCode", "")
-                    diff = plugin.get("data", {}).get("diffCount", float("inf"))
-                    if diff is None:
-                        diff = float("inf")
-                    if code and diff < best_diff:
-                        best_diff = diff
-                        best_code = code
-            if best_code:
-                return best_code
-    return None
 
 
 def cmd_cache_context(args: argparse.Namespace):
@@ -2588,13 +2554,6 @@ def cmd_cache_context(args: argparse.Namespace):
                 print(f"  retrieval: no similar neighbors above threshold")
         elif not retrieval_available:
             pass  # silently skip — index not built yet
-
-        mizuchi_code = _find_mizuchi_result(t.name)
-        if mizuchi_code:
-            ghidra_ctx["mizuchi_result"] = mizuchi_code
-            print(f"  mizuchi: successful result injected ({len(mizuchi_code)} chars)")
-        else:
-            print(f"  mizuchi: no successful result found")
 
         cache_file.write_text(json.dumps(ghidra_ctx, indent=2), encoding="utf-8")
         cached_count += 1

@@ -1,6 +1,6 @@
 """DuckDB-backed semantic-retrieval index for Halo lift work.
 
-Schema captures the three signals Mizuchi-style retrieval needs:
+Schema captures the three signals semantic retrieval needs:
 - pseudocode (cached Ghidra output) — the closest analog to what we'll see
   for a new target before lifting; used as the primary embedding signal.
 - c_source — the final lifted C; used both as a secondary embedding and

@@ -59,7 +59,8 @@ should be adopted as defaults *with instrumentation*, not as facts.
   terra, `variant: xhigh` on the heavy ones. Luna and Sol appear nowhere.
 - OpenCode is NOT in the automated pipeline. `goal-lift` / `auto-session` run
   entirely inside Claude Code's Workflow tool and cannot route to OpenCode
-  models. OpenCode serves manual sessions and `/lift-mizuchi` loops.
+  models. OpenCode serves manual sessions. (`/lift-mizuchi` was retired
+  2026-08-23 — see `tooling-audit-2026-07-07.md`.)
 - `.claude/` is the canonical tree; `.opencode/` is a synced copy
   (`docs/agent-content.md`).
 
@@ -203,7 +204,7 @@ Also delete `opencode.json~` from the tree.
    rule-id match → `M.extract`-tier lever application before charging an
    escalation slot.
 3. **Ledger-driven improve drain** already excludes tried models — extend the
-   convention to OpenCode model ids so mizuchi/manual sessions and goal-lift
+   convention to OpenCode model ids so manual sessions and goal-lift
    share one attempt history.
 4. **Reviewer A/B** (opus-medium vs high) behind a `--reviewEffort` flag,
    measured on false-accept/false-reject over one session.

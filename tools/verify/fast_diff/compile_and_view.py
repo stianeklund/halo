@@ -7,9 +7,9 @@ OpenCode, Codex, human) calls this after writing C code to see how close it is t
 the original binary. Iterate until diff_count == 0.
 
 Usage:
-    python3 tools/mizuchi/compile_and_view.py <FUNC_NAME> [--c-file FILE]
-    python3 tools/mizuchi/compile_and_view.py <FUNC_NAME> --c-code "void FUN_..."
-    echo "void FUN_..." | python3 tools/mizuchi/compile_and_view.py <FUNC_NAME>
+    python3 tools/verify/fast_diff/compile_and_view.py <FUNC_NAME> [--c-file FILE]
+    python3 tools/verify/fast_diff/compile_and_view.py <FUNC_NAME> --c-code "void FUN_..."
+    echo "void FUN_..." | python3 tools/verify/fast_diff/compile_and_view.py <FUNC_NAME>
 
 Output (JSON to stdout):
     {
@@ -33,11 +33,11 @@ from pathlib import Path
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 COMPILE_SH = ROOT / "tools" / "permuter" / "compile.sh"
 COMPARE_OBJ = ROOT / "tools" / "verify" / "compare_obj.py"
-GET_CONTEXT_SH = ROOT / "tools" / "mizuchi" / "get-context.sh"
-PROMPTS_DIR = ROOT / "artifacts" / "mizuchi" / "prompts"
+GET_CONTEXT_SH = ROOT / "tools" / "verify" / "fast_diff" / "get_context.sh"
+PROMPTS_DIR = ROOT / "artifacts" / "fast_diff" / "prompts"
 VC71_STAGE = ROOT / "build" / "vc71"
 
 

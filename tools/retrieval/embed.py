@@ -4,7 +4,7 @@ Loads the model lazily (~322MB on first use, cached under
 ~/.cache/huggingface/) and produces 768-dim float32 embeddings for the
 two text signals stored in the index: pseudocode and c_source.
 
-Mizuchi-style retrieval embeds both at INDEX time. At QUERY time the
+The index embeds both at INDEX time. At QUERY time the
 agent embeds the new target's Ghidra pseudocode and searches both
 columns — same-modal (pseudocode↔pseudocode) is the primary signal,
 cross-modal (pseudocode↔c_source) is the fallback when no neighbor has

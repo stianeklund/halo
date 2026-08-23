@@ -144,7 +144,6 @@ tools/retrieval/index.duckdb.wal
 # Backup and generated DB files
 *.bak
 *.bak_lowmatch
-mizuchi-db.json
 
 # Ad-hoc screenshot captures
 xemu-*.png

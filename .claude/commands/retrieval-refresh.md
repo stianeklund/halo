@@ -43,12 +43,12 @@ Report:
 - Outcomes summary (`vc71_score`, `verdict`, `hazard_flags` counts)
 - Embed summary (`rows embedded`, model, batch/chunk settings)
 - Final stats (`total`, `with_pseudocode`, `with_c`, `with_embeddings`, `with_vc71`, `with_verdict`, `with_hazards`, `models`)
-- Usage/adoption report (`retrieval index` rows, `context cache` neighbor-injection stats, `mizuchi` adoption) from `usage_report.py` — measures whether the index is actually being consulted (the only ROI signal for the 95 MB index).
+- Usage/adoption report (`retrieval index` rows, `context cache` neighbor-injection stats) from `usage_report.py` — measures whether the index is actually being consulted (the only ROI signal for the 95 MB index).
 
 ## Notes
 
 - This updates the local index at `tools/retrieval/index.duckdb`.
-- It does not call external Claude/Mizuchi runner APIs.
+- It does not call external runner APIs.
 - **Scope: this is the CODE index** (Ghidra pseudocode + lifted C), used by
   `/lift`'s retrieval-neighbor injection. The separate **doc index** (QMD,
   `~/.cache/qmd/index.sqlite`, queried by `/debug-regression` Phase 0 and

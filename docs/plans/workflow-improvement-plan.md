@@ -344,7 +344,8 @@ target has a delinked reference (byte-match oracle) and is a stubbable leaf
 spend Opus/Fable only where the oracle is weak.
 
 **Files:** `tools/llm_auto_lift.py` (selector), `.claude/commands/auto-lift.md`
-and `goal-lift.md` (model selection), optionally `tools/mizuchi/`.
+and `goal-lift.md` (model selection), optionally `tools/verify/fast_diff/`
+(formerly `tools/mizuchi/`, renamed 2026-08-23).
 
 1. Add an `oracle_strength` field to `select` output, computed from existing
    signals: `strong` = delinked ref mapped AND (pure-leaf or stubbable per
@@ -361,8 +362,8 @@ and `goal-lift.md` (model selection), optionally `tools/mizuchi/`.
    `artifacts/auto_lift/haiku_pilot_report.md`. Adopt only if the
    first-pass ≥90% rate is within ~15pp of Sonnet's (escalations make up the
    difference cheaply).
-4. Optional follow-up: point the mizuchi iterate-to-zero-diff loop
-   (`tools/mizuchi/compile_and_view.py`) at the Haiku lane — an exact diff-count
+4. Optional follow-up: point the iterate-to-zero-diff loop
+   (`tools/verify/fast_diff/compile_and_view.py`) at the Haiku lane — an exact diff-count
    reward signal is the ideal cheap-model harness; today that loop is
    Codex/OpenCode-only.
 

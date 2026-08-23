@@ -56,4 +56,4 @@ Report:
 ## Notes
 
 - This updates the local index at `tools/retrieval/index.duckdb`.
-- It does not call external Claude/Mizuchi runner APIs.
+- It does not call external runner APIs.

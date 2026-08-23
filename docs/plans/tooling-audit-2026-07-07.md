@@ -199,8 +199,14 @@ These looked suspicious in a naive reference scan but should not be archived:
   self-documents as retained for standalone analysis.
 - `tools/xbox/xemu-mon.py`: still used by `tools/xbox/boot_hash.sh`.
 - `tools/patches/patch_respawn_time.py`: owner-decision keep.
-- `tools/mizuchi/*`: owner-decision keep until the workflow is explicitly
-  retired or replaced.
+- `tools/mizuchi/*`: RETIRED 2026-08-23. The Mizuchi runner loop (`mizuchi.yaml`,
+  `run.sh`, `/lift-mizuchi`, the `mizuchi_result` context injection in
+  `llm_auto_lift.py`, and the adoption report in `usage_report.py`) was deleted —
+  last run artifacts dated 2026-05-11. The fast per-function compile+diff loop it
+  hosted was kept and renamed to `tools/verify/fast_diff/` (`compile_and_view.py`,
+  `gen_prompts.py`, `get_context.sh`; prompts at `artifacts/fast_diff/prompts/`),
+  since `lift-score-improve` and `vc71-match-optimizer` cite it as the
+  authoritative per-lever measurement (~1s vs ~14s for a full TU verify).
 
 ## Triage Queue
 

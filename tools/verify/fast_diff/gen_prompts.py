@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Convert auto_lift context cache entries into mizuchi prompt folders.
+Convert auto_lift context cache entries into fast-diff prompt folders.
 
 Each cache entry becomes:
-  artifacts/mizuchi/prompts/<FuncName>/
+  artifacts/fast_diff/prompts/<FuncName>/
     prompt.md       — Ghidra decompile + similar ported functions
-    settings.yaml   — functionName, targetObjectPath, asm (required by mizuchi)
+    settings.yaml   — functionName, targetObjectPath, asm (required by compile_and_view)
 
 Usage:
-    python3 tools/mizuchi/gen_prompts.py [--target FUN_000425c0|0x425c0] [--force]
+    python3 tools/verify/fast_diff/gen_prompts.py [--target FUN_000425c0|0x425c0] [--force]
 
 Without --target, processes all cache entries that don't yet have a prompt folder.
 """
@@ -26,9 +26,9 @@ except ImportError:
     print("ERROR: pyyaml not installed — run: pip install pyyaml", file=sys.stderr)
     sys.exit(1)
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 CACHE_DIR = ROOT / "artifacts/auto_lift/context_cache"
-PROMPTS_DIR = ROOT / "artifacts/mizuchi/prompts"
+PROMPTS_DIR = ROOT / "artifacts/fast_diff/prompts"
 DELINKED_DIR = ROOT / "delinked"
 KB_PATH = ROOT / "kb.json"
 

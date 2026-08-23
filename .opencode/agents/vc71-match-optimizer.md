@@ -86,9 +86,9 @@ You will be given:
 5. **Re-measure with the fast single-function path**, not a full TU verify:
    ```
    # auto-seed on cache miss — do not stop to report the miss
-   test -f artifacts/mizuchi/prompts/<function_name>/settings.yaml \
-     || rtk python3 tools/mizuchi/gen_prompts.py --target <function_name>
-   rtk python3 tools/mizuchi/compile_and_view.py <function_name>
+   test -f artifacts/fast_diff/prompts/<function_name>/settings.yaml \
+     || rtk python3 tools/verify/fast_diff/gen_prompts.py --target <function_name>
+   rtk python3 tools/verify/fast_diff/compile_and_view.py <function_name>
    ```
    ~1s vs ~14s for a full TU `vc71_verify.py`. Treat step 3's pack as
    authoritative for *diagnosis* and this command as authoritative for
