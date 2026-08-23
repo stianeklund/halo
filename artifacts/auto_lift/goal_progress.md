@@ -41,6 +41,10 @@
 
 | function | addr | source_file | screen_result | vc71 | action | reason |
 |---|---|---|---|---|---|---|
+| FUN_000a3ea0 | 0xa3ea0 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | decompile exposes implicit ESI and EDI arguments; known register-argument structural cap |
+| FUN_000a4200 | 0xa4200 | src/halo/effects/weather_particle_systems.c | pass | 93.3 | committed | lift_pipeline build, ABI, hazard, buffer-alias, and strict VC71 gates passed |
+| weather_particle_system_new | 0xa40a0 | src/halo/effects/weather_particle_systems.c | pass | 89.0 | reverted | below 90% threshold; score recovery and one 100-attempt permutation pass exhausted |
+| FUN_000a4a00 | 0xa4a00 | src/halo/effects/weather_particle_systems.c | pass | 97.7 | committed | pipeline build, ABI, hazard, buffer-alias, and strict VC71 gates passed |
 | recorded_animation_controlling_unit | 0x94ff0 | src/halo/cutscene/recorded_animations.c | pass | 92.0 | committed | score recovery promoted; equivalence 100/100 |
 | FUN_000a54b0 | 0xa54b0 | src/halo/game/cheats.c | pass | 86.6 | reverted | score recovery exhausted; goal-lift requires VC71 >=90 |
 | FUN_000a6030 | 0xa6030 | src/halo/game/cheats.c | skip_reg_args | 72.5 | reverted | implicit EDI argument; known register-argument structural cap |

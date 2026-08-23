@@ -487,17 +487,17 @@
  "0xa3e60": {
   "addr": "0xa3e60",
   "decl": "void *FUN_000a3e60(int16_t local_player_index@<esi>);",
-  "ported": false
+  "ported": true
  },
  "0xa40a0": {
   "addr": "0xa40a0",
   "decl": "void FUN_000a40a0(int16_t local_player_index, int particle_system_tag_index, float scale);",
-  "ported": false
+  "ported": true
  },
  "0xa4200": {
   "addr": "0xa4200",
   "decl": "void FUN_000a4200(int16_t local_player_index);",
-  "ported": false
+  "ported": true
  },
  "0xa4310": {
   "addr": "0xa4310",
@@ -28989,11 +28989,12 @@
     {
      "addr": "0xa3e60",
      "decl": "void *FUN_000a3e60(int16_t local_player_index@<esi>);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0xa3ea0",
-     "decl": "void FUN_000a3ea0(void);"
+     "decl": "void *FUN_000a3ea0(void *weather_particle_system @<edi>, int16_t type_index @<esi>);",
+     "ported": true
     },
     {
      "addr": "0xa3ef0",
@@ -29017,50 +29018,58 @@
     },
     {
      "addr": "0xa4000",
-     "decl": "void FUN_000a4000(void);"
+     "decl": "void FUN_000a4000(float *vector_out@<edi>, float *vector_in@<esi>, float extent);",
+     "ported": true
     },
     {
      "addr": "0xa40a0",
      "decl": "void FUN_000a40a0(int16_t local_player_index, int particle_system_tag_index, float scale);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0xa4200",
      "decl": "void FUN_000a4200(int16_t local_player_index);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0xa4310",
-     "decl": "void FUN_000a4310(int16_t local_player_index);",
-     "ported": false
+     "decl": "int FUN_000a4310(int16_t type_index @<eax>, int16_t local_player_index @<ecx>);",
+     "ported": true
     },
     {
      "addr": "0xa45d0",
-     "decl": "void FUN_000a45d0(void);"
+     "decl": "void FUN_000a45d0(float *vector_out@<eax>, float *vector_in@<ecx>, float extent);",
+     "ported": true
     },
     {
      "addr": "0xa4610",
-     "decl": "void FUN_000a4610(void);"
+     "decl": "void FUN_000a4610(int16_t type_index@<eax>, int16_t local_player_index@<ecx>, int16_t particle_index);",
+     "ported": true
     },
     {
      "addr": "0xa48c0",
-     "decl": "void FUN_000a48c0(void);"
+     "decl": "void FUN_000a48c0(void *planes@<ecx>, float clip_distance);",
+     "ported": true
     },
     {
      "addr": "0xa4a00",
-     "decl": "void FUN_000a4a00(void);"
+     "decl": "int16_t FUN_000a4a00(int *visible_indices, float range);",
+     "ported": true
     },
     {
      "addr": "0xa4ab0",
-     "decl": "void FUN_000a4ab0(void);"
+     "decl": "void FUN_000a4ab0(int16_t local_player_index, int16_t type_index @<eax>, float scale);",
+     "ported": true
     },
     {
      "addr": "0xa4be0",
-     "decl": "void FUN_000a4be0(void);"
+     "decl": "void FUN_000a4be0(int16_t local_player_index);",
+     "ported": true
     },
     {
      "addr": "0xa4e20",
-     "decl": "void weather_particle_system_render(int16_t local_player_index@<eax>);"
+     "decl": "void weather_particle_system_render(int16_t local_player_index@<eax>);",
+     "ported": true
     }
    ],
    "name": "weather_particle_systems.obj",

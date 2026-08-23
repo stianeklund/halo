@@ -5043,6 +5043,31 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa4200": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The per-player weather record uses a 0x9c-byte stride; each particle-type record starts at offset 0x1c, with its count at offset 0x24 and linked-list handle at offset 0x28, as shown by target disassembly."
+      ],
+      "uncertain": [
+        "The type-definition layout at offset 0x24 and particle datum next-handle field at offset 0x50 remain raw offsets because no complete project struct proves those layouts."
+      ]
+    },
+    "0xa4a00": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The scenario block at scenario_get()+0x1c0 is traversed as a tag_block whose elements use stride 0x20; only element offsets 0x00, 0x04, 0x08, and 0x0c are consumed.",
+        "The sole caller stores EAX after the call and later compares it as the visible-index count, while the callee returns that count with MOV AX, so the lifted prototype uses int16_t as return type."
+      ],
+      "uncertain": [
+        "Canonical semantic names for the four weather-polyhedron element floats and the camera position globals at 0x506550, 0x506554, and 0x506558 remain unproven, so the lift keeps raw offsets and existing camera storage."
+      ]
+    },
+    "0xa4e20": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa65e0": {
       "kind": "function",
       "status": "ported"
