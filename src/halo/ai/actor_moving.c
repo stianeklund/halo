@@ -37,24 +37,24 @@ void actor_path_input_new(int actor_handle, char *nav_state_out)
 {
   char *actor;
   char *p;
-  int local_8;
+  float local_8;
   int unit_handle;
 
   actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
   p = (char *)tag_get(0x61637472, ((actor_t *)actor)->field_058);
-  local_8 = *(int *)(p + 0x8c);
+  local_8 = *(float *)(p + 0x8c);
   unit_handle = ((actor_t *)actor)->field_018;
   if (((actor_t *)actor)->field_15e > 0) {
     p = (char *)object_get_and_verify_type(((actor_t *)actor)->field_158, 2);
     p = (char *)tag_get(0x76656869, *(int *)p);
     unit_handle = ((actor_t *)actor)->field_158;
     if (*(float *)(p + 0x38c) > *(float *)0x2533c0) {
-      local_8 = *(int *)(p + 0x38c);
+      local_8 = *(float *)(p + 0x38c);
     }
   }
   actor_find_pathfinding_location(actor_handle);
-  path_input_new(nav_state_out, local_8, ((actor_t *)actor)->field_376,
-                 unit_handle);
+  path_input_new(nav_state_out, *(uint32_t *)&local_8,
+                 ((actor_t *)actor)->field_376, unit_handle);
   path_input_set_start(nav_state_out, (float *)(actor + 0x168),
                        ((actor_t *)actor)->field_164);
 }
@@ -68,7 +68,12 @@ void actor_path_input_new(int actor_handle, char *nav_state_out)
  * arg <= ~-1.0, CALL 0x1d94f0 otherwise — the defining signature of acos. */
 float arccosine(float x)
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+  double acos(double x);
+  return (float)acos((double)x);
+#else
   return acosf(x);
+#endif
 }
 
 /* midpoint3d (0x2a540) — Compute the midpoint of two 3D vectors.
@@ -99,7 +104,7 @@ char actor_test_destination(int actor_handle)
     dx = ((actor_t *)actor)->field_488 - ((actor_t *)actor)->field_12c;
     dy = ((actor_t *)actor)->field_48c - ((actor_t *)actor)->field_130;
     dz = ((actor_t *)actor)->field_490 - ((actor_t *)actor)->field_134;
-    if (tol * tol > dz * dz + dx * dx + dy * dy) {
+    if (dx * dx + dy * dy + dz * dz < tol * tol) {
       ((actor_t *)actor)->field_484 = 1;
     }
   }
@@ -161,9 +166,8 @@ void actor_get_stopping_distances(int actor_handle, float *param_2,
                       *(float *)(obj + 0x1c) * *(float *)(obj + 0x28) +
                       *(float *)(obj + 0x18) * *(float *)(obj + 0x24);
       max_speed = *(float *)(tag + 0x2f8);
-      /* FST [EBP-0xc], FSTP [EBP-0x8]: same source tag+0x300 */
       turn_decel = *(float *)(tag + 0x300);
-      brake_decel = *(float *)(tag + 0x300);
+      brake_decel = turn_decel;
     }
   } else {
     /* no vehicle: check unit handle */
@@ -219,15 +223,15 @@ void actor_get_stopping_distances(int actor_handle, float *param_2,
  * and vehicle-in-air state. On success writes param_2 to +0x418 and
  * copies two ints from param_3 to +0x41c/+0x420. Returns 1 on success, 0 on
  * failure. */
-int actor_move_animation_impulse(int actor_handle, int16_t param_2,
-                                 int *param_3)
+bool actor_move_animation_impulse(int actor_handle, int16_t param_2,
+                                  int *param_3)
 {
   char *actor;
   char *actor2;
   char result;
 
-  result = 0;
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  result = 0;
   actor_set_dormant(actor_handle, 0);
   actor2 = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
   if (*(int16_t *)(actor2 + 0x418) == -1) {
@@ -239,7 +243,7 @@ int actor_move_animation_impulse(int actor_handle, int16_t param_2,
       result = 1;
     }
   }
-  return (int)result;
+  return result;
 }
 
 /* 0x2a860 — Clear actor destination and trigger flee movement.
@@ -247,29 +251,34 @@ int actor_move_animation_impulse(int actor_handle, int16_t param_2,
  * actor_action_deny_transition returns true. Otherwise zeroes the swarm flag,
  * copies 12 bytes from the global pointer at 0x31fc38, calls
  * actor_unit_control_stop_animation_impulse, and returns 1. */
-int actor_move_force_stop(int actor_handle)
+bool actor_move_force_stop(int actor_handle)
 {
   char *actor;
-  char *ptr;
-  char result;
+  char *actor2;
+  bool result;
 
-  result = 0;
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
-  if (((actor_t *)actor)->field_418 == -1) {
-    if (((actor_t *)actor)->field_018 == -1 ||
-        !unit_is_busy(((actor_t *)actor)->field_018)) {
+  result = 0;
+  actor2 = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  if (*(int16_t *)(actor2 + 0x418) == -1) {
+    if (*(int *)(actor2 + 0x18) == -1 ||
+        !unit_is_busy(*(int *)(actor2 + 0x18))) {
       if (!actor_action_deny_transition(actor_handle)) {
-        ((actor_t *)actor)->field_504 = 0;
-        ptr = (char *)*(int *)0x31fc38;
-        *(int *)(actor + 0x6e0) = *(int *)ptr;
-        *(int *)(actor + 0x6e4) = *(int *)(ptr + 4);
-        *(int *)(actor + 0x6e8) = *(int *)(ptr + 8);
+        float *dest;
+        float *src;
+        *(char *)(actor + 0x504) = 0;
+        src = *(float **)0x31fc38;
+        actor += 0x6e0;
+        dest = (float *)actor;
+        dest[0] = src[0];
+        dest[1] = src[1];
+        dest[2] = src[2];
         actor_unit_control_stop_animation_impulse(actor_handle);
         result = 1;
       }
     }
   }
-  return (int)result;
+  return result;
 }
 
 /* actor_move_try_evasion_vector (0x2a8f0) — Test whether an actor can move
@@ -352,14 +361,16 @@ char actor_move_try_evasion_vector(int actor_handle, float *evasion_vector,
                      (unsigned int *)result) == '\0') {
       found = 1;
       fVar1 = *(float *)((char *)result + 0xc) - ((actor_t *)actor)->field_134;
-      if (!(fVar1 > scale * *(float *)0x253398) &&
-          (param_4 != *(float *)0x2533c0 ||
-           scale * *(float *)0x255964 <= fVar1)) {
+      if (fVar1 > scale * *(float *)0x253398) {
+        found = 0;
+      } else if (param_4 != *(float *)0x2533c0 ||
+                 fVar1 >= scale * *(float *)0x255964) {
         goto done;
+      } else {
+        found = 0;
       }
     }
-    found = 0;
-    if (*(float *)0x2533c0 < param_4) {
+    if (param_4 > *(float *)0x2533c0) {
       bsp = (int)global_collision_bsp_get();
       origin[0] =
         (((actor_t *)actor)->field_120 + ((actor_t *)actor)->field_12c) *
@@ -431,7 +442,7 @@ char actor_move_try_evasion_direction(int actor_handle, float *alignment_vector,
                                       void *result)
 {
   float evade_dir[2];
-  short count;
+  volatile short count;
   short attempt;
   short index;
 
@@ -449,32 +460,32 @@ char actor_move_try_evasion_direction(int actor_handle, float *alignment_vector,
   index = *evade_direction_reference;
   switch (index) {
   case 0:
-    evade_dir[1] = alignment_vector[0];
+    *(int *)&evade_dir[1] = *(int *)&alignment_vector[0];
     evade_dir[0] = -alignment_vector[1];
     break;
   case 1:
-    evade_dir[0] = alignment_vector[1];
+    *(int *)&evade_dir[0] = *(int *)&alignment_vector[1];
     evade_dir[1] = -alignment_vector[0];
     break;
   case 2:
     evade_dir[1] = alignment_vector[1];
-    evade_dir[0] = alignment_vector[0];
+    *(int *)&evade_dir[0] = *(int *)&alignment_vector[0];
     break;
   case 3:
     evade_dir[0] = -alignment_vector[0];
     evade_dir[1] = -alignment_vector[1];
     break;
   case 4:
-    if (random_seed_step((unsigned int *)get_global_random_seed_address()) <
-        0x8001) {
-      evade_dir[0] = alignment_vector[1];
-      evade_dir[1] = -alignment_vector[0];
-      index = 1;
-      count = 2;
-    } else {
-      evade_dir[1] = alignment_vector[0];
+    if (random_seed_step((unsigned int *)get_global_random_seed_address()) >
+        0x8000) {
+      *(int *)&evade_dir[1] = *(int *)&alignment_vector[0];
       evade_dir[0] = -alignment_vector[1];
       index = 0;
+      count = 2;
+    } else {
+      *(int *)&evade_dir[0] = *(int *)&alignment_vector[1];
+      evade_dir[1] = -alignment_vector[0];
+      index = 1;
       count = 2;
     }
     break;
@@ -487,13 +498,13 @@ char actor_move_try_evasion_direction(int actor_handle, float *alignment_vector,
   if (count > 0) {
     do {
       if (actor_move_try_evasion_vector(actor_handle, evade_dir, param_3,
-                                        param_5, out_flag, result) != '\0') {
+                                        param_5, out_flag, result) != 0) {
         *evade_direction_reference = index;
         return 1;
       }
-      attempt = attempt + 1;
+      attempt++;
       evade_dir[0] = -evade_dir[0];
-      index = index ^ 1;
+      index ^= 1;
       evade_dir[1] = -evade_dir[1];
     } while (attempt < count);
   }
@@ -533,12 +544,13 @@ char actor_move_try_evasion_direction(int actor_handle, float *alignment_vector,
  * Confirmed: FUN_00012fb0(param_5, param_4/magnitude, param_5) at 0x2adbd.
  * Confirmed: actor[0x530]=0; return 1 at 0x2adc6-0x2adcf.
  */
-int actor_aim_jump(int actor_handle, int a2, char param_3, float param_4,
-                   float *param_5)
+bool actor_aim_jump(int actor_handle, int a2, char param_3, float param_4,
+                    float *param_5)
 {
   char *actor;
   char cVar3;
   float magnitude;
+  float p0, p1, p2;
 
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
   if (((actor_t *)actor)->field_158 == -1) {
@@ -554,13 +566,15 @@ int actor_aim_jump(int actor_handle, int a2, char param_3, float param_4,
       } else {
         cVar3 = param_3;
       }
-      param_5[0] = *(float *)(actor + 0x534) * *(float *)(actor + 0x53c);
-      param_5[1] = *(float *)(actor + 0x538) * *(float *)(actor + 0x53c);
-      param_5[2] = *(float *)(actor + 0x540);
-      magnitude = sqrtf(param_5[0] * param_5[0] + param_5[1] * param_5[1] +
-                        param_5[2] * param_5[2]);
+      p2 = *(float *)(actor + 0x540);
+      p1 = *(float *)(actor + 0x538) * *(float *)(actor + 0x53c);
+      p0 = *(float *)(actor + 0x534) * *(float *)(actor + 0x53c);
+      param_5[0] = p0;
+      param_5[1] = p1;
+      param_5[2] = p2;
+      magnitude = sqrtf(param_5[0] * param_5[0] + p1 * p1 + p2 * p2);
       if (cVar3 == 0) {
-        if (param_4 < magnitude) {
+        if (magnitude > param_4) {
           FUN_00012fb0(param_5, param_4 / magnitude,
                        param_5); /* dup-args-ok: in-place scale matches
                                     confirmed call above. */
@@ -966,19 +980,19 @@ void actor_move_transform_avoidance_vector(int matrix, float *in_vec,
   out_vec[2] = world_translation[2];
 
   component = in_vec[0];
-  out_vec[0] = component * *(float *)(matrix + 0x18) + out_vec[0];
-  out_vec[1] = component * *(float *)(matrix + 0x1c) + out_vec[1];
-  out_vec[2] = component * *(float *)(matrix + 0x20) + out_vec[2];
+  out_vec[0] += component * *(float *)(matrix + 0x18);
+  out_vec[1] += component * *(float *)(matrix + 0x1c);
+  out_vec[2] += component * *(float *)(matrix + 0x20);
 
   component = in_vec[1];
-  out_vec[0] = component * *(float *)(matrix + 0x24) + out_vec[0];
-  out_vec[1] = component * *(float *)(matrix + 0x28) + out_vec[1];
-  out_vec[2] = component * *(float *)(matrix + 0x2c) + out_vec[2];
+  out_vec[0] += component * *(float *)(matrix + 0x24);
+  out_vec[1] += component * *(float *)(matrix + 0x28);
+  out_vec[2] += component * *(float *)(matrix + 0x2c);
 
   component = in_vec[2];
-  out_vec[0] = component * *(float *)(matrix + 0x30) + out_vec[0];
-  out_vec[1] = component * *(float *)(matrix + 0x34) + out_vec[1];
-  out_vec[2] = component * *(float *)(matrix + 0x38) + out_vec[2];
+  out_vec[0] += component * *(float *)(matrix + 0x30);
+  out_vec[1] += component * *(float *)(matrix + 0x34);
+  out_vec[2] += component * *(float *)(matrix + 0x38);
 }
 
 /* 0x2b490 — actor_move_get_avoidance_vector: map an avoidance "direction index"
@@ -1006,6 +1020,7 @@ void actor_move_get_avoidance_vector(int matrix, float dir_index,
   const float *angles = (const float *)0x2557f4;
   short sector;
   int idx;
+  float base;
   float next_angle;
   float frac;
   float angle;
@@ -1013,41 +1028,45 @@ void actor_move_get_avoidance_vector(int matrix, float dir_index,
 
   /* Clamp the index into the valid [0, 8) range. */
   if (dir_index < *(const float *)0x2533c0 ||
-      *(const float *)0x253f78 <= dir_index) {
+      dir_index >= *(const float *)0x253f78) {
     dir_index = 0.0f;
   }
 
-  angle = 0.0f;
   sector = 0;
   do {
-    if (dir_index < (float)(int)sector + *(const float *)0x2533c8) {
+    if ((float)(int)sector + *(const float *)0x2533c8 > dir_index) {
       idx = (int)sector;
-      next_angle = *(const float *)0x2557f4;
-      if (sector != 7) {
+      frac = dir_index - (float)idx;
+      base = angles[idx];
+      if (sector == 7) {
+        next_angle = *(const float *)0x2557f4;
+      } else {
         next_angle = ((const float *)0x2557f8)[idx];
       }
-      frac = dir_index - (float)idx;
-      angle =
-        next_angle * frac + (*(const float *)0x2533c8 - frac) * angles[idx];
-      if (angle != *(const float *)0x2548fc) {
-        if (angle < *(const float *)0x2533c0 ||
-            *(const float *)0x255a54 <= angle) {
-          display_assert("(angle >= 0.0f) && (angle < _full_circle)",
-                         "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0xab7, 1);
-          system_exit(-1);
-        }
-        goto build_vector;
+      angle = (*(const float *)0x2533c8 - frac) * base + next_angle * frac;
+      if (*(const float *)0x2548fc != angle) {
+        goto range_check;
       }
-      break;
+      goto not_found;
     }
     sector = sector + 1;
   } while (sector < 8);
 
+not_found:
   angle = 0.0f;
   error(2,
         "warning: actor_move_get_avoidance_vector couldn't find out-of-bounds "
         "direction %.4f",
         (double)dir_index);
+  goto build_vector;
+
+range_check:
+  if (!(angle >= *(const float *)0x2533c0 &&
+        angle < *(const float *)0x255a54)) {
+    display_assert("(angle >= 0.0f) && (angle < _full_circle)",
+                   "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0xab7, 1);
+    system_exit(-1);
+  }
 
 build_vector:
   vec[0] = 0.0f;
@@ -1080,31 +1099,27 @@ void actor_move_get_avoidance_direction(void)
   float *p_b;
 
   const float *scale_table_9 = (const float *)0x2557a8;
-  const float k_angle = *(const float *)0x255780;
-  const float k_length = *(const float *)0x25577c;
-  const float k_base = *(const float *)0x255778;
 
   const float *outer_angles = (const float *)0x25581c;
   const float *outer_scales = (const float *)0x255814;
   const float *inner_angles;
-  const float k_inner_base = *(const float *)0x2557f0;
 
   int row;
   int col;
-  float angle, sin_angle, cos_angle, scaled_angle, sin_scaled, scaled_len;
+  float sin_angle, cos_angle, scaled_angle, sin_scaled, scaled_len;
   float sin_outer, cos_outer, row_scale;
-  float inner, cos_inner, sin_inner;
+  float cos_inner, sin_inner;
 
-  for (scale_table_9 = (const float *)0x2557a8;
-       scale_table_9 != (const float *)0x2557cc; scale_table_9++) {
-    angle = scale_table_9[9];
-    sin_angle = x87_fsin(angle);
-    cos_angle = x87_fcos(angle);
-    scaled_angle = k_angle * scale_table_9[0];
+  scale_table_9 = (const float *)0x2557a8;
+  row = 9;
+  do {
+    sin_angle = x87_fsin(scale_table_9[9]);
+    cos_angle = x87_fcos(scale_table_9[9]);
+    scaled_angle = *(const float *)0x255780 * scale_table_9[0];
     sin_scaled = x87_fsin(scaled_angle);
-    scaled_len = k_length * scale_table_9[-9];
+    scaled_len = *(const float *)0x25577c * scale_table_9[-9];
 
-    p_a[0] = k_base;
+    p_a[0] = *(const float *)0x255778;
     p_a[1] = 0.0f;
     p_a[2] = scaled_len * cos_angle;
     p_a[3] = scaled_len * sin_angle;
@@ -1112,21 +1127,26 @@ void actor_move_get_avoidance_direction(void)
     p_a[5] = sin_scaled * cos_angle;
     p_a[6] = sin_scaled * sin_angle;
     p_a += 7;
-  }
+    scale_table_9++;
+    row = row - 1;
+  } while (row != 0);
 
-  for (row = 0; row < 2; row++) {
-    sin_outer = x87_fsin(outer_angles[row]);
-    cos_outer = x87_fcos(outer_angles[row]);
-    row_scale = outer_scales[row];
+  row = 2;
+  do {
+    sin_outer = x87_fsin(outer_angles[0]);
+    cos_outer = x87_fcos(outer_angles[0]);
+    row_scale = outer_scales[0];
+    outer_angles++;
+    outer_scales++;
 
     basis = (float *)0x632780;
     p_b = outer_b;
     inner_angles = (const float *)0x2557f4;
 
-    for (col = 0; col < 8; col++) {
-      inner = inner_angles[col];
-      cos_inner = x87_fcos(inner);
-      sin_inner = x87_fsin(inner);
+    for (col = 8; col != 0; col--) {
+      inner_angles++;
+      cos_inner = x87_fcos(inner_angles[-1]);
+      sin_inner = x87_fsin(inner_angles[-1]);
 
       basis[0] = 0.0f;
       basis[1] = cos_inner;
@@ -1137,7 +1157,7 @@ void actor_move_get_avoidance_direction(void)
        *   [+0x10] row_scale * basis[0..2]
        *   [+0x1c] sin_outer * basis[0..2], with [+0x1c] then overwritten by
        *           cos_outer (the sin_outer*basis[0] product is dead). */
-      p_b[-3] = k_inner_base;
+      p_b[-3] = *(const float *)0x2557f0;
       p_b[-2] = row_scale * basis[0];
       p_b[-1] = row_scale * basis[1];
       p_b[0] = row_scale * basis[2];
@@ -1150,7 +1170,8 @@ void actor_move_get_avoidance_direction(void)
       p_b += 14;
     }
     outer_b += 7;
-  }
+    row = row - 1;
+  } while (row != 0);
 }
 
 /* actor_path_3d_available (0x2b720) — Check if vehicle actor should brake.
@@ -1244,7 +1265,7 @@ void FUN_0002b830(float *facing_basis /* @<ecx> */, char use_3d,
   float best_weight_dot;
   float best_basis_dot;
   float cur_basis_dot;
-  float cur_weight_dot;
+  volatile float cur_weight_dot;
   short best_index;
   short i;
   float *p;
@@ -1255,7 +1276,17 @@ void FUN_0002b830(float *facing_basis /* @<ecx> */, char use_3d,
   cand[1] = in_vec[1];
   cand[2] = in_vec[2];
 
-  if (use_3d == 0) {
+  if (use_3d != 0) {
+    if (normalize3d(cand) == *(float *)0x2533c0) {
+      cand[0] = facing_basis[0];
+      cand[1] = facing_basis[1];
+      cand[2] = facing_basis[2];
+    }
+    /* cand2 = world forward vector. */
+    cand[6] = *(float *)*(int *)0x31fc38;
+    cand[7] = ((float *)*(int *)0x31fc38)[1];
+    cand[8] = ((float *)*(int *)0x31fc38)[2];
+  } else {
     cand[2] = 0.0f;
     if (normalize3d(cand) == *(float *)0x2533c0) {
       cand[0] = facing_basis[0];
@@ -1266,16 +1297,6 @@ void FUN_0002b830(float *facing_basis /* @<ecx> */, char use_3d,
     cand[6] = -cand[1];
     cand[7] = cand[0];
     cand[8] = 0.0f;
-  } else {
-    if (normalize3d(cand) == *(float *)0x2533c0) {
-      cand[0] = facing_basis[0];
-      cand[1] = facing_basis[1];
-      cand[2] = facing_basis[2];
-    }
-    /* cand2 = world forward vector. */
-    cand[6] = *(float *)*(int *)0x31fc38;
-    cand[7] = ((float *)*(int *)0x31fc38)[1];
-    cand[8] = ((float *)*(int *)0x31fc38)[2];
   }
 
   /* cand1 = -cand0, cand3 = -cand2. */
@@ -1291,13 +1312,13 @@ void FUN_0002b830(float *facing_basis /* @<ecx> */, char use_3d,
   best_basis_dot = 0.0f;
   p = cand;
   for (i = 0; i < 4; i++) {
-    if (use_3d == 0) {
-      cur_weight_dot = weight_vec[0] * p[0] + weight_vec[1] * p[1];
-      cur_basis_dot = facing_basis[0] * p[0];
-    } else {
+    if (use_3d != 0) {
       cur_weight_dot =
         weight_vec[0] * p[0] + weight_vec[1] * p[1] + weight_vec[2] * p[2];
       cur_basis_dot = facing_basis[0] * p[0] + facing_basis[2] * p[2];
+    } else {
+      cur_weight_dot = weight_vec[0] * p[0] + weight_vec[1] * p[1];
+      cur_basis_dot = facing_basis[0] * p[0];
     }
     cur_basis_dot = p[1] * facing_basis[1] + cur_basis_dot;
 
@@ -1306,13 +1327,13 @@ void FUN_0002b830(float *facing_basis /* @<ecx> */, char use_3d,
       best_basis_dot = cur_basis_dot;
       best_index = i;
     } else if (cur_weight_dot <= best_weight_dot) {
-      if (best_basis_dot < cur_basis_dot &&
-          *(float *)0x253398 < cur_weight_dot) {
+      if (cur_basis_dot > best_basis_dot &&
+          cur_weight_dot > *(float *)0x253398) {
         best_weight_dot = cur_weight_dot;
         best_basis_dot = cur_basis_dot;
         best_index = i;
       }
-    } else if (best_basis_dot < cur_basis_dot ||
+    } else if (cur_basis_dot > best_basis_dot ||
                best_basis_dot < *(float *)0x253398) {
       best_weight_dot = cur_weight_dot;
       best_basis_dot = cur_basis_dot;
@@ -1420,7 +1441,7 @@ void FUN_0002bab0(char use_3d /* @<al> */,
   }
   mk = movement_direction[2];
   if (((*(unsigned int *)&mk & 0x7f800000) == 0x7f800000) ||
-      (!(fabsf(mk) < *(double *)0x2549d8))) {
+      (!(fabs(mk) < *(double *)0x2549d8))) {
     display_assert(csprintf((char *)0x5ab100,
                             "%s, %s: assert_valid_realcmp(%f, %f)",
                             "movement_direction->k", (char *)0x255b18,
@@ -1430,7 +1451,7 @@ void FUN_0002bab0(char use_3d /* @<al> */,
   }
   fk = facing_direction[2];
   if (((*(unsigned int *)&fk & 0x7f800000) == 0x7f800000) ||
-      (!(fabsf(fk) < *(double *)0x2549d8))) {
+      (!(fabs(fk) < *(double *)0x2549d8))) {
     display_assert(csprintf((char *)0x5ab100,
                             "%s, %s: assert_valid_realcmp(%f, %f)",
                             "facing_direction->k", (char *)0x255b18,
@@ -1503,6 +1524,7 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
   float move_amt, move_idx, move_value;
   float em_value, em_index, em_push;
   float out_speed;
+  float residual; /* [EBP-0x18]: best_value - move_value */
   unsigned char *pb;
 
   state = (float *)avoidance_state;
@@ -1834,6 +1856,11 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
     xform[1] = xform[1] * inv;
     xform[2] = xform[2] * inv;
     if (*(float *)0x2533c0 < mag) {
+      /* MOV dword [EBP-0x10],0 at 0x2c69a: work[0] is reset here, before the
+       * lateral projection.  Without it work[0] keeps the world-matrix
+       * translation x on the path where the lateral magnitude is degenerate,
+       * poisoning the mode-3/mode-4 dot products below. */
+      work[0] = 0.0f;
       move_idx = xform[0] * *(float *)((char *)state + 0x18) +
                  *(float *)((char *)state + 0x1c) * xform[1] +
                  *(float *)((char *)state + 0x20) * xform[2];
@@ -1877,20 +1904,30 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
   *(short *)(avd + 0x6500) = best_dir;
   *(float *)(avd + 0x6508) = move_value;
 
-  /* emergency-amount ramp from the running max weight (max_weight). */
+  /* emergency-amount ramp from the running max weight (max_weight).
+   * Confirmed at 0x2c7fa-0x2c884: FLD [EBP-0x4c] / FCOMP [0x253f3c] /
+   * TEST AH,0x41 / JNE 0x2c861, so the `max_weight <= threshold` arm is the
+   * one that reaches FMUL [0x254e6c] and clamps to 1.0; the `>` arm subtracts
+   * the threshold, scales by [0x255ba8], clamps, and adds 1.0 (giving the
+   * 1.0..2.0 band). */
   if (max_weight <= *(float *)0x253f3c) {
+    emergency = max_weight * *(float *)0x254e6c;
+    if (*(float *)0x2533c8 <= emergency) {
+      emergency = 1.0f;
+    }
+  } else {
     emergency = (max_weight - *(float *)0x253f3c) * *(float *)0x255ba8;
     if (*(float *)0x2533c8 <= emergency) {
       emergency = *(float *)0x2533c8;
     }
     emergency = emergency + *(float *)0x2533c8;
-  } else {
-    emergency = max_weight * *(float *)0x254e6c;
-    if (*(float *)0x2533c8 <= emergency) {
-      emergency = 1.0f;
-    }
   }
-  *(float *)(avd + 0x650c) = best_value - move_idx;
+  /* [EBP-0x18] = best_value - move_value, computed once at 0x2c7bf-0x2c7c2
+   * (FLD [EBP-0x2c] / FSUB [EBP-0x34]) and reused by the mode-6 test, the
+   * mode-2 test, and the mode-4 turn ramp.  It is the residual against the
+   * direction-approximation VALUE, not against move_idx. */
+  residual = best_value - move_value;
+  *(float *)(avd + 0x650c) = residual;
   *(float *)(avd + 0x6510) = move_idx;
 
   have_dir = 0;
@@ -1910,8 +1947,7 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
       *(short *)(avd + 0x653c) = 5;
       goto count_state;
     }
-    if (*(float *)0x253f40 < (best_value - move_idx) &&
-        *(float *)0x253f40 < best_value) {
+    if (*(float *)0x253f40 < residual && *(float *)0x253f40 < best_value) {
       *(short *)(avd + 0x653c) = 6;
       goto count_state;
     }
@@ -1953,6 +1989,11 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
             out[0] = bx * f * g;
             out[1] = by * f * g;
             out[2] = bz * f * g;
+            /* avd+0x6520 records the SCALE that was applied, not the raw
+             * magnitude: 0x2ccd7 FLD [EBP-4] / FMUL [0x255b94] leaves g in
+             * ST(0) and 0x2cd02 FSTP [ESI+0x6520] stores it.  Both early
+             * exits store 0.0 ([EBP-0x50], zeroed at 0x2cc1c). */
+            blen = g;
           }
         }
         *(float *)(avd + 0x6520) = blen;
@@ -1961,7 +2002,7 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
         *(float *)(avd + 0x651c) = max_weight;
         out_speed = emergency;
       }
-    } else if ((best_value - move_idx) <= *(float *)0x255b9c) {
+    } else if (residual <= *(float *)0x255b9c) {
       *(short *)(avd + 0x653c) = 2;
     } else {
       /* mode 3/4: gauge how far the emergency vector (work) already points at
@@ -1971,20 +2012,23 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
                   work[1] * *(float *)(0x632784 + bd * 0xc) +
                   work[2] * *(float *)(0x632788 + bd * 0xc);
       if (*(float *)0x253398 < dot) {
-        float turn =
-          (best_value - move_idx) * *(float *)0x255b98 - *(float *)0x253398;
+        float turn = residual * *(float *)0x255b98 - *(float *)0x253398;
         float lat;
-        move_amt = *(float *)0x2533c0;
+        /* The clamped turn amount IS the emergency-amount output: 0x2cb33-
+         * 0x2cb54 leaves it in ST(0), which the shared epilogue at 0x2cd9a
+         * stores through emergency_amount.  Writing it to a scratch local
+         * left *speed_out at its initial [0x2533c0] on every mode-4 tick. */
+        out_speed = *(float *)0x2533c0;
         if (*(float *)0x2533c0 <= turn) {
-          move_amt = turn;
+          out_speed = turn;
           if (*(float *)0x2533c8 < turn) {
-            move_amt = *(float *)0x2533c8;
+            out_speed = *(float *)0x2533c8;
           }
         }
-        if (move_amt <= emergency) {
-          move_amt = emergency;
+        if (out_speed <= emergency) {
+          out_speed = emergency;
         }
-        emergency = *(float *)0x255b94 * move_amt;
+        emergency = *(float *)0x255b94 * out_speed;
         lat = work[2] * *(float *)(0x632784 + bd * 0xc) -
               work[1] * *(float *)(0x632788 + bd * 0xc);
         if (*(float *)0x2533c0 < lat) {
@@ -2573,8 +2617,8 @@ void actor_destination_update(int actor_handle)
     exhausted = '\0';
 
     while (1) {
-      step_idx = (int)((actor_t *)actor)->field_4c2;
-      step_cnt = (int)((actor_t *)actor)->field_4c1;
+      step_idx = (int)(signed char)path_ctl[0x1a];
+      step_cnt = (int)(signed char)path_ctl[0x19];
 
       if (step_idx + 1 >= step_cnt) {
         exhausted = '\x01';
@@ -2985,6 +3029,9 @@ char actor_move_to_move_position(int actor_handle, int16_t param_2)
     *(int *)(iVar1 + 0x414) = -1;
     *(char *)(iVar1 + 0x402) = 0;
     *(int16_t *)(iVar1 + 0x400) = 4;
+    /* Original emits REP MOVSD ECX=6 here; VC71 at our flags unrolls every
+     * 24-byte copy form (memcpy, struct assign, volatile struct assign), so
+     * the manual dword loop below is the closest reachable shape. */
     puVar4 = (int *)(iVar1 + 0x400);
     psVar5 = (short *)(iVar1 + 0x46c);
     for (iVar3 = 6; iVar3 != 0; iVar3--) {
@@ -3518,7 +3565,7 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
       }
     }
     delta_angle = steer_speed - desired_speed;
-    if (*(double *)0x2533d0 < fabsf(delta_angle)) {
+    if (*(double *)0x2533d0 < fabs(delta_angle)) {
       avoid_vec[0] = facing[2] * ((actor_t *)actor)->input_facing_vector[1] -
                      facing[1] * ((actor_t *)actor)->input_facing_vector[2];
       avoid_vec[1] = facing[0] * ((actor_t *)actor)->input_facing_vector[2] -

@@ -754,6 +754,34 @@
    ],
    "functions": [
     {
+     "addr": "0x160920",
+     "decl": "void FUN_00160920(void);"
+    },
+    {
+     "addr": "0x160930",
+     "decl": "void FUN_00160930(void);"
+    },
+    {
+     "addr": "0x160940",
+     "decl": "void _rasterizer_hud_begin(void);"
+    },
+    {
+     "addr": "0x160950",
+     "decl": "void FUN_00160950(void);"
+    },
+    {
+     "addr": "0x160970",
+     "decl": "void _rasterizer_hud_end(void);"
+    },
+    {
+     "addr": "0x160980",
+     "decl": "void FUN_00160980(void);"
+    },
+    {
+     "addr": "0x1609a0",
+     "decl": "void _rasterizer_dynamic_lit_geometry_draw(void);"
+    },
+    {
      "addr": "0x67710",
      "decl": "void FUN_00067710(void);"
     },
@@ -32861,13 +32889,13 @@
     },
     {
      "addr": "0x2a7e0",
-     "decl": "int actor_move_animation_impulse(int actor_handle, int16_t param_2, int *param_3);",
+     "decl": "bool actor_move_animation_impulse(int actor_handle, int16_t param_2, int *param_3);",
      "name": "actor_move_animation_impulse",
      "ported": true
     },
     {
      "addr": "0x2a860",
-     "decl": "int actor_move_force_stop(int actor_handle);",
+     "decl": "bool actor_move_force_stop(int actor_handle);",
      "name": "actor_move_force_stop",
      "ported": true
     },
@@ -32885,7 +32913,7 @@
     },
     {
      "addr": "0x2ace0",
-     "decl": "int actor_aim_jump(int actor_handle, int a2, char param_3, float param_4, float *param_5);",
+     "decl": "bool actor_aim_jump(int actor_handle, int a2, char param_3, float param_4, float *param_5);",
      "name": "actor_aim_jump",
      "ported": true,
      "source_path": "halo/ai/actor_moving.c"
@@ -36839,7 +36867,8 @@
    "source": "physics/collision_features.c"
   },
   {
-   "data": [],
+   "name": "rasterizer_xbox_draw_primitives.obj",
+   "source": "rasterizer/xbox/rasterizer_xbox_draw_primitives.c",
    "functions": [
     {
      "addr": "0x15d8b0",
@@ -36900,7 +36929,13 @@
     {
      "addr": "0x15ee80",
      "decl": "void FUN_0015ee80(int handle);"
-    },
+    }
+   ]
+  },
+  {
+   "name": "rasterizer_xbox_dynavobgeom.obj",
+   "source": "rasterizer/xbox/rasterizer_xbox_dynavobgeom.c",
+   "functions": [
     {
      "addr": "0x15f1f0",
      "decl": "void FUN_0015f1f0(void);"
@@ -36928,35 +36963,13 @@
     {
      "addr": "0x15f8e0",
      "decl": "void FUN_0015f8e0(void *parameters, void *vertices);"
-    },
-    {
-     "addr": "0x160920",
-     "decl": "void FUN_00160920(void);"
-    },
-    {
-     "addr": "0x160930",
-     "decl": "void FUN_00160930(void);"
-    },
-    {
-     "addr": "0x160940",
-     "decl": "void _rasterizer_hud_begin(void);"
-    },
-    {
-     "addr": "0x160950",
-     "decl": "void FUN_00160950(void);"
-    },
-    {
-     "addr": "0x160970",
-     "decl": "void _rasterizer_hud_end(void);"
-    },
-    {
-     "addr": "0x160980",
-     "decl": "void FUN_00160980(void);"
-    },
-    {
-     "addr": "0x1609a0",
-     "decl": "void _rasterizer_dynamic_lit_geometry_draw(void);"
-    },
+    }
+   ]
+  },
+  {
+   "name": "rasterizer_xbox_environment.obj",
+   "source": "rasterizer/xbox/rasterizer_xbox_environment.c",
+   "functions": [
     {
      "addr": "0x1609b0",
      "decl": "void FUN_001609b0(void);"
@@ -37068,7 +37081,13 @@
     {
      "addr": "0x165420",
      "decl": "void FUN_00165420(void);"
-    },
+    }
+   ]
+  },
+  {
+   "name": "rasterizer_xbox_environment_fog.obj",
+   "source": "rasterizer/xbox/rasterizer_xbox_environment_fog.c",
+   "functions": [
     {
      "addr": "0x165980",
      "decl": "void FUN_00165980(void);"
@@ -37144,7 +37163,13 @@
     {
      "addr": "0x167ff0",
      "decl": "void FUN_00167ff0(int a1, const char *call_text);"
-    },
+    }
+   ]
+  },
+  {
+   "name": "rasterizer_xbox_hardware_bitmaps.obj",
+   "source": "rasterizer/xbox/rasterizer_xbox_hardware_bitmaps.c",
+   "functions": [
     {
      "addr": "0x168230",
      "decl": "void FUN_00168230(void);"
@@ -37212,7 +37237,13 @@
     {
      "addr": "0x168ca0",
      "decl": "void FUN_00168ca0(void);"
-    },
+    }
+   ]
+  },
+  {
+   "name": "rasterizer_xbox_hardware_geometry.obj",
+   "source": "rasterizer/xbox/rasterizer_xbox_hardware_geometry.c",
+   "functions": [
     {
      "addr": "0x168cd0",
      "decl": "void FUN_00168cd0(void);"
@@ -37232,7 +37263,13 @@
     {
      "addr": "0x169200",
      "decl": "void FUN_00169200(void);"
-    },
+    }
+   ]
+  },
+  {
+   "name": "rasterizer_xbox_lights.obj",
+   "source": "rasterizer/xbox/rasterizer_xbox_lights.c",
+   "functions": [
     {
      "addr": "0x169650",
      "decl": "void FUN_00169650(void);"
@@ -37252,7 +37289,13 @@
     {
      "addr": "0x169fd0",
      "decl": "void FUN_00169fd0(int *param_1);"
-    },
+    }
+   ]
+  },
+  {
+   "name": "rasterizer_xbox_models.obj",
+   "source": "rasterizer/xbox/rasterizer_xbox_models.c",
+   "functions": [
     {
      "addr": "0x16ab00",
      "decl": "void FUN_0016ab00(void);"
@@ -37289,9 +37332,7 @@
      "addr": "0x16c5a0",
      "decl": "void FUN_0016c5a0(int param_1, int param_2, int param_3, int param_4, int param_5, int param_6, int param_7);"
     }
-   ],
-   "name": "rasterizer_xbox_dynavobgeom.obj",
-   "source": "rasterizer/xbox/rasterizer_xbox_dynavobgeom.c"
+   ]
   },
   {
    "data": [],
