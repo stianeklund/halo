@@ -3740,7 +3740,7 @@ void actor_move_update(int actor_handle)
 
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
   if (((actor_t *)actor)->field_4a8 == '\0' ||
-      *(float *)(actor + 0x4a0) < (float)actr_tag[0x25]) {
+      *(float *)(actor + 0x4a0) < ((float *)actr_tag)[0x25]) {
     crouch = ((actor_t *)actor)->field_426;
   } else {
     crouch = ((actor_t *)actor)->field_427;
@@ -3769,7 +3769,8 @@ void actor_move_update(int actor_handle)
                 need_jump = 1;
               }
               if ((*actr_tag & 0x200000) != 0) {
-                max_speed_sq = (float)actr_tag[0x26] * (float)actr_tag[0x26];
+                max_speed_sq =
+                  ((float *)actr_tag)[0x26] * ((float *)actr_tag)[0x26];
                 use_z = 1;
                 want_facing = 1;
                 if (((actor_t *)actor)->field_505 != '\0') {
