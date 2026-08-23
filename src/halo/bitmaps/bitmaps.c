@@ -29,38 +29,38 @@ void FUN_0007ba50(void *bitmap)
   size = bitmap_get_pixel_data_size(bitmap);
   temporary = debug_malloc(
     size, 0, "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x587);
-  if (temporary == NULL) {
+  if (temporary != NULL) {
+    for (y = 0; y < *(short *)(b + 6); y++) {
+      for (x = 0; x < *(short *)(b + 4); x++) {
+        pixel = *(uint32_t *)bitmap_2d_address(bitmap, x, y, 0);
+        red = (float)((pixel >> 16) & 0xff) * *(float *)0x26486c - 1.0f;
+        green = (float)((pixel >> 8) & 0xff) * *(float *)0x26486c - 1.0f;
+        blue = (float)(pixel & 0xff) * *(float *)0x26486c - 1.0f;
+        magnitude = x87_sqrt(red * red + green * green + blue * blue);
+        if (fabs((double)magnitude) >= *(double *)0x2533d0) {
+          inverse_magnitude = 1.0f / magnitude;
+          red *= inverse_magnitude;
+          green *= inverse_magnitude;
+          blue *= inverse_magnitude;
+        }
+        packed = (uint32_t)(int)((red + 1.0f) * *(float *)0x264868 +
+                                 0.5f); /* hazard-ok: value-add */
+        packed =
+          (packed << 8) | (uint32_t)(int)((green + 1.0f) * *(float *)0x264868 +
+                                          0.5f); /* hazard-ok: value-add */
+        packed = (packed << 8) | (pixel & 0xff000000) |
+                 (uint32_t)(int)((blue + 1.0f) * *(float *)0x264868 +
+                                 0.5f); /* hazard-ok: value-add */
+        *(uint32_t *)((char *)temporary +
+                      ((int)*(short *)(b + 4) * (int)y + (int)x) * 4) = packed;
+      }
+    }
+    csmemcpy(bitmap_mipmap_address(bitmap, 0), temporary, size);
+    debug_free(temporary, "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x5a8);
+  } else {
     error(2, "### ERROR failed to allocate temporary buffer");
-    return;
   }
 
-  for (y = 0; y < *(short *)(b + 6); y++) {
-    for (x = 0; x < *(short *)(b + 4); x++) {
-      pixel = *(uint32_t *)bitmap_2d_address(bitmap, x, y, 0);
-      red = (float)((pixel >> 16) & 0xff) * *(float *)0x26486c - 1.0f;
-      green = (float)((pixel >> 8) & 0xff) * *(float *)0x26486c - 1.0f;
-      blue = (float)(pixel & 0xff) * *(float *)0x26486c - 1.0f;
-      magnitude = sqrtf(red * red + green * green + blue * blue);
-      if (*(double *)0x2533d0 <= fabs((double)magnitude)) {
-        inverse_magnitude = 1.0f / magnitude;
-        red *= inverse_magnitude;
-        green *= inverse_magnitude;
-        blue *= inverse_magnitude;
-      }
-      packed = (uint32_t)(int)((red + 1.0f) * *(float *)0x264868 +
-                               0.5f); /* hazard-ok: value-add */
-      packed =
-        (packed << 8) | (uint32_t)(int)((green + 1.0f) * *(float *)0x264868 +
-                                        0.5f); /* hazard-ok: value-add */
-      packed = (packed << 8) | (pixel & 0xff000000) |
-               (uint32_t)(int)((blue + 1.0f) * *(float *)0x264868 +
-                               0.5f); /* hazard-ok: value-add */
-      *(uint32_t *)((char *)temporary +
-                    ((int)*(short *)(b + 4) * (int)y + (int)x) * 4) = packed;
-    }
-  }
-  csmemcpy(bitmap_mipmap_address(bitmap, 0), temporary, size);
-  debug_free(temporary, "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x5a8);
 }
 
 void FUN_0007bcb0(void *bitmap)
@@ -330,25 +330,18 @@ float *FUN_0007c270(float *out_color, uint32_t flags, float *rgb_lower_bound,
     system_exit(-1);
   }
 
-  if ((flags & 1) == 0) {
-    /* Linear RGB interpolation. */
-    out_color[0] = blend * rgb_upper_bound[0] + t_inv * rgb_lower_bound[0];
-    out_color[1] = blend * rgb_upper_bound[1] + t_inv * rgb_lower_bound[1];
-    out_color[2] = blend * rgb_upper_bound[2] + t_inv * rgb_lower_bound[2];
-  } else {
+  if (flags & 1) {
     /* HSV interpolation. Convert both endpoints to HSV. */
     bitmap_clone(rgb_lower_bound, hsv_lower);
     bitmap_clone(rgb_upper_bound, hsv_upper);
 
     /* Decide whether to wrap one hue up by +1.0 so the mix takes the
      * short (or long, depending on bit 1) arc around the hue circle. */
-    hue_diff = hsv_upper[0] - hsv_lower[0];
-    if (hue_diff < 0.0f)
-      hue_diff = -hue_diff;
+    hue_diff = (float)fabs((double)(hsv_upper[0] - hsv_lower[0]));
     wrap_flag = (hue_diff > *(double *)0x25fea8) ? 1 : 0;
 
     if (wrap_flag != (int)((flags >> 1) & 1)) {
-      if (hsv_upper[0] <= hsv_lower[0])
+      if (hsv_upper[0] < hsv_lower[0])
         hsv_upper[0] = hsv_upper[0] + *(float *)0x2533c8;
       else
         hsv_lower[0] = hsv_lower[0] + *(float *)0x2533c8;
@@ -361,7 +354,13 @@ float *FUN_0007c270(float *out_color, uint32_t flags, float *rgb_lower_bound,
     hsv_result[2] = hsv_upper[2] * blend + hsv_lower[2] * t_inv;
 
     real_hsv_color_to_real_rgb_color(hsv_result, out_color);
+  } else {
+    /* Linear RGB interpolation. */
+    out_color[0] = blend * rgb_upper_bound[0] + t_inv * rgb_lower_bound[0];
+    out_color[1] = blend * rgb_upper_bound[1] + t_inv * rgb_lower_bound[1];
+    out_color[2] = blend * rgb_upper_bound[2] + t_inv * rgb_lower_bound[2];
   }
+
 
   if (!valid_real_rgb_color(out_color)) {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_rgb_color(%f, %f, %f)",
@@ -392,8 +391,9 @@ void FUN_0007c490(float *rgb_result, uint32_t flags, float *lower_bound,
                      "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x96e, 1);
       system_exit(-1);
     }
-    if (*(float *)0x253f44 < lower_bound[0] ||
-        *(float *)0x253f44 < upper_bound[0]) {
+    if (lower_bound[0] > *(float *)0x253f44 ||
+        upper_bound[0] > *(float *)0x253f44) {
+
       alpha = blend * upper_bound[0] + (1.0f - blend) * lower_bound[0];
       inverse_alpha = 1.0f - alpha;
       rgb_result[0] = inverse_alpha * rgb_scale[0] + alpha * rgb_result[0];
@@ -439,36 +439,36 @@ void FUN_0007c5f0(void *bitmap, float bump_height)
     system_exit(-1);
   }
 
-  if (bump_height <= 0.0f) {
+  if (bump_height > *(float *)0x2533c0) {
+    type = *(short *)((char *)bitmap + 0xa);
+    switch (type) {
+    case 0:
+      /* _bitmap_type_2d: bitmap passed via ESI (register arg). */
+      FUN_0007b510(bump_height, bitmap);
+      return;
+    case 1:
+      /* _bitmap_type_3d: bitmap passed via EBX (register arg). */
+      FUN_0007b940(bump_height, bitmap);
+      return;
+    case 2:
+      /* _bitmap_type_cube_map: bitmap passed via ESI (register arg). */
+      FUN_00079630(bump_height, bitmap);
+      return;
+    default:
+      break;
+    }
+
+    display_assert("### ERROR unsupported bitmap type",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x4bd, 1);
+    system_exit(-1);
+  } else {
     crt_fprintf(
       (void *)0x331050,
       (const char *)0x2648d8); /* L"### WARNING importing special-effect bump
                                   map with zero-height\r\n" */
     crt_fflush((void *)0x331050);
-    return;
   }
 
-  type = *(short *)((char *)bitmap + 0xa);
-  switch (type) {
-  case 0:
-    /* _bitmap_type_2d: bitmap passed via ESI (register arg). */
-    FUN_0007b510(bump_height, bitmap);
-    return;
-  case 1:
-    /* _bitmap_type_3d: bitmap passed via EBX (register arg). */
-    FUN_0007b940(bump_height, bitmap);
-    return;
-  case 2:
-    /* _bitmap_type_cube_map: bitmap passed via ESI (register arg). */
-    FUN_00079630(bump_height, bitmap);
-    return;
-  default:
-    break;
-  }
-
-  display_assert("### ERROR unsupported bitmap type",
-                 "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0x4bd, 1);
-  system_exit(-1);
 }
 
 /*
@@ -952,6 +952,8 @@ uint32_t bitmap_format_to_a8r8g8b8(short format, void *mipmap_address,
   uint32_t result;
   uint32_t work;
   uint32_t channel;
+  uint16_t value16;
+  uint8_t ch;
 
   if (mipmap_address == NULL) {
     display_assert("mipmap_address", "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c",
@@ -959,20 +961,6 @@ uint32_t bitmap_format_to_a8r8g8b8(short format, void *mipmap_address,
     system_exit(-1);
   }
   switch (format) {
-  case 0:
-    return (uint32_t)((uint8_t *)mipmap_address)[pixel_index] << 24;
-  case 1:
-    value = ((uint8_t *)mipmap_address)[pixel_index];
-    return 0xff000000 | value | (value << 8) | (value << 16);
-  case 2:
-    value = ((uint8_t *)mipmap_address)[pixel_index];
-    return value | (value << 8) | (value << 16) | (value << 24);
-  case 3:
-    value = ((uint16_t *)mipmap_address)[pixel_index];
-    channel = value & 0xff;
-    result = (value & 0xffffff00) | channel;
-    result = (result << 8) | channel;
-    return (result << 8) | channel;
   case 6:
     value = ((uint16_t *)mipmap_address)[pixel_index];
     result = ((value & 0xfffff800) | 0xffff0000) << 3;
@@ -986,24 +974,44 @@ uint32_t bitmap_format_to_a8r8g8b8(short format, void *mipmap_address,
     result = (result | (value & 0x3e0)) << 2;
     result = (result | (value & 0x7000)) << 1;
     result |= value & 0x1f;
-    result = ((result << 2) | (value & 0x380)) << 1;
-    result |= (value >> 2) & 7;
-    return result | ((uint32_t) - (int32_t)(value >> 15) << 24);
+    result = (result << 2) | (value & 0x380);
+    result = (result << 1) | ((value >> 2) & 7);
+    return result | (-(int32_t)(value >> 15) << 24);
   case 9:
     value = ((uint16_t *)mipmap_address)[pixel_index];
     work = value >> 8;
-    result = ((work & 0xfffffff0) << 12) | value;
-    result &= 0xfffff000;
+    result = (((work & 0xf0) << 12) | value) & 0xfffff000;
     channel = work & 0xf;
-    work = (channel << 4) | channel;
-    result |= work << 4;
+    result |= ((channel << 4) | channel) << 4;
     channel = (value >> 4) & 0xf;
     result = ((result | channel) << 4) | channel;
     channel = value & 0xf;
     return ((result << 4) | channel) << 4 | channel;
   case 10:
+    return ((uint32_t *)mipmap_address)[pixel_index];
   case 11:
     return ((uint32_t *)mipmap_address)[pixel_index];
+  case 0:
+    return (uint32_t)((uint8_t *)mipmap_address)[pixel_index] << 24;
+  case 1:
+    value = ((uint8_t *)mipmap_address)[pixel_index];
+    result = value | 0xffffff00;
+    result = (result << 8) | value;
+    result = (result << 8) | value;
+    return result;
+  case 2:
+    value = ((uint8_t *)mipmap_address)[pixel_index];
+    result = value;
+    result = (result << 8) | value;
+    result = (result << 8) | value;
+    result = (result << 8) | value;
+    return result;
+  case 3:
+    value16 = ((uint16_t *)mipmap_address)[pixel_index];
+    ch = (uint8_t)value16;
+    result = ((uint32_t)value16 & 0xffffff00) | ch;
+    result = (result << 8) | ch;
+    return (result << 8) | ch;
   case 17:
     value = ((uint8_t *)mipmap_address)[pixel_index];
     return ((uint32_t *)0x2ee0a0)[value];
@@ -1011,46 +1019,64 @@ uint32_t bitmap_format_to_a8r8g8b8(short format, void *mipmap_address,
     display_assert("### ERROR unsupported bitmap format",
                    "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x254, 1);
     system_exit(-1);
-    return 0;
   }
 }
+
+
 
 short palette_find_closest_match(const uint32_t *palette, uint32_t color)
 {
   short closest_index;
   short index;
   uint32_t entry;
+  const uint8_t *entry_bytes;
+  int r;
+  int r_color;
   int red_delta;
+  int g;
+  int g_color;
   int green_delta;
+  int b;
+  int b_color;
   int blue_delta;
   int distance;
   int closest_distance;
 
+  closest_index = -1;
+  closest_distance = 0;
   if ((color & 0xff000000) <= 0x80000000)
     return 0xff;
 
-  closest_index = -1;
-  closest_distance = 0;
-  for (index = 0; index < 0x100; index++) {
+  index = 0;
+  do {
     entry = palette[index];
+    entry_bytes = (const uint8_t *)&palette[index];
     if (entry == 0)
       break;
-    red_delta = (int)((entry >> 16) & 0xff) - (int)((color >> 16) & 0xff);
+    r = (int)entry_bytes[2];
+    r_color = (int)((color >> 16) & 0xff);
+    red_delta = r - r_color;
     if (red_delta < 0)
-      red_delta = -red_delta;
-    green_delta = (int)((entry >> 8) & 0xff) - (int)((color >> 8) & 0xff);
+      red_delta = r_color - r;
+    g = (int)entry_bytes[1];
+    g_color = (int)((color >> 8) & 0xff);
+    green_delta = g - g_color;
     if (green_delta < 0)
-      green_delta = -green_delta;
-    blue_delta = (int)(entry & 0xff) - (int)(color & 0xff);
+      green_delta = g_color - g;
+    b = (int)(entry & 0xff);
+    b_color = (int)(color & 0xff);
+    blue_delta = b - b_color;
     if (blue_delta < 0)
-      blue_delta = -blue_delta;
+      blue_delta = b_color - b;
     distance = red_delta * red_delta + green_delta * green_delta +
                blue_delta * blue_delta;
     if (index == 0 || distance < closest_distance) {
       closest_distance = distance;
       closest_index = index;
     }
-  }
+    index++;
+  } while (index < 0x100);
+
   if (closest_index == -1) {
     display_assert("closest_match_index!=NONE",
                    "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x44d, 1);
@@ -1058,6 +1084,7 @@ short palette_find_closest_match(const uint32_t *palette, uint32_t color)
   }
   return closest_index;
 }
+
 
 /* bitmap_validate_depth (0x7d440)
  *
@@ -2149,70 +2176,93 @@ void bitmap_cube_map_face_insert(void *face_bitmap, void *destination_bitmap,
 void FUN_0007ef80(short *bits_per_channel, short *thresholds, short width,
                   short *current, short *next, uint8_t *source_row)
 {
+  short *bits_ptr;
+  short *th;
+  short *next_ptr;
+  int offset;
   int x;
-  int channel;
-  int value;
-  int quantized_value;
-  int error_value;
-  int weighted_error;
+  int i;
+  int val;
+  int quantized_val;
+  int width_minus_one;
+  short err;
+  int weighted;
   uint8_t clamped[4];
   uint8_t quantized[4];
+  uint8_t *clamped_ptr;
+  uint8_t *quantized_ptr;
+
+  if (width <= 0)
+    return;
+
+  width_minus_one = (int)width - 1;
 
   for (x = 0; x < width; x++) {
-    for (channel = 0; channel < 4; channel++) {
-      value = current[channel];
-      if (value < 0)
-        value = 0;
-      else if (value > 0xff)
-        value = 0xff;
-      clamped[channel] = (uint8_t)value;
-    }
-    for (channel = 0; channel < 4; channel++) {
-      if (bits_per_channel[channel] == 0) {
-        quantized_value = 0;
+    clamped_ptr = clamped;
+    i = 4;
+    do {
+      val = *current++;
+      if (val < 0)
+        val = 0;
+      else if (val > 0xff)
+        val = 0xff;
+      *clamped_ptr++ = (uint8_t)val;
+    } while (--i != 0);
+
+    bits_ptr = bits_per_channel;
+    quantized_ptr = quantized;
+    i = 4;
+    do {
+      if (*bits_ptr == 0) {
+        quantized_val = 0;
       } else {
-        quantized_value =
-          ((clamped[channel] >> (8 - bits_per_channel[channel])) * 0xff) /
-          ((1 << bits_per_channel[channel]) - 1);
+        quantized_val =
+          ((clamped[4 - i] >> (8 - *bits_ptr)) * 0xff) /
+          ((1 << *bits_ptr) - 1);
       }
-      quantized[channel] = (uint8_t)quantized_value;
-      source_row[channel] = quantized[channel];
-    }
-    for (channel = 0; channel < 4; channel++) {
-      error_value = (int)clamped[channel] - (int)quantized[channel];
-      if (x < width - 1 && thresholds[channel] < current[4 + channel]) {
-        weighted_error = error_value * 7;
-        current[4 + channel] =
-          (short)(current[4 + channel] +
-                  ((weighted_error + ((weighted_error >> 31) & 0xf)) >> 4));
+      *quantized_ptr++ = (uint8_t)quantized_val;
+      *source_row++ = (uint8_t)quantized_val;
+      bits_ptr++;
+    } while (--i != 0);
+
+    offset = (char *)current - (char *)next;
+    next_ptr = next + 4;
+    th = thresholds;
+    i = 4;
+    do {
+      err = (short)clamped[4 - i] - (short)quantized[4 - i];
+      if (x < width_minus_one && *th < *(short *)((char *)next_ptr + offset)) {
+        weighted = err * 7;
+        *(short *)((char *)next_ptr + offset) +=
+          (short)((weighted + ((weighted >> 31) & 0xf)) >> 4);
       }
       if (next != NULL) {
-        if (x != 0 && thresholds[channel] < next[-4 + channel]) {
-          weighted_error = error_value * 3;
-          next[-4 + channel] =
-            (short)(next[-4 + channel] +
-                    ((weighted_error + ((weighted_error >> 31) & 0xf)) >> 4));
+        if (x != 0 && *th < next_ptr[-8]) {
+          weighted = err * 3;
+          next_ptr[-8] +=
+            (short)((weighted + ((weighted >> 31) & 0xf)) >> 4);
         }
-        if (thresholds[channel] < next[channel]) {
-          weighted_error = error_value * 5;
-          next[channel] =
-            (short)(next[channel] +
-                    ((weighted_error + ((weighted_error >> 31) & 0xf)) >> 4));
+        if (*th < next_ptr[-4]) {
+          weighted = err * 5;
+          next_ptr[-4] +=
+            (short)((weighted + ((weighted >> 31) & 0xf)) >> 4);
         }
-        if (x < width - 1 && thresholds[channel] < next[4 + channel]) {
-          weighted_error = error_value;
-          next[4 + channel] =
-            (short)(next[4 + channel] +
-                    ((weighted_error + ((weighted_error >> 31) & 0xf)) >> 4));
+        if (x < width_minus_one && *th < next_ptr[0]) {
+          weighted = err;
+          next_ptr[0] +=
+            (short)((weighted + ((weighted >> 31) & 0xf)) >> 4);
         }
       }
-    }
-    current += 4;
+      th++;
+      next_ptr++;
+    } while (--i != 0);
+
     if (next != NULL)
       next += 4;
-    source_row += 4;
   }
 }
+
+
 
 void FUN_0007f150(void *bitmap, short *bits_per_channel)
 {
@@ -2221,15 +2271,16 @@ void FUN_0007f150(void *bitmap, short *bits_per_channel)
   short *next;
   short *swap;
   short thresholds[4];
-  short *reversed_bits;
+  short *ps;
+  short *pbits;
+  short *dst;
   uint8_t *source;
-  int width;
-  int height;
-  int channel;
-  int byte_index;
-  int row;
-  int byte_count;
-  int scale;
+  int i;
+  int count;
+  short row;
+  short next_row;
+  short width;
+  short height;
 
   b = (char *)bitmap;
   if (!bitmap_verify(bitmap, 1)) {
@@ -2241,7 +2292,6 @@ void FUN_0007f150(void *bitmap, short *bits_per_channel)
     return;
 
   width = *(short *)(b + 4);
-  height = *(short *)(b + 6);
   current = (short *)debug_malloc(
     (uint32_t)width << 3, 0, "c:\\halo\\SOURCE\\bitmaps\\bitmaps_quantitize.c",
     0x34);
@@ -2249,51 +2299,72 @@ void FUN_0007f150(void *bitmap, short *bits_per_channel)
     (uint32_t)width << 3, 0, "c:\\halo\\SOURCE\\bitmaps\\bitmaps_quantitize.c",
     0x35);
 
-  for (channel = 0; channel < 4; channel++) {
-    if (bits_per_channel[channel] < 0 || bits_per_channel[channel] > 8) {
+  i = 4;
+  pbits = bits_per_channel;
+  do {
+    if (*pbits < 0 || *pbits > 8) {
       display_assert("bits_per_channel[channel_index]>=0 && "
                      "bits_per_channel[channel_index]<=CHANNEL_BITS",
                      "c:\\halo\\SOURCE\\bitmaps\\bitmaps_quantitize.c", 0x3f,
                      1);
       system_exit(-1);
     }
-  }
-  reversed_bits = (short *)0x33457a;
-  for (channel = 0; channel < 4; channel++) {
-    *reversed_bits = bits_per_channel[channel];
-    reversed_bits--;
-  }
-  for (channel = 0; channel < 4; channel++) {
-    scale = 1 << (8 - ((short *)0x334574)[channel]);
-    thresholds[channel] = (short)(int)((float)scale * 0.25f);
-  }
+    pbits++;
+  } while (--i != 0);
+
+  ps = (short *)0x33457a;
+  i = 4;
+  do {
+    *ps = *bits_per_channel;
+    bits_per_channel++;
+    ps--;
+  } while (--i != 0);
+
+  i = 4;
+  do {
+    thresholds[4 - i] =
+      (short)(int)((float)(1 << (8 - ((short *)0x334574)[4 - i])) * 0.25f);
+  } while (--i != 0);
 
   if (current != NULL && next != NULL) {
     source = *(uint8_t **)(b + 0x2c);
-    byte_count = width << 2;
-    for (byte_index = 0; byte_index < byte_count; byte_index++)
-      current[byte_index] = source[byte_index];
+    count = (int)*(short *)(b + 4) << 2;
+    dst = current;
+    if (count > 0) {
+      do {
+        *dst++ = *source++;
+      } while (--count != 0);
+    }
 
     row = 0;
+    height = *(short *)(b + 6);
     if (height != 1 && height - 1 >= 0) {
       do {
-        source = (uint8_t *)bitmap_2d_address(bitmap, 0, (short)(row + 1), 0);
-        for (byte_index = 0; byte_index < byte_count; byte_index++)
-          next[byte_index] = source[byte_index];
-        source = (uint8_t *)bitmap_2d_address(bitmap, 0, (short)row, 0);
-        FUN_0007ef80((short *)0x334574, thresholds, (short)width, current, next,
+        width = *(short *)(b + 4);
+        next_row = row + 1;
+        source = (uint8_t *)bitmap_2d_address(bitmap, 0, next_row, 0);
+        count = (int)width << 2;
+        dst = next;
+        if (count > 0) {
+          do {
+            *dst++ = *source++;
+          } while (--count != 0);
+        }
+        source = (uint8_t *)bitmap_2d_address(bitmap, 0, row, 0);
+        FUN_0007ef80((short *)0x334574, thresholds, width, current, next,
                      source);
         swap = current;
         current = next;
         next = swap;
-        row++;
-      } while (row < height - 1);
+        row = next_row;
+      } while (row < *(short *)(b + 6) - 1);
     }
-    source = (uint8_t *)bitmap_2d_address(bitmap, 0, (short)(height - 1), 0);
-    FUN_0007ef80((short *)0x334574, thresholds, (short)width, current, NULL,
-                 source);
+    source = (uint8_t *)bitmap_2d_address(bitmap, 0, *(short *)(b + 6) - 1, 0);
+    FUN_0007ef80((short *)0x334574, thresholds, *(short *)(b + 4), current,
+                 NULL, source);
     debug_free(current, "c:\\halo\\SOURCE\\bitmaps\\bitmaps_quantitize.c",
                0x73);
     debug_free(next, "c:\\halo\\SOURCE\\bitmaps\\bitmaps_quantitize.c", 0x74);
   }
 }
+
