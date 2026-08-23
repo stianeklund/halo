@@ -79,7 +79,7 @@ def _pool_records(reader, ptr):
     hd = h2s._pool_header(reader, ptr)
     if hd is None or hd["magic"] != h2s.DATA_T_MAGIC or hd["es"] <= 0:
         return []
-    n = hd["cur"] if 0 < hd["cur"] <= hd["max"] else hd["max"]
+    n = hd["cur"] if 0 <= hd["cur"] <= hd["max"] else hd["max"]
     if not (0 < n <= 5000):
         return []
     out = []
@@ -91,6 +91,17 @@ def _pool_records(reader, ptr):
         if salt == 0:
             continue
         out.append((slot, salt, rec))
+    # current_count is the number of live records, not necessarily the highest
+    # occupied slot. A hole in the prefix means the remaining live rows are in
+    # the captured sparse tail.
+    if len(out) < n and n < hd["max"] <= 5000:
+        for slot in range(n, hd["max"]):
+            rec = reader(hd["data"] + slot * hd["es"], hd["es"])
+            if rec is None:
+                continue
+            salt = struct.unpack_from("<H", rec, 0)[0]
+            if salt != 0:
+                out.append((slot, salt, rec))
     return out
 
 

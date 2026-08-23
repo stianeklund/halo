@@ -95,12 +95,17 @@ def _pool_records(reader, ptr):
     hd = h2s._pool_header(reader, ptr)
     if hd is None or hd["magic"] != h2s.DATA_T_MAGIC or hd["es"] <= 0:
         return None, []
-    n = hd["cur"] if 0 < hd["cur"] <= hd["max"] else hd["max"]
+    n = hd["cur"] if 0 <= hd["cur"] <= hd["max"] else hd["max"]
     if not (0 < n <= 5000):
         return hd, []
     recs = []
     for slot in range(n):
         recs.append(reader(hd["data"] + slot * hd["es"], hd["es"]))
+    live = sum(rec is not None and struct.unpack_from("<H", rec, 0)[0] != 0
+               for rec in recs)
+    if live < n and n < hd["max"] <= 5000:
+        for slot in range(n, hd["max"]):
+            recs.append(reader(hd["data"] + slot * hd["es"], hd["es"]))
     return hd, recs
 
 

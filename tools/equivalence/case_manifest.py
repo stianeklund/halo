@@ -42,21 +42,27 @@ def write_case(path, *, level, scenario, profile, backend, ticks, quantum,
                alignment_window, minimum_sustained_run, faithful, candidate,
                behavior_report, faithful_build, candidate_build,
                candidate_verification, verdict, coverage, metrics=None,
-               parent_case=None, diagnostics=()):
+               parent_case=None, diagnostics=(), input_hash=None, tick_start=0,
+               gameplay_anchors=None):
     """Write a viewer-compatible case manifest and return its Path."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     data = {
         "schema_version": CASE_SCHEMA_VERSION,
-        "fixture": {"level": level, "scenario": scenario},
+        "fixture": {
+            "level": level,
+            "scenario": scenario,
+            "input_hash": input_hash,
+        },
         "capture": {
             "profile": profile,
             "backend": backend,
-            "tick_start": 0,
+            "tick_start": tick_start,
             "tick_end": ticks,
             "quantum": quantum,
             "alignment_window": alignment_window,
             "minimum_sustained_run": minimum_sustained_run,
+            "gameplay_anchors": gameplay_anchors or {},
         },
         "faithful": _artifact(path, faithful, faithful_build, "verified"),
         "candidate": _artifact(path, candidate, candidate_build,

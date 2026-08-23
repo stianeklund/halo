@@ -47,6 +47,7 @@ Exit codes (keep these distinct — a CI tripwire must tell "harness broke" from
 comparable frames — the run proves nothing, fix the harness/build and retry).
 """
 import argparse
+import hashlib
 import json
 import shlex
 import shutil
@@ -65,6 +66,8 @@ import trajectory_diff as td        # noqa: E402
 from aa_check import capture_run     # noqa: E402  (replay + capture_trajectory)
 from capture_profile import PROFILES, normalize_profile  # noqa: E402
 from case_manifest import write_case  # noqa: E402
+
+RECIPE_SCHEMA_VERSION = 1
 
 
 def deploy_candidate(host, build_args):
@@ -198,8 +201,119 @@ def _empty_coverage(profile):
     }
 
 
+def _fixture_input_hash(level, scenario):
+    state_data = ROOT / "input-recordings" / "levels" / level / scenario / "state.data"
+    if not state_data.is_file():
+        return None
+    digest = hashlib.sha256()
+    with state_data.open("rb") as fh:
+        for block in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _load_recipe(path):
+    """Load a viewer v1 recipe and its source case into normalized CLI state."""
+    path = Path(path).resolve()
+    recipe = json.loads(path.read_text())
+    if recipe.get("schema_version", 1) != RECIPE_SCHEMA_VERSION:
+        raise ValueError("unsupported focused-capture recipe schema")
+    source_value = recipe.get("source_case")
+    if not isinstance(source_value, str) or not source_value:
+        raise ValueError("recipe has no source_case")
+    source_case = Path(source_value)
+    if not source_case.is_absolute():
+        source_case = path.parent / source_case
+    source_case = source_case.resolve()
+    source = json.loads(source_case.read_text())
+    if source.get("schema_version", 1) != 1:
+        raise ValueError("unsupported source case schema")
+    fixture = source.get("fixture") or {}
+    level = fixture.get("level")
+    scenario = fixture.get("scenario")
+    if not level or not scenario:
+        raise ValueError("source case has no fixture level/scenario")
+
+    onset = int(recipe.get("onset_tick", 0))
+    capture = source.get("capture") or {}
+    faithful_anchor = (capture.get("gameplay_anchors") or {}).get("faithful")
+    if faithful_anchor is None:
+        faithful_value = (source.get("faithful") or {}).get("path")
+        if faithful_value:
+            faithful_path = Path(faithful_value)
+            if not faithful_path.is_absolute():
+                faithful_path = source_case.parent / faithful_path
+            faithful_anchor = _recording_anchor(faithful_path)
+    onset_relative = onset - int(faithful_anchor) if faithful_anchor is not None else onset
+    if onset_relative < 0:
+        raise ValueError("recipe onset precedes the source gameplay anchor")
+    before = int(recipe.get("window_before", 30))
+    after = int(recipe.get("window_after", 60))
+    if before < 0 or after < 0:
+        raise ValueError("recipe windows must be non-negative")
+    quantum = int(recipe.get("quantum", 1))
+    if quantum != 1:
+        raise ValueError("focused recapture requires quantum 1")
+    actor_slots = [int(slot) for slot in recipe.get("actor_slots", [])]
+    if not actor_slots or any(slot < 0 or slot > 0xFFFF for slot in actor_slots):
+        raise ValueError("recipe actor_slots must contain valid datum slots")
+    relation_cap = int(recipe.get("max_relation_nodes", 16))
+    if relation_cap < 0 or relation_cap > 16:
+        raise ValueError("max_relation_nodes must be in range 0..16")
+
+    flags = {
+        "include_perception": bool(recipe.get("include_perception", False)),
+        "include_linked_object_body": bool(
+            recipe.get("include_linked_object_body", False)),
+        "include_weapon_bodies": bool(recipe.get("include_weapon_bodies", False)),
+        "include_object_relations": bool(
+            recipe.get("include_object_relations", False)),
+    }
+    capture_args = [
+        "--tick-start", str(max(0, onset_relative - before)),
+        "--focused-actor-slots", ",".join(str(slot) for slot in actor_slots),
+        "--max-relation-nodes", str(relation_cap),
+    ]
+    for enabled, option in (
+        (flags["include_perception"], "--include-focused-perception"),
+        (flags["include_linked_object_body"], "--include-focused-linked-bodies"),
+        (flags["include_weapon_bodies"], "--include-focused-weapon-bodies"),
+        (flags["include_object_relations"], "--include-focused-object-relations"),
+    ):
+        if enabled:
+            capture_args.append(option)
+    return {
+        "path": path,
+        "source_case": source_case,
+        "level": str(level),
+        "scenario": str(scenario),
+        "input_hash": fixture.get("input_hash"),
+        "onset_relative": onset_relative,
+        "tick_start": max(0, onset_relative - before),
+        "tick_end": onset_relative + after,
+        "quantum": quantum,
+        "actor_slots": actor_slots,
+        "max_relation_nodes": relation_cap,
+        "flags": flags,
+        "capture_args": capture_args,
+        "alignment_window": capture.get("alignment_window"),
+        "minimum_sustained_run": capture.get("minimum_sustained_run"),
+    }
+
+
+def _recording_anchor(path):
+    try:
+        _, _, frames = h2s.parse_halorec(str(path))
+    except (Exception, SystemExit):
+        return None
+    ticks = [td.frame_tick(h2s._reader(frame.regions)) for frame in frames]
+    ticks = [tick for tick in ticks if tick is not None]
+    return min(ticks) if ticks else None
+
+
 def _write_case(a, tag, golden, candidate, report, verdict, coverage,
-                candidate_verification, diagnostics=(), result=None):
+                candidate_verification, diagnostics=(), result=None,
+                gameplay_anchors=None):
     metrics = {"profile": a.profile}
     if result is not None:
         metrics["frames"] = result.get("framesA", 0) + result.get("framesB", 0)
@@ -223,7 +337,11 @@ def _write_case(a, tag, golden, candidate, report, verdict, coverage,
         verdict=verdict,
         coverage=coverage,
         metrics=metrics,
+        parent_case=a.parent_case,
         diagnostics=diagnostics,
+        input_hash=a.input_hash,
+        tick_start=a.tick_start,
+        gameplay_anchors=gameplay_anchors,
     )
     print(f"  [case] -> {path}")
     return path
@@ -232,8 +350,10 @@ def _write_case(a, tag, golden, candidate, report, verdict, coverage,
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--level", required=True)
-    ap.add_argument("--scenario", required=True)
+    ap.add_argument("--level")
+    ap.add_argument("--scenario")
+    ap.add_argument("--recipe", type=Path,
+                    help="viewer-generated v1 .halocapture.json focused recapture")
     ap.add_argument("--golden-xbe", default="cachebeta.xbe",
                     help="faithful build (default cachebeta.xbe)")
     ap.add_argument("--candidate-xbe", default="default.xbe",
@@ -260,9 +380,9 @@ def main(argv=None):
                     help="force the liveness gate even under --no-deploy")
     ap.add_argument("--port", type=int, default=None,
                     help="xemu QMP port for the liveness gate (verify_toggles_live default if unset)")
-    ap.add_argument("--ticks", type=int, default=200)
-    ap.add_argument("--quantum", type=int, default=1)
-    ap.add_argument("--profile", choices=PROFILES, default="ai-core",
+    ap.add_argument("--ticks", type=int, default=None)
+    ap.add_argument("--quantum", type=int, default=None)
+    ap.add_argument("--profile", choices=PROFILES, default=None,
                     help="capture profile for both recordings (default: ai-core)")
     ap.add_argument("--window", type=int, default=None, help="behavior_diff +/- tick tolerance")
     ap.add_argument("--min-run", type=int, default=None, help="behavior_diff sustained-onset run")
@@ -277,25 +397,69 @@ def main(argv=None):
     ap.add_argument("--reuse", action="store_true",
                     help="skip captures; diff existing golden/candidate in --out-dir")
     a = ap.parse_args(argv)
-    a.profile = normalize_profile(a.profile)
+    recipe = None
+    if a.recipe:
+        try:
+            recipe = _load_recipe(a.recipe)
+        except (Exception, SystemExit) as exc:
+            ap.error(f"invalid --recipe: {exc}")
+        if a.level and a.level != recipe["level"]:
+            ap.error("--level does not match the recipe source case")
+        if a.scenario and a.scenario != recipe["scenario"]:
+            ap.error("--scenario does not match the recipe source case")
+        if a.profile and normalize_profile(a.profile) != "ai-core":
+            ap.error("focused recapture always uses the ai-core base profile")
+        a.level = recipe["level"]
+        a.scenario = recipe["scenario"]
+        a.profile = "ai-core"
+        a.tick_start = recipe["tick_start"]
+        a.ticks = recipe["tick_end"]
+        a.quantum = 1
+        a.parent_case = recipe["source_case"]
+        a.input_hash = recipe["input_hash"] or _fixture_input_hash(a.level, a.scenario)
+        if a.window is None and recipe["alignment_window"] is not None:
+            a.window = int(recipe["alignment_window"])
+        if a.min_run is None and recipe["minimum_sustained_run"] is not None:
+            a.min_run = int(recipe["minimum_sustained_run"])
+    else:
+        if not a.level or not a.scenario:
+            ap.error("--level and --scenario are required without --recipe")
+        a.profile = normalize_profile(a.profile or "ai-core")
+        a.tick_start = 0
+        a.ticks = 200 if a.ticks is None else a.ticks
+        a.quantum = 1 if a.quantum is None else a.quantum
+        a.parent_case = None
+        a.input_hash = _fixture_input_hash(a.level, a.scenario)
+    if a.ticks < a.tick_start or a.quantum <= 0:
+        ap.error("invalid capture tick range or quantum")
 
     a.out_dir.mkdir(parents=True, exist_ok=True)
-    tag = f"{a.level}_{a.scenario}"
+    tag = (f"{a.level}_{a.scenario}_focused_t{recipe['onset_relative']}"
+           if recipe else f"{a.level}_{a.scenario}")
     golden = a.out_dir / f"{tag}_golden.halorec"
     candidate = a.out_dir / f"{tag}_candidate.halorec"
     report = a.report or a.out_dir / f"{tag}_behavior.json"
     candidate_verification = "unverified"
+    gameplay_anchors = {"faithful": None, "candidate": None}
 
     def abort(reason):
         print(f"VERDICT: INCONCLUSIVE — {reason}")
         _write_case(a, tag, golden, candidate, report, "INCONCLUSIVE",
                     _empty_coverage(a.profile), candidate_verification,
-                    diagnostics=(reason,))
+                    diagnostics=(reason,), gameplay_anchors=gameplay_anchors)
         return 2
 
     def cap(xbe, out):
-        capture_run(a.level, a.scenario, xbe, a.host, out, a.ticks, a.quantum,
-                    a.no_wait_spawn, a.profile)
+        if recipe:
+            return capture_run(
+                a.level, a.scenario, xbe, a.host, out, a.ticks, a.quantum,
+                a.no_wait_spawn, a.profile, capture_args=recipe["capture_args"])
+        return capture_run(a.level, a.scenario, xbe, a.host, out, a.ticks,
+                           a.quantum, a.no_wait_spawn, a.profile)
+
+    def remember_anchor(role, metadata, recording):
+        anchor = metadata.get("anchor_tick") if isinstance(metadata, dict) else None
+        gameplay_anchors[role] = anchor if anchor is not None else _recording_anchor(recording)
 
     unverified = False  # did the candidate capture run an unproven build?
 
@@ -324,10 +488,12 @@ def main(argv=None):
         if a.golden and a.golden.exists() and not a.freeze:
             print(f"== reusing frozen golden: {a.golden} ==")
             golden = a.golden
+            remember_anchor("faithful", None, golden)
         else:
             print(f"== capture golden ({a.golden_xbe}) ==")
             try:
-                cap(a.golden_xbe, golden)
+                metadata = cap(a.golden_xbe, golden)
+                remember_anchor("faithful", metadata, golden)
             except (Exception, SystemExit) as exc:
                 return abort(f"golden capture failed: {exc}")
             if a.freeze and a.golden:
@@ -357,7 +523,8 @@ def main(argv=None):
         # 2. candidate (patched)
         print(f"== capture candidate ({a.candidate_xbe}) ==")
         try:
-            cap(a.candidate_xbe, candidate)
+            metadata = cap(a.candidate_xbe, candidate)
+            remember_anchor("candidate", metadata, candidate)
         except (Exception, SystemExit) as exc:
             return abort(f"candidate capture failed: {exc}")
     else:
@@ -365,6 +532,8 @@ def main(argv=None):
         unverified = True
         if a.golden and a.golden.exists():
             golden = a.golden
+        remember_anchor("faithful", None, golden)
+        remember_anchor("candidate", None, candidate)
 
     # 3. tolerant behavioral diff
     cfg = None
@@ -400,7 +569,8 @@ def main(argv=None):
     verdict = ("INCONCLUSIVE" if not covered else
                ("CLEAN" if res["onset_count"] == 0 else "DIVERGENT"))
     _write_case(a, tag, golden, candidate, report, verdict, coverage,
-                candidate_verification, result=res)
+                candidate_verification, result=res,
+                gameplay_anchors=gameplay_anchors)
     print()
     print("=" * 78)
     print(f"A/B CHECK: {a.level}/{a.scenario}  golden={a.golden_xbe}  candidate={a.candidate_xbe}")

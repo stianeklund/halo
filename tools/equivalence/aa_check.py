@@ -17,6 +17,7 @@ Each run: capture_scenario.py replay (deterministic input, fresh boot) -> wait
 for gameplay -> capture_trajectory.py (HMRC). Then trajectory_diff.
 """
 import argparse
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -38,7 +39,7 @@ def run(cmd):
 
 
 def capture_run(level, scenario, xbe, host, out, ticks, quantum, no_wait_spawn,
-                profile="full-fidelity"):
+                profile="full-fidelity", capture_args=()):
     replay_cmd = ["python3", str(REPLAY), "replay", "--level", level,
                   "--scenario", scenario, "--xbe", xbe]
     if host:
@@ -47,9 +48,13 @@ def capture_run(level, scenario, xbe, host, out, ticks, quantum, no_wait_spawn,
     cap_cmd = ["python3", str(CAPTURE), "-o", str(out), "--name", out.stem,
                "--ticks", str(ticks), "--quantum", str(quantum),
                "--profile", profile]
+    metadata = out.with_suffix(".capture.json")
+    cap_cmd += ["--metadata-out", str(metadata)]
     if no_wait_spawn:
         cap_cmd.append("--no-wait-spawn")
+    cap_cmd += list(capture_args)
     run(cap_cmd)
+    return json.loads(metadata.read_text())
 
 
 def main(argv=None):

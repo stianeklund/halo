@@ -37,6 +37,16 @@ DATA_T_HDR_LEN = 0x38            # max@0x20 es@0x22 magic@0x28 cur@0x2E data@0x3
 GAME_TIME_GLOBALS_PTR = 0x45708C  # *ptr + 0x0C = game tick
 HANDLE_NONE = 0xFFFFFFFF
 
+ACTOR_UNIT_HANDLE_OFF = 0x18
+ACTOR_PRIMARY_PROP_OFF = 0x270
+ACTOR_COMBAT_TARGET_OFF = 0x610
+OBJECT_NEXT_SIBLING_OFF = 0xC4
+OBJECT_FIRST_CHILD_OFF = 0xC8
+OBJECT_PARENT_OFF = 0xCC
+UNIT_WEAPON_HANDLE_OFFSETS = (0x2A8, 0x2AC, 0x2B0, 0x2B4)
+OBJECT_RELATION_PROBE_SIZE = 0xD0
+UNIT_WEAPON_PROBE_SIZE = 0x2B8
+
 # The object pool's element is only a 12-byte datum ENTRY (es=0xc): salt@0x00,
 # then a pointer at +0x08 to the object BODY, which lives elsewhere in the heap.
 # Capturing the pool alone therefore captures no object state at all (animation
@@ -245,6 +255,241 @@ def pool_region_specs(cap, ptr):
     return specs
 
 
+def _pool_header_from_bytes(hdr_ptr, h):
+    max_c, es = struct.unpack_from("<hh", h, 0x20)
+    return {
+        "hdr": hdr_ptr,
+        "max": max_c,
+        "es": es,
+        "magic": struct.unpack_from("<I", h, 0x28)[0],
+        "cur": struct.unpack_from("<h", h, 0x2E)[0],
+        "data": struct.unpack_from("<I", h, 0x34)[0],
+    }
+
+
+def _pool_prefix_count(hd):
+    """Number of records in the live prefix, tolerating corrupt counts."""
+    if 0 <= hd["cur"] <= hd["max"]:
+        return hd["cur"]
+    return hd["max"]
+
+
+def capture_pool_data(cap, hd, through_slot=None):
+    """Read a pool prefix and conditionally scan its sparse tail.
+
+    ``current_count`` is a live-record count, not a high-water slot. A dense
+    prefix containing that many nonzero salts is complete. If the prefix has a
+    hole, at least one live record must sit above it, so retain the whole tail.
+    ``through_slot`` is used by focused perception capture to retain exactly the
+    records needed to resolve the highest selected prop handle.
+    """
+    maximum = hd["max"]
+    es = hd["es"]
+    data = hd["data"]
+    if not (0 < maximum <= 5000 and es > 0 and HEAP_LO <= data < HEAP_HI):
+        return b""
+    if through_slot is not None:
+        count = min(maximum, max(0, int(through_slot) + 1))
+        return cap.read_mem(data, count * es) if count else b""
+    count = _pool_prefix_count(hd)
+    if not (0 < count <= maximum):
+        return b""
+    prefix = cap.read_mem(data, count * es)
+    live = sum(struct.unpack_from("<H", prefix, slot * es)[0] != 0
+               for slot in range(min(count, len(prefix) // es)))
+    if live < count and count < maximum:
+        tail = cap.read_mem(data + count * es, (maximum - count) * es)
+        return prefix + tail
+    return prefix
+
+
+def _capture_pool(cap, name, regions, through_slot=None):
+    ptr = POOL_PTRS[name]
+    hdr_ptr = cap.read_u32(ptr)
+    regions[ptr] = struct.pack("<I", hdr_ptr)
+    if not (HEAP_LO <= hdr_ptr < HEAP_HI):
+        return None, b""
+    h = cap.read_mem(hdr_ptr, DATA_T_HDR_LEN)
+    regions[hdr_ptr] = h
+    hd = _pool_header_from_bytes(hdr_ptr, h)
+    if hd["magic"] != DATA_T_MAGIC or hd["es"] <= 0:
+        return hd, b""
+    blob = capture_pool_data(cap, hd, through_slot=through_slot)
+    if blob:
+        regions[hd["data"]] = blob
+    return hd, blob
+
+
+def _record_at_slot(blob, es, slot):
+    if es <= 0 or slot < 0:
+        return None
+    off = slot * es
+    if off + es > len(blob):
+        return None
+    return blob[off:off + es]
+
+
+def _valid_handle(handle):
+    return handle not in (0, HANDLE_NONE)
+
+
+def object_body_spec_for_handle(pool_data, es, handle):
+    """Resolve a live object handle to its type-sized body window."""
+    if not _valid_handle(handle):
+        return None
+    rec = _record_at_slot(pool_data, es, handle & 0xFFFF)
+    if rec is None or len(rec) < OBJECT_BODY_PTR_OFF + 4:
+        return None
+    if struct.unpack_from("<H", rec, 0)[0] != ((handle >> 16) & 0xFFFF):
+        return None
+    ptr = struct.unpack_from("<I", rec, OBJECT_BODY_PTR_OFF)[0]
+    if not (HEAP_LO <= ptr < HEAP_HI):
+        return None
+    kind = rec[3] if len(rec) > 3 else 0xFF
+    return ptr, OBJECT_BODY_SIZE_BY_TYPE.get(kind, DEFAULT_OBJECT_BODY_SIZE)
+
+
+def _read_from_regions(regions, addr, size):
+    for base, blob in sorted(regions.items()):
+        if base <= addr and addr + size <= base + len(blob):
+            off = addr - base
+            return blob[off:off + size]
+    return None
+
+
+def _capture_merged_bodies(cap, regions, spans):
+    for va, size in merge_body_spans(spans):
+        regions[va] = cap.read_mem(va, size)
+
+
+def capture_focused_frame(cap, actor_slots, pools=("objects", "players", "actors"),
+                          include_perception=True,
+                          include_linked_object_body=True,
+                          include_weapon_bodies=True,
+                          include_object_relations=True,
+                          max_relation_nodes=16):
+    """Capture AI Core plus recipe-selected props and related object bodies."""
+    regions = {}
+    tick = None
+    cap.stop()
+    try:
+        gt = struct.unpack("<I", cap.read_mem(GAME_TIME_GLOBALS_PTR, 4))[0]
+        regions[GAME_TIME_GLOBALS_PTR] = struct.pack("<I", gt)
+        if HEAP_LO <= gt < HEAP_HI:
+            blk = cap.read_mem(gt, 0x10)
+            regions[gt] = blk
+            tick = struct.unpack_from("<I", blk, 0x0C)[0]
+
+        captured = {}
+        for name in dict.fromkeys(tuple(pools) + ("objects", "actors")):
+            captured[name] = _capture_pool(cap, name, regions)
+        object_hd, object_blob = captured["objects"]
+        actor_hd, actor_blob = captured["actors"]
+        if object_hd is None or actor_hd is None:
+            return regions, tick
+
+        actor_records = []
+        prop_slots = []
+        root_handles = []
+        for slot in dict.fromkeys(int(slot) for slot in actor_slots):
+            rec = _record_at_slot(actor_blob, actor_hd["es"], slot)
+            if rec is None or len(rec) < ACTOR_COMBAT_TARGET_OFF + 4:
+                continue
+            if struct.unpack_from("<H", rec, 0)[0] == 0:
+                continue
+            actor_records.append(rec)
+            prop = struct.unpack_from("<I", rec, ACTOR_PRIMARY_PROP_OFF)[0]
+            if _valid_handle(prop):
+                prop_slots.append(prop & 0xFFFF)
+            for off in (ACTOR_UNIT_HANDLE_OFF, ACTOR_COMBAT_TARGET_OFF):
+                handle = struct.unpack_from("<I", rec, off)[0]
+                if _valid_handle(handle):
+                    root_handles.append(handle)
+
+        if include_perception:
+            highest = max(prop_slots) if prop_slots else -1
+            _capture_pool(cap, "props", regions, through_slot=highest)
+
+        span_by_handle = {}
+        for handle in dict.fromkeys(root_handles):
+            spec = object_body_spec_for_handle(object_blob, object_hd["es"], handle)
+            if spec is not None:
+                span_by_handle[handle] = spec
+
+        # Probe roots/relations while paused to discover the bounded graph. The
+        # retained body windows are re-read as merged spans below.
+        probe_cache = {}
+
+        def probe(handle, size):
+            spec = span_by_handle.get(handle)
+            if spec is None:
+                spec = object_body_spec_for_handle(
+                    object_blob, object_hd["es"], handle)
+                if spec is None:
+                    return None
+                span_by_handle[handle] = spec
+            key = (handle, size)
+            if key not in probe_cache:
+                probe_cache[key] = cap.read_mem(spec[0], min(size, spec[1]))
+            return probe_cache[key]
+
+        weapon_handles = []
+        if include_weapon_bodies:
+            for rec in actor_records:
+                unit = struct.unpack_from("<I", rec, ACTOR_UNIT_HANDLE_OFF)[0]
+                body = probe(unit, UNIT_WEAPON_PROBE_SIZE)
+                if body is None or len(body) < UNIT_WEAPON_PROBE_SIZE:
+                    continue
+                for off in UNIT_WEAPON_HANDLE_OFFSETS:
+                    handle = struct.unpack_from("<I", body, off)[0]
+                    if _valid_handle(handle):
+                        weapon_handles.append(handle)
+                        spec = object_body_spec_for_handle(
+                            object_blob, object_hd["es"], handle)
+                        if spec is not None:
+                            span_by_handle[handle] = spec
+
+        relation_handles = []
+        if include_object_relations:
+            queue = list(dict.fromkeys(root_handles))
+            seen = set(queue)
+            cap_nodes = max(0, min(int(max_relation_nodes), 16))
+            while queue and len(relation_handles) < cap_nodes:
+                handle = queue.pop(0)
+                body = probe(handle, OBJECT_RELATION_PROBE_SIZE)
+                if body is None or len(body) < OBJECT_RELATION_PROBE_SIZE:
+                    continue
+                for off in (OBJECT_PARENT_OFF, OBJECT_FIRST_CHILD_OFF,
+                            OBJECT_NEXT_SIBLING_OFF):
+                    related = struct.unpack_from("<I", body, off)[0]
+                    if not _valid_handle(related) or related in seen:
+                        continue
+                    seen.add(related)
+                    spec = object_body_spec_for_handle(
+                        object_blob, object_hd["es"], related)
+                    if spec is None:
+                        continue
+                    span_by_handle[related] = spec
+                    relation_handles.append(related)
+                    queue.append(related)
+                    if len(relation_handles) >= cap_nodes:
+                        break
+
+        retained = []
+        if include_linked_object_body:
+            retained.extend(root_handles)
+        if include_weapon_bodies:
+            retained.extend(weapon_handles)
+        if include_object_relations:
+            retained.extend(relation_handles)
+        spans = [span_by_handle[h] for h in dict.fromkeys(retained)
+                 if h in span_by_handle]
+        _capture_merged_bodies(cap, regions, spans)
+    finally:
+        cap.cont()
+    return regions, tick
+
+
 def object_body_ptrs(pool_data, es, count=None, ptr_off=OBJECT_BODY_PTR_OFF):
     """Body pointers held by the live entries of a datum-entry pool's data span.
 
@@ -384,30 +629,13 @@ def capture_full_frame(cap, pools=("objects", "players", "actors", "props"),
             regions[gt] = blk
             tick = struct.unpack_from("<I", blk, 0x0C)[0]
         for name in pools:
-            ptr = POOL_PTRS[name]
-            hdr_ptr = cap.read_u32(ptr)
-            regions[ptr] = struct.pack("<I", hdr_ptr)
-            if not (0x80000000 <= hdr_ptr < 0x84000000):
-                continue
-            h = cap.read_mem(hdr_ptr, DATA_T_HDR_LEN)
-            regions[hdr_ptr] = h
-            es = struct.unpack_from("<h", h, 0x22)[0]
-            magic = struct.unpack_from("<I", h, 0x28)[0]
-            cur = struct.unpack_from("<h", h, 0x2E)[0]
-            max_c = struct.unpack_from("<h", h, 0x20)[0]
-            data = struct.unpack_from("<I", h, 0x34)[0]
-            if magic != DATA_T_MAGIC or es <= 0:
-                continue
-            n = cur if 0 < cur <= max_c else max_c
-            if 0 < n <= 5000 and 0x80000000 <= data < 0x84000000:
-                blob = cap.read_mem(data, n * es)
-                regions[data] = blob
-                if object_bodies and name == "objects":
-                    specs = merge_body_spans(
-                        object_body_specs_from_entries(blob, es, n, body_size),
-                        body_merge_gap, body_max_region)
-                    for bva, bsz in specs:
-                        regions[bva] = cap.read_mem(bva, bsz)
+            hd, blob = _capture_pool(cap, name, regions)
+            if hd is not None and blob and object_bodies and name == "objects":
+                specs = merge_body_spans(
+                    object_body_specs_from_entries(blob, hd["es"], None, body_size),
+                    body_merge_gap, body_max_region)
+                for bva, bsz in specs:
+                    regions[bva] = cap.read_mem(bva, bsz)
     finally:
         cap.cont()
     return regions, tick
