@@ -48,6 +48,15 @@ void ui_widgets_safe_to_load(bool a1)
 {
 }
 
+/* ui_widgets_set_fade_value — stores the caller's value into the fade
+ * float at 0x46cc4c (the same global ui_widgets_initialize seeds to
+ * -1.0f). A raw 4-byte MOV in the original; written as a float store
+ * to preserve the bit pattern. */
+void ui_widgets_set_fade_value(float value)
+{
+  *(float *)0x46cc4c = value;
+}
+
 /* ui_widget_realloc — thin wrapper around stack_memory_pool_realloc.
  * Passes the global widget stack memory pool at [0x31e04c] as the
  * first argument, forwarding the caller's block pointer, new size,
@@ -577,7 +586,7 @@ void ui_widget_begin_filesystem_checks(void)
     error(2, "failed to spawn thread for filesystem checks - running "
              "synchronously!");
     *(int *)0x46cc7c = 0;
-    ((void(__stdcall *)(int))0xe5590)(0);
+    /* hazard-ok: fnptr-conv */ ((void(__stdcall *)(int))0xe5590)(0);
     assert_halt(*(uint8_t *)0x46cc82);
     *(uint8_t *)0x46cc85 = 0;
   }

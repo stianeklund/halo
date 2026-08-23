@@ -26302,7 +26302,8 @@
     },
     {
      "addr": "0xe3c90",
-     "decl": "void ui_widgets_set_fade_value(float value);"
+     "decl": "void ui_widgets_set_fade_value(float value);",
+     "ported": true
     },
     {
      "addr": "0xe3ca0",
