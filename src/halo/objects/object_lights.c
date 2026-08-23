@@ -99,12 +99,6 @@ void lights_dispose_from_old_map(void)
  *            RET, so the byte return value is the value just written. The
  *            sole ported caller (FUN_000becd0 in players.c) consumes AL.
  */
-typedef struct lights_game_globals {
-  bool enabled;
-} lights_game_globals_t;
-
-extern lights_game_globals_t *lights_game_globals;
-
 unsigned char lights_enable(unsigned char value)
 {
   lights_game_globals->enabled = value;
