@@ -3132,6 +3132,22 @@
         "The reference emits two dispose+epilogue blocks (0x7ba27 loop-exit and 0x7ba43 shared tail) but the lift emits one, leaving a measured 7-instruction gap; writing the split explicitly in C regressed the match to 88.9% at an unchanged 91 instruction count, so the original source shape that produces the duplicate is still unknown."
       ]
     },
+    "0x7bcb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7bd90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7be60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7c070": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x7c270": {
       "kind": "function",
       "status": "ported"
@@ -3169,6 +3185,17 @@
       "status": "ported"
     },
     "0x7d000": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7d0d0": {
+      "kind": "function",
+      "status": "unknown",
+      "uncertain": [
+        "Recovered and instruction-audited, but deactivated: strict lift pipeline rejects the 44.1% structural score and Unicorn cannot execute the oracle jump table (target 0x1ffffc)."
+      ]
+    },
+    "0x7d300": {
       "kind": "function",
       "status": "ported"
     },
@@ -3212,11 +3239,39 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x7dad0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x7dfe0": {
       "kind": "function",
       "status": "ported"
     },
     "0x7e040": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7e0b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7e230": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7e3f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7e560": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7e7e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7ece0": {
       "kind": "function",
       "status": "ported"
     },

@@ -1949,6 +1949,6 @@ void FUN_001390d0(int material, int bitmap_ref, uint16_t *indices, float bary_u,
   uv[0] = v0[0] + (v1[0] - v0[0]) * bary_u + (v2[0] - v0[0]) * bary_v;
   uv[1] = v0[1] + (v1[1] - v0[1]) * bary_u + (v2[1] - v0[1]) * bary_v;
 
-  pixel32_to_real_rgb_color(bitmap_2d_get_pixel(bitmap_ref, uv, 0.3f, out_rgb),
+  pixel32_to_real_rgb_color(bitmap_2d_get_pixel((void *)bitmap_ref, uv, 0.3f),
                             out_rgb);
 }

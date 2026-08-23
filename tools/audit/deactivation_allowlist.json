@@ -1503,5 +1503,12 @@
     "object": "damage.obj",
     "reason": "impl is #if 0 in src/halo/objects/damage.c: the sole caller FUN_001377d0 is unported and passes three register args (@<eax>, @<ecx>, @<esi>) that a cdecl C function cannot receive. Pre-existing state on main; re-parked 2026-08-12 after commit 72f0bf2cd collaterally flipped ported to true, which broke the patched_xbe link (symbol absent from EXE exports).",
     "since": "2026-08-12"
+  },
+  {
+    "addr": "0x7d0d0",
+    "name": "bitmap_format_to_a8r8g8b8",
+    "object": "bitmaps.obj",
+    "reason": "recovered and instruction-audited across all supported formats, but strict lift pipeline rejects the 44.1% structural score and Unicorn cannot execute the oracle jump table (target 0x1ffffc). Dormant pending golden/runtime verification.",
+    "since": "2026-08-23"
   }
 ]
