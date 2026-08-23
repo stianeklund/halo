@@ -7050,3 +7050,21 @@ AUTOLIFT_REVIEW: NEEDS_RUNTIME |
 | FUN_00082c90 | 0x82c90 | transport_endpoint_set_winsock.obj | 65.5 | parked | escalation_exhausted [cohort=retrieval] |
 | FUN_00082cf0 | 0x82cf0 | transport_endpoint_set_winsock.obj | 84.44 | parked | structural_cap[deterministic(classify_cap.py)]: classify_cap R1 reg_defining_prologue (capped=true, cap_confidence=high): the decl `void FUN_00082cf0(int thread@<esi>);` defines its own @<reg> parameter, which VC71 cl.exe cannot emit, so the function is permanently sub-bar. Binary evidence for the @<esi> arg: TEST ESI,ESI is the first instruction at 0x82cf0 with no prologue, no frame and no stack-argument read, and the single caller (CALL at 0x84197 in FUN_00084080, from the artifact's xrefs_to) leaves the value in ESI. The immutable score context (artifacts/research_cache/scores/82cf0/7ecc89a70fcc2849ae9c3a605728e01015f0ffc7d3f7106220a93aa534fa32f9.json, sha256:43308714d5e814e3b80effd5038b474372190867dfd7ada6cde914fd850695c6) independently classifies rule regarg_static_helper_ceiling with evidence "own @<reg> phantom load plus candidate-only EBP setup/teardown", abi_model=regparam_stripped_saves, regparam_loads_stripped=4, n_ref_insns=19 vs n_cand_insns=30, and reports zero fpu/fcom/imm/loadw/shape warnings — i.e. no dropped call, no wrong immediate, no field-width error; the whole gap is the register-arg prologue plus candidate-only EBP frame. Score 84.44% is below the [85,89] permute band, so no permutation was attempted. [cohort=retrieval] |
 | get_next_endpoint_from_set | 0x82d70 | transport_endpoint_set_winsock.obj | 78.05 | parked | escalation_exhausted [cohort=retrieval] |
+
+## Goal-lift run — 12/12 committed (goal_reached)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| ustrcmp | 0x19d810 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| ustrncat | 0x19db80 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| ustrncmp | 0x19dc20 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| ustrpbrk | 0x19dd00 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=none] |
+| ustrrchr | 0x19ddb0 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| ustrspn | 0x19de20 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| ustrstr | 0x19ded0 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| ustrtok | 0x19df80 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| ustrxfrm | 0x19dff0 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| ustrlwr | 0x19e0c0 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| ustrupr | 0x19e130 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| ustrnlwr | 0x19e1a0 | unicode.obj | 97.3 | committed | mechanical gate: 97.3% clean (pass1) [cohort=retrieval] |

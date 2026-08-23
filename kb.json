@@ -885,7 +885,7 @@
     },
     {
      "addr": "0x1dbdec",
-     "comment": "LIBCMT _except_handler3 — VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
+     "comment": "LIBCMT _except_handler3 \u2014 VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
      "decl": "int __cdecl _except_handler3(void *ExceptionRecord, void *EstablisherFrame, void *ContextRecord, void *DispatcherContext);"
     },
     {
@@ -910,59 +910,59 @@
     },
     {
      "addr": "0x1dbf75",
-     "decl": "void _wcscmp(void);"
+     "decl": "int _wcscmp(const wchar_t *string1, const wchar_t *string2);"
     },
     {
      "addr": "0x1dbfa7",
-     "decl": "void FUN_001dbfa7(void);"
+     "decl": "int thunk__wcscmp(const wchar_t *string1, const wchar_t *string2);"
     },
     {
      "addr": "0x1dbfac",
-     "decl": "void _wcscspn(void);"
+     "decl": "size_t _wcscspn(const wchar_t *string, const wchar_t *character_set);"
     },
     {
      "addr": "0x1dbfef",
-     "decl": "void _wcsncat(void);"
+     "decl": "wchar_t *_wcsncat(wchar_t *dest, const wchar_t *src, size_t count);"
     },
     {
      "addr": "0x1dc02c",
-     "decl": "void _wcsncmp(void);"
+     "decl": "int _wcsncmp(const wchar_t *string1, const wchar_t *string2, size_t count);"
     },
     {
      "addr": "0x1dc09e",
-     "decl": "void _wcspbrk(void);"
+     "decl": "wchar_t *_wcspbrk(const wchar_t *string, const wchar_t *character_set);"
     },
     {
      "addr": "0x1dc0de",
-     "decl": "void _wcsrchr(void);"
+     "decl": "wchar_t *_wcsrchr(const wchar_t *string, wchar_t ch);"
     },
     {
      "addr": "0x1dc10e",
-     "decl": "void _wcsspn(void);"
+     "decl": "size_t _wcsspn(const wchar_t *string, const wchar_t *character_set);"
     },
     {
      "addr": "0x1dc154",
-     "decl": "void _wcsstr(void);"
+     "decl": "wchar_t *_wcsstr(const wchar_t *string, const wchar_t *character_set);"
     },
     {
      "addr": "0x1dc1b2",
-     "decl": "void _wcstok(void);"
+     "decl": "wchar_t *_wcstok(wchar_t *string, const wchar_t *delimiters);"
     },
     {
      "addr": "0x1dc257",
-     "decl": "void FUN_001dc257(void);"
+     "decl": "void FUN_001dc257(wchar_t *dest, wchar_t *src, size_t count);"
     },
     {
      "addr": "0x1dc27c",
-     "decl": "void FUN_001dc27c(void);"
+     "decl": "int FUN_001dc27c(int character);"
     },
     {
      "addr": "0x1dc2c3",
-     "decl": "void __wcsicmp(void);"
+     "decl": "int __wcsicmp(const wchar_t *string1, const wchar_t *string2);"
     },
     {
      "addr": "0x1dc34b",
-     "decl": "void __wcsnicmp(void);"
+     "decl": "int __wcsnicmp(const wchar_t *string1, const wchar_t *string2, size_t count);"
     },
     {
      "addr": "0x1dc3e9",
@@ -995,7 +995,7 @@
     },
     {
      "addr": "0x1db134",
-     "decl": "void _wcschr(void);"
+     "decl": "wchar_t *_wcschr(const wchar_t *string, wchar_t ch);"
     },
     {
      "addr": "0x1db156",
@@ -2168,11 +2168,11 @@
     },
     {
      "addr": "0x1e6805",
-     "decl": "void __wcslwr(void);"
+     "decl": "void __wcslwr(wchar_t *string);"
     },
     {
      "addr": "0x1e6831",
-     "decl": "void __wcsupr(void);"
+     "decl": "void __wcsupr(wchar_t *string);"
     },
     {
      "addr": "0x1e6860",
@@ -6939,7 +6939,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -7000,7 +7000,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
@@ -27177,83 +27177,103 @@
     },
     {
      "addr": "0x19d810",
-     "decl": "int ustrcmp(const wchar_t *s1, const wchar_t *s2);"
+     "decl": "int ustrcmp(const wchar_t *string1, const wchar_t *string2);",
+     "ported": true
     },
     {
      "addr": "0x19d8c0",
-     "decl": "int ustrlen(const unsigned short *s);"
+     "decl": "int ustrlen(const unsigned short *s);",
+     "ported": true
     },
     {
      "addr": "0x19d930",
-     "decl": "void ustrnlen(void);"
+     "decl": "int ustrnlen(const unsigned short *string, unsigned int max_count);",
+     "ported": true
     },
     {
      "addr": "0x19d9b0",
-     "decl": "void ustrchr(void);"
+     "decl": "wchar_t *ustrchr(const wchar_t *string, wchar_t ch);",
+     "ported": true
     },
     {
      "addr": "0x19da20",
-     "decl": "void ustrcoll(void);"
+     "decl": "int ustrcoll(const wchar_t *string1, const wchar_t *string2);",
+     "ported": true
     },
     {
      "addr": "0x19dad0",
-     "decl": "void ustrcspn(void);"
+     "decl": "size_t ustrcspn(const wchar_t *string, const wchar_t *character_set);",
+     "ported": true
     },
     {
      "addr": "0x19db80",
-     "decl": "void ustrncat(void);"
+     "decl": "void ustrncat(wchar_t *dest, wchar_t *src, size_t count);",
+     "ported": true
     },
     {
      "addr": "0x19dc20",
-     "decl": "int ustrncmp(const wchar_t *s1, const wchar_t *s2, size_t count);"
+     "decl": "int ustrncmp(const wchar_t *s1, const wchar_t *s2, size_t count);",
+     "ported": true
     },
     {
      "addr": "0x19dd00",
-     "decl": "void ustrpbrk(void);"
+     "decl": "wchar_t *ustrpbrk(const wchar_t *string, const wchar_t *character_set);",
+     "ported": true
     },
     {
      "addr": "0x19ddb0",
-     "decl": "void ustrrchr(void);"
+     "decl": "wchar_t *ustrrchr(const wchar_t *string, wchar_t ch);",
+     "ported": true
     },
     {
      "addr": "0x19de20",
-     "decl": "void ustrspn(void);"
+     "decl": "size_t ustrspn(const wchar_t *string, const wchar_t *character_set);",
+     "ported": true
     },
     {
      "addr": "0x19ded0",
-     "decl": "void ustrstr(void);"
+     "decl": "wchar_t *ustrstr(const wchar_t *string, const wchar_t *character_set);",
+     "ported": true
     },
     {
      "addr": "0x19df80",
-     "decl": "void ustrtok(void);"
+     "decl": "wchar_t *ustrtok(wchar_t *string, const wchar_t *delimiters);",
+     "ported": true
     },
     {
      "addr": "0x19dff0",
-     "decl": "void ustrxfrm(void);"
+     "decl": "void ustrxfrm(wchar_t *dest, wchar_t *src, size_t count);",
+     "ported": true
     },
     {
      "addr": "0x19e0c0",
-     "decl": "void ustrlwr(void);"
+     "decl": "void ustrlwr(wchar_t *string);",
+     "ported": true
     },
     {
      "addr": "0x19e130",
-     "decl": "void ustrupr(void);"
+     "decl": "void ustrupr(wchar_t *string);",
+     "ported": true
     },
     {
      "addr": "0x19e1a0",
-     "decl": "void ustrnlwr(void);"
+     "decl": "wchar_t *ustrnlwr(wchar_t *string, size_t count);",
+     "ported": true
     },
     {
      "addr": "0x19e250",
-     "decl": "void ustrnupr(void);"
+     "decl": "wchar_t *ustrnupr(wchar_t *string, size_t count);",
+     "ported": true
     },
     {
      "addr": "0x19e300",
-     "decl": "void ustrcasecmp(void);"
+     "decl": "int ustrcasecmp(const wchar_t *string1, const wchar_t *string2);",
+     "ported": true
     },
     {
      "addr": "0x19e3b0",
-     "decl": "void ustrncasecmp(void);"
+     "decl": "int ustrncasecmp(const wchar_t *string1, const wchar_t *string2, size_t count);",
+     "ported": true
     },
     {
      "addr": "0x19e460",
@@ -30663,7 +30683,7 @@
     },
     {
      "addr": "0x1da8e3",
-     "decl": "void FUN_001da8e3(void);"
+     "decl": "int FUN_001da8e3(int character);"
     }
    ],
    "name": "LIBCMT:strtok.obj"
