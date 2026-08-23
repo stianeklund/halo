@@ -4114,7 +4114,7 @@ void FUN_0013a740(int param_1, int param_2, float *param_3)
       }
       iVar8 = CALL_FUN_001bf570(uVar7, 0, 0);
       if (iVar8 != 0) {
-        FUN_00138fd0(iVar5, uVar7, local_24, local_1c, local_14, (int)pfVar3);
+        FUN_00138fd0(iVar5, uVar7, local_24, local_1c, local_14, pfVar3);
       }
     }
   }
@@ -4344,7 +4344,7 @@ char FUN_0013ab20(unsigned int param_1, int param_2, int *param_3)
           (iVar4 = CALL_FUN_00138ee0(local_14), iVar4 != 0)) {
         CALL_FUN_001390d0(iVar6, local_14, puVar5, local_c, local_10,
                           (void *)local_88);
-        FUN_00138fd0(iVar6, iVar2, puVar5, local_c, local_10, (int)local_40);
+        FUN_00138fd0(iVar6, iVar2, puVar5, local_c, local_10, local_40);
         CALL_FUN_00180570((unsigned int)*puVar5 * 0x20 + *(int *)(iVar6 + 0xf8),
                           (void *)local_64);
         CALL_FUN_00180570((unsigned int)puVar5[1] * 0x20 +

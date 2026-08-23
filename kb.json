@@ -29355,7 +29355,7 @@
     },
     {
      "addr": "0x231490",
-     "decl": "void __stdcall BinkSetSoundSystem(void *open_proc, void *close_proc);"
+     "decl": "void __stdcall FUN_00231490(void *alloc_callback, void *free_callback);"
     }
    ],
    "name": "bink.obj"
@@ -37635,7 +37635,7 @@
     },
     {
      "addr": "0x138fd0",
-     "decl": "void FUN_00138fd0(int material, int lightmap, unsigned short *vertex_indices, float u, float v, int param_6);"
+     "decl": "void FUN_00138fd0(int material, int lightmap, unsigned short *vertex_indices, float u, float v, float *out_rgb);"
     },
     {
      "addr": "0x1390d0",

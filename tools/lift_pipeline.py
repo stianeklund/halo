@@ -991,6 +991,16 @@ def run_pipeline(args: argparse.Namespace) -> int:
       else:
         stages.append(StageResult("equivalence", ran=True, ok=False, details=details))
         return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
+    elif status == "inconclusive":
+      # Every seed agreed, but the run never entered the body or never observed
+      # more than one behaviour. That is not verification, so it must not count
+      # as a passing stage -- treated like not_applicable, not like pass.
+      ok = equivalence_policy != "required"
+      coverage = payload.get("coverage_pct", 0) if payload else 0
+      details = f"no evidence ({reason or 'vacuous'}; {coverage}% coverage)"
+      stages.append(StageResult("equivalence", ran=False, ok=ok, details=details))
+      if not ok:
+        return finalize(summary, stages, artifact_dir, ok=False, quiet=args.quiet)
     elif status == "not_applicable":
       ok = equivalence_policy != "required"
       details = f"skipped ({reason or 'not_applicable'})"

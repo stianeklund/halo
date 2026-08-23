@@ -339,7 +339,7 @@ void FUN_00139480(void *position, void *tint_color, void *out_color,
     vertex_indices = (unsigned short *)tag_block_get_element(scenario + 0xf8,
                                                              surface_index, 6);
     FUN_00138fd0((int)material, (int)lightmap_bitmap, vertex_indices, u, v,
-                 (int)tint_color);
+                 (float *)tint_color);
     value = ((float *)tint_color)[0] + *(float *)0x25496c;
     if (value > *(float *)0x2533c8) {
       value = *(float *)0x2533c8;

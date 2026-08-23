@@ -481,7 +481,7 @@ int FUN_001c6170(unsigned int flags, void *rect, void *locked_rect,
 void bink_playback_initialize(void)
 {
   csmemset((void *)0x4ead58, 0, 0xd8);
-  BinkSetSoundSystem((void *)0x1c5ab0, (void *)0x1c5ca0);
+  FUN_00231490((void *)0x1c5ab0, (void *)0x1c5ca0);
   *(uint8_t *)0x4ead58 = 1;
 }
 

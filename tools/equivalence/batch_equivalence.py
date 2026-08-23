@@ -141,6 +141,11 @@ def run_unicorn(target_name: str, seeds: int, float_tol: int) -> str:
             if any(kw in line.lower() for kw in ("pass", "fail", "error", "diverge",
                                                    "coverage", "equivalen")):
                 return line.strip()[:120]
+        # rc 3 = inconclusive (vacuous run: no coverage, or one observed
+        # behaviour across all seeds). Distinct from FAIL: nothing diverged,
+        # but nothing was actually compared either.
+        if result.returncode == 3:
+            return f"INCONCLUSIVE (rc={result.returncode})"
         return ("PASS" if result.returncode == 0 else "FAIL") + f" (rc={result.returncode})"
     except subprocess.TimeoutExpired:
         return "TIMEOUT (>120s)"
