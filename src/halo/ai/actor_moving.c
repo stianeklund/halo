@@ -2586,11 +2586,10 @@ void actor_destination_update(int actor_handle)
   char *actor;
   char *path_ctl;
   char exhausted;
-  int step_idx;
+  char step_idx;
   int step_cnt;
-  int cur_off;
-  int next_off;
-  float cur_x, cur_y, next_x, next_y;
+  float *cur;
+  float *nxt;
   float to_cur_x, to_cur_y;
   float seg_x, seg_y;
   float dot_seg_to_cur, dot_seg_facing;
@@ -2598,6 +2597,7 @@ void actor_destination_update(int actor_handle)
   float dist_sq;
   char name_buf[0x200];
   float *node;
+  volatile float *delta;
   float dx, dy, dz, dist;
   int sign_val;
   float step;
@@ -2617,7 +2617,7 @@ void actor_destination_update(int actor_handle)
     exhausted = '\0';
 
     while (1) {
-      step_idx = (int)(signed char)path_ctl[0x1a];
+      step_idx = path_ctl[0x1a];
       step_cnt = (int)(signed char)path_ctl[0x19];
 
       if (step_idx + 1 >= step_cnt) {
@@ -2625,19 +2625,14 @@ void actor_destination_update(int actor_handle)
         break;
       }
 
-      cur_off = (step_idx + 2) * 0x10;
-      next_off = (step_idx + 3) * 0x10;
+      cur = (float *)(path_ctl + (step_idx + 2) * 0x10);
+      nxt = (float *)(path_ctl + (step_idx + 3) * 0x10);
 
-      cur_x = *(float *)(path_ctl + cur_off);
-      cur_y = *(float *)(path_ctl + cur_off + 4);
-      next_x = *(float *)(path_ctl + next_off);
-      next_y = *(float *)(path_ctl + next_off + 4);
+      to_cur_x = cur[0] - ((actor_t *)actor)->field_12c;
+      to_cur_y = cur[1] - ((actor_t *)actor)->field_130;
 
-      to_cur_x = cur_x - ((actor_t *)actor)->field_12c;
-      to_cur_y = cur_y - ((actor_t *)actor)->field_130;
-
-      seg_x = next_x - cur_x;
-      seg_y = next_y - cur_y;
+      seg_x = nxt[0] - cur[0];
+      seg_y = nxt[1] - cur[1];
 
       /* Load path_final_step flag (actor+0x506). */
       if (((actor_t *)actor)->field_506 == '\0') {
@@ -2668,12 +2663,12 @@ void actor_destination_update(int actor_handle)
           dot_seg_facing = seg_y * ((actor_t *)actor)->input_facing_vector[1] +
                            seg_x * ((actor_t *)actor)->input_facing_vector[0];
 
-          /* FCOMP [0x2533c0]=0.0f; TEST AH,0x41; JNZ => jump if <= 0 */
-          if (dot_seg_facing <= 0.0f) {
+          /* FCOMP [0x2533c0]; TEST AH,0x41; JNE => !(x > 0) (unordered-taken). */
+          if (!(dot_seg_facing > *(const float *)0x2533c0)) {
             break;
           }
-          /* FCOM [0x2533c0]=0.0f; TEST AH,0x5; JP => jump if >= 0 */
-          if (dot_seg_to_cur >= 0.0f) {
+          /* FCOM [0x2533c0]; TEST AH,0x5; JP => !(x < 0) (unordered-taken). */
+          if (!(dot_seg_to_cur < *(const float *)0x2533c0)) {
             break;
           }
 
@@ -2716,8 +2711,8 @@ void actor_destination_update(int actor_handle)
           perp_y = seg_y * t + to_cur_y;
           perp_sq = perp_x * perp_x + perp_y * perp_y;
 
-          /* FCOMP [0x255d90]=0.0625f; TEST AH,0x5; JP => jump if >= 0.0625f */
-          if (perp_sq >= 0.0625f) {
+          /* FCOMP [0x255d90]; TEST AH,0x5; JP => !(x < 0.0625) (unordered-taken). */
+          if (!(perp_sq < *(const float *)0x255d90)) {
             break;
           }
         } else {
@@ -2729,14 +2724,15 @@ void actor_destination_update(int actor_handle)
            *   FCOMP [0x255d8c]=0.0225f; TEST AH,0x5; JP => jump if >= 0.0225f
            */
           dist_sq = to_cur_y * to_cur_y + to_cur_x * to_cur_x;
-          if (dist_sq >= 0.0225f) {
+          if (!(dist_sq < *(const float *)0x255d8c)) {
             break;
           }
         }
       }
 
       /* Advance to next step. */
-      ((actor_t *)actor)->field_4c2 += 1;
+      step_idx += 1;
+      path_ctl[0x1a] = step_idx;
       ((actor_t *)actor)->field_506 = '\0';
     }
 
@@ -2774,7 +2770,7 @@ void actor_destination_update(int actor_handle)
        * Disasm 0x2d574-0x2d5a1: MOVSX EDX,byte[ESI+0x4c2]; SHL EDX,4;
        *   LEA ECX,[EDX+ESI+0x4c8]; copy 3 dwords to [ESI+0x50c].
        */
-      step_idx = (int)((actor_t *)actor)->field_4c2;
+      step_idx = ((actor_t *)actor)->field_4c2;
       node = (float *)(actor + 0x4c8 + step_idx * 0x10);
 
       ((actor_t *)actor)->field_50c = node[0];
@@ -2782,12 +2778,10 @@ void actor_destination_update(int actor_handle)
       ((actor_t *)actor)->field_514 = node[2];
 
       /* Compute vector from actor to target. */
-      *(float *)(actor + 0x518) =
-        ((actor_t *)actor)->field_50c - ((actor_t *)actor)->field_12c;
-      *(float *)(actor + 0x51c) =
-        ((actor_t *)actor)->field_510 - ((actor_t *)actor)->field_130;
-      *(float *)(actor + 0x520) =
-        ((actor_t *)actor)->field_514 - ((actor_t *)actor)->field_134;
+      delta = (volatile float *)(actor + 0x518);
+      delta[0] = ((actor_t *)actor)->field_50c - ((actor_t *)actor)->field_12c;
+      delta[1] = ((actor_t *)actor)->field_510 - ((actor_t *)actor)->field_130;
+      delta[2] = ((actor_t *)actor)->field_514 - ((actor_t *)actor)->field_134;
 
       /* Sanity check: if distance^2 < 1,000,000 (i.e. < 1000 units), OK.
        * Disasm 0x2d5d0-0x2d605: FPU computes sqrt(dx^2+dy^2+dz^2), then
@@ -2829,13 +2823,13 @@ void actor_destination_update(int actor_handle)
        * So we compare distance (not distance^2) to 1,000,000. This is
        * "tau ceti" = 1 million world units (absurd distance).
        */
-      dx = *(float *)(actor + 0x518);
-      dy = *(float *)(actor + 0x51c);
-      dz = *(float *)(actor + 0x520);
+      dx = delta[0];
+      dy = delta[1];
+      dz = delta[2];
       dist = sqrtf(dx * dx + dy * dy + dz * dz);
 
-      /* Jump past error if distance is sane (< 1,000,000 units). */
-      if (dist < 1000000.0f) {
+      /* FCOMP [0x255d50]; TEST AH,0x1; JNE => !(dist >= 1e6) (unordered-taken). */
+      if (!(dist >= *(const float *)0x255d50)) {
         return;
       }
 
@@ -2859,7 +2853,43 @@ void actor_destination_update(int actor_handle)
    * active (entry 0x2d3ac), when an active path was cleared, or when an
    * active path yielded no target this tick.
    */
-  if (((actor_t *)actor)->field_15e != 4) {
+  if (((actor_t *)actor)->field_15e == 4) {
+    /* Movement type == 4: far_movement. Compute step along facing vector.
+     *
+     * actor[0x5ec]: if > 0.9f → sign=-1 (backward), else sign=+1 (forward).
+     * Disasm 0x2d632-0x2d693:
+     *   FLD [ESI+0x5ec]; FCOMP [0x2555d0]=0.9f; FNSTSW AX
+     *   TEST AH,0x41; JNZ 0x2d649 (set AL=0); else: MOV AL,1
+     *   XOR EDX,EDX; TEST AL,AL; SETZ DL   => DL=1 if AL==0, DL=0 if AL!=0
+     *   LEA EDX,[EDX+EDX-1]                => EDX = DL*2 - 1
+     *     if actor[0x5ec]>0.9: AL=1,DL=0 → EDX=-1
+     *     if actor[0x5ec]<=0.9: AL=0,DL=1 → EDX=1
+     *   FILD [EBP-0x8] (=EDX); FMUL [0x254644]=3.0f  => sign * 3.0
+     */
+    ((actor_t *)actor)->field_504 = '\x01';
+    ((actor_t *)actor)->field_506 = '\0';
+
+    /* FCOMP test: if actor[0x5ec] <= 0.9f → sign=+1, else sign=-1 */
+    if (*(float *)(actor + 0x5ec) > *(const float *)0x2555d0) {
+      sign_val = -1;
+    } else {
+      sign_val = 1;
+    }
+
+    step = (float)sign_val * 3.0f;
+
+    delta = (volatile float *)(actor + 0x518);
+    delta[0] = step * ((actor_t *)actor)->input_facing_vector[0];
+    delta[1] = step * ((actor_t *)actor)->input_facing_vector[1];
+    delta[2] = step * ((actor_t *)actor)->input_facing_vector[2];
+
+    ((actor_t *)actor)->field_50c =
+      ((actor_t *)actor)->field_12c + delta[0];
+    ((actor_t *)actor)->field_510 =
+      ((actor_t *)actor)->field_130 + delta[1];
+    ((actor_t *)actor)->field_514 =
+      ((actor_t *)actor)->field_134 + delta[2];
+  } else {
     /* Not far-movement: reset path destination and target state. */
     ((actor_t *)actor)->field_504 = '\0';
     ((actor_t *)actor)->field_506 = '\0';
@@ -2871,43 +2901,7 @@ void actor_destination_update(int actor_handle)
     ((actor_t *)actor)->field_4a8 = '\0';
     ((actor_t *)actor)->field_484 = '\x01';
     *(int *)(actor + 0x4a0) = 0;
-    return;
   }
-
-  /* Movement type == 4: far_movement. Compute step along facing vector.
-   *
-   * actor[0x5ec]: if > 0.9f → sign=-1 (backward), else sign=+1 (forward).
-   * Disasm 0x2d632-0x2d693:
-   *   FLD [ESI+0x5ec]; FCOMP [0x2555d0]=0.9f; FNSTSW AX
-   *   TEST AH,0x41; JNZ 0x2d649 (set AL=0); else: MOV AL,1
-   *   XOR EDX,EDX; TEST AL,AL; SETZ DL   => DL=1 if AL==0, DL=0 if AL!=0
-   *   LEA EDX,[EDX+EDX-1]                => EDX = DL*2 - 1
-   *     if actor[0x5ec]>0.9: AL=1,DL=0 → EDX=-1
-   *     if actor[0x5ec]<=0.9: AL=0,DL=1 → EDX=1
-   *   FILD [EBP-0x8] (=EDX); FMUL [0x254644]=3.0f  => sign * 3.0
-   */
-  ((actor_t *)actor)->field_504 = '\x01';
-  ((actor_t *)actor)->field_506 = '\0';
-
-  /* FCOMP test: if actor[0x5ec] <= 0.9f → sign=+1, else sign=-1 */
-  if (*(float *)(actor + 0x5ec) > 0.9f) {
-    sign_val = -1;
-  } else {
-    sign_val = 1;
-  }
-
-  step = (float)sign_val * 3.0f;
-
-  *(float *)(actor + 0x518) = step * ((actor_t *)actor)->input_facing_vector[0];
-  *(float *)(actor + 0x51c) = step * ((actor_t *)actor)->input_facing_vector[1];
-  *(float *)(actor + 0x520) = step * ((actor_t *)actor)->input_facing_vector[2];
-
-  ((actor_t *)actor)->field_50c =
-    ((actor_t *)actor)->field_12c + *(float *)(actor + 0x518);
-  ((actor_t *)actor)->field_510 =
-    ((actor_t *)actor)->field_130 + *(float *)(actor + 0x51c);
-  ((actor_t *)actor)->field_514 =
-    ((actor_t *)actor)->field_134 + *(float *)(actor + 0x520);
 }
 
 /* 0x2d720 — actor_move_to_point: Set actor movement to point-movement mode

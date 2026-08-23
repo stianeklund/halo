@@ -124,14 +124,14 @@
     },
     "0x1aeb0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "uncertain": [
         "NOT ported: kb.json carries no ported key for this address and no implementation exists in src/ (only call sites in ai/actions.c). A maintain.py sync-ported pass wrongly recorded status=ported here; corrected 2026-08-23."
       ]
     },
     "0x1b280": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "uncertain": [
         "NOT ported: kb.json carries no ported key for this address and no implementation exists in src/ (only call sites in ai/actions.c). A maintain.py sync-ported pass wrongly recorded status=ported here; corrected 2026-08-23."
       ]
@@ -176,7 +176,7 @@
     },
     "0x1c0e0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "uncertain": [
         "DEACTIVATED: kb.json has ported:false and tools/audit/deactivation_allowlist.json carries this address (reason 'pre-gate baseline 2026-06-10'). kb_meta previously said status=ported, which hid the deactivation from frontier.py/progress accounting while the deactivation gate stayed quiet. Corrected 2026-08-23."
       ]
@@ -3190,7 +3190,7 @@
     },
     "0x7d0d0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "uncertain": [
         "Recovered and instruction-audited, but deactivated: strict lift pipeline rejects the 44.1% structural score and Unicorn cannot execute the oracle jump table (target 0x1ffffc)."
       ]
