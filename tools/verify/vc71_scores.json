@@ -30763,6 +30763,21 @@
       "score": 88.9,
       "source": "src/halo/physics/collision_usage.c"
     },
+    "FUN_00150840": {
+      "abi_model": "regparam_stripped_saves",
+      "abi_model_items": 6,
+      "abi_modeled_mnemonic_pct": 85.7,
+      "addr": "0x150840",
+      "end": "0x1508aa",
+      "kind": "auto",
+      "n_r": 36,
+      "opnd_percent": 77.9,
+      "raw_mnemonic_pct": 79.5,
+      "ref": "synth",
+      "ref_sha": "d301c31baad6f7a5",
+      "score": 85.7,
+      "source": "src/halo/physics/point_physics.c"
+    },
     "FUN_001544d0": {
       "abi_model": "raw",
       "abi_model_items": 0,

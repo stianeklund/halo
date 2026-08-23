@@ -19255,7 +19255,8 @@
     },
     {
      "addr": "0x150840",
-     "decl": "void FUN_00150840(void);"
+     "decl": "short FUN_00150840(int object_index@<eax>, short collision_fn_index@<si>);",
+     "ported": true
     },
     {
      "addr": "0x1508b0",
