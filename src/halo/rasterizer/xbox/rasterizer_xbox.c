@@ -154,7 +154,23 @@ char rasterizer_preinitialize(void)
                        "&d3d_present_parameters, &global_d3d_device)");
     }
 
+    /* 0x15549b-0x1554c0 is two tests (CMP [device],0 / JNE, then TEST BL,BL /
+     * JNE) reaching ONE body that clears the accumulator, nulls the device
+     * global, and reports "failed to create D3D device".
+     *
+     * The `XOR BL,BL` at 0x1554a3 is kept: without it a CreateDevice that
+     * returned success while leaving a NULL out-pointer would return 1 and let
+     * boot continue against a NULL device.
+     *
+     * The original's other arm — hr < 0 with a NON-null out-pointer — is not
+     * transcribed as a shared fall-through body: 0x476ab0 is zero at boot,
+     * rasterizer_preinitialize has a single call site (shell_xbox.c), and only
+     * this function and rasterizer_initialize write that global, so hr < 0
+     * always leaves it 0 and lands in the arm below.  Writing the body as a
+     * genuine shared fall-through costs 10pp of VC71 match (83.5% vs 93.4%)
+     * because cl.exe then relocates the shared "preinitialize failed" tail. */
     if (*(void **)0x476ab0 == 0) {
+      success = 0;
       *(void **)0x476ab0 = 0;
       error(2, "### ERROR failed to create D3D device");
     } else if (success != 0) {
@@ -1594,12 +1610,18 @@ void rasterizer_set_model_lighting_point_light(int light_index,
                                                short light_slot,
                                                void *lighting_constants)
 {
+  /* Record stride is 0x38, NOT sizeof of a densely packed struct: the
+   * original is IMUL ESI,ESI,0x38 at 0x1568c5 and reads the radius with
+   * FLD [ESI+0x34] at 0x1568ce.  The 0x1c..0x27 hole is never read here, so
+   * it stays pad_; the +0x28 vector's meaning is unproven, so it keeps its
+   * offset name. */
   struct point_light_t {
-    const char *owner;
-    float position[3];
-    float color[3];
-    float unk[3];
-    float radius;
+    const char *owner;  /* +0x00 */
+    float position[3];  /* +0x04 -> record +0x00 */
+    float color[3];     /* +0x10 -> record +0x10 */
+    char pad_1c[0xc];   /* +0x1c never observed accessed */
+    float field_28[3];  /* +0x28 -> record +0x20 */
+    float radius;       /* +0x34 */
   };
   const struct point_light_t *light;
   const char *owner;
@@ -1645,7 +1667,7 @@ void rasterizer_set_model_lighting_point_light(int light_index,
       *(float *)(dst + 0x0c) = *(const float *)0x2533c8 /
         (light->radius * light->radius);
       *(struct vec3 *)(dst + 0x10) = *(const struct vec3 *)light->color;
-      *(struct vec3 *)(dst + 0x20) = *(const struct vec3 *)light->unk;
+      *(struct vec3 *)(dst + 0x20) = *(const struct vec3 *)light->field_28;
     }
 
     owner = light->owner;

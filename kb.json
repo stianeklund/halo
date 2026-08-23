@@ -21267,8 +21267,7 @@
     },
     {
      "addr": "0x157940",
-     "decl": "void FUN_00157940(float *elapsed);",
-     "ported": true
+     "decl": "void FUN_00157940(float *elapsed);"
     },
     {
      "addr": "0x1579d0",
