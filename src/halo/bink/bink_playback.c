@@ -952,68 +952,67 @@ bool FUN_001c6900(file_ref_t *file, void *format_out)
   offset = 0xc;
 
   if (file_open(file, 1)) {
-    if (file_read_from_position(file, 0xc, 8, chunk)) {
-      for (;;) {
-        FUN_00118be0((void *)0x32ebe4, chunk, 1);
-        if (chunk[0] == 0x434f4d4d) /* 'COMM' */
-          break;
-        skip = chunk[1];
-        if ((chunk[1] & 1) != 0)
-          skip = chunk[1] + 1;
-        offset = offset + 8 + (int)skip;
-        if (!file_read_from_position(file, offset, 8, chunk)) {
-          file_close(file);
-          return false;
-        }
-      }
+    while (file_read_from_position(file, offset, 8, chunk)) {
+      FUN_00118be0((void *)0x32ebe4, chunk, 1);
+      if (chunk[0] == 0x434f4d4d) { /* 'COMM' */
+        if (file_read_from_position(file, offset + 8, 0x16, comm)) {
+          /* 80-bit IEEE-754 extended encodings of 11025/22050/44100 Hz, stored
+           * byte-by-byte at 0x1c69ae-0x1c6a19 (EBP-0x18/-0x24/-0x30). */
+          unsigned char rate_11025[10];
+          unsigned char rate_22050[10];
+          unsigned char rate_44100[10];
 
-      if (file_read_from_position(file, offset + 8, 0x16, comm)) {
-        /* 80-bit IEEE-754 extended encodings of 11025/22050/44100 Hz, stored
-         * byte-by-byte at 0x1c69ae-0x1c6a19 (EBP-0x18/-0x24/-0x30). */
-        unsigned char rate_11025[10];
-        unsigned char rate_22050[10];
-        unsigned char rate_44100[10];
+          rate_11025[0] = 0x40; rate_11025[1] = 0x0c; rate_11025[2] = 0xac; rate_11025[3] = 0x44;
+          rate_11025[4] = 0; rate_11025[5] = 0; rate_11025[6] = 0; rate_11025[7] = 0;
+          rate_11025[8] = 0; rate_11025[9] = 0;
 
-        rate_11025[0] = 0x40; rate_11025[1] = 0x0c; rate_11025[2] = 0xac; rate_11025[3] = 0x44;
-        rate_11025[4] = 0; rate_11025[5] = 0; rate_11025[6] = 0; rate_11025[7] = 0;
-        rate_11025[8] = 0; rate_11025[9] = 0;
+          rate_22050[0] = 0x40; rate_22050[1] = 0x0d; rate_22050[2] = 0xac; rate_22050[3] = 0x44;
+          rate_22050[4] = 0; rate_22050[5] = 0; rate_22050[6] = 0; rate_22050[7] = 0;
+          rate_22050[8] = 0; rate_22050[9] = 0;
 
-        rate_22050[0] = 0x40; rate_22050[1] = 0x0d; rate_22050[2] = 0xac; rate_22050[3] = 0x44;
-        rate_22050[4] = 0; rate_22050[5] = 0; rate_22050[6] = 0; rate_22050[7] = 0;
-        rate_22050[8] = 0; rate_22050[9] = 0;
+          rate_44100[0] = 0x40; rate_44100[1] = 0x0e; rate_44100[2] = 0xac; rate_44100[3] = 0x44;
+          rate_44100[4] = 0; rate_44100[5] = 0; rate_44100[6] = 0; rate_44100[7] = 0;
+          rate_44100[8] = 0; rate_44100[9] = 0;
 
-        rate_44100[0] = 0x40; rate_44100[1] = 0x0e; rate_44100[2] = 0xac; rate_44100[3] = 0x44;
-        rate_44100[4] = 0; rate_44100[5] = 0; rate_44100[6] = 0; rate_44100[7] = 0;
-        rate_44100[8] = 0; rate_44100[9] = 0;
+          FUN_00118be0((void *)0x32ec18, comm, 1);
 
-        FUN_00118be0((void *)0x32ec18, comm, 1);
+          if (csmemcmp(rate_11025, &comm[8], 10) == 0) {
+            *(uint32_t *)format_out = 0x2b11; /* 11025 */
+            *(uint16_t *)((char *)format_out + 8) = *(uint16_t *)&comm[6];
+            *(uint16_t *)((char *)format_out + 4) = *(uint16_t *)&comm[0];
+            if (chunk[1] == 0x12 || *(uint32_t *)&comm[18] == 0x4e4f4e45) {
+              result = true;
+              file_close(file);
+              return result;
+            }
+          } else {
+            result = true;
+            if (csmemcmp(rate_22050, &comm[8], 10) == 0) {
+              *(uint32_t *)format_out = 0x5622; /* 22050 */
+            } else if (csmemcmp(rate_44100, &comm[8], 10) == 0) {
+              *(uint32_t *)format_out = 0xac44; /* 44100 */
+            } else {
+              *(uint32_t *)format_out = 0xffffffff;
+              result = false;
+            }
 
-        if (csmemcmp(rate_11025, &comm[8], 10) == 0) {
-          *(uint32_t *)format_out = 0x2b11; /* 11025 */
-        } else if (csmemcmp(rate_22050, &comm[8], 10) == 0) {
-          *(uint32_t *)format_out = 0x5622; /* 22050 */
-          *(uint16_t *)((char *)format_out + 8) = *(uint16_t *)&comm[6];
-          *(uint16_t *)((char *)format_out + 4) = *(uint16_t *)&comm[0];
-          if (chunk[1] == 0x12 || *(uint32_t *)&comm[18] == 0x4e4f4e45) {
-            file_close(file);
-            return true;
+            if (result) {
+              *(uint16_t *)((char *)format_out + 8) = *(uint16_t *)&comm[6];
+              *(uint16_t *)((char *)format_out + 4) = *(uint16_t *)&comm[0];
+              if (chunk[1] == 0x12 || *(uint32_t *)&comm[18] == 0x4e4f4e45) {
+                file_close(file);
+                return result;
+              }
+              result = false;
+            }
           }
-          file_close(file);
-          return false;
-        } else if (csmemcmp(rate_44100, &comm[8], 10) == 0) {
-          *(uint32_t *)format_out = 0xac44; /* 44100 */
-        } else {
-          *(uint32_t *)format_out = 0xffffffff;
-          file_close(file);
-          return false;
         }
-
-        *(uint16_t *)((char *)format_out + 8) = *(uint16_t *)&comm[6];
-        *(uint16_t *)((char *)format_out + 4) = *(uint16_t *)&comm[0];
-
-        if (chunk[1] == 0x12 || *(uint32_t *)&comm[18] == 0x4e4f4e45)
-          result = true;
+        break;
       }
+      skip = chunk[1];
+      if ((skip & 1) != 0)
+        skip++;
+      offset += 8 + (int)skip;
     }
     file_close(file);
   }
@@ -1090,6 +1089,8 @@ void FUN_001c6bf0(void *param_1, void *param_2, void *param_3)
  * the file reference. */
 bool FUN_001c6c00(void *info, file_ref_t *file)
 {
+  bool result = true;
+
   if (info == NULL) {
     display_assert(
       "info", "c:\\halo\\SOURCE\\sound\\sound_import\\sound_import.c", 0x12, 1);
@@ -1101,12 +1102,9 @@ bool FUN_001c6c00(void *info, file_ref_t *file)
     system_exit(-1);
   }
 
-  if (FUN_001c6880(file) && FUN_001c6900(file, info))
-    goto valid;
-  if (FUN_001c6d20(file) && FUN_001c6d90(file, info))
-    goto valid;
-  return false;
-
-valid:
-  return true;
+  if (!((FUN_001c6880(file) && FUN_001c6900(file, info)) ||
+        (FUN_001c6d20(file) && FUN_001c6d90(file, info)))) {
+    result = false;
+  }
+  return result;
 }
