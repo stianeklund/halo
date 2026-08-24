@@ -368,6 +368,7 @@ def extract_function_body(source: Path, func_name: str) -> tuple[str, str] | Non
             "cpp", "-P",
             f"-I{REPO_ROOT / 'src'}",
             f"-I{REPO_ROOT / 'build' / 'generated'}",
+            "-include", str(REPO_ROOT / "src" / "xdk_common.h"),
             "-DMSVC", "-DXDK_BUILD",
             "-D_M_IX86=1", "-D_MSC_VER=1310",
             "-D__attribute__(x)=",

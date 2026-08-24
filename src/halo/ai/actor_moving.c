@@ -973,7 +973,9 @@ void actor_move_transform_avoidance_vector(int matrix, float *in_vec,
 {
   float *world_translation;
   float component;
+  volatile int matrix_row_2_z;
 
+  matrix_row_2_z = matrix + 0x38;
   world_translation = *(float **)0x31fc38;
   out_vec[0] = world_translation[0];
   out_vec[1] = world_translation[1];
@@ -992,7 +994,7 @@ void actor_move_transform_avoidance_vector(int matrix, float *in_vec,
   component = in_vec[2];
   out_vec[0] += component * *(float *)(matrix + 0x30);
   out_vec[1] += component * *(float *)(matrix + 0x34);
-  out_vec[2] += component * *(float *)(matrix + 0x38);
+  out_vec[2] += component * *(float *)matrix_row_2_z;
 }
 
 /* 0x2b490 — actor_move_get_avoidance_vector: map an avoidance "direction index"
