@@ -42,6 +42,15 @@
 | function | addr | source_file | screen_result | vc71 | action | reason |
 |---|---|---|---|---|---|---|
 | FUN_000a3ea0 | 0xa3ea0 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | decompile exposes implicit ESI and EDI arguments; known register-argument structural cap |
+| FUN_000a3e60 | 0xa3e60 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | KB declaration has immutable local_player_index@<esi> input |
+| FUN_000a4000 | 0xa4000 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | decompile exposes implicit ESI and EDI vector inputs |
+| FUN_000a4310 | 0xa4310 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | decompile exposes implicit AX and CX inputs and calls implicit-register helper |
+| FUN_000a45d0 | 0xa45d0 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | decompile exposes implicit EAX and ECX vector inputs |
+| FUN_000a4610 | 0xa4610 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | decompile exposes implicit AX and CX inputs and calls FUN_000a4000 |
+| FUN_000a48c0 | 0xa48c0 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | decompile exposes implicit ECX output pointer |
+| FUN_000a4ab0 | 0xa4ab0 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | decompile exposes implicit AX type index and calls FUN_000a4310 |
+| FUN_000a4be0 | 0xa4be0 | src/halo/effects/weather_particle_systems.c | skip_callee_reg_args | - | skipped | calls FUN_000a4ab0 and FUN_000a4610 with implicit-register ABIs |
+| weather_particle_system_render | 0xa4e20 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | decompile exposes implicit AX player index and calls register-argument helpers |
 | FUN_000a4200 | 0xa4200 | src/halo/effects/weather_particle_systems.c | pass | 93.3 | committed | lift_pipeline build, ABI, hazard, buffer-alias, and strict VC71 gates passed |
 | weather_particle_system_new | 0xa40a0 | src/halo/effects/weather_particle_systems.c | pass | 89.0 | reverted | below 90% threshold; score recovery and one 100-attempt permutation pass exhausted |
 | FUN_000a4a00 | 0xa4a00 | src/halo/effects/weather_particle_systems.c | pass | 97.7 | committed | pipeline build, ABI, hazard, buffer-alias, and strict VC71 gates passed |
@@ -7072,3 +7081,19 @@ AUTOLIFT_REVIEW: NEEDS_RUNTIME |
 | ustrlwr | 0x19e0c0 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
 | ustrupr | 0x19e130 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
 | ustrnlwr | 0x19e1a0 | unicode.obj | 97.3 | committed | mechanical gate: 97.3% clean (pass1) [cohort=retrieval] |
+
+---
+
+## Goal-lift run — 1/8 committed (queue_exhausted)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_000a3e60 | 0xa3e60 | weather_particle_systems.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| weather_particle_system_render | 0xa4e20 | weather_particle_systems.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_000a4310 | 0xa4310 | weather_particle_systems.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_000a4610 | 0xa4610 | weather_particle_systems.obj | - | skipped | lane=manual-lift (not auto-liftable) [cohort=none] |
+| FUN_000a4000 | 0xa4000 | weather_particle_systems.obj | 91.5 | committed | pass1 [cohort=retrieval] |
+| FUN_000a45d0 | 0xa45d0 | weather_particle_systems.obj | 79.2 | parked | structural_cap[deterministic(classify_cap.py)]: reg_defining_prologue: FUN_000a45d0 takes two register args (@<eax>, @<ecx>); VC71 cannot emit clang's register-reading prologue for a reg-arg entry point, giving a permanent sub-bar ceiling. classify_cap.py (using the published score-context artifact ac6842c3...67600bb) returned capped=true, confidence=high for this reason. Score 79.2% falls inside the documented "Register args (@eax/@esi callers): ~65-80% ceiling" pattern. [cohort=retrieval] |
+| FUN_000a48c0 | 0xa48c0 | weather_particle_systems.obj | 80.6 | parked | structural_cap[deterministic(classify_cap.py)]: classify_cap.py rule reg_defining_prologue (confidence=high, via score-context artifact ceca7443d12032e9c9d4f57fd0612e5fd2ba430f1fbc5af6ccf953ddf8af92e4.json): FUN_000a48c0's decl carries an @<ecx> register argument, so its own prologue reads the argument out of ECX before the frame is set up — VC71/cl.exe cannot emit that register-reading prologue shape, producing a permanent sub-100% ceiling matching the documented "Register args (@eax/@esi callers): ~65-80% ceiling" pattern (measured 80.6%, opnd 35.7%, FPU-WARN flagged but attributable to the same prologue-shape mismatch, not an operand-order bug — the FPU body itself (point = camera_pos + forward*clip_distance; dot(point,forward); 16-float static-plane copy) was verified instruction-by-instruction against the 0xa48c0 disassembly and matches exactly). [cohort=retrieval] |
+| FUN_000a4be0 | 0xa4be0 | weather_particle_systems.obj | 72.9 | parked | escalation_exhausted [cohort=retrieval] |
+
