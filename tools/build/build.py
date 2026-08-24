@@ -73,6 +73,27 @@ def _generate_debug_elf(quiet: bool = False) -> None:
         print(f"warning: objcopy failed, build/halo.debug not updated", file=sys.stderr)
 
 
+def _check_frame_pointer(quiet: bool = False) -> int:
+    """Fail the build if a caller of a caller-EBP-reading helper lost its frame.
+
+    Cheap post-link guard (see tools/audit/check_frame_pointer.py). Omitting
+    -fno-omit-frame-pointer black-screens the game with no assert, so this is a
+    hard error rather than a warning.
+    """
+    script = os.path.join(ROOT_DIR, "tools", "audit", "check_frame_pointer.py")
+    exe = os.path.join(BUILD_DIR, "halo")
+    if not os.path.isfile(script) or not os.path.isfile(exe):
+        return 0
+    result = subprocess.run([sys.executable, script, exe], check=False,
+                            cwd=ROOT_DIR)
+    if result.returncode == 2:
+        # Missing pefile/capstone -- do not block the build on tooling gaps.
+        if not quiet:
+            print("warning: frame-pointer check could not run", file=sys.stderr)
+        return 0
+    return result.returncode
+
+
 def _env_flag(name: str) -> bool:
     value = os.environ.get(name, "")
     return value.lower() in ("1", "true", "yes", "on")
@@ -103,6 +124,10 @@ def build(target: str = "", quiet: bool = False, test_harness: bool = False,
     build_result = _run_cmake_build(target, quiet=quiet)
     if build_result != 0:
         return build_result
+
+    fp_result = _check_frame_pointer(quiet=quiet)
+    if fp_result != 0:
+        return fp_result
 
     _generate_debug_elf(quiet=quiet)
     return 0

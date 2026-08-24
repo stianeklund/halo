@@ -97,7 +97,11 @@ else()
 		# FIXME: We can support other toolchains, but currently do not
 		message(FATAL_ERROR "You are attempting to compile with ${CMAKE_CXX_COMPILER_ID}. Please use LLVM toolchain (clang, lld). Specify -DCMAKE_TOOLCHAIN_FILE=toolchains/llvm.cmake during configuration.")
 	endif()
-	set(CMAKE_C_FLAGS "-Wall -Werror -target i386-pc-win32 -march=pentium3 -mno-sse -nostdlib -ffreestanding -fno-builtin -fno-exceptions -mstack-probe-size=65536 -I${CMAKE_SOURCE_DIR}/src -I${CMAKE_SOURCE_DIR}/third_party/xbox -include ${CMAKE_SOURCE_DIR}/src/common.h")
+	# -fno-omit-frame-pointer is REQUIRED, not a debugging convenience: the naked
+	# helpers (hud.c FUN_000d1540's `mov eax,[ebp+4]` return-address canary, the
+	# xbox_crt.c SEH thunks) read their *caller's* EBP frame. With FPO, clang
+	# allocates EBP as a scratch register and those reads fault.
+	set(CMAKE_C_FLAGS "-Wall -Werror -target i386-pc-win32 -march=pentium3 -mno-sse -nostdlib -ffreestanding -fno-builtin -fno-exceptions -fno-omit-frame-pointer -mstack-probe-size=65536 -I${CMAKE_SOURCE_DIR}/src -I${CMAKE_SOURCE_DIR}/third_party/xbox -include ${CMAKE_SOURCE_DIR}/src/common.h")
 	set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld-link -Xlinker -entry:_start")
 
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")

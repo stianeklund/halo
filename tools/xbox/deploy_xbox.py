@@ -115,14 +115,45 @@ def get_source_dirs() -> list[str]:
     return [d for d in source_dirs if os.path.isdir(d)]
 
 
+def get_source_files() -> list[str]:
+    """Return individual files that, when newer than the XBE, make it stale.
+
+    Walking src/ alone is not enough. default.xbe is patched from build/halo plus
+    kb.json against the pristine XBE, and the codegen itself depends on the build
+    configuration -- so an edit to CMakeLists.txt or a relink with no source
+    change still invalidates the XBE.
+
+    On 2026-08-24 a CMakeLists.txt-only fix (-fno-omit-frame-pointer, which the
+    Debug config was missing) touched no file under src/. is_build_current()
+    therefore reported the XBE as current, the patch step was skipped, and deploy
+    shipped a stale default.xbe -- while verify_running_build() read the expected
+    build identity out of that same stale XBE and reported "OK running build
+    matches". The black screen reproduced byte-identically twice before the stale
+    artifact was noticed.
+    """
+    candidates = [
+        os.path.join(ROOT_DIR, "build", "halo"),
+        os.path.join(ROOT_DIR, "kb.json"),
+        os.path.join(ROOT_DIR, "CMakeLists.txt"),
+        os.path.join(ROOT_DIR, "src", "CMakeLists.txt"),
+    ]
+    return [p for p in candidates if os.path.isfile(p)]
+
+
 def is_build_current(xbe_path: str) -> bool:
-    """Return True if xbe_path exists and is newer than all source files."""
+    """Return True if xbe_path exists and is newer than all build inputs."""
     if not os.path.isfile(xbe_path):
         return False
     try:
         xbe_mtime = os.path.getmtime(xbe_path)
     except OSError:
         return False
+    for fpath in get_source_files():
+        try:
+            if os.path.getmtime(fpath) > xbe_mtime:
+                return False
+        except OSError:
+            continue
     for src_dir in get_source_dirs():
         for root, _dirs, files in os.walk(src_dir):
             for fname in files:

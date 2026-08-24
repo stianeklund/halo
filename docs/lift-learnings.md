@@ -2687,3 +2687,67 @@ keeping from building them:
 - **A probe that dies is worse than one that skips.** A transient host
   `ENOMEM` propagated out of `Path.read_bytes()` and killed a whole run;
   reads now retry with backoff and a failed sample is a skipped sample.
+
+## 55. Naked Helpers That Read the Caller's Frame Need `-fno-omit-frame-pointer`
+
+**Symptom.** Halo boots, loads the map, and shows a black screen forever. No
+assert, no crash dialog, `debug.txt` ends normally after `init: map_name c40`.
+Three of the four XBDM threads report `408- not stopped`; the fourth reports a
+latched fault:
+
+```
+200- exception code=0xc0000005 thread=28 address=0x006cf3b0 read=0x00000004
+```
+
+**Cause.** A few lifted helpers cannot be written in portable C because they read
+a stack frame they do not own. The canonical one is `FUN_000d1540`
+(`src/halo/interface/hud.c`), the HUD return-address canary, whose entire body is
+`mov eax,[ebp+4]; ret`. It establishes no prologue, so EBP at entry still holds
+the *caller's* frame pointer and `[ebp+4]` is the caller's return address. That
+only holds if every caller keeps EBP as a frame pointer.
+
+Clang omits the frame pointer at `-Og`/`-O2`/`-O3` unless
+`-fno-omit-frame-pointer` is passed, and then allocates EBP as a scratch
+register. `-fno-omit-frame-pointer` was set only on `CMAKE_C_FLAGS_RELEASE`,
+while `build/` was configured `CMAKE_BUILD_TYPE=Debug` (`-Og`), so:
+
+```
+FUN_000d7800:  push ebp / push ebx / push edi / push esi
+               sub  esp,0x230
+               mov  ebp,[esp+0x244]   ; EBP = player_handle, not a frame
+               call FUN_000d1540      ; helper reads [0+4]
+```
+
+`player_handle` was 0, so the canary read address `0x4` and killed the render
+thread before the first frame. The other three engine threads kept ticking,
+which is why the map "loads" to a black screen instead of hanging.
+
+**The flag is not the invariant; the codegen is.** Checking `flags.make` catches
+one cause. What matters is whether the emitted callers actually open with
+`push ebp; mov ebp,esp`, so the check reads the linked PE.
+
+**Two measurement traps found while confirming the fix.** Both made a correct
+fix look like a failed one, and the fault reproduced byte-identically twice:
+
+- `deploy_xbox.py`'s `is_build_current()` walked only `src/` and `include/`. A
+  `CMakeLists.txt`-only fix touches no file under `src/`, so the stale
+  `default.xbe` was declared current, the patch step was skipped, and deploy
+  shipped the old XBE. It now also compares against `build/halo`, `kb.json`, and
+  both `CMakeLists.txt` files.
+- `verify_running_build()` reads the expected build identity out of the local
+  XBE, so a stale local XBE agrees with a stale running image and reports
+  `verify: OK running build matches`. That check defends against "the console is
+  running something old", never against "your local artifact is old". With
+  `is_build_current()` fixed the local XBE is always fresh, which makes the
+  verify meaningful again.
+- Related: `build.py --target halo` links `build/halo` but does **not** run the
+  `patched_xbe` target, so it never regenerates `halo-patched/default.xbe`.
+  Confirm what you deployed by searching the XBE for the expected bytes, not by
+  trusting a target-scoped build.
+
+**Automation:** `tools/audit/check_frame_pointer.py`, wired into
+`tools/build/build.py` as a hard post-link failure. It disassembles the linked
+PE, finds every direct CALL to each helper registered in
+`CALLER_FRAME_HELPERS`, and fails if the calling function does not open with
+`push ebp; mov ebp,esp`. Add to that list whenever a new naked helper reads its
+caller's frame (the `xbox_crt.c` SEH thunks are the same class).
