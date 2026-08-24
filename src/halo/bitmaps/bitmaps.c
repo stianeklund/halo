@@ -625,7 +625,7 @@ void bitmap_delete(void *bitmap)
     return;
 
   /* release D3D texture */
-  ((void (*)(void *))0x168ae0)(bitmap);
+  FUN_00168ae0(bitmap);
 
   if ((*(uint8_t *)((char *)bitmap + 0xe) & 0x40) != 0) {
     /* free associated pixel data if present */
