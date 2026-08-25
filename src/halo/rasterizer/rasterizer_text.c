@@ -2790,87 +2790,88 @@ int FUN_00183390(int param_1)
   }
   swizzle_buf = (int)debug_malloc(
     total_size, 0, "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x228);
-  if (swizzle_buf == 0) {
-    error(2, "### ERROR rasterizer_xbox_bitmap_rebuild_hardware_format "
-             "failed (out of memory)");
-    return 0;
+  if (swizzle_buf != 0) {
+    FUN_00182e00(param_1);
+    face_index = 0;
+    if (local_1c > 0) {
+      do {
+        sVar2 = FUN_00183120((void *)param_1);
+        if (-1 < (int)sVar2) {
+          local_c = 0;
+          local_20 = (int)sVar2;
+          do {
+            mip_src = (int)bitmap_mipmap_address((void *)param_1, local_c);
+            mip_size =
+              bitmap_mipmap_get_pixel_data_size((void *)param_1, local_c);
+            if (*(short *)(param_1 + 10) == 2) {
+              mip_size = mip_size / 6;
+            }
+            adjusted_face_index = *(short *)((int)0x2b0860 + (int)face_index * 2);
+            if ((*(unsigned char *)(param_1 + 0xe) & 0x10) == 0) {
+              /* non-swizzled: copy face mipmap data */
+              csmemcpy((void *)(swizzle_buf + iVar8),
+                       (void *)((int)adjusted_face_index * mip_size + mip_src),
+                       (unsigned int)mip_size);
+              iVar8 = iVar8 + mip_size;
+            } else {
+              /* swizzled/tiled: must be face 0, mip 0 */
+              if ((face_index != 0) || (adjusted_face_index != 0)) {
+                display_assert(
+                  "face_index==0 && adjusted_face_index==0",
+                  "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x24c, 1);
+                system_exit(-1);
+              }
+              if ((short)local_c != 0) {
+                display_assert(
+                  "mipmap_index==0",
+                  "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x24d, 1);
+                system_exit(-1);
+              }
+              if ((*(unsigned char *)(param_1 + 0xe) & 2) != 0) {
+                display_assert(
+                  "!TEST_FLAG(bitmap->flags, _bitmap_compressed_bit)",
+                  "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x24e, 1);
+                system_exit(-1);
+              }
+              row_pitch = bitmap_mipmap_get_row_pitch((void *)param_1, local_c);
+              sVar3 = 0;
+              if (0 < *(short *)(param_1 + 6)) {
+                do {
+                  csmemcpy((void *)(swizzle_buf + iVar8), (void *)mip_src,
+                           (unsigned int)row_pitch);
+                  csmemset((void *)(swizzle_buf + iVar8 + row_pitch), 0,
+                           (unsigned int)(-row_pitch & 0x3f));
+                  mip_src = mip_src + row_pitch;
+                  iVar8 = iVar8 + row_pitch + (-row_pitch & 0x3f);
+                  sVar3 = sVar3 + 1;
+                } while (sVar3 < *(short *)(param_1 + 6));
+              }
+            }
+            local_c = local_c + 1;
+          } while ((short)local_c <= (short)local_20);
+        }
+        /* align offset to 128 bytes at end of each face */
+        csmemset((void *)(swizzle_buf + iVar8), 0, (unsigned int)(-iVar8 & 0x7f));
+        iVar8 = iVar8 + (-iVar8 & 0x7f);
+        face_index = face_index + 1;
+      } while (face_index < local_1c);
+    }
+    if (iVar8 != total_size) {
+      display_assert("offset==size",
+                     "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x271,
+                     1);
+      system_exit(-1);
+    }
+    csmemcpy(*(void **)(param_1 + 0x2c), (void *)swizzle_buf,
+             (unsigned int)total_size);
+    debug_free((void *)swizzle_buf,
+               "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x275);
+    return 1;
   }
-  FUN_00182e00(param_1);
-  face_index = 0;
-  if (local_1c > 0) {
-    do {
-      sVar2 = FUN_00183120((void *)param_1);
-      if (-1 < (int)sVar2) {
-        local_c = 0;
-        local_20 = (int)sVar2;
-        do {
-          mip_src = (int)bitmap_mipmap_address((void *)param_1, local_c);
-          mip_size =
-            bitmap_mipmap_get_pixel_data_size((void *)param_1, local_c);
-          if (*(short *)(param_1 + 10) == 2) {
-            mip_size = mip_size / 6;
-          }
-          adjusted_face_index = *(short *)((int)0x2b0860 + (int)face_index * 2);
-          if ((*(unsigned char *)(param_1 + 0xe) & 0x10) == 0) {
-            /* non-swizzled: copy face mipmap data */
-            csmemcpy((void *)(swizzle_buf + iVar8),
-                     (void *)((int)adjusted_face_index * mip_size + mip_src),
-                     (unsigned int)mip_size);
-            iVar8 = iVar8 + mip_size;
-          } else {
-            /* swizzled/tiled: must be face 0, mip 0 */
-            if ((face_index != 0) || (adjusted_face_index != 0)) {
-              display_assert(
-                "face_index==0 && adjusted_face_index==0",
-                "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x24c, 1);
-              system_exit(-1);
-            }
-            if ((short)local_c != 0) {
-              display_assert(
-                "mipmap_index==0",
-                "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x24d, 1);
-              system_exit(-1);
-            }
-            if ((*(unsigned char *)(param_1 + 0xe) & 2) != 0) {
-              display_assert(
-                "!TEST_FLAG(bitmap->flags, _bitmap_compressed_bit)",
-                "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x24e, 1);
-              system_exit(-1);
-            }
-            row_pitch = bitmap_mipmap_get_row_pitch((void *)param_1, local_c);
-            sVar3 = 0;
-            if (0 < *(short *)(param_1 + 6)) {
-              do {
-                csmemcpy((void *)(swizzle_buf + iVar8), (void *)mip_src,
-                         (unsigned int)row_pitch);
-                csmemset((void *)(swizzle_buf + iVar8 + row_pitch), 0,
-                         (unsigned int)(-row_pitch & 0x3f));
-                mip_src = mip_src + row_pitch;
-                iVar8 = iVar8 + row_pitch + (-row_pitch & 0x3f);
-                sVar3 = sVar3 + 1;
-              } while (sVar3 < *(short *)(param_1 + 6));
-            }
-          }
-          local_c = local_c + 1;
-        } while ((short)local_c <= (short)local_20);
-      }
-      /* align offset to 128 bytes at end of each face */
-      csmemset((void *)(swizzle_buf + iVar8), 0, (unsigned int)(-iVar8 & 0x7f));
-      iVar8 = iVar8 + (-iVar8 & 0x7f);
-      face_index = face_index + 1;
-    } while (face_index < local_1c);
-  }
-  if (iVar8 != total_size) {
-    display_assert("offset==size",
-                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x271,
-                   1);
-    system_exit(-1);
-  }
-  csmemcpy(*(void **)(param_1 + 0x2c), (void *)swizzle_buf,
-           (unsigned int)total_size);
-  debug_free((void *)swizzle_buf,
-             "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x275);
-  return 1;
+
+  error(2, "### ERROR rasterizer_xbox_bitmap_rebuild_hardware_format "
+           "failed (out of memory)");
+  return 0;
 }
 
 /* rasterizer_text_cache_initialize: init hardware text cache (0x183650) */

@@ -34291,16 +34291,16 @@
     "FUN_00183390": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 79.4,
+      "abi_modeled_mnemonic_pct": 84.3,
       "addr": "0x183390",
       "end": "0x18362a",
       "kind": "auto",
       "n_r": 223,
-      "opnd_percent": 68.3,
-      "raw_mnemonic_pct": 79.4,
+      "opnd_percent": 73.2,
+      "raw_mnemonic_pct": 84.3,
       "ref": "synth",
       "ref_sha": "fae950134b82b58e",
-      "score": 79.4,
+      "score": 84.3,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
     "FUN_00184570": {
