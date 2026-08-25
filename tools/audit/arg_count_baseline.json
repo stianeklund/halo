@@ -1905,6 +1905,63 @@
         "7": 3
       }
     },
+    "0x1ef2a0": {
+      "name": "FUN_001ef2a0",
+      "declared_stack": 5,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "2": 1,
+        "3": 1
+      }
+    },
+    "0x1ef490": {
+      "name": "FUN_001ef490",
+      "declared_stack": 4,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1f5e85": {
+      "name": "FUN_001f5e85",
+      "declared_stack": 7,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "6": 1
+      }
+    },
+    "0x1f6310": {
+      "name": "FUN_001f6310",
+      "declared_stack": 7,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1f6820": {
+      "name": "FUN_001f6820",
+      "declared_stack": 7,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "3": 1
+      }
+    },
+    "0x1f6b90": {
+      "name": "FUN_001f6b90",
+      "declared_stack": 8,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "2": 1
+      }
+    },
+    "0x1f7240": {
+      "name": "FUN_001f7240",
+      "declared_stack": 8,
+      "verdict": "OVER-DECLARED",
+      "observed": {
+        "5": 1
+      }
+    },
     "0x220c0": {
       "name": "actor_aim_projectile",
       "declared_stack": 0,

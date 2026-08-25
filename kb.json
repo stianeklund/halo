@@ -40854,6 +40854,4474 @@
     {
      "addr": "0x0024d009",
      "decl": "void XID_fCloseDevice(void);"
+    },
+    {
+     "addr": "0x1eca10",
+     "decl": "void __stdcall FUN_001eca10(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x1f1960",
+     "decl": "void __stdcall FUN_001f1960(int a0);"
+    },
+    {
+     "addr": "0x1f3c50",
+     "decl": "void __stdcall FUN_001f3c50(int a0);"
+    },
+    {
+     "addr": "0x1f4918",
+     "decl": "void __stdcall FUN_001f4918(int a0, int a1, int a2, int a3, int a4, int a5, int a6);"
+    },
+    {
+     "addr": "0x1f59c6",
+     "decl": "void FUN_001f59c6(void);"
+    },
+    {
+     "addr": "0x1f5b01",
+     "decl": "void __stdcall FUN_001f5b01(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x1f5c30",
+     "decl": "void __stdcall FUN_001f5c30(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x1f5e85",
+     "decl": "void __stdcall FUN_001f5e85(int a0, int a1, int a2, int a3, int a4, int a5, int a6);"
+    },
+    {
+     "addr": "0x1f6073",
+     "decl": "void __stdcall FUN_001f6073(int a0, int a1);"
+    },
+    {
+     "addr": "0x1f6135",
+     "decl": "void FUN_001f6135(void);"
+    },
+    {
+     "addr": "0x1f64b0",
+     "decl": "void FUN_001f64b0(void);"
+    },
+    {
+     "addr": "0x1f6510",
+     "decl": "void FUN_001f6510(void);"
+    },
+    {
+     "addr": "0x1f6570",
+     "decl": "void FUN_001f6570(void);"
+    },
+    {
+     "addr": "0x1f6770",
+     "decl": "void FUN_001f6770(void);"
+    },
+    {
+     "addr": "0x1f67d0",
+     "decl": "void FUN_001f67d0(void);"
+    },
+    {
+     "addr": "0x1f6d40",
+     "decl": "void FUN_001f6d40(void);"
+    },
+    {
+     "addr": "0x1f6da0",
+     "decl": "void FUN_001f6da0(void);"
+    },
+    {
+     "addr": "0x1f6e00",
+     "decl": "void FUN_001f6e00(void);"
+    },
+    {
+     "addr": "0x1f7010",
+     "decl": "void __stdcall FUN_001f7010(int a0);"
+    },
+    {
+     "addr": "0x1f7180",
+     "decl": "void FUN_001f7180(void);"
+    },
+    {
+     "addr": "0x1f71e0",
+     "decl": "void FUN_001f71e0(void);"
+    },
+    {
+     "addr": "0x1f7660",
+     "decl": "void FUN_001f7660(void);"
+    },
+    {
+     "addr": "0x1f77c7",
+     "decl": "void FUN_001f77c7(void);"
+    },
+    {
+     "addr": "0x1f7ae3",
+     "decl": "void __stdcall FUN_001f7ae3(int a0);"
+    },
+    {
+     "addr": "0x1f7dee",
+     "decl": "void FUN_001f7dee(void);"
+    },
+    {
+     "addr": "0x1f7f38",
+     "decl": "void FUN_001f7f38(void);"
+    },
+    {
+     "addr": "0x1f807d",
+     "decl": "void FUN_001f807d(void);"
+    },
+    {
+     "addr": "0x1f8127",
+     "decl": "void __stdcall FUN_001f8127(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x1f82b4",
+     "decl": "void __stdcall FUN_001f82b4(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x1f834f",
+     "decl": "void FUN_001f834f(void);"
+    },
+    {
+     "addr": "0x1f8d2e",
+     "decl": "void __stdcall FUN_001f8d2e(int a0);"
+    },
+    {
+     "addr": "0x1f9d1d",
+     "decl": "void __stdcall FUN_001f9d1d(int a0);"
+    },
+    {
+     "addr": "0x2053d4",
+     "decl": "void __stdcall FUN_002053d4(int a0);"
+    },
+    {
+     "addr": "0x205437",
+     "decl": "void __stdcall FUN_00205437(int a0);"
+    },
+    {
+     "addr": "0x2058c2",
+     "decl": "void __stdcall FUN_002058c2(int a0, int a1);"
+    },
+    {
+     "addr": "0x205bec",
+     "decl": "void __stdcall FUN_00205bec(int a0);"
+    },
+    {
+     "addr": "0x205cb1",
+     "decl": "void __stdcall FUN_00205cb1(int a0);"
+    },
+    {
+     "addr": "0x205d6a",
+     "decl": "void __stdcall FUN_00205d6a(int a0);"
+    },
+    {
+     "addr": "0x205d8e",
+     "decl": "void __stdcall FUN_00205d8e(int a0, int a1);"
+    },
+    {
+     "addr": "0x205e8e",
+     "decl": "void __stdcall FUN_00205e8e(int a0);"
+    },
+    {
+     "addr": "0x205eb6",
+     "decl": "void __stdcall FUN_00205eb6(int a0, int a1);"
+    },
+    {
+     "addr": "0x206062",
+     "decl": "void __stdcall FUN_00206062(int a0);"
+    },
+    {
+     "addr": "0x206086",
+     "decl": "void __stdcall FUN_00206086(int a0);"
+    },
+    {
+     "addr": "0x2060aa",
+     "decl": "void __stdcall FUN_002060aa(int a0);"
+    },
+    {
+     "addr": "0x20611c",
+     "decl": "void __stdcall FUN_0020611c(int a0);"
+    },
+    {
+     "addr": "0x20634c",
+     "decl": "void FUN_0020634c(void);"
+    },
+    {
+     "addr": "0x2063cb",
+     "decl": "void FUN_002063cb(void);"
+    },
+    {
+     "addr": "0x206476",
+     "decl": "void FUN_00206476(void);"
+    },
+    {
+     "addr": "0x2064d5",
+     "decl": "void __stdcall FUN_002064d5(int a0);"
+    },
+    {
+     "addr": "0x2065d7",
+     "decl": "void __stdcall FUN_002065d7(int a0);"
+    },
+    {
+     "addr": "0x2066b7",
+     "decl": "void __stdcall FUN_002066b7(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20678c",
+     "decl": "void FUN_0020678c(void);"
+    },
+    {
+     "addr": "0x206818",
+     "decl": "void __stdcall FUN_00206818(int a0);"
+    },
+    {
+     "addr": "0x206870",
+     "decl": "void __stdcall FUN_00206870(int a0);"
+    },
+    {
+     "addr": "0x206d25",
+     "decl": "void FUN_00206d25(void);"
+    },
+    {
+     "addr": "0x206df8",
+     "decl": "void __stdcall FUN_00206df8(int a0);"
+    },
+    {
+     "addr": "0x2070d6",
+     "decl": "void __stdcall FUN_002070d6(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x207141",
+     "decl": "void __stdcall FUN_00207141(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x207392",
+     "decl": "void __stdcall FUN_00207392(int a0);"
+    },
+    {
+     "addr": "0x207423",
+     "decl": "void __stdcall FUN_00207423(int a0);"
+    },
+    {
+     "addr": "0x20746c",
+     "decl": "void __stdcall FUN_0020746c(int a0);"
+    },
+    {
+     "addr": "0x207556",
+     "decl": "void __stdcall FUN_00207556(int a0);"
+    },
+    {
+     "addr": "0x20763c",
+     "decl": "void __stdcall FUN_0020763c(int a0);"
+    },
+    {
+     "addr": "0x207909",
+     "decl": "void __stdcall FUN_00207909(int a0);"
+    },
+    {
+     "addr": "0x20793f",
+     "decl": "void __stdcall FUN_0020793f(int a0);"
+    },
+    {
+     "addr": "0x207963",
+     "decl": "void __stdcall FUN_00207963(int a0);"
+    },
+    {
+     "addr": "0x207aca",
+     "decl": "void __stdcall FUN_00207aca(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x207b73",
+     "decl": "void __stdcall FUN_00207b73(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x207be4",
+     "decl": "void __stdcall FUN_00207be4(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x207c7d",
+     "decl": "void FUN_00207c7d(void);"
+    },
+    {
+     "addr": "0x207cc8",
+     "decl": "void __stdcall FUN_00207cc8(int a0);"
+    },
+    {
+     "addr": "0x207e65",
+     "decl": "void __stdcall FUN_00207e65(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x207efd",
+     "decl": "void FUN_00207efd(void);"
+    },
+    {
+     "addr": "0x207f35",
+     "decl": "void __stdcall FUN_00207f35(int a0, int a1);"
+    },
+    {
+     "addr": "0x208000",
+     "decl": "void __stdcall FUN_00208000(int a0);"
+    },
+    {
+     "addr": "0x2081f6",
+     "decl": "void __stdcall FUN_002081f6(int a0);"
+    },
+    {
+     "addr": "0x208280",
+     "decl": "void FUN_00208280(void);"
+    },
+    {
+     "addr": "0x2082fe",
+     "decl": "void __stdcall FUN_002082fe(int a0);"
+    },
+    {
+     "addr": "0x2083fd",
+     "decl": "void FUN_002083fd(void);"
+    },
+    {
+     "addr": "0x208686",
+     "decl": "void FUN_00208686(void);"
+    },
+    {
+     "addr": "0x2087dc",
+     "decl": "void FUN_002087dc(void);"
+    },
+    {
+     "addr": "0x208976",
+     "decl": "void FUN_00208976(void);"
+    },
+    {
+     "addr": "0x208a42",
+     "decl": "void FUN_00208a42(void);"
+    },
+    {
+     "addr": "0x208f52",
+     "decl": "void FUN_00208f52(void);"
+    },
+    {
+     "addr": "0x2090ca",
+     "decl": "void FUN_002090ca(void);"
+    },
+    {
+     "addr": "0x209228",
+     "decl": "void FUN_00209228(void);"
+    },
+    {
+     "addr": "0x2092aa",
+     "decl": "void __stdcall FUN_002092aa(int a0);"
+    },
+    {
+     "addr": "0x209596",
+     "decl": "void FUN_00209596(void);"
+    },
+    {
+     "addr": "0x209880",
+     "decl": "void FUN_00209880(void);"
+    },
+    {
+     "addr": "0x209a19",
+     "decl": "void __stdcall FUN_00209a19(int a0, int a1);"
+    },
+    {
+     "addr": "0x209b4b",
+     "decl": "void __stdcall FUN_00209b4b(int a0);"
+    },
+    {
+     "addr": "0x209e49",
+     "decl": "void __stdcall FUN_00209e49(int a0);"
+    },
+    {
+     "addr": "0x209f01",
+     "decl": "void FUN_00209f01(void);"
+    },
+    {
+     "addr": "0x20a26f",
+     "decl": "void __stdcall FUN_0020a26f(int a0);"
+    },
+    {
+     "addr": "0x20a4c1",
+     "decl": "void __stdcall FUN_0020a4c1(int a0, int a1);"
+    },
+    {
+     "addr": "0x20a5eb",
+     "decl": "void __stdcall FUN_0020a5eb(int a0, int a1);"
+    },
+    {
+     "addr": "0x20a684",
+     "decl": "void __stdcall FUN_0020a684(int a0, int a1);"
+    },
+    {
+     "addr": "0x20a734",
+     "decl": "void __stdcall FUN_0020a734(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x20a7f3",
+     "decl": "void __stdcall FUN_0020a7f3(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x20a842",
+     "decl": "void __stdcall FUN_0020a842(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x20a8cc",
+     "decl": "void __stdcall FUN_0020a8cc(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20a924",
+     "decl": "void __stdcall FUN_0020a924(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x20a9b9",
+     "decl": "void __stdcall FUN_0020a9b9(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x20aab2",
+     "decl": "void __stdcall FUN_0020aab2(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x20ab80",
+     "decl": "void __stdcall FUN_0020ab80(int a0, int a1);"
+    },
+    {
+     "addr": "0x20afb7",
+     "decl": "void __stdcall FUN_0020afb7(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20b1c2",
+     "decl": "void FUN_0020b1c2(void);"
+    },
+    {
+     "addr": "0x20b295",
+     "decl": "void FUN_0020b295(void);"
+    },
+    {
+     "addr": "0x20b4cc",
+     "decl": "void __stdcall FUN_0020b4cc(int a0);"
+    },
+    {
+     "addr": "0x20b9fd",
+     "decl": "void __stdcall FUN_0020b9fd(int a0);"
+    },
+    {
+     "addr": "0x20badd",
+     "decl": "void __stdcall FUN_0020badd(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20bb3d",
+     "decl": "void __stdcall FUN_0020bb3d(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x20bc71",
+     "decl": "void FUN_0020bc71(void);"
+    },
+    {
+     "addr": "0x20bca4",
+     "decl": "void FUN_0020bca4(void);"
+    },
+    {
+     "addr": "0x20bd28",
+     "decl": "void __stdcall FUN_0020bd28(int a0, int a1);"
+    },
+    {
+     "addr": "0x20bed3",
+     "decl": "void __stdcall FUN_0020bed3(int a0);"
+    },
+    {
+     "addr": "0x20bfd7",
+     "decl": "void __stdcall FUN_0020bfd7(int a0, int a1);"
+    },
+    {
+     "addr": "0x20c0d2",
+     "decl": "void __stdcall FUN_0020c0d2(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20c219",
+     "decl": "void __stdcall FUN_0020c219(int a0);"
+    },
+    {
+     "addr": "0x20c299",
+     "decl": "void __stdcall FUN_0020c299(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20c4a1",
+     "decl": "void FUN_0020c4a1(void);"
+    },
+    {
+     "addr": "0x20c636",
+     "decl": "void __stdcall FUN_0020c636(int a0);"
+    },
+    {
+     "addr": "0x20c7c2",
+     "decl": "void __stdcall FUN_0020c7c2(int a0);"
+    },
+    {
+     "addr": "0x20c7ed",
+     "decl": "void __stdcall FUN_0020c7ed(int a0);"
+    },
+    {
+     "addr": "0x20c8ce",
+     "decl": "void __stdcall FUN_0020c8ce(int a0, int a1);"
+    },
+    {
+     "addr": "0x20cbda",
+     "decl": "void __stdcall FUN_0020cbda(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x20cd7d",
+     "decl": "void __stdcall FUN_0020cd7d(int a0);"
+    },
+    {
+     "addr": "0x20cea7",
+     "decl": "void __stdcall FUN_0020cea7(int a0);"
+    },
+    {
+     "addr": "0x20d118",
+     "decl": "void __stdcall FUN_0020d118(int a0);"
+    },
+    {
+     "addr": "0x20d152",
+     "decl": "void __stdcall FUN_0020d152(int a0);"
+    },
+    {
+     "addr": "0x20d18c",
+     "decl": "void __stdcall FUN_0020d18c(int a0);"
+    },
+    {
+     "addr": "0x20d1ea",
+     "decl": "void __stdcall FUN_0020d1ea(int a0);"
+    },
+    {
+     "addr": "0x20d24f",
+     "decl": "void __stdcall FUN_0020d24f(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x20d2c6",
+     "decl": "void __stdcall FUN_0020d2c6(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20d45c",
+     "decl": "void __stdcall FUN_0020d45c(int a0);"
+    },
+    {
+     "addr": "0x20d480",
+     "decl": "void __stdcall FUN_0020d480(int a0);"
+    },
+    {
+     "addr": "0x20d63b",
+     "decl": "void FUN_0020d63b(void);"
+    },
+    {
+     "addr": "0x20d780",
+     "decl": "void __stdcall FUN_0020d780(int a0, int a1);"
+    },
+    {
+     "addr": "0x20d85d",
+     "decl": "void __stdcall FUN_0020d85d(int a0);"
+    },
+    {
+     "addr": "0x20d955",
+     "decl": "void __stdcall FUN_0020d955(int a0);"
+    },
+    {
+     "addr": "0x20d99a",
+     "decl": "void __stdcall FUN_0020d99a(int a0);"
+    },
+    {
+     "addr": "0x20db8b",
+     "decl": "void __stdcall FUN_0020db8b(int a0, int a1);"
+    },
+    {
+     "addr": "0x20dc03",
+     "decl": "void __stdcall FUN_0020dc03(int a0);"
+    },
+    {
+     "addr": "0x20dc83",
+     "decl": "void __stdcall FUN_0020dc83(int a0);"
+    },
+    {
+     "addr": "0x20ddb1",
+     "decl": "void __stdcall FUN_0020ddb1(int a0);"
+    },
+    {
+     "addr": "0x20def7",
+     "decl": "void __stdcall FUN_0020def7(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20df5b",
+     "decl": "void __stdcall FUN_0020df5b(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20dfef",
+     "decl": "void __stdcall FUN_0020dfef(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x20e097",
+     "decl": "void __stdcall FUN_0020e097(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x20e3a9",
+     "decl": "void __stdcall FUN_0020e3a9(int a0, int a1);"
+    },
+    {
+     "addr": "0x20e40b",
+     "decl": "void FUN_0020e40b(void);"
+    },
+    {
+     "addr": "0x20e43d",
+     "decl": "void __stdcall FUN_0020e43d(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x20e4cf",
+     "decl": "void __stdcall FUN_0020e4cf(int a0);"
+    },
+    {
+     "addr": "0x20e503",
+     "decl": "void FUN_0020e503(void);"
+    },
+    {
+     "addr": "0x20e5cb",
+     "decl": "void __stdcall FUN_0020e5cb(int a0, int a1);"
+    },
+    {
+     "addr": "0x20e631",
+     "decl": "void __stdcall FUN_0020e631(int a0, int a1);"
+    },
+    {
+     "addr": "0x20e6c5",
+     "decl": "void __stdcall FUN_0020e6c5(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20e70e",
+     "decl": "void FUN_0020e70e(void);"
+    },
+    {
+     "addr": "0x20e783",
+     "decl": "void __stdcall FUN_0020e783(int a0);"
+    },
+    {
+     "addr": "0x20e7d4",
+     "decl": "void __stdcall FUN_0020e7d4(int a0);"
+    },
+    {
+     "addr": "0x20e84e",
+     "decl": "void __stdcall FUN_0020e84e(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20e8f3",
+     "decl": "void FUN_0020e8f3(void);"
+    },
+    {
+     "addr": "0x20e934",
+     "decl": "void FUN_0020e934(void);"
+    },
+    {
+     "addr": "0x20e9c6",
+     "decl": "void FUN_0020e9c6(void);"
+    },
+    {
+     "addr": "0x20eaf8",
+     "decl": "void __stdcall FUN_0020eaf8(int a0);"
+    },
+    {
+     "addr": "0x20eb50",
+     "decl": "void __stdcall FUN_0020eb50(int a0);"
+    },
+    {
+     "addr": "0x20eb80",
+     "decl": "void FUN_0020eb80(void);"
+    },
+    {
+     "addr": "0x20ec10",
+     "decl": "void __stdcall FUN_0020ec10(int a0);"
+    },
+    {
+     "addr": "0x20ed6d",
+     "decl": "void __stdcall FUN_0020ed6d(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20ee25",
+     "decl": "void __stdcall FUN_0020ee25(int a0);"
+    },
+    {
+     "addr": "0x20ef09",
+     "decl": "void __stdcall FUN_0020ef09(int a0);"
+    },
+    {
+     "addr": "0x1fe920",
+     "decl": "void __stdcall FUN_001fe920(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x1fe9ae",
+     "decl": "void __stdcall FUN_001fe9ae(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x1fea5d",
+     "decl": "void __stdcall FUN_001fea5d(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x1feb3e",
+     "decl": "void __stdcall FUN_001feb3e(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x1febec",
+     "decl": "void __stdcall FUN_001febec(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x1fecbd",
+     "decl": "void __stdcall FUN_001fecbd(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x1fee04",
+     "decl": "void __stdcall FUN_001fee04(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x1feed5",
+     "decl": "void __stdcall FUN_001feed5(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x1fefc8",
+     "decl": "void __stdcall FUN_001fefc8(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x1ff0d8",
+     "decl": "void __stdcall FUN_001ff0d8(int a0);"
+    },
+    {
+     "addr": "0x1ff20f",
+     "decl": "void __stdcall FUN_001ff20f(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x1ff654",
+     "decl": "void __stdcall FUN_001ff654(int a0, int a1);"
+    },
+    {
+     "addr": "0x1ff6ce",
+     "decl": "void __stdcall FUN_001ff6ce(int a0, int a1);"
+    },
+    {
+     "addr": "0x1ff749",
+     "decl": "void __stdcall FUN_001ff749(int a0, int a1);"
+    },
+    {
+     "addr": "0x1ff7c5",
+     "decl": "void __stdcall FUN_001ff7c5(int a0, int a1);"
+    },
+    {
+     "addr": "0x1ff8a7",
+     "decl": "void __stdcall FUN_001ff8a7(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x1ff97f",
+     "decl": "void __stdcall FUN_001ff97f(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x1ffa13",
+     "decl": "void __stdcall FUN_001ffa13(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x1ffaa7",
+     "decl": "void __stdcall FUN_001ffaa7(int a0, int a1, int a2, int a3, int a4, int a5, int a6);"
+    },
+    {
+     "addr": "0x1ffb44",
+     "decl": "void __stdcall FUN_001ffb44(int a0, int a1, int a2, int a3, int a4, int a5, int a6);"
+    },
+    {
+     "addr": "0x1ffbe5",
+     "decl": "void __stdcall FUN_001ffbe5(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x1ffccb",
+     "decl": "void __stdcall FUN_001ffccb(int a0, int a1, int a2, int a3, int a4, int a5, int a6);"
+    },
+    {
+     "addr": "0x1ffd6d",
+     "decl": "void __stdcall FUN_001ffd6d(int a0, int a1, int a2, int a3, int a4, int a5, int a6);"
+    },
+    {
+     "addr": "0x1ffe11",
+     "decl": "void __stdcall FUN_001ffe11(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x1fff80",
+     "decl": "void __stdcall FUN_001fff80(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x1fffd8",
+     "decl": "void __stdcall FUN_001fffd8(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x2000eb",
+     "decl": "void __stdcall FUN_002000eb(int a0, int a1);"
+    },
+    {
+     "addr": "0x200271",
+     "decl": "void FUN_00200271(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x2002e2",
+     "decl": "void FUN_002002e2(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x200475",
+     "decl": "void __stdcall FUN_00200475(int a0, int a1);"
+    },
+    {
+     "addr": "0x200502",
+     "decl": "void __stdcall FUN_00200502(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20059c",
+     "decl": "void __stdcall FUN_0020059c(int a0, int a1);"
+    },
+    {
+     "addr": "0x200618",
+     "decl": "void __stdcall FUN_00200618(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x2006cd",
+     "decl": "void __stdcall FUN_002006cd(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x2007bd",
+     "decl": "void __stdcall FUN_002007bd(int a0, int a1);"
+    },
+    {
+     "addr": "0x20083f",
+     "decl": "void __stdcall FUN_0020083f(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x200922",
+     "decl": "void __stdcall FUN_00200922(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x200a24",
+     "decl": "void __stdcall FUN_00200a24(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x200a5d",
+     "decl": "void __stdcall FUN_00200a5d(int a0, int a1, int a2, int a3, int a4, int a5, int a6);"
+    },
+    {
+     "addr": "0x200c5c",
+     "decl": "void __stdcall FUN_00200c5c(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x200d38",
+     "decl": "void __stdcall FUN_00200d38(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x200e32",
+     "decl": "void __stdcall FUN_00200e32(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x200f2c",
+     "decl": "void __stdcall FUN_00200f2c(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x200fa9",
+     "decl": "void __stdcall FUN_00200fa9(int a0, int a1);"
+    },
+    {
+     "addr": "0x2010dd",
+     "decl": "void __stdcall FUN_002010dd(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x201139",
+     "decl": "void __stdcall FUN_00201139(int a0, int a1);"
+    },
+    {
+     "addr": "0x2011bb",
+     "decl": "void __stdcall FUN_002011bb(int a0, int a1);"
+    },
+    {
+     "addr": "0x201227",
+     "decl": "void __stdcall FUN_00201227(int a0, int a1);"
+    },
+    {
+     "addr": "0x2012a5",
+     "decl": "void __stdcall FUN_002012a5(int a0, int a1);"
+    },
+    {
+     "addr": "0x201340",
+     "decl": "void __stdcall FUN_00201340(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x20141a",
+     "decl": "void __stdcall FUN_0020141a(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x201471",
+     "decl": "void __stdcall FUN_00201471(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x2014fc",
+     "decl": "void __stdcall FUN_002014fc(int a0, int a1);"
+    },
+    {
+     "addr": "0x2015a0",
+     "decl": "void __stdcall FUN_002015a0(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x20165c",
+     "decl": "void __stdcall FUN_0020165c(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x2016db",
+     "decl": "void __stdcall FUN_002016db(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x201757",
+     "decl": "void __stdcall FUN_00201757(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x201a9f",
+     "decl": "void __stdcall FUN_00201a9f(int a0, int a1);"
+    },
+    {
+     "addr": "0x201e86",
+     "decl": "void __stdcall FUN_00201e86(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x201f51",
+     "decl": "void __stdcall FUN_00201f51(int a0, int a1, int a2, int a3, int a4, int a5, int a6);"
+    },
+    {
+     "addr": "0x201fd2",
+     "decl": "void __stdcall FUN_00201fd2(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x202348",
+     "decl": "void __stdcall FUN_00202348(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x202677",
+     "decl": "void __stdcall FUN_00202677(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7);"
+    },
+    {
+     "addr": "0x202abb",
+     "decl": "void FUN_00202abb(void);"
+    },
+    {
+     "addr": "0x202ac4",
+     "decl": "void FUN_00202ac4(void);"
+    },
+    {
+     "addr": "0x202acd",
+     "decl": "void __stdcall FUN_00202acd(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x202b91",
+     "decl": "void __stdcall FUN_00202b91(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x202bdf",
+     "decl": "void __stdcall FUN_00202bdf(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x202c48",
+     "decl": "void __stdcall FUN_00202c48(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x202ddd",
+     "decl": "void __stdcall FUN_00202ddd(int a0);"
+    },
+    {
+     "addr": "0x202edb",
+     "decl": "void __stdcall FUN_00202edb(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x202f54",
+     "decl": "void FUN_00202f54(void);"
+    },
+    {
+     "addr": "0x203036",
+     "decl": "void __stdcall FUN_00203036(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x2030de",
+     "decl": "void __stdcall FUN_002030de(int a0);"
+    },
+    {
+     "addr": "0x2031ef",
+     "decl": "void FUN_002031ef(void);"
+    },
+    {
+     "addr": "0x203271",
+     "decl": "void __stdcall FUN_00203271(int a0, int a1);"
+    },
+    {
+     "addr": "0x203383",
+     "decl": "void __stdcall FUN_00203383(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x203530",
+     "decl": "void FUN_00203530(void);"
+    },
+    {
+     "addr": "0x2037df",
+     "decl": "void FUN_002037df(void);"
+    },
+    {
+     "addr": "0x222e48",
+     "decl": "void __stdcall FUN_00222e48(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x222ef9",
+     "decl": "void __stdcall FUN_00222ef9(int a0);"
+    },
+    {
+     "addr": "0x2230e5",
+     "decl": "void __stdcall FUN_002230e5(int a0, int a1);"
+    },
+    {
+     "addr": "0x223368",
+     "decl": "void __stdcall FUN_00223368(int a0);"
+    },
+    {
+     "addr": "0x2233d1",
+     "decl": "void __stdcall FUN_002233d1(int a0);"
+    },
+    {
+     "addr": "0x2235ea",
+     "decl": "void FUN_002235ea(void);"
+    },
+    {
+     "addr": "0x22361e",
+     "decl": "void __stdcall FUN_0022361e(int a0);"
+    },
+    {
+     "addr": "0x2236be",
+     "decl": "void __stdcall FUN_002236be(int a0, int a1);"
+    },
+    {
+     "addr": "0x2236f6",
+     "decl": "void __stdcall FUN_002236f6(int a0);"
+    },
+    {
+     "addr": "0x223721",
+     "decl": "void __stdcall FUN_00223721(int a0, int a1);"
+    },
+    {
+     "addr": "0x223d0b",
+     "decl": "void __stdcall FUN_00223d0b(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x223faa",
+     "decl": "void __stdcall FUN_00223faa(int a0, int a1);"
+    },
+    {
+     "addr": "0x224145",
+     "decl": "void __stdcall FUN_00224145(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x224223",
+     "decl": "void __stdcall FUN_00224223(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x224326",
+     "decl": "void __stdcall FUN_00224326(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x2243a6",
+     "decl": "void __stdcall FUN_002243a6(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x224493",
+     "decl": "void __stdcall FUN_00224493(int a0, int a1);"
+    },
+    {
+     "addr": "0x22463e",
+     "decl": "void __stdcall FUN_0022463e(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x22485c",
+     "decl": "void FUN_0022485c(void);"
+    },
+    {
+     "addr": "0x2249f7",
+     "decl": "void __stdcall FUN_002249f7(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x224b09",
+     "decl": "void __stdcall FUN_00224b09(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x224f01",
+     "decl": "void __stdcall FUN_00224f01(int a0, int a1);"
+    },
+    {
+     "addr": "0x225188",
+     "decl": "void FUN_00225188(void);"
+    },
+    {
+     "addr": "0x2251c7",
+     "decl": "void __stdcall FUN_002251c7(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x22530d",
+     "decl": "void __stdcall FUN_0022530d(int a0, int a1);"
+    },
+    {
+     "addr": "0x2254cd",
+     "decl": "void __stdcall FUN_002254cd(int a0, int a1);"
+    },
+    {
+     "addr": "0x225601",
+     "decl": "void __stdcall FUN_00225601(int a0, int a1);"
+    },
+    {
+     "addr": "0x2256a1",
+     "decl": "void FUN_002256a1(void);"
+    },
+    {
+     "addr": "0x22574b",
+     "decl": "void __stdcall FUN_0022574b(int a0, int a1, int a2, int a3, int a4, int a5, int a6);"
+    },
+    {
+     "addr": "0x2257e7",
+     "decl": "void __stdcall FUN_002257e7(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8);"
+    },
+    {
+     "addr": "0x225937",
+     "decl": "void __stdcall FUN_00225937(int a0, int a1, int a2, int a3, int a4, int a5, int a6);"
+    },
+    {
+     "addr": "0x2259cf",
+     "decl": "void __stdcall FUN_002259cf(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8);"
+    },
+    {
+     "addr": "0x225bc1",
+     "decl": "void FUN_00225bc1(void);"
+    },
+    {
+     "addr": "0x225bd0",
+     "decl": "void __stdcall FUN_00225bd0(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x225c11",
+     "decl": "void FUN_00225c11(void);"
+    },
+    {
+     "addr": "0x225c2b",
+     "decl": "void FUN_00225c2b(void);"
+    },
+    {
+     "addr": "0x225c3a",
+     "decl": "void __stdcall FUN_00225c3a(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x225c7a",
+     "decl": "void FUN_00225c7a(void);"
+    },
+    {
+     "addr": "0x225ce0",
+     "decl": "void FUN_00225ce0(void);"
+    },
+    {
+     "addr": "0x225e40",
+     "decl": "void __stdcall FUN_00225e40(int a0, int a1);"
+    },
+    {
+     "addr": "0x225f13",
+     "decl": "void __stdcall FUN_00225f13(int a0, int a1);"
+    },
+    {
+     "addr": "0x226045",
+     "decl": "void __stdcall FUN_00226045(int a0);"
+    },
+    {
+     "addr": "0x2260fb",
+     "decl": "void FUN_002260fb(void);"
+    },
+    {
+     "addr": "0x2262ee",
+     "decl": "void FUN_002262ee(void);"
+    },
+    {
+     "addr": "0x22637e",
+     "decl": "void __stdcall FUN_0022637e(int a0);"
+    },
+    {
+     "addr": "0x22662b",
+     "decl": "void __stdcall FUN_0022662b(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x2267c6",
+     "decl": "void __stdcall FUN_002267c6(int a0);"
+    },
+    {
+     "addr": "0x226829",
+     "decl": "void __stdcall FUN_00226829(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x2268fa",
+     "decl": "void __stdcall FUN_002268fa(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x226b6b",
+     "decl": "void FUN_00226b6b(void);"
+    },
+    {
+     "addr": "0x226bcc",
+     "decl": "void FUN_00226bcc(void);"
+    },
+    {
+     "addr": "0x226bf0",
+     "decl": "void FUN_00226bf0(void);"
+    },
+    {
+     "addr": "0x226bfc",
+     "decl": "void __stdcall FUN_00226bfc(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x226cba",
+     "decl": "void __stdcall FUN_00226cba(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x226d7c",
+     "decl": "void __stdcall FUN_00226d7c(int a0);"
+    },
+    {
+     "addr": "0x226e13",
+     "decl": "void __stdcall FUN_00226e13(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x226f82",
+     "decl": "void __stdcall FUN_00226f82(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x226fef",
+     "decl": "void __stdcall FUN_00226fef(int a0, int a1);"
+    },
+    {
+     "addr": "0x227124",
+     "decl": "void __stdcall FUN_00227124(int a0, int a1);"
+    },
+    {
+     "addr": "0x22724d",
+     "decl": "void __stdcall FUN_0022724d(int a0);"
+    },
+    {
+     "addr": "0x2273bb",
+     "decl": "void __stdcall FUN_002273bb(int a0, int a1);"
+    },
+    {
+     "addr": "0x22754e",
+     "decl": "void __stdcall FUN_0022754e(int a0);"
+    },
+    {
+     "addr": "0x2275f5",
+     "decl": "void __stdcall FUN_002275f5(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x227694",
+     "decl": "void __stdcall FUN_00227694(int a0, int a1);"
+    },
+    {
+     "addr": "0x227746",
+     "decl": "void __stdcall FUN_00227746(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x2278f6",
+     "decl": "void __stdcall FUN_002278f6(int a0);"
+    },
+    {
+     "addr": "0x227bed",
+     "decl": "void __stdcall FUN_00227bed(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x227d26",
+     "decl": "void __stdcall FUN_00227d26(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x22802f",
+     "decl": "void __stdcall FUN_0022802f(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x2280bb",
+     "decl": "void __stdcall FUN_002280bb(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x2283a1",
+     "decl": "void __stdcall FUN_002283a1(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x228497",
+     "decl": "void __stdcall FUN_00228497(int a0);"
+    },
+    {
+     "addr": "0x228637",
+     "decl": "void __stdcall FUN_00228637(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x228b9a",
+     "decl": "void FUN_00228b9a(void);"
+    },
+    {
+     "addr": "0x228db2",
+     "decl": "void __stdcall FUN_00228db2(int a0);"
+    },
+    {
+     "addr": "0x228fc2",
+     "decl": "void __stdcall FUN_00228fc2(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x229079",
+     "decl": "void __stdcall FUN_00229079(int a0);"
+    },
+    {
+     "addr": "0x229541",
+     "decl": "void __stdcall FUN_00229541(int a0);"
+    },
+    {
+     "addr": "0x22955c",
+     "decl": "void __stdcall FUN_0022955c(int a0);"
+    },
+    {
+     "addr": "0x2295b8",
+     "decl": "void __stdcall FUN_002295b8(int a0, int a1);"
+    },
+    {
+     "addr": "0x229816",
+     "decl": "void __stdcall FUN_00229816(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x2299bb",
+     "decl": "void __stdcall FUN_002299bb(int a0);"
+    },
+    {
+     "addr": "0x229a6e",
+     "decl": "void __stdcall FUN_00229a6e(int a0);"
+    },
+    {
+     "addr": "0x229ced",
+     "decl": "void FUN_00229ced(void);"
+    },
+    {
+     "addr": "0x229e50",
+     "decl": "void __stdcall FUN_00229e50(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x22a303",
+     "decl": "void __stdcall FUN_0022a303(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x22a3b5",
+     "decl": "void __stdcall FUN_0022a3b5(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x22a457",
+     "decl": "void __stdcall FUN_0022a457(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x22a544",
+     "decl": "void __stdcall FUN_0022a544(int a0, int a1);"
+    },
+    {
+     "addr": "0x22a5f3",
+     "decl": "void __stdcall FUN_0022a5f3(int a0, int a1);"
+    },
+    {
+     "addr": "0x22a6a6",
+     "decl": "void __stdcall FUN_0022a6a6(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x22a6f3",
+     "decl": "void __stdcall FUN_0022a6f3(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x22a944",
+     "decl": "void __stdcall FUN_0022a944(int a0, int a1);"
+    },
+    {
+     "addr": "0x22aac8",
+     "decl": "void __stdcall FUN_0022aac8(int a0, int a1, int a2, int a3, int a4, int a5, int a6);"
+    },
+    {
+     "addr": "0x22abbb",
+     "decl": "void __stdcall FUN_0022abbb(int a0);"
+    },
+    {
+     "addr": "0x22ae32",
+     "decl": "void __stdcall FUN_0022ae32(int a0, int a1);"
+    },
+    {
+     "addr": "0x22af86",
+     "decl": "void __stdcall FUN_0022af86(int a0, int a1);"
+    },
+    {
+     "addr": "0x22b12e",
+     "decl": "void __stdcall FUN_0022b12e(int a0);"
+    },
+    {
+     "addr": "0x22b1fd",
+     "decl": "void __stdcall FUN_0022b1fd(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x22b295",
+     "decl": "void __stdcall FUN_0022b295(int a0);"
+    },
+    {
+     "addr": "0x22b481",
+     "decl": "void __stdcall FUN_0022b481(int a0, int a1);"
+    },
+    {
+     "addr": "0x22b513",
+     "decl": "void __stdcall FUN_0022b513(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x22b612",
+     "decl": "void __stdcall FUN_0022b612(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x22b7ab",
+     "decl": "void __stdcall FUN_0022b7ab(int a0, int a1);"
+    },
+    {
+     "addr": "0x22ba25",
+     "decl": "void __stdcall FUN_0022ba25(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x22bde3",
+     "decl": "void __stdcall FUN_0022bde3(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x22bfbd",
+     "decl": "void __stdcall FUN_0022bfbd(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x22c06d",
+     "decl": "void __stdcall FUN_0022c06d(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x22c3f4",
+     "decl": "void __stdcall FUN_0022c3f4(int a0, int a1);"
+    },
+    {
+     "addr": "0x22c458",
+     "decl": "void __stdcall FUN_0022c458(int a0, int a1);"
+    },
+    {
+     "addr": "0x22c517",
+     "decl": "void __stdcall FUN_0022c517(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x22c6b8",
+     "decl": "void __stdcall FUN_0022c6b8(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x22c7ac",
+     "decl": "void __stdcall FUN_0022c7ac(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x22c8a5",
+     "decl": "void __stdcall FUN_0022c8a5(int a0);"
+    },
+    {
+     "addr": "0x22c925",
+     "decl": "void __stdcall FUN_0022c925(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x22cb8c",
+     "decl": "void FUN_0022cb8c(void);"
+    },
+    {
+     "addr": "0x22cc3d",
+     "decl": "void __stdcall FUN_0022cc3d(int a0, int a1);"
+    },
+    {
+     "addr": "0x22cfcf",
+     "decl": "void FUN_0022cfcf(void);"
+    },
+    {
+     "addr": "0x22d09c",
+     "decl": "void __stdcall FUN_0022d09c(int a0, int a1);"
+    },
+    {
+     "addr": "0x22d1af",
+     "decl": "void __stdcall FUN_0022d1af(int a0);"
+    },
+    {
+     "addr": "0x22d2ad",
+     "decl": "void __stdcall FUN_0022d2ad(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x22d483",
+     "decl": "void __stdcall FUN_0022d483(int a0, int a1);"
+    },
+    {
+     "addr": "0x22d4c2",
+     "decl": "void FUN_0022d4c2(void);"
+    },
+    {
+     "addr": "0x22d797",
+     "decl": "void __stdcall FUN_0022d797(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x22da72",
+     "decl": "void FUN_0022da72(void);"
+    },
+    {
+     "addr": "0x22db9d",
+     "decl": "void __stdcall FUN_0022db9d(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x233880",
+     "decl": "void FUN_00233880(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11, int a12);"
+    },
+    {
+     "addr": "0x234090",
+     "decl": "void FUN_00234090(void);"
+    },
+    {
+     "addr": "0x2362b0",
+     "decl": "void FUN_002362b0(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9);"
+    },
+    {
+     "addr": "0x23c3d0",
+     "decl": "void FUN_0023c3d0(void);"
+    },
+    {
+     "addr": "0x23c5a0",
+     "decl": "void FUN_0023c5a0(void);"
+    },
+    {
+     "addr": "0x23cca0",
+     "decl": "void FUN_0023cca0(void);"
+    },
+    {
+     "addr": "0x23dcb0",
+     "decl": "void FUN_0023dcb0(void);"
+    },
+    {
+     "addr": "0x241450",
+     "decl": "void __stdcall FUN_00241450(int a0);"
+    },
+    {
+     "addr": "0x241ae0",
+     "decl": "void __stdcall FUN_00241ae0(int a0, int a1);"
+    },
+    {
+     "addr": "0x24b76e",
+     "decl": "void __stdcall FUN_0024b76e(int a0);"
+    },
+    {
+     "addr": "0x24b970",
+     "decl": "void FUN_0024b970(void);"
+    },
+    {
+     "addr": "0x24bab5",
+     "decl": "void __stdcall FUN_0024bab5(int a0, int a1);"
+    },
+    {
+     "addr": "0x24bc67",
+     "decl": "void FUN_0024bc67(void);"
+    },
+    {
+     "addr": "0x24bcb5",
+     "decl": "void __stdcall FUN_0024bcb5(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x24be00",
+     "decl": "void FUN_0024be00(void);"
+    },
+    {
+     "addr": "0x24beb0",
+     "decl": "void FUN_0024beb0(void);"
+    },
+    {
+     "addr": "0x24c0e1",
+     "decl": "void __stdcall FUN_0024c0e1(int a0);"
+    },
+    {
+     "addr": "0x24c6b2",
+     "decl": "void __stdcall FUN_0024c6b2(int a0, int a1);"
+    },
+    {
+     "addr": "0x24c71f",
+     "decl": "void __stdcall FUN_0024c71f(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x24cab4",
+     "decl": "void FUN_0024cab4(void);"
+    },
+    {
+     "addr": "0x24d0ae",
+     "decl": "void FUN_0024d0ae(void);"
+    },
+    {
+     "addr": "0x24d291",
+     "decl": "void __stdcall FUN_0024d291(int a0, int a1);"
+    },
+    {
+     "addr": "0x24d90b",
+     "decl": "void __stdcall FUN_0024d90b(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x24db4c",
+     "decl": "void __stdcall FUN_0024db4c(int a0);"
+    },
+    {
+     "addr": "0x24db73",
+     "decl": "void FUN_0024db73(void);"
+    },
+    {
+     "addr": "0x24dc24",
+     "decl": "void __stdcall FUN_0024dc24(int a0);"
+    },
+    {
+     "addr": "0x24dd53",
+     "decl": "void FUN_0024dd53(void);"
+    },
+    {
+     "addr": "0x24dd9e",
+     "decl": "void __stdcall FUN_0024dd9e(int a0);"
+    },
+    {
+     "addr": "0x24ddbe",
+     "decl": "void __stdcall FUN_0024ddbe(int a0);"
+    },
+    {
+     "addr": "0x24ddd3",
+     "decl": "void __stdcall FUN_0024ddd3(int a0, int a1);"
+    },
+    {
+     "addr": "0x24dee0",
+     "decl": "void __stdcall FUN_0024dee0(int a0, int a1);"
+    },
+    {
+     "addr": "0x24e0c6",
+     "decl": "void FUN_0024e0c6(void);"
+    },
+    {
+     "addr": "0x24e147",
+     "decl": "void __stdcall FUN_0024e147(int a0, int a1);"
+    },
+    {
+     "addr": "0x24e215",
+     "decl": "void __stdcall FUN_0024e215(int a0, int a1);"
+    },
+    {
+     "addr": "0x24e3fb",
+     "decl": "void __stdcall FUN_0024e3fb(int a0, int a1);"
+    },
+    {
+     "addr": "0x24e670",
+     "decl": "void __stdcall FUN_0024e670(int a0, int a1);"
+    },
+    {
+     "addr": "0x24e740",
+     "decl": "void FUN_0024e740(void);"
+    },
+    {
+     "addr": "0x24e8d0",
+     "decl": "void __stdcall FUN_0024e8d0(int a0, int a1);"
+    },
+    {
+     "addr": "0x24ee12",
+     "decl": "void FUN_0024ee12(void);"
+    },
+    {
+     "addr": "0x24ee57",
+     "decl": "void FUN_0024ee57(void);"
+    },
+    {
+     "addr": "0x24eff0",
+     "decl": "void __stdcall FUN_0024eff0(int a0);"
+    },
+    {
+     "addr": "0x24f232",
+     "decl": "void __stdcall FUN_0024f232(int a0, int a1);"
+    },
+    {
+     "addr": "0x24f46c",
+     "decl": "void __stdcall FUN_0024f46c(int a0, int a1);"
+    },
+    {
+     "addr": "0x24f525",
+     "decl": "void FUN_0024f525(void);"
+    },
+    {
+     "addr": "0x24f6ff",
+     "decl": "void FUN_0024f6ff(void);"
+    },
+    {
+     "addr": "0x24fa0f",
+     "decl": "void FUN_0024fa0f(void);"
+    },
+    {
+     "addr": "0x24fead",
+     "decl": "void __stdcall FUN_0024fead(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x24ff6f",
+     "decl": "void FUN_0024ff6f(void);"
+    },
+    {
+     "addr": "0x250427",
+     "decl": "void __stdcall FUN_00250427(int a0, int a1);"
+    },
+    {
+     "addr": "0x2506bb",
+     "decl": "void __stdcall FUN_002506bb(int a0);"
+    },
+    {
+     "addr": "0x25082b",
+     "decl": "void __stdcall FUN_0025082b(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x250a8b",
+     "decl": "void __stdcall FUN_00250a8b(int a0);"
+    },
+    {
+     "addr": "0x250cad",
+     "decl": "void __stdcall FUN_00250cad(int a0);"
+    },
+    {
+     "addr": "0x250f38",
+     "decl": "void __stdcall FUN_00250f38(int a0, int a1);"
+    },
+    {
+     "addr": "0x251199",
+     "decl": "void __stdcall FUN_00251199(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x2511e6",
+     "decl": "void __stdcall FUN_002511e6(int a0, int a1);"
+    },
+    {
+     "addr": "0x25122e",
+     "decl": "void FUN_0025122e(void);"
+    },
+    {
+     "addr": "0x2513ad",
+     "decl": "void __stdcall FUN_002513ad(int a0);"
+    },
+    {
+     "addr": "0x251424",
+     "decl": "void FUN_00251424(void);"
+    },
+    {
+     "addr": "0x251600",
+     "decl": "void FUN_00251600(void);"
+    },
+    {
+     "addr": "0x251907",
+     "decl": "void FUN_00251907(void);"
+    },
+    {
+     "addr": "0x2519fb",
+     "decl": "void FUN_002519fb(void);"
+    },
+    {
+     "addr": "0x251aa7",
+     "decl": "void FUN_00251aa7(void);"
+    },
+    {
+     "addr": "0x251c86",
+     "decl": "void FUN_00251c86(void);"
+    },
+    {
+     "addr": "0x251d60",
+     "decl": "void __stdcall FUN_00251d60(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x251e9a",
+     "decl": "void FUN_00251e9a(void);"
+    },
+    {
+     "addr": "0x252114",
+     "decl": "void FUN_00252114(void);"
+    },
+    {
+     "addr": "0x25227b",
+     "decl": "void FUN_0025227b(void);"
+    },
+    {
+     "addr": "0x2523f4",
+     "decl": "void FUN_002523f4(void);"
+    },
+    {
+     "addr": "0x2525bd",
+     "decl": "void __stdcall FUN_002525bd(int a0);"
+    },
+    {
+     "addr": "0x2528bb",
+     "decl": "void FUN_002528bb(void);"
+    },
+    {
+     "addr": "0x252a53",
+     "decl": "void FUN_00252a53(void);"
+    },
+    {
+     "addr": "0x252ad9",
+     "decl": "void __stdcall FUN_00252ad9(int a0);"
+    },
+    {
+     "addr": "0x252c8e",
+     "decl": "void __stdcall FUN_00252c8e(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x252df4",
+     "decl": "void __stdcall FUN_00252df4(int a0, int a1);"
+    },
+    {
+     "addr": "0x1e6b70",
+     "decl": "void __stdcall FUN_001e6b70(int a0, int a1, int a2, int a3, int a4, int a5);"
+    },
+    {
+     "addr": "0x1e6b90",
+     "decl": "void __stdcall FUN_001e6b90(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x1e6fc0",
+     "decl": "void __stdcall FUN_001e6fc0(int a0);"
+    },
+    {
+     "addr": "0x1e77d0",
+     "decl": "void __stdcall FUN_001e77d0(int a0);"
+    },
+    {
+     "addr": "0x1e7830",
+     "decl": "void __stdcall FUN_001e7830(int a0);"
+    },
+    {
+     "addr": "0x1e9d40",
+     "decl": "void FUN_001e9d40(void);"
+    },
+    {
+     "addr": "0x1e9db0",
+     "decl": "void FUN_001e9db0(void);"
+    },
+    {
+     "addr": "0x1e9f80",
+     "decl": "void FUN_001e9f80(void);"
+    },
+    {
+     "addr": "0x1e9fe0",
+     "decl": "void FUN_001e9fe0(void);"
+    },
+    {
+     "addr": "0x1eaa20",
+     "decl": "void __stdcall FUN_001eaa20(int a0, int a1);"
+    },
+    {
+     "addr": "0x1eab60",
+     "decl": "void __stdcall FUN_001eab60(int a0, int a1);"
+    },
+    {
+     "addr": "0x1eac20",
+     "decl": "void __stdcall FUN_001eac20(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x1eacb0",
+     "decl": "void __stdcall FUN_001eacb0(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x1eae70",
+     "decl": "void __stdcall FUN_001eae70(int a0, int a1);"
+    },
+    {
+     "addr": "0x1eb690",
+     "decl": "void __stdcall FUN_001eb690(int a0, int a1);"
+    },
+    {
+     "addr": "0x1eb6f0",
+     "decl": "void FUN_001eb6f0(void);"
+    },
+    {
+     "addr": "0x1ed4e0",
+     "decl": "void __stdcall FUN_001ed4e0(int a0);"
+    },
+    {
+     "addr": "0x1ed630",
+     "decl": "void __stdcall FUN_001ed630(int a0, int a1);"
+    },
+    {
+     "addr": "0x1ed780",
+     "decl": "void __stdcall FUN_001ed780(int a0, int a1);"
+    },
+    {
+     "addr": "0x1ed7c0",
+     "decl": "void __stdcall FUN_001ed7c0(int a0);"
+    },
+    {
+     "addr": "0x1ed870",
+     "decl": "void __stdcall FUN_001ed870(int a0);"
+    },
+    {
+     "addr": "0x1ed8b0",
+     "decl": "void __stdcall FUN_001ed8b0(int a0);"
+    },
+    {
+     "addr": "0x1ed8f0",
+     "decl": "void __stdcall FUN_001ed8f0(int a0);"
+    },
+    {
+     "addr": "0x1edba0",
+     "decl": "void __stdcall FUN_001edba0(int a0);"
+    },
+    {
+     "addr": "0x1edca0",
+     "decl": "void __stdcall FUN_001edca0(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x1ee030",
+     "decl": "void __stdcall FUN_001ee030(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x1ee100",
+     "decl": "void __stdcall FUN_001ee100(int a0);"
+    },
+    {
+     "addr": "0x1ee290",
+     "decl": "void __stdcall FUN_001ee290(int a0);"
+    },
+    {
+     "addr": "0x1ee3b0",
+     "decl": "void __stdcall FUN_001ee3b0(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x1ee650",
+     "decl": "void __stdcall FUN_001ee650(int a0);"
+    },
+    {
+     "addr": "0x1ee830",
+     "decl": "void FUN_001ee830(void);"
+    },
+    {
+     "addr": "0x1ef2a0",
+     "decl": "void __stdcall FUN_001ef2a0(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x1ef300",
+     "decl": "void __stdcall FUN_001ef300(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x1ef330",
+     "decl": "void __stdcall FUN_001ef330(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x1ef3d0",
+     "decl": "void __stdcall FUN_001ef3d0(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x1ef490",
+     "decl": "void __stdcall FUN_001ef490(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x1ef520",
+     "decl": "void FUN_001ef520(void);"
+    },
+    {
+     "addr": "0x1ef540",
+     "decl": "void FUN_001ef540(void);"
+    },
+    {
+     "addr": "0x1ef590",
+     "decl": "void __stdcall FUN_001ef590(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x1ef740",
+     "decl": "void FUN_001ef740(void);"
+    },
+    {
+     "addr": "0x1ef770",
+     "decl": "void FUN_001ef770(void);"
+    },
+    {
+     "addr": "0x1ef7e0",
+     "decl": "void __stdcall FUN_001ef7e0(int a0);"
+    },
+    {
+     "addr": "0x1ef860",
+     "decl": "void FUN_001ef860(void);"
+    },
+    {
+     "addr": "0x1efe30",
+     "decl": "void __stdcall FUN_001efe30(int a0, int a1);"
+    },
+    {
+     "addr": "0x1efe80",
+     "decl": "void __stdcall FUN_001efe80(int a0);"
+    },
+    {
+     "addr": "0x1eff04",
+     "decl": "void __stdcall FUN_001eff04(int a0);"
+    },
+    {
+     "addr": "0x1f0230",
+     "decl": "void FUN_001f0230(void);"
+    },
+    {
+     "addr": "0x1f0750",
+     "decl": "void __stdcall FUN_001f0750(int a0);"
+    },
+    {
+     "addr": "0x1f08d0",
+     "decl": "void __stdcall FUN_001f08d0(int a0);"
+    },
+    {
+     "addr": "0x1f0ad0",
+     "decl": "void __stdcall FUN_001f0ad0(int a0);"
+    },
+    {
+     "addr": "0x1f0cd0",
+     "decl": "void __stdcall FUN_001f0cd0(int a0);"
+    },
+    {
+     "addr": "0x1f0eb0",
+     "decl": "void __stdcall FUN_001f0eb0(int a0);"
+    },
+    {
+     "addr": "0x1f1260",
+     "decl": "void __stdcall FUN_001f1260(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x1f1360",
+     "decl": "void __stdcall FUN_001f1360(int a0, int a1);"
+    },
+    {
+     "addr": "0x1f1500",
+     "decl": "void __stdcall FUN_001f1500(int a0);"
+    },
+    {
+     "addr": "0x1f1640",
+     "decl": "void __stdcall FUN_001f1640(int a0);"
+    },
+    {
+     "addr": "0x1f1b50",
+     "decl": "void FUN_001f1b50(void);"
+    },
+    {
+     "addr": "0x1f2250",
+     "decl": "void __stdcall FUN_001f2250(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x1f2280",
+     "decl": "void __stdcall FUN_001f2280(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x1f22e0",
+     "decl": "void __stdcall FUN_001f22e0(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x1f2340",
+     "decl": "void __stdcall FUN_001f2340(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x1f2440",
+     "decl": "void __stdcall FUN_001f2440(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x1f2530",
+     "decl": "void __stdcall FUN_001f2530(int a0);"
+    },
+    {
+     "addr": "0x1f25c0",
+     "decl": "void __stdcall FUN_001f25c0(int a0);"
+    },
+    {
+     "addr": "0x1f2600",
+     "decl": "void __stdcall FUN_001f2600(int a0);"
+    },
+    {
+     "addr": "0x1f2650",
+     "decl": "void __stdcall FUN_001f2650(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x1f2f70",
+     "decl": "void FUN_001f2f70(void);"
+    },
+    {
+     "addr": "0x1f3000",
+     "decl": "void FUN_001f3000(void);"
+    },
+    {
+     "addr": "0x1f3580",
+     "decl": "void __stdcall FUN_001f3580(int a0);"
+    },
+    {
+     "addr": "0x1f3a90",
+     "decl": "void FUN_001f3a90(void);"
+    },
+    {
+     "addr": "0x1f3c30",
+     "decl": "void __stdcall FUN_001f3c30(int a0);"
+    },
+    {
+     "addr": "0x1f3c40",
+     "decl": "void __stdcall FUN_001f3c40(int a0);"
+    },
+    {
+     "addr": "0x1f3cb0",
+     "decl": "void __stdcall FUN_001f3cb0(int a0);"
+    },
+    {
+     "addr": "0x1f3cc0",
+     "decl": "void FUN_001f3cc0(void);"
+    },
+    {
+     "addr": "0x1f3cd0",
+     "decl": "void __stdcall FUN_001f3cd0(int a0);"
+    },
+    {
+     "addr": "0x1f3d90",
+     "decl": "void __stdcall FUN_001f3d90(int a0);"
+    },
+    {
+     "addr": "0x1f3dd0",
+     "decl": "void __stdcall FUN_001f3dd0(int a0);"
+    },
+    {
+     "addr": "0x1f3e00",
+     "decl": "void __stdcall FUN_001f3e00(int a0, int a1);"
+    },
+    {
+     "addr": "0x1f3e40",
+     "decl": "void __stdcall FUN_001f3e40(int a0, int a1);"
+    },
+    {
+     "addr": "0x1f3f80",
+     "decl": "void __stdcall FUN_001f3f80(int a0, int a1);"
+    },
+    {
+     "addr": "0x1f3ff0",
+     "decl": "void __stdcall FUN_001f3ff0(int a0, int a1, int a2, int a3, int a4, int a5, int a6);"
+    },
+    {
+     "addr": "0x1f4200",
+     "decl": "void __stdcall FUN_001f4200(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x1f4270",
+     "decl": "void __stdcall FUN_001f4270(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7);"
+    },
+    {
+     "addr": "0x1f4630",
+     "decl": "void __stdcall FUN_001f4630(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10);"
+    },
+    {
+     "addr": "0x1f4840",
+     "decl": "void __stdcall FUN_001f4840(int a0);"
+    },
+    {
+     "addr": "0x1f489f",
+     "decl": "void FUN_001f489f(void);"
+    },
+    {
+     "addr": "0x1f4be0",
+     "decl": "void FUN_001f4be0(void);"
+    },
+    {
+     "addr": "0x1f4d40",
+     "decl": "void __stdcall FUN_001f4d40(int a0, int a1);"
+    },
+    {
+     "addr": "0x1f4dc0",
+     "decl": "void __stdcall FUN_001f4dc0(int a0, int a1);"
+    },
+    {
+     "addr": "0x1f4fc0",
+     "decl": "void FUN_001f4fc0(void);"
+    },
+    {
+     "addr": "0x1f5130",
+     "decl": "void FUN_001f5130(void);"
+    },
+    {
+     "addr": "0x1f5480",
+     "decl": "void __stdcall FUN_001f5480(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x1f55d0",
+     "decl": "void __stdcall FUN_001f55d0(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7);"
+    },
+    {
+     "addr": "0x1f56d0",
+     "decl": "void __stdcall FUN_001f56d0(int a0);"
+    },
+    {
+     "addr": "0x1f56e3",
+     "decl": "void __stdcall FUN_001f56e3(int a0);"
+    },
+    {
+     "addr": "0x1f5723",
+     "decl": "void __stdcall FUN_001f5723(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x1f5786",
+     "decl": "void __stdcall FUN_001f5786(int a0);"
+    },
+    {
+     "addr": "0x1f5850",
+     "decl": "void FUN_001f5850(void);"
+    },
+    {
+     "addr": "0x1f587b",
+     "decl": "void FUN_001f587b(void);"
+    },
+    {
+     "addr": "0x1f58bc",
+     "decl": "void FUN_001f58bc(void);"
+    },
+    {
+     "addr": "0x1f5ccb",
+     "decl": "void __stdcall FUN_001f5ccb(int a0);"
+    },
+    {
+     "addr": "0x1f6310",
+     "decl": "void __stdcall FUN_001f6310(int a0, int a1, int a2, int a3, int a4, int a5, int a6);"
+    },
+    {
+     "addr": "0x1f6440",
+     "decl": "void __stdcall FUN_001f6440(int a0);"
+    },
+    {
+     "addr": "0x1f65d0",
+     "decl": "void __stdcall FUN_001f65d0(int a0);"
+    },
+    {
+     "addr": "0x1f66b0",
+     "decl": "void FUN_001f66b0(void);"
+    },
+    {
+     "addr": "0x1f6820",
+     "decl": "void __stdcall FUN_001f6820(int a0, int a1, int a2, int a3, int a4, int a5, int a6);"
+    },
+    {
+     "addr": "0x1f68d0",
+     "decl": "void __stdcall FUN_001f68d0(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x1f6b90",
+     "decl": "void __stdcall FUN_001f6b90(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7);"
+    },
+    {
+     "addr": "0x1f6cd0",
+     "decl": "void __stdcall FUN_001f6cd0(int a0);"
+    },
+    {
+     "addr": "0x1f6e60",
+     "decl": "void __stdcall FUN_001f6e60(int a0);"
+    },
+    {
+     "addr": "0x1f6f50",
+     "decl": "void FUN_001f6f50(void);"
+    },
+    {
+     "addr": "0x1f7080",
+     "decl": "void __stdcall FUN_001f7080(int a0);"
+    },
+    {
+     "addr": "0x1f70f0",
+     "decl": "void FUN_001f70f0(void);"
+    },
+    {
+     "addr": "0x1f7240",
+     "decl": "void __stdcall FUN_001f7240(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7);"
+    },
+    {
+     "addr": "0x1f7330",
+     "decl": "void __stdcall FUN_001f7330(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x1f78c5",
+     "decl": "void FUN_001f78c5(void);"
+    },
+    {
+     "addr": "0x1f7994",
+     "decl": "void FUN_001f7994(void);"
+    },
+    {
+     "addr": "0x1f79ca",
+     "decl": "void FUN_001f79ca(void);"
+    },
+    {
+     "addr": "0x1f79fa",
+     "decl": "void FUN_001f79fa(void);"
+    },
+    {
+     "addr": "0x1f7a6b",
+     "decl": "void FUN_001f7a6b(void);"
+    },
+    {
+     "addr": "0x1f7aaa",
+     "decl": "void __stdcall FUN_001f7aaa(int a0);"
+    },
+    {
+     "addr": "0x1f7ddc",
+     "decl": "void FUN_001f7ddc(void);"
+    },
+    {
+     "addr": "0x1f82ed",
+     "decl": "void __stdcall FUN_001f82ed(int a0, int a1);"
+    },
+    {
+     "addr": "0x1f8e51",
+     "decl": "void FUN_001f8e51(void);"
+    },
+    {
+     "addr": "0x1f8ed2",
+     "decl": "void FUN_001f8ed2(void);"
+    },
+    {
+     "addr": "0x1fe8e0",
+     "decl": "void FUN_001fe8e0(int a0, int a1);"
+    },
+    {
+     "addr": "0x1feda5",
+     "decl": "void __stdcall FUN_001feda5(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x1ff1a2",
+     "decl": "void __stdcall FUN_001ff1a2(int a0, int a1);"
+    },
+    {
+     "addr": "0x2000a9",
+     "decl": "void __stdcall FUN_002000a9(int a0);"
+    },
+    {
+     "addr": "0x200133",
+     "decl": "void __stdcall FUN_00200133(int a0, int a1);"
+    },
+    {
+     "addr": "0x200180",
+     "decl": "void __stdcall FUN_00200180(int a0);"
+    },
+    {
+     "addr": "0x2001a7",
+     "decl": "void __stdcall FUN_002001a7(int a0, int a1);"
+    },
+    {
+     "addr": "0x2001f4",
+     "decl": "void __stdcall FUN_002001f4(int a0);"
+    },
+    {
+     "addr": "0x200231",
+     "decl": "void FUN_00200231(void);"
+    },
+    {
+     "addr": "0x2002bd",
+     "decl": "void FUN_002002bd(void);"
+    },
+    {
+     "addr": "0x200319",
+     "decl": "void FUN_00200319(void);"
+    },
+    {
+     "addr": "0x200347",
+     "decl": "void FUN_00200347(void);"
+    },
+    {
+     "addr": "0x20039b",
+     "decl": "void FUN_0020039b(void);"
+    },
+    {
+     "addr": "0x2003c9",
+     "decl": "void FUN_002003c9(void);"
+    },
+    {
+     "addr": "0x2003ee",
+     "decl": "void FUN_002003ee(void);"
+    },
+    {
+     "addr": "0x200413",
+     "decl": "void FUN_00200413(void);"
+    },
+    {
+     "addr": "0x200438",
+     "decl": "void FUN_00200438(void);"
+    },
+    {
+     "addr": "0x201c48",
+     "decl": "void __stdcall FUN_00201c48(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x202317",
+     "decl": "void FUN_00202317(void);"
+    },
+    {
+     "addr": "0x20238c",
+     "decl": "void __stdcall FUN_0020238c(int a0);"
+    },
+    {
+     "addr": "0x202775",
+     "decl": "void FUN_00202775(void);"
+    },
+    {
+     "addr": "0x202b18",
+     "decl": "void FUN_00202b18(void);"
+    },
+    {
+     "addr": "0x202e79",
+     "decl": "void FUN_00202e79(void);"
+    },
+    {
+     "addr": "0x202f80",
+     "decl": "void FUN_00202f80(void);"
+    },
+    {
+     "addr": "0x203089",
+     "decl": "void FUN_00203089(void);"
+    },
+    {
+     "addr": "0x2034c1",
+     "decl": "void FUN_002034c1(void);"
+    },
+    {
+     "addr": "0x203609",
+     "decl": "void __stdcall FUN_00203609(int a0, int a1);"
+    },
+    {
+     "addr": "0x203664",
+     "decl": "void __stdcall FUN_00203664(int a0);"
+    },
+    {
+     "addr": "0x203704",
+     "decl": "void __stdcall FUN_00203704(int a0, int a1);"
+    },
+    {
+     "addr": "0x20376b",
+     "decl": "void __stdcall FUN_0020376b(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x2037ad",
+     "decl": "void __stdcall FUN_002037ad(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x203815",
+     "decl": "void FUN_00203815(void);"
+    },
+    {
+     "addr": "0x20391d",
+     "decl": "void __stdcall FUN_0020391d(int a0);"
+    },
+    {
+     "addr": "0x203995",
+     "decl": "void __stdcall FUN_00203995(int a0);"
+    },
+    {
+     "addr": "0x203f07",
+     "decl": "void __stdcall FUN_00203f07(int a0);"
+    },
+    {
+     "addr": "0x204388",
+     "decl": "void __stdcall FUN_00204388(int a0, int a1);"
+    },
+    {
+     "addr": "0x2045c1",
+     "decl": "void __stdcall FUN_002045c1(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x204605",
+     "decl": "void __stdcall FUN_00204605(int a0);"
+    },
+    {
+     "addr": "0x204637",
+     "decl": "void __stdcall FUN_00204637(int a0, int a1);"
+    },
+    {
+     "addr": "0x20478b",
+     "decl": "void __stdcall FUN_0020478b(int a0);"
+    },
+    {
+     "addr": "0x2047ca",
+     "decl": "void __stdcall FUN_002047ca(int a0);"
+    },
+    {
+     "addr": "0x2047df",
+     "decl": "void __stdcall FUN_002047df(int a0);"
+    },
+    {
+     "addr": "0x2047f5",
+     "decl": "void __stdcall FUN_002047f5(int a0);"
+    },
+    {
+     "addr": "0x20480b",
+     "decl": "void __stdcall FUN_0020480b(int a0);"
+    },
+    {
+     "addr": "0x204821",
+     "decl": "void __stdcall FUN_00204821(int a0);"
+    },
+    {
+     "addr": "0x204837",
+     "decl": "void __stdcall FUN_00204837(int a0);"
+    },
+    {
+     "addr": "0x20484d",
+     "decl": "void __stdcall FUN_0020484d(int a0);"
+    },
+    {
+     "addr": "0x204862",
+     "decl": "void __stdcall FUN_00204862(int a0);"
+    },
+    {
+     "addr": "0x204877",
+     "decl": "void __stdcall FUN_00204877(int a0);"
+    },
+    {
+     "addr": "0x20488d",
+     "decl": "void __stdcall FUN_0020488d(int a0);"
+    },
+    {
+     "addr": "0x2048a3",
+     "decl": "void __stdcall FUN_002048a3(int a0);"
+    },
+    {
+     "addr": "0x2048b8",
+     "decl": "void __stdcall FUN_002048b8(int a0);"
+    },
+    {
+     "addr": "0x2048cd",
+     "decl": "void __stdcall FUN_002048cd(int a0);"
+    },
+    {
+     "addr": "0x2048e3",
+     "decl": "void __stdcall FUN_002048e3(int a0);"
+    },
+    {
+     "addr": "0x2048f9",
+     "decl": "void __stdcall FUN_002048f9(int a0);"
+    },
+    {
+     "addr": "0x20490f",
+     "decl": "void __stdcall FUN_0020490f(int a0);"
+    },
+    {
+     "addr": "0x204925",
+     "decl": "void __stdcall FUN_00204925(int a0, int a1);"
+    },
+    {
+     "addr": "0x2053f9",
+     "decl": "void FUN_002053f9(void);"
+    },
+    {
+     "addr": "0x20545c",
+     "decl": "void FUN_0020545c(void);"
+    },
+    {
+     "addr": "0x20547e",
+     "decl": "void FUN_0020547e(void);"
+    },
+    {
+     "addr": "0x2054a8",
+     "decl": "void __stdcall FUN_002054a8(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x20552e",
+     "decl": "void __stdcall FUN_0020552e(int a0);"
+    },
+    {
+     "addr": "0x205547",
+     "decl": "void FUN_00205547(void);"
+    },
+    {
+     "addr": "0x205580",
+     "decl": "void __stdcall FUN_00205580(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20571a",
+     "decl": "void FUN_0020571a(void);"
+    },
+    {
+     "addr": "0x205979",
+     "decl": "void __stdcall FUN_00205979(int a0, int a1);"
+    },
+    {
+     "addr": "0x2059b0",
+     "decl": "void FUN_002059b0(void);"
+    },
+    {
+     "addr": "0x205a59",
+     "decl": "void __stdcall FUN_00205a59(int a0);"
+    },
+    {
+     "addr": "0x205a68",
+     "decl": "void __stdcall FUN_00205a68(int a0);"
+    },
+    {
+     "addr": "0x205a7e",
+     "decl": "void __stdcall FUN_00205a7e(int a0);"
+    },
+    {
+     "addr": "0x205c4d",
+     "decl": "void FUN_00205c4d(void);"
+    },
+    {
+     "addr": "0x205c86",
+     "decl": "void __stdcall FUN_00205c86(int a0);"
+    },
+    {
+     "addr": "0x205ce5",
+     "decl": "void FUN_00205ce5(void);"
+    },
+    {
+     "addr": "0x205cff",
+     "decl": "void __stdcall FUN_00205cff(int a0, int a1);"
+    },
+    {
+     "addr": "0x205d52",
+     "decl": "void __stdcall FUN_00205d52(int a0);"
+    },
+    {
+     "addr": "0x20639e",
+     "decl": "void __stdcall FUN_0020639e(int a0);"
+    },
+    {
+     "addr": "0x2063b8",
+     "decl": "void __stdcall FUN_002063b8(int a0);"
+    },
+    {
+     "addr": "0x206669",
+     "decl": "void __stdcall FUN_00206669(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20672a",
+     "decl": "void FUN_0020672a(void);"
+    },
+    {
+     "addr": "0x206844",
+     "decl": "void FUN_00206844(void);"
+    },
+    {
+     "addr": "0x206c83",
+     "decl": "void __stdcall FUN_00206c83(int a0);"
+    },
+    {
+     "addr": "0x206ca8",
+     "decl": "void __stdcall FUN_00206ca8(int a0);"
+    },
+    {
+     "addr": "0x206d0a",
+     "decl": "void __stdcall FUN_00206d0a(int a0);"
+    },
+    {
+     "addr": "0x206daa",
+     "decl": "void __stdcall FUN_00206daa(int a0);"
+    },
+    {
+     "addr": "0x206eb2",
+     "decl": "void FUN_00206eb2(void);"
+    },
+    {
+     "addr": "0x207032",
+     "decl": "void FUN_00207032(void);"
+    },
+    {
+     "addr": "0x2071ac",
+     "decl": "void FUN_002071ac(void);"
+    },
+    {
+     "addr": "0x2072d1",
+     "decl": "void __stdcall FUN_002072d1(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x2073d9",
+     "decl": "void FUN_002073d9(void);"
+    },
+    {
+     "addr": "0x207447",
+     "decl": "void FUN_00207447(void);"
+    },
+    {
+     "addr": "0x207540",
+     "decl": "void __stdcall FUN_00207540(int a0, int a1);"
+    },
+    {
+     "addr": "0x2075a0",
+     "decl": "void FUN_002075a0(void);"
+    },
+    {
+     "addr": "0x2075e7",
+     "decl": "void FUN_002075e7(void);"
+    },
+    {
+     "addr": "0x207799",
+     "decl": "void __stdcall FUN_00207799(int a0);"
+    },
+    {
+     "addr": "0x2077c0",
+     "decl": "void FUN_002077c0(void);"
+    },
+    {
+     "addr": "0x20782d",
+     "decl": "void FUN_0020782d(void);"
+    },
+    {
+     "addr": "0x20784f",
+     "decl": "void __stdcall FUN_0020784f(int a0, int a1);"
+    },
+    {
+     "addr": "0x207876",
+     "decl": "void __stdcall FUN_00207876(int a0, int a1);"
+    },
+    {
+     "addr": "0x2078db",
+     "decl": "void __stdcall FUN_002078db(int a0, int a1);"
+    },
+    {
+     "addr": "0x2078f2",
+     "decl": "void __stdcall FUN_002078f2(int a0, int a1);"
+    },
+    {
+     "addr": "0x207928",
+     "decl": "void __stdcall FUN_00207928(int a0);"
+    },
+    {
+     "addr": "0x207bad",
+     "decl": "void __stdcall FUN_00207bad(int a0);"
+    },
+    {
+     "addr": "0x207bc4",
+     "decl": "void FUN_00207bc4(void);"
+    },
+    {
+     "addr": "0x207cb2",
+     "decl": "void __stdcall FUN_00207cb2(int a0);"
+    },
+    {
+     "addr": "0x207d25",
+     "decl": "void __stdcall FUN_00207d25(int a0);"
+    },
+    {
+     "addr": "0x207d63",
+     "decl": "void __stdcall FUN_00207d63(int a0);"
+    },
+    {
+     "addr": "0x207dd4",
+     "decl": "void FUN_00207dd4(void);"
+    },
+    {
+     "addr": "0x207df9",
+     "decl": "void FUN_00207df9(void);"
+    },
+    {
+     "addr": "0x207e35",
+     "decl": "void __stdcall FUN_00207e35(int a0, int a1);"
+    },
+    {
+     "addr": "0x207e8a",
+     "decl": "void __stdcall FUN_00207e8a(int a0, int a1);"
+    },
+    {
+     "addr": "0x207ea8",
+     "decl": "void __stdcall FUN_00207ea8(int a0);"
+    },
+    {
+     "addr": "0x207ecf",
+     "decl": "void __stdcall FUN_00207ecf(int a0);"
+    },
+    {
+     "addr": "0x207ee4",
+     "decl": "void FUN_00207ee4(void);"
+    },
+    {
+     "addr": "0x2082ee",
+     "decl": "void FUN_002082ee(void);"
+    },
+    {
+     "addr": "0x2083a6",
+     "decl": "void FUN_002083a6(void);"
+    },
+    {
+     "addr": "0x2085ef",
+     "decl": "void FUN_002085ef(void);"
+    },
+    {
+     "addr": "0x208729",
+     "decl": "void FUN_00208729(void);"
+    },
+    {
+     "addr": "0x208a1e",
+     "decl": "void FUN_00208a1e(void);"
+    },
+    {
+     "addr": "0x208b9f",
+     "decl": "void __stdcall FUN_00208b9f(int a0);"
+    },
+    {
+     "addr": "0x208c03",
+     "decl": "void __stdcall FUN_00208c03(int a0);"
+    },
+    {
+     "addr": "0x208c60",
+     "decl": "void __stdcall FUN_00208c60(int a0);"
+    },
+    {
+     "addr": "0x208d09",
+     "decl": "void __stdcall FUN_00208d09(int a0);"
+    },
+    {
+     "addr": "0x20933e",
+     "decl": "void __stdcall FUN_0020933e(int a0);"
+    },
+    {
+     "addr": "0x209353",
+     "decl": "void __stdcall FUN_00209353(int a0);"
+    },
+    {
+     "addr": "0x20946f",
+     "decl": "void FUN_0020946f(void);"
+    },
+    {
+     "addr": "0x2094a6",
+     "decl": "void __stdcall FUN_002094a6(int a0, int a1);"
+    },
+    {
+     "addr": "0x20a11d",
+     "decl": "void __stdcall FUN_0020a11d(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20a2b1",
+     "decl": "void __stdcall FUN_0020a2b1(int a0);"
+    },
+    {
+     "addr": "0x20a558",
+     "decl": "void __stdcall FUN_0020a558(int a0, int a1);"
+    },
+    {
+     "addr": "0x20a58f",
+     "decl": "void __stdcall FUN_0020a58f(int a0, int a1);"
+    },
+    {
+     "addr": "0x20a5b8",
+     "decl": "void __stdcall FUN_0020a5b8(int a0, int a1);"
+    },
+    {
+     "addr": "0x20a6f8",
+     "decl": "void __stdcall FUN_0020a6f8(int a0);"
+    },
+    {
+     "addr": "0x20aeb6",
+     "decl": "void __stdcall FUN_0020aeb6(int a0, int a1);"
+    },
+    {
+     "addr": "0x20aee5",
+     "decl": "void __stdcall FUN_0020aee5(int a0, int a1);"
+    },
+    {
+     "addr": "0x20af03",
+     "decl": "void __stdcall FUN_0020af03(int a0);"
+    },
+    {
+     "addr": "0x20af28",
+     "decl": "void __stdcall FUN_0020af28(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x20af57",
+     "decl": "void __stdcall FUN_0020af57(int a0);"
+    },
+    {
+     "addr": "0x20af71",
+     "decl": "void __stdcall FUN_0020af71(int a0);"
+    },
+    {
+     "addr": "0x20b05a",
+     "decl": "void FUN_0020b05a(void);"
+    },
+    {
+     "addr": "0x20b254",
+     "decl": "void __stdcall FUN_0020b254(int a0);"
+    },
+    {
+     "addr": "0x20b269",
+     "decl": "void FUN_0020b269(void);"
+    },
+    {
+     "addr": "0x20b383",
+     "decl": "void FUN_0020b383(void);"
+    },
+    {
+     "addr": "0x20b3e6",
+     "decl": "void FUN_0020b3e6(void);"
+    },
+    {
+     "addr": "0x20b439",
+     "decl": "void FUN_0020b439(void);"
+    },
+    {
+     "addr": "0x20b46d",
+     "decl": "void FUN_0020b46d(void);"
+    },
+    {
+     "addr": "0x20b493",
+     "decl": "void FUN_0020b493(void);"
+    },
+    {
+     "addr": "0x20b856",
+     "decl": "void FUN_0020b856(void);"
+    },
+    {
+     "addr": "0x20b8a7",
+     "decl": "void __stdcall FUN_0020b8a7(int a0);"
+    },
+    {
+     "addr": "0x20ba21",
+     "decl": "void __stdcall FUN_0020ba21(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20bb1f",
+     "decl": "void __stdcall FUN_0020bb1f(int a0);"
+    },
+    {
+     "addr": "0x20bb9b",
+     "decl": "void __stdcall FUN_0020bb9b(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x20bbca",
+     "decl": "void __stdcall FUN_0020bbca(int a0);"
+    },
+    {
+     "addr": "0x20bbe4",
+     "decl": "void __stdcall FUN_0020bbe4(int a0);"
+    },
+    {
+     "addr": "0x20bcf9",
+     "decl": "void FUN_0020bcf9(void);"
+    },
+    {
+     "addr": "0x20c098",
+     "decl": "void FUN_0020c098(void);"
+    },
+    {
+     "addr": "0x20c0bd",
+     "decl": "void __stdcall FUN_0020c0bd(int a0);"
+    },
+    {
+     "addr": "0x20c37c",
+     "decl": "void FUN_0020c37c(void);"
+    },
+    {
+     "addr": "0x20c3a7",
+     "decl": "void __stdcall FUN_0020c3a7(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20c5ed",
+     "decl": "void FUN_0020c5ed(void);"
+    },
+    {
+     "addr": "0x20c8a8",
+     "decl": "void __stdcall FUN_0020c8a8(int a0, int a1);"
+    },
+    {
+     "addr": "0x20c959",
+     "decl": "void __stdcall FUN_0020c959(int a0, int a1);"
+    },
+    {
+     "addr": "0x20c983",
+     "decl": "void __stdcall FUN_0020c983(int a0);"
+    },
+    {
+     "addr": "0x20c9f8",
+     "decl": "void __stdcall FUN_0020c9f8(int a0);"
+    },
+    {
+     "addr": "0x20caf0",
+     "decl": "void __stdcall FUN_0020caf0(int a0, int a1);"
+    },
+    {
+     "addr": "0x20cb4b",
+     "decl": "void __stdcall FUN_0020cb4b(int a0);"
+    },
+    {
+     "addr": "0x20cc3b",
+     "decl": "void __stdcall FUN_0020cc3b(int a0);"
+    },
+    {
+     "addr": "0x20cc90",
+     "decl": "void FUN_0020cc90(void);"
+    },
+    {
+     "addr": "0x20cca8",
+     "decl": "void FUN_0020cca8(void);"
+    },
+    {
+     "addr": "0x20d042",
+     "decl": "void FUN_0020d042(void);"
+    },
+    {
+     "addr": "0x20d303",
+     "decl": "void __stdcall FUN_0020d303(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x20d349",
+     "decl": "void FUN_0020d349(void);"
+    },
+    {
+     "addr": "0x20d3bd",
+     "decl": "void __stdcall FUN_0020d3bd(int a0);"
+    },
+    {
+     "addr": "0x20d4a4",
+     "decl": "void __stdcall FUN_0020d4a4(int a0);"
+    },
+    {
+     "addr": "0x20d570",
+     "decl": "void FUN_0020d570(void);"
+    },
+    {
+     "addr": "0x20d703",
+     "decl": "void __stdcall FUN_0020d703(int a0);"
+    },
+    {
+     "addr": "0x20d71a",
+     "decl": "void __stdcall FUN_0020d71a(int a0);"
+    },
+    {
+     "addr": "0x20d731",
+     "decl": "void FUN_0020d731(void);"
+    },
+    {
+     "addr": "0x20d88d",
+     "decl": "void FUN_0020d88d(void);"
+    },
+    {
+     "addr": "0x20d8a7",
+     "decl": "void __stdcall FUN_0020d8a7(int a0);"
+    },
+    {
+     "addr": "0x20d8e1",
+     "decl": "void __stdcall FUN_0020d8e1(int a0, int a1);"
+    },
+    {
+     "addr": "0x20d92d",
+     "decl": "void FUN_0020d92d(void);"
+    },
+    {
+     "addr": "0x20d938",
+     "decl": "void FUN_0020d938(void);"
+    },
+    {
+     "addr": "0x20d979",
+     "decl": "void __stdcall FUN_0020d979(int a0);"
+    },
+    {
+     "addr": "0x20d988",
+     "decl": "void FUN_0020d988(void);"
+    },
+    {
+     "addr": "0x20da50",
+     "decl": "void __stdcall FUN_0020da50(int a0);"
+    },
+    {
+     "addr": "0x20daf0",
+     "decl": "void __stdcall FUN_0020daf0(int a0);"
+    },
+    {
+     "addr": "0x20dc40",
+     "decl": "void __stdcall FUN_0020dc40(int a0, int a1);"
+    },
+    {
+     "addr": "0x20dc60",
+     "decl": "void FUN_0020dc60(void);"
+    },
+    {
+     "addr": "0x20dd34",
+     "decl": "void __stdcall FUN_0020dd34(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20dd89",
+     "decl": "void __stdcall FUN_0020dd89(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x20de7e",
+     "decl": "void __stdcall FUN_0020de7e(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x20dfc2",
+     "decl": "void __stdcall FUN_0020dfc2(int a0);"
+    },
+    {
+     "addr": "0x20e2b3",
+     "decl": "void FUN_0020e2b3(void);"
+    },
+    {
+     "addr": "0x20e2bb",
+     "decl": "void FUN_0020e2bb(void);"
+    },
+    {
+     "addr": "0x20e2e8",
+     "decl": "void FUN_0020e2e8(void);"
+    },
+    {
+     "addr": "0x20e341",
+     "decl": "void FUN_0020e341(void);"
+    },
+    {
+     "addr": "0x20e355",
+     "decl": "void __stdcall FUN_0020e355(int a0, int a1);"
+    },
+    {
+     "addr": "0x20e38c",
+     "decl": "void __stdcall FUN_0020e38c(int a0, int a1);"
+    },
+    {
+     "addr": "0x20e3da",
+     "decl": "void FUN_0020e3da(void);"
+    },
+    {
+     "addr": "0x20e58f",
+     "decl": "void __stdcall FUN_0020e58f(int a0);"
+    },
+    {
+     "addr": "0x20e831",
+     "decl": "void __stdcall FUN_0020e831(int a0, int a1);"
+    },
+    {
+     "addr": "0x20e96f",
+     "decl": "void FUN_0020e96f(void);"
+    },
+    {
+     "addr": "0x20ea9a",
+     "decl": "void FUN_0020ea9a(void);"
+    },
+    {
+     "addr": "0x20eb39",
+     "decl": "void __stdcall FUN_0020eb39(int a0);"
+    },
+    {
+     "addr": "0x20ee0b",
+     "decl": "void __stdcall FUN_0020ee0b(int a0);"
+    },
+    {
+     "addr": "0x20ee21",
+     "decl": "void FUN_0020ee21(void);"
+    },
+    {
+     "addr": "0x20ee9c",
+     "decl": "void __stdcall FUN_0020ee9c(int a0, int a1);"
+    },
+    {
+     "addr": "0x20eec4",
+     "decl": "void __stdcall FUN_0020eec4(int a0, int a1);"
+    },
+    {
+     "addr": "0x20f062",
+     "decl": "void FUN_0020f062(void);"
+    },
+    {
+     "addr": "0x222e0e",
+     "decl": "void __stdcall FUN_00222e0e(int a0, int a1);"
+    },
+    {
+     "addr": "0x222ecf",
+     "decl": "void __stdcall FUN_00222ecf(int a0);"
+    },
+    {
+     "addr": "0x2231f8",
+     "decl": "void __stdcall FUN_002231f8(int a0);"
+    },
+    {
+     "addr": "0x223206",
+     "decl": "void __stdcall FUN_00223206(int a0, int a1);"
+    },
+    {
+     "addr": "0x223248",
+     "decl": "void __stdcall FUN_00223248(int a0);"
+    },
+    {
+     "addr": "0x2232ed",
+     "decl": "void FUN_002232ed(void);"
+    },
+    {
+     "addr": "0x2232f5",
+     "decl": "void FUN_002232f5(void);"
+    },
+    {
+     "addr": "0x2233b8",
+     "decl": "void __stdcall FUN_002233b8(int a0, int a1);"
+    },
+    {
+     "addr": "0x223676",
+     "decl": "void __stdcall FUN_00223676(int a0);"
+    },
+    {
+     "addr": "0x223b00",
+     "decl": "void __stdcall FUN_00223b00(int a0);"
+    },
+    {
+     "addr": "0x223b1b",
+     "decl": "void __stdcall FUN_00223b1b(int a0);"
+    },
+    {
+     "addr": "0x223caf",
+     "decl": "void __stdcall FUN_00223caf(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x224606",
+     "decl": "void __stdcall FUN_00224606(int a0);"
+    },
+    {
+     "addr": "0x2249ec",
+     "decl": "void __stdcall FUN_002249ec(int a0, int a1);"
+    },
+    {
+     "addr": "0x224e8c",
+     "decl": "void __stdcall FUN_00224e8c(int a0, int a1);"
+    },
+    {
+     "addr": "0x224fcf",
+     "decl": "void __stdcall FUN_00224fcf(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x225114",
+     "decl": "void __stdcall FUN_00225114(int a0);"
+    },
+    {
+     "addr": "0x2251a2",
+     "decl": "void __stdcall FUN_002251a2(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x2255f6",
+     "decl": "void __stdcall FUN_002255f6(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x225ad7",
+     "decl": "void FUN_00225ad7(void);"
+    },
+    {
+     "addr": "0x225c89",
+     "decl": "void FUN_00225c89(void);"
+    },
+    {
+     "addr": "0x225cef",
+     "decl": "void __stdcall FUN_00225cef(int a0);"
+    },
+    {
+     "addr": "0x225d04",
+     "decl": "void __stdcall FUN_00225d04(int a0);"
+    },
+    {
+     "addr": "0x225d20",
+     "decl": "void FUN_00225d20(void);"
+    },
+    {
+     "addr": "0x225d34",
+     "decl": "void __stdcall FUN_00225d34(int a0);"
+    },
+    {
+     "addr": "0x225d7d",
+     "decl": "void __stdcall FUN_00225d7d(int a0, int a1);"
+    },
+    {
+     "addr": "0x225de2",
+     "decl": "void __stdcall FUN_00225de2(int a0, int a1);"
+    },
+    {
+     "addr": "0x225e03",
+     "decl": "void FUN_00225e03(void);"
+    },
+    {
+     "addr": "0x226013",
+     "decl": "void __stdcall FUN_00226013(int a0, int a1);"
+    },
+    {
+     "addr": "0x2262c4",
+     "decl": "void __stdcall FUN_002262c4(int a0, int a1);"
+    },
+    {
+     "addr": "0x226302",
+     "decl": "void __stdcall FUN_00226302(int a0);"
+    },
+    {
+     "addr": "0x226338",
+     "decl": "void __stdcall FUN_00226338(int a0);"
+    },
+    {
+     "addr": "0x226361",
+     "decl": "void __stdcall FUN_00226361(int a0);"
+    },
+    {
+     "addr": "0x2263ec",
+     "decl": "void FUN_002263ec(void);"
+    },
+    {
+     "addr": "0x226412",
+     "decl": "void __stdcall FUN_00226412(int a0);"
+    },
+    {
+     "addr": "0x22642d",
+     "decl": "void __stdcall FUN_0022642d(int a0);"
+    },
+    {
+     "addr": "0x22644c",
+     "decl": "void FUN_0022644c(void);"
+    },
+    {
+     "addr": "0x226475",
+     "decl": "void __stdcall FUN_00226475(int a0);"
+    },
+    {
+     "addr": "0x226771",
+     "decl": "void __stdcall FUN_00226771(int a0);"
+    },
+    {
+     "addr": "0x2267f6",
+     "decl": "void __stdcall FUN_002267f6(int a0);"
+    },
+    {
+     "addr": "0x22687e",
+     "decl": "void __stdcall FUN_0022687e(int a0, int a1);"
+    },
+    {
+     "addr": "0x2268c8",
+     "decl": "void __stdcall FUN_002268c8(int a0);"
+    },
+    {
+     "addr": "0x226d21",
+     "decl": "void FUN_00226d21(void);"
+    },
+    {
+     "addr": "0x226d51",
+     "decl": "void __stdcall FUN_00226d51(int a0);"
+    },
+    {
+     "addr": "0x226f2e",
+     "decl": "void __stdcall FUN_00226f2e(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x2270cd",
+     "decl": "void __stdcall FUN_002270cd(int a0);"
+    },
+    {
+     "addr": "0x227109",
+     "decl": "void __stdcall FUN_00227109(int a0);"
+    },
+    {
+     "addr": "0x2271bf",
+     "decl": "void __stdcall FUN_002271bf(int a0);"
+    },
+    {
+     "addr": "0x227525",
+     "decl": "void FUN_00227525(void);"
+    },
+    {
+     "addr": "0x227a6b",
+     "decl": "void __stdcall FUN_00227a6b(int a0, int a1);"
+    },
+    {
+     "addr": "0x227b03",
+     "decl": "void FUN_00227b03(void);"
+    },
+    {
+     "addr": "0x227b55",
+     "decl": "void __stdcall FUN_00227b55(int a0, int a1);"
+    },
+    {
+     "addr": "0x227c25",
+     "decl": "void __stdcall FUN_00227c25(int a0, int a1);"
+    },
+    {
+     "addr": "0x227ccd",
+     "decl": "void __stdcall FUN_00227ccd(int a0);"
+    },
+    {
+     "addr": "0x227cf5",
+     "decl": "void __stdcall FUN_00227cf5(int a0);"
+    },
+    {
+     "addr": "0x2288f5",
+     "decl": "void FUN_002288f5(void);"
+    },
+    {
+     "addr": "0x22891d",
+     "decl": "void FUN_0022891d(void);"
+    },
+    {
+     "addr": "0x228990",
+     "decl": "void FUN_00228990(void);"
+    },
+    {
+     "addr": "0x2289a9",
+     "decl": "void __stdcall FUN_002289a9(int a0, int a1);"
+    },
+    {
+     "addr": "0x228a2f",
+     "decl": "void FUN_00228a2f(void);"
+    },
+    {
+     "addr": "0x228a69",
+     "decl": "void FUN_00228a69(void);"
+    },
+    {
+     "addr": "0x228cee",
+     "decl": "void FUN_00228cee(void);"
+    },
+    {
+     "addr": "0x228ebc",
+     "decl": "void FUN_00228ebc(void);"
+    },
+    {
+     "addr": "0x229007",
+     "decl": "void FUN_00229007(void);"
+    },
+    {
+     "addr": "0x229512",
+     "decl": "void __stdcall FUN_00229512(int a0, int a1);"
+    },
+    {
+     "addr": "0x22975e",
+     "decl": "void FUN_0022975e(void);"
+    },
+    {
+     "addr": "0x2297b4",
+     "decl": "void __stdcall FUN_002297b4(int a0, int a1);"
+    },
+    {
+     "addr": "0x2297f4",
+     "decl": "void FUN_002297f4(void);"
+    },
+    {
+     "addr": "0x2298c6",
+     "decl": "void __stdcall FUN_002298c6(int a0, int a1);"
+    },
+    {
+     "addr": "0x229bf7",
+     "decl": "void __stdcall FUN_00229bf7(int a0, int a1);"
+    },
+    {
+     "addr": "0x229ca1",
+     "decl": "void __stdcall FUN_00229ca1(int a0);"
+    },
+    {
+     "addr": "0x229cc0",
+     "decl": "void __stdcall FUN_00229cc0(int a0, int a1);"
+    },
+    {
+     "addr": "0x229dea",
+     "decl": "void __stdcall FUN_00229dea(int a0);"
+    },
+    {
+     "addr": "0x229ea3",
+     "decl": "void __stdcall FUN_00229ea3(int a0);"
+    },
+    {
+     "addr": "0x229ec7",
+     "decl": "void __stdcall FUN_00229ec7(int a0, int a1);"
+    },
+    {
+     "addr": "0x22a1da",
+     "decl": "void __stdcall FUN_0022a1da(int a0);"
+    },
+    {
+     "addr": "0x22a209",
+     "decl": "void __stdcall FUN_0022a209(int a0, int a1);"
+    },
+    {
+     "addr": "0x22a248",
+     "decl": "void __stdcall FUN_0022a248(int a0);"
+    },
+    {
+     "addr": "0x22a4c4",
+     "decl": "void __stdcall FUN_0022a4c4(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x22a590",
+     "decl": "void __stdcall FUN_0022a590(int a0, int a1);"
+    },
+    {
+     "addr": "0x22a86b",
+     "decl": "void __stdcall FUN_0022a86b(int a0);"
+    },
+    {
+     "addr": "0x22a8d5",
+     "decl": "void FUN_0022a8d5(void);"
+    },
+    {
+     "addr": "0x22a904",
+     "decl": "void FUN_0022a904(void);"
+    },
+    {
+     "addr": "0x22aa98",
+     "decl": "void __stdcall FUN_0022aa98(int a0);"
+    },
+    {
+     "addr": "0x22ab86",
+     "decl": "void __stdcall FUN_0022ab86(int a0);"
+    },
+    {
+     "addr": "0x22ac9a",
+     "decl": "void __stdcall FUN_0022ac9a(int a0);"
+    },
+    {
+     "addr": "0x22acfb",
+     "decl": "void __stdcall FUN_0022acfb(int a0);"
+    },
+    {
+     "addr": "0x22ad69",
+     "decl": "void __stdcall FUN_0022ad69(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x22b037",
+     "decl": "void __stdcall FUN_0022b037(int a0);"
+    },
+    {
+     "addr": "0x22b372",
+     "decl": "void __stdcall FUN_0022b372(int a0, int a1);"
+    },
+    {
+     "addr": "0x22b447",
+     "decl": "void __stdcall FUN_0022b447(int a0);"
+    },
+    {
+     "addr": "0x22bd4e",
+     "decl": "void __stdcall FUN_0022bd4e(int a0, int a1);"
+    },
+    {
+     "addr": "0x22ca10",
+     "decl": "void __stdcall FUN_0022ca10(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x22cb4c",
+     "decl": "void FUN_0022cb4c(void);"
+    },
+    {
+     "addr": "0x22cb58",
+     "decl": "void FUN_0022cb58(void);"
+    },
+    {
+     "addr": "0x22cb64",
+     "decl": "void FUN_0022cb64(void);"
+    },
+    {
+     "addr": "0x22cb71",
+     "decl": "void FUN_0022cb71(void);"
+    },
+    {
+     "addr": "0x22cb7d",
+     "decl": "void FUN_0022cb7d(void);"
+    },
+    {
+     "addr": "0x22cbb4",
+     "decl": "void __stdcall FUN_0022cbb4(int a0);"
+    },
+    {
+     "addr": "0x22cbef",
+     "decl": "void __stdcall FUN_0022cbef(int a0);"
+    },
+    {
+     "addr": "0x22ccf1",
+     "decl": "void FUN_0022ccf1(void);"
+    },
+    {
+     "addr": "0x22cd4c",
+     "decl": "void __stdcall FUN_0022cd4c(int a0, int a1);"
+    },
+    {
+     "addr": "0x22cd85",
+     "decl": "void __stdcall FUN_0022cd85(int a0);"
+    },
+    {
+     "addr": "0x22cdcb",
+     "decl": "void FUN_0022cdcb(void);"
+    },
+    {
+     "addr": "0x22ce9e",
+     "decl": "void FUN_0022ce9e(void);"
+    },
+    {
+     "addr": "0x22cecb",
+     "decl": "void __stdcall FUN_0022cecb(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x22cf4c",
+     "decl": "void FUN_0022cf4c(void);"
+    },
+    {
+     "addr": "0x22d12c",
+     "decl": "void __stdcall FUN_0022d12c(int a0);"
+    },
+    {
+     "addr": "0x22d190",
+     "decl": "void FUN_0022d190(void);"
+    },
+    {
+     "addr": "0x22d536",
+     "decl": "void __stdcall FUN_0022d536(int a0);"
+    },
+    {
+     "addr": "0x22d64c",
+     "decl": "void __stdcall FUN_0022d64c(int a0, int a1);"
+    },
+    {
+     "addr": "0x22d6ea",
+     "decl": "void __stdcall FUN_0022d6ea(int a0);"
+    },
+    {
+     "addr": "0x22d70a",
+     "decl": "void FUN_0022d70a(void);"
+    },
+    {
+     "addr": "0x22de60",
+     "decl": "void __stdcall FUN_0022de60(int a0, int a1);"
+    },
+    {
+     "addr": "0x22dec0",
+     "decl": "void __stdcall FUN_0022dec0(int a0);"
+    },
+    {
+     "addr": "0x22df30",
+     "decl": "void FUN_0022df30(void);"
+    },
+    {
+     "addr": "0x22df50",
+     "decl": "void __stdcall FUN_0022df50(int a0);"
+    },
+    {
+     "addr": "0x22e000",
+     "decl": "void FUN_0022e000(void);"
+    },
+    {
+     "addr": "0x22e0c0",
+     "decl": "void __stdcall FUN_0022e0c0(int a0);"
+    },
+    {
+     "addr": "0x22e2d0",
+     "decl": "void FUN_0022e2d0(void);"
+    },
+    {
+     "addr": "0x22e360",
+     "decl": "void FUN_0022e360(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x22f0a0",
+     "decl": "void __stdcall FUN_0022f0a0(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x22f180",
+     "decl": "void FUN_0022f180(void);"
+    },
+    {
+     "addr": "0x22f3e0",
+     "decl": "void __stdcall FUN_0022f3e0(int a0, int a1);"
+    },
+    {
+     "addr": "0x22f7a0",
+     "decl": "void FUN_0022f7a0(void);"
+    },
+    {
+     "addr": "0x22f910",
+     "decl": "void FUN_0022f910(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x2301a0",
+     "decl": "void __stdcall FUN_002301a0(int a0, int a1);"
+    },
+    {
+     "addr": "0x2302d0",
+     "decl": "void FUN_002302d0(void);"
+    },
+    {
+     "addr": "0x231330",
+     "decl": "void __stdcall FUN_00231330(int a0, int a1);"
+    },
+    {
+     "addr": "0x2314b0",
+     "decl": "void __stdcall FUN_002314b0(int a0);"
+    },
+    {
+     "addr": "0x231520",
+     "decl": "void __stdcall FUN_00231520(int a0);"
+    },
+    {
+     "addr": "0x2315f0",
+     "decl": "void FUN_002315f0(void);"
+    },
+    {
+     "addr": "0x2316a0",
+     "decl": "void FUN_002316a0(int a0, int a1);"
+    },
+    {
+     "addr": "0x231940",
+     "decl": "void FUN_00231940(void);"
+    },
+    {
+     "addr": "0x231b70",
+     "decl": "void FUN_00231b70(void);"
+    },
+    {
+     "addr": "0x231f20",
+     "decl": "void FUN_00231f20(void);"
+    },
+    {
+     "addr": "0x231fc0",
+     "decl": "void FUN_00231fc0(int a0);"
+    },
+    {
+     "addr": "0x232130",
+     "decl": "void __stdcall FUN_00232130(int a0);"
+    },
+    {
+     "addr": "0x2321c0",
+     "decl": "void __stdcall FUN_002321c0(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x232240",
+     "decl": "void FUN_00232240(void);"
+    },
+    {
+     "addr": "0x232280",
+     "decl": "void FUN_00232280(void);"
+    },
+    {
+     "addr": "0x232310",
+     "decl": "void __stdcall FUN_00232310(int a0, int a1);"
+    },
+    {
+     "addr": "0x232390",
+     "decl": "void FUN_00232390(void);"
+    },
+    {
+     "addr": "0x2323c0",
+     "decl": "void __stdcall FUN_002323c0(int a0);"
+    },
+    {
+     "addr": "0x232430",
+     "decl": "void __stdcall FUN_00232430(int a0, int a1);"
+    },
+    {
+     "addr": "0x232460",
+     "decl": "void FUN_00232460(void);"
+    },
+    {
+     "addr": "0x232490",
+     "decl": "void __stdcall FUN_00232490(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x2324f0",
+     "decl": "void __stdcall FUN_002324f0(int a0, int a1);"
+    },
+    {
+     "addr": "0x232510",
+     "decl": "void __stdcall FUN_00232510(int a0, int a1);"
+    },
+    {
+     "addr": "0x232600",
+     "decl": "void FUN_00232600(void);"
+    },
+    {
+     "addr": "0x232610",
+     "decl": "void FUN_00232610(int a0);"
+    },
+    {
+     "addr": "0x2326e0",
+     "decl": "void __stdcall FUN_002326e0(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x2328c0",
+     "decl": "void FUN_002328c0(void);"
+    },
+    {
+     "addr": "0x2329f0",
+     "decl": "void FUN_002329f0(void);"
+    },
+    {
+     "addr": "0x232d60",
+     "decl": "void FUN_00232d60(void);"
+    },
+    {
+     "addr": "0x232ee0",
+     "decl": "void FUN_00232ee0(int a0);"
+    },
+    {
+     "addr": "0x232f70",
+     "decl": "void FUN_00232f70(void);"
+    },
+    {
+     "addr": "0x2333b0",
+     "decl": "void FUN_002333b0(void);"
+    },
+    {
+     "addr": "0x233440",
+     "decl": "void FUN_00233440(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11);"
+    },
+    {
+     "addr": "0x234110",
+     "decl": "void __stdcall FUN_00234110(int a0);"
+    },
+    {
+     "addr": "0x234b10",
+     "decl": "void FUN_00234b10(void);"
+    },
+    {
+     "addr": "0x234bb0",
+     "decl": "void FUN_00234bb0(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x234fe0",
+     "decl": "void FUN_00234fe0(void);"
+    },
+    {
+     "addr": "0x235050",
+     "decl": "void FUN_00235050(void);"
+    },
+    {
+     "addr": "0x235840",
+     "decl": "void FUN_00235840(int a0, int a1);"
+    },
+    {
+     "addr": "0x235a30",
+     "decl": "void FUN_00235a30(void);"
+    },
+    {
+     "addr": "0x235c30",
+     "decl": "void FUN_00235c30(void);"
+    },
+    {
+     "addr": "0x235ea0",
+     "decl": "void FUN_00235ea0(void);"
+    },
+    {
+     "addr": "0x236210",
+     "decl": "void __stdcall FUN_00236210(int a0, int a1);"
+    },
+    {
+     "addr": "0x2381e0",
+     "decl": "void FUN_002381e0(void);"
+    },
+    {
+     "addr": "0x238340",
+     "decl": "void FUN_00238340(void);"
+    },
+    {
+     "addr": "0x2383d0",
+     "decl": "void FUN_002383d0(int a0);"
+    },
+    {
+     "addr": "0x238b20",
+     "decl": "void FUN_00238b20(int a0);"
+    },
+    {
+     "addr": "0x239600",
+     "decl": "void FUN_00239600(void);"
+    },
+    {
+     "addr": "0x239e60",
+     "decl": "void FUN_00239e60(void);"
+    },
+    {
+     "addr": "0x23a6e0",
+     "decl": "void FUN_0023a6e0(int a0, int a1);"
+    },
+    {
+     "addr": "0x23aab0",
+     "decl": "void FUN_0023aab0(int a0, int a1);"
+    },
+    {
+     "addr": "0x23b020",
+     "decl": "void FUN_0023b020(void);"
+    },
+    {
+     "addr": "0x23b5d0",
+     "decl": "void FUN_0023b5d0(void);"
+    },
+    {
+     "addr": "0x23bc50",
+     "decl": "void FUN_0023bc50(void);"
+    },
+    {
+     "addr": "0x23be40",
+     "decl": "void FUN_0023be40(void);"
+    },
+    {
+     "addr": "0x23c1e0",
+     "decl": "void FUN_0023c1e0(void);"
+    },
+    {
+     "addr": "0x23c2a0",
+     "decl": "void FUN_0023c2a0(void);"
+    },
+    {
+     "addr": "0x23c520",
+     "decl": "void FUN_0023c520(void);"
+    },
+    {
+     "addr": "0x23c7c0",
+     "decl": "void FUN_0023c7c0(void);"
+    },
+    {
+     "addr": "0x23c920",
+     "decl": "void FUN_0023c920(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x23cd10",
+     "decl": "void __stdcall FUN_0023cd10(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x23ce50",
+     "decl": "void __stdcall FUN_0023ce50(int a0);"
+    },
+    {
+     "addr": "0x23ce60",
+     "decl": "void FUN_0023ce60(void);"
+    },
+    {
+     "addr": "0x23cf40",
+     "decl": "void FUN_0023cf40(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x23d340",
+     "decl": "void FUN_0023d340(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x23d7e0",
+     "decl": "void FUN_0023d7e0(void);"
+    },
+    {
+     "addr": "0x23d880",
+     "decl": "void FUN_0023d880(void);"
+    },
+    {
+     "addr": "0x23d920",
+     "decl": "void FUN_0023d920(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x23da50",
+     "decl": "void FUN_0023da50(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x23db80",
+     "decl": "void FUN_0023db80(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x23e880",
+     "decl": "void FUN_0023e880(void);"
+    },
+    {
+     "addr": "0x23ec50",
+     "decl": "void __stdcall FUN_0023ec50(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x23ede0",
+     "decl": "void FUN_0023ede0(int a0, int a1);"
+    },
+    {
+     "addr": "0x23f460",
+     "decl": "void FUN_0023f460(void);"
+    },
+    {
+     "addr": "0x23f670",
+     "decl": "void FUN_0023f670(int a0, int a1);"
+    },
+    {
+     "addr": "0x23fd20",
+     "decl": "void FUN_0023fd20(void);"
+    },
+    {
+     "addr": "0x2406a0",
+     "decl": "void __stdcall FUN_002406a0(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x2406d0",
+     "decl": "void __stdcall FUN_002406d0(int a0, int a1, int a2, int a3);"
+    },
+    {
+     "addr": "0x240700",
+     "decl": "void __stdcall FUN_00240700(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x242420",
+     "decl": "void __stdcall FUN_00242420(int a0, int a1);"
+    },
+    {
+     "addr": "0x243550",
+     "decl": "void FUN_00243550(void);"
+    },
+    {
+     "addr": "0x243b90",
+     "decl": "void __stdcall FUN_00243b90(int a0, int a1, int a2, int a3, int a4);"
+    },
+    {
+     "addr": "0x244b40",
+     "decl": "void __stdcall FUN_00244b40(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11);"
+    },
+    {
+     "addr": "0x244b90",
+     "decl": "void __stdcall FUN_00244b90(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11);"
+    },
+    {
+     "addr": "0x246030",
+     "decl": "void __stdcall FUN_00246030(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11, int a12);"
+    },
+    {
+     "addr": "0x246080",
+     "decl": "void __stdcall FUN_00246080(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11, int a12);"
+    },
+    {
+     "addr": "0x2473f0",
+     "decl": "void __stdcall FUN_002473f0(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11);"
+    },
+    {
+     "addr": "0x247440",
+     "decl": "void __stdcall FUN_00247440(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11);"
+    },
+    {
+     "addr": "0x248980",
+     "decl": "void __stdcall FUN_00248980(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11, int a12);"
+    },
+    {
+     "addr": "0x2489d0",
+     "decl": "void __stdcall FUN_002489d0(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11, int a12);"
+    },
+    {
+     "addr": "0x249ab0",
+     "decl": "void __stdcall FUN_00249ab0(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11, int a12);"
+    },
+    {
+     "addr": "0x249b00",
+     "decl": "void __stdcall FUN_00249b00(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11, int a12);"
+    },
+    {
+     "addr": "0x24b75b",
+     "decl": "void FUN_0024b75b(void);"
+    },
+    {
+     "addr": "0x24bbe2",
+     "decl": "void __stdcall FUN_0024bbe2(int a0, int a1);"
+    },
+    {
+     "addr": "0x24bc5b",
+     "decl": "void __stdcall FUN_0024bc5b(int a0);"
+    },
+    {
+     "addr": "0x24c075",
+     "decl": "void FUN_0024c075(void);"
+    },
+    {
+     "addr": "0x24c0d6",
+     "decl": "void __stdcall FUN_0024c0d6(int a0);"
+    },
+    {
+     "addr": "0x24c4b8",
+     "decl": "void FUN_0024c4b8(void);"
+    },
+    {
+     "addr": "0x24c4d3",
+     "decl": "void __stdcall FUN_0024c4d3(int a0);"
+    },
+    {
+     "addr": "0x24c591",
+     "decl": "void __stdcall FUN_0024c591(int a0, int a1);"
+    },
+    {
+     "addr": "0x24c663",
+     "decl": "void FUN_0024c663(void);"
+    },
+    {
+     "addr": "0x24c90b",
+     "decl": "void __stdcall FUN_0024c90b(int a0, int a1, int a2);"
+    },
+    {
+     "addr": "0x24c92d",
+     "decl": "void __stdcall FUN_0024c92d(int a0, int a1);"
+    },
+    {
+     "addr": "0x24c9eb",
+     "decl": "void FUN_0024c9eb(void);"
+    },
+    {
+     "addr": "0x24ca23",
+     "decl": "void FUN_0024ca23(void);"
+    },
+    {
+     "addr": "0x24ca46",
+     "decl": "void FUN_0024ca46(void);"
+    },
+    {
+     "addr": "0x24cb5f",
+     "decl": "void __stdcall FUN_0024cb5f(int a0, int a1);"
+    },
+    {
+     "addr": "0x24cdbf",
+     "decl": "void FUN_0024cdbf(void);"
+    },
+    {
+     "addr": "0x24ce9d",
+     "decl": "void FUN_0024ce9d(void);"
+    },
+    {
+     "addr": "0x24d4df",
+     "decl": "void __stdcall FUN_0024d4df(int a0, int a1);"
+    },
+    {
+     "addr": "0x24d77f",
+     "decl": "void FUN_0024d77f(void);"
+    },
+    {
+     "addr": "0x24d796",
+     "decl": "void FUN_0024d796(void);"
+    },
+    {
+     "addr": "0x24d7ad",
+     "decl": "void FUN_0024d7ad(void);"
+    },
+    {
+     "addr": "0x24d7d5",
+     "decl": "void __stdcall FUN_0024d7d5(int a0);"
+    },
+    {
+     "addr": "0x24d7e8",
+     "decl": "void FUN_0024d7e8(void);"
+    },
+    {
+     "addr": "0x24d7ec",
+     "decl": "void __stdcall FUN_0024d7ec(int a0);"
+    },
+    {
+     "addr": "0x24d811",
+     "decl": "void FUN_0024d811(void);"
+    },
+    {
+     "addr": "0x24d815",
+     "decl": "void __stdcall FUN_0024d815(int a0);"
+    },
+    {
+     "addr": "0x24d81f",
+     "decl": "void __stdcall FUN_0024d81f(int a0);"
+    },
+    {
+     "addr": "0x24d88d",
+     "decl": "void __stdcall FUN_0024d88d(int a0);"
+    },
+    {
+     "addr": "0x24d905",
+     "decl": "void FUN_0024d905(void);"
+    },
+    {
+     "addr": "0x24d981",
+     "decl": "void FUN_0024d981(void);"
+    },
+    {
+     "addr": "0x24d985",
+     "decl": "void __stdcall FUN_0024d985(int a0);"
+    },
+    {
+     "addr": "0x24da0b",
+     "decl": "void __stdcall FUN_0024da0b(int a0);"
+    },
+    {
+     "addr": "0x24da77",
+     "decl": "void __stdcall FUN_0024da77(int a0);"
+    },
+    {
+     "addr": "0x24daa8",
+     "decl": "void __stdcall FUN_0024daa8(int a0);"
+    },
+    {
+     "addr": "0x24daf0",
+     "decl": "void __stdcall FUN_0024daf0(int a0);"
+    },
+    {
+     "addr": "0x24dbbd",
+     "decl": "void __stdcall FUN_0024dbbd(int a0, int a1);"
+    },
+    {
+     "addr": "0x24dd11",
+     "decl": "void __stdcall FUN_0024dd11(int a0, int a1);"
+    },
+    {
+     "addr": "0x24de2d",
+     "decl": "void __stdcall FUN_0024de2d(int a0, int a1);"
+    },
+    {
+     "addr": "0x24de6d",
+     "decl": "void FUN_0024de6d(void);"
+    },
+    {
+     "addr": "0x24de89",
+     "decl": "void FUN_0024de89(void);"
+    },
+    {
+     "addr": "0x24deb0",
+     "decl": "void __stdcall FUN_0024deb0(int a0);"
+    },
+    {
+     "addr": "0x24deca",
+     "decl": "void __stdcall FUN_0024deca(int a0);"
+    },
+    {
+     "addr": "0x24e576",
+     "decl": "void FUN_0024e576(void);"
+    },
+    {
+     "addr": "0x24e5ce",
+     "decl": "void __stdcall FUN_0024e5ce(int a0, int a1);"
+    },
+    {
+     "addr": "0x24e953",
+     "decl": "void FUN_0024e953(void);"
+    },
+    {
+     "addr": "0x24e9a3",
+     "decl": "void __stdcall FUN_0024e9a3(int a0);"
+    },
+    {
+     "addr": "0x24e9e0",
+     "decl": "void __stdcall FUN_0024e9e0(int a0, int a1);"
+    },
+    {
+     "addr": "0x24eaa7",
+     "decl": "void FUN_0024eaa7(void);"
+    },
+    {
+     "addr": "0x24eb51",
+     "decl": "void FUN_0024eb51(void);"
+    },
+    {
+     "addr": "0x24eb82",
+     "decl": "void FUN_0024eb82(void);"
+    },
+    {
+     "addr": "0x24ebb6",
+     "decl": "void __stdcall FUN_0024ebb6(int a0, int a1);"
+    },
+    {
+     "addr": "0x24ebcb",
+     "decl": "void FUN_0024ebcb(void);"
+    },
+    {
+     "addr": "0x24ec2d",
+     "decl": "void __stdcall FUN_0024ec2d(int a0, int a1);"
+    },
+    {
+     "addr": "0x24ec32",
+     "decl": "void FUN_0024ec32(void);"
+    },
+    {
+     "addr": "0x24eca8",
+     "decl": "void __stdcall FUN_0024eca8(int a0);"
+    },
+    {
+     "addr": "0x24ecfa",
+     "decl": "void __stdcall FUN_0024ecfa(int a0, int a1);"
+    },
+    {
+     "addr": "0x24ed9b",
+     "decl": "void __stdcall FUN_0024ed9b(int a0);"
+    },
+    {
+     "addr": "0x24eed8",
+     "decl": "void __stdcall FUN_0024eed8(int a0, int a1);"
+    },
+    {
+     "addr": "0x24eeeb",
+     "decl": "void __stdcall FUN_0024eeeb(int a0, int a1);"
+    },
+    {
+     "addr": "0x24ef1e",
+     "decl": "void __stdcall FUN_0024ef1e(int a0, int a1);"
+    },
+    {
+     "addr": "0x24ef8b",
+     "decl": "void __stdcall FUN_0024ef8b(int a0, int a1);"
+    },
+    {
+     "addr": "0x24f123",
+     "decl": "void __stdcall FUN_0024f123(int a0);"
+    },
+    {
+     "addr": "0x24f36f",
+     "decl": "void FUN_0024f36f(void);"
+    },
+    {
+     "addr": "0x24f889",
+     "decl": "void FUN_0024f889(void);"
+    },
+    {
+     "addr": "0x24fb3d",
+     "decl": "void FUN_0024fb3d(void);"
+    },
+    {
+     "addr": "0x24fde6",
+     "decl": "void FUN_0024fde6(void);"
+    },
+    {
+     "addr": "0x24fe14",
+     "decl": "void __stdcall FUN_0024fe14(int a0, int a1);"
+    },
+    {
+     "addr": "0x24fe99",
+     "decl": "void __stdcall FUN_0024fe99(int a0);"
+    },
+    {
+     "addr": "0x24fef6",
+     "decl": "void __stdcall FUN_0024fef6(int a0);"
+    },
+    {
+     "addr": "0x24ff3a",
+     "decl": "void FUN_0024ff3a(void);"
+    },
+    {
+     "addr": "0x2500ce",
+     "decl": "void FUN_002500ce(void);"
+    },
+    {
+     "addr": "0x2500ef",
+     "decl": "void FUN_002500ef(void);"
+    },
+    {
+     "addr": "0x25011d",
+     "decl": "void FUN_0025011d(void);"
+    },
+    {
+     "addr": "0x250156",
+     "decl": "void FUN_00250156(void);"
+    },
+    {
+     "addr": "0x25018f",
+     "decl": "void FUN_0025018f(void);"
+    },
+    {
+     "addr": "0x2501be",
+     "decl": "void FUN_002501be(void);"
+    },
+    {
+     "addr": "0x250234",
+     "decl": "void FUN_00250234(void);"
+    },
+    {
+     "addr": "0x2502b6",
+     "decl": "void __stdcall FUN_002502b6(int a0, int a1);"
+    },
+    {
+     "addr": "0x25036d",
+     "decl": "void FUN_0025036d(void);"
+    },
+    {
+     "addr": "0x2503d4",
+     "decl": "void FUN_002503d4(void);"
+    },
+    {
+     "addr": "0x250593",
+     "decl": "void __stdcall FUN_00250593(int a0);"
+    },
+    {
+     "addr": "0x25065e",
+     "decl": "void __stdcall FUN_0025065e(int a0);"
+    },
+    {
+     "addr": "0x250809",
+     "decl": "void __stdcall FUN_00250809(int a0, int a1);"
+    },
+    {
+     "addr": "0x250912",
+     "decl": "void __stdcall FUN_00250912(int a0);"
+    },
+    {
+     "addr": "0x250d76",
+     "decl": "void __stdcall FUN_00250d76(int a0, int a1);"
+    },
+    {
+     "addr": "0x25110a",
+     "decl": "void FUN_0025110a(void);"
+    },
+    {
+     "addr": "0x2512ed",
+     "decl": "void __stdcall FUN_002512ed(int a0);"
+    },
+    {
+     "addr": "0x25130a",
+     "decl": "void FUN_0025130a(void);"
+    },
+    {
+     "addr": "0x251347",
+     "decl": "void FUN_00251347(void);"
+    },
+    {
+     "addr": "0x251397",
+     "decl": "void FUN_00251397(void);"
+    },
+    {
+     "addr": "0x251835",
+     "decl": "void FUN_00251835(void);"
+    },
+    {
+     "addr": "0x251859",
+     "decl": "void __stdcall FUN_00251859(int a0);"
+    },
+    {
+     "addr": "0x2518d5",
+     "decl": "void FUN_002518d5(void);"
+    },
+    {
+     "addr": "0x251ba9",
+     "decl": "void FUN_00251ba9(void);"
+    },
+    {
+     "addr": "0x251bff",
+     "decl": "void FUN_00251bff(void);"
+    },
+    {
+     "addr": "0x251e6e",
+     "decl": "void FUN_00251e6e(void);"
+    },
+    {
+     "addr": "0x252047",
+     "decl": "void FUN_00252047(void);"
+    },
+    {
+     "addr": "0x25208b",
+     "decl": "void FUN_0025208b(void);"
+    },
+    {
+     "addr": "0x25239a",
+     "decl": "void FUN_0025239a(void);"
+    },
+    {
+     "addr": "0x2524e4",
+     "decl": "void __stdcall FUN_002524e4(int a0);"
+    },
+    {
+     "addr": "0x25250b",
+     "decl": "void __stdcall FUN_0025250b(int a0);"
+    },
+    {
+     "addr": "0x252531",
+     "decl": "void __stdcall FUN_00252531(int a0);"
+    },
+    {
+     "addr": "0x252550",
+     "decl": "void FUN_00252550(void);"
+    },
+    {
+     "addr": "0x252583",
+     "decl": "void __stdcall FUN_00252583(int a0);"
+    },
+    {
+     "addr": "0x25290e",
+     "decl": "void FUN_0025290e(void);"
+    },
+    {
+     "addr": "0x25295b",
+     "decl": "void FUN_0025295b(void);"
+    },
+    {
+     "addr": "0x2529a8",
+     "decl": "void __stdcall FUN_002529a8(int a0);"
+    },
+    {
+     "addr": "0x2529db",
+     "decl": "void FUN_002529db(void);"
+    },
+    {
+     "addr": "0x252a17",
+     "decl": "void FUN_00252a17(void);"
+    },
+    {
+     "addr": "0x252bd6",
+     "decl": "void __stdcall FUN_00252bd6(int a0, int a1);"
+    },
+    {
+     "addr": "0x252c17",
+     "decl": "void __stdcall FUN_00252c17(int a0);"
+    },
+    {
+     "addr": "0x252c37",
+     "decl": "void __stdcall FUN_00252c37(int a0);"
+    },
+    {
+     "addr": "0x252c53",
+     "decl": "void __stdcall FUN_00252c53(int a0);"
+    },
+    {
+     "addr": "0x252d73",
+     "decl": "void __stdcall FUN_00252d73(int a0);"
     }
    ],
    "name": "<xdk_stubs>"
