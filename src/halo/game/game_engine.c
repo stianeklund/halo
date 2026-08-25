@@ -3358,14 +3358,14 @@ int FUN_000abd20(int *param_1, int param_2, char param_3)
   player = (int)data_iterator_next(&iter);
   entry = param_1;
   while (player != 0) {
-    if (count < 0x10) {
-      *entry = iter.datum_handle;
-      count++;
-      entry += 7;
-    } else {
+    if (count >= 0x10) {
       display_assert("player_count < MULTIPLAYER_MAXIMUM_PLAYERS",
                      "c:\\halo\\SOURCE\\game\\game_engine.c", 0x2c7, 1);
       system_exit(-1);
+    } else {
+      *entry = iter.datum_handle;
+      count++;
+      entry += 7;
     }
     player = (int)data_iterator_next(&iter);
   }
@@ -3416,9 +3416,11 @@ int FUN_000abd20(int *param_1, int param_2, char param_3)
       i--;
     } while (i != 0);
   }
-  qsort(param_1, count, 0x1c,
-        (param_2 == 0) ?
-          (int (*)(const void *, const void *))FUN_000a8470 :
+  if (param_2 == 0)
+    qsort(param_1, count, 0x1c,
+          (int (*)(const void *, const void *))FUN_000a8470);
+  else
+    qsort(param_1, count, 0x1c,
           (int (*)(const void *, const void *))sort_statistic_buffer);
   i = 0;
   if (0 < count) {
