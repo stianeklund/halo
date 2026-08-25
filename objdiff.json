@@ -8798,6 +8798,14 @@
       "metadata": {
         "source_path": "src/halo/physics/breakable_surfaces.c"
       }
+    },
+    {
+      "name": "halo/cinematics_FUN_00093b60",
+      "target_path": "build/CMakeFiles/halo.dir/src/halo/cutscene/cinematics.c.obj",
+      "base_path": "delinked/cinematics_FUN_00093b60.obj",
+      "metadata": {
+        "source_path": "src/halo/cutscene/cinematics.c"
+      }
     }
   ]
 }
