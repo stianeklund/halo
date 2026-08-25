@@ -5739,10 +5739,8 @@ void game_engine_post_rasterize_post_game(void)
       {
         int16_t sy = (int16_t)row * 0x12;
         int16_t ey = (int16_t)row * 0x12 + 0x1a;
-        rect2[0] = *(int16_t *)0x506584;
-        rect2[1] = *(int16_t *)0x506586;
-        rect2[2] = *(int16_t *)0x506588;
-        rect2[3] = *(int16_t *)0x50658a;
+        *(int *)&rect2[0] = *(int *)0x506584;
+        *(int *)&rect2[2] = *(int *)0x506588;
         rect2d_offset(rect2, -screen_bounds_left, -screen_bounds_top);
         rect2[0] = sy;
         rect2[2] = ey;
@@ -5767,10 +5765,8 @@ void game_engine_post_rasterize_post_game(void)
           draw_string_set_color(&color_table[tmp * 4]);
         }
         usprintf(line_buf, L" \t \t%s", (wchar_t *)(player + 4));
-        rect2[0] = *(int16_t *)0x506584;
-        rect2[1] = *(int16_t *)0x506586;
-        rect2[2] = *(int16_t *)0x506588;
-        rect2[3] = *(int16_t *)0x50658a;
+        *(int *)&rect2[0] = *(int *)0x506584;
+        *(int *)&rect2[2] = *(int *)0x506588;
         rect2d_offset(rect2, -screen_bounds_left, -screen_bounds_top);
         rect2[0] = sy;
         rect2[2] = ey;
@@ -5784,10 +5780,8 @@ void game_engine_post_rasterize_post_game(void)
         (*(void (**)(uint32_t, wchar_t *))(*(int *)0x456b60 + 0x4c))(
           player_handle, text_buf);
         usprintf(line_buf, L" \t \t \t%s", text_buf);
-        rect2[0] = *(int16_t *)0x506584;
-        rect2[1] = *(int16_t *)0x506586;
-        rect2[2] = *(int16_t *)0x506588;
-        rect2[3] = *(int16_t *)0x50658a;
+        *(int *)&rect2[0] = *(int *)0x506584;
+        *(int *)&rect2[2] = *(int *)0x506588;
         rect2d_offset(rect2, -screen_bounds_left, -screen_bounds_top);
         rect2[0] = sy;
         rect2[2] = ey;
@@ -5800,10 +5794,8 @@ void game_engine_post_rasterize_post_game(void)
           draw_string_set_color(&color_table[12]);
         usprintf(line_buf, L" \t \t \t \t%d",
                  (int)*(int16_t *)(player + 0x98));
-        rect2[0] = *(int16_t *)0x506584;
-        rect2[1] = *(int16_t *)0x506586;
-        rect2[2] = *(int16_t *)0x506588;
-        rect2[3] = *(int16_t *)0x50658a;
+        *(int *)&rect2[0] = *(int *)0x506584;
+        *(int *)&rect2[2] = *(int *)0x506588;
         rect2d_offset(rect2, -screen_bounds_left, -screen_bounds_top);
         rect2[0] = sy;
         rect2[2] = ey;
@@ -5816,10 +5808,8 @@ void game_engine_post_rasterize_post_game(void)
           draw_string_set_color(&color_table[12]);
         usprintf(line_buf, L" \t \t \t \t \t%d",
                  (int)*(int16_t *)(player + 0xa0));
-        rect2[0] = *(int16_t *)0x506584;
-        rect2[1] = *(int16_t *)0x506586;
-        rect2[2] = *(int16_t *)0x506588;
-        rect2[3] = *(int16_t *)0x50658a;
+        *(int *)&rect2[0] = *(int *)0x506584;
+        *(int *)&rect2[2] = *(int *)0x506588;
         rect2d_offset(rect2, -screen_bounds_left, -screen_bounds_top);
         rect2[0] = sy;
         rect2[2] = ey;
@@ -5832,10 +5822,8 @@ void game_engine_post_rasterize_post_game(void)
           draw_string_set_color(&color_table[12]);
         usprintf(line_buf, L" \t \t \t \t \t \t%d",
                  (int)*(int16_t *)(player + 0xaa));
-        rect2[0] = *(int16_t *)0x506584;
-        rect2[1] = *(int16_t *)0x506586;
-        rect2[2] = *(int16_t *)0x506588;
-        rect2[3] = *(int16_t *)0x50658a;
+        *(int *)&rect2[0] = *(int *)0x506584;
+        *(int *)&rect2[2] = *(int *)0x506588;
         rect2d_offset(rect2, -screen_bounds_left, -screen_bounds_top);
         rect2[0] = sy;
         rect2[2] = ey;

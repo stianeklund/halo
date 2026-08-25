@@ -52021,16 +52021,16 @@
     "game_engine_post_rasterize_post_game": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 84.8,
+      "abi_modeled_mnemonic_pct": 90.7,
       "addr": "0xaebd0",
       "end": "0xaf366",
       "kind": "auto",
       "n_r": 575,
-      "opnd_percent": 49.6,
-      "raw_mnemonic_pct": 84.8,
+      "opnd_percent": 66.4,
+      "raw_mnemonic_pct": 90.7,
       "ref": "synth",
       "ref_sha": "cdb86c1dfc6e6e9a",
-      "score": 84.8,
+      "score": 90.7,
       "source": "src/halo/game/game_engine.c"
     },
     "game_engine_postspawn_player_update": {
