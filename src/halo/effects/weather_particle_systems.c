@@ -40,6 +40,8 @@ void weather_particle_systems_initialize_for_new_map(void)
   int16_t i;
   int *entry;
 
+  data_t *arr;
+
   i = 0;
   entry = (int *)0x4557f4;
   do {
@@ -48,8 +50,9 @@ void weather_particle_systems_initialize_for_new_map(void)
     i++;
     entry = (int *)((char *)entry + 0x9c);
   } while (i < 4);
+  arr = weather_particle_system_data;
   *(int16_t *)0x4557f0 = 0;
-  data_delete_all(weather_particle_system_data);
+  data_delete_all(arr);
 }
 
 void weather_particle_systems_dispose_from_old_map(void)
@@ -841,9 +844,9 @@ void weather_particle_system_render(int16_t local_player_index /* @<eax> */)
     box_position[0][2] = *(float *)0x506558 - box_position[0][2];
 
     for (n = 0; n < 5; ++n)
-      box_plane_distance[0][n] = box_position[0][2] * camera_planes[n][2] +
+      box_plane_distance[0][n] = box_position[0][1] * camera_planes[n][1] +
                                  box_position[0][0] * camera_planes[n][0] +
-                                 box_position[0][1] * camera_planes[n][1];
+                                 box_position[0][2] * camera_planes[n][2];
 
     box_min_x = box_position[0][0];
     box_max_x = box_position[0][0] + *(float *)(particle_type + 4);
@@ -883,9 +886,9 @@ void weather_particle_system_render(int16_t local_player_index /* @<eax> */)
             box[2] = cube[4];
 
             for (n = 0; n < 5; ++n)
-              box_plane_distance[box_count][n] = camera_planes[n][2] * box[2] +
+              box_plane_distance[box_count][n] = box[1] * camera_planes[n][1] +
                                                  camera_planes[n][0] * box[0] +
-                                                 box[1] * camera_planes[n][1];
+                                                 camera_planes[n][2] * box[2];
 
             ++box_count;
           }
@@ -904,9 +907,9 @@ void weather_particle_system_render(int16_t local_player_index /* @<eax> */)
 
       for (n = 0; n < 5; ++n)
         particle_plane_distance[n] =
-          camera_planes[n][0] * *(float *)(particle + 4) +
-          camera_planes[n][2] * *(float *)(particle + 0xc) +
-          camera_planes[n][1] * *(float *)(particle + 8) - camera_planes[n][3];
+          (camera_planes[n][1] * *(float *)(particle + 8) +
+           camera_planes[n][2] * *(float *)(particle + 0xc) +
+           camera_planes[n][0] * *(float *)(particle + 4)) - camera_planes[n][3];
 
       box = (float *)0;
       for (box_index = 0; box_index < box_count; ++box_index) {
@@ -972,9 +975,9 @@ void weather_particle_system_render(int16_t local_player_index /* @<eax> */)
               do {
                 plane = (float *)tag_block_get_element(
                   (void *)polyhedron_planes, (int)plane_index, 0x10);
-                if (world_position[2] * plane[2] +
+                if (world_position[0] * plane[0] +
                       world_position[1] * plane[1] +
-                      world_position[0] * plane[0] - plane[3] <
+                      world_position[2] * plane[2] - plane[3] <
                     0.0f)
                   break;
                 ++plane_index;

@@ -501,7 +501,7 @@
  },
  "0xa4310": {
   "addr": "0xa4310",
-  "decl": "void FUN_000a4310(int16_t local_player_index);",
+  "decl": "int FUN_000a4310(int16_t type_index@<eax>, int16_t local_player_index@<ecx>);",
   "ported": false
  },
  "0xa54b0": {
@@ -29089,7 +29089,7 @@
     },
     {
      "addr": "0xa4310",
-     "decl": "int FUN_000a4310(int16_t type_index @<eax>, int16_t local_player_index @<ecx>);",
+     "decl": "int FUN_000a4310(int16_t type_index@<eax>, int16_t local_player_index@<ecx>);",
      "ported": true
     },
     {
@@ -29114,7 +29114,7 @@
     },
     {
      "addr": "0xa4ab0",
-     "decl": "void FUN_000a4ab0(int16_t local_player_index, int16_t type_index @<eax>, float scale);",
+     "decl": "void FUN_000a4ab0(int16_t local_player_index, int16_t type_index@<eax>, float scale);",
      "ported": true
     },
     {

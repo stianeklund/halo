@@ -5,9 +5,9 @@
   "source_path": "src/halo/bitmaps/bitmaps.c",
   "best_score": 71.5,
   "best_patch": "/mnt/g/dev/halo-integrate-bipeds/artifacts/parked/patches/palette_find_closest_match-20260824-113634.patch",
-  "status": "parked",
+  "status": "superseded",
   "first_parked": "2026-08-24T11:36:34+00:00",
-  "last_updated": "2026-08-24T23:52:28+00:00",
+  "last_updated": "2026-08-25T08:24:29+00:00",
   "promoted_commit": null,
   "attempts": [
     {
