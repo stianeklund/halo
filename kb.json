@@ -26749,11 +26749,11 @@
     },
     {
      "addr": "0xe9bd0",
-     "decl": "void ui_widget_event_handler_function_invoke(void);"
+     "decl": "bool ui_widget_set_difficulty(void *widget, void *event_data, bool *widget_deleted);"
     },
     {
      "addr": "0xe9cb0",
-     "decl": "void display_error_abort_to_dashboard(void);"
+     "decl": "bool ui_widget_join_controller_to_multiplayer_game(void *widget, void *event_data, bool *widget_deleted);"
     },
     {
      "addr": "0xe9d40",
@@ -26781,11 +26781,11 @@
     },
     {
      "addr": "0xea210",
-     "decl": "void display_scenario_help(void);"
+     "decl": "bool ui_widget_multiplayer_level_select(void *widget, void *event_data, bool *widget_deleted);"
     },
     {
      "addr": "0xea3e0",
-     "decl": "void network_game_server_list_initialize(void);"
+     "decl": "bool ui_widget_multiplayer_profiles_list_initialize(void *widget, void *event_data, bool *widget_deleted);"
     },
     {
      "addr": "0xea540",
@@ -26793,11 +26793,11 @@
     },
     {
      "addr": "0xea570",
-     "decl": "void network_game_join_game_from_server_list(void);"
+     "decl": "bool ui_widget_multiplayer_profile_set_for_game(void *widget, void *event_data, bool *widget_deleted);"
     },
     {
      "addr": "0xea810",
-     "decl": "void split_screen_game_initialize(void);"
+     "decl": "bool ui_widget_swap_player_team(void *widget, void *event_data, bool *widget_deleted);"
     },
     {
      "addr": "0xea900",
@@ -26817,7 +26817,7 @@
     },
     {
      "addr": "0xead60",
-     "decl": "void multiplayer_level_select(void);"
+     "decl": "bool ui_widget_1wide_player_profile_set_for_game(void *widget, void *event_data, bool *widget_deleted);"
     },
     {
      "addr": "0xeaec0",
@@ -26865,7 +26865,7 @@
     },
     {
      "addr": "0xece10",
-     "decl": "void playlist_profile_change_koth_rules(void);"
+     "decl": "bool ui_widget_multiplayer_profile_init_name(void *widget, void *event_data, bool *widget_deleted);"
     },
     {
      "addr": "0xeceb0",
@@ -26890,7 +26890,7 @@
    "functions": [
     {
      "addr": "0xed240",
-     "decl": "void playlist_profile_change_slayer_rules(void);"
+     "decl": "bool ui_widget_multiplayer_profile_init_koth_rules(void *widget, void *event_data, bool *widget_deleted);"
     },
     {
      "addr": "0xed470",
@@ -26918,11 +26918,11 @@
     },
     {
      "addr": "0xeea10",
-     "decl": "void playlist_profile_initialize_name(void);"
+     "decl": "bool ui_widget_multiplayer_profile_save_changes(void *widget, void *event_data, bool *widget_deleted);"
     },
     {
      "addr": "0xeead0",
-     "decl": "void playlist_profile_initialize_ctf_rules(void);"
+     "decl": "bool ui_widget_color_picker_menu_initialize(void *widget, void *event_data, bool *widget_deleted);"
     },
     {
      "addr": "0xeebe0",
@@ -26954,7 +26954,7 @@
     },
     {
      "addr": "0xef5c0",
-     "decl": "void playlist_profile_initialize_racing_rules(void);"
+     "decl": "bool ui_widget_player_profile_save_advanced_controller_settings(void *widget, void *event_data, bool *widget_deleted);"
     },
     {
      "addr": "0xef900",
@@ -27002,11 +27002,11 @@
     },
     {
      "addr": "0xf01d0",
-     "decl": "void player_profile_end_editing(void);"
+     "decl": "bool ui_widget_start_server_if_none_advertised(void *widget, void *event_data, bool *widget_deleted);"
     },
     {
      "addr": "0xf0250",
-     "decl": "void player_profile_save_changes(void);"
+     "decl": "bool ui_widget_network_game_unjoin_player(void *widget, void *event_data, bool *widget_deleted);"
     },
     {
      "addr": "0xf03d0",
@@ -27014,7 +27014,7 @@
     },
     {
      "addr": "0xf0430",
-     "decl": "void player_profile_initialize_advanced_controller_settings(void);"
+     "decl": "bool ui_widget_new_campaign_chosen(void *widget, void *event_data, bool *widget_deleted);"
     },
     {
      "addr": "0xf04c0",
