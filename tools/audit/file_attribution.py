@@ -6,8 +6,25 @@ against it.
 
 The debug build stamps `c:\\halo\\SOURCE\\<dir>\\<file>.c` literals into
 .rdata and pushes them at every assert site.  A function that references
-exactly one such literal was compiled from that translation unit, which makes
-this a binary-proven attribution rather than a naming convention.
+exactly one such *.c* literal was compiled from that translation unit, which
+makes this a binary-proven attribution rather than a naming convention.
+
+Header literals are excluded from that rule: a .h is never a compiland, so an
+assert inside a header-resident inline names the inline's home, not the
+function's TU.  46 functions reference only a header and are left for
+bracketing to resolve.
+
+Attribution comes in two tiers and they are NOT equal evidence:
+
+  proven   - the function's own assert names the TU (26.0% of kb functions)
+  inferred - the function lies between two evidenced functions naming the
+             same TU, and MSVC emits each TU as one contiguous run (52.8%)
+
+The contiguity premise is checked on every run: all 295 observed TUs occupy
+exactly one maximal run each.  Bracketing is refused if any TU splits.  The
+blind spot is a TU with no asserts anywhere - invisible to the check and
+silently absorbed by a neighbour.  Chao1 on the evidence distribution puts
+the true TU count near 327, so roughly 30 TUs are unseen.
 
 This is the cheap static counterpart to audit_object_provenance.py: that tool
 proves attribution one address range at a time through the Ghidra delinker,
@@ -36,6 +53,7 @@ import argparse
 import bisect
 import json
 import re
+import struct
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -54,9 +72,11 @@ DEFAULT_JSON = REPO_ROOT / "artifacts" / "audit" / "file_attribution.json"
 # A source literal looks like  c:\halo\SOURCE\ai\actors.c
 SOURCE_RE = re.compile(rb"[A-Za-z]:\\[\x20-\x7e]{3,190}?\.(?:c|h|cpp|inl)\x00", re.IGNORECASE)
 
-# Sections that hold code we scan for immediates.  Data-only sections still get
-# scanned for the literals themselves.
-CODE_SECTIONS_MIN_SIZE = 16
+# XBE section flags: bit 2 = executable.  Only executable sections are
+# disassembled for immediates; scanning .rdata/.data as code decodes pointer
+# table words as instructions and manufactures references (bug: two .rdata
+# words at 0x253383/0x253736 decoded as je/jo immediates).
+XBE_SECTION_EXECUTABLE = 0x00000004
 
 
 class Ref(NamedTuple):
@@ -93,16 +113,34 @@ def _scan_source_literals() -> Dict[int, str]:
     return out
 
 
+def _executable_sections() -> Set[int]:
+    """Indices of sections marked executable in the XBE section headers."""
+    cac._load_xbe()
+    with open(cac.XBE_PATH, "rb") as f:
+        data = f.read()
+    count = struct.unpack_from("<I", data, 0x11C)[0]
+    sh_va = struct.unpack_from("<I", data, 0x120)[0]
+    base = struct.unpack_from("<I", data, 0x104)[0]
+    off0 = sh_va - base
+    out = set()
+    for i in range(count):
+        flags = struct.unpack_from("<I", data, off0 + i * 56)[0]
+        if flags & XBE_SECTION_EXECUTABLE:
+            out.add(i)
+    return out
+
+
 def _scan_immediate_refs(string_vas: Set[int]) -> List[Ref]:
     """Every instruction immediate that equals a source-literal VA."""
     cac._load_xbe()
+    executable = _executable_sections()
     cs = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
     cs.detail = True
     cs.skipdata = True
 
     refs: List[Ref] = []
     for idx, (vaddr, _vsize, _raw_addr, raw_size) in enumerate(cac._xbe_sections):
-        if raw_size < CODE_SECTIONS_MIN_SIZE:
+        if idx not in executable or not raw_size:
             continue
         blob = cac._xbe_bytes_cache[idx]
         for insn in cs.disasm(blob, vaddr):
@@ -169,8 +207,25 @@ def _load_functions() -> Dict[int, FuncInfo]:
 
 
 def _owner_index(funcs: Dict[int, FuncInfo]):
-    """Return (starts, lookup) where lookup(va) -> addr or None."""
+    """Return (starts, lookup) where lookup(va) -> addr or None.
+
+    1124 of 9133 kb functions have no function_bounds.json entry.  The old
+    fallback (next start, capped at +0x4000) let the LAST function of a section
+    swallow the following section: 0x252df4 ends its XPP section at 0x253064
+    but claimed through 0x253df4, absorbing .rdata pointer words as if they
+    were its own code.  Both references it captured that way were wrong.  Clamp
+    every fallback to the end of the function's own section.
+    """
+    cac._load_xbe()
     starts = sorted(funcs)
+    sec_ends = sorted((va, va + max(vsize, raw))
+                      for va, vsize, _ra, raw in cac._xbe_sections)
+
+    def section_end(va: int) -> Optional[int]:
+        for lo, hi in sec_ends:
+            if lo <= va < hi:
+                return hi
+        return None
 
     def lookup(va: int) -> Optional[int]:
         i = bisect.bisect_right(starts, va) - 1
@@ -178,12 +233,15 @@ def _owner_index(funcs: Dict[int, FuncInfo]):
             return None
         addr = starts[i]
         end = funcs[addr].end
-        # A zero end means the bounds table lacks the entry; fall back to the
-        # next function start so the reference is still attributed, but only
-        # within a sane distance.
         if end == 0:
             nxt = starts[i + 1] if i + 1 < len(starts) else addr + 0x1000
             end = min(nxt, addr + 0x4000)
+            limit = section_end(addr)
+            if limit is not None:
+                end = min(end, limit)
+        # A reference must also live in the same section as its owner.
+        if section_end(addr) != section_end(va):
+            return None
         return addr if va < end else None
 
     return starts, lookup
@@ -217,134 +275,272 @@ def build_attribution() -> Tuple[Dict[int, Counter], Dict[int, str], Dict[int, F
 
 
 # ---------------------------------------------------------------------------
-# Reporting
+# Layout bracketing
 # ---------------------------------------------------------------------------
+#
+# Only a function that contains an assert pushes a __FILE__ literal, so direct
+# evidence tops out near 27% of the image and no amount of further lifting
+# raises it -- the 305 literals are all the binary will ever hold.
+#
+# MSVC emits each translation unit as one contiguous run in .text, so an
+# unevidenced function lying strictly between two evidenced functions that
+# name the SAME TU belongs to that TU by layout.  That is reading the linker's
+# own grouping, not extrapolating.
+#
+# The model is falsifiable and is checked on every run: if TU layout were not
+# contiguous, evidenced functions would interleave (A B A) in address order.
+# _layout_violations() counts those.  Bracketing is refused if the count
+# exceeds MAX_LAYOUT_VIOLATIONS.
 
-class Disagreement(NamedTuple):
-    obj: str
-    agree: int
-    disagree: int
-    total_members: int
-    dominant: str
-    dominant_count: int
-    distinct_foreign: int
-    kind: str
-    confidence: str
-    addrs: List[int]
+# A TU that occupies more than one maximal run falsifies contiguous layout.
+# The old A-B-A test only saw interruptions of length exactly one: it could
+# fire at most 49 times in this image against a null expectation of 19, and
+# missed A-BB-A entirely.  Run count per TU sees every break.
+MAX_SPLIT_TUS = 0
 
 
-def _classify(agree: int, disagree: int, distinct_foreign: int,
-              dominant_count: int, total_members: int) -> Tuple[str, str]:
-    """Return (kind, confidence) for one object's disagreement pattern.
+def _is_header(name: str) -> bool:
+    return name.lower().endswith((".h", ".inl"))
 
-    The load-bearing fact is whether *any* member stamps the kb object's own
-    name.  If none does, the name is not a translation unit the compiler ever
-    saw; whether the fix is a rename or a split then depends on how many
-    distinct foreign TUs the members span.
 
-      misnamed - nothing supports the name and one or two TUs explain it:
-                 rename the object.
-      split    - nothing supports the name and members span 3+ TUs: the object
-                 is an address-range bucket, not a TU; split it.
-      merged   - the name is supported, but a block of >=5 members belongs to
-                 one other TU: two TUs merged; split that block off.
-      inlining - foreign references are thin and spread out, which is what
-                 cross-TU inlining and header-resident inlines look like.
-      noise    - a catch-all bucket with a handful of strays; no action.
+def direct_tu(fn_files: Dict[int, Counter], addr: int) -> Optional[str]:
+    """The single TU a function's own asserts name, or None if 0 or 2+.
+
+    Header literals are excluded.  A .h is never a translation unit: an assert
+    inside a header-resident inline is stamped into whichever .c included it,
+    so `foo.h` names the inline's home, not the compiland.  Treating a header
+    as a TU produced the one apparent layout violation in the whole image --
+    hs_evaluate_wake stamping hs_library_internal_runtime.h between two
+    hs_runtime.c functions -- which is inlining, not a discontiguous TU.
+    Header-only functions fall through to bracketing, which recovers the
+    including .c from the surrounding run.
     """
-    if disagree == 0:
-        return "clean", "clean"
-    share = dominant_count / disagree
-    # A catch-all bucket with only a trace of disagreement is not a finding.
-    if total_members >= 20 and disagree / total_members < 0.05:
-        return "noise", "low"
-    if agree == 0:
-        if distinct_foreign >= 3:
-            return "split", "high" if disagree >= 10 else "medium"
-        return "misnamed", "high" if dominant_count >= 3 else "medium"
-    if dominant_count >= 5 and share >= 0.5:
-        return "merged", "high" if dominant_count >= 10 else "medium"
-    if distinct_foreign >= 4 and share < 0.5:
-        return "inlining", "low"
-    return ("merged", "medium") if dominant_count >= 3 else ("inlining", "low")
+    counts = fn_files.get(addr)
+    if not counts:
+        return None
+    tus = {_basename(f) for f in counts if not _is_header(_basename(f))}
+    if len(tus) != 1:
+        return None
+    return next(iter(tus))
 
 
-def collect_disagreements(fn_files: Dict[int, Counter],
-                          funcs: Dict[int, FuncInfo]) -> List[Disagreement]:
-    per_obj_agree: Dict[str, int] = Counter()
-    per_obj_bad: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
-    per_obj_total: Dict[str, int] = Counter()
-
-    for addr, info in funcs.items():
-        if not info.obj:
+def _tu_runs(labels: List[Optional[str]]) -> Dict[str, int]:
+    """Maximal contiguous run count per TU, over evidenced positions only."""
+    runs: Dict[str, int] = Counter()
+    prev = None
+    for t in labels:
+        if t is None:
             continue
-        per_obj_total[info.obj] += 1
-        files = fn_files.get(addr)
-        if not files:
-            continue
-        stem = _stem(_basename(info.obj))
-        member_files = {_basename(f) for f in files}
-        if any(_stem(f) == stem for f in member_files):
-            per_obj_agree[info.obj] += 1
-        else:
-            # Attribute the function to its most-referenced foreign file.
-            top = files.most_common(1)[0][0]
-            per_obj_bad[info.obj].append((addr, _basename(top)))
+        if t != prev:
+            runs[t] += 1
+        prev = t
+    return dict(runs)
 
-    out: List[Disagreement] = []
-    for obj, bad in per_obj_bad.items():
-        counts = Counter(f for _a, f in bad)
-        dominant, dom_count = counts.most_common(1)[0]
-        kind, conf = _classify(per_obj_agree.get(obj, 0), len(bad),
-                               len(counts), dom_count, per_obj_total[obj])
-        out.append(Disagreement(
-            obj=obj,
-            agree=per_obj_agree.get(obj, 0),
-            disagree=len(bad),
-            total_members=per_obj_total[obj],
-            dominant=dominant,
-            dominant_count=dom_count,
-            distinct_foreign=len(counts),
-            kind=kind,
-            confidence=conf,
-            addrs=sorted(a for a, _f in bad),
-        ))
-    krank = {"split": 0, "misnamed": 1, "merged": 2, "inlining": 3, "noise": 4}
-    crank = {"high": 0, "medium": 1, "low": 2, "clean": 3}
-    out.sort(key=lambda d: (krank[d.kind], crank[d.confidence],
-                            -d.dominant_count, d.obj))
+
+def _split_tus(labels: List[Optional[str]]) -> Dict[str, int]:
+    """TUs occupying more than one run.  Empty dict means layout is contiguous."""
+    return {t: n for t, n in _tu_runs(labels).items() if n > 1}
+
+
+class Bracketing(NamedTuple):
+    addrs: List[int]                    # kb functions in address order
+    direct: List[Optional[str]]         # TU from the function's own asserts
+    filled: List[Optional[str]]         # direct + bracketed
+    split_tus: Dict[str, int]           # TU -> run count, for TUs with >1 run
+    n_tus: int
+    refused: bool
+
+
+def bracket_layout(fn_files: Dict[int, Counter],
+                   funcs: Dict[int, FuncInfo]) -> Bracketing:
+    addrs = sorted(funcs)
+    direct = [direct_tu(fn_files, a) for a in addrs]
+    runs = _tu_runs(direct)
+    split = _split_tus(direct)
+    refused = len(split) > MAX_SPLIT_TUS
+
+    filled = list(direct)
+    if not refused:
+        marked = [i for i, t in enumerate(direct) if t]
+        for lo, hi in zip(marked, marked[1:]):
+            if direct[lo] == direct[hi]:
+                for k in range(lo + 1, hi):
+                    filled[k] = direct[lo]
+    return Bracketing(addrs, direct, filled, split, len(runs), refused)
+
+
+def print_bracket(fn_files, funcs, br: Bracketing, limit: int) -> None:
+    total = len(br.addrs)
+    n_direct = sum(1 for t in br.direct if t)
+    n_filled = sum(1 for t in br.filled if t)
+    print("=== layout bracketing ===")
+    print("contiguity: %d TUs occupy %d maximal runs; %d TU(s) split across runs"
+          % (br.n_tus, br.n_tus + sum(n - 1 for n in br.split_tus.values()),
+             len(br.split_tus)))
+    if br.refused:
+        print("REFUSED: TU layout is not contiguous, so bracketing is unsafe.")
+    for tu, n in sorted(br.split_tus.items(), key=lambda kv: -kv[1]):
+        print("   split TU: %-44s %d runs" % (tu, n))
+    print()
+    print("direct __FILE__ push (proven)   %5d  %.1f%%"
+          % (n_direct, 100.0 * n_direct / total))
+    print("+ bracketed (layout-inferred)   %5d  %.1f%%"
+          % (n_filled, 100.0 * n_filled / total))
+    print()
+    print("NOTE: the two tiers are not equal evidence.  Only functions that")
+    print("contain an assert push a __FILE__ literal, so a translation unit")
+    print("with no asserts is invisible to this method AND is silently")
+    print("absorbed by bracketing.  A Chao1 estimate on the per-TU evidence")
+    print("distribution puts the true TU count near 327 against %d observed,"
+          % br.n_tus)
+    print("i.e. roughly 30 assert-free TUs that bracketing cannot see.")
+    print()
+    gaps = _gap_sizes(br)
+    if gaps:
+        big = [g for g in gaps if g >= 10]
+        print("bracketed gaps: %d gaps, %d functions; %d gaps of >=10 fill %d"
+              % (len(gaps), sum(gaps), len(big), sum(big)))
+        print("largest gap fills %d functions" % max(gaps))
+        print()
+    gained = Counter(br.filled[i] for i in range(total)
+                     if br.filled[i] and not br.direct[i])
+    print("functions gained by bracketing, by TU:")
+    for name, n in gained.most_common(limit):
+        print("   %-48s +%d" % (name, n))
+
+
+def _gap_sizes(br: Bracketing) -> List[int]:
+    marked = [i for i, t in enumerate(br.direct) if t]
+    out = []
+    for lo, hi in zip(marked, marked[1:]):
+        if br.direct[lo] == br.direct[hi] and hi - lo > 1:
+            out.append(hi - lo - 1)
     return out
 
 
-def print_summary(fn_files, funcs, disagreements, limit: int) -> None:
-    evidenced = len(fn_files)
-    unambiguous = sum(1 for c in fn_files.values() if len(c) == 1)
-    unported = [a for a in fn_files if a in funcs and not funcs[a].ported]
-    print("=== __FILE__ attribution ===")
-    print("kb functions:                 %d" % len(funcs))
-    print("with __FILE__ evidence:       %d" % evidenced)
-    print("  unambiguous (1 distinct):   %d" % unambiguous)
-    print("  still unported:             %d" % len(unported))
-    print()
-    by_kind = Counter(d.kind for d in disagreements)
-    print("objects with disagreements:   %d  (%s)"
-          % (len(disagreements),
-             " ".join("%s=%d" % (k, by_kind[k])
-                      for k in ("split", "misnamed", "merged", "inlining", "noise")
-                      if by_kind[k])))
-    print()
-    print("%-42s %4s %4s %4s  %-9s %-7s %s"
-          % ("kb object", "ok", "bad", "mem", "kind", "conf",
-             "dominant foreign __FILE__"))
-    for d in disagreements[:limit]:
-        if d.kind in ("inlining", "noise"):
+class ObjVerdict(NamedTuple):
+    index: int                  # kb objects[] index; names are NOT unique
+    name: str
+    source: Optional[str]       # kb objects[].source, the TU kb already claims
+    dominant: Optional[str]     # proven dominant TU after bracketing
+    dominant_n: int
+    labelled: int               # members carrying evidence
+    members: int
+    distinct_tus: int
+    verdict: str
+
+
+def object_verdicts(funcs: Dict[int, FuncInfo], br: Bracketing,
+                    kb_objects: List[dict],
+                    min_share: float = 0.9) -> List[ObjVerdict]:
+    """Compare each kb object's own `source` against the proven dominant TU.
+
+    Two corrections over scoring by object NAME:
+
+      * kb already records the translation unit in `objects[].source` for 190
+        of 232 objects, in the same form this tool recovers.  That, not the
+        .obj name, is the claim to test.
+      * share is computed over members that CARRY evidence.  Dividing by all
+        members scores absence of evidence as disagreement, which reported
+        players.obj -- 61 labelled members, 100% players.c, one TU -- as a
+        25% multi-TU bucket.
+    """
+    pos = {a: i for i, a in enumerate(br.addrs)}
+    out: List[ObjVerdict] = []
+    for idx, obj in enumerate(kb_objects):
+        addrs = []
+        for fn in obj.get("functions") or []:
+            try:
+                addrs.append(int(fn["addr"], 16))
+            except (KeyError, ValueError, TypeError):
+                continue
+        if not addrs:
             continue
-        print("%-42s %4d %4d %4d  %-9s %-7s %s (%d/%d, %d TUs)"
-              % (d.obj, d.agree, d.disagree, d.total_members, d.kind,
-                 d.confidence, d.dominant, d.dominant_count, d.disagree,
-                 d.distinct_foreign))
-    if len(disagreements) > limit:
-        print("... %d more (use --report)" % (len(disagreements) - limit))
+        labels = [br.filled[pos[a]] for a in addrs
+                  if a in pos and br.filled[pos[a]]]
+        counts = Counter(labels)
+        src = obj.get("source")
+        if not counts:
+            verdict = "no-evidence"
+            dom, dom_n = None, 0
+        else:
+            dom, dom_n = counts.most_common(1)[0]
+            share = dom_n / len(labels)
+            src_stem = _stem(_basename(src)) if src else None
+            if src_stem is None:
+                verdict = "no-source"
+            elif src_stem == _stem(dom):
+                verdict = "confirms"
+            elif share >= min_share and len(counts) <= 2:
+                verdict = "contradicts"
+            else:
+                verdict = "mixed"
+        out.append(ObjVerdict(idx, obj.get("name") or "<unnamed>", src, dom,
+                              dom_n, len(labels), len(addrs), len(counts),
+                              verdict))
+    rank = {"contradicts": 0, "mixed": 1, "no-source": 2,
+            "confirms": 3, "no-evidence": 4}
+    out.sort(key=lambda v: (rank[v.verdict], -v.dominant_n))
+    return out
+
+
+def print_objects_verdict(funcs, br: Bracketing, kb_objects, limit: int) -> None:
+    vs = object_verdicts(funcs, br, kb_objects)
+    tally = Counter(v.verdict for v in vs)
+    print("=== kb objects[].source vs proven TU ===")
+    print("objects scored: %d" % len(vs))
+    for k in ("confirms", "contradicts", "mixed", "no-source", "no-evidence"):
+        print("   %-12s %d" % (k, tally[k]))
+    print()
+    print("CONTRADICTS - one TU covers >=90% of evidenced members and it is")
+    print("not the TU kb records.  These are the actionable ones:")
+    print("   %-34s %-32s %-28s %s"
+          % ("object", "kb .source", "proven TU", "evid/members"))
+    for v in vs:
+        if v.verdict != "contradicts":
+            continue
+        print("   %-34s %-32s %-28s %d/%d of %d (%d TUs)"
+              % (v.name, v.source, v.dominant, v.dominant_n, v.labelled,
+                 v.members, v.distinct_tus))
+    print()
+    print("MIXED - evidence spans several TUs; no single .source is right.")
+    print("Coverage is shown so a low-evidence object is not mistaken for a")
+    print("genuine multi-TU bucket:")
+    n = 0
+    for v in vs:
+        if v.verdict != "mixed":
+            continue
+        n += 1
+        if n > limit:
+            continue
+        print("   %-34s %-30s dominant %-26s %d/%d of %d (%d TUs)"
+              % (v.name, v.source or "-", v.dominant, v.dominant_n,
+                 v.labelled, v.members, v.distinct_tus))
+    if n > limit:
+        print("   ... %d more (use --report)" % (n - limit))
+
+
+# ---------------------------------------------------------------------------
+# Reporting
+# ---------------------------------------------------------------------------
+
+def print_summary(fn_files, funcs, br: Bracketing, kb_objects, limit: int) -> None:
+    total = len(br.addrs)
+    n_direct = sum(1 for t in br.direct if t)
+    n_filled = sum(1 for t in br.filled if t)
+    print("=== __FILE__ attribution ===")
+    print("kb functions                    %5d" % total)
+    print("proven by own assert            %5d  %.1f%%"
+          % (n_direct, 100.0 * n_direct / total))
+    print("+ layout-inferred (bracketed)   %5d  %.1f%%"
+          % (n_filled, 100.0 * n_filled / total))
+    print("translation units observed      %5d   (%d split across runs)"
+          % (br.n_tus, len(br.split_tus)))
+    unported = sum(1 for i, a in enumerate(br.addrs)
+                   if br.filled[i] and a in funcs and not funcs[a].ported)
+    print("attributed but still unported   %5d" % unported)
+    print()
+    print_objects_verdict(funcs, br, kb_objects, limit)
 
 
 def print_object(obj_name: str, fn_files, funcs) -> None:
@@ -413,20 +609,25 @@ def print_source_paths(fn_files, funcs, limit: int) -> None:
                  + (" ..." if len(addrs) > 5 else "")))
 
 
-def write_json(path: Path, fn_files, literals, funcs, disagreements) -> None:
+def write_json(path: Path, fn_files, literals, funcs) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     functions = {}
     for addr, files in sorted(fn_files.items()):
         info = funcs.get(addr)
-        full = files.most_common(1)[0][0]
+        # Use the same header-filtered determination the bracket lane uses, so
+        # the JSON and the reports cannot disagree about what a TU is.
+        tu = direct_tu(fn_files, addr)
+        full = next((f for f in files if _basename(f) == tu), None) \
+            if tu else None
         functions["0x%x" % addr] = {
             "name": info.name if info else None,
             "kb_object": info.obj if info else None,
             "kb_source_path": info.kb_source_path if info else None,
             "ported": info.ported if info else None,
             "binary_source_path": full,
-            "binary_source_file": _basename(full),
-            "unambiguous": len(files) == 1,
+            "binary_source_file": _basename(full) if full else None,
+            "determines_tu": tu is not None,
+            "header_only": tu is None and bool(files),
             "refs": dict(sorted(((_basename(f), n) for f, n in files.items()),
                                 key=lambda kv: -kv[1])),
         }
@@ -438,8 +639,6 @@ def write_json(path: Path, fn_files, literals, funcs, disagreements) -> None:
             "functions_with_evidence": len(fn_files),
         },
         "functions": functions,
-        "object_disagreements": [d._asdict() | {"addrs": ["0x%x" % a for a in d.addrs]}
-                                 for d in disagreements],
     }
     path.write_text(json.dumps(payload, indent=1), encoding="utf-8")
     print("wrote %s" % path.relative_to(REPO_ROOT))
@@ -466,19 +665,52 @@ def _self_test() -> int:
         failures.append("0x12000 attributed to %s, expected action_alert.c"
                         % got.most_common(1)[0][0])
 
-    if _classify(0, 39, 6, 12, 65)[0] != "split":
-        failures.append("_classify missed a multi-TU bucket")
-    if _classify(0, 10, 1, 10, 46)[0] != "misnamed":
-        failures.append("_classify missed a misnamed object")
-    if _classify(38, 28, 1, 28, 66)[0] != "merged":
-        failures.append("_classify missed a merged TU pair")
-    if _classify(0, 1, 1, 1, 1721)[0] != "noise":
-        failures.append("_classify flagged a catch-all bucket stray")
+    br = bracket_layout(fn_files, funcs)
+    if br.refused:
+        failures.append("bracketing refused: %d split TUs" % len(br.split_tus))
+    n_direct = sum(1 for t in br.direct if t)
+    n_filled = sum(1 for t in br.filled if t)
+    if n_filled <= n_direct:
+        failures.append("bracketing gained nothing")
+    if br.split_tus:
+        failures.append("TUs split across runs: %s" % sorted(br.split_tus))
+    # The contiguity test must catch a break the old A-B-A test could not.
+    if _split_tus(["x.c", "y.c", "y.c", "x.c"]) != {"x.c": 2}:
+        failures.append("_split_tus missed an A-BB-A break")
+    if _split_tus(["x.c", None, "x.c", "y.c"]) != {}:
+        failures.append("_split_tus reported a false break across a gap")
+    if _split_tus(["x.c", "y.c", "x.c"]) != {"x.c": 2}:
+        failures.append("_split_tus missed an A-B-A break")
+    # object_verdicts must score share over EVIDENCED members, not all members,
+    # or an object with sparse but unanimous evidence reads as a multi-TU bucket.
+    kb_objects = json.loads(KB_PATH.read_text(encoding="utf-8"))["objects"]
+    verdicts = {v.name: v for v in object_verdicts(funcs, br, kb_objects)}
+    players = verdicts.get("players.obj")
+    if players is None:
+        failures.append("players.obj missing from verdicts")
+    elif players.verdict != "confirms":
+        failures.append("players.obj scored %s; its evidence is unanimous "
+                        "players.c and it must confirm" % players.verdict)
+    ai = verdicts.get("ai_profile.obj")
+    if ai is None or ai.verdict != "contradicts":
+        failures.append("ai_profile.obj must contradict its recorded source")
+
+    # Regression guard for the section-clamped owner index: a literal in
+    # .rdata must never be attributed to the last function of a code section.
+    _lits = _scan_source_literals()
+    _starts, _owner = _owner_index(funcs)
+    for _va in _lits:
+        if _owner(_va) is not None:
+            failures.append("a source literal at 0x%x was attributed to a "
+                            "function; literals live in data" % _va)
+            break
 
     for f in failures:
         print("FAIL: %s" % f)
-    print("self-test: %s (%d literals, %d attributed functions)"
-          % ("FAIL" if failures else "ok", len(literals), len(fn_files)))
+    print("self-test: %s (%d literals, %d direct, %d after bracketing, "
+          "%d TUs, %d split)"
+          % ("FAIL" if failures else "ok", len(literals), n_direct, n_filled,
+             br.n_tus, len(br.split_tus)))
     return 1 if failures else 0
 
 
@@ -489,6 +721,10 @@ def main() -> int:
                     help="print every object disagreement, not just the top ones")
     ap.add_argument("--unported", action="store_true",
                     help="list unported functions grouped by proven translation unit")
+    ap.add_argument("--bracket", action="store_true",
+                    help="fill unevidenced functions bracketed by an agreeing TU")
+    ap.add_argument("--objects", action="store_true",
+                    help="rename vs split verdict per kb object, after bracketing")
     ap.add_argument("--source-path", action="store_true",
                     help="list lifted functions filed under a foreign .c file")
     ap.add_argument("--object", metavar="NAME",
@@ -504,9 +740,16 @@ def main() -> int:
         return _self_test()
 
     fn_files, literals, funcs = build_attribution()
-    disagreements = collect_disagreements(fn_files, funcs)
 
-    if args.object:
+    if args.bracket:
+        print_bracket(fn_files, funcs, bracket_layout(fn_files, funcs),
+                      10 ** 9 if args.report else args.limit)
+    elif args.objects:
+        kb_objects = json.loads(KB_PATH.read_text(encoding="utf-8"))["objects"]
+        print_objects_verdict(funcs, bracket_layout(fn_files, funcs),
+                              kb_objects,
+                              10 ** 9 if args.report else args.limit)
+    elif args.object:
         print_object(args.object, fn_files, funcs)
     elif args.source_path:
         print_source_paths(fn_files, funcs,
@@ -514,11 +757,12 @@ def main() -> int:
     elif args.unported:
         print_unported(fn_files, funcs, 10 ** 9 if args.report else args.limit)
     else:
-        print_summary(fn_files, funcs, disagreements,
-                      10 ** 9 if args.report else args.limit)
+        kb_objects = json.loads(KB_PATH.read_text(encoding="utf-8"))["objects"]
+        print_summary(fn_files, funcs, bracket_layout(fn_files, funcs),
+                      kb_objects, 10 ** 9 if args.report else args.limit)
 
     if args.json:
-        write_json(Path(args.json), fn_files, literals, funcs, disagreements)
+        write_json(Path(args.json), fn_files, literals, funcs)
     return 0
 
 
