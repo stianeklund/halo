@@ -112,5 +112,95 @@
     "result": "no_improvement",
     "score_before": 97.9,
     "score_after": 97.9
+  },
+  "pill_intersects_triangle2d": {
+    "last_run_ts": "2026-08-25T00:00:00+02:00",
+    "result": "no_improvement",
+    "score_before": 83.8,
+    "score_after": 83.8
+  },
+  "accelerate_to_position": {
+    "last_run_ts": "2026-08-25T00:00:00+02:00",
+    "result": "no_improvement",
+    "score_before": 83.7,
+    "score_after": 83.7
+  },
+  "FUN_0010e9f0": {
+    "last_run_ts": "2026-08-25T00:00:00+02:00",
+    "result": "no_improvement",
+    "score_before": 82.8,
+    "score_after": 82.8
+  },
+  "FUN_0001ada0": {
+    "last_run_ts": "2026-08-25T00:00:00+02:00",
+    "result": "reverted",
+    "score_before": 82.3,
+    "score_after": 82.3
+  },
+  "matrix_inverse": {
+    "last_run_ts": "2026-08-25T00:00:00+02:00",
+    "result": "reverted",
+    "score_before": 81.6,
+    "score_after": 81.6
+  },
+  "rasterizer_text_draw": {
+    "last_run_ts": "2026-08-25T00:00:00+02:00",
+    "result": "improved",
+    "score_before": 79.6,
+    "score_after": 81.4
+  },
+  "rasterizer_draw_string": {
+    "last_run_ts": "2026-08-25T00:00:00+02:00",
+    "result": "improved",
+    "score_before": 79.6,
+    "score_after": 81.4
+  },
+  "FUN_00183390": {
+    "last_run_ts": "2026-08-25T00:00:00+02:00",
+    "result": "improved",
+    "score_before": 79.4,
+    "score_after": 84.7
+  },
+  "FUN_00181900": {
+    "last_run_ts": "2026-08-25T00:00:00+02:00",
+    "result": "improved",
+    "score_before": 78.5,
+    "score_after": 79.4
+  },
+  "FUN_00181a90": {
+    "last_run_ts": "2026-08-25T00:00:00+02:00",
+    "result": "improved",
+    "score_before": 70.4,
+    "score_after": 88.2
+  },
+  "game_engine_post_rasterize_post_game": {
+    "last_run_ts": "2026-08-25T00:00:00+02:00",
+    "result": "improved",
+    "score_before": 84.8,
+    "score_after": 90.7
+  },
+  "FUN_000abd20": {
+    "last_run_ts": "2026-08-25T00:00:00+02:00",
+    "result": "improved",
+    "score_before": 84.5,
+    "score_after": 89.6
+  },
+  "FUN_000a9190": {
+    "last_run_ts": "2026-08-25T00:00:00+02:00",
+    "result": "improved",
+    "score_before": 83.6,
+    "score_after": 91.6
+  },
+  "FUN_000b0ac0": {
+    "last_run_ts": "2026-08-25T00:00:00+02:00",
+    "result": "improved",
+    "score_before": 80.9,
+    "score_after": 82.6
+  },
+  "FUN_000b1180": {
+    "last_run_ts": "2026-08-25T00:00:00+02:00",
+    "result": "improved",
+    "score_before": 81.6,
+    "score_after": 93.2
   }
 }

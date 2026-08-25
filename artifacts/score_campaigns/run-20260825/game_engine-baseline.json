@@ -1,0 +1,4035 @@
+{
+  "schema": 1,
+  "scores": {
+    "FUN_000a8470": {
+      "candidate_instructions": 39,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 60.5,
+      "reference_instructions": 37,
+      "score": 76.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000a84f0": {
+      "candidate_instructions": 41,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 71.6,
+      "reference_instructions": 40,
+      "score": 81.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000a8580": {
+      "candidate_instructions": 21,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 76.2,
+      "reference_instructions": 21,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000a85d0": {
+      "candidate_instructions": 37,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 97.2,
+      "reference_instructions": 35,
+      "score": 97.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000a8970": {
+      "candidate_instructions": 62,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 31.1,
+      "reference_instructions": 60,
+      "score": 67.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000a8e80": {
+      "candidate_instructions": 14,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 92.9,
+      "reference_instructions": 14,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000a8ec0": {
+      "candidate_instructions": 91,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 70.7,
+      "reference_instructions": 90,
+      "score": 84.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000a9190": {
+      "candidate_instructions": 58,
+      "categories": [
+        "instruction_count",
+        "load_width"
+      ],
+      "operand_score": 30.9,
+      "reference_instructions": 52,
+      "score": 83.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: reference reads a narrow field [n16 disp:0x14] that our lift does not (ref: `movw\t0x14(%ecx), %dx`) -- likely a narrow field read as a wider type (int vs int16_t/int8_t)",
+          "    LOADW: reference reads a narrow field [n8 disp:0xc] that our lift does not (ref: `movb\t0xc(%ecx), %bl`) -- likely a narrow field read as a wider type (int vs int16_t/int8_t)",
+          "    LOADW: our lift reads a narrow field [n16 disp:0x45670c] the reference does not (ours: `movw\t0x45670c(%eax), %cx`) -- possible over-narrowed field (reading only the low bits of a wider value)",
+          "    LOADW: our lift reads a narrow field [n8 disp:0x456704] the reference does not (ours: `movb\t0x456704(%eax), %bl`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": []
+      }
+    },
+    "FUN_000a9550": {
+      "candidate_instructions": 8,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 8,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000a9570": {
+      "candidate_instructions": 17,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 68.8,
+      "reference_instructions": 15,
+      "score": 81.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000a95a0": {
+      "candidate_instructions": 7,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 61.5,
+      "reference_instructions": 6,
+      "score": 76.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000a95c0": {
+      "candidate_instructions": 12,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 80.0,
+      "reference_instructions": 13,
+      "score": 96.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000a9f90": {
+      "candidate_instructions": 19,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 48.6,
+      "reference_instructions": 18,
+      "score": 75.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000a9fd0": {
+      "candidate_instructions": 9,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 72.7,
+      "reference_instructions": 13,
+      "score": 72.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000a9ff0": {
+      "candidate_instructions": 9,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 72.7,
+      "reference_instructions": 13,
+      "score": 72.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000aa010": {
+      "candidate_instructions": 65,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 85.7,
+      "reference_instructions": 61,
+      "score": 90.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000aa0b0": {
+      "candidate_instructions": 43,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 72.3,
+      "reference_instructions": 40,
+      "score": 89.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000aa220": {
+      "candidate_instructions": 44,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 86.4,
+      "reference_instructions": 44,
+      "score": 93.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000aa340": {
+      "candidate_instructions": 45,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 84.4,
+      "reference_instructions": 45,
+      "score": 95.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000aa3d0": {
+      "candidate_instructions": 45,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 82.2,
+      "reference_instructions": 45,
+      "score": 97.8,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000aa460": {
+      "candidate_instructions": 44,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 88.6,
+      "reference_instructions": 44,
+      "score": 97.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000aa4f0": {
+      "candidate_instructions": 44,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 88.6,
+      "reference_instructions": 44,
+      "score": 97.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000aa730": {
+      "candidate_instructions": 48,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 91.7,
+      "reference_instructions": 48,
+      "score": 97.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000aa860": {
+      "candidate_instructions": 48,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 89.6,
+      "reference_instructions": 48,
+      "score": 97.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000aaa20": {
+      "candidate_instructions": 42,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 85.7,
+      "reference_instructions": 42,
+      "score": 97.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000aaab0": {
+      "candidate_instructions": 42,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 90.5,
+      "reference_instructions": 42,
+      "score": 97.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000aac50": {
+      "candidate_instructions": 45,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 84.4,
+      "reference_instructions": 45,
+      "score": 93.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000aace0": {
+      "candidate_instructions": 45,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 88.9,
+      "reference_instructions": 45,
+      "score": 93.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000aafb0": {
+      "candidate_instructions": 44,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 81.8,
+      "reference_instructions": 44,
+      "score": 97.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ab040": {
+      "candidate_instructions": 14,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 92.9,
+      "reference_instructions": 14,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ab070": {
+      "candidate_instructions": 12,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 91.7,
+      "reference_instructions": 12,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ab090": {
+      "candidate_instructions": 133,
+      "categories": [
+        "fpu_guard",
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 40.0,
+      "reference_instructions": 130,
+      "score": 66.9,
+      "warnings": {
+        "fcom": [
+          "    FCOM: reference guard `fcomps\t0x2533c8 ; testb $0x41, %ah ; jne` (taken when ST0 < src / ST0 == src / unordered) has no counterpart in our lift",
+          "    FCOM: our lift guards with `fcomps\t0x4(%ecx) ; testb $0x5, %ah ; jp` (taken when ST0 > src / ST0 == src / unordered) -- shape absent from the reference",
+          "    FCOM: guard shapes differ on BOTH sides -- likely a comparison bound-sense bug (<= lifted as <, or >= as >). Verify each operator against the pristine disassembly's TEST/Jcc pair (lift-learnings section 38; the MP look-up assert class)."
+        ],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ab230": {
+      "candidate_instructions": 28,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 83.3,
+      "reference_instructions": 32,
+      "score": 93.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ab290": {
+      "candidate_instructions": 43,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 69.7,
+      "reference_instructions": 46,
+      "score": 76.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ab510": {
+      "candidate_instructions": 32,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 96.9,
+      "reference_instructions": 32,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ab9a0": {
+      "candidate_instructions": 7,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 7,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ab9c0": {
+      "candidate_instructions": 8,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 8,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ab9e0": {
+      "candidate_instructions": 9,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 9,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000abb90": {
+      "candidate_instructions": 87,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 63.3,
+      "reference_instructions": 93,
+      "score": 81.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000abca0": {
+      "candidate_instructions": 39,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 54.8,
+      "reference_instructions": 37,
+      "score": 87.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000abd20": {
+      "candidate_instructions": 184,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 51.8,
+      "reference_instructions": 183,
+      "score": 84.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000abf50": {
+      "candidate_instructions": 48,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 53.3,
+      "reference_instructions": 42,
+      "score": 71.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 1, reference 3) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "FUN_000abfd0": {
+      "candidate_instructions": 40,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 87.5,
+      "reference_instructions": 40,
+      "score": 97.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ac030": {
+      "candidate_instructions": 141,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 51.8,
+      "reference_instructions": 169,
+      "score": 80.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 6, reference 8) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "FUN_000ac220": {
+      "candidate_instructions": 168,
+      "categories": [
+        "fpu_operand_order",
+        "instruction_count"
+      ],
+      "operand_score": 73.7,
+      "reference_instructions": 163,
+      "score": 90.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [
+          "    FPU block 0, insn 6: fld\t%st(2)  vs  fld\t%st(3)",
+          "    FPU block 0, insn 7: fmul\t%st(3), %st  vs  fmul\t%st(4), %st",
+          "    FPU block 0, insn 9: fld\t%st(3)  vs  fld\t%st(2)",
+          "    FPU block 0, insn 10: fmul\t%st(4), %st  vs  fmul\t%st(3), %st"
+        ],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ac3e0": {
+      "candidate_instructions": 82,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 67.1,
+      "reference_instructions": 85,
+      "score": 67.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 7, reference 6) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "FUN_000aca70": {
+      "candidate_instructions": 56,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 90.7,
+      "reference_instructions": 53,
+      "score": 94.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000acd00": {
+      "candidate_instructions": 26,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 71.4,
+      "reference_instructions": 31,
+      "score": 82.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000aceb0": {
+      "candidate_instructions": 37,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 75.8,
+      "reference_instructions": 32,
+      "score": 90.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ad140": {
+      "candidate_instructions": 11,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 11,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ad2b0": {
+      "candidate_instructions": 116,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 95.2,
+      "reference_instructions": 113,
+      "score": 96.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000adb20": {
+      "candidate_instructions": 101,
+      "categories": [
+        "fpu_guard",
+        "frame_layout",
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 70.3,
+      "reference_instructions": 88,
+      "score": 81.1,
+      "warnings": {
+        "fcom": [
+          "    FCOM: reference guard `fcomps\t0x2533c8 ; testb $0x1, %ah ; jne` (taken when ST0 < src / unordered) has no counterpart in our lift",
+          "    FCOM: reference guard `fcomps\t0x254644 ; testb $0x41, %ah ; jne` (taken when ST0 < src / ST0 == src / unordered) has no counterpart in our lift",
+          "    FCOM: our lift guards with `testb $0x4, %ah ; jne` (taken when unordered) -- shape absent from the reference",
+          "    FCOM: our lift guards with `fcoms\t0x254640 ; testb $0x5, %ah ; jp` (taken when ST0 > src / ST0 == src / unordered) -- shape absent from the reference",
+          "    FCOM: guard shapes differ on BOTH sides -- likely a comparison bound-sense bug (<= lifted as <, or >= as >). Verify each operator against the pristine disassembly's TEST/Jcc pair (lift-learnings section 38; the MP look-up assert class)."
+        ],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 5, reference 6) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "FUN_000adc40": {
+      "candidate_instructions": 71,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 71.1,
+      "reference_instructions": 66,
+      "score": 93.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ae340": {
+      "candidate_instructions": 52,
+      "categories": [
+        "register_abi"
+      ],
+      "operand_score": 87.4,
+      "reference_instructions": 52,
+      "score": 95.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ae3c0": {
+      "candidate_instructions": 15,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 52.4,
+      "reference_instructions": 27,
+      "score": 61.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ae400": {
+      "candidate_instructions": 44,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 80.0,
+      "reference_instructions": 41,
+      "score": 89.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ae460": {
+      "candidate_instructions": 49,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 90.1,
+      "reference_instructions": 45,
+      "score": 92.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000ae920": {
+      "candidate_instructions": 255,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 89.2,
+      "reference_instructions": 252,
+      "score": 97.8,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000af9a0": {
+      "candidate_instructions": 44,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 93.2,
+      "reference_instructions": 44,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000afa40": {
+      "candidate_instructions": 180,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 50.6,
+      "reference_instructions": 180,
+      "score": 90.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 12, reference 13) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "FUN_000afcb0": {
+      "candidate_instructions": 99,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 85.4,
+      "reference_instructions": 100,
+      "score": 87.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000afdf0": {
+      "candidate_instructions": 18,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 94.4,
+      "reference_instructions": 18,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000afe50": {
+      "candidate_instructions": 30,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 85.2,
+      "reference_instructions": 32,
+      "score": 95.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 4, reference 5) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "FUN_000aff20": {
+      "candidate_instructions": 27,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 40.8,
+      "reference_instructions": 22,
+      "score": 65.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b0000": {
+      "candidate_instructions": 67,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 78.6,
+      "reference_instructions": 56,
+      "score": 88.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b00c0": {
+      "candidate_instructions": 23,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 71.4,
+      "reference_instructions": 19,
+      "score": 81.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b0100": {
+      "candidate_instructions": 42,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 92.9,
+      "reference_instructions": 42,
+      "score": 95.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b04a0": {
+      "candidate_instructions": 18,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 94.4,
+      "reference_instructions": 18,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b0520": {
+      "candidate_instructions": 9,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 9,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b09e0": {
+      "candidate_instructions": 49,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 87.4,
+      "reference_instructions": 42,
+      "score": 96.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b0a70": {
+      "candidate_instructions": 38,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 56.3,
+      "reference_instructions": 35,
+      "score": 84.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b0ac0": {
+      "candidate_instructions": 113,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "load_width"
+      ],
+      "operand_score": 50.9,
+      "reference_instructions": 107,
+      "score": 80.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: our lift reads a narrow field [n8 disp:0x1dc] the reference does not (ours: `movb\t0x1dc(%eax), %cl`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": [
+          "    SHAPE: call count differs (ours 15, reference 17) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "FUN_000b1180": {
+      "candidate_instructions": 226,
+      "categories": [
+        "fpu_guard",
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 56.8,
+      "reference_instructions": 235,
+      "score": 81.6,
+      "warnings": {
+        "fcom": [
+          "    FCOM: reference guard `fcomps\t-0x4(%ecx) ; testb $0x41, %ah ; je` (taken when ST0 > src) has no counterpart in our lift",
+          "    FCOM: reference guard `fcomps\t-0x4(%ecx) ; testb $0x41, %ah ; jne` (taken when ST0 < src / ST0 == src / unordered) has no counterpart in our lift",
+          "    FCOM: our lift guards with `fcomps\t-0x14(%ebp) ; testb $0x5, %ah ; jp` (taken when ST0 > src / ST0 == src / unordered) -- shape absent from the reference",
+          "    FCOM: our lift guards with `fcomps\t-0x8(%ecx) ; testb $0x41, %ah ; jp` (taken when ST0 > src / unordered) -- shape absent from the reference",
+          "    FCOM: guard shapes differ on BOTH sides -- likely a comparison bound-sense bug (<= lifted as <, or >= as >). Verify each operator against the pristine disassembly's TEST/Jcc pair (lift-learnings section 38; the MP look-up assert class)."
+        ],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b1570": {
+      "candidate_instructions": 48,
+      "categories": [
+        "fpu_guard",
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 78.0,
+      "reference_instructions": 53,
+      "score": 82.0,
+      "warnings": {
+        "fcom": [
+          "    FCOM: reference guard `testb $0x1, %ah ; jne` (taken when ST0 < src / unordered) has no counterpart in our lift",
+          "    FCOM: our lift guards with `fcomps\t0x456d44 ; testb $0x5, %ah ; jp` (taken when ST0 > src / ST0 == src / unordered) -- shape absent from the reference",
+          "    FCOM: guard shapes differ on BOTH sides -- likely a comparison bound-sense bug (<= lifted as <, or >= as >). Verify each operator against the pristine disassembly's TEST/Jcc pair (lift-learnings section 38; the MP look-up assert class)."
+        ],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b1600": {
+      "candidate_instructions": 112,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 61.9,
+      "reference_instructions": 114,
+      "score": 83.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 14, reference 15) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "FUN_000b1760": {
+      "candidate_instructions": 139,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "load_width"
+      ],
+      "operand_score": 45.8,
+      "reference_instructions": 136,
+      "score": 50.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: reference reads a narrow field [n8 disp:0x0] that our lift does not (ref: `cmpb\t%bl, (%ecx)`) -- likely a narrow field read as a wider type (int vs int16_t/int8_t)",
+          "    LOADW: our lift reads a narrow field [n8 disp:0x456c28] the reference does not (ours: `cmpb\t%bl, 0x456c28(%ecx)`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": []
+      }
+    },
+    "FUN_000b1aa0": {
+      "candidate_instructions": 31,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 52.3,
+      "reference_instructions": 34,
+      "score": 95.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b1b30": {
+      "candidate_instructions": 208,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 77.8,
+      "reference_instructions": 201,
+      "score": 91.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b1e70": {
+      "candidate_instructions": 11,
+      "categories": [
+        "instruction_count",
+        "load_width"
+      ],
+      "operand_score": 60.0,
+      "reference_instructions": 9,
+      "score": 90.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: reference reads a narrow field [n8 disp:0x0] that our lift does not (ref: `movb\t(%eax), %cl`) -- likely a narrow field read as a wider type (int vs int16_t/int8_t)",
+          "    LOADW: our lift reads a narrow field [n8 disp:0x456c28] the reference does not (ours: `movb\t0x456c28(%eax), %dl`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": []
+      }
+    },
+    "FUN_000b1e90": {
+      "candidate_instructions": 43,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 65.2,
+      "reference_instructions": 46,
+      "score": 83.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b2010": {
+      "candidate_instructions": 268,
+      "categories": [
+        "fpu_guard",
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 45.8,
+      "reference_instructions": 265,
+      "score": 67.2,
+      "warnings": {
+        "fcom": [
+          "    FCOM: reference guard `fcompl\t0x2533d0 ; testb $0x5, %ah ; jnp` (taken when ST0 < src) has no counterpart in our lift",
+          "    FCOM: our lift guards with `fcompl\t0x2533d0 ; testb $0x1, %ah ; jne` (taken when ST0 < src / unordered) -- shape absent from the reference",
+          "    FCOM: our lift guards with `testb $0x5, %ah ; jp` (taken when ST0 > src / ST0 == src / unordered) -- shape absent from the reference",
+          "    FCOM: guard shapes differ on BOTH sides -- likely a comparison bound-sense bug (<= lifted as <, or >= as >). Verify each operator against the pristine disassembly's TEST/Jcc pair (lift-learnings section 38; the MP look-up assert class)."
+        ],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b23b0": {
+      "candidate_instructions": 88,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 81.0,
+      "reference_instructions": 75,
+      "score": 88.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b2740": {
+      "candidate_instructions": 68,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 40.6,
+      "reference_instructions": 60,
+      "score": 75.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b2890": {
+      "candidate_instructions": 25,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 46.8,
+      "reference_instructions": 22,
+      "score": 68.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b28c0": {
+      "candidate_instructions": 23,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 37.2,
+      "reference_instructions": 20,
+      "score": 74.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b2b00": {
+      "candidate_instructions": 18,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 94.4,
+      "reference_instructions": 18,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b2bc0": {
+      "candidate_instructions": 7,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 53.3,
+      "reference_instructions": 8,
+      "score": 53.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b2be0": {
+      "candidate_instructions": 13,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 62.1,
+      "reference_instructions": 16,
+      "score": 69.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b2c00": {
+      "candidate_instructions": 40,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 33.8,
+      "reference_instructions": 31,
+      "score": 73.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 1, reference 3) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "FUN_000b2d30": {
+      "candidate_instructions": 124,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 47.7,
+      "reference_instructions": 115,
+      "score": 54.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 12, reference 11) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "FUN_000b2e70": {
+      "candidate_instructions": 55,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 80.8,
+      "reference_instructions": 51,
+      "score": 90.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b3020": {
+      "candidate_instructions": 35,
+      "categories": [
+        "frame_layout",
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 82.9,
+      "reference_instructions": 38,
+      "score": 88.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b3090": {
+      "candidate_instructions": 54,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 68.0,
+      "reference_instructions": 47,
+      "score": 90.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b3120": {
+      "candidate_instructions": 152,
+      "categories": [
+        "immediate_constant",
+        "instruction_count"
+      ],
+      "operand_score": 43.3,
+      "reference_instructions": 153,
+      "score": 79.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [
+          "    IMM: reference constant 0x3fa00000 (~1.25f) absent from our lift (ref: `movl\t$0x3fa00000, 0x6c(%esi)`) -- missing or altered constant."
+        ],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 14, reference 19) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "FUN_000b3470": {
+      "candidate_instructions": 149,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 52.4,
+      "reference_instructions": 145,
+      "score": 77.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 13, reference 18) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "FUN_000b36f0": {
+      "candidate_instructions": 47,
+      "categories": [
+        "frame_layout"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 47,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b3770": {
+      "candidate_instructions": 79,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 72.6,
+      "reference_instructions": 100,
+      "score": 81.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b3860": {
+      "candidate_instructions": 68,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 44.4,
+      "reference_instructions": 58,
+      "score": 79.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "FUN_000b39a0": {
+      "candidate_instructions": 125,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 66.9,
+      "reference_instructions": 123,
+      "score": 80.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 13, reference 17) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "FUN_000b3b30": {
+      "candidate_instructions": 90,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 47.5,
+      "reference_instructions": 108,
+      "score": 65.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 4, reference 6) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "FUN_000b3c60": {
+      "candidate_instructions": 61,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 67.9,
+      "reference_instructions": 51,
+      "score": 86.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 5, reference 6) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "FUN_000b3cf0": {
+      "candidate_instructions": 80,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 65.0,
+      "reference_instructions": 77,
+      "score": 87.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "cheats_apply": {
+      "candidate_instructions": 29,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 81.6,
+      "reference_instructions": 23,
+      "score": 93.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "ctf_allow_weapon_pick_up": {
+      "candidate_instructions": 52,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 84.1,
+      "reference_instructions": 55,
+      "score": 87.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "ctf_get_player_score": {
+      "candidate_instructions": 18,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 94.4,
+      "reference_instructions": 18,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "ctf_get_player_score_string": {
+      "candidate_instructions": 19,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 94.7,
+      "reference_instructions": 19,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "ctf_get_score_header_string": {
+      "candidate_instructions": 12,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 12,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "ctf_get_score_hud_text": {
+      "candidate_instructions": 142,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 49.7,
+      "reference_instructions": 172,
+      "score": 60.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 10, reference 12) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "ctf_get_starting_location_rating": {
+      "candidate_instructions": 91,
+      "categories": [
+        "fpu_guard",
+        "fpu_operand_order"
+      ],
+      "operand_score": 83.5,
+      "reference_instructions": 91,
+      "score": 97.8,
+      "warnings": {
+        "fcom": [
+          "    FCOM: our lift guards with `fcomps\t0x253398 ; testb $0x41, %ah ; jp` (taken when ST0 > src / unordered) -- shape absent from the reference"
+        ],
+        "fpu": [
+          "    FPU block 0, insn 6: fld\t%st(0)  vs  fld\t%st(2)",
+          "    FPU block 0, insn 7: fmul\t%st(1), %st  vs  fmul\t%st(3), %st",
+          "    FPU block 0, insn 11: fld\t%st(3)  vs  fld\t%st(1)",
+          "    FPU block 0, insn 12: fmul\t%st(4), %st  vs  fmul\t%st(2), %st"
+        ],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "ctf_get_team_score_string": {
+      "candidate_instructions": 15,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 86.7,
+      "reference_instructions": 15,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "ctf_initialize_for_new_map": {
+      "candidate_instructions": 303,
+      "categories": [
+        "fpu_operand_order",
+        "instruction_count"
+      ],
+      "operand_score": 48.0,
+      "reference_instructions": 309,
+      "score": 71.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [
+          "    FPU block 0, insn 2: flds\t(%esi)  vs  flds\t0x8(%esi)",
+          "    FPU block 0, insn 3: fsubs\t(%ecx)  vs  fsubs\t0x8(%ecx)",
+          "    FPU block 0, insn 4: fld\t%st(0)  vs  fld\t%st(1)",
+          "    FPU block 0, insn 5: fmul\t%st(1), %st  vs  fmul\t%st(2), %st",
+          "    FPU block 0, insn 6: fld\t%st(2)  vs  fld\t%st(3)",
+          "    FPU block 0, insn 7: fmul\t%st(3), %st  vs  fmul\t%st(4), %st",
+          "    FPU block 0, insn 9: fld\t%st(3)  vs  fld\t%st(1)",
+          "    FPU block 0, insn 10: fmul\t%st(4), %st  vs  fmul\t%st(2), %st"
+        ],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 31, reference 37) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "ctf_player_added": {
+      "candidate_instructions": 10,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 10,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "ctf_spawn_equipment": {
+      "candidate_instructions": 190,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 48.9,
+      "reference_instructions": 178,
+      "score": 82.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 23, reference 24) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "ctf_unit_can_enter_seat": {
+      "candidate_instructions": 128,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 57.4,
+      "reference_instructions": 116,
+      "score": 79.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "find_netgame_flag": {
+      "candidate_instructions": 23,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 95.7,
+      "reference_instructions": 23,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "find_netgame_flags": {
+      "candidate_instructions": 106,
+      "categories": [
+        "fpu_guard",
+        "fpu_operand_order",
+        "instruction_count"
+      ],
+      "operand_score": 76.7,
+      "reference_instructions": 100,
+      "score": 83.5,
+      "warnings": {
+        "fcom": [
+          "    FCOM: reference guard `fcomps\t0x2533c0 ; testb $0x1, %ah ; jne` (taken when ST0 < src / unordered) has no counterpart in our lift",
+          "    FCOM: reference guard `fcomps\t0x2533c0 ; testb $0x41, %ah ; jne` (taken when ST0 < src / ST0 == src / unordered) has no counterpart in our lift",
+          "    FCOM: our lift guards with `fcoms\t0x0 ; testb $0x5, %ah ; jp` (taken when ST0 > src / ST0 == src / unordered) -- shape absent from the reference",
+          "    FCOM: our lift guards with `fcomps\t0x10(%ebp) ; testb $0x41, %ah ; je` (taken when ST0 > src) -- shape absent from the reference",
+          "    FCOM: our lift guards with `fcomps\t0x0 ; testb $0x41, %ah ; jnp` (taken when ST0 < src / ST0 == src) -- shape absent from the reference",
+          "    FCOM: guard shapes differ on BOTH sides -- likely a comparison bound-sense bug (<= lifted as <, or >= as >). Verify each operator against the pristine disassembly's TEST/Jcc pair (lift-learnings section 38; the MP look-up assert class)."
+        ],
+        "fpu": [
+          "    FPU block 0, insn 6: fld\t%st(0)  vs  fld\t%st(2)",
+          "    FPU block 0, insn 7: fmul\t%st(1), %st  vs  fmul\t%st(3), %st",
+          "    FPU block 0, insn 8: fld\t%st(2)  vs  fld\t%st(1)",
+          "    FPU block 0, insn 9: fmul\t%st(3), %st  vs  fmul\t%st(2), %st",
+          "    FPU block 0, insn 11: fld\t%st(3)  vs  fld\t%st(2)",
+          "    FPU block 0, insn 12: fmul\t%st(4), %st  vs  fmul\t%st(3), %st"
+        ],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_accumulation_default": {
+      "candidate_instructions": 47,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 97.9,
+      "reference_instructions": 47,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_allow_pause": {
+      "candidate_instructions": 5,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 5,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_allow_weapon_pick_up": {
+      "candidate_instructions": 13,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 92.3,
+      "reference_instructions": 13,
+      "score": 92.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_can_pick_up_weapon": {
+      "candidate_instructions": 19,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 76.9,
+      "reference_instructions": 20,
+      "score": 82.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_can_score": {
+      "candidate_instructions": 8,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 8,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_check_input_button": {
+      "candidate_instructions": 28,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 72.3,
+      "reference_instructions": 23,
+      "score": 85.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_clear_goal_position": {
+      "candidate_instructions": 12,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 91.7,
+      "reference_instructions": 12,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_ctf_default": {
+      "candidate_instructions": 45,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 86.7,
+      "reference_instructions": 45,
+      "score": 93.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_did_player_win": {
+      "candidate_instructions": 14,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 55.2,
+      "reference_instructions": 15,
+      "score": 75.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_dispose": {
+      "candidate_instructions": 9,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 9,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_dispose_from_old_map": {
+      "candidate_instructions": 8,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 8,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_elimination_default": {
+      "candidate_instructions": 44,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 88.6,
+      "reference_instructions": 44,
+      "score": 97.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_evaluate_game_complexity": {
+      "candidate_instructions": 110,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 65.4,
+      "reference_instructions": 104,
+      "score": 79.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_force_single_screen": {
+      "candidate_instructions": 12,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 78.3,
+      "reference_instructions": 11,
+      "score": 87.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_game_over": {
+      "candidate_instructions": 10,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 63.6,
+      "reference_instructions": 12,
+      "score": 63.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_game_starting": {
+      "candidate_instructions": 10,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 84.2,
+      "reference_instructions": 9,
+      "score": 84.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 2, reference 1) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "game_engine_get_current_stage": {
+      "candidate_instructions": 33,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 90.9,
+      "reference_instructions": 33,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_get_damage_multiplier": {
+      "candidate_instructions": 70,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 77.5,
+      "reference_instructions": 72,
+      "score": 81.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_get_distance_rating_for_spawn": {
+      "candidate_instructions": 120,
+      "categories": [
+        "fpu_guard",
+        "fpu_operand_order"
+      ],
+      "operand_score": 72.5,
+      "reference_instructions": 120,
+      "score": 87.5,
+      "warnings": {
+        "fcom": [
+          "    FCOM: reference guard `fcomps\t0x25337c ; testb $0x41, %ah ; je` (taken when ST0 > src) has no counterpart in our lift",
+          "    FCOM: our lift guards with `fcomps\t0x25337c ; testb $0x41, %ah ; jp` (taken when ST0 > src / unordered) -- shape absent from the reference",
+          "    FCOM: guard shapes differ on BOTH sides -- likely a comparison bound-sense bug (<= lifted as <, or >= as >). Verify each operator against the pristine disassembly's TEST/Jcc pair (lift-learnings section 38; the MP look-up assert class)."
+        ],
+        "fpu": [
+          "    FPU block 3, insn 2: fmuls\t0x259ec0  vs  fmuls\t-0x4(%ebp)",
+          "    FPU block 3, insn 3: fmuls\t-0x8(%ebp)  vs  fmuls\t0x259ec0"
+        ],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_get_goal_in_use": {
+      "candidate_instructions": 7,
+      "categories": [
+        "load_width"
+      ],
+      "operand_score": 85.7,
+      "reference_instructions": 7,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: reference reads a narrow field [n8 disp:0x0] that our lift does not (ref: `movb\t(%eax), %al`) -- likely a narrow field read as a wider type (int vs int16_t/int8_t)",
+          "    LOADW: our lift reads a narrow field [n8 disp:0x456704] the reference does not (ours: `movb\t0x456704(%eax), %al`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": []
+      }
+    },
+    "game_engine_get_goal_position": {
+      "candidate_instructions": 26,
+      "categories": [
+        "instruction_count",
+        "load_width"
+      ],
+      "operand_score": 65.5,
+      "reference_instructions": 29,
+      "score": 94.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: reference reads a narrow field [n8 disp:0x0] that our lift does not (ref: `movb\t(%esi), %al`) -- likely a narrow field read as a wider type (int vs int16_t/int8_t)",
+          "    LOADW: our lift reads a narrow field [n8 disp:0x456704] the reference does not (ours: `movb\t0x456704(%esi), %al`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": []
+      }
+    },
+    "game_engine_get_place": {
+      "candidate_instructions": 126,
+      "categories": [
+        "instruction_count",
+        "load_width"
+      ],
+      "operand_score": 52.3,
+      "reference_instructions": 134,
+      "score": 77.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: our lift reads a narrow field [n8 disp:0x20] the reference does not (ours: `movb\t0x20(%eax), %cl`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": []
+      }
+    },
+    "game_engine_get_score_hud_text": {
+      "candidate_instructions": 516,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 56.9,
+      "reference_instructions": 456,
+      "score": 93.8,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_get_score_sound_duration": {
+      "candidate_instructions": 44,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 64.3,
+      "reference_instructions": 40,
+      "score": 85.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_get_starting_location_rating": {
+      "candidate_instructions": 42,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 86.4,
+      "reference_instructions": 39,
+      "score": 86.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_get_variant": {
+      "candidate_instructions": 2,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 50.0,
+      "reference_instructions": 2,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_get_variant_by_name": {
+      "candidate_instructions": 167,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 98.2,
+      "reference_instructions": 165,
+      "score": 98.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_handle_client_message": {
+      "candidate_instructions": 8,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 80.0,
+      "reference_instructions": 12,
+      "score": 80.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_handle_server_message": {
+      "candidate_instructions": 8,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 80.0,
+      "reference_instructions": 12,
+      "score": 80.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_has_shield": {
+      "candidate_instructions": 14,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 14,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_hud_update_player": {
+      "candidate_instructions": 56,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 66.7,
+      "reference_instructions": 52,
+      "score": 85.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_initialize": {
+      "candidate_instructions": 32,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 87.5,
+      "reference_instructions": 32,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_initialize_for_new_map": {
+      "candidate_instructions": 33,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 90.9,
+      "reference_instructions": 33,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_ironctf_default": {
+      "candidate_instructions": 45,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 86.7,
+      "reference_instructions": 45,
+      "score": 93.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_is_player_leading": {
+      "candidate_instructions": 66,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 81.7,
+      "reference_instructions": 58,
+      "score": 88.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_king_default": {
+      "candidate_instructions": 43,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 81.4,
+      "reference_instructions": 43,
+      "score": 95.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_load_sounds": {
+      "candidate_instructions": 222,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 50.0,
+      "reference_instructions": 206,
+      "score": 83.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 48, reference 46) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "game_engine_load_stage": {
+      "candidate_instructions": 24,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 87.5,
+      "reference_instructions": 24,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_man_out": {
+      "candidate_instructions": 38,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 97.3,
+      "reference_instructions": 36,
+      "score": 97.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_oddball_default": {
+      "candidate_instructions": 48,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 91.7,
+      "reference_instructions": 48,
+      "score": 97.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_periodic_equipment_spawn": {
+      "candidate_instructions": 111,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 77.1,
+      "reference_instructions": 107,
+      "score": 93.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_place_to_string": {
+      "candidate_instructions": 140,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 83.4,
+      "reference_instructions": 143,
+      "score": 90.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_play_score_sound": {
+      "candidate_instructions": 33,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 77.4,
+      "reference_instructions": 29,
+      "score": 93.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_player_added": {
+      "candidate_instructions": 109,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 60.2,
+      "reference_instructions": 107,
+      "score": 75.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_player_count": {
+      "candidate_instructions": 28,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 28,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_player_damaged_player": {
+      "candidate_instructions": 30,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 96.7,
+      "reference_instructions": 30,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_player_depower_active_camo": {
+      "candidate_instructions": 23,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 95.7,
+      "reference_instructions": 23,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_player_event": {
+      "candidate_instructions": 52,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 56.6,
+      "reference_instructions": 47,
+      "score": 68.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_player_get_change_color": {
+      "candidate_instructions": 42,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 50.5,
+      "reference_instructions": 49,
+      "score": 65.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_player_get_custom_motion_sensor_positions": {
+      "candidate_instructions": 58,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 43.5,
+      "reference_instructions": 57,
+      "score": 69.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_player_get_team_index": {
+      "candidate_instructions": 34,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 86.1,
+      "reference_instructions": 38,
+      "score": 94.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_player_has_flag": {
+      "candidate_instructions": 43,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 87.9,
+      "reference_instructions": 48,
+      "score": 87.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_player_is_out_of_lives": {
+      "candidate_instructions": 24,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 24,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_player_killed": {
+      "candidate_instructions": 300,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 71.7,
+      "reference_instructions": 314,
+      "score": 82.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_player_update_netgame_flag": {
+      "candidate_instructions": 316,
+      "categories": [
+        "fpu_operand_order",
+        "instruction_count"
+      ],
+      "operand_score": 61.2,
+      "reference_instructions": 318,
+      "score": 88.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [
+          "    FPU block 0, insn 0: flds\t0x10(%esi)  vs  flds\t0x10(%ebx)",
+          "    FPU block 0, insn 2: flds\t0x14(%esi)  vs  flds\t0x14(%ebx)",
+          "    FPU block 0, insn 6: fld\t%st(2)  vs  fld\t%st(3)",
+          "    FPU block 0, insn 7: fmul\t%st(3), %st  vs  fmul\t%st(4), %st",
+          "    FPU block 0, insn 9: fld\t%st(3)  vs  fld\t%st(2)",
+          "    FPU block 0, insn 10: fmul\t%st(4), %st  vs  fmul\t%st(3), %st",
+          "    FPU block 2, insn 0: fadds\t0xc(%esi)  vs  fadds\t0xc(%ebx)",
+          "    FPU block 2, insn 1: fsubs\t0xc(%eax)  vs  fsubs\t0xc(%edx)"
+        ],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 27, reference 26) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "game_engine_playlist_begin": {
+      "candidate_instructions": 10,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 80.0,
+      "reference_instructions": 10,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_playlist_initialize": {
+      "candidate_instructions": 6,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 6,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_playlist_next": {
+      "candidate_instructions": 34,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 92.5,
+      "reference_instructions": 33,
+      "score": 98.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_post_event": {
+      "candidate_instructions": 26,
+      "categories": [
+        "instruction_count",
+        "load_width"
+      ],
+      "operand_score": 75.0,
+      "reference_instructions": 22,
+      "score": 91.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [
+          "    LOADW: reference reads a narrow field [n8 disp:0x0] that our lift does not (ref: `movb\t(%esi), %al`) -- likely a narrow field read as a wider type (int vs int16_t/int8_t)",
+          "    LOADW: our lift reads a narrow field [n8 disp:0x2effb8] the reference does not (ours: `movb\t0x2effb8(%esi), %al`) -- possible over-narrowed field (reading only the low bits of a wider value)"
+        ],
+        "shape": []
+      }
+    },
+    "game_engine_post_rasterize_post_game": {
+      "candidate_instructions": 602,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 49.6,
+      "reference_instructions": 575,
+      "score": 84.8,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_postspawn_player_update": {
+      "candidate_instructions": 113,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 70.7,
+      "reference_instructions": 119,
+      "score": 76.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_prespawn_player_update": {
+      "candidate_instructions": 25,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 96.0,
+      "reference_instructions": 25,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_race_default": {
+      "candidate_instructions": 42,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 95.2,
+      "reference_instructions": 42,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_rally_default": {
+      "candidate_instructions": 43,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 88.4,
+      "reference_instructions": 43,
+      "score": 97.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_rasterize_message": {
+      "candidate_instructions": 94,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 62.9,
+      "reference_instructions": 84,
+      "score": 69.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 10, reference 9) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "game_engine_remap_vehicle": {
+      "candidate_instructions": 73,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 76.1,
+      "reference_instructions": 69,
+      "score": 90.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_remap_weapon": {
+      "candidate_instructions": 109,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 74.8,
+      "reference_instructions": 105,
+      "score": 79.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 10, reference 8) -- our lift makes MORE calls -- an extra call, or the original inlined a helper we call out to"
+        ]
+      }
+    },
+    "game_engine_remove_dropped_weapons": {
+      "candidate_instructions": 87,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 57.1,
+      "reference_instructions": 88,
+      "score": 90.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_render_nav_points": {
+      "candidate_instructions": 72,
+      "categories": [
+        "frame_layout"
+      ],
+      "operand_score": 68.1,
+      "reference_instructions": 72,
+      "score": 69.4,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_running": {
+      "candidate_instructions": 4,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 4,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_score_reset": {
+      "candidate_instructions": 9,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 66.7,
+      "reference_instructions": 9,
+      "score": 88.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_score_tick": {
+      "candidate_instructions": 29,
+      "categories": [
+        "immediate_constant",
+        "instruction_count"
+      ],
+      "operand_score": 53.8,
+      "reference_instructions": 23,
+      "score": 73.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [
+          "    IMM: reference constant 0x1fffffff (~1.084202e-19f) absent from our lift (ref: `andl\t$0x1fffffff, %ecx`) -- missing or altered constant.",
+          "    IMM: our lift has constant 0x3ffffffe (~2f) not in the reference (ours: `andl\t$0x3ffffffe, %ecx       # imm = 0x3FFFFFFE`) -- introduced or altered constant."
+        ],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_set_goal_position": {
+      "candidate_instructions": 36,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 35.3,
+      "reference_instructions": 32,
+      "score": 67.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_should_spawn_player": {
+      "candidate_instructions": 94,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 76.2,
+      "reference_instructions": 87,
+      "score": 81.8,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_slayer_default": {
+      "candidate_instructions": 43,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 86.0,
+      "reference_instructions": 43,
+      "score": 95.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_spawn_equipment": {
+      "candidate_instructions": 108,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 76.9,
+      "reference_instructions": 108,
+      "score": 93.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_stalker_default": {
+      "candidate_instructions": 50,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 90.0,
+      "reference_instructions": 50,
+      "score": 96.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_start_over": {
+      "candidate_instructions": 10,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 80.0,
+      "reference_instructions": 10,
+      "score": 90.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_state_message": {
+      "candidate_instructions": 14,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 14,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_statistics_append": {
+      "candidate_instructions": 8,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 80.0,
+      "reference_instructions": 12,
+      "score": 80.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_switch_to_postgame": {
+      "candidate_instructions": 11,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 90.9,
+      "reference_instructions": 11,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_team_king_default": {
+      "candidate_instructions": 42,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 88.1,
+      "reference_instructions": 42,
+      "score": 97.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_team_oddball_default": {
+      "candidate_instructions": 47,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 54.5,
+      "reference_instructions": 41,
+      "score": 65.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_team_race_default": {
+      "candidate_instructions": 42,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 95.2,
+      "reference_instructions": 42,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_team_slayer_default": {
+      "candidate_instructions": 45,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 88.9,
+      "reference_instructions": 45,
+      "score": 97.8,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_teams_still_playing": {
+      "candidate_instructions": 89,
+      "categories": [
+        "frame_layout"
+      ],
+      "operand_score": 79.8,
+      "reference_instructions": 89,
+      "score": 91.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_unit_can_enter_seat": {
+      "candidate_instructions": 90,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 58.2,
+      "reference_instructions": 75,
+      "score": 73.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_update": {
+      "candidate_instructions": 221,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 87.1,
+      "reference_instructions": 227,
+      "score": 93.8,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 34, reference 35) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "game_engine_update_flag_state": {
+      "candidate_instructions": 51,
+      "categories": [
+        "instruction_count",
+        "register_abi"
+      ],
+      "operand_score": 90.3,
+      "reference_instructions": 45,
+      "score": 96.8,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_update_non_deterministic": {
+      "candidate_instructions": 61,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 82.0,
+      "reference_instructions": 61,
+      "score": 86.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_update_player_always_invis": {
+      "candidate_instructions": 34,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 34,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_validate_map_netgame_flags": {
+      "candidate_instructions": 270,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 70.2,
+      "reference_instructions": 223,
+      "score": 80.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 29, reference 30) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "game_engine_variant_cleanup": {
+      "candidate_instructions": 134,
+      "categories": [
+        "fpu_guard",
+        "instruction_count"
+      ],
+      "operand_score": 52.5,
+      "reference_instructions": 163,
+      "score": 64.6,
+      "warnings": {
+        "fcom": [
+          "    FCOM: reference guard `testb $0x5, %ah ; jp` (taken when ST0 > src / ST0 == src / unordered) has no counterpart in our lift",
+          "    FCOM: our lift guards with `fcomps\t0x3c(%ebx) ; testb $0x5, %ah ; jnp` (taken when ST0 < src) -- shape absent from the reference",
+          "    FCOM: guard shapes differ on BOTH sides -- likely a comparison bound-sense bug (<= lifted as <, or >= as >). Verify each operator against the pristine disassembly's TEST/Jcc pair (lift-learnings section 38; the MP look-up assert class)."
+        ],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_engine_weapon_fired": {
+      "candidate_instructions": 88,
+      "categories": [
+        "fpu_guard",
+        "instruction_count"
+      ],
+      "operand_score": 81.4,
+      "reference_instructions": 89,
+      "score": 88.1,
+      "warnings": {
+        "fcom": [
+          "    FCOM: reference guard `fcomps\t0x2533e8 ; testb $0x1, %ah ; jne` (taken when ST0 < src / unordered) has no counterpart in our lift",
+          "    FCOM: reference guard `fcomp\t%st(1) ; testb $0x41, %ah ; jne` (taken when ST0 < src / ST0 == src / unordered) has no counterpart in our lift",
+          "    FCOM: our lift guards with `fcomps\t0x2533e8 ; testb $0x5, %ah ; jnp` (taken when ST0 < src) -- shape absent from the reference",
+          "    FCOM: our lift guards with `fcomps\t0x2533e8 ; testb $0x5, %ah ; jp` (taken when ST0 > src / ST0 == src / unordered) -- shape absent from the reference",
+          "    FCOM: guard shapes differ on BOTH sides -- likely a comparison bound-sense bug (<= lifted as <, or >= as >). Verify each operator against the pristine disassembly's TEST/Jcc pair (lift-learnings section 38; the MP look-up assert class)."
+        ],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_globals_get_weapon": {
+      "candidate_instructions": 6,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 76.9,
+      "reference_instructions": 7,
+      "score": 76.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 0, reference 1) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "game_show_score_team": {
+      "candidate_instructions": 40,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 85.7,
+      "reference_instructions": 37,
+      "score": 93.5,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "game_show_score_you_ally_enemy": {
+      "candidate_instructions": 72,
+      "categories": [
+        "frame_layout",
+        "instruction_count"
+      ],
+      "operand_score": 75.7,
+      "reference_instructions": 76,
+      "score": 89.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "get_ball_definition_index": {
+      "candidate_instructions": 10,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 90.0,
+      "reference_instructions": 10,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "get_flag_definition_index": {
+      "candidate_instructions": 10,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 90.0,
+      "reference_instructions": 10,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "get_postgame_hilite_colors": {
+      "candidate_instructions": 8,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 8,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "king_get_player_score": {
+      "candidate_instructions": 18,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 94.4,
+      "reference_instructions": 18,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "king_get_player_score_string": {
+      "candidate_instructions": 19,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 94.7,
+      "reference_instructions": 19,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "king_get_score_header_string": {
+      "candidate_instructions": 12,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 12,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "king_get_score_hud_text": {
+      "candidate_instructions": 110,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 60.4,
+      "reference_instructions": 112,
+      "score": 75.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "king_get_team_score_string": {
+      "candidate_instructions": 15,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 86.7,
+      "reference_instructions": 15,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "king_initialize_for_new_map": {
+      "candidate_instructions": 69,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 56.8,
+      "reference_instructions": 79,
+      "score": 85.1,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "king_player_added": {
+      "candidate_instructions": 10,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 10,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "list_index_to_weapon_definition_index": {
+      "candidate_instructions": 18,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 94.4,
+      "reference_instructions": 18,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "match_game_type": {
+      "candidate_instructions": 65,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 72.3,
+      "reference_instructions": 65,
+      "score": 72.3,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "oddball_get_player_score": {
+      "candidate_instructions": 22,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 86.4,
+      "reference_instructions": 22,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "oddball_get_player_score_string": {
+      "candidate_instructions": 28,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 63.3,
+      "reference_instructions": 32,
+      "score": 86.7,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "oddball_get_score_header_string": {
+      "candidate_instructions": 23,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 93.6,
+      "reference_instructions": 24,
+      "score": 93.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "oddball_get_score_hud_text": {
+      "candidate_instructions": 163,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 63.3,
+      "reference_instructions": 191,
+      "score": 74.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": [
+          "    SHAPE: call count differs (ours 13, reference 14) -- reference makes MORE calls -- a dropped call, or the reference calls a CRT helper we write as a C idiom (_ftol2/_allmul/_chkstk), or cl.exe inlined a same-TU helper the original called (/Ob2)"
+        ]
+      }
+    },
+    "oddball_get_team_score_string": {
+      "candidate_instructions": 27,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 65.5,
+      "reference_instructions": 31,
+      "score": 86.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "oddball_player_added": {
+      "candidate_instructions": 10,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 10,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "oddball_spawn_equipment": {
+      "candidate_instructions": 64,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 82.8,
+      "reference_instructions": 64,
+      "score": 96.9,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "oddball_unit_can_enter_seat": {
+      "candidate_instructions": 67,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 82.1,
+      "reference_instructions": 67,
+      "score": 83.6,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "race_player_added": {
+      "candidate_instructions": 11,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 100.0,
+      "reference_instructions": 11,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "sort_statistic_buffer": {
+      "candidate_instructions": 16,
+      "categories": [
+        "codegen_shape"
+      ],
+      "operand_score": 87.5,
+      "reference_instructions": 16,
+      "score": 100.0,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "ticks_to_unicode_time_string": {
+      "candidate_instructions": 68,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 52.6,
+      "reference_instructions": 69,
+      "score": 97.8,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    },
+    "weapon_definition_index_to_list_index": {
+      "candidate_instructions": 43,
+      "categories": [
+        "instruction_count"
+      ],
+      "operand_score": 63.4,
+      "reference_instructions": 39,
+      "score": 73.2,
+      "warnings": {
+        "fcom": [],
+        "fpu": [],
+        "imm": [],
+        "loadw": [],
+        "shape": []
+      }
+    }
+  },
+  "source": "src/halo/game/game_engine.c",
+  "source_sha256": "205896e6a89ef4a5d2d33637d56bba9cef8156d5324631d4c2b93e204cb6d5cd"
+}
