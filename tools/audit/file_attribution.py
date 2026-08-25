@@ -421,7 +421,7 @@ def _gap_sizes(br: Bracketing) -> List[int]:
 class ObjVerdict(NamedTuple):
     index: int                  # kb objects[] index; names are NOT unique
     name: str
-    source: Optional[str]       # kb objects[].source, the TU kb already claims
+    source: Optional[str]       # kb objects[].source -- a REPO path, not a TU
     dominant: Optional[str]     # proven dominant TU after bracketing
     dominant_n: int
     labelled: int               # members carrying evidence (direct + bracketed)
@@ -437,13 +437,31 @@ def object_verdicts(funcs: Dict[int, FuncInfo], br: Bracketing,
                     kb_objects: List[dict],
                     min_share: float = 0.9,
                     min_direct: int = 3) -> List[ObjVerdict]:
-    """Compare each kb object's own `source` against the proven dominant TU.
+    """Compare each kb object's `source` against the proven dominant TU.
+
+    WHAT `source` ACTUALLY IS, because it is easy to misread: a path to the
+    repo .c file where the lift lives, consumed by vc71_verify.py:437-438 as
+    the TU-ownership fallback for scoring.  It is NOT a record of the original
+    Bungie translation unit.  The two usually coincide only because the repo
+    mirrors Bungie's layout under src/halo/.
+
+    So a disagreement here has TWO possible causes and this tool cannot tell
+    them apart:
+
+      a. the object really is misattributed (ai_profile.obj), or
+      b. the lift deliberately files functions under a different .c than the
+         TU they came from (--source-path lists 58 such functions).
+
+    Never "fix" a disagreement by editing `source` to the proven TU: if no
+    repo file of that name exists, vc71_verify silently stops scoring every
+    function in the object.  files_windows.obj records tag_files/files.c and
+    its 27 functions do live in src/halo/tag_files/files.c, even though 24 of
+    them were compiled from files_windows.c -- which is not a repo file.
 
     Three rules keep this from manufacturing claims:
 
-      * `objects[].source` is the claim under test, not the .obj name.  kb
-        already records the TU for 190 of 232 objects in the same form this
-        tool recovers.
+      * `source` is the claim under test, not the .obj name -- the .obj name
+        is not consumed by anything that scores.
       * Share is computed over members that CARRY evidence.  Dividing by all
         members scores absence of evidence as disagreement.
       * Direct evidence outranks bracketed evidence.  If ANY member's own
@@ -536,9 +554,16 @@ def print_objects_verdict(funcs, br: Bracketing, kb_objects, limit: int) -> None
     print()
     print("CONTRADICTS - no member's own assert names the recorded source, and")
     print(">=3 members' own asserts name one replacement covering >=90% of the")
-    print("evidence.  A rename is NOT the remedy where a collision is flagged:")
-    print("kb object names must stay unique or batch_delink writes two objects")
-    print("to one path and the smaller destroys the larger delinked reference.")
+    print("evidence.")
+    print()
+    print("This is a lead, not an instruction.  `source` is the REPO path the")
+    print("lift lives at (vc71_verify uses it to find the .c to score), not a")
+    print("record of the original TU, so a disagreement may equally mean the")
+    print("lift was deliberately filed elsewhere.  Do NOT edit `source` to the")
+    print("proven TU: if no repo file of that name exists, scoring for every")
+    print("function in the object silently drops to zero.  And where a")
+    print("collision is flagged, renaming the object is destructive -- names")
+    print("must stay unique or batch_delink writes two objects to one path.")
     print()
     print("   %-26s %-28s %-26s %-14s %s"
           % ("object", "kb .source", "proven TU", "direct/evid", "collision"))
