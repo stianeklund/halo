@@ -1559,24 +1559,6 @@ uint32_t bitmap_2d_get_pixel(void *bitmap, float *point, float lod)
   return bitmap_format_to_a8r8g8b8(format, mipmap_address, pixel_index);
 }
 
-int bitmap_get_pixel_count(void *bitmap)
-{
-  int pixel_count;
-  int mipmap_index;
-
-  pixel_count = 0;
-  if (!bitmap_verify(bitmap, 0)) {
-    display_assert("bitmap_verify(bitmap, FALSE)",
-                   "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x378, 1);
-    system_exit(-1);
-  }
-  for (mipmap_index = 0; mipmap_index <= *(short *)((char *)bitmap + 0x14);
-       mipmap_index++) {
-    pixel_count += bitmap_mipmap_get_pixel_count(bitmap, mipmap_index);
-  }
-  return pixel_count;
-}
-
 /*
  * bitmap_get_pixel_count — total number of texels in a bitmap's pixel data,
  * summed across every mipmap level (bitmap_mipmap_get_pixel_count per level).

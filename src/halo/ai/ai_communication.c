@@ -377,6 +377,61 @@ bool FUN_00042df0(int param_1, int param_2, int param_3)
   return true;
 }
 
+/* FUN_00042e60 (0x42e60): cdecl predicate with three 32-bit stack
+ * arguments.  The binary reads only the third argument at [EBP+0x10]; the
+ * first two slots remain unused.  It resolves that argument through
+ * actor_data, then accepts actor state 7 or state 5 with the signed word at
+ * actor+0xa4 equal to 1.  The +0xa4 access stays raw: types.h currently models
+ * that region as byte fields, while this function proves a word comparison. */
+bool FUN_00042e60(int param_1, int param_2, int param_3)
+{
+  char *actor;
+  int16_t action;
+  bool result;
+
+  result = false;
+  if (param_3 != -1) {
+    actor = (char *)datum_get(actor_data, param_3);
+    action = *(int16_t *)(actor + 0x6c);
+    switch (action) {
+    case 5:
+      result = *(int16_t *)(actor + 0xa4) == 1;
+      break;
+    case 7:
+      result = true;
+      break;
+    }
+  }
+  return result;
+}
+
+/* FUN_00042eb0 (0x42eb0): cdecl predicate with three 32-bit stack
+ * arguments.  The second argument is forwarded to FUN_00042d80 but is not
+ * read by that callee's current binary body.  On its true path, this function
+ * resolves a type-3 object from param_1, then compares actor fields at +0x34
+ * (dword) and +0x3c (signed word) for the object's actor and param_3. */
+bool FUN_00042eb0(int param_1, int param_2, int param_3)
+{
+  unit_data_t *unit;
+  actor_t *actor_a;
+  actor_t *actor_b;
+
+  if (FUN_00042d80(param_1, param_2, param_3)) {
+    unit = (unit_data_t *)object_get_and_verify_type(param_1, 3);
+    if (unit->actor_index.value != -1 && param_3 != -1) {
+      actor_a = (actor_t *)datum_get(actor_data, unit->actor_index.value);
+      actor_b = (actor_t *)datum_get(actor_data, param_3);
+      if (actor_a->field_034 != (uint32_t)-1 &&
+          actor_a->field_034 == actor_b->field_034 &&
+          actor_a->field_03c == actor_b->field_03c) {
+        return true;
+      }
+      return false;
+    }
+  }
+  return false;
+}
+
 /* FUN_00042f40 (0x42f40) — thin wrapper returning actor_is_fighting for the
  * actor keyed by param_3.
  *
@@ -400,6 +455,23 @@ bool FUN_00042f40(int param_1, int param_2, int param_3)
   (void)param_2;
 
   return (bool)actor_is_fighting(param_3);
+}
+
+/* FUN_00042f60 (0x42f60): cdecl predicate with three 32-bit stack
+ * arguments.  The binary reads [EBP+0x8], [EBP+0xc], and [EBP+0x10],
+ * forwards all three to FUN_00042d80, and returns a byte in AL.  When
+ * FUN_00042d80 returns nonzero, the third argument is passed to
+ * actor_is_fighting; the result is 1 only when both calls return nonzero. */
+char FUN_00042f60(int param_1, int param_2, int param_3)
+{
+  char result;
+
+  result = 0;
+  if (FUN_00042d80(param_1, param_2, param_3)) {
+    if (actor_is_fighting(param_3))
+      result = 1;
+  }
+  return result;
 }
 
 /* FUN_00042fa0 (0x42fa0) — true when param_1's unit and param_3's actor are
@@ -472,6 +544,25 @@ bool FUN_00042fa0(int param_1, int param_2, int param_3)
   prop1 = (char *)datum_get(prop_data, actor1->target_target_prop_index);
   prop2 = (char *)datum_get(prop_data, actor2->target_target_prop_index);
   return *(int *)(prop1 + 0x18) == *(int *)(prop2 + 0x18);
+}
+
+/* FUN_00043090 (0x43090): cdecl predicate with three 32-bit stack
+ * arguments.  The binary uses only param_3 at [EBP+0x10].  It calls
+ * actor_is_fighting(param_3); when that succeeds, datum_get(actor_data,
+ * param_3) is retained because its returned record is read at +0x04.  The
+ * predicate returns 1 only when that signed word is zero. */
+char FUN_00043090(int param_1, int param_2, int param_3)
+{
+  actor_t *actor;
+  char result;
+
+  result = 0;
+  if (actor_is_fighting(param_3)) {
+    actor = (actor_t *)datum_get(actor_data, param_3);
+    if (actor->field_004 == 0)
+      result = 1;
+  }
+  return result;
 }
 
 /* FUN_00043360 (0x43360) — issue a secondary "look at object" request

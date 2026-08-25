@@ -105,21 +105,6 @@ bool main_menu_is_active(void)
 
 void *ui_widget_get_last_child(void *widget);
 
-/* main_menu_active - 0x0e43d0
- * Confirmed: MOV AL,byte ptr [EBP+0x8]; MOV byte ptr [0x0046cc88],AL.
- */
-void main_menu_active(bool active)
-{
-  *(uint8_t *)0x46cc88 = (uint8_t)active;
-}
-
-/* main_menu_is_active - 0x0e43e0
- * Confirmed: MOV AL,byte ptr [0x0046cc88]; RET. */
-bool main_menu_is_active(void)
-{
-  return *(uint8_t *)0x46cc88;
-}
-
 bool ui_widget_is_main_menu_loaded(void)
 {
   int root_widget;

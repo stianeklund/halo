@@ -750,6 +750,10 @@
     {
      "addr": "0x4557e1",
      "decl": "uint8_t decals_reported_permanent_delete;"
+    },
+    {
+     "addr": "0x47e4d0",
+     "decl": "void *global_rasterizer_model_ambient_reflection_tint;"
     }
    ],
    "functions": [
@@ -6576,7 +6580,7 @@
     },
     {
      "addr": "0x17cbd0",
-     "decl": "void FUN_0017cbd0(int shader, int p2, int p3, int widget_handle, int p5, int p6, int zbuf_handle, float *position, int p9);",
+     "decl": "void FUN_0017cbd0(void *shader, short p2, int p3, int widget_handle, int p5, int p6, int zbuf_handle, float *position, void *p9);",
      "ported": true
     },
     {
@@ -27543,7 +27547,9 @@
     },
     {
      "addr": "0x19f530",
-     "decl": "uint8_t FUN_0019f530(int unit_handle);"
+     "decl": "int FUN_0019f530(int unit_handle);",
+     "source_path": "src/halo/text/unicode.c",
+     "ported": true
     },
     {
      "addr": "0x19f540",
@@ -29795,7 +29801,7 @@
     },
     {
      "addr": "0x182590",
-     "decl": "void rasterizer_memory_pool_copy(int data, int size);",
+     "decl": "int rasterizer_memory_pool_copy(int data, int size);",
      "name": "rasterizer_memory_pool_copy",
      "ported": true
     },
@@ -33352,11 +33358,15 @@
     },
     {
      "addr": "0x42e60",
-     "decl": "void FUN_00042e60(void);"
+     "decl": "bool FUN_00042e60(int param_1, int param_2, int param_3);",
+     "source_path": "src/halo/ai/ai_communication.c",
+     "ported": true
     },
     {
      "addr": "0x42eb0",
-     "decl": "void FUN_00042eb0(void);"
+     "decl": "bool FUN_00042eb0(int param_1, int param_2, int param_3);",
+     "source_path": "src/halo/ai/ai_communication.c",
+     "ported": true
     },
     {
      "addr": "0x42f40",
@@ -33366,7 +33376,9 @@
     },
     {
      "addr": "0x42f60",
-     "decl": "void FUN_00042f60(void);"
+     "decl": "char FUN_00042f60(int param_1, int param_2, int param_3);",
+     "ported": true,
+     "source_path": "src/halo/ai/ai_communication.c"
     },
     {
      "addr": "0x42fa0",
@@ -33380,7 +33392,9 @@
     },
     {
      "addr": "0x43090",
-     "decl": "void FUN_00043090(void);"
+     "decl": "char FUN_00043090(int param_1, int param_2, int param_3);",
+     "ported": true,
+     "source_path": "src/halo/ai/ai_communication.c"
     },
     {
      "addr": "0x430d0",
@@ -41256,7 +41270,7 @@
     },
     {
      "addr": "0x167ee0",
-     "decl": "void FUN_00167ee0(void);"
+     "decl": "bool FUN_00167ee0(void *param_1);"
     },
     {
      "addr": "0x167ff0",
@@ -41401,11 +41415,13 @@
    "functions": [
     {
      "addr": "0x16ab00",
-     "decl": "void FUN_0016ab00(void);"
+     "decl": "void FUN_0016ab00(int16_t detail_function@<ax>, uint32_t param_3@<ecx>, int16_t detail_mask@<bx>, uint32_t param_4, uint32_t param_5, uint32_t param_6, uint32_t param_7, char param_8, char param_9);",
+     "ported": true
     },
     {
      "addr": "0x16b180",
-     "decl": "void FUN_0016b180(void);"
+     "decl": "void FUN_0016b180(bool flag);",
+     "ported": true
     },
     {
      "addr": "0x16b1c0",
@@ -41429,7 +41445,9 @@
     },
     {
      "addr": "0x16c090",
-     "decl": "void FUN_0016c090(int param_1, int param_2, int param_3, int param_4, int param_5, int param_6, int param_7, float *param_8, int param_9);"
+     "decl": "void *FUN_0016c090(void *shader, short param_2, int param_3, int param_4, int param_5, int param_6, int param_7, float *centroid, void *out);",
+     "ported": true,
+     "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_models.c"
     },
     {
      "addr": "0x16c5a0",
