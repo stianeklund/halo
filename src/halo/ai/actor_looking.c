@@ -3957,7 +3957,15 @@ bool FUN_00017ab0(int actor_handle, short scenario_idx, char *state_data,
       bipd_null = (bipd == 0);
       FUN_00012140((float *)elem, (float *)elem2, pos);
       if (bipd_null || (*(unsigned char *)(bipd + 0x2f4) & 0x44) == 0) {
-        actr_def = 0;
+        /* Non-flying biped: flatten the facing to the ground plane before the
+         * 2D normalize.  In the original this is `local_1c = 0`, which Ghidra
+         * shows as an independent local; local_24/local_20/local_1c are in
+         * fact the three floats of this vector, so the store is pos[2] = 0.
+         * Writing an unrelated variable instead left the raw delta z in the
+         * facing, so object_set_position(0x143ae0) derived an up vector of the
+         * same non-unit magnitude and unit_verify_vectors asserted
+         * ("unit-preprocess-nodes"). */
+        pos[2] = 0.0f;
         if (magnitude3d(pos) == *(float *)0x2533c0) {
           units_debug_get_closest_unit(unit_handle, pos);
         }

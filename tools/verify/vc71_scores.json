@@ -41476,16 +41476,16 @@
     "actor_look_update": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 86.4,
+      "abi_modeled_mnemonic_pct": 86.6,
       "addr": "0x29040",
       "end": "0x2a288",
       "kind": "auto",
       "n_r": 1418,
-      "opnd_percent": 56.6,
-      "raw_mnemonic_pct": 86.4,
+      "opnd_percent": 56.8,
+      "raw_mnemonic_pct": 86.6,
       "ref": "synth",
       "ref_sha": "1452382645d900d9",
-      "score": 86.4,
+      "score": 86.6,
       "source": "src/halo/ai/actor_looking.c"
     },
     "actor_mode_name": {
