@@ -57,6 +57,14 @@ void ui_widgets_set_fade_value(float value)
   *(float *)0x46cc4c = value;
 }
 
+/* ui_widget_debug_show_path — stores the byte argument at 0x46cc84.
+ * The target function contains only MOV AL,[EBP+8] followed by a byte
+ * store to this absolute address. */
+void ui_widget_debug_show_path(unsigned char value)
+{
+  *(uint8_t *)0x46cc84 = value;
+}
+
 /* ui_widget_realloc — thin wrapper around stack_memory_pool_realloc.
  * Passes the global widget stack memory pool at [0x31e04c] as the
  * first argument, forwarding the caller's block pointer, new size,
@@ -79,6 +87,21 @@ void ui_widget_set_events_suppressed(bool suppress)
 }
 
 void *ui_widget_get_last_child(void *widget);
+
+/* main_menu_active - 0x0e43d0
+ * Confirmed: MOV AL,byte ptr [EBP+0x8]; MOV byte ptr [0x0046cc88],AL.
+ */
+void main_menu_active(bool active)
+{
+  *(uint8_t *)0x46cc88 = (uint8_t)active;
+}
+
+/* main_menu_is_active - 0x0e43e0
+ * Confirmed: MOV AL,byte ptr [0x0046cc88]; RET. */
+bool main_menu_is_active(void)
+{
+  return *(uint8_t *)0x46cc88;
+}
 
 bool ui_widget_is_main_menu_loaded(void)
 {

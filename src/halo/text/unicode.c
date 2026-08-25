@@ -599,3 +599,18 @@ wchar_t *ascii_to_wide(const char *ascii, wchar_t *unicode, size_t length)
 
   return unicode;
 }
+
+/* Formats CRT strerror output into the shared wide-character buffer. */
+wchar_t *FUN_0019f4f0(int errnum)
+{
+  *(wchar_t *)0x4d9be8 = 0;
+  unicode_sprintf((wchar_t *)0x4d9be8, 0x100, L"%hs", strerror(errnum));
+  return (wchar_t *)0x4d9be8;
+}
+
+/* FUN_0019f530 (0x19f530) — returns constant 0x14; parameter is unused. */
+int FUN_0019f530(int unit_handle)
+{
+  (void)unit_handle;
+  return 0x14;
+}

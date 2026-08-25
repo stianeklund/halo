@@ -2203,6 +2203,7 @@ publish:
   *(void **)0x3256a8 = default_3d;
   *(void **)0x3256ac = default_cm;
 }
+
 /*
  * FUN_00157010 @ 0x157010 — rasterizer initialize.
  *
@@ -2671,4 +2672,28 @@ char FUN_00157010(void)
     error(2, "### ERROR failed to initialize rasterizer");
   }
   return success;
+}
+
+/* FUN_00157940 @ 0x157940 — begins the Xbox rasterizer frame update. */
+void FUN_00157940(float *elapsed)
+{
+  if (*(void **)0x476ab0 == 0) {
+    display_assert("global_d3d_device",
+                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
+                   0x4e8, true);
+    system_exit(-1);
+  }
+
+  *(float *)0x325694 = FUN_0017dee0();
+  *(float *)0x5a5e18 = *elapsed;
+  FUN_0016f730();
+  FUN_0017eb90();
+  FUN_001792a0(0);
+  FUN_00181180();
+  texture_cache_idle();
+  D3DDevice_SetRenderState_Dxt1NoiseEnable(*(uint8_t *)0x325701);
+  if (*(uint8_t *)0x3256cd != 0) {
+    FUN_0015b220();
+    decals_update();
+  }
 }

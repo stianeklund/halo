@@ -1671,7 +1671,7 @@ int rasterizer_memory_pool_alloc(int data, int size)
 
 /* rasterizer_memory_pool_copy: assert data non-null then copy into pool
  * (0x182590) */
-void rasterizer_memory_pool_copy(int data, int size)
+int rasterizer_memory_pool_copy(int data, int size)
 {
   if (data == 0) {
     display_assert("data",
@@ -1679,7 +1679,7 @@ void rasterizer_memory_pool_copy(int data, int size)
                    0x42, 1);
     system_exit(-1);
   }
-  rasterizer_memory_pool_alloc(data, size);
+  return rasterizer_memory_pool_alloc(data, size);
 }
 
 /* FUN_001825d0: stub (0x1825d0) */

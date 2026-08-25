@@ -1,4 +1,40 @@
 
+/* ai_debug_initialize (0x48e90): clear AI debug state, reset selections, and
+ * allocate the actor and path debug arrays when they are not already present.
+ *
+ * Confirmed from disassembly:
+ *   csmemset(0x5ac9c0, 0, 0x85b2c)
+ *   actor_debug_array allocation: 0x657c00 bytes, source line 0x93
+ *   actor_path_debug_array allocation: 0x394f80 bytes, source line 0x94
+ *   display_assert(..., line 0x96, true) followed by system_exit(-1).
+ * The global addresses remain raw because no corresponding declarations exist
+ * in types.h. */
+void ai_debug_initialize(void)
+{
+  csmemset((void *)0x5ac9c0, 0, 0x85b2c);
+  *(int32_t *)0x5ac9f8 = -1;
+  *(int32_t *)0x5ac9f4 = -1;
+  *(int32_t *)0x5acab4 = 1;
+  *(uint8_t *)0x5aca65 = 1;
+
+  if (*(void **)0x331f58 == NULL) {
+    *(void **)0x331f58 =
+      debug_malloc(0x657c00, false, "c:\\halo\\SOURCE\\ai\\ai_debug.c",
+                   0x93);
+  }
+  if (*(void **)0x331f5c == NULL) {
+    *(void **)0x331f5c =
+      debug_malloc(0x394f80, false, "c:\\halo\\SOURCE\\ai\\ai_debug.c",
+                   0x94);
+  }
+  if (*(void **)0x331f58 != NULL && *(void **)0x331f5c != NULL) {
+    return;
+  }
+  display_assert("actor_debug_array && actor_path_debug_array",
+                 "c:\\halo\\SOURCE\\ai\\ai_debug.c", 0x96, true);
+  system_exit(-1);
+}
+
 /* ai_debug_dispose: free actor_debug_array and actor_path_debug_array.
  *
  * Confirmed: __FILE__ = "c:\halo\SOURCE\ai\ai_debug.c"

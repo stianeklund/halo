@@ -7854,7 +7854,8 @@ void FUN_000b1b30(float *param_1, int param_2, void *param_3, void *param_4,
     if (is_transparent == 0)
       FUN_0017cbc0(shader, 0, 0, widget_a, 2, 0, local_8);
     else
-      FUN_0017cbd0(shader, 0, 0, widget_a, 2, 0, local_8, centroid, 0);
+      FUN_0017cbd0((void *)shader, 0, 0, widget_a, 2, 0, local_8, centroid,
+                   NULL);
   }
   FUN_0016b1c0();
   FUN_0016b240();

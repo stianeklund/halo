@@ -1,3 +1,44 @@
+## Goal-lift run — 1/20 committed — 2026-08-24
+
+| function | addr | source_file | screen_result | vc71 | action | reason |
+|---|---|---|---|---|---|---|
+| FUN_00157940 | 0x157940 | src/halo/rasterizer/xbox/rasterizer_xbox.c | pass | 98.6% | committed | build, ABI, hazard, buffer-alias clean; strict VC71 policy passed |
+| uisalpha | 0x19e460 | unicode.obj | skip_trivial | - | skipped | one-call wrapper to iswctype |
+| FUN_00093b60 | 0x93b60 | src/halo/cutscene/cinematics.c | skip_reg_args | - | skipped | @eax and @edx arguments; known structural score cap |
+| FUN_0006ca50 | 0x6ca50 | src/halo/bitmaps/libtiff/tif_open.c | skip_reg_args | - | skipped | @esi state pointer and MSVC rep-stosd loop cap |
+| input_abstraction_print_config_control | 0xce8c0 | src/halo/input/input_abstraction.c | skip_reg_args | - | skipped | @eax controller index; implicit-register artifact |
+| FUN_000a3ea0 | 0xa3ea0 | weather_particle_systems.obj | skip_reg_args | - | skipped | unaff_SI and unaff_EDI implicit register arguments |
+| ai_conversation_stop | 0x44500 | src/halo/ai/ai_communication.c | pass | 96.0% | committed | build, ABI, hazard, buffer-alias clean; strict VC71 policy passed |
+| FUN_000a4200 | 0xa4200 | src/halo/effects/weather_particle_systems.c | pass | 95.1% | committed | build, ABI, hazard, buffer-alias clean; strict VC71 policy passed |
+| FUN_00049280 | 0x49280 | ai_debug.obj | skip_reg_args | - | skipped | implicit @ecx and @ebx arguments |
+| ai_conversation_actor_deleted | 0x44590 | src/halo/ai/ai_communication.c | pass | 100.0% | committed | build, ABI, hazard, buffer-alias clean; strict VC71 policy passed |
+| ai_communication_get_type_name | 0x42cb0 | src/halo/ai/ai_communication.c | skipped | - | skipped | empty decompile; no recoverable body |
+| ai_communication_get_type_by_name | 0x42ce0 | src/halo/ai/ai_communication.c | pass | 100.0% | committed | binary resolved Ghidra void-return error; build and gates clean |
+| FUN_00042d80 | 0x42d80 | src/halo/ai/ai_communication.c | pass | 100.0% | committed | optimizer recovered tail-merge accumulator; build, ABI, hazards, equivalence clean |
+| FUN_00042df0 | 0x42df0 | src/halo/ai/ai_communication.c | pass | 100.0% | committed | optimizer recovered negated-greater float guard; build, ABI, hazards, equivalence clean |
+| FUN_00042e60 | 0x42e60 | src/halo/ai/ai_communication.c | pass | 100.0% | committed | optimizer recovered bool accumulator and switch shape; build, ABI, hazards, equivalence clean |
+| FUN_00042eb0 | 0x42eb0 | src/halo/ai/ai_communication.c | pass | 91.1% | committed | corrected datum_handle_t union access; build, ABI, hazards clean |
+| FUN_00042f40 | 0x42f40 | ai_communication.obj | skip_trivial | - | skipped | one-call wrapper to FUN_0003b150 |
+| FUN_00042f60 | 0x42f60 | src/halo/ai/ai_communication.c | pass | 100.0% | committed | exact VC71; equivalence inconclusive because oracle resolves unported nested callees |
+| FUN_00042fa0 | 0x42fa0 | src/halo/ai/ai_communication.c | pass | 90.9% | committed | build, ABI, hazards clean; equivalence weak due nested-callee oracle mismatch |
+| FUN_00043050 | 0x43050 | ai_communication.obj | skip_trivial | - | skipped | conditional one-call datum_get wrapper |
+| FUN_00043090 | 0x43090 | src/halo/ai/ai_communication.c | pass | 100.0% | committed | binary-corrected omitted field test; build, ABI, hazards clean |
+| actor_communication_team | 0x43270 | ai_communication.obj | pass | 75.0% | reverted | optimizer exhausted; explicit flag-branch shape remains below 90% |
+| FUN_000432b0 | 0x432b0 | ai_communication.obj | skip_reg_args | - | skipped | implicit @eax, @ebx, and @edi arguments |
+| FUN_00043360 | 0x43360 | ai_communication.obj | skip_reg_args | - | skipped | implicit @bx, @esi, and @edi arguments |
+| FUN_00043ea0 | 0x43ea0 | ai_communication.obj | skip_reg_args | - | skipped | implicit @eax/@ecx and register-arg callees |
+| FUN_00045830 | 0x45830 | ai_communication.obj | skip_reg_args | - | skipped | implicit @eax/@esi/@edi and FPU/frame complexity |
+| ai_debug_initialize | 0x48e90 | src/halo/ai/ai_debug.c | pass | 92.0% | committed | corrected per-function source_path routing; build, ABI, hazards clean |
+| ai_conversation_status | 0x433b0 | ai_communication.obj | pass | 89.8% | reverted | optimizer exhausted below 90% after load-width recovery |
+| ui_widget_debug_show_path | 0xe3ca0 | src/halo/interface/ui_widget.c | pass | 100.0% | committed | exact byte-store lift; build, ABI, hazards clean |
+| main_menu_active | 0xe43d0 | src/halo/interface/ui_widget.c | pass | 100.0% | committed | exact byte-store lift; build, ABI, hazards, equivalence clean |
+| ai_conversation_finish | 0x435b0 | ai_communication.obj | pass | 86.3% | reverted | optimizer exhausted; frame/register-allocation gap remains below 90% |
+| FUN_001d77b3 | 0x1d77b3 | XAPILIB:xbox_crt.obj | skip_library | - | skipped | byte-exact XAPILIB CRT function; not a lift target |
+| FUN_0019f4f0 | 0x19f4f0 | src/halo/text/unicode.c | pass | 100.0% | committed | corrected ABI/return and 16-bit global clear; build, ABI, hazards clean |
+| FUN_0019f530 | 0x19f530 | src/halo/text/unicode.c | pass | 100.0% | committed | corrected full-EAX return width from binary MOV EAX,0x14; build, ABI, hazards clean |
+| main_menu_is_active | 0xe43e0 | src/halo/interface/ui_widget.c | pass | 100.0% | committed | exact byte getter paired with main_menu_active; build, ABI, hazards clean |
+| ai_scripting_follow_distance | 0x58cc0 | src/halo/ai/ai_script.c | pass | 96.6% | committed | exact 0x100-byte buffer and variadic log audit; build, ABI, hazards clean |
+
 ## Goal-lift run — 4/85 committed (stop_on_fail_reached) — 2026-08-18
 
 | function | addr | obj | vc71 | action | reason |

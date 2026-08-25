@@ -719,9 +719,10 @@ void FUN_00123560(int model_tag, int permutation_data, int *node_matrices,
 
                       env_slot = (int)(short)env_count;
                       FUN_0017cbd0(
-                        shader_tag, (int)actual_detail, (int)(part + 0x44), -1,
-                        *(int *)(part + 0x48), (int)(part + 0x54), -1,
-                        transformed_centroid, (int)&env_data[env_slot * 16]);
+                        (void *)shader_tag, (short)actual_detail,
+                        (int)(part + 0x44), -1, *(int *)(part + 0x48),
+                        (int)(part + 0x54), -1, transformed_centroid,
+                        (void *)&env_data[env_slot * 16]);
 
                       if ((short)env_count < 0x20 &&
                           *(short *)&env_data[env_slot * 16 + 8] != -1 &&

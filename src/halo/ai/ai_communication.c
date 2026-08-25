@@ -203,6 +203,33 @@ void ai_communication_dispose_from_old_map(void)
   data_make_invalid(*(void **)0x6324ec);
 }
 
+/* ai_communication_get_type_by_name (0x42ce0): search the 57-entry
+ * communication-type name table at 0x2c8d78 and return the matching index.
+ *
+ * Confirmed from disassembly: EBX starts at -1, ESI starts at 0, and the loop
+ * visits entries 0 through 0x38.  Each csstrcmp result is tested; a zero
+ * result stores the current index, so a later duplicate would replace an
+ * earlier match.  The low 16 bits of EBX are returned.  A missing match
+ * therefore returns -1. */
+int16_t ai_communication_get_type_by_name(const char *name)
+{
+  int16_t result;
+  int16_t index;
+  const char **type_names;
+
+  result = -1;
+  index = 0;
+  type_names = (const char **)0x2c8d78;
+  do {
+    if (csstrcmp(*type_names, name) == 0)
+      result = index;
+    index = (int16_t)(index + 1);
+    type_names++;
+  } while (index < 0x39);
+
+  return result;
+}
+
 /* ai_communication_packet_new (0x42d20): initialize 0x20-byte packet. */
 void ai_communication_packet_new(void *packet)
 {
@@ -217,6 +244,191 @@ void ai_communication_packet_new(void *packet)
   *(int16_t *)((char *)packet + 4) = -1;
   *(int16_t *)((char *)packet + 6) = -1;
   *(int16_t *)((char *)packet + 8) = -1;
+}
+
+/* FUN_00042d80 (0x42d80): cdecl with three 32-bit stack arguments.
+ * The binary reads [EBP+0x8] and [EBP+0x10]; [EBP+0xc] is not read.
+ * Return value is a boolean in AL. */
+bool FUN_00042d80(int param_1, int param_2, int param_3)
+{
+  int prop_handle;
+  int16_t prop_state;
+  char *prop;
+  bool result;
+
+  result = false;
+
+  if (param_3 != -1) {
+    prop_handle = FUN_00064b40(param_3, param_1, 1, 1);
+    if (prop_handle != -1) {
+      prop = (char *)datum_get(*(data_t **)0x5ab23c, prop_handle);
+      if (*(float *)(prop + 0x11c) < *(float *)0x254cc4) {
+        prop_state = *(int16_t *)(prop + 0x38);
+        if (prop_state == 0 || prop_state == 1)
+          result = true;
+      }
+    }
+  }
+
+  return result;
+}
+
+/* FUN_00042df0 (0x42df0): cdecl with three 32-bit stack arguments.
+ * The binary reads [EBP+0x8] and [EBP+0x10]; [EBP+0xc] is not read.
+ * Return value is a boolean in AL.  The prop field at +0x38 remains
+ * mechanically named because no prop structure is modelled in types.h. */
+bool FUN_00042df0(int param_1, int param_2, int param_3)
+{
+  int prop_handle;
+  int16_t prop_field_38;
+  char *prop;
+  bool result;
+
+  result = false;
+
+  if (param_3 != -1) {
+    prop_handle = FUN_00064b40(param_3, param_1, 1, 1);
+    if (prop_handle != -1) {
+      prop = (char *)datum_get(*(data_t **)0x5ab23c, prop_handle);
+      if (!(*(float *)(prop + 0x11c) > *(float *)0x254cc4)) {
+        prop_field_38 = *(int16_t *)(prop + 0x38);
+        if (prop_field_38 != 0 && prop_field_38 != 1)
+          result = true;
+      } else {
+        result = true;
+      }
+    }
+  }
+
+  return result;
+}
+
+/* FUN_00042e60 (0x42e60): cdecl predicate with three 32-bit stack
+ * arguments.  The binary reads only the third argument at [EBP+0x10]; the
+ * first two slots remain unused.  It resolves that argument through
+ * actor_data, then accepts actor state 7 or state 5 with the signed word at
+ * actor+0xa4 equal to 1.  The +0xa4 access stays raw: types.h currently models
+ * that region as byte fields, while this function proves a word comparison. */
+bool FUN_00042e60(int param_1, int param_2, int param_3)
+{
+  char *actor;
+  int16_t action;
+  bool result;
+
+  result = false;
+  if (param_3 != -1) {
+    actor = (char *)datum_get(actor_data, param_3);
+    action = *(int16_t *)(actor + 0x6c);
+    switch (action) {
+    case 5:
+      result = *(int16_t *)(actor + 0xa4) == 1;
+      break;
+    case 7:
+      result = true;
+      break;
+    }
+  }
+  return result;
+}
+
+/* FUN_00042eb0 (0x42eb0): cdecl predicate with three 32-bit stack
+ * arguments.  The second argument is forwarded to FUN_00042d80 but is not
+ * read by that callee's current binary body.  On its true path, this function
+ * resolves a type-3 object from param_1, then compares actor fields at +0x34
+ * (dword) and +0x3c (signed word) for the object's actor and param_3. */
+bool FUN_00042eb0(int param_1, int param_2, int param_3)
+{
+  unit_data_t *unit;
+  actor_t *actor_a;
+  actor_t *actor_b;
+
+  if (FUN_00042d80(param_1, param_2, param_3)) {
+    unit = (unit_data_t *)object_get_and_verify_type(param_1, 3);
+    if (unit->actor_index.value != -1 && param_3 != -1) {
+      actor_a = (actor_t *)datum_get(actor_data, unit->actor_index.value);
+      actor_b = (actor_t *)datum_get(actor_data, param_3);
+      if (actor_a->field_034 != (uint32_t)-1 &&
+          actor_a->field_034 == actor_b->field_034 &&
+          actor_a->field_03c == actor_b->field_03c) {
+        return true;
+      }
+      return false;
+    }
+  }
+  return false;
+}
+
+/* FUN_00042f60 (0x42f60): cdecl predicate with three 32-bit stack
+ * arguments.  The binary reads [EBP+0x8], [EBP+0xc], and [EBP+0x10],
+ * forwards all three to FUN_00042d80, and returns a byte in AL.  When
+ * FUN_00042d80 returns nonzero, the third argument is passed to
+ * actor_is_fighting; the result is 1 only when both calls return nonzero. */
+char FUN_00042f60(int param_1, int param_2, int param_3)
+{
+  char result;
+
+  result = 0;
+  if (FUN_00042d80(param_1, param_2, param_3)) {
+    if (actor_is_fighting(param_3))
+      result = 1;
+  }
+  return result;
+}
+
+/* FUN_00042fa0 (0x42fa0): cdecl with three 32-bit stack arguments and a
+ * boolean result in AL.  The call at 0x42fb4 pushes param_3, param_2, and
+ * param_1 in that order before calling FUN_00042d80; the decompiler omitted
+ * these arguments from its draft signature.
+ *
+ * Confirmed from disassembly: after the helper succeeds, the type-3 object
+ * at param_1 supplies its unit actor handle at +0x1a4.  The two actor records
+ * are resolved through actor_data, and their +0x270 handles are resolved
+ * through prop_data.  The final result is SETZ AL after comparing the dwords
+ * at +0x18 in those two prop records.  The +0x18 prop access remains raw:
+ * types.h has no recovered prop structure for this record. */
+bool FUN_00042fa0(int param_1, int param_2, int param_3)
+{
+  unit_data_t *unit;
+  actor_t *actor_a;
+  actor_t *actor_b;
+  char *prop_a;
+  char *prop_b;
+
+  if (FUN_00042d80(param_1, param_2, param_3)) {
+    unit = (unit_data_t *)object_get_and_verify_type(param_1, 3);
+    if (unit->actor_index.value != -1 && param_3 != -1) {
+      actor_a = (actor_t *)datum_get(actor_data, unit->actor_index.value);
+      actor_b = (actor_t *)datum_get(actor_data, param_3);
+      if (actor_a->target_target_prop_index != -1 &&
+          actor_b->target_target_prop_index != -1) {
+        prop_a =
+          (char *)datum_get(prop_data, actor_a->target_target_prop_index);
+        prop_b =
+          (char *)datum_get(prop_data, actor_b->target_target_prop_index);
+        return *(int32_t *)(prop_a + 0x18) == *(int32_t *)(prop_b + 0x18);
+      }
+    }
+  }
+  return false;
+}
+
+/* FUN_00043090 (0x43090): cdecl predicate with three 32-bit stack
+ * arguments.  The binary uses only param_3 at [EBP+0x10].  It calls
+ * actor_is_fighting(param_3); when that succeeds, datum_get(actor_data,
+ * param_3) is retained because its returned record is read at +0x04.  The
+ * predicate returns 1 only when that signed word is zero. */
+char FUN_00043090(int param_1, int param_2, int param_3)
+{
+  actor_t *actor;
+  char result;
+
+  result = 0;
+  if (actor_is_fighting(param_3)) {
+    actor = (actor_t *)datum_get(actor_data, param_3);
+    if (actor->field_004 == 0)
+      result = 1;
+  }
+  return result;
 }
 
 /* ai_conversation_line (0x434c0) — look up the current line index of the
@@ -371,5 +583,86 @@ void actor_communication_update(int actor_handle)
         FUN_001a6ef0(actor->field_018, communication_count, communication);
       }
     }
+  }
+}
+
+/* ai_conversation_stop (0x44500) — stop every conversation whose index field
+ * at +0x02 matches param_1.  When the AI trace byte at 0x5aca5f is set, the
+ * matching conversation name is resolved from the scenario block at +0x468
+ * and logged before the conversation is finished.
+ *
+ * Confirmed by disassembly 0x44500-0x44589:
+ *   - The 0x10-byte local at EBP-0x10 is data_iter_t.  data_iterator_new
+ *     receives &iterator and the data pointer loaded from 0x6324ec.
+ *   - The conversation index comparison is a 16-bit load at item+0x02.
+ *     The parameter is loaded as a 16-bit value from [EBP+0x08].
+ *   - tag_block_get_element receives scenario+0x468, (short)param_1 widened
+ *     to int, and element size 0x74, in that order.
+ *   - ai_conversation_finish receives iterator.datum_handle at iterator+0x08,
+ *     followed by two zero-valued char arguments.
+ *   - Stack cleanup is coalesced across nested calls: ADD ESP,0x0c after the
+ *     first iterator-next also cleans data_iterator_new; ADD ESP,0x18 after
+ *     console_printf cleans the staged tag-block and console arguments.
+ */
+void ai_conversation_stop(int param_1)
+{
+  void *item;
+  data_iter_t iterator;
+
+  data_iterator_new(&iterator, *(data_t **)0x6324ec);
+  item = data_iterator_next(&iterator);
+  if (item != (void *)0) {
+    do {
+      if (*(short *)((char *)item + 2) == (short)param_1) {
+        if (*(char *)0x5aca5f != '\0') {
+          item = global_scenario_get();
+          item = tag_block_get_element((char *)item + 0x468,
+                                       (int)(short)param_1, 0x74);
+          console_printf(0, "%s: told to stop by scripting", item);
+        }
+        ai_conversation_finish(iterator.datum_handle, 0, 0);
+      }
+      item = data_iterator_next(&iterator);
+    } while (item != (void *)0);
+  }
+}
+
+/* ai_conversation_actor_deleted (0x44590).
+ *
+ * The item and tag-block element offsets below are kept raw: this lift does
+ * not establish semantic field names for either record. */
+void ai_conversation_actor_deleted(int actor_handle)
+{
+  void *item;
+  void *definition;
+  int16_t comparison_index;
+  int item_index;
+  data_iter_t iterator;
+
+  data_iterator_new(&iterator, *(data_t **)0x6324ec);
+  item = data_iterator_next(&iterator);
+  while (item != (void *)0) {
+    definition =
+      tag_block_get_element((char *)global_scenario_get() + 0x468,
+                            (int)*(int16_t *)((char *)item + 0x02), 0x74);
+    comparison_index = 0;
+    if (*(int *)((char *)definition + 0x50) > 0) {
+      item_index = 0;
+      do {
+        if (*(int *)((char *)item + item_index * 4 + 0x28) == actor_handle) {
+          if ((*(uint8_t *)((char *)definition + 0x20) & 1) != 0) {
+            ai_conversation_finish(iterator.datum_handle, 0, 0);
+            break;
+          }
+          *(uint32_t *)((char *)item + 0x14) &= ~(1u << item_index);
+          *(int32_t *)((char *)item + item_index * 4 + 0x28) = -1;
+          if (*(int16_t *)((char *)item + 0x4a) == comparison_index)
+            *(uint8_t *)((char *)item + 0x63) = 1;
+        }
+        comparison_index = comparison_index + 1;
+        item_index = (int)comparison_index;
+      } while (item_index < *(int *)((char *)definition + 0x50));
+    }
+    item = data_iterator_next(&iterator);
   }
 }

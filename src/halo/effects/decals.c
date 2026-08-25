@@ -2581,8 +2581,8 @@ void FUN_0017cbc0(int shader, int p2, int p3, int widget_handle, int p5, int p6,
 
 /* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c090).
  */
-void FUN_0017cbd0(int shader, int p2, int p3, int widget_handle, int p5, int p6,
-                  int zbuf_handle, float *position, int p9)
+void FUN_0017cbd0(void *shader, short p2, int p3, int widget_handle, int p5,
+                  int p6, int zbuf_handle, float *position, void *p9)
 {
   FUN_0016c090(shader, p2, p3, widget_handle, p5, p6, zbuf_handle, position,
                p9);

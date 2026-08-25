@@ -750,6 +750,10 @@
     {
      "addr": "0x4557e1",
      "decl": "uint8_t decals_reported_permanent_delete;"
+    },
+    {
+     "addr": "0x47e4d0",
+     "decl": "void *global_rasterizer_model_ambient_reflection_tint;"
     }
    ],
    "functions": [
@@ -6576,7 +6580,7 @@
     },
     {
      "addr": "0x17cbd0",
-     "decl": "void FUN_0017cbd0(int shader, int p2, int p3, int widget_handle, int p5, int p6, int zbuf_handle, float *position, int p9);",
+     "decl": "void FUN_0017cbd0(void *shader, short p2, int p3, int widget_handle, int p5, int p6, int zbuf_handle, float *position, void *p9);",
      "ported": true
     },
     {
@@ -21316,7 +21320,9 @@
     },
     {
      "addr": "0x157940",
-     "decl": "void FUN_00157940(float *elapsed);"
+     "decl": "void FUN_00157940(float *elapsed);",
+     "ported": true,
+     "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
     },
     {
      "addr": "0x1579d0",
@@ -26355,7 +26361,8 @@
     },
     {
      "addr": "0xe3ca0",
-     "decl": "void ui_widget_debug_show_path(unsigned char value);"
+     "decl": "void ui_widget_debug_show_path(unsigned char value);",
+     "ported": true
     },
     {
      "addr": "0xe3cb0",
@@ -26410,11 +26417,14 @@
     },
     {
      "addr": "0xe43d0",
-     "decl": "void main_menu_active(bool active);"
+     "decl": "void main_menu_active(bool active);",
+     "ported": true
     },
     {
      "addr": "0xe43e0",
-     "decl": "bool main_menu_is_active(void);"
+     "decl": "bool main_menu_is_active(void);",
+     "ported": true,
+     "source_path": "src/halo/interface/ui_widget.c"
     },
     {
      "addr": "0xe43f0",
@@ -27489,11 +27499,15 @@
     },
     {
      "addr": "0x19f4f0",
-     "decl": "void FUN_0019f4f0(void);"
+     "decl": "wchar_t *FUN_0019f4f0(int errnum);",
+     "source_path": "src/halo/text/unicode.c",
+     "ported": true
     },
     {
      "addr": "0x19f530",
-     "decl": "uint8_t FUN_0019f530(int unit_handle);"
+     "decl": "int FUN_0019f530(int unit_handle);",
+     "source_path": "src/halo/text/unicode.c",
+     "ported": true
     },
     {
      "addr": "0x19f540",
@@ -29741,7 +29755,7 @@
     },
     {
      "addr": "0x182590",
-     "decl": "void rasterizer_memory_pool_copy(int data, int size);",
+     "decl": "int rasterizer_memory_pool_copy(int data, int size);",
      "name": "rasterizer_memory_pool_copy",
      "ported": true
     },
@@ -30811,7 +30825,7 @@
     },
     {
      "addr": "0x1dd576",
-     "decl": "void FUN_001dd576(void);"
+     "decl": "char *strerror(int errnum);"
     },
     {
      "addr": "0x1dd5c8",
@@ -33275,7 +33289,9 @@
     },
     {
      "addr": "0x42ce0",
-     "decl": "int16_t ai_communication_get_type_by_name(const char *name);"
+     "decl": "int16_t ai_communication_get_type_by_name(const char *name);",
+     "name": "ai_communication_get_type_by_name",
+     "ported": true
     },
     {
      "addr": "0x42d20",
@@ -33283,19 +33299,27 @@
     },
     {
      "addr": "0x42d80",
-     "decl": "void FUN_00042d80(void);"
+     "decl": "bool FUN_00042d80(int param_1, int param_2, int param_3);",
+     "ported": true,
+     "source_path": "src/halo/ai/ai_communication.c"
     },
     {
      "addr": "0x42df0",
-     "decl": "void FUN_00042df0(void);"
+     "decl": "bool FUN_00042df0(int param_1, int param_2, int param_3);",
+     "source_path": "src/halo/ai/ai_communication.c",
+     "ported": true
     },
     {
      "addr": "0x42e60",
-     "decl": "void FUN_00042e60(void);"
+     "decl": "bool FUN_00042e60(int param_1, int param_2, int param_3);",
+     "source_path": "src/halo/ai/ai_communication.c",
+     "ported": true
     },
     {
      "addr": "0x42eb0",
-     "decl": "void FUN_00042eb0(void);"
+     "decl": "bool FUN_00042eb0(int param_1, int param_2, int param_3);",
+     "source_path": "src/halo/ai/ai_communication.c",
+     "ported": true
     },
     {
      "addr": "0x42f40",
@@ -33303,11 +33327,15 @@
     },
     {
      "addr": "0x42f60",
-     "decl": "void FUN_00042f60(void);"
+     "decl": "char FUN_00042f60(int param_1, int param_2, int param_3);",
+     "ported": true,
+     "source_path": "src/halo/ai/ai_communication.c"
     },
     {
      "addr": "0x42fa0",
-     "decl": "void FUN_00042fa0(void);"
+     "decl": "bool FUN_00042fa0(int param_1, int param_2, int param_3);",
+     "ported": true,
+     "source_path": "src/halo/ai/ai_communication.c"
     },
     {
      "addr": "0x43050",
@@ -33315,7 +33343,9 @@
     },
     {
      "addr": "0x43090",
-     "decl": "void FUN_00043090(void);"
+     "decl": "char FUN_00043090(int param_1, int param_2, int param_3);",
+     "ported": true,
+     "source_path": "src/halo/ai/ai_communication.c"
     },
     {
      "addr": "0x430d0",
@@ -33389,15 +33419,24 @@
     },
     {
      "addr": "0x44500",
-     "decl": "void ai_conversation_stop(int param_1);"
+     "decl": "void ai_conversation_stop(int param_1);",
+     "name": "ai_conversation_stop",
+     "ported": true,
+     "source_path": "src/halo/ai/ai_communication.c"
     },
     {
      "addr": "0x44590",
-     "decl": "void ai_conversation_actor_deleted(int actor_handle);"
+     "decl": "void ai_conversation_actor_deleted(int actor_handle);",
+     "name": "ai_conversation_actor_deleted",
+     "ported": true,
+     "source_path": "src/halo/ai/ai_communication.c"
     },
     {
      "addr": "0x44660",
-     "decl": "void ai_conversation_unit_died(int unit_handle, char param_2);"
+     "decl": "void ai_conversation_unit_died(int unit_handle, char param_2);",
+     "name": "ai_conversation_unit_died",
+     "ported": true,
+     "source_path": "src/halo/ai/ai_communication.c"
     },
     {
      "addr": "0x447d0",
@@ -33451,7 +33490,8 @@
      "addr": "0x48e90",
      "decl": "void ai_debug_initialize(void);",
      "name": "ai_debug_initialize",
-     "ported": false,
+     "ported": true,
+     "source_path": "src/halo/ai/ai_debug.c",
      "src": "src/halo/ai/ai_debug.c"
     }
    ],
@@ -34150,7 +34190,7 @@
     {
      "addr": "0x58cc0",
      "decl": "void ai_scripting_follow_distance(unsigned int ai_index, int vehicle_handle, const char *seat_substring);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x58d40",
@@ -37188,7 +37228,7 @@
     },
     {
      "addr": "0x167ee0",
-     "decl": "void FUN_00167ee0(void);"
+     "decl": "bool FUN_00167ee0(void *param_1);"
     },
     {
      "addr": "0x167ff0",
@@ -37333,11 +37373,13 @@
    "functions": [
     {
      "addr": "0x16ab00",
-     "decl": "void FUN_0016ab00(void);"
+     "decl": "void FUN_0016ab00(int16_t detail_function@<ax>, uint32_t param_3@<ecx>, int16_t detail_mask@<bx>, uint32_t param_4, uint32_t param_5, uint32_t param_6, uint32_t param_7, char param_8, char param_9);",
+     "ported": true
     },
     {
      "addr": "0x16b180",
-     "decl": "void FUN_0016b180(void);"
+     "decl": "void FUN_0016b180(bool flag);",
+     "ported": true
     },
     {
      "addr": "0x16b1c0",
@@ -37345,11 +37387,13 @@
     },
     {
      "addr": "0x16b240",
-     "decl": "void FUN_0016b240(void);"
+     "decl": "void FUN_0016b240(void);",
+     "ported": true
     },
     {
      "addr": "0x16b270",
-     "decl": "void FUN_0016b270(int param_1, float param_2, float param_3, float param_4);"
+     "decl": "void FUN_0016b270(int param_1, float param_2, float param_3, float param_4);",
+     "ported": true
     },
     {
      "addr": "0x16b2b0",
@@ -37357,11 +37401,15 @@
     },
     {
      "addr": "0x16bed0",
-     "decl": "void FUN_0016bed0(void *param_1, int param_2);"
+     "decl": "void FUN_0016bed0(void *param_1, int param_2);",
+     "ported": true,
+     "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_models.c"
     },
     {
      "addr": "0x16c090",
-     "decl": "void FUN_0016c090(int param_1, int param_2, int param_3, int param_4, int param_5, int param_6, int param_7, float *param_8, int param_9);"
+     "decl": "void *FUN_0016c090(void *shader, short param_2, int param_3, int param_4, int param_5, int param_6, int param_7, float *centroid, void *out);",
+     "ported": true,
+     "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_models.c"
     },
     {
      "addr": "0x16c5a0",
