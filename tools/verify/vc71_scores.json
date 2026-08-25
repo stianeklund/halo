@@ -34186,16 +34186,16 @@
     "FUN_00181a90": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 70.4,
+      "abi_modeled_mnemonic_pct": 88.2,
       "addr": "0x181a90",
       "end": "0x181c11",
       "kind": "auto",
       "n_r": 124,
-      "opnd_percent": 45.3,
-      "raw_mnemonic_pct": 70.4,
+      "opnd_percent": 66.1,
+      "raw_mnemonic_pct": 88.2,
       "ref": "synth",
       "ref_sha": "a9bce1ae0da0bfce",
-      "score": 70.4,
+      "score": 88.2,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
     "FUN_00181c20": {

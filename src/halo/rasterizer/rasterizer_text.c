@@ -997,7 +997,7 @@ void FUN_00181a90(void)
   int *entry; /* pointer to queued lens flare slot (from FUN_00181020) */
   int definition; /* *entry = definition tag ptr */
   float *dir_result; /* return of FUN_0017ffc0 (3-float direction vec) */
-  short occlusion_dir; /* *(short *)(definition + 0x14) */
+  int occlusion_dir; /* *(short *)(definition + 0x14) */
   int vis_param; /* *(int *)(definition + 0x10) as int (passes to thunk) */
   int lf_count; /* DAT_004d0480 */
   int i; /* loop index */
@@ -1056,25 +1056,30 @@ void FUN_00181a90(void)
         occlusion_dir = *(short *)(definition + 0x14);
         vis_param = *(int *)(definition + 0x10);
 
-        if (occlusion_dir == 0) {
+        switch (occlusion_dir) {
+        case 0:
           /* Negate scale; use global forward direction (0x5a5bd4) */
           vector3d_scale_add((float *)(entry + 1), (float *)0x5a5bd4,
                              -*(float *)(definition + 0x10), pos);
-        } else if (occlusion_dir == 1) {
+          break;
+        case 1:
           /* Scale along dir[] by definition field * constant */
           vector3d_scale_add((float *)(entry + 1), dir,
                              *(float *)(definition + 0x10) * *(float *)0x254e68,
                              pos);
-        } else if (occlusion_dir == 2) {
+          break;
+        case 2:
           /* Use object/light position directly */
           pos[0] = *(float *)(entry + 1);
           pos[1] = *(float *)(entry + 2);
           pos[2] = *(float *)(entry + 3);
-        } else {
+          break;
+        default:
           display_assert(
             "### ERROR unsupported lens flare occlusion offset direction",
             "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c", 0x1e2, 1);
           system_exit(-1);
+          break;
         }
 
         entry[9] = FUN_0017d030(pos, vis_param, i);
