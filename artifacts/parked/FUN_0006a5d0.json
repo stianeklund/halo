@@ -1,0 +1,31 @@
+{
+  "name": "FUN_0006a5d0",
+  "addr": "0x6a5d0",
+  "obj": "tif_flush.obj",
+  "source_path": "/mnt/g/dev/halo-integrate-bipeds/src/halo/bitmaps/libtiff/tif_flush.c",
+  "best_score": 48.5,
+  "best_patch": "/mnt/g/dev/halo-integrate-bipeds/artifacts/parked/patches/FUN_0006a5d0-20260824-174907.patch",
+  "status": "superseded",
+  "first_parked": "2026-08-24T17:49:07+00:00",
+  "last_updated": "2026-08-24T18:19:29+00:00",
+  "promoted_commit": null,
+  "attempts": [
+    {
+      "ts": "2026-08-24T17:49:07+00:00",
+      "model": "sonnet",
+      "effort": "high",
+      "score": 48.5,
+      "cap_hypothesis": "",
+      "reason": "below_65pct",
+      "notes": "FUN_0006a5d0 was already fully lifted and committed prior to this session (commit 9cd0d8434, \"Port FUN_0006ba70 (tif_flush.obj)\" batch), at src/halo/bitmaps/libtiff/tif_flush.c:2349-2412, kb.json decl `int FUN_0006a5d0(unsigned char *r, unsigned char *g, unsigned char *b @<esi>)`, ported=true. The implementation is a heavily evidence-commented transcription of the palette-RGB expansion table builder (upstream libtiff tif_getimage.c `makecmap`, sibling of the file's `makebwmap`/FUN_0006a3b0): debug_malloc of (nsamples+1)*1KB with the same __FILE__/line literal as the sibling function, a PALENTRY(x) macro building PACK(r[x*2],g[x*2],b[x*2]) matching the 1/2/4/8-bit switch shape traced directly off the disassembly (0x6a65b-0x6a8d7), and int return (0 on alloc failure via FUN_00068a30, 1 on success). Cross-checked the ported source against the Ghidra artifact's disassembly and call_site_audit (debug_malloc at 0x6a5f8, FUN_00068a30 at 0x6a618, both already in kb.json/ported) and found no discrepancy \u2014 cdecl frame, @<esi> arg b, PACK byte order, and the *2 index scaling all match. git status/maintain.py/hazard scan on this file show a clean tree \u2014 no edits were needed or made this session. Ran tools/lift_pipeline.py --target FUN_0006a5d0 --verify-policy goal90: build PASS, hazard_scan clean, buffer_alias clean, vc71_verify 48.5% match (opnd 22.9%), low_match_policy FAIL (goal90 threshold is 65%). No score artifact existed for this exact attempt fingerprint prior to this run; published one via research_bundle.py prepare --current-attempt (attempt_fingerprint 8ad40ad4...). Score is below the [65,84] structural-cap classification band and below the [85,89] permute/equivalence band, so neither step ran \u2014 per the workflow this is not a fixable-in-this-agent case to grind further; reporting needs_verify (build passed) with the measured 48.5% for the operator/escalation agent to triage against the reference disassembly if a higher match is required.",
+      "patch": "/mnt/g/dev/halo-integrate-bipeds/artifacts/parked/patches/FUN_0006a5d0-20260824-174907.patch",
+      "outcome": "parked",
+      "fingerprint": "8ad40ad4ab1e9ecd3f9be66ca43691c532d345e36a7a9a69349b22d56a6f930e",
+      "evidence": [
+        "sha256:d7964cbc4c4843e2f9ad67f802723c3a1a22bebea24795945973f4621bd3a449",
+        "sha256:38fc9e449bc4427a5ddd7f62d5458a38b7427dfef26d1c16b8ac25cc3e65e5b3"
+      ]
+    }
+  ],
+  "superseded_reason": "kb.json ported=true: function landed; this parked patch is no longer the path forward"
+}

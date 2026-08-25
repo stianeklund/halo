@@ -57,9 +57,9 @@ void ui_widgets_set_fade_value(float value)
   *(float *)0x46cc4c = value;
 }
 
-/* ui_widget_debug_show_path — stores the byte argument at 0x46cc84.
- * The target function contains only MOV AL,[EBP+8] followed by a byte
- * store to this absolute address. */
+/* ui_widget_debug_show_path — sets the debug overlay flag at 0x46cc84 that
+ * controls whether render_ui_widgets() draws each on-screen widget's tag
+ * name in the small debug font (see the render_ui_widgets comment below). */
 void ui_widget_debug_show_path(unsigned char value)
 {
   *(uint8_t *)0x46cc84 = value;
@@ -84,6 +84,23 @@ void ui_widget_set_events_suppressed(bool suppress)
 {
   assert_halt(*(uint8_t *)0x46cc82);
   *(uint8_t *)0x46cc85 = (uint8_t)suppress;
+}
+
+/* main_menu_active — sets or clears the "main menu active" byte at 0x46cc88,
+ * checked by ui_widget_is_main_menu_loaded() (below) and main_menu_is_active()
+ * (0xe43e0). Called from main.c's main_menu_unload/main_menu_load
+ * teardown/setup paths with a literal false/true argument. */
+void main_menu_active(bool active)
+{
+  *(uint8_t *)0x46cc88 = (uint8_t)active;
+}
+
+/* main_menu_is_active — reads the "main menu active" byte at 0x46cc88 set by
+ * main_menu_active() (above). 0xe43e0: `MOV AL,[0x46cc88]; RET` — a single
+ * byte load truncated to bool, no other logic. */
+bool main_menu_is_active(void)
+{
+  return (bool)(*(uint8_t *)0x46cc88);
 }
 
 void *ui_widget_get_last_child(void *widget);
@@ -564,6 +581,49 @@ void ui_widgets_close_all(void)
     }
     list_heads++;
   } while ((int)list_heads < 0x46cc40);
+}
+
+/* main_screen_shell_begin_fade — starts the shell's screen-fade-out on each
+ * of the 4 UI root widget stacks (0x46cc20..2c) whose root is not in
+ * "in_game_mode" (+0x15, see render_ui_widgets above). Stops attract mode,
+ * then for each eligible root stamps the fade duration (+0x20) with
+ * duration_ms and the timeout (+0x1c) with (current_tick - start_tick) + 100
+ * ticks, where start_tick is +0x18 and current_tick is the global at
+ * 0x46cc40 (see ui_widget_event_handler_dispatch's timeout check against
+ * +0x18/+0x1c/+0x20 above). Finally frees every widget already queued on
+ * that stack's pending-close list (0x46cc30[i], linked through +0xc) back
+ * to the stack memory pool — the same list-drain as ui_widgets_close_all,
+ * but without closing the root widget itself. */
+void main_screen_shell_begin_fade(int duration_ms)
+{
+  int *root_slots;
+  int *list_head;
+  int root;
+  int widget;
+  int next;
+  void *pool;
+
+  ui_widget_stop_attract_mode();
+
+  root_slots = (int *)0x46cc20;
+  do {
+    root = *root_slots;
+    if (root != 0 && *(uint8_t *)(root + 0x15) == 0) {
+      *(int *)(root + 0x20) = duration_ms;
+      *(int *)(root + 0x1c) = (*(int *)0x46cc40 - *(int *)(root + 0x18)) + 100;
+
+      list_head = root_slots + 4; /* matching slot in 0x46cc30[] */
+      widget = *list_head;
+      while (widget != 0) {
+        pool = *(void **)0x31e04c;
+        next = *(int *)(widget + 0xc);
+        *list_head = next;
+        stack_memory_pool_deallocate(pool, (void *)widget);
+        widget = *list_head;
+      }
+    }
+    root_slots++;
+  } while ((int)root_slots < 0x46cc30);
 }
 
 /* ui_widget_set_focus — walks up the parent chain (field_0x30) from the given

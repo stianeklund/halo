@@ -1,0 +1,43 @@
+{
+  "name": "add_endpoint_to_set",
+  "addr": "0x82700",
+  "obj": "transport_endpoint_set_winsock.obj",
+  "source_path": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c",
+  "best_score": 70.6,
+  "best_patch": "/mnt/g/dev/halo-integrate-bipeds/artifacts/parked/patches/add_endpoint_to_set-20260824-181331.patch",
+  "status": "parked",
+  "first_parked": "2026-08-24T17:04:07+00:00",
+  "last_updated": "2026-08-24T18:13:31+00:00",
+  "promoted_commit": null,
+  "attempts": [
+    {
+      "ts": "2026-08-24T17:04:07+00:00",
+      "model": "sonnet",
+      "effort": "high",
+      "score": 70.3,
+      "cap_hypothesis": "classify_cap.py matched no high-confidence structural-cap rule (register-arg params, trivial wrapper, loop-unroll, fucompp/fcos, or float-arg-lowering signature). Remaining gap after the layout fix (below) looks like ordinary register-allocation/block-layout variance (EBX/EDI role swap, a redundant TEST elided by an INC's flags, minor nop padding), not a fixable bug or a documented ceiling class -- reported inconclusive rather than asserted capped.",
+      "reason": "escalation_skipped_escalation_cap",
+      "notes": "Implemented add_endpoint_to_set (0x82700) from the fingerprinted Ghidra artifact only -- no Ghidra queries were needed, all call-site/struct evidence (display_assert, system_exit, the three asserts &quot;ep && set&quot;/&quot;transport_initialized&quot;/&quot;set&quot;, the ep_array/fd-dedup-table layout at set+0/0x104/0x108/0x10c shared with remove_endpoint_from_set, FUN_000829b0, FUN_00082a30) was present in the artifact plus the current file's own established idioms for this TU. C89 body transcribes the decompile/disassembly literally: raw offset casts on `void *set`/`int endpoint` (no struct, matching this file's convention), the two behaviorally-identical dedup-insert blocks gated on flag bit 0x2 kept duplicated (not refactored) to preserve shape, and the exact cache/reload split the disassembly shows (new-fd and outer fd-count each loaded once and held across the search loop; the loop's own continuation test re-reads memory every iteration; the final fd-array store is an independent fresh reload). First VC71 pass (two separate early-return `if` statements, matching an initial too-literal split of the decompile) scored only 44.5%/opnd 40% -- diagnosed via the score-context diff (own-instruction reconstruction) as clang placing the short `return -0x14` epilogue as the fallthrough block and the whole success body as a forward-jump target, opposite of the reference's layout, not a logic bug (dp_lcs was already 73.6%, flagged anchor_collapse). Rewrote the two early returns as the decompile's single combined `if (... || (index = ..., index < 0))` guard (matching the original comma-expression form) -- this alone moved clang's block layout to match the reference's success-falls-through / failure-jumps-forward shape, raising the score to 70.3% (105/117 insns) with a clean PASS. Remaining gap is ordinary register-allocation variance (EBX/EDI swapped between endpoint and index vs. reference, one TEST elided since clang reused an INC's flags, minor nop padding, RMW-vs-loa",
+      "patch": "/mnt/g/dev/halo-integrate-bipeds/artifacts/parked/patches/add_endpoint_to_set-20260824-170406.patch",
+      "outcome": "parked",
+      "fingerprint": "b43acaae3fdd39b56d7a2f93e91845caa8c6317a738569c1ae385e2f20a05daa",
+      "evidence": [
+        "sha256:be43a0ca2c3e418895f5468be37e44a3faab36d4b32ec12848e8fdf971846fcd",
+        "sha256:44a0ecc266e247971d8cd53565177e46f26501898feb1082550b806b8f5909ac"
+      ]
+    },
+    {
+      "ts": "2026-08-24T18:13:31+00:00",
+      "model": "sonnet",
+      "effort": "high",
+      "score": 70.6,
+      "cap_hypothesis": "",
+      "reason": "sub_bar_vc71",
+      "notes": "70.6% match (45.2% opnd-normalized), below 85% structural-bug threshold. 117 ref insns vs 104 candidate -- likely a control-flow/branch-shape mismatch (e.g. the two byte-for-byte-identical TEST bit-0x2 branches the disasm notes as 'kept verbatim rather than collapsed' may not actually be reproduced distinctly, or the fd-count/search-loop shape differs from the reference). Needs closer branch-by-branch disasm comparison before re-attempting.",
+      "patch": "/mnt/g/dev/halo-integrate-bipeds/artifacts/parked/patches/add_endpoint_to_set-20260824-181331.patch",
+      "outcome": "parked",
+      "fingerprint": "",
+      "evidence": []
+    }
+  ]
+}

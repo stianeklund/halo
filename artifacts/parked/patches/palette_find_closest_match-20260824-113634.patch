@@ -1,0 +1,99 @@
+diff --git c/kb.json w/kb.json
+index 6433309fe..b6a3a7886 100644
+--- c/kb.json
++++ w/kb.json
+@@ -4398,7 +4398,8 @@
+     },
+     {
+      "addr": "0x7d300",
+-     "decl": "void palette_find_closest_match(void);"
++     "decl": "short palette_find_closest_match(uint32_t *palette, uint32_t color);",
++     "ported": true
+     },
+     {
+      "addr": "0x7d440",
+diff --git c/src/halo/bitmaps/bitmaps.c w/src/halo/bitmaps/bitmaps.c
+index 9c4a91001..4e1450103 100644
+--- c/src/halo/bitmaps/bitmaps.c
++++ w/src/halo/bitmaps/bitmaps.c
+@@ -456,6 +456,80 @@ void *bitmap_mipmap_address(void *bitmap, short mipmap_index)
+   return bitmap;
+ }
+ 
++/* palette_find_closest_match (0x7d300)
++ *
++ * `palette` is an array of up to 256 packed 0xAARRGGBB entries (a8r8g8b8),
++ * scanned from index 0 until a zero entry (end-of-palette marker) or 256
++ * entries are exhausted. Returns the index of the entry whose R/G/B is
++ * closest to `color` by squared Euclidean distance (alpha is ignored in
++ * the distance, but gates a fast path below).
++ *
++ * If color's alpha byte is <= 0x80 (mostly/fully transparent), the search
++ * is skipped entirely and the fixed index 255 is returned directly.
++ *
++ * closest_match_index/closest_match_distance are updated unconditionally
++ * on the first iteration (i == 0) even though closest_match_distance
++ * starts at 0, establishing a real baseline regardless of the first
++ * entry's distance. If the palette is empty (palette[0] == 0), the loop
++ * breaks before ever updating closest_match_index, and the NONE result
++ * trips the "closest_match_index!=NONE" assert.
++ */
++short palette_find_closest_match(uint32_t *palette, uint32_t color)
++{
++  short closest_match_index;
++  long closest_match_distance;
++  short i;
++  uint32_t entry;
++  long delta_r;
++  long delta_g;
++  long delta_b;
++  long distance;
++
++  closest_match_index = NONE;
++  closest_match_distance = 0;
++
++  if ((color & 0xff000000) <= 0x80000000) {
++    return 255;
++  }
++
++  for (i = 0; i < 0x100; i++) {
++    entry = palette[i];
++    if (entry == 0) {
++      break;
++    }
++
++    delta_r = (long)((entry >> 0x10) & 0xff) - (long)((color >> 0x10) & 0xff);
++    if (delta_r < 0) {
++      delta_r = -delta_r;
++    }
++
++    delta_g = (long)((entry >> 8) & 0xff) - (long)((color >> 8) & 0xff);
++    if (delta_g < 0) {
++      delta_g = -delta_g;
++    }
++
++    delta_b = (long)(entry & 0xff) - (long)(color & 0xff);
++    if (delta_b < 0) {
++      delta_b = -delta_b;
++    }
++
++    distance = delta_b * delta_b + delta_g * delta_g + delta_r * delta_r;
++
++    if ((i == 0) || (distance < closest_match_distance)) {
++      closest_match_distance = distance;
++      closest_match_index = i;
++    }
++  }
++
++  if (closest_match_index == NONE) {
++    display_assert("closest_match_index!=NONE",
++                   "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x44d, true);
++    system_exit(-1);
++  }
++
++  return closest_match_index;
++}
++
+ /* bitmap_validate_depth (0x7d440)
+  *
+  * Validate the depth field of a bitmap against its type.

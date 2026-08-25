@@ -54,6 +54,89 @@ bool FUN_001c6d20(file_ref_t *info)
   return result;
 }
 
+/* Parse the 'fmt ' chunk of a RIFF/WAVE container to get its PCM format
+ * (0x1c6d90).
+ * Walks the chunk list starting at file offset 0xc exactly like FUN_001c6ed0:
+ * reads a 4-byte chunk id, then the 4-byte chunk size, then byte-swaps the id
+ * in place via the riff_chunk_type definition at 0x32ec68. On 'fmt '
+ * (0x666d7420) it reads the 0x12-byte format body at the chunk's data offset
+ * — a WAVEFORMATEX: wFormatTag(0,2)/nChannels(2,2)/nSamplesPerSec(4,4)/
+ * nAvgBytesPerSec(8,4)/nBlockAlign(0xc,2)/wBitsPerSample(0xe,2)/cbSize(0x10,2).
+ * If nSamplesPerSec isn't one of 11025/22050/44100 (0x2b11/0x5622/0xac44) it
+ * writes -1 through format_out and bails. Otherwise it writes
+ * nSamplesPerSec (dword @+0), nChannels (word @+4), wBitsPerSample
+ * (word @+8) through format_out and returns true only when
+ * wFormatTag == 1 (PCM). Any other chunk is skipped, rounding an odd size up
+ * to the next even boundary (RIFF word padding). The file is closed on every
+ * path that opened it.
+ * format_out's fields beyond offsets 0/4/8 are unproven — the binary only
+ * ever stores those three. Mirrors the 'data' parse FUN_001c6ed0. */
+bool FUN_001c6d90(file_ref_t *file, void *format_out)
+{
+  char fmt_buf[0x12];
+  short format_tag;
+  short channels;
+  int samples_per_sec;
+  short bits_per_sample;
+  unsigned int chunk_size;
+  unsigned int padded_size;
+  int chunk_id;
+  int offset;
+  char result;
+  char ok;
+
+  result = 0;
+  offset = 0xc;
+  ok = file_open(file, 1);
+  if (ok != '\0') {
+    ok = file_read_from_position(file, offset, 4, &chunk_id);
+    if (ok != '\0') {
+      for (;;) {
+        offset += 4;
+        ok = file_read_from_position(file, offset, 4, &chunk_size);
+        if (ok != '\0') {
+          FUN_00118be0((void *)0x32ec68, &chunk_id, 1);
+          if (chunk_id == 0x666d7420) {
+            ok = file_read_from_position(file, offset + 4, 0x12, fmt_buf);
+            if (ok != '\0') {
+              format_tag = *(short *)fmt_buf;
+              channels = *(short *)(fmt_buf + 2);
+              samples_per_sec = *(int *)(fmt_buf + 4);
+              bits_per_sample = *(short *)(fmt_buf + 0xe);
+              if ((samples_per_sec != 0x2b11) && (samples_per_sec != 0x5622) &&
+                  (samples_per_sec != 0xac44)) {
+                *(int *)format_out = -1;
+                file_close(file);
+                return result;
+              }
+              *(int *)format_out = samples_per_sec;
+              *(short *)((char *)format_out + 4) = channels;
+              *(short *)((char *)format_out + 8) = bits_per_sample;
+              if (format_tag == 1) {
+                result = 1;
+              }
+            }
+            file_close(file);
+            return result;
+          }
+          padded_size = chunk_size;
+          if ((padded_size & 1) != 0) {
+            padded_size++;
+          }
+          offset += (int)padded_size + 4;
+        }
+        ok = file_read_from_position(file, offset, 4, &chunk_id);
+        if (ok == '\0') {
+          file_close(file);
+          return result;
+        }
+      }
+    }
+    file_close(file);
+  }
+  return result;
+}
+
 /* Parse a RIFF/WAVE container and read out its 'data' chunk (0x1c6ed0).
  * Walks the chunk list starting at file offset 0xc (just past the 12-byte
  * RIFF header): reads a 4-byte chunk id, then the 4-byte chunk size, then

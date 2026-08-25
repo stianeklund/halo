@@ -276,6 +276,59 @@ void ai_debug_select_encounter(int encounter_idx)
   }
 }
 
+/* FUN_00049280 (0x49280): draw a debug polyline through `count` entries plus
+ * a per-entry "up" marker.
+ *
+ * No __FILE__ string. 2 register args (point@<ecx>, color@<ebx>) + 2 stack
+ * args ([EBP+0x8] count (short), [EBP+0xc] entries); caller cleans (ADD
+ * ESP after each CALL, not RET N).  Callees FUN_00189450 (line between two
+ * points) and FUN_001893e0 (point + direction marker), both no-reg-arg,
+ * already ported.
+ *
+ * Called 3x from FUN_0004c560 (0x4c774/0x4c79f/0x4c7ca; static disasm via
+ * tools/audit/dump_caller_regsetup.py, ported=false so not decompiled here).
+ * At every call site `point`(@<ecx>) is `lea ecx,[esi+0x28]` -- the same
+ * anchor point across all 3 calls -- while `color`(@<ebx>) is one of three
+ * table slots ([0x2ee6d0]/[0x2ee6d4]/[0x2ee6d8]) and (count, entries) are a
+ * per-call (word count, dword pointer) pair read out of the caller's record.
+ *
+ * `entries` points 4 bytes before the first array element (confirmed by the
+ * disassembly's `ADD EAX,0x4` on the incoming pointer before the first use);
+ * each array element is 0x10 bytes (4 floats) further (`pfVar1 = pfVar1 + 4`
+ * in float units, `ADD ESI,0x10` in the caller). With `entries` typed
+ * `float *`, `entries + 1` reproduces the +4-byte skip exactly.
+ *
+ * Body, matching the two independent `if (0 < count)` tests in the
+ * disassembly (0004928c and 000492ab) rather than merging them:
+ *   if count > 0: line(point, entries+1, color, scale=0.1)
+ *   for i in [0, count):
+ *     if i > 0: line(entries+1+4*(i-1), entries+1+4*i, color, scale=0.1)
+ *     marker(entries+1+4*i, dir=global_up_vector_ptr, scale=0.02, color)
+ * 0x3dcccccd == 0.1f, 0x3ca3d70a == 0.02f (both confirmed float bit patterns
+ * from the disassembly's PUSH immediates). PTR_DAT_0031fc44 is the known
+ * global_up_vector_ptr (kb.json: `float *global_up_vector_ptr;`). */
+void FUN_00049280(float *point, void *color, int16_t count, float *entries)
+{
+  float *pfVar1;
+  int16_t i;
+
+  if (0 < count) {
+    FUN_00189450(1, point, entries + 1, color, 0.1f);
+  }
+  i = 0;
+  if (0 < count) {
+    pfVar1 = entries + 1;
+    do {
+      if (0 < i) {
+        FUN_00189450(1, pfVar1 - 4, pfVar1, color, 0.1f);
+      }
+      FUN_001893e0(1, pfVar1, global_up_vector_ptr, 0.02f, color);
+      i = i + 1;
+      pfVar1 = pfVar1 + 4;
+    } while (i < count);
+  }
+}
+
 /* ai_debug_point3d_set: store three reals into a 3-float point.
  *
  * No __FILE__ string, no callees, no locals (the original has no `sub esp`).
@@ -2635,6 +2688,93 @@ float *FUN_0004b2b0(void)
   return (float *)0x5ac9a0;
 }
 
+/* FUN_0004b670 (0x4b670): draws the AI debug "unit position" marker for a
+ * unit passed in EDI, with a caller-supplied colour in EBX and a draw-extras
+ * flag on the stack (`draw_flag`, [EBP+8]).  Register args confirmed from
+ * disasm: EDI/EBX are read without being defined inside the function (no
+ * prologue PUSH for either, only ESI is saved/restored), and both are
+ * forwarded unchanged into callees whose kb.json decls fix their meaning
+ * (EDI -> object_try_and_get_and_verify_type's datum_handle and
+ * biped_get_camera_height_and_offset's unit_handle; EBX -> the `color`
+ * argument of every FUN_001898xx draw call).
+ *
+ * Verified against raw disasm (not the Ghidra decompile's pseudo-C, whose
+ * local_c/local_8 stack-slot names are swapped from their real EBP offsets):
+ *   0x4b67a object_try_and_get_and_verify_type(object_handle, 1) -> unit.
+ *           NULL -> return (whole function is a no-op).
+ *   0x4b695 object_try_and_get_and_verify_type(*(int*)(unit+0xcc), 3) ->
+ *           weapon.  unit+0xcc is read-only evidence (struct_offsets: ESI
+ *           0xcc); kept as a raw offset, matching this file's existing
+ *           convention for object-pointer fields with no recovered struct
+ *           (see the object+0x2d4 "owner handle" cast earlier in this file).
+ *   0x4b6a1 weapon != NULL && *(int*)(weapon+0x2d4) == object_handle (i.e.
+ *           the weapon's owner is this unit) selects the FUN_0001aae0 path;
+ *           otherwise biped_get_camera_height_and_offset.
+ *   0x4b6b8 FUN_0001aae0(weapon_handle, center, &camera_height); the
+ *           height_offset out-param is not touched by this callee and is set
+ *           to 0.0f explicitly right after (0x4b6c0), matching decompile.
+ *   0x4b6d6 biped_get_camera_height_and_offset(object_handle, (vector3_t*)
+ *           center, &height_offset, &camera_height) — argument order fixed
+ *           by push order (EDI pushed last = arg1).
+ *   0x4b6e3/0x4b6f3 FCOMP+FNSTSW+TEST AH,0x41/JNZ: branch-B (FUN_00189540) is
+ *           taken when draw_flag==0 OR height_offset<=*(float*)0x2533c0;
+ *           branch-A (FUN_00189860) only when draw_flag!=0 AND
+ *           height_offset>that threshold. This matches the decompile's
+ *           `(flag=='\0') || (height_offset<=FLOAT_002533c0)` predicate.
+ *   0x4b718 FUN_00189860(1, center, height_vec, camera_height, color) where
+ *           height_vec = {0.0f, 0.0f, height_offset} is built in-place
+ *           (EBP-0x20/-0x1c/-0x18) right before the call; radius arg is the
+ *           unscaled camera_height (no FMUL on this path).
+ *   0x4b736 FUN_00189540(1, center, camera_height * *(float*)0x25afcc,
+ *           color) — PUSH ECX is a dummy slot immediately overwritten by
+ *           FSTP [ESP] with the FMUL result (FPU_ARG hazard already
+ *           resolved: the real float arg is the FSTP value, not the pushed
+ *           dummy register).
+ *   0x4b759 (only if draw_flag!=0) FUN_00189150(1, center, camera_height *
+ *           *(float*)0x255154, color) — same FSTP-over-dummy shape.
+ *
+ * Uncertain: no __FILE__ string/assert anchor for this function; kept as
+ * FUN_0004b670. Confirmed callers: FUN_0004c920 (0x4caaa, 0x4cad6), not yet
+ * ported, so the caller-side register setup is not cross-checked here. */
+void FUN_0004b670(int object_handle, void *color, char draw_flag)
+{
+  void *unit;
+  void *weapon;
+  int weapon_handle;
+  float center[3];
+  float height_offset;
+  float camera_height;
+  float height_vec[3];
+
+  unit = object_try_and_get_and_verify_type(object_handle, 1);
+  if (unit == NULL) {
+    return;
+  }
+
+  weapon_handle = *(int32_t *)((char *)unit + 0xcc);
+  weapon = object_try_and_get_and_verify_type(weapon_handle, 3);
+  if (weapon != NULL && *(int32_t *)((char *)weapon + 0x2d4) == object_handle) {
+    FUN_0001aae0(weapon_handle, center, &camera_height);
+    height_offset = 0.0f;
+  } else {
+    biped_get_camera_height_and_offset(object_handle, (vector3_t *)center,
+                                       &height_offset, &camera_height);
+  }
+
+  if (draw_flag == 0 || height_offset <= *(float *)0x2533c0) {
+    FUN_00189540(1, center, camera_height * *(float *)0x25afcc, color);
+  } else {
+    height_vec[0] = 0.0f;
+    height_vec[1] = 0.0f;
+    height_vec[2] = height_offset;
+    FUN_00189860(1, center, height_vec, camera_height, color);
+  }
+
+  if (draw_flag != 0) {
+    FUN_00189150(1, center, camera_height * *(float *)0x255154, color);
+  }
+}
+
 /* FUN_0004b7a0: service the pending "select actor" debug-key request.  Asks
  * FUN_00049c70 for a candidate actor handle; when one exists, describes it into
  * the shared error/description buffer at 0x5ab100, echoes "selected %s" to the
@@ -2837,6 +2977,66 @@ void ai_debug_change_selected_actor(int param)
     ai_debug_select_actor(*(int32_t *)0x5ac9f4, -1);
   }
 }
+
+/* FUN_0004c890: draw the camera-follow LOS-hit debug line, then continue the
+ * queued path-follow build.
+ *
+ * Guard: runs only when a target position was captured (DAT_5f91a8, set by
+ * ai_debug_update's actor-position path) and a LOS hit was recorded
+ * (DAT_5f91c0, set by ai_debug_update's LOS-hit path) and the path build has
+ * NOT already failed (DAT_60d268 == 0, written by path_state_build_path).
+ *
+ * Color select (from the 13-entry debug color table documented in
+ * ai_debug_render_points_and_lines):
+ *   - colors[1] (0x2ee6d8) if neither DAT_5ac9ff nor DAT_5f9228 is set.
+ *   - colors[4] (0x2ee6d4) if either is set and DAT_5f925c (int16) == 0.
+ *   - colors[11] (0x2ee6e0) if DAT_5f925c (signed int16) >= 0x400.
+ *   - colors[7] (0x2ee6e8) otherwise.
+ * Draws a line from DAT_5f91ac (captured position) to DAT_5f91c4 (LOS-hit
+ * slot 0) via FUN_00189270.
+ *
+ * Confirmed from disassembly (0x4c890-0x4c91a): the color selection is not
+ * the nested-if the decompiler's comma-operator reconstruction suggests.
+ * Traced instruction-by-instruction:
+ *   JNZ [0x5ac9ff]!=0 -> L1(0x4c8c4) directly (0x5f9228 is tested only when
+ *     0x5ac9ff is 0); JNZ [0x5f9228]!=0 -> L1; else EAX=colors[1], jump to
+ *     the call site (0x4c8e6).
+ *   L1 (0x4c8c4): CMP AX([0x5f925c]),0 ; JNZ L2(0x4c8d6); else EAX=colors[4],
+ *     jump to the call site.
+ *   L2 (0x4c8d6): EAX=colors[11] unconditionally, then CMP AX,0x400 (signed);
+ *     JGE keeps colors[11] and falls into the call; else EAX=colors[7].
+ *
+ * Second half: if DAT_60d2d0 (path-ready flag, set by ai_debug_update) is
+ * set, continue the path with FUN_0004b220(&DAT_60d2ec) and
+ * FUN_0004c560(&DAT_60d2c4).  Both pass the *address* of the global (MOV
+ * EAX/ESI, imm32 -- no brackets), not its value, matching their @<eax>/@<esi>
+ * float-pointer / void-pointer parameter types already recorded in kb.json.
+ *
+ * No __FILE__ string.  Called from FUN_000534d0 (0x5359e, unconditional). */
+void FUN_0004c890(void)
+{
+  void *color;
+
+  if (*(uint8_t *)0x5f91a8 != 0 && *(uint8_t *)0x5f91c0 != 0 &&
+      *(uint8_t *)0x60d268 == 0) {
+    if (*(uint8_t *)0x5ac9ff == 0 && *(uint8_t *)0x5f9228 == 0) {
+      color = *(void **)0x2ee6d8;
+    } else if (*(int16_t *)0x5f925c == 0) {
+      color = *(void **)0x2ee6d4;
+    } else if (*(int16_t *)0x5f925c >= 0x400) {
+      color = *(void **)0x2ee6e0;
+    } else {
+      color = *(void **)0x2ee6e8;
+    }
+    FUN_00189270(1, (float *)0x5f91ac, (float *)0x5f91c4, color);
+  }
+
+  if (*(uint8_t *)0x60d2d0 != 0) {
+    FUN_0004b220((float *)0x60d2ec);
+    FUN_0004c560((void *)0x60d2c4);
+  }
+}
+
 /* FUN_00052ab0: debug-render one text label per active entry of the 32-entry
  * table at [0x331f5c] (stride 0x1ca7c).  For each entry whose two enable bytes
  * at +0x0c and +0x0d are both non-zero, it offsets the entry's world position

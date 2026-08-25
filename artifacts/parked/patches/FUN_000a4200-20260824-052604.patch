@@ -1,0 +1,153 @@
+diff --git c/kb.json w/kb.json
+index 39c620d26..fcc31fcc1 100644
+--- c/kb.json
++++ w/kb.json
+@@ -497,7 +497,7 @@
+  "0xa4200": {
+   "addr": "0xa4200",
+   "decl": "void FUN_000a4200(int16_t local_player_index);",
+-  "ported": false
++  "ported": true
+  },
+  "0xa4310": {
+   "addr": "0xa4310",
+@@ -29023,7 +29023,7 @@
+     {
+      "addr": "0xa4200",
+      "decl": "void FUN_000a4200(int16_t local_player_index);",
+-     "ported": false
++     "ported": true
+     },
+     {
+      "addr": "0xa4310",
+diff --git c/kb_meta.json w/kb_meta.json
+index 5af3e3fce..6d6f49b5e 100644
+--- c/kb_meta.json
++++ w/kb_meta.json
+@@ -9237,6 +9237,10 @@
+       "kind": "function",
+       "status": "ported"
+     },
++    "0xe3ca0": {
++      "kind": "function",
++      "status": "ported"
++    },
+     "0xe3d20": {
+       "kind": "function",
+       "status": "ported",
+@@ -9253,6 +9257,14 @@
+       "kind": "function",
+       "status": "ported"
+     },
++    "0xe43d0": {
++      "kind": "function",
++      "status": "ported"
++    },
++    "0xe43e0": {
++      "kind": "function",
++      "status": "ported"
++    },
+     "0xe43f0": {
+       "kind": "function",
+       "status": "ported"
+@@ -15338,6 +15350,26 @@
+       "kind": "function",
+       "status": "ported"
+     },
++    "0x19f1d0": {
++      "kind": "function",
++      "status": "ported"
++    },
++    "0x19f240": {
++      "kind": "function",
++      "status": "ported"
++    },
++    "0x19f2b0": {
++      "kind": "function",
++      "status": "ported"
++    },
++    "0x19f320": {
++      "kind": "function",
++      "status": "ported"
++    },
++    "0x19f360": {
++      "kind": "function",
++      "status": "ported"
++    },
+     "0x19f3a0": {
+       "kind": "function",
+       "status": "ported"
+diff --git c/src/halo/effects/weather_particle_systems.c w/src/halo/effects/weather_particle_systems.c
+index 416e22043..bbe01cc8a 100644
+--- c/src/halo/effects/weather_particle_systems.c
++++ w/src/halo/effects/weather_particle_systems.c
+@@ -61,3 +61,69 @@ void weather_particle_systems_dispose(void)
+     weather_particle_system_data = 0;
+   }
+ }
++
++/*
++ * FUN_000a4200 - Disposes a single local player's weather particle
++ * system: for every particle type in the player's 'rain' tag definition
++ * (particle_types.count at offset 0x24, same layout FUN_000a3ea0 uses),
++ * walks the per-type runtime record's linked list of live particle
++ * instances (record at player_entry + 0x1c + type_index*0x10, head
++ * handle at +0xc, count at +0x8, matching FUN_000a3ea0's record
++ * layout) and datum_deletes every instance, decrementing the per-type
++ * count as it goes. The instance's "next" link is read from offset
++ * 0x50 of the datum before it is deleted. Afterward decrements the
++ * global active-system count and resets the player's tag index to
++ * NONE. Assert strings/lineno recovered verbatim from the binary.
++ */
++void FUN_000a4200(int16_t local_player_index)
++{
++  int *player_entry;
++  void *definition;
++  void *type_definition;
++  int16_t type_index;
++  int handle;
++  void *particle;
++  int next_handle;
++
++  if ((local_player_index < 0) ||
++      (MAXIMUM_NUMBER_OF_LOCAL_PLAYERS <= local_player_index)) {
++    display_assert("local_player_index>=0 && "
++                   "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
++                   "c:\\halo\\SOURCE\\effects\\weather_particle_systems.c",
++                   0x5b, 1);
++    system_exit(-1);
++  }
++
++  player_entry = (int *)0x4557f4 + (int)local_player_index * 0x27;
++  definition = tag_get(0x7261696e /* 'rain' */, *player_entry);
++
++  type_index = 0;
++  if (0 < *(int *)((char *)definition + 0x24)) {
++    do {
++      type_definition = tag_get(0x7261696e /* 'rain' */, *player_entry);
++      if ((type_index < 0) ||
++          (*(int *)((char *)type_definition + 0x24) <= (int)type_index)) {
++        display_assert(
++          "type_index>=0 && type_index<definition->particle_types.count",
++          "c:\\halo\\SOURCE\\effects\\weather_particle_systems.c", 0x66, 1);
++        system_exit(-1);
++      }
++
++      handle = player_entry[(int)type_index * 4 + 10];
++      while (handle != NONE) {
++        particle = datum_get(weather_particle_system_data, handle);
++        next_handle = *(int *)((char *)particle + 0x50);
++        datum_delete(weather_particle_system_data, handle);
++        *(int16_t *)(player_entry + (int)type_index * 4 + 9) =
++          (int16_t)(*(int16_t *)(player_entry + (int)type_index * 4 + 9) - 1);
++        handle = next_handle;
++        player_entry[(int)type_index * 4 + 10] = handle;
++      }
++
++      type_index = type_index + 1;
++    } while ((int)type_index < *(int *)((char *)definition + 0x24));
++  }
++
++  weather_particle_system_count--;
++  *player_entry = NONE;
++}

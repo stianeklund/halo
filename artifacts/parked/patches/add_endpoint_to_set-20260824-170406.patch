@@ -1,0 +1,161 @@
+diff --git c/kb.json w/kb.json
+index 8814d1e4f..c3581bfaf 100644
+--- c/kb.json
++++ w/kb.json
+@@ -26165,7 +26165,8 @@
+     },
+     {
+      "addr": "0x82700",
+-     "decl": "int add_endpoint_to_set(int endpoint, void *set);"
++     "decl": "int add_endpoint_to_set(int endpoint, void *set);",
++     "ported": true
+     },
+     {
+      "addr": "0x82940",
+diff --git c/src/halo/bungie_net/network/transport_endpoint_set_winsock.c w/src/halo/bungie_net/network/transport_endpoint_set_winsock.c
+index eb0e74727..a20f3881f 100644
+--- c/src/halo/bungie_net/network/transport_endpoint_set_winsock.c
++++ w/src/halo/bungie_net/network/transport_endpoint_set_winsock.c
+@@ -451,6 +451,142 @@ int FUN_000824a0(const int *a, const int *b)
+   return 0;
+ }
+ 
++/* Insert an endpoint into an endpoint set for polling.
++ *
++ * Endpoint sets track two parallel arrays: an endpoint-pointer array at
++ * set+0x104 (the same array delete_endpoint_set frees and remove_endpoint_
++ * from_set searches as endpoint_set[0x41]), and a small fd dedup table
++ * inline in the set itself — a count dword at set+0 followed by up to 0x40
++ * (FD_SETSIZE) fd values at set+4, the same layout remove_endpoint_from_set
++ * walks as endpoint_set[0]/endpoint_set+1.  set+0x108 is the array's
++ * capacity and set+0x10c is the inclusive high index already in use (the
++ * same "bound" field FUN_000829b0 and FUN_00082a30 read).
++ *
++ * After the three asserts, the new slot index is bound+1; if that would
++ * exceed capacity-1, or would itself be negative (overflow), the function
++ * returns -0x14 without touching any state.  Otherwise the endpoint value
++ * is stored into ep_array[index], then the endpoint's first dword (its
++ * socket handle) is looked up back through that same freshly-stored slot
++ * and linearly searched for in the fd dedup table; if not already present
++ * and the table has room (< 0x40 entries), the socket is appended and the
++ * table's count incremented.  Bit 0x2 of the endpoint's flag byte
++ * (offset+4) selects between two blocks that perform this identical
++ * dedup-and-insert; the reference duplicates the logic verbatim in each arm
++ * rather than sharing it (confirmed: the two blocks are byte-for-byte the
++ * same instruction sequence bar one extra no-op LEA in the second, at
++ * 0x827fd, not reproducible from C and not required for behavior). Finally
++ * the bound field is incremented and the endpoint's "in set" flag bit (0x8,
++ * the same bit remove_endpoint_from_set clears with &0xf7) is set, and the
++ * function returns 0.
++ *
++ * Confirmed: display_assert (0x8d9f0, cdecl 4 args) with combined message
++ * "ep && set" (De Morgan'd — written as a plain short-circuit || rather
++ * than assert_halt_msg_at, matching delete_endpoint_set's documented
++ * reasoning for avoiding the macro's bool materialization; disassembly at
++ * 0x82707-0x82712 is two separate TEST/Jcc branches, not one combined 0/1
++ * value) at 0x2665ec line 0x22f (551), "transport_initialized" at 0x265fe4
++ * line 0x230 (560), and a third, separate "set" check at 0x266450 line 0x39
++ * (57) — the very low line number relative to the other two asserts in this
++ * function suggests this check originated in a small inlined helper, but no
++ * CALL instruction survives to prove that, so it is reproduced in-line
++ * verbatim rather than factored out. __FILE__ at 0x266458; system_exit
++ * (0x8e2f0, PUSH -1) after each. The new-fd dword (EDX at 0x827be/0x827f8)
++ * and the outer fd-count (EBX at 0x827ab) are each loaded once and held for
++ * the whole dedup search loop; the loop's continuation test re-reads the
++ * count from memory every iteration (CMP EAX,[ESI] at 0x827cb/0x82808)
++ * rather than reusing the cached EBX copy, while the post-loop found/full
++ * check does reuse EBX (CMP EAX,EBX at 0x827cf/0x8280c) — both are
++ * reproduced with that exact cache/reload split. The final fd-array store
++ * (0x827d8-e3 / 0x82815-20) is a fresh independent reload of the same
++ * ep_array/endpoint chain, not a reuse of the pre-loop new-fd value
++ * (registers are clobbered by the search loop in between).
++ *
++ * Uncertain: whether bit 0x2 of the flag byte distinguishes a real
++ * source-level condition (e.g. a "reliable" vs "unreliable" transport) or
++ * was always trivially one value is not decidable from this function alone,
++ * since both arms are behaviorally identical. */
++int add_endpoint_to_set(int endpoint, void *set)
++{
++  int index;
++  uint32_t fd_count;
++  uint32_t j;
++  uint32_t new_fd;
++  int *fds;
++
++  if (endpoint == 0 || set == NULL) {
++    display_assert(
++      "ep && set",
++      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
++      0x22f, true);
++    system_exit(-1);
++  }
++
++  if (*(uint8_t *)0x335090 == 0) {
++    display_assert(
++      "transport_initialized",
++      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
++      0x230, true);
++    system_exit(-1);
++  }
++
++  if (set == NULL) {
++    display_assert(
++      "set",
++      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
++      0x39, true);
++    system_exit(-1);
++  }
++
++  if ((*(int *)((char *)set + 0x108) - 1 < *(int *)((char *)set + 0x10c)) ||
++      (index = *(int *)((char *)set + 0x10c) + 1, index < 0)) {
++    return -0x14;
++  }
++
++  *(int *)(*(int *)((char *)set + 0x104) + index * 4) = endpoint;
++
++  fd_count = *(uint32_t *)set;
++
++  if ((*(uint8_t *)(endpoint + 4) & 2) == 0) {
++    j = 0;
++    if (fd_count != 0) {
++      new_fd = **(uint32_t **)(*(int *)((char *)set + 0x104) + index * 4);
++      fds = (int *)set;
++      do {
++        fds = fds + 1;
++        if ((uint32_t)*fds == new_fd)
++          break;
++        j = j + 1;
++      } while (j < *(uint32_t *)set);
++    }
++    if (j != fd_count || 0x3f < fd_count)
++      goto finish_insert;
++    *(uint32_t *)((char *)set + j * 4 + 4) =
++      **(uint32_t **)(*(int *)((char *)set + 0x104) + index * 4);
++  } else {
++    j = 0;
++    if (fd_count != 0) {
++      new_fd = **(uint32_t **)(*(int *)((char *)set + 0x104) + index * 4);
++      fds = (int *)set;
++      do {
++        fds = fds + 1;
++        if ((uint32_t)*fds == new_fd)
++          break;
++        j = j + 1;
++      } while (j < *(uint32_t *)set);
++    }
++    if (j != fd_count || 0x3f < fd_count)
++      goto finish_insert;
++    *(uint32_t *)((char *)set + j * 4 + 4) =
++      **(uint32_t **)(*(int *)((char *)set + 0x104) + index * 4);
++  }
++  *(uint32_t *)set = *(uint32_t *)set + 1;
++
++finish_insert:
++  *(int *)((char *)set + 0x10c) = *(int *)((char *)set + 0x10c) + 1;
++  *(uint8_t *)(endpoint + 4) = *(uint8_t *)(endpoint + 4) | 8;
++  return 0;
++}
++
+ /* Remove an endpoint from an endpoint set.
+  * Searches the set's endpoint_array for the matching pointer, then finds and
+  * removes the endpoint's socket from the fd_array by shifting. Clears the

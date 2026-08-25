@@ -1,0 +1,41 @@
+{
+  "name": "palette_find_closest_match",
+  "addr": "0x7d300",
+  "obj": "bitmaps.obj",
+  "source_path": "src/halo/bitmaps/bitmaps.c",
+  "best_score": 71.5,
+  "best_patch": "/mnt/g/dev/halo-integrate-bipeds/artifacts/parked/patches/palette_find_closest_match-20260824-113634.patch",
+  "status": "parked",
+  "first_parked": "2026-08-24T11:36:34+00:00",
+  "last_updated": "2026-08-24T23:52:28+00:00",
+  "promoted_commit": null,
+  "attempts": [
+    {
+      "ts": "2026-08-24T11:36:34+00:00",
+      "model": "sonnet",
+      "effort": "high",
+      "score": 71.5,
+      "cap_hypothesis": "classify_cap.py returned no high-confidence structural-cap rule match (\"apply agent judgment\"). Score sits in the 65-84 band with a SHAPE-WARN (opnd 41.2%): the reference disassembly reuses the incoming `color` parameter's stack slot ([EBP+0xc]) as the loop-counter storage after its last read (0007d331/0007d3b9), a register/stack-allocation artifact our clang -O3 build does not reproduce with a separate `i` local. This is a plausible but unconfirmed source of the gap \u2014 not verified as an unfixable ceiling, so a follow-up escalation agent should investigate before parking.",
+      "reason": "escalation_skipped_escalation_cap",
+      "notes": "Implemented from complete, fingerprinted Ghidra evidence (decompile + disassembly + call-site audit); no Ghidra queries were needed. The function is a 2-arg cdecl (uint32_t *palette, uint32_t color) returning short, not the void(void) placeholder in kb.json: it linear-scans up to 256 packed 0xAARRGGBB palette entries (stopping early on a zero/end-marker entry) for the closest RGB match by squared distance, with a fast path returning 255 outright when color's alpha byte is <=0x80, and a display_assert+system_exit guard (\"closest_match_index!=NONE\") if the palette is empty. Both callees (display_assert, system_exit) were already ported with no register args, so no kb.json callee-prep was needed. kb.json decl/ported updated; maintain.py and check_lift_hazards.py ran clean (only bitmaps.c/kb.json touched). lift_pipeline: build PASS, hazard/buffer_alias PASS, VC71 71.5% match with a SHAPE-WARN, equivalence 100/100 high-confidence. Score is in the 65-84 structural-cap review band; classify_cap.py found no high-confidence cap rule, so capped=false/inconclusive per the gate that forbids using my own pattern judgment to stop escalation. Two lift_pipeline attempts hit the 165s wrapper timeout because a cold/near-cold build was compiling the full project (rasterizer/etc., unrelated to this TU); the third attempt completed once the build cache was warm.",
+      "patch": "/mnt/g/dev/halo-integrate-bipeds/artifacts/parked/patches/palette_find_closest_match-20260824-113634.patch",
+      "outcome": "parked",
+      "fingerprint": "",
+      "evidence": []
+    },
+    {
+      "ts": "2026-08-24T23:52:28+00:00",
+      "model": "sonnet",
+      "effort": "high",
+      "score": 46.6,
+      "cap_hypothesis": "",
+      "reason": "sub_bar_vc71",
+      "notes": "46.6% match (173/89 insns, opnd 25.2%), below 85% structural-bug threshold. Nearly 2x candidate insn count vs reference suggests structural mismatch in the abs-diff/loop shape, not just the flagged IMM-WARN (our <0x80000001 vs ref cmp 0x80000000/JA -- functionally equivalent but different literal form). Needs disasm-level re-derivation of the abs-value and loop-continuation idiom before re-attempting.",
+      "patch": "/mnt/g/dev/halo-integrate-bipeds/artifacts/parked/patches/palette_find_closest_match-20260824-235228.patch",
+      "outcome": "parked",
+      "fingerprint": "",
+      "evidence": []
+    }
+  ],
+  "superseded_reason": "kb.json ported=true: function landed; this parked patch is no longer the path forward"
+}

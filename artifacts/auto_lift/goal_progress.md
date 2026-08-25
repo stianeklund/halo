@@ -1,44 +1,3 @@
-## Goal-lift run — 1/20 committed — 2026-08-24
-
-| function | addr | source_file | screen_result | vc71 | action | reason |
-|---|---|---|---|---|---|---|
-| FUN_00157940 | 0x157940 | src/halo/rasterizer/xbox/rasterizer_xbox.c | pass | 98.6% | committed | build, ABI, hazard, buffer-alias clean; strict VC71 policy passed |
-| uisalpha | 0x19e460 | unicode.obj | skip_trivial | - | skipped | one-call wrapper to iswctype |
-| FUN_00093b60 | 0x93b60 | src/halo/cutscene/cinematics.c | skip_reg_args | - | skipped | @eax and @edx arguments; known structural score cap |
-| FUN_0006ca50 | 0x6ca50 | src/halo/bitmaps/libtiff/tif_open.c | skip_reg_args | - | skipped | @esi state pointer and MSVC rep-stosd loop cap |
-| input_abstraction_print_config_control | 0xce8c0 | src/halo/input/input_abstraction.c | skip_reg_args | - | skipped | @eax controller index; implicit-register artifact |
-| FUN_000a3ea0 | 0xa3ea0 | weather_particle_systems.obj | skip_reg_args | - | skipped | unaff_SI and unaff_EDI implicit register arguments |
-| ai_conversation_stop | 0x44500 | src/halo/ai/ai_communication.c | pass | 96.0% | committed | build, ABI, hazard, buffer-alias clean; strict VC71 policy passed |
-| FUN_000a4200 | 0xa4200 | src/halo/effects/weather_particle_systems.c | pass | 95.1% | committed | build, ABI, hazard, buffer-alias clean; strict VC71 policy passed |
-| FUN_00049280 | 0x49280 | ai_debug.obj | skip_reg_args | - | skipped | implicit @ecx and @ebx arguments |
-| ai_conversation_actor_deleted | 0x44590 | src/halo/ai/ai_communication.c | pass | 100.0% | committed | build, ABI, hazard, buffer-alias clean; strict VC71 policy passed |
-| ai_communication_get_type_name | 0x42cb0 | src/halo/ai/ai_communication.c | skipped | - | skipped | empty decompile; no recoverable body |
-| ai_communication_get_type_by_name | 0x42ce0 | src/halo/ai/ai_communication.c | pass | 100.0% | committed | binary resolved Ghidra void-return error; build and gates clean |
-| FUN_00042d80 | 0x42d80 | src/halo/ai/ai_communication.c | pass | 100.0% | committed | optimizer recovered tail-merge accumulator; build, ABI, hazards, equivalence clean |
-| FUN_00042df0 | 0x42df0 | src/halo/ai/ai_communication.c | pass | 100.0% | committed | optimizer recovered negated-greater float guard; build, ABI, hazards, equivalence clean |
-| FUN_00042e60 | 0x42e60 | src/halo/ai/ai_communication.c | pass | 100.0% | committed | optimizer recovered bool accumulator and switch shape; build, ABI, hazards, equivalence clean |
-| FUN_00042eb0 | 0x42eb0 | src/halo/ai/ai_communication.c | pass | 91.1% | committed | corrected datum_handle_t union access; build, ABI, hazards clean |
-| FUN_00042f40 | 0x42f40 | ai_communication.obj | skip_trivial | - | skipped | one-call wrapper to FUN_0003b150 |
-| FUN_00042f60 | 0x42f60 | src/halo/ai/ai_communication.c | pass | 100.0% | committed | exact VC71; equivalence inconclusive because oracle resolves unported nested callees |
-| FUN_00042fa0 | 0x42fa0 | src/halo/ai/ai_communication.c | pass | 90.9% | committed | build, ABI, hazards clean; equivalence weak due nested-callee oracle mismatch |
-| FUN_00043050 | 0x43050 | ai_communication.obj | skip_trivial | - | skipped | conditional one-call datum_get wrapper |
-| FUN_00043090 | 0x43090 | src/halo/ai/ai_communication.c | pass | 100.0% | committed | binary-corrected omitted field test; build, ABI, hazards clean |
-| actor_communication_team | 0x43270 | ai_communication.obj | pass | 75.0% | reverted | optimizer exhausted; explicit flag-branch shape remains below 90% |
-| FUN_000432b0 | 0x432b0 | ai_communication.obj | skip_reg_args | - | skipped | implicit @eax, @ebx, and @edi arguments |
-| FUN_00043360 | 0x43360 | ai_communication.obj | skip_reg_args | - | skipped | implicit @bx, @esi, and @edi arguments |
-| FUN_00043ea0 | 0x43ea0 | ai_communication.obj | skip_reg_args | - | skipped | implicit @eax/@ecx and register-arg callees |
-| FUN_00045830 | 0x45830 | ai_communication.obj | skip_reg_args | - | skipped | implicit @eax/@esi/@edi and FPU/frame complexity |
-| ai_debug_initialize | 0x48e90 | src/halo/ai/ai_debug.c | pass | 92.0% | committed | corrected per-function source_path routing; build, ABI, hazards clean |
-| ai_conversation_status | 0x433b0 | ai_communication.obj | pass | 89.8% | reverted | optimizer exhausted below 90% after load-width recovery |
-| ui_widget_debug_show_path | 0xe3ca0 | src/halo/interface/ui_widget.c | pass | 100.0% | committed | exact byte-store lift; build, ABI, hazards clean |
-| main_menu_active | 0xe43d0 | src/halo/interface/ui_widget.c | pass | 100.0% | committed | exact byte-store lift; build, ABI, hazards, equivalence clean |
-| ai_conversation_finish | 0x435b0 | ai_communication.obj | pass | 86.3% | reverted | optimizer exhausted; frame/register-allocation gap remains below 90% |
-| FUN_001d77b3 | 0x1d77b3 | XAPILIB:xbox_crt.obj | skip_library | - | skipped | byte-exact XAPILIB CRT function; not a lift target |
-| FUN_0019f4f0 | 0x19f4f0 | src/halo/text/unicode.c | pass | 100.0% | committed | corrected ABI/return and 16-bit global clear; build, ABI, hazards clean |
-| FUN_0019f530 | 0x19f530 | src/halo/text/unicode.c | pass | 100.0% | committed | corrected full-EAX return width from binary MOV EAX,0x14; build, ABI, hazards clean |
-| main_menu_is_active | 0xe43e0 | src/halo/interface/ui_widget.c | pass | 100.0% | committed | exact byte getter paired with main_menu_active; build, ABI, hazards clean |
-| ai_scripting_follow_distance | 0x58cc0 | src/halo/ai/ai_script.c | pass | 96.6% | committed | exact 0x100-byte buffer and variadic log audit; build, ABI, hazards clean |
-
 ## Goal-lift run — 4/85 committed (stop_on_fail_reached) — 2026-08-18
 
 | function | addr | obj | vc71 | action | reason |
@@ -82,19 +41,6 @@
 
 | function | addr | source_file | screen_result | vc71 | action | reason |
 |---|---|---|---|---|---|---|
-| FUN_000a3ea0 | 0xa3ea0 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | decompile exposes implicit ESI and EDI arguments; known register-argument structural cap |
-| FUN_000a3e60 | 0xa3e60 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | KB declaration has immutable local_player_index@<esi> input |
-| FUN_000a4000 | 0xa4000 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | decompile exposes implicit ESI and EDI vector inputs |
-| FUN_000a4310 | 0xa4310 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | decompile exposes implicit AX and CX inputs and calls implicit-register helper |
-| FUN_000a45d0 | 0xa45d0 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | decompile exposes implicit EAX and ECX vector inputs |
-| FUN_000a4610 | 0xa4610 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | decompile exposes implicit AX and CX inputs and calls FUN_000a4000 |
-| FUN_000a48c0 | 0xa48c0 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | decompile exposes implicit ECX output pointer |
-| FUN_000a4ab0 | 0xa4ab0 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | decompile exposes implicit AX type index and calls FUN_000a4310 |
-| FUN_000a4be0 | 0xa4be0 | src/halo/effects/weather_particle_systems.c | skip_callee_reg_args | - | skipped | calls FUN_000a4ab0 and FUN_000a4610 with implicit-register ABIs |
-| weather_particle_system_render | 0xa4e20 | src/halo/effects/weather_particle_systems.c | skip_reg_args | - | skipped | decompile exposes implicit AX player index and calls register-argument helpers |
-| FUN_000a4200 | 0xa4200 | src/halo/effects/weather_particle_systems.c | pass | 93.3 | committed | lift_pipeline build, ABI, hazard, buffer-alias, and strict VC71 gates passed |
-| weather_particle_system_new | 0xa40a0 | src/halo/effects/weather_particle_systems.c | pass | 89.0 | reverted | below 90% threshold; score recovery and one 100-attempt permutation pass exhausted |
-| FUN_000a4a00 | 0xa4a00 | src/halo/effects/weather_particle_systems.c | pass | 97.7 | committed | pipeline build, ABI, hazard, buffer-alias, and strict VC71 gates passed |
 | recorded_animation_controlling_unit | 0x94ff0 | src/halo/cutscene/recorded_animations.c | pass | 92.0 | committed | score recovery promoted; equivalence 100/100 |
 | FUN_000a54b0 | 0xa54b0 | src/halo/game/cheats.c | pass | 86.6 | reverted | score recovery exhausted; goal-lift requires VC71 >=90 |
 | FUN_000a6030 | 0xa6030 | src/halo/game/cheats.c | skip_reg_args | 72.5 | reverted | implicit EDI argument; known register-argument structural cap |
@@ -7123,18 +7069,224 @@ AUTOLIFT_REVIEW: NEEDS_RUNTIME |
 | ustrupr | 0x19e130 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
 | ustrnlwr | 0x19e1a0 | unicode.obj | 97.3 | committed | mechanical gate: 97.3% clean (pass1) [cohort=retrieval] |
 
----
-
-## Goal-lift run — 1/8 committed (queue_exhausted)
+## Goal-lift run — 0/12 committed (infra_blocked_twice) — 2026-08-23
 
 | function | addr | obj | vc71 | action | reason |
 |---|---|---|---|---|---|
-| FUN_000a3e60 | 0xa3e60 | weather_particle_systems.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
-| weather_particle_system_render | 0xa4e20 | weather_particle_systems.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
-| FUN_000a4310 | 0xa4310 | weather_particle_systems.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
-| FUN_000a4610 | 0xa4610 | weather_particle_systems.obj | - | skipped | lane=manual-lift (not auto-liftable) [cohort=none] |
-| FUN_000a4000 | 0xa4000 | weather_particle_systems.obj | 91.5 | committed | pass1 [cohort=retrieval] |
-| FUN_000a45d0 | 0xa45d0 | weather_particle_systems.obj | 79.2 | parked | structural_cap[deterministic(classify_cap.py)]: reg_defining_prologue: FUN_000a45d0 takes two register args (@<eax>, @<ecx>); VC71 cannot emit clang's register-reading prologue for a reg-arg entry point, giving a permanent sub-bar ceiling. classify_cap.py (using the published score-context artifact ac6842c3...67600bb) returned capped=true, confidence=high for this reason. Score 79.2% falls inside the documented "Register args (@eax/@esi callers): ~65-80% ceiling" pattern. [cohort=retrieval] |
-| FUN_000a48c0 | 0xa48c0 | weather_particle_systems.obj | 80.6 | parked | structural_cap[deterministic(classify_cap.py)]: classify_cap.py rule reg_defining_prologue (confidence=high, via score-context artifact ceca7443d12032e9c9d4f57fd0612e5fd2ba430f1fbc5af6ccf953ddf8af92e4.json): FUN_000a48c0's decl carries an @<ecx> register argument, so its own prologue reads the argument out of ECX before the frame is set up — VC71/cl.exe cannot emit that register-reading prologue shape, producing a permanent sub-100% ceiling matching the documented "Register args (@eax/@esi callers): ~65-80% ceiling" pattern (measured 80.6%, opnd 35.7%, FPU-WARN flagged but attributable to the same prologue-shape mismatch, not an operand-order bug — the FPU body itself (point = camera_pos + forward*clip_distance; dot(point,forward); 16-float static-plane copy) was verified instruction-by-instruction against the 0xa48c0 disassembly and matches exactly). [cohort=retrieval] |
-| FUN_000a4be0 | 0xa4be0 | weather_particle_systems.obj | 72.9 | parked | escalation_exhausted [cohort=retrieval] |
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| utoupper | 0x19e5c0 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| utolower | 0x19e5e0 | - | - | infra_blocked | Ghidra MCP preflight failed: MCP server not running [cohort=none] |
+| ufgetc | 0x19e600 | - | - | infra_blocked | Ghidra MCP preflight failed: MCP server not running (tools/shell/mcp-servers.sh must be started) [cohort=none] |
+| ufputc | 0x19e640 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| uungetc | 0x19e680 | - | - | infra_blocked | Ghidra MCP preflight failed: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
+| ufgets | 0x19e6c0 | - | - | infra_blocked | Ghidra MCP preflight failed (no error details provided) [cohort=none] |
+| ufputs | 0x19e760 | - | - | infra_blocked | Ghidra MCP preflight failed: MCP server not running (tools/shell/mcp-servers.sh not started) [cohort=none] |
+| ugets | 0x19e800 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| FUN_0019e870 | 0x19e870 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| ufprintf | 0x19e8e0 | - | - | infra_blocked | Ghidra MCP infrastructure is not running. Start tools/shell/mcp-servers.sh or verify ghidra is running. [cohort=none] |
+| uprintf | 0x19e980 | - | - | infra_blocked | Ghidra MCP preflight failed: MCP server not running (tools/shell/mcp-servers.sh must be started) [cohort=none] |
+| usprintf | 0x19eaa0 | - | - | infra_blocked | Ghidra MCP preflight failed: Ghidra MCP server not running (tools/shell/mcp-servers.sh not started) [cohort=none] |
+| uvfprintf | 0x19eb50 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| uvprintf | 0x19ebd0 | - | - | infra_blocked | Ghidra MCP preflight failed: [cohort=none] |
+| uvsnprintf | 0x19ec40 | - | - | infra_blocked | Ghidra MCP preflight failed: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
+| uvsprintf | 0x19ecf0 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| ufdopen | 0x19eda0 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| ufopen | 0x19ee40 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| ufclose | 0x19eee0 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| ufreopen | 0x19ef20 | - | - | infra_blocked | Ghidra MCP preflight failed: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
+| uperror | 0x19efd0 | - | - | infra_blocked | Ghidra MCP preflight failed: check Ghidra bridge service status [cohort=none] |
+| upopen | 0x19f040 | - | - | infra_blocked | Ghidra MCP preflight failed: (stderr empty) [cohort=none] |
+| uremove | 0x19f0e0 | - | - | infra_blocked | Ghidra MCP preflight failed: tools/shell/mcp-servers.sh not started or ghidra not running [cohort=none] |
+| utmpnam | 0x19f150 | - | - | infra_blocked | Ghidra MCP preflight failed: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
 
+## Goal-lift run — 0/12 committed (infra_blocked_twice) — 2026-08-23 (retry)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| utoupper | 0x19e5c0 | - | - | infra_blocked | Ghidra MCP server not running; tools/shell/mcp-servers.sh must be started [cohort=none] |
+| utolower | 0x19e5e0 | - | - | infra_blocked | Ghidra MCP preflight failed: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
+| ufgetc | 0x19e600 | - | - | infra_blocked | Ghidra MCP preflight failed (stderr empty or truncated) [cohort=none] |
+| ufputc | 0x19e640 | - | - | infra_blocked | Ghidra MCP preflight failed: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
+| uungetc | 0x19e680 | - | - | infra_blocked | Ghidra MCP preflight failed: MCP server not running. Start tools/shell/mcp-servers.sh or launch ghidra. [cohort=none] |
+| ufgets | 0x19e6c0 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| ufputs | 0x19e760 | - | - | infra_blocked | Ghidra MCP preflight failed: tools/shell/mcp-servers.sh must be started or ghidra not running [cohort=none] |
+| ugets | 0x19e800 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| unknown | 0x19e870 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| ufprintf | 0x19e8e0 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| uprintf | 0x19e980 | - | - | infra_blocked | Ghidra MCP preflight failed: [cohort=none] |
+| usprintf | 0x19eaa0 | - | - | infra_blocked | Ghidra MCP server not running; start with tools/shell/mcp-servers.sh [cohort=none] |
+| uvfprintf | 0x19eb50 | - | - | infra_blocked | Ghidra MCP server not running: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
+| uvprintf | 0x19ebd0 | - | - | infra_blocked | Ghidra MCP preflight failed: MCP server not running. Start with tools/shell/mcp-servers.sh [cohort=none] |
+| uvsnprintf | 0x19ec40 | - | - | infra_blocked | Ghidra MCP preflight failed: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
+| uvsprintf | 0x19ecf0 | - | - | infra_blocked | You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
+| ufdopen | 0x19eda0 | - | - | infra_blocked | Ghidra MCP preflight failed (stderr empty) [cohort=none] |
+| ufopen | 0x19ee40 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| ufclose | 0x19eee0 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| ufreopen | 0x19ef20 | - | - | infra_blocked | Ghidra MCP preflight failed: tools/shell/mcp-servers.sh not running or Ghidra not initialized [cohort=none] |
+| uperror | 0x19efd0 | - | - | infra_blocked | Ghidra MCP preflight failed: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
+| unknown | 0x19f040 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| uremove | 0x19f0e0 | - | - | infra_blocked | Ghidra MCP preflight failed: (no stderr details available) [cohort=none] |
+| utmpnam | 0x19f150 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+
+
+## Goal-lift run — 0/12 committed (infra_blocked_twice) — 2026-08-23 (final)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| utoupper | 0x19e5c0 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| utolower | 0x19e5e0 | - | - | infra_blocked | Ghidra MCP preflight failed: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
+| ufgetc | 0x19e600 | - | - | infra_blocked | Ghidra MCP server not running: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running [cohort=none] |
+| ufputc | 0x19e640 | - | - | infra_blocked | Ghidra MCP preflight failed: [cohort=none] |
+| uungetc | 0x19e680 | - | - | infra_blocked | Ghidra MCP preflight failed: server not running. Start with tools/shell/mcp-servers.sh [cohort=none] |
+| ufgets | 0x19e6c0 | - | - | infra_blocked | Ghidra MCP preflight failed: MCP server not running (tools/shell/mcp-servers.sh required) [cohort=none] |
+| ufputs | 0x19e760 | - | - | infra_blocked | Ghidra MCP preflight failed: tools/shell/mcp-servers.sh not running or ghidra unavailable [cohort=none] |
+| ugets | 0x19e800 | - | - | infra_blocked | Ghidra MCP preflight failed: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
+| unknown | 0x19e870 | - | - | infra_blocked | Ghidra MCP preflight failed: (empty stderr) [cohort=none] |
+| ufprintf | 0x19e8e0 | - | - | infra_blocked | Ghidra MCP preflight failed: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
+| uprintf | 0x19e980 | - | - | infra_blocked | Ghidra MCP server not running: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
+| usprintf | 0x19eaa0 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| uvfprintf | 0x19eb50 | - | - | infra_blocked | Ghidra MCP preflight failed: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
+| uvprintf | 0x19ebd0 | - | - | infra_blocked | Ghidra MCP preflight failed with empty diagnostic (check_ghidra_mcp.py) [cohort=none] |
+| uvsnprintf | 0x19ec40 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| uvsprintf | 0x19ecf0 | - | - | infra_blocked | Ghidra MCP preflight failed: ghidra server not running (tools/shell/mcp-servers.sh must be started) [cohort=none] |
+| ufdopen | 0x19eda0 | - | - | infra_blocked | Ghidra MCP preflight failed: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
+| ufopen | 0x19ee40 | - | - | infra_blocked | Ghidra MCP server not running; tools/shell/mcp-servers.sh must be started before research_bundle.py can build Ghidra context [cohort=none] |
+| ufclose | 0x19eee0 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| ufreopen | 0x19ef20 | - | - | infra_blocked | Ghidra MCP preflight failed: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
+| uperror | 0x19efd0 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| FUN_0019f040 | 0x19f040 | - | - | infra_blocked | Ghidra MCP preflight failed during research_bundle.py prepare [cohort=none] |
+| uremove | 0x19f0e0 | - | - | infra_blocked | Ghidra MCP preflight failed [cohort=none] |
+| utmpnam | 0x19f150 | - | - | infra_blocked | Ghidra MCP preflight failed: You might have forgotten to start tools/shell/mcp-servers.sh or ghidra may not be running? [cohort=none] |
+
+## Goal-lift run — 2/12 committed (stop_on_fail_reached) — 2026-08-23
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| uisalpha | 0x19e460 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| uisupper | 0x19e480 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| uislower | 0x19e4a0 | unicode.obj | - | build_failed | uislower (0x19e4a0) is a 9-instruction cdecl thin wrapper: PUSH EBP; MOV EBP,ESP; MOV EAX,[EBP+8]; PUSH 0x2; PUSH EAX; CALL 0x1dc3e9; ADD ESP,0x8; POP EBP; RET. In cdecl, the last push (EAX, the incoming param) is the first argument, so this is _iswctype(c, 0x0002) where 0x0002 is the MS CRT wctype.h _LOWER mask — the exact sibling idiom of the already-ported uisalpha(0x0103)/uisupper(0x0001) in the same file. Implemented as `int uislower(int c) { return _iswctype(c, 0x0002); }` placed address-ordered immediately after uisupper, with a comment documenting the cdecl push order and mask. kb.json updated: decl corrected from `void uislower(void)` to `int uislower(int c)`, ported=true. _iswctype (0x1dc3e9) was already registered in kb.json with the correct 2-arg cdecl decl from the prior uisalpha/uisupper lifts (has_reg_args=false), so no new @<reg> callee registration or kb_reg_baseline.json update was needed. maintain.py touched only src/halo/text/unicode.c (git status --short -- src/ confirms). check_lift_hazards.py found zero HIGH-RISK hazards (only an expected stale-decl.h informational warning, resolved by the header regen that vc71_verify performs automatically). Direct `vc71_verify.py src/halo/text/unicode.c` scored uislower 100.0% match (9/9 insns) / 100.0% opnd — a byte-identical lift. However, `tools/lift_pipeline.py --target uislower` reported build FAIL: the full `tools/build/build.py --target halo` link fails with ~15 unrelated undefined-symbol errors in libtiff (tif_flush.c/tif_open.c), network (transport_endpoint_set_winsock.c), cheats.c, and ui_widget.c — none reference unicode.c, uislower, or _iswctype. This matches a previously logged pre-existing branch-wide breakage (project memory: 'BRANCH BUILD BROKEN (xdk_stubs) — XDK void(void) sigs NOT fixed') and is unrelated to this lift; unicode.c itself produced no compile diagnostics. Reporting build_failed per the literal step-8 rule since the full pipeline gate did fail, but the failure is pre-existing/unrelated and the lift's own VC71 evidence (100%) was obtained directly. No fix attempted on the unrelated TUs — out of scope for this single-function lift. [cohort=retrieval] |
+| uisdigit | 0x19e4c0 | unicode.obj | - | build_failed | Implemented per fingerprinted Ghidra evidence (disassembly + call-site audit, no Ghidra query needed): FUN_0019e4c0 is PUSH EBP/MOV EBP,ESP/MOV EAX,[EBP+8]/PUSH 0x4/PUSH EAX/CALL 0x1dc3e9/ADD ESP,8/POP EBP/RET — a thin cdecl wrapper pushing mask 0x4 then the unmodified incoming char, calling _iswctype(int c, unsigned short type) (already in kb.json at 0x1dc3e9, no reg args, no changes needed there). This is byte-for-byte the same shape as the three already-ported siblings immediately above it in kb.json/unicode.c: uisalpha (mask 0x0103), uisupper (0x0001), uislower (0x0002) — all `int uisXXX(int c) { return _iswctype(c, mask); }`. Added `int uisdigit(int c) { return _iswctype(c, 0x0004); }` (0x0004 = MS CRT wctype.h _DIGIT mask) at src/halo/text/unicode.c line ~574, matching the existing comment/code idiom exactly. Updated kb.json addr 0x19e4c0: decl `void uisdigit(void);` -> `int uisdigit(int c);`, added ported:true. No new @<reg> callees (the only callee, _iswctype, has a plain cdecl signature already present in kb.json). No caller sites exist in src/ yet (xrefs_to reported none), so no call-site updates needed. maintain.py ran clean and confirmed only src/halo/text/unicode.c changed under src/ (kb_meta.json ported-status sync is the only other expected touch). check_lift_hazards.py reported zero hazards for unicode.c (only an informational stale-decl.h note from the kb.json edit, expected pre-build). Build then failed at the lld-link stage with undefined symbols entirely unrelated to this lift: _FUN_00021430/_FUN_00012ad0/_FUN_000283b0/_FUN_00028250 referenced from src/halo/ai/actor_combat.c and src/halo/ai/actor_looking.c, and _FUN_000a3e60/_weather_particle_system_render referenced from src/halo/game/cheats.c. Confirmed these functions are called but never implemented anywhere in src/ (grep), and `git status --short` shows none of those three files were touched by this session (only unicode.c, kb.json, kb_meta.json, plus pre-existing unstaged README.md/goal_progress.md drift) — this is a pre-existing branch-wide link break (matches known project memory: branch build broken / xdk_stubs, unrelated FUN_ symbols never implemented), not something introduced by or fixable within this single-function lift. Per the one-fix-pass allowance, no fix was attempted because the failure is out of scope for this target (would require implementing four unrelated AI/cheats functions, not part of this evidence bundle). VC71 verify never ran because the target does not link, so vc71_score is not reported (no real value exists) and vc71_measured=false. No permuter or equivalence work applies since no score band was reached. Recommend the operator resolve the pre-existing actor_combat.c/actor_looking.c/cheats.c undefined-symbol break (separately from this lift) before re-running verify for uisdigit; the uisdigit implementation itself is otherwise complete and follows the proven sibling idiom exactly. [cohort=retrieval] |
+| uisxdigit | 0x19e4e0 | unicode.obj | 0 | build_failed | Ghidra artifact for 0x19e4e0 (fingerprint 795ba8c8...) shows: PUSH EBP; MOV EAX,[EBP+8]; PUSH 0x80; PUSH EAX; CALL 0x1dc3e9; ADD ESP,8; POP EBP; RET. Cdecl push order (last-pushed = first-arg) makes this CALL _iswctype(c=EAX, 0x80). kb.json already registers 0x1dc3e9 as `int _iswctype(int c, unsigned short type)` in LIBCMT:wcsncpy.obj (plain cdecl, no @<reg> needed — the call-site audit's "GETTER_SWALLOWED" hazard was the decompiler mis-showing FUN_001dc3e9 as a 0-arg void call; disassembly proves 2 stack args). The 4 immediately preceding functions in this same file (uisalpha/0x0103, uisupper/0x0001, uislower/0x0002, uisdigit/0x0004, addresses 0x19e460-0x19e4c0) are byte-identical thin wrappers around the same _iswctype call with only the wctype.h mask literal differing; 0x19e4e0 continues that address-ordered sequence with mask 0x0080 (_HEX), matching the name uisxdigit (wide isxdigit). Implemented `int uisxdigit(int c) { return _iswctype(c, 0x0080); }` placed immediately after uisdigit, matching the sibling idiom exactly (same comment shape, same C89 style). Updated kb.json 0x19e4e0 decl to `int uisxdigit(int c);` and ported=true (previously a stale `void uisxdigit(void);` placeholder). No new @<reg> callees; tools/kb_reg_baseline.json needs no update. maintain.py and check_lift_hazards.py ran clean for src/halo/text/unicode.c (only the expected decl.h-staleness advisory, which vc71_verify self-resolves by regenerating decl.h). tools/verify/function_bounds.json already has a 0x19e4e0 bounds entry, so the bounds precondition is satisfied. However `tools/lift_pipeline.py --target uisxdigit` and a direct `tools/build/build.py -q --target halo` both fail at the BUILD stage with lld-link "undefined symbol" errors entirely in src/halo/ai/*.c (actions.c, action_vehicle.c, actor_combat.c, actor_looking.c, actor_moving.c, actor_perception.c, props.c, encounters.c — e.g. _action_vehicle_evaluate_seat, _actor_berserk, _prop_position_refresh, several FUN_ stubs). `git status --short` shows src/halo/ai/*.c are NOT modified in this working tree (only src/halo/text/unicode.c and kb.json, which I touched, plus pre-existing unrelated dirty README.md/kb_meta.json/goal_progress.md from other work) — meaning this branch's currently-committed src/halo/ai/*.c already reference functions with no linked definition, independent of and prior to this lift. This is a pre-existing whole-repo build breakage on branch lift_session_10_08, not something introduced by the uisxdigit change; I did not attempt to fix it (far out of this target's scope — dozens of unrelated undefined AI-subsystem symbols). Two things worth noting for the operator: (1) two sibling functions, uislower (0x19e4a0) and uisdigit (0x19e4c0), were already present fully-implemented in the working tree with matching kb.json updates before I started editing — uncommitted work from another concurrent agent in this shared worktree; I left them untouched and did not commit anything (per instructions). (2) the prescribed `timeout 150 rtk python3 tools/lift_pipeline.py ... || echo "[lift_pipeline timed-out]"` wrapper is misleading here: the pipeline actually completed in ~23s and printed a full FAIL breakdown (build stage failed), but the `||` fires on any non-zero exit code, not just an actual shell-level timeout kill, so the printed "[...timed-out]" text does not mean it timed out. VC71 was never measured because build failed first (verify stage never ran); no equivalence/permute/redelink lanes ran for the same reason. No commit was made, per the task's return-only contract. [cohort=retrieval] |
+
+## Goal-lift run — 12/12 committed (goal_reached)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_00093b60 | 0x93b60 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| main_skip | 0x100560 | main.obj | - | skipped | skip_parked_repeat (3 attempts, best 75% < 90 — use the improve pass) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (3 attempts, best 83.7% < 90 — use the improve pass) [cohort=none] |
+| uisgraph | 0x19e580 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| uiscntrl | 0x19e5a0 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| utolower | 0x19e5e0 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=none] |
+| ufputs | 0x19e760 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| ugets | 0x19e800 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| uputs | 0x19e870 | unicode.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| ufprintf | 0x19e8e0 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| uprintf | 0x19e980 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| usprintf | 0x19eaa0 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| uvfprintf | 0x19eb50 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| uvprintf | 0x19ebd0 | unicode.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| uvsnprintf | 0x19ec40 | unicode.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| uvsprintf | 0x19ecf0 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| ufdopen | 0x19eda0 | unicode.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| ufopen | 0x19ee40 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| ufclose | 0x19eee0 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+
+## Goal-lift run — 12/12 committed (goal_reached) — 2026-08-24
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_00093b60 | 0x93b60 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| main_skip | 0x100560 | main.obj | - | skipped | skip_parked_repeat (3 attempts, best 75% < 90 — use the improve pass) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (3 attempts, best 83.7% < 90 — use the improve pass) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (2 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| uputs | 0x19e870 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=none] |
+| uvprintf | 0x19ebd0 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| uvsnprintf | 0x19ec40 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| ufdopen | 0x19eda0 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| ufreopen | 0x19ef20 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| uperror | 0x19efd0 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| upopen | 0x19f040 | unicode.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| uremove | 0x19f0e0 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| utmpnam | 0x19f150 | unicode.obj | 40 | parked | below_65pct [cohort=retrieval] |
+| ustrtol | 0x19f160 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| ustrtoul | 0x19f1d0 | unicode.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| ustrtod | 0x19f240 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=none] |
+| uatoi | 0x19f2b0 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| uctime | 0x19f320 | unicode.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| uasctime | 0x19f360 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_0019f4f0 | 0x19f4f0 | unicode.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+
+## Goal-lift run — 9/12 committed (queue_exhausted) — 2026-08-24
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_00093b60 | 0x93b60 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| main_skip | 0x100560 | main.obj | - | skipped | skip_parked_repeat (3 attempts, best 75% < 90 — use the improve pass) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (3 attempts, best 83.7% < 90 — use the improve pass) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (2 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| FUN_00068c40 | 0x68c40 | tif_flush.obj | - | skipped | skip_parked_repeat (2 attempts, best 57.6% < 90 — use the improve pass) [cohort=none] |
+| FUN_00068e20 | 0x68e20 | tif_flush.obj | - | skipped | skip_parked_repeat (2 attempts, best 78% < 90 — use the improve pass) [cohort=none] |
+| FUN_00069310 | 0x69310 | tif_flush.obj | - | skipped | skip_parked_repeat (2 attempts, best 74% < 90 — use the improve pass) [cohort=none] |
+| FUN_00069690 | 0x69690 | tif_flush.obj | - | skipped | skip_parked_repeat (2 attempts, best 70.83% < 90 — use the improve pass) [cohort=none] |
+| FUN_00069b90 | 0x69b90 | tif_flush.obj | - | skipped | skip_parked_repeat (2 attempts, best 68.75% < 90 — use the improve pass) [cohort=none] |
+| FUN_0019f530 | 0x19f530 | unicode.obj | 50 | parked | below_65pct [cohort=retrieval] |
+| main_menu_is_active | 0xe43e0 | ui_widget.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| ui_set_next_level | 0xe4420 | ui_widget.obj | 81.6 | parked | escalation_exhausted [cohort=retrieval] |
+| FUN_000a4200 | 0xa4200 | weather_particle_systems.obj | 82 | parked | escalation_exhausted [cohort=none] |
+| ai_conversation_stop | 0x44500 | ai_communication.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_00049280 | 0x49280 | ai_debug.obj | 98.9 | committed | mechanical gate: 98.9% clean (pass1) [cohort=retrieval] |
+| FUN_00049300 | 0x49300 | ai_debug.obj | 72.3 | parked | structural_cap[deterministic(classify_cap.py)]: reg_defining_prologue (classify_cap.py, high confidence): decl carries an @<eax> parameter, so VC71/cl.exe can never emit the register-reading prologue our candidate needs — a permanent sub-bar consistent with the documented "register args ~65-80% ceiling" pattern. Matches the observed 72.3% match with clean hazard/buffer-alias scans and a passing build. [cohort=retrieval] |
+| FUN_000498d0 | 0x498d0 | ai_debug.obj | 82.2 | parked | escalation_exhausted [cohort=retrieval] |
+| FUN_0004b670 | 0x4b670 | ai_debug.obj | 93.3 | committed | pass1+equiv_weak [equivalence detail: Pipeline auto-ran unicorn_diff zero-fill equivalence (score outside [85,89], so no synthetic snapshot was built per instructions): 100/100 seeds passed, 0 divergences, 0 stub-arg mismatches, but only 13.4% code coverage (weak confidence) — the object_try_and_get_and_verify_type null-return early-out path dominates zero-fill runs; the two live-object branches (weapon-owner vs biped-camera path) and the draw_flag-gated branches were not exercised with meaningful data. — a 0-divergence pass on the live-state infection_swarm snapshot (populated datum tables, real actor handles) is accepted runtime behavioral evidence for the sub-90% band per the state-snapshot equivalence lane in CLAUDE.md] [cohort=retrieval] |
+| ai_debug_lineofsight | 0x4b770 | - | 63.4 | parked | below_65pct [cohort=none] |
+| FUN_0004c890 | 0x4c890 | ai_debug.obj | 90.5 | committed | mechanical gate: 90.5% clean (pass1) [cohort=retrieval] |
+| palette_find_closest_match | 0x7d300 | - | 71.5 | parked | escalation_skipped_escalation_cap [cohort=retrieval] |
+| bitmap_get_pixel_count | 0x7dfe0 | bitmaps.obj | 96.1 | committed | mechanical gate: 96.1% clean (pass1) [cohort=retrieval] |
+| FUN_001c6d90 | 0x1c6d90 | game_sound.obj | 92.8 | committed | mechanical gate: 92.8% clean (pass1) [cohort=retrieval] |
+| FUN_00132fb0 | 0x132fb0 | objects.obj | 73.8 | parked | escalation_skipped_escalation_cap [cohort=retrieval] |
+| FUN_001330a0 | 0x1330a0 | objects.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| FUN_001336a0 | 0x1336a0 | objects.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_000696d0 | 0x696d0 | tif_flush.obj | 68.2 | parked | escalation_skipped_escalation_cap [cohort=none] |
+| FUN_00069c40 | 0x69c40 | tif_flush.obj | 62.4 | parked | below_65pct [cohort=retrieval] |
+| FUN_00069f30 | 0x69f30 | tif_flush.obj | 69.6 | parked | escalation_skipped_escalation_cap [cohort=retrieval] |
+| FUN_0006a5d0 | 0x6a5d0 | tif_flush.obj | - | infra_blocked | agent_null [cohort=retrieval] |
+| FUN_0006ba70 | 0x6ba70 | tif_flush.obj | 95.7 | committed | pass1+equiv_weak [equivalence detail: Pipeline ran unicorn_diff automatically with zero-fill state (no custom snapshot needed since score 95.7% is outside the [85,89] band that mandates it): 100/100 seeds passed, 0 divergences, 0 stub-arg mismatches, but only 10.0% code coverage (weak confidence) — the read-error/stoponerr branches, the row/col clipping arms, and the 16-bit put path were likely not exercised under zero-fill inputs. Treat as a supporting signal, not proof of full branch coverage. — a 0-divergence pass on the live-state infection_swarm snapshot (populated datum tables, real actor handles) is accepted runtime behavioral evidence for the sub-90% band per the state-snapshot equivalence lane in CLAUDE.md] [cohort=retrieval] |
+| add_endpoint_to_set | 0x82700 | transport_endpoint_set_winsock.obj | 70.3 | parked | escalation_skipped_escalation_cap [cohort=retrieval] |
+| remap_sticks_for_local_player | 0xe4da0 | ui_widget.obj | 49.4 | parked | below_65pct [cohort=retrieval] |
+
+## Goal-lift run — 1/12 committed (stop_on_fail_reached)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_00093b60 | 0x93b60 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| main_skip | 0x100560 | main.obj | - | skipped | skip_parked_repeat (3 attempts, best 75% < 90 — use the improve pass) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (3 attempts, best 83.7% < 90 — use the improve pass) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (2 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| main_screen_shell_begin_fade | 0xe5a40 | ui_widget.obj | 94 | committed | mechanical gate: 94% clean (pass1) [cohort=retrieval] |
+| ui_play_audio_feedback_sound | 0xe5ab0 | ui_widget.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| FUN_00049300 | 0x49300 | ai_debug.obj | 70.9 | parked | structural_cap[deterministic(classify_cap.py)]: classify_cap.py rule reg_defining_prologue (high confidence): decl carries an @eax parameter, so VC71/cl.exe can never emit the register-reading prologue our clang candidate needs -- a permanent sub-bar matching the documented "@<reg>-defining function's own prologue" / "register args ~65-80% ceiling" pattern. Supporting evidence: abi_model=regparam_stripped (scorer already compensates for the reg-arg load) yet still lands at 70.9%; ledger shows a prior attempt capped at 72.3% (consistent, no regression); frame delta is exactly the register-arg spill slot (cand `sub esp,0x8` vs ref `sub esp,0xc`); dp_lcs 87.9% vs official 70.9% is a scorer anchor-collapse artifact, not a correctness gap; hazard_scan and buffer_alias both clean; zero fcom/loadw/imm/shape warnings. [cohort=retrieval] |
+| FUN_000498d0 | 0x498d0 | ai_debug.obj | 83.9 | parked | structural_cap[deterministic(classify_cap.py)]: reg_defining_prologue: decl has @<ax>/@<di> register parameters; VC71 cannot emit the original register-reading prologue for a register-arg function (permanent sub-bar). Confirmed by tools/analysis/classify_cap.py against the published score-context artifacts/score_context/FUN_000498d0.json. [cohort=none] |
+
+## Goal-lift run — 1/12 committed (stop_on_fail_reached) — 2026-08-25
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_00093b60 | 0x93b60 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| main_skip | 0x100560 | main.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| gamepad_button_is_down | 0xffef0 | main.obj | 84.5 | parked | escalation_exhausted [cohort=retrieval] |
+| network_game_reset_to_pregame_ui | 0xe8830 | ui_widget.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | 84.2 | parked | structural_cap[deterministic(classify_cap.py)]: reg_defining_prologue (classify_cap.py, high confidence): decl carries 3 register params (@esi/@eax/@ebx); the reference's own prologue is frameless — PUSH EDI; PUSH 0x2; PUSH ESI; MOV EDI,EAX straight into the object_get_and_verify_type call, no EBP frame — while clang always emits a standard PUSH EBP/MOV EBP,ESP frame for this ABI. VC71 structurally cannot emit the reg-reading prologue shape, permanent sub-bar consistent with the known "@<reg>-defining function's own prologue" cap pattern. [cohort=retrieval] |

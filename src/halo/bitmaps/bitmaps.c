@@ -1578,6 +1578,45 @@ int bitmap_get_pixel_count(void *bitmap)
 }
 
 /*
+ * bitmap_get_pixel_count — total number of texels in a bitmap's pixel data,
+ * summed across every mipmap level (bitmap_mipmap_get_pixel_count per level).
+ *
+ * Confirmed 0x7dfe6..0x7dfed: bitmap_verify(bitmap, FALSE) — `push 0; push
+ * edi; call 0x7d470`, first push is the last arg.
+ * Confirmed 0x7dff7..0x7e019: on AL==0, display_assert("bitmap_verify(bitmap,
+ * FALSE)", "c:\halo\SOURCE\bitmaps\bitmaps.c", 0x378, 1) then system_exit(-1).
+ * Confirmed 0x7e01b..0x7e01f: ESI=0; if (short)[bitmap+0x14] < 0, the loop
+ * body never runs (no mipmaps to sum).
+ * Confirmed 0x7e021..0x7e032: loop calls bitmap_mipmap_get_pixel_count(bitmap,
+ * mip), accumulates into EBX, increments ESI, and continues while
+ * (short)mip <= (short)[bitmap+0x14] — an inclusive bound, matching the
+ * mipmap_index<=bitmap->mipmap_count assert in bitmap_mipmap_get_pixel_count
+ * above.
+ */
+int bitmap_get_pixel_count(void *bitmap)
+{
+  char *b = (char *)bitmap;
+  int total;
+  short mip;
+
+  if (!bitmap_verify(bitmap, 0)) {
+    display_assert("bitmap_verify(bitmap, FALSE)",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x378, 1);
+    system_exit(-1);
+  }
+
+  total = 0;
+  mip = 0;
+  if (*(short *)(b + 0x14) >= 0) {
+    do {
+      total += bitmap_mipmap_get_pixel_count(bitmap, mip);
+      mip++;
+    } while (mip <= *(short *)(b + 0x14));
+  }
+  return total;
+}
+
+/*
  * bitmap_get_pixel_data_size — total byte size of a bitmap's pixel data,
  * across every mipmap level (bitmap_get_pixel_count counts all texels).
  *

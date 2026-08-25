@@ -2290,6 +2290,128 @@ int FUN_0006a3b0(unsigned char *map /* @<esi> */)
 }
 
 /**
+ * Allocate and fill the 256-entry RGB palette expansion table used by the
+ * 1/2/4/8-bit palette tile writers.
+ *
+ * Upstream libtiff tif_getimage.c `makecmap`, the RGB sibling of
+ * FUN_0006a3b0's `makebwmap` immediately above. The TU is proven, not
+ * inferred: the allocation at 0x6a5f8 carries the same literal
+ * `c:\halo\SOURCE\bitmaps\libtiff\tif_getimage.c` (0x260264) FUN_0006a3b0
+ * uses, at line 0x251 (593) -- one section below makebwmap's line 0x21a.
+ * kb.json groups it into tif_flush.obj like the rest of the tif_getimage
+ * family in this file.
+ *
+ * ABI recovered from the frame at 0x6a5d0: `push ebp / mov ebp,esp / push
+ * ecx` (one 4-byte local at EBP-4 -- a per-entry index that is written
+ * repeatedly, e.g. `mov [ebp-4],edi` at 0x6a66a, but never read back
+ * anywhere in 0x6a5d0-0x6a8e0; a dead spill, not a second source read),
+ * `push ebx` then, once allocation succeeds, `push edi`, plain
+ * `mov esp,ebp / pop ebp / ret` -- cdecl, int return. TWO stack arguments
+ * are read, at [ebp+8] and [ebp+0xc] (`mov ebx,[ebp+0xc]` at 0x6a5e4,
+ * reloaded fresh every case body from [ebp+8] and [ebp+0xc], e.g. 0x6a67c/
+ * 0x6a691), and ONE register argument: ESI is read throughout (e.g.
+ * `mov dh,[edi+esi*1]` at 0x6a667) without ever being pushed, popped, or
+ * written -- an incoming @<esi> value, the same calling-convention shape
+ * FUN_0006a3b0 above uses for its `map` parameter.
+ *
+ * Slot identity is fixed by the packed-pixel store, not assumed: the first
+ * table entry builds `(ESI-byte << 16) | ([ebp+0xc]-byte << 8) |
+ * [ebp+8]-byte` (traced at 0x6a667, 0x6a679 and 0x6a67f-0x6a68e), which is
+ * exactly this file's `PACK(r, g, b)` bit layout with `r` the low byte. So
+ * [ebp+8] is `r`, [ebp+0xc] is `g`, and the @<esi> value is `b` -- the same
+ * order checkcmap's short-circuit chain fixes at 0x6a2a0.
+ *
+ * Every color lookup indexes its array at `x * 2`, not at `x`: `shl edi,1`
+ * at 0x6a665 runs before every one of the three byte loads that then share
+ * EDI as their index. `r`/`g`/`b` are declared `unsigned char *` with the
+ * `* 2` written explicitly, reproducing that addressing without asserting
+ * an unproven 16-bit element type underneath it.
+ *
+ * The bit-width switch reproduces FUN_0006a3b0's shape exactly -- same
+ * shift amounts, same 1/2/4/8 case set, no `default`, no `case 16` -- since
+ * this is that function's three-way sibling, building `PACK(r[i],g[i],b[i])`
+ * where makebwmap builds `PACK(c,c,c)`. As there, an out-of-range
+ * bitspersample (3, 5, 6, 7, or >8) still stores the row pointer at
+ * `BWmap[i]` (this build's macro name for what upstream calls PALmap, see
+ * the correction in the file-statics note above BWmap's definition) but
+ * leaves it unfilled and un-advanced for that row: `BWmap[i] = p` runs
+ * ahead of the switch on every iteration, and a switch with no matching
+ * case simply does nothing.
+ *
+ * Return is a real int, not the `void` the decompiler's placeholder
+ * prototype forced on it: `xor eax,eax` on the allocation-failure path
+ * (0x6a620) and `mov eax,1` at the very end (0x6a8d7).
+ */
+#define PALENTRY(x) \
+  idx = (x) * 2;    \
+  *p++ = PACK(r[idx], g[idx], b[idx]);
+
+int FUN_0006a5d0(unsigned char *r, unsigned char *g,
+                 unsigned char *b /* @<esi> */)
+{
+  int nsamples;
+  int i;
+  int idx;
+  unsigned long *p;
+
+  /* 0x6a5d4-0x6a5e1: signed `mov eax,8; cdq; idiv ecx` on the file-static
+   * bitspersample, same as FUN_0006a3b0 and with the same absent
+   * `if (nsamples == 0) nsamples = 1;` upstream guard. */
+  nsamples = 8 / bitspersample;
+
+  /* 0x6a5e7-0x6a5f8: same allocation shape as FUN_0006a3b0 above, same
+   * __FILE__ string, line 0x251. */
+  BWmap = (unsigned long **)debug_malloc(
+    (nsamples + 1) * (256 * sizeof(unsigned long)), false,
+    "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_getimage.c", 0x251);
+  if (BWmap == 0) {
+    /* 0x6a60c-0x6a618: `mov edx,[0x3340dc]; push 0x260294; push edx`. */
+    FUN_00068a30(filename, "No space for Palette mapping table");
+    return 0;
+  }
+
+  /* 0x6a628: `lea ecx,[edx+0x400]` -- past the 256 row pointers. */
+  p = (unsigned long *)(BWmap + 256);
+  for (i = 0; i < 256; i++) {
+    /* 0x6a640: `mov [edx+eax*4],ecx`, ahead of the switch, unconditionally. */
+    BWmap[i] = p;
+    switch (bitspersample) {
+    case 1:
+      /* 0x6a65b-0x6a7b8, then the shared tail at 0x6a88e/0x6a8b3. */
+      PALENTRY(i >> 7);
+      PALENTRY((i >> 6) & 1);
+      PALENTRY((i >> 5) & 1);
+      PALENTRY((i >> 4) & 1);
+      PALENTRY((i >> 3) & 1);
+      PALENTRY((i >> 2) & 1);
+      PALENTRY((i >> 1) & 1);
+      PALENTRY(i & 1);
+      break;
+    case 2:
+      /* 0x6a7c2-0x6a855. */
+      PALENTRY(i >> 6);
+      PALENTRY((i >> 4) & 3);
+      PALENTRY((i >> 2) & 3);
+      PALENTRY(i & 3);
+      break;
+    case 4:
+      /* 0x6a85c-0x6a889. */
+      PALENTRY(i >> 4);
+      PALENTRY(i & 0xf);
+      break;
+    case 8:
+      /* 0x6a8a3: straight into the shared tail. */
+      PALENTRY(i);
+      break;
+    }
+  }
+#undef PALENTRY
+
+  /* 0x6a8d7. */
+  return 1;
+}
+
+/**
  * Expand one contiguous 8-bit greyscale/palette tile into the 32bpp raster.
  *
  * Upstream libtiff tif_getimage.c putgreytile -- the `UNROLL8(w, ,
@@ -3900,5 +4022,143 @@ int FUN_0006b8e0(void *tif, unsigned long *raster, void *img,
   }
 
   debug_free(buf, "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_getimage.c", 0x15a);
+  return (1);
+}
+
+/**
+ * Decode a tiled, PLANARCONFIG_SEPARATE RGB image into the 32-bit RGBA
+ * raster -- upstream libtiff tif_getimage.c:gtTileSeparate, fused with its
+ * own pickTileSeparateCase(): unlike the contig pair (FUN_0006b780 +
+ * FUN_0006b8e0 above), this build never calls out to a separate picker --
+ * the `photometric == PHOTOMETRIC_RGB` / `bitspersample == 8` checks and the
+ * `put` assignment are inline in this one function's frame at 0x6ba70.
+ *
+ * ABI, off the frame at 0x6ba70 (`push ebp / mov ebp,esp / sub esp,0x24`,
+ * cdecl):
+ *   EBP+0x08  tif     forwarded to FUN_0006f910/TIFFGetField/FUN_0006a310
+ *                     and as the first push of every FUN_0006eea0 call
+ *   EBP+0x0c  raster  scaled *4 by `lea eax,[edx+ecx*4]` at 0x6bc4e
+ *   EBP+0x10  img     never dereferenced; forwarded raw (`mov eax,[ebp+0x10]
+ *                     ; push eax` at 0x6bc33/0x6bc3c) into the `put` call's
+ *                     5th slot, same as FUN_0006b8e0 forwards its own img
+ *   EBP+0x14  h       the outer (row) loop bound (`mov esi,[ebp+0x14]` at
+ *                     0x6bb38, `test esi,esi` at 0x6bb68)
+ *   EDI       w       INCOMING REGISTER ARGUMENT, same convention as
+ *                     FUN_0006b8e0's @<edi> -- read at 0x6bb55, 0x6bb91,
+ *                     0x6bc19, 0x6bc44 and never written/pushed/popped here.
+ *
+ * The error string at 0x2602d0 ("Can not handle format") is the same
+ * literal FUN_0006b780 uses for the contig no-put case, confirming this is
+ * the separate-config sibling of that dispatch. Two RGB depths are handled
+ * (`cmp word ptr [0x3340fc],8` at 0x6ba89): 8-bit -> FUN_0006b190
+ * (putRGBseparate8bittile-shaped, already ported, 9-arg cp/r/g/b/map/w/h/
+ * fromskew/toskew), 16-bit -> FUN_0006b2d0 (its 16-bit sibling). Any other
+ * photometric leaves `put` NULL and takes the error return.
+ *
+ * The tile buffer is 3 planes wide (`lea ecx,[esi+esi*2]` at 0x6badf, i.e.
+ * tile_size*3), read by three separate FUN_0006eea0 calls with sample index
+ * 0/1/2 (0x6bba3, 0x6bbd0, 0x6bbf6) into buf/buf+tile_size/buf+2*tile_size
+ * -- upstream's R/G/B planar reads, with no 4th (alpha) plane in this build.
+ * A read error only breaks the column loop (`jnz 0x6bc63` at 0x6bbc1/
+ * 0x6bbeb/0x6bc11 lands past the inner loop, not past the whole function),
+ * exactly like FUN_0006b8e0's read-error handling.
+ *
+ * toskew/y and the per-row +=/-= nrow adjustment (0x6ba86-0x6ba98 area) use
+ * the identical algebraic form FUN_0006b8e0 already established:
+ *   toskew = orientation==TOPLEFT ? -(tw+w) : (w-tw)
+ *   y      += orientation==TOPLEFT ? -nrow  : nrow
+ * Return is EAX: `mov eax,1` at 0x6bc9f on the normal exit, `xor eax,eax`
+ * at 0x6bb09 (alloc failure) and the implicit 0 at 0x6bac2 (bad format).
+ */
+typedef void (*tiff_put_separate_proc)(unsigned long *cp, unsigned char *r,
+                                       unsigned char *g, unsigned char *b,
+                                       unsigned char *map, unsigned long w,
+                                       unsigned long h, long fromskew,
+                                       long toskew);
+
+int FUN_0006ba70(void *tif, unsigned long *raster, void *img,
+                 unsigned long w /* @<edi> */, unsigned long h)
+{
+  tiff_put_separate_proc put;
+  unsigned char *buf;
+  unsigned char *gbuf;
+  unsigned char *bbuf;
+  unsigned long tw;
+  unsigned long th;
+  unsigned long tile_size;
+  unsigned long col;
+  unsigned long row;
+  unsigned long y;
+  unsigned long nrow;
+  unsigned long npix;
+  long fromskew;
+  long toskew;
+
+  put = 0;
+  if (photometric == PHOTOMETRIC_RGB) {
+    put = (bitspersample == 8) ? (tiff_put_separate_proc)FUN_0006b190 :
+                                 (tiff_put_separate_proc)FUN_0006b2d0;
+  }
+  if (put == 0) {
+    /* 0x6baad-0x6babe: `mov eax,[0x3340dc]; push 0x2602d0; push eax`,
+     * `add esp,8` -- module first, no variadic args. */
+    FUN_00068a30(filename, "Can not handle format");
+    return (0);
+  }
+
+  /* 0x6bace-0x6bae5: FUN_0006f910(tif) runs first (its EAX becomes the
+   * tile_size used for the *3 buffer size and the two plane offsets below),
+   * then the four debug_malloc slots are pushed. */
+  tile_size = FUN_0006f910(tif);
+  buf = (unsigned char *)debug_malloc(
+    tile_size * 3, 0, "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_getimage.c",
+    0x178);
+  if (buf == 0) {
+    /* 0x6baf4-0x6bb05: `mov edx,[0x3340dc]; push 0x2602e8; push edx`. */
+    FUN_00068a30(filename, "No space for tile buffer");
+    return (0);
+  }
+  /* 0x6bb10-0x6bb17: two `add eax,esi` against the tile_size in ESI, giving
+   * the G-plane and B-plane offsets from the R-plane base in buf. */
+  gbuf = buf + tile_size;
+  bbuf = gbuf + tile_size;
+
+  /* 0x6bb1a-0x6bb42: the three calls share one `add esp,0x20`. */
+  TIFFGetField((int)tif, TIFFTAG_TILEWIDTH, &tw);
+  TIFFGetField((int)tif, TIFFTAG_TILELENGTH, &th);
+  y = FUN_0006a310(tif, h);
+
+  toskew = (orientation == ORIENTATION_TOPLEFT ? -(long)tw + -(long)w :
+                                                 -(long)tw + (long)w);
+
+  for (row = 0; row < h; row += th) {
+    /* 0x6bb80-0x6bb8d: clamp on row+th, so the last band is short instead
+     * of overrunning. */
+    nrow = (row + th > h) ? h - row : th;
+    for (col = 0; col < w; col += tw) {
+      /* 0x6bba0-0x6bbae, 0x6bbcd-0x6bbd8, 0x6bbf3-0x6bbfe: sample index
+       * 0/1/2 into buf/gbuf/bbuf respectively, x=col, y=row, z=0. */
+      if (FUN_0006eea0(tif, buf, col, row, 0, 0) < 0 && stoponerr)
+        break;
+      if (FUN_0006eea0(tif, gbuf, col, row, 0, 1) < 0 && stoponerr)
+        break;
+      if (FUN_0006eea0(tif, bbuf, col, row, 0, 2) < 0 && stoponerr)
+        break;
+
+      /* 0x6bc19-0x6bc32: clamp on col+tw against w. */
+      if (col + tw > w) {
+        npix = w - col;
+        fromskew = tw - npix;
+        (*put)(raster + y * w + col, buf, gbuf, bbuf, (unsigned char *)img,
+               npix, nrow, fromskew, toskew + fromskew);
+      } else {
+        (*put)(raster + y * w + col, buf, gbuf, bbuf, (unsigned char *)img, tw,
+               nrow, 0, toskew);
+      }
+    }
+    y += (orientation == ORIENTATION_TOPLEFT ? -(long)nrow : (long)nrow);
+  }
+
+  debug_free(buf, "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_getimage.c", 0x19c);
   return (1);
 }

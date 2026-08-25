@@ -1,0 +1,155 @@
+diff --git c/kb.json w/kb.json
+index 1ae3bcc60..9a8bda139 100644
+--- c/kb.json
++++ w/kb.json
+@@ -26165,7 +26165,8 @@
+     },
+     {
+      "addr": "0x82700",
+-     "decl": "int add_endpoint_to_set(int endpoint, void *set);"
++     "decl": "int add_endpoint_to_set(int endpoint, void *set);",
++     "ported": true
+     },
+     {
+      "addr": "0x82940",
+diff --git c/src/halo/bungie_net/network/transport_endpoint_set_winsock.c w/src/halo/bungie_net/network/transport_endpoint_set_winsock.c
+index eb0e74727..4ad947db6 100644
+--- c/src/halo/bungie_net/network/transport_endpoint_set_winsock.c
++++ w/src/halo/bungie_net/network/transport_endpoint_set_winsock.c
+@@ -451,6 +451,136 @@ int FUN_000824a0(const int *a, const int *b)
+   return 0;
+ }
+ 
++/* Add an endpoint to a poll set.
++ *
++ * Reserves the next ep_array cursor slot for the endpoint, then -- unless
++ * the endpoint's socket fd is already present in the set's fd_array or the
++ * fd_array is already at its 0x40-entry cap -- appends the fd and bumps the
++ * live fd count.  Marks the endpoint "in set" (bit 3 of its flags byte,
++ * same bit remove_endpoint_from_set's clear_entry clears) unconditionally.
++ * Returns -0x14 if the ep_array is full or the cursor would overflow,
++ * else 0.
++ *
++ * Confirmed from disassembly at 0x82700:
++ *   - Three separate display_assert(0x8d9f0, cdecl 4 args) +
++ *     system_exit(0x8e2f0, PUSH -1) blocks, written explicitly (not via the
++ *     assert_halt macro) to match delete_endpoint_set's proven two-branch
++ *     codegen for the compound first check: "ep && set" at 0x2665ec, line
++ *     0x22f; "transport_initialized" at 0x265fe4, line 0x230; a third,
++ *     redundant "set" check at 0x266450, line 0x39 (0x8275d-0082785).
++ *     __FILE__ is 0x266458 for all three.
++ *   - set uses the same uint32_t[]-index model as remove_endpoint_from_set:
++ *     index 0 = live fd count, indices 1..0x40 = fd_array (max 0x40 = 64
++ *     live fds), index 0x41 = ep_array pointer, index 0x42 = ep_array
++ *     capacity, index 0x43 = next-free ep_array cursor.
++ *   - Capacity/overflow check (0x8277e-00082798): if (capacity - 1 <
++ *     cursor) or (cursor + 1 overflows negative), return -0x14 before any
++ *     state is touched; both conditions branch to the same shared exit.
++ *   - ep_array[cursor + 1] = endpoint (0x8279e-000827a4) -- the store index
++ *     is cursor + 1, not cursor, so create_endpoint_set must initialize the
++ *     cursor field to -1 for the first insert to land at index 0.
++ *   - EBX (which held endpoint) is clobbered with the live fd count
++ *     immediately after (MOV EBX,[ESI] at 000827ab), so every later read of
++ *     the endpoint's socket fd re-derives it through ep_array[cursor + 1]
++ *     instead of the parameter; reproduced the same way here rather than
++ *     caching it in a local.
++ *   - Bit 0x2 of the endpoint's flags byte (endpoint+4; recv_endpoint's ep
++ *     struct-layout comment documents bits 0 and 2 there -- bit 1 is
++ *     undocumented anywhere in this TU) selects between two branches
++ *     (000827a7 TEST byte ptr [EBX+4],0x2) that are byte-for-byte identical
++ *     in logic in the reference (only the ECX/EDX register assignment
++ *     differs between the two copies), so both are kept verbatim rather
++ *     than collapsed to one shared block.
++ *   - The cursor field (index 0x43) is reloaded from memory and incremented
++ *     again at the end (00082826-00082830) rather than reusing the
++ *     already-computed cursor+1 value; reproduced with a fresh field read
++ *     instead of the earlier local.
++ */
++int add_endpoint_to_set(int endpoint, void *set)
++{
++  uint32_t *ep_set;
++  int *ep_array;
++  int next_index;
++  uint32_t fd_count;
++  uint32_t search_index;
++
++  if (endpoint == 0 || set == 0) {
++    display_assert(
++      "ep && set",
++      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
++      0x22f, 1);
++    system_exit(-1);
++  }
++
++  if (*(uint8_t *)0x335090 == 0) {
++    display_assert(
++      "transport_initialized",
++      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
++      0x230, 1);
++    system_exit(-1);
++  }
++
++  if (set == 0) {
++    display_assert(
++      "set",
++      "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c",
++      0x39, 1);
++    system_exit(-1);
++  }
++
++  ep_set = (uint32_t *)set;
++
++  if (((int)ep_set[0x42] - 1 < (int)ep_set[0x43]) ||
++      ((next_index = (int)ep_set[0x43] + 1), next_index < 0)) {
++    return -0x14;
++  }
++
++  ep_array = (int *)ep_set[0x41];
++  ep_array[next_index] = endpoint;
++
++  fd_count = ep_set[0];
++
++  if ((*(uint8_t *)(endpoint + 4) & 2) == 0) {
++    search_index = 0;
++    if (fd_count != 0) {
++      do {
++        if (ep_set[search_index + 1] ==
++            (uint32_t) * (int *)ep_array[next_index]) {
++          break;
++        }
++        search_index++;
++      } while (search_index < ep_set[0]);
++    }
++    if (search_index != fd_count || fd_count > 0x3f) {
++      goto skip_add;
++    }
++    ep_set[search_index + 1] = (uint32_t) * (int *)ep_array[next_index];
++    ep_set[0] = ep_set[0] + 1;
++  } else {
++    search_index = 0;
++    if (fd_count != 0) {
++      do {
++        if (ep_set[search_index + 1] ==
++            (uint32_t) * (int *)ep_array[next_index]) {
++          break;
++        }
++        search_index++;
++      } while (search_index < ep_set[0]);
++    }
++    if (search_index != fd_count || fd_count > 0x3f) {
++      goto skip_add;
++    }
++    ep_set[search_index + 1] = (uint32_t) * (int *)ep_array[next_index];
++    ep_set[0] = ep_set[0] + 1;
++  }
++
++skip_add:
++  ep_set[0x43] = ep_set[0x43] + 1;
++  *(uint8_t *)(endpoint + 4) = *(uint8_t *)(endpoint + 4) | 8;
++
++  return 0;
++}
++
+ /* Remove an endpoint from an endpoint set.
+  * Searches the set's endpoint_array for the matching pointer, then finds and
+  * removes the endpoint's socket from the fd_array by shifting. Clears the

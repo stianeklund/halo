@@ -1232,6 +1232,37 @@ void FUN_00133520(int object_handle, int widget_datum)
   FUN_0018d360(record);
 }
 
+/* FUN_001336a0 (0x1336a0 / objects.obj / glow.c) — blend the x, y and z
+ * components of four points via FUN_001335e0, calling it once per axis
+ * (offsets 0/4/8 into pt_a..pt_d) with the same five extra values each time.
+ * Called three times by get_particle_world_position (0x1339a0, xrefs at
+ * 0x133f91/0x133fbe/0x133ff7); FUN_001335e0's own role and pt_a..pt_d/
+ * w_a..w_e's semantics are unconfirmed -- names are mechanical placeholders,
+ * not a claim about what is being blended.
+ *
+ * FUN_001335e0 stays unported (cdecl, float return via ST0); its signature
+ * below is widened from disassembly -- Ghidra's decompile shows void(void)
+ * because it can't recover args from a caller alone -- so this call's ABI
+ * matches the binary. Argument order per call site (first PUSH is the last
+ * cdecl arg): *(pt+off), then w_a..w_e unchanged from FUN_001336a0's own
+ * params. The call_site_audit's SWALLOWED hazard on the third call
+ * (cleanup_args=9) is a false lead: that call is the function's last, so
+ * there is no following call for those 9 pushes to belong to -- it is this
+ * caller's normal deferred-cleanup pattern (one ADD ESP,0x48 batches calls
+ * 1+2's cleanup before call 3 issues its own pushes, then ADD ESP,0x24
+ * cleans call 3 alone). */
+void FUN_001336a0(float *out_xyz, float *pt_a, float *pt_b, float *pt_c,
+                  float *pt_d, float w_a, float w_b, float w_c, float w_d,
+                  float w_e)
+{
+  out_xyz[0] =
+    FUN_001335e0(pt_a[0], pt_b[0], pt_c[0], pt_d[0], w_a, w_b, w_c, w_d, w_e);
+  out_xyz[1] =
+    FUN_001335e0(pt_a[1], pt_b[1], pt_c[1], pt_d[1], w_a, w_b, w_c, w_d, w_e);
+  out_xyz[2] =
+    FUN_001335e0(pt_a[2], pt_b[2], pt_c[2], pt_d[2], w_a, w_b, w_c, w_d, w_e);
+}
+
 /* Object glow widgets — animated glow effects attached to game objects.
  * TU: c:\halo\SOURCE\objects\widgets\glow.c (confirmed via __FILE__ assert). */
 
@@ -10049,7 +10080,8 @@ char object_visible_to_any_player(int object_handle)
     pvs = (int *)players_get_combined_pvs();
     cluster_index = object_get_first_cluster(iter_state, object_handle);
     if (cluster_index != (int16_t)0xFFFF) {
-      while (!(pvs[(int)cluster_index >> 5] & (1 << ((int)cluster_index & 0x1f)))) {
+      while (
+        !(pvs[(int)cluster_index >> 5] & (1 << ((int)cluster_index & 0x1f)))) {
         cluster_index = FUN_0013d5f0(iter_state, object_handle);
         if (cluster_index == (int16_t)0xFFFF)
           return result;
@@ -10062,60 +10094,62 @@ char object_visible_to_any_player(int object_handle)
         player_index = data_next_index(*(data_t **)0x5aa6d4, -1);
         if (player_index != -1) {
           while (player_index != -1) {
-      player = (char *)datum_get(*(data_t **)0x5aa6d4, player_index);
-      unit_handle = *(int *)(player + 0x34);
+            player = (char *)datum_get(*(data_t **)0x5aa6d4, player_index);
+            unit_handle = *(int *)(player + 0x34);
 
-      if (unit_handle == -1)
-        goto next_player;
+            if (unit_handle == -1)
+              goto next_player;
 
-      /* Get player head position */
-      unit_get_head_position(unit_handle, head_pos);
+            /* Get player head position */
+            unit_get_head_position(unit_handle, head_pos);
 
-      /* Distance check: is player head within bounding sphere? */
-      dx = obj->unk_80 - head_pos[0];
-      dy = obj->unk_84 - head_pos[1];
-      dz = obj->unk_88 - head_pos[2];
-      dy_copy = dy;
-      dist_sq = dz * dz + dy_copy * dy_copy + dx * dx;
+            /* Distance check: is player head within bounding sphere? */
+            dx = obj->unk_80 - head_pos[0];
+            dy = obj->unk_84 - head_pos[1];
+            dz = obj->unk_88 - head_pos[2];
+            dy_copy = dy;
+            dist_sq = dz * dz + dy_copy * dy_copy + dx * dx;
 
-      if (dist_sq < radius_sq) {
-        result = 1;
-        return result;
-      }
+            if (dist_sq < radius_sq) {
+              result = 1;
+              return result;
+            }
 
-      /* FOV check: is object within player's viewing cone? */
-      unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
+            /* FOV check: is object within player's viewing cone? */
+            unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
 
-      delta[0] = obj->unk_80 - head_pos[0];
-      delta[1] = obj->unk_84 - head_pos[1];
-      delta[2] = obj->unk_88 - head_pos[2];
-      radius_d = (double)obj->unk_92;
-      magnitude = normalize3d(delta);
+            delta[0] = obj->unk_80 - head_pos[0];
+            delta[1] = obj->unk_84 - head_pos[1];
+            delta[2] = obj->unk_88 - head_pos[2];
+            radius_d = (double)obj->unk_92;
+            magnitude = normalize3d(delta);
 
-      /* dot product of normalized delta with unit forward vector */
+            /* dot product of normalized delta with unit forward vector */
 #if defined(_MSC_VER) && !defined(__clang__)
-      if ((float)cos(atan2(radius_d, (double)magnitude) + (double)*(float *)0x254a58) <
-          delta[2] * *(float *)(unit_obj + 0x1E8) +
-            delta[1] * *(float *)(unit_obj + 0x1E4) +
-            delta[0] * *(float *)(unit_obj + 0x1E0)) {
+            if ((float)cos(atan2(radius_d, (double)magnitude) +
+                           (double)*(float *)0x254a58) <
+                delta[2] * *(float *)(unit_obj + 0x1E8) +
+                  delta[1] * *(float *)(unit_obj + 0x1E4) +
+                  delta[0] * *(float *)(unit_obj + 0x1E0)) {
 #else
-      half_angle = (float)(atan2(radius_d, (double)magnitude) +
-                           (double)*(float *)0x254a58);
-      if (x87_fcos(half_angle) < delta[2] * *(float *)(unit_obj + 0x1E8) +
-                                   delta[1] * *(float *)(unit_obj + 0x1E4) +
-                                   delta[0] * *(float *)(unit_obj + 0x1E0)) {
+            half_angle = (float)(atan2(radius_d, (double)magnitude) +
+                                 (double)*(float *)0x254a58);
+            if (x87_fcos(half_angle) <
+                delta[2] * *(float *)(unit_obj + 0x1E8) +
+                  delta[1] * *(float *)(unit_obj + 0x1E4) +
+                  delta[0] * *(float *)(unit_obj + 0x1E0)) {
 #endif
-        result = 1;
-        return result;
-      }
+              result = 1;
+              return result;
+            }
 
-    next_player:
-      player_index = data_next_index(*(data_t **)0x5aa6d4, player_index);
+          next_player:
+            player_index = data_next_index(*(data_t **)0x5aa6d4, player_index);
+          }
         }
       }
     }
   }
-}
 
   return result;
 }
@@ -13944,9 +13978,8 @@ compact_and_callbacks:
       is_critical = 1;
     sprintf_mem:
       mem_pct = (float)contiguous_free * *(float *)0x253f00;
-      crt_sprintf(
-        status_buf, "%4.2f%% memory free",
-        (double)(mem_pct * *(float *)0x29ba04));
+      crt_sprintf(status_buf, "%4.2f%% memory free",
+                  (double)(mem_pct * *(float *)0x29ba04));
     after_status:
       if (should_delete == 0)
         goto not_critical;

@@ -1,0 +1,27 @@
+{
+  "name": "FUN_000a4200",
+  "addr": "0xa4200",
+  "obj": "weather_particle_systems.obj",
+  "source_path": "src/halo/effects/weather_particle_systems.c",
+  "best_score": 83.1,
+  "best_patch": "/mnt/g/dev/halo-integrate-bipeds/artifacts/parked/patches/FUN_000a4200-20260824-052604.patch",
+  "status": "parked",
+  "first_parked": "2026-08-24T05:26:04+00:00",
+  "last_updated": "2026-08-24T05:26:04+00:00",
+  "promoted_commit": null,
+  "attempts": [
+    {
+      "ts": "2026-08-24T05:26:04+00:00",
+      "model": "sonnet",
+      "effort": "high",
+      "score": 83.1,
+      "cap_hypothesis": "",
+      "reason": "sub_bar_vc71",
+      "notes": "83.1% match (53.9% opnd-normalized), below 85% structural-bug threshold. Uses raw absolute-address cast (int*)0x4557f4 + player_index*0x27 stride with elementwise int* arithmetic instead of a named struct -- likely wrong offset/stride, not just unrefined. Needs struct recovery for the local-player weather-particle record before re-attempting.",
+      "patch": "/mnt/g/dev/halo-integrate-bipeds/artifacts/parked/patches/FUN_000a4200-20260824-052604.patch",
+      "outcome": "parked",
+      "fingerprint": "",
+      "evidence": []
+    }
+  ]
+}

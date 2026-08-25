@@ -1297,6 +1297,39 @@ void main_switch_structure_bsp(short bsp_index)
                   (int)bsp_index);
 }
 
+/*
+ * main_skip - 0x100560
+ *
+ * HS-script "skip N" request handler. Validates the requested frame count
+ * and, if in range, arms main_skip_private's pending state; otherwise
+ * rejects with an error message. Called from FUN_000c27d0 (0xc27d0), the
+ * HS macro-function dispatch for the main-loop skip verb.
+ *
+ * Confirmed (disassembly 0x100560-0x10058c; PUSH EBP / MOV EBP,ESP, no
+ * locals, no _chkstk, no SEH, no FPU):
+ *  - Single stack parameter at [EBP+0x8], read as `MOV AX,word ptr [EBP+8]`
+ *    -> 16-bit. Caller (FUN_000c27d0) zero-extends an unsigned short into
+ *    EDX before pushing, so only the low 16 bits (AX) are meaningful here.
+ *    No register arguments.
+ *  - CMP AX,0xf / JG -> reject path (skip_frames > 15, signed compare).
+ *  - Success path (fallthrough, AX <= 15): stores the count to 0x46da4a
+ *    (16-bit) and sets 0x46da49 (byte) to 1, then returns.
+ *  - Reject path: PUSH 0x28b238 (format string) / PUSH 0x2 (level) /
+ *    CALL error / ADD ESP,0x8 confirms 2 stack args -- no varargs at this
+ *    call site despite error()'s variadic declaration.
+ *  - 0x46da4a/0x46da49 are the same pair main_skip_private (0x100de0)
+ *    reads and clears: the skip-frame counter and its pending flag.
+ */
+void main_skip(short skip_frames)
+{
+  if (skip_frames <= 0xf) {
+    main_skip_private_frame_count = skip_frames;
+    main_skip_private_pending = 1;
+    return;
+  }
+  error(2, "cannot skip more than 15 frames (half a second)");
+}
+
 void main_queue_map_name(char *map_name)
 {
   if (map_name != 0) {

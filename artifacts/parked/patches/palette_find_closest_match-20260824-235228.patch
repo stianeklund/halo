@@ -1,0 +1,144 @@
+diff --git c/kb.json w/kb.json
+index 10be36852..7054e6543 100644
+--- c/kb.json
++++ w/kb.json
+@@ -4398,7 +4398,8 @@
+     },
+     {
+      "addr": "0x7d300",
+-     "decl": "void palette_find_closest_match(void);"
++     "decl": "int palette_find_closest_match(uint32_t *palette, uint32_t color);",
++     "ported": true
+     },
+     {
+      "addr": "0x7d440",
+diff --git c/kb_meta.json w/kb_meta.json
+index ac6399a1b..382ffee12 100644
+--- c/kb_meta.json
++++ w/kb_meta.json
+@@ -1383,6 +1383,14 @@
+       "kind": "function",
+       "status": "ported"
+     },
++    "0x42cb0": {
++      "kind": "function",
++      "status": "ported"
++    },
++    "0x42ce0": {
++      "kind": "function",
++      "status": "ported"
++    },
+     "0x42d20": {
+       "kind": "function",
+       "status": "ported",
+@@ -1393,6 +1401,10 @@
+         "The packet structure type and the semantic meanings of its initialized fields are not recovered."
+       ]
+     },
++    "0x43270": {
++      "kind": "function",
++      "status": "ported"
++    },
+     "0x434c0": {
+       "kind": "function",
+       "status": "ported",
+@@ -9409,6 +9421,10 @@
+         "The relationship between the root widget at 0x46cc20[i] and the list at 0x46cc30[i] is unclear; the root is closed via ui_widget_close while the list nodes are only deallocated from the pool without closure."
+       ]
+     },
++    "0xe5a40": {
++      "kind": "function",
++      "status": "ported"
++    },
+     "0xe6890": {
+       "kind": "function",
+       "status": "ported",
+diff --git c/src/halo/bitmaps/bitmaps.c w/src/halo/bitmaps/bitmaps.c
+index b584b4c79..01659cef7 100644
+--- c/src/halo/bitmaps/bitmaps.c
++++ w/src/halo/bitmaps/bitmaps.c
+@@ -456,6 +456,84 @@ void *bitmap_mipmap_address(void *bitmap, short mipmap_index)
+   return bitmap;
+ }
+ 
++/* palette_find_closest_match (0x7d300)
++ *
++ * Linear-searches a palette of up to 256 packed a8r8g8b8 color entries for
++ * the one closest (squared RGB distance) to `color`. The palette array is
++ * scanned index 0..255 and terminates early on the first all-zero entry
++ * (end-of-palette sentinel).
++ *
++ * If `color`'s alpha channel is < 0x81 (mostly/fully transparent), the
++ * search is skipped and the reserved "clear" index 0xff is returned
++ * directly.
++ *
++ * Confirmed: CMP ECX,0x80000000 / JA at 0x7d314 (alpha<0x81 early-out
++ * returns 0xff via MOV EAX,0xff at 0x7d326). Confirmed: MOVZX byte ptr
++ * [EDX+2]/[EDX+1] for red/green + AND ECX,0xff for blue at
++ * 0x7d346..0x7d37c (entry byte layout: [0]=blue,[1]=green,[2]=red, same
++ * as `color`'s (color>>16)&0xff / (color>>8)&0xff / color&0xff).
++ * Confirmed: TEST ECX,ECX / JZ 0x7d3c2 at 0x7d33f/0x7d344 (zero entry
++ * breaks the scan before any byte reads). Confirmed: TEST CX,CX / JZ at
++ * 0x7d3a3 forces unconditional best-update on the first iteration (index
++ * 0), else CMP local_8,EAX / JLE skip at 0x7d3a8. Confirmed:
++ * display_assert("closest_match_index!=NONE",...,0x44d,true) +
++ * system_exit(-1) at 0x7d3de/0x7d3e5 if no non-zero entry was ever seen
++ * (best_index still -1).
++ */
++int palette_find_closest_match(uint32_t *palette, uint32_t color)
++{
++  int best_index;
++  int best_distance;
++  int index;
++  uint32_t entry;
++  unsigned char *entry_bytes;
++  int dr, dg, db;
++  int dist;
++
++  best_index = -1;
++  best_distance = 0;
++
++  if ((color & 0xff000000) < 0x80000001) {
++    return 0xff;
++  }
++
++  for (index = 0; index < 0x100; index++) {
++    entry = palette[index];
++    if (entry == 0) {
++      break;
++    }
++    entry_bytes = (unsigned char *)&palette[index];
++
++    dr = (int)entry_bytes[2] - (int)((color >> 0x10) & 0xff);
++    if (dr < 0) {
++      dr = -dr;
++    }
++    dg = (int)entry_bytes[1] - (int)((color >> 8) & 0xff);
++    if (dg < 0) {
++      dg = -dg;
++    }
++    db = (int)(entry & 0xff) - (int)(color & 0xff);
++    if (db < 0) {
++      db = -db;
++    }
++
++    dist = db * db + dg * dg + dr * dr;
++    if (index == 0 || dist < best_distance) {
++      best_distance = dist;
++      best_index = index;
++    }
++  }
++
++  if (best_index != -1) {
++    return best_index;
++  }
++
++  display_assert("closest_match_index!=NONE",
++                 "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x44d, true);
++  system_exit(-1);
++  return best_index;
++}
++
+ /* bitmap_validate_depth (0x7d440)
+  *
+  * Validate the depth field of a bitmap against its type.
