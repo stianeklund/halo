@@ -66946,16 +66946,16 @@
     "rasterizer_draw_string": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 79.6,
+      "abi_modeled_mnemonic_pct": 81.4,
       "addr": "0x184060",
       "end": "0x184259",
       "kind": "auto",
       "n_r": 156,
-      "opnd_percent": 49.2,
-      "raw_mnemonic_pct": 79.6,
+      "opnd_percent": 50.8,
+      "raw_mnemonic_pct": 81.4,
       "ref": "synth",
       "ref_sha": "684a7acee2e4cb7a",
-      "score": 79.6,
+      "score": 81.4,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
     "rasterizer_dynamic_lit_geometry_draw": {
@@ -67681,16 +67681,16 @@
     "rasterizer_text_draw": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 79.6,
+      "abi_modeled_mnemonic_pct": 81.4,
       "addr": "0x183e60",
       "end": "0x184058",
       "kind": "auto",
       "n_r": 156,
-      "opnd_percent": 49.8,
-      "raw_mnemonic_pct": 79.6,
+      "opnd_percent": 51.5,
+      "raw_mnemonic_pct": 81.4,
       "ref": "synth",
       "ref_sha": "ac30deb7f16427d2",
-      "score": 79.6,
+      "score": 81.4,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
     "rasterizer_text_draw_cached_char": {

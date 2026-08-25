@@ -3363,7 +3363,7 @@ void rasterizer_text_draw(void *screen_pos, short *bounds, const void *color,
       draw_bounds[0] = *(int *)0x506584;
       draw_bounds[1] = *(int *)0x506588;
       rect2d_offset((short *)draw_bounds, (short)(-*(short *)0x50657e),
-                    (short)(-*(short *)0x50657c));
+                    (short)(-*(int *)0x50657c));
     } else {
       draw_bounds[0] = *(int *)screen_pos;
       draw_bounds[1] = *(int *)((char *)screen_pos + 4);
@@ -3373,7 +3373,7 @@ void rasterizer_text_draw(void *screen_pos, short *bounds, const void *color,
       clip_bounds[0] = *(int *)0x50657c;
       clip_bounds[1] = *(int *)0x506580;
       rect2d_offset((short *)clip_bounds, (short)(-*(short *)0x50657e),
-                    (short)(-*(short *)0x50657c));
+                    (short)(-clip_bounds[0]));
     } else {
       max_width = (int)bounds[2];
       if ((int)(*(short *)0x506580 - *(short *)0x50657c) <= (int)bounds[2]) {
@@ -3451,7 +3451,7 @@ void rasterizer_draw_string(void *screen_pos, short *bounds, const void *color,
       draw_bounds[0] = *(int *)0x506584;
       draw_bounds[1] = *(int *)0x506588;
       rect2d_offset((short *)draw_bounds, (short)(-*(short *)0x50657e),
-                    (short)(-*(short *)0x50657c));
+                    (short)(-*(int *)0x50657c));
     } else {
       draw_bounds[0] = *(int *)screen_pos;
       draw_bounds[1] = *(int *)((char *)screen_pos + 4);
@@ -3461,7 +3461,7 @@ void rasterizer_draw_string(void *screen_pos, short *bounds, const void *color,
       clip_bounds[0] = *(int *)0x50657c;
       clip_bounds[1] = *(int *)0x506580;
       rect2d_offset((short *)clip_bounds, (short)(-*(short *)0x50657e),
-                    (short)(-*(short *)0x50657c));
+                    (short)(-clip_bounds[0]));
     } else {
       max_width = (int)bounds[2];
       if ((int)(*(short *)0x506580 - *(short *)0x50657c) <= (int)bounds[2]) {
