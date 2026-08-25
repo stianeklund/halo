@@ -424,28 +424,50 @@ class ObjVerdict(NamedTuple):
     source: Optional[str]       # kb objects[].source, the TU kb already claims
     dominant: Optional[str]     # proven dominant TU after bracketing
     dominant_n: int
-    labelled: int               # members carrying evidence
+    labelled: int               # members carrying evidence (direct + bracketed)
+    direct_n: int               # members whose OWN assert names a TU
+    supports_source: int        # members whose OWN assert names `source`
     members: int
     distinct_tus: int
+    collides_with: Optional[str]  # kb object already named for the proven TU
     verdict: str
 
 
 def object_verdicts(funcs: Dict[int, FuncInfo], br: Bracketing,
                     kb_objects: List[dict],
-                    min_share: float = 0.9) -> List[ObjVerdict]:
+                    min_share: float = 0.9,
+                    min_direct: int = 3) -> List[ObjVerdict]:
     """Compare each kb object's own `source` against the proven dominant TU.
 
-    Two corrections over scoring by object NAME:
+    Three rules keep this from manufacturing claims:
 
-      * kb already records the translation unit in `objects[].source` for 190
-        of 232 objects, in the same form this tool recovers.  That, not the
-        .obj name, is the claim to test.
-      * share is computed over members that CARRY evidence.  Dividing by all
-        members scores absence of evidence as disagreement, which reported
-        players.obj -- 61 labelled members, 100% players.c, one TU -- as a
-        25% multi-TU bucket.
+      * `objects[].source` is the claim under test, not the .obj name.  kb
+        already records the TU for 190 of 232 objects in the same form this
+        tool recovers.
+      * Share is computed over members that CARRY evidence.  Dividing by all
+        members scores absence of evidence as disagreement.
+      * Direct evidence outranks bracketed evidence.  If ANY member's own
+        assert names the recorded source, the object cannot contradict it --
+        bracketing may legitimately pull neighbours from an adjacent TU into
+        an object that really does contain some of `source`.  cinematics.obj
+        was reported as contradicting `cinematics.c` even though
+        cinematic_initialize stamps exactly that file.
+
+    A contradiction also needs `min_direct` members whose OWN asserts name the
+    replacement, so a verdict is never carried by bracketing alone.
     """
     pos = {a: i for i, a in enumerate(br.addrs)}
+    # Objects already named for a TU: renaming into one of these would create
+    # a duplicate name, and batch_delink writes both to the same path -- the
+    # smaller object exports last and destroys the larger delinked reference.
+    by_stem: Dict[str, str] = {}
+    for obj in kb_objects:
+        nm = obj.get("name") or ""
+        if nm:
+            by_stem.setdefault(_stem(_basename(nm)), nm)
+        if obj.get("source"):
+            by_stem.setdefault(_stem(_basename(obj["source"])), nm or "<unnamed>")
+
     out: List[ObjVerdict] = []
     for idx, obj in enumerate(kb_objects):
         addrs = []
@@ -456,28 +478,48 @@ def object_verdicts(funcs: Dict[int, FuncInfo], br: Bracketing,
                 continue
         if not addrs:
             continue
-        labels = [br.filled[pos[a]] for a in addrs
-                  if a in pos and br.filled[pos[a]]]
+        labels, directs = [], []
+        for a in addrs:
+            i = pos.get(a)
+            if i is None:
+                continue
+            if br.filled[i]:
+                labels.append(br.filled[i])
+            if br.direct[i]:
+                directs.append(br.direct[i])
         counts = Counter(labels)
+        direct_counts = Counter(directs)
         src = obj.get("source")
+        src_stem = _stem(_basename(src)) if src else None
+        supports = sum(n for t, n in direct_counts.items()
+                       if src_stem and _stem(t) == src_stem)
+
         if not counts:
-            verdict = "no-evidence"
-            dom, dom_n = None, 0
+            verdict, dom, dom_n = "no-evidence", None, 0
         else:
             dom, dom_n = counts.most_common(1)[0]
             share = dom_n / len(labels)
-            src_stem = _stem(_basename(src)) if src else None
+            dom_direct = direct_counts.get(dom, 0)
             if src_stem is None:
                 verdict = "no-source"
-            elif src_stem == _stem(dom):
+            elif _stem(dom) == src_stem:
                 verdict = "confirms"
-            elif share >= min_share and len(counts) <= 2:
+            elif supports:
+                # kb's recorded source is directly attested by at least one
+                # member; the object contains some of it, whatever else it has.
+                verdict = "mixed"
+            elif share >= min_share and len(counts) <= 2 and dom_direct >= min_direct:
                 verdict = "contradicts"
             else:
                 verdict = "mixed"
+        collides = None
+        if verdict == "contradicts" and dom:
+            hit = by_stem.get(_stem(dom))
+            if hit and hit != obj.get("name"):
+                collides = hit
         out.append(ObjVerdict(idx, obj.get("name") or "<unnamed>", src, dom,
-                              dom_n, len(labels), len(addrs), len(counts),
-                              verdict))
+                              dom_n, len(labels), len(directs), supports,
+                              len(addrs), len(counts), collides, verdict))
     rank = {"contradicts": 0, "mixed": 1, "no-source": 2,
             "confirms": 3, "no-evidence": 4}
     out.sort(key=lambda v: (rank[v.verdict], -v.dominant_n))
@@ -492,20 +534,25 @@ def print_objects_verdict(funcs, br: Bracketing, kb_objects, limit: int) -> None
     for k in ("confirms", "contradicts", "mixed", "no-source", "no-evidence"):
         print("   %-12s %d" % (k, tally[k]))
     print()
-    print("CONTRADICTS - one TU covers >=90% of evidenced members and it is")
-    print("not the TU kb records.  These are the actionable ones:")
-    print("   %-34s %-32s %-28s %s"
-          % ("object", "kb .source", "proven TU", "evid/members"))
+    print("CONTRADICTS - no member's own assert names the recorded source, and")
+    print(">=3 members' own asserts name one replacement covering >=90% of the")
+    print("evidence.  A rename is NOT the remedy where a collision is flagged:")
+    print("kb object names must stay unique or batch_delink writes two objects")
+    print("to one path and the smaller destroys the larger delinked reference.")
+    print()
+    print("   %-26s %-28s %-26s %-14s %s"
+          % ("object", "kb .source", "proven TU", "direct/evid", "collision"))
     for v in vs:
         if v.verdict != "contradicts":
             continue
-        print("   %-34s %-32s %-28s %d/%d of %d (%d TUs)"
-              % (v.name, v.source, v.dominant, v.dominant_n, v.labelled,
-                 v.members, v.distinct_tus))
+        print("   %-26s %-28s %-26s %2d/%-11d %s"
+              % (v.name, v.source, v.dominant, v.direct_n, v.labelled,
+                 ("MERGE into %s" % v.collides_with) if v.collides_with
+                 else "none - name is free"))
     print()
-    print("MIXED - evidence spans several TUs; no single .source is right.")
-    print("Coverage is shown so a low-evidence object is not mistaken for a")
-    print("genuine multi-TU bucket:")
+    print("MIXED - evidence spans several TUs, or the recorded source is")
+    print("directly attested by some members.  No single .source is right, and")
+    print("no rename is warranted:")
     n = 0
     for v in vs:
         if v.verdict != "mixed":
@@ -513,16 +560,12 @@ def print_objects_verdict(funcs, br: Bracketing, kb_objects, limit: int) -> None
         n += 1
         if n > limit:
             continue
-        print("   %-34s %-30s dominant %-26s %d/%d of %d (%d TUs)"
+        print("   %-30s %-26s dominant %-24s %d/%d of %d (%d TUs, %d support .source)"
               % (v.name, v.source or "-", v.dominant, v.dominant_n,
-                 v.labelled, v.members, v.distinct_tus))
+                 v.labelled, v.members, v.distinct_tus, v.supports_source))
     if n > limit:
         print("   ... %d more (use --report)" % (n - limit))
 
-
-# ---------------------------------------------------------------------------
-# Reporting
-# ---------------------------------------------------------------------------
 
 def print_summary(fn_files, funcs, br: Bracketing, kb_objects, limit: int) -> None:
     total = len(br.addrs)
