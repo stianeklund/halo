@@ -11384,18 +11384,18 @@
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000a9190": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 83.6,
+      "abi_model": "regparam_stripped_saves",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 91.6,
       "addr": "0xa9190",
       "end": "0xa9203",
       "kind": "auto",
       "n_r": 52,
-      "opnd_percent": 30.9,
-      "raw_mnemonic_pct": 83.6,
+      "opnd_percent": 76.6,
+      "raw_mnemonic_pct": 90.7,
       "ref": "synth",
       "ref_sha": "dde241f5b1722c90",
-      "score": 83.6,
+      "score": 91.6,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000a9550": {

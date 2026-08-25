@@ -888,26 +888,27 @@ bool game_engine_unit_can_enter_seat(int unit_handle, int seat_object_handle)
  * EDI=player_handle. */
 char FUN_000a9190(int param_1, int flag_index, int player_handle)
 {
-  int idx;
+  char *ent;
+  char result;
 
-  if (current_game_engine == 0)
-    return 0;
-  idx = flag_index * 0x20;
-  if (((void (**)(void))current_game_engine)[0x78 / 4] != NULL) {
-    if (*(char *)(0x456704 + idx) != 0)
-      return ((char (*)(int, int))((void **)current_game_engine)[0x78 / 4])(
-        player_handle, flag_index);
-    return 0;
+  result = 0;
+  if (current_game_engine != 0) {
+    ent = (char *)(0x4566f8 + flag_index * 0x20);
+    if (((void (**)(void))current_game_engine)[0x78 / 4] != NULL) {
+      if (*(char *)(ent + 0xc) != 0)
+        result = ((char (*)(int, int))((void **)current_game_engine)[0x78 / 4])(
+          player_handle, flag_index);
+    } else if (*(char *)(ent + 0xc) != 0 &&
+               (*(int *)(ent + 0x10) == -1 ||
+                player_handle == *(int *)(ent + 0x10)) &&
+               (*(int16_t *)(ent + 0x14) == -1 ||
+                *(int *)(param_1 + 0x20) == (int)*(int16_t *)(ent + 0x14)) &&
+               (*(int *)(ent + 0x18) == -1 ||
+                player_handle != *(int *)(ent + 0x18))) {
+      result = 1;
+    }
   }
-  if (*(char *)(0x456704 + idx) != 0 &&
-      (*(int *)(0x456708 + idx) == -1 ||
-       player_handle == *(int *)(0x456708 + idx)) &&
-      (*(int16_t *)(0x45670c + idx) == -1 ||
-       *(int *)(param_1 + 0x20) == (int)*(int16_t *)(0x45670c + idx)) &&
-      (*(int *)(0x456710 + idx) == -1 ||
-       player_handle != *(int *)(0x456710 + idx)))
-    return 1;
-  return 0;
+  return result;
 }
 
 /* Get custom motion sensor positions for a player (a9210). */
