@@ -904,8 +904,10 @@ void FUN_00181900(short param_1)
   int lf_mark_base; /* scenario->lens_flare_marker_block ptr */
   int entry; /* current light_marker_block entry ptr */
   int lf_instance; /* lens_flare_instance element ptr */
-  int loop_end; /* count of light_marker entries */
   int i; /* loop counter */
+  int dir_x; /* signed byte at entry+0xc */
+  int dir_y; /* signed byte at entry+0xd */
+  int dir_z; /* signed byte at entry+0xe */
   /* params struct for FUN_00181670: 0x28-byte contiguous buffer.
    * Layout (confirmed from disassembly at 0x181a2c..0x181a67):
    *   +0x00: tag_get('lens', def->tag_index) result
@@ -940,8 +942,7 @@ void FUN_00181900(short param_1)
   /* tag_block_get_element(scenario+0x134, param_1, 0x68) */
   light_block =
     (int)tag_block_get_element((void *)(scenario + 0x134), (int)param_1, 0x68);
-  loop_end = (int)*(short *)(light_block + 0x42);
-  if (loop_end <= 0) {
+  if (*(unsigned short *)(light_block + 0x42) == 0) {
     return;
   }
 
@@ -959,9 +960,12 @@ void FUN_00181900(short param_1)
       (void *)lf_block_base, (int)*(unsigned char *)(entry + 0xf), 0x10);
 
     /* Extract signed bytes from entry for direction vector */
-    dir[0] = (float)(int)*(signed char *)(entry + 0xc) * *(float *)0x2820c0;
-    dir[1] = (float)(int)*(signed char *)(entry + 0xd) * *(float *)0x2820c0;
-    dir[2] = (float)(int)*(signed char *)(entry + 0xe) * *(float *)0x2820c0;
+    dir_x = (int)*(signed char *)(entry + 0xc);
+    dir_y = (int)*(signed char *)(entry + 0xd);
+    dir_z = (int)*(signed char *)(entry + 0xe);
+    dir[0] = (float)dir_x * *(float *)0x2820c0;
+    dir[1] = (float)dir_y * *(float *)0x2820c0;
+    dir[2] = (float)dir_z * *(float *)0x2820c0;
 
     /* Compute perpendicular and normalize both */
     perpendicular3d(dir, perp);
@@ -986,7 +990,7 @@ void FUN_00181900(short param_1)
     FUN_00181670(params);
 
     i++;
-  } while (i < loop_end);
+  } while (i < (int)*(unsigned short *)(light_block + 0x42));
 }
 
 /* lens_flare_occlusion_submit: for each queued lens flare entry, compute the
@@ -2796,7 +2800,7 @@ int FUN_00183390(int param_1)
     if (local_1c > 0) {
       do {
         sVar2 = FUN_00183120((void *)param_1);
-        if (-1 < (int)sVar2) {
+        if (sVar2 >= 0) {
           local_c = 0;
           local_20 = (int)sVar2;
           do {
