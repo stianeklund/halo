@@ -302,3 +302,40 @@ void FUN_000f46e0(int *widget)
     }
   }
 }
+
+/* color picker menu dispose (event handler table index 62, 0x0eebe0) — frees
+ * the child widget cached at +0x40 back to the widget pool, if present. */
+bool ui_widget_color_picker_menu_dispose(void *widget, void *event_data,
+                                         bool *widget_deleted)
+{
+  void *child;
+
+  child = *(void **)((char *)widget + 0x40);
+  if (child != NULL) {
+    widget_free(child);
+    *(void **)((char *)widget + 0x40) = NULL;
+  }
+  return true;
+}
+
+/* disable if no xdemos (event handler table index 86, 0x0f0070) — marks the
+ * widget disabled (+0x12) and clears its enabled/visible byte (+0x10) when no
+ * Xbox demo content is installed. */
+bool ui_widget_disable_if_no_xdemos(void *widget, void *event_data,
+                                    bool *widget_deleted)
+{
+  if (!xbox_demos_available()) {
+    *(uint8_t *)((char *)widget + 0x12) = 1;
+    *(uint8_t *)((char *)widget + 0x10) = 0;
+  }
+  return true;
+}
+
+/* pop history stack once (event handler table index 98, 0x0f0620) — pops one
+ * entry from the widget history stack of the widget's local player (+0x8). */
+bool ui_widget_pop_history_stack_once(void *widget, void *event_data,
+                                      bool *widget_deleted)
+{
+  ui_widgets_pop_stack(*(uint16_t *)((char *)widget + 0x8));
+  return true;
+}

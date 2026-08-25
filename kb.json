@@ -26383,7 +26383,7 @@
     },
     {
      "addr": "0xe3d50",
-     "decl": "void widget_free(void);"
+     "decl": "void widget_free(void *widget);"
     },
     {
      "addr": "0xe3d70",
@@ -26602,7 +26602,7 @@
     },
     {
      "addr": "0xe59e0",
-     "decl": "void ui_widgets_pop_stack(void);"
+     "decl": "void ui_widgets_pop_stack(int16_t local_player_index);"
     },
     {
      "addr": "0xe5a40",
@@ -26741,7 +26741,8 @@
     },
     {
      "addr": "0xe9a60",
-     "decl": "void FUN_000e9a60(void);"
+     "decl": "bool ui_widget_dispose_single_player_level_list(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xe9a90",
@@ -26765,7 +26766,8 @@
     },
     {
      "addr": "0xe9fd0",
-     "decl": "void FUN_000e9fd0(void);"
+     "decl": "bool ui_widget_dispose_network_game_server_list(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xea010",
@@ -26777,7 +26779,8 @@
     },
     {
      "addr": "0xea1f0",
-     "decl": "void FUN_000ea1f0(void);"
+     "decl": "bool ui_widget_multiplayer_level_list_dispose(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xea210",
@@ -26926,7 +26929,8 @@
     },
     {
      "addr": "0xeebe0",
-     "decl": "void FUN_000eebe0(void);"
+     "decl": "bool ui_widget_color_picker_menu_dispose(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xeec10",
@@ -26986,7 +26990,8 @@
     },
     {
      "addr": "0xf0070",
-     "decl": "void FUN_000f0070(void);"
+     "decl": "bool ui_widget_disable_if_no_xdemos(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xf00b0",
@@ -27022,7 +27027,8 @@
     },
     {
      "addr": "0xf0620",
-     "decl": "void FUN_000f0620(void);"
+     "decl": "bool ui_widget_pop_history_stack_once(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xf0640",

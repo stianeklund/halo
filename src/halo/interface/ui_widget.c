@@ -2018,3 +2018,34 @@ void ui_widget_clear_last_error_index(void)
 {
   *(int *)0x31e4c0 = -1;
 }
+/* dispose sp level list (event handler table index 7, 0x0e9a60) — clears the
+ * 0x50-byte single-player level list scratch block at 0x46cce8 and drops the
+ * widget's cached list pointer/count at +0x40/+0x44. */
+bool ui_widget_dispose_single_player_level_list(void *widget, void *event_data,
+                                                bool *widget_deleted)
+{
+  csmemset((void *)0x46cce8, 0, 0x50);
+  *(int *)((char *)widget + 0x40) = 0;
+  *(int16_t *)((char *)widget + 0x44) = 0;
+  return true;
+}
+
+/* dispose net game server list (event handler table index 18, 0x0e9fd0) —
+ * drops the widget's cached list pointer/count at +0x40/+0x44. */
+bool ui_widget_dispose_network_game_server_list(void *widget, void *event_data,
+                                                bool *widget_deleted)
+{
+  *(int *)((char *)widget + 0x40) = 0;
+  *(int16_t *)((char *)widget + 0x44) = 0;
+  return true;
+}
+
+/* mp level list dispose (event handler table index 27, 0x0ea1f0) — drops the
+ * widget's cached list pointer/count at +0x40/+0x44. */
+bool ui_widget_multiplayer_level_list_dispose(void *widget, void *event_data,
+                                              bool *widget_deleted)
+{
+  *(int *)((char *)widget + 0x40) = 0;
+  *(int16_t *)((char *)widget + 0x44) = 0;
+  return true;
+}

@@ -73873,6 +73873,21 @@
       "score": 94.3,
       "source": "src/halo/interface/ui_widget.c"
     },
+    "ui_widget_color_picker_menu_dispose": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xeebe0",
+      "end": "0xeec03",
+      "kind": "auto",
+      "n_r": 15,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "a76ea68e3180d25e",
+      "score": 100.0,
+      "source": "src/halo/interface/ui_widget_game_data_input_functions.c"
+    },
     "ui_widget_debug_show_path": {
       "abi_model": "raw",
       "abi_model_items": 0,
@@ -73887,6 +73902,21 @@
       "ref_sha": "720885ece577ba5b",
       "score": 100.0,
       "source": "src/halo/interface/ui_widget.c"
+    },
+    "ui_widget_disable_if_no_xdemos": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xf0070",
+      "end": "0xf008b",
+      "kind": "auto",
+      "n_r": 11,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "9508309d86024ed0",
+      "score": 100.0,
+      "source": "src/halo/interface/ui_widget_game_data_input_functions.c"
     },
     "ui_widget_display_deferred_errors": {
       "abi_model": "raw",
@@ -73932,6 +73962,36 @@
       "ref_sha": "076721f456883bc1",
       "score": 90.2,
       "source": "src/halo/main/main.c"
+    },
+    "ui_widget_dispose_network_game_server_list": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xe9fd0",
+      "end": "0xe9fe3",
+      "kind": "auto",
+      "n_r": 9,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "4839b1ec3db08e7a",
+      "score": 100.0,
+      "source": "src/halo/interface/ui_widget.c"
+    },
+    "ui_widget_dispose_single_player_level_list": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xe9a60",
+      "end": "0xe9a88",
+      "kind": "auto",
+      "n_r": 13,
+      "opnd_percent": 92.3,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "93f7a90908a78488",
+      "score": 100.0,
+      "source": "src/halo/interface/ui_widget.c"
     },
     "ui_widget_event_handler_dispatch": {
       "abi_model": "raw",
@@ -74082,6 +74142,36 @@
       "ref_sha": "94cd0eaaa07ac665",
       "score": 100.0,
       "source": "src/halo/interface/ui_widget.c"
+    },
+    "ui_widget_multiplayer_level_list_dispose": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xea1f0",
+      "end": "0xea203",
+      "kind": "auto",
+      "n_r": 9,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "4839b1ec3db08e7a",
+      "score": 100.0,
+      "source": "src/halo/interface/ui_widget.c"
+    },
+    "ui_widget_pop_history_stack_once": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xf0620",
+      "end": "0xf0639",
+      "kind": "auto",
+      "n_r": 11,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "0b0eeda9398b07b2",
+      "score": 100.0,
+      "source": "src/halo/interface/ui_widget_game_data_input_functions.c"
     },
     "ui_widget_process_event": {
       "abi_model": "raw",
