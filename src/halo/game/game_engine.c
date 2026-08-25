@@ -7122,7 +7122,7 @@ void FUN_000b0ac0(int param_1)
                  *(int *)(variant + 0x50) != 0) ||
                 (weapon = (int)object_get_and_verify_type(
                    *(int *)(0x456b7c + *(int *)(player + 0x20) * 4), 4),
-                 (~*(uint8_t *)(weapon + 0x1dc) >> 6 & 1) != 0)) {
+                 (*(int *)(weapon + 0x1dc) >> 6 & 1) == 0)) {
               FUN_000b0000(param_1, *(int *)(player + 0x20), weapon_handle);
               FUN_000b09e0(param_1, weapon_handle);
               game_engine_get_variant();
