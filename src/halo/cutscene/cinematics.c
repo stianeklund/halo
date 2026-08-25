@@ -1268,6 +1268,44 @@ void FUN_00093ac0(void *unused, unsigned char *control, unsigned char *header,
 /* Wrap bound in the same units (0x3e8). */
 #define RECORDED_ANIMATION_ANGLE_WRAP 1000
 
+/* recorded animation playback: per-vector char-delta accumulate helper
+ *
+ * (0x00093b60, c:\halo\SOURCE\cutscene\recorded_animation_playback.c).
+ *
+ * Leaf helper called from FUN_00093c20 (and inlined at 0x93ccc for vector 0).
+ * Takes its two pairs via registers: angles in EAX, signed-byte cursor in
+ * EDX.  The original is 0x40 bytes (0x93b60-0x93b9f) with no frame, no calls:
+ *   MOVSX CX,[EDX] / ADD [EAX],CX                                  ; 0x93b60
+ *   XOR ECX,ECX / MOV CX,[EAX] / CMP CX,0x3e8 / JLE 0x93b86        ; 0x93b67-71
+ *   ADD ECX,-1000 / MOV [EAX],CX / MOVSX DX,[EDX+1] / ADD [EAX+2],DX / RET ;
+ * 0x93b73-85 CMP CX,-1000 / JGE 0x93b96 / ADD ECX,1000 / MOV [EAX],CX      ;
+ * 0x93b86-93 MOVSX DX,[EDX+1] / ADD [EAX+2],DX / RET                        ;
+ * 0x93b96-9f
+ *
+ * Angles are persistent yaw/pitch shorts in 1/1000-PI units.  Only
+ * angles[0] wraps at +-1000; angles[1] is always accumulated.  All
+ * arithmetic is 16-bit with MOVSX from the signed-byte cursor.
+ * Compare is signed 16-bit (CMP CX,0x3e8 / 0xfc18) with 16-bit store-back;
+ * the >1000 path tail-copies the second accumulate before return.
+ */
+void FUN_00093b60(short *angles, signed char *cursor)
+{
+  short temp;
+
+  angles[0] = (short)(angles[0] + (short)cursor[0]);
+  temp = angles[0];
+  if (temp > RECORDED_ANIMATION_ANGLE_WRAP) {
+    angles[0] = (short)(temp - RECORDED_ANIMATION_ANGLE_WRAP);
+    angles[1] = (short)(angles[1] + (short)cursor[1]);
+    return;
+  }
+  if (temp < -RECORDED_ANIMATION_ANGLE_WRAP) {
+    angles[0] = (short)(temp + RECORDED_ANIMATION_ANGLE_WRAP);
+  }
+  angles[1] = (short)(angles[1] + (short)cursor[1]);
+}
+
+
 /* recorded animation playback: control-vector char-difference stream event
  * handler (0x00093c20,
  * c:\halo\SOURCE\cutscene\recorded_animation_playback.c lines

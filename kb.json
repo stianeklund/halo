@@ -5216,7 +5216,8 @@
     },
     {
      "addr": "0x93b60",
-     "decl": "void FUN_00093b60(short *angles @<eax>, signed char *cursor @<edx>);"
+     "decl": "void FUN_00093b60(short *angles @<eax>, signed char *cursor @<edx>);",
+     "ported": true
     },
     {
      "addr": "0x93ba0",
@@ -33483,7 +33484,7 @@
     {
      "addr": "0x44660",
      "decl": "void ai_conversation_unit_died(int unit_handle, char param_2);",
-     "ported": true
+     "ported": false
     },
     {
      "addr": "0x447d0",
