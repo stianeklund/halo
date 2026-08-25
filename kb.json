@@ -33482,7 +33482,8 @@
     },
     {
      "addr": "0x44660",
-     "decl": "void ai_conversation_unit_died(int unit_handle, char param_2);"
+     "decl": "void ai_conversation_unit_died(int unit_handle, char param_2);",
+     "ported": true
     },
     {
      "addr": "0x447d0",
@@ -34243,7 +34244,7 @@
     {
      "addr": "0x58cc0",
      "decl": "void ai_scripting_follow_distance(unsigned int ai_index, int vehicle_handle, const char *seat_substring);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x58d40",
@@ -41429,11 +41430,13 @@
     },
     {
      "addr": "0x16b240",
-     "decl": "void FUN_0016b240(void);"
+     "decl": "void FUN_0016b240(void);",
+     "ported": true
     },
     {
      "addr": "0x16b270",
-     "decl": "void FUN_0016b270(int param_1, float param_2, float param_3, float param_4);"
+     "decl": "void FUN_0016b270(int param_1, float param_2, float param_3, float param_4);",
+     "ported": true
     },
     {
      "addr": "0x16b2b0",
@@ -41441,7 +41444,8 @@
     },
     {
      "addr": "0x16bed0",
-     "decl": "void FUN_0016bed0(void *param_1, int param_2);"
+     "decl": "void FUN_0016bed0(void *param_1, int param_2);",
+     "ported": true
     },
     {
      "addr": "0x16c090",

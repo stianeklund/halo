@@ -99,7 +99,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x3ca40,actor_set_dormant,stubbable,actors.obj,pass,,20,50,0
 0x3cb50,FUN_0003cb50,stubbable,actors.obj,error,emulation_error,0,50,0
 0x3cbc0,actor_delete_props,stubbable,actors.obj,error,emulation_error,0,50,0
-0x3cc10,actor_delete,stubbable,actors.obj,error,timeout,0,0,0
+0x3cc10,actor_delete,stubbable,actors.obj,pass,,1,50,0
 0x3cd30,actor_swarm_cache_new,stubbable,actors.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x3ce40,actor_get_running_blind_vector,stubbable,actors.obj,pass,,50,50,0
 0x3cf10,actor_kill,stubbable,actors.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 42 seeds",42,50,0
@@ -593,7 +593,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0xdc8c0,FUN_000dc8c0,leaf,first_person_weapons.obj,inconclusive,vacuous_coverage: 8.8% < 10% floor,50,50,0
 0xdc9d0,FUN_000dc9d0,stubbable,first_person_weapons.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0xdcc80,FUN_000dcc80,stubbable,first_person_weapons.obj,pass,,50,50,0
-0xde3b0,first_person_weapon_message_from_weapon,leaf,first_person_weapons.obj,error,emulation_error,0,50,0
+0xde3b0,first_person_weapon_message_from_weapon,leaf,first_person_weapons.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 49 seeds",49,50,0
 0xdcbd0,fp_anim_apply_node_remap,stubbable,first_person_weapons.obj,pass,,50,50,0
 0xa6a80,FUN_000a6a80,stubbable,game.obj,inconclusive,vacuous_coverage: 7.7% < 10% floor,50,50,0
 0xa6b50,FUN_000a6b50,stubbable,game.obj,inconclusive,vacuous_coverage: 9.1% < 10% floor,50,50,0
@@ -1130,7 +1130,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0xc74c0,FUN_000c74c0,stubbable,hs_compile.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0xc7b10,FUN_000c7b10,stubbable,hs_compile.obj,error,timeout,0,0,0
 0xc7be0,FUN_000c7be0,stubbable,hs_compile.obj,fail,divergence,0,50,0
-0xc7ca0,FUN_000c7ca0,stubbable,hs_compile.obj,fail,divergence,43,50,0
+0xc7ca0,FUN_000c7ca0,stubbable,hs_compile.obj,pass,,43,50,0
 0xc7e50,hs_macro_function_parse,stubbable,hs_compile.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 75 seeds",75,75,0
 0xc7f70,hs_parse_begin,stubbable,hs_compile.obj,pass,,50,50,0
 0xc8120,hs_parse_if,stubbable,hs_compile.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
@@ -1536,7 +1536,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x1278d0,FUN_001278d0,stubbable,network_client_message_handler.obj,pass,,89,90,0
 0x1279a0,FUN_001279a0,stubbable,network_client_message_handler.obj,pass,,89,90,0
 0x127a50,FUN_00127a50,stubbable,network_client_message_handler.obj,fail,divergence,87,90,0
-0x127b10,FUN_00127b10,stubbable,network_client_message_handler.obj,fail,divergence,88,90,0
+0x127b10,FUN_00127b10,stubbable,network_client_message_handler.obj,fail,divergence,87,90,0
 0x127bd0,FUN_00127bd0,stubbable,network_client_message_handler.obj,fail,divergence,87,90,0
 0x127c90,FUN_00127c90,stubbable,network_client_message_handler.obj,pass,,89,90,0
 0x127d30,FUN_00127d30,stubbable,network_client_message_handler.obj,pass,,89,90,0
@@ -1651,7 +1651,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x13a420,FUN_0013a420,stubbable,objects.obj,inconclusive,vacuous_coverage: 3.1% < 10% floor,50,50,0
 0x13a5f0,FUN_0013a5f0,stubbable,objects.obj,inconclusive,vacuous_coverage: 4.3% < 10% floor,50,50,0
 0x13aa10,FUN_0013aa10,stubbable,objects.obj,error,timeout,0,0,0
-0x13ab20,FUN_0013ab20,stubbable,objects.obj,fail,divergence,0,50,0
+0x13ab20,FUN_0013ab20,stubbable,objects.obj,fail,divergence,2,90,0
 0x13b150,FUN_0013b150,stubbable,objects.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x13b1b0,FUN_0013b1b0,stubbable,objects.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x13b290,FUN_0013b290,stubbable,objects.obj,inconclusive,vacuous_coverage: 6.5% < 10% floor,50,50,0
@@ -1880,7 +1880,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0xba390,player_delete,stubbable,players.obj,pass,,50,50,0
 0xba3b0,players_get_respawn_failure,data_only,players.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0xba4b0,local_player_count,data_only,players.obj,fail,divergence,0,50,0
-0xba4c0,local_player_get_next,data_only,players.obj,pass,,50,50,0
+0xba4c0,local_player_get_next,data_only,players.obj,fail,divergence,26,50,0
 0xba500,player_index_from_unit_index,stubbable,players.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0xba550,player_died,stubbable,players.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0xba5e0,players_are_all_dead,data_only,players.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
@@ -2180,7 +2180,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x1ad10,FUN_0001ad10,leaf,real_math.obj,pass,,50,50,0
 0x1ad40,FUN_0001ad40,leaf,real_math.obj,pass,,50,50,1
 0x1ad60,FUN_0001ad60,leaf,real_math.obj,pass,,50,50,0
-0x109010,FUN_00109010,leaf,real_math.obj,pass,,50,50,0
+0x109010,FUN_00109010,leaf,real_math.obj,fail,divergence,39,50,0
 0x1090e0,FUN_001090e0,leaf,real_math.obj,pass,,50,50,1
 0x109120,FUN_00109120,leaf,real_math.obj,pass,,50,50,1
 0x109150,matrix_inverse,data_only,real_math.obj,pass,,50,50,0
@@ -2205,7 +2205,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x109e10,matrix_from_forward_and_up,leaf,real_math.obj,pass,,50,50,0
 0x109e90,FUN_00109e90,leaf,real_math.obj,fail,divergence,49,50,0
 0x109fc0,FUN_00109fc0,data_only,real_math.obj,fail,divergence,23,50,0
-0x10a150,quaternion_to_angle_and_vector,stubbable,real_math.obj,fail,divergence,15,50,0
+0x10a150,quaternion_to_angle_and_vector,stubbable,real_math.obj,fail,divergence,16,50,0
 0x10a1c0,FUN_0010a1c0,leaf,real_math.obj,fail,divergence,49,50,0
 0x10a240,FUN_0010a240,data_only,real_math.obj,pass,,50,50,0
 0x10a2c0,FUN_0010a2c0,leaf,real_math.obj,pass,,50,50,0
@@ -2454,7 +2454,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x1cc8c0,sound_compute_random_scale,stubbable,sound_manager.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x1cca60,sound_stop_channel,stubbable,sound_manager.obj,fail,divergence,0,50,0
 0x1ccd70,sound_find_oldest_channel,stubbable,sound_manager.obj,fail,divergence,49,50,0
-0x1ccf80,sound_update_channel,data_only,sound_manager.obj,fail,divergence,83,85,0
+0x1ccf80,sound_update_channel,data_only,sound_manager.obj,fail,divergence,69,70,0
 0x1cd2c0,sound_start_next_looping_permutation,stubbable,sound_manager.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x1cd450,sound_stop_impulse,stubbable,sound_manager.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 65 seeds",65,65,0
 0x1cda50,sound_create_looping_entry,stubbable,sound_manager.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 26 seeds",26,50,0
@@ -2624,7 +2624,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0xe4640,ui_widget_stop_attract_mode,stubbable,ui_widget.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0xe46a0,ui_widget_get_attract_mode_flag,data_only,ui_widget.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0xe46b0,ui_widgets_disable_pause_game,stubbable,ui_widget.obj,pass,,50,50,0
-0xe4910,ui_widget_find_by_tag,leaf,ui_widget.obj,pass,,3,50,1
+0xe4910,ui_widget_find_by_tag,leaf,ui_widget.obj,pass,,3,50,0
 0xe5620,ui_widget_close,data_only,ui_widget.obj,inconclusive,vacuous_coverage: 8.3% < 10% floor,50,50,0
 0xe6980,ui_widget_begin_filesystem_checks,stubbable,ui_widget.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0xe78e0,render_ui_widgets,stubbable,ui_widget.obj,pass,,50,50,0
@@ -2708,7 +2708,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x1a7d40,FUN_001a7d40,stubbable,units.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x1a7d80,FUN_001a7d80,stubbable,units.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x1a7df0,FUN_001a7df0,stubbable,units.obj,pass,,3,50,0
-0x1a7e70,FUN_001a7e70,stubbable,units.obj,pass,,50,50,0
+0x1a7e70,FUN_001a7e70,stubbable,units.obj,fail,divergence,3,50,0
 0x1a7f80,unit_set_actively_controlled_flag,stubbable,units.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x1a7fa0,unit_kill,stubbable,units.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x1a7fc0,unit_delete,stubbable,units.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
@@ -2860,10 +2860,20 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x1b5d90,vehicle_render_debug,stubbable,vehicles.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x1b5df0,vehicle_get_estimated_position,stubbable,vehicles.obj,not_applicable,oracle_truncated,0,0,0
 0x1b7ee0,vehicle_moving_near_any_player,stubbable,vehicles.obj,error,emulation_error,0,50,0
+0xa3e60,FUN_000a3e60,leaf,weather_particle_systems.obj,pass,,50,50,0
+0xa3ea0,FUN_000a3ea0,stubbable,weather_particle_systems.obj,pass,,50,50,0
 0xa3ef0,weather_particle_systems_initialize,stubbable,weather_particle_systems.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0xa3f20,weather_particle_systems_initialize_for_new_map,data_only,weather_particle_systems.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0xa3f90,weather_particle_systems_dispose_from_old_map,stubbable,weather_particle_systems.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0xa3fb0,weather_particle_systems_dispose,stubbable,weather_particle_systems.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0xa40a0,FUN_000a40a0,leaf,weather_particle_systems.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0xa4200,FUN_000a4200,leaf,weather_particle_systems.obj,pass,,50,50,0
+0xa45d0,FUN_000a45d0,leaf,weather_particle_systems.obj,fail,divergence,6,50,0
+0xa48c0,FUN_000a48c0,data_only,weather_particle_systems.obj,pass,,50,50,0
+0xa4a00,FUN_000a4a00,stubbable,weather_particle_systems.obj,pass,,50,50,0
+0xa4ab0,FUN_000a4ab0,leaf,weather_particle_systems.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0xa4be0,FUN_000a4be0,leaf,weather_particle_systems.obj,pass,,50,50,0
+0xa4e20,weather_particle_system_render,leaf,weather_particle_systems.obj,inconclusive,vacuous_coverage: 7.8% < 10% floor,50,50,0
 0x136520,widgets_update,data_only,widgets.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x136450,widgets_render_object_widgets,stubbable,widgets.obj,error,timeout,0,0,0
 0x136580,widgets_initialize_for_new_map,leaf,widgets.obj,inconclusive,vacuous_coverage: 5.9% < 10% floor,50,50,0
@@ -2905,7 +2915,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x181410,FUN_00181410,leaf,rasterizer_text.obj,pass,,50,50,0
 0x182520,rasterizer_memory_pool_reset,data_only,rasterizer_text.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x182530,rasterizer_memory_pool_alloc,stubbable,rasterizer_text.obj,pass,,42,50,0
-0x182590,rasterizer_memory_pool_copy,stubbable,rasterizer_text.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 42 seeds",42,50,0
+0x182590,rasterizer_memory_pool_copy,stubbable,rasterizer_text.obj,fail,divergence,18,50,0
 0x1825d0,FUN_001825d0,leaf,rasterizer_text.obj,pass,,50,50,0
 0x1825e0,rasterizer_memory_pool_delete,stubbable,rasterizer_text.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x182840,rasterizer_xbox_bitmap_swizzle2d_byte,stubbable,rasterizer_text.obj,fail,divergence,32,50,0
@@ -3382,9 +3392,9 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x6c960,FUN_0006c960,stubbable,tif_open.obj,pass,,50,50,0
 0x6cac0,FUN_0006cac0,stubbable,tif_open.obj,pass,,50,50,0
 0x6cb00,FUN_0006cb00,leaf,tif_open.obj,pass,,50,50,0
-0x6ccf0,FUN_0006ccf0,leaf,tif_open.obj,fail,divergence,4,50,1
+0x6ccf0,FUN_0006ccf0,leaf,tif_open.obj,error,emulation_error,0,50,1
 0x6cd40,FUN_0006cd40,leaf,tif_open.obj,fail,divergence,0,50,0
-0x6cda0,FUN_0006cda0,leaf,tif_open.obj,fail,divergence,0,50,0
+0x6cda0,FUN_0006cda0,leaf,tif_open.obj,error,emulation_error,0,50,0
 0x6cde0,FUN_0006cde0,leaf,tif_open.obj,pass,,50,50,0
 0x6ce60,FUN_0006ce60,stubbable,tif_open.obj,pass,,50,50,0
 0x6d140,FUN_0006d140,leaf,tif_open.obj,pass,,50,50,0
@@ -3424,7 +3434,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x116390,FUN_00116390,stubbable,circular_queue.obj,pass,,4,50,0
 0x116460,FUN_00116460,leaf,circular_queue.obj,pass,,50,50,0
 0x1164d0,FUN_001164d0,leaf,circular_queue.obj,pass,,50,50,0
-0x1167f0,FUN_001167f0,leaf,circular_queue.obj,pass,,42,50,0
+0x1167f0,FUN_001167f0,leaf,circular_queue.obj,pass,,41,50,0
 0x117000,FUN_00117000,leaf,circular_queue.obj,pass,,50,50,0
 0x1170b0,FUN_001170b0,leaf,circular_queue.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x117130,FUN_00117130,leaf,circular_queue.obj,pass,,50,50,0
@@ -3485,86 +3495,86 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x12ac80,network_player_is_valid,leaf,network_game_manager.obj,pass,,50,50,0
 0x12acb0,network_game_invalidate_machine,leaf,network_game_manager.obj,pass,,50,50,0
 0x12b500,network_game_remove_machine,leaf,network_game_manager.obj,fail,divergence,35,50,0
-0x12b650,network_game_log,stubbable,network_game_manager.obj,error,timeout,0,0,0
-0x12a960,network_game_add_machine,leaf,network_game_manager.obj,error,exit=1,0,0,0
-0x12aa80,xbox_set_machine_name,stubbable,network_game_manager.obj,error,exit=1,0,0,0
-0x12ad60,network_game_add_player,leaf,network_game_manager.obj,error,exit=1,0,0,0
-0x12af00,FUN_0012af00,leaf,network_game_manager.obj,error,exit=1,0,0,0
-0x12b040,network_game_spawn_player,leaf,network_game_manager.obj,error,exit=1,0,0,0
-0x12b150,network_game_invalidate,stubbable,network_game_manager.obj,error,exit=1,0,0,0
-0x12b1f0,network_game_update_player,leaf,network_game_manager.obj,error,exit=1,0,0,0
-0x12b290,network_game_remove_player,leaf,network_game_manager.obj,error,exit=1,0,0,0
-0x12b350,network_game_create_game_objects,stubbable,network_game_manager.obj,error,exit=1,0,0,0
-0x12b5e0,network_game_get_random_player_name,stubbable,network_game_manager.obj,error,exit=1,0,0,0
-0x146db0,bsp3d_find_leaf,leaf,bsp3d.obj,error,exit=1,0,0,0
-0x146e30,bsp3d_clip_line_to_leaves,stubbable,bsp3d.obj,error,timeout,0,0,0
-0x1470b0,FUN_001470b0,stubbable,bsp3d.obj,error,exit=1,0,0,0
-0x14ad40,collision_features_init,stubbable,collision_features.obj,error,exit=1,0,0,0
+0x12b650,network_game_log,stubbable,network_game_manager.obj,pass,,50,50,0
+0x12a960,network_game_add_machine,leaf,network_game_manager.obj,pass,,50,50,0
+0x12aa80,xbox_set_machine_name,stubbable,network_game_manager.obj,pass,,50,50,0
+0x12ad60,network_game_add_player,leaf,network_game_manager.obj,pass,,50,50,0
+0x12af00,FUN_0012af00,leaf,network_game_manager.obj,pass,,50,50,0
+0x12b040,network_game_spawn_player,leaf,network_game_manager.obj,pass,,50,50,0
+0x12b150,network_game_invalidate,stubbable,network_game_manager.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x12b1f0,network_game_update_player,leaf,network_game_manager.obj,pass,,50,50,0
+0x12b290,network_game_remove_player,leaf,network_game_manager.obj,pass,,50,50,0
+0x12b350,network_game_create_game_objects,stubbable,network_game_manager.obj,pass,,50,50,0
+0x12b5e0,network_game_get_random_player_name,stubbable,network_game_manager.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x146db0,bsp3d_find_leaf,leaf,bsp3d.obj,error,timeout,0,0,0
+0x146e30,bsp3d_clip_line_to_leaves,stubbable,bsp3d.obj,error,emulation_error,0,50,0
+0x1470b0,FUN_001470b0,stubbable,bsp3d.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 75 seeds",75,75,0
+0x14ad40,collision_features_init,stubbable,collision_features.obj,pass,,50,50,0
 0x14b220,FUN_0014b220,stubbable,collision_features.obj,pass,,50,50,0
-0x14b3d0,collision_features_from_vertex,stubbable,collision_features.obj,error,exit=1,0,0,0
-0x14b470,collision_features_from_polygon,stubbable,collision_features.obj,error,exit=1,0,0,0
-0x14b620,FUN_0014b620,stubbable,collision_features.obj,error,exit=1,0,0,0
-0x14b890,collision_features_from_surface,data_only,collision_features.obj,error,exit=1,0,0,0
-0x14b960,collision_cylinder_test_point,data_only,collision_features.obj,error,exit=1,0,0,0
-0x14bae0,collision_prism_test_point,stubbable,collision_features.obj,error,exit=1,0,0,0
-0x1b9920,FUN_001b9920,data_only,cache_files.obj,error,timeout,0,0,0
-0x1b9de0,cache_files_give_time_to_precache,stubbable,cache_files.obj,error,exit=1,0,0,0
-0x1b9890,scenario_tags_unload,stubbable,cache_files.obj,error,timeout,0,0,0
-0x1b9ce0,cache_file_header_verify,stubbable,cache_files.obj,error,timeout,0,0,0
-0x24060,FUN_00024060,leaf,actor_firing_position.obj,error,exit=1,0,0,0
-0x24130,FUN_00024130,stubbable,actor_firing_position.obj,error,exit=1,0,0,0
+0x14b3d0,collision_features_from_vertex,stubbable,collision_features.obj,pass,,50,50,0
+0x14b470,collision_features_from_polygon,stubbable,collision_features.obj,pass,,50,50,0
+0x14b620,FUN_0014b620,stubbable,collision_features.obj,fail,divergence,37,50,0
+0x14b890,collision_features_from_surface,data_only,collision_features.obj,fail,divergence,43,50,0
+0x14b960,collision_cylinder_test_point,data_only,collision_features.obj,fail,divergence,31,50,0
+0x14bae0,collision_prism_test_point,stubbable,collision_features.obj,pass,,50,50,0
+0x1b9920,FUN_001b9920,data_only,cache_files.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x1b9de0,cache_files_give_time_to_precache,stubbable,cache_files.obj,pass,,50,50,0
+0x1b9890,scenario_tags_unload,stubbable,cache_files.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x1b9ce0,cache_file_header_verify,stubbable,cache_files.obj,pass,,50,50,0
+0x24060,FUN_00024060,leaf,actor_firing_position.obj,pass,,50,50,0
+0x24130,FUN_00024130,stubbable,actor_firing_position.obj,pass,,90,90,0
 0x24450,FUN_00024450,stubbable,actor_firing_position.obj,error,timeout,0,0,0
-0x245d0,post_evaluator_hide,data_only,actor_firing_position.obj,error,timeout,0,0,0
+0x245d0,post_evaluator_hide,data_only,actor_firing_position.obj,pass,,50,50,0
 0x246b0,FUN_000246b0,data_only,actor_firing_position.obj,pass,,50,50,0
-0x24950,FUN_00024950,stubbable,actor_firing_position.obj,error,exit=1,0,0,0
-0x24b80,actor_clear_discarded_firing_positions,stubbable,actor_firing_position.obj,error,timeout,0,0,0
-0x24be0,FUN_00024be0,stubbable,actor_firing_position.obj,error,timeout,0,0,0
-0x106900,convex_polygon2d_verify,leaf,geometry.obj,error,exit=1,0,0,0
-0x136750,damage_data_new,stubbable,damage.obj,error,exit=1,0,0,0
-0x136790,object_restore_body,stubbable,damage.obj,error,timeout,0,0,0
-0x1367e0,object_double_charge_shield,stubbable,damage.obj,error,timeout,0,0,0
-0x136840,FUN_00136840,stubbable,damage.obj,error,timeout,0,0,0
+0x24950,FUN_00024950,stubbable,actor_firing_position.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x24b80,actor_clear_discarded_firing_positions,stubbable,actor_firing_position.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x24be0,FUN_00024be0,stubbable,actor_firing_position.obj,pass,,50,50,0
+0x106900,convex_polygon2d_verify,leaf,geometry.obj,pass,,50,50,0
+0x136750,damage_data_new,stubbable,damage.obj,pass,,50,50,0
+0x136790,object_restore_body,stubbable,damage.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x1367e0,object_double_charge_shield,stubbable,damage.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x136840,FUN_00136840,stubbable,damage.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x1368e0,object_can_take_damage,stubbable,damage.obj,error,timeout,0,0,0
-0x136930,object_get_maximum_body_vitality,stubbable,damage.obj,error,exit=1,0,0,0
-0x136980,object_set_ranged_attack_inhibited,stubbable,damage.obj,error,timeout,0,0,0
-0x1369e0,FUN_001369e0,stubbable,damage.obj,error,exit=1,0,0,0
-0x136a00,FUN_00136a00,stubbable,damage.obj,error,exit=1,0,0,0
+0x136930,object_get_maximum_body_vitality,stubbable,damage.obj,error,timeout,0,0,0
+0x136980,object_set_ranged_attack_inhibited,stubbable,damage.obj,pass,,50,50,0
+0x1369e0,FUN_001369e0,stubbable,damage.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x136a00,FUN_00136a00,stubbable,damage.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x136a80,object_get_actual_body_vitality,stubbable,damage.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
-0x136ae0,object_get_actual_shield_vitality,stubbable,damage.obj,error,exit=1,0,0,0
-0x136b40,object_deplete_shield,stubbable,damage.obj,error,exit=1,0,0,0
-0x136f40,FUN_00136f40,stubbable,damage.obj,error,exit=1,0,0,0
-0x137370,render_debug_object_damage,stubbable,damage.obj,error,exit=1,0,0,0
-0x137540,object_deplete_body,stubbable,damage.obj,error,timeout,0,0,0
-0x137620,object_destroy,stubbable,damage.obj,error,timeout,0,0,0
-0x137690,FUN_00137690,stubbable,damage.obj,error,timeout,0,0,0
-0x137d20,object_cause_damage,stubbable,damage.obj,error,timeout,0,0,0
-0x1384e0,object_damage_update,stubbable,damage.obj,error,timeout,0,0,0
-0x138e30,FUN_00138e30,stubbable,damage.obj,error,timeout,0,0,0
+0x136ae0,object_get_actual_shield_vitality,stubbable,damage.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x136b40,object_deplete_shield,stubbable,damage.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x136f40,FUN_00136f40,stubbable,damage.obj,pass,,50,50,0
+0x137370,render_debug_object_damage,stubbable,damage.obj,inconclusive,vacuous_coverage: 5.7% < 10% floor,50,50,0
+0x137540,object_deplete_body,stubbable,damage.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x137620,object_destroy,stubbable,damage.obj,error,emulation_error,0,50,0
+0x137690,FUN_00137690,stubbable,damage.obj,pass,,50,50,0
+0x137d20,object_cause_damage,stubbable,damage.obj,pass,,50,50,0
+0x1384e0,object_damage_update,stubbable,damage.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x138e30,FUN_00138e30,stubbable,damage.obj,pass,,50,50,0
 0x138eb0,FUN_00138eb0,data_only,damage.obj,error,emulation_error,0,50,0
-0x138ee0,FUN_00138ee0,stubbable,damage.obj,error,exit=1,0,0,0
-0x136700,object_get_maximum_shield_vitality,stubbable,damage.obj,error,exit=1,0,0,0
-0x138f10,FUN_00138f10,leaf,damage.obj,error,exit=1,0,0,0
-0x1390d0,FUN_001390d0,stubbable,damage.obj,error,exit=1,0,0,0
-0x139310,light_delete,stubbable,object_lights.obj,error,timeout,0,0,0
-0x139480,FUN_00139480,stubbable,object_lights.obj,error,timeout,0,0,0
-0x1391e0,lights_initialize,stubbable,object_lights.obj,error,exit=1,0,0,0
-0x1392a0,lights_dispose,stubbable,object_lights.obj,error,timeout,0,0,0
-0x1392b0,lights_initialize_for_new_map,stubbable,object_lights.obj,error,timeout,0,0,0
-0x1392e0,lights_dispose_from_old_map,stubbable,object_lights.obj,error,timeout,0,0,0
-0x139300,lights_enable,data_only,object_lights.obj,error,exit=1,0,0,0
-0x139350,FUN_00139350,stubbable,object_lights.obj,error,exit=1,0,0,0
-0x1393b0,object_get_self_illumination,stubbable,object_lights.obj,error,exit=1,0,0,0
-0x81b90,transport_address_to_string,stubbable,transport_address.obj,error,timeout,0,0,0
-0x81a90,transport_address_equivalent,stubbable,transport_address.obj,error,timeout,0,0,0
+0x138ee0,FUN_00138ee0,stubbable,damage.obj,pass,,50,50,0
+0x136700,object_get_maximum_shield_vitality,stubbable,damage.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x138f10,FUN_00138f10,leaf,damage.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x1390d0,FUN_001390d0,stubbable,damage.obj,pass,,50,50,0
+0x139310,light_delete,stubbable,object_lights.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x139480,FUN_00139480,stubbable,object_lights.obj,not_applicable,oracle_truncated,0,0,0
+0x1391e0,lights_initialize,stubbable,object_lights.obj,inconclusive,vacuous_coverage: 9.6% < 10% floor,50,50,0
+0x1392a0,lights_dispose,stubbable,object_lights.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x1392b0,lights_initialize_for_new_map,stubbable,object_lights.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x1392e0,lights_dispose_from_old_map,stubbable,object_lights.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
+0x139300,lights_enable,data_only,object_lights.obj,pass,,50,50,0
+0x139350,FUN_00139350,stubbable,object_lights.obj,pass,,49,50,0
+0x1393b0,object_get_self_illumination,stubbable,object_lights.obj,error,timeout,0,0,0
+0x81b90,transport_address_to_string,stubbable,transport_address.obj,pass,,50,50,0
+0x81a90,transport_address_equivalent,stubbable,transport_address.obj,pass,,50,50,0
 0x81c80,FUN_00081c80,leaf,transport_address.obj,inconclusive,vacuous_coverage: 6.9% < 10% floor,43,50,0
 0x1bded0,xbox_sound_cache_idle,stubbable,xbox_sound_cache.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
-0x1bdf10,sound_cache_sound_new,stubbable,xbox_sound_cache.obj,error,exit=1,0,0,0
+0x1bdf10,sound_cache_sound_new,stubbable,xbox_sound_cache.obj,pass,,50,50,0
 0x1bdf60,sound_cache_sound_delete,stubbable,xbox_sound_cache.obj,pass,,50,50,0
 0x1be3e0,sound_cache_new,stubbable,xbox_sound_cache.obj,error,emulation_error,0,50,0
 0x1be490,sound_cache_flush,stubbable,xbox_sound_cache.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x1be4f0,sound_cache_close,stubbable,xbox_sound_cache.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
-0x807d0,key_message_xor_keystream,leaf,message_header.obj,pass,,41,50,0
-0x80820,tea_encrypt,leaf,message_header.obj,pass,,50,50,0
+0x807d0,key_message_xor_keystream,leaf,message_header.obj,pass,,40,50,0
+0x80820,tea_encrypt,leaf,message_header.obj,pass,,50,50,1
 0x808b0,tea_decrypt,leaf,message_header.obj,pass,,50,50,1
 0x80b40,build_message_header,data_only,message_header.obj,pass,,50,50,0
 0x80c20,byte_swap_message_header,data_only,message_header.obj,pass,,50,50,0
@@ -3605,7 +3615,7 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x147d10,collision_surface_test_line2d,stubbable,collision_bsp.obj,pass,,50,50,0
 0x148370,FUN_00148370,data_only,collision_bsp.obj,pass,,50,50,0
 0x1486e0,FUN_001486e0,leaf,collision_bsp.obj,pass,,24,50,0
-0x148b20,collision_bsp_test_pill_new,leaf,collision_bsp.obj,error,timeout,0,0,0
+0x148b20,collision_bsp_test_pill_new,leaf,collision_bsp.obj,error,emulation_error,0,50,0
 0x1493b0,collision_bsp_test_sphere,data_only,collision_bsp.obj,error,emulation_error,0,50,0
 0x14dc30,FUN_0014dc30,stubbable,collision_bsp.obj,pass,,50,50,0
 0x14dce0,FUN_0014dce0,leaf,collision_bsp.obj,error,timeout,0,0,0
@@ -3641,10 +3651,10 @@ addr,name,class,obj,status,reason,seeds_passed,seeds_total,z3_proven
 0x1b8a0,action_vehicle_perform,stubbable,action_vehicle.obj,not_applicable,lifted_extract_failed,0,0,0
 0x17adc0,rasterizer_widget_get_occlusion_test_result,stubbable,rasterizer_xbox_widgets.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x17ae90,FUN_0017ae90,stubbable,rasterizer_xbox_widgets.obj,pass,,50,50,0
-0x17b000,FUN_0017b000,stubbable,rasterizer_xbox_widgets.obj,error,timeout,0,0,0
+0x17b000,FUN_0017b000,stubbable,rasterizer_xbox_widgets.obj,inconclusive,vacuous_coverage: 4.4% < 10% floor,50,50,0
 0x17b480,FUN_0017b480,stubbable,rasterizer_xbox_widgets.obj,inconclusive,"vacuous_output: 1 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x17b540,FUN_0017b540,stubbable,rasterizer_xbox_widgets.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
 0x17b580,FUN_0017b580,stubbable,rasterizer_xbox_widgets.obj,inconclusive,"vacuous_output: 0 unique return(s), no scratch or memory variation across 50 seeds",50,50,0
-0x17b5c0,FUN_0017b5c0,stubbable,rasterizer_xbox_widgets.obj,error,timeout,0,0,0
+0x17b5c0,FUN_0017b5c0,stubbable,rasterizer_xbox_widgets.obj,inconclusive,vacuous_coverage: 9.9% < 10% floor,50,50,0
 0x7ff40,math64_add,leaf,64bit_math.obj,pass,,50,50,0
 0x7f3a0,targa_export,stubbable,targa_file.obj,pass,,50,50,0
