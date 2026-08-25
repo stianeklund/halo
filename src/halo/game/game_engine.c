@@ -7332,8 +7332,6 @@ void FUN_000b1180(void)
   int num_flags;
   float *flag_pos;
   int i;
-  float x0;
-  float y0;
   float points_2d[48];
   int16_t hull_indices[12];
   int16_t hull_count;
@@ -7365,21 +7363,24 @@ void FUN_000b1180(void)
       dst += 3;
     } while (i < num_flags);
   }
-  x0 = positions[0];
-  y0 = positions[1];
   if (num_flags == 1) {
-    positions[0] = x0 - 1.0f;
-    positions[1] = y0 - 1.0f;
-    positions[3] = x0 + 1.0f;
-    positions[4] = y0 - 1.0f;
-    positions[6] = x0 - 1.0f;
-    positions[7] = y0 + 1.0f;
-    positions[9] = x0 + 1.0f;
-    positions[10] = y0 + 1.0f;
-    /* z coords copied from first flag */
-    positions[5] = positions[2];
-    positions[8] = positions[2];
-    positions[11] = positions[2];
+    ((int *)positions)[3] = ((int *)positions)[0];
+    ((int *)positions)[4] = ((int *)positions)[1];
+    ((int *)positions)[5] = ((int *)positions)[2];
+    ((int *)positions)[6] = ((int *)positions)[0];
+    ((int *)positions)[7] = ((int *)positions)[1];
+    ((int *)positions)[8] = ((int *)positions)[2];
+    ((int *)positions)[9] = ((int *)positions)[0];
+    ((int *)positions)[10] = ((int *)positions)[1];
+    ((int *)positions)[11] = ((int *)positions)[2];
+    positions[0] = positions[0] - 1.0f;
+    positions[1] = positions[1] - 1.0f;
+    positions[3] = positions[3] + 1.0f;
+    positions[4] = positions[4] - 1.0f;
+    positions[6] = positions[6] - 1.0f;
+    positions[7] = positions[7] + 1.0f;
+    positions[9] = positions[9] + 1.0f;
+    positions[10] = positions[10] + 1.0f;
     num_flags = 4;
   }
   /* Build 2D convex hull from x,y coordinates */
@@ -7414,38 +7415,39 @@ void FUN_000b1180(void)
   }
   /* Compute bounding box center and vertical bounds */
   {
-    float minx, miny, minz, maxx, maxy, maxz;
-    minx = *(float *)0x456c3c;
-    miny = *(float *)0x456c40;
-    minz = *(float *)0x456c44;
-    maxx = minx;
-    maxy = miny;
-    maxz = minz;
+    float minv[3];
+    float maxv[3];
+    ((int *)minv)[0] = *(int *)0x456c3c;
+    ((int *)minv)[1] = *(int *)0x456c40;
+    ((int *)minv)[2] = *(int *)0x456c44;
+    ((int *)maxv)[0] = ((int *)minv)[0];
+    ((int *)maxv)[1] = ((int *)minv)[1];
+    ((int *)maxv)[2] = ((int *)minv)[2];
     if (0 < *(int *)0x456c38) {
       float *p = (float *)0x456c40;
       int count = *(int *)0x456c38;
       do {
-        if (p[-1] < minx)
-          minx = p[-1];
-        if (*p < miny)
-          miny = *p;
-        if (p[1] < minz)
-          minz = p[1];
-        if (maxx <= p[-1])
-          maxx = p[-1];
-        if (maxy <= *p)
-          maxy = *p;
-        if (maxz <= p[1])
-          maxz = p[1];
+        if (minv[0] > p[-1])
+          minv[0] = p[-1];
+        if (minv[1] > *p)
+          minv[1] = *p;
+        if (minv[2] > p[1])
+          minv[2] = p[1];
+        if (maxv[0] <= p[-1])
+          maxv[0] = p[-1];
+        if (maxv[1] <= *p)
+          maxv[1] = *p;
+        if (maxv[2] <= p[1])
+          maxv[2] = p[1];
         p += 3;
         count--;
       } while (count != 0);
     }
-    *(float *)0x456d48 = minz - *(float *)0x25496c;
-    *(float *)0x456d44 = maxz + *(float *)0x2533f0;
-    *(float *)0x456d2c = (maxx + minx) * 0.5f;
-    *(float *)0x456d30 = (maxy + miny) * 0.5f;
-    *(float *)0x456d34 = (maxz + minz) * 0.5f;
+    *(float *)0x456d48 = minv[2] - *(float *)0x25496c;
+    *(float *)0x456d44 = maxv[2] + *(float *)0x2533f0;
+    *(float *)0x456d2c = (maxv[0] + minv[0]) * 0.5f;
+    *(float *)0x456d30 = (maxv[1] + minv[1]) * 0.5f;
+    *(float *)0x456d34 = (maxv[2] + minv[2]) * 0.5f;
   }
 }
 

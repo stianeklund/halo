@@ -12421,16 +12421,16 @@
     "FUN_000b1180": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 81.6,
+      "abi_modeled_mnemonic_pct": 93.2,
       "addr": "0xb1180",
       "end": "0xb14cf",
       "kind": "auto",
       "n_r": 235,
-      "opnd_percent": 56.8,
-      "raw_mnemonic_pct": 81.6,
+      "opnd_percent": 72.2,
+      "raw_mnemonic_pct": 93.2,
       "ref": "synth",
       "ref_sha": "0afd3a904080eab5",
-      "score": 81.6,
+      "score": 93.2,
       "source": "src/halo/game/game_engine.c"
     },
     "FUN_000b1570": {
