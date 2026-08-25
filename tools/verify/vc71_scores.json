@@ -77836,16 +77836,16 @@
     "virtual_keyboard_set_validation": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 92.9,
+      "abi_modeled_mnemonic_pct": 94.1,
       "addr": "0xf5500",
       "end": "0xf563b",
       "kind": "auto",
       "n_r": 85,
-      "opnd_percent": 89.4,
-      "raw_mnemonic_pct": 92.9,
+      "opnd_percent": 90.6,
+      "raw_mnemonic_pct": 94.1,
       "ref": "synth",
       "ref_sha": "95fde3329854cdf0",
-      "score": 92.9,
+      "score": 94.1,
       "source": "src/halo/items/items.c"
     },
     "weapon_activate": {

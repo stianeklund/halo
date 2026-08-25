@@ -262,15 +262,16 @@ bool virtual_keyboard_initialize(void)
  *   +0x01 u8   (cleared)
  *   +0x02 u8   (cleared)
  *   +0x03 u8   (cleared)
- *   +0x04 u32  readiness gate (read-only here)
- *   +0x06 u8   (cleared)
- *   +0x07 u8   set to 1
+ *   +0x04 ptr  keyboard ('vcky' tag definition; read-only here -- do NOT
+ *              byte-write into +0x06/+0x07, they are the top half of this
+ *              pointer)
  *   +0x08 u16  cursor/selection lo (cleared)
  *   +0x0a u16  cursor/selection hi (cleared)
  *   +0x0c u16  buffer_size, clamped <= 0x40 (unsigned)
  *   +0x0e u16  0xffff sentinel
  *   +0x14 u16  caption_index
- *   +0x16 u8   (cleared)
+ *   +0x16 u8   done flag (cleared)
+ *   +0x17 u8   pristine flag (set to 1)
  *   +0x18 ptr  text_buffer
  *   +0x1c ptr  text_buffer end = base + ustrlen(base) (wchar_t* arithmetic)
  *   +0x20 u32  FUN_001d0581() result
@@ -298,7 +299,7 @@ bool virtual_keyboard_set_validation(wchar_t *text_buffer,
                     !*(uint8_t *)0x46cef0,
                   "text_buffer && buffer_size && !(buffer_size&1) && "
                   "!virtual_keyboard_globals.active");
-  assert_halt_msg((caption_index > 7) && (caption_index < 0xb),
+  assert_halt_msg((caption_index >= 8) && (caption_index < 0xb),
                   "(caption_index>=FIRST_VIRTUAL_KEYBOARD_CAPTION_STRING_INDEX)"
                   " && (caption_index<NUMBER_OF_VIRTUAL_KEYBOARD_STRINGS)");
 
@@ -322,10 +323,10 @@ bool virtual_keyboard_set_validation(wchar_t *text_buffer,
   *(uint8_t *)0x46cef1 = 0;
   *(uint8_t *)0x46cef2 = 0;
   *(uint8_t *)0x46cef3 = 0;
-  *(uint8_t *)0x46cef7 = 1;
+  *(uint8_t *)0x46cf07 = 1;
   ustrncpy((wchar_t *)0x46cf18, text_buffer, 0x20);
   *(uint16_t *)0x46cf56 = 0;
-  *(uint8_t *)0x46cef6 = 0;
+  *(uint8_t *)0x46cf06 = 0;
   ui_play_audio_feedback_sound(2);
   return true;
 }
