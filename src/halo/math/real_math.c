@@ -3181,10 +3181,7 @@ char FUN_0010e8a0(float *point, float radius, float *rect)
   } else {
     dy = point[1] - rect[3];
   }
-  if (dx * dx + dy * dy <= radius * radius) {
-    return 1;
-  }
-  return 0;
+  return dx * dx + dy * dy <= radius * radius;
 }
 
 /* 0x10e930 — 3D point-to-AABB distance test.
@@ -3218,10 +3215,7 @@ char FUN_0010e930(float *point, float radius, float *aabb)
   } else {
     dz = point[2] - aabb[5];
   }
-  if (dx * dx + dy * dy + dz * dz < radius * radius) {
-    return 1;
-  }
-  return 0;
+  return dx * dx + dy * dy + dz * dz <= radius * radius;
 }
 
 /* 0x10e9f0 — 2D triangle vs circle test. Tests the 3 edges (cw winding)
@@ -4431,7 +4425,8 @@ void FUN_00110730(int *param_1, short param_2, int param_3, int param_4,
                    0x2d, 1);
     system_exit(-1);
   }
-  if (param_2 < 1) {
+  if (param_2 > 0) {
+  } else {
     display_assert("component_count>0", "c:\\halo\\SOURCE\\math\\vector_tree.c",
                    0x2e, 1);
     system_exit(-1);
