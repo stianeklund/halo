@@ -8577,10 +8577,10 @@ void units_set_desired_flashlight_state(int object_list, char desired)
     unit = (char *)object_try_and_get_and_verify_type(child, 3);
     if (unit != NULL && child != -1) {
       unit = (char *)object_get_and_verify_type(child, 3);
-      if (desired == '\0') {
-        flags = *(uint32_t *)(unit + 0x1b4) | 0x20000000;
-      } else {
+      if (desired) {
         flags = *(uint32_t *)(unit + 0x1b4) | 0x10000000;
+      } else {
+        flags = *(uint32_t *)(unit + 0x1b4) | 0x20000000;
       }
       *(uint32_t *)(unit + 0x1b4) = flags;
     }
