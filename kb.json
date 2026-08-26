@@ -27015,7 +27015,8 @@
     },
     {
      "addr": "0xefed0",
-     "decl": "void FUN_000efed0(void);"
+     "decl": "bool FUN_000efed0(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xeff70",

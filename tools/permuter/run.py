@@ -524,10 +524,11 @@ def _generate_implicit_decls(func_body: str, file_statics: str) -> str:
 def build_base_c(func_name: str, func_body: str, file_statics: str = "") -> str:
     """Construct a minimal base.c suitable for pycparser + VC71 compilation."""
     statics = re.sub(r'__declspec\s*\([^)]*\)\s*', '', file_statics)
-    # pycparser cannot parse MSVC __cdecl calling convention specifier. Strip it
-    # so extern declarations like `extern void *__cdecl memcpy(...);` are
-    # converted to `extern void *memcpy(...);` for pycparser compatibility.
-    statics = re.sub(r'\b__cdecl\s+', '', statics)
+    # pycparser cannot parse MSVC calling convention specifiers. Strip them
+    # so extern declarations and typedefs like `typedef int(__stdcall *fn)();`
+    # are converted to standard C for pycparser compatibility.
+    statics = re.sub(r'\b(__cdecl|__stdcall|__fastcall)\b\s*', '', statics)
+    func_body = re.sub(r'\b(__cdecl|__stdcall|__fastcall)\b\s*', '', func_body)
     # pycparser cannot parse MSVC __asm { ... } blocks or GCC __asm__ blocks in inline helpers.
     statics = re.sub(r'\b__asm\s*\{[^}]*\}', '{ /* asm */ }', statics)
     statics = re.sub(r'\b__asm__\s*__volatile__\s*\([^;]*\);', '/* asm */;', statics)

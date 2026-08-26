@@ -1,3 +1,87 @@
+/* color picker menu dispose (event handler table index 62, 0x0eebe0) — frees
+ * the child widget cached at +0x40 back to the widget pool, if present. */
+bool ui_widget_color_picker_menu_dispose(void *widget, void *event_data,
+                                         bool *widget_deleted)
+{
+  void *child;
+
+  child = *(void **)((char *)widget + 0x40);
+  if (child != NULL) {
+    widget_free(child);
+    *(void **)((char *)widget + 0x40) = NULL;
+  }
+  return true;
+}
+
+/* network start-time-change request handler (0x000efed0) — event handler
+ * table entry, same 3-arg bool convention as the siblings above/below in
+ * this file (widget/widget_deleted unused here; disasm never touches
+ * EBP+8 or EBP+0x10). Always returns true (MOV AL,1 before every RET).
+ *
+ * Looks up the local network client (network_game_client_get), then scans
+ * its player table (network_game_client_get_machine_index() + 0x242,
+ * 16 entries, stride 0x20; network_player_is_valid() takes the entry base
+ * at +0x226) for a valid entry whose machine index (entry+0) matches this
+ * client's own machine index (FUN_00124c40) and whose local-player index
+ * (entry+1) matches the field at event_data+2. On a match, requests a game
+ * start-time change (request_type=1) and errors if it fails. */
+bool FUN_000efed0(void *widget, void *event_data, bool *widget_deleted)
+{
+  void *client;
+  char *player_base;
+  unsigned short local_machine_index;
+  char *entry;
+  int i;
+  bool time_change_ok;
+
+  client = network_game_client_get();
+  if (client != NULL) {
+    player_base = (char *)network_game_client_get_machine_index(client);
+    local_machine_index = FUN_00124c40(client);
+    entry = player_base + 0x242;
+    i = 0;
+    while (1) {
+      if (network_player_is_valid(entry - 0x1c) &&
+          (short)*entry == (short)local_machine_index &&
+          (short)entry[1] == *(short *)((char *)event_data + 2)) {
+        break;
+      }
+      i = i + 1;
+      entry = entry + 0x20;
+      if (i > 0xf) {
+        return true;
+      }
+    }
+    time_change_ok = network_game_client_request_start_time_change(client, 1);
+    if (!time_change_ok) {
+      error(2, "network_game_client_request_start_time_change() failed");
+    }
+  }
+  return true;
+}
+
+/* disable if no xdemos (event handler table index 86, 0x0f0070) — marks the
+ * widget disabled (+0x12) and clears its enabled/visible byte (+0x10) when no
+ * Xbox demo content is installed. */
+bool ui_widget_disable_if_no_xdemos(void *widget, void *event_data,
+                                    bool *widget_deleted)
+{
+  if (!xbox_demos_available()) {
+    *(uint8_t *)((char *)widget + 0x12) = 1;
+    *(uint8_t *)((char *)widget + 0x10) = 0;
+  }
+  return true;
+}
+
+/* pop history stack once (event handler table index 98, 0x0f0620) — pops one
+ * entry from the widget history stack of the widget's local player (+0x8). */
+bool ui_widget_pop_history_stack_once(void *widget, void *event_data,
+                                      bool *widget_deleted)
+{
+  ui_widgets_pop_stack(*(uint16_t *)((char *)widget + 0x8));
+  return true;
+}
+
 void ui_widget_game_data_function_invoke(
   void *widget, unsigned __int16 game_data_input_reference_function)
 {
@@ -301,41 +385,4 @@ void FUN_000f46e0(int *widget)
       *(short *)((char *)widget + 0x3c) = (short)clamped;
     }
   }
-}
-
-/* color picker menu dispose (event handler table index 62, 0x0eebe0) — frees
- * the child widget cached at +0x40 back to the widget pool, if present. */
-bool ui_widget_color_picker_menu_dispose(void *widget, void *event_data,
-                                         bool *widget_deleted)
-{
-  void *child;
-
-  child = *(void **)((char *)widget + 0x40);
-  if (child != NULL) {
-    widget_free(child);
-    *(void **)((char *)widget + 0x40) = NULL;
-  }
-  return true;
-}
-
-/* disable if no xdemos (event handler table index 86, 0x0f0070) — marks the
- * widget disabled (+0x12) and clears its enabled/visible byte (+0x10) when no
- * Xbox demo content is installed. */
-bool ui_widget_disable_if_no_xdemos(void *widget, void *event_data,
-                                    bool *widget_deleted)
-{
-  if (!xbox_demos_available()) {
-    *(uint8_t *)((char *)widget + 0x12) = 1;
-    *(uint8_t *)((char *)widget + 0x10) = 0;
-  }
-  return true;
-}
-
-/* pop history stack once (event handler table index 98, 0x0f0620) — pops one
- * entry from the widget history stack of the widget's local player (+0x8). */
-bool ui_widget_pop_history_stack_once(void *widget, void *event_data,
-                                      bool *widget_deleted)
-{
-  ui_widgets_pop_stack(*(uint16_t *)((char *)widget + 0x8));
-  return true;
 }
